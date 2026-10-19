@@ -49,7 +49,7 @@ FORBIDDEN = [
 
 SYSTEMS = [
     "sys-nutrients", "sys-eating", "sys-hunger", "sys-thirst", "sys-monotony", "sys-body", "sys-exercise",
-    "sys-strength", "sys-traits", "sys-deficiency", "sys-acute", "sys-screen",
+    "sys-strength", "sys-traits", "sys-deficiency", "sys-acute", "sys-screen", "sys-offline",
 ]
 BLOCK_ORDER = ["vanilla", "mod", "charts", "can", "no-longer", "science"]
 SCENARIO_ANCHORS = ["s1", "s2", "s3", "s4", "s5", "s6"]
@@ -585,6 +585,13 @@ class Scenarios(_Base):
         r"Energy moodle (?:shows|reaches)", r"Managed(?:-mode)? cap", r"beriberi kills", r"never blocks an eat",
         r"NR\.DeficienciesCanKill", r"when the server lets deficiencies kill", r"Hydration \(Slightly dry",
         r"hunger itself never kills", r"never reach(?:es)? the top (?:Hungry|Thirsty)", r"Hunger never reaches zero",
+        # Plan 16 Task 11: no rhythm with sleep off (x467 saw breakfast wear off first), the tooltip hide measured live
+        # (x462), the server refusal (x466), the fast's wet beriberi death (#3978), the offline freeze (x463a), the
+        # drink sip by sip, the superseded hunger, satiety and starvation rows
+        r"dinner wore off soonest", r"dinner wears off sooner", r"has not been seen (?:live|in a live game)",
+        r"can still land", r"so a heavier (?:body lives|survivor lasts) longer", r"starvation kills on day",
+        r"Time offline is not simulated", r"lands whole", r"with water, about two months",
+        r"#3905\b", r"#3910\b", r"#3948\b", r"#3952\b", r"#3953\b",
     ]
 
     def test_task_11_stale_sentences_stay_gone(self):
@@ -605,10 +612,12 @@ class Scenarios(_Base):
         ("S5a-v-model-level", "y@x=Weak + Overweight|r0", "0"),
         ("S5a-m-live-level", "y@x=Weak + Overweight|r0", "1"),
         ("S4b-m-level", "x@y>=10|r1", None),
+        ("S4a-m-deficit", "last.x|r0", "301"),  # Plan 16 Task 11: the deficit year's starvation death (BMI 12)
+        ("SH3-m-live", "y@x=breakfast|r1", "3.9"),  # Plan 16 Task 11: x467, breakfast wears off first (#3990)
     ]
 
     def test_pinned_fills(self):
-        """Six fills the scenarios' claims rest on: on the page with this pick, and reading what the notes say."""
+        """Eight fills the claims rest on: on the page with this pick, and reading what the notes say."""
         fills = set(self.page.fills)
         for sid, pick, want in self.PINNED:
             with self.subTest(fill=sid, pick=pick):
@@ -626,6 +635,37 @@ class Scenarios(_Base):
         cleared = next(p[0] for p in bac[peak:] if p[1] <= 0)
         start, _ = evaluate_pick(self.series["S6b-m-hangover"]["points"], "x@y>=1")
         self.assertGreaterEqual(start, cleared)
+
+    def test_every_cited_claim_is_live_in_the_register(self):
+        """Plan 16 Task 11: every #-id the page cites is a row of the claims register that is not superseded."""
+        status = {}
+        with open(os.path.join(REPO, "docs", "reference", "claims.tsv"), encoding="utf-8") as fh:
+            head = fh.readline().rstrip("\n").split("\t")
+            for line in fh:
+                cells = dict(zip(head, line.rstrip("\n").split("\t")))
+                status[cells["id"]] = cells["status"]
+        cited = set(re.findall(r"#\d{4}\b", self.html))
+        self.assertGreaterEqual(len(cited), 100)
+        for cid in sorted(cited):
+            with self.subTest(claim=cid):
+                self.assertIn(cid, status)
+                self.assertIn(status[cid], ("settled", "open"), cid)
+
+    def test_plan16_the_new_mechanics_are_on_the_page(self):
+        """Plan 16 Task 11: the offline freeze and the backup, the body clock and the two sleep setups, the server
+        refusal and the corrected limitations, each with its register row in a science box."""
+        self.assertIn("sys-offline", self.page.ids)
+        for frag in ("Nothing about your survivor changes while you are logged off", "a backup copy on your character",
+                     "Records are kept for good", "your body also keeps a clock of its own",
+                     "the server refuses an eat that gets past the menus", "A drink with no food value, such as water",
+                     "A drink arrives sip by sip", "in the server's language", "QualityCooking",
+                     "In Overlay mode the game's own fullness decides", "caught up in hour-long steps"):
+            self.assertIn(frag, self.html, frag)
+        for cid in ("#3955", "#3958", "#3961", "#3965", "#3967", "#3968", "#3972", "#3973", "#3977", "#3978",
+                    "#3979", "#3982", "#3983", "#3985", "#3987", "#3988", "#3989", "#3990"):
+            self.assertIn(cid, self.html, cid)
+        for frag in ("not established physiology (#3996)", "NR.RecordKeepDays"):
+            self.assertEqual(self.html.count(frag), 1 if frag.startswith("not") else 0, frag)
 
     def test_the_scenario_guard_catches_a_typed_number(self):
         p = PageParser()

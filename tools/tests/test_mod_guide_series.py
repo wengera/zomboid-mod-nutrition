@@ -131,11 +131,12 @@ def kh():
 def test_the_built_series_and_the_pending_and_dropped_ids_cover_the_map():
     built = set(SER)
     mapped = {i for c in S.MAP_CHARTS.values() for i in c["series"]}
-    assert len(mapped) == 158
+    assert len(mapped) == 159                                           # Plan 16 Task 11: SE1-m-kernel-liquid
     assert built | set(S.PENDING_LIVE) | set(S.DROPPED) == mapped
     assert not (built & set(S.PENDING_LIVE)) and not (built & set(S.DROPPED))
     assert not (set(S.PENDING_LIVE) & set(S.DROPPED))
-    assert len(built) == 144 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 14   # Plan 15 Task 14b: SE1's live lines (x363); Plan 16 Task 4: SH3's (x452b)
+    # Plan 16 Task 11: x461b draws SE1's live liquid (its fill DROPPED on the window), x467 SH3's live returns
+    assert len(built) == 148 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 11
     assert DATA["charts"] == S.CHARTS
     assert D.coverage_gaps(built, DATA["charts"], S.PENDING_LIVE) == ([], [])
 
@@ -143,11 +144,11 @@ def test_the_built_series_and_the_pending_and_dropped_ids_cover_the_map():
 def test_no_id_is_pending_and_every_vanilla_live_series_is_built():
     vl = {i for c in S.MAP_CHARTS.values() for i in c["series"] if "-v-live" in i}
     assert S.PENDING_LIVE == () and vl <= set(SER) and "SV1-m-live-b" in set(SER)
-    assert not {"SH3-m-live", "SH3-m-live-hungry"} & set(SER)         # x452b's, DROPPED since Plan 16 Task 4
+    assert {"SH3-m-live", "SH3-m-live-hungry"} <= set(SER)            # x467's since Plan 16 Task 11
     assert all(SER[i]["badge"] == "vanilla-live" for i in vl)
 
 
-def test_plan15_the_older_rings_fail_at_head_and_x452b_proves_the_hunger_lines():
+def test_plan15_the_older_rings_fail_at_head_and_x467_proves_the_hunger_lines():
     # Plan 15 Task 13: the calibrated writer (Task 6) and the water base (Task 3) move the older rings, which prove no
     # kernel line; x452 proved the hunger lines until Plan 15 Task 14b (the liquid lane slowed only by drink-borne kcal
     # and the curve's re-fit) and fails at HEAD since; x452b, its day on this build, passes and proves them
@@ -160,17 +161,24 @@ def test_plan15_the_older_rings_fail_at_head_and_x452b_proves_the_hunger_lines()
     assert not x452["admitted"] and x452["run"] == S.RUN["x452"] and x452["max_miss"]["HUNGER"] > 0.002
     assert x452["proves"] == [] and x452["draws"] == []
     # Plan 16 Task 4: x452b ran sleep off under the world clock's hunger rhythm, which a sleep-off server no longer has,
-    # so it fails at HEAD too (0.023 against 0.002) and its lines name no passing proof run
+    # so it fails at HEAD too
     x452b = adm["x452b:HUNGER"]
     # Plan 16 Task 4b: the curve re-fit on both sleep settings moves the HEAD replay nearer the run (0.0184), still
-    # far over the 0.002 tolerance
+    # far over the 0.002 tolerance; since Plan 16 Task 11 it proves and draws nothing
     assert not x452b["admitted"] and x452b["run"] == S.RUN["x452b"] and 0.015 < x452b["max_miss"]["HUNGER"] < 0.03
-    assert {"H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel"} <= set(x452b["proves"])
-    for sid in ("H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel"):
-        assert SER[sid]["provenance"]["proof_run"] == S.RUN["x452b"], sid
-        assert "no passing proof run exists" in SER[sid].get("note", ""), sid
-    for sid in ("SH1-m-live", "S1c-m-live", "SD1-m-live", "SE1-m-live-liquid", "SH3-m-live", "SH3-m-live-hungry"):
+    assert x452b["proves"] == [] and x452b["draws"] == []
+    # Plan 16 Task 11: x467, x452b's day on the final curve with no body rhythm (#3990), passes and proves the lines
+    x467 = adm["x467:HUNGER"]
+    assert x467["admitted"] and x467["run"] == S.RUN["x467"] and x467["max_miss"]["HUNGER"] < 0.0005
+    assert x467["n"]["HUNGER"] == 1443 and x467["draws"] == ["SH3-m-live", "SH3-m-live-hungry"]
+    for sid in ("H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel", "SH3-m-kernel-hungry"):
+        assert sid in x467["proves"], sid
+        assert SER[sid]["provenance"]["proof_run"] == S.RUN["x467"], sid
+        assert "no passing proof run exists" not in SER[sid].get("note", ""), sid
+    for sid in ("SH1-m-live", "S1c-m-live", "SD1-m-live", "SE1-m-live-fill"):
         assert sid in S.DROPPED and sid not in SER, sid
+    for sid in ("SE1-m-live-liquid", "SH3-m-live", "SH3-m-live-hungry"):
+        assert sid not in S.DROPPED and SER[sid]["badge"] == "live", sid
     assert not {"x364:levels", "x446:levels", "x405:HUNGER", "x362:HUNGER", "x364:THIRST"} & set(adm)
 
 
@@ -198,10 +206,12 @@ def test_m13_a_kernel_note_names_a_failing_proof_only_when_no_admitted_record_pr
         says = "no passing proof run exists" in s.get("note", "")
         assert says == bool(bad and not good), sid
         named += says
-    assert named >= 4
+    assert named >= 3
     assert SER["S1b-m-kernel"]["provenance"]["proof_run"] == S.RUN["x454"]
-    # Plan 15 Task 14b: x452 proves nothing at HEAD; x452b, its day on that build, proved H1 until Plan 16 Task 4
-    assert "x452b:HUNGER" in S.proof_note("H1-m-kernel") and S.proofs_passing("H1-m-kernel") == []
+    # Plan 15 Task 14b: x452 proves nothing at HEAD; x452b proved H1 until Plan 16 Task 4, x467 since Plan 16 Task 11
+    assert S.proof_note("H1-m-kernel") == "" and S.proofs_passing("H1-m-kernel") == ["x467:HUNGER"]
+    # SE1's fill: its proof (x461b's fill on the window) fails, and its note says so
+    assert S.proofs_passing("SE1-m-kernel-fill") == [] and "x461b:fill" in S.proof_note("SE1-m-kernel-fill")
 
 
 def test_task_11_the_hangover_proof_and_h1_s_pre_eat_point():
@@ -210,6 +220,56 @@ def test_task_11_the_hangover_proof_and_h1_s_pre_eat_point():
     assert "#3891" in SER["S6b-m-hangover"]["note"]
     assert SER["H1-v-model"]["points"][0] == [0.0, 0.25] and SER["H1-m-kernel"]["points"][0][0] == 0
     assert SER["H1-v-model"]["points"][1][0] == 0.0 and round(SER["H1-v-model"]["points"][1][1], 2) == 0.01
+
+
+def test_plan16_s4a_s_deficit_year_ends_at_its_starvation_death_and_never_draws_under_0(kh):
+    # Plan 16 Task 5 re-review N2 (Task 11): the Strength day alone runs past the BMI-12 death the full pipeline gives;
+    # the line ends at the first day close at or under BMI 12, and a level under 0 is drawn as the perk shown, 0
+    K = kh.K
+    P = K.strength.DEFAULTS
+    b = body_new(kh)
+    dead, under = None, None
+    levels = {0: float(K.strength.level(b.lm, b.N0, b.T, P))}
+    for day in range(1, 366):
+        K.strength.day(b, 20.0, 2.0, -500.0, 2600.0, 0.0, P, 1.0)
+        levels[day] = float(K.strength.level(b.lm, b.N0, b.T, P))
+        if under is None and levels[day] < 0:
+            under = day
+        if (float(b.lm) + float(b.fm)) / (float(K.HEIGHT_M) ** 2) <= float(K.drain.BMI_DEATH):
+            dead = day
+            break
+    assert dead == 301 and under == 299                                   # the re-review's day 301, L -0.27 there
+    pts = SER["S4a-m-deficit"]["points"]
+    assert pts[-1][0] == dead and len(pts) == dead + 1
+    assert all(y == max(levels[x], 0.0) for x, y in pts)
+    assert min(y for _, y in pts) == 0.0 and pts[-1][1] == 0.0
+    note = SER["S4a-m-deficit"]["note"]
+    assert "line ends at that death" in note and "day 301" in note
+    for sid in ("S4a-m-perfect", "S4a-m-lowprotein"):
+        assert xs_of(sid)[-1] == 365 and "note" not in SER[sid]
+
+
+def test_plan16_s2d_names_wet_beriberi_and_the_lean_share():
+    # Plan 16 Task 5 (Task 11): the default fast dies of wet beriberi at day 77.23 (#3978), the starvation state open
+    # from the first days; the notes name the Forbes split and the register rows
+    v = VIAB["j_s2d"]
+    assert v["death_name"] == "beriberi" and round(v["death_age"] / 24.0, 2) == 77.23
+    drain, mass = SER["S2d-m-drain"]["note"], SER["S2d-m-mass"]["note"]
+    assert "starvation on day 1.44, beriberi on day" in drain and "#3978" in drain and "41.14" in drain
+    assert "#3977" in mass and "#3978" in mass and "above its 0.5 kg floor" in mass
+
+
+def test_plan16_the_x461b_window_is_recorded_and_opens_after_the_auto_drink():
+    adm = {v["key"]: v for v in ADM}
+    milk, fill = adm["x461b:milk"], adm["x461b:fill"]
+    for rec in (milk, fill):
+        assert rec["window"]["from_s"] == 349 and rec["window"]["opened_by"] == "MI_milk"
+    auto = [e for e in art("x461b", "events.json") if e.get("kind") == "autodrop"]
+    assert auto and all(e["s"] < milk["window"]["from_s"] for e in auto)  # the engine's auto-drink sits before it
+    assert milk["admitted"] and milk["max_miss"]["stomach.liquid"] < 2.0
+    assert not fill["admitted"] and 0.002 < fill["max_miss"]["stomachFill"] < 0.003
+    assert milk["draws"] == ["SE1-m-live-liquid"] and fill["draws"] == ["SE1-m-live-fill"]
+    assert "SE1-m-live-fill" in S.DROPPED and "x461b" in S.DROPPED["SE1-m-live-fill"]
 
 
 @pytest.mark.parametrize("sid", sorted(SER))
@@ -1305,23 +1365,35 @@ def _(kh, sid):
 SH3_LABELS = ("lunch", "dinner", "breakfast")
 
 
-def x452_windows():
-    # x452b since Plan 15 Task 14b (x452's day on this build)
-    d = art("x452b", "day.json", "verdicts")
+def x467_windows():
+    # x467 since Plan 16 Task 11 (x452b's day on the final curve with no body rhythm, sleep off)
+    d = art("x467", "day.json", "verdicts")
     return d["CAD_FEEL_P"]["observed"]["windows"], d["CAD_FEEL_H"]["observed"]["windows"]
 
 
-# SH3's live lines returned with x452b in Plan 15 Task 14b and are DROPPED again since Plan 16 Task 4 (sleep off has no
-# hunger rhythm, so x452b's HEAD replay misses its HUNGER)
+@check("SH3-m-live", "SH3-m-live-hungry")
+def _(kh, sid):
+    # the run's own returns, read here off the artifact (#3990's readings)
+    p, h = x467_windows()
+    if sid.endswith("hungry"):
+        assert h[0]["label"] == "dinner" and SER[sid]["points"] == [["dinner", h[0]["ret"]]]
+        assert round(h[0]["ret"], 2) == 10.46
+    else:
+        assert [w["label"] for w in p] == list(SH3_LABELS)
+        assert SER[sid]["points"] == [[w["label"], w["ret"]] for w in p]
+        assert [round(w["ret"], 2) for w in p] == [4.97, 4.63, 3.88]      # breakfast wears off first, sleep off
+    assert S.admitted(sid)
+    return xs_of(sid)
 
 
 @check("SH3-m-kernel", "SH3-m-kernel-hungry")
 def _(kh, sid):
-    # the HEAD replay of x452b's own inputs (replay_live itself), read here: hours from each can's landing row to the
+    # the HEAD replay of x467's own inputs (replay_live itself), read here: hours from each can's landing row to the
     # first row over 0.15 (or 0.25), inside the meal's window
-    _, kept = S.admission("x452b", False, dict(S.HUNGER_TOL), keep=("HUNGER",))
+    rec, kept = S.admission("x467", False, dict(S.HUNGER_TOL), keep=("HUNGER",))
+    assert rec["admitted"]
     pts = sorted((v[0], v[1]) for v in kept.values() if v[0] is not None)
-    p, _ = x452_windows()
+    p, h = x467_windows()
     ages = [w["meal_age"] for w in p]
     ends = ages[1:] + [pts[-1][0]]
 
@@ -1329,11 +1401,10 @@ def _(kh, sid):
         return next(a - a0 for a, v in pts if a0 < a <= a1 and v > thr)
     if sid.endswith("hungry"):
         assert SER[sid]["points"] == [["dinner", ret(ages[1], ends[1], 0.25)]]
+        assert abs(SER[sid]["points"][0][1] - h[0]["ret"]) < 0.05          # the replay lands on the live return
     else:
         assert SER[sid]["points"] == [[lab, ret(a, e, 0.15)] for lab, a, e in zip(SH3_LABELS, ages, ends)]
-        # the replay landed each live return within 0.05 h until Plan 16 Task 4; sleep off has no hunger rhythm since,
-        # so lunch's return moves by about half an hour (the named move behind x452b's failed admission)
-        assert max(abs(k - w["ret"]) for (_, k), w in zip(SER[sid]["points"], p)) > 0.05
+        assert max(abs(k - w["ret"]) for (_, k), w in zip(SER[sid]["points"], p)) < 0.05
     return xs_of(sid)
 
 
@@ -1341,12 +1412,14 @@ def _(kh, sid):
 def _(kh, sid):
     # the vanilla model on the same meals, the can's -24 and the banana's script HungerChange taken off at once,
     # from the ring's HUNGER before lunch: by hand, hunger rises k (1 - H) once the timer has run out
-    p, _ = x452_windows()
+    p, h = x467_windows()
     pts = SER[sid]["points"]
     assert [x for x, _ in pts] == (["lunch", "dinner", "breakfast"] if sid == "SH3-v-model" else ["dinner"])
     assert all(2.0 < y < 12.0 for _, y in pts)
     if sid == "SH3-v-model":
-        assert pts[0][1] > x452_windows()[0][0]["ret"]                    # vanilla holds the lunch longer than x452b did
+        assert all(y > w["ret"] for (_, y), w in zip(pts, p))            # vanilla holds each meal longer than x467 did
+    else:
+        assert pts[0][1] < h[0]["ret"]                                    # and turns Hungry sooner after dinner
     return xs_of(sid)
 
 
@@ -1363,11 +1436,49 @@ def _(kh, sid):
     return [(2 * 1440 + 60) / 1440.0]
 
 
-@check("SE1-m-kernel-fill")
+def x461b_ring():
+    """x461b's ring rows, both pages, keyed by s (the second page's copy of a row wins)."""
+    out = {}
+    for page in ("minute-ring-admin-1.json", "minute-ring-admin-721.json"):
+        for r in art("x461b", page, "rows_list"):
+            if isinstance(r.get("s"), int) and isinstance(r.get("age"), (int, float)):
+                out[r["s"]] = r
+    return out
+
+
+def x461b_s0():
+    # the window opens on the ring row before the milk's first logged sip (written here off events.json)
+    return min(e["s"] for e in art("x461b", "events.json") if e.get("label") == "MI_milk") - 1
+
+
+@check("SE1-m-live-liquid")
 def _(kh, sid):
-    rec, kept = S.admission("x363", False, {"stomachFill": ("abs", 0.002)}, keep=("stomachFill",))
-    a0 = art("x363", "minute-ring-admin-1.json", "rows_list")[0]["age"]
-    s = sorted(kept, key=float)[10]
+    ring = x461b_ring()
+    s0 = x461b_s0()
+    assert s0 == 349
+    a0 = ring[s0]["age"]
+    live = {round((r["age"] - a0) * 60.0, 9): r["stomach.liquid"] for s, r in ring.items() if s >= s0}
+    for x, y in SER[sid]["points"]:
+        assert live[round(x, 9)] == y
+    peak = art("x461b", "drinks.json", "checks", "liquid", "milk", "peak")
+    assert max(y for _, y in SER[sid]["points"]) == peak and round(peak, 2) == 438.47     # #3981
+    assert S.admitted(sid)
+    return xs_of(sid)
+
+
+@check("SE1-m-kernel-liquid", "SE1-m-kernel-fill")
+def _(kh, sid):
+    # the HEAD replay of x461b's own inputs on the window: the liquid lane holds within x46_lib's 2 g there, the fill
+    # misses by a hair on the rows after the milk's last sip; over the whole ring (the water course with the engine's
+    # auto-drink) both fail
+    field = "stomach.liquid" if sid.endswith("liquid") else "stomachFill"
+    tol = {"stomach.liquid": ("abs", 2.0), "stomachFill": ("abs", 0.002)}
+    rec, kept = S.admission("x461b", False, {field: tol[field]}, keep=(field,), window="MI_milk")
+    assert rec["admitted"] == (field == "stomach.liquid") and rec["window"]["from_s"] == x461b_s0()
+    whole, _ = S.admission("x461b", False, {field: tol[field]})
+    assert not whole["admitted"] and whole["max_miss"][field] > rec["max_miss"][field]
+    a0 = x461b_ring()[x461b_s0()]["age"]
+    s = sorted(kept)[40]
     assert pt(sid, (kept[s][0] - a0) * 60.0) == kept[s][1]
     return [(kept[s][0] - a0) * 60.0]
 

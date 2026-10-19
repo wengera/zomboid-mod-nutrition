@@ -22,7 +22,13 @@ The admission test (ruling G8): an old live point is drawn only if the HEAD repl
 start.json, events.json, start-stats.json and player.json, the ring's own clock and activity: `admission`) matches its
 ring within the run's own graded tolerance. A run that fails keeps its kernel line (its `proof_run` names it) and its
 live dots are dropped. `ADMISSION_EXPECT` pins each run's outcome: a change under mod/ that flips one fails the build,
-so the charts table and `DROPPED` are re-ruled rather than drift.
+so the charts table and `DROPPED` are re-ruled rather than drift. An admission may grade a window of its ring
+(`ADM_WINDOW`: from the row before a named event's first logged row), when it draws only that window: Plan 16 Task 11
+draws x461b's milk and solid, the run's water course before them holding an engine auto-drink (#3981's bound).
+
+Plan 16 Task 11: x467 (the sleep-off three-meal day on the final curve, #3990) proves the hunger lines and its live
+returns are drawn on SH3; x461b's milk and solid (#3981) are SE1's live lines; S4a's deficit year ends at its BMI-12
+starvation death; S2d's death is wet beriberi (#3978).
 
 The replays run on the lupa host (`tools/replay_live.py`'s `ServerReplay` and its `run`); the long ones run in a
 process pool (`MOD_GUIDE_JOBS` workers, 1 runs them in-process), each a deterministic job whose result is plain data.
@@ -93,6 +99,9 @@ RUN = {
     "x455": "x455-20261017-073633", "x456": "x456-20261017-074015", "x457": "x457-20261017-074403",
     # Plan 15 Task 14b: x452's day on the staged copy of mod/ at 390636fe (the liquid lane and the curve's re-fit)
     "x452b": "x452b-20261017-153935",
+    # Plan 16 Task 9: the pre-upload sessions, on the staged copy of mod/ at 648b4a83 (the mod's tree at this build:
+    # the one mod/ commit since, e69499be, edits COMPATIBILITY.md only)
+    "x461b": "x461b-20261019-022954", "x467": "x467-20261019-025016",
 }
 
 MAP_CHARTS = {
@@ -173,7 +182,7 @@ MAP_CHARTS = {
            "series": ["SN1-m-vitC", "SN1-m-fibre", "SN1-m-iron", "SN1-m-sodium"]},
     "SE1": {"section": "Eating and the stomach", "title": "A drink and a meal in the stomach",
            "x": "game minutes", "y": "grams; fill (0–1)",
-           "series": ["SE1-m-live-liquid", "SE1-m-live-fill", "SE1-m-kernel-fill"]},
+           "series": ["SE1-m-live-liquid", "SE1-m-kernel-liquid", "SE1-m-live-fill", "SE1-m-kernel-fill"]},
     "SH1": {"section": "Hunger", "title": "How long a meal holds hunger off",
            "x": "meal kcal", "y": "minutes to the hunger request",
            "series": ["SH1-m-kernel", "SH1-m-live", "SH1-study-1247", "SH1-study-1248"]},
@@ -242,22 +251,16 @@ DROPPED = {
     "ST2-m-live-plasma": "G8: the HEAD replays of x281-x284 hold the sodium balance exactly but miss plasma sodium by "
                          "up to 1.44 mmol/L against 0.01",
     "SH1-m-live": "G8: x361's HEAD replay misses its HUNGER by 0.088 against 0.002 (the calibrated hunger writer, "
-                  "Plan 15 Task 6); x452b measures the hunger cadence on this build (SH3)",
-    # Plan 15 Task 14b: the liquid lane slowed only by drink-borne kcal and the hunger curve's re-fit
-    "SE1-m-live-liquid": "G8: x363's HEAD replay misses its liquid lane by 2.50 g against 2.0 (and its fill by 0.0034 "
-                         "against 0.002): the run's water emptied beside its meal at the old lane's pace, slowed by "
-                         "the meal's kcal (Plan 15 Task 14b)",
-    "SE1-m-live-fill": "G8: x363's HEAD replay misses its fill by 0.0034 against 0.002 (the liquid lane slowed only by "
-                       "drink-borne kcal, Plan 15 Task 14b)",
-    "S1c-m-live": "G8: x446's HEAD replay misses its THIRST by 0.33 against 0.002 (the water base by lean mass, Plan 15 "
+                  "Plan 15 Task 6); x467 measures the hunger cadence on this build (SH3)",
+    "S1c-m-live":"G8: x446's HEAD replay misses its THIRST by 0.33 against 0.002 (the water base by lean mass, Plan 15 "
                   "Task 3)",
     "SD1-m-live": "G8: x161b read the Plan 5 scurvy drain, 100 health over 168 game hours; Plan 15 Task 4's engine "
                   "drains to a floor at its own rate (VALIDATION x161b:drain)",
-    # Plan 16 Task 4: a sleep-off server has no daily rhythm, so a sleep-off ring's world-clock hunger factor is gone
-    "SH3-m-live": "G8: x452b's HEAD replay misses its HUNGER by 0.023 against 0.002 (sleep off has no hunger rhythm "
-                  "since Plan 16 Task 4; the run read the world clock's)",
-    "SH3-m-live-hungry": "G8: x452b's HEAD replay misses its HUNGER by 0.023 against 0.002 (sleep off has no hunger "
-                         "rhythm since Plan 16 Task 4)",
+    # Plan 16 Task 11: SE1's live liquid line (x363 failed at HEAD since Plan 15 Task 14b) is x461b's milk and solid,
+    # and SH3's live lines (x452b failed since Plan 16 Task 4, the world-clock rhythm) are x467's day
+    "SE1-m-live-fill": "G8: x461b's HEAD replay misses its fill on the milk window by 0.0021 against 0.002 on the rows "
+                       "after the milk's last sip (the event log's per-row sip apportioning, #3997); its liquid lane "
+                       "holds within 2 g there and is drawn",
 }
 
 CHARTS = {cid: dict(c, series=[i for i in c["series"] if i not in DROPPED]) for cid, c in MAP_CHARTS.items()}
@@ -641,6 +644,10 @@ SRC_PLASMA = "named here, a game choice (x28 graded no plasma bound): 0.01 mmol/
 SRC_M1 = "the run's own: x44_guide_lib.REPLAY_TOL (THIRST 0.002), its M1_replay_THIRST grade's bound"
 SRC_X452 = "the run's own: x45g_lib's replay tolerance (HUNGER 0.002), its REPLAY_HUNGER grade's bound"
 SRC_X452B = "the run's own: x45g_lib's replay tolerance (HUNGER 0.002) under x45i_lib, its REPLAY_HUNGER grade's bound"
+SRC_X46 = "the run's own: x46_lib.REPLAY_TOL (HUNGER 0.002), its REPLAY_HUNGER grade's bound"
+SRC_X46_FILL = ("the run's own: x46_lib.REPLAY_TOL (stomachFill 0.002, stomach.liquid 2.0 g, x363's), its REPLAY_* "
+                "grades' bounds, on the drawn window")
+FILL_TOL = {"stomachFill": ("abs", 0.002), "stomach.liquid": ("abs", 2.0)}
 
 # (key, run, sleep_allowed, tolerance, its source, the live series it admits, the kernel series it proves, pinned)
 ADMISSIONS = (
@@ -648,16 +655,26 @@ ADMISSIONS = (
     # every older ring's THIRST and the mood floor's dead zone (Task 9) x342's UNHAPPINESS, so those runs fail at HEAD
     # and prove no kernel line; x452 (the mod's tree at this build, a97fec05) proves the hunger lines
     ("x361:HUNGER", "x361", False, HUNGER_TOL, SRC_DEFAULT, ["SH1-m-live"], [], False),
-    ("x363:fill", "x363", False, {"stomachFill": ("abs", 0.002), "stomach.liquid": ("abs", 2.0)}, SRC_FILL,
-     ["SE1-m-live-liquid", "SE1-m-live-fill"], ["SE1-m-kernel-fill"], False),    # False since Plan 15 Task 14b
+    # x363 fails at HEAD since Plan 15 Task 14b (its water emptied beside its meal at the old lane's pace); x461b's milk
+    # and solid, on this build, carry SE1 since Plan 16 Task 11
+    ("x363:fill", "x363", False, FILL_TOL, SRC_FILL, [], [], False),
     ("x364:HUNGER", "x364", False, HUNGER_TOL, SRC_DEFAULT, ["S2a-m-live"], [], False),
     ("x446:THIRST", "x446", False, {"THIRST": ("abs", 0.002)}, SRC_M1, ["S1c-m-live"], [], False),
     # Plan 15 Task 14b: x452 ran the old liquid lane and fails at HEAD; x452b, its day on this build, proved the lines
     # until Plan 16 Task 4: x452b ran sleep off with the world-clock hunger rhythm, and a sleep-off server has no rhythm
-    # since (the hunger circadian factor is 1), so its HEAD replay misses HUNGER by 0.023 against 0.002
+    # since (the hunger circadian factor is 1), so its HEAD replay misses HUNGER by 0.023 against 0.002; x467, the same
+    # day on this build (Plan 16 Task 9), proves the hunger lines and draws SH3's live returns since Plan 16 Task 11
     ("x452:HUNGER", "x452", False, HUNGER_TOL, SRC_X452, [], [], False),
-    ("x452b:HUNGER", "x452b", False, HUNGER_TOL, SRC_X452B, ["SH3-m-live", "SH3-m-live-hungry"],
-     ["H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel", "SH3-m-kernel-hungry"], False),
+    ("x452b:HUNGER", "x452b", False, HUNGER_TOL, SRC_X452B, [], [], False),
+    ("x467:HUNGER", "x467", False, HUNGER_TOL, SRC_X46, ["SH3-m-live", "SH3-m-live-hungry"],
+     ["H1-m-kernel", "S1a-m-kernel", "S2a-m-kernel", "SH1-m-kernel", "SH3-m-kernel", "SH3-m-kernel-hungry"], True),
+    # graded on its window (ADM_WINDOW): the milk and the solid after it, past the water course's engine auto-drink;
+    # the liquid lane holds there, the fill misses on the rows after the milk's last sip (the event log's per-row sip
+    # apportioning, the drink-mass open row #3997)
+    ("x461b:milk", "x461b", False, {"stomach.liquid": FILL_TOL["stomach.liquid"]}, SRC_X46_FILL, ["SE1-m-live-liquid"],
+     ["SE1-m-kernel-liquid"], True),
+    ("x461b:fill", "x461b", False, {"stomachFill": FILL_TOL["stomachFill"]}, SRC_X46_FILL, ["SE1-m-live-fill"],
+     ["SE1-m-kernel-fill"], False),
     ("x271:HUNGER", "x271", False, HUNGER_TOL, SRC_DEFAULT, ["S2b-m-live"], [], False),
     ("x272:HUNGER", "x272", False, HUNGER_TOL, SRC_DEFAULT, ["S2b-m-live"], [], False),
     ("x276:HUNGER", "x276", False, HUNGER_TOL, SRC_DEFAULT, ["SH2-m-live"], ["SH2-m-kernel"], False),
@@ -723,15 +740,37 @@ def replay_of(run, sleep_allowed, events=None):
     return rows, ring
 
 
-def admission(run, sleep_allowed, tol, keep=()):
-    """The HEAD replay of run's own inputs against its ring, graded by replay_live.diff under tol. Returns (record,
-    rows): record {run, quantity, tolerance, max_miss, n, admitted}; rows the replay rows' `keep` fields by s."""
+# An admission graded on a window of its ring (the drawing rule: a live point is drawn only where the HEAD replay of
+# its run's inputs matches the drawn quantity): key -> the label of the event whose first logged row opens the window,
+# the window running from the ring row before it to the ring's end. x461b's water course before its milk held an
+# engine auto-drink of 395.45 g (events.json's autodrop at s 266; #3981's bound) and is not drawn.
+ADM_WINDOW = {"x461b:milk": "MI_milk", "x461b:fill": "MI_milk"}
+
+
+def window_from(run, label):
+    """The first ring row of a window: the row before the first logged event of `label` in run's events.json."""
+    ev = _json(os.path.join(REPO, "testing", "artifacts", RUN[run]), "events.json") or []
+    s = [e["s"] for e in ev if e.get("label") == label and isinstance(e.get("s"), int)]
+    if not s:
+        raise D.ProvenanceError("%s logs no event labelled %s" % (run, label))
+    return min(s) - 1
+
+
+def admission(run, sleep_allowed, tol, keep=(), window=None):
+    """The HEAD replay of run's own inputs against its ring, graded by replay_live.diff under tol, on the rows from
+    window_from(run, window) when a window label is given. Returns (record, rows): record {run, quantity, tolerance,
+    max_miss, n, admitted[, window]}; rows the replay rows' `keep` fields by s (the window's alone)."""
     RL = _rl()
     rows, ring = replay_of(run, sleep_allowed)
+    s0 = window_from(run, window) if window else None
+    if s0 is not None:
+        rows = [r for r in rows if r["s"] >= s0]
     df = RL.diff(rows, ring, tol)
     rec = {"run": RUN[run], "quantity": sorted(tol), "tolerance": {f: [how, b] for f, (how, b) in sorted(tol.items())},
            "max_miss": {f: df["fields"][f]["max"] for f in sorted(tol)},
            "n": {f: df["fields"][f]["n"] for f in sorted(tol)}, "admitted": bool(df["ok"])}
+    if s0 is not None:
+        rec["window"] = {"from_s": s0, "to_s": max(r["s"] for r in rows), "opened_by": window}
     kept = {r["s"]: [r.get("age")] + [r.get(f) for f in keep] for r in rows} if keep else None
     return rec, kept
 
@@ -739,7 +778,7 @@ def admission(run, sleep_allowed, tol, keep=()):
 def _grade(key, run, sleep_allowed, tol, keep=()):
     if tol == "mood":
         tol = mood_tol(float(KHost().K.hybrid.FLOOR_EPS))
-    return admission(run, sleep_allowed, dict(tol), keep)
+    return admission(run, sleep_allowed, dict(tol), keep, ADM_WINDOW.get(key))
 
 
 def _jobs_of(keys, keep=None):
@@ -753,13 +792,18 @@ def _jobs_of(keys, keep=None):
 
 @job
 def j_adm_x36():
-    return _jobs_of({"x361:HUNGER", "x363:fill", "x364:HUNGER"}, {"x363:fill": ("stomachFill",)})
+    return _jobs_of({"x361:HUNGER", "x363:fill", "x364:HUNGER"})
 
 
 @job
 def j_adm_x44():
-    return _jobs_of({"x446:THIRST", "x452:HUNGER", "x452b:HUNGER"}, {"x452:HUNGER": ("HUNGER",),
-                                                                      "x452b:HUNGER": ("HUNGER",)})
+    return _jobs_of({"x446:THIRST", "x452:HUNGER", "x452b:HUNGER"})
+
+
+@job
+def j_adm_x46():
+    return _jobs_of({"x461b:milk", "x461b:fill", "x467:HUNGER"},
+                    {"x461b:milk": ("stomach.liquid", "stomachFill"), "x467:HUNGER": ("HUNGER",)})
 
 
 @job
@@ -786,7 +830,8 @@ def j_adm_x34():
 ADM_JOB = {}
 for _a in ADMISSIONS:
     _r = _a[1]
-    ADM_JOB[_a[0]] = ("j_adm_x44" if _r in ("x446", "x452", "x452b") else
+    ADM_JOB[_a[0]] = ("j_adm_x46" if _r in ("x461b", "x467") else
+                      "j_adm_x44" if _r in ("x446", "x452", "x452b") else
                       "j_adm_x36" if _r in ("x361", "x363", "x364") else
                       "j_adm_x27" if _r in ("x271", "x272", "x276") else
                       "j_adm_x28" if _r.startswith("x28") else
@@ -1580,7 +1625,7 @@ def s_inputs(schedule, **kw):
 # ---- the vanilla-live and M1 series' reads (Task 8) ---------------------------------------------------------------------
 
 RING_PAGES = {"x441": "1", "x442": "1,721,1441,2161", "x443a": "1,721", "x443b": "1,721", "x446": "1,721,1441",
-              "x452": "1,721,1441", "x452b": "1,721,1441"}
+              "x452": "1,721,1441", "x452b": "1,721,1441", "x461b": "1,721", "x467": "1,721,1441"}
 
 
 def ring_file(run):
@@ -1660,10 +1705,10 @@ def s_h1():
                kernel({"replay": "fresh record from 07:00 with the replay's water, no food until the written HUNGER "
                                  "first reaches 0.25, then a whole Base.CannedBologneseOpen",
                        "request_minute": k["request_minute"], "water": [AUTODROP_G, list(AUTODROP_MIN)],
-                       "eat": eat(k["request_minute"], "Base.CannedBologneseOpen"), "sleep_allowed": False}, "x452b"),
+                       "eat": eat(k["request_minute"], "Base.CannedBologneseOpen"), "sleep_allowed": False}, "x467"),
                "The mod's replay from the request (x = 0 the read at the request, before the eat): the HUNGER it "
-               "writes is the calibrated curve of its model's hunger (#3952), so a meal reads near empty. Proof x452b, "
-               "the same writer live on a three-meal day of cans (SH3, VALIDATION x452b:HUNGER)."
+               "writes is the calibrated curve of its model's hunger (#3974), so a meal reads near empty. Proof x467, "
+               "the same writer live on a three-meal day of cans with sleep off (SH3, #3990, VALIDATION x467:HUNGER)."
                + proof_note("H1-m-kernel")),
     ]
 
@@ -1792,14 +1837,39 @@ def s_h3():
     ]
 
 
+def bmi_death_day(d):
+    """The first day close of a strength_days run whose BMI (K.drain.bmi of its lean and fat) is at or under
+    K.drain.BMI_DEATH, starvation's death point (S2234), or None. strength_days runs the Strength day alone, without
+    the drain, so a deficit year keeps stepping past the death the full pipeline gives there (#3901: starvation's floor
+    reaches 0 at BMI 12, and the state is open at any intake under BMI 13)."""
+    K = KHost().K
+    death = float(K.drain.BMI_DEATH)
+    return next((r[0] for r in d if float(K.drain.bmi(r[3], r[5])) <= death), None)
+
+
 def s_s4a():
     out = []
     for sid, label, sched in (("S4a-m-perfect", "Perfect: 20 sets, 2.0 g/kg, +260 kcal", [(365, 20.0, 2.0, 260.0)]),
                               ("S4a-m-lowprotein", "Low protein: 0.8 g/kg", [(365, 20.0, 0.8, 260.0)]),
                               ("S4a-m-deficit", "A deficit: -500 kcal", [(365, 20.0, 2.0, -500.0)])):
         d = strength_days(sched)
-        out.append(series(sid, label, DAYS, LEVEL, "kernel", [[r[0], r[1]] for r in d],
-                          kernel(s_inputs(sched), "x434" if "deficit" in sid else "x435")))
+        dead = bmi_death_day(d)
+        note = None
+        if "deficit" in sid:
+            if dead is None:
+                raise D.ProvenanceError("S4a's deficit year no longer reaches BMI 12: re-rule its line and the page")
+            under = next((r[0] for r in d if r[1] < 0), None)
+            note = ("The Strength day alone, without the drain: the fat runs out, lean pays the deficit, and on day %d "
+                    "the body's BMI falls to %g, starvation's death point (S2234; #3901, the state open at any intake "
+                    "under BMI 13), so the line ends at that death and the fall the Strength day would run on past it "
+                    "is not drawn. From day %s the body's level reads under 0; the line draws the perk there, which "
+                    "never goes under 0 (K.strength.heldLevel: the written perk reads %d from day %d)."
+                    % (dead, float(KHost().K.drain.BMI_DEATH), under, next(r[2] for r in d if r[0] == dead),
+                       next(r[0] for r in d if r[2] == 0)))
+        pts = [[r[0], max(r[1], 0.0) if "deficit" in sid else r[1]] for r in d if dead is None or "deficit" not in sid
+               or r[0] <= dead]
+        out.append(series(sid, label, DAYS, LEVEL, "kernel", pts,
+                          kernel(s_inputs(sched), "x434" if "deficit" in sid else "x435"), note))
     for sid, label, f in (("S4a-v-model-x1", "Vanilla, protein factor 1", 1.0),
                           ("S4a-v-model-x07", "Vanilla, protein factor 0.7", 0.7)):
         v = _vs(365, f)
@@ -1973,7 +2043,7 @@ def s_s1a():
                "kernel", k["points"],
                kernel({"start": FRESH, "replay": "fresh record from HUNGER 0 at 07:00, a whole Base.TunaTinOpen at 08, 12, 16, 20 and the "
                                  "replay's water", "eat": eat(0, "Base.TunaTinOpen"),
-                       "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}, "x452b"),
+                       "water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False}, "x467"),
                proof_note("S1a-m-kernel") or None),
     ]
 
@@ -2108,10 +2178,10 @@ def s_s2a():
                HUNGER, "kernel", k["points"],
                kernel({"replay": "test_replay_live_oracle.fast_plans() fast arm on the default body, its meals plates",
                        "plate": list(PLATE), "water": [AUTODROP_G, "every 2 h, 09:00-23:00"], "clock": "minute 0 is 00:00",
-                       "sleep_allowed": False}, "x452b"),
+                       "sleep_allowed": False}, "x467"),
                "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. "
                "The day without food opens the starvation state %.2f h after the last meal, when the meal pool has "
-               "been empty for %g hours (K.drain.STARVE_ONSET_H, #3948): HUNGER lifts to Starving and health drains "
+               "been empty for %g hours (K.drain.STARVE_ONSET_H, #3962): HUNGER lifts to Starving and health drains "
                "toward the first floor until the next meal ends the state, %.2f health in all. "
                % (v["drain"][0] - last_h, float(KHost().K.drain.STARVE_ONSET_H), 100.0 - v["min_health"])
                + PLATE_NOTE.replace("08:00 to 22:00", "09:00 to 23:00") + " " + proof_note("S2a-m-kernel")),
@@ -2145,7 +2215,7 @@ def s_s2b():
                "Sleep on, 23:00-07:00 (the oracle's protocol); the oracle's 70 kg man, the body its bands were fitted "
                "on; its meals plates of real foods with water (rule R-1). The proof run's fast (x271, x272) fails the "
                "admission test at HEAD (VALIDATION). The fast arm's skipped day opens the starvation state briefly "
-               "before its next meal (%.2f health, #3948)." % (100.0 - v["min_health"])),
+               "before its next meal (%.2f health, #3962)." % (100.0 - v["min_health"])),
         series("S2b-study-1613", "Johnstone 2002", "day after the fast", "intake / the fed arm's", "study",
                [["day 2", 12.2 / 10.2]], study("S1613"), "12.2 against 10.2 MJ on the day after a 36 h fast."),
         series("S2b-study-1614", "Clayton 2016", "day after the fast", "intake / the fed arm's", "study",
@@ -2223,6 +2293,17 @@ def s_s2d():
     hd = until_death(kd["health"], vd) + [[vd["death_age"] / 24.0, 0.0]]
     first = float(K.drain.FIRST_FLOOR)
     water = {"water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False, "start": FRESH}
+    fm_min = float(K.strength.DEFAULTS.fmMin)
+    fat_floor = next((a / 24.0 for _, a, fm, lm, lx, bmi in k["days"] if fm <= fm_min + 1e-9), None)
+    fm_end = [fm for _, a, fm, lm, lx, bmi in k["days"] if a <= v["death_age"]][-1]
+    fat_text = (("fat reaches its %g kg floor on day %.0f and lean pays from there" % (fm_min, fat_floor)) if fat_floor
+                else ("fat falls to %.2f kg by the last day close before the death, above its %g kg floor"
+                      % (fm_end, fm_min)))
+    opened = ", ".join("%s on day %.2f" % (state_name(c, K), a / 24.0) for a, c in k["states"])
+    fatal = ("The fatal state is %s: health is gone at day %.2f, where the line ends, before the BMI reaches %g "
+             "(#3978: the Obese body dies of the same state on the same day and the Gaunt body of starvation on day "
+             "41.14, a death the science gives first, not tuned to the hunger strikers' 46-73 days, S2231)"
+             % (v["death_name"], v["death_age"] / 24.0, float(K.drain.BMI_DEATH)))
     return [
         series("S2d-v-model-health", "Vanilla health", DAYS, "health", "vanilla-model", hourly,
                vmodel("VM1", "VM5", "VM10"),
@@ -2249,21 +2330,23 @@ def s_s2d():
         series("S2d-m-mass", "Nutrition Revamp body mass", DAYS, "kg", "kernel", mass,
                kernel(dict(water, replay="90 days, no food, the replay's water", path="body.fm + body.lm + body.lx"),
                       "x434"),
-               "The mod's no-trait creation body with water and no food. Its fatal state is %s: health is gone at "
-               "day %.2f, where the line ends (S2d-m-drain). Its HUNGER reached %.2f: the cap lifts when the "
-               "starvation state opens (#3906)." % (v["death_name"], v["death_age"] / 24.0, k["hunger_max"])),
+               "The mod's no-trait creation body with water and no food. The deficit splits between lean and fat by "
+               "the Forbes share with no fat ceiling (#3977), about a sixth of the energy from lean (#3978), and %s. "
+               "Its fatal state is %s: health is gone at day %.2f, where the line ends (S2d-m-drain). Its HUNGER "
+               "reached %.2f: the cap lifts when the starvation state opens (#3906)."
+               % (fat_text, v["death_name"], v["death_age"] / 24.0, k["hunger_max"])),
         series("S2d-m-drain", "Nutrition Revamp health, with water", DAYS, "health", "kernel", hp,
                kernel(dict(water, replay="90 days, no food, the replay's water", path="the stand-in's overall health",
                            read="100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)"), "x454"),
                "The same fast's health. The starvation state opens after %g unfed hours (K.drain.STARVE_ONSET_H), at "
                "%.2f h, when Starving shows; health drains %g a game day (K.drain.STARVE_RATE, a game choice) to the "
                "first floor of %g, reached on day %.2f, then follows the floor as the body's BMI falls from %.2f at "
-               "the onset: %g at BMI %g (K.drain.BMI_KNEE), and 0 at BMI %g, the death point (S2234). The fatal state "
-               "is %s: health is gone at day %.2f, where the line ends. The live x454, its unfed clock set near the "
-               "onset, drained %.4g a game day to the first floor and held it (#3938)."
+               "the onset: %g at BMI %g (K.drain.BMI_KNEE), and 0 at BMI %g, starvation's death point (S2234). The "
+               "drain states open in order: %s; with several active the lowest floor wins (#3901). %s. The live x454, "
+               "its unfed clock set near the onset, drained %.4g a game day to the first floor and held it (#3938)."
                % (float(K.drain.STARVE_ONSET_H), v["drain"][0], float(K.drain.STARVE_RATE), first,
                   k["floor_age"] / 24.0, k["bmi0"], float(K.drain.SLEEP_FLOOR), float(K.drain.BMI_KNEE),
-                  float(K.drain.BMI_DEATH), v["death_name"], v["death_age"] / 24.0,
+                  float(K.drain.BMI_DEATH), opened, fatal,
                   read("x454", "starve.json", "verdicts.DRAIN_RATE.observed.rate_per_day"))),
         series("S2d-m-dry", "Nutrition Revamp health, without water", DAYS, "health", "kernel", hd,
                kernel({"replay": "8 days, no food and no water, a fresh record from 07:00", "sleep_allowed": False,
@@ -2619,23 +2702,58 @@ def s_s6c():
 
 # ---- systems ---------------------------------------------------------------------------------------------------------
 
+SE1_SOLID = "SO_solid"                 # x461b's solid: the milk eaten as a food (TKX.MilkSolid)
+
+
+def se1_thin(pts, s_marks, near=30, n=5):
+    """Every ring row within `near` rows after each mark (the milk's start, the solid's landing), else every n-th, and
+    the last: [(s, x, y)] -> [[x, y]]."""
+    out = []
+    for i, (s, x, y) in enumerate(pts):
+        if any(0 <= s - m <= near for m in s_marks) or i % n == 0 or i == len(pts) - 1:
+            if out and out[-1][0] == x:          # the replay's last row repeats its clock: keep the later state
+                out[-1] = [x, y]
+            else:
+                out.append([x, y])
+    return out
+
+
 def s_se1():
-    adm("x363:fill")
-    liq = read("x363", "minute-ring-admin-1.json", 'rows_list[*]["stomach.liquid"]')
-    fill = read("x363", "minute-ring-admin-1.json", "rows_list[*].stomachFill")
-    ages = read("x363", "minute-ring-admin-1.json", "rows_list[*].age")
-    ss = read("x363", "minute-ring-admin-1.json", "rows_list[*].s")
-    a0 = ages[0]
-    rep = adm_rows("x363:fill")
-    kern = [[(rep[s][0] - a0) * 60.0, rep[s][1]] for s in sorted(rep, key=float)
-            if rep[s][1] is not None and rep[s][0] is not None]
-    del liq, fill                                  # the live lines are DROPPED since Plan 15 Task 14b
+    """SE1 (Plan 16 Task 11): x461b's milk and the solid after it, x363's sequence on this build, from the ring row
+    before the milk's first sip (ADM_WINDOW) to the ring's end: the liquid lane, measured and in the HEAD replay of the
+    run's own inputs, and the replay's fill (the live fill fails its admission on the window, DROPPED). The run's water
+    course before the milk held an engine auto-drink and is not drawn."""
+    rec = adm("x461b:milk")
+    adm("x461b:fill")
+    s0 = rec["window"]["from_s"]
+    ev = _json(os.path.join(REPO, "testing", "artifacts", RUN["x461b"]), "events.json")
+    s_solid = min(e["s"] for e in ev if e.get("label") == SE1_SOLID) - 1
+    liq = [q for q in ring_read("x461b", "stomach.liquid") if q[0] >= s0]
+    a0 = liq[0][1]
+    rep = adm_rows("x461b:milk")
+    marks = (s0, s_solid)
+    k_liq = se1_thin([(s, (rep[s][0] - a0) * 60.0, rep[s][1]) for s in sorted(rep) if rep[s][1] is not None], marks)
+    k_fill = se1_thin([(s, (rep[s][0] - a0) * 60.0, rep[s][2]) for s in sorted(rep) if rep[s][2] is not None], marks)
+    peak = read("x461b", "drinks.json", "checks.liquid.milk.peak")
+    inp = {"replay": "x461b's own inputs at HEAD (start.json, events.json, player.json, its ring's clock and cold), "
+                     "drawn from ring s %d" % s0, "sleep_allowed": False}
+    common = ("0.5 L of CowMilk from a carton from ring s %d, then the same milk eaten as a food (TKX.MilkSolid) at "
+              "ring s %d (x461b, the mod at this build, DayLength 1, sleep off); x = 0 at s %d. The run's water course "
+              "before the milk held a 395.45 g engine auto-drink (events.json's autodrop at s 266), so it is not "
+              "drawn, and the lane held %.2f g at the milk's start, part of it the auto-drink's." % (s0 + 1, s_solid + 1, s0, liq[0][2]))
     return [
-        series("SE1-m-kernel-fill", "Stomach fill, simulated", "game minutes", "fill (0-1)", "kernel", kern[::5],
-               kernel({"replay": "x363's events.json from its start.json at HEAD", "path": "stomachFill",
-                       "sleep_allowed": False}, "x363"),
-               "Ring s %s to %s; minutes from the ring's first row (page 1). %s" % (ss[0], ss[-1],
-                                                                                    proof_note("SE1-m-kernel-fill"))),
+        series("SE1-m-live-liquid", "Liquid in the stomach, measured", "game minutes", "grams", "live",
+               se1_thin([(s, (a - a0) * 60.0, v) for s, a, v in liq], marks),
+               artifact("x461b", ring_file("x461b"), ring_path("stomach.liquid")),
+               "The ring's liquid lane; the milk peaked it at %.2f g (checks.liquid.milk.peak, #3981). The HEAD replay "
+               "holds it within %.2g g on the drawn rows (VALIDATION x461b:milk). %s"
+               % (peak, rec["max_miss"]["stomach.liquid"], common)),
+        series("SE1-m-kernel-liquid", "Liquid in the stomach, simulated", "game minutes", "grams", "kernel", k_liq,
+               kernel(dict(inp, path="stomach.liquid"), "x461b"), common),
+        series("SE1-m-kernel-fill", "Stomach fill, simulated", "game minutes", "fill (0-1)", "kernel", k_fill,
+               kernel(dict(inp, path="stomachFill"), "x461b"),
+               "The physical fill, the stomach's mass over its comfortable maximum. %s %s"
+               % (common, proof_note("SE1-m-kernel-fill"))),
     ]
 
 
@@ -2646,9 +2764,9 @@ def s_sh1():
     return [
         series("SH1-m-kernel", "Nutrition Revamp, simulated", "meal kcal", "minutes to the hunger request", "kernel",
                list(zip(kc, k)), kernel({"replay": "test_satiety_meal_studies.callahan()",
-                                         "preloads_kcal": list(kc), "clock": "09:00"}, "x452b"),
+                                         "preloads_kcal": list(kc), "clock": "09:00"}, "x467"),
                "Callahan's liquid preloads at 09:00, from the request, on the model's own hunger (h_model), the value "
-               "the study oracles read; the game is shown its calibrated curve of it (#3952), whose cadence SH3 draws. "
+               "the study oracles read; the game is shown its calibrated curve of it (#3974), whose cadence SH3 draws. "
                "x361's live interval ran an earlier writer and fails at HEAD (VALIDATION x361:HUNGER). "
                + proof_note("SH1-m-kernel")),
         series("SH1-study-1247", "Callahan 2004", "meal kcal", "minutes to the hunger request", "study",
@@ -2663,7 +2781,7 @@ def s_sh1():
 
 SH3_MEALS = ("lunch", "dinner", "breakfast")
 PECKISH, HUNGRY_T = VM.HUNGRY_THRESHOLDS[0], VM.HUNGRY_THRESHOLDS[1]      # 0.15 and 0.25 (#0508, strictly over)
-X452_MEAL = ("Base.CannedBologneseOpen", "Base.Banana")                   # x452's meal: a can and a banana
+X452_MEAL = ("Base.CannedBologneseOpen", "Base.Banana")                   # x452's and x467's meal: a can and a banana
 
 
 def first_over(pts, a0, a1, thr):
@@ -2694,29 +2812,33 @@ def sh3_vanilla(meal_ages, h0, tail_h=12.0):
 
 
 def s_sh3():
-    """SH3: x452b's three-meal day (Plan 15 Task 14b; x452's, Task 11, on the build that slows the liquid lane only by
-    drink-borne kcal and carries the curve's re-fit): each meal's return to Peckish and dinner's to Hungry in the HEAD
-    replay of the run's own inputs and in the vanilla model on the same meals. Its live returns are DROPPED since
-    Plan 16 Task 4 (the run read the world clock's hunger rhythm, which a sleep-off server no longer has)."""
-    adm("x452b:HUNGER")
+    """SH3: x467's three-meal day (Plan 16 Task 9; x452b's day on the final curve, sleep off with no body rhythm): each
+    meal's return to Peckish and dinner's to Hungry, measured live, in the HEAD replay of the run's own inputs, and in
+    the vanilla model on the same meals at the run's own meal times. x452b's returns (the world clock's rhythm) fail at
+    HEAD since Plan 16 Task 4 and are not drawn."""
+    rec = adm("x467:HUNGER")
     f = "day.json"
-    ages = read("x452b", f, "verdicts.CAD_FEEL_P.observed.windows[*].meal_age")
-    labels = read("x452b", f, "verdicts.CAD_FEEL_P.observed.windows[*].label")
+    ages = read("x467", f, "verdicts.CAD_FEEL_P.observed.windows[*].meal_age")
+    labels = read("x467", f, "verdicts.CAD_FEEL_P.observed.windows[*].label")
     if tuple(labels) != SH3_MEALS:
-        raise D.ProvenanceError("x452b's windows are %r, not %r" % (labels, SH3_MEALS))
-    rows = adm_rows("x452b:HUNGER")
+        raise D.ProvenanceError("x467's windows are %r, not %r" % (labels, SH3_MEALS))
+    live_p = [read("x467", f, "verdicts.CAD_FEEL_P.observed.windows[%d].ret" % i) for i in range(len(SH3_MEALS))]
+    live_h = read("x467", f, "verdicts.CAD_FEEL_H.observed.windows[0].ret")
+    if read("x467", f, "verdicts.CAD_FEEL_H.observed.windows[0].label") != "dinner":
+        raise D.ProvenanceError("x467's Hungry window is not dinner's")
+    rows = adm_rows("x467:HUNGER")
     pts = sorted((v[0], v[1]) for v in rows.values() if v[0] is not None)
     end = pts[-1][0]
     ends = list(ages[1:]) + [end]
     ker = [(first_over(pts, a, e, PECKISH), first_over(pts, a, e, HUNGRY_T)) for a, e in zip(ages, ends)]
-    h0 = [v for _, a, v in ring_read("x452b", "HUNGER") if a <= ages[0]][-1]
+    h0 = [v for _, a, v in ring_read("x467", "HUNGER") if a <= ages[0]][-1]
     van = sh3_vanilla(list(ages), h0)
-    inp = {"replay": "x452b's own inputs at HEAD (start.json, events.json, player.json, its ring's clock)",
-           "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at 12:30, 18:30 and 07:30",
+    inp = {"replay": "x467's own inputs at HEAD (start.json, events.json, player.json, its ring's clock and cold)",
+           "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at about 12:50, 18:50 and 07:50",
            "read": "hours from each can's landing row to the first row with HUNGER over 0.15 (Peckish) or 0.25 "
                    "(Hungry), inside the meal's window"}
-    common = ("Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it (x452b, the "
-              "Plan 15 Task 14b build, DayLength 1, sleep off).")
+    common = ("Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it; lunch sits "
+              "on the fresh start's seed plate (x467, the mod at this build, DayLength 1, sleep off, no body rhythm).")
     return [
         series("SH3-v-model", "Vanilla, from the game's code: Peckish", "meal", "game hours", "vanilla-model",
                [[m, p] for m, (p, _) in zip(SH3_MEALS, van) if p is not None], vmodel("VM1", "VM3", "VM4"),
@@ -2724,19 +2846,27 @@ def s_sh3():
                "the run's own meal times, from the ring's HUNGER at lunch's "
                "landing row (%.4f); each can and banana take their script HungerChange off at once and fill the food "
                "timer, which holds hunger still until it runs out. The breakfast window runs 12 h past it. Hungry "
-               "after dinner at %.2f h (SH3-v-model-hungry). The mod's meals wear off sooner than vanilla's; in the "
-               "curve's fit, on three 667 kcal meals a day, dinner wore off soonest (#3953), from the evening's "
-               "circadian rise in hunger (S1273), a stated bend." % (h0, van[1][1])),
+               "after dinner at %.2f h (SH3-v-model-hungry). The mod's meals wear off sooner than vanilla's, "
+               "breakfast's soonest on a sleep-off server, a stated bend; the curve's fit on both sleep settings is "
+               "#3975." % (h0, van[1][1])),
+        series("SH3-m-live", "Nutrition Revamp, measured: Peckish", "meal", "game hours", "live",
+               [[m, p] for m, p in zip(SH3_MEALS, live_p)],
+               artifact("x467", f, "verdicts.CAD_FEEL_P.observed.windows[*].ret"),
+               "x467's Peckish returns, read off the ring's HUNGER from each can's landing row (#3990); the HEAD replay "
+               "of the run's inputs holds its HUNGER within %.2g over %d rows (VALIDATION x467:HUNGER). %s"
+               % (rec["max_miss"]["HUNGER"], rec["n"]["HUNGER"], common)),
         series("SH3-m-kernel", "Nutrition Revamp, simulated: Peckish", "meal", "game hours", "kernel",
-               [[m, p] for m, (p, _) in zip(SH3_MEALS, ker) if p is not None], kernel(inp, "x452b"),
-               "The HEAD replay of x452b's own inputs; the run's live returns fail the admission test and are not "
-               "drawn (VALIDATION x452b:HUNGER). %s %s" % (common, proof_note("SH3-m-kernel"))),
+               [[m, p] for m, (p, _) in zip(SH3_MEALS, ker) if p is not None], kernel(inp, "x467"),
+               "The HEAD replay of x467's own inputs. %s %s" % (common, proof_note("SH3-m-kernel"))),
         series("SH3-v-model-hungry", "Vanilla, from the game's code: Hungry", "meal", "game hours", "vanilla-model",
                [["dinner", van[1][1]]], vmodel("VM1", "VM3", "VM4"),
                "Dinner's return to Hungry (HUNGER over 0.25) in the same vanilla model run (SH3-v-model)."),
+        series("SH3-m-live-hungry", "Nutrition Revamp, measured: Hungry", "meal", "game hours", "live",
+               [["dinner", live_h]], artifact("x467", f, "verdicts.CAD_FEEL_H.observed.windows[0].ret"),
+               "x467's dinner, Hungry %.2f game hours after the can (#3990). %s" % (live_h, common)),
         series("SH3-m-kernel-hungry", "Nutrition Revamp, simulated: Hungry", "meal", "game hours", "kernel",
-               [["dinner", ker[1][1]]], kernel(dict(inp, meal="dinner, to the next morning's breakfast"), "x452b"),
-               "Dinner's return to Hungry in the HEAD replay of x452b (SH3-m-kernel); the lunch and breakfast windows "
+               [["dinner", ker[1][1]]], kernel(dict(inp, meal="dinner, to the next morning's breakfast"), "x467"),
+               "Dinner's return to Hungry in the HEAD replay of x467 (SH3-m-kernel); the lunch and breakfast windows "
                "end before Hungry. " + proof_note("SH3-m-kernel-hungry")),
     ]
 
@@ -3005,8 +3135,9 @@ def s_sv1():
         series("SV1-m-kernel", "Nutrition Revamp", "grams in the stomach", "moodle level (0-4)", "kernel", m,
                kernel({"function": "K.view.fullnessLevel(mass)", "grams": [0, 2500, 10]}, "x453b"),
                "The stomach's whole mass, both lanes (#3915). The physical capacities stay on mass; a food's plate "
-               "volume moves only how much it fills you (#3910). At level 3 the mod caps endurance and at level 4 it "
-               "refuses eating through the game's own gate and brings nausea (#3914, #3935)."),
+               "volume moves only how much it fills you (#3957). At level 3 the mod caps endurance and at level 4 it "
+               "refuses eating through the game's own gate and brings nausea (#3914, #3935), and the server refuses an "
+               "eat queued past that gate (#3979; live, x466, #3989)."),
         series("SV1-m-live", "Measured", "grams in the stomach", "moodle level (0-4)", "live",
                list(zip(mass, lv)), artifact("x401", "accept.json", "verdicts.OF.observed.rows[*].server_mass"),
                "x401's rows with the level the client showed (verdicts.OF.observed.rows[*].levels; #3778); each "

@@ -66,13 +66,18 @@
         { label: "Sodium", series: ["SN1-m-sodium"], unit: "mg" }
       ]
     },
-    "SE1": { yMin: 0, xMax: 480 },
+    "SE1": {
+      facets: [
+        { label: "Liquid", series: ["SE1-m-live-liquid", "SE1-m-kernel-liquid"], unit: "grams of liquid in the stomach", yMin: 0, xMin: 0 },
+        { label: "Fill", series: ["SE1-m-kernel-fill"], unit: "stomach fill (0-1)", yMin: 0, xMin: 0 }
+      ]
+    },
     "SH1": { yMin: 0 },
     "SH2": { yMin: 0 },
     "SH3": {
       facets: [
-        { label: "Peckish", series: ["SH3-v-model", "SH3-m-kernel"], unit: "game hours until Peckish", yMin: 0 },
-        { label: "Hungry", series: ["SH3-v-model-hungry", "SH3-m-kernel-hungry"], unit: "game hours until Hungry", yMin: 0 }
+        { label: "Peckish", series: ["SH3-v-model", "SH3-m-kernel", "SH3-m-live"], unit: "game hours until Peckish", yMin: 0 },
+        { label: "Hungry", series: ["SH3-v-model-hungry", "SH3-m-kernel-hungry", "SH3-m-live-hungry"], unit: "game hours until Hungry", yMin: 0 }
       ]
     },
     "ST1": { yMin: 0, yMax: 1 },
@@ -119,8 +124,8 @@
         { label: "Vanilla health", series: ["S2d-v-model-health", "S2d-v-live-health"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xMax: 4,
           xTitle: "game days (the first four)" }
       ],
-      endpoints: { "S2d-v-model-health": "Death: hunger", "S2d-v-model-weight": "Death: hunger", "S2d-m-mass": "Death: starvation",
-                   "S2d-m-drain": "Death: starvation", "S2d-m-dry": "Death: dehydration" }
+      endpoints: { "S2d-v-model-health": "Death: hunger", "S2d-v-model-weight": "Death: hunger", "S2d-m-mass": "Death: beriberi",
+                   "S2d-m-drain": "Death: beriberi", "S2d-m-dry": "Death: dehydration" }
     },
     "S3a": {
       facets: [
@@ -133,7 +138,8 @@
     },
     "S3b": { xMin: 0, yMin: 0 },
     "S3c": { xMin: 40, xMax: 80, yMin: 0, yMax: 1 },
-    "S4a": { xMin: 0, xMax: 365, yMin: 0, yMax: 10, stepped: ["S4a-v-model-x1", "S4a-v-model-x07"] },
+    "S4a": { xMin: 0, xMax: 365, yMin: 0, yMax: 10, stepped: ["S4a-v-model-x1", "S4a-v-model-x07"],
+      endpoints: { "S4a-m-deficit": "Death: starvation" } },
     "S4b": { xMin: 0, xMax: 10, yMin: 0, yMax: 12, stepped: ["S4b-v-model"] },
     "S4c": { xMin: 0, xMax: 910, yMin: 0, yMax: 10, stepped: ["S4c-v-model"] },
     "S5a": {

@@ -342,6 +342,8 @@
   "SE1": {
    "section": "Eating and the stomach",
    "series": [
+    "SE1-m-live-liquid",
+    "SE1-m-kernel-liquid",
     "SE1-m-kernel-fill"
    ],
    "title": "A drink and a meal in the stomach",
@@ -374,8 +376,10 @@
    "series": [
     "SH3-v-model",
     "SH3-m-kernel",
+    "SH3-m-live",
     "SH3-v-model-hungry",
-    "SH3-m-kernel-hungry"
+    "SH3-m-kernel-hungry",
+    "SH3-m-live-hungry"
    ],
    "title": "When hunger comes back after a meal",
    "x": "meal (lunch, dinner, breakfast)",
@@ -471,7 +475,7 @@
    "chart": "H1",
    "id": "H1-m-kernel",
    "label": "Nutrition Revamp, simulated by the mod's code",
-   "note": "The mod's replay from the request (x = 0 the read at the request, before the eat): the HUNGER it writes is the calibrated curve of its model's hunger (#3952), so a meal reads near empty. Proof x452b, the same writer live on a three-meal day of cans (SH3, VALIDATION x452b:HUNGER).Its proof run fails the admission test at HEAD (VALIDATION x452b:HUNGER); no passing proof run exists for it.",
+   "note": "The mod's replay from the request (x = 0 the read at the request, before the eat): the HUNGER it writes is the calibrated curve of its model's hunger (#3974), so a meal reads near empty. Proof x467, the same writer live on a three-meal day of cans with sleep off (SH3, #3990, VALIDATION x467:HUNGER).",
    "points": [
     [
      0.0,
@@ -627,7 +631,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "eat": {
       "cal": 540.0,
@@ -658,7 +662,7 @@
      ]
     },
     "kind": "kernel",
-    "proof_run": "x452b-20261017-153935",
+    "proof_run": "x467-20261019-025016",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -1165,7 +1169,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "body.fm",
      "plate": [
@@ -1335,7 +1339,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "body.lm + body.lx",
      "plate": [
@@ -1505,7 +1509,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "body.fm + body.lm + body.lx",
      "plate": [
@@ -3366,7 +3370,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -4863,7 +4867,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -8205,7 +8209,6 @@
    "chart": "S1a",
    "id": "S1a-m-kernel",
    "label": "Nutrition Revamp, simulated by the mod's code",
-   "note": "Its proof run fails the admission test at HEAD (VALIDATION x452b:HUNGER); no passing proof run exists for it.",
    "points": [
     [
      0.016666666666666666,
@@ -8789,7 +8792,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -8825,7 +8828,7 @@
      ]
     },
     "kind": "kernel",
-    "proof_run": "x452b-20261017-153935",
+    "proof_run": "x467-20261019-025016",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -10928,7 +10931,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "HUNGER",
      "read": "vanilla's Hungry level of the written HUNGER (#0508)",
@@ -12583,7 +12586,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "THIRST",
      "replay": "fresh record from 07:00, no drink, 24 h",
@@ -13436,7 +13439,7 @@
    "chart": "S2a",
    "id": "S2a-m-kernel",
    "label": "Nutrition Revamp, simulated by the mod's code",
-   "note": "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. The day without food opens the starvation state 34.47 h after the last meal, when the meal pool has been empty for 30 hours (K.drain.STARVE_ONSET_H, #3948): HUNGER lifts to Starving and health drains toward the first floor until the next meal ends the state, 1.61 health in all. Meals are plates of the guide's foods and an orange (CannedBologneseOpen, Bread, Apple, Orange, Burger, TunaTinOpen), every vector from the mod's table; water 500 g every 2 game hours from 09:00 to 23:00. Its proof run fails the admission test at HEAD (VALIDATION x452b:HUNGER); no passing proof run exists for it.",
+   "note": "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. The day without food opens the starvation state 34.47 h after the last meal, when the meal pool has been empty for 30 hours (K.drain.STARVE_ONSET_H, #3962): HUNGER lifts to Starving and health drains toward the first floor until the next meal ends the state, 1.61 health in all. Meals are plates of the guide's foods and an orange (CannedBologneseOpen, Bread, Apple, Orange, Burger, TunaTinOpen), every vector from the mod's table; water 500 g every 2 game hours from 09:00 to 23:00. ",
    "points": [
     [
      -12.0,
@@ -15172,7 +15175,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "clock": "minute 0 is 00:00",
      "plate": [
@@ -15191,7 +15194,7 @@
      ]
     },
     "kind": "kernel",
-    "proof_run": "x452b-20261017-153935",
+    "proof_run": "x467-20261019-025016",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -17250,7 +17253,7 @@
    "chart": "S2b",
    "id": "S2b-m-kernel",
    "label": "Nutrition Revamp, simulated by the mod's code",
-   "note": "Sleep on, 23:00-07:00 (the oracle's protocol); the oracle's 70 kg man, the body its bands were fitted on; its meals plates of real foods with water (rule R-1). The proof run's fast (x271, x272) fails the admission test at HEAD (VALIDATION). The fast arm's skipped day opens the starvation state briefly before its next meal (1.53 health, #3948).",
+   "note": "Sleep on, 23:00-07:00 (the oracle's protocol); the oracle's 70 kg man, the body its bands were fitted on; its meals plates of real foods with water (rule R-1). The proof run's fast (x271, x272) fails the admission test at HEAD (VALIDATION). The fast arm's skipped day opens the starvation state briefly before its next meal (1.53 health, #3962).",
    "points": [
     [
      "day 2",
@@ -17262,7 +17265,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "body": "the oracle's 70 kg man (MAN)",
      "plate": [
@@ -17364,7 +17367,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "depletions": [
       0.0,
@@ -17460,7 +17463,7 @@
    "chart": "S2d",
    "id": "S2d-m-drain",
    "label": "Nutrition Revamp health, with water",
-   "note": "The same fast's health. The starvation state opens after 30 unfed hours (K.drain.STARVE_ONSET_H), at 34.45 h, when Starving shows; health drains 25 a game day (K.drain.STARVE_RATE, a game choice) to the first floor of 50, reached on day 3.43, then follows the floor as the body's BMI falls from 22.42 at the onset: 10 at BMI 12.5 (K.drain.BMI_KNEE), and 0 at BMI 12, the death point (S2234). The fatal state is beriberi: health is gone at day 77.23, where the line ends. The live x454, its unfed clock set near the onset, drained 25.01 a game day to the first floor and held it (#3938).",
+   "note": "The same fast's health. The starvation state opens after 30 unfed hours (K.drain.STARVE_ONSET_H), at 34.45 h, when Starving shows; health drains 25 a game day (K.drain.STARVE_RATE, a game choice) to the first floor of 50, reached on day 3.43, then follows the floor as the body's BMI falls from 22.42 at the onset: 10 at BMI 12.5 (K.drain.BMI_KNEE), and 0 at BMI 12, starvation's death point (S2234). The drain states open in order: starvation on day 1.44, beriberi on day 67.81; with several active the lowest floor wins (#3901). The fatal state is beriberi: health is gone at day 77.23, where the line ends, before the BMI reaches 12 (#3978: the Obese body dies of the same state on the same day and the Gaunt body of starvation on day 41.14, a death the science gives first, not tuned to the hunger strikers' 46-73 days, S2231). The live x454, its unfed clock set near the onset, drained 25.01 a game day to the first floor and held it (#3938).",
    "points": [
     [
      0.0006944444444444445,
@@ -19104,7 +19107,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "the stand-in's overall health",
      "read": "100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)",
@@ -19696,7 +19699,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "the stand-in's overall health",
      "read": "100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)",
@@ -19723,7 +19726,7 @@
    "chart": "S2d",
    "id": "S2d-m-mass",
    "label": "Nutrition Revamp body mass",
-   "note": "The mod's no-trait creation body with water and no food. Its fatal state is beriberi: health is gone at day 77.23, where the line ends (S2d-m-drain). Its HUNGER reached 1.00: the cap lifts when the starvation state opens (#3906).",
+   "note": "The mod's no-trait creation body with water and no food. The deficit splits between lean and fat by the Forbes share with no fat ceiling (#3977), about a sixth of the energy from lean (#3978), and fat falls to 2.92 kg by the last day close before the death, above its 0.5 kg floor. Its fatal state is beriberi: health is gone at day 77.23, where the line ends (S2d-m-drain). Its HUNGER reached 1.00: the cap lifts when the starvation state opens (#3906).",
    "points": [
     [
      0.0006944444444444445,
@@ -20043,7 +20046,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "body.fm + body.lm + body.lx",
      "replay": "90 days, no food, the replay's water",
@@ -21917,7 +21920,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -22493,7 +22496,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -23259,7 +23262,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "UNHAPPINESS",
      "replay": "7 days of four Base.TunaTinOpen a day, then 7 days of four foods a day rotating through Base.Bread, Base.CannedBologneseOpen, Base.Burger, Base.Apple, Base.Orange, Base.TunaTinOpen, with the replay's water",
@@ -24136,7 +24139,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "orange": {
       "cal": 65.0,
@@ -24205,6 +24208,7 @@
    "chart": "S4a",
    "id": "S4a-m-deficit",
    "label": "A deficit: -500 kcal",
+   "note": "The Strength day alone, without the drain: the fat runs out, lean pays the deficit, and on day 301 the body's BMI falls to 12, starvation's death point (S2234; #3901, the state open at any intake under BMI 13), so the line ends at that death and the fall the Strength day would run on past it is not drawn. From day 299 the body's level reads under 0; the line draws the perk there, which never goes under 0 (K.strength.heldLevel: the written perk reads 0 from day 292).",
    "points": [
     [
      0,
@@ -25404,275 +25408,19 @@
     ],
     [
      299,
-     -0.05379153573297213
+     0.0
     ],
     [
      300,
-     -0.16262035012381038
+     0.0
     ],
     [
      301,
-     -0.2722587418529301
-    ],
-    [
-     302,
-     -0.38274424978085353
-    ],
-    [
-     303,
-     -0.49411773298923567
-    ],
-    [
-     304,
-     -0.6064238159382604
-    ],
-    [
-     305,
-     -0.7197114154089181
-    ],
-    [
-     306,
-     -0.8340343686904381
-    ],
-    [
-     307,
-     -0.9494521882607314
-    ],
-    [
-     308,
-     -1.0660309760958526
-    ],
-    [
-     309,
-     -1.1838445416475976
-    ],
-    [
-     310,
-     -1.3029757828334265
-    ],
-    [
-     311,
-     -1.4235184112349524
-    ],
-    [
-     312,
-     -1.5455791344936545
-    ],
-    [
-     313,
-     -1.6692804561259358
-    ],
-    [
-     314,
-     -1.794764324820096
-    ],
-    [
-     315,
-     -1.9221969774783174
-    ],
-    [
-     316,
-     -2.0517755008659195
-    ],
-    [
-     317,
-     -2.183736937674083
-    ],
-    [
-     318,
-     -2.318371284892046
-    ],
-    [
-     319,
-     -2.4560406821262637
-    ],
-    [
-     320,
-     -2.597208916148613
-    ],
-    [
-     321,
-     -2.742489141819216
-    ],
-    [
-     322,
-     -2.8927262158582856
-    ],
-    [
-     323,
-     -3.049151456919624
-    ],
-    [
-     324,
-     -3.2137106443965333
-    ],
-    [
-     325,
-     -3.3898989741726986
-    ],
-    [
-     326,
-     -3.5857162459547673
-    ],
-    [
-     327,
-     -3.847966850397654
-    ],
-    [
-     328,
-     -3.847966850397654
-    ],
-    [
-     329,
-     -3.847966850397654
-    ],
-    [
-     330,
-     -3.847966850397654
-    ],
-    [
-     331,
-     -3.847966850397654
-    ],
-    [
-     332,
-     -3.847966850397654
-    ],
-    [
-     333,
-     -3.847966850397654
-    ],
-    [
-     334,
-     -3.847966850397654
-    ],
-    [
-     335,
-     -3.847966850397654
-    ],
-    [
-     336,
-     -3.847966850397654
-    ],
-    [
-     337,
-     -3.847966850397654
-    ],
-    [
-     338,
-     -3.847966850397654
-    ],
-    [
-     339,
-     -3.847966850397654
-    ],
-    [
-     340,
-     -3.847966850397654
-    ],
-    [
-     341,
-     -3.847966850397654
-    ],
-    [
-     342,
-     -3.847966850397654
-    ],
-    [
-     343,
-     -3.847966850397654
-    ],
-    [
-     344,
-     -3.847966850397654
-    ],
-    [
-     345,
-     -3.847966850397654
-    ],
-    [
-     346,
-     -3.847966850397654
-    ],
-    [
-     347,
-     -3.847966850397654
-    ],
-    [
-     348,
-     -3.847966850397654
-    ],
-    [
-     349,
-     -3.847966850397654
-    ],
-    [
-     350,
-     -3.847966850397654
-    ],
-    [
-     351,
-     -3.847966850397654
-    ],
-    [
-     352,
-     -3.847966850397654
-    ],
-    [
-     353,
-     -3.847966850397654
-    ],
-    [
-     354,
-     -3.847966850397654
-    ],
-    [
-     355,
-     -3.847966850397654
-    ],
-    [
-     356,
-     -3.847966850397654
-    ],
-    [
-     357,
-     -3.847966850397654
-    ],
-    [
-     358,
-     -3.847966850397654
-    ],
-    [
-     359,
-     -3.847966850397654
-    ],
-    [
-     360,
-     -3.847966850397654
-    ],
-    [
-     361,
-     -3.847966850397654
-    ],
-    [
-     362,
-     -3.847966850397654
-    ],
-    [
-     363,
-     -3.847966850397654
-    ],
-    [
-     364,
-     -3.847966850397654
-    ],
-    [
-     365,
-     -3.847966850397654
+     0.0
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -27168,7 +26916,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -28664,7 +28412,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -33793,7 +33541,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 7,
@@ -35920,7 +35668,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 7,
@@ -38837,7 +38585,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 5,
@@ -40343,7 +40091,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -40756,7 +40504,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "native_strength": 5,
      "path": "body.wroteL",
@@ -41167,7 +40915,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -41578,7 +41326,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -41991,7 +41739,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "native_strength": 9,
      "path": "body.wroteL",
@@ -42404,7 +42152,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "native_strength": 0,
      "path": "body.wroteL",
@@ -42987,7 +42735,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "body.energyState",
      "plate": [
@@ -43176,7 +42924,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "body.energyState",
      "plate": [
@@ -43822,7 +43570,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "day": 1,
      "path": "acute.caf",
@@ -44448,7 +44196,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "day": 14,
      "path": "acute.caf",
@@ -45070,7 +44818,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "day": 1,
      "path": "effects.fOff",
@@ -45693,7 +45441,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "day": 1,
      "path": "effects.fOff",
@@ -45800,7 +45548,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "acute.cafTol",
      "plate": [
@@ -46456,7 +46204,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "acute.bac",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -47070,7 +46818,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "acute.hang",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -47684,7 +47432,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "effects.intoxTarget",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -48298,7 +48046,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "effects.intoxTarget",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -54697,7 +54445,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "acute.debtH",
      "plate": [
@@ -55080,7 +54828,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -55358,7 +55106,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -55636,7 +55384,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -55914,7 +55662,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -55960,7 +55708,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "bodies": [
       [
@@ -56052,7 +55800,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "acute.debtH",
      "read": "at each close's s_after",
@@ -57590,7 +57338,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "from": "full health at the onset",
      "function": "K.drain.floor and K.drain.rate",
@@ -57666,7 +57414,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "function": "K.nutrients.stepPool and K.nutrients.grade a day from p = 1 at zero intake, dial 1",
      "records": "NR.data.records, kind pool"
@@ -57741,7 +57489,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "function": "K.nutrients.stepPool and K.nutrients.grade a day from p = 1 at zero intake, dial 1",
      "records": "NR.data.records, kind pool"
@@ -57781,362 +57529,638 @@
    "chart": "SE1",
    "id": "SE1-m-kernel-fill",
    "label": "Stomach fill, simulated",
-   "note": "Ring s 1 to 469; minutes from the ring's first row (page 1). Its proof run fails the admission test at HEAD (VALIDATION x363:fill); no passing proof run exists for it.",
+   "note": "The physical fill, the stomach's mass over its comfortable maximum. 0.5 L of CowMilk from a carton from ring s 350, then the same milk eaten as a food (TKX.MilkSolid) at ring s 830 (x461b, the mod at this build, DayLength 1, sleep off); x = 0 at s 349. The run's water course before the milk held a 395.45 g engine auto-drink (events.json's autodrop at s 266), so it is not drawn, and the lane held 18.42 g at the milk's start, part of it the auto-drink's. Its proof run fails the admission test at HEAD (VALIDATION x461b:fill); no passing proof run exists for it.",
    "points": [
     [
-     49.92633819580078,
-     0
+     0.0,
+     0.025874435060900997
     ],
     [
-     54.93003845214844,
-     0
+     0.9577560424804688,
+     0.024586586105981693
     ],
     [
-     59.9238395690918,
-     0.5794907332974857
+     1.9127655029296875,
+     0.06681623982165781
     ],
     [
-     65.05411148071289,
-     0.4437776940658706
+     3.02398681640625,
+     0.13011430155976972
     ],
     [
-     69.99807357788086,
-     0.33809794660639747
+     3.9739608764648438,
+     0.23606068019836257
     ],
     [
-     74.9417495727539,
-     0.25972693330909324
+     4.9216461181640625,
+     0.31967266794656557
     ],
     [
-     80.03780364990234,
-     0.19962520180333343
+     6.02691650390625,
+     0.4252105531739447
     ],
     [
-     84.97838973999023,
-     0.15209964741406523
+     6.971397399902344,
+     0.5064379674175976
     ],
     [
-     89.92349624633789,
-     0.11684619832927079
+     7.915763854980469,
+     0.5661898973573525
     ],
     [
-     95.02595901489258,
-     0.08901811646520755
+     9.018058776855469,
+     0.6708021266929527
     ],
     [
-     99.97329711914062,
-     0.0683799856365151
+     9.965400695800781,
+     0.6610622121529465
     ],
     [
-     104.9197769165039,
-     0.052527439920095675
+     10.915145874023438,
+     0.6527747549454184
     ],
     [
-     109.92433547973633,
-     0.040007132367505055
+     12.025566101074219,
+     0.6445362384868337
     ],
     [
-     114.91836547851562,
-     0.7097452882318962
+     12.978401184082031,
+     0.63498377904126
     ],
     [
-     120.55646896362305,
-     0.6641992155407572
+     13.933639526367188,
+     0.6268703888998907
     ],
     [
-     125.34936904907227,
-     0.6159425767231917
+     15.046005249023438,
+     0.6188066405419487
     ],
     [
-     130.13591766357422,
-     0.5764852298078244
+     16.00067138671875,
+     0.6094959974838378
     ],
     [
-     134.92097854614258,
-     0.53879490939749
+     16.95728302001953,
+     0.6015881646329786
     ],
     [
-     140.4961395263672,
-     0.4970848895461132
+     17.911605834960938,
+     0.5937338323647872
     ],
     [
-     145.27925491333008,
-     0.4630996310514711
+     19.0264892578125,
+     0.5859674264844899
     ],
     [
-     150.0640869140625,
-     0.4307314882002989
+     19.982986450195312,
+     0.5769732289898671
     ],
     [
-     155.65349578857422,
-     0.39994210301308564
+     20.93982696533203,
+     0.5693387291194754
     ],
     [
-     160.44313430786133,
-     0.3659999002192107
+     22.056884765625,
+     0.5617702057392039
     ],
     [
-     165.22979736328125,
-     0.33859459708248457
+     23.0145263671875,
+     0.5530128161454798
     ],
     [
-     170.0141143798828,
-     0.3126563834877289
+     23.971939086914062,
+     0.5455863760627412
     ],
     [
-     175.59276580810547,
-     0.28818539556709116
+     24.92889404296875,
+     0.538229757652742
     ],
     [
-     180.37347793579102,
-     0.26142315713627595
+     26.04572296142578,
+     0.5309443971178108
     ],
     [
-     185.15905380249023,
-     0.23992149236465116
+     27.00336456298828,
+     0.5225192753422262
     ],
     [
-     189.94205474853516,
-     0.2197219444621836
+     27.959976196289062,
+     0.5153748709861877
     ],
     [
-     195.52762985229492,
-     0.20076846968868992
+     28.917274475097656,
+     0.5083050586489586
     ],
     [
-     200.31978607177734,
-     0.1801728275548099
+     30.03387451171875,
+     0.501296889106221
     ],
     [
-     205.1140594482422,
-     0.16377310687422741
+     34.98058319091797,
+     0.46501544689889596
     ],
     [
-     210.7071304321289,
-     0.14848871456762966
+     39.920196533203125,
+     0.4316877505942985
     ],
     [
-     215.49453735351562,
-     0.13200852538129965
+     45.021400451660156,
+     0.40004400581537064
     ],
     [
-     220.28131484985352,
-     0.11899019174784926
+     49.960899353027344,
+     0.3691189225073701
     ],
     [
-     225.0721549987793,
-     0.1069284880943066
+     55.05878448486328,
+     0.34080868477020665
     ],
     [
-     230.65984725952148,
-     0.09578133996396211
+     60.00263214111328,
+     0.3132094932991561
     ],
     [
-     235.44599533081055,
-     0.08386136379356579
+     65.1104736328125,
+     0.2864107243584546
     ],
     [
-     240.23128509521484,
-     0.07453118173999142
+     70.69461822509766,
+     0.26352693512435965
     ],
     [
-     245.01663208007812,
-     0.06596263134907597
+     75.48019409179688,
+     0.23852210172220364
     ],
     [
-     250.59991836547852,
-     0.05810166943749766
+     80.27080535888672,
+     0.21846982701617196
     ],
     [
-     255.39052963256836,
-     0.04977230311182268
+     85.05855560302734,
+     0.1996699889253398
     ],
     [
-     260.1756477355957,
-     0.04329722133901497
+     90.63915252685547,
+     0.18209078617658525
     ],
     [
-     264.9595642089844,
-     0.0373996821788735
+     95.42312622070312,
+     0.1630495885431951
     ],
     [
-     270.5402183532715,
-     0.032027268087673706
+     100.21018981933594,
+     0.14789268679335907
     ],
     [
-     275.3233337402344,
-     0.026370739298073355
+     104.99553680419922,
+     0.1337949322689179
     ],
     [
-     280.1095962524414,
-     0.021996029056991113
+     110.57624816894531,
+     0.12071016967227703
     ],
     [
-     285.0524139404297,
-     0.018147707229441465
+     115.35346984863281,
+     0.10667461781250255
     ],
     [
-     289.92679595947266,
-     0.014398985287442646
+     120.13435363769531,
+     0.09561074467570138
     ],
     [
-     294.93844985961914,
-     0.6945896111123171
+     124.9123764038086,
+     0.08541366747370124
     ],
     [
-     300.52757263183594,
-     0.6725020734648313
+     130.48038482666016,
+     0.07452785655421075
     ],
     [
-     305.3199005126953,
-     0.6473642798342528
+     135.25611877441406,
+     0.06601025316447039
     ],
     [
-     310.10793685913086,
-     0.626304543465419
+     140.03013610839844,
+     0.0582010319235662
     ],
     [
-     315.69162368774414,
-     0.6056646107656124
+     145.59917449951172,
+     0.05105261473235385
     ],
     [
-     320.4778289794922,
-     0.5820848285913204
+     150.38349151611328,
+     0.043474186047153765
     ],
     [
-     325.2615737915039,
-     0.5622159352851492
+     155.15830993652344,
+     0.03759242742455244
     ],
     [
-     330.0425148010254,
-     0.5426856320459487
+     159.9367904663086,
+     0.03223119557843128
     ],
     [
-     335.62482833862305,
-     0.5234311983322084
+     165.5060577392578,
+     0.02735789992098306
     ],
     [
-     340.4081153869629,
-     0.5013520597312427
+     170.28854370117188,
+     0.022219146239732566
     ],
     [
-     345.1992988586426,
-     0.48267985616300335
+     175.06610870361328,
+     0.01824231179038577
     ],
     [
-     349.98464584350586,
-     0.4642681081601988
+     180.6448745727539,
+     0.014644169380514847
     ],
     [
-     355.56970596313477,
-     0.4460987717770419
+     185.42221069335938,
+     0.011191766256010791
     ],
     [
-     360.3586006164551,
-     0.42520589355223776
+     190.2037811279297,
+     0.008844271960665409
     ],
     [
-     365.145320892334,
-     0.4075526400416917
+     194.98947143554688,
+     0.006961930207996457
     ],
     [
-     369.9290657043457,
-     0.3901208568919966
+     200.56915283203125,
+     0.005462060660036459
     ],
     [
-     375.50851821899414,
-     0.37292088361734194
+     205.35301208496094,
+     0.0041041780301702595
     ],
     [
-     380.29123306274414,
-     0.35312331969312516
+     210.13389587402344,
+     0.0032042124409373406
     ],
     [
-     385.08081436157227,
-     0.3363645127802724
+     214.91718292236328,
+     0.002497609992616124
     ],
     [
-     390.6687355041504,
-     0.3197870598284397
+     220.48667907714844,
+     0.0018658142616205572
     ],
     [
-     395.4551124572754,
-     0.30073266549795624
+     225.26504516601562,
+     0.0014515463028312524
     ],
     [
-     400.24023056030273,
-     0.2846152161621459
+     230.0415802001953,
+     0.001127982366151888
     ],
     [
-     405.0288963317871,
-     0.2686783438176722
+     235.61256408691406,
+     0.0008764233517729987
     ],
     [
-     410.6147575378418,
-     0.2529425228156481
+     240.38440704345703,
+     0.000652483821200523
     ],
     [
-     415.4001045227051,
-     0.2348164570228534
+     245.1577377319336,
+     0.0005065050512032124
     ],
     [
-     420.1864814758301,
-     0.21949158310345643
+     249.93724822998047,
+     0.00039290089416218083
     ],
     [
-     424.9737739562988,
-     0.2043419865801515
+     255.50559997558594,
+     0.0003048711632741506
     ],
     [
-     430.5608940124512,
-     0.18937410691963105
+     260.2852249145508,
+     0.00022661823736842482
     ],
     [
-     435.3511619567871,
-     0.17212029363020115
+     265.0619888305664,
+     0.00017574618440314673
     ],
     [
-     440.1428031921387,
-     0.15752754202080477
+     270.62747955322266,
+     0.0001362950573791046
     ],
     [
-     444.93547439575195,
-     0.1430965424386723
+     275.3989791870117,
+     0.00010133871406708402
     ],
     [
-     450.5232810974121,
-     0.1288563738405957
+     280.1719665527344,
+     7.859227493358e-05
     ],
     [
-     455.3162956237793,
-     0.11244746183091622
+     284.93534088134766,
+     6.0962246196493825e-05
     ],
     [
-     460.10290145874023,
-     0.098563177473768
+     290.4960250854492,
+     4.7291222074227224e-05
     ],
     [
-     465.0494956970215,
-     0.08531152699656751
+     295.2660369873047,
+     3.5153474762888176e-05
     ],
     [
-     470.05388259887695,
-     0.07099965663864098
+     300.04337310791016,
+     2.7251541411507132e-05
     ],
     [
-     474.9221992492676,
-     0.06801703383980623
+     305.614013671875,
+     2.1126678080879793e-05
+    ],
+    [
+     310.396728515625,
+     1.5694993298865403e-05
+    ],
+    [
+     315.1694869995117,
+     1.216663701271393e-05
+    ],
+    [
+     319.9449920654297,
+     9.432455266741126e-06
+    ],
+    [
+     325.5112838745117,
+     7.312726871652144e-06
+    ],
+    [
+     330.28770446777344,
+     5.43444548131264e-06
+    ],
+    [
+     335.06561279296875,
+     4.212220930449092e-06
+    ],
+    [
+     340.63488006591797,
+     3.2657477482552046e-06
+    ],
+    [
+     345.41553497314453,
+     2.4261606693849978e-06
+    ],
+    [
+     350.18566131591797,
+     1.8808656730414732e-06
+    ],
+    [
+     354.9595642089844,
+     1.4582344458552885e-06
+    ],
+    [
+     360.5338668823242,
+     1.1301883532546651e-06
+    ],
+    [
+     365.31429290771484,
+     8.39758938059324e-07
+    ],
+    [
+     370.0935745239258,
+     6.507457634150916e-07
+    ],
+    [
+     375.6643295288086,
+     5.04438653398288e-07
+    ],
+    [
+     380.4441833496094,
+     3.7474174528513083e-07
+    ],
+    [
+     385.2227783203125,
+     2.904441313195789e-07
+    ],
+    [
+     390.01041412353516,
+     2.250624106543079e-07
+    ],
+    [
+     395.5879211425781,
+     1.7438062218978362e-07
+    ],
+    [
+     400.3714370727539,
+     1.2953580514730955e-07
+    ],
+    [
+     405.14774322509766,
+     1.0039074032092855e-07
+    ],
+    [
+     409.9266815185547,
+     7.780652351003223e-08
+    ],
+    [
+     415.50647735595703,
+     6.029482598893221e-08
+    ],
+    [
+     420.29502868652344,
+     4.4772623577260936e-08
+    ],
+    [
+     425.07740020751953,
+     3.469153779393252e-08
+    ],
+    [
+     430.65467834472656,
+     2.6882131486612528e-08
+    ],
+    [
+     435.4384231567383,
+     1.996504840401509e-08
+    ],
+    [
+     440.2233123779297,
+     1.5469020128448157e-08
+    ],
+    [
+     445.0030517578125,
+     1.1990156140350373e-08
+    ],
+    [
+     450.574951171875,
+     9.293264967838294e-09
+    ],
+    [
+     455.3551483154297,
+     6.9049489247593586e-09
+    ],
+    [
+     460.12779235839844,
+     5.352274731553576e-09
+    ],
+    [
+     465.6971740722656,
+     4.149449885039278e-09
+    ],
+    [
+     469.98802185058594,
+     3.084193874226749e-09
+    ],
+    [
+     474.9155044555664,
+     2.453807236791878e-09
+    ],
+    [
+     480.0169372558594,
+     1.8695056590156946e-09
+    ],
+    [
+     480.97423553466797,
+     1.776552264822171e-09
+    ],
+    [
+     481.92832946777344,
+     0.6964116384186323
+    ],
+    [
+     483.0400085449219,
+     0.6920953932967463
+    ],
+    [
+     483.9938735961914,
+     0.6870792146809549
+    ],
+    [
+     484.94956970214844,
+     0.682786231941885
+    ],
+    [
+     485.90538024902344,
+     0.6784952628910371
+    ],
+    [
+     487.0216369628906,
+     0.6742140217721584
+    ],
+    [
+     487.97916412353516,
+     0.6692270474543609
+    ],
+    [
+     488.93646240234375,
+     0.6649602864147316
+    ],
+    [
+     490.05306243896484,
+     0.660704743257319
+    ],
+    [
+     491.0105895996094,
+     0.6557538958277717
+    ],
+    [
+     491.9673156738281,
+     0.6515193484931094
+    ],
+    [
+     492.9247283935547,
+     0.6472984557840257
+    ],
+    [
+     494.0419006347656,
+     0.6430846281114331
+    ],
+    [
+     494.9991989135742,
+     0.6381803902564053
+    ],
+    [
+     495.9566116333008,
+     0.6339888613487361
+    ],
+    [
+     496.91356658935547,
+     0.629806852523112
+    ],
+    [
+     498.0299377441406,
+     0.6256368338607652
+    ],
+    [
+     498.98712158203125,
+     0.6207847354157274
+    ],
+    [
+     499.9445343017578,
+     0.6166352843260063
+    ],
+    [
+     501.06170654296875,
+     0.6124947621739283
+    ],
+    [
+     502.0184326171875,
+     0.6076758405051224
+    ],
+    [
+     502.9753875732422,
+     0.6035596880673382
+    ],
+    [
+     503.9332580566406,
+     0.5994523877435755
+    ],
+    [
+     505.04859924316406,
+     0.5953509865200064
+    ],
+    [
+     506.00521087646484,
+     0.5905876884159974
+    ],
+    [
+     506.9619369506836,
+     0.5865128457404089
+    ],
+    [
+     507.9185485839844,
+     0.5824472507928438
+    ],
+    [
+     509.0346908569336,
+     0.5783918529512777
+    ],
+    [
+     509.9913024902344,
+     0.5736723944677822
+    ],
+    [
+     514.9343490600586,
+     0.5529260994523724
+    ],
+    [
+     520.0308609008789,
+     0.5324629225452208
+    ],
+    [
+     524.9747085571289,
+     0.5115789585017373
+    ],
+    [
+     529.9123764038086,
+     0.48777808914055226
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "stomachFill",
-     "replay": "x363's events.json from its start.json at HEAD",
+     "replay": "x461b's own inputs at HEAD (start.json, events.json, player.json, its ring's clock and cold), drawn from ring s 349",
      "sleep_allowed": false
     },
     "kind": "kernel",
-    "proof_run": "x363-20261012-202827",
+    "proof_run": "x461b-20261019-022954",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -58146,10 +58170,1293 @@
   },
   {
    "badge": "kernel",
+   "chart": "SE1",
+   "id": "SE1-m-kernel-liquid",
+   "label": "Liquid in the stomach, simulated",
+   "note": "0.5 L of CowMilk from a carton from ring s 350, then the same milk eaten as a food (TKX.MilkSolid) at ring s 830 (x461b, the mod at this build, DayLength 1, sleep off); x = 0 at s 349. The run's water course before the milk held a 395.45 g engine auto-drink (events.json's autodrop at s 266), so it is not drawn, and the lane held 18.42 g at the milk's start, part of it the auto-drink's.",
+   "points": [
+    [
+     0.0,
+     18.66905166237953
+    ],
+    [
+     0.9577560424804688,
+     17.739836449906687
+    ],
+    [
+     1.9127655029296875,
+     45.04183006856314
+    ],
+    [
+     3.02398681640625,
+     85.91208267716114
+    ],
+    [
+     3.9739608764648438,
+     154.25734353143028
+    ],
+    [
+     4.9216461181640625,
+     208.13098705795258
+    ],
+    [
+     6.02691650390625,
+     276.17024991772024
+    ],
+    [
+     6.971397399902344,
+     328.39283067403727
+    ],
+    [
+     7.915763854980469,
+     366.7575234831262
+    ],
+    [
+     9.018058776855469,
+     434.16996585858107
+    ],
+    [
+     9.965400695800781,
+     427.4658496611194
+    ],
+    [
+     10.915145874023438,
+     421.76405873178624
+    ],
+    [
+     12.025566101074219,
+     416.0980510339008
+    ],
+    [
+     12.978401184082031,
+     409.53071031925435
+    ],
+    [
+     13.933639526367188,
+     403.9553819159523
+    ],
+    [
+     15.046005249023438,
+     398.4163385593339
+    ],
+    [
+     16.00067138671875,
+     392.02317682701397
+    ],
+    [
+     16.95728302001953,
+     386.59595339609035
+    ],
+    [
+     17.911605834960938,
+     381.207663352544
+    ],
+    [
+     19.0264892578125,
+     375.8819111986405
+    ],
+    [
+     19.982986450195312,
+     369.7166639914273
+    ],
+    [
+     20.93982696533203,
+     364.48620791204996
+    ],
+    [
+     22.056884765625,
+     359.3032186793516
+    ],
+    [
+     23.0145263671875,
+     353.30859471576395
+    ],
+    [
+     23.971939086914062,
+     348.22784206137834
+    ],
+    [
+     24.92889404296875,
+     343.1971637931968
+    ],
+    [
+     26.04572296142578,
+     338.2175299603368
+    ],
+    [
+     27.00336456298828,
+     332.4614287424598
+    ],
+    [
+     27.959976196289062,
+     327.58318306173754
+    ],
+    [
+     28.917274475097656,
+     322.75822196647334
+    ],
+    [
+     30.03387451171875,
+     317.9776978276012
+    ],
+    [
+     34.98058319091797,
+     293.26806418953356
+    ],
+    [
+     39.920196533203125,
+     270.6352807000702
+    ],
+    [
+     45.021400451660156,
+     249.21153904926015
+    ],
+    [
+     49.960899353027344,
+     228.34437761890365
+    ],
+    [
+     55.05878448486328,
+     209.31182865989777
+    ],
+    [
+     60.00263214111328,
+     190.83093828250418
+    ],
+    [
+     65.1104736328125,
+     172.96680875322204
+    ],
+    [
+     70.69461822509766,
+     157.78549927145284
+    ],
+    [
+     75.48019409179688,
+     141.28686665839086
+    ],
+    [
+     80.27080535888672,
+     128.13505311912132
+    ],
+    [
+     85.05855560302734,
+     115.87947569794231
+    ],
+    [
+     90.63915252685547,
+     104.49590191157715
+    ],
+    [
+     95.42312622070312,
+     92.26362770317016
+    ],
+    [
+     100.21018981933594,
+     82.61288881218546
+    ],
+    [
+     104.99553680419922,
+     73.71800265974176
+    ],
+    [
+     110.57624816894531,
+     65.54523162614326
+    ],
+    [
+     115.35346984863281,
+     56.88478473998025
+    ],
+    [
+     120.13435363769531,
+     50.15095578971647
+    ],
+    [
+     124.9123764038086,
+     44.03210182838555
+    ],
+    [
+     130.48038482666016,
+     37.61174574172876
+    ],
+    [
+     135.25611877441406,
+     32.68566004327856
+    ],
+    [
+     140.03013610839844,
+     28.26065975562106
+    ],
+    [
+     145.59917449951172,
+     24.302430050568912
+    ],
+    [
+     150.38349151611328,
+     20.223562897958708
+    ],
+    [
+     155.15830993652344,
+     17.159539167351337
+    ],
+    [
+     159.9367904663086,
+     14.461127255156457
+    ],
+    [
+     165.5060577392578,
+     12.102529205344961
+    ],
+    [
+     170.28854370117188,
+     9.73352792879881
+    ],
+    [
+     175.06610870361328,
+     8.000823372205689
+    ],
+    [
+     180.6448745727539,
+     6.516584088283331
+    ],
+    [
+     185.42221069335938,
+     5.069901434273689
+    ],
+    [
+     190.2037811279297,
+     4.05388581434356
+    ],
+    [
+     194.98947143554688,
+     3.220633124344418
+    ],
+    [
+     200.56915283203125,
+     2.545051534790057
+    ],
+    [
+     205.35301208496094,
+     1.9246506421419503
+    ],
+    [
+     210.13389587402344,
+     1.5089292589119176
+    ],
+    [
+     214.91718292236328,
+     1.1800188278405475
+    ],
+    [
+     220.48667907714844,
+     0.884075224305718
+    ],
+    [
+     225.26504516601562,
+     0.6890811441103356
+    ],
+    [
+     230.0415802001953,
+     0.5362636242805314
+    ],
+    [
+     235.61256408691406,
+     0.4171412179741466
+    ],
+    [
+     240.38440704345703,
+     0.3108684333543893
+    ],
+    [
+     245.1577377319336,
+     0.2414767576512873
+    ],
+    [
+     249.93724822998047,
+     0.18741129778040116
+    ],
+    [
+     255.50559997558594,
+     0.14547899024405264
+    ],
+    [
+     260.2852249145508,
+     0.10817597132944211
+    ],
+    [
+     265.0619888305664,
+     0.08391132831701452
+    ],
+    [
+     270.62747955322266,
+     0.0650865618517129
+    ],
+    [
+     275.3989791870117,
+     0.04840100654002962
+    ],
+    [
+     280.1719665527344,
+     0.0375407508144817
+    ],
+    [
+     284.93534088134766,
+     0.029121800218859267
+    ],
+    [
+     290.4960250854492,
+     0.02259249948045011
+    ],
+    [
+     295.2660369873047,
+     0.01679482628064461
+    ],
+    [
+     300.04337310791016,
+     0.01302007944524824
+    ],
+    [
+     305.614013671875,
+     0.010094054364314884
+    ],
+    [
+     310.396728515625,
+     0.007499047052699768
+    ],
+    [
+     315.1694869995117,
+     0.0058132945433019625
+    ],
+    [
+     319.9449920654297,
+     0.004506940510320783
+    ],
+    [
+     325.5112838745117,
+     0.0034941418264941263
+    ],
+    [
+     330.28770446777344,
+     0.002596689663521414
+    ],
+    [
+     335.06561279296875,
+     0.0020126966390093012
+    ],
+    [
+     340.63488006591797,
+     0.001560456434198936
+    ],
+    [
+     345.41553497314453,
+     0.0011592849449773757
+    ],
+    [
+     350.18566131591797,
+     0.0008987304867228839
+    ],
+    [
+     354.9595642089844,
+     0.0006967867197770687
+    ],
+    [
+     360.5338668823242,
+     0.000540037570363564
+    ],
+    [
+     365.31429290771484,
+     0.0004012622873852694
+    ],
+    [
+     370.0935745239258,
+     0.00031094632250561573
+    ],
+    [
+     375.6643295288086,
+     0.0002410364466965387
+    ],
+    [
+     380.4441833496094,
+     0.00017906334166393012
+    ],
+    [
+     385.2227783203125,
+     0.000138783353926056
+    ],
+    [
+     390.01041412353516,
+     0.00010754193984337144
+    ],
+    [
+     395.5879211425781,
+     8.332459678355879e-05
+    ],
+    [
+     400.3714370727539,
+     6.189633203148258e-05
+    ],
+    [
+     405.14774322509766,
+     4.796989833154053e-05
+    ],
+    [
+     409.9266815185547,
+     3.717844281435209e-05
+    ],
+    [
+     415.50647735595703,
+     2.8810796497766444e-05
+    ],
+    [
+     420.29502868652344,
+     2.139379315999787e-05
+    ],
+    [
+     425.07740020751953,
+     1.657672832245202e-05
+    ],
+    [
+     430.65467834472656,
+     1.2845144211948006e-05
+    ],
+    [
+     435.4384231567383,
+     9.539940461365332e-06
+    ],
+    [
+     440.2233123779297,
+     7.391594099492838e-06
+    ],
+    [
+     445.0030517578125,
+     5.729281364797163e-06
+    ],
+    [
+     450.574951171875,
+     4.4406202734389465e-06
+    ],
+    [
+     455.3551483154297,
+     3.299406249035624e-06
+    ],
+    [
+     460.12779235839844,
+     2.557488695501358e-06
+    ],
+    [
+     465.6971740722656,
+     1.9827403791292984e-06
+    ],
+    [
+     469.98802185058594,
+     1.4737268625853076e-06
+    ],
+    [
+     474.9155044555664,
+     1.1725078896139309e-06
+    ],
+    [
+     480.0169372558594,
+     8.933098361256532e-07
+    ],
+    [
+     480.97423553466797,
+     8.488937198794011e-07
+    ],
+    [
+     481.92832946777344,
+     8.066515548801286e-07
+    ],
+    [
+     483.0400085449219,
+     7.666423920094713e-07
+    ],
+    [
+     483.9938735961914,
+     7.225212413223052e-07
+    ],
+    [
+     484.94956970214844,
+     6.866932435124248e-07
+    ],
+    [
+     485.90538024902344,
+     6.525781510037319e-07
+    ],
+    [
+     487.0216369628906,
+     6.201541207244618e-07
+    ],
+    [
+     487.97916412353516,
+     5.84320902802789e-07
+    ],
+    [
+     488.93646240234375,
+     5.552374833381288e-07
+    ],
+    [
+     490.05306243896484,
+     5.276080724214184e-07
+    ],
+    [
+     491.0105895996094,
+     4.971131714802471e-07
+    ],
+    [
+     491.9673156738281,
+     4.7237034468027997e-07
+    ],
+    [
+     492.9247283935547,
+     4.4887821582581325e-07
+    ],
+    [
+     494.0419006347656,
+     4.265387914001665e-07
+    ],
+    [
+     494.9991989135742,
+     4.0187327180277854e-07
+    ],
+    [
+     495.9566116333008,
+     3.8187548327882784e-07
+    ],
+    [
+     496.91356658935547,
+     3.6287059909979607e-07
+    ],
+    [
+     498.0299377441406,
+     3.448199514119261e-07
+    ],
+    [
+     498.98712158203125,
+     3.2489387577306555e-07
+    ],
+    [
+     499.9445343017578,
+     3.0872857585468965e-07
+    ],
+    [
+     501.06170654296875,
+     2.9336401047417e-07
+    ],
+    [
+     502.0184326171875,
+     2.7639960793379847e-07
+    ],
+    [
+     502.9753875732422,
+     2.6265358156504097e-07
+    ],
+    [
+     503.9332580566406,
+     2.495881326682856e-07
+    ],
+    [
+     505.04859924316406,
+     2.371610346124412e-07
+    ],
+    [
+     506.00521087646484,
+     2.2346850575004808e-07
+    ],
+    [
+     506.9619369506836,
+     2.1235616790096152e-07
+    ],
+    [
+     507.9185485839844,
+     2.0179517793688376e-07
+    ],
+    [
+     509.0346908569336,
+     1.9176058184650965e-07
+    ],
+    [
+     509.9913024902344,
+     1.806815374714187e-07
+    ],
+    [
+     514.9343490600586,
+     1.3881485195563634e-07
+    ],
+    [
+     520.0308609008789,
+     1.0668837287673436e-07
+    ],
+    [
+     524.9747085571289,
+     8.12782384504246e-08
+    ],
+    [
+     529.9123764038086,
+     5.935630997530301e-08
+    ]
+   ],
+   "provenance": {
+    "commit": "3a154e9a98",
+    "inputs": {
+     "path": "stomach.liquid",
+     "replay": "x461b's own inputs at HEAD (start.json, events.json, player.json, its ring's clock and cold), drawn from ring s 349",
+     "sleep_allowed": false
+    },
+    "kind": "kernel",
+    "proof_run": "x461b-20261019-022954",
+    "script": "tools/mod_guide_series.py"
+   },
+   "units": {
+    "x": "game minutes",
+    "y": "grams"
+   }
+  },
+  {
+   "badge": "live",
+   "chart": "SE1",
+   "id": "SE1-m-live-liquid",
+   "label": "Liquid in the stomach, measured",
+   "note": "The ring's liquid lane; the milk peaked it at 438.47 g (checks.liquid.milk.peak, #3981). The HEAD replay holds it within 1.5 g on the drawn rows (VALIDATION x461b:milk). 0.5 L of CowMilk from a carton from ring s 350, then the same milk eaten as a food (TKX.MilkSolid) at ring s 830 (x461b, the mod at this build, DayLength 1, sleep off); x = 0 at s 349. The run's water course before the milk held a 395.45 g engine auto-drink (events.json's autodrop at s 266), so it is not drawn, and the lane held 18.42 g at the milk's start, part of it the auto-drink's.",
+   "points": [
+    [
+     0.0,
+     18.421787355067266
+    ],
+    [
+     0.9577560424804688,
+     44.88765286744979
+    ],
+    [
+     1.9127655029296875,
+     91.45477893277695
+    ],
+    [
+     3.02398681640625,
+     166.49567369162244
+    ],
+    [
+     3.9739608764648438,
+     219.78333107192736
+    ],
+    [
+     4.9216461181640625,
+     273.62445608810276
+    ],
+    [
+     6.02691650390625,
+     336.90632909164685
+    ],
+    [
+     6.971397399902344,
+     379.49368512736197
+    ],
+    [
+     7.915763854980469,
+     438.47304990919247
+    ],
+    [
+     9.018058776855469,
+     432.694461276476
+    ],
+    [
+     9.965400695800781,
+     426.0063121994955
+    ],
+    [
+     10.915145874023438,
+     420.3181746249799
+    ],
+    [
+     12.025566101074219,
+     414.6658000612927
+    ],
+    [
+     12.978401184082031,
+     408.114341036637
+    ],
+    [
+     13.933639526367188,
+     402.5525692567401
+    ],
+    [
+     15.046005249023438,
+     397.0270600930852
+    ],
+    [
+     16.00067138671875,
+     390.64959923472895
+    ],
+    [
+     16.95728302001953,
+     385.23577813101537
+    ],
+    [
+     17.911605834960938,
+     379.86085982519046
+    ],
+    [
+     19.0264892578125,
+     374.5483894278019
+    ],
+    [
+     19.982986450195312,
+     368.39859682347236
+    ],
+    [
+     20.93982696533203,
+     363.1813253798318
+    ],
+    [
+     22.056884765625,
+     358.0114661473289
+    ],
+    [
+     23.0145263671875,
+     352.0321072877415
+    ],
+    [
+     23.971939086914062,
+     346.964365552696
+    ],
+    [
+     24.92889404296875,
+     341.9466345911998
+    ],
+    [
+     26.04572296142578,
+     336.97988109911734
+    ],
+    [
+     27.00336456298828,
+     331.23874681487627
+    ],
+    [
+     27.959976196289062,
+     326.37325768274155
+    ],
+    [
+     28.917274475097656,
+     321.5609776585095
+    ],
+    [
+     30.03387451171875,
+     316.7930815412127
+    ],
+    [
+     34.98058319091797,
+     292.149769316213
+    ],
+    [
+     39.920196533203125,
+     269.5793966867824
+    ],
+    [
+     45.021400451660156,
+     248.21634034011794
+    ],
+    [
+     49.960899353027344,
+     227.4099421417111
+    ],
+    [
+     55.05878448486328,
+     208.4343926161169
+    ],
+    [
+     60.00263214111328,
+     190.01044261909792
+    ],
+    [
+     65.1104736328125,
+     172.20301765611308
+    ],
+    [
+     70.69461822509766,
+     157.07133303908142
+    ],
+    [
+     75.48019409179688,
+     140.62831198425235
+    ],
+    [
+     80.27080535888672,
+     127.52223778910113
+    ],
+    [
+     85.05855560302734,
+     115.31055136512515
+    ],
+    [
+     90.63915252685547,
+     103.96897822193722
+    ],
+    [
+     95.42312622070312,
+     91.78333865385756
+    ],
+    [
+     100.21018981933594,
+     82.1706453361641
+    ],
+    [
+     104.99553680419922,
+     73.31194597940338
+    ],
+    [
+     110.57624816894531,
+     65.1735064675923
+    ],
+    [
+     115.35346984863281,
+     56.550746803229885
+    ],
+    [
+     120.13435363769531,
+     49.84730055218736
+    ],
+    [
+     124.9123764038086,
+     43.75701067776418
+    ],
+    [
+     130.48038482666016,
+     37.36777486353784
+    ],
+    [
+     135.25611877441406,
+     32.46650822540814
+    ],
+    [
+     140.03013610839844,
+     28.0646309753455
+    ],
+    [
+     145.59917449951172,
+     24.127872417753437
+    ],
+    [
+     150.38349151611328,
+     20.072067160835115
+    ],
+    [
+     155.15830993652344,
+     17.026126039583158
+    ],
+    [
+     159.9367904663086,
+     14.344298847962705
+    ],
+    [
+     165.5060577392578,
+     12.000814655663932
+    ],
+    [
+     170.28854370117188,
+     9.647715833661975
+    ],
+    [
+     175.06610870361328,
+     7.9272187565461865
+    ],
+    [
+     180.6448745727539,
+     6.453947788421577
+    ],
+    [
+     185.42221069335938,
+     5.018992941509594
+    ],
+    [
+     190.2037811279297,
+     4.011957580626298
+    ],
+    [
+     194.98947143554688,
+     3.1865273260572793
+    ],
+    [
+     200.56915283203125,
+     2.5175904363940784
+    ],
+    [
+     205.35301208496094,
+     1.9035299464115427
+    ],
+    [
+     210.13389587402344,
+     1.492184825144781
+    ],
+    [
+     214.91718292236328,
+     1.1668093638168422
+    ],
+    [
+     220.48667907714844,
+     0.8741011886760388
+    ],
+    [
+     225.26504516601562,
+     0.6812672409312698
+    ],
+    [
+     230.0415802001953,
+     0.5301583573013685
+    ],
+    [
+     235.61256408691406,
+     0.4123774345174024
+    ],
+    [
+     240.38440704345703,
+     0.3073085175319796
+    ],
+    [
+     245.1577377319336,
+     0.23870652408795606
+    ],
+    [
+     249.93724822998047,
+     0.18525830794925727
+    ],
+    [
+     255.50559997558594,
+     0.1438059159483268
+    ],
+    [
+     260.2852249145508,
+     0.10693070478047935
+    ],
+    [
+     265.0619888305664,
+     0.08294478157917808
+    ],
+    [
+     270.62747955322266,
+     0.06433648887277285
+    ],
+    [
+     275.3989791870117,
+     0.04784298294622852
+    ],
+    [
+     280.1719665527344,
+     0.037107816379888796
+    ],
+    [
+     284.93534088134766,
+     0.02878588384459209
+    ],
+    [
+     290.4960250854492,
+     0.022331854147551504
+    ],
+    [
+     295.2660369873047,
+     0.016601038786494063
+    ],
+    [
+     300.04337310791016,
+     0.01286983241585331
+    ],
+    [
+     305.614013671875,
+     0.009977563873415671
+    ],
+    [
+     310.396728515625,
+     0.007412498501226572
+    ],
+    [
+     315.1694869995117,
+     0.00574619882315058
+    ],
+    [
+     319.9449920654297,
+     0.004454920688815747
+    ],
+    [
+     325.5112838745117,
+     0.003453810840977346
+    ],
+    [
+     330.28770446777344,
+     0.0025667167925684997
+    ],
+    [
+     335.06561279296875,
+     0.0019894642903744413
+    ],
+    [
+     340.63488006591797,
+     0.0015424440385957729
+    ],
+    [
+     345.41553497314453,
+     0.001145903146369153
+    ],
+    [
+     350.18566131591797,
+     0.0008883562377197086
+    ],
+    [
+     354.9595642089844,
+     0.0006887435116621115
+    ],
+    [
+     360.5338668823242,
+     0.0005338037374067086
+    ],
+    [
+     365.31429290771484,
+     0.0003966303671172334
+    ],
+    [
+     370.0935745239258,
+     0.0003073569448029787
+    ],
+    [
+     375.6643295288086,
+     0.00023825406165209513
+    ],
+    [
+     380.4441833496094,
+     0.00017699633494365914
+    ],
+    [
+     385.2227783203125,
+     0.00013718131512407833
+    ],
+    [
+     390.01041412353516,
+     0.00010630053377024196
+    ],
+    [
+     395.5879211425781,
+     8.236274204261458e-05
+    ],
+    [
+     400.3714370727539,
+     6.11818333671723e-05
+    ],
+    [
+     405.14774322509766,
+     4.7416158887006364e-05
+    ],
+    [
+     409.9266815185547,
+     3.6749274175635696e-05
+    ],
+    [
+     415.50647735595703,
+     2.8478219551857222e-05
+    ],
+    [
+     420.29502868652344,
+     2.1146834220712675e-05
+    ],
+    [
+     425.07740020751953,
+     1.6385375077232355e-05
+    ],
+    [
+     430.65467834472656,
+     1.2696866444615174e-05
+    ],
+    [
+     435.4384231567383,
+     9.429816264347285e-06
+    ],
+    [
+     440.2233123779297,
+     7.306269310202583e-06
+    ],
+    [
+     445.0030517578125,
+     5.663145462381327e-06
+    ],
+    [
+     450.574951171875,
+     4.389360015813351e-06
+    ],
+    [
+     455.3551483154297,
+     3.2613195834643566e-06
+    ],
+    [
+     460.12779235839844,
+     2.527966347797623e-06
+    ],
+    [
+     465.6971740722656,
+     1.9598526330977977e-06
+    ],
+    [
+     469.98802185058594,
+     1.4567149093585028e-06
+    ],
+    [
+     474.9155044555664,
+     1.1589730548785715e-06
+    ],
+    [
+     480.0169372558594,
+     8.829979216447174e-07
+    ],
+    [
+     480.97423553466797,
+     8.390945224466582e-07
+    ],
+    [
+     481.92832946777344,
+     7.973399795095203e-07
+    ],
+    [
+     483.0400085449219,
+     7.577926620610209e-07
+    ],
+    [
+     483.9938735961914,
+     7.141808234921351e-07
+    ],
+    [
+     484.94956970214844,
+     6.787664058631261e-07
+    ],
+    [
+     485.90538024902344,
+     6.450451206283382e-07
+    ],
+    [
+     487.0216369628906,
+     6.129953768612671e-07
+    ],
+    [
+     487.97916412353516,
+     5.775757993803012e-07
+    ],
+    [
+     488.93646240234375,
+     5.488281041167408e-07
+    ],
+    [
+     490.05306243896484,
+     5.215176330664014e-07
+    ],
+    [
+     491.0105895996094,
+     4.913747497514084e-07
+    ],
+    [
+     491.9673156738281,
+     4.669175415596962e-07
+    ],
+    [
+     492.9247283935547,
+     4.4369659389282266e-07
+    ],
+    [
+     494.0419006347656,
+     4.2161504442139154e-07
+    ],
+    [
+     494.9991989135742,
+     3.972342510382346e-07
+    ],
+    [
+     495.9566116333008,
+     3.7746730681511884e-07
+    ],
+    [
+     496.91356658935547,
+     3.5868180535435074e-07
+    ],
+    [
+     498.0299377441406,
+     3.4083952516418643e-07
+    ],
+    [
+     498.98712158203125,
+     3.211434660098755e-07
+    ],
+    [
+     499.9445343017578,
+     3.0516477009374337e-07
+    ],
+    [
+     501.06170654296875,
+     2.8997756544332663e-07
+    ],
+    [
+     502.0184326171875,
+     2.732089913399718e-07
+    ],
+    [
+     502.9753875732422,
+     2.5962164211033755e-07
+    ],
+    [
+     503.9332580566406,
+     2.467070141125743e-07
+    ],
+    [
+     505.04859924316406,
+     2.3442336815833308e-07
+    ],
+    [
+     506.00521087646484,
+     2.2088889888757013e-07
+    ],
+    [
+     506.9619369506836,
+     2.099048362170189e-07
+    ],
+    [
+     507.9185485839844,
+     1.9946575695192758e-07
+    ],
+    [
+     509.0346908569336,
+     1.895469951373974e-07
+    ],
+    [
+     509.9913024902344,
+     1.7859584161831354e-07
+    ],
+    [
+     514.9343490600586,
+     1.372124438378177e-07
+    ],
+    [
+     520.0308609008789,
+     1.0545681650426548e-07
+    ],
+    [
+     524.9747085571289,
+     8.034000375585586e-08
+    ],
+    [
+     529.9123764038086,
+     6.173943556226165e-08
+    ]
+   ],
+   "provenance": {
+    "file": "minute-ring-admin-{1,721}.json",
+    "kind": "artifact",
+    "path": "rows_list[*][\"stomach.liquid\"]",
+    "run": "x461b-20261019-022954"
+   },
+   "units": {
+    "x": "game minutes",
+    "y": "grams"
+   }
+  },
+  {
+   "badge": "kernel",
    "chart": "SH1",
    "id": "SH1-m-kernel",
    "label": "Nutrition Revamp, simulated",
-   "note": "Callahan's liquid preloads at 09:00, from the request, on the model's own hunger (h_model), the value the study oracles read; the game is shown its calibrated curve of it (#3952), whose cadence SH3 draws. x361's live interval ran an earlier writer and fails at HEAD (VALIDATION x361:HUNGER). Its proof run fails the admission test at HEAD (VALIDATION x452b:HUNGER); no passing proof run exists for it.",
+   "note": "Callahan's liquid preloads at 09:00, from the request, on the model's own hunger (h_model), the value the study oracles read; the game is shown its calibrated curve of it (#3974), whose cadence SH3 draws. x361's live interval ran an earlier writer and fails at HEAD (VALIDATION x361:HUNGER). ",
    "points": [
     [
      190.0,
@@ -58165,7 +59472,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "clock": "09:00",
      "preloads_kcal": [
@@ -58176,7 +59483,7 @@
      "replay": "test_satiety_meal_studies.callahan()"
     },
     "kind": "kernel",
-    "proof_run": "x452b-20261017-153935",
+    "proof_run": "x467-20261019-025016",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -58255,7 +59562,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "replay": "x276's events.json from its start.json at HEAD (six meals) against its three-meal arm (x27_grade.row8)",
      "window": "world age 25 to 49"
@@ -58299,30 +59606,30 @@
    "chart": "SH3",
    "id": "SH3-m-kernel",
    "label": "Nutrition Revamp, simulated: Peckish",
-   "note": "The HEAD replay of x452b's own inputs; the run's live returns fail the admission test and are not drawn (VALIDATION x452b:HUNGER). Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it (x452b, the Plan 15 Task 14b build, DayLength 1, sleep off). Its proof run fails the admission test at HEAD (VALIDATION x452b:HUNGER); no passing proof run exists for it.",
+   "note": "The HEAD replay of x467's own inputs. Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it; lunch sits on the fresh start's seed plate (x467, the mod at this build, DayLength 1, sleep off, no body rhythm). ",
    "points": [
     [
      "lunch",
-     4.794105529785156
+     4.97491455078125
     ],
     [
      "dinner",
-     4.487087249755859
+     4.598602294921875
     ],
     [
      "breakfast",
-     3.857217788696289
+     3.869199752807617
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
-     "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at 12:30, 18:30 and 07:30",
+     "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at about 12:50, 18:50 and 07:50",
      "read": "hours from each can's landing row to the first row with HUNGER over 0.15 (Peckish) or 0.25 (Hungry), inside the meal's window",
-     "replay": "x452b's own inputs at HEAD (start.json, events.json, player.json, its ring's clock)"
+     "replay": "x467's own inputs at HEAD (start.json, events.json, player.json, its ring's clock and cold)"
     },
     "kind": "kernel",
-    "proof_run": "x452b-20261017-153935",
+    "proof_run": "x467-20261019-025016",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -58335,24 +59642,78 @@
    "chart": "SH3",
    "id": "SH3-m-kernel-hungry",
    "label": "Nutrition Revamp, simulated: Hungry",
-   "note": "Dinner's return to Hungry in the HEAD replay of x452b (SH3-m-kernel); the lunch and breakfast windows end before Hungry. Its proof run fails the admission test at HEAD (VALIDATION x452b:HUNGER); no passing proof run exists for it.",
+   "note": "Dinner's return to Hungry in the HEAD replay of x467 (SH3-m-kernel); the lunch and breakfast windows end before Hungry. ",
    "points": [
     [
      "dinner",
-     10.251750946044922
+     10.43404769897461
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "meal": "dinner, to the next morning's breakfast",
-     "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at 12:30, 18:30 and 07:30",
+     "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at about 12:50, 18:50 and 07:50",
      "read": "hours from each can's landing row to the first row with HUNGER over 0.15 (Peckish) or 0.25 (Hungry), inside the meal's window",
-     "replay": "x452b's own inputs at HEAD (start.json, events.json, player.json, its ring's clock)"
+     "replay": "x467's own inputs at HEAD (start.json, events.json, player.json, its ring's clock and cold)"
     },
     "kind": "kernel",
-    "proof_run": "x452b-20261017-153935",
+    "proof_run": "x467-20261019-025016",
     "script": "tools/mod_guide_series.py"
+   },
+   "units": {
+    "x": "meal",
+    "y": "game hours"
+   }
+  },
+  {
+   "badge": "live",
+   "chart": "SH3",
+   "id": "SH3-m-live",
+   "label": "Nutrition Revamp, measured: Peckish",
+   "note": "x467's Peckish returns, read off the ring's HUNGER from each can's landing row (#3990); the HEAD replay of the run's inputs holds its HUNGER within 0.0003 over 1443 rows (VALIDATION x467:HUNGER). Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it; lunch sits on the fresh start's seed plate (x467, the mod at this build, DayLength 1, sleep off, no body rhythm).",
+   "points": [
+    [
+     "lunch",
+     4.97491455078125
+    ],
+    [
+     "dinner",
+     4.625146865844727
+    ],
+    [
+     "breakfast",
+     3.882465362548828
+    ]
+   ],
+   "provenance": {
+    "file": "day.json",
+    "kind": "artifact",
+    "path": "verdicts.CAD_FEEL_P.observed.windows[*].ret",
+    "run": "x467-20261019-025016"
+   },
+   "units": {
+    "x": "meal",
+    "y": "game hours"
+   }
+  },
+  {
+   "badge": "live",
+   "chart": "SH3",
+   "id": "SH3-m-live-hungry",
+   "label": "Nutrition Revamp, measured: Hungry",
+   "note": "x467's dinner, Hungry 10.46 game hours after the can (#3990). Each meal a whole can of bolognese and a banana, then half a litre of water 2.5 h after it; lunch sits on the fresh start's seed plate (x467, the mod at this build, DayLength 1, sleep off, no body rhythm).",
+   "points": [
+    [
+     "dinner",
+     10.460603713989258
+    ]
+   ],
+   "provenance": {
+    "file": "day.json",
+    "kind": "artifact",
+    "path": "verdicts.CAD_FEEL_H.observed.windows[0].ret",
+    "run": "x467-20261019-025016"
    },
    "units": {
     "x": "meal",
@@ -58364,7 +59725,7 @@
    "chart": "SH3",
    "id": "SH3-v-model",
    "label": "Vanilla, from the game's code: Peckish",
-   "note": "The vanilla model at the default day length (DayLength 4; the run played DayLength 1) on the same meals at the run's own meal times, from the ring's HUNGER at lunch's landing row (0.0000); each can and banana take their script HungerChange off at once and fill the food timer, which holds hunger still until it runs out. The breakfast window runs 12 h past it. Hungry after dinner at 8.82 h (SH3-v-model-hungry). The mod's meals wear off sooner than vanilla's; in the curve's fit, on three 667 kcal meals a day, dinner wore off soonest (#3953), from the evening's circadian rise in hunger (S1273), a stated bend.",
+   "note": "The vanilla model at the default day length (DayLength 4; the run played DayLength 1) on the same meals at the run's own meal times, from the ring's HUNGER at lunch's landing row (0.0000); each can and banana take their script HungerChange off at once and fill the food timer, which holds hunger still until it runs out. The breakfast window runs 12 h past it. Hungry after dinner at 8.82 h (SH3-v-model-hungry). The mod's meals wear off sooner than vanilla's, breakfast's soonest on a sleep-off server, a stated bend; the curve's fit on both sleep settings is #3975.",
    "points": [
     [
      "lunch",
@@ -58372,11 +59733,11 @@
     ],
     [
      "dinner",
-     5.199067306518554
+     5.1993572235107415
     ],
     [
      "breakfast",
-     4.900087738037108
+     4.899504343668621
     ]
    ],
    "provenance": {
@@ -58427,7 +59788,7 @@
    "points": [
     [
      "dinner",
-     8.815733973185221
+     8.816023890177409
     ]
    ],
    "provenance": {
@@ -58850,7 +60211,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "UNHAPPINESS",
      "replay": "x343's events.json from its start.json at HEAD",
@@ -59051,7 +60412,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -59458,7 +60819,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "path": "THIRST",
      "replay": "fresh record from 07:00 at rest, no drink, the first 10 h",
@@ -59774,7 +61135,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "body": "the 80 kg reference man",
      "function": "test_sodium_balance.simulate(days=5, na_day=0)"
@@ -59832,7 +61193,7 @@
    "chart": "SV1",
    "id": "SV1-m-kernel",
    "label": "Nutrition Revamp",
-   "note": "The stomach's whole mass, both lanes (#3915). The physical capacities stay on mass; a food's plate volume moves only how much it fills you (#3910). At level 3 the mod caps endurance and at level 4 it refuses eating through the game's own gate and brings nausea (#3914, #3935).",
+   "note": "The stomach's whole mass, both lanes (#3915). The physical capacities stay on mass; a food's plate volume moves only how much it fills you (#3957). At level 3 the mod caps endurance and at level 4 it refuses eating through the game's own gate and brings nausea (#3914, #3935), and the server refuses an eat queued past that gate (#3979; live, x466, #3989).",
    "points": [
     [
      0,
@@ -60840,7 +62201,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "function": "K.view.fullnessLevel(mass)",
      "grams": [
@@ -60961,7 +62322,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "classes": [
       [
@@ -61234,7 +62595,7 @@
     ]
    ],
    "provenance": {
-    "commit": "e69499beff",
+    "commit": "3a154e9a98",
     "inputs": {
      "billed_met": [
       7.5
@@ -61963,10 +63324,7 @@
   },
   {
    "admitted": false,
-   "draws": [
-    "SE1-m-live-liquid",
-    "SE1-m-live-fill"
-   ],
+   "draws": [],
    "key": "x363:fill",
    "kind": "admission",
    "max_miss": {
@@ -61977,9 +63335,7 @@
     "stomach.liquid": 415,
     "stomachFill": 415
    },
-   "proves": [
-    "SE1-m-kernel-fill"
-   ],
+   "proves": [],
    "quantity": [
     "stomach.liquid",
     "stomachFill"
@@ -62175,10 +63531,7 @@
   },
   {
    "admitted": false,
-   "draws": [
-    "SH3-m-live",
-    "SH3-m-live-hungry"
-   ],
+   "draws": [],
    "key": "x452b:HUNGER",
    "kind": "admission",
    "max_miss": {
@@ -62187,14 +63540,7 @@
    "n": {
     "HUNGER": 1442
    },
-   "proves": [
-    "H1-m-kernel",
-    "S1a-m-kernel",
-    "S2a-m-kernel",
-    "SH1-m-kernel",
-    "SH3-m-kernel",
-    "SH3-m-kernel-hungry"
-   ],
+   "proves": [],
    "quantity": [
     "HUNGER"
    ],
@@ -62234,6 +63580,106 @@
     ]
    },
    "tolerance_source": "named here: exact, a level (K.view.fullnessLevel at HEAD)"
+  },
+  {
+   "admitted": false,
+   "draws": [
+    "SE1-m-live-fill"
+   ],
+   "key": "x461b:fill",
+   "kind": "admission",
+   "max_miss": {
+    "stomachFill": 0.0021241561263458664
+   },
+   "n": {
+    "stomachFill": 522
+   },
+   "proves": [
+    "SE1-m-kernel-fill"
+   ],
+   "quantity": [
+    "stomachFill"
+   ],
+   "run": "x461b-20261019-022954",
+   "tolerance": {
+    "stomachFill": [
+     "abs",
+     0.002
+    ]
+   },
+   "tolerance_source": "the run's own: x46_lib.REPLAY_TOL (stomachFill 0.002, stomach.liquid 2.0 g, x363's), its REPLAY_* grades' bounds, on the drawn window",
+   "window": {
+    "from_s": 349,
+    "opened_by": "MI_milk",
+    "to_s": 880
+   }
+  },
+  {
+   "admitted": true,
+   "draws": [
+    "SE1-m-live-liquid"
+   ],
+   "key": "x461b:milk",
+   "kind": "admission",
+   "max_miss": {
+    "stomach.liquid": 1.4755045821050885
+   },
+   "n": {
+    "stomach.liquid": 522
+   },
+   "proves": [
+    "SE1-m-kernel-liquid"
+   ],
+   "quantity": [
+    "stomach.liquid"
+   ],
+   "run": "x461b-20261019-022954",
+   "tolerance": {
+    "stomach.liquid": [
+     "abs",
+     2.0
+    ]
+   },
+   "tolerance_source": "the run's own: x46_lib.REPLAY_TOL (stomachFill 0.002, stomach.liquid 2.0 g, x363's), its REPLAY_* grades' bounds, on the drawn window",
+   "window": {
+    "from_s": 349,
+    "opened_by": "MI_milk",
+    "to_s": 880
+   }
+  },
+  {
+   "admitted": true,
+   "draws": [
+    "SH3-m-live",
+    "SH3-m-live-hungry"
+   ],
+   "key": "x467:HUNGER",
+   "kind": "admission",
+   "max_miss": {
+    "HUNGER": 0.0002990514760497498
+   },
+   "n": {
+    "HUNGER": 1443
+   },
+   "proves": [
+    "H1-m-kernel",
+    "S1a-m-kernel",
+    "S2a-m-kernel",
+    "SH1-m-kernel",
+    "SH3-m-kernel",
+    "SH3-m-kernel-hungry"
+   ],
+   "quantity": [
+    "HUNGER"
+   ],
+   "run": "x467-20261019-025016",
+   "tolerance": {
+    "HUNGER": [
+     "abs",
+     0.002
+    ]
+   },
+   "tolerance_source": "the run's own: x46_lib.REPLAY_TOL (HUNGER 0.002), its REPLAY_HUNGER grade's bound"
   },
   {
    "bound": 3.0,
