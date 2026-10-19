@@ -34,10 +34,10 @@ step m, at its start). Kinds:
            an eat's kcal comes from the item (its script values, or the vector given) and its fraction from the item
            (the driver's before/after read) or from lastIntake.frac, never from satiety.M; the replay derives
            nothing from M
-  drink    {fluid, litres} or {vec}: the liquid lane. With a day length (--day-length) a whole drink (one event
-           of {fluid, litres}, its label shared with no other drink; maxTime its action length where the fluid
-           has a HungerChange) lands sip by sip over its action's span, as the game drinks it (spread_drinks);
-           a live ring's drinks are logged per sip row and land as logged
+  drink    {fluid, litres} or {vec}: the liquid lane. With a day length (--day-length) a drink flagged whole
+           (whole true, {fluid, litres}; maxTime its raw action length where vanilla sets no default, eatType,
+           unhappy, drunk and timeMod as drink_units reads them) lands sip by sip over its action's span, as the
+           game drinks it (spread_drinks); an unflagged drink, a live ring's per-sip log, lands as logged
   autodrop {g}: g grams of water added to the record's fluids.autoDrop before the drain, which the mod's own Nutrients
            step lands after Kinetics (the writer's sip; a `drink` event would land it one drain early, F-T9-4). The row
            before it is `between`, as for any event: the live ring row already shows the autoDrop the replay's lacks
@@ -704,7 +704,9 @@ def _replay_world_clock(rt, value):
 # share only (stomach.liqKcal capped at the lane's energy). So "replay.LIQUID_SOLID_KCAL" (any true value) wraps
 # K.stomach.drain on that replay's host to set the counter far above any lane's energy (finite, so Kinetics' guard keeps
 # it) before each call: K.min(liqKcal, energy) is then the energy, the old rule exactly (the drain's only change since
-# bcf99149 is that K.min and the counter's own update, which the next call's set overwrites). Set on a replay host only,
+# bcf99149, the last build that held the old rule, is that K.min and the counter's own update, which the next call's
+# set overwrites; testing/tests/kernel/test_replay_live_fidelity.py proves it against bcf99149's own file). Set on a
+# replay host only,
 # never shipped, and never used by the guide (CLAUDE.md section 5, Plan 14 Task 4: an old run is drawn only where the HEAD
 # replay matches); it exists so a ring recorded before that change is graded against its own pipeline.
 _LIQUID_SOLID_KCAL_LUA = ("local K = NutritionRevamp.kernel\n"
@@ -723,9 +725,10 @@ def _replay_liquid_solid_kcal(rt, value):
 # The deficit arm before Plan 16 Task 5 (0a4baa8c, 648b4a83): fat paid a deficit up to Alpert's ceiling
 # (K.partition.FAT_CEIL_KCAL x fm a day) and the overflow split by the protection prot, where it now splits the whole
 # deficit by Forbes' share with no ceiling and the draw past fmMin is paid by lean. So "replay.FAT_CEILING" (any true
-# value) sets K.partition.deficitLean on that replay's host to the recording build's (NR_Kernel_Partition.lua at
-# 3a93d51c, lines 61-80, verbatim): Task 5's other change is a comment, so a ring recorded before it is graded against
-# its own pipeline. Set on a replay host only, never shipped, never used by the guide.
+# value) sets K.partition.deficitLean on that replay's host to the function of 3a93d51c, the last build that held the
+# old arm (NR_Kernel_Partition.lua lines 61-80, verbatim; proved against that file in test_replay_live_fidelity.py):
+# Task 5's other change is a comment, so a ring recorded before it is graded against its own pipeline. Set on a replay
+# host only, never shipped, never used by the guide.
 _FAT_CEILING_LUA = ("local K = NutritionRevamp.kernel\n"
                     "K.partition.deficitLean = function(body, grow, S, p, E, P, ts)\n"
                     "    local RL = K.partition.RHO_LEAN\n"
@@ -1344,17 +1347,21 @@ def run(backend, ages, events, paths=(), start_age=None, seqs=None, ring_rows=No
     return out
 
 
-# A drink sip by sip (Plan 16 Task 7, spec section 4.3; carries section 1). Vanilla drinks over its action's length: the server's
-# AnimEventEmulator calls ISDrinkFluidAction.updateEat about every 100 ms with the action's progress, server wall time
-# over its duration (#0085), and a networked action's server length is 20 real ms a unit of its duration (#3766). A
-# fluid whose properties carry no HungerChange (Water) drinks in 460 units whatever the volume (vanilla
-# ISDrinkFluidAction.new, shared/TimedActions/ISDrinkFluidAction.lua:167; 9.2 s), and the mod lands each sip as it is
-# drunk (NR_Server_Intake.lua IN.installDrink), so a drink's water reaches the liquid lane over its wall span, which
-# the game clock turns into game minutes at the day length and the speed: 14.7 game minutes at DayLength 1, 2.5 at the
-# default 4 (x452b's 0.5 L landed over 15 ring rows at DayLength 1).
-DRINK_UNIT_MS = 20.0                 # #3766: 20 real ms a unit of a networked action's duration
+# A drink sip by sip (Plan 16 Task 7, spec section 4.3; carries section 1). Vanilla drinks over its action's length:
+# the server's AnimEventEmulator calls ISDrinkFluidAction.updateEat about every 100 ms with the action's progress,
+# server wall time over its duration (#0085), and a networked action's server length is 20 real ms a unit of its
+# adjusted duration (#3766). A fluid whose properties carry no HungerChange (Water) drinks in 460 units whatever the
+# volume and a popcan in 160 (vanilla shared/TimedActions/ISDrinkFluidAction.lua ISDrinkFluidAction.new, the
+# `hungerConsumed == 0` line 167 and the `popcan` lines 168-169), and ISBaseTimedAction.adjustMaxTime (lines 99-123)
+# multiplies the length by (1 + Unhappy level / 4) x (1 + Drunk level / 4) x the body temperature's
+# getTimedActionTimeModifier (the hand-pain term is skipped: the drink sets ignoreHandsWounds). The mod lands each sip
+# as it is drunk (NR_Server_Intake.lua IN.installDrink), so a drink's water reaches the liquid lane over its wall
+# span, which the game clock turns into game minutes at the day length and the speed: 14.7 game minutes at DayLength
+# 1, 2.5 at the default 4 (x452b's 0.5 L landed over 15 ring rows at DayLength 1).
+DRINK_UNIT_MS = 20.0                 # #3766: 20 real ms a unit of a networked action's adjusted duration
 DRINK_SIP_MS = 100.0                 # the AnimEventEmulator's drinkFluid cadence (ISDrinkFluidAction.serverStart)
 DRINK_MAX_TIME = 460                 # ISDrinkFluidAction.new: hungerConsumed 0 (no HungerChange) reads 460
+DRINK_POPCAN_MAX_TIME = 160          # ISDrinkFluidAction.new: an item whose eat type is popcan reads 160
 DRINK_NO_HUNGER = ("Water", "TaintedWater", "CarbonatedWater")   # media/scripts/generated/fluids.txt: no HungerChange
 # The sandbox DayLength index -> real minutes a game day (media/lua/shared/Translate/EN/Sandbox.json, the
 # Sandbox_DayLength options: 15 and 30 minutes, then 1, 1.5, 2 and 3 to 23 hours, then real time).
@@ -1362,18 +1369,38 @@ DAY_LENGTH_REAL_MIN = {1: 15.0, 2: 30.0, 3: 60.0, 4: 90.0, 5: 120.0, 27: 1440.0}
 DAY_LENGTH_REAL_MIN.update({n: (n - 3) * 60.0 for n in range(6, 27)})
 
 
+def _level(ev, key):
+    v = ev.get(key, 0)
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or not 0 <= v <= 4:
+        raise ValueError("%s must be a moodle level 0-4: %r" % (key, ev))
+    return float(v)
+
+
 def drink_units(ev):
-    """A whole drink's action length in units: the event's maxTime, else DRINK_MAX_TIME for a fluid with no
-    HungerChange; a fluid with one needs maxTime (vanilla's 232 x its eating loop, or a popcan's 160)."""
+    """A whole drink's adjusted action length in units, as vanilla sets it (see the block above): the event's maxTime
+    (vanilla's raw length; a fluid with a HungerChange needs it, 232 x its eating loop from the container's hunger),
+    else DRINK_POPCAN_MAX_TIME for eatType popcan, else DRINK_MAX_TIME for a fluid with no HungerChange; then
+    adjustMaxTime's factors from the event's `unhappy` and `drunk` moodle levels (0-4, default 0) and its `timeMod`
+    (getTimedActionTimeModifier, default 1)."""
     mt = ev.get("maxTime")
     if mt is None:
-        if ev.get("fluid") not in DRINK_NO_HUNGER:
+        if ev.get("eatType") == "popcan":
+            mt = DRINK_POPCAN_MAX_TIME
+        elif ev.get("fluid") in DRINK_NO_HUNGER:
+            mt = DRINK_MAX_TIME
+        else:
             raise ValueError("a whole drink of %r needs maxTime (vanilla's action length; only a fluid with no "
-                             "HungerChange reads %d): %r" % (ev.get("fluid"), DRINK_MAX_TIME, ev))
-        mt = DRINK_MAX_TIME
+                             "HungerChange reads %d, a popcan %d): %r"
+                             % (ev.get("fluid"), DRINK_MAX_TIME, DRINK_POPCAN_MAX_TIME, ev))
     if isinstance(mt, bool) or not isinstance(mt, (int, float)) or not mt > 0:
         raise ValueError("maxTime must be a positive action length: %r" % (ev,))
-    return float(mt)
+    mod = ev.get("timeMod", 1.0)
+    if isinstance(mod, bool) or not isinstance(mod, (int, float)) or not mod > 0:
+        raise ValueError("timeMod must be a positive multiplier: %r" % (ev,))
+    mt = float(mt)
+    if mt > 1:                                       # adjustMaxTime adjusts only a length above 1
+        mt = mt * (1 + _level(ev, "unhappy") / 4) * (1 + _level(ev, "drunk") / 4) * float(mod)
+    return mt
 
 
 def drink_span_h(ev, day_length, speed=1.0):
@@ -1389,23 +1416,24 @@ def drink_span_h(ev, day_length, speed=1.0):
 
 
 def whole_drinks(events):
-    """The indices of the whole drinks in `events`: a drink event of {fluid, litres} (never a vec, a sip the writer or
-    a driver already booked) whose label no other drink event shares (an unlabelled one is whole), unless it carries
-    spread false; spread true makes any {fluid, litres} drink whole. A live ring's drinks are logged per ring row their
-    sips landed on (x45g_lib.build_events and every earlier lib's: the eats-or-sips rows of x263, x264, x265, x363,
-    x447, x452 and x452b), so they share their label and are already spread; a synthetic arm's one drink is whole."""
-    drinks = [(i, e) for i, e in enumerate(events) if e.get("kind") == "drink" and "vec" not in e
-              and "litres" in e]
-    count = {}
-    for _, e in drinks:
-        if e.get("label") is not None:
-            count[e["label"]] = count.get(e["label"], 0) + 1
-    out = []
-    for i, e in drinks:
-        if e.get("spread") is False:
+    """The indices of the whole drinks in `events`: a drink event of {fluid, litres} flagged whole true (never a vec,
+    a sip the writer or a driver already booked). A flagged drink whose label another drink event shares is refused:
+    a live ring's drinks are logged per ring row their sips landed on (x45g_lib.build_events and every earlier lib's:
+    the eats-or-sips rows of x263, x264, x265, x363, x447, x452 and x452b), and one that landed on a single row carries
+    a label of its own, so only the caller that wrote the event knows it is a whole drink; nothing is spread unless
+    flagged, and a ring's own log never is."""
+    out, labels = [], {}
+    for e in events:
+        if e.get("kind") == "drink" and e.get("label") is not None:
+            labels[e["label"]] = labels.get(e["label"], 0) + 1
+    for i, e in enumerate(events):
+        if e.get("kind") != "drink" or e.get("whole") is not True:
             continue
-        if e.get("spread") is True or e.get("label") is None or count[e["label"]] == 1:
-            out.append(i)
+        if "vec" in e or "litres" not in e:
+            raise ValueError("a whole drink needs {fluid, litres}, never a vec: %r" % (e,))
+        if e.get("label") is not None and labels[e["label"]] > 1:
+            raise ValueError("a whole drink shares its label with another drink event (a per-sip log): %r" % (e,))
+        out.append(i)
     return out
 
 
@@ -1453,8 +1481,8 @@ def spread_drinks(events, ages, seqs=None, start_age=None, day_length=None, spee
                 k += 1
             buckets[k] = buckets.get(k, 0) + 1
         for k in sorted(buckets):
-            sip = {key: v for key, v in e.items() if key not in ("age", "s", "minute", "litres", "spread")}
-            sip.update({"minute": k, "litres": litres * buckets[k], "spread": False})
+            sip = {key: v for key, v in e.items() if key not in ("age", "s", "minute", "litres", "whole")}
+            sip.update({"minute": k, "litres": litres * buckets[k]})
             out.append(sip)
         report.append({"label": e.get("label"), "step": k0, "steps": len(buckets), "litres": float(e["litres"]),
                        "spanM": span * 60.0})
@@ -1674,7 +1702,8 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
 
     `day_length` (the server's sandbox DayLength index; None: no spreading) and `speed` (the true time multiplier,
     1 by default) spread each whole drink over its action's span, sip by sip (spread_drinks, named on backend.spread);
-    a recorded ring's drinks are logged per sip row already and are left as they are (whole_drinks).
+    only a drink flagged whole is spread, never a ring's per-sip log (whole_drinks refuses a flagged drink whose label
+    another drink shares).
 
     `constants` ({"table.NAME": value}, e.g. DEFICIT_11F) replays at the recording build's kernel constants."""
     rows = [r for r in ring_rows if r.get("age") is not None]
@@ -1896,9 +1925,9 @@ def main(argv=None):
         p.add_argument("--hold-hour", type=float)
         p.add_argument("--out")
         p.add_argument("--day-length", type=int,
-                       help="the server's sandbox DayLength index: spreads each whole drink sip by sip over its "
-                            "action's span (without it a whole drink lands in its minute); a ring's per-sip drinks "
-                            "are left as logged")
+                       help="the server's sandbox DayLength index: spreads each drink flagged whole sip by sip "
+                            "over its action's span (without it a whole drink lands in its minute); an unflagged "
+                            "drink (a ring's per-sip log) lands as logged")
         p.add_argument("--speed", type=float, default=1.0,
                        help="the true time multiplier the drinks ran at (1 by default; getMultiplier is not it, #3762)")
         if name == "live":

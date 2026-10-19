@@ -6,8 +6,9 @@
 - The cold multiplier: the ring's `cold` field (or a `body.coldMult` path) feeds the stand-in thermoregulator's
   getEnergyMultiplier one row ahead (ring_cold_events), so the cold diuresis the live body booked replays (#3947).
 - The overlays: "replay.LIQUID_SOLID_KCAL" (the liquid lane before Plan 15 Task 14b) and "replay.FAT_CEILING" (the
-  deficit arm before Plan 16 Task 5) restore the recording builds' rules on a replay host, exactly; x332's and x263's
-  tests run at HEAD through them (test_replay_live_autodrop.py, test_replay_live_sleep.py)."""
+  deficit arm before Plan 16 Task 5) restore the rules of the last builds that held them (bcf99149 and 3a93d51c) on a
+  replay host, exactly; x332's and x263's tests run at HEAD through them (test_replay_live_autodrop.py,
+  test_replay_live_sleep.py)."""
 import glob
 import json
 import os
@@ -319,12 +320,12 @@ def test_the_x456_and_x457_rings_replay_thirst_with_the_cold_multiplier_fed(run,
 # --- drinks sip by sip --------------------------------------------------------------------------------------------
 
 def test_the_drink_span_follows_the_action_length_and_the_day():
-    w = {"kind": "drink", "fluid": "Water", "litres": 0.5}
+    w = {"kind": "drink", "fluid": "Water", "litres": 0.5, "whole": True}
     assert RL.drink_span_h(w, 1) * 60 == pytest.approx(14.72)          # 9.2 s at 0.625 s a game minute (carries 1)
     assert RL.drink_span_h(w, 3) * 60 == pytest.approx(3.68)
     assert RL.drink_span_h(w, 4) * 60 == pytest.approx(2.4533333)      # the fixture's 90-minute day, #0893's 3.75 s
     assert RL.drink_span_h(w, 4, speed=5.0) * 60 == pytest.approx(12.266667)
-    assert RL.drink_span_h(dict(w, maxTime=160), 1) * 60 == pytest.approx(5.12)   # a popcan
+    assert RL.drink_span_h(dict(w, maxTime=160), 1) * 60 == pytest.approx(5.12)
     assert RL.DAY_LENGTH_REAL_MIN[6] == 180.0 and RL.DAY_LENGTH_REAL_MIN[26] == 1380.0
     with pytest.raises(ValueError, match="maxTime"):
         RL.drink_span_h({"kind": "drink", "fluid": "CowMilk", "litres": 0.3}, 1)
@@ -332,25 +333,47 @@ def test_the_drink_span_follows_the_action_length_and_the_day():
         RL.drink_span_h(w, 0)
 
 
-def test_only_a_whole_drink_spreads():
-    evs = [{"s": 10, "kind": "drink", "fluid": "Water", "litres": 0.5},                       # whole, unlabelled
-           {"s": 20, "kind": "drink", "fluid": "Water", "litres": 0.5, "label": "W"},         # whole, its own label
+def test_drink_units_follow_vanilla_new_and_adjust_max_time():
+    # ISDrinkFluidAction.new: 460 with no HungerChange, 160 for a popcan whatever the fluid; ISBaseTimedAction
+    # .adjustMaxTime: x (1 + Unhappy / 4) x (1 + Drunk / 4) x getTimedActionTimeModifier (no hand pain: ignoreHandsWounds)
+    w = {"kind": "drink", "fluid": "Water", "litres": 0.5}
+    assert RL.drink_units(w) == 460.0
+    assert RL.drink_units(dict(w, fluid="CarbonatedWater", eatType="popcan")) == 160.0
+    assert RL.drink_units({"fluid": "Cola", "eatType": "popcan"}) == 160.0
+    assert RL.drink_units(dict(w, maxTime=232)) == 232.0
+    assert RL.drink_units(dict(w, unhappy=2)) == pytest.approx(690.0)
+    assert RL.drink_units(dict(w, drunk=4)) == pytest.approx(920.0)
+    assert RL.drink_units(dict(w, unhappy=1, drunk=1, timeMod=1.2)) == pytest.approx(460 * 1.25 * 1.25 * 1.2)
+    assert RL.drink_units(dict(w, maxTime=1, drunk=4)) == 1.0           # adjustMaxTime leaves a length of 1 alone
+    for bad in (dict(w, unhappy=5), dict(w, drunk=-1), dict(w, timeMod=0), dict(w, maxTime=0)):
+        with pytest.raises(ValueError):
+            RL.drink_units(bad)
+
+
+def test_only_a_drink_flagged_whole_spreads():
+    evs = [{"s": 10, "kind": "drink", "fluid": "Water", "litres": 0.5, "whole": True},        # whole, unlabelled
+           {"s": 20, "kind": "drink", "fluid": "Water", "litres": 0.5, "label": "W", "whole": True},
+           {"s": 25, "kind": "drink", "fluid": "Water", "litres": 0.5, "label": "P"},         # one sip row, unflagged
            {"s": 30, "kind": "drink", "fluid": "Water", "litres": 0.1, "label": "X"},         # a ring's sip rows
            {"s": 31, "kind": "drink", "fluid": "Water", "litres": 0.1, "label": "X"},
            {"s": 40, "kind": "drink", "vec": {"water": 200.0}, "label": "autodrop"},          # the writer's sip
-           {"s": 50, "kind": "drink", "fluid": "Water", "litres": 0.5, "spread": False},
-           {"s": 60, "kind": "drink", "fluid": "Water", "litres": 0.1, "label": "X", "spread": True},
            {"s": 70, "kind": "eat", "vec": {"calories": 10.0}}]
-    assert RL.whole_drinks(evs) == [0, 1, 6]
+    assert RL.whole_drinks(evs) == [0, 1]
+    with pytest.raises(ValueError, match="per-sip"):                    # never a per-sip-logged drink
+        RL.whole_drinks(evs + [{"s": 32, "kind": "drink", "fluid": "Water", "litres": 0.1, "label": "X",
+                                "whole": True}])
+    with pytest.raises(ValueError, match="vec"):
+        RL.whole_drinks([{"s": 1, "kind": "drink", "vec": {"water": 1.0}, "whole": True}])
 
 
 def test_spread_drinks_lands_the_whole_volume_over_the_span():
     ages = RL.synthetic_ages(60, 0.0, 1.0)
-    ev = {"minute": 10, "kind": "drink", "fluid": "Water", "litres": 0.5, "label": "W"}
+    ev = {"minute": 10, "kind": "drink", "fluid": "Water", "litres": 0.5, "label": "W", "whole": True}
     out, rep = RL.spread_drinks([ev], ages, None, 0.0, day_length=1)
     assert [e["minute"] for e in out] == list(range(10, 25))           # 14.72 game minutes: 15 drains
     assert sum(e["litres"] for e in out) == pytest.approx(0.5, abs=1e-12)
-    assert all(e["spread"] is False and e["label"] == "W" for e in out)
+    assert all("whole" not in e and e["label"] == "W" for e in out)     # a sip is never spread again
+    assert RL.whole_drinks(out) == []
     assert rep == [{"label": "W", "step": 10, "steps": 15, "litres": 0.5, "spanM": pytest.approx(14.72)}]
     four, _ = RL.spread_drinks([ev], ages, None, 0.0, day_length=4)
     assert [e["minute"] for e in four] == [10, 11, 12]
@@ -358,26 +381,31 @@ def test_spread_drinks_lands_the_whole_volume_over_the_span():
     assert [(e["minute"], e["litres"]) for e in real] == [(10, pytest.approx(0.5))]
     same, rep = RL.spread_drinks([ev], ages, None, 0.0, day_length=None)
     assert same == [ev] and rep == []
+    unflagged = dict(ev)
+    del unflagged["whole"]
+    kept, rep = RL.spread_drinks([unflagged], ages, None, 0.0, day_length=1)
+    assert kept == [unflagged] and rep == []
 
 
 def test_spread_drinks_keys_an_s_or_age_drink_from_its_own_step():
     ages = [100.0 + i / 60.0 for i in range(40)]
     seqs = list(range(1, 41))
-    by_s, _ = RL.spread_drinks([{"s": 5, "kind": "drink", "fluid": "Water", "litres": 0.3}], ages, seqs, 99.9, 4)
+    w = {"kind": "drink", "fluid": "Water", "litres": 0.3, "whole": True}
+    by_s, _ = RL.spread_drinks([dict(w, s=5)], ages, seqs, 99.9, 4)
     # step 4 is ring row s 5; the drink starts at that row's age (a minute-keyed one at its step's start), so its
     # 2.45 game minutes reach the drains of rows s 5 to s 8
     assert [e["minute"] for e in by_s] == [4, 5, 6, 7]
-    by_age, _ = RL.spread_drinks([{"age": ages[7] - 0.001, "kind": "drink", "fluid": "Water", "litres": 0.3}], ages,
-                                 seqs, 99.9, 4)
+    by_age, _ = RL.spread_drinks([dict(w, age=ages[7] - 0.001)], ages, seqs, 99.9, 4)
     assert by_age[0]["minute"] == 7
-    late, _ = RL.spread_drinks([{"s": 40, "kind": "drink", "fluid": "Water", "litres": 0.3}], ages, seqs, 99.9, 1)
+    late, _ = RL.spread_drinks([dict(w, s=40)], ages, seqs, 99.9, 1)
     assert [e["minute"] for e in late] == [39] and late[0]["litres"] == pytest.approx(0.3)   # past the clock: the last
 
 
 def test_a_replayed_drink_spreads_its_landing():
     # spec section 4.3: a lone 0.5 L water after a plate, on a one-minute clock at DayLength 1, reaches the liquid lane
     # over 15 drains, not one; the lane's peak is lower and the water landed is the same
-    ev = [{"minute": 5, "kind": "meal", "size": 667.0}, {"minute": 6, "kind": "drink", "fluid": "Water", "litres": 0.5}]
+    ev = [{"minute": 5, "kind": "meal", "size": 667.0},
+          {"minute": 6, "kind": "drink", "fluid": "Water", "litres": 0.5, "whole": True}]
     whole, _ = RL.replay_arm(ev, minutes=60, paths=[LIQ, "stomach.buffer.water"], sleep_allowed=False,
                              constants=RL.WORLD_CLOCK)
     spread, be = RL.replay_arm(ev, minutes=60, paths=[LIQ, "stomach.buffer.water"], sleep_allowed=False,
@@ -389,6 +417,42 @@ def test_a_replayed_drink_spreads_its_landing():
     assert max(r[LIQ] for r in spread) < max(r[LIQ] for r in whole) - 100.0
     landed = [e for e in be.eats if e["kind"] == "drink"]
     assert len(landed) == 15
+
+
+def test_replay_live_spreads_a_whole_drink_on_the_ring_clock_and_leaves_sip_rows():
+    # end to end through replay_live (review finding 8): a flagged 0.5 L water at ring row s 10 on a one-minute ring
+    # at DayLength 1 lands over 15 drains; the same volume logged as two sip rows under one label lands as logged on
+    # those two rows at the same day length, and flagging one of those sip rows whole is refused
+    rows = synthetic_ring(n=60)
+    flagged = [{"s": 10, "kind": "drink", "fluid": "Water", "litres": 0.5, "label": "W", "whole": True}]
+    kw = dict(paths=[LIQ], hour_offset=8.0 - 100.0 % 24, sleep_allowed=False, day_length=1)
+    out, be = RL.replay_live(rows, flagged, None, **kw)
+    # an s-keyed drink starts at its row's age (an arm's minute-keyed one at its step's start), so its 14.72 game
+    # minutes reach a sixteenth drain on a one-minute ring
+    assert be.spread == [{"label": "W", "step": 9, "steps": 16, "litres": 0.5, "spanM": pytest.approx(14.72)}]
+    landed = [e for e in be.eats if e["kind"] == "drink"]
+    assert len(landed) == 16 and sum(e["kcal"] or 0 for e in landed) == 0
+    rises = [k for k in range(1, len(out)) if out[k][LIQ] > out[k - 1][LIQ] + 1e-9]
+    assert rises == list(range(9, 25))                                  # drains 9-24: ring rows s 10 to s 25
+    sips = [{"s": 10, "kind": "drink", "fluid": "Water", "litres": 0.25, "label": "X"},
+            {"s": 11, "kind": "drink", "fluid": "Water", "litres": 0.25, "label": "X"}]
+    logged, be2 = RL.replay_live(rows, sips, None, **kw)
+    assert be2.spread == [] and len([e for e in be2.eats if e["kind"] == "drink"]) == 2
+    with pytest.raises(ValueError, match="per-sip"):
+        RL.replay_live(rows, [dict(sips[0], whole=True), sips[1]], None, **kw)
+
+
+def test_a_trait_the_stand_in_lacks_is_refused():
+    # review finding 7: ev_trait once ignored an unknown trait silently; a known one sets the stand-in's trait
+    rows = synthetic_ring(n=8)
+    with pytest.raises(ValueError, match="CharacterTrait has no"):
+        RL.replay_live(rows, [{"s": 3, "kind": "trait", "trait": "NOT_A_TRAIT"}], None, paths=[WATER],
+                       hour_offset=8.0 - 100.0 % 24, sleep_allowed=False)
+    scale = "_G.NutritionRevamp.server.nutrients.fctx.basalScale"
+    out, be = RL.replay_live(rows, [{"s": 3, "kind": "trait", "trait": "HIGH_THIRST"}], None, paths=[scale],
+                             hour_offset=8.0 - 100.0 % 24, sleep_allowed=False)
+    assert be.p.st.traits[be.G.CharacterTrait.HIGH_THIRST] is True
+    assert [r.get(scale) for r in out[1:4]] == [1, 1.5, 1.5]            # the drain of ring row s 3 is replay row 2
 
 
 def test_a_live_rings_drinks_are_left_as_logged():
