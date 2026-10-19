@@ -586,8 +586,9 @@ def _health(cfg):
     return cfg["health"]
 
 
-def test_the_drain_takes_the_rate_to_the_floor_and_zeroes_regeneration_and_the_food_heal(eff_host):
-    # Plan 15 Task 4: the iron lethal rung drains 100 health a game day (100 over 24 h), first floor 50 at onset
+def test_the_drain_takes_the_rate_toward_the_target_and_zeroes_regeneration_and_the_food_heal(eff_host):
+    # Plan 15 Task 4: the iron lethal rung drains 100 health a game day (100 over 24 h); Plan 17 Task 2: on a line from
+    # the onset
     h = eff_host
     rec = record(h)
     rec["nutrients"]["iron"]["x"] = 3
@@ -604,22 +605,23 @@ def test_the_drain_takes_the_rate_to_the_floor_and_zeroes_regeneration_and_the_f
     minute(h, p, rec, ageH=100.0 + 3 / 60)
     got = {r["name"]: r["v"] for r in lst(cfg["log"]["regen"])[-5:]}
     assert got["setStandardHealthAddition"] == 0.002 and got["setHealthFromFood"] == 0.0087  # #2354; the gentle heal (Plan 15 Task 8)
-    assert rec["drain"]["active"] is False and rec["drain"]["targetFloor"] == 100
+    assert rec["drain"]["active"] is False and rec["drain"]["target"] == 100
 
 
-def test_the_drain_never_takes_health_past_the_floor_and_holds_with_no_sawtooth(eff_host):
+def test_the_drain_never_takes_health_past_the_target_and_holds_with_no_sawtooth(eff_host):
     h = eff_host
     rec = record(h)
-    rec["fluids"]["dehydPct"] = 6.75                             # dehydration: 50 at 4 %, 10 at 15 %: floor 40
-    p, cfg = player(h, rec, health=40.02)
+    rec["fluids"]["dehydPct"] = 6.75                             # Realistic dehydration a quarter of the way to 15 %
+    target = 100 * h.K.drain.dehydFraction(6.75)                 # Plan 17 Task 2: 0.1 + 0.9 x the curve, about 37.7
+    p, cfg = player(h, rec, health=target + 0.02)
     minute(h, p, rec, dtM=1.0)
-    assert rec["drain"]["state"] == 6 and rec["drain"]["targetFloor"] == pytest.approx(40, abs=1e-12)
-    assert lst(cfg["log"]["reduce"]) == [pytest.approx(0.02, abs=1e-9)]   # min(rate x dt, health - floor)
-    assert 0.02 < 200 / 1440                                     # under the minute's rate: the floor bound it
+    assert rec["drain"]["state"] == 6 and rec["drain"]["target"] == pytest.approx(target, abs=1e-12)
+    assert lst(cfg["log"]["reduce"]) == [pytest.approx(0.02, abs=1e-9)]   # min(rate x dt, health - target)
+    assert 0.02 < 17.82 * 24 / 1440                              # under the minute's rate: the target bound it
     n_regen = len(lst(cfg["log"]["regen"]))
-    cfg["health"] = rec["drain"]["targetFloor"]                  # at the floor: holding
+    cfg["health"] = rec["drain"]["target"]                       # at the target: holding
     minute(h, p, rec, ageH=100.0 + 1 / 60)
-    assert len(lst(cfg["log"]["reduce"])) == 1                   # nothing taken at the floor
+    assert len(lst(cfg["log"]["reduce"])) == 1                   # nothing taken at the target
     assert len(lst(cfg["log"]["regen"])) == n_regen              # regeneration stays zero: no re-write, no sawtooth
     assert rec["drain"]["active"] is True
 
@@ -637,15 +639,15 @@ def test_a_drain_state_change_marks_the_mirror_dirty(eff_host):
     # fix 1 (review L1): the winner changes with no rebuild, so only the drain-state clause can mark the mirror
     h = eff_host
     rec = record(h)
-    rec["fluids"]["dehydPct"] = 5.5                              # dehydration floor 50 - 40 x 1.5 / 11 = 44.55
+    rec["fluids"]["dehydPct"] = 5.5                              # Plan 17 Task 2: dehydration's fraction about 0.493
     rec["nutrients"]["vitC"]["g"] = 4
-    rec["nutrients"]["vitC"]["ah"] = 327.0                       # scurvy floor 50 - 40 x 255 / 2040 = 45
+    rec["nutrients"]["vitC"]["ah"] = 1000.0                      # scurvy's 1 - 1000 / 2160, about 0.537
     p, cfg = player(h, rec, health=44.0)
     minute(h, p, rec)
     assert rec["drain"]["state"] == 6
     rec["effects"]["dirty"] = False
     rebuilds = EFF(h).stats.rebuilds
-    rec["nutrients"]["vitC"]["ah"] = 378.0                       # scurvy floor 44: under dehydration's
+    rec["nutrients"]["vitC"]["ah"] = 1200.0                      # scurvy's about 0.444: under dehydration's
     minute(h, p, rec, ageH=100.0 + 1 / 60)
     assert rec["drain"]["state"] == 2 and rec["effects"]["dirty"] is True
     assert EFF(h).stats.rebuilds == rebuilds                     # no rebuild marked it
@@ -855,7 +857,7 @@ def test_starvation_starts_at_30_unfed_hours_and_sets_the_phase_flags(eff_host):
     assert E["key"]["dials"] == 10000000000 + 1000 + 11             # starveEarly: 24 unfed hours or more
     rec["satiety"]["M"] = 0.0
     minute(h, p, rec, ageH=102.0 + 1 / 60)
-    assert D["active"] is True and D["state"] == 1 and D["targetFloor"] == 50
+    assert D["active"] is True and D["state"] == 1 and D["target"] == 100      # Plan 17 Task 2: the curve opens at 1
     assert abs(D["bmi0"] - 80 / 1.7 ** 2) < 1e-9                   # lm + fm over K.HEIGHT_M squared
     assert E["key"]["dials"] == 10000000000 + 1000 + 100 + 11       # phase 1, weakness: mNut 1.25
     assert E["mNut"] == pytest.approx(1.25, abs=TOL)
@@ -898,19 +900,23 @@ def test_overlay_runs_no_starvation_or_dehydration_drain(eff_host):
         NR.server.writer = saved
 
 
-def test_the_starvation_floor_falls_with_bmi_from_its_onset(eff_host):
+def test_the_starvation_target_falls_with_bmi_from_its_onset(eff_host):
+    # Plan 17 Task 2: Realistic starvation on the curve over the BMI progress, read at each record-day close
     h = eff_host
     rec, p, cfg = _starving(h, 48)
     minute(h, p, rec, ageH=100.0 + 1 / 60)
     D = rec["drain"]
     bmi0 = D["bmi0"]
     body = rec["body"]
-    body["fm"] = 12.5 * 1.7 ** 2 + (bmi0 - 12.5) / 2 * 1.7 ** 2 - body["lm"]   # halfway to the knee: floor 30
+    body["fm"] = 12.0 * 1.7 ** 2 + (bmi0 - 12.0) / 2 * 1.7 ** 2 - body["lm"]   # halfway to BMI 12, at a close
+    body["dayStartH"] = 100.0 + 2 / 60
     minute(h, p, rec, ageH=100.0 + 2 / 60)
-    assert D["targetFloor"] == pytest.approx(30, abs=1e-9)
-    body["fm"] = 12.0 * 1.7 ** 2 - body["lm"]                      # BMI 12, the death point: floor 0
+    assert D["pS"] == pytest.approx(0.5, abs=1e-9)
+    assert D["target"] == pytest.approx(100 * h.K.drain.curve(0.5, 1, h.K.drain.A_STARVE), abs=1e-9)
+    body["fm"] = 12.0 * 1.7 ** 2 - body["lm"]                      # BMI 12, the death point, at the next close: 0
+    body["dayStartH"] = 100.0 + 3 / 60
     minute(h, p, rec, ageH=100.0 + 3 / 60)
-    assert D["targetFloor"] == pytest.approx(0, abs=1e-9)
+    assert D["target"] == pytest.approx(0, abs=1e-9)
 
 
 def test_the_protein_grade_reads_the_mean_per_kg_of_the_body_mass(eff_host):
@@ -941,10 +947,10 @@ def test_the_retinol_requirement_reads_the_effective_sex_and_the_drain_none(eff_
     minute(h, p, rec, ageH=100.0 + 1 / 60)
     E = rec["effects"]
     nv_off = E["nvDays"]
-    floor_male = rec["drain"]["targetFloor"]
+    floor_male = rec["drain"]["target"]
     setopts(h, SexSpecific=True)
     minute(h, p, rec, ageH=100.0 + 2 / 60)
-    assert rec["drain"]["targetFloor"] == floor_male
+    assert rec["drain"]["target"] == floor_male
     setopts(h)
     rec2, p2 = _female_starved(h)
     setopts(h, SexSpecific=True)
@@ -1068,10 +1074,10 @@ def test_a_fast_keeps_the_penalties_of_a_body_already_under_normal_bmi(eff_host)
         assert E["healMul"] == pytest.approx(heal, abs=TOL) and E["infectMul"] == pytest.approx(infect, abs=TOL), bmi
 
 
-def test_health_under_the_floor_heals_toward_it_at_vanillas_pace_and_never_above(eff_host):
-    # ruling L2: a wound left health at 20 under clinical scurvy's floor 50; vanilla's standard addition 0.002 a
+def test_health_under_the_target_heals_toward_it_at_vanillas_pace_and_never_above(eff_host):
+    # ruling L2: a wound left health at 20 under clinical scurvy's target (Plan 17 Task 2: about 100 at the onset); vanilla's standard addition 0.002 a
     # multiplier unit x 2 units a game minute per day-length minute (90, the fallback with no sandbox read) = 0.36 a game minute, scaled by
-    # scurvy's healMul 0.5 (S0958), through AddGeneralHealth, until the floor; never above it, and no drain under it
+    # scurvy's healMul 0.5 (S0958), through AddGeneralHealth, until the target; never above it, and no drain under it
     h = eff_host
     rec = record(h)
     rec["nutrients"]["vitC"]["g"] = 4
@@ -1082,10 +1088,10 @@ def test_health_under_the_floor_heals_toward_it_at_vanillas_pace_and_never_above
     assert lst(cfg["log"]["reduce"]) == []
     for m in range(1, 2000):
         minute(h, p, rec, ageH=100.0 + m / 60)
-        assert cfg["health"] <= rec["drain"]["targetFloor"] + 1e-9
-    assert cfg["health"] == pytest.approx(rec["drain"]["targetFloor"], abs=0.011)
+        assert cfg["health"] <= rec["drain"]["target"] + 1e-9
+    assert cfg["health"] == pytest.approx(rec["drain"]["target"], abs=0.011)
     n = len(lst(cfg["log"]["add"]))
-    assert 500 < n < 2000 and EFF(h).stats.healMinutes >= n    # 30 health at 0.18 x 5.05 / 17 a minute: 561
+    assert 1000 < n < 2000 and EFF(h).stats.healMinutes >= n   # about 80 health at 0.18 x 5.05 / 17 a minute: about 1490
     regen = {r["name"]: r["v"] for r in lst(cfg["log"]["regen"])}
     assert regen["setStandardHealthAddition"] == 0 and regen["setHealthFromFood"] == 0   # vanilla's own stays off
 

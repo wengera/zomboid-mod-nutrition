@@ -21,7 +21,7 @@ EFFECT_NUMBERS = ("epoch", "aimMul", "speedMul", "intoxTarget", "tempTarget", "h
 PLAN5_ABSENT = {"effects_" + k: 0 for k in EFFECT_NUMBERS}
 PLAN5_ABSENT["effects_nv"] = False
 PLAN5_ABSENT["effects_ss"] = False
-DRAIN_ABSENT = {"drain_state": 0, "drain_floor": 100, "drain_mask": 0}   # Plan 15 Tasks 4 and 9: K.drain's keys, no state
+DRAIN_ABSENT = {"drain_state": 0, "drain_target": 100, "drain_mask": 0}   # Plan 15 Tasks 4 and 9, Plan 17 Task 2: K.drain's keys, no state
 META = {"mode": 1, "version": "0.1.0", "build": "42.20.4"}
 
 
@@ -195,15 +195,15 @@ def test_mirror_carries_the_effects_set(host):
     assert all(isinstance(v, (str, int, float, bool)) for v in m.values())
 
 
-def test_mirror_carries_the_active_drain_state_and_its_floor(host):
-    # Plan 15 Task 4: drain_state the active state's code and drain_floor its floor; 0 and 100 with none active
-    on = host.table({"active": True, "state": 6, "targetFloor": 41.5, "mask": 33})
+def test_mirror_carries_the_active_drain_state_and_its_target(host):
+    # Plan 15 Task 4: drain_state the active state's code; Plan 17 Task 2: drain_target the target; 0 and 100 with none
+    on = host.table({"active": True, "state": 6, "target": 41.5, "mask": 33})
     m = host.py(host.call("mirror.build", rec(host, drain=on), host.table(META)))
-    assert (m["drain_state"], m["drain_floor"], m["drain_mask"]) == (6, 41.5, 33)   # Plan 15 Task 9: every active state
-    off = host.table({"active": False, "state": 6, "targetFloor": 41.5, "mask": 33})
+    assert (m["drain_state"], m["drain_target"], m["drain_mask"]) == (6, 41.5, 33)   # Plan 15 Task 9: every active state
+    off = host.table({"active": False, "state": 6, "target": 41.5, "mask": 33})
     m = host.py(host.call("mirror.build", rec(host, drain=off), host.table(META)))
-    assert (m["drain_state"], m["drain_floor"], m["drain_mask"]) == (0, 100, 0)
-    junk = host.table({"active": True, "state": 6, "targetFloor": 41.5, "mask": "x"})
+    assert (m["drain_state"], m["drain_target"], m["drain_mask"]) == (0, 100, 0)
+    junk = host.table({"active": True, "state": 6, "target": 41.5, "mask": "x"})
     assert host.py(host.call("mirror.build", rec(host, drain=junk), host.table(META)))["drain_mask"] == 0
     assert "effects_drain" not in m and "effects_lethal" not in m
 

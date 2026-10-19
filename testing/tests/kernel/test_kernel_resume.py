@@ -30,7 +30,7 @@ def full_record(host, at=100.0):
         "nutrients": {"lastAgeH": at, "lastDayIndex": 4},
         "body": {"lastAgeH": at, "dayStartH": 96.0, "bornAge": 3.0, "dayIndex": 4, "trail": {"at": at}},
         "acute": {"winStartH": 98.0, "mass90ageH": 50.0, "lastFedAgeH": 99.5, "lastVigAgeH": -1e9, "caf": 80.0},
-        "drain": {"fedAgeH": 97.25, "acuteH": 0.0},
+        "drain": {"fedAgeH": 97.25, "acuteH": 0.0, "pAt": 96.5},
         "monotony": {"t": {"Base.Bread": {"n": 2.0, "last": 99.0}, "Base.Apple": {"n": 1.0, "last": 80.0}}},
     })
 
@@ -39,9 +39,9 @@ def test_the_stamp_list_names_every_world_age_clock(host):
     stamps = lst(R(host).STAMPS)
     assert stamps == ["lastSeen", "kineticsAge", "satiety.t", "satiety.nicH", "nutrients.lastAgeH", "body.lastAgeH",
                       "body.dayStartH", "acute.winStartH", "acute.mass90ageH", "acute.lastFedAgeH",
-                      "acute.lastVigAgeH", "drain.fedAgeH", "monotony.t.*.last"]
+                      "acute.lastVigAgeH", "drain.fedAgeH", "drain.pAt", "monotony.t.*.last"]   # Plan 17 Task 2: pAt
     assert len(lst(R(host).SEGS)) == len(stamps)
-    assert lst(R(host).SEGS[13]) == ["monotony", "t", "*", "last"]
+    assert lst(R(host).SEGS[14]) == ["monotony", "t", "*", "last"]
     assert lst(R(host).split("lastSeen")) == ["lastSeen"]
     kept = host.py(R(host).KEPT)
     assert sorted(kept) == ["acute.bodyHour", "body.bornAge", "body.trail.at", "body.trail.ch", "firstSeen"]
@@ -77,7 +77,7 @@ def test_shift_moves_every_stamp_and_nothing_else(host):
     assert after["body"]["dayStartH"] == 168.0
     assert (after["acute"]["winStartH"], after["acute"]["mass90ageH"], after["acute"]["lastFedAgeH"]) == (170.0, 122.0, 171.5)
     assert after["acute"]["lastVigAgeH"] == -1e9 + 72.0
-    assert after["drain"]["fedAgeH"] == 169.25
+    assert after["drain"]["fedAgeH"] == 169.25 and after["drain"]["pAt"] == 168.5   # Plan 17 Task 2: the BMI clock's anchor
     assert after["monotony"]["t"]["Base.Bread"]["last"] == 171.0 and after["monotony"]["t"]["Base.Apple"]["last"] == 152.0
     for k in ("firstSeen", "username"):                     # identity: kept
         assert after[k] == before[k]

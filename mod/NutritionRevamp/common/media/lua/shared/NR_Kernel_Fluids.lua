@@ -76,7 +76,7 @@ K.fluids.K_MG_PER_MMOL = 39.1 -- molar mass, no row needed
 
 -- The volume-thirst knots {dehydPct, THIRST}, one per vanilla moodle level (#0509) at 1/2/3/4 per cent deficit. Vanilla
 -- tests each threshold with a strict greater-than (#0507), so a level shows just past it. Plan 15 Task 5 (option B):
--- Parched (level 4, 0.84) sits on the 4 % dehydration onset (K.drain.DEHYD_KNOTS), where the writer lifts its 0.83
+-- Parched (level 4, 0.84) sits on the 4 % dehydration onset (K.drain.DEHYD_ONSET), where the writer lifts its 0.83
 -- cap (K.hybrid.caps): about 32 h without water at rest, against vanilla's 29.17 h (#0495). The 3 % knot is set so the
 -- combined thirst (thirstTarget: the volume and osmotic drives) crosses level 3's 0.70 at 3 % at rest, where the
 -- osmotic drive reads about 0.45: about 24 h without water (vanilla's 0.70 at 24.3 h by #0495's rate); by volume alone

@@ -594,8 +594,8 @@ local function step(username, player, record, body, dtM, ageH, ctx)
         coldFold(bd, L, E)
         -- 9. the bruise
         bruise(bd, L, E, dtM)
-        -- 10. the drain's health write: min(rate x dtM, health - floor), never past the floor (ReduceGeneralHealth never
-        -- overshoots, #3898); overall health is read only while a state is active. Under the floor, vanilla's own
+        -- 10. the drain's health write: min(rate x dtM, health - target), never past the target (ReduceGeneralHealth never
+        -- overshoots, #3898); overall health is read only while a state is active. Under the target, vanilla's own
         -- regeneration heals toward it, never above (fix 1, ruling L2): only one side acts in a minute, so no sawtooth.
         if D.active then
             local health = num(bd, "getOverallBodyHealth", nil)
@@ -603,7 +603,7 @@ local function step(username, player, record, body, dtM, ageH, ctx)
             if take > 0 then
                 NR.call(bd, "ReduceGeneralHealth", take)
                 EFF.stats.drainMinutes = EFF.stats.drainMinutes + 1
-            elseif health ~= nil and health < D.targetFloor - K.drain.HEAL_EPS then
+            elseif health ~= nil and health < D.target - K.drain.HEAL_EPS then
                 healToFloor(player, bd, D, E, health, asleep, dtM, ctx)
             end
         end

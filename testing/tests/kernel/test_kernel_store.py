@@ -28,9 +28,9 @@ DERIVED = {
                 "poisonTarget", "healMul", "bleedMul", "infectMul", "coldMul", "tempOffset", "tempHeat", "speedMul",
                 "fOffNut", "bruise", "nightVision", "shortSighted", "aimMul", "fOff", "solAddH", "solMul",
                 "intoxTarget", "tempTarget", "mAcc", "rRec", "enduranceCap", "foodSickStep"},   # Plan 15 Task 8
-    # Plan 15 Task 4: the drain engine's per-minute outputs (K.drain.step)
-    "drain": {"active", "state", "mask", "targetFloor", "rate", "drainThisMinute", "starvedH", "starving", "starveAcute",
-              "dehydrated"},
+    # Plan 15 Task 4: the drain engine's per-minute outputs (K.drain.step); Plan 17 Task 2: the target and the fractions
+    "drain": {"active", "state", "mask", "target", "frac", "rate", "drainThisMinute", "starvedH", "starving",
+              "starveAcute", "dehydrated"},
     "stomach": set(),
 }
 
@@ -355,17 +355,21 @@ def test_every_acute_fluids_effects_and_stomach_field_is_classified(host):
 
 
 def test_a_stored_drain_keeps_its_clocks_and_drops_the_minutes_outputs(host):
-    # Plan 15 Task 4: starvation's onset BMI and the sodium and iron hours survive a save; the active state, its floor,
+    # Plan 15 Task 4: starvation's onset BMI and the sodium and iron hours survive a save; Plan 17 Task 2: the hours in
+    # the starvation and dehydration states and the smoothed BMI clock too; the active state, its target, fractions,
     # rate and amount are the next minute's to recompute
+    clocks = {"bmi0": 21.5, "naH": 1.5, "feH": 0.25, "stH": 40.0, "dhH": 2.5, "pClose": 0.1, "pRate": 4e-4,
+              "pAt": 96.0, "pS": 0.11}
+    drain = dict(clocks, active=True, state=1, target=30.0, frac={1: 0.3}, rate=85.536, drainThisMinute=0.01,
+                 starvedH=40)
     raw = host.table({"username": "admin", "firstSeen": 1.0, "lastSeen": 2.0, "resets": 0, "dead": False,
-                      "drain": {"bmi0": 21.5, "naH": 1.5, "feH": 0.25, "active": True, "state": 1, "targetFloor": 30.0,
-                                "rate": 25, "drainThisMinute": 0.01, "starvedH": 40}})
+                      "drain": drain})
     d = host.py(S(host).load(raw, order(host), recs(host)))["drain"]
-    assert (d["bmi0"], d["naH"], d["feH"]) == (21.5, 1.5, 0.25)
-    assert (d["active"], d["state"], d["targetFloor"], d["rate"], d["drainThisMinute"], d["starvedH"]) == (
-        False, 0, 100, 0, 0, 0)
+    assert {k: d[k] for k in clocks} == clocks
+    assert (d["active"], d["state"], d["target"], d["frac"], d["rate"], d["drainThisMinute"], d["starvedH"]) == (
+        False, 0, 100, {}, 0, 0, 0)
     assert "drain" not in host.py(S(host).load(host.table({"username": "a"}), order(host), recs(host)))
-    assert host.py(S(host).inputsOnly(raw))["drain"] == {"bmi0": 21.5, "naH": 1.5, "feH": 0.25}
+    assert host.py(S(host).inputsOnly(raw))["drain"] == clocks
 
 
 def test_every_order_key_has_its_per_key_input_paths(host):

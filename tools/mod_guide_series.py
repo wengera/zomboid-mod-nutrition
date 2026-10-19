@@ -436,7 +436,7 @@ def sort_events(ev):
 
 # ---- the replays and the viability guard (rule R-1) -----------------------------------------------------------------------
 
-GUARD = ("fluids.dehydPct", "drain.state", "drain.targetFloor")
+GUARD = ("fluids.dehydPct", "drain.state", "drain.target")
 HEALTH = "health"                     # the stand-in's overall health, 100 less ReduceGeneralHealth plus AddGeneralHealth
 DEATH_HEALTH = 1e-6                   # health at or under it is the death (test_kernel_drain's fast deaths read the same)
 
@@ -902,31 +902,28 @@ def _adm_x401():
 
 def scurvy_line(h, step_h=6.0):
     """Clinical scurvy's health at HEAD (h a KHost), nothing else wrong, from full health at the clinical onset: the
-    drain engine takes K.drain.rate a game day down to K.drain.floor on the hours at the clinical grade, never past it
-    (K.drain.take), so health reads max(floor(t), 100 - rate x t) while the floor falls slower than the rate. Returns
-    (points [[days, health]] every step_h hours and at each knot, rate a game day, the death hour)."""
+    state's remaining fraction falls on a line from 1 to 0 at its death time (K.drain.fraction, Plan 17 Task 2), and
+    health follows 100 x it at the state's own rate (K.drain.take), so health reads 100 x the fraction. Returns
+    (points [[days, health]] every step_h hours and at the death hour, rate a game day, the death hour)."""
     K = h.K
     code = int(K.drain.SCURVY)
-    rate = float(K.drain.rate(code))
     death_h = float(K.drain.SCURVY_DEATH_H)
-    inp = h.table({"lm": 52.02, "fm": 13.005, "bmi0": 0.0, "dehydPct": 0.0})
-    kn = K.drain.states[code].knots
-    hours = [float(kn[i][1]) for i in range(1, len(kn) + 1)]
-    reach = (100.0 - float(K.drain.FIRST_FLOOR)) / rate * 24.0          # the drain reaches the first floor
-    ts = sorted(set([i * step_h for i in range(int(death_h / step_h) + 1)] + hours + [reach, death_h]))
+    ts = sorted(set([i * step_h for i in range(int(death_h / step_h) + 1)] + [death_h]))
     pts = []
+    rate = 0.0
     for t in ts:
-        f = float(K.drain.floor(code, t, inp))
-        pts.append([t / 24.0, max(f, 100.0 - rate * t / 24.0)])
-    return pts, rate, death_h
+        f, rate = K.drain.fraction(code, t, None, K.drain.OPT)
+        pts.append([t / 24.0, 100.0 * float(f)])
+    return pts, float(rate), death_h
 
 
 def _adm_x161b():
-    """x161b's scurvy drain (SD1-m-live): the HEAD drain a game hour (K.drain.rate of scurvy over 24) against the run's
-    own prediction from the drain it read (summaries.I.pred_per_game_h), within 1e-9. The run read the Plan 5 drain,
-    100 health over 168 game hours; Plan 15 Task 4's engine drains 50 / 3 a game day to a floor, so it fails at HEAD."""
+    """x161b's scurvy drain (SD1-m-live): the HEAD drain a game hour (scurvy's rate, K.drain.fraction's second return,
+    over 24) against the run's own prediction from the drain it read (summaries.I.pred_per_game_h), within 1e-9. The
+    run read the Plan 5 drain, 100 health over 168 game hours; Plan 17's line runs 100 health over 2160, so it fails at
+    HEAD."""
     K = KHost().K
-    per_h = float(K.drain.rate(int(K.drain.SCURVY))) / 24.0
+    per_h = float(K.drain.fraction(int(K.drain.SCURVY), 0.0, None, K.drain.OPT)[1]) / 24.0
     pred = read("x161b", "body.json", "summaries.I.pred_per_game_h")
     miss = abs(per_h - pred)
     q = "scurvy drain a game hour"
@@ -1276,9 +1273,13 @@ def j_s2d():
     return _done(rows, be, out)
 
 
+HALF_HEALTH = 50.0                    # health: the guide's mark for the drain's pace, half of full health (named here)
+
+
 def floor_age(rows, K):
-    """The age the drain first brings health to its first floor (K.drain.FIRST_FLOOR, within K.drain.HEAL_EPS)."""
-    f = float(K.drain.FIRST_FLOOR) + float(K.drain.HEAL_EPS)
+    """The age the drain first brings health to half (HALF_HEALTH, within K.drain.HEAL_EPS; Plan 17 Task 2: the first
+    floor this read is gone with the floors)."""
+    f = HALF_HEALTH + float(K.drain.HEAL_EPS)
     return next((r["age"] for r in rows if r.get(HEALTH) is not None and r[HEALTH] <= f), None)
 
 
@@ -2183,7 +2184,7 @@ def s_s2a():
                "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. "
                "The day without food opens the starvation state %.2f h after the last meal, when the meal pool has "
                "been empty for %g hours (K.drain.STARVE_ONSET_H, #3962): HUNGER lifts to Starving and health drains "
-               "toward the first floor until the next meal ends the state, %.2f health in all. "
+               "toward the target until the next meal ends the state, %.2f health in all. "
                % (v["drain"][0] - last_h, float(KHost().K.drain.STARVE_ONSET_H), 100.0 - v["min_health"])
                + PLATE_NOTE.replace("08:00 to 22:00", "09:00 to 23:00") + " " + proof_note("S2a-m-kernel")),
     ]
@@ -2292,7 +2293,7 @@ def s_s2d():
     mass.append([v["death_age"] / 24.0, mass[-1][1]])
     hp = until_death(k["health"], v) + [[v["death_age"] / 24.0, 0.0]]
     hd = until_death(kd["health"], vd) + [[vd["death_age"] / 24.0, 0.0]]
-    first = float(K.drain.FIRST_FLOOR)
+    first = HALF_HEALTH
     water = {"water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False, "start": FRESH}
     fm_min = float(K.strength.DEFAULTS.fmMin)
     fat_floor = next((a / 24.0 for _, a, fm, lm, lx, bmi in k["days"] if fm <= fm_min + 1e-9), None)
@@ -2340,30 +2341,30 @@ def s_s2d():
                kernel(dict(water, replay="90 days, no food, the replay's water", path="the stand-in's overall health",
                            read="100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)"), "x454"),
                "The same fast's health. The starvation state opens after %g unfed hours (K.drain.STARVE_ONSET_H), at "
-               "%.2f h, when Starving shows; health drains %g a game day (K.drain.STARVE_RATE, a game choice) to the "
-               "first floor of %g, reached on day %.2f, then follows the floor as the body's BMI falls from %.2f at "
-               "the onset: %g at BMI %g (K.drain.BMI_KNEE), and 0 at BMI %g, starvation's death point (S2234). The "
-               "lowest floor, the one health follows, belongs to %s (the day each state's floor first sinks under the "
-               "others'; beriberi opens when thiamine turns Clinical, weeks before its floor takes over; #3901). %s. "
-               "The live x454, "
-               "its unfed clock set near the onset, drained %.4g a game day to the first floor and held it (#3938)."
-               % (float(K.drain.STARVE_ONSET_H), v["drain"][0], float(K.drain.STARVE_RATE), first,
-                  k["floor_age"] / 24.0, k["bmi0"], float(K.drain.SLEEP_FLOOR), float(K.drain.BMI_KNEE),
-                  float(K.drain.BMI_DEATH), lowest, fatal,
-                  read("x454", "starve.json", "verdicts.DRAIN_RATE.observed.rate_per_day"))),
+               "%.2f h, when Starving shows; health then follows each active state's remaining fraction, multiplied "
+               "(Plan 17: Realistic pace, Multiply): starvation's falls on the curve over the BMI progress from %.2f "
+               "at the onset to %g, starvation's death point (S2234), opening at vanilla's own drain of %.4g a game "
+               "hour, and health reaches %g on day %.2f. The smallest fraction belongs to %s (the day each state's "
+               "fraction first sinks under the others'; beriberi opens when thiamine turns Clinical; #3901). %s. "
+               "The live x454 read the floor model before Plan 17: its unfed clock set near the onset, it drained "
+               "%.4g a game day to that model's first floor and held it (#3938)."
+               % (float(K.drain.STARVE_ONSET_H), v["drain"][0], k["bmi0"], float(K.drain.BMI_DEATH),
+                  float(K.drain.rVanilla(K.drain.STARVATION, K.drain.DAY_MINUTES)), first, k["floor_age"] / 24.0,
+                  lowest, fatal, read("x454", "starve.json", "verdicts.DRAIN_RATE.observed.rate_per_day"))),
         series("S2d-m-dry", "Nutrition Revamp health, without water", DAYS, "health", "kernel", hd,
                kernel({"replay": "8 days, no food and no water, a fresh record from 07:00", "sleep_allowed": False,
                        "start": FRESH,
                        "path": "the stand-in's overall health",
                        "read": "100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)"}, "x456"),
                "No food and no water from a fresh record at 07:00 (HUNGER 0). The dehydration state opens at a %g %% "
-               "body-water deficit, at %.2f h, when Parched shows, and the starvation state at %.2f h; the first floor "
-               "of %g is reached at %.2f h. The dehydration floor deepens with the deficit, %g at 15 %% and 0 at the death "
-               "point of 17 %% (a game choice inside 15-19 %%, K.drain.DEHYD_KNOTS). The fatal state is %s: health is "
-               "gone at day %.2f (%.1f h), where the line ends. The live x456, its deficit set near the onset, "
-               "drained %.4g a game day to the floor and held it (#3940, #3941)."
-               % (float(K.drain.DEHYD_KNOTS[1][1]), kd["dehyd_age"], kd["starve_age"], first, kd["floor_age"],
-                  float(K.drain.SLEEP_FLOOR), vd["death_name"], vd["death_age"] / 24.0, vd["death_age"],
+               "body-water deficit (K.drain.DEHYD_ONSET), at %.2f h, when Parched shows, and the starvation state at "
+               "%.2f h; health reaches %g at %.2f h. The dehydration fraction falls on the curve with the deficit to "
+               "%g at 15 %% and on a line to 0 at the death point of 17 %% (a game choice inside 15-19 %%, "
+               "K.drain.DEHYD_DEATH). The fatal state is %s: health is gone at day %.2f (%.1f h), where the line ends. "
+               "The live x456 read the floor model before Plan 17: its deficit set near the onset, it drained %.4g a "
+               "game day to that model's floor and held it (#3940, #3941)."
+               % (float(K.drain.DEHYD_ONSET), kd["dehyd_age"], kd["starve_age"], first, kd["floor_age"],
+                  float(K.drain.DEHYD_FINAL), vd["death_name"], vd["death_age"] / 24.0, vd["death_age"],
                   read("x456", "water.json", "verdicts.DEHYD_DRAIN.observed.rate_per_day"))),
     ]
 
@@ -2377,15 +2378,15 @@ BY_CONSTRUCTION = ("The mod's vitamin C rate k is fitted to this 40 days (NR_Dat
 
 
 def death_note(v, floor_age=None):
-    """The drain and the death of a diet's replay (Plan 15: a drain is damage to a floor; health is gone only at the
-    state's death point)."""
+    """The drain and the death of a diet's replay (Plan 17: a drain is damage toward the target the active states'
+    remaining fractions set; health is gone only at a state's death point)."""
     if v["drain"] is None:
         return "The replay stays alive and hydrated over the window and opens no drain (rule R-1)."
     opened = "Its drain opens with %s on day %.2f" % (v["drain_name"], v["drain"][0] / 24.0)
     if floor_age is not None:
-        opened += ", health reaching the first floor on day %.2f" % (floor_age / 24.0)
+        opened += ", health reaching %g on day %.2f" % (HALF_HEALTH, floor_age / 24.0)
     if v["death"] is None:
-        return opened + "; health holds at or above its floor and the replay stays alive over the window (rule R-1)."
+        return opened + "; health holds at or above its target and the replay stays alive over the window (rule R-1)."
     return ("%s. This diet kills: its fatal state is %s, and health is gone at day %.2f, where the lines end (rule "
             "R-1)." % (opened, v["death_name"], v["death_age"] / 24.0))
 
@@ -2478,7 +2479,8 @@ def s_s3c():
                        "orange": eat(0, "Base.Orange"), "water": [AUTODROP_G, list(AUTODROP_MIN)],
                        "path": "nutrients.vitC.p", "sleep_allowed": False}, "x151r"),
                "Vitamin C turns Clinical (grade %d) on day %.2f, which opens the scurvy drain; the orange from day 45 "
-               "lifts it, and the drain's last minute is on day %.2f, so the floor never deepens toward S3a's death. "
+               "lifts it, and the drain's last minute is on day %.2f, so scurvy's fraction never falls toward S3a's "
+               "death. "
                "The thiamine grade stays at %d at worst. %s"
                % (kc, v["drain"][0] / 24.0, k["drain_last"] / 24.0, v["thiamine_g_max"],
                   death_note(v, k["floor_age"]))),
@@ -3028,19 +3030,15 @@ def s_sd1():
     K = h.K
     pts, rate, death_h = scurvy_line(h)
     adm("x161b:drain")
-    first = float(K.drain.FIRST_FLOOR)
     return [
         series("SD1-m-kernel", "Nutrition Revamp", DAYS, "health", "kernel", pts,
-               kernel({"function": "K.drain.floor and K.drain.rate", "state": "scurvy (K.drain.SCURVY), vitamin C at "
+               kernel({"function": "K.drain.fraction", "state": "scurvy (K.drain.SCURVY), vitamin C at "
                        "the clinical grade from day 0, nothing else wrong", "from": "full health at the onset"}, "x454"),
-               "Days from the clinical grade: health drains %.4g a game day (K.drain.rate, a game choice) to the first "
-               "floor of %g, reached on day %.2f; the floor holds for %g game hours (K.drain.DEF_HOLD_H), deepens to %g "
-               "two days before the death point and reaches 0 at %g game hours, day %.0f, where the line ends: the "
-               "death at a time the studies leave open (S1168), a game choice. The drain engine is the one x454 and "
-               "x456 read live for starvation and dehydration (#3938, #3941); scurvy's own drain has no live reading "
-               "on this build (x161b read the Plan 5 drain, VALIDATION x161b:drain)."
-               % (rate, first, (100.0 - first) / rate, float(K.drain.DEF_HOLD_H), float(K.drain.SLEEP_FLOOR), death_h,
-                  death_h / 24.0)),
+               "Days from the clinical grade: scurvy's remaining fraction falls on a line (Plan 17, the same at every "
+               "pace), so health falls %.4g a game day and reaches 0 at %g game hours, day %.0f, where the line ends: "
+               "the death at a time the studies leave open (S1168), a game choice. Scurvy's own drain has no live "
+               "reading on this build (x161b read the Plan 5 drain, VALIDATION x161b:drain)."
+               % (rate, death_h, death_h / 24.0)),
     ]
 
 

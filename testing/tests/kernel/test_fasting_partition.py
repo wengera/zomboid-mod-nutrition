@@ -56,8 +56,10 @@ def elia_tee(fat_pct):
 
 # --- the deaths (spec section 3.3: whatever kills first on the science, not tuned) ---------------------------------
 
+# Plan 17 Task 2: the gaunt body's starvation death reads 40.90 (was 41.14 on the floor's BMI staircase): the smoothed
+# BMI clock (spec section 1.2a) reaches 1 within the record day before the close that takes BMI under 12
 @pytest.mark.parametrize("name, day, state", [("default", 77.23, "beriberi"), ("obese", 77.23, "beriberi"),
-                                              ("gaunt", 41.14, "starvation")])
+                                              ("gaunt", 40.90, "starvation")])
 def test_each_body_dies_of_what_the_science_gives_first(fast, name, day, state):
     v = fast[name][1]
     assert v["death_name"] == state

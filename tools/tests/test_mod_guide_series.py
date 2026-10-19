@@ -190,8 +190,8 @@ def test_s3a_dies_of_scurvy_and_the_orange_ends_its_drain(kh):
     assert a["drain"][1] == 2 and a["death"][1] == 2 and a["death_name"] == "scurvy"
     assert a["death_age"] - a["drain"][0] == pytest.approx(death_h, abs=2 / 60.0)
     assert 129.5 < a["death_age"] / 24.0 < 130.5
-    assert c["drain"][1] == 2 and c["death"] is None                  # the floor deepens slowly after its 72 h hold
-    assert float(kh.K.drain.SLEEP_FLOOR) < c["min_health"] <= float(kh.K.drain.FIRST_FLOOR)
+    assert c["drain"][1] == 2 and c["death"] is None                  # Plan 17 Task 2: scurvy's line, ended by the orange
+    assert float(kh.K.drain.SLEEP_FLOOR) < c["min_health"] < 100
     assert c["thiamine_g_max"] < 4
     assert "scurvy" in SER["S3a-m-pool"]["note"] and "fatal state is scurvy" in SER["S3a-m-pool"]["note"]
 
@@ -1076,13 +1076,12 @@ def _(kh, sid):
 
 @check("SD1-m-kernel")
 def _(kh, sid):
-    # Plan 15 Task 4: 50 / 3 health a game day to the first floor 50 (day 3), held 72 h, 10 two days before the
-    # death point, 0 at 2160 game hours (day 90), written here
-    assert pt(sid, 1.0) == pytest.approx(100 - 50 / 3, abs=1e-9)
-    assert pt(sid, 3.0) == pytest.approx(50.0, abs=1e-9)                # the floor's 72 h hold ends as the drain arrives
-    assert pt(sid, 5.0) == pytest.approx(50 + (10 - 50) * (120 - 72) / (2112 - 72), abs=1e-9)
-    assert pt(sid, 88.0) == pytest.approx(10.0, abs=1e-9)
-    assert pt(sid, 46.0) == pytest.approx(50 + (10 - 50) * (46 * 24 - 72) / (2112 - 72), abs=1e-9)
+    # Plan 17 Task 2: scurvy's remaining fraction on a line from the clinical onset to 0 at its death time (day 90),
+    # read off the kernel (K.drain.fraction), health 100 x it
+    for d in (1.0, 3.0, 5.0, 46.0, 88.0):
+        f = kh.K.drain.fraction(int(kh.K.drain.SCURVY), d * 24.0, None, kh.K.drain.OPT)[0]
+        assert pt(sid, d) == pytest.approx(100 * f, abs=1e-9)
+    assert pt(sid, 45.0) == pytest.approx(50.0, abs=1e-9)                # a line: half way at half the death time
     assert SER[sid]["points"][-1] == [90.0, 0.0]
     return [1.0, 46.0, 90.0]
 
@@ -1230,11 +1229,30 @@ def _(kh, sid):
 
 @check("S2d-m-drain")
 def _(kh, sid):
-    # three days of the fast with water: the onset at 30 unfed hours, then 25 health a game day toward the floor 50
-    _, _, health = health_arm([FRESH] + water(3), 3 * 1440)
+    # three days of the fast with water: the onset at 30 unfed hours, then (Plan 17 Task 2) health follows starvation's
+    # remaining fraction on the curve over the smoothed BMI progress (spec sections 1.2 and 1.2a), at most vanilla's
+    # 3.564 a game hour, re-derived here off the replay's own body course
+    rows, _, health = health_arm([FRESH] + water(3), 3 * 1440, ("body.lm", "body.fm", "body.dayStartH",
+                                                                "drain.starving"))
     assert pt(sid, 3.0) == pytest.approx(health, abs=1e-9)
     onset = VIAB["j_s2d"]["drain"][0]                                     # the starvation state's opening
-    assert health == pytest.approx(100 - 25 * (72 - onset) / 24, abs=0.05)
+    a, dpdt, h2 = float(kh.K.drain.A_STARVE), float(kh.K.drain.STARVE_DPDT), float(kh.K.HEIGHT_M) ** 2
+    hp, bmi0, p_at, p_close, p_rate, p_s = 100.0, None, None, 0.0, dpdt, 0.0
+    for r in rows:
+        if not r.get("drain.starving"):
+            continue
+        bmi = (r["body.lm"] + r["body.fm"]) / h2
+        if bmi0 is None:
+            bmi0, p_at = bmi, r["age"]
+            assert r["age"] == pytest.approx(onset, abs=1 / 60.0)
+        p = min(max((bmi0 - bmi) / (bmi0 - 12.0), 0.0), 1.0)
+        if r["body.dayStartH"] > p_at:                                    # a record-day close: re-anchor
+            p_rate, p_close, p_at = max(0.0, p - p_close) / 24.0, p, r["body.dayStartH"]
+        p_s = max(p_s, min(max(p_close + p_rate * max(0.0, r["age"] - p_at), 0.0), 1.0))
+        target = 100.0 * (1 - math.log(1 + a * p_s) / math.log(1 + a))
+        hp -= min(3.564 * 24 / 1440 * r["dtM"], max(0.0, hp - target))
+    assert health == pytest.approx(hp, abs=1e-6)
+    assert 50 < health < 100 - 3.564 * 2                                  # it fell, and at least two hours' worth
     v = VIAB["j_s2d"]
     assert SER[sid]["points"][-1] == [pytest.approx(v["death_age"] / 24.0), 0.0] and v["death_name"] == "beriberi"   # Plan 16 Task 5
     return [3.0, v["death_age"] / 24.0]

@@ -105,11 +105,16 @@ K.store.INPUTS = {
     -- by the first minute (the default key forces a compose): derived.
     "effects.dirty", "effects.epoch", "effects.own.nv", "effects.own.ss", "effects.nvDays", "effects.pe",
     "effects.ea", "effects.lastDay", "effects.exSeen",
-    -- drain (K.drain.step, NR_Server_Effects; Plan 15 Task 4): starvation's onset BMI, the floor's reference while the
-    -- state lasts, and the hours in the sodium and iron lethal states; starvation's clocks (Plan 15 Task 6 fixes 1 and
-    -- 2): the world age the meal pool was last fed and the hours in the acute state, so a restart mid-fast keeps the
-    -- count. The active state, the active set (mask), its floor, rate, the minute's amount, starvedH and recentKcal are recomputed: derived.
+    -- drain (K.drain.step, NR_Server_Effects; Plan 15 Task 4, Plan 17 Task 2): starvation's onset BMI, the BMI clock's
+    -- reference while the state lasts, and the hours in the sodium and iron lethal states; starvation's clocks (Plan 15
+    -- Task 6 fixes 1 and 2): the world age the meal pool was last fed and the hours in the acute state, so a restart
+    -- mid-fast keeps the count; the hours in the starvation and dehydration states (the time clocks of the Vanilla and
+    -- Shortened paces) and the smoothed BMI clock (its true progress, rate and anchor at the last close, and the largest
+    -- smoothed progress, so a restart neither re-anchors it nor lets it fall; Plan 17 spec section 1.2a). The active
+    -- state, the active set (mask), the fractions, the target, the rate, the minute's amount, starvedH and recentKcal
+    -- are recomputed: derived.
     "drain.bmi0", "drain.naH", "drain.feH", "drain.fedAgeH", "drain.acuteH",
+    "drain.stH", "drain.dhH", "drain.pClose", "drain.pRate", "drain.pAt", "drain.pS",
     "drain.spell", -- the meal spell (K.drain.spellStep, Plan 15 close H1): a refeed's fed spell survives a restart
     -- reconciliation (NR_Server_Reconcile): the landing count. The baseline is re-seeded from
     -- the vanilla stores at first sight, since the player save and the global table are written apart (#2098):

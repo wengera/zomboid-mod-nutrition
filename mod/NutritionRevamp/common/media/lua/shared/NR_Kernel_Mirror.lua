@@ -175,17 +175,17 @@ function K.mirror.effects(m, eff)
 end
 
 -- The drain keys: drain_state, the active state's code (K.drain's codes; 0 with none or no drain table),
--- drain_floor, its floor health (K.drain.NONE, 100, with none), and drain_mask, every active code's bit (0 with none, or
+-- drain_target, the target health (K.drain.NONE, 100, with none; Plan 17 Task 2), and drain_mask, every active code's bit (0 with none, or
 -- with a mask that is not a number).
 function K.mirror.drain(m, D)
     m.drain_state = 0
-    m.drain_floor = K.drain.NONE
+    m.drain_target = K.drain.NONE
     m.drain_mask = 0
     if D == nil or D.active ~= true then
         return
     end
     m.drain_state = D.state
-    m.drain_floor = D.targetFloor
+    m.drain_target = D.target
     if type(D.mask) == "number" then
         m.drain_mask = D.mask
     end
