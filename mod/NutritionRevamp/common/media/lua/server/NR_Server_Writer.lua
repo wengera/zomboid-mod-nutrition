@@ -553,7 +553,7 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
 end
 
 -- Option B (Plan 15 Task 5; spec section 3.1; jar-checks Check 3; run x451). Vanilla's HUNGRY-4 and THIRST-4 health
--- terms scale with the day length (#0518); the mod's drain-and-floor engine owns those crises instead (K.drain). So
+-- terms scale with the day length (#0518); the mod's drain engine owns those crises instead (K.drain). So
 -- while the HUNGER or THIRST this minute leaves stands at level 4 (K.hybrid.severe), the writer sets the player's
 -- severe-moodle constant to 0 (BodyDamage.setHealthReductionFromSevereBadMoodles, per player, from server Lua: x451;
 -- at 0 the HUNGRY-4, THIRST-4, SICK-4 and under-35 kg terms stop, measured; HEAVY_LOAD and the wound-infection arm read
@@ -563,7 +563,7 @@ end
 -- after that it is written only when the wanted value changes (h.red, the last written; Rule 6: a steady minute costs
 -- no Java call). Mode 1 only: in Overlay vanilla owns HUNGER and THIRST and the constant is never touched.
 -- While the constant was 0 over the minute just past (h.red before this minute's write), W.reapply re-applies the
--- other terms it carries at vanilla's rates: vanilla's own damage, so it may take health under a drain floor, as a
+-- other terms it carries at vanilla's rates: vanilla's own damage, so it may take health under a drain target, as a
 -- wound does.
 W.severeStats = { writes = 0, failures = 0, reapplied = 0, unread = 0 }
 function W.severe(h, player, record, inp, out, eng, ctx)

@@ -1229,26 +1229,29 @@ def _(kh, sid):
 
 @check("S2d-m-drain")
 def _(kh, sid):
-    # three days of the fast with water: the onset at 30 unfed hours, then (Plan 17 Task 2) health follows starvation's
-    # remaining fraction on the curve over the smoothed BMI progress (spec sections 1.2 and 1.2a), at most vanilla's
-    # 3.564 a game hour, re-derived here off the replay's own body course
+    # three days of the fast with water: the onset at 30 unfed hours, then (Plan 17 Task 2, ruling T2-1) health follows
+    # starvation's remaining fraction on the curve over the smoothed BMI (spec sections 1.2 and 1.2a: the estimate
+    # anchored at the open record day's start, the calibration body's BMI rate before the first close), at most
+    # vanilla's 3.564 a game hour, re-derived here off the replay's own body course
     rows, _, health = health_arm([FRESH] + water(3), 3 * 1440, ("body.lm", "body.fm", "body.dayStartH",
                                                                 "drain.starving"))
     assert pt(sid, 3.0) == pytest.approx(health, abs=1e-9)
     onset = VIAB["j_s2d"]["drain"][0]                                     # the starvation state's opening
-    a, dpdt, h2 = float(kh.K.drain.A_STARVE), float(kh.K.drain.STARVE_DPDT), float(kh.K.HEIGHT_M) ** 2
-    hp, bmi0, p_at, p_close, p_rate, p_s = 100.0, None, None, 0.0, dpdt, 0.0
+    a, h2 = float(kh.K.drain.A_STARVE), float(kh.K.HEIGHT_M) ** 2
+    dbmi = float(kh.K.drain.STARVE_DPDT) * (22.42350650342769 - 12.0)    # calibration.json starve.bmi0
+    hp, bmi0, p_at, b_close, b_rate, p_s = 100.0, None, None, None, dbmi, 0.0
     for r in rows:
         if not r.get("drain.starving"):
             continue
         bmi = (r["body.lm"] + r["body.fm"]) / h2
         if bmi0 is None:
-            bmi0, p_at = bmi, r["age"]
             assert r["age"] == pytest.approx(onset, abs=1 / 60.0)
-        p = min(max((bmi0 - bmi) / (bmi0 - 12.0), 0.0), 1.0)
-        if r["body.dayStartH"] > p_at:                                    # a record-day close: re-anchor
-            p_rate, p_close, p_at = max(0.0, p - p_close) / 24.0, p, r["body.dayStartH"]
-        p_s = max(p_s, min(max(p_close + p_rate * max(0.0, r["age"] - p_at), 0.0), 1.0))
+            b_close, p_at = bmi, r["body.dayStartH"]
+            bmi0 = b_close - b_rate * (r["age"] - p_at)
+        elif r["body.dayStartH"] > p_at:                                  # a record-day close: re-anchor
+            b_rate, b_close, p_at = max(0.0, b_close - bmi) / (r["body.dayStartH"] - p_at), bmi, r["body.dayStartH"]
+        est = b_close - b_rate * max(0.0, r["age"] - p_at)
+        p_s = max(p_s, min(max((bmi0 - est) / (bmi0 - 12.0), 0.0), 1.0))
         target = 100.0 * (1 - math.log(1 + a * p_s) / math.log(1 + a))
         hp -= min(3.564 * 24 / 1440 * r["dtM"], max(0.0, hp - target))
     assert health == pytest.approx(hp, abs=1e-6)

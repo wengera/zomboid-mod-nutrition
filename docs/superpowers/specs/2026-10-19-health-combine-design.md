@@ -33,19 +33,22 @@ Every onset rule stays as it is: the acute and chronic starvation onsets, the 4 
 `a` is set in one of two ways:
 - **Time clocks** (Shortened pace): solve `100·a / ln(1 + a·T) = r` by Newton, where `r` is vanilla's rate in health per game hour at the server's day length. It is cached per (T, day length) and re-solved when the day length changes, never every minute.
 - **Severity clocks** (Realistic starvation by BMI, Realistic dehydration by deficit): `a` is a fixed constant per state, calibrated offline (§ 4.1). It is set so that the default creation body, on the guide's fast (water, no food) at the 90-minute day, opens at vanilla's rate.
+  - The body moves BMI and the deficit per game hour whatever the day length, so these curves are fixed in game time: they open at vanilla's rate at the calibration's 90-minute day (3.564 and 17.82 health a game hour) at every day length (controller ruling T2-2). Vanilla and Shortened follow the server's day length.
 
   A heavier body loses BMI more slowly, so it opens more gently in time as well as dying later. Recorded as a game choice.
 
-### 1.2a Smoothing the BMI clock (controller ruling T1-4, Task 1 review F3)
+### 1.2a Smoothing the BMI clock (controller rulings T1-4 and T2-1; Task 1 review F3, Task 2 review F1)
 
-The body model moves BMI only at a record-day close, once every 24 online hours. A curve read off the raw BMI would staircase: a day at full health, then a 30-point ramp. Realistic starvation instead reads a **smoothed progress**:
-- `p_s = p_close + rate · (ageH − body.dayStartH)`, where:
-  - `p_close` is the true progress at the last close;
-  - `rate` is the last closed day's progress per hour;
-  - before the state has seen a close, `rate` is the calibrated `starve_dpdt_per_h` (Task 1's artifact) and the anchor is the onset.
-- `p_s` is clamped to [0, 1] and never falls within a state, so the target never rises from a close's correction while the state holds.
-- Every input is an online clock (`body.dayStartH` is a resume stamp) or a record field. The smoothing therefore freezes offline like everything else (Plan 16).
-- The death comes at `p_s = 1`, which is BMI 12 as estimated within the day. A close's correction moves the target by at most the gap between the estimate and the true BMI, and the § 1.4 cap ramps it.
+The body model moves BMI only at a record-day close, once every 24 online hours. A curve read off the raw BMI would staircase: a day at full health, then a 30-point ramp. Realistic starvation instead reads a **smoothed BMI**, an estimate anchored at the open record day's start:
+- `bmi_est(t) = bmi_close − b · (ageH − body.dayStartH)`, where:
+  - `bmi_close` is the true BMI at the last close (the BMI the body holds through the open record day);
+  - `b` is the last closed span's BMI loss per hour (the loss since the previous anchor over the hours between the two day starts, so a span held across two or more closes books its whole loss over its whole length);
+  - before the state has seen a close, `b` is the calibration body's opening rate in BMI, `starve_dpdt_per_h × (starve.bmi0 − 12)` from Task 1's artifact (0.004544 BMI a game hour), fixed so that a heavier body opens no faster in kg, and the anchor is the open record day's start.
+- The onset BMI is the estimate at the onset, `bmi0 = bmi_est(onset)`, so the progress opens at 0.
+- The progress is `p_s = (bmi0 − bmi_est) / (bmi0 − 12)`, clamped to [0, 1], and never falls within a state, so the target never rises from a close's correction while the state holds.
+- The estimate is continuous at the onset and at each close while the daily loss holds. A close moves it by the day-on-day change of the loss only: about 0.06 health a minute, the opening slope, on the guide's fast, where the onset-anchored progress of ruling T1-4 stepped the target 7.34 at the first close. A body that loses much faster than the calibration body still steps at its first close (the ruling's cost).
+- Every input is an online clock (`body.dayStartH` and the anchor are resume stamps) or a record field. The smoothing therefore freezes offline like everything else (Plan 16).
+- The death comes at `p_s = 1`, which is BMI 12 as estimated within the day, and the § 1.4 cap ramps any correction.
 
 ### 1.3 Combining: `NR.HealthCombine`
 
@@ -59,7 +62,8 @@ With no state active there is no target, and vanilla regeneration and the food h
 ### 1.4 Following the target
 
 - **The drain:** health falls toward the target by at most `cap · dtM / 1440` a minute. `cap` is the sum of the active states' **rates**, in health per game day:
-  - for a curve state, its opening rate in health per game day (vanilla's rate at the day length);
+  - for a curve state on a time clock (Vanilla, Shortened), its opening rate in health per game day (vanilla's rate at the server's day length);
+  - for a curve state on a severity clock (Realistic), its calibrated opening rate, vanilla's rate at the 90-minute day × 24, whatever the server's day length (controller ruling T2-2). A body that loses faster than the calibration body opens above this cap, and health trails the target by a bounded gap that closes as the curve flattens (a limitation for the guide);
   - for a linear state, `100 · 24 / T_hours`.
 
   This lets health keep up with a compounding target and keeps a target that jumps down from landing as a cliff. A jump comes from a new onset, a pace or combine change mid-game, or a fraction recomputed after a weight gain. `K.drain.take` keeps its contract: never past the target.

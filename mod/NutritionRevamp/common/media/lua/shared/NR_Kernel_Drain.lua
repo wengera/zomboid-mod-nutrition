@@ -17,7 +17,7 @@
 -- deficit from 4 % to 15 % (to a fraction of 0.1), then on a line to 0 at 17 %. The deficiencies and the rungs are the
 -- same at every pace.
 -- record.drain holds the inputs a save keeps (bmi0, naH, feH, starvation's clocks fedAgeH and acuteH, the hours in
--- the starvation and dehydration states stH and dhH, and the smoothed BMI clock pClose, pRate, pAt and pS;
+-- the starvation and dehydration states stH and dhH, and the smoothed BMI clock bClose, bRate, pAt and pS;
 -- K.store.INPUTS) and the minute's derived outputs (active, state, mask, target, frac, rate, drainThisMinute, starvedH
 -- (the starvation clock: the unfed hours, or the onset plus the hours in the acute state), recentKcal, and the
 -- starving, starveAcute and dehydrated flags the writer's caps read, K.hybrid.caps, Plan 15 Tasks 5 and 6). Pure: Lua
@@ -46,7 +46,7 @@ K.drain.COMBINE_MULTIPLY = 2 -- no row needed: an option value
 K.drain.COMBINE_ADD = 3 -- no row needed: an option value
 K.drain.OPT = { pace = 3, combine = 2, dayMin = 90 } -- the defaults Realistic and Multiply: game choices (spec section 7); vanilla's 90-minute day (#2922)
 
-K.drain.SLEEP_FLOOR = 10 -- health: at or below it vanilla wakes a sleeper every tick (#3900); the final stage starts here
+K.drain.SLEEP_FLOOR = 10 -- health: at or below it vanilla wakes a sleeper every tick (#3900); Realistic dehydration's final stage begins at this fraction of full health (DEHYD_FINAL)
 K.drain.NONE = 100 -- health: the target read with no state active (full health), no row needed
 
 -- The curve (spec section 1.2): vanilla's level-4 rates in health per game hour per real minute of day length, the
@@ -59,8 +59,10 @@ K.drain.SHORT_STARVE_H = 336 -- Shortened starvation, 14 game days: game choice 
 K.drain.SHORT_DEHYD_H = 48 -- Shortened dehydration, 2 game days: game choice (spec section 2.2)
 K.drain.A_STARVE = 509.81334200481825 -- game choice (spec section 1.2): calibrate-drain-20261019/calibration.json a_starve, the BMI progress clock (T = 1)
 K.drain.STARVE_DPDT = 0.0004359462040936248 -- BMI progress per game hour before the state's first record-day close: calibrate-drain-20261019/calibration.json starve_dpdt_per_h, game choice (spec section 1.2a)
+K.drain.CAL_BMI0 = 22.42350650342769 -- the calibration body's onset BMI: calibrate-drain-20261019/calibration.json starve.bmi0, game choice (spec section 1.2a)
+K.drain.CAL_DAY_MIN = 90 -- the calibration's day length (calibrate-drain-20261019/calibration.json day_minutes): the severity clocks' curves are fixed in game time, so their cap is vanilla's rate at this day whatever the server's (ruling T2-2)
 K.drain.A_DEHYD = 79.83361067025903 -- game choice (spec section 1.2): solved from calibrate-drain-20261019/calibration.json dehyd_dpdt_per_h for the 0.9 form f = 1 - 0.9 g(p) (ruling T1-1; the artifact's own a_dehyd is the full-span value)
-K.drain.DEHYD_FINAL = 0.1 -- the fraction at the 15 % knee, dehydration's final stage (spec section 1.1)
+K.drain.DEHYD_FINAL = K.drain.SLEEP_FLOOR / K.drain.NONE -- the fraction at the 15 % knee, dehydration's final stage (spec sections 1.1 and 2.4)
 K.drain.A_LO = 1e-9 -- the solver's bracket, no row needed
 K.drain.A_HI = 1e9 -- the solver's bracket, no row needed
 K.drain.A_ITER = 200 -- the solver's bisection steps on log a, no row needed
@@ -81,6 +83,7 @@ K.drain.RECENT_TOL = 1e-6 -- kcal: the comparison's tolerance, no row needed (Pl
 K.drain.RECENT_DAYS = 3 -- record-day closes the window needs seen, no row needed
 K.drain.RECENT_MIN_KCAL = 600 -- kcal absorbed or still in the stomach today and over the three closed record days (72-96 h): game choice (spec section 10: each floor's curve; the controller's Task 6 fix 1 and 2 rulings), about 200 kcal a day, at or under which the acute onset holds while the pool is unfed whatever the unfed hours, so a snack now and then does not keep a starving body out of the state (at or under: the window can hold three of a 200 kcal snack every 33 h, exactly 600)
 K.drain.BMI_DEATH = 12 -- kg/m2, S2234 (Speakman: at BMI 12 recovery is virtually zero)
+K.drain.STARVE_DBMI = K.drain.STARVE_DPDT * (K.drain.CAL_BMI0 - K.drain.BMI_DEATH) -- BMI per game hour before the state's first close: the calibration body's opening rate in BMI, so a heavier body opens no faster in kg
 K.drain.BMI_CHRONIC = 13 -- kg/m2: starvation is active below it whatever the day's intake; game choice inside S2234's 12-13 (spec section 10: each floor's curve)
 K.drain.SUSPEND_M = 236.44 -- weighted kcal, the meal pool a 200 kcal mixed snack lands (15/50/35 % of energy, 236.44 under the fitted weights, K.satiety.weigh): game choice (spec section 10: each floor's curve): only a meal spell (the pool reached SUSPEND_M and has not yet fallen under K.hungerCurve.FED_M, K.drain.mealFed) suspends the fallback or, inside the state, resets the unfed clock, so a floret an hour (11 kcal, the pool at FED_M for about 70 min) no longer ends or holds off a starving body's state, while a 200 kcal snack or a refeed meal still does for its whole fed spell (Plan 15 close, H1)
 -- The starvation effect phases (spec section 3.3), on the starvation clock (starvedH: the unfed hours, then the onset
@@ -140,8 +143,8 @@ function K.drain.new()
         feH = 0,
         stH = 0,
         dhH = 0,
-        pClose = 0,
-        pRate = 0,
+        bClose = 0,
+        bRate = 0,
         pS = 0,
         active = false,
         state = 0,
@@ -160,7 +163,7 @@ function K.drain.new()
 end
 
 -- The stored numbers that heal to 0 when they are not finite.
-K.drain.HEAL0 = { "bmi0", "naH", "feH", "stH", "dhH", "pClose", "pRate", "pS" }
+K.drain.HEAL0 = { "bmi0", "naH", "feH", "stH", "dhH", "bClose", "bRate", "pS" }
 
 -- record.drain, laid when absent; a stored input that is not a finite number heals to 0 (the anchor pAt and the stamp
 -- fedAgeH to absent: first sight), and the fraction table is laid once.
@@ -364,30 +367,40 @@ function K.drain.progress(bmi0, bmi)
     return K.clamp((bmi0 - bmi) / span, 0, 1)
 end
 
--- The smoothed BMI clock (spec section 1.2a, ruling T1-4): the body moves BMI only at a record-day close, so the curve
--- reads p_s = pClose + pRate x (ageH - pAt). pClose is the true progress at the anchor; pAt is the anchor's world age,
--- the onset at first and then body.dayStartH at each close (a resume stamp, K.resume.STAMPS, as pAt is, so the two
--- move together past an offline gap and the clock counts online hours only); pRate is STARVE_DPDT until the state's
--- first close, then the closed day's progress per hour. A close is seen when body.dayStartH has moved past the anchor.
--- p_s clamps to [0, 1] and never falls within the state (pS keeps its largest), so a close's correction never raises
--- the target. Returns pS.
+-- The smoothed BMI clock (spec section 1.2a, rulings T1-4 and T2-1): the body moves BMI only at a record-day close, so
+-- the curve reads the estimate bmiEst = bClose - bRate x (ageH - pAt), anchored at the open record day's start pAt
+-- (body.dayStartH, a resume stamp like pAt, K.resume.STAMPS). bClose is the BMI at the anchor; bRate is
+-- STARVE_DBMI until the state's first close, then the last closed span's BMI loss per hour. The onset BMI bmi0 is the
+-- estimate at the onset, so the progress opens at 0, and a close moves the estimate by the day-on-day change of the
+-- loss only. pS keeps the largest progress, so it never falls within the state. Returns pS.
 function K.drain.smooth(D, body, ageH)
-    local p = K.drain.progress(D.bmi0, K.drain.bmi(body.lm, body.fm))
+    local bmi = K.drain.bmi(body.lm, body.fm)
     local day = body.dayStartH
+    if not K.finite(day) then
+        day = ageH
+    end
     if not K.finite(D.pAt) then
-        D.pClose = p
-        D.pRate = K.drain.STARVE_DPDT
-        D.pAt = ageH
-    elseif K.finite(day) and day > D.pAt then
-        D.pRate = K.max(0, p - D.pClose) / K.body.DAY_H
-        D.pClose = p
+        D.bClose = bmi
+        D.bRate = K.drain.STARVE_DBMI
+        D.pAt = day
+        if not (D.pS > 0) then
+            D.bmi0 = K.drain.bmiEst(D, ageH)
+        end
+    elseif day > D.pAt then
+        D.bRate = K.max(0, D.bClose - bmi) / (day - D.pAt)
+        D.bClose = bmi
         D.pAt = day
     end
-    local s = K.clamp(D.pClose + D.pRate * K.max(0, ageH - D.pAt), 0, 1)
+    local s = K.drain.progress(D.bmi0, K.drain.bmiEst(D, ageH))
     if K.finite(s) and s > D.pS then
         D.pS = s
     end
     return D.pS
+end
+
+-- The smoothed BMI at world age ageH: the anchor's BMI less its rate since.
+function K.drain.bmiEst(D, ageH)
+    return D.bClose - D.bRate * K.max(0, ageH - D.pAt)
 end
 
 -- Realistic dehydration's fraction at a deficit of d per cent (spec section 1.1): the curve from 1 at 4 % to 0.1 at
@@ -423,8 +436,10 @@ function K.drain.fraction(code, tH, inp, opt)
             rate = K.max(r, K.drain.NONE / S.short) * 24
         elseif code == K.drain.STARVATION then
             f = K.drain.curve(inp.pStarve, 1, K.drain.A_STARVE)
+            rate = K.drain.rVanilla(code, K.drain.CAL_DAY_MIN) * 24
         else
             f = K.drain.dehydFraction(inp.dehydPct)
+            rate = K.drain.rVanilla(code, K.drain.CAL_DAY_MIN) * 24
         end
     end
     if not K.finite(f) then
@@ -492,8 +507,8 @@ end
 function K.drain.release(D)
     D.bmi0 = 0
     D.stH = 0
-    D.pClose = 0
-    D.pRate = 0
+    D.bClose = 0
+    D.bRate = 0
     D.pS = 0
     D.pAt = nil
 end

@@ -399,32 +399,55 @@ def test_the_step_reads_the_module_options_when_none_are_passed(host, D):
         D.OPT.pace = 3
 
 
-# --- the smoothed BMI clock (spec section 1.2a, ruling T1-4) -----------------------------------------------------
+# --- the smoothed BMI clock (spec section 1.2a, rulings T1-4 and T2-1) -------------------------------------------
 
 def starving(h, lm=52.02, fm=10.0, day=4, at=100.0):
     return record(h, unfed=40.0, lm=lm, fm=fm, day=day, at=at, lastAgeH=at)
 
 
-def test_the_clock_opens_at_the_onset_at_the_calibrated_rate(host, D):
+def test_the_clock_opens_at_the_record_day_start_at_the_calibrated_bmi_rate(host, D):
+    # ruling T2-1: the anchor is the open record day's start (dayStartH 96), the rate the calibration body's BMI loss
+    rec = starving(host)
+    bmi = 62.02 / H2
+    d = D.step(rec, 1.0, 100.0)
+    assert D.STARVE_DBMI == pytest.approx(D.STARVE_DPDT * (D.CAL_BMI0 - 12), abs=TOL)
+    assert (d.bClose, d.bRate, d.pAt, d.pS) == (pytest.approx(bmi, abs=TOL), D.STARVE_DBMI, 96.0, 0)
+    assert d.bmi0 == pytest.approx(bmi - 4 * D.STARVE_DBMI, abs=1e-12)          # the estimate at the onset: p opens at 0
+    d = D.step(rec, 60.0, 110.0)                                                 # 10 h later, no close
+    p = 10 * D.STARVE_DBMI / (d.bmi0 - 12)
+    assert d.pS == pytest.approx(p, abs=1e-15)
+    assert d.frac[1] == pytest.approx(curve(p, 1.0, D.A_STARVE), abs=1e-12)
+
+
+def test_a_close_re_anchors_on_the_true_bmi_and_the_spans_rate(host, D):
     rec = starving(host)
     d = D.step(rec, 1.0, 100.0)
-    assert (d.pClose, d.pRate, d.pAt, d.pS) == (0, D.STARVE_DPDT, 100.0, 0)
-    d = D.step(rec, 60.0, 110.0)                                                 # 10 h later, no close
-    assert d.pS == pytest.approx(10 * D.STARVE_DPDT, abs=1e-15)
-    assert d.frac[1] == pytest.approx(curve(10 * D.STARVE_DPDT, 1.0, D.A_STARVE), abs=1e-12)
-
-
-def test_a_close_re_anchors_on_the_true_progress_and_the_days_rate(host, D):
-    rec = starving(host)
-    D.step(rec, 1.0, 100.0)
-    bmi0 = rec.drain.bmi0
+    bmi0 = d.bmi0
     rec.body.fm = rec.body.fm - 0.6                                             # the close's loss
     rec.body.dayStartH = 120.0
     d = D.step(rec, 1.0, 120.5)
-    p = (bmi0 - (62.02 - 0.6) / H2) / (bmi0 - 12)
-    assert d.pClose == pytest.approx(p, abs=1e-12) and d.pAt == 120.0
-    assert d.pRate == pytest.approx(p / 24, abs=1e-12)
-    assert d.pS == pytest.approx(p + p / 24 * 0.5, abs=1e-12)
+    new = (62.02 - 0.6) / H2
+    assert d.bClose == pytest.approx(new, abs=1e-12) and d.pAt == 120.0
+    assert d.bRate == pytest.approx(0.6 / H2 / 24, abs=1e-12)                  # the closed span 96-120
+    assert d.pS == pytest.approx((bmi0 - (new - d.bRate * 0.5)) / (bmi0 - 12), abs=1e-12)
+
+
+def test_a_held_state_across_two_closes_books_the_two_day_loss_over_48_hours(host, D):
+    # review F1's second defect: a fed spell held across two closes reads one rate over the whole span, not one day
+    rec = starving(host)
+    rec.body.recentDays = 3
+    rec.body.inDayClosed, rec.body.inDay2, rec.body.inDay3 = 0.0, 0.0, 0.0
+    D.step(rec, 60.0, 100.0)
+    assert rec.drain.acuteH > 0
+    rec.satiety.M = 400.0                                                        # a meal spell: the state held
+    d = D.step(rec, 1.0, 101.0)
+    assert d.starving is False and d.pAt == 96.0 and d.bmi0 > 0
+    rec.body.fm = rec.body.fm - 0.6                                             # two closes' loss while held
+    rec.body.dayStartH = 144.0
+    rec.satiety.M = 0.0
+    d = D.step(rec, 1.0, 145.0)
+    assert d.starving is True and d.pAt == 144.0
+    assert d.bRate == pytest.approx(0.6 / H2 / 48, abs=1e-12)
 
 
 def test_the_clock_never_falls_within_the_state(host, D):
@@ -434,19 +457,21 @@ def test_the_clock_never_falls_within_the_state(host, D):
     high = rec.drain.pS
     rec.body.dayStartH = 120.0                                                  # a close with no loss at all
     d = D.step(rec, 1.0, 120.0)
-    assert d.pClose == 0 and d.pRate == 0 and d.pS == high                      # the estimate held, never lowered
+    assert d.bRate == 0 and d.pS == high                                        # the estimate held, never lowered
     t0 = d.target
-    rec.body.fm = rec.body.fm + 2.0                                             # a gain: the true progress clamps at 0
+    rec.body.fm = rec.body.fm + 2.0                                             # a gain: the rate floors at 0
     rec.body.dayStartH = 144.0
     d = D.step(rec, 1.0, 144.0)
-    assert d.pS == high and d.target == t0
+    assert d.bRate == 0 and d.pS == high and d.target == t0
 
 
 def test_the_target_falls_smoothly_across_closes_and_health_keeps_to_the_cap(host, D):
-    # a starving body losing 0.3 kg a record day, stepped every minute for 5 days with a close each 24 h: the target
-    # never rises, health falls at most the cap a minute and never under the target
-    rec = starving(host, day=4, at=100.0)
-    health, prev_target, steps = 100.0, 100.0, []
+    # the calibration body (its onset estimate at CAL_BMI0) losing 0.3 kg a record day, stepped every minute for 5
+    # days with a close each 24 h: from the onset the target never rises and never drops more than the cap allows in a
+    # minute (1 % for the onset estimate's span against the calibration's), and health keeps to it
+    mass = (D.CAL_BMI0 + 4 * D.STARVE_DBMI) * H2
+    rec = starving(host, lm=52.02, fm=mass - 52.02, day=4, at=100.0)
+    health, prev_target = 100.0, 100.0
     for m in range(0, 5 * 1440):
         age = 100.0 + m / 60
         if age >= rec.body.dayStartH + 24:
@@ -456,14 +481,35 @@ def test_the_target_falls_smoothly_across_closes_and_health_keeps_to_the_cap(hos
             rec.body.dayStartH = rec.body.dayStartH + 24
         d = D.step(rec, 1.0, age)
         assert d.target <= prev_target + 1e-12
-        steps.append(prev_target - d.target)
+        assert prev_target - d.target <= 1.01 * d.rate / 1440, m
         prev_target = d.target
         take = D.take(d, health)
         assert take <= d.rate / 1440 + 1e-12
         health -= take
         assert health >= d.target - 1e-9
-    later = steps[2 * 1440:]                                                    # past the first close's correction
-    assert max(later) < 0.25 and prev_target < 60
+    assert prev_target < 60
+
+
+def test_the_s2d_fast_drops_the_target_no_faster_than_the_cap(host, D):
+    # ruling T2-1 on the replay host: the guide's fast with water (FRESH, the replay's water), 4 days: the largest
+    # one-minute target drop is at most the cap (1 %), and health stays within 0.01 of the target throughout
+    import os
+    import sys
+    tools = os.path.join(REPO, "tools")
+    if tools not in sys.path:
+        sys.path.insert(0, tools)
+    import mod_guide_series as G
+    rows, _ = G.server_run([G.FRESH] + G.autodrops(4), 4 * G.DAY_MIN, ("drain.target",))
+    prev = None
+    for r in rows:
+        t = r.get("drain.target")
+        if t is None:                                                          # a row before the record's first step
+            continue
+        if prev is not None:
+            assert prev - t <= 1.01 * 85.536 / 1440, r["age"]
+        assert r[G.HEALTH] - t < 0.01, r["age"]
+        prev = t
+    assert prev < 90
 
 
 def days_to_death(h, lm, fm):
@@ -515,19 +561,81 @@ def test_a_72_h_logout_mid_state_changes_nothing(host, D):
     assert back.drain.pAt == pytest.approx(twin.drain.pAt + 72.0, abs=1e-9)
     a = D.step(twin, 1.0, last + 1 / 60)
     b = D.step(back, 1.0, last + 72.0 + 1 / 60)
-    for k in ("pS", "pClose", "pRate", "stH", "target", "rate"):
+    for k in ("pS", "bClose", "bRate", "stH", "target", "rate"):
         assert b[k] == pytest.approx(a[k], abs=1e-12), k
 
 
-def test_a_missing_anchor_re_anchors_at_the_true_progress(host, D):
+FIELDS = ("pS", "bClose", "bRate", "stH", "dhH", "target", "rate", "state", "mask")
+
+
+@pytest.mark.parametrize("pace", [1, 2, 3])
+@pytest.mark.parametrize("leave_m", [1319, 1320, 1321])
+def test_a_72_h_logout_either_side_of_a_close_changes_nothing_for_48_hours(host, D, pace, leave_m):
+    # review F6: logouts either side of the 120 h close (from age 106, dayStartH 96), starvation, dehydration and
+    # beriberi active, the twin and the returned record stepped every minute for 48 h after with a close each 24 h
+    o = opt(host, pace, 2)
+
+    def new():
+        rec = record(host, unfed=40.0, dehyd=6.0, thiamine=(4, 100.0), day=4, at=106.0, lastAgeH=106.0)
+        rec.body.lastAgeH = 106.0
+        return rec
+
+    def minute(rec, age):
+        if age >= rec.body.dayStartH + 24:
+            rec.body.fm = rec.body.fm - 0.3
+            rec.body.dayStartH = rec.body.dayStartH + 24
+        d = D.step(rec, 1.0, age, False, o)
+        rec.nutrients.lastAgeH = age
+        rec.body.lastAgeH = age
+        return d
+
+    twin, back = new(), new()
+    for m in range(0, leave_m):
+        age = 106.0 + m / 60
+        minute(twin, age)
+        minute(back, age)
+    last = 106.0 + (leave_m - 1) / 60
+    host.K.resume.resume(back, last + 72.0)
+    for m in range(1, 48 * 60 + 1):
+        a = minute(twin, last + m / 60)
+        b = minute(back, last + 72.0 + m / 60)
+        for k in FIELDS:
+            assert b[k] == pytest.approx(a[k], abs=1e-9), (k, m)
+        assert b.pAt - 72.0 == pytest.approx(a.pAt, abs=1e-9), m
+    assert twin.drain.mask == 1 + 4 + 32
+
+
+def test_a_missing_anchor_re_anchors_at_the_record_day_start(host, D):
     rec = starving(host)
     D.step(rec, 1.0, 100.0)
+    D.step(rec, 60.0, 110.0)
+    bmi0, high = rec.drain.bmi0, rec.drain.pS
     rec.drain.pAt = float("nan")                                                # a corrupt file's anchor
     rec.body.fm = rec.body.fm - 1.0
     D.ensure(rec)
     assert rec.drain.pAt is None
-    d = D.step(rec, 1.0, 101.0)
-    assert d.pAt == 101.0 and d.pRate == D.STARVE_DPDT and d.pClose > 0 and d.pS == d.pClose
+    d = D.step(rec, 1.0, 111.0)
+    assert d.pAt == 96.0 and d.bRate == D.STARVE_DBMI and d.bClose == pytest.approx(61.02 / H2, abs=1e-12)
+    assert d.bmi0 == bmi0 and d.pS >= high                                      # mid-state: the onset BMI kept
+
+
+def test_an_unread_record_day_anchors_at_the_minute(host, D):
+    rec = starving(host)
+    rec.body.dayStartH = None                                                   # no record day yet (a heal's to lay)
+    d = D.step(rec, 1.0, 100.0)
+    assert d.pAt == 100.0 and d.bmi0 == pytest.approx(62.02 / H2, abs=TOL) and d.pS == 0
+
+
+def test_a_corrupt_onset_bmi_re_onsets_and_re_anchors(host, D):
+    rec = starving(host)
+    D.step(rec, 1.0, 100.0)
+    rec.body.fm = rec.body.fm - 1.0
+    rec.body.dayStartH = 120.0
+    D.step(rec, 1.0, 120.0)                       # a close: the anchor moved
+    rec.drain.bmi0 = float("nan")                 # a corrupt file's onset BMI
+    d = D.step(rec, 1.0, 121.0)
+    assert d.bmi0 == pytest.approx((52.02 + 9.0) / H2, abs=1e-9)   # re-onset at the BMI now
+    assert d.pAt == rec.body.dayStartH and d.bRate == D.STARVE_DBMI   # re-anchored, not carried
 
 
 def test_the_dehydration_hours_accumulate_and_reset(host, D):
@@ -554,7 +662,7 @@ def test_the_starvation_phases(host, D):
 # --- the step -----------------------------------------------------------------------------------------------------
 
 def test_a_fresh_drain_table_and_its_heal(host, D):
-    assert host.py(D.new()) == {"bmi0": 0, "naH": 0, "feH": 0, "stH": 0, "dhH": 0, "pClose": 0, "pRate": 0, "pS": 0,
+    assert host.py(D.new()) == {"bmi0": 0, "naH": 0, "feH": 0, "stH": 0, "dhH": 0, "bClose": 0, "bRate": 0, "pS": 0,
                                 "active": False, "state": 0, "mask": 0, "target": 100, "frac": {}, "rate": 0,
                                 "drainThisMinute": 0, "starvedH": 0, "acuteH": 0, "starving": False,
                                 "starveAcute": False, "dehydrated": False, "spell": False}
@@ -562,11 +670,11 @@ def test_a_fresh_drain_table_and_its_heal(host, D):
     d = D.ensure(rec)
     assert host.rt.eval("rawequal")(rec.drain, d) and d.bmi0 == 0
     d.bmi0, d.naH, d.feH = float("nan"), float("inf"), "x"
-    d.stH, d.dhH, d.pClose, d.pRate, d.pS = None, float("nan"), "x", float("-inf"), None
+    d.stH, d.dhH, d.bClose, d.bRate, d.pS = None, float("nan"), "x", float("-inf"), None
     d.acuteH, d.fedAgeH, d.pAt, d.frac = -1.0, float("nan"), float("inf"), 3
     D.ensure(rec)
     assert (d.bmi0, d.naH, d.feH, d.acuteH) == (0, 0, 0, 0)
-    assert (d.stH, d.dhH, d.pClose, d.pRate, d.pS) == (0, 0, 0, 0, 0)
+    assert (d.stH, d.dhH, d.bClose, d.bRate, d.pS) == (0, 0, 0, 0, 0)
     assert d.fedAgeH is None and d.pAt is None                               # a non-finite stamp heals to first sight
     assert host.py(d.frac) == {}
 
@@ -626,15 +734,16 @@ def test_the_starving_and_dehydrated_flags_follow_their_states_whichever_fractio
 def test_the_onset_bmi_is_stamped_once_and_cleared_when_starvation_ends(host, D):
     rec = record(host, unfed=48.0)
     d = D.step(rec, 1.0, 100.0)
-    assert d.bmi0 == pytest.approx(62.02 / H2, abs=TOL) and d.target == pytest.approx(100, abs=1e-9)
+    bmi0 = 62.02 / H2 - 4 * D.STARVE_DBMI                                     # T2-1: the estimate at the onset
+    assert d.bmi0 == pytest.approx(bmi0, abs=TOL) and d.target == pytest.approx(100, abs=1e-9)
     rec.body.fm = 5.0
     D.step(rec, 1.0, 100.0 + 1 / 60)
-    assert d.bmi0 == pytest.approx(62.02 / H2, abs=TOL)                       # held while the state lasts
+    assert d.bmi0 == pytest.approx(bmi0, abs=TOL)                             # held while the state lasts
     assert d.target < 100 and d.stH == pytest.approx(2 / 60, abs=1e-12)
     rec.satiety.M = 400.0                                                     # a meal ends it (a meal spell, H1)
     D.step(rec, 1.0, 100.0 + 2 / 60)
     assert d.active is False and d.bmi0 == 0
-    assert (d.stH, d.pClose, d.pRate, d.pS, d.pAt) == (0, 0, 0, 0, None)     # the starvation clocks released
+    assert (d.stH, d.bClose, d.bRate, d.pS, d.pAt) == (0, 0, 0, 0, None)     # the starvation clocks released
 
 
 def test_the_sodium_and_iron_hours_accumulate_and_reset(host, D):
@@ -656,13 +765,30 @@ def test_the_world_age_defaults_to_the_nutrients_clock(host, D):
     assert rec.drain.active is True
 
 
-def test_the_drain_scales_with_the_day_length_for_the_curve_states_only(host, D):
-    # the curve states open at vanilla's rate at the server's day length; the lines are per game day whatever it is
-    for dayMin, r in ((90, 17.82), (60, 11.88)):
-        d = D.step(record(host, dehyd=8.0), 1.0, 100.0, False, opt(host, 3, 2, dayMin))
-        assert d.rate == pytest.approx(r * 24, abs=1e-9)
-        d = D.step(record(host, thiamine=(4, 1.0)), 1.0, 100.0, False, opt(host, 3, 2, dayMin))
-        assert d.rate == pytest.approx(2400 / 840, abs=1e-9)
+def test_the_drain_scales_with_the_day_length_for_the_time_clock_curves_only(host, D):
+    # ruling T2-2: Realistic's severity curves are fixed in game time, their cap vanilla's rate at the calibration's
+    # 90-minute day; Vanilla and Shortened follow the server's day length; the lines are per game day whatever it is
+    d = D.step(record(host, dehyd=8.0), 1.0, 100.0, False, opt(host, 3, 2, 60))
+    assert d.rate == pytest.approx(17.82 * 24, abs=1e-9)
+    for pace in (1, 2):
+        d = D.step(record(host, dehyd=8.0), 1.0, 100.0, False, opt(host, pace, 2, 60))
+        assert d.rate == pytest.approx(11.88 * 24, abs=1e-9)
+    d = D.step(record(host, thiamine=(4, 1.0)), 1.0, 100.0, False, opt(host, 3, 2, 60))
+    assert d.rate == pytest.approx(2400 / 840, abs=1e-9)
+
+
+def test_realistic_dehydration_at_a_60_minute_day_keeps_health_on_the_target(host, D):
+    # ruling T2-2: from the onset, the deficit rising at the calibration's rate, health within 1e-6 of the target for
+    # the first 2 h
+    with open(CALIBRATION, encoding="utf-8") as fh:
+        dpdt = json.load(fh)["dehyd_dpdt_per_h"]
+    rec = record(host, dehyd=4.0)
+    health = 100.0
+    for m in range(0, 120):
+        rec.fluids.dehydPct = 4.0 + 11.0 * dpdt * m / 60
+        d = D.step(rec, 1.0, 100.0 + m / 60, False, opt(host, 3, 2, 60))
+        health -= D.take(d, health)
+        assert abs(health - d.target) < 1e-6, m
 
 
 # --- fix 1: the chronic-BMI onset (M3) ---------------------------------------------------------------------------
@@ -674,15 +800,16 @@ def test_a_bmi_under_13_is_starvation_whatever_the_days_intake(host, D):
     fed = lambda bmi: record(host, inDay=6.0 * bmi * H2, lm=lm, fm=bmi * H2 - lm)
     d = D.step(fed(12.9), 1.0, 100.0)
     assert d.active is True and d.state == 1 and d.starvedH == 0
-    assert d.bmi0 == pytest.approx(12.9, abs=1e-9) and d.target == pytest.approx(100, abs=1e-9)
+    assert d.bmi0 == pytest.approx(12.9 - 4 * D.STARVE_DBMI, abs=1e-9) and d.target == pytest.approx(100, abs=1e-9)
     assert D.step(fed(13.1), 1.0, 100.0).active is False
     rec = fed(12.9)
     D.step(rec, 1.0, 100.0)
-    rec.body.fm = 12.45 * H2 - lm                                             # half way to BMI 12, at a close
+    rec.body.fm = 12.45 * H2 - lm                                             # toward BMI 12, at a close
     rec.body.dayStartH = 120.0
     d = D.step(rec, 1.0, 120.0)
-    assert d.pS == pytest.approx(0.5, abs=1e-9)
-    assert d.target == pytest.approx(100 * curve(0.5, 1.0, D.A_STARVE), abs=1e-9)
+    p = (d.bmi0 - 12.45) / (d.bmi0 - 12)
+    assert d.pS == pytest.approx(p, abs=1e-9)
+    assert d.target == pytest.approx(100 * curve(p, 1.0, D.A_STARVE), abs=1e-9)
 
 
 @pytest.mark.parametrize("body", sorted(FAST_DEATHS))
@@ -913,7 +1040,7 @@ def test_the_clocks_survive_a_restart(host, D):
     rec = record(host, unfed=40.0)
     D.step(rec, 1.0, 100.0)
     saved = host.py(host.K.store.inputsOnly(rec))["drain"]                     # what a save keeps
-    assert set(saved) == {"bmi0", "naH", "feH", "fedAgeH", "acuteH", "spell", "stH", "dhH", "pClose", "pRate", "pAt",
+    assert set(saved) == {"bmi0", "naH", "feH", "fedAgeH", "acuteH", "spell", "stH", "dhH", "bClose", "bRate", "pAt",
                           "pS"}                                                # Plan 17 Task 2: the state hours and the BMI clock
     assert saved["fedAgeH"] == 60.0
     rec.body.inDay2, rec.body.inDay3 = 1.0, 2.0

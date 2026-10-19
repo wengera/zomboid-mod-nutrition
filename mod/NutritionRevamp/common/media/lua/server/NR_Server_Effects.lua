@@ -2,7 +2,7 @@
 -- 19, 22-23; T1-1, T1-3, T4-1, T6-1, T6-2): once per player per game minute it builds record.effects, the
 -- coefficient set the writer and the mirror read, and applies the slow channels itself -- the trait
 -- toggles (Night Vision, Short Sighted), the four regeneration setters and the food heal, the per-part wound,
--- bleeding and infection folds, the catchACold fold, the health drain to its floor (K.drain) and the spontaneous bruise.
+-- bleeding and infection folds, the catchACold fold, the health drain toward its target (K.drain) and the spontaneous bruise.
 --
 -- Order (made explicit by the pipeline, Plan 10 R2): the effects step runs right after the
 -- nutrients step in NR_Server_Minute's ORDER, on the body, dtM and ageH Nutrients stamps on the context at
@@ -12,13 +12,13 @@
 -- K.acute.sleepMinute (a one-minute lag, stated).
 --
 -- Per minute, under one pcall per player: ensure and heal record.effects; the day close (the protein-energy
--- grade and the closed day's energy availability); the drain states (K.drain.step: the active states, the floor, the
+-- grade and the closed day's energy availability); the drain states (K.drain.step: the active states, the target, the
 -- rate and the starvation phase the flags read); the twelve-band vector and the flags; the rebuild only
 -- when the key moved (K.effects.changed: the nutrient epoch, the closed day, the dial snapshot or a band);
 -- the per-minute scalars (fOff, mAcc, rRec, solAddH, solMul, intoxTarget, tempTarget); the night-vision
 -- machine and the four trait rules; the regeneration setters and the food heal on a rebuild, a drain state's start
 -- or stop and at first sight (none of the five is saved, #3020, #3897); the per-part folds and the cold fold; the
--- bruise roll; the drain's ReduceGeneralHealth, never past the floor (Plan 15 Task 4; jar-checks Check 2).
+-- bruise roll; the drain's ReduceGeneralHealth, never past the target (Plan 15 Task 4; jar-checks Check 2).
 --
 -- Every Java read goes through NR.call (index-first) with a default; every Java global is named only inside
 -- a function behind a nil check, so the file loads with no engine (testing/tests/kernel/test_effects_shape.py).
@@ -46,9 +46,9 @@ NR.server.effects = {
         "a trait change is pushed to its owner only: other clients' copies of a player's traits stay stale until relog (#2603)",
         "tempTarget is applied uncalibrated: the equilibrium of the held target against the regulator is unmeasured (X81); at rest the core already sits about 0.45 °C under the set point (x161b), so a −0.2 target does not act at rest",
         "the regeneration constants are not saved (#3020), nor is the food heal (#3897): re-asserted at every rebuild, at every drain state's start or stop and at first sight",
-        "the drain reads overall health once a minute while a drain state is active and takes at most health - floor; a body damage with no overall-health read takes nothing",
-        "between two minutes vanilla's own terms (a wound, and the SICK, BLEEDING and heavy-load terms the writer re-applies while the level-4 constant is 0) can move health off the floor; the next minute's drain resumes from where they left it",
-        "under an active floor, health heals toward it at vanilla's regeneration pace (its tier from the HUNGRY, THIRST and SICK levels and sleep, the server's day length) through AddGeneralHealth, spread as with every part damaged (5.05 / 17, #3898): with few parts damaged the step can land a little off the floor, and the next minute's drain or heal corrects it",
+        "the drain reads overall health once a minute while a drain state is active and takes at most health - target; a body damage with no overall-health read takes nothing",
+        "between two minutes vanilla's own terms (a wound, and the SICK, BLEEDING and heavy-load terms the writer re-applies while the level-4 constant is 0) can move health off the target; the next minute's drain resumes from where they left it",
+        "under an active target, health heals toward it at vanilla's regeneration pace (its tier from the HUNGRY, THIRST and SICK levels and sleep, the server's day length) through AddGeneralHealth, spread as with every part damaged (5.05 / 17, #3898): with few parts damaged the step can land a little off the target, and the next minute's drain or heal corrects it",
         "a natively held Night Vision or Short Sighted (held when the mod would add it) is never removed; Evolving Traits World's Cat Eyes composes (it grants, never removes)",
         "whether the regeneration tier scales awake regeneration is unmeasured (X80 open); healMul reaches the four setters with that stated",
         "the per-part folds rescale the engine's own change since the last minute: a wound timer or bleeding time the engine has run to 0 is passed through, so a wound's last fraction heals unscaled",
@@ -65,7 +65,7 @@ NR.server.effects = {
 local EFF = NR.server.effects
 
 -- The four regeneration constants' engine defaults (the BodyDamage constructor, #2354), scaled by healMul or
--- written 0 while a drain state is active (S1174 open), draining or holding at its floor, so health holds there with
+-- written 0 while a drain state is active (S1174 open), draining or holding at its target, so health holds there with
 -- no sawtooth (jar-checks Check 2).
 EFF.REGEN_STANDARD = 0.002 -- VANILLA #2354
 EFF.REGEN_REDUCED = 0.0013 -- VANILLA #2354
@@ -319,11 +319,11 @@ local function regen(bd, m, foodHeal)
     EFF.stats.regenWrites = EFF.stats.regenWrites + 1
 end
 
--- The heal toward the floor (fix 1, ruling L2): vanilla's regeneration addition for the HUNGRY, THIRST and SICK levels
+-- The heal toward the target (fix 1, ruling L2): vanilla's regeneration addition for the HUNGRY, THIRST and SICK levels
 -- and sleep (K.drain.regenAddition, #2721, #0515), scaled by healMul, times the multiplier units of a game minute at the
--- server's day length (#2922), through AddGeneralHealth, capped so overall health reaches the floor and no more
+-- server's day length (#2922), through AddGeneralHealth, capped so overall health reaches the target and no more
 -- (K.drain.heal, #3898). Read only on a minute that heals.
-local function healToFloor(player, bd, D, E, health, asleep, dtM, ctx)
+local function healToTarget(player, bd, D, E, health, asleep, dtM, ctx)
     local MT = MoodleType
     local moodles = obj(player, "getMoodles")
     local hl, tl, sl = 0, 0, 0
@@ -494,7 +494,7 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     end
     if finite(body.exKcalDay) then E.exSeen = body.exKcalDay end
 
-    -- the drain states (K.drain): the floor and rate this minute, and the starvation phase the flags read
+    -- the drain states (K.drain): the target and rate this minute, and the starvation phase the flags read
     local D = record.drain
     local wasState = type(D) == "table" and D.active and D.state or 0
     D = K.drain.step(record, dtM, ageH, EFF.overlay())
@@ -604,7 +604,7 @@ local function step(username, player, record, body, dtM, ageH, ctx)
                 NR.call(bd, "ReduceGeneralHealth", take)
                 EFF.stats.drainMinutes = EFF.stats.drainMinutes + 1
             elseif health ~= nil and health < D.target - K.drain.HEAL_EPS then
-                healToFloor(player, bd, D, E, health, asleep, dtM, ctx)
+                healToTarget(player, bd, D, E, health, asleep, dtM, ctx)
             end
         end
     end

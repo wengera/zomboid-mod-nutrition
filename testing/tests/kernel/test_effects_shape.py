@@ -858,7 +858,8 @@ def test_starvation_starts_at_30_unfed_hours_and_sets_the_phase_flags(eff_host):
     rec["satiety"]["M"] = 0.0
     minute(h, p, rec, ageH=102.0 + 1 / 60)
     assert D["active"] is True and D["state"] == 1 and D["target"] == 100      # Plan 17 Task 2: the curve opens at 1
-    assert abs(D["bmi0"] - 80 / 1.7 ** 2) < 1e-9                   # lm + fm over K.HEIGHT_M squared
+    est = 80 / 1.7 ** 2 - h.K.drain.STARVE_DBMI * (102.0 + 1 / 60 - rec["body"]["dayStartH"])
+    assert abs(D["bmi0"] - est) < 1e-9                             # Plan 17 T2-1: the BMI estimate at the onset
     assert E["key"]["dials"] == 10000000000 + 1000 + 100 + 11       # phase 1, weakness: mNut 1.25
     assert E["mNut"] == pytest.approx(1.25, abs=TOL)
     rec["satiety"]["M"] = 0.0

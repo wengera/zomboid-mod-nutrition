@@ -10,7 +10,7 @@ local K = NR.kernel
 -- the HUNGER and THIRST views are capped under level 4 outside the starvation and dehydration states (K.hybrid.caps) whatever the dial; excessEffectsOn off
 -- forces every excess rung to 0 at the output; balanceBonus is Plan 3's 1.05 while allReplete (spec
 -- ruling 16, a game choice). Read at every slow tick like the three above, never at file scope. No option gates the
--- health drains: every lethal state drains to its floor and kills at its death point (Plan 15 Task 4, spec section 1.3).
+-- health drains: every lethal state drains toward its target and kills at its death point (Plan 15 Task 4, spec section 1.3).
 -- The Plan 4 kill dial is removed (the mod is unreleased, so no save reads it).
 -- The Plan 5 dial: severity, a double 0-3 (default 1), scales every penalty row of the effects table
 -- after the fold (NR_Server_Effects); the double branch clamps it.
