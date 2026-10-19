@@ -22341,3 +22341,9 @@ x466-20261019-024712,predictions,the driver's PRED table,Written before the run;
 x466-20261019-024712,constants_x46,x46_lib's constants,The driver's settings; not a reading.,
 x466-20261019-024712,prerun_x46,x46_prerun.json's session block,The HEAD replay's predictions written before the run; not a live reading.,`verdicts.<name>.observed`
 x466-20261019-024712,steps,the bus steps,"Plumbing: every bus call and its reply, wall stamps included; a reading only through the checks and verdicts that name it.","`checks`, `verdicts`"
+x467-20261019-025016,session,the driver's text,Written before the run; not a reading.,
+x467-20261019-025016,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x467-20261019-025016,constants_x46,x46_lib's constants,The driver's settings; not a reading.,
+x467-20261019-025016,prerun_x46,x46_prerun.json's session block,The HEAD replay's predictions written before the run; not a live reading.,`verdicts.<name>.observed`
+x467-20261019-025016,steps,the bus steps,"Plumbing: every bus call and its reply, wall stamps included; a reading only through the checks and verdicts that name it.","`checks`, `verdicts`"
+x467-20261019-025016,verdicts.REPLAY_THIRST.verdict,falsified,"Two rows, s 286 and s 1425, at THIRST 0 live: the auto-drink's signature, not the cold multiplier.",`verdicts.REPLAY_THIRST.observed`
