@@ -231,6 +231,7 @@ What the two copies hold differs by more than a mod's own keys, and a census is 
 The server's copy of a player's modData is empty at join and gains the four vanilla fitness and strength keys 22 to 33 s after session ready, so early in a session the pair is 0 keys on the server against 5 on the client [#1432/M/n=1].
 Those four keys are written lazily — a key count of 0 at 3.073 s after session ready and 4 at 42.102 s — so a server key count is only a reading beside its wall offset [#1338/M/n=2].
 The census is per scope for the same reason: the exclusion set that makes an item-scope census legible is not the one that makes a player-scope census legible, and neither transfers.
+A string in a modData table survives a save only up to 32767 encoded bytes: `KahluaTableImpl.save` writes a string value through `GameWindow.WriteString`, whose `StringUTF.save` puts the encoded length as a signed 16-bit count before the bytes, and `StringUTF.load` reads a count of 0 or less as the empty string, so a longer string does not come back whole. [T10.15/C/C-only]
 
 The hazard the store carries is not about the mod that owns the key.
 One corpus mod holds 9 `getModData()` sites and no `transmitModData` call at all, and its whole nested table still crossed to the server the first time something else on that client transmitted, the server's census becoming exactly the client's, hotbar included [#1088/M/n=1].
