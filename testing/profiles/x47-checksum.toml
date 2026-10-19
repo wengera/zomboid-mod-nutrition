@@ -1,0 +1,38 @@
+# testing/profiles/x47-checksum.toml - Plan 16 Task 12, boot B (run x472): the Lua arm of the join checksum on the exact
+# bytes Angus uploads. The server and admin boot the STAGED upload copy (release/NutritionRevamp/Contents/mods/
+# NutritionRevamp, staged from HEAD; release/ is gitignored; mod/ is never booted, CLAUDE.md s5); bob alone gets
+# release/x472-bob (gitignored), a copy the driver makes before the boot whose common/media/lua/shared/NR_Core.lua
+# differs by ONE byte inside its first comment line ('its version' -> 'its versiom'), through [client_overrides.bob].
+# Fixture two: admin -debug (role admin, which bypasses the checksum gate, #3139), bob release (role user). A kicked or
+# never-ready bob is the reading: the driver watches bob itself and does not fail on a disconnect (the raising-probe
+# precedent); [client] timeout bounds admin's ready wait only. Nutrition false (ruling T18-1), DayLength 1, sleep off,
+# no [sandbox.NR] block. The driver is testing/experiments/x472_checksum.py on x47_lib.py.
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp upload copy on the server and admin; bob gets release/x472-bob (one Lua byte differing) - Plan 16 Task 12 boot B (x472)."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[client_overrides.bob]
+NutritionRevamp = "release/x472-bob/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes

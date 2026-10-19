@@ -1,0 +1,38 @@
+# testing/profiles/x47-options.toml - Plan 16 Task 12, boot A (run x471): an NR sandbox option set in the server's
+# options file reads back on the server, admin and bob, on the exact bytes Angus uploads; the boot doubles as the clean
+# release join. PZTestKit + the STAGED upload copy (release/NutritionRevamp/Contents/mods/NutritionRevamp, staged from
+# HEAD with `python tools/release_pack.py stage mod/NutritionRevamp --out release`; release/ is gitignored; mod/ is never
+# booted, CLAUDE.md s5) on fixture `two`: admin (-debug, role admin) then bob (release, role user). Nutrition false
+# (ruling T18-1), DayLength 1, sleep off. [sandbox.NR] VisibilityMode = 3 (the declared default 2), merged into the
+# server's Server/pzt_SandboxVars.lua at seed. The driver is testing/experiments/x471_options.py on x47_lib.py; it starts
+# and watches bob itself, so a never-ready bob is a reading. The verify rows are load gates only.
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp upload copy on fixture two, admin (debug) and bob (release), Nutrition off, DayLength 1, sleep off, NR.VisibilityMode 3 - Plan 16 Task 12 boot A (x471)."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes
+
+[sandbox.NR]
+VisibilityMode = 3            # Numbers; the declared default is 2 (Bands)
