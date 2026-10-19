@@ -1,0 +1,177 @@
+[
+ {
+  "age": 7.852435111999512,
+  "autoDrop": 0.19772558192443102,
+  "g": 395.45116384886205,
+  "kind": "autodrop",
+  "label": "autodrop",
+  "s": 266
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.031746031746031744,
+  "s": 274
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.031746031746031744,
+  "s": 275
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.031746031746031744,
+  "s": 276
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.03968253968253968,
+  "s": 277
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.023809523809523808,
+  "s": 278
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.031746031746031744,
+  "s": 279
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.03968253968253968,
+  "s": 280
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.023809523809523808,
+  "s": 281
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.03968253968253968,
+  "s": 282
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.03968253968253968,
+  "s": 283
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.031746031746031744,
+  "s": 284
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.031746031746031744,
+  "s": 285
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.03968253968253968,
+  "s": 286
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.031746031746031744,
+  "s": 287
+ },
+ {
+  "fluid": "Water",
+  "kind": "drink",
+  "label": "WA_water",
+  "litres": 0.031746031746031744,
+  "s": 288
+ },
+ {
+  "fluid": "CowMilk",
+  "kind": "drink",
+  "label": "MI_milk",
+  "litres": 0.03225806451612903,
+  "s": 350
+ },
+ {
+  "fluid": "CowMilk",
+  "kind": "drink",
+  "label": "MI_milk",
+  "litres": 0.04838709677419355,
+  "s": 351
+ },
+ {
+  "fluid": "CowMilk",
+  "kind": "drink",
+  "label": "MI_milk",
+  "litres": 0.08064516129032258,
+  "s": 352
+ },
+ {
+  "fluid": "CowMilk",
+  "kind": "drink",
+  "label": "MI_milk",
+  "litres": 0.06451612903225806,
+  "s": 353
+ },
+ {
+  "fluid": "CowMilk",
+  "kind": "drink",
+  "label": "MI_milk",
+  "litres": 0.08064516129032258,
+  "s": 354
+ },
+ {
+  "fluid": "CowMilk",
+  "kind": "drink",
+  "label": "MI_milk",
+  "litres": 0.06451612903225806,
+  "s": 355
+ },
+ {
+  "fluid": "CowMilk",
+  "kind": "drink",
+  "label": "MI_milk",
+  "litres": 0.04838709677419355,
+  "s": 356
+ },
+ {
+  "fluid": "CowMilk",
+  "kind": "drink",
+  "label": "MI_milk",
+  "litres": 0.08064516129032258,
+  "s": 357
+ },
+ {
+  "food": "TKX.MilkSolid",
+  "kind": "eat",
+  "label": "SO_solid",
+  "s": 830
+ }
+]
