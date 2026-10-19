@@ -169,3 +169,17 @@ def test_a_record_past_the_world_moves_back_onto_the_clock(host):
     assert r.monotony.t["Base.Bread"].n == 2.0 and r.firstSeen == 3.0 and r.body.trail.at == 100.0
     r2 = full_record(host)
     assert R(host).resume(r2, 99.0) == -1.0 and R(host).latest(r2) == 99.0   # the step stamps the latest
+
+
+def test_a_forward_resume_lays_no_stamp_past_the_touch(host):
+    # Plan 16 close review L1: a stamp laid after the last step (an eat in a stall's carry, or after the last minute
+    # before a logout) reads as laid at the return, never past it; a stamp before the last step moves by the gap; a
+    # backward move (a hard-kill rollback) is never clamped
+    r = host.table({"lastSeen": 10.0, "kineticsAge": 10.0, "satiety": {"t": 10.0}, "nutrients": {"lastAgeH": 10.0},
+                    "body": {"lastAgeH": 10.0},
+                    "monotony": {"t": {"Base.Steak": {"n": 1.0, "last": 12.0}, "Base.Bread": {"n": 1.0, "last": 9.0}}}})
+    assert R(host).resume(r, 82.0) == 72.0
+    assert r.monotony.t["Base.Steak"].last == 82.0 and r.monotony.t["Base.Bread"].last == 81.0
+    assert R(host).latest(r) == 82.0
+    assert R(host).moved(12.0, 72.0, 10.0, 82.0) == 82.0 and R(host).moved(12.0, 72.0, None, None) == 84.0
+    assert R(host).moved(12.0, -2.0, 12.0, 10.0) == 10.0 and R(host).moved(11.0, -2.0, 12.0, 10.0) == 9.0

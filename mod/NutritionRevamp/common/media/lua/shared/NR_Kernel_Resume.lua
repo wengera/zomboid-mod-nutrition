@@ -7,7 +7,8 @@
 -- (K.resume.fromH) to the world age of the touch, so no step integrates the offline time and no world-age clock the
 -- mod reads (a sleep window, a fed or vigorous latch, the 90-day mass window, a monotony entry, the nicotine anchor,
 -- the unfed clock, the record day) counts it. The first step back then integrates only the online time since the
--- touch. A stamp laid after the last step (an eat after the last minute before a logout) moves with the rest.
+-- touch. A stamp laid after the last step (an eat after the last minute before a logout, or during a stall's carry)
+-- lands at the touch, never past it (K.resume.moved; Plan 16 close review L1).
 -- The fields that hold a world age but are not moved (K.resume.KEPT) say why.
 --
 -- The stall: a step longer than K.resume.STEP_M game minutes on the same player object (a slow server, the
@@ -98,7 +99,10 @@ function K.resume.later(best, v)
 end
 
 -- Move one stamp: v + gapH, or exactly toH when v is fromH (so the step stamps land on the touch's age with no
--- rounding, and the first step back integrates exactly 0). A value that is not finite is left for its owner's heal.
+-- rounding, and the first step back integrates exactly 0). A forward move never lays a stamp past toH: a stamp laid
+-- after the last step (an eat after the last minute before a logout, or during a stall's carry that a departure cut
+-- short) reads as laid at the return, so no heal reads it as in the future and no restart reads it as a hard kill
+-- (Plan 16 close review L1). A value that is not finite is left for its owner's heal.
 function K.resume.moved(v, gapH, fromH, toH)
     if not K.finite(v) then
         return v
@@ -106,34 +110,50 @@ function K.resume.moved(v, gapH, fromH, toH)
     if fromH ~= nil and v == fromH then
         return toH
     end
+    if toH ~= nil and gapH > 0 and v + gapH > toH then
+        return toH
+    end
     return v + gapH
 end
 
--- Walk segs from index i under table t and move every stamp the path names.
-function K.resume.walk(t, segs, i, gapH, fromH, toH)
+-- Visit every leaf the path segs names under table t from index i, folding acc through fn: acc = fn(tbl, key, acc,
+-- a, b, c) with the leaf's own table and key (a `*` segment visits every key of the table at that level). A path whose
+-- table is absent visits nothing. Returns acc. The one dotted-path visitor of K.resume.shift and K.resume.latest.
+function K.resume.visit(t, segs, i, fn, acc, a, b, c)
     if type(t) ~= "table" then
-        return
+        return acc
     end
     local seg = segs[i]
     if i == #segs then
-        t[seg] = K.resume.moved(t[seg], gapH, fromH, toH)
-        return
+        return fn(t, seg, acc, a, b, c)
     end
     if seg == "*" then
         for _, v in pairs(t) do
-            K.resume.walk(v, segs, i + 1, gapH, fromH, toH)
+            acc = K.resume.visit(v, segs, i + 1, fn, acc, a, b, c)
         end
-        return
+        return acc
     end
-    K.resume.walk(t[seg], segs, i + 1, gapH, fromH, toH)
+    return K.resume.visit(t[seg], segs, i + 1, fn, acc, a, b, c)
 end
 
--- Move every stamp of K.resume.STAMPS in record by gapH game hours (a stamp equal to fromH lands on toH exactly,
--- when both are given). A path whose table is absent, and a stamp that is not finite, are left. Returns the record.
+-- K.resume.visit's leaf for the shift: move t[k] (K.resume.moved). Returns acc unchanged.
+function K.resume.moveAt(t, k, acc, gapH, fromH, toH)
+    t[k] = K.resume.moved(t[k], gapH, fromH, toH)
+    return acc
+end
+
+-- K.resume.visit's leaf for the latest: the later of best and t[k] (K.resume.later).
+function K.resume.peakAt(t, k, best)
+    return K.resume.later(best, t[k])
+end
+
+-- Move every stamp of K.resume.STAMPS in record by gapH game hours (a stamp equal to fromH lands on toH exactly, and a
+-- forward move stops at toH, when both are given). A path whose table is absent, and a stamp that is not finite, are
+-- left. Returns the record.
 function K.resume.shift(record, gapH, fromH, toH)
     local segs = K.resume.SEGS
     for i = 1, #segs do
-        K.resume.walk(record, segs[i], 1, gapH, fromH, toH)
+        K.resume.visit(record, segs[i], 1, K.resume.moveAt, nil, gapH, fromH, toH)
     end
     return record
 end
@@ -181,30 +201,12 @@ end
 -- The record's latest world-age stamp over every path of K.resume.STAMPS, or nil when none is finite. The store reads
 -- a record whose latest stamp is past the world clock as written after the world's last save (a hard-kill rollback,
 -- NR_Server_Store's load rule, Plan 16 Task 3) and restores the backup, whose copy may itself be past it (fix 1).
+-- K.resume.later's rule: a stamp that is not finite is ignored, and a path whose table is absent adds nothing.
 function K.resume.latest(record)
     local best = nil
     local segs = K.resume.SEGS
     for i = 1, #segs do
-        best = K.resume.peak(record, segs[i], 1, best)
+        best = K.resume.visit(record, segs[i], 1, K.resume.peakAt, best)
     end
     return best
-end
-
--- The later of best and every stamp the path segs names under table t from index i (K.resume.later's rule: a stamp
--- that is not finite is ignored, and a path whose table is absent adds nothing).
-function K.resume.peak(t, segs, i, best)
-    if type(t) ~= "table" then
-        return best
-    end
-    local seg = segs[i]
-    if i == #segs then
-        return K.resume.later(best, t[seg])
-    end
-    if seg == "*" then
-        for _, v in pairs(t) do
-            best = K.resume.peak(v, segs, i + 1, best)
-        end
-        return best
-    end
-    return K.resume.peak(t[seg], segs, i + 1, best)
 end

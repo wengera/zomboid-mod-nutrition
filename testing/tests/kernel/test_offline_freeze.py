@@ -536,3 +536,41 @@ def test_a_recovery_that_fails_stamps_the_fresh_record_at_the_world_age():
     h.T.age = dep + 72.0
     S.recover(NAME, rec, raw)
     assert S.stats.failures == 1 and rec.firstSeen == dep and rec.lastSeen == dep + 72.0
+
+
+def test_a_departure_mid_carry_with_an_eat_lays_no_stamp_past_the_return():
+    # Plan 16 close review L1: a 6 h stall runs SLOT_SUBSTEPS sub-steps and carries 2 h; a Steak eaten in the carry
+    # stamps its monotony entry at the world age, past lastSeen, and the player leaves before the carry ends. The
+    # resume moves no stamp past the touch (K.resume.moved), so the first minute back keeps the entry (no heal reads
+    # it as in the future) and a restart would not read the record as written after the world's save (a hard kill)
+    h = host()
+    p = new_player(h)
+    h.online(p)
+    for m in range(1, 31):
+        minute(h, START + m / 60.0, m)
+    r = h.record(NAME)
+    age = START + 30 / 60.0 + 6.0
+    minute(h, age, 31)                          # the stall: 4 sub-steps run, 2 h carried
+    assert h.NR.server.players.stalls == 1 and age - r.lastSeen == pytest.approx(2.0, abs=1e-9)
+    h.T.age = age + 0.5 / 60.0
+    h.T.eat(10, NAME)                           # the eat in the carry, stamped at the world age
+    assert r.monotony.t["Base.Steak"].last > r.lastSeen + 1.9
+    h.online()
+    minute(h, age + 1 / 60.0, 32)               # the minute that sees the departure, the carry unfinished
+    ret = age + 72.0
+    q = new_player(h)
+    h.online(q)
+    h.T.age = ret
+    h.minute()
+    h.tick(25)
+    r = h.record(NAME)
+    assert h.NR.server.store.stats.resumes == 1
+    assert h.K.resume.latest(r) <= ret          # no stamp past the touch
+    assert r.monotony.t["Base.Steak"].last == ret   # the eat reads as laid at the return
+    guarded0 = h.NR.server.writer.stats.guarded
+    for k in range(1, 4):
+        minute(h, ret + k / 60.0, 40 + k)
+    st = h.record(NAME).monotony.t["Base.Steak"]
+    assert st is not None and st.n > 0          # the entry survives the first writer minutes (no heal wiped it)
+    assert h.NR.server.writer.stats.guarded == guarded0
+    assert h.K.resume.latest(h.record(NAME)) <= ret + 3 / 60.0

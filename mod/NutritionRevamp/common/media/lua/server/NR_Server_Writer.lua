@@ -100,7 +100,7 @@ function W.hoist(username, p)
     if stats == nil or CharacterStat == nil then return nil end
     local h = { p = p, stats = stats, moodles = NR.obj(p, "getMoodles"), bd = NR.obj(p, "getBodyDamage"),
                 traits = NR.obj(p, "getCharacterTraits"), ageH = nil, lastThirst = nil, lastEnd = nil,
-                monoSeen = false, swipe = nil, fresh = true, username = username }  -- fresh: no step yet, W.satietyDtH reads the stamp
+                monoSeen = false, swipe = nil, username = username }
     h.thermo = NR.obj(h.bd, "getThermoregulator")
     if SwipeStatePlayer ~= nil and SwipeStatePlayer.instance ~= nil then
         local ok, sw = pcall(SwipeStatePlayer.instance)    -- the melee swing state: vigorous work for the acute term
@@ -164,24 +164,14 @@ function W.vigorous(h, player, record, ctx)
     return false, nil
 end
 
--- The satiety step's length in game hours, S's step (M's clearance is Kinetics'). A minute on the same
--- player object reads the writer's own inp.dtS. The first minute of a new object (a reconnect or a respawn, #3360) or
--- of a restart, whose hoist holds no age (h.fresh), reads the step from the stamp record.satiety.t the writer leaves at
--- every step (game hours; stored, K.store.INPUTS), which the resume moved past any absence (Plan 16 Task 2), so S
--- steps only the online time since the return. Both clamp at maxStepS (60 min, the pipeline's sub-step bound). A
--- non-finite stamp reads none and is counted in guarded; a record with no stamp (a fresh record) steps 0 on its first
--- minute. Stamps t = ageH.
+-- The satiety step's length in game hours, S's step (M's clearance is Kinetics'): inp.dtS, which W.step reads off
+-- the stored stamp record.satiety.t (the resume moved it past any absence, Plan 16 Task 2), clamped at maxStepS; a
+-- non-finite stamp is dropped and counted in guarded. Stamps t = ageH.
 function W.satietyDtH(h, s, inp, ageH)
     local dtS = inp.dtS
     if s.t ~= nil and not NR.finite(s.t) then
         s.t = nil
         W.stats.guarded = W.stats.guarded + 1
-    end
-    if h.fresh == true then
-        h.fresh = nil
-        if s.t ~= nil then
-            dtS = (ageH - s.t) * 3600
-        end
     end
     s.t = ageH
     return K.clamp(dtS, 0, W.c.maxStepS) / 3600
@@ -397,8 +387,8 @@ function W.monotony(h, record, inp, E, ageH)
 end
 
 -- A remembered floor target off the record (record.moodLast, laid by W.moodWrote): absent, not a table or not a finite
--- number reads 0. It sits on the record, not the hoisted handles, so a reconnect (a new player object, a new hoist)
--- still lowers the stats by the fall the target made while the player was away.
+-- number reads 0. It sits on the record, not the hoisted handles, so a reconnect's new hoist reads the floor target
+-- last written, which the freeze keeps as the player left it.
 function W.moodTarget(record, k)
     local ml = record.moodLast
     if type(ml) ~= "table" then

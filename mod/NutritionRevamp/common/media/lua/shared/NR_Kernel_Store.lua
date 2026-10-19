@@ -114,7 +114,7 @@ K.store.INPUTS = {
     -- reconciliation (NR_Server_Reconcile): the landing count. The baseline is re-seeded from
     -- the vanilla stores at first sight, since the player save and the global table are written apart (#2098):
     -- dropped.
-    "reconcile.count", "monotony", "moodLast", -- monotony (NR_Server_Intake IN.atEat, K.monotony; Plan 11e, ruling 11e-1): the recent eats by full type, { t = { [type] = { n, last } } }, copied whole and laid by the first eat; its entries are healed by K.monotony.heal at the eat; moodLast { u, b }: the UNHAPPINESS and BOREDOM floors' remembered targets (NR_Server_Writer W.moodWrote, Plan 11f Task 9b fix 2), on the record so a reconnect's new hoist still lowers the stat by the fall made while away
+    "reconcile.count", "monotony", "moodLast", -- monotony (NR_Server_Intake IN.atEat, K.monotony; Plan 11e, ruling 11e-1): the recent eats by full type, { t = { [type] = { n, last } } }, copied whole and laid by the first eat; its entries are healed by K.monotony.heal at the eat; moodLast { u, b }: the UNHAPPINESS and BOREDOM floors' remembered targets (NR_Server_Writer W.moodWrote, Plan 11f Task 9b fix 2), on the record so a reconnect's new hoist reads the floor target last written, which the freeze keeps as the player left it
 }
 
 -- Split a dotted path into its segments (a fresh array of strings).
