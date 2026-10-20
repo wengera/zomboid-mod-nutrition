@@ -10,6 +10,8 @@ Every decision below is his, made in that brainstorm.
 
 ## 1. The health model
 
+> Section 9 (revision R1, 2026-10-20) replaced the curve with straight lines; the text below is the design as first written, kept as the record.
+
 ### 1.1 One remaining fraction per state
 
 Each lethal state of `NR_Kernel_Drain.lua` keeps a **remaining fraction** `f`: 1 at its onset, 0 at its death point.
@@ -46,9 +48,9 @@ The body model moves BMI only at a record-day close, once every 24 online hours.
   - before the state has seen a close, `b` is the calibration body's opening rate in BMI, `starve_dpdt_per_h × (starve.bmi0 − 12)` from Task 1's artifact (0.004544 BMI a game hour), fixed so that a heavier body opens no faster in kg, and the anchor is the open record day's start.
 - The onset BMI is the estimate at the onset, `bmi0 = bmi_est(onset)`, so the progress opens at 0.
 - The progress is `p_s = (bmi0 − bmi_est) / (bmi0 − 12)`, clamped to [0, 1], and never falls within a state, so the target never rises from a close's correction while the state holds.
-- The estimate is continuous at the onset and at each close while the daily loss holds. A close moves it by the day-on-day change of the loss only: about 0.06 health a minute, the opening slope, on the guide's fast, where the onset-anchored progress of ruling T1-4 stepped the target 7.34 at the first close. A body that loses much faster than the calibration body still steps at its first close (the ruling's cost).
+- The estimate is continuous at the onset and at each close while the daily loss holds. A close moves it by the day-on-day change of the loss only. On the straight-line build (section 9) the minute's rate carries the clock's observed move (ruling R1-3), so that change lands in one minute: on the guide's fast the largest one-minute fall is 0.0041 health, at day 47.00, where the onset-anchored progress of ruling T1-4 stepped the target 7.34 at the first close. A body that loses much faster than the calibration body still steps at its first close (the ruling's cost): the guide's Gaunt body takes 0.82 at once at its first close, at 48 h.
 - Every input is an online clock (`body.dayStartH` and the anchor are resume stamps) or a record field. The smoothing therefore freezes offline like everything else (Plan 16).
-- The death comes at `p_s = 1`, which is BMI 12 as estimated within the day, and the § 1.4 cap ramps any correction.
+- The death comes at `p_s = 1`, which is BMI 12 as estimated within the day; on the straight-line build a correction lands in the minute it is seen (ruling R1-3).
 
 ### 1.3 Combining: `NR.HealthCombine`
 
@@ -85,6 +87,8 @@ The hunger level-4 term is 3.3e-4 health per multiplier unit and the thirst term
 The day length comes from `NR.read.dayMin(ctx, K.drain.DAY_MINUTES)`, which already exists.
 
 ### 2.2 `NR.DeathPace` (enum: Vanilla, Shortened, Realistic; default Realistic)
+
+> Section 9 (revision R1, 2026-10-20) replaced the Shortened and Realistic curves with straight lines and retired the final stage; the text below is the design as first written, kept as the record.
 
 | Pace | Starvation T | Dehydration T |
 |---|---|---|
@@ -230,7 +234,33 @@ The principle, in his words: keep vanilla and the mod "somewhat equitable in tot
   - dehydration's 0.1 knee and final stage.
 
   The calibration tool and its artifact stay as the record. `STARVE_DPDT` (its `starve_dpdt_per_h`) stays, because the smoothed BMI clock uses it before a state's first close.
-- **The cap:** health may fall at least as fast as the target's current slope. A linear state's rate is its line's slope on its clock, converted to health per game day through the clock's current rate. Starvation's clock rate is the smoothed BMI rate; dehydration's is the observed deficit rise. The cap still sums the active states' rates.
+- **The cap:** health may fall at least as fast as the target's current slope. A linear state's rate is its line's slope on its clock, converted to health per game day through the clock's current rate. Starvation's clock rate is the smoothed BMI rate; dehydration's is the observed deficit rise. The cap still sums the active states' rates. A Realistic clock's rate is the larger of its own rate and the move the minute observed (ruling R1-3), and starvation's and dehydration's rates are never under vanilla's level-4 rate at the server's day length (ruling R1-5), so a gap above a line closes as a ramp.
 - **Under 10 health:** about the last tenth of each line wakes a sleeper every tick. Measured on the guide's replays (Task 5b): the last 7.72 days of Realistic starvation alone (the vitamins held, death at day 89.70), the last 14.52 days of the default fast (from day 62.70 to its beriberi death at day 77.23), and the last 1.3 % of deficit in dehydration (0.45 days of the fast without water). It is a stated limitation, accepted by Angus.
+- **`SLEEP_FLOOR` (10) stays as a documented mark:** the health at or under which vanilla wakes a sleeper (#3900), the last tenth of each line; no final stage reads it any more, and only the guide generator and the tests read it.
 - **The options are unchanged:** `NR.DeathPace` (Vanilla, Shortened, Realistic) and `NR.HealthCombine` (Worst only, Multiply, Add).
 - **Later, a separate plan with a science pass first:** hunger pain, starvation disturbing sleep, and starvation fatigue. These are Angus's "misery" effects.
+
+## 10. Revision R2 (Angus, 2026-10-20): the ceiling recovers with the body
+
+Each cause's target is a **ceiling**. Health below it heals up to it at vanilla's own regeneration, whenever the game lets the character heal (as now, `K.drain.heal`).
+
+The close review found two defects. A cause that pauses resets its ceiling to full:
+- a snack releases starvation's onset BMI, and the line reopens at 100 thirty hours later;
+- at Vanilla and Shortened pace, a one-minute exit restarts the hour clock at 0.
+
+Occasional snacks or sips could therefore hold a character at a fixed health indefinitely. Angus's ruling: the ceiling rises only as the body actually recovers.
+
+**The rules:**
+- **Starvation at Realistic pace.** The reference BMI (`bmi0`) is kept when the acute state ends. The starvation fraction `1 − p_s` keeps applying while `p_s > 0` after the state's onset conditions lapse.
+  - `p_s` falls as the body regains weight: the smoothed BMI clock runs both ways.
+  - The reference is released only when `p_s` reaches 0.
+  - The effect phases and the HUNGER and THIRST caps still follow the state's own active flag. Only the health ceiling persists.
+- **Every hour clock** counts back down 1:1 in online game minutes while its cause is absent, and never below 0. A state's ceiling persists while its clock is above 0. This covers:
+  - starvation's and dehydration's clocks at Vanilla and Shortened pace (`stH`, `dhH`);
+  - the deficiencies' hours at clinical, as the drain's own recovery clock beside the nutrient model's `ah`;
+  - the sodium and iron rungs (`naH`, `feH`).
+- **Dehydration at Realistic pace** follows the body-water deficit both ways, as now. Drinking lowers the deficit, and the ceiling rises with it.
+- **Combine** folds the recovering fractions with the active ones. The mask and the panel distinguish a recovering cause from an active one.
+- **Offline:** nothing counts while the player is away (Plan 16). The recovery clocks are online-only.
+
+**Accepted cost:** climbing back to full after a long fast takes about as long as the decline did.
