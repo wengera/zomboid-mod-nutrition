@@ -136,7 +136,7 @@ def test_the_built_series_and_the_pending_and_dropped_ids_cover_the_map():
     assert not (built & set(S.PENDING_LIVE)) and not (built & set(S.DROPPED))
     assert not (set(S.PENDING_LIVE) & set(S.DROPPED))
     # Plan 16 Task 11: x461b draws SE1's live liquid (its fill DROPPED on the window), x467 SH3's live returns
-    assert len(built) == 156 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 11      # Plan 17 Task 5: S2d's eight
+    assert len(built) == 155 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 12      # Plan 17 Task 2b: x481's live line DROPPED
     assert DATA["charts"] == S.CHARTS
     assert D.coverage_gaps(built, DATA["charts"], S.PENDING_LIVE) == ([], [])
 
@@ -339,10 +339,13 @@ def test_plan17_the_vanilla_pace_line_dies_with_vanilla_s_model():
 
 def test_plan17_the_live_health_lines_are_admitted():
     adm = {v["key"]: v for v in ADM}
-    for key, sid in (("x481:health", "S2d-m-live-health"), ("x482:health", "S2d-m-live-pace")):
-        rec = adm[key]
-        assert rec["admitted"] and rec["draws"] == [sid] and rec["max_miss"]["health"] < 0.002, key
-        assert SER[sid]["badge"] == "live"
+    rec = adm["x482:health"]
+    assert rec["admitted"] and rec["draws"] == ["S2d-m-live-pace"] and rec["max_miss"]["health"] < 0.002
+    assert SER["S2d-m-live-pace"]["badge"] == "live"
+    # revision R1 (Task 2b): x481 read the starvation curve the straight line retired, so its live line is DROPPED
+    rec = adm["x481:health"]
+    assert not rec["admitted"] and rec["max_miss"]["health"] > 0.002
+    assert "S2d-m-live-health" in S.DROPPED and "S2d-m-live-health" not in SER
     assert "S2d-m-drain" in adm["x481:health"]["proves"] and "S2d-m-pace-vanilla" in adm["x482:health"]["proves"]
     assert SER["S2d-m-drain"]["provenance"]["proof_run"] == S.RUN["x481"]
     assert SER["S2d-m-pace-vanilla"]["provenance"]["proof_run"] == S.RUN["x482"]
@@ -1426,27 +1429,6 @@ def placed(ring, onset_h, last_s):
     a0 = ring[k0 - 1]["age"]
     return [[(ring[i - 1]["age"] - a0 + onset_h) / 24.0, ring[i]["health"]] for i in range(k0, len(ring))
             if ring[i]["s"] <= last_s]
-
-
-@check("S2d-m-live-health")
-def _(kh, sid):
-    # x481: from the onset to the thiamine write (B_p), placed at the S2d fast's own onset
-    ring = ring_rows_of("x481")
-    write = next(e["s"] for e in art("x481", "events.json") if e["label"] == "B_p")
-    want = placed(ring, VIAB["j_s2d"]["drain"][0], write)
-    got = SER[sid]["points"]
-    assert len(got) == len(want) > 30
-    for (x, y), (wx, wy) in zip(got, want):
-        assert x == pytest.approx(wx, abs=1e-12) and y == wy
-    # it opens on the kernel's own line: each hourly S2d-m-drain point inside the live hour lies within 0.1 health of
-    # the live health interpolated there (the live body's onset BMI a little over the guide body's)
-    inside = [p for p in SER["S2d-m-drain"]["points"] if got[0][0] < p[0] < got[-1][0]]
-    assert inside
-    for x, y in inside:
-        i = next(j for j in range(1, len(got)) if got[j][0] >= x)
-        (x0, y0), (x1, y1) = got[i - 1], got[i]
-        assert y0 + (y1 - y0) * (x - x0) / (x1 - x0) == pytest.approx(y, abs=0.1), x
-    return [x for x, _ in got]
 
 
 @check("S2d-m-live-pace")
