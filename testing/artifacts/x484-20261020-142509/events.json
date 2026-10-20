@@ -1,0 +1,23 @@
+[
+ {
+  "kind": "setpath",
+  "label": "A_M",
+  "path": "satiety.M",
+  "s": 16,
+  "value": 0
+ },
+ {
+  "kind": "setpath",
+  "label": "A_fed",
+  "path": "drain.fedAgeH",
+  "s": 18,
+  "value": -27.233111
+ },
+ {
+  "kind": "setpath",
+  "label": "B_p",
+  "path": "nutrients.thiamine.p",
+  "s": 148,
+  "value": 0.3
+ }
+]

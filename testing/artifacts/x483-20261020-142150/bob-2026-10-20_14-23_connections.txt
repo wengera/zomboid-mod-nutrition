@@ -1,0 +1,14 @@
+[20-10-26 14:23:33.136] event="RakNet" message="connection-request-accepted" guid=653024809224055192.
+[20-10-26 14:23:33.137] event="send-packet" message="login" guid=653024809224055192.
+[20-10-26 14:23:33.201] event="receive-packet" message="connection-details" guid=653024809224055192.
+[20-10-26 14:23:33.202] event="connect-state" message="start" guid=653024809224055192.
+[20-10-26 14:23:33.204] event="connect-state-start" message="testtcp" guid=653024809224055192.
+[20-10-26 14:23:33.218] event="connect-state-testtcp" message="checkmods" guid=653024809224055192.
+[20-10-26 14:23:33.234] event="connect-state-checkmods" message="finish" guid=653024809224055192.
+[20-10-26 14:23:49.038] event="connect-state-finish" message="lua-connected" guid=653024809224055192.
+[20-10-26 14:23:49.091] event="connect-state-finish" message="exit" guid=653024809224055192.
+[20-10-26 14:23:49.393] event="send-packet" message="login-queue-request" guid=653024809224055192.
+[20-10-26 14:24:07.780] event="send-packet" message="login-queue-done" guid=653024809224055192.
+[20-10-26 14:24:08.981] event="send-packet" message="player-connect" guid=653024809224055192.
+[20-10-26 14:24:45.260] event="force-disconnect" message="exit" guid=653024809224055192.
+[20-10-26 14:24:45.276] event="RakNet" message="disconnection-notification" guid="653024809224055192".
