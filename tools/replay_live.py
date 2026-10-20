@@ -102,7 +102,10 @@ or reads the start record with no eat since the last drain.
                                      [--day-length N [--speed X]] [--out OUT.json]
 
 The start record is a slot file's JSON ({gen, rec, done}), the record itself, or an H1 `lua.read` reply
-({values: {path: value}}). Output: {rows, diff, eats, offset, mode, injected, spread}; the diff grades HUNGER within
+({values: {path: value}}). Every server row carries `health`, the stand-in's overall health (its start 100, or the player
+config's `health`, less what the mod's drain took through ReduceGeneralHealth plus what AddGeneralHealth gave back; with
+`game_heal` the add rises by the game's spread, 5.05 / 17 of the argument with every part below 100, #3898, as the
+mod's heal assumes; without it, in full). Output: {rows, diff, eats, offset, mode, injected, spread}; the diff grades HUNGER within
 0.002, es (body.energyState) within 0.005 and satiety.L within 0.5 % (the plan's pre-registered tolerances) and skips every
 row an event landed before (vanilla's own eat moves HUNGER between writes), every suspect row and every offline row.
 A tolerance field compared on no row is a finding. Exits 1 when the diff has a finding.
@@ -809,13 +812,16 @@ class ServerReplay(_Backend):
     ({"table.NAME": value}) sets kernel constants after the host loads (set_constants), as the recording build had them.
     `death_pace` and `health_combine` are the server's NR.DeathPace and NR.HealthCombine and `day_minutes` its day length
     in real minutes (getDayLengthMinutes), by default 3, 2 and 90: the sandbox stand-in answers them, so the mod's own
-    options poll and minute hoist write K.drain.OPT from them at every minute, as on a live server."""
+    options poll and minute hoist write K.drain.OPT from them at every minute, as on a live server. Every row carries
+    the stand-in's overall health (`health`); `game_heal` gives the stand-in's AddGeneralHealth the game's spread
+    (Plan 17 Task 4, as tools/mod_guide_series.py's guide replay does)."""
 
     def __init__(self, start=None, user="admin", player=None, steps=None, hold_hour=None, hour_offset=0.0,
                  rng=None, stats=None, sleep_allowed=None, constants=None, sex_specific=False,
-                 death_pace=DEATH_PACE, health_combine=HEALTH_COMBINE, day_minutes=DAY_MINUTES):
+                 death_pace=DEATH_PACE, health_combine=HEALTH_COMBINE, day_minutes=DAY_MINUTES, game_heal=False):
         super().__init__()
         self.injected = []
+        self.game_heal = bool(game_heal)
         lua51, server_host, golden_trace = _lua()
         self.lua51 = lua51
         self.h = server_host.Host(extra_env=golden_trace.ENV + REPLAY_ENV)
@@ -866,7 +872,8 @@ class ServerReplay(_Backend):
         self.drain_options = (int(death_pace), int(health_combine), float(day_minutes))
 
     def add_user(self, user, start=None, player=None, stats=None):
-        """A stand-in player for `user`, online alone, with `start` placed in the store's records."""
+        """A stand-in player for `user`, online alone, with `start` placed in the store's records. The player config's
+        `health` (absent: 100) is the stand-in's overall health at the start."""
         cfg = {"rate": None, "inv": 0.0, "maxW": 8.0, "traits": [], "female": False, "weight": 80.0,
                "macros": (1000.0, 100.0, 40.0, 60.0)}
         cfg.update(player or {})
@@ -880,10 +887,16 @@ class ServerReplay(_Backend):
         lcfg.maxW = cfg["maxW"]
         lcfg.traits = self.rt.table(*cfg["traits"])
         lcfg.female = bool(cfg["female"])
+        if cfg.get("health") is not None:
+            lcfg.health = float(cfg["health"])
         sv = {"HUNGER": 0.2, "THIRST": 0.1, "FATIGUE": 0.1}
         sv.update(stats or {})
         lcfg.hunger, lcfg.thirst, lcfg.fatigue = sv["HUNGER"], sv["THIRST"], sv["FATIGUE"]
         p = self.G.NR_T.decorate(p, lcfg)
+        if self.game_heal:                               # the game's spread: overall health rises 5.05 / 17 of the add
+            self.rt.eval("function(bd) bd.AddGeneralHealth = function(s, v) "
+                         "s.st.added = s.st.added + v / NutritionRevamp.kernel.drain.PART_SPREAD end end")(
+                p.getBodyDamage(p))
         # an idle player's engine MET: the engine's Default class, 1.5 (a live idle player reads 1.50, #2875), which
         # the mod's classOf reads as Default and bills at COMPENDIUM.Default (standing quietly); never the Compendium
         # value 1.3 itself, which classOf reads as DrivingCar and bills at 1.4 (finding F-1)
@@ -1132,6 +1145,8 @@ class ServerReplay(_Backend):
             v = self.p.sv[n]
             if v is not None:
                 out[n] = v
+        bd = self.p.getBodyDamage(self.p)
+        out["health"] = float(bd.getOverallBodyHealth(bd))
         r = self.record()
         sat = r["satiety"] if r is not None else None
         if sat is not None and isinstance(sat["hModel"], (int, float)):
@@ -1702,7 +1717,7 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
                 hour_offset=None, hold_hour=None, ring_paths=(), start_read_age=None, start_stats=None,
                 sleep_allowed=None, detect_autodrink=False, ring_activity=None, constants=None, ring_cold=None,
                 day_length=None, speed=1.0, death_pace=DEATH_PACE, health_combine=HEALTH_COMBINE,
-                day_minutes=DAY_MINUTES):
+                day_minutes=DAY_MINUTES, game_heal=False):
     """Mode live: the ring's clock and the live event log from the start record on. Ring rows at or before the start
     record's own age (its last drain) are dropped, and events at or before its READ age are dropped, because the
     record holds them (kept on backend.dropped). The read age is `start_read_age`, else a top-level `readAge` the
@@ -1737,7 +1752,9 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
     `constants` ({"table.NAME": value}, e.g. DEFICIT_11F) replays at the recording build's kernel constants.
 
     `death_pace`, `health_combine` and `day_minutes` (ServerReplay's: the server's NR.DeathPace, NR.HealthCombine and
-    day length in real minutes, by default 3, 2 and 90) are the drain options the live server ran under."""
+    day length in real minutes, by default 3, 2 and 90) are the drain options the live server ran under; `game_heal`
+    (ServerReplay's) gives the stand-in's AddGeneralHealth the game's spread, so a replay that heals reads the game's
+    health (a ring's `health` field, harness Plan 17 Task 4, is compared with the row's `health`)."""
     rows = [r for r in ring_rows if r.get("age") is not None]
     if isinstance(start, dict) and "sleepAllowed" in start:
         start = dict(start)
@@ -1758,7 +1775,7 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
             start_read_age = carried
     sr = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour, hour_offset=off,
                       stats=start_stats, sleep_allowed=sleep_allowed, constants=constants, death_pace=death_pace,
-                      health_combine=health_combine, day_minutes=day_minutes)
+                      health_combine=health_combine, day_minutes=day_minutes, game_heal=game_heal)
     sr.injected = injected
     if ring_activity is None:
         ring_activity = ring_carries_activity(rows)
@@ -1824,10 +1841,10 @@ def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, star
                backend="server", user="admin", player=None, steps=None, hour_offset=0.0, hold_hour=None, rng=None,
                M0=0.0, energy=True, satiety=True, hold_es=False, stats=None, sleep_allowed=None, sex_specific=False,
                constants=None, day_length=None, speed=1.0, death_pace=DEATH_PACE, health_combine=HEALTH_COMBINE,
-               day_minutes=DAY_MINUTES):
+               day_minutes=DAY_MINUTES, game_heal=False):
     """Mode arm: a substituted event list on the ring's clock (ring_rows) or a synthetic one (ages, or minutes from
     start_age at dtM). `constants` (the server backend's, set_constants; e.g. WORLD_CLOCK) and the drain options
-    (`death_pace`, `health_combine`, `day_minutes`) as ServerReplay takes them.
+    (`death_pace`, `health_combine`, `day_minutes`) and `game_heal` as ServerReplay takes them.
     `day_length` and `speed` spread each whole drink sip by sip (spread_drinks, named on backend.spread), as
     replay_live's do. Returns (rows, backend)."""
     synthetic = False
@@ -1844,7 +1861,7 @@ def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, star
         be = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour,
                           hour_offset=hour_offset, rng=rng, stats=stats, sleep_allowed=sleep_allowed, sex_specific=sex_specific,
                           constants=constants, death_pace=death_pace, health_combine=health_combine,
-                          day_minutes=day_minutes)
+                          day_minutes=day_minutes, game_heal=game_heal)
         sa = be.start_age()
         if sa is None:
             sa = start_age
