@@ -2347,7 +2347,8 @@ def s_s2a():
                "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. "
                "The day without food opens the starvation state %.2f h after the last meal, when the meal pool has "
                "been empty for %g hours (K.drain.STARVE_ONSET_H, #3962): HUNGER lifts to Starving and health drains "
-               "toward the target until the next meal ends the state, %.2f health in all. "
+               "toward the target until the next meal ends the state, %.2f health in all; its ceiling then rises back as "
+               "the record-day closes book the weight regained. "
                % (v["drain"][0] - last_h, float(KHost().K.drain.STARVE_ONSET_H), 100.0 - v["min_health"])
                + PLATE_NOTE.replace("08:00 to 22:00", "09:00 to 23:00") + " " + proof_note("S2a-m-kernel")),
     ]
@@ -2380,7 +2381,8 @@ def s_s2b():
                "Sleep on, 23:00-07:00 (the oracle's protocol); the oracle's 70 kg man, the body its bands were fitted "
                "on; its meals plates of real foods with water (rule R-1). The proof run's fast (x271, x272) fails the "
                "admission test at HEAD (VALIDATION). The fast arm's skipped day opens the starvation state briefly "
-               "before its next meal (%.2f health, #3962)." % (100.0 - v["min_health"])),
+               "before its next meal (%.2f health, #3962), and its ceiling rises back as the weight returns."
+               % (100.0 - v["min_health"])),
         series("S2b-study-1613", "Johnstone 2002", "day after the fast", "intake / the fed arm's", "study",
                [["day 2", 12.2 / 10.2]], study("S1613"), "12.2 against 10.2 MJ on the day after a 36 h fast."),
         series("S2b-study-1614", "Clayton 2016", "day after the fast", "intake / the fed arm's", "study",
@@ -2786,6 +2788,16 @@ def s3b_live(sid, field, label, unit):
                   % (ring_file("x443b"), field, field, min(vals), max(vals)))
 
 
+def s3c_left_clinical(k, kc):
+    """The age the vitamin C grade first steps down from Clinical (kc) after reaching it (revision R2: the scurvy
+    ceiling recovers from there)."""
+    steps = k["vitC_g_steps"]
+    for (_, g0), (a, g) in zip(steps, steps[1:]):
+        if g0 == kc and g < kc:
+            return a
+    raise AssertionError("S3c: the vitamin C grade never left Clinical")
+
+
 def s_s3c():
     k = result("j_s3c")
     v = viable("S3c", "j_s3c", drain=True)
@@ -2797,11 +2809,11 @@ def s_s3c():
                        "orange": eat(0, "Base.Orange"), "water": [AUTODROP_G, list(AUTODROP_MIN)],
                        "path": "nutrients.vitC.p", "sleep_allowed": False}, "x151r"),
                "Vitamin C turns Clinical (grade %d) on day %.2f, which opens the scurvy drain; the orange from day 45 "
-               "lifts it, and the drain's last minute is on day %.2f, so scurvy's fraction never falls toward S3a's "
-               "death. "
+               "lifts it out of Clinical on day %.2f, and its ceiling, rising back as its clock counts down, holds "
+               "to day %.2f, about as long again, so scurvy's fraction never falls toward S3a's death. "
                "The thiamine grade stays at %d at worst. %s"
-               % (kc, v["drain"][0] / 24.0, k["drain_last"] / 24.0, v["thiamine_g_max"],
-                  death_note(v, k["half_age"]))),
+               % (kc, v["drain"][0] / 24.0, s3c_left_clinical(k, kc) / 24.0, k["drain_last"] / 24.0,
+                  v["thiamine_g_max"], death_note(v, k["half_age"]))),
         series("S3c-study", "Ververs 2019", DAYS, "vitamin C store (0-1)", "study",
                [[45.0, VITC_CLINICAL], [52.0, VITC_CLINICAL]], study("S0229"),
                "Symptoms improved within one week of treatment: drawn as the week from the first orange (day 45 to "

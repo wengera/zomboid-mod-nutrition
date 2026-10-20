@@ -631,6 +631,13 @@ class Scenarios(_Base):
         r"(?i)as fast as vanilla's(?: drain)?,? (?:at first|then)", r"(?i)first falls exactly as fast",
         r"(?i)then slows?\b", r"(?i)more slowly as (?:your body|you dry)", r"(?i)final stage",
         r"(?i)x481 at Realistic", r"(?i)fifteen per cent deficit", r"(?i)opened on (?:the curve|its own line)",
+        # Plan 17 Task 5c (revision R2): each target is a ceiling that rises only as the body recovers, so ending a
+        # state stops its damage but returns no health at once, and Vanilla pace is vanilla's own line only while a
+        # state runs unbroken (the close review's I3)
+        r"Vanilla is vanilla's own line", r"plays starving and thirst like the unmodded game", r"While any drain runs",
+        r"which ends the scurvy damage, and its", r"the damage stops once its store climbs out of Clinical\.",
+        r"(?i)drain's last minute", r"(?i)returns? to full", r"(?i)back to full health",
+        r"(?i)resets? (?:it|its ceiling|the ceiling|its line|the line) to full",
     ]
 
     def test_task_11_stale_sentences_stay_gone(self):
@@ -731,6 +738,29 @@ class Scenarios(_Base):
                      "every line spends its last tenth there", "the same game days at any day length",
                      "lands in one game minute"):
             self.assertIn(frag, lim, frag)
+
+    def test_plan17_r2_the_ceiling_recovers_with_the_body(self):
+        """Plan 17 Task 5c (revision R2): the options, the limitations and the science name the recovering ceiling, and
+        the S3c note's recovery runs about as long as Clinical did (its clock counts back down 1:1)."""
+        opts = self.html[self.html.index('id="options"'):self.html.index('id="compatibility"')]
+        for frag in ("rises back only as your body recovers", "picks its line up where it left off",
+                     "plays unbroken starving and thirst like the unmodded game"):
+            self.assertIn(frag, opts, frag)
+        lim = self.html[self.html.index('id="limitations"'):self.html.index('id="references"')]
+        for frag in ("takes about as long as the decline did", "until the day's weight update books your true weight",
+                     "the panel says Recovering from it", "No live game has shown a cap recovering yet"):
+            self.assertIn(frag, lim, frag)
+        for frag in ("The target is a ceiling", "The ceiling rises only as the body recovers",
+                     "resumes its line where its clock stands", "recovering from starvation"):
+            self.assertIn(frag, self.html, frag)
+        note = self.series["S3c-m-pool"]["note"]
+        m = re.search(r"Clinical \(grade 4\) on day ([0-9.]+).*out of Clinical on day ([0-9.]+).*holds to day ([0-9.]+)",
+                      note)
+        self.assertIsNotNone(m, note)
+        on, off, end = (float(x) for x in m.groups())
+        self.assertLess(on, off)
+        self.assertLess(off, end)
+        self.assertAlmostEqual(end - off, off - on, delta=0.05)
 
     def test_plan17_the_end_mark_skips_a_line_ending_off_the_view(self):
         """Plan 17 Task 5 fix 1 (F1): a zoom facet draws no end mark for a line that ends past its x range."""

@@ -13446,7 +13446,7 @@
    "chart": "S2a",
    "id": "S2a-m-kernel",
    "label": "Nutrition Revamp, simulated by the mod's code",
-   "note": "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. The day without food opens the starvation state 34.47 h after the last meal, when the meal pool has been empty for 30 hours (K.drain.STARVE_ONSET_H, #3962): HUNGER lifts to Starving and health drains toward the target until the next meal ends the state, 0.07 health in all. Meals are plates of the guide's foods and an orange (CannedBologneseOpen, Bread, Apple, Orange, Burger, TunaTinOpen), every vector from the mod's table; water 500 g every 2 game hours from 09:00 to 23:00. ",
+   "note": "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. The day without food opens the starvation state 34.47 h after the last meal, when the meal pool has been empty for 30 hours (K.drain.STARVE_ONSET_H, #3962): HUNGER lifts to Starving and health drains toward the target until the next meal ends the state, 0.07 health in all; its ceiling then rises back as the record-day closes book the weight regained. Meals are plates of the guide's foods and an orange (CannedBologneseOpen, Bread, Apple, Orange, Burger, TunaTinOpen), every vector from the mod's table; water 500 g every 2 game hours from 09:00 to 23:00. ",
    "points": [
     [
      -12.0,
@@ -17260,7 +17260,7 @@
    "chart": "S2b",
    "id": "S2b-m-kernel",
    "label": "Nutrition Revamp, simulated by the mod's code",
-   "note": "Sleep on, 23:00-07:00 (the oracle's protocol); the oracle's 70 kg man, the body its bands were fitted on; its meals plates of real foods with water (rule R-1). The proof run's fast (x271, x272) fails the admission test at HEAD (VALIDATION). The fast arm's skipped day opens the starvation state briefly before its next meal (0.05 health, #3962).",
+   "note": "Sleep on, 23:00-07:00 (the oracle's protocol); the oracle's 70 kg man, the body its bands were fitted on; its meals plates of real foods with water (rule R-1). The proof run's fast (x271, x272) fails the admission test at HEAD (VALIDATION). The fast arm's skipped day opens the starvation state briefly before its next meal (0.05 health, #3962), and its ceiling rises back as the weight returns.",
    "points": [
     [
      "day 2",
@@ -32051,7 +32051,7 @@
    "chart": "S3c",
    "id": "S3c-m-pool",
    "label": "Vitamin C store",
-   "note": "Vitamin C turns Clinical (grade 4) on day 40.00, which opens the scurvy drain; the orange from day 45 lifts it, and the drain's last minute is on day 52.35, so scurvy's fraction never falls toward S3a's death. The thiamine grade stays at 2 at worst. Its drain opens with scurvy on day 40.00; health holds at or above its target and the replay stays alive over the window (rule R-1).",
+   "note": "Vitamin C turns Clinical (grade 4) on day 40.00, which opens the scurvy drain; the orange from day 45 lifts it out of Clinical on day 46.17, and its ceiling, rising back as its clock counts down, holds to day 52.35, about as long again, so scurvy's fraction never falls toward S3a's death. The thiamine grade stays at 2 at worst. Its drain opens with scurvy on day 40.00; health holds at or above its target and the replay stays alive over the window (rule R-1).",
    "points": [
     [
      40.0,
