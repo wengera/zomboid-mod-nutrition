@@ -121,8 +121,8 @@
        a day count off it directly. */
     "S2d": {
       facets: [
-        { label: "Health", series: ["S2d-m-drain", "S2d-v-model-health", "S2d-v-live-health", "S2d-m-live-health"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xTitle: "game days, no food, with water" },
-        { label: "First week", series: ["S2d-m-drain", "S2d-v-model-health", "S2d-v-live-health", "S2d-m-live-health"], unit: "health", zoom: true, yMin: 0, yMax: 100, xMin: 0, xMax: 7,
+        { label: "Health", series: ["S2d-m-drain", "S2d-v-model-health", "S2d-v-live-health"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xTitle: "game days, no food, with water" },
+        { label: "First week", series: ["S2d-m-drain", "S2d-v-model-health", "S2d-v-live-health"], unit: "health", zoom: true, yMin: 0, yMax: 100, xMin: 0, xMax: 7,
           xTitle: "game days (the first week)" },
         { label: "Pace", series: ["S2d-m-pace-vanilla", "S2d-m-pace-short", "S2d-m-pace-real", "S2d-m-live-pace"], unit: "health", yMin: 0, yMax: 100, xMin: 0,
           xTitle: "game days, with water and vitamins, starving alone" },

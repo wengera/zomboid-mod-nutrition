@@ -173,8 +173,9 @@ def test_the_effects_step_reads_this_minutes_body_dtm_and_age_after_a_30_minute_
     assert e.bodyIsRecord is True
     assert abs(e.dtM - 1.0) < 1e-9
     assert e.ageH == start + 34 / 60.0 and e.ageH == e.age
-    assert e.state == 6 and e.drain > 0                 # the dehydration state, its floor 0 past the death point
-    assert e.reduced == e.drain                         # the whole of rate x dtM: health is far above the floor
+    assert e.state == 6 and e.drain > 0                 # the dehydration state, its target 0 past the death point
+    assert e.reduced == min(e.drain, 100.0)             # revision R1: the deficit's rise (a forced 99 %) sets the
+                                                        # rate, so the minute may take all of health down to the target 0
     assert abs(e.drain - e.rate * 1 / 1440) < 1e-12 * e.rate
 
 

@@ -644,7 +644,7 @@ class Scenarios(_Base):
         ("S4b-m-level", "x@y>=10|r1", None),
         ("S4a-m-deficit", "last.x|r0", "301"),  # Plan 16 Task 11: the deficit year's starvation death (BMI 12)
         ("SH3-m-live", "y@x=breakfast|r1", "3.9"),  # Plan 16 Task 11: x467, breakfast wears off first (#3990)
-        ("S2d-m-drain", "x@y<=10|r0", "46"),    # Plan 17 Task 5 fix 1 (F4): the default fast under a tenth from day 46
+        ("S2d-m-drain", "x@y<=10|r0", "63"),    # Plan 17 Task 2b (revision R1, the line): under a tenth from day 63 (was 46)
     ]
 
     def test_pinned_fills(self):
