@@ -1,0 +1,40 @@
+# testing/profiles/x48-options.toml - Plan 17 Task 7 (run x483): the two Plan 17 sandbox options set in the server's
+# options file read back on the server, admin and bob, on the exact bytes Angus uploads; the boot doubles as the clean
+# 1.0.0 join (x471's design). PZTestKit + the STAGED upload copy (release/NutritionRevamp/Contents/mods/NutritionRevamp,
+# re-staged from mod/'s last commit with `python tools/release_pack.py stage mod/NutritionRevamp --out release`;
+# release/ is gitignored; mod/ is never booted, CLAUDE.md s5) on fixture `two`: admin (-debug, role admin) then bob
+# (release, role user). Nutrition false (ruling T18-1), DayLength 1, sleep off. [sandbox.NR] DeathPace = 2 (Shortened;
+# the declared default 3) and HealthCombine = 3 (Add; the declared default 2), merged into the server's
+# Server/pzt_SandboxVars.lua at seed. The driver is testing/experiments/x483_options.py on x48b_lib.py; it starts and
+# watches bob itself, so a never-ready bob is a reading. The verify rows are load gates only.
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp upload copy on fixture two, admin (debug) and bob (release), Nutrition off, DayLength 1, sleep off, NR.DeathPace 2 and NR.HealthCombine 3 - Plan 17 Task 7 (x483)."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes
+
+[sandbox.NR]
+DeathPace = 2                 # Shortened; the declared default is 3 (Realistic)
+HealthCombine = 3             # Add; the declared default is 2 (Multiply)

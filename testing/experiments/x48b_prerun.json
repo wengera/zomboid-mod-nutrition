@@ -1,0 +1,76 @@
+{
+ "_provenance": {
+  "first_sight": {
+   "age": 2.39,
+   "player": {
+    "health": 100.0,
+    "macros": [
+     796.040771484375,
+     -0.865961492061615,
+     -0.2795819044113159,
+     -0.21277907490730286
+    ]
+   },
+   "stats": {
+    "FATIGUE": 1.6587773643550463e-05,
+    "HUNGER": 0.0022823589388281107,
+    "THIRST": 0.0019041254417970777
+   }
+  },
+  "mod_commit": "62de3d5a",
+  "seed_at_m": 20,
+  "tool": "tools/replay_live.py ServerReplay (game_heal on, rng half, sleep off, 90-minute day, no typed weight: the mod's creation body)"
+ },
+ "x484": {
+  "beri": {
+   "frac3": 1.0,
+   "lag_gm": 1.5
+  },
+  "body": {
+   "fm": 13.005,
+   "kg": 65.025,
+   "lm": 52.02
+  },
+  "combine": {
+   "n": 61.0,
+   "n_off": 0.0,
+   "sep_add_max": 0.000155,
+   "sep_worst_max": 0.118893
+  },
+  "end": {
+   "frac1": 0.9987,
+   "frac3": 0.99881,
+   "health": 99.751115,
+   "rate": 88.393143,
+   "target": 99.751115
+  },
+  "health_gap_max": 0.0,
+  "line": {
+   "bmi0": 22.487019,
+   "line_rate_day": 1.039934,
+   "n": 119.0,
+   "n_off": 0.0,
+   "rel": 0.0,
+   "slope_h": -0.043331,
+   "target0": 100.0,
+   "target1": 99.914783,
+   "want_h": -0.043331
+  },
+  "minutes": {
+   "end": 209,
+   "onset": 27,
+   "seed": 20,
+   "thiamine": 147
+  },
+  "onset_after_seed_h": 0.133333,
+  "rate": {
+   "beri_day": 2.857143,
+   "floor_day": 85.536,
+   "n_off": 0.0,
+   "n_starve": 120.0,
+   "n_starve_beri": 61.0,
+   "n_under": 0.0
+  },
+  "seed_age": 2.74
+ }
+}
