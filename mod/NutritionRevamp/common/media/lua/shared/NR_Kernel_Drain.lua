@@ -348,18 +348,23 @@ end
 -- STARVE_DBMI until the state's first close, then the last closed span's BMI change per hour, a loss positive and a
 -- regain negative (revision R2: the clock runs both ways). The onset BMI bmi0 is the estimate at the onset, so the
 -- progress opens at 0, and a close moves the estimate by the day-on-day change of the loss only. While the state is
--- active (active true) pS keeps the largest progress, so it never falls within the state; once its cause has lapsed
--- pS follows the estimate both ways, so a regained weight lowers it. Returns pS.
+-- active (active true) pS keeps the largest progress, so it never falls within the state. Once its cause has lapsed
+-- the estimate extrapolates only toward recovery (ruling R2-2: a ceiling never falls while its cause is absent): pS
+-- keeps the smallest progress between closes, and a close (or a re-anchor) sets it to the true BMI's progress either
+-- way, so a regained weight lowers it and a weight still lost raises it, the fall then ramping at the cap. Returns
+-- pS and whether this minute closed (or re-anchored) the clock.
 function K.drain.smooth(D, body, ageH, active)
     local bmi = K.drain.bmi(body.lm, body.fm)
     local day = body.dayStartH
     if not K.finite(day) then
         day = ageH
     end
+    local closed = false
     if not K.finite(D.pAt) then
         D.bClose = bmi
         D.bRate = K.drain.STARVE_DBMI
         D.pAt = day
+        closed = true
         if not (D.pS > 0) then
             D.bmi0 = K.drain.bmiEst(D, ageH)
         end
@@ -367,12 +372,20 @@ function K.drain.smooth(D, body, ageH, active)
         D.bRate = (D.bClose - bmi) / (day - D.pAt)
         D.bClose = bmi
         D.pAt = day
+        closed = true
     end
     local s = K.drain.progress(D.bmi0, K.drain.bmiEst(D, ageH))
-    if K.finite(s) and (s > D.pS or not active) then
-        D.pS = s
+    if not K.finite(s) then
+        s = D.pS                                           -- an estimate that is not a number leaves the progress as it was
     end
-    return D.pS
+    if active then
+        D.pS = K.max(D.pS, s)
+    elseif closed then
+        D.pS = s
+    else
+        D.pS = K.min(D.pS, s)
+    end
+    return D.pS, closed
 end
 
 -- The smoothed BMI at world age ageH: the anchor's BMI less its rate since.
@@ -437,8 +450,8 @@ end
 -- code's bit, 2^(code - 1), joins the mask of active states, or, for a state whose cause has lapsed (rec true), the
 -- recovering mask (the panel's drain lines, Plan 15 Task 9; each code is considered at most once a step); the smallest
 -- fraction wins the state (a tie keeps the earlier code). Its rate joins the sum while its fraction can fall: an
--- active state always, a recovering one only on a minute its clock moved toward the death (rec with falling; a
--- recovering hour clock only counts down, so only Realistic starvation's BMI estimate falls while it recovers). A
+-- active state always, a recovering one only while its ceiling can still fall (rec with falling: a recovering hour
+-- clock only counts down, so only Realistic starvation's, whose next close can book a weight still lost). A
 -- paced state's rate is at least vanilla's level-4 rate at the day length, so health above a line, after a pace
 -- switch, closes on it as a ramp.
 function K.drain.consider(D, code, tH, inp, opt, rec, falling)
@@ -548,8 +561,10 @@ end
 
 -- Starvation's minute (spec sections 1.2a, 9 and 10). on: the acute or chronic onset holds (never under Overlay, where
 -- vanilla owns starvation and the clocks are released). Active, the onset BMI is stamped once, the hours count up and
--- the progress never falls. Lapsed, the hours count back down and, while an onset BMI is held, the progress follows
--- the smoothed BMI both ways and the onset BMI is released once it is back at 0; the state recovers while its own
+-- the progress never falls. Lapsed, the hours count back down and, while an onset BMI is held, the progress only
+-- falls between closes and takes the true BMI's at each (ruling R2-2), the onset BMI released at a close that books it
+-- back at 0 (a lapse at the onset's own progress of 0 keeps it to the close, so a fed spell reads one span),
+-- and a close's rise ramps at vanilla's level-4 rate (the R1-5 floor); the state recovers while its own
 -- clock is above its onset: the progress at Realistic pace, the hours at Vanilla and Shortened. Writes inp.pStarve and
 -- inp.pRate.
 function K.drain.starvation(D, body, ageH, dtM, on, overlay, inp, opt)
@@ -570,21 +585,25 @@ function K.drain.starvation(D, body, ageH, dtM, on, overlay, inp, opt)
         D.stH = K.drain.down(D.stH, dtM)
     end
     local p0 = D.pS
+    local closed = false
     if D.bmi0 > 0 then
-        inp.pStarve = K.drain.smooth(D, body, ageH, on)
+        inp.pStarve, closed = K.drain.smooth(D, body, ageH, on)
         inp.pRate = K.drain.pRate(D, opt.dayMin, inp.pStarve - p0, dtM)
+    end
+    if not on then
+        inp.pRate = 0                                      -- lapsed: a close's fall ramps at the vanilla floor (ruling R2-2)
     end
     if on then
         K.drain.consider(D, K.drain.STARVATION, D.stH, inp, opt, false, true)
         D.starving = true
         return
     end
-    if not (D.pS > 0) then
-        K.drain.release(D)
+    if closed and not (D.pS > 0) then
+        K.drain.release(D)                                 -- a close booked the progress back at 0
     end
     if opt.pace == K.drain.PACE_REAL then
         if D.pS > 0 then
-            K.drain.consider(D, K.drain.STARVATION, D.stH, inp, opt, true, inp.pStarve > p0)
+            K.drain.consider(D, K.drain.STARVATION, D.stH, inp, opt, true, true)
         end
     elseif D.stH > 0 then
         K.drain.consider(D, K.drain.STARVATION, D.stH, inp, opt, true, false)

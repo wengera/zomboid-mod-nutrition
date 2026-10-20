@@ -1290,7 +1290,8 @@ def s2d_snack():
     import mod_guide_series as G
     days = 33
     snack = 30 * G.DAY_MIN + 60
-    paths = ("drain.pS", "drain.target", "drain.mask", "drain.recovering", "drain.bmi0", "body.lm", "body.fm")
+    paths = ("drain.pS", "drain.target", "drain.mask", "drain.recovering", "drain.bmi0", "drain.rate", "body.lm",
+             "body.fm")
     ev = [G.FRESH] + G.autodrops(days) + G.held_vitamins(days)
     rows, be = G.server_run(ev + [G.eat(snack, "Base.Crisps")], days * G.DAY_MIN, paths)
     twin, _ = G.server_run(ev, days * G.DAY_MIN, paths)
@@ -1301,7 +1302,8 @@ def test_a_snack_in_a_fast_never_lifts_the_ceiling_to_full(s2d_snack):
     # close review I3 and Task 2b review N3: the crisps once released the onset BMI and the line reopened at 100 thirty
     # hours later (69 -> 99 at day 31). Now the onset BMI is held while the progress is above 0 and the ceiling recovers
     # only with the weight the body regains; one snack in a fast restores less than the fast goes on taking, so the
-    # ceiling never rises, and health follows it to the re-onset and on
+    # ceiling never rises. Ruling R2-2: while the cause is absent the ceiling never falls either; the next close books
+    # the weight still lost, and health ramps down to it no faster than the cap
     G, rows, twin, k, K = s2d_snack
     at = rows[k - 1]
     assert at["drain.mask"] == 1 and 60 < at[G.HEALTH] < 75                     # starving at day 30, about 69.7
@@ -1314,18 +1316,23 @@ def test_a_snack_in_a_fast_never_lifts_the_ceiling_to_full(s2d_snack):
     h2 = float(K.HEIGHT_M) ** 2
     span = at["drain.bmi0"] - 12
     most = 0.0
-    prev = None
+    prev, last = None, rows[k - 1]
+    steps = 0
     for r, t in zip(after, twin[k:]):
-        assert r[G.HEALTH] <= r["drain.target"] + 1e-9, r["age"]                 # the ceiling holds
         kept = (r["body.lm"] + r["body.fm"]) - (t["body.lm"] + t["body.fm"])    # the weight the crisps kept on
         gain = 100 * max(0.0, kept) / h2 / span                                  # that weight as BMI progress
-        if prev is not None and kept != prev:                                    # a close: the estimate is the BMI
+        close = prev is not None and kept != prev                                # a close: the estimate is the BMI
+        if close:
             assert r["drain.target"] - t["drain.target"] == pytest.approx(gain, abs=1e-9), r["age"]
-        prev = kept
+            steps += r["drain.target"] < last["drain.target"] - 0.1               # the weight still lost, booked
+        elif r.get("drain.recovering"):
+            assert r["drain.target"] >= last["drain.target"] - 1e-12, r["age"]  # R2-2: never falls while absent
+        assert last[G.HEALTH] - r[G.HEALTH] <= r["drain.rate"] / 1440 + 1e-9, r["age"]   # a ramp at the cap
+        prev, last = kept, r
         most = max(most, gain)
-        assert r["drain.target"] - t["drain.target"] <= 2 * most + 1e-9, r["age"]   # the day after: the slower loss extrapolated
-    assert 0.3 < most < 0.6                                                       # about 0.139 kg, 0.46 health
+    assert steps >= 1 and 0.3 < most < 0.6                                        # about 0.139 kg, 0.46 health
     assert after[-1]["drain.mask"] == 1                                           # the acute state back
+    assert abs(after[-1][G.HEALTH] - after[-1]["drain.target"]) < 0.002            # the ramp closed on the line
 
 
 def dip_run(host, pace, every_h, hours):
@@ -1474,3 +1481,12 @@ def test_a_72_h_logout_mid_recovery_changes_nothing(host, D):
         for k in ("pS", "bClose", "bRate", "bmi0", "stH", "bbH", "target", "rate", "recovering", "mask"):
             assert b[k] == pytest.approx(a[k], abs=1e-12), (m, k)
     assert a.recovering == 1 + 4 and a.pS > 0
+
+
+def test_an_estimate_that_is_not_a_number_leaves_the_progress_as_it_was(host, D):
+    # ruling R2-2's smooth: a world age of inf over a rate of 0 reads NaN; the progress holds, active or lapsed
+    for active in (True, False):
+        d = host.table({"bClose": 20.0, "bRate": 0.0, "pAt": 96.0, "pS": 0.3, "bmi0": 22.0})
+        body = host.table({"lm": 52.02, "fm": 10.0, "dayStartH": 96.0})
+        p, closed = D.smooth(d, body, float("inf"), active)
+        assert p == 0.3 and closed is False

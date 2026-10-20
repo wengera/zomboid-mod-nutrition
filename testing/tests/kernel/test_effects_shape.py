@@ -874,8 +874,9 @@ def test_starvation_starts_at_30_unfed_hours_and_sets_the_phase_flags(eff_host):
 
 
 def test_eating_ends_the_starvation_state_and_its_ceiling_recovers(eff_host):
-    # revision R2: the meal ends the state (the flags, the caps and the phases follow it); the ceiling stays while the
-    # smoothed BMI progress is above 0, so the onset BMI is held and the regeneration stays 0 under the drain
+    # revision R2: the meal ends the state (the flags, the caps and the phases follow it); the onset BMI is held to the
+    # next close, which books the progress (ruling R2-2), and a ceiling stays only while that progress is above 0: a
+    # minute after the onset it is 0, so none applies yet
     h = eff_host
     rec, p, cfg = _starving(h, 40)
     minute(h, p, rec, ageH=100.0 + 1 / 60)
@@ -884,7 +885,7 @@ def test_eating_ends_the_starvation_state_and_its_ceiling_recovers(eff_host):
     minute(h, p, rec, ageH=100.0 + 2 / 60)
     D = rec["drain"]
     assert D["starving"] is False and D["starvedH"] == 0 and D["mask"] == 0
-    assert D["active"] is True and D["recovering"] == 1 and D["bmi0"] > 0
+    assert D["active"] is False and D["recovering"] == 0 and D["bmi0"] > 0
 
 
 def test_overlay_runs_no_starvation_or_dehydration_drain(eff_host):
