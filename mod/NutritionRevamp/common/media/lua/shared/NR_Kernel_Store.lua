@@ -111,11 +111,14 @@ K.store.INPUTS = {
     -- mid-fast keeps the count; the hours in the starvation and dehydration states (the time clocks of the Vanilla and
     -- Shortened paces) and the smoothed BMI clock (its BMI, BMI loss rate and anchor at the last close, and the largest
     -- smoothed progress, so a restart neither re-anchors it nor lets it fall; Plan 17 spec section 1.2a), and the last
-    -- minute's deficit (dPrev, the Realistic dehydration line's rate, spec section 9). The active
-    -- state, the active set (mask), the fractions, the target, the rate, the minute's amount, starvedH and recentKcal
-    -- are recomputed: derived.
+    -- minute's deficit (dPrev, the Realistic dehydration line's rate, spec section 9), and the deficiencies' own hours
+    -- at clinical (scH, bbH, plH; revision R2, spec section 10: every hour clock counts back down while its cause is
+    -- absent, so a restart keeps a recovering ceiling). The active state, the active and recovering sets (mask,
+    -- recovering), the fractions, the target, the rate, the minute's amount, starvedH and recentKcal are recomputed:
+    -- derived.
     "drain.bmi0", "drain.naH", "drain.feH", "drain.fedAgeH", "drain.acuteH",
     "drain.stH", "drain.dhH", "drain.bClose", "drain.bRate", "drain.pAt", "drain.pS", "drain.dPrev",
+    "drain.scH", "drain.bbH", "drain.plH",
     "drain.spell", -- the meal spell (K.drain.spellStep, Plan 15 close H1): a refeed's fed spell survives a restart
     -- reconciliation (NR_Server_Reconcile): the landing count. The baseline is re-seeded from
     -- the vanilla stores at first sight, since the player save and the global table are written apart (#2098):

@@ -212,12 +212,23 @@ def test_a_drain_state_turns_well_fed_off_but_never_the_refusal():
     h, p, C = setup()
     rec = WS.record(h)
     rec.satiety.M = 788.5
-    rec.drain = h.rt.table_from({"active": True, "starving": False, "dehydrated": False})
+    rec.drain = h.rt.table_from({"active": True, "mask": 4, "starving": False, "dehydrated": False})
     WS.step(h, p, rec, 1)
     assert writes(p) == [0]
     fill(h, rec, 1150)
     WS.step(h, p, rec, 2)
     assert writes(p) == [0, FULL]
+
+
+def test_a_recovering_state_alone_leaves_well_fed_on():
+    # Plan 17 revision R2: a ceiling whose cause has lapsed (mask 0, recovering) is no active state; a sated body
+    # shows Well Fed (the food heal stays 0 under the ceiling, NR_Server_Effects)
+    h, p, C = setup()
+    rec = WS.record(h)
+    rec.satiety.M = 788.5
+    rec.drain = h.rt.table_from({"active": True, "mask": 0, "recovering": 1, "starving": False, "dehydrated": False})
+    WS.step(h, p, rec, 1)
+    assert writes(p) == [WF1]
 
 
 def test_a_landed_eat_or_drink_overwrites_vanillas_add_even_at_0():

@@ -722,6 +722,18 @@ def test_drain_rows_list_each_active_state_in_code_order(host):
     for junk in (0, None, float("nan"), "3", -1):
         rows = rows_of(host, V(host).rows(host.table({"drain_mask": junk}), 1, None))
         assert [r["key"] for r in rows] == CLASSES, junk
+        rows = rows_of(host, V(host).rows(host.table({"drain_mask": junk, "drain_rec": junk}), 1, None))
+        assert [r["key"] for r in rows] == CLASSES, junk
+
+
+def test_drain_rows_name_a_recovering_state_as_recovering(host):
+    # Plan 17 revision R2: an active state reads its own words, a recovering one UI_NR_DrainRec_<name>, in code order
+    rows = rows_of(host, V(host).rows(host.table({"drain_mask": 2 ** 2, "drain_rec": 2 ** 0 + 2 ** 5}), 1, None))
+    drains = [(r["key"], r["text"]) for r in rows if r["key"].startswith("drain_")]
+    assert drains == [("drain_starvation", "UI_NR_DrainRec_starvation"), ("drain_beriberi", "UI_NR_Drain_beriberi"),
+                      ("drain_dehydration", "UI_NR_DrainRec_dehydration")]
+    rows = rows_of(host, V(host).rows(host.table({"drain_rec": 2 ** 6}), 1, None))
+    assert [r["text"] for r in rows if r["key"].startswith("drain_")] == ["UI_NR_DrainRec_iron"]
 
 
 def test_the_trend_word_agrees_with_vanillas_weight_arrows(host):
@@ -781,7 +793,18 @@ def test_the_push_signature_moves_with_the_drain_set_the_trend_and_the_dehydrati
     assert sig(1.0, 0.0, 0.0, 0, 0, 1) != s0 and sig(1.9, 0.0, 0.0, 0, 0, 1) == sig(1.0, 0.0, 0.0, 0, 0, 1)
     assert sig(9.0, 0.0, 0.0, 0, 0, 1) == sig(15.0, 0.0, 0.0, 0, 0, 1)           # the digit stops at 9
     assert sig(0.0, 500.0, 24.0, 1100, 127, 2) == 127 * 100000 + 2 * 10000 + 0 * 1000 + 4 * 100 + 4 * 10 + 4
-    assert sig(0.0, 0.0, 0.0, 0, 200, 7) == sig(0.0, 0.0, 0.0, 0, 127, 2)          # each digit clamped
+    assert sig(0.0, 0.0, 0.0, 0, 20000, 7) == sig(0.0, 0.0, 0.0, 0, 16383, 2)      # each digit clamped
+    assert sig(0.0, 0.0, 0.0, 0, 128, 1) != sig(0.0, 0.0, 0.0, 0, 1, 1)            # R2: a recovering line moves it
+
+
+def test_the_drain_signal_folds_the_active_and_recovering_sets(host):
+    # Plan 17 revision R2: the push signature's drain term, the active mask plus 128 x the recovering mask
+    s = lambda t: host.call("view.drainSignal", t if t is None else host.table(t))
+    assert s({"active": True, "mask": 33, "recovering": 4}) == 33 + 128 * 4
+    assert s({"active": True, "mask": 0, "recovering": 127}) == 128 * 127
+    assert s({"active": False, "mask": 33, "recovering": 4}) == 0
+    assert s({"active": True, "mask": "x", "recovering": 4}) == 0 and s({"active": True, "mask": 1}) == 0
+    assert s(None) == 0
 
 
 # --- the Strength row (Plan 13 Task 18, ruling 13-19) ----------------------------------------------------------

@@ -601,8 +601,12 @@ def test_the_drain_takes_the_rate_toward_the_target_and_zeroes_regeneration_and_
     got = lst(cfg["log"]["regen"])[-5:]
     assert all(r["v"] == 0 for r in got)                         # x0 while a drain state is active (ruling 13)
     assert got[-1]["name"] == "setHealthFromFood"                # the food heal too (jar-checks Check 2)
-    rec["nutrients"]["iron"]["x"] = 0                            # the state ends: re-asserted at healMul, food heal back
+    rec["nutrients"]["iron"]["x"] = 0                            # the cause ends: the state recovers (revision R2)
+    n_regen = len(lst(cfg["log"]["regen"]))
     minute(h, p, rec, ageH=100.0 + 3 / 60)
+    assert rec["drain"]["active"] is True and rec["drain"]["recovering"] == 64 and rec["drain"]["rate"] == 0
+    assert len(lst(cfg["log"]["regen"])) == n_regen              # the ceiling still applies: regeneration stays 0
+    minute(h, p, rec, ageH=100.0 + 4 / 60)                       # its clock back at 0: re-asserted, food heal back
     got = {r["name"]: r["v"] for r in lst(cfg["log"]["regen"])[-5:]}
     assert got["setStandardHealthAddition"] == 0.002 and got["setHealthFromFood"] == 0.0087  # #2354; the gentle heal (Plan 15 Task 8)
     assert rec["drain"]["active"] is False and rec["drain"]["target"] == 100
@@ -869,15 +873,18 @@ def test_starvation_starts_at_30_unfed_hours_and_sets_the_phase_flags(eff_host):
     assert E["key"]["dials"] == 10000000000 + 300 + 11 and E["unhappyTarget"] == 21   # phase 3: mood, the pe rows back
 
 
-def test_eating_ends_the_starvation(eff_host):
+def test_eating_ends_the_starvation_state_and_its_ceiling_recovers(eff_host):
+    # revision R2: the meal ends the state (the flags, the caps and the phases follow it); the ceiling stays while the
+    # smoothed BMI progress is above 0, so the onset BMI is held and the regeneration stays 0 under the drain
     h = eff_host
     rec, p, cfg = _starving(h, 40)
     minute(h, p, rec, ageH=100.0 + 1 / 60)
     assert rec["drain"]["active"] is True and rec["drain"]["bmi0"] > 0
     rec["satiety"]["M"] = 400.0                                   # a meal: a meal spell (no 72 h window seen yet; H1)
     minute(h, p, rec, ageH=100.0 + 2 / 60)
-    assert rec["drain"]["active"] is False and rec["drain"]["starvedH"] == 0
-    assert rec["drain"]["bmi0"] == 0
+    D = rec["drain"]
+    assert D["starving"] is False and D["starvedH"] == 0 and D["mask"] == 0
+    assert D["active"] is True and D["recovering"] == 1 and D["bmi0"] > 0
 
 
 def test_overlay_runs_no_starvation_or_dehydration_drain(eff_host):

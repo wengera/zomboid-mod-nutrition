@@ -21,7 +21,7 @@ EFFECT_NUMBERS = ("epoch", "aimMul", "speedMul", "intoxTarget", "tempTarget", "h
 PLAN5_ABSENT = {"effects_" + k: 0 for k in EFFECT_NUMBERS}
 PLAN5_ABSENT["effects_nv"] = False
 PLAN5_ABSENT["effects_ss"] = False
-DRAIN_ABSENT = {"drain_state": 0, "drain_target": 100, "drain_mask": 0}   # Plan 15 Tasks 4 and 9, Plan 17 Task 2: K.drain's keys, no state
+DRAIN_ABSENT = {"drain_state": 0, "drain_target": 100, "drain_mask": 0, "drain_rec": 0}   # Plan 15 Tasks 4 and 9, Plan 17 Task 2: K.drain's keys, no state
 META = {"mode": 1, "version": "0.1.0", "build": "42.20.4"}
 
 
@@ -205,6 +205,11 @@ def test_mirror_carries_the_active_drain_state_and_its_target(host):
     assert (m["drain_state"], m["drain_target"], m["drain_mask"]) == (0, 100, 0)
     junk = host.table({"active": True, "state": 6, "target": 41.5, "mask": "x"})
     assert host.py(host.call("mirror.build", rec(host, drain=junk), host.table(META)))["drain_mask"] == 0
+    rc = host.table({"active": True, "state": 1, "target": 69.5, "mask": 4, "recovering": 1})   # Plan 17 revision R2
+    m = host.py(host.call("mirror.build", rec(host, drain=rc), host.table(META)))
+    assert (m["drain_state"], m["drain_target"], m["drain_mask"], m["drain_rec"]) == (1, 69.5, 4, 1)
+    rc = host.table({"active": True, "state": 1, "target": 69.5, "mask": 4, "recovering": "x"})
+    assert host.py(host.call("mirror.build", rec(host, drain=rc), host.table(META)))["drain_rec"] == 0
     assert "effects_drain" not in m and "effects_lethal" not in m
 
 

@@ -29,8 +29,8 @@ DERIVED = {
                 "fOffNut", "bruise", "nightVision", "shortSighted", "aimMul", "fOff", "solAddH", "solMul",
                 "intoxTarget", "tempTarget", "mAcc", "rRec", "enduranceCap", "foodSickStep"},   # Plan 15 Task 8
     # Plan 15 Task 4: the drain engine's per-minute outputs (K.drain.step); Plan 17 Task 2: the target and the fractions
-    "drain": {"active", "state", "mask", "target", "frac", "rate", "drainThisMinute", "starvedH", "starving",
-              "starveAcute", "dehydrated"},
+    "drain": {"active", "state", "mask", "recovering", "target", "frac", "rate", "drainThisMinute", "starvedH",
+              "starving", "starveAcute", "dehydrated"},   # Plan 17 revision R2: the recovering set
     "stomach": set(),
 }
 
@@ -359,7 +359,7 @@ def test_a_stored_drain_keeps_its_clocks_and_drops_the_minutes_outputs(host):
     # the starvation and dehydration states and the smoothed BMI clock too; the active state, its target, fractions,
     # rate and amount are the next minute's to recompute
     clocks = {"bmi0": 21.5, "naH": 1.5, "feH": 0.25, "stH": 40.0, "dhH": 2.5, "bClose": 21.0, "bRate": 4e-3,
-              "pAt": 96.0, "pS": 0.11}
+              "pAt": 96.0, "pS": 0.11, "scH": 3.0, "bbH": 1.0, "plH": 0.5}   # revision R2: the deficiencies' clocks
     drain = dict(clocks, active=True, state=1, target=30.0, frac={1: 0.3}, rate=85.536, drainThisMinute=0.01,
                  starvedH=40)
     raw = host.table({"username": "admin", "firstSeen": 1.0, "lastSeen": 2.0, "resets": 0, "dead": False,

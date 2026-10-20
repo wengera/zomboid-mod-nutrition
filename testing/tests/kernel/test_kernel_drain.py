@@ -297,9 +297,11 @@ def test_a_non_finite_input_leaves_the_state_out(host, D):
     assert frac(host, D.DEHYD, 1.0, dehyd=6.0, rise=float("inf")) is None
     rec = record(host, thiamine=(4, float("nan")), iron=3)
     d = D.step(rec, 1.0, 100.0)
-    assert d.state == 7 and d.active is True and d.frac[3] is None             # beriberi skipped this minute
-    rec.nutrients.iron.x = 0
-    assert D.step(rec, 1.0, 100.0).active is False
+    assert d.state == 7 and d.frac[3] == 1                                     # R2: beriberi on the drain's own clock
+    assert rec.drain.bbH == pytest.approx(1 / 60, abs=TOL)                     # a non-finite ah reads 0, never skips
+    mask, state = d.mask, d.state
+    D.consider(d, D.SCURVY, float("nan"), D.IN, opt(host))                      # a fraction not a number: left out
+    assert (d.mask, d.state, d.frac[2]) == (mask, state, None)
 
 
 # --- the combine step and the cap -------------------------------------------------------------------------------
@@ -412,14 +414,31 @@ def test_the_heal_reaches_the_target_and_never_passes_it(host, D):
     assert D.heal(d, 20.0, 0.24, 1.0) == 0
 
 
-def test_the_heal_lifts_health_toward_a_risen_target_after_a_state_ends(host, D):
+def test_a_state_that_ends_keeps_its_ceiling_and_recovers_on_its_clock(host, D):
+    # revision R2 (spec section 10): beriberi's and starvation's causes end at f 0.5 and 0.6; each ceiling stays,
+    # rising as its clock counts back down 1:1, and health under the product heals at vanilla's rate up to it, never
+    # above it
     d, rec = two_states(host, 2)
     health = d.target                                                           # held at 30 by both states
     assert D.heal(d, health, 0.24, 1.0) == 0
-    rec.nutrients.thiamine.g = 3                                                # beriberi ends: starvation alone
+    rec.nutrients.thiamine.g = 3                                                # beriberi ends: it recovers
+    rec.satiety.M = 400.0                                                       # a meal: starvation recovers too
+    rec.drain.spell = True
     d = D.step(rec, 1.0, 100.0 + 1 / 60, False, opt(host, 1, 2))
-    assert d.mask == 1 and d.target > 59 and D.take(d, health) == 0
-    assert D.heal(d, health, 0.24, 1.0) == pytest.approx(0.24, abs=TOL)
+    assert (d.mask, d.recovering, d.active) == (0, 1 + 4, True)
+    assert d.frac[3] == pytest.approx(0.5, abs=1e-12) and d.rate == 0          # its clock only falls: no rate
+    assert d.target == pytest.approx(100 * (0.6 + 1 / 60 / (100 / 3.564)) * 0.5, abs=1e-9)   # starvation back a minute
+    assert D.take(d, health) == 0
+    bb, st = rec.drain.bbH, rec.drain.stH
+    for m in range(2, 600):
+        d = D.step(rec, 1.0, 100.0 + m / 60, False, opt(host, 1, 2))
+        y = D.heal(d, health, 0.24, 1.0)
+        health += y * 5.05 / 17
+        assert health <= d.target + 1e-9 and D.take(d, health) == 0
+    assert rec.drain.bbH == pytest.approx(bb - 598 / 60, abs=1e-9)              # 1:1 in game minutes
+    assert rec.drain.stH == pytest.approx(max(0.0, st - 598 / 60), abs=1e-9)
+    assert d.frac[3] == pytest.approx(1 - rec.drain.bbH / 840, abs=1e-12)
+    assert health == pytest.approx(d.target, abs=0.011)                         # healed up to the ceiling
 
 
 def test_a_pace_switch_mid_state_moves_the_target_at_the_next_step(host, D):
@@ -517,10 +536,11 @@ def test_the_clock_never_falls_within_the_state(host, D):
     d = D.step(rec, 1.0, 120.0)
     assert d.bRate == 0 and d.pS == high                                        # the estimate held, never lowered
     t0 = d.target
-    rec.body.fm = rec.body.fm + 2.0                                             # a gain: the rate floors at 0
+    rec.body.fm = rec.body.fm + 2.0                                             # a gain: the rate turns negative (R2)
     rec.body.dayStartH = 144.0
     d = D.step(rec, 1.0, 144.0)
-    assert d.bRate == 0 and d.pS == high and d.target == t0
+    assert d.bRate == pytest.approx(-2.0 / H2 / 24, abs=1e-12)
+    assert d.pS == high and d.target == t0                                      # the state active: never lowered
 
 
 def test_the_target_falls_smoothly_across_closes_and_health_keeps_to_the_cap(host, D):
@@ -725,7 +745,13 @@ def test_the_dehydration_hours_accumulate_and_reset(host, D):
     assert rec.drain.dhH == pytest.approx(1.5, abs=1e-9)
     rec.fluids.dehydPct = 3.0
     D.step(rec, 1.0, 100.0)
-    assert rec.drain.dhH == 0 and rec.drain.active is False
+    assert rec.drain.dhH == pytest.approx(1.5 - 1 / 60, abs=1e-9)              # R2: back down 1:1
+    assert rec.drain.active is False                                            # Realistic: the deficit's line reads 1
+    d = D.step(rec, 1.0, 100.0, False, opt(host, 2))
+    assert d.recovering == 32 and d.frac[6] == pytest.approx(1 - (1.5 - 2 / 60) / 48, abs=1e-12)   # Shortened
+    for _ in range(88):
+        d = D.step(rec, 1.0, 100.0, False, opt(host, 2))
+    assert rec.drain.dhH == 0 and d.active is False and d.recovering == 0
 
 
 # --- the unfed hours, the trailing 72 h and the phases (Plan 15 Task 6 fix 1) -------------------------------------
@@ -743,6 +769,7 @@ def test_the_starvation_phases(host, D):
 
 def test_a_fresh_drain_table_and_its_heal(host, D):
     assert host.py(D.new()) == {"bmi0": 0, "naH": 0, "feH": 0, "stH": 0, "dhH": 0, "bClose": 0, "bRate": 0, "pS": 0,
+                                "scH": 0, "bbH": 0, "plH": 0, "recovering": 0,
                                 "active": False, "state": 0, "mask": 0, "target": 100, "frac": {}, "rate": 0,
                                 "drainThisMinute": 0, "starvedH": 0, "acuteH": 0, "starving": False,
                                 "starveAcute": False, "dehydrated": False, "spell": False}
@@ -753,8 +780,10 @@ def test_a_fresh_drain_table_and_its_heal(host, D):
     d.stH, d.dhH, d.bClose, d.bRate, d.pS = None, float("nan"), "x", float("-inf"), None
     d.acuteH, d.fedAgeH, d.pAt, d.frac = -1.0, float("nan"), float("inf"), 3
     d.dPrev = float("nan")
+    d.scH, d.bbH, d.plH = float("nan"), None, -3.0
     D.ensure(rec)
     assert (d.bmi0, d.naH, d.feH, d.acuteH) == (0, 0, 0, 0)
+    assert (d.scH, d.bbH, d.plH) == (0, 0, 0)
     assert (d.stH, d.dhH, d.bClose, d.bRate, d.pS) == (0, 0, 0, 0, 0)
     assert d.fedAgeH is None and d.pAt is None                               # a non-finite stamp heals to first sight
     assert d.dPrev is None                                                    # the last deficit: no last read
@@ -826,9 +855,16 @@ def test_the_onset_bmi_is_stamped_once_and_cleared_when_starvation_ends(host, D)
     assert d.bmi0 == pytest.approx(bmi0, abs=TOL)                             # held while the state lasts
     assert d.target < 100 and d.stH == pytest.approx(2 / 60, abs=1e-12)
     rec.satiety.M = 400.0                                                     # a meal ends it (a meal spell, H1)
+    p = d.pS
     D.step(rec, 1.0, 100.0 + 2 / 60)
-    assert d.active is False and d.bmi0 == 0
-    assert (d.stH, d.bClose, d.bRate, d.pS, d.pAt) == (0, 0, 0, 0, None)     # the starvation clocks released
+    assert d.starving is False and d.mask == 0 and d.recovering == 1         # R2: the ceiling stays
+    assert d.bmi0 == pytest.approx(bmi0, abs=TOL) and d.pS >= p               # the estimate still falls: no close yet
+    assert d.stH == pytest.approx(1 / 60, abs=1e-12)                          # the hours back down 1:1
+    rec.body.fm = 10.5                                                        # the weight regained, seen at a close
+    rec.body.dayStartH = 120.0
+    D.step(rec, 1.0, 120.0)
+    assert d.active is False and d.recovering == 0 and d.bmi0 == 0            # the progress back at 0: released
+    assert (d.stH, d.bClose, d.bRate, d.pS, d.pAt) == (0, 0, 0, 0, None)
 
 
 def test_the_sodium_and_iron_hours_accumulate_and_reset(host, D):
@@ -841,7 +877,12 @@ def test_the_sodium_and_iron_hours_accumulate_and_reset(host, D):
     rec.fluids.naPlasma = 140.0
     rec.nutrients.iron.x = 0
     D.step(rec, 1.0, 100.0)
-    assert (d.naH, d.feH, d.active) == (0, 0, False)
+    assert d.naH == pytest.approx(59 / 60, abs=1e-9) and d.feH == pytest.approx(59 / 60, abs=1e-9)   # R2: back down
+    assert (d.mask, d.recovering, d.rate) == (0, 16 + 64, 0)
+    assert d.target == pytest.approx(100 * (1 - 59 / 60 / 6) * (1 - 59 / 60 / 24), abs=1e-9)
+    for _ in range(59):
+        D.step(rec, 1.0, 100.0)
+    assert (d.naH, d.feH, d.active, d.recovering) == (0, 0, False, 0)
 
 
 def test_the_world_age_defaults_to_the_nutrients_clock(host, D):
@@ -1075,7 +1116,8 @@ def test_low_recent_intake_holds_the_acute_state_only_while_unfed(host, D):
     rec.body.inDayClosed = 201.0                                               # over 600: the fallback clears
     rec.satiety.M = 400.0
     d = D.step(rec, 1.0, 100.0 + 3 / 60)
-    assert d.starveAcute is False and d.acuteH == 0 and d.bmi0 == 0
+    assert d.starveAcute is False and d.acuteH == 0
+    assert d.bmi0 > 0 and d.recovering == 1                                    # R2: the ceiling recovers with the body
 
 
 def test_a_200_kcal_snack_every_33_h_still_enters_the_acute_state(host, D):
@@ -1137,7 +1179,7 @@ def test_the_clocks_survive_a_restart(host, D):
     D.step(rec, 1.0, 100.0)
     saved = host.py(host.K.store.inputsOnly(rec))["drain"]                     # what a save keeps
     assert set(saved) == {"bmi0", "naH", "feH", "fedAgeH", "acuteH", "spell", "stH", "dhH", "bClose", "bRate", "pAt",
-                          "pS", "dPrev"}                                       # Plan 17 Task 2: the state hours and the BMI clock; R1: the last deficit
+                          "pS", "dPrev", "scH", "bbH", "plH"}                  # Plan 17 Task 2: the state hours and the BMI clock; R1: the last deficit; R2: the deficiencies' clocks
     assert saved["fedAgeH"] == 60.0 and saved["dPrev"] == 0.0
     rec.body.inDay2, rec.body.inDay3 = 1.0, 2.0
     body = host.py(host.K.store.inputsOnly(rec))["body"]
@@ -1224,11 +1266,211 @@ def test_a_negative_hour_clock_heals_to_0(host, D):
     D.ensure(rec)
     assert (d.stH, d.dhH, d.naH, d.feH) == (0, 0, 0, 0)
     assert d.bRate == -0.01
-    clocks = [D.CLOCKS0[i] for i in range(1, 5)]
-    assert clocks == ["naH", "feH", "stH", "dhH"]
+    clocks = [D.CLOCKS0[i] for i in range(1, 8)]
+    assert clocks == ["stH", "scH", "bbH", "plH", "naH", "dhH", "feH"]
     assert set(clocks) <= set(host.py(D.HEAL0).values())
 
 
 def test_the_options_default_day_length_is_day_minutes(host, D):
     # close-review N1: OPT reads DAY_MINUTES, defined above it, rather than repeating 90
     assert D.OPT.dayMin == D.DAY_MINUTES == 90
+
+
+# --- Plan 17 revision R2 (spec section 10): the ceiling recovers with the body -----------------------------------------
+
+@pytest.fixture(scope="module")
+def s2d_snack():
+    """The S2d fast (FRESH, the replay's water, the vitamins held: starvation its only state) at the defaults over 33
+    days, with one bag of crisps (Base.Crisps, 719.8 kcal) eaten at day 30 07:00 + 1 h and without it (the twin): the
+    replay host's rows of each, the row index of the eat's minute and the kernel."""
+    import sys
+    tools = os.path.join(REPO, "tools")
+    if tools not in sys.path:
+        sys.path.insert(0, tools)
+    import mod_guide_series as G
+    days = 33
+    snack = 30 * G.DAY_MIN + 60
+    paths = ("drain.pS", "drain.target", "drain.mask", "drain.recovering", "drain.bmi0", "body.lm", "body.fm")
+    ev = [G.FRESH] + G.autodrops(days) + G.held_vitamins(days)
+    rows, be = G.server_run(ev + [G.eat(snack, "Base.Crisps")], days * G.DAY_MIN, paths)
+    twin, _ = G.server_run(ev, days * G.DAY_MIN, paths)
+    return G, rows, twin, snack - 1, be.K
+
+
+def test_a_snack_in_a_fast_never_lifts_the_ceiling_to_full(s2d_snack):
+    # close review I3 and Task 2b review N3: the crisps once released the onset BMI and the line reopened at 100 thirty
+    # hours later (69 -> 99 at day 31). Now the onset BMI is held while the progress is above 0 and the ceiling recovers
+    # only with the weight the body regains; one snack in a fast restores less than the fast goes on taking, so the
+    # ceiling never rises, and health follows it to the re-onset and on
+    G, rows, twin, k, K = s2d_snack
+    at = rows[k - 1]
+    assert at["drain.mask"] == 1 and 60 < at[G.HEALTH] < 75                     # starving at day 30, about 69.7
+    after = rows[k:]
+    rec = [r for r in after if r.get("drain.recovering")]
+    assert len(rec) > 24 * 60                                                    # the state lapsed for over a day
+    assert all(r["drain.recovering"] == 1 and r["drain.mask"] == 0 for r in rec)
+    assert all(r["drain.bmi0"] == at["drain.bmi0"] for r in after)              # the onset BMI held throughout
+    assert max(r["drain.target"] for r in after) <= at["drain.target"] + 1e-9   # never back to full: never up at all
+    h2 = float(K.HEIGHT_M) ** 2
+    span = at["drain.bmi0"] - 12
+    most = 0.0
+    prev = None
+    for r, t in zip(after, twin[k:]):
+        assert r[G.HEALTH] <= r["drain.target"] + 1e-9, r["age"]                 # the ceiling holds
+        kept = (r["body.lm"] + r["body.fm"]) - (t["body.lm"] + t["body.fm"])    # the weight the crisps kept on
+        gain = 100 * max(0.0, kept) / h2 / span                                  # that weight as BMI progress
+        if prev is not None and kept != prev:                                    # a close: the estimate is the BMI
+            assert r["drain.target"] - t["drain.target"] == pytest.approx(gain, abs=1e-9), r["age"]
+        prev = kept
+        most = max(most, gain)
+        assert r["drain.target"] - t["drain.target"] <= 2 * most + 1e-9, r["age"]   # the day after: the slower loss extrapolated
+    assert 0.3 < most < 0.6                                                       # about 0.139 kg, 0.46 health
+    assert after[-1]["drain.mask"] == 1                                           # the acute state back
+
+
+def dip_run(host, pace, every_h, hours):
+    """Dehydration held at 5 % with a one-minute dip to 3.9 % every `every_h` game hours, at `pace`, health from 100
+    taking each minute's drain (the heal is 0 at THIRST level 4): the hour of the death, or None."""
+    rec = record(host, dehyd=5.0)
+    o = opt(host, pace, 2)
+    health = 100.0
+    every = int(round(every_h * 60))
+    for m in range(1, int(hours * 60)):
+        rec.fluids.dehydPct = 3.9 if m % every == 0 else 5.0
+        d = host.K.drain.step(rec, 1.0, 100.0 + m / 60, False, o)
+        health -= host.K.drain.take(d, health)
+        if health <= 1e-6:
+            return m / 60
+    return None
+
+
+@pytest.mark.parametrize("pace,every_h,death_h", [(2, 20.0, 48.0), (1, 4.0, 100 / 17.82)])
+def test_a_one_minute_dip_under_the_onset_no_longer_restarts_the_line(host, D, pace, every_h, death_h):
+    # close review I3: a dip under 4 % once restarted dhH at 0 (Shortened every 20 h held at 58.33 forever; Vanilla
+    # every 4 h at 28.72). Now the clock counts back down one minute for the minute out, so a dip costs a minute back
+    dead = dip_run(host, pace, every_h, 4 * death_h)
+    assert dead is not None
+    dips = int(dead // every_h)
+    assert dead == pytest.approx(death_h + 2 * dips / 60, abs=2 / 60)          # each dip: a minute out, a minute back
+
+
+def test_beriberi_at_half_heals_health_from_10_up_to_its_ceiling(host, D):
+    # Angus's own example: beriberi caps health at 50 and health sits at 10 (a wound); while the game allows healing
+    # (no HUNGRY or THIRST at level 4), vanilla's awake addition lifts it to the ceiling and never past it
+    rec = record(host, thiamine=(4, 420.0))
+    o = opt(host, 3, 2)
+    y = D.regenAddition(0, 0, 0, False) * D.UNITS_PER_MIN * 90                 # 0.36 a game minute at the 90-minute day
+    health = 10.0
+    for m in range(0, 400):
+        d = D.step(rec, 1.0, 100.0 + m / 60, False, o)
+        rec.nutrients.thiamine.ah = rec.nutrients.thiamine.ah + 1 / 60
+        health -= D.take(d, health)                                             # the line falls on under it
+        health += D.heal(d, health, y, 1.0) * 5.05 / 17
+        assert health <= d.target + 1e-9
+        if m < 100:
+            assert health == pytest.approx(10.0 + (m + 1) * y * 5.05 / 17, abs=1e-9)   # vanilla's pace
+    assert d.mask == 4 and d.target < 50 and health == pytest.approx(d.target, abs=0.011)
+
+
+def test_a_clock_counts_back_down_and_its_ceiling_rises_until_full(host, D):
+    # an hour clock counts back down 1:1 in game minutes while its cause is absent; the ceiling rises with it, and
+    # with the clock at 0 the state is gone (no target: vanilla's own regeneration and the food heal resume)
+    rec = record(host, na=100.0)
+    o = opt(host, 3, 2)
+    for _ in range(180):
+        D.step(rec, 1.0, 100.0, False, o)                                       # 3 h of severe hyponatraemia
+    rec.fluids.naPlasma = 140.0
+    prev = 0.0
+    for m in range(1, 181):
+        d = D.step(rec, 1.0, 100.0, False, o)
+        if m < 180:
+            assert rec.drain.naH == pytest.approx(3.0 - m / 60, abs=1e-9)
+            assert d.recovering == 16 and d.target == pytest.approx(100 * (1 - rec.drain.naH / 6), abs=1e-9)
+            assert d.target > prev and d.rate == 0
+            prev = d.target
+    assert rec.drain.naH == 0 and d.active is False and d.target == 100
+
+
+def test_a_re_onset_while_recovering_resumes_the_line_where_it_stands(host, D):
+    # a state that returns while its clock is above 0 picks up at that clock, not at its onset
+    rec = record(host, iron=3)
+    o = opt(host, 3, 2)
+    for _ in range(600):
+        D.step(rec, 1.0, 100.0, False, o)                                       # 10 h at the iron rung
+    rec.nutrients.iron.x = 0
+    for _ in range(120):
+        D.step(rec, 1.0, 100.0, False, o)                                       # 2 h out
+    rec.nutrients.iron.x = 3
+    d = D.step(rec, 1.0, 100.0, False, o)
+    assert rec.drain.feH == pytest.approx(10.0 - 2.0 + 1 / 60, abs=1e-9)
+    assert d.mask == 64 and d.recovering == 0 and d.frac[7] == pytest.approx(1 - rec.drain.feH / 24, abs=1e-12)
+
+
+def test_starvations_progress_runs_both_ways_once_the_state_lapses(host, D):
+    # Realistic: active, the progress never falls; lapsed, a close that books a regain lowers it, and the onset BMI is
+    # released only when it is back at 0
+    rec = starving(host)
+    for m in range(0, 60 * 30):
+        age = 100.0 + m / 60
+        if age >= rec.body.dayStartH + 24:
+            rec.body.fm = rec.body.fm - 1.0
+            rec.body.dayStartH = rec.body.dayStartH + 24
+        D.step(rec, 1.0, age)
+    high = rec.drain.pS
+    bmi0 = rec.drain.bmi0
+    assert high > 0
+    rec.satiety.M = 400.0                                                        # a meal: the state lapses
+    rec.drain.spell = True
+    rec.body.fm = rec.body.fm + 0.5                                              # half the loss back by the next close
+    rec.body.dayStartH = rec.body.dayStartH + 24
+    d = D.step(rec, 1.0, rec.body.dayStartH)
+    assert d.recovering == 1 and d.starving is False and d.bmi0 == bmi0
+    assert d.pS < high and d.bRate < 0                                           # the regain lowers it
+    assert d.target == pytest.approx(100 * (1 - d.pS), abs=1e-9)
+    rec.body.fm = 10.0 + 1.0                                                     # past the onset weight
+    rec.body.dayStartH = rec.body.dayStartH + 24
+    d = D.step(rec, 1.0, rec.body.dayStartH)
+    assert d.active is False and d.bmi0 == 0 and d.pS == 0                      # back at 0: released
+
+
+def test_overlay_releases_a_recovering_starvation_and_clears_the_hours(host, D):
+    rec = record(host, unfed=40.0, dehyd=6.0)
+    o = opt(host, 2, 2)
+    for m in range(0, 120):
+        D.step(rec, 1.0, 100.0 + m / 60, False, o)
+    assert rec.drain.stH > 1.9 and rec.drain.dhH > 1.9
+    d = D.step(rec, 1.0, 102.0, True, o)                                        # Mode 2: vanilla owns both
+    assert (d.stH, d.dhH, d.bmi0, d.active, d.recovering) == (0, 0, 0, False, 0)
+
+
+def test_a_72_h_logout_mid_recovery_changes_nothing(host, D):
+    # nothing changes offline (Plan 16): a lapsed starvation (Realistic, its onset BMI held) and a recovering beriberi
+    # read the same clocks, fractions and target in the twin that never left and the record back 72 h later
+    def stepped():
+        rec = starving(host)
+        rec.nutrients.thiamine.g = 4
+        rec.nutrients.thiamine.ah = 100.0
+        rec.body.lastAgeH = 100.0
+        for m in range(0, 1200):
+            age = 100.0 + m / 60
+            if m == 600:
+                rec.satiety.M = 400.0                                            # a meal: starvation lapses
+                rec.drain.spell = True
+                rec.nutrients.thiamine.g = 3                                     # and beriberi ends
+            if age >= rec.body.dayStartH + 24:
+                rec.body.fm = rec.body.fm - 0.3
+                rec.body.dayStartH = rec.body.dayStartH + 24
+            D.step(rec, 1.0, age)
+            rec.nutrients.lastAgeH = age
+            rec.body.lastAgeH = age
+        return rec
+    twin, back = stepped(), stepped()
+    assert twin.drain.recovering == 1 + 4
+    last = 100.0 + 1199 / 60
+    assert host.K.resume.resume(back, last + 72.0) == pytest.approx(72.0, abs=1e-9)
+    for m in range(1, 600):
+        a = D.step(twin, 1.0, last + m / 60)
+        b = D.step(back, 1.0, last + 72.0 + m / 60)
+        for k in ("pS", "bClose", "bRate", "bmi0", "stH", "bbH", "target", "rate", "recovering", "mask"):
+            assert b[k] == pytest.approx(a[k], abs=1e-12), (m, k)
+    assert a.recovering == 1 + 4 and a.pS > 0

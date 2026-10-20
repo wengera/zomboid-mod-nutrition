@@ -12,8 +12,8 @@
 -- K.acute.sleepMinute (a one-minute lag, stated).
 --
 -- Per minute, under one pcall per player: ensure and heal record.effects; the day close (the protein-energy
--- grade and the closed day's energy availability); the drain states (K.drain.step: the active states, the target, the
--- rate and the starvation phase the flags read); the twelve-band vector and the flags; the rebuild only
+-- grade and the closed day's energy availability); the drain states (K.drain.step: the active and recovering states,
+-- the target, the rate and the starvation phase the flags read); the twelve-band vector and the flags; the rebuild only
 -- when the key moved (K.effects.changed: the nutrient epoch, the closed day, the dial snapshot or a band);
 -- the per-minute scalars (fOff, mAcc, rRec, solAddH, solMul, intoxTarget, tempTarget); the night-vision
 -- machine and the four trait rules; the regeneration setters and the food heal on a rebuild, a drain state's start
@@ -595,8 +595,9 @@ local function step(username, player, record, body, dtM, ageH, ctx)
         -- 9. the bruise
         bruise(bd, L, E, dtM)
         -- 10. the drain's health write: min(rate x dtM, health - target), never past the target (ReduceGeneralHealth never
-        -- overshoots, #3898); overall health is read only while a state is active. Under the target, vanilla's own
-        -- regeneration heals toward it, never above (fix 1, ruling L2): only one side acts in a minute, so no sawtooth.
+        -- overshoots, #3898); overall health is read only while a ceiling applies (a state active or recovering, Plan
+        -- 17 revision R2). Under the target, vanilla's own regeneration heals toward it, never above (fix 1, ruling L2):
+        -- only one side acts in a minute, so no sawtooth.
         if D.active then
             local health = num(bd, "getOverallBodyHealth", nil)
             local take = K.drain.take(D, health)

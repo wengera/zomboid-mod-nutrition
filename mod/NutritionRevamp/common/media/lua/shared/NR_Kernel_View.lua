@@ -141,9 +141,9 @@ end
 
 -- The live state that marks a push, as one integer (Plan 15 Task 9): the sleep rung (units), the stimulant rung (tens),
 -- the Overfull level (hundreds; massG, the mirror's stomachMass), the whole dehydration per cent (thousands, 0-9:
--- K.view.dehydDigit, the panel's figure), the weight trend word (ten-thousands, K.view.trendIndex 0-2) and the active
--- drain set (from the hundred-thousands, K.drain's mask 0-127), so a new drain line, trend word or per cent reaches
--- the panel at the next slow minute. Deficiency and excess move with the nutrient epoch, which already marks a push.
+-- K.view.dehydDigit, the panel's figure), the weight trend word (ten-thousands, K.view.trendIndex 0-2) and the drain
+-- sets (from the hundred-thousands, K.view.drainSignal 0-16383: the active and the recovering masks), so a new drain line,
+-- trend word or per cent reaches the panel at the next slow minute. Deficiency and excess move with the nutrient epoch, which already marks a push.
 -- nil reads 0 (the trend 1, steady).
 function K.view.pushSignature(dehydPct, caf, debtH, massG, drainMask, trend)
     local s = K.view.rung(caf or 0, K.view.STIMULANT_AT)
@@ -151,7 +151,16 @@ function K.view.pushSignature(dehydPct, caf, debtH, massG, drainMask, trend)
     local o = K.view.fullnessLevel(massG)
     local d = K.view.digit(dehydPct, 9)
     local t = K.view.digit(trend or 1, 2)
-    return K.view.digit(drainMask, 127) * 100000 + t * 10000 + d * 1000 + o * 100 + s * 10 + sl
+    return K.view.digit(drainMask, 16383) * 100000 + t * 10000 + d * 1000 + o * 100 + s * 10 + sl
+end
+
+-- record.drain's sets as one whole number for the push signature: the active mask plus 128 x the recovering mask
+-- (Plan 17 revision R2) while a ceiling applies, 0 otherwise (no drain table, none applied, or a mask not a number).
+function K.view.drainSignal(D)
+    if type(D) ~= "table" or D.active ~= true or not K.finite(D.mask) or not K.finite(D.recovering) then
+        return 0
+    end
+    return D.mask + 128 * D.recovering
 end
 
 -- A whole number from v, floored and clamped 0..hi; anything that is not a finite number reads 0.
@@ -226,7 +235,7 @@ function K.view.rows(m, level, order, fat, ungraded, def)
         r.cls = cls
         r.n = c[cls]
     end
-    K.view.drainRows(rows, mm.drain_mask)
+    K.view.drainRows(rows, mm.drain_mask, mm.drain_rec)
     if lv < 2 then
         return rows
     end
@@ -297,20 +306,34 @@ function K.view.excessRow(rows, m, key, lv, always)
 end
 
 -- --- the panel's signal lines (Plan 15 Task 9; spec section 4) -------------------------------------------------------
--- The drain lines: one row per active drain state, in code order, its label UI_NR_Row_drain and its text the state's
--- plain words, UI_NR_Drain_<name> (K.drain.states[code].name: "weakened by starvation", "suffering from dehydration",
--- "scurvy" ...), amber like a raised class. mask is the mirror's drain_mask (K.drain's set of active codes, code c the
--- bit 2^(c - 1)); a mask that is not a finite number reads none. Pushed at level 1: the drain is the body's damage
--- signal the removed Energy moodle carried (decisions item 1), so every visibility level shows it.
-function K.view.drainRows(rows, mask)
-    if not K.finite(mask) or mask <= 0 then
+-- The drain lines: one row per active or recovering drain state, in code order, its label UI_NR_Row_drain and its text
+-- the state's plain words, UI_NR_Drain_<name> (K.drain.states[code].name: "weakened by starvation", "suffering from
+-- dehydration", "scurvy" ...) while it is active, or UI_NR_DrainRec_<name> ("recovering from starvation" ...) while it
+-- recovers (Plan 17 revision R2: its cause has lapsed and its ceiling still applies), amber like a raised class. mask
+-- and rec are the mirror's drain_mask and drain_rec (K.drain's sets of active and recovering codes, code c the bit
+-- 2^(c - 1)); a mask that is not a finite number reads none. Pushed at level 1: the drain is the body's damage signal
+-- the removed Energy moodle carried (decisions item 1), so every visibility level shows it.
+function K.view.drainRows(rows, mask, rec)
+    if not K.finite(mask) or mask < 0 then
+        mask = 0
+    end
+    if not K.finite(rec) or rec < 0 then
+        rec = 0
+    end
+    if mask + rec <= 0 then
         return
     end
     -- K.drain.states is a kernel-built Lua array, so # is its length
     for code = 1, #K.drain.states do
+        local name = K.drain.states[code].name
+        local text = nil
         if K.view.hasBit(mask, code) then
-            local name = K.drain.states[code].name
-            local r = K.view.push(rows, "drain_" .. name, "UI_NR_Row_drain", "UI_NR_Drain_" .. name, 1, true)
+            text = "UI_NR_Drain_" .. name
+        elseif K.view.hasBit(rec, code) then
+            text = "UI_NR_DrainRec_" .. name
+        end
+        if text ~= nil then
+            local r = K.view.push(rows, "drain_" .. name, "UI_NR_Row_drain", text, 1, true)
             r.cls = "drain"
             r.n = 1
         end

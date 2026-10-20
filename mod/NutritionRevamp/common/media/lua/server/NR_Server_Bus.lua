@@ -90,7 +90,7 @@ function B.flushEffects(username, player, record)
     local body, fl, ac, D = record.body, record.fluids, record.acute, record.drain
     local trend = nil
     if body ~= nil then trend = K.view.trendIndex(K.mirror.trend(body, body.fm + body.lm + body.lx)) end
-    local sig = K.view.pushSignature(fl and fl.dehydPct, ac and ac.caf, ac and ac.debtH, K.mirror.stomachMass(record), D and D.active and D.mask, trend)
+    local sig = K.view.pushSignature(fl and fl.dehydPct, ac and ac.caf, ac and ac.debtH, K.mirror.stomachMass(record), K.view.drainSignal(D), trend)
     if B.lastSig[username] ~= nil and B.lastSig[username] ~= sig then B.effects.dirty[username] = true end
     B.lastSig[username] = sig
     local E = record.effects

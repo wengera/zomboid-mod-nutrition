@@ -666,8 +666,9 @@ end
 -- health-from-food timer, which alone drives the FOOD_EATEN moodle (Well Fed) and vanilla's eat and drink refusals at its
 -- level 3 (#0511; jar-checks Check 1c): each minute the target is K.view.foodTimer of the Overfull level (K.view.overfullOf,
 -- the client moodle's number), the meal pool M (record.satiety.M, this minute's, after the satiety step) and whether a
--- drain state is active (record.drain.active), and BodyDamage.setHealthFromFoodTimer writes it (#3896: a server write
--- reaches the client's moodle and its eat gates through the 1 Hz stats packet). Vanilla drains the timer between writes
+-- drain state is active (record.drain.mask over 0; a recovering state's ceiling, Plan 17 revision R2, keeps no one from
+-- Well Fed, while the food heal stays 0 under it, NR_Server_Effects), and BodyDamage.setHealthFromFoodTimer writes it
+-- (#3896: a server write reaches the client's moodle and its eat gates through the 1 Hz stats packet). Vanilla drains the timer between writes
 -- (#2385), so a target above 0 is written every minute (one Java call a sated minute); a target of 0 is written only on
 -- the change to 0 and vanilla's own drain keeps it there (no call on a steady unfed minute, Rule 6), except on a minute an
 -- intake landed (IN.landed, an eat or a drink): vanilla's eat at HUNGER 0 (#3598) and every drink (jar-checks Check 1
@@ -683,7 +684,7 @@ function W.foodTimer(h, player, record, inp, ctx)
     local D = record.drain
     local level = K.view.overfullOf(record)
     local M = s and s.M
-    local draining = type(D) == "table" and D.active == true
+    local draining = type(D) == "table" and type(D.mask) == "number" and D.mask > 0
     local want = K.view.foodTimer(level, M, draining)
     if want == 0 and h.ft == 0 and inp.sipOK then return end   -- held at 0 by vanilla's own drain, no landing: no call
     if want > 0 then                                           -- sized from the day length: one shared read, sated minutes only

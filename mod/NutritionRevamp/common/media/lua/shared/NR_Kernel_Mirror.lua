@@ -4,9 +4,9 @@
 -- (record.pool stays a diagnostic); the nutrient grades, the fluids and the acute scalars take their place.
 -- A record whose kinetics has not yet run reads its stomach's own fill, else empty, and zeros.
 -- The 18 effects_* keys (K.mirror.effects) — a multiplier reads 0, not 1, until the record has an effects table, so a
--- reader that acts on one must treat 0 as absent. The three drain_* keys (K.mirror.drain): the active drain state's
--- code (0 none), the target health (100 with none), K.drain's (Plan 15 Task 4), and the set of every active state
--- (drain_mask, Plan 15 Task 9: the panel's drain lines).
+-- reader that acts on one must treat 0 as absent. The four drain_* keys (K.mirror.drain): the drain state's code (0
+-- none), the target health (100 with none), K.drain's (Plan 15 Task 4), the set of every active state (drain_mask,
+-- Plan 15 Task 9: the panel's drain lines) and the set of every recovering state (drain_rec, Plan 17 revision R2).
 local K = NutritionRevamp.kernel
 K.mirror = {}
 
@@ -174,13 +174,15 @@ function K.mirror.effects(m, eff)
     end
 end
 
--- The drain keys: drain_state, the active state's code (K.drain's codes; 0 with none or no drain table),
--- drain_target, the target health (K.drain.NONE, 100, with none; Plan 17 Task 2), and drain_mask, every active code's bit (0 with none, or
--- with a mask that is not a number).
+-- The drain keys: drain_state, the code with the smallest fraction among the active and recovering states (K.drain's
+-- codes; 0 with none or no drain table), drain_target, the target health (K.drain.NONE, 100, with none; Plan 17 Task
+-- 2), drain_mask, every active code's bit, and drain_rec, every recovering code's bit (revision R2: its cause has
+-- lapsed and its ceiling still applies); each mask 0 with none, or when it is not a number.
 function K.mirror.drain(m, D)
     m.drain_state = 0
     m.drain_target = K.drain.NONE
     m.drain_mask = 0
+    m.drain_rec = 0
     if D == nil or D.active ~= true then
         return
     end
@@ -188,6 +190,9 @@ function K.mirror.drain(m, D)
     m.drain_target = D.target
     if type(D.mask) == "number" then
         m.drain_mask = D.mask
+    end
+    if type(D.recovering) == "number" then
+        m.drain_rec = D.recovering
     end
 end
 

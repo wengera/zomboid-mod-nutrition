@@ -114,6 +114,7 @@ def constructed():
     assert len(drain) == 7
     for name in drain:
         out.add("UI_NR_Drain_" + name)
+        out.add("UI_NR_DrainRec_" + name)               # Plan 17 revision R2: a recovering state's line
     for w in ("losing", "steady", "gaining"):
         out.add("UI_NR_Trend_" + w)
     for k in ("Fills", "FillsUnder", "FillsOver"):
