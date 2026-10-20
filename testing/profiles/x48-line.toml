@@ -25,6 +25,7 @@ path = "release/NutritionRevamp/Contents/mods/NutritionRevamp"
 [server]
 SleepAllowed = false
 SleepNeeded = false
+timeout = 240                 # the server boot wait (x471's boot about 30 s, x481's about 80 s with admin): bounds the slow-boot fallback under the 600 s cap
 
 [client]
 timeout = 180

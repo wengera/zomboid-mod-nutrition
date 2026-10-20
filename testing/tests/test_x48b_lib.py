@@ -107,7 +107,7 @@ def bad(v, out):
 
 NAMES = {
     "x483": {"INI", "OPT_SERVER", "OPT_ADMIN", "OPT_BOB", "MOD_READ", "JOIN", "Z"},
-    "x484": {"OPT", "ONSET", "LINE", "RATE", "BERI_ON", "COMBINE", "REPLAY_health", "REPLAY_drain.target", "H1",
+    "x484": {"OPT", "ONSET", "LINE", "RATE", "TRACK", "BERI_ON", "COMBINE", "REPLAY_health", "REPLAY_drain.target", "H1",
              "RING", "Z"},
 }
 
@@ -149,7 +149,7 @@ FLAGS = [
     ("steep_line", {"LINE", "REPLAY_drain.target"}),
     ("worst", {"COMBINE"}),
     ("add", {"COMBINE"}),
-    ("half_take", {"REPLAY_health"}),
+    ("half_take", {"REPLAY_health", "TRACK"}),
     ("no_beri", {"BERI_ON", "COMBINE", "RATE"}),
 ]
 
@@ -227,7 +227,7 @@ def test_grade_rate():
 
 def _comb_rows(n=30, fold=None, combine=2):
     rows = _rows(n, **{L.F1: lambda i: 0.999 - 1e-5 * i, L.F3: lambda i: 1.0 - 2e-5 * i,
-                       L48.OPT_COMBINE: combine})
+                       L48.OPT_COMBINE: combine, "drain.mask": 5})
     for r in rows:
         f1, f3 = r[L.F1], r[L.F3]
         r["drain.target"] = 100.0 * (fold(f1, f3) if fold else f1 * f3)
@@ -242,7 +242,7 @@ def test_grade_combine():
     assert L.grade_combine(_comb_rows(fold=min), a)[0] == "falsified"
     assert L.grade_combine(_comb_rows(fold=lambda x, y: x - (1 - y)), a)[0] == "falsified"   # Add
     assert L.grade_combine(_comb_rows(combine=3), a)[0] == "falsified"
-    flat = _rows(30, **{L.F1: 0.9999, L.F3: 1.0, L48.OPT_COMBINE: 2, "drain.target": 99.99})
+    flat = _rows(30, **{L.F1: 0.9999, L.F3: 1.0, L48.OPT_COMBINE: 2, "drain.target": 99.99, "drain.mask": 5})
     assert L.grade_combine(flat, a)[0] == "unmeasured"                          # Multiply and Add inseparable
     assert L.grade_combine(rows, rows[-5]["age"])[0] == "unmeasured"            # under COMBINE_MIN_ROWS after it
     assert L.grade_combine(rows, None)[0] == "unmeasured"
@@ -353,6 +353,9 @@ def test_profile_checks_fail_each_key():
         d2 = copy.deepcopy(doc)
         d2["mods"][1]["path"] = "mod/NutritionRevamp"
         assert L.profile_doc_checks(name, d2, text)["mods_staged"] is False
+        d2 = copy.deepcopy(doc)
+        d2["server"]["timeout"] = 420
+        assert L.profile_doc_checks(name, d2, text)["server_timeout"] is False
         d2 = copy.deepcopy(doc)
         d2["verify"] = d2["verify"][:1]
         assert L.profile_doc_checks(name, d2, text)["verify_version"] is False
@@ -528,3 +531,57 @@ def test_take_reads_follows_the_plan_and_records_a_raise():
     assert set(rs["end"][L.SRV]) == set(L.READ_PLAN[L.SRV])
     assert rs["end"][L.BOB][L.SERVER_PACE_G] == {"error": "TimeoutError: no reply"}
     assert L.grade_pair(rs, L.BOB, L.SERVER_PACE_G, L.SERVER_COMBINE_G)[0] == "unmeasured"
+
+
+def test_take_reads_stops_asking_a_side_after_a_timeout():
+    calls = []
+
+    def ask(node, cmd, args, timeout=20):
+        calls.append((node, args))
+        if node == L.BOB:
+            return {"error": "TimeoutError: no reply in 15 s"}
+        return lg(2, side=node, name=args)
+    rs = {}
+    for tag in ("after_ready", "end"):
+        L.take_reads(ask, {L.SRV: L.SRV, L.ADMIN: L.ADMIN, L.BOB: L.BOB}, tag, rs)
+    assert sum(1 for n, _ in calls if n == L.BOB) == 2                         # once a set
+    row = rs["end"][L.BOB]
+    first = L.READ_PLAN[L.BOB][0]
+    assert "TimeoutError" in row[first]["error"]
+    assert all(row[n]["error"].startswith("skipped: ") for n in L.READ_PLAN[L.BOB][1:])
+    assert len([n for n, _ in calls if n == L.ADMIN]) == 2 * len(L.READ_PLAN[L.ADMIN])
+    assert L.grade_pair(rs, L.BOB, L.SERVER_PACE_G, L.SERVER_COMBINE_G)[0] == "unmeasured"
+
+
+def test_bob_starts_only_while_his_watch_and_the_close_fit_the_budget():
+    import x483_options as D
+    assert D.BUDGET_S - L.OBS_S - L.CLOSE_RESERVE_S <= 210.0
+    for name in L.PROFILES:
+        import tomllib
+        with open(os.path.join(REPO, "testing", "profiles", name + ".toml"), "rb") as fh:
+            assert tomllib.load(fh)["server"]["timeout"] == L.SERVER_TIMEOUT_S
+
+
+def test_grade_track():
+    rows = _line_rows()
+    for r in rows:
+        r["health"] = r.get("drain.target", 100.0)
+    v, o = L.grade_track(rows, 3)
+    assert v == "as_predicted" and o["max_gap"] == 0.0
+    lag = copy.deepcopy(rows)
+    lag[30]["health"] += 6e-4                                                   # health trailing its target
+    assert L.grade_track(lag, 3)[0] == "falsified"
+    assert L.grade_track(rows[:20], 3)[0] == "unmeasured"
+    assert L.grade_track(rows, None)[0] == "unmeasured"
+
+
+def test_rate_and_combine_read_only_their_masks():
+    rows = _rate_rows()
+    rows.append(dict(rows[-1], s=99, age=rows[-1]["age"] + 0.02, **{"drain.mask": 4, "drain.rate": 2.857142857142857}))
+    assert L.grade_rate(rows)[0] == "as_predicted"                              # beriberi alone has no floor
+    c = _comb_rows()
+    for r in c:
+        r["drain.mask"] = 5
+    extra = dict(c[-1], s=99, age=c[-1]["age"] + 0.02, **{"drain.mask": 7, "drain.target": 50.0})
+    v, o = L.grade_combine(c + [extra], c[0]["age"] - 0.001)
+    assert v == "as_predicted" and o["n_other_mask"] == 1

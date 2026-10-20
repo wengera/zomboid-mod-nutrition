@@ -23,7 +23,8 @@ PREDICTIONS:
   K.drain.OPT.dayMin (15 at DayLength 1) and options.readAt.
 
 WALL: about 3.5 min (x471 took 175 s: server about 30 s, admin about 40 s, bob about 40 s, the reads and the 20 s hold,
-teardown about 30 s); BUDGET_S 540.
+teardown about 30 s); BUDGET_S 540. The wall guard: bob started only by BUDGET_S - OBS_S - CLOSE_RESERVE_S
+(210 s); the server boot waits at most 240 s.
 
 RULES: 1. NEVER edited after its run. 2. A trivial, unmeasured or falsified reading is written as such, never re-run.
 3. One live session at a time. 4. Free memory read before the boot, refused under 12 GB. 5. Never -safemode.

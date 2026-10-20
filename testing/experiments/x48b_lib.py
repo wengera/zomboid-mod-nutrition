@@ -31,7 +31,8 @@ THE SESSIONS (each one boot, under 10 wall minutes, in a foreground call):
                is started and watched by the driver (x47_lib.watch_bob: a never-ready bob is a reading, not a raise).
                Once bob is ready and READ_SETTLE_S has passed: the reads (`after_ready`) on the server, admin and bob,
                the verify rows, HOLD_S held, the reads again (`end`), the players read. After teardown the server's
-               user and connections logs and bob's connections log are read and copied (x471's).
+               user and connections logs and bob's connections log are read and copied (x471's). The wall guard (F1):
+               bob is started only by BUDGET_S - OBS_S - CLOSE_RESERVE_S; the server boot waits at most 240 s.
   x484 line    (x48-line; fixture default, admin -debug, DayLength 4 (the 90-minute day: x481's, so r_hunger(dayMin)
                is vanilla's 3.564 health a game hour), sleep off, Nutrition false, NR.DeathPace 3 and NR.HealthCombine
                2, the declared defaults written so the profile says what the run is) S, H (x48_lib.RING), W (start.json),
@@ -70,8 +71,8 @@ never as_predicted; every tolerance is named below, before any run):
                    drain's own age (the row before's, x48_lib's placement) within LINE_TOL_REL of the line's,
                    100 x STARVE_DBMI / (bmi0 - 12) health a game hour for the ring's bmi0 (spec section 9: starvation
                    linear on the smoothed BMI progress), over at least LINE_MIN_ROWS rows.
-        RATE       (ruling R1-5) every active row's drain.rate at least r_hunger(dayMin) x 24 health a game day, vanilla's
-                   level-4 rate at the day length; on the starvation rows (mask 1) within RATE_TOL_REL of the larger of
+        RATE       (ruling R1-5) every row with starvation active: drain.rate at least r_hunger(dayMin) x 24 health a game
+                   day, vanilla's level-4 rate at the day length (a deficiency has no floor); on the starvation rows (mask 1) within RATE_TOL_REL of the larger of
                    that floor and the line's own rate; on the starvation-and-beriberi rows (mask 5) within RATE_TOL_REL of
                    that plus beriberi's 100 x 24 / BERIBERI_DEATH_H (a deficiency has no vanilla floor); at least one row
                    of each.
@@ -80,6 +81,9 @@ never as_predicted; every tolerance is named below, before any run):
                    frac.3) within COMBINE_TOL (Multiply, the polled combine 2); unmeasured unless some row's Add fold
                    parts from the product by more than COMBINE_SEP x COMBINE_TOL (the run separates Multiply from Add,
                    which x481's 1e-4 tolerance did not), at least COMBINE_MIN_ROWS rows.
+        TRACK      (review N3) every active row after the onset row reads |health - drain.target| <= TRACK_TOL: health
+                   on its line each minute (the take clamps to health - target); REPLAY_TOL cannot see a trail under 0.002
+                   on a line this slow (0.00072 a game minute); at least LINE_MIN_ROWS rows.
         REPLAY_health, REPLAY_drain.target  every ring row's health and target within x48_lib.REPLAY_TOL (0.002) of
                    the HEAD replay of the run's own inputs (the line).
 
@@ -148,6 +152,8 @@ READ_SETTLE_S = L47.READ_SETTLE_S        # after bob's ready, before the first r
 HOLD_S = L47.HOLD_S                      # held between the two read sets (x471's 20 s)
 OBS_S = L47.OBS_S                        # bob watched at most this long from its start (x471's 180 s)
 SANDBOX_REL = L47.SANDBOX_REL
+SERVER_TIMEOUT_S = 240                   # both profiles' [server] timeout: the slow-boot fallback's bound (F1)
+CLOSE_RESERVE_S = 150.0                  # x483: wall s kept after bob's watch for the hold, the end reads, the players read, teardown and the copy
 
 # ---- x484: the line (game hours at DayLength 4)
 MOD_DAY_LENGTH = 4
@@ -169,6 +175,7 @@ RATE_TOL_REL = 0.01
 COMBINE_TOL = 1e-9                       # on the 100 scale: the record's doubles read back exactly (x481: residual 0.0)
 COMBINE_SEP = 10.0                       # the Add fold must part from the product by 10 x COMBINE_TOL on some row
 COMBINE_MIN_ROWS = 20
+TRACK_TOL = 5e-4                         # about 45 x x481's float32 health spread on its target (1.1e-5)
 F1, F3 = L48.F1, L48.F3
 
 
@@ -207,16 +214,26 @@ def grade_ini(seeded):
 
 
 def take_reads(ask, nodes, tag, read_sets, plan=None):
-    """One read set: every side's reads (READ_PLAN), each a lua.global reply, at read_sets[tag][side][name]."""
+    """One read set: every side's reads (READ_PLAN), each a lua.global reply, at read_sets[tag][side][name]; a side
+    whose read timed out is not asked again in this set (its later reads record `skipped`, unanswered like the timeout)."""
     rs = read_sets.setdefault(tag, {})
     for side, names in (plan or READ_PLAN).items():
         node = nodes.get(side)
         row = rs.setdefault(side, {})
+        wedged = None
         for nm in names:
-            try:
-                row[nm] = ask(node, "lua.global", nm, timeout=15) if node is not None else {"error": "no node"}
-            except Exception as e:             # noqa: BLE001 - recorded
-                row[nm] = {"error": f"{type(e).__name__}: {e}"}
+            if node is None:
+                row[nm] = {"error": "no node"}
+            elif wedged is not None:
+                row[nm] = {"error": f"skipped: {wedged}"}
+            else:
+                try:
+                    row[nm] = ask(node, "lua.global", nm, timeout=15)
+                except Exception as e:             # noqa: BLE001 - recorded
+                    row[nm] = {"error": f"{type(e).__name__}: {e}"}
+                err = row[nm].get("error") if isinstance(row[nm], dict) else None
+                if err and "Timeout" in str(err):
+                    wedged = f"the side timed out on {nm} earlier in this set"
     return rs
 
 
@@ -326,7 +343,7 @@ def grade_line(rows, i_on, i_end=None):
 
 
 def grade_rate(rows):
-    """RATE (R1-5): every active row's rate at least vanilla's level-4 rate a day; the starvation rows at the larger of
+    """RATE (R1-5): every row with starvation active at least vanilla's level-4 rate a day; the starvation rows at the larger of
     that and the line's own; the starvation-and-beriberi rows at that plus beriberi's line."""
     under, off, n1, n5, n = [], [], 0, 0, 0
     beri = 100.0 * 24.0 / K_BERIBERI_DEATH_H
@@ -336,7 +353,7 @@ def grade_rate(rows):
             continue
         n += 1
         floor = r_hunger(dm) * 24.0
-        if rate < floor * (1.0 - EQ_TOL):
+        if int(round(num(r.get("drain.mask")) or 0)) & MASK_STARVE and rate < floor * (1.0 - EQ_TOL):
             under.append({"s": r.get("s"), "rate": rate, "floor": floor})
         bmi0 = num(r.get("drain.bmi0"))
         line = 100.0 * 24.0 * K_STARVE_DBMI / (bmi0 - L48.K_BMI_DEATH) if bmi0 and bmi0 > L48.K_BMI_DEATH else 0.0
@@ -359,13 +376,32 @@ def grade_rate(rows):
     return "as_predicted", obs
 
 
+def grade_track(rows, i_on):
+    """TRACK: every active row after the onset row has |health - drain.target| <= TRACK_TOL."""
+    if i_on is None:
+        return "unmeasured", {"why": "no onset row"}
+    pts = [(r.get("s"), num(r.get("health")), num(r.get("drain.target"))) for r in rows[i_on + 1:]
+           if r.get("drain.active") is True]
+    pts = [(s, h, t) for s, h, t in pts if h is not None and t is not None]
+    if len(pts) < LINE_MIN_ROWS:
+        return "unmeasured", {"why": f"{len(pts)} active row(s) with health and a target, under {LINE_MIN_ROWS}"}
+    gaps = [(abs(h - t), s, h, t) for s, h, t in pts]
+    worst = max(gaps)
+    off = [{"s": s, "health": h, "target": t, "gap": d} for d, s, h, t in gaps if d > TRACK_TOL]
+    obs = {"n": len(pts), "max_gap": worst[0], "worst_s": worst[1], "tol": TRACK_TOL, "n_off": len(off),
+           "off": off[:10]}
+    return ("falsified" if off else "as_predicted"), obs
+
+
 def grade_combine(rows, after_age, combine=2):
     """COMBINE: every row after the write with both fractions reads 100 x (frac.1 x frac.3) within COMBINE_TOL and the
     polled combine; measured only when the Add fold parts from the product by COMBINE_SEP x COMBINE_TOL on some row."""
     if after_age is None:
         return "unmeasured", {"why": "no thiamine write"}
     both = [r for r in rows if (ring_age(r) or -1) > after_age and num(r.get(F1)) is not None
-            and num(r.get(F3)) is not None]
+            and num(r.get(F3)) is not None and same_mask(r, MASK_STARVE_BERI)]
+    n_other = sum(1 for r in rows if (ring_age(r) or -1) > after_age and num(r.get(F1)) is not None
+                  and num(r.get(F3)) is not None and not same_mask(r, MASK_STARVE_BERI))
     if len(both) < COMBINE_MIN_ROWS:
         return "unmeasured", {"why": f"{len(both)} row(s) with both fractions, under {COMBINE_MIN_ROWS}"}
     bad, sep_add, sep_worst = [], 0.0, 0.0
@@ -377,7 +413,8 @@ def grade_combine(rows, after_age, combine=2):
         sep_worst = max(sep_worst, abs(100.0 * min(f1, f3) - want))
         if t is None or abs(t - want) > COMBINE_TOL or not L48.same(r.get(L48.OPT_COMBINE), combine):
             bad.append({"s": r.get("s"), "target": t, "want": want, "combine": r.get(L48.OPT_COMBINE)})
-    obs = {"n": len(both), "n_off": len(bad), "off": bad[:10], "sep_add_max": sep_add, "sep_worst_max": sep_worst,
+    obs = {"n": len(both), "n_other_mask": n_other, "n_off": len(bad), "off": bad[:10], "sep_add_max": sep_add,
+           "sep_worst_max": sep_worst,
            "tol": COMBINE_TOL, "sep_needed": COMBINE_SEP * COMBINE_TOL}
     if bad:
         return "falsified", obs
@@ -410,7 +447,8 @@ def profile_doc_checks(name, doc, text=""):
             "day_length": sb.get("DayLength") == spec["day_length"],
             "nr_block": sb.get("NR") == {"DeathPace": spec["pace"], "HealthCombine": spec["combine"]},
             "verify_version": vr == want_sides,
-            "no_override": "client_overrides" not in doc}
+            "no_override": "client_overrides" not in doc,
+            "server_timeout": srv.get("timeout") == SERVER_TIMEOUT_S}
 
 
 def mod_head(repo=REPO):
@@ -518,6 +556,7 @@ class Sess(L48.Sess):
                 "a starvation row off the line (frac.1, target or bRate), or the target's slope off the line's by "
                 "more than LINE_TOL_REL")
         self._g("RATE", grade_rate(rows), "an active row's rate under vanilla's level-4 rate, or off its sum")
+        self._g("TRACK", grade_track(rows, i_on), "an active row's health more than TRACK_TOL off its target")
         self._g("BERI_ON", L48.grade_beri(rows, a_p), "no clinical grade and beriberi fraction within BERI_GM")
         self._g("COMBINE", grade_combine(rows, a_p, self.prof["combine"]), "a target off 100 x (f1 x f3)")
 
@@ -646,6 +685,10 @@ def main_options(key, driver_file, session_text, pred, budget_s, pre):
         out["sandbox_after_start"] = L47.sandbox_nr_block(L47.read_text(sbp))
         clients.update(attach_clients(run_dir, prof, server, rec_fx, tl, users=[ADMIN], started=started))
         out["admin_ready_wall"] = xs.wall()
+        if xs.wall() > budget_s - OBS_S - CLOSE_RESERVE_S:
+            out["budget_stop"] = {"phase": "bob", "wall": xs.wall(),
+                                  "why": f"admin ready at {xs.wall()} s: bob's {OBS_S} s watch would end past the budget"}
+            raise RuntimeError("bob not started: " + out["budget_stop"]["why"])
         bob, restored = make_client(run_dir, BOB, server, rec_fx, safemode=prof.safemode, launcher=prof.launcher,
                                     **override_kw(prof, BOB, server))
         started.append(bob)

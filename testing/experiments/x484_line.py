@@ -25,8 +25,9 @@ parting from it by up to 1.55e-4 and Worst by 0.119; at the end health 99.751115
   ONSET      a starveAcute row within 0.35 game h of the seed (precondition).
   LINE       the starvation rows to the thiamine: frac.1 = 1 - pS, target = 100 x frac.1, bRate the calibrated
              STARVE_DBMI; the target's slope within 1 % of 100 x STARVE_DBMI / (bmi0 - 12) a game hour.
-  RATE       every active row at least r_hunger(90) x 24 = 85.536 a day; the starvation rows at that floor, the
+  RATE       every row with starvation active at least r_hunger(90) x 24 = 85.536 a day; the starvation rows at that floor, the
              starvation-and-beriberi rows at the floor plus 2.857 (R1-5).
+  TRACK      every active row after the onset: |health - target| <= 5e-4 (prerun gap 0.0).
   BERI_ON    the thiamine grade 4 and frac.3 in (0.999, 1] within 2.5 game minutes of the write.
   COMBINE    every row after the write with both fractions: the target 100 x (frac.1 x frac.3) within 1e-9, the combine 2;
              the Add fold parted from it by more than 1e-8 on some row.
@@ -65,7 +66,9 @@ PRED = {
     "LINE": f"frac.1 = 1 - pS, target = 100 x frac.1, bRate STARVE_DBMI; slope 100 x STARVE_DBMI / (bmi0 - 12) within "
             f"{L.LINE_TOL_REL} (prerun {(P.get('line') or {}).get('slope_h')} a game h at bmi0 "
             f"{(P.get('line') or {}).get('bmi0')})",
-    "RATE": f"every active row at least r_hunger(90) x 24 = {L.r_hunger(90) * 24:.3f}; starvation at it, with beriberi "
+    "TRACK": f"|health - target| <= {L.TRACK_TOL} on every active row after the onset (prerun "
+             f"{P.get('health_gap_max')})",
+    "RATE": f"every row with starvation active at least r_hunger(90) x 24 = {L.r_hunger(90) * 24:.3f}; starvation at it, with beriberi "
             f"at it plus {100.0 * 24.0 / L.K_BERIBERI_DEATH_H:.3f}, within {L.RATE_TOL_REL}",
     "BERI_ON": f"grade 4 and frac.3 near 1 within {L48.BERI_GM} game minutes (prerun "
                f"{(P.get('beri') or {}).get('lag_gm')})",
