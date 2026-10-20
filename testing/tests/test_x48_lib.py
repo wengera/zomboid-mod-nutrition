@@ -710,7 +710,7 @@ def test_the_drivers_name_their_own_file_profile_and_artifact():
         m = importlib.import_module(s["driver"][:-3])
         assert m.KEY == key and m.PREFIX == key and m.PROFILE == s["profile"] and m.ARTIFACT == s["artifact"]
         assert set(m.PRED) == NAMES[key]
-        assert m.BUDGET_S <= 560.0
+        assert m.BUDGET_S <= 530.0
 
 
 def test_the_staged_copy_gate_and_the_harness_markers():

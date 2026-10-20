@@ -28,7 +28,7 @@ crossing, so the reading's differences are -8.28 h after the write (the onsets d
   If the death does not fit the budget, DEATH is unmeasured and checks.projection holds the line's projected death.
 
 WALL: about 7 min (boot about 80 s, S/H about 10 s, W up to 60 s, A about 5 s, D about 215 s, E 5 s, C/R about 15 s,
-teardown about 30 s); BUDGET_S 560.
+teardown about 30 s); BUDGET_S 530.
 
 RULES: 1. NEVER edited after its run. 2. A trivial, unmeasured or falsified reading is written as such, never re-run.
 3. One live session at a time. 4. Free memory read before the boot, refused under 12 GB. 5. Never -safemode.
@@ -43,7 +43,7 @@ KEY = "x482"
 PREFIX = "x482"
 PROFILE = "x48-vanilla"
 ARTIFACT = "vanilla.json"
-BUDGET_S = 560.0
+BUDGET_S = 530.0
 _ME = os.path.basename(os.path.abspath(__file__))
 assert _ME.startswith(PREFIX + "_"), f"PREFIX {PREFIX} does not match the driver file {_ME}"
 assert L.SESSIONS[KEY]["profile"] == PROFILE and L.SESSIONS[KEY]["artifact"] == ARTIFACT

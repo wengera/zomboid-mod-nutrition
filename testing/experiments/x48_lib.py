@@ -41,10 +41,11 @@ THE WRITES AND THEIR PLACEMENT. A record.set is bracketed by two age reads (a_be
 its replay event is placed by place_set: the first ring row read after the set (within two game minutes) that shows
 the set value exactly (the set came between the drain before it and its read: a set before a drain that moves the value
 would show it moved), else the latest ring row read at or before a_after that holds the reply's `before` (the set came
-after that row's read and before its drain), else the first row read after a_after. A value a drain moves (the meal
-pool M, the thiamine store p below its cap) places exactly; a value the drain leaves (the unfed stamp fedAgeH while M
-is 0) may place one drain late, which moves nothing (no drain restamps it while M is 0, and the onset is SEED_LEAD_H
-later). The sandbox write (sandbox.var NR.DeathPace) is placed at the first ring row whose
+after that row's read and before its drain), else the first row read after a_after. A value a drain moves (the
+thiamine store p below its cap) places exactly; a value the drain leaves (the meal pool M once set to 0, which stays 0
+unfed, and the unfed stamp fedAgeH while M is 0) may place one drain late when the set lands between a minute event's
+ring read and its drain, which moves nothing graded (no drain restamps fedAgeH while M is 0, and the onset is
+SEED_LEAD_H later). The sandbox write (sandbox.var NR.DeathPace) is placed at the first ring row whose
 SandboxVars.NR.DeathPace reads the new value (place_sandbox): the ring and the mod's options poll read SandboxVars in the
 same minute event, so that row's drain is the first to run on the new pace.
 
@@ -194,7 +195,7 @@ OPEN_GM = 3.0
 OPEN_TOL_REL = 0.01
 RATE_TOL_REL = 0.01
 ONSET_SLACK_H = 0.25
-BERI_GM = 2.0
+BERI_GM = 2.5                            # two minute events at speed 1 (the drain after the write, then the ring read after it), each at most 1.11 game minutes (x46_lib.POLL_GM)
 BERI_F0_TOL = 0.001
 COMBINE_TOL = 1e-6
 FOLLOW_GM = 1.2                          # one minute event of at most 1.11 game minutes at speed 1 (x46_lib.POLL_GM)
