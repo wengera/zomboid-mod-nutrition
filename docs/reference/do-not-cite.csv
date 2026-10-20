@@ -22417,6 +22417,9 @@ x481-20261020-070821,verdicts.OPEN_SLOPE.observed.body_ratio,0.9938983979961523,
 x481-20261020-070821,checks.open,the opening computation,"The live slope beside the kernel formula's; only its live leaf is a reading.",`verdicts.OPEN_SLOPE.observed.live`
 x481-20261020-070821,verdicts.FOLLOW.observed.arm_on,94.68595558654495,The HEAD replay's target; not the live game's.,`verdicts.FOLLOW.observed.target`
 x481-20261020-070821,verdicts.FOLLOW.observed.arm_off,95.04377557603152,The HEAD replay's target without the switch; not the live game's.,`verdicts.FOLLOW.observed.target`
+x481-20261020-070821,verdicts.BERI_ON.observed.lag_gm,0.6661605834960938,"Measured from set_age, the age read after the record.set reply; ring row s 86 already shows p 0.3, so the write landed before s 86's read and s 87 came 1.09 to 1.20 game minutes after it.",ring rows s 86 and s 87 `age` and `checks.B.set_p.age_before`
+x481-20261020-070821,verdicts.BERI_ON.observed.set_age,3.823881149291992,"The age read after the record.set reply, not the write's age (the write landed before ring row s 86's read).",`checks.B.set_p.age_before` and ring row s 86 `age`
+x481-20261020-070821,logs.death_lines,six lines,"A loose pattern; this run has no death: the server's boot lines, the mod's three options lines (pace 3, 2, 3) and a DeadBody object-id line at f:2716, after the restore.",`verdicts`
 x482-20261020-071425,logs.death_lines,five lines,"A loose pattern: two of the lines are the server's boot (server-stdout.log lines 41 and 1434), one the options line.",`server-stdout.log` lines 2958 and 2992
 x482-20261020-071425,verdicts.DEATH.observed.replay_age,30.840850830078125,The HEAD replay's death; not the live game's.,`verdicts.DEATH.observed.live_age`
 x482-20261020-071425,checks.x442.x442_after_write_h,36.44633197784424,x442's number copied from its artifact; not this run's.,x442-20261015-173502
