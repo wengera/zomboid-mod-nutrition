@@ -38,8 +38,9 @@ local K = NR.kernel
 -- The Plan 17 options (spec section 2): deathPace, an enum 1 Vanilla, 2 Shortened, 3 Realistic (the default), and
 -- healthCombine, an enum 1 Worst only, 2 Multiply (the default), 3 Add; read in every poll like stimulantRealism (an out-of-
 -- range value reads the default) and logged on a change. The players' minute writes them into K.drain.OPT with the day
--- length once a server minute (NR_Server_Effects' EFF.hoist), so a change takes effect within a game minute; it fires no
--- changed hook.
+-- length once a server minute (NR_Server_Effects' EFF.writeDrainOptions), so a change takes effect within a game minute
+-- (the poll's listener runs first: this file sorts before NR_Server_Players in the execution list, #0850; the reverse
+-- would cost one minute); it fires no changed hook.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false, onsetSpeed = 1.0, sleepOn = true,
                       excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,

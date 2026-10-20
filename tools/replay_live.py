@@ -858,6 +858,8 @@ class ServerReplay(_Backend):
         for name, v in (("death_pace", death_pace), ("health_combine", health_combine), ("day_minutes", day_minutes)):
             if isinstance(v, bool) or not isinstance(v, (int, float)) or v != v:
                 raise ValueError("%s must be a number: %r" % (name, v))
+        if int(death_pace) not in (1, 2, 3) or int(health_combine) not in (1, 2, 3) or not day_minutes > 0:
+            raise ValueError("drain options out of range: %r" % ((death_pace, health_combine, day_minutes),))
         self.rt.execute("SandboxVars.NR.DeathPace = %d; SandboxVars.NR.HealthCombine = %d" % (death_pace, health_combine))
         self.rt.eval("function(d) NutritionRevamp.sandbox().getDayLengthMinutes = function(s) return d end end")(
             float(day_minutes))

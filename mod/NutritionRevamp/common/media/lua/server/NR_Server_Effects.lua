@@ -655,7 +655,7 @@ end
 -- hoisted day length (NR.read.minuteDayMin, K.drain.DAY_MINUTES when the sandbox is unreadable) written in place into
 -- K.drain.OPT, which every K.drain.step this minute reads: once a server minute, called by the players' minute after
 -- its hoist and before any player's work (NR_Server_Players' P.minute), never per player, with no allocation.
-function EFF.hoist()
+function EFF.writeDrainOptions()
     local OPT = K.drain.OPT
     local O = NR.server.options
     OPT.pace = O.deathPace

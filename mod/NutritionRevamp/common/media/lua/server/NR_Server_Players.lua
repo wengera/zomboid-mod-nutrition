@@ -8,7 +8,7 @@
 -- and is made in the player's next queue slot. Java lists are walked with size()/get(i) (#0940).
 -- A made reset fires the onNewGame hooks (username, player, record): the creation handler (NR_Server_Creation).
 -- The minute's hoist (NR.read.hoist: the hour of day and the day length, once a server minute) is followed, before any
--- player's work, by the drain options' write (NR_Server_Effects' EFF.hoist), under its own pcall.
+-- player's work, by the drain options' write (NR_Server_Effects' EFF.writeDrainOptions), under its own pcall.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.players = { online = {}, queue = {}, queueHead = 1, onFirstSight = {}, onDeparture = {}, onNewGame = {},
@@ -130,8 +130,8 @@ function P.minute()
     local age = NR.worldAge()
     NR.read.hoist(age)                                  -- the hour of day and the day length, once a server minute (Rule 6)
     local EFF = NR.server.effects
-    if EFF ~= nil and EFF.hoist ~= nil then
-        local okH, errH = pcall(EFF.hoist)                -- the drain options, once a server minute (Plan 17 Task 3)
+    if EFF ~= nil and EFF.writeDrainOptions ~= nil then
+        local okH, errH = pcall(EFF.writeDrainOptions)    -- the drain options, once a server minute (Plan 17 Task 3)
         if not okH then NR.log.say(2, "players: the drain options' write failed: " .. tostring(errH)) end
     end
     local roster = {}

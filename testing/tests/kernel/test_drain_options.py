@@ -1,6 +1,6 @@
 """The drain options (Plan 17 Task 3, spec docs/superpowers/specs/2026-10-19-health-combine-design.md sections 2.4, 4.2
 and 4.3): NR.DeathPace and NR.HealthCombine, read in the options poll, hoisted into K.drain.OPT with the day length
-once a server minute (NR_Server_Effects' EFF.hoist, a players' minute hook), and the replay host's inputs for them.
+once a server minute (NR_Server_Effects' EFF.writeDrainOptions, called directly by the players' minute, P.minute), and the replay host's inputs for them.
 
 - The option read: the sandbox's leaves reach K.drain.OPT within one server minute, an out-of-range leaf reads its
   default, a change is logged, and the day length is read once a server minute, never per player.
@@ -83,6 +83,9 @@ def test_the_day_length_is_read_once_a_server_minute_and_seeds_every_players_min
     assert h.K.drain.OPT.dayMin == 60
     b = h.record("g6")["body"]
     h.record("g6")["fluids"]["water"] = -0.12 * (b["fm"] + b["lm"] + b["lx"]) * 1000.0     # a drain heals and writes
+    H = h.rt.eval("{ n = 0 }")
+    h.rt.eval("function(H) local E = NutritionRevamp.server.effects; local f = E.writeDrainOptions; "
+              "E.writeDrainOptions = function() H.n = H.n + 1; return f() end end")(H)
     day0 = C.day
     for m in range(4, 14):
         h.T.age = start + m / 60.0
@@ -90,6 +93,7 @@ def test_the_day_length_is_read_once_a_server_minute_and_seeds_every_players_min
         h.tick(golden_trace.TICKS)
     assert h.record("g6")["drain"]["active"] is True
     assert C.day - day0 == 10                                             # one read a server minute, three players
+    assert H.n == 10                                                      # the drain options' write: once a server minute
     C.len = 45
     h.T.age = start + 14 / 60.0
     h.minute()
@@ -118,6 +122,8 @@ def test_the_replay_host_takes_the_drain_options_as_inputs():
     assert _opt(be) == (1, 3, 120)
     with pytest.raises(ValueError):
         RL.ServerReplay(sleep_allowed=False, death_pace=None)
+    with pytest.raises(ValueError):
+        RL.ServerReplay(sleep_allowed=False, death_pace=4)
 
 
 # --- the vanilla oracle (spec section 4.3) --------------------------------------------------------------------------
