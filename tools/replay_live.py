@@ -797,12 +797,23 @@ def set_constants(K, constants, rt=None):
         K[mod][key] = float(value)
 
 
+# The drain options a replay runs under by default (Plan 17 Task 3): the mod's own defaults, NR.DeathPace 3 (Realistic)
+# and NR.HealthCombine 2 (Multiply) (media/sandbox-options.txt), and vanilla's 90-minute day (K.drain.DAY_MINUTES).
+DEATH_PACE = 3
+HEALTH_COMBINE = 2
+DAY_MINUTES = 90
+
+
 class ServerReplay(_Backend):
     """The mod's server adapters on server_host.Host with the golden stand-ins (see the module docstring). `constants`
-    ({"table.NAME": value}) sets kernel constants after the host loads (set_constants), as the recording build had them."""
+    ({"table.NAME": value}) sets kernel constants after the host loads (set_constants), as the recording build had them.
+    `death_pace` and `health_combine` are the server's NR.DeathPace and NR.HealthCombine and `day_minutes` its day length
+    in real minutes (getDayLengthMinutes), by default 3, 2 and 90: the sandbox stand-in answers them, so the mod's own
+    options poll and minute hoist write K.drain.OPT from them at every minute, as on a live server."""
 
     def __init__(self, start=None, user="admin", player=None, steps=None, hold_hour=None, hour_offset=0.0,
-                 rng=None, stats=None, sleep_allowed=None, constants=None, sex_specific=False):
+                 rng=None, stats=None, sleep_allowed=None, constants=None, sex_specific=False,
+                 death_pace=DEATH_PACE, health_combine=HEALTH_COMBINE, day_minutes=DAY_MINUTES):
         super().__init__()
         self.injected = []
         lua51, server_host, golden_trace = _lua()
@@ -829,13 +840,28 @@ class ServerReplay(_Backend):
             self.rt.execute("getServerOptions = function() return { getBoolean = function(s, k) return %s end } end;"
                             " NutritionRevamp.server.options.sleepOn = NutritionRevamp.server.readSleep()"
                             % ("true" if sleep_allowed else "false"))
+        # the server's sandbox leaves, set in place (the options poll reads them every minute)
+        self.rt.execute("SandboxVars = SandboxVars or {}; SandboxVars.NR = SandboxVars.NR or {}")
         if sex_specific:                                    # NR.SexSpecific on: a female stand-in reads the female values
-            self.rt.execute("SandboxVars = { NR = { SexSpecific = true } }")   # the options poll reads it every minute
+            self.rt.execute("SandboxVars.NR.SexSpecific = true")
             self.NR.server.options.sexSpecific = True
+        self.set_drain_options(death_pace, health_combine, day_minutes)
         self.users = {}
         self.user = None
         self.maint_kcal = None
         self.add_user(user, start, player, stats)
+
+    def set_drain_options(self, death_pace=DEATH_PACE, health_combine=HEALTH_COMBINE, day_minutes=DAY_MINUTES):
+        """The server's NR.DeathPace, NR.HealthCombine and day length from the next minute on (an admin's live change):
+        the sandbox leaves and the sandbox stand-in's getDayLengthMinutes answer them, and the mod's options poll and
+        minute hoist write K.drain.OPT."""
+        for name, v in (("death_pace", death_pace), ("health_combine", health_combine), ("day_minutes", day_minutes)):
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or v != v:
+                raise ValueError("%s must be a number: %r" % (name, v))
+        self.rt.execute("SandboxVars.NR.DeathPace = %d; SandboxVars.NR.HealthCombine = %d" % (death_pace, health_combine))
+        self.rt.eval("function(d) NutritionRevamp.sandbox().getDayLengthMinutes = function(s) return d end end")(
+            float(day_minutes))
+        self.drain_options = (int(death_pace), int(health_combine), float(day_minutes))
 
     def add_user(self, user, start=None, player=None, stats=None):
         """A stand-in player for `user`, online alone, with `start` placed in the store's records."""
@@ -1673,7 +1699,8 @@ def ring_cold_events(rows):
 def replay_live(ring_rows, events, start, paths=None, user="admin", player=None, feed=DEFAULT_FEED, steps=None,
                 hour_offset=None, hold_hour=None, ring_paths=(), start_read_age=None, start_stats=None,
                 sleep_allowed=None, detect_autodrink=False, ring_activity=None, constants=None, ring_cold=None,
-                day_length=None, speed=1.0):
+                day_length=None, speed=1.0, death_pace=DEATH_PACE, health_combine=HEALTH_COMBINE,
+                day_minutes=DAY_MINUTES):
     """Mode live: the ring's clock and the live event log from the start record on. Ring rows at or before the start
     record's own age (its last drain) are dropped, and events at or before its READ age are dropped, because the
     record holds them (kept on backend.dropped). The read age is `start_read_age`, else a top-level `readAge` the
@@ -1705,7 +1732,10 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
     only a drink flagged whole is spread, never a ring's per-sip log (whole_drinks refuses a flagged drink whose label
     another drink shares).
 
-    `constants` ({"table.NAME": value}, e.g. DEFICIT_11F) replays at the recording build's kernel constants."""
+    `constants` ({"table.NAME": value}, e.g. DEFICIT_11F) replays at the recording build's kernel constants.
+
+    `death_pace`, `health_combine` and `day_minutes` (ServerReplay's: the server's NR.DeathPace, NR.HealthCombine and
+    day length in real minutes, by default 3, 2 and 90) are the drain options the live server ran under."""
     rows = [r for r in ring_rows if r.get("age") is not None]
     if isinstance(start, dict) and "sleepAllowed" in start:
         start = dict(start)
@@ -1725,7 +1755,8 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
         if start_read_age is None:
             start_read_age = carried
     sr = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour, hour_offset=off,
-                      stats=start_stats, sleep_allowed=sleep_allowed, constants=constants)
+                      stats=start_stats, sleep_allowed=sleep_allowed, constants=constants, death_pace=death_pace,
+                      health_combine=health_combine, day_minutes=day_minutes)
     sr.injected = injected
     if ring_activity is None:
         ring_activity = ring_carries_activity(rows)
@@ -1790,9 +1821,11 @@ def replay_live(ring_rows, events, start, paths=None, user="admin", player=None,
 def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, start_age=0.0, dtM=1.0, paths=(),
                backend="server", user="admin", player=None, steps=None, hour_offset=0.0, hold_hour=None, rng=None,
                M0=0.0, energy=True, satiety=True, hold_es=False, stats=None, sleep_allowed=None, sex_specific=False,
-               constants=None, day_length=None, speed=1.0):
+               constants=None, day_length=None, speed=1.0, death_pace=DEATH_PACE, health_combine=HEALTH_COMBINE,
+               day_minutes=DAY_MINUTES):
     """Mode arm: a substituted event list on the ring's clock (ring_rows) or a synthetic one (ages, or minutes from
-    start_age at dtM). `constants` (the server backend's, set_constants; e.g. WORLD_CLOCK) as ServerReplay takes them.
+    start_age at dtM). `constants` (the server backend's, set_constants; e.g. WORLD_CLOCK) and the drain options
+    (`death_pace`, `health_combine`, `day_minutes`) as ServerReplay takes them.
     `day_length` and `speed` spread each whole drink sip by sip (spread_drinks, named on backend.spread), as
     replay_live's do. Returns (rows, backend)."""
     synthetic = False
@@ -1808,7 +1841,8 @@ def replay_arm(events, start=None, ages=None, ring_rows=None, minutes=None, star
     else:
         be = ServerReplay(start=start, user=user, player=player, steps=steps, hold_hour=hold_hour,
                           hour_offset=hour_offset, rng=rng, stats=stats, sleep_allowed=sleep_allowed, sex_specific=sex_specific,
-                          constants=constants)
+                          constants=constants, death_pace=death_pace, health_combine=health_combine,
+                          day_minutes=day_minutes)
         sa = be.start_age()
         if sa is None:
             sa = start_age
@@ -1930,6 +1964,12 @@ def main(argv=None):
                             "drink (a ring's per-sip log) lands as logged")
         p.add_argument("--speed", type=float, default=1.0,
                        help="the true time multiplier the drinks ran at (1 by default; getMultiplier is not it, #3762)")
+        p.add_argument("--death-pace", type=int, choices=(1, 2, 3), default=DEATH_PACE,
+                       help="the server's NR.DeathPace: 1 Vanilla, 2 Shortened, 3 Realistic (the default)")
+        p.add_argument("--health-combine", type=int, choices=(1, 2, 3), default=HEALTH_COMBINE,
+                       help="the server's NR.HealthCombine: 1 Worst only, 2 Multiply (the default), 3 Add")
+        p.add_argument("--day-minutes", type=float, default=DAY_MINUTES,
+                       help="the server's day length in real minutes (getDayLengthMinutes; 90 by default)")
         if name == "live":
             p.add_argument("--start-read-age", type=float,
                            help="the world age (hours) the start record was read at, logged by the driver: events "
@@ -1972,7 +2012,8 @@ def main(argv=None):
                               detect_autodrink=a.detect_autodrink,
                               ring_activity={"auto": None, "on": True, "off": False}[a.ring_activity],
                               ring_cold={"auto": None, "on": True, "off": False}[a.ring_cold],
-                              day_length=a.day_length, speed=a.speed)
+                              day_length=a.day_length, speed=a.speed, death_pace=a.death_pace,
+                              health_combine=a.health_combine, day_minutes=a.day_minutes)
         d = diff(out, rows)
         offset = be.R.offset
     else:
@@ -1981,7 +2022,8 @@ def main(argv=None):
         out, be = replay_arm(events, start=start, ring_rows=rows or None, minutes=a.minutes, start_age=a.start_age,
                              paths=paths, backend=a.backend, user=a.user, player=player, steps=a.steps,
                              hour_offset=a.hour_offset or 0.0, hold_hour=a.hold_hour, day_length=a.day_length,
-                             speed=a.speed)
+                             speed=a.speed, death_pace=a.death_pace, health_combine=a.health_combine,
+                             day_minutes=a.day_minutes)
         d = diff(out, rows) if rows else None
         offset = a.hour_offset or 0.0
     doc = {"mode": a.mode, "offset": offset, "rows": out, "diff": d, "eats": be.eats,

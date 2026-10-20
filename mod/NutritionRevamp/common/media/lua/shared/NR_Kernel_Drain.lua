@@ -417,8 +417,9 @@ end
 -- State code's remaining fraction and its rate in health per game day (spec sections 1.1, 1.4 and 2.2), at tH hours on
 -- the state's time clock and inp the severity clocks (pStarve, the smoothed BMI progress; dehydPct, the deficit), under
 -- opt (pace, dayMin). A line state falls from 1 to 0 at its death time at 100 x 24 / T a day. A curve state's rate is
--- vanilla's at the day length (the line's own when the Shortened curve degenerates to it). A fraction that is not a
--- finite number returns nil: the state is left out for the minute.
+-- vanilla's at the day length on a time clock (Vanilla, Shortened; the line's own when the Shortened curve degenerates
+-- to it) and vanilla's at the calibrated 90-minute day on a severity clock (Realistic, ruling T2-2, whatever the day
+-- length). A fraction that is not a finite number returns nil: the state is left out for the minute.
 function K.drain.fraction(code, tH, inp, opt)
     local S = K.drain.states[code]
     local f = 0

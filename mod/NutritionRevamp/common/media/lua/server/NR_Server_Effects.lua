@@ -651,6 +651,20 @@ function EFF.step(username, player, record, ctx)
     end
 end
 
+-- The drain options (Plan 17 Task 3, spec section 2.4): the options poll's deathPace and healthCombine and the minute's
+-- hoisted day length (NR.read.minuteDayMin, K.drain.DAY_MINUTES when the sandbox is unreadable) written in place into
+-- K.drain.OPT, which every K.drain.step this minute reads: once a server minute, called by the players' minute after
+-- its hoist and before any player's work (NR_Server_Players' P.minute), never per player, with no allocation.
+function EFF.hoist()
+    local OPT = K.drain.OPT
+    local O = NR.server.options
+    OPT.pace = O.deathPace
+    OPT.combine = O.healthCombine
+    local dayMin = NR.read.minuteDayMin
+    if dayMin == nil then dayMin = K.drain.DAY_MINUTES end
+    OPT.dayMin = dayMin
+end
+
 -- Wiring: the effects step registered by name; the transient memory is forgotten at first sight
 -- (a join, a respawn) and departure, so the regeneration constants are re-asserted after a load.
 if Events ~= nil and Events.OnServerStarted ~= nil then

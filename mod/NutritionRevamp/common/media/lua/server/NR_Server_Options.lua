@@ -35,10 +35,16 @@ local K = NR.kernel
 -- engine's own (IsoGameCharacter.calculateStats gates the reset on GameServer.server): sleep is off only on a server,
 -- isServer() and not (allowed and needed), so single player reads on. An unreadable option reads true. A change is
 -- logged; it fires no changed hook (the steps read NR.sleepOn() each minute).
+-- The Plan 17 options (spec section 2): deathPace, an enum 1 Vanilla, 2 Shortened, 3 Realistic (the default), and
+-- healthCombine, an enum 1 Worst only, 2 Multiply (the default), 3 Add; read in every poll like stimulantRealism (an out-of-
+-- range value reads the default) and logged on a change. The players' minute writes them into K.drain.OPT with the day
+-- length once a server minute (NR_Server_Effects' EFF.hoist), so a change takes effect within a game minute; it fires no
+-- changed hook.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false, onsetSpeed = 1.0, sleepOn = true,
                       excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,
-                      sexSpecific = false, stimulantRealism = 1, strength = K.strength.params(nil) }
+                      sexSpecific = false, stimulantRealism = 1, deathPace = K.drain.PACE_REAL,
+                      healthCombine = K.drain.COMBINE_MULTIPLY, strength = K.strength.params(nil) }
 local O = NR.server.options
 O.strengthRaw = {} -- the raw strength leaves of the last rebuild, by K.strength.OPTIONS row
 
@@ -84,6 +90,12 @@ function NR.server.readOptions(where)
     O.stimulantRealism = readLeaf(sv, "StimulantRealism", 1, 1, 2)
     if O.stimulantRealism ~= K.acute.C.MODE then
         K.acute.useStimulants(O.stimulantRealism)
+    end
+    local oldPace, oldCombine = O.deathPace, O.healthCombine
+    O.deathPace = readLeaf(sv, "DeathPace", K.drain.PACE_REAL, K.drain.PACE_VANILLA, K.drain.PACE_REAL)
+    O.healthCombine = readLeaf(sv, "HealthCombine", K.drain.COMBINE_MULTIPLY, K.drain.COMBINE_WORST, K.drain.COMBINE_ADD)
+    if O.deathPace ~= oldPace or O.healthCombine ~= oldCombine or where == "OnServerStarted" then
+        NR.log.say(2, "options: death pace " .. tostring(O.deathPace) .. ", health combining " .. tostring(O.healthCombine))
     end
     if sv ~= nil then
         local rows = K.strength.OPTIONS

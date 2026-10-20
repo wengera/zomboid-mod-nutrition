@@ -248,11 +248,14 @@ local function readDayMin() return NR.num(NR.sandbox(), "getDayLengthMinutes", n
 
 function RD.ageH(ctx) return memo(ctx, "eAge", NR.worldAge) end
 function RD.hour(ctx, ageH) return memo(ctx, "eHour", readHour, ageH) end
--- The server minute's hour of day, read once at the players' minute (P.minute) for every player's pipeline; nil until
--- the first read.
+-- The server minute's hour of day and day length, read once at the players' minute (P.minute) for every player's
+-- pipeline (Rule 6: the day length's read moved here from each player-minute in Plan 17 Task 3, NR_Server_Minute seeds
+-- it as eDayMin); nil until the first read, and the day length nil while the sandbox is unreadable.
 RD.minuteHour = nil
+RD.minuteDayMin = nil
 function RD.hoist(ageH)
     RD.minuteHour = readHour(ageH)
+    RD.minuteDayMin = readDayMin()
     return RD.minuteHour
 end
 function RD.asleep(ctx, p) return memo(ctx, "eAsleep", readAsleep, p) end
@@ -261,8 +264,9 @@ function RD.bodyDamage(ctx, p) return memo(ctx, "eBd", readBodyDamage, p) end
 -- bd (optional) is the body damage the caller holds, so a call with no ctx reads it once.
 function RD.thermo(ctx, p, bd) return memo(ctx, "eThermo", readThermo, ctx, p, bd) end
 function RD.nutrition(ctx, p) return memo(ctx, "eNut", readNutrition, p) end
--- The day length in real minutes (the sandbox's getDayLengthMinutes), dflt when unreadable: one read a player-minute,
--- shared by Effects' heal toward a floor and the writer's re-applied severe terms (Plan 15 Task 6, Task 5's review L4).
+-- The day length in real minutes (the sandbox's getDayLengthMinutes), dflt when unreadable: the minute's hoisted read
+-- (eDayMin, seeded by NR_Server_Minute), else one read a player-minute, shared by Effects' heal toward its target and
+-- the writer's re-applied severe terms (Plan 15 Task 6, Task 5's review L4).
 function RD.dayMin(ctx, dflt)
     local v = memo(ctx, "eDayMin", readDayMin)
     if v == nil then return dflt end

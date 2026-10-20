@@ -570,7 +570,9 @@ end
 """
 HEAD_ENGINE_CALLS = {"steady": 67, "drain": 69}   # read at 1398d765
 ENGINE_CALLS = {"steady": 68, "unfed": 67, "drain": 74}
-DAY_READS = {"steady": 1, "unfed": 0, "drain": 1}  # the sandbox's getDayLengthMinutes a player-minute (Task 6; steady: the sated bridge's, Task 8 fix 1)
+DAY_READS = {"steady": 1, "unfed": 1, "drain": 1}  # the sandbox's getDayLengthMinutes a minute: since Plan 17 Task 3 the
+# players' minute's one hoisted read (NR.read.hoist), seeded on every player's context, whatever the case (until then a
+# player-minute's read, by Effects' heal or the sated bridge: steady 1, unfed 0, drain 1; Plan 15 Task 6, Task 8 fix 1)
 TASK4_ENGINE_CALLS = {"steady": 67, "drain": 71}  # read at eb3ef7b2 (Plan 15 Task 4b), before option B
 TASK7_ENGINE_CALLS = {"steady": 67, "unfed": 67, "drain": 74}   # read at 56a25b9d (Plan 15 Task 7), before the bridge
 TIMER_WRITES = {"steady": 1, "unfed": 0, "drain": 0}             # setHealthFromFoodTimer a player-minute (Task 8)

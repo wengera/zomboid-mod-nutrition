@@ -41,7 +41,7 @@ K.resume.STAMPS = {
     "acute.lastFedAgeH",   -- the last fed minute (blood glucose's fasting clock)
     "acute.lastVigAgeH",   -- the last band-2 minute (the sleep bout's vigorous latch)
     "drain.fedAgeH",       -- the unfed clock's stamp (starvation)
-    "drain.pAt",           -- the smoothed BMI clock's anchor (starvation, Plan 17 spec section 1.2a): the onset, then each record-day close
+    "drain.pAt",           -- the smoothed BMI clock's anchor (starvation, Plan 17 spec section 1.2a): the open record day's start (body.dayStartH), moved at each close
     "monotony.t.*.last",   -- each eaten type's last eat (its count's decay)
 }
 

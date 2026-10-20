@@ -75,6 +75,25 @@ option NR.StimulantRealism
     page = NutritionRevamp, translation = NR_StimulantRealism, valueTranslation = NR_StimulantRealismValues,
 }
 
+/* DeathPace sets how fast starvation and dehydration take health once they begin: 1 Vanilla (vanilla's own level-4
+   drain, a straight line at the server's day length), 2 Shortened (starvation in 14 game days, dehydration in 2, on
+   the curve), 3 Realistic, the default (starvation at BMI 12, dehydration at a 17 percent water loss, on the curve). The
+   deficiencies and the sodium and iron rungs are the same at every pace. */
+option NR.DeathPace
+{
+    type = enum, numValues = 3, default = 3,
+    page = NutritionRevamp, translation = NR_DeathPace, valueTranslation = NR_DeathPaceValues,
+}
+
+/* HealthCombine sets how the active lethal states' remaining fractions make the health target: 1 Worst only (the
+   smallest), 2 Multiply, the default (their product), 3 Add (their losses summed, so several can kill before any one
+   would). */
+option NR.HealthCombine
+{
+    type = enum, numValues = 3, default = 2,
+    page = NutritionRevamp, translation = NR_HealthCombine, valueTranslation = NR_HealthCombineValues,
+}
+
 /* The Plan 13 strength model: each option scales one constant of K.strength.DEFAULTS and its declared default is
    that constant (a test binds them). Out of range, a double clamps and an integer reads its default. */
 
