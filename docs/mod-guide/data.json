@@ -17471,7 +17471,7 @@
    "chart": "S2d",
    "id": "S2d-m-comb-add",
    "label": "Add",
-   "note": "The same fast: starvation on day 1.44, then scurvy on day 40.21, then beriberi on day 42.23. With Add each cause's loss adds, as vanilla's own hunger and thirst drains stack (#0516), so the combined losses take health to 0 on day 44.77, before any one cause's death point (starvation's BMI 12, beriberi's 840 hours). The fatal state is starvation, the smallest fraction at the death, and the line ends there.",
+   "note": "The same fast: starvation on day 1.44, then scurvy on day 40.21, then beriberi on day 42.23. With Add each cause's loss adds, as vanilla's own hunger and thirst drains stack (#0516), so the combined losses take health to 0 on day 44.77, before any one cause's death point (starvation's BMI 12, beriberi's 840 hours). The fatal state is starvation, the smallest fraction at the death, and the line ends there. No live run has combined states under Add: x482 ran with Add set and starvation its only state, where every rule gives the same target; the proof run x481 holds the drain and its combine step under Multiply (VALIDATION x481:health).",
    "points": [
     [
      0.0006944444444444445,
@@ -18627,7 +18627,7 @@
      ]
     },
     "kind": "kernel",
-    "proof_run": "x482-20261020-071425",
+    "proof_run": "x481-20261020-070821",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -20325,7 +20325,7 @@
    "chart": "S2d",
    "id": "S2d-m-comb-worst",
    "label": "Worst only",
-   "note": "The fast with water and no vitamins: starvation on day 1.44, then scurvy on day 40.21, then beriberi on day 42.23, then pellagra on day 55.24. With Worst only, health follows the smallest fraction alone. The fatal state is beriberi: health is gone at day 77.23, where the line ends, at that one cause's death point.",
+   "note": "The fast with water and no vitamins: starvation on day 1.44, then scurvy on day 40.21, then beriberi on day 42.23, then pellagra on day 55.24. With Worst only, health follows the smallest fraction alone. The fatal state is beriberi: health is gone at day 77.23, where the line ends, at that one cause's death point. No live run has combined states under Worst only; the proof run x481 holds the drain and its combine step under Multiply (VALIDATION x481:health).",
    "points": [
     [
      0.0006944444444444445,
@@ -24549,7 +24549,7 @@
    "chart": "S2d",
    "id": "S2d-m-live-pace",
    "label": "Vanilla pace, measured",
-   "note": "x482 (build 42.21, the staged mod, DayLength 4, Vanilla pace and Add): a fresh record's creation body, its unfed clock set just short of the onset, no food and no water. Health is read on every minute row; every 15th row and the death row are drawn, each value placed at the drain that left it, with the onset at the Vanilla-pace line's own 34.45 h. Health fell on a line at 3.564 a game hour (verdicts.SLOPE.observed) and read 0, the character dead, 28.06 game hours after the onset drain (checks.x442.after_onset_h). The HEAD replay of the run's own inputs holds its health within 0.00024 over 1735 rows (VALIDATION x482:health).",
+   "note": "x482 (build 42.21, the staged mod, DayLength 4, Vanilla pace and Add): a fresh record's creation body, its unfed clock set just short of the onset, no food and no water. Health is read on every minute row; every 15th row and the death row are drawn, each value placed at the drain that left it, with the onset at the Vanilla-pace line's own 34.45 h. Vanilla pace drains at a fixed rate whatever the body or the water, so after the onset the dots meet the line by construction; the check is the replay below. Health fell on a line at 3.564 a game hour (verdicts.SLOPE.observed) and read 0, the character dead, 28.06 game hours after the onset drain (checks.x442.after_onset_h). The HEAD replay of the run's own inputs holds its health within 0.00024 over 1735 rows (VALIDATION x482:health).",
    "points": [
     [
      1.4354166666666668,
@@ -25383,7 +25383,7 @@
    "chart": "S2d",
    "id": "S2d-m-pace-real",
    "label": "Realistic pace (the default)",
-   "note": "The same fast, thiamine, vitamin C and niacin held at a full store each day (HELD_VITAMINS: the vitamins whose deficiencies kill), so starvation is the only state. At Realistic pace, the default, starvation's fraction falls on the curve over the body's BMI to 12 (S2234), opening at vanilla's own drain and flattening as the body wastes, so health reaches 50 on day 5.46. The fatal state is starvation: health is gone at day 89.70, when the BMI reaches 12, where the line ends. Without the vitamins held the same fast dies of beriberi first (S2d-m-comb-mult).",
+   "note": "The same fast, thiamine, vitamin C and niacin held at a full store each day (HELD_VITAMINS: the vitamins whose deficiencies kill), so starvation is the only state. At Realistic pace, the default, starvation's fraction falls on the curve over the body's BMI to 12 (S2234), opening at vanilla's own drain and flattening as the body wastes, so health reaches 50 on day 5.46. The fatal state is starvation: health is gone at day 89.70, when the BMI reaches 12, where the line ends. Its blood sodium, falling on water alone, is at 117.9 mmol/L at the death, above the lethal band. Without the vitamins held the same fast dies of beriberi first (S2d-m-comb-mult).",
    "points": [
     [
      0.0006944444444444445,

@@ -644,6 +644,7 @@ class Scenarios(_Base):
         ("S4b-m-level", "x@y>=10|r1", None),
         ("S4a-m-deficit", "last.x|r0", "301"),  # Plan 16 Task 11: the deficit year's starvation death (BMI 12)
         ("SH3-m-live", "y@x=breakfast|r1", "3.9"),  # Plan 16 Task 11: x467, breakfast wears off first (#3990)
+        ("S2d-m-drain", "x@y<=10|r0", "46"),    # Plan 17 Task 5 fix 1 (F4): the default fast under a tenth from day 46
     ]
 
     def test_pinned_fills(self):
@@ -713,6 +714,16 @@ class Scenarios(_Base):
         for frag in ("wakes a sleeper", "Add, health can run out before", "ninety-minute day",
                      "first day's close"):
             self.assertIn(frag, lim, frag)
+
+    def test_plan17_the_end_mark_skips_a_line_ending_off_the_view(self):
+        """Plan 17 Task 5 fix 1 (F1): a zoom facet draws no end mark for a line that ends past its x range."""
+        self.assertRegex(self.js, r"pt\.x > chart\.chartArea\.right")
+
+    def test_plan17_no_health_floor_word_remains(self):
+        """Plan 17 Task 5: the only floors left on the page are the mood floor and Strength's own floor."""
+        for m in re.finditer(r"(?i)\bfloors?\b", self.html):
+            ctx = self.html[max(0, m.start() - 12):m.start()]
+            self.assertRegex(ctx, r"(?:mood |own )$", ctx + m.group(0))
 
     def test_plan17_the_gaunt_body_s_weeks_hold(self):
         """The page says the Gaunt body starves in about six weeks: its replay's death (VALIDATION j_s2d_gaunt) is

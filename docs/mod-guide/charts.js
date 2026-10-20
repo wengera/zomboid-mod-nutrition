@@ -388,6 +388,7 @@
         var meta = chart.getDatasetMeta(i);
         var pt = meta.data[meta.data.length - 1];
         if (!pt) return;
+        if (pt.x > chart.chartArea.right + 0.5 || pt.x < chart.chartArea.left - 0.5) return;   /* a line ending past the view's x range (a zoom) draws no end mark */
         var x = pt.x, y = pt.y, r = 6;
         ctx.save();
         ctx.strokeStyle = ds.borderColor;
