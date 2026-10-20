@@ -28,7 +28,7 @@ draws x461b's milk and solid, the run's water course before them holding an engi
 
 Plan 16 Task 11: x467 (the sleep-off three-meal day on the final curve, #3990) proves the hunger lines and its live
 returns are drawn on SH3; x461b's milk and solid (#3981) are SE1's live lines; S4a's deficit year ends at its BMI-12
-starvation death; S2d's death is wet beriberi (#3978).
+starvation death; S2d's death is wet beriberi (#4022).
 
 Plan 17 Task 5: S2d's Health tab sets vanilla's model and live health beside the mod's (the remaining-fraction drain,
 Plan 17 Tasks 2 and 3), and its Pace (NR.DeathPace, the vitamins held) and Combining (NR.HealthCombine, the S2d fast)
@@ -1352,7 +1352,7 @@ def j_s2d_dry():
                             "starve_age": next((r["age"] for r in rows if r.get("drain.starving")), None)})
 
 
-# Plan 17 Task 5: S2d's Pace and Combining tabs and #3978's other two bodies, each a fast run to its death. The Pace
+# Plan 17 Task 5: S2d's Pace and Combining tabs and #4022's other two bodies, each a fast run to its death. The Pace
 # arm holds the vitamins whose deficiencies kill (K.drain.NUTRIENT: scurvy, beriberi, pellagra) at a full store, so
 # starvation is its only state; the Combining arm is the S2d fast itself (no vitamins), starvation and then beriberi.
 HELD_VITAMINS = ("thiamine", "vitC", "niacin")
@@ -1407,13 +1407,13 @@ def j_s2d_comb_add():
 
 @job
 def j_s2d_gaunt():
-    """#3978's Gaunt body (VERY_UNDERWEIGHT) on the S2d fast, to its starvation death."""
+    """#4022's Gaunt body (VERY_UNDERWEIGHT) on the S2d fast, to its starvation death."""
     return _fast(47, player={"traits": ["VERY_UNDERWEIGHT"]})
 
 
 @job
 def j_s2d_obese():
-    """#3978's Obese body (OBESE) on the S2d fast, to its death."""
+    """#4022's Obese body (OBESE) on the S2d fast, to its death."""
     return _fast(78, player={"traits": ["OBESE"]})
 
 
@@ -1962,7 +1962,7 @@ def s_h3():
 def bmi_death_day(d):
     """The first day close of a strength_days run whose BMI (K.drain.bmi of its lean and fat) is at or under
     K.drain.BMI_DEATH, starvation's death point (S2234), or None. strength_days runs the Strength day alone, without
-    the drain, so a deficit year keeps stepping past the death the full pipeline gives there (#3901: starvation's
+    the drain, so a deficit year keeps stepping past the death the full pipeline gives there (#4005 and #3962: starvation's
     remaining fraction reaches 0 at BMI 12, and the state is open at any intake under BMI 13)."""
     K = KHost().K
     death = float(K.drain.BMI_DEATH)
@@ -1982,7 +1982,7 @@ def s_s4a():
                 raise D.ProvenanceError("S4a's deficit year no longer reaches BMI 12: re-rule its line and the page")
             under = next((r[0] for r in d if r[1] < 0), None)
             note = ("The Strength day alone, without the drain: the fat runs out, lean pays the deficit, and on day %d "
-                    "the body's BMI falls to %g, starvation's death point (S2234; #3901, the state open at any intake "
+                    "the body's BMI falls to %g, starvation's death point (S2234; #4005; #3962, the state open at any intake "
                     "under BMI 13), so the line ends at that death and the fall the Strength day would run on past it "
                     "is not drawn. From day %s the body's level reads under 0; the line draws the perk there, which "
                     "never goes under 0 (K.strength.heldLevel: the written perk reads %d from day %d)."
@@ -2478,7 +2478,7 @@ def s_s2d():
     lowest = ", then ".join("%s from day %.2f" % (state_name(c, K), a / 24.0) for a, c in k["states"])
     onset_h = v["drain"][0]
     beri_open = next(a for a, c in k["opened"] if c == int(K.drain.BERIBERI))
-    bodies = ("#3978: the Obese body dies of %s on day %.2f and the Gaunt body of starvation on day %.2f, a death the "
+    bodies = ("#4022: the Obese body dies of %s on day %.2f and the Gaunt body of starvation on day %.2f, a death the "
               "science gives first, not tuned to the hunger strikers' 46-73 days, S2231"
               % (vo["death_name"], vo["death_age"] / 24.0, vg["death_age"] / 24.0))
     fatal = ("The fatal state is %s: health is gone at day %.2f, where the line ends, before the BMI reaches %g (%s)"
@@ -2525,7 +2525,7 @@ def s_s2d():
                kernel(dict(water, replay="90 days, no food, the replay's water", path="body.fm + body.lm + body.lx"),
                       "x434"),
                "The mod's no-trait creation body with water and no food. The deficit splits between lean and fat by "
-               "the Forbes share with no fat ceiling (#3977), about a sixth of the energy from lean (#3978), and %s. "
+               "the Forbes share with no fat ceiling (#3977), about a sixth of the energy from lean (#4022), and %s. "
                "Its fatal state is %s: health is gone at day %.2f, where the line ends (S2d-m-drain). Its HUNGER "
                "reached %.2f: the cap lifts when the starvation state opens (#3906)."
                % (fat_text, v["death_name"], v["death_age"] / 24.0, k["hunger_max"])),
@@ -2541,7 +2541,7 @@ def s_s2d():
                "%.2f (S2d-v-model-health). A heavier body loses BMI more slowly, so its health opens more gently. "
                "The deficiencies follow as each vitamin turns Clinical (%s), each fraction falling on a line to 0 at "
                "its own death time (beriberi's %g game hours, from day %.2f); with Multiply the fractions multiply. "
-               "The smallest fraction belongs to %s (#3901). %s."
+               "The smallest fraction belongs to %s (#4010). %s."
                % (float(K.drain.STARVE_ONSET_H), onset_h, k["bmi0"], bmi_death, r_h, HALF_HEALTH,
                   k["half_age"] / 24.0, death / 24.0, opened_text(k["opened"][1:], K, v["death_age"]), beri_h,
                   beri_open / 24.0, lowest, fatal) + " " + proof_note("S2d-m-drain")),
@@ -2555,7 +2555,7 @@ def s_s2d():
                "the starvation state at %.2f h; health reaches %g at %.2f h. The dehydration fraction falls on a "
                "line with the deficit to 0 at the death point of 17 %% (a game choice inside 15-19 %%, "
                "K.drain.DEHYD_DEATH). The fatal state is %s: health is gone at day %.2f (%.1f h), where the line "
-               "ends. The live x456 read the drain before Plan 17, so it proves the onset only (#3940, #3941)."
+               "ends. The live x456 read the drain before Plan 17, so it proves the onset only (#3940, #4021)."
                % (float(K.drain.DEHYD_ONSET), kd["dehyd_age"], kd["starve_age"], HALF_HEALTH, kd["half_age"],
                   vd["death_name"], vd["death_age"] / 24.0, vd["death_age"])),
         series("S2d-m-pace-vanilla", "Vanilla pace", DAYS, "health", "kernel", line(pv, vpv),

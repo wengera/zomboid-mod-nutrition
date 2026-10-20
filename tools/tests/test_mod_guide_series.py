@@ -250,7 +250,7 @@ def test_plan16_s4a_s_deficit_year_ends_at_its_starvation_death_and_never_draws_
 
 
 def test_plan16_s2d_names_wet_beriberi_and_the_lean_share():
-    # Plan 16 Task 5 (Task 11): the default fast dies of wet beriberi at day 77.23 (#3978), the starvation state open
+    # Plan 16 Task 5 (Task 11): the default fast dies of wet beriberi at day 77.23 (#4022), the starvation state open
     # from the first days; the notes name the Forbes split and the register rows
     v = VIAB["j_s2d"]
     assert v["death_name"] == "beriberi" and round(v["death_age"] / 24.0, 2) == 77.23
@@ -261,9 +261,9 @@ def test_plan16_s2d_names_wet_beriberi_and_the_lean_share():
     gaunt, obese = VIAB["j_s2d_gaunt"], VIAB["j_s2d_obese"]
     assert gaunt["death_name"] == "starvation" and obese["death_name"] == "beriberi"
     assert round(obese["death_age"], 6) == round(v["death_age"], 6)
-    assert "#3978" in drain and "starvation on day %.2f" % (gaunt["death_age"] / 24.0) in drain
+    assert "#4022" in drain and "starvation on day %.2f" % (gaunt["death_age"] / 24.0) in drain
     assert "41.14" not in drain
-    assert "#3977" in mass and "#3978" in mass and "above its 0.5 kg floor" in mass
+    assert "#3977" in mass and "#4022" in mass and "above its 0.5 kg floor" in mass
 
 
 # ---- Plan 17 Task 5: S2d's Health, Pace and Combining tabs ------------------------------------------------------------

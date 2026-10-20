@@ -612,7 +612,7 @@ class Scenarios(_Base):
         r"NR\.DeficienciesCanKill", r"when the server lets deficiencies kill", r"Hydration \(Slightly dry",
         r"hunger itself never kills", r"never reach(?:es)? the top (?:Hungry|Thirsty)", r"Hunger never reaches zero",
         # Plan 16 Task 11: no rhythm with sleep off (x467 saw breakfast wear off first), the tooltip hide measured live
-        # (x462), the server refusal (x466), the fast's wet beriberi death (#3978), the offline freeze (x463a), the
+        # (x462), the server refusal (x466), the fast's wet beriberi death (#4022), the offline freeze (x463a), the
         # drink sip by sip, the superseded hunger, satiety and starvation rows
         r"dinner wore off soonest", r"dinner wears off sooner", r"has not been seen (?:live|in a live game)",
         r"can still land", r"so a heavier (?:body lives|survivor lasts) longer", r"starvation kills on day",
@@ -697,7 +697,7 @@ class Scenarios(_Base):
                      "A drink arrives sip by sip", "in the server's language", "QualityCooking",
                      "In Overlay mode the game's own fullness decides", "caught up in hour-long steps"):
             self.assertIn(frag, self.html, frag)
-        for cid in ("#3955", "#3958", "#3961", "#3965", "#3967", "#3968", "#3972", "#3973", "#3977", "#3978",
+        for cid in ("#3955", "#3958", "#3961", "#3965", "#3967", "#3968", "#3972", "#3973", "#3977", "#4022",
                     "#3979", "#3982", "#3983", "#3985", "#3987", "#3988", "#3989", "#3990"):
             self.assertIn(cid, self.html, cid)
         for frag in ("not established physiology (#3996)", "NR.RecordKeepDays"):
