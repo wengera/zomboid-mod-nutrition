@@ -355,7 +355,11 @@ def test_plan17_no_s2d_note_reads_a_removed_constant():
     for sid, s in SER.items():
         if sid.startswith("S2d") or sid.startswith("SD1"):
             for word in ("FIRST_FLOOR", "STARVE_RATE", "DEF_HOLD_H", "DEF_FINAL_H", "DEF_RATE", "ACUTE_FINAL_H",
-                         "BMI_KNEE", "timeKnots", "starveFloor", "first floor", "lowest floor"):
+                         "BMI_KNEE", "timeKnots", "starveFloor", "first floor", "lowest floor",
+                         # Plan 17 Task 5b (revision R1): the curve and its run are retired
+                         "A_STARVE", "A_DEHYD", "solveA", "DEHYD_FINAL", "DEHYD_KNEE", "logarithm", "flatten",
+                         "taper", "on the curve", "on a curve", "opening at vanilla", "opens more gently",
+                         "the proof run x481 holds"):
                 assert word not in s.get("note", ""), (sid, word)
     for reason in S.DROPPED.values():
         assert "drains to a floor" not in reason

@@ -1311,6 +1311,7 @@ def j_s2d():
     out = {"days": days, "health": health, "hunger_max": max(r["HUNGER"] for r in rows), "states": drain_states(rows),
            "opened": opened_states(rows), "half_age": half_age(rows, be.K),
            "bmi0": max(r.get("drain.bmi0") or 0.0 for r in rows)}
+    out.update(line_marks(rows, be.K))
     return _done(rows, be, out)
 
 
@@ -1321,6 +1322,41 @@ def half_age(rows, K):
     """The age the drain first brings health to half (HALF_HEALTH, within K.drain.HEAL_EPS)."""
     f = HALF_HEALTH + float(K.drain.HEAL_EPS)
     return next((r["age"] for r in rows if r.get(HEALTH) is not None and r[HEALTH] <= f), None)
+
+
+def line_marks(rows, K):
+    """Revision R1's two marks on a replay's health line: the age it first reaches K.drain.SLEEP_FLOOR (health under a
+    tenth, where vanilla wakes a sleeper every tick, #3900), and the largest one-minute fall with its age (a jump in a
+    cause's clock lands in one minute: a record day's close, a written deficit)."""
+    floor = float(K.drain.SLEEP_FLOOR)
+    first = next((r for r in rows if r.get(HEALTH) is not None and r[HEALTH] <= floor), None)
+    step, step_age, prev = 0.0, None, None
+    for r in rows:
+        hp = r.get(HEALTH)
+        if hp is None:
+            continue
+        if prev is not None and prev - hp > step:
+            step, step_age = prev - hp, r["age"]
+        prev = hp
+    return {"tenth": [first["age"], first[HEALTH]] if first else None, "step": step, "step_age": step_age}
+
+
+def with_tenth(points, job):
+    """A health line ([[day, health]]) with the row where it first reaches the sleep floor (line_marks' tenth) laid in
+    at its own age, so the page's x@y<=10 fill reads that minute rather than the grid's next point."""
+    if not job.get("tenth"):
+        return points
+    a, hp = job["tenth"]
+    x = a / 24.0
+    if any(abs(p[0] - x) < 1e-9 for p in points):
+        return points
+    return sorted(points + [[x, hp]], key=lambda p: p[0])
+
+
+def tenth_text(job, v):
+    """'the last 14.52 days, from day 62.70': the span a line spends under the sleep floor before its death."""
+    a = job["tenth"][0]
+    return "the last %.2f days, from day %.2f" % ((v["death_age"] - a) / 24.0, a / 24.0)
 
 
 def opened_states(rows):
@@ -1345,11 +1381,11 @@ def j_s2d_dry():
     rows, be = server_run([FRESH], 8 * DAY_MIN, ("drain.dehydrated", "drain.starving"))
     ks = health_ks(rows, fine_h=8 * 24)
     pts = pick(rows, ks, HEALTH, "fluids.dehydPct")
-    return _done(rows, be, {"health": [[a / 24.0, hp] for _, a, hp, d in pts],
-                            "deficit": [[a / 24.0, d] for _, a, hp, d in pts], "states": drain_states(rows),
-                            "half_age": half_age(rows, be.K),
-                            "dehyd_age": next((r["age"] for r in rows if r.get("drain.dehydrated")), None),
-                            "starve_age": next((r["age"] for r in rows if r.get("drain.starving")), None)})
+    return _done(rows, be, dict(line_marks(rows, be.K), health=[[a / 24.0, hp] for _, a, hp, d in pts],
+                                deficit=[[a / 24.0, d] for _, a, hp, d in pts], states=drain_states(rows),
+                                half_age=half_age(rows, be.K),
+                                dehyd_age=next((r["age"] for r in rows if r.get("drain.dehydrated")), None),
+                                starve_age=next((r["age"] for r in rows if r.get("drain.starving")), None)))
 
 
 # Plan 17 Task 5: S2d's Pace and Combining tabs and #4022's other two bodies, each a fast run to its death. The Pace
@@ -1376,8 +1412,9 @@ def _fast(days, pace=None, combine=None, held=False, player=None):
                           combine=combine)
     health = [[a / 24.0, hp] for _, a, hp in pick(rows, health_ks(rows), HEALTH)]
     dead = next((r for r in rows if r.get(HEALTH) is not None and r[HEALTH] <= DEATH_HEALTH), None)
-    return _done(rows, be, {"health": health, "opened": opened_states(rows), "half_age": half_age(rows, be.K),
-                            "na_at_death": dead.get("fluids.naPlasma") if dead else None})
+    return _done(rows, be, dict(line_marks(rows, be.K), health=health, opened=opened_states(rows),
+                                half_age=half_age(rows, be.K),
+                                na_at_death=dead.get("fluids.naPlasma") if dead else None))
 
 
 @job
@@ -2465,9 +2502,9 @@ def s_s2d():
     mass.append([v["death_age"] / 24.0, mass[-1][1]])
 
     def line(job, vv):
-        return until_death(job["health"], vv) + [[vv["death_age"] / 24.0, 0.0]]
+        return with_tenth(until_death(job["health"], vv), job) + [[vv["death_age"] / 24.0, 0.0]]
     hp = line(k, v)
-    hd = until_death(kd["health"], vd) + [[vd["death_age"] / 24.0, 0.0]]
+    hd = line(kd, vd)
     water = {"water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False, "start": FRESH}
     fm_min = float(K.strength.DEFAULTS.fmMin)
     fat_floor = next((a / 24.0 for _, a, fm, lm, lx, bmi in k["days"] if fm <= fm_min + 1e-9), None)
@@ -2483,6 +2520,13 @@ def s_s2d():
               % (vo["death_name"], vo["death_age"] / 24.0, vg["death_age"] / 24.0))
     fatal = ("The fatal state is %s: health is gone at day %.2f, where the line ends, before the BMI reaches %g (%s)"
              % (v["death_name"], v["death_age"] / 24.0, bmi_death, bodies))
+    floor = float(K.drain.SLEEP_FLOOR)
+    sleep_text = ("Health is under %g (K.drain.SLEEP_FLOOR, where vanilla wakes a sleeper on every tick, #3900) for %s"
+                  % (floor, tenth_text(k, v)))
+    step_text = ("Each state's rate carries its clock's own move in the minute, so a jump in the clock lands in one "
+                 "minute: the largest one-minute fall here is %.4f, at day %.2f, and the Gaunt body's first record day's "
+                 "close takes %.2f at once (at %.0f h)" % (k["step"], k["step_age"] / 24.0, kg["step"], kg["step_age"]))
+    dropped = "x481 read the retired curve, so its live line is DROPPED (VALIDATION x481:health)"
     # the live lines (Plan 17 Task 4), each drawn where the HEAD replay of its run's own inputs holds (VALIDATION)
     a482 = adm("x482:health")                  # x481's (S2d-m-live-health) is DROPPED since revision R1 (Task 2b)
     rows482 = ring_health("x482")
@@ -2535,16 +2579,16 @@ def s_s2d():
                       "x481"),
                "The fast at the mod's defaults (Realistic pace, Multiply), with water and no food. The starvation state "
                "opens after %g unfed hours (K.drain.STARVE_ONSET_H), at %.2f h, when Starving shows. Its remaining "
-               "fraction falls on a curve over the body's BMI, from %.2f at the onset to %g, starvation's death point "
-               "(S2234): it opens at vanilla's own drain of %.4g health a game hour at the 90-minute day and flattens "
-               "as the body wastes, so health reaches %g on day %.2f; vanilla's starving character is dead by day "
-               "%.2f (S2d-v-model-health). A heavier body loses BMI more slowly, so its health opens more gently. "
-               "The deficiencies follow as each vitamin turns Clinical (%s), each fraction falling on a line to 0 at "
-               "its own death time (beriberi's %g game hours, from day %.2f); with Multiply the fractions multiply. "
-               "The smallest fraction belongs to %s (#4010). %s."
-               % (float(K.drain.STARVE_ONSET_H), onset_h, k["bmi0"], bmi_death, r_h, HALF_HEALTH,
+               "fraction falls on a straight line over the body's BMI progress, from a BMI of %.2f at the onset to "
+               "%g, starvation's death point (S2234), so health falls in a straight line with the body's own wasting "
+               "and reaches %g on day %.2f; vanilla's starving character is dead by day %.2f (S2d-v-model-health). "
+               "A heavier body loses BMI more slowly, so its line runs longer. The deficiencies follow as each vitamin "
+               "turns Clinical (%s), each fraction falling on a line to 0 at its own death time (beriberi's %g game "
+               "hours, from day %.2f); with Multiply the fractions multiply. The smallest fraction belongs to %s "
+               "(#4010). %s. %s. %s."
+               % (float(K.drain.STARVE_ONSET_H), onset_h, k["bmi0"], bmi_death, HALF_HEALTH,
                   k["half_age"] / 24.0, death / 24.0, opened_text(k["opened"][1:], K, v["death_age"]), beri_h,
-                  beri_open / 24.0, lowest, fatal) + " " + proof_note("S2d-m-drain")),
+                  beri_open / 24.0, lowest, fatal, sleep_text, step_text) + " " + proof_note("S2d-m-drain")),
         series("S2d-m-dry", "Nutrition Revamp health, without water", DAYS, "health", "kernel", hd,
                kernel({"replay": "8 days, no food and no water, a fresh record from 07:00", "sleep_allowed": False,
                        "start": FRESH,
@@ -2553,11 +2597,14 @@ def s_s2d():
                "No food and no water from a fresh record at 07:00 (HUNGER 0), at the mod's defaults. The dehydration "
                "state opens at a %g %% body-water deficit (K.drain.DEHYD_ONSET), at %.2f h, when Parched shows, and "
                "the starvation state at %.2f h; health reaches %g at %.2f h. The dehydration fraction falls on a "
-               "line with the deficit to 0 at the death point of 17 %% (a game choice inside 15-19 %%, "
-               "K.drain.DEHYD_DEATH). The fatal state is %s: health is gone at day %.2f (%.1f h), where the line "
-               "ends. The live x456 read the drain before Plan 17, so it proves the onset only (#3940, #4021)."
+               "straight line with the deficit, from 1 at the onset to 0 at the death point of 17 %% (a game choice "
+               "inside 15-19 %%, K.drain.DEHYD_DEATH). The fatal state is %s: health is gone at day %.2f (%.1f h), "
+               "where the line ends. Health is under %g for %s (%.1f h, from %.1f h). The largest one-minute fall is "
+               "%.3f, at %.0f h, a record day's close, where the starvation clock steps with the body's weight. The "
+               "live x456 read the drain before Plan 17, so it proves the onset only (#3940, #4021)."
                % (float(K.drain.DEHYD_ONSET), kd["dehyd_age"], kd["starve_age"], HALF_HEALTH, kd["half_age"],
-                  vd["death_name"], vd["death_age"] / 24.0, vd["death_age"])),
+                  vd["death_name"], vd["death_age"] / 24.0, vd["death_age"], floor, tenth_text(kd, vd),
+                  vd["death_age"] - kd["tenth"][0], kd["tenth"][0], kd["step"], kd["step_age"])),
         series("S2d-m-pace-vanilla", "Vanilla pace", DAYS, "health", "kernel", line(pv, vpv),
                kernel(dict(pace_inputs, replay="%d days, no food, the replay's water" % PACE_DAYS[1],
                            options="NR.DeathPace 1 (Vanilla), NR.HealthCombine 2"), "x482"),
@@ -2570,22 +2617,23 @@ def s_s2d():
         series("S2d-m-pace-short", "Shortened pace", DAYS, "health", "kernel", line(*pace[2]),
                kernel(dict(pace_inputs, replay="%d days, no food, the replay's water" % PACE_DAYS[2],
                            options="NR.DeathPace 2 (Shortened), NR.HealthCombine 2"), "x481"),
-               "The same fast, %s. At Shortened pace starvation's fraction falls on the curve over the hours since the "
-               "onset (%.2f h), to 0 after %g game hours (14 days, a game choice, K.drain.SHORT_STARVE_H), opening at "
-               "vanilla's own %.4g a game hour and flattening. The fatal state is %s: health is gone at day %.2f, "
-               "where the line ends."
-               % (held, pace[2][1]["drain"][0], short_h, r_h, pace[2][1]["death_name"],
-                  pace[2][1]["death_age"] / 24.0)),
+               "The same fast, %s. At Shortened pace starvation's fraction falls on a straight line over the hours "
+               "since the onset (%.2f h), to 0 after %g game hours (14 days, a game choice, K.drain.SHORT_STARVE_H), "
+               "%.4g health a game hour (100 / %g) at any day length. The fatal state is %s: health is gone at day "
+               "%.2f, where the line ends. Health is under %g for %s. No live run has read Shortened's line: %s."
+               % (held, pace[2][1]["drain"][0], short_h, 100.0 / short_h, short_h, pace[2][1]["death_name"],
+                  pace[2][1]["death_age"] / 24.0, floor, tenth_text(*pace[2]), dropped)),
         series("S2d-m-pace-real", "Realistic pace (the default)", DAYS, "health", "kernel", line(*pace[3]),
                kernel(dict(pace_inputs, replay="%d days, no food, the replay's water" % PACE_DAYS[3],
                            options="NR.DeathPace 3 (Realistic), NR.HealthCombine 2"), "x481"),
-               "The same fast, %s. At Realistic pace, the default, starvation's fraction falls on the curve over the "
-               "body's BMI to %g (S2234), opening at vanilla's own drain and flattening as the body wastes, so health "
-               "reaches %g on day %.2f. The fatal state is %s: health is gone at day %.2f, when the BMI reaches %g, "
-               "where the line ends. Its blood sodium, falling on water alone, is at %.1f mmol/L at the death, above "
-               "the lethal band. Without the vitamins held the same fast dies of beriberi first (S2d-m-comb-mult)."
+               "The same fast, %s. At Realistic pace, the default, starvation's fraction falls on a straight line over "
+               "the body's BMI progress to %g (S2234), so health falls with the body's own wasting and reaches %g on "
+               "day %.2f. The fatal state is %s: health is gone at day %.2f, when the BMI reaches %g, where the line "
+               "ends. Health is under %g for %s. Its blood sodium, falling on water alone, is at %.1f mmol/L at the "
+               "death, above the lethal band. Without the vitamins held the same fast dies of beriberi first "
+               "(S2d-m-comb-mult)."
                % (held, bmi_death, HALF_HEALTH, pace[3][0]["half_age"] / 24.0, pace[3][1]["death_name"],
-                  pace[3][1]["death_age"] / 24.0, bmi_death, pace[3][0]["na_at_death"])
+                  pace[3][1]["death_age"] / 24.0, bmi_death, floor, tenth_text(*pace[3]), pace[3][0]["na_at_death"])
                + " " + proof_note("S2d-m-pace-real")),
         series("S2d-m-live-pace", "Vanilla pace, measured", DAYS, "health", "live", live482,
                artifact("x482", ring_file("x482"), ring_path("health")),
@@ -2609,9 +2657,8 @@ def s_s2d():
                            options="NR.DeathPace 3, NR.HealthCombine 1 (Worst only)"), "x481"),
                "The fast with water and no vitamins: %s. With Worst only, health follows the smallest fraction alone. "
                "The fatal state is %s: health is gone at day %.2f, where the line ends, at that one cause's death "
-               "point. No live run has combined states under Worst only; the proof run x481 holds the drain and its "
-               "combine step under Multiply (VALIDATION x481:health)."
-               % (opened_text(cw["opened"], K, vw["death_age"]), vw["death_name"], vw["death_age"] / 24.0)),
+               "point. No live run has combined states under Worst only; %s."
+               % (opened_text(cw["opened"], K, vw["death_age"]), vw["death_name"], vw["death_age"] / 24.0, dropped)),
         series("S2d-m-comb-mult", "Multiply (the default)", DAYS, "health", "kernel", hp,
                kernel(dict(comb_inputs, replay="90 days, no food, the replay's water",
                            options="NR.DeathPace 3, NR.HealthCombine 2 (Multiply), the defaults"), "x481"),
@@ -2627,10 +2674,9 @@ def s_s2d():
                "(#0516), so the combined losses take health to 0 on day %.2f, before any one cause's death point "
                "(starvation's BMI %g, beriberi's %g hours). The fatal state is %s, the smallest fraction at the "
                "death, and the line ends there. No live run has combined states under Add: x482 ran with Add set "
-               "and starvation its only state, where every rule gives the same target; the proof run x481 holds the "
-               "drain and its combine step under Multiply (VALIDATION x481:health)."
+               "and starvation its only state, where every rule gives the same target; %s."
                % (opened_text(ca["opened"], K, va["death_age"]), va["death_age"] / 24.0, bmi_death, beri_h,
-                  va["death_name"])),
+                  va["death_name"], dropped)),
     ]
     return out
 

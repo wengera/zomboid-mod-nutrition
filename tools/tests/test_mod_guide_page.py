@@ -622,6 +622,15 @@ class Scenarios(_Base):
         r"(?i)first floor", r"(?i)floor of (?:50|half)", r"25 a game day", r"(?i)50 in about", r"(?i)lowest floor",
         r"(?i)down to a floor", r"(?i)drains? (?:health )?to (?:a|its|the) floor", r"(?i)the floor (?:then )?sinks",
         r"(?i)floor stands in its place", r"(?i)rests at the floor", r"(?i)held three days", r"41\.14",
+        # Plan 17 Task 5b (revision R1): every lethal state falls on a straight line on its clock; the curve, its
+        # opening at vanilla's rate, its flattening and dehydration's final stage are retired, and x481 (the curve's
+        # live run) proves nothing at HEAD
+        r"(?i)logarithm", r"(?i)flatten", r"(?i)\btaper", r"(?i)\bon (?:a|the) (?:logarithmic )?curve",
+        r"(?i)same curve", r"(?i)curve over", r"(?i)open(?:s|ing)(?: the damage)? at vanilla's",
+        r"(?i)opening slope", r"(?i)open(?:s|ing)? (?:more )?gently", r"(?i)more gently",
+        r"(?i)as fast as vanilla's(?: drain)?,? (?:at first|then)", r"(?i)first falls exactly as fast",
+        r"(?i)then slows?\b", r"(?i)more slowly as (?:your body|you dry)", r"(?i)final stage",
+        r"(?i)x481 at Realistic", r"(?i)fifteen per cent deficit", r"(?i)opened on (?:the curve|its own line)",
     ]
 
     def test_task_11_stale_sentences_stay_gone(self):
@@ -644,7 +653,10 @@ class Scenarios(_Base):
         ("S4b-m-level", "x@y>=10|r1", None),
         ("S4a-m-deficit", "last.x|r0", "301"),  # Plan 16 Task 11: the deficit year's starvation death (BMI 12)
         ("SH3-m-live", "y@x=breakfast|r1", "3.9"),  # Plan 16 Task 11: x467, breakfast wears off first (#3990)
-        ("S2d-m-drain", "x@y<=10|r0", "63"),    # Plan 17 Task 2b (revision R1, the line): under a tenth from day 63 (was 46)
+        ("S2d-m-drain", "x@y<=10|r1", "62.7"),  # Plan 17 Task 5b: under a tenth from day 62.7 (the row laid in)
+        ("S2d-m-pace-real", "x@y<=10|r1", "82.0"),  # Realistic starvation alone: its last 7.72 days
+        ("S2d-m-pace-short", "x@y<=10|r1", "14.0"),  # Shortened: its last 1.40 days
+        ("S2d-m-dry", "x@y<=10|mul:24|r0", "125"),  # without water: from hour 125 to the death at 136
     ]
 
     def test_pinned_fills(self):
@@ -708,11 +720,14 @@ class Scenarios(_Base):
         limitations."""
         opts = self.html[self.html.index('id="options"'):self.html.index('id="compatibility"')]
         for frag in ("NR.DeathPace", "NR.HealthCombine", "Realistic, the default", "Multiply, the default",
-                     "Vanilla", "Shortened", "Worst only", "Add"):
+                     "Vanilla", "Shortened", "Worst only", "Add",
+                     # Task 5b (revision R1): each pace a straight line, a switch's gap closed at vanilla's rate
+                     "Every pace takes health down in a straight line", "falls at vanilla's rate until it reaches it"):
             self.assertIn(frag, opts, frag)
         lim = self.html[self.html.index('id="limitations"'):self.html.index('id="references"')]
-        for frag in ("wakes a sleeper", "Add, health can run out before", "ninety-minute day",
-                     "first day's close"):
+        for frag in ("wakes a sleeper", "Add, health can run out before", "first day's close",
+                     "every line spends its last tenth there", "the same game days at any day length",
+                     "lands in one game minute"):
             self.assertIn(frag, lim, frag)
 
     def test_plan17_the_end_mark_skips_a_line_ending_off_the_view(self):
