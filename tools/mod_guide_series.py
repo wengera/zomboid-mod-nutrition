@@ -32,8 +32,9 @@ starvation death; S2d's death is wet beriberi (#4022).
 
 Plan 17 Task 5: S2d's Health tab sets vanilla's model and live health beside the mod's (the remaining-fraction drain,
 Plan 17 Tasks 2 and 3), and its Pace (NR.DeathPace, the vitamins held) and Combining (NR.HealthCombine, the S2d fast)
-tabs are kernel replays under each option; x481 and x482 (Task 4) are admitted on their health (ADM_OPTS: each run's
-own drain options) and drawn; the vanilla fast's model runs at VANILLA_FAST_DT_MIN; the guide replay's heal spread is
+tabs are kernel replays under each option; x482 is admitted on its health (ADM_OPTS: each run's own drain options)
+and drawn; x481, which read the retired curve, is DROPPED (Task 2b); x484 (Task 7, the straight line at Realistic
+with Multiply) is admitted on its health and proves the default lines; the vanilla fast's model runs at VANILLA_FAST_DT_MIN; the guide replay's heal spread is
 replay_live's `game_heal`.
 
 The replays run on the lupa host (`tools/replay_live.py`'s `ServerReplay` and its `run`); the long ones run in a
@@ -111,6 +112,8 @@ RUN = {
     # Plan 17 Task 4: the remaining-fraction drain live, on the staged copy of mod/ at 97f76bac (DayLength 4): x481
     # Realistic with Multiply and the pace switch, x482 Vanilla with Add to the death
     "x481": "x481-20261020-070821", "x482": "x482-20261020-071425",
+    # Plan 17 Task 7: the straight line live at Realistic with Multiply, on the re-staged copy of mod/ at 62de3d5a
+    "x484": "x484-20261020-142509",
 }
 
 MAP_CHARTS = {
@@ -716,15 +719,18 @@ ADMISSIONS = (
     ("x342:mood", "x342", False, "mood", SRC_MOOD, ["S3b-m-live-U", "S3b-m-live-B"], ["S3b-m-kernel-U"], False),
     ("x343:mood", "x343", False, "mood", SRC_MOOD, ["SM1-m-live"], ["SM1-m-kernel"], False),
     # Plan 17 Task 5: the remaining-fraction drain live (Task 4), replayed under each run's own drain options (ADM_OPTS)
-    ("x481:health", "x481", False, HEALTH_TOL, SRC_X48, ["S2d-m-live-health"],
-     ["S2d-m-drain", "S2d-m-comb-mult", "S2d-m-pace-real"], False),
+    # x481 read the curve the straight line retired, so it proves no line of this build; x484 (Task 7) proves them
+    ("x481:health", "x481", False, HEALTH_TOL, SRC_X48, ["S2d-m-live-health"], [], False),
     ("x482:health", "x482", False, HEALTH_TOL, SRC_X48, ["S2d-m-live-pace"], ["S2d-m-pace-vanilla"], True),
+    ("x484:health", "x484", False, HEALTH_TOL, SRC_X48, [],
+     ["S2d-m-drain", "S2d-m-comb-mult", "S2d-m-pace-real"], True),
 )
 # the drain options a run's server held (its profile's [sandbox.NR]) and the game's heal spread, which its HEAD replay
 # takes (x48_lib.replay: ServerReplay with death_pace, health_combine and game_heal); x481's mid-run switch to Shortened
 # is its events.json setpath of _G.SandboxVars.NR.DeathPace, which the mod's options poll reads in the replay as live
 ADM_OPTS = {"x481:health": {"death_pace": 3, "health_combine": 2, "game_heal": True},
-            "x482:health": {"death_pace": 1, "health_combine": 3, "game_heal": True}}
+            "x482:health": {"death_pace": 1, "health_combine": 3, "game_heal": True},
+            "x484:health": {"death_pace": 3, "health_combine": 2, "game_heal": True}}
 # runs graded off the HEAD kernel directly (no ring to replay): key -> (the live series, the kernel series)
 OTHER = {"x37g:met": (["SX1-m-live"], ["SX1-m-kernel"]), "x401:level": (["SV1-m-live"], ["SV1-m-kernel"]),
          "x453b:level": (["SV1-m-live-b"], ["SV1-m-kernel"]), "x161b:drain": (["SD1-m-live"], []),
@@ -861,13 +867,13 @@ def j_adm_x34():
 
 @job
 def j_adm_x48():
-    return _jobs_of({"x481:health", "x482:health"})
+    return _jobs_of({"x481:health", "x482:health", "x484:health"})
 
 
 ADM_JOB = {}
 for _a in ADMISSIONS:
     _r = _a[1]
-    ADM_JOB[_a[0]] = ("j_adm_x48" if _r in ("x481", "x482") else
+    ADM_JOB[_a[0]] = ("j_adm_x48" if _r in ("x481", "x482", "x484") else
                       "j_adm_x46" if _r in ("x461b", "x467") else
                       "j_adm_x44" if _r in ("x446", "x452", "x452b") else
                       "j_adm_x36" if _r in ("x361", "x363", "x364") else
@@ -1784,7 +1790,7 @@ def s_inputs(schedule, **kw):
 
 RING_PAGES = {"x441": "1", "x442": "1,721,1441,2161", "x443a": "1,721", "x443b": "1,721", "x446": "1,721,1441",
               "x452": "1,721,1441", "x452b": "1,721,1441", "x461b": "1,721", "x467": "1,721,1441", "x481": "1",
-              "x482": "1,721,1441"}
+              "x482": "1,721,1441", "x484": "1"}
 
 
 def ring_file(run):
@@ -2576,7 +2582,7 @@ def s_s2d():
         series("S2d-m-drain", "Nutrition Revamp health", DAYS, "health", "kernel", hp,
                kernel(dict(comb_inputs, replay="90 days, no food, the replay's water",
                            options="NR.DeathPace 3 (Realistic) and NR.HealthCombine 2 (Multiply), the defaults"),
-                      "x481"),
+                      "x484"),
                "The fast at the mod's defaults (Realistic pace, Multiply), with water and no food. The starvation state "
                "opens after %g unfed hours (K.drain.STARVE_ONSET_H), at %.2f h, when Starving shows. Its remaining "
                "fraction falls on a straight line over the body's BMI progress, from a BMI of %.2f at the onset to "
@@ -2625,7 +2631,7 @@ def s_s2d():
                   pace[2][1]["death_age"] / 24.0, floor, tenth_text(*pace[2]), dropped)),
         series("S2d-m-pace-real", "Realistic pace (the default)", DAYS, "health", "kernel", line(*pace[3]),
                kernel(dict(pace_inputs, replay="%d days, no food, the replay's water" % PACE_DAYS[3],
-                           options="NR.DeathPace 3 (Realistic), NR.HealthCombine 2"), "x481"),
+                           options="NR.DeathPace 3 (Realistic), NR.HealthCombine 2"), "x484"),
                "The same fast, %s. At Realistic pace, the default, starvation's fraction falls on a straight line over "
                "the body's BMI progress to %g (S2234), so health falls with the body's own wasting and reaches %g on "
                "day %.2f. The fatal state is %s: health is gone at day %.2f, when the BMI reaches %g, where the line "
@@ -2661,7 +2667,7 @@ def s_s2d():
                % (opened_text(cw["opened"], K, vw["death_age"]), vw["death_name"], vw["death_age"] / 24.0, dropped)),
         series("S2d-m-comb-mult", "Multiply (the default)", DAYS, "health", "kernel", hp,
                kernel(dict(comb_inputs, replay="90 days, no food, the replay's water",
-                           options="NR.DeathPace 3, NR.HealthCombine 2 (Multiply), the defaults"), "x481"),
+                           options="NR.DeathPace 3, NR.HealthCombine 2 (Multiply), the defaults"), "x484"),
                "The same fast, the default (S2d-m-drain): %s. With Multiply the fractions multiply, so the causes "
                "compound and health sits under Worst only's once beriberi opens, yet reaches 0 only at one cause's "
                "death point. The fatal state is %s: health is gone at day %.2f, where the line ends."

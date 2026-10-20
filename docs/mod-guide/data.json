@@ -18771,7 +18771,7 @@
    "chart": "S2d",
    "id": "S2d-m-comb-mult",
    "label": "Multiply (the default)",
-   "note": "The same fast, the default (S2d-m-drain): starvation on day 1.44, then scurvy on day 40.21, then beriberi on day 42.23, then pellagra on day 55.24. With Multiply the fractions multiply, so the causes compound and health sits under Worst only's once beriberi opens, yet reaches 0 only at one cause's death point. The fatal state is beriberi: health is gone at day 77.23, where the line ends. Its proof run fails the admission test at HEAD (VALIDATION x481:health); no passing proof run exists for it.",
+   "note": "The same fast, the default (S2d-m-drain): starvation on day 1.44, then scurvy on day 40.21, then beriberi on day 42.23, then pellagra on day 55.24. With Multiply the fractions multiply, so the causes compound and health sits under Worst only's once beriberi opens, yet reaches 0 only at one cause's death point. The fatal state is beriberi: health is gone at day 77.23, where the line ends. ",
    "points": [
     [
      0.0006944444444444445,
@@ -20447,7 +20447,7 @@
      ]
     },
     "kind": "kernel",
-    "proof_run": "x481-20261020-070821",
+    "proof_run": "x484-20261020-142509",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -22149,7 +22149,7 @@
    "chart": "S2d",
    "id": "S2d-m-drain",
    "label": "Nutrition Revamp health",
-   "note": "The fast at the mod's defaults (Realistic pace, Multiply), with water and no food. The starvation state opens after 30 unfed hours (K.drain.STARVE_ONSET_H), at 34.45 h, when Starving shows. Its remaining fraction falls on a straight line over the body's BMI progress, from a BMI of 22.38 at the onset to 12, starvation's death point (S2234), so health falls in a straight line with the body's own wasting and reaches 50 on day 43.88; vanilla's starving character is dead by day 2.62 (S2d-v-model-health). A heavier body loses BMI more slowly, so its line runs longer. The deficiencies follow as each vitamin turns Clinical (scurvy on day 40.21, then beriberi on day 42.23, then pellagra on day 55.24), each fraction falling on a line to 0 at its own death time (beriberi's 840 game hours, from day 42.23); with Multiply the fractions multiply. The smallest fraction belongs to starvation from day 1.44, then beriberi from day 67.46 (#4029). The fatal state is beriberi: health is gone at day 77.23, where the line ends, before the BMI reaches 12 (#4022: the Obese body dies of beriberi on day 77.23 and the Gaunt body of starvation on day 40.90, a death the science gives first, not tuned to the hunger strikers' 46-73 days, S2231). Health is under 10 (K.drain.SLEEP_FLOOR, where vanilla wakes a sleeper on every tick, #3900) for the last 14.52 days, from day 62.70. Each state's rate carries its clock's own move in the minute, so a jump in the clock lands in one minute: the largest one-minute fall here is 0.0041, at day 47.00, and the Gaunt body's first record day's close takes 0.82 at once (at 48 h). Its proof run fails the admission test at HEAD (VALIDATION x481:health); no passing proof run exists for it.",
+   "note": "The fast at the mod's defaults (Realistic pace, Multiply), with water and no food. The starvation state opens after 30 unfed hours (K.drain.STARVE_ONSET_H), at 34.45 h, when Starving shows. Its remaining fraction falls on a straight line over the body's BMI progress, from a BMI of 22.38 at the onset to 12, starvation's death point (S2234), so health falls in a straight line with the body's own wasting and reaches 50 on day 43.88; vanilla's starving character is dead by day 2.62 (S2d-v-model-health). A heavier body loses BMI more slowly, so its line runs longer. The deficiencies follow as each vitamin turns Clinical (scurvy on day 40.21, then beriberi on day 42.23, then pellagra on day 55.24), each fraction falling on a line to 0 at its own death time (beriberi's 840 game hours, from day 42.23); with Multiply the fractions multiply. The smallest fraction belongs to starvation from day 1.44, then beriberi from day 67.46 (#4029). The fatal state is beriberi: health is gone at day 77.23, where the line ends, before the BMI reaches 12 (#4022: the Obese body dies of beriberi on day 77.23 and the Gaunt body of starvation on day 40.90, a death the science gives first, not tuned to the hunger strikers' 46-73 days, S2231). Health is under 10 (K.drain.SLEEP_FLOOR, where vanilla wakes a sleeper on every tick, #3900) for the last 14.52 days, from day 62.70. Each state's rate carries its clock's own move in the minute, so a jump in the clock lands in one minute: the largest one-minute fall here is 0.0041, at day 47.00, and the Gaunt body's first record day's close takes 0.82 at once (at 48 h). ",
    "points": [
     [
      0.0006944444444444445,
@@ -23825,7 +23825,7 @@
      ]
     },
     "kind": "kernel",
-    "proof_run": "x481-20261020-070821",
+    "proof_run": "x484-20261020-142509",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -25255,7 +25255,7 @@
    "chart": "S2d",
    "id": "S2d-m-pace-real",
    "label": "Realistic pace (the default)",
-   "note": "The same fast, thiamine, vitamin C and niacin held at a full store each day (HELD_VITAMINS: the vitamins whose deficiencies kill), so starvation is the only state. At Realistic pace, the default, starvation's fraction falls on a straight line over the body's BMI progress to 12 (S2234), so health falls with the body's own wasting and reaches 50 on day 48.16. The fatal state is starvation: health is gone at day 89.70, when the BMI reaches 12, where the line ends. Health is under 10 for the last 7.72 days, from day 81.99. Its blood sodium, falling on water alone, is at 117.9 mmol/L at the death, above the lethal band. Without the vitamins held the same fast dies of beriberi first (S2d-m-comb-mult). Its proof run fails the admission test at HEAD (VALIDATION x481:health); no passing proof run exists for it.",
+   "note": "The same fast, thiamine, vitamin C and niacin held at a full store each day (HELD_VITAMINS: the vitamins whose deficiencies kill), so starvation is the only state. At Realistic pace, the default, starvation's fraction falls on a straight line over the body's BMI progress to 12 (S2234), so health falls with the body's own wasting and reaches 50 on day 48.16. The fatal state is starvation: health is gone at day 89.70, when the BMI reaches 12, where the line ends. Health is under 10 for the last 7.72 days, from day 81.99. Its blood sodium, falling on water alone, is at 117.9 mmol/L at the death, above the lethal band. Without the vitamins held the same fast dies of beriberi first (S2d-m-comb-mult). ",
    "points": [
     [
      0.0006944444444444445,
@@ -27136,7 +27136,7 @@
      ]
     },
     "kind": "kernel",
-    "proof_run": "x481-20261020-070821",
+    "proof_run": "x484-20261020-142509",
     "script": "tools/mod_guide_series.py"
    },
    "units": {
@@ -71774,11 +71774,7 @@
    "n": {
     "health": 155
    },
-   "proves": [
-    "S2d-m-drain",
-    "S2d-m-comb-mult",
-    "S2d-m-pace-real"
-   ],
+   "proves": [],
    "quantity": [
     "health"
    ],
@@ -71811,6 +71807,34 @@
     "health"
    ],
    "run": "x482-20261020-071425",
+   "tolerance": {
+    "health": [
+     "abs",
+     0.002
+    ]
+   },
+   "tolerance_source": "the run's own: x48_lib.REPLAY_TOL (health 0.002), its REPLAY_health grade's bound"
+  },
+  {
+   "admitted": true,
+   "draws": [],
+   "key": "x484:health",
+   "kind": "admission",
+   "max_miss": {
+    "health": 1.2810977906951848e-05
+   },
+   "n": {
+    "health": 192
+   },
+   "proves": [
+    "S2d-m-drain",
+    "S2d-m-comb-mult",
+    "S2d-m-pace-real"
+   ],
+   "quantity": [
+    "health"
+   ],
+   "run": "x484-20261020-142509",
    "tolerance": {
     "health": [
      "abs",

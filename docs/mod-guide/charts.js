@@ -116,8 +116,8 @@
     "S2c": {},
     /* S2d (Plan 17 Task 5): Health draws vanilla's model and live health on the mod's own axis, so vanilla's death
        near day three sits beside the mod's long decline; on that axis vanilla's line is a steep fall at the left edge,
-       so "First week" (zoom: true, the same series on a narrower x) shows both shapes, the mod's curve opening at
-       vanilla's own slope and then flattening. A linear axis is kept over a logarithmic one because a reader reads
+       so "First week" (zoom: true, the same series on a narrower x) shows both shapes, the mod's straight line, far
+       shallower than vanilla's fall. A linear axis is kept over a logarithmic one because a reader reads
        a day count off it directly. */
     "S2d": {
       facets: [
@@ -383,6 +383,13 @@
     afterDatasetsDraw: function (chart) {
       var ctx = chart.ctx;
       var placed = [];   /* the labels drawn so far: a label that would overlap one moves up a line */
+      /* every end mark in view, so no label sits over another line's mark (the close fix wave, N5) */
+      var marks = [];
+      chart.data.datasets.forEach(function (ds, i) {
+        if (!ds._endLabel || !chart.isDatasetVisible(i)) return;
+        var m = chart.getDatasetMeta(i), q = m.data[m.data.length - 1];
+        if (q && q.x <= chart.chartArea.right + 0.5 && q.x >= chart.chartArea.left - 0.5) marks.push({ x: q.x, y: q.y });
+      });
       chart.data.datasets.forEach(function (ds, i) {
         if (!ds._endLabel || !chart.isDatasetVisible(i)) return;
         var meta = chart.getDatasetMeta(i);
@@ -403,10 +410,12 @@
         var tx = Math.min(Math.max(x - w / 2, chart.chartArea.left), chart.chartArea.right - w);
         var ty = y - 12 < chart.chartArea.top + 12 ? y + 22 : y - 12;
         function hits(p) { return tx < p.x + p.w + 6 && p.x < tx + w + 6 && Math.abs(ty - p.y) < 15; }
+        /* a label's box (its baseline ty, 12px tall) against a mark's (r each side, 2px clear) */
+        function overMark(m) { return tx < m.x + r + 2 && m.x - r - 2 < tx + w && ty > m.y - r - 2 && ty - 12 < m.y + r + 2; }
         /* the same label at the same spot (two lines ending together) is drawn once */
         var same = placed.some(function (p) { return p.text === ds._endLabel && Math.abs(p.x - tx) < 2 && Math.abs(p.y0 - ty) < 2; });
         var y0 = ty;
-        while (!same && placed.some(hits) && ty > chart.chartArea.top + 12) ty -= 15;
+        while (!same && (placed.some(hits) || marks.some(overMark)) && ty > chart.chartArea.top + 12) ty -= 15;
         if (!same) {
           ctx.fillText(ds._endLabel, tx, ty);
           placed.push({ x: tx, y: ty, y0: y0, w: w, text: ds._endLabel });

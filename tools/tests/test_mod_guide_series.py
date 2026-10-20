@@ -346,8 +346,13 @@ def test_plan17_the_live_health_lines_are_admitted():
     rec = adm["x481:health"]
     assert not rec["admitted"] and rec["max_miss"]["health"] > 0.002
     assert "S2d-m-live-health" in S.DROPPED and "S2d-m-live-health" not in SER
-    assert "S2d-m-drain" in adm["x481:health"]["proves"] and "S2d-m-pace-vanilla" in adm["x482:health"]["proves"]
-    assert SER["S2d-m-drain"]["provenance"]["proof_run"] == S.RUN["x481"]
+    assert adm["x481:health"]["proves"] == [] and "S2d-m-pace-vanilla" in adm["x482:health"]["proves"]
+    # the close fix wave (I1): x484 read the straight line live at Realistic with Multiply and proves the defaults
+    rec = adm["x484:health"]
+    assert rec["admitted"] and rec["draws"] == [] and rec["max_miss"]["health"] < 0.002
+    for sid in ("S2d-m-drain", "S2d-m-comb-mult", "S2d-m-pace-real"):
+        assert sid in rec["proves"] and SER[sid]["provenance"]["proof_run"] == S.RUN["x484"]
+        assert "the admission test at HEAD" not in SER[sid].get("note", ""), sid
     assert SER["S2d-m-pace-vanilla"]["provenance"]["proof_run"] == S.RUN["x482"]
 
 

@@ -722,7 +722,9 @@ class Scenarios(_Base):
         for frag in ("NR.DeathPace", "NR.HealthCombine", "Realistic, the default", "Multiply, the default",
                      "Vanilla", "Shortened", "Worst only", "Add",
                      # Task 5b (revision R1): each pace a straight line, a switch's gap closed at vanilla's rate
-                     "Every pace takes health down in a straight line", "falls at vanilla's rate until it reaches it"):
+                     "Every pace takes health down in a straight line",
+                     # the close fix wave (M2): at least vanilla's rate, the cap summing every active rate
+                     "falls at least at vanilla's rate until it reaches it"):
             self.assertIn(frag, opts, frag)
         lim = self.html[self.html.index('id="limitations"'):self.html.index('id="references"')]
         for frag in ("wakes a sleeper", "Add, health can run out before", "first day's close",
