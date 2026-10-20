@@ -393,3 +393,61 @@ def test_minute_ring_a_missing_or_non_number_cold_leaves_the_field_absent_and_th
     assert nob.cold is None and nob.norec is True and rn.errors == 0
     assert h.TK.MR.sampleBaseCold is not None                       # installed once, over the movement wrap
     assert h.TK.MR.sampleBaseCold != h.TK.MR.sample
+
+
+# ---- Plan 17 Task 4: the overall health and the dead flag on every row ------------------------------------------------
+
+HEALTH = r"""
+function(p, mode)
+    if mode == "raise" then
+        p.getBodyDamage = function(s) error("no body") end
+        return
+    end
+    if mode == "text" then
+        p.getBodyDamage = function(s) return { getOverallBodyHealth = function(b) return "full" end } end
+        return
+    end
+    p.hp = mode
+    p.getBodyDamage = function(s) return { getOverallBodyHealth = function(b) return s.hp end } end
+end
+"""
+
+
+def test_minute_ring_rows_carry_the_overall_health_and_the_dead_flag():
+    h = boot()
+    h.rt.eval(HEALTH)(h.p, 61.25)
+    cmd(h, "minute.ring", "admin", "start", "body.coldMult")
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    h.rt.eval(HEALTH)(h.p, 0.0)
+    h.p.deadFlag = True
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    rows = h.TK.results[cmd(h, "minute.ring", "admin", "read").result].rows_list
+    assert rows[1].health == 61.25 and rows[1].dead is False        # alive: false, not absent
+    assert rows[2].health == 0.0 and rows[2].dead is True
+    assert rows[1].HUNGER == 0.25 and rows[1].cold is not None       # the earlier fields and wraps are untouched
+
+
+def test_minute_ring_an_unreachable_raising_or_non_number_health_leaves_the_field_absent_and_the_row_lands():
+    h = boot()
+    cmd(h, "minute.ring", "admin", "start")
+    cmd(h, "minute.ring", "nobody", "start")
+    h.T.age = h.T.age + 1 / 60
+    h.minute()                                                     # the stand-in player has no body damage
+    h.rt.eval(HEALTH)(h.p, "raise")
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    h.rt.eval(HEALTH)(h.p, "text")
+    h.T.age = h.T.age + 1 / 60
+    h.minute()
+    ra = cmd(h, "minute.ring", "admin", "read")
+    rn = cmd(h, "minute.ring", "nobody", "read")
+    rows = h.TK.results[ra.result].rows_list
+    nob = h.TK.results[rn.result].rows_list[1]
+    assert ra.rows == 3 and ra.errors == 0
+    assert all(rows[i].health is None and rows[i].HUNGER == 0.25 for i in (1, 2, 3))
+    assert rows[1].dead is False                                   # isDead answers though the body does not
+    assert nob.health is None and nob.dead is None and nob.norec is True and rn.errors == 0
+    assert h.TK.MR.sampleBaseHealth is not None                    # installed once, over the cold wrap
+    assert h.TK.MR.sampleBaseHealth != h.TK.MR.sample

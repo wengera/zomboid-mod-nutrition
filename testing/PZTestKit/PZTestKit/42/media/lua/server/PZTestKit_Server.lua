@@ -5002,3 +5002,41 @@ if type(TK.MR) == "table" and type(TK.MR.sample) == "function" and TK.MR.sampleB
         return row
     end
 end
+
+-- ==== Plan 17 Task 4 additions (server: the minute ring's health and dead fields) ===================================
+-- Appended after the file's last line on purpose (no existing line moves). Two more fields on every minute.ring row,
+-- a fourth wrap of TK.MR.sample after sampleExtra's, sampleMoving's (Plan 11f) and sampleCold's (Plan 16 Task 8), so
+-- the offline ring test (testing/tests/kernel/test_harness_minute_ring.py) loads it with the rest of its section:
+--   health  the player's overall body health, player:getBodyDamage():getOverallBodyHealth(), the read the mod's drain
+--           takes its minute's health from (NR_Server_Effects step 10) and that health.get replies as `overall`; a
+--           number, read inside the minute event before the mod's queue drains, so row k reads the health drain k - 1
+--           left, as the record paths do (a replay compares it with the stand-in's);
+--   dead    player:isDead() == true, a boolean: a death read on the same row as the health that caused it.
+-- Each is read under its own pcall and is ABSENT from the row when the player or the method is unreachable, raises or
+-- answers a non-number (health); the row itself still lands. The block is inert where TK.MR is absent (the Plan 11b
+-- offline test loads this file's tail on a stub TK).
+TK.TMH = TK.TMH or {}
+
+function TK.TMH.sampleHealth(row, R)
+    local p = TK.MR.player(R.user)
+    if p == nil then return end
+    pcall(function()
+        local okB, bd = TK.call(p, "getBodyDamage")
+        if not okB or bd == nil then return end
+        local ok, v = TK.call(bd, "getOverallBodyHealth")
+        if ok and type(v) == "number" then row.health = v end
+    end)
+    pcall(function()
+        local ok, v = TK.call(p, "isDead")
+        if ok then row.dead = v == true end
+    end)
+end
+
+if type(TK.MR) == "table" and type(TK.MR.sample) == "function" and TK.MR.sampleBaseHealth == nil then
+    TK.MR.sampleBaseHealth = TK.MR.sample
+    function TK.MR.sample(R, gt, age)
+        local row = TK.MR.sampleBaseHealth(R, gt, age)
+        TK.TMH.sampleHealth(row, R)
+        return row
+    end
+end
