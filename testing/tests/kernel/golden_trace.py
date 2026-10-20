@@ -211,6 +211,16 @@ Perks.Strength.getTotalXpForLevel = function(s, L) return 75 * L * (L + 1) end
 addXp = function(p, perk, amount)
     if perk == Perks.Strength then p.st.xp = p.st.xp + amount; p.st.xpGrants = p.st.xpGrants + 1 end
 end
+-- Plan 17 close M1: vanilla's HUNGRY and THIRST moodle thresholds (MoodleStat.<clinit>, #0508, #0509): level n when
+-- the stat is above the n-th value
+NR_T.HUNGRY_AT = { 0.15, 0.25, 0.45, 0.70 }
+NR_T.THIRST_AT = { 0.12, 0.25, 0.70, 0.84 }
+NR_T.moodleLevel = function(v, at)
+    local n = 0
+    if type(v) ~= "number" then return 0 end
+    for i = 1, 4 do if v > at[i] then n = i end end
+    return n
+end
 MoodleType = { HEAVY_LOAD = "moodle:HEAVY_LOAD", HYPERTHERMIA = "moodle:HYPERTHERMIA", HUNGRY = "moodle:HUNGRY",
                THIRST = "moodle:THIRST", SICK = "moodle:SICK", BLEEDING = "moodle:BLEEDING" }   -- the last four: Plan 15 Task 5
 BodyPartType = {}
@@ -300,8 +310,12 @@ NR_T.decorate = function(p, cfg)
     local fitness = { getCurrentExe = function(s) return nil end }
     p.getFitness = function(s) return fitness end
     p.isCurrentState = function(s, state) return false end
+    -- Plan 17 close M1: HUNGRY and THIRST answer the stand-in's HUNGER and THIRST at vanilla's thresholds (#0508,
+    -- #0509), so the heal tier at level 4 is vanilla's 0 (#2721); the stats object (p.sv) is laid below
     local moodles = { getMoodleLevel = function(s, t)
         if t == MoodleType.HEAVY_LOAD then return cfg.heavy or 0 end
+        if t == MoodleType.HUNGRY then return NR_T.moodleLevel(p.sv.HUNGER, NR_T.HUNGRY_AT) end
+        if t == MoodleType.THIRST then return NR_T.moodleLevel(p.sv.THIRST, NR_T.THIRST_AT) end
         return 0
     end }
     p.getMoodles = function(s) return moodles end

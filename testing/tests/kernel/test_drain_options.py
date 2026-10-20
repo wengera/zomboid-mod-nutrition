@@ -243,3 +243,36 @@ def test_health_reaches_0_only_where_some_fraction_is_0_under_worst_and_multiply
     first = next(k for k, x in enumerate(worst_live) if x <= G.DEATH_HEALTH)
     assert rows[first]["age"] == pytest.approx(PROPERTY_DEATH_H[pace], abs=MIN_H)
     assert rows[-1]["age"] - rows[first]["age"] >= 24.0                       # the replay runs past the death
+
+
+# --- Plan 17 close M1: the stand-in's HUNGRY and THIRST levels --------------------------------------------------------
+
+@pytest.mark.parametrize("stat,moodle,cases", [
+    ("HUNGER", "HUNGRY", [(0.10, 0), (0.16, 1), (0.26, 2), (0.46, 3), (0.70, 3), (0.71, 4), (1.0, 4)]),
+    ("THIRST", "THIRST", [(0.10, 0), (0.13, 1), (0.26, 2), (0.71, 3), (0.84, 3), (0.85, 4), (1.0, 4)]),
+])
+def test_the_stand_in_answers_hungry_and_thirst_from_its_stats_at_vanillas_thresholds(stat, moodle, cases):
+    # close-review M1: the stand-in answered 0 for both, so a replay healed at tier 0 where the game adds nothing at
+    # level 4 (#2721); vanilla's thresholds are #0508 and #0509, read back at these probes there
+    h = golden_trace.new_host()
+    p = golden_trace._new_player(h, "g1", golden_trace.MACROS["g1"])
+    MT = h.rt.globals().MoodleType
+    moodles = p.getMoodles(p)
+    for v, level in cases:
+        p.sv[stat] = v
+        assert moodles.getMoodleLevel(moodles, MT[moodle]) == level, (stat, v)
+
+
+def test_the_stand_ins_level_4_zeroes_the_awake_heal_addition():
+    # the mod's own tier read off the stand-in's levels: Starving or Parched shows, so the addition is vanilla's 0
+    h = golden_trace.new_host()
+    p = golden_trace._new_player(h, "g1", golden_trace.MACROS["g1"])
+    MT = h.rt.globals().MoodleType
+    moodles = p.getMoodles(p)
+    p.sv["HUNGER"], p.sv["THIRST"] = 0.75, 0.0
+    hl = moodles.getMoodleLevel(moodles, MT.HUNGRY)
+    tl = moodles.getMoodleLevel(moodles, MT.THIRST)
+    assert (hl, tl) == (4, 0)
+    assert h.K.drain.regenAddition(hl, tl, 0, False) == 0
+    p.sv["HUNGER"] = 0.0
+    assert h.K.drain.regenAddition(moodles.getMoodleLevel(moodles, MT.HUNGRY), tl, 0, False) == 0.002
