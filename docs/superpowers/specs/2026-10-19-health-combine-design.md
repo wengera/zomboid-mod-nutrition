@@ -231,6 +231,6 @@ The principle, in his words: keep vanilla and the mod "somewhat equitable in tot
 
   The calibration tool and its artifact stay as the record. `STARVE_DPDT` (its `starve_dpdt_per_h`) stays, because the smoothed BMI clock uses it before a state's first close.
 - **The cap:** health may fall at least as fast as the target's current slope. A linear state's rate is its line's slope on its clock, converted to health per game day through the clock's current rate. Starvation's clock rate is the smoothed BMI rate; dehydration's is the observed deficit rise. The cap still sums the active states' rates.
-- **Under 10 health:** about the last tenth of each line wakes a sleeper every tick. That is about 9 days of a 90-day Realistic fast and the last 1.3 % of deficit in dehydration. It is a stated limitation, accepted by Angus.
+- **Under 10 health:** about the last tenth of each line wakes a sleeper every tick. Measured on the guide's replays (Task 5b): the last 7.72 days of Realistic starvation alone (the vitamins held, death at day 89.70), the last 14.52 days of the default fast (from day 62.70 to its beriberi death at day 77.23), and the last 1.3 % of deficit in dehydration (0.45 days of the fast without water). It is a stated limitation, accepted by Angus.
 - **The options are unchanged:** `NR.DeathPace` (Vanilla, Shortened, Realistic) and `NR.HealthCombine` (Worst only, Multiply, Add).
 - **Later, a separate plan with a science pass first:** hunger pain, starvation disturbing sleep, and starvation fatigue. These are Angus's "misery" effects.
