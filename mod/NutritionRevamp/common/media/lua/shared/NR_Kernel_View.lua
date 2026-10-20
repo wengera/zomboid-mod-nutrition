@@ -145,13 +145,13 @@ end
 -- sets (from the hundred-thousands, K.view.drainSignal 0-16383: the active and the recovering masks), so a new drain line,
 -- trend word or per cent reaches the panel at the next slow minute. Deficiency and excess move with the nutrient epoch, which already marks a push.
 -- nil reads 0 (the trend 1, steady).
-function K.view.pushSignature(dehydPct, caf, debtH, massG, drainMask, trend)
+function K.view.pushSignature(dehydPct, caf, debtH, massG, drainSig, trend)
     local s = K.view.rung(caf or 0, K.view.STIMULANT_AT)
     local sl = K.view.rung(debtH or 0, K.view.SLEEP_AT)
     local o = K.view.fullnessLevel(massG)
     local d = K.view.digit(dehydPct, 9)
     local t = K.view.digit(trend or 1, 2)
-    return K.view.digit(drainMask, 16383) * 100000 + t * 10000 + d * 1000 + o * 100 + s * 10 + sl
+    return K.view.digit(drainSig, 16383) * 100000 + t * 10000 + d * 1000 + o * 100 + s * 10 + sl
 end
 
 -- record.drain's sets as one whole number for the push signature: the active mask plus 128 x the recovering mask

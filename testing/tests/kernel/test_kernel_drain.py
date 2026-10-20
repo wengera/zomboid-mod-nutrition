@@ -1490,3 +1490,41 @@ def test_an_estimate_that_is_not_a_number_leaves_the_progress_as_it_was(host, D)
         body = host.table({"lm": 52.02, "fm": 10.0, "dayStartH": 96.0})
         p, closed = D.smooth(d, body, float("inf"), active)
         assert p == 0.3 and closed is False
+
+
+def test_a_lapsed_starvations_ceiling_ramps_down_at_the_floor_at_a_close(s2d_snack):
+    # ruling R2-2: while the cause is absent the rate is the R1-5 floor exactly (vanilla's level-4 rate x 24 at the
+    # day length), so a close that books the weight still lost ramps health down to it, neither in one minute nor never
+    G, rows, twin, k, K = s2d_snack
+    floor = float(K.drain.rVanilla(K.drain.STARVATION, 90)) * 24
+    after = rows[k:]
+    rec = [i for i, r in enumerate(after) if r.get("drain.recovering") and r["drain.mask"] == 0]
+    assert rec
+    for i in rec:
+        assert after[i]["drain.rate"] == pytest.approx(floor, abs=1e-9), after[i]["age"]
+    closes = [i for i in rec[1:] if after[i]["drain.target"] < after[i - 1]["drain.target"] - 0.1]
+    assert closes
+    c = closes[0]
+    assert after[c - 1]["health"] - after[c]["health"] <= floor / 1440 + 1e-9
+    assert c + 20 in rec and abs(after[c + 20]["health"] - after[c + 20]["drain.target"]) < 1e-9
+
+
+def test_a_deficiency_back_at_clinical_resumes_its_own_clock(host, D):
+    # revision R2: the drain's own clock (bbH) counts back down under clinical and, back at clinical, the state resumes
+    # at it, never at the nutrient model's ah, which restarts at 0 on every grade change
+    rec = record(host, thiamine=(4, 0.0))
+    o = opt(host, 3, 2)
+    for m in range(600):
+        D.step(rec, 1.0, 100.0 + m / 60, False, o)                              # 10 h clinical
+        rec.nutrients.thiamine.ah = rec.nutrients.thiamine.ah + 1 / 60
+    rec.nutrients.thiamine.g = 3
+    rec.nutrients.thiamine.ah = 0.0
+    for m in range(120):
+        D.step(rec, 1.0, 110.0 + m / 60, False, o)                              # 2 h under clinical
+        rec.nutrients.thiamine.ah = rec.nutrients.thiamine.ah + 1 / 60
+    rec.nutrients.thiamine.g = 4
+    rec.nutrients.thiamine.ah = 0.0
+    d = D.step(rec, 1.0, 112.0, False, o)
+    assert d.mask == 4 and d.recovering == 0
+    assert d.frac[3] == pytest.approx(1 - 8.0 / 840, abs=1e-12)
+    assert rec.drain.bbH == pytest.approx(8.0 + 1 / 60, abs=1e-12)
