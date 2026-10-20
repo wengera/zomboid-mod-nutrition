@@ -611,13 +611,14 @@ def test_the_drain_takes_the_rate_toward_the_target_and_zeroes_regeneration_and_
 def test_the_drain_never_takes_health_past_the_target_and_holds_with_no_sawtooth(eff_host):
     h = eff_host
     rec = record(h)
-    rec["fluids"]["dehydPct"] = 6.75                             # Realistic dehydration a quarter of the way to 15 %
-    target = 100 * h.K.drain.dehydFraction(6.75)                 # Plan 17 Task 2: 0.1 + 0.9 x the curve, about 37.7
+    rec["fluids"]["dehydPct"] = 6.75                             # Realistic dehydration on its line from 4 % to 17 %
+    h.K.drain.ensure(rec)["dPrev"] = 6.70                        # the last minute's deficit: rising 0.05 % a minute
+    target = 100 * (1 - 2.75 / 13)                               # revision R1: the line, about 78.8
     p, cfg = player(h, rec, health=target + 0.02)
     minute(h, p, rec, dtM=1.0)
-    assert rec["drain"]["state"] == 6 and rec["drain"]["target"] == pytest.approx(target, abs=1e-12)
+    assert rec["drain"]["state"] == 6 and rec["drain"]["target"] == pytest.approx(target, abs=1e-9)
     assert lst(cfg["log"]["reduce"]) == [pytest.approx(0.02, abs=1e-9)]   # min(rate x dt, health - target)
-    assert 0.02 < 17.82 * 24 / 1440                              # under the minute's rate: the target bound it
+    assert 0.02 < 100 / 13 * 0.05                                # under the minute's rate: the target bound it
     n_regen = len(lst(cfg["log"]["regen"]))
     cfg["health"] = rec["drain"]["target"]                       # at the target: holding
     minute(h, p, rec, ageH=100.0 + 1 / 60)
@@ -639,7 +640,7 @@ def test_a_drain_state_change_marks_the_mirror_dirty(eff_host):
     # fix 1 (review L1): the winner changes with no rebuild, so only the drain-state clause can mark the mirror
     h = eff_host
     rec = record(h)
-    rec["fluids"]["dehydPct"] = 5.5                              # Plan 17 Task 2: dehydration's fraction about 0.493
+    rec["fluids"]["dehydPct"] = 10.6                             # Plan 17 revision R1: dehydration's line, about 0.492
     rec["nutrients"]["vitC"]["g"] = 4
     rec["nutrients"]["vitC"]["ah"] = 1000.0                      # scurvy's 1 - 1000 / 2160, about 0.537
     p, cfg = player(h, rec, health=44.0)
@@ -902,7 +903,7 @@ def test_overlay_runs_no_starvation_or_dehydration_drain(eff_host):
 
 
 def test_the_starvation_target_falls_with_bmi_from_its_onset(eff_host):
-    # Plan 17 Task 2: Realistic starvation on the curve over the BMI progress, read at each record-day close
+    # Plan 17 revision R1: Realistic starvation on a line over the BMI progress, read at each record-day close
     h = eff_host
     rec, p, cfg = _starving(h, 48)
     minute(h, p, rec, ageH=100.0 + 1 / 60)
@@ -913,7 +914,7 @@ def test_the_starvation_target_falls_with_bmi_from_its_onset(eff_host):
     body["dayStartH"] = 100.0 + 2 / 60
     minute(h, p, rec, ageH=100.0 + 2 / 60)
     assert D["pS"] == pytest.approx(0.5, abs=1e-9)
-    assert D["target"] == pytest.approx(100 * h.K.drain.curve(0.5, 1, h.K.drain.A_STARVE), abs=1e-9)
+    assert D["target"] == pytest.approx(50, abs=1e-7)
     body["fm"] = 12.0 * 1.7 ** 2 - body["lm"]                      # BMI 12, the death point, at the next close: 0
     body["dayStartH"] = 100.0 + 3 / 60
     minute(h, p, rec, ageH=100.0 + 3 / 60)

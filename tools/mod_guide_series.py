@@ -2565,13 +2565,12 @@ def s_s2d():
                        "read": "100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)"}, "x456"),
                "No food and no water from a fresh record at 07:00 (HUNGER 0), at the mod's defaults. The dehydration "
                "state opens at a %g %% body-water deficit (K.drain.DEHYD_ONSET), at %.2f h, when Parched shows, and "
-               "the starvation state at %.2f h; health reaches %g at %.2f h. The dehydration fraction falls on the "
-               "curve with the deficit to %g at 15 %% and on a line to 0 at the death point of 17 %% (a game choice "
-               "inside 15-19 %%, K.drain.DEHYD_DEATH), the one final stage the mod keeps, under the health at which "
-               "vanilla wakes a sleeper. The fatal state is %s: health is gone at day %.2f (%.1f h), where the line "
+               "the starvation state at %.2f h; health reaches %g at %.2f h. The dehydration fraction falls on a "
+               "line with the deficit to 0 at the death point of 17 %% (a game choice inside 15-19 %%, "
+               "K.drain.DEHYD_DEATH). The fatal state is %s: health is gone at day %.2f (%.1f h), where the line "
                "ends. The live x456 read the drain before Plan 17, so it proves the onset only (#3940, #3941)."
                % (float(K.drain.DEHYD_ONSET), kd["dehyd_age"], kd["starve_age"], HALF_HEALTH, kd["half_age"],
-                  float(K.drain.DEHYD_FINAL), vd["death_name"], vd["death_age"] / 24.0, vd["death_age"])),
+                  vd["death_name"], vd["death_age"] / 24.0, vd["death_age"])),
         series("S2d-m-pace-vanilla", "Vanilla pace", DAYS, "health", "kernel", line(pv, vpv),
                kernel(dict(pace_inputs, replay="%d days, no food, the replay's water" % PACE_DAYS[1],
                            options="NR.DeathPace 1 (Vanilla), NR.HealthCombine 2"), "x482"),

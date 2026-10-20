@@ -1329,15 +1329,15 @@ def _(kh, sid):
 
 @check("S2d-m-drain")
 def _(kh, sid):
-    # three days of the fast with water: the onset at 30 unfed hours, then (Plan 17 Task 2, ruling T2-1) health follows
-    # starvation's remaining fraction on the curve over the smoothed BMI (spec sections 1.2 and 1.2a: the estimate
-    # anchored at the open record day's start, the calibration body's BMI rate before the first close), at most
-    # vanilla's 3.564 a game hour, re-derived here off the replay's own body course
+    # three days of the fast with water: the onset at 30 unfed hours, then (Plan 17 revision R1, ruling T2-1) health
+    # follows starvation's remaining fraction on a line over the smoothed BMI (spec sections 1.2a and 9: the estimate
+    # anchored at the open record day's start, the calibration body's BMI rate before the first close), at most the
+    # clock's current rate or the minute's move, re-derived here off the replay's own body course
     rows, _, health = health_arm([FRESH] + water(3), 3 * 1440, ("body.lm", "body.fm", "body.dayStartH",
                                                                 "drain.starving"))
     assert pt(sid, 3.0) == pytest.approx(health, abs=1e-9)
     onset = VIAB["j_s2d"]["drain"][0]                                     # the starvation state's opening
-    a, h2 = float(kh.K.drain.A_STARVE), float(kh.K.HEIGHT_M) ** 2
+    h2 = float(kh.K.HEIGHT_M) ** 2
     dbmi = float(kh.K.drain.STARVE_DPDT) * (22.42350650342769 - 12.0)    # calibration.json starve.bmi0
     hp, bmi0, p_at, b_close, b_rate, p_s = 100.0, None, None, None, dbmi, 0.0
     for r in rows:
@@ -1351,11 +1351,12 @@ def _(kh, sid):
         elif r["body.dayStartH"] > p_at:                                  # a record-day close: re-anchor
             b_rate, b_close, p_at = max(0.0, b_close - bmi) / (r["body.dayStartH"] - p_at), bmi, r["body.dayStartH"]
         est = b_close - b_rate * max(0.0, r["age"] - p_at)
+        p0 = p_s
         p_s = max(p_s, min(max((bmi0 - est) / (bmi0 - 12.0), 0.0), 1.0))
-        target = 100.0 * (1 - math.log(1 + a * p_s) / math.log(1 + a))
-        hp -= min(3.564 * 24 / 1440 * r["dtM"], max(0.0, hp - target))
+        per_h = max(b_rate / (bmi0 - 12.0), (p_s - p0) * 60 / r["dtM"])
+        hp -= min(100.0 * per_h / 60 * r["dtM"], max(0.0, hp - 100.0 * (1 - p_s)))
     assert health == pytest.approx(hp, abs=1e-6)
-    assert 50 < health < 100 - 3.564 * 2                                  # it fell, and at least two hours' worth
+    assert 97 < health < 99.5                                             # it fell on the line, about 1.05 a game day
     v = VIAB["j_s2d"]
     assert SER[sid]["points"][-1] == [pytest.approx(v["death_age"] / 24.0), 0.0] and v["death_name"] == "beriberi"   # Plan 16 Task 5
     return [3.0, v["death_age"] / 24.0]

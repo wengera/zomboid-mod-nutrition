@@ -341,34 +341,42 @@ NAMES = {
 
 @pytest.fixture(scope="module")
 def as_predicted(tmp_path_factory):
-    return {k: run_session(k, tmp_path_factory.mktemp(k)) for k in NAMES}
+    return {k: run_session(k, tmp_path_factory.mktemp(k)) for k in HEAD_KEYS}
 
 
-@pytest.mark.parametrize("key", sorted(NAMES))
+# Frozen (CLAUDE.md s5: a HEAD replay test on an old ring that a later rule change breaks freezes on a git archive of
+# the last build whose pins it held): Plan 17 revision R1 (Task 2b) retired the starvation curve x481 graded
+# (OPEN_SLOPE, the prerun's curve, K.drain.A_STARVE and CAL_DAY_MIN), so every x481 session test, the kernel-constant
+# check and the prerun's HEAD replay run on FROZEN_AT, the last build with the curve (mod/ there is x481's staged
+# 97f76bac's). x482's Vanilla line is unchanged by R1 and stays at HEAD.
+FROZEN_AT = "6d8f336b"
+HEAD_KEYS = ["x482"]
+FROZEN = [
+    "testing/tests/test_x48_lib.py::test_session_as_predicted[x481]",
+    "testing/tests/test_x48_lib.py::test_x481_places_its_writes_and_restores_the_pace",
+    "testing/tests/test_x48_lib.py::test_a_ring_read_off_the_replay_host_replays_within_the_tolerance_and_a_misplaced_switch_does_not",
+    "testing/tests/test_x48_lib.py::test_the_kernel_constants_are_the_kernels",
+    "testing/tests/test_x48_lib.py::test_the_committed_prerun_is_the_head_replay",
+    "testing/tests/test_x48_lib.py::test_the_prerun_command_checks_and_names_staleness",
+] + ["testing/tests/test_x48_lib.py::test_each_defect_moves_its_grade[x481-%s-grades%d]" % (f, i)
+     for i, f in enumerate(("opt_wrong", "no_onset", "rate_off", "slope_off", "no_beri", "worst", "late_follow",
+                            "no_follow", "cap_off"))]
+
+
+def test_the_x481_tests_hold_on_their_build(tmp_path):
+    from kernel import at_build
+    code, out = at_build.run(tmp_path, FROZEN_AT, FROZEN, extra=("testing/profiles", "testing/pzt", "testing/fixtures"))
+    assert code == 0, out
+    assert "%d passed" % len(FROZEN) in out, out
+
+
+@pytest.mark.parametrize("key", HEAD_KEYS)
 def test_session_as_predicted(key, as_predicted):
     v, out, w, S = as_predicted[key]
     assert set(v) == NAMES[key]
     assert not bad(v, out), bad(v, out)
     assert not out["phase_errors"] and not out.get("skipped_phases")
     assert out["replay"]["fields"]["health"]["n"] > 50 and out["replay"]["fields"]["drain.target"]["n"] > 50
-
-
-def test_x481_places_its_writes_and_restores_the_pace(as_predicted):
-    v, out, w, S = as_predicted["x481"]
-    book = {b["path"]: b for b in out["model_inputs"]["placement"]}
-    rows = S.ring_rows()
-    for st in S.sets:                          # the fake's minute reads and drains at once: every set shows first
-        b = book[st["path"]]
-        assert b["how"] == "shown" and b["s"] == next(r["s"] for r in rows if r["age"] > st["age"]), b
-    assert book["_G.SandboxVars.NR.DeathPace"]["how"] == "shown"
-    assert out["checks"]["SW"]["write"]["read_before"] == 3
-    assert out["checks"]["K"]["restore"]["ok"] is True
-    assert w.walk("_G.SandboxVars.NR.DeathPace")[1] == 3
-    fol = out["verdicts"]["FOLLOW"]["observed"]
-    assert fol["lag_gm"] <= L.FOLLOW_GM and abs(fol["arm_on"] - fol["arm_off"]) > L.DISCRIM
-    op = out["verdicts"]["OPEN_SLOPE"]["observed"]
-    assert op["body_ratio"] < 0.7 and op["rel"] < 1e-6                 # the 80 kg body opens at 0.665 of r_hunger(90)
-    assert [r["trueMult"] for r in S.speeds][-1] == 1.0                 # the clock restored to the start's
 
 
 def test_x482_dies_on_the_line_and_reads_x442(as_predicted):
@@ -381,16 +389,7 @@ def test_x482_dies_on_the_line_and_reads_x442(as_predicted):
     assert "server-stdout.log" not in S.xs.copied                       # copied only by main's log read, if present
 
 
-FLAGS = [
-    ("x481", "opt_wrong", {"OPT"}),
-    ("x481", "no_onset", {"ONSET"}),
-    ("x481", "rate_off", {"OPEN_RATE"}),
-    ("x481", "slope_off", {"OPEN_SLOPE"}),
-    ("x481", "no_beri", {"BERI_ON", "COMBINE"}),
-    ("x481", "worst", {"COMBINE", "REPLAY_drain.target"}),
-    ("x481", "late_follow", {"FOLLOW"}),
-    ("x481", "no_follow", {"FOLLOW"}),
-    ("x481", "cap_off", {"CAP", "REPLAY_health"}),
+FLAGS = [                              # x481's flags run frozen (test_the_x481_tests_hold_on_their_build)
     ("x482", "opt_wrong", {"OPT"}),
     ("x482", "slow_line", {"SLOPE", "DEATH"}),
     ("x482", "no_death", {"DEATH"}),
@@ -632,25 +631,6 @@ def test_the_x442_constants_are_the_artifacts():
     assert L.FIRST_SIGHT["stats"]["HUNGER"] == st["hunger"] and L.FIRST_SIGHT["player"]["weight"] == st["weight"]
 
 
-def test_the_kernel_constants_are_the_kernels():
-    with open(os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Kernel_Drain.lua"),
-              encoding="utf-8") as fh:
-        src = fh.read()
-
-    def k(name):
-        return float(re.search(r"^K\.drain\." + name + r" = ([0-9.e-]+)", src, re.M).group(1))
-    assert k("R_HUNGER") == L.K_R_HUNGER and k("A_STARVE") == L.K_A_STARVE
-    assert k("STARVE_DPDT") == L.K_STARVE_DPDT and k("CAL_BMI0") == L.K_CAL_BMI0
-    assert k("CAL_DAY_MIN") == L.K_CAL_DAY_MIN and k("BMI_DEATH") == L.K_BMI_DEATH
-    assert k("BERIBERI_DEATH_H") == L.K_BERIBERI_DEATH_H and k("CLINICAL") == L.K_CLINICAL
-    assert k("STARVE_ONSET_H") == L.STARVE_ONSET_H
-    with open(os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Data_Records.lua"),
-              encoding="utf-8") as fh:
-        rec = fh.read()
-    assert re.search(r"0\.4166666666666667, -- clinical = 0\.5/1\.2", rec) and L.THIAMINE_CLINICAL_P == 0.5 / 1.2
-    assert L.THIAMINE_P < L.THIAMINE_CLINICAL_P
-
-
 # ---------------------------------------------------------------- the pre-boot checks
 @pytest.mark.parametrize("key", sorted(L.SESSIONS))
 def test_preboot_on_the_repository(key):
@@ -753,14 +733,6 @@ def test_the_fixture_is_fresh():
 
 
 # ---------------------------------------------------------------- the prerun
-def test_the_committed_prerun_is_the_head_replay():
-    have = L.load_prerun()
-    now = PR.canonical(PR.compute())
-    for k in L.SESSIONS:
-        assert have.get(k) == now[k], k
-    assert have["_provenance"]["first_sight"] == L.FIRST_SIGHT
-
-
 def test_the_prerun_predicts_the_grades_as_predicted():
     p = L.load_prerun()
     a, b = p["x481"], p["x482"]
@@ -773,23 +745,4 @@ def test_the_prerun_predicts_the_grades_as_predicted():
     assert b["slope"]["rel"] < 1e-9
 
 
-def test_the_prerun_command_checks_and_names_staleness(tmp_path, monkeypatch, capsys):
-    assert PR.main(["--check"]) == 0
-    monkeypatch.setattr(L, "PRERUN_FILE", "nowhere/x48_prerun.json")
-    monkeypatch.setattr(L, "REPO", str(tmp_path))
-    assert PR.main(["--check", "x481"]) == 1
-    assert "stale: x481" in capsys.readouterr().out
-
-
 # ---------------------------------------------------------------- the real replay on a ring the replay host wrote
-def test_a_ring_read_off_the_replay_host_replays_within_the_tolerance_and_a_misplaced_switch_does_not(tmp_path):
-    """The grading path end to end on the real replay: a session world whose sandbox write the placement reads one row
-    late fails REPLAY and FOLLOW, so the placement is load-bearing."""
-    v, out, w, S = run_session("x481", tmp_path)
-    rows = S.ring_rows()
-    events, book = L.build_events(rows, S.sets, S.sandbox)
-    late = [dict(e, s=e["s"] + 2) if e["path"].startswith("_G.SandboxVars") else e for e in events]
-    start, player, st = S.replay_inputs()
-    rep, _ = L.replay(rows, late, start, 3, 2, L.DAY_MIN, player, st)
-    d = L.replay_diff(rep, rows)
-    assert d["fields"]["health"]["over"] > 0 or d["fields"]["drain.target"]["over"] > 0

@@ -1,24 +1,22 @@
--- NR_Kernel_Drain.lua -- the remaining-fraction drain (Plan 17 Task 2; spec docs/superpowers/specs/2026-10-19-health-
--- combine-design.md, sections 1 and 2): every lethal state keeps a remaining fraction f, 1 at its onset and 0 at its
--- death point (S2231-S2262). Starvation and dehydration follow the curve f = 1 - ln(1 + a t) / ln(1 + a T), which opens
--- at vanilla's own level-4 drain rate (#0516, #0518, #2922) and tapers to the real death; the three deficiencies and
--- the sodium and iron rungs fall on a line to their death times. The minute's target health folds every active
+-- NR_Kernel_Drain.lua -- the remaining-fraction drain (Plan 17 Task 2 and revision R1; spec docs/superpowers/specs/
+-- 2026-10-19-health-combine-design.md, sections 1, 2 and 9): every lethal state keeps a remaining fraction f, 1 at its
+-- onset and 0 at its death point (S2231-S2262), on a straight line on its own clock (revision R1: equitable total
+-- punishment; the mod's other starvation effects carry the misery). The minute's target health folds every active
 -- fraction by the combine rule (worst only, multiply or add, K.drain.OPT.combine), and health falls toward it by at
--- most the sum of the active states' rates (health per game day). With no state active there is no target (vanilla
--- regeneration and the food heal resume; NR_Server_Effects).
+-- most the sum of the active states' rates (health per game day: each line's slope through its clock's current rate).
+-- With no state active there is no target (vanilla regeneration and the food heal resume; NR_Server_Effects).
 -- The codes (the panel and the mirror read them): 1 starvation, 2 scurvy, 3 wet beriberi, 4 pellagra, 5 severe
 -- hyponatraemia, 6 dehydration, 7 the iron lethal rung.
 -- While a state is active and health sits under the target (a wound, vanilla's own terms, a target that rose as a
 -- state ended), K.drain.heal returns vanilla's own regeneration toward the target, never above it (Plan 15 Task 4 fix
 -- 1, the controller's ruling L2), so wounds still mend during a long deficiency.
--- The pace (K.drain.OPT.pace, spec section 2.2): Vanilla runs starvation and dehydration on vanilla's line from the
--- onset; Shortened on the curve over 336 and 48 game hours; Realistic starvation on the curve over the BMI progress
--- to BMI 12 (smoothed within the record day, spec section 1.2a) and Realistic dehydration on the curve over the
--- deficit from 4 % to 15 % (to a fraction of 0.1), then on a line to 0 at 17 %. The deficiencies and the rungs are the
--- same at every pace.
+-- The pace (K.drain.OPT.pace, spec sections 2.2 and 9): Vanilla runs starvation and dehydration on vanilla's line
+-- from the onset (#0516, #0518, #2922); Shortened on a line over 336 and 48 game hours; Realistic starvation on a line
+-- over the BMI progress to BMI 12 (smoothed within the record day, spec section 1.2a) and Realistic dehydration on a
+-- line over the deficit from 4 % to 17 %. The deficiencies and the rungs are the same at every pace.
 -- record.drain holds the inputs a save keeps (bmi0, naH, feH, starvation's clocks fedAgeH and acuteH, the hours in
--- the starvation and dehydration states stH and dhH, and the smoothed BMI clock bClose, bRate, pAt and pS;
--- K.store.INPUTS) and the minute's derived outputs (active, state, mask, target, frac, rate, drainThisMinute, starvedH
+-- the starvation and dehydration states stH and dhH, the smoothed BMI clock bClose, bRate, pAt and pS, and the last
+-- minute's deficit dPrev; K.store.INPUTS) and the minute's derived outputs (active, state, mask, target, frac, rate, drainThisMinute, starvedH
 -- (the starvation clock: the unfed hours, or the onset plus the hours in the acute state), recentKcal, and the
 -- starving, starveAcute and dehydrated flags the writer's caps read, K.hybrid.caps, Plan 15 Tasks 5 and 6). Pure: Lua
 -- tables in and out, no Java. Slow-clock code with no fast region; every K.acute / K.fluids / K.HEIGHT_M / K.body
@@ -46,31 +44,18 @@ K.drain.COMBINE_MULTIPLY = 2 -- no row needed: an option value
 K.drain.COMBINE_ADD = 3 -- no row needed: an option value
 K.drain.OPT = { pace = 3, combine = 2, dayMin = 90 } -- the defaults Realistic and Multiply: game choices (spec section 7); vanilla's 90-minute day (#2922)
 
-K.drain.SLEEP_FLOOR = 10 -- health: at or below it vanilla wakes a sleeper every tick (#3900); Realistic dehydration's final stage begins at this fraction of full health (DEHYD_FINAL)
+K.drain.SLEEP_FLOOR = 10 -- health: at or below it vanilla wakes a sleeper every tick (#3900), the last tenth of each line (spec section 9)
 K.drain.NONE = 100 -- health: the target read with no state active (full health), no row needed
 
--- The curve (spec section 1.2): vanilla's level-4 rates in health per game hour per real minute of day length, the
--- shortened death points, and the severity clocks' constants, calibrated so the default creation body, fasting with
--- water at the 90-minute day, opens at vanilla's rate (testing/artifacts/calibrate-drain-20261019/calibration.json).
-K.drain.A_EPS = 1e-9 -- below it the curve is the line, no row needed
+-- The paces (spec sections 2.2 and 9): vanilla's level-4 rates in health per game hour per real minute of day length,
+-- the shortened death points, and the smoothed BMI clock's opening rate, read off the calibration's default creation
+-- body fasting with water at the 90-minute day (testing/artifacts/calibrate-drain-20261019/calibration.json).
 K.drain.R_HUNGER = 0.0396 -- health per game hour per real minute of day length: 3.3e-4 x 120 (#0516, #0518, #2922)
 K.drain.R_THIRST = 0.198 -- health per game hour per real minute of day length: 1.65e-3 x 120 (#0516, #0518, #2922)
 K.drain.SHORT_STARVE_H = 336 -- Shortened starvation, 14 game days: game choice (spec section 2.2)
 K.drain.SHORT_DEHYD_H = 48 -- Shortened dehydration, 2 game days: game choice (spec section 2.2)
-K.drain.A_STARVE = 509.81334200481825 -- game choice (spec section 1.2): calibrate-drain-20261019/calibration.json a_starve, the BMI progress clock (T = 1)
 K.drain.STARVE_DPDT = 0.0004359462040936248 -- BMI progress per game hour before the state's first record-day close: calibrate-drain-20261019/calibration.json starve_dpdt_per_h, game choice (spec section 1.2a)
 K.drain.CAL_BMI0 = 22.42350650342769 -- the calibration body's onset BMI: calibrate-drain-20261019/calibration.json starve.bmi0, game choice (spec section 1.2a)
-K.drain.CAL_DAY_MIN = 90 -- the calibration's day length (calibrate-drain-20261019/calibration.json day_minutes): the severity clocks' curves are fixed in game time, so their cap is vanilla's rate at this day whatever the server's (ruling T2-2)
-K.drain.A_DEHYD = 79.83361067025903 -- game choice (spec section 1.2): solved from calibrate-drain-20261019/calibration.json dehyd_dpdt_per_h for the 0.9 form f = 1 - 0.9 g(p) (ruling T1-1; the artifact's own a_dehyd is the full-span value)
-K.drain.DEHYD_FINAL = K.drain.SLEEP_FLOOR / K.drain.NONE -- the fraction at the 15 % knee, dehydration's final stage (spec sections 1.1 and 2.4)
-K.drain.A_LO = 1e-9 -- the solver's bracket, no row needed
-K.drain.A_HI = 1e9 -- the solver's bracket, no row needed
-K.drain.A_ITER = 200 -- the solver's bisection steps on log a, no row needed
-K.drain.ACACHE = {} -- solveA's cache by "T:r", a new entry only for a new day length or death time, no row needed
-K.drain.AMEMO = {
-    [1] = { r = 0, T = 0, a = 0 }, -- starvation's last solve, so a minute builds no cache key, no row needed
-    [6] = { r = 0, T = 0, a = 0 }, -- dehydration's last solve, no row needed
-}
 
 -- Starvation: the acute onset (Plan 15 Task 6 fixes 1 and 2) at STARVE_ONSET_H unfed hours (K.drain.unfedH: the hours
 -- since the meal pool last held K.hungerCurve.FED_M, counted continuously across days, sleep and restarts, never
@@ -96,10 +81,9 @@ K.drain.STARVE_PHASE_H = {
     336, -- phase 3, infection and mood: day 14, game choice (open S2247)
 }
 
--- Dehydration: onset at 4 %, where weariness and apathy begin; the curve to the final stage at 15 %, then a line to the
--- death point 17 % (Plan 15 Task 4 fix 1, ruling M1: on the water base's 3 % a day at rest, 4 % comes at about 32 h).
+-- Dehydration: onset at 4 %, where weariness and apathy begin; a line to the death point 17 % (Plan 15 Task 4 fix 1,
+-- ruling M1: on the water base's 3 % a day at rest, 4 % comes at about 32 h; revision R1: no knee, no final stage).
 K.drain.DEHYD_ONSET = 4 -- per cent of body mass, weariness and apathy (S2248 4.2 %; the research's drain start): game choice (spec section 10: each floor's curve)
-K.drain.DEHYD_KNEE = 15 -- per cent, the final stage from here: game choice (spec section 10: each floor's curve); S2248 painful urination at about 14.5 %
 K.drain.DEHYD_DEATH = 17 -- per cent, the death point: game choice inside 15-19 % (spec section 10: dehydration's 17 % death point); S2248 anuria at about 19 %
 
 -- The deficiencies: onset at the clinical grade (4); a line on the hours at that grade from 1 to 0 at the death time.
@@ -116,7 +100,7 @@ K.drain.NA_DEATH_H = 6 -- hours: S1047 respiratory failure; game choice (spec se
 K.drain.FE_DEATH_H = 24 -- hours: S1033; game choice (spec section 10; open S1173)
 
 -- Per state, by code: its name, its onset (starved hours, deficit per cent, the clinical grade or the rung), its death
--- point (BMI, deficit per cent or hours since onset) and, for the two curve states, its Shortened death time in hours.
+-- point (BMI, deficit per cent or hours since onset) and, for the two paced states, its Shortened death time in hours.
 -- A state with no short is a line on its hours to death at every pace.
 K.drain.states = {
     { name = "starvation", onset = K.drain.STARVE_ONSET_H, death = K.drain.BMI_DEATH, short = K.drain.SHORT_STARVE_H },
@@ -165,8 +149,8 @@ end
 -- The stored numbers that heal to 0 when they are not finite.
 K.drain.HEAL0 = { "bmi0", "naH", "feH", "stH", "dhH", "bClose", "bRate", "pS" }
 
--- record.drain, laid when absent; a stored input that is not a finite number heals to 0 (the anchor pAt and the stamp
--- fedAgeH to absent: first sight), and the fraction table is laid once.
+-- record.drain, laid when absent; a stored input that is not a finite number heals to 0 (the anchor pAt, the stamp
+-- fedAgeH and the last deficit dPrev to absent: first sight), and the fraction table is laid once.
 function K.drain.ensure(record)
     local D = record.drain
     if type(D) ~= "table" then
@@ -188,6 +172,9 @@ function K.drain.ensure(record)
     end
     if D.pAt ~= nil and not K.finite(D.pAt) then
         D.pAt = nil
+    end
+    if D.dPrev ~= nil and not K.finite(D.dPrev) then
+        D.dPrev = nil
     end
     if type(D.spell) ~= "boolean" then
         D.spell = false
@@ -290,17 +277,13 @@ function K.drain.starvePhase(h)
     return n
 end
 
--- The curve (spec section 1.2): the remaining fraction at tau on a clock whose death point is T, 1 at 0 and 0 at T,
--- opening at a / ln(1 + a T) and flattening after; at a at or under A_EPS the line 1 - tau / T. tau clamps to [0, T].
-function K.drain.curve(tau, T, a)
+-- The line (spec section 9): the remaining fraction at tau on a clock whose death point is T, 1 - tau / T, with tau
+-- clamped to [0, T]; 0 with no span.
+function K.drain.line(tau, T)
     if not (T > 0) then
         return 0
     end
-    local t = K.clamp(tau, 0, T)
-    if not (a > K.drain.A_EPS) then
-        return 1 - t / T
-    end
-    return 1 - math.log(1 + a * t) / math.log(1 + a * T)
+    return 1 - K.clamp(tau, 0, T) / T
 end
 
 -- Vanilla's level-4 drain of state code in health per game hour at a day of dayMin real minutes (spec section 2.1):
@@ -319,44 +302,6 @@ function K.drain.rVanilla(code, dayMin)
     return nil
 end
 
--- The time clock's a: the curve over T hours whose opening slope in health per game hour, 100 a / ln(1 + a T), is r.
--- 0 (the line) when r is at or under the line's own 100 / T. Bisection on log a over [A_LO, A_HI], cached by "T:r".
-function K.drain.solveA(r, T)
-    if not (r > K.drain.NONE / T) then
-        return 0
-    end
-    local key = T .. ":" .. r
-    local cached = K.drain.ACACHE[key]
-    if cached ~= nil then
-        return cached
-    end
-    local lo = math.log(K.drain.A_LO)
-    local hi = math.log(K.drain.A_HI)
-    for i = 1, K.drain.A_ITER do
-        local mid = (lo + hi) / 2
-        local x = math.exp(mid)
-        if K.drain.NONE * x / math.log(1 + x * T) < r then
-            lo = mid
-        else
-            hi = mid
-        end
-    end
-    local a = math.exp((lo + hi) / 2)
-    K.drain.ACACHE[key] = a
-    return a
-end
-
--- solveA through the state's memo, so a minute with the same rate and death time builds no cache key.
-function K.drain.aFor(code, r, T)
-    local m = K.drain.AMEMO[code]
-    if m.r ~= r or m.T ~= T then
-        m.a = K.drain.solveA(r, T)
-        m.r = r
-        m.T = T
-    end
-    return m.a
-end
-
 -- Starvation's BMI progress from the onset BMI bmi0 to the death BMI 12, clamped to [0, 1]; 1 when the onset is at or
 -- under the death BMI.
 function K.drain.progress(bmi0, bmi)
@@ -368,7 +313,7 @@ function K.drain.progress(bmi0, bmi)
 end
 
 -- The smoothed BMI clock (spec section 1.2a, rulings T1-4 and T2-1): the body moves BMI only at a record-day close, so
--- the curve reads the estimate bmiEst = bClose - bRate x (ageH - pAt), anchored at the open record day's start pAt
+-- the line reads the estimate bmiEst = bClose - bRate x (ageH - pAt), anchored at the open record day's start pAt
 -- (body.dayStartH, a resume stamp like pAt, K.resume.STAMPS). bClose is the BMI at the anchor; bRate is
 -- STARVE_DBMI until the state's first close, then the last closed span's BMI loss per hour. The onset BMI bmi0 is the
 -- estimate at the onset, so the progress opens at 0, and a close moves the estimate by the day-on-day change of the
@@ -403,47 +348,54 @@ function K.drain.bmiEst(D, ageH)
     return D.bClose - D.bRate * K.max(0, ageH - D.pAt)
 end
 
--- Realistic dehydration's fraction at a deficit of d per cent (spec section 1.1): the curve from 1 at 4 % to 0.1 at
--- 15 %, f = 0.1 + 0.9 x curve, then the final stage, a line from 0.1 to 0 at 17 %.
-function K.drain.dehydFraction(d)
-    local D = K.drain
-    if d >= D.DEHYD_KNEE then
-        return D.DEHYD_FINAL * D.curve(d - D.DEHYD_KNEE, D.DEHYD_DEATH - D.DEHYD_KNEE, 0)
+-- The smoothed BMI clock's current rate in progress per game hour: bRate over the span bmi0 - 12 (STARVE_DPDT for the
+-- calibration body before its first close), or the progress dp the minute of dtM game minutes moved it when that is
+-- more (a close's correction: the estimate steps by the day-on-day change of the loss, so health keeps up with the
+-- line instead of trailing each step for the rest of the state). With no span (an onset at or under BMI 12, already
+-- dead on the line) the rate that runs the line at vanilla's own pace at the day length, so the cap still reaches 0.
+function K.drain.pRate(D, dayMin, dp, dtM)
+    local span = D.bmi0 - K.drain.BMI_DEATH
+    if not (span > 0) then
+        return K.drain.rVanilla(K.drain.STARVATION, dayMin) / K.drain.NONE
     end
-    local p = (d - D.DEHYD_ONSET) / (D.DEHYD_KNEE - D.DEHYD_ONSET)
-    return D.DEHYD_FINAL + (1 - D.DEHYD_FINAL) * D.curve(p, 1, D.A_DEHYD)
+    local r = D.bRate / span
+    if dtM > 0 then
+        r = K.max(r, dp * 60 / dtM)
+    end
+    return r
 end
 
--- State code's remaining fraction and its rate in health per game day (spec sections 1.1, 1.4 and 2.2), at tH hours on
--- the state's time clock and inp the severity clocks (pStarve, the smoothed BMI progress; dehydPct, the deficit), under
--- opt (pace, dayMin). A line state falls from 1 to 0 at its death time at 100 x 24 / T a day. A curve state's rate is
--- vanilla's at the day length on a time clock (Vanilla, Shortened; the line's own when the Shortened curve degenerates
--- to it) and vanilla's at the calibrated 90-minute day on a severity clock (Realistic, ruling T2-2, whatever the day
--- length). A fraction that is not a finite number returns nil: the state is left out for the minute.
+-- State code's remaining fraction and its rate in health per game day (spec sections 1.1, 2.2 and 9), at tH hours on
+-- the state's time clock and inp the severity clocks (pStarve, the smoothed BMI progress, and pRate, its rate a game
+-- hour; dehydPct, the deficit, and dRise, its rise a game hour), under opt (pace, dayMin). Every state is a line from 1
+-- to 0 on its clock, and its rate is the line's slope through the clock's current rate, 100 x 24 x (clock units a game
+-- hour) / T: a time clock runs an hour an hour (a deficiency or rung over its death time at every pace; Vanilla over
+-- vanilla's 100 / r hours at the day length; Shortened over 336 and 48 hours); Realistic starvation runs on the BMI
+-- progress to 1, Realistic dehydration on the deficit from 4 % to 17 %. A fraction or rate that is not a finite number
+-- returns nil: the state is left out for the minute.
 function K.drain.fraction(code, tH, inp, opt)
     local S = K.drain.states[code]
-    local f = 0
-    local rate = 0
-    if S.short == nil then
-        f = K.drain.curve(tH, S.death, 0)
-        rate = K.drain.NONE * 24 / S.death
-    else
-        local r = K.drain.rVanilla(code, opt.dayMin)
-        rate = r * 24
+    local T = S.death
+    local clock = tH
+    local perH = 1
+    if S.short ~= nil then
         if opt.pace == K.drain.PACE_VANILLA then
-            f = K.drain.curve(tH, K.drain.NONE / r, 0)
+            T = K.drain.NONE / K.drain.rVanilla(code, opt.dayMin)
         elseif opt.pace == K.drain.PACE_SHORT then
-            f = K.drain.curve(tH, S.short, K.drain.aFor(code, r, S.short))
-            rate = K.max(r, K.drain.NONE / S.short) * 24
+            T = S.short
         elseif code == K.drain.STARVATION then
-            f = K.drain.curve(inp.pStarve, 1, K.drain.A_STARVE)
-            rate = K.drain.rVanilla(code, K.drain.CAL_DAY_MIN) * 24
+            T = 1
+            clock = inp.pStarve
+            perH = inp.pRate
         else
-            f = K.drain.dehydFraction(inp.dehydPct)
-            rate = K.drain.rVanilla(code, K.drain.CAL_DAY_MIN) * 24
+            T = K.drain.DEHYD_DEATH - K.drain.DEHYD_ONSET
+            clock = inp.dehydPct - K.drain.DEHYD_ONSET
+            perH = inp.dRise
         end
     end
-    if not K.finite(f) then
+    local f = K.drain.line(clock, T)
+    local rate = K.drain.NONE * 24 * perH / T
+    if not (K.finite(f) and K.finite(rate)) then
         return nil
     end
     return f, rate
@@ -514,12 +466,26 @@ function K.drain.release(D)
     D.pAt = nil
 end
 
+-- The deficit's rise in per cent a game hour since the last minute's read (record.drain.dPrev), floored at 0; 0 with
+-- no last read or no time passed. Stores the minute's deficit (absent when it is not a number) for the next.
+function K.drain.rise(D, d, dtM)
+    local r = 0
+    if K.finite(D.dPrev) and K.finite(d) and dtM > 0 then
+        r = K.max(0, d - D.dPrev) * 60 / dtM
+    end
+    D.dPrev = nil
+    if K.finite(d) then
+        D.dPrev = d
+    end
+    return r
+end
+
 -- The input table the fractions read, laid once and overwritten each step (no allocation per minute).
-K.drain.IN = { pStarve = 0, dehydPct = 0 }
+K.drain.IN = { pStarve = 0, pRate = 0, dehydPct = 0, dRise = 0 }
 
 -- One minute of dtM game minutes at world age ageH (nil reads record.nutrients.lastAgeH) under opt (nil reads
--- K.drain.OPT): every state's onset test, the clocks the record keeps (the onset BMI, the smoothed BMI clock, the hours
--- in the starvation, dehydration, sodium and iron states) and the outputs on record.drain: active, state (the code with
+-- K.drain.OPT): every state's onset test, the clocks the record keeps (the onset BMI, the smoothed BMI clock, the last
+-- minute's deficit, the hours in the starvation, dehydration, sodium and iron states) and the outputs on record.drain: active, state (the code with
 -- the smallest fraction), mask (every active code's bit, 2^(code - 1)), frac (each active code's fraction, nil when
 -- inactive), target (K.drain.combine; 100 with none), rate (the sum of the active rates, health per game day),
 -- drainThisMinute (rate x dtM / 1440, the most the minute may take; the adapter takes no more than health - target),
@@ -561,6 +527,7 @@ function K.drain.step(record, dtM, ageH, overlay, opt)
     end
     local inp = K.drain.IN
     inp.dehydPct = fl.dehydPct
+    inp.dRise = K.drain.rise(D, fl.dehydPct, dtM)
     local sat = record.satiety
     local M = nil
     if type(sat) == "table" then
@@ -591,7 +558,9 @@ function K.drain.step(record, dtM, ageH, overlay, opt)
             D.pAt = nil
         end
         D.stH = D.stH + dtM / 60
+        local p0 = D.pS
         inp.pStarve = K.drain.smooth(D, body, ageH)
+        inp.pRate = K.drain.pRate(D, opt.dayMin, inp.pStarve - p0, dtM)
         K.drain.consider(D, K.drain.STARVATION, D.stH, inp, opt)
         D.starving = true
     elseif not held then
