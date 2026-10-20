@@ -7,20 +7,21 @@
 -- With no state active there is no target (vanilla regeneration and the food heal resume; NR_Server_Effects).
 -- The codes (the panel and the mirror read them): 1 starvation, 2 scurvy, 3 wet beriberi, 4 pellagra, 5 severe
 -- hyponatraemia, 6 dehydration, 7 the iron lethal rung.
--- While a state is active and health sits under the target (a wound, vanilla's own terms, a target that rose as a
--- state ended), K.drain.heal returns vanilla's own regeneration toward the target, never above it (Plan 15 Task 4 fix
--- 1, the controller's ruling L2), so wounds still mend during a long deficiency.
+-- While a state is active and health sits under the target (a wound, vanilla's own terms, a target that rose as a state
+-- ended), K.drain.heal returns vanilla's own regeneration toward the target, never above it (Plan 15 Task 4 fix 1, the
+-- controller's ruling L2), so wounds still mend during a long deficiency; vanilla's addition is 0 while HUNGRY or
+-- THIRST shows level 4, so under starvation or dehydration a wound does not mend.
 -- The pace (K.drain.OPT.pace, spec sections 2.2 and 9): Vanilla runs starvation and dehydration on vanilla's line
 -- from the onset (#0516, #0518, #2922); Shortened on a line over 336 and 48 game hours; Realistic starvation on a line
 -- over the BMI progress to BMI 12 (smoothed within the record day, spec section 1.2a) and Realistic dehydration on a
 -- line over the deficit from 4 % to 17 %. The deficiencies and the rungs are the same at every pace.
--- record.drain holds the inputs a save keeps (bmi0, naH, feH, starvation's clocks fedAgeH and acuteH, the hours in
--- the starvation and dehydration states stH and dhH, the smoothed BMI clock bClose, bRate, pAt and pS, and the last
--- minute's deficit dPrev; K.store.INPUTS) and the minute's derived outputs (active, state, mask, target, frac, rate, drainThisMinute, starvedH
--- (the starvation clock: the unfed hours, or the onset plus the hours in the acute state), recentKcal, and the
--- starving, starveAcute and dehydrated flags the writer's caps read, K.hybrid.caps, Plan 15 Tasks 5 and 6). Pure: Lua
--- tables in and out, no Java. Slow-clock code with no fast region; every K.acute / K.fluids / K.HEIGHT_M / K.body
--- reference is at call time.
+-- record.drain holds the inputs a save keeps (bmi0, naH, feH, starvation's clocks fedAgeH and acuteH, the hours in the
+-- starvation and dehydration states stH and dhH, the smoothed BMI clock bClose, bRate, pAt and pS, and the last
+-- minute's deficit dPrev; K.store.INPUTS) and the minute's derived outputs (active, state, mask, target, frac, rate,
+-- drainThisMinute, starvedH (the starvation clock: the unfed hours, or the onset plus the hours in the acute state),
+-- recentKcal, and the starving, starveAcute and dehydrated flags the writer's caps read, K.hybrid.caps, Plan 15 Tasks 5
+-- and 6). Pure: Lua tables in and out, no Java. Slow-clock code with no fast region; every K.acute / K.fluids /
+-- K.HEIGHT_M / K.body reference is at call time.
 local K = NutritionRevamp.kernel
 K.drain = {}
 
@@ -34,6 +35,9 @@ K.drain.DEHYD = 6 -- no row needed: a code
 K.drain.IRON = 7 -- no row needed: a code
 K.drain.N = 7 -- the state count, no row needed
 
+-- The day length in real minutes an adapter assumes when the sandbox is unreadable: vanilla's 90-minute default day.
+K.drain.DAY_MINUTES = 90 -- VANILLA #2922, the fallback for an unreadable sandbox
+
 -- The options (spec section 2): the pace and the combine rule, read once a server minute by the adapter, which
 -- overwrites this table's fields in place (no allocation); dayMin is the server's day length in real minutes.
 K.drain.PACE_VANILLA = 1 -- no row needed: an option value
@@ -42,7 +46,7 @@ K.drain.PACE_REAL = 3 -- no row needed: an option value
 K.drain.COMBINE_WORST = 1 -- no row needed: an option value
 K.drain.COMBINE_MULTIPLY = 2 -- no row needed: an option value
 K.drain.COMBINE_ADD = 3 -- no row needed: an option value
-K.drain.OPT = { pace = 3, combine = 2, dayMin = 90 } -- the defaults Realistic and Multiply: game choices (spec section 7); vanilla's 90-minute day (#2922)
+K.drain.OPT = { pace = 3, combine = 2, dayMin = K.drain.DAY_MINUTES } -- the defaults Realistic and Multiply: game choices (spec section 7); vanilla's 90-minute day (#2922)
 
 K.drain.SLEEP_FLOOR = 10 -- health: at or below it vanilla wakes a sleeper every tick (#3900), the last tenth of each line (spec section 9)
 K.drain.NONE = 100 -- health: the target read with no state active (full health), no row needed
@@ -63,14 +67,14 @@ K.drain.CAL_BMI0 = 22.42350650342769 -- the calibration body's onset BMI: calibr
 -- and the three closed record days with what is still in the stomach, a starvation diet of snacks); or the
 -- chronic onset at a BMI under 13 whatever the intake (chronic semi-starvation, Plan 15 Task 4 fix 1, ruling M3); the
 -- death at BMI 12.
-K.drain.STARVE_ONSET_H = 30 -- unfed hours (the meal pool under K.hungerCurve.FED_M), counted continuously: game choice (spec section 10: each floor's curve), set so the onset coincides with the calibrated curve reaching its 0.69 cap, 29.9-30.3 h after the pool empties for 200-1,300 kcal meals, so Starving shows 33.6-35.1 h after the meal (vanilla 34.55 h)
+K.drain.STARVE_ONSET_H = 30 -- unfed hours (the meal pool under K.hungerCurve.FED_M), counted continuously: game choice (the Plan 15 spec's section 10: each floor's curve), set so the onset coincides with the calibrated curve reaching its 0.69 cap, 29.9-30.3 h after the pool empties for 200-1,300 kcal meals, so Starving shows 33.6-35.1 h after the meal (vanilla 34.55 h)
 K.drain.RECENT_TOL = 1e-6 -- kcal: the comparison's tolerance, no row needed (Plan 15 Task 6 fix 3: three absorbed 200 kcal snacks integrate a few 1e-9 kcal over 600)
 K.drain.RECENT_DAYS = 3 -- record-day closes the window needs seen, no row needed
-K.drain.RECENT_MIN_KCAL = 600 -- kcal absorbed or still in the stomach today and over the three closed record days (72-96 h): game choice (spec section 10: each floor's curve; the controller's Task 6 fix 1 and 2 rulings), about 200 kcal a day, at or under which the acute onset holds while the pool is unfed whatever the unfed hours, so a snack now and then does not keep a starving body out of the state (at or under: the window can hold three of a 200 kcal snack every 33 h, exactly 600)
+K.drain.RECENT_MIN_KCAL = 600 -- kcal absorbed or still in the stomach today and over the three closed record days (72-96 h): game choice (the Plan 15 spec's section 10: each floor's curve; the controller's Task 6 fix 1 and 2 rulings), about 200 kcal a day, at or under which the acute onset holds while the pool is unfed whatever the unfed hours, so a snack now and then does not keep a starving body out of the state (at or under: the window can hold three of a 200 kcal snack every 33 h, exactly 600)
 K.drain.BMI_DEATH = 12 -- kg/m2, S2234 (Speakman: at BMI 12 recovery is virtually zero)
 K.drain.STARVE_DBMI = K.drain.STARVE_DPDT * (K.drain.CAL_BMI0 - K.drain.BMI_DEATH) -- BMI per game hour before the state's first close: the calibration body's opening rate in BMI, so a heavier body opens no faster in kg
-K.drain.BMI_CHRONIC = 13 -- kg/m2: starvation is active below it whatever the day's intake; game choice inside S2234's 12-13 (spec section 10: each floor's curve)
-K.drain.SUSPEND_M = 236.44 -- weighted kcal, the meal pool a 200 kcal mixed snack lands (15/50/35 % of energy, 236.44 under the fitted weights, K.satiety.weigh): game choice (spec section 10: each floor's curve): only a meal spell (the pool reached SUSPEND_M and has not yet fallen under K.hungerCurve.FED_M, K.drain.mealFed) suspends the fallback or, inside the state, resets the unfed clock, so a floret an hour (11 kcal, the pool at FED_M for about 70 min) no longer ends or holds off a starving body's state, while a 200 kcal snack or a refeed meal still does for its whole fed spell (Plan 15 close, H1)
+K.drain.BMI_CHRONIC = 13 -- kg/m2: starvation is active below it whatever the day's intake; game choice inside S2234's 12-13 (the Plan 15 spec's section 10: each floor's curve)
+K.drain.SUSPEND_M = 236.44 -- weighted kcal, the meal pool a 200 kcal mixed snack lands (15/50/35 % of energy, 236.44 under the fitted weights, K.satiety.weigh): game choice (the Plan 15 spec's section 10: each floor's curve): only a meal spell (the pool reached SUSPEND_M and has not yet fallen under K.hungerCurve.FED_M, K.drain.mealFed) suspends the fallback or, inside the state, resets the unfed clock, so a floret an hour (11 kcal, the pool at FED_M for about 70 min) no longer ends or holds off a starving body's state, while a 200 kcal snack or a refeed meal still does for its whole fed spell (Plan 15 close, H1)
 -- The starvation effect phases (spec section 3.3), on the starvation clock (starvedH: the unfed hours, then the onset
 -- plus the hours in the acute state): weakness from onset, cold intolerance and slower healing from about day 3,
 -- infection and mood from about day 14; a game-pacing choice (spec section 3.3; the day of onset of each is open, S2247;
@@ -83,21 +87,21 @@ K.drain.STARVE_PHASE_H = {
 
 -- Dehydration: onset at 4 %, where weariness and apathy begin; a line to the death point 17 % (Plan 15 Task 4 fix 1,
 -- ruling M1: on the water base's 3 % a day at rest, 4 % comes at about 32 h; revision R1: no knee, no final stage).
-K.drain.DEHYD_ONSET = 4 -- per cent of body mass, weariness and apathy (S2248 4.2 %; the research's drain start): game choice (spec section 10: each floor's curve)
-K.drain.DEHYD_DEATH = 17 -- per cent, the death point: game choice inside 15-19 % (spec section 10: dehydration's 17 % death point); S2248 anuria at about 19 %
+K.drain.DEHYD_ONSET = 4 -- per cent of body mass, weariness and apathy (S2248 4.2 %; the research's drain start): game choice (the Plan 15 spec's section 10: each floor's curve)
+K.drain.DEHYD_DEATH = 17 -- per cent, the death point: game choice inside 15-19 % (the Plan 15 spec's section 10: dehydration's 17 % death point); S2248 anuria at about 19 %
 
 -- The deficiencies: onset at the clinical grade (4); a line on the hours at that grade from 1 to 0 at the death time.
 K.drain.CLINICAL = 4 -- the clinical grade, no row needed: a grade index
 K.drain.BERIBERI_DEATH_H = 840 -- 5 weeks after clinical onset: S2255 (an inference: median 33 d to admission + < 48 h)
-K.drain.SCURVY_DEATH_H = 2160 -- 90 days: game choice (spec section 10; the time to death is open, S1168)
-K.drain.PELLAGRA_DEATH_H = 4320 -- 180 days: game choice (spec section 10; open S1170, the evidence says months to years)
+K.drain.SCURVY_DEATH_H = 2160 -- 90 days: game choice (the Plan 15 spec's section 10; the time to death is open, S1168)
+K.drain.PELLAGRA_DEATH_H = 4320 -- 180 days: game choice (the Plan 15 spec's section 10; open S1170, the evidence says months to years)
 
 -- The sodium and iron lethal rungs: their onsets kept (hyponatraemia grade 3, the iron rung 3), a line on the hours in
 -- the state from 1 to 0 at their Plan 5 drain times (100 health over 6 h and 24 h).
 K.drain.HYPONAT_GRADE = 3 -- the lethal hyponatraemia grade (K.fluids.hyponatGrade), no row needed: a grade index
 K.drain.IRON_RUNG = 3 -- the iron lethal rung (S1033), no row needed: a rung index
-K.drain.NA_DEATH_H = 6 -- hours: S1047 respiratory failure; game choice (spec section 10; open S1171)
-K.drain.FE_DEATH_H = 24 -- hours: S1033; game choice (spec section 10; open S1173)
+K.drain.NA_DEATH_H = 6 -- hours: S1047 respiratory failure; game choice (the Plan 15 spec's section 10; open S1171)
+K.drain.FE_DEATH_H = 24 -- hours: S1033; game choice (the Plan 15 spec's section 10; open S1173)
 
 -- Per state, by code: its name, its onset (starved hours, deficit per cent, the clinical grade or the rung), its death
 -- point (BMI, deficit per cent or hours since onset) and, for the two paced states, its Shortened death time in hours.
@@ -148,9 +152,12 @@ end
 
 -- The stored numbers that heal to 0 when they are not finite.
 K.drain.HEAL0 = { "bmi0", "naH", "feH", "stH", "dhH", "bClose", "bRate", "pS" }
+-- The hour clocks among them, which also heal to 0 when negative (a corrupt negative clock would lengthen a line).
+K.drain.CLOCKS0 = { "naH", "feH", "stH", "dhH" }
 
--- record.drain, laid when absent; a stored input that is not a finite number heals to 0 (the anchor pAt, the stamp
--- fedAgeH and the last deficit dPrev to absent: first sight), and the fraction table is laid once.
+-- record.drain, laid when absent; a stored input that is not a finite number, or an hour clock under 0, heals to 0 (the
+-- anchor pAt, the stamp fedAgeH and the last deficit dPrev to absent: first sight), and the fraction table is laid
+-- once.
 function K.drain.ensure(record)
     local D = record.drain
     if type(D) ~= "table" then
@@ -162,6 +169,13 @@ function K.drain.ensure(record)
     for i = 1, #H do
         if not K.finite(D[H[i]]) then
             D[H[i]] = 0
+        end
+    end
+    local C = K.drain.CLOCKS0
+    -- CLOCKS0 is a kernel-built Lua array (no Java list), so # is its length
+    for i = 1, #C do
+        if D[C[i]] < 0 then
+            D[C[i]] = 0
         end
     end
     if not K.finite(D.acuteH) or D.acuteH < 0 then
@@ -404,8 +418,8 @@ end
 -- One state's candidacy: when its fraction is a finite number, it joins frac, the code's bit, 2^(code - 1), joins the
 -- mask of active states (the panel's drain lines, Plan 15 Task 9; each code is considered at most once a step), its
 -- rate joins the sum, and the smallest fraction wins the state (a tie keeps the earlier code); a paced state's rate is
--- at least vanilla's level-4 rate at the day length, so health above a line, after a pace switch or a first sight,
--- closes on it as a ramp.
+-- at least vanilla's level-4 rate at the day length, so health above a line, after a pace switch, closes on it as a
+-- ramp.
 function K.drain.consider(D, code, tH, inp, opt)
     local f, rate = K.drain.fraction(code, tH, inp, opt)
     if f == nil then
@@ -497,21 +511,21 @@ K.drain.IN = { pStarve = 0, pRate = 0, dehydPct = 0, dRise = 0 }
 
 -- One minute of dtM game minutes at world age ageH (nil reads record.nutrients.lastAgeH) under opt (nil reads
 -- K.drain.OPT): every state's onset test, the clocks the record keeps (the onset BMI, the smoothed BMI clock, the last
--- minute's deficit, the hours in the starvation, dehydration, sodium and iron states) and the outputs on record.drain: active, state (the code with
--- the smallest fraction), mask (every active code's bit, 2^(code - 1)), frac (each active code's fraction, nil when
--- inactive), target (K.drain.combine; 100 with none), rate (the sum of the active rates, health per game day),
--- drainThisMinute (rate x dtM / 1440, the most the minute may take; the adapter takes no more than health - target),
--- starvedH (the starvation clock: the unfed hours, K.drain.unfedH; while the acute state holds, at least the onset plus
--- its hours, acuteH), recentKcal (K.drain.recentKcal), and starving and
--- dehydrated: whether the starvation and the dehydration states are active, whichever fraction wins (the writer lifts its
--- HUNGER and THIRST caps on them, K.hybrid.caps); starveAcute: whether starvation came by the acute onset
--- (STARVE_ONSET_H unfed hours, or, while the pool is unfed, the recent intake at or under RECENT_MIN_KCAL; the clock
--- acuteH, the onset BMI and the starvation clocks are held through a fed spell while the recent intake stays that low,
--- so a snack does not reset the phases or the fraction, Plan 15 Task 6 fix 2), whose HUNGER minimum the chronic BMI
--- onset does not take (Plan 15 Task 6, ruling I2). overlay (Mode 2, Overlay: vanilla owns HUNGER and THIRST and its
--- own level-4 drains and deaths) leaves the starvation and dehydration states out, starving and dehydrated false, while
--- the starvation clock (starvedH, starveAcute, the effect phases) and the deficiency, sodium and iron states still run
--- (Plan 15 close, ruling M2). Returns record.drain.
+-- minute's deficit, the hours in the starvation, dehydration, sodium and iron states) and the outputs on record.drain:
+-- active, state (the code with the smallest fraction), mask (every active code's bit, 2^(code - 1)), frac (each active
+-- code's fraction, nil when inactive), target (K.drain.combine; 100 with none), rate (the sum of the active rates,
+-- health per game day), drainThisMinute (rate x dtM / 1440, the most the minute may take; the adapter takes no more
+-- than health - target), starvedH (the starvation clock: the unfed hours, K.drain.unfedH; while the acute state holds,
+-- at least the onset plus its hours, acuteH), recentKcal (K.drain.recentKcal), and starving and dehydrated: whether the
+-- starvation and the dehydration states are active, whichever fraction wins (the writer lifts its HUNGER and THIRST
+-- caps on them, K.hybrid.caps); starveAcute: whether starvation came by the acute onset (STARVE_ONSET_H unfed hours,
+-- or, while the pool is unfed, the recent intake at or under RECENT_MIN_KCAL; the clock acuteH, the onset BMI and the
+-- starvation clocks are held through a fed spell while the recent intake stays that low, so a snack does not reset the
+-- phases or the fraction, Plan 15 Task 6 fix 2), whose HUNGER minimum the chronic BMI onset does not take (Plan 15 Task
+-- 6, ruling I2). overlay (Mode 2, Overlay: vanilla owns HUNGER and THIRST and its own level-4 drains and deaths) leaves
+-- the starvation and dehydration states out, starving and dehydrated false, while the starvation clock (starvedH,
+-- starveAcute, the effect phases) and the deficiency, sodium and iron states still run (Plan 15 close, ruling M2).
+-- Returns record.drain.
 function K.drain.step(record, dtM, ageH, overlay, opt)
     if opt == nil then
         opt = K.drain.OPT
@@ -625,8 +639,6 @@ K.drain.REGEN = {
 K.drain.REGEN_SLEEPING = 0.02 -- VANILLA #2354
 -- Multiplier units a game minute per real minute of day length: a game hour sums 120 x the day length's minutes (#2922).
 K.drain.UNITS_PER_MIN = 2 -- 120 / 60, #2922
--- The day length in real minutes an adapter assumes when the sandbox is unreadable: vanilla's 90-minute default day.
-K.drain.DAY_MINUTES = 90 -- VANILLA #2922, the fallback for an unreadable sandbox
 -- AddGeneralHealth(y) with all 17 parts below 100 raises overall health by y x 5.05 / 17 (#3898).
 K.drain.PART_SPREAD = 17 / 5.05 -- #3898
 K.drain.HEAL_EPS = 0.01 -- health: under the target by less than this is at it, no row needed

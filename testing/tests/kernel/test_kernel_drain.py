@@ -1211,3 +1211,24 @@ def test_overlay_leaves_out_starvation_and_dehydration_and_keeps_the_rest(host, 
     assert d.active is True and d.state == D.SCURVY and d.mask == 2             # the deficiency drain still runs
     d = D.step(rec, 1.0, 100.0 + 1 / 60, False)
     assert d.starving is True and d.dehydrated is True and d.mask == 1 + 2 + 32
+
+
+# --- Plan 17 close (review N4, N1) ------------------------------------------------------------------------------------
+
+def test_a_negative_hour_clock_heals_to_0(host, D):
+    # close-review N4: a corrupt negative stH or dhH would lengthen a line by its magnitude; naH and feH alike
+    rec = host.table({})
+    d = D.ensure(rec)
+    d.stH, d.dhH, d.naH, d.feH = -5.0, -0.5, -1e-9, -24.0
+    d.bRate = -0.01                                                          # not an hour clock: kept
+    D.ensure(rec)
+    assert (d.stH, d.dhH, d.naH, d.feH) == (0, 0, 0, 0)
+    assert d.bRate == -0.01
+    clocks = [D.CLOCKS0[i] for i in range(1, 5)]
+    assert clocks == ["naH", "feH", "stH", "dhH"]
+    assert set(clocks) <= set(host.py(D.HEAL0).values())
+
+
+def test_the_options_default_day_length_is_day_minutes(host, D):
+    # close-review N1: OPT reads DAY_MINUTES, defined above it, rather than repeating 90
+    assert D.OPT.dayMin == D.DAY_MINUTES == 90

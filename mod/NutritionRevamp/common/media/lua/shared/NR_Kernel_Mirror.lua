@@ -3,10 +3,10 @@
 -- The stomach fill. The pool_<key> keys are retired from the wire
 -- (record.pool stays a diagnostic); the nutrient grades, the fluids and the acute scalars take their place.
 -- A record whose kinetics has not yet run reads its stomach's own fill, else empty, and zeros.
--- The 18 effects_* keys (K.mirror.effects) — a multiplier reads 0, not 1, until the record has an
--- effects table, so a reader that acts on one must treat 0 as absent. The three drain_* keys (K.mirror.drain): the
--- active drain state's code (0 none), its floor (100 with none), K.drain's (Plan 15 Task 4), and the set of every
--- active state (drain_mask, Plan 15 Task 9: the panel's drain lines).
+-- The 18 effects_* keys (K.mirror.effects) — a multiplier reads 0, not 1, until the record has an effects table, so a
+-- reader that acts on one must treat 0 as absent. The three drain_* keys (K.mirror.drain): the active drain state's
+-- code (0 none), the target health (100 with none), K.drain's (Plan 15 Task 4), and the set of every active state
+-- (drain_mask, Plan 15 Task 9: the panel's drain lines).
 local K = NutritionRevamp.kernel
 K.mirror = {}
 
