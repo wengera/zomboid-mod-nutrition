@@ -403,7 +403,9 @@ end
 
 -- One state's candidacy: when its fraction is a finite number, it joins frac, the code's bit, 2^(code - 1), joins the
 -- mask of active states (the panel's drain lines, Plan 15 Task 9; each code is considered at most once a step), its
--- rate joins the sum, and the smallest fraction wins the state (a tie keeps the earlier code).
+-- rate joins the sum, and the smallest fraction wins the state (a tie keeps the earlier code); a paced state's rate is
+-- at least vanilla's level-4 rate at the day length, so health above a line, after a pace switch or a first sight,
+-- closes on it as a ramp.
 function K.drain.consider(D, code, tH, inp, opt)
     local f, rate = K.drain.fraction(code, tH, inp, opt)
     if f == nil then
@@ -413,6 +415,10 @@ function K.drain.consider(D, code, tH, inp, opt)
     D.mask = D.mask + 2 ^ (code - 1)
     if not D.active or f < D.frac[D.state] then
         D.state = code
+    end
+    local rv = K.drain.rVanilla(code, opt.dayMin)
+    if rv ~= nil then
+        rate = K.max(rate, rv * 24)                -- a paced state's cap is at least vanilla's level-4 rate: a gap above the line closes (review F1)
     end
     D.rate = D.rate + rate
     D.active = true
@@ -466,12 +472,18 @@ function K.drain.release(D)
     D.pAt = nil
 end
 
--- The deficit's rise in per cent a game hour since the last minute's read (record.drain.dPrev), floored at 0; 0 with
--- no last read or no time passed. Stores the minute's deficit (absent when it is not a number) for the next.
+-- The deficit's rise in per cent a game hour since the last minute's read (record.drain.dPrev), floored at 0; with no
+-- last read (a fresh or healed record) it counts from the onset DEHYD_ONSET, so a record first seen in the state lands
+-- on its line in its first minute (ruling R1-3; K.drain.take never passes the target); 0 with no time passed. Stores
+-- the minute's deficit (absent when it is not a number) for the next.
 function K.drain.rise(D, d, dtM)
     local r = 0
-    if K.finite(D.dPrev) and K.finite(d) and dtM > 0 then
-        r = K.max(0, d - D.dPrev) * 60 / dtM
+    if K.finite(d) and dtM > 0 then
+        local prev = D.dPrev
+        if not K.finite(prev) then
+            prev = K.min(d, K.drain.DEHYD_ONSET)
+        end
+        r = K.max(0, d - prev) * 60 / dtM
     end
     D.dPrev = nil
     if K.finite(d) then

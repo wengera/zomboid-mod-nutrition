@@ -31,7 +31,7 @@
     "Sandbox_NR_StimulantRealismValues_option1": "Game",
     "Sandbox_NR_StimulantRealismValues_option2": "Realistic",
     "Sandbox_NR_DeathPace": "Starvation and dehydration pace",
-    "Sandbox_NR_DeathPace_tooltip": "How fast starvation and dehydration take health once they set in. Vanilla: hunger and thirst kill on vanilla's clock, health falling at vanilla's own steady rate. Shortened: starvation kills in about two weeks and dehydration in two days, health falling fastest at first. Realistic, the default: the real death points, a starving body at a BMI of 12 and dehydration at a 17 percent water loss; health falls at vanilla's rate at first, then more slowly. Vitamin deficiencies, low sodium and severe iron deficiency take health at the same pace in all three.",
+    "Sandbox_NR_DeathPace_tooltip": "How fast starvation and dehydration take health once they set in. Vanilla: hunger and thirst kill on vanilla's clock, health falling at vanilla's own steady rate. Shortened: starvation kills in about two weeks and dehydration in two days, health falling at a steady rate. Realistic, the default: the real death points, a starving body at a BMI of 12 and dehydration at a 17 percent water loss; health falls in step with the body's own decline, so it lasts far longer than vanilla's. Vitamin deficiencies, low sodium and severe iron deficiency take health at the same pace in all three.",
     "Sandbox_NR_DeathPaceValues_option1": "Vanilla",
     "Sandbox_NR_DeathPaceValues_option2": "Shortened",
     "Sandbox_NR_DeathPaceValues_option3": "Realistic",

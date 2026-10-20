@@ -77,8 +77,8 @@ option NR.StimulantRealism
 
 /* DeathPace sets how fast starvation and dehydration take health once they begin: 1 Vanilla (vanilla's own level-4
    drain, a straight line at the server's day length), 2 Shortened (starvation in 14 game days, dehydration in 2, on
-   the curve), 3 Realistic, the default (starvation at BMI 12, dehydration at a 17 percent water loss, on the curve). The
-   deficiencies and the sodium and iron rungs are the same at every pace. */
+   a straight line), 3 Realistic, the default (starvation at BMI 12, dehydration at a 17 percent water loss, on a
+   straight line on the body's own clock). The deficiencies and the sodium and iron rungs are the same at every pace. */
 option NR.DeathPace
 {
     type = enum, numValues = 3, default = 3,

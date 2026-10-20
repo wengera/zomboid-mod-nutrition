@@ -745,4 +745,10 @@ def test_the_prerun_predicts_the_grades_as_predicted():
     assert b["slope"]["rel"] < 1e-9
 
 
-# ---------------------------------------------------------------- the real replay on a ring the replay host wrote
+def test_the_committed_x482_prerun_is_the_head_replay():
+    # x482's Vanilla line is unchanged by revision R1, so its prerun stays the HEAD replay (x481's runs frozen)
+    have = L.load_prerun()
+    now = PR.canonical(PR.compute())
+    assert have.get("x482") == now["x482"]
+    assert have["_provenance"]["first_sight"] == L.FIRST_SIGHT
+    assert PR.main(["--check", "x482"]) == 0

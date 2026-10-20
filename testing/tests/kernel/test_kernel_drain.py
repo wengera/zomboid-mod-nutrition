@@ -226,12 +226,67 @@ def test_the_starvation_rate_is_the_clocks_current_rate_or_the_minutes_move(host
 
 def test_the_dehydration_rise_is_the_last_two_reads(host, D):
     d = host.table({})
-    assert D.rise(d, 5.0, 1.0) == 0 and d.dPrev == 5.0                          # no last read
+    assert D.rise(d, 5.0, 1.0) == pytest.approx(60.0, abs=1e-12) and d.dPrev == 5.0  # no last read: from the 4 % onset
+    assert D.rise(host.table({}), 3.5, 1.0) == 0                                # no last read under the onset: no rise
     assert D.rise(d, 5.01, 2.0) == pytest.approx(0.3, abs=1e-12)               # 0.01 % in 2 minutes: 0.3 % an hour
     assert D.rise(d, 4.5, 1.0) == 0 and d.dPrev == 4.5                          # a fall: never negative
     assert D.rise(d, 4.6, 0.0) == 0 and d.dPrev == 4.6                          # no time passed
     assert D.rise(d, float("nan"), 1.0) == 0 and d.dPrev is None                # not a number: no last read
-    assert D.rise(d, 5.0, 1.0) == 0
+    assert D.rise(d, 5.0, 1.0) == pytest.approx(60.0, abs=1e-12)                 # after a lost read: from the onset
+
+
+def test_a_record_first_seen_over_the_onset_lands_on_its_line_and_stays(host, D):
+    # review F2: a record first seen in the state (no last deficit read) counts its rise from the onset, so health lands
+    # on the line in its first minute and stays there; a healed (lost) read lands it again
+    rec = record(host, dehyd=6.0)
+    health, d_pct = 100.0, 6.0
+    for m in range(0, 120):
+        rec.fluids.dehydPct = d_pct
+        d = D.step(rec, 1.0, 100.0 + m / 60)
+        health -= D.take(d, health)
+        assert abs(health - d.target) < 1e-9, m
+        d_pct += 0.002
+    rec.drain.dPrev = float("nan")
+    D.ensure(rec)
+    rec.fluids.dehydPct = d_pct
+    d = D.step(rec, 1.0, 102.0)
+    health -= D.take(d, health)
+    assert abs(health - d.target) < 1e-9
+
+
+def test_a_pace_switch_mid_state_closes_the_gap_at_vanilla_s_rate(host, D):
+    # review F1 (ruling R1-5): dehydration at 3 % a day, switched from Realistic to Shortened at 24 h: the gap above the
+    # new line closes at vanilla's level-4 rate (17.82 x 24 a day at 90 minutes), then health stays on the line and dies
+    # at the 48 h death point
+    rec = record(host, dehyd=3.99)
+    D.step(rec, 1.0, 99.99)
+    health, d_pct = 100.0, 4.0
+    step = 17.82 * 24 / 1440
+    met = None
+    dead = None
+    gap0 = None
+    for m in range(0, 60 * 60):
+        rec.fluids.dehydPct = d_pct
+        pace = 3 if m < 24 * 60 else 2
+        d = D.step(rec, 1.0, 100.0 + m / 60, False, opt(host, pace, 2))
+        before = health
+        health -= D.take(d, health)
+        g = health - d.target
+        if pace == 2 and met is None:
+            if gap0 is None:
+                gap0 = before - d.target
+            assert d.rate == pytest.approx(17.82 * 24, abs=1e-9)                 # the line's 50 a day floored
+            assert before - health == pytest.approx(min(step, before - d.target), abs=1e-12), m
+            if g <= 1e-9:
+                met = m
+        else:
+            assert abs(g) < 1e-9, m
+        if dead is None and health <= 1e-9:
+            dead = m / 60
+        d_pct += 3.0 / 1440
+    assert gap0 > 20                                                             # the switch: about 26.9 above the line
+    assert met is not None and met - 24 * 60 < gap0 / (step - 50 / 1440) + 2      # closed at vanilla's pace
+    assert dead == pytest.approx(48.0, abs=0.1)                                   # Shortened: 48 h from the onset
 
 
 def test_a_non_finite_input_leaves_the_state_out(host, D):
@@ -294,10 +349,10 @@ def test_the_rate_is_the_sum_of_the_active_rates(host, D):
     assert d.drainThisMinute == pytest.approx(d.rate / 1440, abs=TOL)
     rec = record(host, thiamine=(4, 500), dehyd=6.0, iron=3)
     d = D.step(rec, 2.0, 100.0)
-    assert d.rate == pytest.approx(100 * 24 / 840 + 100, abs=1e-9)             # no last deficit read: no rise yet
+    assert d.rate == pytest.approx(100 / 13 * 2.0 * 60 / 2 * 24 + 100 * 24 / 840 + 100, abs=1e-9)  # no last read: the rise from the 4 % onset over 2 minutes
     rec.fluids.dehydPct = 6.01
     d = D.step(rec, 2.0, 100.0 + 2 / 60)
-    assert d.rate == pytest.approx(100 / 13 * 0.3 * 24 + 100 * 24 / 840 + 100, abs=1e-9)   # 0.3 % an hour
+    assert d.rate == pytest.approx(17.82 * 24 + 100 * 24 / 840 + 100, abs=1e-9)   # 0.3 % an hour, under vanilla's floor (F1)
     assert d.drainThisMinute == pytest.approx(d.rate * 2 / 1440, abs=TOL)
 
 
@@ -418,7 +473,8 @@ def test_the_clock_opens_at_the_record_day_start_at_the_calibrated_bmi_rate(host
     assert d.pS == pytest.approx(p, abs=1e-15)
     assert d.frac[1] == pytest.approx(1 - p, abs=1e-12)
     d = D.step(rec, 1.0, 110.0 + 1 / 60)                                          # a minute on the clock
-    assert d.rate == pytest.approx(100 * 24 * D.STARVE_DBMI / (d.bmi0 - 12), abs=1e-9)   # the clock's rate a day
+    assert d.rate == pytest.approx(3.564 * 24, abs=1e-9)                        # F1: the cap at vanilla's floor
+    assert D.fraction(1, d.stH, D.IN, D.OPT)[1] == pytest.approx(100 * 24 * D.STARVE_DBMI / (d.bmi0 - 12), abs=1e-9)
 
 
 def test_a_close_re_anchors_on_the_true_bmi_and_the_spans_rate(host, D):
@@ -722,8 +778,8 @@ def test_each_state_starts_at_its_onset(host, D):
         (dict(iron=3), 100.0, 7),
     ]
     bmi0 = 62.02 / H2 - 4 * D.STARVE_DBMI                                     # the estimate at the onset (T2-1)
-    rates = {1: 2400 * D.STARVE_DBMI / (bmi0 - 12), 2: 2400 / 2160, 3: 2400 / 840, 4: 2400 / 4320, 5: 400,
-             6: 0, 7: 100}                                                      # dehydration: no last deficit read
+    rates = {1: 3.564 * 24, 2: 2400 / 2160, 3: 2400 / 840, 4: 2400 / 4320, 5: 400,
+             6: 17.82 * 24, 7: 100}                                             # the paced states at vanilla's floor (F1)
     for kw, age, code in cases:
         d = D.step(record(host, **kw), 1.0, age)
         assert d.active is True and d.state == code, kw
@@ -802,9 +858,10 @@ def test_the_drain_scales_with_the_day_length_at_vanilla_pace_only(host, D):
         D.step(rec, 1.0, 100.0, False, opt(host, 3, 2, dayMin))
         rec.fluids.dehydPct = 8.01
         d = D.step(rec, 1.0, 100.0 + 1 / 60, False, opt(host, 3, 2, dayMin))
-        assert d.rate == pytest.approx(100 / 13 * 0.6 * 24, abs=1e-9)
+        r = D.rVanilla(D.DEHYD, dayMin)
+        assert d.rate == pytest.approx(max(100 / 13 * 0.6 * 24, r * 24), abs=1e-9)   # F1: at least vanilla's rate
         d = D.step(record(host, dehyd=8.0), 1.0, 100.0, False, opt(host, 2, 2, dayMin))
-        assert d.rate == pytest.approx(100 * 24 / 48, abs=1e-9)
+        assert d.rate == pytest.approx(r * 24, abs=1e-9)
     d = D.step(record(host, dehyd=8.0), 1.0, 100.0, False, opt(host, 1, 2, 60))
     assert d.rate == pytest.approx(11.88 * 24, abs=1e-9)
     d = D.step(record(host, thiamine=(4, 1.0)), 1.0, 100.0, False, opt(host, 3, 2, 60))
