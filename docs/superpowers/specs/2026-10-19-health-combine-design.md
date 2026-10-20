@@ -207,3 +207,30 @@ Every sentence and number on the page reads the data, and each new series is a k
 - Overlay mode's exclusions;
 - vanilla's regeneration terms;
 - the death mechanics the adapter already uses to reach health 0.
+
+## 9. Revision R1 (Angus, 2026-10-20): straight lines, equitable punishment
+
+Angus, after seeing the curve's cost to sleep:
+- Vanilla wakes a sleeper on every tick at health 10 or below. The wake-up is Java (`ReduceGeneralHealth` calls `forceAwake`, #3900), and a Lua mod cannot remove it.
+- He chose a **straight line for starvation all the way to 0**, and the same for dehydration. This retires the curve.
+
+The principle, in his words: keep vanilla and the mod "somewhat equitable in total punishment". It is fine to be alive past vanilla's death point while the mod's other effects make the character miserable. Those effects are weakness, slower healing, cold intolerance, mood, the protein and energy rows, and strength loss.
+
+**What changes:**
+- **Every state's remaining fraction is linear on its own clock:**
+  - starvation on the smoothed BMI progress (§ 1.2a, kept) at Realistic pace, and on hours at Shortened;
+  - dehydration on deficit progress, from 4 % to 17 % at Realistic, and on hours at Shortened;
+  - the deficiencies and rungs as before.
+
+  Vanilla pace keeps vanilla's own lines.
+- **Retired:**
+  - the curve `f = 1 − ln(1 + aτ)/ln(1 + aT)`;
+  - `solveA` and its cache;
+  - `A_STARVE` and `A_DEHYD`;
+  - dehydration's 0.1 knee and final stage.
+
+  The calibration tool and its artifact stay as the record. `STARVE_DPDT` (its `starve_dpdt_per_h`) stays, because the smoothed BMI clock uses it before a state's first close.
+- **The cap:** health may fall at least as fast as the target's current slope. A linear state's rate is its line's slope on its clock, converted to health per game day through the clock's current rate. Starvation's clock rate is the smoothed BMI rate; dehydration's is the observed deficit rise. The cap still sums the active states' rates.
+- **Under 10 health:** about the last tenth of each line wakes a sleeper every tick. That is about 9 days of a 90-day Realistic fast and the last 1.3 % of deficit in dehydration. It is a stated limitation, accepted by Angus.
+- **The options are unchanged:** `NR.DeathPace` (Vanilla, Shortened, Realistic) and `NR.HealthCombine` (Worst only, Multiply, Add).
+- **Later, a separate plan with a science pass first:** hunger pain, starvation disturbing sleep, and starvation fatigue. These are Angus's "misery" effects.
