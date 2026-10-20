@@ -161,7 +161,7 @@ def test_the_hangover_lasts_its_sets_tail_after_clearance(host):
 
 def _replay(mode, beers_min):
     be = RL.ServerReplay(hour_offset=7.0, rng="half", sleep_allowed=False)
-    be.rt.execute("SandboxVars = { NR = { StimulantRealism = %d } }" % mode)   # the options poll reads it each minute
+    be.rt.execute("SandboxVars.NR.StimulantRealism = %d" % mode)   # the options poll reads it each minute
     ev = [{"minute": m, "kind": "drink", "fluid": "Beer", "litres": 0.3} for m in beers_min]
     ev += [{"minute": m, "kind": "autodrop", "g": 500.0} for m in (30, 300, 600, 900)]
     ev.sort(key=lambda e: e["minute"])
@@ -216,7 +216,7 @@ def test_a_game_hangover_shows_unhappy_level_1_and_its_floor_goes_after():
     # the guide's S6b under Game: the hangover (8.15 to 11.90 h) carries the 21 floor, so UNHAPPINESS passes the
     # Unhappy level-1 step (> 20, #2369); once the hangover ends the floor is 0 and the stat is released
     be = RL.ServerReplay(hour_offset=7.0, rng="half", sleep_allowed=False)
-    be.rt.execute("SandboxVars = { NR = { StimulantRealism = 1 } }")
+    be.rt.execute("SandboxVars.NR.StimulantRealism = 1")
     ev = [{"minute": m, "kind": "drink", "fluid": "Beer", "litres": 0.3} for m in GUIDE_BEERS]
     ev += [{"minute": m, "kind": "autodrop", "g": 500.0} for m in (30, 300, 600, 900)]
     ev.sort(key=lambda e: e["minute"])

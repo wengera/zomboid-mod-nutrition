@@ -114,18 +114,32 @@
     "S2a": { xMin: -12, xMax: 60, yMin: 0, yMax: 1 },
     "S2b": { yMin: 0 },
     "S2c": {},
+    /* S2d (Plan 17 Task 5): Health draws vanilla's model and live health on the mod's own axis, so vanilla's death
+       near day three sits beside the mod's long decline; on that axis vanilla's line is a steep fall at the left edge,
+       so "First week" (zoom: true, the same series on a narrower x) shows both shapes, the mod's curve opening at
+       vanilla's own slope and then flattening. A linear axis is kept over a logarithmic one because a reader reads
+       a day count off it directly. */
     "S2d": {
       facets: [
-        { label: "Health", series: ["S2d-m-drain"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xTitle: "game days, with water" },
+        { label: "Health", series: ["S2d-m-drain", "S2d-v-model-health", "S2d-v-live-health", "S2d-m-live-health"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xTitle: "game days, no food, with water" },
+        { label: "First week", series: ["S2d-m-drain", "S2d-v-model-health", "S2d-v-live-health", "S2d-m-live-health"], unit: "health", zoom: true, yMin: 0, yMax: 100, xMin: 0, xMax: 7,
+          xTitle: "game days (the first week)" },
+        { label: "Pace", series: ["S2d-m-pace-vanilla", "S2d-m-pace-short", "S2d-m-pace-real", "S2d-m-live-pace"], unit: "health", yMin: 0, yMax: 100, xMin: 0,
+          xTitle: "game days, with water and vitamins, starving alone" },
+        { label: "Combining", series: ["S2d-m-comb-worst", "S2d-m-comb-mult", "S2d-m-comb-add"], unit: "health", yMin: 0, yMax: 100, xMin: 0,
+          xTitle: "game days, with water, no vitamins" },
         { label: "Without water", series: ["S2d-m-dry"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xTitle: "game days, no food and no water" },
         { label: "Body mass", series: ["S2d-m-mass"], unit: "kg", yMin: 0, xMin: 0, xTitle: "game days, with water" },
         { label: "Vanilla weight", series: ["S2d-v-model-weight", "S2d-v-live-weight"], unit: "kg", yMin: 0, xMin: 0, xMax: 4,
-          xTitle: "game days (the first four)" },
-        { label: "Vanilla health", series: ["S2d-v-model-health", "S2d-v-live-health"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xMax: 4,
           xTitle: "game days (the first four)" }
       ],
+      emphasis: { "S2d-m-comb-worst": 1, "S2d-m-comb-mult": 0, "S2d-m-comb-add": 2,
+                  "S2d-m-pace-vanilla": 2, "S2d-m-pace-short": 1, "S2d-m-pace-real": 0 },
       endpoints: { "S2d-v-model-health": "Death: hunger", "S2d-v-model-weight": "Death: hunger", "S2d-m-mass": "Death: beriberi",
-                   "S2d-m-drain": "Death: beriberi", "S2d-m-dry": "Death: dehydration" }
+                   "S2d-m-drain": "Death: beriberi", "S2d-m-dry": "Death: dehydration",
+                   "S2d-m-pace-vanilla": "Death: starvation", "S2d-m-pace-short": "Death: starvation",
+                   "S2d-m-pace-real": "Death: starvation", "S2d-m-comb-worst": "Death: beriberi",
+                   "S2d-m-comb-mult": "Death: beriberi", "S2d-m-comb-add": "Death: combined" }
     },
     "S3a": {
       facets: [
@@ -368,6 +382,7 @@
     id: "nrEndpoints",
     afterDatasetsDraw: function (chart) {
       var ctx = chart.ctx;
+      var placed = [];   /* the labels drawn so far: a label that would overlap one moves up a line */
       chart.data.datasets.forEach(function (ds, i) {
         if (!ds._endLabel || !chart.isDatasetVisible(i)) return;
         var meta = chart.getDatasetMeta(i);
@@ -386,7 +401,15 @@
         var w = ctx.measureText(ds._endLabel).width;
         var tx = Math.min(Math.max(x - w / 2, chart.chartArea.left), chart.chartArea.right - w);
         var ty = y - 12 < chart.chartArea.top + 12 ? y + 22 : y - 12;
-        ctx.fillText(ds._endLabel, tx, ty);
+        function hits(p) { return tx < p.x + p.w + 6 && p.x < tx + w + 6 && Math.abs(ty - p.y) < 15; }
+        /* the same label at the same spot (two lines ending together) is drawn once */
+        var same = placed.some(function (p) { return p.text === ds._endLabel && Math.abs(p.x - tx) < 2 && Math.abs(p.y0 - ty) < 2; });
+        var y0 = ty;
+        while (!same && placed.some(hits) && ty > chart.chartArea.top + 12) ty -= 15;
+        if (!same) {
+          ctx.fillText(ds._endLabel, tx, ty);
+          placed.push({ x: tx, y: ty, y0: y0, w: w, text: ds._endLabel });
+        }
         ctx.restore();
       });
     }

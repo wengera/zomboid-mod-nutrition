@@ -486,10 +486,15 @@ class Scenarios(_Base):
                 continue
             seen += 1
             with self.subTest(chart=cid):
-                ids = [re.findall(r'"([^"]+)"', f) for f in re.findall(r"series: \[([^\]]*)\]", block)]
+                # Plan 17 Task 5: a zoom facet (zoom: true) repeats series another facet shows on a narrower x
+                facets = re.findall(r"series: \[([^\]]*)\]([^\n]*)", block)
+                ids = [re.findall(r'"([^"]+)"', f) for f, rest in facets if "zoom: true" not in rest]
+                zooms = [re.findall(r'"([^"]+)"', f) for f, rest in facets if "zoom: true" in rest]
                 extra = [i for i in _pending_views(self.js) if i not in chart["series"] and i in block]
                 self.assertEqual(sorted(i for f in ids for i in f), sorted(chart["series"] + extra),
                                  "the facets show each of the chart's series exactly once")
+                for z in zooms:
+                    self.assertTrue(z and set(z) <= {i for f in ids for i in f}, "a zoom repeats shown series: %s" % z)
                 for f in ids:
                     if set(f) <= set(extra):
                         continue
@@ -524,6 +529,27 @@ class Scenarios(_Base):
                         self.assertIn(label[7:].lower(), lethal.group(1).lower(), "the note's own lethal state")
                     self.assertRegex(note, r"(?i)lines? ends?|ends the line|death \d|death at", "the line ends at the death")
         self.assertGreaterEqual(seen, 5)
+
+    def test_plan17_s2d_health_tab_draws_vanilla_beside_the_mod(self):
+        """Plan 17 Task 5: the fast chart opens on Health, the mod's line with vanilla's model and live health on the
+        same axes; a first-week zoom repeats them; Pace and Combining are their own tabs."""
+        block = _opts_block(self.js, "S2d")
+        labels = re.findall(r'\{ label: "([^"]+)", series: \[([^\]]*)\]([^\n]*)', block)
+        self.assertEqual(labels[0][0], "Health")
+        tabs = {lab: (re.findall(r'"([^"]+)"', ids), rest) for lab, ids, rest in labels}
+        for sid in ("S2d-m-drain", "S2d-v-model-health", "S2d-v-live-health"):
+            self.assertIn(sid, tabs["Health"][0])
+        zoom = [lab for lab, (ids, rest) in tabs.items() if "zoom: true" in rest]
+        self.assertEqual(len(zoom), 1)
+        self.assertLessEqual(set(tabs["Health"][0]), set(tabs[zoom[0]][0]))
+        self.assertEqual(tabs["Pace"][0][:3], ["S2d-m-pace-vanilla", "S2d-m-pace-short", "S2d-m-pace-real"])
+        self.assertEqual(tabs["Combining"][0], ["S2d-m-comb-worst", "S2d-m-comb-mult", "S2d-m-comb-add"])
+        self.assertNotIn("Vanilla health", tabs)
+        # every line ends at a death: each new line is named in the endpoints
+        ends = re.search(r"endpoints: \{([^}]*)\}", block).group(1)
+        for sid in ("S2d-m-pace-vanilla", "S2d-m-pace-short", "S2d-m-pace-real", "S2d-m-comb-worst",
+                    "S2d-m-comb-mult", "S2d-m-comb-add"):
+            self.assertIn('"%s"' % sid, ends)
 
     def test_level_health_and_unit_views_start_at_zero(self):
         """A view of a Strength level, health or a 0-1 stat draws from zero (S3a's grade view, 1 to 4, is named)."""
@@ -592,6 +618,10 @@ class Scenarios(_Base):
         r"can still land", r"so a heavier (?:body lives|survivor lasts) longer", r"starvation kills on day",
         r"Time offline is not simulated", r"lands whole", r"with water, about two months",
         r"#3905\b", r"#3910\b", r"#3948\b", r"#3952\b", r"#3953\b",
+        # Plan 17 Task 5: the floors are gone; health follows each state's remaining fraction
+        r"(?i)first floor", r"(?i)floor of (?:50|half)", r"25 a game day", r"(?i)50 in about", r"(?i)lowest floor",
+        r"(?i)down to a floor", r"(?i)drains? (?:health )?to (?:a|its|the) floor", r"(?i)the floor (?:then )?sinks",
+        r"(?i)floor stands in its place", r"(?i)rests at the floor", r"(?i)held three days", r"41\.14",
     ]
 
     def test_task_11_stale_sentences_stay_gone(self):
@@ -671,6 +701,26 @@ class Scenarios(_Base):
             self.assertIn(cid, self.html, cid)
         for frag in ("not established physiology (#3996)", "NR.RecordKeepDays"):
             self.assertEqual(self.html.count(frag), 1 if frag.startswith("not") else 0, frag)
+
+    def test_plan17_the_options_and_limitations_name_the_new_health_model(self):
+        """Plan 17 Task 5: both drain options on the options list with their defaults, the four corners, and the new
+        limitations."""
+        opts = self.html[self.html.index('id="options"'):self.html.index('id="compatibility"')]
+        for frag in ("NR.DeathPace", "NR.HealthCombine", "Realistic, the default", "Multiply, the default",
+                     "Vanilla", "Shortened", "Worst only", "Add"):
+            self.assertIn(frag, opts, frag)
+        lim = self.html[self.html.index('id="limitations"'):self.html.index('id="references"')]
+        for frag in ("wakes a sleeper", "Add, health can run out before", "ninety-minute day",
+                     "first day's close"):
+            self.assertIn(frag, lim, frag)
+
+    def test_plan17_the_gaunt_body_s_weeks_hold(self):
+        """The page says the Gaunt body starves in about six weeks: its replay's death (VALIDATION j_s2d_gaunt) is
+        within half a week of it."""
+        v = next(r for r in self.data["validation"] if r.get("kind") == "viability" and r.get("job") == "j_s2d_gaunt")
+        self.assertEqual(v["death_name"], "starvation")
+        self.assertLess(abs(v["death_age"] / 24.0 / 7.0 - 6.0), 0.5)
+        self.assertIn("in about six weeks", self.html)
 
     def test_the_scenario_guard_catches_a_typed_number(self):
         p = PageParser()

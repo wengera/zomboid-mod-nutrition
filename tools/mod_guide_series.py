@@ -30,6 +30,12 @@ Plan 16 Task 11: x467 (the sleep-off three-meal day on the final curve, #3990) p
 returns are drawn on SH3; x461b's milk and solid (#3981) are SE1's live lines; S4a's deficit year ends at its BMI-12
 starvation death; S2d's death is wet beriberi (#3978).
 
+Plan 17 Task 5: S2d's Health tab sets vanilla's model and live health beside the mod's (the remaining-fraction drain,
+Plan 17 Tasks 2 and 3), and its Pace (NR.DeathPace, the vitamins held) and Combining (NR.HealthCombine, the S2d fast)
+tabs are kernel replays under each option; x481 and x482 (Task 4) are admitted on their health (ADM_OPTS: each run's
+own drain options) and drawn; the vanilla fast's model runs at VANILLA_FAST_DT_MIN; the guide replay's heal spread is
+replay_live's `game_heal`.
+
 The replays run on the lupa host (`tools/replay_live.py`'s `ServerReplay` and its `run`); the long ones run in a
 process pool (`MOD_GUIDE_JOBS` workers, 1 runs them in-process), each a deterministic job whose result is plain data.
 World age 0 is 07:00 (the fixture's clock, `x36_gut_lib.HOUR_OFFSET`); the display defaults are the map's § 0: male,
@@ -102,6 +108,9 @@ RUN = {
     # Plan 16 Task 9: the pre-upload sessions, on the staged copy of mod/ at 648b4a83 (the mod's tree at this build:
     # the one mod/ commit since, e69499be, edits COMPATIBILITY.md only)
     "x461b": "x461b-20261019-022954", "x467": "x467-20261019-025016",
+    # Plan 17 Task 4: the remaining-fraction drain live, on the staged copy of mod/ at 97f76bac (DayLength 4): x481
+    # Realistic with Multiply and the pace switch, x482 Vanilla with Add to the death
+    "x481": "x481-20261020-070821", "x482": "x482-20261020-071425",
 }
 
 MAP_CHARTS = {
@@ -135,10 +144,13 @@ MAP_CHARTS = {
     "S2c": {"section": "S2", "title": "Hunger as fat is lost",
            "x": "kg of fat lost", "y": "extra kcal a day eaten at the request",
            "series": ["S2c-v-model", "S2c-m-kernel", "S2c-study"]},
+    # Plan 17 Task 5: the Health tab sets vanilla's health beside the mod's, and the Pace and Combining tabs are new
     "S2d": {"section": "S2", "title": "A long fast, with water and without",
-           "x": "game days (vanilla to day 4, the mod to its death)", "y": "health, kg",
+           "x": "game days (each line to its death)", "y": "health, kg",
            "series": ["S2d-v-model-health", "S2d-v-live-health", "S2d-v-model-weight", "S2d-v-live-weight", "S2d-m-mass",
-                      "S2d-m-drain", "S2d-m-dry"]},
+                      "S2d-m-drain", "S2d-m-live-health", "S2d-m-dry", "S2d-m-pace-vanilla", "S2d-m-pace-short",
+                      "S2d-m-pace-real", "S2d-m-live-pace", "S2d-m-comb-worst", "S2d-m-comb-mult",
+                      "S2d-m-comb-add"]},
     "S3a": {"section": "S3 Living on one food", "title": "Vitamin C on tinned tuna alone",
            "x": "game days, 0–170 (to the self-experimenter's day 161)", "y": "vitamin C store (0–1) and grade",
            "series": ["S3a-m-pool", "S3a-m-grade", "S3a-study-0224", "S3a-study-0225"]},
@@ -254,8 +266,8 @@ DROPPED = {
                   "Plan 15 Task 6); x467 measures the hunger cadence on this build (SH3)",
     "S1c-m-live":"G8: x446's HEAD replay misses its THIRST by 0.33 against 0.002 (the water base by lean mass, Plan 15 "
                   "Task 3)",
-    "SD1-m-live": "G8: x161b read the Plan 5 scurvy drain, 100 health over 168 game hours; Plan 15 Task 4's engine "
-                  "drains to a floor at its own rate (VALIDATION x161b:drain)",
+    "SD1-m-live": "G8: x161b read the Plan 5 scurvy drain, 100 health over 168 game hours; Plan 17's scurvy runs on "
+                  "a line to 0 over 2160 game hours (VALIDATION x161b:drain)",
     # Plan 16 Task 11: SE1's live liquid line (x363 failed at HEAD since Plan 15 Task 14b) is x461b's milk and solid,
     # and SH3's live lines (x452b failed since Plan 16 Task 4, the world-clock rhythm) are x467's day
     "SE1-m-live-fill": "G8: x461b's HEAD replay misses its fill on the milk window by 0.0021 against 0.002 on the rows "
@@ -442,34 +454,30 @@ DEATH_HEALTH = 1e-6                   # health at or under it is the death (test
 
 
 def _guide_replay():
-    """replay_live.ServerReplay whose rows also carry the stand-in's overall health (HEALTH): the mod's drain takes it
-    through ReduceGeneralHealth and its heal toward a floor gives it back through AddGeneralHealth (Plan 15 Task 4),
-    so the replay's health is 100 less the one plus the other, as test_kernel_drain's fast-death test reads it. The
-    stand-in's AddGeneralHealth is given the game's spread, overall health rising by 5.05 / 17 of the argument with
-    every part below 100 (#3898, K.drain.PART_SPREAD), so the health the mod reads back is the game's."""
+    """replay_live.ServerReplay with a sparse read: every row carries the stand-in's overall health (HEALTH, the
+    replay's own `health`, 100 less ReduceGeneralHealth plus AddGeneralHealth), and the stand-in's AddGeneralHealth
+    takes the game's spread through replay_live's `game_heal` (overall health rising by 5.05 / 17 of the argument with
+    every part below 100, #3898, K.drain.PART_SPREAD), so the health the mod reads back is the game's. Plan 17 Task 5
+    folded this class's own copy of that patch into `game_heal`, so one implementation remains."""
     RL = _rl()
 
     class GuideReplay(RL.ServerReplay):
         sparse, every, calls = frozenset(), 1, 0
 
         def __init__(self, *a, **kw):
+            kw["game_heal"] = True
             super().__init__(*a, **kw)
-            self.rt.execute("for _, bd in ipairs(NR_T.bodies) do bd.AddGeneralHealth = function(s, v) "
-                            "s.st.added = s.st.added + v / NutritionRevamp.kernel.drain.PART_SPREAD end end")
 
         def row(self, paths):
             k, self.calls = self.calls, self.calls + 1
             if self.sparse and k % self.every != self.every - 1 and k != 0:
                 paths = [p for p in paths if p not in self.sparse]
-            out = super().row(paths)
-            body = self.p.st.body
-            out[HEALTH] = 100.0 - float(body.reduced) + float(body.added)
-            return out
+            return super().row(paths)
     return GuideReplay
 
 
 def server_run(events, minutes, paths=(), player=None, perk=None, sleep_allowed=False, hour_offset=HOUR_OFFSET,
-               start=None, stimulants=None, sparse=(), every=DAY_MIN):
+               start=None, stimulants=None, sparse=(), every=DAY_MIN, pace=None, combine=None):
     """The mod's server pipeline on the lupa host from a fresh record (first sight builds the creation body from the
     stand-in's traits), on a synthetic one-minute clock from world age 0; returns (rows, backend). Row k is the state
     drain k left, at age (k + 1) / 60. `perk` is the native Strength level vanilla's applyTraits left (the creation
@@ -477,12 +485,19 @@ def server_run(events, minutes, paths=(), player=None, perk=None, sleep_allowed=
     Realistic), which the options poll reads each minute. Every row carries the guard's paths and the stand-in's health
     (viability); the `sparse` paths are read only on row 0 and every `every`-th row (k = every - 1, 2 every - 1, ...: the
     day closes day_ends picks), which keeps a long replay of many paths small. An event at or past the last minute is
-    left out (a whole day's water on a shorter window)."""
+    left out (a whole day's water on a shorter window). `pace` and `combine` set NR.DeathPace and NR.HealthCombine
+    (replay_live's ServerReplay: the mod's defaults, 3 Realistic and 2 Multiply, when None)."""
     RL = _rl()
-    be = _guide_replay()(start=start, player=player, hour_offset=hour_offset, rng="half", sleep_allowed=sleep_allowed)
+    opts = {}
+    if pace is not None:
+        opts["death_pace"] = int(pace)
+    if combine is not None:
+        opts["health_combine"] = int(combine)
+    be = _guide_replay()(start=start, player=player, hour_offset=hour_offset, rng="half", sleep_allowed=sleep_allowed,
+                         **opts)
     be.sparse, be.every = frozenset(sparse), int(every)
     if stimulants is not None:
-        be.rt.execute("SandboxVars = { NR = { StimulantRealism = %d } }" % int(stimulants))
+        be.rt.execute("SandboxVars.NR.StimulantRealism = %d" % int(stimulants))
     if perk is not None:
         be.p.st.perk = perk
     events = [e for e in events if "minute" not in e or e["minute"] < minutes]     # a day's water past the window
@@ -498,10 +513,10 @@ def state_name(code, K=None):
 
 
 def viability(rows, K=None):
-    """Rule R-1's reading of a replay (Plan 15 Task 13: a drain is damage to a floor, not a death clock): the largest
-    fluids.dehydPct; the first drain (age h, state code) the mod's engine opened (drain.state, the code whose floor is
-    lowest); the lowest health; and the death, the first row whose health is gone (at or under DEATH_HEALTH), with the
-    state that drained it there. dmax_to_death is the largest deficit up to the death (the whole window without one)."""
+    """Rule R-1's reading of a replay (Plan 17: a drain is damage toward the target the active states' remaining
+    fractions set): the largest fluids.dehydPct; the first drain (age h, state code) the mod's engine opened
+    (drain.state, the code whose fraction is smallest); the lowest health; and the death, the first row whose health
+    is gone (at or under DEATH_HEALTH), with the state that drained it there. dmax_to_death is the largest deficit up to the death (the whole window without one)."""
     dmax = max((r.get("fluids.dehydPct") or 0.0) for r in rows)
     first = next(((r["age"], int(r["drain.state"])) for r in rows if r.get("drain.state")), None)
     dead = next((r for r in rows if r.get(HEALTH) is not None and r[HEALTH] <= DEATH_HEALTH), None)
@@ -521,7 +536,7 @@ def viability(rows, K=None):
 def assert_viable(name, v, death=False, thirst=False, drain=False):
     """Rule R-1: a replay stays alive and under DEHYD_BOUND over its window, unless the series names the death (then
     its lines end at v["death_age"]) or the scenario is the thirst itself (no water by design: alive, any dehydration).
-    A drain (damage to a floor, Plan 15) is named as well: a replay that opens one the series does not name fails, so a
+    A drain (damage toward a target, Plan 17) is named as well: a replay that opens one the series does not name fails, so a
     story that takes damage says so. death and drain: True (the series shows one), "allowed" (it may), False."""
     if v["death"] is not None and not death:
         raise D.ProvenanceError("%s: the replay's health is gone at %.2f h, drained by state %d (rule R-1)"
@@ -623,7 +638,8 @@ def reset():
 
 
 # rough CPU seconds, for the pool's order only
-JOB_COST = {"j_s2d": 30, "j_s2d_dry": 3, "j_s3c": 28, "j_s3a": 21, "j_s5b_strong": 31, "j_s5b_weak": 31, "j_s5b_none": 31,
+JOB_COST = {"j_s2d": 30, "j_s2d_dry": 3, "j_s2d_pace_real": 44, "j_s2d_comb_worst": 36, "j_s2d_comb_add": 36,
+            "j_s2d_obese": 30, "j_s2d_gaunt": 18, "j_s2d_pace_short": 7, "j_s3c": 28, "j_s3a": 21, "j_s5b_strong": 31, "j_s5b_weak": 31, "j_s5b_none": 31,
             "j_s5b_gaunt": 31, "j_s5b_overweight": 31, "j_h2": 11, "j_s2c": 9, "j_s2b": 6, "j_s3b": 5, "j_s6a": 5,
             "j_vanilla_s4b": 12, "j_s2a": 3, "j_sh1": 3}
 
@@ -648,6 +664,8 @@ SRC_X46 = "the run's own: x46_lib.REPLAY_TOL (HUNGER 0.002), its REPLAY_HUNGER g
 SRC_X46_FILL = ("the run's own: x46_lib.REPLAY_TOL (stomachFill 0.002, stomach.liquid 2.0 g, x363's), its REPLAY_* "
                 "grades' bounds, on the drawn window")
 FILL_TOL = {"stomachFill": ("abs", 0.002), "stomach.liquid": ("abs", 2.0)}
+HEALTH_TOL = {"health": ("abs", 0.002)}
+SRC_X48 = "the run's own: x48_lib.REPLAY_TOL (health 0.002), its REPLAY_health grade's bound"
 
 # (key, run, sleep_allowed, tolerance, its source, the live series it admits, the kernel series it proves, pinned)
 ADMISSIONS = (
@@ -694,7 +712,16 @@ ADMISSIONS = (
     ("x341:mood", "x341", False, "mood", SRC_MOOD, ["S3b-m-live-U", "S3b-m-live-B"], [], True),
     ("x342:mood", "x342", False, "mood", SRC_MOOD, ["S3b-m-live-U", "S3b-m-live-B"], ["S3b-m-kernel-U"], False),
     ("x343:mood", "x343", False, "mood", SRC_MOOD, ["SM1-m-live"], ["SM1-m-kernel"], False),
+    # Plan 17 Task 5: the remaining-fraction drain live (Task 4), replayed under each run's own drain options (ADM_OPTS)
+    ("x481:health", "x481", False, HEALTH_TOL, SRC_X48, ["S2d-m-live-health"],
+     ["S2d-m-drain", "S2d-m-comb-mult", "S2d-m-pace-real"], True),
+    ("x482:health", "x482", False, HEALTH_TOL, SRC_X48, ["S2d-m-live-pace"], ["S2d-m-pace-vanilla"], True),
 )
+# the drain options a run's server held (its profile's [sandbox.NR]) and the game's heal spread, which its HEAD replay
+# takes (x48_lib.replay: ServerReplay with death_pace, health_combine and game_heal); x481's mid-run switch to Shortened
+# is its events.json setpath of _G.SandboxVars.NR.DeathPace, which the mod's options poll reads in the replay as live
+ADM_OPTS = {"x481:health": {"death_pace": 3, "health_combine": 2, "game_heal": True},
+            "x482:health": {"death_pace": 1, "health_combine": 3, "game_heal": True}}
 # runs graded off the HEAD kernel directly (no ring to replay): key -> (the live series, the kernel series)
 OTHER = {"x37g:met": (["SX1-m-live"], ["SX1-m-kernel"]), "x401:level": (["SV1-m-live"], ["SV1-m-kernel"]),
          "x453b:level": (["SV1-m-live-b"], ["SV1-m-kernel"]), "x161b:drain": (["SD1-m-live"], []),
@@ -728,15 +755,15 @@ def _json(run_dir, name):
         return json.load(fh)
 
 
-def replay_of(run, sleep_allowed, events=None):
-    """The HEAD replay of run's own inputs (start, events, start stats, player) on its ring's clock and activity:
-    (rows, ring)."""
+def replay_of(run, sleep_allowed, events=None, opts=None):
+    """The HEAD replay of run's own inputs (start, events, start stats, player) on its ring's clock and activity, under
+    the server's drain options `opts` (ADM_OPTS; replay_live's defaults otherwise): (rows, ring)."""
     RL = _rl()
     d = os.path.join(REPO, "testing", "artifacts", RUN[run])
     ring, paths = _ring(d)
     rows, _ = RL.replay_live(ring, (_json(d, "events.json") or []) if events is None else events,
                              _json(d, "start.json"), paths=paths, user="admin", player=_json(d, "player.json"),
-                             start_stats=_json(d, "start-stats.json"), sleep_allowed=sleep_allowed)
+                             start_stats=_json(d, "start-stats.json"), sleep_allowed=sleep_allowed, **(opts or {}))
     return rows, ring
 
 
@@ -757,12 +784,13 @@ def window_from(run, label):
     return min(s) - 1
 
 
-def admission(run, sleep_allowed, tol, keep=(), window=None):
-    """The HEAD replay of run's own inputs against its ring, graded by replay_live.diff under tol, on the rows from
-    window_from(run, window) when a window label is given. Returns (record, rows): record {run, quantity, tolerance,
-    max_miss, n, admitted[, window]}; rows the replay rows' `keep` fields by s (the window's alone)."""
+def admission(run, sleep_allowed, tol, keep=(), window=None, opts=None):
+    """The HEAD replay of run's own inputs (under the drain options `opts`) against its ring, graded by replay_live.diff
+    under tol, on the rows from window_from(run, window) when a window label is given. Returns (record, rows): record
+    {run, quantity, tolerance, max_miss, n, admitted[, window]}; rows the replay rows' `keep` fields by s (the window's
+    alone)."""
     RL = _rl()
-    rows, ring = replay_of(run, sleep_allowed)
+    rows, ring = replay_of(run, sleep_allowed, opts=opts)
     s0 = window_from(run, window) if window else None
     if s0 is not None:
         rows = [r for r in rows if r["s"] >= s0]
@@ -779,7 +807,7 @@ def admission(run, sleep_allowed, tol, keep=(), window=None):
 def _grade(key, run, sleep_allowed, tol, keep=()):
     if tol == "mood":
         tol = mood_tol(float(KHost().K.hybrid.FLOOR_EPS))
-    return admission(run, sleep_allowed, dict(tol), keep, ADM_WINDOW.get(key))
+    return admission(run, sleep_allowed, dict(tol), keep, ADM_WINDOW.get(key), ADM_OPTS.get(key))
 
 
 def _jobs_of(keys, keep=None):
@@ -828,10 +856,16 @@ def j_adm_x34():
     return _jobs_of({"x341:mood", "x342:mood", "x343:mood"}, {"x343:mood": ("UNHAPPINESS",)})
 
 
+@job
+def j_adm_x48():
+    return _jobs_of({"x481:health", "x482:health"})
+
+
 ADM_JOB = {}
 for _a in ADMISSIONS:
     _r = _a[1]
-    ADM_JOB[_a[0]] = ("j_adm_x46" if _r in ("x461b", "x467") else
+    ADM_JOB[_a[0]] = ("j_adm_x48" if _r in ("x481", "x482") else
+                      "j_adm_x46" if _r in ("x461b", "x467") else
                       "j_adm_x44" if _r in ("x446", "x452", "x452b") else
                       "j_adm_x36" if _r in ("x361", "x363", "x364") else
                       "j_adm_x27" if _r in ("x271", "x272", "x276") else
@@ -1059,7 +1093,10 @@ SERIES_JOB = {
     "S5b-m-overfat-weight": "j_s5b_overweight", "S5b-m-none-weight": "j_s5b_none", "S5c-m-gaunt": "j_s5b_gaunt",
     "S5c-m-none": "j_s5b_none", "S6a-m-day1": "j_s6a", "S6a-m-day14": "j_s6a", "S6a-m-tolerance": "j_s6a", "S6b-m-bac": "j_s6b",
     "S6b-m-intox": "j_s6b", "S6b-m-hangover": "j_s6b", "S6c-m-kernel": "j_s6c", "SX2-m-kernel": "j_sx2",
-    "S2d-m-drain": "j_s2d", "S2d-m-dry": "j_s2d_dry", "S6a-m-offset": "j_s6a", "S6a-m-offset-real": "j_s6a_real",
+    "S2d-m-drain": "j_s2d", "S2d-m-dry": "j_s2d_dry", "S2d-m-pace-vanilla": "j_s2d_pace_vanilla",
+    "S2d-m-pace-short": "j_s2d_pace_short", "S2d-m-pace-real": "j_s2d_pace_real", "S2d-m-comb-worst": "j_s2d_comb_worst",
+    "S2d-m-comb-mult": "j_s2d", "S2d-m-comb-add": "j_s2d_comb_add", "S6a-m-offset": "j_s6a",
+    "S6a-m-offset-real": "j_s6a_real",
     "S6b-m-intox-real": "j_s6b_real",
 }
 
@@ -1241,8 +1278,8 @@ def j_s2c():
 
 
 def health_ks(rows, fine_h=5 * 24, fine=60, coarse=360):
-    """Row indices for a health line: every `fine` minutes for the first fine_h hours (the drain to the first floor),
-    then every `coarse`, and the last row."""
+    """Row indices for a health line: every `fine` minutes for the first fine_h hours (the drain's opening, at its
+    steepest), then every `coarse`, and the last row."""
     n = len(rows)
     ks = list(range(fine - 1, min(n, fine_h * 60), fine)) + list(range(fine_h * 60 + coarse - 1, n, coarse))
     return [0] + ks + ([n - 1] if ks and ks[-1] != n - 1 else [])
@@ -1261,41 +1298,116 @@ def drain_states(rows):
 
 @job
 def j_s2d():
-    """S2d: from HUNGER 0 (FRESH), no food, the replay's water, 90 days (the lines end at the death, rule R-1): body
-    mass at each day close,
-    and health (the drain to its floors) hourly for five days, then every six hours."""
+    """S2d: from HUNGER 0 (FRESH), no food, the replay's water, 90 days at the mod's defaults (Realistic pace,
+    Multiply; the lines end at the death, rule R-1): body mass at each day close, and health hourly for five days, then
+    every six hours."""
     rows, be = server_run([FRESH] + autodrops(90), 90 * DAY_MIN,
-                          ("body.fm", "body.lm", "body.lx", "acute.bmi", "drain.bmi0"))
+                          ("body.fm", "body.lm", "body.lx", "acute.bmi", "drain.bmi0", "drain.mask"))
     days = pick(rows, day_ends(90), "body.fm", "body.lm", "body.lx", "acute.bmi")
     health = [[a / 24.0, hp] for _, a, hp in pick(rows, health_ks(rows), HEALTH)]
     out = {"days": days, "health": health, "hunger_max": max(r["HUNGER"] for r in rows), "states": drain_states(rows),
-           "floor_age": floor_age(rows, be.K), "bmi0": max(r.get("drain.bmi0") or 0.0 for r in rows)}
+           "opened": opened_states(rows), "half_age": half_age(rows, be.K),
+           "bmi0": max(r.get("drain.bmi0") or 0.0 for r in rows)}
     return _done(rows, be, out)
 
 
 HALF_HEALTH = 50.0                    # health: the guide's mark for the drain's pace, half of full health (named here)
 
 
-def floor_age(rows, K):
-    """The age the drain first brings health to half (HALF_HEALTH, within K.drain.HEAL_EPS; Plan 17 Task 2: the first
-    floor this read is gone with the floors)."""
+def half_age(rows, K):
+    """The age the drain first brings health to half (HALF_HEALTH, within K.drain.HEAL_EPS)."""
     f = HALF_HEALTH + float(K.drain.HEAL_EPS)
     return next((r["age"] for r in rows if r.get(HEALTH) is not None and r[HEALTH] <= f), None)
+
+
+def opened_states(rows):
+    """Each drain state's first opening, [[age h, code]] in order: the first row whose drain.mask carries the code's
+    bit (2 ^ (code - 1)), where drain_states reads the state with the smallest fraction."""
+    out, seen = [], 0
+    for r in rows:
+        m = int(r.get("drain.mask") or 0)
+        new = m & ~seen
+        if new:
+            for c in range(1, 8):
+                if new & (1 << (c - 1)):
+                    out.append([r["age"], c])
+            seen |= m
+    return out
 
 
 @job
 def j_s2d_dry():
     """S2d's no-water arm: no food and no water from a fresh record at HUNGER 0 (FRESH) at 07:00, 8 days (the line
-    ends at the death):
-    health hourly, and the body-water deficit."""
+    ends at the death): health hourly, and the body-water deficit."""
     rows, be = server_run([FRESH], 8 * DAY_MIN, ("drain.dehydrated", "drain.starving"))
     ks = health_ks(rows, fine_h=8 * 24)
     pts = pick(rows, ks, HEALTH, "fluids.dehydPct")
     return _done(rows, be, {"health": [[a / 24.0, hp] for _, a, hp, d in pts],
                             "deficit": [[a / 24.0, d] for _, a, hp, d in pts], "states": drain_states(rows),
-                            "floor_age": floor_age(rows, be.K),
+                            "half_age": half_age(rows, be.K),
                             "dehyd_age": next((r["age"] for r in rows if r.get("drain.dehydrated")), None),
                             "starve_age": next((r["age"] for r in rows if r.get("drain.starving")), None)})
+
+
+# Plan 17 Task 5: S2d's Pace and Combining tabs and #3978's other two bodies, each a fast run to its death. The Pace
+# arm holds the vitamins whose deficiencies kill (K.drain.NUTRIENT: scurvy, beriberi, pellagra) at a full store, so
+# starvation is its only state; the Combining arm is the S2d fast itself (no vitamins), starvation and then beriberi.
+HELD_VITAMINS = ("thiamine", "vitC", "niacin")
+PACE_DAYS = {1: 4, 2: 18, 3: 95}       # each pace's window, past its death (2.60, 15.43 and 89.70 game days at HEAD)
+COMB_DAYS = {1: 80, 3: 60}             # Worst only and Add (Multiply is j_s2d), past their deaths (77.23 and 44.77)
+
+
+def held_vitamins(days):
+    """A setpath of each HELD_VITAMINS store to 1 (replete) at 07:00 each day from day 1 (a fresh record is replete at
+    first sight): the vitamins held adequate."""
+    return [{"minute": d * DAY_MIN, "kind": "setpath", "path": "nutrients.%s.p" % k, "value": 1.0}
+            for d in range(1, days) for k in HELD_VITAMINS]
+
+
+def _fast(days, pace=None, combine=None, held=False, player=None):
+    """A fast from a fresh record at HUNGER 0 (FRESH) with the replay's water and no food, `days` days under the drain
+    options: health on health_ks's grid, each state's opening and the age health reaches half."""
+    ev = [FRESH] + autodrops(days) + (held_vitamins(days) if held else [])
+    rows, be = server_run(ev, days * DAY_MIN, ("drain.mask",), player=player, pace=pace, combine=combine)
+    health = [[a / 24.0, hp] for _, a, hp in pick(rows, health_ks(rows), HEALTH)]
+    return _done(rows, be, {"health": health, "opened": opened_states(rows), "half_age": half_age(rows, be.K)})
+
+
+@job
+def j_s2d_pace_vanilla():
+    return _fast(PACE_DAYS[1], pace=1, held=True)
+
+
+@job
+def j_s2d_pace_short():
+    return _fast(PACE_DAYS[2], pace=2, held=True)
+
+
+@job
+def j_s2d_pace_real():
+    return _fast(PACE_DAYS[3], pace=3, held=True)
+
+
+@job
+def j_s2d_comb_worst():
+    return _fast(COMB_DAYS[1], combine=1)
+
+
+@job
+def j_s2d_comb_add():
+    return _fast(COMB_DAYS[3], combine=3)
+
+
+@job
+def j_s2d_gaunt():
+    """#3978's Gaunt body (VERY_UNDERWEIGHT) on the S2d fast, to its starvation death."""
+    return _fast(47, player={"traits": ["VERY_UNDERWEIGHT"]})
+
+
+@job
+def j_s2d_obese():
+    """#3978's Obese body (OBESE) on the S2d fast, to its death."""
+    return _fast(78, player={"traits": ["OBESE"]})
 
 
 def _nutrient_keys():
@@ -1325,7 +1437,7 @@ def _grades(days, ev):
                 break
     out["first_grade2_day"] = first2
     out["states"] = drain_states(rows)
-    out["floor_age"] = floor_age(rows, be.K)
+    out["half_age"] = half_age(rows, be.K)
     out["drain_last"] = next((r["age"] for r in reversed(rows) if r.get("drain.state")), None)
     out["thiamine_clinical"] = next((r["age"] for r in rows if r.get("nutrients.thiamine.g") == 4), None)
     out = _done(rows, be, out)
@@ -1627,7 +1739,8 @@ def s_inputs(schedule, **kw):
 # ---- the vanilla-live and M1 series' reads (Task 8) ---------------------------------------------------------------------
 
 RING_PAGES = {"x441": "1", "x442": "1,721,1441,2161", "x443a": "1,721", "x443b": "1,721", "x446": "1,721,1441",
-              "x452": "1,721,1441", "x452b": "1,721,1441", "x461b": "1,721", "x467": "1,721,1441"}
+              "x452": "1,721,1441", "x452b": "1,721,1441", "x461b": "1,721", "x467": "1,721,1441", "x481": "1",
+              "x482": "1,721,1441"}
 
 
 def ring_file(run):
@@ -1842,8 +1955,8 @@ def s_h3():
 def bmi_death_day(d):
     """The first day close of a strength_days run whose BMI (K.drain.bmi of its lean and fat) is at or under
     K.drain.BMI_DEATH, starvation's death point (S2234), or None. strength_days runs the Strength day alone, without
-    the drain, so a deficit year keeps stepping past the death the full pipeline gives there (#3901: starvation's floor
-    reaches 0 at BMI 12, and the state is open at any intake under BMI 13)."""
+    the drain, so a deficit year keeps stepping past the death the full pipeline gives there (#3901: starvation's
+    remaining fraction reaches 0 at BMI 12, and the state is open at any intake under BMI 13)."""
     K = KHost().K
     death = float(K.drain.BMI_DEATH)
     return next((r[0] for r in d if float(K.drain.bmi(r[3], r[5])) <= death), None)
@@ -2267,19 +2380,58 @@ def s2d_live_health(model_death):
                   "%.2f." % (h, t_eq, dead - w, (dead - w + t_eq) / 24.0, model_death / 24.0))
 
 
+# The vanilla fast's model step (Plan 17 Task 3 concern C1): at 1 minute the model finds level 4 at 34.85 h, the first
+# step past its 34.837 h crossing, and dies at 62.917 h; at 0.01 minute (test_drain_options' oracle step) it dies at
+# 62.896 h, so the vanilla line ends where the game's continuous rate puts it. About 2 s of model time.
+VANILLA_FAST_DT_MIN = 0.01
+
+
 def _vanilla_fast():
     """S2d's vanilla run: HUNGER from 0, no food, 0.25 L of water every 4 h, a fresh 80 kg character (store 800),
-    1-minute steps to its death (VM10; the weight floor, #3881, is not reached first)."""
+    VANILLA_FAST_DT_MIN steps to its death (VM10; the weight floor, #3881, is not reached first)."""
     ev = [{"t_h": float(h), "kind": "drink", "fluid": "water", "litres": 0.25} for h in range(4, 72, 4)]
-    sim = VM.simulate({"hours": 72.0, "dt_min": 1.0, "start": {"hunger": 0.0}, "events": ev})
+    sim = VM.simulate({"hours": 72.0, "dt_min": VANILLA_FAST_DT_MIN, "start": {"hunger": 0.0}, "events": ev})
     death = next(t for t, x in sim["health"] if x <= 0)
     return sim, death
 
 
+def _every(points, minutes):
+    """Every `minutes` of a VANILLA_FAST_DT_MIN model series."""
+    return points[::int(round(minutes / VANILLA_FAST_DT_MIN))]
+
+
+def ring_health(run):
+    """[(s, age, health, drain.state, dead)] of a Plan 17 run's ring (the harness's Task 4 wrap: health and the dead
+    flag on every row), joined by s, read through ring_read (the do-not-cite guard)."""
+    hp = {s: (a, v) for s, a, v in ring_read(run, "health")}
+    st = {s: v for s, a, v in ring_read(run, "drain.state")}
+    dead = {s: v for s, a, v in ring_read(run, "dead")}
+    return [(s, hp[s][0], hp[s][1], st.get(s, 0), dead.get(s) is True) for s in sorted(hp)]
+
+
+def live_health_placed(run, onset_h, last_s):
+    """A run's ring health from its starvation onset to ring row last_s. Ring row k reads the health the drain at row
+    k - 1 left, so each value is placed at that drain's age, less the onset drain's (the drain before the first row
+    that shows a state), plus onset_h, the guide line's own onset hour; x in game days."""
+    rows = ring_health(run)
+    k0 = next(i for i, r in enumerate(rows) if r[3])
+    a0 = rows[k0 - 1][1]
+    return [[(rows[i - 1][1] - a0 + onset_h) / 24.0, rows[i][2]] for i in range(k0, len(rows)) if rows[i][0] <= last_s]
+
+
+LIVE_PACE_EVERY = 15                   # x482's dots: every 15th ring row (a quarter game hour) and the death row
+
+
+def opened_text(opened, K, upto=None):
+    """'starvation on day 1.44, then beriberi on day 38.23': the states a replay opened, up to the age upto."""
+    return ", then ".join("%s on day %.2f" % (state_name(c, K), a / 24.0) for a, c in opened
+                          if upto is None or a <= upto)
+
+
 def s_s2d():
     sim, death = _vanilla_fast()
-    hourly = [[t / 24.0, x] for t, x in sim["health"][::60] if t < death] + [[death / 24.0, 0.0]]
-    weight = [[t / 24.0, w] for t, w in sim["weight_kg"][::1440] if t < death]
+    hourly = [[t / 24.0, x] for t, x in _every(sim["health"], 60) if t < death] + [[death / 24.0, 0.0]]
+    weight = [[t / 24.0, w] for t, w in _every(sim["weight_kg"], DAY_MIN) if t < death]
     weight.append([death / 24.0, next(w for t, w in sim["weight_kg"] if t >= death)])
     samples = read("scen", "scenario-nutrition_3day_fast.json", "test.samples[*].weight")
     ages = read("scen", "scenario-nutrition_3day_fast.json", "test.samples[*].worldAge")
@@ -2288,12 +2440,27 @@ def s_s2d():
     v = viable("S2d-m-mass", "j_s2d", death=True)
     kd = result("j_s2d_dry")
     vd = viable("S2d-m-dry", "j_s2d_dry", death=True, thirst=True)
-    K = KHost().K
+    kg, vg = result("j_s2d_gaunt"), viable("S2d's Gaunt body", "j_s2d_gaunt", death=True)
+    vo = viable("S2d's Obese body", "j_s2d_obese", death=True)
+    pace = {p: (result(j), viable("S2d-m-pace-" + n, j, death=True))
+            for p, n, j in ((1, "vanilla", "j_s2d_pace_vanilla"), (2, "short", "j_s2d_pace_short"),
+                            (3, "real", "j_s2d_pace_real"))}
+    comb = {c: (result(j), viable(n, j, death=True))
+            for c, n, j in ((1, "S2d-m-comb-worst", "j_s2d_comb_worst"), (3, "S2d-m-comb-add", "j_s2d_comb_add"))}
+    comb[2] = (k, v)
+    h = KHost()
+    K = h.K
+    r_h = float(K.drain.rVanilla(K.drain.STARVATION, K.drain.DAY_MINUTES))
+    short_h = float(K.drain.SHORT_STARVE_H)
+    beri_h = float(K.drain.BERIBERI_DEATH_H)
+    bmi_death = float(K.drain.BMI_DEATH)
     mass = until_death([[a / 24.0, fm + lm + lx] for _, a, fm, lm, lx, bmi in k["days"]], v)
     mass.append([v["death_age"] / 24.0, mass[-1][1]])
-    hp = until_death(k["health"], v) + [[v["death_age"] / 24.0, 0.0]]
+
+    def line(job, vv):
+        return until_death(job["health"], vv) + [[vv["death_age"] / 24.0, 0.0]]
+    hp = line(k, v)
     hd = until_death(kd["health"], vd) + [[vd["death_age"] / 24.0, 0.0]]
-    first = HALF_HEALTH
     water = {"water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False, "start": FRESH}
     fm_min = float(K.strength.DEFAULTS.fmMin)
     fat_floor = next((a / 24.0 for _, a, fm, lm, lx, bmi in k["days"] if fm <= fm_min + 1e-9), None)
@@ -2302,16 +2469,39 @@ def s_s2d():
                 else ("fat falls to %.2f kg by the last day close before the death, above its %g kg floor"
                       % (fm_end, fm_min)))
     lowest = ", then ".join("%s from day %.2f" % (state_name(c, K), a / 24.0) for a, c in k["states"])
-    fatal = ("The fatal state is %s: health is gone at day %.2f, where the line ends, before the BMI reaches %g "
-             "(#3978: the Obese body dies of the same state on the same day and the Gaunt body of starvation on day "
-             "41.14, a death the science gives first, not tuned to the hunger strikers' 46-73 days, S2231)"
-             % (v["death_name"], v["death_age"] / 24.0, float(K.drain.BMI_DEATH)))
-    return [
+    onset_h = v["drain"][0]
+    beri_open = next(a for a, c in k["opened"] if c == int(K.drain.BERIBERI))
+    bodies = ("#3978: the Obese body dies of %s on day %.2f and the Gaunt body of starvation on day %.2f, a death the "
+              "science gives first, not tuned to the hunger strikers' 46-73 days, S2231"
+              % (vo["death_name"], vo["death_age"] / 24.0, vg["death_age"] / 24.0))
+    fatal = ("The fatal state is %s: health is gone at day %.2f, where the line ends, before the BMI reaches %g (%s)"
+             % (v["death_name"], v["death_age"] / 24.0, bmi_death, bodies))
+    # the live lines (Plan 17 Task 4), each drawn where the HEAD replay of its run's own inputs holds (VALIDATION)
+    a481, a482 = adm("x481:health"), adm("x482:health")
+    write481 = next(e["s"] for e in _json(os.path.join(REPO, "testing", "artifacts", RUN["x481"]), "events.json")
+                    if e.get("label") == "B_p")
+    live481 = live_health_placed("x481", onset_h, write481)
+    rows482 = ring_health("x482")
+    dead482 = next(r[0] for r in rows482 if r[4])
+    pv, vpv = pace[1]
+    full482 = live_health_placed("x482", vpv["drain"][0], dead482)
+    live482 = [p for i, p in enumerate(full482) if i % LIVE_PACE_EVERY == 0 or i == len(full482) - 1]
+    slope481 = read("x481", "curve.json", "verdicts.OPEN_SLOPE.observed.live")
+    bmi481 = read("x481", "curve.json", "verdicts.OPEN_SLOPE.observed.bmi0")
+    slope482 = read("x482", "vanilla.json", "verdicts.SLOPE.observed.slope_h")
+    after482 = read("x482", "vanilla.json", "checks.x442.after_onset_h")
+    held = ("thiamine, vitamin C and niacin held at a full store each day (HELD_VITAMINS: the vitamins whose "
+            "deficiencies kill), so starvation is the only state")
+    pace_inputs = dict(water, held=list(HELD_VITAMINS), path="the stand-in's overall health",
+                       read="100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)")
+    comb_inputs = dict(water, path="the stand-in's overall health",
+                       read="100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)")
+    out = [
         series("S2d-v-model-health", "Vanilla health", DAYS, "health", "vanilla-model", hourly,
                vmodel("VM1", "VM5", "VM10"),
                "HUNGER from 0, no food, water every 4 h; level 4 at 34.84 h, then -3.564 health a game hour at "
-               "DayLength 4 with no regeneration: death at %.2f game days (%.1f h); the line ends there." % (
-                   death / 24.0, death)),
+               "DayLength 4 with no regeneration: death at %.2f game days (%.3f h, the model stepped every %g game "
+               "minutes); the line ends there." % (death / 24.0, death, VANILLA_FAST_DT_MIN)),
         series("S2d-v-model-weight", "Vanilla weight", DAYS, "kg", "vanilla-model", weight,
                vmodel("VM6", "VM7", "VM8"),
                "A fresh 80 kg character (calorie store 800), no food: the store falls toward its -2200 floor and the "
@@ -2337,36 +2527,113 @@ def s_s2d():
                "Its fatal state is %s: health is gone at day %.2f, where the line ends (S2d-m-drain). Its HUNGER "
                "reached %.2f: the cap lifts when the starvation state opens (#3906)."
                % (fat_text, v["death_name"], v["death_age"] / 24.0, k["hunger_max"])),
-        series("S2d-m-drain", "Nutrition Revamp health, with water", DAYS, "health", "kernel", hp,
-               kernel(dict(water, replay="90 days, no food, the replay's water", path="the stand-in's overall health",
-                           read="100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)"), "x454"),
-               "The same fast's health. The starvation state opens after %g unfed hours (K.drain.STARVE_ONSET_H), at "
-               "%.2f h, when Starving shows; health then follows each active state's remaining fraction, multiplied "
-               "(Plan 17: Realistic pace, Multiply): starvation's falls on the curve over the BMI progress from %.2f "
-               "at the onset to %g, starvation's death point (S2234), opening at vanilla's own drain of %.4g a game "
-               "hour, and health reaches %g on day %.2f. The smallest fraction belongs to %s (the day each state's "
-               "fraction first sinks under the others'; beriberi opens when thiamine turns Clinical; #3901). %s. "
-               "The live x454 read the floor model before Plan 17: its unfed clock set near the onset, it drained "
-               "%.4g a game day to that model's first floor and held it (#3938)."
-               % (float(K.drain.STARVE_ONSET_H), v["drain"][0], k["bmi0"], float(K.drain.BMI_DEATH),
-                  float(K.drain.rVanilla(K.drain.STARVATION, K.drain.DAY_MINUTES)), first, k["floor_age"] / 24.0,
-                  lowest, fatal, read("x454", "starve.json", "verdicts.DRAIN_RATE.observed.rate_per_day"))),
+        series("S2d-m-drain", "Nutrition Revamp health", DAYS, "health", "kernel", hp,
+               kernel(dict(comb_inputs, replay="90 days, no food, the replay's water",
+                           options="NR.DeathPace 3 (Realistic) and NR.HealthCombine 2 (Multiply), the defaults"),
+                      "x481"),
+               "The fast at the mod's defaults (Realistic pace, Multiply), with water and no food. The starvation state "
+               "opens after %g unfed hours (K.drain.STARVE_ONSET_H), at %.2f h, when Starving shows. Its remaining "
+               "fraction falls on a curve over the body's BMI, from %.2f at the onset to %g, starvation's death point "
+               "(S2234): it opens at vanilla's own drain of %.4g health a game hour at the 90-minute day and flattens "
+               "as the body wastes, so health reaches %g on day %.2f; vanilla's starving character is dead by day "
+               "%.2f (S2d-v-model-health). A heavier body loses BMI more slowly, so its health opens more gently. "
+               "The deficiencies follow as each vitamin turns Clinical (%s), each fraction falling on a line to 0 at "
+               "its own death time (beriberi's %g game hours, from day %.2f); with Multiply the fractions multiply. "
+               "The smallest fraction belongs to %s (#3901). %s. Live, x481 opened on this curve (S2d-m-live-health)."
+               % (float(K.drain.STARVE_ONSET_H), onset_h, k["bmi0"], bmi_death, r_h, HALF_HEALTH,
+                  k["half_age"] / 24.0, death / 24.0, opened_text(k["opened"][1:], K, v["death_age"]), beri_h,
+                  beri_open / 24.0, lowest, fatal)),
+        series("S2d-m-live-health", "Nutrition Revamp health, measured", DAYS, "health", "live", live481,
+               artifact("x481", ring_file("x481"), ring_path("health")),
+               "x481 (build 42.21, the staged mod, DayLength 4, Realistic pace and Multiply): a fresh record's 65.0 kg "
+               "creation body, its unfed clock set just short of the onset. Health is read on every minute row from "
+               "the starvation onset to the thiamine write an hour later, each value placed at the drain that left it, "
+               "with the onset at this fast's own %.2f h. It fell %.4g a game hour over its first three rows from an "
+               "onset BMI of %.2f (verdicts.OPEN_SLOPE.observed). The HEAD replay of the run's own inputs holds its "
+               "health within %.2g over %d rows (VALIDATION x481:health). After the write the run forced beriberi and "
+               "switched the pace, which this fast does not, so those rows are not drawn."
+               % (onset_h, slope481, bmi481, a481["max_miss"]["health"], a481["n"]["health"])),
         series("S2d-m-dry", "Nutrition Revamp health, without water", DAYS, "health", "kernel", hd,
                kernel({"replay": "8 days, no food and no water, a fresh record from 07:00", "sleep_allowed": False,
                        "start": FRESH,
                        "path": "the stand-in's overall health",
                        "read": "100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)"}, "x456"),
-               "No food and no water from a fresh record at 07:00 (HUNGER 0). The dehydration state opens at a %g %% "
-               "body-water deficit (K.drain.DEHYD_ONSET), at %.2f h, when Parched shows, and the starvation state at "
-               "%.2f h; health reaches %g at %.2f h. The dehydration fraction falls on the curve with the deficit to "
-               "%g at 15 %% and on a line to 0 at the death point of 17 %% (a game choice inside 15-19 %%, "
-               "K.drain.DEHYD_DEATH). The fatal state is %s: health is gone at day %.2f (%.1f h), where the line ends. "
-               "The live x456 read the floor model before Plan 17: its deficit set near the onset, it drained %.4g a "
-               "game day to that model's floor and held it (#3940, #3941)."
-               % (float(K.drain.DEHYD_ONSET), kd["dehyd_age"], kd["starve_age"], first, kd["floor_age"],
-                  float(K.drain.DEHYD_FINAL), vd["death_name"], vd["death_age"] / 24.0, vd["death_age"],
-                  read("x456", "water.json", "verdicts.DEHYD_DRAIN.observed.rate_per_day"))),
+               "No food and no water from a fresh record at 07:00 (HUNGER 0), at the mod's defaults. The dehydration "
+               "state opens at a %g %% body-water deficit (K.drain.DEHYD_ONSET), at %.2f h, when Parched shows, and "
+               "the starvation state at %.2f h; health reaches %g at %.2f h. The dehydration fraction falls on the "
+               "curve with the deficit to %g at 15 %% and on a line to 0 at the death point of 17 %% (a game choice "
+               "inside 15-19 %%, K.drain.DEHYD_DEATH), the one final stage the mod keeps, under the health at which "
+               "vanilla wakes a sleeper. The fatal state is %s: health is gone at day %.2f (%.1f h), where the line "
+               "ends. The live x456 read the drain before Plan 17, so it proves the onset only (#3940, #3941)."
+               % (float(K.drain.DEHYD_ONSET), kd["dehyd_age"], kd["starve_age"], HALF_HEALTH, kd["half_age"],
+                  float(K.drain.DEHYD_FINAL), vd["death_name"], vd["death_age"] / 24.0, vd["death_age"])),
+        series("S2d-m-pace-vanilla", "Vanilla pace", DAYS, "health", "kernel", line(pv, vpv),
+               kernel(dict(pace_inputs, replay="%d days, no food, the replay's water" % PACE_DAYS[1],
+                           options="NR.DeathPace 1 (Vanilla), NR.HealthCombine 2"), "x482"),
+               "The fast with water, %s. At Vanilla pace starvation opens at the mod's own onset, %.2f h (vanilla's "
+               "level 4 comes at 34.84 h), and its fraction falls on a straight line at vanilla's own %.4g health a "
+               "game hour (#0516, #0518, #2922) to 0 %.2f game hours later. The fatal state is %s: health is gone at "
+               "day %.2f (%.2f h), where the line ends; vanilla's model dies at %.2f h (S2d-v-model-health)."
+               % (held, vpv["drain"][0], r_h, vpv["death_age"] - vpv["drain"][0], vpv["death_name"],
+                  vpv["death_age"] / 24.0, vpv["death_age"], death)),
+        series("S2d-m-pace-short", "Shortened pace", DAYS, "health", "kernel", line(*pace[2]),
+               kernel(dict(pace_inputs, replay="%d days, no food, the replay's water" % PACE_DAYS[2],
+                           options="NR.DeathPace 2 (Shortened), NR.HealthCombine 2"), "x481"),
+               "The same fast, %s. At Shortened pace starvation's fraction falls on the curve over the hours since the "
+               "onset (%.2f h), to 0 after %g game hours (14 days, a game choice, K.drain.SHORT_STARVE_H), opening at "
+               "vanilla's own %.4g a game hour and flattening. The fatal state is %s: health is gone at day %.2f, "
+               "where the line ends."
+               % (held, pace[2][1]["drain"][0], short_h, r_h, pace[2][1]["death_name"],
+                  pace[2][1]["death_age"] / 24.0)),
+        series("S2d-m-pace-real", "Realistic pace (the default)", DAYS, "health", "kernel", line(*pace[3]),
+               kernel(dict(pace_inputs, replay="%d days, no food, the replay's water" % PACE_DAYS[3],
+                           options="NR.DeathPace 3 (Realistic), NR.HealthCombine 2"), "x481"),
+               "The same fast, %s. At Realistic pace, the default, starvation's fraction falls on the curve over the "
+               "body's BMI to %g (S2234), opening at vanilla's own drain and flattening as the body wastes, so health "
+               "reaches %g on day %.2f. The fatal state is %s: health is gone at day %.2f, when the BMI reaches %g, "
+               "where the line ends. Without the vitamins held the same fast dies of beriberi first "
+               "(S2d-m-comb-mult)."
+               % (held, bmi_death, HALF_HEALTH, pace[3][0]["half_age"] / 24.0, pace[3][1]["death_name"],
+                  pace[3][1]["death_age"] / 24.0, bmi_death)),
+        series("S2d-m-live-pace", "Vanilla pace, measured", DAYS, "health", "live", live482,
+               artifact("x482", ring_file("x482"), ring_path("health")),
+               "x482 (build 42.21, the staged mod, DayLength 4, Vanilla pace and Add): a fresh record's creation body, "
+               "its unfed clock set just short of the onset, no food and no water. Health is read on every minute row; "
+               "every %dth row and the death row are drawn, each value placed at the drain that left it, with the "
+               "onset at the Vanilla-pace line's own %.2f h. Health fell on a line at %.4g a game hour "
+               "(verdicts.SLOPE.observed) and read 0, the character dead, %.2f game hours after the onset drain "
+               "(checks.x442.after_onset_h). The HEAD replay of the run's own inputs holds its health within %.2g over "
+               "%d rows (VALIDATION x482:health)."
+               % (LIVE_PACE_EVERY, vpv["drain"][0], -slope482, after482, a482["max_miss"]["health"],
+                  a482["n"]["health"])),
     ]
+    cw, vw = comb[1]
+    ca, va = comb[3]
+    out += [
+        series("S2d-m-comb-worst", "Worst only", DAYS, "health", "kernel", line(cw, vw),
+               kernel(dict(comb_inputs, replay="%d days, no food, the replay's water" % COMB_DAYS[1],
+                           options="NR.DeathPace 3, NR.HealthCombine 1 (Worst only)"), "x481"),
+               "The fast with water and no vitamins: %s. With Worst only, health follows the smallest fraction alone. "
+               "The fatal state is %s: health is gone at day %.2f, where the line ends, at that one cause's death "
+               "point." % (opened_text(cw["opened"], K, vw["death_age"]), vw["death_name"], vw["death_age"] / 24.0)),
+        series("S2d-m-comb-mult", "Multiply (the default)", DAYS, "health", "kernel", hp,
+               kernel(dict(comb_inputs, replay="90 days, no food, the replay's water",
+                           options="NR.DeathPace 3, NR.HealthCombine 2 (Multiply), the defaults"), "x481"),
+               "The same fast, the default (S2d-m-drain): %s. With Multiply the fractions multiply, so the causes "
+               "compound and health sits under Worst only's once beriberi opens, yet reaches 0 only at one cause's "
+               "death point. The fatal state is %s: health is gone at day %.2f, where the line ends."
+               % (opened_text(k["opened"], K, v["death_age"]), v["death_name"], v["death_age"] / 24.0)),
+        series("S2d-m-comb-add", "Add", DAYS, "health", "kernel", line(ca, va),
+               kernel(dict(comb_inputs, replay="%d days, no food, the replay's water" % COMB_DAYS[3],
+                           options="NR.DeathPace 3, NR.HealthCombine 3 (Add)"), "x482"),
+               "The same fast: %s. With Add each cause's loss adds, as vanilla's own hunger and thirst drains stack "
+               "(#0516), so the combined losses take health to 0 on day %.2f, before any one cause's death point "
+               "(starvation's BMI %g, beriberi's %g hours). The fatal state is %s, the smallest fraction at the "
+               "death, and the line ends there."
+               % (opened_text(ca["opened"], K, va["death_age"]), va["death_age"] / 24.0, bmi_death, beri_h,
+                  va["death_name"])),
+    ]
+    return out
 
 
 # ---- S3 --------------------------------------------------------------------------------------------------------------
@@ -2377,14 +2644,14 @@ BY_CONSTRUCTION = ("The mod's vitamin C rate k is fitted to this 40 days (NR_Dat
                    "so the kernel agrees with it by construction.")
 
 
-def death_note(v, floor_age=None):
+def death_note(v, half_at=None):
     """The drain and the death of a diet's replay (Plan 17: a drain is damage toward the target the active states'
     remaining fractions set; health is gone only at a state's death point)."""
     if v["drain"] is None:
         return "The replay stays alive and hydrated over the window and opens no drain (rule R-1)."
     opened = "Its drain opens with %s on day %.2f" % (v["drain_name"], v["drain"][0] / 24.0)
-    if floor_age is not None:
-        opened += ", health reaching %g on day %.2f" % (HALF_HEALTH, floor_age / 24.0)
+    if half_at is not None:
+        opened += ", health reaching %g on day %.2f" % (HALF_HEALTH, half_at / 24.0)
     if v["death"] is None:
         return opened + "; health holds at or above its target and the replay stays alive over the window (rule R-1)."
     return ("%s. This diet kills: its fatal state is %s, and health is gone at day %.2f, where the lines end (rule "
@@ -2403,11 +2670,11 @@ def s_s3a():
                to_death([[a / 24.0, p] for _, a, p in k["vitC_p"]], v, k["at_death"]["vitC_p"]),
                kernel(dict(inp, path="nutrients.vitC.p"), "x151r"),
                "Proof x151r (the Plan 4 build, OnsetSpeed 30: G11); vitamin C is never scaled by OnsetSpeed. The "
-               "first other records to reach grade 2 on this diet: %s. %s" % (others, death_note(v, k["floor_age"]))),
+               "first other records to reach grade 2 on this diet: %s. %s" % (others, death_note(v, k["half_age"]))),
         series("S3a-m-grade", "Vitamin C grade", DAYS, "grade (1 replete - 4 clinical)", "kernel",
                to_death(sorted([[a / 24.0, g] for _, a, g in k["vitC_g"]]
                                + [[a / 24.0, g] for a, g in k["vitC_g_steps"]]), v, k["at_death"]["vitC_g"]),
-               kernel(dict(inp, path="nutrients.vitC.g"), "x151r"), death_note(v, k["floor_age"])),
+               kernel(dict(inp, path="nutrients.vitC.g"), "x151r"), death_note(v, k["half_age"])),
         series("S3a-study-0224", "Padayatty 2016: one self-experimenter", DAYS, "vitamin C store (0-1)", "study",
                [[161.0, VITC_CLINICAL]], study("S0224"),
                "161 days to scurvy signs, drawn at the clinical store 0.15."),
@@ -2483,7 +2750,7 @@ def s_s3c():
                "death. "
                "The thiamine grade stays at %d at worst. %s"
                % (kc, v["drain"][0] / 24.0, k["drain_last"] / 24.0, v["thiamine_g_max"],
-                  death_note(v, k["floor_age"]))),
+                  death_note(v, k["half_age"]))),
         series("S3c-study", "Ververs 2019", DAYS, "vitamin C store (0-1)", "study",
                [[45.0, VITC_CLINICAL], [52.0, VITC_CLINICAL]], study("S0229"),
                "Symptoms improved within one week of treatment: drawn as the week from the first orange (day 45 to "

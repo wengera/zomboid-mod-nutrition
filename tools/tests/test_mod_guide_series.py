@@ -131,12 +131,12 @@ def kh():
 def test_the_built_series_and_the_pending_and_dropped_ids_cover_the_map():
     built = set(SER)
     mapped = {i for c in S.MAP_CHARTS.values() for i in c["series"]}
-    assert len(mapped) == 159                                           # Plan 16 Task 11: SE1-m-kernel-liquid
+    assert len(mapped) == 167                                           # Plan 17 Task 5: S2d's eight new series
     assert built | set(S.PENDING_LIVE) | set(S.DROPPED) == mapped
     assert not (built & set(S.PENDING_LIVE)) and not (built & set(S.DROPPED))
     assert not (set(S.PENDING_LIVE) & set(S.DROPPED))
     # Plan 16 Task 11: x461b draws SE1's live liquid (its fill DROPPED on the window), x467 SH3's live returns
-    assert len(built) == 148 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 11
+    assert len(built) == 156 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 11      # Plan 17 Task 5: S2d's eight
     assert DATA["charts"] == S.CHARTS
     assert D.coverage_gaps(built, DATA["charts"], S.PENDING_LIVE) == ([], [])
 
@@ -255,10 +255,107 @@ def test_plan16_s2d_names_wet_beriberi_and_the_lean_share():
     v = VIAB["j_s2d"]
     assert v["death_name"] == "beriberi" and round(v["death_age"] / 24.0, 2) == 77.23
     drain, mass = SER["S2d-m-drain"]["note"], SER["S2d-m-mass"]["note"]
-    # review I2: the drain state is the lowest floor's code, not the state's opening (beriberi opens at Clinical)
+    # review I2: the drain state is the smallest fraction's code, not the state's opening (beriberi opens at Clinical)
     assert "belongs to starvation from day 1.44, then beriberi from day" in drain and "open in order" not in drain
-    assert "#3978" in drain and "41.14" in drain
+    # Plan 17 Task 5: the Gaunt and Obese deaths are read off their own replays (Task 2 moved Gaunt's 41.14 to 40.90)
+    gaunt, obese = VIAB["j_s2d_gaunt"], VIAB["j_s2d_obese"]
+    assert gaunt["death_name"] == "starvation" and obese["death_name"] == "beriberi"
+    assert round(obese["death_age"], 6) == round(v["death_age"], 6)
+    assert "#3978" in drain and "starvation on day %.2f" % (gaunt["death_age"] / 24.0) in drain
+    assert "41.14" not in drain
     assert "#3977" in mass and "#3978" in mass and "above its 0.5 kg floor" in mass
+
+
+# ---- Plan 17 Task 5: S2d's Health, Pace and Combining tabs ------------------------------------------------------------
+
+PACE = ("S2d-m-pace-vanilla", "S2d-m-pace-short", "S2d-m-pace-real")
+COMB = ("S2d-m-comb-worst", "S2d-m-comb-mult", "S2d-m-comb-add")
+# the vanilla oracle's tolerance (testing/tests/kernel/test_drain_options.py, spec section 4.3): vanilla's level 4 at
+# 34.84 h against the mod's Starving at 34.45 h, plus one minute
+ORACLE_TOL_H = (34.84 - 34.45) + 1 / 60.0
+
+
+@pytest.mark.parametrize("sid", PACE + COMB)
+def test_plan17_each_pace_and_combining_line_ends_at_its_death(sid):
+    v = VIAB[S.SERIES_JOB[sid]]
+    assert v["death"] is not None, sid
+    pts = SER[sid]["points"]
+    assert pts[-1] == [pytest.approx(v["death_age"] / 24.0), 0.0], sid
+    assert all(y > 0 for _, y in pts[:-1]), sid
+    assert "fatal state is %s" % v["death_name"] in SER[sid]["note"], sid
+
+
+def test_plan17_the_pace_lines_are_starvation_alone_and_ordered():
+    deaths = []
+    for sid in PACE:
+        v = VIAB[S.SERIES_JOB[sid]]
+        assert v["death_name"] == "starvation" and v["drain"][1] == 1, sid
+        deaths.append(v["death_age"])
+    assert deaths[0] < deaths[1] < deaths[2]
+    # Shortened: 336 game hours (14 days) from the onset, the curve on hours (spec section 2.2)
+    onset = VIAB[S.SERIES_JOB["S2d-m-pace-short"]]["drain"][0]
+    assert deaths[1] - onset == pytest.approx(336.0, abs=1 / 60.0)
+    assert "held" in SER["S2d-m-pace-real"]["note"]
+
+
+def test_plan17_the_pace_arm_holds_the_three_vitamins(kh):
+    """The Pace arm holds every vitamin whose deficiency kills (K.drain.NUTRIENT) at a full store, so starvation is the
+    only state it opens."""
+    want = {str(kh.K.drain.NUTRIENT[c]) for c in (2, 3, 4)}
+    assert set(S.HELD_VITAMINS) == want
+    ev = S.held_vitamins(3)
+    assert {e["path"] for e in ev} == {"nutrients.%s.p" % k for k in want}
+    assert min(e["minute"] for e in ev) == 1440 and all(e["value"] == 1.0 for e in ev)
+
+
+def test_plan17_worst_multiply_add_pointwise():
+    by = {sid: {round(x, 9): y for x, y in SER[sid]["points"]} for sid in COMB}
+    w, m, a = (by[s] for s in COMB)
+    common = set(w) & set(m) & set(a)
+    assert len(common) > 100
+    for x in common:
+        assert w[x] >= m[x] - 1e-9 and m[x] >= a[x] - 1e-9, x
+    for x in set(w) & set(m):
+        assert w[x] >= m[x] - 1e-9, x
+    # Add kills first, before any one cause's death point; Worst and Multiply die at one cause's (beriberi's)
+    dw, dm, da = (VIAB[S.SERIES_JOB[s]]["death_age"] for s in COMB)
+    assert da < dm == pytest.approx(dw)
+    # with beriberi open beside starvation, Multiply sits below Worst somewhere (the causes compound)
+    assert any(w[x] - m[x] > 1.0 for x in set(w) & set(m))
+
+
+def test_plan17_the_multiply_line_is_the_default_fast():
+    assert SER["S2d-m-comb-mult"]["points"] == SER["S2d-m-drain"]["points"]
+    assert S.SERIES_JOB["S2d-m-comb-mult"] == S.SERIES_JOB["S2d-m-drain"] == "j_s2d"
+
+
+def test_plan17_the_vanilla_pace_line_dies_with_vanilla_s_model():
+    mod = SER["S2d-m-pace-vanilla"]["points"][-1][0] * 24.0
+    van = SER["S2d-v-model-health"]["points"][-1][0] * 24.0
+    assert abs(mod - van) <= ORACLE_TOL_H, (mod, van)
+    # the model runs at a fine step, so its level 4 is not a minute late (Task 3 C1: 62.917 h at 1 min, 62.896 at 0.01)
+    assert van == pytest.approx(62.896, abs=0.002)
+
+
+def test_plan17_the_live_health_lines_are_admitted():
+    adm = {v["key"]: v for v in ADM}
+    for key, sid in (("x481:health", "S2d-m-live-health"), ("x482:health", "S2d-m-live-pace")):
+        rec = adm[key]
+        assert rec["admitted"] and rec["draws"] == [sid] and rec["max_miss"]["health"] < 0.002, key
+        assert SER[sid]["badge"] == "live"
+    assert "S2d-m-drain" in adm["x481:health"]["proves"] and "S2d-m-pace-vanilla" in adm["x482:health"]["proves"]
+    assert SER["S2d-m-drain"]["provenance"]["proof_run"] == S.RUN["x481"]
+    assert SER["S2d-m-pace-vanilla"]["provenance"]["proof_run"] == S.RUN["x482"]
+
+
+def test_plan17_no_s2d_note_reads_a_removed_constant():
+    for sid, s in SER.items():
+        if sid.startswith("S2d") or sid.startswith("SD1"):
+            for word in ("FIRST_FLOOR", "STARVE_RATE", "DEF_HOLD_H", "DEF_FINAL_H", "DEF_RATE", "ACUTE_FINAL_H",
+                         "BMI_KNEE", "timeKnots", "starveFloor", "first floor", "lowest floor"):
+                assert word not in s.get("note", ""), (sid, word)
+    for reason in S.DROPPED.values():
+        assert "drains to a floor" not in reason
 
 
 def test_plan16_the_x461b_window_is_recorded_and_opens_after_the_auto_drink():
@@ -345,11 +442,11 @@ def test_r1_the_guard_refuses_a_death_an_unnamed_drain_or_a_dry_replay():
     assert S.until_death([[1.0, 5], [7.0, 6], [8.0, 7]], dead) == [[1.0, 5], [7.0, 6]]
 
 
-def health_arm(events, minutes, paths=()):
-    """A fresh-record server replay (the display defaults) whose rows carry the stand-in's overall health, written here
-    as test_kernel_drain's fast-death test reads it: 100 less ReduceGeneralHealth plus AddGeneralHealth at the game's
-    5.05 / 17 spread (#3898)."""
-    be = RL.ServerReplay(hour_offset=7.0, rng="half", sleep_allowed=False)
+def health_arm(events, minutes, paths=(), **opts):
+    """A fresh-record server replay (the display defaults, or the drain options `opts` names: death_pace,
+    health_combine) whose rows carry the stand-in's overall health, written here as test_kernel_drain's fast-death test
+    reads it: 100 less ReduceGeneralHealth plus AddGeneralHealth at the game's 5.05 / 17 spread (#3898)."""
+    be = RL.ServerReplay(hour_offset=7.0, rng="half", sleep_allowed=False, **opts)
     be.rt.execute("for _, bd in ipairs(NR_T.bodies) do bd.AddGeneralHealth = function(s, v) "
                   "s.st.added = s.st.added + v * 5.05 / 17 end end")
     ev = sorted((e for e in events if e["minute"] < minutes), key=lambda e: e["minute"])
@@ -415,10 +512,12 @@ def test_r2_a_flipped_admission_fails_the_build(monkeypatch):
 
 def test_r4_the_vanilla_fast_lines_end_at_the_model_s_death():
     ev = [{"t_h": float(h), "kind": "drink", "fluid": "water", "litres": 0.25} for h in range(4, 72, 4)]
-    sim = VM.simulate({"hours": 72.0, "dt_min": 1.0, "start": {"hunger": 0.0}, "events": ev})
+    # Plan 17 Task 5: the model runs at 0.01-minute steps (Task 3 concern C1), so it dies within a step of the
+    # continuous level-4 crossing plus 100 health at the level-4 rate
+    sim = VM.simulate({"hours": 72.0, "dt_min": 0.01, "start": {"hunger": 0.0}, "events": ev})
     death = next(t for t, x in sim["health"] if x <= 0)
     t4 = -math.log(0.30) / VM.HUNGER_INCREASE / 3600.0
-    assert death == pytest.approx(t4 + 100.0 / VM.health_loss_per_hour(4, 0), abs=2 / 60.0)   # 1-minute steps
+    assert death == pytest.approx(t4 + 100.0 / VM.health_loss_per_hour(4, 0), abs=2 / 6000.0)   # 0.01-minute steps
     for sid in ("S2d-v-model-health", "S2d-v-model-weight"):
         assert max(xs_of(sid)) == pytest.approx(death / 24.0)
     assert SER["S2d-v-model-health"]["points"][-1][1] == 0.0
@@ -559,7 +658,8 @@ LATE = {
     "S5c-m-gaunt": 2.0, "S5c-m-none": 2.0, "S6a-m-day1": 9.0, "S6a-m-day14": 9.0, "S6b-m-bac": 2.0,
     "S6b-m-intox": 2.0, "S6b-m-hangover": 2.0, "S6c-m-kernel": 2.0, "SX2-m-kernel": 0.0, "S4c-m-kernel": 730.0,
     "S2d-v-model-weight": 0.0, "S4c-v-model": 730.0, "S2a-v-model": 36.0, "S1a-v-model": 13.0,
-    "S2d-m-drain": 1.0, "S2d-m-dry": 1.0, "S6a-m-offset": 9.0, "S6a-m-offset-real": 9.0, "S6b-m-intox-real": 2.0,
+    "S2d-m-drain": 1.0, "S2d-m-dry": 1.0, "S2d-m-pace-vanilla": 1.0, "S2d-m-pace-short": 1.0, "S2d-m-pace-real": 1.0,
+    "S2d-m-comb-worst": 1.0, "S2d-m-comb-mult": 1.0, "S2d-m-comb-add": 1.0, "S6a-m-offset": 9.0, "S6a-m-offset-real": 9.0, "S6b-m-intox-real": 2.0,
 }
 
 
@@ -1270,6 +1370,101 @@ def _(kh, sid):
     return [3.0, v["death_age"] / 24.0]
 
 
+# the vitamins whose deficiencies kill (scurvy, beriberi, pellagra), held at a full store each day from day 1, written here
+HELD = ("thiamine", "vitC", "niacin")
+
+
+def held(days):
+    return [{"minute": d * 1440, "kind": "setpath", "path": "nutrients.%s.p" % k, "value": 1.0}
+            for d in range(1, days) for k in HELD]
+
+
+@check("S2d-m-pace-vanilla")
+def _(kh, sid):
+    # Vanilla pace: a straight line from the onset at vanilla's own drain, 3.3e-4 x 120 x 90 = 3.564 a game hour at the
+    # 90-minute day (#0516, #0518, #2922), to 0 after 100 / 3.564 = 28.06 game hours
+    rows, _, health = health_arm([FRESH] + water(2) + held(2), 2 * 1440, ("drain.starving",), death_pace=1)
+    assert pt(sid, 2.0) == pytest.approx(health, abs=1e-9)
+    onset = next(r["age"] for r in rows if r.get("drain.starving"))
+    assert health == pytest.approx(100 - 3.564 * (48.0 - onset), abs=3.564 / 60 + 1e-9)
+    v = VIAB[S.SERIES_JOB[sid]]
+    assert v["death_age"] - onset == pytest.approx(100 / 3.564, abs=2 / 60.0)
+    return [2.0, v["death_age"] / 24.0]
+
+
+@check("S2d-m-pace-short", "S2d-m-pace-real", "S2d-m-comb-worst", "S2d-m-comb-mult", "S2d-m-comb-add")
+def _(kh, sid):
+    # day 3 of each arm, replayed here under its own options: the Pace arm with the three vitamins held, the Combining
+    # arm without (the S2d fast)
+    pace = {"S2d-m-pace-short": 2}.get(sid, 3)
+    combine = {"S2d-m-comb-worst": 1, "S2d-m-comb-add": 3}.get(sid, 2)
+    ev = [FRESH] + water(3) + (held(3) if "-pace-" in sid else [])
+    _, _, health = health_arm(ev, 3 * 1440, death_pace=pace, health_combine=combine)
+    assert pt(sid, 3.0) == pytest.approx(health, abs=1e-9)
+    assert 0 < health < 100
+    v = VIAB[S.SERIES_JOB[sid]]
+    return [3.0, v["death_age"] / 24.0]
+
+
+def ring_rows_of(run_key):
+    """A run's ring rows read here off its artifact pages, de-duplicated by s, in s order."""
+    import glob
+    rows = {}
+    for p in glob.glob(os.path.join(ART, S.RUN[run_key], "minute-ring-admin-*.json")):
+        with open(p, encoding="utf-8") as fh:
+            for r in json.load(fh)["rows_list"]:
+                if isinstance(r.get("age"), (int, float)):
+                    rows[r["s"]] = r
+    return [rows[k] for k in sorted(rows)]
+
+
+def placed(ring, onset_h, last_s):
+    """Ring row k reads the health the drain at row k - 1 left: (that drain's age less the onset drain's, plus the
+    kernel's onset hour) in days, health, from the onset to last_s."""
+    k0 = next(i for i, r in enumerate(ring) if r.get("drain.state"))
+    a0 = ring[k0 - 1]["age"]
+    return [[(ring[i - 1]["age"] - a0 + onset_h) / 24.0, ring[i]["health"]] for i in range(k0, len(ring))
+            if ring[i]["s"] <= last_s]
+
+
+@check("S2d-m-live-health")
+def _(kh, sid):
+    # x481: from the onset to the thiamine write (B_p), placed at the S2d fast's own onset
+    ring = ring_rows_of("x481")
+    write = next(e["s"] for e in art("x481", "events.json") if e["label"] == "B_p")
+    want = placed(ring, VIAB["j_s2d"]["drain"][0], write)
+    got = SER[sid]["points"]
+    assert len(got) == len(want) > 30
+    for (x, y), (wx, wy) in zip(got, want):
+        assert x == pytest.approx(wx, abs=1e-12) and y == wy
+    # it opens on the kernel's own line: each hourly S2d-m-drain point inside the live hour lies within 0.1 health of
+    # the live health interpolated there (the live body's onset BMI a little over the guide body's)
+    inside = [p for p in SER["S2d-m-drain"]["points"] if got[0][0] < p[0] < got[-1][0]]
+    assert inside
+    for x, y in inside:
+        i = next(j for j in range(1, len(got)) if got[j][0] >= x)
+        (x0, y0), (x1, y1) = got[i - 1], got[i]
+        assert y0 + (y1 - y0) * (x - x0) / (x1 - x0) == pytest.approx(y, abs=0.1), x
+    return [x for x, _ in got]
+
+
+@check("S2d-m-live-pace")
+def _(kh, sid):
+    # x482: from the onset to the death row (health 0, dead), every 15th row and the death, placed at the Vanilla-pace
+    # line's own onset
+    ring = ring_rows_of("x482")
+    dead = next(r for r in ring if r.get("dead"))
+    assert dead["health"] <= 0
+    full = placed(ring, VIAB[S.SERIES_JOB["S2d-m-pace-vanilla"]]["drain"][0], dead["s"])
+    want = [p for i, p in enumerate(full) if i % 15 == 0 or i == len(full) - 1]
+    got = SER[sid]["points"]
+    assert len(got) == len(want)
+    for (x, y), (wx, wy) in zip(got, want):
+        assert x == pytest.approx(wx, abs=1e-12) and y == wy
+    assert got[-1][1] == 0 and got[-1][0] == pytest.approx(max(xs_of("S2d-m-pace-vanilla")), abs=2 / 1440.0)
+    return [x for x, _ in got]
+
+
 @check("S3a-m-pool", "S3a-m-grade", "S3c-m-pool")
 def _(kh, sid):
     # tuna carries no vitamin C: the pool decays exactly exp(-k t) from the first sight (ZOH), t days of drains
@@ -1349,7 +1544,7 @@ def stim_arm(events, minutes, paths, mode):
     """A fresh-record server replay under NR.StimulantRealism `mode` (1 Game, 2 Realistic), the sandbox the options
     poll reads each minute, written here as test_stimulant_realism's server replay sets it."""
     be = RL.ServerReplay(hour_offset=7.0, rng="half", sleep_allowed=False)
-    be.rt.execute("SandboxVars = { NR = { StimulantRealism = %d } }" % mode)
+    be.rt.execute("SandboxVars.NR.StimulantRealism = %d" % mode)
     ev = sorted((e for e in events if e["minute"] < minutes), key=lambda e: e["minute"])
     rows = RL.run(be, RL.synthetic_ages(minutes), ev, list(paths), start_age=0.0)
     assert int(be.K.acute.C.MODE) == mode
