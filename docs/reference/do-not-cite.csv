@@ -22395,3 +22395,29 @@ calibrate-drain-20261019,dehyd.d_to,15.0,"A setting or formula value of the tool
 calibrate-drain-20261019,inputs_sha256,cda476d122fb1e53e81aabc31fd60e05edb74983a65934237427dfeb9c862a38,"Provenance, not a reading.",
 calibrate-drain-20261019,tool_commit,869ef685,"Provenance, not a reading.",
 calibrate-drain-20261019,inputs,the input hashes,"Provenance, not readings.",
+x481-20261020-070821,session,the driver's text,Written before the run; not a reading.,
+x481-20261020-070821,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x481-20261020-070821,constants_x48,x48_lib's constants,The driver's settings; not a reading.,
+x481-20261020-070821,prerun_x48,x48_prerun.json's session block,"The HEAD replay on an 80 kg stand-in body, written before the run; not a live reading.",`verdicts.<name>.observed`
+x481-20261020-070821,meta.budget_s,the driver's budget,The driver's own budget; not a reading.,
+x481-20261020-070821,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,`verdicts.<name>.observed`
+x481-20261020-070821,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x481-20261020-070821,steps,the bus steps,"Plumbing: every bus call and its reply, wall stamps included; a reading only through the checks and verdicts that name it.","`checks`, `verdicts`"
+x482-20261020-071425,session,the driver's text,Written before the run; not a reading.,
+x482-20261020-071425,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x482-20261020-071425,constants_x48,x48_lib's constants,The driver's settings; not a reading.,
+x482-20261020-071425,prerun_x48,x48_prerun.json's session block,"The HEAD replay on an 80 kg stand-in body, written before the run; not a live reading.",`verdicts.<name>.observed`
+x482-20261020-071425,meta.budget_s,the driver's budget,The driver's own budget; not a reading.,
+x482-20261020-071425,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,`verdicts.<name>.observed`
+x482-20261020-071425,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x482-20261020-071425,steps,the bus steps,"Plumbing: every bus call and its reply, wall stamps included; a reading only through the checks and verdicts that name it.","`checks`, `verdicts`"
+x481-20261020-070821,verdicts.OPEN_SLOPE.observed.pred,3.5286149962487285,The kernel formula's slope for the ring's bmi0; not a reading.,`verdicts.OPEN_SLOPE.observed.live`
+x481-20261020-070821,verdicts.OPEN_SLOPE.observed.slope0,3.5422538904582876,The kernel formula's slope at the onset; not a reading.,`verdicts.OPEN_SLOPE.observed.live`
+x481-20261020-070821,verdicts.OPEN_SLOPE.observed.body_ratio,0.9938983979961523,The formula's body scaling; not a reading.,`verdicts.OPEN_SLOPE.observed.bmi0`
+x481-20261020-070821,checks.open,the opening computation,"The live slope beside the kernel formula's; only its live leaf is a reading.",`verdicts.OPEN_SLOPE.observed.live`
+x481-20261020-070821,verdicts.FOLLOW.observed.arm_on,94.68595558654495,The HEAD replay's target; not the live game's.,`verdicts.FOLLOW.observed.target`
+x481-20261020-070821,verdicts.FOLLOW.observed.arm_off,95.04377557603152,The HEAD replay's target without the switch; not the live game's.,`verdicts.FOLLOW.observed.target`
+x482-20261020-071425,logs.death_lines,five lines,"A loose pattern: two of the lines are the server's boot (server-stdout.log lines 41 and 1434), one the options line.",`server-stdout.log` lines 2958 and 2992
+x482-20261020-071425,verdicts.DEATH.observed.replay_age,30.840850830078125,The HEAD replay's death; not the live game's.,`verdicts.DEATH.observed.live_age`
+x482-20261020-071425,checks.x442.x442_after_write_h,36.44633197784424,x442's number copied from its artifact; not this run's.,x442-20261015-173502
+x482-20261020-071425,checks.x442.x442_after_level4_h,28.121129989624023,x442's number copied from its artifact; not this run's.,x442-20261015-173502
