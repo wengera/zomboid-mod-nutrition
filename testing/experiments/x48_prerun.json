@@ -1,0 +1,91 @@
+{
+ "_provenance": {
+  "first_sight": {
+   "age": 2.39,
+   "player": {
+    "health": 100.0,
+    "macros": [
+     796.040771484375,
+     -0.865961492061615,
+     -0.2795819044113159,
+     -0.21277907490730286
+    ],
+    "weight": 80.0
+   },
+   "stats": {
+    "FATIGUE": 1.6587773643550463e-05,
+    "HUNGER": 0.0022823589388281107,
+    "THIRST": 0.0019041254417970777
+   }
+  },
+  "mod_commit": "97f76bac",
+  "seed_at_m": 20,
+  "tool": "tools/replay_live.py ServerReplay (game_heal on, rng half, sleep off, 90-minute day)"
+ },
+ "x481": {
+  "beri": {
+   "frac3": 1.0,
+   "lag_gm": 1.5
+  },
+  "cap": {
+   "n": 49.0,
+   "rate_day": 88.393143,
+   "slope_h": -3.683048,
+   "want_h": -3.683048
+  },
+  "combine_rows": 79,
+  "end": {
+   "frac1": 0.928313,
+   "frac3": 0.998452,
+   "health": 93.756747,
+   "target": 92.687628
+  },
+  "follow": {
+   "arm_off": 96.730292,
+   "arm_on": 95.033226,
+   "lag_gm": 0.5,
+   "target": 95.033226
+  },
+  "minutes": {
+   "end": 167,
+   "onset": 27,
+   "seed": 20,
+   "switch": 117,
+   "thiamine": 87
+  },
+  "onset_after_seed_h": 0.133333,
+  "open": {
+   "bmi0": 27.66868,
+   "body_ratio": 0.665245,
+   "live": 2.362211,
+   "pred": 2.362211,
+   "rate_day": 85.536,
+   "rows": 4.0,
+   "slope0": 2.370932
+  },
+  "open_rate": {
+   "rate_first": 85.536,
+   "want": 85.536,
+   "worst_rel": 0.0
+  },
+  "seed_age": 2.74
+ },
+ "x482": {
+  "death_after_onset_h": 28.05,
+  "death_after_seed_h": 28.166667,
+  "onset_after_seed_h": 0.116667,
+  "seed_age": 2.74,
+  "slope": {
+   "n": 1515.0,
+   "rel": 0.0,
+   "slope_h": -3.564,
+   "want_h": -3.564
+  },
+  "x442": {
+   "diff_after_onset_h": -0.07113,
+   "diff_after_write_h": -8.279665,
+   "x442_after_level4_h": 28.12113,
+   "x442_after_write_h": 36.446332
+  }
+ }
+}
