@@ -374,10 +374,32 @@ def test_the_drivers_name_their_own_file_profile_and_artifact():
 
 @need_staged
 def test_the_staged_upload_copy_is_mod_head_at_1_0_0():
-    mg = L.staged_gate()
-    assert mg["ok"], mg
-    assert mg["staged_version"] == L.STAGED_VERSION and mg["commit"] == L.STAGED_FROM
-    assert L.STAGED_FROM.startswith(L.mod_head()) or L.mod_head().startswith(L.STAGED_FROM)
+    # a pre-run guard on the live release/ copy while a session is unrun; once x483 and x484 have run, mod/ and the
+    # upload copy move on (the Plan 17 close fix wave re-staged it) and the gate is proved on a fresh stage of the
+    # pinned commit instead (x45g's precedent), the committed artifacts being the evidence
+    arts = os.listdir(os.path.join(REPO, "testing", "artifacts"))
+    if not all(any(d.startswith(k + "-") for d in arts) for k in L.SESSIONS):
+        mg = L.staged_gate()
+        assert mg["ok"], mg
+        assert mg["staged_version"] == L.STAGED_VERSION and mg["commit"] == L.STAGED_FROM
+        assert L.STAGED_FROM.startswith(L.mod_head()) or L.mod_head().startswith(L.STAGED_FROM)
+        return
+    import io
+    import tarfile
+    import tempfile
+    import subprocess
+    import release_pack as RP
+    with tempfile.TemporaryDirectory() as d:
+        arch = subprocess.run(["git", "archive", "--format=tar", L.STAGED_FROM, L.MOD_DIR], cwd=REPO,
+                              capture_output=True, check=True)
+        with tarfile.open(fileobj=io.BytesIO(arch.stdout)) as tf:
+            tf.extractall(os.path.join(d, "src"), filter="data")
+        RP.stage(os.path.join(d, "src", *L.MOD_DIR.split("/")), os.path.join(d, "out"))
+        root = os.path.join(d, "out", "NutritionRevamp")
+        mod = os.path.join(root, "Contents", "mods", "NutritionRevamp")
+        mg = L.G.staged_gate(repo=REPO, commit=L.STAGED_FROM, stage_root=root, stage_mod=mod)
+        assert mg["ok"], mg
+        assert mg["staged_version"] == L.STAGED_VERSION and mg["commit"] == L.STAGED_FROM
 
 
 def test_the_harness_markers_and_the_fixture_are_x48s():
