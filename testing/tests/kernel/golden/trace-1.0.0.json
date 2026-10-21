@@ -6170,6 +6170,21 @@
         "splint": false,
         "writes": 0
        },
+       "Head": {
+        "addPain": 19.199999999999999,
+        "bite": 0,
+        "bleed": 0,
+        "burn": 0,
+        "cut": 0,
+        "deep": 0,
+        "fracture": 0,
+        "infect": 0,
+        "name": "Head",
+        "painSets": 1,
+        "scratch": 0,
+        "splint": false,
+        "writes": 0
+       },
        "LowerLeg_L": {
         "bite": 0,
         "bleed": 0,
@@ -11972,6 +11987,7 @@
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 174,
+     "painWrites": 1,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
@@ -12830,6 +12846,21 @@
         "splint": false,
         "writes": 0
        },
+       "Head": {
+        "addPain": 19.199999999999999,
+        "bite": 0,
+        "bleed": 0,
+        "burn": 0,
+        "cut": 0,
+        "deep": 0,
+        "fracture": 0,
+        "infect": 0,
+        "name": "Head",
+        "painSets": 1,
+        "scratch": 0,
+        "splint": false,
+        "writes": 0
+       },
        "LowerLeg_L": {
         "bite": 0,
         "bleed": 0,
@@ -12892,14 +12923,14 @@
       "xpGrants": 1,
       "xpSets": 1
      },
-     "statSets": 323,
+     "statSets": 333,
      "written": {
       "ENDURANCE": 0.47974090762390054,
       "FATIGUE": 0.35776658906686631,
       "HUNGER": 0.089202976701282202,
       "INTOXICATION": 0,
       "PANIC": 7,
-      "STRESS": 0.059999999999999998,
+      "STRESS": 0.092999999999999888,
       "THIRST": 1,
       "UNHAPPINESS": 11.366666666666646
      }
@@ -18629,6 +18660,7 @@
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 354,
+     "painWrites": 1,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
@@ -19491,6 +19523,21 @@
         "splint": false,
         "writes": 0
        },
+       "Head": {
+        "addPain": 19.199999999999999,
+        "bite": 0,
+        "bleed": 0,
+        "burn": 0,
+        "cut": 0,
+        "deep": 0,
+        "fracture": 0,
+        "infect": 0,
+        "name": "Head",
+        "painSets": 1,
+        "scratch": 0,
+        "splint": false,
+        "writes": 0
+       },
        "LowerLeg_L": {
         "bite": 0,
         "bleed": 0,
@@ -19553,14 +19600,14 @@
       "xpGrants": 1,
       "xpSets": 1
      },
-     "statSets": 499,
+     "statSets": 539,
      "written": {
       "ENDURANCE": 0.47816764410266965,
       "FATIGUE": 0.31342813911531731,
       "HUNGER": 0.08071156155539809,
       "INTOXICATION": 0,
       "PANIC": 7,
-      "STRESS": 0.059999999999999998,
+      "STRESS": 0.18300000000000008,
       "THIRST": 1,
       "UNHAPPINESS": 21
      }
@@ -25309,6 +25356,7 @@
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 534,
+     "painWrites": 1,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
@@ -26171,6 +26219,21 @@
         "splint": false,
         "writes": 0
        },
+       "Head": {
+        "addPain": 19.199999999999999,
+        "bite": 0,
+        "bleed": 0,
+        "burn": 0,
+        "cut": 0,
+        "deep": 0,
+        "fracture": 0,
+        "infect": 0,
+        "name": "Head",
+        "painSets": 1,
+        "scratch": 0,
+        "splint": false,
+        "writes": 0
+       },
        "LowerLeg_L": {
         "bite": 0,
         "bleed": 0,
@@ -26233,14 +26296,14 @@
       "xpGrants": 1,
       "xpSets": 2
      },
-     "statSets": 649,
+     "statSets": 719,
      "written": {
       "ENDURANCE": 0.47698919581085852,
       "FATIGUE": 0.34997771588575771,
       "HUNGER": 0.095801918607395342,
       "INTOXICATION": 0,
       "PANIC": 7,
-      "STRESS": 0.059999999999999998,
+      "STRESS": 0.20240864335131317,
       "THIRST": 1,
       "UNHAPPINESS": 21
      }
@@ -31964,6 +32027,7 @@
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 712,
+     "painWrites": 1,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
@@ -32829,6 +32893,21 @@
         "splint": false,
         "writes": 0
        },
+       "Head": {
+        "addPain": 19.199999999999999,
+        "bite": 0,
+        "bleed": 0,
+        "burn": 0,
+        "cut": 0,
+        "deep": 0,
+        "fracture": 0,
+        "infect": 0,
+        "name": "Head",
+        "painSets": 1,
+        "scratch": 0,
+        "splint": false,
+        "writes": 0
+       },
        "LowerLeg_L": {
         "bite": 0,
         "bleed": 0,
@@ -32891,14 +32970,14 @@
       "xpGrants": 1,
       "xpSets": 2
      },
-     "statSets": 779,
+     "statSets": 858,
      "written": {
       "ENDURANCE": 0.47659989246060208,
       "FATIGUE": 0.3784786038506831,
       "HUNGER": 0.08181080843736141,
       "INTOXICATION": 0,
       "PANIC": 8.875,
-      "STRESS": 0.059999999999999998,
+      "STRESS": 0.20272008603151837,
       "THIRST": 1,
       "UNHAPPINESS": 21
      }
@@ -38626,6 +38705,7 @@
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 891,
+     "painWrites": 1,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
@@ -39486,6 +39566,21 @@
         "splint": false,
         "writes": 0
        },
+       "Head": {
+        "addPain": 19.199999999999999,
+        "bite": 0,
+        "bleed": 0,
+        "burn": 0,
+        "cut": 0,
+        "deep": 0,
+        "fracture": 0,
+        "infect": 0,
+        "name": "Head",
+        "painSets": 1,
+        "scratch": 0,
+        "splint": false,
+        "writes": 0
+       },
        "LowerLeg_L": {
         "bite": 0,
         "bleed": 0,
@@ -39548,14 +39643,14 @@
       "xpGrants": 1,
       "xpSets": 2
      },
-     "statSets": 899,
+     "statSets": 978,
      "written": {
       "ENDURANCE": 0.47659989246060208,
       "FATIGUE": 0.40624144075000684,
       "HUNGER": 0.10465811140074577,
       "INTOXICATION": 0,
       "PANIC": 8.875,
-      "STRESS": 0.059999999999999998,
+      "STRESS": 0.20272008603151837,
       "THIRST": 1,
       "UNHAPPINESS": 21
      }
@@ -45283,6 +45378,7 @@
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 1041,
+     "painWrites": 1,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
@@ -46148,6 +46244,21 @@
         "splint": false,
         "writes": 0
        },
+       "Head": {
+        "addPain": 19.199999999999999,
+        "bite": 0,
+        "bleed": 0,
+        "burn": 0,
+        "cut": 0,
+        "deep": 0,
+        "fracture": 0,
+        "infect": 0,
+        "name": "Head",
+        "painSets": 1,
+        "scratch": 0,
+        "splint": false,
+        "writes": 0
+       },
        "LowerLeg_L": {
         "bite": 0,
         "bleed": 0,
@@ -46210,14 +46321,14 @@
       "xpGrants": 1,
       "xpSets": 2
      },
-     "statSets": 1019,
+     "statSets": 1098,
      "written": {
       "ENDURANCE": 0.47659989246060208,
       "FATIGUE": 0.43331702616224554,
       "HUNGER": 0.12720448317963595,
       "INTOXICATION": 0,
       "PANIC": 8.875,
-      "STRESS": 0.059999999999999998,
+      "STRESS": 0.20272008603151837,
       "THIRST": 1,
       "UNHAPPINESS": 21
      }
@@ -51945,6 +52056,7 @@
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 1221,
+     "painWrites": 1,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
@@ -52810,6 +52922,21 @@
         "splint": false,
         "writes": 0
        },
+       "Head": {
+        "addPain": 19.199999999999999,
+        "bite": 0,
+        "bleed": 0,
+        "burn": 0,
+        "cut": 0,
+        "deep": 0,
+        "fracture": 0,
+        "infect": 0,
+        "name": "Head",
+        "painSets": 1,
+        "scratch": 0,
+        "splint": false,
+        "writes": 0
+       },
        "LowerLeg_L": {
         "bite": 0,
         "bleed": 0,
@@ -52872,14 +52999,14 @@
       "xpGrants": 1,
       "xpSets": 2
      },
-     "statSets": 1139,
+     "statSets": 1218,
      "written": {
       "ENDURANCE": 0.47659989246060208,
       "FATIGUE": 0.4584791921959242,
       "HUNGER": 0.14960392181820537,
       "INTOXICATION": 0,
       "PANIC": 8.875,
-      "STRESS": 0.059999999999999998,
+      "STRESS": 0.20272008603151837,
       "THIRST": 1,
       "UNHAPPINESS": 21
      }
@@ -58607,6 +58734,7 @@
      "healed": 0,
      "infectSyncs": 0,
      "minutes": 1401,
+     "painWrites": 1,
      "partWrites": 0,
      "pushMissing": 0,
      "pushes": 0,
