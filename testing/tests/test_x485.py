@@ -231,8 +231,8 @@ def test_the_driver_names_its_own_file_profile_and_predictions():
     assert D.KEY == D.PREFIX == "x485" and D.PROFILE == "x48-smoke" and D.ARTIFACT == "smoke.json"
     assert os.path.basename(D.__file__) == "x485_smoke.py"
     assert set(D.PRED) == GRADES
-    assert D.BUDGET_S - D.OBS_S - D.CLOSE_RESERVE_S <= 210.0                  # bob started by 210 s (x483's F1)
-    assert D.BUDGET_S <= 540.0 and D.SERVER_TIMEOUT_S == 240
+    assert D.BUDGET_S - D.OBS_S - D.CLOSE_RESERVE_S <= 180.0                  # bob started by 180 s (review N2)
+    assert D.BUDGET_S <= 510.0 and D.SERVER_TIMEOUT_S == 240
 
 
 def test_the_values_are_off_both_defaults_and_x483s():
@@ -351,3 +351,28 @@ def test_gates_refuse_a_staged_copy_off_the_commit(tmp_path):
     with pytest.raises(SystemExit):
         D._gates(X.Xs(out2, node=lambda s: s), out2, Prof(), str(tmp_path), lambda p: [], [])
     assert "doctor" in out2["error"]
+
+
+def test_take_texts_inherits_a_timeout_from_the_sets_reads():
+    calls = []
+
+    def ask(node, cmd, args, timeout=20):
+        calls.append((node, cmd))
+        if node == BOB and cmd == "lua.global":
+            return {"error": "TimeoutError: no reply in 15 s"}
+        if cmd == "lua.global":
+            return lg(1, side=node, name=args)
+        return lc(D.KEYS[args.split(" ", 1)[1]], side=node)
+    rs, ts = {}, {}
+    nodes = {SRV: SRV, ADMIN: ADMIN, BOB: BOB}
+    D.L.take_reads(ask, nodes, "end", rs, plan=D.READ_PLAN)
+    D.take_texts(ask, nodes, "end", ts, read_sets=rs)
+    assert not [c for c in calls if c == (BOB, "lua.call")]                     # review N1: no call to a wedged bob
+    assert all(r["error"].startswith("skipped: ") for r in ts["end"][BOB].values())
+    assert len([c for c in calls if c == (ADMIN, "lua.call")]) == len(D.KEYS)
+
+
+def test_the_driver_refuses_arguments():
+    with open(D.__file__, encoding="utf-8") as fh:
+        src = fh.read()
+    assert "if sys.argv[1:]:" in src and 'sys.exit("x485_smoke.py takes no arguments' in src

@@ -45,7 +45,8 @@ THE GRADES (pure; each has a failing case in testing/tests/test_x485.py; a grade
 RULES: 1. NEVER edited after its run. 2. A trivial, unmeasured or falsified reading is written as such, never re-run.
 3. One live session at a time. 4. Free memory read before the boot, refused under 12 GB. 5. Never -safemode.
 
-WALL: about 3.5 min (x483 took 184.4 s); BUDGET_S 540.
+WALL: about 3.5 min (x483 took 184.4 s); BUDGET_S 510 (review N2: bob started by 180 s; a hung server's stop still
+ends under 600 s).
 """
 import json
 import os
@@ -67,7 +68,7 @@ KEY = "x485"
 PREFIX = "x485"
 PROFILE = "x48-smoke"
 ARTIFACT = "smoke.json"
-BUDGET_S = 540.0
+BUDGET_S = 510.0
 _ME = os.path.basename(os.path.abspath(__file__))
 assert _ME.startswith(PREFIX + "_"), f"PREFIX {PREFIX} does not match the driver file {_ME}"
 
@@ -163,14 +164,17 @@ def grade_mod_read(read_sets):
 
 
 # ================================================================ the translation keys (pure)
-def take_texts(ask, nodes, tag, text_sets, keys=None, sides=TEXT_SIDES):
+def take_texts(ask, nodes, tag, text_sets, keys=None, sides=TEXT_SIDES, read_sets=None):
     """One text set: lua.call getText <key> for each key on each side, at text_sets[tag][side][key]; a side whose call
-    timed out is not asked again in this set (its later calls record `skipped`, unanswered like the timeout)."""
+    timed out, here or in this set's reads (read_sets[tag], review N1), is not asked again in this set (its later calls
+    record `skipped`, unanswered like the timeout)."""
     rs = text_sets.setdefault(tag, {})
     for side in sides:
         node = nodes.get(side)
         row = rs.setdefault(side, {})
-        wedged = None
+        prior = ((read_sets or {}).get(tag) or {}).get(side) or {}
+        wedged = next((f"the side timed out on {nm} in this set's reads" for nm, r in prior.items()
+                       if isinstance(r, dict) and "Timeout" in str(r.get("error") or "")), None)
         for k in (keys or KEYS):
             if node is None:
                 row[k] = {"error": "no node"}
@@ -424,7 +428,7 @@ def main(budget_s=BUDGET_S):
         def reads(tag):
             nodes = {SRV: server, ADMIN: clients.get(ADMIN), BOB: bob}
             L.take_reads(ask, nodes, tag, read_sets, plan=READ_PLAN)
-            take_texts(ask, nodes, tag, text_sets)
+            take_texts(ask, nodes, tag, text_sets, read_sets=read_sets)
 
         def on_ready():
             clients[BOB] = bob
@@ -489,4 +493,6 @@ def main(budget_s=BUDGET_S):
 
 
 if __name__ == "__main__":
+    if sys.argv[1:]:
+        sys.exit("x485_smoke.py takes no arguments; a bare call boots the session")
     main()
