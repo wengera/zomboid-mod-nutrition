@@ -22449,3 +22449,13 @@ x484-20261020-142509,verdicts.RATE.observed.floor_day,85.53600000000002,The form
 x484-20261020-142509,verdicts.RATE.observed.beri_day,2.857142857142857,The formula's beriberi rate 100 x 24 / 840; not a reading.,ring rows' `drain.rate`
 x484-20261020-142509,verdicts.BERI_ON.observed.lag_gm,1.2233161926269531,"Measured from set_age, the age read after the record.set reply; ring row s 148 already shows p 0.3, so the write landed before s 148's read and s 149 came 0.98 to 1.99 game minutes after it.",ring rows s 148 and s 149 `age` and `checks.B.set_p.age_before`
 x484-20261020-142509,verdicts.BERI_ON.observed.set_age,4.846357345581055,"The age read after the record.set reply, not the write's age (the write landed before ring row s 148's read).",`checks.B.set_p.age_before` and ring row s 148 `age`
+x485-20261020-213026,session,the driver's text,Written before the run; not a reading.,
+x485-20261020-213026,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x485-20261020-213026,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x485-20261020-213026,world_changes,the driver's text,Written before the run; not readings.,
+x485-20261020-213026,meta.budget_s,510.0,The driver's own budget; not a reading.,
+x485-20261020-213026,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,`verdicts.<name>.observed`
+x485-20261020-213026,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x485-20261020-213026,readings.client_server_options.predicted,the declared defaults 3 and 2,The driver's prediction beside the reading; not a reading.,`readings.client_server_options.admin` and `.bob`
+x485-20261020-213026,preboot.keys_at_commit,the two keys' texts,"Read from mod/'s UI.json at 4ff68475 before the boot; not a live reading.",`text_sets.*.admin`
+x485-20261020-213026,logs.bob_connections.force_any,one force-disconnect exit line,"The teardown's own quit, not a kick.",`logs.bob_connections.force_checksum`

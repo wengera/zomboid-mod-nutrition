@@ -1,0 +1,1414 @@
+{
+ "steps": [],
+ "notes": [],
+ "phase_walls": {},
+ "phase_errors": {},
+ "verdicts": {
+  "Z": {
+   "phase": "Z",
+   "predicted": "no mod error line, admin not parked",
+   "falsifier": "a mod error line in the server log, or admin parked in the debugger",
+   "observed": {
+    "mod_error": [],
+    "admin_lua_error": false
+   },
+   "verdict": "as_predicted",
+   "wall": 187.107
+  },
+  "INI": {
+   "phase": "INI",
+   "predicted": "the seeded NR block holds DeathPace = 1 and HealthCombine = 1",
+   "falsifier": "the seeded options file lacks NR.DeathPace = 1 or NR.HealthCombine = 1",
+   "observed": {
+    "seeded_nr_block": {
+     "DeathPace": "1",
+     "HealthCombine": "1"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 187.107
+  },
+  "OPT_SERVER": {
+   "phase": "OPT_SERVER",
+   "predicted": "SandboxVars.NR.DeathPace 1 and HealthCombine 1 on the server",
+   "falsifier": "SandboxVars.NR.DeathPace or HealthCombine reads another value on server",
+   "observed": {
+    "side": "server",
+    "SandboxVars.NR.DeathPace": {
+     "n": 2,
+     "answered": 2,
+     "values": [
+      1,
+      1
+     ]
+    },
+    "SandboxVars.NR.HealthCombine": {
+     "n": 2,
+     "answered": 2,
+     "values": [
+      1,
+      1
+     ]
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 187.107
+  },
+  "OPT_ADMIN": {
+   "phase": "OPT_ADMIN",
+   "predicted": "1 and 1 on admin",
+   "falsifier": "SandboxVars.NR.DeathPace or HealthCombine reads another value on admin",
+   "observed": {
+    "side": "admin",
+    "SandboxVars.NR.DeathPace": {
+     "n": 2,
+     "answered": 2,
+     "values": [
+      1,
+      1
+     ]
+    },
+    "SandboxVars.NR.HealthCombine": {
+     "n": 2,
+     "answered": 2,
+     "values": [
+      1,
+      1
+     ]
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 187.107
+  },
+  "OPT_BOB": {
+   "phase": "OPT_BOB",
+   "predicted": "1 and 1 on bob",
+   "falsifier": "SandboxVars.NR.DeathPace or HealthCombine reads another value on bob",
+   "observed": {
+    "side": "bob",
+    "SandboxVars.NR.DeathPace": {
+     "n": 2,
+     "answered": 2,
+     "values": [
+      1,
+      1
+     ]
+    },
+    "SandboxVars.NR.HealthCombine": {
+     "n": 2,
+     "answered": 2,
+     "values": [
+      1,
+      1
+     ]
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 187.107
+  },
+  "MOD_READ": {
+   "phase": "MOD_READ",
+   "predicted": "server options.deathPace 1 and healthCombine 1, K.drain.OPT.pace 1 and combine 1",
+   "falsifier": "the server's polled options or K.drain.OPT read another value",
+   "observed": {
+    "options": {
+     "side": "server",
+     "NutritionRevamp.server.options.deathPace": {
+      "n": 2,
+      "answered": 2,
+      "values": [
+       1,
+       1
+      ]
+     },
+     "NutritionRevamp.server.options.healthCombine": {
+      "n": 2,
+      "answered": 2,
+      "values": [
+       1,
+       1
+      ]
+     }
+    },
+    "opt": {
+     "side": "server",
+     "NutritionRevamp.kernel.drain.OPT.pace": {
+      "n": 2,
+      "answered": 2,
+      "values": [
+       1,
+       1
+      ]
+     },
+     "NutritionRevamp.kernel.drain.OPT.combine": {
+      "n": 2,
+      "answered": 2,
+      "values": [
+       1,
+       1
+      ]
+     }
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 187.107
+  },
+  "JOIN": {
+   "phase": "JOIN",
+   "predicted": "both ready, 1.0.0 on three sides, players [admin, bob], bob fully connected, no Anti-cheat or mismatch line",
+   "falsifier": "bob or admin not ready, a version or players read off, an Anti-cheat or mismatch line",
+   "observed": {
+    "bob_started": true,
+    "admin_ready": true,
+    "bob_ready": true,
+    "staged_version": "1.0.0",
+    "versions": {
+     "server": "1.0.0",
+     "admin": "1.0.0",
+     "bob": "1.0.0"
+    },
+    "players_end": [
+     "admin",
+     "bob"
+    ],
+    "fully_connected": [
+     "admin",
+     "bob"
+    ],
+    "anticheat_any": [],
+    "server_mismatch": [],
+    "user_log_read": true
+   },
+   "verdict": "as_predicted",
+   "wall": 187.108
+  },
+  "NEWKEYS": {
+   "phase": "NEWKEYS",
+   "predicted": "server version 1.0.0; on admin getText reads 'Recovering from starvation' and 'Recovering from iron poisoning' in both text sets",
+   "falsifier": "a panel key reads as its own name or another text on admin, or the server's version off",
+   "observed": {
+    "side": "admin",
+    "server_version": "1.0.0",
+    "server_version_answered": true,
+    "states": {
+     "after_ready:UI_NR_DrainRec_starvation": {
+      "state": "present",
+      "text": "Recovering from starvation"
+     },
+     "after_ready:UI_NR_DrainRec_iron": {
+      "state": "present",
+      "text": "Recovering from iron poisoning"
+     },
+     "end:UI_NR_DrainRec_starvation": {
+      "state": "present",
+      "text": "Recovering from starvation"
+     },
+     "end:UI_NR_DrainRec_iron": {
+      "state": "present",
+      "text": "Recovering from iron poisoning"
+     }
+    },
+    "n_sets": 2
+   },
+   "verdict": "as_predicted",
+   "wall": 187.108
+  }
+ },
+ "readings": {
+  "client_server_options": {
+   "predicted": {
+    "NutritionRevamp.server.options.deathPace": 3,
+    "NutritionRevamp.server.options.healthCombine": 2
+   },
+   "admin": {
+    "NutritionRevamp.server.options.deathPace": 3,
+    "NutritionRevamp.server.options.healthCombine": 2
+   },
+   "bob": {
+    "NutritionRevamp.server.options.deathPace": 3,
+    "NutritionRevamp.server.options.healthCombine": 2
+   }
+  },
+  "server_opt_dayMin": 15,
+  "server_readAt": "poll",
+  "bob_texts": {
+   "after_ready:UI_NR_DrainRec_starvation": "present",
+   "after_ready:UI_NR_DrainRec_iron": "present",
+   "end:UI_NR_DrainRec_starvation": "present",
+   "end:UI_NR_DrainRec_iron": "present"
+  }
+ },
+ "world_changes": {
+  "restored": "fixture two restored into the run dir",
+  "left_in_place": []
+ },
+ "run_id": "x485-20261020-213026",
+ "session_key": "x485",
+ "session": "Plan 17 Task 7b x485: the final upload copy's smoke boot: NR.DeathPace 1 and NR.HealthCombine 1 read back on the server, admin and bob; the clean 1.0.0 join; no mod error; the R2 panel keys load; one boot of x48-smoke",
+ "driver": "x485_smoke.py",
+ "lib": "x48b_lib.py",
+ "user": "admin",
+ "profile": {
+  "name": "x48-smoke",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x48-smoke.toml",
+  "fixture": "two",
+  "description": "PZTestKit + the final staged NutritionRevamp upload copy on fixture two, admin (debug) and bob (release), Nutrition off, DayLength 1, sleep off, NR.DeathPace 1 and NR.HealthCombine 1 - Plan 17 Task 7b (x485).",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\NutritionRevamp\\Contents\\mods\\NutritionRevamp"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 1,
+   "NR": {
+    "DeathPace": 1,
+    "HealthCombine": 1
+   }
+  },
+  "users": [
+   "admin",
+   "bob"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "preboot": {
+  "driver_file": true,
+  "driver_prefix": true,
+  "no_prior_artifact": true,
+  "mod_head": "4ff68475",
+  "staged_from_is_mod_head": true,
+  "profile_checks": {
+   "header_names_file": true,
+   "fixture": true,
+   "clients": true,
+   "sleep_off": true,
+   "mods_staged": true,
+   "nutrition_false": true,
+   "day_length": true,
+   "nr_block": true,
+   "verify_version": true,
+   "no_override": true,
+   "server_timeout": true
+  },
+  "values_distinct": true,
+  "keys_at_commit": {
+   "UI_NR_DrainRec_starvation": "Recovering from starvation",
+   "UI_NR_DrainRec_iron": "Recovering from iron poisoning"
+  },
+  "keys_texts_match": true
+ },
+ "fixture": {
+  "name": "two",
+  "provision_run": "prov-20261008-073547",
+  "build": "42.21.0"
+ },
+ "argv": [],
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+  "ok   workshop index: 239 mods",
+  "ok   pytest available"
+ ],
+ "predictions": {
+  "INI": "the seeded NR block holds DeathPace = 1 and HealthCombine = 1",
+  "OPT_SERVER": "SandboxVars.NR.DeathPace 1 and HealthCombine 1 on the server",
+  "OPT_ADMIN": "1 and 1 on admin",
+  "OPT_BOB": "1 and 1 on bob",
+  "MOD_READ": "server options.deathPace 1 and healthCombine 1, K.drain.OPT.pace 1 and combine 1",
+  "JOIN": "both ready, 1.0.0 on three sides, players [admin, bob], bob fully connected, no Anti-cheat or mismatch line",
+  "Z": "no mod error line, admin not parked",
+  "NEWKEYS": "server version 1.0.0; on admin getText reads 'Recovering from starvation' and 'Recovering from iron poisoning' in both text sets"
+ },
+ "constants": {
+  "KEY": "x485",
+  "PREFIX": "x485",
+  "PROFILE": "x48-smoke",
+  "ARTIFACT": "smoke.json",
+  "BUDGET_S": 510.0,
+  "_ME": "x485_smoke.py",
+  "SRV": "server",
+  "NR": "NutritionRevamp",
+  "ADMIN": "admin",
+  "BOB": "bob",
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_ROOT": "release/NutritionRevamp",
+  "STAGE_MOD": "release/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "STAGED_FROM": "4ff68475",
+  "STAGED_VERSION": "1.0.0",
+  "MIN_FREE_GB": 12.0,
+  "FIXTURE": "two",
+  "CLIENTS": [
+   "admin",
+   "bob"
+  ],
+  "DAY_LENGTH": 1,
+  "PACE_SET": 1,
+  "COMBINE_SET": 1,
+  "PACE_DEFAULT": 3,
+  "COMBINE_DEFAULT": 2,
+  "X483_SET": [
+   2,
+   3
+  ],
+  "SERVER_TIMEOUT_S": 240,
+  "READ_PLAN": {
+   "server": [
+    "SandboxVars.NR.DeathPace",
+    "SandboxVars.NR.HealthCombine",
+    "NutritionRevamp.server.options.deathPace",
+    "NutritionRevamp.server.options.healthCombine",
+    "NutritionRevamp.kernel.drain.OPT.pace",
+    "NutritionRevamp.kernel.drain.OPT.combine",
+    "NutritionRevamp.kernel.drain.OPT.dayMin",
+    "NutritionRevamp.version",
+    "NutritionRevamp.server.options.readAt"
+   ],
+   "admin": [
+    "SandboxVars.NR.DeathPace",
+    "SandboxVars.NR.HealthCombine",
+    "NutritionRevamp.version",
+    "NutritionRevamp.server.options.deathPace",
+    "NutritionRevamp.server.options.healthCombine"
+   ],
+   "bob": [
+    "SandboxVars.NR.DeathPace",
+    "SandboxVars.NR.HealthCombine",
+    "NutritionRevamp.version",
+    "NutritionRevamp.server.options.deathPace",
+    "NutritionRevamp.server.options.healthCombine"
+   ]
+  },
+  "READ_SETTLE_S": 5.0,
+  "HOLD_S": 20.0,
+  "OBS_S": 180.0,
+  "CLOSE_RESERVE_S": 150.0,
+  "SANDBOX_REL": [
+   "server",
+   "Server",
+   "pzt_SandboxVars.lua"
+  ],
+  "TRANSLATE_REL": "common/media/lua/shared/Translate/EN/UI.json",
+  "KEYS": {
+   "UI_NR_DrainRec_starvation": "Recovering from starvation",
+   "UI_NR_DrainRec_iron": "Recovering from iron poisoning"
+  },
+  "TEXT_SIDES": [
+   "admin",
+   "bob"
+  ],
+  "TEXT_MARKERS": "*!",
+  "CALL_TIMEOUT_S": 15,
+  "SERVER_PACE_G": "SandboxVars.NR.DeathPace",
+  "SERVER_COMBINE_G": "SandboxVars.NR.HealthCombine",
+  "MOD_PACE_G": "NutritionRevamp.server.options.deathPace",
+  "MOD_COMBINE_G": "NutritionRevamp.server.options.healthCombine",
+  "OPT_PACE_G": "NutritionRevamp.kernel.drain.OPT.pace",
+  "OPT_COMBINE_G": "NutritionRevamp.kernel.drain.OPT.combine",
+  "OPT_DAYMIN_G": "NutritionRevamp.kernel.drain.OPT.dayMin",
+  "VERSION_G": "NutritionRevamp.version",
+  "READAT_G": "NutritionRevamp.server.options.readAt"
+ },
+ "meta": {
+  "budget_s": 510.0
+ },
+ "commit": "5d458b41",
+ "harness_lua_commit": "04cc3423",
+ "harness_lua_dirty": false,
+ "harness_py_commit": "52a7de93",
+ "xlib_commit": "45c49217",
+ "lib_commit": "b8942f43",
+ "lib_x47_commit": "b822db19",
+ "lib_x48_commit": "b6e6aded",
+ "lib_x45g_commit": "94195f0d",
+ "prerun_commit": "b8f91289",
+ "replay_tool_commit": "5cd82a99",
+ "driver_commit": "5d458b41",
+ "manifest_gate": {
+  "commit": "4ff68475",
+  "staged_manifest": "release/NutritionRevamp/MANIFEST.json",
+  "staged_mod": "release/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "commit_full": "4ff68475444b49e7a902a89001f7bfa79246cfc9",
+  "mod_commit": "4ff68475",
+  "staged_manifest_sha256": "c137dc45d9f90bff945d993a2f9b18e45aaa47e7a6ca269849a07bc46ac67566",
+  "files": 80,
+  "staged_equals_commit": true,
+  "staged_tree_equals_commit": true,
+  "staged_version": "1.0.0",
+  "ok": true,
+  "verify_rows_match": true,
+  "version_is_release": true
+ },
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 1.557,
+   "free_gb": 15.97
+  },
+  {
+   "tag": "before_bob",
+   "wall": 89.061,
+   "free_gb": 3.37
+  },
+  {
+   "tag": "end",
+   "wall": 174.566,
+   "free_gb": 1.55
+  },
+  {
+   "tag": "after",
+   "wall": 187.11,
+   "free_gb": 19.48
+  }
+ ],
+ "lint_errors": [],
+ "read_sets": {
+  "after_ready": {
+   "server": {
+    "SandboxVars.NR.DeathPace": {
+     "side": "server",
+     "name": "SandboxVars.NR.DeathPace",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "SandboxVars.NR.HealthCombine": {
+     "side": "server",
+     "name": "SandboxVars.NR.HealthCombine",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.server.options.deathPace": {
+     "side": "server",
+     "name": "NutritionRevamp.server.options.deathPace",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.server.options.healthCombine": {
+     "side": "server",
+     "name": "NutritionRevamp.server.options.healthCombine",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.kernel.drain.OPT.pace": {
+     "side": "server",
+     "name": "NutritionRevamp.kernel.drain.OPT.pace",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.kernel.drain.OPT.combine": {
+     "side": "server",
+     "name": "NutritionRevamp.kernel.drain.OPT.combine",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.kernel.drain.OPT.dayMin": {
+     "side": "server",
+     "name": "NutritionRevamp.kernel.drain.OPT.dayMin",
+     "type": "number",
+     "resolved": true,
+     "value": 15
+    },
+    "NutritionRevamp.version": {
+     "side": "server",
+     "name": "NutritionRevamp.version",
+     "type": "string",
+     "resolved": true,
+     "value": "1.0.0"
+    },
+    "NutritionRevamp.server.options.readAt": {
+     "side": "server",
+     "name": "NutritionRevamp.server.options.readAt",
+     "type": "string",
+     "resolved": true,
+     "value": "poll"
+    }
+   },
+   "admin": {
+    "SandboxVars.NR.DeathPace": {
+     "side": "client",
+     "name": "SandboxVars.NR.DeathPace",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "SandboxVars.NR.HealthCombine": {
+     "side": "client",
+     "name": "SandboxVars.NR.HealthCombine",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.version": {
+     "side": "client",
+     "name": "NutritionRevamp.version",
+     "type": "string",
+     "resolved": true,
+     "value": "1.0.0"
+    },
+    "NutritionRevamp.server.options.deathPace": {
+     "side": "client",
+     "name": "NutritionRevamp.server.options.deathPace",
+     "type": "number",
+     "resolved": true,
+     "value": 3
+    },
+    "NutritionRevamp.server.options.healthCombine": {
+     "side": "client",
+     "name": "NutritionRevamp.server.options.healthCombine",
+     "type": "number",
+     "resolved": true,
+     "value": 2
+    }
+   },
+   "bob": {
+    "SandboxVars.NR.DeathPace": {
+     "side": "client",
+     "name": "SandboxVars.NR.DeathPace",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "SandboxVars.NR.HealthCombine": {
+     "side": "client",
+     "name": "SandboxVars.NR.HealthCombine",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.version": {
+     "side": "client",
+     "name": "NutritionRevamp.version",
+     "type": "string",
+     "resolved": true,
+     "value": "1.0.0"
+    },
+    "NutritionRevamp.server.options.deathPace": {
+     "side": "client",
+     "name": "NutritionRevamp.server.options.deathPace",
+     "type": "number",
+     "resolved": true,
+     "value": 3
+    },
+    "NutritionRevamp.server.options.healthCombine": {
+     "side": "client",
+     "name": "NutritionRevamp.server.options.healthCombine",
+     "type": "number",
+     "resolved": true,
+     "value": 2
+    }
+   }
+  },
+  "end": {
+   "server": {
+    "SandboxVars.NR.DeathPace": {
+     "side": "server",
+     "name": "SandboxVars.NR.DeathPace",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "SandboxVars.NR.HealthCombine": {
+     "side": "server",
+     "name": "SandboxVars.NR.HealthCombine",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.server.options.deathPace": {
+     "side": "server",
+     "name": "NutritionRevamp.server.options.deathPace",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.server.options.healthCombine": {
+     "side": "server",
+     "name": "NutritionRevamp.server.options.healthCombine",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.kernel.drain.OPT.pace": {
+     "side": "server",
+     "name": "NutritionRevamp.kernel.drain.OPT.pace",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.kernel.drain.OPT.combine": {
+     "side": "server",
+     "name": "NutritionRevamp.kernel.drain.OPT.combine",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.kernel.drain.OPT.dayMin": {
+     "side": "server",
+     "name": "NutritionRevamp.kernel.drain.OPT.dayMin",
+     "type": "number",
+     "resolved": true,
+     "value": 15
+    },
+    "NutritionRevamp.version": {
+     "side": "server",
+     "name": "NutritionRevamp.version",
+     "type": "string",
+     "resolved": true,
+     "value": "1.0.0"
+    },
+    "NutritionRevamp.server.options.readAt": {
+     "side": "server",
+     "name": "NutritionRevamp.server.options.readAt",
+     "type": "string",
+     "resolved": true,
+     "value": "poll"
+    }
+   },
+   "admin": {
+    "SandboxVars.NR.DeathPace": {
+     "side": "client",
+     "name": "SandboxVars.NR.DeathPace",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "SandboxVars.NR.HealthCombine": {
+     "side": "client",
+     "name": "SandboxVars.NR.HealthCombine",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.version": {
+     "side": "client",
+     "name": "NutritionRevamp.version",
+     "type": "string",
+     "resolved": true,
+     "value": "1.0.0"
+    },
+    "NutritionRevamp.server.options.deathPace": {
+     "side": "client",
+     "name": "NutritionRevamp.server.options.deathPace",
+     "type": "number",
+     "resolved": true,
+     "value": 3
+    },
+    "NutritionRevamp.server.options.healthCombine": {
+     "side": "client",
+     "name": "NutritionRevamp.server.options.healthCombine",
+     "type": "number",
+     "resolved": true,
+     "value": 2
+    }
+   },
+   "bob": {
+    "SandboxVars.NR.DeathPace": {
+     "side": "client",
+     "name": "SandboxVars.NR.DeathPace",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "SandboxVars.NR.HealthCombine": {
+     "side": "client",
+     "name": "SandboxVars.NR.HealthCombine",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "NutritionRevamp.version": {
+     "side": "client",
+     "name": "NutritionRevamp.version",
+     "type": "string",
+     "resolved": true,
+     "value": "1.0.0"
+    },
+    "NutritionRevamp.server.options.deathPace": {
+     "side": "client",
+     "name": "NutritionRevamp.server.options.deathPace",
+     "type": "number",
+     "resolved": true,
+     "value": 3
+    },
+    "NutritionRevamp.server.options.healthCombine": {
+     "side": "client",
+     "name": "NutritionRevamp.server.options.healthCombine",
+     "type": "number",
+     "resolved": true,
+     "value": 2
+    }
+   }
+  }
+ },
+ "text_sets": {
+  "after_ready": {
+   "admin": {
+    "UI_NR_DrainRec_starvation": {
+     "ok": true,
+     "side": "client",
+     "path": "getText",
+     "nargs": 1,
+     "r1": "Recovering from starvation"
+    },
+    "UI_NR_DrainRec_iron": {
+     "ok": true,
+     "side": "client",
+     "path": "getText",
+     "nargs": 1,
+     "r1": "Recovering from iron poisoning"
+    }
+   },
+   "bob": {
+    "UI_NR_DrainRec_starvation": {
+     "ok": true,
+     "side": "client",
+     "path": "getText",
+     "nargs": 1,
+     "r1": "Recovering from starvation"
+    },
+    "UI_NR_DrainRec_iron": {
+     "ok": true,
+     "side": "client",
+     "path": "getText",
+     "nargs": 1,
+     "r1": "Recovering from iron poisoning"
+    }
+   }
+  },
+  "end": {
+   "admin": {
+    "UI_NR_DrainRec_starvation": {
+     "ok": true,
+     "side": "client",
+     "path": "getText",
+     "nargs": 1,
+     "r1": "Recovering from starvation"
+    },
+    "UI_NR_DrainRec_iron": {
+     "ok": true,
+     "side": "client",
+     "path": "getText",
+     "nargs": 1,
+     "r1": "Recovering from iron poisoning"
+    }
+   },
+   "bob": {
+    "UI_NR_DrainRec_starvation": {
+     "ok": true,
+     "side": "client",
+     "path": "getText",
+     "nargs": 1,
+     "r1": "Recovering from starvation"
+    },
+    "UI_NR_DrainRec_iron": {
+     "ok": true,
+     "side": "client",
+     "path": "getText",
+     "nargs": 1,
+     "r1": "Recovering from iron poisoning"
+    }
+   }
+  }
+ },
+ "sandbox_seeded": {
+  "DeathPace": "1",
+  "HealthCombine": "1"
+ },
+ "server_launch_wall": 2.211,
+ "server_started_wall": 51.606,
+ "server_pid": 310172,
+ "build": "42.21.0",
+ "sandbox_after_start": {
+  "Mode": "1",
+  "LogLevel": "2",
+  "LegacyMirror": "true",
+  "OnsetSpeed": "1.0",
+  "ExcessEffectsOn": "true",
+  "BalanceBonus": "true",
+  "Severity": "1.0",
+  "VisibilityMode": "2",
+  "SexSpecific": "false",
+  "StimulantRealism": "1",
+  "DeathPace": "1",
+  "HealthCombine": "1",
+  "StrengthTimeScale": "1.0",
+  "StrengthXPPerSet": "360.0",
+  "StrengthIncidentalWeight": "0.35",
+  "StrengthCapLevel": "16.5",
+  "StrengthTraitShare": "0.5",
+  "StrengthYearsToLevel10": "4.0",
+  "StrengthNeuralMax": "1.1",
+  "StrengthNeuralRiseWeeks": "3.0",
+  "StrengthNeuralDecayWeeks": "12.0",
+  "StrengthNeuralGraceDays": "21",
+  "StrengthNeuralSaturationSets": "5.0",
+  "StrengthRate": "1.0",
+  "StrengthThreshold": "0.5",
+  "StrengthThresholdRise": "3.0",
+  "StrengthTrainedSetCap": "12.0",
+  "StrengthProteinFull": "1.6",
+  "StrengthDeficitZero": "-650.0",
+  "StrengthDeficitZeroStatusDrop": "0.5",
+  "StrengthNoviceDeficitDepth": "6.0",
+  "StrengthBalanceGate": "1.0",
+  "StrengthBalanceGateStatusDrop": "0.5",
+  "StrengthSurplusFull": "0.1",
+  "StrengthSurplusFullStatusDrop": "0.5",
+  "StrengthTrainedNeedsSurplus": "0.0",
+  "LeanLossTrainingProtect": "0.35",
+  "LeanLossProteinProtect": "0.6",
+  "LeanLossProtectFloor": "0.1",
+  "LeanLossProteinFull": "1.6",
+  "StrengthMaintainShare": "0.333",
+  "StrengthGraceDays": "14",
+  "StrengthDetrainHalfLifeWeeks": "6.0",
+  "StrengthDetrainStatusSlowing": "2.0",
+  "StrengthRegainHalfLifeWeeks": "6.0",
+  "StrengthPeakHalfLifeYears": "2.0"
+ },
+ "admin_ready_wall": 88.968,
+ "bob_restored": true,
+ "bob_debug": false,
+ "bob_mod_source": "release/NutritionRevamp/Contents/mods/NutritionRevamp",
+ "deployed": {
+  "clients/admin/mods/NutritionRevamp/common/media/lua/server/NR_Server_Options.lua": {
+   "size": 10708,
+   "cr": 0,
+   "sha256": "bbbd298d6294dea910c13acd170683428e3601b8bdacc9b3daa1b20085625bef",
+   "md5_cr_dropped": "5fb5aeeba7e8227f48476f103d25dea4"
+  },
+  "clients/bob/mods/NutritionRevamp/common/media/lua/server/NR_Server_Options.lua": {
+   "size": 10708,
+   "cr": 0,
+   "sha256": "bbbd298d6294dea910c13acd170683428e3601b8bdacc9b3daa1b20085625bef",
+   "md5_cr_dropped": "5fb5aeeba7e8227f48476f103d25dea4"
+  },
+  "server/mods/NutritionRevamp/common/media/lua/server/NR_Server_Options.lua": {
+   "size": 10708,
+   "cr": 0,
+   "sha256": "bbbd298d6294dea910c13acd170683428e3601b8bdacc9b3daa1b20085625bef",
+   "md5_cr_dropped": "5fb5aeeba7e8227f48476f103d25dea4"
+  }
+ },
+ "timeline": [
+  {
+   "t": 51.6,
+   "phase": "server_started",
+   "pid": 310172
+  },
+  {
+   "t": 51.7,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 89.0,
+   "phase": "client_ready",
+   "took": 36.9,
+   "user": "admin"
+  },
+  {
+   "t": 89.1,
+   "phase": "client_launch",
+   "user": "bob"
+  },
+  {
+   "t": 142.6,
+   "phase": "client_ready",
+   "took": 53.5,
+   "user": "bob"
+  },
+  {
+   "t": 160.6,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 161.1,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 161.6,
+   "phase": "verify",
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 177.2,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 179.5,
+   "phase": "client_quit",
+   "user": "bob",
+   "rc": 0
+  },
+  {
+   "t": 187.0,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 187.1,
+   "phase": "verdict",
+   "name": "Z",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 187.1,
+   "phase": "verdict",
+   "name": "INI",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 187.1,
+   "phase": "verdict",
+   "name": "OPT_SERVER",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 187.1,
+   "phase": "verdict",
+   "name": "OPT_ADMIN",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 187.1,
+   "phase": "verdict",
+   "name": "OPT_BOB",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 187.1,
+   "phase": "verdict",
+   "name": "MOD_READ",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 187.1,
+   "phase": "verdict",
+   "name": "JOIN",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 187.1,
+   "phase": "verdict",
+   "name": "NEWKEYS",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "bob": {
+  "start_wall": 89.068,
+  "ready_wall": 142.637,
+  "ready_took": 53.5,
+  "window_end_wall": 162.87,
+  "alive_at_end": true,
+  "seen": {
+   "in_game": 50.4,
+   "ready": 53.5
+  },
+  "events": [
+   {
+    "t": 9.1,
+    "kind": "harness",
+    "msg": "core loaded (sp)"
+   },
+   {
+    "t": 9.1,
+    "kind": "harness",
+    "msg": "test layer loaded (sp)"
+   },
+   {
+    "t": 12.1,
+    "kind": "harness",
+    "msg": "client harness loaded"
+   },
+   {
+    "t": 12.1,
+    "kind": "harness",
+    "msg": "client harness Task 7 commands loaded"
+   },
+   {
+    "t": 12.1,
+    "kind": "harness",
+    "msg": "client body harness loaded"
+   },
+   {
+    "t": 19.7,
+    "kind": "harness",
+    "msg": "main menu entered"
+   },
+   {
+    "t": 19.7,
+    "kind": "harness",
+    "msg": "manifest loaded: user=bob server=127.0.0.1:27261"
+   },
+   {
+    "t": 19.7,
+    "kind": "harness",
+    "msg": "popup visible; connecting as bob to 127.0.0.1:27261"
+   },
+   {
+    "t": 32.3,
+    "kind": "harness",
+    "msg": "core loaded (client)"
+   },
+   {
+    "t": 32.3,
+    "kind": "harness",
+    "msg": "test layer loaded (client)"
+   },
+   {
+    "t": 33.3,
+    "kind": "harness",
+    "msg": "client harness loaded"
+   },
+   {
+    "t": 33.3,
+    "kind": "harness",
+    "msg": "client harness Task 7 commands loaded"
+   },
+   {
+    "t": 33.3,
+    "kind": "harness",
+    "msg": "client body harness loaded"
+   },
+   {
+    "t": 33.3,
+    "kind": "harness",
+    "msg": "main menu entered"
+   },
+   {
+    "t": 50.4,
+    "kind": "in_game",
+    "line": "LOG  : General      f:0 st:0> game loading took 15 seconds"
+   },
+   {
+    "t": 51.9,
+    "kind": "harness",
+    "msg": "OnGameStart - in world"
+   },
+   {
+    "t": 53.5,
+    "kind": "harness",
+    "msg": "manifest loaded: user=bob server=127.0.0.1:27261"
+   },
+   {
+    "t": 53.5,
+    "kind": "harness",
+    "msg": "player bob at 10720,10196,0"
+   },
+   {
+    "t": 53.5,
+    "kind": "ready",
+    "line": "LOG  : Lua          f:20 st:2,889,110,821> PZTK: player bob at 10720,10196,0"
+   },
+   {
+    "t": 67.0,
+    "kind": "harness",
+    "msg": "cmd #1 lua.global -> {\"side\":\"client\",\"name\":\"SandboxVars.NR.DeathPace\",\"type\":\"number\",\"resolved\":true,\"value\":1}"
+   },
+   {
+    "t": 67.5,
+    "kind": "harness",
+    "msg": "cmd #2 lua.global -> {\"side\":\"client\",\"name\":\"SandboxVars.NR.HealthCombine\",\"type\":\"number\",\"resolved\":true,\"value\":1}"
+   },
+   {
+    "t": 68.0,
+    "kind": "harness",
+    "msg": "cmd #3 lua.global -> {\"side\":\"client\",\"name\":\"NutritionRevamp.version\",\"type\":\"string\",\"resolved\":true,\"value\":\"1.0.0\"}"
+   },
+   {
+    "t": 68.5,
+    "kind": "harness",
+    "msg": "cmd #4 lua.global -> {\"side\":\"client\",\"name\":\"NutritionRevamp.server.options.deathPace\",\"type\":\"number\",\"resolved\":true,\"value\":3}"
+   },
+   {
+    "t": 69.0,
+    "kind": "harness",
+    "msg": "cmd #5 lua.global -> {\"side\":\"client\",\"name\":\"NutritionRevamp.server.options.healthCombine\",\"type\":\"number\",\"resolved\":true,\"value\":2}"
+   },
+   {
+    "t": 70.5,
+    "kind": "harness",
+    "msg": "cmd #6 lua.call -> {\"ok\":true,\"side\":\"client\",\"path\":\"getText\",\"nargs\":1,\"r1\":\"Recovering from starvation\"}"
+   },
+   {
+    "t": 71.0,
+    "kind": "harness",
+    "msg": "cmd #7 lua.call -> {\"ok\":true,\"side\":\"client\",\"path\":\"getText\",\"nargs\":1,\"r1\":\"Recovering from iron poisoning\"}"
+   },
+   {
+    "t": 72.5,
+    "kind": "harness",
+    "msg": "cmd #8 lua.global -> {\"side\":\"client\",\"name\":\"NutritionRevamp.version\",\"type\":\"string\",\"resolved\":true,\"value\":\"1.0.0\"}"
+   }
+  ]
+ },
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  }
+ ],
+ "players_end": [
+  "admin",
+  "bob"
+ ],
+ "admin_tk_at_end": {
+  "side": "client",
+  "name": "TK.version",
+  "type": "number",
+  "resolved": true,
+  "value": 1
+ },
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 34.4,
+   "ready": 36.9
+  },
+  {
+   "user": "bob",
+   "in_game": 50.4,
+   "ready": 53.5
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "log": "NutritionRevamp|NR_|LuaError|STACK TRACE|lua error|attempted index|tried to call nil",
+   "mismatch": "will be kicked|checksums do not match|ChecksumUpdate|File doesn't match|File doesn't exist|File status unknown|Timed out connection because checksum"
+  },
+  "server": [
+   "LOG  : Mod          f:0 st:2,888,973,903> loading NutritionRevamp",
+   "LOG  : Mod          f:0 st:2,888,973,905> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+   "LOG  : Mod          f:0 st:2,888,973,905> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+   "LOG  : Mod          f:0 st:2,888,973,906> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+   "LOG  : Mod          f:0 st:2,888,973,906> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x485-20261020-213026\\server\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x485-20261020-213026\\server\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x485-20261020-213026\\server\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x485-20261020-213026\\server\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:2,889,015,627> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+   "LOG  : Lua          f:0 st:2,889,015,627> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:2,889,015,636> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+   "LOG  : Lua          f:0 st:2,889,015,636> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:2,889,015,636> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+   "LOG  : Lua          f:0 st:2,889,015,636> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+   "LOG  : Lua          f:0 st:2,889,015,644> [NutritionRevamp] eat guard: ISEatFoodAction.serverStart wrapped",
+   "LOG  : Lua          f:0 st:2,889,015,645> [NutritionRevamp] eat guard: ISEatFoodAction.complete wrapped",
+   "LOG  : Lua          f:0 st:2,889,015,645> [NutritionRevamp] eat guard: ISEatFoodAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:2,889,015,765> [NutritionRevamp] writer: vanilla's hunger, thirst and fatigue rates saved and zeroed at boot (Mode 1); a mode change needs a restart",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:2,889,020,010> [NutritionRevamp] intake: wrappers true drink true world true",
+   "LOG  : Lua          f:0 st:2,889,020,010> [NutritionRevamp] eat guard: wraps true outside the intake true",
+   "LOG  : Lua          f:0 st:2,889,020,011> [NutritionRevamp] options: sleep off: the sleep state freezes at rested and the body clock stops",
+   "LOG  : Lua          f:0 st:2,889,020,011> [NutritionRevamp] options: death pace 1, health combining 1",
+   "LOG  : Lua          f:0 st:2,889,020,011> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=server mode=managed itemPass=true legacyMirror=on frameworks=n/a rates=zeroed limitations=15 nutritionOn=false log=2",
+   "LOG  : Lua          f:0 st:2,889,020,012> [NutritionRevamp] strength: xpUpdate.checkForLosingLevel wrapped",
+   "LOG  : Lua          f:343 st:2,889,055,751> [NutritionRevamp] backup: admin's backup rejected (absent)",
+   "LOG  : Lua          f:343 st:2,889,055,751> [NutritionRevamp] players: first sight of admin",
+   "LOG  : Lua          f:877 st:2,889,109,149> [NutritionRevamp] backup: bob's backup rejected (absent)",
+   "LOG  : Lua          f:877 st:2,889,109,150> [NutritionRevamp] players: first sight of bob",
+   "LOG  : Lua          f:1223 st:2,889,143,747> [NutritionRevamp] players: admin left",
+   "LOG  : Lua          f:1249 st:2,889,146,347> [NutritionRevamp] players: bob left"
+  ],
+  "server_echo_excluded": 15,
+  "mod_error": [],
+  "server_mismatch": [],
+  "files": {
+   "server_user": "server/Logs/2026-10-20_21-30_user.txt",
+   "server_connections": "server/Logs/2026-10-20_21-30_connections.txt",
+   "bob_connections": "clients/bob/Logs/2026-10-20_21-31_connections.txt"
+  },
+  "user": {
+   "anticheat_bob": [],
+   "anticheat_any": [],
+   "fully_connected": [
+    "admin",
+    "bob"
+   ],
+   "read": true
+  },
+  "bob_connections": {
+   "force_checksum": [],
+   "force_any": [
+    "[20-10-26 21:33:23.801] event=\"force-disconnect\" message=\"exit\" guid=1071859600285405611."
+   ],
+   "read": true
+  },
+  "clients": {
+   "admin": [
+    "LOG  : Mod          f:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x485-20261020-213026\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x485-20261020-213026\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x485-20261020-213026\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x485-20261020-213026\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] eat guard: ISEatFoodAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] eat guard: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] eat guard: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=client mode=managed itemPass=true frameworks=none log=2"
+   ],
+   "bob": [
+    "LOG  : Mod          f:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x485-20261020-213026\\clients\\bob\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x485-20261020-213026\\clients\\bob\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x485-20261020-213026\\clients\\bob\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x485-20261020-213026\\clients\\bob\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] eat guard: ISEatFoodAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] eat guard: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] eat guard: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=client mode=managed itemPass=true frameworks=none log=2"
+   ]
+  },
+  "client_mismatch": {
+   "admin": [],
+   "bob": []
+  }
+ },
+ "log_copies": {
+  "server-2026-10-20_21-30_user.txt": {
+   "from": "server/Logs/2026-10-20_21-30_user.txt",
+   "sha256": "7af14e2ff2468922a498d9e0af2280d3afef1c9de602798129e0299578feb312"
+  },
+  "server-2026-10-20_21-30_connections.txt": {
+   "from": "server/Logs/2026-10-20_21-30_connections.txt",
+   "sha256": "978c48f847d4ea5af8c2160acf12e4b0f320342f7ba98ea82cb891035d59fb2d"
+  },
+  "bob-2026-10-20_21-31_connections.txt": {
+   "from": "clients/bob/Logs/2026-10-20_21-31_connections.txt",
+   "sha256": "3ef6732105def587c97ffd812c97edcfb71294b92bd17bf7d53b36d3b61e390a"
+  }
+ },
+ "bus_dead": null,
+ "copied": [
+  "MANIFEST.json"
+ ],
+ "wall_seconds": 187.1
+}
