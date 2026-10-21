@@ -641,7 +641,7 @@ class Scenarios(_Base):
         # Plan 18 Task 5: x495 lifted a hand-set ceiling with a snack and health healed up to it, so a recovering
         # ceiling is no longer wholly unread live; Severity now also scales the deadly dangers' symptoms
         r"No live run has read a recovering ceiling yet", r"No live game has shown a cap recovering yet",
-        r"or an excess brings\. The excess option",
+        r"or an excess brings\. The excess option", r"the unhappiness lifts at once",
     ]
 
     def test_task_11_stale_sentences_stay_gone(self):
@@ -772,8 +772,8 @@ class Scenarios(_Base):
         off the S2d symptom series, which read the kernel's own knots."""
         s2 = self.html[self.html.index('id="s2"'):self.html.index('id="s3"')]
         for frag in ("Exertion shows from the moment a danger starts", "A low ache shows on the Pain moodle",
-                     "in your legs with scurvy or beriberi", "the unhappiness lifts at once",
-                     "the exhaustion eases only as your body recovers", "With sleep on, deep exhaustion",
+                     "in your legs with scurvy or beriberi", "the unhappiness drops with them",
+                     "the stress and the unhappiness ease only as your body recovers", "With sleep on, deep exhaustion",
                      "On the Symptoms view", "Symptoms by progress view", "never lowered",
                      "the snack's pool read before the minute digests it"):
             self.assertIn(frag, s2, frag)
