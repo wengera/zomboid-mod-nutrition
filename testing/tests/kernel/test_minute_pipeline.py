@@ -570,13 +570,14 @@ function(C)
 end
 """
 HEAD_ENGINE_CALLS = {"steady": 67, "drain": 69}   # read at 1398d765
-ENGINE_CALLS = {"steady": 68, "unfed": 67, "drain": 74}
+ENGINE_CALLS = {"steady": 68, "unfed": 67, "drain": 75}
 DAY_READS = {"steady": 1, "unfed": 1, "drain": 1}  # the sandbox's getDayLengthMinutes a minute: since Plan 17 Task 3 the
 # players' minute's one hoisted read (NR.read.hoist), seeded on every player's context, whatever the case (until then a
 # player-minute's read, by Effects' heal or the sated bridge: steady 1, unfed 0, drain 1; Plan 15 Task 6, Task 8 fix 1)
 TASK4_ENGINE_CALLS = {"steady": 67, "drain": 71}  # read at eb3ef7b2 (Plan 15 Task 4b), before option B
 TASK7_ENGINE_CALLS = {"steady": 67, "unfed": 67, "drain": 74}   # read at 56a25b9d (Plan 15 Task 7), before the bridge
 TIMER_WRITES = {"steady": 1, "unfed": 0, "drain": 0}             # setHealthFromFoodTimer a player-minute (Task 8)
+SYMPTOM_WRITES = {"steady": 0, "unfed": 0, "drain": 1}           # Plan 18 Task 2: the ENDURANCE set under the dehydration symptom cap (spec section 3: the cap through the existing write)
 
 
 @pytest.mark.parametrize("case", sorted(ENGINE_CALLS))
@@ -613,7 +614,7 @@ def test_the_drain_adds_only_its_health_read_to_a_player_minute(case):
     assert ((C.by["getOverallBodyHealth"] or 0) - health0) / n == (1 if case == "drain" else 0)
     assert rec["drain"]["active"] is (case == "drain")
     assert ((C.by["setHealthFromFoodTimer"] or 0) - timer0) / n == TIMER_WRITES[case]
-    assert ENGINE_CALLS[case] == TASK7_ENGINE_CALLS[case] + TIMER_WRITES[case]
+    assert ENGINE_CALLS[case] == TASK7_ENGINE_CALLS[case] + TIMER_WRITES[case] + SYMPTOM_WRITES[case]
     if case in TASK4_ENGINE_CALLS:
         assert TASK7_ENGINE_CALLS[case] <= TASK4_ENGINE_CALLS[case] + (3 if case == "drain" else 0)
         assert TASK4_ENGINE_CALLS[case] <= HEAD_ENGINE_CALLS[case] + 2

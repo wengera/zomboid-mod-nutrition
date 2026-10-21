@@ -26,11 +26,48 @@
 -- malaria-setting trial); the two vitamin D rows are gated off.
 -- Additions beyond the briefing's SURF list, each named by its own A-section: bruise (F4's per-minute purpura
 -- probability, A3's own example entry), tempHeat (G's dehydration heat side, applied by the adapter only while
--- exerting, met >= 3, so the set stays a pure function of its trigger), foodSickTarget (T1-1), enduranceCap (Plan 15
--- Task 8: the ENDURANCE ceiling of the Overfull slowing, which the writer holds), foodSickStep (Task 8 fix 1: a
--- FOOD_SICKNESS level the writer raises at once).
+-- exerting, met >= 3, so the set stays a pure function of its trigger), foodSickTarget (T1-1), rowEndCap (Plan 15
+-- Task 8: the ENDURANCE ceiling of the Overfull slowing; the writer holds enduranceCap, the lower of it and the symptom
+-- cap, K.effects.symptoms), foodSickStep (Task 8 fix 1: a FOOD_SICKNESS level the writer raises at once).
+-- SYMPTOMS (Plan 18, spec docs/superpowers/specs/2026-10-21-symptoms-design.md) is the lethal causes' symptom table,
+-- folded every minute by K.effects.symptoms on each cause's progress p = 1 - record.drain.frac[code], not by the
+-- composer: CAUSES[code] = { name, overlayOff, list }, each list entry { lever, shape, ... } with lever endurance (a
+-- cap), pain (a summed PAIN target shared over parts, part indices of BodyPartType), stress or unhappy (a floor) and
+-- shape flat (v), linear (a at p 0, b at p 1) or knots (k, a flat array of p, v pairs). The magnitudes are game choices
+-- set from Plan 18 Task 1's live probe (x491, x492, x493), each named once below; the research plan swaps the shapes.
 local NR = NutritionRevamp
 NR.data = NR.data or {}
+
+-- Plan 18's symptom rows every cause shares (SYMPTOMS below), one table each, read by K.effects.symptoms and never written.
+-- The flat PAIN target summed over a cause's parts: Pain level 1 is PAIN above 10 and at most 20 (#2369), and 15 is its
+-- band's middle; x491-20261021-061440 held added pain 20 on Torso_Lower (PAIN 14.3, modifier 0.78) at level 1 on both sides.
+local SYM_PAIN = 15 -- game choice, flat while the cause is active, a placeholder for the researched pang and ache shapes (open S2247)
+-- The endurance cap deepens with progress from Endurance level 1 at onset to level 4 at the death point, linear between
+-- the four levels' caps at the 90-minute day (each level's upper edge less one game minute of the worst regeneration,
+-- K.hybrid.capAt, which re-sizes them for the day length); x493-20261021-062610 held 0.74, 0.49, 0.24 and 0.09 at levels
+-- 1 to 4 on both sides.
+local SYM_END = { lever = "endurance", shape = "knots", k = {
+    0, 0.73, -- level 1 at onset, under 0.75 (#3926); game choice (open S1176)
+    1 / 3, 0.48, -- level 2, under 0.5 (#3926); game choice (open S1176)
+    2 / 3, 0.23, -- level 3, under 0.25 (#3926); game choice (open S1176)
+    1, 0.08, -- level 4 at the death point, under 0.10 (#3926); game choice (open S1176)
+} }
+-- The stress floor: Stress level 1 from halfway (above 0.25), level 2 near the end (above 0.5; #2369); x493 held 0.30 and
+-- 0.55 at levels 1 and 2 on both sides, falling 0.0016 to 0.0018 a game minute between writes.
+local SYM_STRESS = { lever = "stress", shape = "knots", k = {
+    0, 0, -- none at onset; game choice (open S1145)
+    0.5, 0.30, -- Stress level 1 halfway (#2369); game choice (open S1145)
+    0.9, 0.55, -- Stress level 2 near the end (#2369); game choice (open S1145)
+    1, 0.55, -- held to the death point; game choice (open S1145)
+} }
+-- The unhappiness floor: Unhappy level 1 from halfway (above 20), level 2 near the end (above 45; #2369); x493 held 25
+-- and 50 at levels 1 and 2 on both sides, never falling between writes (released by the writer's subtraction, #3119).
+local SYM_UNHAPPY = { lever = "unhappy", shape = "knots", k = {
+    0, 0, -- none at onset; game choice (open S1145)
+    0.5, 25, -- Unhappy level 1 halfway (#2369); game choice (open S1145)
+    0.9, 50, -- Unhappy level 2 near the end (#2369); game choice (open S1145)
+    1, 50, -- held to the death point; game choice (open S1145)
+} }
 
 NR.data.effects = {
     -- The vitamin D rows ship gated off until an outdoor-daylight seat exists (no cutaneous term, open S1064).
@@ -52,7 +89,7 @@ NR.data.effects = {
         tempOffset = { op = "add", id = 0, lo = -0.5, hi = 0.3 }, -- core target offset, degrees C; game choice clamp around the -0.2 falls (S1016, open S1161) and the +0.3 rise (open S1160)
         tempHeat = { op = "add", id = 0, lo = 0, hi = 0.3 }, -- the exertion-gated heat side, degrees C; game choice magnitude (open S1160)
         speedMul = { op = "min", id = 1, lo = 0.75, hi = 1.0 }, -- the direct speed write; game choice floor (open S1176)
-        enduranceCap = { op = "min", id = 1, lo = 0.73, hi = 1.0, sevMin = 0.5 }, -- the ENDURANCE ceiling the writer holds (Plan 15 Task 8); game choice floor at the Overfull row's value, and on at Severity 0.5 or more, off below, never partial (open S1176)
+        rowEndCap = { op = "min", id = 1, lo = 0.73, hi = 1.0, sevMin = 0.5 }, -- the rows' ENDURANCE ceiling (Plan 15 Task 8), under the writer's enduranceCap; game choice floor at the Overfull row's value, and on at Severity 0.5 or more, off below, never partial (open S1176)
         foodSickStep = { op = "max", id = 0, lo = 0, hi = 85 }, -- a FOOD_SICKNESS level raised at once, not at the floor's pace (Plan 15 Task 8 fix); game choice (open S1165)
         fOffNut = { op = "add", id = 0, lo = 0, hi = 0.15 }, -- the nutritional fatigue offset; game choice cap so no state alone crosses Tired 1 (open S1132)
         bruise = { op = "max", id = 0, lo = 0, hi = 1 }, -- spontaneous-bruise probability per game minute; a probability, no row needed
@@ -514,10 +551,76 @@ NR.data.effects = {
         -- nausea, FOOD_SICKNESS raised at once to 30 (SICK 1, #3130, #2369; foodSickStep); its refusal is vanilla's timer
 -- (K.view.foodTimer).
         { src = "overfull", on = "flag", at = { 3, 4 }, list = { -- Bloated and Painfully stuffed, S1253 the scale's top
-            { ch = "stat", s = "enduranceCap", v = 0.73, row = "S1253", gc = true }, -- 0.75 less the standing regeneration of about 0.0056 a game minute at the 90-minute day (#2258), so the level holds between writes; game choice (open S1176; spec section 10: the Overfull 3 penalty size)
+            { ch = "stat", s = "rowEndCap", v = 0.73, row = "S1253", gc = true }, -- 0.75 less the standing regeneration of about 0.0056 a game minute at the 90-minute day (#2258), so the level holds between writes; game choice (open S1176; spec section 10: the Overfull 3 penalty size)
         } },
         { src = "overfull", on = "flag", at = 4, list = { -- maximal discomfort at the hard capacity, S1253
             { ch = "stat", s = "foodSickStep", v = 30, row = "S1253", gc = true }, -- nausea as SICK 1 at once, the UL rung's size; vanilla's own decay (about 2.7 an hour, #3084) then lets it linger about 1.8 game hours; game choice (open S1165)
         } },
+    },
+    SYMPTOMS = {
+        PAIN_TOP = 20, -- a part's added pain capped at 20 over its pain modifier, Pain level 1's band top (PAIN above 10, at most 20, #2369), so causes sharing a part add no more than level 1 there (causes on different parts still sum); game choice (open S1147)
+        CAP_LO = 0.05, -- the symptom cap's floor under Severity above 1, inside Endurance level 4 (at most 0.10, #3926); game choice (open S1176)
+        STRESS_HI = 0.70, -- the stress floor's cap under Severity, one step under Stress level 3 at 0.75 (#2369), as the surfaces' caps (S1147); game choice (open S1147)
+        UNHAPPY_HI = 59, -- the unhappiness floor's cap under Severity, one under Unhappy level 3 at 60 (#2369), as unhappyTarget's; game choice (open S1147)
+        CAUSES = {
+            { name = "starvation", overlayOff = true, list = {
+                SYM_END,
+                SYM_STRESS,
+                SYM_UNHAPPY,
+                { lever = "pain", shape = "flat", v = SYM_PAIN, parts = {
+                    7, -- Torso_Lower, the stomach: abdominal pain (S2239) from the onset at 30 unfed hours; game choice part pending research (open S2247)
+                } },
+            } },
+            { name = "scurvy", list = {
+                SYM_END,
+                SYM_STRESS,
+                SYM_UNHAPPY,
+                { lever = "pain", shape = "flat", v = SYM_PAIN, parts = {
+                    13, -- LowerLeg_L: joint pain and swelling (S0227); vanilla has no knee part; game choice part pending research (open S1168)
+                    14, -- LowerLeg_R, as LowerLeg_L (S0227); game choice part pending research (open S1168)
+                } },
+            } },
+            { name = "beriberi", list = {
+                SYM_END,
+                SYM_STRESS,
+                SYM_UNHAPPY,
+                { lever = "pain", shape = "flat", v = SYM_PAIN, parts = {
+                    13, -- LowerLeg_L: the legs of wet beriberi's oedema (S0244); game choice part pending research (open S1169)
+                    14, -- LowerLeg_R, as LowerLeg_L (S0244); game choice part pending research (open S1169)
+                } },
+            } },
+            { name = "pellagra", list = {
+                SYM_END,
+                SYM_STRESS,
+                SYM_UNHAPPY,
+                { lever = "pain", shape = "flat", v = SYM_PAIN, parts = {
+                    7, -- Torso_Lower: the diarrhoea of pellagra (S0272); game choice part pending research (open S1170)
+                } },
+            } },
+            { name = "hyponatraemia", list = {
+                SYM_END,
+                SYM_STRESS,
+                SYM_UNHAPPY,
+                { lever = "pain", shape = "flat", v = SYM_PAIN, parts = {
+                    8, -- Head: headache as a central-nervous symptom under 120 mmol/L (S1047); game choice part pending research (open S1171)
+                } },
+            } },
+            { name = "dehydration", overlayOff = true, list = {
+                SYM_END,
+                SYM_STRESS,
+                SYM_UNHAPPY,
+                { lever = "pain", shape = "flat", v = SYM_PAIN, parts = {
+                    8, -- Head: headache from about 5 % of body mass (S2248); game choice part pending research (open S1101)
+                } },
+            } },
+            { name = "iron", list = {
+                SYM_END,
+                SYM_STRESS,
+                SYM_UNHAPPY,
+                { lever = "pain", shape = "flat", v = SYM_PAIN, parts = {
+                    7, -- Torso_Lower, the gut of an acute overdose (spec section 1.3); game choice part pending research (open S1173)
+                } },
+            } },
+        },
     },
 }

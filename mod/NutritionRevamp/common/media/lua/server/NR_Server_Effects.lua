@@ -497,7 +497,8 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     -- the drain states (K.drain): the target and rate this minute, and the starvation phase the flags read
     local D = record.drain
     local wasState = type(D) == "table" and D.active and D.state or 0
-    D = K.drain.step(record, dtM, ageH, EFF.overlay())
+    local overlay = EFF.overlay()
+    D = K.drain.step(record, dtM, ageH, overlay)
     local phase = K.drain.starvePhase(D.starvedH)
 
     -- 2. the bands and the flags (file-scope scratch tables)
@@ -538,6 +539,13 @@ local function step(username, player, record, body, dtM, ageH, ctx)
         rebuilt = true
         EFF.stats.rebuilds = EFF.stats.rebuilds + 1
     end
+    -- 3b. the lethal causes' symptoms on each cause's progress (Plan 18, K.effects.symptoms), every minute: the endurance
+    -- cap, the mood floors and the added pain per part; the day length read only while a cause is active (pain can apply)
+    local symDay = 0
+    if D.mask > 0 then
+        symDay = NR.read.dayMin(ctx, K.drain.DAY_MINUTES)
+    end
+    K.effects.symptoms(E, T, D, sev, overlay, symDay)
 
     -- 4. the per-minute scalars
     E.fOff = K.effects.fOff(a.debtH, a.caf, a.cafTol, E.fOffNut)

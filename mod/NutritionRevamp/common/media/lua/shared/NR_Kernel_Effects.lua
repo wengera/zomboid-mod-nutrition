@@ -163,7 +163,13 @@ function K.effects.new()
         tempOffset = 0,
         tempHeat = 0,
         speedMul = 1,
+        rowEndCap = 1,
+        symCap = 1,
         enduranceCap = 1,
+        stressFloor = 0,
+        unhappyFloor = 0,
+        pain = { [0] = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+        painOn = false,
         foodSickStep = 0,
         fOffNut = 0,
         bruise = 0,
@@ -485,6 +491,7 @@ function K.effects.compose(E, T, nut, b, pe, ea, flags, sev, bonusOn, vitdOn)
     end
     local A = K.effects
     E.aimMul = K.clamp(1 + A.AIM_K * b[A.B.iu] * A.IU_STEP, A.AIM_LO, A.AIM_HI)
+    E.enduranceCap = K.min(E.rowEndCap, E.symCap)
     E.epoch = E.epoch + 1
     return E
 end
@@ -579,4 +586,167 @@ end
 -- The temperature offset the writer targets (G): the composed surface.
 function K.effects.tempOffset(E)
     return E.tempOffset
+end
+
+-- The symptoms of the lethal causes (Plan 18; spec docs/superpowers/specs/2026-10-21-symptoms-design.md, sections 1-2):
+-- each cause code 1-7 of K.drain carries a list of rows in the table's SYMPTOMS.CAUSES (NR_Data_Effects.lua), read on the
+-- cause's progress p = 1 - D.frac[code], 0 at onset and 1 at its death point, so the symptoms follow the death pace and
+-- ease while the ceiling recovers (Plan 17 R2). A row names a lever (endurance, pain, stress, unhappy), a shape (flat,
+-- linear, knots) and its magnitude; pain also names its body parts. Overlap: the lowest endurance cap, pain summed per
+-- body part under a cap, the highest stress and unhappiness floors. Pain applies only while the cause is active (its
+-- bit in D.mask), never while it is merely recovering. Severity scales every magnitude (a cap by the min surface's
+-- 1 - (1 - v) x sev); Overlay (vanilla owns HUNGER and THIRST) drops the causes marked overlayOff. Per minute, with no
+-- allocation; with no cause applied the loop never runs.
+K.effects.PAIN_PARTS = 17 -- BodyPartType's 17 parts, indices 0..16 (MAX excluded): no row needed
+-- The pain modifier per part index (VANILLA BodyPartType.<clinit> L13-L29, the first float argument painModifier,
+-- BodyPartType.<init> @11-@14 L51; read on 42.21, Plan 18 Task 1 J5): PAIN's target is the sum of part pain x it.
+K.effects.PAIN_MOD = {
+    [0] = 0.5, -- Hand_L, VANILLA L13
+    0.5, -- Hand_R, VANILLA L14
+    0.6, -- ForeArm_L, VANILLA L15
+    0.6, -- ForeArm_R, VANILLA L16
+    0.6, -- UpperArm_L, VANILLA L17
+    0.6, -- UpperArm_R, VANILLA L18
+    0.7, -- Torso_Upper, VANILLA L19
+    0.78, -- Torso_Lower, VANILLA L20 (the float 0.7799999713897705)
+    0.8, -- Head, VANILLA L21
+    0.8, -- Neck, VANILLA L22
+    0.7, -- Groin, VANILLA L23
+    0.7, -- UpperLeg_L, VANILLA L24
+    0.7, -- UpperLeg_R, VANILLA L25
+    0.6, -- LowerLeg_L, VANILLA L26
+    0.6, -- LowerLeg_R, VANILLA L27
+    0.5, -- Foot_L, VANILLA L28
+    0.5, -- Foot_R, VANILLA L29
+}
+-- Half of one game minute's added-pain decay per real minute of day length: VANILLA BodyPart.DamageUpdate @2312-@2353
+-- L500-L503 lowers it 0.005 a multiplier unit (Plan 18 Task 1 J3), 2 x dayMin units a game minute (#2922), so 0.01 x
+-- dayMin a minute; measured 0.899983361325089 at the 90-minute day (x491-20261021-061440) and 0.15000031795638447 at
+-- the 15-minute day (x492-20261021-062157). Added on top of a part's set value, it centres the dip between writes.
+K.effects.PAIN_HALF_DIP = 0.005
+-- The day length above which the half dip is added: game choice; at or under it a summed target of 15 keeps over 4 PAIN
+-- above Pain level 1's edge through the whole minute's dip (Plan 18 Task 1's recommendation).
+K.effects.PAIN_DIP_DAY = 600
+-- A cause code's bit in D.mask and D.recovering, 2^(code - 1) (K.drain.consider): no row needed.
+K.effects.BIT = { 1, 2, 4, 8, 16, 32, 64 }
+
+-- A shape's value at progress p (0..1): flat v; linear from a at p 0 to b at p 1; knots, a flat array of (p, v) pairs
+-- in ascending p, piecewise linear between them and held beyond the first and the last.
+function K.effects.shapeAt(r, p)
+    local sh = r.shape
+    if sh == "flat" then
+        return r.v
+    end
+    if sh == "linear" then
+        return r.a + (r.b - r.a) * p
+    end
+    local k = r.k
+    -- k is a Lua array the data file builds (no Java list), so # is its length
+    local n = #k
+    if p <= k[1] then
+        return k[2]
+    end
+    for i = 3, n - 1, 2 do
+        if p <= k[i] then
+            local p0 = k[i - 2]
+            local v0 = k[i - 1]
+            return v0 + (k[i + 1] - v0) * (p - p0) / (k[i] - p0)
+        end
+    end
+    return k[n]
+end
+
+-- Whether a cause code's bit is set in a mask (D.mask or D.recovering).
+function K.effects.hasBit(mask, code)
+    return math.floor(mask / K.effects.BIT[code]) % 2 == 1
+end
+
+-- One cause's rows folded into the running cap and floors (returned) and, while active, its pain into E.pain.
+function K.effects.symptomRows(E, list, p, active, sev, cap, st, un)
+    -- list is a Lua array the data file builds (no Java list), so # is its length
+    for j = 1, #list do
+        local r = list[j]
+        local lever = r.lever
+        local v = K.effects.shapeAt(r, p)
+        if lever == "endurance" then
+            cap = K.min(cap, 1 - (1 - v) * sev)
+        elseif lever == "stress" then
+            st = K.max(st, v * sev)
+        elseif lever == "unhappy" then
+            un = K.max(un, v * sev)
+        elseif lever == "pain" and active then
+            K.effects.painShare(E, r.parts, v * sev)
+        end
+    end
+    return cap, st, un
+end
+
+-- A cause's PAIN target t shared across its parts: each part gains t / n / its modifier of added pain.
+function K.effects.painShare(E, parts, t)
+    if not (t > 0) then
+        return
+    end
+    local P = E.pain
+    local mod = K.effects.PAIN_MOD
+    -- parts is a Lua array the data file builds (no Java list), so # is its length
+    local share = t / #parts
+    for k = 1, #parts do
+        local i = parts[k]
+        P[i] = P[i] + share / mod[i]
+    end
+    E.painOn = true
+end
+
+-- Each painful part capped at top / its modifier (the level-1 band's top at Severity 1), then the half dip added on a
+-- day longer than PAIN_DIP_DAY.
+function K.effects.painCap(P, top, dayMin)
+    local A = K.effects
+    local dip = 0
+    if dayMin > A.PAIN_DIP_DAY then
+        dip = A.PAIN_HALF_DIP * dayMin
+    end
+    for i = 0, A.PAIN_PARTS - 1 do
+        if P[i] > 0 then
+            P[i] = K.min(P[i], top / A.PAIN_MOD[i]) + dip
+        end
+    end
+end
+
+-- The minute's symptoms (spec sections 1.1-1.6): E.symCap (the causes' lowest endurance cap, clamped), E.enduranceCap
+-- (the lower of it and the rows' Overfull cap), E.stressFloor and E.unhappyFloor (the highest, clamped), E.pain[i] (the
+-- added pain per part index, summed, capped at the level-1 band's top over the part's modifier, plus the half dip on
+-- long days; 0 when none) and E.painOn (any pain). T is the effects table, D record.drain (frac, mask, recovering), sev
+-- the Severity dial, overlay Mode 2, dayMin the day length (read only for pain; 0 when no cause is active).
+function K.effects.symptoms(E, T, D, sev, overlay, dayMin)
+    local S = T.SYMPTOMS
+    local P = E.pain
+    if E.painOn then
+        for i = 0, K.effects.PAIN_PARTS - 1 do
+            P[i] = 0
+        end
+        E.painOn = false
+    end
+    local cap = 1
+    local st = 0
+    local un = 0
+    if D.mask > 0 or D.recovering > 0 then
+        local C = S.CAUSES
+        -- CAUSES is a Lua array the data file builds (no Java list), so # is its length
+        for code = 1, #C do
+            local c = C[code]
+            local f = D.frac[code]
+            if f ~= nil and not (overlay and c.overlayOff) then
+                local active = K.effects.hasBit(D.mask, code)
+                cap, st, un = K.effects.symptomRows(E, c.list, K.clamp(1 - f, 0, 1), active, sev, cap, st, un)
+            end
+        end
+    end
+    if E.painOn then
+        K.effects.painCap(P, S.PAIN_TOP * sev, dayMin)
+    end
+    E.symCap = K.clamp(cap, S.CAP_LO, 1)
+    E.enduranceCap = K.min(E.rowEndCap, E.symCap)
+    E.stressFloor = K.min(st, S.STRESS_HI)
+    E.unhappyFloor = K.min(un, S.UNHAPPY_HI)
+    return E
 end

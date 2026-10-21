@@ -27,7 +27,8 @@ DERIVED = {
     "effects": {"key", "mNut", "rNut", "stressTarget", "unhappyTarget", "panicTarget", "foodSickTarget",
                 "poisonTarget", "healMul", "bleedMul", "infectMul", "coldMul", "tempOffset", "tempHeat", "speedMul",
                 "fOffNut", "bruise", "nightVision", "shortSighted", "aimMul", "fOff", "solAddH", "solMul",
-                "intoxTarget", "tempTarget", "mAcc", "rRec", "enduranceCap", "foodSickStep"},   # Plan 15 Task 8
+                "intoxTarget", "tempTarget", "mAcc", "rRec", "enduranceCap", "foodSickStep",   # Plan 15 Task 8
+                "rowEndCap", "symCap", "stressFloor", "unhappyFloor", "pain", "painOn"},   # Plan 18: the symptoms, per minute
     # Plan 15 Task 4: the drain engine's per-minute outputs (K.drain.step); Plan 17 Task 2: the target and the fractions
     "drain": {"active", "state", "mask", "recovering", "target", "frac", "rate", "drainThisMinute", "starvedH",
               "starving", "starveAcute", "dehydrated"},   # Plan 17 revision R2: the recovering set

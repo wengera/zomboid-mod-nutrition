@@ -113,23 +113,35 @@ function K.hybrid.write(inp, out, c)
     out.endurance = K.hybrid.endCap(out.endurance, inp.endurance, inp.endCap)
 end
 
--- The ENDURANCE ceiling (Plan 15 Task 8): the effects' enduranceCap (the Overfull slowing, NR_Data_Effects.lua) holds
--- ENDURANCE at or under it. e is the value this write already chose (nil for none), e1 the value read; a cap of 1 or
--- more, or NaN, holds nothing. Returns the value to write, or nil for no write: a minute
--- already at or under the cap writes nothing more.
-K.hybrid.END_EDGE = 0.75 -- VANILLA MoodleStat.<clinit> @10-@25 L10: ENDURANCE level 0 above 0.75
-K.hybrid.END_FLOOR = 0.51 -- game choice (spec section 10: the Overfull 3 penalty size): just above level 1's 0.5 floor
+-- The ENDURANCE ceiling (Plan 15 Task 8; Plan 18): the effects' enduranceCap (the lower of the Overfull slowing's and the
+-- lethal causes' symptom caps, K.effects.symptoms) holds ENDURANCE at or under it. e is the value this write already
+-- chose (nil for none), e1 the value read; a cap of 1 or more, or NaN, holds nothing. Returns the value to write, or nil
+-- for no write: a minute already at or under the cap writes nothing more.
+-- The Endurance moodle's level edges, descending, the last the stat's floor: level 0 above 0.75, 1 above 0.5, 2 above
+-- 0.25, 3 above 0.10, 4 at or under 0.10 (VANILLA MoodleStat.<clinit> @10-@25 L10, #3926; held on 42.21, Plan 18 Task 1
+-- J12-J13; x493-20261021-062610 held caps 0.74, 0.49, 0.24 and 0.09 at levels 1 to 4 on both sides).
+K.hybrid.END_EDGES = { 0.75, 0.5, 0.25, 0.10, 0 }
+K.hybrid.END_BAND_EPS = 0.01 -- game choice (spec section 10: the Overfull 3 penalty size; Plan 18): a cap never at or within 0.01 of its level's lower edge, as level 1's former floor 0.51
 K.hybrid.END_REGEN_UNIT = 0.0000930 / 3 * 1.8 * 1.6 -- VANILLA #2258 at Very Fast regeneration and Fitness 10, the worst case
 
--- The ceiling at a day length of dayMin real minutes (Plan 15 Task 8 fix 1): room under the level-0 edge for one game
--- minute of the worst standing regeneration (2 x dayMin multiplier units, #2922), never under END_FLOOR nor above cap;
--- a cap of 1 or more (or NaN) is returned as it is.
+-- The ceiling at a day length of dayMin real minutes (Plan 15 Task 8 fix 1, generalised to every level in Plan 18): in
+-- the level whose band holds the cap, room under the band's upper edge for one game minute of the worst standing
+-- regeneration (2 x dayMin multiplier units, #2922; x493 measured 0.0066 a game minute for a rested character, and a
+-- cap 0.002 under the edge flipped), never at or under the band's lower edge plus END_BAND_EPS nor above cap; a cap in
+-- level 0's band (no moodle edge to keep), of 1 or more, or NaN is returned as it is.
 function K.hybrid.capAt(cap, dayMin)
-    if not (cap < 1) then
+    local E = K.hybrid.END_EDGES
+    if not (cap <= E[1]) then
         return cap
     end
-    local room = K.hybrid.END_EDGE - K.hybrid.END_REGEN_UNIT * K.drain.UNITS_PER_MIN * dayMin
-    return K.min(cap, K.max(K.hybrid.END_FLOOR, room))
+    local margin = K.hybrid.END_REGEN_UNIT * K.drain.UNITS_PER_MIN * dayMin
+    for i = 1, 4 do
+        local lo = E[i + 1]
+        if cap > lo then
+            return K.min(cap, K.max(lo + K.hybrid.END_BAND_EPS, E[i] - margin))
+        end
+    end
+    return cap
 end
 
 function K.hybrid.endCap(e, e1, cap)

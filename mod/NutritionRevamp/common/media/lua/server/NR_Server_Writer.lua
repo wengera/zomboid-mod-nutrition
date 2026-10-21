@@ -482,8 +482,8 @@ function W.step(username, player, record, ctx)
     inp.endurance = eng.endurance
     inp.lastEndurance = h.lastEnd
     inp.rmod = finiteOr(body.rmod, 1)
-    inp.endCap = finiteOr(E.enduranceCap, 1)                     -- the Overfull slowing's ceiling (Plan 15 Task 8)
-    if inp.endCap < 1 then                                        -- sized from the day length, read only at Overfull 3-4 (fix 1)
+    inp.endCap = finiteOr(E.enduranceCap, 1)                     -- the Overfull and symptom ceiling (Plan 15 Task 8, Plan 18)
+    if inp.endCap < 1 then                                        -- sized from the day length, read only under a ceiling (fix 1)
         inp.endCap = K.hybrid.capAt(inp.endCap, NR.read.dayMin(ctx, K.drain.DAY_MINUTES))
     end
     K.hybrid.write(inp, out, W.c)
