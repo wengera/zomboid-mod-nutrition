@@ -2347,8 +2347,8 @@ def s_s2a():
                "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. "
                "The day without food opens the starvation state %.2f h after the last meal, when the meal pool has "
                "been empty for %g hours (K.drain.STARVE_ONSET_H, #3962): HUNGER lifts to Starving and health drains "
-               "toward the target until the next meal ends the state, %.2f health in all; its ceiling then rises back as "
-               "the record-day closes book the weight regained. "
+               "toward the target until the next meal ends the state, %.2f health in all; its ceiling then holds until "
+               "the next record-day close books the weight regained. "
                % (v["drain"][0] - last_h, float(KHost().K.drain.STARVE_ONSET_H), 100.0 - v["min_health"])
                + PLATE_NOTE.replace("08:00 to 22:00", "09:00 to 23:00") + " " + proof_note("S2a-m-kernel")),
     ]
@@ -2381,7 +2381,8 @@ def s_s2b():
                "Sleep on, 23:00-07:00 (the oracle's protocol); the oracle's 70 kg man, the body its bands were fitted "
                "on; its meals plates of real foods with water (rule R-1). The proof run's fast (x271, x272) fails the "
                "admission test at HEAD (VALIDATION). The fast arm's skipped day opens the starvation state briefly "
-               "before its next meal (%.2f health, #3962), and its ceiling rises back as the weight returns."
+               "before its next meal (%.2f health, #3962), and its ceiling holds until the next record-day close "
+               "books the weight regained."
                % (100.0 - v["min_health"])),
         series("S2b-study-1613", "Johnstone 2002", "day after the fast", "intake / the fed arm's", "study",
                [["day 2", 12.2 / 10.2]], study("S1613"), "12.2 against 10.2 MJ on the day after a 36 h fast."),
