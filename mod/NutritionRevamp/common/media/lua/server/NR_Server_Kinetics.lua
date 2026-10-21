@@ -209,6 +209,12 @@ local function step(username, player, record, ctx)
     if dtH > 0 then
         local meal = K.stomach.context(record.stomach, KIN.ctx)   -- the meal, before this minute's emptying
         local pool = KIN.meal(record, player, username, ctx)       -- nil for an M the writer has yet to seed
+        if pool ~= nil then
+            -- the meal spell reads the pool an eat landed before this minute's clearance takes it (Plan 18 Task 3b):
+            -- effects' K.drain.step reads the cleared M later in the minute, so a 200 kcal snack (SUSPEND_M) opened no
+            -- spell; the later read only holds or closes it (an M at FED_M or more keeps it, an M under closes it)
+            K.drain.spellStep(K.drain.ensure(record), pool.M)
+        end
         local emptied = KIN.drain(record.stomach, dtH * 60, pool)
         KIN.landMeal(record, pool, username)
         local absorbed = K.stomach.absorb(emptied, meal)

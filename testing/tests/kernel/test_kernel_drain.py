@@ -1528,3 +1528,32 @@ def test_a_deficiency_back_at_clinical_resumes_its_own_clock(host, D):
     assert d.mask == 4 and d.recovering == 0
     assert d.frac[3] == pytest.approx(1 - 8.0 / 840, abs=1e-12)
     assert rec.drain.bbH == pytest.approx(8.0 + 1 / 60, abs=1e-12)
+
+
+# --- Plan 18 Task 3b: the snack spell check reads the pool before the minute clears it ----------------------------
+
+@pytest.mark.parametrize("dtM", [1.0, 1.6])
+def test_a_200_kcal_snack_ends_a_starving_bodys_acute_state_in_the_next_minute(dtM):
+    # Plan 18 Task 3b (task-4-driver-review.md, Concern 1): the minute runs kinetics, whose meal-pool clearance takes
+    # the whole minute off M, before effects, whose K.drain.step reads M for the spell; the spell is read off the pool
+    # before the clearance, so the 15/50/35 snack that lands SUSPEND_M opens it at dtM 1 and at speed 5's dtM 1.6
+    import os
+    import sys
+    tools = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+                         "tools")
+    if tools not in sys.path:
+        sys.path.insert(0, tools)
+    import fit_hunger_curve as F
+    import replay_live as RL
+    k0 = int(40 * 60 / dtM)                                                    # 40 game hours unfed
+    ev = [e for e in F.water(3) if e["minute"] < k0] + [{"minute": k0, "kind": "meal", "size": 200.0}]  # RL.MIXED
+    be = RL.ServerReplay(hour_offset=F.HOUR_OFFSET, rng="half", sleep_allowed=False)
+    rows = RL.run(be, RL.synthetic_ages(k0 + 3, dtM=dtM), sorted(ev, key=lambda e: e["minute"]),
+                  list(F.PATHS) + ["drain.spell"], start_age=0.0)
+    assert RL.MIXED == {"p": 0.15, "c": 0.50, "f": 0.35}
+    before, after = rows[k0 - 1], rows[k0]
+    assert before["drain.starveAcute"] is True and before["satiety.M"] < be.K.hungerCurve.FED_M
+    assert after["satiety.M"] < be.K.drain.SUSPEND_M                           # the minute's clearance ran first
+    assert after["drain.spell"] is True                                        # read off the pool before it
+    assert after["drain.starveAcute"] is False
+    assert rows[k0 + 1]["drain.starveAcute"] is False
