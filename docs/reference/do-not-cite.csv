@@ -22481,3 +22481,14 @@ x492-20261021-062157,readings.RELOG.depart,done false after 42 polls,A driver de
 x492-20261021-062157,verdicts.P3_RELOG.observed,an unmeasured grade,The grade never measured (no rejoin).,`readings.RELOG.before.additionalPain`
 x492-20261021-062157,verdicts.P3_RESTART.observed,an unmeasured grade,The grade never measured (its set found no player).,`readings.RESTART.back.additionalPain`
 x492-20261021-062157,verdicts.P2_GM_D1.observed.want,0.15,The formula 0.01 x dayMin; not a reading.,`verdicts.P2_GM_D1.observed.per_gm`
+x493-20261021-062610,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x493-20261021-062610,constants,the lib's constants,"Settings of the driver, not readings.",
+x493-20261021-062610,world_changes,the driver's text,Written before the run; not readings.,
+x493-20261021-062610,meta.budget_s,510.0,The driver's own budget; not a reading.,
+x493-20261021-062610,verdicts.*.predicted,the driver's predictions,Copies of `predictions`; not readings.,`verdicts.<name>.observed`
+x493-20261021-062610,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x493-20261021-062610,preboot,the offline checks,Checks of files before the boot; not readings.,
+x493-20261021-062610,verdicts.P4_CLIMB.observed.hi,9.10656e-05,"END_REGEN_UNIT x 1.02, the grade's bound; not a reading.",`verdicts.P4_CLIMB.observed.median_per_unit`
+x493-20261021-062610,verdicts.P4_CLIMB.observed.median_over_base,1.1805629636517696,A ratio to a constant; not a reading.,`verdicts.P4_CLIMB.observed.median_per_unit`
+x493-20261021-062610,verdicts.P4_TIGHT.observed.margin,0.0020000000000000018,0.75 minus the cap; not a reading.,
+x493-20261021-062610,verdicts.P4_TIGHT.observed.flip_predicted,true,The grade's prediction from the climb; not a reading.,`verdicts.P4_TIGHT.observed.flip_seen`
