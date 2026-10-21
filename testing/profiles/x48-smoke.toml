@@ -1,0 +1,42 @@
+# testing/profiles/x48-smoke.toml - Plan 17 Task 7b (run x485): the smoke boot of the FINAL upload copy (re-staged after
+# x483/x484 from mod/'s last commit 4ff68475: the close fix wave's comments, N1, N4, revision R2's kernel and panel keys).
+# A copy of x48-options.toml with its own name and option values. PZTestKit + the STAGED upload copy
+# (release/NutritionRevamp/Contents/mods/NutritionRevamp, re-staged with `python tools/release_pack.py stage
+# mod/NutritionRevamp --out release`; release/ is gitignored; mod/ is never booted, CLAUDE.md s5) on fixture `two`:
+# admin (-debug, role admin) then bob (release, role user). Nutrition false (ruling T18-1), DayLength 1, sleep off.
+# [sandbox.NR] DeathPace = 1 (Vanilla; the declared default 3, x483's 2) and HealthCombine = 1 (Worst; the declared
+# default 2, x483's 3), merged into the server's Server/pzt_SandboxVars.lua at seed. The driver is
+# testing/experiments/x485_smoke.py; it starts and watches bob itself, so a never-ready bob is a reading. The verify
+# rows are load gates only.
+fixture = "two"
+description = "PZTestKit + the final staged NutritionRevamp upload copy on fixture two, admin (debug) and bob (release), Nutrition off, DayLength 1, sleep off, NR.DeathPace 1 and NR.HealthCombine 1 - Plan 17 Task 7b (x485)."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+timeout = 240                 # the server boot wait (x483's boot with admin about 70 s): bounds the slow-boot fallback under the 600 s cap
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes
+
+[sandbox.NR]
+DeathPace = 1                 # Vanilla; the declared default is 3 (Realistic), x483 set 2
+HealthCombine = 1             # Worst; the declared default is 2 (Multiply), x483 set 3
