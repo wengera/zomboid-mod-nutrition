@@ -22520,3 +22520,32 @@ x494-20261021-121229,verdicts.P0_BASE.observed,the S pair's server half,The pair
 x494-20261021-121229,budget_stop,the budget's stop,"Driver accounting, not a reading.",`phase_walls`
 x494-20261021-121229,arms[*].secs_asked,the arm's asked seconds,"Driver accounting, not a reading.",
 x494-20261021-121229,arms[*].secs_given,the arm's given seconds,"Driver accounting, not a reading.",
+x495-20261021-132149,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x495-20261021-132149,constants,x49b's constants merged with x495's,"Settings of the driver, not readings.",
+x495-20261021-132149,constants_x49b,the lib's constants,"Settings of the driver, not readings.",
+x495-20261021-132149,constants_x49c,the lib's constants,"Settings of the driver, not readings.",
+x495-20261021-132149,prerun_x49b,{},The parent constructor's empty prediction; not a reading.,`prerun_x49c`
+x495-20261021-132149,prerun_x49c,the HEAD replay of the schedule,"The prediction, computed before the run; not a reading.",`verdicts.<name>.observed`
+x495-20261021-132149,world_changes,the driver's text,Written before the run; not readings.,
+x495-20261021-132149,meta.budget_s,470.0,The driver's own budget; not a reading.,
+x495-20261021-132149,verdicts.*.predicted,the driver's predictions,Copies of `predictions`; not readings.,`verdicts.<name>.observed`
+x495-20261021-132149,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x495-20261021-132149,preboot,the offline checks,Checks of files before the boot; not readings.,
+x495-20261021-132149,stat_sets,the driver's floor seeds,"Writes the driver made, not the mod: never a reading of the mod raising STRESS or UNHAPPINESS to its floor (driver review F8).",`verdicts.STRESS_FLOOR.observed`
+x495-20261021-132149,checks.P1.seed_stress,the driver's seed,A write the driver made; not a reading.,
+x495-20261021-132149,checks.P1.seed_unhappy,the driver's seed,A write the driver made; not a reading.,
+x495-20261021-132149,verdicts.PAIN_PART.observed.ends[*].lo,the band's edge,Computed from the replay's target and constants; not a reading.,`verdicts.PAIN_PART.observed.ends[*].v`
+x495-20261021-132149,verdicts.PAIN_PART.observed.ends[*].hi,the band's edge,Computed from the replay's target and constants; not a reading.,`verdicts.PAIN_PART.observed.ends[*].v`
+x495-20261021-132149,verdicts.PAIN_TARGET.observed.lo,24.742650031676654,"The band's edge, computed from the replay's target; not a reading.",`verdicts.PAIN_TARGET.observed.pain`
+x495-20261021-132149,verdicts.PAIN_TARGET.observed.hi,30.901000054432796,"The band's edge, computed from the replay's target; not a reading.",`verdicts.PAIN_TARGET.observed.pain`
+x495-20261021-132149,verdicts.END_CAP.observed.tol,the climb tolerance,A tolerance from constants; not a reading.,
+x495-20261021-132149,verdicts.STRESS_FLOOR.observed.tol,the decay tolerance,A tolerance from constants; not a reading.,
+x495-20261021-132149,verdicts.UNHAPPY_FLOOR.observed.tol,0.01,A tolerance; not a reading.,
+x495-20261021-132149,verdicts.REL_UNHAPPY.observed.want,0.027790523710702786,"The before row less the target's fall; a prediction, not a reading.",`verdicts.REL_UNHAPPY.observed.unhappy_after`
+x495-20261021-132149,verdicts.REL_PAIN.observed.end_want,0.0,The decay's predicted end; not a reading.,`verdicts.REL_PAIN.observed.end`
+x495-20261021-132149,verdicts.REL_PAIN.observed.end_tol,the end's tolerance,A tolerance; not a reading.,
+x495-20261021-132149,verdicts.REL_PAIN.observed.want_gm,0.9,"The predicted rate, 0.01 x dayMin; not a reading.",`verdicts.REL_PAIN.observed.per_gm`
+x495-20261021-132149,verdicts.REL_STRESS.observed.want_gm,0.0018,The predicted rate (STRESS_DECAY_GM); not a reading.,`verdicts.REL_STRESS.observed.per_gm`
+x495-20261021-132149,budget_stop,null,"Driver accounting, not a reading.",`phase_walls`
+x495-20261021-132149,arms[*].secs_asked,the arm's asked seconds,"Driver accounting, not a reading.",
+x495-20261021-132149,arms[*].secs_given,the arm's given seconds,"Driver accounting, not a reading.",
