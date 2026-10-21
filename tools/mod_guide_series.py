@@ -114,6 +114,9 @@ RUN = {
     "x481": "x481-20261020-070821", "x482": "x482-20261020-071425",
     # Plan 17 Task 7: the straight line live at Realistic with Multiply, on the re-staged copy of mod/ at 62de3d5a
     "x484": "x484-20261020-142509",
+    # Plan 18 Task 4: the symptom layer live on the re-staged copy of mod/ at 6ee7c8d1: x494 the onset and the seeded
+    # progress, x495 the release after a snack
+    "x494": "x494-20261021-121229", "x495": "x495-20261021-132149",
 }
 
 MAP_CHARTS = {
@@ -149,11 +152,13 @@ MAP_CHARTS = {
            "series": ["S2c-v-model", "S2c-m-kernel", "S2c-study"]},
     # Plan 17 Task 5: the Health tab sets vanilla's health beside the mod's, and the Pace and Combining tabs are new
     "S2d": {"section": "S2", "title": "A long fast, with water and without",
-           "x": "game days (each line to its death)", "y": "health, kg",
+           "x": "game days (each line to its death)", "y": "health, kg, moodle level",
            "series": ["S2d-v-model-health", "S2d-v-live-health", "S2d-v-model-weight", "S2d-v-live-weight", "S2d-m-mass",
                       "S2d-m-drain", "S2d-m-live-health", "S2d-m-dry", "S2d-m-pace-vanilla", "S2d-m-pace-short",
                       "S2d-m-pace-real", "S2d-m-live-pace", "S2d-m-comb-worst", "S2d-m-comb-mult",
-                      "S2d-m-comb-add"]},
+                      "S2d-m-comb-add", "S2d-m-sym-exertion", "S2d-m-sym-pain", "S2d-m-sym-stress",
+                      "S2d-m-sym-unhappy", "S2d-m-rule-exertion", "S2d-m-rule-pain", "S2d-m-rule-stress",
+                      "S2d-m-rule-unhappy"]},
     "S3a": {"section": "S3 Living on one food", "title": "Vitamin C on tinned tuna alone",
            "x": "game days, 0–170 (to the self-experimenter's day 161)", "y": "vitamin C store (0–1) and grade",
            "series": ["S3a-m-pool", "S3a-m-grade", "S3a-study-0224", "S3a-study-0225"]},
@@ -1104,7 +1109,8 @@ SERIES_JOB = {
     "S6b-m-intox": "j_s6b", "S6b-m-hangover": "j_s6b", "S6c-m-kernel": "j_s6c", "SX2-m-kernel": "j_sx2",
     "S2d-m-drain": "j_s2d", "S2d-m-dry": "j_s2d_dry", "S2d-m-pace-vanilla": "j_s2d_pace_vanilla",
     "S2d-m-pace-short": "j_s2d_pace_short", "S2d-m-pace-real": "j_s2d_pace_real", "S2d-m-comb-worst": "j_s2d_comb_worst",
-    "S2d-m-comb-mult": "j_s2d", "S2d-m-comb-add": "j_s2d_comb_add", "S6a-m-offset": "j_s6a",
+    "S2d-m-comb-mult": "j_s2d", "S2d-m-comb-add": "j_s2d_comb_add", "S2d-m-sym-exertion": "j_s2d",
+    "S2d-m-sym-pain": "j_s2d", "S2d-m-sym-stress": "j_s2d", "S2d-m-sym-unhappy": "j_s2d", "S6a-m-offset": "j_s6a",
     "S6a-m-offset-real": "j_s6a_real",
     "S6b-m-intox-real": "j_s6b_real",
 }
@@ -1316,9 +1322,106 @@ def j_s2d():
     health = [[a / 24.0, hp] for _, a, hp in pick(rows, health_ks(rows), HEALTH)]
     out = {"days": days, "health": health, "hunger_max": max(r["HUNGER"] for r in rows), "states": drain_states(rows),
            "opened": opened_states(rows), "half_age": half_age(rows, be.K),
-           "bmi0": max(r.get("drain.bmi0") or 0.0 for r in rows)}
+           "bmi0": max(r.get("drain.bmi0") or 0.0 for r in rows), "sym": symptom_steps(rows, be.K)}
     out.update(line_marks(rows, be.K))
     return _done(rows, be, out)
+
+
+# ---- Plan 18: the lethal states' symptoms on vanilla's own moodles ----------------------------------------------------
+# Vanilla's Pain, Stress and Unhappy thresholds (MoodleStat.<clinit>, #2369; Moodle.Update reads each level by a strict
+# greater-than, Plan 18 Task 1's jar reads), named here; the Endurance moodle's edges are the kernel's own
+# K.hybrid.END_EDGES (#3926), read downward.
+MOODLE_AT = {"pain": (10.0, 20.0, 50.0, 75.0), "stress": (0.25, 0.5, 0.75, 0.9), "unhappy": (20.0, 45.0, 60.0, 80.0)}
+SYM_LEVERS = ("exertion", "pain", "stress", "unhappy")
+SYM_NAMES = {"exertion": "Exertion", "pain": "Pain", "stress": "Stress", "unhappy": "Unhappy"}
+RULE_CODE = 1                          # starvation: every lethal state carries the same endurance, stress and unhappy rows
+
+
+def symptom_levels(row, K):
+    """The four moodle levels a server row's symptom outputs hold (K.effects.symptoms; Plan 18): Exertion from the
+    symptom cap's band (the writer holds ENDURANCE at K.hybrid.capAt of it, inside the same band), Pain from the summed
+    added pain x each part's pain modifier less the half dip the minute's set adds (the minute's middle, #2362's target),
+    Stress and Unhappy from the floors (the least level each holds)."""
+    cap = row.get("effects.symCap")
+    if cap is None:
+        return None
+    edges = K.hybrid.END_EDGES
+    day_min = float(K.drain.DAY_MINUTES)
+    pain = 0.0
+    for i in range(int(K.effects.PAIN_PARTS)):
+        v = row.get("effects.pain.%d" % i)
+        if v:
+            pain += (v - float(K.effects.PAIN_HALF_DIP) * day_min) * float(K.effects.PAIN_MOD[i])
+    return (sum(1 for i in range(1, 5) if cap <= float(edges[i])),
+            sum(1 for a in MOODLE_AT["pain"] if pain > a),
+            sum(1 for a in MOODLE_AT["stress"] if (row.get("effects.stressFloor") or 0.0) > a),
+            sum(1 for a in MOODLE_AT["unhappy"] if (row.get("effects.unhappyFloor") or 0.0) > a))
+
+
+def symptom_steps(rows, K):
+    """Each lever's moodle level over a replay, [[age h, level]] at its first row and at every change."""
+    out, last = {k: [] for k in SYM_LEVERS}, None
+    for r in rows:
+        lv = symptom_levels(r, K)
+        if lv is None or lv == last:
+            continue
+        for k, v in zip(SYM_LEVERS, lv):
+            if last is None or out[k][-1][1] != v:
+                out[k].append([r["age"], v])
+        last = lv
+    return out
+
+
+def step_points(steps, end, scale=1.0):
+    """A level's steps as a drawn line: flat between changes, a vertical rise or fall at each, to x = end."""
+    pts = []
+    for x, v in steps:
+        x = x / scale
+        if x > end:
+            break
+        if pts:
+            pts.append([x, pts[-1][1]])
+        pts.append([x, v])
+    pts.append([end, pts[-1][1]])
+    return pts
+
+
+def symptom_rule(day_min=None):
+    """The symptom rows of one active lethal state on the kernel, at Severity 1 and the default day: each lever's
+    level at every share of the way from the state's onset (p 0) to its death point (p 1), as {lever: [[p, level]]}
+    steps found by bisection on K.effects.symptoms itself (each level is monotone in p)."""
+    h = KHost()
+    K = h.K
+    dm = float(K.drain.DAY_MINUTES) if day_min is None else day_min
+    T = h.NR.data.effects
+    E = K.effects.new()
+
+    def levels(p):
+        D = h.table({"mask": float(2 ** (RULE_CODE - 1)), "recovering": 0.0, "frac": {RULE_CODE: 1.0 - p}})
+        K.effects.symptoms(E, T, D, 1.0, False, dm)
+        row = {"effects.symCap": float(E.symCap), "effects.stressFloor": float(E.stressFloor),
+               "effects.unhappyFloor": float(E.unhappyFloor)}
+        for i in range(int(K.effects.PAIN_PARTS)):
+            if float(E.pain[i]) > 0:
+                row["effects.pain.%d" % i] = float(E.pain[i])
+        return symptom_levels(row, K)
+
+    out = {}
+    for j, k in enumerate(SYM_LEVERS):
+        steps = [[0.0, levels(0.0)[j]]]
+        for lv in range(steps[0][1] + 1, 5):
+            if levels(1.0)[j] < lv:
+                break
+            lo, hi = 0.0, 1.0
+            for _ in range(60):
+                mid = (lo + hi) / 2.0
+                if levels(mid)[j] >= lv:
+                    hi = mid
+                else:
+                    lo = mid
+            steps.append([hi, lv])
+        out[k] = steps
+    return out
 
 
 HALF_HEALTH = 50.0                    # health: the guide's mark for the drain's pace, half of full health (named here)
@@ -2687,6 +2790,69 @@ def s_s2d():
                % (opened_text(ca["opened"], K, va["death_age"]), va["death_age"] / 24.0, bmi_death, beri_h,
                   va["death_name"], dropped)),
     ]
+    out += s2d_symptoms(k, v, K, water)
+    return out
+
+
+def _from_text(steps, unit, scale, first=1):
+    return ", ".join("level %d from %s %.2f" % (lv, unit, x / scale) for x, lv in steps if lv >= first)
+
+
+def s2d_symptoms(k, v, K, water):
+    """Plan 18's Symptoms views of S2d: the four moodle levels the symptom layer holds on the default fast (j_s2d's
+    replay, every minute) and, on the kernel's own rows, at every share of the way from one state's onset to its death
+    point (symptom_rule)."""
+    end = v["death_age"] / 24.0
+    sym, rule = k["sym"], symptom_rule()
+    opened = opened_text(k["opened"], K, v["death_age"])
+    fatal = "The fatal state is %s: health is gone at day %.2f, where the line ends (S2d-m-drain)." % (
+        v["death_name"], end)
+    inputs = dict(water, replay="90 days, no food, the replay's water",
+                  options="NR.DeathPace 3 (Realistic), NR.HealthCombine 2 (Multiply), NR.Severity 1, Managed mode",
+                  read="each minute's effects.symCap, effects.pain.<i>, effects.stressFloor and effects.unhappyFloor "
+                       "(K.effects.symptoms), as moodle levels")
+    rule_inputs = {"evaluate": "K.effects.symptoms on one active lethal state (code %d, starvation) at progress p from "
+                               "0 to 1, the level changes found by bisection" % RULE_CODE,
+                   "severity": 1.0, "day_minutes": float(K.drain.DAY_MINUTES), "overlay": False}
+    fast_note = {
+        "exertion": ("The Endurance moodle level the mod's endurance cap holds on the default fast, the lowest cap of "
+                     "the lethal states active or recovering (K.effects.symptoms; the writer holds ENDURANCE at "
+                     "K.hybrid.capAt of it, inside the same band): %s. The states open in turn (%s)."),
+        "pain": ("The Pain moodle level the added pain the mod sets holds on the default fast, the parts' summed added "
+                 "pain x their pain modifiers at the minute's middle (#2362's target, wounds aside): %s. Each state "
+                 "adds its pain only while active, starvation's on the lower torso, scurvy's and wet beriberi's on both "
+                 "lower legs and pellagra's on the lower torso, under a cap per part (%s)."),
+        "stress": ("The least Stress moodle level the mod's stress floor holds on the default fast, the highest floor "
+                   "of the lethal states (vanilla's own terms and the mod's other rows can hold STRESS higher): %s. The "
+                   "states open in turn (%s)."),
+        "unhappy": ("The least Unhappy moodle level the mod's unhappiness floor holds on the default fast, the highest "
+                    "floor of the lethal states (monotony and vanilla's boredom can hold UNHAPPINESS higher): %s. The "
+                    "states open in turn (%s)."),
+    }
+    rule_note = {
+        "exertion": "level 1 at the onset, %s, a cap from 0.73 at the onset to 0.08 at the death point on four knots",
+        "pain": "level %d throughout while the state is active, a flat PAIN target of 15 shared over its parts",
+        "stress": "%s, a floor from 0 at the onset to 0.30 at p 0.5 and 0.55 from p 0.9",
+        "unhappy": "%s, a floor from 0 at the onset to 25 at p 0.5 and 50 from p 0.9",
+    }
+    out = []
+    for lever in SYM_LEVERS:
+        name = SYM_NAMES[lever]
+        st = sym[lever]
+        out.append(series("S2d-m-sym-" + lever, name, DAYS, "moodle level", "kernel", step_points(st, end, 24.0),
+                          kernel(inputs, "x494"),
+                          (fast_note[lever] % (_from_text(st, "day", 24.0), opened)) + " " + fatal))
+        rs = rule[lever]
+        body = (rule_note[lever] % rs[0][1] if lever == "pain" else rule_note[lever] % ", ".join(
+            "level %d from %.2f %%" % (lv, p * 100.0) for p, lv in rs if lv >= (2 if lever == "exertion" else 1)))
+        out.append(series("S2d-m-rule-" + lever, name, "per cent of the way from a danger's onset to its death",
+                          "moodle level", "kernel", step_points([[p * 100.0, lv] for p, lv in rs], 100.0),
+                          kernel(rule_inputs, "x494"),
+                          "One lethal state, active, on the mod's own symptom rows at Severity 1 and the %g-minute day: "
+                          "the %s moodle level at each share of the way from its onset to its death point, %s (every "
+                          "lethal state carries the same endurance, stress and unhappiness rows). Severity scales "
+                          "every symptom; in Overlay starvation and dehydration add none."
+                          % (float(K.drain.DAY_MINUTES), name, body)))
     return out
 
 

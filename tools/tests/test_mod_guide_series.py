@@ -131,12 +131,12 @@ def kh():
 def test_the_built_series_and_the_pending_and_dropped_ids_cover_the_map():
     built = set(SER)
     mapped = {i for c in S.MAP_CHARTS.values() for i in c["series"]}
-    assert len(mapped) == 167                                           # Plan 17 Task 5: S2d's eight new series
+    assert len(mapped) == 175                                           # Plan 18 Task 5: S2d's eight symptom series
     assert built | set(S.PENDING_LIVE) | set(S.DROPPED) == mapped
     assert not (built & set(S.PENDING_LIVE)) and not (built & set(S.DROPPED))
     assert not (set(S.PENDING_LIVE) & set(S.DROPPED))
     # Plan 16 Task 11: x461b draws SE1's live liquid (its fill DROPPED on the window), x467 SH3's live returns
-    assert len(built) == 155 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 12      # Plan 17 Task 2b: x481's live line DROPPED
+    assert len(built) == 163 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 12      # Plan 17 Task 2b: x481's live line DROPPED
     assert DATA["charts"] == S.CHARTS
     assert D.coverage_gaps(built, DATA["charts"], S.PENDING_LIVE) == ([], [])
 
@@ -1417,6 +1417,83 @@ def _(kh, sid):
     assert 0 < health < 100
     v = VIAB[S.SERIES_JOB[sid]]
     return [3.0, v["death_age"] / 24.0]
+
+
+# Plan 18 Task 5: the symptom layer's moodle levels, re-derived by hand off the data file's knots (spelled here, so a
+# change to NR_Data_Effects' symptom rows moves the series and fails these checks) and vanilla's thresholds (#2369,
+# #3926)
+END_KNOTS = ((0.0, 0.73), (1 / 3.0, 0.48), (2 / 3.0, 0.23), (1.0, 0.08))
+STRESS_KNOTS = ((0.0, 0.0), (0.5, 0.30), (0.9, 0.55), (1.0, 0.55))
+UNHAPPY_KNOTS = ((0.0, 0.0), (0.5, 25.0), (0.9, 50.0), (1.0, 50.0))
+
+
+def knot(ks, p):
+    for (p0, v0), (p1, v1) in zip(ks, ks[1:]):
+        if p <= p1:
+            return v0 + (v1 - v0) * (max(p, p0) - p0) / (p1 - p0)
+    return ks[-1][1]
+
+
+def end_level(cap):
+    return sum(1 for e in (0.75, 0.5, 0.25, 0.10) if cap <= e)
+
+
+def crossing(ks, v, down=False):
+    """The p where a knot line first reaches v (at or under v when down)."""
+    for (p0, v0), (p1, v1) in zip(ks, ks[1:]):
+        if (v1 <= v) if down else (v1 > v):
+            return p0 + (v - v0) / (v1 - v0) * (p1 - p0)
+    return None
+
+
+@check("S2d-m-rule-exertion", "S2d-m-rule-pain", "S2d-m-rule-stress", "S2d-m-rule-unhappy")
+def _(kh, sid):
+    # one state's levels at each per cent of the way to its death, the level changes where each knot line crosses the
+    # moodle's threshold: Exertion at or under 0.5, 0.25 and 0.10, Stress above 0.25 and 0.5, Unhappy above 20 and 45;
+    # the flat pain, 15 PAIN, sits inside Pain level 1 (above 10, at most 20)
+    want = {"S2d-m-rule-exertion": [(1, 0.0)] + [(lv, 100 * crossing(END_KNOTS, e, down=True))
+                                                for lv, e in ((2, 0.5), (3, 0.25), (4, 0.10))],
+            "S2d-m-rule-stress": [(lv, 100 * crossing(STRESS_KNOTS, e)) for lv, e in ((1, 0.25), (2, 0.5))],
+            "S2d-m-rule-unhappy": [(lv, 100 * crossing(UNHAPPY_KNOTS, e)) for lv, e in ((1, 20.0), (2, 45.0))],
+            "S2d-m-rule-pain": [(1, 0.0)]}[sid]
+    pts = SER[sid]["points"]
+    for lv, x in want:
+        first = next(p[0] for p in pts if p[1] >= lv)
+        assert first == pytest.approx(x, abs=1e-6), (sid, lv)
+    assert pts[-1][0] == 100.0 and max(p[1] for p in pts) == want[-1][0]
+    return [x for _, x in want]
+
+
+@check("S2d-m-sym-exertion", "S2d-m-sym-pain", "S2d-m-sym-stress", "S2d-m-sym-unhappy")
+def _(kh, sid):
+    # three days of the default fast: starvation alone, its progress p read off the drain's target (100 x its remaining
+    # fraction under Multiply), so at day 3 Exertion reads the cap's band, Pain level 1 (the lower torso's 15 PAIN while
+    # active) and no floor yet reaches its first level; the onset is the drain's own
+    rows, _, _ = health_arm([FRESH] + water(3), 3 * 1440, ("drain.target", "drain.starving"))
+    r = rows[-1]
+    assert r.get("drain.starving")
+    p = 1 - r["drain.target"] / 100.0
+    want = {"S2d-m-sym-exertion": end_level(knot(END_KNOTS, p)), "S2d-m-sym-pain": 1,
+            "S2d-m-sym-stress": int(knot(STRESS_KNOTS, p) > 0.25), "S2d-m-sym-unhappy": int(knot(UNHAPPY_KNOTS, p) > 20)}
+    assert [y for x, y in SER[sid]["points"] if x <= 3.0][-1] == want[sid]       # the step line's level at day 3
+    onset = VIAB["j_s2d"]["drain"][0] / 24.0
+    first = next((x for x, y in SER[sid]["points"] if y >= 1), None)
+    if sid in ("S2d-m-sym-exertion", "S2d-m-sym-pain"):
+        assert first == pytest.approx(onset, abs=1e-9)
+    v = VIAB["j_s2d"]
+    assert max(xs_of(sid)) == pytest.approx(v["death_age"] / 24.0) and v["death_name"] == "beriberi"
+    return [3.0, v["death_age"] / 24.0]
+
+
+def test_plan18_the_symptoms_deepen_on_the_fast_as_the_states_open():
+    """Plan 18 Task 5: on the default fast Exertion and Pain show from the starvation onset, Pain reaches level 2 when
+    scurvy's legs join the lower torso, and each lever only deepens to the beriberi death (no state recovers)."""
+    for sid in ("S2d-m-sym-exertion", "S2d-m-sym-pain", "S2d-m-sym-stress", "S2d-m-sym-unhappy"):
+        ys = [y for _, y in SER[sid]["points"]]
+        assert ys == sorted(ys), sid
+    assert max(y for _, y in SER["S2d-m-sym-exertion"]["points"]) == 4
+    assert max(y for _, y in SER["S2d-m-sym-pain"]["points"]) == 2
+    assert "level 2 from day" in SER["S2d-m-sym-pain"]["note"] and "scurvy on day" in SER["S2d-m-sym-pain"]["note"]
 
 
 def ring_rows_of(run_key):

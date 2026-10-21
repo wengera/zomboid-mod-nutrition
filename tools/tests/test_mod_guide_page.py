@@ -638,6 +638,10 @@ class Scenarios(_Base):
         r"which ends the scurvy damage, and its", r"the damage stops once its store climbs out of Clinical\.",
         r"(?i)drain's last minute", r"(?i)returns? to full", r"(?i)back to full health",
         r"(?i)resets? (?:it|its ceiling|the ceiling|its line|the line) to full",
+        # Plan 18 Task 5: x495 lifted a hand-set ceiling with a snack and health healed up to it, so a recovering
+        # ceiling is no longer wholly unread live; Severity now also scales the deadly dangers' symptoms
+        r"No live run has read a recovering ceiling yet", r"No live game has shown a cap recovering yet",
+        r"or an excess brings\. The excess option",
     ]
 
     def test_task_11_stale_sentences_stay_gone(self):
@@ -748,7 +752,7 @@ class Scenarios(_Base):
             self.assertIn(frag, opts, frag)
         lim = self.html[self.html.index('id="limitations"'):self.html.index('id="references"')]
         for frag in ("takes about as long as the decline did", "until the day's weight update books your true weight",
-                     "the panel says Recovering from it", "No live game has shown a cap recovering yet"):
+                     "the panel says Recovering from it", "No live game has shown a cap recovering with the body yet"):
             self.assertIn(frag, lim, frag)
         for frag in ("The target is a ceiling", "The ceiling rises only as the body recovers",
                      "resumes its line where its clock stands", "recovering from starvation"):
@@ -761,6 +765,39 @@ class Scenarios(_Base):
         self.assertLess(on, off)
         self.assertLess(off, end)
         self.assertAlmostEqual(end - off, off - on, delta=0.05)
+
+    def test_plan18_the_symptoms_are_on_the_page(self):
+        """Plan 18 Task 5: each deadly danger's section, the fast's chart note, the screen, the options and the
+        limitations name the symptoms on vanilla's own moodles, and the progress points and the fast's days are fills
+        off the S2d symptom series, which read the kernel's own knots."""
+        s2 = self.html[self.html.index('id="s2"'):self.html.index('id="s3"')]
+        for frag in ("Exertion shows from the moment a danger starts", "A low ache shows on the Pain moodle",
+                     "in your legs with scurvy or beriberi", "the unhappiness lifts at once",
+                     "the exhaustion eases only as your body recovers", "With sleep on, deep exhaustion",
+                     "On the Symptoms view", "Symptoms by progress view", "never lowered",
+                     "the snack's pool read before the minute digests it"):
+            self.assertIn(frag, s2, frag)
+        for sid, pick, want in (("S2d-m-rule-exertion", "x@y>=2|r0", "31"), ("S2d-m-rule-exertion", "x@y>=3|r0", "64"),
+                                ("S2d-m-rule-exertion", "x@y>=4|r0", "96"), ("S2d-m-rule-unhappy", "x@y>=1|r0", "40"),
+                                ("S2d-m-rule-stress", "x@y>=1|r0", "42"), ("S2d-m-rule-stress", "x@y>=2|r0", "82")):
+            with self.subTest(fill=(sid, pick)):
+                self.assertIn('data-fill="%s" data-pick="%s"' % (sid, pick), s2)
+                self.assertEqual(evaluate_pick(self.series[sid]["points"], pick)[1], want)
+        for sid in ("S2d-m-sym-exertion", "S2d-m-sym-pain", "S2d-m-sym-stress", "S2d-m-sym-unhappy"):
+            self.assertIn('data-fill="%s"' % sid, s2, sid)
+        sections = {"sys-hunger": "makes your stomach ache", "sys-thirst": "gives you a headache",
+                    "sys-deficiency": "make your legs ache", "sys-screen": "Exertion, Pain, Stress and Unhappy moodles"}
+        for sec, frag in sections.items():
+            body = self.html[self.html.index('id="%s"' % sec):]
+            body = body[:body.index("</section>")]
+            self.assertIn(frag, body, sec)
+        opts = self.html[self.html.index('id="options"'):self.html.index('id="compatibility"')]
+        self.assertIn("In Overlay starving and thirst bring none of the mod's exhaustion", opts)
+        self.assertIn("though not how fast your health falls", opts)
+        lim = self.html[self.html.index('id="limitations"'):self.html.index('id="references"')]
+        for frag in ("a stand-in until research gives it a shape", "A painkiller stops a danger's ache",
+                     "about a minute of real time to show", "On the longest day lengths"):
+            self.assertIn(frag, lim, frag)
 
     def test_plan17_the_end_mark_skips_a_line_ending_off_the_view(self):
         """Plan 17 Task 5 fix 1 (F1): a zoom facet draws no end mark for a line that ends past its x range."""

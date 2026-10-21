@@ -114,7 +114,9 @@
     "S2a": { xMin: -12, xMax: 60, yMin: 0, yMax: 1 },
     "S2b": { yMin: 0 },
     "S2c": {},
-    /* S2d (Plan 17 Task 5): Health draws vanilla's model and live health on the mod's own axis, so vanilla's death
+    /* S2d (Plan 18 Task 5): Symptoms draws the four moodle levels the symptom layer holds on the default fast, and
+       Symptoms by progress the same levels at every share of the way from one danger's onset to its death.
+       S2d (Plan 17 Task 5): Health draws vanilla's model and live health on the mod's own axis, so vanilla's death
        near day three sits beside the mod's long decline; on that axis vanilla's line is a steep fall at the left edge,
        so "First week" (zoom: true, the same series on a narrower x) shows both shapes, the mod's straight line, far
        shallower than vanilla's fall. A linear axis is kept over a logarithmic one because a reader reads
@@ -128,6 +130,10 @@
           xTitle: "game days, with water and vitamins, starving alone" },
         { label: "Combining", series: ["S2d-m-comb-worst", "S2d-m-comb-mult", "S2d-m-comb-add"], unit: "health", yMin: 0, yMax: 100, xMin: 0,
           xTitle: "game days, with water, no vitamins" },
+        { label: "Symptoms", series: ["S2d-m-sym-exertion", "S2d-m-sym-pain", "S2d-m-sym-stress", "S2d-m-sym-unhappy"], unit: "moodle level", yMin: 0, yMax: 4, xMin: 0,
+          xTitle: "game days, no food, with water" },
+        { label: "Symptoms by progress", series: ["S2d-m-rule-exertion", "S2d-m-rule-pain", "S2d-m-rule-stress", "S2d-m-rule-unhappy"], unit: "moodle level", yMin: 0, yMax: 4, xMin: 0, xMax: 100,
+          xTitle: "per cent of the way from a danger's start to its death" },
         { label: "Without water", series: ["S2d-m-dry"], unit: "health", yMin: 0, yMax: 100, xMin: 0, xTitle: "game days, no food and no water" },
         { label: "Body mass", series: ["S2d-m-mass"], unit: "kg", yMin: 0, xMin: 0, xTitle: "game days, with water" },
         { label: "Vanilla weight", series: ["S2d-v-model-weight", "S2d-v-live-weight"], unit: "kg", yMin: 0, xMin: 0, xMax: 4,
