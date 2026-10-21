@@ -22546,6 +22546,16 @@ x495-20261021-132149,verdicts.REL_PAIN.observed.end_want,0.0,The decay's predict
 x495-20261021-132149,verdicts.REL_PAIN.observed.end_tol,the end's tolerance,A tolerance; not a reading.,
 x495-20261021-132149,verdicts.REL_PAIN.observed.want_gm,0.9,"The predicted rate, 0.01 x dayMin; not a reading.",`verdicts.REL_PAIN.observed.per_gm`
 x495-20261021-132149,verdicts.REL_STRESS.observed.want_gm,0.0018,The predicted rate (STRESS_DECAY_GM); not a reading.,`verdicts.REL_STRESS.observed.per_gm`
-x495-20261021-132149,budget_stop,null,"Driver accounting, not a reading.",`phase_walls`
 x495-20261021-132149,arms[*].secs_asked,the arm's asked seconds,"Driver accounting, not a reading.",
 x495-20261021-132149,arms[*].secs_given,the arm's given seconds,"Driver accounting, not a reading.",
+x494-20261021-121229,verdicts.PAIN_LEVELS.observed.*.predicted,the replay's mid PAIN,"A prediction, not a reading.",`verdicts.PAIN_LEVELS.observed.<arm>.pairs`
+x494-20261021-121229,verdicts.PAIN_LEVELS.observed.*.want,the predicted level,"A prediction, not a reading.",`verdicts.PAIN_LEVELS.observed.<arm>.pairs`
+x494-20261021-121229,checks.P1.set.value,the driver's progress write,A write the driver made; not a reading.,`checks.P1.floors`
+x495-20261021-132149,verdicts.PAIN_LEVELS.observed.*.predicted,the replay's mid PAIN,"A prediction, not a reading.",`verdicts.PAIN_LEVELS.observed.<arm>.pairs`
+x495-20261021-132149,verdicts.PAIN_LEVELS.observed.*.want,the predicted level,"A prediction, not a reading.",`verdicts.PAIN_LEVELS.observed.<arm>.pairs`
+x495-20261021-132149,checks.P1.set.value,the driver's progress write,A write the driver made; not a reading.,`checks.P1.floors`
+x494-20261021-121229,checks.P2.set.value,the driver's progress write,A write the driver made; not a reading.,`checks.P2.floors`
+x495-20261021-132149,verdicts.REL_UNHAPPY.observed.l1.want,0,The predicted level; not a reading.,`verdicts.REL_UNHAPPY.observed.l1.pairs`
+x495-20261021-132149,verdicts.REL_END.observed.eased_max,1,The grade's bound; not a reading.,`verdicts.REL_END.observed.levels[*].got`
+x495-20261021-132149,verdicts.REL_END.observed.levels[*].want,the level of the own ENDURANCE,Computed for the grade; not a reading.,`verdicts.REL_END.observed.levels[*].got`
+x495-20261021-132149,verdicts.REL_STRESS.observed.levels[*].want,the predicted level,"A prediction, not a reading.",`verdicts.REL_STRESS.observed.levels[*].got`
