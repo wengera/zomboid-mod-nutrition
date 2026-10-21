@@ -114,6 +114,7 @@ FOOD_SICKNESS at 55 sits over the SICK moodle's second threshold of 0.50 and at 
 PANIC floor targets of 10 to 19.25 sit between the first threshold of 6 and the second of 30, which is level 1, and a target of 35 sits between 30 and 65, which is level 2 by arithmetic against those bands; the floor held 10 and 12.75 and tracked the target to 14.5 on one boot [#3101/M/n=1], while on another PANIC never reached a target of 19.25, 35 or 14.75 [#3082/M/n=1] [#2369/C/C-only].
 UNHAPPINESS floor targets of 22.92 and 25 sit between the UNHAPPY thresholds of 20 and 45, which is level 1, and the released 4.1667 sits under the first [#2369/C/C-only] [#3083/M/n=1].
 A STRESS floor of 0.06 sits under the STRESS moodle's first threshold of 0.25 and shows no moodle, and an INTOXICATION that peaked at 2.85 sits under the DRUNK moodle's first threshold of 10 [#2369/C/C-only] [#3080/M/n=1] [#3086/M/n=1].
+The lethal states' symptom floors do reach the moodles: Stress and Unhappy levels 1 and 2 by progress [#4101/C/inference] [#4104/C/inference].
 
 <a id="read-cadence"></a>
 ### Cache on the push, not on the frame

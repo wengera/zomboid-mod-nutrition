@@ -111,6 +111,7 @@ object is a parent and is never cited, only its leaves.
 | SH2 | Hunger | Three meals against six | arm | mean hunger over 24 h (ratio) | SH2-m-kernel, SH2-m-live, SH2-study |
 | ST1 | Thirst and salt | Ten hours at rest without a drink | game hours, 0–10 | thirst | ST1-v-model, ST1-m-kernel, ST1-m-live |
 | ST2 | Thirst and salt | Five days without salt | game days, 0–5 | body sodium change (mmol/24 h); plasma sodium | ST2-m-live-na, ST2-m-live-plasma, ST2-m-kernel |
+| ST3 | Thirst and salt | Health without water | game days, no food and no water | health | ST3-m-dry |
 | SM1 | Monotony | Varying the diet lifts the mood | game hours after the last repeat | unhappiness | SM1-m-live, SM1-m-kernel |
 | SB1 | The body | Lean mass at a deficit and a surplus, trained or not | game days, 0–60 | lean kg | SB1-m-def-rest, SB1-m-def-train, SB1-m-sur-rest, SB1-m-sur-train |
 | SB2 | The body | Which weight trait a body gets | example body (lean 90 kg, average, soft 85 kg) | trait band | SB2-v-model, SB2-m-kernel |
@@ -257,6 +258,7 @@ not exist yet; § 6 names what fills it.
 | ST2-m-live-na | mod | live | `x28-grade-20261011/rows.json` `sodium.by_day.<d>.na_change_per_24h`, d 1–5 (#3688) | |
 | ST2-m-live-plasma | mod | live | the same file's `sodium.by_day.0.naPlasma_min`, `sodium.by_day.5.naPlasma_max` | |
 | ST2-m-kernel | mod | kernel | `testing/tests/kernel/test_sodium_balance.py` `simulate(days=5, na_day=0)` | |
+| ST3-m-dry | mod | kernel | the same kernel replay as `S2d-m-dry` (no food and no water from a fresh record at 07:00, HUNGER 0, the mod's defaults; identical points and note); path the record's health | Plan 18 Task 5d (Angus's extra 2). The dehydration state opens at the 4 % deficit (32.88 h, Parched, #3908), starvation at 34.45 h; health is half gone at 83.83 h and gone at day 5.65, the fatal state dehydration on its straight line to a 17 % deficit (#4027). No live run reads it: x456 read the dehydration onset only (#3940). Checked in `test_mod_guide_series.py` with `S2d-m-dry`. |
 | SM1-m-live | mod | live | `x343-20261011-165411` ring pages `rows_list[k].UNHAPPINESS` from the release's start to its end (`x34-regrade-20261011/rows.json` `row13.release.from_age` 110.30 to `.to_age` 161.67; 30 → 19.08, #3683) | |
 | SM1-m-kernel | mod | kernel | the HEAD replay of x343's inputs (the x34-regrade twin) | |
 | SB1-m-def-rest | mod | kernel | Strength day × 60, S 0, p 1.2, E −500 | proof x434. |
