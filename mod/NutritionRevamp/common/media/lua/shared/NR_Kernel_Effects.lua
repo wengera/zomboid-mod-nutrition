@@ -474,7 +474,8 @@ end
 
 -- Compose record.effects from the table (A3's six steps): identity; the penalty fold (and the energy-availability
 -- accrual factor on mNut); the Severity scaling; the bonus fold; the clamp; aimMul from the iu band; epoch + 1.
--- The machine surface (nightVision) is left to its own function.
+-- The machine surface (nightVision) is left to its own function, and E.enduranceCap (the lower of rowEndCap and the
+-- symptom cap) to K.effects.symptoms, which the server runs every minute after any compose.
 function K.effects.compose(E, T, nut, b, pe, ea, flags, sev, bonusOn, vitdOn)
     local S = T.SURF
     for name, s in pairs(S) do
@@ -491,7 +492,6 @@ function K.effects.compose(E, T, nut, b, pe, ea, flags, sev, bonusOn, vitdOn)
     end
     local A = K.effects
     E.aimMul = K.clamp(1 + A.AIM_K * b[A.B.iu] * A.IU_STEP, A.AIM_LO, A.AIM_HI)
-    E.enduranceCap = K.min(E.rowEndCap, E.symCap)
     E.epoch = E.epoch + 1
     return E
 end

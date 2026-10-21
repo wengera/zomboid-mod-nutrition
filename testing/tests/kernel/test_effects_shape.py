@@ -1233,3 +1233,44 @@ def test_the_food_heal_scales_by_90_over_the_day_length(eff_host, day, food):
         assert _food(cfg)[0] * 2 * day * 30 == pytest.approx(0.0087 * 180 * 30)   # 47.0 health per 0.50 h spell
     finally:
         h.rt.execute("getSandboxOptions = NR_SAVED_SO; NR_SAVED_SO = nil; NutritionRevamp.so = nil")
+
+
+# --- Plan 18 close (L6): the pain table's heal -------------------------------------------------------------------
+
+def test_a_stale_pain_table_heals_to_zeros_while_pain_is_off(eff_host):
+    h = eff_host
+    rec = record(h)
+    p, _ = player(h, rec)
+    minute(h, p, rec)
+    E = rec["effects"]
+    healed = EFF(h).stats.healed
+    E["painOn"] = False
+    E["pain"][7] = 12.5                                           # a stale entry with painOn false
+    E["pain"][13] = float("nan")                                  # and a corrupt one
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    assert EFF(h).stats.healed == healed + 1 and "effects.pain" in str(EFF(h).lastHealed)
+    assert all(E["pain"][i] == 0 for i in range(17)) and E["painOn"] is False
+
+
+def test_a_pain_that_is_no_table_is_laid_fresh(eff_host):
+    h = eff_host
+    rec = record(h)
+    p, _ = player(h, rec)
+    minute(h, p, rec)
+    E = rec["effects"]
+    healed = EFF(h).stats.healed
+    E["pain"] = None
+    E["painOn"] = None
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    assert EFF(h).stats.healed == healed + 1 and "effects.pain" in str(EFF(h).lastHealed)
+    assert all(rec["effects"]["pain"][i] == 0 for i in range(17)) and rec["effects"]["painOn"] is False
+
+
+def test_a_healthy_pain_table_is_not_counted_as_healed(eff_host):
+    h = eff_host
+    rec = record(h)
+    p, _ = player(h, rec)
+    minute(h, p, rec)
+    healed = EFF(h).stats.healed
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    assert EFF(h).stats.healed == healed

@@ -160,9 +160,34 @@ local function addFields(E, body)
     if E.dirty == nil then E.dirty = false end
 end
 
+-- The pain table's heal (Plan 18 close, L6): a pain that is no table is laid fresh with painOn false; with painOn not
+-- true, every part index that reads anything but 0 (a stale or corrupt entry K.effects.symptoms would add to, since it
+-- zeroes the table only while painOn is set) heals to 0. With painOn true the symptoms' own pass zeroes every part.
+-- Returns bad with each healed name appended.
+local function healPain(E, bad)
+    local name = nil
+    if type(E.pain) ~= "table" then
+        E.pain = K.effects.new().pain
+        E.painOn = false
+        name = "effects.pain"
+    elseif E.painOn ~= true then
+        E.painOn = false
+        local P = E.pain
+        for i = 0, K.effects.PAIN_PARTS - 1 do
+            if P[i] ~= 0 then
+                P[i] = 0
+                name = "effects.pain"
+            end
+        end
+    end
+    if name == nil then return bad end
+    if bad == nil then return name end
+    return bad .. "," .. name
+end
+
 -- The heal (NR.healTable): every numeric field of record.effects (and of its key) finite, else its fresh value, or 0
--- for a field with none; a key field healed to its fresh value forces a rebuild. Laying an absent adapter field
--- (addFields) is uncounted.
+-- for a field with none; a key field healed to its fresh value forces a rebuild; the pain table healed by healPain.
+-- Laying an absent adapter field (addFields) is uncounted.
 local function heal(username, E, body)
     local healBad = nil
     if EFF.ref == nil then
@@ -174,10 +199,11 @@ local function heal(username, E, body)
     healBad = NR.healTable(E, EFF.ref, healBad, "effects.", nil, nil, nil, true)
     healBad = NR.healTable(E.key, EFF.ref.key, healBad, "effects.key.", nil, nil, nil, true)
     healBad = NR.healTable(E.key.b, EFF.ref.key.b, healBad, "effects.key.b.", nil, nil, nil, true)
+    healBad = healPain(E, healBad)
     if healBad ~= nil then
         EFF.stats.healed = EFF.stats.healed + 1
         EFF.lastHealed = healBad
-        NR.log.say(2, "effects: non-finite " .. healBad .. " for " .. tostring(username) .. "; stamped fresh")
+        NR.log.say(2, "effects: non-finite or stale " .. healBad .. " for " .. tostring(username) .. "; stamped fresh")
     end
 end
 

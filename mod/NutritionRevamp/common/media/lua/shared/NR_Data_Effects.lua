@@ -43,9 +43,10 @@ NR.data = NR.data or {}
 -- band's middle; x491-20261021-061440 held added pain 20 on Torso_Lower (PAIN 14.3, modifier 0.78) at level 1 on both sides.
 local SYM_PAIN = 15 -- game choice, flat while the cause is active, a placeholder for the researched pang and ache shapes (open S2247)
 -- The endurance cap deepens with progress from Endurance level 1 at onset to level 4 at the death point, linear between
--- the four levels' caps at the 90-minute day (the moodle shows level 2 from p 0.307, 3 from p 0.640 and 4 from p 0.956) (each level's upper edge less one game minute of the worst regeneration,
--- K.hybrid.capAt, which re-sizes them for the day length); x493-20261021-062610 held 0.74, 0.49, 0.24 and 0.09 at levels
--- 1 to 4 on both sides.
+-- the four levels' caps at the 90-minute day, each level's upper edge less one game minute of the worst regeneration
+-- (K.hybrid.capAt, which re-sizes them for the day length).
+-- At the 90-minute day the moodle shows level 2 from p 0.307, 3 from p 0.640 and 4 from p 0.956.
+-- x493-20261021-062610 held 0.74, 0.49, 0.24 and 0.09 at levels 1 to 4 on both sides.
 local SYM_END = { lever = "endurance", shape = "knots", k = {
     0, 0.73, -- level 1 at onset, under 0.75 (#3926); game choice (open S1176)
     1 / 3, 0.48, -- level 2, under 0.5 (#3926); game choice (open S1176)
@@ -53,7 +54,8 @@ local SYM_END = { lever = "endurance", shape = "knots", k = {
     1, 0.08, -- level 4 at the death point, under 0.10 (#3926); game choice (open S1176)
 } }
 -- The stress floor: Stress level 1 (above 0.25) from p 0.417, level 2 (above 0.5; #2369) from p 0.82; x493 held 0.30 and
--- 0.55 at levels 1 and 2 on both sides, falling 0.00178 to 0.00182 a full game minute between writes (less in the partial first minute after a write).
+-- 0.55 at levels 1 and 2 on both sides, falling 0.00178 to 0.00182 a full game minute between writes.
+-- In the partial first minute after a write it falls less.
 local SYM_STRESS = { lever = "stress", shape = "knots", k = {
     0, 0, -- none at onset; game choice (open S1145)
     0.5, 0.30, -- Stress level 1 (above 0.25, #2369) from p 0.417 on the ramp from (0, 0); game choice (open S1145)
@@ -559,6 +561,10 @@ NR.data.effects = {
     },
     SYMPTOMS = {
         PAIN_TOP = 20, -- a part's added pain capped at 20 over its pain modifier, Pain level 1's band top (PAIN above 10, at most 20, #2369), so causes sharing a part add no more than level 1 there (causes on different parts still sum); game choice (open S1147)
+        -- A two-part cause's pair sums to twice that, so four states over three part groups can reach Pain level 3: a head cause,
+        -- a lower-torso cause and both leg causes (scurvy, wet beriberi) set PAIN 60 centred at Severity 1 (15 + 15 + 2 x 15),
+        -- the server's PAIN riding 58.75 to 58.84 at the 90-minute day, over level 3's 50 (#2369); the default fast's four
+        -- (two on the lower torso) stop at 50 centred, PAIN 49.11 to 49.17, level 2. InjurySeverity scales it in getPain.
         CAP_LO = 0.05, -- the symptom cap's floor under Severity above 1, inside Endurance level 4 (at most 0.10, #3926); game choice (open S1176)
         STRESS_HI = 0.70, -- the stress floor's cap under Severity, one step under Stress level 3 at 0.75 (#2369), as the surfaces' caps (S1147); game choice (open S1147)
         UNHAPPY_HI = 59, -- the unhappiness floor's cap under Severity, one under Unhappy level 3 at 60 (#2369), as unhappyTarget's; game choice (open S1147)

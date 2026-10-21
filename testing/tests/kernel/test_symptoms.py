@@ -227,17 +227,6 @@ def test_the_overfull_cap_and_the_symptom_cap_take_the_lower(sh):
     assert E.enduranceCap == 0.73                                        # equal at onset: 0.73 either way
 
 
-def test_the_composer_keeps_the_lower_of_the_two(sh):
-    from .test_kernel_effects import _compose
-    E = sh.K.effects.new()
-    E.symCap = 0.4
-    _compose(sh, flags={"overfull": 3}, E=E)
-    assert E.rowEndCap == 0.73 and E.enduranceCap == 0.4
-    E.symCap = 1
-    _compose(sh, flags={"overfull": 0}, E=E)
-    assert E.rowEndCap == 1 and E.enduranceCap == 1
-
-
 # --- Severity and Overlay ---------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("sev", [0, 0.5, 1, 2, 3])
@@ -392,3 +381,29 @@ def test_every_symptom_cap_shows_its_level_at_the_90_minute_day(sh):
         c = sh.K.hybrid.capAt(_cause_cap(p), 90)
         assert level(c) == level(c + margin * 0.999), p                         # one minute's worst climb keeps the level
         assert level(c) == level(_cause_cap(p)), p                      # capAt never moves it out of its band
+
+
+# --- Plan 18 close (L1): the PAIN several causes make at Severity 1 ---------------------------------------------
+
+def _pain_target(E, dip):
+    """vanilla's PAIN target the parts make (#4062: the sum of a part's pain x its modifier), at the write and centred."""
+    write = sum(E.pain[i] * MOD[i] for i in range(17))
+    centred = sum((E.pain[i] - dip) * MOD[i] for i in range(17) if E.pain[i] > 0)
+    return write, centred
+
+
+@pytest.mark.parametrize("codes,centred,level", [
+    ((1, 2, 3, 4), 50, 2),            # the default fast's four: starvation and pellagra share the lower torso
+    ((6, 1, 2, 3), 60, 3),            # a head cause, a lower-torso cause and both leg causes: three part groups
+    ((5, 7, 2, 3), 60, 3),
+    ((6, 5, 1, 4), 40, 2),            # two on the head, two on the lower torso: each part at its cap
+    ((1, 2, 3, 4, 5, 6, 7), 70, 3),   # every state at once: under level 4's 75
+])
+def test_four_causes_over_three_part_groups_reach_pain_level_3(sh, codes, centred, level):
+    E = _sym(sh, _drain(sh, {c: 0.5 for c in codes}))
+    write, got = _pain_target(E, DIP)
+    assert abs(got - centred) < 1e-9
+    assert abs(write - (centred + DIP * sum(MOD[i] for i in range(17) if E.pain[i] > 0))) < 1e-9
+    low = got - DIP * sum(MOD[i] for i in range(17) if E.pain[i] > 0)   # the minute's end, where PAIN rides (#4062)
+    thresholds = (10, 20, 50, 75)                                        # #2369's PAIN levels
+    assert sum(1 for t in thresholds if low > t) == level
