@@ -1,0 +1,5 @@
+name=TKX Symptoms
+id=TKX_Symptoms
+description=Plan 18 Task 1 experiment: server holds of a body part's added pain, an ENDURANCE cap and STRESS, UNHAPPINESS and BOREDOM floors and caps once a game minute, with a per-minute log, a per-tick ring and per-tick snapshots on both sides. Test profiles only.
+modversion=1.0
+versionMin=42.21.0

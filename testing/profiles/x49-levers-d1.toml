@@ -1,0 +1,34 @@
+# testing/profiles/x49-levers-d1.toml - Plan 18 Task 1 (run x492): the added pain's fall between minute writes on a
+# second day length (DayLength 1, the 15-minute day), then whether added pain survives a relog and a server restart.
+# x49-levers.toml with its own name and day length: PZTestKit + TKX_Symptoms by its path on fixture `default`, the one
+# admin client (-debug), build 42.21.0. No NutritionRevamp (no mod/ file is booted). Nutrition = false (ruling T18-1).
+# SleepAllowed and SleepNeeded true (the brief's sleep on). The driver is testing/experiments/x492_persist.py on
+# x49_lib.py; it quits and relaunches admin itself and restarts the server on its own run folder.
+# The verify rows are load gates only: the probe's version on the server and the client.
+fixture = "default"
+description = "PZTestKit + TKX_Symptoms on fixture default, admin (debug), Nutrition off, DayLength 1, sleep on, build 42.21.0 - Plan 18 Task 1: x492 (decay on a second day length, relog, restart)."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TKX_Symptoms.version", expect = '"resolved": true' },
+  { side = "client", cmd = "lua.global", args = "TKX_Symptoms.version", expect = '"resolved": true' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "TKX_Symptoms"
+path = "testing/experiments/TKX_Symptoms"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+timeout = 240                 # the server boot wait: bounds a slow boot under the 600 s cap
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # the 15-minute day: a game minute is 0.625 s at speed 1
