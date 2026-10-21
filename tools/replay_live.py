@@ -128,6 +128,9 @@ STATS = ("HUNGER", "THIRST", "FATIGUE", "BOREDOM", "UNHAPPINESS", "NICOTINE_WITH
 # from a ring), the record's symptom outputs and the added pain per part (K.effects.symptoms): `effects.pain.<i>` for
 # each part index i with a target above 0, and `painTarget`, vanilla's PAIN target those parts make (the sum of added
 # pain x the part's modifier, #2362; the wound terms excluded), right after the minute's write.
+# The stand-in models no vanilla endurance regeneration and no stress decay (golden_trace's plain stat store): ENDURANCE
+# holds the writer's last pull-down and STRESS its last rise, so a grade of the cap easing or a floor releasing reads
+# effects.enduranceCap and effects.stressFloor, never these two rows (Plan 18 Task 3 review F3).
 SYMPTOM_STATS = ("ENDURANCE", "STRESS")
 SYMPTOM_FIELDS = ("enduranceCap", "symCap", "stressFloor", "unhappyFloor")
 H_REQ = 0.25                          # the meal request, vanilla's HUNGRY level 2 (ruling 11c-17)

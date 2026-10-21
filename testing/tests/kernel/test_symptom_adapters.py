@@ -253,3 +253,24 @@ def test_the_replay_rows_carry_the_pain_targets_the_cap_and_the_floors():
         assert r["STRESS"] <= r["effects.stressFloor"] + 1e-12
     # the stand-in's part holds the written target (no decay modelled by the replay)
     assert be.p.st.parts["Torso_Lower"].addPain == pytest.approx(on[-1]["effects.pain.%d" % torso], rel=1e-12)
+
+
+def test_a_stale_pain_table_with_no_cause_writes_nothing():
+    # the painOn gate (Rule 6): a pain table left non-zero with painOn false is never written (mutant: gate removed)
+    h, g1, rec = _g1(dehydrated=False)
+    E = rec["effects"]
+    E["pain"][HEAD] = 5.0
+    E["painOn"] = False
+    _minute(h, 5)
+    assert g1.st.parts["Head"] is None
+
+
+def test_a_new_body_object_is_looked_up_again_without_a_forget():
+    # the cache's body key (L.painBd): a body the cache did not see is looked up afresh (mutant: key removed)
+    h, g1, rec = _g1()
+    g2 = golden_trace._new_player(h, "g2", golden_trace.MACROS["g1"])
+    bd2 = g2.getBodyDamage(g2)
+    h.rt.eval("function(p, bd) p.getBodyDamage = function(s) return bd end end")(g1, bd2)
+    h.T.decayPain(DECAY_90)
+    _minute(h, 5)
+    assert g2.st.parts["Head"] is not None and g2.st.parts["Head"].painSets == 1
