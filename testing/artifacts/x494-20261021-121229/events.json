@@ -1,0 +1,72 @@
+[
+ {
+  "kind": "setpath",
+  "label": "A_M",
+  "path": "satiety.M",
+  "s": 14,
+  "value": 0
+ },
+ {
+  "kind": "setpath",
+  "label": "A_fed",
+  "path": "drain.fedAgeH",
+  "s": 15,
+  "value": -27.230376
+ },
+ {
+  "kind": "setpath",
+  "label": "P1_pS",
+  "path": "drain.pS",
+  "s": 47,
+  "value": 0.5
+ },
+ {
+  "kind": "stat",
+  "label": "P1_stress",
+  "s": 50,
+  "stat": "STRESS",
+  "value": 0.3
+ },
+ {
+  "kind": "stat",
+  "label": "P1_unhappy",
+  "s": 51,
+  "stat": "UNHAPPINESS",
+  "value": 25.0
+ },
+ {
+  "kind": "setpath",
+  "label": "B_p",
+  "path": "nutrients.thiamine.p",
+  "s": 64,
+  "value": 0.3
+ },
+ {
+  "kind": "setpath",
+  "label": "P2_pS",
+  "path": "drain.pS",
+  "s": 82,
+  "value": 0.9
+ },
+ {
+  "kind": "stat",
+  "label": "P2_stress",
+  "s": 85,
+  "stat": "STRESS",
+  "value": 0.55
+ },
+ {
+  "kind": "stat",
+  "label": "P2_unhappy",
+  "s": 86,
+  "stat": "UNHAPPINESS",
+  "value": 50.0
+ },
+ {
+  "kind": "setpath",
+  "label": "L_M",
+  "path": "satiety.M",
+  "s": 100,
+  "value": 240
+ }
+]
