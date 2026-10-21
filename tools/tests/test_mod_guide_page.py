@@ -10,9 +10,11 @@ The page is checked headless, by parsing its HTML:
 - the artifact page contract: no document wrapper, the title first, the three :root token blocks, Chart.js from
   cdnjs at a pinned version before the inline scripts, charts.js and data.json loaded relatively;
 - each system section's block order, the scenario anchors, and the references list;
-- the six scenarios (Task 10): each draws its own charts S<n><x> from data.json, sets vanilla beside the mod in a
-  fixed block order, links into the systems sections, and keeps the digit and plain-language rules; every facet in
-  charts.js shows only its chart's own series, the facets together covering every series the chart lists.
+- the six scenarios (Task 10): each draws its own charts S<n><x> from data.json, links into the systems sections, and
+  keeps the digit and plain-language rules; every facet in charts.js shows only its chart's own series, the facets
+  together covering every series the chart lists;
+- Plan 18 Task 5d: each major or moderate section opens with "What changes from vanilla", a list of vanilla against the
+  mod, and each minor or same section with a short "About the same as vanilla" blurb, each in a fixed block order.
 
 The pick grammar is defined in charts.js's header comment. `evaluate_pick` below mirrors charts.js's evalPick; the
 grammar cases assert both the selector set charts.js accepts and the values the mirror computes.
@@ -51,9 +53,15 @@ SYSTEMS = [
     "sys-nutrients", "sys-eating", "sys-hunger", "sys-thirst", "sys-monotony", "sys-body", "sys-exercise",
     "sys-strength", "sys-traits", "sys-deficiency", "sys-acute", "sys-screen", "sys-offline",
 ]
-BLOCK_ORDER = ["vanilla", "mod", "charts", "can", "no-longer", "science"]
 SCENARIO_ANCHORS = ["s1", "s2", "s3", "s4", "s5", "s6"]
-SCENE_ORDER = ["vanilla", "mod", "charts", "links", "science"]
+# Plan 18 Task 5d: the audit's minor and same-as-vanilla sections shrink to a blurb; every other section opens with its
+# list of changes from vanilla (the s2 symptoms keep a detail block). Each list is the section's blocks in order.
+MINOR = ["s1", "sys-monotony", "sys-offline"]
+SCENE_ORDER = {"s1": ["blurb", "charts", "links", "science"],
+               "s2": ["changes", "detail", "charts", "links", "science"]}
+SCENE_ORDER.update({s: ["changes", "charts", "links", "science"] for s in ("s3", "s4", "s5", "s6")})
+BLOCK_ORDER = {s: ["changes", "charts", "science"] for s in SYSTEMS}
+BLOCK_ORDER.update({"sys-monotony": ["blurb", "charts", "science"], "sys-offline": ["blurb", "science"]})
 SCENARIO_CHART = re.compile(r"S(\d)[a-z]")
 BACK_MATTER = ["options", "compatibility", "limitations", "references"]
 
@@ -441,7 +449,7 @@ class Scenarios(_Base):
         self.assertEqual(sorted(self.page.scene_blocks), SCENARIO_ANCHORS)
         for sid in SCENARIO_ANCHORS:
             with self.subTest(scenario=sid):
-                self.assertEqual(self.page.scene_blocks[sid], SCENE_ORDER)
+                self.assertEqual(self.page.scene_blocks[sid], SCENE_ORDER[sid])
                 self.assertIn(sid + "-h", self.page.ids)
 
     def test_scenarios_link_into_the_systems(self):
@@ -650,8 +658,12 @@ class Scenarios(_Base):
                 self.assertIsNone(re.search(pat, self.html), pat)
 
     def test_the_hangover_is_promised_on_both_sides_with_its_row(self):
-        """Task 11 I2 and I3: S6 and the Systems section both promise the hangover, and its science cites #3891."""
-        self.assertGreaterEqual(len(re.findall(r"leaves a hangover once the alcohol has (?:gone|cleared)", self.html)), 3)
+        """Task 11 I2 and I3: S6 and the Systems section both promise the hangover, and its science cites #3891 (Plan 18
+        Task 5d: one promise each, the repeated "What can happen" line gone)."""
+        s6 = self.html[self.html.index('id="s6"'):self.html.index('id="systems"')]
+        acute = self.html[self.html.index('id="sys-acute"'):self.html.index('id="sys-screen"')]
+        for body in (s6, acute):
+            self.assertRegex(body, r"leaves a hangover once the alcohol has (?:gone|cleared)")
         self.assertGreaterEqual(self.html.count("(#3891)"), 2)
         self.assertEqual(self.series["S6b-m-hangover"]["provenance"]["proof_run"], "x447-regrade-20261015")
 
@@ -715,7 +727,7 @@ class Scenarios(_Base):
         refusal and the corrected limitations, each with its register row in a science box."""
         self.assertIn("sys-offline", self.page.ids)
         for frag in ("Nothing about your survivor changes while you are logged off", "a backup copy on your character",
-                     "Records are kept for good", "your body also keeps a clock of its own",
+                     "No record is ever pruned", "your body also keeps a clock of its own",
                      "the server refuses an eat that gets past the menus", "A drink with no food value, such as water",
                      "A drink arrives sip by sip", "in the server's language", "QualityCooking",
                      "In Overlay mode the game's own fullness decides", "caught up in hour-long steps"):
@@ -945,7 +957,7 @@ class Structure(_Base):
         for sysid in SYSTEMS:
             with self.subTest(system=sysid):
                 self.assertIn(sysid, self.page.ids)
-                self.assertEqual(self.page.blocks.get(sysid), BLOCK_ORDER)
+                self.assertEqual(self.page.blocks.get(sysid), BLOCK_ORDER[sysid])
         self.assertEqual(set(k for k in self.page.blocks), set(SYSTEMS))
 
     def test_science_boxes_start_closed(self):
@@ -972,6 +984,91 @@ class Structure(_Base):
         self.assertEqual(cited - listed, set())
         self.assertEqual(listed - cited, set(), "a reference the page never cites")
 
+
+
+def _section(html, sid):
+    """The text of one scenario or system section."""
+    start = html.index('id="%s"' % sid)
+    return html[start:html.index("</section>", start)]
+
+
+def _figure(html, cid):
+    m = re.search(r'<figure class="chart" data-chart="%s">(.*?)</figure>' % re.escape(cid), html, re.S)
+    return m.group(1) if m else None
+
+
+class DivergenceFirst(_Base):
+    """Plan 18 Task 5d: the guide leads each section with what changes from vanilla."""
+
+    def test_each_major_or_moderate_section_opens_with_its_changes(self):
+        for sid in SCENARIO_ANCHORS + SYSTEMS:
+            if sid in MINOR:
+                continue
+            with self.subTest(section=sid):
+                body = _section(self.html, sid)
+                m = re.search(r'<div class="changes" data-(?:scene|block)="changes"><h3>What changes from vanilla</h3>\s*'
+                              r'<ol class="diverge">(.*?)</ol>', body, re.S)
+                self.assertIsNotNone(m)
+                items = re.findall(r"<li>(.*?)</li>", m.group(1), re.S)
+                self.assertGreaterEqual(len(items), 2)
+                for item in items:
+                    self.assertRegex(item, r'<p class="dv-name">[^<]+</p>')
+                    was = re.search(r'<p class="dv-was"><span class="dv-k">Vanilla</span><span>(.+?)</span></p>', item, re.S)
+                    now = re.search(r'<p class="dv-now"><span class="dv-k">This mod</span><span>(.+?)</span></p>', item, re.S)
+                    self.assertTrue(was and now, item[:80])
+
+    def test_each_minor_section_is_a_short_blurb(self):
+        for sid in MINOR:
+            with self.subTest(section=sid):
+                body = _section(self.html, sid)
+                m = re.search(r'<div class="blurb" data-(?:scene|block)="blurb">\s*<p><span class="same-tag">About the '
+                              r'same as vanilla</span> (.*?)</p>\s*</div>', body, re.S)
+                self.assertIsNotNone(m)
+                text = re.sub(r"<[^>]+>", "", m.group(1))
+                self.assertLessEqual(len(re.findall(r"[.!?](?:\s|$)", text)), 2, text)
+                self.assertNotIn('class="changes"', body)
+
+    def test_no_full_vanilla_block_or_promise_list_remains(self):
+        for frag in ('data-scene="vanilla"', 'data-block="vanilla"', 'data-scene="mod"', 'data-block="mod"',
+                     'class="promises"', "<h3>Vanilla</h3>", "<h3>What can happen</h3>",
+                     "<h3>What no longer happens</h3>"):
+            self.assertNotIn(frag, self.html, frag)
+
+    def test_extra_1_a_resting_day_burns_about_twice_vanilla_s(self):
+        body = _section(self.html, "sys-exercise")
+        for sid in ("SX1-m-kernel", "SX1-v-model"):
+            self.assertIn('data-fill="%s" data-pick="y@x=idle|mul:24|r0"' % sid, body)
+        self.assertIn("A resting day burns about twice vanilla's", body)
+        mod = evaluate_pick(self.series["SX1-m-kernel"]["points"], "y@x=idle|mul:24")[0]
+        van = evaluate_pick(self.series["SX1-v-model"]["points"], "y@x=idle|mul:24")[0]
+        # a day idle, and a day of sixteen idle hours and eight asleep, each between one and a half and two and a half
+        day = lambda sid: (16 * evaluate_pick(self.series[sid]["points"], "y@x=idle")[0]
+                           + 8 * evaluate_pick(self.series[sid]["points"], "y@x=asleep")[0])
+        for ratio in (mod / van, day("SX1-m-kernel") / day("SX1-v-model")):
+            self.assertTrue(1.5 < ratio < 2.5, ratio)
+
+    def test_extra_2_thirst_draws_the_dehydration_line(self):
+        body = _section(self.html, "sys-thirst")
+        self.assertIn('data-chart="ST3"', body)
+        self.assertEqual(self.data["charts"]["ST3"]["series"], ["ST3-m-dry"])
+        self.assertEqual(self.series["ST3-m-dry"]["points"], self.series["S2d-m-dry"]["points"])
+        self.assertLess(body.index('data-chart="ST3"'), body.index('data-chart="ST1"'), "the main change's chart first")
+        self.assertIn('"ST3": {', self.js)
+
+    def test_extra_3_sh2_sits_in_the_hunger_science(self):
+        body = _section(self.html, "sys-hunger")
+        sci = body[body.index('<details class="science"'):]
+        self.assertIn('data-chart="SH2"', sci)
+        self.assertNotIn('data-chart="SH2"', body[:body.index('<details class="science"')])
+
+    def test_extra_4_the_near_identical_charts_say_so_and_the_mod_only_charts_name_the_gap(self):
+        for cid in ("S1c", "ST1", "H4"):
+            with self.subTest(chart=cid):
+                self.assertRegex(_figure(self.html, cid), r"(?i)about the same as vanilla")
+                self.assertIn("about the same as vanilla", self.data["charts"][cid]["title"])
+        for cid in ("SN1", "S3a", "S3c", "SE1", "SH1", "ST2", "ST3", "SM1", "SB1", "SD1", "SD2", "SC1", "SV1"):
+            with self.subTest(chart=cid):
+                self.assertRegex(_figure(self.html, cid), r"Vanilla (?:has|keeps|tracks|carries) no")
 
 if __name__ == "__main__":
     unittest.main()

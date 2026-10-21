@@ -654,8 +654,8 @@ class RealRepo(unittest.TestCase):
 
     def test_the_charts_and_the_committed_data_file(self):
         import mod_guide_series as S
-        self.assertEqual(len(S.MAP_CHARTS), 40)                                   # Plan 15 Task 13: SH3
-        self.assertEqual(sum(len(c["series"]) for c in S.MAP_CHARTS.values()), 175)   # Plan 18 Task 5: S2d's eight symptom series
+        self.assertEqual(len(S.MAP_CHARTS), 41)                                   # Plan 18 Task 5d: ST3
+        self.assertEqual(sum(len(c["series"]) for c in S.MAP_CHARTS.values()), 176)   # Plan 18 Task 5d: ST3's dry line
         for cid, c in S.CHARTS.items():
             self.assertEqual(set(c), {"section", "title", "x", "y", "series"}, cid)
         with open(os.path.join(REPO, *g.OUT_REL.split("/")), encoding="utf-8") as fh:

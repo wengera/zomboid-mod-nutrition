@@ -131,12 +131,12 @@ def kh():
 def test_the_built_series_and_the_pending_and_dropped_ids_cover_the_map():
     built = set(SER)
     mapped = {i for c in S.MAP_CHARTS.values() for i in c["series"]}
-    assert len(mapped) == 175                                           # Plan 18 Task 5: S2d's eight symptom series
+    assert len(mapped) == 176                                           # Plan 18 Task 5d: ST3's dry line
     assert built | set(S.PENDING_LIVE) | set(S.DROPPED) == mapped
     assert not (built & set(S.PENDING_LIVE)) and not (built & set(S.DROPPED))
     assert not (set(S.PENDING_LIVE) & set(S.DROPPED))
     # Plan 16 Task 11: x461b draws SE1's live liquid (its fill DROPPED on the window), x467 SH3's live returns
-    assert len(built) == 163 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 12      # Plan 17 Task 2b: x481's live line DROPPED
+    assert len(built) == 164 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 12      # Plan 17 Task 2b: x481's live line DROPPED
     assert DATA["charts"] == S.CHARTS
     assert D.coverage_gaps(built, DATA["charts"], S.PENDING_LIVE) == ([], [])
 
@@ -283,6 +283,14 @@ def test_plan17_each_pace_and_combining_line_ends_at_its_death(sid):
     assert pts[-1] == [pytest.approx(v["death_age"] / 24.0), 0.0], sid
     assert all(y > 0 for _, y in pts[:-1]), sid
     assert "fatal state is %s" % v["death_name"] in SER[sid]["note"], sid
+
+
+def test_plan18_st3_draws_the_fast_s_no_water_line():
+    """Plan 18 Task 5d: Thirst and salt's dehydration chart draws the fast's no-water job under its own id."""
+    assert SER["ST3-m-dry"]["points"] == SER["S2d-m-dry"]["points"]
+    assert SER["ST3-m-dry"]["note"] == SER["S2d-m-dry"]["note"]
+    assert S.SERIES_JOB["ST3-m-dry"] == S.SERIES_JOB["S2d-m-dry"] == "j_s2d_dry"
+    assert DATA["charts"]["ST3"]["series"] == ["ST3-m-dry"] and SER["ST3-m-dry"]["chart"] == "ST3"
 
 
 def test_plan17_the_pace_lines_are_starvation_alone_and_ordered():
@@ -670,7 +678,8 @@ LATE = {
     "S5c-m-gaunt": 2.0, "S5c-m-none": 2.0, "S6a-m-day1": 9.0, "S6a-m-day14": 9.0, "S6b-m-bac": 2.0,
     "S6b-m-intox": 2.0, "S6b-m-hangover": 2.0, "S6c-m-kernel": 2.0, "SX2-m-kernel": 0.0, "S4c-m-kernel": 730.0,
     "S2d-v-model-weight": 0.0, "S4c-v-model": 730.0, "S2a-v-model": 36.0, "S1a-v-model": 13.0,
-    "S2d-m-drain": 1.0, "S2d-m-dry": 1.0, "S2d-m-pace-vanilla": 1.0, "S2d-m-pace-short": 1.0, "S2d-m-pace-real": 1.0,
+    "S2d-m-drain": 1.0, "S2d-m-dry": 1.0, "ST3-m-dry": 1.0, "S2d-m-pace-vanilla": 1.0, "S2d-m-pace-short": 1.0,
+    "S2d-m-pace-real": 1.0,
     "S2d-m-comb-worst": 1.0, "S2d-m-comb-mult": 1.0, "S2d-m-comb-add": 1.0, "S6a-m-offset": 9.0, "S6a-m-offset-real": 9.0, "S6b-m-intox-real": 2.0,
 }
 
@@ -1374,7 +1383,7 @@ def _(kh, sid):
     return [3.0, v["death_age"] / 24.0]
 
 
-@check("S2d-m-dry")
+@check("S2d-m-dry", "ST3-m-dry")
 def _(kh, sid):
     _, _, health = health_arm([FRESH], 3 * 1440)
     assert pt(sid, 3.0) == pytest.approx(health, abs=1e-9)

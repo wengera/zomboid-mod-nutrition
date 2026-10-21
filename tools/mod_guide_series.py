@@ -129,7 +129,7 @@ MAP_CHARTS = {
     "H3": {"section": "At a glance", "title": "Strength over a year of training",
            "x": "game days, 0–365", "y": "Strength level, 0–10",
            "series": ["H3-v-model-x1", "H3-v-model-x15", "H3-m-level", "H3-m-written"]},
-    "H4": {"section": "At a glance", "title": "Five common foods, vanilla against the mod",
+    "H4": {"section": "At a glance", "title": "Five common foods: calories about the same as vanilla",
            "x": "food (Apple, Bread, Bolognese, Burger, Tuna)", "y": "kcal and grams per item",
            "series": ["H4-v-kcal", "H4-v-carb", "H4-v-fat", "H4-v-pro", "H4-m-kcal", "H4-m-carb", "H4-m-fat", "H4-m-pro"]},
     "S1a": {"section": "S1 Your first day", "title": "Hunger through a first day of four meals",
@@ -138,7 +138,7 @@ MAP_CHARTS = {
     "S1b": {"section": "S1", "title": "When the hunger moodles arrive without food",
            "x": "game hours from a fresh start, 0–36", "y": "moodle level, 0–4",
            "series": ["S1b-v-model", "S1b-v-live", "S1b-m-kernel"]},
-    "S1c": {"section": "S1", "title": "Thirst without a drink",
+    "S1c": {"section": "S1", "title": "Thirst without a drink, about the same as vanilla",
            "x": "game hours, 0–24", "y": "thirst, 0–1",
            "series": ["S1c-v-model", "S1c-v-live", "S1c-m-kernel", "S1c-m-live"]},
     "S2a": {"section": "S2 Skipping meals", "title": "Hunger through a 36-hour fast and the refeed",
@@ -214,12 +214,16 @@ MAP_CHARTS = {
            "x": "meal (lunch, dinner, breakfast)", "y": "game hours until Peckish, or Hungry",
            "series": ["SH3-v-model", "SH3-m-kernel", "SH3-m-live", "SH3-v-model-hungry", "SH3-m-kernel-hungry",
                       "SH3-m-live-hungry"]},
-    "ST1": {"section": "Thirst and salt", "title": "Ten hours at rest without a drink",
+    "ST1": {"section": "Thirst and salt", "title": "Ten hours at rest without a drink, about the same as vanilla",
            "x": "game hours, 0–10", "y": "thirst",
            "series": ["ST1-v-model", "ST1-m-kernel", "ST1-m-live"]},
     "ST2": {"section": "Thirst and salt", "title": "Five days without salt",
            "x": "game days, 0–5", "y": "body sodium change (mmol/24 h); plasma sodium",
            "series": ["ST2-m-live-na", "ST2-m-live-plasma", "ST2-m-kernel"]},
+    # Plan 18 Task 5d: thirst's main change, the dehydration line, drawn in its own section off the fast's no-water job
+    "ST3": {"section": "Thirst and salt", "title": "Health without water",
+           "x": "game days, no food and no water", "y": "health",
+           "series": ["ST3-m-dry"]},
     "SM1": {"section": "Monotony", "title": "Varying the diet lifts the mood",
            "x": "game hours after the last repeat", "y": "unhappiness",
            "series": ["SM1-m-live", "SM1-m-kernel"]},
@@ -1107,7 +1111,7 @@ SERIES_JOB = {
     "S5b-m-overfat-weight": "j_s5b_overweight", "S5b-m-none-weight": "j_s5b_none", "S5c-m-gaunt": "j_s5b_gaunt",
     "S5c-m-none": "j_s5b_none", "S6a-m-day1": "j_s6a", "S6a-m-day14": "j_s6a", "S6a-m-tolerance": "j_s6a", "S6b-m-bac": "j_s6b",
     "S6b-m-intox": "j_s6b", "S6b-m-hangover": "j_s6b", "S6c-m-kernel": "j_s6c", "SX2-m-kernel": "j_sx2",
-    "S2d-m-drain": "j_s2d", "S2d-m-dry": "j_s2d_dry", "S2d-m-pace-vanilla": "j_s2d_pace_vanilla",
+    "S2d-m-drain": "j_s2d", "S2d-m-dry": "j_s2d_dry", "ST3-m-dry": "j_s2d_dry", "S2d-m-pace-vanilla": "j_s2d_pace_vanilla",
     "S2d-m-pace-short": "j_s2d_pace_short", "S2d-m-pace-real": "j_s2d_pace_real", "S2d-m-comb-worst": "j_s2d_comb_worst",
     "S2d-m-comb-mult": "j_s2d", "S2d-m-comb-add": "j_s2d_comb_add", "S2d-m-sym-exertion": "j_s2d",
     "S2d-m-sym-pain": "j_s2d", "S2d-m-sym-stress": "j_s2d", "S2d-m-sym-unhappy": "j_s2d", "S6a-m-offset": "j_s6a",
@@ -2584,6 +2588,32 @@ def opened_text(opened, K, upto=None):
                           if upto is None or a <= upto)
 
 
+def dry_series(sid):
+    """The fast without food or water (j_s2d_dry): S2d's Without water view and Thirst and salt's dehydration chart
+    (ST3, Plan 18 Task 5d) draw the same line, each under its own chart's id."""
+    K = KHost().K
+    kd = result("j_s2d_dry")
+    vd = viable(sid, "j_s2d_dry", death=True, thirst=True)
+    hd = with_tenth(until_death(kd["health"], vd), kd) + [[vd["death_age"] / 24.0, 0.0]]
+    floor = float(K.drain.SLEEP_FLOOR)
+    return series(sid, "Nutrition Revamp health, without water", DAYS, "health", "kernel", hd,
+                  kernel({"replay": "8 days, no food and no water, a fresh record from 07:00", "sleep_allowed": False,
+                          "start": FRESH,
+                          "path": "the stand-in's overall health",
+                          "read": "100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)"}, "x456"),
+                  "No food and no water from a fresh record at 07:00 (HUNGER 0), at the mod's defaults. The dehydration "
+                  "state opens at a %g %% body-water deficit (K.drain.DEHYD_ONSET), at %.2f h, when Parched shows, and "
+                  "the starvation state at %.2f h; health reaches %g at %.2f h. The dehydration fraction falls on a "
+                  "straight line with the deficit, from 1 at the onset to 0 at the death point of 17 %% (a game choice "
+                  "inside 15-19 %%, K.drain.DEHYD_DEATH). The fatal state is %s: health is gone at day %.2f (%.1f h), "
+                  "where the line ends. Health is under %g for %s (%.1f h, from %.1f h). The largest one-minute fall is "
+                  "%.3f, at %.0f h, a record day's close, where the starvation clock steps with the body's weight. The "
+                  "live x456 read the drain before Plan 17, so it proves the onset only (#3940, #4021)."
+                  % (float(K.drain.DEHYD_ONSET), kd["dehyd_age"], kd["starve_age"], HALF_HEALTH, kd["half_age"],
+                     vd["death_name"], vd["death_age"] / 24.0, vd["death_age"], floor, tenth_text(kd, vd),
+                     vd["death_age"] - kd["tenth"][0], kd["tenth"][0], kd["step"], kd["step_age"]))
+
+
 def s_s2d():
     sim, death = _vanilla_fast()
     hourly = [[t / 24.0, x] for t, x in _every(sim["health"], 60) if t < death] + [[death / 24.0, 0.0]]
@@ -2594,8 +2624,6 @@ def s_s2d():
     store0 = read("scen", "scenario-nutrition_3day_fast.json", "test.samples[0].calories")
     k = result("j_s2d")
     v = viable("S2d-m-mass", "j_s2d", death=True)
-    kd = result("j_s2d_dry")
-    vd = viable("S2d-m-dry", "j_s2d_dry", death=True, thirst=True)
     kg, vg = result("j_s2d_gaunt"), viable("S2d's Gaunt body", "j_s2d_gaunt", death=True)
     vo = viable("S2d's Obese body", "j_s2d_obese", death=True)
     pace = {p: (result(j), viable("S2d-m-pace-" + n, j, death=True))
@@ -2616,7 +2644,6 @@ def s_s2d():
     def line(job, vv):
         return with_tenth(until_death(job["health"], vv), job) + [[vv["death_age"] / 24.0, 0.0]]
     hp = line(k, v)
-    hd = line(kd, vd)
     water = {"water": [AUTODROP_G, list(AUTODROP_MIN)], "sleep_allowed": False, "start": FRESH}
     fm_min = float(K.strength.DEFAULTS.fmMin)
     fat_floor = next((a / 24.0 for _, a, fm, lm, lx, bmi in k["days"] if fm <= fm_min + 1e-9), None)
@@ -2701,22 +2728,7 @@ def s_s2d():
                % (float(K.drain.STARVE_ONSET_H), onset_h, k["bmi0"], bmi_death, HALF_HEALTH,
                   k["half_age"] / 24.0, death / 24.0, opened_text(k["opened"][1:], K, v["death_age"]), beri_h,
                   beri_open / 24.0, lowest, fatal, sleep_text, step_text) + " " + proof_note("S2d-m-drain")),
-        series("S2d-m-dry", "Nutrition Revamp health, without water", DAYS, "health", "kernel", hd,
-               kernel({"replay": "8 days, no food and no water, a fresh record from 07:00", "sleep_allowed": False,
-                       "start": FRESH,
-                       "path": "the stand-in's overall health",
-                       "read": "100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)"}, "x456"),
-               "No food and no water from a fresh record at 07:00 (HUNGER 0), at the mod's defaults. The dehydration "
-               "state opens at a %g %% body-water deficit (K.drain.DEHYD_ONSET), at %.2f h, when Parched shows, and "
-               "the starvation state at %.2f h; health reaches %g at %.2f h. The dehydration fraction falls on a "
-               "straight line with the deficit, from 1 at the onset to 0 at the death point of 17 %% (a game choice "
-               "inside 15-19 %%, K.drain.DEHYD_DEATH). The fatal state is %s: health is gone at day %.2f (%.1f h), "
-               "where the line ends. Health is under %g for %s (%.1f h, from %.1f h). The largest one-minute fall is "
-               "%.3f, at %.0f h, a record day's close, where the starvation clock steps with the body's weight. The "
-               "live x456 read the drain before Plan 17, so it proves the onset only (#3940, #4021)."
-               % (float(K.drain.DEHYD_ONSET), kd["dehyd_age"], kd["starve_age"], HALF_HEALTH, kd["half_age"],
-                  vd["death_name"], vd["death_age"] / 24.0, vd["death_age"], floor, tenth_text(kd, vd),
-                  vd["death_age"] - kd["tenth"][0], kd["tenth"][0], kd["step"], kd["step_age"])),
+        dry_series("S2d-m-dry"),
         series("S2d-m-pace-vanilla", "Vanilla pace", DAYS, "health", "kernel", line(pv, vpv),
                kernel(dict(pace_inputs, replay="%d days, no food, the replay's water" % PACE_DAYS[1],
                            options="NR.DeathPace 1 (Vanilla), NR.HealthCombine 2"), "x482"),
@@ -3404,6 +3416,10 @@ def s_st1():
     ]
 
 
+def s_st3():
+    return [dry_series("ST3-m-dry")]
+
+
 def s_st2():
     path = "sodium.by_day.{1,2,3,4,5}.na_change_per_24h"
     na = read("x28g", "rows.json", path)
@@ -3981,5 +3997,5 @@ def s_validation():
 
 
 SERIES_DEFS = [s_h1, s_h2, s_h3, s_h4, s_s1a, s_s1b, s_s1c, s_s2a, s_s2b, s_s2c, s_s2d, s_s3a, s_s3b, s_s3c, s_s4a,
-               s_s4b, s_s4c, s_s5a, s_s5b, s_s5c, s_s6a, s_s6b, s_s6c, s_sn1, s_se1, s_sh1, s_sh2, s_st1, s_st2,
+               s_s4b, s_s4c, s_s5a, s_s5b, s_s5c, s_s6a, s_s6b, s_s6c, s_sn1, s_se1, s_sh1, s_sh2, s_st1, s_st2, s_st3,
                s_sm1, s_sb1, s_sb2, s_sx1, s_sx2, s_ss1, s_sd1, s_sd2, s_sc1, s_sv1, s_sh3, s_validation]

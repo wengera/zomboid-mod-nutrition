@@ -82,6 +82,8 @@
     },
     "ST1": { yMin: 0, yMax: 1 },
     "ST2": { yMin: -10, yMax: 0, yTitle: "body sodium, mmol a day" },
+    /* ST3 (Plan 18 Task 5d): the fast's no-water line (S2d's Without water view) drawn in Thirst and salt */
+    "ST3": { xMin: 0, yMin: 0, yMax: 100, endpoints: { "ST3-m-dry": "Death: dehydration" } },
     "SM1": { yMin: 0 },
     "SB1": {},
     "SB2": {
