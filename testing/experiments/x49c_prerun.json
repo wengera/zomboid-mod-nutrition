@@ -1,0 +1,113 @@
+{
+ "_provenance": {
+  "first_sight": {
+   "age": 2.39,
+   "player": {
+    "health": 100.0,
+    "macros": [
+     796.040771484375,
+     -0.865961492061615,
+     -0.2795819044113159,
+     -0.21277907490730286
+    ]
+   },
+   "stats": {
+    "FATIGUE": 1.6587773643550463e-05,
+    "HUNGER": 0.0022823589388281107,
+    "THIRST": 0.0019041254417970777
+   }
+  },
+  "mod_commit": "6ee7c8d1",
+  "seed_at_m": 20,
+  "tool": "tools/replay_live.py ServerReplay (game_heal on, rng half, sleep off, 90-minute day, Realistic, Multiply, no typed weight: the mod's creation body)",
+  "tool_x49c": "x49c_prerun.py on x49b_prerun's backend"
+ },
+ "x495": {
+  "end": {
+   "drain.frac.1": 0.999726,
+   "drain.frac.3": 0.997163,
+   "drain.mask": 4.0,
+   "drain.pS": 0.000274,
+   "drain.recovering": 1.0,
+   "drain.target": 99.688905,
+   "effects.enduranceCap": 0.727872,
+   "effects.pain.13": 12.95,
+   "effects.pain.14": 12.95,
+   "effects.pain.7": 0.0,
+   "effects.rowEndCap": 1.0,
+   "effects.stressFloor": 0.001702,
+   "effects.stressTarget": 0.06,
+   "effects.symCap": 0.727872,
+   "effects.unhappyFloor": 0.141865,
+   "effects.unhappyTarget": 0.0,
+   "health": 99.688905,
+   "levels": {
+    "endurance": 1,
+    "pain": 1,
+    "stress": 0,
+    "unhappy": 0
+   },
+   "moodLast.u": 0.141865,
+   "painMid": 15.000001,
+   "painTarget": 15.540001
+  },
+  "floors_seeded": [
+   0.3,
+   25.0
+  ],
+  "heal_at_target_after_lapse_m": 20,
+  "l2_gm": 107,
+  "lapse": {
+   "cap_after": 0.729554,
+   "cap_before": 0.355,
+   "health": 97.801354,
+   "lag_m": 0,
+   "mask": 4,
+   "recovering": 1,
+   "target": 99.91305,
+   "u_after": 0.029762,
+   "u_before": 25.0
+  },
+  "minutes": {
+   "end": 178,
+   "onset": 27,
+   "p1": 29,
+   "seed": 20,
+   "snack": 65,
+   "thiamine": 35
+  },
+  "pre": {
+   "drain.frac.1": 0.5,
+   "drain.frac.3": 0.999425,
+   "drain.mask": 5.0,
+   "drain.pS": 0.5,
+   "drain.recovering": 0.0,
+   "drain.target": 49.97123,
+   "effects.enduranceCap": 0.355,
+   "effects.pain.13": 12.95,
+   "effects.pain.14": 12.95,
+   "effects.pain.7": 19.680769,
+   "effects.rowEndCap": 1.0,
+   "effects.stressFloor": 0.3,
+   "effects.stressTarget": 0.06,
+   "effects.symCap": 0.355,
+   "effects.unhappyFloor": 25.0,
+   "effects.unhappyTarget": 0.0,
+   "health": 97.801354,
+   "levels": {
+    "endurance": 2,
+    "pain": 2,
+    "stress": 1,
+    "unhappy": 1
+   },
+   "moodLast.u": 25.0,
+   "painMid": 30.0,
+   "painTarget": 30.891
+  },
+  "wall": {
+   "lapse_at": 317.4,
+   "phases_end": 435.4,
+   "worst_call": 520.4
+  }
+ }
+}
