@@ -133,6 +133,10 @@ A mod moves `getRecoveryMod` only through the Fitness perk or the weight-band tr
 
 Measured live, vanilla's awake endurance reaches the owning client within about one push: with ENDURANCE written to 0.6 on the server and rising under a harness walk, the client's copies lay 369.61376953125 to 1162.46142578125 ms behind the server's series; no handler wrote awake endurance on that boot (code inference; #3050's bound), so whether a handler's write is the one the push carries is still [X35](../areas/open-questions.md#x35)'s question [#3050/M/n=1] [#2082/C/open].
 
+Held once a game minute as a ceiling, ENDURANCE caps of 0.74, 0.49, 0.24 and 0.09 kept the Endurance moodle at levels 1, 2, 3 and 4 respectively on every server tick and client frame of each arm from a settle after its write. [#4076/M/n=1]
+A standing character's ENDURANCE climbed a median 3.659745187320486e-05 per multiplier unit between minute writes on DayLength 4, 0.006737649440765381 a game minute at the cap of 0.748, and at that cap the Endurance moodle read level 0 as well as level 1 between writes on the server and on the client. [#4077/M/n=1]
+Over 40 minute gaps a standing character's ENDURANCE climbed at most 3.708222207103933e-05 per multiplier unit, under the mod's worst-case END_REGEN_UNIT. [#4078/M/n=1]
+
 <a id="writers"></a>
 ### Event writers
 

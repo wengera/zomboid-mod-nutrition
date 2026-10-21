@@ -183,11 +183,28 @@ Measured live, a character under a climate override of -10 (the reply's final te
 ### Pain
 
 The `PAIN` stat is driven toward a target the parts define [#2362/C/C-only].
-With no pain effect running, the target is `Σ part pain × getPainModifyer(i) − getPainReduction()`, and the per-part pain modifiers inside it are not read [#2362/C/C-only].
+With no pain effect running, the target is `Σ part pain × getPainModifyer(i) − getPainReduction()` [#2362/C/C-only].
 When the target is above the current `PAIN`, the stat rises by one five-hundredth of the gap per tick [#2362/C/C-only].
 When the target is lower, `PAIN` snaps down to it at once [#2362/C/C-only].
 `painReduction` itself decays by `0.005` per multiplier unit and is floored at zero [#2362/C/C-only].
 Pain therefore rises slowly and falls instantly, so a mod that raises a part's pain sees the stat lag, and one that lowers it sees no lag [#2362/C/C-only].
+
+`BodyPart.setAdditionalPain(F)` is a bare write of the part's `additionalPain` field, `getAdditionalPain()` returns the field, and `getAdditionalPain(true)` returns it plus the part's `stiffness` divided by 3.5. [#4057/C/C-only]
+`BodyPart.DamageUpdate` returns at once on a client for its local player, so a part's added pain falls only on the server. [#4058/C/C-only]
+Each `BodyPart.DamageUpdate` lowers a part's `additionalPain` by 0.005 × `GameTime.getMultiplier()` while it is above 0 and floors it at 0, so with the multiplier summing to 2 × the day length in real minutes over a game minute (#2922) added pain falls 0.01 × that day length a game minute: 0.9 on the 90-minute day and 0.15 on the 15-minute day. [#4059]
+`BodyPart.getPain` adds `getAdditionalPain(true)` to the part's wound terms and then scales the sum by a switch on the `InjurySeverity` sandbox option, one case ×0.7 and another ×1.3, the remaining value unscaled. [#4060/C/C-only]
+`BodyPartType`'s pain modifier, the first float of its constructor, is 0.5 for the hands and feet, 0.6 for the forearms, upper arms and lower legs, 0.7 for the upper torso, groin and upper legs, 0.78 for the lower torso and 0.8 for the head and neck. [#4061/C/C-only]
+`BodyDamage.Update` returns at once on a client for a living player, and on the server sets the PAIN target to the sum over parts of `getPain()` × the part's pain modifier less `painReduction`, raising PAIN by (target − PAIN)/500 a call when the target is above it and setting PAIN to the target otherwise, unless a pain effect is running, when PAIN is lowered by 0.0233 × the thirty-FPS multiplier instead. [#4062]
+Added pain is saved with the character: `BodyDamage.save` writes each part's `getAdditionalPain()`, `BodyDamage.load` reads it back through `setAdditionalPain`, and `IsoGameCharacter.save` and `.load` call them. [#4063/C/C-only]
+With a server-side `setAdditionalPain` of 20 on the lower torso re-applied once a game minute, the Pain moodle read level 1 on the server and on the client at the arm's last paired reads, and at 40 it read level 2 on both. [#4068/M/n=1]
+From added pain 20 set on the lower torso at an arm start 102.84 s into the session, the client's Pain moodle first read level 1 at its read at 158.7475 s and the server's at its read at 168.115 s; from 40 set at 245.373 s, with PAIN at 14.307312965393066, level 2 first read at 268.7795 s on the client and 275.6855 s on the server. [#4069/M/n=1]
+PAIN approached its target at the jar's rate (#4062): over 2347 one-tick steps with PAIN under its target by more than the grade's gap the median of the step against the predicted step was 0.9999999821124849, the server ticking 10.000211420960275 times a second. [#4070/M/n=1]
+After the hold was released, PAIN followed the falling target down at once: on 255 one-tick steps PAIN read the lower torso's pain modifier times the previous tick's added pain, within the grade's tolerance. [#4071/M/n=1]
+Re-set once a game minute on DayLength 4, added pain fell 0.899983361325089 a game minute at speed 1 (54.88547897338867 over 60.98499298095703 game minutes) and 0.9000071274474525 at speed 5, each minute's fall within one tick of the jar's decay over its summed multiplier (37 and 24 minutes at speed 1). [#4072/M/n=1]
+On DayLength 1 added pain re-set once a game minute fell 0.15000031795638447 a game minute (9.897998809814453 over 65.98651885986328 game minutes), each of 66 minutes within one tick of the jar's decay over its summed multiplier. [#4074/M/n=1]
+Added pain set to 60 on the lower torso and read 59.85633087158203 before the player quit read 59.48550033569336 at the server's first read after the player's quit, a graceful server stop and restart with no player online, and a rejoin from a fresh client restore, the server's reads between the quit and the restart finding no online player. [#4075/M/n=1]
+Starvation's added pain on the lower torso, set at the onset drain, first showed the Pain moodle between 65.07650000000001 and 66.43 s after that drain on the server and between 56.58500000000001 and 56.68950000000001 s on the client, the server ticking 10.0 times a second and the client drawing 60.0 frames a second. [#4081/M/n=1]
+When beriberi's legs were set with PAIN near its first threshold, the server's Pain moodle read 0 on two pairs with its PAIN at 13.10213565826416 and 13.687191009521484, and no client read was off its own PAIN's level, the client drawing 60.0 frames a second. [#4098/M/n=1]
 
 <a id="wounds"></a>
 ### Wounds and healing
@@ -247,7 +264,7 @@ What a player sees of them is the moodle each stat feeds, and `MoodleStat` fixes
 | `DRUNK` | 0–100 | 10 | 30 | 50 | 70 |
 
 The hunger, thirst, endurance and heavy-load thresholds are stated at [body-and-weight.md#moodles](body-and-weight.md#moodles) [#0508/M/n=1] [#0509/M/n=1] [#3926/C/C-only].
-The comparison operator and evaluation order inside `Moodle.Update` were re-read for hunger and thirst only, so the mood rows above are the registered values and not a measured firing point [#2369/C/C-only].
+The comparison operator and evaluation order inside `Moodle.Update` were re-read for hunger and thirst first, and for Pain, Unhappy and Stress below; the first two levels of those three were read live at held values inside their bands, consistent with the rows above, though no run bracketed a threshold [#2369/C/C-only] [#4068/M/n=1] [#4079/M/n=1].
 The SICK moodle's input was read as well: on a character whose health is not 0, `Moodle.Update` divides the apparent infection level, the largest of FOOD_SICKNESS, ZOMBIE_FEVER and ZOMBIE_INFECTION, by 100, adds SICKNESS straight onto it unscaled and passes each SICK threshold by a strict greater-than, so a FOOD_SICKNESS on its 0 to 100 scale is read against the 0 to 1 ladder as a hundredth [#3130/C/C-only].
 
 One ladder is not monotonic [#2370/C/C-only].
@@ -257,6 +274,12 @@ How `Moodle.Update` resolves a ladder in that shape is not read [#2370/C/C-only]
 The thresholds cannot be retuned from Lua [#1141/C/C-only].
 `MoodleStat` does not appear anywhere in the `LuaManager$Exposer.exposeAll()` class set, so a mod never reaches its public threshold setters, the wall stated at [../reference/wall-map.md#d2-d3](../reference/wall-map.md#d2-d3) [#1141/C/C-only].
 A mod moves a moodle only by moving the stat behind it [#1141/C/C-only].
+
+`Moodle.Update` recomputes the Pain moodle only once every 120 calls, through its `painTimer`, and then reads the PAIN stat against the Pain thresholds by a strict greater-than while the body's health is not 0, so a character's Pain moodle lags its PAIN by up to 120 updates. [#4065]
+`Moodle.Update` reads the Unhappy moodle from UNHAPPINESS upward by a strict greater-than while the body's health is not 0. [#4066/C/C-only]
+`Moodle.Update` reads the Stress moodle from `Stats.getNicotineStress`, STRESS plus NICOTINE_WITHDRAWAL clamped to STRESS's range, from the top threshold down and with no health check. [#4067/C/C-only]
+Held once a game minute as floors, UNHAPPINESS 25 and 50 kept the Unhappy moodle at levels 1 and 2 and STRESS 0.3 and 0.55 the Stress moodle at levels 1 and 2 on every server tick and client frame of each arm from a settle after its write. [#4079/M/n=1]
+Between minute writes on DayLength 4 UNHAPPINESS did not fall from its floor of 25 or 50, while STRESS fell from 0.3 to between 0.298178106546402 and 0.29841962456703186 and from 0.55 to between 0.5481770634651184 and 0.5494725704193115. [#4080/M/n=1]
 
 Drunkenness is not named as such [#2371/C/C-only].
 It is `CharacterStat.INTOXICATION` on a `0` to `100` scale, read by the `DRUNK` moodle, and `DRUNKENNESS` and `DrunkennessLevel` are absent from every class entry in the jar [#2371/C/C-only].
@@ -324,6 +347,7 @@ Not covered: the sub-updater bodies other than panic state, boredom, cold and il
 - Whether a temperature effect writes `CharacterStat.TEMPERATURE` every update or accepts the halfway step of one write is a decision the lerp forces [#2373/C/C-only].
 - Whether a knock-down or sleep effect can rest on `setKnockedDown` or `setAsleep` is a decision that waits on a live probe, because both are bare field writes with no state machine read behind them [#2351/C/C-only] [#2383/C/C-only].
 - Whether the non-monotonic `HYPOTHERMIA` ladder matters to a mod that reads the moodle is a decision that waits on a read of `Moodle.Update` [#2370/C/C-only].
+- Whether a body part's added pain survives a relog alone, apart from a server restart, is unmeasured: run x492 read the value back after a quit, a graceful restart and a rejoin together (#4075), its relog grade unmeasured, so the save at the quit and the save at the restart are not separated live. [#4113/C/inference/open]
 
 ## See also
 

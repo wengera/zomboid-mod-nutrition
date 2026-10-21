@@ -269,6 +269,8 @@ The mask value of a key is `1 << bit`, so the part's health alone is mask `1` an
 A field outside the mask is not on the wire, and the receiver leaves its own copy of that field as it was [#2626/C/C-only].
 The packet carries no body-wide value, overall health is in neither this packet nor the main-field block, and the cold and infection timers and the pain and cold reductions travel in that block, above [#2626/C/C-only] [#2618/C/C-only].
 What each per-part field means to the body's own update is [`health-surfaces.md#wounds`](health-surfaces.md#wounds); who may send this packet is [`platform/mp-model.md#sync-globals`](../platform/mp-model.md#sync-globals).
+`BodyPart.syncWrite` writes `additionalPain` as a float, `BodyPart.sync` with a reader reads it back, and the `BodyDamageSync` updater carries it as field 23. [#4064/C/C-only]
+Before any explicit body-part sync the client's own copy of the lower torso's added pain read 19.472627639770508 under the server's hold at 20 and 39.44855499267578 under the hold at 40: the server's added pain reaches the owner's client without the mod sending a sync. [#4073/M/n=1]
 
 <a id="moddata-packet"></a>
 ### The modData packet's type bytes
