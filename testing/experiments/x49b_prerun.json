@@ -17,7 +17,7 @@
     "THIRST": 0.0019041254417970777
    }
   },
-  "mod_commit": "ec492755",
+  "mod_commit": "6ee7c8d1",
   "seed_at_m": 20,
   "tool": "tools/replay_live.py ServerReplay (game_heal on, rng half, sleep off, 90-minute day, Realistic, Multiply, no typed weight: the mod's creation body)"
  },
@@ -40,7 +40,7 @@
     "effects.symCap": 0.355,
     "effects.unhappyFloor": 25.0,
     "effects.unhappyTarget": 0.0,
-    "health": 97.937282,
+    "health": 98.169104,
     "levels": {
      "endurance": 2,
      "pain": 2,
@@ -52,12 +52,12 @@
     "painTarget": 30.891
    },
    "L1": {
-    "drain.frac.1": 0.999552,
+    "drain.frac.1": 0.999523,
     "drain.frac.3": 0.999286,
     "drain.mask": 4.0,
-    "drain.pS": 0.000448,
+    "drain.pS": 0.000477,
     "drain.recovering": 1.0,
-    "drain.target": 99.883828,
+    "drain.target": 99.880942,
     "effects.enduranceCap": 0.729464,
     "effects.pain.13": 12.95,
     "effects.pain.14": 12.95,
@@ -68,7 +68,7 @@
     "effects.symCap": 0.729464,
     "effects.unhappyFloor": 0.035714,
     "effects.unhappyTarget": 0.0,
-    "health": 97.61261,
+    "health": 97.844432,
     "levels": {
      "endurance": 1,
      "pain": 1,
@@ -80,12 +80,12 @@
     "painTarget": 15.540001
    },
    "L2": {
-    "drain.frac.1": 0.999552,
+    "drain.frac.1": 0.999523,
     "drain.frac.3": 0.998075,
     "drain.mask": 4.0,
-    "drain.pS": 0.000448,
+    "drain.pS": 0.000477,
     "drain.recovering": 1.0,
-    "drain.target": 99.762851,
+    "drain.target": 99.759968,
     "effects.enduranceCap": 0.728557,
     "effects.pain.13": 12.95,
     "effects.pain.14": 12.95,
@@ -96,7 +96,7 @@
     "effects.symCap": 0.728557,
     "effects.unhappyFloor": 0.09623,
     "effects.unhappyTarget": 0.0,
-    "health": 99.762851,
+    "health": 99.759968,
     "levels": {
      "endurance": 1,
      "pain": 1,
@@ -124,7 +124,7 @@
     "effects.symCap": 0.355,
     "effects.unhappyFloor": 25.0,
     "effects.unhappyTarget": 0.0,
-    "health": 98.980812,
+    "health": 99.212634,
     "levels": {
      "endurance": 2,
      "pain": 1,
@@ -152,7 +152,7 @@
     "effects.symCap": 0.125,
     "effects.unhappyFloor": 50.0,
     "effects.unhappyTarget": 0.0,
-    "health": 97.077904,
+    "health": 97.309726,
     "levels": {
      "endurance": 3,
      "pain": 2,
@@ -166,10 +166,10 @@
   },
   "beri_lag_m": 0,
   "end": {
-   "frac1": 0.999552,
+   "frac1": 0.999523,
    "frac3": 0.998075,
-   "health": 99.762851,
-   "target": 99.762851
+   "health": 99.759968,
+   "target": 99.759968
   },
   "floors_seeded": {
    "P1": [
@@ -186,7 +186,7 @@
    "cap_before": 0.125,
    "lag_m": 0,
    "mask": 4,
-   "pS": 0.000448,
+   "pS": 0.000477,
    "pain13_after": 12.95,
    "pain7_after": 0.0,
    "recovering": 1,
@@ -195,13 +195,13 @@
    "u_before": 50.0
   },
   "minutes": {
-   "end": 155,
+   "end": 159,
    "onset": 27,
-   "p1": 41,
-   "p2": 75,
+   "p1": 49,
+   "p2": 79,
    "seed": 20,
-   "snack": 89,
-   "thiamine": 58
+   "snack": 93,
+   "thiamine": 62
   },
   "onset": {
    "enduranceCap": 0.73,

@@ -45,8 +45,9 @@ THE SESSION x494 accept (DayLength 4: a game minute is 3.75 wall s at speed 1):
   W   the store's next save as start.json (x48's).
   A   at speed 1: record.set satiety.M 0, then drain.fedAgeH to the age less STARVE_ONSET_H plus SEED_LEAD_H (x484's
       seed); SPEED_FAST until the record reads starveAcute, every poll's wall kept (the onset's wall bracket); speed 1.
-  ON  the onset's arm at speed 1: ARM_SETTLE_S, both trackers reset, pairs for ON_S (the Pain moodle's first level 1
-      sampled from the onset; starvation's pain alone at its onset cap, Endurance 1), the trackers and every part read.
+  ON  the onset's arm at speed 1: ARM_SETTLE_S, both trackers reset, pairs for ON_S (to about 75 s after the onset, so
+      both sides' Pain onset windows fall inside the arm's pairs; starvation's pain alone at its onset cap, Endurance
+      1), the trackers and every part read.
   P1  at speed 1: record.set drain.pS P1_P (the smoothed starvation progress, so the cap and floors read their values at
       that progress inside the session; the active state keeps the largest progress, K.drain.smooth); polled until the
       record's stressFloor moves; then the floors read off the record and STRESS and UNHAPPINESS set to them once with
@@ -55,8 +56,9 @@ THE SESSION x494 accept (DayLength 4: a game minute is 3.75 wall s at speed 1):
   B   x481's thiamine: record.set nutrients.thiamine.p THIAMINE_P, polled until the grade reads 4 (wet beriberi at
       clinical, its pain on both lower legs); then the arm's pairs for B_S, as P1.
   P2  as P1 at P2_P.
-  L   THE RELEASE: at speed 1, record.set satiety.M SNACK_M (a snack's meal pool over K.drain.SUSPEND_M, the 200 kcal
-      snack's, which opens a meal spell and resets the unfed clock: starvation lapses; beriberi stays); polled until the
+  L   THE RELEASE: at speed 1, record.set satiety.M SNACK_M (a real snack's meal pool, over K.drain.SUSPEND_M, the
+      200 kcal snack's; since 6ee7c8d1 the kinetics step opens the meal spell on the pool before the minute clears it,
+      driver review concern 1; it opens a meal spell and resets the unfed clock: starvation lapses; beriberi stays); polled until the
       record's mask drops starvation; pairs for L1_S at speed 1 (the immediate release), then SPEED_FAST and pairs for
       L2_S (the decay and the easing), each arm's trackers reset at its start; every part read.
   C   the clock back to the trueMult read at S (x48's); the probe's errors and every part read.
@@ -70,10 +72,17 @@ record reads once and grades the floor's hold: STRESS stays over its floor less 
 the writer holds it (unheld it falls 0.0018 a game minute), and the writer's remembered UNHAPPINESS target
 (record.moodLast.u, on the ring) carries the floor (UNHAPPINESS never falls on its own, so the stat alone cannot show
 the hold); the release then shows the floor leaving (UNHAPPINESS falls by the remembered target's fall at once).
-The seeds are replay events (kind stat) placed at the first ring row read after them.
+Each stat is set to max(its read, the floor), so a stat vanilla raised over its floor is never lowered (F8). The seeds
+are replay events (kind stat) placed at the first ring row read after them. A reading guide or delta built on this run
+never claims the mod RAISES STRESS or UNHAPPINESS to its floor: the seed put each stat there; the grades show the hold
+(STRESS_FLOOR) and the target carrying the floor (UNHAPPY_FLOOR's ring half; its stat half does not discriminate).
 
 THE WALL. Every arm is shortened to keep CLOSE_RESERVE_S of the budget for C and R; with under LEVEL_MIN_PAIRS pairs'
-worth left the budget stops the session at that arm (xlib.Budget) and only the closing phases run.
+worth left the budget stops the session at that arm (xlib.Budget) and only the closing phases run. An arm shortened
+records secs_asked and secs_given, and the grades timed on the full arm (PAIN_LEVELS, PAIN_TARGET, REL_END's level
+bound, REL_STRESS's levels) read it unmeasured, never falsified (F5). The teardown is bounded (bounded_teardown: the
+client's quit TEARDOWN_QUIT_S, the server's stop TEARDOWN_STOP_S, then hard_kill), so BUDGET_S 470 plus the close, the
+teardown and the copy stays under the 600 s foreground cap (F3).
 
 THE EFFECTS IN FORCE. The ring row s is read inside the minute event before the mod's queue drains (row s holds what
 drain s - 1 left); a pair at world age a, with ring row s the last read at or before a, sees the effects of drain s - 1
@@ -93,7 +102,10 @@ never as_predicted; every tolerance is named below, before any run):
   the replay
     REPLAY_<f> for each REPLAY_TOL field (health, drain.target, the endurance cap, both floors, the lower torso's and the
                left lower leg's added-pain targets, the writer's remembered UNHAPPINESS target): every ring row within
-               its tolerance of the HEAD replay of the run's own inputs (the record writes as setpath events at x48's
+               its tolerance of the HEAD replay of the run's own inputs. REPLAY_health is graded to the lapse row: past
+               it the stand-in's uniform 5.05/17 heal (replay_live game_heal) misses the per-part clamp of
+               AddGeneralHealth (jar, F2 of the driver review), predicted up to 0.35 health ahead about 25 game minutes
+               after the lapse; every other field on every row (the record writes as setpath events at x48's
                placement, but a drain.pS write at the drain that first ran on it, place_progress: no drain moves the
                progress, so x48's would place it one drain late when it lands between a row's read and its drain, a
                minute of the floor rate's take, 0.059 health; the floor seeds as stat events).
@@ -107,17 +119,20 @@ never as_predicted; every tolerance is named below, before any run):
                DIP)), inj x sum(mod x target) + TARGET_TOL] (x49's P1_TARGET on the replay's targets; the replay
                carries the target, not live PAIN, so the band takes the minute's dip: Task 3 concern 5); unmeasured
                under TARGET_HZ_MIN server ticks a second (the pairs' snapshot ticks over their ms).
-    PAIN_ONSET each side's first Pain level 1 read after the onset inside [ONSET_LO_FRAC x approach - PAIR_EVERY_S,
-               approach + timer + PAIR_EVERY_S + ONSET_SLACK_S] wall seconds of the onset's drain, approach the
-               1/500-a-tick rise (#2362, T91.15) from 0 to 10 at the onset's mid PAIN at TICK_HZ_NOM, timer the Pain
-               moodle's 120 updates (Task 1's J9: 12 s on the server, 2 s on the client at 60 frames).
+    PAIN_ONSET per side, the reads after the onset bracket the Pain moodle's change to level 1: the first level-1 read
+               less the onset drain's latest wall not under the window's lo, the last level-0 read before it less the
+               drain's earliest wall not over its hi (a gap between reads never falsifies; F1); the window
+               [ONSET_LO_FRAC x approach - PAIR_EVERY_S, approach + timer + PAIR_EVERY_S + ONSET_SLACK_S], approach
+               the 1/500-a-tick rise (#2362, T91.15) from 0 to 10 at the onset's mid PAIN at the measured server tick
+               rate, timer the Pain moodle's 120 updates (Task 1's J9) at that rate or the client's measured frame
+               rate; unmeasured under TARGET_HZ_MIN ticks, the client side under L49.CLIENT_FPS_MIN frames.
     PAIN_LEVELS the last STEADY_N valid pairs of P1, B, P2 and L2 read, on both sides, the Pain level of the mid PAIN
                (inj x sum(mod x (target - DIP / 2))) of the replay's targets in force.
     PAIN_FOLLOWS x49's P1_FOLLOWS over ON, P1, B, P2 and L1: each side's level is its own PAIN's, FOLLOW_EPS off a
                threshold (L2 is left out: at SPEED_FAST the lower torso's decay moves PAIN about 11 over the server's
                12 s timer).
   endurance
-    END_CAP    on every valid pair from P1 on, the server's ENDURANCE at or under the larger cap in force plus
+    END_CAP    on every valid pair of every arm (ON to L2), the server's ENDURANCE at or under the larger cap in force plus
                END_CLIMB_TOL (one interval's worst climb, END_REGEN_UNIT x 2 x dayMin x PART_DIP_GM): graded from the
                replay's effects.enduranceCap, never the stand-in's ENDURANCE (Task 3 review F3).
     END_LEVELS ON, P1, B and P2: every valid pair and both trackers read the Endurance level of the cap in force (the
@@ -134,17 +149,24 @@ never as_predicted; every tolerance is named below, before any run):
                mask, beriberi still in it.
     REL_PAIN   after the lapse row (plus one game minute), the server's Torso_Lower added pain never rises by more than
                PART_RISE_EPS between valid pairs (no set) and falls DIP a game minute within DECAY_GM_TOL over at
-               least DECAY_MIN_N gaps with it above 0, reaching PART_ZERO by the end; PAIN_LEVELS' L2 reads the legs'.
+               least DECAY_MIN_N gaps with it above 0, its last read at the decay's own end (max(0, first - DIP x the
+               game minutes), within PART_TOL plus DECAY_GM_TOL of the fall); PAIN_LEVELS' L2 reads the legs'.
     REL_END    the replay's cap in force at L2's last pair above P2's by at least EASE_MIN (eased); no valid pair of L1
                and L2 reads ENDURANCE under the pair before by more than END_FALL_EPS (no pull-down); L2's last
-               STEADY_N pairs read, on both sides, the level of their own ENDURANCE and at most END_EASED_LEVEL_MAX.
+               STEADY_N pairs read, on both sides, the level of their own ENDURANCE and at most END_EASED_LEVEL_MAX (a
+               sample within L49.FOLLOW_EPS_END of an edge skipped, at least LEVEL_MIN_PAIRS a side; F4).
     REL_UNHAPPY at the first ring row after the snack whose moodLast.u fell by REL_U_MIN_FALL or more, UNHAPPINESS
                within UNHAPPY_DROP_TOL of the row before's less that fall (at once); L1's last STEADY_N pairs read
                Unhappy level 0 on both sides.
     REL_STRESS after the lapse row, no valid pair reads STRESS over the pair before by more than STRESS_RISE_EPS; the
                fall over at least DECAY_MIN_N gaps a game minute within STRESS_DECAY_TOL of STRESS_DECAY_GM (vanilla's
                awake decay, #2772, x493's T91.25); L2's last STEADY_N pairs read, on both sides, the Stress level of
-               P2's floor less STRESS_DECAY_GM a game minute since the lapse.
+               P2's floor less STRESS_DECAY_GM a game minute since the lapse (a pair predicted within STRESS_FLOOR_TOL +
+               L49.FOLLOW_EPS_STRESS of a threshold skipped; F7).
+    REL_HEAL   (F2) the ring rows after the lapse row: health never over its own drain.target + REL_HEAL_TOL, never
+               under the row before by more than REL_HEAL_TOL (no take), the last within REL_HEAL_TOL of its target;
+               unmeasured until REL_HEAL_MIN_GM game minutes past the lapse row. The replay's health beside the live
+               value is a reading (the stand-in's heal leads it); the stand-in's clamp is a Task 6 or close-review item.
 
 FROZEN WITH ITS FIRST RUN: once a driver that imports this file has run, this file is never edited (CLAUDE.md s5).
 """
@@ -177,7 +199,8 @@ MOD_DIR = G.MOD_DIR
 STAGE_OUT = "release"
 STAGE_ROOT = STAGE_OUT + "/NutritionRevamp"
 STAGE_MOD = STAGE_ROOT + "/Contents/mods/NutritionRevamp"
-STAGED_FROM = "ec492755"                 # mod/'s last commit (Plan 18 Task 3), staged before the boot
+STAGED_FROM = "6ee7c8d1"                 # mod/'s last commit (Plan 18 Task 3b: the snack's spell check), staged
+                                         # before the boot
 STAGED_VERSION = "1.0.0"
 PRERUN_FILE = "testing/experiments/x49b_prerun.json"
 MIN_FREE_GB = 12.0
@@ -211,14 +234,14 @@ THIAMINE_P = L48.THIAMINE_P              # x481's: under the clinical rung 0.416
 P1_P = 0.5                               # the seeded smoothed progress of P1: cap 0.355 (Endurance 2), STRESS floor 0.30
                                          # (Stress 1), UNHAPPINESS floor 25 (Unhappy 1) (NR_Data_Effects.lua knots)
 P2_P = 0.9                               # P2: cap 0.125 (Endurance 3), STRESS 0.55 (Stress 2), UNHAPPINESS 50 (Unhappy 2)
-SNACK_M = 300.0                          # a snack's meal pool over K.drain.SUSPEND_M 236.44 (a 200 kcal snack's), which
-                                         # opens a meal spell; the pool loses about 2 % a game minute before the drain
-                                         # reads it, so 240 read 235.3 in the replay and opened none
+SNACK_M = 240.0                          # a real snack's meal pool, at K.drain.SUSPEND_M 236.44 or more (a 200 kcal
+                                         # mixed snack's): since 6ee7c8d1 the kinetics step opens the meal spell on
+                                         # the pool before the minute clears it (driver review concern 1)
 SPEED_FAST = L48.SPEED_FAST              # 5: a game minute 0.75 wall s
 PAIR_EVERY_S = L49.PAIR_EVERY_S          # 2.0
 ARM_SETTLE_S = L49.ARM_SETTLE_S          # 4.0: one game minute at speed 1 and a little
-ON_S = 40.0                              # the onset to P1: PAIN reaches its level by P1's end (x491: 55.9-65.3 s)
-P1_S = 50.0
+ON_S = 70.0                              # the onset's pairs span both Pain onset windows (to about 75 s; F1)
+P1_S = 35.0                              # P1's last pair about 126 s after the onset: PAIN's approach needs about 89
 B_S = 50.0                               # Pain 2 by about 32 s after the legs' set (x491: 23.4-30.3 s)
 P2_S = 40.0
 L1_S = 16.0
@@ -229,6 +252,10 @@ FLOOR_CAP_S = 12.0                       # the seed's drain: at most two minute 
 LAPSE_CAP_S = 15.0
 POLL_S = L48.POLL_S
 CLOSE_RESERVE_S = 25.0                   # wall kept after the last arm for C and R
+TEARDOWN_QUIT_S = 30                     # the bounded teardown's client quit and server stop (F3; x49's STOP_TIMEOUT_S
+TEARDOWN_STOP_S = 45                     # precedent): pzt's own 60 s and 120 s could pass the 600 s foreground cap
+REL_HEAL_MIN_GM = 50.0                   # REL_HEAL is measured once the ring reaches this many game minutes past the lapse
+REL_HEAL_TOL = 0.002                     # REPLAY_TOL's health bound
 
 # ---- the tolerances (named before any run)
 REPLAY_TOL = {"health": ("abs", 0.002), "drain.target": ("abs", 0.002),
@@ -440,7 +467,7 @@ def place_progress(rows, p, a_before):
     for i in range(1, len(rows)):
         a, f = ring_age(rows[i]), num(rows[i].get(F1))
         if a is not None and a >= a_before - 1.0 / 60.0 and f is not None and abs(f - (1.0 - p)) <= 1e-9:
-            return rows[i - 1].get("s")
+            return rows[i]["s"] - 1                        # right across a ring gap too (F6)
     return None
 
 
@@ -505,9 +532,12 @@ def grade_part(pairs, inf, arm_reads, arms=PART_ARMS, day_min=DAY_MIN):
     return ("as_predicted" if not bad else "falsified"), obs, used + ends
 
 
-def grade_pain_target(pairs, arm, inf, day_min=DAY_MIN, injury=2):
+def grade_pain_target(pairs, arm, inf, day_min=DAY_MIN, injury=2, short=()):
     """PAIN_TARGET at one arm: the server's PAIN at its last valid pair inside [TARGET_MIN_FRAC x pain_sum(target -
-    DIP), pain_sum(target) + TARGET_TOL], both rows in force; unmeasured under TARGET_HZ_MIN ticks a second."""
+    DIP), pain_sum(target) + TARGET_TOL], both rows in force; unmeasured under TARGET_HZ_MIN ticks a second, or when
+    the budget shortened the arm (in short, F5: the approach is timed on the full arm)."""
+    if arm in short:
+        return "unmeasured", {"arm": arm, "why": "arm shortened by the budget"}, []
     vp = arm_pairs(pairs, arm)
     if not vp:
         return "unmeasured", {"arm": arm, "why": "no valid pair"}, []
@@ -532,47 +562,66 @@ def grade_pain_target(pairs, arm, inf, day_min=DAY_MIN, injury=2):
     return ("as_predicted" if lo <= pain <= hi else "falsified"), obs, [pain]
 
 
-def onset_window(t_mid, side):
+def onset_window(t_mid, side, hz=TICK_HZ_NOM, fps=CLIENT_FPS_NOM):
     """(lo, hi) wall seconds from the onset's drain to the first Pain level 1 read on `side` ("s" or "c"): the
-    1/RISE_DIV-a-tick approach from 0 past 10 at the mid PAIN t_mid, then the moodle timer (server ticks or client
-    frames), the pair spacing and the slack."""
-    if t_mid is None or not t_mid > L49.PAIN_TH[0]:
+    1/RISE_DIV-a-tick approach from 0 past 10 at the mid PAIN t_mid at hz server ticks a second, then the moodle timer
+    (PAIN_TIMER_UPDATES server ticks, or client frames at fps), the pair spacing and the slack."""
+    if t_mid is None or not t_mid > L49.PAIN_TH[0] or not hz or (side == "c" and not fps):
         return None
     ticks = math.log(t_mid / (t_mid - L49.PAIN_TH[0])) / -math.log(1.0 - 1.0 / RISE_DIV)
-    approach = ticks / TICK_HZ_NOM
-    timer = PAIN_TIMER_UPDATES / (TICK_HZ_NOM if side == "s" else CLIENT_FPS_NOM)
+    approach = ticks / hz
+    timer = PAIN_TIMER_UPDATES / (hz if side == "s" else fps)
     return ONSET_LO_FRAC * approach - PAIR_EVERY_S, approach + timer + PAIR_EVERY_S + ONSET_SLACK_S
 
 
-def grade_pain_onset(pairs, set_after, set_before, t_mid):
-    """PAIN_ONSET: on each side, the first pair after the onset reading Pain level 1 or more (its wall midpoint) less
-    the onset drain's wall, which lies in (set_after, set_before), inside onset_window for that side."""
-    obs = {"set_after": set_after, "set_before": set_before, "t_mid": t_mid, "sides": {}}
+def grade_pain_onset(pairs, set_after, set_before, t_mid, arms=("ON", "P1")):
+    """PAIN_ONSET (driver review F1): the onset's drain lies in (set_after, set_before) wall seconds. Per side, over
+    its reads after set_after in order: the first level-1 read i1 and the read before it (set_after when none) bracket
+    the moodle's change; early when the level-1 read less set_before is under the window's lo, late when the last
+    level-0 read less set_after is over its hi (a gap between reads never falsifies). The window is at the measured
+    server tick rate and client frame rate over `arms`; unmeasured under TARGET_HZ_MIN ticks a second, the client side
+    unmeasured under L49.CLIENT_FPS_MIN frames; a side with no level-1 read is falsified only once its last read is
+    past hi."""
+    hz = server_hz(arm_pairs(pairs, arms))
+    fps = L49.client_rate(pairs, arms)
+    obs = {"set_after": set_after, "set_before": set_before, "t_mid": t_mid, "hz": hz, "fps": fps, "sides": {}}
     if set_after is None or set_before is None or t_mid is None:
         obs["why"] = "the onset's wall bracket or its mid PAIN unread"
         return "unmeasured", obs, []
+    if hz is None or hz < TARGET_HZ_MIN:
+        obs["why"] = f"server tick rate {hz} a second, under {TARGET_HZ_MIN} or unread"
+        return "unmeasured", obs, []
     used, bad = [], []
     for side, wk in (("s", "ws"), ("c", "wc")):
-        win = onset_window(t_mid, side)
-        first = next((p for p in pairs if p.get("arm") in ARM_NAMES and num(g(p, side, "lvPain")) is not None
-                      and num(g(p, side, "lvPain")) >= 1 and num(p.get(wk)) is not None
-                      and num(p.get(wk)) > set_after), None)
-        o = {"window": win}
-        if first is None or win is None:
-            o["why"] = "no level-1 read" if first is None else "no window"
-            obs["sides"][side] = o
-            bad.append(side)
-            continue
-        w = num(first[wk])
-        o.update({"tag": first.get("tag"), "wall": w, "after_lo": w - set_before, "after_hi": w - set_after})
-        o["ok"] = o["after_lo"] >= win[0] and o["after_hi"] <= win[1]
+        o = {}
         obs["sides"][side] = o
+        if side == "c" and (fps is None or fps < L49.CLIENT_FPS_MIN):
+            o["why"] = f"unmeasured: client frame rate {fps} a second, under {L49.CLIENT_FPS_MIN} or unread"
+            continue
+        win = onset_window(t_mid, side, hz, fps)
+        o["window"] = win
+        seq = [p for p in pairs if p.get("arm") in ARM_NAMES and num(g(p, side, "lvPain")) is not None
+               and num(p.get(wk)) is not None and num(p.get(wk)) > set_after]
+        i1 = next((i for i, p in enumerate(seq) if num(g(p, side, "lvPain")) >= 1), None)
+        if i1 is None:
+            last = num(seq[-1][wk]) if seq else None
+            o["why"] = "no level-1 read"
+            if last is not None and last - set_after > win[1]:
+                bad.append(side)
+            continue
+        last0 = num(seq[i1 - 1][wk]) if i1 else set_after
+        first = num(seq[i1][wk])
+        o.update({"tag": seq[i1].get("tag"), "bracket": [last0 - set_after, first - set_before]})
+        o["early"] = first - set_before < win[0]
+        o["late"] = last0 - set_after > win[1]
         used.append(o)
-        if not o["ok"]:
+        if o["early"] or o["late"]:
             bad.append(side)
+    if bad:
+        return "falsified", obs, used
     if not used:
-        return "falsified" if bad else "unmeasured", obs, []
-    return ("as_predicted" if not bad else "falsified"), obs, used
+        return "unmeasured", obs, []
+    return "as_predicted", obs, used
 
 
 def arm_level_want(pairs, arm, inf, kind, fn):
@@ -592,11 +641,15 @@ def arm_level_want(pairs, arm, inf, kind, fn):
     return lv, o
 
 
-def grade_pain_levels(pairs, inf, day_min=DAY_MIN, injury=2, arms=PAIN_LEVEL_ARMS):
+def grade_pain_levels(pairs, inf, day_min=DAY_MIN, injury=2, arms=PAIN_LEVEL_ARMS, short=()):
     """PAIN_LEVELS: each arm's last STEADY_N valid pairs read, on both sides, the Pain level of the mid PAIN of the
-    replay's targets in force."""
+    replay's targets in force; an arm the budget shortened (in short) reads unmeasured (F5)."""
     parts, results = {}, []
     for arm in arms:
+        if arm in short:
+            parts[arm] = {"arm": arm, "why": "arm shortened by the budget"}
+            results.append(("unmeasured", parts[arm], []))
+            continue
         want, o = arm_level_want(pairs, arm, inf, "pain", lambda r: pain_mid(r, day_min, injury))
         if want is None:
             parts[arm] = o
@@ -740,7 +793,9 @@ def after_pairs(pairs, a0, arms=("L1", "L2")):
 def grade_rel_pain(pairs, a_lapse, day_min=DAY_MIN):
     """REL_PAIN: after the lapse row (plus one game minute) the Torso_Lower added pain never rises by more than
     PART_RISE_EPS between valid pairs, falls DIP a game minute within DECAY_GM_TOL over at least DECAY_MIN_N gaps with
-    both ends above 0, and reads PART_ZERO or less at the last pair."""
+    both ends above 0, and its last read sits at the decay's own end, max(0, the first read - DIP x the game minutes
+    between), within PART_TOL plus DECAY_GM_TOL of the fall (so an arm the budget shortened is graded at its own end,
+    driver review F5)."""
     if a_lapse is None:
         return "unmeasured", {"why": "no lapse row"}, []
     ps = [p for p in after_pairs(pairs, a_lapse + 1.0 / 60.0) if num(g(p, "s", "part")) is not None]
@@ -758,17 +813,23 @@ def grade_rel_pain(pairs, a_lapse, day_min=DAY_MIN):
     obs = {"n_pairs": len(ps), "n_gaps": n, "rises": rises[:10], "end": end, "want_gm": want}
     if n < DECAY_MIN_N or end is None:
         obs["why"] = f"fewer than {DECAY_MIN_N} decay gaps or no pair"
-        return "unmeasured", obs, []
+        return ("falsified" if rises else "unmeasured"), obs, []
+    v0 = num(g(ps[0], "s", "part"))
+    end_want = max(0.0, v0 - want * (pair_age(ps[-1]) - pair_age(ps[0])) * 60.0)
+    obs.update({"end_want": end_want, "end_tol": PART_TOL + DECAY_GM_TOL * (v0 - end_want)})
     obs["per_gm"] = fall / gm if gm > 0 else None
     obs["rel"] = (obs["per_gm"] / want - 1.0) if obs["per_gm"] is not None else None
-    ok = not rises and obs["rel"] is not None and abs(obs["rel"]) <= DECAY_GM_TOL and end <= PART_ZERO
+    ok = (not rises and obs["rel"] is not None and abs(obs["rel"]) <= DECAY_GM_TOL
+          and abs(end - end_want) <= obs["end_tol"])
     return ("as_predicted" if ok else "falsified"), obs, [obs["per_gm"]]
 
 
-def grade_rel_end(pairs, inf, a_lapse, cap_before):
+def grade_rel_end(pairs, inf, a_lapse, cap_before, short=False):
     """REL_END: the cap in force at L2's last pair above cap_before (P2's) by EASE_MIN; no pull-down after the lapse;
-    L2's last STEADY_N pairs read their own ENDURANCE's level, at most END_EASED_LEVEL_MAX, on both sides."""
-    obs = {"cap_before": cap_before}
+    L2's last STEADY_N pairs read their own ENDURANCE's level, at most END_EASED_LEVEL_MAX, on both sides, a sample
+    within L49.FOLLOW_EPS_END of an edge skipped (a moodle a tick behind its stat, F4) and at least LEVEL_MIN_PAIRS
+    samples a side graded. An L2 the budget shortened (short) leaves the level bound unmeasured (F5)."""
+    obs = {"cap_before": cap_before, "short": short}
     l2 = arm_pairs(pairs, "L2")
     if a_lapse is None or not l2 or cap_before is None:
         obs["why"] = "no lapse row, no L2 pair or no P2 cap"
@@ -782,11 +843,15 @@ def grade_rel_end(pairs, inf, a_lapse, cap_before):
         if ea is not None and eb is not None and eb < ea - END_FALL_EPS:
             falls.append({"tag": b.get("tag"), "from": ea, "to": eb})
     last = l2[-STEADY_N:]
-    lv = []
+    lv, n_side = [], {"s": 0, "c": 0}
     for p in last:
         for side in ("s", "c"):
             e, got = num(g(p, side, "endurance")), g(p, side, "lvEnd")
-            lv.append({"tag": p.get("tag"), "side": side, "endurance": e, "got": got, "want": level_of("endurance", e)})
+            if e is None or near_threshold("endurance", e, L49.FOLLOW_EPS_END):
+                continue
+            n_side[side] += 1
+            lv.append({"tag": p.get("tag"), "side": side, "endurance": e, "got": got,
+                       "want": level_of("endurance", e)})
     lv_bad = [x for x in lv if x["got"] != x["want"] or x["got"] is None or x["got"] > END_EASED_LEVEL_MAX]
     ages = [pair_age(p) for p in ps if pair_age(p) is not None]
     climb = None
@@ -794,12 +859,57 @@ def grade_rel_end(pairs, inf, a_lapse, cap_before):
         e0, e1 = num(g(ps[0], "s", "endurance")), num(g(ps[-1], "s", "endurance"))
         if e0 is not None and e1 is not None:
             climb = (e1 - e0) / ((ages[-1] - ages[0]) * 60.0)
-    obs.update({"n_pairs": len(ps), "falls": falls[:10], "levels": lv, "off_levels": lv_bad[:10], "climb_gm": climb})
-    if cap_after is None or len(last) < STEADY_N:
-        obs["why"] = "no cap in force at L2's end or too few L2 pairs"
+    obs.update({"n_pairs": len(ps), "falls": falls[:10], "levels": lv, "graded_a_side": n_side,
+                "off_levels": lv_bad[:10], "climb_gm": climb})
+    if cap_after is None:
+        obs["why"] = "no cap in force at L2's end"
         return "unmeasured", obs, []
-    ok = cap_after >= cap_before + EASE_MIN and not falls and not lv_bad
-    return ("as_predicted" if ok else "falsified"), obs, ps
+    if cap_after < cap_before + EASE_MIN or falls:
+        return "falsified", obs, ps
+    if short:
+        obs["why"] = "L2 shortened by the budget: the level bound is unmeasured"
+        return "unmeasured", obs, []
+    if min(n_side.values()) < LEVEL_MIN_PAIRS:
+        obs["why"] = f"fewer than {LEVEL_MIN_PAIRS} level samples a side away from an edge"
+        return "unmeasured", obs, []
+    return ("falsified" if lv_bad else "as_predicted"), obs, ps
+
+
+def grade_rel_heal(rows, i_lapse, rep=None):
+    """REL_HEAL (driver review F2), on the ring rows after the lapse row: every row's health at or under its own
+    drain.target plus REL_HEAL_TOL, none under the row before by more than REL_HEAL_TOL (no drain take), the last within
+    REL_HEAL_TOL of its target; unmeasured until the ring reaches REL_HEAL_MIN_GM game minutes past the lapse row. The
+    replay's health beside the live value on each row is a reading (its uniform heal leads the live one)."""
+    if i_lapse is None:
+        return "unmeasured", {"why": "no lapse row"}, []
+    span = [r for r in rows[i_lapse + 1:] if num(r.get("health")) is not None and num(r.get("drain.target")) is not None]
+    rep_h = {r.get("s"): num(r.get("health")) for r in rep or []}
+    obs = {"n": len(span), "lag": [{"s": r.get("s"), "live": num(r["health"]), "replay": rep_h.get(r.get("s"))}
+                                   for r in span[::5]][:40]}
+    over = [{"s": r.get("s"), "health": num(r["health"]), "target": num(r["drain.target"])} for r in span
+            if num(r["health"]) > num(r["drain.target"]) + REL_HEAL_TOL]
+    falls = [{"s": b.get("s"), "from": num(a["health"]), "to": num(b["health"])} for a, b in zip(span, span[1:])
+             if num(b["health"]) < num(a["health"]) - REL_HEAL_TOL]
+    obs.update({"over": over[:10], "falls": falls[:10]})
+    if over or falls:
+        return "falsified", obs, span
+    a0 = ring_age(rows[i_lapse])
+    if not span or a0 is None or (ring_age(span[-1]) - a0) * 60.0 < REL_HEAL_MIN_GM:
+        obs["why"] = f"the ring ends under {REL_HEAL_MIN_GM} game minutes past the lapse row"
+        return "unmeasured", obs, []
+    last = span[-1]
+    obs["last_gap"] = num(last["drain.target"]) - num(last["health"])
+    return ("as_predicted" if abs(obs["last_gap"]) <= REL_HEAL_TOL else "falsified"), obs, span
+
+
+def replay_verdict(results):
+    """REPLAY_ over the pre-lapse and post-lapse diffs: falsified if either is, as_predicted if either is (a span may hold
+    no row), else unmeasured; the observed values of both kept."""
+    vs = [v for v, _ in results]
+    obs = {"spans": [o for _, o in results]}
+    if "falsified" in vs:
+        return "falsified", obs
+    return ("as_predicted" if "as_predicted" in vs else "unmeasured"), obs
 
 
 def release_step(rows, a_snack):
@@ -840,11 +950,13 @@ def grade_rel_unhappy(rows, pairs, a_snack):
     return ("as_predicted" if step_ok and v == "as_predicted" else "falsified"), obs, samples
 
 
-def grade_rel_stress(pairs, a_lapse, floor_before):
+def grade_rel_stress(pairs, a_lapse, floor_before, short=False):
     """REL_STRESS: after the lapse row no rise over STRESS_RISE_EPS between valid pairs; the fall a game minute within
     STRESS_DECAY_TOL of STRESS_DECAY_GM over at least DECAY_MIN_N gaps; L2's last STEADY_N pairs at the Stress level of
-    floor_before less STRESS_DECAY_GM a game minute since the lapse, on both sides."""
-    obs = {"floor_before": floor_before}
+    floor_before less STRESS_DECAY_GM a game minute since the lapse, on both sides, a pair whose predicted value sits
+    within STRESS_FLOOR_TOL + L49.FOLLOW_EPS_STRESS of a threshold skipped (F7). An L2 the budget shortened (short)
+    leaves the levels unmeasured (F5)."""
+    obs = {"floor_before": floor_before, "short": short}
     if a_lapse is None or floor_before is None:
         obs["why"] = "no lapse row or no P2 floor"
         return "unmeasured", obs, []
@@ -859,21 +971,31 @@ def grade_rel_stress(pairs, a_lapse, floor_before):
             gm += (pair_age(b) - pair_age(a)) * 60.0
             n += 1
     obs.update({"n_pairs": len(ps), "n_gaps": n, "rises": rises[:10], "want_gm": STRESS_DECAY_GM})
-    l2 = arm_pairs(pairs, "L2")[-STEADY_N:]
-    if n < DECAY_MIN_N or gm <= 0 or len(l2) < STEADY_N:
-        obs["why"] = f"fewer than {DECAY_MIN_N} gaps or {STEADY_N} L2 pairs"
-        return "unmeasured", obs, []
+    if n < DECAY_MIN_N or gm <= 0:
+        obs["why"] = f"fewer than {DECAY_MIN_N} gaps"
+        return ("falsified" if rises else "unmeasured"), obs, []
     obs["per_gm"] = fall / gm
     obs["rel"] = obs["per_gm"] / STRESS_DECAY_GM - 1.0
+    if rises or abs(obs["rel"]) > STRESS_DECAY_TOL:
+        return "falsified", obs, ps
+    l2 = arm_pairs(pairs, "L2")[-STEADY_N:]
+    if short or len(l2) < STEADY_N:
+        obs["why"] = "L2 shortened by the budget or under STEADY_N pairs: the levels are unmeasured"
+        return "unmeasured", obs, []
     lv = []
     for p in l2:
-        want = level_of("stress", floor_before - STRESS_DECAY_GM * (pair_age(p) - a_lapse) * 60.0)
+        pred = floor_before - STRESS_DECAY_GM * (pair_age(p) - a_lapse) * 60.0
+        if near_threshold("stress", pred, STRESS_FLOOR_TOL + L49.FOLLOW_EPS_STRESS):
+            continue
+        want = level_of("stress", pred)
         for side in ("s", "c"):
             lv.append({"tag": p.get("tag"), "side": side, "got": g(p, side, "lvStress"), "want": want})
     lv_bad = [x for x in lv if x["got"] != x["want"]]
     obs.update({"levels": lv, "off_levels": lv_bad[:10]})
-    ok = not rises and abs(obs["rel"]) <= STRESS_DECAY_TOL and not lv_bad
-    return ("as_predicted" if ok else "falsified"), obs, ps
+    if not lv:
+        obs["why"] = "every L2 pair's prediction sits near a threshold"
+        return "unmeasured", obs, []
+    return ("falsified" if lv_bad else "as_predicted"), obs, ps
 
 
 # ================================================================ the pre-boot checks (offline; tested)
@@ -1053,12 +1175,20 @@ class Sess(L48.Sess):
             self.xs.sleep(ARM_SETTLE_S)
         self.trk_reset(name)
         rec["settled_epoch_ms"] = int(self.xs.clock() * 1000)
-        rec["pairs"] = self.hold_pairs(name, self.budget_secs(secs))
+        rec["secs_asked"] = secs
+        rec["secs_given"] = self.budget_secs(secs)
+        rec["pairs"] = self.hold_pairs(name, rec["secs_given"])
         rec["trk"] = self.trk(name)
         rec["parts_end"] = self.parts_read(name + "_parts")
         rec["age1"] = rec["parts_end"]["age"]
         rec["end_epoch_ms"] = int(self.xs.clock() * 1000)
         return rec
+
+    def arm_short(self, name):
+        """Whether the budget shortened the arm (F5): given under asked by more than half a second."""
+        a = self.arm_rec(name)
+        asked, given = num(a.get("secs_asked")), num(a.get("secs_given"))
+        return asked is not None and given is not None and given < asked - 0.5
 
     def seed(self, name, p):
         """The smoothed progress to p at speed 1, polled until the record's stressFloor moves; the floors read off the
@@ -1079,8 +1209,14 @@ class Sess(L48.Sess):
                                                   "effects.enduranceCap", "effects.symCap"), log=True)
         fs, fu = num(P["floors"].get("effects.stressFloor")), num(P["floors"].get("effects.unhappyFloor"))
         if P["poll"]["done"] and fs is not None and fu is not None:
-            P["seed_stress"] = self.stat_seed(name + "_stress", "STRESS", repr(fs))
-            P["seed_unhappy"] = self.stat_seed(name + "_unhappy", "UNHAPPINESS", repr(fu))
+            now, _ = self.read(name + "_stats", SRV, f"{PROBE}.s", ("stress", "unhappy"), log=True)
+            P["stats_before_seed"] = now
+            s0, u0 = num(now.get("stress")), num(now.get("unhappy"))
+            # each stat set to max(its read, the floor): a stat vanilla raised over its floor (BORED and Stress 2 raise
+            # UNHAPPINESS, #3016) is never lowered by the seed (driver review F8)
+            P["seed_stress"] = self.stat_seed(name + "_stress", "STRESS", repr(max(fs, s0 if s0 is not None else fs)))
+            P["seed_unhappy"] = self.stat_seed(name + "_unhappy", "UNHAPPINESS",
+                                               repr(max(fu, u0 if u0 is not None else fu)))
         else:
             self.xs.note(f"{name}: the floors never moved; no stat seed")
         return P
@@ -1257,7 +1393,11 @@ class Sess(L48.Sess):
             rep, _ = RL.replay_live(rows, events, start, paths=list(RING), user=USER, player=player,
                                     start_stats=start_stats, sleep_allowed=False, death_pace=self.prof["pace"],
                                     health_combine=self.prof["combine"], day_minutes=day_min, game_heal=True)
-            d = RL.diff(rep, rows, REPLAY_TOL)
+            i_l = lapse_index(rows, num(g(self.D, "L", "set_M", "age")))
+            d = RL.diff(rep, rows if i_l is None else rows[:i_l + 1], REPLAY_TOL)
+            d_post = None
+            if i_l is not None:
+                d_post = RL.diff(rep, rows[i_l + 1:], {k: v for k, v in REPLAY_TOL.items() if k != "health"})
         except Exception as e:                     # noqa: BLE001 - recorded, graded unmeasured
             self.out["replay"] = {"error": f"{type(e).__name__}: {e}"}
             for f in REPLAY_TOL:
@@ -1265,13 +1405,18 @@ class Sess(L48.Sess):
             return None
         if self.run_dir:
             with open(os.path.join(self.run_dir, "replay.json"), "w", encoding="utf-8", newline="\n") as fh:
-                fh.write(json.dumps({"rows": rep, "diff": d, "events": events}, indent=1, sort_keys=True,
-                                    default=str) + "\n")
+                fh.write(json.dumps({"rows": rep, "diff": d, "diff_after_lapse": d_post, "events": events}, indent=1,
+                                    sort_keys=True, default=str) + "\n")
             xs.copied.append("replay.json")
         self.out["replay"] = {"rows": len(rep), "fields": d.get("fields"), "classes": d.get("classes"),
-                              "findings_n": len(d.get("findings") or [])}
+                              "findings_n": len(d.get("findings") or []), "lapse_s": None if i_l is None else rows[i_l]["s"],
+                              "fields_after_lapse": (d_post or {}).get("fields"),
+                              "findings_after_lapse_n": len((d_post or {}).get("findings") or [])}
         for f in REPLAY_TOL:
-            self._g(f"REPLAY_{f}", G.grade_replay_field(d, f), f"{f} off the HEAD replay by more than {REPLAY_TOL[f][1]}")
+            res = [G.grade_replay_field(d, f)]
+            if d_post is not None and f != "health":
+                res.append(G.grade_replay_field(d_post, f))
+            self._g(f"REPLAY_{f}", replay_verdict(res), f"{f} off the HEAD replay by more than {REPLAY_TOL[f][1]}")
         return rep
 
     # ======================================================== the grades
@@ -1323,8 +1468,10 @@ class Sess(L48.Sess):
         part_reads = {k: v for k, v in reads.items() if k in PART_ARMS}
         self._g3("PAIN_PART", grade_part(self.pairs, inf, part_reads, PART_ARMS, dm),
                  "the lower torso's added pain, or a painful part at an arm's end, outside its band")
-        self._g3("PAIN_TARGET", L49.combine([grade_pain_target(self.pairs, "P1", inf, dm, inj),
-                                             grade_pain_target(self.pairs, "P2", inf, dm, inj)]),
+        short = tuple(n for n in ARM_NAMES if self.arm_short(n))
+        self.out["arms_short"] = list(short)
+        self._g3("PAIN_TARGET", L49.combine([grade_pain_target(self.pairs, "P1", inf, dm, inj, short),
+                                             grade_pain_target(self.pairs, "P2", inf, dm, inj, short)]),
                  "the server's PAIN outside its band at P1's or P2's end")
         br = g(self.D, "A", "onset_bracket") or {}
         i_on = L48.onset_index(rows, num(g(self.D, "A", "seed_age")))
@@ -1335,7 +1482,7 @@ class Sess(L48.Sess):
         self._g3("PAIN_ONSET", grade_pain_onset(self.pairs, (br.get("false") or [None])[0],
                                                 (br.get("true") or [None, None])[1], t_mid),
                  "a side's first Pain level 1 outside its window from the onset's drain")
-        self._g3("PAIN_LEVELS", grade_pain_levels(self.pairs, inf, dm, inj),
+        self._g3("PAIN_LEVELS", grade_pain_levels(self.pairs, inf, dm, inj, short=short),
                  "an arm's last pairs reading a Pain level other than the replay's mid PAIN's")
         self._g3("PAIN_FOLLOWS", grade_pain_follows(self.pairs), "a side's Pain level off its own PAIN's")
         self._g3("END_CAP", grade_end_cap(self.pairs, inf), "the server's ENDURANCE over the cap in force")
@@ -1362,15 +1509,27 @@ class Sess(L48.Sess):
         fl_p2 = inf.lo(pair_age(p2[-1]), "effects.stressFloor") if p2 else None
         self._g3("REL_PAIN", grade_rel_pain(self.pairs, a_l, dm),
                  "the lower torso's added pain set again, or falling off vanilla's decay, after the lapse")
-        self._g3("REL_END", grade_rel_end(self.pairs, inf, a_l, cap_p2),
+        self._g3("REL_END", grade_rel_end(self.pairs, inf, a_l, cap_p2, "L2" in short),
                  "the cap not eased, ENDURANCE pulled down, or an end level off its own or over the eased bound")
         self._g3("REL_UNHAPPY", grade_rel_unhappy(rows, self.pairs, a_m),
                  "UNHAPPINESS not dropping by the target's fall at once, or Unhappy shown after the release")
-        self._g3("REL_STRESS", grade_rel_stress(self.pairs, a_l, fl_p2),
+        self._g3("REL_STRESS", grade_rel_stress(self.pairs, a_l, fl_p2, "L2" in short),
                  "STRESS raised after the lapse, falling off vanilla's decay, or an end level off the prediction")
+        self._g3("REL_HEAL", grade_rel_heal(rows, i_l, rep),
+                 "health over its target, taken after the lapse, or short of the target REL_HEAL_MIN_GM past it")
 
 
 # ================================================================ the boot
+def bounded_teardown(tl, server, clients):
+    """pzt's teardown with bounded waits (driver review F3): each client's quit TEARDOWN_QUIT_S, the server's stop
+    TEARDOWN_STOP_S; hard_kill follows in xs.finish, so the foreground call stays under 600 s at BUDGET_S."""
+    for c in clients:
+        if c.alive:
+            tl.mark("client_quit", user=c.username, rc=c.quit(timeout=TEARDOWN_QUIT_S))
+    if server.alive:
+        tl.mark("server_stopped", rc=server.stop(timeout=TEARDOWN_STOP_S), errors=len(server.errors))
+
+
 def _summary(out, run_id, run_dir):
     print(json.dumps({"verdicts": {k: v.get("verdict") for k, v in out.get("verdicts", {}).items()},
                       "bus_dead": out.get("bus_dead"), "error": out.get("error"), "abort": out.get("abort"),
@@ -1388,7 +1547,7 @@ def main(key, driver_file, session_text, pred, budget_s):
     from pzt.bus import resolve_side                                # noqa: E402
     from pzt.harness import lint_paths                              # noqa: E402
     from pzt.paths import new_run_dir                               # noqa: E402
-    from pzt.session import Timeline, attach_clients, make_server, teardown, verify   # noqa: E402
+    from pzt.session import Timeline, attach_clients, make_server, verify   # noqa: E402
 
     pre, ok = preboot(key, driver_file)
     if not ok:
@@ -1501,7 +1660,7 @@ def main(key, driver_file, session_text, pred, budget_s):
                 lines, _ = X.grep_noecho(c.console, LOG_RX, 80, ECHO_RX, NEVER_RX)
                 Lg.setdefault("clients", {})[getattr(c, "username", "?")] = lines
 
-        xs.finish(teardown, hard_kill, every, read_logs=read_logs, grade_all=S.grade_all)
+        xs.finish(bounded_teardown, hard_kill, every, read_logs=read_logs, grade_all=S.grade_all)
         xs.mem("after")
         xs.persist()
         xs.copy_artifacts(REPO, run_id, run_dir, s["artifact"])

@@ -11,7 +11,8 @@ tick (TICK_S of wall): added pain falls 0.005 a multiplier unit (J3), ENDURANCE 
 T91.22), STRESS falls STRESS_DECAY_GM a game minute (T91.25), PAIN rises 1/500 of its gap a server tick at 10 a second
 and is set at once when the target is lower (#2362), the Pain moodle recomputes once every 120 server ticks or client
 frames (60 a second) and the other levels every tick (J9), and the probe's snapshots and trackers read it all on both
-sides. A defect flag patches the mod (a kernel wrap, as a mod defect would) or the world (a lost part, a stale client,
+sides. The fake has no Stress-2 UNHAPPINESS rise (#3016) and no BORED term; the live tolerances cover them (the floors
+are at-or-over grades, UNHAPPY_DROP_TOL holds a minute's rise). A defect flag patches the mod (a kernel wrap, as a mod defect would) or the world (a lost part, a stale client,
 a slow moodle, no stress decay). The grading replays the real HEAD replay against the fake ring, so the as-predicted
 run also checks the write placement, the stat events and the replay inputs end to end.
 
@@ -72,6 +73,11 @@ PATCH = {
     "no_u_target": ("local W = NutritionRevamp.server.writer; local m0 = W.monotony; "
                     "W.monotony = function(h, record, inp, E, ageH) local uf = E.unhappyFloor; E.unhappyFloor = 0; "
                     "m0(h, record, inp, E, ageH); E.unhappyFloor = uf end"),
+    "heal_over": ("local K = NutritionRevamp.kernel; local h0 = K.drain.heal; "
+                  "K.drain.heal = function(D, health, y, dtM) local v = h0(D, health, y, dtM); "
+                  "if v > 0 then return v + 20 end; return v end"),
+    "half_take": ("local D0 = NutritionRevamp.kernel.drain; local t0 = D0.take; "
+                  "D0.take = function(D, h) return 0.5 * t0(D, h) end"),
     "no_s_target": ("local W = NutritionRevamp.server.writer; local m0 = W.monotony; "
                     "W.monotony = function(h, record, inp, E, ageH) inp.stressTarget = math.max(0, E.stressTarget or 0); "
                     "m0(h, record, inp, E, ageH) end"),
@@ -273,7 +279,7 @@ def bad(v, out):
 
 NAMES = ({"OPT", "ONSET", "P0_BASE", "BERI_ON", "H1", "RING", "Z", "PAIN_PART", "PAIN_TARGET", "PAIN_ONSET",
           "PAIN_LEVELS", "PAIN_FOLLOWS", "END_CAP", "END_LEVELS", "STRESS_FLOOR", "UNHAPPY_FLOOR", "STRESS_LEVELS",
-          "UNHAPPY_LEVELS", "REL_LAPSE", "REL_PAIN", "REL_END", "REL_UNHAPPY", "REL_STRESS"}
+          "UNHAPPY_LEVELS", "REL_LAPSE", "REL_PAIN", "REL_END", "REL_UNHAPPY", "REL_STRESS", "REL_HEAL"}
          | {f"REPLAY_{f}" for f in L.REPLAY_TOL})
 
 
@@ -308,7 +314,9 @@ def test_x494_reads_as_its_prerun(as_predicted):
     assert ru["fall"] == pytest.approx(p["lapse"]["u_before"] - p["lapse"]["u_after"], abs=0.05)
     # the floor seeds read the record's floors, placed as stat events
     assert [round(st["value"], 6) for st in out["stat_sets"]] == [0.3, 25.0, 0.55, 50.0]
-    assert out["replay"]["fields"]["moodLast.u"]["n"] > 100
+    assert out["replay"]["fields"]["moodLast.u"]["n"] > 50 and out["replay"]["fields_after_lapse"]["moodLast.u"]["n"] > 50
+    assert out["replay"]["fields_after_lapse"].get("health") is None          # health graded to the lapse row (F2)
+    assert out["verdicts"]["REL_HEAL"]["observed"]["last_gap"] == pytest.approx(0.0, abs=L.REL_HEAL_TOL)
     assert all(b["how"] == "progress" for b in out["model_inputs"]["placement"] if b.get("path") == "drain.pS")
 
 
@@ -316,7 +324,8 @@ FLAGS = [
     ("no_floors", {"STRESS_FLOOR", "STRESS_LEVELS", "UNHAPPY_LEVELS", "REPLAY_effects.stressFloor",
                    "REPLAY_effects.unhappyFloor", "REPLAY_moodLast.u", "REL_UNHAPPY"}),
     ("no_u_target", {"UNHAPPY_FLOOR", "REPLAY_moodLast.u", "REL_UNHAPPY"}),
-    ("no_s_target", {"STRESS_FLOOR", "STRESS_LEVELS"}),
+    ("no_s_target", {"STRESS_FLOOR"}),
+    ("heal_over", {"REL_HEAL"}),
     ("no_cap", {"END_CAP", "END_LEVELS", "REPLAY_effects.enduranceCap"}),
     ("pain_kept", {"REL_PAIN", "PAIN_LEVELS", "REPLAY_effects.pain.7"}),
     ("no_beri_pain", {"PAIN_PART", "PAIN_TARGET", "PAIN_LEVELS", "REPLAY_effects.pain.13"}),
@@ -324,12 +333,13 @@ FLAGS = [
     ("slow_moodle", {"PAIN_ONSET", "PAIN_FOLLOWS", "PAIN_LEVELS"}),
     ("client_stale", {"PAIN_ONSET", "PAIN_FOLLOWS", "PAIN_LEVELS", "END_LEVELS", "STRESS_LEVELS", "UNHAPPY_LEVELS",
                       "REL_END", "REL_STRESS"}),
-    ("no_ease", {"REL_END", "REPLAY_effects.enduranceCap", "REPLAY_health", "REPLAY_drain.target"}),
+    ("no_ease", {"REL_END", "REPLAY_effects.enduranceCap", "REPLAY_drain.target"}),
     ("no_subtract", {"REL_UNHAPPY"}),
     ("no_stress_decay", {"REL_STRESS"}),
     ("no_lapse", {"REL_LAPSE", "REL_UNHAPPY"}),
     ("no_onset", {"ONSET"}),
     ("no_beri", {"BERI_ON"}),
+    ("half_take", {"REPLAY_health"}),
 ]
 
 
@@ -365,6 +375,11 @@ def _inf(n=200, a0=3.0, **fields):
 def _pair(tag, arm, age, **s):
     sd = dict({"online": True, "age": age, "n": 0, "ms": 0.0}, **s)
     return L49.make_pair(tag, arm, sd, age * 1000.0, {"n": 1}, age * 1000.0)
+
+
+def test_place_progress_reads_across_a_ring_gap():
+    rows = [{"s": 1, "age": 3.0, L.F1: 0.9999}, {"s": 3, "age": 3.0 + 2 / 60, L.F1: 0.5}]
+    assert L.place_progress(rows, 0.5, 3.0) == 2                   # F6: the drain before row 3, not row 1
 
 
 def test_place_progress_names_the_drain_that_first_ran_on_it():
@@ -403,22 +418,46 @@ def test_onset_window_is_the_approach_the_timer_and_the_slack():
     assert L.onset_window(9.0, "s") is None
 
 
-def _onset_pairs(t_s, t_c):
+def _onset_pairs(t_s, t_c, hz=10.0, fps=60.0, gap=None, n=80):
+    """Pairs every 2 s from wall 100 (the ON arm), each side's level 1 from t_s and t_c; the server's ticks and the
+    client's frames at hz and fps; gap=(a, b) drops the pairs with a < wall < b (the P1 seed's bus calls)."""
     out = []
-    for i in range(80):
+    for i in range(n):
         w = 100.0 + 2.0 * i
-        out.append(L49.make_pair(f"ON_{i}", "ON", {"online": True, "lvPain": 1 if w >= t_s else 0},
-                                 w, {"n": 1, "lvPain": 1 if w >= t_c else 0}, w))
+        if gap and gap[0] < w < gap[1]:
+            continue
+        out.append(L49.make_pair(f"ON_{i}", "ON", {"online": True, "lvPain": 1 if w >= t_s else 0, "n": hz * w,
+                                                   "ms": 1000.0 * w},
+                                 w, {"n": fps * w, "ms": 1000.0 * w, "lvPain": 1 if w >= t_c else 0}, w))
     return out
 
 
 def test_grade_pain_onset():
     v, o, _ = L.grade_pain_onset(_onset_pairs(160.0, 150.0), 99.5, 100.0, 15.0)
     assert v == "as_predicted", o
+    assert o["hz"] == pytest.approx(10.0) and o["fps"] == pytest.approx(60.0)
     assert L.grade_pain_onset(_onset_pairs(200.0, 150.0), 99.5, 100.0, 15.0)[0] == "falsified"     # 100 s: late
     assert L.grade_pain_onset(_onset_pairs(120.0, 150.0), 99.5, 100.0, 15.0)[0] == "falsified"     # 20 s: early
-    assert L.grade_pain_onset(_onset_pairs(1e9, 150.0), 99.5, 100.0, 15.0)[0] == "falsified"       # never
+    assert L.grade_pain_onset(_onset_pairs(1e9, 150.0), 99.5, 100.0, 15.0)[0] == "falsified"       # never, past hi
+    assert L.grade_pain_onset(_onset_pairs(1e9, 145.0, n=25), 99.5, 100.0, 15.0)[0] == "as_predicted"  # c read, s open
     assert L.grade_pain_onset(_onset_pairs(160.0, 150.0), None, 100.0, 15.0)[0] == "unmeasured"
+
+
+def test_grade_pain_onset_reads_through_a_gap_and_at_the_measured_rates():
+    # level 1 at 157 s on the server, read only after a 14 s gap of pairs (the P1 seed's bus calls): the last level-0
+    # read (150) and the first level-1 read (166) bracket the change; neither end is outside the window
+    v, o, _ = L.grade_pain_onset(_onset_pairs(157.0, 152.0, gap=(151.0, 165.0)), 99.5, 100.0, 15.0)
+    assert v == "as_predicted", o
+    # the last level-0 read past hi: late, whatever the gap
+    assert L.grade_pain_onset(_onset_pairs(178.0, 150.0, gap=(151.0, 165.0)), 99.5, 100.0, 15.0)[0] == "falsified"
+    # a server at 8.5 ticks a second: unmeasured
+    assert L.grade_pain_onset(_onset_pairs(160.0, 150.0, hz=8.5), 99.5, 100.0, 15.0)[0] == "unmeasured"
+    # a client at 5 frames a second: its side unmeasured, the server graded
+    v, o, _ = L.grade_pain_onset(_onset_pairs(160.0, 1e9, fps=5.0), 99.5, 100.0, 15.0)
+    assert v == "as_predicted" and "unmeasured" in o["sides"]["c"]["why"]
+    # the window at the measured rate: at 9.5 Hz the approach alone is about 57.8 s
+    lo, hi = L.onset_window(15.0, "s", 9.5, 60.0)
+    assert hi == pytest.approx(math.log(3.0) / -math.log(1 - 1 / 500.0) / 9.5 + 120 / 9.5 + 5.0)
 
 
 def test_grade_part():
@@ -518,7 +557,14 @@ def _rel_pairs(n=30, a_l=4.0, part0=19.0, rate=0.9, stress0=0.55, srate=0.0018, 
 def test_grade_rel_pain():
     assert L.grade_rel_pain(_rel_pairs(gm=1.0), 4.0)[0] == "as_predicted"
     assert L.grade_rel_pain(_rel_pairs(gm=1.0, rate=0.8), 4.0)[0] == "falsified"
-    assert L.grade_rel_pain(_rel_pairs(gm=0.5), 4.0)[0] == "falsified"             # not at 0 by the end
+    assert L.grade_rel_pain(_rel_pairs(gm=0.5), 4.0)[0] == "as_predicted"          # a shortened arm: its own end
+    flat = _rel_pairs(gm=1.0)
+    for p in flat[-8:]:
+        p["s"]["part"] = flat[-9]["s"]["part"] if flat[-9]["s"]["part"] > 0 else 3.0
+    flat = _rel_pairs(gm=0.5)
+    for p in flat[-10:]:
+        p["s"]["part"] = flat[-11]["s"]["part"]                                       # the decay stops: set again
+    assert L.grade_rel_pain(flat, 4.0)[0] == "falsified"
     rose = _rel_pairs(gm=1.0)
     rose[12]["s"]["part"] = 19.6
     assert L.grade_rel_pain(rose, 4.0)[0] == "falsified"
@@ -664,7 +710,8 @@ def test_the_snack_opens_a_meal_spell_and_the_floor_seeds_are_the_knots():
     src = open(os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Kernel_Drain.lua"),
                encoding="utf-8").read()
     suspend = float(re.search(r"K\.drain\.SUSPEND_M = ([0-9.]+)", src).group(1))
-    assert L.SNACK_M * 0.97 > suspend                         # a minute's pool decay (about 2 %) still over the spell's
+    assert L.SNACK_M >= suspend                               # a real snack's pool: the spell opens before the clearing
+    assert L.load_prerun()["x494"]["lapse"]["lag_m"] == 0          # since 6ee7c8d1 (driver review concern 1)
     assert L.load_prerun()["x494"]["floors_seeded"] == {"P1": [0.3, 25.0], "P2": [0.55, 50.0]}
 
 
@@ -684,3 +731,88 @@ def test_the_driver_names_its_session_refuses_arguments_and_predicts_every_grade
 def test_the_ring_is_within_the_harness_cap_and_carries_every_replay_field():
     assert len(L.RING) <= 32 and len(set(L.RING)) == len(L.RING)
     assert all(f in L.RING or f == "health" for f in L.REPLAY_TOL)
+
+
+def test_grade_rel_end_skips_a_sample_at_an_edge_and_reads_a_short_arm_unmeasured():
+    inf = _inf(n=400, a0=3.5, **{"effects.enduranceCap": 0.7295})
+
+    def crossing(stale_level):
+        ps = _rel_pairs(n=60, gm=1.5)
+        for p in ps[:55]:
+            for side in ("s", "c"):
+                p[side]["endurance"] = min(p[side]["endurance"], 0.47)
+                p[side]["lvEnd"] = L49.level_of("endurance", p[side]["endurance"])
+        # the five L2 pairs cross 0.5; at 0.5005 the moodle still reads the level of the tick before (F4)
+        for i, e in zip(range(55, 60), (0.477, 0.494, 0.5005, 0.529, 0.547)):
+            for side in ("s", "c"):
+                ps[i][side]["endurance"] = e
+                ps[i][side]["lvEnd"] = stale_level if e == 0.5005 else L49.level_of("endurance", e)
+        return ps
+    v, o, _ = L.grade_rel_end(crossing(2), inf, 4.0, 0.125)
+    assert v == "as_predicted", o                                               # the stale sample skipped
+    assert o["graded_a_side"] == {"s": 4, "c": 4}
+    off = crossing(2)
+    off[58]["s"]["lvEnd"] = 2                                                    # a stale level away from the edge
+    assert L.grade_rel_end(off, inf, 4.0, 0.125)[0] == "falsified"
+    assert L.grade_rel_end(crossing(2), inf, 4.0, 0.125, short=True)[0] == "unmeasured"
+    lone = crossing(2)
+    for i in range(55, 60):
+        for side in ("s", "c"):
+            lone[i][side]["endurance"] = 0.5005                                  # every sample at the edge
+    assert L.grade_rel_end(lone, inf, 4.0, 0.125)[0] == "unmeasured"
+
+
+def test_grade_rel_stress_skips_a_prediction_at_a_threshold_and_a_short_arm():
+    # STRESS sits 0.003 under its floor at the lapse (the write's oscillation), so near 0.5 the predicted level (off
+    # the floor 0.55) and the real one part: those pairs are skipped (F7), and the pair clear of the edge is graded
+    ps = _rel_pairs(n=24, gm=1.5, a_l=4.0, stress0=0.547)
+    v, o, _ = L.grade_rel_stress(ps, 4.0, 0.55)
+    assert v == "as_predicted", o
+    assert len(o["levels"]) == 2                                                 # one pair of five, both sides
+    assert L.grade_rel_stress(_rel_pairs(n=60, gm=1.5), 4.0, 0.55, short=True)[0] == "unmeasured"
+
+
+def test_a_shortened_arm_reads_its_timed_grades_unmeasured_never_falsified(tmp_path):
+    # a budget that leaves L2 about 10 s: the grades timed on the full arm read unmeasured
+    v, out, w, S = run_session(tmp_path, budget=333.0)                 # L2 starts at about 298 s in the fake
+    l2 = S.arm_rec("L2")
+    assert l2 and l2["secs_given"] < l2["secs_asked"] - 0.5, l2.get("secs_given")
+    assert "L2" in out["arms_short"]
+    for name in ("PAIN_LEVELS", "REL_END", "REL_STRESS"):
+        assert v[name] == "unmeasured", (name, out["verdicts"][name]["observed"])
+    assert "falsified" not in v.values(), bad(v, out)
+
+
+class _SlowClient:
+    def __init__(self, clock):
+        self.clock, self.alive, self.username = clock, True, "admin"
+
+    def quit(self, timeout=60):
+        self.clock[0] += timeout                                   # a quit that waits its whole timeout
+        self.alive = False
+        return None
+
+
+class _SlowServer:
+    def __init__(self, clock):
+        self.clock, self.alive, self.errors = clock, True, []
+
+    def stop(self, timeout=120):
+        self.clock[0] += timeout
+        self.alive = False
+        return None
+
+
+def test_the_bounded_teardown_keeps_the_call_under_600_s():
+    import x494_accept as D
+    clock = [0.0]
+    out = T48.fresh_out()
+    xs = X.Xs(out, node=lambda side: side, clients={}, budget_s=D.BUDGET_S, clock=lambda: clock[0],
+              sleep=lambda dt: None)
+    clock[0] = D.BUDGET_S + 20.0                                   # the phases at the budget, C and R after
+    xs.server = _SlowServer(clock)
+    tl = type("TL", (), {"items": [], "mark": lambda self, *a, **k: None})()
+    xs.tl = tl
+    xs.finish(L.bounded_teardown, lambda server, every: None, [_SlowClient(clock)])
+    assert out["wall_seconds"] <= D.BUDGET_S + 20 + L.TEARDOWN_QUIT_S + L.TEARDOWN_STOP_S + 10
+    assert out["wall_seconds"] < 600.0

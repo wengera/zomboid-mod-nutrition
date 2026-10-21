@@ -35,10 +35,10 @@ import replay_live as RL                                                      # 
 
 START = L48.FIRST_SIGHT["age"]
 SEED_AT_M = P48.SEED_AT_M                # S, H and W at speed 1 (x484: 68 wall s, 18 game minutes)
-P1_AFTER_M = 14                          # the onset poll at SPEED_FAST, the speed to 1, ON (~47 s) and the write
+P1_AFTER_M = 22                          # the onset poll at SPEED_FAST, the speed to 1, ON (~77 s) and the write
 SEED_FLOORS_M = 1                        # the floors seeded the minute after the progress write's drain
 BERI_POLL_M = 2                          # x48b_prerun's: the thiamine's poll at speed 1 until the grade reads 4
-P1_GM = 17                               # P1: the poll, the seeds, ARM_SETTLE_S, P1_S of pairs, the reads (~63 s)
+P1_GM = 13                               # P1: the poll, the seeds, ARM_SETTLE_S, P1_S of pairs, the reads (~48 s)
 B_GM = 15                                # B after its poll: ARM_SETTLE_S, B_S of pairs, the reads (~57 s)
 P2_GM = 14                               # P2: as P1 with P2_S (~53 s)
 L1_GM = 5                                # the lapse's poll and L1_S at speed 1

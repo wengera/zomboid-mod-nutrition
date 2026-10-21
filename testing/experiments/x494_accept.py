@@ -12,9 +12,9 @@ profile, the artifact, the wall budget and the predictions. Written BEFORE the b
 (CLAUDE.md s5).
 
 THE SESSION: S (x48's reads, the probe watching admin, every part, a pair), H (the ring, x49b_lib.RING), W (start.json),
-A (x484's seed at speed 1; speed 5 until starveAcute, the onset's wall bracket kept; speed 1), ON (40 s of pairs from
-the onset), P1 (drain.pS 0.5; the floors seeded; 50 s of pairs), B (thiamine 0.30, polled to grade 4; 50 s of pairs), P2
-(drain.pS 0.9; the floors seeded; 40 s of pairs), L (satiety.M 300, polled until starvation lapses; 16 s of pairs at
+A (x484's seed at speed 1; speed 5 until starveAcute, the onset's wall bracket kept; speed 1), ON (70 s of pairs from
+the onset; 70 s since F1), P1 (drain.pS 0.5; the floors seeded; 35 s of pairs), B (thiamine 0.30, polled to grade 4; 50 s of pairs), P2
+(drain.pS 0.9; the floors seeded; 40 s of pairs), L (satiety.M 240, a real snack's pool, polled until starvation lapses; 16 s of pairs at
 speed 1, then 46 s at speed 5), C (the clock back; the probe's errors; every part), R (the ring).
 
 PREDICTIONS (x49b_prerun.json's x494, the HEAD replay of this schedule from the first sight with the mod's own creation
@@ -32,9 +32,11 @@ body; the live grades read the replay of the run's own inputs):
        end); ENDURANCE climbs under the eased cap (Endurance 2 or less by L2's end).
   The Pain moodle's first level 1 after the onset: 41.9-71.9 s on the server and 41.9-61.9 s on the client.
 
-WALL: about 8.5 min (boot about 80 s, S/H about 20 s, W up to 60 s, A about 20 s, ON about 47 s, P1 about 63 s, B
-about 62 s, P2 about 53 s, L about 75 s, C/R about 10 s, grading and teardown about 30 s); BUDGET_S 510, every arm
-shortened to keep x49b_lib.CLOSE_RESERVE_S for C and R (the fake world runs S to R in 272 wall s).
+WALL: about 8.5 min (boot about 80 s, S/H about 20 s, W up to 60 s, A about 20 s, ON about 77 s, P1 about 48 s, B
+about 62 s, P2 about 53 s, L about 75 s, C/R about 10 s, grading and a bounded teardown about 30 s); BUDGET_S 470 (from
+the driver's start, the boot inside it), every arm shortened to keep x49b_lib.CLOSE_RESERVE_S for C and R; the worst
+case is 470 + 20 (C, R) + 75 (TEARDOWN_QUIT_S + TEARDOWN_STOP_S) + about 7 (logs, grading, copy) = 572 s, under the
+600 s foreground cap (driver review F3); the fake world runs S to R in about 290 wall s.
 
 RULES: 1. NEVER edited after its run. 2. A trivial, unmeasured or falsified reading is written as such, never re-run.
 3. One live session at a time. 4. Free memory read before the boot, refused under 12 GB. 5. Never -safemode.
@@ -51,7 +53,7 @@ KEY = "x494"
 PREFIX = "x494"
 PROFILE = "x49-accept"
 ARTIFACT = "accept.json"
-BUDGET_S = 510.0
+BUDGET_S = 470.0
 _ME = os.path.basename(os.path.abspath(__file__))
 assert _ME.startswith(PREFIX + "_"), f"PREFIX {PREFIX} does not match the driver file {_ME}"
 assert _ME == L.SESSIONS[KEY]["driver"], f"the driver file {_ME} is not the session's"
@@ -97,6 +99,9 @@ PRED = {
                f"{(P.get('lapse') or {}).get('cap_after')}; ENDURANCE never pulled down; Endurance 2 or less at L2's end",
     "REL_UNHAPPY": f"UNHAPPINESS falls by the remembered target's fall ({(P.get('lapse') or {}).get('u_before')} to "
                    f"{(P.get('lapse') or {}).get('u_after')}) at once; Unhappy 0 at L1's end",
+    "REL_HEAL": f"after the lapse health never over its target, never taken, and at the target by "
+                f"{L.REL_HEAL_MIN_GM} game minutes (the replay's uniform heal leads the live one; REPLAY_health is graded "
+                f"to the lapse row)",
     "REL_STRESS": f"STRESS never raised after the lapse, falling {L.STRESS_DECAY_GM} a game minute within 15 %; Stress "
                   f"1 at L2's end",
 }
