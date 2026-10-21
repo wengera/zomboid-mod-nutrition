@@ -2005,7 +2005,7 @@ def s_h3():
 def bmi_death_day(d):
     """The first day close of a strength_days run whose BMI (K.drain.bmi of its lean and fat) is at or under
     K.drain.BMI_DEATH, starvation's death point (S2234), or None. strength_days runs the Strength day alone, without
-    the drain, so a deficit year keeps stepping past the death the full pipeline gives there (#4027 and #3962: starvation's
+    the drain, so a deficit year keeps stepping past the death the full pipeline gives there (#4027 and #4052: starvation's
     remaining fraction reaches 0 at BMI 12, and the state is open at any intake under BMI 13)."""
     K = KHost().K
     death = float(K.drain.BMI_DEATH)
@@ -2025,7 +2025,7 @@ def s_s4a():
                 raise D.ProvenanceError("S4a's deficit year no longer reaches BMI 12: re-rule its line and the page")
             under = next((r[0] for r in d if r[1] < 0), None)
             note = ("The Strength day alone, without the drain: the fat runs out, lean pays the deficit, and on day %d "
-                    "the body's BMI falls to %g, starvation's death point (S2234; #4027; #3962, the state open at any intake "
+                    "the body's BMI falls to %g, starvation's death point (S2234; #4027; #4052, the state open at any intake "
                     "under BMI 13), so the line ends at that death and the fall the Strength day would run on past it "
                     "is not drawn. From day %s the body's level reads under 0; the line draws the perk there, which "
                     "never goes under 0 (K.strength.heldLevel: the written perk reads %d from day %d)."
@@ -2346,7 +2346,7 @@ def s_s2a():
                        "sleep_allowed": False}, "x467"),
                "Three warm days at maintenance, day 0 at maintenance, day 1 without food, days 2-3 at the request. "
                "The day without food opens the starvation state %.2f h after the last meal, when the meal pool has "
-               "been empty for %g hours (K.drain.STARVE_ONSET_H, #3962): HUNGER lifts to Starving and health drains "
+               "been empty for %g hours (K.drain.STARVE_ONSET_H, #4052): HUNGER lifts to Starving and health drains "
                "toward the target until the next meal ends the state, %.2f health in all; its ceiling then holds until "
                "the next record-day close books the weight regained. "
                % (v["drain"][0] - last_h, float(KHost().K.drain.STARVE_ONSET_H), 100.0 - v["min_health"])
@@ -2381,7 +2381,7 @@ def s_s2b():
                "Sleep on, 23:00-07:00 (the oracle's protocol); the oracle's 70 kg man, the body its bands were fitted "
                "on; its meals plates of real foods with water (rule R-1). The proof run's fast (x271, x272) fails the "
                "admission test at HEAD (VALIDATION). The fast arm's skipped day opens the starvation state briefly "
-               "before its next meal (%.2f health, #3962), and its ceiling holds until the next record-day close "
+               "before its next meal (%.2f health, #4052), and its ceiling holds until the next record-day close "
                "books the weight regained."
                % (100.0 - v["min_health"])),
         series("S2b-study-1613", "Johnstone 2002", "day after the fast", "intake / the fed arm's", "study",
@@ -2594,7 +2594,7 @@ def s_s2d():
                "A heavier body loses BMI more slowly, so its line runs longer. The deficiencies follow as each vitamin "
                "turns Clinical (%s), each fraction falling on a line to 0 at its own death time (beriberi's %g game "
                "hours, from day %.2f); with Multiply the fractions multiply. The smallest fraction belongs to %s "
-               "(#4029). %s. %s. %s."
+               "(#4043). %s. %s. %s."
                % (float(K.drain.STARVE_ONSET_H), onset_h, k["bmi0"], bmi_death, HALF_HEALTH,
                   k["half_age"] / 24.0, death / 24.0, opened_text(k["opened"][1:], K, v["death_age"]), beri_h,
                   beri_open / 24.0, lowest, fatal, sleep_text, step_text) + " " + proof_note("S2d-m-drain")),
