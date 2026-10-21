@@ -28,7 +28,7 @@ second day length in the session that needs no particular day.
 
 THE JAR (42.21, read 2026-10-21 through C:/Users/Angus/pz-b42; the cites are in the Task 1 report):
   PAIN       the stat tracks sum(part.getPain() x BodyPartType painModifier) - painReduction, rising 1/500 of the gap a
-             tick and set at once when the target is lower (BodyDamage.Update @1724-@1833 L2424-L2436); BodyDamage.Update
+             tick and set at once when the target is lower (BodyDamage.Update @1716-@1833 L2424-L2436); BodyDamage.Update
              returns at once on a client (@21-@62 L2161-L2167), so PAIN is the server's, carried by the player-stats
              packet (#3600). BodyPart.getPain adds getAdditionalPain(true) (additionalPain + stiffness/3.5) and scales
              by the InjurySeverity switch (x0.7, x1.3; @251-@310 L1065-L1069). Torso_Lower's painModifier 0.78, Head 0.8
@@ -71,21 +71,26 @@ and a client lua.read of TKX_Symptoms.c whose two wall midpoints sit within PAIR
   x491  P1_STEADY_A1, P1_STEADY_A2  the last STEADY_N valid pairs of the arm read the PAIN level the thresholds predict
                for painModifier x A (A1 20 -> 15.6: level 1; A2 40 -> 31.2: level 2) on the client and on the server.
         P1_TARGET  the server's PAIN at the arm's last valid pair within [TARGET_MIN_FRAC x mod x (A - dip), mod x A +
-               TARGET_TOL], dip the fall of one game minute at the day length.
+               TARGET_TOL], dip the fall of one game minute at the day length; unmeasured under TARGET_HZ_MIN server
+               ticks a second over the arm's ring rows (the band is set in wall time).
         P1_FOLLOWS on every valid pair of the pain arms, each side's PAIN level is the threshold level of that side's
-               PAIN, a pair within FOLLOW_EPS of a threshold excluded (the 120-update moodle timer).
+               PAIN, a pair within FOLLOW_EPS of a threshold excluded (the 120-update moodle timer: 120 server ticks
+               of the steepest rise, 2.69); the client half only at CLIENT_FPS_MIN frames a second or above.
         P1_RISE    on consecutive ring ticks with PAIN under its target by RISE_GAP_MIN, the median of the step against
                (target - PAIN)/500 within RISE_TOL of 1, at least RISE_MIN_N steps.
         P2_TICK    every minute row of the pain hold at speed 1 (its predecessor a minute write of the same hold and
-               value): the fall since the last write against 0.005 x the summed multiplier, within DECAY_TOL_TICKS ticks'
-               fall + DECAY_TOL_ABS; at least DECAY_MIN_N rows.
+               value): the fall since the last write against 0.005 x the summed multiplier, within one tick's fall (the
+               larger of DECAY_TOL_TICKS mean ticks and the gap's largest ring multiplier) + DECAY_TOL_ABS; at least
+               DECAY_MIN_N rows.
         P2_GM      the same rows' summed fall over their summed game minutes within DECAY_GM_TOL of 0.01 x dayMin.
         P2_SPEED   P2_GM on the speed-5 rows.
-        REL_SNAP   after the release, once PAIN reaches the falling target, every later ring tick reads PAIN within
-               SNAP_TOL of mod x the part's added pain until the part reaches 0; at least SNAP_MIN_N ticks.
+        REL_SNAP   after the release, over consecutive ring rows a, b: once PAIN_b reaches mod x part_a (the jar
+               computes PAIN before the parts' decay), every later pair reads PAIN_b within SNAP_TOL of mod x part_a
+               until part_a reaches 0; at least SNAP_MIN_N pairs.
   x492  P2_TICK_D1, P2_GM_D1  P2_TICK and P2_GM on the 15-minute day (0.15 a game minute).
         P3_RELOG, P3_RESTART  the first server read after the rejoin holds at least SAVED_FRAC of the value read
-               before the quit or the stop (saved, the jar's prediction); falsified under it (lost at or under LOST_EPS).
+               before the quit or the stop (saved, the jar's prediction); falsified under it (lost at or under LOST_EPS);
+               unmeasured when the quit or the stop timed out and pzt killed it (not graceful).
   x493  P4_LEVEL_<cap>  for each margin cap (0.74, 0.49, 0.24, 0.09: level 1, 2, 3, 4): every valid pair after the
                settle reads that ENDURANCE level on both sides, and both sides' trackers read it as their minimum and
                maximum over the arm; at least LEVEL_MIN_PAIRS pairs.
@@ -180,8 +185,10 @@ ARM_S = 26.0
 SYNC_WAIT_S = 2.0
 DEPART_CAP_S = 40.0
 REJOIN_CAP_S = 60.0
-RELAUNCH_TIMEOUT_S = 150
-RESTART_TIMEOUT_S = 180
+RELAUNCH_TIMEOUT_S = 120                 # x46's re-review N3 value (x463b: 34-63 s relaunch)
+RESTART_TIMEOUT_S = 150                  # x46's re-review N3 value (x463b: 10-50 s restart)
+STOP_TIMEOUT_S = 45.0                    # the graceful stop's wait; pzt kills the server past it
+QUIT_TIMEOUT_S = 30                      # the relog's graceful quit; pzt kills the client past it
 RESTART_NEED_S = 230.0                   # the wall the restart arm needs (stop, start, relaunch) before it begins
 RESULT_WAIT_S = 20.0
 
@@ -189,7 +196,11 @@ RESULT_WAIT_S = 20.0
 STEADY_N = 5
 TARGET_MIN_FRAC = 0.85
 TARGET_TOL = 0.01
-FOLLOW_EPS = 1.5                         # PAIN units (the moodle's 120-update timer, at most ~0.6 a second of rise)
+FOLLOW_EPS = 3.0                         # PAIN units: 120 server ticks (one Moodle.Update a tick, Moodle.Update
+                                         # @1743-@1766 L345-L349) of the steepest rise at a threshold,
+                                         # 120 x (31.2 - 20)/500 = 2.69
+CLIENT_FPS_MIN = 10.0                    # a client-half miss of P1_FOLLOWS counts only at this frame rate or above
+TARGET_HZ_MIN = 9.0                      # P1_TARGET's band holds at this server tick rate or above (F6)
 FOLLOW_EPS_STRESS = 0.01
 FOLLOW_EPS_UNHAPPY = 0.5
 FOLLOW_EPS_END = 0.002
@@ -324,7 +335,10 @@ def make_pair(tag, arm, s, ws, c, wc):
 
 
 def minute_rows(doc, key=None, value=None, ms0=None, ms1=None):
-    """The dump's minute rows, in order, optionally one hold's (key and value) inside [ms0, ms1)."""
+    """The dump's minute rows, in order, optionally one hold's (key and value) inside [ms0, ms1).
+    Two clocks meet here: a row's `ms` is the server Lua's getTimestampMs() (epoch milliseconds, the server process's
+    wall clock), and ms0/ms1 are the driver's time.time() x 1000 (epoch milliseconds, the driver's wall clock); both
+    run on this host, and phase S records their skew (clock_skew_ms)."""
     rows = [r for r in (g(doc, "minutes") or []) if isinstance(r, dict)]
     out = []
     for r in rows:
@@ -379,28 +393,61 @@ def grade_steady(pairs, arm, lv_key, want, n=STEADY_N):
     return ("as_predicted" if not bad else "falsified"), {"want": want, "pairs": obs, "off": bad}, obs
 
 
-def grade_target(pairs, arm, a, day_min, part=PART, injury=2):
-    """The server's PAIN at the arm's last valid pair inside [TARGET_MIN_FRAC x mod x (a - dip), mod x a + TOL]."""
+def tick_rate(ticks):
+    """Server ticks a second over ring rows: (rows - 1) over the span of their ms, or None."""
+    ms = [num(t.get("ms")) for t in ticks if num(t.get("ms")) is not None]
+    if len(ms) < 2 or ms[-1] <= ms[0]:
+        return None
+    return (len(ms) - 1) / ((ms[-1] - ms[0]) / 1000.0)
+
+
+def grade_target(pairs, arm, a, day_min, part=PART, injury=2, ticks=()):
+    """The server's PAIN at the arm's last valid pair inside [TARGET_MIN_FRAC x mod x (a - dip), mod x a + TOL]; the
+    band is set in wall time, so it is unmeasured under TARGET_HZ_MIN server ticks a second (the arm's ring rows)."""
     vp = valid_pairs(pairs, arm)
     if not vp:
         return "unmeasured", {"why": "no valid pair"}, []
     pain = num(g(vp[-1], "s", "pain"))
     hi = pain_target(a, part, injury) + TARGET_TOL
     lo = TARGET_MIN_FRAC * pain_target(a - dip_per_gm(day_min), part, injury)
-    obs = {"pain": pain, "lo": lo, "hi": hi, "tag": vp[-1]["tag"]}
+    hz = tick_rate(list(ticks))
+    obs = {"pain": pain, "lo": lo, "hi": hi, "tag": vp[-1]["tag"], "hz": hz}
+    if hz is None or hz < TARGET_HZ_MIN:
+        obs["why"] = f"server tick rate {hz} a second, under {TARGET_HZ_MIN} or unread"
+        return "unmeasured", obs, []
     if pain is None:
         return "unmeasured", obs, []
     return ("as_predicted" if lo <= pain <= hi else "falsified"), obs, [pain]
 
 
-def grade_follows(pairs, arms, kind, stat_key, lv_key, eps, extra_key=None):
-    """Each side's level is level_of(kind, that side's stat) on every valid pair of `arms` not within eps of a
-    threshold; extra_key (nicotine) is added to the stat first (the STRESS moodle's getNicotineStress)."""
-    used, bad = [], []
+def client_rate(pairs, arms):
+    """The client's frames a second: the median over consecutive valid pairs of `arms` of the change in c.n over the
+    change in c.ms (the client's getTimestampMs, epoch ms); None when no two pairs give one."""
+    rates, prev = [], None
     for p in pairs:
         if not p.get("valid") or p.get("arm") not in arms:
             continue
-        for side in ("s", "c"):
+        if prev is not None:
+            n0, n1 = num(g(prev, "c", "n")), num(g(p, "c", "n"))
+            m0, m1 = num(g(prev, "c", "ms")), num(g(p, "c", "ms"))
+            if None not in (n0, n1, m0, m1) and n1 > n0 and m1 > m0:
+                rates.append((n1 - n0) / ((m1 - m0) / 1000.0))
+        prev = p
+    return statistics.median(rates) if rates else None
+
+
+def grade_follows(pairs, arms, kind, stat_key, lv_key, eps, extra_key=None):
+    """Each side's level is level_of(kind, that side's stat) on every valid pair of `arms` not within eps of a
+    threshold; extra_key (nicotine) is added to the stat first (the STRESS moodle's getNicotineStress). The client half
+    counts only at a client frame rate of CLIENT_FPS_MIN or above (its Pain moodle recomputes every 120 frames);
+    otherwise it reads unmeasured, the rate named, and the server half alone is graded."""
+    used, bad = [], []
+    rate = client_rate(pairs, arms)
+    sides = ("s", "c") if rate is not None and rate >= CLIENT_FPS_MIN else ("s",)
+    for p in pairs:
+        if not p.get("valid") or p.get("arm") not in arms:
+            continue
+        for side in sides:
             v = num(g(p, side, stat_key))
             if v is not None and extra_key is not None:
                 v = v + (num(g(p, side, extra_key)) or 0.0)
@@ -411,9 +458,13 @@ def grade_follows(pairs, arms, kind, stat_key, lv_key, eps, extra_key=None):
             used.append(row)
             if got != want:
                 bad.append(row)
+    obs = {"n": len(used), "client_rate": rate, "off": bad[:20]}
+    if "c" not in sides:
+        obs["client_half"] = f"unmeasured: client frame rate {rate} a second, under {CLIENT_FPS_MIN} or unread"
     if not used:
-        return "unmeasured", {"n": 0, "why": "no valid pair away from a threshold"}, used
-    return ("as_predicted" if not bad else "falsified"), {"n": len(used), "off": bad[:20]}, used
+        obs["why"] = "no valid pair away from a threshold"
+        return "unmeasured", obs, used
+    return ("as_predicted" if not bad else "falsified"), obs, used
 
 
 def grade_rise(ticks, part=PART, injury=2):
@@ -439,16 +490,29 @@ def grade_rise(ticks, part=PART, injury=2):
     return ("as_predicted" if abs(med - 1.0) <= RISE_TOL else "falsified"), obs, ratios
 
 
-def grade_decay_tick(row_sets):
+def max_mult(ticks, ms0, ms1):
+    """The largest ring multiplier with ms0 <= ms <= ms1 (one clock: the server Lua's getTimestampMs), or None."""
+    if ms0 is None or ms1 is None:
+        return None
+    ms = [num(t.get("mult")) for t in ticks if num(t.get("ms")) is not None and ms0 <= num(t["ms"]) <= ms1
+          and num(t.get("mult")) is not None]
+    return max(ms) if ms else None
+
+
+def grade_decay_tick(row_sets, ticks=()):
     """Every minute-to-minute gap of row_sets (gaps()): the fall (the write before less this row's before) against
-    DECAY_PER_UNIT x the row's summed multiplier, within DECAY_TOL_TICKS of one tick's fall plus DECAY_TOL_ABS."""
+    DECAY_PER_UNIT x the row's summed multiplier, within one tick's fall plus DECAY_TOL_ABS, the tick being the larger
+    of DECAY_TOL_TICKS mean ticks and the gap's largest ring multiplier (an off-by-one tick at a hitch is that tick's
+    own multiplier); with no ring row in the gap, the mean alone."""
     obs, bad = [], []
+    ticks = list(ticks)
     for prev, row in gaps(row_sets):
         a, b, m, t = num(prev.get("after")), num(row.get("before")), num(row.get("mult")), num(row.get("ticks"))
         if a is None or b is None or m is None or not t:
             continue
         fall, pred = a - b, DECAY_PER_UNIT * m
-        tol = DECAY_TOL_TICKS * DECAY_PER_UNIT * (m / t) + DECAY_TOL_ABS
+        mm = max_mult(ticks, num(prev.get("ms")), num(row.get("ms")))
+        tol = DECAY_PER_UNIT * max(DECAY_TOL_TICKS * m / t, mm or 0.0) + DECAY_TOL_ABS
         o = {"tick": row.get("tick"), "fall": fall, "pred": pred, "tol": tol, "ticks": t, "mult": m}
         obs.append(o)
         if abs(fall - pred) > tol:
@@ -477,12 +541,16 @@ def grade_decay_gm(row_sets, day_min):
 
 
 def grade_snap(ticks, part=PART, injury=2):
-    """After the release: from the first tick PAIN reads at or above mod x part (the target fell under it), every tick
-    reads PAIN within SNAP_TOL of mod x part until the part reaches 0."""
+    """After the release, over consecutive ring rows a, b (b.n = a.n + 1): BodyDamage.Update computes PAIN before the
+    parts' DamageUpdate (@1716-@1833 before @2143 L2477), so PAIN on row b is mod x the part on row a. From the first
+    pair where PAIN_b reaches mod x part_a - SNAP_TOL (the target fell under it), every pair reads PAIN_b within
+    SNAP_TOL of mod x part_a, until part_a reaches 0."""
     mod = PAIN_MOD[part] * INJURY_FACTOR.get(injury, 1.0)
     started, used, bad = False, [], []
-    for t in ticks:
-        pain, pv = num(t.get("pain")), num(t.get("part"))
+    for a, b in zip(ticks, ticks[1:]):
+        if num(b.get("n")) is None or num(a.get("n")) is None or num(b["n"]) != num(a["n"]) + 1:
+            continue
+        pain, pv = num(b.get("pain")), num(a.get("part"))
         if pain is None or pv is None:
             continue
         if pv <= 0:
@@ -492,7 +560,7 @@ def grade_snap(ticks, part=PART, injury=2):
             started = pain >= tgt - SNAP_TOL
             if not started:
                 continue
-        o = {"n": t.get("n"), "pain": pain, "target": tgt}
+        o = {"n": b.get("n"), "pain": pain, "target": tgt}
         used.append(o)
         if abs(pain - tgt) > SNAP_TOL:
             bad.append(o)
@@ -501,10 +569,14 @@ def grade_snap(ticks, part=PART, injury=2):
     return ("as_predicted" if not bad else "falsified"), {"n": len(used), "off": bad[:20]}, used
 
 
-def grade_persist(before, back):
-    """Saved when the first read after the rejoin holds at least SAVED_FRAC of the value read before."""
+def grade_persist(before, back, graceful=True):
+    """Saved when the first read after the rejoin holds at least SAVED_FRAC of the value read before; unmeasured when
+    the stop or the quit was not graceful (pzt killed it on its timeout, so the last save is graded, not this one)."""
     b0, b1 = num(before), num(back)
-    obs = {"before": b0, "back": b1, "saved_frac": SAVED_FRAC}
+    obs = {"before": b0, "back": b1, "saved_frac": SAVED_FRAC, "graceful": graceful}
+    if graceful is False:
+        obs["why"] = "the stop/quit timed out and was killed"
+        return "unmeasured", obs, []
     if b0 is None or b1 is None or b0 <= LOST_EPS:
         return "unmeasured", obs, []
     obs["state"] = "saved" if b1 >= SAVED_FRAC * b0 else ("lost" if b1 <= LOST_EPS else "partial")
@@ -760,6 +832,7 @@ class Sess:
         P["players"] = self.xs.step("S_players", SRV, "players")["ack"]
         P["sandbox"], _ = self.read("S_sv", SRV, "_G", ("SandboxVars.DayLength", "SandboxVars.InjurySeverity",
                                                        "SandboxVars.Nutrition", "SandboxVars.EnduranceRegenMultiplier",
+                                                       "SandboxVars.EndRegen",
                                                        "SandboxVars.StatsDecrease", "TK.version"), log=True)
         inj = num(P["sandbox"].get("SandboxVars.InjurySeverity"))
         self.injury = int(inj) if inj is not None and int(inj) in INJURY_FACTOR else 2
@@ -777,6 +850,15 @@ class Sess:
         P["errors"] = self.errors_read("S")
         self.xs.sleep(1.0)
         P["pair"] = self.pair("S_pair", "S")
+        sm, ws = num(g(P["pair"], "s", "ms")), num(P["pair"].get("ws"))
+        P["clock_skew_ms"] = (sm - 1000.0 * (self.xs.t0 + ws)) if sm is not None and ws is not None else None
+        if P["clock_skew_ms"] is None or abs(P["clock_skew_ms"]) > 2000:
+            self.xs.note(f"S: the server Lua clock and the driver clock differ by {P['clock_skew_ms']} ms")
+
+    def base(self, key, literal):
+        """The value S's pair read on the server before any set (the restore rule), or the literal when unread."""
+        v = num(g(self.D, "S", "pair", "s", key))
+        return literal if v is None else v
 
     def phase_C(self):
         P = self.D["C"] = {}
@@ -790,7 +872,8 @@ class Sess:
         P["errors"] = self.errors_read("C")
         P["dump"] = bool(self.dump("end"))
         if self.key in ("x491", "x492"):
-            P["part_zero"] = self.k("C_part0", SRV, "bodypart.set", f"{USER} {PART} additionalPain 0")
+            P["part_restore"] = self.k("C_part0", SRV, "bodypart.set",
+                                       f"{USER} {PART} additionalPain {self.base('part', 0.0)}")
 
     # -- x491
     def phase_P1A(self):
@@ -848,10 +931,11 @@ class Sess:
         c = self.xs.clients.get(USER)
         q = {"wall0": self.xs.wall()}
         try:
-            q["rc"] = c.quit() if c is not None else None
+            q["rc"] = c.quit(timeout=QUIT_TIMEOUT_S) if c is not None else None
         except Exception as e:                       # noqa: BLE001 - recorded
             q["error"] = f"{type(e).__name__}: {e}"
         q["wall1"] = self.xs.wall()
+        q["graceful"] = q.get("rc") is not None
         self.xs.clients.pop(USER, None)
         P["quit"] = q
 
@@ -898,7 +982,7 @@ class Sess:
         for cap in END_CAPS:
             P["arms"].append(self.arm(f"E_{cap}", "endcap", cap, secs=ARM_S)["arm"])
         P["release"] = self.call("E_release", SRV, "release", "endcap")
-        P["restore"] = self.k("E_restore", SRV, "stats.set", f"{USER} endurance 1")
+        P["restore"] = self.k("E_restore", SRV, "stats.set", f"{USER} endurance {self.base('endurance', 1.0)}")
 
     def phase_F(self):
         P = self.D["F"] = {"arms": []}
@@ -906,11 +990,11 @@ class Sess:
         for fl in UNHAPPY_FLOORS:
             P["arms"].append(self.arm(f"U_{fl:g}", "unhappy", fl, secs=ARM_S)["arm"])
         P["u_release"] = self.call("F_u_release", SRV, "release", "unhappy")
-        P["u_zero"] = self.k("F_u_zero", SRV, "stats.setany", f"{USER} UNHAPPINESS 0")
+        P["u_restore"] = self.k("F_u_zero", SRV, "stats.setany", f"{USER} UNHAPPINESS {self.base('unhappy', 0.0)}")
         for fl in STRESS_FLOORS:
             P["arms"].append(self.arm(f"S_{fl:g}", "stress", fl, secs=ARM_S)["arm"])
         P["s_release"] = self.call("F_s_release", SRV, "release", "stress")
-        P["s_zero"] = self.k("F_s_zero", SRV, "stats.setany", f"{USER} STRESS 0")
+        P["s_restore"] = self.k("F_s_zero", SRV, "stats.setany", f"{USER} STRESS {self.base('stress', 0.0)}")
 
     # -- the grades
     def _g(self, name, res, falsifier, extra=None):
@@ -931,6 +1015,8 @@ class Sess:
         return a.get("epoch_ms"), a.get("end_epoch_ms")
 
     def ticks_between(self, doc, ms0, ms1):
+        """The ring rows inside [ms0, ms1): a row's `ms` is the server Lua's getTimestampMs() (epoch ms, the server
+        process's wall clock), ms0/ms1 the driver's time.time() x 1000 (epoch ms); phase S records their skew."""
         return [t for t in (g(doc, "ticks") or []) if isinstance(t, dict) and num(t.get("ms")) is not None
                 and (ms0 is None or num(t["ms"]) >= ms0) and (ms1 is None or num(t["ms"]) < ms1)]
 
@@ -959,15 +1045,18 @@ class Sess:
                 self.injury))), "a client or server PAIN level other than the predicted in the arm's last pairs")
         self._g("P1_STEADY_A2", grade_steady(self.pairs, "P1B", "lvPain", level_of("pain", pain_target(A2, PART,
                 self.injury))), "a client or server PAIN level other than the predicted in the arm's last pairs")
-        self._g("P1_TARGET", combine([grade_target(self.pairs, "P1A", A1, self.day_min, PART, self.injury),
-                                      grade_target(self.pairs, "P1B", A2, self.day_min, PART, self.injury)]),
+        self._g("P1_TARGET", combine([grade_target(self.pairs, "P1A", A1, self.day_min, PART, self.injury,
+                                                   self.ticks_between(doc, *self.window("P1A"))),
+                                      grade_target(self.pairs, "P1B", A2, self.day_min, PART, self.injury,
+                                                   self.ticks_between(doc, *self.window("P1B")))]),
                 "the server's PAIN outside its band at an arm's end")
         self._g("P1_FOLLOWS", grade_follows(self.pairs, ("P1A", "P1B", "P2S", "REL"), "pain", "pain", "lvPain",
                                             FOLLOW_EPS), "a side's PAIN level off its own PAIN's threshold level")
         rise = self.ticks_between(doc, *self.window("P1A")) + self.ticks_between(doc, *self.window("P1B"))
         self._g("P1_RISE", grade_rise(rise, PART, self.injury), "the median rise step off (gap)/500 by over RISE_TOL")
         slow = [minute_rows(doc, key, A1, *self.window("P1A")), minute_rows(doc, key, A2, *self.window("P1B"))]
-        self._g("P2_TICK", combine([grade_decay_tick([slow[0]]), grade_decay_tick([slow[1]])]),
+        ring = g(doc, "ticks") or []
+        self._g("P2_TICK", combine([grade_decay_tick([slow[0]], ring), grade_decay_tick([slow[1]], ring)]),
                 "a minute gap's fall off 0.005 x its summed multiplier beyond the tolerance")
         self._g("P2_GM", grade_decay_gm(slow, self.day_min), "the fall a game minute off 0.01 x dayMin by over 5 %")
         fast = [minute_rows(doc, key, A2, ms_fast, ms_slow)]
@@ -978,13 +1067,15 @@ class Sess:
     def grade_x492(self):
         doc = g(self.dumps, "prestop", "doc") or self.doc()
         rows = [minute_rows(doc, f"pain:{PART}", A2, *self.window("P2D"))]
-        self._g("P2_TICK_D1", grade_decay_tick(rows), "a minute gap's fall off 0.005 x its summed multiplier")
+        self._g("P2_TICK_D1", grade_decay_tick(rows, g(doc, "ticks") or []), "a minute gap's fall off 0.005 x its summed multiplier")
         self._g("P2_GM_D1", grade_decay_gm(rows, self.day_min), "the fall a game minute off 0.01 x dayMin by over 5 %")
         self._g("P3_RELOG", grade_persist(g(self.D, "RELOG", "before", "additionalPain"),
-                                          g(self.D, "RELOG", "back", "additionalPain")),
+                                          g(self.D, "RELOG", "back", "additionalPain"),
+                                          g(self.D, "RELOG", "quit", "graceful")),
                 "the first read after the rejoin under SAVED_FRAC of the value before the quit")
         self._g("P3_RESTART", grade_persist(g(self.D, "RESTART", "before", "additionalPain"),
-                                            g(self.D, "RESTART", "back", "additionalPain")),
+                                            g(self.D, "RESTART", "back", "additionalPain"),
+                                            g(self.D, "RESTART", "stop", "graceful")),
                 "the first read after the restart under SAVED_FRAC of the value before the stop")
 
     def grade_x493(self):
@@ -1101,6 +1192,19 @@ def parse_argv(argv, driver_file):
 
 
 # ================================================================ the live run
+def budget_left(S):
+    """The wall left in the session's budget, never under 1 s (F2: every wait in the restart chain is bounded by it)."""
+    return max(1.0, S.xs.budget_s - S.xs.wall())
+
+
+def relaunch_timeout(client_timeout, S):
+    return min(client_timeout, RELAUNCH_TIMEOUT_S, budget_left(S))
+
+
+def restart_timeout(server_timeout, S):
+    return min(server_timeout, RESTART_TIMEOUT_S, budget_left(S))
+
+
 def launch_real(make_client, prof, rec_fx, started, tl):
     """x46_lib's relaunch: a fresh client restore in <run>/<sub>, started and waited ready."""
     def launch(S, user, sub):
@@ -1110,7 +1214,7 @@ def launch_real(make_client, prof, rec_fx, started, tl):
         started.append(c)
         S.xs.clients[user] = c
         tl.mark("client_launch", user=user, which=sub, restored=restored)
-        took = c.wait_ready(timeout=min(prof.client_timeout, RELAUNCH_TIMEOUT_S))
+        took = c.wait_ready(timeout=relaunch_timeout(prof.client_timeout, S))
         tl.mark("client_ready", user=user, which=sub, took=took)
         return {"restored": restored, "ready_took": took, "wall": S.xs.wall()}
     return launch
@@ -1118,18 +1222,20 @@ def launch_real(make_client, prof, rec_fx, started, tl):
 
 def stop_real(tl):
     """The graceful stop: pzt's Server.stop (quit on stdin, which saves the world and the players, then the wait; a
-    kill only on its own timeout). Only this session's own server is touched."""
+    kill only on its own timeout, STOP_TIMEOUT_S, which returns None: graceful records rc not None, F3). Only this
+    session's own server is touched."""
     def stop(S):
         srv = S.xs.server
         out = {"pid": getattr(getattr(srv, "proc", None), "pid", None), "wall0": S.xs.wall()}
         S.xs.persist()
         tl.mark("server_stop", pid=out["pid"])
         try:
-            out["rc"] = srv.stop()
+            out["rc"] = srv.stop(timeout=STOP_TIMEOUT_S)
             out["exited"] = not srv.alive
         except Exception as e:                       # noqa: BLE001 - recorded
             out["exited"] = False
             out["error"] = f"{type(e).__name__}: {e}"
+        out["graceful"] = out.get("rc") is not None
         out["wall1"] = S.xs.wall()
         return out
     return stop
@@ -1145,7 +1251,7 @@ def restart_real(prof, run_dir, tl):
             srv._started.clear()
             srv.log_path = os.path.join(run_dir, out["log"])
             srv.bus.reset()
-            out["took"] = srv.start(timeout=min(prof.server_timeout, RESTART_TIMEOUT_S))
+            out["took"] = srv.start(timeout=restart_timeout(prof.server_timeout, S))
             out["pid"] = srv.proc.pid
             out["ok"] = True
             tl.mark("server_restarted", pid=out["pid"], took=out["took"])

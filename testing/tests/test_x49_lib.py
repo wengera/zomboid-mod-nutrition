@@ -28,9 +28,12 @@ class FakeClient:
         self.alive = True
         self.console = os.devnull
 
-    def quit(self):
+    def quit(self, timeout=60):
         self.w.disconnect()
         self.alive = False
+        if self.w.quit_hangs:
+            self.w.sleep(timeout)
+            return None                     # pzt kills the client on its timeout and returns None
         return 0
 
     def kill(self):
@@ -67,10 +70,13 @@ class World:
     """Vanilla's laws at the jar's constants, plus the probe's bookkeeping, on a fake clock."""
 
     def __init__(self, day_min, decay=L.DECAY_PER_UNIT, rise_div=L.RISE_DIV, regen=L.END_REGEN_BASE, saved=True,
-                 client_level_shift=0, tick_hz=10.0):
+                 client_level_shift=0, tick_hz=10.0, timer_phase=0, quit_hangs=False):
         self.day_min, self.decay, self.rise_div, self.regen = day_min, decay, rise_div, regen
         self.saved, self.shift, self.tick_hz = saved, client_level_shift, tick_hz
+        self.timer_phase, self.quit_hangs = timer_phase, quit_hangs
+        self.srv_lv_pain, self.cli_lv_pain = 0, 0
         self.t = 1.8e9
+        self.next_tick = self.t + 1.0 / tick_hz
         self.speed = 1
         self.gm = 0.0
         self.gm_acc = 0.0
@@ -102,11 +108,12 @@ class World:
         return 4.8 * self.speed * 10.0 / self.tick_hz
 
     def sleep(self, dt):
+        """Ticks fire on a fixed grid of 1/tick_hz, whatever the sleeps' lengths."""
         end = self.t + max(0.0, dt)
-        step = 1.0 / self.tick_hz
-        while self.t + step <= end + 1e-9:
-            self.t += step
+        while self.next_tick <= end + 1e-9:
+            self.t = self.next_tick
             self.tick()
+            self.next_tick += 1.0 / self.tick_hz
         self.t = end
 
     def age(self):
@@ -146,6 +153,9 @@ class World:
                 self.snap_s = {"online": False, "n": self.ticks, "ms": self.t * 1000}
             else:
                 lv = self.levels(self.st)
+                if (self.ticks + self.timer_phase) % 120 == 0:      # Moodle.Update's painTimer (L345-L349)
+                    self.srv_lv_pain = lv["lvPain"]
+                lv["lvPain"] = self.srv_lv_pain
                 s = dict(self.st, online=True, n=self.ticks, ms=self.t * 1000, age=self.age(), mult=m,
                          trackPart=self.track_part, **lv)
                 self.snap_s = s
@@ -157,6 +167,9 @@ class World:
             self.client_hist.append(dict(self.st))
             cst = self.client_hist[-2] if len(self.client_hist) > 1 else self.st
             clv = {k: v + self.shift for k, v in self.levels(cst).items()}
+            if (self.ticks + self.timer_phase) % 120 == 0:          # the client's own 120-frame timer
+                self.cli_lv_pain = clv["lvPain"]
+            clv["lvPain"] = self.cli_lv_pain
             self.snap_c = dict(cst, n=self.ticks, ms=self.t * 1000, cpart=7, **clv)
             self.track(self.ctrk, clv)
         self.gm += m / (2.0 * self.day_min)
@@ -339,7 +352,7 @@ def run_session_world(key, w):
     def stop(S):
         w.disconnect()
         w.sleep(10.0)
-        return {"exited": True, "rc": 0}
+        return {"exited": True, "rc": 0, "graceful": True}
 
     def restart(S, tag):
         w.lua_reset()
@@ -364,6 +377,58 @@ def test_faithful_world_grades_every_reading_as_predicted(key):
                                                                   for k, v in verdicts.items() if v != "as_predicted"}
     assert out["wall_seconds"] if "wall_seconds" in out else True
     assert not out.get("budget_stop"), out.get("budget_stop")
+
+
+@pytest.mark.parametrize("phase", [0, 40, 60, 80])
+def test_the_pain_timer_phases_keep_the_pain_grades(phase):
+    w = World(90, timer_phase=phase)
+    v, out, _ = run_session_world("x491", w)
+    for n in ("P1_FOLLOWS", "P1_STEADY_A1", "P1_STEADY_A2"):
+        assert v[n] == "as_predicted", (phase, n, out["verdicts"][n]["observed"])
+
+
+def test_follow_eps_of_one_and_a_half_falsifies_some_timer_phase(monkeypatch):
+    monkeypatch.setattr(L, "FOLLOW_EPS", 1.5)
+    # in this fake the 1.5 window falsifies at phases 60 and 70 (pairs at 2 s against the 12 s stale window), so
+    # phase 60 joins the review's 0, 40 and 80
+    seen = [run_session_world("x491", World(90, timer_phase=ph))[0]["P1_FOLLOWS"] for ph in (0, 40, 60, 80)]
+    assert "falsified" in seen, seen
+
+
+def test_every_wait_timing_out_still_ends_inside_the_budget():
+    """F2: the relog's quit, the stop, the restart and both relaunches each consume their full timeout."""
+    w = World(15, quit_hangs=True)
+    server = FakeServer(w)
+    out = {"steps": [], "notes": [], "phase_walls": {}, "phase_errors": {}, "verdicts": {}, "readings": {},
+           "world_changes": {"left_in_place": []}}
+    clients = {"admin": FakeClient(w)}
+    budget = L.SESSIONS["x492"]["budget_s"]
+    xs = X.Xs(out, node=lambda side: side if side == "server" else "client", server=server, clients=clients,
+              ask=w.ask, budget_s=budget, predictions=L.PRED, clock=w.clock, sleep=w.sleep)
+
+    def launch(S, user, sub):
+        w.sleep(L.relaunch_timeout(180, S))
+        return {"restored": True, "ready_took": None}
+
+    def stop(S):
+        w.disconnect()
+        w.sleep(L.STOP_TIMEOUT_S)
+        return {"exited": True, "rc": None, "graceful": False}
+
+    def restart(S, tag):
+        w.lua_reset()
+        w.sleep(L.restart_timeout(240, S))
+        return {"ok": True}
+
+    S = L.Sess(xs, "x492", 15, launch=launch, restart=restart, stop=stop)
+    S.body_run(S.phases())
+    assert out["phase_walls"]["C"]["end"] <= budget + 60, out["phase_walls"]
+    assert out["readings"]["RELOG"]["quit"]["graceful"] is False
+    out["admin_lua_error"] = False
+    out["logs"] = {"mod_error": []}
+    S.grade_all()
+    assert out["verdicts"]["P3_RELOG"]["verdict"] == "unmeasured"
+    assert out["verdicts"]["P3_RESTART"]["verdict"] == "unmeasured"
 
 
 def test_x491_walls_inside_the_budget():
@@ -466,25 +531,41 @@ def test_grade_steady_cases():
     assert L.grade_steady(good, "B", "lvPain", 1)[0] == "unmeasured"
 
 
+def ring_at(hz, n=50, ms0=1.8e12):
+    return [{"n": i, "ms": ms0 + i * 1000.0 / hz} for i in range(n)]
+
+
 def test_grade_target_cases():
     t = L.pain_target(L.A1)
+    r10 = ring_at(10.0)
     ok = [pair("a", "A", {"pain": t - 0.5}, {})]
-    assert L.grade_target(ok, "A", L.A1, 90)[0] == "as_predicted"
-    assert L.grade_target([pair("a", "A", {"pain": 0.8 * t}, {})], "A", L.A1, 90)[0] == "falsified"
-    assert L.grade_target([pair("a", "A", {"pain": t + 0.1}, {})], "A", L.A1, 90)[0] == "falsified"
-    assert L.grade_target([], "A", L.A1, 90)[0] == "unmeasured"
+    assert L.grade_target(ok, "A", L.A1, 90, ticks=r10)[0] == "as_predicted"
+    assert L.grade_target([pair("a", "A", {"pain": 0.8 * t}, {})], "A", L.A1, 90, ticks=r10)[0] == "falsified"
+    assert L.grade_target([pair("a", "A", {"pain": t + 0.1}, {})], "A", L.A1, 90, ticks=r10)[0] == "falsified"
+    assert L.grade_target([], "A", L.A1, 90, ticks=r10)[0] == "unmeasured"
+    slow = L.grade_target([pair("a", "A", {"pain": 0.8 * t}, {})], "A", L.A1, 90, ticks=ring_at(6.0))
+    assert slow[0] == "unmeasured" and slow[1]["hz"] == pytest.approx(6.0)
+    assert L.grade_target(ok, "A", L.A1, 90)[0] == "unmeasured"           # no ring rows: the rate is unread
 
 
 def test_grade_follows_cases():
-    ps = [pair("a", "A", {"pain": 15, "lvPain": 1}, {"pain": 25, "lvPain": 2}),
-          pair("b", "A", {"pain": 10.5, "lvPain": 0}, {"pain": 10.4, "lvPain": 0})]       # near 10: excluded
+    ps = [pair("a", "A", {"pain": 15, "lvPain": 1}, {"pain": 25, "lvPain": 2, "n": 0, "ms": 0.0}),
+          pair("b", "A", {"pain": 10.5, "lvPain": 0}, {"pain": 10.4, "lvPain": 0, "n": 120, "ms": 2000.0})]   # near 10
     v, o, used = L.grade_follows(ps, ("A",), "pain", "pain", "lvPain", L.FOLLOW_EPS)
     assert v == "as_predicted" and o["n"] == 2
-    ps.append(pair("c", "A", {"pain": 30, "lvPain": 2}, {"pain": 30, "lvPain": 1}))
+    ps.append(pair("c", "A", {"pain": 30, "lvPain": 2}, {"pain": 30, "lvPain": 1, "n": 240, "ms": 4000.0}))
     assert L.grade_follows(ps, ("A",), "pain", "pain", "lvPain", L.FOLLOW_EPS)[0] == "falsified"
     assert L.grade_follows(ps, ("Z",), "pain", "pain", "lvPain", L.FOLLOW_EPS)[0] == "unmeasured"
     st = [pair("s", "A", {"stress": 0.2, "nicotine": 0.1, "lvStress": 1}, {"stress": 0.2, "nicotine": 0.1,
                                                                             "lvStress": 1})]
+    # the client half only at CLIENT_FPS_MIN frames a second: c.n against c.ms
+    fast = [pair("a", "A", {"pain": 15, "lvPain": 1}, {"pain": 25, "lvPain": 1, "n": 100, "ms": 1000.0}),
+            pair("b", "A", {"pain": 15, "lvPain": 1}, {"pain": 25, "lvPain": 1, "n": 220, "ms": 3000.0})]
+    v, o, _ = L.grade_follows(fast, ("A",), "pain", "pain", "lvPain", L.FOLLOW_EPS)
+    assert v == "falsified" and o["client_rate"] == pytest.approx(60.0)
+    slow = [dict(p, c=dict(p["c"], n=p["c"]["n"] // 20 + (0 if p["tag"] == "a" else 1))) for p in fast]
+    v2, o2, _ = L.grade_follows(slow, ("A",), "pain", "pain", "lvPain", L.FOLLOW_EPS)
+    assert v2 == "as_predicted" and "unmeasured" in o2["client_half"] and o2["n"] == 2
     assert L.grade_follows(st, ("A",), "stress", "stress", "lvStress", 0.01, "nicotine")[0] == "as_predicted"
 
 
@@ -521,6 +602,14 @@ def test_grade_decay_tick_cases():
     assert L.grade_decay_tick([mrows(40.0, [0.9] * 3)])[0] == "unmeasured"
     armed = mrows(40.0, [0.5] + [0.9] * 6, ev0="arm")              # the gap after an arm is not graded
     assert L.grade_decay_tick([armed])[0] == "as_predicted"
+    # one tick off by one at a hitch (multiplier 14.4, three mean ticks): within tolerance only with the ring's mult
+    hitch = mrows(40.0, [0.9] * 5 + [0.9 + L.DECAY_PER_UNIT * 14.4])
+    for i, r in enumerate(hitch):
+        r["ms"] = 1000.0 * i
+    ring = [{"ms": 1000.0 * i + 500.0, "mult": 4.8} for i in range(len(hitch))]
+    ring[-2]["mult"] = 14.4                                           # inside the last gap's [prev.ms, row.ms]
+    assert L.grade_decay_tick([hitch])[0] == "falsified"
+    assert L.grade_decay_tick([hitch], ring)[0] == "as_predicted"
 
 
 def test_grade_decay_gm_cases():
@@ -533,10 +622,25 @@ def test_grade_decay_gm_cases():
     assert L.grade_decay_gm(two, 90)[0] == "as_predicted" and len(L.gaps(two)) == 6
 
 
-def test_grade_snap_cases():
+def snap_ticks(n=40, part0=30.0, mults=None):
+    """Ring rows in the jar's order: PAIN on row i is mod x the part on row i-1, then the part decays this tick."""
     mod = L.PAIN_MOD[7]
-    ticks = [{"n": i, "part": 30 - 0.024 * i, "pain": mod * (30 - 0.024 * i)} for i in range(40)]
+    rows, part = [], part0
+    for i in range(n):
+        pain = mod * part
+        m = (mults or {}).get(i, 4.8)
+        part = part - L.DECAY_PER_UNIT * m
+        rows.append({"n": i, "part": part, "pain": pain})
+    return rows
+
+
+def test_grade_snap_cases():
+    ticks = snap_ticks()
     assert L.grade_snap(ticks)[0] == "as_predicted"
+    assert L.grade_snap(snap_ticks(mults={20: 20.0}))[0] == "as_predicted"     # a hitch tick stays inside
+    mod = L.PAIN_MOD[7]
+    same_row = [dict(t, pain=mod * t["part"] + 0.08) for t in ticks]           # PAIN off its predecessor's target
+    assert L.grade_snap(same_row)[0] == "falsified"
     lag = [dict(t, pain=t["pain"] + 0.2) if t["n"] > 20 else t for t in ticks]
     assert L.grade_snap(lag)[0] == "falsified"
     assert L.grade_snap(ticks[:5])[0] == "unmeasured"
@@ -552,6 +656,10 @@ def test_grade_persist_cases():
     assert L.grade_persist(None, 50.0)[0] == "unmeasured"
     assert L.grade_persist(60.0, None)[0] == "unmeasured"
     assert L.grade_persist(0.0, 0.0)[0] == "unmeasured"
+    v, o, _ = L.grade_persist(60.0, 55.0, graceful=False)
+    assert v == "unmeasured" and o["why"] == "the stop/quit timed out and was killed"
+    assert L.grade_persist(60.0, 55.0, graceful=True)[0] == "as_predicted"
+    assert L.grade_persist(60.0, 0.0, graceful=True)[0] == "falsified"
 
 
 def test_grade_hold_level_cases():
