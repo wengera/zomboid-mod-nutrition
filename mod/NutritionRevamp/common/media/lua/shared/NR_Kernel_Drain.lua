@@ -349,7 +349,7 @@ end
 -- regain negative (revision R2: the clock runs both ways). The onset BMI bmi0 is the estimate at the onset, so the
 -- progress opens at 0, and a close moves the estimate by the day-on-day change of the loss only. While the state is
 -- active (active true) pS keeps the largest progress, so it never falls within the state. Once its cause has lapsed
--- the estimate extrapolates only toward recovery (ruling R2-2: a ceiling never falls while its cause is absent): pS
+-- the estimate extrapolates only toward recovery (ruling R2-2: a ceiling never falls between closes while its cause is absent): pS
 -- keeps the smallest progress between closes, and a close (or a re-anchor) sets it to the true BMI's progress either
 -- way, so a regained weight lowers it and a weight still lost raises it, the fall then ramping at the cap. Returns
 -- pS and whether this minute closed (or re-anchored) the clock.
