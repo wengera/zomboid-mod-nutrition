@@ -22459,3 +22459,14 @@ x485-20261020-213026,verdicts.*.falsifier,the driver's falsifiers,Written before
 x485-20261020-213026,readings.client_server_options.predicted,the declared defaults 3 and 2,The driver's prediction beside the reading; not a reading.,`readings.client_server_options.admin` and `.bob`
 x485-20261020-213026,preboot.keys_at_commit,the two keys' texts,"Read from mod/'s UI.json at 4ff68475 before the boot; not a live reading.",`text_sets.*.admin`
 x485-20261020-213026,logs.bob_connections.force_any,one force-disconnect exit line,"The teardown's own quit, not a kick.",`logs.bob_connections.force_checksum`
+x491-20261021-061440,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x491-20261021-061440,constants,the lib's constants,"Settings of the driver, not readings.",
+x491-20261021-061440,world_changes,the driver's text,Written before the run; not readings.,
+x491-20261021-061440,meta.budget_s,510.0,The driver's own budget; not a reading.,
+x491-20261021-061440,verdicts.*.predicted,the driver's predictions,Copies of `predictions`; not readings.,`verdicts.<name>.observed`
+x491-20261021-061440,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x491-20261021-061440,preboot,the offline checks,Checks of files before the boot; not readings.,
+x491-20261021-061440,verdicts.P1_TARGET.observed.*.lo,12.663299535512925 and 25.923299049139022,The grade's band from the jar's constants; not a reading.,`verdicts.P1_TARGET.observed[*].pain`
+x491-20261021-061440,verdicts.P1_TARGET.observed.*.hi,15.60999942779541 and 31.209998855590822,The grade's band from the jar's constants; not a reading.,`verdicts.P1_TARGET.observed[*].pain`
+x491-20261021-061440,verdicts.P2_GM.observed.want,0.9,The formula 0.01 x dayMin; not a reading.,`verdicts.P2_GM.observed.per_gm`
+x491-20261021-061440,verdicts.P2_SPEED.observed.want,0.9,The formula 0.01 x dayMin; not a reading.,`verdicts.P2_SPEED.observed.per_gm`
