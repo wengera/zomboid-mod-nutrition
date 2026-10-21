@@ -287,6 +287,10 @@ def test_recovery_eases_the_cap_and_the_floors_with_p(sh):
 # --- no allocation ----------------------------------------------------------------------------------------------
 
 def test_no_table_is_allocated_per_step(sh):
+    # Plan 18 Task 3b (controller): the full suite read a one-off 1.25 KB over 2000 steps (a fixed cost, not a per-step
+    # one), so the grade is the per-step growth: the KB of a long window less a short one's, both under a stopped
+    # collector after a full collect, over the steps between them. A fixed one-off cancels; a table a step (32 B or
+    # more in Lua 5.1) reads 32 B a step or more against the 1 B ceiling
     E = sh.K.effects.new()
     pain = E.pain
     D = _drain(sh, {1: 0.5, 2: 0.4, 6: 0.3})
@@ -294,6 +298,7 @@ def test_no_table_is_allocated_per_step(sh):
         K.effects.symptoms(E, T, D, 1, false, 1440)
         local hook, mask, count = debug.gethook()
         debug.sethook()
+        collectgarbage("collect")
         collectgarbage("collect")
         collectgarbage("stop")
         local before = collectgarbage("count")
@@ -305,8 +310,12 @@ def test_no_table_is_allocated_per_step(sh):
         debug.sethook(hook, mask, count)
         return after - before
     end""")
-    grown = run(sh.K, sh.G.NutritionRevamp.data.effects, E, D, 2000)
-    assert grown < 0.5                                                   # KB over 2000 steps: nothing allocated
+    T = sh.G.NutritionRevamp.data.effects
+    short, long_ = 2000, 20000
+    g_short = run(sh.K, T, E, D, short)
+    g_long = run(sh.K, T, E, D, long_)
+    per_step = (g_long - g_short) * 1024 / (long_ - short)                # bytes a step, the fixed one-off cancelled
+    assert per_step < 1.0, (g_short, g_long, per_step)                   # nothing allocated per step
     assert sh.rt.eval("function(a, b) return rawequal(a, b) end")(E.pain, pain)      # the same table, refilled
 
 
