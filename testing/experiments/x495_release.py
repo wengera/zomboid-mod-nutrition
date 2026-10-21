@@ -10,20 +10,20 @@ Written BEFORE the boot and never edited after the run (CLAUDE.md s5).
 
 THE SESSION: S (the S pair retried until valid), H, W, A (x484's seed to the onset), P1 (drain.pS 0.5; the floors 0.30
 and 25 seeded once; no pairs), B (thiamine 0.30, wet beriberi at clinical; 90 s of pairs before the lapse), L
-(satiety.M 240, the 200 kcal snack's pool, polled to the lapse; 16 s of pairs at speed 1, then 80 s at speed 5, about
-107 game minutes), C, R.
+(satiety.M 240, the 200 kcal snack's pool, polled to the lapse; 16 s of pairs at speed 1, then 70 s at speed 5, about
+93 game minutes), C, R.
 
 PREDICTIONS (x49c_prerun.json's x495, the HEAD replay of this schedule from the first sight):
   B    starvation at p 0.5 and wet beriberi: cap 0.355 (Endurance 2), floors 0.30 (Stress 1) and 25 (Unhappy 1), the
        lower torso 19.680769 and both lower legs 12.95 (PAIN target 30.891, mid 30.0: Pain 2).
   L    the snack lapses starvation in the drain after it (mask 4, recovering); the cap eases 0.355 -> about 0.7297, the
-       floors to about 0, the remembered UNHAPPINESS target 25 -> about 0.022; health heals from about 98.29 to its
+       floors to about 0, the remembered UNHAPPINESS target 25 -> about 0.030; health heals from about 97.80 to its
        target (the replay at it 20 game minutes after the lapse; live later, the stand-in's heal leads: F2); the lower
        torso decays 0.9 a game minute to 0 (the legs' Pain 1 left); STRESS falls 0.0018 a game minute from 0.30 (Stress
        0 by about 28 game minutes); ENDURANCE climbs to Endurance 1 under the eased cap.
 
-WALL (x49c_lib.predicted_wall, off x494's measured costs): the lapse at about 317 s, the phases' end about 435 s, the
-worst call about 520 s with the bounded teardown; BUDGET_S 470 (the arms cut at 445 s).
+WALL (x49c_lib.predicted_wall, off x494's measured costs): the lapse at about 325 s, the phases' end about 433 s, the
+worst call about 518 s with the bounded teardown; BUDGET_S 470 (the arms cut at 445 s).
 
 RULES: 1. NEVER edited after its run. 2. A trivial, unmeasured or falsified reading is written as such, never re-run.
 3. One live session at a time. 4. Free memory read before the boot, refused under 12 GB. 5. Never -safemode.
@@ -74,7 +74,7 @@ PRED = {
     "REL_UNHAPPY": f"UNHAPPINESS falls by the remembered target's fall ({LP.get('u_before')} to {LP.get('u_after')}) "
                    f"at once; Unhappy 0 at L1's end",
     "REL_STRESS": "STRESS never raised after the lapse, falling 0.0018 a game minute within 15 %; Stress 0 at L2's end",
-    "REL_HEAL": "after the lapse health never over its target, never taken, and at the target by 50 game minutes",
+    "REL_HEAL": "after the lapse health never over its target nor taken under it, and at the target by 50 game minutes",
 }
 for _f in L.B.REPLAY_TOL:
     PRED[f"REPLAY_{_f}"] = f"within {L.B.REPLAY_TOL[_f][1]} of the HEAD replay of the run's own inputs"

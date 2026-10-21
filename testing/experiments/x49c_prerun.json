@@ -25,29 +25,29 @@
  "x495": {
   "end": {
    "drain.frac.1": 0.999726,
-   "drain.frac.3": 0.997163,
+   "drain.frac.3": 0.99744,
    "drain.mask": 4.0,
    "drain.pS": 0.000274,
    "drain.recovering": 1.0,
-   "drain.target": 99.688905,
-   "effects.enduranceCap": 0.727872,
+   "drain.target": 99.716675,
+   "effects.enduranceCap": 0.72808,
    "effects.pain.13": 12.95,
    "effects.pain.14": 12.95,
    "effects.pain.7": 0.0,
    "effects.rowEndCap": 1.0,
-   "effects.stressFloor": 0.001702,
+   "effects.stressFloor": 0.001536,
    "effects.stressTarget": 0.06,
-   "effects.symCap": 0.727872,
-   "effects.unhappyFloor": 0.141865,
+   "effects.symCap": 0.72808,
+   "effects.unhappyFloor": 0.127976,
    "effects.unhappyTarget": 0.0,
-   "health": 99.688905,
+   "health": 99.716675,
    "levels": {
     "endurance": 1,
     "pain": 1,
     "stress": 0,
     "unhappy": 0
    },
-   "moodLast.u": 0.141865,
+   "moodLast.u": 0.127976,
    "painMid": 15.000001,
    "painTarget": 15.540001
   },
@@ -56,7 +56,7 @@
    25.0
   ],
   "heal_at_target_after_lapse_m": 20,
-  "l2_gm": 107,
+  "l2_gm": 93,
   "lapse": {
    "cap_after": 0.729554,
    "cap_before": 0.355,
@@ -69,7 +69,7 @@
    "u_before": 25.0
   },
   "minutes": {
-   "end": 178,
+   "end": 164,
    "onset": 27,
    "p1": 29,
    "seed": 20,
@@ -105,9 +105,9 @@
    "painTarget": 30.891
   },
   "wall": {
-   "lapse_at": 317.4,
-   "phases_end": 435.4,
-   "worst_call": 520.4
+   "lapse_at": 325.4,
+   "phases_end": 433.4,
+   "worst_call": 518.4
   }
  }
 }

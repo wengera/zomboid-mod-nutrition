@@ -27,7 +27,9 @@ THE SESSION x495 release (DayLength 4, sleep off, Realistic, Multiply, Severity 
 
 THE GRADES: x49b's pure grades over this schedule's arms (OPT, ONSET, P0_BASE, BERI_ON, H1, RING, Z, REPLAY_ for each
 x49b REPLAY_TOL field, PAIN_PART and END_CAP over every arm, PAIN_TARGET at B, PAIN_LEVELS at B and L2, PAIN_FOLLOWS over B and L1, END_LEVELS, STRESS_FLOOR, UNHAPPY_FLOOR, STRESS_LEVELS and
-UNHAPPY_LEVELS at B, REL_LAPSE, REL_PAIN, REL_UNHAPPY, REL_STRESS, REL_HEAL), and REL_END for this session (grade_rel_end_x495): the cap eased by EASE_MIN; no
+UNHAPPY_LEVELS at B, REL_LAPSE, REL_PAIN, REL_UNHAPPY, REL_STRESS), REL_HEAL for this session (grade_rel_heal_x495:
+health held on beriberi's falling target is the drain at work, so a fall counts only under the row's own target; x495
+review F1), and REL_END for this session (grade_rel_end_x495): the cap eased by EASE_MIN; no
 pull-down below the cap, a fall between pairs counted only when the pair before read under the cap in force less
 END_CLIMB_TOL (ENDURANCE climbs from 0.355 to the eased cap about 0.73 in about 57 game minutes of L2_GM, and from then
 on the writer pulls it to the cap each minute: the cap at work, not a pull-down); L2's last STEADY_N pairs each side at
@@ -67,8 +69,9 @@ PRE_S = 90.0                             # the pre-lapse arm after beriberi: PAI
                                          # under 10 s in the fake world); 90 s puts the last pair over PAIN_TARGET's
                                          # lower edge either way; Pain 2 by about 31 s plus the moodle's timer
 L1_S = B.L1_S                            # 16.0 at speed 1: the release's first minutes
-L2_S = 80.0                              # at SPEED_FAST: about 107 game minutes (REL_HEAL from 50; STRESS from 0.30 at
-                                         # 0.0018 a game minute stays over beriberi's 0.06 row target to about 133)
+L2_S = 70.0                              # at SPEED_FAST: about 93 game minutes (REL_HEAL from 50; STRESS from 0.30 at
+                                         # 0.0018 a game minute stays over beriberi's 0.06 row target to about 133);
+                                         # 70, not 80, buys 10 s of the budget (x495 review F4)
 L2_GM = L2_S / 0.75                      # a game minute 0.75 wall s at speed 5, DayLength 4
 S_PAIR_TRIES = 3
 END_EASED_LEVEL_MAX_X495 = 1
@@ -91,7 +94,7 @@ def load_prerun(path=None):
 
 def predicted_wall():
     """The phases' end and the call's end in wall seconds from the driver's start, off COST and the schedule."""
-    pre = COST["ready"] + COST["S"] + COST["H"] + COST["W"] + COST["A"]
+    pre = COST["ready"] + COST["S"] + (S_PAIR_TRIES - 1) * 4.0 + COST["H"] + COST["W"] + COST["A"]   # S's retries (F4)
     seed = COST["seed"] - B.ARM_SETTLE_S                  # P1's seed without its arm's settle
     b = 8.0 + B.ARM_SETTLE_S + PRE_S + COST["arm_over"] - B.ARM_SETTLE_S
     lapse = COST["lapse"] + L1_S + 6.0 + L2_S + 6.0
@@ -103,7 +106,7 @@ def predicted_wall():
 def grade_rel_end_x495(pairs, inf, a_lapse, cap_before, short=False):
     """REL_END for x495: the cap in force at L2's last pair above cap_before by B.EASE_MIN; no fall over B.END_FALL_EPS
     between valid pairs after the lapse where the pair before read under its larger cap in force less B.END_CLIMB_TOL (a
-    fall from the cap is the writer holding the eased cap); L2's last STEADY_N pairs read, on both sides, their own
+    fall from the cap that lands at the cap in force is the writer holding the eased cap, x495 review F2); L2's last STEADY_N pairs read, on both sides, their own
     ENDURANCE's level away from an edge (B.L49.FOLLOW_EPS_END), at most END_EASED_LEVEL_MAX_X495, at least
     LEVEL_MIN_PAIRS a side; a short L2 leaves the level bound unmeasured."""
     obs = {"cap_before": cap_before, "short": short, "eased_max": END_EASED_LEVEL_MAX_X495}
@@ -120,8 +123,9 @@ def grade_rel_end_x495(pairs, inf, a_lapse, cap_before, short=False):
         cap = inf.hi(B.pair_age(a), "effects.enduranceCap")
         if ea is None or eb is None or cap is None or eb >= ea - B.END_FALL_EPS:
             continue
-        if ea >= cap - B.END_CLIMB_TOL:
-            at_cap += 1
+        cap_b = inf.lo(B.pair_age(b), "effects.enduranceCap")
+        if ea >= cap - B.END_CLIMB_TOL and cap_b is not None and eb >= cap_b - B.END_CLIMB_TOL:
+            at_cap += 1                                    # the writer's pull lands on the cap (x495 review F2)
             continue
         falls.append({"tag": b.get("tag"), "from": ea, "to": eb, "cap": cap})
     lv, n_side = [], {"s": 0, "c": 0}
@@ -150,6 +154,45 @@ def grade_rel_end_x495(pairs, inf, a_lapse, cap_before, short=False):
     return ("falsified" if lv_bad else "as_predicted"), obs, ps
 
 
+def git_commit_of(path, repo=REPO):
+    """The last commit touching path (short), or None."""
+    import subprocess
+    try:
+        out = subprocess.run(["git", "log", "-1", "--format=%h", "--", path], cwd=repo, capture_output=True, text=True)
+    except OSError:
+        return None
+    return out.stdout.strip() or None
+
+
+def grade_rel_heal_x495(rows, i_lapse, rep=None):
+    """REL_HEAL for x495 (x495 review F1): x49b's grade_rel_heal, except that health held on beriberi's falling target
+    is the drain at work, not a take: a fall counts only under the row's own target (each row's fall on the target is
+    about 0.00198 a game minute, and a live row spans 0.931-1.065 game minutes at speed 5, so x49b's REL_HEAL_TOL on
+    the step alone falsifies the correct mod). The over-the-target and last-row clauses are x49b's."""
+    if i_lapse is None:
+        return "unmeasured", {"why": "no lapse row"}, []
+    span = [r for r in rows[i_lapse + 1:] if num(r.get("health")) is not None and num(r.get("drain.target")) is not None]
+    rep_h = {r.get("s"): num(r.get("health")) for r in rep or []}
+    obs = {"n": len(span), "lag": [{"s": r.get("s"), "live": num(r["health"]), "replay": rep_h.get(r.get("s"))}
+                                   for r in span[::5]][:40]}
+    tol = B.REL_HEAL_TOL
+    over = [{"s": r.get("s"), "health": num(r["health"]), "target": num(r["drain.target"])} for r in span
+            if num(r["health"]) > num(r["drain.target"]) + tol]
+    falls = [{"s": b.get("s"), "from": num(a["health"]), "to": num(b["health"]), "target": num(b["drain.target"])}
+             for a, b in zip(span, span[1:])
+             if num(b["health"]) < num(a["health"]) - tol and num(b["health"]) < num(b["drain.target"]) - tol]
+    obs.update({"over": over[:10], "falls": falls[:10]})
+    if over or falls:
+        return "falsified", obs, span
+    a0 = B.ring_age(rows[i_lapse])
+    if not span or a0 is None or (B.ring_age(span[-1]) - a0) * 60.0 < B.REL_HEAL_MIN_GM:
+        obs["why"] = f"the ring ends under {B.REL_HEAL_MIN_GM} game minutes past the lapse row"
+        return "unmeasured", obs, []
+    last = span[-1]
+    obs["last_gap"] = num(last["drain.target"]) - num(last["health"])
+    return ("as_predicted" if abs(obs["last_gap"]) <= tol else "falsified"), obs, span
+
+
 class Sess(B.Sess):
     """x495's phases on x49b_lib.Sess."""
 
@@ -161,6 +204,8 @@ class Sess(B.Sess):
         self.prof = PROFILES[self.spec["profile"]]
         self.P = prerun if prerun is not None else load_prerun().get(key, {})
         self.out["lib_x49c"] = LIB_FILE
+        self.out["lib_x49b"] = B.LIB_FILE                  # the engine under this lib (x495 review F5)
+        self.out["lib_x49b_commit"] = git_commit_of("testing/experiments/" + B.LIB_FILE)
         self.out["constants_x49c"] = dict(CONSTANTS)
         self.out["prerun_x49c"] = self.P
 
@@ -252,7 +297,7 @@ class Sess(B.Sess):
                  "UNHAPPINESS not dropping by the target's fall at once, or Unhappy shown after the release")
         self._g3("REL_STRESS", B.grade_rel_stress(self.pairs, a_l, fl_b, "L2" in short),
                  "STRESS raised after the lapse, falling off vanilla's decay, or an end level off the prediction")
-        self._g3("REL_HEAL", B.grade_rel_heal(rows, i_l, rep),
+        self._g3("REL_HEAL", grade_rel_heal_x495(rows, i_l, rep),
                  "health over its target, taken after the lapse, or short of the target REL_HEAL_MIN_GM past it")
 
 
@@ -278,5 +323,5 @@ parse_argv = B.parse_argv
 def main(key, driver_file, session_text, pred, budget_s):
     """x49b's main (doctor, the dirty gates, the staged gate, memory, the lint, the boot, the bounded teardown, the
     copy) over x495's session, preboot, lib name and Sess."""
-    return _rebind(B.main, SESSIONS=SESSIONS, preboot=preboot, LIB_FILE=LIB_FILE, Sess=Sess,
-                   PRERUN_FILE=PRERUN_FILE)(key, driver_file, session_text, pred, budget_s)
+    return _rebind(B.main, SESSIONS=SESSIONS, preboot=preboot, LIB_FILE=LIB_FILE, Sess=Sess, PRERUN_FILE=PRERUN_FILE,
+                   CONSTANTS=dict(B.CONSTANTS, **CONSTANTS))(key, driver_file, session_text, pred, budget_s)

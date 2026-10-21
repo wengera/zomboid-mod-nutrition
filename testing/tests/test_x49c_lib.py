@@ -28,10 +28,37 @@ import test_x49b_lib as TB            # noqa: E402
 REPO = L.REPO
 
 
-def run_session(tmp_path, flags=(), budget=1e9, s_gaps=0):
+class AltWorld(TB.World):
+    """test_x49b_lib's World with the minute events DTMS game minutes apart in turn (x494's ring at this profile read
+    dtM 0.931-1.065 at speed 5; x495 review F1)."""
+    DTMS = (0.931, 1.065)
+
+    def sleep(self, dt):
+        end = self.t + dt
+        while self.t < end:
+            if end - self.t < 1e-9:
+                self.age += (end - self.t) * self.speed / self.GH_S
+                self.t = end
+                return
+            if not hasattr(self, "_nxt"):
+                self._i, self._nxt = 0, self.age + self.DTMS[0] / 60.0
+            step = min(TB.TICK_S, end - self.t)
+            d_age = step * self.speed / self.GH_S
+            if self.age + d_age >= self._nxt - 1e-12:
+                self.tick((self._nxt - self.age) * self.GH_S / self.speed)
+                self.age = self._nxt
+                self.step_minute()
+                self._i += 1
+                self._nxt = self.age + self.DTMS[self._i % 2] / 60.0
+            else:
+                self.tick(step)
+                self.age += d_age
+
+
+def run_session(tmp_path, flags=(), budget=1e9, s_gaps=0, world=TB.World):
     d = str(tmp_path)
     os.makedirs(d, exist_ok=True)
-    w = TB.World(d, flags)
+    w = world(d, flags)
     T48.fake_lread_saves(w)
     out = T48.fresh_out()
     if s_gaps:                                                   # the S pair's first reads fall over 1 s apart
@@ -213,3 +240,53 @@ def test_the_driver_names_its_session_refuses_arguments_and_predicts_every_grade
     D = importlib.import_module("x495_release")
     assert set(D.PRED) == NAMES and all(D.PRED.values())
     assert D.BUDGET_S <= 470.0
+
+
+def _heal_rows(n=80, fall=0.00214, a0=4.0, taken_at=None):
+    rows = [{"s": 100, "age": a0, "health": 97.8, "drain.target": 99.913}]
+    h, t = 97.8, 99.913
+    for i in range(1, n):
+        t -= fall
+        h = min(t, h + 0.25)
+        if taken_at == i:
+            h = t - 0.01
+        rows.append({"s": 100 + i, "age": a0 + i / 60.0, "health": h, "drain.target": t})
+    return rows
+
+
+def test_rel_heal_holds_health_on_a_falling_target():
+    rows = _heal_rows()
+    assert L.grade_rel_heal_x495(rows, 0)[0] == "as_predicted"                 # F1 (a)
+    assert B.grade_rel_heal(rows, 0)[0] == "falsified"                          # x49b's step check alone
+    assert L.grade_rel_heal_x495(_heal_rows(taken_at=60), 0)[0] == "falsified"  # F1 (b): taken under its target
+    over = _heal_rows()
+    over[50]["health"] = over[50]["drain.target"] + 0.01
+    assert L.grade_rel_heal_x495(over, 0)[0] == "falsified"
+    assert L.grade_rel_heal_x495(_heal_rows(n=30), 0)[0] == "unmeasured"
+
+
+def test_rel_end_falsifies_a_pull_down_from_the_cap():
+    inf = _inf_cap(0.7295)
+    held = TB._rel_pairs(n=60, gm=1.5, e0=0.355)
+    for i, p in enumerate(held):
+        if p["s"]["endurance"] >= 0.73:
+            for side in ("s", "c"):
+                p[side]["endurance"] = 0.7345 if i % 2 else 0.7302
+    assert L.grade_rel_end_x495(held, inf, 4.0, 0.355)[0] == "as_predicted"
+    i_cap = next(i for i, p in enumerate(held) if p["s"]["endurance"] >= 0.73)
+    held[i_cap + 1]["s"]["endurance"] = 0.355                                   # F2: from the cap to the old cap
+    assert L.grade_rel_end_x495(held, inf, 4.0, 0.355)[0] == "falsified"
+
+
+def test_x495_with_live_minute_steps(tmp_path):
+    # F1 (c): the ring's dtM alternating 0.931 and 1.065 game minutes, x494's measured values at this profile
+    v, out, w, S = run_session(tmp_path, world=AltWorld)
+    assert v["REL_HEAL"] == "as_predicted", out["verdicts"]["REL_HEAL"]["observed"]
+    assert not bad(v, out), bad(v, out)
+
+
+def test_the_provenance_names_both_libs(as_predicted):
+    v, out, w, S = as_predicted
+    assert out["lib_x49c"] == "x49c_lib.py" and out["lib_x49b"] == "x49b_lib.py" and out["lib_x49b_commit"]
+    f = L._rebind(B.main, CONSTANTS=dict(B.CONSTANTS, **L.CONSTANTS))
+    assert f.__globals__["CONSTANTS"]["L2_S"] == L.L2_S and "PRE_S" in f.__globals__["CONSTANTS"]
