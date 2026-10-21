@@ -807,7 +807,7 @@ class Scenarios(_Base):
         self.assertIn("In Overlay starving and thirst bring none of the mod's exhaustion", opts)
         self.assertIn("though not how fast your health falls", opts)
         lim = self.html[self.html.index('id="limitations"'):self.html.index('id="references"')]
-        for frag in ("a stand-in until research gives it a shape", "A painkiller stops a danger's ache",
+        for frag in ("a stand-in until research gives it a shape", "A painkiller should hold a danger's ache down",
                      "about a minute of real time to show", "On the longest day lengths"):
             self.assertIn(frag, lim, frag)
 
@@ -1069,6 +1069,33 @@ class DivergenceFirst(_Base):
         for cid in ("SN1", "S3a", "S3c", "SE1", "SH1", "ST2", "ST3", "SM1", "SB1", "SD1", "SD2", "SC1", "SV1"):
             with self.subTest(chart=cid):
                 self.assertRegex(_figure(self.html, cid), r"Vanilla (?:has|keeps|tracks|carries) no")
+
+
+class CloseFixes(_Base):
+    """Plan 18 close: the Vanilla lines name what vanilla's hunger, thirst, sleep and weight traits do (M1-M3), the
+    painkiller line is hedged and cited (M4), and the options and limitations name half Severity (L2) and the third
+    Pain level (L1)."""
+
+    def test_m1_to_m3_no_vanilla_line_says_vanilla_does_nothing(self):
+        for gone in ("does nothing else", "The drain is all you get.", "Hunger ignores exercise and sleep",
+                     "no effect on hunger", "changes your weight and nothing else", "changes only your weight",
+                     "No nutrient touches your traits", "barely shows", "about twice vanilla's relief",
+                     "a single cup's relief is about twice"):
+            self.assertNotIn(gone, self.html, gone)
+        for now in ("its levels slow healing and lower what you can carry", "slower healing and a lighter load",
+                    "slower asleep, and running changes it only while you run", "small fitness and combat",
+                    "No vitamin or mineral touches your traits", "about two and a half times vanilla's"):
+            self.assertIn(now, self.html, now)
+
+    def test_l1_l2_m4_the_limitations_and_severity_say_what_the_symptoms_reach(self):
+        lim = self.html[self.html.index('id="limitations"'):self.html.index('id="references"')]
+        self.assertIn("can ache at the third Pain level", lim)
+        self.assertIn("no test has shown it on a server yet", lim)
+        opts = self.html[self.html.index('id="options"'):self.html.index('id="compatibility"')]
+        self.assertIn("At half Severity one danger's ache stays under the Pain moodle", opts)
+        sci = _section(self.html, "s2")
+        self.assertIn("over Pain level 3's 50", sci)
+        self.assertIn("so it should hold the ache down too", sci)
 
 if __name__ == "__main__":
     unittest.main()
