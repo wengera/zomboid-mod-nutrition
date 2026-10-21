@@ -21,6 +21,7 @@ STRESS_K = [(0, 0), (0.5, 0.30), (0.9, 0.55), (1, 0.55)]
 UNHAPPY_K = [(0, 0), (0.5, 25), (0.9, 50), (1, 50)]
 CAUSES = ["starvation", "scurvy", "beriberi", "pellagra", "hyponatraemia", "dehydration", "iron"]
 PARTS = {1: [7], 2: [13, 14], 3: [13, 14], 4: [7], 5: [8], 6: [8], 7: [7]}
+DIP = 0.005 * 90                                                      # the half dip at _sym's default 90-minute day (fix 1, F2)
 
 
 def _load(host, path):
@@ -134,16 +135,16 @@ def test_each_causes_pain_sits_on_its_parts_and_sums_to_15_pain(sh, code):
     parts = PARTS[code]
     for i in range(17):
         if i in parts:
-            assert abs(P[i] - 15 / len(parts) / MOD[i]) < 1e-9, (code, i)
+            assert abs(P[i] - (15 / len(parts) / MOD[i] + DIP)) < 1e-9, (code, i)
         else:
             assert P[i] == 0, (code, i)
-    assert abs(sum(P[i] * MOD[i] for i in parts) - 15) < 1e-9            # PAIN's target: Pain level 1's band middle
+    assert abs(sum((P[i] - DIP) * MOD[i] for i in parts) - 15) < 1e-9    # PAIN's target: Pain level 1's band middle
     assert E.painOn is True
 
 
 def test_the_lower_torso_value_is_x491s(sh):
     P = _pain(_sym(sh, _drain(sh, {1: 0.9})))
-    assert abs(P[TORSO_LOWER] - 15 / 0.78) < 1e-12                       # 19.23, x491 held 20 at level 1
+    assert abs(P[TORSO_LOWER] - (15 / 0.78 + DIP)) < 1e-12               # 19.68, x491 held 20 at level 1
 
 
 def test_pain_only_while_the_bit_is_in_the_mask(sh):
@@ -153,7 +154,7 @@ def test_pain_only_while_the_bit_is_in_the_mask(sh):
     assert abs(E.stressFloor - 0.30) < TOL
     E = _sym(sh, _drain(sh, {1: 0.5, 2: 0.5}, mask=[2], rec=[1]))        # only scurvy active
     P = _pain(E)
-    assert P[TORSO_LOWER] == 0 and abs(P[LEG_L] - 12.5) < 1e-9 and abs(P[LEG_R] - 12.5) < 1e-9
+    assert P[TORSO_LOWER] == 0 and abs(P[LEG_L] - (12.5 + DIP)) < 1e-9 and abs(P[LEG_R] - (12.5 + DIP)) < 1e-9
 
 
 def test_a_cause_without_a_fraction_adds_nothing(sh):
@@ -169,10 +170,22 @@ def test_pain_clears_the_minute_its_cause_ends(sh):
     assert E.symCap == 1 and E.stressFloor == 0 and E.unhappyFloor == 0
 
 
-def test_the_half_dip_is_added_only_past_600_minutes(sh):
-    base = 15 / 0.8
-    assert abs(_sym(sh, _drain(sh, {5: 0.5}), day=600).pain[HEAD] - base) < 1e-9
-    assert abs(_sym(sh, _drain(sh, {5: 0.5}), day=1440).pain[HEAD] - (base + 0.005 * 1440)) < 1e-9
+@pytest.mark.parametrize("d", [90, 600, 1440])
+def test_the_half_dip_is_added_at_every_day_length(sh, d):
+    assert abs(_sym(sh, _drain(sh, {5: 0.5}), day=d).pain[HEAD] - (15 / 0.8 + 0.005 * d)) < 1e-9
+    assert _sym(sh, _drain(sh, {5: 0.5}), day=d).pain[TORSO_LOWER] == 0  # only painful parts gain it
+
+
+@pytest.mark.parametrize("d", [90, 400, 600, 800])
+@pytest.mark.parametrize("code", range(1, 8))
+def test_each_cause_holds_pain_level_1_through_the_minutes_dip(sh, code, d):
+    # review F2: the value set at the minute (top) and after a full game minute's decay of 0.01 x dayMin a part (bottom),
+    # each summed through the modifiers, stay in Pain level 1's band (10, 20] (#2369)
+    E = _sym(sh, _drain(sh, {code: 0.5}), day=d)
+    parts = PARTS[code]
+    top = sum(MOD[i] * E.pain[i] for i in parts)
+    bottom = sum(MOD[i] * (E.pain[i] - 0.01 * d) for i in parts)
+    assert 10 < bottom and top <= 20, (code, d, bottom, top)
     assert _sym(sh, _drain(sh, {5: 0.5}), day=1440).pain[TORSO_LOWER] == 0   # only painful parts gain it
 
 
@@ -184,7 +197,7 @@ def test_overlap_takes_the_lowest_cap_and_the_highest_floors(sh):
     assert abs(E.stressFloor - _knots(STRESS_K, 0.8)) < TOL
     assert abs(E.unhappyFloor - _knots(UNHAPPY_K, 0.8)) < TOL
     P = _pain(E)
-    assert abs(P[TORSO_LOWER] - 15 / 0.78) < 1e-9 and abs(P[HEAD] - 15 / 0.8) < 1e-9   # each on its own part
+    assert abs(P[TORSO_LOWER] - (15 / 0.78 + DIP)) < 1e-9 and abs(P[HEAD] - (15 / 0.8 + DIP)) < 1e-9   # each on its own part
 
 
 def test_overlap_keeps_the_deeper_cause_whichever_code_comes_first(sh):
@@ -196,11 +209,11 @@ def test_overlap_keeps_the_deeper_cause_whichever_code_comes_first(sh):
 
 def test_pain_sums_per_part_under_the_cap(sh):
     E = _sym(sh, _drain(sh, {1: 0.5, 4: 0.5, 7: 0.5}))                   # three causes on the lower torso: 45 PAIN
-    assert abs(E.pain[TORSO_LOWER] - 20 / 0.78) < 1e-9                   # capped at Pain level 1's top
+    assert abs(E.pain[TORSO_LOWER] - (20 / 0.78 + DIP)) < 1e-9           # capped at Pain level 1's top, then the dip
     E = _sym(sh, _drain(sh, {2: 0.5, 3: 0.5}))                           # scurvy and beriberi on both lower legs
-    assert abs(E.pain[LEG_L] - 25) < 1e-9 and abs(E.pain[LEG_R] - 25) < 1e-9   # 2 x 12.5, under 20 / 0.6
+    assert abs(E.pain[LEG_L] - (25 + DIP)) < 1e-9 and abs(E.pain[LEG_R] - (25 + DIP)) < 1e-9   # 2 x 12.5, under 20 / 0.6
     E = _sym(sh, _drain(sh, {1: 0.5, 4: 0.5}))                           # two on the lower torso: 30 PAIN, capped
-    assert abs(E.pain[TORSO_LOWER] - 20 / 0.78) < 1e-9
+    assert abs(E.pain[TORSO_LOWER] - (20 / 0.78 + DIP)) < 1e-9
 
 
 def test_the_overfull_cap_and_the_symptom_cap_take_the_lower(sh):
@@ -234,14 +247,14 @@ def test_severity_scales_every_magnitude(sh, sev):
     assert abs(E.symCap - _cause_cap(p, sev)) < TOL
     assert abs(E.stressFloor - min(0.70, _knots(STRESS_K, p) * sev)) < TOL
     assert abs(E.unhappyFloor - min(59, _knots(UNHAPPY_K, p) * sev)) < TOL
-    want = min(15 * sev / 0.78, 20 * sev / 0.78)
+    want = min(15 * sev / 0.78, 20 * sev / 0.78) + (DIP if sev > 0 else 0)
     assert abs(E.pain[TORSO_LOWER] - want) < 1e-9
     assert E.painOn is (sev > 0)
 
 
 def test_severity_scales_the_per_part_cap(sh):
     E = _sym(sh, _drain(sh, {1: 0.5, 4: 0.5, 7: 0.5}), sev=2)            # 90 PAIN against a cap of 40
-    assert abs(E.pain[TORSO_LOWER] - 40 / 0.78) < 1e-9
+    assert abs(E.pain[TORSO_LOWER] - (40 / 0.78 + DIP)) < 1e-9
 
 
 def test_overlay_drops_starvation_and_dehydration(sh):

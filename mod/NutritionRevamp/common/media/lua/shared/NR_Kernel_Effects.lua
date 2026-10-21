@@ -623,10 +623,10 @@ K.effects.PAIN_MOD = {
 -- L500-L503 lowers it 0.005 a multiplier unit (Plan 18 Task 1 J3), 2 x dayMin units a game minute (#2922), so 0.01 x
 -- dayMin a minute; measured 0.899983361325089 at the 90-minute day (x491-20261021-061440) and 0.15000031795638447 at
 -- the 15-minute day (x492-20261021-062157). Added on top of a part's set value, it centres the dip between writes.
+-- Centred, a cause's summed PAIN target stays inside Pain level 1 while 0.005 x dayMin x the sum of its parts' modifiers is
+-- under 5: to about dayMin 833 for both lower legs, 1250 for Head and 1282 for Torso_Lower; on a longer day no
+-- once-a-minute set holds level 1 (a limitation for the guide).
 K.effects.PAIN_HALF_DIP = 0.005
--- The day length above which the half dip is added: game choice; at or under it a summed target of 15 keeps over 4 PAIN
--- above Pain level 1's edge through the whole minute's dip (Plan 18 Task 1's recommendation).
-K.effects.PAIN_DIP_DAY = 600
 -- A cause code's bit in D.mask and D.recovering, 2^(code - 1) (K.drain.consider): no row needed.
 K.effects.BIT = { 1, 2, 4, 8, 16, 32, 64 }
 
@@ -697,14 +697,11 @@ function K.effects.painShare(E, parts, t)
     E.painOn = true
 end
 
--- Each painful part capped at top / its modifier (the level-1 band's top at Severity 1), then the half dip added on a
--- day longer than PAIN_DIP_DAY.
+-- Each painful part capped at top / its modifier (the level-1 band's top at Severity 1), then the half dip added,
+-- centring the minute's fall on the target.
 function K.effects.painCap(P, top, dayMin)
     local A = K.effects
-    local dip = 0
-    if dayMin > A.PAIN_DIP_DAY then
-        dip = A.PAIN_HALF_DIP * dayMin
-    end
+    local dip = A.PAIN_HALF_DIP * dayMin
     for i = 0, A.PAIN_PARTS - 1 do
         if P[i] > 0 then
             P[i] = K.min(P[i], top / A.PAIN_MOD[i]) + dip
@@ -715,7 +712,7 @@ end
 -- The minute's symptoms (spec sections 1.1-1.6): E.symCap (the causes' lowest endurance cap, clamped), E.enduranceCap
 -- (the lower of it and the rows' Overfull cap), E.stressFloor and E.unhappyFloor (the highest, clamped), E.pain[i] (the
 -- added pain per part index, summed, capped at the level-1 band's top over the part's modifier, plus the half dip on
--- long days; 0 when none) and E.painOn (any pain). T is the effects table, D record.drain (frac, mask, recovering), sev
+-- every day length; 0 when none) and E.painOn (any pain). T is the effects table, D record.drain (frac, mask, recovering), sev
 -- the Severity dial, overlay Mode 2, dayMin the day length (read only for pain; 0 when no cause is active).
 function K.effects.symptoms(E, T, D, sev, overlay, dayMin)
     local S = T.SYMPTOMS

@@ -642,3 +642,50 @@ def test_a_moodle_level_is_floored_and_clamped_to_0_4():
     m = h.rt.eval("function(v) return { getMoodleLevel = function(s, t) return v end } end")
     assert [R.moodleLevel(m(v), "T") for v in (5, -1, 2.7)] == [4, 0, 2]
     assert R.moodleLevel(None, "T") == 0 and R.moodleLevel(m(3), None) == 0
+
+# Plan 18 Task 2 fix 1 (review F3): the effects adapter hands the symptom step the server's Severity and the minute's day
+# length (NR_Server_Effects step 3b); g1 dehydrated to a 12 % deficit, code 6 active, Head (part 8) its pain part.
+SANDBOX_DAY_1440 = SANDBOX_DAY.replace("return 90", "return 1440")
+SYM_END_K = [(0, 0.73), (1 / 3, 0.48), (2 / 3, 0.23), (1, 0.08)]
+
+
+def _sym_knots(k, p):
+    if p <= k[0][0]:
+        return k[0][1]
+    for (p0, v0), (p1, v1) in zip(k, k[1:]):
+        if p <= p1:
+            return v0 + (v1 - v0) * (p - p0) / (p1 - p0)
+    return k[-1][1]
+
+
+def _dehydrated_g1(day_stub, severity=None):
+    h = golden_trace.new_host()
+    g1 = golden_trace._new_player(h, "g1", golden_trace.MACROS["g1"])
+    h.rt.eval(day_stub)(h.rt.eval("{ day = 0 }"))
+    h.online(g1)
+    start = golden_trace.START_AGE
+    for m in range(1, 4):
+        _minute(h, start + m / 60.0)
+    if severity is not None:
+        # the server polls its options from the sandbox every minute (NR.server.readOptions "poll")
+        h.rt.eval("function(v) SandboxVars = SandboxVars or {}; SandboxVars.NR = SandboxVars.NR or {}; SandboxVars.NR.Severity = v end")(severity)
+    rec = h.record("g1")
+    b = rec["body"]
+    rec["fluids"]["water"] = -0.12 * (b["fm"] + b["lm"] + b["lx"]) * 1000.0
+    for m in range(4, 6):
+        _minute(h, start + m / 60.0)
+    assert rec["drain"]["mask"] == 32 and rec["drain"]["frac"][6] is not None
+    return rec
+
+
+def test_the_adapter_hands_the_symptoms_the_servers_severity():
+    rec = _dehydrated_g1(SANDBOX_DAY, severity=2)
+    E = rec["effects"]
+    assert abs(E["pain"][8] - (2 * 15 / 0.8 + 0.005 * 90)) < 1e-9
+    want = max(0.05, 1 - (1 - _sym_knots(SYM_END_K, 1 - rec["drain"]["frac"][6])) * 2)
+    assert abs(E["symCap"] - want) < 1e-12
+
+
+def test_the_adapter_hands_the_symptoms_the_minutes_day_length():
+    rec = _dehydrated_g1(SANDBOX_DAY_1440)
+    assert abs(rec["effects"]["pain"][8] - (15 / 0.8 + 0.005 * 1440)) < 1e-9

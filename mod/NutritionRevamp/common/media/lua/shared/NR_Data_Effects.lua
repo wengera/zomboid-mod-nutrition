@@ -43,7 +43,7 @@ NR.data = NR.data or {}
 -- band's middle; x491-20261021-061440 held added pain 20 on Torso_Lower (PAIN 14.3, modifier 0.78) at level 1 on both sides.
 local SYM_PAIN = 15 -- game choice, flat while the cause is active, a placeholder for the researched pang and ache shapes (open S2247)
 -- The endurance cap deepens with progress from Endurance level 1 at onset to level 4 at the death point, linear between
--- the four levels' caps at the 90-minute day (each level's upper edge less one game minute of the worst regeneration,
+-- the four levels' caps at the 90-minute day (the moodle shows level 2 from p 0.307, 3 from p 0.640 and 4 from p 0.956) (each level's upper edge less one game minute of the worst regeneration,
 -- K.hybrid.capAt, which re-sizes them for the day length); x493-20261021-062610 held 0.74, 0.49, 0.24 and 0.09 at levels
 -- 1 to 4 on both sides.
 local SYM_END = { lever = "endurance", shape = "knots", k = {
@@ -52,20 +52,20 @@ local SYM_END = { lever = "endurance", shape = "knots", k = {
     2 / 3, 0.23, -- level 3, under 0.25 (#3926); game choice (open S1176)
     1, 0.08, -- level 4 at the death point, under 0.10 (#3926); game choice (open S1176)
 } }
--- The stress floor: Stress level 1 from halfway (above 0.25), level 2 near the end (above 0.5; #2369); x493 held 0.30 and
--- 0.55 at levels 1 and 2 on both sides, falling 0.0016 to 0.0018 a game minute between writes.
+-- The stress floor: Stress level 1 (above 0.25) from p 0.417, level 2 (above 0.5; #2369) from p 0.82; x493 held 0.30 and
+-- 0.55 at levels 1 and 2 on both sides, falling 0.00178 to 0.00182 a full game minute between writes (less in the partial first minute after a write).
 local SYM_STRESS = { lever = "stress", shape = "knots", k = {
     0, 0, -- none at onset; game choice (open S1145)
-    0.5, 0.30, -- Stress level 1 halfway (#2369); game choice (open S1145)
-    0.9, 0.55, -- Stress level 2 near the end (#2369); game choice (open S1145)
+    0.5, 0.30, -- Stress level 1 (above 0.25, #2369) from p 0.417 on the ramp from (0, 0); game choice (open S1145)
+    0.9, 0.55, -- Stress level 2 (above 0.5, #2369) from p 0.82; game choice (open S1145)
     1, 0.55, -- held to the death point; game choice (open S1145)
 } }
--- The unhappiness floor: Unhappy level 1 from halfway (above 20), level 2 near the end (above 45; #2369); x493 held 25
+-- The unhappiness floor: Unhappy level 1 (above 20) from p 0.40, level 2 (above 45; #2369) from p 0.82; x493 held 25
 -- and 50 at levels 1 and 2 on both sides, never falling between writes (released by the writer's subtraction, #3119).
 local SYM_UNHAPPY = { lever = "unhappy", shape = "knots", k = {
     0, 0, -- none at onset; game choice (open S1145)
-    0.5, 25, -- Unhappy level 1 halfway (#2369); game choice (open S1145)
-    0.9, 50, -- Unhappy level 2 near the end (#2369); game choice (open S1145)
+    0.5, 25, -- Unhappy level 1 (above 20, #2369) from p 0.40 on the ramp from (0, 0); game choice (open S1145)
+    0.9, 50, -- Unhappy level 2 (above 45, #2369) from p 0.82; game choice (open S1145)
     1, 50, -- held to the death point; game choice (open S1145)
 } }
 
