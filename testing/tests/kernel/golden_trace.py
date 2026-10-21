@@ -226,6 +226,24 @@ MoodleType = { HEAVY_LOAD = "moodle:HEAVY_LOAD", HYPERTHERMIA = "moodle:HYPERTHE
 BodyPartType = {}
 NR_T.PARTS = { "Hand_L", "Hand_R", "UpperLeg_L", "UpperLeg_R", "LowerLeg_L", "LowerLeg_R" }
 for _, n in ipairs(NR_T.PARTS) do BodyPartType[n] = "part:" .. n end
+-- Plan 18 Task 3: the engine's 17 parts in BodyPartType's ordinal order (VANILLA BodyPartType.<clinit> L13-L29), so
+-- FromIndex(i) answers part i's type; the decorated body answers a part outside NR_T.PARTS with a pain-only part made on
+-- first use (kept out of getBodyParts, so the folds and the bruise see the six parts as before)
+NR_T.PART_ORDER = { "Hand_L", "Hand_R", "ForeArm_L", "ForeArm_R", "UpperArm_L", "UpperArm_R", "Torso_Upper",
+                    "Torso_Lower", "Head", "Neck", "Groin", "UpperLeg_L", "UpperLeg_R", "LowerLeg_L", "LowerLeg_R",
+                    "Foot_L", "Foot_R" }
+-- every part's state whose added pain was ever set, and vanilla's server decay between writes (BodyPart.DamageUpdate
+-- @2312-@2353 L500-L503: 0.005 a multiplier unit, 0.01 x dayMin a game minute, floored at 0), which a caller applies
+-- by hand (the bench and the adapter tests); the golden trace applies none
+NR_T.painParts = {}
+NR_T.decayPain = function(d)
+    for _, pst in ipairs(NR_T.painParts) do pst.addPain = math.max(0, pst.addPain - d) end
+end
+BodyPartType.FromIndex = function(i)
+    local n = NR_T.PART_ORDER[i + 1]
+    if n == nil then return nil end
+    return "part:" .. n
+end
 
 local WOUND_FIELDS = { "scratch", "cut", "deep", "bite", "burn", "fracture" }
 local GETSET = { scratch = "ScratchTime", cut = "CutTime", deep = "DeepWoundTime", bite = "BiteTime",
@@ -242,6 +260,13 @@ local function newPart(name, init)
         part["set" .. suffix] = function(s, v) s.st[field] = v; s.st.writes = s.st.writes + 1 end
     end
     part.isSplint = function(s) return s.st.splint end
+    -- the added pain (Plan 18 Task 3): absent from the part's state until first set, so a part never set walks as before
+    part.getAdditionalPain = function(s) return s.st.addPain or 0 end
+    part.setAdditionalPain = function(s, v)
+        if s.st.addPain == nil then NR_T.painParts[#NR_T.painParts + 1] = s.st end
+        s.st.addPain = v
+        s.st.painSets = (s.st.painSets or 0) + 1
+    end
     return part
 end
 
@@ -277,7 +302,15 @@ NR_T.decorate = function(p, cfg)
     local list = { size = function(s) return #parts end, get = function(s, i) return parts[i + 1] end }
     local bd = { st = bst }
     bd.getThermoregulator = function(s) return thermo end
-    bd.getBodyPart = function(s, t) return byType[t] end
+    bd.getBodyPart = function(s, t)
+        local part = byType[t]
+        if part == nil and type(t) == "string" and string.sub(t, 1, 5) == "part:" then
+            part = newPart(string.sub(t, 6))
+            byType[t] = part
+            st.parts[part.st.name] = part.st
+        end
+        return part
+    end
     bd.getBodyParts = function(s) return list end
     bd.getCatchACold = function(s) return s.st.cold end
     bd.setCatchACold = function(s, v) s.st.cold = v; s.st.coldSets = s.st.coldSets + 1 end

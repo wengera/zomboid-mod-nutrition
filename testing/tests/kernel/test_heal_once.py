@@ -102,7 +102,8 @@ CROSS = (
     + _rows("nutrients", "nutrients", [("effects", ("epoch",)), ("store", ("epoch",))])
     + _rows("effects", "effects", [
         ("writer", ("fOff", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget", "tempTarget", "tempAdj",
-                    "intoxTarget", "enduranceCap", "foodSickStep")),   # the Overfull ceiling and nausea (Plan 15 Task 8)
+                    "intoxTarget", "enduranceCap", "foodSickStep",    # the Overfull ceiling and nausea (Plan 15 Task 8)
+                    "stressFloor", "unhappyFloor")),                  # the lethal causes' mood floors (Plan 18 Task 3)
         ("kept", ("solAddH", "solMul")),
         ("nutrients", ("mAcc", "rRec")),
         ("bus", ("epoch", "aimMul", "speedMul", "intoxTarget", "tempTarget", "healMul", "bleedMul", "infectMul",

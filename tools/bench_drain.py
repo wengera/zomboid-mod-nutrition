@@ -11,6 +11,13 @@ answers getDayLengthMinutes 90, so the day length's read is counted. Two cases: 
 it) and drain (each player's body water set 12 % short, so the dehydration state drains every minute). The host time
 is the median over 7 fresh hosts of the queue's drain a minute, per player.
 
+Plan 18 Task 3: the stand-in's parts answer the added pain, and between minutes the bench applies vanilla's server decay
+of it (golden_trace's NR_T.decayPain, 0.9 at the 90-minute day; absent from a tree before Plan 18, where it is skipped),
+so a symptom part is re-set every minute as live. BodyPartType (its static FromIndex) is counted with the engine
+globals. The stats objects are counted too (the writer hoists them before the count, so until Plan 18 Task 3 the
+bench missed every stat get and set; re-run both builds with this file). The player-minute's symptom members
+(SYMPTOM_MEMBERS) and the stat sets by stat are printed per player-minute.
+
     python tools/bench_drain.py [--root <tree>]
 """
 import argparse
@@ -68,6 +75,25 @@ function()
 end
 """
 NAMES = ("g1", "g2", "g3", "g4")
+SYMPTOM_MEMBERS = ("FromIndex", "getBodyPart", "getAdditionalPain", "setAdditionalPain")
+PAIN_DECAY_90 = 0.9   # vanilla's added-pain decay a game minute at the 90-minute day (0.01 x dayMin, Plan 18 Task 1 J3)
+STAT_SETS = r"""
+function(C, players)
+    local out = {}
+    for i = 1, #players do
+        local p = players[i]
+        local st = p:getStats()
+        local o = st.set
+        st.set = function(s, k, v)
+            local kk = "set:" .. tostring(k)
+            C.by[kk] = (C.by[kk] or 0) + 1
+            return o(s, k, v)
+        end
+        out[#out + 1] = st
+    end
+    return out
+end
+"""
 
 
 def _load(root):
@@ -92,18 +118,29 @@ def _host(gt, n, case):
             b = h.record(NAMES[i])["body"]
             h.record(NAMES[i])["fluids"]["water"] = -0.12 * (b["fm"] + b["lm"] + b["lx"]) * 1000.0
     C = h.rt.eval("{ n = 0, by = {} }")
-    h.rt.eval(COUNT)(C, h.rt.table(*GLOBALS), h.rt.table(so, *players))
+    stats = h.rt.eval(STAT_SETS)(C, h.rt.table(*players))
+    # the stats objects counted too: the writer hoisted them before the count, so the players' wrap never reaches them
+    extra = [so] + list(players) + [stats[i] for i in range(1, len(players) + 1)]
+    if h.G.BodyPartType is not None:
+        extra.append(h.G.BodyPartType)
+    h.rt.eval(COUNT)(C, h.rt.table(*GLOBALS), h.rt.table(*extra))
     h.T.age = start + 5 / 60.0
     h.minute()
     h.tick(gt.TICKS)
     return h, C
 
 
+def _decay(h):
+    if h.T.decayPain is not None:
+        h.T.decayPain(PAIN_DECAY_90)
+
+
 def measure(gt, n, case, minutes=10):
     h, C = _host(gt, n, case)
     srv, ply, wall, day = 0, 0, [], 0
-    by_srv = {}
+    by_srv, by_ply = {}, {}
     for m in range(6, 6 + minutes):
+        _decay(h)
         h.T.age = gt.START_AGE + m / 60.0
         n0 = C.n
         snap = dict(C.by.items())
@@ -114,14 +151,19 @@ def measure(gt, n, case, minutes=10):
             if d:
                 by_srv[k] = by_srv.get(k, 0) + d
         n1 = C.n
+        snap = dict(C.by.items())
         d1 = C.by["getDayLengthMinutes"] or 0
         t0 = time.perf_counter()
         h.tick(gt.TICKS)
         wall.append((time.perf_counter() - t0) * 1000.0)
         ply += C.n - n1
+        for k, v in C.by.items():
+            d = v - snap.get(k, 0)
+            if d:
+                by_ply[k] = by_ply.get(k, 0) + d
         day += (C.by["getDayLengthMinutes"] or 0) - d1
     return (srv / minutes, ply / minutes, statistics.median(wall), {k: v / minutes for k, v in sorted(by_srv.items())},
-            day / minutes)
+            day / minutes, {k: v / minutes for k, v in sorted(by_ply.items())})
 
 
 def main(argv=None):
@@ -134,11 +176,15 @@ def main(argv=None):
         for n in a.players:
             walls = []
             for _ in range(7):
-                srv, ply, w, by, day = measure(gt, n, case)
+                srv, ply, w, by, day, byp = measure(gt, n, case)
                 walls.append(w / n)
             print("%s, %d player(s): %.1f Java calls a server minute, %.1f a player-minute (%.1f day-length reads); host "
                   "%.3f ms a player-minute" % (case, n, srv, ply / n, day / n, statistics.median(walls)))
             print("    server minute by member: %s" % ", ".join("%s %g" % kv for kv in by.items()))
+            sym = [(k, byp.get(k, 0) / n) for k in SYMPTOM_MEMBERS]
+            sets = [(k[4:], v / n) for k, v in byp.items() if k.startswith("set:")]
+            print("    player-minute symptom members: %s; stat sets: %s"
+                  % (", ".join("%s %g" % kv for kv in sym), ", ".join("%s %g" % kv for kv in sets)))
 
 
 if __name__ == "__main__":

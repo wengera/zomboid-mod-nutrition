@@ -124,6 +124,12 @@ STUDY_SCRIPT = os.path.join(REPO, "testing", "experiments", "TKX_StudyFoods", "c
                             "tkx_study_foods.txt")
 
 STATS = ("HUNGER", "THIRST", "FATIGUE", "BOREDOM", "UNHAPPINESS", "NICOTINE_WITHDRAWAL")
+# The symptoms' rows (Plan 18 Task 3): the stand-in's ENDURANCE and STRESS (read into a row only, never fed or started
+# from a ring), the record's symptom outputs and the added pain per part (K.effects.symptoms): `effects.pain.<i>` for
+# each part index i with a target above 0, and `painTarget`, vanilla's PAIN target those parts make (the sum of added
+# pain x the part's modifier, #2362; the wound terms excluded), right after the minute's write.
+SYMPTOM_STATS = ("ENDURANCE", "STRESS")
+SYMPTOM_FIELDS = ("enduranceCap", "symCap", "stressFloor", "unhappyFloor")
 H_REQ = 0.25                          # the meal request, vanilla's HUNGRY level 2 (ruling 11c-17)
 # The satiety model's own hunger (Plan 15 Task 6): every row carries it under this key, the server backend's from
 # record.satiety.hModel (the writer's h_model, before the calibrated curve), the oracle backend's its composition. A
@@ -1151,6 +1157,7 @@ class ServerReplay(_Backend):
         sat = r["satiety"] if r is not None else None
         if sat is not None and isinstance(sat["hModel"], (int, float)):
             out[H_MODEL] = sat["hModel"]
+        self._symptoms(r, out)
         for path in paths:
             if path in self.DERIVED:
                 body = r["body"] if r is not None else None
@@ -1162,6 +1169,30 @@ class ServerReplay(_Backend):
             if ok:
                 out[path] = _scalar(self.lua51, v)
         return out
+
+    def _symptoms(self, r, out):
+        """The symptom rows (SYMPTOM_STATS, SYMPTOM_FIELDS, effects.pain.<i>, painTarget) into out."""
+        for n in SYMPTOM_STATS:
+            v = self.p.sv[n]
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                out[n] = v
+        E = r["effects"] if r is not None else None
+        if E is None or self.lua51.lua_type(E) != "table":
+            return
+        for k in SYMPTOM_FIELDS:
+            v = E[k]
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                out["effects." + k] = v
+        P, mod = E["pain"], self.K.effects.PAIN_MOD
+        if P is None:
+            return
+        total = 0.0
+        for i in range(self.K.effects.PAIN_PARTS):
+            v = P[i]
+            if isinstance(v, (int, float)) and v > 0:
+                out["effects.pain.%d" % i] = v
+                total += v * mod[i]
+        out["painTarget"] = total
 
     # a path the record does not store, read as the mod reads it: body.eb24 is K.energy.eb24h(record.body), the
     # trailing-24 h balance the metabolism step hands to K.deficit.activityState (the oracle backend's alias of the same

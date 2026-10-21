@@ -570,7 +570,7 @@ function(C)
 end
 """
 HEAD_ENGINE_CALLS = {"steady": 67, "drain": 69}   # read at 1398d765
-ENGINE_CALLS = {"steady": 68, "unfed": 67, "drain": 75}
+ENGINE_CALLS = {"steady": 68, "unfed": 67, "drain": 77}
 DAY_READS = {"steady": 1, "unfed": 1, "drain": 1}  # the sandbox's getDayLengthMinutes a minute: since Plan 17 Task 3 the
 # players' minute's one hoisted read (NR.read.hoist), seeded on every player's context, whatever the case (until then a
 # player-minute's read, by Effects' heal or the sated bridge: steady 1, unfed 0, drain 1; Plan 15 Task 6, Task 8 fix 1)
@@ -578,6 +578,11 @@ TASK4_ENGINE_CALLS = {"steady": 67, "drain": 71}  # read at eb3ef7b2 (Plan 15 Ta
 TASK7_ENGINE_CALLS = {"steady": 67, "unfed": 67, "drain": 74}   # read at 56a25b9d (Plan 15 Task 7), before the bridge
 TIMER_WRITES = {"steady": 1, "unfed": 0, "drain": 0}             # setHealthFromFoodTimer a player-minute (Task 8)
 SYMPTOM_WRITES = {"steady": 0, "unfed": 0, "drain": 1}           # Plan 18 Task 2: the ENDURANCE set under the dehydration symptom cap (spec section 3: the cap through the existing write)
+# Plan 18 Task 3: the added pain on dehydration's one part (Head), a getAdditionalPain and a setAdditionalPain a minute
+# under vanilla's decay between minutes (NR_T.decayPain, 0.9 at the 90-minute day; a no-op with no pain set); the
+# part's lookup (FromIndex, getBodyPart) falls on the first painful minute, before the count. The floors add no call
+# here: the drain's own rows already write STRESS and UNHAPPINESS each minute (7 stat sets a minute either way).
+PAIN_CALLS = {"steady": 0, "unfed": 0, "drain": 2}
 
 
 @pytest.mark.parametrize("case", sorted(ENGINE_CALLS))
@@ -607,14 +612,18 @@ def test_the_drain_adds_only_its_health_read_to_a_player_minute(case):
     base, health0, day0 = C.n, C.by["getOverallBodyHealth"] or 0, D.day
     timer0 = C.by["setHealthFromFoodTimer"] or 0
     n = 10
+    pain0 = (C.by["getAdditionalPain"] or 0, C.by["setAdditionalPain"] or 0)
     for m in range(5, 5 + n):
+        h.T.decayPain(0.9)
         _minute(h, start + m / 60.0)
     assert (C.n - base) / n == ENGINE_CALLS[case]
+    assert ((C.by["getAdditionalPain"] or 0) - pain0[0]) / n == PAIN_CALLS[case] / 2
+    assert ((C.by["setAdditionalPain"] or 0) - pain0[1]) / n == PAIN_CALLS[case] / 2
     assert (D.day - day0) / n == DAY_READS[case]
     assert ((C.by["getOverallBodyHealth"] or 0) - health0) / n == (1 if case == "drain" else 0)
     assert rec["drain"]["active"] is (case == "drain")
     assert ((C.by["setHealthFromFoodTimer"] or 0) - timer0) / n == TIMER_WRITES[case]
-    assert ENGINE_CALLS[case] == TASK7_ENGINE_CALLS[case] + TIMER_WRITES[case] + SYMPTOM_WRITES[case]
+    assert ENGINE_CALLS[case] == TASK7_ENGINE_CALLS[case] + TIMER_WRITES[case] + SYMPTOM_WRITES[case] + PAIN_CALLS[case]
     if case in TASK4_ENGINE_CALLS:
         assert TASK7_ENGINE_CALLS[case] <= TASK4_ENGINE_CALLS[case] + (3 if case == "drain" else 0)
         assert TASK4_ENGINE_CALLS[case] <= HEAD_ENGINE_CALLS[case] + 2

@@ -339,7 +339,8 @@ end
 -- Angus's choice of 2026-10-11: monotony as a self-releasing floor. Once a
 -- writer minute, W.step reads record.monotony's target (K.monotony.target at the minute's world age: the most repeated
 -- food type's level, from the counts the intake books at each eat) and composes it:
---  * UNHAPPINESS: the effects' target, clamped to the effects surface's own range [0, 59] (59 one under the UNHAPPY
+--  * UNHAPPINESS: the effects' target (or the lethal causes' symptom floor, E.unhappyFloor, when higher; Plan 18),
+--    clamped to the effects surface's own range [0, 59] (59 one under the UNHAPPY
 --    level-3 step 60, #2369), plus monotony's, which is added after that clamp: an effects bonus (the exercise credit,
 -- as low as -13) never offsets monotony; an effects target that is not a finite number reads 0;
 --  * BOREDOM: monotony's target alone (no other BOREDOM target exists), held under K.monotony.BORED_MAX 49.
@@ -380,6 +381,8 @@ function W.monotony(h, record, inp, E, ageH)
     h.monoSeen = true
     local eu = E.unhappyTarget
     if not NR.finite(eu) then eu = 0 end
+    local uf = E.unhappyFloor                             -- the lethal causes' floor (K.effects.symptoms), the higher (Plan 18 Task 3)
+    if NR.finite(uf) and uf > eu then eu = uf end
     inp.lastBoredTarget = W.moodTarget(record, "b")
     inp.unhappyTarget = K.monotony.hold(K.min(eu + u, W.unhappyHi()), W.moodTarget(record, "u"), K.monotony.UNHAPPY_AT)   -- the dead zone (Plan 15 Task 9)
     inp.boredTarget = K.monotony.hold(b, inp.lastBoredTarget, K.monotony.BORED_AT)
@@ -466,7 +469,7 @@ function W.step(username, player, record, ctx)
     inp.fCirc = finiteOr(A.circ, 0)
     inp.fOff = finiteOr(E.fOff, 0)
     inp.stress = get(h, CS.STRESS) or 0
-    inp.stressTarget = E.stressTarget or 0
+    inp.stressTarget = K.max(finiteOr(E.stressTarget, 0), finiteOr(E.stressFloor, 0))   -- the rows' target or the lethal causes' floor, the higher (Plan 18 Task 3)
     inp.unhappy = get(h, CS.UNHAPPINESS) or 0
     W.monotony(h, record, inp, E, ageH)                   -- UNHAPPINESS: the effects' target plus monotony's; BOREDOM: monotony's (Plan 11f Task 9b)
     inp.lastUnhappyTarget = W.moodTarget(record, "u")

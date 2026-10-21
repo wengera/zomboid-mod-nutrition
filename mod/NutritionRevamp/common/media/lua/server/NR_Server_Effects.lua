@@ -18,7 +18,8 @@
 -- the per-minute scalars (fOff, mAcc, rRec, solAddH, solMul, intoxTarget, tempTarget); the night-vision
 -- machine and the four trait rules; the regeneration setters and the food heal on a rebuild, a drain state's start
 -- or stop and at first sight (none of the five is saved, #3020, #3897); the per-part folds and the cold fold; the
--- bruise roll; the drain's ReduceGeneralHealth, never past the target (Plan 15 Task 4; jar-checks Check 2).
+-- bruise roll; the drain's ReduceGeneralHealth, never past the target (Plan 15 Task 4; jar-checks Check 2); the lethal
+-- causes' symptoms (K.effects.symptoms) and, while a cause is active, their added pain per body part (Plan 18).
 --
 -- Every Java read goes through NR.call (index-first) with a default; every Java global is named only inside
 -- a function behind a nil check, so the file loads with no engine (testing/tests/kernel/test_effects_shape.py).
@@ -29,7 +30,7 @@ local K = NR.kernel
 NR.server.effects = {
     stats = { minutes = 0, errors = 0, healed = 0, rebuilds = 0, closes = 0, traitAdds = 0, traitRemoves = 0,
               reasserts = 0, pushes = 0, pushMissing = 0, regenWrites = 0, partWrites = 0, infectSyncs = 0,
-              coldWrites = 0, drainMinutes = 0, healMinutes = 0, bruises = 0, skippedDead = 0 },
+              coldWrites = 0, drainMinutes = 0, healMinutes = 0, bruises = 0, skippedDead = 0, painWrites = 0 },
     lastError = nil,
     lastHealed = nil,
     wired = false,
@@ -130,7 +131,7 @@ EFF.ref = nil
 -- when the step leaves them non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read).
 EFF.GUARD = { "panicTarget", "unhappyTarget", "foodSickTarget", "stressTarget", "tempTarget", "tempAdj", "intoxTarget",
               "fOff", "mAcc", "rRec", "solAddH", "solMul", "epoch", "aimMul", "speedMul", "healMul", "bleedMul",
-              "infectMul", "coldMul", "enduranceCap", "foodSickStep" }
+              "infectMul", "coldMul", "enduranceCap", "foodSickStep", "stressFloor", "unhappyFloor" }
 EFF.snap = {}
 EFF.guarded = 0
 -- The options a load with no options file reads: one file-scope table, never written.
@@ -461,6 +462,49 @@ local function bruise(bd, L, E, dtM)
     EFF.stats.bruises = EFF.stats.bruises + 1
 end
 
+-- A body part by its BodyPartType index (BodyDamage.getBodyPart(BodyPartType.FromIndex(i)), the harness's own route,
+-- PZTestKit P5.part), kept on the transient memory per body: the first painful minute pays the lookup, every later one
+-- none; nil when the build answers no part.
+local function painPart(bd, L, i)
+    local parts = L.painParts
+    if parts == nil or L.painBd ~= bd then
+        parts = {}
+        L.painParts = parts
+        L.painBd = bd
+    end
+    local part = parts[i]
+    if part == nil and BodyPartType ~= nil and BodyPartType.FromIndex ~= nil then
+        local okT, t = pcall(BodyPartType.FromIndex, i)
+        if okT and t ~= nil then
+            part = obj(bd, "getBodyPart", t)
+            parts[i] = part
+        end
+    end
+    return part
+end
+
+-- The symptoms' added pain (Plan 18 Task 3; spec section 2.1): each part whose target P[i] (K.effects.symptoms, the
+-- half dip included) is above 0 is set to it once a minute when it reads under it, so the level holds with vanilla's
+-- server decay between minutes (Plan 18 Task 1 J3; x491-20261021-061440 read the client's copy follow with no sync);
+-- a part at or over its target is left as it is, so a higher added pain is never lowered: vanilla's treatment actions
+-- add to it (ISDisinfect, ISStitch, ISRemoveBullet and ISCleanBurn set get + their pain). Two Java calls a painful part
+-- a minute (the read and the set); a part the cause no longer names is not touched and decays on its own.
+local function symptomPain(bd, L, P)
+    for i = 0, K.effects.PAIN_PARTS - 1 do
+        local t = P[i]
+        if t > 0 then
+            local part = painPart(bd, L, i)
+            local cur = num(part, "getAdditionalPain", nil)
+            if cur ~= nil and cur < t then
+                local okC, present = pcall(NR.call, part, "setAdditionalPain", t)
+                if okC and present then
+                    EFF.stats.painWrites = EFF.stats.painWrites + 1
+                end
+            end
+        end
+    end
+end
+
 local function step(username, player, record, body, dtM, ageH, ctx)
     body = body or record.body
     local nut, fluids, a = record.nutrients, record.fluids, record.acute
@@ -615,6 +659,10 @@ local function step(username, player, record, body, dtM, ageH, ctx)
             elseif health ~= nil and health < D.target - K.drain.HEAL_EPS then
                 healToTarget(player, bd, D, E, health, asleep, dtM, ctx)
             end
+        end
+        -- 10b. the symptoms' added pain, only while a cause is active (Rule 6: no body-part call with none)
+        if E.painOn then
+            symptomPain(bd, L, E.pain)
         end
     end
 
