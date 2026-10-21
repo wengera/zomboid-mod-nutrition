@@ -22492,3 +22492,4 @@ x493-20261021-062610,verdicts.P4_CLIMB.observed.hi,9.10656e-05,"END_REGEN_UNIT x
 x493-20261021-062610,verdicts.P4_CLIMB.observed.median_over_base,1.1805629636517696,A ratio to a constant; not a reading.,`verdicts.P4_CLIMB.observed.median_per_unit`
 x493-20261021-062610,verdicts.P4_TIGHT.observed.margin,0.0020000000000000018,0.75 minus the cap; not a reading.,
 x493-20261021-062610,verdicts.P4_TIGHT.observed.flip_predicted,true,The grade's prediction from the climb; not a reading.,`verdicts.P4_TIGHT.observed.flip_seen`
+x492-20261021-062157,notes[1],"RELOG: admin never left the server inside the cap; no rejoin",The depart poll's misreading of the players reply {}; admin had left.,`readings.RESTART.set.r2`

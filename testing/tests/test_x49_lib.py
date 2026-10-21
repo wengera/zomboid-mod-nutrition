@@ -746,9 +746,32 @@ def test_zero_samples_never_pass_through_the_recorder():
 
 # ================================================================ the pre-boot checks and the drivers
 def test_preboot_passes_for_every_session():
+    # a pre-run guard on the live tree while a session is unrun; once x491, x492 and x493 have run, their committed
+    # artifacts make no_prior_artifact refuse on the live tree (the gate working), so the rest of the gate is proved
+    # on a scratch git archive of HEAD's preboot inputs with no artifact folder (b373ac3c's precedent)
+    arts = os.listdir(os.path.join(REPO, "testing", "artifacts"))
+    if not all(any(d.startswith(k + "-") for d in arts) for k in L.SESSIONS):
+        for key, spec in L.SESSIONS.items():
+            c, ok = L.preboot(key, spec["driver"])
+            assert ok, c
+        return
+    import io
+    import subprocess
+    import tarfile
+    import tempfile
     for key, spec in L.SESSIONS.items():
         c, ok = L.preboot(key, spec["driver"])
-        assert ok, c
+        assert ok is False and c["no_prior_artifact"] is False, c
+    paths = ["testing/profiles", L.PROBE_DIR] + sorted(set(L.HARNESS_FILES.values()))
+    with tempfile.TemporaryDirectory() as d:
+        arch = subprocess.run(["git", "archive", "--format=tar", "HEAD"] + paths, cwd=REPO, capture_output=True,
+                              check=True)
+        with tarfile.open(fileobj=io.BytesIO(arch.stdout)) as tf:
+            tf.extractall(d, filter="data")
+        os.makedirs(os.path.join(d, "testing", "artifacts"))
+        for key, spec in L.SESSIONS.items():
+            c, ok = L.preboot(key, spec["driver"], repo=d)
+            assert ok, (key, c)
 
 
 def test_preboot_refuses_a_wrong_driver_or_session():
