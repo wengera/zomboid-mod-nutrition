@@ -198,13 +198,15 @@ That same factor is 1.168 at Cooking 9, so Cooking 10 lands fractionally below C
 
 The dish gains an ingredient's macros times the skill bonus times the share while the ingredient loses only the macros times the share, so the gain-to-loss ratio is the skill bonus, up to 1.6667 at Cooking 10 [#0295/M/n=1].
 
-A `Spice` ingredient takes the spice branch: no hunger and no macro transfer, it does not count against `MaxItems`, and it may be added once per dish [#0296].
+A `Spice` ingredient on a food dish takes the spice branch, which adds no hunger to the dish, does not count against `MaxItems` and acts once per spice type per dish, and ends in `useSpice`, which lowers the dish's unhappiness and boredom and moves the spice's macros into the dish scaled by its share and the skill bonus [#4119/C/C-only].
 
 A herbal-tea ingredient additionally sums `foodSicknessChange` capped at 12, `painReduction`, `fluReduction`, `stressChange` and `reduceInfectionPower` onto the dish [#0297].
 
 A dish's `unhappyChange` is the unmodified value less five less five per duplicate, clamped at plus 25, with a further over-stuffing term once the extra-item count less two exceeds the chef's Cooking level [#0298].
 
-A dish's `boredomChange` is zeroed once in phase A and never touched again [#0299].
+A dish's `boredomChange` is zeroed in phase A and no non-spice ingredient moves it, but each spice's `useSpice` sets it to its raw value less 200 times the spice's use, the recipe's `:N` over 100, so a `:1` spice lowers it by 2 and a `:4` spice by 8 [#4120/C/C-only].
+
+Each spice's `useSpice` also sets the dish's `unhappyChange` to its raw value less 200 times the spice's use, with no clamp, so a `:1` spice lowers it by 2 and a `:4` spice by 8; a later non-spice add rewrites the field from that raw value, so the decrement stays [#4121/C/C-only].
 
 A Salad built from a bowl, a lettuce and a tomato banks 24.999998 kcal, 5.193333 carbohydrates, 0.28 lipids and 2.283333 proteins at Cooking 0, and 29.166666, 6.058888, 0.326667 and 2.663889 at Cooking 10 [#0301/M/n=1].
 
@@ -232,7 +234,11 @@ An evolved dish's ingredient list is `InventoryItem.extraItems`, an `ArrayList` 
 `EvolvedRecipe.addItem` appends the used item's full type to the dish's `extraItems` after the whole macro transfer [#2651/C/C-only].
 
 A spice added to a food dish is appended to a second list, `Food.spices`, also as a full type, and the spice branch returns before the ingredient append, so a spice never enters the dish's `extraItems` [#2652/C/C-only].
-What the spice branch does beyond that append and the herbal-tea sums is still open [#0381/C/C-only/open].
+`EvolvedRecipe.useSpice` has two overloads: the float one, called for a food spice on a food dish, records the spice and moves the dish's unhappiness, boredom and macros; the int one, called for a non-food spice, only records the spice and uses it up; both send the dish's item stats on the server [#0381/C/C-only, #1278].
+
+`useSpice` adds the spice's calories, proteins, carbohydrates and lipids to the dish times the skill bonus, 1 plus the Cooking level over 15, times the share, the use over the spice's hunger capped at 1; it takes each macro off the spice at the share of its full use, without the bonus, adds the use to the spice's hunger, uses the spice up once its hunger is above -0.01, and adds no hunger to the dish [#4122/C/C-only].
+
+A rotten spice at Cooking 7 or 8 has its use replaced by 0.05 times its base hunger, and at 9 or 10 by 0.10 times, before the mood and macro lines move the dish, while the spice itself is still charged its full use; below Cooking 7 the usability check offers no rotten spice [#4123/C/C-only].
 
 The dish records each ingredient's type and, because every add appends, the number of times it was added, and records nothing about the hunger it contributed: the per-ingredient hunger `use / 100` is consumed into the dish's hunger and stored nowhere, and no class in the jar contains `extraItemsAmount`, `extraItemAmount`, `extraItemUses`, `extraItemsHunger` or `ingredientAmount` [#2653/C/C-only].
 
@@ -252,7 +258,7 @@ The hunger clamp bites on 59 of the 6 881 rows from 17 over-asking keys on the 2
 
 A `DRIED_FOOD`-tagged ingredient adds no thirst, and the skip bites on 27 rows — `Base.Ramen`, `Base.Macaroni` and `Base.Pasta` across nine recipes each — while the tag is on 577 rows in all, the other 550 having a thirst term already 0 [#0730/C/snapshot].
 
-A `Spice = true` ingredient returns before the hunger lines, so `share`, hunger, `hungerAfterSkill` and every macro are 0 on all 2 522 spice rows — measured zeroes named by the row's note, not absences [#0731/C/snapshot].
+A `Spice = true` ingredient returns before `addItem`'s hunger lines, and the dataset writes its `share`, hunger, `hungerAfterSkill` and every macro as 0 on all 2 522 spice rows; those zeroes are the scan's model of the branch, not the game's, because the branch's `useSpice` moves the spice's macros into the dish at the skill bonus times its share [#4125/C/snapshot].
 
 A non-`per_item` ingredient row would carry null macros with a reason and still emit the hunger arithmetic, and it never fires on vanilla because all 374 carriers are `per_item` [#0733/C/snapshot].
 
@@ -452,7 +458,7 @@ The rotten branch — 0.05 times base hunger at Cooking 7 to 8, 0.10 times at Co
 
 That a recipe whose IO is a drink completes server-side is an inference read from the code, not a reading of the path: the citation behind it is about drinking, and nothing has read the craft completion path for a fluid IO line, whose nutrition is excluded from these deltas anyway [#0760/C/inference].
 
-The mirror says every ingredient adds minus five boredom and unhappiness the first time and that three of the same negates the bonus; the code zeroes an evolved dish's boredom once in phase A and never touches it again, moves only its unhappiness as the unmodified value less five less five per duplicate clamped at plus 25 with an over-stuffing term, and stops the bonus on the second identical copy with the penalty starting on the third [#0365/C/C-only].
+The mirror says every ingredient adds minus five boredom and unhappiness the first time and that three of the same negates the bonus; the code zeroes an evolved dish's boredom in phase A and moves it only through a spice, by minus twice the spice's `:N`; it moves the dish's unhappiness by the unmodified value less five plus five per earlier copy of the same type, clamped at plus 25 with an over-stuffing term, for a non-spice ingredient and by minus twice the `:N` for a spice; and the bonus stops on the second identical copy with the penalty starting on the third [#4124/C/C-only].
 
 The mirror gives a roster of about 35 rows with no template mechanism; `generated/evolvedrecipes.txt` holds 62 evolved-recipe blocks, the 63rd being `AddBaitToChum` in the fishing recipe file as [the evolved join](#evolved-join) states, and an item's recipe key attaches both to the matching recipe and to every recipe whose template equals that key [#0366/C/C-only].
 
@@ -464,7 +470,7 @@ A mod can set per-item cook times through the script keys instead [#1156/M/n=1].
 
 A mod can rewrite a crafted instance from `OnCooked`, whose registration and firing are read rather than driven end to end [#1154/M/n=1].
 
-A mod can control spice behaviour through the `Spice` script bool, whose effect beyond the herbal-tea sums is unread [#1157/C/C-only].
+A mod can control spice behaviour through the `Spice` script bool, whose spice branch ends in `useSpice`, which lowers the dish's unhappiness and boredom by twice the recipe's `:N` and moves the spice's macros into the dish at the skill bonus times its share [#4127/C/C-only].
 
 A cooked food's `thirstChange` cannot be trusted client-side; the per-hop arithmetic is [facts/wire-packets.md](wire-packets.md#cooked-thirst)'s [#1147/M/n=1].
 

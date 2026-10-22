@@ -215,7 +215,7 @@ Five common vanilla foods carry script `HungerChange` values of -20 (`CerealBowl
 | `ScaleWorldIcon` | float | 0 | 1 | `Item.scaleWorldIcon` | world sprite scale |
 | `secondaryAnimMask` | string | 0 | 18 | `Item.secondaryAnimMask` | animation |
 | `SoundMap` | list → HashMap | 40 | 34 | `Item.soundMap` | per-event sound overrides |
-| `Spice` | bool | 109 | 2 | `Item.spice` → `Food.setSpice` | takes the ingredient down the **spice branch** of `EvolvedRecipe.addItem`: no hunger and no macro transfer, does not count against `MaxItems`, once per dish (`isSpiceAdded`) |
+| `Spice` | bool | 109 | 2 | `Item.spice` → `Food.setSpice` | takes the ingredient down the **spice branch** of `EvolvedRecipe.addItem`: no hunger to the dish, no count against `MaxItems`, once per spice type per dish (`isSpiceAdded`); its `useSpice` lowers the dish's unhappiness and boredom by twice the `:N` and moves its macros in at the skill bonus times its share [#4119/C/C-only] |
 | `StaticModel` | string | 532 | 73 | `Item.staticModel` | model |
 | `StaticModelsByIndex` | list | 2 | 0 | `Item.staticModelsByIndex` | per-index models |
 | `StressChange` | int | 28 | 3 | `Item.stressChange` | STRESS at eat time; ÷4 burnt, ÷1.3 stale, ÷2 rotten, ×1.3 cooked |

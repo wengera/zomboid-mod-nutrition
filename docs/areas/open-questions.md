@@ -29,7 +29,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#0378/C/C-only/open] | The translation labels of the fridge-factor and rot-speed enums were not read, so only the numeric mapping decoded from the raw tableswitch is established. | [spoilage.md](../facts/spoilage.md#open) | — | reading the sandbox translation files |
 | [#0379/C/C-only/open] | `Food.rottenTime` has a getter, a setter and save and load support, no script key, one writer in the compost update and zero readers, and `Poison` and `UseForPoison` parse into fields with no Java or vanilla-Lua reader, so all three look like mod-facing API rather than mechanics. | [food-item-model.md](../facts/food-item-model.md#open) | — | a reader scan that reaches outside the jar and the vanilla Lua tree |
 | [#0380/C/C-only/open] | No reader for `AddIngredientIfCooked`, which 37 recipe blocks use, was traced beyond the ingredient-usability check. | [cooking-and-recipes.md](../facts/cooking-and-recipes.md#open) | — | dumping the key's readers from the jar |
-| [#0381/C/C-only/open] | `EvolvedRecipe.useSpice` and its two overloads were never dumped, so the spice branch's effect beyond the herbal-tea sums is unread. | [open-questions.md](#x9b) | X9b | a jar dump of both `useSpice` overloads and the ingredient usability check |
 | [#0384/C/C-only/open] | The behaviour of an item whose fresh and rotten thresholds are equal is unmeasured at eat time, where it takes the hundred-per-cent branch of the rot-sickness denominator. | [spoilage.md](../facts/spoilage.md#open) | — | eating `Base.RatKing` on a live server and reading the sickness roll |
 | [#0591/M/n=1/open] | The walking, running and sprinting burn constants are unmeasured: the run's server saw the moving flag in 5 of 52 samples, one consecutive pair, and never saw the running flag, so the run flag did not reach the server's copy of the character on the walk-to plus set-running route. | [body-and-weight.md](../facts/body-and-weight.md#open) | — | the walk, run and sprint burn ratios; running reached the server on none of x141a's ticks (#2877) and on 11 of 188 of x224's sprint leg [#3384/M/n=1] |
 | [#0592/M/n=1/open] | The asleep burn branch is unmeasured: the sleep write held on the immediate read-back but did not persist, and the next row's 52 server samples all read the character awake with idle-rate burn about 27 s later, so whether the sleep was walked off or never persisted is undetermined. | [body-and-weight.md](../facts/body-and-weight.md#open) | — | a sleep arm that verifies the state on the server before the window opens |
@@ -66,7 +65,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#1062/C/C-only/open] | Whether the per-key merge survives a reloadlua or script reload is unread: LoadScripts's var5 is 0 on ScriptLoadMode.Reload, so on a reload the reset runs before the first body too, still a no-op for an item, but ResetOnceOnReload and PreReload take other paths this library did not read. | [loader-and-scripts.md](../platform/loader-and-scripts.md#open) | — | driving a reload in a running session and re-reading a merged item's keys |
 | [#1063/C/C-only/open] | Whether the fresh net id Item.InitLoadPP allocates per appended body ever puts a stale id on the wire is unread. | [open-questions.md](#x27) | X27 | reading a multiply-redefined item's id on both sides, where agreement bounds the risk |
 | [#1274/C/open] | Is `MoodleStat` reachable from Kahlua at all, given that C is a jar-proven absence? | [open-questions.md](#x2) | X2 | a global read of `MoodleStat` beside two exposed controls that must answer in the same call |
-| [#1278/C/open] | What does the spice branch do beyond the herbal-tea sums? | [open-questions.md](#x9b) | X9b | a desk read of the spice method's two overloads and the ingredient usability check |
 | [#1280/C/open] | Does item modData move server to client? | [open-questions.md](#x14) | X14 | a server-only key write, a client census that must miss it, a forced item push and a second census |
 | [#1283/C/open] | Can Lua flip the `Nutrition` sandbox option at runtime, does it replicate, and does the drain stop? | [open-questions.md](#x17) | X17 | a harness route to the option's config setter and a session reading the Java option, the Lua mirror and the drain beside a no-flip control |
 | [#1284/C/open] | What maps a mod's `server/` file into the MP client's Lua state? | [open-questions.md](#x18) | X18 | one mod writing a distinct global from each of its `client`, `server` and `shared` files, read on both sides |
@@ -197,11 +195,8 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Settled by run x182: a mod translation JSON displaces a vanilla interface key on the client [#3201/M/n=1]; see [experiments.md § Named experiments](../reference/experiments.md), row `X5`.
 
 <a id="x9b"></a>
-### X9b — What does the spice branch do beyond the herbal-tea sums?
-- What the spice branch does beyond the herbal-tea sums is unread [#1278/C/open].
-- `EvolvedRecipe.useSpice` and its two overloads have never been dumped, so the spice branch's effect beyond the herbal-tea sums is unread [#0381/C/C-only/open].
-- Waiting on it: [eat-and-cook-hooks.md](eat-and-cook-hooks.md#open).
-- Settled by: a desk read of both spice overloads and the ingredient usability check, with no boot — [experiments.md § Named experiments](../reference/experiments.md), row `X9b`.
+### X9b — What does the spice branch do beyond the herbal-tea sums? (settled)
+- Settled by a desk read on 42.21 (Plan 19 Task 4): the branch ends in `useSpice`, which lowers the dish's unhappiness and boredom by twice the recipe's `:N` and moves the spice's macros into the dish at the skill bonus times its share [#0381/C/C-only, #1278]; see [experiments.md § Named experiments](../reference/experiments.md), row `X9b`.
 
 <a id="x14"></a>
 ### X14 — Does item modData move server to client?

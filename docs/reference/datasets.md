@@ -90,7 +90,7 @@ The top-level key census of the 969 `craftRecipe` blocks runs to 19 keys, 13 of 
 
 On all 6 881 evolved-recipe ingredient rows the consumption share at Cooking 10 (`share10`) is exactly seven tenths of the level-zero share (`share0`), with no exceptions including the 59 clamped rows — the clamp is what makes the relation hold, because it caps the hunger asked for at the ingredient's own hunger change before the skill reduction [#1911/C/arith.].
 That is arithmetic over script values in the 2026-09-10 scan of `42.20.4`, the summation itself cited from [cooking-and-recipes.md](../facts/cooking-and-recipes.md#evolved) rather than re-derived [#1911/C/arith.].
-A spice ingredient row is a measured zero in hunger, share and every macro, the branch being modelled, where a null in these datasets means the source writes nothing; the one summation branch not modelled per row is the rotten ingredient at Cooking 7 and above, which needs an instance's state rather than script data, in the 2026-09-10 scan [#1912/C/snapshot].
+A spice ingredient row carries 0 in hunger, share and every macro, which models the spice branch's skipped hunger lines but not its `useSpice` macro transfer, so a spiced dish's macros are under-stated; a null in these datasets means the source writes nothing, and the rotten ingredient at cooking seven and above is also not modelled per row, in the 2026-09-10 scan [#4126/C/snapshot].
 The `cookable` flag in the evolved-recipe dataset is the script value while the game's own `isCookable()` answers on the presence of the key, so one of the 63 recipes (`AddBaitToChum`) writes false here and the engine says true — the only one where the two differ, in the 2026-09-10 scan [#1913/C/snapshot].
 
 <a id="kinds"></a>
@@ -537,7 +537,7 @@ The `meta` keys of `data/recipes.json`, the `counts` cell being the 2026-09-10 s
 | 3 | `item` | string | the ingredient's full type (`Base.Lettuce`) |
 | 4 | `use` | int | the `<use>` half of the item's `EvolvedRecipe` key: hunger points the key asks for |
 | 5 | `requiresCooked` | bool | the key's `Cooked` suffix |
-| 6 | `spice` | bool | the item's `Spice` — a spice transfers no hunger and no macros |
+| 6 | `spice` | bool | the item's `Spice` — a spice adds no hunger to the dish; its macro transfer, in `useSpice`, is not modelled |
 | 7 | `share0` | float | derived: the fraction of the ingredient consumed at Cooking 0 |
 | 8 | `kcal0` | float | derived: what it adds to the dish at Cooking 0 |
 | 9 | `carbs0` | float | derived, same level |

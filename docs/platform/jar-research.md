@@ -161,7 +161,6 @@ Not covered: this library never attached a debugger or an instrumentation agent 
 
 This page's own rows are settled readings of the toolchain, so the open items below are the jar questions the library left unread; each is owned by the page that would answer it.
 
-- The spice branch of the evolved summation is unread: the overload set was never dumped — settled by dumping the overloads ([#0381/C/C-only/open], [areas/open-questions.md](../areas/open-questions.md)).
 - The food-to-health scale is unread: the getter was never dumped — settled by one dump ([#0146/C/open], [facts/eating-pipeline.md#open](../facts/eating-pipeline.md#open)).
 - The readers of the two maintained nutrition maxima are unfound: the reverse scan named none — settled by a scan wide enough to name a reader or to prove there is none ([#0190/C/snapshot/open], [facts/nutrition-core.md#open](../facts/nutrition-core.md#open)).
 - The multiplayer inventory re-send cadence is unread: the carrier is read and its cadence is not — settled by a timed client read rather than another dump ([#0376/C/C-only/open], [platform/mp-model.md#open](mp-model.md#open)).

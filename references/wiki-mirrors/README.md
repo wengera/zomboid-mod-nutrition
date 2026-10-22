@@ -103,8 +103,8 @@ Generated from [the claims register](../../docs/reference/claims.tsv) by `python
 
 | Row | The code says | The mirror says | Owner |
 |---|---|---|---|
-| [#0365/C/C-only] | An evolved dish's boredom is zeroed once in phase A and never touched again, only its unhappiness moves as the unmodified value less five less five per duplicate clamped at plus 25 with an over-stuffing term, and the bonus already stops on the second identical copy with the penalty starting on the third. | every ingredient adds minus five boredom and unhappiness the first time, and three of the same negates the bonus | [`facts/cooking-and-recipes.md`](../../docs/facts/cooking-and-recipes.md#walls) |
 | [#0366/C/C-only] | `generated/evolvedrecipes.txt` holds 62 evolved-recipe blocks (a 63rd, `AddBaitToChum`, lives in the fishing recipe file) and an item's recipe key attaches both to the matching recipe and to every recipe whose template equals that key. | a roster of about 35 rows with no template mechanism | [`facts/cooking-and-recipes.md`](../../docs/facts/cooking-and-recipes.md#walls) |
+| [#4124/C/C-only] | The code zeroes an evolved dish's boredom in phase A and moves it only through a spice, by minus twice the spice's `:N`; it moves the dish's unhappiness by the unmodified value less five plus five per earlier copy of the same type, clamped at plus 25 with an over-stuffing term, for a non-spice ingredient and by minus twice the `:N` for a spice; and the bonus stops on the second identical copy with the penalty starting on the third. | every ingredient adds minus five boredom and unhappiness the first time, and three of the same negates the bonus | [`facts/cooking-and-recipes.md`](../../docs/facts/cooking-and-recipes.md#walls) |
 
 ### fridge.md
 
