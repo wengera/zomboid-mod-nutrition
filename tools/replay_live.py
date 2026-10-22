@@ -117,6 +117,8 @@ import os
 import struct
 import sys
 
+import dials
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 KERNEL_TESTS = os.path.join(REPO, "testing", "tests", "kernel")
@@ -139,7 +141,7 @@ H_REQ = 0.25                          # the meal request, vanilla's HUNGRY level
 # study oracle reads it, never the written HUNGER, which is the curve of it (K.hungerCurve).
 H_MODEL = "satiety.hModel"
 KCAL_PER_H = 650.0 / H_REQ            # the intake mapping (ruling 11c-31): kcal per unit of written hunger
-NEUTRAL_HOUR = 13.8333                # circadian(13:50) is 1.0 exactly: the factor held (the oracles' h0 None)
+NEUTRAL_HOUR = 13.8333                # = satiety.CIRCADIAN_PEAK_H - 6, where circadian() is 1.0 exactly (test_replay_live_oracle.py:75 guards it)
 # The feed: the stats the replay copies from each ring row into the stand-in before its drain. Only an exogenous input
 # may be fed: a stat the engine moves and the mod reads but never writes. NICOTINE_WITHDRAWAL is the one such stat
 # (NR_Server_Writer reads it at :442; every other stat it reads it also writes, :287-302). A graded or tolerance field
@@ -806,7 +808,10 @@ def set_constants(K, constants, rt=None):
         cur = K[mod][key] if K[mod] is not None else None
         if isinstance(cur, bool) or not isinstance(cur, (int, float)):
             raise ValueError("unknown kernel constant %s" % name)
-        K[mod][key] = float(value)
+        for dial_id in dials.linked(name):
+            m2, k2 = dial_id.split(".")
+            if K[m2] is not None:
+                K[m2][k2] = float(value)
 
 
 # The drain options a replay runs under by default (Plan 17 Task 3): the mod's own defaults, NR.DeathPace 3 (Realistic)

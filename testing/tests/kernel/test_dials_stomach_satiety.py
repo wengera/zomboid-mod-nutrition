@@ -24,8 +24,9 @@ JOINT_FIT = ("satiety.W_PROTEIN", "satiety.W_FAT", "satiety.MEAL_HALF_LIFE_H", "
              "satiety.FULL_WEIGHT", "satiety.LIQUID_WEIGHT", "satiety.PROTEIN_FILL", "hungerCurve.FED_M")
 DIVISORS = ("stomach.FAT_EFOLD_G", "stomach.WATER_HALF_MIN", "stomach.CAPACITY_MAX_G", "satiety.MEAL_HALF_LIFE_H",
             "satiety.MEAL_STEEP", "satiety.ACUTE_HALF_LIFE_H", "satiety.ACUTE_DECAY_HALF_LIFE_H",
-            "satiety.NIC_FADE_DAYS", "satiety.DISCOMFORT_MAX")
-FIXED = {"satiety.HEARTY": "vanilla #0485", "satiety.LIGHT": "vanilla #0485", "satiety.NIC_WITHDRAWAL_MAX": "vanilla #3632"}
+            "satiety.NIC_FADE_DAYS")
+FIXED = {"satiety.HEARTY": "vanilla #0485", "satiety.LIGHT": "vanilla #0485", "satiety.NIC_WITHDRAWAL_MAX": "vanilla #3632",
+         "satiety.DISCOMFORT_MAX": "vanilla #3600"}
 
 # The replaced constructors, verbatim from 6eede24a (the values and the assignment order the pairs order follows), and
 # the two factors whose inline magnitudes moved to fields.
@@ -191,7 +192,7 @@ def test_meal_req_is_the_fed_threshold_and_the_vanilla_rows_are_fixed():
     for dial_id, src in FIXED.items():
         assert raw[dial_id].get("fixed") is True and raw[dial_id]["src"] == src, dial_id
     text = dials._read(dials._path(dials.REPO, dials.REGISTRY_REL))
-    for dial_id in ("satiety.MEAL_REQ", "satiety.HEARTY", "satiety.NIC_WITHDRAWAL_MAX"):
+    for dial_id in ("satiety.MEAL_REQ", "satiety.HEARTY", "satiety.NIC_WITHDRAWAL_MAX", "satiety.DISCOMFORT_MAX"):
         with pytest.raises(ValueError):
             dials.set_value(text, dial_id, "1.2")
 
@@ -227,3 +228,23 @@ def test_a_registry_short_night_moves_the_full_debt_and_a_registry_slope_moves_t
     assert K.satiety.sleepFactor(1.0) == pytest.approx(1.18)
     assert K.stomach.ironFactor(100, 0) == pytest.approx(math.exp(-0.68))
     assert K.stomach.fatFactor(0) == 0.1
+
+
+def test_the_meal_seed_cap_stays_on_the_fitted_weights():
+    # Plan 19 Task 3d fix 1 (M2): MEAL_SEED_MAX is the weigh of a 1000 kcal meal of 150 g protein, 500 g carbohydrate and
+    # 350 g fat ... a refit of W_PROTEIN or W_FAT that leaves the cap's meaning stale fails here
+    _, K = runtime()
+    v = K.vector.new()
+    v.calories = 1000
+    v.proteins = 150 / 4
+    v.carbs = 500 / 4
+    v.lipids = 350 / 9
+    assert abs(K.satiety.MEAL_SEED_MAX / K.satiety.weigh(v) - 1) < 0.01
+
+
+def test_replay_live_set_constants_treats_a_same_group_as_one_dial():
+    # Plan 19 Task 3d fix 1 (M4): a snapshot or bundle that sets satiety.MEAL_REQ alone moves hungerCurve.FED_M with it
+    import replay_live
+    _, K = runtime()
+    replay_live.set_constants(K, {"satiety.MEAL_REQ": 6})
+    assert (K.satiety.MEAL_REQ, K.hungerCurve.FED_M) == (6, 6)

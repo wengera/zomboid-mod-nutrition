@@ -318,4 +318,12 @@ def test_a_meal_req_patch_moves_the_fed_threshold_with_it_and_never_the_registry
     h = F.new_host({"FULL_WEIGHT": 0.3})
     assert (h.K.satiety.MEAL_REQ, h.K.hungerCurve.FED_M) == (3.80654, 3.80654)
     assert F.current(["MEAL_REQ"]) == {"MEAL_REQ": 3.80654}
+    F._patch_server_path()
+    _, SH, _ = F.RL._lua()
+    F._ACTIVE = {"MEAL_REQ": 6.0}
+    try:
+        h = SH.Host()
+        assert (h.K.satiety.MEAL_REQ, h.K.hungerCurve.FED_M) == (6.0, 6.0)
+    finally:
+        F._ACTIVE = {}
     assert open(reg, "rb").read() == before
