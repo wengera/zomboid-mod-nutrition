@@ -26,7 +26,7 @@ check finds:
   places), min, max or int; an opt row K.dials.apply writes whose value is not exact at three places;
 - int without opt, param that is not true or has no opt or no numeric value, a non-integer int row, an empty fit, a
   fixed row that is not min == max == value;
-- a chain of ASCENDING (knots K.interp divides by the gaps of, a ladder read in order) whose values do not ascend;
+- a chain of ASCENDING (knots a reader divides by the gaps of, a ladder read in order; a descending ladder listed reversed) whose values do not ascend;
 - an orphan (an id no K.dials.get in the mod's Lua names) and a K.dials.get naming no row; an opt row K.dials.apply
   writes that does not resolve as K.<id> = K.dials.get(...).
 The option file itself is generated from the opt rows (tools/sandbox_options.py --check).
@@ -55,7 +55,23 @@ ASCENDING = (("strength.DEFAULTS.fp_knots.1.1", "strength.DEFAULTS.fp_knots.2.1"
               "strength.DEFAULTS.fp_knots.4.1"),
              ("fluids.THIRST_KNOTS.2.1", "fluids.THIRST_KNOTS.3.1", "fluids.THIRST_KNOTS.4.1",   # K.fluids.tVol
               "fluids.THIRST_KNOTS.5.1", "fluids.THIRST_KNOTS.6.1"),                             # (5.1 is drain.DEHYD_ONSET)
-             ("drain.STARVE_PHASE_H.1", "drain.STARVE_PHASE_H.2", "drain.STARVE_PHASE_H.3"))     # K.drain.starvePhase
+             ("drain.STARVE_PHASE_H.1", "drain.STARVE_PHASE_H.2", "drain.STARVE_PHASE_H.3"),     # K.drain.starvePhase
+             ("hungerCurve.X.2", "hungerCurve.X.3", "hungerCurve.X.4", "hungerCurve.X.5", "hungerCurve.X.6"),  # K.hungerCurve.map divides by X gaps
+             ("effects.ALC_EDGES.1", "effects.ALC_EDGES.2"),                                                   # K.effects.atOrAbove
+             ("effects.DEBT_EDGES.1", "effects.DEBT_EDGES.2"),
+             tuple("effects.DEHYD_EDGES.%d" % i for i in range(1, 9)),
+             ("effects.BG_EDGES.3", "effects.BG_EDGES.2", "effects.BG_EDGES.1"),                               # K.effects.below: descending
+             ("effects.EA_EDGES.3", "effects.EA_EDGES.2", "effects.EA_EDGES.1"),
+             ("energy.LOAD_FLOOR.1.1", "energy.LOAD_FLOOR.2.1", "energy.LOAD_FLOOR.3.1"),                      # loadFloor: thresholds ascend
+             ("fluids.HYPONAT.3", "fluids.HYPONAT.2", "fluids.HYPONAT.1"),                                     # hyponatGrade: descending
+             ("nutrients.LADDER.3", "nutrients.LADDER.2", "nutrients.LADDER.1"),                               # K.nutrients.grade: descending
+             ("traits.THIN_CUTS.3", "traits.THIN_CUTS.2", "traits.THIN_CUTS.1"),                               # K.traits.held, down
+             ("traits.FAT_CUTS.1.1", "traits.FAT_CUTS.1.2"), ("traits.FAT_CUTS.2.1", "traits.FAT_CUTS.2.2"),   # K.traits.held, up, by sex
+             ("view.STIMULANT_AT.1", "view.STIMULANT_AT.2", "view.STIMULANT_AT.3", "view.STIMULANT_AT.4"),     # K.view.rung
+             ("view.SLEEP_AT.1", "view.SLEEP_AT.2", "view.SLEEP_AT.3", "view.SLEEP_AT.4"),
+             ("view.OVERFULL_AT.1", "view.OVERFULL_AT.2", "view.OVERFULL_AT.3"),
+             ("view.FAT_CUTS_MALE.1", "view.FAT_CUTS_MALE.2", "view.FAT_CUTS_MALE.3", "view.FAT_CUTS_MALE.4"),  # K.view.heldRung
+             ("view.FAT_CUTS_FEMALE.1", "view.FAT_CUTS_FEMALE.2", "view.FAT_CUTS_FEMALE.3", "view.FAT_CUTS_FEMALE.4"))
 SCIENCE_ID = re.compile(r"^S\d{4}$")
 CLAIM_ID = re.compile(r"^#\d{4}$")
 ROW_RX = re.compile(r"^D\['([^']+)'\] = \{")

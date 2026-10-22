@@ -17,10 +17,10 @@
 -- controller's ruling L2), so wounds still mend during a long deficiency; vanilla's addition is 0 while HUNGRY or
 -- THIRST shows level 4, so under starvation or dehydration a wound does not mend.
 -- The pace (K.drain.OPT.pace, spec sections 2.2, 9 and 10): Vanilla runs starvation and dehydration on a line at
--- vanilla's level-4 rate on the hours in the state (#0516, #0518, #2922), Shortened on a line over 336 and 48 such
+-- vanilla's level-4 rate on the hours in the state (#0516, #0518, #2922), Shortened on a line over SHORT_STARVE_H and SHORT_DEHYD_H (336, 48) such
 -- hours, each clock counting back down while the cause is absent; Realistic starvation on a line over the BMI progress
--- to BMI 12 (smoothed within the record day, spec section 1.2a, both ways) and Realistic dehydration on a line over the
--- deficit from 4 % to 17 %. The deficiencies and the rungs are the same at every pace.
+-- to BMI_DEATH (12; smoothed within the record day, spec section 1.2a, both ways) and Realistic dehydration on a line over the
+-- deficit from DEHYD_ONSET to DEHYD_DEATH (4 % to 17 %). The deficiencies and the rungs are the same at every pace.
 -- record.drain holds the inputs a save keeps (bmi0, starvation's clocks fedAgeH and acuteH, the hour clocks of
 -- K.drain.CLOCK, the smoothed BMI clock bClose, bRate, pAt and pS, and the last minute's deficit dPrev;
 -- K.store.INPUTS) and the minute's derived outputs (active, state, mask, recovering, target, frac, rate,
@@ -71,8 +71,8 @@ K.drain.CAL_BMI0 = K.dials.get("drain.CAL_BMI0")
 -- since the meal pool last held K.hungerCurve.FED_M, counted continuously across days, sleep and restarts, never
 -- offline), or, while the pool is under FED_M, the recent intake at RECENT_MIN_KCAL or less (K.drain.recentKcal: today
 -- and the three closed record days with what is still in the stomach, a starvation diet of snacks); or the
--- chronic onset at a BMI under 13 whatever the intake (chronic semi-starvation, Plan 15 Task 4 fix 1, ruling M3); the
--- death at BMI 12.
+-- chronic onset at a BMI under BMI_CHRONIC (13) whatever the intake (chronic semi-starvation, Plan 15 Task 4 fix 1, ruling M3); the
+-- death at BMI_DEATH (12).
 K.drain.STARVE_ONSET_H = K.dials.get("drain.STARVE_ONSET_H")
 K.drain.RECENT_TOL = 1e-6 -- kcal: the comparison's tolerance, no row needed (Plan 15 Task 6 fix 3: three absorbed 200 kcal snacks integrate a few 1e-9 kcal over 600)
 K.drain.RECENT_DAYS = 3 -- record-day closes the window needs seen, no row needed
@@ -332,7 +332,7 @@ function K.drain.rVanilla(code, dayMin)
     return nil
 end
 
--- Starvation's BMI progress from the onset BMI bmi0 to the death BMI 12, clamped to [0, 1]; 1 when the onset is at or
+-- Starvation's BMI progress from the onset BMI bmi0 to the death BMI BMI_DEATH, clamped to [0, 1]; 1 when the onset is at or
 -- under the death BMI.
 function K.drain.progress(bmi0, bmi)
     local span = bmi0 - K.drain.BMI_DEATH
@@ -393,10 +393,10 @@ function K.drain.bmiEst(D, ageH)
     return D.bClose - D.bRate * K.max(0, ageH - D.pAt)
 end
 
--- The smoothed BMI clock's current rate in progress per game hour: bRate over the span bmi0 - 12 (STARVE_DPDT for the
+-- The smoothed BMI clock's current rate in progress per game hour: bRate over the span bmi0 - BMI_DEATH (STARVE_DPDT for the
 -- calibration body before its first close), or the progress dp the minute of dtM game minutes moved it when that is
 -- more (a close's correction: the estimate steps by the day-on-day change of the loss, so health keeps up with the
--- line instead of trailing each step for the rest of the state). With no span (an onset at or under BMI 12, already
+-- line instead of trailing each step for the rest of the state). With no span (an onset at or under BMI_DEATH, already
 -- dead on the line) the rate that runs the line at vanilla's own pace at the day length, so the cap still reaches 0.
 function K.drain.pRate(D, dayMin, dp, dtM)
     local span = D.bmi0 - K.drain.BMI_DEATH
@@ -415,8 +415,8 @@ end
 -- hour; dehydPct, the deficit, and dRise, its rise a game hour), under opt (pace, dayMin). Every state is a line from 1
 -- to 0 on its clock, and its rate is the line's slope through the clock's current rate, 100 x 24 x (clock units a game
 -- hour) / T: a time clock runs an hour an hour (a deficiency or rung over its death time at every pace; Vanilla over
--- vanilla's 100 / r hours at the day length; Shortened over 336 and 48 hours); Realistic starvation runs on the BMI
--- progress to 1, Realistic dehydration on the deficit from 4 % to 17 %. A fraction or rate that is not a finite number
+-- vanilla's 100 / r hours at the day length; Shortened over SHORT_STARVE_H and SHORT_DEHYD_H); Realistic starvation runs on the BMI
+-- progress to 1, Realistic dehydration on the deficit from DEHYD_ONSET to DEHYD_DEATH. A fraction or rate that is not a finite number
 -- returns nil: the state is left out for the minute.
 function K.drain.fraction(code, tH, inp, opt)
     local S = K.drain.states[code]

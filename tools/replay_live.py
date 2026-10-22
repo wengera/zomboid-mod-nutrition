@@ -387,7 +387,7 @@ function NR_R.adopt(p, name, rate, inv, maxW)
     local f = math.min(math.max(inv / maxW, 0), 1)
     th.getMetabolicRate = function(s)
         if u.raw ~= nil then return u.raw end
-        return u.rate * (1 + 0.35 * f * f)
+        return u.rate * (1 + NutritionRevamp.kernel.energy.LOAD_FACTOR * f * f)
     end
     th.getEnergyMultiplier = function(s)
         if u.cold ~= nil then return u.cold end

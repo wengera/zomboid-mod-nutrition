@@ -133,6 +133,9 @@ def test_the_migrated_monotony_kernel_and_the_dial_files_are_clean():
     ("K.x.A = 50 -- #2112 VANILLA", True),                       # the old trailing forms (Plan 19 Task 3g: one form)
     ("K.x.A = 0.3 -- the endDef floor, VANILLA #2270", True),
     ("K.x.A = 10 -- vanilla #2354", True),
+    ("K.x.A = 4.3 -- VANILLA: game choice S1234", True),
+    ("K.x.A = 4.3 -- VANILLA S1234 tuned", True),
+    ("K.x.A = 4.3 -- VANILLA the mod floor, #2112", True),
 ])
 def test_e1_takes_the_vanilla_marker_only_where_it_opens_the_comment(line, flagged):
     found = [f for f in dial_lint.lint_text(KER, line) if f.rule == "E1"]

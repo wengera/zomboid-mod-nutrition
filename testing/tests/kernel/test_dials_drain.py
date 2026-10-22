@@ -239,3 +239,16 @@ def test_the_options_poll_clamps_the_scalers_at_their_rows():
     h.rt.execute("SandboxVars = { NR = { OnsetSpeed = 2.5, Severity = 1.5 } }")
     h.NR.server.readOptions("poll")
     assert (O.onsetSpeed, O.severity) == (2.5, 1.5)
+
+
+@pytest.mark.parametrize("dial_id,broken", [
+    ("hungerCurve.X.3", "0.5"),            # a knot a reader divides by the gaps of: over X.4
+    ("effects.EA_EDGES.3", "20"),          # a descending ladder listed reversed: equal to EA_EDGES.2, inside its own range
+    ("view.SLEEP_AT.2", "1"),              # an ascending ladder read in order
+])
+def test_the_ladders_and_knot_tables_of_the_earlier_waves_must_ascend(dial_id, broken):
+    with pytest.raises(ValueError, match="must ascend"):
+        dials.set_value(text(), dial_id, broken)
+    value = dials.values()[dial_id]
+    out, _ = dials.set_value(text(), dial_id, repr(value))               # its own value keeps the order
+    assert not [f for f in dials.check(text=out) if "must ascend" in f], dial_id

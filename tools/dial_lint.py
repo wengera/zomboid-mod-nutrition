@@ -10,8 +10,8 @@ declarative data (NR_Data_*.lua) and the bench fixture (NR_Server_Bench.lua) are
   E1 unregistered dial    a top-level assignment (column 0), or an element line of a top-level constant table,
                           whose value is a numeric literal, a numeric expression or a table of them, and whose
                           comment carries a provenance marker (S1234, #1234, game choice, fitted, inference,
-                          design-phase), unless the comment opens with the VANILLA marker (a vanilla mirror left in
-                          place: VANILLA <its # row or jar cite>[: note]) or says no row needed or @fixed; a VANILLA
+                          design-phase), unless the comment opens with the VANILLA marker and its # row or jar cite, with no game choice, S row or
+                          fit beside it (a vanilla mirror left in place: VANILLA <its # row or jar cite>[: note]) or says no row needed or @fixed; a VANILLA
                           anywhere else in the comment exempts nothing (Plan 19 Task 3g: one form)
   E2 unlabelled constant  a top-level numeric constant with no comment on its line and no comment line above it
   E3 name mismatch        a dial resolved into a local (local X = K.dials.get, ruling T1-1);
@@ -42,7 +42,8 @@ Finding = collections.namedtuple("Finding", "path line rule detail")
 
 PROVENANCE_RX = re.compile(r"\bS\d{4}\b|#\d{4}\b|game choice|\bfitted\b|\binference\b|design-phase")
 EXEMPT_RX = re.compile(r"no row needed|@fixed")
-VANILLA_RX = re.compile(r"^VANILLA\b")                # the marker opens the comment: VANILLA #1234: note
+VANILLA_RX = re.compile(r"^VANILLA (?:#\d{4}|L\d+|[A-Z]\w*\.\w+)")   # VANILLA <#row | Lnn | Class.member cite>[: note]
+DESIGN_RX = re.compile(r"game choice|\bS\d{4}\b|\bfitted\b|design-phase")
 W1_MARK_RX = re.compile(r"game choice|\bS\d{4}\b")
 ASSIGN_RX = re.compile(r"^(?:local\s+)?([A-Za-z_][\w.]*)\s*=\s*(.*)$")
 GET_RX = re.compile(r"^([A-Za-z_][\w.]*)\s*=\s*K\.dials\.get\(\s*[\"']([^\"']+)[\"']\s*\)\s*$")
@@ -63,8 +64,11 @@ def in_scope(path):
 
 
 def exempt(comment):
-    """Whether a comment exempts its line from E1: it opens with VANILLA, or says no row needed or @fixed."""
-    return VANILLA_RX.match(comment) is not None or EXEMPT_RX.search(comment) is not None
+    """Whether a comment exempts its line from E1: it opens with VANILLA and a # row or jar cite and names no design
+    provenance (a game choice, an S row, a fit), or says no row needed or @fixed."""
+    if VANILLA_RX.match(comment) is not None and DESIGN_RX.search(comment) is None:
+        return True
+    return EXEMPT_RX.search(comment) is not None
 
 
 def _e1_detail(comment, what):

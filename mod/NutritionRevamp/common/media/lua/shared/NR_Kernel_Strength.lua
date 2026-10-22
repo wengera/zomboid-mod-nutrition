@@ -66,7 +66,7 @@ K.strength.DEFAULTS = {
     b = K.dials.get("strength.DEFAULTS.b"),
     Fnm = K.dials.get("strength.DEFAULTS.Fnm"),
     N0 = { STRONG = K.dials.get("strength.DEFAULTS.N0.STRONG"), STOUT = K.dials.get("strength.DEFAULTS.N0.STOUT"), none = 1.0, FEEBLE = K.dials.get("strength.DEFAULTS.N0.FEEBLE"), WEAK = K.dials.get("strength.DEFAULTS.N0.WEAK") }, -- none is the untrained average, 1 by definition: no row needed
-    startLevel = { STRONG = 9, STOUT = 7, none = 5, FEEBLE = 3, WEAK = 1 }, -- VANILLA #3879: vanilla's start levels but Weak's (vanilla 0, the mod's floor 1)
+    startLevel = { STRONG = 9, STOUT = 7, none = 5, FEEBLE = 3, WEAK = 1 }, -- VANILLA #3879: vanilla's start levels, but WEAK 1 is the mod's level floor (vanilla 0): no row needed
     traitShare = K.dials.get("strength.DEFAULTS.traitShare"),
     ffmiNatural = K.dials.get("strength.DEFAULTS.ffmiNatural"),
     kouriCoef = K.dials.get("strength.DEFAULTS.kouriCoef"),
