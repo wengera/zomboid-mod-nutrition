@@ -85,9 +85,12 @@ def inputs(food, item):
     g = food.get("per_100g") or {}
     if g.get("calories") is None:
         return None
+    unhappy = float(item.get("unhappy_change") or 0)
+    if (food.get("fdc_description") or "").startswith("Candies,"):
+        # an FDC candy record is a treat whatever vanilla scores the item (CandyPackage 0, its HardCandies -10)
+        unhappy = min(unhappy, -1.0)
     return (float(g.get("proteins") or 0.0), float(g.get("carbs") or 0.0), float(g.get("lipids") or 0.0),
-            float(g.get("sodium") or 0.0) / 1000.0, float(g["calories"]), float(item.get("unhappy_change") or 0),
-            item.get("food_type"))
+            float(g.get("sodium") or 0.0) / 1000.0, float(g["calories"]), unhappy, item.get("food_type"))
 
 
 def classify(rt=None):

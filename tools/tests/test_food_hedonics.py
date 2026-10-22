@@ -28,14 +28,16 @@ def test_the_committed_file_is_in_sync(made):
 def test_the_plain_foods_are_the_dense_single_macro_unpaired_ones(made):
     _, t = made
     for ft in ("Base.Lard", "Base.OilVegetable", "Base.OilOlive", "Base.Sugar", "Base.SugarBrown", "Base.Flour2",
-               "Base.Rice", "Base.Pasta", "Base.Honey"):
+               "Base.Rice", "Base.Pasta", "Base.Honey", "Base.Butter", "Base.Margarine", "Base.MayonnaiseFull"):
         assert t[ft][0] is True, ft
     for ft in ("Base.Apple", "Base.Bread", "Base.Steak", "Base.TunaTinOpen", "Base.Chocolate", "Base.PeanutButter",
-               "Base.Crisps", "Base.Candycane", "Base.OatsRaw"):
+               "Base.Crisps", "Base.Candycane", "Base.OatsRaw", "Base.CandyPackage", "Base.HardCandies"):
         assert t[ft][0] is False, ft
-    # S2291's fat and sodium pairing takes the salted fats out (the ruling R1 reading, a concern of the Task 5 report)
-    for ft in ("Base.Butter", "Base.Margarine", "Base.MayonnaiseFull", "Base.Bacon", "Base.Pretzel"):
+    # S2291's pairings take a salted mixed composition out (ruling R1); a food at PAIR_SHARE or more of one macro stays
+    # plain whatever its salt (ruling T5-1)
+    for ft in ("Base.Bacon", "Base.BaconRashers", "Base.Pepperoni", "Base.Dip_Ranch", "Base.Pretzel"):
         assert t[ft][0] is False, ft
+    assert sum(1 for plain, _ in t.values() if plain) == 34
 
 
 def test_the_classes(made):

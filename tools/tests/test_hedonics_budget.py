@@ -1,4 +1,4 @@
-"""tools/hedonics_budget.py (Plan 19 Task 5; spec section B.3): the food hedonics budget oracle. Six reference diets over
+"""tools/hedonics_budget.py (Plan 19 Task 5; spec section B.3): the food hedonics budget oracle. Seven reference diets over
 14 days on the replay host, the mod's food mood against vanilla's model of the same eats, its bands as dials
 (hedonics.BUDGET_FAIR, hedonics.BUDGET_DEGEN). The diets keep the character alive and hydrated (rule R-1, through the
 mod's server pipeline); every band passes at the registry's dials and at each hedonics dial x0.8 and x1.2 (no cliff);
@@ -32,7 +32,7 @@ def test_every_band_passes_at_the_registry(oracle, rows):
     ver = oracle.verdicts(rows)
     assert all(ok for _, ok, _ in ver), [v for v in ver if not v[1]]
     kinds = {label: kind for label, kind, _ in rows}
-    assert kinds["mixed"] == "balanced" and kinds["canned"] == "reported"
+    assert kinds["mixed"] == "balanced" and kinds["canned"] == "reported" and kinds["butter fast"] == "reported"
     assert [kinds[d] for d in ("butter", "sugar", "one food")] == ["degenerate"] * 3
     assert [kinds["cooked (Cooking %d)" % lv] for lv in HB.COOKING_LEVELS] == ["cooked"] * 3
     fair, degen = oracle.bands()
@@ -44,6 +44,9 @@ def test_the_diets_are_meals_a_survivor_lives_on(oracle, rows):
         _, v = oracle.body(diet)                          # rule R-1 already asserted: alive, no drain, under the bound
         assert v["death"] is None and v["drain"] is None, diet
     for label, _, r in rows:
+        if label == "butter fast":                        # one meal a day: a fast by design, still alive and hydrated
+            assert 1500 <= r["kcal_day"] < 2200, label
+            continue
         assert 2200 <= r["kcal_day"] <= 3500, label
 
 
@@ -60,11 +63,11 @@ def test_the_bands_direction(oracle):
     assert ok("reported", 99, 99)
 
 
-def test_rule_r1_reaches_the_sugar_diet_and_spares_the_mixed_one(rows):
+def test_rule_r1_reaches_the_sugar_and_butter_diets_and_spares_the_mixed_one(rows):
     r = by(rows)
     assert r["sugar"]["floor"] > 0
     assert r["mixed"]["floor"] == 0                       # an occasional butter is vanilla's own sadness
-    assert r["butter"]["floor"] == 0                      # salted butter is a fat and sodium pairing (S2291; the report's concern)
+    assert r["butter"]["floor"] > 0  # salted butter is plain whatever its salt (ruling T5-1)
 
 
 def test_the_floor_ceiling_and_the_writer_cap(oracle, rows):
@@ -101,7 +104,7 @@ def test_the_mood_model_by_hand(oracle):
     eat = {"minute": 0, "key": "Base.Lard", "kcal": 100.0, "unhappy": 20.0, "bored": 0.0, "plain": True,
            "class": "fatty", "staple": False, "dish": False, "hunger": 0.5}
     lua = oracle.rt.table_from([oracle.rt.table_from(eat)])
-    vu, vb, mu, mb, fl, tg = oracle.rt.globals().NR_BUDGET.run(lua, 1, 120, 1.0, 0.0, 59.0)
+    vu, vb, mu, mb, fl, tg = oracle.rt.globals().NR_BUDGET.run(lua, 1, 120, 1.0, 0.0, 59.0, 0.0)
     want = sum(20.0 - (t + 1) / 60.0 for t in range(120)) / 120
     assert vu == pytest.approx(want) and vb == 0
     assert mu == pytest.approx(sum(20.0 * f - (t + 1) / 60.0 for t in range(120)) / 120)
@@ -121,7 +124,8 @@ def test_no_cliff_under_the_sweep(oracle):
                 if abs(r["du"] - base[label]["du"]) > 0.01 or abs(r["db"] - base[label]["db"]) > 0.01:
                     moved.add(dial)
     # the dials the reference diets read (the rest are flat by construction, each named in the Task 5 report)
-    for dial in ("hedonics.SHARE_MIN_KCAL", "hedonics.FLOOR_KNOTS.3.1", "hedonics.FLOOR_KNOTS.3.2", "hedonics.CLASS_W"):
+    for dial in ("hedonics.SHARE_MIN_KCAL", "hedonics.FLOOR_KNOTS.3.1", "hedonics.FLOOR_KNOTS.3.2", "hedonics.CLASS_W",
+                 "hedonics.PAIR_SHARE"):
         assert dial in moved, dial
     assert oracle.K.hedonics.CLASS_W == float(oracle.K.dials.get("hedonics.CLASS_W"))   # every dial restored
 
@@ -130,3 +134,34 @@ def test_the_tool_runs_and_names_its_bands(oracle, capsys):
     assert HB.main([], oracle) == 0
     out = capsys.readouterr().out
     assert "bands FAIR" in out and "DEGEN" in out and "FAIL" not in out
+
+
+def test_the_standing_background_by_hand(oracle):
+    # the upkeep moves each stat toward bg: no eats hold both sides at bg; one sad eat of +10 over bg 20 falls back by
+    # the upkeep (2 a game hour) and stops at bg, never under it
+    rt = oracle.rt
+    vu, vb, mu, mb, fl, tg = rt.globals().NR_BUDGET.run(rt.table_from([]), 0, 120, 2.0, 0.0, 59.0, 20.0)
+    assert (vu, vb, mu, mb) == (20.0, 20.0, 20.0, 20.0)
+    eat = {"minute": 0, "key": "Base.Lard", "kcal": 100.0, "unhappy": 10.0, "bored": 0.0, "plain": True,
+           "class": "fatty", "staple": False, "dish": False, "hunger": 0.0}
+    vu, _, _, _, _, _ = rt.globals().NR_BUDGET.run(rt.table_from([rt.table_from(eat)]), 1, 600, 2.0, 0.0, 59.0, 20.0)
+    assert vu == pytest.approx(sum(max(20.0, 30.0 - 2.0 * (t + 1) / 60.0) for t in range(600)) / 600)
+    toward = rt.globals().NR_BUDGET.toward
+    assert toward(5.0, 0.0, 1.0) == 4.0 and toward(0.5, 0.0, 1.0) == 0.0     # bg 0: the plain upkeep, max(0, v - up)
+    assert toward(10.0, 20.0, 1.0) == 11.0 and toward(19.5, 20.0, 1.0) == 20.0
+
+
+def test_the_sizing_arm_reads_the_cooking_level(oracle):
+    # over a standing background a dish's relief is no longer spent at the 0 clamp, so R2 shows: the level-0 cook stays
+    # inside FAIR (ruling T5-2), and skill helps (mutation: PREP's sign flipped, a skilled cook sadder, fails here)
+    rows, ver, fast = oracle.sizing()
+    assert all(ok for _, ok, _ in ver), [v for v in ver if not v[1]]
+    r = by(rows)
+    assert set(HB.SIZING_LEVELS) >= {0, 3, 10}
+    fair, _ = oracle.bands()
+    assert r["cooked (Cooking 0)"]["du"] <= fair
+    assert r["cooked (Cooking 10)"]["du"] <= r["cooked (Cooking 3)"]["du"] < r["cooked (Cooking 0)"]["du"]
+    assert r["cooked (Cooking 10)"]["du"] <= 0                       # the skilled cook is no sadder than vanilla
+    # R3 reaches the butter fast: Hungry at each eat, its sad butter scaled down
+    assert fast["allies"]["du"] < fast["off"]["du"]
+    assert oracle.K.hedonics.ALLIES_F == float(oracle.K.dials.get("hedonics.ALLIES_F"))   # restored

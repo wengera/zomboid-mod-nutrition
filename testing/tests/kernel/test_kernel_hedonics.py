@@ -28,9 +28,10 @@ def dv(name):
 
 def test_every_magnitude_is_a_hedonics_dial(host):
     h = H(host)
-    for name in ("PLAIN_SHARE", "PLAIN_KCAL", "FSOD_FAT", "FSOD_NA", "CSOD_CARB", "CSOD_NA", "FATTY_SHARE",
-                 "SHARE_MIN_KCAL", "ALLIES_F", "ALLIES_LEVEL", "CLASS_W", "BUDGET_FAIR", "BUDGET_DEGEN"):
+    for name in ("PLAIN_SHARE", "PLAIN_KCAL", "PAIR_SHARE", "FSOD_FAT", "FSOD_NA", "CSOD_CARB", "CSOD_NA",
+                 "FATTY_SHARE", "SHARE_MIN_KCAL", "ALLIES_F", "ALLIES_LEVEL", "CLASS_W", "BUDGET_FAIR", "BUDGET_DEGEN"):
         assert h[name] == dv(name), name
+    assert dv("ALLIES_LEVEL") == int(dv("ALLIES_LEVEL"))                # an index into K.hungerCurve.THRESHOLDS
     assert h.FLOOR_KNOTS[1][1] == dv("FLOOR_KNOTS.1.1") and h.FLOOR_KNOTS[1][2] == 0
     assert (h.FLOOR_KNOTS[3][1], h.FLOOR_KNOTS[3][2]) == (dv("FLOOR_KNOTS.3.1"), dv("FLOOR_KNOTS.3.2"))
     assert (h.PREP_KNOTS[1][1], h.PREP_KNOTS[2][2], h.PREP_KNOTS[3][1]) == (0, 1, 10)
@@ -82,7 +83,8 @@ def test_a_dilute_food_a_treat_and_no_energy_are_not_plain(host):
 
 def test_a_sodium_pairing_is_palatable_not_plain(host):
     # S2291's clusters: fat over 25 % of the energy with sodium at 0.30 % by weight, carbohydrate over 40 % with 0.20 %
-    assert plain(host, 0.85, 0.06, 81.1, na=0.643, kcal100=717, unhappy=20) is False    # salted butter
+    assert plain(host, 37, 1.4, 42, na=0.751, kcal100=393) is False  # bacon: fat 0.86, a pairing
+    assert plain(host, 1, 5, 34, na=0.9, kcal100=430) is False  # ranch: fat 0.93, a pairing
     assert plain(host, 0, 0, 100, na=0.29, kcal100=884) is True                         # just under the fat pairing
     assert plain(host, 10, 80, 3, na=1.24, kcal100=384) is False                        # salted pretzels
     assert plain(host, 10, 80, 3, na=0.19, kcal100=384) is True                         # just under the carb pairing
@@ -98,6 +100,31 @@ def test_the_taste_class_by_precedence(host):
     assert tc(7, 60, 30, False, True) == "sweet"                       # chocolate: fat under FATTY_SHARE
     assert tc(25, 30, 10, False, False) == "savoury"
     assert tc(0, 0, 0, False, False) == "savoury"                      # no energy reads the default class
+
+
+def test_a_food_almost_all_one_macro_is_plain_whatever_its_salt(host):
+    # ruling T5-1, the stick of butter is plain: a pairing exempts a food only under PAIR_SHARE
+    # mutation: the PAIR_SHARE test dropped (salted butter paired again) fails here
+    assert plain(host, 0.85, 0.06, 81.1, na=0.643, kcal100=717, unhappy=20) is True     # salted butter
+    assert plain(host, 1, 0.6, 75, na=1.6, kcal100=680, unhappy=5) is True              # mayonnaise
+    pair = dv("PAIR_SHARE")
+    assert dv("PLAIN_SHARE") <= pair <= 1
+    l = 100.0
+    rest = 9 * l * (1 - pair) / pair / 4                                # protein grams putting fat at PAIR_SHARE
+    assert plain(host, rest, 0, l, na=1.0, kcal100=700) is True         # at PAIR_SHARE: plain whatever its salt
+    assert plain(host, rest * 1.01, 0, l, na=1.0, kcal100=700) is False # just under it: the pairing holds
+
+
+def test_a_dish_takes_its_main_ingredients_class(host):
+    # R4: a stew's class is its main ingredient's, the ingredient of most kcal; the first on a tie; nil for none
+    def dc(classes, kcals):
+        return H(host).dishClass(host.rt.table_from(classes), host.rt.table_from(kcals))
+    assert dc(["savoury", "staple", "fatty"], [200, 350, 120]) == "staple"
+    assert dc(["sweet", "fatty"], [150, 150]) == "sweet"                 # a tie keeps the first
+    assert dc(["fatty", "savoury"], [0, 80]) == "savoury"
+    assert dc(["fatty", "savoury"], [float("nan"), 80]) == "savoury"     # a kcal that is no finite number never wins
+    assert dc([], []) is None
+    assert dc(["fatty"], [0]) is None                                    # no ingredient with kcal: no class
 
 
 # --- R1: the ring, the share and the floor ----------------------------------------------------------------------------
@@ -280,8 +307,12 @@ def test_the_record_shape_reaches_the_store_and_the_resume(host):
     assert "hedonics" in list(K.store.INPUTS.values())
     rec = host.table({"lastSeen": AGE})
     rec.hedonics = ring(host, AGE)
+    H(host).book(rec.hedonics, AGE, 3000, True)
+    share = H(host).share(rec.hedonics)
     K.resume.resume(rec, AGE + 10.5)
     assert rec.hedonics.s == AGE + 10.5                                  # moved past the absence: no hour rolls off
+    assert H(host).share(rec.hedonics) == share                          # the slots survive the gap
+    assert H(host).target(rec.hedonics, AGE + 10.5) == pytest.approx(H(host).floorOf(1.0))
 
 
 def test_the_kernel_reads_no_java_and_states_rule_6():

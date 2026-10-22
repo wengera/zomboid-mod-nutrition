@@ -1,5 +1,5 @@
 """The food hedonics budget oracle (Plan 19 Task 5; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md
-section B.3): six reference diets over 14 days, the mod's food mood against vanilla's model of the same eats.
+section B.3): seven reference diets over 14 days, the mod's food mood against vanilla's model of the same eats.
 
     python tools/hedonics_budget.py            the table: each diet's mean UNHAPPINESS and BOREDOM, mod and vanilla
     python tools/hedonics_budget.py --sweep    the table, then each hedonics dial at x0.8 and x1.2
@@ -10,8 +10,9 @@ Exit 1 when a band fails. It runs no game and is read-only.
 The diets (DIETS): mixed (a four-day rotation of plates of ready foods, a little butter at breakfast); cooked (six
 evolved dishes over two days, two distinct ingredients and a salt each); canned (a three-day rotation of nine open
 cans); butter (three quarters of a stick of butter a day, a quarter at each meal beside one food of a mixed plate); sugar (seven
-bags of sugar a day); one food (five open cans of bolognese a day). Meals at 08:00, 13:00 and 20:00, water as the
-guide's (mod_guide_series.autodrops), from a fresh record at 07:00.
+bags of sugar a day); one food (five open cans of bolognese a day); butter fast (one meal a day at 08:00, half a stick
+of butter beside the first food of a mixed breakfast, eaten Hungry: the arm that reaches R3, reported with no band).
+Meals at 08:00, 13:00 and 20:00, water as the guide's (mod_guide_series.autodrops), from a fresh record at 07:00.
 
 The two sides eat the same eats (a ruling of this oracle: the reference diet is a fixed schedule, so the comparison is
 of the mood rules, not of vanilla's hunger, which would have a vanilla survivor eat three and a half sticks of butter
@@ -21,7 +22,10 @@ a day for its HungerChange -24):
   two distinct ingredients and -2 for its salt, #0298 and #4119's spice term). Vanilla never lowers UNHAPPINESS
   passively (#3033), so a stat fed only by food would sum every sad eat for ever and pin at 100 on any diet with a sad
   food in it; the oracle gives both sides the same upkeep, UPKEEP_H mood points a game hour off both stats (the
-  player's own reading, rest and company), a game choice of the oracle, swept in the report. Vanilla's idle boredom
+  player's own reading, rest and company), a game choice of the oracle, swept in the report. The upkeep moves each
+  stat toward a standing background bg (0 in the table: the plain upkeep); the sizing arm (Oracle.sizing, printed by
+  --sweep) stands both sides at BG_U with BG_UPKEEP_H, the stat a survivor carries from the rest of play, so a dish's
+  relief (R2) is no longer spent at the 0 clamp and the Cooking level shows. Vanilla's idle boredom
   and its BORED-to-unhappy rise are left out on both sides: they are the same whatever is eaten (inventory 1.8).
 - mod: the same adds after R2 (K.hedonics.prep at COOKING_LEVEL on a dish) and R3 (K.hedonics.allies at the HUNGER
   the mod's own server pipeline wrote the minute before the eat); each eat booked into monotony (K.monotony.record,
@@ -57,18 +61,22 @@ MEAL_MIN = (60, 360, 780)            # 08:00, 13:00 and 20:00 from world age 0 a
 UPKEEP_H = 1.0                       # mood points a game hour off both stats on both sides: the oracle's game choice
 COOKING_LEVEL = 0                    # the stated Cooking level of the checks' cooked rows: a fresh survivor's
 COOKING_LEVELS = (0, 5, 10)          # the cooked diet is checked at each
+SIZING_LEVELS = tuple(sorted(set(COOKING_LEVELS) | {0, 3, 10}))   # the sizing arm's: PREP_KNOTS' three knots too
+BG_U = 20.0                          # the sizing arm's standing background on both stats: the oracle's game choice
+BG_UPKEEP_H = 2.0                    # the sizing arm's upkeep toward it, mood points a game hour: the oracle's game choice
 DISH_UNHAPPY = -12                   # two distinct ingredients at -5 each (#0298) and a salt at -2 (#4119: 200 x use 0.01)
 
 BALANCED = ("mixed",)
 COOKED = ("cooked",)
 DEGENERATE = ("butter", "sugar", "one food")
-REPORTED = ("canned",)               # neither balanced nor degenerate (a canned diet repeats its few dense cans): no band
+REPORTED = ("canned", "butter fast")  # neither balanced nor degenerate (a canned diet repeats its few dense cans; the
+                                      # butter fast is R3's arm): no band
 
 # the sweep: each game-choice hedonics dial, set on the kernel's field at x0.8 and x1.2 (ALLIES_LEVEL is a moodle
 # level, swept one level down and up instead); S2291's thresholds are a definition and are not swept
 SWEEP = ("hedonics.PLAIN_SHARE", "hedonics.PLAIN_KCAL", "hedonics.FATTY_SHARE", "hedonics.SHARE_MIN_KCAL",
          "hedonics.FLOOR_KNOTS.1.1", "hedonics.FLOOR_KNOTS.2.1", "hedonics.FLOOR_KNOTS.2.2", "hedonics.FLOOR_KNOTS.3.1",
-         "hedonics.FLOOR_KNOTS.3.2", "hedonics.PREP_KNOTS.1.2", "hedonics.PREP_KNOTS.2.1", "hedonics.PREP_KNOTS.3.2",
+         "hedonics.FLOOR_KNOTS.3.2", "hedonics.PAIR_SHARE", "hedonics.PREP_KNOTS.1.2", "hedonics.PREP_KNOTS.2.1", "hedonics.PREP_KNOTS.3.2",
          "hedonics.ALLIES_F", "hedonics.ALLIES_LEVEL", "hedonics.CLASS_W")
 
 
@@ -77,9 +85,9 @@ def P(t, f=1.0):
     return ("item", t, f)
 
 
-def DISH(t, main, *portions):
-    """An evolved dish of result type t eaten whole: its ingredient portions, main the one whose class it takes."""
-    return ("dish", t, main, portions)
+def DISH(t, *portions):
+    """An evolved dish of result type t eaten whole: its ingredient portions (its class is K.hedonics.dishClass's)."""
+    return ("dish", t, portions)
 
 
 MIXED_DAYS = (
@@ -101,13 +109,12 @@ MIXED_DAYS = (
 )
 
 COOKED_DAYS = (
-    (DISH("Base.Oatmeal", "Base.PeanutButter", P("Base.Oatmeal"), P("Base.Banana"), P("Base.PeanutButter", 0.15)),
-     DISH("Base.Sandwich", "Base.Salami", P("Base.Bread", 0.5), P("Base.Salami"), P("Base.Cheese")),
-     DISH("Base.PotOfStew", "Base.Ham", P("Base.Ham", 0.6), P("Base.Cabbage", 0.5))),
-    (DISH("Base.PancakesRecipe", "Base.Banana", P("Base.Pancakes"), P("Base.Pancakes"), P("Base.Banana"),
-          P("Base.Yoghurt")),
-     DISH("Base.PotOfSoupRecipe", "Base.Pork", P("Base.Pork"), P("Base.CannedCornOpen")),
-     DISH("Base.PanFriedVegetables", "Base.Rice", P("Base.Rice", 0.25), P("Base.Chicken"))),
+    (DISH("Base.Oatmeal", P("Base.Oatmeal"), P("Base.Banana"), P("Base.PeanutButter", 0.15)),
+     DISH("Base.Sandwich", P("Base.Bread", 0.5), P("Base.Salami"), P("Base.Cheese")),
+     DISH("Base.PotOfStew", P("Base.Ham", 0.6), P("Base.Cabbage", 0.5))),
+    (DISH("Base.PancakesRecipe", P("Base.Pancakes"), P("Base.Pancakes"), P("Base.Banana"), P("Base.Yoghurt")),
+     DISH("Base.PotOfSoupRecipe", P("Base.Pork"), P("Base.CannedCornOpen")),
+     DISH("Base.PanFriedVegetables", P("Base.Rice", 0.25), P("Base.Chicken"))),
 )
 
 CANNED_DAYS = (
@@ -130,19 +137,22 @@ SUGAR_DAYS = (((P("Base.Sugar"), P("Base.Sugar")), (P("Base.Sugar"), P("Base.Sug
 ONE_DAYS = (((P("Base.CannedBologneseOpen"),), (P("Base.CannedBologneseOpen"), P("Base.CannedBologneseOpen")),
              (P("Base.CannedBologneseOpen"), P("Base.CannedBologneseOpen"))),)
 
+FAST_DAYS = tuple(((P("Base.Butter", 0.5),) + day[0][:1],) for day in MIXED_DAYS)
+
 DIETS = {"mixed": MIXED_DAYS, "cooked": COOKED_DAYS, "canned": CANNED_DAYS, "butter": BUTTER_DAYS,
-         "sugar": SUGAR_DAYS, "one food": ONE_DAYS}
+         "sugar": SUGAR_DAYS, "one food": ONE_DAYS, "butter fast": FAST_DAYS}
 
 ORACLE_LUA = r"""
 NR_BUDGET = {}
 -- One diet's 14 days on both sides. eats is an array of { minute, key, kcal, unhappy, bored, plain, class, staple,
 -- dish, hunger } sorted by minute. Returns the four means: vanilla UNHAPPINESS, vanilla BOREDOM, mod UNHAPPINESS, mod
--- BOREDOM, and the mod's largest plain-energy floor and largest composed UNHAPPINESS target.
-function NR_BUDGET.run(eats, n, minutes, upkeepH, level, hi)
+-- BOREDOM, and the mod's largest plain-energy floor and largest composed UNHAPPINESS target. Every stat starts at the
+-- standing background bg and its upkeep moves it toward bg.
+function NR_BUDGET.run(eats, n, minutes, upkeepH, level, hi, bg)
     local K = NutritionRevamp.kernel
     local m = K.monotony.new()
     local h = K.hedonics.new(0)
-    local vU, vB, U, B = 0, 0, 0, 0
+    local vU, vB, U, B = bg, bg, bg, bg
     local lastU, lastB = 0, 0
     local sVU, sVB, sU, sB = 0, 0, 0, 0
     local maxFloor, maxTarget = 0, 0
@@ -168,10 +178,10 @@ function NR_BUDGET.run(eats, n, minutes, upkeepH, level, hi)
             K.hedonics.book(h, ageH, e.kcal, e.plain)
             j = j + 1
         end
-        vU = K.max(0, vU - up)
-        vB = K.max(0, vB - up)
-        U = K.max(0, U - up)
-        B = K.max(0, B - up)
+        vU = NR_BUDGET.toward(vU, bg, up)
+        vB = NR_BUDGET.toward(vB, bg, up)
+        U = NR_BUDGET.toward(U, bg, up)
+        B = NR_BUDGET.toward(B, bg, up)
         local mu, mb = K.monotony.target(m, ageH)
         local pf = K.hedonics.target(h, ageH)
         if pf > maxFloor then maxFloor = pf end
@@ -190,6 +200,14 @@ function NR_BUDGET.run(eats, n, minutes, upkeepH, level, hi)
         sB = sB + B
     end
     return sVU / minutes, sVB / minutes, sU / minutes, sB / minutes, maxFloor, maxTarget
+end
+
+-- The upkeep: v moved toward the standing background bg by at most up (bg 0 is the plain upkeep, max(0, v - up)).
+function NR_BUDGET.toward(v, bg, up)
+    if v > bg then
+        return math.max(bg, v - up)
+    end
+    return math.min(bg, v + up)
 end
 """
 
@@ -230,6 +248,11 @@ class Oracle:
         plain = bool(self.K.hedonics.isPlain(p, c, l, na, kcal100, unhappy))
         return plain, str(self.K.hedonics.tasteClass(p, c, l, staple, FH.sweet(item, food))), staple
 
+    def dish_class(self, portions, kcals):
+        """R4: a dish's taste class, K.hedonics.dishClass over its ingredients' classes and landed kcal."""
+        classes = self.rt.table_from([self.classify(pt)[1] for _, pt, _ in portions])
+        return str(self.K.hedonics.dishClass(classes, self.rt.table_from(kcals)))
+
     def mood(self, t, f):
         item = self.items.get(t, {})
         return float(item.get("unhappy_change") or 0) * f, float(item.get("boredom_change") or 0) * f
@@ -250,7 +273,7 @@ class Oracle:
         import mod_guide_series as S
         ev = [S.FRESH]
         for minute, entry in self.schedule(diet):
-            portions = entry[3] if entry[0] == "dish" else (entry,)
+            portions = entry[2] if entry[0] == "dish" else (entry,)
             for _, t, f in portions:
                 e = self.eat_event(minute, t)
                 e["frac"] = f
@@ -273,11 +296,11 @@ class Oracle:
         for minute, entry in self.schedule(diet):
             h = hunger[minute - 1] if minute > 0 else 0.0
             if entry[0] == "dish":
-                _, t, main, portions = entry
-                kcal = sum(self.kcal(pt, f) for _, pt, f in portions)
-                out.append({"minute": minute, "key": t, "kcal": kcal, "unhappy": float(DISH_UNHAPPY), "bored": 0.0,
-                            "plain": False, "class": self.classify(main)[1], "staple": False, "dish": True,
-                            "hunger": h})
+                _, t, portions = entry
+                kcals = [self.kcal(pt, f) for _, pt, f in portions]
+                out.append({"minute": minute, "key": t, "kcal": sum(kcals), "unhappy": float(DISH_UNHAPPY),
+                            "bored": 0.0, "plain": False, "class": self.dish_class(portions, kcals), "staple": False,
+                            "dish": True, "hunger": h})
                 continue
             _, t, f = entry
             plain, cls, staple = self.classify(t)
@@ -288,12 +311,13 @@ class Oracle:
 
     # ---- the run -----------------------------------------------------------------------------------------------------
 
-    def run(self, diet, level=COOKING_LEVEL, upkeep=UPKEEP_H):
+    def run(self, diet, level=COOKING_LEVEL, upkeep=UPKEEP_H, bg=0.0):
         """One diet's means: {vu, vb, mu, mb, du, db, floor, target, kcal_day}."""
         eats = self.eats(diet)
         lua = self.rt.table_from([self.rt.table_from(e) for e in eats])
         hi = float(self.K.dials.get("writer.UNHAPPY_HI"))
-        vu, vb, mu, mb, fl, tg = self.rt.globals().NR_BUDGET.run(lua, len(eats), MINUTES, float(upkeep), float(level), hi)
+        vu, vb, mu, mb, fl, tg = self.rt.globals().NR_BUDGET.run(lua, len(eats), MINUTES, float(upkeep), float(level), hi,
+                                                                 float(bg))
         return {"vu": vu, "vb": vb, "mu": mu, "mb": mb, "du": mu - vu, "db": mb - vb, "floor": fl, "target": tg,
                 "kcal_day": sum(e["kcal"] for e in eats) / DAYS}
 
@@ -308,6 +332,22 @@ class Oracle:
             kind = "balanced" if diet in BALANCED else ("reported" if diet in REPORTED else "degenerate")
             out.append((diet, kind, self.run(diet, COOKING_LEVEL, upkeep)))
         return out
+
+    def sizing(self):
+        """The sizing arm: (rows, verdicts, fast). rows and verdicts: the cooked diet at each of SIZING_LEVELS and the
+        mixed diet, both sides standing at BG_U with BG_UPKEEP_H, with FAIR applied; fast: the butter fast's row at
+        the registry's ALLIES_F and at 1.0 (R3 off), {"allies": row, "off": row}."""
+        rows = [("cooked (Cooking %d)" % lv, "cooked", self.run("cooked", lv, BG_UPKEEP_H, BG_U))
+                for lv in SIZING_LEVELS]
+        rows.append(("mixed", "balanced", self.run("mixed", COOKING_LEVEL, BG_UPKEEP_H, BG_U)))
+        f0 = self.K.hedonics.ALLIES_F
+        fast = {"allies": self.run("butter fast")}
+        try:
+            self.K.hedonics.ALLIES_F = 1.0
+            fast["off"] = self.run("butter fast")
+        finally:
+            self.K.hedonics.ALLIES_F = f0
+        return rows, self.verdicts(rows), fast
 
     def bands(self):
         return float(self.K.hedonics.BUDGET_FAIR), float(self.K.hedonics.BUDGET_DEGEN)
@@ -392,6 +432,14 @@ def main(argv=None, oracle=None):
             print("\nupkeep %.2f a game hour" % up)
             print(table_text(r2, v2))
             doc["upkeep"][str(up)] = [{"diet": l, "kind": k, **r} for l, k, r in r2]
+        sz, szv, fast = o.sizing()
+        print("\nsizing: both sides standing at %.2f, upkeep %.2f a game hour toward it" % (BG_U, BG_UPKEEP_H))
+        print(table_text(sz, szv))
+        print("butter fast dU %+.2f at ALLIES_F %.2f, %+.2f at 1.00 (R3 off)"
+              % (fast["allies"]["du"], float(o.K.hedonics.ALLIES_F), fast["off"]["du"]))
+        doc["sizing"] = {"bg": BG_U, "upkeep": BG_UPKEEP_H, "rows": [{"diet": l, "kind": k, **r} for l, k, r in sz],
+                         "verdicts": [{"diet": l, "ok": ok, "why": w} for l, ok, w in szv],
+                         "butter fast": fast}
         sw = o.sweep()
         doc["sweep"] = {}
         print("\nsweep: each diet's dU (dB for the fair rows in brackets); * a failed band")
@@ -401,7 +449,7 @@ def main(argv=None, oracle=None):
                 v2 = o.verdicts(r2)
                 cells = []
                 for (label, kind, r), (_, ok, _) in zip(r2, v2):
-                    cell = "%s %+.2f" % (label.split(" (")[0][:6] + ("" if kind != "cooked" else label[-3:-1].strip()),
+                    cell = "%s %+.2f" % (label.split(" (")[0] + ("" if kind != "cooked" else label[-3:-1].strip()),
                                          r["du"])
                     if kind != "degenerate":
                         cell += " (%+.2f)" % r["db"]

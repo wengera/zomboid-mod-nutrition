@@ -72,7 +72,8 @@ ASCENDING = (("strength.DEFAULTS.fp_knots.1.1", "strength.DEFAULTS.fp_knots.2.1"
              ("view.OVERFULL_AT.1", "view.OVERFULL_AT.2", "view.OVERFULL_AT.3"),
              ("view.FAT_CUTS_MALE.1", "view.FAT_CUTS_MALE.2", "view.FAT_CUTS_MALE.3", "view.FAT_CUTS_MALE.4"),  # K.view.heldRung
              ("view.FAT_CUTS_FEMALE.1", "view.FAT_CUTS_FEMALE.2", "view.FAT_CUTS_FEMALE.3", "view.FAT_CUTS_FEMALE.4"),
-             ("hedonics.FLOOR_KNOTS.1.1", "hedonics.FLOOR_KNOTS.2.1", "hedonics.FLOOR_KNOTS.3.1"))           # K.interp divides by the gaps
+             ("hedonics.FLOOR_KNOTS.1.1", "hedonics.FLOOR_KNOTS.2.1", "hedonics.FLOOR_KNOTS.3.1"),           # K.interp divides by the gaps
+             ("hedonics.PLAIN_SHARE", "hedonics.PAIR_SHARE"))  # K.hedonics.isPlain: plain at PLAIN_SHARE, plain whatever its salt at PAIR_SHARE
 SCIENCE_ID = re.compile(r"^S\d{4}$")
 CLAIM_ID = re.compile(r"^#\d{4}$")
 ROW_RX = re.compile(r"^D\['([^']+)'\] = \{")

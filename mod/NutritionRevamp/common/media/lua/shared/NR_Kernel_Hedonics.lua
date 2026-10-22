@@ -5,7 +5,9 @@
 -- NR_Server_Writer's (Task 6).
 --  R1 plain energy (the stick of butter): a plain energy food is energy-dense (PLAIN_KCAL a 100 g or more), takes at
 --     least PLAIN_SHARE of its macro energy from one macro, is no vanilla treat (UnhappyChange under 0), and falls in
---     none of S2291's sodium pairings (fat and sodium, carbohydrate and sodium); a pairing is palatable (S2291, S2289).
+--     none of S2291's sodium pairings (fat and sodium, carbohydrate and sodium), unless one macro gives PAIR_SHARE of
+--     its energy or more: a food almost all one macro is eaten as plain energy whatever its salt (ruling T5-1: salted
+--     butter, margarine, mayonnaise); a pairing is palatable (S2291, S2289).
 --     The classification is a generated table (tools/food_hedonics.py, NR_Data_Hedonics.lua) from the nutrient data,
 --     read through K.hedonics.isPlain so the generator and the budget oracle classify by the same rule. Each eat books
 --     its kcal, and its plain kcal, into a ring of RING_N online hours (K.hedonics.book); the ring's plain share over
@@ -17,7 +19,8 @@
 --  R3 alliesthesia: a food's sad UnhappyChange (the positive side) is scaled by ALLIES_F while the mod's HUNGER is at
 --     the ALLIES_LEVEL moodle level or above (K.hedonics.allies); the happy side is never scaled.
 --  R4 taste class: monotony also books a taste class (sweet, savoury, fatty, staple) beside the item type, weighted
---     CLASS_W (K.monotony.record's class argument; S2294 the key); a stew's class is its main ingredient's.
+--     CLASS_W (K.monotony.record's class argument; S2294 the key); a stew's class is its main ingredient's
+--     (K.hedonics.dishClass).
 -- The state record.hedonics = { s = the world age the current hour began, i = its slot, p = { plain kcal a slot },
 -- a = { all kcal a slot } }: the slots are rotated by the online clock (s is a K.resume stamp, so the resume moves it
 -- past an absence and no offline hour rolls one off), at the eat and in the writer minute; nothing is allocated after
@@ -28,6 +31,7 @@ K.hedonics = {}
 -- R1: the classifier's thresholds (tools/food_hedonics.py writes the table from them).
 K.hedonics.PLAIN_SHARE = K.dials.get("hedonics.PLAIN_SHARE")
 K.hedonics.PLAIN_KCAL = K.dials.get("hedonics.PLAIN_KCAL")
+K.hedonics.PAIR_SHARE = K.dials.get("hedonics.PAIR_SHARE")
 K.hedonics.FSOD_FAT = K.dials.get("hedonics.FSOD_FAT")
 K.hedonics.FSOD_NA = K.dials.get("hedonics.FSOD_NA")
 K.hedonics.CSOD_CARB = K.dials.get("hedonics.CSOD_CARB")
@@ -67,7 +71,7 @@ K.hedonics.CLASSES = { sweet = "@sweet", savoury = "@savoury", fatty = "@fatty",
 -- Whether a food's macro split falls in one of S2291's sodium pairings: fat over FSOD_FAT of its energy with sodium at
 -- FSOD_NA % by weight or more, or carbohydrate over CSOD_CARB with sodium at CSOD_NA % or more. S2291's third pairing,
 -- fat and simple sugars (each over 20 % of the energy), is never tested: the data carries no sugars, and a food at
--- PLAIN_SHARE 0.8 or more from one macro cannot meet it.
+-- PLAIN_SHARE 0.8 or more from one macro cannot meet it. isPlain asks it only under PAIR_SHARE.
 function K.hedonics.paired(fatShare, carbShare, naPct)
     if fatShare > K.hedonics.FSOD_FAT and naPct >= K.hedonics.FSOD_NA then
         return true
@@ -86,8 +90,12 @@ function K.hedonics.isPlain(p, c, l, naPct, kcal100, unhappy)
     if not (e > 0) or kcal100 < K.hedonics.PLAIN_KCAL or unhappy < 0 then
         return false
     end
-    if K.max(ep, K.max(ec, el)) < K.hedonics.PLAIN_SHARE * e then
+    local top = K.max(ep, K.max(ec, el))
+    if top < K.hedonics.PLAIN_SHARE * e then
         return false
+    end
+    if top >= K.hedonics.PAIR_SHARE * e then
+        return true
     end
     return not K.hedonics.paired(el / e, ec / e, naPct)
 end
@@ -241,4 +249,25 @@ function K.hedonics.classKey(class)
         return nil
     end
     return K.hedonics.CLASSES[class]
+end
+
+-- R4: a dish's taste class, its main ingredient's: the class of the ingredient of most kcal (the first on a tie); nil
+-- for none. classes and kcals are parallel lists, one entry an ingredient.
+function K.hedonics.dishClass(classes, kcals)
+    local best = nil
+    local top = 0
+    for k = 1, #classes do
+        best, top = K.hedonics.heavier(best, top, classes[k], kcals[k])
+    end
+    return best
+end
+
+-- One ingredient against the heaviest so far (the dishClass loop body, kept out of the loop so the line-granular
+-- coverage gate sees both outcomes): the ingredient's class and kcal when its kcal is a finite number over top, else
+-- best and top as they were.
+function K.hedonics.heavier(best, top, class, kcal)
+    if K.finite(kcal) and kcal > top then
+        return class, kcal
+    end
+    return best, top
 end
