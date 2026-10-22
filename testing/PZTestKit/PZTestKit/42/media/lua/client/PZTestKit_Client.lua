@@ -1622,3 +1622,121 @@ TK.register("tooltip.measure", function(argv)
     out.ok = true
     return out
 end)
+
+-- ---- Plan 19 Task 7: the evolved-recipe add, the item rename and the inventory ids (client) ---------------------
+-- The hedonics session x501 drives vanilla's own add-ingredient action and vanilla's own food rename from the admin
+-- client, so the server completes each add (ISAddItemInRecipe:complete, the mod's R2 seat) and receives each rename's
+-- syncItemFields, as a player's menu would make them. An item is named by `#<id>` (the local inventory's
+-- getItemById, then a flat scan of its items by getID) or by full type (getFirstTypeRecurse, the first).
+local function x50Item(arg)
+    local p = getPlayer()
+    if p == nil then return nil, "no local player" end
+    local inv = p:getInventory()
+    local want = string.match(tostring(arg or ""), "^#(%d+)$")
+    if want == nil then
+        local okF, it = TK.call(inv, "getFirstTypeRecurse", tostring(arg))
+        if okF and it ~= nil then return it, nil end
+        return nil, "no item " .. tostring(arg)
+    end
+    local okI, byId = pcall(function() return inv:getItemById(tonumber(want)) end)
+    if okI and byId ~= nil then return byId, nil end
+    local _, items = TK.call(inv, "getItems")
+    if items ~= nil then
+        for i = 0, items:size() - 1 do
+            local it = items:get(i)
+            local _, iid = TK.call(it, "getID")
+            if tostring(iid) == want then return it, nil end
+        end
+    end
+    return nil, "no item #" .. want
+end
+
+-- One item's identity row: id, full type, name and whether the name is custom.
+local function x50Row(it)
+    local _, iid = TK.call(it, "getID")
+    local _, full = TK.call(it, "getFullType")
+    local _, name = TK.call(it, "getName")
+    local _, custom = TK.call(it, "isCustomName")
+    return { id = iid, fullType = full, name = name, custom = custom == true }
+end
+
+-- @args <fullType>
+-- @reply {ok, side, fullType, n, items} | {ok, side, fullType, reason} | string
+-- @purpose Test-only: lists every item of a full type in the local player's inventory, bags included (getAllTypeRecurse), each as {id, fullType, name, custom}; items is {} when there is none.
+TK.register("inv.ids", function(argv)
+    if argv[1] == nil then return "usage: inv.ids <fullType>" end
+    local p = getPlayer()
+    if p == nil then return { ok = false, side = TK.side, fullType = argv[1], reason = "no local player" } end
+    local okL, list = TK.call(p:getInventory(), "getAllTypeRecurse", argv[1])
+    if not okL or list == nil then
+        return { ok = false, side = TK.side, fullType = argv[1], reason = "no ItemContainer:getAllTypeRecurse(String)" }
+    end
+    local out = { ok = true, side = TK.side, fullType = argv[1], items = {} }
+    for i = 0, list:size() - 1 do
+        out.items[#out.items + 1] = x50Row(list:get(i))
+    end
+    out.n = #out.items
+    return out
+end)
+
+-- The real multiplayer route of an ingredient add: vanilla's ISInventoryPaneContextMenu.onAddItemInEvoRecipe queues
+-- ISAddItemInRecipe:new(player, recipe, baseItem, usedItem) (ISInventoryPaneContextMenu.lua:2389) once both items are
+-- in the player's inventory, and the server runs the action's complete (#2658). This queues the same action on the
+-- same four arguments, after the usability check the menu makes (isItemUsableInRecipe, the client's isValidStart);
+-- the add itself is asynchronous, so a driver polls the server for it. The recipe is found by findEvolvedRecipe.
+-- @args <recipeName> <#id|baseFullType> <#id|ingredientFullType>
+-- @reply {ok, queued, recipe, base, used, usable, maxTime} | {ok, queued, recipe, reason [, base] [, used] [, usable]} | string
+-- @purpose Test-only: queues vanilla's ISAddItemInRecipe on a base item and an ingredient of the local inventory (by #id or full type) after the menu's usability check, so the server completes the add; replies both items' identity rows.
+TK.register("recipe.add", function(argv)
+    if argv[1] == nil or argv[2] == nil or argv[3] == nil then
+        return "usage: recipe.add <recipeName> <#id|baseFullType> <#id|ingredientFullType>"
+    end
+    local out = { ok = false, queued = false, recipe = argv[1] }
+    local p = getPlayer()
+    if p == nil then out.reason = "no local player"; return out end
+    if ISAddItemInRecipe == nil or ISTimedActionQueue == nil then
+        out.reason = "no ISAddItemInRecipe/ISTimedActionQueue"
+        return out
+    end
+    local recipe, err = findEvolvedRecipe(argv[1])
+    if recipe == nil then out.reason = err; return out end
+    local base, e1 = x50Item(argv[2])
+    if base == nil then out.reason = e1; return out end
+    out.base = x50Row(base)
+    local used, e2 = x50Item(argv[3])
+    if used == nil then out.reason = e2; return out end
+    out.used = x50Row(used)
+    local okU, usable = TK.call(recipe, "isItemUsableInRecipe", p, base, used:getID())
+    if not okU then out.reason = "no EvolvedRecipe:isItemUsableInRecipe"; return out end
+    out.usable = usable == true
+    if not out.usable then out.reason = "the menu would not offer this ingredient for this base"; return out end
+    local act = ISAddItemInRecipe:new(p, recipe, base, used)
+    out.maxTime = act.maxTime
+    ISTimedActionQueue.add(act)
+    out.queued = true
+    out.ok = true
+    return out
+end)
+
+-- Vanilla's rename of a food (ISInventoryPaneContextMenu:onRenameFoodClick, ISInventoryPaneContextMenu.lua:2719-2727):
+-- setName, setCustomName(true), then syncItemFields from the client, whose SyncItemFieldsPacket the server applies
+-- (its processModData wipes the server item's modData and copies the client's keys, #1241). The name is one word
+-- (the bus splits on spaces) and at most 28 characters, under vanilla's MAXIMUM_RENAME_LENGTH.
+-- @args <#id|fullType> <name>
+-- @reply {ok, item, before, after, synced [, syncError]} | {ok, reason} | string
+-- @purpose Test-only: renames a local inventory food as vanilla's rename dialog does (setName, setCustomName true, syncItemFields from the client), replying the item's identity row before and after.
+TK.register("item.rename", function(argv)
+    if argv[1] == nil or argv[2] == nil then return "usage: item.rename <#id|fullType> <name>" end
+    if string.len(argv[2]) > 28 then return { ok = false, reason = "a name over 28 characters" } end
+    local it, err = x50Item(argv[1])
+    if it == nil then return { ok = false, reason = err } end
+    local out = { ok = true, before = x50Row(it) }
+    TK.call(it, "setName", argv[2])
+    TK.call(it, "setCustomName", true)
+    local ran, e = pcall(function() it:syncItemFields() end)
+    out.synced = ran
+    if not ran then out.syncError = tostring(e) end
+    out.after = x50Row(it)
+    out.item = out.after.id
+    return out
+end)
