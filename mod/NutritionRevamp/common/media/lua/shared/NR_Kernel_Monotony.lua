@@ -23,12 +23,12 @@
 local K = NutritionRevamp.kernel
 K.monotony = {}
 
-K.monotony.WINDOW_H = 168 -- game choice, Plan 11e (ruling 11e-1): the 7 game days a type is remembered, measured from the type's latest eat; a type eaten daily keeps its decayed older eats (ruling T3-4); S1592's daily-against-weekly contrast and S1593's monotony week set the scale, not the size; since Plan 11f Task 9b fix 1 a type past it is forgotten only once its decayed count is one portion or less, where its level is already 0, so the window bounds the record without a step in the floor
-K.monotony.HALF_LIFE_H = 72 -- game choice, Plan 11e (ruling 11e-1): the count's 3-day half-life inside the window, so a type left uneaten for days stops counting (S1592: spacing the presentations slows habituation)
-K.monotony.SLOPE = 4.3 -- game choice, Plan 11e (ruling 11e-1): the level per recent portion past the first, sized so right after the fifth meal-sized eat of one type at one a day the level reads 4.3 x (2^-1/3 + 2^-2/3 + 2^-1 + 2^-4/3) = 9.98 on each stat, vanilla's stale +10 (#0042); direction S1592-S1595, S1597
-K.monotony.CAP = 30 -- game choice, Plan 11e (ruling 11e-1), a level since Plan 11f (ruling T9-1), 30 since Plan 11f Task 9b fix 1 (Angus 2026-10-11, level-1 moodles; S1592-S1597 give direction, not size; thresholds #2369): a type's level, and so the target, never exceeds 30, so a one-food diet at three portions a day holds 30 from day 5, above UNHAPPY level 1 (20) by 10 and BORED level 1 (25) by 5 and under BORED level 2 (50); Moodle.Update sets a level only when the stat is strictly above its threshold (fcmpl/ifle: BORED @856-@873 L219-L220, UNHAPPY @967-@984 L237-L238 on 42.21); vanilla's stale +10 (#0042) still sizes SLOPE but no longer binds the cap, which was vanilla's rotten +20 (#0042) before the fix
-K.monotony.STAPLE = 0.25 -- game choice, Plan 11e (ruling 11e-1): a staple's level multiplier, outside the cap (Plan 11f Task 9b); S1593's potato product resisted monotony and S1595's bread and butter showed no fall in pleasantness, neither giving a size
-K.monotony.MEAL_KCAL = 400 -- game choice, Plan 11e (ruling T3-3); the studies' unit is a served portion (S1592-S1595): the landed energy of one meal-sized portion, the weight-1 eat
+K.monotony.WINDOW_H = K.dials.get("monotony.WINDOW_H")
+K.monotony.HALF_LIFE_H = K.dials.get("monotony.HALF_LIFE_H")
+K.monotony.SLOPE = K.dials.get("monotony.SLOPE")
+K.monotony.CAP = K.dials.get("monotony.CAP")
+K.monotony.STAPLE = K.dials.get("monotony.STAPLE")
+K.monotony.MEAL_KCAL = K.dials.get("monotony.MEAL_KCAL")
 
 -- The staple rule (bread, rice, potato, pasta and oats): the script's FoodType, the food data's own
 -- category (data/food-items.json food_type; the item's getFoodType at the eat), is Bread, Rice or Pasta; or the full
@@ -176,7 +176,7 @@ function K.monotony.badEntry(bad, k, e, ageH)
 end
 
 -- The floor.
-K.monotony.BORED_MAX = 49 -- game choice, Plan 11f (ruling T9-3): the BOREDOM target is held one under the BORED level-2 step 50 (#2369; MoodleStat.<clinit> @118-@133 L16 on 42.21), because vanilla adds UNHAPPINESS while the BORED moodle is above level 1 (BodyDamage.UpdateBoredom @510-@575 L2042-L2043 on 42.21), so monotony alone never drives that term; vanilla also resets BOREDOM while PANIC > 5 (UpdateBoredom @482-@509, #3015), the mod's own dehydration PANIC floor included (ruling T9-3), so the BOREDOM floor is wiped while the character panics
+K.monotony.BORED_MAX = K.dials.get("monotony.BORED_MAX")
 
 -- A type's level at ageH: f x min(CAP, SLOPE x max(0, n - 1)), n the count decayed to ageH (0 past the window) and f
 -- STAPLE for an entry marked a staple, else 1.
@@ -209,8 +209,8 @@ end
 -- so the moodle steps down only past the zone; a rise is never held. The thresholds are the level steps the floors can
 -- reach (#2369): UNHAPPY 20 and 45 (the UNHAPPINESS target stops at 59, under 60), BORED 25 (the BOREDOM target stops at
 -- BORED_MAX 49, under 50).
-K.monotony.DEAD_ZONE = 0.02 -- game choice (spec section 10: the dead-zone width; item 10c): a share of the threshold, 0.4 at UNHAPPY 20, 0.5 at BORED 25
-K.monotony.HOLD_EPS = 0.01 -- game choice (spec section 10: the dead-zone width): mood points a held target sits over its threshold, far under a moodle step and over float noise
+K.monotony.DEAD_ZONE = K.dials.get("monotony.DEAD_ZONE")
+K.monotony.HOLD_EPS = K.dials.get("monotony.HOLD_EPS")
 K.monotony.UNHAPPY_AT = { 20, 45 } -- VANILLA #2369 (UNHAPPY levels 1 and 2)
 K.monotony.BORED_AT = { 25 } -- VANILLA #2369 (BORED level 1)
 

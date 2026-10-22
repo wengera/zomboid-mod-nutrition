@@ -602,7 +602,7 @@ def _options_host():
     shared = os.path.join(_MOD, "common", "media", "lua", "shared")
     files = [os.path.join(shared, "NR_Core.lua")]
     files += sorted(f for f in (os.path.join(shared, n) for n in os.listdir(shared))
-                    if os.path.basename(f).startswith("NR_Kernel"))
+                    if os.path.basename(f).startswith("NR_Kernel") or os.path.basename(f) == "NR_Data_Dials.lua")
     files.append(os.path.join(_SERVER, "NR_Server_Options.lua"))
     for path in files:
         with open(path, encoding="utf-8") as fh:

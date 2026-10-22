@@ -587,7 +587,7 @@ end
 
 def fresh_options_rt():
     rt = lua51.LuaRuntime(unpack_returned_tuples=True)
-    kernel = sorted(os.path.join(SHARED, n) for n in os.listdir(SHARED) if n.startswith("NR_Kernel"))   # Options reads K.readLeaf and K.strength
+    kernel = sorted(os.path.join(SHARED, n) for n in os.listdir(SHARED) if n.startswith("NR_Kernel") or n == "NR_Data_Dials.lua")   # Options reads K.readLeaf and K.strength; the registry sorts first (Plan 19)
     for path in [os.path.join(SHARED, "NR_Core.lua")] + kernel + [os.path.join(LUA, "server", "NR_Server_Options.lua")]:
         with open(path, encoding="utf-8") as fh:
             rt.eval("function(src, name) return assert(loadstring(src, name)) end")(fh.read(), "@x")()

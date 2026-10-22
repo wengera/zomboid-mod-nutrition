@@ -10,6 +10,7 @@ local NR = NutritionRevamp
 NR.client.options = NR.client.options or {}
 NR.client.options.mode = 1
 NR.client.options.logLevel = 2
+NR.client.options.dialSeen = {} -- the last value seen of each sandbox-backed dial (K.dials.apply)
 
 NR_ClientOptions_Installed = NR_ClientOptions_Installed or {}
 
@@ -23,6 +24,8 @@ if NR_ClientOptions_Installed.start == nil and Events ~= nil and Events.OnGameSt
             if type(sv.Mode) == "number" then o.mode = sv.Mode end
             if type(sv.LogLevel) == "number" then o.logLevel = sv.LogLevel end
         end
+        -- Plan 19: the sandbox-backed dials the client reads follow the option as on the server (ruling T1-1)
+        nr.kernel.dials.apply(sv, o.dialSeen)
         nr.log.level = o.logLevel
         local m = nr.client.moodles
         local route = (m ~= nil and m.route == "framework") and "MoodleFramework" or "none"

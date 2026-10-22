@@ -19,6 +19,7 @@ LUA = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua")
 SHARED = os.path.join(LUA, "shared")
 CLIENT = os.path.join(LUA, "client")
 CORE = os.path.join(SHARED, "NR_Core.lua")
+DIALS = os.path.join(SHARED, "NR_Data_Dials.lua")  # the dial registry the kernels resolve from (Plan 19)
 RECORDS = os.path.join(SHARED, "NR_Data_Records.lua")
 EFFECTS = os.path.join(SHARED, "NR_Data_Effects.lua")
 MIRROR = os.path.join(CLIENT, "NR_Client_Mirror.lua")
@@ -94,6 +95,7 @@ def _load(rt, path):
 
 def _kernel(rt):
     _load(rt, CORE)
+    _load(rt, DIALS)
     for path in sorted(glob.glob(os.path.join(SHARED, "NR_Kernel*.lua"))):
         _load(rt, path)
     _load(rt, RECORDS)

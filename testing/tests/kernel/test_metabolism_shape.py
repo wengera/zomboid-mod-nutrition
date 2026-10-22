@@ -22,6 +22,7 @@ CREATION = os.path.join(SERVER, "NR_Server_Creation.lua")
 KINETICS = os.path.join(SERVER, "NR_Server_Kinetics.lua")
 INTAKE = os.path.join(SERVER, "NR_Server_Intake.lua")
 CORE = os.path.join(SHARED, "NR_Core.lua")
+DIALS = os.path.join(SHARED, "NR_Data_Dials.lua")  # the dial registry the kernels resolve from (Plan 19)
 TOL = 1e-9
 
 # The Java globals the adapter names, stubbed; the previous values are returned so the teardown puts
@@ -1318,7 +1319,7 @@ PLAYERS = os.path.join(SERVER, "NR_Server_Players.lua")
 def _players_runtime():
     rt = lua51.LuaRuntime(unpack_returned_tuples=True)
     load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
-    for path in [CORE] + sorted(glob.glob(os.path.join(SHARED, "NR_Kernel*.lua"))):
+    for path in [CORE, DIALS] + sorted(glob.glob(os.path.join(SHARED, "NR_Kernel*.lua"))):
         with open(path, encoding="utf-8") as fh:
             load(fh.read(), "@" + os.path.basename(path))()
     rt.execute(r"""
@@ -1438,7 +1439,7 @@ def test_wiring_checks_the_precondition_once_and_hooks_first_sight():
     with open(CORE, encoding="utf-8") as fh:
         load(fh.read(), "@NR_Core.lua")()
     for n in sorted(os.listdir(SHARED)):   # NR_Server_Options reads K.readLeaf and K.strength at file scope
-        if n.startswith("NR_Kernel"):
+        if n.startswith("NR_Kernel") or n == "NR_Data_Dials.lua":   # the registry sorts first (Plan 19)
             with open(os.path.join(SHARED, n), encoding="utf-8") as fh:
                 load(fh.read(), "@" + n)()
     rt.execute(r"""
@@ -1478,7 +1479,7 @@ def test_self_report_reads_nutrition_off_by_default():
     with open(CORE, encoding="utf-8") as fh:
         load(fh.read(), "@NR_Core.lua")()
     for n in sorted(os.listdir(SHARED)):   # NR_Server_Options reads K.readLeaf and K.strength at file scope
-        if n.startswith("NR_Kernel"):
+        if n.startswith("NR_Kernel") or n == "NR_Data_Dials.lua":   # the registry sorts first (Plan 19)
             with open(os.path.join(SHARED, n), encoding="utf-8") as fh:
                 load(fh.read(), "@" + n)()
     with open(os.path.join(SERVER, "NR_Server_Options.lua"), encoding="utf-8") as fh:

@@ -12,6 +12,8 @@ import re
 
 import pytest
 
+from .conftest import dial_line
+
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared")
 KERNEL = os.path.join(SHARED, "NR_Kernel_Monotony.lua")
@@ -39,22 +41,22 @@ def test_each_constant_names_its_rows_and_its_label():
     with open(KERNEL, encoding="utf-8") as fh:
         src = fh.read()
     for name in ("WINDOW_H", "HALF_LIFE_H", "SLOPE", "CAP", "STAPLE"):
-        line = re.search(r"^K\.monotony\.%s = .*$" % name, src, re.M).group(0)
+        line = dial_line("monotony." + name)                            # Plan 19: the provenance is the registry row's
         assert "game choice, Plan 11e (ruling 11e-1)" in line, name
-    assert "#0042" in re.search(r"^K\.monotony\.SLOPE = .*$", src, re.M).group(0)
-    assert "#0042" in re.search(r"^K\.monotony\.CAP = .*$", src, re.M).group(0)
+    assert "#0042" in dial_line("monotony.SLOPE")
+    assert "#0042" in dial_line("monotony.CAP")
     for row in ("S1592", "S1593", "S1594", "S1595", "S1596", "S1597"):
         assert row in src, row
     assert "free choice" in src                                         # S1594: the player choosing variety
-    meal = re.search(r"^K\.monotony\.MEAL_KCAL = .*$", src, re.M).group(0)
+    meal = dial_line("monotony.MEAL_KCAL")
     assert "game choice, Plan 11e (ruling T3-3); the studies' unit is a served portion (S1592-S1595)" in meal
-    window = re.search(r"^K\.monotony\.WINDOW_H = .*$", src, re.M).group(0)
+    window = dial_line("monotony.WINDOW_H")
     assert "measured from the type's latest eat; a type eaten daily keeps its decayed older eats" in window
-    cap = re.search(r"^K\.monotony\.CAP = .*$", src, re.M).group(0)
+    cap = dial_line("monotony.CAP")
     for want in ("Angus 2026-10-11", "level-1 moodles", "S1592", "S1597", "direction, not size", "#2369",
                  "Moodle.Update", "no longer binds the cap"):
         assert want in cap, want
-    bored = re.search(r"^K\.monotony\.BORED_MAX = .*$", src, re.M).group(0)
+    bored = dial_line("monotony.BORED_MAX")
     assert "#2369" in bored and "UpdateBoredom @510-@575" in bored and "ruling T9-3" in bored
 
 
@@ -62,7 +64,7 @@ def test_the_kernel_says_it_is_a_self_releasing_floor_and_names_the_panic_wipe()
     with open(KERNEL, encoding="utf-8") as fh:
         src = fh.read()
     assert "self-releasing floor" in src
-    assert "PANIC > 5" in src and "T9-3" in src
+    assert "PANIC > 5" in dial_line("monotony.BORED_MAX") and "T9-3" in src
     assert "delta" not in re.sub(r"--[^\n]*", "", src)                 # the add at the eat is gone (ruling T9-1)
 
 
@@ -565,7 +567,7 @@ def test_the_dead_zone_constants_name_their_game_choice_and_thresholds(host):
     with open(KERNEL, encoding="utf-8") as fh:
         src = fh.read()
     for name in ("DEAD_ZONE", "HOLD_EPS"):
-        line = re.search(r"^K\.monotony\.%s = .*$" % name, src, re.M).group(0)
+        line = dial_line("monotony." + name)
         assert "game choice (spec section 10: the dead-zone width" in line, name
     for name in ("UNHAPPY_AT", "BORED_AT"):
         assert "#2369" in re.search(r"^K\.monotony\.%s = .*$" % name, src, re.M).group(0), name
@@ -593,3 +595,46 @@ def test_the_boredom_threshold_and_junk(host):
     for v, prev in ((float("nan"), 21.0), (19.8, float("nan")), (19.8, None), (None, 21.0)):
         got = m.hold(v, prev, m.UNHAPPY_AT)
         assert got == v or (got != got and v != v), (v, prev)   # v returned as it is
+
+
+# --- Plan 19 Task 2: the dials are the registry's (ruling T1-1) -----------------------------------------------------
+
+MONOTONY_DIALS = ("WINDOW_H", "HALF_LIFE_H", "SLOPE", "CAP", "STAPLE", "MEAL_KCAL", "BORED_MAX", "DEAD_ZONE", "HOLD_EPS")
+
+
+def test_each_dial_line_reads_its_registry_row_and_the_thresholds_stay_vanilla():
+    with open(KERNEL, encoding="utf-8") as fh:
+        src = fh.read()
+    for name in MONOTONY_DIALS:
+        assert re.search(r'^K\.monotony\.%s = K\.dials\.get\("monotony\.%s"\)$' % (name, name), src, re.M), name
+    for name in ("UNHAPPY_AT", "BORED_AT"):                             # vanilla mirrors (#2369) stay in the kernel
+        assert re.search(r"^K\.monotony\.%s = \{ [0-9, ]+ \} -- VANILLA #2369" % name, src, re.M), name
+
+
+def test_each_field_holds_its_registry_value(host):
+    rows = host.G.NutritionRevamp.data.dials
+    for name in MONOTONY_DIALS:
+        assert M(host)[name] == rows["monotony." + name].value, name
+
+
+def test_a_registry_value_reaches_the_floor_at_load():
+    # the mutation probe (dial-inventory section 3.4): the registry's SLOPE, edited before the kernels load, sets the
+    # level, so the kernel holds no copy of its own
+    import lupa.lua51 as lua51
+    from .conftest import CORE, DIALS, kernel_files
+    rt = lua51.LuaRuntime(unpack_returned_tuples=True)
+    load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
+    for path in [CORE, DIALS] + kernel_files():
+        with open(path, encoding="utf-8") as fh:
+            src = fh.read()
+        if path == DIALS:
+            assert src.count("D['monotony.SLOPE'] = { value = 4.3,") == 1
+            src = src.replace("D['monotony.SLOPE'] = { value = 4.3,", "D['monotony.SLOPE'] = { value = 5.0,")
+        load(src, "@" + os.path.basename(path))()
+    k = rt.globals().NutritionRevamp.kernel
+    m = k.monotony.new()
+    for d in range(3):
+        k.monotony.record(m, "Base.Apple", AGE + d * DAY, 1, False)
+    u, b = k.monotony.target(m, AGE + 2 * DAY)
+    assert k.monotony.SLOPE == 5.0
+    assert u == pytest.approx(5.0 * (decay(2 * DAY) + decay(DAY))) and b == u

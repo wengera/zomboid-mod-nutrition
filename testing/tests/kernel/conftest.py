@@ -1,21 +1,52 @@
 """The lupa host for the mod's pure kernel (spec § 4.10 tier 2).
 
-Loads NR_Core.lua and every NR_Kernel*.lua under a Lua 5.1 runtime with a line hook that records
+Loads NR_Core.lua, the dial registry NR_Data_Dials.lua and every NR_Kernel*.lua under a Lua 5.1 runtime with a line hook that records
 every executed (chunk, line). The executable-line set is debug.getinfo(f, "L").activelines over
 the chunk function of each kernel file and every function reachable from NutritionRevamp.kernel;
 test_zz_coverage.py asserts the two sets agree per file. A kernel function that is not a field of
 the kernel table is invisible to that enumeration, which is why tools/hotpath_lint.py forbids one.
 """
-import glob, os, pytest
+import glob, os, sys, pytest
 import lupa.lua51 as lua51
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared")
 CORE = os.path.join(SHARED, "NR_Core.lua")
+DIALS = os.path.join(SHARED, "NR_Data_Dials.lua")  # the dial registry every kernel resolves its dials from at load
 
 
 def kernel_files():
     return sorted(glob.glob(os.path.join(SHARED, "NR_Kernel*.lua")))
+
+
+def dial_line(dial_id):
+    """A dial's registry line as written (tools/dials.py source_line): since Plan 19 a kernel constant's provenance
+    comment sits on its NR_Data_Dials.lua row, so a provenance test reads it here instead of the kernel line."""
+    tools = os.path.join(REPO, "tools")
+    if tools not in sys.path:
+        sys.path.insert(0, tools)
+    import dials
+    return dials.source_line(dial_id)
+
+
+def frozen_lib_shared(dest):
+    """A shared/ folder for a frozen driver lib whose kernel host loads NR_Core.lua and NR_Kernel*.lua only (x43's and
+    x43b's Kernel, CLAUDE.md section 5: a driver is never edited after its run): HEAD's kernel files copied, and an
+    NR_Core.lua that is HEAD's followed by the dial registry, so HEAD's kernels find their dials (Plan 19). Returns dest."""
+    import shutil
+    os.makedirs(dest, exist_ok=True)
+    with open(os.path.join(dest, "NR_Core.lua"), "w", encoding="utf-8", newline="") as out:
+        for path in pre_kernel_files():
+            with open(path, encoding="utf-8", newline="") as fh:
+                out.write(fh.read() + "\n")
+    for path in kernel_files():
+        shutil.copy(path, dest)
+    return dest
+
+
+def pre_kernel_files():
+    """The files a kernel host loads before the kernels: NR_Core.lua, then the dial registry (Plan 19 ruling T1-1)."""
+    return [CORE, DIALS]
 
 
 COLLECTOR = r"""
@@ -60,7 +91,7 @@ class LuaHost:
         self.rt = lua51.LuaRuntime(unpack_returned_tuples=True)
         self.rt.execute(COLLECTOR)
         self.chunks = []
-        for path in [CORE] + kernel_files():
+        for path in pre_kernel_files() + kernel_files():
             with open(path, encoding="utf-8") as fh:
                 src = fh.read()
             chunk = self.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(src, "@" + os.path.basename(path))

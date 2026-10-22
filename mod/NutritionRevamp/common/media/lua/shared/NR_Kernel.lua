@@ -112,3 +112,52 @@ end
 -- The one shared height (m): fixed and sex-neutral, read by every BMI and FFMI in the mod (K.acute's refeeding BMI
 -- among them). It lives here, outside any sub-table, because this file loads before every other kernel file.
 K.HEIGHT_M = 1.70 -- game choice (Plan 13 ruling 13-4; open row S1117: the reference stature)
+
+-- The tuning dials (Plan 19, spec Part A; ruling T1-1). NR.data.dials (NR_Data_Dials.lua, which sorts before every
+-- kernel file) holds one row a dial; a kernel resolves its dials into its own table fields once, as it loads
+-- (K.monotony.SLOPE = K.dials.get("monotony.SLOPE")), so a call site reads a plain field as before, no lookup runs per
+-- tick or per minute (Rule 6), and the fields stay patchable (replay_live.set_constants, the fit tools). The
+-- resolver lives here because this file loads before every other kernel file; the sandbox re-resolve is
+-- NR_Kernel_Dials.lua's.
+K.dials = {}
+K.dials.DEPTH = 8 -- no row needed: the most `same` links a dial may follow before it reads as a cycle
+
+-- The row of dial id. An unknown id, or a host that never loaded the registry, raises, so a typo fails at load.
+function K.dials.row(id)
+    local data = NutritionRevamp.data
+    local row = nil
+    if data ~= nil and data.dials ~= nil then
+        row = data.dials[id]
+    end
+    if row == nil then
+        error("NutritionRevamp: no dial " .. tostring(id))
+    end
+    return row
+end
+
+-- The value of dial id: a row naming another dial (same) resolves to that dial's value, and a chain longer than
+-- DEPTH raises as a cycle; a table value is a fresh copy, so a kernel writing into its field never moves the registry.
+function K.dials.get(id)
+    local row = K.dials.row(id)
+    local hops = 0
+    while row.same ~= nil do
+        hops = hops + 1
+        if hops > K.dials.DEPTH then
+            error("NutritionRevamp: dial cycle at " .. tostring(id))
+        end
+        row = K.dials.row(row.same)
+    end
+    return K.dials.copy(row.value)
+end
+
+-- v itself when it is not a table, else a deep copy of it.
+function K.dials.copy(v)
+    if type(v) ~= "table" then
+        return v
+    end
+    local out = {}
+    for k, x in pairs(v) do
+        out[k] = K.dials.copy(x)
+    end
+    return out
+end

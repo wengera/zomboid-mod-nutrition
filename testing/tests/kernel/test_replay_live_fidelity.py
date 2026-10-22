@@ -18,7 +18,7 @@ import sys
 import lupa.lua51 as lua51
 import pytest
 
-from .conftest import CORE, SHARED, kernel_files
+from .conftest import SHARED, kernel_files, pre_kernel_files
 from .server_host import REPO
 
 sys.path.insert(0, os.path.join(REPO, "tools"))
@@ -48,7 +48,7 @@ def kernel_rt(replace=None):
     basename to the source loaded in its place."""
     rt = lua51.LuaRuntime(unpack_returned_tuples=True)
     load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
-    for path in [CORE] + kernel_files():
+    for path in pre_kernel_files() + kernel_files():
         name = os.path.basename(path)
         if replace and name in replace:
             src = replace[name]

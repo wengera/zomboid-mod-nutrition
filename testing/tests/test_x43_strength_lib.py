@@ -31,7 +31,10 @@ import x43_strength_lib as L          # noqa: E402
 import xlib as X                      # noqa: E402
 
 REPO = L.REPO
-SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared")
+# the lib's kernel host loads NR_Core and NR_Kernel* only, so HEAD's kernels are served with the dial registry folded
+# into NR_Core (kernel.conftest.frozen_lib_shared; Plan 19): the frozen lib stays as it ran
+from kernel.conftest import frozen_lib_shared  # noqa: E402
+SHARED = frozen_lib_shared(os.path.join(tempfile.mkdtemp(prefix="x43-shared-"), "shared"))
 GAME_DIR = r"D:\SteamLibrary\steamapps\common\ProjectZomboid"
 
 

@@ -45,7 +45,7 @@ NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "def
                       nutritionOn = false, onsetSpeed = 1.0, sleepOn = true,
                       excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,
                       sexSpecific = false, stimulantRealism = 1, deathPace = K.drain.PACE_REAL,
-                      healthCombine = K.drain.COMBINE_MULTIPLY, strength = K.strength.params(nil) }
+                      healthCombine = K.drain.COMBINE_MULTIPLY, strength = K.strength.params(nil), dialSeen = {} }
 local O = NR.server.options
 O.strengthRaw = {} -- the raw strength leaves of the last rebuild, by K.strength.OPTIONS row
 
@@ -98,6 +98,9 @@ function NR.server.readOptions(where)
     if O.deathPace ~= oldPace or O.healthCombine ~= oldCombine or where == "OnServerStarted" then
         NR.log.say(2, "options: death pace " .. tostring(O.deathPace) .. ", health combining " .. tostring(O.healthCombine))
     end
+    -- Plan 19 (ruling T1-1): every sandbox-backed tuning dial re-resolves into its kernel field, written only when its
+    -- option's read changed against O.dialSeen (K.dials.apply); no hook fires: the steps read the fields.
+    K.dials.apply(sv, O.dialSeen)
     if sv ~= nil then
         local rows = K.strength.OPTIONS
         local raw = O.strengthRaw
