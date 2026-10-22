@@ -88,9 +88,9 @@ The top-level key census of the 969 `craftRecipe` blocks runs to 19 keys, 13 of 
 
 ### Evolved recipes
 
-On all 6 881 evolved-recipe ingredient rows the consumption share at Cooking 10 (`share10`) is exactly seven tenths of the level-zero share (`share0`), with no exceptions including the 59 clamped rows — the clamp is what makes the relation hold, because it caps the hunger asked for at the ingredient's own hunger change before the skill reduction [#1911/C/arith.].
-That is arithmetic over script values in the 2026-09-10 scan of `42.20.4`, the summation itself cited from [cooking-and-recipes.md](../facts/cooking-and-recipes.md#evolved) rather than re-derived [#1911/C/arith.].
-A spice ingredient row carries 0 in hunger, share and every macro, which models the spice branch's skipped hunger lines but not its `useSpice` macro transfer, so a spiced dish's macros are under-stated; a null in these datasets means the source writes nothing, and the rotten ingredient at cooking seven and above is also not modelled per row, in the 2026-09-10 scan [#4126/C/snapshot].
+On the 4 359 non-spice evolved-recipe ingredient rows the share at Cooking 10 is seven tenths of the level-zero share to the dataset's six places, including the 43 clamped non-spice rows, because the clamp caps the hunger asked for at the ingredient's own hunger change before the skill reduction; on the 2 522 spice rows the two shares are equal, because `useSpice` takes no skill cut [#4130/C/arith.].
+That is arithmetic over script values in the 2026-10-22 scan of `42.21.0`, the summation itself cited from [cooking-and-recipes.md](../facts/cooking-and-recipes.md#evolved) rather than re-derived [#4130/C/arith.].
+A spice ingredient row carries 0 in hunger and `hungerAfterSkill` and `useSpice`'s transfer in `share` and the four macros, with thirst 0 and the same share at both levels; a null in these datasets means the source writes nothing, and every row is a fresh ingredient: the rotten spice's arm is modelled by the scan's `contribution` only when a caller asks for it, and the rotten branch of a non-spice ingredient is not modelled, in the 2026-10-22 scan [#4129/C/snapshot].
 The `cookable` flag in the evolved-recipe dataset is the script value while the game's own `isCookable()` answers on the presence of the key, so one of the 63 recipes (`AddBaitToChum`) writes false here and the engine says true — the only one where the two differ, in the 2026-09-10 scan [#1913/C/snapshot].
 
 <a id="kinds"></a>
@@ -537,7 +537,7 @@ The `meta` keys of `data/recipes.json`, the `counts` cell being the 2026-09-10 s
 | 3 | `item` | string | the ingredient's full type (`Base.Lettuce`) |
 | 4 | `use` | int | the `<use>` half of the item's `EvolvedRecipe` key: hunger points the key asks for |
 | 5 | `requiresCooked` | bool | the key's `Cooked` suffix |
-| 6 | `spice` | bool | the item's `Spice` — a spice adds no hunger to the dish; its macro transfer, in `useSpice`, is not modelled |
+| 6 | `spice` | bool | the item's `Spice` — a spice adds no hunger to the dish, and `share0`, `kcal0` and the rest carry its `useSpice` macro transfer, the share the same at both levels |
 | 7 | `share0` | float | derived: the fraction of the ingredient consumed at Cooking 0 |
 | 8 | `kcal0` | float | derived: what it adds to the dish at Cooking 0 |
 | 9 | `carbs0` | float | derived, same level |

@@ -258,7 +258,7 @@ The hunger clamp bites on 59 of the 6 881 rows from 17 over-asking keys on the 2
 
 A `DRIED_FOOD`-tagged ingredient adds no thirst, and the skip bites on 27 rows — `Base.Ramen`, `Base.Macaroni` and `Base.Pasta` across nine recipes each — while the tag is on 577 rows in all, the other 550 having a thirst term already 0 [#0730/C/snapshot].
 
-A `Spice = true` ingredient returns before `addItem`'s hunger lines, and the dataset writes its `share`, hunger, `hungerAfterSkill` and every macro as 0 on all 2 522 spice rows; those zeroes are the scan's model of the branch, not the game's, because the branch's `useSpice` moves the spice's macros into the dish at the skill bonus times its share [#4125/C/snapshot].
+A `Spice = true` ingredient row of the evolved-recipe dataset carries 0 in hunger and `hungerAfterSkill`, the spice branch adding no hunger to the dish, and carries `useSpice`'s transfer: a share of the key's use over the spice's own hunger capped at 1, with no skill cut, so it is the same at Cooking 0 and 10, and calories, proteins, carbohydrates and lipids at the skill bonus times that share, with thirst 0; of the 2 522 spice rows 2 260 move calories and 837 take a share of 1, in the 2026-10-22 scan [#4128/C/snapshot].
 
 A non-`per_item` ingredient row would carry null macros with a reason and still emit the hunger arithmetic, and it never fires on vanilla because all 374 carriers are `per_item` [#0733/C/snapshot].
 
