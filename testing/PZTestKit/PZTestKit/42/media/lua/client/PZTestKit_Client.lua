@@ -1683,22 +1683,23 @@ end)
 -- ISAddItemInRecipe:new(player, recipe, baseItem, usedItem) (ISInventoryPaneContextMenu.lua:2389) once both items are
 -- in the player's inventory, and the server runs the action's complete (#2658). This queues the same action on the
 -- same four arguments, after the usability check the menu makes (isItemUsableInRecipe, the client's isValidStart);
--- the add itself is asynchronous, so a driver polls the server for it. The recipe is found by findEvolvedRecipe.
--- @args <recipeName> <#id|baseFullType> <#id|ingredientFullType>
+-- the add itself is asynchronous, so a driver polls the server for it. The recipe is found by findEvolvedRecipe, its
+-- name's underscores read as spaces (the bus splits on spaces: Stir_fry is the recipe Stir fry).
+-- @args <recipeName (underscores read as spaces)> <#id|baseFullType> <#id|ingredientFullType>
 -- @reply {ok, queued, recipe, base, used, usable, maxTime} | {ok, queued, recipe, reason [, base] [, used] [, usable]} | string
 -- @purpose Test-only: queues vanilla's ISAddItemInRecipe on a base item and an ingredient of the local inventory (by #id or full type) after the menu's usability check, so the server completes the add; replies both items' identity rows.
 TK.register("recipe.add", function(argv)
     if argv[1] == nil or argv[2] == nil or argv[3] == nil then
-        return "usage: recipe.add <recipeName> <#id|baseFullType> <#id|ingredientFullType>"
+        return "usage: recipe.add <recipeName, underscores for spaces> <#id|baseFullType> <#id|ingredientFullType>"
     end
-    local out = { ok = false, queued = false, recipe = argv[1] }
+    local out = { ok = false, queued = false, recipe = (string.gsub(argv[1], "_", " ")) }
     local p = getPlayer()
     if p == nil then out.reason = "no local player"; return out end
     if ISAddItemInRecipe == nil or ISTimedActionQueue == nil then
         out.reason = "no ISAddItemInRecipe/ISTimedActionQueue"
         return out
     end
-    local recipe, err = findEvolvedRecipe(argv[1])
+    local recipe, err = findEvolvedRecipe(out.recipe)
     if recipe == nil then out.reason = err; return out end
     local base, e1 = x50Item(argv[2])
     if base == nil then out.reason = e1; return out end

@@ -137,6 +137,13 @@ def test_recipe_add_queues_vanillas_action_on_the_menus_four_arguments():
     assert g.T.usableArgs[3] == 12                                  # the usability check by the ingredient's id
 
 
+def test_recipe_add_reads_underscores_in_the_recipe_name_as_spaces():
+    g, _ = client()
+    g.rt.execute("local f = findEvolvedRecipe; findEvolvedRecipe = function(n) if n == 'Stir fry' then return f(n) end; return nil, 'no ' .. n end")
+    r = cmd(g, "recipe.add", "Stir_fry", "Base.Pan", "Base.Carrots")
+    assert r.ok is True and r.recipe == "Stir fry"
+
+
 def test_recipe_add_takes_a_base_by_id():
     _, g = client()
     r = cmd(g, "recipe.add", "Stir fry", "#14", "Base.Carrots")
