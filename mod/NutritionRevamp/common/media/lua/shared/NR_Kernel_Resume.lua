@@ -22,8 +22,8 @@
 local K = NutritionRevamp.kernel
 K.resume = {}
 
-K.resume.STEP_M = 60 -- game minutes, not science (no row): the longest step an adapter integrates at once, the bound the adapters clamped a step at until Plan 16
-K.resume.SLOT_SUBSTEPS = 4 -- not science (no row), Rule 6 (Plan 16 Task 2 fix 1): the pipelines one queue slot runs for a stall, read off the slot bench (tools/bench_slot.py): four hour-long sub-steps cost 2.25 ms on the lupa host against 0.23 ms for a minute, about 10 to 13 ms in play at the 4.5-5.8 x host-to-play ratio of a minute (#3462, #3457), under the drain's 15 ms tick budget (#3497); five would pass it
+K.resume.STEP_M = K.dials.get("resume.STEP_M")
+K.resume.SLOT_SUBSTEPS = K.dials.get("resume.SLOT_SUBSTEPS")
 
 -- Every world-age stamp a record holds, by dotted path (a `*` segment is every key of the table at that level). The
 -- step stamps (the age each adapter last stepped at) and the anchors the mod reads elapsed world time from. A record

@@ -3,13 +3,13 @@
 local K = NutritionRevamp.kernel
 K.sched = {}
 
-K.sched.FLOOR_MS = 15 -- #3489, #3490: the smallest fixed cap that starved none at N = 60 at both spacings (Decision 6)
-K.sched.HEADROOM = 1.5 -- game choice (Plan 11 ruling 2): 15 ms over the 10 ms that ran at the margin (#3476)
-K.sched.SEED_MS = 1.6 -- #3387: one player-run in play cost 1583 us; the mean before any run is timed
-K.sched.MIN_MEAN_MS = 0.1 -- game choice: a run timed at 0 ms on the 1 ms clock never drives the cap to infinity
-K.sched.EMA_W = 0.2 -- game choice: the weight the harness's budget arm used (ghost.load budget<ms>)
-K.sched.TPM_DEFAULT = 6 -- #3346: 6.27 ticks a game minute at DayLength 1, the shortest day measured
-K.sched.MIN_TICKS = 2 -- game choice: a count under 2 ticks is a stall or a fast clock, trusted only twice in a row
+K.sched.FLOOR_MS = K.dials.get("sched.FLOOR_MS")
+K.sched.HEADROOM = K.dials.get("sched.HEADROOM")
+K.sched.SEED_MS = K.dials.get("sched.SEED_MS")
+K.sched.MIN_MEAN_MS = K.dials.get("sched.MIN_MEAN_MS")
+K.sched.EMA_W = K.dials.get("sched.EMA_W")
+K.sched.TPM_DEFAULT = K.dials.get("sched.TPM_DEFAULT")
+K.sched.MIN_TICKS = K.dials.get("sched.MIN_TICKS")
 
 -- The pending queue from position head, kept in order for every name still in the roster and never doubled, then
 -- every roster name not already queued, in roster order. Returns a new list.

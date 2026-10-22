@@ -26,27 +26,27 @@ K.hungerCurve = {}
 -- 19:50) wears dinner off first; the Peckish knot is the compromise the fit's weights choose.
 K.hungerCurve.X = {
     0, -- the curve's foot: no row needed
-    0.097, -- game choice (spec section 10: the curve's knots): the flat foot's end, the highest lowest h_model after a 667 kcal meal on the fit's three-meal days in either sleep setting (0.0966 after the evening meal with sleep on, rounded up; Plan 16 Task 4b), so such a meal reads 0 and a 400 kcal one 0.054 with sleep off, 0.035 with sleep on
-    0.21125, -- game choice (spec section 10: the curve's knots), fitted (Plan 15 Task 6c, re-fitted in Task 14b and Plan 16 Task 4b): Peckish shows above it, 3.9 h after the fast's 667 kcal breakfast with sleep off and 4.4 h with sleep on (vanilla 4.4 h); on three such meals a day 4.0 h after breakfast, 4.1 h after lunch and 4.0 h after dinner with sleep off, 4.4 h, 3.9 h and 3.7 h with sleep on (vanilla 1.2 h, 4.25 h and 5.0 h), 24 % and 22 % of waking hours at level 1 or more (vanilla 38 %); at x0.95 and x1.05 lunch 3.8 h and 4.5 h, dinner 3.7 h and 4.3 h, 3.5 h and 4.3 h after the fast's breakfast
-    0.289531, -- game choice (spec section 10: the curve's knots), fitted (Plan 16 Task 4b): Hungry shows above it, 8.1 h after the meal with sleep off and 7.8 h with sleep on (vanilla 8.0 h); 3.1 % of waking hours at level 2 or more in both (vanilla 4.4 %); at x0.95 and x1.05 7.2 h and 9.4 h
-    0.420782, -- game choice (spec section 10: the curve's knots), fitted (Plan 16 Task 4b): Very Hungry shows above it, 17.3 h after the meal with sleep off and 16.8 h with sleep on (vanilla 17.0 h); at x0.95 and x1.05 15.8 h and 19.2 h
-    0.6825, -- game choice (spec section 10: the curve's knots), fitted (Plan 16 Task 4b): the cap 0.69 comes at 34.5 h with sleep off and 33.1 h with sleep on (vanilla's Starving at 34.5 h), and Starving shows at the acute starvation onset (K.hybrid.caps), 34.6 h in both; at x0.95 and x1.05 32.0 h and 37.4 h
+    K.dials.get("hungerCurve.X.2"),
+    K.dials.get("hungerCurve.X.3"),
+    K.dials.get("hungerCurve.X.4"),
+    K.dials.get("hungerCurve.X.5"),
+    K.dials.get("hungerCurve.X.6"),
     1, -- the model's top: no row needed
 }
 K.hungerCurve.Y = {
     0, -- no row needed
-    0, -- the flat foot: game choice (spec section 10: the curve's knots)
-    0.15, -- VANILLA #0508 (HUNGRY level 1, Peckish)
-    0.25, -- VANILLA #0508 (HUNGRY level 2, Hungry)
-    0.45, -- VANILLA #0508 (HUNGRY level 3, Very Hungry)
-    0.70, -- VANILLA #0508 (HUNGRY level 4, Starving)
-    1, -- the stat's top (#0021)
+    K.dials.get("hungerCurve.Y.2"),
+    K.dials.get("hungerCurve.Y.3"),
+    K.dials.get("hungerCurve.Y.4"),
+    K.dials.get("hungerCurve.Y.5"),
+    K.dials.get("hungerCurve.Y.6"),
+    1, -- the stat's top (#0021): no row needed
 }
--- The HUNGRY thresholds the dead zone guards, each a strict greater-than (#0507): VANILLA #0508.
-K.hungerCurve.THRESHOLDS = { 0.15, 0.25, 0.45, 0.70 }
-K.hungerCurve.DEAD_ZONE = 0.02 -- game choice (spec section 10: the dead-zone width; item 10b): a level steps down only once H is this far under its threshold
-K.hungerCurve.HOLD_EPS = 0.001 -- game choice (spec section 10: the dead-zone width): a held H sits this far over its threshold, far under a moodle step and over float noise
-K.hungerCurve.FED_M = 3.80654 -- game choice (spec section 10: the curve's knots; item 10a): fed while the meal pool M holds at least K.satiety.MEAL_REQ weighted kcal, the M at which the meal pool alone reads the request; about 4.5 h after a 667 kcal meal and 3 h after a 200 kcal snack
+-- The HUNGRY thresholds the dead zone guards, each a strict greater-than (#0507): VANILLA #0508, Y's level knots.
+K.hungerCurve.THRESHOLDS = { K.hungerCurve.Y[3], K.hungerCurve.Y[4], K.hungerCurve.Y[5], K.hungerCurve.Y[6] }
+K.hungerCurve.DEAD_ZONE = K.dials.get("hungerCurve.DEAD_ZONE")
+K.hungerCurve.HOLD_EPS = K.dials.get("hungerCurve.HOLD_EPS")
+K.hungerCurve.FED_M = K.dials.get("hungerCurve.FED_M")
 
 -- The curve: H at h_model h, linear between the knots, held at the end knots outside them.
 function K.hungerCurve.map(h)

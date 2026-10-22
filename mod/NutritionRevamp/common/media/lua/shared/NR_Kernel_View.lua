@@ -23,18 +23,18 @@ K.view.CLASSES = { "deficiency", "excess", "stimulant", "sleep" }
 -- Each class ladder is the four ascending lower bounds of class levels 1-4; below the first the class reads 0.
 -- stimulant: acute_caf, the caffeine in the body in mg (K.acute.caffeine).
 K.view.STIMULANT_AT = {
-    50, -- gc: level 1, half a cup's worth on board; rests on S0899 (the rested effect) and S0900
-    150, -- gc: level 2, about the 3 mg/kg effect dose at 50 kg (K.acute.CAF_EFFECT_MGKG, S0531); rests on S0900
-    300, -- gc: level 3, the 200 mg-and-more doses that did more (S0899) half again; rests on S0900
-    500, -- gc: level 4, well past every studied effect dose; rests on S0900
+    K.dials.get("view.STIMULANT_AT.1"),
+    K.dials.get("view.STIMULANT_AT.2"),
+    K.dials.get("view.STIMULANT_AT.3"),
+    K.dials.get("view.STIMULANT_AT.4"),
 }
 
 -- sleep: acute_debtH, the sleep debt in game hours (K.acute, capped at K.acute.DEBT_MAX).
 K.view.SLEEP_AT = {
-    2, -- gc: level 1, one short night; rests on S0742 (cumulative restriction) and S0736 (the two-process model)
-    6, -- gc: level 2, about three restricted nights; rests on S0742
-    12, -- gc: level 3, more than a night of total deprivation; rests on S0742
-    24, -- gc: level 4, about the 2 nights of total deprivation S0742's 14-night restriction reached
+    K.dials.get("view.SLEEP_AT.1"),
+    K.dials.get("view.SLEEP_AT.2"),
+    K.dials.get("view.SLEEP_AT.3"),
+    K.dials.get("view.SLEEP_AT.4"),
 }
 
 -- deficiency and excess: the worst grade less one and the highest rung over the mirror's nut_<key>_g / _x, each
@@ -42,9 +42,9 @@ K.view.SLEEP_AT = {
 K.view.RUNG_MAX = 3 -- the record engine's top rung (NR_Kernel_Nutrients grades and excess ladders)
 
 -- The tooltip's "rich in" and "low" shares of the per-day requirement R a single item gives, and the lines of each.
-K.view.RICH_SHARE = 0.25 -- gc: rich at 25 % of R per item (plan ruling 8)
-K.view.LOW_SHARE = 0.05 -- gc: low at 5 % of R or less per item, the 5 %-of-a-daily-value "low" convention; no row
-K.view.TIP_MAX = 3 -- gc: up to three rich and three low lines (plan ruling 8)
+K.view.RICH_SHARE = K.dials.get("view.RICH_SHARE")
+K.view.LOW_SHARE = K.dials.get("view.LOW_SHARE")
+K.view.TIP_MAX = K.dials.get("view.TIP_MAX")
 
 -- string.format patterns by digit count, never %d (the Kahlua %d rule, #0939).
 K.view.FORMATS = { "%.1f", "%.2f", "%.3f" }
@@ -381,7 +381,7 @@ end
 -- The dehydration row at Bands: the body-water deficit in per cent of body mass to one decimal, only above DEHYD_SHOW
 -- (a figure that is not a finite number shows nothing). Vanilla's thirst moodle, reaching Parched, is the signal
 -- (decisions item 10e); this row is its figure.
-K.view.DEHYD_SHOW = 1 -- per cent: shown only above it (Plan 15 Task 9 amendments section 5); game choice (spec section 4's dehydration line; spec section 10: display), under the 1.5 % the effects table's first dehydration band starts at (S0098)
+K.view.DEHYD_SHOW = K.dials.get("view.DEHYD_SHOW")
 function K.view.dehydRow(rows, pct)
     if not K.finite(pct) or pct <= K.view.DEHYD_SHOW then
         return
@@ -486,7 +486,7 @@ K.view.RECORD_KEY = { retinol = "vitA" }
 -- The body mass a per-kg requirement is read at for the band. gc: a game choice, the 70 kg
 -- reference adult of the DRI tables; the band ranks one item against a fixed daily amount, never the
 -- character's own mass (the client holds no body).
-K.view.REF_KG = 70
+K.view.REF_KG = K.dials.get("view.REF_KG")
 
 -- The daily requirement of one record for a sex, or nil when it has none: R[sex] for an unscaled record; the
 -- floor R[sex] for a per-protein maximum (max(R, Rscale x protein) is never below it); R[sex] x REF_KG for a
@@ -644,7 +644,7 @@ end
 -- FILL_MIN_H "... under half an hour", at FILL_CAP_H or more "... more than FILL_CAP_H h". Per whole item (fix 1, L3). The row's
 -- sep is the separator the client joins its label and text with. Nothing for an hours or a kcal that is not a finite
 -- number.
-K.view.FILL_MIN_H = 0.5 -- game choice (spec section 4's tooltip line, decisions item 4; spec section 10: display): the shown half-hour step; under it the item reads under half an hour
+K.view.FILL_MIN_H = K.dials.get("view.FILL_MIN_H")
 K.view.FILL_CAP_H = 24 -- the replay's horizon in game hours (tools/food_fills.py CAP_H), no row needed
 
 function K.view.fillRow(out, hours, kcal)
@@ -719,9 +719,9 @@ end
 -- (730 g) and the full scale K.stomach.CAPACITY_HARD_G (1100 g), 0-100; never the physical fill, which clamps at 1 at 730 g, nor the satiety F.
 -- At level 4 the server refuses eating through vanilla's food timer (K.view.foodTimer, Plan 15 Task 8).
 K.view.OVERFULL_AT = {
-    100 / 3, -- gc: level 2 from a third of the way to the full scale (about 853 g); a game choice on ruling 11c-8's inferences, S1250 and S1253
-    200 / 3, -- gc: level 3 from two thirds (about 977 g); a game choice on S1250 and S1253
-    100, -- gc: level 4 at the full scale, 1100 g, S1253's maximal discomfort (a labelled inference)
+    K.dials.get("view.OVERFULL_AT.1"),
+    K.dials.get("view.OVERFULL_AT.2"),
+    K.dials.get("view.OVERFULL_AT.3"),
 }
 
 -- The Overfull level of a stomach mass in grams: 0 at or under 730 g (no discomfort), 1 above it, 2 from a third of
@@ -764,14 +764,14 @@ end
 -- it each minute from the mod's own state and the client's copy follows in the 1 Hz stats packet (#3896). Vanilla
 -- drains it by one unit per multiplier unit, 2 x dayMin a game minute (180 at the 90-minute day; #2385, #2922), so each
 -- written value is sized from the day length (K.view.timerValues) to keep its band until the next write.
-K.view.TIMER_WELL_FED = 1000 -- game choice (spec section 10: the Well Fed mapping): FOOD_EATEN level 1 (over 0, #0511) at the 90-minute day, the floor of K.view.timerValues
-K.view.TIMER_WELL_FED_2 = 2800 -- game choice (spec section 10: the Well Fed mapping): level 2 (over 1600, #0511) at the 90-minute day, the floor of K.view.timerValues
-K.view.TIMER_FULL = 4400 -- game choice (spec section 2.3): level 3 (over 3200, #0511), vanilla's refusal, at the 90-minute day, the floor of K.view.timerValues; not 3300, which the drain takes under 3200 in 34 game seconds
-K.view.HOLD_MIN = 2 -- game choice (spec section 10: the Well Fed mapping): the game minutes a written value must survive, S0-1's quantized 1.6 rounded up
+K.view.TIMER_WELL_FED = K.dials.get("view.TIMER_WELL_FED")
+K.view.TIMER_WELL_FED_2 = K.dials.get("view.TIMER_WELL_FED_2")
+K.view.TIMER_FULL = K.dials.get("view.TIMER_FULL")
+K.view.HOLD_MIN = K.dials.get("view.HOLD_MIN")
 -- The meal pool M (weighted kcal, K.satiety) at or above which the character reads sated after a satisfying meal.
-K.view.WELL_FED_M = 435 -- game choice (spec section 10: the Well Fed mapping): a 667 kcal mixed meal (15/50/35 % of energy, 788.5 weighted kcal) clears to it in 0.50 game hours at MEAL_HALF_LIFE_H, inside vanilla's Well Fed after a whole can (3120 units, 17 game minutes raw, 35 heated, at the 90-minute day; #0054, #0530); a 400 kcal meal 0.07 h; a 200 kcal snack never
-K.view.WELL_FED_2_AT = 2 -- game choice (spec section 10: the Well Fed mapping): Well Fed level 2 from Overfull 2, a large meal
-K.view.REFUSE_AT = 4 -- spec section 2.3: Overfull 4, the 1100 g hard capacity, refuses eating
+K.view.WELL_FED_M = K.dials.get("view.WELL_FED_M")
+K.view.WELL_FED_2_AT = K.dials.get("view.WELL_FED_2_AT")
+K.view.REFUSE_AT = K.dials.get("view.REFUSE_AT")
 
 -- The timer the bridge writes for an Overfull level, a meal pool M and whether a drain state is active: TIMER_FULL at
 -- Overfull 4, whatever else holds (the stomach is full, starving or not); 0 while a drain is active (a starving body is
@@ -801,19 +801,19 @@ end
 -- with one write; the refusal has no top (level 4, above 4800, refuses alike).
 function K.view.timerValues(dayMin)
     local d = K.drain.UNITS_PER_MIN * dayMin * K.view.HOLD_MIN
-    local wf1 = K.min(1600, K.max(K.view.TIMER_WELL_FED, d + 1))
-    local wf2 = K.min(3200, K.max(K.view.TIMER_WELL_FED_2, 1600 + d + 1))
-    local full = K.max(K.view.TIMER_FULL, 3200 + d + 1)
+    local wf1 = K.min(K.view.TIMER_BAND_2, K.max(K.view.TIMER_WELL_FED, d + 1))
+    local wf2 = K.min(K.view.TIMER_BAND_3, K.max(K.view.TIMER_WELL_FED_2, K.view.TIMER_BAND_2 + d + 1))
+    local full = K.max(K.view.TIMER_FULL, K.view.TIMER_BAND_3 + d + 1)
     return wf1, wf2, full
 end
 
 -- The FOOD_EATEN band of a timer value, the bands the push is keyed on (#0511, strict greater-than, #0507): 0 at or
 -- under 0, 1 to 1600, 2 to 3200, 3 above (the refusal; level 4 above 4800 refuses alike).
 function K.view.timerBand(t)
-    if t > 3200 then
+    if t > K.view.TIMER_BAND_3 then
         return 3
     end
-    if t > 1600 then
+    if t > K.view.TIMER_BAND_2 then
         return 2
     end
     if t > 0 then
@@ -854,20 +854,20 @@ end
 -- choice. Each sex lists the four ascending lower bounds of bands 1-4 (lean, healthy, high, very high); below the first
 -- the band is 0, very lean. Fractions, not percent.
 K.view.FAT_CUTS_MALE = {
-    0.06, -- gc: game choice, the lean band from 6 %, inside the 4-6 % floor of healthy active men in a prolonged deficit (S1910)
-    0.08, -- the healthy band from 8 %, the BMI 18.5 body fat of men aged 20-39 y (S1905)
-    0.20, -- the high band from 20 %, the BMI 25 body fat of men aged 20-39 y (S1905)
-    0.25, -- the very high band from 25 %, the BMI 30 body fat of men aged 20-39 y (S1905)
+    K.dials.get("view.FAT_CUTS_MALE.1"),
+    K.dials.get("view.FAT_CUTS_MALE.2"),
+    K.dials.get("view.FAT_CUTS_MALE.3"),
+    K.dials.get("view.FAT_CUTS_MALE.4"),
 }
 K.view.FAT_CUTS_FEMALE = {
-    0.13, -- gc: game choice, the lean band from 13 %, the 12.7 % a competition diet brought healthy women to, rounded (S1911)
-    0.21, -- the healthy band from 21 %, the BMI 18.5 body fat of women aged 20-39 y (S1904)
-    0.33, -- the high band from 33 %, the BMI 25 body fat of women aged 20-39 y (S1904)
-    0.39, -- the very high band from 39 %, the BMI 30 body fat of women aged 20-39 y (S1904)
+    K.dials.get("view.FAT_CUTS_FEMALE.1"),
+    K.dials.get("view.FAT_CUTS_FEMALE.2"),
+    K.dials.get("view.FAT_CUTS_FEMALE.3"),
+    K.dials.get("view.FAT_CUTS_FEMALE.4"),
 }
 K.view.FAT_WORDS = { "lean", "healthy", "high", "veryHigh" }
 K.view.FAT_WORDS[0] = "veryLean"
-K.view.FAT_BAND = 0.005 -- gc: game choice, half a percentage point of body fat: a shown word holds until the fraction leaves its band by more than this, so a fraction on a cut does not flicker; the width informed by the 3-4 % relative coefficient of variation of a DXA fat reading (about 0.6-0.8 percentage points at 20 % fat) (S1909)
+K.view.FAT_BAND = K.dials.get("view.FAT_BAND")
 K.view.NO_DATA = "UI_NR_Band_none" -- the band words' No data key, the row text when a mirror has no body
 
 -- A key from prefix and word: the word when it is a non-empty string, else "none" (the band words' No data).
@@ -944,3 +944,8 @@ function K.view.fatRow(rows, m, fat)
     local r = K.view.push(rows, "body_fat", "UI_NR_Row_body_fat", text, 2, true)
     r.fatBand = idx
 end
+
+-- FOOD_EATEN's band edges (VANILLA #0511), read by K.view.timerValues and K.view.timerBand (Plan 19 Task 3a): appended so
+-- no line above moves.
+K.view.TIMER_BAND_2 = K.dials.get("view.TIMER_BAND_2")
+K.view.TIMER_BAND_3 = K.dials.get("view.TIMER_BAND_3")

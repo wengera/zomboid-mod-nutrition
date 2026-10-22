@@ -38,8 +38,8 @@ local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.backup = {
     KEY = "NutritionRevamp",   -- the modData key; the copy is its field backup
-    PART = 8000,               -- not science (no row): characters a part, at most 24000 UTF-8 bytes, under the engine's 32767-byte string
-    MAX_PARTS = 64,            -- not science (no row): a copy longer than 512 000 characters is garbled
+    PART = K.dials.get("backup.PART"),
+    MAX_PARTS = K.dials.get("backup.MAX_PARTS"),
     MOD = 2147483647,          -- not science (no row): the sum's modulus, the prime 2^31 - 1, so every step is exact in a double
     stats = { writes = 0, bytes = 0, reads = 0, restored = 0, aheadKept = 0,
               rejected = { absent = 0, garbled = 0, sum = 0 } },

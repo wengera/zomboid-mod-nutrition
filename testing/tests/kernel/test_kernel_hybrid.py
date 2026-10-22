@@ -167,12 +167,8 @@ def test_the_default_input_writes_no_boredom(host):
 
 def test_the_floor_epsilon_is_a_labelled_game_choice(host):
     assert host.K.hybrid.FLOOR_EPS == 0.05
-    import os
-    import re
-    repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    src = open(os.path.join(repo, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Kernel_Hybrid.lua"),
-               encoding="utf-8").read()
-    line = re.search(r"^K\.hybrid\.FLOOR_EPS = .*$", src, re.M).group(0)
+    from .conftest import dial_line
+    line = dial_line("hybrid.FLOOR_EPS")                                 # Plan 19: the provenance is the registry row's
     assert "game choice" in line and "Rule 6" in line and "Task 9b fix 1" in line
 
 

@@ -102,10 +102,10 @@ NR.server.store = { records = nil, loaded = {}, loadedFor = nil, wired = false,
 local S = NR.server.store
 local F = S.file
 
-S.SAVE_GAP_MS = 60000      -- game choice (ruling 8): a player's slot is written at most once a real minute
-S.REREAD_GAP_MS = 3600000  -- game choice (ruling 8): a locked index is read again once a real hour
-S.INDEX_GAP_MS = 300000    -- game choice (Task 11 fix 1): a dirty index is written at most once every 5 real minutes
-S.DEFER_MAX_MS = 600000    -- game choice (ruling T11-1a): ten real minutes, so a briefly locked file is never overwritten
+S.SAVE_GAP_MS = K.dials.get("store.SAVE_GAP_MS")
+S.REREAD_GAP_MS = K.dials.get("store.REREAD_GAP_MS")
+S.INDEX_GAP_MS = K.dials.get("store.INDEX_GAP_MS")
+S.DEFER_MAX_MS = K.dials.get("store.DEFER_MAX_MS")
 
 local nowMs = NR.nowMs
 

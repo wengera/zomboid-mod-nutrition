@@ -18,6 +18,7 @@ import lupa.lua51 as lua51
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 LUA = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua")
 CORE = os.path.join(LUA, "shared", "NR_Core.lua")
+DIALS = os.path.join(LUA, "shared", "NR_Data_Dials.lua")  # the dial registry the kernels and the tooltip resolve from (Plan 19)
 KERNELS = [os.path.join(LUA, "shared", n) for n in ("NR_Kernel.lua", "NR_Kernel_Vector.lua", "NR_Kernel_View.lua")]
 TOOLTIP = os.path.join(LUA, "client", "NR_Client_Tooltip.lua")
 
@@ -69,6 +70,7 @@ getPlayer = function() return NR_T.player end
 DATA = r"""
 local NR = NutritionRevamp
 NR.data = {
+    dials = NR.data.dials,
     UNITS = { calories = "kcal", carbs = "g", lipids = "g", proteins = "g", vitC = "mg", fibre = "g" },
     records = { ORDER = { "vitC" }, REC = { vitC = { R = { 90, 75 }, unit = "mg" } } },
     infer = { _default = { n = 3, density = { vitC = 0.01 } } },
@@ -102,6 +104,7 @@ def rt_with(view=False, engine=True):
     if engine:
         rt.execute(ENV)
     _load(rt, CORE)
+    _load(rt, DIALS)
     for k in KERNELS:
         _load(rt, k)
     rt.execute(DATA)

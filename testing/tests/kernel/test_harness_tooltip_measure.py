@@ -127,6 +127,7 @@ def rt_with(mod=True, mutate=None):
     rt.execute(tts.ENV)
     rt.execute(VANILLA)
     tts._load(rt, tts.CORE)
+    tts._load(rt, tts.DIALS)
     for k in tts.KERNELS:
         tts._load(rt, k)
     rt.execute(tts.DATA)

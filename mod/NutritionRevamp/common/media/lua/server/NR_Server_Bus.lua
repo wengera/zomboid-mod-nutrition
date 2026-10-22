@@ -17,8 +17,8 @@ local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.bus = {
     module = "NutritionRevamp",
-    PUSH_GAP_MS = 60000,       -- game choice: at most one effects push per player per real minute
-    REQUEST_GAP_MS = 5000,     -- game choice: at most one answered mirror request per player per 5 s of wall clock
+    PUSH_GAP_MS = K.dials.get("bus.PUSH_GAP_MS"),
+    REQUEST_GAP_MS = K.dials.get("bus.REQUEST_GAP_MS"),
     wired = false,
     effects = { dirty = {}, last = {}, stats = { marks = 0, pushes = 0, deferred = 0, failed = 0, bandMarks = 0 } },
     requests = { last = {}, stats = { answered = 0, denied = 0 } },

@@ -93,6 +93,27 @@ def row_lines(text):
     return out
 
 
+_VALUES = {}                                          # registry text -> its values (one Lua evaluation per text)
+
+
+def values(text=None):
+    """{id: value} of every dial as K.dials.get returns it, a same row resolved to the value of the dial it names: the
+    tools that model a kernel in Python (fit_hunger_curve) read the registry here instead of keeping their own copy.
+    A fresh dict each call; the registry is evaluated once per text."""
+    if text is None:
+        text = _read(_path(REPO, REGISTRY_REL))
+    if text not in _VALUES:
+        rows = load_rows(text)
+        out = {}
+        for dial_id in rows:
+            end, why = _resolve(rows, dial_id)
+            if why:
+                raise ValueError("%s: same %s" % (dial_id, why))
+            out[dial_id] = rows[end]["value"]
+        _VALUES[text] = out
+    return dict(_VALUES[text])
+
+
 def source_line(dial_id, text=None):
     """The registry line of dial_id, exactly as written (the provenance helper the kernel tests read instead of a
     kernel constant's line). Raises KeyError for an id with no line."""

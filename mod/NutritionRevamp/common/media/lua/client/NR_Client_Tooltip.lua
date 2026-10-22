@@ -80,15 +80,15 @@
 -- type, modData, base hunger, hunger and four macros (about nine guarded getters) to form the cache key and
 -- hits the cache (a same-item fast path first); the vector is built once per type and whole-item macro tuple.
 local NR = NutritionRevamp
-
+local K = NR.kernel
 NR.client.tooltip = {
     stats = { draws = 0, lines = 0, cacheHits = 0, errors = 0, installs = 0, builds = 0, invalidations = 0, above = 0, reentries = 0, breaks = 0, stale = 0, hidden = 0, shown = 0 },
     cache = {},
     R = {},
     last = nil,
     lastError = nil,
-    BREAK_AT = 10, -- TooltipLib's breaker figure (#3546, Core.lua:207; its re-entry guard #3547)
-    REENTRY_MS = 1000, -- a depth older than this is stale: the render that raised it raised before resetting it
+    BREAK_AT = K.dials.get("tooltip.BREAK_AT"),
+    REENTRY_MS = K.dials.get("tooltip.REENTRY_MS"),
     fails = 0, -- consecutive failures; a clean render resets it
     broken = false, -- true once BREAK_AT failures ran in a row: the saved original only until a reload
     depth = 0, -- 0 outside a render, 1 while linesFor runs, 2 while the original draws
@@ -98,7 +98,7 @@ NR.client.tooltip = {
     INSET = 8, -- the text's left inset inside the band
     BG = { r = 0, g = 0, b = 0, a = 0.8 }, -- the frame's fill when the panel carries no backgroundColor
     BORDER = { r = 0.4, g = 0.4, b = 0.4, a = 1 }, -- the frame's border when the panel carries no borderColor
-    FILL_TOL = 0.10, -- the share the item's whole-item kcal may differ from the fill table's before the fill line is left out; game choice (spec section 4's tooltip line; spec section 10: display)
+    FILL_TOL = K.dials.get("tooltip.FILL_TOL"),
     pending = nil, -- the tag set T.hide added the hide tag to, until T.unhide takes it off
 }
 local T = NR.client.tooltip

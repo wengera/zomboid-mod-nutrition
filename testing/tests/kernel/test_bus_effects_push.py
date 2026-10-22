@@ -17,6 +17,8 @@ LUA = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua")
 CORE = os.path.join(LUA, "shared", "NR_Core.lua")
 BUS = os.path.join(LUA, "server", "NR_Server_Bus.lua")
 MINUTE = os.path.join(LUA, "server", "NR_Server_Minute.lua")
+DIALS = os.path.join(LUA, "shared", "NR_Data_Dials.lua")    # the dial registry the bus resolves its gaps from (Plan 19)
+KERNEL = os.path.join(LUA, "shared", "NR_Kernel.lua")       # K.dials.get
 
 ENV = r"""
 NR_T = { adds = {}, sends = 0, sent = {}, now = 1000000 }
@@ -70,6 +72,8 @@ def bus_rt():
     rt = lua51.LuaRuntime(unpack_returned_tuples=True)
     rt.execute(ENV)
     _load(rt, CORE)
+    _load(rt, DIALS)
+    _load(rt, KERNEL)
     rt.execute(STUBS)
     _load(rt, MINUTE)
     _load(rt, BUS)

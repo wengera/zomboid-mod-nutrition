@@ -10,14 +10,14 @@ K.hybrid = {}
 
 function K.hybrid.defaults()
     return {
-        hungerCap = 0.69,                -- under HUNGRY level 4 at 0.70, #0508 (Plan 5 ruling 14); lifted while starving (K.hybrid.caps)
-        thirstCap = 0.83,                -- under THIRSTY level 4 at 0.84, #0509 (Plan 5 ruling 14); lifted while dehydrated (K.hybrid.caps)
-        moodRiseUnhappy = 22 / 3600,     -- per game-second: one UNHAPPINESS band a game hour (#2369; open S1146)
-        moodRiseSick = 25 / 3600,        -- per game-second: one SICK level a game hour on FOOD_SICKNESS (T1-1)
-        moodRiseStress = 5.0e-5, moodRiseBored = 25 / 3600, -- per game-second: STRESS VANILLA #2231 reused (open S1146); BOREDOM one BORED level a game hour (#2369; game choice, Plan 11f ruling T9-3)
-        maxStepS = 3600,                 -- a step longer than 60 game minutes integrates 60 (a guard: the pipeline sub-steps a stall, K.resume.STEP_M)
+        hungerCap = K.hybrid.HUNGRY_4 - K.hybrid.CAP_MARGIN, -- 0.69, under HUNGRY level 4 at 0.70, #0508 (Plan 5 ruling 14); lifted while starving (K.hybrid.caps)
+        thirstCap = K.hybrid.THIRST_4 - K.hybrid.CAP_MARGIN, -- 0.83, under THIRSTY level 4 at 0.84, #0509 (Plan 5 ruling 14); lifted while dehydrated (K.hybrid.caps)
+        moodRiseUnhappy = K.hybrid.MOOD_RISE_UNHAPPY, -- per game-second: one UNHAPPINESS band a game hour (#2369; open S1146)
+        moodRiseSick = K.hybrid.MOOD_RISE_SICK, -- per game-second: one SICK level a game hour on FOOD_SICKNESS (T1-1)
+        moodRiseStress = K.hybrid.MOOD_RISE_STRESS, moodRiseBored = K.hybrid.MOOD_RISE_BORED, -- per game-second: STRESS VANILLA #2231 reused (open S1146); BOREDOM one BORED level a game hour (#2369; game choice, Plan 11f ruling T9-3)
+        maxStepS = K.resume.STEP_M * 60, -- a step longer than 60 game minutes integrates 60 (a guard: the pipeline sub-steps a stall, K.resume.STEP_M)
         liftedCap = 1,                   -- the stat's own top (#0021): a lifted cap, no row needed
-        starvingMin = 0.71,              -- HUNGER at least this under starvation's acute onset, over HUNGRY level 4's strict 0.70 (#0508, #0507), so vanilla's Starving moodle shows: game choice (spec section 3.1; the chronic BMI onset follows the curve, Plan 15 Task 6, ruling I2)
+        starvingMin = K.hybrid.HUNGRY_4 + K.hybrid.CAP_MARGIN, -- 0.71: HUNGER at least this under starvation's acute onset, over HUNGRY level 4's strict 0.70 (#0508, #0507), so vanilla's Starving moodle shows: game choice (spec section 3.1; the chronic BMI onset follows the curve, Plan 15 Task 6, ruling I2)
     }
 end
 
@@ -121,7 +121,7 @@ end
 -- 0.25, 3 above 0.10, 4 at or under 0.10 (VANILLA MoodleStat.<clinit> @10-@25 L10, #3926; held on 42.21, Plan 18 Task 1
 -- J12-J13; x493-20261021-062610 held caps 0.74, 0.49, 0.24 and 0.09 at levels 1 to 4 on both sides).
 K.hybrid.END_EDGES = { 0.75, 0.5, 0.25, 0.10, 0 }
-K.hybrid.END_BAND_EPS = 0.01 -- game choice (spec section 10: the Overfull 3 penalty size; Plan 18): a cap never at or within 0.01 of its level's lower edge, as level 1's former floor 0.51
+K.hybrid.END_BAND_EPS = K.dials.get("hybrid.END_BAND_EPS")
 K.hybrid.END_REGEN_UNIT = 0.0000930 / 3 * 1.8 * 1.6 -- VANILLA #2258 at Very Fast regeneration and Fitness 10, the worst case
 
 -- The ceiling at a day length of dayMin real minutes (Plan 15 Task 8 fix 1, generalised to every level in Plan 18): in
@@ -164,7 +164,7 @@ function K.hybrid.target(t)
     return t
 end
 
-K.hybrid.FLOOR_EPS = 0.05 -- game choice, Plan 11f Task 9b fix 1 (Rule 6): a mood floor's target fall under 0.05 of the stat (0-100) is held and folded into the next write, so a decaying monotony target sets UNHAPPINESS and BOREDOM about once per 0.05 of fall (every 9 game minutes or more at the steepest release) instead of every minute; a step of 0.05 is far under any moodle threshold's margin
+K.hybrid.FLOOR_EPS = K.dials.get("hybrid.FLOOR_EPS")
 
 -- A mood floor (#3119): when the target fell since the last write (last), the stat v loses that fall once, never
 -- below 0, whatever else raised it; then a stat under the target rises toward it by rise. A fall under FLOOR_EPS to a
@@ -227,8 +227,8 @@ function K.hybrid.caps(state, c)
 end
 
 -- The level-4 thresholds, each a strict greater-than (#0507): HUNGRY above 0.70 (#0508), THIRST above 0.84 (#0509).
-K.hybrid.HUNGRY_4 = 0.70 -- VANILLA #0508
-K.hybrid.THIRST_4 = 0.84 -- VANILLA #0509, #0577
+K.hybrid.HUNGRY_4 = K.dials.get("hybrid.HUNGRY_4")
+K.hybrid.THIRST_4 = K.dials.get("hybrid.THIRST_4")
 
 -- Whether a HUNGER and a THIRST stand at level 4: vanilla's severe-moodle drain runs there (#0516), so the writer
 -- sets the shared constant to 0 while this holds.
@@ -264,3 +264,10 @@ function K.hybrid.severeRate(sickLvl, sickArm, bleedLvl, heavyLvl, heavyOK)
     end
     return f + heavy, heavy
 end
+
+-- The dials K.hybrid.defaults reads at call time (Plan 19 Task 3a): appended so no line above moves.
+K.hybrid.CAP_MARGIN = K.dials.get("hybrid.CAP_MARGIN")
+K.hybrid.MOOD_RISE_UNHAPPY = K.dials.get("hybrid.MOOD_RISE_UNHAPPY")
+K.hybrid.MOOD_RISE_SICK = K.dials.get("hybrid.MOOD_RISE_SICK")
+K.hybrid.MOOD_RISE_STRESS = K.dials.get("hybrid.MOOD_RISE_STRESS")
+K.hybrid.MOOD_RISE_BORED = K.dials.get("hybrid.MOOD_RISE_BORED")
