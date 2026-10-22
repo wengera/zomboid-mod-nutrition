@@ -13,17 +13,22 @@ and its trailing provenance comment).
 
 check finds:
 - a row line the file does not evaluate to, a row the regex does not see, or one id on two lines;
-- a field outside value, unit, min, max, src, note, opt, int, fit, same, fixed;
+- a field outside value, unit, min, max, src, note, opt, int, param, fit, same, fixed;
 - a missing unit, src or note; a value that is not a number, a boolean or a table of them; a number (or a table's
   number) outside [min, max], a min over its max, or a boolean row with a range;
 - a src token that is not S<4 digits>, #<4 digits>, game choice, vanilla, fitted or inference; an S id absent from
   docs/reference/science.tsv or a # id absent from docs/reference/claims.tsv; a vanilla src naming no # row;
-- a same row that names an unknown dial, carries a value, range, option, int or fixed of its own, sits in a cycle,
-  or whose unit differs from the unit of the dial it resolves to (the two are one dial);
+- a same row that names an unknown dial, carries a value, range, option, int, param or fixed of its own, sits in a
+  cycle, or whose unit differs from the unit of the dial it resolves to (the two are one dial); a same on an opt row
+  K.dials.apply writes (a param row's option writes no field, so its links are one dial whatever the option reads);
 - an opt row whose value is not a number or boolean, which is fixed or same, or whose option in
-  42.21/media/sandbox-options.txt is missing or disagrees with the row's default, min, max or int;
-- int without opt, a non-integer int row, an empty fit, a fixed row that is not min == max == value;
-- an orphan (an id no K.dials.get in the mod's Lua names) and a K.dials.get naming no row.
+  42.21/media/sandbox-options.txt is missing or disagrees with the row's default (as written: written(), three decimal
+  places), min, max or int; an opt row K.dials.apply writes whose value is not exact at three places;
+- int without opt, param that is not true or has no opt or no numeric value, a non-integer int row, an empty fit, a
+  fixed row that is not min == max == value;
+- an orphan (an id no K.dials.get in the mod's Lua names) and a K.dials.get naming no row; an opt row K.dials.apply
+  writes that does not resolve as K.<id> = K.dials.get(...).
+The option file itself is generated from the opt rows (tools/sandbox_options.py --check).
 Stdlib and lupa only; read-only except set.
 """
 import argparse
@@ -41,7 +46,8 @@ SANDBOX_REL = "mod/NutritionRevamp/42.21/media/sandbox-options.txt"
 SCIENCE_REL = "docs/reference/science.tsv"
 CLAIMS_REL = "docs/reference/claims.tsv"
 
-FIELDS = ("value", "unit", "min", "max", "src", "note", "opt", "int", "fit", "same", "fixed")
+FIELDS = ("value", "unit", "min", "max", "src", "note", "opt", "int", "param", "fit", "same", "fixed")
+WRITTEN_PLACES = 1000                                 # the option file's three decimal places (K.dials.WRITTEN_PLACES)
 CLASSES = ("game choice", "vanilla", "fitted", "inference")
 SCIENCE_ID = re.compile(r"^S\d{4}$")
 CLAIM_ID = re.compile(r"^#\d{4}$")
@@ -223,6 +229,13 @@ def _num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
+def written(v):
+    """A number as the option file declares it: rounded half up to three decimal places, as K.dials.written computes it
+    (the same double operations, so the two agree bit for bit)."""
+    import math
+    return math.floor(v * WRITTEN_PLACES + 0.5) / WRITTEN_PLACES
+
+
 def _leaves(v):
     if isinstance(v, list):
         for x in v:
@@ -318,7 +331,11 @@ def _check_opt(dial_id, row, options):
     if want_int != (row.get("int") is True):
         out.append("%s: option NR.%s is %s, so int must be %s" % (dial_id, opt, kind, str(want_int).lower()))
     lo, hi = (1.0, float(o.get("numValues", "nan"))) if kind == "enum" else (float(o.get("min", "nan")), float(o.get("max", "nan")))
-    for name, theirs, ours in (("default", float(o.get("default", "nan")), v), ("min", lo, row.get("min")), ("max", hi, row.get("max"))):
+    if _num(v) and row.get("param") is not True and written(v) != v:
+        out.append("%s: K.dials.apply writes the option's read into the field, so the value must be exact at the option "
+                   "file's three decimal places (or the row is param)" % dial_id)
+    default = written(v) if _num(v) else v
+    for name, theirs, ours in (("default", float(o.get("default", "nan")), default), ("min", lo, row.get("min")), ("max", hi, row.get("max"))):
         if not (_num(ours) and theirs == ours):
             out.append("%s: option NR.%s %s %r differs from the row's %r" % (dial_id, opt, name, theirs, ours))
     return out
@@ -338,7 +355,7 @@ def check_rows(rows, science, claims, options):
                 out.append("%s: no %s" % (dial_id, f))
         out += _check_src(dial_id, row.get("src"), science, claims)
         if "same" in row:
-            own = [f for f in ("value", "min", "max", "opt", "int", "fixed") if f in row]
+            own = [f for f in ("value", "min", "max", "opt", "int", "param", "fixed") if f in row]
             if own:
                 out.append("%s: a same row carries no %s of its own" % (dial_id, ", ".join(own)))
             end, why = _resolve(rows, dial_id)
@@ -346,7 +363,7 @@ def check_rows(rows, science, claims, options):
                 out.append("%s: same %s" % (dial_id, why))
             elif rows[end].get("unit") != row.get("unit"):
                 out.append("%s: unit %r differs from %s's %r" % (dial_id, row.get("unit"), end, rows[end].get("unit")))
-            if not why and "opt" in rows[end]:
+            if not why and "opt" in rows[end] and rows[end].get("param") is not True:
                 out.append("%s: same %s, a sandbox-backed dial: K.dials.apply writes only K.%s, so this field would "
                            "not follow the option" % (dial_id, end, end))
             continue
@@ -355,6 +372,8 @@ def check_rows(rows, science, claims, options):
             out.append("%s: fixed is true or absent" % dial_id)
         if "int" in row and "opt" not in row:
             out.append("%s: int describes an option, and the row has none" % dial_id)
+        if "param" in row and (row["param"] is not True or "opt" not in row or not _num(row.get("value"))):
+            out.append("%s: param is true on a numeric row with an option, or absent" % dial_id)
         if "fit" in row and not (isinstance(row["fit"], str) and row["fit"].strip()):
             out.append("%s: an empty fit" % dial_id)
         if "opt" in row:
@@ -408,7 +427,7 @@ def check(root=REPO, text=None):
         out.append("%s: an orphan: no K.dials.get in the mod names it" % dial_id)
     for dial_id in sorted(set(gets) - set(rows)):
         out.append("%s: K.dials.get at %s names no row" % (dial_id, ", ".join(w for w, _ in gets[dial_id])))
-    for dial_id in sorted(i for i in rows if "opt" in rows[i] and i in gets):
+    for dial_id in sorted(i for i in rows if "opt" in rows[i] and rows[i].get("param") is not True and i in gets):
         if dial_id.startswith("core."):
             out.append("%s: a core dial is K's top level (K.%s), which K.dials.bind cannot write; give K.dials.bind a core "
                        "mapping before it takes an option" % (dial_id, dial_id[len("core."):]))
@@ -510,7 +529,7 @@ def regenerate_notes(dial_id, row):
     if "fit" in row:
         notes.append("%s is owned by the fit %s: re-run it, or say why the hand value stands" % (dial_id, row["fit"]))
     if "opt" in row:
-        notes.append("%s is sandbox-backed: change NR.%s's default in %s too" % (dial_id, row["opt"], SANDBOX_REL))
+        notes.append("python tools/sandbox_options.py --write   (%s is NR.%s's default in %s)" % (dial_id, row["opt"], SANDBOX_REL))
     if dial_id.split(".")[0] in FILLS_DOMAINS:
         notes.append("python tools/food_fills.py --write")
     notes.append("python tools/mod_guide_data.py --write")

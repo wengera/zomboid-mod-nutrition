@@ -72,23 +72,22 @@ BOUNDS = {"FULL_WEIGHT": (0, 1), "LIQUID_WEIGHT": (0, 1)}
 _ACTIVE = {}                    # the candidate's patch while it runs, read by the server path's patched hosts
 
 
-def _path(name):
-    return name.split(".") if "." in name else ["satiety", name]
+def _dial_id(name):
+    """A patch name as its dial id: a bare name is a satiety constant (MEAL_REQ is satiety.MEAL_REQ)."""
+    return name if "." in name else "satiety." + name
 
 
-def _slot(K, segs):
-    """(the kernel table holding the number at the path segs, its key), or None where the path names no number on K
-    (an array element's segment is its index)."""
-    t = K
-    keys = [int(x) if x.isdigit() else x for x in segs]
-    for k in keys[:-1]:
-        t = t[k] if t is not None and hasattr(t, "items") else None
-        if t is None:
-            return None
-    cur = t[keys[-1]] if hasattr(t, "items") else None
+def _slot(K, dial_id):
+    """(the kernel table holding the number dial_id names, its key), or None where the id names no number on K. The id
+    resolves by replay_live.kernel_slot's grammar, the kernels' own K.dials.get ids: an array index (hungerCurve.X.2),
+    a decimal key (energy.BAND_MET.0_5), the core domain at K's top level (core.HEIGHT_M), any depth."""
+    slot = RL.kernel_slot(K, dial_id)
+    if slot is None:
+        return None
+    cur = slot[0][slot[1]]
     if isinstance(cur, bool) or not isinstance(cur, (int, float)):
         return None
-    return t, keys[-1]
+    return slot
 
 
 def _apply(K, patch):
@@ -98,14 +97,14 @@ def _apply(K, patch):
     it and the pair stays in step; a linked field on a table this host does not load (an adapter's) is skipped. Only
     kernel fields are written, never the registry."""
     for name, value in patch.items():
-        own = ".".join(_path(name))
-        if _slot(K, own.split(".")) is None:
+        own = _dial_id(name)
+        if _slot(K, own) is None:
             raise ValueError("unknown constant %s (not a number on the kernel)" % name)
         for dial_id in dials.linked(own):
-            segs = dial_id.split(".")
-            slot = _slot(K, segs)
+            slot = _slot(K, dial_id)
             if slot is None:
-                if K[segs[0]] is None:
+                domain = dial_id.split(".")[0]
+                if domain != "core" and K[domain] is None:
                     continue
                 raise ValueError("%s: the linked dial %s is not a number on the kernel" % (name, dial_id))
             slot[0][slot[1]] = float(value)
@@ -149,12 +148,10 @@ def current(names):
     h = LuaHost()
     out = {}
     for name in names:
-        t = h.K
-        for s in _path(name):
-            t = None if t is None else t[s]
-        if isinstance(t, bool) or not isinstance(t, (int, float)):
+        slot = _slot(h.K, _dial_id(name))
+        if slot is None:
             raise ValueError("unknown constant %s" % name)
-        out[name] = float(t)
+        out[name] = float(slot[0][slot[1]])
     return out
 
 

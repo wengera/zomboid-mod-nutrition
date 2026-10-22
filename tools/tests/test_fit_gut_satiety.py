@@ -327,3 +327,27 @@ def test_a_meal_req_patch_moves_the_fed_threshold_with_it_and_never_the_registry
     finally:
         F._ACTIVE = {}
     assert open(reg, "rb").read() == before
+
+
+def test_a_linked_group_with_an_array_element_a_decimal_key_and_a_core_dial_resolves(monkeypatch):
+    # Plan 19 Task 3f (3e concern 3): _apply resolves every member of a same group by replay_live.kernel_slot, the
+    # kernels' K.dials.get grammar, so an array element (hungerCurve.X.2), a decimal key (energy.BAND_MET.0_5) and a core
+    # dial (K.HEIGHT_M) are written with the named constant, and an adapter's member (eff.) on no kernel table is skipped
+    group = ["satiety.MEAL_REQ", "hungerCurve.X.2", "energy.BAND_MET.0_5", "core.HEIGHT_M", "eff.SOL_CAF_H"]
+    monkeypatch.setattr(F.dials, "linked", lambda dial_id, text=None: list(group) if dial_id in group else [dial_id])
+    h = F.new_host({"MEAL_REQ": 1.25})
+    K = h.K
+    assert (K.satiety.MEAL_REQ, K.hungerCurve.X[2], K.energy.BAND_MET[0.5], K.HEIGHT_M) == (1.25, 1.25, 1.25, 1.25)
+    for name in ("hungerCurve.X.2", "energy.BAND_MET.0_5", "core.HEIGHT_M"):
+        h = F.new_host({name: 1.5})
+        assert (h.K.satiety.MEAL_REQ, h.K.hungerCurve.X[2], h.K.energy.BAND_MET[0.5], h.K.HEIGHT_M) == (1.5,) * 4, name
+    assert F._slot(K, "hungerCurve.X") is None and F._slot(K, "satiety.NO_SUCH") is None
+    assert F._slot(K, "eff.SOL_CAF_H") is None and F._slot(K, "energy.BAND_MET.7") is None
+    for bad in ("satiety.NO_SUCH", "hungerCurve.X"):
+        try:
+            F.new_host({bad: 1.0})
+        except ValueError as e:
+            assert bad in str(e)
+        else:
+            raise AssertionError("an unknown constant %s was accepted" % bad)
+    assert F.current(["hungerCurve.X.2", "core.HEIGHT_M"]) == {"hungerCurve.X.2": 0.097, "core.HEIGHT_M": 1.70}

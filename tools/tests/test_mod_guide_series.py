@@ -642,11 +642,11 @@ def test_a_kernel_constant_changed_on_a_scratch_copy_moves_the_data_and_fails_ch
     with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
         assert D.main(["--write"], series_defs=[S.s_h3], charts=charts, validation=[], pending=(), out=out) == 0
         assert D.main(["--check"], series_defs=[S.s_h3], charts=charts, validation=[], pending=(), out=out) == 0
-    path = scratch / "shared" / "NR_Kernel_Strength.lua"
+    path = scratch / "shared" / "NR_Data_Dials.lua"            # Plan 19 Task 3f: k is the registry row strength.DEFAULTS.k
     text = path.read_text(encoding="utf-8")
-    old = "    k = 0.009906127265972144,"
+    old = "D['strength.DEFAULTS.k'] = { value = 0.009906127265972144,"
     assert text.count(old) == 1
-    path.write_text(text.replace(old, "    k = 0.0105,"), encoding="utf-8", newline="\n")
+    path.write_text(text.replace(old, "D['strength.DEFAULTS.k'] = { value = 0.0105,"), encoding="utf-8", newline="\n")
     saved = (server_host.SHARED, server_host.SERVER)
     try:
         server_host.SHARED = str(scratch / "shared")

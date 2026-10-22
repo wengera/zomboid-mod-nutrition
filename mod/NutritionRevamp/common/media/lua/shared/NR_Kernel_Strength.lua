@@ -16,69 +16,69 @@ K.strength = {}
 -- partition (point T, compact_T.json "chosen", under the oracle's key names), the game constants beside
 -- them, and the strength-model block (ruling 13-45). K.strength.params merges a server's options over a
 -- copy; every function below takes that table as P. M5, R and ffmiNaturalRaw are derived at file load, after the
--- functions they read.
+-- functions they read; every other value is a registry row (NR_Data_Dials.lua, the strength block).
 K.strength.DEFAULTS = {
     -- point T (the growth law, the energy gate, the lean partition)
-    k = 0.009906127265972144, -- per week; fit point T, the anchor
-    beta = 3.0, -- fit point T; S1976, S1977, S1967, S1974 (against S1955, S1975)
-    Sg0 = 0.5, -- sets/wk; fit point T (bound reported); S1951, S1958
-    Sref = 12.0, -- sets/wk; S1951
-    Smax = 30.0, -- sets/wk; S1951 (data thin above 25-30)
-    Smax1 = 12.0, -- sets/wk; fit point T (bound reported); S1953, S1955, S1956
-    fp_knots = { { 0.4, 0 }, { 0.8, 0.5 }, { 1.3, 0.92 }, { 1.6, 1.0 } }, -- g/kg/d; S0591, S0592, S1990, S0509
-    E0 = -650.0, -- kcal/d at s = 0; fit point T; S1942, S0064, S2029, S2018
-    E0_drop = 0.5, -- Angus's gate; flat in the fit; S2018
-    fbal0 = 1.0, -- fit point T, at its physical bound; S1943, S2033
-    fbal_drop = 0.5, -- Angus's gate; fit point T; S2018, S2019, S1925, S0606
-    surplus_full = 0.10, -- of TDEE; Angus's gate; flat in the fit; S1943, S2033, S1944, S2037, S1946
-    full_drop = 0.5, -- fit point T, flat; S2069, S2068, S1946, S2062, S2064
-    a_nov = 6.0, -- fit point T; S0064
-    trained_need = 0.0, -- evidence default (1 = Angus's premise)
-    forbes_c = 10.4, -- kg; S0054, S0055, S1056 (Chow and Hall's Forbes coefficient, settled)
-    wT = 0.35, -- fit point T; S0072, S1997, S0609
-    S_def = 10.0, -- sets/wk; fit point T (H.47)
-    wP = 0.6, -- fit point T; S0599
-    pdef_lo = 0.8, -- g/kg/d; fit point T (the protection ramp's start)
-    pdef_hi = 1.6, -- g/kg/d; fit point T, at its grid bound; S0599, S0064
-    prot_floor = 0.1, -- fit point T
-    x_max_frac = 0.05, -- of F; S0605 (game choice, S2016)
-    x_tau_d = 28.0, -- days; S0605 (game choice, S2016)
-    m = 0.3333333333333333, -- S1963, S0616 (unidentified; S2014 open)
-    grace_d = 14, -- days; S1932, S1940, S1966
-    detrain_hl_wk = 6.0, -- weeks; S2001
-    detrain_status = 2.0, -- S1938 (game choice; S2014, S2017)
-    regain_hl_wk = 6.0, -- weeks; S2002, S2003 (unidentified)
-    peak_hl_yr = 2.0, -- years; S2004, S2010, S0620, S2007
+    k = K.dials.get("strength.DEFAULTS.k"),
+    beta = K.dials.get("strength.DEFAULTS.beta"),
+    Sg0 = K.dials.get("strength.DEFAULTS.Sg0"),
+    Sref = K.dials.get("strength.DEFAULTS.Sref"),
+    Smax = K.dials.get("strength.DEFAULTS.Smax"),
+    Smax1 = K.dials.get("strength.DEFAULTS.Smax1"),
+    fp_knots = { { K.dials.get("strength.DEFAULTS.fp_knots.1.1"), 0 }, { K.dials.get("strength.DEFAULTS.fp_knots.2.1"), K.dials.get("strength.DEFAULTS.fp_knots.2.2") }, { K.dials.get("strength.DEFAULTS.fp_knots.3.1"), K.dials.get("strength.DEFAULTS.fp_knots.3.2") }, { K.dials.get("strength.DEFAULTS.fp_knots.4.1"), 1.0 } }, -- the gate's 0 and 1 are its ends: no row needed
+    E0 = K.dials.get("strength.DEFAULTS.E0"),
+    E0_drop = K.dials.get("strength.DEFAULTS.E0_drop"),
+    fbal0 = K.dials.get("strength.DEFAULTS.fbal0"),
+    fbal_drop = K.dials.get("strength.DEFAULTS.fbal_drop"),
+    surplus_full = K.dials.get("strength.DEFAULTS.surplus_full"),
+    full_drop = K.dials.get("strength.DEFAULTS.full_drop"),
+    a_nov = K.dials.get("strength.DEFAULTS.a_nov"),
+    trained_need = K.dials.get("strength.DEFAULTS.trained_need"),
+    forbes_c = K.dials.get("strength.DEFAULTS.forbes_c"),
+    wT = K.dials.get("strength.DEFAULTS.wT"),
+    S_def = K.dials.get("strength.DEFAULTS.S_def"),
+    wP = K.dials.get("strength.DEFAULTS.wP"),
+    pdef_lo = K.dials.get("strength.DEFAULTS.pdef_lo"),
+    pdef_hi = K.dials.get("strength.DEFAULTS.pdef_hi"),
+    prot_floor = K.dials.get("strength.DEFAULTS.prot_floor"),
+    x_max_frac = K.dials.get("strength.DEFAULTS.x_max_frac"),
+    x_tau_d = K.dials.get("strength.DEFAULTS.x_tau_d"),
+    m = K.dials.get("strength.DEFAULTS.m"),
+    grace_d = K.dials.get("strength.DEFAULTS.grace_d"),
+    detrain_hl_wk = K.dials.get("strength.DEFAULTS.detrain_hl_wk"),
+    detrain_status = K.dials.get("strength.DEFAULTS.detrain_status"),
+    regain_hl_wk = K.dials.get("strength.DEFAULTS.regain_hl_wk"),
+    peak_hl_yr = K.dials.get("strength.DEFAULTS.peak_hl_yr"),
     -- the game constants
-    ffmi5 = 18.0, -- kg/m2, bio level 5's FFMI; game choice (spec section 2.4)
-    ffmiPerLevel = 0.5, -- kg/m2 per bio level; game choice (spec section 2.4)
-    capLevel = 16.5, -- the untrained natural cap in bio levels; ruling; S1915
-    ts = 1.0, -- the biology clock; ruling 13-2
-    xpPerSet = 360, -- the Strength XP of one vanilla push-up set to exhaustion, measured: run x423-20261015-040740 (n = 1, Fitness 5, Strength 5)
-    incidental = 0.35, -- S1951 fractional, S1961, S1962; game choice
-    fMinShare = 0.35, -- F's floor as a share of F0; game choice (the oracle's 0.35 * F0)
-    fmMin = 0.5, -- kg, the fat floor; game choice (the Plan 3 guard's value)
-    nov_p0 = 1.6, -- g/kg/d; the oracle's literal (the novice deficit deepening's ramp); game choice
-    nov_pspan = 0.8, -- g/kg/d; the oracle's literal; game choice
-    xs_p0 = 0.8, -- g/kg/d; the oracle's literal (the surplus share's protein ramp); game choice
-    xs_pspan = 0.8, -- g/kg/d; the oracle's literal; game choice
+    ffmi5 = K.dials.get("strength.DEFAULTS.ffmi5"),
+    ffmiPerLevel = K.dials.get("strength.DEFAULTS.ffmiPerLevel"),
+    capLevel = K.dials.get("strength.DEFAULTS.capLevel"),
+    ts = K.dials.get("strength.DEFAULTS.ts"),
+    xpPerSet = K.dials.get("strength.DEFAULTS.xpPerSet"),
+    incidental = K.dials.get("strength.DEFAULTS.incidental"),
+    fMinShare = K.dials.get("strength.DEFAULTS.fMinShare"),
+    fmMin = K.dials.get("strength.DEFAULTS.fmMin"),
+    nov_p0 = K.dials.get("strength.DEFAULTS.nov_p0"),
+    nov_pspan = K.dials.get("strength.DEFAULTS.nov_pspan"),
+    xs_p0 = K.dials.get("strength.DEFAULTS.xs_p0"),
+    xs_pspan = K.dials.get("strength.DEFAULTS.xs_pspan"),
     -- the strength-model block (ruling 13-45)
-    b = 0.8, -- S2121 (derived 0.79), S0085
-    Fnm = 27.0, -- kg; S2133; game choice
-    N0 = { STRONG = 1.14, STOUT = 1.07, none = 1.0, FEEBLE = 0.915, WEAK = 0.82 }, -- S2142, S2143, S2145, S2162, S2166; game choice (S2170 open)
-    startLevel = { STRONG = 9, STOUT = 7, none = 5, FEEBLE = 3, WEAK = 1 }, -- vanilla's start levels but Weak's (vanilla 0, the mod's floor 1)
-    traitShare = 0.5, -- Angus
-    ffmiNatural = 25.0, -- kg/m2 normalised to 1.80 m; S1915 (ruling 13-47)
-    kouriCoef = 6.3, -- kg/m2 per m below 1.80 m; S1915 (Kouri 1995's height normalisation, its range cell; ruling 13-47)
-    Tmax = 1.10, -- S2120, S2121, S2122; game choice
-    tauUpWk = 3.0, -- weeks; S2112, S2113, S0086, S2118; game choice
-    tauDownWk = 12.0, -- weeks; S1937, S2138, S2139; game choice (S2140 open)
-    Tgrace_d = 21, -- days; S1939, S1931, S2138; game choice
-    Wsat = 5.0, -- sets/wk; S1952, S2096; game choice
-    yearsTo10 = 4.0, -- Angus; S2120, S2121 (S2141 open)
-    perfectS = 20.0, -- sets/wk; perfect training (spec section 2.4); game choice
-    perfectP = 2.0, -- g/kg/d; perfect training (spec section 2.4); game choice
-    perfectE = 0.10, -- of TDEE; perfect training (spec section 2.4); game choice
+    b = K.dials.get("strength.DEFAULTS.b"),
+    Fnm = K.dials.get("strength.DEFAULTS.Fnm"),
+    N0 = { STRONG = K.dials.get("strength.DEFAULTS.N0.STRONG"), STOUT = K.dials.get("strength.DEFAULTS.N0.STOUT"), none = 1.0, FEEBLE = K.dials.get("strength.DEFAULTS.N0.FEEBLE"), WEAK = K.dials.get("strength.DEFAULTS.N0.WEAK") }, -- none is the untrained average, 1 by definition: no row needed
+    startLevel = { STRONG = 9, STOUT = 7, none = 5, FEEBLE = 3, WEAK = 1 }, -- VANILLA: vanilla's start levels but Weak's (vanilla 0, the mod's floor 1)
+    traitShare = K.dials.get("strength.DEFAULTS.traitShare"),
+    ffmiNatural = K.dials.get("strength.DEFAULTS.ffmiNatural"),
+    kouriCoef = K.dials.get("strength.DEFAULTS.kouriCoef"),
+    Tmax = K.dials.get("strength.DEFAULTS.Tmax"),
+    tauUpWk = K.dials.get("strength.DEFAULTS.tauUpWk"),
+    tauDownWk = K.dials.get("strength.DEFAULTS.tauDownWk"),
+    Tgrace_d = K.dials.get("strength.DEFAULTS.Tgrace_d"),
+    Wsat = K.dials.get("strength.DEFAULTS.Wsat"),
+    yearsTo10 = K.dials.get("strength.DEFAULTS.yearsTo10"),
+    perfectS = K.dials.get("strength.DEFAULTS.perfectS"),
+    perfectP = K.dials.get("strength.DEFAULTS.perfectP"),
+    perfectE = K.dials.get("strength.DEFAULTS.perfectE"),
 }
 
 -- The growth law's coordinate: the lean F at bio level L (FFMI ffmi5 at 5, ffmiPerLevel a level, at K.HEIGHT_M).
@@ -164,7 +164,7 @@ end
 
 -- The shown level's drop margin (Plan 13 Task 10c): the written level falls only once the continuous level is this
 -- far below it, so a day's small loss never drops a level the next day's regain would restore.
-K.strength.DROP_MARGIN = 0.25 -- game choice (Angus 2026-10-15: "Drop only 0.25 below")
+K.strength.DROP_MARGIN = K.dials.get("strength.DROP_MARGIN")
 
 -- The written perk level n and the bar's fraction for continuous level L under the level last written Lw (nil, or not
 -- a finite number, when none was written): n rises to floor(L) (shown's floor) when that is above Lw; drops to
@@ -355,53 +355,21 @@ end
 K.strength.DEFAULTS.M5 = K.strength.fOfBio(5, K.strength.DEFAULTS) - K.strength.DEFAULTS.Fnm -- F5 - Fnm, so S = 1 at the average
 K.strength.DEFAULTS.R = K.strength.R(K.strength.DEFAULTS.yearsTo10) -- the S of level 10 (ruling 13-45)
 K.strength.DEFAULTS.ffmiNaturalRaw = K.strength.DEFAULTS.ffmiNatural - K.strength.DEFAULTS.kouriCoef * (1.8 - K.HEIGHT_M) -- the raw FFMI limit at K.HEIGHT_M, 24.37 at 1.70 m (ruling 13-47)
--- The strength sandbox options (Plan 13 Task 11; spec section 10): { option name under NR., key, min, max, integer },
--- in the option file's order. A double clamps to its range; an integer reads the default out of range
--- (K.readLeaf). Two rows are not P keys: kMul scales k and pFull scales the protein knots' x values. The option
--- file's declared min, max and default are tested against this table and DEFAULTS.
-K.strength.OPTIONS = {
-    { "StrengthTimeScale", "ts", 0.25, 30 },
-    { "StrengthXPPerSet", "xpPerSet", 50, 2000 },
-    { "StrengthIncidentalWeight", "incidental", 0, 1 },
-    { "StrengthCapLevel", "capLevel", 12, 20 },
-    { "StrengthTraitShare", "traitShare", 0, 1 },
-    { "StrengthYearsToLevel10", "yearsTo10", 1, 10 },
-    { "StrengthNeuralMax", "Tmax", 1.0, 1.15 },
-    { "StrengthNeuralRiseWeeks", "tauUpWk", 1, 8 },
-    { "StrengthNeuralDecayWeeks", "tauDownWk", 4, 26 },
-    { "StrengthNeuralGraceDays", "Tgrace_d", 0, 60, true },
-    { "StrengthNeuralSaturationSets", "Wsat", 1, 12 },
-    { "StrengthRate", "kMul", 0.25, 4 },
-    { "StrengthThreshold", "Sg0", 0.25, 1.0 },
-    { "StrengthThresholdRise", "beta", 0, 4 },
-    { "StrengthTrainedSetCap", "Smax1", 8, 30 },
-    { "StrengthProteinFull", "pFull", 1.0, 3.0 },
-    { "StrengthDeficitZero", "E0", -2000, -200 },
-    { "StrengthDeficitZeroStatusDrop", "E0_drop", 0, 0.9 },
-    { "StrengthNoviceDeficitDepth", "a_nov", 0, 10 },
-    { "StrengthBalanceGate", "fbal0", 0.5, 1.0 },
-    { "StrengthBalanceGateStatusDrop", "fbal_drop", 0, 0.7 },
-    { "StrengthSurplusFull", "surplus_full", 0.02, 0.30 },
-    { "StrengthSurplusFullStatusDrop", "full_drop", 0, 0.9 },
-    { "StrengthTrainedNeedsSurplus", "trained_need", 0, 1 },
-    { "LeanLossTrainingProtect", "wT", 0, 0.9 },
-    { "LeanLossProteinProtect", "wP", 0, 0.9 },
-    { "LeanLossProtectFloor", "prot_floor", 0, 0.5 },
-    { "LeanLossProteinFull", "pdef_hi", 1.2, 3.0 }, -- the min sits above pdef_lo (0.8): the partition divides by their gap
-    { "StrengthMaintainShare", "m", 0.1, 1.0 },
-    { "StrengthGraceDays", "grace_d", 0, 60, true },
-    { "StrengthDetrainHalfLifeWeeks", "detrain_hl_wk", 2, 26 },
-    { "StrengthDetrainStatusSlowing", "detrain_status", 0, 4 },
-    { "StrengthRegainHalfLifeWeeks", "regain_hl_wk", 1, 26 },
-    { "StrengthPeakHalfLifeYears", "peak_hl_yr", 0.25, 20 },
-}
+-- The strength sandbox options (Plan 13 Task 11; spec section 10; Plan 19 Task 3f): the registry's strength rows that
+-- carry an option (opt) read into a server's P table (param), built at load by K.dials.paramOptions (NR_Kernel_Dials.lua),
+-- one entry a row sorted by id: { id, key, opt, value, min, max, int, written }. A DEFAULTS row's option sets its P key;
+-- RATE's multiplies k and PROTEIN_FULL's scales the protein knots' x. A double clamps to its range, an integer reads
+-- the default out of range (K.readLeaf), and a read at the option file's three-place default reads the row's exact
+-- value (K.dials.readParam: StrengthMaintainShare's 0.333 is m's third). tools/sandbox_options.py writes the option
+-- file from the same rows, so a row is the option's one declaration.
+K.strength.OPTIONS = K.dials.paramOptions("strength")
 
--- The protein x at which the gate reaches 1 in DEFAULTS' knots; StrengthProteinFull moves it by scaling every knot's x.
-K.strength.PROTEIN_FULL = 1.6
+-- The protein x at which the gate reaches 1, the last protein knot's (DEFAULTS.fp_knots[4][1] is this dial);
+-- StrengthProteinFull moves it by scaling every knot's x.
+K.strength.PROTEIN_FULL = K.dials.get("strength.PROTEIN_FULL")
 
--- The option file's three-place default of m (0.333) stands for DEFAULTS.m, the exact third.
-K.strength.M_OPTION_DEFAULT = 0.333
-K.strength.M_OPTION_TOL = 0.0005
+-- The multiplier StrengthRate puts on the fitted growth rate k: 1, k itself.
+K.strength.RATE = K.dials.get("strength.RATE")
 
 -- R's cache, one entry: the year value it was run for and its result; params re-runs K.strength.R only when the
 -- option's year value differs from the last one (R is 365 steps a year, Rule 6).
@@ -409,7 +377,7 @@ local rYears = K.strength.DEFAULTS.yearsTo10
 local rValue = K.strength.DEFAULTS.R
 
 -- The strength parameters P of a sandbox table sv (SandboxVars.NR, or nil): a new table from DEFAULTS with every
--- option read through K.readLeaf, k scaled by StrengthRate and the protein knots' x by StrengthProteinFull / 1.6,
+-- option read through K.dials.readParam, k scaled by StrengthRate and the protein knots' x by StrengthProteinFull / 1.6,
 -- R for the year option and M5 from DEFAULTS (ruling 13-45). The load guard: at bio level 15's status in the
 -- effective cap's room (capLevel held at the natural limit) the growth threshold must sit under the set cap, else
 -- beta, Sg0 and Smax1 revert to DEFAULTS; returns P and whether it fell back.
@@ -421,29 +389,18 @@ function K.strength.params(sv)
         P[key] = value
     end
     local rows = S.OPTIONS
-    local kMul = 1.0
+    local kMul = S.RATE
     local pFull = S.PROTEIN_FULL
     for i = 1, #rows do
         local row = rows[i]
-        local key = row[2]
-        local default = D[key]
-        if key == "kMul" then
-            default = 1.0
-        end
-        if key == "pFull" then
-            default = S.PROTEIN_FULL
-        end
-        local v = K.readLeaf(sv, row[1], default, row[3], row[4], row[5] ~= true)
-        if key == "kMul" then
+        local v = K.dials.readParam(sv, row)
+        if row.key == "RATE" then
             kMul = v
-        elseif key == "pFull" then
+        elseif row.key == "PROTEIN_FULL" then
             pFull = v
         else
-            P[key] = v
+            P[row.key] = v
         end
-    end
-    if math.abs(P.m - S.M_OPTION_DEFAULT) <= S.M_OPTION_TOL then
-        P.m = D.m
     end
     P.k = D.k * kMul
     local scale = pFull / S.PROTEIN_FULL
@@ -476,34 +433,34 @@ end
 
 -- The Java perk cap: getTotalXpForLevel(11) == getTotalXpForLevel(10) (#2859); BeyondTen's mastery
 -- levels 11-15 live in its own modData, outside the model.
-K.strength.L_MAX = 10 -- #2118; ruling 9
+K.strength.L_MAX = K.dials.get("strength.L_MAX")
 
 -- The acute carry terms. Dehydration in two steps (percent body mass), scaled by DEHYD_SWEAT_K when
 -- the deficit arose from sweat or heat.
-K.strength.DEHYD_PCT1 = 2 -- S0623
-K.strength.DEHYD_STEP1 = -0.03 -- S0623 (~−2 %): −0.03 a game choice
-K.strength.DEHYD_PCT2 = 4 -- S0624
-K.strength.DEHYD_STEP2 = -0.06 -- S0624
-K.strength.DEHYD_SWEAT_K = 1.5 -- S0624: active (exercise or heat) dehydration an extra −5.4 % vs passive; the ×1.5 is a game choice
+K.strength.DEHYD_PCT1 = K.dials.get("strength.DEHYD_PCT1")
+K.strength.DEHYD_STEP1 = K.dials.get("strength.DEHYD_STEP1")
+K.strength.DEHYD_PCT2 = K.dials.get("strength.DEHYD_PCT2")
+K.strength.DEHYD_STEP2 = K.dials.get("strength.DEHYD_STEP2")
+K.strength.DEHYD_SWEAT_K = K.dials.get("strength.DEHYD_SWEAT_K")
 
 -- Hours awake past the knee cost SLEEP_PER_H per hour, capped; halved from dawn to noon.
-K.strength.SLEEP_KNEE_H = 18 -- S0763, S0762; ruling 11 (conflict C7)
-K.strength.SLEEP_PER_H = -0.004 -- S0763, S0762
-K.strength.SLEEP_CAP = -0.08 -- S0763, S0762
-K.strength.SLEEP_AM_FACTOR = 0.5 -- S0765; 06-12 game choice
-K.strength.AM_FROM_H = 6 -- S0765; 06-12 game choice (ruling 11)
-K.strength.AM_TO_H = 12 -- S0765; 06-12 game choice (ruling 11)
+K.strength.SLEEP_KNEE_H = K.dials.get("strength.SLEEP_KNEE_H")
+K.strength.SLEEP_PER_H = K.dials.get("strength.SLEEP_PER_H")
+K.strength.SLEEP_CAP = K.dials.get("strength.SLEEP_CAP")
+K.strength.SLEEP_AM_FACTOR = K.dials.get("strength.SLEEP_AM_FACTOR")
+K.strength.AM_FROM_H = K.dials.get("strength.AM_FROM_H")
+K.strength.AM_TO_H = K.dials.get("strength.AM_TO_H")
 
 -- Caffeine, clinical vitamin D deficiency and body fat above the knee (per 10 points of fat fraction).
-K.strength.CAFFEINE_BONUS = 0.02 -- S0626 SMD->% game choice
-K.strength.VITD_PENALTY = -0.03 -- S0633 SMD 0.17 → −0.03: an SMD→% game choice (S0634 disagrees)
-K.strength.FAT_PER_10PT = -0.03 -- S0651 (≥ 6 % weaker per FFM in obesity): −0.03 per 10 points over 30 % a game mapping
-K.strength.FAT_KNEE = 0.30 -- S0651 (≥ 6 % weaker per FFM in obesity): −0.03 per 10 points over 30 % a game mapping
-K.strength.FAT_PER_PTS = 0.10 -- S0651: FAT_PER_10PT's unit, 10 points of fat fraction
+K.strength.CAFFEINE_BONUS = K.dials.get("strength.CAFFEINE_BONUS")
+K.strength.VITD_PENALTY = K.dials.get("strength.VITD_PENALTY")
+K.strength.FAT_PER_10PT = K.dials.get("strength.FAT_PER_10PT")
+K.strength.FAT_KNEE = K.dials.get("strength.FAT_KNEE")
+K.strength.FAT_PER_PTS = K.dials.get("strength.FAT_PER_PTS")
 
 -- The acute factor's clamp.
-K.strength.E_ACUTE_MIN = -0.20 -- game choice § 7 item 30
-K.strength.E_ACUTE_MAX = 0.03 -- game choice § 7 item 30
+K.strength.E_ACUTE_MIN = K.dials.get("strength.E_ACUTE_MIN")
+K.strength.E_ACUTE_MAX = K.dials.get("strength.E_ACUTE_MAX")
 
 -- Vanilla's band remap as {highest level, trait}: the first row whose level is >= the shown level.
 -- Level 5 carries no band trait (its row's trait is nil).
@@ -559,7 +516,7 @@ end
 
 -- The carry's trait factor by muscle band: the constructor's own values for the band trait a level implies (#2144;
 -- ruling 13-7); the level-5 band, none, reads 1.
-K.strength.TRAIT_CARRY = { WEAK = 0.75, FEEBLE = 0.9, STOUT = 1.25, STRONG = 1.5 } -- #2144
+K.strength.TRAIT_CARRY = { WEAK = 0.75, FEEBLE = 0.9, STOUT = 1.25, STRONG = 1.5 } -- #2144 VANILLA
 
 -- The carry's trait factor at Strength level n: TRAIT_CARRY of the band bandOf(n), 1 with no band (ruling 13-7).
 function K.strength.traitCarry(n)
@@ -574,11 +531,11 @@ end
 -- ============================================================ the AddXP capture (spec section 4, ruling 13-11)
 -- The protein factor vanilla's XP.AddXP applies off the server's protein store (#2112; the 42.21 jar's AddXP
 -- @107-@190): x1.5 strictly between 50 and 300, x0.7 strictly below -300, else 1.
-K.strength.PROTEIN_LO = 50 -- #2112
-K.strength.PROTEIN_HI = 300 -- #2112
-K.strength.PROTEIN_HI_FACTOR = 1.5 -- #2112
-K.strength.PROTEIN_NEG = -300 -- #2112
-K.strength.PROTEIN_NEG_FACTOR = 0.7 -- #2112
+K.strength.PROTEIN_LO = 50 -- #2112 VANILLA
+K.strength.PROTEIN_HI = 300 -- #2112 VANILLA
+K.strength.PROTEIN_HI_FACTOR = 1.5 -- #2112 VANILLA
+K.strength.PROTEIN_NEG = -300 -- #2112 VANILLA
+K.strength.PROTEIN_NEG_FACTOR = 0.7 -- #2112 VANILLA
 
 -- The protein factor of a store (a NaN store compares false everywhere and reads 1).
 function K.strength.proteinFactor(store)
@@ -637,7 +594,7 @@ function K.strength.pinXp(n, frac, totals)
 end
 
 -- BeyondTen's mastery levels end at 15 (its BT.MAX_LEVEL, Shared.lua:10-12).
-K.strength.MASTERY_MAX = 15
+K.strength.MASTERY_MAX = K.dials.get("strength.MASTERY_MAX")
 
 -- BeyondTen's stored mastery XP for shown level L (ruling 13-42): cost(f) + (L - f) (cost(f + 1) - cost(f)) with f the
 -- floor of L + 1e-9 (shown's epsilon), clamped to [L_MAX, MASTERY_MAX]; cost(MASTERY_MAX) at or above it. cost(level)

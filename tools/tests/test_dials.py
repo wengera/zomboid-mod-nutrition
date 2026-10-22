@@ -174,6 +174,41 @@ def test_a_sandbox_backed_core_dial_is_refused(tree):
     assert _check(tree, rows.values()) == []                        # a core dial without an option stays green
 
 
+def test_a_param_option_resolves_anywhere_and_its_links_follow_no_option(tree):
+    # Plan 19 Task 3f: a param row's option is read into its domain's own table (K.strength.params), never into the
+    # field, so its get site may sit in a constructor and a same on it is one dial whatever the option reads; param
+    # needs an option and a number, and the option file declares a double's default at three decimal places
+    rows = dict(GOOD)
+    rows["dom.P"] = "D['dom.P'] = { value = 0.3333333333333333, unit = 'x', min = 0, max = 3, src = 'game choice', opt = 'Third', param = true, note = 'p' }"
+    rows["dom.S3"] = "D['dom.S3'] = { same = 'dom.P', unit = 'x', src = 'game choice', note = 's' }"
+    sandbox = SANDBOX + "\n".join(["option NR.Third", "{", "    type = double, min = 0.0, max = 3.0, default = 0.333,",
+                                   "    page = NutritionRevamp, translation = NR_Third,", "}", ""])
+    _write(tree, dials.SANDBOX_REL, sandbox)
+    _write(tree, dials.LUA_REL + "/shared/NR_Kernel_Dom2.lua",
+           'K.dom.T = { p = K.dials.get("dom.P"), s = K.dials.get("dom.S3") }' + "\n")
+    assert _check(tree, rows.values()) == []
+    for mutant, want in (("param = false", "param is true on a numeric row with an option"),
+                         ("opt = 'Fourth'", "option NR.Fourth is not in")):
+        bad = dict(rows)
+        bad["dom.P"] = mutate(rows["dom.P"], mutant)
+        assert any(want in f for f in _check(tree, bad.values())), mutant
+    bad = dict(rows)
+    bad["dom.A"] = rows["dom.A"].replace("{ ", "{ param = true, ", 1)
+    assert any("dom.A: param is true on a numeric row with an option" in f for f in _check(tree, bad.values()))
+    bad = dict(rows)
+    bad["dom.S3"] = rows["dom.S3"].replace("{ ", "{ param = true, ", 1)
+    assert any("dom.S3: a same row carries no param" in f for f in _check(tree, bad.values()))
+    # without param the same row is refused (K.dials.apply would write only dom.P), the site must be K.dom.P, and the
+    # value must be exact at the file's three places
+    bad = dict(rows)
+    bad["dom.P"] = rows["dom.P"].replace(", param = true", "")
+    found = _check(tree, bad.values())
+    assert any("dom.S3: same dom.P, a sandbox-backed dial" in f for f in found), found
+    assert any("dom.P: a sandbox-backed dial must resolve as K.dom.P" in f for f in found), found
+    assert any("dom.P: K.dials.apply writes the option's read into the field" in f for f in found), found
+    assert dials.written(1 / 3) == 0.333 and dials.written(-650.0) == -650.0 and dials.written(0.35) == 0.35
+
+
 def test_a_same_cycle_is_refused(tree):
     rows = dict(GOOD)
     rows["dom.C1"] = "D['dom.C1'] = { same = 'dom.C2', unit = 'pts', src = 'game choice', note = 'c' }"

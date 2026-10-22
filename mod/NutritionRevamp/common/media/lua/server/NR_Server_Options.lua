@@ -106,7 +106,7 @@ function NR.server.readOptions(where)
         local raw = O.strengthRaw
         local moved = false
         for i = 1, #rows do
-            local v = sv[rows[i][1]]
+            local v = sv[rows[i].opt]
             if raw[i] ~= v and not (v ~= v and raw[i] ~= raw[i]) then
                 raw[i] = v
                 moved = true

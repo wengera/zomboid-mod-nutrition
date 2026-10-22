@@ -281,13 +281,19 @@ _SANDBOX_TXT = os.path.join(_MOD, "42.21", "media", "sandbox-options.txt")
 _SANDBOX_JSON = os.path.join(_MOD, "common", "media", "lua", "shared", "Translate", "EN", "Sandbox.json")
 _SERVER = os.path.join(_MOD, "common", "media", "lua", "server")
 
-# The specials: StrengthRate multiplies k (default 1.0), StrengthProteinFull scales the knots (default 1.6).
-_SPECIAL_DEFAULT = {"kMul": 1.0, "pFull": 1.6}
+# The specials: StrengthRate multiplies k (K.strength.RATE, 1.0), StrengthProteinFull scales the knots
+# (K.strength.PROTEIN_FULL, 1.6); every other option sets the DEFAULTS key its entry names.
+_SPECIAL_DEFAULT = {"RATE": 1.0, "PROTEIN_FULL": 1.6}
 
 
 def _rows(host):
+    """[option name, key, min, max (, True for an integer)] of each K.strength.OPTIONS entry (Plan 19 Task 3f: built at
+    load from the registry's param rows, sorted by id)."""
     t = host.py(host.K.strength.OPTIONS)
-    return [[row[j] for j in sorted(row)] for _, row in sorted(t.items())]
+    out = []
+    for _, e in sorted(t.items()):
+        out.append([e["opt"], e["key"], e["min"], e["max"]] + ([True] if e.get("int") is True else []))
+    return out
 
 
 def _declared():
@@ -311,7 +317,10 @@ def _params(host, sv=None):
 def test_the_option_set_is_the_briefs_34(host):
     names = [r[0] for r in _rows(host)]
     assert len(names) == 34 and len(set(names)) == 34
-    assert names[0] == "StrengthTimeScale" and names[-1] == "StrengthPeakHalfLifeYears"
+    with open(_SANDBOX_TXT, encoding="utf-8") as fh:
+        declared = [n for n in re.findall(r"option NR\.(\w+)", fh.read()) if n.startswith(("Strength", "LeanLoss"))]
+    assert set(declared) == set(names) and len(declared) == 34
+    assert declared[0] == "StrengthTimeScale" and declared[-1] == "StrengthPeakHalfLifeYears"
 
 
 def test_every_option_parses_and_its_declaration_matches_the_kernel_table(host):
@@ -385,9 +394,9 @@ def test_decoy_all_options_off_default_each_lands_on_its_own_key(host):
     P, fell = _params(host, sv)
     assert fell is False
     for key, v in want.items():
-        if key == "kMul":
+        if key == "RATE":
             assert abs(P["k"] - D["k"] * v) < 1e-15
-        elif key == "pFull":
+        elif key == "PROTEIN_FULL":
             for i in (1, 2, 3, 4):
                 assert abs(P["fp_knots"][i][1] - D["fp_knots"][i][1] * v / 1.6) < 1e-12
                 assert P["fp_knots"][i][2] == D["fp_knots"][i][2]
@@ -397,7 +406,7 @@ def test_decoy_all_options_off_default_each_lands_on_its_own_key(host):
             assert P[key] == v, key
     # nothing else moved
     moved = {k for k in D if k not in ("fp_knots", "k", "R") and P[k] != D[k]}
-    assert moved == {k for k in want if k not in ("kMul", "pFull")}
+    assert moved == {k for k in want if k not in ("RATE", "PROTEIN_FULL")}
 
 
 def test_strength_rate_doubles_k_and_leaves_R(host):
@@ -480,7 +489,7 @@ def test_a_rebuild_for_another_option_does_not_run_R_again(host):
 def test_out_of_range_doubles_clamp_and_integers_read_the_default(host):
     D = host.py(host.K.strength.DEFAULTS)
     for name, key, lo, hi, *integer in _rows(host):
-        if key in ("kMul", "pFull", "yearsTo10", "m"):
+        if key in ("RATE", "PROTEIN_FULL", "yearsTo10", "m"):
             continue
         for bad, expect_clamp in ((lo - 1000, lo), (hi + 1000, hi)):
             P, _ = _params(host, {name: bad, "StrengthThresholdRise": 0})

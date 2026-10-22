@@ -19,9 +19,10 @@ function K.dials.optIds(rows)
     return ids
 end
 
--- id onto ids when its row names an option (the pairs body, kept out of the loop for the line-granular coverage gate).
+-- id onto ids when its row names an option K.dials.apply writes: not a param row, whose option its domain reads into a
+-- table of its own (the pairs body, kept out of the loop for the line-granular coverage gate).
 function K.dials.addOpt(ids, id, row)
-    if row.opt ~= nil then
+    if row.opt ~= nil and row.param ~= true then
         ids[#ids + 1] = id
     end
 end
@@ -78,4 +79,56 @@ function K.dials.derive(id)
     if type(domain) == "table" and type(domain.derive) == "function" then
         domain.derive()
     end
+end
+
+-- The param options: a row with param reads its option into its domain's own parameter table, never into the field
+-- (K.strength.params: one P table a server, threaded through the kernel). A domain builds its entries once at load.
+-- The option file writes a double's default to three decimal places (tools/sandbox_options.py); WRITTEN_TOL is half the
+-- third place, so a read that equals the written default reads the row's exact value.
+K.dials.WRITTEN_PLACES = 1000 -- no row needed: the option file's three decimal places
+K.dials.WRITTEN_TOL = 0.0005 -- no row needed: half the third decimal place
+
+-- The option file's form of a number v: rounded half up to three decimal places (tools/sandbox_options.py written).
+function K.dials.written(v)
+    return math.floor(v * K.dials.WRITTEN_PLACES + 0.5) / K.dials.WRITTEN_PLACES
+end
+
+-- The entries of domain's param rows, sorted by id: { id, key (the last segment of the id), opt, value, min, max, int,
+-- written (the value as the option file declares it) }.
+function K.dials.paramOptions(domain)
+    local rows = NutritionRevamp.data.dials
+    local ids = {}
+    for id, row in pairs(rows) do
+        K.dials.addParam(ids, id, row, domain .. ".")
+    end
+    table.sort(ids)
+    local out = {}
+    for i = 1, #ids do
+        out[i] = K.dials.paramEntry(ids[i], rows[ids[i]])
+    end
+    return out
+end
+
+-- id onto ids when its row is a param row under prefix (the pairs body, kept out of the loop for the coverage gate).
+function K.dials.addParam(ids, id, row, prefix)
+    if row.param == true and string.sub(id, 1, string.len(prefix)) == prefix then
+        ids[#ids + 1] = id
+    end
+end
+
+-- One param entry of row id.
+function K.dials.paramEntry(id, row)
+    local key = string.match(id, "([^%.]+)$")
+    return { id = id, key = key, opt = row.opt, value = row.value, min = row.min, max = row.max, int = row.int, written = K.dials.written(row.value) }
+end
+
+-- A param option's read from sv (SandboxVars.NR, or nil) by the one clamp rule (K.readLeaf: a double clamps into the
+-- entry's range, an int entry's out-of-range value reads the default); a read within WRITTEN_TOL of a written default
+-- that is not the exact value (StrengthMaintainShare's 0.333 for m's third) reads the exact value.
+function K.dials.readParam(sv, entry)
+    local v = K.readLeaf(sv, entry.opt, entry.value, entry.min, entry.max, entry.int ~= true)
+    if entry.written ~= entry.value and math.abs(v - entry.written) <= K.dials.WRITTEN_TOL then
+        return entry.value
+    end
+    return v
 end
