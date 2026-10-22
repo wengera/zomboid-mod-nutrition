@@ -118,9 +118,14 @@ def test_the_unified_duplicates_resolve_through_same_and_the_vanilla_values_are_
     raw = dials.load_rows(text)
     assert raw["body.PROT_OK"]["same"] == "aerobic.P_LOW" and "value" not in raw["body.PROT_OK"]
     assert dials.values()["body.PROT_OK"] == 0.8
-    for dial_id in ("training.MET_FLOOR", "training.CLIMB_MET.JumpFence", "training.CLIMB_MET.ClimbRope", "nut.NEED_MORE",
-                    "nut.NEED_LESS"):
+    for dial_id in ("nut.NEED_MORE", "nut.NEED_LESS"):
         assert raw[dial_id].get("fixed") is True, dial_id
+    # the training METs resolve to the engine class values (Plan 19 Task 3c, W6): energy.CLASS_MET's fixed rows
+    for dial_id, cls in (("training.MET_FLOOR", "Default"), ("training.BAND1_MET", "Fitness"),
+                         ("training.BAND2_MET", "FitnessHeavy"), ("training.CLIMB_MET.JumpFence", "JumpFence"),
+                         ("training.CLIMB_MET.ClimbRope", "ClimbRope")):
+        assert raw[dial_id]["same"] == "energy.CLASS_MET." + cls and "value" not in raw[dial_id], dial_id
+        assert raw["energy.CLASS_MET." + cls].get("fixed") is True, dial_id
     with pytest.raises(ValueError):
         dials.set_value(text, "nut.NEED_MORE", "1.4")
     with pytest.raises(ValueError):

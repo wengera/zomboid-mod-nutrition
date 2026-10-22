@@ -52,15 +52,18 @@ def _code(path):
 def test_the_table_holds_the_seven_vanilla_types_at_their_rows(host):
     t = host.py(host.K.energy.EXERCISE_MET)
     assert t == {k: v[0] for k, v in TABLE.items()}
+    from .conftest import dial_line
     lines = _src(ENERGY).splitlines()
     for key, (met, row, others) in TABLE.items():
-        line = next(x for x in lines if x.startswith("K.energy.EXERCISE_MET.%s = " % key))
-        assert line.split("--")[0].strip() == "K.energy.EXERCISE_MET.%s = %s" % (key, met)
-        label = line.split("--", 1)[1]
+        # Plan 19: the kernel line resolves the row; the value and its provenance sit on the registry row
+        assert 'K.energy.EXERCISE_MET.%s = K.dials.get("energy.EXERCISE_MET.%s")' % (key, key) in lines, key
+        line = dial_line("energy.EXERCISE_MET.%s" % key)
+        assert line.startswith("D['energy.EXERCISE_MET.%s'] = { value = %s," % (key, met)), key
+        label = line.split(" } -- ", 1)[1]
         assert row in label and all(o in label for o in others), key
         assert "game choice" in label, key
     for key in ("barbellcurl", "dumbbellpress", "bicepscurl"):
-        assert "approximate" in next(x for x in lines if x.startswith("K.energy.EXERCISE_MET.%s = " % key))
+        assert "approximate" in dial_line("energy.EXERCISE_MET.%s" % key)
 
 
 @pytest.mark.parametrize("exe,met,known", [(k, v[0], True) for k, v in TABLE.items()] + [

@@ -45,16 +45,14 @@ W = 80.0
 def test_the_constants_and_their_labels(host):
     E = host.K.energy
     assert E.EPOC_F == 0.10 and E.EPOC_TAU_H == 0.5 and E.FALL_EPS == 1e-4
-    path = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Kernel_Energy.lua")
-    with open(path, encoding="utf-8") as fh:
-        src = fh.read()
-    f_line = next(x for x in src.splitlines() if x.startswith("K.energy.EPOC_F = "))
-    tau_line = next(x for x in src.splitlines() if x.startswith("K.energy.EPOC_TAU_H = "))
+    from .conftest import dial_line
+    f_line = dial_line("energy.EPOC_F")                                  # Plan 19: the provenance is the registry row's
+    tau_line = dial_line("energy.EPOC_TAU_H")
     assert "game choice" in f_line and all(s in f_line for s in ("S1775", "S1777", "S1779", "S1783"))
     assert "denominators differ" in f_line
     assert "game choice" in tau_line and "S1798 stays open" in tau_line
     assert all(s in tau_line for s in ("S1796", "S1797", "S1790", "S1791", "S1777", "S1783"))
-    assert "game choice" in next(x for x in src.splitlines() if x.startswith("K.energy.FALL_EPS = "))
+    assert "game choice" in dial_line("energy.FALL_EPS")
 
 
 @pytest.mark.parametrize("prev,rate,falls", [(2.0, 1.9, True), (1.5, 1.5, False), (1.5, 1.6, False),
