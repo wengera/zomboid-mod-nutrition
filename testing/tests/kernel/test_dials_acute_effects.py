@@ -31,9 +31,10 @@ LINKS = {
     "effects.PE_PROT_OK": "aerobic.P_LOW",
     "effects.EA_FULL": "aerobic.EA_THRESHOLD", "effects.EA_EDGES.1": "aerobic.EA_THRESHOLD",
     "acute.COLD_ON": "acute.SHIVER_DEADBAND",
+    "effects.BG_EDGES.2": "acute.IU_BG_HI", "effects.BG_EDGES.3": "acute.IU_BG_LO",
     "eff.TRAIT_NEEDS_LESS_ACC": "nut.NEED_LESS", "eff.TRAIT_NEEDS_MORE_ACC": "nut.NEED_MORE",
 }
-FIXED = {"effects.INTOX_MAX": "vanilla #2369", "nut.LITRES_PER_THIRST": "vanilla #2932 #2939"}
+FIXED = {"effects.INTOX_MAX": "vanilla #2371", "nut.LITRES_PER_THIRST": "vanilla #2928 #2939"}
 DIVISORS = ("acute.CAF_THALF_H", "acute.CAF_THALF_SLOW_H", "acute.CAF_MEAN_H", "acute.CAF_TOL_REF", "acute.CAF_TOL_TAU_H",
             "acute.GUT_T_HALF", "acute.WIDMARK_R.1", "acute.WIDMARK_R.2", "acute.HANG_PEAK",
             "acute.STIM_REALISTIC.INTOX_FULL_BAC", "acute.STIM_GAME_OVERRIDES.INTOX_FULL_BAC", "acute.IU_ALC_KNOTS.2.1",
@@ -47,7 +48,7 @@ DISJOINT = (("acute.CAF_WD_ONSET_H", "acute.CAF_WD_PEAK_H"), ("acute.CAF_WD_PEAK
             ("acute.SHIVER_DEADBAND", "acute.SHIVER_FULL"), ("acute.IU_BG_LO", "acute.IU_BG_HI"),
             ("acute.IU_ALC_KNOTS.2.1", "acute.IU_ALC_KNOTS.3.1"), ("acute.IU_ALC_KNOTS.3.1", "acute.IU_ALC_KNOTS.4.1"),
             ("effects.CAF_SLEEP_ZERO", "effects.CAF_SLEEP_FULL"), ("effects.EA_LOW", "effects.EA_MID"),
-            ("effects.EA_MID", "aerobic.EA_THRESHOLD"), ("satiety.SLEEP_SHORT_H", "acute.SLEEP_NEED_H"))
+            ("effects.EA_MID", "aerobic.EA_THRESHOLD"), ("acute.IU_BG_HI", "effects.BG_EDGES.1"), ("satiety.SLEEP_SHORT_H", "acute.SLEEP_NEED_H"))
 
 # The replaced constructors, verbatim from 1e4bc8fc (the values and the assignment order the pairs order follows).
 OLD = """
@@ -329,7 +330,7 @@ def test_the_wave_duplicates_are_same_links_and_the_vanilla_scales_fixed():
 def test_a_registry_link_target_moves_every_linked_kernel_field():
     for target, new in (("acute.RISK_BMI_MOD", "19"), ("acute.RISK_BMI_HIGH", "15"), ("acute.RISK_DAYS_MOD", "6"),
                         ("acute.RISK_DAYS_HIGH", "12"), ("aerobic.P_LOW", "0.9"), ("aerobic.EA_THRESHOLD", "25"),
-                        ("acute.SHIVER_DEADBAND", "1.2")):
+                        ("acute.SHIVER_DEADBAND", "1.2"), ("acute.IU_BG_HI", "2.9"), ("acute.IU_BG_LO", "2.5")):
         _, K = runtime([value_edit(target, new)])
         assert field(K, target) == float(new), target
         for dial_id, t in LINKS.items():
@@ -419,3 +420,11 @@ def test_replay_live_set_constants_writes_a_group_of_array_elements_by_path():
     for bad in ("acute.NO_SUCH", "acute.WIDMARK_R", "eff.SOL_CAF_H", "energy.BAND_MET.7"):
         with pytest.raises(ValueError):
             replay_live.set_constants(K, {bad: 1})
+
+
+def test_replay_live_set_constants_refuses_a_stimulant_set_laid_at_load():
+    import replay_live
+    _, K = runtime()
+    for name in ("acute.STIM_GAME_OVERRIDES.HANG_H", "acute.STIM_REALISTIC.HANG_H"):
+        with pytest.raises(ValueError):
+            replay_live.set_constants(K, {name: 9})

@@ -832,13 +832,15 @@ def set_constants(K, constants, rt=None):
                 raise ValueError("unknown replay-only constant %s" % name)
             REPLAY_ONLY[name](rt, value)
             continue
+        if name.startswith("acute.STIM_GAME_OVERRIDES.") or name.startswith("acute.STIM_REALISTIC."):
+            raise ValueError("%s: the stimulant sets are laid at load (K.acute.STIM), so a runtime set does not reach the active set" % name)
         slot = kernel_slot(K, name)
         cur = slot[0][slot[1]] if slot is not None else None
         if isinstance(cur, bool) or not isinstance(cur, (int, float)):
             raise ValueError("unknown kernel constant %s" % name)
         for dial_id in dials.linked(name):
             other = kernel_slot(K, dial_id)
-            if other is not None:
+            if other is not None and isinstance(other[0][other[1]], (int, float)) and not isinstance(other[0][other[1]], bool):
                 other[0][other[1]] = float(value)
 
 

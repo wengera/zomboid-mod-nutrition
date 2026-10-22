@@ -2,6 +2,8 @@ import os, subprocess, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import sciencelib as sl
 import science_check as sc
+sys.path.insert(0, os.path.dirname(__file__))
+import gitenv
 
 CLI = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "science_check.py")
 ROW = dict(id="S0001", topic="iron", parameter="p", value="1", range="", population="adults", grade="MA",
@@ -84,7 +86,7 @@ def test_a_mixed_citation_fails_the_schema(tmp_path):
 
 def test_staged_reads_the_index_blob(tmp_path):
     root = _tree(tmp_path, [ROW])
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}   # never let GIT_DIR/GIT_WORK_TREE aim this at the real repo
+    env = gitenv.scrubbed_env()   # never let GIT_DIR/GIT_WORK_TREE aim this at the real repo
     git = lambda *a: subprocess.run(["git", *a], cwd=str(root), capture_output=True, text=True, env=env)
     assert git("init", "-q").returncode == 0
     top = git("rev-parse", "--show-toplevel").stdout.strip().replace("\\", "/")

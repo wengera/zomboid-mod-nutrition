@@ -1,6 +1,8 @@
 import os, subprocess, sys, tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import claims_check as cc
+sys.path.insert(0, os.path.dirname(__file__))
+import gitenv
 import claimslib as cl
 import reference_gen as rg
 
@@ -524,7 +526,7 @@ def test_pointer_line_checks_every_pointer_of_a_multi_pointer_cell():
 
 def _git(d, *a):
     return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", d, *a], check=True,
-                          capture_output=True, text=True).stdout.strip()
+                          capture_output=True, text=True, env=gitenv.scrubbed_env()).stdout.strip()
 
 
 BODY = "a = 1\nlocal function f()\n  return 2\nend\n"

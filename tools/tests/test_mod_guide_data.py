@@ -10,6 +10,8 @@ from contextlib import redirect_stderr, redirect_stdout
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import mod_guide_data as g
+sys.path.insert(0, os.path.dirname(__file__))
+import gitenv
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 RUN = "x900-20261015-000000"
@@ -544,7 +546,8 @@ class Cli(Fixture):
 
 def _git(repo, *args):
     return subprocess.run(["git", "-C", repo, "-c", "user.name=t", "-c", "user.email=t@example.invalid",
-                           "-c", "commit.gpgsign=false"] + list(args), capture_output=True, text=True, check=True).stdout.strip()
+                           "-c", "commit.gpgsign=false"] + list(args), capture_output=True, text=True, check=True,
+                          env=gitenv.scrubbed_env()).stdout.strip()
 
 
 @unittest.skipUnless(shutil.which("git"), "git not on PATH")

@@ -68,11 +68,13 @@ import math
 
 import pytest
 
+from .conftest import dial_value
+
 LM = 65.6
 W = 80.0
 DAY = 1440
 AUTODRINK = 0.1                     # #2770: autoDrink drinks only when thirst exceeds a hard-coded 0.1
-LITRES_PER_THIRST = 2               # #2770: min(container, 2 x thirst); NR_Server_Nutrients' LITRES_PER_THIRST
+LITRES_PER_THIRST = dial_value("nut.LITRES_PER_THIRST")  # #2770: min(container, 2 x thirst); NR_Server_Nutrients' LITRES_PER_THIRST
 MEAL_MIN = 120
 MEALS = (8 * 60, 13 * 60, 19 * 60)
 WAKE, SLEEP = 7 * 60, 23 * 60
