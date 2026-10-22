@@ -36,103 +36,103 @@ K.effects.NB = 12 -- the band count, no row needed
 
 -- The band steps and edges (A2). Every step is a game choice resting on open S1178 (the quantisation steps).
 K.effects.BAND_EPS = 1e-9 -- a floating-point guard on floor(x / step) (0.3 / 0.1 is 2.9999999999999996), no row needed
-K.effects.CAF_STEP = 50 -- mg: game choice step (open S1178)
-K.effects.CAF_BANDS = 16 -- 800 mg, the panic row's top: game choice (open S1178)
-K.effects.WD_BANDS = 4 -- quarters of wd x cafTol: game choice (open S1178)
+K.effects.CAF_STEP = K.dials.get("effects.CAF_STEP")
+K.effects.CAF_BANDS = K.dials.get("effects.CAF_BANDS")
+K.effects.WD_BANDS = K.dials.get("effects.WD_BANDS")
 -- The alcohol episode-peak edges, per cent BAC: S0813's 0.50 and 0.85 g/kg over 10 r with r 0.68 (open S1104).
 K.effects.ALC_EDGES = {
-    0.0735, -- 0.50 / 6.8, S0813 (r open S1104)
-    0.125, -- 0.85 / 6.8, S0813 (r open S1104)
+    K.dials.get("effects.ALC_EDGES.1"),
+    K.dials.get("effects.ALC_EDGES.2"),
 }
 -- The blood-glucose edges, mmol/L, descending: band 1 below 3.5, 2 below 3.0, 3 below 2.6.
 K.effects.BG_EDGES = {
-    3.5, -- game choice: the report's former knee, read by no row (open S1178)
-    3.0, -- S0897 / S0898 (impairment from 3.0)
-    2.6, -- S0897 (2.6-3.0 the impairment band)
+    K.dials.get("effects.BG_EDGES.1"),
+    K.dials.get("effects.BG_EDGES.2"),
+    K.dials.get("effects.BG_EDGES.3"),
 }
-K.effects.IUS_STEP = 0.125 -- IU: 3 h awake: game choice (open S1178)
-K.effects.IUS_BANDS = 12 -- 1.5 IU, the sleep term's cap (K.acute.IU_SLEEP_MAX): game choice (open S1178)
+K.effects.IUS_STEP = K.dials.get("effects.IUS_STEP")
+K.effects.IUS_BANDS = K.dials.get("effects.IUS_BANDS")
 -- The sleep-debt edges, hours: game choice mapping of S0993's nightly hours onto the debt (open S1157).
 K.effects.DEBT_EDGES = {
-    4, -- S0993 (6-7 h a night); game choice map (open S1157)
-    8, -- S0993 (under 6 h a night); game choice map (open S1157)
+    K.dials.get("effects.DEBT_EDGES.1"),
+    K.dials.get("effects.DEBT_EDGES.2"),
 }
-K.effects.IU_STEP = 0.1 -- IU: the aim multiplier's resolution 0.025: game choice (open S1178)
-K.effects.IU_BANDS = 25 -- 2.5 IU, K.acute.IU_MAX: game choice (open S1178)
+K.effects.IU_STEP = K.dials.get("effects.IU_STEP")
+K.effects.IU_BANDS = K.dials.get("effects.IU_BANDS")
 -- The dehydration edges, per cent body mass.
 K.effects.DEHYD_EDGES = {
-    1, -- S0894 (the studied range starts at 1 %)
-    1.5, -- S0098 / S0099 (1.36-1.59 %)
-    2, -- S0706 / S0707 / S0895 (the 2 % line)
-    2.5, -- game choice curve knot (open S1121)
-    3, -- game choice curve knot (open S1121)
-    4, -- S0895 / S0706 / S0707 (the 4 % line)
-    6, -- dizziness at about 5.8 % (S2248); game choice (open S1098)
-    10, -- severe dehydration (open S1101)
+    K.dials.get("effects.DEHYD_EDGES.1"),
+    K.dials.get("effects.DEHYD_EDGES.2"),
+    K.dials.get("effects.DEHYD_EDGES.3"),
+    K.dials.get("effects.DEHYD_EDGES.4"),
+    K.dials.get("effects.DEHYD_EDGES.5"),
+    K.dials.get("effects.DEHYD_EDGES.6"),
+    K.dials.get("effects.DEHYD_EDGES.7"),
+    K.dials.get("effects.DEHYD_EDGES.8"),
 }
-K.effects.EX_STEP = 7.5 -- minutes of exEma: a quarter of EX_FULL 30, game choice (open S1148)
-K.effects.EX_BANDS = 4 -- full credit at 30 min: game choice (open S1148)
+K.effects.EX_STEP = K.dials.get("effects.EX_STEP")
+K.effects.EX_BANDS = K.dials.get("effects.EX_BANDS")
 
 -- Energy availability (closed day, kcal per kg lean mass): the band edges, descending, and the accrual knots.
 K.effects.EA_EDGES = {
-    30, -- S0691 (unaffected at 30)
-    20, -- S0990 (22 kcal/kg immune markers); game choice rung (open S1156)
-    10, -- S0991 (OR 3.8 at the low end); game choice rung (open S1156)
+    K.dials.get("effects.EA_EDGES.1"),
+    K.dials.get("effects.EA_EDGES.2"),
+    K.dials.get("effects.EA_EDGES.3"),
 }
-K.effects.EA_FULL = 30 -- S0691: no accrual cost at or above
-K.effects.EA_MID = 15 -- game choice extrapolation knot (open S0846)
-K.effects.EA_MID_M = 1.25 -- game choice extrapolation (open S0846)
-K.effects.EA_LOW = 5 -- game choice knot (open S0846)
-K.effects.EA_LOW_M = 1.40 -- game choice extrapolation, held below 5 (open S0846)
+K.effects.EA_FULL = K.dials.get("effects.EA_FULL")
+K.effects.EA_MID = K.dials.get("effects.EA_MID")
+K.effects.EA_MID_M = K.dials.get("effects.EA_MID_M")
+K.effects.EA_LOW = K.dials.get("effects.EA_LOW")
+K.effects.EA_LOW_M = K.dials.get("effects.EA_LOW_M")
 
 -- The protein-energy grade (F1).
-K.effects.PE_BMI_OK = 18.5 -- S0115
-K.effects.PE_BMI_THIN = 17 -- game choice: the WHO thinness class (open S1179)
-K.effects.PE_BMI_LOW = 16 -- S0115
-K.effects.PE_STARVED_3 = 5 -- days, S0115
-K.effects.PE_STARVED_4 = 10 -- days, S0115
-K.effects.PE_PROT_OK = 0.8 -- g/kg/d, S0509
-K.effects.PE_PROT_2 = 0.6 -- g/kg/d: game choice rung (open S1180)
-K.effects.PE_PROT_3 = 0.4 -- g/kg/d: game choice rung (open S1180)
+K.effects.PE_BMI_OK = K.dials.get("effects.PE_BMI_OK")
+K.effects.PE_BMI_THIN = K.dials.get("effects.PE_BMI_THIN")
+K.effects.PE_BMI_LOW = K.dials.get("effects.PE_BMI_LOW")
+K.effects.PE_STARVED_3 = K.dials.get("effects.PE_STARVED_3")
+K.effects.PE_STARVED_4 = K.dials.get("effects.PE_STARVED_4")
+K.effects.PE_PROT_OK = K.dials.get("effects.PE_PROT_OK")
+K.effects.PE_PROT_2 = K.dials.get("effects.PE_PROT_2")
+K.effects.PE_PROT_3 = K.dials.get("effects.PE_PROT_3")
 
 -- The aiming multiplier (D1): clamp(1 + AIM_K x IU, AIM_LO, AIM_HI), IU at the band's lower edge.
-K.effects.AIM_K = 0.25 -- game choice (open S1134)
-K.effects.AIM_LO = 0.90 -- game choice (open S1135); unreachable, the IU never falls below 0
-K.effects.AIM_HI = 1.60 -- game choice (open S1135)
+K.effects.AIM_K = K.dials.get("effects.AIM_K")
+K.effects.AIM_LO = K.dials.get("effects.AIM_LO")
+K.effects.AIM_HI = K.dials.get("effects.AIM_HI")
 
 -- The fatigue offset (B1): fOff = min(DEBT_K x debtH, DEBT_F_MAX) - cafOffset + fOffNut; the caffeine offset's
 -- ceiling CAF_OFF_MAX is the active stimulant set's (K.acute.C, Plan 15 Task 10).
-K.effects.DEBT_K = 0.005 -- per debt hour: game choice, debt under-felt (S0742 direction; open S1131)
-K.effects.DEBT_F_MAX = 0.10 -- game choice: 20 h of debt (open S1131)
-K.effects.CAF_EC50 = 150 -- mg: game choice (open S1124)
-K.effects.CAF_TOL_BLUNT = 0.6 -- S0807 direction (tolerance to subjective effects); game choice (open S1125)
+K.effects.DEBT_K = K.dials.get("effects.DEBT_K")
+K.effects.DEBT_F_MAX = K.dials.get("effects.DEBT_F_MAX")
+K.effects.CAF_EC50 = K.dials.get("effects.CAF_EC50")
+K.effects.CAF_TOL_BLUNT = K.dials.get("effects.CAF_TOL_BLUNT")
 
 -- Caffeine at sleep (A4, B6): satC = clamp((caf - zero) / (full - zero), 0, 1).
-K.effects.CAF_SLEEP_FULL = 107 -- mg, the coffee of S0797
-K.effects.CAF_SLEEP_ZERO = 32.1 -- mg = 0.3 x 107: S0797 x S0793 (2^(-8.8/5) = 0.2952)
+K.effects.CAF_SLEEP_FULL = K.dials.get("effects.CAF_SLEEP_FULL")
+K.effects.CAF_SLEEP_ZERO = K.dials.get("effects.CAF_SLEEP_ZERO")
 
 -- The engine part of accrual (B3) and recovery (B4): vanilla's own factors, clamped.
 K.effects.END_FLOOR = 0.3 -- the endDef floor, VANILLA #2270
 K.effects.REST_DIV = 1.5 -- sitting or resting divides the accrual, VANILLA #2271
-K.effects.M_LO = 0.2 -- game choice clamp (open S1133)
-K.effects.M_HI = 5.0 -- game choice clamp (open S1133)
-K.effects.R_LO = 0.25 -- game choice clamp (open S1133)
-K.effects.R_HI = 2.0 -- game choice clamp (open S1133)
+K.effects.M_LO = K.dials.get("effects.M_LO")
+K.effects.M_HI = K.dials.get("effects.M_HI")
+K.effects.R_LO = K.dials.get("effects.R_LO")
+K.effects.R_HI = K.dials.get("effects.R_HI")
 
 -- The night-vision machine (D2).
-K.effects.NV_GRANT = 14 -- days: game choice anchored on S0869's six weeks (open S1140)
-K.effects.NV_SLOW = 0.5 -- the rate under iron or riboflavin depletion, S0871 direction; game choice (open S1141)
-K.effects.NV_REGRANT = 3 -- days after a lapse: game choice hysteresis (open S1142)
-K.effects.NV_ZINC = 3 -- zinc must stay under the depleted grade, S0872 / S0873 direction (open S0942)
+K.effects.NV_GRANT = K.dials.get("effects.NV_GRANT")
+K.effects.NV_SLOW = K.dials.get("effects.NV_SLOW")
+K.effects.NV_REGRANT = K.dials.get("effects.NV_REGRANT")
+K.effects.NV_ZINC = K.dials.get("effects.NV_ZINC")
 
 -- The intoxication target: clamp(100 x bac / INTOX_FULL_BAC, 0, 100), the full BAC the active stimulant set's
 -- (K.acute.C: 0.20 % Realistic, 0.31 % Game; Plan 15 Task 10).
-K.effects.INTOX_MAX = 100 -- the stat's range #2369
+K.effects.INTOX_MAX = K.dials.get("effects.INTOX_MAX")
 
 -- The vitamin C cold credit's gates (F2): replete, at least 200 mg/d, exerting, cold-exposed.
-K.effects.CREDIT_E24 = 200 -- mg/d, S0980 (at least 0.2 g/d regular)
-K.effects.CREDIT_B1 = 60 -- moderate minutes in the day: game choice (open S1155)
-K.effects.CREDIT_COLD_H = 0.25 -- coldH hours on its 6 h memory: game choice (open S1155)
+K.effects.CREDIT_E24 = K.dials.get("effects.CREDIT_E24")
+K.effects.CREDIT_B1 = K.dials.get("effects.CREDIT_B1")
+K.effects.CREDIT_COLD_H = K.dials.get("effects.CREDIT_COLD_H")
 
 -- The B vitamins whose worst grade drives the stress rows (A4).
 K.effects.BGROUP = {

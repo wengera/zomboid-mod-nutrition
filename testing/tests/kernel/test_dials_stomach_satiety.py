@@ -203,7 +203,7 @@ def test_the_wave_orderings_and_divisor_floors_hold():
     assert raw["stomach.CAPACITY_MAX_G"]["max"] < raw["stomach.CAPACITY_HARD_G"]["min"]   # a divisor (hard - max)
     assert raw["stomach.IRON_MIN"]["max"] <= 1 <= raw["stomach.IRON_MAX"]["min"]          # the band holds no meal at 1
     assert raw["stomach.IRON_PHYTATE_SLOPE"]["max"] <= 0 <= raw["stomach.IRON_VITC_SLOPE"]["min"]
-    assert raw["satiety.SLEEP_SHORT_H"]["max"] < K.acute.SLEEP_NEED_H                     # the full debt stays positive
+    assert raw["satiety.SLEEP_SHORT_H"]["max"] < raw["acute.SLEEP_NEED_H"]["min"]          # the full debt stays positive
     for dial_id in DIVISORS:
         assert raw[dial_id]["min"] > 0, dial_id
     assert raw["satiety.FULL_WEIGHT"]["max"] <= 1 and raw["satiety.LIQUID_WEIGHT"]["max"] <= 1   # fit_gut_satiety's bounds

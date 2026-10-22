@@ -84,25 +84,25 @@ NUT.GUARD_STATE = { "epoch" }
 NUT.snapF = {}
 NUT.snapA = {}
 NUT.snapN = {}
-NUT.guarded = 0
+NUT.guarded = 0 -- the count of fields the post-step guard re-stamped: no row needed
 
 -- The handoff a minute with no absorbed or ingested vector reads: one file-scope table, never written.
 local EMPTY = {}
 
 -- The stomach fill above which the stomach counts as fed (the glucose term's empty-stomach clock).
-NUT.FED_FILL = 0.05 -- game choice: a stomach below 5 % of full is empty for the alcohol-fasting glucose term; the food fill, the solid lane's mass over 730 g (K.stomach.recordFoodFill, ruling T6c-1: drunk water is not food), so about 37 g of food (ruling 11c-14)
+NUT.FED_FILL = K.dials.get("nut.FED_FILL")
 -- The alcohol-history refeeding criterion: the 7-day mean daily alcohol above this, g per kg.
-NUT.ALC_HISTORY_GKG = 0.5 -- game choice: S0115 names alcohol misuse with no dose; no row
+NUT.ALC_HISTORY_GKG = K.dials.get("nut.ALC_HISTORY_GKG")
 -- The 7-day mean's daily weight.
-NUT.ALC_EMA_DAYS = 7 -- game choice: the 7-day window
+NUT.ALC_EMA_DAYS = K.dials.get("nut.ALC_EMA_DAYS")
 -- The NEEDS_MORE_SLEEP and NEEDS_LESS_SLEEP factors on the sleep need: the engine's own awake-fatigue
 -- trait multipliers (#2271, updateStats_Awake 1.3 / 0.7); their use as a need factor a game choice on S0740.
 NUT.NEED_MORE = K.dials.get("nut.NEED_MORE")
 NUT.NEED_LESS = K.dials.get("nut.NEED_LESS")
 -- The magnesium grade at which the refeeding risk reads magnesium-depleted (S0115's low-magnesium criterion).
-NUT.MG_DEPLETED_GRADE = 3 -- game choice: the depleted rung of the magnesium record
+NUT.MG_DEPLETED_GRADE = K.dials.get("nut.MG_DEPLETED_GRADE")
 -- The litres one unit of THIRST drop stands for: Water's ThirstChange -50 per litre = 0.5 THIRST per litre.
-NUT.LITRES_PER_THIRST = 2 -- ruling 9 (Water ThirstChange -50 per litre, x151w #2932/#2939)
+NUT.LITRES_PER_THIRST = K.dials.get("nut.LITRES_PER_THIRST")
 
 local finite = NR.finite
 

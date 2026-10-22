@@ -70,18 +70,18 @@ MET.GUARD = { "fm", "lm", "energyState", "rmod", "met", "coldMult", "eeDay", "in
               "lipDay", "ebDay", "tDisuse", "tac", "lastAgeH", "epoc", "lx", "Pk", "T" }
 MET.GUARD_RINGS = { "eb7", "p7", "mass7" }
 MET.GUARD_TRAIL = { "at" }
-MET.TRAIL_SLOT = { 1 }
+MET.TRAIL_SLOT = { 1 } -- an index list: the trailing window's current hour slot, rewritten at each snap: no row needed
 MET.snapTrail = {}
 MET.snapTrailRings = {}
 -- The exercise lag on record.satiety, stepped here, healed by the writer and saved by the store.
 MET.GUARD_SATIETY = { "L" }
 MET.snapSatiety = {}
-MET.SLOT7 = { 7 }
-MET.BAND_SLOT = { 1, 2 }
+MET.SLOT7 = { 7 } -- an index list: slot 7 of each read ring: no row needed
+MET.BAND_SLOT = { 1, 2 } -- an index list: the two band slots of bandWeek's latest day: no row needed
 MET.snap = {}
 MET.snapRings = { eb7 = {}, p7 = {}, mass7 = {} }
 MET.snapBand = {}
-MET.guarded = 0
+MET.guarded = 0 -- the count of fields the post-step guard re-stamped: no row needed
 
 local finite = NR.finite
 
@@ -457,7 +457,7 @@ local function step(username, player, record, ctx)
     local opts = NR.server.options
     local balanceBonus = 1
     if allReplete and (opts == nil or opts.balanceBonus ~= false) then
-        balanceBonus = 1.05                                -- game choice, spec s4.5
+        balanceBonus = MET.BALANCE_BONUS                   -- game choice, spec s4.5 (met.BALANCE_BONUS)
     end
     local alcGkg = body.alcDay / w
     body.rmod = K.aerobic.rmod(body.tac, g, K.aerobic.gProt(body.pPrevKg), ironGrade, dehydPct, debtH, alcGkg, balanceBonus)
@@ -536,3 +536,5 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         NR.server.minute.register("metabolism", MET.minute)
     end)
 end
+-- The balance dial's bonus on the regeneration coefficient (the minute's balanceBonus above).
+MET.BALANCE_BONUS = K.dials.get("met.BALANCE_BONUS")

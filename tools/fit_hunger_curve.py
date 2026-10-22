@@ -96,7 +96,7 @@ import dials  # noqa: E402
 DAY = 1440
 HOUR_OFFSET = 7.0                      # world age 0 is 07:00 (tools/mod_guide_series.HOUR_OFFSET)
 MEAL_MIN = (30, 330, 690)              # 07:30, 12:30 and 18:30: vanilla's three cans at these hours read the review's 38 %
-MEAL_KCAL = 667.0                      # a third of 2,000 kcal (spec section 2.1)
+MEAL_KCAL = float(dials.values()["writer.SEED_PLATE_MAX"])   # a third of 2,000 kcal (spec section 2.1): the seed plate
 PLATE = ["Base.CannedBologneseOpen", "Base.Bread", "Base.Apple", "Base.Orange", "Base.Burger", "Base.TunaTinOpen"]
 WATER_MIN = (60, 180, 300, 420, 540, 660, 780, 900)
 WATER_G = 500.0
@@ -111,7 +111,7 @@ MIN_AFTER = 0.02                       # a satisfying meal reads H <= 0.02 at it
 AFTER_MIN = 120                        # minutes after a meal its lowest HUNGER is read over
 VANILLA_CAN = {"hunger_change": -0.24, "calories": 540.0}
 VANILLA_START = 0.25
-SWEEP_KCAL = (200.0, 400.0, 667.0, 1000.0, 1300.0)
+SWEEP_KCAL = (200.0, 400.0, MEAL_KCAL, 1000.0, 1300.0)
 Y = (0.0, float(dials.values()["hungerCurve.Y.2"])) + THRESHOLDS + (1.0,)   # K.hungerCurve.Y, read off the registry
 START = (0.105, 0.225, 0.275, 0.38, 0.63)
 PREVIOUS = (0.099, 0.214688, 0.299375, 0.42875, 0.734688)   # fit-hunger-curve-20261017c's knots (Plan 15 Task 14b), read beside

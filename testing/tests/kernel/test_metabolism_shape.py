@@ -13,6 +13,7 @@ import re
 
 import lupa.lua51 as lua51
 import pytest
+from .conftest import kernel_files, pre_kernel_files
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SERVER = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "server")
@@ -1219,8 +1220,9 @@ def test_metabolism_runs_after_kinetics_in_the_players_list():
     # handlers in registration order; the two files load in the game's alphabetical order.
     rt = lua51.LuaRuntime(unpack_returned_tuples=True)
     load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
-    with open(CORE, encoding="utf-8") as fh:
-        load(fh.read(), "@NR_Core.lua")()
+    for path in pre_kernel_files() + kernel_files():   # the registry and the kernels load before every server/ file
+        with open(path, encoding="utf-8") as fh:
+            load(fh.read(), "@" + os.path.basename(path))()
     rt.execute(r"""
         NR_STARTED = {}
         Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }
@@ -1249,8 +1251,9 @@ def test_the_start_handler_registers_forget_though_the_minute_wiring_raises():
     # no NR.server.minute exists) leaves forget registered on both lists.
     rt = lua51.LuaRuntime(unpack_returned_tuples=True)
     load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
-    with open(CORE, encoding="utf-8") as fh:
-        load(fh.read(), "@NR_Core.lua")()
+    for path in pre_kernel_files() + kernel_files():   # the registry and the kernels load before every server/ file
+        with open(path, encoding="utf-8") as fh:
+            load(fh.read(), "@" + os.path.basename(path))()
     rt.execute(r"""
         NR_STARTED = {}
         Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }

@@ -30,31 +30,31 @@ K.acute = {}
 -- Caffeine.
 -- Absorption fraction of the gut lane, applied once in K.acute.absorbGut; alcohol and
 -- caffeine take the dose absorbGut releases, so nothing re-applies it.
-K.acute.CAF_ABSORB = 1.0 -- design-phase-v1 game choice (open row S1102: caffeine absorption fraction)
-K.acute.CAF_THALF_H = 5.0 -- S0793 (5.0 h in men)
-K.acute.CAF_THALF_SLOW_H = 9.7 -- S0793's 9.7 h arm borrowed for the slow-metaboliser trait; S0794 (CYP1A2 polymorphism)
-K.acute.CAF_SLOW_SHARE = 0.5 -- design-phase-v1 game choice (open row S1103: the share of slow metabolisers)
-K.acute.CAF_MEAN_H = 168 -- game choice: the 7-day window of the daily-rate EMA
-K.acute.CAF_TOL_REF = 400 -- S0807 (400 mg/day for at least 14 days: tolerance)
-K.acute.CAF_TOL_TAU_H = 168 -- tau_up 7 d, S0807-derived (86 % by day 14); tau_down the same, open row S0848
-K.acute.CAF_WD_TOL = 0.25 -- S0806 (100 mg/day = 0.25 of the 400 reference)
-K.acute.CAF_WD_LOW_MG = 10.7 -- 0.1 x the 107 mg cup of S0797: game choice
-K.acute.CAF_WD_ONSET_H = 12 -- S0805 (onset 12-24 h)
-K.acute.CAF_WD_PEAK_H = 36 -- S0805 (peak 20-51 h); the midpoint a game choice
-K.acute.CAF_WD_END_H = 120 -- S0805 (2-9 days); the point a game choice
-K.acute.CAF_EFFECT_MGKG = 3 -- S0531 (3-6 mg/kg band: full at 3); S0626 (caffeineActive at 3 mg/kg)
+K.acute.CAF_ABSORB = K.dials.get("acute.CAF_ABSORB")
+K.acute.CAF_THALF_H = K.dials.get("acute.CAF_THALF_H")
+K.acute.CAF_THALF_SLOW_H = K.dials.get("acute.CAF_THALF_SLOW_H")
+K.acute.CAF_SLOW_SHARE = K.dials.get("acute.CAF_SLOW_SHARE")
+K.acute.CAF_MEAN_H = K.dials.get("acute.CAF_MEAN_H")
+K.acute.CAF_TOL_REF = K.dials.get("acute.CAF_TOL_REF")
+K.acute.CAF_TOL_TAU_H = K.dials.get("acute.CAF_TOL_TAU_H")
+K.acute.CAF_WD_TOL = K.dials.get("acute.CAF_WD_TOL")
+K.acute.CAF_WD_LOW_MG = K.dials.get("acute.CAF_WD_LOW_MG")
+K.acute.CAF_WD_ONSET_H = K.dials.get("acute.CAF_WD_ONSET_H")
+K.acute.CAF_WD_PEAK_H = K.dials.get("acute.CAF_WD_PEAK_H")
+K.acute.CAF_WD_END_H = K.dials.get("acute.CAF_WD_END_H")
+K.acute.CAF_EFFECT_MGKG = K.dials.get("acute.CAF_EFFECT_MGKG")
 
 -- The gut lane caffeine and ethanol absorb from: first order on this half-time, game hours.
-K.acute.GUT_T_HALF = 0.5 -- design-phase-v1 game choice; open S1102 (caffeine time to peak); the S0524 beer cross-check: 1 L of 4 % beer peaks ~1 h
+K.acute.GUT_T_HALF = K.dials.get("acute.GUT_T_HALF")
 
 -- Alcohol.
 -- The Widmark distribution factor, indexed by sex.
 K.acute.WIDMARK_R = {
-    0.68, -- male: design-phase-v1 game choice (open row S1104: the Widmark distribution factor r)
-    0.55, -- female: design-phase-v1 game choice (open row S1104: the Widmark distribution factor r)
+    K.dials.get("acute.WIDMARK_R.1"),
+    K.dials.get("acute.WIDMARK_R.2"),
 }
-K.acute.BETA = 0.015 -- per cent BAC per hour: design-phase-v1 game choice (open row S1105: the elimination rate beta)
-K.acute.HANG_PEAK = 0.05 -- per cent BAC: game choice, the S0893 0.05 % unit point (hangover direction S0854 open)
+K.acute.BETA = K.dials.get("acute.BETA")
+K.acute.HANG_PEAK = K.dials.get("acute.HANG_PEAK")
 
 -- The stimulant sizes (Plan 15 Task 10, spec section 5): NR.StimulantRealism (1 Game, the default; 2 Realistic)
 -- selects the active set K.acute.C once, when the server's options read sees the value change
@@ -66,16 +66,16 @@ K.acute.HANG_PEAK = 0.05 -- per cent BAC: game choice, the S0893 0.05 % unit poi
 -- 2 (NR_Data_Effects.lua).
 K.acute.STIM_REALISTIC = {
     MODE = 2, -- no row needed: the option's value
-    CAF_OFF_MAX = 0.35, -- game choice sized on S0900 vs S0750 (open S1124)
-    INTOX_FULL_BAC = 0.20, -- per cent: game choice map (open S1106)
-    HANG_H = 6, -- hours at a 0.05 % peak, scaled by peak/0.05: design-phase-v1 game choice (open row S0854: hangover duration)
+    CAF_OFF_MAX = K.dials.get("acute.STIM_REALISTIC.CAF_OFF_MAX"),
+    INTOX_FULL_BAC = K.dials.get("acute.STIM_REALISTIC.INTOX_FULL_BAC"),
+    HANG_H = K.dials.get("acute.STIM_REALISTIC.HANG_H"),
 }
 -- The Game overrides, keyed by constant name; a key left out reads the realistic value.
 K.acute.STIM_GAME_OVERRIDES = {
     MODE = 1, -- no row needed: the option's value
-    CAF_OFF_MAX = 0.12, -- game choice (spec section 10, item 9; open S1124): a 107 mg cup holds 0.12 x 107/257 = 0.0500, 2x vanilla's 0.025 a cup
-    INTOX_FULL_BAC = 0.31, -- game choice (spec section 10, item 9; open S1106): 0.20 x 31/20, so four beers peak at about 20 where Realistic peaks at 31
-    HANG_H = 3, -- game choice (spec section 10, item 9; open S0854): the mild hangover's tail after clearance, half the realistic 6
+    CAF_OFF_MAX = K.dials.get("acute.STIM_GAME_OVERRIDES.CAF_OFF_MAX"),
+    INTOX_FULL_BAC = K.dials.get("acute.STIM_GAME_OVERRIDES.INTOX_FULL_BAC"),
+    HANG_H = K.dials.get("acute.STIM_GAME_OVERRIDES.HANG_H"),
 }
 -- The two sets by option value: Game is the realistic set with the overrides laid over it.
 K.acute.STIM = { {}, K.acute.STIM_REALISTIC }
@@ -101,105 +101,105 @@ end
 -- The alcohol impairment knots {BAC %, IU}: the unit at 0.05 % (S0893), the driving bands (S0905).
 K.acute.IU_ALC_KNOTS = {
     { 0, 0 }, -- sober
-    { 0.03, 0.30 }, -- S0905 (0.03 %: mean speed impaired); the 0.30 interpolation a game choice
-    { 0.05, 1.00 }, -- S0893 (24 h awake = 0.05 %: the unit)
-    { 0.08, 1.60 }, -- S0893 (0.08 % the upper bound), S0905 (all measures at 0.08 %)
+    { K.dials.get("acute.IU_ALC_KNOTS.2.1"), K.dials.get("acute.IU_ALC_KNOTS.2.2") },
+    { K.dials.get("acute.IU_ALC_KNOTS.3.1"), 1.00 }, -- the impairment unit itself, 1 by definition: no row needed
+    { K.dials.get("acute.IU_ALC_KNOTS.4.1"), K.dials.get("acute.IU_ALC_KNOTS.4.2") },
 }
-K.acute.IU_ALC_CAP = 2.0 -- game choice: the last segment extended to this cap
+K.acute.IU_ALC_CAP = K.dials.get("acute.IU_ALC_CAP")
 
 -- Glycogen, mmol glucosyl per kg dry muscle.
-K.acute.GLYC_REF = 462 -- S0679
-K.acute.GLYC_HIGH = 102 -- S0680 (high carbohydrate availability +102)
-K.acute.GLYC_LOW = 253 -- S0680 (depletion plus low carbohydrate -253)
-K.acute.GLYC_PIVOT = 3 -- g/kg/day: design-phase-v1 game choice (open row S1108: the intake that holds the store)
-K.acute.GLYC_SPAN = 3 -- g/kg/day to the full swing (6 = S0680's high threshold); the low side a game choice
-K.acute.GLYC_TAU_H = 24 -- design-phase-v1 game choice (open row S1108: the resynthesis time constant)
-K.acute.GLYC_MAX = 600 -- game choice: the store's ceiling (564 the high-carbohydrate target)
-K.acute.USE_WORK = 51.5 -- mmol/kg/h at MET 7.5, S0683 (71 % VO2max)
-K.acute.USE_MET_LO = 3 -- game choice: no glycogen draw at or below MET 3
-K.acute.USE_MET_SPAN = 4.5 -- MET 7.5 = 71 % VO2max: design-phase-v1 game choice (open row S1107: MET to per cent VO2max)
-K.acute.USE_MAX = 1.6 -- game choice: the draw's cap in units of the MET 7.5 rate
-K.acute.USE_SHIVER = 52 -- mmol/kg/h at coldMult 3.5, derived from S0049 (410 -> 332 in 90 min)
-K.acute.SHIVER_FULL = 3.5 -- S0049 (3.5 x resting metabolic rate): the full draw
-K.acute.SHIVER_DEADBAND = 1.05 -- game choice (ruling T17-3): the thermoregulator's idle multiplier sits at 1.007-1.010 indoors (x151r #2984); no shiver draw at or below it
+K.acute.GLYC_REF = K.dials.get("acute.GLYC_REF")
+K.acute.GLYC_HIGH = K.dials.get("acute.GLYC_HIGH")
+K.acute.GLYC_LOW = K.dials.get("acute.GLYC_LOW")
+K.acute.GLYC_PIVOT = K.dials.get("acute.GLYC_PIVOT")
+K.acute.GLYC_SPAN = K.dials.get("acute.GLYC_SPAN")
+K.acute.GLYC_TAU_H = K.dials.get("acute.GLYC_TAU_H")
+K.acute.GLYC_MAX = K.dials.get("acute.GLYC_MAX")
+K.acute.USE_WORK = K.dials.get("acute.USE_WORK")
+K.acute.USE_MET_LO = K.dials.get("acute.USE_MET_LO")
+K.acute.USE_MET_SPAN = K.dials.get("acute.USE_MET_SPAN")
+K.acute.USE_MAX = K.dials.get("acute.USE_MAX")
+K.acute.USE_SHIVER = K.dials.get("acute.USE_SHIVER")
+K.acute.SHIVER_FULL = K.dials.get("acute.SHIVER_FULL")
+K.acute.SHIVER_DEADBAND = K.dials.get("acute.SHIVER_DEADBAND")
 
 -- Blood glucose, mmol/L.
-K.acute.BG_NORMAL = 5.0 -- S0684 (fed range 4.2-5.2); no fall from fasting alone, S0896
-K.acute.BG_EXERTION = 2.5 -- S0684 (2.5 mM at fatigue)
-K.acute.BG_EX_G = 0.2 -- design-phase-v1 game choice (open row S1109: the glycogen level of exertional hypoglycaemia)
-K.acute.BG_EX_MET = 6 -- design-phase-v1 game choice (open row S1109: the exercise intensity of exertional hypoglycaemia)
-K.acute.BG_ALC_FAST = 3.0 -- S1015 direction; design-phase-v1 game choice (open row S1110: alcohol-fasting glucose)
-K.acute.BG_ALC_FAST_H = 12 -- hours of empty stomach, S1015 direction; design-phase-v1 game choice (open row S1110)
-K.acute.BG_TAU_CHO_H = 0.25 -- design-phase-v1 game choice (open row S1111: the glucose recovery time course)
-K.acute.BG_TAU_H = 1 -- design-phase-v1 game choice (open row S1111: the glucose recovery time course)
-K.acute.BG_MIN = 2.0 -- game choice: the clamp's floor
-K.acute.BG_MAX = 8.0 -- game choice: the clamp's ceiling
-K.acute.IU_BG_HI = 3.0 -- S0897 (impairment 2.6-3.0: the knee's upper end, Plan 5 ruling 21)
-K.acute.IU_BG_LO = 2.6 -- S0897 (impairment 2.6-3.0: the knee's lower end, Plan 5 ruling 21)
-K.acute.IU_BG_MAX = 0.90 -- S0898 (-0.7 SD at 3.0, scaled to the unit; reached at 2.6 under ruling 21; magnitude open S0938)
+K.acute.BG_NORMAL = K.dials.get("acute.BG_NORMAL")
+K.acute.BG_EXERTION = K.dials.get("acute.BG_EXERTION")
+K.acute.BG_EX_G = K.dials.get("acute.BG_EX_G")
+K.acute.BG_EX_MET = K.dials.get("acute.BG_EX_MET")
+K.acute.BG_ALC_FAST = K.dials.get("acute.BG_ALC_FAST")
+K.acute.BG_ALC_FAST_H = K.dials.get("acute.BG_ALC_FAST_H")
+K.acute.BG_TAU_CHO_H = K.dials.get("acute.BG_TAU_CHO_H")
+K.acute.BG_TAU_H = K.dials.get("acute.BG_TAU_H")
+K.acute.BG_MIN = K.dials.get("acute.BG_MIN")
+K.acute.BG_MAX = K.dials.get("acute.BG_MAX")
+K.acute.IU_BG_HI = K.dials.get("acute.IU_BG_HI")
+K.acute.IU_BG_LO = K.dials.get("acute.IU_BG_LO")
+K.acute.IU_BG_MAX = K.dials.get("acute.IU_BG_MAX")
 
 -- Sleep, game hours.
-K.acute.SLEEP_NEED_H = 7.5 -- S0740 (7-9 h, the midpoint)
-K.acute.CHI_W = 18.2 -- S0733
-K.acute.CHI_S = 4.2 -- S0734
-K.acute.CHI_W_DEBT = 0.02 -- per debt hour: design-phase-v1 game choice (open row S1114: debt on build-up rate)
-K.acute.CHI_W_DEBT_MAX = 20 -- debt hours: design-phase-v1 game choice (open row S1114: debt on build-up rate)
-K.acute.S_FLOOR_DEBT = 0.01 -- per debt hour: design-phase-v1 game choice (open row S1114: debt on the floor)
-K.acute.S_FLOOR_MAX = 0.25 -- design-phase-v1 game choice (open row S1114: debt on the floor)
-K.acute.S_RESTED = 0.17 -- game choice: S on waking from a full night (the briefing's rested value)
-K.acute.NAP_MIN_H = 1 -- design-phase-v1 game choice (open row S1112: the sleep that resets hours awake)
-K.acute.BOUT_GAP_H = 10 / 60 -- design-phase-v1 game choice; open S1112 (the nap rule): an awake gap this long ends a sleep bout (ruling T17-4)
-K.acute.WINDOW_H = 24 -- game choice: the accounting window
-K.acute.DEBT_MAX = 40 -- S0742 (cumulative); the cap a game choice
-K.acute.REPAY = 0.5 -- S0743 (deficits persist); design-phase-v1 game choice (open row S1113: the repaid fraction)
-K.acute.CIRC_AMP = 0.12 -- S0736
-K.acute.CIRC_PEAK_H = 4 -- design-phase-v1 game choice (open row S0861: the 04:00 trough)
+K.acute.SLEEP_NEED_H = K.dials.get("acute.SLEEP_NEED_H")
+K.acute.CHI_W = K.dials.get("acute.CHI_W")
+K.acute.CHI_S = K.dials.get("acute.CHI_S")
+K.acute.CHI_W_DEBT = K.dials.get("acute.CHI_W_DEBT")
+K.acute.CHI_W_DEBT_MAX = K.dials.get("acute.CHI_W_DEBT_MAX")
+K.acute.S_FLOOR_DEBT = K.dials.get("acute.S_FLOOR_DEBT")
+K.acute.S_FLOOR_MAX = K.dials.get("acute.S_FLOOR_MAX")
+K.acute.S_RESTED = K.dials.get("acute.S_RESTED")
+K.acute.NAP_MIN_H = K.dials.get("acute.NAP_MIN_H")
+K.acute.BOUT_GAP_H = K.dials.get("acute.BOUT_GAP_H")
+K.acute.WINDOW_H = K.dials.get("acute.WINDOW_H")
+K.acute.DEBT_MAX = K.dials.get("acute.DEBT_MAX")
+K.acute.REPAY = K.dials.get("acute.REPAY")
+K.acute.CIRC_AMP = K.dials.get("acute.CIRC_AMP")
+K.acute.CIRC_PEAK_H = K.dials.get("acute.CIRC_PEAK_H")
 -- Sign: +0.12 at 04:00 = the sleep-propensity peak (the alertness trough); Plan 5's FATIGUE term ADDS circ.
-K.acute.IU_SLEEP_ZERO_H = 16 -- design-phase-v1 game choice (open row S1115: the hours awake of the first decline)
-K.acute.IU_SLEEP_SPAN_H = 8 -- S0892 (24 h awake = 1 IU)
-K.acute.IU_SLEEP_DEBT_H = 10.5 -- derived from S0742 (about 21 h owed = 2 nights' deprivation = 2 IU)
-K.acute.IU_SLEEP_MAX = 1.5 -- game choice: the sleep term's cap
-K.acute.VIG_WINDOW_H = 1 -- design-phase-v1 game choice (open row S1130: vigorous exercise ending within 1 h of sleep)
+K.acute.IU_SLEEP_ZERO_H = K.dials.get("acute.IU_SLEEP_ZERO_H")
+K.acute.IU_SLEEP_SPAN_H = K.dials.get("acute.IU_SLEEP_SPAN_H")
+K.acute.IU_SLEEP_DEBT_H = K.dials.get("acute.IU_SLEEP_DEBT_H")
+K.acute.IU_SLEEP_MAX = K.dials.get("acute.IU_SLEEP_MAX")
+K.acute.VIG_WINDOW_H = K.dials.get("acute.VIG_WINDOW_H")
 
 -- The Plan 5 memories: exponential sums decaying on their time constant.
-K.acute.EX_TAU_H = 6 -- design-phase-v1 game choice (open row S1148: the exercise credit's memory, 6 h)
-K.acute.COLD_ON = 1.05 -- game choice: the coldMult above which an hour counts as cold, the shiver dead band (ruling T17-3)
-K.acute.COLD_TAU_H = 6 -- design-phase-v1 game choice (open row S1155: cold-exposed within 6 h)
-K.acute.RET_TAU_D = 14 -- design-phase-v1 game choice (open row S1140: the night-vision grant's 14 days; Plan 5 ruling 6)
+K.acute.EX_TAU_H = K.dials.get("acute.EX_TAU_H")
+K.acute.COLD_ON = K.dials.get("acute.COLD_ON")
+K.acute.COLD_TAU_H = K.dials.get("acute.COLD_TAU_H")
+K.acute.RET_TAU_D = K.dials.get("acute.RET_TAU_D")
 
 -- The impairment unit.
-K.acute.IU_DEHYD_FROM = 1 -- per cent: S0894 (1-6 % body-mass loss)
-K.acute.IU_DEHYD_KNEE = 2 -- per cent: S0895 (the 2 % subgroup split)
-K.acute.IU_DEHYD_SLOPE1 = 0.45 -- S0894/S0895 scaled to the unit (the report's arithmetic)
-K.acute.IU_DEHYD_SLOPE2 = 0.22 -- S0894/S0895 scaled to the unit (the report's arithmetic)
-K.acute.IU_DEHYD_MAX = 0.89 -- S0894 (attention ES -0.52 scaled to the unit)
+K.acute.IU_DEHYD_FROM = K.dials.get("acute.IU_DEHYD_FROM")
+K.acute.IU_DEHYD_KNEE = K.dials.get("acute.IU_DEHYD_KNEE")
+K.acute.IU_DEHYD_SLOPE1 = K.dials.get("acute.IU_DEHYD_SLOPE1")
+K.acute.IU_DEHYD_SLOPE2 = K.dials.get("acute.IU_DEHYD_SLOPE2")
+K.acute.IU_DEHYD_MAX = K.dials.get("acute.IU_DEHYD_MAX")
 -- The iron term by grade 1..4.
 K.acute.IU_IRON = {
     0, -- replete
     0, -- marginal
-    0.38, -- depleted: half of S0906's 0.776, game choice
-    0.76, -- clinical: S0906 (SMD 0.59 / 0.776)
+    K.dials.get("acute.IU_IRON.3"),
+    K.dials.get("acute.IU_IRON.4"),
 }
-K.acute.CREDIT_BASE = 0.50 -- S0899 (g 0.28 rested); the formula a game choice
-K.acute.CREDIT_GAIN = 0.60 -- S0900 (g 1.11 after sleep loss); the formula a game choice
-K.acute.CREDIT_MG = 200 -- S0899 (doses of 200 mg and more did more)
-K.acute.CREDIT_BASE_MG = 100 -- game choice (ruling T9-2: the rested credit is full at 100 mg; S0899 direction)
-K.acute.IU_MAX = 2.5 -- game choice: additive sum capped (super-additive gamma rejected pending open row S0855)
+K.acute.CREDIT_BASE = K.dials.get("acute.CREDIT_BASE")
+K.acute.CREDIT_GAIN = K.dials.get("acute.CREDIT_GAIN")
+K.acute.CREDIT_MG = K.dials.get("acute.CREDIT_MG")
+K.acute.CREDIT_BASE_MG = K.dials.get("acute.CREDIT_BASE_MG")
+K.acute.IU_MAX = K.dials.get("acute.IU_MAX")
 
 -- Refeeding.
-K.acute.LOW_KCAL_KG = 5 -- kcal/kg/day: design-phase-v1 game choice (open row S1116: the little-or-no-intake day)
-K.acute.MASS_WINDOW_H = 2160 -- 90 days in hours, S0115 (weight loss within 3-6 months)
+K.acute.LOW_KCAL_KG = K.dials.get("acute.LOW_KCAL_KG")
+K.acute.MASS_WINDOW_H = K.dials.get("acute.MASS_WINDOW_H")
 K.acute.RISK_BMI_HIGH = K.dials.get("acute.RISK_BMI_HIGH")
 K.acute.RISK_LOSS_HIGH = K.dials.get("acute.RISK_LOSS_HIGH")
 K.acute.RISK_DAYS_HIGH = K.dials.get("acute.RISK_DAYS_HIGH")
 K.acute.RISK_BMI_MOD = K.dials.get("acute.RISK_BMI_MOD")
 K.acute.RISK_LOSS_MOD = K.dials.get("acute.RISK_LOSS_MOD")
 K.acute.RISK_DAYS_MOD = K.dials.get("acute.RISK_DAYS_MOD")
-K.acute.REFEED_DAYS = 7 -- S0116 (4-7 days)
-K.acute.RESTART_KCAL_KG = 10 -- S0116
-K.acute.RESTART_LOW_KCAL_KG = 5 -- S0116 (BMI 14 or below)
-K.acute.RESTART_LOW_BMI = 14 -- S0116
-K.acute.REFEED_P = 0.23 -- S0117 (23 %); S0118's 35 % noted, both critically-ill populations: game choice
+K.acute.REFEED_DAYS = K.dials.get("acute.REFEED_DAYS")
+K.acute.RESTART_KCAL_KG = K.dials.get("acute.RESTART_KCAL_KG")
+K.acute.RESTART_LOW_KCAL_KG = K.dials.get("acute.RESTART_LOW_KCAL_KG")
+K.acute.RESTART_LOW_BMI = K.dials.get("acute.RESTART_LOW_BMI")
+K.acute.REFEED_P = K.dials.get("acute.REFEED_P")
 
 -- A fresh record.acute at world age ageH: no caffeine or alcohol on board or in the gut, the reference
 -- glycogen and normal glucose, rested, no debt or sleep bout, no refeeding risk. bmi 0 until the first

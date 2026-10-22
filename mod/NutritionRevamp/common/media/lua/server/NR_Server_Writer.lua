@@ -47,7 +47,7 @@ W.BED = { badBed = 0.9, badBedPillow = 0.95, averageBedPillow = 1.05, goodBed = 
 W.c = K.hybrid.defaults()
 W.input = K.hybrid.input()
 W.output = K.hybrid.output()
-W.SIP_EPS = 1e-6 -- game choice: far below a real drink (~0.1 of THIRST) and far above float noise (~1e-10 seen live, x281-x284); out.sip is in THIRST units (0..1)
+W.SIP_EPS = K.dials.get("writer.SIP_EPS")
 -- The rates the server ran before the zeroing (nil when unread), else the live table's value.
 function NR.vanillaRate(key)
     if W.saved ~= nil and W.saved[key] ~= nil then return W.saved[key] end
@@ -355,7 +355,7 @@ end
 -- eat heals its own), never every minute, and K.monotony.level reads a non-table entry 0. No eat adds a mood any more (NR_Server_Intake IN.monotony books only).
 -- Each composed target passes the dead zone (K.monotony.hold, Plan 15 Task 9, item 10c) against its remembered target,
 -- so a floor falling through a moodle threshold holds just over it until it is DEAD_ZONE of the threshold under.
-W.UNHAPPY_HI = 59 -- the fallback for the effects surface's cap (NR_Data_Effects.lua SURF.unhappyTarget.hi, #2369)
+W.UNHAPPY_HI = K.dials.get("writer.UNHAPPY_HI")
 
 function W.unhappyHi()
     local D = NR.data and NR.data.effects
@@ -727,7 +727,7 @@ W.SEED_PLATE = {
     "Base.Burger", -- the fit's plate: game choice (spec section 10: the curve's knots)
     "Base.TunaTinOpen", -- the fit's plate: game choice (spec section 10: the curve's knots)
 }
-W.SEED_PLATE_MAX = 667 -- kcal, one fit meal (tools/fit_hunger_curve.py MEAL_KCAL, a third of 2,000 kcal): game choice (spec section 10: the curve's knots)
+W.SEED_PLATE_MAX = K.dials.get("writer.SEED_PLATE_MAX")
 W.SEED_PLATE_STEPS = 24 -- bisection steps on the kcal (under 1e-4 kcal), no row needed
 
 -- The seed plate at kcal: (its vector, scaled from the foods' whole vectors summed, and its mass-weighted plate volume

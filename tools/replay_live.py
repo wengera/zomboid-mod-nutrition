@@ -114,6 +114,7 @@ import argparse
 import json
 import math
 import os
+import re
 import struct
 import sys
 
@@ -794,24 +795,51 @@ PRE_PLATE = dict({"replay.SEED_PLATE_OFF": 1}, **PRE_LIQUID)
 PRE_CURVE = dict({"replay.HUNGER_CURVE_OFF": 1}, **PRE_PLATE)
 
 
+def kernel_slot(K, dial_id):
+    """(the kernel table holding dial_id's field, its key), or None where the path names no table on K (an adapter's
+    domain, such as eff., is not on K). The id's segments are the path below K, by the grammar the kernels' K.dials.get
+    ids follow: a digit segment is an array index (hungerCurve.X.2 is K.hungerCurve.X[2]), a <digits>_<digits> segment
+    the decimal key (energy.BAND_MET.0_5 is K.energy.BAND_MET[0.5]), and the core domain K's own top level (core.HEIGHT_M
+    is K.HEIGHT_M); an id of any depth resolves (fluids.THIRST_KNOTS.2.1 is K.fluids.THIRST_KNOTS[2][1])."""
+    segs = dial_id.split(".")
+    if segs[0] == "core":
+        segs = segs[1:]
+    keys = [_kernel_key(seg) for seg in segs]
+    t = K
+    for k in keys[:-1]:
+        t = t[k] if t is not None and hasattr(t, "items") else None
+    if t is None or not hasattr(t, "items"):
+        return None
+    return t, keys[-1]
+
+
+def _kernel_key(seg):
+    if seg.isdigit():
+        return int(seg)
+    if re.fullmatch(r"\d+_\d+", seg):
+        return float(seg.replace("_", "."))
+    return seg
+
+
 def set_constants(K, constants, rt=None):
-    """Set each {"table.NAME": value} on the kernel table K; refuses a name the kernel does not hold as a number. A
-    REPLAY_ONLY name ("replay.NAME") runs its setter on the runtime rt instead (a recording build's code the kernel has
-    since lost)."""
+    """Set each {"<dial id>": value} on the kernel table K (the id's field, kernel_slot: "table.NAME" or a deeper path);
+    refuses a name the kernel does not hold as a number. The constant's dial writes as one dial (tools/dials.py linked):
+    every kernel field of its same group, array elements included, so a group's fields stay in step. A REPLAY_ONLY name
+    ("replay.NAME") runs its setter on the runtime rt instead (a recording build's code the kernel has since lost)."""
     for name, value in (constants or {}).items():
         if name.startswith("replay."):
             if name not in REPLAY_ONLY or rt is None:
                 raise ValueError("unknown replay-only constant %s" % name)
             REPLAY_ONLY[name](rt, value)
             continue
-        mod, key = name.split(".")
-        cur = K[mod][key] if K[mod] is not None else None
+        slot = kernel_slot(K, name)
+        cur = slot[0][slot[1]] if slot is not None else None
         if isinstance(cur, bool) or not isinstance(cur, (int, float)):
             raise ValueError("unknown kernel constant %s" % name)
         for dial_id in dials.linked(name):
-            m2, k2 = dial_id.split(".")
-            if K[m2] is not None:
-                K[m2][k2] = float(value)
+            other = kernel_slot(K, dial_id)
+            if other is not None:
+                other[0][other[1]] = float(value)
 
 
 # The drain options a replay runs under by default (Plan 17 Task 3): the mod's own defaults, NR.DeathPace 3 (Realistic)

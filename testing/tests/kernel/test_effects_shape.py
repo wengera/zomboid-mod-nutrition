@@ -16,6 +16,7 @@ import re
 
 import lupa.lua51 as lua51
 import pytest
+from .conftest import kernel_files, pre_kernel_files
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SERVER = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "server")
@@ -256,9 +257,11 @@ def _reset(eff_host):
 # --- the file and the rebuild ---------------------------------------------------------------------------
 
 def test_the_file_loads_with_no_engine():
+    # the kernels load before every server/ file, and since Plan 19 Task 3e this one resolves its dials and reads the
+    # drain kernel's regeneration tiers at load, so the host is the registry and the kernels with no engine global
     rt = lua51.LuaRuntime(unpack_returned_tuples=True)
     load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
-    for path in (CORE, EFFECTS):
+    for path in pre_kernel_files() + kernel_files() + [EFFECTS]:
         with open(path, encoding="utf-8") as fh:
             load(fh.read(), "@" + os.path.basename(path))()
     E = rt.globals().NutritionRevamp.server.effects
@@ -1020,8 +1023,9 @@ def test_a_severity_change_fires_the_changed_hooks(eff_host):
 def test_the_forget_hooks_are_wired_once_at_server_start():
     rt = lua51.LuaRuntime(unpack_returned_tuples=True)
     load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
-    with open(CORE, encoding="utf-8") as fh:
-        load(fh.read(), "@NR_Core.lua")()
+    for path in pre_kernel_files() + kernel_files():   # the registry and the kernels load before every server/ file
+        with open(path, encoding="utf-8") as fh:
+            load(fh.read(), "@" + os.path.basename(path))()
     rt.execute(r"""
         NR_STARTED = {}
         Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }

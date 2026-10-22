@@ -68,10 +68,10 @@ local EFF = NR.server.effects
 -- The four regeneration constants' engine defaults (the BodyDamage constructor, #2354), scaled by healMul or
 -- written 0 while a drain state is active (S1174 open), draining or holding at its target, so health holds there with
 -- no sawtooth (jar-checks Check 2).
-EFF.REGEN_STANDARD = 0.002 -- VANILLA #2354
-EFF.REGEN_REDUCED = 0.0013 -- VANILLA #2354
-EFF.REGEN_SEVERE = 0.0008 -- VANILLA #2354
-EFF.REGEN_SLEEPING = 0.02 -- VANILLA #2354
+EFF.REGEN_STANDARD = K.drain.REGEN[1] -- VANILLA #2354: the drain kernel's tier-0 addition, one copy
+EFF.REGEN_REDUCED = K.drain.REGEN[2] -- VANILLA #2354: the drain kernel's tier-1 addition, one copy
+EFF.REGEN_SEVERE = K.drain.REGEN[3] -- VANILLA #2354: the drain kernel's tier-2 addition, one copy
+EFF.REGEN_SLEEPING = K.drain.REGEN_SLEEPING -- VANILLA #2354: the drain kernel's sleeping addition, one copy
 -- The food heal, health per multiplier unit while the health-from-food timer is above 0 (#2385; the constructor's 0.015,
 -- #3897), written 0 while a drain state is active (it runs through any drain otherwise, jar-checks Check 2). Outside a
 -- drain the timer is the writer's food-timer bridge (K.view.foodTimer), held above 0 while Well Fed, so the heal runs
@@ -79,7 +79,7 @@ EFF.REGEN_SLEEPING = 0.02 -- VANILLA #2354
 -- (Plan 15 Task 8 fix 1), gives a 667 kcal meal's 0.50 h spell 47.0 health at every day length (0.0087 x 180 units x
 -- 30 minutes at the 90-minute day), a raw can's 46.8 in vanilla (0.015 x 3120, #0054); 94 health a game hour while Well
 -- Fed, against vanilla's 162 while its timer runs at the 90-minute day. 0 at Overfull 4 too: the refusal never heals.
-EFF.REGEN_FOOD = 0.0087 -- game choice (spec section 10: the gentle Well Fed heal), vanilla's per-can heal over the mod's Well Fed spell
+EFF.REGEN_FOOD = K.dials.get("eff.REGEN_FOOD")
 -- Whether the server runs Mode 2 (Overlay: NR_Server_Writer's mode, read at boot), where vanilla owns HUNGER and THIRST and
 -- its own level-4 drains, so the starvation and dehydration drain states do not run (Plan 15 close, ruling M2).
 function EFF.overlay()
@@ -89,22 +89,22 @@ end
 -- The engine's cap on a part's wound-infection level (BodyPart.DamageUpdate @1296-@1309 L351-L352).
 EFF.INFECT_MAX = 10 -- VANILLA #3131 (BodyPart.DamageUpdate caps the level at 10)
 -- The body-part packet masks: bit = key - 1 (#2626).
-EFF.MASK_BLEEDING = 8 -- key 4, bleeding (#2626)
-EFF.MASK_BLEEDING_TIME = 131072 -- key 18, bleedingTime (#2626)
-EFF.MASK_INFECTION = 32768 -- key 16, woundInfectionLevel (#2626)
+EFF.MASK_BLEEDING = 8 -- key 4, bleeding (#2626): a packet bit, no row needed
+EFF.MASK_BLEEDING_TIME = 131072 -- key 18, bleedingTime (#2626): a packet bit, no row needed
+EFF.MASK_INFECTION = 32768 -- key 16, woundInfectionLevel (#2626): a packet bit, no row needed
 -- The sleep-onset terms (B6), game hours and a multiplier on vanilla's delay.
-EFF.SOL_CAF_H = 0.15 -- h at full caffeine saturation: S0795 (+9 min), S0798 (+8.35 min)
-EFF.SOL_VIG_H = 0.15 -- h after vigorous exercise within 1 h: S0827 direction; game choice (open S1130)
-EFF.SOL_ALC_MUL = 0.6 -- at the alcohol band 2 (>= 0.85 g/kg): S0813 direction; game choice (open S1128)
+EFF.SOL_CAF_H = K.dials.get("eff.SOL_CAF_H")
+EFF.SOL_VIG_H = K.dials.get("eff.SOL_VIG_H")
+EFF.SOL_ALC_MUL = K.dials.get("eff.SOL_ALC_MUL")
 -- The engine factors (B3, B4): vanilla's own trait multipliers on accrual and recovery.
-EFF.TRAIT_NEEDS_LESS_ACC = 0.7 -- VANILLA #2271 (updateStats_Awake)
-EFF.TRAIT_NEEDS_MORE_ACC = 1.3 -- VANILLA #2271 (updateStats_Awake)
+EFF.TRAIT_NEEDS_LESS_ACC = K.dials.get("eff.TRAIT_NEEDS_LESS_ACC")
+EFF.TRAIT_NEEDS_MORE_ACC = K.dials.get("eff.TRAIT_NEEDS_MORE_ACC")
 EFF.FF_INSOMNIAC = 0.5 -- VANILLA #2276
 EFF.FF_NIGHT_OWL = 1.4 -- VANILLA #2276
 EFF.T_NEEDS_LESS = 0.75 -- VANILLA #2276
 EFF.T_NEEDS_MORE = 1.18 -- VANILLA #2276
 -- The exertion at which the dehydration heat side applies (G).
-EFF.MET_EXERT = 3 -- MET: game choice, the formulas briefing G (open S1160)
+EFF.MET_EXERT = K.dials.get("eff.MET_EXERT")
 -- The days of protein data the 7-day ring must hold before the protein side is read.
 EFF.P7_DAYS = 7 -- the ring's length, no row needed
 
@@ -133,7 +133,7 @@ EFF.GUARD = { "panicTarget", "unhappyTarget", "foodSickTarget", "stressTarget", 
               "fOff", "mAcc", "rRec", "solAddH", "solMul", "epoch", "aimMul", "speedMul", "healMul", "bleedMul",
               "infectMul", "coldMul", "enduranceCap", "foodSickStep", "stressFloor", "unhappyFloor" }
 EFF.snap = {}
-EFF.guarded = 0
+EFF.guarded = 0 -- the count of fields the post-step guard re-stamped: no row needed
 -- The options a load with no options file reads: one file-scope table, never written.
 local EMPTY = {}
 
