@@ -42,6 +42,8 @@ NR_T.item = function(u, terms, hung)
     it.getHungChange = function(s) count(); return s.hung end
     it.getModData = function(s) count(); return s.md end
     it.getContainer = function(s) count(); if s.inv then return {} end return nil end
+    it.fs = 0
+    it.syncItemFields = function(s) s.fs = s.fs + 1 end                   -- the field sync, counted apart from calls
     return it
 end
 NR_T.eater = function(hunger, level)
@@ -254,7 +256,7 @@ def test_a_hungry_eater_feels_a_sad_food_at_allies_f_and_the_remainder_keeps_its
     HD(h).alliesAfter(b)
     assert applied == pytest.approx(30.0 * 0.25 * dv(h, "ALLIES_F"))
     assert item.u == pytest.approx(20.0 * 0.75)
-    assert b.allies.scale == pytest.approx(dv(h, "ALLIES_F")) and h.T.synced == 1
+    assert b.allies.scale == pytest.approx(dv(h, "ALLIES_F")) and h.T.synced == 0
 
 
 def test_r3_leaves_a_happy_food_and_a_sated_eater(h):
@@ -278,15 +280,15 @@ def test_a_written_zero_field_restores_by_the_hunger_ratio(h):
     assert b.allies.written == 0
     vanilla_eat(item, 0.5)
     HD(h).alliesAfter(b)
-    assert item.u == pytest.approx(take * 0.5) and h.T.synced == 1
+    assert item.u == pytest.approx(take * 0.5) and h.T.synced == 0
     item2 = h.T.item(0.0, 20.0)                                          # a rotten +20 on a 0 base field
-    item2.inv = False                                                    # finished: restored, never synced
+    item2.inv = False                                                    # finished: restored
     b2 = snapshot(h, item2, 0.9)
     HD(h).alliesBefore(b2)
     assert b2.allies.written == pytest.approx(-take)                     # under 0 across the state term
     vanilla_eat(item2, 1.0)
     HD(h).alliesAfter(b2)
-    assert item2.u == pytest.approx(0.0) and h.T.synced == 1
+    assert item2.u == pytest.approx(0.0) and h.T.synced == 0
 
 
 def test_the_intake_seats_r3_on_an_eat_and_a_cancel_never_a_drink(h):
@@ -319,6 +321,12 @@ def test_rule_6_an_eat_of_a_food_that_is_not_sad_adds_one_java_call(h):
     HD(h).alliesBefore(b)
     HD(h).alliesAfter(b)
     assert h.T.calls == 3                                                # a sad food, sated: + getStats, get
+    item = h.T.item(20.0)
+    b = snapshot(h, item, 0.9)
+    h.T.calls = 0
+    HD(h).alliesBefore(b)
+    HD(h).alliesAfter(b)
+    assert h.T.calls == 7 and h.T.synced == 0                            # a sad food, Hungry: no item sync
 
 
 # --- R2: the add-ingredient seat --------------------------------------------------------------------------------------
@@ -361,6 +369,26 @@ def test_a_chef_scales_the_relief_once_never_compounded(h):
     add(h, dish, 0)                                                      # the last add's chef sets the whole dish
     assert dish.u == pytest.approx(-20 * h.K.hedonics.prepScale(0))
     assert HD(h).stats.prepped == 4 and h.T.synced == 4
+    assert dish.fs == 4 and pot.fs == 0                                  # the dish's fields synced at each stamp change
+
+
+def test_an_add_that_clears_a_stamp_without_restamping_syncs_the_fields(h):
+    dish = h.T.item(0.0)
+    add(h, dish, 10)
+    assert dish.fs == 1
+    h.T.term = 5                                                         # the next add makes the dish sad: no restamp
+    add(h, dish, 10)
+    assert dish.md.NR_PrepS is None and dish.fs == 2
+    add(h, dish, 10)                                                     # no stamp to clear, none made: no sync
+    assert dish.fs == 2
+
+
+def test_a_state_term_never_enters_the_prepared_field(h):
+    # mutation: prepDish reading the read-time getUnhappyChange bakes the cold dish's +2 into the field
+    q10 = h.K.hedonics.prepScale(10)
+    dish = h.T.item(0.0, 2.0)
+    add(h, dish, 10)
+    assert dish.u == pytest.approx(-5 * q10)
 
 
 def test_a_part_eaten_dish_restores_exactly(h):

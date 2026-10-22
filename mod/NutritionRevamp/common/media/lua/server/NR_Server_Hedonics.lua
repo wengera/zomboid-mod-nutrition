@@ -14,12 +14,16 @@
 --     (K.hedonics.prep) and the scale is stamped in the dish's modData (NR_PrepS); before the next add the stamp is read
 --     back and the vanilla value restored (K.hedonics.unprep), so vanilla's arithmetic always runs on its own value and
 --     a dish of many adds is scaled once, by the last add's chef, never compounded. A part-eaten dish keeps the stamp:
---     vanilla scales its stored value linearly, which the restore divides back exactly.
+--     vanilla scales its stored value linearly, which the restore divides back exactly. The stamp is server-side item
+--     modData that an item-stats packet does not carry, and a client's syncItemFields wipes and replaces the server
+--     item's modData (#1241), so whenever the stamp changes the dish's fields are synced to its owner's client, whose
+--     copy then carries the stamp a later client sync sends back.
 --  R3 alliesthesia: before vanilla's eat (NR_Server_Intake's guardBefore, an eat or a cancel), a sad food (its
 --     read-time UnhappyChange over 0) eaten while the HUNGER stat (the hunger the mod's writer writes) is over the
 --     ALLIES_LEVEL threshold has its stored field lowered so vanilla's own JustAteFood applies the scaled value with its
 --     own share and utensil factor (K.hedonics.alliesField); after the eat the remainder's field is restored to what it
---     would have kept (K.hedonics.alliesRestore). No stat is written here.
+--     would have kept (K.hedonics.alliesRestore). No stat is written here and no item is synced: the client never
+--     sees the lowered field, and an item-stats packet would double the state terms on the client.
 --  R4 taste class: the eat's class goes into K.monotony.record beside the type. A dish's class is its main
 --     ingredient TYPE's (ruling T6-1 as refined: the kcal of each ingredient type summed, the type of most kcal wins,
 --     K.hedonics.dishClass over one entry a type); any other food's is the generated table's (NR_Data_Hedonics).
@@ -33,9 +37,10 @@
 -- wrap a timed action's `new` (CLAUDE.md s6): complete is called off the class table.
 --
 -- Cost (Rule 6): per eat, one Java read (getUnhappyChange); a sad food adds the HUNGER read (two calls), and a scaled
--- one a read and a write before and a read, a write and an item sync after. Per ingredient add, one read (the base's
--- modData) before, and after it the dish's stored value; a relief adds the Cooking level, the modData, a write and an
--- item sync. The dish class reads Lua tables only. No @fastpath region.
+-- one a read and a write before and a read and a write after, no item sync. Per ingredient add, one read (the base's
+-- modData) before, and after it the dish's stored value; a relief adds the Cooking level, the modData, a write and two
+-- item syncs (the item-stats packet and syncItemFields); an add that only clears a stamp adds one syncItemFields. The
+-- dish class reads Lua tables only, one kcal read a distinct type. No @fastpath region.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.hedonics = {
@@ -45,8 +50,8 @@ NR.server.hedonics = {
     wired = false,
     lastError = nil,
     limitations = {
-        "preparation quality (R2) scales an evolved dish's relief by the Cooking level of the chef of its last add, the whole dish at that chef's level; a dish whose stored UnhappyChange is 0 or more is vanilla's; a crafted (non-evolved) food, a cooked plain item and a spawned dish keep vanilla's mood",
-        "alliesthesia (R3) reads the HUNGER stat at the eat, which is the mod's written hunger in Mode 1 and vanilla's own in Overlay; it scales the whole read-time sad value, the state terms (stale, rotten, burnt, frozen, cold) included; a drink's mood is vanilla's",
+        "preparation quality (R2) scales an evolved dish's relief by the Cooking level of the chef of its last add, the whole dish at that chef's level; a dish whose stored UnhappyChange is 0 or more is vanilla's; a crafted (non-evolved) food, a cooked plain item and a spawned dish keep vanilla's mood; an add whose vanilla original raises after addItem (vanilla's Beer branch) keeps vanilla's mood; a client sync racing an add can still lose a stamp",
+        "alliesthesia (R3) reads the HUNGER stat at the eat, which is the mod's written hunger in Mode 1 and vanilla's own in Overlay; it scales the whole read-time sad value, the state terms (stale, rotten, burnt, frozen, cold) included; a drink's mood is vanilla's; an eat whose vanilla original raises keeps the lowered field",
         "a dish's taste class is the class of its ingredient type of most kcal, each type's kcal the mod's table's whole-item value times its appearances in the ingredient list (no amounts are kept, #2650); a type the hedonics table does not carry counts for no class",
     },
 }
@@ -79,7 +84,7 @@ end
 -- times its appearances in the list, its class the table's; a type with no class counts for none. K.hedonics.dishClass
 -- picks the type of most kcal (the first on a tie). extraTypes is a Lua list of full types (IN.readBefore's).
 function H.dishClass(extraTypes)
-    local at, classes, kcals = {}, {}, {}
+    local at, types, classes, counts, kcals = {}, {}, {}, {}, {}
     for i = 1, #extraTypes do
         local t = extraTypes[i]
         local _, class = NR.data.hedonics.get(t)
@@ -88,12 +93,14 @@ function H.dishClass(extraTypes)
             if k == nil then
                 k = #classes + 1
                 at[t] = k
+                types[k] = t
                 classes[k] = class
-                kcals[k] = 0
+                counts[k] = 0
             end
-            kcals[k] = kcals[k] + H.kcalOf(t)
+            counts[k] = counts[k] + 1
         end
     end
+    for k = 1, #classes do kcals[k] = H.kcalOf(types[k]) * counts[k] end
     return K.hedonics.dishClass(classes, kcals)
 end
 
@@ -160,8 +167,7 @@ function H.allies(b)
     H.stats.allies = H.stats.allies + 1
 end
 
--- After the original (IN.guardAfter): the remainder's field restored and the item synced while it is still in a
--- container. Under its own pcall.
+-- After the original (IN.guardAfter): the remainder's field restored (no sync, see the header). Under its own pcall.
 function H.alliesAfter(b)
     if type(b) ~= "table" or b.allies == nil then return end
     local ok, err = pcall(H.restore, b)
@@ -180,7 +186,6 @@ function H.restore(b)
     if restored == nil then return end
     NR.call(b.item, "setUnhappyChange", restored)
     H.stats.restores = H.stats.restores + 1
-    if NR.obj(b.item, "getContainer") ~= nil then H.sync(b.item) end
 end
 
 -- The item-stats packet to the item's owner (sendItemStats, a server global, #3567): the mood fields ride it when non-zero.
@@ -213,6 +218,7 @@ function H.unprepBase(action)
         end
     end
     md.NR_PrepS = nil
+    action.nrStamp = true                                  -- the stamp changed: cookAfter syncs the dish's fields
 end
 
 -- After the original: the dish (the action's baseItem, which the original reassigns) scaled by the chef's Cooking
@@ -220,6 +226,11 @@ end
 function H.cookAfter(action)
     local ok, err = pcall(H.prepDish, action)
     if not ok then H.fail("cookFailures", "the add's scale failed: " .. tostring(err)) end
+    if action.nrStamp then
+        action.nrStamp = nil
+        local ok2, err2 = pcall(NR.call, action.baseItem, "syncItemFields")
+        if not ok2 then H.fail("cookFailures", "the add's field sync failed: " .. tostring(err2)) end
+    end
 end
 
 function H.prepDish(action)
@@ -232,6 +243,7 @@ function H.prepDish(action)
     if type(md) ~= "table" then return end
     NR.call(dish, "setUnhappyChange", K.hedonics.prep(v, level))
     md.NR_PrepS = K.hedonics.prepScale(level)
+    action.nrStamp = true
     H.stats.prepped = H.stats.prepped + 1
     H.sync(dish)
 end
