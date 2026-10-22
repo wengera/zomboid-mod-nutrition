@@ -19,23 +19,23 @@ local K = NutritionRevamp.kernel
 K.nutrients = {}
 
 -- The generic status ladder on p, {marginal, depleted, clinical}, where a record has no sourced rung.
-K.nutrients.LADDER = { 0.70, 0.45, 0.25 } -- design-phase-v1 game choice, ruling 4 (open row S1057: the store fractions at the three rungs)
+K.nutrients.LADDER = { K.dials.get("nutrients.LADDER.1"), K.dials.get("nutrients.LADDER.2"), K.dials.get("nutrients.LADDER.3") }
 
 -- The grade hysteresis: a grade improves one rung only when p clears that rung's threshold by HYST.
-K.nutrients.HYST = 0.02 -- game choice, ruling 4
+K.nutrients.HYST = K.dials.get("nutrients.HYST")
 
 -- The days a chronic-excess threshold must hold before rung 2.
-K.nutrients.EXCESS_HOLD_D = 7 -- game choice, ruling 4 (open row S1058)
+K.nutrients.EXCESS_HOLD_D = K.dials.get("nutrients.EXCESS_HOLD_D")
 
 -- The hours an acute excess flag stays raised after the eat that set it.
-K.nutrients.ACUTE_DECAY_H = 48 -- the 48 h vomiting window, S1028
+K.nutrients.ACUTE_DECAY_H = K.dials.get("nutrients.ACUTE_DECAY_H")
 
 -- The replete-to-clinical days at zero intake above which a record takes the onset dial.
-K.nutrients.DIAL_SLOW_DAYS = 90 -- game choice, ruling 5
+K.nutrients.DIAL_SLOW_DAYS = K.dials.get("nutrients.DIAL_SLOW_DAYS")
 
 -- The acute per-kg dose counts ACUTE_EMPTY_MULT times on a stomach filled below ACUTE_EMPTY_FILL.
-K.nutrients.ACUTE_EMPTY_FILL = 0.2 -- game choice, ruling 18 (S1032 gives the direction only); the food fill, the solid lane's mass over 730 g (K.stomach.recordFoodFill, ruling T6c-1: drunk water is not food), so 0.2 is 146 g of food (ruling 11c-14)
-K.nutrients.ACUTE_EMPTY_MULT = 1.5 -- game choice, ruling 18 (S1032 gives the direction only)
+K.nutrients.ACUTE_EMPTY_FILL = K.dials.get("nutrients.ACUTE_EMPTY_FILL")
+K.nutrients.ACUTE_EMPTY_MULT = K.dials.get("nutrients.ACUTE_EMPTY_MULT")
 
 -- The kinds whose step is not ctx.two's: pool is stepped here, the rest are not stepped at all.
 K.nutrients.NO_TWO = { pool = true, ledger = true, fast = true, acute = true }

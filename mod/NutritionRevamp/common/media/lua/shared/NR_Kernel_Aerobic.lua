@@ -11,52 +11,52 @@ local K = NutritionRevamp.kernel
 K.aerobic = {}
 
 -- TAC's clamp: parity 1.00, the trained ceiling +25 %.
-K.aerobic.TAC_MIN = 0.80 -- floor game choice
-K.aerobic.TAC_MAX = 1.25 -- +25 %: S0669 (+25 %/+20 %), S0668 (+23 %); S0661/S0666 weaker anchors
+K.aerobic.TAC_MIN = K.dials.get("aerobic.TAC_MIN")
+K.aerobic.TAC_MAX = K.dials.get("aerobic.TAC_MAX")
 
 -- The gain and loss time constants, days.
-K.aerobic.TAU_GAIN = 15 -- S0668
-K.aerobic.TAU_LOSS = 84 -- 84 d: a game choice (bed rest S0675 at −0.43 %/d would give ≈47 d; detraining is slower)
+K.aerobic.TAU_GAIN = K.dials.get("aerobic.TAU_GAIN")
+K.aerobic.TAU_LOSS = K.dials.get("aerobic.TAU_LOSS")
 
 -- The dead band around the target and parity: no step closer than this.
-K.aerobic.TAC_DEADBAND = 1e-3 -- game choice: parity exact; detraining returns a trained capacity to parity; only immobilisation (ruling 8) takes it below, S0675 bed rest
+K.aerobic.TAC_DEADBAND = K.dials.get("aerobic.TAC_DEADBAND")
 
 -- The weekly band-1 minutes that reach the full target (40 min x 6 d), and the hard days that hold it.
-K.aerobic.VOL_WEEK_FULL = 240 -- S0668 40x6
-K.aerobic.HARD_DAYS_KEEP = 2 -- S0669
+K.aerobic.VOL_WEEK_FULL = K.dials.get("aerobic.VOL_WEEK_FULL")
+K.aerobic.HARD_DAYS_KEEP = K.dials.get("aerobic.HARD_DAYS_KEEP")
 
 -- The gain gates: protein below P_LOW g/kg/d, energy availability below EA_THRESHOLD kcal per kg lean,
 -- the iron grades (replete, marginal, depleted, clinical) and severe sleep debt.
-K.aerobic.G_PROT_LOW = 0.85 -- S0715 SMD 0.45 → 0.85: an SMD→% game choice
-K.aerobic.P_LOW = 0.8 -- S0509
-K.aerobic.EA_THRESHOLD = 30 -- S0691/S0692
-K.aerobic.G_ENERGY_LOW = 0.5 -- S0691/S0692
-K.aerobic.G_IRON = { 1.0, 0.7, 0.4, 0.4 } -- S0701/S0702; rungs inference
-K.aerobic.G_SLEEP_SEVERE = 0.70 -- S0721; rungs inference
-K.aerobic.SLEEP_DEBT_FROM = 8 -- S0721; game choice: the debt in hours at which the gate starts
-K.aerobic.SLEEP_DEBT_SPAN = 16 -- S0721; game choice: severe at 8 + 16 = 24 h
+K.aerobic.G_PROT_LOW = K.dials.get("aerobic.G_PROT_LOW")
+K.aerobic.P_LOW = K.dials.get("aerobic.P_LOW")
+K.aerobic.EA_THRESHOLD = K.dials.get("aerobic.EA_THRESHOLD")
+K.aerobic.G_ENERGY_LOW = K.dials.get("aerobic.G_ENERGY_LOW")
+K.aerobic.G_IRON = { K.dials.get("aerobic.G_IRON.1"), K.dials.get("aerobic.G_IRON.2"), K.dials.get("aerobic.G_IRON.3"), K.dials.get("aerobic.G_IRON.4") }
+K.aerobic.G_SLEEP_SEVERE = K.dials.get("aerobic.G_SLEEP_SEVERE")
+K.aerobic.SLEEP_DEBT_FROM = K.dials.get("aerobic.SLEEP_DEBT_FROM")
+K.aerobic.SLEEP_DEBT_SPAN = K.dials.get("aerobic.SLEEP_DEBT_SPAN")
 
 -- The coefficient's exponent on TAC and its floor.
-K.aerobic.EXP_R = 1.2 -- game choices § 7 item 31
-K.aerobic.R_FLOOR = 0.25 -- game choices § 7 item 31
+K.aerobic.EXP_R = K.dials.get("aerobic.EXP_R")
+K.aerobic.R_FLOOR = K.dials.get("aerobic.R_FLOOR")
 
 -- Glycogen: regeneration runs at GLYC_R + (1 - GLYC_R) x g.
-K.aerobic.GLYC_R = 0.5 -- 0.5: a game choice (S0684 is the drain side)
+K.aerobic.GLYC_R = K.dials.get("aerobic.GLYC_R")
 
 -- Dehydration in percent body mass above which regeneration falls.
-K.aerobic.HYDR_T1 = 2 -- S0706/S0707
+K.aerobic.HYDR_T1 = K.dials.get("aerobic.HYDR_T1")
 
 -- Iron grades 1-4 on regeneration.
-K.aerobic.IRON_R = { 1.0, 0.95, 0.88, 0.75 } -- S0699 (fatigue SMD −0.38; VO₂max NS): the rungs a game mapping
+K.aerobic.IRON_R = { K.dials.get("aerobic.IRON_R.1"), K.dials.get("aerobic.IRON_R.2"), K.dials.get("aerobic.IRON_R.3"), K.dials.get("aerobic.IRON_R.4") }
 
 -- Regeneration: dehydration above HYDR_T1 and sleep debt, each floored; alcohol above ALC_T g/kg, full
 -- at 2 x ALC_T.
-K.aerobic.HYDR_R_K = 0.05 -- game choice § 7 item 31: no row
-K.aerobic.HYDR_R_FLOOR = 0.70 -- game choice § 7 item 31: no row
-K.aerobic.DEBT_R_K = 0.01 -- S0762 direction
-K.aerobic.DEBT_R_FLOOR = 0.60 -- S0762 direction
-K.aerobic.ALC_K = 0.15 -- S0718
-K.aerobic.ALC_T = 0.5 -- S0718
+K.aerobic.HYDR_R_K = K.dials.get("aerobic.HYDR_R_K")
+K.aerobic.HYDR_R_FLOOR = K.dials.get("aerobic.HYDR_R_FLOOR")
+K.aerobic.DEBT_R_K = K.dials.get("aerobic.DEBT_R_K")
+K.aerobic.DEBT_R_FLOOR = K.dials.get("aerobic.DEBT_R_FLOOR")
+K.aerobic.ALC_K = K.dials.get("aerobic.ALC_K")
+K.aerobic.ALC_T = K.dials.get("aerobic.ALC_T")
 
 -- The protein gate: 1 at or above P_LOW g/kg/d, G_PROT_LOW below. It is also the regeneration
 -- coefficient's protFactor.

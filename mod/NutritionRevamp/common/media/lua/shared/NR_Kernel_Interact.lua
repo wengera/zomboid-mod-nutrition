@@ -23,36 +23,36 @@ local K = NutritionRevamp.kernel
 K.interact = {}
 
 -- Calcium x iron: 1 - CA_FE_MAX x clamp(Ca_meal / CA_FE_REF, 0, 1), flat above the reference.
-K.interact.CA_FE_REF = 300 -- mg calcium per meal at the full effect, S0418 (40-300 mg dose-related, little further above ~600 mg)
-K.interact.CA_FE_MAX = 0.5 -- the 50 % reduction at 300 mg: design-phase-v1 game choice (open S1081; direction S0418)
+K.interact.CA_FE_REF = K.dials.get("interact.CA_FE_REF")
+K.interact.CA_FE_MAX = K.dials.get("interact.CA_FE_MAX")
 
 -- Phytate x magnesium: exp(-PHY_SLOPE x phytate mg); zinc reuses the slope.
-K.interact.PHY_SLOPE = 0.00093 -- per mg phytic acid: ln(32.5/13.0)/983 derived from S0536 (1.49 mmol = 983 mg); the zinc reuse is a game choice (open S1084; direction S0454)
+K.interact.PHY_SLOPE = K.dials.get("interact.PHY_SLOPE")
 
 -- The B12 intrinsic-factor ceiling per eat: min(B12_ACTIVE_FRAC x a, B12_ACTIVE_MAX) + B12_PASSIVE x max(0, a - B12_PASSIVE_FROM).
-K.interact.B12_ACTIVE_FRAC = 0.5 -- ~50 % of a 1 ug dose absorbed, S0358
-K.interact.B12_ACTIVE_MAX = 2.0 -- ug per meal via the active route, S0357
-K.interact.B12_PASSIVE = 0.012 -- ~1.2 % of a dose absorbed passively, S0358
-K.interact.B12_PASSIVE_FROM = 4 -- ug: the dose that saturates the active route, B12_ACTIVE_MAX / B12_ACTIVE_FRAC derived from S0357/S0358
+K.interact.B12_ACTIVE_FRAC = K.dials.get("interact.B12_ACTIVE_FRAC")
+K.interact.B12_ACTIVE_MAX = K.dials.get("interact.B12_ACTIVE_MAX")
+K.interact.B12_PASSIVE = K.dials.get("interact.B12_PASSIVE")
+K.interact.B12_PASSIVE_FROM = K.interact.B12_ACTIVE_MAX / K.interact.B12_ACTIVE_FRAC -- ug: the dose that saturates the active route, derived (S0357/S0358)
 
 -- the 2:1 retinol equivalence of absorbed beta-carotene; with the 0.14 absorption (S0156) the product 0.07 sits beside the IOM RAE 1/12; design-phase-v1 game choice (open row S1118: the retinol equivalence of absorbed beta-carotene)
-K.interact.CAROTENE_RAE = 0.5
+K.interact.CAROTENE_RAE = K.dials.get("interact.CAROTENE_RAE")
 -- Carotene conversion stops at this liver p (the record's two.caroteneOff wins when passed).
-K.interact.CAROTENE_OFF = 1.0 -- liver > 0.4 umol/g suppresses bioconversion, S0202
+K.interact.CAROTENE_OFF = K.dials.get("interact.CAROTENE_OFF")
 
 -- Riboflavin x iron: the store-to-haemoglobin transfer at RIBO_FE_XFER once riboflavin is at RIBO_FE_GRADE or worse.
-K.interact.RIBO_FE_GRADE = 3 -- the depleted grade, game choice (direction S0261)
-K.interact.RIBO_FE_XFER = 0.5 -- halved transfer: design-phase-v1 game choice (open S1082; direction S0261)
+K.interact.RIBO_FE_GRADE = K.dials.get("interact.RIBO_FE_GRADE")
+K.interact.RIBO_FE_XFER = K.dials.get("interact.RIBO_FE_XFER")
 
 -- Alcohol x thiamine: k x (1 + LAMBDA_ALC x alcohol g/kg/day).
-K.interact.LAMBDA_ALC = 0.5 -- per g/kg/day: game choice (the contributions are open S0553; direction S0250)
+K.interact.LAMBDA_ALC = K.dials.get("interact.LAMBDA_ALC")
 
 -- The caffeine urinary mineral loss: CAF_MG_LOSS mg per mg caffeine at CAF_LM_REF kg lean, scaled by CAF_LM_REF / lean mass.
-K.interact.CAF_MG_LOSS = 0.02 -- mg Mg (and Ca) per mg caffeine: placeholder game choice (open S1087; direction S0543)
-K.interact.CAF_LM_REF = 60 -- kg lean mass the placeholder is set at: game choice (S0543: proportional to dose per lean mass)
+K.interact.CAF_MG_LOSS = K.dials.get("interact.CAF_MG_LOSS")
+K.interact.CAF_LM_REF = K.dials.get("interact.CAF_LM_REF")
 
 -- The alcohol urinary magnesium loss.
-K.interact.ALC_MG_LOSS = 2 -- mg Mg per g ethanol: placeholder game choice (open S1086; direction S0542)
+K.interact.ALC_MG_LOSS = K.dials.get("interact.ALC_MG_LOSS")
 
 
 -- Calcium x iron absorption factor for a meal's calcium in mg.

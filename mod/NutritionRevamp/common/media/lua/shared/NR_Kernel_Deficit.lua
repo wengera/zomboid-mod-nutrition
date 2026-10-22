@@ -17,7 +17,7 @@ K.deficit = {}
 -- (and, until Plan 11g Task 7 fix 1, the deficit floor) on the server-path replays (Plan 11f Task 2c and its fix round 1, Karl 2021's two arms
 -- scored; Plan 11g Task 7 on the deficit studies alone, the well-fed arm held as a constraint now that satiety
 -- carries it: tools/fit_deficit_drive.py over testing/tests/kernel/deficit_oracles.py).
-K.deficit.BALANCE_SPAN_KCAL = 3970.55 -- game choice, refit in Plan 11g Task 7 on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012), from Plan 11f Task 2c fix 1's 3100 (fitted with Karl 2021's well-fed arm in the bands, ruling 2c-2), Plan 11f Task 2c's 3300, Plan 11d's 7500 (ruling 9c-1) and Plan 3 ruling 14's 1500 (S1271 open: no row gives a hunger rise per kcal of deficit): fitted with EX_BYPASS_LO 0.282 and EX_BYPASS_HI (0.44 at the fit's tie, 0.405 at mid-plateau since its fix round 1, ruling T7-6, the score unchanged) and with the deficit floor, which fitted at its bound 0 and was removed (ruling T7-1), scored on the server path for the best smallest margin, 0.492 of a half-width: the 36 h fast's next-day intake 1.148 against S1613's 1.20 (Johnstone 2002, within 1.1x) and day 3 0.981 against S1614's 1.0 (Clayton 2016), Karl 2021's DEF arm +30.4 % against S1325's +26 % (+25.8 to +33.7 % over twin K's five billings, each within 1.5x), King 2011 at steady state within 1.24 mm of control (S1312); held as constraints: Karl's BAL arm, carried by the meal pool M and the stomach's fill since Plan 11g Task 6c, -49.2 % inside S1892's -64 to -46 % (S1325), six meals against three 0.982 (S1608, within 0.9-1.3), the steady eater at balance and S1255 (CALERIE 2: < 10 mm at a 25 % deficit; reads 5.1 mm, reproduced); held from above by S1613's day 2 (r2 falls with the span) and from below by Karl's DEF arm billed ClimbRope (+33.7 %, rising toward the 39 % ceiling as the span falls)
+K.deficit.BALANCE_SPAN_KCAL = K.dials.get("deficit.BALANCE_SPAN_KCAL")
 
 -- --- the fat term: the low-fat hunger ramp (Plan 13 Task 10c) ---------------------------------------------------
 -- The fat store's drive enters on its depletion from the body's own reference (fatDep = (fmRef - fm) / fmRef), never
@@ -26,9 +26,9 @@ K.deficit.BALANCE_SPAN_KCAL = 3970.55 -- game choice, refit in Plan 11g Task 7 o
 -- ramp with a soft threshold, FAT_GAIN x clamp((fatDep - FAT_DEP_LO) / (FAT_DEP_HI - FAT_DEP_LO), 0, 1): near nothing
 -- at modest loss, full at Minnesota's depletion (S2180), in place of ruling 14's linear 0.5 x fatDep (S2196 open:
 -- no row gives hunger against fat lost in lean people as a dose-response).
-K.deficit.FAT_DEP_LO = 0.10 -- game choice (S1255: a 25 % restriction moved hunger < 10 mm over 2 y; S2177: a 10 % reduced weight moved post-meal fullness, not fasting hunger or intake): the depletion below which the fat term is 0
-K.deficit.FAT_DEP_HI = 0.70 -- game choice (S2180: Minnesota's 70 % of body fat lost, marked hyperphagia): the depletion at which the fat term is whole
-K.deficit.FAT_GAIN = 0.651709 -- fitted, Plan 13 Task 10c fix 2 (tools/fit_deficit_drive.py in its fat mode, fit-13-fatgain2-20261015; 0.524404 in fit-13-fatgain-20261015 read S1254 per kg of fat against its per-kg-of-weight 100): the controller's ruling on the Task 10c review's finding 2 converts S1254 (Polidori 2016, ~100 kcal/d more intake per kg of WEIGHT lost; k_P 95 in its own model, S2208) to kg of FAT with the Forbes fat share that model assumes (0.76 at the trial's fat mass, S2206; S2200 and S2203 agree; S2199's 0.63 gives 150, inside the band), so the target is 95 / 0.76 = 125 kcal/d per kg of fat within 1.5x; on the server path the reference body held at fat depletions 0.25, 0.40 and 0.55 and eating at the request reads 125.25 kcal/d per kg of fat (a margin of 0.995), the pair slopes 124.86 and 125.64 (the linearity check 0.994), 0.96 kcal/d below FAT_DEP_LO; linear in the gain and smooth through x0.95 and x1.05 (0.619124 reads 119.06, 0.684294 131.45; 0.3 reads 57.5, 1.5 284.4), nothing at a bound; every other deficit oracle unmoved (none reaches FAT_DEP_LO); the gain is a game choice under S2196 (open: no dose-response of hunger on fat lost in lean people)
+K.deficit.FAT_DEP_LO = K.dials.get("deficit.FAT_DEP_LO")
+K.deficit.FAT_DEP_HI = K.dials.get("deficit.FAT_DEP_HI")
+K.deficit.FAT_GAIN = K.dials.get("deficit.FAT_GAIN")
 
 -- The fat term of the energy state at depletion fatDep (0 none .. 1 all of the reference lost): 0 at or below
 -- FAT_DEP_LO, the common case, before any arithmetic (the per-minute path, Rule 6).
@@ -44,7 +44,7 @@ end
 -- under surplus, clamped to [0.5, 2.0] (a game choice). Muscle glycogen does not enter it (ruling T4-1:
 -- no science row backs a coupling, and ketosis blunts the deficit's rise in appetite, S1451, S1452, S1259).
 function K.deficit.state(eb24h, fatDep)
-    return K.clamp(1 + 0.5 * K.clamp(-eb24h / K.deficit.BALANCE_SPAN_KCAL, -1, 1) + K.deficit.fatTerm(fatDep), 0.5, 2.0) -- ruling 14; the span BALANCE_SPAN_KCAL, ruling 9c-1; the fat term, Plan 13 Task 10c
+    return K.clamp(1 + K.deficit.BALANCE_CAP * K.clamp(-eb24h / K.deficit.BALANCE_SPAN_KCAL, -1, 1) + K.deficit.fatTerm(fatDep), K.deficit.STATE_MIN, K.deficit.STATE_MAX) -- ruling 14; the span BALANCE_SPAN_KCAL, ruling 9c-1; the fat term, Plan 13 Task 10c
 end
 
 -- --- the exercise lag ---------------------------------------------------------------------------------------------
@@ -54,7 +54,7 @@ end
 -- S1321, S1322). L is the exercise expenditure rate in kcal per day that appetite has caught up with: a first-order
 -- lag of the exercise kcal (exKcalDay's quantity, the MET above the idle class). The split of a deficit into an
 -- exercise share and a food share is a game choice no row defines.
-K.deficit.EX_LAG_TAU_D = 16 -- game choice, Plan 11d (ruling 11d-4), refit from Plan 11c Task 4b's 24 (S1335 open): the lag's time constant in days, fitted with EX_LAG_GAIN to both readings, S1318 (Whybrow 2008: about 30 % of the exercise deficit compensated over days 3-16; the replay reads 0.298) and S1320 with S1664 (Martin 2019: 53-89 % at 24 weeks by this plan's arithmetic, the plateau the gain sets), and about 0 the same day (S1312)
+K.deficit.EX_LAG_TAU_D = K.dials.get("deficit.EX_LAG_TAU_D")
 
 -- One lag step of dtH game hours with exKcal exercise kcal spent in it: L relaxes toward the step's rate (exKcal x 24
 -- / dtH kcal per day). Nothing for no time; a non-finite L reads 0 and a negative or non-finite exKcal reads none.
@@ -83,7 +83,7 @@ end
 -- Spec § 5d: the lag plateaus below the whole exercise share. lagged(L) is the gain
 -- times L, so a steady exercise rate is compensated at EX_LAG_GAIN of it once the lag has caught up; the bypass ramp
 -- in activityState still moves the lag toward the whole ex24h, unscaled by the gain.
-K.deficit.EX_LAG_GAIN = 0.7 -- game choice, Plan 11d (ruling 11d-4): the plateau share, the middle of 53-89 % at 24 weeks (DLW): S1320's intake rise over S1664's achieved exercise EE a day, 90.7 / (17,114 / 168) = 0.89 and 123.6 / (38,956 / 168) = 0.53; the share is this plan's arithmetic on S1320 and S1664, not the paper's; S1516's self-report pool reads about 0 and is weighted lower
+K.deficit.EX_LAG_GAIN = K.dials.get("deficit.EX_LAG_GAIN")
 
 -- --- the bypass: a large total deficit raises hunger through the lag ------------------------------------------------
 -- The energy state the writer hands to hungerTarget: the food balance (eb24h with the window's exercise kcal ex24h
@@ -95,8 +95,8 @@ K.deficit.EX_LAG_GAIN = 0.7 -- game choice, Plan 11d (ruling 11d-4): the plateau
 -- stays compensated over weeks, S1312, S1318); it only ever raises the lag, so the never-below property holds. An
 -- ee24h that is nil, non-finite or not positive bypasses nothing. The ramp, not a step, rests on King 2011 alone
 --: since Plan 11g Task 7's refit a 25 % step passes Karl's band too.
-K.deficit.EX_BYPASS_LO = 0.282 -- game choice, refit in Plan 11g Task 7 on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012), unchanged from Plan 11f Task 2c fix 2 (0.30 in ruling 11c-32 as amended, Plan 11c; 0.28 in Task 2c fix 1): the 24-h total-deficit share of the 24-h expenditure at which the exercise lag starts to be bypassed; fitted with BALANCE_SPAN_KCAL (see its label); at its bound: S1318 (Whybrow 2008: the high-exercise arms' 24-h deficit shares, 0.277 and 0.2814 of expenditure, compensate about 30 %, so both take a weight of 0) bounds it from below, and the fit gains nothing above it (0.284 ties; 0.29 and 0.33 score lower); S1325 (Karl 2021) gives the direction (its regression: a deficit of >= 25 % to raise appetite)
-K.deficit.EX_BYPASS_HI = 0.405 -- game choice, refit in Plan 11g Task 7 on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012) and set mid-plateau in its fix round 1 (ruling T7-6) on its plateau scan fit-11g-deficit-20261012b's grid, from the fit's 0.44 (its tie rule's nearest to the shipped value) and Plan 11f Task 2c fix 1's 0.575 (0.45 in ruling 11c-32 as amended): the share at which the bypass is whole; fitted with BALANCE_SPAN_KCAL (see its label); on a plateau, every HI scanned from 0.3693 to 0.44 scoring the same smallest margin, 0.49205 (Karl's DEF arm billed ClimbRope, S1325, whose 24-h deficit share of about 0.48 is bypassed whole across it; the grid scores 0.40 and 0.41 alike, and the fit tool scores 0.405 the same), so its middle keeps slack on both sides: held from above by Karl's DEF arm billed as a loaded Walking5kmh walk (+25.8 % at 0.405, +22.8 % at 0.44, +21.9 % at 0.45, toward the 17.3 % floor) and from below by S1312 (King 2011: 1.24 mm from control at 0.405, its margin falling under the DEF arm's below about 0.368); a ramp, not a 25 % step, on King 2011's evidence alone (ruling T7-3: the step leaves King's 3.3 mm bound at 4.60 mm, while on Karl it now passes, +31.8 %)
+K.deficit.EX_BYPASS_LO = K.dials.get("deficit.EX_BYPASS_LO")
+K.deficit.EX_BYPASS_HI = K.dials.get("deficit.EX_BYPASS_HI")
 function K.deficit.activityState(eb24h, ex24h, L, fatDep, ee24h)
     local ex = 0
     if K.finite(ex24h) and ex24h > 0 then
@@ -127,3 +127,9 @@ end
 function K.deficit.unsated(hunger, energyState)
     return hunger / energyState
 end
+
+-- The energy state's cap and clamp (K.deficit.state; Plan 19 Task 3b), resolved at load: appended here so no line
+-- above moved.
+K.deficit.BALANCE_CAP = K.dials.get("deficit.BALANCE_CAP")
+K.deficit.STATE_MIN = K.dials.get("deficit.STATE_MIN")
+K.deficit.STATE_MAX = K.dials.get("deficit.STATE_MAX")

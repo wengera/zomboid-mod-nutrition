@@ -1706,6 +1706,9 @@ def test_nutrients_runs_after_metabolism_and_before_strength():
     load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
     with open(CORE, encoding="utf-8") as fh:
         load(fh.read(), "@NR_Core.lua")()
+    for n in ("NR_Data_Dials.lua", "NR_Kernel.lua"):                    # K.dials.get: NUT resolves its NEED pair (Plan 19)
+        with open(os.path.join(SHARED, n), encoding="utf-8") as fh:
+            load(fh.read(), "@" + n)()
     rt.execute(r"""
         NR_STARTED = {}
         Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }

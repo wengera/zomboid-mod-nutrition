@@ -97,8 +97,8 @@ NUT.ALC_HISTORY_GKG = 0.5 -- game choice: S0115 names alcohol misuse with no dos
 NUT.ALC_EMA_DAYS = 7 -- game choice: the 7-day window
 -- The NEEDS_MORE_SLEEP and NEEDS_LESS_SLEEP factors on the sleep need: the engine's own awake-fatigue
 -- trait multipliers (#2271, updateStats_Awake 1.3 / 0.7); their use as a need factor a game choice on S0740.
-NUT.NEED_MORE = 1.3 -- #2271 (updateStats_Awake); the reuse a game choice
-NUT.NEED_LESS = 0.7 -- #2271 (updateStats_Awake); the reuse a game choice
+NUT.NEED_MORE = K.dials.get("nut.NEED_MORE")
+NUT.NEED_LESS = K.dials.get("nut.NEED_LESS")
 -- The magnesium grade at which the refeeding risk reads magnesium-depleted (S0115's low-magnesium criterion).
 NUT.MG_DEPLETED_GRADE = 3 -- game choice: the depleted rung of the magnesium record
 -- The litres one unit of THIRST drop stands for: Water's ThirstChange -50 per litre = 0.5 THIRST per litre.

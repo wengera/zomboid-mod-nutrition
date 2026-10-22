@@ -14,9 +14,9 @@ local K = NutritionRevamp.kernel
 K.traits = {}
 
 -- The fat cuts by effective sex (1 male, 2 female): fat-mass index, kg/m2, above which Overweight then Obese.
-K.traits.FAT_CUTS = { { 6, 9 }, { 9, 13 } } -- S2056 (men: excess fat > 6, obese > 9); S2057 (women: > 9, > 13), Kelly 2009 Table 4
+K.traits.FAT_CUTS = { { K.dials.get("traits.FAT_CUTS.1.1"), K.dials.get("traits.FAT_CUTS.1.2") }, { K.dials.get("traits.FAT_CUTS.2.1"), K.dials.get("traits.FAT_CUTS.2.2") } }
 K.traits.FAT_WORDS = { "overweight", "obese" }
-K.traits.FAT_MARGIN = 0.3 -- game choice (spec section 8: the damping margin, FMI kg/m2)
+K.traits.FAT_MARGIN = K.dials.get("traits.FAT_MARGIN")
 
 -- The lean-scaled fat index of fat fm on lean lm: fm / (H2 * lm / Favg), the fat-mass index an average-lean body at the
 -- same body-fat share would read. Comparing it with a cut c and margin m is comparing fm with c * H2 * lm / Favg and
@@ -27,13 +27,13 @@ end
 
 -- The thinness cuts (male): the body-fat share below which Underweight (shown as Overly Lean), Very Underweight
 -- (Gaunt), Emaciated. Emaciated sits just above the male floor, 4-6 % (S1910).
-K.traits.THIN_CUTS = { 0.12, 0.08, 0.05 } -- game choice (Plan 13 Task 10c, Angus 2026-10-15: "thin should start at below 12% bodyfat"); S1910 (the male floor 4-6 %)
+K.traits.THIN_CUTS = { K.dials.get("traits.THIN_CUTS.1"), K.dials.get("traits.THIN_CUTS.2"), K.dials.get("traits.THIN_CUTS.3") }
 K.traits.THIN_WORDS = { "underweight", "veryUnderweight", "emaciated" }
-K.traits.THIN_MARGIN = 0.005 -- game choice (spec section 8: the damping margin, body-fat share)
+K.traits.THIN_MARGIN = K.dials.get("traits.THIN_MARGIN")
 -- The female values' essential-fat offset, added to every thin edge for effective sex 2 (female 20 / 16 / 13 %): the
 -- gap between the sexes' floors, men 4-6 % (S1910) and women a suggested minimum of 12-14 % (S1911); the 8 points are
 -- a game choice.
-K.traits.THIN_F_OFFSET = 0.08 -- game choice (S1910, S1911: the gap between the male and female fat floors)
+K.traits.THIN_F_OFFSET = K.dials.get("traits.THIN_F_OFFSET")
 
 -- The thin axis's reading of a body: its body-fat share fm / (lm + fm), less the essential-fat offset for effective
 -- sex 2, so one table of edges serves both sexes. A body with no mass reads 0 (the deepest rung).

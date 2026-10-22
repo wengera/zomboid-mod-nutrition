@@ -111,7 +111,7 @@ end
 
 -- The one shared height (m): fixed and sex-neutral, read by every BMI and FFMI in the mod (K.acute's refeeding BMI
 -- among them). It lives here, outside any sub-table, because this file loads before every other kernel file.
-K.HEIGHT_M = 1.70 -- game choice (Plan 13 ruling 13-4; open row S1117: the reference stature)
+-- (K.HEIGHT_M resolves from its dial, core.HEIGHT_M, at this file's end, once K.dials.get below is defined.)
 
 -- The tuning dials (Plan 19, spec Part A; ruling T1-1). NR.data.dials (NR_Data_Dials.lua, which sorts before every
 -- kernel file) holds one row a dial; a kernel resolves its dials into its own table fields once, as it loads
@@ -150,3 +150,6 @@ function K.dials.get(id)
     end
     return row.value
 end
+
+-- The one shared height (above), resolved from its dial now that K.dials.get exists.
+K.HEIGHT_M = K.dials.get("core.HEIGHT_M")

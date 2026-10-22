@@ -189,12 +189,12 @@ K.acute.IU_MAX = 2.5 -- game choice: additive sum capped (super-additive gamma r
 -- Refeeding.
 K.acute.LOW_KCAL_KG = 5 -- kcal/kg/day: design-phase-v1 game choice (open row S1116: the little-or-no-intake day)
 K.acute.MASS_WINDOW_H = 2160 -- 90 days in hours, S0115 (weight loss within 3-6 months)
-K.acute.RISK_BMI_HIGH = 16 -- S0115
-K.acute.RISK_LOSS_HIGH = 0.15 -- S0115
-K.acute.RISK_DAYS_HIGH = 10 -- S0115
-K.acute.RISK_BMI_MOD = 18.5 -- S0115
-K.acute.RISK_LOSS_MOD = 0.10 -- S0115
-K.acute.RISK_DAYS_MOD = 5 -- S0115
+K.acute.RISK_BMI_HIGH = K.dials.get("acute.RISK_BMI_HIGH")
+K.acute.RISK_LOSS_HIGH = K.dials.get("acute.RISK_LOSS_HIGH")
+K.acute.RISK_DAYS_HIGH = K.dials.get("acute.RISK_DAYS_HIGH")
+K.acute.RISK_BMI_MOD = K.dials.get("acute.RISK_BMI_MOD")
+K.acute.RISK_LOSS_MOD = K.dials.get("acute.RISK_LOSS_MOD")
+K.acute.RISK_DAYS_MOD = K.dials.get("acute.RISK_DAYS_MOD")
 K.acute.REFEED_DAYS = 7 -- S0116 (4-7 days)
 K.acute.RESTART_KCAL_KG = 10 -- S0116
 K.acute.RESTART_LOW_KCAL_KG = 5 -- S0116 (BMI 14 or below)
@@ -433,9 +433,9 @@ end
 -- the close of a main sleep (a bout of at least MAIN_SLEEP_H booked hours, K.acute.sleepMinute) sets it to WAKE_H
 -- at the waking, plus the gap since (a game choice, spec section 6). Pure: no Java.
 K.circadian = {}
-K.circadian.WAKE_H = 7 -- game choice (Plan 16 spec section 6, Angus's): a full sleep wakes the body clock at 07:00, the waking the mod's world-clock phases already assume (the hunger trough 07:50, S1273; the fatigue peak 04:00)
-K.circadian.MAIN_SLEEP_H = 4 -- game choice (Plan 16 spec section 6, Angus's): the booked hours of one bout that make a full sleep and reset the clock; game pacing, no row (in real bodies light, not sleep, sets the phase)
-K.circadian.SUM_TOL_H = 1 / 3600 -- not science (no row): one game second of slack on MAIN_SLEEP_H, so a bout booked in minute steps whose float sum falls a hair short of 4 h (240 x 1/60 reads 3.9999999999999) still counts
+K.circadian.WAKE_H = K.dials.get("circadian.WAKE_H")
+K.circadian.MAIN_SLEEP_H = K.dials.get("circadian.MAIN_SLEEP_H")
+K.circadian.SUM_TOL_H = K.dials.get("circadian.SUM_TOL_H")
 
 -- An hour wrapped into [0, 24).
 function K.circadian.wrap(h)

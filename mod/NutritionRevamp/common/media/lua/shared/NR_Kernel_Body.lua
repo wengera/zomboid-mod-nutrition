@@ -23,7 +23,7 @@ end
 -- The three direction flags off the 7-day trend in kg per day: weight increasing, increasing a lot,
 -- decreasing. Strict inequalities, so a trend exactly on a threshold raises nothing.
 function K.body.flags(trendKgPerDay)
-    return trendKgPerDay > 0.02, trendKgPerDay > 0.10, trendKgPerDay < -0.02 -- game choice, ruling 17
+    return trendKgPerDay > K.body.TREND_KG_D, trendKgPerDay > K.body.TREND_LOT_KG_D, trendKgPerDay < -K.body.TREND_KG_D -- ruling 17
 end
 
 -- The 7-day trend (kg/day): today's weight minus the oldest ring slot, over 7. The adapter rotates
@@ -49,25 +49,25 @@ end
 -- P > 1.6 reads 200; clamped to the store's [-500, 1000].
 -- The x1.5 arm (50 < p < 300, #2112) opens at P ~ 1.07.
 function K.body.mapProteins(pPerKgDay)
-    local m = 200 -- game choice, ruling 13
-    if pPerKgDay <= 0.5 then
-        m = -400 -- game choice, ruling 13
-    elseif pPerKgDay < 0.8 then
-        m = -300 + 300 * (pPerKgDay - 0.5) / 0.3 -- game choice, ruling 13
-    elseif pPerKgDay <= 1.6 then
-        m = 150 * (pPerKgDay - 0.8) / 0.8 -- game choice, ruling 13
+    local m = K.body.PROT_STORE_OVER -- ruling 13 (the body.PROT_* dials)
+    if pPerKgDay <= K.body.PROT_FLOOR_AT then
+        m = K.body.PROT_STORE_FLOOR
+    elseif pPerKgDay < K.body.PROT_OK then
+        m = K.body.PROT_STORE_RAMP - K.body.PROT_STORE_RAMP * (pPerKgDay - K.body.PROT_FLOOR_AT) / K.body.PROT_RAMP_SPAN
+    elseif pPerKgDay <= K.body.PROT_FULL then
+        m = K.body.PROT_STORE_FULL * (pPerKgDay - K.body.PROT_OK) / (K.body.PROT_FULL - K.body.PROT_OK)
     end
     return K.clamp(m, -500, 1000) -- #0023
 end
 
 -- The legacy carbohydrate store: the trailing-24 h carbohydrate intake (g) minus a 300 g reference.
 function K.body.mapCarbs(gIn24h)
-    return K.clamp(gIn24h - 300, -500, 1000) -- game choice, ruling 13
+    return K.clamp(gIn24h - K.body.CARB_REF_G, -500, 1000) -- the reference a dial (ruling 13); the store's range
 end
 
 -- The legacy lipid store: the trailing-24 h lipid intake (g) minus a 70 g reference.
 function K.body.mapLipids(gIn24h)
-    return K.clamp(gIn24h - 70, -500, 1000) -- game choice, ruling 13
+    return K.clamp(gIn24h - K.body.LIP_REF_G, -500, 1000) -- the reference a dial (ruling 13); the store's range
 end
 
 -- The trailing-24 h window: one hourly ring per quantity, TRAIL_N slots, game hour h
@@ -228,12 +228,12 @@ end
 -- bands (Obese at class I, 9-12); female, the middle of the female bands, read only for effective sex 2 (NR.SexSpecific
 -- on and the character female). create scales it by the start lean over the average's (Task 10b), so each start sits
 -- at its band middle's body-fat share: male 20 %, 29.4 % and 36.8 % at every lean.
-K.body.FAT_FMI = { none = 4.5, OVERWEIGHT = 7.5, OBESE = 10.5 } -- S2056; game choice (the middle of each band; Task 10b, Angus)
-K.body.FAT_FMI_F = { none = 7.0, OVERWEIGHT = 11.0, OBESE = 15.0 } -- S2057; game choice (the middle of each band; ruling 13-31)
+K.body.FAT_FMI = { none = K.dials.get("body.FAT_FMI.none"), OVERWEIGHT = K.dials.get("body.FAT_FMI.OVERWEIGHT"), OBESE = K.dials.get("body.FAT_FMI.OBESE") }
+K.body.FAT_FMI_F = { none = K.dials.get("body.FAT_FMI_F.none"), OVERWEIGHT = K.dials.get("body.FAT_FMI_F.OVERWEIGHT"), OBESE = K.dials.get("body.FAT_FMI_F.OBESE") }
 
 -- A thin pick's start body-fat share (male), mid-band below its entry edge (K.traits.THIN_CUTS 0.12 and 0.08); the
 -- female values add K.traits.THIN_F_OFFSET (18 % and 14.5 %). The fat is bf x lm / (1 - bf) on the muscle pick's lean.
-K.body.THIN = { UNDERWEIGHT = 0.10, VERY_UNDERWEIGHT = 0.065 } -- game choice (Plan 13 Task 10c, Angus 2026-10-15: mid-band below 12 % and 8 %)
+K.body.THIN = { UNDERWEIGHT = K.dials.get("body.THIN.UNDERWEIGHT"), VERY_UNDERWEIGHT = K.dials.get("body.THIN.VERY_UNDERWEIGHT") }
 
 -- The rungs of a weight pick (ruling 13-30), and Emaciated read as Very Underweight (rung 2).
 K.body.FAT_RUNG = { OVERWEIGHT = 1, OBESE = 2 } -- ruling 13-30
@@ -362,7 +362,22 @@ function K.body.new(spec, sex, ageH)
     body.band2Day = 0
     body.tac = 1.0
     body.rmod = 1
-    body.pPrevKg = 0.8 -- = K.aerobic.P_LOW; neutral
+    body.pPrevKg = K.aerobic.P_LOW -- neutral
     body.energyState = 1
     return body
 end
+
+-- The trend flags' and the legacy maps' dials (Plan 19 Task 3b; K.body.flags, mapProteins, mapCarbs, mapLipids),
+-- resolved at load: appended here so no line above moved.
+K.body.TREND_KG_D = K.dials.get("body.TREND_KG_D")
+K.body.TREND_LOT_KG_D = K.dials.get("body.TREND_LOT_KG_D")
+K.body.PROT_FLOOR_AT = K.dials.get("body.PROT_FLOOR_AT")
+K.body.PROT_OK = K.dials.get("body.PROT_OK")
+K.body.PROT_RAMP_SPAN = K.dials.get("body.PROT_RAMP_SPAN")
+K.body.PROT_FULL = K.dials.get("body.PROT_FULL")
+K.body.PROT_STORE_FLOOR = K.dials.get("body.PROT_STORE_FLOOR")
+K.body.PROT_STORE_RAMP = K.dials.get("body.PROT_STORE_RAMP")
+K.body.PROT_STORE_FULL = K.dials.get("body.PROT_STORE_FULL")
+K.body.PROT_STORE_OVER = K.dials.get("body.PROT_STORE_OVER")
+K.body.CARB_REF_G = K.dials.get("body.CARB_REF_G")
+K.body.LIP_REF_G = K.dials.get("body.LIP_REF_G")

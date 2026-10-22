@@ -115,8 +115,7 @@ def test_the_migrated_monotony_kernel_and_the_dial_files_are_clean():
     shared = os.path.join(dial_lint.DEFAULT, "shared")
     for name in ("NR_Kernel_Monotony.lua", "NR_Kernel_Dials.lua"):
         assert dial_lint.lint([os.path.join(shared, name)]) == [], name
-    kernel = [f for f in dial_lint.lint([os.path.join(shared, "NR_Kernel.lua")])]
-    assert [(f.rule, f.detail.split(" ")[0]) for f in kernel] == [("E1", "K.HEIGHT_M")]   # W4 (core) moves it
+    assert dial_lint.lint([os.path.join(shared, "NR_Kernel.lua")]) == []    # W4 (Plan 19 Task 3b) moved K.HEIGHT_M (core)
 
 
 def test_the_cli_exits_1_on_an_error_and_0_on_warnings_only(tmp_path, capsys):

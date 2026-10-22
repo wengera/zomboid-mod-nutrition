@@ -14,11 +14,11 @@ K.partition = {}
 -- The fat store's maximum energy transfer rate, kcal per kg fat per day: the disuse arm's alone. The deficit arm
 -- reads no ceiling (Plan 16 Task 5): 69 is the Minnesota men's own fat flux under a moderate deficit (arithmetic on
 -- S2287), and measured fasts draw fat faster (S1910, S2282). The disuse arm keeps it, out of that task's scope.
-K.partition.FAT_CEIL_KCAL = 69 -- S0056: 290 ± 25 kJ/kg fat/d
+K.partition.FAT_CEIL_KCAL = K.dials.get("partition.FAT_CEIL_KCAL")
 
 -- The tissue energy densities, kcal per kg.
-K.partition.RHO_LEAN = 1816 -- S0126 design-phase-v1: Hall's densities; the row is open
-K.partition.RHO_FAT = 9441 -- S0126 design-phase-v1: Hall's densities; the row is open
+K.partition.RHO_LEAN = K.dials.get("partition.RHO_LEAN")
+K.partition.RHO_FAT = K.dials.get("partition.RHO_FAT")
 
 -- The lean-mass arms (Plan 13): F is body.lm, the labile lean (water, glycogen, organ: weight, not level or REE)
 -- body.lx and fat body.fm. Every constant is P's (K.strength.DEFAULTS
@@ -80,12 +80,12 @@ function K.partition.deficitLean(body, grow, S, p, E, P, ts)
 end
 
 -- The alcohol gate: above ALC_THRESH g per kg per day the lean gain carries G_ALC.
-K.partition.ALC_THRESH = 0.5 -- S0718
-K.partition.G_ALC = 0.65 -- S0631
+K.partition.ALC_THRESH = K.dials.get("partition.ALC_THRESH")
+K.partition.G_ALC = K.dials.get("partition.G_ALC")
 
 -- The disuse curve: the lean fraction lost after t days immobilised is DISUSE_A * ln(1 + t / DISUSE_T).
-K.partition.DISUSE_A = 0.171 -- fitted to S0069; log shape S0612
-K.partition.DISUSE_T = 22 -- fitted to S0069; log shape S0612
+K.partition.DISUSE_A = K.dials.get("partition.DISUSE_A")
+K.partition.DISUSE_T = K.dials.get("partition.DISUSE_T")
 
 -- The alcohol gate: G_ALC above ALC_THRESH g alcohol per kg body mass per day, else 1.
 function K.partition.gAlc(alcGPerKg)

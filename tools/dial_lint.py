@@ -146,6 +146,8 @@ def _e3(path, n, lhs, dial_id, table_owner):
     dom, _, name = dial_id.partition(".")
     if parts[0] in ("K", "NutritionRevamp"):
         field = ".".join(parts[1:]) if parts[0] == "K" else ".".join(parts[2:])
+        if "." not in field:
+            field = "core." + field                # the core domain is K's own top level (core.HEIGHT_M is K.HEIGHT_M)
         if field != dial_id:
             out.append(Finding(path, n, "E3", "%s reads dial %s: the field and the id differ" % (lhs, dial_id)))
         return out

@@ -11,23 +11,23 @@ local K = NutritionRevamp.kernel
 K.training = {}
 
 -- The engine's resting MET floor; MET-minutes bank only what the engine reads above it.
-K.training.MET_FLOOR = 1.5 -- Metabolics.Default; spec § 7 item 35
+K.training.MET_FLOOR = K.dials.get("training.MET_FLOOR")
 
 -- Vanilla's heavy-load multipliers indexed by HEAVY_LOAD level 0-4 (index level + 1).
-K.training.LOAD_MULT = { 1, 1.5, 1.9, 2.3, 2.8 } -- #2255 by HEAVY_LOAD level 0-4
+K.training.LOAD_MULT = { 1, 1.5, 1.9, 2.3, 2.8 } -- VANILLA #2255 by HEAVY_LOAD level 0-4
 
 -- The mass reference the MET-minutes scale by (weight / 80).
-K.training.MASS_REF = 80 -- #0453 weight/80
+K.training.MASS_REF = 80 -- VANILLA #0453 weight/80
 
 -- The intensity bands' engine-MET thresholds.
-K.training.BAND1_MET = 6.0 -- game choice § 7 item 31
-K.training.BAND2_MET = 9.0 -- game choice § 7 item 31
+K.training.BAND1_MET = K.dials.get("training.BAND1_MET")
+K.training.BAND2_MET = K.dials.get("training.BAND2_MET")
 
 -- The engine MET credited once per climb, by the climb state's Metabolics class.
-K.training.CLIMB_MET = { JumpFence = 4.0, ClimbRope = 8.0 } -- #2632
+K.training.CLIMB_MET = { JumpFence = K.dials.get("training.CLIMB_MET.JumpFence"), ClimbRope = K.dials.get("training.CLIMB_MET.ClimbRope") }
 
 -- The band-2 minutes that make a day a hard day.
-K.training.HARD_DAY_MIN = 10 -- HARD_DAY_MIN 10, endurance report
+K.training.HARD_DAY_MIN = K.dials.get("training.HARD_DAY_MIN")
 
 -- MET-minutes over dtM minutes: the engine MET above the floor, times the heavy-load multiplier
 -- (level clamped 0-4), times weight over the mass reference.
