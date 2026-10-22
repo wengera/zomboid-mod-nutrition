@@ -252,7 +252,7 @@ def test_the_wave_orderings_and_divisor_floors_hold():
 def test_the_options_are_the_param_rows_and_k_dials_apply_never_writes_them():
     rt, K = runtime()
     raw = raw_rows()
-    params = sorted(i for i in raw if raw[i].get("param"))
+    params = sorted(i for i in raw if raw[i].get("param") and i.startswith("strength."))   # options.* are the poll's (3g)
     opts = K.strength.OPTIONS
     got = [opts[i] for i in range(1, len(params) + 1)]
     assert [e.id for e in got] == params and opts[len(params) + 1] is None
