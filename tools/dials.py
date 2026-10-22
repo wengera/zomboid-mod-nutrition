@@ -218,8 +218,8 @@ def _check_value(dial_id, row):
         out.append("%s: a table value holds %r, not a number or boolean" % (dial_id, odd[0]))
     if not nums:
         return out
-    if not (_num(lo) and _num(hi)):
-        return out + ["%s: no numeric min and max" % dial_id]
+    if not (_num(lo) and _num(hi)) or any(x != x or x in (float("inf"), float("-inf")) for x in (lo, hi)):
+        return out + ["%s: no finite numeric min and max" % dial_id]
     if lo > hi:
         return out + ["%s: min %r over max %r" % (dial_id, lo, hi)]
     for x in nums:
@@ -299,6 +299,9 @@ def check_rows(rows, science, claims, options):
                 out.append("%s: same %s" % (dial_id, why))
             elif rows[end].get("unit") != row.get("unit"):
                 out.append("%s: unit %r differs from %s's %r" % (dial_id, row.get("unit"), end, rows[end].get("unit")))
+            if not why and "opt" in rows[end]:
+                out.append("%s: same %s, a sandbox-backed dial: K.dials.apply writes only K.%s, so this field would "
+                           "not follow the option" % (dial_id, end, end))
             continue
         out += _check_value(dial_id, row)
         if "fixed" in row and row["fixed"] is not True:
@@ -312,16 +315,20 @@ def check_rows(rows, science, claims, options):
     return out
 
 
+LHS_RX = re.compile(r"^\s*([A-Za-z_][\w.]*)\s*=\s*K\.dials\.get\(")
+
+
 def mod_gets(root):
-    """{id: [path:line, ...]} of every K.dials.get in the mod's Lua, the registry aside."""
+    """{id: [(path:line, the left-hand side or None), ...]} of every K.dials.get in the mod's Lua, the registry aside."""
     out = {}
     for path in sorted(glob.glob(os.path.join(_path(root, LUA_REL), "**", "*.lua"), recursive=True)):
         if os.path.basename(path) == "NR_Data_Dials.lua":
             continue
         for n, line in enumerate(_read(path).split("\n"), 1):
             code = line.split("--")[0]
+            lhs = LHS_RX.match(code)
             for m in GET_RX.finditer(code):
-                out.setdefault(m.group(1), []).append("%s:%d" % (os.path.basename(path), n))
+                out.setdefault(m.group(1), []).append(("%s:%d" % (os.path.basename(path), n), lhs.group(1) if lhs else None))
     return out
 
 
@@ -353,7 +360,11 @@ def check(root=REPO, text=None):
     for dial_id in sorted(set(rows) - set(gets)):
         out.append("%s: an orphan: no K.dials.get in the mod names it" % dial_id)
     for dial_id in sorted(set(gets) - set(rows)):
-        out.append("%s: K.dials.get at %s names no row" % (dial_id, ", ".join(gets[dial_id])))
+        out.append("%s: K.dials.get at %s names no row" % (dial_id, ", ".join(w for w, _ in gets[dial_id])))
+    for dial_id in sorted(i for i in rows if "opt" in rows[i] and i in gets):
+        if any(lhs != "K." + dial_id for _, lhs in gets[dial_id]):
+            out.append("%s: a sandbox-backed dial must resolve as K.%s = K.dials.get(...), the field K.dials.apply writes"
+                       % (dial_id, dial_id))
     return out
 
 
@@ -424,6 +435,9 @@ def set_value(text, dial_id, new, root=REPO):
         raise ValueError("%s resolves to %s: set that dial" % (dial_id, row["same"]))
     if row.get("fixed") is True:
         raise ValueError("%s is fixed: a value read off the game is never tuned" % dial_id)
+    probe = new.strip()
+    if "--" in probe or "\n" in probe or _value_span("{ value = " + probe + "}")[1] != len("{ value = ") + len(probe):
+        raise ValueError("%s: %r is not one Lua value" % (dial_id, new))
     line = lines[ns[0] - 1]
     start, end = _value_span(line)
     lines[ns[0] - 1] = line[:start] + new.strip() + line[end:]

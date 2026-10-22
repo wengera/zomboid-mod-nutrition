@@ -66,6 +66,12 @@ def test_e3_flags_a_field_reading_another_dial():
     assert rules('NutritionRevamp.kernel.x.A = K.dials.get("x.A")') == []
 
 
+def test_e3_flags_a_dial_resolved_into_a_local():
+    # Plan 19 Task 2 fix 1 (F4): ruling T1-1 resolves a dial into its kernel field, never a local
+    assert rules('local SLOPE = K.dials.get("monotony.SLOPE")') == [("E3", 1)]
+    assert rules('K.monotony.SLOPE = K.dials.get("monotony.SLOPE")') == []
+
+
 def test_e3_on_an_adapter_reads_the_name_and_keeps_one_domain_a_table():
     assert rules('EFF.SOL_H = K.dials.get("eff.SOL_H")', SRV) == []
     assert rules('EFF.SOL_H = K.dials.get("eff.OTHER")', SRV) == [("E3", 1)]

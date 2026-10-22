@@ -1,6 +1,6 @@
 """The tuning-dial resolver and its sandbox re-resolve (Plan 19 Task 2; spec Part A; ruling T1-1).
 
-K.dials.row, K.dials.get and K.dials.copy (NR_Kernel.lua) resolve a dial from NR.data.dials (NR_Data_Dials.lua) at a
+K.dials.row and K.dials.get (NR_Kernel.lua) resolve a dial from NR.data.dials (NR_Data_Dials.lua) at a
 kernel's load; K.dials.apply (NR_Kernel_Dials.lua) re-resolves the rows that name a sandbox option, writing a field
 only when the option's read changed against the last value seen. These run on the session host, so the coverage gate
 sees every branch; each test lays its own rows under a dialtest domain and removes them after.
@@ -76,12 +76,32 @@ def test_get_returns_a_scalar_as_it_is(dk):
     assert dk.K.dials.get("dialtest.X") == 1.5 and dk.K.dials.get("dialtest.FLAG") is False
 
 
-def test_get_copies_a_table_so_a_field_write_never_moves_the_registry(dk):
+def test_get_returns_the_registry_table_itself_so_its_pairs_order_is_the_constructor_order(dk):
+    # Plan 19 Task 2 fix 1 (F2): a copy rebuilt by insertion reorders a hash part in Lua 5.1, so get hands out the
+    # registry's own table, built by the constructor the kernel line had; a kernel never writes into a table dial
     t = dk.K.dials.get("dialtest.T")
     assert dk.py(t) == {1: 1, 2: {1: 2, 2: 3}}
-    t[2][1] = 99
-    assert dk.G.NutritionRevamp.data.dials["dialtest.T"].value[2][1] == 2
-    assert dk.K.dials.get("dialtest.T") is not dk.K.dials.get("dialtest.T")
+    assert dk.rt.eval("rawequal")(t, dk.G.NutritionRevamp.data.dials["dialtest.T"].value)
+
+
+def test_a_golden_run_writes_nothing_into_the_registry():
+    # every dial value after the golden trace's scenario equals the registry text's, so no kernel or adapter wrote into
+    # a table dial (or replaced a row's value) on the way
+    import os
+    import sys
+    from . import golden_trace
+    from .conftest import DIALS, REPO
+    sys.path.insert(0, os.path.join(REPO, "tools"))
+    import dials
+    with open(DIALS, encoding="utf-8") as fh:
+        want = dials.load_rows(fh.read())
+    h = golden_trace.new_host()
+    golden_trace.run(h)
+    rows = h.G.NutritionRevamp.data.dials
+    got = {k: dials._py(v) for k, v in rows.items()}
+    assert set(got) == set(want)
+    for k in want:
+        assert got[k].get("value") == want[k].get("value"), k
 
 
 def test_get_follows_same_links_to_the_value(dk):

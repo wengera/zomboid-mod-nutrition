@@ -12,7 +12,8 @@ declarative data (NR_Data_*.lua) and the bench fixture (NR_Server_Bench.lua) are
                           comment carries a provenance marker (S1234, #1234, game choice, fitted, inference,
                           design-phase), unless the comment says VANILLA, no row needed or @fixed
   E2 unlabelled constant  a top-level numeric constant with no comment on its line and no comment line above it
-  E3 name mismatch        K.<a>.<b> = K.dials.get("<c>.<d>") where a.b is not c.d; for an adapter's table T,
+  E3 name mismatch        a dial resolved into a local (local X = K.dials.get, ruling T1-1);
+                          K.<a>.<b> = K.dials.get("<c>.<d>") where a.b is not c.d; for an adapter's table T,
                           T.<name> = K.dials.get("<dom>.<name2>") where name is not name2, or one table read from two
                           domains in a file
   E4 lookup in a body     K.dials.get or K.dials.row inside a function body (resolved at load only, Rule 6), except
@@ -41,6 +42,7 @@ EXEMPT_RX = re.compile(r"VANILLA|no row needed|@fixed")
 W1_MARK_RX = re.compile(r"game choice|\bS\d{4}\b")
 ASSIGN_RX = re.compile(r"^(?:local\s+)?([A-Za-z_][\w.]*)\s*=\s*(.*)$")
 GET_RX = re.compile(r"^([A-Za-z_][\w.]*)\s*=\s*K\.dials\.get\(\s*[\"']([^\"']+)[\"']\s*\)\s*$")
+LOCAL_GET_RX = re.compile(r"^local\s+[A-Za-z_]\w*\s*=\s*K\.dials\.get\(")
 LOOKUP_RX = re.compile(r"\bK\.dials\.(?:get|row)\s*\(")
 NUM_RX = re.compile(r"(?<![\w.])(?:\d+\.?\d*(?:[eE][-+]?\d+)?|\.\d+(?:[eE][-+]?\d+)?)(?![\w.])")
 KEY_RX = re.compile(r"\[\s*\d+\s*\]\s*=|\b[A-Za-z_]\w*\s*=")
@@ -114,7 +116,9 @@ def lint_text(path, text):
         elif not in_function and raw[:1] not in (" ", "\t", "") and not stripped.startswith("function"):
             g = GET_RX.match(raw[:len(code)].strip())      # the raw code: strip() blanks the id string
             a = ASSIGN_RX.match(stripped)
-            if g:
+            if LOCAL_GET_RX.match(raw[:len(code)].strip()):
+                out.append(Finding(path, n, "E3", "a dial resolved into a local: resolve it into its kernel field (ruling T1-1)"))
+            elif g:
                 out.extend(_e3(path, n, g.group(1), g.group(2), table_owner))
             elif a and numeric_value(a.group(2)):
                 marked = PROVENANCE_RX.search(comment) and not EXEMPT_RX.search(comment)

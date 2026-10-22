@@ -15,8 +15,10 @@ creation.picks {ok, armed, picks}; trait.def {ok, side, trait, field, cost, free
 granted, label, description}; witness.chain {ok, value, hops}; time.snapshot {worldAge, hour, minutes, mult, trueMult,
 wall}; time.multiplier a string; players a list of usernames or {}.
 """
+import atexit
 import math
 import os
+import shutil
 import sys
 import tempfile
 
@@ -35,6 +37,7 @@ REPO = L.REPO
 # into NR_Core (kernel.conftest.frozen_lib_shared; Plan 19): the frozen lib stays as it ran
 from kernel.conftest import frozen_lib_shared  # noqa: E402
 SHARED = frozen_lib_shared(os.path.join(tempfile.mkdtemp(prefix="x43-shared-"), "shared"))
+atexit.register(shutil.rmtree, os.path.dirname(SHARED), True)  # the scratch folder goes with the session
 GAME_DIR = r"D:\SteamLibrary\steamapps\common\ProjectZomboid"
 
 

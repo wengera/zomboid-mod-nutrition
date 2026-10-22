@@ -136,7 +136,8 @@ function K.dials.row(id)
 end
 
 -- The value of dial id: a row naming another dial (same) resolves to that dial's value, and a chain longer than
--- DEPTH raises as a cycle; a table value is a fresh copy, so a kernel writing into its field never moves the registry.
+-- DEPTH raises as a cycle; a table value is the registry's own table, built by the constructor the kernel line had, so
+-- its pairs order is unchanged; a kernel never writes into a table dial.
 function K.dials.get(id)
     local row = K.dials.row(id)
     local hops = 0
@@ -147,17 +148,5 @@ function K.dials.get(id)
         end
         row = K.dials.row(row.same)
     end
-    return K.dials.copy(row.value)
-end
-
--- v itself when it is not a table, else a deep copy of it.
-function K.dials.copy(v)
-    if type(v) ~= "table" then
-        return v
-    end
-    local out = {}
-    for k, x in pairs(v) do
-        out[k] = K.dials.copy(x)
-    end
-    return out
+    return row.value
 end

@@ -111,6 +111,7 @@ def test_the_shipped_registry_holds_the_monotony_domain():
     ("dom.Q", "value = false,", "option NR.Flag default true differs"),
     ("dom.Q", "min = 0,", "a boolean dial carries no range"),
     ("dom.B", "fit = '',", "an empty fit"),
+    ("dom.A", "max = 1/0,", "no finite numeric min and max"),
 ])
 def test_each_check_rule_fails_its_mutant(tree, dial_id, mutant, want):
     rows = dict(GOOD)
@@ -139,6 +140,25 @@ def mutate(line, field_text):
     else:
         parts.append(field_text)
     return line[:line.index("{ ") + 2] + ", ".join(parts) + line[line.rindex(" }"):]
+
+
+def test_a_same_on_a_sandbox_backed_dial_is_refused(tree):
+    # Plan 19 Task 2 fix 1 (F1): K.dials.apply writes only the option row's own field, so a same dependent would not follow
+    rows = dict(GOOD)
+    rows["dom.S2"] = "D['dom.S2'] = { same = 'dom.O', unit = 'x', src = 'game choice', note = 's' }"
+    _write(tree, dials.LUA_REL + "/shared/NR_Kernel_Dom2.lua", 'K.dom.S2 = K.dials.get("dom.S2")\n')
+    found = _check(tree, rows.values())
+    assert any("dom.S2: same dom.O, a sandbox-backed dial" in f for f in found), found
+    assert not any("dom.S:" in f for f in found)                   # a same on a plain dial stays green
+
+
+def test_a_sandbox_backed_dial_must_resolve_into_its_kernel_field(tree):
+    # Plan 19 Task 2 fix 1 (F3): K.dials.bind writes K.<id>, so a get site on an adapter table or a renamed field is refused
+    _write(tree, dials.LUA_REL + "/server/NR_Server_X.lua", 'EFF.SCALE = K.dials.get("dom.O")\n')
+    found = dials.check(tree)
+    assert any("dom.O: a sandbox-backed dial must resolve as K.dom.O" in f for f in found), found
+    _write(tree, dials.LUA_REL + "/server/NR_Server_X.lua", 'EFF.SCALE = K.dials.get("dom.A")\n')
+    assert dials.check(tree) == []                                  # a plain dial may resolve anywhere
 
 
 def test_a_same_cycle_is_refused(tree):
@@ -225,10 +245,12 @@ def test_set_rewrites_only_the_value_and_keeps_the_line(tree):
 
 @pytest.mark.parametrize("dial_id,value,want", [
     ("dom.A", "25", "outside"),
-    ("dom.A", "{", "does not evaluate"),
+    ("dom.A", "5 +", "does not evaluate"),
+    ("dom.A", "{", "not one Lua value"),
     ("dom.S", "1", "resolves to dom.A"),
     ("dom.F", "50", "is fixed"),
     ("dom.nope", "1", "no dial dom.nope"),
+    ("dom.A", "5, min = -100", "not one Lua value"),
 ])
 def test_set_refuses(tree, dial_id, value, want):
     with pytest.raises(ValueError, match=want):

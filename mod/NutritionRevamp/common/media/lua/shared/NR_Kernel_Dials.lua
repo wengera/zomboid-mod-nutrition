@@ -1,6 +1,7 @@
 -- NR_Kernel_Dials.lua -- the sandbox re-resolve of the tuning dials (Plan 19, spec Part A; ruling T1-1). K.dials.row and
--- K.dials.get live in NR_Kernel.lua, which loads before every kernel file; this file runs only when an options poll
--- calls it, so its place in the load order does not matter. A dial whose row names an option (opt) is read from the
+-- K.dials.get live in NR_Kernel.lua, which loads before every kernel file; its K.dials.OPT_IDS is built at load from
+-- NR.data.dials, which sorts before it (NR_Data_ < NR_Kernel_), and its functions run only when an options poll calls
+-- them. A dial whose row names an option (opt) is read from the
 -- sandbox table the adapter passes in (the server's options poll, NR_Server_Options; the client's start,
 -- NR_Client_Options), so the kernel never names SandboxVars, and its value is written into the dial's kernel field
 -- only when the read differs from the last value seen: a read equal to it, the row's default included, writes nothing,
