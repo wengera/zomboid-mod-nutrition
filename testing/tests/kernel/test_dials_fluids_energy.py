@@ -4,8 +4,7 @@ Each kernel field holds its registry row's value, and every moved value, every t
 WATER_PER_MMOL read exactly as the code they replaced. The engine class values (energy.CLASS_MET) are fixed vanilla
 rows, and the copies of them are `same` links: the training METs, the bills of the classes with no Compendium row and
 the band MET of caloriesModifier 3. The other duplicates the wave unified are `same` links too: the Parched thirst knot
-(hybrid.THIRST_4), the hypotonic threshold (the hyponatraemia grade-1 edge), the absolute sweat sodium floor (the low end
-of the draw) and the idle bill (standing quietly). A registry-only edit, made before the kernels load with no code
+(hybrid.THIRST_4), the idle bill (standing quietly) and the two bands that bill a Compendium code of their own. A registry-only edit, made before the kernels load with no code
 change, moves a kernel output (the mutation probes, dial-inventory section 3.4).
 """
 import os
@@ -21,7 +20,7 @@ import dials  # noqa: E402
 
 DOMAINS = ("fluids", "energy")
 DIVISORS = ("fluids.ALC_KNEE_PCT", "fluids.NA_TAU_H", "fluids.K_TAU_H", "fluids.OSM_SLOPE", "fluids.EMA_MIN",
-            "fluids.NA_SWEAT_DEF_FULL", "fluids.OSM_REF", "energy.AT_FULL_DEP", "energy.AT_TAU_ON", "energy.AT_TAU_OFF",
+            "fluids.THIRST_KNOTS.2.1", "fluids.NA_SWEAT_DEF_FULL", "fluids.OSM_REF", "energy.AT_FULL_DEP", "energy.AT_TAU_ON", "energy.AT_TAU_OFF",
             "energy.EPOC_TAU_H")
 # the training METs and the other copies of an engine class value, each with the class it resolves to
 CLASS_LINKS = {
@@ -35,8 +34,8 @@ CLASS_LINKS = {
 }
 OTHER_LINKS = {
     "fluids.THIRST_KNOTS.5.2": "hybrid.THIRST_4",
-    "fluids.HYPO_NA": "fluids.HYPONAT.1",
-    "fluids.NA_SWEAT_ABS_MIN": "fluids.NA_SWEAT_RANGE.1",
+    "energy.BAND_MET.0_5": "energy.COMPENDIUM.SeatedResting",
+    "energy.BAND_MET.2": "energy.COMPENDIUM.UsingTools",
     "energy.COMPENDIUM.Default": "energy.COMPENDIUM.StandingAtRest",
 }
 
@@ -272,7 +271,8 @@ def test_the_wave_orderings_and_divisor_floors_hold():
     assert all(a[1] <= b[1] for a, b in zip(knots, knots[1:]))
     assert knots[4][1] == K.hybrid.THIRST_4
     assert F.HYPONAT[1] > F.HYPONAT[2] > F.HYPONAT[3]
-    assert F.NA_SWEAT_ABS_MIN <= F.NA_SWEAT_MEAN
+    assert F.HYPONAT[1] < F.OSM_REF and F.HYPO_NA < F.OSM_REF
+    assert F.NA_SWEAT_ABS_MIN <= F.NA_SWEAT_RANGE[1]  # a floor above a low draw would lift its no-deficit baseline
     cls = [E.CLASS_MET[E.CLASS_LIST[i]] for i in range(1, len(E.CLASS_LIST) + 1)]
     assert all(a <= b for a, b in zip(cls, cls[1:]))                                       # classOf's bucketing order
     floors = [E.LOAD_FLOOR[i][1] for i in range(1, 4)]
@@ -286,10 +286,18 @@ def test_a_registry_knot_moves_the_volume_thirst_and_a_registry_reference_moves_
     assert K.fluids.WATER_PER_MMOL == 1000 / 145
 
 
-def test_a_registry_edge_moves_the_hyponatraemia_grade_and_the_hypotonic_threshold_through_same():
+def test_a_registry_edge_moves_the_hyponatraemia_grade_and_a_registry_threshold_moves_the_hypotonic_cap():
     _, K = runtime([("D['fluids.HYPONAT.1'] = { value = 135,", "D['fluids.HYPONAT.1'] = { value = 130,")])
-    assert K.fluids.HYPO_NA == 130
-    assert K.fluids.hyponatGrade(132) == 0
+    assert K.fluids.hyponatGrade(132) == 0 and K.fluids.HYPO_NA == 135
+    _, K = runtime([("D['fluids.HYPO_NA'] = { value = 135,", "D['fluids.HYPO_NA'] = { value = 130,")])
+    assert K.fluids.thirstTarget(3, 1, 132, 0) > K.fluids.HYPO_CAP and K.fluids.HYPONAT[1] == 135
+
+
+def test_a_registry_standing_bill_moves_the_idle_and_unknown_class_bills_through_same():
+    _, K = runtime([("D['energy.COMPENDIUM.StandingAtRest'] = { value = 1.3,",
+                     "D['energy.COMPENDIUM.StandingAtRest'] = { value = 1.4,")])
+    assert K.energy.COMPENDIUM.Default == 1.4
+    assert K.energy.activityMet("NoSuchClass", False, 1, 0, None) == 1.4
 
 
 def test_a_registry_class_value_moves_every_copy_through_same_and_a_registry_ree_moves_the_bill():

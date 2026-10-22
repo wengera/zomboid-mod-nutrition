@@ -2407,10 +2407,10 @@ def s_s1c():
                k["points"], kernel({"replay": "fresh record from 07:00, no drink, 24 h", "path": "THIRST",
                                     "sleep_allowed": False}, "x457"),
                "No drink by design: the guard holds the replay alive, at any dehydration (it reaches %.2f %% of body "
-               "mass). A fresh HEAD record from 07:00 on the water base by lean mass, 2000 g a day at rest for the "
+               "mass). A fresh HEAD record from 07:00 on the water base by lean mass, %g g a day at rest for the "
                "no-trait body (#3909). Proof x457, whose ring's water loss the server's basal scale predicted with and "
                "without the thirst traits (#3942); the older rings, x364 and x446, ran the earlier water base and fail "
-               "at HEAD (VALIDATION x446:THIRST)." % v["max_dehydPct"]),
+               "at HEAD (VALIDATION x446:THIRST)." % (v["max_dehydPct"], KHost().K.fluids.BASAL_G)),
         s1c_live_v(),
     ]
 
