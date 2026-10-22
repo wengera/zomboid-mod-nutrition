@@ -1034,22 +1034,75 @@ def test_an_unmatched_key_is_recorded_and_never_guessed_at():
     assert census["unmatchedKeys"] == 1 and census["pairs"] == 2      # the Salad key still joins
 
 
-def test_a_spice_transfers_no_hunger_and_no_macros():
-    """`Spice = true` takes the ingredient down the spice branch: no hunger, no macro transfer.
+def test_a_spice_moves_its_macros_but_no_hunger():
+    """`Spice = true` takes the ingredient down the spice branch into `useSpice` (#4119, #4122).
 
-    The branch returns before `addItem`'s hunger lines (`@582-@775 L336-L359`,
-    food-item-model.md:489), so the three hunger terms are 0 as well -- not the `use/100` the key
-    asks for, which the dish never spends. `use` still records what the key wrote.
+    `addItem @582-@775 L336-L359` returns before its hunger lines, so the dish takes no hunger
+    and the three hunger terms are 0 -- not the `use/100` the key asks for. `useSpice L581-L591`
+    moves the spice's calories, proteins, carbohydrates and lipids into the dish at
+    `(1 + Cooking/15) * min(1, |use / spice hunger|)`, with no skill cut and no thirst line.
+    Butter is the worked case of the Task 4 report: `:4` against its hunger of 24 is a sixth.
     """
-    c = recipe_scan.contribution(EVO_FOOD["Base.Cinnamon"], 1, 10)
-    assert c["spice"] is True and c["share"] == 0.0
-    assert (c["calories"], c["carbohydrates"], c["lipids"], c["proteins"]) == (0.0, 0.0, 0.0, 0.0)
-    assert (c["use"], c["hunger"], c["hungerAfterSkill"]) == (1, 0.0, 0.0)
-    assert "spice branch" in c["note"]
-    assert c["skillBonus"] == recipe_scan.contribution(LETTUCE, 1, 10)["skillBonus"]
+    butter = {"nutrition_basis": "per_item", "calories": 3200.0, "carbohydrates": 0.0,
+              "lipids": 352.0, "proteins": 3.0, "hunger_change": -24.0, "thirst_change": 5.0,
+              "spice": True}
+    at0 = recipe_scan.contribution(butter, 4, 0)
+    at10 = recipe_scan.contribution(butter, 4, 10)
+    for c in (at0, at10):
+        assert c["spice"] is True and c["reason"] is None
+        assert (c["use"], c["hunger"], c["hungerAfterSkill"]) == (4, 0.0, 0.0)
+        assert round(c["share"], 9) == round(4 / 24, 9)     # no 0.03-per-level cut on a spice
+        assert c["thirstChange"] == 0.0 and "useSpice" in c["note"]
+    assert round(at0["calories"], 6) == round(3200.0 / 6, 6)          # 533.333333
+    assert round(at10["calories"], 6) == round(3200.0 / 6 * (1 + 10 / 15), 6)   # 888.888889
+    assert round(at10["lipids"], 6) == round(352.0 / 6 * (1 + 10 / 15), 6)
+    assert round(at0["proteins"], 6) == 0.5 and at0["carbohydrates"] == 0.0
+    # the key over-asking is capped at a whole spice, and the hunger clamp never applies
+    cinnamon = recipe_scan.contribution(EVO_FOOD["Base.Cinnamon"], 7, 10)
+    assert cinnamon["share"] == 1.0 and cinnamon["hungerClamped"] is True
+    assert round(cinnamon["calories"], 9) == round(1.0 * (1 + 10 / 15), 9)
+    small = recipe_scan.contribution(EVO_FOOD["Base.Cinnamon"], 1, 0)
+    assert round(small["share"], 9) == 0.2 and round(small["calories"], 9) == 0.2
     # the same row read as a non-spice does spend `use/100` -- the zeroes above are the branch
     plain = recipe_scan.contribution(dict(EVO_FOOD["Base.Cinnamon"], spice=None), 1, 10)
     assert plain["hunger"] == 0.01 and round(plain["hungerAfterSkill"], 6) == 0.007
+    assert at0["skillBonus"] == recipe_scan.contribution(LETTUCE, 1, 0)["skillBonus"]
+
+
+def test_a_rotten_spice_takes_the_rotten_arm():
+    """`useSpice @39-@170 L571-L578` (#4123): a rotten spice's use is replaced by 0.05 of its
+    base hunger at Cooking 7-8 and 0.10 at 9-10, rounded through `#.##` (HALF_EVEN); below 7
+    `checkItemCanBeUse L227-L228` offers no rotten spice, so the row is refused (null macros).
+    """
+    butter = {"nutrition_basis": "per_item", "calories": 3200.0, "carbohydrates": 0.0,
+              "lipids": 352.0, "proteins": 3.0, "hunger_change": -24.0, "spice": True}
+    for level in (0, 6):
+        c = recipe_scan.contribution(butter, 4, level, rotten=True)
+        assert c["reason"] == "rotten spice refused below Cooking 7" and c["share"] == 0.0
+        assert c["calories"] is None and c["thirstChange"] is None
+    at7 = recipe_scan.contribution(butter, 4, 7, rotten=True)       # |0.05 * 0.24| = 0.012 -> 0.01
+    assert round(at7["share"], 9) == round(0.01 / 0.24, 9)
+    assert round(at7["calories"], 6) == round(3200.0 * (1 + 7 / 15) * 0.01 / 0.24, 6)
+    at10 = recipe_scan.contribution(butter, 4, 10, rotten=True)     # 0.024 -> 0.02
+    assert round(at10["share"], 9) == round(0.02 / 0.24, 9)
+    assert round(at10["calories"], 6) == round(3200.0 * (1 + 10 / 15) * 0.02 / 0.24, 6)
+    assert "rotten" in at10["note"]
+    # the rounding is the jar's `#.##`: a 5-hunger spice's 0.0025 rounds to 0, so nothing moves
+    tiny = recipe_scan.contribution(EVO_FOOD["Base.Cinnamon"], 1, 8, rotten=True)
+    assert tiny["share"] == 0.0 and tiny["calories"] == 0.0 and tiny["reason"] is None
+    assert recipe_scan._rotten_spice_use(0.2, 9) == 0.02
+    assert recipe_scan._rotten_spice_use(0.2, 7) == 0.01
+    assert recipe_scan._rotten_spice_use(0.2, 6) is None
+    # a fresh spice is untouched by the arm at any level
+    assert recipe_scan.contribution(butter, 4, 10)["share"] == recipe_scan.contribution(
+        butter, 4, 10, rotten=False)["share"]
+    # the rotten branch of a non-spice is not modelled, and says so rather than guessing
+    try:
+        recipe_scan.contribution(LETTUCE, 5, 8, rotten=True)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("a rotten non-spice must raise")
 
 
 def test_the_dried_food_tag_skips_the_thirst_line_and_nothing_else():
@@ -1068,7 +1121,7 @@ def test_the_dried_food_tag_skips_the_thirst_line_and_nothing_else():
     wet = recipe_scan.contribution(dict(ramen, tags=["base:pasta"]), 10, 0)
     assert wet["thirstSkipped"] is False and wet["thirstChange"] == 40.0
     # an untagged item is never flagged, and a tagged one with no thirst term is not either:
-    # its 0.0 is `absentMacros`' absent value (`Base.Cinnamon`) or a spice's zero share
+    # its 0.0 is `absentMacros`' absent value or a spice's, which never reaches the thirst line
     assert recipe_scan.contribution(LETTUCE, 5, 0)["thirstSkipped"] is False
     dried_spice = dict(EVO_FOOD["Base.Cinnamon"], tags=["base:driedfood"], thirst_change=20.0)
     assert recipe_scan.contribution(dried_spice, 1, 0)["thirstSkipped"] is False
@@ -1489,7 +1542,7 @@ def test_real_install_dried_food_rows_carry_no_thirst():
     28 food rows carry `base:driedfood`. On 27 ingredient rows the skip removes a thirst the item
     really writes -- `Base.Ramen`, `Base.Macaroni` and `Base.Pasta`, nine recipes each. On the
     other 550 tagged rows there was nothing to remove: no `ThirstChange` at all (`absentMacros`
-    says so) or a spice's zero share.
+    says so) or a spice's 0, `useSpice` having no thirst line.
     """
     meta, recipes, _unmatched = _real_evolved()
     assert meta["counts"]["driedFoodThirstRows"] == 27
@@ -1518,18 +1571,29 @@ def test_real_install_dried_food_rows_carry_no_thirst():
 
 
 @unittest.skipUnless(HAVE_INSTALL and HAVE_FOOD, "game install or food dataset not present")
-def test_real_install_spice_rows_move_no_hunger():
-    """The spice branch spends no hunger, so all 2522 rows carry 0.0, not the key's `use/100`."""
+def test_real_install_spice_rows_move_macros_but_no_hunger():
+    """All 2522 spice rows spend no dish hunger and carry `useSpice`'s macro transfer (#4122)."""
     meta, recipes, _unmatched = _real_evolved()
+    food, _food_meta = recipe_scan.load_food()
     spices = [i for r in recipes for i in r["ingredients"] if i["spice"]]
     assert len(spices) == meta["counts"]["spiceIngredients"] == 2522
     assert all(i["at0"]["hunger"] == i["at0"]["hungerAfterSkill"] == 0.0 for i in spices)
     assert all(i["at10"]["hunger"] == i["at10"]["hungerAfterSkill"] == 0.0 for i in spices)
-    assert all(i["at0"]["share"] == i["at10"]["share"] == 0.0 for i in spices)
+    assert all(i["at0"]["share"] == i["at10"]["share"] > 0.0 for i in spices)
+    assert all(i["at0"]["thirstChange"] == i["at10"]["thirstChange"] == 0.0 for i in spices)
+    for ing in spices:
+        row = food[ing["item"]]
+        share = min(abs(ing["use"] / row["hunger_change"]), 1.0)
+        assert ing["at0"]["share"] == round(share, 6)
+        for level, at in ((0, ing["at0"]), (10, ing["at10"])):
+            want = (row["calories"] or 0.0) * (1 + level / 15) * share
+            assert at["calories"] == round(want, 6), (ing["item"], level)
     by_name = {r["name"]: r for r in recipes}
     salt = [i for i in by_name["Soup"]["ingredients"] if i["item"] == "Base.SeasoningSalt"][0]
     assert salt["use"] == 1 and salt["at10"]["hunger"] == 0.0     # the key still says what it asks
-    assert salt["at10"]["calories"] == 0.0 and "spice branch" in salt["at10"]["note"]
+    assert "useSpice" in salt["at10"]["note"]
+    lard = [i for i in by_name["Soup"]["ingredients"] if i["item"] == "Base.Lard"][0]
+    assert (lard["at0"]["calories"], lard["at10"]["calories"]) == (682.5, 1137.5)
     # a non-spice row is untouched by this: `Base.Lettuce` still spends `Salad:5`
     lettuce = [i for i in by_name["Salad"]["ingredients"] if i["item"] == "Base.Lettuce"][0]
     assert lettuce["at0"]["hunger"] == 0.05 and lettuce["at10"]["hungerAfterSkill"] == 0.035

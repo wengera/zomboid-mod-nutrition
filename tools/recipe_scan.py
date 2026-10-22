@@ -75,7 +75,7 @@ scripts for `mode:` or `flags[...]` sees them too. Also 63 `evolvedrecipe` block
 `EvolvedRecipe` carriers over 6902 (key, recipe) joins into 6881 ingredient rows, and 163
 `ReplaceOn*` links (3 cooked, 8 rotten, 110 use, 42 deplete).
 """
-import argparse, csv, datetime, json, math, os, re, sys
+import argparse, csv, datetime, decimal, json, math, os, re, struct, sys
 
 import food_scan
 
@@ -893,24 +893,78 @@ def resolve_recipes(key, recipes):
     return sorted(resolve_arms(key, recipes))
 
 
-def contribution(item, use, level):
+# `useSpice`'s rotten arm: from Cooking 7 a rotten spice's use is replaced by this fraction of its
+# base hunger (`useSpice(Food,Food,float,int,IsoGameCharacter) @39-@170 L571-L578`); below 7 the
+# usability check offers no rotten spice at all (`checkItemCanBeUse @140-@158 L227-L228`).
+ROTTEN_SPICE_FRACTIONS = ((9, 0.10), (7, 0.05))
+
+
+def _f32(value):
+    """`value` as the Java float the jar holds it in."""
+    return struct.unpack("f", struct.pack("f", value))[0]
+
+
+def _rotten_spice_use(base, level):
+    """The use a rotten spice spends on the dish at `level`, or None below Cooking 7.
+
+    `abs(base - (base - fraction * base))`, all in Java floats, formatted through
+    `EvolvedRecipe.DECIMAL_FORMAT` -- `#.##` under `HALF_EVEN` (`<clinit> L38-L41`, `L573-L574`) --
+    and parsed back, so the replacement is rounded to two decimals of hunger.
+    """
+    for floor, fraction in ROTTEN_SPICE_FRACTIONS:
+        if level >= floor:
+            base = _f32(base)
+            raw = abs(_f32(base - _f32(base - _f32(_f32(fraction) * base))))
+            return float(decimal.Decimal(raw).quantize(decimal.Decimal("0.01"),
+                                                       rounding=decimal.ROUND_HALF_EVEN))
+    return None
+
+
+def _spice_share(out, asked, hung, level, rotten):
+    """The spice branch's share, writing its hunger terms and note into `out`.
+
+    `addItem @582-@775 L336-L359` calls `useSpice` and returns before its own hunger lines, so the
+    dish takes no hunger; `useSpice(Food,Food,float,int,IsoGameCharacter) L581-L591` moves the
+    spice's calories, proteins, carbohydrates and lipids into the dish at `skillBonus * share`,
+    `share = min(1, |use / spice hunger|)` -- the key's own `use/100`, neither hunger-clamped nor
+    skill-cut (both sit after the return). A rotten spice below Cooking 7 returns None (refused).
+    """
+    out["hunger"] = out["hungerAfterSkill"] = 0.0
+    out["note"] = ("spice branch: no dish hunger; useSpice moves the macros at skillBonus x share"
+                   " (useSpice L581-L591)")
+    if rotten:
+        asked = _rotten_spice_use(hung, level)
+        if asked is None:
+            out["share"] = 0.0
+            return None
+        out["note"] += "; rotten: use replaced by %s (useSpice L571-L578)" % asked
+    # Java's `use / getHungChange()` over a 0 hunger is an infinity, capped to 1 (L581-L583)
+    share = (min(abs(asked / hung), 1.0) if hung else 1.0) if asked else 0.0
+    out["share"] = share
+    return share
+
+
+def contribution(item, use, level, rotten=False):
     """One ingredient's contribution to a dish. Formula: docs/vanilla/food-item-model.md
     § Evolved recipes (EvolvedRecipe.addItem @518-@1294 L333-L415), applied here and never
     re-derived -- **the whole of it**, including the two lines the doc's code block states in
     prose rather than in the arithmetic: the thirst line's `DRIED_FOOD` skip (`@1316 L416`,
-    `:472`, see `thirstSkipped`) and the spice branch's own return (`:489`, see `spice`). One
-    line more is applied than the doc block shows at all -- `addItem`'s hunger clamp
-    (`@934 L374-376`, see `hungerClamped`). The rotten branch (Cooking >= 7) is the one branch
-    still not modelled: it is level-gated, and no row of the dataset is rotten.
+    `:472`, see `thirstSkipped`) and the spice branch's `useSpice` (see `spice`). One line more
+    is applied than the doc block shows at all -- `addItem`'s hunger clamp (`@934 L374-376`, see
+    `hungerClamped`). `rotten` models `useSpice`'s rotten arm for a spice; the rotten branch of a
+    non-spice ingredient (Cooking >= 7) is not modelled and raises. The dataset tabulates fresh
+    ingredients only, at `COOKING_LEVELS`.
 
     Four flags carry what the bare arithmetic leaves out, so nothing is silently wrong:
 
     * `spice` -- `Spice = true` sends the ingredient down `addItem @582–@775 L336–L359`, which
-      returns before the hunger lines: no hunger leaves the ingredient, none reaches the dish and
-      no macro is shared. So `share` is 0 **and so are `hunger` and `hungerAfterSkill`** -- a
-      measured 0, not the `use/100` the key asks for, which the dish never spends. 2522 rows.
-      `hungerClamped` is still reported on such a row: it is the record that the *key* over-asks
-      against the item's own hunger, not a claim that the dish moved any.
+      calls `useSpice` and returns before the hunger lines: no hunger reaches the dish, so
+      `hunger` and `hungerAfterSkill` are 0, but `useSpice` moves the spice's calories, proteins,
+      carbohydrates and lipids into the dish at `skillBonus * share`, `share` being the key's
+      `use/100` over the spice's own hunger, capped at 1 (see `_spice_share`); it moves no thirst,
+      so `thirstChange` is 0. 2522 rows. `hungerClamped` is still reported on such a row: it is
+      the record that the *key* over-asks against the item's own hunger, not a claim that the
+      dish moved any. A rotten spice below Cooking 7 is refused (`reason`, null macros).
     * `reason` -- `"no hunger"` for an ingredient whose `HungerChange` is 0 (no denominator, so
       no share), or Ruling R3's refusal for a row whose `nutrition_basis` is not `per_item`
       (a per-litre drink's macros may not be shared out by an item's hunger): the macros are
@@ -929,12 +983,15 @@ def contribution(item, use, level):
       27 of the 6881 (`meta.counts.driedFoodThirstRows`), `Base.Ramen` / `Base.Macaroni` /
       `Base.Pasta` over nine recipes each. The other four macros are untouched by the tag. It is
       **not** set on the other 550 tagged rows, whose 0.0 is an absent `ThirstChange` or a
-      spice's zero share and would have been 0 with or without the tag; it **is** set on a
-      basis-refused row, whose `thirstChange` is null rather than 0 -- the loader skips that
-      line whatever this dataset does with the row (0 such rows in 42.20.4).
+      spice's (a spice never reaches the thirst line), and would have been 0 with or without the
+      tag; it **is** set on a basis-refused row, whose `thirstChange` is null rather than 0 --
+      the loader skips that line whatever this dataset does with the row (0 such rows in 42.20.4).
     """
     hung = abs((food_value(item, "HungerChange") or 0.0) / 100.0)
     asked = use / 100.0
+    spice = bool(food_value(item, "Spice"))
+    if rotten and not spice:
+        raise ValueError("the rotten branch of a non-spice ingredient is not modelled")
     # `hunger = min(hunger, |ing.getHungerChange()|)`, and the loader's `min` has no zero guard:
     # an ingredient with no hunger at all is clamped to 0 rather than left asking for `use/100`.
     # (Zero vanilla rows -- every one of the 6881 carriers writes a non-zero `HungerChange` --
@@ -946,19 +1003,22 @@ def contribution(item, use, level):
     bonus = 1.0 + level / 15.0
     out = {"use": use, "hunger": hunger, "hungerAfterSkill": after,
            "share": share, "skillBonus": bonus, "hungerClamped": clamped,
-           "thirstSkipped": False, "spice": bool(food_value(item, "Spice")),
-           "reason": None, "note": None}
+           "thirstSkipped": False, "spice": spice, "reason": None, "note": None}
     if not hung:
         out["reason"] = "no hunger"
-    if out["spice"]:                           # the spice branch spends no hunger at all
-        out["hunger"] = out["hungerAfterSkill"] = 0.0
-        out["share"] = share = 0.0
-        out["note"] = "spice branch: no hunger, no macros (addItem @582-@775 L336-L359)"
     refusal = _refusal(item)
+    if spice:
+        share = _spice_share(out, asked, hung, level, rotten)
+        if share is None:
+            refusal = refusal or "rotten spice refused below Cooking 7"
     if refusal is not None:
         out["reason"] = refusal
     for src, dst in CONTRIBUTION_MACROS:
         out[dst] = None if refusal else (food_value(item, src) or 0.0) * bonus * share
+    if spice:
+        if not refusal:
+            out["thirstChange"] = 0.0          # useSpice writes no thirst line
+        return out
     # `addItem @1316 L416` skips the thirst line for a DRIED_FOOD item. A refused row's macros
     # are null, not 0, so the old `if out["thirstChange"]` guard could never flag one even though
     # the loader skips its thirst line just the same -- `is None` is the branch that says
