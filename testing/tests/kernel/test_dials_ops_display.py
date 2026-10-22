@@ -142,3 +142,14 @@ def test_a_registry_timer_moves_the_refusal_and_a_registry_floor_moves_the_budge
     assert K.sched.budgetMs(0.1, 1, 6) == 20
     base = runtime()
     assert base.view.foodTimer(4, 0, False, 90) == 4400 and base.sched.budgetMs(0.1, 1, 6) == 15
+
+
+def test_each_split_knot_and_ladder_table_stays_strictly_ascending():
+    # review M4: a table split into one dial per element keeps its order only if each row is tuned in order;
+    # dials.py check does not see the family, so this test does
+    K = runtime()
+    for path in ("hungerCurve.X", "view.STIMULANT_AT", "view.SLEEP_AT", "view.OVERFULL_AT", "view.FAT_CUTS_MALE",
+                 "view.FAT_CUTS_FEMALE"):
+        t = field(K, path)
+        vals = [t[i] for i in range(1, len(t) + 1)]
+        assert all(a < b for a, b in zip(vals, vals[1:])), (path, vals)

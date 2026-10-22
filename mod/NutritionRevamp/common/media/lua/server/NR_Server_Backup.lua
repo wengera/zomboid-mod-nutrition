@@ -13,7 +13,7 @@
 -- no second encode) cut into n strings of at most BK.PART characters: the engine saves a modData string with a signed
 -- 16-bit count of its UTF-8 bytes (GameWindow$StringUTF.save @20-@27 L1419-L1420, `i2s` before putShort; the load
 -- reads getShort and a count of 0 or less as empty, StringUTF.load @0-@11 L1426-L1428), so a string over 32767 bytes
--- is lost; 8000 characters are at most 24000 bytes. age is the world age the store step ran at; sum is BK.sum of the
+-- is lost; a part of PART characters is at most 3 x PART bytes, under it while PART stays at or under 10922 (backup.PART's max). age is the world age the store step ran at; sum is BK.sum of the
 -- text and age.
 --
 -- The write (BK.write): only from F.save, so at the store's save cadence (at most once a real minute a player, and

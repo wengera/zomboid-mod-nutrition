@@ -53,6 +53,14 @@ def test_e1_leaves_the_elements_of_a_vanilla_table():
     assert rules(text) == []
 
 
+def test_e1_scans_the_element_lines_of_a_table_whose_opening_line_reads_numeric():
+    # the Task 3a review's I2 probe: a state table opened as { a = {}, b = 1, ... reads numeric once its keys are
+    # stripped, so it took the E2 branch and its element lines went unscanned
+    head = "P = { online = {}, queueHead = 1, -- the state, no row needed\n"
+    assert rules(head + "      budgetMs = 15, runCap = 1 } -- #3489 game choice\n", SRV) == [("E1", 2)]
+    assert rules(head + "      budgetMs = 15, runCap = 1 }\n", SRV) == []
+
+
 def test_e2_flags_an_unlabelled_numeric_constant_only():
     assert rules("K.x.A = 4") == [("E2", 1)]
     assert rules("-- the step\nK.x.A = 4") == []

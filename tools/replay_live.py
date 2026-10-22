@@ -43,7 +43,7 @@ step m, at its start). Kinds:
            before it is `between`, as for any event: the live ring row already shows the autoDrop the replay's lacks
   meal     {size: "maint" | "request" | kcal, comp: {p, c, f}, food, plate, sate}: an energy-oracle meal (plate, a list
            of the mod's table fullTypes, makes it those foods' whole vector sized to the kcal; server backend); "request" eats
-           650 kcal x min(0.69, hungerTarget(0.75, es) x circadian(hour)) / 0.25 (the oracles' intake mapping,
+           650 kcal x min(hungerCap, hungerTarget(0.75, es) x circadian(hour)) / 0.25 (the oracles' intake mapping,
            ruling 11c-31; research section 3.7 form 1), es the state the last drain left and hour the event's
   sleep    {asleep}
   activity {rate | raw, moving, exercising, cold}: rate is the engine MET before the stand-in's load factor, raw
@@ -449,7 +449,7 @@ function NR_R.mealVec(kcal, p, c, f)
 end
 function NR_R.requestKcal(es, hod, H_REQ, KCAL_PER_H)
     local K = NutritionRevamp.kernel
-    return KCAL_PER_H * K.min(0.69, K.deficit.hungerTarget(1 - H_REQ, es) * K.satiety.circadian(hod))
+    return KCAL_PER_H * K.min(K.hybrid.HUNGRY_4 - K.hybrid.CAP_MARGIN, K.deficit.hungerTarget(1 - H_REQ, es) * K.satiety.circadian(hod))
 end
 function NR_R.maint(body)
     local K = NutritionRevamp.kernel
@@ -531,7 +531,7 @@ function NR_O.requestKcal(o, ageStart, H_REQ, KCAL_PER_H)
     local c = 1
     local hod = NR_O.tod(o, ageStart)
     if hod ~= nil then c = K.satiety.circadian(hod) end
-    return KCAL_PER_H * K.min(0.69, K.deficit.hungerTarget(1 - H_REQ, o.es) * c)
+    return KCAL_PER_H * K.min(K.hybrid.HUNGRY_4 - K.hybrid.CAP_MARGIN, K.deficit.hungerTarget(1 - H_REQ, o.es) * c)
 end
 function NR_O.minute(o, ageH, dtM)
     local K = NutritionRevamp.kernel
@@ -560,7 +560,7 @@ function NR_O.minute(o, ageH, dtM)
         local c = 1
         local hod = NR_O.tod(o, ageH)
         if hod ~= nil then c = K.satiety.circadian(hod) end
-        o.hunger = K.min(0.69, K.satiety.target(F, o.M, x) * c)
+        o.hunger = K.min(K.hybrid.HUNGRY_4 - K.hybrid.CAP_MARGIN, K.satiety.target(F, o.M, x) * c)
     end
     o.rec.satiety.M = o.M
     o.rec.satiety.L = o.L

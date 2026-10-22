@@ -126,6 +126,11 @@ def lint_text(path, text):
                     out.append(Finding(path, n, "E1", "%s holds a magnitude with a provenance comment outside the registry" % a.group(1)))
                 elif not comment and not prev_comment_only:
                     out.append(Finding(path, n, "E2", "%s: a numeric constant with no comment" % a.group(1)))
+                if code.count("{") > code.count("}"):
+                    # a multi-line table opened on this line: E1 scans its element lines, and the opening line's own
+                    # label answers only that line's E2, exempting no element (Plan 19 Task 3a review I2)
+                    table_depth = code.count("{") - code.count("}")
+                    table_exempt = False
             elif a and a.group(2).strip().startswith("{") and code.count("{") > code.count("}"):
                 table_depth = code.count("{") - code.count("}")
                 table_exempt = EXEMPT_RX.search(comment) is not None

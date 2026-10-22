@@ -512,3 +512,19 @@ def test_the_writer_re_seeds_hunger_when_the_starving_state_ends_unfed(host):
     assert out.hunger == pytest.approx(0.3)                              # not parked at the 0.69 cap
     out = run(host, mode=1, hunger=0.71, hungerTarget=inv(0.3), fed=False, starving=True)
     assert out.hunger == pytest.approx(0.71)                             # still starving (chronic): the hold stands
+
+
+# ---- Plan 19 Task 3a review M5: fit_hunger_curve's registry-read constants are the kernel's -------------------------
+
+def test_the_fit_tools_registry_constants_are_the_kernels_and_its_knots_never_write_the_registry():
+    import fit_hunger_curve as F
+    from .conftest import LuaHost
+    h = LuaHost()                                   # a fresh host: set_knots writes its kernel table
+    K = h.K
+    c = K.hybrid.defaults()
+    assert F.CAP == c.hungerCap and F.STARVING_MIN == c.starvingMin
+    assert F.THRESHOLDS == tuple(K.hungerCurve.THRESHOLDS[i] for i in range(1, 5))
+    assert F.Y == tuple(K.hungerCurve.Y[i] for i in range(1, 8))
+    F.set_knots(K, F.START)
+    assert K.hungerCurve.X[3] == F.START[1]
+    assert h.G.NutritionRevamp.data.dials["hungerCurve.X.3"].value == 0.21125

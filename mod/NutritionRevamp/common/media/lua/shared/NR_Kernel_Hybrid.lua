@@ -10,14 +10,14 @@ K.hybrid = {}
 
 function K.hybrid.defaults()
     return {
-        hungerCap = K.hybrid.HUNGRY_4 - K.hybrid.CAP_MARGIN, -- 0.69, under HUNGRY level 4 at 0.70, #0508 (Plan 5 ruling 14); lifted while starving (K.hybrid.caps)
-        thirstCap = K.hybrid.THIRST_4 - K.hybrid.CAP_MARGIN, -- 0.83, under THIRSTY level 4 at 0.84, #0509 (Plan 5 ruling 14); lifted while dehydrated (K.hybrid.caps)
+        hungerCap = K.hybrid.HUNGRY_4 - K.hybrid.CAP_MARGIN, -- CAP_MARGIN under HUNGRY level 4 (#0508; Plan 5 ruling 14); lifted while starving (K.hybrid.caps)
+        thirstCap = K.hybrid.THIRST_4 - K.hybrid.CAP_MARGIN, -- CAP_MARGIN under THIRSTY level 4 (#0509; Plan 5 ruling 14); lifted while dehydrated (K.hybrid.caps)
         moodRiseUnhappy = K.hybrid.MOOD_RISE_UNHAPPY, -- per game-second: one UNHAPPINESS band a game hour (#2369; open S1146)
         moodRiseSick = K.hybrid.MOOD_RISE_SICK, -- per game-second: one SICK level a game hour on FOOD_SICKNESS (T1-1)
         moodRiseStress = K.hybrid.MOOD_RISE_STRESS, moodRiseBored = K.hybrid.MOOD_RISE_BORED, -- per game-second: STRESS VANILLA #2231 reused (open S1146); BOREDOM one BORED level a game hour (#2369; game choice, Plan 11f ruling T9-3)
-        maxStepS = K.resume.STEP_M * 60, -- a step longer than 60 game minutes integrates 60 (a guard: the pipeline sub-steps a stall, K.resume.STEP_M)
+        maxStepS = K.resume.STEP_M * 60, -- a step longer than STEP_M game minutes integrates STEP_M (a guard: the pipeline sub-steps a stall, K.resume.STEP_M)
         liftedCap = 1,                   -- the stat's own top (#0021): a lifted cap, no row needed
-        starvingMin = K.hybrid.HUNGRY_4 + K.hybrid.CAP_MARGIN, -- 0.71: HUNGER at least this under starvation's acute onset, over HUNGRY level 4's strict 0.70 (#0508, #0507), so vanilla's Starving moodle shows: game choice (spec section 3.1; the chronic BMI onset follows the curve, Plan 15 Task 6, ruling I2)
+        starvingMin = K.hybrid.HUNGRY_4 + K.hybrid.CAP_MARGIN, -- CAP_MARGIN over HUNGRY level 4's strict threshold (#0508, #0507): HUNGER at least this under starvation's acute onset, so vanilla's Starving moodle shows: game choice (spec section 3.1; the chronic BMI onset follows the curve, Plan 15 Task 6, ruling I2)
     }
 end
 
@@ -210,8 +210,8 @@ end
 -- which copies them): starving (K.drain's starvation state active) lifts HUNGER's cap to 1, and under the acute onset
 -- (starveAcute: 30 unfed hours, or, while the pool is unfed, the recent intake at 600 kcal or less) holds it at least starvingMin; under the chronic BMI onset alone HUNGER follows the
 -- curve (ruling I2: the Starving moodle is appetite, the drain is the body); dehydrated (K.drain's dehydration state active, a body-water deficit of 4 % or more) lifts THIRST's cap
--- to 1, where the thirst knots already read Parched (K.fluids.THIRST_KNOTS). Otherwise HUNGER stays under 0.69 and
--- THIRST under 0.83, below level 4. Returns the HUNGER cap, the HUNGER minimum and the THIRST cap.
+-- to 1, where the thirst knots already read Parched (K.fluids.THIRST_KNOTS). Otherwise HUNGER stays under hungerCap and
+-- THIRST under thirstCap, below level 4. Returns the HUNGER cap, the HUNGER minimum and the THIRST cap.
 function K.hybrid.caps(state, c)
     local hCap, hMin, tCap = c.hungerCap, 0, c.thirstCap
     if state.starving == true then
