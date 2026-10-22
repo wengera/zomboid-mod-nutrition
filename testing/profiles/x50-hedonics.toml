@@ -1,0 +1,43 @@
+# testing/profiles/x50-hedonics.toml - Plan 19 Task 7 (runs x501, x502, x503, x504): the live check of the food hedonics
+# (spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md section B.5): preparation quality at real
+# ingredient adds (x501), the plain-energy floor graded against the HEAD replay (x502), alliesthesia (x503), and the
+# taste class with the Rule 6 frame timer under a 60-record load (x504). PZTestKit + the STAGED upload copy
+# (release/NutritionRevamp/Contents/mods/NutritionRevamp, staged from mod/'s last commit with `python
+# tools/release_pack.py stage mod/NutritionRevamp --out release`; release/ is gitignored; mod/ is never booted, CLAUDE.md
+# s5). Nutrition false (ruling T18-1), DayLength 4 (a game minute 3.75 wall s at speed 1: 37.5 server ticks a game
+# minute, x391d's spacing), sleep off. [sandbox.NR] Mode 1 (the mod writes HUNGER, which alliesthesia reads),
+# DeathPace 3 (Realistic) and HealthCombine 2 (Multiply), the declared defaults, written so the profile says what the
+# run is. Fixture default, admin (-debug), build 42.21.0. The drivers are testing/experiments/x501_prep.py,
+# x502_floor.py, x503_allies.py and x504_class.py on x50_lib.py.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp upload copy, fixture default, admin (debug), Nutrition off, DayLength 4, sleep off, NR.Mode 1, DeathPace 3, HealthCombine 2, build 42.21.0 - Plan 19 Task 7: x501-x504."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+timeout = 240                 # the server boot wait (x484's): bounds the slow-boot fallback under the 600 s cap
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 4                 # a 90-minute day; a game minute 3.75 s at speed 1
+
+[sandbox.NR]
+Mode = 1                      # Hybrid: the mod owns HUNGER, which alliesthesia (R3) reads at the eat
+DeathPace = 3                 # Realistic, the declared default
+HealthCombine = 2             # Multiply, the declared default

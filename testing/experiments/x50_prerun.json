@@ -1,0 +1,259 @@
+{
+ "_provenance": {
+  "first_sight": {
+   "age": 2.39,
+   "player": {
+    "health": 100.0,
+    "macros": [
+     796.040771484375,
+     -0.865961492061615,
+     -0.2795819044113159,
+     -0.21277907490730286
+    ]
+   },
+   "stats": {
+    "FATIGUE": 1.6587773643550463e-05,
+    "HUNGER": 0.0022823589388281107,
+    "THIRST": 0.0019041254417970777
+   }
+  },
+  "mod_commit": "3760ae05",
+  "seed_at_m": 20,
+  "tool": "tools/replay_live.py ServerReplay (game_heal on, rng half, sleep off, 90-minute day, Realistic, Multiply, no typed weight: the mod's creation body)"
+ },
+ "x501": {
+  "compounded_d10_potato": -63.75,
+  "counts": {
+   "cookFailures": 0,
+   "cooks": 19,
+   "prepped": 19,
+   "unprepped": 10
+  },
+  "relog_d10_pepper": -48.0,
+  "rename_d10_potato": -45.0,
+  "scale": {
+   "0": 0.8,
+   "10": 1.5,
+   "3": 1.0
+  },
+  "stored": {
+   "0": [
+    -4.0,
+    -8.0,
+    -12.0,
+    -13.6,
+    -20.0
+   ],
+   "10": [
+    -7.5,
+    -15.0,
+    -22.5,
+    -25.5,
+    -37.5
+   ],
+   "3": [
+    -5.0,
+    -10.0,
+    -15.0,
+    -17.0,
+    -25.0
+   ]
+  },
+  "vanilla_by_level": {
+   "0": [
+    -5.0,
+    -10.0,
+    -15.0,
+    -17.0,
+    -25.0,
+    -25.0,
+    -27.0
+   ],
+   "10": [
+    -5.0,
+    -10.0,
+    -15.0,
+    -17.0,
+    -25.0,
+    -30.0,
+    -32.0
+   ],
+   "3": [
+    -5.0,
+    -10.0,
+    -15.0,
+    -17.0,
+    -25.0,
+    -30.0,
+    -32.0
+   ]
+  },
+  "vanilla_d3": [
+   -5.0,
+   -10.0,
+   -15.0,
+   -17.0,
+   -25.0,
+   -30.0,
+   -32.0
+  ]
+ },
+ "x502": {
+  "eats": [
+   {
+    "allies": 1,
+    "class": "fatty",
+    "f": 0.0,
+    "i": 1,
+    "plain": true,
+    "s": 2.756667,
+    "share": 0.210368,
+    "u": 0.0
+   },
+   {
+    "allies": 1,
+    "class": "fatty",
+    "f": 0.0,
+    "i": 1,
+    "plain": true,
+    "s": 2.756667,
+    "share": 0.420736,
+    "u": 2.481103
+   },
+   {
+    "allies": 1,
+    "class": "fatty",
+    "f": 7.86624,
+    "i": 1,
+    "plain": true,
+    "s": 2.756667,
+    "share": 0.631104,
+    "u": 13.734632
+   },
+   {
+    "allies": 1,
+    "class": "fatty",
+    "f": 21.8604,
+    "i": 1,
+    "plain": true,
+    "s": 2.756667,
+    "share": 0.841472,
+    "u": 31.113908
+   }
+  ],
+  "minutes": {
+   "eats": [
+    22,
+    26,
+    30,
+    34
+   ],
+   "end": 70,
+   "off": 38,
+   "off_m": 24,
+   "release": 64
+  },
+  "offline": {
+   "after": {
+    "allies": 1,
+    "class": "fatty",
+    "f": 21.8604,
+    "i": 1,
+    "plain": true,
+    "s": 3.156667,
+    "share": 0.841472,
+    "u": 31.113908
+   },
+   "before": {
+    "allies": 1,
+    "class": "fatty",
+    "f": 21.8604,
+    "i": 1,
+    "plain": true,
+    "s": 2.756667,
+    "share": 0.841472,
+    "u": 31.113908
+   },
+   "s_moved_h": 0.4
+  },
+  "release": {
+   "after": {
+    "allies": 1,
+    "class": "fatty",
+    "f": 0.0,
+    "i": 1,
+    "plain": false,
+    "s": 3.156667,
+    "share": 0.486933,
+    "u": 9.240467
+   },
+   "before": {
+    "allies": 1,
+    "class": "fatty",
+    "f": 21.8604,
+    "i": 1,
+    "plain": true,
+    "s": 3.156667,
+    "share": 0.841472,
+    "u": 31.113908
+   },
+   "f_fall": 21.8604,
+   "u_fall": 21.873442
+  }
+ },
+ "x503": {
+  "counts": {
+   "allies": 3,
+   "alliesFailures": 0,
+   "restores": 3
+  },
+  "hungry_delta": [
+   3.6,
+   2.7
+  ],
+  "lard_per_frac": [
+   18.0,
+   13.5
+  ],
+  "potato_doubled_client": 12.5,
+  "potato_field_after": 2.5,
+  "potato_readtime": 15.0,
+  "ratio": 0.6,
+  "sated_delta": [
+   6.0,
+   4.5
+  ]
+ },
+ "x504": {
+  "A": {
+   "by_type": {
+    "Base.BaconRashers": 40.09,
+    "Base.Carrots": 77.13
+   },
+   "class": "savoury",
+   "heaviest_portion_class": "fatty"
+  },
+  "B": {
+   "by_type": {
+    "Base.BaconRashers": 40.09,
+    "Base.Carrots": 25.71
+   },
+   "class": "fatty",
+   "heaviest_portion_class": "fatty"
+  },
+  "rule6": {
+   "rule_max": 25.0,
+   "rule_p99": 20.0,
+   "x391d_longest": [
+    120.0,
+    123.0,
+    121.0
+   ],
+   "x391d_p99_adds": [
+    7.0,
+    10.0,
+    8.0
+   ]
+  }
+ }
+}
