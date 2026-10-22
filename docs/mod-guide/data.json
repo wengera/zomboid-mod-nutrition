@@ -655,7 +655,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "eat": {
       "cal": 540.0,
@@ -1193,7 +1193,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "body.fm",
      "plate": [
@@ -1363,7 +1363,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "body.lm + body.lx",
      "plate": [
@@ -1533,7 +1533,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "body.fm + body.lm + body.lx",
      "plate": [
@@ -3394,7 +3394,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -4891,7 +4891,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -8816,7 +8816,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -10955,7 +10955,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "HUNGER",
      "read": "vanilla's Hungry level of the written HUNGER (#0508)",
@@ -12610,7 +12610,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "THIRST",
      "replay": "fresh record from 07:00, no drink, 24 h",
@@ -15199,7 +15199,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "clock": "minute 0 is 00:00",
      "plate": [
@@ -17289,7 +17289,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "body": "the oracle's 70 kg man (MAN)",
      "plate": [
@@ -17391,7 +17391,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "depletions": [
       0.0,
@@ -18747,7 +18747,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "options": "NR.DeathPace 3, NR.HealthCombine 3 (Add)",
      "path": "the stand-in's overall health",
@@ -20436,7 +20436,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "options": "NR.DeathPace 3, NR.HealthCombine 2 (Multiply), the defaults",
      "path": "the stand-in's overall health",
@@ -22125,7 +22125,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "options": "NR.DeathPace 3, NR.HealthCombine 1 (Worst only)",
      "path": "the stand-in's overall health",
@@ -23814,7 +23814,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "options": "NR.DeathPace 3 (Realistic) and NR.HealthCombine 2 (Multiply), the defaults",
      "path": "the stand-in's overall health",
@@ -24411,7 +24411,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "the stand-in's overall health",
      "read": "100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)",
@@ -25233,7 +25233,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "body.fm + body.lm + body.lx",
      "replay": "90 days, no food, the replay's water",
@@ -27120,7 +27120,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "held": [
       "thiamine",
@@ -27826,7 +27826,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "held": [
       "thiamine",
@@ -28136,7 +28136,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "held": [
       "thiamine",
@@ -28218,7 +28218,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "day_minutes": 90.0,
      "evaluate": "K.effects.symptoms on one active lethal state (code 1, starvation) at progress p from 0 to 1, the level changes found by bisection",
@@ -28251,7 +28251,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "day_minutes": 90.0,
      "evaluate": "K.effects.symptoms on one active lethal state (code 1, starvation) at progress p from 0 to 1, the level changes found by bisection",
@@ -28300,7 +28300,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "day_minutes": 90.0,
      "evaluate": "K.effects.symptoms on one active lethal state (code 1, starvation) at progress p from 0 to 1, the level changes found by bisection",
@@ -28349,7 +28349,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "day_minutes": 90.0,
      "evaluate": "K.effects.symptoms on one active lethal state (code 1, starvation) at progress p from 0 to 1, the level changes found by bisection",
@@ -28414,7 +28414,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "options": "NR.DeathPace 3 (Realistic), NR.HealthCombine 2 (Multiply), NR.Severity 1, Managed mode",
      "read": "each minute's effects.symCap, effects.pain.<i>, effects.stressFloor and effects.unhappyFloor (K.effects.symptoms), as moodle levels",
@@ -28482,7 +28482,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "options": "NR.DeathPace 3 (Realistic), NR.HealthCombine 2 (Multiply), NR.Severity 1, Managed mode",
      "read": "each minute's effects.symCap, effects.pain.<i>, effects.stressFloor and effects.unhappyFloor (K.effects.symptoms), as moodle levels",
@@ -28550,7 +28550,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "options": "NR.DeathPace 3 (Realistic), NR.HealthCombine 2 (Multiply), NR.Severity 1, Managed mode",
      "read": "each minute's effects.symCap, effects.pain.<i>, effects.stressFloor and effects.unhappyFloor (K.effects.symptoms), as moodle levels",
@@ -28618,7 +28618,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "options": "NR.DeathPace 3 (Realistic), NR.HealthCombine 2 (Multiply), NR.Severity 1, Managed mode",
      "read": "each minute's effects.symCap, effects.pain.<i>, effects.stressFloor and effects.unhappyFloor (K.effects.symptoms), as moodle levels",
@@ -30493,7 +30493,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -31069,7 +31069,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "eat": {
       "cal": 370.05999755859375,
@@ -31835,7 +31835,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "UNHAPPINESS",
      "replay": "7 days of four Base.TunaTinOpen a day, then 7 days of four foods a day rotating through Base.Bread, Base.CannedBologneseOpen, Base.Burger, Base.Apple, Base.Orange, Base.TunaTinOpen, with the replay's water",
@@ -32712,7 +32712,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "orange": {
       "cal": 65.0,
@@ -33993,7 +33993,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -35489,7 +35489,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -36985,7 +36985,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -42114,7 +42114,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 7,
@@ -44241,7 +44241,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 7,
@@ -47158,7 +47158,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "every": 5,
@@ -48664,7 +48664,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -49077,7 +49077,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "native_strength": 5,
      "path": "body.wroteL",
@@ -49488,7 +49488,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -49899,7 +49899,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "native_strength": 5,
      "path": "body.fm + body.lm + body.lx",
@@ -50312,7 +50312,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "native_strength": 9,
      "path": "body.wroteL",
@@ -50725,7 +50725,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "native_strength": 0,
      "path": "body.wroteL",
@@ -51308,7 +51308,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "body.energyState",
      "plate": [
@@ -51497,7 +51497,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "body.energyState",
      "plate": [
@@ -52143,7 +52143,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "day": 1,
      "path": "acute.caf",
@@ -52769,7 +52769,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "day": 14,
      "path": "acute.caf",
@@ -53391,7 +53391,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "day": 1,
      "path": "effects.fOff",
@@ -54014,7 +54014,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "day": 1,
      "path": "effects.fOff",
@@ -54121,7 +54121,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "acute.cafTol",
      "plate": [
@@ -54777,7 +54777,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "acute.bac",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -55391,7 +55391,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "acute.hang",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -56005,7 +56005,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "effects.intoxTarget",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -56619,7 +56619,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "effects.intoxTarget",
      "replay": "four 0.3 L Beer at 08:00, 08:20, 08:40, 09:00, with the replay's water",
@@ -63018,7 +63018,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "acute.debtH",
      "plate": [
@@ -63401,7 +63401,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -63679,7 +63679,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -63957,7 +63957,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -64235,7 +64235,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -64281,7 +64281,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "bodies": [
       [
@@ -64373,7 +64373,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "acute.debtH",
      "read": "at each close's s_after",
@@ -65911,7 +65911,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "from": "full health at the onset",
      "function": "K.drain.fraction",
@@ -65987,7 +65987,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "function": "K.nutrients.stepPool and K.nutrients.grade a day from p = 1 at zero intake, dial 1",
      "records": "NR.data.records, kind pool"
@@ -66062,7 +66062,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "function": "K.nutrients.stepPool and K.nutrients.grade a day from p = 1 at zero intake, dial 1",
      "records": "NR.data.records, kind pool"
@@ -66726,7 +66726,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "stomachFill",
      "replay": "x461b's own inputs at HEAD (start.json, events.json, player.json, its ring's clock and cold), drawn from ring s 349",
@@ -67370,7 +67370,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "stomach.liquid",
      "replay": "x461b's own inputs at HEAD (start.json, events.json, player.json, its ring's clock and cold), drawn from ring s 349",
@@ -68045,7 +68045,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "clock": "09:00",
      "preloads_kcal": [
@@ -68135,7 +68135,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "replay": "x276's events.json from its start.json at HEAD (six meals) against its three-meal arm (x27_grade.row8)",
      "window": "world age 25 to 49"
@@ -68195,7 +68195,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at about 12:50, 18:50 and 07:50",
      "read": "hours from each can's landing row to the first row with HUNGER over 0.15 (Peckish) or 0.25 (Hungry), inside the meal's window",
@@ -68223,7 +68223,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "meal": "dinner, to the next morning's breakfast",
      "meals": "a whole Base.CannedBologneseOpen and a Base.Banana at about 12:50, 18:50 and 07:50",
@@ -68784,7 +68784,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "UNHAPPINESS",
      "replay": "x343's events.json from its start.json at HEAD",
@@ -68985,7 +68985,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "P": "K.strength.DEFAULTS",
      "function": "strength_days",
@@ -69392,7 +69392,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "THIRST",
      "replay": "fresh record from 07:00 at rest, no drink, the first 10 h",
@@ -69708,7 +69708,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "body": "the 80 kg reference man",
      "function": "test_sodium_balance.simulate(days=5, na_day=0)"
@@ -70322,7 +70322,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "path": "the stand-in's overall health",
      "read": "100 less ReduceGeneralHealth plus AddGeneralHealth (#3898's spread)",
@@ -71357,7 +71357,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "function": "K.view.fullnessLevel(mass)",
      "grams": [
@@ -71478,7 +71478,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "classes": [
       [
@@ -71751,7 +71751,7 @@
     ]
    ],
    "provenance": {
-    "commit": "5a32607218",
+    "commit": "816878aada",
     "inputs": {
      "billed_met": [
       7.5
