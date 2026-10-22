@@ -13,7 +13,7 @@ K.deficit = {}
 
 -- --- the balance term ---------------------------------------------------------------------------------------------
 -- The balance term's span, the trailing-24 h deficit (kcal) at which K.deficit.state's
--- balance term reaches its 0.5 cap (a surplus of the span reaches -0.5). Fitted jointly with the bypass ramp's ends
+-- balance term reaches its BALANCE_CAP (a surplus of the span reaches -BALANCE_CAP). Fitted jointly with the bypass ramp's ends
 -- (and, until Plan 11g Task 7 fix 1, the deficit floor) on the server-path replays (Plan 11f Task 2c and its fix round 1, Karl 2021's two arms
 -- scored; Plan 11g Task 7 on the deficit studies alone, the well-fed arm held as a constraint now that satiety
 -- carries it: tools/fit_deficit_drive.py over testing/tests/kernel/deficit_oracles.py).
@@ -41,7 +41,7 @@ function K.deficit.fatTerm(fatDep)
 end
 
 -- The energy state the hunger term reads: 1 neutral, up under deficit and fat depletion (the fat term above), down
--- under surplus, clamped to [0.5, 2.0] (a game choice). Muscle glycogen does not enter it (ruling T4-1:
+-- under surplus, clamped to [STATE_MIN, STATE_MAX] (a game choice). Muscle glycogen does not enter it (ruling T4-1:
 -- no science row backs a coupling, and ketosis blunts the deficit's rise in appetite, S1451, S1452, S1259).
 function K.deficit.state(eb24h, fatDep)
     return K.clamp(1 + K.deficit.BALANCE_CAP * K.clamp(-eb24h / K.deficit.BALANCE_SPAN_KCAL, -1, 1) + K.deficit.fatTerm(fatDep), K.deficit.STATE_MIN, K.deficit.STATE_MAX) -- ruling 14; the span BALANCE_SPAN_KCAL, ruling 9c-1; the fat term, Plan 13 Task 10c

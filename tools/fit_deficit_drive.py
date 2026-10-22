@@ -3,7 +3,7 @@
     python tools/fit_deficit_drive.py --out <dir> [--grid <spec.json>] [--jobs N]
     python tools/fit_deficit_drive.py --compact <fit.json> --out <dir>
 
-Scores candidate constants of the deficit drive (K.deficit, NR_Kernel_Deficit.lua: the balance span and the bypass
+Scores candidate constants of the deficit drive (K.deficit, the deficit.* rows of NR_Data_Dials.lua: the balance span and the bypass
 ramp's two ends; the deficit floor, fitted at its bound 0, was removed in Plan 11g Task 7 fix 1, ruling T7-1) against
 testing/tests/kernel/deficit_oracles.py on the server path and writes <dir>/fit.json and <dir>/fit-compact.json (the
 compact projection is fit_gut_satiety's, ruling T6c-4).

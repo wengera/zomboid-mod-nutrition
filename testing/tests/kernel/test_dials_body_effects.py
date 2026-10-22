@@ -64,7 +64,7 @@ def test_the_wave_holds_its_dials():
     for dom in KERNEL_DOMAINS:
         assert any(k.startswith(dom + ".") for k in got), dom
     assert all(k in got for k in RISK + NUT)
-    assert len(got) == 121
+    assert len(got) == 120
 
 
 def test_each_kernel_field_holds_its_registry_value():
@@ -86,6 +86,7 @@ def test_the_moved_values_are_the_literals_they_replaced():
     rt, K = runtime()
     assert K.HEIGHT_M == 1.70
     assert K.interact.B12_PASSIVE_FROM == 4
+    assert K.body.PROT_FLOOR_AT == 0.5
     assert K.body.new(K.body.create(None, None, K.strength.DEFAULTS, 1), 1, 0).pPrevKg == 0.8
     T = K.traits.FAT_CUTS
     assert [[T[s][i] for i in (1, 2)] for s in (1, 2)] == [[6, 9], [9, 13]]
@@ -133,6 +134,40 @@ def test_the_dial_lint_reads_the_core_domain_as_ks_top_level():
     assert [f.rule for f in dial_lint.lint_text("NR_Kernel.lua", bad)] == ["E3"]
 
 
+def test_each_creation_pick_reads_its_own_rung():
+    # Plan 19 Task 3b fix 1 (I2): each creation pick sits at its band's middle (Task 10b), so a cut tune that strands a
+    # pick (its own rung no longer held at its own reading) fails here, before its trait flips at the first day close
+    _, K = runtime()
+    T, B = K.traits, K.body
+    for sex, fmi in ((1, B.FAT_FMI), (2, B.FAT_FMI_F)):
+        for pick, rung in (("none", 0), ("OVERWEIGHT", 1), ("OBESE", 2)):
+            assert T.held(rung, fmi[pick], T.FAT_CUTS[sex], T.FAT_MARGIN, True) == rung, (sex, pick)
+        for pick, rung in (("UNDERWEIGHT", 1), ("VERY_UNDERWEIGHT", 2)):
+            bf = B.THIN[pick] + (T.THIN_F_OFFSET if sex == 2 else 0)
+            reading = T.thinReading(bf, 1 - bf, sex)
+            assert T.held(rung, reading, T.THIN_CUTS, T.THIN_MARGIN, False) == rung, (sex, pick)
+
+
+def test_the_wave_orderings_hold():
+    # Plan 19 Task 3b fix 1 (M3): the orderings the kernels assume, the 3a M4 pattern
+    _, K = runtime()
+    D, A, Bo, Ac, Tr = K.deficit, K.aerobic, K.body, K.acute, K.training
+    assert D.FAT_DEP_LO < D.FAT_DEP_HI and D.EX_BYPASS_LO < D.EX_BYPASS_HI
+    assert D.STATE_MIN <= 1 <= D.STATE_MAX
+    assert Ac.RISK_BMI_HIGH < Ac.RISK_BMI_MOD and Ac.RISK_LOSS_HIGH > Ac.RISK_LOSS_MOD and Ac.RISK_DAYS_HIGH > Ac.RISK_DAYS_MOD
+    assert A.TAC_MIN <= 1 <= A.TAC_MAX
+    assert Bo.TREND_KG_D < Bo.TREND_LOT_KG_D and Bo.PROT_OK < Bo.PROT_FULL
+    assert Tr.BAND1_MET < Tr.BAND2_MET
+    seq = lambda t, n: [t[i] for i in range(1, n + 1)]  # noqa: E731
+    lad, thin = seq(K.nutrients.LADDER, 3), seq(K.traits.THIN_CUTS, 3)
+    assert all(a > b for a, b in zip(lad, lad[1:])) and all(a > b for a, b in zip(thin, thin[1:]))
+    for s in (1, 2):
+        cuts = seq(K.traits.FAT_CUTS[s], 2)
+        assert cuts[0] < cuts[1], s
+    for t in (seq(A.G_IRON, 4), seq(A.IRON_R, 4)):
+        assert all(a >= b for a, b in zip(t, t[1:])), t
+
+
 # --- the mutation probes: a registry-only edit before the kernels load moves the output ------------------------------
 
 def test_a_registry_protein_reference_moves_the_aerobic_gate_and_the_legacy_store_through_same():
@@ -141,7 +176,7 @@ def test_a_registry_protein_reference_moves_the_aerobic_gate_and_the_legacy_stor
     assert base.aerobic.gProt(0.9) == 1 and K.aerobic.gProt(0.9) == K.aerobic.G_PROT_LOW
     assert K.body.PROT_OK == 1.0                                         # body.PROT_OK follows through same
     assert base.body.mapProteins(1.2) == pytest.approx(75) and K.body.mapProteins(1.2) == pytest.approx(50)
-    # PROT_RAMP_SPAN is its own literal (0.8 - 0.5 is not the double 0.3), so the ramp below PROT_OK does not follow
+    assert K.body.PROT_FLOOR_AT == pytest.approx(0.7) and abs(K.body.mapProteins(1.0 - 1e-9)) < 1e-5
 
 
 def test_a_registry_clamp_moves_the_energy_state():

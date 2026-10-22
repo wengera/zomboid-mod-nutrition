@@ -161,6 +161,19 @@ def test_a_sandbox_backed_dial_must_resolve_into_its_kernel_field(tree):
     assert dials.check(tree) == []                                  # a plain dial may resolve anywhere
 
 
+def test_a_sandbox_backed_core_dial_is_refused(tree):
+    # Plan 19 Task 3b fix 1 (M8): a core dial is K's top level (core.HEIGHT_M is K.HEIGHT_M), which K.dials.bind cannot
+    # write, so an option on one is refused with that reason, not the K.core.<name> resolve the generic rule would ask for
+    rows = dict(GOOD)
+    rows["core.H"] = "D['core.H'] = { value = 1.0, unit = 'x', min = 0, max = 3, src = 'game choice', note = 'h', opt = 'Scale' }"
+    _write(tree, dials.LUA_REL + "/shared/NR_Kernel.lua", 'K.H = K.dials.get("core.H")\n')
+    found = _check(tree, rows.values())
+    assert any("core.H: a core dial is K's top level (K.H), which K.dials.bind cannot write" in f for f in found), found
+    assert not any("core.H: a sandbox-backed dial must resolve as" in f for f in found), found
+    rows["core.H"] = "D['core.H'] = { value = 1.0, unit = 'x', min = 0, max = 3, src = 'game choice', note = 'h' }"
+    assert _check(tree, rows.values()) == []                        # a core dial without an option stays green
+
+
 def test_a_same_cycle_is_refused(tree):
     rows = dict(GOOD)
     rows["dom.C1"] = "D['dom.C1'] = { same = 'dom.C2', unit = 'pts', src = 'game choice', note = 'c' }"

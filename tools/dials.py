@@ -383,6 +383,10 @@ def check(root=REPO, text=None):
     for dial_id in sorted(set(gets) - set(rows)):
         out.append("%s: K.dials.get at %s names no row" % (dial_id, ", ".join(w for w, _ in gets[dial_id])))
     for dial_id in sorted(i for i in rows if "opt" in rows[i] and i in gets):
+        if dial_id.startswith("core."):
+            out.append("%s: a core dial is K's top level (K.%s), which K.dials.bind cannot write; give K.dials.bind a core "
+                       "mapping before it takes an option" % (dial_id, dial_id[len("core."):]))
+            continue
         if any(lhs != "K." + dial_id for _, lhs in gets[dial_id]):
             out.append("%s: a sandbox-backed dial must resolve as K.%s = K.dials.get(...), the field K.dials.apply writes"
                        % (dial_id, dial_id))
