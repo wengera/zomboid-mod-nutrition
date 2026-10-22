@@ -408,7 +408,11 @@ def mod_gets(root):
 def _order(vals):
     out = []
     for chain in ASCENDING:
-        if any(i not in vals for i in chain):                  # a registry without the chain (a scratch tree)
+        missing = [i for i in chain if i not in vals]
+        if len(missing) == len(chain):                         # a registry without the chain (a scratch tree)
+            continue
+        if missing:                                            # a renamed knot would switch the rule off unseen
+            out.append("%s: the knot chain is incomplete: missing %s" % (chain[-1], ", ".join(missing)))
             continue
         xs = [vals[i] for i in chain]
         if any(b <= a for a, b in zip(xs, xs[1:])):

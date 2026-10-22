@@ -154,6 +154,12 @@ def test_the_phases_and_the_thirst_knots_must_ascend():
         assert not [f for f in dials.check(text=out) if "must ascend" in f], dial_id
 
 
+
+def test_a_renamed_knot_reports_an_incomplete_chain_instead_of_switching_the_rule_off():
+    renamed = text().replace("D['drain.STARVE_PHASE_H.2']", "D['drain.STARVE_PHASE_H.9']")
+    assert any("knot chain is incomplete: missing drain.STARVE_PHASE_H.2" in f for f in dials.check(text=renamed))
+    assert not [f for f in dials.check(text=text()) if "incomplete" in f]
+
 def test_a_runtime_set_reaches_the_copies_and_the_linked_fields():
     import replay_live
     rt, K = runtime()

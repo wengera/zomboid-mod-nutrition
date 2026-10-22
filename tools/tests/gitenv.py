@@ -5,7 +5,8 @@ real repository: e68042a1 "c1" landed on main that way. The scrub drops every va
 repository, and a test that writes with git takes its environment from here."""
 import os
 
-AIMING = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES")
+AIMING = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+          "GIT_COMMON_DIR")
 
 
 def scrubbed_env(base=None):
