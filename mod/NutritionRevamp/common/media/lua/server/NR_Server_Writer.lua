@@ -378,6 +378,7 @@ function W.monotony(h, record, inp, E, ageH)
         end
         u, b = K.monotony.target(m, ageH)
     end
+    u = u + W.hedonics(h, record, ageH)                  -- R1's plain-energy floor composed with monotony's (Plan 19 Task 6)
     h.monoSeen = true
     local eu = E.unhappyTarget
     if not NR.finite(eu) then eu = 0 end
@@ -788,4 +789,28 @@ function W.seedPlate(h, record, inp, F, es, factor, circ)
     W.stats.seedPlates = W.stats.seedPlates + 1
     W.lastSeedKcal = hi
     return W.satietyF(record)
+end
+
+-- Plan 19 Task 6 (rule R1, the stick of butter): the plain-energy floor of record.hedonics, the ring of online hours
+-- the intake books at each eat (NR_Server_Hedonics H.atEat). Once a writer minute the ring is rotated to the minute's
+-- world age (K.hedonics.target: at most RING_N slot writes after a gap, usually none, and 2 x RING_N additions; no Java,
+-- no allocation) and its share's floor read; W.monotony adds it to monotony's UNHAPPINESS target before the clamp and
+-- the dead zone, so it rises at the floor's rate and releases as the share falls. The resume moves the ring's stamp
+-- past an absence (K.resume.STAMPS "hedonics.s"), so nothing changes offline. The floor is kept on the ring as f for
+-- the minute ring and the replay. A ring the heal finds corrupt at the hoist's first sight is reset and counted in
+-- guarded (the eat heals its own). No ring reads 0.
+function W.hedonics(h, record, ageH)
+    local ring = record.hedonics
+    if ring == nil then return 0 end
+    if not h.monoSeen then
+        local healed
+        ring, healed = K.hedonics.heal(ring, ageH)
+        if healed then
+            record.hedonics = ring
+            W.stats.guarded = W.stats.guarded + 1
+        end
+    end
+    local f = K.hedonics.target(ring, ageH)
+    ring.f = f
+    return f
 end

@@ -249,9 +249,16 @@ class Oracle:
         return plain, str(self.K.hedonics.tasteClass(p, c, l, staple, FH.sweet(item, food))), staple
 
     def dish_class(self, portions, kcals):
-        """R4: a dish's taste class, K.hedonics.dishClass over its ingredients' classes and landed kcal."""
-        classes = self.rt.table_from([self.classify(pt)[1] for _, pt, _ in portions])
-        return str(self.K.hedonics.dishClass(classes, self.rt.table_from(kcals)))
+        """R4: a dish's taste class, K.hedonics.dishClass over one entry an ingredient TYPE (its landed kcal summed,
+        in first-appearance order), as the eat seat hands it (ruling T6-1 as refined; NR_Server_Hedonics H.dishClass)."""
+        types, sums = [], {}
+        for (_, pt, _), k in zip(portions, kcals):
+            if pt not in sums:
+                types.append(pt)
+                sums[pt] = 0.0
+            sums[pt] += k
+        classes = self.rt.table_from([self.classify(pt)[1] for pt in types])
+        return str(self.K.hedonics.dishClass(classes, self.rt.table_from([sums[pt] for pt in types])))
 
     def mood(self, t, f):
         item = self.items.get(t, {})

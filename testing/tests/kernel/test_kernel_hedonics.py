@@ -319,3 +319,59 @@ def test_the_kernel_reads_no_java_and_states_rule_6():
     with open(KERNEL, encoding="utf-8") as fh:
         src = fh.read()
     assert "never per tick (Rule 6)" in src and "nothing is allocated after" in src
+
+
+# --- the seats' arithmetic (Plan 19 Task 6) ---------------------------------------------------------------------------
+
+
+def test_prep_scale_is_the_curve_prep_applies(host):
+    h = H(host)
+    for level in (0, 1, dv("PREP_KNOTS.2.1"), 7, 10, 12):
+        assert h.prep(-10, level) == pytest.approx(-10 * h.prepScale(level))
+    assert h.prepScale(0) == pytest.approx(dv("PREP_KNOTS.1.2"))
+    assert h.prepScale(10) == pytest.approx(dv("PREP_KNOTS.3.2"))
+
+
+def test_unprep_reads_the_vanilla_relief_back_and_never_compounds(host):
+    # mutation: unprep multiplying by the stamp (or ignoring it) compounds the scale over a dish's adds and fails here
+    h = H(host)
+    s = h.prepScale(10)
+    assert h.unprep(h.prep(-10, 10), s) == pytest.approx(-10)
+    assert h.unprep(-5, s) == pytest.approx(-5 / s)
+    for v in (0, 12):
+        assert h.unprep(v, s) == v                                      # a value at or over 0 was never scaled
+    for bad in (None, 0, -1.5, float("nan"), float("inf")):
+        assert h.unprep(-6, bad) == -6                                  # no usable stamp: the value as it is
+    v = -5.0                                                            # three adds of -5 by a level-10 chef
+    stored = h.prep(v, 10)
+    for _ in range(2):
+        v = h.unprep(stored, s) - 5
+        stored = h.prep(v, 10)
+    assert stored == pytest.approx(-15 * s)
+
+
+def test_allies_field_makes_the_read_time_value_the_scaled_one(host):
+    # the stored field less what R3 takes off, so field' + state terms == allies(field + state terms)
+    h = H(host)
+    at = host.K.hungerCurve.THRESHOLDS[int(dv("ALLIES_LEVEL"))]
+    f = dv("ALLIES_F")
+    field, terms = 20.0, 10.0                                           # a stale +20 food: +30 read at the eat
+    u = field + terms
+    w = h.alliesField(field, u, at + 0.1)
+    assert w + terms == pytest.approx(u * f)
+    assert h.alliesField(field, u, at) == field                         # not hungry: as it is
+    assert h.alliesField(-5, -5, 0.9) == -5                             # a happy food: as it is
+    assert h.alliesField(0, 20, 0.9) == pytest.approx(-20 * (1 - f))    # a 0 field under a +20 state term goes negative
+
+
+def test_allies_restore_gives_the_remainder_its_own_field(host):
+    # mutation: restoring the remainder to the whole field (or to the written one) fails here
+    h = H(host)
+    field, written = 20.0, 8.0
+    assert h.alliesRestore(field, written, written * 0.75, None) == pytest.approx(field * 0.75)   # a quarter eaten
+    assert h.alliesRestore(field, written, written, None) == pytest.approx(field)                 # nothing eaten
+    assert h.alliesRestore(5.0, -5.0, -2.5, None) == pytest.approx(2.5)                           # across the sign
+    assert h.alliesRestore(field, 0, 0, 0.5) == pytest.approx(field * 0.5)                        # a 0 field: the ratio
+    assert h.alliesRestore(field, 0, 0, None) is None
+    assert h.alliesRestore(field, 0, 0, float("nan")) is None
+    assert h.alliesRestore(field, written, float("nan"), 0.5) is None                             # a finished item

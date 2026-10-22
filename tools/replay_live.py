@@ -30,7 +30,8 @@ Events are a JSON list. Each is due at `age` (game hours: applied before the fir
 age), at `s` (applied before the drain of ring row s, at its age: the landing a ring path such as
 `_G.NutritionRevamp.server.intake.stats.eats` first shows), or at `minute` m of a synthetic clock (applied before
 step m, at its start). Kinds:
-  eat      {food | fullType+cal+carb+lip+pro+hunger+declared+foodType, frac (default 1)} or {vec, lane, fullType}:
+  eat      {food | fullType+cal+carb+lip+pro+hunger+declared+foodType, frac (default 1), extraTypes (a dish's
+           ingredient list)} or {vec, lane, fullType}:
            an eat's kcal comes from the item (its script values, or the vector given) and its fraction from the item
            (the driver's before/after read) or from lastIntake.frac, never from satiety.M; the replay derives
            nothing from M
@@ -413,11 +414,13 @@ function NR_R.eatItem(user, spec)
     local b = { item = item, username = user, rawBefore = spec.instBase, fullType = spec.fullType,
                 instBase = spec.instBase, thirstBefore = 0, cal = spec.cal, carb = spec.carb, lip = spec.lip,
                 pro = spec.pro, cooked = false, burnt = false, rotten = false, frozen = false,
-                scriptHunger = spec.instBase, scriptThirst = 0, extraTypes = {}, craftMap = nil,
+                scriptHunger = spec.instBase, scriptThirst = 0, extraTypes = spec.extraTypes or {}, craftMap = nil,
                 declared = spec.declared, foodType = spec.foodType, char = NR_T.chars[user] }
     b.macros = { calories = b.cal, carbs = b.carb, lipids = b.lip, proteins = b.pro }
     NR_R.record(user)
-    return IN.readAfterAndLand(b)
+    local v = IN.readAfterAndLand(b)
+    NR_R.lastEat = { plain = b.plain, class = b.class }
+    return v
 end
 -- a vector landed as the intake lands one (IN.land), monotony booked for a food lane's type (IN.atEat); a food lane's
 -- type also brings its plate volume (IN.volumeOf, Plan 15 Task 7), as the server's eat does
@@ -431,8 +434,9 @@ function NR_R.landVec(user, src, lane, fullType, foodType)
     if lane ~= "liquid" and fullType ~= nil then ml = NR.server.intake.volumeOf(fullType) end
     NR.server.intake.land(rec, user, v, lane, ml)
     if lane ~= "liquid" and fullType ~= nil then
-        NR.server.intake.atEat(rec, { fullType = fullType, foodType = foodType, char = NR_T.chars[user],
-                                      username = user }, v.calories)
+        local b = { fullType = fullType, foodType = foodType, char = NR_T.chars[user], username = user }
+        NR.server.intake.atEat(rec, b, v.calories)
+        NR_R.lastEat = { plain = b.plain, class = b.class }
     end
     return v
 end
@@ -1022,11 +1026,18 @@ class ServerReplay(_Backend):
     def _log(self, at, kind, full, vec, b0):
         b1 = self._added()
         cal = None if vec is None else vec["calories"]
-        self.eats.append({"age": at, "kind": kind, "fullType": full, "kcal": cal,
-                          "boredom": b1[0] - b0[0], "unhappy": b1[1] - b0[1]})
+        eat = {"age": at, "kind": kind, "fullType": full, "kcal": cal,
+               "boredom": b1[0] - b0[0], "unhappy": b1[1] - b0[1]}
+        le = self.R.lastEat
+        if le is not None:                    # the hedonics booking (Plan 19 Task 6): rule R1's plain flag, R4's class
+            eat["plain"] = le["plain"] is True
+            eat["class"] = le["class"]
+            self.R.lastEat = None
+        self.eats.append(eat)
 
     def ev_eat(self, ev, at):
         self._set_age(at)
+        self.R.lastEat = None
         b0 = self._added()
         if "vec" in ev:
             vec = self.R.landVec(self.user, self.table(ev["vec"]), ev.get("lane"), ev.get("fullType"),
@@ -1041,6 +1052,8 @@ class ServerReplay(_Backend):
         for k in ("fullType", "cal", "carb", "lip", "pro", "declared", "foodType"):
             if spec.get(k) is not None:
                 lspec[k] = spec[k]
+        if ev.get("extraTypes"):              # a dish's ingredient list (Plan 19 Task 6: its class, R4)
+            lspec.extraTypes = self.rt.table(*ev["extraTypes"])
         lspec.instBase = spec["hunger"]
         lspec.frac = float(ev.get("frac", 1.0))
         vec = self.R.eatItem(self.user, lspec)
@@ -1208,6 +1221,7 @@ class ServerReplay(_Backend):
         if sat is not None and isinstance(sat["hModel"], (int, float)):
             out[H_MODEL] = sat["hModel"]
         self._symptoms(r, out)
+        self._hedonics(r, out)
         for path in paths:
             if path in self.DERIVED:
                 body = r["body"] if r is not None else None
@@ -1243,6 +1257,18 @@ class ServerReplay(_Backend):
                 out["effects.pain.%d" % i] = v
                 total += v * mod[i]
         out["painTarget"] = total
+
+    def _hedonics(self, r, out):
+        """The plain-energy rows (Plan 19 Task 6, rule R1) into out: `hedonics.f`, the floor the writer composed this
+        minute (the ring's f), and `hedonics.share`, the ring's plain share (K.hedonics.share), when the record holds a
+        ring."""
+        ring = r["hedonics"] if r is not None else None
+        if ring is None or self.lua51.lua_type(ring) != "table":
+            return
+        f = ring["f"]
+        if isinstance(f, (int, float)) and not isinstance(f, bool):
+            out["hedonics.f"] = f
+        out["hedonics.share"] = self.K.hedonics.share(ring)
 
     # a path the record does not store, read as the mod reads it: body.eb24 is K.energy.eb24h(record.body), the
     # trailing-24 h balance the metabolism step hands to K.deficit.activityState (the oracle backend's alias of the same

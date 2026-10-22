@@ -1,8 +1,8 @@
 -- NR_Kernel_Hedonics.lua -- food hedonics (Plan 19 Task 5; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md
 -- section B.2): four rules on top of vanilla's per-item UnhappyChange and BoredomChange, which stay the base (B.1).
 -- Every magnitude is a dial of the hedonics domain (NR_Data_Dials.lua); every rule is pure, runs at an eat, an
--- ingredient add or the existing writer minute, never per tick (Rule 6), and its adapters are NR_Server_Intake's and
--- NR_Server_Writer's (Task 6).
+-- ingredient add or the existing writer minute, never per tick (Rule 6), and its adapters are NR_Server_Hedonics's,
+-- called from NR_Server_Intake and NR_Server_Writer (Task 6).
 --  R1 plain energy (the stick of butter): a plain energy food is energy-dense (PLAIN_KCAL a 100 g or more), takes at
 --     least PLAIN_SHARE of its macro energy from one macro, is no vanilla treat (UnhappyChange under 0), and falls in
 --     none of S2291's sodium pairings (fat and sodium, carbohydrate and sodium), unless one macro gives PAIR_SHARE of
@@ -230,7 +230,7 @@ function K.hedonics.prep(unhappy, level)
     if not (unhappy < 0) then
         return unhappy
     end
-    return unhappy * K.interp(K.hedonics.PREP_KNOTS, level)
+    return unhappy * K.hedonics.prepScale(level)
 end
 
 -- R3: a food's UnhappyChange as the eater at HUNGER `hunger` (the stat the mod writes) feels it: a sad value (over 0)
@@ -270,4 +270,46 @@ function K.hedonics.heavier(best, top, class, kcal)
         return class, kcal
     end
     return best, top
+end
+
+-- The seats' arithmetic (Plan 19 Task 6; the adapters are NR_Server_Hedonics.lua's).
+
+-- R2: the PREP_KNOTS scale at Cooking level `level`, held at the curve's ends (K.hedonics.prep's factor, and the
+-- stamp the add-ingredient seat keeps on a dish beside the relief it wrote).
+function K.hedonics.prepScale(level)
+    return K.interp(K.hedonics.PREP_KNOTS, level)
+end
+
+-- R2: the vanilla value of a dish's stored UnhappyChange that the seat wrote at stamped scale `scale`: a relief (a
+-- value under 0) over the scale; a value at or over 0, or a scale that is not a finite number over 0, as it is.
+-- Vanilla's next add starts from this value, so a dish of many adds is scaled once, never compounded.
+function K.hedonics.unprep(stored, scale)
+    if not (stored < 0) or not K.finite(scale) or not (scale > 0) then
+        return stored
+    end
+    return stored / scale
+end
+
+-- R3: the stored UnhappyChange field the eat seat writes before vanilla's eat, so the read-time value vanilla
+-- applies (the field plus its state terms, `unhappy`) reads K.hedonics.allies(unhappy, hunger): the field less the
+-- part R3 takes off; a value R3 leaves returns the field as it is.
+function K.hedonics.alliesField(field, unhappy, hunger)
+    return field - (unhappy - K.hedonics.allies(unhappy, hunger))
+end
+
+-- R3: the field a part-eaten food's remainder keeps after the eat, as if R3 had never run: vanilla scaled the
+-- written field for the remainder (multiplyFoodValues), so the same scale on the original field, after over
+-- written, or the hunger ratio q when the written field was 0. nil when after is not a finite number (a finished
+-- item reads NaN, #2832) or no ratio is known.
+function K.hedonics.alliesRestore(field, written, after, q)
+    if not K.finite(after) then
+        return nil
+    end
+    if written ~= 0 then
+        return field * (after / written)
+    end
+    if not K.finite(q) then
+        return nil
+    end
+    return field * q
 end

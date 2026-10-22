@@ -479,7 +479,8 @@ function IN.readAfterAndLand(b)
     IN.land(record, b.username, vec, nil, IN.volumeOf(b.fullType))
     IN.atEat(record, b, vec.calories)                      -- monotony (Plan 11e, rulings 11e-1, T3-3): mood, never hunger
     record.lastIntake = { fullType = b.fullType, source = source, share = share, frac = frac,
-                          missing = missing, declared = trace.declared, inferred = trace.inferred }
+                          missing = missing, declared = trace.declared, inferred = trace.inferred,
+                          plain = b.plain, class = b.class, allies = b.allies and b.allies.scale or 1 }
     IN.stats.landed = IN.stats.landed + 1
     NR.log.say(3, "intake: " .. b.fullType .. " for " .. tostring(b.username) .. " source " .. source
         .. " share " .. tostring(share))
@@ -510,6 +511,7 @@ function IN.guardBefore(action, kind, ...)
     local ok, b = pcall(readFn, action, ...)
     if ok then
         IN.storesBefore(b, action)
+        IN.hedonicsBefore(b, kind)
         return b
     end
     IN.stats.failures = IN.stats.failures + 1
@@ -519,6 +521,7 @@ function IN.guardBefore(action, kind, ...)
 end
 
 function IN.guardAfter(b, kind)
+    IN.hedonicsAfter(b, kind)
     local landFn = IN.readAfterAndLand
     if kind == "drink" then landFn = IN.readDrinkAfterAndLand end
     if kind == "world" then landFn = IN.readWorldAfterAndLand end
@@ -904,7 +907,8 @@ function IN.monotony(record, b, kcal)
     end
     record.monotony = m
     K.monotony.prune(m, ageH)
-    K.monotony.record(m, typeKey, ageH, w, K.monotony.isStaple(typeKey, b.foodType))
+    local class = IN.hedonicsAtEat(record, b, kcal, ageH)
+    K.monotony.record(m, typeKey, ageH, w, K.monotony.isStaple(typeKey, b.foodType), class)
     IN.stats.monotony = IN.stats.monotony + 1
     return w
 end
@@ -920,3 +924,24 @@ function IN.volumeOf(fullType)
 end
 
 IN.limitations[#IN.limitations + 1] = "a food fills by its weight plus 0.05 of its plate volume beyond its weight (a game choice), the volume being the eaten item's own type's household measure (a family judgement's where the source has none: buns, baguette, croissant, crisps, crackers): an evolved dish reads the eaten item's own type's measure, whatever went into it (a sandwich has none and loses the bread's air; toast or a bowl of oatmeal applies its own to every topping), a food with no measure in the source (bagels, cookies, cakes, most meat) or one the item pass does not map fills by weight alone, and drinks, world water and the reconcile path add no volume"
+
+-- Plan 19 Task 6: the food hedonics seats at the eat (NR_Server_Hedonics.lua, NR.server.hedonics), looked up per call
+-- so a host without that file eats as before. Before vanilla's eat or cancel, alliesthesia (R3) may lower a sad food's
+-- stored field; after it, the remainder's field is restored; at the landing's monotony booking the eat's kcal goes
+-- into the online-hour ring (R1) and its taste class (R4) beside the type. Each runs under the seat's own pcall.
+function IN.hedonicsBefore(b, kind)
+    local H = NR.server.hedonics
+    if H ~= nil and (kind == "eat" or kind == "cancel") then H.alliesBefore(b) end
+end
+
+function IN.hedonicsAfter(b, kind)
+    local H = NR.server.hedonics
+    if H ~= nil and (kind == "eat" or kind == "cancel") then H.alliesAfter(b) end
+end
+
+-- The eat's class for monotony, nil without the seat.
+function IN.hedonicsAtEat(record, b, kcal, ageH)
+    local H = NR.server.hedonics
+    if H == nil then return nil end
+    return H.atEat(record, b, kcal, ageH)
+end
