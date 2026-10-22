@@ -706,10 +706,11 @@ def test_the_prerun_is_the_head_replay_and_reads_as_documented():
 
 
 def test_the_snack_opens_a_meal_spell_and_the_floor_seeds_are_the_knots():
-    import re
-    src = open(os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Kernel_Drain.lua"),
-               encoding="utf-8").read()
-    suspend = float(re.search(r"K\.drain\.SUSPEND_M = ([0-9.]+)", src).group(1))
+    tools = os.path.join(REPO, "tools")                       # the registry row since Plan 19 Task 3g (W10)
+    if tools not in sys.path:
+        sys.path.insert(0, tools)
+    import dials
+    suspend = float(dials.values()["drain.SUSPEND_M"])
     assert L.SNACK_M >= suspend                               # a real snack's pool: the spell opens before the clearing
     assert L.load_prerun()["x494"]["lapse"]["lag_m"] == 0          # since 6ee7c8d1 (driver review concern 1)
     assert L.load_prerun()["x494"]["floors_seeded"] == {"P1": [0.3, 25.0], "P2": [0.55, 50.0]}

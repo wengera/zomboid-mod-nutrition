@@ -42,7 +42,7 @@ K.drain.IRON = 7 -- no row needed: a code
 K.drain.N = 7 -- the state count, no row needed
 
 -- The day length in real minutes an adapter assumes when the sandbox is unreadable: vanilla's 90-minute default day.
-K.drain.DAY_MINUTES = 90 -- VANILLA #2922, the fallback for an unreadable sandbox
+K.drain.DAY_MINUTES = 90 -- VANILLA #2922: the fallback for an unreadable sandbox
 
 -- The options (spec section 2): the pace and the combine rule, read once a server minute by the adapter, which
 -- overwrites this table's fields in place (no allocation); dayMin is the server's day length in real minutes.
@@ -52,20 +52,20 @@ K.drain.PACE_REAL = 3 -- no row needed: an option value
 K.drain.COMBINE_WORST = 1 -- no row needed: an option value
 K.drain.COMBINE_MULTIPLY = 2 -- no row needed: an option value
 K.drain.COMBINE_ADD = 3 -- no row needed: an option value
-K.drain.OPT = { pace = 3, combine = 2, dayMin = K.drain.DAY_MINUTES } -- the defaults Realistic and Multiply: game choices (spec section 7); vanilla's 90-minute day (#2922)
+K.drain.OPT = { pace = K.drain.PACE_REAL, combine = K.drain.COMBINE_MULTIPLY, dayMin = K.drain.DAY_MINUTES } -- the defaults Realistic and Multiply: game choices (spec section 7), the option file's NR.DeathPace and NR.HealthCombine defaults; vanilla's 90-minute day (#2922)
 
-K.drain.SLEEP_FLOOR = 10 -- health: at or below it vanilla wakes a sleeper every tick (#3900), the last tenth of each line (spec section 9)
+K.drain.SLEEP_FLOOR = 10 -- VANILLA #3900: health at or below which vanilla wakes a sleeper every tick, the last tenth of each line (spec section 9)
 K.drain.NONE = 100 -- health: the target read with no state active (full health), no row needed
 
 -- The paces (spec sections 2.2 and 9): vanilla's level-4 rates in health per game hour per real minute of day length,
 -- the shortened death points, and the smoothed BMI clock's opening rate, read off the calibration's default creation
 -- body fasting with water at the 90-minute day (testing/artifacts/calibrate-drain-20261019/calibration.json).
-K.drain.R_HUNGER = 0.0396 -- health per game hour per real minute of day length: 3.3e-4 x 120 (#0516, #0518, #2922)
-K.drain.R_THIRST = 0.198 -- health per game hour per real minute of day length: 1.65e-3 x 120 (#0516, #0518, #2922)
-K.drain.SHORT_STARVE_H = 336 -- Shortened starvation, 14 game days: game choice (spec section 2.2)
-K.drain.SHORT_DEHYD_H = 48 -- Shortened dehydration, 2 game days: game choice (spec section 2.2)
-K.drain.STARVE_DPDT = 0.0004359462040936248 -- BMI progress per game hour before the state's first record-day close: calibrate-drain-20261019/calibration.json starve_dpdt_per_h, game choice (spec section 1.2a)
-K.drain.CAL_BMI0 = 22.42350650342769 -- the calibration body's onset BMI: calibrate-drain-20261019/calibration.json starve.bmi0, game choice (spec section 1.2a)
+K.drain.R_HUNGER = 0.0396 -- VANILLA #0516 #0518 #2922: health per game hour per real minute of day length, 3.3e-4 x 120
+K.drain.R_THIRST = 0.198 -- VANILLA #0516 #0518 #2922: health per game hour per real minute of day length, 1.65e-3 x 120
+K.drain.SHORT_STARVE_H = K.dials.get("drain.SHORT_STARVE_H")
+K.drain.SHORT_DEHYD_H = K.dials.get("drain.SHORT_DEHYD_H")
+K.drain.STARVE_DPDT = K.dials.get("drain.STARVE_DPDT")
+K.drain.CAL_BMI0 = K.dials.get("drain.CAL_BMI0")
 
 -- Starvation: the acute onset (Plan 15 Task 6 fixes 1 and 2) at STARVE_ONSET_H unfed hours (K.drain.unfedH: the hours
 -- since the meal pool last held K.hungerCurve.FED_M, counted continuously across days, sleep and restarts, never
@@ -73,41 +73,41 @@ K.drain.CAL_BMI0 = 22.42350650342769 -- the calibration body's onset BMI: calibr
 -- and the three closed record days with what is still in the stomach, a starvation diet of snacks); or the
 -- chronic onset at a BMI under 13 whatever the intake (chronic semi-starvation, Plan 15 Task 4 fix 1, ruling M3); the
 -- death at BMI 12.
-K.drain.STARVE_ONSET_H = 30 -- unfed hours (the meal pool under K.hungerCurve.FED_M), counted continuously: game choice (the Plan 15 spec's section 10: each floor's curve), set so the onset coincides with the calibrated curve reaching its 0.69 cap, 29.9-30.3 h after the pool empties for 200-1,300 kcal meals, so Starving shows 33.6-35.1 h after the meal (vanilla 34.55 h)
+K.drain.STARVE_ONSET_H = K.dials.get("drain.STARVE_ONSET_H")
 K.drain.RECENT_TOL = 1e-6 -- kcal: the comparison's tolerance, no row needed (Plan 15 Task 6 fix 3: three absorbed 200 kcal snacks integrate a few 1e-9 kcal over 600)
 K.drain.RECENT_DAYS = 3 -- record-day closes the window needs seen, no row needed
-K.drain.RECENT_MIN_KCAL = 600 -- kcal absorbed or still in the stomach today and over the three closed record days (72-96 h): game choice (the Plan 15 spec's section 10: each floor's curve; the controller's Task 6 fix 1 and 2 rulings), about 200 kcal a day, at or under which the acute onset holds while the pool is unfed whatever the unfed hours, so a snack now and then does not keep a starving body out of the state (at or under: the window can hold three of a 200 kcal snack every 33 h, exactly 600)
-K.drain.BMI_DEATH = 12 -- kg/m2, S2234 (Speakman: at BMI 12 recovery is virtually zero)
+K.drain.RECENT_MIN_KCAL = K.dials.get("drain.RECENT_MIN_KCAL")
+K.drain.BMI_DEATH = K.dials.get("drain.BMI_DEATH")
 K.drain.STARVE_DBMI = K.drain.STARVE_DPDT * (K.drain.CAL_BMI0 - K.drain.BMI_DEATH) -- BMI per game hour before the state's first close: the calibration body's opening rate in BMI, so a heavier body opens no faster in kg
-K.drain.BMI_CHRONIC = 13 -- kg/m2: starvation is active below it whatever the day's intake; game choice inside S2234's 12-13 (the Plan 15 spec's section 10: each floor's curve)
-K.drain.SUSPEND_M = 236.44 -- weighted kcal, the meal pool a 200 kcal mixed snack lands (15/50/35 % of energy, 236.44 under the fitted weights, K.satiety.weigh): game choice (the Plan 15 spec's section 10: each floor's curve): only a meal spell (the pool reached SUSPEND_M and has not yet fallen under K.hungerCurve.FED_M, K.drain.mealFed) suspends the fallback or, inside the state, resets the unfed clock, so a floret an hour (11 kcal, the pool at FED_M for about 70 min) no longer ends or holds off a starving body's state, while a 200 kcal snack or a refeed meal still does for its whole fed spell (Plan 15 close, H1)
+K.drain.BMI_CHRONIC = K.dials.get("drain.BMI_CHRONIC")
+K.drain.SUSPEND_M = K.dials.get("drain.SUSPEND_M")
 -- The starvation effect phases (spec section 3.3), on the starvation clock (starvedH: the unfed hours, then the onset
 -- plus the hours in the acute state): weakness from onset, cold intolerance and slower healing from about day 3,
 -- infection and mood from about day 14; a game-pacing choice (spec section 3.3; the day of onset of each is open, S2247;
 -- glycogen gone by day 2-3, S2241).
 K.drain.STARVE_PHASE_H = {
-    30, -- phase 1, weakness: the drain's onset (STARVE_ONSET_H), game choice (open S2247)
-    72, -- phase 2, cold and healing: day 3, game choice (open S2247; S2241 glycogen gone in 2-3 days)
-    336, -- phase 3, infection and mood: day 14, game choice (open S2247)
+    K.dials.get("drain.STARVE_PHASE_H.1"),
+    K.dials.get("drain.STARVE_PHASE_H.2"),
+    K.dials.get("drain.STARVE_PHASE_H.3"),
 }
 
 -- Dehydration: onset at 4 %, where weariness and apathy begin; a line to the death point 17 % (Plan 15 Task 4 fix 1,
 -- ruling M1: on the water base's 3 % a day at rest, 4 % comes at about 32 h; revision R1: no knee, no final stage).
-K.drain.DEHYD_ONSET = 4 -- per cent of body mass, weariness and apathy (S2248 4.2 %; the research's drain start): game choice (the Plan 15 spec's section 10: each floor's curve)
-K.drain.DEHYD_DEATH = 17 -- per cent, the death point: game choice inside 15-19 % (the Plan 15 spec's section 10: dehydration's 17 % death point); S2248 anuria at about 19 %
+K.drain.DEHYD_ONSET = K.dials.get("drain.DEHYD_ONSET")
+K.drain.DEHYD_DEATH = K.dials.get("drain.DEHYD_DEATH")
 
 -- The deficiencies: onset at the clinical grade (4); a line on the hours at that grade from 1 to 0 at the death time.
 K.drain.CLINICAL = 4 -- the clinical grade, no row needed: a grade index
-K.drain.BERIBERI_DEATH_H = 840 -- 5 weeks after clinical onset: S2255 (an inference: median 33 d to admission + < 48 h)
-K.drain.SCURVY_DEATH_H = 2160 -- 90 days: game choice (the Plan 15 spec's section 10; the time to death is open, S1168)
-K.drain.PELLAGRA_DEATH_H = 4320 -- 180 days: game choice (the Plan 15 spec's section 10; open S1170, the evidence says months to years)
+K.drain.BERIBERI_DEATH_H = K.dials.get("drain.BERIBERI_DEATH_H")
+K.drain.SCURVY_DEATH_H = K.dials.get("drain.SCURVY_DEATH_H")
+K.drain.PELLAGRA_DEATH_H = K.dials.get("drain.PELLAGRA_DEATH_H")
 
 -- The sodium and iron lethal rungs: their onsets kept (hyponatraemia grade 3, the iron rung 3), a line on the hours in
 -- the state from 1 to 0 at their Plan 5 drain times (100 health over 6 h and 24 h).
 K.drain.HYPONAT_GRADE = 3 -- the lethal hyponatraemia grade (K.fluids.hyponatGrade), no row needed: a grade index
 K.drain.IRON_RUNG = 3 -- the iron lethal rung (S1033), no row needed: a rung index
-K.drain.NA_DEATH_H = 6 -- hours: S1047 respiratory failure; game choice (the Plan 15 spec's section 10; open S1171)
-K.drain.FE_DEATH_H = 24 -- hours: S1033; game choice (the Plan 15 spec's section 10; open S1173)
+K.drain.NA_DEATH_H = K.dials.get("drain.NA_DEATH_H")
+K.drain.FE_DEATH_H = K.dials.get("drain.FE_DEATH_H")
 
 -- Per state, by code: its name, its onset (starved hours, deficit per cent, the clinical grade or the rung), its death
 -- point (BMI, deficit per cent or hours since onset) and, for the two paced states, its Shortened death time in hours.
@@ -745,16 +745,16 @@ end
 -- Healing toward the target (Plan 15 Task 4 fix 1, ruling L2): vanilla's regeneration tier (#2721, #2353) and its
 -- additions per multiplier unit (#2354); asleep, the sleeping addition, which HUNGRY or THIRST at level 4 zeroes (#0515).
 K.drain.REGEN = {
-    0.002, -- tier 0, the standard addition: VANILLA #2354
-    0.0013, -- tier 1, the reduced addition (a HUNGRY, SICK or THIRST level 2): VANILLA #2354
-    0.0008, -- tier 2, the severely reduced addition (a level 3, or SICK 4): VANILLA #2354
-    0, -- tier 3, HUNGRY or THIRST at level 4: VANILLA #2721, #2353
+    0.002, -- VANILLA #2354: tier 0, the standard addition
+    0.0013, -- VANILLA #2354: tier 1, the reduced addition (a HUNGRY, SICK or THIRST level 2)
+    0.0008, -- VANILLA #2354: tier 2, the severely reduced addition (a level 3, or SICK 4)
+    0, -- VANILLA #2721 #2353: tier 3, HUNGRY or THIRST at level 4
 }
 K.drain.REGEN_SLEEPING = 0.02 -- VANILLA #2354
 -- Multiplier units a game minute per real minute of day length: a game hour sums 120 x the day length's minutes (#2922).
-K.drain.UNITS_PER_MIN = 2 -- 120 / 60, #2922
+K.drain.UNITS_PER_MIN = 2 -- VANILLA #2922: 120 / 60
 -- AddGeneralHealth(y) with all 17 parts below 100 raises overall health by y x 5.05 / 17 (#3898).
-K.drain.PART_SPREAD = 17 / 5.05 -- #3898
+K.drain.PART_SPREAD = 17 / 5.05 -- VANILLA #3898
 K.drain.HEAL_EPS = 0.01 -- health: under the target by less than this is at it, no row needed
 
 -- Vanilla's regeneration addition per multiplier unit for the HUNGRY, THIRST and SICK moodle levels and sleep (#2721,
@@ -792,4 +792,24 @@ function K.drain.heal(D, health, yPerMin, dtM)
         return 0
     end
     return K.clamp(yPerMin * dtM, 0, gap * K.drain.PART_SPREAD)
+end
+
+-- The copies laid at load from the dials (Plan 19 Task 3g): STARVE_DBMI and each state's onset, death and short read
+-- their fields once, as this file loads. K.drain.derive lays them again from the fields, so a dial written after load
+-- (K.dials.apply's derive on an option change, replay_live.set_constants) reaches every output that reads a copy; it
+-- computes exactly what the load-time lines above computed.
+function K.drain.derive()
+    K.drain.STARVE_DBMI = K.drain.STARVE_DPDT * (K.drain.CAL_BMI0 - K.drain.BMI_DEATH)
+    local S = K.drain.states
+    S[K.drain.STARVATION].onset = K.drain.STARVE_ONSET_H
+    S[K.drain.STARVATION].death = K.drain.BMI_DEATH
+    S[K.drain.STARVATION].short = K.drain.SHORT_STARVE_H
+    S[K.drain.SCURVY].death = K.drain.SCURVY_DEATH_H
+    S[K.drain.BERIBERI].death = K.drain.BERIBERI_DEATH_H
+    S[K.drain.PELLAGRA].death = K.drain.PELLAGRA_DEATH_H
+    S[K.drain.HYPONAT].death = K.drain.NA_DEATH_H
+    S[K.drain.DEHYD].onset = K.drain.DEHYD_ONSET
+    S[K.drain.DEHYD].death = K.drain.DEHYD_DEATH
+    S[K.drain.DEHYD].short = K.drain.SHORT_DEHYD_H
+    S[K.drain.IRON].death = K.drain.FE_DEATH_H
 end

@@ -189,7 +189,7 @@ function K.energy.stripLoad(target, carried, maxW)
         return target
     end
     local f = K.clamp(carried / maxW, 0, 1)
-    return target / (1 + 0.35 * f * f) -- #2649
+    return target / (1 + K.energy.LOAD_FACTOR * f * f) -- #2649
 end
 
 -- The CLASS_LIST name whose engine value is nearest metValue; a tie goes to the earlier (lower) name.
@@ -401,3 +401,7 @@ function K.energy.epoc(body, exercising, exKcal, dtM)
     K.body.trailAdd(body.trail, "ee", rel)
     return rel, healed
 end
+
+-- The engine's load factor K.energy.stripLoad divides out (Plan 19 Task 3g: its inline 0.35 named, a fixed row, #2649),
+-- appended so no earlier line moves.
+K.energy.LOAD_FACTOR = K.dials.get("energy.LOAD_FACTOR")

@@ -8,8 +8,8 @@
 -- OnGameStart closure, so a reload of this file adds no second listener; the closure looks NutritionRevamp up per call.
 local NR = NutritionRevamp
 NR.client.options = NR.client.options or {}
-NR.client.options.mode = 1
-NR.client.options.logLevel = 2
+NR.client.options.mode = 1 -- NR.Mode's default, 1 Managed, until OnGameStart reads the option: an option value, no row needed
+NR.client.options.logLevel = 2 -- NR.LogLevel's default until OnGameStart reads the option: an option value, no row needed
 NR.client.options.dialSeen = {} -- the last value seen of each sandbox-backed dial (K.dials.apply)
 
 NR_ClientOptions_Installed = NR_ClientOptions_Installed or {}

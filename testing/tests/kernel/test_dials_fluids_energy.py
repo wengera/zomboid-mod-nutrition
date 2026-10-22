@@ -210,7 +210,7 @@ def dump(rt, t):
 def test_the_wave_holds_its_dials():
     got = rows()
     assert sum(1 for k in got if k.startswith("fluids.")) == 49
-    assert sum(1 for k in got if k.startswith("energy.")) == 79
+    assert sum(1 for k in got if k.startswith("energy.")) == 80          # W6's 79 and W10's LOAD_FACTOR (Plan 19 Task 3g)
 
 
 def test_each_kernel_field_holds_its_registry_value():

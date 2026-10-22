@@ -66,7 +66,7 @@ K.strength.DEFAULTS = {
     b = K.dials.get("strength.DEFAULTS.b"),
     Fnm = K.dials.get("strength.DEFAULTS.Fnm"),
     N0 = { STRONG = K.dials.get("strength.DEFAULTS.N0.STRONG"), STOUT = K.dials.get("strength.DEFAULTS.N0.STOUT"), none = 1.0, FEEBLE = K.dials.get("strength.DEFAULTS.N0.FEEBLE"), WEAK = K.dials.get("strength.DEFAULTS.N0.WEAK") }, -- none is the untrained average, 1 by definition: no row needed
-    startLevel = { STRONG = 9, STOUT = 7, none = 5, FEEBLE = 3, WEAK = 1 }, -- VANILLA: vanilla's start levels but Weak's (vanilla 0, the mod's floor 1)
+    startLevel = { STRONG = 9, STOUT = 7, none = 5, FEEBLE = 3, WEAK = 1 }, -- VANILLA #3879: vanilla's start levels but Weak's (vanilla 0, the mod's floor 1)
     traitShare = K.dials.get("strength.DEFAULTS.traitShare"),
     ffmiNatural = K.dials.get("strength.DEFAULTS.ffmiNatural"),
     kouriCoef = K.dials.get("strength.DEFAULTS.kouriCoef"),
@@ -522,7 +522,7 @@ end
 
 -- The carry's trait factor by muscle band: the constructor's own values for the band trait a level implies (#2144;
 -- ruling 13-7); the level-5 band, none, reads 1.
-K.strength.TRAIT_CARRY = { WEAK = 0.75, FEEBLE = 0.9, STOUT = 1.25, STRONG = 1.5 } -- #2144 VANILLA
+K.strength.TRAIT_CARRY = { WEAK = 0.75, FEEBLE = 0.9, STOUT = 1.25, STRONG = 1.5 } -- VANILLA #2144
 
 -- The carry's trait factor at Strength level n: TRAIT_CARRY of the band bandOf(n), 1 with no band (ruling 13-7).
 function K.strength.traitCarry(n)
@@ -537,11 +537,11 @@ end
 -- ============================================================ the AddXP capture (spec section 4, ruling 13-11)
 -- The protein factor vanilla's XP.AddXP applies off the server's protein store (#2112; the 42.21 jar's AddXP
 -- @107-@190): x1.5 strictly between 50 and 300, x0.7 strictly below -300, else 1.
-K.strength.PROTEIN_LO = 50 -- #2112 VANILLA
-K.strength.PROTEIN_HI = 300 -- #2112 VANILLA
-K.strength.PROTEIN_HI_FACTOR = 1.5 -- #2112 VANILLA
-K.strength.PROTEIN_NEG = -300 -- #2112 VANILLA
-K.strength.PROTEIN_NEG_FACTOR = 0.7 -- #2112 VANILLA
+K.strength.PROTEIN_LO = 50 -- VANILLA #2112
+K.strength.PROTEIN_HI = 300 -- VANILLA #2112
+K.strength.PROTEIN_HI_FACTOR = 1.5 -- VANILLA #2112
+K.strength.PROTEIN_NEG = -300 -- VANILLA #2112
+K.strength.PROTEIN_NEG_FACTOR = 0.7 -- VANILLA #2112
 
 -- The protein factor of a store (a NaN store compares false everywhere and reads 1).
 function K.strength.proteinFactor(store)

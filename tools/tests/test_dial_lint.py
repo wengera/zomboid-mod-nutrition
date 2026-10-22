@@ -126,6 +126,31 @@ def test_the_migrated_monotony_kernel_and_the_dial_files_are_clean():
     assert dial_lint.lint([os.path.join(shared, "NR_Kernel.lua")]) == []    # W4 (Plan 19 Task 3b) moved K.HEIGHT_M (core)
 
 
+@pytest.mark.parametrize("line,flagged", [
+    ("K.x.A = 50 -- VANILLA #2112", False),
+    ("K.x.A = 0.3 -- VANILLA #2270: the endDef floor", False),
+    ("K.x.A = 0.005 -- VANILLA BodyPart.DamageUpdate L500-L503", False),
+    ("K.x.A = 50 -- #2112 VANILLA", True),                       # the old trailing forms (Plan 19 Task 3g: one form)
+    ("K.x.A = 0.3 -- the endDef floor, VANILLA #2270", True),
+    ("K.x.A = 10 -- vanilla #2354", True),
+])
+def test_e1_takes_the_vanilla_marker_only_where_it_opens_the_comment(line, flagged):
+    found = [f for f in dial_lint.lint_text(KER, line) if f.rule == "E1"]
+    assert bool(found) == flagged, line
+    if flagged and "VANILLA" in line:
+        assert "a VANILLA marker opens its comment" in found[0].detail
+
+
+def test_e1_leaves_the_elements_of_a_table_opened_by_the_vanilla_marker_only():
+    assert rules("K.x.T = { -- VANILLA #2354: the tiers\n    0.002, -- #2354\n}\n") == []
+    assert rules("K.x.T = { -- the tiers, VANILLA #2354\n    0.002, -- #2354\n}\n") == [("E1", 2)]
+
+
+def test_the_whole_mod_is_clean_the_section_3_gate():
+    # Plan 19 Task 3g: after the last migration wave the lint reads 0 errors and 0 warnings on the whole mod
+    assert dial_lint.lint([dial_lint.DEFAULT]) == []
+
+
 def test_the_cli_exits_1_on_an_error_and_0_on_warnings_only(tmp_path, capsys):
     bad = tmp_path / "NR_Kernel_X.lua"
     bad.write_text("K.x.A = 4.3 -- game choice\n", encoding="utf-8")

@@ -46,7 +46,7 @@ def test_each_dial_option_is_its_row():
     rows = dials.load_rows(registry_text())
     opts = dials.sandbox_options(shipped())
     backed = {r["opt"]: (i, r) for i, r in rows.items() if "opt" in r}
-    assert len(backed) == 34 and set(backed) <= set(opts)
+    assert len(backed) == 36 and set(backed) <= set(opts)                # 34 strength options, OnsetSpeed and Severity
     for name, (dial_id, row) in backed.items():
         o = opts[name]
         assert o["type"] == ("integer" if row.get("int") else "double"), name
@@ -60,9 +60,30 @@ def test_the_options_follow_the_registry_line_order():
     order = [n for n in re.findall(r"option NR\.(\w+)", shipped())]
     lines = dials.row_lines(registry_text())
     rows = dials.load_rows(registry_text())
-    by_line = [rows[i]["opt"] for i in sorted((i for i in rows if "opt" in rows[i]), key=lambda i: lines[i][0])]
+    placed = set(SO.head_dials())
+    by_line = [rows[i]["opt"] for i in sorted((i for i in rows if "opt" in rows[i] and i not in placed),
+                                              key=lambda i: lines[i][0])]
     assert order[len(SO.HEAD):] == by_line
     assert order[:len(SO.HEAD)] == [h[1] for h in SO.HEAD]
+
+
+def test_the_scalers_are_their_rows_written_in_their_head_place():
+    # Plan 19 Task 3g (inventory section 4 item 12): OnsetSpeed's and Severity's default and range are their param rows,
+    # the one source the options poll's clamp reads too; the blocks keep their place and comment at the file's head
+    assert SO.head_dials() == ["options.ONSET_SPEED", "options.SEVERITY"]
+    rows = dials.load_rows(registry_text())
+    for dial_id, name in (("options.ONSET_SPEED", "OnsetSpeed"), ("options.SEVERITY", "Severity")):
+        assert rows[dial_id]["opt"] == name and rows[dial_id].get("param") is True, dial_id
+    text = registry_text()
+    moved = SO.render(_edit(text, "options.SEVERITY", "max = 3,", "max = 4,"))
+    assert "option NR.Severity\n{\n    type = double, min = 0.0, max = 4.0, default = 1.0," in moved
+    assert moved.index("option NR.Severity") < moved.index("option NR.VisibilityMode")
+    assert moved.count("option NR.Severity") == 1
+    moved = SO.render(_edit(text, "options.ONSET_SPEED", "value = 1.0,", "value = 2.0,"))
+    assert "option NR.OnsetSpeed\n{\n    type = double, min = 0.5, max = 30.0, default = 2.0," in moved
+    wrong = _edit(text, "options.SEVERITY", "opt = 'Severity',", "opt = 'Harshness',")
+    with pytest.raises(ValueError, match="HEAD places it as NR.Severity"):
+        SO.render(wrong)
 
 
 def _edit(text, dial_id, old, new):

@@ -26,6 +26,7 @@ check finds:
   places), min, max or int; an opt row K.dials.apply writes whose value is not exact at three places;
 - int without opt, param that is not true or has no opt or no numeric value, a non-integer int row, an empty fit, a
   fixed row that is not min == max == value;
+- a chain of ASCENDING (knots K.interp divides by the gaps of, a ladder read in order) whose values do not ascend;
 - an orphan (an id no K.dials.get in the mod's Lua names) and a K.dials.get naming no row; an opt row K.dials.apply
   writes that does not resolve as K.<id> = K.dials.get(...).
 The option file itself is generated from the opt rows (tools/sandbox_options.py --check).
@@ -49,8 +50,12 @@ CLAIMS_REL = "docs/reference/claims.tsv"
 FIELDS = ("value", "unit", "min", "max", "src", "note", "opt", "int", "param", "fit", "same", "fixed")
 WRITTEN_PLACES = 1000                                 # the option file's three decimal places (K.dials.WRITTEN_PLACES)
 CLASSES = ("game choice", "vanilla", "fitted", "inference")
+# the chains that must ascend: x knots K.interp divides by the gaps of, and a ladder read in order
 ASCENDING = (("strength.DEFAULTS.fp_knots.1.1", "strength.DEFAULTS.fp_knots.2.1", "strength.DEFAULTS.fp_knots.3.1",
-              "strength.DEFAULTS.fp_knots.4.1"),)   # x knots K.interp divides by the gaps of
+              "strength.DEFAULTS.fp_knots.4.1"),
+             ("fluids.THIRST_KNOTS.2.1", "fluids.THIRST_KNOTS.3.1", "fluids.THIRST_KNOTS.4.1",   # K.fluids.tVol
+              "fluids.THIRST_KNOTS.5.1", "fluids.THIRST_KNOTS.6.1"),                             # (5.1 is drain.DEHYD_ONSET)
+             ("drain.STARVE_PHASE_H.1", "drain.STARVE_PHASE_H.2", "drain.STARVE_PHASE_H.3"))     # K.drain.starvePhase
 SCIENCE_ID = re.compile(r"^S\d{4}$")
 CLAIM_ID = re.compile(r"^#\d{4}$")
 ROW_RX = re.compile(r"^D\['([^']+)'\] = \{")
@@ -407,7 +412,8 @@ def _order(vals):
             continue
         xs = [vals[i] for i in chain]
         if any(b <= a for a, b in zip(xs, xs[1:])):
-            out.append("%s: the knots must ascend (K.interp divides by their gaps): %r" % (chain[-1], xs))
+            out.append("%s: the chain must ascend (an interpolation divides by its gaps, a ladder reads it in order): %r"
+                       % (chain[-1], xs))
     return out
 
 

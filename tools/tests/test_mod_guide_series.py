@@ -1359,7 +1359,7 @@ def _(kh, sid):
     assert pt(sid, 3.0) == pytest.approx(health, abs=1e-9)
     onset = VIAB["j_s2d"]["drain"][0]                                     # the starvation state's opening
     h2 = float(kh.K.HEIGHT_M) ** 2
-    dbmi = float(kh.K.drain.STARVE_DPDT) * (22.42350650342769 - 12.0)    # calibration.json starve.bmi0
+    dbmi = float(kh.K.drain.STARVE_DPDT) * (float(kh.K.drain.CAL_BMI0) - float(kh.K.drain.BMI_DEATH))  # the calibration body's bmi0
     hp, bmi0, p_at, b_close, b_rate, p_s = 100.0, None, None, None, dbmi, 0.0
     for r in rows:
         if not r.get("drain.starving"):

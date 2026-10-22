@@ -42,12 +42,14 @@ local K = NR.kernel
 -- (the poll's listener runs first: this file sorts before NR_Server_Players in the execution list, #0850; the reverse
 -- would cost one minute); it fires no changed hook.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
-                      nutritionOn = false, onsetSpeed = 1.0, sleepOn = true,
-                      excessEffectsOn = true, balanceBonus = true, severity = 1.0, visibilityMode = 2,
+                      nutritionOn = false, onsetSpeed = K.dials.get("options.ONSET_SPEED"), sleepOn = true,
+                      excessEffectsOn = true, balanceBonus = true, severity = K.dials.get("options.SEVERITY"), visibilityMode = 2,
                       sexSpecific = false, stimulantRealism = 1, deathPace = K.drain.PACE_REAL,
                       healthCombine = K.drain.COMBINE_MULTIPLY, strength = K.strength.params(nil), dialSeen = {} }
 local O = NR.server.options
 O.strengthRaw = {} -- the raw strength leaves of the last rebuild, by K.strength.OPTIONS row
+O.ONSET_SPEED = K.dials.row("options.ONSET_SPEED") -- OnsetSpeed's row (param): its option, default and range, one source with the option file
+O.SEVERITY = K.dials.row("options.SEVERITY") -- Severity's row (param): its option, default and range, one source with the option file
 
 local MODE_NAMES = { "managed", "overlay" }
 
@@ -76,10 +78,10 @@ function NR.server.readOptions(where)
     O.mode = readLeaf(sv, "Mode", 1, 1, 2)
     O.logLevel = readLeaf(sv, "LogLevel", 2, 1, 3)
     O.legacyMirror = readLeaf(sv, "LegacyMirror", true)
-    O.onsetSpeed = readLeaf(sv, "OnsetSpeed", 1.0, 0.5, 30, true)
+    O.onsetSpeed = K.dials.readParam(sv, O.ONSET_SPEED, O.ONSET_SPEED.value)
     O.excessEffectsOn = readLeaf(sv, "ExcessEffectsOn", true)
     O.balanceBonus = readLeaf(sv, "BalanceBonus", true)
-    O.severity = readLeaf(sv, "Severity", 1.0, 0, 3, true)
+    O.severity = K.dials.readParam(sv, O.SEVERITY, O.SEVERITY.value)
     O.visibilityMode = readLeaf(sv, "VisibilityMode", 2, 1, 3)
     O.sexSpecific = readLeaf(sv, "SexSpecific", false)
     local oldSleep = O.sleepOn

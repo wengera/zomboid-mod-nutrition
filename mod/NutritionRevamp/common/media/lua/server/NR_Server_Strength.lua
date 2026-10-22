@@ -45,7 +45,7 @@ NR.server.strength = {
 local STR = NR.server.strength
 
 -- The #2102 ladder (cumulative XP for levels 1-10), the fallback when the perk's own getter is absent.
-STR.FALLBACK_TOTALS = { 1500, 4500, 10500, 19500, 37500, 67500, 127500, 217500, 337500, 487500 } -- #2102 VANILLA
+STR.FALLBACK_TOTALS = { 1500, 4500, 10500, 19500, 37500, 67500, 127500, 217500, 337500, 487500 } -- VANILLA #2102
 -- The carry delta re-assertion tolerance.
 STR.CARRY_EPS = 0.001
 

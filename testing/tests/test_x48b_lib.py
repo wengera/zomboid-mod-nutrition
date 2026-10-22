@@ -250,6 +250,15 @@ def test_grade_combine():
 
 # ---------------------------------------------------------------- the constants and the prerun
 def _kernel_value(name):
+    """K.drain.<name> as the mod writes it: its registry row's value since Plan 19 Task 3g moved the drain dials (the
+    kernel line names no number), else the kernel line's literal (a vanilla mirror left in place, R_HUNGER)."""
+    tools = os.path.join(REPO, "tools")
+    if tools not in sys.path:
+        sys.path.insert(0, tools)
+    import dials
+    values = dials.values()
+    if "drain." + name in values:
+        return float(values["drain." + name])
     with open(KERNEL, encoding="utf-8") as fh:
         m = re.search(r"^K\.drain\.%s = ([0-9.eE+-]+)" % name, fh.read(), re.M)
     return float(m.group(1))

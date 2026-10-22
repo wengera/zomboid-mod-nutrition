@@ -112,8 +112,8 @@ K.effects.CAF_SLEEP_FULL = K.dials.get("effects.CAF_SLEEP_FULL")
 K.effects.CAF_SLEEP_ZERO = K.dials.get("effects.CAF_SLEEP_ZERO")
 
 -- The engine part of accrual (B3) and recovery (B4): vanilla's own factors, clamped.
-K.effects.END_FLOOR = 0.3 -- the endDef floor, VANILLA #2270
-K.effects.REST_DIV = 1.5 -- sitting or resting divides the accrual, VANILLA #2271
+K.effects.END_FLOOR = 0.3 -- VANILLA #2270: the endDef floor
+K.effects.REST_DIV = 1.5 -- VANILLA #2271: sitting or resting divides the accrual
 K.effects.M_LO = K.dials.get("effects.M_LO")
 K.effects.M_HI = K.dials.get("effects.M_HI")
 K.effects.R_LO = K.dials.get("effects.R_LO")
@@ -601,23 +601,23 @@ K.effects.PAIN_PARTS = 17 -- BodyPartType's 17 parts, indices 0..16 (MAX exclude
 -- The pain modifier per part index (VANILLA BodyPartType.<clinit> L13-L29, the first float argument painModifier,
 -- BodyPartType.<init> @11-@14 L51; read on 42.21, Plan 18 Task 1 J5): PAIN's target is the sum of part pain x it.
 K.effects.PAIN_MOD = {
-    [0] = 0.5, -- Hand_L, VANILLA L13
-    0.5, -- Hand_R, VANILLA L14
-    0.6, -- ForeArm_L, VANILLA L15
-    0.6, -- ForeArm_R, VANILLA L16
-    0.6, -- UpperArm_L, VANILLA L17
-    0.6, -- UpperArm_R, VANILLA L18
-    0.7, -- Torso_Upper, VANILLA L19
-    0.78, -- Torso_Lower, VANILLA L20 (the float 0.7799999713897705)
-    0.8, -- Head, VANILLA L21
-    0.8, -- Neck, VANILLA L22
-    0.7, -- Groin, VANILLA L23
-    0.7, -- UpperLeg_L, VANILLA L24
-    0.7, -- UpperLeg_R, VANILLA L25
-    0.6, -- LowerLeg_L, VANILLA L26
-    0.6, -- LowerLeg_R, VANILLA L27
-    0.5, -- Foot_L, VANILLA L28
-    0.5, -- Foot_R, VANILLA L29
+    [0] = 0.5, -- VANILLA L13: Hand_L
+    0.5, -- VANILLA L14: Hand_R
+    0.6, -- VANILLA L15: ForeArm_L
+    0.6, -- VANILLA L16: ForeArm_R
+    0.6, -- VANILLA L17: UpperArm_L
+    0.6, -- VANILLA L18: UpperArm_R
+    0.7, -- VANILLA L19: Torso_Upper
+    0.78, -- VANILLA L20: Torso_Lower (the float 0.7799999713897705)
+    0.8, -- VANILLA L21: Head
+    0.8, -- VANILLA L22: Neck
+    0.7, -- VANILLA L23: Groin
+    0.7, -- VANILLA L24: UpperLeg_L
+    0.7, -- VANILLA L25: UpperLeg_R
+    0.6, -- VANILLA L26: LowerLeg_L
+    0.6, -- VANILLA L27: LowerLeg_R
+    0.5, -- VANILLA L28: Foot_L
+    0.5, -- VANILLA L29: Foot_R
 }
 -- Half of one game minute's added-pain decay per real minute of day length: VANILLA BodyPart.DamageUpdate @2312-@2353
 -- L500-L503 lowers it 0.005 a multiplier unit (Plan 18 Task 1 J3), 2 x dayMin units a game minute (#2922), so 0.01 x
@@ -626,7 +626,7 @@ K.effects.PAIN_MOD = {
 -- Centred, a cause's summed PAIN target stays inside Pain level 1 while 0.005 x dayMin x the sum of its parts' modifiers is
 -- under 5: to about dayMin 833 for both lower legs, 1250 for Head and 1282 for Torso_Lower; on a longer day no
 -- once-a-minute set holds level 1 (a limitation for the guide).
-K.effects.PAIN_HALF_DIP = 0.005
+K.effects.PAIN_HALF_DIP = 0.005 -- VANILLA BodyPart.DamageUpdate L500-L503 (the comment above)
 -- A cause code's bit in D.mask and D.recovering, 2^(code - 1) (K.drain.consider): no row needed.
 K.effects.BIT = { 1, 2, 4, 8, 16, 32, 64 }
 

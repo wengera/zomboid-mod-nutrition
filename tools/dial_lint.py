@@ -10,7 +10,9 @@ declarative data (NR_Data_*.lua) and the bench fixture (NR_Server_Bench.lua) are
   E1 unregistered dial    a top-level assignment (column 0), or an element line of a top-level constant table,
                           whose value is a numeric literal, a numeric expression or a table of them, and whose
                           comment carries a provenance marker (S1234, #1234, game choice, fitted, inference,
-                          design-phase), unless the comment says VANILLA, no row needed or @fixed
+                          design-phase), unless the comment opens with the VANILLA marker (a vanilla mirror left in
+                          place: VANILLA <its # row or jar cite>[: note]) or says no row needed or @fixed; a VANILLA
+                          anywhere else in the comment exempts nothing (Plan 19 Task 3g: one form)
   E2 unlabelled constant  a top-level numeric constant with no comment on its line and no comment line above it
   E3 name mismatch        a dial resolved into a local (local X = K.dials.get, ruling T1-1);
                           K.<a>.<b> = K.dials.get("<c>.<d>") where a.b is not c.d; for an adapter's table T,
@@ -21,7 +23,8 @@ declarative data (NR_Data_*.lua) and the bench fixture (NR_Server_Bench.lua) are
   W1 probable inline dial a numeric literal other than 0, 1, 2, 0.5, 60, 24, 3600, 1e-6, ln 2 or 2 pi inside a
                           function body on a line whose comment says game choice or names an S id (a warning only)
 
-Not a section 3 gate until the migration's last wave (W10) marks the vanilla mirrors VANILLA. Stdlib only; read-only.
+A section 3 gate since the migration's last wave (Plan 19 Task 3g, W10): 0 errors and 0 warnings on the mod. Stdlib
+only; read-only.
 """
 import argparse
 import collections
@@ -38,7 +41,8 @@ DEFAULT = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua")
 Finding = collections.namedtuple("Finding", "path line rule detail")
 
 PROVENANCE_RX = re.compile(r"\bS\d{4}\b|#\d{4}\b|game choice|\bfitted\b|\binference\b|design-phase")
-EXEMPT_RX = re.compile(r"VANILLA|no row needed|@fixed")
+EXEMPT_RX = re.compile(r"no row needed|@fixed")
+VANILLA_RX = re.compile(r"^VANILLA\b")                # the marker opens the comment: VANILLA #1234: note
 W1_MARK_RX = re.compile(r"game choice|\bS\d{4}\b")
 ASSIGN_RX = re.compile(r"^(?:local\s+)?([A-Za-z_][\w.]*)\s*=\s*(.*)$")
 GET_RX = re.compile(r"^([A-Za-z_][\w.]*)\s*=\s*K\.dials\.get\(\s*[\"']([^\"']+)[\"']\s*\)\s*$")
@@ -56,6 +60,17 @@ def in_scope(path):
     if base.startswith("NR_Data_") or base == "NR_Server_Bench.lua":
         return False
     return base.startswith(("NR_Kernel", "NR_Server_", "NR_Client_"))
+
+
+def exempt(comment):
+    """Whether a comment exempts its line from E1: it opens with VANILLA, or says no row needed or @fixed."""
+    return VANILLA_RX.match(comment) is not None or EXEMPT_RX.search(comment) is not None
+
+
+def _e1_detail(comment, what):
+    if "VANILLA" in comment:
+        return what + " (a VANILLA marker opens its comment: VANILLA <# row or jar cite>: note)"
+    return what
 
 
 def numeric_value(rhs):
@@ -110,8 +125,8 @@ def lint_text(path, text):
                     break
         if table_depth > 0:
             # an element line of a top-level constant table
-            if numeric_value(code) and PROVENANCE_RX.search(comment) and not EXEMPT_RX.search(comment) and not table_exempt:
-                out.append(Finding(path, n, "E1", "a table element with a provenance comment outside the registry"))
+            if numeric_value(code) and PROVENANCE_RX.search(comment) and not exempt(comment) and not table_exempt:
+                out.append(Finding(path, n, "E1", _e1_detail(comment, "a table element with a provenance comment outside the registry")))
             table_depth += code.count("{") - code.count("}")
         elif not in_function and raw[:1] not in (" ", "\t", "") and not stripped.startswith("function"):
             g = GET_RX.match(raw[:len(code)].strip())      # the raw code: strip() blanks the id string
@@ -121,9 +136,9 @@ def lint_text(path, text):
             elif g:
                 out.extend(_e3(path, n, g.group(1), g.group(2), table_owner))
             elif a and numeric_value(a.group(2)):
-                marked = PROVENANCE_RX.search(comment) and not EXEMPT_RX.search(comment)
+                marked = PROVENANCE_RX.search(comment) and not exempt(comment)
                 if marked:
-                    out.append(Finding(path, n, "E1", "%s holds a magnitude with a provenance comment outside the registry" % a.group(1)))
+                    out.append(Finding(path, n, "E1", _e1_detail(comment, "%s holds a magnitude with a provenance comment outside the registry" % a.group(1))))
                 elif not comment and not prev_comment_only:
                     out.append(Finding(path, n, "E2", "%s: a numeric constant with no comment" % a.group(1)))
                 if code.count("{") > code.count("}"):
@@ -133,7 +148,7 @@ def lint_text(path, text):
                     table_exempt = False
             elif a and a.group(2).strip().startswith("{") and code.count("{") > code.count("}"):
                 table_depth = code.count("{") - code.count("}")
-                table_exempt = EXEMPT_RX.search(comment) is not None
+                table_exempt = exempt(comment)
         # the block stack, after the line's own checks
         before = len(stack)
         _depth_step(code, stack)

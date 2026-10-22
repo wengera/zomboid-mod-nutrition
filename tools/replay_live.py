@@ -824,8 +824,11 @@ def _kernel_key(seg):
 def set_constants(K, constants, rt=None):
     """Set each {"<dial id>": value} on the kernel table K (the id's field, kernel_slot: "table.NAME" or a deeper path);
     refuses a name the kernel does not hold as a number. The constant's dial writes as one dial (tools/dials.py linked):
-    every kernel field of its same group, array elements included, so a group's fields stay in step. A REPLAY_ONLY name
-    ("replay.NAME") runs its setter on the runtime rt instead (a recording build's code the kernel has since lost)."""
+    every kernel field of its same group, array elements included, so a group's fields stay in step; then each written
+    domain's derive() runs, as K.dials.apply runs it on an option change, so a copy laid from a dial at load (K.drain's
+    STARVE_DBMI and states) follows the set. A REPLAY_ONLY name ("replay.NAME") runs its setter on the runtime rt instead
+    (a recording build's code the kernel has since lost)."""
+    written = []
     for name, value in (constants or {}).items():
         if name.startswith("replay."):
             if name not in REPLAY_ONLY or rt is None:
@@ -842,6 +845,15 @@ def set_constants(K, constants, rt=None):
             other = kernel_slot(K, dial_id)
             if other is not None and isinstance(other[0][other[1]], (int, float)) and not isinstance(other[0][other[1]], bool):
                 other[0][other[1]] = float(value)
+                if dial_id.split(".")[0] not in written:
+                    written.append(dial_id.split(".")[0])
+    for domain in written:
+        try:
+            derive = K[domain]["derive"] if domain != "core" else None
+        except (KeyError, TypeError):                       # a stand-in K without the domain's derive
+            derive = None
+        if derive is not None and callable(derive):
+            derive()
 
 
 # The drain options a replay runs under by default (Plan 17 Task 3): the mod's own defaults, NR.DeathPace 3 (Realistic)
