@@ -12,6 +12,8 @@ import re
 
 import pytest
 
+from .conftest import dial_line
+
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared")
 NAMES = ("W_PROTEIN", "W_CARB", "W_FAT", "W_NEUTRAL", "MEAL_HALF_LIFE_H", "MEAL_REQ", "MEAL_STEEP", "FULL_WEIGHT",
@@ -46,21 +48,21 @@ def test_each_constant_names_its_row_or_its_label():
     with open(os.path.join(SHARED, "NR_Kernel_Satiety.lua"), encoding="utf-8") as fh:
         src = fh.read()
     for name in NAMES:
-        line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
+        line = dial_line("satiety." + name)
         assert re.search(r"S\d{4}|game choice|neutral|CharacterStat", line), name
     assert "provisional" not in src.lower()                             # Plan 11g Task 6: every constant labelled
     for name in FIT:
-        line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
+        line = dial_line("satiety." + name)
         assert "game choice, fitted in Plan 11g Task 6c fix 2 against S" in line, name    # the label the brief sets
         assert "(tools/fit_gut_satiety.py, fit-11g-20261012d)" in line, name        # the fit and its artifact
         assert len(re.findall(r"S\d{4}", line)) >= 2, name                          # the rows that bound it
     for name in ("W_PROTEIN", "W_FAT", "MEAL_HALF_LIFE_H", "MEAL_REQ", "MEAL_STEEP"):
-        line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
+        line = dial_line("satiety." + name)
         assert re.search(r"S12(68|70) open", line), name                 # an open row is named open, never as evidence
-    line = re.search(r"^K\.satiety\.MEAL_SEED_MAX = .*$", src, re.M).group(0)
+    line = dial_line("satiety.MEAL_SEED_MAX")
     assert "game choice (ruling 11c-30; re-derived in Plan 11g Task 6c fix 1, unchanged by fix 2)" in line and "0.214" in line
     for name in ("CIRCADIAN_A", "CIRCADIAN_PEAK_H"):
-        line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
+        line = dial_line("satiety." + name)
         assert "S1273" in line, name                                     # Scheer 2013, minted as S1273
     with open(os.path.join(SHARED, "NR_Kernel_Deficit.lua"), encoding="utf-8") as fh:
         hyb = fh.read()
@@ -419,8 +421,10 @@ def test_sleep_constants_and_their_derivation(host):
     assert S.SLEEP_DEBT_FULL_H == host.K.acute.SLEEP_NEED_H - 5.5
     with open(os.path.join(SHARED, "NR_Kernel_Satiety.lua"), encoding="utf-8") as fh:
         src = fh.read()
-    for name in ("SLEEP_MAX", "SLEEP_DEBT_FULL_H"):
-        line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
+    assert S.SLEEP_SHORT_H == 5.5                                   # the dial; the full debt is derived from it (Plan 19)
+    assert re.search(r"^K\.satiety\.SLEEP_DEBT_FULL_H = K\.acute\.SLEEP_NEED_H - K\.satiety\.SLEEP_SHORT_H -- derived", src, re.M)
+    for name in ("SLEEP_MAX", "SLEEP_SHORT_H"):
+        line = dial_line("satiety." + name)
         assert "game choice, Plan 11d (ruling 11d-2)" in line, name
         for row in ("S1284", "S1565", "S1564", "S1567"):
             assert row in line, (name, row)
@@ -430,9 +434,7 @@ def test_sleep_constants_and_their_derivation(host):
 # --- the protein fill (Plan 11d Task 5, ruling 11d-5; spec § 5d) ---------------------------------------------------
 
 def test_protein_fill_names_its_label_and_rows():
-    with open(os.path.join(SHARED, "NR_Kernel_Satiety.lua"), encoding="utf-8") as fh:
-        src = fh.read()
-    line = re.search(r"^K\.satiety\.PROTEIN_FILL = .*$", src, re.M).group(0)
+    line = dial_line("satiety.PROTEIN_FILL")                        # Plan 19: the provenance is the registry row's
     assert "game choice, fitted in Plan 11g Task 6c" in line and "(ruling 11d-5" in line
     assert "no row names gastric fullness from protein" in line
     for row in ("S1222", "S1380", "S1383", "S1384"):
@@ -542,13 +544,13 @@ def test_nicotine_constants_and_their_labels(host):
     with open(os.path.join(SHARED, "NR_Kernel_Satiety.lua"), encoding="utf-8") as fh:
         src = fh.read()
     for name in ("NIC_MAX", "NIC_FADE_DAYS"):
-        line = re.search(r"^K\.satiety\.%s = .*$" % name, src, re.M).group(0)
+        line = dial_line("satiety." + name)
         assert "game choice, Plan 11e (" in line and "11e-2" in line, name
         for s in ("S1576", "S1577", "n = 13", "low certainty"):
             assert s in line, (name, s)
-    line = re.search(r"^K\.satiety\.NIC_WITHDRAWAL_MAX = .*$", src, re.M).group(0)
+    line = dial_line("satiety.NIC_WITHDRAWAL_MAX")
     assert "CharacterStat.NICOTINE_WITHDRAWAL" in line and "#3632" in line
     assert "keeps smoking" in src                                    # the habit never fades (ruling T2-A)
-    line = re.search(r"^K\.satiety\.NIC_MAX = .*$", src, re.M).group(0)
+    line = dial_line("satiety.NIC_MAX")
     for s in ("T2-D", "48-day mean", "an ASSUMPTION (the row gives no baseline intake)"):
         assert s in line, s                                          # the fit and its labelled baseline

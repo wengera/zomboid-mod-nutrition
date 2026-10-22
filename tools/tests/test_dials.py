@@ -291,3 +291,16 @@ def test_the_cli_sets_and_checks_a_scratch_tree(tree):
     _write(tree, dials.SCIENCE_REL, "id\ttopic\n")
     r = run("check")
     assert r.returncode == 1 and "S0001 is not a row of" in r.stdout
+
+
+def test_linked_lists_the_ids_that_are_one_dial_the_canonical_first():
+    # Plan 19 Task 3d: the fit tools write every kernel field of a patched dial's same group
+    assert dials.linked("satiety.MEAL_REQ") == ["hungerCurve.FED_M", "satiety.MEAL_REQ"]
+    assert dials.linked("hungerCurve.FED_M") == ["hungerCurve.FED_M", "satiety.MEAL_REQ"]
+    group = dials.linked("training.BAND1_MET")
+    assert group[0] == "energy.CLASS_MET.Fitness" and "energy.BAND_MET.3" in group and "training.BAND1_MET" in group
+    assert dials.linked("satiety.FULL_WEIGHT") == ["satiety.FULL_WEIGHT"]
+    assert dials.linked("no.SUCH_DIAL") == ["no.SUCH_DIAL"]
+    a = dials.linked("satiety.MEAL_REQ")
+    a.append("x")
+    assert dials.linked("satiety.MEAL_REQ") == ["hungerCurve.FED_M", "satiety.MEAL_REQ"]   # a fresh list each call

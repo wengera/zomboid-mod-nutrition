@@ -114,6 +114,32 @@ def values(text=None):
     return dict(_VALUES[text])
 
 
+_LINKED = {}                                          # registry text -> {id: [the ids that are one dial with it]}
+
+
+def linked(dial_id, text=None):
+    """The ids that are one dial with dial_id: the id its same chain ends at first, then every other id whose chain
+    ends there, sorted; [dial_id] alone for an id with no row. A tool that patches kernel fields (fit_gut_satiety's
+    _apply) writes each of them, so a fit of satiety.MEAL_REQ moves hungerCurve.FED_M with it and never the registry."""
+    if text is None:
+        text = _read(_path(REPO, REGISTRY_REL))
+    if text not in _LINKED:
+        rows = load_rows(text)
+        groups = {}
+        for i in rows:
+            end, why = _resolve(rows, i)
+            if why:
+                raise ValueError("%s: same %s" % (i, why))
+            groups.setdefault(end, []).append(i)
+        index = {}
+        for end, ids in groups.items():
+            group = [end] + sorted(i for i in ids if i != end)
+            for i in group:
+                index[i] = group
+        _LINKED[text] = index
+    return list(_LINKED[text].get(dial_id, [dial_id]))
+
+
 def source_line(dial_id, text=None):
     """The registry line of dial_id, exactly as written (the provenance helper the kernel tests read instead of a
     kernel constant's line). Raises KeyError for an id with no line."""

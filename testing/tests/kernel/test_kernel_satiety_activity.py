@@ -48,23 +48,22 @@ def test_the_constants(host):
 
 
 def test_each_activity_constant_names_its_rows_and_its_label():
-    sat = src("NR_Kernel_Satiety.lua")
-    for name in ("ACUTE_MAX", "ACUTE_HALF_LIFE_H"):
-        line = re.search(r"^K\.satiety\.%s = .*$" % name, sat, re.M).group(0)
+    for name in ("ACUTE_MAX", "ACUTE_HALF_LIFE_H"):                 # Plan 19: the provenance is the registry row's
+        line = dial_line("satiety." + name)
         assert "game choice, fitted in Task 4b (Plan 11c)" in line, name
         assert "S1500" in line and "S1502" in line and "S1334" not in line, name
         assert re.search(r"S13(0[3-6])", line), name
     for kind in ("aerobic", "resistance", "walk"):
-        line = re.search(r"^K\.satiety\.ACUTE_KIND\.%s = .*$" % kind, sat, re.M).group(0)
+        line = dial_line("satiety.ACUTE_KIND." + kind)
         assert re.search(r"S1\d{3}", line), kind
-    line = re.search(r"^K\.satiety\.ACUTE_DECAY_HALF_LIFE_H = .*$", sat, re.M).group(0)
+    line = dial_line("satiety.ACUTE_DECAY_HALF_LIFE_H")
     assert "game choice, Plan 11d (ruling 11d-1)" in line
     assert "S1500" in line and "S1502" in line
-    line = re.search(r"^K\.satiety\.ACUTE_HALF_LIFE_H = .*$", sat, re.M).group(0)
+    line = dial_line("satiety.ACUTE_HALF_LIFE_H")
     assert "S1500" in line and "S1502" in line and "ACUTE_DECAY_HALF_LIFE_H" in line
-    line = re.search(r"^K\.satiety\.ACUTE_KIND\.resistance = .*$", sat, re.M).group(0)
+    line = dial_line("satiety.ACUTE_KIND.resistance")
     assert "game choice" in line and "S1301" in line
-    line = re.search(r"^K\.satiety\.ACUTE_KIND\.walk = .*$", sat, re.M).group(0)
+    line = dial_line("satiety.ACUTE_KIND.walk")
     assert "S1302" in line
     eng = src("NR_Kernel_Deficit.lua")
     line = dial_line("deficit.EX_LAG_TAU_D")                         # Plan 19: the provenance is the registry row's

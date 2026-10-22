@@ -29,6 +29,14 @@ def dial_line(dial_id):
     return dials.source_line(dial_id)
 
 
+def dial_value(dial_id):
+    """A dial's value as K.dials.get returns it (tools/dials.py values: a same row reads the dial it names), for a
+    test that computes from a kernel constant without loading the kernels (Plan 19: the kernel line names no number)."""
+    dial_line(dial_id)                                                  # tools/ on sys.path, and the id has a row
+    import dials
+    return dials.values()[dial_id]
+
+
 def frozen_lib_shared(dest):
     """A shared/ folder for a frozen driver lib whose kernel host loads NR_Core.lua and NR_Kernel*.lua only (x43's and
     x43b's Kernel, CLAUDE.md section 5: a driver is never edited after its run): HEAD's kernel files copied, and an

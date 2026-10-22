@@ -25,31 +25,31 @@ K.stomach = {}
 -- landing diverts them) and which pass at 1.0 unlisted. The fat-soluble keys
 -- (retinol, carotene, vitD, vitE, vitK) take the fat factor in absorb on top of this entry.
 K.stomach.BIOAVAIL = {}
-K.stomach.BIOAVAIL.water = 1.0
-K.stomach.BIOAVAIL.fibre = 1.0
-K.stomach.BIOAVAIL.vitC = 0.85 -- design-phase-v1 game choice: food vitamin C absorption 70-90 %, no settled row
-K.stomach.BIOAVAIL.iron = 0.18 -- S0434 (the RDA's assumed 18 %), S0535 (14-18 % for mixed diets)
-K.stomach.BIOAVAIL.phytate = 0.0
-K.stomach.BIOAVAIL.retinol = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.carotene = 0.14 -- S0156 (beta-carotene from whole mixed vegetables, ~14 % of purified)
-K.stomach.BIOAVAIL.vitD = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.vitE = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.vitK = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.thiamine = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.riboflavin = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.niacin = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.vitB6 = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.folate = 1.0 -- design-phase-v1 game choice: absorb default 1.0 (folate in DFE already folds in its availability)
-K.stomach.BIOAVAIL.vitB12 = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.choline = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.sodium = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.potassium = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.calcium = 0.25 -- S0413 (fractional absorption of dietary calcium, about 25 % of intake)
-K.stomach.BIOAVAIL.magnesium = 0.325 -- S0536 (fractional magnesium absorption 32.5 % with no added phytate)
-K.stomach.BIOAVAIL.zinc = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.iodine = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.selenium = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
-K.stomach.BIOAVAIL.efa = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.water = K.dials.get("stomach.BIOAVAIL.water")
+K.stomach.BIOAVAIL.fibre = K.dials.get("stomach.BIOAVAIL.fibre")
+K.stomach.BIOAVAIL.vitC = K.dials.get("stomach.BIOAVAIL.vitC")
+K.stomach.BIOAVAIL.iron = K.dials.get("stomach.BIOAVAIL.iron")
+K.stomach.BIOAVAIL.phytate = 0.0 -- no row needed: absorb zeroes phytate itself (an anti-nutrient context, never pooled); the entry keeps every non-macro key listed
+K.stomach.BIOAVAIL.retinol = K.dials.get("stomach.BIOAVAIL.retinol")
+K.stomach.BIOAVAIL.carotene = K.dials.get("stomach.BIOAVAIL.carotene")
+K.stomach.BIOAVAIL.vitD = K.dials.get("stomach.BIOAVAIL.vitD")
+K.stomach.BIOAVAIL.vitE = K.dials.get("stomach.BIOAVAIL.vitE")
+K.stomach.BIOAVAIL.vitK = K.dials.get("stomach.BIOAVAIL.vitK")
+K.stomach.BIOAVAIL.thiamine = K.dials.get("stomach.BIOAVAIL.thiamine")
+K.stomach.BIOAVAIL.riboflavin = K.dials.get("stomach.BIOAVAIL.riboflavin")
+K.stomach.BIOAVAIL.niacin = K.dials.get("stomach.BIOAVAIL.niacin")
+K.stomach.BIOAVAIL.vitB6 = K.dials.get("stomach.BIOAVAIL.vitB6")
+K.stomach.BIOAVAIL.folate = K.dials.get("stomach.BIOAVAIL.folate")
+K.stomach.BIOAVAIL.vitB12 = K.dials.get("stomach.BIOAVAIL.vitB12")
+K.stomach.BIOAVAIL.choline = K.dials.get("stomach.BIOAVAIL.choline")
+K.stomach.BIOAVAIL.sodium = K.dials.get("stomach.BIOAVAIL.sodium")
+K.stomach.BIOAVAIL.potassium = K.dials.get("stomach.BIOAVAIL.potassium")
+K.stomach.BIOAVAIL.calcium = K.dials.get("stomach.BIOAVAIL.calcium")
+K.stomach.BIOAVAIL.magnesium = K.dials.get("stomach.BIOAVAIL.magnesium")
+K.stomach.BIOAVAIL.zinc = K.dials.get("stomach.BIOAVAIL.zinc")
+K.stomach.BIOAVAIL.iodine = K.dials.get("stomach.BIOAVAIL.iodine")
+K.stomach.BIOAVAIL.selenium = K.dials.get("stomach.BIOAVAIL.selenium")
+K.stomach.BIOAVAIL.efa = K.dials.get("stomach.BIOAVAIL.efa")
 
 -- The fat-soluble keys that take the fat factor in absorb (vitamin D takes its own floored form).
 K.stomach.FAT_SOLUBLE = {}
@@ -60,7 +60,7 @@ K.stomach.FAT_SOLUBLE.vitK = true
 
 -- Vitamin D's fat-free share of its fat-meal absorption: 1 / 1.32 (a fat meal raises the plasma peak
 -- 32 %), so D absorbs at VITD_FAT_FREE + (1 - VITD_FAT_FREE) x fatFactor, 0.772 with no fat at all.
-K.stomach.VITD_FAT_FREE = 0.76 -- S0198 (+32 % with a fat-containing meal; 1/1.32 = 0.76, derived)
+K.stomach.VITD_FAT_FREE = K.dials.get("stomach.VITD_FAT_FREE")
 
 -- A fresh stomach: an all-zero solid buffer, an empty liquid lane and no drink-borne energy (spec § 4: a record with no
 -- stomach starts empty).
@@ -93,7 +93,7 @@ end
 -- phytate meals rather than extrapolate the log-linear fit past the measured range.
 -- design-phase-v1 game choice: the [0.2, 4.0] band is a judgement; S0532 supports the -82 % at 250 mg phytate P, which the floor caps at -80 %. Of the S tags below, S0195 and S0194 state the slopes (-0.0034 per mg phytate, +0.0065 per mg vitamin C); S0533 is a direction row and S0532 the 250 mg dose-response point, neither a slope.
 function K.stomach.ironFactor(phytateMg, vitCMg)
-    return K.clamp(math.exp(-0.0034 * phytateMg + 0.0065 * vitCMg), 0.2, 4.0) -- S0195, S0194, S0533, S0532
+    return K.clamp(math.exp(K.stomach.IRON_PHYTATE_SLOPE * phytateMg + K.stomach.IRON_VITC_SLOPE * vitCMg), K.stomach.IRON_MIN, K.stomach.IRON_MAX) -- S0195, S0194, S0533, S0532
 end
 
 -- The fat co-ingestion multiplier for a fat-soluble nutrient: 1 - exp(-lipids / FAT_EFOLD_G), floored at 0.05
@@ -101,9 +101,9 @@ end
 -- design-phase-v1 game choice: the e-fold and the 0.05 floor are judgements; S0197/S0199 support only the direction and the 28 g reference.
 -- absorb reads it once per call, off ctx.lipids (the meal's lipids in the stomach) or the
 -- emptied vector's own when no context is given, for the fat-soluble keys.
-K.stomach.FAT_EFOLD_G = 3 -- design-phase-v1 game choice: a few grams of fat per meal give near-full fat-soluble absorption (S0197 carotene negligible without fat, S0198 vitamin D +32 % with fat - direction only; no row for the saturation; Plan 2 shipped 10 g, which left a 30 g-fat meal at 68 % once the factor read the meal in the stomach (Plan 4 close))
+K.stomach.FAT_EFOLD_G = K.dials.get("stomach.FAT_EFOLD_G")
 function K.stomach.fatFactor(lipidsG)
-    return K.clamp(1 - math.exp(-lipidsG / K.stomach.FAT_EFOLD_G), 0.05, 1.0) -- S0197, S0199
+    return K.clamp(1 - math.exp(-lipidsG / K.stomach.FAT_EFOLD_G), K.stomach.FAT_FLOOR, 1.0) -- S0197, S0199
 end
 
 -- The meal context the interaction factors read: the buffer's phytate, vitC,
@@ -189,12 +189,12 @@ end
 -- the energy ingestLiquid sent there, at most the lane's own). Water drunk with or after a solid meal separates from it
 -- and empties at about its fasting pace, a half-time of about 5-15 min (S2265, S2267, S2269, S1246); only energy carried
 -- in the drink itself slows it (S1234, S2265, S2274). K.stomach.new lays both lanes and the counter.
-K.stomach.RATE_BASE = 1.25 -- S0131 (labelled inference, ruling 11c-4): kcal/min at no load, fitted so the rate reads Hunt 1985's overall 2.5 kcal/min at its mean load; liquid carbohydrate meals applied to solids
-K.stomach.RATE_PER_KCAL = 0.0025 -- S0131 (labelled inference, ruling 11c-4): per min, the rise with load (+0.72 kcal/min for +300 kcal of volume, +0.62 for +240 kcal of density: 0.0024 and 0.0026 per kcal)
-K.stomach.WATER_HALF_MIN = 13 -- S1245 (Mudie 2014: 240 mL of water half-empties in 13 +/- 1 min, fasted); the fastest either lane empties
-K.stomach.LIQUID_PER_KCAL = 0.12 -- S1234 over S1245 (labelled inference, ruling 11c-5): min of liquid half-time per kcal of drink-borne energy in the solid lane (Plan 15 Task 14b), fitted to Camps 2016's thin 100 and 500 kcal shakes (26.5 and 69.5 min) over water's 13 min
-K.stomach.CAPACITY_MAX_G = 730 -- S1250 (labelled inference, ruling 11c-8): the soft cap, 734 mL of water to maximum fullness; S1251's slow nutrient drinks (937-1048 mL) bound it above
-K.stomach.CAPACITY_HARD_G = 1100 -- S1253 (labelled inference): the soft cap's full scale, a balloon at maximal discomfort in lean subjects (1100 mL, n = 4)
+K.stomach.RATE_BASE = K.dials.get("stomach.RATE_BASE")
+K.stomach.RATE_PER_KCAL = K.dials.get("stomach.RATE_PER_KCAL")
+K.stomach.WATER_HALF_MIN = K.dials.get("stomach.WATER_HALF_MIN")
+K.stomach.LIQUID_PER_KCAL = K.dials.get("stomach.LIQUID_PER_KCAL")
+K.stomach.CAPACITY_MAX_G = K.dials.get("stomach.CAPACITY_MAX_G")
+K.stomach.CAPACITY_HARD_G = K.dials.get("stomach.CAPACITY_HARD_G")
 
 -- A vector's mass in grams: its water, macronutrients and fibre (the gram keys of the buffer's mass, efa inside lipids, ethanol left out by ruling T17-2; calories are energy, not mass).
 function K.stomach.massOf(vector)
@@ -348,3 +348,11 @@ function K.stomach.recordFoodFill(record)
     end
     return f
 end
+
+-- The magnitudes ironFactor and fatFactor read (Plan 19 W7), resolved from their dials here and read at call time:
+-- the meal iron factor's two slopes and its band, and the fat factor's floor.
+K.stomach.IRON_PHYTATE_SLOPE = K.dials.get("stomach.IRON_PHYTATE_SLOPE")
+K.stomach.IRON_VITC_SLOPE = K.dials.get("stomach.IRON_VITC_SLOPE")
+K.stomach.IRON_MIN = K.dials.get("stomach.IRON_MIN")
+K.stomach.IRON_MAX = K.dials.get("stomach.IRON_MAX")
+K.stomach.FAT_FLOOR = K.dials.get("stomach.FAT_FLOOR")

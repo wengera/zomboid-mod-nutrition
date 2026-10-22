@@ -492,13 +492,13 @@ def test_a_pool_that_is_not_a_table_heals(kin_host):
 # empties feeds it. The writer seeds M at first sight and reads it.
 
 def _satiety_constant(name):
-    """A K.satiety constant read off the kernel file (fitted in Plan 11g Task 6, so no value is re-typed here)."""
-    import os
-    import re
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "mod", "NutritionRevamp", "common",
-                        "media", "lua", "shared", "NR_Kernel_Satiety.lua")
-    with open(path, encoding="utf-8") as fh:
-        return float(re.search(r"^K\.satiety\.%s = ([0-9.]+)" % name, fh.read(), re.M).group(1))
+    """A K.satiety dial's value, read off the registry (fitted in Plan 11g Task 6, so no value is re-typed here).
+
+    Since Plan 19 the kernel line resolves the field from its NR_Data_Dials.lua row (K.dials.get) and names no number,
+    so the value is the row's, as K.dials.get returns it: a same row reads the dial it names.
+    """
+    from .conftest import dial_value
+    return float(dial_value("satiety." + name))
 
 
 HL = _satiety_constant("MEAL_HALF_LIFE_H")       # M's half-life in game hours

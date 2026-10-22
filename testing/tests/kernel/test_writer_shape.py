@@ -87,9 +87,9 @@ def player(h, name="a"):
 
 
 def _satiety_constant(name):
-    with open(os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Kernel_Satiety.lua"),
-              encoding="utf-8") as fh:
-        return float(re.search(r"^K\.satiety\.%s = ([0-9.]+)" % name, fh.read(), re.M).group(1))
+    """A K.satiety dial's value off the registry (Plan 19: the kernel line resolves it; MEAL_REQ reads FED_M's row)."""
+    from .conftest import dial_value
+    return float(dial_value("satiety." + name))
 
 
 MEAL_REQ = _satiety_constant("MEAL_REQ")

@@ -304,3 +304,18 @@ def test_the_refinement_applies_both_bounds():
     # exclusive low bound is skipped, never scored
     assert F._admit("FULL_WEIGHT", 1.3, {}) == 1 and F._admit("LIQUID_WEIGHT", 0.4, {}) == 0.4
     assert F._admit("FULL_WEIGHT", 0.0, {}) is None and F._admit("MEAL_REQ", -1.0, {}) is None
+
+
+def test_a_meal_req_patch_moves_the_fed_threshold_with_it_and_never_the_registry():
+    # Plan 19 Task 3d: satiety.MEAL_REQ is same = hungerCurve.FED_M, one dial; a patch of either writes both kernel
+    # fields (tools/dials.py linked), a patch of an unlinked constant moves neither, and the registry row is untouched
+    reg = os.path.join(F.REPO, *F.dials.REGISTRY_REL.split("/"))
+    before = open(reg, "rb").read()
+    for name in ("MEAL_REQ", "hungerCurve.FED_M"):
+        h = F.new_host({name: 6.0})
+        assert (h.K.satiety.MEAL_REQ, h.K.hungerCurve.FED_M) == (6.0, 6.0), name
+        assert h.K.dials.get("hungerCurve.FED_M") == 3.80654, name     # the registry row keeps the shipped fit
+    h = F.new_host({"FULL_WEIGHT": 0.3})
+    assert (h.K.satiety.MEAL_REQ, h.K.hungerCurve.FED_M) == (3.80654, 3.80654)
+    assert F.current(["MEAL_REQ"]) == {"MEAL_REQ": 3.80654}
+    assert open(reg, "rb").read() == before

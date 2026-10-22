@@ -4,14 +4,13 @@ never faster than water's half-time (S1245), and a liquid lane of drunk water wh
 drink-borne energy in the solid lane (S1234 over S1245, a labelled inference; Plan 15 Task 14b: a plate's energy no
 longer slows it, S2265, S2267, S2269). Hand-computed from the constants."""
 import math
-import os
 import re
 
 import pytest
 
+from .conftest import dial_line
+
 LN2 = 0.6931471805599453
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-STOMACH = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Kernel_Stomach.lua")
 NAMES = ("RATE_BASE", "RATE_PER_KCAL", "WATER_HALF_MIN", "LIQUID_PER_KCAL", "CAPACITY_MAX_G", "CAPACITY_HARD_G")
 
 
@@ -39,10 +38,8 @@ def test_the_constants(host):
 
 
 def test_each_constant_names_its_row_or_its_label():
-    with open(STOMACH, encoding="utf-8") as fh:
-        src = fh.read()
-    for name in NAMES:
-        line = re.search(r"^K\.stomach\.%s = .*$" % name, src, re.M).group(0)
+    for name in NAMES:                                              # Plan 19: the provenance is the registry row's
+        line = dial_line("stomach." + name)
         assert ("labelled inference" in line and re.search(r"S\d{4}", line)) or "S1245 (Mudie" in line, name
 
 

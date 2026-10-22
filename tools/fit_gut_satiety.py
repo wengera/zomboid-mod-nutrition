@@ -56,6 +56,7 @@ for _p in (TESTS, TOOLS):
 from kernel import gut_oracles as GO  # noqa: E402
 from kernel.conftest import LuaHost  # noqa: E402
 import replay_live as RL  # noqa: E402
+import dials  # noqa: E402
 import fitlib  # noqa: E402
 
 DEFAULT_PARAMS = ("FULL_WEIGHT", "MEAL_REQ", "MEAL_STEEP", "MEAL_HALF_LIFE_H", "W_PROTEIN", "W_FAT", "PROTEIN_FILL",
@@ -75,19 +76,39 @@ def _path(name):
     return name.split(".") if "." in name else ["satiety", name]
 
 
+def _slot(K, segs):
+    """(the kernel table holding the number at the path segs, its key), or None where the path names no number on K
+    (an array element's segment is its index)."""
+    t = K
+    keys = [int(x) if x.isdigit() else x for x in segs]
+    for k in keys[:-1]:
+        t = t[k] if t is not None and hasattr(t, "items") else None
+        if t is None:
+            return None
+    cur = t[keys[-1]] if hasattr(t, "items") else None
+    if isinstance(cur, bool) or not isinstance(cur, (int, float)):
+        return None
+    return t, keys[-1]
+
+
 def _apply(K, patch):
-    """Set each constant of `patch` on the kernel table K; refuses an unknown or non-numeric constant."""
+    """Set each constant of `patch` on the kernel table K; refuses an unknown or non-numeric constant. The constant's
+    dial writes as one dial (tools/dials.py linked): the field its same chain ends at first, then every kernel field
+    whose row names it, so a fit of MEAL_REQ (satiety.MEAL_REQ, same = hungerCurve.FED_M) moves the fed threshold with
+    it and the pair stays in step; a linked field on a table this host does not load (an adapter's) is skipped. Only
+    kernel fields are written, never the registry."""
     for name, value in patch.items():
-        segs = _path(name)
-        t = K
-        for s in segs[:-1]:
-            t = t[s]
-            if t is None:
-                raise ValueError("unknown constant %s" % name)
-        cur = t[segs[-1]]
-        if isinstance(cur, bool) or not isinstance(cur, (int, float)):
+        own = ".".join(_path(name))
+        if _slot(K, own.split(".")) is None:
             raise ValueError("unknown constant %s (not a number on the kernel)" % name)
-        t[segs[-1]] = float(value)
+        for dial_id in dials.linked(own):
+            segs = dial_id.split(".")
+            slot = _slot(K, segs)
+            if slot is None:
+                if K[segs[0]] is None:
+                    continue
+                raise ValueError("%s: the linked dial %s is not a number on the kernel" % (name, dial_id))
+            slot[0][slot[1]] = float(value)
 
 
 def _bounds(name):
