@@ -134,8 +134,7 @@ def render(text=None):
             if dom in PREAMBLE:
                 parts.append("/* %s */\n" % PREAMBLE[dom])
         parts.append(_block(None, name, kind, fields) + "\n")
-    names = [b for b in parts]
-    return "\n".join(names)
+    return "\n".join(parts)
 
 
 def main(argv=None):

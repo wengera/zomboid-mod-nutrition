@@ -276,9 +276,9 @@ def test_read_param_maps_the_written_third_back_and_clamps_like_read_leaf():
     assert m.written == 0.333 and m.value == 1 / 3
     for v, want in ((0.333, 1 / 3), (0.3334, 1 / 3), (0.3336, 0.3336), (5, 1.0), (None, 1 / 3)):
         sv = rt.table_from({} if v is None else {"StrengthMaintainShare": v})
-        assert K.dials.readParam(sv, m) == want, v
+        assert K.dials.readParam(sv, m, m.value) == want, v
     g = [K.strength.OPTIONS[i] for i in range(1, 35) if K.strength.OPTIONS[i].key == "grace_d"][0]
-    assert K.dials.readParam(rt.table_from({"StrengthGraceDays": 99}), g) == 14     # an integer out of range: default
+    assert K.dials.readParam(rt.table_from({"StrengthGraceDays": 99}), g, g.value) == 14     # an integer out of range: default
     assert K.dials.written(-650.0) == -650.0 and K.dials.written(0.35) == 0.35
 
 
@@ -318,3 +318,29 @@ def test_a_registry_option_default_moves_its_field_params_and_the_r_of_defaults(
     assert K.strength.DEFAULTS.ts == 2.0 and K.strength.RATE == 2.0 and K.strength.DEFAULTS.Tmax == 1.12
     assert P.ts == 2.0 and P.k == 2 * 0.009906127265972144
     assert K.strength.DEFAULTS.R > base.strength.DEFAULTS.R
+
+
+def test_a_runtime_set_of_a_param_field_reaches_params():
+    import replay_live
+    _, K = runtime()
+    replay_live.set_constants(K, {"strength.DEFAULTS.Tmax": 1.12, "strength.DEFAULTS.m": 0.5, "strength.PROTEIN_FULL": 2.0})
+    P = K.strength.params(None)[0]
+    assert P.Tmax == 1.12 and P.m == 0.5 and P.fp_knots[4][1] == 2.0 and P.fp_knots[2][1] == K.aerobic.P_LOW
+
+
+def test_set_works_on_an_option_backed_row_and_refuses_an_out_of_range_value():
+    import sandbox_options
+    out, notes = dials.set_value(text(), "strength.DEFAULTS.ts", "1.5")
+    assert any("sandbox_options.py --write" in n for n in notes)
+    assert "default = 1.5" in sandbox_options.render(out)
+    with pytest.raises(ValueError):
+        dials.set_value(text(), "strength.DEFAULTS.ts", "31")
+
+
+def test_the_protein_knots_must_ascend():
+    with pytest.raises(ValueError, match="must ascend"):
+        dials.set_value(text(), "strength.PROTEIN_FULL", "1.2")
+    out, _ = dials.set_value(text(), "strength.PROTEIN_FULL", "1.5")
+    assert dials.check(text=out) == [f for f in dials.check(text=out) if "must ascend" not in f]
+    bad = text().replace(*value_edit("strength.PROTEIN_FULL", "1.2"))
+    assert any("must ascend" in f for f in dials.check(text=bad))

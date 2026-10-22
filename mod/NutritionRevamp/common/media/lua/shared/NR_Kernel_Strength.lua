@@ -354,7 +354,7 @@ end
 
 K.strength.DEFAULTS.M5 = K.strength.fOfBio(5, K.strength.DEFAULTS) - K.strength.DEFAULTS.Fnm -- F5 - Fnm, so S = 1 at the average
 K.strength.DEFAULTS.R = K.strength.R(K.strength.DEFAULTS.yearsTo10) -- the S of level 10 (ruling 13-45)
-K.strength.DEFAULTS.ffmiNaturalRaw = K.strength.DEFAULTS.ffmiNatural - K.strength.DEFAULTS.kouriCoef * (1.8 - K.HEIGHT_M) -- the raw FFMI limit at K.HEIGHT_M, 24.37 at 1.70 m (ruling 13-47)
+K.strength.DEFAULTS.ffmiNaturalRaw = K.strength.DEFAULTS.ffmiNatural - K.strength.DEFAULTS.kouriCoef * (1.8 - K.HEIGHT_M) -- the raw FFMI limit at K.HEIGHT_M, 24.37 at 1.70 m (ruling 13-47); 1.8 m is ffmiNatural's normalisation height (its row): no row needed
 -- The strength sandbox options (Plan 13 Task 11; spec section 10; Plan 19 Task 3f): the registry's strength rows that
 -- carry an option (opt) read into a server's P table (param), built at load by K.dials.paramOptions (NR_Kernel_Dials.lua),
 -- one entry a row sorted by id: { id, key, opt, value, min, max, int, written }. A DEFAULTS row's option sets its P key;
@@ -377,7 +377,7 @@ local rYears = K.strength.DEFAULTS.yearsTo10
 local rValue = K.strength.DEFAULTS.R
 
 -- The strength parameters P of a sandbox table sv (SandboxVars.NR, or nil): a new table from DEFAULTS with every
--- option read through K.dials.readParam, k scaled by StrengthRate and the protein knots' x by StrengthProteinFull / 1.6,
+-- option read through K.dials.readParam, k scaled by StrengthRate and the protein knots' x by StrengthProteinFull / K.strength.PROTEIN_FULL,
 -- R for the year option and M5 from DEFAULTS (ruling 13-45). The load guard: at bio level 15's status in the
 -- effective cap's room (capLevel held at the natural limit) the growth threshold must sit under the set cap, else
 -- beta, Sg0 and Smax1 revert to DEFAULTS; returns P and whether it fell back.
@@ -393,7 +393,13 @@ function K.strength.params(sv)
     local pFull = S.PROTEIN_FULL
     for i = 1, #rows do
         local row = rows[i]
-        local v = K.dials.readParam(sv, row)
+        local live = D[row.key]
+        if row.key == "RATE" then
+            live = S.RATE
+        elseif row.key == "PROTEIN_FULL" then
+            live = S.PROTEIN_FULL
+        end
+        local v = K.dials.readParam(sv, row, live)
         if row.key == "RATE" then
             kMul = v
         elseif row.key == "PROTEIN_FULL" then

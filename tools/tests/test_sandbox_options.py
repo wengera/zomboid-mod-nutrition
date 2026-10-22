@@ -29,11 +29,15 @@ def test_the_shipped_file_is_the_render():
 
 
 def test_every_option_line_is_the_one_before_generation():
+    # a pin: a later option tune through `set` and `--write` fails it by design, and its pinned list is then re-based by name
     # the names, types, ranges, defaults, translation keys and order are byte-identical to 3f8ab5a8's hand-written file
     # (only two comments changed): each option block's three lines, in order
     import subprocess
-    old = subprocess.run(["git", "-C", dials.REPO, "show", "3f8ab5a8:" + dials.SANDBOX_REL], capture_output=True,
-                         check=True).stdout.decode("utf-8")
+    try:
+        old = subprocess.run(["git", "-C", dials.REPO, "show", "3f8ab5a8:" + dials.SANDBOX_REL], capture_output=True,
+                             check=True).stdout.decode("utf-8")
+    except (OSError, subprocess.CalledProcessError):
+        pytest.skip("needs the repository history (3f8ab5a8): the migration proof")
     blocks = lambda t: re.findall(r"option NR\.\w+\n\{\n[^}]*\}", t)
     assert blocks(old) == blocks(shipped()) and len(blocks(old)) == 46
 

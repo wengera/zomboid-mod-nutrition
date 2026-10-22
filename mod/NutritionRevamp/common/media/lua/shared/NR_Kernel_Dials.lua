@@ -122,13 +122,17 @@ function K.dials.paramEntry(id, row)
     return { id = id, key = key, opt = row.opt, value = row.value, min = row.min, max = row.max, int = row.int, written = K.dials.written(row.value) }
 end
 
--- A param option's read from sv (SandboxVars.NR, or nil) by the one clamp rule (K.readLeaf: a double clamps into the
--- entry's range, an int entry's out-of-range value reads the default); a read within WRITTEN_TOL of a written default
--- that is not the exact value (StrengthMaintainShare's 0.333 for m's third) reads the exact value.
-function K.dials.readParam(sv, entry)
-    local v = K.readLeaf(sv, entry.opt, entry.value, entry.min, entry.max, entry.int ~= true)
-    if entry.written ~= entry.value and math.abs(v - entry.written) <= K.dials.WRITTEN_TOL then
-        return entry.value
+-- A param option's read from sv (SandboxVars.NR, or nil) with default the domain's live field (the row's value unless a
+-- replay set the field): K.readLeaf's one clamp rule, and a read within WRITTEN_TOL of the default as the option file
+-- writes it that is not the default itself (StrengthMaintainShare's 0.333 for m's third) reads the default.
+-- Ruling: a sandbox option a domain reads into its own parameter table is a row with opt and param = true; K.dials.apply
+-- never writes it, and the domain's read takes the live field as its default, because a bound field would move every
+-- derivation that reads DEFAULTS (R) under any option.
+function K.dials.readParam(sv, entry, default)
+    local v = K.readLeaf(sv, entry.opt, default, entry.min, entry.max, entry.int ~= true)
+    local written = K.dials.written(default)
+    if written ~= default and math.abs(v - written) <= K.dials.WRITTEN_TOL then
+        return default
     end
     return v
 end

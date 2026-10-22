@@ -13,6 +13,8 @@ import math
 
 import pytest
 
+from .conftest import dial_value
+
 TOL = 1e-9
 
 def _close(a, b, tol=TOL):
@@ -283,7 +285,7 @@ _SERVER = os.path.join(_MOD, "common", "media", "lua", "server")
 
 # The specials: StrengthRate multiplies k (K.strength.RATE, 1.0), StrengthProteinFull scales the knots
 # (K.strength.PROTEIN_FULL, 1.6); every other option sets the DEFAULTS key its entry names.
-_SPECIAL_DEFAULT = {"RATE": 1.0, "PROTEIN_FULL": 1.6}
+_SPECIAL_DEFAULT = {"RATE": dial_value("strength.RATE"), "PROTEIN_FULL": dial_value("strength.PROTEIN_FULL")}
 
 
 def _rows(host):
@@ -398,7 +400,7 @@ def test_decoy_all_options_off_default_each_lands_on_its_own_key(host):
             assert abs(P["k"] - D["k"] * v) < 1e-15
         elif key == "PROTEIN_FULL":
             for i in (1, 2, 3, 4):
-                assert abs(P["fp_knots"][i][1] - D["fp_knots"][i][1] * v / 1.6) < 1e-12
+                assert abs(P["fp_knots"][i][1] - D["fp_knots"][i][1] * v / dial_value("strength.PROTEIN_FULL")) < 1e-12
                 assert P["fp_knots"][i][2] == D["fp_knots"][i][2]
         elif key == "yearsTo10":
             assert P[key] == v

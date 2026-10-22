@@ -20,7 +20,7 @@ check finds:
   docs/reference/science.tsv or a # id absent from docs/reference/claims.tsv; a vanilla src naming no # row;
 - a same row that names an unknown dial, carries a value, range, option, int, param or fixed of its own, sits in a
   cycle, or whose unit differs from the unit of the dial it resolves to (the two are one dial); a same on an opt row
-  K.dials.apply writes (a param row's option writes no field, so its links are one dial whatever the option reads);
+  K.dials.apply writes (a param row's option writes no field: its links are one dial for a registry tune, and the option moves only what its domain's parameter read applies it to);
 - an opt row whose value is not a number or boolean, which is fixed or same, or whose option in
   42.21/media/sandbox-options.txt is missing or disagrees with the row's default (as written: written(), three decimal
   places), min, max or int; an opt row K.dials.apply writes whose value is not exact at three places;
@@ -49,6 +49,8 @@ CLAIMS_REL = "docs/reference/claims.tsv"
 FIELDS = ("value", "unit", "min", "max", "src", "note", "opt", "int", "param", "fit", "same", "fixed")
 WRITTEN_PLACES = 1000                                 # the option file's three decimal places (K.dials.WRITTEN_PLACES)
 CLASSES = ("game choice", "vanilla", "fitted", "inference")
+ASCENDING = (("strength.DEFAULTS.fp_knots.1.1", "strength.DEFAULTS.fp_knots.2.1", "strength.DEFAULTS.fp_knots.3.1",
+              "strength.DEFAULTS.fp_knots.4.1"),)   # x knots K.interp divides by the gaps of
 SCIENCE_ID = re.compile(r"^S\d{4}$")
 CLAIM_ID = re.compile(r"^#\d{4}$")
 ROW_RX = re.compile(r"^D\['([^']+)'\] = \{")
@@ -398,6 +400,17 @@ def mod_gets(root):
     return out
 
 
+def _order(vals):
+    out = []
+    for chain in ASCENDING:
+        if any(i not in vals for i in chain):                  # a registry without the chain (a scratch tree)
+            continue
+        xs = [vals[i] for i in chain]
+        if any(b <= a for a, b in zip(xs, xs[1:])):
+            out.append("%s: the knots must ascend (K.interp divides by their gaps): %r" % (chain[-1], xs))
+    return out
+
+
 def check(root=REPO, text=None):
     """Every finding over the registry at root (or text in its place). An empty list is green."""
     if text is None:
@@ -422,6 +435,10 @@ def check(root=REPO, text=None):
     claims = _ids(_path(root, CLAIMS_REL))
     options = sandbox_options(_read(_path(root, SANDBOX_REL)))
     out += check_rows(rows, science, claims, options)
+    try:
+        out += _order(values(text))
+    except ValueError:                                       # a same cycle or unknown name: check_rows names it
+        pass
     gets = mod_gets(root)
     for dial_id in sorted(set(rows) - set(gets)):
         out.append("%s: an orphan: no K.dials.get in the mod names it" % dial_id)
@@ -516,9 +533,14 @@ def set_value(text, dial_id, new, root=REPO):
         new_rows = load_rows(out)
     except Exception as e:
         raise ValueError("%s: %s does not evaluate: %s" % (dial_id, new, e))
-    sandbox = sandbox_options(_read(_path(root, SANDBOX_REL)))
+    if "opt" in row:
+        import sandbox_options as option_file      # the option file as --write will render it from the new registry
+        sandbox = sandbox_options(option_file.render(out))
+    else:
+        sandbox = sandbox_options(_read(_path(root, SANDBOX_REL)))
     found = [f for f in check_rows({dial_id: new_rows[dial_id]}, _ids(_path(root, SCIENCE_REL)),
                                    _ids(_path(root, CLAIMS_REL)), sandbox)]
+    found += _order(values(out))
     if found:
         raise ValueError("; ".join(found))
     return out, regenerate_notes(dial_id, row)
