@@ -580,11 +580,13 @@ def test_a_departure_and_a_first_sight_clear_the_held_rate_and_flag(met_host):
 
 def test_the_forget_hook_is_wired_to_departure_and_first_sight():
     import lupa.lua51 as lua51
-    from .test_metabolism_shape import CORE, SERVER
+    from .test_metabolism_shape import SERVER
+    from .conftest import kernel_files, pre_kernel_files
     rt = lua51.LuaRuntime(unpack_returned_tuples=True)
     ld = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
-    with open(CORE, encoding="utf-8") as fh:
-        ld(fh.read(), "@NR_Core.lua")()
+    for path in pre_kernel_files() + kernel_files():   # the registry and the kernels load before every server/ file
+        with open(path, encoding="utf-8") as fh:
+            ld(fh.read(), "@" + os.path.basename(path))()
     rt.execute("""
         NR_STARTED = {}
         Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }
