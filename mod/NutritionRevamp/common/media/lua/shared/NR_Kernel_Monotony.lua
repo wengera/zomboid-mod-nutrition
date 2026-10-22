@@ -99,10 +99,26 @@ function K.monotony.portion(w)
     return K.clamp(w, 0, 1)
 end
 
--- Book an eat of typeKey at ageH weighing w: the count decayed to the eat plus w, stamped ageH, and marked a staple
--- when staple is true (the latest eat's reading stands; s is left nil otherwise). Returns the entry.
-function K.monotony.record(m, typeKey, ageH, w, staple)
-    local n = K.monotony.count(m.t[typeKey], ageH) + K.monotony.portion(w)
+-- Book an eat of typeKey at ageH weighing w (K.monotony.book), and, when class names a taste class (K.hedonics.classKey:
+-- sweet, savoury, fatty or staple; Plan 19 Task 5, rule R4), the same eat under the class's key weighing w x
+-- K.hedonics.CLASS_W, a staple class marked a staple. The class key lives in the same table as the types, so the
+-- target's maximum, the decay, the window, the prune, the heal and the resume read it as one more type: a rotation of
+-- foods of one class holds the class's level where each food's own has faded (S2294: eating one food lowers the liking
+-- of a similar one and leaves another class held; the weight is a game choice). Returns the type's entry.
+function K.monotony.record(m, typeKey, ageH, w, staple, class)
+    local p = K.monotony.portion(w)
+    local e = K.monotony.book(m, typeKey, ageH, p, staple)
+    local key = K.hedonics.classKey(class)
+    if key ~= nil then
+        K.monotony.book(m, key, ageH, p * K.hedonics.CLASS_W, class == "staple")
+    end
+    return e
+end
+
+-- Book p portions of key at ageH: the count decayed to the eat plus p, stamped ageH, and marked a staple when staple
+-- is true (the latest eat's reading stands; s is left nil otherwise). Returns the entry.
+function K.monotony.book(m, typeKey, ageH, p, staple)
+    local n = K.monotony.count(m.t[typeKey], ageH) + p
     local e = m.t[typeKey]
     if e == nil then
         e = {}

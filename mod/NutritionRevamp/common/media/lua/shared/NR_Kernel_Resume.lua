@@ -43,6 +43,7 @@ K.resume.STAMPS = {
     "drain.fedAgeH",       -- the unfed clock's stamp (starvation)
     "drain.pAt",           -- the smoothed BMI clock's anchor (starvation, Plan 17 spec section 1.2a): the open record day's start (body.dayStartH), moved at each close
     "monotony.t.*.last",   -- each eaten type's last eat (its count's decay)
+    "hedonics.s",          -- the plain-energy ring's current hour start (K.hedonics.rotate: the ring runs on online hours)
 }
 
 -- The fields that hold a world age and are never moved, with the reason.

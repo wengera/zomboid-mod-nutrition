@@ -39,7 +39,8 @@ def test_the_stamp_list_names_every_world_age_clock(host):
     stamps = lst(R(host).STAMPS)
     assert stamps == ["lastSeen", "kineticsAge", "satiety.t", "satiety.nicH", "nutrients.lastAgeH", "body.lastAgeH",
                       "body.dayStartH", "acute.winStartH", "acute.mass90ageH", "acute.lastFedAgeH",
-                      "acute.lastVigAgeH", "drain.fedAgeH", "drain.pAt", "monotony.t.*.last"]   # Plan 17 Task 2: pAt
+                      "acute.lastVigAgeH", "drain.fedAgeH", "drain.pAt", "monotony.t.*.last",   # Plan 17 Task 2: pAt
+                      "hedonics.s"]                                       # Plan 19 Task 5: the plain-energy ring's hour
     assert len(lst(R(host).SEGS)) == len(stamps)
     assert lst(R(host).SEGS[14]) == ["monotony", "t", "*", "last"]
     assert lst(R(host).split("lastSeen")) == ["lastSeen"]

@@ -71,13 +71,16 @@ ASCENDING = (("strength.DEFAULTS.fp_knots.1.1", "strength.DEFAULTS.fp_knots.2.1"
              ("view.SLEEP_AT.1", "view.SLEEP_AT.2", "view.SLEEP_AT.3", "view.SLEEP_AT.4"),
              ("view.OVERFULL_AT.1", "view.OVERFULL_AT.2", "view.OVERFULL_AT.3"),
              ("view.FAT_CUTS_MALE.1", "view.FAT_CUTS_MALE.2", "view.FAT_CUTS_MALE.3", "view.FAT_CUTS_MALE.4"),  # K.view.heldRung
-             ("view.FAT_CUTS_FEMALE.1", "view.FAT_CUTS_FEMALE.2", "view.FAT_CUTS_FEMALE.3", "view.FAT_CUTS_FEMALE.4"))
+             ("view.FAT_CUTS_FEMALE.1", "view.FAT_CUTS_FEMALE.2", "view.FAT_CUTS_FEMALE.3", "view.FAT_CUTS_FEMALE.4"),
+             ("hedonics.FLOOR_KNOTS.1.1", "hedonics.FLOOR_KNOTS.2.1", "hedonics.FLOOR_KNOTS.3.1"))           # K.interp divides by the gaps
 SCIENCE_ID = re.compile(r"^S\d{4}$")
 CLAIM_ID = re.compile(r"^#\d{4}$")
 ROW_RX = re.compile(r"^D\['([^']+)'\] = \{")
 GET_RX = re.compile(r"""K\.dials\.get\(\s*["']([^"']+)["']\s*\)""")
-# the domains whose dials reach a generated file (NR_Data_Fills.lua replays satiety, stomach, hungerCurve and view)
+# the domains whose dials reach a generated file (NR_Data_Fills.lua replays satiety, stomach, hungerCurve and view;
+# NR_Data_Hedonics.lua classifies by the hedonics thresholds and the satiety Atwater factors)
 FILLS_DOMAINS = ("satiety", "stomach", "hungerCurve", "view")
+HEDONICS_DOMAINS = ("hedonics", "satiety")
 
 
 def _path(root, rel):
@@ -580,6 +583,10 @@ def regenerate_notes(dial_id, row):
         notes.append("python tools/sandbox_options.py --write   (%s is NR.%s's default in %s)" % (dial_id, row["opt"], SANDBOX_REL))
     if dial_id.split(".")[0] in FILLS_DOMAINS:
         notes.append("python tools/food_fills.py --write")
+    if dial_id.split(".")[0] in HEDONICS_DOMAINS:
+        notes.append("python tools/food_hedonics.py --write")
+    if dial_id.split(".")[0] == "hedonics":
+        notes.append("python tools/hedonics_budget.py --sweep   (the budget oracle's bands and stability, Plan 19 Task 5)")
     notes.append("python tools/mod_guide_data.py --write")
     notes.append("python -m pytest testing/tests/kernel/test_golden_trace.py -q   (a moved trace re-records under a named cause, CLAUDE.md section 6)")
     notes.append("python tools/dials.py check")
