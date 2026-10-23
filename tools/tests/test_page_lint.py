@@ -277,3 +277,14 @@ def test_a_42_21_stamp_passes_and_any_other_build_fails(tmp_path):
     root = _tree(tmp_path, {"spoilage.md": new, "other.md": other, "wire.md": wire})
     assert "stamp" not in _rules(_lint(root, "spoilage.md")[0])
     assert "stamp" in _rules(_lint(root, "other.md")[0])
+
+
+def test_research_notes_take_the_reference_profile(tmp_path):
+    root = _tree(tmp_path, {})
+    p = root / "docs" / "reference" / "research-notes.md"
+    p.write_text("# Research notes\n" + STAMP + "\n\n<a id=\"ideas\"></a>\n## Ideas for later\n- An untagged idea.\n", encoding="utf-8")
+    findings, _ = pl.lint(str(p), root=str(root), partial=True)
+    assert findings == []                           # no section, floor or rule-line finding
+    p.write_text("# Research notes\n\n## Ideas for later\n- It was previously built.\n", encoding="utf-8")
+    findings, _ = pl.lint(str(p), root=str(root), partial=True)
+    assert sorted(f.rule for f in findings) == ["narrative", "stamp"]
