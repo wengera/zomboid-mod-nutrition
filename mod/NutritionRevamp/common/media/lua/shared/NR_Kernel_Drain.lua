@@ -78,7 +78,6 @@ K.drain.RECENT_TOL = 1e-6 -- kcal: the comparison's tolerance, no row needed (Pl
 K.drain.RECENT_DAYS = 3 -- record-day closes the window needs seen, no row needed
 K.drain.RECENT_MIN_KCAL = K.dials.get("drain.RECENT_MIN_KCAL")
 K.drain.BMI_DEATH = K.dials.get("drain.BMI_DEATH")
-K.drain.STARVE_DBMI = K.drain.STARVE_DPDT * (K.drain.CAL_BMI0 - K.drain.BMI_DEATH) -- BMI per game hour before the state's first close: the calibration body's opening rate in BMI, so a heavier body opens no faster in kg
 K.drain.BMI_CHRONIC = K.dials.get("drain.BMI_CHRONIC")
 K.drain.SUSPEND_M = K.dials.get("drain.SUSPEND_M")
 -- The starvation effect phases (spec section 3.3), on the starvation clock (starvedH: the unfed hours, then the onset
@@ -111,16 +110,37 @@ K.drain.FE_DEATH_H = K.dials.get("drain.FE_DEATH_H")
 
 -- Per state, by code: its name, its onset (starved hours, deficit per cent, the clinical grade or the rung), its death
 -- point (BMI, deficit per cent or hours since onset) and, for the two paced states, its Shortened death time in hours.
--- A state with no short is a line on its hours to death at every pace.
+-- A state with no short is a line on its hours to death at every pace. The constructor holds the name and the
+-- structural onsets (a grade or a rung index); every value read off a dial is laid by K.drain.derive below.
 K.drain.states = {
-    { name = "starvation", onset = K.drain.STARVE_ONSET_H, death = K.drain.BMI_DEATH, short = K.drain.SHORT_STARVE_H },
-    { name = "scurvy", onset = K.drain.CLINICAL, death = K.drain.SCURVY_DEATH_H },
-    { name = "beriberi", onset = K.drain.CLINICAL, death = K.drain.BERIBERI_DEATH_H },
-    { name = "pellagra", onset = K.drain.CLINICAL, death = K.drain.PELLAGRA_DEATH_H },
-    { name = "hyponatraemia", onset = K.drain.HYPONAT_GRADE, death = K.drain.NA_DEATH_H },
-    { name = "dehydration", onset = K.drain.DEHYD_ONSET, death = K.drain.DEHYD_DEATH, short = K.drain.SHORT_DEHYD_H },
-    { name = "iron", onset = K.drain.IRON_RUNG, death = K.drain.FE_DEATH_H },
+    { name = "starvation" },
+    { name = "scurvy", onset = K.drain.CLINICAL },
+    { name = "beriberi", onset = K.drain.CLINICAL },
+    { name = "pellagra", onset = K.drain.CLINICAL },
+    { name = "hyponatraemia", onset = K.drain.HYPONAT_GRADE },
+    { name = "dehydration" },
+    { name = "iron", onset = K.drain.IRON_RUNG },
 }
+
+-- The copies of the dials (Plan 19 Task 3g; laid by derive alone since Task 9a): STARVE_DBMI and each state's dial-read
+-- onset, death and short. Called once below as this file loads, and again whenever a dial is written after load
+-- (K.dials.apply's derive on an option change, replay_live.set_constants), so every output that reads a copy follows.
+function K.drain.derive()
+    K.drain.STARVE_DBMI = K.drain.STARVE_DPDT * (K.drain.CAL_BMI0 - K.drain.BMI_DEATH) -- BMI per game hour before the state's first close: the calibration body's opening rate in BMI, so a heavier body opens no faster in kg
+    local S = K.drain.states
+    S[K.drain.STARVATION].onset = K.drain.STARVE_ONSET_H
+    S[K.drain.STARVATION].death = K.drain.BMI_DEATH
+    S[K.drain.STARVATION].short = K.drain.SHORT_STARVE_H
+    S[K.drain.SCURVY].death = K.drain.SCURVY_DEATH_H
+    S[K.drain.BERIBERI].death = K.drain.BERIBERI_DEATH_H
+    S[K.drain.PELLAGRA].death = K.drain.PELLAGRA_DEATH_H
+    S[K.drain.HYPONAT].death = K.drain.NA_DEATH_H
+    S[K.drain.DEHYD].onset = K.drain.DEHYD_ONSET
+    S[K.drain.DEHYD].death = K.drain.DEHYD_DEATH
+    S[K.drain.DEHYD].short = K.drain.SHORT_DEHYD_H
+    S[K.drain.IRON].death = K.drain.FE_DEATH_H
+end
+K.drain.derive()
 
 -- The nutrient key each deficiency state reads.
 K.drain.NUTRIENT = {
@@ -792,24 +812,4 @@ function K.drain.heal(D, health, yPerMin, dtM)
         return 0
     end
     return K.clamp(yPerMin * dtM, 0, gap * K.drain.PART_SPREAD)
-end
-
--- The copies laid at load from the dials (Plan 19 Task 3g): STARVE_DBMI and each state's onset, death and short read
--- their fields once, as this file loads. K.drain.derive lays them again from the fields, so a dial written after load
--- (K.dials.apply's derive on an option change, replay_live.set_constants) reaches every output that reads a copy; it
--- computes exactly what the load-time lines above computed.
-function K.drain.derive()
-    K.drain.STARVE_DBMI = K.drain.STARVE_DPDT * (K.drain.CAL_BMI0 - K.drain.BMI_DEATH)
-    local S = K.drain.states
-    S[K.drain.STARVATION].onset = K.drain.STARVE_ONSET_H
-    S[K.drain.STARVATION].death = K.drain.BMI_DEATH
-    S[K.drain.STARVATION].short = K.drain.SHORT_STARVE_H
-    S[K.drain.SCURVY].death = K.drain.SCURVY_DEATH_H
-    S[K.drain.BERIBERI].death = K.drain.BERIBERI_DEATH_H
-    S[K.drain.PELLAGRA].death = K.drain.PELLAGRA_DEATH_H
-    S[K.drain.HYPONAT].death = K.drain.NA_DEATH_H
-    S[K.drain.DEHYD].onset = K.drain.DEHYD_ONSET
-    S[K.drain.DEHYD].death = K.drain.DEHYD_DEATH
-    S[K.drain.DEHYD].short = K.drain.SHORT_DEHYD_H
-    S[K.drain.IRON].death = K.drain.FE_DEATH_H
 end
