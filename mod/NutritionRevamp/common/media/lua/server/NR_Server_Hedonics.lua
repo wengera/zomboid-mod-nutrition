@@ -22,8 +22,10 @@
 --     read-time UnhappyChange over 0) eaten while the HUNGER stat (the hunger the mod's writer writes) is over the
 --     ALLIES_LEVEL threshold has its stored field lowered so vanilla's own JustAteFood applies the scaled value with its
 --     own share and utensil factor (K.hedonics.alliesField); after the eat the remainder's field is restored to what it
---     would have kept (K.hedonics.alliesRestore). No stat is written here and no item is synced: the client never
---     sees the lowered field, and an item-stats packet would double the state terms on the client.
+--     would have kept (K.hedonics.alliesRestore). No stat is written here. Vanilla's part-eat sends the item-stats packet
+--     itself while the field is lowered, and the client would keep that lowered value, so after the restore a
+--     part-eaten item still in a container is synced again with the restored read-time value (x503: vanilla's control
+--     read 13.75, the stored 3.75 plus the stale 10).
 --  R4 taste class: the eat's class goes into K.monotony.record beside the type. A dish's class is its main
 --     ingredient TYPE's (ruling T6-1 as refined: the kcal of each ingredient type summed, the type of most kcal wins,
 --     K.hedonics.dishClass over one entry a type); any other food's is the generated table's (NR_Data_Hedonics).
@@ -37,7 +39,8 @@
 -- wrap a timed action's `new` (CLAUDE.md s6): complete is called off the class table.
 --
 -- Cost (Rule 6): per eat, one Java read (getUnhappyChange); a sad food adds the HUNGER read (two calls), and a scaled
--- one a read and a write before and a read and a write after, no item sync. Per ingredient add, one read (the base's
+-- one a read and a write before and a read and a write after, and an item sync (one packet) when it is still in a
+-- container, a Hungry eat of a sad food only. Per ingredient add, one read (the base's
 -- modData) before, and after it the dish's stored value; a relief adds the Cooking level, the modData, a write and two
 -- item syncs (the item-stats packet and syncItemFields); an add that only clears a stamp adds one syncItemFields. The
 -- dish class reads Lua tables only, one kcal read a distinct type. No @fastpath region.
@@ -167,7 +170,8 @@ function H.allies(b)
     H.stats.allies = H.stats.allies + 1
 end
 
--- After the original (IN.guardAfter): the remainder's field restored (no sync, see the header). Under its own pcall.
+-- After the original (IN.guardAfter): the remainder's field restored and the item synced while it is still in a
+-- container (see the header). Under its own pcall.
 function H.alliesAfter(b)
     if type(b) ~= "table" or b.allies == nil then return end
     local ok, err = pcall(H.restore, b)
@@ -186,6 +190,7 @@ function H.restore(b)
     if restored == nil then return end
     NR.call(b.item, "setUnhappyChange", restored)
     H.stats.restores = H.stats.restores + 1
+    if NR.obj(b.item, "getContainer") ~= nil then H.sync(b.item) end
 end
 
 -- The item-stats packet to the item's owner (sendItemStats, a server global, #3567): the mood fields ride it when non-zero.

@@ -256,7 +256,7 @@ def test_a_hungry_eater_feels_a_sad_food_at_allies_f_and_the_remainder_keeps_its
     HD(h).alliesAfter(b)
     assert applied == pytest.approx(30.0 * 0.25 * dv(h, "ALLIES_F"))
     assert item.u == pytest.approx(20.0 * 0.75)
-    assert b.allies.scale == pytest.approx(dv(h, "ALLIES_F")) and h.T.synced == 0
+    assert b.allies.scale == pytest.approx(dv(h, "ALLIES_F")) and h.T.synced == 1
 
 
 def test_r3_leaves_a_happy_food_and_a_sated_eater(h):
@@ -280,7 +280,7 @@ def test_a_written_zero_field_restores_by_the_hunger_ratio(h):
     assert b.allies.written == 0
     vanilla_eat(item, 0.5)
     HD(h).alliesAfter(b)
-    assert item.u == pytest.approx(take * 0.5) and h.T.synced == 0
+    assert item.u == pytest.approx(take * 0.5) and h.T.synced == 1
     item2 = h.T.item(0.0, 20.0)                                          # a rotten +20 on a 0 base field
     item2.inv = False                                                    # finished: restored
     b2 = snapshot(h, item2, 0.9)
@@ -288,7 +288,21 @@ def test_a_written_zero_field_restores_by_the_hunger_ratio(h):
     assert b2.allies.written == pytest.approx(-take)                     # under 0 across the state term
     vanilla_eat(item2, 1.0)
     HD(h).alliesAfter(b2)
-    assert item2.u == pytest.approx(0.0) and h.T.synced == 0
+    assert item2.u == pytest.approx(0.0) and h.T.synced == 1                    # finished: not synced
+
+
+def test_r3_syncs_the_restored_item_after_a_hungry_eat_of_a_sad_food(h):
+    # x503: vanilla's part-eat sends the lowered read-time value; the client keeps it until a sync after the restore
+    # (mutation: the sync line removed from H.restore fails here)
+    item = h.T.item(20.0, 10.0)
+    b = snapshot(h, item, 0.9)
+    HD(h).alliesBefore(b)
+    vanilla_eat(item, 0.25)
+    h.T.synced = 0
+    HD(h).alliesAfter(b)
+    assert h.T.synced == 1
+    src = open(os.path.join(SERVER, "NR_Server_Hedonics.lua"), encoding="utf-8").read()
+    assert 'if NR.obj(b.item, "getContainer") ~= nil then H.sync(b.item) end' in src
 
 
 def test_the_intake_seats_r3_on_an_eat_and_a_cancel_never_a_drink(h):
@@ -326,7 +340,7 @@ def test_rule_6_an_eat_of_a_food_that_is_not_sad_adds_one_java_call(h):
     h.T.calls = 0
     HD(h).alliesBefore(b)
     HD(h).alliesAfter(b)
-    assert h.T.calls == 7 and h.T.synced == 0                            # a sad food, Hungry: no item sync
+    assert h.T.calls == 8 and h.T.synced == 1                            # a sad food, Hungry: + getContainer, one item sync
 
 
 # --- R2: the add-ingredient seat --------------------------------------------------------------------------------------
