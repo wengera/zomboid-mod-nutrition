@@ -102,7 +102,7 @@ How to read a source:
 - **Write briefs from a consolidated run sheet, never from the plan text, when amendments span several closes.** Plan 11b Task 3's brief carried the plan's stale `release/plan11-x251`, so the re-stage diff ran against `rebaseline-x250`. Source: ruling 11b-0.
 - **A verbatim fix names its target by file:line and old text, and the spot-check greps the old text gone.** A Plan 11b delta-review fix landed on the duplicate of its target sentence, and the wrong copy survived to the close review. Source: T2-14.
 - **A controller fix after a FAIL takes a scoped re-review unless it is pointer-, comment- or tag-only and mechanically verified.** Source: ruling T9-1, Plan 8.
-- **A deferred wording re-review is named in the ledger and passed item by item before the push.** Source: Plan 10c rulings H2-2, H4-3 and H5-1. In Plan 12 (P12-18), #3820, #3824 and #3829 were minted before their review.
+- **A deferred wording re-review is named in the ledger and passed item by item by the next whole-delta review before the mint, or, past the mint, by the close review before the push.** Source: Plan 10c rulings H2-2, H4-3 and H5-1. In Plan 12 (P12-18), #3820, #3824 and #3829 were minted before their review.
 - **The reviewer's own scratch-verified text, applied verbatim with its probes landed as tests, takes no re-review.** Source: Plan 12 P12-11, P12-12 and P12-17.
 - **A small, spot-checked curator fix round takes no re-review when the close review re-samples the data.** Source: Plan 6 ruling T4-11.
 - **Cut a bug triage's fix waves by file lane.** Source: Plan 12 waves A to C2.
@@ -112,7 +112,7 @@ How to read a source:
 - **Never assert an engine mechanism in a question to Angus without a register row or a jar read behind it.** The chips question offered a same-name `craftRecipe` override, which appends on 42.21. Source: Plan 11a Task 16.
 - **Run the skill's scripts from the repository root.** A script writes its workspace relative to its cwd, so Plan 11f Task 10's brief landed in the plugin cache.
 - **A subagent never installs a package into the host Python.** Plan 11f's thirst harvest installed pymupdf.
-- **A plan's spec and plan stay tracked while its program runs; the closed record is read at a tag.** Plans 0-19 were removed by Plan 20 and are read at `program-record-v19`, indexed by `docs/superpowers/HISTORY.md`. Source: the 2026-10-05 ruling and Plan 20 decision 3.
+- **A plan's spec and plan stay in `docs/superpowers/` through and after its close, with a `HISTORY.md` entry; a consolidation on Angus's request archives the closed ones to a tag.** Plans 0-19 were removed by Plan 20 and are read at `program-record-v19`, indexed by `docs/superpowers/HISTORY.md`. Source: the 2026-10-05 ruling, Plan 20 decision 3 and ruling P20-7.
 - **Never send Angus's email address to an outside service.** A Plan 6 subagent passed it to Unpaywall as that API's required parameter. Source: the Plan 6 ledger L65.
 - **Run an independent whole-system review at milestones, and measure the expensive part.** Per-task and whole-pass reviews miss systemic defects: the 2026-10-07 whole-mod review, after nine closed plans, caught four release blockers (the stagger starving players past one per tick, a costly takeover, Overlay a stub, a gate benching only `K.fast.step`). Its diagnosis: instruments chosen for what was easy to measure and minted as proof. Source: the Plan 10 ledger L6 and L14.
 - **Check a plan's hand-computed test values in doubles, and trace callers at review.** The coverage gate cannot see production-dead code: Plan 3's xpLevel ladder slipped twice, and Plan 4's caffeine hand values were wrong until recomputed. Source: the Plan 3 ledger L113, Plan 4 L32.
@@ -178,7 +178,7 @@ How to read a source:
 - **Read pytest's summary line and exit code from a saved output file.** At the Plan 15 close two piped runs reported exit 0 and hid 64 failures behind the stubs' log lines.
 - **Read the checker's findings count before committing, never through a grep in a chained command.** Source: Plan 10: 1de05d0, 8593c10.
 - **Run a test in its own call, and never chain a commit after it.** A chained command commits past a red test: Plan 7's icon_gen residual took three commits.
-- **Run the full `claims_check` after any commit that touches `mod/`, `tools/` or any file the register points into.** The staged gate does not trigger there: #3012 went stale after 6307559 (Plan 5), and 4c20a113 left 16 stale pointers (Plan 11g ruling T4-2).
+- **Run the full `claims_check` after any commit that touches `mod/`, `tools/README.md` or any file the register points into.** The staged gate does not trigger there: #3012 went stale after 6307559 (Plan 5), and 4c20a113 left 16 stale pointers (Plan 11g ruling T4-2).
 - **Regenerate the guide data after every commit under `mod/`.** The data names mod/'s last commit: at the Plan 15 close, a README commit after the regeneration failed 64 provenance tests.
 - **Recipe conservation is a report, never a fix.** Source: Plan 11a rulings T16-3 and T17-1.
 - **The generators' gates trace to their plans:**

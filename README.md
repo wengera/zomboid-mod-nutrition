@@ -29,7 +29,7 @@ docs/platform/             general modding knowledge, entered at overview.md: an
 docs/facts/                the vanilla food, nutrition and body mechanics: stats, endurance and sleep, perks, exercise, perception, health
 docs/facts/other-mods/     the workshop corpus catalogue and the teardowns
 docs/process/lessons.md    the process pitfalls behind CLAUDE.md's rules, each with its incident and citation
-docs/superpowers/          the open plan and spec, and HISTORY.md, the index of the closed plans kept at the tag program-record-v19
+docs/superpowers/          the plans and specs since the last consolidation, and HISTORY.md, the index of every plan; Plans 0-19 are kept at the tag program-record-v19
 docs/reference/            the register (claims.tsv) and its archive of superseded and retired rows (claims-archive.tsv), its coverage, the do-not-cite list, the run aliases (run-aliases.csv), experiments, jar notes, harness commands, datasets, tools, the wall map (wall-map.md), the artifacts register (artifacts.md; each run's reading guide is testing/artifacts/<run>/GUIDE.md) and its skew notes (artifact-skew.md), the science register (science.tsv, science.md), the open research threads (research-notes.md)
 references/wiki-mirrors/   the mirrored wiki pages, each dated and digested
 data/                      the generated datasets: food items, recipes, evolved recipes, the workshop corpus
