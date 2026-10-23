@@ -87,7 +87,7 @@ function K.strength.fOfBio(L, P)
 end
 
 -- The bio level of a lean F, the inverse of fOfBio.
--- The untrained average's lean Favg, fOfBio(5) of DEFAULTS (52.02 kg at 1.70 m), read at call time so it follows
+-- The untrained average's lean Favg, fOfBio(5) of DEFAULTS (52.02 kg at the shipped K.HEIGHT_M, 1.70 m), read at call time so it follows
 -- K.HEIGHT_M: the reference the lean-scaled fat cuts and the fat starts divide by (Task 10b).
 function K.strength.averageLean()
     return K.strength.fOfBio(5, K.strength.DEFAULTS)

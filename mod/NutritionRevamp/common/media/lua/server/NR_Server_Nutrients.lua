@@ -91,9 +91,9 @@ local EMPTY = {}
 
 -- The stomach fill above which the stomach counts as fed (the glucose term's empty-stomach clock).
 NUT.FED_FILL = K.dials.get("nut.FED_FILL")
--- The alcohol-history refeeding criterion: the 7-day mean daily alcohol above this, g per kg.
+-- The alcohol-history refeeding criterion: the ALC_EMA_DAYS-day (7) mean daily alcohol above this, g per kg.
 NUT.ALC_HISTORY_GKG = K.dials.get("nut.ALC_HISTORY_GKG")
--- The 7-day mean's daily weight.
+-- The mean's window in days (its daily weight is 1 / ALC_EMA_DAYS).
 NUT.ALC_EMA_DAYS = K.dials.get("nut.ALC_EMA_DAYS")
 -- The NEEDS_MORE_SLEEP and NEEDS_LESS_SLEEP factors on the sleep need: the engine's own awake-fatigue
 -- trait multipliers (#2271, updateStats_Awake 1.3 / 0.7); their use as a need factor a game choice on S0740.

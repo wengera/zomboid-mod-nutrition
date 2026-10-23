@@ -182,7 +182,7 @@ function K.energy.loadFloor(loadKg)
     return met
 end
 
--- The engine's load factor 1 + 0.35 * clamp01(carried / maxW)^2 divided out of a metabolic target
+-- The engine's load factor 1 + LOAD_FACTOR * clamp01(carried / maxW)^2 (VANILLA 0.35) divided out of a metabolic target
 -- (#2649), so load is charged once. A non-positive maxW reads unloaded.
 K.energy.LOAD_FACTOR = K.dials.get("energy.LOAD_FACTOR")
 function K.energy.stripLoad(target, carried, maxW)

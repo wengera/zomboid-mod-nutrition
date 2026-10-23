@@ -48,7 +48,7 @@ K.satiety.SLEEP_SHORT_H = K.dials.get("satiety.SLEEP_SHORT_H")
 K.satiety.NIC_MAX = K.dials.get("satiety.NIC_MAX")
 K.satiety.NIC_FADE_DAYS = K.dials.get("satiety.NIC_FADE_DAYS")
 K.satiety.NIC_WITHDRAWAL_MAX = K.dials.get("satiety.NIC_WITHDRAWAL_MAX")
-K.satiety.SLEEP_DEBT_FULL_H = K.acute.SLEEP_NEED_H - K.satiety.SLEEP_SHORT_H -- derived: the debt the acute kernel books for one night of SLEEP_SHORT_H, 7.5 - 5.5 the double 2.0
+K.satiety.SLEEP_DEBT_FULL_H = K.acute.SLEEP_NEED_H - K.satiety.SLEEP_SHORT_H -- derived: the debt the acute kernel books for one night of SLEEP_SHORT_H, bit-identical to the former literal at the shipped dials
 
 -- Fullness: the stomach's F (spec § 3.1; Plan 11g spec § 7).
 -- The physical fill: a mass over a capacity, clamped to [0, 1]; K.stomach.fill passes the whole mass, both lanes at

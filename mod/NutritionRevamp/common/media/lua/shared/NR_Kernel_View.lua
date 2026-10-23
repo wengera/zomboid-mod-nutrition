@@ -724,8 +724,8 @@ K.view.OVERFULL_AT = {
     K.dials.get("view.OVERFULL_AT.3"),
 }
 
--- The Overfull level of a stomach mass in grams: 0 at or under 730 g (no discomfort), 1 above it, 2 from a third of
--- the scale, 3 from two thirds, 4 at 1100 g and over; a non-number, NaN or +infinity reads 0 (a negative mass reads
+-- The Overfull level of a stomach mass in grams: 0 at or under K.stomach.CAPACITY_MAX_G (730 g; no discomfort), 1 above it, 2 from OVERFULL_AT's first edge (a third of
+-- the scale), 3 from its second (two thirds), 4 at K.stomach.CAPACITY_HARD_G (1100 g) and over; a non-number, NaN or +infinity reads 0 (a negative mass reads
 -- no discomfort, so 0).
 function K.view.fullnessLevel(massG)
     if type(massG) ~= "number" or massG ~= massG or massG == math.huge then
@@ -800,7 +800,7 @@ end
 
 -- The three written values at a day length of dayMin real minutes: each keeps its band through HOLD_MIN game minutes of
 -- vanilla's drain (2 x dayMin units a game minute, #2385, #2922), never below the 90-minute values; the Well Fed values
--- stop at their band's top (1600, 3200), where a day over 800 real minutes can no longer hold a level for a whole minute
+-- stop at their band's top (TIMER_BAND_2 and TIMER_BAND_3, 1600 and 3200), where a day over 800 real minutes can no longer hold a level for a whole minute
 -- with one write; the refusal has no top (level 4, above 4800, refuses alike).
 function K.view.timerValues(dayMin)
     local d = K.drain.UNITS_PER_MIN * dayMin * K.view.HOLD_MIN
@@ -811,7 +811,7 @@ function K.view.timerValues(dayMin)
 end
 
 -- The FOOD_EATEN band of a timer value, the bands the push is keyed on (#0511, strict greater-than, #0507): 0 at or
--- under 0, 1 to 1600, 2 to 3200, 3 above (the refusal; level 4 above 4800 refuses alike).
+-- under 0, 1 to TIMER_BAND_2 (1600), 2 to TIMER_BAND_3 (3200), 3 above (the refusal; level 4 above 4800 refuses alike).
 function K.view.timerBand(t)
     if t > K.view.TIMER_BAND_3 then
         return 3

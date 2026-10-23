@@ -75,8 +75,8 @@ EFF.REGEN_SLEEPING = K.drain.REGEN_SLEEPING -- VANILLA #2354: the drain kernel's
 -- The food heal, health per multiplier unit while the health-from-food timer is above 0 (#2385; the constructor's 0.015,
 -- #3897), written 0 while a drain state is active (it runs through any drain otherwise, jar-checks Check 2). Outside a
 -- drain the timer is the writer's food-timer bridge (K.view.foodTimer), held above 0 while Well Fed, so the heal runs
--- for the whole Well Fed spell, not one fill: 0.0087 per multiplier unit at the 90-minute day, scaled by 90 / dayMin
--- (Plan 15 Task 8 fix 1), gives a 667 kcal meal's 0.50 h spell 47.0 health at every day length (0.0087 x 180 units x
+-- for the whole Well Fed spell, not one fill: REGEN_FOOD per multiplier unit at the 90-minute day, scaled by 90 / dayMin
+-- (Plan 15 Task 8 fix 1), at the shipped REGEN_FOOD (0.0087) gives the reference meal's 0.50 h spell (K.view.WELL_FED_M) 47.0 health at every day length (REGEN_FOOD x 180 units x
 -- 30 minutes at the 90-minute day), a raw can's 46.8 in vanilla (0.015 x 3120, #0054); 94 health a game hour while Well
 -- Fed, against vanilla's 162 while its timer runs at the 90-minute day. 0 at Overfull 4 too: the refusal never heals.
 EFF.REGEN_FOOD = K.dials.get("eff.REGEN_FOOD")
@@ -656,7 +656,7 @@ local function step(username, player, record, body, dtM, ageH, ctx)
         local m = E.healMul
         if D.active then m = 0 end
         if rebuilt or L.regen == nil or L.regen ~= m or wasState ~= nowState then
-            -- the food heal: 0 under a drain or refusing at Overfull 4 (fix 1, review M1); else REGEN_FOOD scaled to the day
+            -- the food heal: 0 under a drain or refusing at Overfull K.view.REFUSE_AT (fix 1, review M1); else REGEN_FOOD scaled to the day
             -- length, read only here, on a rebuild, a state change, a new healMul or a first sight (review I2)
             local foodHeal = 0
             if not D.active and F.overfull < K.view.REFUSE_AT then

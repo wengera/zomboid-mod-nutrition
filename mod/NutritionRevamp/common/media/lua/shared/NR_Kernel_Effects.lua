@@ -44,7 +44,7 @@ K.effects.ALC_EDGES = {
     K.dials.get("effects.ALC_EDGES.1"),
     K.dials.get("effects.ALC_EDGES.2"),
 }
--- The blood-glucose edges, mmol/L, descending: band 1 below 3.5, 2 below 3.0, 3 below 2.6.
+-- The blood-glucose edges, mmol/L, descending: band 1 below the first (3.5), 2 below the second (3.0), 3 below the third (2.6).
 K.effects.BG_EDGES = {
     K.dials.get("effects.BG_EDGES.1"),
     K.dials.get("effects.BG_EDGES.2"),
@@ -129,7 +129,7 @@ K.effects.NV_ZINC = K.dials.get("effects.NV_ZINC")
 -- (K.acute.C: 0.20 % Realistic, 0.31 % Game; Plan 15 Task 10).
 K.effects.INTOX_MAX = K.dials.get("effects.INTOX_MAX")
 
--- The vitamin C cold credit's gates (F2): replete, at least 200 mg/d, exerting, cold-exposed.
+-- The vitamin C cold credit's gates (F2): replete, at least CREDIT_E24 (200 mg/d), exerting, cold-exposed.
 K.effects.CREDIT_E24 = K.dials.get("effects.CREDIT_E24")
 K.effects.CREDIT_B1 = K.dials.get("effects.CREDIT_B1")
 K.effects.CREDIT_COLD_H = K.dials.get("effects.CREDIT_COLD_H")
@@ -308,13 +308,14 @@ function K.effects.peGrade(bmi, starvedDays, p7meanGkg)
     return K.max(e, p)
 end
 
--- The energy-availability band for the cold rows: 0 at 30 or more, 1 in [20, 30), 2 in [10, 20), 3 below 10.
+-- The energy-availability band for the cold rows over the descending EA_EDGES (30, 20, 10): 0 at the first edge or
+-- more, 1 under it, 2 under the second, 3 under the third.
 function K.effects.eaBand(ea)
     return K.effects.below(ea, K.effects.EA_EDGES)
 end
 
--- The accrual factor of a low energy availability (A4): 1 at 30 or more, linear to 1.25 at 15 and to 1.40 at 5,
--- held below.
+-- The accrual factor of a low energy availability (A4): 1 at EA_FULL (30) or more, linear to EA_MID_M (1.25) at
+-- EA_MID (15) and to EA_LOW_M (1.40) at EA_LOW (5), held below.
 function K.effects.eaAccrual(ea)
     local E = K.effects
     if ea >= E.EA_FULL then
@@ -507,7 +508,7 @@ function K.effects.bgroupMax(nut)
     return m
 end
 
--- The vitamin C cold credit's gate (F2): replete, at least 200 mg/d ingested over a day, an exerting day (a
+-- The vitamin C cold credit's gate (F2): replete, at least CREDIT_E24 (200 mg/d) ingested over a day, an exerting day (a
 -- training band-2 day, K.training.HARD_DAY_MIN, or 60 moderate minutes) and cold exposure on the 6 h memory.
 function K.effects.coldCredit(vitCg, vitCe24, band1Day, band2Day, coldH)
     local E = K.effects
@@ -529,7 +530,7 @@ function K.effects.fOff(debtH, caf, cafTol, fOffNut)
     return debt - cafOff + fOffNut
 end
 
--- Caffeine's saturation at sleep (A4, B6): 0 at 32.1 mg, 1 at 107 mg.
+-- Caffeine's saturation at sleep (A4, B6): 0 at CAF_SLEEP_ZERO (32.1 mg), 1 at CAF_SLEEP_FULL (107 mg).
 function K.effects.satC(caf)
     local E = K.effects
     return K.clamp((caf - E.CAF_SLEEP_ZERO) / (E.CAF_SLEEP_FULL - E.CAF_SLEEP_ZERO), 0, 1)

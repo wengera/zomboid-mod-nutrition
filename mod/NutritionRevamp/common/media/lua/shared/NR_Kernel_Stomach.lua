@@ -19,7 +19,7 @@ local K = NutritionRevamp.kernel
 K.stomach = {}
 
 -- Per-nutrient bioavailability of the emptied vector. water and fibre pass through as intake
--- (judgement); vitC 0.85 is a judgement (food vitamin C is absorbed at about 70-90 %); phytate is an
+-- (judgement); BIOAVAIL.vitC (0.85) is a judgement (food vitamin C is absorbed at about 70-90 %); phytate is an
 -- anti-nutrient context, not a pooled nutrient, so it absorbs at 0. A macro has no entry and passes at
 -- 1.0; every non-macro key is listed but caffeine and ethanol, which the gut lane absorbs (NR_Server_Intake's
 -- landing diverts them) and which pass at 1.0 unlisted. The fat-soluble keys
@@ -86,8 +86,8 @@ function K.stomach.ingest(stomach, vector, mlPerG)
 end
 
 -- The meal-context multiplier on non-haem iron absorption, log-linear in the meal's phytic acid and
--- ascorbic acid (mg): exp(-0.0034 * phytate + 0.0065 * vitC), vitamin C counteracting phytate. The
--- [0.2, 4.0] band is a judgement bounding the log-linear model: its floor caps the loss at -80 %,
+-- ascorbic acid (mg): exp(IRON_PHYTATE_SLOPE * phytate + IRON_VITC_SLOPE * vitC) (-0.0034 and +0.0065), vitamin C counteracting phytate. The
+-- [IRON_MIN, IRON_MAX] band (0.2 to 4.0) is a judgement bounding the log-linear model: its floor caps the loss at -80 %,
 -- just above S0532's measured -82 % at 250 mg phytate PHOSPHORUS (about 886 mg phytic acid, which
 -- the unclamped model would put near 0.05), so the band deliberately under-reads the heaviest
 -- phytate meals rather than extrapolate the log-linear fit past the measured range.
@@ -100,7 +100,7 @@ function K.stomach.ironFactor(phytateMg, vitCMg)
     return K.clamp(math.exp(K.stomach.IRON_PHYTATE_SLOPE * phytateMg + K.stomach.IRON_VITC_SLOPE * vitCMg), K.stomach.IRON_MIN, K.stomach.IRON_MAX) -- S0195, S0194, S0533, S0532
 end
 
--- The fat co-ingestion multiplier for a fat-soluble nutrient: 1 - exp(-lipids / FAT_EFOLD_G), floored at 0.05
+-- The fat co-ingestion multiplier for a fat-soluble nutrient: 1 - exp(-lipids / FAT_EFOLD_G), floored at FAT_FLOOR (0.05)
 -- (fat-free: negligible carotenoid absorption) and saturating within about 10 g.
 -- design-phase-v1 game choice: the e-fold and the 0.05 floor are judgements; S0197/S0199 support only the direction and the 28 g reference.
 -- absorb reads it once per call, off ctx.lipids (the meal's lipids in the stomach) or the

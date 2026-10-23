@@ -74,7 +74,7 @@ K.drain.CAL_BMI0 = K.dials.get("drain.CAL_BMI0")
 -- chronic onset at a BMI under BMI_CHRONIC (13) whatever the intake (chronic semi-starvation, Plan 15 Task 4 fix 1, ruling M3); the
 -- death at BMI_DEATH (12).
 K.drain.STARVE_ONSET_H = K.dials.get("drain.STARVE_ONSET_H")
-K.drain.RECENT_TOL = 1e-6 -- kcal: the comparison's tolerance, no row needed (Plan 15 Task 6 fix 3: three absorbed 200 kcal snacks integrate a few 1e-9 kcal over 600)
+K.drain.RECENT_TOL = 1e-6 -- kcal: the comparison's tolerance, no row needed (Plan 15 Task 6 fix 3: three absorbed 200 kcal snacks integrate a few 1e-9 kcal over RECENT_MIN_KCAL, 600)
 K.drain.RECENT_DAYS = 3 -- record-day closes the window needs seen, no row needed
 K.drain.RECENT_MIN_KCAL = K.dials.get("drain.RECENT_MIN_KCAL")
 K.drain.BMI_DEATH = K.dials.get("drain.BMI_DEATH")
@@ -90,7 +90,7 @@ K.drain.STARVE_PHASE_H = {
     K.dials.get("drain.STARVE_PHASE_H.3"),
 }
 
--- Dehydration: onset at 4 %, where weariness and apathy begin; a line to the death point 17 % (Plan 15 Task 4 fix 1,
+-- Dehydration: onset at DEHYD_ONSET (4 %), where weariness and apathy begin; a line to the death point DEHYD_DEATH (17 %) (Plan 15 Task 4 fix 1,
 -- ruling M1: on the water base's 3 % a day at rest, 4 % comes at about 32 h; revision R1: no knee, no final stage).
 K.drain.DEHYD_ONSET = K.dials.get("drain.DEHYD_ONSET")
 K.drain.DEHYD_DEATH = K.dials.get("drain.DEHYD_DEATH")
@@ -102,7 +102,7 @@ K.drain.SCURVY_DEATH_H = K.dials.get("drain.SCURVY_DEATH_H")
 K.drain.PELLAGRA_DEATH_H = K.dials.get("drain.PELLAGRA_DEATH_H")
 
 -- The sodium and iron lethal rungs: their onsets kept (hyponatraemia grade 3, the iron rung 3), a line on the hours in
--- the state from 1 to 0 at their Plan 5 drain times (100 health over 6 h and 24 h).
+-- the state from 1 to 0 at their Plan 5 drain times, NA_DEATH_H and FE_DEATH_H (100 health over 6 h and 24 h).
 K.drain.HYPONAT_GRADE = 3 -- the lethal hyponatraemia grade (K.fluids.hyponatGrade), no row needed: a grade index
 K.drain.IRON_RUNG = 3 -- the iron lethal rung (S1033), no row needed: a rung index
 K.drain.NA_DEATH_H = K.dials.get("drain.NA_DEATH_H")

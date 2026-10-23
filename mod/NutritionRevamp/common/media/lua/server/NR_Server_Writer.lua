@@ -179,7 +179,7 @@ end
 
 -- Plan 11d Task 5 fix: the satiety fullness F the writer reads. Protein fills only here: F is the
 -- stomach's fullness mass (K.stomach.fullnessMass, the satiety mass plus K.satiety.PROTEIN_FILL x the solid lane's
--- protein) over K.stomach.CAPACITY_MAX_G, clamped to [0, 1100 / 730] (K.satiety.fullness, Plan 11g spec
+-- protein) over K.stomach.CAPACITY_MAX_G, clamped to [0, CAPACITY_HARD_G / CAPACITY_MAX_G] (K.satiety.fullness, Plan 11g spec
 -- § 7); record.stomachFill, the kinetics' stamp, stays physical (K.stomach.fill, both lanes whole). A
 -- record with no stomach or no buffer, or a non-finite F, reads the stamp (0 when it is not finite).
 --
