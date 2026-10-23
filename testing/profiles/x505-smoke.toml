@@ -1,0 +1,41 @@
+# testing/profiles/x505-smoke.toml - Plan 19 Task 9b (run x505): the close's smoke boot of the re-staged upload copy
+# (x485's design on the default fixture) and the T7-2 arm (ruling T7-2: R3's item sync after the restore, a stale potato
+# eaten sated then Hungry). PZTestKit + the STAGED upload copy (release/NutritionRevamp/Contents/mods/NutritionRevamp,
+# staged from mod/'s last commit with `python tools/release_pack.py stage mod/NutritionRevamp --out release`; release/
+# is gitignored; mod/ is never booted, CLAUDE.md s5). Nutrition false (ruling T18-1), DayLength 4 (x50's: a game minute
+# 3.75 wall s at speed 1), sleep off. [sandbox.NR] Mode 1 (the mod writes HUNGER, which alliesthesia reads), DeathPace 2
+# and HealthCombine 1: each off its declared default (3, 2), and the pair off x50's (3, 2), x485's (1, 1) and x483's
+# (2, 3), so neither a default nor a stale options file can pass. Fixture default, admin (-debug), build 42.21.0. The
+# driver is testing/experiments/x505_smoke.py on x50_lib.py.
+fixture = "default"
+description = "PZTestKit + the staged NutritionRevamp upload copy, fixture default, admin (debug), Nutrition off, DayLength 4, sleep off, NR.Mode 1, DeathPace 2, HealthCombine 1, build 42.21.0 - Plan 19 Task 9b: x505."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+timeout = 240                 # the server boot wait (x484's): bounds the slow-boot fallback under the 600 s cap
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 4                 # a 90-minute day; a game minute 3.75 s at speed 1
+
+[sandbox.NR]
+Mode = 1                      # Hybrid: the mod owns HUNGER, which alliesthesia (R3) reads at the eat
+DeathPace = 2                 # off the declared default 3
+HealthCombine = 1             # Worst; off the declared default 2
