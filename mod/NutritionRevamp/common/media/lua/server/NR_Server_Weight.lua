@@ -1,34 +1,13 @@
--- NR_Server_Weight.lua -- the body model's weight adapter: once per player per game
--- minute, late in the per-player minute (the pipeline's ORDER, NR_Server_Minute, runs the weight step
--- after the metabolism and strength steps and before the writer and the store, so it reads
--- the fm and lm Metabolism stamped this minute), it writes the model's total mass into the vanilla
--- weight slot, the three direction flags off the 7-day trend, writes the five weight-band traits from the
--- body's axes (WGT.writeTraits) when the day close changed the band or the held set differs, and, under
--- the NR.LegacyMirror sandbox option, overwrites the four vanilla macro stores other mods read.
---
--- The weight slot is re-asserted, not trusted (#2643): setWeight every minute even when unchanged, the
--- three flags every minute (#2644). The band traits are the axes': the day close
--- (NR_Server_Metabolism) sets body.fatT, body.thinT and body.band from K.traits.axes and stamps body.traitsDirty on a
--- band change; this file adds and removes the five traits K.traits.WANT names through the trait collection and
--- pushes the trait block once, sendSyncPlayerFields(player, 2) (it reaches that player's own connection only,
--- #2603). Vanilla's applyTraitFromWeight (its 65/75/85/100 kg bands) is never called. A band trait an admin or
--- another mod removes is re-added as a repair (#2740). The band traits are the registry objects off
--- CharacterTrait[name], never an id built from a name (#0550; the id of VERY_UNDERWEIGHT holds a space).
---
--- The legacy mirror: calories = the trailing-24 h energy balance; proteins = the piecewise
--- map of the trailing-24 h protein per kg; carbohydrates and lipids = the trailing-24 h grams less a
--- reference; each is read off the trailing-24 h window (K.body.trail24 over record.body.trail,
--- as K.energy.eb24h reads it), clamped to the stores (#0022). A plain overwrite every
--- minute. The window is NR_Server_Metabolism's (K.body.new lays it, Metabolism moves it and its heal keeps it
--- finite) before this file reads it. When all four setters answer, the four values written become the record's
--- reconciliation baseline (record.reconcile.baseline): NR_Server_Reconcile, earlier in the
--- same minute, compares the stores against the mod's own last write. A band change's trait write also marks the bus
--- (B.markBand), so the mirror's body_band goes out with the next effects flush.
---
--- Every Java read goes through NR.call (index-first); every Java global is named only inside a function
--- behind a nil check, so the file loads with no engine. The
--- whole minute runs under one pcall per player and never raises into the players walk. Slow-clock code:
--- no @fastpath region in this file.
+-- NR_Server_Weight.lua: the weight adapter. Once per player per game minute, after metabolism and strength and before
+-- the writer and the store, it writes the model's total mass into the vanilla weight slot and the three trend flags,
+-- the five weight-band traits from the body's axes, and, under NR.LegacyMirror, the four vanilla macro stores.
+-- The weight slot is re-asserted every minute, not trusted (#2643), and the flags too (#2644).
+-- Vanilla's applyTraitFromWeight (its 65/75/85/100 kg bands) is never called. A band trait an admin or
+-- another mod removes is re-added as a repair (#2740). Traits are the registry objects off CharacterTrait[name], never
+-- an id built from a name (#0550: VERY_UNDERWEIGHT's id holds a space). sendSyncPlayerFields(player, 2) reaches that
+-- player's own connection only (#2603).
+-- The legacy mirror is a plain overwrite every minute off the trailing-24 h window, clamped to the stores (#0022);
+-- the values written become the reconciliation baseline. The minute runs under one pcall per player.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.weight = {
@@ -46,8 +25,7 @@ local WGT = NR.server.weight
 
 local finite = NR.finite
 
--- K.traits.WANT per rung pair, built once: the rungs are healed whole numbers (fatT 0..2, thinT 0..3, K.heal.RUNGS),
--- so the minute allocates nothing. Read-only.
+-- Built once, so the minute allocates nothing. Read-only.
 local wantCache = {}
 local function wantOf(fatT, thinT)
     if type(fatT) ~= "number" or type(thinT) ~= "number" then return K.traits.WANT(fatT, thinT) end
@@ -60,8 +38,7 @@ local function wantOf(fatT, thinT)
     return want
 end
 
--- Whether the held set differs from want, read with the fewest gets (Rule 6): a wanted trait absent, or,
--- with none wanted, any of the five present. An unreadable get compares nothing.
+-- With the fewest gets (Rule 6); an unreadable get compares nothing.
 local function differs(coll, want)
     local wanted = false
     local names = K.traits.WEIGHT_TRAITS
@@ -87,12 +64,10 @@ local function differs(coll, want)
     return false
 end
 
--- Whether the write in progress has landed an edit: kept outside write's return, so a raise after a landed edit
--- still pushes it.
+-- Kept outside write's return, so a raise after a landed edit still pushes it.
 local edit = { changed = false }
 
--- The write: each of the five added when wanted and absent, removed when held and unwanted. Returns whether the
--- collection changed and whether every read and edit landed.
+-- Returns whether the collection changed and whether every read and edit landed.
 local function write(coll, want)
     local changed, complete = false, true
     local names = K.traits.WEIGHT_TRAITS
@@ -123,13 +98,9 @@ local function write(coll, want)
     return changed, complete
 end
 
--- The five weight-band traits from the body's axes: when body.traitsDirty (the day close changed the
--- band), at the first minute of a record day (the audit: body.traitsDay, not stored, so a restart audits once) or when
--- the held set differs from K.traits.WANT(fatT, body.thinT), each is added or removed through the trait collection
--- and the trait block is pushed once if the collection changed (also when a later edit raised). A thinness rung
--- excludes the fat traits here too (precedence). A dirty write that landed clears body.traitsDirty and returns true
--- (the band changed: the caller marks the bus); an unreadable registry or collection, or an edit that failed, keeps
--- it for the next minute. ctx (optional) is the pipeline's, whose trait collection read (NR.read) it shares.
+-- Written when body.traitsDirty, at a record day's first minute (body.traitsDay is not stored, so a restart audits once)
+-- or when the held set differs; one push when the collection changed. A thinness rung excludes the fat traits here too.
+-- A failed write keeps traitsDirty for the next minute.
 function WGT.writeTraits(player, body, ctx)
     if CharacterTrait == nil then return false end
     local coll = NR.read.traits(ctx, player)
@@ -162,7 +133,6 @@ function WGT.writeTraits(player, body, ctx)
     return true
 end
 
--- The legacy macro mirror: the four stores off the trailing-24 h window.
 local function mirror(nut, body, w)
     local t = body.trail
     local p24h = K.body.trail24(t, "p") / w
@@ -183,8 +153,7 @@ local function mirror(nut, body, w)
     return nil
 end
 
--- The reconciliation baseline after the legacy write: the four values written. A record
--- with no reconcile table yet is left for the reconciliation's own seed.
+-- A record with no reconcile table yet is left for the reconciliation's own seed.
 local function rebase(record, wrote)
     local rc = record.reconcile
     if wrote == nil or type(rc) ~= "table" then return end
@@ -192,7 +161,7 @@ local function rebase(record, wrote)
     WGT.stats.rebases = WGT.stats.rebases + 1
 end
 
--- The band mark on the bus: the effects mark, one gap and one flush.
+-- One gap and one flush.
 local function markBand(username)
     local B = NR.server.bus
     if B ~= nil and B.markBand ~= nil then B.markBand(username) end
@@ -226,9 +195,7 @@ local function step(username, player, record, ctx)
     end
 end
 
--- One player's minute: the pipeline's weight step (NR_Server_Minute.run, called from P.work).
--- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
--- players walk.
+-- One pcall around the body: a failure is kept and logged, never raised into the players walk.
 function WGT.minute(username, player, record, ctx)
     if record == nil then return end
     WGT.stats.minutes = WGT.stats.minutes + 1
@@ -240,8 +207,6 @@ function WGT.minute(username, player, record, ctx)
     end
 end
 
--- Wiring: registered as the pipeline's weight step at OnServerStarted. ORDER runs it after the
--- metabolism and strength steps, so it reads this minute's masses.
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end

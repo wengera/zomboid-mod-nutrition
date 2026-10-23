@@ -1,94 +1,40 @@
--- NR_Server_Store.lua -- the durable per-player store: an in-memory table of the
--- records seen this uptime, persisted per player to two alternating JSON slot files under the server's Lua cache
--- folder through getFileWriter, with a real-time last-seen index; nothing per-player is
--- kept under a global modData name (#3417: any client could request it). A record is kept for good (no
--- prune, so neither a long absence nor long downtime resets a character).
+-- NR_Server_Store.lua: the durable per-player store: an in-memory table of the records seen this uptime,
+-- persisted per player to two alternating JSON slot files under the Lua cache folder through getFileWriter, with a
+-- real-time last-seen index; nothing per-player is
+-- kept under a global modData name (#3417: any client could request it). A record is kept for good (no prune).
 -- The folder is keyed by the server name, so a world wiped under the
 -- same name finds the old files, and every returning player's record, resets included, carries over; an operator
--- who wants a fresh start deletes the folder by hand. The load at first sight is fillInPlace (the load, below).
--- Inputs only (K.store.inputsOnly), never transmitted (#2416). The authoritative copy is never player modData
--- (#1042): the copy NR_Server_Backup keeps on the character is a validated backup that the load rule reads only when
--- this store's copy is lost or ahead of the world. Runs in both Lua states; every write below is behind
--- NutritionRevamp.isServer().
+-- who wants a fresh start deletes the folder by hand. Inputs only (K.store.inputsOnly), never transmitted (#2416).
+-- Player modData is never the authoritative copy (#1042): NR_Server_Backup's copy is read only by the load rule.
+-- Every write is behind NutritionRevamp.isServer().
 --
--- The files (42.21 jar). getFileWriter TRUNCATES the file at the call, not
--- at close, so the writer never opens the file of a pair that holds the newest complete copy: a host killed
--- between open and close loses only the file being written, and the other still holds the last complete one. The
--- index (real-time last-seen stamps) is a pair too, index_a.json and index_b.json, for the same reason: one index
--- file emptied by a crash mid-write would lose every name, and the deferral below reads the index's names.
--- Each file is one JSON object on one line, written with ONE write (writeln appends the host's separator, CRLF on
--- Windows) and read with getFileReader(path, false) (true would create an empty file; a missing file reads nil).
--- The guard: LuaFileWriter is a PrintWriter, which swallows I/O errors, so writeFailures counts only a writer that
--- came back nil or raised; a torn or failed write is caught on read, where a file that does not decode to an object
--- carrying done = true and its gen is a read failure and the other file of the pair wins. The server name is passed
--- through K.store.safeName (it is not sanitised, and a name holding .. would make every write nil); a nil writer is
--- counted every time and logged once.
--- A swallowed write never costs the newest copy: the text last written (or read) per file pair is
--- kept (F.last[username], F.lastIndex), and before the writer opens the other file of a pair it reads the file it
--- believes holds the newest copy back and compares it as a string, with no decode. A mismatch means that write was
--- swallowed: the same file is rewritten instead (the other one still holds the last complete copy), counted in
--- store.file.stats.repaired and logged once per player. The cost is one file read per save (a player's slot at most
--- once a real minute, and after an eat, a drink or a respawn's reset) and per index write.
--- A transient read failure never resets a record whose files the index names: a record S.get created fresh this
--- sight (S.fresh) whose files the save's preload then finds is filled from the file in place and that save skipped,
--- and one whose preload reads nothing while the index names the player, or a slot file is present but unreadable,
--- is deferred (nothing opened, counted in store.file.stats.deferred, logged once, the flag kept) for S.DEFER_MAX_MS of
--- real time from the player's first deferral (F.deferSince: a deferred save retries at every store
--- step, once a game minute, so a count of steps would be seconds at a short day). The first save past the window
--- gives up, counts store.file.stats.deferGiveUps, logs at level 1 and saves the session record as a new generation;
--- a clock that does not read never gives up. So the fresh record never overwrites the real one for a transient
--- failure (logged at level 2); the flag and the window clear at the first save, at a recovery and at a reset. A
--- player the index does not name (first seen after its last write, or any player while it is locked) is protected
--- only by an unreadable slot file: two reads that answer nothing, as for a missing file, save them new.
+-- The files: getFileWriter TRUNCATES the file at the call, not at close,
+-- so the writer never opens the file of a pair that holds the newest complete copy: a host killed mid-write loses
+-- only that file. The
+-- index (real-time last-seen stamps) is a pair too, index_a.json and index_b.json, for the same reason.
+-- One JSON object a line, written with ONE write, read with getFileReader(path, false) (true creates an empty file).
+-- LuaFileWriter is a PrintWriter, which swallows I/O errors, so a torn write is caught on read, where
+-- a file that does not decode to an object
+-- carrying done = true and its gen is a read failure and the other file of the pair wins. A swallowed write is also
+-- caught before the next open: the file believed newest is read back as a string and rewritten on a mismatch.
+-- A transient read failure never resets a record the index names: its save is deferred for S.DEFER_MAX_MS of real
+-- time (a step count would be seconds at a short day), then gives up and saves the session record as a new generation.
 --
--- The load: the first S.get of a username in a sight -- the players' queue calls it
--- at first sight, before the first-sight hooks; a mirror request or an eat that comes first takes it -- reads the
--- newest slot when the record is not in memory, then runs K.store.fillInPlace on the record: the inputs are kept,
--- every derived field dropped for the slow minute to rebuild, all in the record's OWN table, so every handle held
--- on it reads the loaded record with no re-point. The load is idempotent and runs once per record table this uptime
--- (S.filled): a record held in memory since its fill keeps its derived fields at a return, so it comes back exactly as
--- it left. Then, at every first touch of a sight, the resume (K.resume.resume): every world-age stamp
--- moved past the absence, so nothing about the character changes offline, and the players' minute runs nothing at the
--- return (S.takeResumed): the first step back is the next minute, from the stamps the resume laid, so a record read
--- from a file rebuilds its derived fields before any stat is written. A sight is keyed on the player object: a
--- departure forgets it (and queues the record's flush as one task), and a touch with a player object other than the
--- sight's (a reconnect the minute's walk never saw leave) starts a new one; a stall on the same object is no sight. A
--- load that raises lays a fresh record in place, counted and logged.
+-- The load: the first S.get of a sight reads the newest slot and runs K.store.fillInPlace in the record's OWN table, so
+-- every held handle reads it with no re-point; then the resume moves every stamp past the absence, so nothing changes
+-- offline, and the return minute runs nothing (S.takeResumed). A sight is keyed on the player object.
 --
--- The load rule (S.pick), at the read of a record not in memory, with the touching
--- player's backup (NR_Server_Backup's BK.read: validated, else nil): a store file that is missing or unreadable loads
--- the backup (a deleted folder, a renamed server, a moved host); a store record whose latest stamp (K.resume.latest)
--- is past the world clock was written after the world's last save, a hard kill having rolled the world back under it
--- (#3280), and loads the backup, which is saved with the character by the engine's own player save (every 3
--- real minutes online, at a disconnect, at a world save), so the record matches the
--- character's restored inventory and stats and the food landed after that snapshot is not eaten twice; otherwise the
--- store wins. A restore is then filled and resumed like any load (K.resume.resume moves a record whose latest stamp
--- is past the world back onto the world clock, so the rolled-back stretch is not integrated twice), its generation
--- set past both the store's and the backup's, and its slot marked dirty so the next store step writes it. A backup
--- the rule rejects (absent, wiped or edited) beside a good store is rewritten at that step. A store ahead with no
--- valid backup is kept, moved back the same way, and logged at level 1.
+-- The load rule (S.pick): a missing or unreadable store file, or a store record past the world clock (a hard kill
+-- rolled the world back under it, #3280), loads the backup, which the engine's player save keeps in step with the
+-- character, so food landed after that snapshot is not eaten twice; otherwise the store wins.
 --
--- The writes ride the players' queue: a player's slot is written at most once a real minute from
--- its own minute (the pipeline's "store" step), the first after a sight at the player's own phase over that minute
--- (K.store.savePhase), so the players seen at a boot do not all save in one drain; a departure's flush, the index
--- write and the hourly re-read of a locked index are one-shot tasks. The index is debounced: a departure flush writes
--- only the player's slot and marks the index dirty, and the one task "store.index" writes it at most once every
--- S.INDEX_GAP_MS while dirty. Each slot save also writes the record's backup on the player (BK.write, the same text),
--- so the backup follows the save cadence and never the minute; a departure's flush has no player and writes none. A
--- task name carries a "." ("store.flush.<hex>", "store.index", "store.reread"), which no username can:
--- ServerWorldDatabase.isValidUserName refuses a name holding "." (42.21 @75-@81 L776) and authClient refuses an
--- invalid name (@61-@84 L1041-L1044), and a task named like an online user would be merged into that user's queue
--- entry and never run.
+-- The writes ride the players' queue: a player's slot is written at most once a real minute from its own minute, at
+-- the player's phase (K.store.savePhase); the index is debounced (S.INDEX_GAP_MS). A task name carries a ".", which no
+-- username can (isValidUserName, 42.21 L776), so a task is never merged into a user's queue entry.
 --
--- The stop window: a dedicated server fires no Lua event around a world save or a stop, so nothing
--- flushes the store there; the window a clean stop can lose is narrowed instead. A landed eat or drink (IN.land
--- calls S.mark) and a respawn's reset (S.reset) mark the player's slot dirty, and the store step writes
--- a dirty slot at the player's next queue slot whatever S.SAVE_GAP_MS says, for that one save (the
--- read-before-truncate and the deferral still apply; a save that writes nothing -- a failed write, a deferral, a
--- recovery -- keeps the mark, so it is tried again at the next step). A username new to the index is written
--- promptly: its first save queues the store.index task into the live queue, so it runs at the next tick, not
--- S.INDEX_GAP_MS later. A clean stop then loses at most the last S.SAVE_GAP_MS of digestion drift; a hard kill
--- is the load rule's case (above).
+-- No Lua event fires around a world save or a stop. A landed eat or drink (IN.land
+-- calls S.mark) and a respawn's reset (S.reset) mark the player's slot dirty, written at the next store step whatever
+-- the gap. A clean stop then loses at most the last S.SAVE_GAP_MS of digestion drift; a hard kill is the load rule's.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.store = { records = nil, loaded = {}, loadedFor = nil, wired = false,
@@ -114,9 +60,7 @@ local function other(which)
     return "a"
 end
 
--- The index write run at the next tick: the store.index task, its name also appended to the live
--- queue (P.task alone would wait for the next minute's merge; K.sched.merge never doubles a name), or inline when
--- the queue is absent.
+-- Also appended to the live queue (P.task alone would wait for the next minute's merge), or inline without one.
 local function indexSoon(fn)
     local P = NR.server.players
     if P == nil or P.task == nil or type(P.queue) ~= "table" then
@@ -136,12 +80,11 @@ function S.attach()
     return S.records
 end
 
--- A fresh record (K.store.new: the identity fields only).
 function S.new(username, worldAgeHours)
     return K.store.new(username, worldAgeHours)
 end
 
--- The sight set of the records table t: a different table than the one the set was kept for starts empty.
+-- A different table than the one the set was kept for starts empty.
 local function sights(t)
     if S.loadedFor ~= t then
         S.loaded = {}
@@ -150,12 +93,8 @@ local function sights(t)
     return S.loaded
 end
 
--- A load that raises (a corrupt or hand-edited file: a body without its masses or clock, a string where
--- a number sits) lays a fresh record in target's OWN table, so every handle held on it stays valid, and the character
--- runs the fresh-character path (its sub-tables laid at first sight) instead of a raw table every step fails on. The
--- record's mod state is lost; the username and its first sight are kept. Counted in S.stats.failures and logged.
--- lastSeen is stamped at the touch's world age ageH (when read), so the players' minute never reads the time since
--- the first sight as a stall.
+-- A load that raises (a corrupt or hand-edited file) lays a fresh record in target's OWN table, so held handles stay
+-- valid; the username and first sight are kept. lastSeen is stamped at ageH, so the minute never reads the gap as a stall.
 local function freshInPlace(username, target, firstSeen, ageH)
     local age = firstSeen
     if type(age) ~= "number" or age ~= age then age = NR.worldAge() end   -- nil when unread: P.work stamps lastSeen
@@ -166,7 +105,7 @@ local function freshInPlace(username, target, firstSeen, ageH)
     return target
 end
 
--- The load of a stored record r, in place, then its resume at world age worldAgeHours (the header). Returns r.
+-- The header's load, then the resume. Returns r.
 function S.load(username, r, worldAgeHours)
     local records = NR.data and NR.data.records
     local ok, err = pcall(K.store.fillInPlace, r, r, records and records.ORDER, records, NR.sexSpecific(), NR.strengthP())
@@ -182,10 +121,7 @@ function S.load(username, r, worldAgeHours)
     return r
 end
 
--- The resume of a loaded record at world age ageH (K.resume.resume): a forward gap is counted in S.stats.resumes and
--- S.stats.resumedH (game hours), a backward one (a record past a rolled-back world) in S.stats.rewound, logged at
--- level 2; either marks the username for S.takeResumed. An unread age moves nothing; S.get then leaves the sight
--- unmarked, so the next touch with a clock read resumes the record.
+-- An unread age moves nothing and leaves the sight unmarked, so the next touch with a clock resumes it.
 function S.resume(username, r, ageH)
     local gapH = K.resume.resume(r, ageH)
     if gapH > 0 then
@@ -222,8 +158,7 @@ function F.indexPath(which)
     return F.dir() .. "index_" .. which .. ".json"
 end
 
--- One file written whole: open (which truncates), one write, close. False when the writer came back nil or raised,
--- or a member raised (counted); a write the PrintWriter swallowed reads true here and is caught on read.
+-- False when the writer came back nil or raised; a write the PrintWriter swallowed reads true and is caught on read.
 function F.write(path, text)
     if getFileWriter == nil then return false end
     local ok, w = pcall(getFileWriter, path, true, false)
@@ -262,9 +197,7 @@ function F.read(path)
     return table.concat(parts, "\n")
 end
 
--- One file of a pair decoded: the object and its text, or nil. A missing or empty file is nil and uncounted; one
--- that does not decode (torn, or nested past the decoder's stack: the decode runs under pcall) or lacks done, gen
--- or its body table is a read failure, logged, and answers true third.
+-- A missing or empty file is nil and uncounted; a torn one, or one lacking done, gen or body, answers true third.
 local function readDoc(path, body)
     local text = F.read(path)
     if text == nil or text == "" then return nil end
@@ -281,16 +214,13 @@ local function readDoc(path, body)
     return t, text
 end
 
--- Whether the file at path still holds last, the text last written to it or read from it (nil: nothing known, so
--- nothing to compare). A string compare, no decode: one read.
+-- A string compare, no decode: one read. nil last knows nothing to compare.
 function F.intact(path, last)
     if last == nil then return true end
     return F.read(path) == last
 end
 
--- The file of a pair a write opens: the other file than at, the one holding the newest copy -- unless at's file no
--- longer reads back as last (a swallowed write), when at's own file is rewritten and the other one, the last
--- complete copy, is left alone.
+-- The other file than at, unless at's file no longer reads back as last (a swallowed write): then at is rewritten.
 local function target(at, atPath, last, who)
     if at == nil or F.intact(atPath, last) then return other(at) end
     F.stats.repaired = F.stats.repaired + 1
@@ -303,7 +233,6 @@ local function target(at, atPath, last, who)
     return at
 end
 
--- The newest complete slot's raw record, or nil; it remembers which slot holds it, so the next save opens the other.
 -- Second: whether either slot file is present but unreadable (a missing file is not), which F.save's deferral reads.
 local function loadSlots(username)
     local a, ta, badA = readDoc(F.slot(username, "a"), "rec")
@@ -319,13 +248,11 @@ local function loadSlots(username)
     return docs[which].rec, bad
 end
 
--- The newest complete slot's raw record, or nil (loadSlots, its first value).
 function F.load(username)
     return (loadSlots(username))
 end
 
--- A record S.get created fresh this sight whose files the save's preload found after all (a transient read
--- failure at first sight): the file's record is laid into the in-memory one in place. Returns nothing.
+-- A record created fresh this sight whose files the save's preload found after all: filled from the file in place.
 function S.recover(username, record, raw)
     S.fresh[username] = nil
     F.deferSince[username] = nil
@@ -343,12 +270,8 @@ function S.recover(username, record, raw)
     S.resume(username, record, NR.worldAge())               -- the file's stamps are the departure's
 end
 
--- One player's record into the slot that does NOT hold the newest complete copy (target: unless a swallowed write
--- left the newest slot unreadable): { gen, rec = the inputs, done = true } on one line. A failed write leaves the
--- newest where it was, so the next save opens the same slot. A record created fresh this sight whose files the
--- preload finds is recovered from them instead of written over them (false: nothing written). With the player
--- (absent at a departure's flush), the same text is the record's backup on the character at world age ageH (BK.write),
--- written whether or not the file write held, so a store that cannot write still leaves the copy.
+-- Into the slot that does NOT hold the newest complete copy; a fresh-this-sight record whose files the preload finds
+-- is recovered instead (false). The same text is the player's backup (BK.write), written whether or not the file held.
 function F.save(username, record, player, ageH)
     if record == nil then return false end
     if F.gen[username] == nil then
@@ -399,8 +322,7 @@ function F.save(username, record, player, ageH)
     return true
 end
 
--- The index into the file of its pair that does not hold the newest complete copy (target, as F.save). A written
--- index is clean. A locked index (F.readIndex) is never written: the call cleans the flag and answers false.
+-- A locked index (F.readIndex) is never written: the call cleans the flag and answers false.
 function F.writeIndex()
     if F.indexLocked then
         F.indexDirty = false
@@ -418,14 +340,9 @@ function F.writeIndex()
     return true
 end
 
--- The index read at boot, and again once a real hour while it is locked. When no file of the pair reads and
--- either is present but unreadable (a torn or locked-open copy, not a missing one):
---   * exactly one is unreadable and the other missing: every index write this boot goes to the missing file
---     (F.indexPin) and the unreadable one is never opened, so the next boot reads what was written;
---   * both are unreadable: the index is locked for this boot, since a gen-1 write would land on one file and the
---     next on the other, so the real index, with every name, would be written over. Only an unreadable slot file
---     then defers a player's save, until the hourly re-read (or a restart) reads the index.
--- Logged once each, at level 1.
+-- When no index file reads and one is unreadable: with the other missing, every write goes to the missing one
+-- (F.indexPin); with both unreadable the index is locked for this boot, since alternating writes would overwrite the
+-- real index. Logged once each.
 function F.readIndex()
     local a, ta, badA = readDoc(F.indexPath("a"), "players")
     local b, tb, badB = readDoc(F.indexPath("b"), "players")
@@ -464,17 +381,14 @@ function F.readIndex()
     F.indexAt = which
 end
 
--- Whether username's record was resumed since the players' minute last asked (cleared by the asking): that minute is
--- the return, which integrates nothing, so it runs nothing (P.work).
+-- That minute is the return, which integrates nothing, so it runs nothing (P.work).
 function S.takeResumed(username)
     if S.resumed[username] ~= true then return false end
     S.resumed[username] = nil
     return true
 end
 
--- A restore from the backup (the load rule): the next write's generation set past the store's newest (loadSlots'
--- F.gen, nil for a missing store) and the backup's own, one more past both so a store file that went unread at this
--- touch never outranks the restore, and the slot marked so the next store step writes it. Returns raw.
+-- The generation set one past both the store's and the backup's, so an unread store file never outranks the restore.
 function S.restore(username, raw, gen, why)
     F.gen[username] = K.max(F.gen[username] or 0, gen) + 1
     S.mark(username)
@@ -484,8 +398,7 @@ function S.restore(username, raw, gen, why)
     return raw
 end
 
--- The load rule (the header): the raw record of username read at world age ageH, from the store's newest slot or the
--- backup on player (BK.read), or nil when neither holds one. With no player or no clock, the store is read alone.
+-- With no player or no clock, the store is read alone.
 function S.pick(username, ageH, player)
     local raw = F.load(username)
     local B = NR.server.backup
@@ -508,9 +421,7 @@ function S.pick(username, ageH, player)
     return raw
 end
 
--- The record of username at world age worldAgeHours, loaded and resumed at the first touch of a sight (the header).
--- player (optional) is the touching player object: the sight set holds the object of each sight (true when the first
--- touch named none, which the next touch with an object adopts), and a touch with another object starts a new sight.
+-- A touch with a player object other than the sight's starts a new sight.
 function S.get(username, worldAgeHours, player)
     local t = S.attach()
     local seen = sights(t)
@@ -547,11 +458,8 @@ function S.get(username, worldAgeHours, player)
     return r
 end
 
--- A departure flush: the record held now (one no longer held writes nothing), and the index marked dirty
--- for the debounced store.index task (ten departures in a minute write it once, not ten times). A save that writes
--- nothing (a failed write, a deferral) keeps the dirty mark and stamps the attempt as the slot's last write, so the
--- minute's retry (S.retryAway) comes once per save gap, not every minute; a returned player's own store step takes
--- the mark instead. A record no longer held ends the retries. Only a flush that writes marks the index.
+-- Marks the index dirty for the debounced task. A save that writes nothing keeps the dirty mark and stamps the attempt,
+-- so the retry comes once per save gap; only a flush that writes marks the index.
 local function flush(username)
     local r = S.records and S.records[username]
     F.dirty[username] = nil                                -- the flush is the dirty slot's save
@@ -572,8 +480,7 @@ local function queueFlush(username)
     end
 end
 
--- The minute's retry of the departure flushes that wrote nothing: each away player whose slot is dirty and whose
--- last attempt is a save gap old is queued again; a dirty slot whose record is gone is dropped.
+-- A dirty slot whose record is gone is dropped.
 function S.retryAway(now)
     local P = NR.server.players
     if P == nil or P.online == nil then return end
@@ -586,17 +493,14 @@ function S.retryAway(now)
     end
 end
 
--- A departure: the sight forgotten, so the next first sight loads the record again, and the record's flush queued;
--- the index follows within S.INDEX_GAP_MS.
+-- The sight forgotten, so the next first sight loads the record again.
 function S.forget(username)
     if username == nil then return end
     if S.loaded ~= nil then S.loaded[username] = nil end
     queueFlush(username)
 end
 
--- A respawn: the character is new, the record starts fresh, the reset count carries over so a later reading can
--- tell a returning player from a new one. S.reset REPLACES the table (the one place a handle held on the record goes
--- stale until it is read again).
+-- S.reset REPLACES the table (the one place a held handle goes stale); the reset count carries over.
 function S.reset(username, worldAgeHours, player)
     local t = S.attach()
     local old = t[username]
@@ -621,17 +525,14 @@ function S.reset(username, worldAgeHours, player)
     return r
 end
 
--- A landed eat or drink (IN.land) or a respawn's reset (S.reset): the player's slot is written at its next store
--- step, past the save gap. A skipped name is never marked.
+-- Written at the next store step past the save gap. A skipped name is never marked.
 function S.mark(username)
     if username == nil then return end
     if S.skip ~= nil and S.skip(username) == true then return end
     F.dirty[username] = true
 end
 
--- The pipeline's store step: the player's slot written when a real minute has passed since its last write, or at
--- once when an eat, a drink or a reset marked it dirty (a dirty save that writes nothing keeps the mark); the first
--- write after a boot falls at the player's phase over that minute (K.store.firstLast).
+-- A real minute since the last write, or at once when dirty; the first after a boot at the player's phase.
 function S.step(username, player, record, ctx)
     -- The skip seam: S.skip is nil in production; only the test harness sets it, to a
     -- function of a username answering true for its ghost names, whose store step then does nothing at all (no
@@ -684,8 +585,7 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
     end)
 end
 
--- The dirty index's write and the hourly re-read of a locked index, each queued as a one-shot task so it runs in a
--- queue slot under the budget, not in the minute event.
+-- Each a one-shot task, so it runs in a queue slot under the budget, not in the minute event.
 if Events ~= nil and Events.EveryOneMinute ~= nil then
     Events.EveryOneMinute.Add(function()
         if not NR.isServer() then return end

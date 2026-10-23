@@ -1,64 +1,22 @@
--- NR_Server_IntakeGuard.lua -- the server's refusal of an eat at Overfull 4.
---
--- Why: vanilla refuses an eat at FOOD_EATEN level 3 in client Lua alone (#3599): the menu greys Eat with
--- Tooltip_CantEatMore, and isValidStart runs only when the client's queue starts its NEXT action, so an eat added to an
--- empty queue (a script, the hotbar, a double queue) reaches the server, which meets no cap (#3936). The food-timer
--- bridge (NR_Server_Writer W.foodTimer) holds FOOD_EATEN at 3 exactly while the record reads Overfull 4, so the menu
--- refusal and this one read the same level.
---
--- The refusal path (read on the 42.21 jar, buildid 25485521):
---  * the server builds the eat through ISEatFoodAction.new and sets action.netAction (NetTimedAction.parse @221-@228
---    L175); ActionManager.start calls Action.start, then add (@19-@24 L43-L44); NetTimedAction.start lays the time
---    data (endTime = start + duration) and only then calls serverStart through a rawget (@0-@38 L102-L105), so a
---    forceComplete inside serverStart holds;
---  * NetTimedAction.forceComplete sets endTime to the server's now (@0-@4 L181), so ActionManager.update performs the
---    action on its next pass: perform calls Lua complete (protectedCallBoolean, @0-@21 L140); true is Done, false is
---    Reject, and either sends the action's packet to its client (ActionManager.update @72-@170 L70-L87, @173-@249
---    L88-L96);
---  * the client's LuaTimedActionNew.update reads ActionManager.isRejected and calls forceStop (@62-@77 L93-L94), so the
---    eat's animation stops, ISBaseTimedAction:stop resets the client's queue and the item is untouched;
---  * a server-side stop (ActionManager.remove: Action.stop, @252-@254 L197) calls Lua serverStop, and vanilla's
---    serverStop eats by netAction:getProgress(), which reads 1 once endTime == startTime (Action.getProgress @0-@12
---    L94-L95): a cancel after the forceComplete would eat the WHOLE item, so serverStop is guarded too.
--- Vanilla's own pattern: serverStart then netAction:forceComplete() (ISInsertMagazine.lua:60-62, ISRestAction.lua:
--- 101-103), and complete returning false as the reject (ISGatherBloodFromAnimal.lua:183-185). The message is vanilla's
--- server-side halo route, as ISReadABook sends it (forceComplete then doHaloText at :398-400; its
--- HaloTextHelper.addBadText of a getText at :86): HaloTextHelper.addText on a server sends a HaloText packet to the player (@60-@86 L158-L159), whose client
--- draws the string it carries, untranslated (HaloTextPacket.processClient @0-@15).
---
--- The wraps, three, on ISEatFoodAction (never `new`: the client sends the action's arguments by the
--- parameter names of the `new` closure on its class, so a varargs wrapper would send none):
---  * serverStart (vanilla defines none on ISEatFoodAction or ISBaseTimedAction, so NR.installWrap's absentOk installs
---    it over nil and any serverStart another mod laid first is chained): at Overfull 4 it marks the action refused
---    (action.nrRefused, a field of the server's action table, as ISReadABook's forceStopped is), forceCompletes it and
---    sends the player Tooltip_CantEatMore; below it the saved original, if any, runs unchanged;
---  * complete: a refused action returns false (the Reject) and nothing BELOW it runs: no Eat, no intake capture, and no
---    corpus wrap laid before this mod; a wrap laid AROUND it (a mod loaded after this one, such as QualityCooking, whose
---    complete wrap applies its buff whatever the result) still runs its own work (a limitation); any other action runs
---    the saved original unchanged;
---  * serverStop: a refused action stops with nothing eaten; any other stop (a real cancel) runs the original.
--- THE STATED EXCEPTION: the intake's wrappers ALWAYS call the saved original (NR_Server_Intake.lua's shape, #1067).
--- These three do not, on a refused action alone, on purpose: refusing the eat is the point. Below Overfull 4, for
--- every other item and on the client, each calls its original with the same arguments and returns its result.
---
--- Wrap order: this file must wrap complete and serverStop OUTSIDE the intake's capture, so a refusal never reaches the
--- capture. Each mod's Lua files run sorted case-insensitively (#0850), and "nr_server_intake.lua" sorts before
--- "nr_server_intakeguard.lua" ('.' before 'g'), so the intake wraps first at load and this file wraps its wrapper; the
--- file's name is load-bearing (testing/tests/kernel/test_intake_guard.py holds the order). G.outer reports it.
---
--- Shape (NR_Server_Fitness.lua's): each sentinel a global of its own, kept across a reload of this file and of NR_Core
--- (#0943); NR.installWrap is idempotent and never wraps a wrapper; the wrapper reads its logic from
--- NutritionRevamp.server.eatGuard per call; the side test is per call (this server/ file also runs in the client's
--- Lua state, #0855, where serverStart passes through); every Java global (ISEatFoodAction, HaloTextHelper, getText,
--- Events) is named only inside a function behind a nil check, so the file loads with no engine.
--- The rim guard: the check runs under one pcall and the refusal's steps under their own; a raising check runs the
--- original (the eat proceeds), and a raise after the mark leaves the action refused at its own end time.
---
--- Cadence (Rule 6): once per eat start, no clock and no per-minute work. The wrapper's side test (NR.isServer, one Java
--- call), then the check: the running mode (Lua), the eater's username (a second Java call), the record already in memory
--- (a table lookup, never a load) and its Overfull level (K.view.overfullOf, Lua): 2 Java calls below Overfull 4; only at
--- it does it read the item's hunger change (a third). A refusal
--- adds forceComplete, getText and the halo send. complete and serverStop read one Lua field. No @fastpath region.
+-- NR_Server_IntakeGuard.lua: the server's refusal of an eat at Overfull 4.
+-- Why: vanilla refuses an eat at FOOD_EATEN level 3 in client Lua alone (#3599), and an eat added to an empty queue (a
+-- script, the hotbar) reaches the server, which meets no cap (#3936). The food-timer bridge holds FOOD_EATEN at 3
+-- exactly while the record reads Overfull 4, so the menu refusal and this one read the same level.
+-- The refusal path (42.21): NetTimedAction.start lays the time data before serverStart, so a forceComplete inside
+-- serverStart holds; the action then performs on the next update, where complete returning false is the Reject and
+-- the client stops with the item untouched. A server-side stop after the forceComplete would eat the WHOLE item
+-- (getProgress reads 1 once endTime == startTime), so serverStop is guarded too. The message is vanilla's server-side
+-- halo route (HaloTextHelper.addText), drawn untranslated by the client.
+-- Three wraps on ISEatFoodAction, never `new` (the client sends the action's arguments by the `new` closure's parameter
+-- names, so a varargs wrapper would send none): serverStart (vanilla defines none, so absentOk installs it over nil),
+-- complete and serverStop. A wrap laid AROUND this one (a later mod such as QualityCooking) still runs its own work.
+-- THE STATED EXCEPTION: the intake's wrappers ALWAYS call the saved original (#1067). These three do not, on a refused
+-- action alone, on purpose: refusing the eat is the point.
+-- Wrap order: this file must wrap OUTSIDE the intake's capture. Lua files run sorted case-insensitively (#0850), and
+-- "nr_server_intake.lua" sorts before "nr_server_intakeguard.lua", so the file's name is load-bearing
+-- (testing/tests/kernel/test_intake_guard.py holds the order).
+-- The rim guard: a raising check runs the original (the eat proceeds); a raise after the mark leaves the action refused.
+-- Cadence (Rule 6): once per eat start; 2 Java calls below Overfull 4.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.eatGuard = {
@@ -81,7 +39,6 @@ NR.server.eatGuard = {
 }
 local G = NR.server.eatGuard
 
--- The sentinels: globals of their own, kept across a reload of this file and of NR_Core.
 NR_EatGuardStart_Installed = NR_EatGuardStart_Installed or {}
 NR_EatGuardComplete_Installed = NR_EatGuardComplete_Installed or {}
 NR_EatGuardStop_Installed = NR_EatGuardStop_Installed or {}
@@ -89,9 +46,8 @@ NR_EatGuardStop_Installed = NR_EatGuardStop_Installed or {}
 G.TEXT_KEY = "Tooltip_CantEatMore"            -- vanilla's menu refusal (ISInventoryPaneContextMenu.lua:503)
 G.TEXT_FALLBACK = "Too full to eat more."     -- vanilla's EN text of the key (shared/Translate/EN/Tooltip.json:264)
 
--- Whether the server refuses the action: Mode 1, a sating food (getHungChange below 0, the context menu's test,
--- ISInventoryPaneContextMenu.lua:468), and the eater's in-memory record at Overfull K.view.REFUSE_AT. The record is read
--- as held, never loaded: a record not in memory refuses nothing.
+-- A sating food (getHungChange below 0, the menu's test) and the eater's in-memory record at Overfull REFUSE_AT; the
+-- record is read as held, never loaded, so a record not in memory refuses nothing.
 function G.refuses(action)
     if type(action) ~= "table" then return false end
     if NR.runningMode() ~= 1 then return false end
@@ -108,7 +64,7 @@ function G.refuses(action)
     return okH and type(hung) == "number" and hung < 0
 end
 
--- The text the player sees: the key through getText when it resolves, else vanilla's EN text.
+-- Else vanilla's EN text.
 function G.text()
     local f = getText
     if f ~= nil then
@@ -118,8 +74,7 @@ function G.text()
     return G.TEXT_FALLBACK
 end
 
--- The refusal's two steps, each under its own pcall: the forceComplete (the action performs on the server's next
--- update), then the message. A missing netAction is counted: the action then ends at its own time, still refused.
+-- Each step under its own pcall. A missing netAction is counted: the action then ends at its own time, still refused.
 function G.refuse(action)
     local okF, present = pcall(NR.call, action.netAction, "forceComplete")
     if not (okF and present) then G.stats.unforced = G.stats.unforced + 1 end
@@ -138,8 +93,7 @@ local function fail(where, err)
     NR.log.say(2, "eat guard: " .. G.lastError)
 end
 
--- The start's decision under the rim guard: true when the action is refused (marked before anything that can raise,
--- so complete and serverStop hold it whatever follows), false when the original must run (a raising check included).
+-- Marked before anything that can raise, so complete and serverStop hold it whatever follows.
 function G.start(action)
     G.stats.checks = G.stats.checks + 1
     local ok, refuse = pcall(G.refuses, action)
@@ -156,7 +110,6 @@ function G.start(action)
     return true
 end
 
--- The serverStart wrapper: the check on the server; the original (when the class had one) on every other path.
 local function makeStart(S)
     return function(self, ...)
         local nr = NutritionRevamp
@@ -171,8 +124,7 @@ local function makeStart(S)
     end
 end
 
--- The complete and serverStop wrapper: a refused action ends with nothing below it run (complete answers false, the
--- Reject); any other action runs the original with the same arguments and returns its result.
+-- complete answers false, the Reject; any other action runs the original with the same arguments.
 local function makeHold(S, kind)
     return function(self, ...)
         if type(self) == "table" and self.nrRefused == true then
@@ -190,7 +142,7 @@ local function makeHold(S, kind)
     end
 end
 
--- Installs the three wraps when ISEatFoodAction exists; returns whether all three are in place. Never touches new.
+-- Never touches new.
 function G.install()
     local cls = ISEatFoodAction
     if cls ~= nil then
@@ -211,9 +163,7 @@ function G.install()
     return G.wrappedStart and G.wrappedComplete and G.wrappedStop
 end
 
--- At load, after the intake's own wraps (the file order above), and again at OnServerStarted behind the side test,
--- where the state is logged once: at level 1 when the class exists (a guard not outside the intake's capture shows
--- there), at level 3 when it is absent (the intake's own line already reports no eat wrappers).
+-- At load, after the intake's own wraps (the file order above), and again at OnServerStarted, logged once.
 G.install()
 
 if Events ~= nil and Events.OnServerStarted ~= nil then

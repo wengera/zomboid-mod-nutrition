@@ -1,39 +1,17 @@
--- NR_Server_Backup.lua -- the record's backup on the character: a copy of the
--- player's stored record kept in the character's own modData, so a lost or corrupt store file, or a store file left
--- ahead of a world a hard kill rolled back, restores from the copy saved with the character (NR_Server_Store's load
--- rule, S.pick). The engine writes the character, its modData with it, to players.db on its own cadence, apart from
--- the world save: every 180 real seconds for each connected player, at a disconnect, at a trade, at creation and at a
--- world save, each row committed at once (ServerPlayerDB). So after a hard kill the copy
--- matches the character's restored inventory and stats, and it is usually ahead of the rolled-back world clock: that is
--- its normal state, not a fault, and K.resume.resume moves it back onto the clock. The store's file stays the
--- authoritative copy; this one is read only by that rule.
---
--- The copy: modData key NutritionRevamp.backup = { n, parts, sum, age }. parts holds the store slot's own text (the
--- one K.json document F.save writes: { gen, rec = K.store.inputsOnly, done = true }, so there is no second format and
--- no second encode) cut into n strings of at most BK.PART characters: the engine saves a modData string with a signed
--- 16-bit count of its UTF-8 bytes (GameWindow$StringUTF.save @20-@27 L1419-L1420, `i2s` before putShort; the load
--- reads getShort and a count of 0 or less as empty, StringUTF.load @0-@11 L1426-L1428), so a string over 32767 bytes
--- is lost; a part of PART characters is at most 3 x PART bytes, under it while PART stays at or under 10922 (backup.PART's max). age is the world age the store step ran at; sum is BK.sum of the
--- text and age.
---
--- The write (BK.write): only from F.save, so at the store's save cadence (at most once a real minute a player, and
--- after an eat, a drink or a respawn's reset), never per minute; a departure's flush has no player and writes none.
--- The copy is never sent to the client: it would multiply the mod's server-to-client
--- traffic 3.5-5.5 times. The risk window that leaves: a client's transmitModData replaces the server's whole player
--- table (#1042), so another mod's transmit wipes the copy until the next save (at most S.SAVE_GAP_MS while the
--- player is online); an engine player save taken inside that window holds no copy, and only a later restore from that
--- save (a lost store or a hard kill) would miss it.
---
--- The read (BK.read): a copy is rejected, counted by reason in BK.stats.rejected and logged at level 2, when it is
--- absent or not a table (a wipe), its parts are not n strings or its text does not decode to the store's finished
--- document for this username (garbled), or its sum does not match (edited). A player with no readable modData answers
--- "unavailable" and is not counted. The sum catches a wipe, a truncation and a stray edit; it is not a signature, so
--- a client that rebuilds a matching sum can forge a copy, which only the load rule's two cases read.
---
--- Rule 6: a write cuts the text and sums it (one string.byte call per four characters) and makes one modData
--- assignment, once a save; no read happens outside a first sight. The engine then serialises the 6-13 KB copy into
--- each player save (every 180 s and at a world save), a cost not measured here. Runs in both Lua states; the write
--- runs only behind the store's isServer() path. Slow-clock code: no @fastpath region in this file.
+-- NR_Server_Backup.lua: the record's backup in the character's own modData, read only by the store's load rule
+-- (S.pick) when the store file is lost or ahead of a world a hard kill rolled back. The engine saves the character
+-- to players.db on its own cadence (every 180 real seconds online, at a disconnect, at a world save; ServerPlayerDB),
+-- so after a hard kill the copy matches the restored character and usually sits ahead of the rolled-back clock: its
+-- normal state, which K.resume.resume moves back.
+-- The copy (NutritionRevamp.backup = { n, parts, sum, age }) is the store slot's own text cut into parts of at most
+-- BK.PART characters: the engine saves a modData string with a signed 16-bit byte count (StringUTF.save L1419), so a
+-- string over 32767 bytes is lost; PART stays at or under 10922 (backup.PART's max) to fit 3 bytes a character.
+-- Written only from F.save, at the store's cadence. The copy is never sent to the client: it would multiply the mod's
+-- server-to-client traffic 3.5-5.5 times. So a client's transmitModData (another mod's) replaces the whole table
+-- (#1042) and wipes the copy until the next save.
+-- The read rejects a wiped, garbled or edited copy (by reason, logged). The sum is not a signature: a client that
+-- rebuilds a matching sum can forge a copy, which only the load rule's two cases read.
+-- Rule 6: a write cuts and sums the text once a save; no read happens outside a first sight.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.backup = {
@@ -46,8 +24,7 @@ NR.server.backup = {
 }
 local BK = NR.server.backup
 
--- The sum of text and the world age ageH: a base-31 polynomial of the code units modulo BK.MOD, four units a step,
--- then the age in whole game seconds. A whole number in [0, BK.MOD).
+-- A base-31 polynomial of the code units modulo BK.MOD, four units a step, then the age in whole game seconds.
 function BK.sum(text, ageH)
     local M = BK.MOD
     local n = string.len(text)
@@ -61,7 +38,6 @@ function BK.sum(text, ageH)
     return (h * 31 + math.floor(ageH * 3600)) % M
 end
 
--- The copy of text at world age ageH: { n, parts, sum, age }.
 function BK.doc(text, ageH)
     local parts = {}
     local n = string.len(text)
@@ -73,15 +49,14 @@ function BK.doc(text, ageH)
     return { n = #parts, parts = parts, sum = BK.sum(text, ageH), age = ageH }
 end
 
--- The player's modData table, or nil when the member is absent, raises or answers no table.
+-- nil when the member is absent, raises or answers no table.
 local function modData(player)
     local ok, present, md = pcall(NR.call, player, "getModData")
     if not ok or not present or type(md) ~= "table" then return nil end
     return md
 end
 
--- The backup of the store text written at world age ageH, on player. False when the player has no modData or the age
--- is not finite (nothing written).
+-- False when the player has no modData or the age is not finite (nothing written).
 function BK.write(player, text, ageH)
     if type(text) ~= "string" or not NR.finite(ageH) then return false end
     local md = modData(player)
@@ -98,14 +73,14 @@ function BK.write(player, text, ageH)
     return true
 end
 
--- A rejection: counted by reason and logged at level 2. Answers nil, nil, why.
+-- Answers nil, nil, why.
 local function reject(username, why)
     BK.stats.rejected[why] = BK.stats.rejected[why] + 1
     NR.log.say(2, "backup: " .. tostring(username) .. "'s backup rejected (" .. why .. ")")
     return nil, nil, why
 end
 
--- The text of a copy's parts, or nil when n or a part is not what the copy says.
+-- nil when n or a part is not what the copy says.
 local function textOf(doc)
     local n = doc.n
     if type(n) ~= "number" or n < 1 or n > BK.MAX_PARTS or n ~= math.floor(n) or type(doc.parts) ~= "table" then
@@ -120,8 +95,7 @@ local function textOf(doc)
     return table.concat(out)
 end
 
--- The validated backup on player for username: the stored record (raw, as a slot file's rec), its generation and the
--- copy's age; or nil, nil and the reason (the header's rules; "unavailable" with no modData).
+-- Or nil, nil and the reason ("unavailable" with no modData, uncounted).
 function BK.read(player, username)
     local md = modData(player)
     if md == nil then return nil, nil, "unavailable" end

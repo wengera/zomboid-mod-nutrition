@@ -1,48 +1,22 @@
--- NR_Server_Hedonics.lua -- the food hedonics seats (the design: docs/superpowers/specs/
--- 2026-10-21-dials-and-hedonics-design.md@program-record-v19 section B.2; the kernel is K.hedonics). Each rule
--- runs at an eat, an ingredient add or the existing writer minute, never per tick (Rule 6):
---  R1 plain energy: the eat books its landed kcal, and its plain kcal, into record.hedonics, the ring of online hours
---     (H.atEat, called by NR_Server_Intake's IN.monotony once per landed eat); the writer minute composes the ring's
---     floor with monotony's (NR_Server_Writer W.monotony), never as a raw add. A dish books as not plain; an
---     ingredient add books nothing (it is no eat).
---  R2 preparation quality: the seat is a server wrapper of ISAddItemInRecipe.complete, the add-ingredient action's
---     completion, which holds the chef and, after its call of the original, the dish (#2658). The dish's mood is set
---     there and nowhere else: EvolvedRecipe.addItem zeroes a new dish's UnhappyChange and rewrites it at every add
---     (an ingredient's -5 term, a spice's useSpice, #4127), and it fires no Lua event (#2657). OnCooked was not
---     chosen: it has no chef argument (in multiplayer the cook need not be the eater), and the cook transition sets no
---     dish mood. After the original, a relief (the stored UnhappyChange under 0) is scaled by the chef's Cooking level
---     (K.hedonics.prep) and the scale is stamped in the dish's modData (NR_PrepS); before the next add the stamp is read
---     back and the vanilla value restored (K.hedonics.unprep), so vanilla's arithmetic always runs on its own value and
---     a dish of many adds is scaled once, by the last add's chef, never compounded. A part-eaten dish keeps the stamp:
---     vanilla scales its stored value linearly, which the restore divides back exactly. The stamp is server-side item
---     modData that an item-stats packet does not carry, and a client's syncItemFields wipes and replaces the server
---     item's modData (#1241), so whenever the stamp changes the dish's fields are synced to its owner's client, whose
---     copy then carries the stamp a later client sync sends back.
---  R3 alliesthesia: before vanilla's eat (NR_Server_Intake's guardBefore, an eat or a cancel), a sad food (its
---     read-time UnhappyChange over 0) eaten while the HUNGER stat (the hunger the mod's writer writes) is over the
---     ALLIES_LEVEL threshold has its stored field lowered so vanilla's own JustAteFood applies the scaled value with its
---     own share and utensil factor (K.hedonics.alliesField); after the eat the remainder's field is restored to what it
---     would have kept (K.hedonics.alliesRestore). No stat is written here. Vanilla's part-eat sends the item-stats packet
---     itself while the field is lowered, and the client would keep that lowered value, so after the restore a
---     part-eaten item still in a container is synced again with the restored read-time value (#4147).
---  R4 taste class: the eat's class goes into K.monotony.record beside the type. A dish's class is its main
---     ingredient TYPE's (the kcal of each ingredient type summed, the type of most kcal wins,
---     K.hedonics.dishClass over one entry a type); any other food's is the generated table's (NR_Data_Hedonics).
---
--- Shape (the intake wrappers', NR_Server_Intake.lua): the sentinel is a global of its own (#0943); install() is
--- idempotent through NR.installWrap; the wrapper ALWAYS calls the saved original outside any pcall and returns its
--- result, and every read and write around it runs under a pcall, counted and named on failure, so a mod bug never
--- blocks an add or an eat; the logic is read off NutritionRevamp.server.hedonics per call; the side test is per call
--- (this server/ file also runs in the client VM, #0855); every Java global (ISAddItemInRecipe, Perks, CharacterStat,
--- sendItemStats, Events) is named only inside a function behind a nil check, so the file loads with no engine. Never
--- wrap a timed action's `new`: complete is called off the class table.
---
--- Cost (Rule 6): per eat, one Java read (getUnhappyChange); a sad food adds the HUNGER read (two calls), and a scaled
--- one a read and a write before and a read and a write after, and an item sync (one packet) when it is still in a
--- container, a Hungry eat of a sad food only. Per ingredient add, one read (the base's
--- modData) before, and after it the dish's stored value; a relief adds the Cooking level, the modData, a write and two
--- item syncs (the item-stats packet and syncItemFields); an add that only clears a stamp adds one syncItemFields. The
--- dish class reads Lua tables only, one kcal read a distinct type. No @fastpath region.
+-- NR_Server_Hedonics.lua: the food hedonics seats (docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md@
+-- program-record-v19 section B.2; the kernel is K.hedonics). Each rule runs at an eat, an ingredient add or the writer
+-- minute, never per tick (Rule 6).
+--  R1: the eat books its kcal into record.hedonics (H.atEat); the writer composes the ring's floor with monotony's.
+--  R2: the seat is a server wrapper of ISAddItemInRecipe.complete, which holds the chef and, after the original, the
+--     dish (#2658). EvolvedRecipe.addItem rewrites a dish's UnhappyChange at every add and fires no Lua event (#2657);
+--     OnCooked was not chosen: it has no chef argument. A relief is scaled by the chef's Cooking level and the scale stamped in the
+--     dish's modData (NR_PrepS); before the next add the vanilla value is restored, so a dish of many adds is scaled
+--     once, never compounded. A client's syncItemFields wipes the server item's modData (#1241), so whenever the stamp
+--     changes the dish's fields are synced to its owner, whose copy then carries the stamp back.
+--  R3: before vanilla's eat a sad food's stored field is lowered so vanilla applies the scaled value with its own share
+--     and utensil factor; after it the remainder's field is restored. Vanilla's part-eat sends the item-stats packet
+--     while the field is lowered, so a part-eaten item still in a container is synced again (#4147).
+--  R4: a dish's class is its main ingredient TYPE's (kcal summed per type); any other food's is the generated table's.
+-- Shape (NR_Server_Intake.lua's): a sentinel global of its own (#0943); the wrapper ALWAYS calls the saved original
+-- outside any pcall; the logic is read per call; the side test is per call (#0855). Never wrap a timed action's
+-- `new`: complete is called off the class table.
+-- Cost (Rule 6): per eat one Java read, more only for a sad food eaten Hungry; per ingredient add one read before and
+-- the dish's value after, more only for a relief.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.hedonics = {
@@ -59,10 +33,10 @@ NR.server.hedonics = {
 }
 local H = NR.server.hedonics
 
--- The sentinel: a global of its own, kept across a reload of this file and of NR_Core.
+-- A global of its own, kept across a reload of this file and of NR_Core.
 NR_HedonicsCook_Installed = NR_HedonicsCook_Installed or {}
 
--- A failure in one of the seats: counted in stats[key], kept as lastError and logged. Returns nil.
+-- Counted in stats[key], kept as lastError and logged. Returns nil.
 function H.fail(key, err)
     H.stats[key] = H.stats[key] + 1
     H.lastError = tostring(err)
@@ -73,7 +47,7 @@ end
 -- ---------------------------------------------------------------------------------------------------
 -- R1 and R4 at the eat.
 
--- The whole-item kcal of one type in the mod's table, 0 for a type it does not carry.
+-- 0 for a type the table does not carry.
 function H.kcalOf(fullType)
     local D = NR.data and NR.data.nutrients
     if D == nil then return 0 end
@@ -82,9 +56,7 @@ function H.kcalOf(fullType)
     return seed.calories
 end
 
--- A dish's taste class: one entry an ingredient TYPE, its kcal the type's whole-item kcal
--- times its appearances in the list, its class the table's; a type with no class counts for none. K.hedonics.dishClass
--- picks the type of most kcal (the first on a tie). extraTypes is a Lua list of full types (IN.readBefore's).
+-- A type with no class counts for none; extraTypes is IN.readBefore's Lua list of full types.
 function H.dishClass(extraTypes)
     local at, types, classes, counts, kcals = {}, {}, {}, {}, {}
     for i = 1, #extraTypes do
@@ -106,9 +78,7 @@ function H.dishClass(extraTypes)
     return K.hedonics.dishClass(classes, kcals)
 end
 
--- An eat's plain flag and taste class off its before-snapshot b: a dish (an ingredient list) is never plain and takes
--- its main ingredient type's class; anything else is the table's reading of its full type. No table: not plain, no
--- class.
+-- A dish is never plain and takes its main ingredient type's class. No table: not plain, no class.
 function H.tasteOf(b)
     if NR.data == nil or NR.data.hedonics == nil then return false, nil end
     if type(b.extraTypes) == "table" and #b.extraTypes > 0 then
@@ -117,9 +87,7 @@ function H.tasteOf(b)
     return NR.data.hedonics.get(b.fullType)
 end
 
--- The booking (IN.monotony calls it once per landed eat with energy, before monotony's own): the record's ring healed
--- (a corrupt one reset and counted) and the eat's kcal booked, plain or not, at world age ageH; b.plain and b.class
--- set for the landing's lastIntake. Returns the class for monotony, nil on a failure (counted, never raised).
+-- Returns the class for monotony, nil on a failure (counted, never raised).
 function H.atEat(record, b, kcal, ageH)
     local ok, class = pcall(H.book, record, b, kcal, ageH)
     if ok then return class end
@@ -145,8 +113,7 @@ end
 -- ---------------------------------------------------------------------------------------------------
 -- R3 around vanilla's eat.
 
--- Before the original (IN.guardBefore, an eat or a cancel, b the before-snapshot or nil): the scaled field written and
--- b.allies = { field, written, scale } kept for the restore. Under its own pcall.
+-- b.allies = { field, written, scale } is kept for the restore. Under its own pcall.
 function H.alliesBefore(b)
     if type(b) ~= "table" then return end
     local ok, err = pcall(H.allies, b)
@@ -169,8 +136,7 @@ function H.allies(b)
     H.stats.allies = H.stats.allies + 1
 end
 
--- After the original (IN.guardAfter): the remainder's field restored and the item synced while it is still in a
--- container (see the header). Under its own pcall.
+-- Under its own pcall.
 function H.alliesAfter(b)
     if type(b) ~= "table" or b.allies == nil then return end
     local ok, err = pcall(H.restore, b)
@@ -192,7 +158,7 @@ function H.restore(b)
     if NR.obj(b.item, "getContainer") ~= nil then H.sync(b.item) end
 end
 
--- The item-stats packet to the item's owner (sendItemStats, a server global, #3567): the mood fields ride it when non-zero.
+-- sendItemStats, a server global (#3567): the mood fields ride it when non-zero.
 function H.sync(item)
     if sendItemStats ~= nil then sendItemStats(item) end
 end
@@ -200,8 +166,7 @@ end
 -- ---------------------------------------------------------------------------------------------------
 -- R2 at the add-ingredient seat.
 
--- Before the original: a stamped base's vanilla value restored and its stamp cleared, so vanilla's add runs on its own
--- value. Under its own pcall; the after half runs whatever this one did.
+-- Under its own pcall; the after half runs whatever this one did.
 function H.cookBefore(action)
     H.stats.cooks = H.stats.cooks + 1
     local ok, err = pcall(H.unprepBase, action)
@@ -225,8 +190,7 @@ function H.unprepBase(action)
     action.nrStamp = true                                  -- the stamp changed: cookAfter syncs the dish's fields
 end
 
--- After the original: the dish (the action's baseItem, which the original reassigns) scaled by the chef's Cooking
--- level when its stored value is a relief, the scale stamped and the dish synced. Under its own pcall.
+-- The original reassigns baseItem, so the dish is read after it. Under its own pcall.
 function H.cookAfter(action)
     local ok, err = pcall(H.prepDish, action)
     if not ok then H.fail("cookFailures", "the add's scale failed: " .. tostring(err)) end
@@ -252,7 +216,7 @@ function H.prepDish(action)
     H.sync(dish)
 end
 
--- The wrapper closure, made once per sentinel and kept in it; it names nothing from this file's load.
+-- Made once per sentinel; it names nothing from this file's load.
 local function makeWrapper(S, kind)
     return function(self, ...)
         local nr = NutritionRevamp
@@ -270,8 +234,7 @@ local function makeWrapper(S, kind)
     end
 end
 
--- Installs the wrap when ISAddItemInRecipe exists (vanilla's shared/TimedActions file, loaded before every server/
--- file); returns whether it is in place. Never touches ISAddItemInRecipe.new.
+-- ISAddItemInRecipe is vanilla's shared/TimedActions file, loaded before every server/ file. Never touches ISAddItemInRecipe.new.
 function H.install()
     local cls = ISAddItemInRecipe
     if cls ~= nil then
@@ -283,8 +246,7 @@ function H.install()
     return H.wrappedCook
 end
 
--- At load, so the wrap is in place before the first add (the wrapper gates on the side per call), and again at
--- OnServerStarted behind the side test.
+-- At load, and again at OnServerStarted behind the side test.
 H.install()
 
 if Events ~= nil and Events.OnServerStarted ~= nil then

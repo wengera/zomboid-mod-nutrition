@@ -1,14 +1,8 @@
--- NR_Server_Players.lua -- the slow clock: the minute event snapshots the online list, marks each new
--- sight (a first join, a reconnect, a respawn's new object; the server fires no join event, #2412), drops the
--- departed (no disconnect event either, #2403) and merges the queue (K.sched.merge: unserved names carried forward,
--- never doubled); OnTick drains it under a per-tick budget sized to the minute's work (K.sched, rule
--- #3497); first sight, one-shot tasks (the store's flushes) and the harness's extra names ride the same queue; death
--- is read off the dead flag. OnNewGame fires server-side for every character a client creates, respawns included
+-- NR_Server_Players.lua: the slow clock. The minute event snapshots the online list, marks each new sight (the server
+-- fires no join event, #2412), drops the departed (no disconnect event, #2403) and merges the queue (K.sched.merge);
+-- OnTick drains it under a per-tick budget (#3497). OnNewGame fires server-side for every character, respawns included
 -- (#2411): it resets the record and evicts the username (#3358); a reset that met no readable clock stays pending
 -- and is made in the player's next queue slot. Java lists are walked with size()/get(i) (#0940).
--- A made reset fires the onNewGame hooks (username, player, record): the creation handler (NR_Server_Creation).
--- The minute's hoist (NR.read.hoist: the hour of day and the day length, once a server minute) is followed, before any
--- player's work, by the drain options' write (NR_Server_Effects' EFF.writeDrainOptions), under its own pcall.
 local NR = NutritionRevamp
 local K = NR.kernel
 -- The slow clock's state: no row needed.
@@ -27,13 +21,10 @@ end
 
 local nowMs = NR.nowMs
 
--- One player's minute work: the dead flag (OnNewGame's eviction keeps a respawn's reset from
--- the dead body's queued entry, and P.minute never adopts a dead body as a new sight, #3358), then the slow minute's pipeline (NR_Server_Minute.lua, P.integrate), which stamps lastSeen.
+-- The dead flag first (OnNewGame's eviction keeps a respawn's reset from the dead body's queued entry, #3358).
 -- A dead record is never stepped: from its death minute until OnNewGame's reset only its store
--- step runs (MIN.runDead), so the record a slot file holds is the record at death. A dead flag under a player that
--- reads alive with no reset pending is a stuck flag: logged, cleared and counted in
--- deadHealed, so the model never freezes waiting for a respawn that does not come. The heal keeps the record's state
--- as it stood under the flag; NR.server.store.reset (a fresh record, as OnNewGame's respawn gets) is the alternative.
+-- step runs, so the slot file holds the record at death. A dead flag on a player reading alive with no reset pending is
+-- stuck: logged, cleared and counted (deadHealed), so the model never freezes waiting for a respawn.
 function P.work(username, player)
     local age = NR.worldAge()
     if age == nil then return end                 -- no clock read: the minute is skipped, never stamped 0
@@ -59,18 +50,10 @@ function P.work(username, player)
     P.integrate(username, player, r, age)
 end
 
--- The minute's pipeline from the record's last step (lastSeen) to age, on the same player object (an absence never
--- reaches here: the store's resume moved lastSeen at the sight). A step of at most K.resume.STEP_M runs once; a longer
--- one is an online stall (a slow server, the fast-forwarded night), split into K.resume.substeps equal sub-steps so
--- nothing it books is lost. One slot runs at most K.resume.SLOT_SUBSTEPS of them
--- (Rule 6): lastSeen stays at the last run's age, and the player's next minutes carry on from there
--- until the stall is integrated in full. Each run stamps lastSeen at its own age. Counted in P.stalls (slots that ran
--- more than one sub-step or left some to carry) and P.substeps (the sub-steps those slots ran).
--- The stall's asleep latch: the stalled hours were slept or woken
--- through as they were when the stall was seen, so the slot that detects it reads isAsleep once into r.carryAsleep,
--- and every sub-step of that stall, the carried ones in later minutes included, reads the latch (NR_Server_Minute.run
--- seeds the pipeline's shared read with it); the slot that integrates the rest clears it. A player who wakes before
--- the carry runs so books the night asleep. Rule 6: one isAsleep read at the detection, which the pipeline then shares.
+-- An absence never reaches here (the store's resume moved lastSeen). A step longer than K.resume.STEP_M is an online
+-- stall, split into equal sub-steps so nothing it books is lost, at most K.resume.SLOT_SUBSTEPS a slot (Rule 6); the
+-- rest carries to the next minutes. The stall's asleep latch: the slot that detects it reads isAsleep once into
+-- r.carryAsleep and every sub-step of that stall reads it, so a player who wakes before the carry runs books the night asleep.
 function P.integrate(username, player, r, age)
     local from = r.lastSeen
     local n = K.resume.substeps(from, age)
@@ -91,8 +74,7 @@ function P.integrate(username, player, r, age)
     if runs == n then r.carryAsleep = nil end
 end
 
--- First sight, run in the player's own queue slot: the store's load, then the first-sight hooks (Metabolism's sends
--- the one first-sight mirror). False when the clock cannot be read (the sight is retried at the next minute).
+-- False when the clock cannot be read: the sight is retried at the next minute.
 function P.firstSight(username, player)
     local age = NR.worldAge()
     if age == nil then return false end
@@ -102,9 +84,7 @@ function P.firstSight(username, player)
     return true
 end
 
--- A respawn's reset that OnNewGame could not make (no clock read there), made in the player's queue slot, then the
--- onNewGame hooks over the player object the slot holds. False while the clock or the store cannot be read: the reset
--- stays pending for the next slot, never dropped.
+-- False while the clock or the store cannot be read: the reset stays pending, never dropped.
 function P.makeReset(username, player)
     local age = NR.worldAge()
     if age == nil then return false end
@@ -116,7 +96,6 @@ function P.makeReset(username, player)
     return true
 end
 
--- A one-shot task carried in the queue until it runs (the store's departure flush).
 function P.task(name, fn)
     P.tasks[name] = fn
 end
@@ -142,8 +121,7 @@ function P.minute()
         local okG, player = NR.call(list, "get", i)
         if okG and player ~= nil then
             local okU, username = NR.call(player, "getUsername")
-            -- a first sight without a clock read waits for the next minute: the player stays out of seen and
-            -- the queue, so no record is made at a nil age and the sight is retried
+            -- without a clock read the player stays out of seen and the queue, so no record is made at a nil age
             -- a new object that reads dead is the respawn's dead body, still listed up to two ticks after OnNewGame
             -- (#3358): never adopted, or its work marks the reset record dead; a raising or absent member reads alive
             if okU and username ~= nil and (P.online[username] ~= nil or age ~= nil) then
@@ -190,8 +168,7 @@ function P.minute()
     P.runCap = K.sched.runCap(P.budgetMs, P.meanMs)
 end
 
--- One queued name: an online player (its pending reset, then its first sight, when marked), else a one-shot task,
--- else a name of this minute's extra set (an evicted player's stale entry is none of these and runs nothing).
+-- An evicted player's stale entry is none of these and runs nothing.
 function P.runOne(name)
     local player = P.online[name]
     if player ~= nil then
@@ -224,7 +201,6 @@ function P.runOne(name)
     end
 end
 
--- The drain: queued names until the run cap or the budget's wall time is spent; the tick's cost a run feeds the mean.
 function P.drain()
     local t0 = nowMs()
     local ran = 0
@@ -245,8 +221,7 @@ function P.drain()
     if t0 ~= nil and ran > 0 then P.meanMs = K.sched.ema(P.meanMs, spent / ran) end
 end
 
--- The OnTick listener, registered server-side only at OnServerStarted: one add and one compare when the queue is
--- empty (the performance budget's empty-queue clause: at most 0.1 ms a frame).
+-- One add and one compare when the queue is empty (at most 0.1 ms a frame).
 function P.tick()
     P.ticks = P.ticks + 1
     if P.queueHead > #P.queue then return end

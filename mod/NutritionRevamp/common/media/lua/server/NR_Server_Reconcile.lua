@@ -1,30 +1,11 @@
--- NR_Server_Reconcile.lua -- the missed-intake reconciliation:
--- once per player per slow minute it reads the four vanilla macro stores, compares them against the
--- record's baseline (K.reconcile.delta), and a calorie rise above K.reconcile.RECONCILE_EPS is an intake the
--- wrapped seats never saw (another mod's eat or drink action, an admin write): it lands through the intake's
--- own landing (NR.server.intake.land) as the four macros only, every other vector key 0, with
--- lastIntake.source = "reconciled", the kernel's note and record.reconcile.count bumped. A fall is never an
--- intake. The baseline is then reset to the stores read this minute, landed or not.
---
--- The baseline (record.reconcile.baseline, derived: K.store.load drops it) is:
---  * seeded from the stores at every first sight (this file's onFirstSight hook; an OnNewGame respawn fires
---    it too), since the player save and the global table are written apart (#2098); a minute that finds no
---    baseline seeds one and lands nothing;
---  * reset to the stores at the end of this minute's step;
---  * reset by NR_Server_Weight to the four values it WROTE when NR.LegacyMirror is on (its write follows this
---    step in the same minute), so the next minute compares against the mod's own last write;
---  * credited by NR_Server_Intake with the stores' own movement across a wrapped eat, drink or world-water
---    step (RC.credit: after minus before, read around the original inside the wrap), so an intake the wrap
---    already landed is not landed twice and a write by another writer earlier in the same minute is not
---    absorbed into the baseline.
---
--- The minute order (NR_Server_Minute's ORDER): this step runs after the bus's effects flush and before the stomach
--- (Kinetics), so a reconciled intake is emptied by the same minute's Kinetics step.
---
--- Every Java read goes through NR.call (index-first); every Java global is named only inside a function
--- behind a nil check, so the file loads with no engine.
--- The minute runs under one pcall per player and never raises into the players walk.
--- Slow-clock code: no @fastpath region in this file.
+-- NR_Server_Reconcile.lua: the missed-intake reconciliation. Once per player per slow minute the four vanilla macro
+-- stores are compared against the record's baseline, and a calorie rise above K.reconcile.RECONCILE_EPS is an intake the
+-- wrapped seats never saw (another mod's eat, an admin write): it lands through IN.land as the four macros only. A fall
+-- is never an intake. The baseline is then reset to the stores read this minute.
+-- The baseline (derived: K.store.load drops it) is seeded at every first sight, since the player save and the global
+-- table are written apart (#2098); reset by NR_Server_Weight to the values it WROTE under NR.LegacyMirror; and credited
+-- by the intake with the stores' movement across a wrapped eat, so a landed intake is not landed twice.
+-- Runs after the bus's effects flush and before Kinetics, so a reconciled intake empties the same minute.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.reconcile = {
@@ -43,9 +24,7 @@ local RC = NR.server.reconcile
 
 local GETTERS = { calories = "getCalories", carbs = "getCarbohydrates", lipids = "getLipids", proteins = "getProteins" }
 
--- The four vanilla macro stores of a character, keyed by the vector's macro names, or nil when the
--- Nutrition object or any store is unreadable or not a finite number. ctx (optional) is the pipeline's, whose
--- Nutrition read (NR.read) it shares.
+-- nil when the Nutrition object or any store is unreadable or not finite.
 function RC.read(character, ctx)
     local nut = NR.read.nutrition(ctx, character)
     if nut == nil then return nil end
@@ -58,7 +37,7 @@ function RC.read(character, ctx)
     return out
 end
 
--- The record's reconciliation table, laid when absent (the count kept by K.store.load, the baseline not).
+-- K.store.load keeps the count, not the baseline.
 local function state(record)
     local rc = record.reconcile
     if type(rc) ~= "table" then
@@ -69,7 +48,6 @@ local function state(record)
     return rc
 end
 
--- One player's step: read, compare, land, reset.
 local function step(username, player, record, ctx)
     local store = RC.read(player, ctx)
     if store == nil then
@@ -103,8 +81,7 @@ local function step(username, player, record, ctx)
     rc.baseline = K.reconcile.baselineAfter(store)
 end
 
--- One player's minute: the pipeline's reconcile step (NR_Server_Minute.run, called from P.work), under
--- one pcall: a failure is counted and logged on the slow clock, never raised into the players walk.
+-- Under one pcall: a failure is counted and logged, never raised into the players walk.
 function RC.minute(username, player, record, ctx)
     if record == nil then return end
     RC.stats.minutes = RC.stats.minutes + 1
@@ -116,8 +93,7 @@ function RC.minute(username, player, record, ctx)
     end
 end
 
--- First sight (and an OnNewGame respawn): the baseline re-seeded from the stores read now, or left unset
--- for the next readable minute to seed.
+-- Left unset for the next readable minute when the stores cannot be read.
 function RC.onFirstSight(username, player, record)
     if record == nil then return end
     local rc = state(record)
@@ -130,9 +106,7 @@ function RC.onFirstSight(username, player, record)
     end
 end
 
--- The wrapped seat's credit (NR_Server_Intake): the stores' own movement across the original, after minus
--- before, added to the baseline, so the next minute's delta does not count an intake the wrap landed. No
--- baseline yet: nothing (the next first sight or minute seeds one from the stores).
+-- No baseline yet: nothing (the next first sight or minute seeds one).
 function RC.credit(record, before, after)
     if record == nil or before == nil or after == nil then return false end
     local rc = record.reconcile

@@ -1,21 +1,10 @@
--- NR_Server_Minute.lua -- the slow minute's pipeline: one declared order, one context table, each step guarded so a
--- raise is logged and the steps after it still run. Adapters register by name at OnServerStarted; NR_Server_Players'
--- P.work calls run. The writer runs after the eats and effects.
---
--- The context (ctx): one table reused per call and cleared at the start of each player's run, so nothing in it outlives
--- one player's minute. Its fields: absorbed and mealCa (Kinetics writes them; Metabolism and Nutrients read them); sd
--- (Kinetics' sandbox read, else Nutrients'), which Nutrients' basal scale and the writer read; activityClass and
--- exercising (Metabolism's), which the writer reads; body, dtM and ageH (Nutrients stamps them where its minute reaches
--- its end; the Effects step runs only when they are stamped); and the minute's shared engine reads under NR.read's
--- e-prefixed keys (eAge, the world age P.work read, seeded here; eHour and eDayMin, the hour of day and the day length
--- the players' minute read once for every player, seeded here; eAsleep, eTraits, eBd, eThermo and eNut, each kept at
--- its first read, and eFlags, the trait flags NR.read.trait keeps). An adapter that wraps its own body in a pcall keeps
--- it, with its own counters and log lines; this guard is the outer net, so a step that raises inside its own pcall
--- never reaches stats.failures here.
---
--- Registering a name again REPLACES that step's function. A name not in ORDER is never run. Slow-clock code,
--- with no fast-path region in this file; nothing runs at file scope but table setup, so the file loads with no
--- engine.
+-- NR_Server_Minute.lua: the slow minute's pipeline: one declared order, one context table, each step guarded so a raise
+-- is logged and the steps after it still run. Adapters register by name at OnServerStarted; P.work calls run.
+-- The context (ctx) is reused and cleared at the start of each player's run, so nothing in it outlives one player's
+-- minute: the hand-offs (absorbed, mealCa, sd, activityClass, exercising, and body, dtM and ageH, without which Effects
+-- does not run) and the shared engine reads under NR.read's e-prefixed keys. An adapter's own pcall keeps its own
+-- counters; this guard is the outer net.
+-- Registering a name again REPLACES that step's function; a name not in ORDER never runs.
 local NR = NutritionRevamp
 NR.server.minute = {
     ORDER = { "bus", "reconcile", "kinetics", "metabolism", "nutrients", "effects", "strength", "weight", "writer", "store" },
@@ -25,17 +14,12 @@ NR.server.minute = {
 }
 local MIN = NR.server.minute
 
--- A step's function: fn(username, player, record, ctx).
 function MIN.register(name, fn)
     MIN.steps[name] = fn
 end
 
--- One player's minute: clear the context, seed it with the minute's world age (ageH, P.work's read; nil leaves the
--- first step to read it) and the server minute's hour of day and day length (NR.read.minuteHour and minuteDayMin, the
--- players' minute's reads; nil leaves the step to read it) and, in a stall's sub-steps, its asleep latch (asleep,
--- P.integrate's; nil leaves the first step to read isAsleep), then every registered step in ORDER, each under its own
--- pcall; the engine reads the steps shared (NR.read.KEYS) are dropped at the end, so no player's Java handles outlive
--- the minute.
+-- Seeds ctx with the minute's world age, hour and day length and, in a stall's sub-steps, its asleep latch (nil leaves
+-- the first step to read each); the shared engine reads are dropped at the end, so no Java handle outlives the minute.
 function MIN.run(username, player, record, ageH, asleep)
     local ctx = MIN.ctx
     for k in pairs(ctx) do ctx[k] = nil end
@@ -60,8 +44,7 @@ function MIN.run(username, player, record, ageH, asleep)
     end
 end
 
--- A dead record's minute: only DEAD_ORDER's steps run, under the same guard -- the store's save,
--- so the record and its dead flag persist until OnNewGame's reset -- and nothing is stepped, written or sent.
+-- Only DEAD_ORDER's steps (the store's save), so the record and its dead flag persist until OnNewGame's reset.
 MIN.DEAD_ORDER = { "store" }
 
 function MIN.runDead(username, player, record)

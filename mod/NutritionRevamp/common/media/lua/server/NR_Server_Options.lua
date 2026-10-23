@@ -1,44 +1,20 @@
--- NR_Server_Options.lua -- the mod's sandbox options, read at event time (#2460): every mod Lua file
--- runs before the operator's values reach SandboxVars, so a read at file scope sees the declared default. No change event exists (#2466), so the options are
--- re-read every slow tick and a change fires NR.server.options.changed.
+-- NR_Server_Options.lua: the mod's sandbox options, read at event time (#2460): every mod Lua file runs before the
+-- operator's values reach SandboxVars, so a read at file scope sees the declared default. No change event exists
+-- (#2466), so the options are re-read every slow tick and a change fires NR.server.options.changed.
 local NR = NutritionRevamp
 local K = NR.kernel
--- nutritionOn: true when SandboxVars.Nutrition read anything but false at boot (NR_Server_Metabolism's
--- precondition check sets it; the option is the operator's and is never changed by the mod).
--- onsetSpeed multiplies the rate of every slow deficiency record;
--- the HUNGER and THIRST views are capped under level 4 outside the starvation and dehydration states (K.hybrid.caps) whatever the dial; excessEffectsOn off
--- forces every excess rung to 0 at the output; balanceBonus is a game choice while allReplete.
--- Read at every slow tick, never at file scope. No option gates the
--- health drains: every lethal state drains toward its target and kills at its death point.
--- severity (options.SEVERITY) scales every penalty row of the effects table
--- after the fold (NR_Server_Effects); the double branch clamps it.
--- visibilityMode, an enum 1 Symptoms, 2 Bands, 3 Numbers, is the level of
--- detail every player's interface shows; the client reads its own SandboxVars copy and this server read is
--- the diagnostic copy. It changes no simulation, so it fires no changed hook.
--- The strength options: O.strength is K.strength.params of the NR.Strength* and NR.LeanLoss* leaves
--- (params(nil) until one differs from the default), rebuilt only when a leaf changed since the last read, by one
--- comparison loop over the raw leaves (Rule 6: the table is not rebuilt per minute); a load-guard fallback logs once at
--- level 1 with the three values read. It fires no changed hook: the steps read O.strength each time.
--- sexSpecific, a boolean: off, every character reads the male values wherever the mod
--- indexes by sex (K.body.effSex); the steps read it each minute through the options table, so it fires no changed hook.
--- stimulantRealism, an enum 1 Game, 2 Realistic: the stimulant sizes.
--- A read that finds the kernel's active set on another value selects it once (K.acute.useStimulants), so the next step reads
--- it and no step branches on the option; the effects rebuild key carries the set (NR_Server_Effects), so the hangover
--- rows follow at the next minute; a hangover already counting down keeps the length its set gave it. It fires no changed hook.
--- The sleep poll: sleepOn, the server's SleepAllowed and SleepNeeded both true, read
--- by NR.server.readSleep in every poll (two getBoolean calls and one getServerOptions a server minute, never per
--- player), so an admin's live change takes effect at the next minute (no Lua event fires on a server-option change);
--- the engine resets an out-of-handler FATIGUE write unless both are true (#2947), so with sleep off the sleep
--- state freezes at rested (K.acute.sleepMinute) and the body clock does not run (K.circadian). The test copies the
--- engine's own (IsoGameCharacter.calculateStats gates the reset on GameServer.server): sleep is off only on a server,
--- isServer() and not (allowed and needed), so single player reads on. An unreadable option reads true. A change is
--- logged; it fires no changed hook (the steps read NR.sleepOn() each minute).
--- deathPace, an enum 1 Vanilla, 2 Shortened, 3 Realistic, and
--- healthCombine, an enum 1 Worst only, 2 Multiply, 3 Add; read in every poll like stimulantRealism (an out-of-
--- range value reads the default) and logged on a change. The players' minute writes them into K.drain.OPT with the day
--- length once a server minute (NR_Server_Effects' EFF.writeDrainOptions), so a change takes effect within a game minute
--- (the poll's listener runs first: this file sorts before NR_Server_Players in the execution list, #0850; the reverse
--- would cost one minute); it fires no changed hook.
+-- nutritionOn is set by NR_Server_Metabolism's precondition check; the option is the operator's, never changed.
+-- No option gates the health drains: every lethal state drains toward its target and kills at its death point.
+-- The diagnostic, strength, sexSpecific, stimulantRealism, sleep and drain reads fire no changed hook: the steps read
+-- them each time. O.strength is rebuilt only when a leaf changed (Rule 6).
+-- stimulantRealism selects the kernel's set once (K.acute.useStimulants), so no step branches on the option; a
+-- hangover already counting down keeps the length its set gave it.
+-- sleepOn: the engine resets an out-of-handler FATIGUE write unless SleepAllowed and SleepNeeded are both true (#2947),
+-- so with sleep off the sleep state freezes at rested and the body clock does not run. The test copies the engine's
+-- own: off only on a server, so single player reads on; an unreadable option reads true.
+-- deathPace and healthCombine: an out-of-
+-- range value reads the default. This file sorts before NR_Server_Players (#0850), so the poll runs before the
+-- players' minute writes them into K.drain.OPT; the reverse would cost one minute.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false,
                       onsetSpeed = K.dials.get("options.ONSET_SPEED"),
@@ -56,8 +32,7 @@ local MODE_NAMES = { "managed", "overlay" }
 
 local readLeaf = K.readLeaf -- the one clamp rule
 
--- The server's sleep setting (the header): true unless this is a server whose SleepAllowed and SleepNeeded are not
--- both true. Reads the options afresh; the steps read the polled copy through NR.sleepOn().
+-- The steps read the polled copy through NR.sleepOn().
 function NR.server.readSleep()
     if not NR.isServer() then return true end
     local allowed, needed = true, true
@@ -101,8 +76,7 @@ function NR.server.readOptions(where)
     if O.deathPace ~= oldPace or O.healthCombine ~= oldCombine or where == "OnServerStarted" then
         NR.log.say(2, "options: death pace " .. tostring(O.deathPace) .. ", health combining " .. tostring(O.healthCombine))
     end
-    -- Every sandbox-backed tuning dial re-resolves into its kernel field, written only when its
-    -- option's read changed against O.dialSeen (K.dials.apply); no hook fires: the steps read the fields.
+    -- written only when its option's read changed (K.dials.apply); no hook fires: the steps read the fields.
     K.dials.apply(sv, O.dialSeen)
     if sv ~= nil then
         local rows = K.strength.OPTIONS
@@ -158,7 +132,7 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
     end)
 end
 
--- The poll rides EveryOneMinute directly, server-gated at event time (no change event exists, #2466).
+-- Server-gated at event time (no change event exists, #2466).
 local function pollDirect()
     if not NR.isServer() then return end
     NR.server.readOptions("poll")

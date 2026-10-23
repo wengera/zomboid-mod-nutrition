@@ -1,17 +1,8 @@
--- NR_Server_Bus.lua -- the server half of the command bus (#0932):
--- module "NutritionRevamp"; the client asks "mirror.request" with no payload and the server
--- answers "mirror" with the flat table K.mirror.build makes. The server never trusts a payload
--- it did not send; the one client command carries none.
---
--- The effects push: the effects adapter calls B.markEffects(username) when the coefficient
--- set is rebuilt or a trait changes (it also sets record.effects.dirty, the flag that survives a save). The
--- flush rides the slow minute (the pipeline's bus step, NR_Server_Minute): when either flag is up and at
--- least PUSH_GAP_MS of server wall clock (getTimestampMs) has passed since this player's last effects push,
--- it sends the WHOLE mirror through B.sendMirror -- the request-time sender -- and clears both flags; a mark inside the gap stays up and goes out at the first slow
--- minute after it. A failed send keeps the flags. The bus step is first in the pipeline's ORDER, so the flush
--- runs first in a player's minute and a mark made in one minute goes out with the next one's flush, carrying
--- the whole of the marking minute's state. First sight and departure forget the transient state (the
--- first-sight mirror, NR_Server_Metabolism's, carries the set).
+-- NR_Server_Bus.lua: the server half of the command bus (#0932): the client asks "mirror.request" with no payload and
+-- the server answers "mirror" with K.mirror.build's flat table. The server never trusts a payload it did not send.
+-- The effects push: a mark (B.markEffects, and record.effects.dirty, which survives a save) is flushed by the bus step,
+-- first in ORDER, at least PUSH_GAP_MS of wall clock after this player's last push: the WHOLE mirror through
+-- B.sendMirror. A mark inside the gap stays up; a failed send keeps the flags.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.bus = {
@@ -75,14 +66,13 @@ if Events ~= nil and Events.OnClientCommand ~= nil then
     end)
 end
 
--- The effects push. markEffects is the hook NR_Server_Effects calls (it checks for it by name).
+-- NR_Server_Effects checks for markEffects by name.
 function B.markEffects(username)
     if username == nil then return end
     B.effects.dirty[username] = true
     B.effects.stats.marks = B.effects.stats.marks + 1
 end
 
--- One player's flush, from the slow minute. Returns true when it pushed.
 function B.flushEffects(username, player, record)
     if username == nil or record == nil then return false end
     if not NR.isServer() then return false end
@@ -116,8 +106,7 @@ function B.flushEffects(username, player, record)
     return true
 end
 
--- First sight and departure: the transient state forgotten; at first sight the record's flag cleared too,
--- since the first-sight mirror carries the whole set.
+-- At first sight the record's flag is cleared too, since the first-sight mirror carries the whole set.
 function B.forgetEffects(username, player, record)
     if username == nil then return end
     B.effects.dirty[username] = nil
@@ -140,9 +129,7 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
     end)
 end
 
--- The band mark: NR_Server_Weight calls B.markBand(username) when the body band changes
--- (the mirror's body_band). It IS the effects mark -- one dirty flag, one PUSH_GAP_MS gap, one flush -- and
--- is counted apart. The first-sight and OnNewGame mirrors (NR_Server_Metabolism's) stay unconditional.
+-- It IS the effects mark (one flag, one gap, one flush), counted apart.
 function B.markBand(username)
     if username == nil then return end
     B.effects.stats.bandMarks = B.effects.stats.bandMarks + 1
