@@ -78,7 +78,7 @@ A finishing eat divides 0 by 0 in the consume step by the jar's reading, so a wr
 
 A cancel resolves on the server through the net action's stop and the server-stop step, whose fraction is the net action's progress ([#0111], [mp-model.md#ownership](../platform/mp-model.md#ownership)); the eat hook, which fires inside `Eat`, sits on that route too and is handed a share rescaled like any other [#0111, #0093], so a mod can handle a partial or cancelled eat there [#1132/C/C-only].
 Two guards on the server-stop step make a cancelled eat apply nothing at all — no stats, no nutrition, no leftover scaling, no consumption, and no eat-side seat fires — for one named item and for any item whose state-modified hunger change sits at or under the magnitude the guard tests [#0112].
-The guard's live reading against the mod is [X33's](open-questions.md#x33).
+Played live, a cancelled eat of an item under the guard landed nothing in the mod and consumed none of the item; vanilla's own stats besides hunger were not read at the cancel [#1299/M].
 
 The wrapper can also change what an eat delivers without writing a stat, by lowering a stored item field `Eat` reads and restoring it after the original returns.
 In the worked example this mod lowers a sad food's stored `UnhappyChange` in its server wrapper ahead of vanilla's eat, so vanilla applies the scaled read-time value with its own share and utensil factor, and after the eat restores the field the remainder would have kept and, while the remainder is still in a container, syncs it to the eater's client [#4160/C/inference]; its kernel scales a sad `UnhappyChange` by 0.6 while its HUNGER is over the Hungry threshold, never the happy side [#4158/C/inference].

@@ -27,9 +27,6 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the Lua a mod runs
 <a id="kahlua-limits"></a>
 ### The dialect and what it lacks
 
-The dialect is Kahlua rather than PUC Lua, and the gaps below are the ones every Lua file in this library is written around.
-None of them is a Lua-version difference a mod can feature-detect around: each is simply absent, and the cost of finding out at runtime is a raise.
-
 Calling a member a Java object does not have raises a bare runtime exception carrying the text `tried to call nil`, thrown directly by the interpreter's call opcode, with the interpreter's own failure sites routing through the Kahlua utility failure helper instead [#0934/C/C-only].
 The side-test globals still get a nil check before a protected call, not because the raise escapes but because a protected call on nil comes back as a failure that names nothing, so an absent global and a throwing global are the same reply [#0937/M/n=1].
 Kahlua has no `goto`, so a Lua file in this library uses loops and early-outs only [#0938].
@@ -44,30 +41,23 @@ Kahlua has no JSON library, so the harness ships a forty-line encoder and Java o
 <a id="pcall"></a>
 ### What a protected call catches
 
-A protected call is the guard a mod writes for itself, and both of the shapes a nil call arrives in are measured.
-What it does not do is tell you which member was nil, which is why it is the second half of a guard and never the whole of one.
-
-A protected call catches a Kahlua nil call in the argument slot on both sides, returning false and the string `tried to call nil java.lang.RuntimeException`, byte-identical per side and on both passes of one session [#0944/M/n=1].
+A protected call catches a Kahlua nil call in the argument slot on both sides, returning false and the string `tried to call nil java.lang.RuntimeException`, byte-identical per side and on both passes of one session; quote the whole string, class name included, because it is the message concatenated with the class name [#0944/M/n=1].
 It also catches the nested shape, where the nil call happens inside a function handed to it, returning false and the string `Object tried to call nil in pcall java.lang.RuntimeException` with the lines after it still running, read in the server VM only because the debug client froze before it answered anything [#0945/M/n=1].
 The nil call is a real raise and not a false return: the call opcode loads the callee, branches on it being non-null and throws on the other arm, with no branch that returns false without raising [#0946/C/C-only].
 The protected call's try wraps the call it makes, and its throwable arm — the only one around that call — concatenates the message with the class name beside a false boolean, making it the single producer of the observed string; whether the try also spans the nested interpreter loop is unread [#0947/C/C-only, #2008/C/C-only].
-Quote the whole string, class name included, because it is the message concatenated with the class name rather than a message in its own right [#0944/M/n=1].
 A caught Kahlua nil call names nothing: no log ever prints the missing global, because the message is built from the enclosing closure's name [#1225/M/n=1].
-The caught argument-slot call also leaves the engine silent: neither console carried a trace, and the probe's global name, the alternative wording and the exception logger all had zero hits, because that raise is the call opcode's direct throw and never reaches the utility failure helper [#0950/M/n=1].
-That silence is a property of the caught argument-slot shape and says nothing about an unguarded raise, which is [the next section](#raises) [#0950/M/n=1].
+The caught argument-slot call also leaves the engine silent: neither console carried a trace, and the probe's global name, the alternative wording and the exception logger all had zero hits, because that raise is the call opcode's direct throw and never reaches the utility failure helper; the silence says nothing about [an unguarded raise](#raises) [#0950/M/n=1].
 
 <a id="raises"></a>
 ### What an unguarded raise aborts
 
-An unguarded raise is bounded twice over: once by the dispatcher that wraps each callback, and once by the chunk a file scope runs inside.
 Every measured arm below was read in the server VM over two passes of one session on one probe file, because the client parked before it reached the unguarded handler [#0948/M/n=1, #0949/M/n=1, #0951/M/n=1, #0952/M/n=1]; the body-abort and chain arms were read again on a release client, after one fire of a custom event in one session [#3317/M/n=1].
 
 `Event.trigger` routes every callback through `LuaCaller.protectedCallVoid` inside a per-iteration catch of `Exception` that logs the exception and continues the loop, so a raise in one handler cannot reach the handlers registered behind it, while a Java `Error` is not caught by that loop and leaves the trigger [#3506/C/C-only].
 An unguarded nil call aborts the rest of the handler body it fires in: the tail counter after the raise stayed at zero on both passes after about seventy fires, in the server VM only [#0948/M/n=1].
 The handlers registered behind a raising handler still run: the behind counter advanced by seventeen in lockstep with the counter ahead of the raise [#0949/M/n=1].
 A release client does the same: after one fire its tail counter read zero and the counters ahead of and behind the raising handler read one at every read [#0959/M/n=2] [#3317/M/n=1].
-Both raise shapes of that session are logged in full — 73 engine hits each for the nested-call wording and the handler-add wording — so a raise a mod caught through the nested shape is still logged [#0951/M/n=1].
-That reading covers two raising handlers in one probe file on the server VM of one session, which is one probe shape rather than a survey of raise origins [#0951/M/n=1].
+Both raise shapes of that session are logged in full — 73 engine hits each for the nested-call wording and the handler-add wording — so a raise a mod caught through the nested shape is still logged; that covers two raising handlers in one probe file, one probe shape rather than a survey of raise origins [#0951/M/n=1].
 No log ever prints the name of the missing global: both probe globals had zero hits on both sides, because the interpreter builds the message from the enclosing closure's name before calling the failure helper and falls back to an unknown marker, naming the closure and never the missing global [#0952/M/n=1].
 At file scope an unguarded raise aborts the rest of that chunk: the whole file chunk runs inside one protected call, so a raise inside it ends the chunk and the failure arm logs and returns null, read from the bytecode and never raised in a session [#1226/C/C-only].
 A rim protected call therefore protects the handler's own body rather than the other handlers, which is the only half of the guard the chain's survival does not already give [#3506/C/C-only].
@@ -75,48 +65,33 @@ A rim protected call therefore protects the handler's own body rather than the o
 <a id="debug-break"></a>
 ### The debug client's modal break
 
-The break is a client-only branch of the failure helper, and it ends a session rather than logging one.
-
 A debug client does not survive an unguarded mod raise: on two independent boots the harness client reached the in-game state, printed one complete trace and then stopped — console dead, the ready line never printed, the bus never answering, the process still alive [#0954/M/n=2].
 That reading is bounded to the debug flag: the release client `bob`, launched without it, survived a second raise shape (a custom event) — the raising handler's tail never ran, the handlers before and behind it each ran once, every one of 45 bus reads after the trigger answered and `bob` stayed in the server's player list — while the debug client `admin`, given the same trigger in the same session, stopped answering [#3317/M/n=1] [#3318/M/n=1] [#0958/M/n=1].
 The release client's console logged the raise from the failure helper's throw line, and the debug client's from its debug arm, the line that prints the failure message before the breakpoint [#3317/M/n=1] [#3318/M/n=1] [#0955/C/C-only].
 The break runs through the Kahlua utility failure helper: it tests the debug flag against the UI's default thread, and on the true arm prints its failure message and calls the UI breakpoint on the current file and the previous line before the throw — and the breakpoint returns unless the debugger-on-error flag is set, returns at once on a server so no server ever breaks, and otherwise swaps to the debug thread, raises the break callback and enters the modal UI sync pump [#0955/C/C-only].
 The debugger-on-error flag is not what spares the release client: the game window's entry sets it true right after the boot event and a debug-only key sets it true [#3320/C/C-only], and at game start it read true on the release client and on the debug client alike, while the debug flag read false on the release client and true on the debug client [#3319/M/n=1].
-The two sides took different arms of that helper: the client's log carries the printed failure message and never the throw, and the server's carries only the throw, so the client never left the breakpoint [#0956/M/n=2].
-That is two boots for the client arm and one session for the server arm, with the cause a code reading confirmed by those two log signatures [#0956/M/n=2].
-It is false that any Lua error freezes a debug client: the same debug client under the caught argument-slot shape never froze, because that shape never reaches the failure helper — and catching a raise does not help either, because a caught nested raise takes the same route, so on a debug client only the index-first guard, which never raises at all, keeps the session alive [#0957/M/n=2].
-Split any follow-up by raise origin — the call opcode's direct throw against the interpreter loop's failure helper — rather than by handler shape [#0957/M/n=2].
+The two sides took different arms of that helper: the client's log carries the printed failure message and never the throw, and the server's carries only the throw, so the client never left the breakpoint — two boots for the client arm, one session for the server arm [#0956/M/n=2].
+It is false that any Lua error freezes a debug client: the same debug client under the caught argument-slot shape never froze, because that shape never reaches the failure helper — and catching a raise does not help either, because a caught nested raise takes the same route, so on a debug client only the index-first guard, which never raises at all, keeps the session alive; split any follow-up by raise origin, the call opcode's direct throw against the interpreter loop's failure helper, rather than by handler shape [#0957/M/n=2].
 
 <a id="java-members"></a>
 ### Reaching a Java member
 
-Kahlua publishes a Java class's methods and never its fields, so a member is reached by indexing the name on the object and then calling what comes back.
-Two things decide whether a member is reachable at all: whether the exposer registered its class, and whether the member is a method rather than a field.
-
-An argument-arity mismatch and an ambiguous overload raise the same way as a nil call, and whatever a Java member throws comes back out as a runtime exception carrying the class name — which is why the zero-argument getter witness passes nothing to the member it reads and the harness refuses a nil id before an overloaded lookup rather than paying for the dispatch [#0936/C/C-only].
-That re-throw shape is a bytecode reading and is not measured here, because the practice is never to make the call [#0936/C/C-only].
-The item-user class exists on the jar but is not in the exposer's constant-pool class set, where the inventory item and the item container both are, so Kahlua cannot reach it — and that membership test is the exposure test for any Java class a mod wants to call [#0963/C/C-only].
-That is a constant-pool read of the exposer rather than a failed call, and no corpus mod calls the class [#0963/C/C-only].
+An argument-arity mismatch and an ambiguous overload raise the same way as a nil call, and whatever a Java member throws comes back out as a runtime exception carrying the class name — which is why the zero-argument getter witness passes nothing to the member it reads and the harness refuses a nil id before an overloaded lookup rather than paying for the dispatch; that shape is a bytecode reading, never measured, because the practice is never to make the call [#0936/C/C-only].
+The item-user class exists on the jar but is not in the exposer's constant-pool class set, where the inventory item and the item container both are, so Kahlua cannot reach it — and that membership test is the exposure test for any Java class a mod wants to call; it is a constant-pool read rather than a failed call, and no corpus mod calls the class [#0963/C/C-only].
 The static the crafting code itself calls is absent for exactly that reason, so the harness reaches it by indexing the global and then the member before the protected call, not because the raise escapes but because a caught nil call names nothing, and the route that actually runs is the current-uses setter [#1740/C/C-only].
-`zombie/characters/Stats` has no `getHunger` or `getThirst`: its complete method list is 34 entries whose only stat accessors are `get`, `set`, `add`, `remove`, `reset`, `isAtMinimum`, `isAtMaximum` and `isAboveMinimum`, each taking a `CharacterStat`, as of a single reading of the method list on this build [#0105/C/snapshot].
-The jar-wide scan behind it found no call site for either name, so the absence is a snapshot of one build rather than a standing guarantee [#0105/C/snapshot].
+`zombie/characters/Stats` has no `getHunger` or `getThirst`: its complete method list is 34 entries whose only stat accessors are `get`, `set`, `add`, `remove`, `reset`, `isAtMinimum`, `isAtMaximum` and `isAboveMinimum`, each taking a `CharacterStat`, as of a single reading of the method list on this build, and the jar-wide scan behind it found no call site for either name [#0105/C/snapshot].
 Hunger and thirst are read from Lua through `getStats():get(CharacterStat.HUNGER)` and `(CharacterStat.THIRST)`, the route every live snapshot answered with; the harness tries the enum first and short-circuits, so the run proves that route works rather than that the others fail [#0106/M/one-fixture].
 `getNutrition()` is declared on `IsoPlayer` and not on `IsoGameCharacter` [#0897/C/C-only].
 Vanilla offers no extension point on the nutrition object itself: its whole method list is 26 members — the five stores, the three direction flags, the update, calorie and weight updaters, the two trait appliers, the weight-trouble and fitness-XP tests, and save and load — with no mod-data accessor and no generic accessor, and no class on the jar carries a nutrition setter literal, so Lua cannot substitute a different object for the one the engine constructs [#0889/C/C-only].
-Reading a perk's experience takes two calls and never one: the character's experience getter is zero-argument and answers an inner experience object, and the number comes from that object's per-perk getter — which is why a zero-argument getter witness cannot read it and the harness carries a dedicated command; the level itself reaches the client within one bus round trip [#0918/M/n=1].
-The round-trip half is one session and one character; the two-call shape is a method-list reading [#0918/M/n=1].
-The script-level `Calories`, `Carbohydrates`, `Lipids` and `Proteins` values are unreadable from Lua on the script object on both sides: the script item carries no getter for any of the four, they are private fields that the instantiation path reads straight into the food instance, and the `get`, `is` and field routes all come back absent for all four keys on mod items as well as vanilla ones, so per-item macro numbers must come off an instance or out of the script text [#2732/M/n=1].
-That was read over four items on two sides in one session, re-confirming two earlier ones [#2732/M/n=1].
+Reading a perk's experience takes two calls and never one: the character's experience getter is zero-argument and answers an inner experience object, and the number comes from that object's per-perk getter — which is why a zero-argument getter witness cannot read it and the harness carries a dedicated command; the level itself reaches the client within one bus round trip, read in one session on one character [#0918/M/n=1].
+The script-level `Calories`, `Carbohydrates`, `Lipids` and `Proteins` values are unreadable from Lua on the script object on both sides: the script item carries no getter for any of the four, they are private fields that the instantiation path reads straight into the food instance, and the `get`, `is` and field routes all come back absent for all four keys on mod items as well as vanilla ones, so per-item macro numbers must come off an instance or out of the script text; read over four items on two sides in one session [#2732/M/n=1].
 The one reflective route to a private field is debug-only, as [the Java UI surface](client-ui.md#java-surface) states.
 The script object is a poor witness for macros in particular: it answers the seven shelf-life and cooking keys while reporting the four macro keys absent on both sides, so only an instance getter discriminates [#1011/M/n=1].
-The exposer's class set holds `Thermoregulator`, `Thermoregulator$ThermalNode`, `Metabolics`, `Fitness`, `BodyDamage`, `Stats`, `CharacterStat`, `IsoGameCharacter`, `IsoPlayer`, `Moodles`, `MoodleType`, `CharacterTraits`, `SandboxOptions`, `ServerOptions`, `GameTime` and `Nutrition`, and does not hold `MoodleStat`, `ZomboidGlobals`, `LuaHookManager` or `PlayerCheats`, read end to end from one dump of the exposer [#2248/C/C-only].
-So the stat, body and option classes a nutrition mod reads are all reachable, while the Java holder of the rate constants and the hook manager are not.
+The exposer's class set holds `Thermoregulator`, `Thermoregulator$ThermalNode`, `Metabolics`, `Fitness`, `BodyDamage`, `Stats`, `CharacterStat`, `IsoGameCharacter`, `IsoPlayer`, `Moodles`, `MoodleType`, `CharacterTraits`, `SandboxOptions`, `ServerOptions`, `GameTime` and `Nutrition`, and does not hold `MoodleStat`, `ZomboidGlobals`, `LuaHookManager` or `PlayerCheats`, read end to end from one dump of the exposer; so the stat, body and option classes a nutrition mod reads are reachable, while the Java holder of the rate constants and the hook manager are not [#2248/C/C-only].
 `ILuaGameCharacter` is an interface the character class implements and is absent from the exposer's class set, so it is a curated signal of the intended Lua API rather than the exposure gate [#2249/C/C-only].
 
 <a id="script-hooks"></a>
 ### The three script-side hooks
-
-Three hooks can be named from inside an item block, and they do not share a resolution rule; that is the trap.
 
 An item block's eat hook is resolved by name: the eat path asks the Lua manager for a function object by the name the script gives and calls it through the protected caller, and the lookup reads the name from the global environment, walking global tables segment by segment when the name is dotted, so a global function or a function held in a global table is found while a local is never found [#3501/C/C-only].
 An item block's cook hook resolves by a different route: the cook block does a raw get on the Lua environment for the name and calls it through the protected caller, and a name containing a dot is split and looked up exactly two levels — so a member of a global table works for the cook hook as it does for the eat hook, while a deeper path works only for the eat hook [#3502/C/C-only].
@@ -127,22 +102,18 @@ An `OnEat` hook can still mutate `hungChange` or `calories`, and `multiplyFoodVa
 `OnEat` is the only vanilla hook on the intake path, and in multiplayer it fires on the server inside `Eat` and separately on any receiver of `EatFoodPacket`, with no numeric effect there beyond what the hook itself writes [#0130] [#3634/C/inference].
 `IsoGameCharacter.EatOnClient` is that second call site: the hook-only twin the packet receiver uses, which type-checks, makes the identical `OnEat` call and returns true, writing no stats and no nutrition [#0095].
 So the client's call comes from the packet twin rather than from `Eat`, and because that twin applies no numbers the second firing is a notification and not a double-apply [#0923/C/C-only, #2004/C/C-only].
-An item block's eat hook fires once on each side: after a single whole-item eat the probe's call counter read one on the client and one on the server, at a consumed fraction of one [#0922/M/n=1, #1031/M/n=1].
-That single full-fraction eat cannot separate once per eat from once per portion, and no session has put a partial eat beside it [#1031/M/n=1].
+An item block's eat hook fires once on each side: after a single whole-item eat the probe's call counter read one on the client and one on the server, at a consumed fraction of one, which cannot separate once per eat from once per portion [#0922/M/n=1, #1031/M/n=1].
 An `OnEat` hook reads post-intake numbers on both sides: the calories read inside the hook were 890.4 on the client and 890.4 on the server for an eat that started from 786.86 [#1034/M/n=1].
 
 A Lua wrapper of `ISEatFoodAction:complete` installed from a mod's `server/` file runs server-only: the completion counter read 1 on the server and 0 on the client [#1032/M/n=1].
 A server-side wrapper of `ISEatFoodAction:complete` runs before `Eat` dispatches `OnEat`: the order string read `complete onEat ` on the server against `onEat ` on the client [#1033/M/n=1].
-The wrapper, the counter and the order reading are one eat at full fraction in one session on the default fixture, with three mods written for it [#1032/M/n=1, #1033/M/n=1, #1034/M/n=1].
 `LuaTimedActionNew.complete` skips the Lua complete on a client, so a client-side wrapper of a timed action's `complete` installs and then stays silent [#2005/C/C-only].
 A server-side wrapper of `ISEatFoodAction.complete` must therefore be sentinel-guarded outside any table the shared file re-creates, guarded with a nil-checked `isServer()` because the mod's `server/` file also runs in the client VM, and must call the original unless it means to skip `Eat` entirely [#1190/M/n=1].
-When a mod installs such a wrapper at file scope and retries it on two boot events, the file-scope install is the one that wraps on both sides: the recorded install site read back as the file scope on the client and on the server, and neither boot event re-wrapped because the sentinel made them no-ops [#0894/M/n=1].
-The retry is cover for load order rather than for the install [#0894/M/n=1].
+When a mod installs such a wrapper at file scope and retries it on two boot events, the file-scope install is the one that wraps on both sides: the recorded install site read back as the file scope on the client and on the server, and neither boot event re-wrapped because the sentinel made them no-ops; the retry is cover for load order rather than for the install [#0894/M/n=1].
 
-The cook hook is not server-gated in the dispatch itself but is reached only by the side that runs the cook transition: on both teardown sessions every hook print was in the server console and the client's was empty, because the client's copy never reached the transition [#0925/M/n=1].
-The dispatch there is a code reading and the side is the measurement, taken once per run over one item and one cook transition each [#0925/M/n=1].
+The cook hook is not server-gated in the dispatch itself but is reached only by the side that runs the cook transition: on both teardown sessions every hook print was in the server console and the client's was empty, because the client's copy never reached the transition; the dispatch is a code reading and the side the measurement, one item and one cook transition per run [#0925/M/n=1].
 A client that did drive its own copy of a modded item to the cook transition would dispatch the hook in the client's Lua state as well, where a mod's `server/` file also runs, and neither session reached that state, so the behaviour stays unmeasured [#1394/C/C-only].
-One corpus mod's server-side cook hook rewrote 11 fields on the crafted instance, printing in the server console — the worked case of the hook doing real work ([the teardown](../facts/other-mods/longtermpreservation.md#architecture)) [#1208/M/n=1].
+One corpus mod's server-side cook hook rewrote 11 fields on the crafted instance, printing in the server console ([the teardown](../facts/other-mods/longtermpreservation.md#architecture)) [#1208/M/n=1].
 
 <a id="events"></a>
 ### The events this library exercised
@@ -171,11 +142,10 @@ The real-time length of a game minute is a property of the fixture's day length 
 A dedicated server never runs a mod's `client/` Lua: `GameServer.doMinimumInit`, the server class's only `LoadDirBase` call site, loads `client` with the skip flag set, and that flag jumps over `RunLua` for every file, which still goes on to the checksum step [#3553/C/C-only].
 In a mod's shared `OnGameBoot` handler `isServer()` answers true on a dedicated server and false on a multiplayer client, measured live on 42.20.4 [#3568/M/n=1].
 On a dedicated server `getActivatedMods()` holds bare mod ids only: the server strips every backslash from its `Mods=` line and from each mod's `require=` ids before it loads them, so a check of the `\id` form never matches there and a check of the bare id does [#3569/C/C-only].
-The three client-only boot events `OnCreatePlayer`, `OnGameStart` and `OnLoad` never fire on a dedicated server, which is a mirror reading and corroboration only [#1620/W].
+The three client-only boot events `OnCreatePlayer`, `OnGameStart` and `OnLoad` never fire on a dedicated server, a mirror reading and corroboration only [#1620/W].
 `OnInitGlobalModData` and `OnServerStarted` are therefore the pair of hooks that survives a dedicated server, read from a corpus mod that registers the first in a dedicated-server tree; no session here has registered a handler on each of the five to measure it [#0895/C/one-side].
 The aging call fires the container-update event only when the process is not a server, and a client never runs the aging call, so in multiplayer that event never fires for a rot transition and a mod cannot hang rot logic on it [#0358].
-Each severe-moodle health term that comes out positive also fires `OnPlayerGetDamage` with the character, the moodle label `HUNGRY` or `THIRST`, and the amount ([the moodle effects](../facts/body-and-weight.md#moodles)) [#0517/C/C-only].
-That event is a bytecode reading and has not been caught on the live server [#0517/C/C-only].
+Each severe-moodle health term that comes out positive also fires `OnPlayerGetDamage` with the character, the moodle label `HUNGRY` or `THIRST`, and the amount ([the moodle effects](../facts/body-and-weight.md#moodles)), a bytecode reading never caught on the live server [#0517/C/C-only].
 `OnPlayerMove` has exactly two triggers: the player's second-stage update, gated to single player by requiring both network flags clear, and the remote-player update inside its server arm, which runs on a dedicated server only [#2245/C/C-only].
 On a multiplayer client it never fires for the local player, because the remote-player update returns false unless the player is remote [#2246/C/C-only].
 `OnTickEvenPaused` fires on a dedicated server, and the minute event runs after it and before `OnTick` in the same frame: a handler appended to each recorded the 18 ghost runs made from `EveryOneMinute` inside that span in all 193 minute frames [#3410/M/n=1].
@@ -185,16 +155,10 @@ There is no `OnAddXP` event on this build: the jar carries no such literal, and 
 <a id="hooks"></a>
 ### The `Hook.*` surface
 
-The named-hook surface is the engine's own trigger table, separate from the script keys and from the event roster above, and registering a handler on a hook can replace vanilla work rather than merely observe it.
-
-A registered `CalculateStats` handler replaces vanilla work rather than observing it, whatever it returns, as the trigger reading below states.
-The auto-drink path fires the Lua hook named `AutoDrink`, read from the bytecode and not measured [#0482/C/C-only].
-Neither of those two is an intake hook, and the nearest question — whether the drink path can be wrapped the way the eat path is — is [a wall](#walls).
-
 The engine registers eight hooks into the Lua `Hook` table at boot — `AutoDrink`, `UseItem`, `Attack`, `CalculateStats`, `ContextualAction`, `WeaponHitCharacter`, `WeaponSwing` and `WeaponSwingHitPoint` — and gives each an `Add` and a `Remove` function [#2237/C/C-only].
+The auto-drink path fires the Lua hook named `AutoDrink`, read from the bytecode and not measured [#0482/C/C-only].
 A hook's Lua face is a table with exactly those two keys, and the trigger object declares no accessor for its callback list, so a mod cannot count or list a hook's registrants from Lua [#2242/C/C-only].
 Vanilla Lua registers handlers on three of the eight: `AutoDrink`, `ContextualAction` and `Attack` [#2243/C/C-only].
-Whether any shipped Lua file names the stat hook at all is [an unverified reading](#open).
 The trigger discards every callback's return value and answers true whenever the callback list is non-empty, so registering any `Hook.CalculateStats` handler suppresses the whole vanilla stat update, whatever the handler does or returns [#2238/C/C-only].
 The hook lookup hands that answer back unchanged, so once one handler is registered a second mod's handler cannot restore the updaters [#2240/C/C-only].
 `calculateStats` fires the hook through `TriggerHook(String, Object)` with the character as the only payload, so a `Hook.CalculateStats` handler receives one argument, the character. [#2794/C/C-only]
@@ -206,20 +170,15 @@ The stat update returns at once for an animal, ahead of the fatigue reset and th
 A zombie's stat update is an empty method, so a zombie never reaches the hook either [#2241/C/C-only].
 The server's fatigue reset runs before the hook, so no handler can stop it ([the tick order](../facts/character-stats.md#tick-order)) [#2723/C/C-only].
 The player's stat update calls the character's only when the game-client flag is clear, so on a multiplayer client the vanilla stat update, its fatigue reset and the hook never run for a player, and a takeover is server-side by construction [#2236/C/C-only].
-Every jar sentence of this paragraph is a reading of the bytecode, and the registrant half is measured on a live server: a no-op handler added through the hook's own add froze thirst to the last bit while the calorie store drained, thirst came back at the vanilla rate once the callback list was empty, and the same handler added on the client counted no call at all [#2100/M/n=1].
+Every jar sentence of this section is a reading of the bytecode, and the registrant half is measured on a live server: a no-op handler added through the hook's own add froze thirst to the last bit while the calorie store drained, thirst came back at the vanilla rate once the callback list was empty, and the same handler added on the client counted no call at all [#2100/M/n=1].
 
 <a id="registries"></a>
 ### The moodle and trait registries
 
-Two registries are open to a mod on this build, and what each registration is actually worth is settled at [the walls](#walls) rather than by the method that performs it.
-Both go through the same registry helper, which is the one part of either that can leave shared state broken.
-
 Moodles are not script-registered on this build — a search of `media/scripts` for a moodle file returns nothing — and the moodle type is instead a registry of 26 Java statics whose level thresholds live in the moodle stat class, as of one scan of the install [#0504/C/snapshot].
-The moodle type and moodle stat registration methods exist on the jar — a name form, a base form and a flag-and-name form for the type, and a type-plus-five-floats form for the stat — and the moodle type enumeration is exposed to Lua; nothing here has registered one [#0969/C/C-only].
+The moodle type and moodle stat registration methods exist on the jar — a name form, a base form and a flag-and-name form for the type, and a type-plus-five-floats form for the stat — and the moodle type enumeration is exposed to Lua; nothing here has registered one, and what the registration is worth is [a wall](#walls) [#0969/C/C-only].
 `MoodleStat` declares `get(MoodleType)` together with `setLowestThreshold` and its siblings, read from the bytecode and not exercised on the live server [#2040/C/C-only].
-What each of those two declarations is worth to a mod is [a wall](#walls) rather than a door.
-`Registry.register` is mutate-then-validate: a duplicate id corrupts `byObject`, `byLocation` and `values` before it throws, and nothing rolls back [#1198/C/C-only].
-A mod that registers the same id twice therefore leaves the registry in a state no later call repairs [#1198/C/C-only].
+`Registry.register` is mutate-then-validate: a duplicate id corrupts `byObject`, `byLocation` and `values` before it throws, and nothing rolls back, so a mod that registers the same id twice leaves the registry in a state no later call repairs [#1198/C/C-only].
 
 `CharacterTraitDefinition.addCharacterTraitDefinition(CharacterTrait, uiName, cost, description, free, disabledInMultiplayer)` is public static and Lua-exposed, alongside `addGrantedTrait`, `addGrantedRecipe`, `addXPBoost(Perk,int)`, `addMutuallyExclusive`, `setTexture` and `setDisabledInMultiplayer`; it is what the generated character-trait script drives, and the last argument is optional [#1212/C/C-only].
 Registering the trait object is therefore only half of adding a trait: selectability comes from that definition call, the trait carries no Java effect of its own, and its list reaches the owning client on the player-fields packet's trait block and on the once-a-second experience packet, a path read from the code and not exercised for a mod trait [#1158/C/C-only] [#2595/C/C-only].
@@ -230,7 +189,7 @@ On this build `hasTrait` takes a `CharacterTrait` enum rather than a String, and
 <a id="removed-apis"></a>
 ### Removed or absent on this build
 
-Each absence below is a live hazard rather than trivia, for the reason [the dialect's nil call](#kahlua-limits) gives and with [the index-first guard](#java-members) as the only cover.
+Each absence below raises as [the dialect's nil call](#kahlua-limits) does, with [the index-first guard](#java-members) as the only cover.
 
 The dynamic string compiler is present only as a dead string constant in three jar classes and is not reachable from mod Lua; the corpus sweep counts zero users across 230 mods and the lint keeps it out with an error rule [#0960/C/snapshot].
 The string-argument trait test does not exist on this build — the character class exposes only the trait-object and trait-array forms — and the one corpus mod that still calls it does so in shadowed `common/` copies that the window-build path never executes [#0961/M/n=1].
@@ -241,26 +200,21 @@ The character stats class carries neither a hunger getter nor a thirst getter on
 <a id="file-io"></a>
 ### What Lua may read and write
 
-The Lua file writer is rooted at the cachedir's Lua folder, rejects relative-path escapes, accepts and creates subfolders, and checks the extension against a five-entry allowlist — so marker files are not possible and not needed, a file that parses as a complete JSON object being the ready signal; the mod file writer writes into the mod's own folder instead, which is not what run artefacts want [#1866/C/C-only].
-That is a bytecode reading on this build, and the same reader and writer pair is what carries the harness's own request and acknowledgement channel on both sides ([the bus](harness.md#bus)) [#1866/C/C-only].
+The Lua file writer is rooted at the cachedir's Lua folder, rejects relative-path escapes, accepts and creates subfolders, and checks the extension against a five-entry allowlist — so marker files are not possible and not needed, a file that parses as a complete JSON object being the ready signal; the mod file writer writes into the mod's own folder instead, which is not what run artefacts want; the same pair carries the harness's own request and acknowledgement channel ([the bus](harness.md#bus)) [#1866/C/C-only].
 Both the writer and the reader resolve a name under the cache folder's `Lua` folder and refuse a name containing `..`, but only the writer checks the extension, case-sensitively, and only the writer creates missing parent folders [#3558/C/C-only].
 The writer opens its file when it is obtained, so `append = false` empties an existing file at that call rather than at `close`, and its text goes out as UTF-8 through a `PrintWriter` on the calling thread; the reader answers nil for a missing file unless asked to create it empty [#3559/C/C-only].
 No Kahlua library and no global member read here offers a delete or rename for a file under Lua's own `Lua` folder outside `Lua/LastStand/`: Kahlua ships no `io` library, its `os` library carries only `time`, `difftime` and `date`, and each global named for a delete or a rename works only under its own folder (`Lua/LastStand/`, `db/`, the sandbox presets or the save folders), so emptying a file is the only removal those routes give a mod's own file [#3560/C/C-only].
 On a dedicated server `getServerName()` answers the `-servername` launch argument, or `servertest` when none was given [#3561/C/C-only].
 A finite number written with `tostring` and read back with `tonumber` comes back equal, because `tostring` prints Java's `Double.toString` or, for an integral value below 1e14, the decimal long, and `tonumber` is `Double.parseDouble`; the one loss is -0, which comes back as 0 [#3562/C/C-only].
 `string.byte` answers UTF-16 code units rather than bytes, so a character above U+00FF answers a value above 255 [#3563/C/C-only].
-Whether the mod file writer carries an extension limit of its own is an unverified reading from a spike that committed no artefact, and it sits in [`## Open`](#open).
 
 <a id="dev-loop"></a>
 ### The in-session dev loop
 
-The reload surface is one file at a time, and it undoes nothing a file did on its previous load.
-
 The fast authoring loop is a single-file reload on the server plus an absolute-path reload through the client command bus, one file at a time [#1879].
-The reload command matches its argument with a suffix test against the loaded-file list and runs that file and nothing else: no events are re-registered, so a file that adds a handler on load will add a second one, and any file meant to be reloaded must guard against double registration [#1880/C/C-only].
-That is a bytecode reading of the command on this build [#1880/C/C-only].
+The reload command matches its argument with a suffix test against the loaded-file list and runs that file and nothing else: no events are re-registered, so a file that adds a handler on load will add a second one, and any file meant to be reloaded must guard against double registration, a bytecode reading of the command on this build [#1880/C/C-only].
 A sentinel for a wrapped vanilla method must live outside any table the shared file re-creates: the mod's shared file re-creates its own state table by plain assignment on every load, so a reload of that file would wipe an inside sentinel while the old wrapper was still installed and the next install would wrap the wrapper [#0943/C/C-only].
-Four readings of what the reload itself does — the survival of globals across a server-side single-file reload, the path form the client-side reload global needs, the usability of reloading every file on a dedicated server, and whether a server reload reaches clients at all — come from a spike whose artefact was never committed, and they are stated once in [`## Open`](#open).
+What the reload itself does on each side rests on a spike that committed no artefact, so its four readings sit in [`## Open`](#open).
 
 ## Walls and bounds
 <a id="walls"></a>
@@ -307,16 +261,7 @@ Not covered: the Kahlua standard library beyond the members this library called,
 
 ## See also
 
-- [`overview.md`](overview.md) — which page owns which mechanism, and the two Lua states a mod lands in.
-- [`loader-and-scripts.md`](loader-and-scripts.md#lua-load-order) — which file runs at all, and how `require` resolves through the merged map.
-- [`mod-anatomy.md`](mod-anatomy.md) — the mod folder a Lua file ships in, and which tree the live chain reads.
-- [`mp-model.md`](mp-model.md#command-bus) — the routes mod state travels on, and which side owns each quantity.
-- [`harness.md`](harness.md#bus) — the command bus this library reads every measurement through.
-- [`lessons.md`](lessons.md#rules) — the standing rules these mechanisms feed.
-- [`jar-research.md`](jar-research.md#exposed) — how the exposer dump is taken and what the exposure test does not cover.
-- [`../facts/eating-pipeline.md`](../facts/eating-pipeline.md#eat) — the order of writes inside `Eat`, which the eat hook sits in.
-- [`../facts/body-and-weight.md`](../facts/body-and-weight.md#moodles) — what a moodle level does once it is set.
-- [`../facts/character-stats.md`](../facts/character-stats.md#updaters) — the stat registry, the seven updaters the stat hook skips, and where the hook sits in a player's update.
-- [`../facts/other-mods/catalog.md`](../facts/other-mods/catalog.md#corpus-facts) — the full corpus event census behind the counts above.
-- [`../reference/wall-map.md`](../reference/wall-map.md) — the verdict rows cited from the walls.
-- [`../reference/experiments.md`](../reference/experiments.md) — the named experiments the open rows point at.
+- [`overview.md`](overview.md) — which page owns which mechanism, and the two Lua states a mod lands in; [`loader-and-scripts.md`](loader-and-scripts.md#lua-load-order) — which file runs at all, and how `require` resolves; [`mod-anatomy.md`](mod-anatomy.md) — the folder a Lua file ships in.
+- [`mp-model.md`](mp-model.md#command-bus) — the routes mod state travels on; [`harness.md`](harness.md#bus) — the command bus every measurement here is read through; [`lessons.md`](lessons.md#rules) — the standing rules these mechanisms feed; [`jar-research.md`](jar-research.md#exposed) — how the exposer dump is taken.
+- [`../facts/eating-pipeline.md`](../facts/eating-pipeline.md#eat) — the order of writes inside `Eat`; [`../facts/body-and-weight.md`](../facts/body-and-weight.md#moodles) — what a moodle level does once set; [`../facts/character-stats.md`](../facts/character-stats.md#updaters) — the seven updaters the stat hook skips; [`../facts/other-mods/catalog.md`](../facts/other-mods/catalog.md#corpus-facts) — the full corpus event census.
+- [`../reference/wall-map.md`](../reference/wall-map.md) — the verdict rows cited from the walls; [`../reference/experiments.md`](../reference/experiments.md) — the named experiments the open rows point at.
