@@ -7,10 +7,10 @@
 -- world age (#3371) and folding each auto-drink sip into the THIRST target (#3382). The HUNGER target is
 -- hungerTarget(sated(F, mealRead(M)), energyState) x circadian(hour) x acuteFactor(S) x sleepFactor(debtH) x nicotineFactor (W.nicotine),
 -- the model's h_model (kept on record.satiety.hModel for the study oracles), written through the calibrated curve
--- (K.hungerCurve.write, Plan 15 Task 6) and capped at 0.69 below starvation (K.hybrid.caps; NR_Kernel_Satiety.lua):
+-- (K.hungerCurve.write) and capped at 0.69 below starvation (K.hybrid.caps; NR_Kernel_Satiety.lua):
 -- the stomach's fullness F (W.satietyF), the meal pool M (fed at the eat, cleared by Kinetics, seeded and read here), the acute suppression S
 -- of vigorous work (stepped here) and the acute record's sleep debt debtH (W.satietyFactor). It registers no stat hook.
--- Option B (Plan 15 Task 5, W.severe): the caps lift at starvation and dehydration (K.hybrid.caps), and while the written
+-- The severe moodles (W.severe): the caps lift at starvation and dehydration (K.hybrid.caps), and while the written
 -- HUNGER or THIRST stands at level 4 the writer holds vanilla's severe-moodle constant at 0 and re-applies its other terms.
 -- Every Java read goes through NR.num / NR.obj / NR.flag; every Java global is named inside a function behind a
 -- nil check, so the file loads with no engine. Slow-clock code: no @fastpath region.
@@ -40,7 +40,7 @@ NR.server.writer = {
 local W = NR.server.writer
 W.RATE_KEYS = { "HungerIncrease", "HungerIncreaseWhenWellFed", "HungerIncreaseWhileAsleep",
                 "HungerIncreaseWhenExercise", "ThirstIncrease", "ThirstSleepingIncrease", "FatigueIncrease" } -- #3362
-W.NMS_ID = "NutritionMakesSense" -- its 42/mod.info id= (Plan 11 Task 1)
+W.NMS_ID = "NutritionMakesSense" -- its 42/mod.info id=
 -- the sleep bed factor (IsoPlayer.updateStats_Sleeping @109-@244, #2276)
 W.BED = { badBed = 0.9, badBedPillow = 0.95, averageBedPillow = 1.05, goodBed = 1.1, goodBedPillow = 1.15,
           floor = 0.6, floorPillow = 0.75 }
@@ -106,11 +106,11 @@ function W.hoist(username, p)
         local ok, sw = pcall(SwipeStatePlayer.instance)    -- the melee swing state: vigorous work for the acute term
         if ok then h.swipe = sw end
     end
-    pcall(NR.call, h.bd, "setDrunkReductionValue", 0)       -- ruling 19 kept: the writer owns INTOXICATION
+    pcall(NR.call, h.bd, "setDrunkReductionValue", 0)       -- the writer owns INTOXICATION
     return h
 end
 
--- The engine reads Effects' accrual and recovery need (the input table's fields it reads, B3 and B4).
+-- The engine reads Effects' accrual and recovery need (the input table's fields it reads).
 function W.readEngine(username, h, p, ctx)
     local i = W.inp[username]
     if i == nil then
@@ -122,7 +122,7 @@ function W.readEngine(username, h, p, ctx)
     i.sitting = NR.flag(p, "isSitOnGround") or NR.flag(p, "isSittingOnFurniture")
     i.resting = NR.flag(p, "isResting")
     i.thermoFatigue = NR.num(h.thermo, "getFatigueMultiplier", 1)
-    local sd = ctx ~= nil and ctx.sd or nil                -- Kinetics' read this player-minute (ruling T10-1)
+    local sd = ctx ~= nil and ctx.sd or nil                -- Kinetics' read this player-minute
     if sd == nil then
         sd = NR.num(NR.sandbox(), "getStatsDecreaseMultiplier", 1)
         if ctx ~= nil then ctx.sd = sd end
@@ -142,15 +142,15 @@ local function finiteOr(v, dflt)
     return dflt
 end
 
--- Vigorous work for the acute suppression term (spec § 5c): the melee or tool swing state is
+-- Vigorous work for the acute suppression term: the melee or tool swing state is
 -- resistance-type work; else Metabolism's stamp of the minute's billed MET at the Compendium's HeavyWork band or above
 -- (6.0) is vigorous, and the kind follows the metabolism class Metabolism stamps on the minute's ctx: Fitness,
 -- FitnessHeavy, ClimbRope (rope climbing, and tree chopping: classOf reads ForestryAxe's 8.0 as ClimbRope)
--- and ForestryAxe are resistance work; DiggingSpade and UsingTools bill under 6.0 and are listed inert (S1301, S1305).
+-- and ForestryAxe are resistance work; DiggingSpade and UsingTools bill under 6.0 and are listed inert (S1301).
 -- A minute with a Fitness exercise in progress (ctx.exercising, the server's exercise flag) is resistance-vigorous
--- before any MET test (C-2): resistance work suppresses hunger regardless of load (S1508, S1509, S1301), and
--- a set now bills its exercise's own MET, under 6.0 for every vanilla type but burpees. The 6.0 bar stays for the rest.
--- The run flag never reaches the server (x141a), so a runner is not vigorous unless the metabolic rate classes it so.
+-- before any MET test (C-2): resistance work suppresses hunger regardless of load (S1508), and
+-- a set bills its exercise's own MET, under 6.0 for every vanilla type but burpees. The 6.0 bar stays for the rest.
+-- The run flag never reaches the server, so a runner is not vigorous unless the metabolic rate classes it so.
 -- Returns vigorous, kind (K.satiety.ACUTE_KIND's keys). ctx is nil or lacks the stamp: the class is unknown, aerobic.
 W.RESISTANCE_CLASSES = { Fitness = true, FitnessHeavy = true, ClimbRope = true, ForestryAxe = true, DiggingSpade = true, UsingTools = true }
 function W.vigorous(h, player, record, ctx)
@@ -165,7 +165,7 @@ function W.vigorous(h, player, record, ctx)
 end
 
 -- The satiety step's length in game hours, S's step (M's clearance is Kinetics'): inp.dtS, which W.step reads off
--- the stored stamp record.satiety.t (the resume moved it past any absence, Plan 16 Task 2), clamped at maxStepS; a
+-- the stored stamp record.satiety.t (the resume moved it past any absence), clamped at maxStepS; a
 -- non-finite stamp is dropped and counted in guarded. Stamps t = ageH.
 function W.satietyDtH(h, s, inp, ageH)
     local dtS = inp.dtS
@@ -177,10 +177,10 @@ function W.satietyDtH(h, s, inp, ageH)
     return K.clamp(dtS, 0, W.c.maxStepS) / 3600
 end
 
--- Plan 11d Task 5 fix: the satiety fullness F the writer reads. Protein fills only here: F is the
+-- The satiety fullness F the writer reads. Protein fills only here: F is the
 -- stomach's fullness mass (K.stomach.fullnessMass, the satiety mass plus K.satiety.PROTEIN_FILL x the solid lane's
--- protein) over K.stomach.CAPACITY_MAX_G, clamped to [0, CAPACITY_HARD_G / CAPACITY_MAX_G] (K.satiety.fullness, Plan 11g spec
--- § 7); record.stomachFill, the kinetics' stamp, stays physical (K.stomach.fill, both lanes whole). A
+-- protein) over K.stomach.CAPACITY_MAX_G, clamped to [0, CAPACITY_HARD_G / CAPACITY_MAX_G] (K.satiety.fullness);
+-- record.stomachFill, the kinetics' stamp, stays physical (K.stomach.fill, both lanes whole). A
 -- record with no stomach or no buffer, or a non-finite F, reads the stamp (0 when it is not finite).
 --
 function W.satietyF(record)
@@ -194,7 +194,7 @@ function W.satietyF(record)
     return finiteOr(record.stomachFill, 0)
 end
 
--- Spec § 5d: the factor W.satiety multiplies the hunger target by and divides the seed
+-- The factor W.satiety multiplies the hunger target by and divides the seed
 -- by: the circadian and acute product times K.satiety.sleepFactor(record.acute.debtH), the sleep debt the acute
 -- kernel books at each 24 h window's close (K.acute.sleepMinute; held at 0 while the server disables sleep). A record
 -- with no acute table, or a debt that is not a finite number, reads the sleep factor 1; a product that is non-finite
@@ -235,7 +235,7 @@ end
 
 -- The nicotine-withdrawal factor W.satiety multiplies into the circadian and
 -- acute product, so it reaches the hunger target and the seed's divisor through W.satietyFactor. It reads the server's
--- own NICOTINE_WITHDRAWAL once a writer minute (#3637; a server-side read, the stat rising there alone, #3631) and
+-- own NICOTINE_WITHDRAWAL once a writer minute (a server-side read, the stat rising there alone, #3631) and
 -- keeps the anchor s.nicH (record.satiety.nicH; stored, K.store.INPUTS): the world age in game hours at the last minute
 -- the stat read 0 or fell below the previous minute's read (h.nicLast, per hoist: a fall across a reconnect or a
 -- restart is not seen, and the anchor holds), so the days since the last smoke are (ageH - nicH) / 24, exact in game
@@ -267,18 +267,18 @@ function W.nicotine(h, s, ageH)
     return K.satiety.nicotineFactor(w, (ageH - s.nicH) / 24)
 end
 
--- Spec § 3.1, § 5b, § 5c: satiety from physiology. record.satiety is
+-- Satiety from physiology. record.satiety is
 -- { M, S, L, t }: the meal pool M (weighted kcal, fed at the eat and cleared by Kinetics), the acute
 -- suppression state S and the exercise lag L (Metabolism steps it). Each minute: S and L are healed (a non-finite S or
 -- L, or a negative L, is stamped 0 and counted in guarded; S is clamped to [0, 1]) and S is stepped over the elapsed
 -- world age toward the vigorous kind's weight; then W.satietyMeal seeds M at first sight. The target is
 -- K.satiety.target(F, M, es) = hungerTarget(sated(F, mealRead(M)), es), times circadian(the body clock's hour,
--- K.circadian.hour: 1 with sleep off, Plan 16 Task 4) x acuteFactor(S) x
+-- K.circadian.hour: 1 with sleep off) x acuteFactor(S) x
 -- W.nicotine's factor x sleepFactor(record.acute.debtH): h_model, kept on record.satiety.hModel (a derived field, not
 -- saved: the study oracles read it, never the written HUNGER). K.hybrid.write maps it through the calibrated curve
 -- (K.hungerCurve.write, which reads inp.fed, the meal pool at K.hungerCurve.FED_M or more, and inp.circ, the minute's
 -- circadian factor) and caps it at hungerCap 0.69 once (below starvation, K.hybrid.caps); the curve is monotone, so a
--- swing minute's hunger is never above the same minute idle (ruling 11c-29 (3)); F is W.satietyF's fullness mass, the
+-- swing minute's hunger is never above the same minute idle; F is W.satietyF's fullness mass, the
 -- factor W.satietyFactor's.
 function W.satiety(h, player, record, eng, inp, es, ageH, ctx)
     local F = W.satietyF(record)
@@ -303,7 +303,7 @@ function W.satiety(h, player, record, eng, inp, es, ageH, ctx)
     local circ = K.satiety.circadian(K.circadian.hour(record, NR.sleepOn()))   -- the body clock's hour; 1 with sleep off
     local factor = circ * K.satiety.acuteFactor(s.S) * W.nicotine(h, s, ageH)
     factor = W.satietyFactor(factor, record)
-    if s.M == nil then F = W.seedPlate(h, record, inp, F, es, factor, circ) end -- a fresh record (Plan 15 Task 13 fix 1)
+    if s.M == nil then F = W.seedPlate(h, record, inp, F, es, factor, circ) end -- a fresh record
     W.satietyMeal(s, inp, F, es, factor, circ)
     inp.hungerTarget = K.satiety.target(F, s.M, es) * factor
     inp.circ = circ
@@ -311,8 +311,8 @@ function W.satiety(h, player, record, eng, inp, es, ageH, ctx)
     s.hModel = inp.hungerTarget
 end
 
--- The meal pool's seed (Plan 11g Task 4 and its fix 1): an M that is absent or non-finite is seeded so the
--- HUNGER written equals the HUNGER read, inverting the curve (K.hungerCurve.inverse, Plan 15 Task 6) and the
+-- The meal pool's seed: an M that is absent or non-finite is seeded so the
+-- HUNGER written equals the HUNGER read, inverting the curve (K.hungerCurve.inverse) and the
 -- composition (K.satiety.seedMeal on that h_model / factor, W.satietyFactor's
 -- divisor that is non-finite or not positive reading 1; counted in seeded, and a non-finite M in guarded too). A seed
 -- under K.hungerCurve.FED_M is unfed, where the curve takes the circadian dip out (K.hungerCurve.dip), so it is seeded
@@ -336,10 +336,10 @@ function W.satietyMeal(s, inp, F, es, factor, circ)
     end
 end
 
--- Angus's choice of 2026-10-11: monotony as a self-releasing floor. Once a
+-- Monotony as a self-releasing floor. Once a
 -- writer minute, W.step reads record.monotony's target (K.monotony.target at the minute's world age: the most repeated
 -- food type's level, from the counts the intake books at each eat) and composes it:
---  * UNHAPPINESS: the effects' target (or the lethal causes' symptom floor, E.unhappyFloor, when higher; Plan 18),
+--  * UNHAPPINESS: the effects' target (or the lethal causes' symptom floor, E.unhappyFloor, when higher),
 --    clamped to the effects surface's own range [0, 59] (59 one under the UNHAPPY
 --    level-3 step 60, #2369), plus monotony's, which is added after that clamp: an effects bonus (the exercise credit,
 -- as low as -13) never offsets monotony; an effects target that is not a finite number reads 0;
@@ -347,13 +347,13 @@ end
 -- K.hybrid.write raises each stat toward its target (UNHAPPINESS 22, BOREDOM 25 a game hour) and, when the target
 -- falls, lowers the stat by the fall once (#3119; a fall under K.hybrid.FLOOR_EPS 0.05 is held and folded into the next write, Rule 6), so the floor is bounded by the target and releases as a varied diet
 -- lets the counts decay. The release lowers the stat by the target's fall even when another source (vanilla, a food, an
--- effect) also raised it: the downside Angus accepted. Vanilla resets BOREDOM while PANIC > 5 (BodyDamage.UpdateBoredom
+-- effect) also raised it: an accepted downside. Vanilla resets BOREDOM while PANIC > 5 (BodyDamage.UpdateBoredom
 -- @482-@509, #3015), the mod's own dehydration PANIC floor of 7 included, so the BOREDOM floor is wiped
 -- while the character panics and rises again after (K.hybrid.boredRise holds the BOREDOM rise, the target still
 -- remembered). The remembered targets live on record.moodLast, so a reconnect's new hoist still releases the fall. A
 -- record.monotony the heal finds corrupt is reset and counted in guarded; the heal runs at the hoist's first sight (the
--- eat heals its own), never every minute, and K.monotony.level reads a non-table entry 0. No eat adds a mood any more (NR_Server_Intake IN.monotony books only).
--- Each composed target passes the dead zone (K.monotony.hold, Plan 15 Task 9, item 10c) against its remembered target,
+-- eat heals its own), never every minute, and K.monotony.level reads a non-table entry 0. No eat adds a mood (NR_Server_Intake IN.monotony books only).
+-- Each composed target passes the dead zone (K.monotony.hold) against its remembered target,
 -- so a floor falling through a moodle threshold holds just over it until it is DEAD_ZONE of the threshold under.
 W.UNHAPPY_HI = K.dials.get("writer.UNHAPPY_HI")
 
@@ -378,14 +378,14 @@ function W.monotony(h, record, inp, E, ageH)
         end
         u, b = K.monotony.target(m, ageH)
     end
-    u = u + W.hedonics(h, record, ageH)                  -- R1's plain-energy floor composed with monotony's (Plan 19 Task 6)
+    u = u + W.hedonics(h, record, ageH)                  -- R1's plain-energy floor composed with monotony's
     h.monoSeen = true
     local eu = E.unhappyTarget
     if not NR.finite(eu) then eu = 0 end
-    local uf = E.unhappyFloor                             -- the lethal causes' floor (K.effects.symptoms), the higher (Plan 18 Task 3)
+    local uf = E.unhappyFloor                             -- the lethal causes' floor (K.effects.symptoms), the higher
     if NR.finite(uf) and uf > eu then eu = uf end
     inp.lastBoredTarget = W.moodTarget(record, "b")
-    inp.unhappyTarget = K.monotony.hold(K.min(eu + u, W.unhappyHi()), W.moodTarget(record, "u"), K.monotony.UNHAPPY_AT)   -- the dead zone (Plan 15 Task 9)
+    inp.unhappyTarget = K.monotony.hold(K.min(eu + u, W.unhappyHi()), W.moodTarget(record, "u"), K.monotony.UNHAPPY_AT)   -- the dead zone
     inp.boredTarget = K.monotony.hold(b, inp.lastBoredTarget, K.monotony.BORED_AT)
     inp.bored = get(h, CharacterStat.BOREDOM) or 0
 end
@@ -438,7 +438,7 @@ function W.step(username, player, record, ctx)
     local eng = W.readEngine(username, h, player, ctx)
     local inp, out = W.input, W.output
     inp.dtS = 0
-    local st = record.satiety                                       -- the stored step stamp, which the resume moves (fix 1, F3)
+    local st = record.satiety                                       -- the stored step stamp, which the resume moves
     if type(st) == "table" and NR.finite(st.t) then
         inp.dtS = (ageH - st.t) * 3600
     elseif h.ageH ~= nil then
@@ -447,8 +447,8 @@ function W.step(username, player, record, ctx)
     h.ageH = ageH
     inp.mode = W.mode
     local D = record.drain
-    inp.starving = type(D) == "table" and D.starving == true      -- the caps lift (K.hybrid.caps, Plan 15 Task 5)
-    inp.starveAcute = type(D) == "table" and D.starveAcute == true  -- the starving minimum's onset (Plan 15 Task 6, ruling I2)
+    inp.starving = type(D) == "table" and D.starving == true      -- the caps lift (K.hybrid.caps)
+    inp.starveAcute = type(D) == "table" and D.starveAcute == true  -- the starving minimum's onset
     inp.dehydrated = type(D) == "table" and D.dehydrated == true
     inp.asleep = NR.read.asleep(ctx, player)
     inp.hunger = get(h, CS.HUNGER) or 0
@@ -470,13 +470,13 @@ function W.step(username, player, record, ctx)
     inp.fCirc = finiteOr(A.circ, 0)
     inp.fOff = finiteOr(E.fOff, 0)
     inp.stress = get(h, CS.STRESS) or 0
-    inp.stressTarget = K.max(finiteOr(E.stressTarget, 0), finiteOr(E.stressFloor, 0))   -- the rows' target or the lethal causes' floor, the higher (Plan 18 Task 3)
+    inp.stressTarget = K.max(finiteOr(E.stressTarget, 0), finiteOr(E.stressFloor, 0))   -- the rows' target or the lethal causes' floor, the higher
     inp.unhappy = get(h, CS.UNHAPPINESS) or 0
-    W.monotony(h, record, inp, E, ageH)                   -- UNHAPPINESS: the effects' target plus monotony's; BOREDOM: monotony's (Plan 11f Task 9b)
+    W.monotony(h, record, inp, E, ageH)                   -- UNHAPPINESS: the effects' target plus monotony's; BOREDOM: monotony's
     inp.lastUnhappyTarget = W.moodTarget(record, "u")
     inp.foodSick = get(h, CS.FOOD_SICKNESS) or 0
     inp.foodSickTarget = E.foodSickTarget or 0
-    inp.foodSickStep = finiteOr(E.foodSickStep, 0)              -- a FOOD_SICKNESS level raised at once (Plan 15 Task 8 fix 1)
+    inp.foodSickStep = finiteOr(E.foodSickStep, 0)              -- a FOOD_SICKNESS level raised at once
     inp.panic = get(h, CS.PANIC) or 0
     inp.panicTarget = E.panicTarget or 0
     inp.temp = get(h, CS.TEMPERATURE) or 0
@@ -486,8 +486,8 @@ function W.step(username, player, record, ctx)
     inp.endurance = eng.endurance
     inp.lastEndurance = h.lastEnd
     inp.rmod = finiteOr(body.rmod, 1)
-    inp.endCap = finiteOr(E.enduranceCap, 1)                     -- the Overfull and symptom ceiling (Plan 15 Task 8, Plan 18)
-    if inp.endCap < 1 then                                        -- sized from the day length, read only under a ceiling (fix 1)
+    inp.endCap = finiteOr(E.enduranceCap, 1)                     -- the Overfull and symptom ceiling
+    if inp.endCap < 1 then                                        -- sized from the day length, read only under a ceiling
         inp.endCap = K.hybrid.capAt(inp.endCap, NR.read.dayMin(ctx, K.drain.DAY_MINUTES))
     end
     K.hybrid.write(inp, out, W.c)
@@ -495,21 +495,21 @@ function W.step(username, player, record, ctx)
     set(h, CS.THIRST, out.thirst)
     h.lastThirst = out.thirst
     if out.sip > W.SIP_EPS and fl ~= nil then
-        fl.autoDrop = (fl.autoDrop or 0) + out.sip      -- landed as water at the next minute (ruling 7)
+        fl.autoDrop = (fl.autoDrop or 0) + out.sip      -- landed as water at the next minute
         W.stats.sips = W.stats.sips + 1
     end
     set(h, CS.FATIGUE, out.fatigue)
     set(h, CS.STRESS, out.stress)
     set(h, CS.UNHAPPINESS, out.unhappy)
-    W.moodWrote(h, record, out)                                   -- the targets remembered, and BOREDOM written (Plan 11f Task 9b)
+    W.moodWrote(h, record, out)                                   -- the targets remembered, and BOREDOM written
     set(h, CS.FOOD_SICKNESS, out.foodSick)
     set(h, CS.PANIC, out.panic)
     set(h, CS.TEMPERATURE, out.temp)
     set(h, CS.INTOXICATION, out.intox)
     set(h, CS.ENDURANCE, out.endurance)
     h.lastEnd = out.endurance or inp.endurance
-    W.severe(h, player, record, inp, out, eng, ctx)               -- option B: the constant and the re-applied terms (Plan 15 Task 5)
-    W.foodTimer(h, player, record, inp, ctx)                      -- Well Fed and the eating refusal (Plan 15 Task 8)
+    W.severe(h, player, record, inp, out, eng, ctx)               -- the severe-moodle constant and the re-applied terms
+    W.foodTimer(h, player, record, inp, ctx)                      -- Well Fed and the eating refusal
     W.stats.writes = W.stats.writes + 1
 end
 
@@ -556,13 +556,13 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
     end)
 end
 
--- Option B (Plan 15 Task 5; spec section 3.1; jar-checks Check 3; run x451). Vanilla's HUNGRY-4 and THIRST-4 health
+-- The severe moodles. Vanilla's HUNGRY-4 and THIRST-4 health
 -- terms scale with the day length (#0518); the mod's drain engine owns those crises instead (K.drain). So
 -- while the HUNGER or THIRST this minute leaves stands at level 4 (K.hybrid.severe), the writer sets the player's
--- severe-moodle constant to 0 (BodyDamage.setHealthReductionFromSevereBadMoodles, per player, from server Lua: x451;
+-- severe-moodle constant to 0 (BodyDamage.setHealthReductionFromSevereBadMoodles, per player, from server Lua;
 -- at 0 the HUNGRY-4, THIRST-4, SICK-4 and under-35 kg terms stop, measured; HEAVY_LOAD and the wound-infection arm read
 -- the same constant, #2356), and otherwise writes back vanilla's value, read once per player object from the getter at
--- first sight (the constructor's 0.0165, #0516), never a literal. The constant is not saved (x451's reload read
+-- first sight (the constructor's 0.0165, #0516), never a literal. The constant is not saved (a reload reads
 -- 0.0165), so the first minute of each player object (a load, a reconnect or a respawn) writes it whatever it wants;
 -- after that it is written only when the wanted value changes (h.red, the last written; Rule 6: a steady minute costs
 -- no Java call). Mode 1 only: in Overlay vanilla owns HUNGER and THIRST and the constant is never touched.
@@ -666,17 +666,17 @@ function W.reapply(h, player, record, inp, out, eng, ctx)
     end
 end
 
--- The food-timer bridge (Plan 15 Task 8; spec sections 2.3 and 2.4; jar-checks Check 1). The mod owns vanilla's
+-- The food-timer bridge. The mod owns vanilla's
 -- health-from-food timer, which alone drives the FOOD_EATEN moodle (Well Fed) and vanilla's eat and drink refusals at its
--- level 3 (#0511; jar-checks Check 1c): each minute the target is K.view.foodTimer of the Overfull level (K.view.overfullOf,
+-- level 3 (#0511): each minute the target is K.view.foodTimer of the Overfull level (K.view.overfullOf,
 -- the client moodle's number), the meal pool M (record.satiety.M, this minute's, after the satiety step) and whether a
--- drain state is active (record.drain.mask over 0; a recovering state's ceiling, Plan 17 revision R2, keeps no one from
+-- drain state is active (record.drain.mask over 0; a recovering state's ceiling keeps no one from
 -- Well Fed, while the food heal stays 0 under it, NR_Server_Effects), and BodyDamage.setHealthFromFoodTimer writes it
 -- (#3896: a server write reaches the client's moodle and its eat gates through the 1 Hz stats packet). Vanilla drains the timer between writes
 -- (#2385), so a target above 0 is written every minute (one Java call a sated minute); a target of 0 is written only on
 -- the change to 0 and vanilla's own drain keeps it there (no call on a steady unfed minute, Rule 6), except on a minute an
--- intake landed (IN.landed, an eat or a drink): vanilla's eat at HUNGER 0 (#3598) and every drink (jar-checks Check 1
--- J1.1, ungated) add to the timer, so that minute writes the target again. The timer is saved (saveMainFields) but the
+-- intake landed (IN.landed, an eat or a drink): vanilla's eat at HUNGER 0 (#3598) and every drink
+-- (ungated) add to the timer, so that minute writes the target again. The timer is saved (saveMainFields) but the
 -- mod's last write is not, so the first minute of each player object (a load, a reconnect or a respawn) writes whatever
 -- it wants. sendSyncPlayerFields(player, 8) (the body-damage main fields, the timer among them; #2602, a server-only
 -- global) pushes only when the FOOD_EATEN band of the value written changes (K.view.timerBand), so a level the player
@@ -711,7 +711,7 @@ function W.foodTimer(h, player, record, inp, ctx)
         W.timerStats.pushMissing = W.timerStats.pushMissing + 1
     end
 end
--- The seed plate (Plan 15 Task 13 fix 1, the controller's ruling, option (a)): on an empty stomach the meal pool alone
+-- The seed plate: on an empty stomach the meal pool alone
 -- cannot write a HUNGER under the curve of hungerTarget(0.786, energy state) times the minute's factors (mealRead is
 -- nearly flat in M, so the seed caps at K.satiety.MEAL_SEED_MAX and a fresh spawn at HUNGER 0 would write about 0.13),
 -- so a fresh record (satiety.M absent) whose vanilla HUNGER sits more than the dead zone under that floor lands a real
@@ -721,12 +721,12 @@ end
 -- within K.hungerCurve.DEAD_ZONE of the vanilla HUNGER, at most W.SEED_PLATE_MAX; a record seen before never takes one.
 -- Once per fresh record, so no per-minute cost.
 W.SEED_PLATE = {
-    "Base.CannedBologneseOpen", -- the curve fit's plate (tools/fit_hunger_curve.py PLATE): game choice (spec section 10: the curve's knots)
-    "Base.Bread", -- the fit's plate: game choice (spec section 10: the curve's knots)
-    "Base.Apple", -- the fit's plate: game choice (spec section 10: the curve's knots)
-    "Base.Orange", -- the fit's plate: game choice (spec section 10: the curve's knots)
-    "Base.Burger", -- the fit's plate: game choice (spec section 10: the curve's knots)
-    "Base.TunaTinOpen", -- the fit's plate: game choice (spec section 10: the curve's knots)
+    "Base.CannedBologneseOpen", -- the curve fit's plate (tools/fit_hunger_curve.py PLATE): game choice (the curve's knots)
+    "Base.Bread", -- the fit's plate: game choice (the curve's knots)
+    "Base.Apple", -- the fit's plate: game choice (the curve's knots)
+    "Base.Orange", -- the fit's plate: game choice (the curve's knots)
+    "Base.Burger", -- the fit's plate: game choice (the curve's knots)
+    "Base.TunaTinOpen", -- the fit's plate: game choice (the curve's knots)
 }
 W.SEED_PLATE_MAX = K.dials.get("writer.SEED_PLATE_MAX")
 W.SEED_PLATE_STEPS = 24 -- bisection steps on the kcal (under 1e-4 kcal), no row needed
@@ -791,7 +791,7 @@ function W.seedPlate(h, record, inp, F, es, factor, circ)
     return W.satietyF(record)
 end
 
--- Plan 19 Task 6 (rule R1, the stick of butter): the plain-energy floor of record.hedonics, the ring of online hours
+-- Rule R1 (the stick of butter): the plain-energy floor of record.hedonics, the ring of online hours
 -- the intake books at each eat (NR_Server_Hedonics H.atEat). Once a writer minute the ring is rotated to the minute's
 -- world age (K.hedonics.target: at most RING_N slot writes after a gap, usually none, and 2 x RING_N additions; no Java,
 -- no allocation) and its share's floor read; W.monotony adds it to monotony's UNHAPPINESS target before the clamp and

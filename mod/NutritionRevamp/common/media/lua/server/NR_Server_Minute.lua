@@ -1,7 +1,6 @@
 -- NR_Server_Minute.lua -- the slow minute's pipeline: one declared order, one context table, each step guarded so a
 -- raise is logged and the steps after it still run. Adapters register by name at OnServerStarted; NR_Server_Players'
--- P.work calls run. The order is the one the steps ran in before the pipeline (the Reconcile splice and the Nutrients
--- hand call of Effects made explicit); the writer runs after the eats and effects; the takeover's fast step is gone.
+-- P.work calls run. The writer runs after the eats and effects.
 --
 -- The context (ctx): one table reused per call and cleared at the start of each player's run, so nothing in it outlives
 -- one player's minute. Its fields: absorbed and mealCa (Kinetics writes them; Metabolism and Nutrients read them); sd
@@ -26,7 +25,7 @@ NR.server.minute = {
 }
 local MIN = NR.server.minute
 
--- A step's function: fn(username, player, record, ctx). Registering a name again replaces its function.
+-- A step's function: fn(username, player, record, ctx).
 function MIN.register(name, fn)
     MIN.steps[name] = fn
 end

@@ -1,21 +1,20 @@
--- NR_Server_Creation.lua -- the creation handler (spec section 3.2, Plan 13 Task 17): when the server's OnNewGame resets a
+-- NR_Server_Creation.lua -- the creation handler: when the server's OnNewGame resets a
 -- record (NR_Server_Players fires P.onNewGame after store.reset, or from its pending reset), the character's picks are
 -- validated and the starting body is built from what survives. OnNewGame fires on the server from
 -- CreatePlayerPacket.processServer @1074-@1082 L291, after IsoPlayer.applyTraits (L282) has set every trait the client
--- sent and before the save (trait-levers sections 3-4); the server enforces neither the point total nor an exclusion.
+-- sent and before the save; the server enforces neither the point total nor an exclusion.
 --
--- 1. Validation (ruling 13-16), on the server's own definitions (CharacterTraitDefinition.getCharacterTraitDefinition).
---    The strip order never reads the list's order (fix 3): the server's getKnownTraits() is not the client's sent order
---    (x422, Task 0's check 5: sent strong, stout, obese, overweight; held obese, overweight, out of shape, strong), and
+-- 1. Validation, on the server's own definitions (CharacterTraitDefinition.getCharacterTraitDefinition).
+--    The strip order never reads the list's order: the server's getKnownTraits() is not the client's sent order
+--    (sent strong, stout, obese, overweight; held obese, overweight, out of shape, strong), and
 --    vanilla's band listener rewrites the muscle and Fitness traits during applyTraits. A free trait (the profession's
---    grants, or a held trait's grants) is never stripped; a profession trait (isFree) that no grant names is stripped
---    (fix 2, ruling 13-16). A non-free pick that excludes a free trait is stripped. Of two non-free picks that exclude
+--    grants, or a held trait's grants) is never stripped; a profession trait (isFree) that no grant names is
+--    stripped. A non-free pick that excludes a free trait is stripped. Of two non-free picks that exclude
 --    each other, the one with the higher absolute cost is stripped, a tie stripping the name first in alphabetical
 --    order (CRE.before): the picks are walked in that order, and each is stripped when it excludes a pick still held
 --    that comes later in it. A pair excludes when either definition's getMutuallyExclusiveTraits holds the other, when
---    isMutuallyExclusive answers true either way (Task 16's ruling I2: Weight Gain's Athletic, Fit and Emaciated pairs
---    sit on Weight Gain alone); the mod adds no pair of its own (Plan 13 Task 10c lifted ruling 13-46's muscle and thin
---    pairs: a thin pick is fat-only). Then, while the creation screen's
+--    isMutuallyExclusive answers true either way (Weight Gain's Athletic, Fit and Emaciated pairs sit on Weight Gain
+--    alone); the mod adds no pair of its own (a thin pick is fat-only). Then, while the creation screen's
 --    remaining points read below 0, the kept non-free pick with the highest positive cost is stripped, a tie stripping
 --    the name first in alphabetical order: a trait with a cost of 0 or below never raises the total (removing a bad
 --    trait lowers the negative-trait offset by at most one, CharacterCreationProfession.lua:918-936).
@@ -26,9 +25,9 @@
 --      traits with a negative cost, free ones included; NegativeTraitsPenalty 2 floor(n/3), 3 floor(n/2), 4 n - 1)
 --    and the list is legal at 0 or more (NEXT is disabled below 0, :827-829). An unreadable profession definition skips
 --    the point check (nothing is stripped on a guess). A stripped trait is removed from the collection, its XP boosts
---    reverted (setPerkLevelDebug(perk, level - boost) clamped to [0, 10], then setXPToLevel; applyTraits applied them,
---    trait-levers section 3.1), and logged at level 1.
---    The muscle pick is inferred first (CRE.inferMuscle, fix 1, which first sight shares since Task 17b fix 1):
+--    reverted (setPerkLevelDebug(perk, level - boost) clamped to [0, 10], then setXPToLevel; applyTraits applied
+--    them), and logged at level 1.
+--    The muscle pick is inferred first (CRE.inferMuscle, which first sight shares):
 --    applyTraits climbs Strength with LevelPerk and vanilla's
 --    listener (XpUpdate.lua:196-218) swaps the muscle band at every step, so the trait held is the native level's band,
 --    not the pick. The four muscle blocks keep vanilla's Strength boosts (NR_Traits_Body.txt), so native - 5 - the
@@ -38,24 +37,23 @@
 --    strip removes the held one), and a held band trait with no pick behind it (a profession's boost) is vanilla's,
 --    never validated.
 -- 2. The body: K.body.create over the inferred muscle pick and the weight-band trait held after validation (CRE.picks;
---    Emaciated is read as Very Underweight by the kernel), under the profession's Strength boost (Task 17b: Angus,
---    "treat it like a small trait"; the start level is the pick's plus the boost, clamped to [0, 10]), at the
+--    Emaciated is read as Very Underweight by the kernel), under the profession's Strength boost (treated like a
+--    small trait: the start level is the pick's plus the boost, clamped to [0, 10]), at the
 --    effective sex (NR.SexSpecific) and the reset's age, through CRE.newBody, the builder first sight
 --    (NR_Server_Metabolism.ensureBody) shares, so OnNewGame and first sight build one way; first sight then finds the
 --    body present. This file holds the readers both share (CRE.walk, CRE.traitDef, CRE.heldTrait, CRE.boostOf,
 --    CRE.strengthBoost, CRE.professionDef, CRE.inferMuscle, CRE.musclePick, CRE.newBody), read at call time.
--- 3. The writes, in this order: the weight (lm + lx + fm, overwriting applyWeightFromTraits' 50/60/70/95/105 kg,
---    trait-levers section 3.2); the Strength level (STR.writeLevel: LevelPerk steps, whose vanilla listener swaps the
+-- 3. The writes, in this order: the weight (lm + lx + fm, overwriting applyWeightFromTraits' 50/60/70/95/105 kg);
+--    the Strength level (STR.writeLevel: LevelPerk steps, whose vanilla listener swaps the
 --    muscle band, XpUpdate.lua:200-217), then the muscle band re-asserted for the native level (STR.remap: a strip's
 --    setPerkLevelDebug swaps no band, and a write that takes no step fires no listener); then the five weight-band
---    traits (WGT.writeTraits), last, so they are final. Fitness band traits are vanilla's and stay (spec section 14).
+--    traits (WGT.writeTraits), last, so they are final. Fitness band traits are vanilla's and stay.
 --    body.levelDue stays true after the level write, so the first server minute writes the level again and re-pins the
---    XP fraction OnNewGame's write loses (x433 read XP 10500 at a shown 3.83; Plan 13 Task 10c ruling: cost if wrong,
---    one extra write).
+--    XP fraction OnNewGame's write loses (an XP of 10500 read at a shown level 3.83).
 --
 -- Java statics (CharacterTraitDefinition, CharacterProfessionDefinition, transformIntoKahluaTable) are called with a dot
 -- under pcall, as vanilla calls them; every other Java read goes through NR.call. Each global is named only inside a
--- function behind a nil check, so the file loads with no engine (testing/tests/kernel/test_creation_shape.py).
+-- function behind a nil check, so the file loads with no engine.
 -- Event-driven, once per new character: no clock work (Rule 6).
 local NR = NutritionRevamp
 local K = NR.kernel
@@ -182,7 +180,7 @@ function CRE.musclePick(player, traits, pdef)
 end
 
 -- The creation body of a muscle and a weight pick (either nil) under the profession's Strength boost profBoost (nil
--- reads 0; Task 17b): K.body.create at the engine's sex read through the effective sex (NR.SexSpecific), laid by
+-- reads 0): K.body.create at the engine's sex read through the effective sex (NR.SexSpecific), laid by
 -- K.body.new at the world age ageH. The one builder of first sight (NR_Server_Metabolism.ensureBody) and the creation
 -- handler, so the two build one way.
 function CRE.newBody(player, muscle, weight, ageH, profBoost)
@@ -204,14 +202,14 @@ local function lists(def, t)
     return flag(obj(def, "getMutuallyExclusiveTraits"), "contains", t)
 end
 
--- Whether entries a and b exclude each other, in both directions (Task 16's ruling I2).
+-- Whether entries a and b exclude each other, in both directions.
 function CRE.excludes(a, b)
     if a.def == nil or b.def == nil then return false end
     return lists(a.def, b.t) or lists(b.def, a.t)
         or flag(a.def, "isMutuallyExclusive", b.def) or flag(b.def, "isMutuallyExclusive", a.def)
 end
 
--- The strip order (fix 3): the higher absolute cost first, a tie by name in alphabetical order. Among the kept
+-- The strip order: the higher absolute cost first, a tie by name in alphabetical order. Among the kept
 -- positive picks the first in it is also the costliest, so the budget strip and the exclusion strip read one order.
 function CRE.before(a, b)
     local ca, cb = math.abs(a.cost), math.abs(b.cost)
@@ -378,7 +376,7 @@ end
 
 -- CRE.picks(player) -> muscle, weight, profBoost: the inferred muscle pick (CRE.musclePick; the held band trait when
 -- the level cannot tell), the weight-band trait held (K.traits.WEIGHT_TRAITS), each nil for none, and the
--- profession's Strength boost the inference read (0 when unreadable; Task 17b: it raises the start like a small trait).
+-- profession's Strength boost the inference read (0 when unreadable; it raises the start like a small trait).
 function CRE.picks(player)
     local traits = obj(player, "getCharacterTraits")
     local pdef = CRE.professionDef(player)
@@ -397,7 +395,7 @@ local function create(username, player, record)
     record.body = body
     NR.call(obj(player, "getNutrition"), "setWeight", body.lm + body.lx + body.fm)
     NR.server.strength.writeLevel(player, body)
-    body.levelDue = true                                -- the first minute re-pins the fraction (Plan 13 Task 10c)
+    body.levelDue = true                                -- the first minute re-pins the fraction
     local native = Perks ~= nil and num(player, "getPerkLevel", nil, Perks.Strength) or nil
     if native ~= nil then NR.server.strength.remap(player, native) end  -- a strip's setPerkLevelDebug swaps no band
     NR.server.weight.writeTraits(player, body)

@@ -1,6 +1,6 @@
--- NR_Server_Fitness.lua -- the Fitness exercise type, read on the server (C-2; spec § 2). The engine cannot
+-- NR_Server_Fitness.lua -- the Fitness exercise type, read on the server (C-2, docs/reference/research-notes.md). The engine cannot
 -- say which exercise a set is: getFitness():getCurrentExe() answers a Fitness$FitnessExercise whose type has no getter
--- (#2180, #2901), reflection works only on a -debug server (#2736), and the server's action stack is empty during a set
+-- (#2180), reflection works only on a -debug server (#2736), and the server's action stack is empty during a set
 -- (#2878). The server's own Lua action holds it, though: the client sends ISFitnessAction's arguments by the parameter
 -- names of its `new` (NetTimedAction.set), the server rebuilds the action through ISFitnessAction.new (#2932), which
 -- sets o.exeDataType, and calls serverStart by a rawget that falls through to the class table (NetTimedAction.start).
@@ -22,7 +22,7 @@
 --  * The side test is per call: this server/ file also runs in the client's Lua state (#0855), where the wrapper only
 --    passes through.
 --  * Every Java global (ISFitnessAction, Events) is named only inside a function behind a nil check, so the file loads
---    with no engine (testing/tests/kernel/test_exercise_grading.py).
+--    with no engine.
 --
 -- Trust: the type is client-asserted, the same string vanilla trusts for the set's reps and XP
 -- (setCurrentExercise(exeDataType)); an unknown string bills the flat Fitness class. Cadence: one call per set start

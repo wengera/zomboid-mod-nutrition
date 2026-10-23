@@ -1,5 +1,5 @@
--- NR_Server_Hedonics.lua -- the food hedonics seats (Plan 19 Task 6; spec docs/superpowers/specs/
--- 2026-10-21-dials-and-hedonics-design.md section B.2; the kernel is NR_Kernel_Hedonics.lua, K.hedonics). Each rule
+-- NR_Server_Hedonics.lua -- the food hedonics seats (the design: docs/superpowers/specs/
+-- 2026-10-21-dials-and-hedonics-design.md@program-record-v19 section B.2; the kernel is K.hedonics). Each rule
 -- runs at an eat, an ingredient add or the existing writer minute, never per tick (Rule 6):
 --  R1 plain energy: the eat books its landed kcal, and its plain kcal, into record.hedonics, the ring of online hours
 --     (H.atEat, called by NR_Server_Intake's IN.monotony once per landed eat); the writer minute composes the ring's
@@ -8,7 +8,7 @@
 --  R2 preparation quality: the seat is a server wrapper of ISAddItemInRecipe.complete, the add-ingredient action's
 --     completion, which holds the chef and, after its call of the original, the dish (#2658). The dish's mood is set
 --     there and nowhere else: EvolvedRecipe.addItem zeroes a new dish's UnhappyChange and rewrites it at every add
---     (an ingredient's -5 term, a spice's useSpice, #0381, #4127), and it fires no Lua event (#2657). OnCooked was not
+--     (an ingredient's -5 term, a spice's useSpice, #4127), and it fires no Lua event (#2657). OnCooked was not
 --     chosen: it has no chef argument (in multiplayer the cook need not be the eater), and the cook transition sets no
 --     dish mood. After the original, a relief (the stored UnhappyChange under 0) is scaled by the chef's Cooking level
 --     (K.hedonics.prep) and the scale is stamped in the dish's modData (NR_PrepS); before the next add the stamp is read
@@ -24,10 +24,9 @@
 --     own share and utensil factor (K.hedonics.alliesField); after the eat the remainder's field is restored to what it
 --     would have kept (K.hedonics.alliesRestore). No stat is written here. Vanilla's part-eat sends the item-stats packet
 --     itself while the field is lowered, and the client would keep that lowered value, so after the restore a
---     part-eaten item still in a container is synced again with the restored read-time value (x503: vanilla's control
---     read 13.75, the stored 3.75 plus the stale 10).
+--     part-eaten item still in a container is synced again with the restored read-time value (#4147).
 --  R4 taste class: the eat's class goes into K.monotony.record beside the type. A dish's class is its main
---     ingredient TYPE's (ruling T6-1 as refined: the kcal of each ingredient type summed, the type of most kcal wins,
+--     ingredient TYPE's (the kcal of each ingredient type summed, the type of most kcal wins,
 --     K.hedonics.dishClass over one entry a type); any other food's is the generated table's (NR_Data_Hedonics).
 --
 -- Shape (the intake wrappers', NR_Server_Intake.lua): the sentinel is a global of its own (#0943); install() is
@@ -36,7 +35,7 @@
 -- blocks an add or an eat; the logic is read off NutritionRevamp.server.hedonics per call; the side test is per call
 -- (this server/ file also runs in the client VM, #0855); every Java global (ISAddItemInRecipe, Perks, CharacterStat,
 -- sendItemStats, Events) is named only inside a function behind a nil check, so the file loads with no engine. Never
--- wrap a timed action's `new` (CLAUDE.md s6): complete is called off the class table.
+-- wrap a timed action's `new`: complete is called off the class table.
 --
 -- Cost (Rule 6): per eat, one Java read (getUnhappyChange); a sad food adds the HUNGER read (two calls), and a scaled
 -- one a read and a write before and a read and a write after, and an item sync (one packet) when it is still in a
@@ -83,7 +82,7 @@ function H.kcalOf(fullType)
     return seed.calories
 end
 
--- A dish's taste class (ruling T6-1 as refined): one entry an ingredient TYPE, its kcal the type's whole-item kcal
+-- A dish's taste class: one entry an ingredient TYPE, its kcal the type's whole-item kcal
 -- times its appearances in the list, its class the table's; a type with no class counts for none. K.hedonics.dishClass
 -- picks the type of most kcal (the first on a tie). extraTypes is a Lua list of full types (IN.readBefore's).
 function H.dishClass(extraTypes)

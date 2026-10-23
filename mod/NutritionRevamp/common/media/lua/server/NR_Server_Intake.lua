@@ -1,9 +1,9 @@
--- NR_Server_Intake.lua -- the intake wrappers (spec § 4.2): ISEatFoodAction.complete and
+-- NR_Server_Intake.lua -- the intake wrappers: ISEatFoodAction.complete and
 -- ISEatFoodAction.serverStop, wrapped server-side so the capture reads the item before Eat touches it
--- (#1190, #1033) and again after. A multiplayer client never reaches complete (#0109), and a cancel
+-- (#1190) and again after. A multiplayer client never reaches complete (#0109), and a cancel
 -- reaches Eat through serverStop, not complete (#0111), so both seats are wrapped.
 --
--- Shape (eat-and-cook-hooks rules; Task 1's QualityCooking composition ruling):
+-- Shape:
 --  * Each sentinel is a global of its own, NOT a field of NutritionRevamp, which NR_Core re-creates by
 --    plain assignment on every load (#0943): a sentinel kept there would be wiped under a wrapper still
 --    installed and the next install would wrap the wrapper.
@@ -19,8 +19,7 @@
 --    file swaps the capture code under a wrapper that stays installed.
 --  * The side test is nil-checked and per call: this server/ file also runs in the client VM (#0855).
 --  * Every Java global (ISEatFoodAction, ISDrinkFluidAction, ISTakeWaterAction, Events, getGameTime) is named only inside
---    a function, behind a nil check, so the file loads with no engine
---    (testing/tests/kernel/test_intake_shape.py).
+--    a function, behind a nil check, so the file loads with no engine.
 --  * Java lists are walked with size()/get(i), never `#` (#0940).
 --
 -- Cadence: the eat capture runs once per eat (complete) or cancel (serverStop) on the server. The
@@ -38,18 +37,17 @@
 --     field on the landed vector, against the body mass fm + lm + lx and the pre-eat food fill (recordFoodFill),
 --     stamping record.nutrients[key].ax = ACUTE_DECAY_H and .axr = the rung (a live flag's higher rung is
 --     kept); NR_Server_Nutrients exposes no acuteAtEat, so it is here, under its own pcall;
--- 3. the B12 per-eat ceiling (ruling 20, S0357/S0358): vector.vitB12 = K.interact.b12Ceiling(vitB12).
+-- 3. the B12 per-eat ceiling (S0357): vector.vitB12 = K.interact.b12Ceiling(vitB12).
 --     The ceiling is an ABSORPTION cap per meal, so it is applied where the per-eat amount is known, on
 --     the vector that goes into the stomach; K.stomach.BIOAVAIL.vitB12 stays 1.0, so the stomach absorbs
 --     what the ceiling let through;
--- 4. the gut lane (x151r #2982/#2983): the vector's ethanol and caffeine are added to
+-- 4. the gut lane (#2982): the vector's ethanol and caffeine are added to
 --     IN.pendingAlc[username] / IN.pendingCaf[username] (numbers, no table allocated) and zeroed on the
 --     vector, so neither enters the stomach; NR_Server_Nutrients drains them into record.acute.gutAlc /
---     gutCaf on its next minute (the pending tables are the simpler of the two shapes the fix brief
---     offered: the eat never has to create record.acute, whose slow-metaboliser draw is the adapter's);
+--     gutCaf on its next minute (pending tables, so the eat never has to create record.acute, whose
+--     slow-metaboliser draw is the adapter's);
 -- 5. K.stomach.ingest, or K.stomach.ingestLiquid for a drink (its water in the liquid lane);
--- 6. the meal pool M fed with the delivered vector's weighted kcal (IN.feed, Task 6c,
---     spec § 7).
+-- 6. the meal pool M fed with the delivered vector's weighted kcal (IN.feed).
 --
 -- The vector's source (IN.assemble): a dish's ingredient list, else a craft map,
 -- else the eaten item's own chain IN.chainOne -- declared (the item's NR_Nutrients default-modData
@@ -57,7 +55,7 @@
 -- inferred (the item's four macros and FoodType through NR.data.infer, K.vector.infer) -> missing. A
 -- dish or craft input goes through the same chain per type (IN.chainedLookup), its declared string,
 -- macros and FoodType read once per type per boot off a fresh instance (IN.typeInfo: a script's macros
--- have no getter, #2679, so the instanceItem global, #2680).
+-- have no getter, so the instanceItem global, #2680).
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop = false,
@@ -92,9 +90,8 @@ NR_IntakeWorld_Installed = NR_IntakeWorld_Installed or {}
 -- ---------------------------------------------------------------------------------------------------
 -- The pure helpers: no Java, tested on the lupa host.
 
--- The eat's pure arithmetic is the kernel's (NR_Kernel_Intake.lua, K.intake; Plan 10 Task R3): shareEaten,
--- fractionOf, macrosEaten, sourceOf, chainOne, newTrace, traceStep and the core of assemble moved there with their
--- comments. Each public name stays here as a thin wrapper, so every caller and shape test reaches the same code.
+-- The eat's pure arithmetic is the kernel's (K.intake): shareEaten, fractionOf, macrosEaten, sourceOf, chainOne,
+-- newTrace, traceStep and the core of assemble live there with their comments. Each public name stays here as a thin wrapper, so every caller and shape test reaches the same code.
 -- shareEaten: the share of the WHOLE item eaten, the drop in raw hunger over the instance base hunger, 0..1.
 IN.shareEaten = K.intake.shareEaten
 -- fractionOf: frac (Eat's own fraction of what was LEFT) and share (of the WHOLE instance); a thirst-only Food
@@ -206,8 +203,8 @@ end
 -- The record's stomach must exist. The acute test runs under its own pcall: a raise there is counted
 -- and named, and the landing goes on.
 function IN.land(record, username, vec, lane, mlPerG)
-    IN.landed[username] = true                     -- the writer's sip fold skips this minute (Plan 11 ruling 7)
-    if NR.server.store ~= nil and NR.server.store.mark ~= nil then NR.server.store.mark(username) end -- saved at the next store step (ruling T20-1)
+    IN.landed[username] = true                     -- the writer's sip fold skips this minute
+    if NR.server.store ~= nil and NR.server.store.mark ~= nil then NR.server.store.mark(username) end -- saved at the next store step
     IN.addIngested(username, vec)
     local ok, flagged = pcall(IN.acuteAtEat, record, vec)
     if ok then
@@ -231,7 +228,7 @@ function IN.land(record, username, vec, lane, mlPerG)
     return vec
 end
 
--- Plan 11c (spec § 7): the meal pool M is fed at the
+-- The meal pool M is fed at the
 -- eat with the delivered vector's weighted kcal (K.satiety.mealFeed), on every route that lands -- the eat, the drink,
 -- world water and the reconcile path -- and a partial eat's vector is already its fraction. Kinetics clears M on every
 -- substep. A record whose satiety or M is absent or non-finite is left for the writer's seed at its next minute: an eat
@@ -248,7 +245,7 @@ end
 IN.sourceOf = K.intake.sourceOf
 
 -- The NR_Nutrients default-modData string of an item (the declared-nutrients contract: an
--- unrecognised script key lands in default modData as a String unless it parses as a Double, #0212,
+-- unrecognised script key lands in default modData as a String unless it parses as a Double,
 -- #1281), or nil. modData is a Lua-shaped table.
 function IN.declaredOf(md)
     if type(md) ~= "table" then return nil end
@@ -266,7 +263,7 @@ IN.traceStep = K.intake.traceStep
 
 -- The chained lookup a dish ingredient or a craft input goes through: lookup(fullType) -> vec or nil
 -- over IN.chainOne, info(fullType) giving the type's declared string, macros and FoodType (nil info:
--- the table alone, as before Plan 6). Built once per eat, here in the server file -- a closure, which
+-- the table alone). Built once per eat, here in the server file -- a closure, which
 -- the kernel's lookup-taking functions call without knowing (no closure inside the kernel).
 function IN.chainedLookup(lookup, templates, info, trace)
     return function(fullType)
@@ -350,7 +347,7 @@ function IN.foodInfo(item)
 end
 
 -- A dish or craft input's chain reads, by type: a fresh instance through the instanceItem global (a
--- script's macros have no getter and InventoryItemFactory is not exposed, #2679, #2680), read by
+-- script's macros have no getter and InventoryItemFactory is not exposed, #2680), read by
 -- IN.foodInfo. Script data is fixed for a boot, so each type is instanced once and cached
 -- (IN.typeInfoCache; false for a type that does not instance or is not a Food). nil without the global.
 function IN.typeInfo(fullType)
@@ -361,7 +358,7 @@ function IN.typeInfo(fullType)
     local info = false
     local ok, item = pcall(instanceItem, fullType)
     if ok and item ~= nil then
-        local okI, fi = pcall(IN.foodInfo, item)   -- a raising getter on the fresh instance caches false (the Task 10 review)
+        local okI, fi = pcall(IN.foodInfo, item)   -- a raising getter on the fresh instance caches false
         if okI then info = fi or false end
     end
     IN.typeInfoCache[fullType] = info
@@ -390,7 +387,7 @@ function IN.readBefore(action)
     if username == nil then return nil end
     local rawBefore = read(item, "getHungChange")          -- the RAW stored hunger (#0002)
     if type(rawBefore) ~= "number" then return nil end
-    local b = { item = item, username = username, rawBefore = rawBefore, player = char }   -- player: the store's sight key (Plan 16 Task 2)
+    local b = { item = item, username = username, rawBefore = rawBefore, player = char }   -- player: the store's sight key
     b.fullType = tostring(read(item, "getFullType"))
     b.instBase = num(read(item, "getBaseHunger"))
     b.thirstBefore = read(item, "getThirstChangeUnmodified") -- the RAW thirst (#0005), never the ladder
@@ -409,7 +406,7 @@ function IN.readBefore(action)
     if type(scriptHunger) == "number" then b.scriptHunger = scriptHunger / 100 end
     -- the script thirst, the same shape: Item.getThirstChange() is a bare getfield of the script
     -- object's thirstChange (jar 42.20.4, Item.getThirstChange L563), script points /100 like hunger
-    -- (#0011, #0323) -- a thirst-only Food's whole-instance denominator (fractionOf)
+    -- (#0011) -- a thirst-only Food's whole-instance denominator (fractionOf)
     local scriptThirst = read(script, "getThirstChange")
     b.scriptThirst = 0
     if type(scriptThirst) == "number" then b.scriptThirst = scriptThirst / 100 end
@@ -474,10 +471,10 @@ function IN.readAfterAndLand(b)
     if vec == nil then return nil end                      -- a cancel under vanilla's guards, or a no-op
     local record = NR.server.store.get(b.username, worldAge(), b.player)
     if record == nil then error("intake: no store record for " .. tostring(b.username)) end
-    record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it (ruling 11c-15)
+    record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it
     record.pool = record.pool or K.vector.new()
     IN.land(record, b.username, vec, nil, IN.volumeOf(b.fullType))
-    IN.atEat(record, b, vec.calories)                      -- monotony (Plan 11e, rulings 11e-1, T3-3): mood, never hunger
+    IN.atEat(record, b, vec.calories)                      -- monotony: mood, never hunger
     record.lastIntake = { fullType = b.fullType, source = source, share = share, frac = frac,
                           missing = missing, declared = trace.declared, inferred = trace.inferred,
                           plain = b.plain, class = b.class, allies = b.allies and b.allies.scale or 1 }
@@ -634,7 +631,7 @@ end
 --  * No retention on a drink: a fluid has no cooked/burnt/rotten/frozen state (tainted water and
 --    poison are a separate vanilla path the mod does not touch here). No macro override either: the
 --    per-litre seed macros are the fluid's own Properties, which is exactly what DrinkFluid writes
---    times the litres (#0064, #0630), so the fluid vector's macros track vanilla by construction.
+--    times the litres (#0064), so the fluid vector's macros track vanilla by construction.
 --  * Same sentinel shape as the eat wrappers: a global of its own, idempotent save-and-replace with
 --    the class-table reload guard, the saved original ALWAYS called, outside the pcall.
 --
@@ -648,12 +645,12 @@ end
 --  * A crafted output from a MULTI-output recipe carries no vanilla consumed-type map (the hand-craft
 --    action writes it only for exactly one output), so it falls back to dish (an extra-items list) or
 --    baseline (the output type's seed x instance scale, the right 1/amount for an InheritFood split)
---    (#2667, #2660).
+--    (#2667).
 --  * A crafted output made through the ENTITY craft path (CraftLogicSystem: furnaces, drying racks)
 --    carries no map either and takes the same fallback: that path calls OnCreate (#2665) but only the
 --    hand-craft action writes the consumed-type map (#2667).
 --  * An evolved DISH is not a craft: its ingredient list is extraItems and sourceOf ranks dish over
---    craft, so a dish never reaches the craft arm (#2650, #2653).
+--    craft, so a dish never reaches the craft arm (#2650).
 --  * A LATER mod that replaces ISEatFoodAction.complete (or serverStop, ISDrinkFluidAction.updateEat or
 --    ISTakeWaterAction.transferFluid)
 --    WITHOUT calling the saved original removes the capture silently; no sentinel can detect it, and
@@ -661,16 +658,15 @@ end
 --    wall). #1067 is the rule it breaks (keep and call the original so two wraps compose).
 --  * A crafted output's consumed-type map counts INSTANCES, not uses: a partly-used input (10 of 30
 --    ice-cream uses, #0709) lands its whole seed, so the craft arm over-counts partial inputs by the
---    unspent fraction -- the map carries no uses, and the fix is Plan 6's (a per-recipe use fraction
---    from data/recipes.json). The map is +1 per entry of getAllConsumedItems (ISHandcraftAction.lua
+--    unspent fraction -- the map carries no uses (a fix would be a per-recipe use fraction from
+--    data/recipes.json). The map is +1 per entry of getAllConsumedItems (ISHandcraftAction.lua
 --    :236-247), and that list holds one entry per consumed InventoryItem whatever its uses spent
 --    (jar 42.20.4: CraftRecipeData.getAllConsumedItems @range L2220-L2235 walks the inputs into
 --    CacheData.addAppliedItemsToList @L1868, a copy of appliedItems; CacheData.addAppliedItem
 --    @range L1825-L1828 adds the item once (its duplicate check is a Java assert, off in production);
 --    what makes it one entry per item is that CraftRecipeManager.consumeInputItemInternal @range
 --    L948-L949 calls it once per InventoryItem and the uses arm, consumeInputItemUsesInternal, never does).
---  * No craft hook ships: the vanilla consumed-type map is the source, and X31's
---    craft probe runs only if a live reading shows that map unreachable.
+--  * No craft hook ships: the vanilla consumed-type map is the source.
 
 -- The litres one updateEat call removed: before - after, floored at 0; a nil on either side -> 0.
 function IN.litresDrunk(before, after)
@@ -748,7 +744,7 @@ function IN.readDrinkAfterAndLand(d)
     if bad ~= nil then return IN.reject(bad) end
     local record = NR.server.store.get(d.username, worldAge(), d.player)
     if record == nil then error("intake: no store record for " .. tostring(d.username)) end
-    record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it (ruling 11c-15)
+    record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it
     record.pool = record.pool or K.vector.new()
     IN.land(record, d.username, vec, "liquid")
     record.lastIntake = { fullType = d.fullType, source = "fluid", litres = litres, missing = missing }
@@ -772,7 +768,7 @@ function IN.installDrink()
 end
 
 -- ---------------------------------------------------------------------------------------------------
--- The world-water wrapper (ruling 9 with Task 1 verdict 4 and Task 4 arm D, x151w #2942):
+-- The world-water wrapper (#2942):
 -- ISTakeWaterAction.transferFluid(_amount) is the seat. The action drinks a world source in steps, each
 -- reaching transferFluid from update, animEvent or complete, and the server builds and runs the action
 -- (NetTimedAction.parse, #2932); with no item the step moves min(_amount, the source's amount) litres into a
@@ -780,11 +776,10 @@ end
 -- drink wrapper's updateEat. With an item the step FILLS that item and nothing is drunk: not captured.
 -- The litres are read before the original and land as the Water seed through the fluid path
 -- (IN.fluidVector, then IN.land) after it. Same sentinel shape as the other three wraps.
--- limitations: IN.limitations (the planned-litres cap and the fluid read as Water). a world-water drink lands at most the action's planned litres (waterUnit, sized from THIRST at its start); while the view holds THIRST, vanilla's updateUse re-transfers its cumulative target, so the SOURCE can lose more than was landed until the slow clock lands the water.
+-- limitations: IN.limitations (the planned-litres cap and the fluid read as Water).
 -- The cap: readWorldBefore lands min(step, source, waterUnit - action.nrLanded); nrLanded is a field on the
 -- vanilla action object for its lifetime, never on the record.
--- Residual notes: after a respawn one minute's autoDrop can go to the dead character's record (stated
--- here); if the slow clock never clears autoDrop for a
+-- After a respawn one minute's autoDrop can go to the dead character's record; if the slow clock never clears autoDrop for a
 -- player (a repeated raise), auto-drink stays skipped for that player.
 
 -- The before-snapshot of one world-water step, or nil when nothing is drunk (an item to fill, no
@@ -825,7 +820,7 @@ function IN.readWorldAfterAndLand(d)
     if bad ~= nil then return IN.reject(bad) end
     local record = NR.server.store.get(d.username, worldAge(), d.player)
     if record == nil then error("intake: no store record for " .. tostring(d.username)) end
-    record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it (ruling 11c-15)
+    record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as kinetics lays it
     record.pool = record.pool or K.vector.new()
     IN.land(record, d.username, vec, "liquid")
     if d.action ~= nil then d.action.nrLanded = (d.action.nrLanded or 0) + litres end
@@ -870,14 +865,13 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
 end
 
 -- ---------------------------------------------------------------------------------------------------
--- Monotony booked at the eat (Plan 11e Task 3; the kernel is
--- NR_Kernel_Monotony.lua). readAfterAndLand calls IN.atEat once per landed eat (a complete, or a cancel that ate a
+-- Monotony booked at the eat (the kernel is K.monotony). readAfterAndLand calls IN.atEat once per landed eat (a complete, or a cancel that ate a
 -- part), after IN.land and before the wrapper's credit: the eat's type is booked into record.monotony, weighed in
 -- meal-sized portions (K.monotony.weightOf of vec.calories, the landed vector's energy that IN.land has
 -- just landed, over the kernel's MEAL_KCAL) and marked a staple when K.monotony.isStaple reads the
 -- item's FoodType or full type as one; an eat with no energy, or energy that is not a finite number, books nothing.
--- Nothing is added to a stat here (Angus's choice of 2026-10-11): live, UNHAPPINESS never fell on its own
--- (#3033), so adds at each eat piled up without bound (x331-x333). The writer instead reads the record's target once a
+-- Nothing is added to a stat here: UNHAPPINESS never falls on its own (#3033), so adds at each eat would pile
+-- up without bound. The writer instead reads the record's target once a
 -- minute and holds a self-releasing floor under UNHAPPINESS and BOREDOM (NR_Server_Writer W.monotony, K.hybrid.write,
 -- #3119), so a repeat shows at the writer's next minute, rising at the floor's rate, not at the eat. Nothing here reads
 -- or writes HUNGER, so monotony never reaches the meal pool or the written hunger.
@@ -915,7 +909,7 @@ end
 
 IN.limitations[#IN.limitations + 1] = "monotony keys an eat by the item's full type, so an evolved dish is one type whatever went into it and two foods of one kind under different types count apart (beside a taste-class key at a tenth of the weight, NR_Server_Hedonics' limitations); an eat counts as its landed kcal over a 400 kcal meal-sized portion, at most one, so an eat with no energy books nothing and a small snack counts a sliver of a meal; drinks and world water book no monotony; monotony is a self-releasing floor, not an add at the eat: the writer holds UNHAPPINESS and BOREDOM up to the most repeated type's level once a minute, a game choice anchored on vanilla's stale item and capped at 30, so a one-food diet alone shows the level-1 Unhappy and Bored moodles and stays under Bored level 2, where a staple (FoodType Bread, Rice or Pasta, or a named potato, oat, bread or plain-pasta type) holds a quarter of it, so a repeat shows at the next minute and rises at the floor's rate; as the counts decay the floor fades to 0 with no step at the 7-day window, a fall under 0.05 held to the next write, and its release lowers the stat by the target's fall even when another source also raised it; vanilla resets BOREDOM while PANIC above 5, the mod's own dehydration panic floor included, so monotony's BOREDOM floor is wiped while the character panics"
 
--- Plan 15 Task 7: the eaten item's plate volume per gram (NR.data.volume, the SR Legacy household measures, S2212),
+-- The eaten item's plate volume per gram (NR.data.volume, the SR Legacy household measures, S2212),
 -- which K.stomach.ingest turns into the satiety mass's volume excess; 1.0 (no excess) for a type with no entry, a
 -- type that is not a string or no volume table. One Lua table read per eat, no Java call.
 function IN.volumeOf(fullType)
@@ -925,8 +919,8 @@ end
 
 IN.limitations[#IN.limitations + 1] = "a food fills by its weight plus 0.05 of its plate volume beyond its weight (a game choice), the volume being the eaten item's own type's household measure (a family judgement's where the source has none: buns, baguette, croissant, crisps, crackers): an evolved dish reads the eaten item's own type's measure, whatever went into it (a sandwich has none and loses the bread's air; toast or a bowl of oatmeal applies its own to every topping), a food with no measure in the source (bagels, cookies, cakes, most meat) or one the item pass does not map fills by weight alone, and drinks, world water and the reconcile path add no volume"
 
--- Plan 19 Task 6: the food hedonics seats at the eat (NR_Server_Hedonics.lua, NR.server.hedonics), looked up per call
--- so a host without that file eats as before. Before vanilla's eat or cancel, alliesthesia (R3) may lower a sad food's
+-- The food hedonics seats at the eat (NR_Server_Hedonics.lua, NR.server.hedonics), looked up per call
+-- so a host without that file still eats. Before vanilla's eat or cancel, alliesthesia (R3) may lower a sad food's
 -- stored field; after it, the remainder's field is restored; at the landing's monotony booking the eat's kcal goes
 -- into the online-hour ring (R1) and its taste class (R4) beside the type. Each runs under the seat's own pcall.
 function IN.hedonicsBefore(b, kind)

@@ -1,14 +1,13 @@
--- NR_Server_Bus.lua -- the server half of the command bus (mp-model #0932, lessons #1065):
+-- NR_Server_Bus.lua -- the server half of the command bus (#0932):
 -- module "NutritionRevamp"; the client asks "mirror.request" with no payload and the server
 -- answers "mirror" with the flat table K.mirror.build makes. The server never trusts a payload
--- it did not send; in this plan the one client command carries none.
+-- it did not send; the one client command carries none.
 --
 -- The effects push: the effects adapter calls B.markEffects(username) when the coefficient
 -- set is rebuilt or a trait changes (it also sets record.effects.dirty, the flag that survives a save). The
 -- flush rides the slow minute (the pipeline's bus step, NR_Server_Minute): when either flag is up and at
 -- least PUSH_GAP_MS of server wall clock (getTimestampMs) has passed since this player's last effects push,
--- it sends the WHOLE mirror through B.sendMirror -- the request-time sender, unchanged (ruling T14-1 holds
--- for client reads) -- and clears both flags; a mark inside the gap stays up and goes out at the first slow
+-- it sends the WHOLE mirror through B.sendMirror -- the request-time sender -- and clears both flags; a mark inside the gap stays up and goes out at the first slow
 -- minute after it. A failed send keeps the flags. The bus step is first in the pipeline's ORDER, so the flush
 -- runs first in a player's minute and a mark made in one minute goes out with the next one's flush, carrying
 -- the whole of the marking minute's state. First sight and departure forget the transient state (the

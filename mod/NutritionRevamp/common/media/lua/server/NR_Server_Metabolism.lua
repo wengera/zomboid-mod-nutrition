@@ -1,26 +1,25 @@
--- NR_Server_Metabolism.lua -- the body model's slow-clock adapter (spec § 4.3): once per player
+-- NR_Server_Metabolism.lua -- the body model's slow-clock adapter: once per player
 -- per game minute, on the players' OnTick stagger and after the stomach step, it creates record.body at
 -- first sight, bills the minute's expenditure off the server's metabolic rate, banks the absorbed intake
 -- Kinetics handed off, samples the aerobic training signal, closes the record day after 24 online game hours
 -- (the lean-mass body's day, the body traits, adaptive thermogenesis, TAC, the rings), and stamps the
--- drain and regeneration coefficients and the energy state the writer reads. Since Plan 11c Task 6 (spec § 5c,
--- rulings 11c-29 and 11c-32 amended) the energy state is K.deficit.activityState: the exercise share of the deficit
+-- drain and regeneration coefficients and the energy state the writer reads. The energy state is
+-- K.deficit.activityState: the exercise share of the deficit
 -- enters through the lag L (record.satiety.L, stepped here on the minute's exercise kcal), bypassed on a ramp when the
 -- trailing-24 h total deficit is large against the trailing-24 h expenditure.
 --
--- The activity read (run x141a-20261005-111005): the server's thermoregulator TARGET reads
+-- The activity read: the server's thermoregulator TARGET reads
 -- -1 at every tick, so it is never read; the RATE classifies but lags activity (a first-order lag) and
 -- already carries the engine's load factor, which is divided out before the bucketing; the bill then reads the
 -- exercise flag and the rate's fall beside it (MET.readBilled, K.energy.billClass). isAsleep wins. A missing or non-finite rate reads the Default class and counts a bad
--- read. The current timed action is unreadable server-side (getCharacterActions is empty there, X38),
+-- read. The current timed action is unreadable server-side (getCharacterActions is empty there),
 -- so the calorie modifier is always 1 and getCharacterActions is never called.
 --
 -- Two MET tables, never mixed: expenditure bills the Compendium MET of the class (K.energy.activityMet);
 -- the training sample banks the ENGINE's own value of the same class (K.energy.CLASS_MET).
 --
 -- Every Java read goes through NR.call (index-first) with a default; every Java global is named only
--- inside a function behind a nil check, so the file loads with no engine
--- (testing/tests/kernel/test_metabolism_shape.py). The whole minute runs under one pcall per player and
+-- inside a function behind a nil check, so the file loads with no engine. The whole minute runs under one pcall per player and
 -- never raises into the players walk. Every field written on record.body is a number, a boolean, a
 -- string or a table of numbers (#1495). Slow-clock code: no @fastpath region in this file.
 local NR = NutritionRevamp
@@ -62,7 +61,7 @@ MET.LEG_PARTS = { "UpperLeg_L", "UpperLeg_R", "LowerLeg_L", "LowerLeg_R" }
 -- The post-step guard: the body fields something reads before the next minute's
 -- pre-step heal -- the later steps of the minute (the writer among them), the bus step (first in ORDER) and
 -- the store step -- are copied after the pre-step heal and re-stamped from the copy when the step leaves them
--- non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read). A ring takes this minute's values only
+-- non-finite. A ring takes this minute's values only
 -- in slot 7 (a close shifts slots 1-6), so slot 7 of each read ring and of bandWeek is guarded. The trailing-24 h
 -- window takes values this minute only in its age and its current hour's slot, so those are guarded.
 MET.GUARD = { "fm", "lm", "energyState", "rmod", "met", "coldMult", "eeDay", "inDay", "alcDay", "pPrevKg",
@@ -99,7 +98,7 @@ local flag = NR.flag
 -- An object read off obj:name(...), or nil.
 local obj = NR.obj
 
--- The nutrient scalars rmod and TAC read, off the record's Plan 4 sub-tables (NR_Server_Nutrients
+-- The nutrient scalars rmod and TAC read, off the record's sub-tables (NR_Server_Nutrients
 -- writes record.nutrients, record.fluids and record.acute). Its step runs after this one, so these are
 -- the PREVIOUS minute's stamps: a one-minute lag. A sub-table that is absent (a fresh character's first
 -- minute, before NR_Server_Nutrients has run) or a field that is absent, non-finite or out of
@@ -124,10 +123,10 @@ local function nutrientInputs(record)
 end
 
 -- First sight: record.body is the creation body (CRE.newBody, NR_Server_Creation) over the muscle pick creation reads
--- (CRE.musclePick: inferred from the native Strength level net of the boosts, else the held band trait; Task 17b fix 1, replacing
--- ruling 13-6's held-band reading, which misreads a boosted profession's own band as a pick) and the weight band trait
--- held, never the weight or carry delta, under the profession's Strength boost (Task 17b); body.levelDue asks the
--- Strength minute to write the level once (Plan 13 Task 14).
+-- (CRE.musclePick: inferred from the native Strength level net of the boosts, else the held band trait; the held band
+-- alone would misread a boosted profession's own band as a pick) and the weight band trait
+-- held, never the weight or carry delta, under the profession's Strength boost; body.levelDue asks the
+-- Strength minute to write the level once.
 -- An existing record.body (the creation handler's, or a loaded one) is never re-read.
 function MET.ensureBody(username, player, record, ageH)
     if record.body ~= nil then return record.body end
@@ -201,27 +200,27 @@ function MET.readActivity(player, ctx)
         maxW, climbClass, okR and finite(rate) and rate or nil
 end
 
--- One day close (Plan 13 Task 12): the disuse day count (before the masses move, so the first immobilised day runs
+-- One day close: the disuse day count (before the masses move, so the first immobilised day runs
 -- with t = 1 off the lean mass it began on); the signal ring's close, whose sum over xpPerSet is the closed week's
 -- sets S; the body's day -- K.strength.day (growth, regain, detraining, the partition, the floors, the peak and the
 -- neural factor) or, immobilised, K.strength.disuseDay (the disuse arm under the same floors, detraining's grace
--- counter alone and the neural factor, ruling 13-13); fmRef re-based upward (adaptive thermogenesis reads
+-- counter alone and the neural factor); fmRef re-based upward (adaptive thermogenesis reads
 -- depletion from the highest fat reached); the trait axes, band word and level stamp; then the training ring, TAC, the
 -- partition ring (pushes today's balance into eb7, zeroes the day accumulators, advances dayIndex) and adaptive
--- thermogenesis. Each reader runs after the writer of what it reads (the x141c one-close lag): the training ring
--- shifts the closing day in BEFORE TAC reads the week (run x141c-20261005-132133); TAC's energy gate reads the
+-- thermogenesis. Each reader runs after the writer of what it reads, or it lags one close: the training ring
+-- shifts the closing day in BEFORE TAC reads the week; TAC's energy gate reads the
 -- closing day's inDay and exKcalDay and its immobilised flag before the partition ring zeroes them;
 -- the AT step reads deficitWeek AFTER the partition ring, so the week it reads includes today.
 -- w is the body mass fm + lm + lx; ironGrade and debtH are the record's iron grade and sleep debt
 -- (nutrientInputs): TAC's iron and sleep gates.
 
--- Option C, Angus 2026-10-11: exercise billed by the activity.
+-- Exercise billed by the activity.
 -- readBilled reads the activity as readActivity does and swaps the rate's class for the class the minute
 -- bills (K.energy.billClass): the Fitness class while the exercise flag is set, the idle class while the raw engine
 -- rate falls with no exercise and no movement, else the rate's own. The rate's class rides along, for the
 -- training sample, which banks the ENGINE's own value of the rate's class (two MET tables, never mixed). The previous
 -- minute's RAW rate and exercise flag are held here per user, in memory only: the first minute after a boot reads
--- no fall. The fall is decided raw against raw (F-T6r-3): the engine's rate lags toward base x
+-- no fall. The fall is decided raw against raw: the engine's rate lags toward base x
 -- load factor, so an eat or a sip drops the inventory load at once while the raw rate still carries the old load, and
 -- dividing it by the new, smaller factor lifts the stripped rate and hides the fall. The class still comes from the
 -- stripped rate. The minute the flag clears counts as falling too: the engine's target drops with the flag, but a drain a
@@ -247,7 +246,7 @@ function MET.readBilled(username, player, ctx)
         maxW, climbClass, className, exMet
 end
 
--- C-2: the exercise type NR_Server_Fitness.lua recorded at the set's start; a Lua table lookup, no Java
+-- The exercise type NR_Server_Fitness.lua recorded at the set's start (C-2); a Lua table lookup, no Java
 -- (Rule 6). The flag test is a guard: readBilled calls it only on a set minute, and a clear flag never reads a stale
 -- type. nil when the module is absent or nothing is recorded: the minute then bills the flat Fitness class (exeFallbacks).
 function MET.exeTypeOf(username, exercising)
@@ -270,7 +269,7 @@ function MET.spend(username, body, met, resting, coldMult, dtM, exercising)
     end
 end
 
--- Plan 11f C-17 fix 1: the held rate and flag are per user and leave with the player.
+-- The held rate and flag are per user and leave with the player.
 function MET.forget(username)
     MET.prevRate[username] = nil
     MET.prevExe[username] = nil
@@ -299,7 +298,7 @@ local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
         body.traitsDirty = true
     end
     body.S = S
-    body.levelDue = true                                 -- the Strength minute writes the day's level (spec section 7)
+    body.levelDue = true                                 -- the Strength minute writes the day's level
     K.training.closeDay(body)
     local m1, hard = K.training.weekMinutes(body)
     K.aerobic.tacDay(body, m1, hard, K.aerobic.G_IRON[ironGrade], K.aerobic.gProt(pPerKg), K.aerobic.gEnergy(body.inDay, body.exKcalDay, body.lm), K.aerobic.gSleep(debtH), 1, immobilised)
@@ -309,10 +308,10 @@ local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     body.at = K.energy.atStep(body.at, K.energy.atTarget(body.fm, body.fmRef), K.partition.deficitWeek(body), 1)
     MET.stats.days = MET.stats.days + 1
 end
-if NR_BENCH then MET._closeDay = closeDay end   -- the day-close bench seam (tools/bench_day_close.py, ruling 13-33)
+if NR_BENCH then MET._closeDay = closeDay end   -- the day-close bench seam (tools/bench_day_close.py)
 
 -- The self-heal (the #2833 pattern), run once, before the minute's arithmetic: the pure
--- part is the kernel's (NR_Kernel_Heal.lua, K.heal.body, Plan 10 Task R3), which stamps every non-finite scalar
+-- part is the kernel's (K.heal.body), which stamps every non-finite scalar
 -- or ring slot its neutral and returns the healed names; it reads no engine value. The adapter passes the
 -- effective-sex option, the strength table the no-trait body is built with and the record-day lower bound a
 -- non-finite dayIndex heals to (MET.dayFloor), and keeps the count and the log: a pass that healed anything counts
@@ -343,9 +342,9 @@ local function heal(username, record, body, ageH)
 end
 
 -- The exercise lag, healed before the minute: a lag that is non-finite or negative
--- (the Task 4b re-review's residual: exerciseLag passes a negative L through) is stamped 0, logged and counted in
--- MET.guarded. record.satiety is laid for its L when absent; its M is the writer's to seed (the intake feeds it, Kinetics clears it). (The closed day's
--- exercise bank it healed beside the lag went with the 24 h blend.) Returns the satiety table.
+-- (exerciseLag passes a negative L through) is stamped 0, logged and counted in
+-- MET.guarded. record.satiety is laid for its L when absent; its M is the writer's to seed (the intake feeds it,
+-- Kinetics clears it). Returns the satiety table.
 function MET.healActivity(username, record, body)
     local healed = nil
     local s = record.satiety
@@ -424,7 +423,7 @@ local function step(username, player, record, ctx)
     local dtM = K.max((ageH - body.lastAgeH) * 60, 0)    -- the pipeline's step (offline time never reaches it: the resume)
     K.body.trailTo(body.trail, K.body.trailClock(body, ageH))   -- the window to this minute on its online clock, before its intake and expenditure land
     snapAll(body, sat)
-    local w = body.fm + body.lm + body.lx                 -- the body mass (ruling 13-20)
+    local w = body.fm + body.lm + body.lx                 -- the body mass
     -- read, never cleared here: NR_Server_Nutrients (the next step) consumes the handoff,
     -- and the pipeline's context lives one player's minute, so this read sees each vector once
     local handoff = ctx and ctx.absorbed
@@ -437,18 +436,18 @@ local function step(username, player, record, ctx)
     -- the activity stamps NR_Server_Nutrients reads for sweat, cold diuresis and the glycogen draw: always
     -- finite (1 when the read is not)
     if finite(met) then body.met = met else body.met = 1 end
-    if ctx ~= nil then                                   -- the minute's class and exercise flag, for NR_Server_Writer's activity kind (ruling T6-2)
+    if ctx ~= nil then                                   -- the minute's class and exercise flag, for NR_Server_Writer's activity kind
         ctx.activityClass = className
         ctx.exercising = exercising
     end
     if finite(coldMult) then body.coldMult = coldMult else body.coldMult = 1 end
     local ex0 = body.exKcalDay
     MET.spend(username, body, met, not moving, coldMult, dtM, exercising)   -- the minute's bill and the after-burn pool
-    sat.L = K.deficit.exerciseLag(sat.L, body.exKcalDay - ex0, dtM / 60)   -- the minute's exercise kcal (spec § 5c)
+    sat.L = K.deficit.exerciseLag(sat.L, body.exKcalDay - ex0, dtM / 60)   -- the minute's exercise kcal
     K.training.sample(body, K.energy.CLASS_MET[rateClass], heavyLevel, w, exercising, swiping, dtM)
     if climbClass ~= nil and dtM > 0 then K.training.climbCredit(body, climbClass, w) end
     local ironGrade, allReplete, dehydPct, g, debtH = nutrientInputs(record)
-    if K.body.calendar(body, ageH) == 1 then             -- 24 online hours since the record day's start (Plan 16 Task 2)
+    if K.body.calendar(body, ageH) == 1 then             -- 24 online hours since the record day's start
         closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     end
     w = body.fm + body.lm + body.lx
@@ -459,7 +458,7 @@ local function step(username, player, record, ctx)
     local opts = NR.server.options
     local balanceBonus = 1
     if allReplete and (opts == nil or opts.balanceBonus ~= false) then
-        balanceBonus = MET.BALANCE_BONUS                   -- game choice, spec s4.5 (met.BALANCE_BONUS)
+        balanceBonus = MET.BALANCE_BONUS                   -- game choice (met.BALANCE_BONUS)
     end
     local alcGkg = body.alcDay / w
     body.rmod = K.aerobic.rmod(body.tac, g, K.aerobic.gProt(body.pPrevKg), ironGrade, dehydPct, debtH, alcGkg, balanceBonus)
@@ -488,8 +487,8 @@ function MET.minute(username, player, record, ctx)
 end
 
 -- First sight (the players' onFirstSight hook): the body is made before the first mirror goes out, so
--- that mirror carries the body_* keys (run x141b-20261005-122603: sent before the body existed, the
--- client read them 0 until a re-request). This is the one first-sight mirror: NR_Server_Players sends
+-- that mirror carries the body_* keys (a mirror sent before the body existed reads them 0 on the client until a
+-- re-request). This is the one first-sight mirror: NR_Server_Players sends
 -- none of its own, and its OnNewGame reset fires this hook too, so the post-respawn mirror carries the
 -- new body. An unreadable world age defers the body to the next readable minute (counted in badReads)
 -- and the mirror goes out without it.
@@ -506,9 +505,9 @@ function MET.onFirstSight(username, player, record)
     end
 end
 
--- The design precondition (spec ruling 5): vanilla's nutrition update off. With
+-- The design precondition: vanilla's nutrition update off. With
 -- SandboxVars.Nutrition anything but false, vanilla's updateWeight rewrites the weight flags every tick
--- and its drain empties the mirror stores (run x141b-20261005-122603). Read once at boot; warned at log
+-- and its drain empties the mirror stores. Read once at boot; warned at log
 -- level 1 and flagged on NR.server.options.nutritionOn for the self-report. The option is the
 -- operator's: the mod never changes it. Returns whether the precondition is broken.
 function MET.checkPrecondition()

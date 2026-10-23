@@ -1,27 +1,26 @@
--- NR_Server_Nutrients.lua -- the record engine, the fast pools and the acute states on the slow clock
--- (spec § 4.4): once per player per game minute, on the players' OnTick stagger and after the
+-- NR_Server_Nutrients.lua -- the record engine, the fast pools and the acute states on the slow clock:
+-- once per player per game minute, on the players' OnTick stagger and after the
 -- stomach step (NR_Server_Kinetics) and the body step (NR_Server_Metabolism), it consumes the minute's
 -- absorbed vector, steps the per-nutrient records (K.nutrients over NR.data.records with K.interact.two),
 -- the water and electrolyte pools and the thirst view (K.fluids), and the acute states (K.acute), and
 -- stamps every result on three record sub-tables: record.nutrients, record.fluids and record.acute.
 --
--- Order (plan ruling 17): the pipeline's declared ORDER (NR_Server_Minute, Plan 10 R2) runs Kinetics,
+-- Order: the pipeline's declared ORDER (NR_Server_Minute) runs Kinetics,
 -- Metabolism, Nutrients (this file), Effects, Strength, Weight; each registers its step at OnServerStarted
 -- (Training has no minute step). NR_Server_Options loads before NR_Server_Players and so polls on
 -- EveryOneMinute directly, ahead of the drain. Metabolism reads the absorbed handoff's four macros first;
 -- this file then consumes it (the context lives one player's minute). Metabolism's rmod
 -- reads the PREVIOUS minute's scalars stamped here (a one-minute lag, stated in the limitations).
 --
--- Plan 4 writes no stat, moodle or health: every value here is mod state for Plan 5 and the mirror.
+-- This step writes no stat, moodle or health: every value here is mod state for the effects step and the mirror.
 -- Every Java read goes through NR.call (index-first) with a default; every Java global is named only
--- inside a function behind a nil check, so the file loads with no engine
--- (testing/tests/kernel/test_nutrients_shape.py). The whole minute runs under one pcall per player and
+-- inside a function behind a nil check, so the file loads with no engine. The whole minute runs under one pcall per player and
 -- never raises into the players walk. Every field written on the record is a number, a boolean, a
 -- string or a table of numbers (#1495). Slow-clock code: no @fastpath region in this file.
 --
--- The x151r fix wave: the calcium x iron factor reads the meal calcium in the stomach before the minute's
+-- The calcium x iron factor reads the meal calcium in the stomach before the minute's
 -- emptying (NR_Server_Kinetics' mealCa handoff on the context, #2981), and caffeine and ethanol reach
--- the acute states through the gut lane (#2982/#2983): the intake landing's pending sums are
+-- the acute states through the gut lane (#2982): the intake landing's pending sums are
 -- drained into record.acute.gutAlc / gutCaf, K.acute.absorbGut releases them, and the released doses feed
 -- the alcohol and caffeine steps, the urinary losses and the alcohol diuresis. The stomach never holds a
 -- dose of either (IN.land diverts both), so the gut lane's release is the whole dose these steps read;
@@ -75,8 +74,8 @@ NUT.refAcute = nil
 NUT.refNut = nil
 -- The post-step guard: the fluids, acute and state fields something reads before the
 -- next minute's pre-step heal -- Effects, Strength, the writer (after weight), the bus step (first in ORDER) and
--- the store step -- copied after the pre-step heal and re-stamped from the copy when the step leaves them non-finite
--- (testing/tests/kernel/test_heal_once.py CROSS names each read). viewPct and c are read inside this step only.
+-- the store step -- copied after the pre-step heal and re-stamped from the copy when the step leaves them non-finite.
+-- viewPct and c are read inside this step only.
 NUT.GUARD_FLUIDS = { "dehydPct", "thirstTarget", "naPlasma" }
 NUT.GUARD_ACUTE = { "bac", "caf", "cafTol", "debtH", "S", "circ", "bodyHour", "iu", "hang", "coldH", "lastVigAgeH", "wd", "alcPeak",
                     "bg", "iuSleep", "exEma", "bmi", "starvedDays", "retEma", "awakeH", "g", "refeedRisk" }
@@ -125,7 +124,7 @@ local function needFactor(player, ctx)
 end
 
 -- The basal water loss's scale (K.fluids.basalG's traitScale): High Thirst x1.5 or Low Thirst x0.5
--- (K.fluids.thirstTrait; game choices, spec section 3.4) times the sandbox's StatsDecrease multiplier, which scales
+-- (K.fluids.thirstTrait; game choices) times the sandbox's StatsDecrease multiplier, which scales
 -- vanilla's thirst rate the same way (#2765); sweat is never scaled. Rule 6: each flag is the minute's shared read
 -- (NR.read.trait), and the multiplier is Kinetics' read on ctx.sd, else read here and handed on for the writer.
 local function basalScale(player, ctx)
@@ -202,7 +201,7 @@ local function ensure(record, body, ageH)
     -- the fields this file adds beside the kernels' own (no constructor lays them), laid on any table that lacks them
     local n, f, a = record.nutrients, record.fluids, record.acute
     if n.lastAgeH == nil then n.lastAgeH = ageH end
-    if n.lastDayIndex == nil then n.lastDayIndex = body.dayIndex end   -- the record's day count (online days, ruling 13-5)
+    if n.lastDayIndex == nil then n.lastDayIndex = body.dayIndex end   -- the record's day count (online days)
     if f.viewPct == nil then f.viewPct = 0 end
     if a.lastFedAgeH == nil then a.lastFedAgeH = ageH end
     if a.alc7 == nil then a.alc7 = 0 end
@@ -247,7 +246,7 @@ local function closeDay(record, body, w, ageH)
     local n = record.nutrients
     local a = record.acute
     local days = body.dayIndex - n.lastDayIndex
-    if days > 1 then NUT.stats.skippedDays = NUT.stats.skippedDays + (days - 1) end   -- 0 or 1 since ruling 13-5 (one close a minute, none on a return); over 1 only after a heal re-stamps dayIndex
+    if days > 1 then NUT.stats.skippedDays = NUT.stats.skippedDays + (days - 1) end   -- 0 or 1 (one close a minute, none on a return); over 1 only after a heal re-stamps dayIndex
     local kcal = body.inDayClosed
     if not finite(kcal) then kcal = 0 end
     local kcalPerKg = kcal / w
@@ -262,11 +261,11 @@ local function closeDay(record, body, w, ageH)
     NUT.stats.days = NUT.stats.days + 1
 end
 
--- The interaction factors on the absorbed vector before the engine (Task 10's contract): calcium x iron on
+-- The interaction factors on the absorbed vector before the engine: calcium x iron on
 -- the meal calcium caMeal (the stomach buffer's calcium before the minute's emptying; nil --
--- a handoff set without Kinetics -- falls back to the minute's absorbed calcium, the Plan 4 proxy), the
--- caffeine and alcohol urinary losses of this minute's released doses cafDose and alcDose (the gut lane,
--- ruling T17-2) off magnesium and calcium (floored at 0), and the vitamin A fold: the engine reads
+-- a handoff set without Kinetics -- falls back to the minute's absorbed calcium), the
+-- caffeine and alcohol urinary losses of this minute's released doses cafDose and alcDose (the gut lane)
+-- off magnesium and calcium (floored at 0), and the vitamin A fold: the engine reads
 -- absorbed[ORDER key] = absorbed.vitA, so the folded amount (preformed retinol plus the carotene the liver
 -- gate passes) is written there; the ingested vitA the excess tests read is the preformed retinol alone.
 -- Niacin's tryptophan credit: absorbed niacin gains the absorbed protein's tryptophan
@@ -332,7 +331,7 @@ local function step(username, player, record, ctx)
     end
     local dtM = K.max((ageH - n.lastAgeH) * 60, 0)          -- the pipeline's step (offline time never reaches it: the resume)
     n.lastAgeH = ageH
-    -- the body clock (Plan 16 Task 4), ahead of the no-time return so a new record's first minute seeds it: with the
+    -- the body clock, ahead of the no-time return so a new record's first minute seeds it: with the
     -- options poll's sleep on it advances by this step's online hours, or seeds at the server minute's world hour
     local sleepOn = NR.sleepOn()
     K.circadian.step(a, sleepOn, NR.read.hour(ctx, ageH), dtM / 60)
@@ -347,7 +346,7 @@ local function step(username, player, record, ctx)
     local dtH = dtM / 60
     local w = body.fm + body.lm + body.lx
     local O = NR.server.options or EMPTY
-    local closedDays = body.dayIndex - n.lastDayIndex       -- read before closeDay moves lastDayIndex; 0 or 1 (ruling 13-5)
+    local closedDays = body.dayIndex - n.lastDayIndex       -- read before closeDay moves lastDayIndex; 0 or 1
     if body.dayIndex > n.lastDayIndex then closeDay(record, body, w, ageH) end
 
     -- the gut lane's release this minute: IN.land diverts every eaten ethanol and caffeine there
@@ -368,7 +367,7 @@ local function step(username, player, record, ctx)
     kctx.w = w
     kctx.lm = body.lm
     kctx.eeMJ = ee24 * 4.184 / 1000                         -- kcal to MJ
-    kctx.pDay = body.pPrevKg * w                            -- yesterday's protein g, as Plan 3's rmod reads it
+    kctx.pDay = body.pPrevKg * w                            -- yesterday's protein g, as rmod reads it
     kctx.alcGkg = alcGkg
     kctx.dial = O.onsetSpeed or 1
     kctx.excessOn = O.excessEffectsOn ~= false
@@ -409,12 +408,12 @@ local function step(username, player, record, ctx)
         f.autoDrop = 0
     end
     f.dehydPct = K.fluids.dehydPct(f, w, 0)
-    local pendingG = 0                                      -- both lanes' still-unabsorbed water (ruling T1-1)
+    local pendingG = 0                                      -- both lanes' still-unabsorbed water
     if stomach ~= nil and stomach.buffer ~= nil then
         local g = K.stomach.water(stomach)
         if finite(g) then pendingG = g end
     end
-    f.viewPct = K.fluids.dehydPct(f, w, pendingG)           -- ruling T1-1
+    f.viewPct = K.fluids.dehydPct(f, w, pendingG)
     f.c = K.fluids.conc(f, body.lm)
     f.naPlasma = K.fluids.naPlasma(f.c)
     -- the view's osmotic term counts the swallowed water too: AVP is back to its
@@ -433,13 +432,13 @@ local function step(username, player, record, ctx)
     K.acute.caffeine(a, cafDose, w, dtH)                   -- the gut lane's dose (CAF_ABSORB applied there)
     K.acute.alcohol(a, alcDose, w, sex, dtH)
     local ethIng = ingested.ethanol or 0
-    body.alcDay = body.alcDay + ethIng                      -- Plan 3's alcohol gate, finally written
+    body.alcDay = body.alcDay + ethIng                      -- the alcohol gate's day total
     a.alcDayG = a.alcDayG + ethIng
     local cho24 = K.body.trail24(body.trail, "carb") / w    -- the trailing-24 h carbohydrate g/kg
     K.acute.glycogen(a, met, coldMult, cho24, dtH)
     if K.stomach.recordFoodFill(record) > NUT.FED_FILL then a.lastFedAgeH = ageH end
     K.acute.glucose(a, met, absorbed.carbs or 0, a.bac, ageH - a.lastFedAgeH, dtH)
-    -- the Plan 5 memories: the band before the sleep step, which latches boutVig off lastVigAgeH
+    -- the effects memories: the band before the sleep step, which latches boutVig off lastVigAgeH
     K.acute.exerciseMinute(a, minuteBand(a, body, K.max(0, closedDays)), ageH, dtH)
     K.acute.coldMinute(a, coldMult, dtH)
     K.acute.retinolMinute(a, ingested.retinol or 0, dtM / 1440)
@@ -463,9 +462,9 @@ local function step(username, player, record, ctx)
     end
     NUT.stats.players = NUT.stats.players + 1
 
-    -- Plan 5, made explicit (Plan 10 R2): the effects step runs next in the pipeline and reads this
+    -- the effects step runs next in the pipeline and reads this
     -- minute's epoch, fluids and acute stamps; its inputs are stamped on the context last, so the step runs
-    -- only on a minute that reached here (as the hand call did), and a raise there never skips a stamp here
+    -- only on a minute that reached here, and a raise there never skips a stamp here
     if ctx ~= nil then
         ctx.body = body
         ctx.dtM = dtM

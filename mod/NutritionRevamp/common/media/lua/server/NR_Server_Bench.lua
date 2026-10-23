@@ -1,10 +1,8 @@
--- NR_Server_Bench.lua -- the cost-budget entry point (spec § 6, Plan 2 entry gate: the writer).
+-- NR_Server_Bench.lua -- the writer's cost-budget entry point.
 -- bench.global calls a resolved global N times with no arguments; the writer's arithmetic needs a fully filled
--- input and output, so this file owns one filled input, one output and the constants, builds them once at file
--- scope, and runs NutritionRevamp.kernel.hybrid.write once per call. The tables are reused, never re-allocated,
--- so bench.global measures the write and not a constructor. This file exists only for the § 6 cost reading and
--- ships with the mod. It is not a kernel file: it defines no NutritionRevamp.kernel function. It names no Java
--- global, so it loads with no engine.
+-- input and output, so this file builds one filled input, one output and the constants once at file
+-- scope. The tables are reused, never re-allocated, so bench.global measures the write and not a constructor.
+-- It names no Java global, so it loads with no engine.
 local NR = NutritionRevamp
 local K = NR.kernel
 

@@ -1,4 +1,4 @@
--- NR_Server_Reconcile.lua -- the missed-intake reconciliation (spec § 4.8, § 7 item 38):
+-- NR_Server_Reconcile.lua -- the missed-intake reconciliation:
 -- once per player per slow minute it reads the four vanilla macro stores, compares them against the
 -- record's baseline (K.reconcile.delta), and a calorie rise above K.reconcile.RECONCILE_EPS is an intake the
 -- wrapped seats never saw (another mod's eat or drink action, an admin write): it lands through the intake's
@@ -18,14 +18,11 @@
 --    already landed is not landed twice and a write by another writer earlier in the same minute is not
 --    absorbed into the baseline.
 --
--- The minute order (the pipeline's declared ORDER, NR_Server_Minute): the reconcile step runs after the bus's
--- effects flush (the takeover's handle refresh is gone) and before the stomach (Kinetics), so a player's minute
--- runs: the bus's effects flush, THIS step, the stomach (Kinetics),
--- Metabolism, Nutrients, Effects, Strength, Weight (the legacy write), the writer, the store. A reconciled intake is then
--- emptied by the same minute's Kinetics step.
+-- The minute order (NR_Server_Minute's ORDER): this step runs after the bus's effects flush and before the stomach
+-- (Kinetics), so a reconciled intake is emptied by the same minute's Kinetics step.
 --
 -- Every Java read goes through NR.call (index-first); every Java global is named only inside a function
--- behind a nil check, so the file loads with no engine (testing/tests/kernel/test_server_reconcile_shape.py).
+-- behind a nil check, so the file loads with no engine.
 -- The minute runs under one pcall per player and never raises into the players walk.
 -- Slow-clock code: no @fastpath region in this file.
 local NR = NutritionRevamp
@@ -90,7 +87,7 @@ local function step(username, player, record, ctx)
     if vec ~= nil then
         local IN = NR.server.intake
         if IN == nil or IN.land == nil then error("reconcile: NR.server.intake.land absent") end
-        record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as the intake lays one (ruling 11c-15)
+        record.stomach = record.stomach or K.stomach.new()  -- an empty stomach, as the intake lays one
         record.pool = record.pool or K.vector.new()
         local macros = K.reconcile.baselineAfter(vec)       -- the four landed macros, copied before the landing
         IN.land(record, username, vec)

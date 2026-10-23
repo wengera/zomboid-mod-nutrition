@@ -1,11 +1,10 @@
--- NR_Server_IntakeGuard.lua -- the server's refusal of an eat at Overfull 4 (Plan 16 Task 6; spec § 4.1).
+-- NR_Server_IntakeGuard.lua -- the server's refusal of an eat at Overfull 4.
 --
 -- Why: vanilla refuses an eat at FOOD_EATEN level 3 in client Lua alone (#3599): the menu greys Eat with
 -- Tooltip_CantEatMore, and isValidStart runs only when the client's queue starts its NEXT action, so an eat added to an
--- empty queue (a script, the hotbar, a double queue) reaches the server, which meets no cap (x453b landed one at
--- Overfull 4, #3936). The food-timer bridge (NR_Server_Writer W.foodTimer) holds FOOD_EATEN at 3 exactly while the
--- record reads Overfull 4, so the menu refusal and this one read the same level. #3599 stays the vanilla fact; this
--- file supersedes Plan 15 Task 11's ruling that kept the menu refusal only.
+-- empty queue (a script, the hotbar, a double queue) reaches the server, which meets no cap (#3936). The food-timer
+-- bridge (NR_Server_Writer W.foodTimer) holds FOOD_EATEN at 3 exactly while the record reads Overfull 4, so the menu
+-- refusal and this one read the same level.
 --
 -- The refusal path (read on the 42.21 jar, buildid 25485521):
 --  * the server builds the eat through ISEatFoodAction.new and sets action.netAction (NetTimedAction.parse @221-@228
@@ -27,7 +26,7 @@
 -- HaloTextHelper.addBadText of a getText at :86): HaloTextHelper.addText on a server sends a HaloText packet to the player (@60-@86 L158-L159), whose client
 -- draws the string it carries, untranslated (HaloTextPacket.processClient @0-@15).
 --
--- The wraps, three, on ISEatFoodAction (never `new`, CLAUDE.md § 6: the client sends the action's arguments by the
+-- The wraps, three, on ISEatFoodAction (never `new`: the client sends the action's arguments by the
 -- parameter names of the `new` closure on its class, so a varargs wrapper would send none):
 --  * serverStart (vanilla defines none on ISEatFoodAction or ISBaseTimedAction, so NR.installWrap's absentOk installs
 --    it over nil and any serverStart another mod laid first is chained): at Overfull 4 it marks the action refused

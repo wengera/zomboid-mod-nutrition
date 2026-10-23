@@ -1,4 +1,4 @@
--- NR_Server_Players.lua -- the slow clock (spec § 4.1): the minute event snapshots the online list, marks each new
+-- NR_Server_Players.lua -- the slow clock: the minute event snapshots the online list, marks each new
 -- sight (a first join, a reconnect, a respawn's new object; the server fires no join event, #2412), drops the
 -- departed (no disconnect event either, #2403) and merges the queue (K.sched.merge: unserved names carried forward,
 -- never doubled); OnTick drains it under a per-tick budget sized to the minute's work (K.sched, rule
@@ -62,11 +62,11 @@ end
 -- The minute's pipeline from the record's last step (lastSeen) to age, on the same player object (an absence never
 -- reaches here: the store's resume moved lastSeen at the sight). A step of at most K.resume.STEP_M runs once; a longer
 -- one is an online stall (a slow server, the fast-forwarded night), split into K.resume.substeps equal sub-steps so
--- nothing it books is lost (Plan 16 Task 2, spec section 1.1). One slot runs at most K.resume.SLOT_SUBSTEPS of them
--- (Rule 6, fix 1 ruling F2): lastSeen stays at the last run's age, and the player's next minutes carry on from there
+-- nothing it books is lost. One slot runs at most K.resume.SLOT_SUBSTEPS of them
+-- (Rule 6): lastSeen stays at the last run's age, and the player's next minutes carry on from there
 -- until the stall is integrated in full. Each run stamps lastSeen at its own age. Counted in P.stalls (slots that ran
 -- more than one sub-step or left some to carry) and P.substeps (the sub-steps those slots ran).
--- The stall's asleep latch (Plan 16 Task 4 fix 1, the controller's ruling F2): the stalled hours were slept or woken
+-- The stall's asleep latch: the stalled hours were slept or woken
 -- through as they were when the stall was seen, so the slot that detects it reads isAsleep once into r.carryAsleep,
 -- and every sub-step of that stall, the carried ones in later minutes included, reads the latch (NR_Server_Minute.run
 -- seeds the pipeline's shared read with it); the slot that integrates the rest clears it. A player who wakes before
@@ -132,7 +132,7 @@ function P.minute()
     NR.read.hoist(age)                                  -- the hour of day and the day length, once a server minute (Rule 6)
     local EFF = NR.server.effects
     if EFF ~= nil and EFF.writeDrainOptions ~= nil then
-        local okH, errH = pcall(EFF.writeDrainOptions)    -- the drain options, once a server minute (Plan 17 Task 3)
+        local okH, errH = pcall(EFF.writeDrainOptions)    -- the drain options, once a server minute
         if not okH then NR.log.say(2, "players: the drain options' write failed: " .. tostring(errH)) end
     end
     local roster = {}
@@ -246,7 +246,7 @@ function P.drain()
 end
 
 -- The OnTick listener, registered server-side only at OnServerStarted: one add and one compare when the queue is
--- empty (the empty-queue clause of ruling 2: at most 0.1 ms a frame).
+-- empty (the performance budget's empty-queue clause: at most 0.1 ms a frame).
 function P.tick()
     P.ticks = P.ticks + 1
     if P.queueHead > #P.queue then return end

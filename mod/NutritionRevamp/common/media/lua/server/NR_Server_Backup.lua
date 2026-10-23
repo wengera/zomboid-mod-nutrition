@@ -1,9 +1,9 @@
--- NR_Server_Backup.lua -- the record's backup on the character (Plan 16 Task 3, spec section 1.4): a copy of the
+-- NR_Server_Backup.lua -- the record's backup on the character: a copy of the
 -- player's stored record kept in the character's own modData, so a lost or corrupt store file, or a store file left
 -- ahead of a world a hard kill rolled back, restores from the copy saved with the character (NR_Server_Store's load
 -- rule, S.pick). The engine writes the character, its modData with it, to players.db on its own cadence, apart from
 -- the world save: every 180 real seconds for each connected player, at a disconnect, at a trade, at creation and at a
--- world save, each row committed at once (ServerPlayerDB; Task 3 review section 3). So after a hard kill the copy
+-- world save, each row committed at once (ServerPlayerDB). So after a hard kill the copy
 -- matches the character's restored inventory and stats, and it is usually ahead of the rolled-back world clock: that is
 -- its normal state, not a fault, and K.resume.resume moves it back onto the clock. The store's file stays the
 -- authoritative copy; this one is read only by that rule.
@@ -18,9 +18,9 @@
 --
 -- The write (BK.write): only from F.save, so at the store's save cadence (at most once a real minute a player, and
 -- after an eat, a drink or a respawn's reset), never per minute; a departure's flush has no player and writes none.
--- The copy is never sent to the client (Plan 16 Task 3 fix 1, ruling M1: it would multiply the mod's server-to-client
--- traffic 3.5-5.5 times). The risk window that leaves: a client's transmitModData replaces the server's whole player
--- table (#1042, #1151), so another mod's transmit wipes the copy until the next save (at most S.SAVE_GAP_MS while the
+-- The copy is never sent to the client: it would multiply the mod's server-to-client
+-- traffic 3.5-5.5 times. The risk window that leaves: a client's transmitModData replaces the server's whole player
+-- table (#1042), so another mod's transmit wipes the copy until the next save (at most S.SAVE_GAP_MS while the
 -- player is online); an engine player save taken inside that window holds no copy, and only a later restore from that
 -- save (a lost store or a hard kill) would miss it.
 --

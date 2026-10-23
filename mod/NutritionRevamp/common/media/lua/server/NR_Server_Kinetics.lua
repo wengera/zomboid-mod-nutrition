@@ -1,4 +1,4 @@
--- NR_Server_Kinetics.lua -- the slow-clock drive of the stomach (spec § 4.2, § 4.4): once per player per
+-- NR_Server_Kinetics.lua -- the slow-clock drive of the stomach: once per player per
 -- game minute, inside the budgeted queue, both lanes empty over the game minutes since the last run (K.stomach.drain:
 -- the solid lane's energy at a zero-order rate rising with its load, the liquid lane's water first-order), the
 -- emptied vector is absorbed and the absorbed vector accumulates into the pool, and the physical fill (the stomach's
@@ -6,20 +6,20 @@
 -- writer's fallback and the mirror to read (the "fed" gates read the food fill, K.stomach.recordFoodFill). A gap of more than a minute drains in one-minute substeps (the
 -- solid rate rises with the load, and the oracle's replays step a minute); the step is the pipeline's, at most
 -- K.resume.STEP_M (an online stall is sub-stepped), and offline time never reaches it (the resume moves kineticsAge past
--- the absence, Plan 16 Task 2). A record with no stomach starts with an empty one
--- (spec § 4); hunger carries over through the meal pool M (record.satiety.M), which the intake feeds at the eat and this step clears
+-- the absence). A record with no stomach starts with an empty one;
+-- hunger carries over through the meal pool M (record.satiety.M), which the intake feeds at the eat and this step clears
 -- on every substep (K.satiety.drain); the writer seeds M from HUNGER at its first minute and reads it. The energy-state term is NR_Server_Metabolism's per-minute stamp
 -- (record.body.energyState; the writer reads nil or NaN as 1).
 -- Every field written on the record is a number or a table of numbers (global modData holds no
 -- function or Java object, #1495). Nothing runs at file scope but table setup: the registration is
 -- in the OnServerStarted handler behind the side test, so the file loads with no engine.
--- Run x151r (#2981): the factor reads the meal in the stomach, not the share emptied this
--- minute -- the buffer's phytate, vitC and calcium (and its lipids: the fat factor) are
+-- The absorption factor reads the meal in the stomach, not the share emptied this
+-- minute (#2981) -- the buffer's phytate, vitC and calcium (and its lipids: the fat factor) are
 -- read into KIN.ctx BEFORE the emptying and absorb takes them; the calcium goes on to
 -- NR_Server_Nutrients' calcium x iron factor through the pipeline context's mealCa.
 local NR = NutritionRevamp
 local K = NR.kernel
--- The hand-offs ride the pipeline's per-player context (NR_Server_Minute; Plan 10 R2): ctx.absorbed is the
+-- The hand-offs ride the pipeline's per-player context (NR_Server_Minute): ctx.absorbed is the
 -- absorbed vector of this player's step -- transient, never on the record -- that NR_Server_Metabolism reads
 -- (the four macros) and NR_Server_Nutrients then consumes on the same minute (the pipeline's ORDER runs both
 -- after this step); nil when the step had no elapsed time. ctx.mealCa: the buffer's calcium
@@ -30,13 +30,12 @@ NR.server.kinetics = { stats = { minutes = 0, players = 0, failures = 0 }, lastE
                        ctx = {} }
 local KIN = NR.server.kinetics
 
--- The stomach fields a later reader takes that this step's arithmetic can leave non-finite (test_heal_once.py CROSS,
--- Plan 11c Task 8): a non-finite one resets the stomach empty with the fill. The liquid lane is named
+-- The stomach fields a later reader takes that this step's arithmetic can leave non-finite: a non-finite one resets the stomach empty with the fill. The liquid lane is named
 -- (the pending water, the mirror's mass, the store) and EVERY vector key of the buffer is read at call time. The main
 -- reason: an infinite gram key clamps the fill (the physical fill and the writer's fallback; the writer's F is W.satietyF) to 1, which is finite, so the fill alone
 -- does not catch it, and that key never drains. A non-finite micronutrient would also spread into the pool and the
 -- nutrients every minute. The cost is about 2.3 us per player-minute, per minute and never per tick.
-KIN.GUARD = { "liquid", "volX", "liqKcal" } -- volX: the satiety mass's volume excess (Plan 15 Task 7); liqKcal: the drink-borne energy (Task 14b)
+KIN.GUARD = { "liquid", "volX", "liqKcal" } -- volX: the satiety mass's volume excess; liqKcal: the drink-borne energy
 
 local function nonFinite(stomach)
     for i = 1, #KIN.GUARD do
@@ -51,9 +50,9 @@ local function nonFinite(stomach)
     return false
 end
 
--- A step's drain: dtM game minutes in one-minute substeps (K.satiety.drain, the kernel's since Plan 11g Task 6, so
--- the replays' stand-ins split a step as the server does). Returns the emptied vector. pool is nil or KIN.meal's
--- state, whose M each substep clears (K.satiety.mealClear). No cap: the pipeline bounds the step (Plan 16 Task 2).
+-- A step's drain: dtM game minutes in one-minute substeps (K.satiety.drain, in the kernel so the replays'
+-- stand-ins split a step as the server does). Returns the emptied vector. pool is nil or KIN.meal's
+-- state, whose M each substep clears (K.satiety.mealClear). No cap: the pipeline bounds the step.
 function KIN.drain(stomach, dtM, pool)
     return K.satiety.drain(stomach, dtM, pool)
 end
@@ -88,7 +87,7 @@ function KIN.malformed(stomach, username)
     return true
 end
 
--- The close fix wave's residual: the pool check the step runs before the drain, as KIN.malformed
+-- The pool check the step runs before the drain, as KIN.malformed
 -- runs the stomach's, since K.stomach.toPool raises on a pool key that is nil or a string. A pool that is not a table,
 -- or a key of it (K.vector.KEYS) that is not a number, counts a failure, is logged and answers true: the step resets
 -- the pool to zero on the minute it is found and keeps the stomach. A NaN or infinite key stays with the heal below
@@ -113,7 +112,7 @@ function KIN.malformedPool(pool, username)
     return true
 end
 
--- Plan 11g Task 4 and its fix 1 (spec § 7): the meal pool M's clearance. The intake feeds M at
+-- The meal pool M's clearance. The intake feeds M at
 -- the eat (IN.feed); KIN.drain clears it on every substep (K.satiety.mealClear), and the writer, later in the minute's
 -- ORDER, seeds M at first sight and reads it.
 -- KIN.meal: the one pool state, overwritten every step: M as cleared, and the clearance factor, the appetite trait
@@ -195,10 +194,10 @@ local function step(username, player, record, ctx)
         return
     end
     if record.stomach == nil or KIN.malformed(record.stomach, username) then
-        record.stomach = K.stomach.new()              -- an empty stomach (spec § 4, ruling 11c-15); a malformed one heals (C-1)
+        record.stomach = K.stomach.new()              -- an empty stomach; a malformed one heals
     end
     if record.pool == nil or KIN.malformedPool(record.pool, username) then
-        record.pool = K.vector.new()                  -- a fresh pool; a malformed one heals (Task 9b)
+        record.pool = K.vector.new()                  -- a fresh pool; a malformed one heals
     end
     local last = record.kineticsAge
     local dtH = 0
@@ -210,7 +209,7 @@ local function step(username, player, record, ctx)
         local meal = K.stomach.context(record.stomach, KIN.ctx)   -- the meal, before this minute's emptying
         local pool = KIN.meal(record, player, username, ctx)       -- nil for an M the writer has yet to seed
         if pool ~= nil then
-            -- the meal spell reads the pool an eat landed before this minute's clearance takes it (Plan 18 Task 3b):
+            -- the meal spell reads the pool an eat landed before this minute's clearance takes it:
             -- effects' K.drain.step reads the cleared M later in the minute, so a 200 kcal snack (SUSPEND_M) opened no
             -- spell; the later read only holds or closes it (an M at FED_M or more keeps it, an M under closes it)
             K.drain.spellStep(K.drain.ensure(record), pool.M)

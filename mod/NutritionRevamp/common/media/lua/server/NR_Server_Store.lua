@@ -1,8 +1,8 @@
 -- NR_Server_Store.lua -- the durable per-player store: an in-memory table of the
 -- records seen this uptime, persisted per player to two alternating JSON slot files under the server's Lua cache
 -- folder through getFileWriter, with a real-time last-seen index; nothing per-player is
--- kept under a global modData name (#3417: any client could request it). A record is kept for good (Plan 16
--- Task 3, spec section 1.3: no prune, so neither a long absence nor long downtime resets a character).
+-- kept under a global modData name (#3417: any client could request it). A record is kept for good (no
+-- prune, so neither a long absence nor long downtime resets a character).
 -- The folder is keyed by the server name, so a world wiped under the
 -- same name finds the old files, and every returning player's record, resets included, carries over; an operator
 -- who wants a fresh start deletes the folder by hand. The load at first sight is fillInPlace (the load, below).
@@ -11,7 +11,7 @@
 -- this store's copy is lost or ahead of the world. Runs in both Lua states; every write below is behind
 -- NutritionRevamp.isServer().
 --
--- The files (42.21 jar, Task 2's J2: T1102.3, T1102.4, T1102.6). getFileWriter TRUNCATES the file at the call, not
+-- The files (42.21 jar). getFileWriter TRUNCATES the file at the call, not
 -- at close, so the writer never opens the file of a pair that holds the newest complete copy: a host killed
 -- between open and close loses only the file being written, and the other still holds the last complete one. The
 -- index (real-time last-seen stamps) is a pair too, index_a.json and index_b.json, for the same reason: one index
@@ -47,7 +47,7 @@
 -- every derived field dropped for the slow minute to rebuild, all in the record's OWN table, so every handle held
 -- on it reads the loaded record with no re-point. The load is idempotent and runs once per record table this uptime
 -- (S.filled): a record held in memory since its fill keeps its derived fields at a return, so it comes back exactly as
--- it left. Then, at every first touch of a sight, the resume (K.resume.resume, Plan 16 Task 2): every world-age stamp
+-- it left. Then, at every first touch of a sight, the resume (K.resume.resume): every world-age stamp
 -- moved past the absence, so nothing about the character changes offline, and the players' minute runs nothing at the
 -- return (S.takeResumed): the first step back is the next minute, from the stamps the resume laid, so a record read
 -- from a file rebuilds its derived fields before any stat is written. A sight is keyed on the player object: a
@@ -55,12 +55,12 @@
 -- sight's (a reconnect the minute's walk never saw leave) starts a new one; a stall on the same object is no sight. A
 -- load that raises lays a fresh record in place, counted and logged.
 --
--- The load rule (S.pick, Plan 16 Task 3, spec section 1.4), at the read of a record not in memory, with the touching
+-- The load rule (S.pick), at the read of a record not in memory, with the touching
 -- player's backup (NR_Server_Backup's BK.read: validated, else nil): a store file that is missing or unreadable loads
 -- the backup (a deleted folder, a renamed server, a moved host); a store record whose latest stamp (K.resume.latest)
 -- is past the world clock was written after the world's last save, a hard kill having rolled the world back under it
--- (#2758, #3280), and loads the backup, which is saved with the character by the engine's own player save (every 3
--- real minutes online, at a disconnect, at a world save; Task 3 review section 3), so the record matches the
+-- (#3280), and loads the backup, which is saved with the character by the engine's own player save (every 3
+-- real minutes online, at a disconnect, at a world save), so the record matches the
 -- character's restored inventory and stats and the food landed after that snapshot is not eaten twice; otherwise the
 -- store wins. A restore is then filled and resumed like any load (K.resume.resume moves a record whose latest stamp
 -- is past the world back onto the world clock, so the rolled-back stretch is not integrated twice), its generation
@@ -88,7 +88,7 @@
 -- recovery -- keeps the mark, so it is tried again at the next step). A username new to the index is written
 -- promptly: its first save queues the store.index task into the live queue, so it runs at the next tick, not
 -- S.INDEX_GAP_MS later. A clean stop then loses at most the last S.SAVE_GAP_MS of digestion drift; a hard kill
--- loses what ruling 8 says.
+-- is the load rule's case (above).
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.store = { records = nil, loaded = {}, loadedFor = nil, wired = false,
@@ -155,7 +155,7 @@ end
 -- runs the fresh-character path (its sub-tables laid at first sight) instead of a raw table every step fails on. The
 -- record's mod state is lost; the username and its first sight are kept. Counted in S.stats.failures and logged.
 -- lastSeen is stamped at the touch's world age ageH (when read), so the players' minute never reads the time since
--- the first sight as a stall (Plan 16 Task 2 fix 1, F1).
+-- the first sight as a stall.
 local function freshInPlace(username, target, firstSeen, ageH)
     local age = firstSeen
     if type(age) ~= "number" or age ~= age then age = NR.worldAge() end   -- nil when unread: P.work stamps lastSeen
@@ -201,7 +201,7 @@ function S.resume(username, r, ageH)
     end
 end
 
--- The file root: NutritionRevamp/<server name>/ under the Lua cache folder (the folder is per host, J2).
+-- The file root: NutritionRevamp/<server name>/ under the Lua cache folder (the folder is per host).
 function F.dir()
     if F.root == nil then
         local name = ""
@@ -605,7 +605,7 @@ function S.reset(username, worldAgeHours, player)
     S.fresh[username] = nil
     F.deferSince[username] = nil                           -- a reset record is meant to replace the file's
     if old ~= nil then
-        r.resets = (old.resets or 0) + 1                   -- ruling 4: every OnNewGame over an existing record
+        r.resets = (old.resets or 0) + 1                   -- every OnNewGame over an existing record
     else
         r.resets = 0                                       -- a first character
     end

@@ -1,24 +1,24 @@
--- NR_Server_Weight.lua -- the body model's weight adapter (spec § 4.3): once per player per game
+-- NR_Server_Weight.lua -- the body model's weight adapter: once per player per game
 -- minute, late in the per-player minute (the pipeline's ORDER, NR_Server_Minute, runs the weight step
 -- after the metabolism and strength steps and before the writer and the store, so it reads
 -- the fm and lm Metabolism stamped this minute), it writes the model's total mass into the vanilla
 -- weight slot, the three direction flags off the 7-day trend, writes the five weight-band traits from the
--- body's section 8 axes (WGT.writeTraits) when the day close changed the band or the held set differs, and, under
+-- body's axes (WGT.writeTraits) when the day close changed the band or the held set differs, and, under
 -- the NR.LegacyMirror sandbox option, overwrites the four vanilla macro stores other mods read.
 --
 -- The weight slot is re-asserted, not trusted (#2643): setWeight every minute even when unchanged, the
--- three flags every minute (#2644). The band traits are the axes' (Plan 13 Task 15, spec section 8): the day close
+-- three flags every minute (#2644). The band traits are the axes': the day close
 -- (NR_Server_Metabolism) sets body.fatT, body.thinT and body.band from K.traits.axes and stamps body.traitsDirty on a
 -- band change; this file adds and removes the five traits K.traits.WANT names through the trait collection and
--- pushes the trait block once, sendSyncPlayerFields(player, 2) (#2099; it reaches that player's own connection only,
+-- pushes the trait block once, sendSyncPlayerFields(player, 2) (it reaches that player's own connection only,
 -- #2603). Vanilla's applyTraitFromWeight (its 65/75/85/100 kg bands) is never called. A band trait an admin or
 -- another mod removes is re-added as a repair (#2740). The band traits are the registry objects off
 -- CharacterTrait[name], never an id built from a name (#0550; the id of VERY_UNDERWEIGHT holds a space).
 --
 -- The legacy mirror: calories = the trailing-24 h energy balance; proteins = the piecewise
 -- map of the trailing-24 h protein per kg; carbohydrates and lipids = the trailing-24 h grams less a
--- reference; each is read off the trailing-24 h window (K.body.trail24 over record.body.trail
--- Task 9c, as K.energy.eb24h reads it), clamped to the stores (#0022, #0023). A plain overwrite every
+-- reference; each is read off the trailing-24 h window (K.body.trail24 over record.body.trail,
+-- as K.energy.eb24h reads it), clamped to the stores (#0022). A plain overwrite every
 -- minute. The window is NR_Server_Metabolism's (K.body.new lays it, Metabolism moves it and its heal keeps it
 -- finite) before this file reads it. When all four setters answer, the four values written become the record's
 -- reconciliation baseline (record.reconcile.baseline): NR_Server_Reconcile, earlier in the
@@ -26,7 +26,7 @@
 -- (B.markBand), so the mirror's body_band goes out with the next effects flush.
 --
 -- Every Java read goes through NR.call (index-first); every Java global is named only inside a function
--- behind a nil check, so the file loads with no engine (testing/tests/kernel/test_weight_shape.py). The
+-- behind a nil check, so the file loads with no engine. The
 -- whole minute runs under one pcall per player and never raises into the players walk. Slow-clock code:
 -- no @fastpath region in this file.
 local NR = NutritionRevamp
@@ -60,7 +60,7 @@ local function wantOf(fatT, thinT)
     return want
 end
 
--- Whether the held set differs from want, read with the old repair read's gets (Rule 6): a wanted trait absent, or,
+-- Whether the held set differs from want, read with the fewest gets (Rule 6): a wanted trait absent, or,
 -- with none wanted, any of the five present. An unreadable get compares nothing.
 local function differs(coll, want)
     local wanted = false
@@ -123,7 +123,7 @@ local function write(coll, want)
     return changed, complete
 end
 
--- The five weight-band traits from the body's axes (spec section 8): when body.traitsDirty (the day close changed the
+-- The five weight-band traits from the body's axes: when body.traitsDirty (the day close changed the
 -- band), at the first minute of a record day (the audit: body.traitsDay, not stored, so a restart audits once) or when
 -- the held set differs from K.traits.WANT(fatT, body.thinT), each is added or removed through the trait collection
 -- and the trait block is pushed once if the collection changed (also when a later edit raised). A thinness rung
@@ -201,7 +201,7 @@ end
 local function step(username, player, record, ctx)
     local body = record.body
     if body == nil then return end
-    local w = body.fm + body.lm + body.lx                -- the body mass: the weight slot (ruling 13-20)
+    local w = body.fm + body.lm + body.lx                -- the body mass: the weight slot
     if not finite(w) or w <= 0 then
         WGT.stats.failures = WGT.stats.failures + 1
         WGT.lastError = "weight: non-finite or non-positive mass for " .. tostring(username) .. "; nothing written"

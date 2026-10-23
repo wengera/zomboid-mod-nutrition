@@ -1,14 +1,12 @@
--- NR_Server_Effects.lua -- the effects layer's slow adapter (Plan 5, spec § 4.5,
--- 19, 22-23; T1-1, T1-3, T4-1, T6-1, T6-2): once per player per game minute it builds record.effects, the
+-- NR_Server_Effects.lua -- the effects layer's slow adapter: once per player per game minute it builds record.effects, the
 -- coefficient set the writer and the mirror read, and applies the slow channels itself -- the trait
 -- toggles (Night Vision, Short Sighted), the four regeneration setters and the food heal, the per-part wound,
 -- bleeding and infection folds, the catchACold fold, the health drain toward its target (K.drain) and the spontaneous bruise.
 --
--- Order (made explicit by the pipeline, Plan 10 R2): the effects step runs right after the
+-- Order: the effects step runs right after the
 -- nutrients step in NR_Server_Minute's ORDER, on the body, dtM and ageH Nutrients stamps on the context at
 -- the end of its own minute, so the step reads this minute's epoch, fluids and acute stamps with zero lag.
--- Strength follows and reads the raw
--- sub-tables as before. The fatigue multipliers mAcc and rRec stamped here feed the NEXT minute's
+-- Strength follows and reads the raw sub-tables. The fatigue multipliers mAcc and rRec stamped here feed the NEXT minute's
 -- K.acute.sleepMinute (a one-minute lag, stated).
 --
 -- Per minute, under one pcall per player: ensure and heal record.effects; the day close (the protein-energy
@@ -17,12 +15,12 @@
 -- when the key moved (K.effects.changed: the nutrient epoch, the closed day, the dial snapshot or a band);
 -- the per-minute scalars (fOff, mAcc, rRec, solAddH, solMul, intoxTarget, tempTarget); the night-vision
 -- machine and the four trait rules; the regeneration setters and the food heal on a rebuild, a drain state's start
--- or stop and at first sight (none of the five is saved, #3020, #3897); the per-part folds and the cold fold; the
--- bruise roll; the drain's ReduceGeneralHealth, never past the target (Plan 15 Task 4; jar-checks Check 2); the lethal
--- causes' symptoms (K.effects.symptoms) and, while a cause is active, their added pain per body part (Plan 18).
+-- or stop and at first sight (none of the five is saved, #3897); the per-part folds and the cold fold; the
+-- bruise roll; the drain's ReduceGeneralHealth, never past the target; the lethal
+-- causes' symptoms (K.effects.symptoms) and, while a cause is active, their added pain per body part.
 --
 -- Every Java read goes through NR.call (index-first) with a default; every Java global is named only inside
--- a function behind a nil check, so the file loads with no engine (testing/tests/kernel/test_effects_shape.py).
+-- a function behind a nil check, so the file loads with no engine.
 -- Every field written on the record is a number, a boolean or a table of numbers and booleans (#1495).
 -- Slow-clock code: no @fastpath region in this file.
 local NR = NutritionRevamp
@@ -67,21 +65,20 @@ local EFF = NR.server.effects
 
 -- The four regeneration constants' engine defaults (the BodyDamage constructor, #2354), scaled by healMul or
 -- written 0 while a drain state is active (S1174 open), draining or holding at its target, so health holds there with
--- no sawtooth (jar-checks Check 2).
+-- no sawtooth.
 EFF.REGEN_STANDARD = K.drain.REGEN[1] -- VANILLA #2354: the drain kernel's tier-0 addition, one copy
 EFF.REGEN_REDUCED = K.drain.REGEN[2] -- VANILLA #2354: the drain kernel's tier-1 addition, one copy
 EFF.REGEN_SEVERE = K.drain.REGEN[3] -- VANILLA #2354: the drain kernel's tier-2 addition, one copy
 EFF.REGEN_SLEEPING = K.drain.REGEN_SLEEPING -- VANILLA #2354: the drain kernel's sleeping addition, one copy
--- The food heal, health per multiplier unit while the health-from-food timer is above 0 (#2385; the constructor's 0.015,
--- #3897), written 0 while a drain state is active (it runs through any drain otherwise, jar-checks Check 2). Outside a
+-- The food heal, health per multiplier unit while the health-from-food timer is above 0 (the constructor's 0.015,
+-- #3897), written 0 while a drain state is active (it runs through any drain otherwise). Outside a
 -- drain the timer is the writer's food-timer bridge (K.view.foodTimer), held above 0 while Well Fed, so the heal runs
--- for the whole Well Fed spell, not one fill: REGEN_FOOD per multiplier unit at the 90-minute day, scaled by 90 / dayMin
--- (Plan 15 Task 8 fix 1), at the shipped REGEN_FOOD (0.0087) gives the reference meal's 0.50 h spell (K.view.WELL_FED_M) 47.0 health at every day length (REGEN_FOOD x 180 units x
--- 30 minutes at the 90-minute day), a raw can's 46.8 in vanilla (0.015 x 3120, #0054); 94 health a game hour while Well
--- Fed, against vanilla's 162 while its timer runs at the 90-minute day. 0 at Overfull 4 too: the refusal never heals.
+-- for the whole Well Fed spell, not one fill: eff.REGEN_FOOD per multiplier unit at the 90-minute day, scaled by
+-- 90 / dayMin so the reference meal's spell (K.view.WELL_FED_M) heals the same at every day length, sized against a raw
+-- can's 46.8 in vanilla (0.015 x 3120, #0054). 0 at Overfull 4 too: the refusal never heals.
 EFF.REGEN_FOOD = K.dials.get("eff.REGEN_FOOD")
 -- Whether the server runs Mode 2 (Overlay: NR_Server_Writer's mode, read at boot), where vanilla owns HUNGER and THIRST and
--- its own level-4 drains, so the starvation and dehydration drain states do not run (Plan 15 close, ruling M2).
+-- its own level-4 drains, so the starvation and dehydration drain states do not run.
 function EFF.overlay()
     local Wr = NR.server.writer
     return Wr ~= nil and Wr.mode == 2
@@ -92,18 +89,18 @@ EFF.INFECT_MAX = 10 -- VANILLA #3131 (BodyPart.DamageUpdate caps the level at 10
 EFF.MASK_BLEEDING = 8 -- key 4, bleeding (#2626): a packet bit, no row needed
 EFF.MASK_BLEEDING_TIME = 131072 -- key 18, bleedingTime (#2626): a packet bit, no row needed
 EFF.MASK_INFECTION = 32768 -- key 16, woundInfectionLevel (#2626): a packet bit, no row needed
--- The sleep-onset terms (B6), game hours and a multiplier on vanilla's delay.
+-- The sleep-onset terms, game hours and a multiplier on vanilla's delay.
 EFF.SOL_CAF_H = K.dials.get("eff.SOL_CAF_H")
 EFF.SOL_VIG_H = K.dials.get("eff.SOL_VIG_H")
 EFF.SOL_ALC_MUL = K.dials.get("eff.SOL_ALC_MUL")
--- The engine factors (B3, B4): vanilla's own trait multipliers on accrual and recovery.
+-- The engine factors: vanilla's own trait multipliers on accrual and recovery.
 EFF.TRAIT_NEEDS_LESS_ACC = K.dials.get("eff.TRAIT_NEEDS_LESS_ACC")
 EFF.TRAIT_NEEDS_MORE_ACC = K.dials.get("eff.TRAIT_NEEDS_MORE_ACC")
 EFF.FF_INSOMNIAC = 0.5 -- VANILLA #2276
 EFF.FF_NIGHT_OWL = 1.4 -- VANILLA #2276
 EFF.T_NEEDS_LESS = 0.75 -- VANILLA #2276
 EFF.T_NEEDS_MORE = 1.18 -- VANILLA #2276
--- The exertion at which the dehydration heat side applies (G).
+-- The exertion at which the dehydration heat side applies.
 EFF.MET_EXERT = K.dials.get("eff.MET_EXERT")
 -- The days of protein data the 7-day ring must hold before the protein side is read.
 EFF.P7_DAYS = 7 -- the ring's length, no row needed
@@ -128,7 +125,7 @@ EFF.ref = nil
 -- The post-step guard: the per-minute scalars and the mirrored numbers something reads
 -- before the next minute's pre-step heal -- the writer after weight, Nutrients' sleep step (it runs before
 -- this file's heal) and the bus step (first in ORDER) -- copied after the pre-step heal and re-stamped from the copy
--- when the step leaves them non-finite (testing/tests/kernel/test_heal_once.py CROSS names each read).
+-- when the step leaves them non-finite.
 EFF.GUARD = { "panicTarget", "unhappyTarget", "foodSickTarget", "stressTarget", "tempTarget", "tempAdj", "intoxTarget",
               "fOff", "mAcc", "rRec", "solAddH", "solMul", "epoch", "aimMul", "speedMul", "healMul", "bleedMul",
               "infectMul", "coldMul", "enduranceCap", "foodSickStep", "stressFloor", "unhappyFloor" }
@@ -160,7 +157,7 @@ local function addFields(E, body)
     if E.dirty == nil then E.dirty = false end
 end
 
--- The pain table's heal (Plan 18 close, L6): a pain that is no table is laid fresh with painOn false; with painOn not
+-- The pain table's heal: a pain that is no table is laid fresh with painOn false; with painOn not
 -- true, every part index that reads anything but 0 (a stale or corrupt entry K.effects.symptoms would add to, since it
 -- zeroes the table only while painOn is set) heals to 0. With painOn true the symptoms' own pass zeroes every part.
 -- Returns bad with each healed name appended.
@@ -224,7 +221,7 @@ function EFF.forget(username)
     if username ~= nil then EFF.last[username] = nil end
 end
 
--- The protein-energy grade and the closed day's energy availability, at a day close (F1, A4). The protein
+-- The protein-energy grade and the closed day's energy availability, at a day close. The protein
 -- mean is nil (unknown) until the 7-day ring holds seven closed days (the character's birth day from bornAge).
 local function closeDay(E, record, body, closing)
     local a = record.acute
@@ -258,7 +255,7 @@ local function writerInput(username)
     return nil
 end
 
--- The engine parts of accrual and recovery (B3, B4) off the writer's engine reads: mEngine(endurance,
+-- The engine parts of accrual and recovery off the writer's engine reads: mEngine(endurance,
 -- resting, thermoFatigue, sleepTrait, StatsDecrease) and rEngine(bed, ff / t). A missing or non-finite
 -- input reads its neutral.
 local function engineFactors(username)
@@ -286,7 +283,7 @@ local function engineFactors(username)
     return K.effects.mEngine(endLast, resting, thermo, sleepTrait, sd), K.effects.rEngine(bed, ff / t)
 end
 
--- One trait under the four rules (spec § 4.5): the ownership flag is set before an add and checked before a
+-- One trait under the four rules: the ownership flag is set before an add and checked before a
 -- remove; an owned trait not held is re-added every minute; a trait held while the mod did not add it is never
 -- removed. Returns whether the collection changed.
 local function toggle(coll, t, want, own, key)
@@ -317,7 +314,7 @@ local function toggle(coll, t, want, own, key)
     return false
 end
 
--- The two trait toggles and the one push (rule 3: only on a change, only to the owner).
+-- The two trait toggles and the one push (only on a change, only to the owner).
 local function traits(player, record, body, E, nut, sev, dtD, ctx, sex)
     local vitA = nut.vitA
     local zinc, iron, ribo = nut.zinc, nut.iron, nut.riboflavin
@@ -346,8 +343,8 @@ local function regen(bd, m, foodHeal)
     EFF.stats.regenWrites = EFF.stats.regenWrites + 1
 end
 
--- The heal toward the target (fix 1, ruling L2): vanilla's regeneration addition for the HUNGRY, THIRST and SICK levels
--- and sleep (K.drain.regenAddition, #2721, #0515), scaled by healMul, times the multiplier units of a game minute at the
+-- The heal toward the target: vanilla's regeneration addition for the HUNGRY, THIRST and SICK levels
+-- and sleep (K.drain.regenAddition, #2721), scaled by healMul, times the multiplier units of a game minute at the
 -- server's day length (#2922), through AddGeneralHealth, capped so overall health reaches the target and no more
 -- (K.drain.heal, #3898). Read only on a minute that heals.
 local function healToTarget(player, bd, D, E, health, asleep, dtM, ctx)
@@ -368,7 +365,7 @@ local function healToTarget(player, bd, D, E, health, asleep, dtM, ctx)
     end
 end
 
--- A wound timer's fold (F3): a fall since the last minute is scaled by healMul; a timer the engine
+-- A wound timer's fold: a fall since the last minute is scaled by healMul; a timer the engine
 -- ran to 0 is passed through. Returns the value now on the part.
 local function foldWound(part, last, getter, setter, healMul)
     local v = num(part, getter, nil)
@@ -384,7 +381,7 @@ local function foldWound(part, last, getter, setter, healMul)
 end
 
 -- The per-part folds: wound timers x healMul, bleeding time's fall / bleedMul, the infection level's rise x
--- infectMul then syncBodyPart (gate 1: the immediate carrier). A group at identity makes no Java call and
+-- infectMul then syncBodyPart (the immediate carrier). A group at identity makes no Java call and
 -- forgets its last values, so its first active minute folds nothing it did not see.
 local function partFolds(bd, L, E)
     local healOn = E.healMul < 1
@@ -450,7 +447,7 @@ local function partFolds(bd, L, E)
     end
 end
 
--- The cold fold (F3): a rise of catchACold since the last minute is scaled by coldMul; a fall and
+-- The cold fold: a rise of catchACold since the last minute is scaled by coldMul; a fall and
 -- the zero reset pass through. At identity no Java call is made and the last value is forgotten.
 local function coldFold(bd, L, E)
     if E.coldMul == 1 then
@@ -469,7 +466,7 @@ local function coldFold(bd, L, E)
     L.cold = c
 end
 
--- The spontaneous bruise (F4): with probability E.bruise per game minute (0 unless vitamin C is clinical; the
+-- The spontaneous bruise: with probability E.bruise per game minute (0 unless vitamin C is clinical; the
 -- Severity dial already applied), a random part starts bleeding at BRUISE_T0, synced at once.
 local function bruise(bd, L, E, dtM)
     if not (E.bruise > 0) then return end
@@ -509,9 +506,9 @@ local function painPart(bd, L, i)
     return part
 end
 
--- The symptoms' added pain (Plan 18 Task 3; spec section 2.1): each part whose target P[i] (K.effects.symptoms, the
+-- The symptoms' added pain: each part whose target P[i] (K.effects.symptoms, the
 -- half dip included) is above 0 is set to it once a minute when it reads under it, so the level holds with vanilla's
--- server decay between minutes (Plan 18 Task 1 J3; x491-20261021-061440 read the client's copy follow with no sync);
+-- server decay between minutes (the client's copy follows with no sync);
 -- a part at or over its target is left as it is, so a higher added pain is never lowered: vanilla's treatment actions
 -- add to it (ISDisinfect, ISStitch, ISRemoveBullet and ISCleanBurn set get + their pain). Two Java calls a painful part
 -- a minute (the read and the set); a part the cause no longer names is not touched and decays on its own.
@@ -586,15 +583,15 @@ local function step(username, player, record, body, dtM, ageH, ctx)
     F.boutVig = asleep and a.boutVig == true
     F.starve = phase
     -- 24 unfed hours or more on the starvation clock (K.drain.unfedH), before day 14; the hold applies to a body of normal BMI only: a grade the BMI
-    -- already set stays (S0115; Plan 15 Task 4 fix 1, review M4)
+    -- already set stays (S0115)
     F.starveEarly = D.starvedH >= 24 and phase < 3 and not (finite(a.bmi) and a.bmi > 0 and a.bmi < K.effects.PE_BMI_OK)
-    -- the Overfull level of the stomach's whole mass, the client moodle's own number (Plan 15 Task 8)
+    -- the Overfull level of the stomach's whole mass, the client moodle's own number
     F.overfull = K.view.overfullOf(record)
-    -- only levels 3 and 4 carry rows (and the heal's refusal gate), so 1 and 2 never move the key (fix 1, review L4)
+    -- only levels 3 and 4 carry rows (and the heal's refusal gate), so 1 and 2 never move the key
     if F.overfull < 3 then
         F.overfull = 0
     end
-    -- the active stimulant set (NR.StimulantRealism, K.acute.useStimulants; Plan 15 Task 10): the hangover rows' set
+    -- the active stimulant set (NR.StimulantRealism, K.acute.useStimulants): the hangover rows' set
     F.stim = K.acute.C.MODE
     -- the Severity term sits above the flag terms at a 0.001 resolution, so no fractional dial can collide with a flag
     local dials = math.floor(sev * 1000 + 0.5) * 10000000 + phase * 100 + (bonusOn and 10 or 0) + (excessOn and 1 or 0)
@@ -609,7 +606,7 @@ local function step(username, player, record, body, dtM, ageH, ctx)
         rebuilt = true
         EFF.stats.rebuilds = EFF.stats.rebuilds + 1
     end
-    -- 3b. the lethal causes' symptoms on each cause's progress (Plan 18, K.effects.symptoms), every minute: the endurance
+    -- 3b. the lethal causes' symptoms on each cause's progress (K.effects.symptoms), every minute: the endurance
     -- cap, the mood floors and the added pain per part; the day length read only while a cause is active (pain can apply)
     local symDay = 0
     if D.mask > 0 then
@@ -656,8 +653,8 @@ local function step(username, player, record, body, dtM, ageH, ctx)
         local m = E.healMul
         if D.active then m = 0 end
         if rebuilt or L.regen == nil or L.regen ~= m or wasState ~= nowState then
-            -- the food heal: 0 under a drain or refusing at Overfull K.view.REFUSE_AT (fix 1, review M1); else REGEN_FOOD scaled to the day
-            -- length, read only here, on a rebuild, a state change, a new healMul or a first sight (review I2)
+            -- the food heal: 0 under a drain or refusing at Overfull K.view.REFUSE_AT; else REGEN_FOOD scaled to the day
+            -- length, read only here, on a rebuild, a state change, a new healMul or a first sight
             local foodHeal = 0
             if not D.active and F.overfull < K.view.REFUSE_AT then
                 local dayMin = NR.read.dayMin(ctx, K.drain.DAY_MINUTES)
@@ -673,9 +670,9 @@ local function step(username, player, record, body, dtM, ageH, ctx)
         -- 9. the bruise
         bruise(bd, L, E, dtM)
         -- 10. the drain's health write: min(rate x dtM, health - target), never past the target (ReduceGeneralHealth never
-        -- overshoots, #3898); overall health is read only while a ceiling applies (a state active or recovering, Plan
-        -- 17 revision R2). Under the target, vanilla's own regeneration heals toward it, never above (fix 1, ruling L2):
-        -- only one side acts in a minute, so no sawtooth.
+        -- overshoots, #3898); overall health is read only while a ceiling applies (a state active or recovering).
+        -- Under the target, vanilla's own regeneration heals toward it, never above: only one side acts in a minute,
+        -- so no sawtooth.
         if D.active then
             local health = num(bd, "getOverallBodyHealth", nil)
             local take = K.drain.take(D, health)
@@ -722,7 +719,7 @@ function EFF.minute(username, player, record, body, dtM, ageH, ctx)
 end
 
 -- The pipeline's effects step: it runs only when the nutrients step reached the end of its minute and
--- stamped ctx.body, ctx.dtM and ctx.ageH (where the nutrients step once called it by hand), and keeps that call's guard, its
+-- stamped ctx.body, ctx.dtM and ctx.ageH, and keeps the guard, its
 -- counter (NR.server.nutrients.stats.effectsErrors) and its log line.
 function EFF.step(username, player, record, ctx)
     if ctx == nil or ctx.body == nil then return end
@@ -734,7 +731,7 @@ function EFF.step(username, player, record, ctx)
     end
 end
 
--- The drain options (Plan 17 Task 3, spec section 2.4): the options poll's deathPace and healthCombine and the minute's
+-- The drain options: the options poll's deathPace and healthCombine and the minute's
 -- hoisted day length (NR.read.minuteDayMin, K.drain.DAY_MINUTES when the sandbox is unreadable) written in place into
 -- K.drain.OPT, which every K.drain.step this minute reads: once a server minute, called by the players' minute after
 -- its hoist and before any player's work (NR_Server_Players' P.minute), never per player, with no allocation.
