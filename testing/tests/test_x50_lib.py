@@ -18,6 +18,7 @@ and stamp, the syncs; R3 scale and restore; R1 the ring and the writer's floor; 
 run checks the driver's reads, its pairing and its grades end to end; it is no oracle of the mod (the kernel and
 adapter tests are)."""
 import copy
+import glob
 import importlib
 import json
 import os
@@ -110,7 +111,11 @@ def test_preboot_on_the_repository_and_its_refusals(key):
         # the gate still holds on the live tree (0baf815a's precedent: the gate stays proved after the runs)
         assert ok is False
         nested = ("profile_checks", "harness_found", "fixture", "prerun")
-        rest = {k: v for k, v in pre.items() if k not in nested and k != "no_prior_artifact"}
+        # staged_from_is_mod_head is the pre-run gate on the frozen lib's STAGED_FROM; mod/ moves after a run (21f788a7),
+        # so after the run the lib's build is pinned to the run's own manifest instead
+        rest = {k: v for k, v in pre.items() if k not in nested and k not in ("no_prior_artifact", "staged_from_is_mod_head")}
+        art = glob.glob(os.path.join(REPO, "testing", "artifacts", key + "-*", L.SESSIONS[key]["artifact"]))[0]
+        assert json.load(open(art, encoding="utf-8"))["manifest_gate"]["mod_commit"] == L.STAGED_FROM
         assert all(v is True for v in rest.values()), rest
         assert all(v is True for k, v in pre["profile_checks"].items() if k != "error"), pre["profile_checks"]
     else:
