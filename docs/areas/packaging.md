@@ -4,6 +4,8 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: the nutrition-desi
 ## Rules
 <a id="rules"></a>
 
+- Never rely on a checksum-bypass role to seat a client whose script files differ: the bypass clears the gate's flags but not the difference, and each side keeps the definitions it loaded with nothing reconciling them, so that client plays on item values the server does not hold [#1230/C/C-only, #0648/C/inference, #2073/C/inference].
+- Do not derive body order from `Mods=`: bodies replay sorted by the stored script path, so a mod's position in `Mods=` decides nothing about which body wins a key [#1055/M/n=2].
 - Declare one id per mod folder and put it in the build's version dir: the loader parses that one `mod.info` and never the folder name, so a second `mod.info` with another id is unaddressable [#0802/C/C-only, #0881/M].
 - Ship `common/` beside the version dir and keep only the build-specific files in the version dir: the version dir's file wins a same-relative-path collision and `common/` supplies everything the version dir does not ship [#1318/M/n=1].
 - Give a build-independent payload a version dir holding nothing but a `mod.info`: an empty version dir costs the mod nothing and the `common/` tree still runs [#0831/M/n=1].
@@ -14,11 +16,9 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: the nutrition-desi
 - Ship byte-identical script files on both sides of a multiplayer session: the gate hashes file content with every CR byte dropped, so a mismatch is a disconnect rather than a silent degrade [#1182/C/C-only, #1231/C/C-only].
 - Treat every Workshop update that changes a shipped script file as a server event: a client holding the new bytes and a server still running the old ones fail the join checksum against each other, a reading no run has exercised [#1182/C/C-only, #2077/C/inference].
 - Treat every Workshop update that changes any shipped `.lua` file, a comment or whitespace included, as a server event exactly as a script file: a user-role client whose copy of one Lua file differs by one byte is kicked at the join, and only a line-ending-only difference is forgiven [#3378/C/inference, #3374/M/n=1, #3376/M/n=1, #3377/C/C-only].
-- Never rely on a checksum-bypass role to seat a client whose script files differ: the bypass clears the gate's flags but not the difference, and each side keeps the definitions it loaded with nothing reconciling them, so that client plays on item values the server does not hold [#1230/C/C-only, #0648/C/inference, #2073/C/inference].
 - Keep every Lua file off the vanilla relative paths a resident mod already replaces: the file map keeps one file per relative path, so this mod and that neighbour would each lose the whole file to the other on load order [#1173/C/C-only, #1457/C/snapshot, #2074/C/inference].
 - Give the mod's command-bus module a name no other mod on the server uses: the bus is one namespace shared with every other mod's command sites on that server [#1153/C/C-only, #2055/C/inference].
 - Render through `MoodleFramework` or the mod's own panels rather than patching the widgets a resident interface mod already patches: `CleanUI` redraws the status surfaces on this server [#1083/C/snapshot].
-- Do not derive body order from `Mods=`: bodies replay sorted by the stored script path, so a mod's position in `Mods=` decides nothing about which body wins a key [#1055/M/n=2].
 - Declare `require=` on the mod whose item a shipped block names, in whichever mod ships the block: with that mod absent the append arm is never taken and the block declares a new partial item instead of overriding one — a code reading no run has exercised — while a failed `require=` leaves the requiring mod unloaded instead [#1002, #0811/C/C-only, #2076/C/inference].
 - Name each version dir for the build its files were verified on and no later: the resolver takes the highest name at or below the running build, so a dir named for a later build is never read while one named for the verified build keeps running, unverified, on every later build until a newer-named dir ships [#3505/C/C-only, #2075/C/inference].
 - Read a mod's `mod.info` rather than the loader's error text when a mod does not load: a failed `versionMin` or `versionMax` gate, a missing `require=` and a folder that is not there all print the same not-found line [#0872/C/C-only, #0812/C/C-only].
@@ -32,119 +32,83 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: the nutrition-desi
 
 ## How it works
 
-A nutrition overhaul ships as one mod folder on the Workshop, and every mechanism that folder meets is owned by another page.
-The id chain, the version dirs, the missing-mod failure and the checksum gate are [the anatomy page](../platform/mod-anatomy.md), and the file map and the path collisions are [the loader page](../platform/loader-and-scripts.md).
-This page is the reading of those mechanisms for one mod that has to join a server it does not control, beside mods it did not write, on a build that will not stay current.
-It owns its rules and no fact or number: every claim below is cited to the row that owns it, and the untagged sentences are this mod's reading of those rows.
-It is in five parts — the folder, the checksum, the neighbours, the seats it shares with them and the shelf life — and the compatibility approaches the neighbours leave open are under [Options](#compat-options).
-Every run it cites was taken on the dedicated-server path, and every corpus reading is a dated snapshot of an installed tree ([lessons.md#corpus-drift](../platform/lessons.md#corpus-drift)).
+This section reads [the anatomy page](../platform/mod-anatomy.md) (the id chain, the version dirs, the missing-mod failure, the checksum gate) and [the loader page](../platform/loader-and-scripts.md) (the file map, the path collisions) for one mod that joins a server it does not control, beside mods it did not write.
+Every run cited was taken on the dedicated-server path, and every corpus reading is a dated snapshot ([lessons.md#corpus-drift](../platform/lessons.md#corpus-drift)).
 
 <a id="layout"></a>
 ### This mod's folder shape
 
-The mod is one folder with one declared id, and the folder's name plays no part in it.
-The loader reads exactly one `mod.info` per folder, the version dir's when it has one and `common/`'s otherwise, and never the folder name ([#0802/C/C-only], [mod-anatomy.md#id-chain](../platform/mod-anatomy.md#id-chain)).
-A second `mod.info` with another id is therefore not a second mod but an unaddressable file, so the layout carries exactly one [#0881/M].
-A Workshop folder whose name drifts from the id loads anyway, which is why nothing in this mod depends on its install path ([#1116/M/n=2], [mod-anatomy.md#folder-name](../platform/mod-anatomy.md#folder-name)).
-Where that one `mod.info` sits is the choice the measured arms settle: a folder carrying `common/mod.info` alone is the shape the requested-id lookup has never been probed with, so this mod keeps its `mod.info` in the version dir until the probe lands ([#0823/C/C-only/open], [open-questions.md#x21](open-questions.md#x21)).
-One corpus mod with that shape boots in normal play, which shows the shape works and does not probe the lookup ([#0821/M/n=1], [#1613/C/snapshot]).
+The mod is one folder with one declared id: the loader reads one `mod.info`, the version dir's when there is one, and never the folder name, so a folder whose name drifts from the id loads anyway ([#0802/C/C-only], [#1116/M/n=2], [mod-anatomy.md#id-chain](../platform/mod-anatomy.md#id-chain)).
+A folder carrying `common/mod.info` alone is a shape the requested-id lookup has never been probed with, so the `mod.info` stays in the version dir ([#0823/C/C-only/open], [open-questions.md#x21](open-questions.md#x21)); one corpus mod with that shape boots in normal play, which does not probe the lookup ([#0821/M/n=1], [#1613/C/snapshot]).
 
-The payload splits on one question: does a file differ between builds.
-A file that does not goes in `common/`, and a file that does goes in the version dir, which wins a same-relative-path collision while `common/` supplies everything else ([#1318/M/n=1], [mod-anatomy.md#version-dirs](../platform/mod-anatomy.md#version-dirs)).
-A version dir holding nothing but the `mod.info` is the arm measured to cost nothing, and it is the shape a payload with no per-build file takes [#0831/M/n=1].
-Three arms are measured: that one, the colliding-files arm and a version dir shipping `media/sandbox-options.txt` that collides with nothing, whose option loaded [#3361/M/n=1]; any other version-dir file that collides with nothing is unmeasured, and whether a shadowed `common/` copy ever runs is unmeasured ([#1170/M/n=2], [#0835/M/n=2/open], [open-questions.md#x22](open-questions.md#x22)).
-The layout therefore stays inside the measured shapes: a version dir that holds the manifest alone, one that ships only files shadowing a `common/` copy, or the shipped one, a version dir carrying the manifest and the options file beside a `common/` tree, which booted clean on both sides and, staged, on a two-client session ([#2746/M/n=1], [#3316/M/n=1]).
-The day a build needs its own copy of a file, the `common/` copy it shadows becomes unexecuted code on that build, as read on one mod in one session, and the corpus mod that ships that shape carries shadowed copies calling members this build removed ([#1086/M/n=1], [lua-platform.md#removed-apis](../platform/lua-platform.md#removed-apis)).
-Such a copy is deleted or kept building against the live copy's interface, because nothing in the mod would notice if the merge ever ran the other way.
+A file that does not differ between builds goes in `common/`, and one that does goes in the version dir, which wins a same-relative-path collision ([#1318/M/n=1], [mod-anatomy.md#version-dirs](../platform/mod-anatomy.md#version-dirs)).
+Three version-dir arms are measured: the manifest alone [#0831/M/n=1], colliding files [#1170/M/n=2], and a `media/sandbox-options.txt` that collides with nothing, whose option loaded [#3361/M/n=1]; whether a shadowed `common/` copy ever runs is unmeasured ([#0835/M/n=2/open], [open-questions.md#x22](open-questions.md#x22)).
+The shipped shape, the manifest and the options file in the version dir beside a `common/` tree, booted clean on both sides and, staged, on a two-client session ([#2746/M/n=1], [#3316/M/n=1]).
+A `common/` copy a version-dir file shadows is unexecuted code on that build, read on one mod in one session [#1086/M/n=1].
 
-As shipped, the mod's folder holds `42.21/`, which carries `mod.info` and `media/sandbox-options.txt`, and `common/`, which carries every Lua file and the translation files, with the four EN translation files sitting at vanilla Translate paths, where they merge key by key [#1318/M/n=1], and no other file at a vanilla relative path.
-The version dir is named for the build its files were verified on, `42.21` (it was `42.20.4` before the 42.21 re-baseline), because the resolver scores a name as the major times 1000 plus the minor and ignores the third component, so that dir is read on this build and on every later one until a newer-named dir ships [#0826/C/C-only].
-That shape, a version dir shipping a file that collides with nothing, booted clean on both sides in the acceptance session [#2746/M/n=1].
-A mod option declared only in the version dir's `media/sandbox-options.txt`, a file colliding with nothing in `common/`, loaded: `NR.Severity` 1.5 set in the server's sandbox file read 1.5 as the mod's server option and as `SandboxVars.NR.Severity` on the server and both clients, against 1 on a control boot with no override. [#3361/M/n=1]
-On 42.21 the staged 1.0.0 upload copy carried a set value the same way: `NR.VisibilityMode` 3, against its declared default 2, set in the server's options file before the boot, read 3 as `SandboxVars.NR.VisibilityMode` and as the mod's own option on the server, the -debug client `admin` and the release client `bob`, while the next boot with no override read the default 2 [#4001/M/n=1].
-The upload copy re-staged from mod/ at 62de3d5a carried both Plan 17 options the same way: `NR.DeathPace` 2 and `NR.HealthCombine` 3, against their declared defaults 3 and 2, set in the server's options file before the boot, read 2 and 3 as `SandboxVars.NR.DeathPace` and `SandboxVars.NR.HealthCombine` on the server, `admin` and `bob`, and on the server as the mod's polled options and the drain's `K.drain.OPT`, while each client's copy of the mod's server options table read the defaults 3 and 2, since the mod reads the options on the server only [#4033/M/n=1].
-On build 42.21.0 the final upload copy, staged from mod/ at 4ff68475 after revision R2, carried both Plan 17 sandbox options from the server's options file to the server and both clients: `NR.DeathPace` 1 and `NR.HealthCombine` 1, off their declared defaults 3 and 2 and off the values 2 and 3 of the earlier upload copy's boot, merged into the file before the boot and kept by the server's boot-time rewrite, read 1 and 1 as `SandboxVars.NR.DeathPace` and `SandboxVars.NR.HealthCombine` on the server, the -debug client `admin` and the release client `bob`, at a read after both clients were ready and again at the end, and on the server as the mod's polled `options.deathPace` 1 and `options.healthCombine` 1 and as the drain's `K.drain.OPT.pace` 1 and `K.drain.OPT.combine` 1 at both reads; each client's copy of the mod's server options table read the declared defaults 3 and 2 [#4054/M/n=1].
-On build 42.21.0 the upload copy staged from mod/ at 0b1b3f11 carried both drain options the same way to the server and its -debug client: `NR.DeathPace` 2 and `NR.HealthCombine` 1, off their declared defaults 3 and 2, merged into the file before the boot and kept by the server's boot-time rewrite, read 2 and 1 as `SandboxVars.NR.DeathPace` and `SandboxVars.NR.HealthCombine` on the server and `admin`, and on the server as the mod's polled `options.deathPace` 2 and `options.healthCombine` 1 and as the drain's `K.drain.OPT.pace` 2 and `K.drain.OPT.combine` 1; `NutritionRevamp.version` read `1.0.0` on both sides, and the server log carried no mod error line [#4172/M/n=1].
-The staged pre-release build of 1a8e207, the folder `tools/release_pack.py stage` writes from this tree, matched the repository byte for byte: 65 files staged, each equal by sha256 to its repository twin and to its manifest entry, and the copies the harness placed for the server and both clients equal too [#3315/M/n=1].
-Booted, that build printed one self-report line on the server, reading `itemPass=true`, `legacyMirror=on`, `hook=true`, `limitations=9` and `nutritionOn=false` at the options' defaults [#3312/M/n=1].
-Each client printed one line of its own, reading `itemPass=true` and `frameworks=none` with no MoodleFramework installed [#3313/M/n=1].
-Which files ship in the version dir is settled as that measured shape: the manifest and `media/sandbox-options.txt` in `42.21/` (measured as `42.20.4/`, the same layout), everything else in `common/`, and no `common/` file shadowed by a version-dir file ([#3315/M/n=1], [#2746/M/n=1]).
-The manifest declares `versionMin=42.21` and no `versionMax`, so a server older than the verified build drops the mod with the line an absent folder prints and the operator guide names that failure mode ([#0812/C/C-only], [#0872/C/C-only]).
-The mod's release version is 1.0.0, staged for its first public release: `NR_Core.lua`'s version string and the version dir's `modversion` both read 1.0.0, and the release notes open with a 1.0.0 section [#3817/C/snapshot].
+As shipped, the folder holds `42.21/`, carrying `mod.info` and `media/sandbox-options.txt`, and `common/`, carrying every Lua file and the translation files; the four EN translation files sit at vanilla Translate paths, where they merge key by key [#1318/M/n=1], and no other file sits at a vanilla relative path.
+The version dir is named for the verified build because the resolver scores a name as the major times 1000 plus the minor and ignores the third component, so `42.21` is read on this build and every later one until a newer-named dir ships [#0826/C/C-only].
+Two names the resolver scores alike have no declared winner, so the layout never ships two version dirs that a third component alone separates [#0880/C/C-only].
+The manifest declares `versionMin=42.21` and no `versionMax`, so an older server drops the mod with the line an absent folder prints ([#0812/C/C-only], [#0872/C/C-only]).
+The release version is 1.0.0: `NR_Core.lua`'s version string and the version dir's `modversion` both read 1.0.0, and the release notes open with a 1.0.0 section [#3817/C/snapshot].
 A row of the takeover era that names its build's version names the pre-release build its bound gives, never this release.
 The operator guide, the release notes and the compatibility table ship at the mod folder's root and travel with the item, the staged copy carrying them as it carries every other file [#3315/M/n=1].
 
-The version dir's name is read as a build number, and the resolver's rules decide which dir a later build takes, which the [shelf-life reading](#shelf-life) below follows through ([#3505/C/C-only], [#0826/C/C-only]).
-Two names the resolver scores alike have no declared winner, the tie going to the directory listing, so the layout never ships two version dirs that a third version component alone separates [#0880/C/C-only].
+The options file in the version dir carries a set value to every side.
+On 42.20.4, `NR.Severity` 1.5 set in the server's sandbox file read 1.5 as the mod's server option and as `SandboxVars.NR.Severity` on the server and both clients, against 1 on a control boot with no override. [#3361/M/n=1]
+On 42.21 the staged 1.0.0 upload copy read `NR.VisibilityMode` 3, against its declared default 2, as `SandboxVars.NR.VisibilityMode` and as the mod's own option on the server, the -debug client `admin` and the release client `bob`, while the next boot with no override read the default 2 [#4001/M/n=1].
+On 42.21.0 the final upload copy, staged from mod/ at 4ff68475, read `NR.DeathPace` 1 and `NR.HealthCombine` 1, off their declared defaults 3 and 2, as `SandboxVars.NR.DeathPace` and `SandboxVars.NR.HealthCombine` on the server, `admin` and `bob` after both clients were ready and again at the end, and on the server as the mod's polled `options.deathPace` 1 and `options.healthCombine` 1 and the drain's `K.drain.OPT.pace` 1 and `K.drain.OPT.combine` 1; each client's copy of the mod's server options table read the declared defaults 3 and 2 [#4054/M/n=1].
+On 42.21.0 the upload copy staged from mod/ at 0b1b3f11 read `NR.DeathPace` 2 and `NR.HealthCombine` 1, off their declared defaults 3 and 2, as `SandboxVars.NR.DeathPace` and `SandboxVars.NR.HealthCombine` on the server and `admin`, and on the server as the mod's polled `options.deathPace` 2 and `options.healthCombine` 1 and the drain's `K.drain.OPT.pace` 2 and `K.drain.OPT.combine` 1; `NutritionRevamp.version` read `1.0.0` on both sides, and the server log carried no mod error line [#4172/M/n=1].
 
-Inside `media/` the file map treats every file alike: one absolute path per relative path, and a script walk that drops a repeat ([#1046], [loader-and-scripts.md#file-map](../platform/loader-and-scripts.md#file-map)).
-Every relative path this mod ships is therefore a claim on a slot another mod could also want, and the only defence the loader offers is a path nobody else uses.
+On 42.20.4 the staged pre-release build of 1a8e207, the folder `tools/release_pack.py stage` writes, matched the repository byte for byte: 65 files staged, each equal by sha256 to its repository twin and to its manifest entry, and the copies the harness placed for the server and both clients equal too [#3315/M/n=1].
+Booted, it printed one self-report line on the server, reading `itemPass=true`, `legacyMirror=on`, `hook=true`, `limitations=9` and `nutritionOn=false` at the options' defaults [#3312/M/n=1], and one on each client, reading `itemPass=true` and `frameworks=none` with no MoodleFramework installed [#3313/M/n=1].
+
+Inside `media/` the file map keeps one absolute path per relative path and the script walk drops a repeat, so every relative path this mod ships is a claim on a slot, defended only by a path nobody else uses ([#1046], [loader-and-scripts.md#file-map](../platform/loader-and-scripts.md#file-map)).
 The item pass's script files take mod-unique basenames with no `template_` prefix, for the reasons [the item pass](item-pass.md#walls) gives ([#1047/C/C-only], [#1233/C/C-only]).
 No corpus mod keeps a nutrition key under `common/`, so a pass whose script files sit there has the loader's two-pass reading behind it and no shipped precedent ([#1561/C/snapshot], [#0827/C/C-only]).
-The Lua tree takes the folder names the game uses, and the `server/` folder is no boundary: a `server/` file runs in the client's Lua state too, so every one carries a runtime side test ([#1174/M/n=1], [overview.md#two-lua-states](../platform/overview.md#two-lua-states)).
-A script hook's target is a global defined in a `shared/` file for the same reason, which [the hook page](eat-and-cook-hooks.md) reads in full [#3510/C/inference].
-Item names ship in the B42 table layout, the only one this build reads, and they matter on the client alone, because a dedicated server resolves no mod item's display name ([#1025/M/n=1], [#1167/M/n=1], [#3206/M/n=2], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
-Every code path the mod runs is a file in this tree at load time, because no route on this build lets mod Lua compile a string into code ([#1172/C/C-only], [lua-platform.md#removed-apis](../platform/lua-platform.md#removed-apis)).
-A per-item handler, or a formula a server operator writes, is therefore data read by a handler the mod ships and never code the mod generates.
+A `server/` file runs in the client's Lua state too, so every one carries a runtime side test ([#1174/M/n=1], [overview.md#two-lua-states](../platform/overview.md#two-lua-states)), and a script hook's target is a global in a `shared/` file for the same reason [#3510/C/inference].
+Item names ship in the B42 table layout, the only one this build reads, and matter on the client alone, because a dedicated server resolves no mod item's display name ([#1025/M/n=1], [#1167/M/n=1], [#3206/M/n=2], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
+No route on this build lets mod Lua compile a string into code, so a per-item handler or an operator's formula is data read by a shipped handler ([#1172/C/C-only], [lua-platform.md#removed-apis](../platform/lua-platform.md#removed-apis)).
 
-The manifest declares what the loader acts on and nothing it ignores.
-`require=` is the one load-order key a dedicated server honours, and a missing or gated requirement takes the requiring mod down with it ([#0811/C/C-only], [mod-anatomy.md#load-order-declarations](../platform/mod-anatomy.md#load-order-declarations)).
-Every `require=` this mod declares is therefore a mod the server must run for this one to load at all, which makes a dependency a deployment requirement rather than a preference.
-`loadModBefore=`, `loadModAfter=` and `incompatible=` change nothing on a dedicated server, so none of them is a compatibility tool ([#0814/C/C-only], [#0813/C/C-only]).
-A version gate is a hard gate that reports exactly as an absent folder does, and whether to declare one is a question the [shelf life](#shelf-life) poses ([#0812/C/C-only], [#0872/C/C-only]).
-A mod the server names and cannot find does not fail the boot: the server boots with zero errors and a client joins with the mod simply inactive ([#1817/M/n=1], [mod-anatomy.md#missing-mod](../platform/mod-anatomy.md#missing-mod)).
-A gated mod and a mod missing a requirement take the same code path, because all three states print one not-found line and drop the id before any mod loads, so the clean boot measured for an absent folder carries over to them by that path rather than by a run of their own [#0871/C/C-only, #0872/C/C-only, #1817/M/n=1].
-None of those states stops the server or a joining player, so a server that has lost this mod runs clean on vanilla numbers, and a mod whose requirement is absent is simply not there.
-A joining client runs the server's list rather than its own, so a player's local enable of this mod proves nothing about what a session ran ([#0876/C/C-only], [mod-anatomy.md#join](../platform/mod-anatomy.md#join)).
-Before any server boots, the layout lint checks the folder against these rules, its missing-version-dir error kept stricter than the engine on purpose for this project's own mods ([#0858/C/snapshot], [tools.md#mod-lint](../reference/tools.md#mod-lint)).
+`require=` is the one load-order key a dedicated server honours, and a missing or gated requirement takes the requiring mod down, so every `require=` is a deployment requirement ([#0811/C/C-only], [mod-anatomy.md#load-order-declarations](../platform/mod-anatomy.md#load-order-declarations)); `loadModBefore=`, `loadModAfter=` and `incompatible=` change nothing on a dedicated server ([#0814/C/C-only], [#0813/C/C-only]).
+A mod the server names and cannot find does not fail the boot: the server boots with zero errors and a client joins with the mod inactive ([#1817/M/n=1], [mod-anatomy.md#missing-mod](../platform/mod-anatomy.md#missing-mod)).
+A gated mod and a mod missing a requirement take the same code path, all three states printing one not-found line and dropping the id before any mod loads, so the clean boot carries over to them by that path rather than by a run of their own [#0871/C/C-only, #0872/C/C-only, #1817/M/n=1].
+A joining client runs the server's list rather than its own, so a player's local enable proves nothing about what a session ran ([#0876/C/C-only], [mod-anatomy.md#join](../platform/mod-anatomy.md#join)).
+The layout lint checks the folder before any boot, its missing-version-dir error stricter than the engine on purpose ([#0858/C/snapshot], [tools.md#mod-lint](../reference/tools.md#mod-lint)).
 
 <a id="checksum-plan"></a>
 ### What this mod does about the checksum gate
 
-Every script file this mod ships is hashed at load and compared at the join, so the item pass reaches a multiplayer server only on the gate's terms ([#1182/C/C-only], [mod-anatomy.md#checksum-gate](../platform/mod-anatomy.md#checksum-gate)).
-What the gate hashes, the one difference it forgives, how each side acts on a mismatch and what a bypass role clears are the anatomy page's, and this section is the plan against them.
-The gate has three arms, one per checksum flag a bypass role clears; the anatomy page reads the script and Lua arms and leaves the animation arm outside its coverage ([#1230/C/C-only], [#3374/M/n=1], [mod-anatomy.md#walls](../platform/mod-anatomy.md#walls)).
-The plan is one answer applied to all three: the server and every client load the same bytes, from one build of the mod, so no arm has a difference to find.
+Every script file the session loads is hashed at load and compared at the join, so the item pass reaches a multiplayer server only on the gate's terms ([#1182/C/C-only], [mod-anatomy.md#checksum-gate](../platform/mod-anatomy.md#checksum-gate)).
+The gate has three arms, one per flag a bypass role clears, and the anatomy page reads the script and Lua arms ([#1230/C/C-only], [#3374/M/n=1], [mod-anatomy.md#walls](../platform/mod-anatomy.md#walls)).
+The plan is one answer to all three: the server and every client load the same bytes from one build of the mod.
 
-The script arm is the one this mod is certain to meet, because the item pass is script data by design, and script data is free at run time only at the price of this gate ([#1243/M/n=1], [loader-and-scripts.md#per-side-load](../platform/loader-and-scripts.md#per-side-load)).
-The pass's script files are generated once and published as they stand: a server's copy is never edited by hand and the generator is never re-run on one machine alone, because any byte the two copies disagree on is a disconnect rather than a degraded item [#1182/C/C-only].
-A conversion of line endings between the repository and the published item is the one change the plan can ignore, because the gate's one tolerance covers it [#1182/C/C-only].
-An editor that adds a byte-order mark or trims trailing space is not harmless in the same way, so the published files are the generator's output and nothing else.
-The hash covers every script file the session loads rather than this mod's alone, and the set a joining client loads is the server's `Mods=` list rather than its own, so this mod keeps its own files identical and can do nothing about a neighbour's ([#1182/C/C-only], [#0876/C/C-only]).
+The item pass is script data, free at run time only at the price of this gate ([#1243/M/n=1], [loader-and-scripts.md#per-side-load](../platform/loader-and-scripts.md#per-side-load)).
+Its files are generated once and published as they stand, never edited on one machine, because any byte the copies disagree on is a disconnect, and a line-ending conversion is the one change the gate's tolerance covers [#1182/C/C-only].
+An editor's byte-order mark or trimmed trailing space is not covered, so the published files are the generator's output and nothing else.
+A joining client loads the server's `Mods=` list, so this mod keeps its own files identical and can do nothing about a neighbour's ([#1182/C/C-only], [#0876/C/C-only]).
 
-A Workshop update is where the plan is most likely to fail, because an update is the one moment the bytes change legitimately.
-Steam rewrites the tree inside a Workshop item underneath an install, so a client that has taken an update and a server still running the old files meet at the join with two different hashes ([#1841/C/snapshot], [#1182/C/C-only]).
-Every update that touches a script file is therefore a server event, reaching players cleanly only once the server and its clients run the same version: a probe mod whose two copies differed by one byte disconnected its client without reaching the game, though no Workshop update itself has been run [#1282/M/n=1].
-A mismatch surfaces as a disconnect, with the two sides' separate arms acting at their own times, which the anatomy page states [#1231/C/C-only].
-A player who cannot stay connected after an update is therefore this section's failure mode before it is anyone else's.
-How the script files reach every side as one set of bytes is settled as staging from one command: the staged tree is the only copy a server or a client is given, and the harness deployed it to the server and both clients with all 65 files equal ([#3315/M/n=1], [#3314/M/n=1]).
+Steam rewrites a Workshop item's tree underneath an install, so a client that took an update and a server on the old files meet with two different hashes ([#1841/C/snapshot], [#1182/C/C-only]).
+A probe mod whose two copies differed by one byte disconnected its client without reaching the game, though no Workshop update itself has been run [#1282/M/n=1]; each side's arm acts at its own time [#1231/C/C-only].
+The script files reach every side as one set of bytes by staging from one command: the staged tree is the only copy a server or a client is given [#3315/M/n=1].
 A release tool can hash every script file with the gate's own tolerance, every CR byte dropped, and name the files whose hash moved between two releases, so an update that will fail the join checksum is known before it ships [#3325/C/inference].
 In the worked example, the release tool hashes every script file under `media/scripts/` and every Lua file under `media/lua/` with every CR byte dropped, and against the previous release's manifest prints `SERVER EVENT` with the count of script or Lua files added, removed or whose hash moved. [#3814/C/C-only]
 
-The bypass role is an operator's lever, and the plan never leans on it.
-A role that clears the flags seats a client whose scripts differ, and because each side keeps the definitions it loaded with nothing reconciling them, that client plays on item values the server does not hold ([#1230/C/C-only], [#3139/M/n=1], [#0648/C/inference]).
-The bypass turns a loud failure into a silent disagreement over exactly the numbers this mod exists to set.
+A bypass role seats a client whose scripts differ, and each side keeps the definitions it loaded with nothing reconciling them, so that client plays on item values the server does not hold ([#1230/C/C-only], [#3139/M/n=1], [#0648/C/inference]): a loud failure becomes a silent disagreement over the numbers this mod exists to set.
 
-The Lua arm gates as the script arm does: one byte changed inside a comment of one of this mod's Lua files disconnected a `user`-role client at the join, while a copy differing only in line endings joined ([#3374/M/n=1], [#3376/M/n=1]).
-The mod's Lua ships under the same one-build discipline as its scripts, so an update touching any `.lua` file is a server event too [#3378/C/inference, #3374/M/n=1].
-On 42.21 the staged 1.0.0 upload copy met the Lua arm the same way: a `user`-role client holding a copy of `NR_Core.lua` one byte off inside its first comment line was kicked with the anti-cheat reason `Lua incorrect checksum` and never reached the game, while the admin client stayed connected [#4003/M/n=1].
-The animation arm is unread, so the plan treats it as if it gated, and a nutrition overhaul has no reason to ship an animation at all.
+The Lua arm gates as the script arm does: one byte changed inside a comment of one of this mod's Lua files disconnected a `user`-role client at the join, while a copy differing only in line endings joined ([#3374/M/n=1], [#3376/M/n=1]), so an update touching any `.lua` file is a server event too [#3378/C/inference, #3374/M/n=1].
+On 42.21 a `user`-role client holding a copy of the staged 1.0.0 `NR_Core.lua` one byte off inside its first comment line was kicked with the anti-cheat reason `Lua incorrect checksum` and never reached the game, while the admin client stayed connected [#4003/M/n=1].
+The animation arm is unread, so the plan treats it as gating, and a nutrition overhaul ships no animation.
 
-The plan's premise is measured: a client whose copy of one script file differed by one byte was disconnected before it reached the game, while a copy differing only in line endings joined and stayed ([#1282/M/n=1], [#3138/M/n=1], [mod-anatomy.md#checksum-gate](../platform/mod-anatomy.md#checksum-gate)).
-So the item pass reaches a multiplayer server exactly when the bytes agree, and the plan is a requirement a run has shown for one probe file rather than a precaution.
-The staged pre-release build of 1a8e207 met the gate on the two-client fixture: the release client `bob` reached ready 40.8 s after its launch and the mod's player adapter saw it, and neither the server log nor `bob`'s console carried a checksum line naming a mismatch, a kick or a disconnect, and `bob` sat in the server's player list when it was read [#3314/M/n=1].
-The staged 1.0.0 upload copy of 1c02d0e9 met the gate the same way on 42.21: `bob` fully connected 29.017 s after its join attempt, the version read `1.0.0` on the server and both clients, and no anti-cheat or checksum-mismatch line appeared in the server's logs or either client's console [#4002/M/n=1].
-The upload copy re-staged from mod/ at 62de3d5a met the gate the same way: `bob` fully connected 35.856 s after its join attempt, the version read `1.0.0` on the server and both clients, the server's user log carried no anti-cheat line, and the server log and both client consoles no checksum-mismatch line [#4034/M/n=1].
-On build 42.21.0 the release client `bob` joined the server of the final 1.0.0 upload copy, staged from mod/ at 4ff68475 after revision R2, and stayed: `admin` and `bob` both reached ready, `NutritionRevamp.version` read `1.0.0` on the server, `admin` and `bob`, the server's user log recorded `bob` fully connected 31.624 s after its `attempting to join` line, the player list read `admin` and `bob` at the end, the server's user log carried no anti-cheat line, the server log and both client consoles no checksum-mismatch line, the server log no mod error line, and the -debug client `admin` never stopped in the debugger [#4055/M/n=1].
+A client whose copy of one script file differed by one byte was disconnected before it reached the game, while a copy differing only in line endings joined and stayed ([#1282/M/n=1], [#3138/M/n=1]).
+On build 42.21.0 the release client `bob` joined the server of the final 1.0.0 upload copy, staged from mod/ at 4ff68475, and stayed: `admin` and `bob` both reached ready, `NutritionRevamp.version` read `1.0.0` on the server, `admin` and `bob`, the server's user log recorded `bob` fully connected 31.624 s after its `attempting to join` line, the player list read `admin` and `bob` at the end, the server's user log carried no anti-cheat line, the server log and both client consoles no checksum-mismatch line, the server log no mod error line, and the -debug client `admin` never stopped in the debugger [#4055/M/n=1].
 
 <a id="resident-stack"></a>
 ### The mods beside it on a live server
 
-The mods that will sit beside this one are the server's approved list, which is the installed corpus the catalog sweeps, and it offers no vanilla food override at all [#1674/C/snapshot].
-Every nutrition-bearing script block in it adds a new item, so the item pass contests no food key with any resident mod, a census taken over the script-signalled mods only ([#1595/C/snapshot], [catalog.md#corpus-facts](../facts/other-mods/catalog.md#corpus-facts)).
-What the residents touch instead is the ground around the pass: the vanilla Lua files, the command bus, the player's modData table, the calorie store, the status screens and the numbers the pass moves.
+The neighbours are the server's approved list, the installed corpus the catalog sweeps, which offers no vanilla food override [#1674/C/snapshot]; every nutrition-bearing script block in it adds a new item, so the item pass contests no food key, a census over the script-signalled mods only ([#1595/C/snapshot], [catalog.md#corpus-facts](../facts/other-mods/catalog.md#corpus-facts)).
 Build status rules none of the nutrition-signalled residents out: every one resolves a version folder this build reads and none lints at error level [#1645/C/snapshot].
-Every reading below is a static read of shipped files on a dated sweep, and none of these mods was booted beside this one ([catalog.md#walls](../facts/other-mods/catalog.md#walls)).
+Every reading below is a static read of shipped files on a dated sweep, none booted beside this mod ([catalog.md#walls](../facts/other-mods/catalog.md#walls)).
 
 | resident mod | what it touches | what that asks of this mod | tags |
 |---|---|---|---|
@@ -158,90 +122,55 @@ Every reading below is a static read of shipped files on a dated sweep, and none
 | `MoodleFramework` | server-approved, and whole on this build under the merge rule | the rendering route [the UI page](ui-and-moodles.md) weighs | [#1070/C/snapshot], [#1319/C/snapshot] |
 | `Horse` | the script-signalled set's one vanilla-name collision, a redefinition of a base item that is not a food | nothing: the pass and it name no item in common | [#1594/C/snapshot] |
 
-The one resident this library knows to hold vanilla Lua paths wholesale is the interface mod, most of whose live tree replaces vanilla files [#1457/C/snapshot].
-A file of this mod at a path it already holds would lose to it or displace it whole, decided by the load order, with the loader's `overrides` print the only witness ([#1173/C/C-only], [#1176/C/C-only], [loader-and-scripts.md#file-map](../platform/loader-and-scripts.md#file-map)).
-Its fork of the inventory context-menu file also means a vanilla change to that menu never reaches a server running it, whatever this mod ships [#1371/C/snapshot].
-With it resident, a raising listener on that menu's event shows as the interface mod's own printed failure line rather than a raw error, which is the form a driver's grep has to expect ([#1369/C/C-only], [autocook.md#compat](../facts/other-mods/autocook.md#compat)).
+A file of this mod at a path the interface mod already holds would lose to it or displace it whole by load order, with the loader's `overrides` print the only witness ([#1173/C/C-only], [#1176/C/C-only], [loader-and-scripts.md#file-map](../platform/loader-and-scripts.md#file-map)).
+With it resident, a raising listener on the context-menu event shows as the interface mod's own printed failure line rather than a raw error, the form a driver's grep has to expect ([#1369/C/C-only], [autocook.md#compat](../facts/other-mods/autocook.md#compat)).
 
-Four more surfaces are shared with residents, and packaging acts on none of them: the bus namespace, the player's modData table, the calorie store and the numbers a viewer draws.
-The bus namespace is the cheapest to keep apart, with a module name nobody else uses ([#1153/C/C-only], [mp-sync.md#failure-modes](mp-sync.md#failure-modes)).
-The player's modData table is not, because a client-only viewer rewrites the server's whole copy of it from its own input handlers, and the route that survives that is [the MP sync page's](mp-sync.md#sync-options) [#1482].
-The calorie store is shared with a trait mod whose server handler runs every tick and writes each player once every five seconds outside its weight band, measured reaching the store under a co-boot, and whether this mod writes over it or registers with it is [the nutrient page's](new-nutrients.md) question ([#1588], [#2091/M/n=1], [#1070/C/snapshot]).
-The viewers — a status bar and a cooking automation — define nothing this mod could contradict and read everything it moves, so a rebalance reaches them unannounced ([#1522], [#1377/C/snapshot]).
-A skill mod's protein ladder would join them only once its author wires it, since the shipped ladder sits under a not-yet-implemented marker with its other copy block-commented, which a re-read of the live tree on 2026-10-04 found unchanged ([#1584], [#2092/C/snapshot/unverified]).
+Four more surfaces are shared, and packaging acts on none of them:
+- the bus namespace, kept apart by a module name nobody else uses ([#1153/C/C-only], [mp-sync.md#failure-modes](mp-sync.md#failure-modes));
+- the player's modData table, whose server copy a client-only viewer rewrites whole from its input handlers, survived by [the MP sync page's routes](mp-sync.md#sync-options) [#1482];
+- the calorie store, which a trait mod's server handler writes each player once every five seconds outside its weight band, measured reaching the store under a co-boot, a question for [the nutrient page](new-nutrients.md) ([#1588], [#2091/M/n=1], [#1070/C/snapshot]);
+- the numbers the viewers draw: a status bar and a cooking automation define nothing this mod could contradict and read everything it moves ([#1522], [#1377/C/snapshot]); a skill mod's protein ladder joins them only once wired, the shipped ladder still under its not-yet-implemented marker on a 2026-10-04 re-read ([#1584], [#2092/C/snapshot/unverified]).
+
 Booted beside a stand-in folder carrying only Nutrition Makes Sense's mod id, the release printed its compatibility warning once in the server log, `Nutrition Makes Sense is loaded. Both mods write hunger, the calorie store and body weight every minute and book each other's calorie writes as meals; run one of them (see COMPATIBILITY.md). Nutrition Revamp keeps running.`, set its writer's `nms` flag and kept running, the server answering its player list at the end. [#3780/M/n=1] [#3527/C/inference]
 
-A neighbour's failure reaches this mod only as far as the dispatch that carries it.
-An unguarded raise aborts the rest of the raising handler's body while the handlers behind it keep running, so this mod's own handlers on the same event survive a neighbour's raise, while a call this mod makes into a neighbour's code needs a protected call of its own — measured on the server's Lua state and, since x202, on a release client [#1179/M/n=1] [#3317/M/n=1].
-Whether the interface mod's protected dispatch changes that inside its own event is a resident run-time question with a probe of its own ([#1292/C/open], [open-questions.md#x26](open-questions.md#x26)).
+An unguarded raise aborts the rest of the raising handler's body while the handlers behind it keep running, so this mod's handlers survive a neighbour's raise, while a call into a neighbour's code needs a protected call of its own — measured on the server's Lua state and on a release client [#1179/M/n=1] [#3317/M/n=1]; whether the interface mod's protected dispatch changes that is open ([#1292/C/open], [open-questions.md#x26](open-questions.md#x26)).
 
-The residents' own foods are the item pass's boundary: a base-module pass does not touch a food another mod declares in its own module, and a block naming one is an override only while that mod loads ([#1030/M/n=1], [item-pass.md#scope](item-pass.md#scope)).
-Whether this mod reaches them is an item-pass decision, and how it ships a block that does is the patch-mod row of [the options](#compat-options).
-Two resident Workshop items ship several mods each, so a server names a mod by its id rather than by its item, and a second folder can ride one Workshop item beside the first ([#1543/C/snapshot], [#1617/C/snapshot]).
-
-Three kinds of neighbour are absent from the installed tree altogether: a public fix for the multiplayer nutrition-sync problem, a third-party patch to the preservation mod, and the page of public nutrition overhauls the nutrition search term returns ([#1605/W/snapshot], [#1606/W/snapshot], [#1599/W/snapshot]).
-A row that is not installed cannot be linted, profiled or measured, so what any of them replaces, shadows or transmits is unread until someone subscribes to it and re-runs the inventory [#1600].
-The decisions they block are listed under [Open](#open).
+A base-module pass does not touch a food another mod declares in its own module, and a block naming one is an override only while that mod loads ([#1030/M/n=1], [item-pass.md#scope](item-pass.md#scope)); how this mod ships such a block is the patch-mod row of [the options](#compat-options).
+Two resident Workshop items ship several mods each, so a server names a mod by its id, and a second folder can ride one Workshop item ([#1543/C/snapshot], [#1617/C/snapshot]).
+A public fix for the multiplayer nutrition-sync problem, a third-party patch to the preservation mod, and the public nutrition overhauls the search term returns are absent from the installed tree ([#1605/W/snapshot], [#1606/W/snapshot], [#1599/W/snapshot]), so what they replace or transmit is unread until someone subscribes and re-runs the inventory [#1600]; the decisions they block are under [Open](#open).
 
 <a id="sharing-a-server"></a>
 ### Sharing a server
 
-Past files and ids, the residents meet this mod at seats the loader never arbitrates: the stat hook, the eat action, an optional framework and the sandbox option names.
-The residents' readings below are static reads of the installed tree on its dated sweep, the engine's are reads of the bytecode, and none of it was booted beside this mod ([catalog.md#walls](../facts/other-mods/catalog.md#walls)).
-
-The stat hook is unclaimed on the dated sweep: no live version folder in the installed corpus references it or the hook manager, and the corpus's only hook call is the interface mod's pair on the auto-drink hook, carried over from vanilla [#2558/C/snapshot].
-That reading covers the installed tree alone, so a public item that claims the hook and is not installed stays unread, as [the catalog's open lines](../facts/other-mods/catalog.md#open) carry.
-
-The eat action is already shared: every resident that touches its methods wraps them, `QualityCooking` on the server, `EmergencyVomitB42` on the client and `SomewhatTraitsCore` in shared code, and only `EmergencyVomitB42`'s wraps sit behind an idempotency sentinel [#2566/C/snapshot].
-`QualityCooking`'s server wrap saves the original completion into a local and redefines the method unconditionally [#2562/C/snapshot].
-A wrapper this mod adds to the same completion joins a chain whose order is the load order, and which seat in the eat it needs is [the hook page's](eat-and-cook-hooks.md#seat-in-the-order) reading.
-None of those wraps is a file collision, so no packaging lever separates them, and the description is the one place that tells an operator they share a seat.
-
-An optional framework is detected, never required.
-`MoodleFramework` defines its global at file-load time, so a type test on that global and its creation function at `OnGameBoot` or later finds it, while a `require` of its file finds nothing when the framework is absent [#2547/C/inference].
-A test at this mod's own file scope can run before the framework's file does, which is why the test waits for the event ([loader-and-scripts.md#lua-load-order](../platform/loader-and-scripts.md#lua-load-order)).
-Detecting by type keeps the framework out of `require=`, so a server without it still loads this mod, and the self-report line the rules ask for is where an operator reads which way the detection went.
-
-The mod's own sandbox options ship in one declaration file, in the version dir or in `common/`, and the loader reads exactly one of the two per mod [#2422/C/C-only].
-A file at the mod root's own `media/` is never read on this build [#2423/C/C-only].
-The declaration file therefore follows the layout's split: it sits in `common/` while it holds for every build, and moves whole into a version dir the day one build needs its own, because a version dir's copy is the only one that build reads.
-Its option names are shared with every other mod on the server, and the engine does not reject a duplicate: two mods declaring the same prefix and short name collide silently [#2437/C/C-only].
-The prefix is a namespace the mod picks as it picks its bus module name, one no resident uses ([sandbox-options.md#declaration](../platform/sandbox-options.md#declaration)).
+Past files and ids, the residents meet this mod at seats the loader never arbitrates, read statically on the dated sweep or off the bytecode, none booted beside this mod ([catalog.md#walls](../facts/other-mods/catalog.md#walls)).
+- **The stat hook** is unclaimed: no live version folder in the installed corpus references it or the hook manager, and the corpus's only hook call is the interface mod's pair on the auto-drink hook, carried over from vanilla [#2558/C/snapshot]; an uninstalled public item stays unread ([catalog.md#open](../facts/other-mods/catalog.md#open)).
+- **The eat action** is shared: `QualityCooking` wraps its methods on the server, `EmergencyVomitB42` on the client and `SomewhatTraitsCore` in shared code, and only `EmergencyVomitB42`'s wraps sit behind an idempotency sentinel [#2566/C/snapshot]; `QualityCooking` saves the original completion into a local and redefines the method unconditionally [#2562/C/snapshot]. A wrapper of this mod's joins that chain in load order, its seat [the hook page's](eat-and-cook-hooks.md#seat-in-the-order) reading, and only the description tells an operator they share it.
+- **An optional framework** is detected, never required: `MoodleFramework` defines its global at file-load time, so a type test at `OnGameBoot` or later finds it, while a `require` of its file finds nothing when it is absent [#2547/C/inference]; a file-scope test can run before the framework's file ([loader-and-scripts.md#lua-load-order](../platform/loader-and-scripts.md#lua-load-order)).
+- **The sandbox options** ship in one declaration file, in the version dir or in `common/`, and the loader reads exactly one of the two per mod [#2422/C/C-only]; a file at the mod root's own `media/` is never read [#2423/C/C-only]. Option names are shared server-wide and two mods declaring the same prefix and short name collide silently [#2437/C/C-only], so the prefix is picked like the bus module name ([sandbox-options.md#declaration](../platform/sandbox-options.md#declaration)).
 
 <a id="shelf-life"></a>
 ### The stamp is a shelf life
 
-The stamp at the head of this page names one build and one day, and it is a shelf life rather than a date of writing.
-The game and the Workshop tree both move on, so a reading here holds for the build it names and for the corpus as it stood on its sweep ([lessons.md#corpus-drift](../platform/lessons.md#corpus-drift)).
-Steam rewrites the tree inside a Workshop item without touching the item's own folder, so a folder's age is no check of how stale its contents are [#1841/C/snapshot].
-Every corpus count this page leans on is dated for that reason, and a recount is a new reading rather than a confirmation of the old one [#1964/C/snapshot].
-A line cite into a neighbour drifts the same way without becoming wrong, and it is re-located by content before it is quoted [#1466/C/snapshot].
+A reading here holds for the build the stamp names and for the corpus as it stood on its sweep ([lessons.md#corpus-drift](../platform/lessons.md#corpus-drift)).
+Steam rewrites a Workshop item's tree without touching its folder, so a folder's age is no check of staleness [#1841/C/snapshot]; every corpus count is dated and a recount is a new reading [#1964/C/snapshot], and a line cite into a neighbour is re-located by content before it is quoted [#1466/C/snapshot].
 
-A build bump does not stop this mod from loading, and that is the hazard.
-The resolver picks the highest version dir at or below the running build, so the dir this mod ships for this build goes on being picked on every later build until a newer-named one exists [#3505/C/C-only].
-The mod therefore keeps loading, unverified, on a build nobody tested it against, and nothing in the log says so.
-A version dir named for a later build is the opposite trap: it is never read until that build ships, and then runs untested the moment it does [#3505/C/C-only].
-The two manifest keys that pin availability close the first trap and open a failure mode of their own, because a build outside the declared range reports exactly as an absent folder, so an operator reads a gated mod as a missing one ([#0812/C/C-only], [#1177/C/C-only], [mod-anatomy.md#build-pinning](../platform/mod-anatomy.md#build-pinning)).
-This library read no Lua route by which a mod learns the running build number, so no route it knows lets the mod check its own shelf life at run time ([mod-anatomy.md#walls](../platform/mod-anatomy.md#walls)).
-The layout lint sees neither trap, because its model of the live version folder ignores the running build's ceiling ([#0864/C/snapshot], [tools.md#mod-lint](../reference/tools.md#mod-lint)).
-Its agreement check exists for the same moment: a flagged `mod.info` becomes the authoritative one when the version dir's copy is removed or the build moves past that version dir [#0861/C/C-only].
+A build bump does not stop this mod from loading, and that is the hazard: the resolver picks the highest version dir at or below the running build, so this build's dir runs, unverified and silently, on every later build until a newer-named one exists, while a dir named for a later build is never read until that build ships [#3505/C/C-only].
+The manifest keys that pin availability close the first trap and report a build outside the range exactly as an absent folder ([#0812/C/C-only], [#1177/C/C-only], [mod-anatomy.md#build-pinning](../platform/mod-anatomy.md#build-pinning)); no Lua route to the running build number is known ([mod-anatomy.md#walls](../platform/mod-anatomy.md#walls)).
+The layout lint sees neither trap, its model of the live version folder ignoring the running build's ceiling [#0864/C/snapshot], and its agreement check makes a flagged `mod.info` authoritative once the version dir's copy goes or the build moves past it [#0861/C/C-only].
 
-What has to be re-read after a bump follows from what this mod rests on, in order of consequence.
-The checksum gate comes first, because it was measured on one build and is otherwise a reading of that build's jar, and it decides whether the mod can join a server at all ([#1282/M/n=1], [#1231/C/C-only]).
-The removed members come second: a member this mod calls that a build removes is a nil call that aborts the body it fires in, and this build already removed members the corpus still calls ([#0961/M/n=1], [#0962/M/n=1], [lua-platform.md#removed-apis](../platform/lua-platform.md#removed-apis)).
-The per-key merge and the replay order come third, since the item pass stands on both and each was measured on this build alone ([#1180/M/n=1], [#1183/M/n=2]).
-The packet field lists come fourth, because every desync the multiplayer page reads is a property of one build's field list ([mp-sync.md#failure-modes](mp-sync.md#failure-modes)).
-The dataset comes last: the pass is generated from a scan of one build, so a later build's foods reach it only after a re-scan ([item-pass.md#scope](item-pass.md#scope)).
-Each of those has a jar read, a named experiment or a scan behind it, which makes a build bump a known list of checks rather than an open-ended one.
+After a bump, re-read in order of consequence:
+- the checksum gate, measured on one build, which decides whether the mod can join at all ([#1282/M/n=1], [#1231/C/C-only]);
+- the removed members: a removed member this mod calls is a nil call that aborts the body it fires in, and this build already removed members the corpus still calls ([#0961/M/n=1], [#0962/M/n=1], [lua-platform.md#removed-apis](../platform/lua-platform.md#removed-apis));
+- the per-key merge and the replay order, each measured on this build alone ([#1180/M/n=1], [#1183/M/n=2]);
+- the packet field lists every desync reading rests on ([mp-sync.md#failure-modes](mp-sync.md#failure-modes));
+- the dataset, since a later build's foods reach the pass only after a re-scan ([item-pass.md#scope](item-pass.md#scope)).
 
 ## Options
 
 <a id="compat-options"></a>
 ### The compatibility approaches
 
-A resident that shares a file or a key with this mod leaves four approaches open, and they differ in who carries the cost and which wall they meet.
-None of them changes a shared surface such as the bus, the player's table or the calorie store, because packaging acts on files and ids alone, and those surfaces are the routes of [the MP sync page](mp-sync.md#sync-options).
-The rows follow the wall map's order.
+A resident that shares a file or a key leaves four approaches open; none changes a shared surface such as the bus, the player's table or the calorie store, which are [the MP sync page's](mp-sync.md#sync-options).
 
 | option | what it costs | which wall it hits | tags |
 |---|---|---|---|
@@ -266,7 +195,7 @@ Which approach does this mod take toward each resident it shares a file or a key
 - No two mods both load a file at one relative script path: one file wins and the other's blocks are never parsed ([#1175/C/C-only], [open-questions.md#x20](open-questions.md#x20)).
 - No mod replaces part of a shadowed Lua file: the one entry at a relative path is the whole body that runs [#1176/C/C-only].
 - No mod diagnoses a build gate from the loader's error text: a failed version gate prints the line an absent folder prints [#1177/C/C-only].
-- This mod survives its own or a neighbour's unguarded raise only with a workaround, a protected call at every boundary, measured on the server's Lua state and, since x202, on a release client [#1179/M/n=1] [#3317/M/n=1].
+- This mod survives its own or a neighbour's unguarded raise only with a workaround, a protected call at every boundary, measured on the server's Lua state and on a release client [#1179/M/n=1] [#3317/M/n=1].
 - A mod can rely on the replay order, which is the stored script path rather than `require=` or `Mods=`, so a patch mod wins a contested key only through its own file names [#1183/M/n=2].
 - Every reading of the resident stack is a static read of a dated snapshot of an installed tree that drifts, and no two resident mods were booted together ([#1964/C/snapshot], [catalog.md#walls](../facts/other-mods/catalog.md#walls)).
 
@@ -277,12 +206,12 @@ Not covered: the Steam Workshop upload, subscription and update surface, includi
 
 - Whether two mods at one relative path both load, for a script file and for a Lua file, and whether a mod file at a vanilla relative script path is dropped entirely — settled by two mods shipping the same relative paths with different content, reading which item and which global survive, plus a boot that ships a mod file at a vanilla relative script path; until then the shadow and do-nothing rows of the options rest on the loader's code; -> X20 ([#1286/C/open], [open-questions.md#x20](open-questions.md#x20)).
 - Whether a folder whose only `mod.info` is `common/mod.info` resolves under the requested-id lookup, and whether the client's own mod-list call site agrees with the dedicated server's — settled by a purpose-built mod carrying `common/mod.info` and nothing else, its verify gate on the server side only, read on both sides; until then this mod keeps its `mod.info` in the version dir; -> X21 ([#1287/C/open, #0823/C/C-only/open, #0877/C/C-only/open], [open-questions.md#x21](open-questions.md#x21)).
-- Whether a shadowed `common/` copy ever executes — settled by a mod whose `common/` and version dir each ship a colliding and a non-colliding file, with a sentinel only the shadowed copy can set; the other half of X22 is settled for the shipped shape, a version dir whose `media/` collides with nothing, whose options file loaded (the option read 1.5 on the server and both clients) [#3361/M/n=1]; until the shadow arm runs the layout keeps its version dir to the manifest, the options file and files that shadow a `common/` copy, the shapes a boot has covered; -> X22 ([#1288/C/open, #0835/M/n=2/open], [open-questions.md#x22](open-questions.md#x22)).
+- Whether a shadowed `common/` copy ever executes — settled by a mod whose `common/` and version dir each ship a colliding and a non-colliding file, with a sentinel only the shadowed copy can set; the non-colliding half of X22 is settled for the shipped options file [#3361/M/n=1]; until the shadow arm runs the version dir holds only the manifest, the options file and files that shadow a `common/` copy; -> X22 ([#1288/C/open, #0835/M/n=2/open], [open-questions.md#x22](open-questions.md#x22)).
 - Whether the interface mod's protected dispatch changes what an unguarded raise does inside it — settled by one session that drives the interface mod's context-menu entry through a harness addition, reading that mod's own printed failure line and whether the handlers behind the raiser ran; -> X26 ([#1292/C/open], [open-questions.md#x26](open-questions.md#x26)).
 - Decision: which compatibility approach this mod takes toward each resident it shares a file or a key with — settled for the residents read, the four installed Workshop neighbours' code read on 2026-10-08 ([Nutrition Makes Sense](../facts/other-mods/nutritionmakessense.md#collisions), [StatsAPI](../facts/other-mods/statsapi.md#collisions), [Stat Tweaks Lib](../facts/other-mods/stattweakslib.md#collisions), [Tooltiplib](../facts/other-mods/tooltiplib.md#collisions)) and the fifth, 3736275816, closed as unavailable [#3527/C/inference, #3534/C/inference, #3541/C/inference, #3551/C/inference, #3555/W/snapshot], and forced by the loader keeping one file per relative path and the replay deciding a contested key by the stored script path ([#1173/C/C-only], [#1183/M/n=2]).
-- Decision: whether a patch mod, if one ships, rides this mod's Workshop item as a second folder or an item of its own — no longer waits on the neighbour reads, which on 2026-10-08 named no neighbour a patch must target: one is incompatible outright, two never run on a server and one composes [#3527/C/inference, #3534/C/inference, #3541/C/inference, #3551/C/inference] and is forced by a server naming mods by id and resident items already shipping several mods each ([#1219/C/C-only], [#1543/C/snapshot]).
+- Decision: whether a patch mod, if one ships, rides this mod's Workshop item as a second folder or an item of its own — the 2026-10-08 neighbour reads named no neighbour a patch must target: one is incompatible outright, two never run on a server and one composes [#3527/C/inference, #3534/C/inference, #3541/C/inference, #3551/C/inference]; forced by a server naming mods by id and resident items already shipping several mods each ([#1219/C/C-only], [#1543/C/snapshot]).
 - Decision: whether a block of this mod naming the preservation mod's foods can coexist with the third-party patch that claims that mod launders nutrition — blocked by the patch being uninstalled (3796644824; deferred on 2026-10-06: the item is not subscribed), and forced by a block naming another mod's food being an override only while that mod loads ([#1606/W/snapshot], [#1030/M/n=1], [#1600]).
-- Decision: whether this mod is built to share a server with any public nutrition overhaul — no longer blocked: Nutrition Makes Sense, read on 2026-10-08, writes the same stats each minute and re-bases 438 of the same foods [#3527/C/inference, #3526/C/arith.], and forced by `incompatible=` stopping nothing on a server ([#1599/W/snapshot], [#0813/C/C-only]).
+- Decision: whether this mod is built to share a server with any public nutrition overhaul — not blocked: Nutrition Makes Sense, read on 2026-10-08, writes the same stats each minute and re-bases 438 of the same foods [#3527/C/inference, #3526/C/arith.], and forced by `incompatible=` stopping nothing on a server ([#1599/W/snapshot], [#0813/C/C-only]).
 
 ## Worked examples
 
@@ -295,20 +224,12 @@ Not covered: the Steam Workshop upload, subscription and update surface, includi
 
 ## See also
 
-- [`../platform/mod-anatomy.md`](../platform/mod-anatomy.md#checksum-gate) — the id chain, the version dirs, the missing-mod failure, build pinning and the checksum gate every reading here cites.
-- [`../platform/loader-and-scripts.md`](../platform/loader-and-scripts.md#file-map) — the file map, the path collisions and the per-side load the layout and the options rest on.
-- [`../platform/lessons.md`](../platform/lessons.md#corpus-drift) — the layout rule, the shadowed-copy filter and why every corpus count carries a date.
+- [`../platform/mod-anatomy.md`](../platform/mod-anatomy.md#checksum-gate) — the id chain, the version dirs, the missing-mod failure, build pinning and the checksum gate.
+- [`../platform/loader-and-scripts.md`](../platform/loader-and-scripts.md#file-map) — the file map, the path collisions and the per-side load.
 - [`../facts/other-mods/catalog.md`](../facts/other-mods/catalog.md#corpus-facts) — the resident mods, what each touches, and the Workshop neighbours that are not installed.
-- [`../facts/other-mods/autocook.md`](../facts/other-mods/autocook.md#compat) — the corpus's `common/` case and its collisions with the interface mod.
-- [`../facts/other-mods/simplestatus.md`](../facts/other-mods/simplestatus.md#compat) — the client-only viewer a rebalance miscalibrates.
-- [`../facts/other-mods/longtermpreservation.md`](../facts/other-mods/longtermpreservation.md#compat) — the resident whose own-module foods sit outside the pass.
-- [`../reference/tools.md`](../reference/tools.md#mod-lint) — the layout lint that checks this mod's folder before any boot.
-- [`../platform/sandbox-options.md`](../platform/sandbox-options.md#declaration) — the declaration file's location and the option names the mod shares with every other mod.
-- [`../facts/other-mods/moodleframework.md`](../facts/other-mods/moodleframework.md#techniques) — the framework a type test detects.
+- [`../reference/tools.md`](../reference/tools.md#mod-lint) — the layout lint.
+- [`../platform/sandbox-options.md`](../platform/sandbox-options.md#declaration) — the declaration file's location and the shared option names.
 - [`eat-and-cook-hooks.md`](eat-and-cook-hooks.md#seat-in-the-order) — the eat seat the residents' wraps already share.
-- [`../reference/wall-map.md`](../reference/wall-map.md) — the verdict rows the walls cite by id.
-- [`item-pass.md`](item-pass.md) — the script files this page packages, and the checksum they ship under.
-- [`mp-sync.md`](mp-sync.md) — the shared surfaces packaging cannot separate: the bus, the player's table and the routes between them.
-- [`ui-and-moodles.md`](ui-and-moodles.md) — the rendering route beside the resident interface mod.
-- [`new-nutrients.md`](new-nutrients.md) — the calorie store a resident trait mod also writes.
+- [`item-pass.md`](item-pass.md) — the script files this page packages.
+- [`mp-sync.md`](mp-sync.md) — the shared surfaces packaging cannot separate.
 - [`open-questions.md`](open-questions.md) — the experiments this page's open rows point at.

@@ -4,123 +4,71 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: where a mod nutrie
 ## Rules
 <a id="rules"></a>
 
-- Keep every durable mod value in character, item or global modData, or in a server-local file the server's own Lua writes: live Java fields are unsynced cache, and only modData saves and syncs on engine paths, while such a file is saved by the mod's own writes and synced by none [#1064/C/snapshot].
-- Store inputs in modData and derive the values on read: a derived-on-read model needs no migration when a formula changes [#1068/C/snapshot].
 - Keep a mod nutrient out of the vanilla macro stores: every setter clamps its store silently and the hard-coded drain moves it every tick, so a value parked there is cut and moved by vanilla rather than held [#0023/M/n=2, #1193/C/C-only, #2056/C/inference].
-- Initialise world-scoped shared tables in `OnInitGlobalModData`: it is the sanctioned init point and it runs before players exist [#1066/C/snapshot].
-- Reach a new nutrient on an item through an unrecognised key inside the vanilla `item` block, and on a drink's fluid through a Lua table keyed by the fluid's type string: the parser's default arm rawsets the key into the item's default modData and every instance receives a deep copy, while a `fluid` block has no default arm and stores no unrecognised key [#1089, #1187/C/C-only, #2676/C/C-only, #2682/C/C-only, #2684/C/C-only].
-- Put a per-type value in the item script, or in a Lua table keyed by full type where no script key reaches, rather than in per-instance Lua state: script data loads per side and never crosses the wire, so the two sides agree for free [#1058/M/n=2, #2682/C/C-only].
+- Write every player stat on the server: a client-side write to hunger, thirst, endurance, fatigue, calories, the macros or weight is erased by the next player-stats packet, so every one of them has exactly one owner [#0568/M/n=2].
+- Run the mod's intake math where the eat completes: a multiplayer client never reaches the eat action's completion step, so nothing a mod hangs off the client side of that path ever runs [#0109, #0110].
 - Keep server-authoritative per-player state out of player modData, or guarantee the client's copy is complete before anything on that client transmits: one client transmit makes the server's copy of that player's table exactly the client's [#1042/M/n=2, #1496/M/n=1].
 - Batch every key one side owns into a single transmit: the call moves the whole table rather than the changed key, so a second transmit cannot repair what the first one dropped [#1638/M/n=1, #1091].
 - Own every key on an item whose modData carries a mod nutrient: the item-field sync wipes the receiver's whole table before it copies the sender's keys, so a key the syncing side lacks is gone — a wipe measured in the client-to-server direction only [#1126/M/one-side, #2057/C/inference].
-- Route every mod-owned mutation through the command bus: a client send, a server-side handler that validates and mutates, and a server send back is the one route a mod controls end to end [#0932].
-- Run the mod's intake math where the eat completes: a multiplayer client never reaches the eat action's completion step, so nothing a mod hangs off the client side of that path ever runs [#0109, #0110].
-- Write every player stat on the server: a client-side write to hunger, thirst, endurance, fatigue, calories, the macros or weight is erased by the next player-stats packet, so every one of them has exactly one owner [#0568/M/n=2].
-- Give every mod nutrient a consumer the mod writes itself: the protein store has one vanilla consumer, the Strength experience grant, which raises Strength experience while the store is strictly between 50 and 300 and lowers it below −300, so a parallel protein store that leaves the vanilla store on its drain leaves that bonus and that penalty on vanilla's number, while the carbohydrate store as an energy pool and any notion of diet quality stay dead space [#2112/C/C-only, #1136/C/C-only, #1193/C/C-only, #2696/C/inference].
-- Set the `Nutrition` sandbox option in the server's sandbox config: the nutrition update reads the option live every tick, a runtime flip from Lua is untried, and the Lua mirror of the option goes stale [#1127/C/C-only, #2058/C/inference].
-- Reproduce in Lua on the server every arm of the nutrition update the mod still wants once that option is off: the option takes the macro drain, the calorie burn and the weight update together, three option-off scenario runs reading all three frozen, and vanilla's coupling of weight to the band traits goes with them [#1136/C/C-only, #1277/M/n=1, #2059/C/inference].
 - Never register a moodle type of your own through the vanilla registry: a registered type reaches every character and is driven back to its lowest level every tick, and a duplicate id corrupts the registry before the call throws [#1140/C/C-only, #2060/C/inference].
 - Evaluate anything keyed on the Obese, Overweight, Underweight or Emaciated band server-side, or push the trait list after you write it as [the trait-push rule](../areas/mp-sync.md#rules) says: the band traits are not in the player-stats packet; they reach the affected player's client on the player-fields packet's trait block and on the timed experience packet, each as fresh as its last push, and no player-addressed push refreshes another client's copy [#2727/C/inference] [#2595/C/C-only] [#2606/C/C-only] [#2603/C/C-only] [#2612/C/C-only].
 - Put slow simulation such as nutrient decay on `EveryOneMinute` and never move it to `EveryTenMinutes`, `EveryHours` or `EveryDays` in the hope of lightening the minute frame, never put a server's simulation on `OnPlayerUpdate`, keep a client's per-frame needs on it behind a cheap early-out, and keep steady per-tick simulation off `OnTick`, though a queue drained on `OnTick` that only schedules the minute's work is not ruled out here, and a budgeted queue met the hitching bounds at sixty in the worked example [#3740/M/n=1] [#3744/M/n=1]: on a dedicated server `OnPlayerUpdate` never fires for a connected player, while on a client it fires for the local player at each of its updates and the corpus registers it at least 61 times over 43 mods, the slower clock events fire inside the same `GameTime.update` as the minute so work moved to them lands on a minute frame, and `OnTick` is the corpus's expensive tier [#3423/C/inference, #2232/C/C-only, #2959/M/n=1, #3453/C/C-only, #2580/C/snapshot, #3508/C/C-only, #2400/C/C-only, #1080/C/snapshot].
+- Bracket `autoDrink` rather than switching it off: skip the handler's own call while a drop in THIRST is pending and land the litres that drop stands for, because the server's flag does not hold a Lua `setAutoDrink(false)` and every call that clears its gates with THIRST above 0.1 drinks `min(amount, 2 x thirst)` litres with no cooldown [#3007/C/inference, #2927/C/C-only, #2928/C/arith., #2929/C/C-only, #2939/M/n=1, #2941/M/n=1, #2965/M/n=1].
+- Freeze the sleep state at rested unless `SleepAllowed` and `SleepNeeded` are both true: on a server where either is false vanilla resets FATIGUE to its default on every update before the stat hook, a fatigue write made outside the hook was erased at the next update in the measured session, and a sleep state that went on moving would drift from the stat it is meant to drive [#3009/C/inference, #2723/C/C-only, #2793/C/C-only, #2947/M/n=1, #2948/M/n=1].
+- Read the thermoregulator's getters on the server only, and guard against `getThermoregulator()` answering nil: the server's body-damage tick is what updates it, and a client's copy read an air temperature of 27.0 and an energy multiplier of 1.0 at every paired poll against the server's computed values [#3010/C/inference, #2933/C/C-only, #2934/C/C-only, #2935/M/n=1, #2936/M/n=1].
+- Set the `Nutrition` sandbox option in the server's sandbox config: the nutrition update reads the option live every tick, a runtime flip from Lua is untried, and the Lua mirror of the option goes stale [#1127/C/C-only, #2058/C/inference].
+- Keep every durable mod value in character, item or global modData, or in a server-local file the server's own Lua writes: live Java fields are unsynced cache, and only modData saves and syncs on engine paths, while such a file is saved by the mod's own writes and synced by none [#1064/C/snapshot].
+- Store inputs in modData and derive the values on read: a derived-on-read model needs no migration when a formula changes [#1068/C/snapshot].
+- Initialise world-scoped shared tables in `OnInitGlobalModData`: it is the sanctioned init point and it runs before players exist [#1066/C/snapshot].
+- Reach a new nutrient on an item through an unrecognised key inside the vanilla `item` block, and on a drink's fluid through a Lua table keyed by the fluid's type string: the parser's default arm rawsets the key into the item's default modData and every instance receives a deep copy, while a `fluid` block has no default arm and stores no unrecognised key [#1089, #1187/C/C-only, #2676/C/C-only, #2682/C/C-only, #2684/C/C-only].
+- Put a per-type value in the item script, or in a Lua table keyed by full type where no script key reaches, rather than in per-instance Lua state: script data loads per side and never crosses the wire, so the two sides agree for free [#1058/M/n=2, #2682/C/C-only].
+- Route every mod-owned mutation through the command bus: a client send, a server-side handler that validates and mutates, and a server send back is the one route a mod controls end to end [#0932].
+- Give every mod nutrient a consumer the mod writes itself: the protein store has one vanilla consumer, the Strength experience grant, which raises Strength experience while the store is strictly between 50 and 300 and lowers it below −300, so a parallel protein store that leaves the vanilla store on its drain leaves that bonus and that penalty on vanilla's number, while the carbohydrate store as an energy pool and any notion of diet quality stay dead space [#2112/C/C-only, #1136/C/C-only, #1193/C/C-only, #2696/C/inference].
+- Reproduce in Lua on the server every arm of the nutrition update the mod still wants once that option is off: the option takes the macro drain, the calorie burn and the weight update together, three option-off scenario runs reading all three frozen, and vanilla's coupling of weight to the band traits goes with them [#1136/C/C-only, #1277/M/n=1, #2059/C/inference].
 - Let every number a nutrient record carries rest on a settled row of the science register, on an open row the mod labels at the number, or on a game choice a plan ruling names and labels at the number, and ship none that has none of the three: the records built this way crossed their grades at the hours an offline replay of their kernel gives and ran three boots without a mod error [#3004/C/inference, #2978/M/n=1, #2976/M/n=1, #2975/M/n=1, #2993/M/n=1].
 - Recompute every grade on the slow minute from the stored value, and rebuild a consumer's derived state only when the record's `epoch` counter has moved: the counter rises by one per minute in which a grade or an excess output changes, so a consumer that holds the last epoch it saw rebuilds on every change and on no other minute [#3005/C/inference, #3423/C/inference, #2978/M/n=1, #2979/M/n=1, #2991/M/n=1].
 - Write THIRST on the server every tick as the water pool's view, as hunger is written, and make every route that puts water into a character reach the pool: a drink-action wrapper sees the container drink only, `autoDrink` and the no-item world-water drink run on the server under no wrapper, and a drink queued on a container the server has never seen raises in the action's `new` and drinks nothing [#3006/C/inference, #2925/C/C-only, #2931/C/C-only, #2939/M/n=1, #2940/M/n=1, #2942/M/n=1, #2943/M/n=1, #2962/M/n=1, #2966/M/n=1].
-- Bracket `autoDrink` rather than switching it off: skip the handler's own call while a drop in THIRST is pending and land the litres that drop stands for, because the server's flag does not hold a Lua `setAutoDrink(false)` and every call that clears its gates with THIRST above 0.1 drinks `min(amount, 2 x thirst)` litres with no cooldown [#3007/C/inference, #2927/C/C-only, #2928/C/arith., #2929/C/C-only, #2939/M/n=1, #2941/M/n=1, #2965/M/n=1].
 - Cap a world-water drink at the litres its action planned, counting what landed on the action itself: `ISTakeWaterAction` plans `min(2 x THIRST, source litres)` once, and each step transfers its target share less what it counts as already drunk from the fall in THIRST, so a THIRST the mod writes for itself misleads that count [#3008/C/inference, #2930/C/C-only, #2931/C/C-only, #2970/M/n=1].
-- Freeze the sleep state at rested unless `SleepAllowed` and `SleepNeeded` are both true: on a server where either is false vanilla resets FATIGUE to its default on every update before the stat hook, a fatigue write made outside the hook was erased at the next update in the measured session, and a sleep state that went on moving would drift from the stat it is meant to drive [#3009/C/inference, #2723/C/C-only, #2793/C/C-only, #2947/M/n=1, #2948/M/n=1].
-- Read the thermoregulator's getters on the server only, and guard against `getThermoregulator()` answering nil: the server's body-damage tick is what updates it, and a client's copy read an air temperature of 27.0 and an energy multiplier of 1.0 at every paired poll against the server's computed values [#3010/C/inference, #2933/C/C-only, #2934/C/C-only, #2935/M/n=1, #2936/M/n=1].
 - Hold the HUNGER and THIRST views under moodle level 4 except during the mod's own starvation or dehydration state, and while either stands at level 4 set the player's severe-moodle constant to 0 and re-apply the SICK, BLEEDING, heavy-load and under-35 kg terms it also carries: the level-4 hunger and thirst terms scale with the day length, the THIRST one 17.82 health a game hour on the 90-minute default day, the constant is set per player, is not saved and carries every severe term, and at 0 it stopped the HUNGRY-4, THIRST-4, SICK-4 and under-35 kg drains live while a four-part bleed still drained 5.963110742769263 health a game hour [#3923/C/inference, #0518/C/arith., #2356/C/C-only, #3881/C/C-only, #3897/C/inference, #3906/C/inference, #3907/C/inference, #3930/M/n=1, #3931/M/n=1].
 - Write a declared vector as `NR_Nutrients = key:value;key:value` in the item's own block, per item and in the units of the nutrient contract, as a string the loader will park rather than parse: a value that parses as a bare number would be stored as a Double, and a declared vector landed with source declared, its listed keys at the string's values, except that a declared B12 landed at half (0.25 of 0.5), the ceiling the intake applies, a bound inference, and every other key 0 [#3161/C/inference, #0212, #1281/M/n=1, #3148/M/n=1].
 
 ## How it works
 
-A mod nutrient is a number the engine has no slot for.
-The `Nutrition` object is closed: it carries no mod-data table, no generic accessor and no registration call, and its save and load are a fixed list of floats [#1121/C/C-only].
-It cannot be swapped for an object of the mod's own either, because no class anywhere in the jar names a setter for it [#1185/C/C-only].
-Every mod nutrient therefore lives beside the vanilla stores rather than inside them, and two questions decide it: where the number lives, and what it does once it is there.
-The two options tables below lay out the choices for each question; this section reads what each store choice then forces.
-
-The vanilla stores are no host for it.
-Every one of the four intake stores passes a clamp inside its setter, so a write outside the range lands on the limit and nothing reports it ([#0022/M/n=2, #0023/M/n=2], [nutrition-core.md#clamps](../facts/nutrition-core.md#clamps)).
-The three macro stores are also drained on every tick at rates compiled into the update rather than read from anywhere a mod can reach [#1193/C/C-only].
-A value a mod parks in a vanilla macro store is therefore cut by the clamp on the way in and moved by the drain afterwards, which is why the rules above keep a mod nutrient out of those stores.
+A mod nutrient is a number the engine has no slot for: the `Nutrition` object is closed and cannot be substituted ([Walls](#walls)), so every mod nutrient lives beside the vanilla stores, and two questions decide it: where the number lives, and what it does once it is there.
+The vanilla stores are no host for it: every intake store's setter clamps silently, and the three macro stores drain on every tick at rates compiled into the update ([#0022/M/n=2, #0023/M/n=2, #1193/C/C-only], [nutrition-core.md#clamps](../facts/nutrition-core.md#clamps)).
 The clamps are two-sided and the negative side is a working range: nothing holds the calorie store at zero, so a negative store is an ordinary state rather than an error [#0901/M/n=1].
 A parallel store passes through none of these setters, so it has no range at all until the mod gives it one, and that range is a decision under [Open](#open).
-
-Nor does vanilla leave anything for a mod nutrient to plug into.
-Calories are the only driver of weight, and carbohydrates and lipids act on it only as multipliers of the gain rate [#0180].
-Proteins never touch weight, and of their two readers outside the weight model one sits behind thresholds the clamps make unreachable while the other, the Strength experience grant, is live [#2648/M/n=2].
-Everything past weight and that grant is therefore dead space, a reading stated with its row at [the effect-path options](#effect-paths).
-The same fact cuts the other way: nothing in vanilla will act on a mod nutrient, so every consequence it is to have is a path the mod writes, and [the effect-path options](#effect-paths) are the places such a path can attach.
+Nothing in vanilla acts on a mod nutrient either: what the vanilla macros reach (weight, and the Strength grant on the protein store) is [nutrition-core.md#macro-effects](../facts/nutrition-core.md#macro-effects), so every consequence a mod nutrient is to have is a path the mod writes, attached at one of [the effect-path options](#effect-paths).
 Hunger and calories do not feed each other in either direction, so a mod store can be driven from calories, from hunger or from neither without disturbing a vanilla coupling [#0500, #0501, #0503].
-
-The two sections below take the stores one at a time.
-The first reads the wire route each store forces, which is where most of a store's cost lives.
-The second reads what each store survives, which is where the evidence is thinnest.
 
 <a id="sync-route"></a>
 ### Which route each store forces
 
-No vanilla packet carries a mod nutrient, so every store's route is one the mod chooses or none at all.
-The player-stats packet's nutrition payload is the `Nutrition` object's own floats and nothing else ([#1481], [wire-packets.md#player-stats-packet](../facts/wire-packets.md#player-stats-packet)).
-A client-side write to a vanilla store is erased by that packet, while the same kind of write to a mod's own field is never corrected and desyncs from what the server keeps computing — the erasure measured on vanilla calories, the custom-field half read off the packet's field list rather than measured [#0129/M/n=1].
-The item-stats packet cannot be taught a new field either, because the class has no registry, no callback and no per-field opt-in [#1144/M/n=1].
-What is left are the shapes [mp-model.md](../platform/mp-model.md#shapes) names: an explicit transmit, the item-field sync, the command bus, and script data that needs no route.
+No vanilla packet carries a mod nutrient ([Walls](#walls)), so a store's route is one of the shapes [mp-model.md](../platform/mp-model.md#shapes) names: an explicit transmit, the item-field sync, the command bus, and script data that needs no route.
 Anything that alters what an eat delivers has to run where `Eat` runs, on the server, which leaves three viable shapes: mutating on the server over the command bus, keeping a parallel store in player modData and transmitting it on change, or accepting client-only semantics [#0128/C/inference].
 The third shape holds only while every input the client derives from is packet-carried, so its dependency list is written down wherever it is used [#1508].
 
-Character modData travels only when somebody transmits it.
-Both sides hold a copy of a character's mod-data table, and nothing moves between the two until a transmit is called [#0913/M/n=1].
-The transmit serialises the whole table and the receiver wipes its own copy before it writes, so an empty sender's table wipes the receiver outright [#1091].
-Both directions have that shape, client to server measured on two subjects and server to client on one [#0914/M/n=2, #0915/M/n=1].
-The call is not the owning mod's to schedule.
-Any mod on the same client that transmits replaces the server's copy of that player's table, and a mod that never transmits at all still had its whole table carried across the first time something else on that client did ([#1151/M/n=2], [#1088/M/n=1]).
-One corpus viewer fires that transmit from its panel's mouse and key handlers, none of which knows anything about another mod's keys ([#1482], [simplestatus.md#mp](../facts/other-mods/simplestatus.md#mp)).
-Part of the table cannot be sent, so a mod that transmits its own keys sends everyone else's with them [#1152/M/n=2].
+Character modData crosses only when somebody transmits it, and the transmit serialises the whole table and the receiver wipes its own copy before it writes, in both directions ([#0913/M/n=1, #1091, #0914/M/n=2, #0915/M/n=1], [mp-model.md#wipe-and-replace](../platform/mp-model.md#wipe-and-replace)).
+The call is not the owning mod's to schedule: any mod on the same client that transmits replaces the server's copy of that player's table [#1151/M/n=2], as [a corpus viewer's panel handlers](../facts/other-mods/simplestatus.md#mp) do.
 What survives the crossing is decided by a type byte: strings, numbers, booleans and nested tables travel, while functions and Java objects are dropped without an error ([#1495], [wire-packets.md#moddata-packet](../facts/wire-packets.md#moddata-packet)).
 The route this store forces on a server-authoritative nutrient therefore has two parts: the authoritative copy lives in a server-side table or in global modData, and the client's copy arrives as a server command rather than as a transmit [#1151/M/n=2].
 A value the client owns outright loses nothing when a client transmit replaces the server's copy, but a server-to-client transmit replaces the client's copy in turn, client-only keys included, so even that value is exposed to any server-side transmit for that player [#0915/M/n=1, #1123/M/n=2].
 
-Item modData travels with the item-field sync, and it moves whole.
-An item's mod-data table is Lua-shaped on both sides and both sides hold a copy of it [#0909/C/C-only].
-The sync's modData step wipes the receiver's table and copies the sender's keys, so the table moves wholesale in whichever direction the call runs [#1241/M/one-side].
-The direction measured is client to server only: the write and the call both ran in the client's Lua state, the item-write counter reading one there and zero on the server [#0910/M/n=1].
-That measurement does establish that the route works, a mod key reading back beyond vanilla's on both sides of one item [#1039/M/one-side].
-The server-to-client direction has never been run, and that line sits under [Open](#open) [#1040/M/one-side/open].
+Item modData travels with the item-field sync, whose modData step wipes the receiver's table and copies the sender's keys, so the table moves wholesale in whichever direction the call runs ([#1241/M/one-side], [mp-model.md#item-moddata](../platform/mp-model.md#item-moddata)).
+Only the client-to-server direction is measured, a mod key reading back beyond vanilla's on both sides of one item [#0910/M/n=1, #1039/M/one-side]; the server-to-client direction sits under [Open](#open) [#1040/M/one-side/open].
 `Eat` closes with an item-field sync of its own on the item it ate from, and on the real eat path `Eat` runs on the server, so that sync leaves in the unmeasured server-to-client direction and a per-item nutrient on a partly eaten food rides a crossing nobody has measured [#0124/M/n=1, #0110].
-A census of the table is not empty even for a mod that writes nothing, because vanilla itself puts a custom-name key into item modData, which a vanilla control item also carried [#1415/M/n=1].
-And the two sides' tables for one item need not match: one apple read an empty table on the server while its client copy held that key [#1639/M/n=1].
-The route this store forces is a single owner per item: every key on the item has to be held on whichever side calls the sync, or the next sync from that side removes it, which is the item rule above.
 Where a per-item value is the same for every instance of a type, the script carries it with no route at all, and where it varies per instance and must reach a client, the bus keyed on the item's id addresses the same instance on both sides [#1145/M/n=1].
 
-Global modData is the store this library has read least.
-It is saved like the other two modData scopes [#1122/C/C-only], and its init hook is one of the pair that survives a dedicated server, where `OnCreatePlayer`, `OnGameStart` and `OnLoad` never fire [#0895/C/one-side].
-A new character still has a server-side hook: `OnNewGame` fires on a dedicated server when a client creates a character, with the new player as its argument [#2387/C/C-only].
-No run here has moved a global table between sides.
-The one corpus instance read kept its config in a global table through a create-or-get call and the global transmit, with an init handler and a receive handler beside them, and later versions of the same mod moved that config into per-player modData [#1479/C/snapshot].
-A census of such a table cannot tell a populated store from an absent one, because the create-or-get call makes the very table the census then reads [#1480].
-Its route is therefore a reading of one mod's code rather than a measurement, and what its transmit does to the receiver's copy is unread.
+Global modData is saved like the other two modData scopes [#1122/C/C-only], and its init hook is one of the pair that survives a dedicated server, where `OnCreatePlayer`, `OnGameStart` and `OnLoad` never fire [#0895/C/one-side]; a new character's server-side hook is `OnNewGame`, which fires on a dedicated server when a client creates a character, with the new player as its argument [#2387/C/C-only].
+No run here has moved a global table between sides: its route is a reading of one corpus mod's code [#1479/C/snapshot], a census cannot tell a populated table from an absent one [#1480], and what its transmit does to the receiver's copy is unread; what this mod keeps there is [mp-sync.md#global-moddata](mp-sync.md#global-moddata).
 
-A parallel Lua store has one route, and it is the command bus.
-A plain table in the server's Lua state is not modData, so no transmit and no item sync ever touches it; the sanctioned protocol — a client send, a server-side handler that validates and mutates, a server send back — is the only way its contents reach a client [#0932].
-The bus carries only what the mod puts on it, so it wipes no table the mod did not name.
-Its module names share one namespace with every other mod's command sites [#1153/C/C-only].
-A round trip moves a value and keeps no copy of it, so the store's durability has to come from somewhere else, which is the reading under [what each store survives](#persistence).
+A parallel Lua store has one route, the command bus: a plain table in the server's Lua state is not modData, so no transmit and no item sync touches it, and a client send, a server-side handler that validates and mutates, and a server send back are the only way its contents reach a client [#0932].
+Its module names share one namespace with every other mod's command sites [#1153/C/C-only], and a round trip keeps no copy, so its durability comes from [a durable store](#persistence).
 
-A script key needs no route at all.
-Item scripts load per side and never sync, so a value a script declares is identical on both sides for free [#1058/M/n=2].
-An unrecognised key inside an item block is neither dropped nor rejected: the default arm writes it into the item's default modData and every instance receives a copy [#1089].
-That is what lets a script-declared nutrient be read back off an instance's modData on either side [#1125/C/C-only].
+A script key needs no route at all: item scripts load per side and never sync [#1058/M/n=2], and an unrecognised key in an item block lands in the item's default modData, which every instance copies, so it reads back off an instance on either side [#1089, #1125/C/C-only].
 The script object is a poor witness even for the vanilla macro keys it declares, so a per-item value is read off an instance rather than off the script [#1124/M/n=1].
 The price of the route is the checksum: every loaded script file, a mod's included, feeds one hash the server compares, and a mismatch is a disconnect rather than a silent degrade [#1182/C/C-only].
 A script key is load-time state on each side with no runtime reconciliation, so it can carry what a food contains and never what one instance has become [#0648/C/inference].
-
-Read together, the routes say which owner each store can serve, and at what price.
-The script serves a value fixed per type and needs no workaround at all [#1124/M/n=1].
-Item modData serves a per-instance value under its direction bound, a workaround verdict of its own [#1126/M/one-side].
-A server-side table or global modData mirrored down over the bus serves a per-player value the server owns [#1151/M/n=2].
-Character modData serves a value only the client owns, and even that only with a workaround, because a server-to-client transmit replaces the client's copy, client-only keys included [#0915/M/n=1, #1123/M/n=2].
-That is a reading of the route rows above, and [the store options](#store-options) set a cost and a wall beside each choice.
 
 <a id="persistence"></a>
 ### What each store survives
@@ -130,46 +78,25 @@ One run has restarted a world and re-read modData keys: a key in a player's modD
 The save is the boundary: with the world autosave off a global value written a game-minute before a hard kill was lost, because the server writes the file only on a console save or a clean quit [#2098/M/n=1] [#2097/M/n=1].
 Item modData across a save, and every scope across a rejoin, remain a code reading backed by the corpus [#1122/C/C-only].
 
-A save keeps modData and nothing else a mod writes.
-Character, item and global modData are the only durable mod state the engine saves [#1122/C/C-only].
-A live Java field a mod sets is unsynced cache, so a durable value belongs in modData or a server-local file and anything live has to be derivable from it [#1064/C/snapshot].
-A parallel Lua store is therefore gone at every boot unless the mod rebuilds it from a modData copy or from a server-local file of its own, which makes it a cache in front of a durable store rather than a store of its own.
+A save keeps character, item and global modData and nothing else a mod writes [#1122/C/C-only], so a parallel Lua store is a cache rebuilt at every boot from a modData copy or a server-local file the mod writes [#1064/C/snapshot].
 A script key survives by being re-read rather than saved: the default table is rebuilt from the script at every load, while an instance's copy was made when the instance was created and rides that instance's item modData [#1089].
 What a saved instance holds after the mod changes a script value — its saved copy or the new default — is read nowhere in this library.
-The corpus's parallel-stat blueprint banks its value in character modData and derives everything else from it on read, which is the shape that needs no migration when a formula changes ([#1526/C/C-only], [#1068/C/snapshot]).
-That blueprint's own persistence is a reading of its code: on a dedicated server its authoritative copy is a global modData table and the character's table a mirror the server re-publishes every tick, and no run evidences it ([#2855/C/C-only], [beyondten.md#mp](../facts/other-mods/beyondten.md#mp)).
+The corpus's parallel-stat blueprint banks its value in character modData and derives the rest on read, the shape [the derive-on-read rule](#rules) asks for ([beyondten.md#architecture](../facts/other-mods/beyondten.md#architecture)).
 
-A rejoin starts the server's copy of a player's table empty.
 The server's copy of a player's modData is empty at join and gains even the vanilla keys only some seconds after the session is ready, while the client's copy already holds its keys [#1432/M/n=1].
 A server-side reader of a nutrient kept in character modData therefore cannot assume the key is present early in a session.
-Early in a session the client's copy is the fuller of the two, and a client transmit then makes the server's copy exactly the client's [#1042/M/n=2, #1496/M/n=1].
-Whether a rejoining player's value comes back through the server's save or through the client's copy is the save-and-reload question, and it is not measured.
-Item modData and global modData have no rejoin reading at all, and a parallel Lua store is untouched by a rejoin because it never left the server.
+Whether a rejoining player's value comes back through the server's save or the client's copy is not measured; item and global modData have no rejoin reading at all, and a parallel Lua store never leaves the server.
 
-A foreign transmit hits character modData, and the item-field sync plays the same part for item modData.
-Any transmit from a client replaces the server's whole copy of that player's table, and the mod that loses data is never the one that called it [#1151/M/n=2].
-A server-to-client transmit replaces the client's copy the same way, a mod's client-only keys going with it [#0915/M/n=1].
-Item modData carries the same exposure to the item-field sync, from whichever side calls it, with only the client-to-server half measured [#1241/M/one-side].
-A parallel Lua store is out of reach of both, because the player transmit serialises the player's modData table and the item-field sync moves item modData and condition, so neither reaches a table the mod keeps in its own Lua state ([#1091], [#1241/M/one-side]).
+A foreign transmit replaces character modData in either direction, and the mod that loses data is never the one that called it [#1151/M/n=2, #0915/M/n=1]; the item-field sync does the same to item modData from whichever side calls it, with only the client-to-server half measured [#1241/M/one-side].
 A script key's default is out of reach too, since script data crosses no wire, but an instance's copy of it is an item-modData key and shares that table's exposure [#1243/M/n=1].
 Global modData is a table of its own rather than the player's, so a player transmit does not reach it, and what its own transmit does is unread [#1091].
 
-A type change replaces the item, and the per-item stores stay with the old one.
-A cook transition with a cooked-replacement link adds each named item with the condition states copied over and removes the original [#0266].
-A rotten-replacement link does the same on rotting, copying the age and the condition states onto the new item before destroying the old one [#0243].
+A type change replaces the item: a cook transition with a cooked-replacement link adds each named item with the condition states copied over and removes the original [#0266], and a rotten-replacement link copies the age and the condition states onto the new item before destroying the old one [#0243].
 Neither swap names item modData among what it copies, so a nutrient held in the original's item modData is not shown to reach the replacement, and the library has not read whether it does.
 The replacement is a new instance built from its own script, so it receives its own type's default modData, which is where a script-key nutrient on the new type comes from [#1089].
 Both swaps run on the server only: a client never runs the method that creates a rotten replacement [#0757], and the cook transition is driven by server-owned state [#0758].
 Cooking that does not change the type leaves the instance where it was, and one cook and one burn left an item's stored nutrition untouched [#0277/M/n=1].
 Every non-zero craft delta in the recipe data is a recipe that changes what the item is, so a craft that moves nutrition does it by producing a different item [#0742/C/snapshot].
-The per-player stores and the parallel Lua store are untouched by any of this.
-
-Set side by side, the stores trade the four events against each other.
-Character modData survives a save on the code's reading and loses to a foreign transmit.
-Item modData survives a save on the same reading and is not shown to cross a type change.
-A parallel Lua store survives every transmit and no boot.
-A script key survives everything by being re-read, at the price of carrying one value per type.
-None of those survivals is measured across a restart, which is why the store decision and the save-and-reload experiment sit side by side under [Open](#open).
 
 <a id="record-engine"></a>
 ### The record engine
@@ -191,13 +118,11 @@ On the fix wave's build, a phytate-rich meal cuts iron by the meal in the stomac
 <a id="fluids"></a>
 ### The fluids
 
-The thermoregulator's getters answer live on the server and read defaults on a client [#2935/M/n=1, #2936/M/n=1].
 A server-written THIRST reaches the client within 0.00085 [#2962/M/n=1].
-`autoDrink` fired under a stat handler's call and no drink wrapper saw a sip [#2939/M/n=1, #2940/M/n=1], and the server's `setAutoDrink(false)` did not hold [#2941/M/n=1].
-A world-water drink ran on the server under no drink wrapper [#2942/M/n=1].
-A drink queued on a container the server had never seen raised in the action's `new` [#2943/M/n=1].
-The THIRST moodle read level 3 at 0.83 and level 4 at 1 [#2971/M/n=1].
-A mod can base its water need on lean mass with no sex term, and in the worked example, this mod's basal net water loss is 2000 + 32 x (lm - 52.02) g a day for the lean mass lm in kg, the 52.02 kg being the no-trait body's so the default character loses 2000 g, floored at 0 and multiplied by 1.5 under High Thirst or 0.5 under Low Thirst, High winning when both are held, and by the sandbox's stats-decrease multiplier, while sweat, cold diuresis and alcohol diuresis stay on top, unscaled. [#3909/C/inference] A mod can place the thirst moodle's levels on its own body-water deficit, and in the worked example, this mod's volume thirst reads 0.12 at a 1 % deficit, 0.25 at 2 %, 0.45 at 3 %, 0.84 at 4 % and 1.0 at 8 %, linear between, so Parched comes at the 4 % onset of its dehydration state, where the writer lifts its 0.83 THIRST cap, about 32 h without water at rest, and with the osmotic drive the combined thirst crosses level 3's 0.70 at 3 % at rest, about 24 h without water. [#3908/C/inference] In the worked example played live, the server's basal-loss scale read 1, 1.5, 1 and 0.5 with no thirst trait, with High Thirst added, with it removed and with Low Thirst added, and the ring's water loss read 83.56734841486286, 125.42421333884226, 83.80425827455322 and 42.19953652524523 g a game hour, ratios to the first of 1.5008758291119233, 1.0028349572432793 and 0.5049763732570439. [#3942/M/n=1]
+The THIRST moodle's levels and thresholds are [body-and-weight.md#moodles](../facts/body-and-weight.md#moodles), and the thermoregulator, `autoDrink` and world-water readings behind the fluid rules are [eating-pipeline.md#fluid-path](../facts/eating-pipeline.md#fluid-path) and [body-and-weight.md#multipliers](../facts/body-and-weight.md#multipliers).
+A mod can base its water need on lean mass with no sex term, and in the worked example, this mod's basal net water loss is 2000 + 32 x (lm - 52.02) g a day for the lean mass lm in kg, the 52.02 kg being the no-trait body's so the default character loses 2000 g, floored at 0 and multiplied by 1.5 under High Thirst or 0.5 under Low Thirst, High winning when both are held, and by the sandbox's stats-decrease multiplier, while sweat, cold diuresis and alcohol diuresis stay on top, unscaled. [#3909/C/inference]
+A mod can place the thirst moodle's levels on its own body-water deficit, and in the worked example, this mod's volume thirst reads 0.12 at a 1 % deficit, 0.25 at 2 %, 0.45 at 3 %, 0.84 at 4 % and 1.0 at 8 %, linear between, so Parched comes at the 4 % onset of its dehydration state, where the writer lifts its 0.83 THIRST cap, about 32 h without water at rest, and with the osmotic drive the combined thirst crosses level 3's 0.70 at 3 % at rest, about 24 h without water. [#3908/C/inference]
+In the worked example played live, the server's basal-loss scale read 1, 1.5, 1 and 0.5 with no thirst trait, with High Thirst added, with it removed and with Low Thirst added, and the ring's water loss read 83.56734841486286, 125.42421333884226, 83.80425827455322 and 42.19953652524523 g a game hour, ratios to the first of 1.5008758291119233, 1.0028349572432793 and 0.5049763732570439. [#3942/M/n=1]
 The mod's drink wrapper already lands a drink's water in the pool before any thirst view exists: 0.11304 litres drunk through the game's drink action counted 58 sips and 57 landings and moved 113.036 g through the stomach into `pool.water`, half of it within about 25 s [#2944/M/n=1].
 At first sight the record's fluids hold their creation values less the basal loss, the sodium balance equal to the kernel's to the last digit, with the epoch at 0, every record replete and the sleep state frozen on a server that disables sleep [#2961/M/n=1].
 On the build whose basal loss split by sex, a scenario that holds a subject at rest got the kernel's numbers for that subject, not the 80 kg male hand values: ten game hours took the fixture's female subject to a 1.436865654517884 % deficit and a target of 0.24593834838089368, the sodium balance exact and the water short only by the cold-diuresis term [#2963/M/n=1].
@@ -216,19 +141,17 @@ The key is `NR_Nutrients` and its value is a string of `key:value` pairs joined 
 The loader stores an unrecognised key in the item's default modData, as a Double where the value parses as a number and as a string otherwise, and every instance receives a copy; a `key:value` string never parses as a number, so it arrives as a string ([#0212], [#1187/C/C-only], [#2676/C/C-only]).
 That landing is measured: a second mod's block for the same food replaced the string key by key on the server, the client's copy and a client-local spawn, and a vanilla food that no block gave the key read it missing ([#1281/M/n=1], [#3133/M/n=1], [#3134/M/n=1]).
 None of the thirteen vanilla foods read carries the key ([#3150/M/n=2]).
-
 What the mod's intake did with each source, declared, table and inferred, is a reading of the mod, [item-pass.md](item-pass.md#pipeline) ([#3148/M/n=1], [#3145/M/n=1], [#3147/M/n=1]).
 
 <a id="acute-states"></a>
 ### The acute states
 
-With sleep not both allowed and needed the fatigue reset erased each of three server writes at the next update, and with both true a write held [#2947/M/n=1, #2948/M/n=1].
-A held sleep on a server that allows and needs sleep ran the world clock about twenty times its waking rate [#2956/M/n=1].
+The fatigue reset the sleep rule guards against is at [endurance-fatigue-sleep.md#fatigue](../facts/endurance-fatigue-sleep.md#fatigue), and the world clock running fast while every player sleeps at [endurance-fatigue-sleep.md#sleep](../facts/endurance-fatigue-sleep.md#sleep).
 A beer drunk through the drink action raised INTOXICATION as the can emptied [#2950/M/n=1], and the value decays on a server at 7.5599 per game hour [#2951/M/n=1].
 A mod can offer game-sized and pharmacological strengths over the same stimulant kinetics, and in the worked example, this mod's enum option NR.StimulantRealism reads Game by default and Realistic as its second value: Game sets the caffeine offset's maximum to 0.12, so a held 107 mg cup moves the fatigue offset by 0.0500, the blood alcohol at which INTOXICATION reaches its full scale to 0.31 %, and the hangover's tail to 3 hours per 0.05 % of peak, with half the realistic sizes and an unhappiness floor of 21, where Realistic keeps 0.35, 0.20 %, 6 hours, the full sizes and 42; absorption, clearance, tolerance, withdrawal and the hangover's start after a peak of 0.05 % or more follow the science in both, and the server's options poll switches the active set once when the option changes. [#3921/C/inference]
 `BodyDamage.JustTookPill` adds the item's fatigue and stress terms [#2954/C/C-only] and ends by calling the pill's `OnEat` [#2955/C/C-only], and whether a script `OnEat` a mod gives the pill runs on the server is unmeasured [#2960/C/C-only/open].
 The readings that follow, to the end of this block, ran on the early acceptance builds, each on the build its row's bound names; they read those builds, not the release.
-The drink wrapper lands a beer's ethanol the same way: a 0.3-litre can drunk through the game's drink action counted 34 sips and 33 landings and put 7.937 g in `pool.ethanol` with 3.913 g still buffered, 11.850 g in all [#2958/M/n=1].
+The drink wrapper lands a beer's ethanol as it lands a drink's water: a 0.3-litre can drunk through the game's drink action counted 34 sips and 33 landings and put 7.937 g in `pool.ethanol` with 3.913 g still buffered, 11.850 g in all [#2958/M/n=1].
 A coffee's caffeine lands whole and the body load halves every five game hours for a fast metaboliser, the drain coefficient carrying its effect [#2982/M/n=1].
 A single beer drunk through the drink action read 0 blood alcohol at every read, at most 0.0663 g of ethanol a game minute leaving the stomach, while the day's alcohol total took it at once [#2983/M/n=1].
 A scenario that doses caffeine or alcohol gets it through the gut lane, never the stomach: a coffee's caffeine peaked at 82.92027821101543 mg at the stomach step's age 9.734182357788086 h, the drink's first read being at 7.785704612731934 h [#2997/M/n=1], and a single beer read a peak of 0.005682077809824218 %, 9 % under the whole-dose-at-once prediction, which it falsifies as a point; the replay from the landed state matches it, read as the sips spreading the landing [#2998/M/n=1].
@@ -238,8 +161,7 @@ A scenario that doses caffeine or alcohol gets it through the gut lane, never th
 <a id="store-options"></a>
 ### Where a mod nutrient can live
 
-Six stores can hold a mod nutrient, each priced by the route it forces and the events it survives, which the two readings above give in full.
-The table orders them by the wall map rows their tags cite.
+Six stores can hold a mod nutrient, each priced by the route it forces and the events it survives, and the table orders them by the wall map rows their tags cite.
 
 | option | what it costs | which wall it hits | tags |
 |---|---|---|---|
@@ -256,19 +178,11 @@ Which store holds each mod nutrient's authoritative value, and which store, if a
 ### Where a mod nutrient's effect can attach
 
 The protein store has one live vanilla consumer, the Strength experience grant, so a parallel protein store that leaves the vanilla store on its drain leaves that grant's bonus and penalty on vanilla's number, while the carbohydrate store as an energy pool and any notion of diet quality stay dead space ([#2112/C/C-only, #1136/C/C-only, #1193/C/C-only, #2696/C/inference], [perks-and-strength.md#xp-grants](../facts/perks-and-strength.md#xp-grants)).
-Nothing in vanilla reads a mod nutrient either, so its effect is a path the mod attaches to a vanilla surface.
 The corpus shows why the maths behind that path sits in a tick of the mod's own: a value injected into a vanilla function's local variable breaks silently on a game update [#1078/C/snapshot, #1532/C/C-only].
 
-An effect that scales with exertion has an activity input in the engine already: the thermoregulator's metabolic target, set from a fixed enum of activity classes in MET [#2631/C/C-only].
-Each class is a floor rather than an assignment, the highest class that applies setting it [#2633/C/C-only].
-The target is then raised again by tiredness and by carried load, so it can sit above the class the character's activity names [#2649/C/C-only].
-The character declares no getter for it, so it is read through the body damage's thermoregulator [#2635/C/C-only].
-The classes, their values and both raises are stated at [body-and-weight.md#metabolic-rate](../facts/body-and-weight.md#metabolic-rate), read from the bytecode and never measured, and whether the server classifies a connected player's activity at all is open there [#2633/C/C-only].
+An effect that scales with exertion has an activity input in the engine already, the thermoregulator's metabolic target, set from a fixed enum of activity classes in MET [#2631/C/C-only] and read through the body damage's thermoregulator, since the character declares no getter for it [#2635/C/C-only]; its classes, their values and the raises above them are [body-and-weight.md#metabolic-rate](../facts/body-and-weight.md#metabolic-rate).
 
-A script key is not the only per-type home a nutrient value can have.
-The copy of a script key each instance receives, stated under [what each store survives](#persistence), is a deep one, so a write to one instance's key reaches neither the type's default nor a sibling instance [#2676/C/C-only].
-A drink's fluid cannot carry one at all, because a `fluid` block has no default arm and stores no unrecognised key [#2682/C/C-only].
-A Lua table keyed by full type puts no key on any instance, and a table keyed by the fluid's type string, which is never null, reaches a drink's fluid where no script key can [#2682/C/C-only, #2684/C/C-only].
+A per-type nutrient value has a second home beside the script key: a Lua table keyed by full type puts no key on any instance, and a table keyed by the fluid's type string, which is never null, reaches a drink's fluid where no script key can [#2682/C/C-only, #2684/C/C-only].
 The vanilla macros such a table is built against come off a fresh instance, because the script item answers no macro getter ([#2679/C/C-only], [item-pass.md#minimal-block](item-pass.md#minimal-block)).
 
 Four surfaces can take an effect, and the table orders them by the wall map rows their tags cite.

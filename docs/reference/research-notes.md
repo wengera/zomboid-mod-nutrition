@@ -114,6 +114,10 @@ From the 2026-10-07 architecture review; [performance#levers](../platform/perfor
 <a id="ideas"></a>
 - **The disuse arm still applies Alpert's ceiling.** The fasting partition dropped the ceiling from the deficit arm on the Minnesota evidence; that evidence weakens it for the disuse arm too, which still applies it (`mod/NutritionRevamp/common/media/lua/shared/NR_Kernel_Partition.lua`, the disuse arm's comment); no open-questions line names it. Plan 20 wave A1 moved it here from body-effects' Open section.
 
+- **The visibility option hides numbers on the client only.** The server mirrors every number to every client, and the client reads its own SandboxVars copy (`mod/NutritionRevamp/common/media/lua/server/NR_Server_Options.lua`, the visibilityMode comment), so a modified client can read the Numbers level whatever the option says. Server-side gating was put out of scope in the Plan 11 draft. Plan 20 wave A2 moved it here from the ui-and-moodles page feed.
+
+- **The item pass's self-report sentinel reads one item.** `NR.itemPassActive` (`mod/NutritionRevamp/common/media/lua/shared/NR_Core.lua`, `NR.itemPassSentinel`) compares one item's calories, Base.Acorn's, so it cannot see a renamed or removed vanilla item, and what a partial block for an absent item does is unread; only CLAUDE.md § 2's re-scan rule guards it. Plan 20 wave A2 moved it here from the item-pass page feed.
+
 ## Ideas for later
 
 Angus's own threads, in the order he named them: the Workshop upload, then the symptom-research plan, then single player.

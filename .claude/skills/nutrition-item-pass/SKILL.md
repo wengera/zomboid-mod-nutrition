@@ -8,9 +8,9 @@ description: Rebalancing vanilla food items — a partial `module Base` `item` b
 - docs/facts/food-item-model.md
 
 ## Rules quoted
+- Do not derive body order from `Mods=`: bodies replay sorted by the stored script path, so a mod's position in `Mods=` decides nothing about which body wins a key [#1055/M/n=2].
 - Restate only the keys the pass re-bases in a partial item block: every key the block omits keeps its vanilla value, which is what lets a pass over every record of `data/food-items.json` ship minimal blocks and leave icons, models, evolved recipes and spoilage tracking upstream — measured on one float macro of one food [#1017/M/n=1].
 - Ship one `module Base` block per item: per-key last-wins makes the pass robust to the replay order for every key it does not touch and contested only on the keys two mods both declare [#1057/M/n=1].
-- Do not derive body order from `Mods=`: bodies replay sorted by the stored script path, so a mod's position in `Mods=` decides nothing about which body wins a key [#1055/M/n=2].
 - Keep `template_` out of a script file's basename: the replay comparator pre-sorts every `template_`-prefixed basename ahead of every other file before it compares paths at all [#1233/C/C-only].
 - Give the pass's script files a mod-unique basename: two mods at one relative script path lose one file's blocks entirely — a code reading, since the across-two-mods arm is unmeasured [#1050/C/C-only].
 - Keep every value on a known key well formed: a malformed value raises `InvalidParameterException` and aborts the load, and a line with no equals sign dies on the split [#1188/C/C-only].
