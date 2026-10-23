@@ -11,11 +11,11 @@ The pages state what the game does and what a mod can and cannot change; the mod
 
 Read in this order:
 
-- [`CLAUDE.md`](CLAUDE.md) routes a task to the pages that answer it, in reading order, and carries the gates and the process.
+- [`CLAUDE.md`](CLAUDE.md) routes a task to the pages that answer it, in reading order, and carries the gates and the process rules.
 - [`docs/areas/`](docs/areas/) is the nutrition lens: one page per design area of the mod, each with its rules, its options, its walls and what stays open, and the open questions gathered in one index.
 - [`docs/platform/`](docs/platform/) is general modding knowledge — mod anatomy, the loader, the Lua platform, the multiplayer model, the server lifecycle, sandbox options, the client UI, the harness, jar research and the lessons — entered at [`overview.md`](docs/platform/overview.md).
 - [`docs/facts/`](docs/facts/) holds the measured mechanics of the vanilla food and nutrition systems and of the body they act on — the character stats, endurance, fatigue and sleep, perks and strength, exercise, perception and speed, and health — with [`other-mods/`](docs/facts/other-mods/) for the workshop corpus and its teardowns.
-- [`docs/reference/`](docs/reference/) holds [the register](docs/reference/claims.tsv), [the datasets](docs/reference/datasets.md), [the tools](docs/reference/tools.md), [the experiments](docs/reference/experiments.md), [the generated harness commands](docs/reference/harness-commands.md), [the wall map](docs/reference/wall-map.md), [the artifacts register](docs/reference/artifacts.md) and [the science register](docs/reference/science.md), the cited nutrition-science values the mod ships against.
+- [`docs/reference/`](docs/reference/) holds [the register](docs/reference/claims.tsv), [the datasets](docs/reference/datasets.md), [the tools](docs/reference/tools.md), [the experiments](docs/reference/experiments.md), [the generated harness commands](docs/reference/harness-commands.md), [the wall map](docs/reference/wall-map.md), [the artifacts register](docs/reference/artifacts.md), [the science register](docs/reference/science.md) of the cited nutrition-science values the mod ships against, and [the research notes](docs/reference/research-notes.md), the open threads for the next design plan; [`docs/process/lessons.md`](docs/process/lessons.md) holds the process pitfalls behind CLAUDE.md's rules.
 
 ## The tree
 
@@ -28,7 +28,9 @@ docs/areas/                the nutrition lens: one page per design area, and the
 docs/platform/             general modding knowledge, entered at overview.md: anatomy, loader, Lua, MP model, server lifecycle, sandbox options, client UI, harness, jar research, lessons
 docs/facts/                the vanilla food, nutrition and body mechanics: stats, endurance and sleep, perks, exercise, perception, health
 docs/facts/other-mods/     the workshop corpus catalogue and the teardowns
-docs/reference/            the register and its coverage, the do-not-cite list, the run aliases (run-aliases.csv), experiments, jar notes, harness commands, datasets, tools, the wall map (wall-map.md), the artifacts register (artifacts.md), the science register (science.tsv, science.md)
+docs/process/lessons.md    the process pitfalls behind CLAUDE.md's rules, each with its incident and citation
+docs/superpowers/          the open plan and spec, and HISTORY.md, the index of the closed plans kept at the tag program-record-v19
+docs/reference/            the register (claims.tsv) and its archive of superseded and retired rows (claims-archive.tsv), its coverage, the do-not-cite list, the run aliases (run-aliases.csv), experiments, jar notes, harness commands, datasets, tools, the wall map (wall-map.md), the artifacts register (artifacts.md; each run's reading guide is testing/artifacts/<run>/GUIDE.md) and its skew notes (artifact-skew.md), the science register (science.tsv, science.md), the open research threads (research-notes.md)
 references/wiki-mirrors/   the mirrored wiki pages, each dated and digested
 data/                      the generated datasets: food items, recipes, evolved recipes, the workshop corpus
 tools/                     the register checker and delta applier, the page lint, the scanners and exporters
@@ -48,7 +50,7 @@ mod/                       the nutrition mod, NutritionRevamp: its version dir a
 - A tag names a row of [`docs/reference/claims.tsv`](docs/reference/claims.tsv): a writer types `[#0417]` and `python tools/claims_check.py --fix-tags` writes the suffix — the grade, then the bound token when it is not `none`, then the status when the row is not settled — as `[#0417/M/n=1]` or `[#0417/C/open]`.
 - Several ids share one bracket, `[#0417/M, #0512]`; a settled `C` row with no bound carries no suffix.
 - Every register row has `id claim grade pointer bound status successor kind source owner`: the pointer is the evidence, and the owner is the page anchor that states the claim.
-- A `source` cell is harvest provenance: it names the doc a row was harvested from, and a pre-restructure doc it names is readable at the tag `research-program-v1`; the restructure's own spec and plans are readable at the parent of the cut commit `9dfc74b`.
+- A `source` cell is harvest provenance: it names the doc a row was harvested from, a doc under `docs/superpowers/` it names is readable at the tag `program-record-v19` (`git show program-record-v19:<path>`), and a pre-restructure doc at the tag `research-program-v1`; the restructure's own spec and plans are readable at the parent of the cut commit `9dfc74b`.
 - `C` is read in code or data — the jar, game or mod Lua and scripts, this repository's code, a dataset; `M` is measured on a live run and points at an artifact key; `W` is a wiki mirror or a fetched web page and only corroborates.
 - A science row is cited by its bare id (`S0000`, never in brackets) and is checked by `python tools/science_check.py --scan <the mod's tree>`; its register is [`docs/reference/science.tsv`](docs/reference/science.tsv).
 - `python tools/claims_check.py` checks the register's schema and pointers and every tag on the pages against its row.

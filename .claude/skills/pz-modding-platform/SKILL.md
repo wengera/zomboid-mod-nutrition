@@ -19,7 +19,6 @@ description: Writing, debugging or reviewing a Project Zomboid mod that is not a
 `platform/` is not a modding manual.
 It holds what this library measured or read while building a nutrition mod on a dedicated `42.20.4` server with one client.
 A topic marked absent has no page, no rule and no claim here; an agent asked about it says so and reads the jar or the mirror, and never infers a wall from silence.
-Every verdict is dedicated-server multiplayer; single-player is never claimed.
 
 ## Rules quoted
 - Ask the routing table which page owns a mechanism before reading any page: a mod reaches the game through four surfaces only, and the command bus is the one sanctioned client-to-server path for anything the engine does not sync [#0888/C/C-only].
