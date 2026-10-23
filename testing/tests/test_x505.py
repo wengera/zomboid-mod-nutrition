@@ -255,10 +255,17 @@ def test_preboot_on_the_repository():
     pre, ok = D.preboot(D.DRIVER)
     if not os.path.isfile(os.path.join(REPO, L48.FIXTURE_PLAYERS_DB)):
         pytest.skip("the default fixture cache is not provisioned on this machine")
-    if not pre["no_prior_artifact"]:
-        pytest.skip("x505's artifact is committed: preboot refuses it by design")
     if not pre["staged_from_is_mod_head"]:
         pytest.skip("mod/ moved past STAGED_FROM after the run")
+    if not pre["no_prior_artifact"]:
+        # once x505 has run, its artifact folder makes preboot refuse (the gate working); every other check of the gate
+        # still holds on the live tree (0171db7d's precedent: the gate stays proved after the run)
+        assert ok is False
+        nested = ("profile_checks", "mod_head", "harness_found", "fixture")
+        rest = {k: v for k, v in pre.items() if k not in nested and k != "no_prior_artifact"}
+        assert all(v is True for v in rest.values()), rest
+        assert all(v is True for k, v in pre["profile_checks"].items() if k != "error"), pre["profile_checks"]
+        return
     assert ok, {k: v for k, v in pre.items() if v is not True}
 
 
