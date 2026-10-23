@@ -128,9 +128,31 @@ def test_preboot_on_the_repository_and_its_refusals(key):
 
 @pytest.mark.skipif(not os.path.isdir(os.path.join(REPO, L.STAGE_ROOT)), reason="release/ (gitignored) not staged")
 def test_the_staged_copy_is_the_pinned_commit():
-    mg = L.staged_gate()
-    assert mg["ok"], mg
-    assert mg["staged_version"] == L.STAGED_VERSION
+    # a pre-run guard on the live release/ copy while x501-x504 are unrun; once they have run, release/ is re-staged
+    # from a later mod/ (Plan 19 Task 9b, x505), so the gate is proved on a fresh stage of the pinned commit instead
+    # (test_x485's precedent)
+    ran = glob.glob(os.path.join(REPO, "testing", "artifacts", "x50[1-4]-*"))
+    if not ran:
+        mg = L.staged_gate()
+        assert mg["ok"], mg
+        assert mg["staged_version"] == L.STAGED_VERSION
+        return
+    import io
+    import subprocess
+    import tarfile
+    import tempfile
+    import release_pack as RP
+    with tempfile.TemporaryDirectory() as d:
+        arch = subprocess.run(["git", "archive", "--format=tar", L.STAGED_FROM, L.MOD_DIR], cwd=REPO,
+                              capture_output=True, check=True)
+        with tarfile.open(fileobj=io.BytesIO(arch.stdout)) as tf:
+            tf.extractall(os.path.join(d, "src"), filter="data")
+        RP.stage(os.path.join(d, "src", *L.MOD_DIR.split("/")), os.path.join(d, "out"))
+        root = os.path.join(d, "out", "NutritionRevamp")
+        mod = os.path.join(root, "Contents", "mods", "NutritionRevamp")
+        mg = L.G.staged_gate(repo=REPO, commit=L.STAGED_FROM, stage_root=root, stage_mod=mod)
+        assert mg["ok"], mg
+        assert mg["staged_version"] == L.STAGED_VERSION
 
 
 @pytest.mark.parametrize("key", sorted(L.SESSIONS))
