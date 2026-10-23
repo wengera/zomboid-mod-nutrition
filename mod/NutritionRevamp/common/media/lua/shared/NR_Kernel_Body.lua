@@ -22,6 +22,8 @@ end
 
 -- The three direction flags off the 7-day trend in kg per day: weight increasing, increasing a lot,
 -- decreasing. Strict inequalities, so a trend exactly on a threshold raises nothing.
+K.body.TREND_KG_D = K.dials.get("body.TREND_KG_D")
+K.body.TREND_LOT_KG_D = K.dials.get("body.TREND_LOT_KG_D")
 function K.body.flags(trendKgPerDay)
     return trendKgPerDay > K.body.TREND_KG_D, trendKgPerDay > K.body.TREND_LOT_KG_D, trendKgPerDay < -K.body.TREND_KG_D -- ruling 17
 end
@@ -48,6 +50,14 @@ end
 -- P <= PROT_FLOOR_AT reads PROT_STORE_FLOOR; below PROT_OK it runs linearly PROT_STORE_RAMP .. 0; to PROT_FULL 0 .. PROT_STORE_FULL;
 -- above PROT_FULL PROT_STORE_OVER; clamped to the store's [-500, 1000] (the body.PROT_* dials).
 -- The x1.5 arm (50 < p < 300, #2112) opens at P ~ 1.07 at the shipped dials.
+K.body.PROT_OK = K.dials.get("body.PROT_OK")
+K.body.PROT_RAMP_SPAN = K.dials.get("body.PROT_RAMP_SPAN")
+K.body.PROT_FLOOR_AT = K.body.PROT_OK - K.body.PROT_RAMP_SPAN -- derived (bit-identical to the former literal at the shipped dials), so the ramp ends at PROT_OK whatever P_LOW reads
+K.body.PROT_FULL = K.dials.get("body.PROT_FULL")
+K.body.PROT_STORE_FLOOR = K.dials.get("body.PROT_STORE_FLOOR")
+K.body.PROT_STORE_RAMP = K.dials.get("body.PROT_STORE_RAMP")
+K.body.PROT_STORE_FULL = K.dials.get("body.PROT_STORE_FULL")
+K.body.PROT_STORE_OVER = K.dials.get("body.PROT_STORE_OVER")
 function K.body.mapProteins(pPerKgDay)
     local m = K.body.PROT_STORE_OVER -- ruling 13 (the body.PROT_* dials)
     if pPerKgDay <= K.body.PROT_FLOOR_AT then
@@ -61,11 +71,13 @@ function K.body.mapProteins(pPerKgDay)
 end
 
 -- The legacy carbohydrate store: the trailing-24 h carbohydrate intake (g) minus the CARB_REF_G reference.
+K.body.CARB_REF_G = K.dials.get("body.CARB_REF_G")
 function K.body.mapCarbs(gIn24h)
     return K.clamp(gIn24h - K.body.CARB_REF_G, -500, 1000) -- the reference a dial (ruling 13); the store's range
 end
 
 -- The legacy lipid store: the trailing-24 h lipid intake (g) minus the LIP_REF_G reference.
+K.body.LIP_REF_G = K.dials.get("body.LIP_REF_G")
 function K.body.mapLipids(gIn24h)
     return K.clamp(gIn24h - K.body.LIP_REF_G, -500, 1000) -- the reference a dial (ruling 13); the store's range
 end
@@ -366,18 +378,3 @@ function K.body.new(spec, sex, ageH)
     body.energyState = 1
     return body
 end
-
--- The trend flags' and the legacy maps' dials (Plan 19 Task 3b; K.body.flags, mapProteins, mapCarbs, mapLipids),
--- resolved at load: appended here so no line above moved.
-K.body.TREND_KG_D = K.dials.get("body.TREND_KG_D")
-K.body.TREND_LOT_KG_D = K.dials.get("body.TREND_LOT_KG_D")
-K.body.PROT_OK = K.dials.get("body.PROT_OK")
-K.body.PROT_RAMP_SPAN = K.dials.get("body.PROT_RAMP_SPAN")
-K.body.PROT_FLOOR_AT = K.body.PROT_OK - K.body.PROT_RAMP_SPAN -- derived: 0.8 - 0.3 is the double 0.5, so the ramp ends at PROT_OK whatever P_LOW reads
-K.body.PROT_FULL = K.dials.get("body.PROT_FULL")
-K.body.PROT_STORE_FLOOR = K.dials.get("body.PROT_STORE_FLOOR")
-K.body.PROT_STORE_RAMP = K.dials.get("body.PROT_STORE_RAMP")
-K.body.PROT_STORE_FULL = K.dials.get("body.PROT_STORE_FULL")
-K.body.PROT_STORE_OVER = K.dials.get("body.PROT_STORE_OVER")
-K.body.CARB_REF_G = K.dials.get("body.CARB_REF_G")
-K.body.LIP_REF_G = K.dials.get("body.LIP_REF_G")

@@ -772,6 +772,9 @@ K.view.HOLD_MIN = K.dials.get("view.HOLD_MIN")
 K.view.WELL_FED_M = K.dials.get("view.WELL_FED_M")
 K.view.WELL_FED_2_AT = K.dials.get("view.WELL_FED_2_AT")
 K.view.REFUSE_AT = K.dials.get("view.REFUSE_AT")
+-- FOOD_EATEN's band edges (VANILLA #0511), read by K.view.timerValues and K.view.timerBand.
+K.view.TIMER_BAND_2 = K.dials.get("view.TIMER_BAND_2")
+K.view.TIMER_BAND_3 = K.dials.get("view.TIMER_BAND_3")
 
 -- The timer the bridge writes for an Overfull level, a meal pool M and whether a drain state is active: TIMER_FULL at
 -- Overfull 4, whatever else holds (the stomach is full, starving or not); 0 while a drain is active (a starving body is
@@ -944,8 +947,3 @@ function K.view.fatRow(rows, m, fat)
     local r = K.view.push(rows, "body_fat", "UI_NR_Row_body_fat", text, 2, true)
     r.fatBand = idx
 end
-
--- FOOD_EATEN's band edges (VANILLA #0511), read by K.view.timerValues and K.view.timerBand (Plan 19 Task 3a): appended so
--- no line above moves.
-K.view.TIMER_BAND_2 = K.dials.get("view.TIMER_BAND_2")
-K.view.TIMER_BAND_3 = K.dials.get("view.TIMER_BAND_3")

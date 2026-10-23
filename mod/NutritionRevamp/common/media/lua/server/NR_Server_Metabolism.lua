@@ -82,6 +82,8 @@ MET.snap = {}
 MET.snapRings = { eb7 = {}, p7 = {}, mass7 = {} }
 MET.snapBand = {}
 MET.guarded = 0 -- the count of fields the post-step guard re-stamped: no row needed
+-- The balance dial's bonus on the regeneration coefficient (the minute's balanceBonus, step).
+MET.BALANCE_BONUS = K.dials.get("met.BALANCE_BONUS")
 
 local finite = NR.finite
 
@@ -536,5 +538,3 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         NR.server.minute.register("metabolism", MET.minute)
     end)
 end
--- The balance dial's bonus on the regeneration coefficient (the minute's balanceBonus above).
-MET.BALANCE_BONUS = K.dials.get("met.BALANCE_BONUS")

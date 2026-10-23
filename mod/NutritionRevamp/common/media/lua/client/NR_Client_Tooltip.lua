@@ -81,6 +81,7 @@
 -- hits the cache (a same-item fast path first); the vector is built once per type and whole-item macro tuple.
 local NR = NutritionRevamp
 local K = NR.kernel
+
 NR.client.tooltip = {
     stats = { draws = 0, lines = 0, cacheHits = 0, errors = 0, installs = 0, builds = 0, invalidations = 0, above = 0, reentries = 0, breaks = 0, stale = 0, hidden = 0, shown = 0 },
     cache = {},

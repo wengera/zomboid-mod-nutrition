@@ -93,6 +93,7 @@ if TOOLS not in sys.path:
 import replay_live as RL  # noqa: E402
 import vanilla_model as VM  # noqa: E402
 import dials  # noqa: E402
+
 DAY = 1440
 HOUR_OFFSET = 7.0                      # world age 0 is 07:00 (tools/mod_guide_series.HOUR_OFFSET)
 MEAL_MIN = (30, 330, 690)              # 07:30, 12:30 and 18:30: vanilla's three cans at these hours read the review's 38 %

@@ -184,6 +184,7 @@ end
 
 -- The engine's load factor 1 + 0.35 * clamp01(carried / maxW)^2 divided out of a metabolic target
 -- (#2649), so load is charged once. A non-positive maxW reads unloaded.
+K.energy.LOAD_FACTOR = K.dials.get("energy.LOAD_FACTOR")
 function K.energy.stripLoad(target, carried, maxW)
     if maxW <= 0 then
         return target
@@ -401,7 +402,3 @@ function K.energy.epoc(body, exercising, exKcal, dtM)
     K.body.trailAdd(body.trail, "ee", rel)
     return rel, healed
 end
-
--- The engine's load factor K.energy.stripLoad divides out (Plan 19 Task 3g: its inline 0.35 named, a fixed row, #2649),
--- appended so no earlier line moves.
-K.energy.LOAD_FACTOR = K.dials.get("energy.LOAD_FACTOR")

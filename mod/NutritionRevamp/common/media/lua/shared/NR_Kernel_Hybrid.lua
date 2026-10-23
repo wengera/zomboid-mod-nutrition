@@ -8,6 +8,13 @@
 local K = NutritionRevamp.kernel
 K.hybrid = {}
 
+-- The dials K.hybrid.defaults reads at call time (Plan 19 Task 3a): the caps' margin under level 4 and the mood rises.
+K.hybrid.CAP_MARGIN = K.dials.get("hybrid.CAP_MARGIN")
+K.hybrid.MOOD_RISE_UNHAPPY = K.dials.get("hybrid.MOOD_RISE_UNHAPPY")
+K.hybrid.MOOD_RISE_SICK = K.dials.get("hybrid.MOOD_RISE_SICK")
+K.hybrid.MOOD_RISE_STRESS = K.dials.get("hybrid.MOOD_RISE_STRESS")
+K.hybrid.MOOD_RISE_BORED = K.dials.get("hybrid.MOOD_RISE_BORED")
+
 function K.hybrid.defaults()
     return {
         hungerCap = K.hybrid.HUNGRY_4 - K.hybrid.CAP_MARGIN, -- CAP_MARGIN under HUNGRY level 4 (#0508; Plan 5 ruling 14); lifted while starving (K.hybrid.caps)
@@ -264,10 +271,3 @@ function K.hybrid.severeRate(sickLvl, sickArm, bleedLvl, heavyLvl, heavyOK)
     end
     return f + heavy, heavy
 end
-
--- The dials K.hybrid.defaults reads at call time (Plan 19 Task 3a): appended so no line above moves.
-K.hybrid.CAP_MARGIN = K.dials.get("hybrid.CAP_MARGIN")
-K.hybrid.MOOD_RISE_UNHAPPY = K.dials.get("hybrid.MOOD_RISE_UNHAPPY")
-K.hybrid.MOOD_RISE_SICK = K.dials.get("hybrid.MOOD_RISE_SICK")
-K.hybrid.MOOD_RISE_STRESS = K.dials.get("hybrid.MOOD_RISE_STRESS")
-K.hybrid.MOOD_RISE_BORED = K.dials.get("hybrid.MOOD_RISE_BORED")

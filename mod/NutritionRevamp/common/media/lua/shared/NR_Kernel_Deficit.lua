@@ -18,6 +18,7 @@ K.deficit = {}
 -- scored; Plan 11g Task 7 on the deficit studies alone, the well-fed arm held as a constraint now that satiety
 -- carries it: tools/fit_deficit_drive.py over testing/tests/kernel/deficit_oracles.py).
 K.deficit.BALANCE_SPAN_KCAL = K.dials.get("deficit.BALANCE_SPAN_KCAL")
+K.deficit.BALANCE_CAP = K.dials.get("deficit.BALANCE_CAP")
 
 -- --- the fat term: the low-fat hunger ramp (Plan 13 Task 10c) ---------------------------------------------------
 -- The fat store's drive enters on its depletion from the body's own reference (fatDep = (fmRef - fm) / fmRef), never
@@ -43,6 +44,8 @@ end
 -- The energy state the hunger term reads: 1 neutral, up under deficit and fat depletion (the fat term above), down
 -- under surplus, clamped to [STATE_MIN, STATE_MAX] (a game choice). Muscle glycogen does not enter it (ruling T4-1:
 -- no science row backs a coupling, and ketosis blunts the deficit's rise in appetite, S1451, S1452, S1259).
+K.deficit.STATE_MIN = K.dials.get("deficit.STATE_MIN")
+K.deficit.STATE_MAX = K.dials.get("deficit.STATE_MAX")
 function K.deficit.state(eb24h, fatDep)
     return K.clamp(1 + K.deficit.BALANCE_CAP * K.clamp(-eb24h / K.deficit.BALANCE_SPAN_KCAL, -1, 1) + K.deficit.fatTerm(fatDep), K.deficit.STATE_MIN, K.deficit.STATE_MAX) -- ruling 14; the span BALANCE_SPAN_KCAL, ruling 9c-1; the fat term, Plan 13 Task 10c
 end
@@ -127,9 +130,3 @@ end
 function K.deficit.unsated(hunger, energyState)
     return hunger / energyState
 end
-
--- The energy state's cap and clamp (K.deficit.state; Plan 19 Task 3b), resolved at load: appended here so no line
--- above moved.
-K.deficit.BALANCE_CAP = K.dials.get("deficit.BALANCE_CAP")
-K.deficit.STATE_MIN = K.dials.get("deficit.STATE_MIN")
-K.deficit.STATE_MAX = K.dials.get("deficit.STATE_MAX")

@@ -92,6 +92,10 @@ end
 -- the unclamped model would put near 0.05), so the band deliberately under-reads the heaviest
 -- phytate meals rather than extrapolate the log-linear fit past the measured range.
 -- design-phase-v1 game choice: the [0.2, 4.0] band is a judgement; S0532 supports the -82 % at 250 mg phytate P, which the floor caps at -80 %. Of the S tags below, S0195 and S0194 state the slopes (-0.0034 per mg phytate, +0.0065 per mg vitamin C); S0533 is a direction row and S0532 the 250 mg dose-response point, neither a slope.
+K.stomach.IRON_PHYTATE_SLOPE = K.dials.get("stomach.IRON_PHYTATE_SLOPE")
+K.stomach.IRON_VITC_SLOPE = K.dials.get("stomach.IRON_VITC_SLOPE")
+K.stomach.IRON_MIN = K.dials.get("stomach.IRON_MIN")
+K.stomach.IRON_MAX = K.dials.get("stomach.IRON_MAX")
 function K.stomach.ironFactor(phytateMg, vitCMg)
     return K.clamp(math.exp(K.stomach.IRON_PHYTATE_SLOPE * phytateMg + K.stomach.IRON_VITC_SLOPE * vitCMg), K.stomach.IRON_MIN, K.stomach.IRON_MAX) -- S0195, S0194, S0533, S0532
 end
@@ -102,6 +106,7 @@ end
 -- absorb reads it once per call, off ctx.lipids (the meal's lipids in the stomach) or the
 -- emptied vector's own when no context is given, for the fat-soluble keys.
 K.stomach.FAT_EFOLD_G = K.dials.get("stomach.FAT_EFOLD_G")
+K.stomach.FAT_FLOOR = K.dials.get("stomach.FAT_FLOOR")
 function K.stomach.fatFactor(lipidsG)
     return K.clamp(1 - math.exp(-lipidsG / K.stomach.FAT_EFOLD_G), K.stomach.FAT_FLOOR, 1.0) -- S0197, S0199
 end
@@ -348,11 +353,3 @@ function K.stomach.recordFoodFill(record)
     end
     return f
 end
-
--- The magnitudes ironFactor and fatFactor read (Plan 19 W7), resolved from their dials here and read at call time:
--- the meal iron factor's two slopes and its band, and the fat factor's floor.
-K.stomach.IRON_PHYTATE_SLOPE = K.dials.get("stomach.IRON_PHYTATE_SLOPE")
-K.stomach.IRON_VITC_SLOPE = K.dials.get("stomach.IRON_VITC_SLOPE")
-K.stomach.IRON_MIN = K.dials.get("stomach.IRON_MIN")
-K.stomach.IRON_MAX = K.dials.get("stomach.IRON_MAX")
-K.stomach.FAT_FLOOR = K.dials.get("stomach.FAT_FLOOR")

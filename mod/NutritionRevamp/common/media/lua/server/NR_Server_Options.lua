@@ -42,8 +42,11 @@ local K = NR.kernel
 -- (the poll's listener runs first: this file sorts before NR_Server_Players in the execution list, #0850; the reverse
 -- would cost one minute); it fires no changed hook.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
-                      nutritionOn = false, onsetSpeed = K.dials.get("options.ONSET_SPEED"), sleepOn = true,
-                      excessEffectsOn = true, balanceBonus = true, severity = K.dials.get("options.SEVERITY"), visibilityMode = 2,
+                      nutritionOn = false,
+                      onsetSpeed = K.dials.get("options.ONSET_SPEED"),
+                      sleepOn = true, excessEffectsOn = true, balanceBonus = true,
+                      severity = K.dials.get("options.SEVERITY"),
+                      visibilityMode = 2,
                       sexSpecific = false, stimulantRealism = 1, deathPace = K.drain.PACE_REAL,
                       healthCombine = K.drain.COMBINE_MULTIPLY, strength = K.strength.params(nil), dialSeen = {} }
 local O = NR.server.options

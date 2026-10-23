@@ -11,7 +11,8 @@
 -- player's work, by the drain options' write (NR_Server_Effects' EFF.writeDrainOptions), under its own pcall.
 local NR = NutritionRevamp
 local K = NR.kernel
-NR.server.players = { online = {}, queue = {}, queueHead = 1, onFirstSight = {}, onDeparture = {}, onNewGame = {}, -- the slow clock state, no row needed
+-- The slow clock's state: no row needed.
+NR.server.players = { online = {}, queue = {}, queueHead = 1, onFirstSight = {}, onDeparture = {}, onNewGame = {},
                       minutes = 0, drained = 0, served = 0, sight = {}, resetPending = {}, extraSet = {},
                       tasks = {}, extra = nil, ticks = 0, ticksLast = nil, ticksPrev = nil, meanMs = nil,
                       budgetMs = K.sched.FLOOR_MS, runCap = 1, wired = false, deadHealed = 0, stalls = 0, substeps = 0 }
