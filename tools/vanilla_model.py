@@ -3,7 +3,7 @@
 
 The model feeds the player guide's vanilla-versus-mod charts with the vanilla side's `vanilla-model` series.
 Each formula is a small named function carrying the register rows it rests on in `FORMULAS`, keyed by the
-source map's names (VM1 to VM16 and JT1, `docs/superpowers/research/2026-10-15-mod-guide/source-map.md` § 4), and
+source map's names (VM1 to VM16 and JT1, `docs/mod-guide/source-map.md` § 4), and
 VM17, the player guide's food mood (Plan 19 Task 8).
 The build: the rows are 42.20.4 claims unless their bound records a 42.21 re-read (CLAUDE.md § 2); the Plan 14
 Task 2 review re-read VM1-VM8, VM11-VM13 and VM16 on the 42.21 jar (buildid 25485521, jar 4a0e9546ec) and they

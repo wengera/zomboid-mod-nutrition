@@ -6,7 +6,7 @@ from . import strength_model as sm
 from . import strength_oracles as so
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-COMPACT = os.path.join(REPO, "docs", "superpowers", "research", "2026-10-14-strength-redesign", "refit", "compact_T.json")
+COMPACT = os.path.join(REPO, "data", "fits", "strength-refit-T", "compact_T.json")
 
 def _compact():
     with open(COMPACT, encoding="utf-8") as fh:

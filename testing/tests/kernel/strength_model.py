@@ -1,6 +1,6 @@
 """The strength fit's daily-step model, tracked as a kernel-test oracle (Plan 13 Task 2).
 
-Copied on 2026-10-14 from docs/superpowers/research/2026-10-14-strength-redesign/refit/model.py (tracked at
+Copied on 2026-10-14 from the fit record's model.py, now data/fits/strength-refit-T/model.py (tracked at
 5987ac7a; sha256 d5cfd05e5427bd0940edcd1647ed4885485d1821f515518de0285e0a3082df24), byte for byte, then extended:
 POINT_T (DEFAULT updated with compact_T.json's "chosen") is appended, and Body.day gains ruling 13-2's flag
 `exact` (default off). With P['exact'] falsy the step is the fit's verbatim, so it reproduces compact_T.json. With it
@@ -290,7 +290,7 @@ import os as _os
 
 COMPACT_T = _os.path.join(
     _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))),
-    "docs", "superpowers", "research", "2026-10-14-strength-redesign", "refit", "compact_T.json")
+    "data", "fits", "strength-refit-T", "compact_T.json")
 
 
 def _point_t():

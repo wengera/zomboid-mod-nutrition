@@ -1,6 +1,6 @@
 """The strength fit's oracle registry, tracked as a kernel-test oracle (Plan 13 Task 2).
 
-Copied on 2026-10-14 from docs/superpowers/research/2026-10-14-strength-redesign/refit/oracles.py (tracked at
+Copied on 2026-10-14 from the fit record's oracles.py, now data/fits/strength-refit-T/oracles.py (tracked at
 5987ac7a; sha256 685257b96e18a07035d8722bcfdf56019f1f374207668711268b78b78ccec22e), byte for byte except the model
 import, which reads the tracked strength_model, and the two Mettler rows' weight and source (Plan 16 Task 5: report
 only). score(P) re-scores any parameter table; with P['exact'] true it

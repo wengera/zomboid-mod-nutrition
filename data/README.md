@@ -242,3 +242,12 @@ pass whose `meta.fetched` would cover them. Every reading is **W**: it is what
 a Workshop page said at that minute.
 
 - **The nine catalogued mods (2026-09-10 17:46):** [`facts/other-mods/catalog.md#status`](../docs/facts/other-mods/catalog.md#status); what the pass answers and its caveats, [`datasets.md#workshop-rows`](../docs/reference/datasets.md#workshop-rows).
+
+## fits/strength-refit-T
+
+`data/fits/strength-refit-T/` holds the Strength fit's point T (Plan 13): `compact_T.json`, the chosen point and
+every oracle's value, and `model.py` and `oracles.py`, the fit's model and oracle registry as they ran. The kernel
+tests read `compact_T.json` (`testing/tests/kernel/test_strength_oracle.py`, `strength_model.py`), and the
+strength dials' `fit` cells name it. The tracked copies the tests run are `testing/tests/kernel/strength_model.py`
+and `strength_oracles.py`. The rest of the fit record (point S, fit R, the reports) is at the tag
+`program-record-v19` under `docs/superpowers/research/2026-10-14-strength-redesign/refit/`. Never hand-edit.

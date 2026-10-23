@@ -3,7 +3,9 @@
 Written 2026-10-15 at HEAD `10dfbc9b` (mod/ last touched at `498bd4a5`). This map is the run sheet for every later
 brief of Plan 14 (ledger ruling): the charts, the source of every series, the promises, the vanilla model's formulas,
 the vanilla-baseline sessions and the gaps. It cites register rows (`#NNNN`), science rows (`SNNNN`) and artifact
-paths; it mints nothing.
+paths; it mints nothing. It sits beside the guide it maps since Plan 20 (its old path,
+`docs/superpowers/research/2026-10-15-mod-guide/source-map.md`, resolves at the tag `program-record-v19`, with the
+Plan 14 Task 1 review's fix-round table this copy drops).
 
 ## 0. Conventions every later task reads
 
@@ -300,6 +302,9 @@ S3b-m-live-U and -B keep days 0-4 (x341, x342); x343's days 5-6 fail the test.
 
 ## 3. Promises
 
+Dated: the promises as Plan 14 Task 4 left them (2026-10-15). Plans 15 and 16 changed the fast's deaths and the
+starvation drain since; the guide's own text and `data.json` are the current state.
+
 | text | support | status |
 |---|---|---|
 | **No longer happens:** in Managed mode hunger never reaches the top Hungry moodle, so hunger never kills | #3123 (the cap at 0.69 and 0.83), #3074 (HUNGER ≤ 0.69 live on an empty stomach), #0508, #0516 | supported |
@@ -392,6 +397,9 @@ launch.
 
 ## 6. Gaps
 
+Dated: the gaps as Plan 14 Task 4 left them (2026-10-15). Plans 15 and 16 closed some, G16 among them; the guide's
+badges are the current state.
+
 | id | gap | fill |
 |---|---|---|
 | G1 | Vanilla hunger after a real eat at the default DayLength: the timer's fill gate (`isAtMinimum`) is C-only (#3597, #0054) and every measured freeze came from a timer write (#0524) | V1a |
@@ -411,40 +419,6 @@ launch.
 | G15 | The sleep factor's live run (x30x) is the Plan 11f build, before the 11g rework | admission test; M2 (ruled to run) |
 | G16 | The starvation drain (fat gone) has no live reading and no register row | kernel series S2d-m-drain plus a C row of its condition read off `K.effects.drain`; or M-run (a 90-day fast is out of a live session's reach) |
 | G17 | Three README promises have no support: the hangover, the balance bonus and a health drain from low blood sodium or an iron overdose | Ruled: reworded or dropped in § 3 (the balance bonus and both health drains dropped, sodium and iron reworded, the hangover dropped unless M2 reads it); the README's same lines go to Task 11's fact check |
-
-## Fix round 1
-
-Applied from `.superpowers/sdd/2026-10-15-plan-14-mod-guide/task-1-review.md` (FAIL, 12 Important, 12 Minor) and the
-ledger's rulings (G12, the sessions, G17, G8). Counts after the round: 39 charts; 147 series, kernel 65, live 26,
-vanilla-model 31, vanilla-live 11, study 14.
-
-| finding | what changed |
-|---|---|
-| I-1 | V3 reads the trait list with `stats.get admin` (`traitList`) after arm B; `trait.watch STOUT` optional on the client; `trait.check` removed. |
-| I-2 | V3 arm B: `perk.park admin Strength 5`, then `xp.grant admin Strength 29700` at protein 0 (67 200), then `nutrition.set admin proteins 100`, then the set; the order and why stated; `xp.grant` added to the commands. |
-| I-3 | V1a drops `foodtimer.set`; the timer is read with `stats.get admin` (`foodTimer`, `standardFoodTime`) every 10 s beside `moodle.level admin FOOD_EATEN`. |
-| I-4 | SV1-m-kernel is `K.view.fullnessLevel(mass)` (`NR_Kernel_View.lua:537`), not `K.satiety.discomfort`. |
-| I-5 | SX1-m-live cites `sessions.x371.sets[i].bills[j].billed`; `table_met` is the label only, `billed_all` never cited, the ×80 kg conversion stated as a derivation. |
-| I-6 | S3a: S0967 dropped (superseded; S0210 open), S0224 and S0225 kept as two series. S4c: S0617 replaced by S0078, with its no-retraining-advantage finding stated. S6a's S0851 and S1123 and SD1's S1168 removed as study series, the half-life, the tolerance and the 168 h to death noted as game choices on open rows. The scurvy promise reworded to a game choice after a month at clinical. |
-| I-7 | SH1-study-1248 reads S1248's own 320–425 min (Cummings 2004); the 240–300 anchor named as #3700's. |
-| I-8 | S4b-v-model: about 42 weeks with the protein factor, about 62.5 without; the promise reads "a year or so". |
-| I-9 | V2 starts its store at 3000 kcal, predicts the 36-h change before the run; H2-v-live and G3 say V2 validates the store's arithmetic and the gain rate, not 30 days of drift. |
-| I-10 | § 0 and G8 name the Plan 11g satiety rework for x27x, x276 and x30x; SH2 gains SH2-m-kernel (the HEAD replay of x276's six-meal events against its three-meal arm) and SH2-m-live takes the admission test; S2b-m-live, S6c-m-live and SC1 marked proof only unless they pass. |
-| I-11 | The refeeding promise reworded to "long starvation puts you at refeeding risk"; the event (`K.acute.refeedEvent`) not promised. |
-| I-12 | M1 carries no filled fluid container and logs `fluids.autoDrop` as `autodrop` events; `autodrink.set` removed. |
-| M-1 | The sleep-off default cites the harness profile-key row and #3009, not #2961. |
-| M-2 | Leaves, not parents: x361 `nadir.live.HUNGER`; x151t `records[51].fluids.dehydPct`, `.thirstTarget`; x161b `summaries.I.health.per_game_h`, `health_reads[53].overall` and `[70].overall`; x436 `_xp.observed.client_level`, `.observed.xp`, `_body.observed.record.lm`, `.record.fm`, `.derived.mass`. |
-| M-3 | § 0 states the ring's flat dotted keys and the bracket form; SE1's leaf rewritten; Task 3 told to match the longest key. |
-| M-4 | § 0: x435 and x436 behaviour-preserving; x434 stands for the deficit partition only. |
-| M-5 | SX2-m-kernel names `activity {exercising: true}` plus a `setpath` of `_G.NutritionRevamp.server.fitness.exeType.admin` to `"burpees"`; Task 4 checks 7.5 MET. |
-| M-6 | S2b and S2c state "sleep on, the oracle's protocol". |
-| M-7 | VM3, VM16 and S2d write "the day length in real minutes". |
-| M-8 | V4 drinks four `Base.BeerCan`, as the model and the kernel. |
-| M-9 | S6a-v-model states that it assumes sleep allowed and needed (#3009). |
-| M-10 | S5b gains S5b-m-weak-level and S5b-m-overfat-weight. |
-| M-11 | V2 is one 36-h session (ruling), re-estimated at about 9.5 min with the detached-launch fallback named. |
-| M-12 | The mood promise is "supported (inference …)", BOREDOM read as `moodLast_b`. |
-| Rulings | G12 closed with the `dataset` kind (H4, SN1 badges marked); sessions V1a, V1b, V2, V3, V4, M1, M2 all to run (V2a/V2b merged, M1 and M2 no longer optional); G17's three promises reworded or dropped (balance bonus dropped; sodium and iron reworded with their health drains dropped; hangover and withdrawal dropped unless M2 reads them); G8's admission test kept. |
 
 ## Plan 19 Task 8: Food mood
 

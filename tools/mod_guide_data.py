@@ -8,7 +8,7 @@ edited by hand.
 The file is `{"series": [...], "charts": {...}, "validation": [...]}`:
 
 - `series`, ordered by id, each in the schema below (`validate_series`);
-- `charts`, the source map's charts table (`mod_guide_series.CHARTS`);
+- `charts`, the source map's charts table (`docs/mod-guide/source-map.md` § 1; `mod_guide_series.CHARTS`);
 - `validation`, the vanilla model's validation block (`mod_guide_series.VALIDATION`, Task 7).
 
 A series is::

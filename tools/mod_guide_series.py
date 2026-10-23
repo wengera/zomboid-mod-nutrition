@@ -4,7 +4,7 @@
 
 - `SERIES_DEFS` is a list of callables, each taking no argument and returning one series dict or a list of
   them, in the schema `mod_guide_data.validate_series` checks. Task 4 filled it from the source map's § 2
-  (`docs/superpowers/research/2026-10-15-mod-guide/source-map.md`): artifacts, kernel replays at HEAD, the vanilla
+  (`docs/mod-guide/source-map.md`): artifacts, kernel replays at HEAD, the vanilla
   model (`tools/vanilla_model.py`), datasets and studies.
 - `MAP_CHARTS` is the source map's charts table (§ 1, at 4e6300fa), copied as data: chart id -> section, title, x
   axis, y axis and the series ids it draws. `CHARTS` is that table less the `DROPPED` ids. Plan 15 Task 13 amended it
