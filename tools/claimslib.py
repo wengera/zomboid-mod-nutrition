@@ -6,7 +6,11 @@ import re
 
 COLUMNS = ("id", "claim", "grade", "pointer", "bound", "status", "successor", "kind", "source", "owner")
 GRADES = ("C", "M", "W")
-STATUSES = ("settled", "open", "superseded", "unverified")
+STATUSES = ("settled", "open", "superseded", "unverified", "retired")
+# The two statuses a row of the archive register (docs/reference/claims-archive.tsv) carries, and the only two: a
+# superseded row keeps its lineage there, and a retired row (true, but no longer worth a page sentence) stays citable
+# there with its repo: pointers pinned (Plan 20, rulings P20-T1-1 to P20-T1-3).
+ARCHIVE_STATUSES = ("superseded", "retired")
 KINDS = ("mechanism", "order", "table", "count", "verdict", "rule", "bound", "contradiction", "tool", "open")
 BOUND_TOKENS = ("none", "one-side", "C-only", "one-fixture", "arith.", "inference", "uncommitted", "snapshot")
 # `web:<data file or page> <fetch date>` is a fetched non-wiki source (a workshop metadata
@@ -39,6 +43,11 @@ ANCHOR_RX = re.compile(r'"[^"]+"')
 # lua / mod / repo pointers read `<path>:<line>[-<line>] "<anchor text>"` and nothing else.
 ANCHORED_PTR_RX = re.compile(r'^[^\s"]+:\d+(?:[-–]\d+)?\s+' + ANCHOR_RX.pattern + r"$")
 RUN_ID_RX = re.compile(r"^[a-z0-9]+-\d{8}-\d{6}(?:\s|$)")
+# A pinned repo path, `<path>@<ref>`: the ref is a commit (7 to 40 hex digits) or a tag name; claims_check resolves
+# it through git and refuses a branch, which moves (ruling P20-T1-6).
+PINNED_RX = re.compile(r"^(.+?)@([A-Za-z0-9][A-Za-z0-9._/-]*)$")
+HEX_REF_RX = re.compile(r"^[0-9A-Fa-f]{7,40}$")
+REPO_PTR_RX = re.compile(r'^(\S+?):(\d+(?:[-–]\d+)?)(\s+".*")$')
 
 
 class RegisterError(Exception):
@@ -103,6 +112,40 @@ def _split_outside_quotes(cell, sep=";"):
             buf.append(ch)
     parts.append("".join(buf))
     return parts
+
+
+def split_pin(path):
+    """'mod/x.lua@abc1234' -> ('mod/x.lua', 'abc1234'); 'x.md@program-record-v19' -> ('x.md', 'program-record-v19');
+    an unpinned path -> (path, None)."""
+    m = PINNED_RX.match(path)
+    return (m.group(1), m.group(2)) if m else (path, None)
+
+
+def pin_repo_payload(text, ref):
+    """A `repo:` payload pinned at `ref`: '<path>:<line> "q"' -> '<path>@<ref>:<line> "q"'. A payload already pinned
+    is returned as it is; one that is not `<path>:<line> "<quote>"` is a ValueError (it cannot be pinned)."""
+    m = REPO_PTR_RX.match(text.strip())
+    if not m:
+        raise ValueError("repo: pointer %r is not <path>:<line> \"<quote>\"" % text[:60])
+    path, pin = split_pin(m.group(1))
+    if pin:
+        return text.strip()
+    return "%s@%s:%s%s" % (path, ref, m.group(2), m.group(3))
+
+
+def pin_repo_pointers(cell, ref):
+    """The pointer cell with every unpinned `repo:` pointer pinned at `ref`; the other pointers and the `; ` joins are
+    kept as written."""
+    parts = _split_outside_quotes(cell)
+    out = []
+    for part in parts:
+        form, sep, text = part.strip().partition(":")
+        if sep and form.strip() == "repo":
+            lead = part[:len(part) - len(part.lstrip())]
+            out.append("%srepo:%s" % (lead, pin_repo_payload(text, ref)))
+        else:
+            out.append(part)
+    return ";".join(out)
 
 
 def parse_pointers(cell):

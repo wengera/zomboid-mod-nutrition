@@ -189,3 +189,124 @@ def test_supersede_honours_the_successor_cell_wherever_the_add_sits(tmp_path):
     with pytest.raises(cd.DeltaError, match="carried by no add row"):
         cd.apply(_delta(tmp_path, lines), [], register=reg)
     assert open(reg, encoding="utf-8").read() == before
+
+
+# --- The archive and the retire op (Plan 20 rulings P20-T1-1, P20-T1-4, P20-T1-5).
+
+import subprocess
+sys.path.insert(0, os.path.dirname(__file__))
+import gitenv
+
+
+def _git(d, *a):
+    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", str(d), *a], check=True,
+                          capture_output=True, text=True, env=gitenv.scrubbed_env()).stdout.strip()
+
+
+def _repo(tmp_path, body="a = 1\nb = 2\n"):
+    """A tmp git repo holding mod/x.lua and the register at docs/reference/claims.tsv; #0003 cites mod/x.lua:1."""
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "mod").mkdir()
+    (tmp_path / "mod" / "x.lua").write_text(body, encoding="utf-8", newline="\n")
+    _git(tmp_path, "add", "mod/x.lua")
+    _git(tmp_path, "commit", "-q", "-m", "c1")
+    ref = tmp_path / "docs" / "reference"; ref.mkdir(parents=True)
+    rows = cl.read_register(_register(tmp_path))
+    rows[2]["pointer"] = 'jar:A.c @1 L3; repo:mod/x.lua:1 "a = 1"'
+    reg = str(ref / "claims.tsv")
+    cl.write_register(reg, rows)
+    return reg, _git(tmp_path, "rev-parse", "--short", "HEAD")
+
+
+def _retire(cid, reason="no page sentence left"):
+    return "\t".join(["retire", cid, "", "", "", "", "", "", "", "", "", reason])
+
+
+def test_retire_pins_appends_the_reason_and_moves_the_row(tmp_path):
+    reg, sha = _repo(tmp_path)
+    page = _page(tmp_path, "Nothing tags it.\n")
+    changes, pages = cd.apply(_delta(tmp_path, [_retire("#0003")]), [page], register=reg, today="2026-10-23")
+    assert changes == ["#0003 retired -> claims-archive.tsv"] and pages == []
+    assert [r["id"] for r in cl.read_register(reg)] == ["#0001", "#0002"]
+    arch = cl.read_register(os.path.join(os.path.dirname(reg), "claims-archive.tsv"))
+    assert len(arch) == 1 and arch[0]["id"] == "#0003" and arch[0]["status"] == "retired"
+    assert arch[0]["pointer"] == 'jar:A.c @1 L3; repo:mod/x.lua@%s:1 "a = 1"' % sha
+    assert arch[0]["bound"] == "none; retired 2026-10-23: no page sentence left"
+
+
+def test_retire_keeps_a_bound_and_a_pin_already_there(tmp_path):
+    reg, sha = _repo(tmp_path)
+    rows = cl.read_register(reg)
+    rows[2]["pointer"] = 'repo:mod/x.lua@%s:2 "b = 2"' % sha
+    rows[2]["bound"] = "inference; a reading of #0001"
+    cl.write_register(reg, rows)
+    cd.apply(_delta(tmp_path, [_retire("#0003", "folded into #0001")]), [], register=reg, today="2026-10-23")
+    arch = cl.read_register(os.path.join(os.path.dirname(reg), "claims-archive.tsv"))
+    assert arch[0]["pointer"] == 'repo:mod/x.lua@%s:2 "b = 2"' % sha
+    assert arch[0]["bound"] == "inference; a reading of #0001; retired 2026-10-23: folded into #0001"
+
+
+def test_retire_refuses_an_empty_reason_and_a_quote_not_at_head(tmp_path):
+    reg, _ = _repo(tmp_path)
+    before = open(reg, encoding="utf-8").read()
+    with pytest.raises(cd.DeltaError, match="reason cell is empty"):
+        cd.apply(_delta(tmp_path, [_retire("#0003", "")]), [], register=reg)
+    (tmp_path / "mod" / "x.lua").write_text("b = 2\na = 1\n", encoding="utf-8")      # edited, not committed
+    rows = cl.read_register(reg)
+    rows[2]["pointer"] = 'repo:mod/x.lua:2 "a = 1"'                                       # true in the working tree only
+    cl.write_register(reg, rows)
+    before = open(reg, encoding="utf-8").read()
+    with pytest.raises(cd.DeltaError, match="does not hold at HEAD"):
+        cd.apply(_delta(tmp_path, [_retire("#0003")]), [], register=reg)
+    assert open(reg, encoding="utf-8").read() == before
+    assert not os.path.exists(os.path.join(os.path.dirname(reg), "claims-archive.tsv"))
+
+
+def test_retire_notes_a_page_that_still_tags_the_row(tmp_path, capsys):
+    reg, _ = _repo(tmp_path)
+    page = _page(tmp_path, "Still here [#0003].\n")
+    assert cd.main(["apply", _delta(tmp_path, [_retire("#0003")]), "--pages", page, "--register", reg]) == 0
+    assert "NOTE: #0003 is retired but" in capsys.readouterr().out
+
+
+def test_status_never_writes_retired_and_ops_on_an_archived_row_are_refused(tmp_path):
+    reg = _register(tmp_path)
+    with pytest.raises(cd.DeltaError, match="only by the retire op"):
+        cd.apply(_delta(tmp_path, ["\t".join(["status", "#0001", "", "", "", "", "retired", "", "", "", "", "x"])]), [], register=reg)
+    arch = os.path.join(os.path.dirname(reg), "claims-archive.tsv")
+    cl.write_register(arch, [{"id": "#0004", "claim": "Old.", "grade": "C", "pointer": "jar:A.e @1 L2", "bound": "",
+                              "status": "superseded", "successor": "#0001", "kind": "mechanism", "source": "s", "owner": ""}])
+    for line in (_retire("#0004"), "\t".join(["retarget", "#0004", "", "", "", "", "", "", "", "", "facts/x.md#a", "x"])):
+        with pytest.raises(cd.DeltaError, match="row is archived"):
+            cd.apply(_delta(tmp_path, [line]), [], register=reg)
+
+
+def test_add_mints_past_the_highest_id_of_both_files(tmp_path):
+    reg = _register(tmp_path)
+    cl.write_register(os.path.join(os.path.dirname(reg), "claims-archive.tsv"),
+                      [{"id": "#0009", "claim": "Old.", "grade": "C", "pointer": "jar:A.e @1 L2", "bound": "",
+                        "status": "superseded", "successor": "#0001", "kind": "mechanism", "source": "s", "owner": ""}])
+    changes, _ = cd.apply(_delta(tmp_path, [_add("T7.1")]), [], register=reg)
+    assert changes == ["T7.1 -> #0010"]
+
+
+def test_archive_superseded_moves_every_superseded_row_in_id_order(tmp_path, capsys):
+    reg = _register(tmp_path)
+    rows = cl.read_register(reg)
+    rows[0]["status"], rows[0]["successor"] = "superseded", "#0002"
+    rows[2]["status"], rows[2]["successor"] = "superseded", "#0002"
+    cl.write_register(reg, rows)
+    arch = os.path.join(os.path.dirname(reg), "claims-archive.tsv")
+    cl.write_register(arch, [{"id": "#0001", "claim": "x", "grade": "C", "pointer": "jar:A.e @1 L2", "bound": "",
+                              "status": "superseded", "successor": "#0002", "kind": "mechanism", "source": "s", "owner": ""}])
+    with pytest.raises(cd.DeltaError, match="#0001 already in the archive"):
+        cd.archive_superseded(reg)
+    cl.write_register(arch, [])
+    before = open(reg, encoding="utf-8").read()
+    assert cd.main(["archive-superseded", "--register", reg, "--dry-run"]) == 0
+    assert "2 superseded rows would move to" in capsys.readouterr().out
+    assert open(reg, encoding="utf-8").read() == before and cl.read_register(arch) == []
+    assert cd.archive_superseded(reg) == 2
+    assert [r["id"] for r in cl.read_register(reg)] == ["#0002"]
+    assert [r["id"] for r in cl.read_register(arch)] == ["#0001", "#0003"]
+    assert cd.archive_superseded(reg) == 0

@@ -111,9 +111,31 @@ def write_tsv(path, rows, columns):
             f.write("\t".join(_clean(str(r.get(c, ""))) for c in columns) + "\n")
 
 
+def _read_lines(path):
+    return [l.rstrip("\r") for l in open(path, encoding="utf-8", errors="replace", newline="").read().split("\n")]
+
+
 def do_not_cite(readme_path):
-    lines = [l.rstrip("\r") for l in open(readme_path, encoding="utf-8", errors="replace", newline="").read().split("\n")]
-    out, current_run, i = [], "", 0
+    """The "Do not cite" rows of the artifacts register: its inline reading guides, then each run's own
+    testing/artifacts/<run>/GUIDE.md that its Contents row links (both forms, ruling P20-T1-7; a linked guide's
+    "this file" blocks belong to its run)."""
+    import reference_gen as rg
+    lines = _read_lines(readme_path)
+    out = _dnc_lines(lines)
+    try:
+        links = rg.guide_links("\n".join(lines))
+    except ValueError:
+        links = {}
+    base = os.path.dirname(os.path.abspath(readme_path))
+    for run, target in sorted(links.items()):
+        path = os.path.normpath(os.path.join(base, *target.split("/")))
+        if os.path.isfile(path):
+            out += _dnc_lines(_read_lines(path), run)
+    return out
+
+
+def _dnc_lines(lines, current_run=""):
+    out, i = [], 0
     while i < len(lines):
         line = lines[i]
         if line.startswith("#") or line.startswith("**"):

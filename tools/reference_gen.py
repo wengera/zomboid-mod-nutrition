@@ -7,7 +7,9 @@ column and the wiki mirrors' contradiction table, rendered from the register.
 
 cited-by: for every row of the page's `## Contents` table, the `Cited by` cell lists the owner pages
 of the live rows whose pointer carries `run:<run id>` (aliases from docs/reference/run-aliases.csv
-count for both ids), sorted, deduplicated, as links relative to docs/reference/; `—` when none.
+count for both ids), sorted, deduplicated, as links relative to docs/reference/; `—` when none. The rows
+are the register's and its archive's (docs/reference/claims-archive.tsv): a retired row that cites the
+run lists the archive file, and a superseded row lists nothing.
 contradictions: one table per mirror file in the README's `## Mirrors` order, from the live
 `contradiction` rows whose `wiki:` pointer names the file, between the markers
 `<!-- reference_gen: contradictions start -->` / `<!-- reference_gen: contradictions end -->`.
@@ -18,6 +20,9 @@ import claimslib as cl
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTER = "docs/reference/claims.tsv"
+ARCHIVE = "docs/reference/claims-archive.tsv"
+# The `Cited by` entry for a run a retired row cites: the archive, as a path relative to docs/ like the pages.
+ARCHIVE_CITED = "reference/claims-archive.tsv"
 ALIASES = "docs/reference/run-aliases.csv"
 ARTIFACTS_PAGE = "docs/reference/artifacts.md"
 MIRRORS_README = "references/wiki-mirrors/README.md"
@@ -57,7 +62,8 @@ def _cell(text):
 
 
 def _live(row):
-    return row.get("status") != "superseded"
+    """A row that a page carries: neither superseded nor retired."""
+    return row.get("status") not in ("superseded", "retired")
 
 
 def _arms(pointer, form):
@@ -126,11 +132,18 @@ def _aliases(aliases_csv_text):
 
 
 def _cited(rows, aliases):
-    """{run id: {owner page}} over the live rows' `run:` arms; an alias counts for its real run too."""
+    """{run id: {owner page}} over the live rows' `run:` arms; an alias counts for its real run too. The rows are the
+    register's and its archive's: a retired row (still citable, its sentence gone from its page) counts for the
+    archive file, never for the page it left; a superseded row counts for nothing (Plan 20)."""
     out = collections.defaultdict(set)
     for r in rows:
-        page = r.get("owner", "").split("#")[0].strip()
-        if not _live(r) or not page:
+        if r.get("status") == "retired":
+            page = ARCHIVE_CITED
+        elif _live(r):
+            page = r.get("owner", "").split("#")[0].strip()
+        else:
+            continue
+        if not page:
             continue
         for payload in _arms(r.get("pointer", ""), "run"):
             toks = payload.split()
@@ -219,6 +232,122 @@ def cited_by_write(page_path, rows, aliases_path=None):
     if changed:
         _write(page_path, "".join(b + e for b, e in lines))
     return changed
+
+
+# ---- reading guides -------------------------------------------------------------------------
+# A run's reading guide is either inline in artifacts.md (a block opening at a `**`<run id>...`**` line and running
+# to the next run's block or `## ` heading) or, once Task 2 of Plan 20 moves it, its own file
+# testing/artifacts/<run>/GUIDE.md, which the run's Contents row links. Both forms are read (ruling P20-T1-7).
+
+GUIDE_NAME = "GUIDE.md"
+GUIDE_LINK_RX = re.compile(r"\]\(([^)\s]*" + re.escape(GUIDE_NAME) + r")\)")
+_BACKTICK_RX = re.compile(r"`([^`]+)`")
+_WILDCARD_WORD_RX = re.compile(r"\bwildcard\b", re.I)
+_FILE_EXT_RX = re.compile(r"\.(?:json|lua|log|md|txt|toml|ini|csv|py)$")
+
+
+def guide_rel(target):
+    """A Contents link target (relative to docs/reference/) as a repo-relative path."""
+    return os.path.normpath(os.path.join("docs", "reference", *target.split("/"))).replace("\\", "/")
+
+
+def guide_links(page_text):
+    """{run id: the GUIDE.md link target as written} for every `## Contents` row whose cells link a GUIDE.md."""
+    _, _, _, table = _contents(page_text)
+    out = {}
+    for _, run, cells in table:
+        for c in cells:
+            m = GUIDE_LINK_RX.search(c)
+            if m:
+                out[run] = m.group(1)
+                break
+    return out
+
+
+def inline_guides(page_text, runs=None):
+    """{run id: [(line number, line)]} of the reading guides written inline on the page. A guide opens at a line that
+    starts `**` + backtick and whose first backticked text is a Contents run id or `<run id>/<file>`; it runs to the
+    next such line or the next `## ` heading. `runs` defaults to the page's own Contents run ids."""
+    if runs is None:
+        try:
+            runs = {run for _, run, _ in _contents(page_text)[3]}
+        except ValueError:
+            runs = set()
+    out, cur = collections.defaultdict(list), None
+    for n, (body, _) in enumerate(_lines(page_text), 1):
+        if body.startswith("## "):
+            cur = None
+        elif body.startswith("**`"):
+            m = _BACKTICK_RX.search(body)
+            head = m.group(1).split("/")[0] if m else ""
+            if head in runs:
+                cur = head
+        if cur:
+            out[cur].append((n, body))
+    return dict(out)
+
+
+def run_guide(root, run, page_text=None, links=None, inline=None):
+    """(repo-relative source, guide text) of a run's reading guide: the linked GUIDE.md when its Contents row links
+    one (the file's text, or '' when it is missing), else its inline block on artifacts.md; (None, '') when it has
+    neither. A caller reading many runs passes the page's `links` and `inline` once."""
+    if page_text is None:
+        path = os.path.join(root, *ARTIFACTS_PAGE.split("/"))
+        page_text = _read(path) if os.path.exists(path) else ""
+    if links is None:
+        try:
+            links = guide_links(page_text)
+        except ValueError:
+            links = {}
+    if inline is None:
+        inline = inline_guides(page_text)
+    if run in links:
+        rel = guide_rel(links[run])
+        full = os.path.join(root, *rel.split("/"))
+        return rel, (_read(full) if os.path.isfile(full) else "")
+    block = inline.get(run)
+    if block:
+        return ARTIFACTS_PAGE, "\n".join(b for _, b in block)
+    return None, ""
+
+
+def wildcard_keys(guide_text):
+    """The key patterns a guide's wildcard sentences restrict (CLAUDE.md section 4, items 9 and 11): on each line that
+    says `wildcard`, the backticked patterns carrying a `*` (from a table row, its first cell only). A pattern whose
+    last part is a bare `*` is a scope (`phases.*`, every leaf under it the sentence names), not a key, and a file
+    glob (`store-*.json`) or an expression is no key either; both are left out."""
+    out = []
+    for line in guide_text.split("\n"):
+        if not _WILDCARD_WORD_RX.search(line):
+            continue
+        scope = _cells(line)[0] if line.lstrip().startswith("|") and _cells(line) else line
+        for tok in _BACKTICK_RX.findall(scope):
+            tok = tok.strip()
+            if "*" not in tok or re.search(r"[\s()=<>]", tok) or _FILE_EXT_RX.search(tok):
+                continue
+            if re.search(r"(?:^|[.\]])\*$|\[\*\]$", tok):
+                continue
+            if tok not in out:
+                out.append(tok)
+    return out
+
+
+def _pattern_rx(pattern):
+    s = re.escape(pattern).replace(r"\[\*\]", r"\[\d+\]").replace(r"\*", r"[^.\[\]]*")
+    return re.compile("^" + s + r"(?:$|[.\[])") if ("." in pattern or "[" in pattern) else re.compile("^" + s + "$")
+
+
+_SEGMENT_RX = re.compile(r"[^.\[\]]+")
+
+
+def wildcard_match(pattern, key):
+    """True when `key` (a cited JSON path) is restricted by the wildcard `pattern`: a dotted pattern is matched from
+    the key's start, its children included (`steps[*].epoch_ms_*` restricts `steps[4].epoch_ms_before`); a bare leaf
+    pattern (`epoch_ms_*`) restricts any part of the key it matches whole."""
+    rx = _pattern_rx(pattern)
+    if "." in pattern or "[" in pattern:
+        return bool(rx.match(key))
+    return any(rx.match(seg) for seg in _SEGMENT_RX.findall(key))
 
 
 # ---- contradictions -------------------------------------------------------------------------
@@ -350,6 +479,14 @@ def contradictions_write(readme_path, rows):
 
 # ---- CLI ------------------------------------------------------------------------------------
 
+def read_rows(root):
+    """The register's rows and then its archive's (an absent archive is an empty one): both files feed the
+    generated sections."""
+    rows = cl.read_register(os.path.join(root, *REGISTER.split("/")))
+    archive = os.path.join(root, *ARCHIVE.split("/"))
+    return rows + (cl.read_register(archive) if os.path.exists(archive) else [])
+
+
 def _utf8_console():
     for stream in (sys.stdout, sys.stderr):
         try:
@@ -372,7 +509,7 @@ def main(argv=None):
     if not os.path.exists(path):
         print("%s: no such file" % path); return 2
     try:
-        rows = cl.read_register(os.path.join(REPO_ROOT, *REGISTER.split("/")))
+        rows = read_rows(REPO_ROOT)
     except (cl.RegisterError, OSError) as e:
         print(e); return 2
     aliases = os.path.join(REPO_ROOT, *ALIASES.split("/"))

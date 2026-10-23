@@ -594,7 +594,254 @@ def test_pinned_pointer_reads_the_commit_not_the_edited_working_tree():
     assert len(f) == 1 and f[0].rule == "pointer-line"
 
 
-def test_pointer_with_a_non_hex_pin_says_only_a_hex_commit_is_supported():
-    for tok in ("HEAD", "v1.0"):
-        f = _pinned('repo:mod/x.lua@%s:2 "a = 1"' % tok)
-        assert len(f) == 1 and f[0].rule == "pointer" and "only a hex commit pin" in f[0].detail
+
+
+# --- Tag-name pins (Plan 20 ruling P20-T1-6): a pin names a commit or a tag; a branch or HEAD moves, so it pins nothing.
+
+def test_pointer_pinned_at_head_or_a_missing_tag_is_a_finding():
+    """Rewritten from the hex-only test it replaces (Plan 20 Task 1): `@HEAD` is a symbolic ref, refused; `@v1.0` is a
+    tag name, read through git, and a tag the repository lacks does not resolve."""
+    f = _pinned('repo:mod/x.lua@HEAD:2 "a = 1"')
+    assert len(f) == 1 and f[0].rule == "pointer" and "a branch or a symbolic ref" in f[0].detail
+    f = _pinned('repo:mod/x.lua@v1.0:2 "a = 1"')
+    assert len(f) == 1 and f[0].rule == "pointer" and "does not resolve at tag v1.0" in f[0].detail
+
+
+def _tagged(pointer, tag="program-record-v19", branch=None, mutate=True):
+    """A tmp repo whose mod/x.lua holds BODY at a commit tagged `tag` (and on a branch `branch` when given), the
+    file deleted in the working tree after; the findings of a row with `pointer`."""
+    with tempfile.TemporaryDirectory() as d:
+        _git(d, "init", "-q")
+        _write(d, "mod/x.lua", BODY)
+        _git(d, "add", "mod/x.lua")
+        _git(d, "commit", "-q", "-m", "c1")
+        _git(d, "tag", tag)
+        if branch:
+            _git(d, "branch", branch)
+        if mutate:
+            os.remove(os.path.join(d, "mod", "x.lua"))
+        _tree(d, [_row(1, pointer=pointer)])
+        return [x for x in cc.check(d, register_only=True) if x.rule in ("pointer", "pointer-line")]
+
+
+def test_a_tag_pin_resolves_through_the_tag():
+    assert _tagged('repo:mod/x.lua@program-record-v19:2 "local function f()"') == []
+    f = _tagged('repo:mod/x.lua@program-record-v19:3 "local function f()"')
+    assert len(f) == 1 and f[0].rule == "pointer-line" and "found at 2" in f[0].detail and "@program-record-v19" in f[0].detail
+
+
+def test_a_tag_pin_to_a_path_absent_at_the_tag_is_a_finding():
+    f = _tagged('repo:mod/y.lua@program-record-v19:2 "a = 1"')
+    assert len(f) == 1 and f[0].rule == "pointer" and "does not resolve at tag program-record-v19 (no such path there)" in f[0].detail
+
+
+def test_a_missing_tag_is_a_finding():
+    f = _tagged('repo:mod/x.lua@program-record-v20:2 "local function f()"')
+    assert len(f) == 1 and f[0].rule == "pointer" and "does not resolve at tag program-record-v20 (no such tag)" in f[0].detail
+
+
+def test_a_branch_pin_is_refused():
+    f = _tagged('repo:mod/x.lua@feature:2 "local function f()"', branch="feature")
+    assert len(f) == 1 and f[0].rule == "pointer" and "pinned at feature, a branch or a symbolic ref" in f[0].detail
+
+
+def test_a_tag_pin_into_the_program_record_is_not_a_doomed_path():
+    """docs/superpowers/ stays doomed unpinned (R20) and is citable pinned, at the tag that archives it (Plan 20)."""
+    with tempfile.TemporaryDirectory() as d:
+        _git(d, "init", "-q")
+        _write(d, "docs/superpowers/plans/p.md", "# P\nruling X\n")
+        _git(d, "add", "docs/superpowers/plans/p.md")
+        _git(d, "commit", "-q", "-m", "c1")
+        _git(d, "tag", "program-record-v19")
+        _tree(d, [_row(1, pointer='repo:docs/superpowers/plans/p.md@program-record-v19:2 "ruling X"'),
+                  _row(2, pointer='repo:docs/superpowers/plans/p.md:2 "ruling X"')])
+        f = [x for x in cc.check(d, register_only=True) if x.rule in ("pointer", "pointer-line")]
+        assert [x.detail[:5] for x in f] == ["#0002"] and "pre-restructure" in f[0].detail
+
+
+# --- The archive register (Plan 20 rulings P20-T1-1 to P20-T1-3).
+
+def _arch(d, rows):
+    cl.write_register(_write(d, cc.ARCHIVE, ""), rows)
+
+
+def _sup(i, succ, **kw):
+    return _row(i, status="superseded", successor=succ, **kw)
+
+
+def _ret(i, **kw):
+    kw.setdefault("bound", "none; retired 2026-10-23: no page sentence")
+    return _row(i, status="retired", **kw)
+
+
+def test_archive_ids_are_gap_free_across_both_files():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1), _row(3)])
+        _arch(d, [_sup(2, "#0003")])
+        assert cc.check(d, register_only=True) == []
+        _arch(d, [_sup(2, "#0004")])
+        cl.write_register(os.path.join(d, *cc.REGISTER.split("/")), [_row(1), _row(4)])
+        f = cc.check(d, register_only=True)
+        assert any("gap at #0003" in x.detail for x in f), [x.detail for x in f]
+
+
+def test_a_duplicate_id_across_the_two_files_is_a_finding():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1), _row(2)])
+        _arch(d, [_sup(2, "#0001")])
+        f = [x for x in cc.check(d, register_only=True) if "duplicate" in x.detail]
+        assert len(f) == 1 and f[0].path == cc.ARCHIVE and "first at docs/reference/claims.tsv:3" in f[0].detail
+
+
+def test_a_live_status_in_the_archive_and_a_retired_row_in_the_register_are_findings():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1), _ret(3)])
+        _arch(d, [_row(2), _row(4, status="open")])
+        f = cc.check(d, register_only=True)
+        assert any(x.path == cc.ARCHIVE and "#0002: a settled row in the archive" in x.detail for x in f)
+        assert any(x.path == cc.ARCHIVE and "#0004: a open row in the archive" in x.detail for x in f)
+        assert any(x.path == cc.REGISTER and "#0003: a retired row in the live register" in x.detail for x in f)
+
+
+def test_a_successor_in_either_file_resolves_and_a_retired_successor_is_a_finding():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1), _sup(4, "#0003")])
+        _arch(d, [_sup(2, "#0004"), _ret(3)])
+        f = cc.check(d, register_only=True)
+        assert [x.detail for x in f] == ["#0004: successor #0003 is a retired row; a superseded row's successor is never retired"]
+        _arch(d, [_sup(2, "#0004"), _sup(3, "#0009")])
+        f = cc.check(d, register_only=True)
+        assert any("#0003: successor #0009 is not in the register or its archive" in x.detail for x in f)
+
+
+def test_an_archived_superseded_row_is_never_resolved():
+    bad = 'repo:tools/missing.py:3 "x"; run:nope-20260101-000000 a.json k'
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1)])
+        _arch(d, [_sup(2, "#0001", grade="M", pointer=bad)])
+        assert cc.check(d, register_only=True) == []
+        cl.write_register(os.path.join(d, *cc.REGISTER.split("/")), [_row(1), _sup(2, "#0001", grade="M", pointer=bad)])
+        os.remove(os.path.join(d, *cc.ARCHIVE.split("/")))
+        f = cc.check(d, register_only=True)
+        assert len([x for x in f if x.rule == "pointer"]) == 2        # the same row in the live file is resolved
+
+
+def test_an_archived_retired_row_needs_its_repo_pointers_pinned_and_resolved():
+    with tempfile.TemporaryDirectory() as d:
+        _git(d, "init", "-q")
+        _write(d, "mod/x.lua", BODY)
+        _git(d, "add", "mod/x.lua")
+        _git(d, "commit", "-q", "-m", "c1")
+        _git(d, "tag", "program-record-v19")
+        c1 = _git(d, "rev-parse", "--short", "HEAD")
+        _tree(d, [_row(1)])
+        _arch(d, [_ret(2, pointer='repo:mod/x.lua:2 "local function f()"'),
+                  _ret(3, pointer='repo:mod/x.lua@program-record-v19:2 "local function f()"'),
+                  _ret(4, pointer='repo:mod/x.lua@%s:3 "local function f()"' % c1),
+                  _ret(5, grade="M", pointer="run:nope-20260101-000000 a.json k")])
+        f = cc.check(d, register_only=True)
+        got = sorted((x.detail[:5], x.rule) for x in f)
+        assert got == [("#0002", "pointer"), ("#0004", "pointer-line"), ("#0005", "pointer")], [x.detail for x in f]
+        assert all(x.path == cc.ARCHIVE for x in f)
+        assert "must be pinned" in [x for x in f if x.detail.startswith("#0002")][0].detail
+
+
+def test_an_explicit_archive_that_does_not_exist_is_a_finding_and_the_default_may_be_absent():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1)])
+        assert cc.check(d, register_only=True) == []
+        f = cc.check(d, register_only=True, archive=os.path.join(d, "nope.tsv"))
+        assert len(f) == 1 and f[0].rule == "schema"
+
+
+def test_a_page_tag_naming_an_archived_id_is_a_finding():
+    page = "# Core\n\n## How it works\n<a id=\"update\"></a>\n### U\nOne [#0001]. Old [#0002/C/superseded]. Gone [#0003].\n"
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1), _row(4)], pages={"docs/facts/nutrition-core.md": page})
+        _arch(d, [_sup(2, "#0004"), _ret(3)])
+        f = [x for x in cc.check(d, partial=True) if x.rule == "tag"]
+        assert sorted(x.detail[:5] for x in f) == ["#0002", "#0003"]
+        assert any("archived (superseded" in x.detail and "successor: #0004" in x.detail for x in f)
+        assert any("archived (retired" in x.detail for x in f)
+
+
+def test_cited_by_counts_the_archive_in_the_refgen_rule():
+    """A run that only an archived retired row cites lists the archive file; a superseded row lists nothing."""
+    run = "exp01-20260910-000351"
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, "testing", "artifacts", run))
+        rows = [_row(1)]
+        arch = [_ret(2, grade="M", pointer="run:%s f.json k" % run, bound="n=1; retired 2026-10-23: x"),
+                _sup(3, "#0001", grade="M", pointer="run:%s f.json k" % run)]
+        _tree(d, rows, pages={"docs/facts/nutrition-core.md": NUTRITION_PAGE})
+        _arch(d, arch)
+        line = "| `%s` | `f.json` | `x.py` | %s |\n"
+        head = "# A\n\n## Contents\n\n| Run id | File | Experiment | Cited by |\n|---|---|---|---|\n"
+        _write(d, cc.ARTIFACTS_MD, head + line % (run, "—"))
+        f = [x for x in cc.check(d, partial=True) if x.rule == "refgen"]
+        assert len(f) == 1 and "reference/claims-archive.tsv" in f[0].detail
+        _write(d, cc.ARTIFACTS_MD, head + line % (run, "[`reference/claims-archive.tsv`](../reference/claims-archive.tsv)"))
+        assert [x for x in cc.check(d, partial=True) if x.rule == "refgen"] == []
+
+
+# --- Rule 11: the runs' reading guides, inline or in testing/artifacts/<run>/GUIDE.md (ruling P20-T1-7).
+
+RUN = "x271-20261010-135751"
+CONTENTS_HEAD = "# A\n\n## Contents\n\n| Run id | File | Experiment | Cited by |\n|---|---|---|---|\n"
+GUIDE_BODY = ("How to read it. The steps are the driver's.\n\n**Do not cite from this file:**\n\n"
+              "| Key | Value in the file | Why not |\n|---|---|---|\n"
+              "| `profile`; `steps[*].epoch_ms_before`, `steps[*].epoch_ms_after` | walls | Wall-clock stamps; a wildcard, "
+              "checked at review under section 4.9. Every `phases.*` leaf too. |\n")
+
+
+def _guide_tree(d, guide_file=None, inline=True, link=None, rows=None):
+    os.makedirs(os.path.join(d, "testing", "artifacts", RUN))
+    open(os.path.join(d, "testing", "artifacts", RUN, "x271.json"), "w").write("{}")
+    rows = rows or [_row(1, grade="M", bound="n=1", pointer="run:%s x271.json steps[4].epoch_ms_before" % RUN),
+                    _row(2, grade="M", bound="n=1", pointer="run:%s x271.json steps[4].ack.age" % RUN),
+                    _row(3, grade="M", bound="n=1", pointer="run:%s x271.json phases.S.age" % RUN)]
+    cell = "[`facts/nutrition-core.md`](../facts/nutrition-core.md)"
+    exp = "`x.py`" + (" ([guide](%s))" % link if link else "")
+    page = CONTENTS_HEAD + "| `%s` | `x271.json` | %s | %s |\n\n## Script/artifact skew\n\n" % (RUN, exp, cell)
+    if inline:
+        page += "**`%s/x271.json`** — produced by x.py.\n\n%s" % (RUN, GUIDE_BODY)
+    tags = "".join("x [%s/M/n=1].\n" % r["id"] for r in rows)
+    _tree(d, rows, pages={"docs/facts/nutrition-core.md": "# N\n\n## How it works\n<a id=\"update\"></a>\n### U\n" + tags})
+    _write(d, cc.ARTIFACTS_MD, page)
+    if guide_file is not None:
+        _write(d, "testing/artifacts/%s/GUIDE.md" % RUN, guide_file)
+    return [x for x in cc.check(d, partial=True) if x.rule == "guide"]
+
+
+def test_guide_wildcard_sentence_restricts_a_key_in_an_inline_guide():
+    with tempfile.TemporaryDirectory() as d:
+        f = _guide_tree(d)
+        assert [x.detail for x in f] == ["#0001: %s steps[4].epoch_ms_before is restricted by the wildcard "
+                                         "steps[*].epoch_ms_before in its reading guide (docs/reference/artifacts.md)" % RUN]
+        assert f[0].path == cc.REGISTER and f[0].line == 2
+
+
+def test_guide_wildcard_sentence_is_read_from_the_linked_guide_file():
+    link = "../../testing/artifacts/%s/GUIDE.md" % RUN
+    with tempfile.TemporaryDirectory() as d:
+        f = _guide_tree(d, guide_file="# %s\n\n%s" % (RUN, GUIDE_BODY), inline=False, link=link)
+        assert len(f) == 1 and f[0].detail.startswith("#0001:") and f[0].detail.endswith("(testing/artifacts/%s/GUIDE.md)" % RUN)
+    with tempfile.TemporaryDirectory() as d:          # the linked file wins over a stale inline copy, which is a finding
+        f = _guide_tree(d, guide_file="# %s\n\nNo restriction here.\n" % RUN, inline=True, link=link)
+        assert [x.detail[:len(RUN)] for x in f] == [RUN] and "also inline" in f[0].detail
+
+
+def test_guide_link_to_a_missing_file_or_another_path_is_a_finding():
+    with tempfile.TemporaryDirectory() as d:
+        f = _guide_tree(d, inline=False, link="../../testing/artifacts/%s/GUIDE.md" % RUN)
+        assert [x.detail for x in f] == ["%s: the linked guide testing/artifacts/%s/GUIDE.md does not exist" % (RUN, RUN)]
+    with tempfile.TemporaryDirectory() as d:
+        f = _guide_tree(d, guide_file="x\n", inline=False, link="../../testing/artifacts/other/GUIDE.md")
+        assert len(f) == 1 and "names testing/artifacts/other/GUIDE.md" in f[0].detail
+
+
+def test_guide_rule_is_quiet_without_a_wildcard_sentence():
+    with tempfile.TemporaryDirectory() as d:
+        body = GUIDE_BODY.replace("a wildcard, ", "")
+        link = "../../testing/artifacts/%s/GUIDE.md" % RUN
+        assert _guide_tree(d, guide_file=body, inline=False, link=link) == []

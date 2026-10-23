@@ -151,3 +151,27 @@ def test_web_pointer_form():
     row = dict(ROW, grade="W", pointer="web:data/workshop-search.json 2026-09-10",
                bound="snapshot 2026-09-10 17:47")
     assert cl.validate_row(row) == []
+
+
+def test_split_pin_takes_a_sha_or_a_tag_name():
+    """Plan 20 ruling P20-T1-6: a pin names a commit or a tag."""
+    assert cl.split_pin("mod/x.lua@abc1234") == ("mod/x.lua", "abc1234")
+    assert cl.split_pin("docs/superpowers/p.md@program-record-v19") == ("docs/superpowers/p.md", "program-record-v19")
+    assert cl.split_pin("mod/x.lua") == ("mod/x.lua", None)
+    assert cl.split_pin("mod/x.lua@") == ("mod/x.lua@", None)
+
+
+def test_pin_repo_pointers_pins_only_unpinned_repo_pointers():
+    cell = 'jar:A.b @1 L2; repo:mod/x.lua:3 "a; b"; repo:mod/y.lua@abc1234:4 "c"; run:r-20260101-000000 f.json k'
+    assert cl.pin_repo_pointers(cell, "def5678") == ('jar:A.b @1 L2; repo:mod/x.lua@def5678:3 "a; b"; '
+                                                     'repo:mod/y.lua@abc1234:4 "c"; run:r-20260101-000000 f.json k')
+    assert cl.pin_repo_pointers('repo:mod/x.lua:3-5 "q"', "v1") == 'repo:mod/x.lua@v1:3-5 "q"'
+    import pytest
+    with pytest.raises(ValueError):
+        cl.pin_repo_pointers('repo:mod/x.lua "no line"', "v1")
+
+
+def test_retired_is_a_status_and_an_archive_status():
+    assert "retired" in cl.STATUSES and cl.ARCHIVE_STATUSES == ("superseded", "retired")
+    assert cl.validate_row(dict(ROW, status="retired", bound="n=1; retired 2026-10-23: no sentence")) == []
+    assert cl.validate_row(dict(ROW, status="retired", successor="#0002")) == ["successor set on a non-superseded row"]

@@ -200,3 +200,20 @@ def test_merge_sorts_and_rejects_duplicates():
             ch.merge(parts); assert False, "duplicate id must raise"
         except cl.RegisterError:
             pass
+
+
+def test_do_not_cite_reads_a_linked_guide_file():
+    """Plan 20 ruling P20-T1-7: a run whose Contents row links testing/artifacts/<run>/GUIDE.md has its "this file"
+    blocks read from that file, after the page's own inline guides."""
+    page = ("# A\n\n## Contents\n\n| Run id | File | Experiment | Cited by |\n|---|---|---|---|\n"
+            "| `x271-20261010-135751` | `x271.json` | `x.py` ([guide](../../testing/artifacts/x271-20261010-135751/GUIDE.md)) | — |\n"
+            "| `exp03-20260910-045523` | `body.json` | `y.py` | — |\n\n## Script/artifact skew\n\n"
+            "**`exp03-20260910-045523/body.json`** — inline.\n\n**Do not cite from this file:**\n\n"
+            "| Key | Value | Why |\n|---|---|---|\n| `a.b` | 1 | wrong |\n")
+    guide = "# x271\n\n**Do not cite from this file:**\n\n| Key | Value | Why |\n|---|---|---|\n| `steps[3].ack` | 2 | read `x.y` instead |\n"
+    with tempfile.TemporaryDirectory() as d:
+        p = _write(d, "docs/reference/artifacts.md", page)
+        _write(d, "testing/artifacts/x271-20261010-135751/GUIDE.md", guide)
+        rows = ch.do_not_cite(p)
+        assert [(r["run"], r["key"]) for r in rows] == [("exp03-20260910-045523", "a.b"), ("x271-20261010-135751", "steps[3].ack")]
+        assert rows[1]["read_instead"].startswith("read `x.y`")

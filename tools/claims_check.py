@@ -19,7 +19,10 @@ import claimslib as cl
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTER = "docs/reference/claims.tsv"
-DNC = "docs/reference/do-not-cite.csv"
+# The archive register: the same columns, one id space with the live file (ruling P20-T1-1). It holds only
+# superseded and retired rows (P20-T1-2); an absent archive is an empty one.
+ARCHIVE = "docs/reference/claims-archive.tsv"
+DNC ="docs/reference/do-not-cite.csv"
 ALIASES = "docs/reference/run-aliases.csv"
 HARNESS_MD = "docs/reference/harness-commands.md"
 LUA_DIR = "testing/PZTestKit/PZTestKit/42/media/lua"
@@ -38,6 +41,8 @@ SKILLS_DIR = ".claude/skills"
 DOOMED_PATHS = ("docs/vanilla/", "docs/modding/", "docs/mods-survey/", "docs/testing/",
                 "docs/superpowers/", "docs/feasibility/",
                 "docs/progress.md", "docs/decisions.md", "docs/references.md")
+# The one doomed tree a pinned pointer may still name: the program record, archived at a tag (Plan 20).
+PINNABLE_PATHS = ("docs/superpowers/",)
 TRIGGERS = ("docs/", ".claude/skills/", "testing/PZTestKit/", "testing/artifacts/", "testing/experiments/", "tools/bus_inventory.py", "tools/reference_gen.py", "references/wiki-mirrors/")
 Finding = collections.namedtuple("Finding", "path line rule detail")
 WARN_RULES = ("untagged",)
@@ -141,19 +146,39 @@ def _minted_from(n):
     return found
 
 
-def rule_schema(rows, register_rel):
+def rule_schema(rows, register_rel, archive=(), archive_rel=ARCHIVE):
+    """Rule 0 over the live register and its archive as one id space (P20-T1-1): each row's schema, a duplicate id in
+    either file or across the two, a successor in neither, and the id blocks' contiguity over the union. A row in the
+    archive is superseded or retired, and a retired row lives only there (P20-T1-2); a superseded row's successor is
+    never an archived retired row (P20-T1-3)."""
     out, seen = [], {}
-    for n, r in enumerate(rows, 2):
+    entries = [(register_rel, n, r, False) for n, r in enumerate(rows, 2)]
+    entries += [(archive_rel, n, r, True) for n, r in enumerate(archive, 2)]
+    for rel, n, r, archived in entries:
         for e in cl.validate_row(r):
-            out.append(Finding(register_rel, n, "schema", "%s: %s" % (r.get("id"), e)))
+            out.append(Finding(rel, n, "schema", "%s: %s" % (r.get("id"), e)))
         if r["id"] in seen:
-            out.append(Finding(register_rel, n, "schema", "%s: duplicate id (first at line %d)" % (r["id"], seen[r["id"]])))
-        seen.setdefault(r["id"], n)
-    ids = {r["id"] for r in rows}
-    for r in rows:
+            frel, fn = seen[r["id"]]
+            where = "line %d" % fn if frel == rel else "%s:%d" % (frel, fn)
+            out.append(Finding(rel, n, "schema", "%s: duplicate id (first at %s)" % (r["id"], where)))
+        seen.setdefault(r["id"], (rel, n))
+        if archived and r.get("status") not in cl.ARCHIVE_STATUSES:
+            out.append(Finding(rel, n, "schema", "%s: a %s row in the archive; the archive holds only %s rows"
+                               % (r["id"], r.get("status"), " and ".join(cl.ARCHIVE_STATUSES))))
+        if not archived and r.get("status") == "retired":
+            out.append(Finding(rel, n, "schema", "%s: a retired row in the live register; claims_delta.py's retire op "
+                                                 "moves it to %s" % (r["id"], archive_rel)))
+    status = {}
+    for _, _, r, archived in entries:
+        status.setdefault(r["id"], (r.get("status"), archived))
+    for rel, n, r, _ in entries:
         for s in [s.strip() for s in r.get("successor", "").split(",") if s.strip()]:
-            if s not in ids:
-                out.append(Finding(register_rel, seen.get(r["id"], 1), "schema", "%s: successor %s is not in the register" % (r["id"], s)))
+            if s not in status:
+                out.append(Finding(rel, n, "schema", "%s: successor %s is not in the register or its archive" % (r["id"], s)))
+            elif status[s] == ("retired", True):
+                out.append(Finding(rel, n, "schema", "%s: successor %s is a retired row; a superseded row's successor is never retired"
+                                   % (r["id"], s)))
+    rows = [r for _, _, r, _ in entries]
     by_block, stray = collections.defaultdict(set), []
     for r in rows:
         if not cl.ID_FULL_RX.match(r["id"]):
@@ -196,9 +221,12 @@ def rule_schema(rows, register_rel):
     return out
 
 
-def _doomed(path):
+def _doomed(path, pinned=False):
     """True for a repo path under a pre-restructure tree (R20); any other path goes through the
-    ordinary "does it exist" check."""
+    ordinary "does it exist" check. A pinned path under one of PINNABLE_PATHS is not doomed: the program
+    record is cited at its tag (`repo:docs/superpowers/<file>@program-record-v19:<line>`, Plan 20)."""
+    if pinned and any(path.startswith(d) for d in PINNABLE_PATHS):
+        return False
     return any(path.startswith(d) if d.endswith("/") else path == d for d in DOOMED_PATHS)
 
 
@@ -209,7 +237,7 @@ def _uncommitted_run(row):
     R20) — the row keeps the source's grade and pointer, and its owner lists it under `## Open` with
     the re-measurement that settles it. A settled or open row citing a run with no folder is still a
     finding, and so is an unverified or superseded row bounded any other way."""
-    if row.get("status") not in ("unverified", "superseded"):
+    if row.get("status") not in ("unverified", "superseded", "retired"):
         return False
     try:
         token, _ = cl.parse_bound(row.get("bound", ""))
@@ -235,14 +263,38 @@ def _restricted_key(key, listed):
 
 
 REPO_LINE_RX = re.compile(r'^(\S+?):(\d+)(?:-(\d+))?\s+"(.*)"\s*$')
-PINNED_RX = re.compile(r'^(.+?)@([0-9A-Fa-f]{7,40})$')
 _SHOW_CACHE = {}
+_REF_CACHE = {}
 
 
 def _split_pin(path):
-    """'mod/x.lua@abc1234' -> ('mod/x.lua', 'abc1234'); an unpinned path -> (path, None)."""
-    m = PINNED_RX.match(path)
-    return (m.group(1), m.group(2)) if m else (path, None)
+    """'mod/x.lua@abc1234' -> ('mod/x.lua', 'abc1234'), a tag name likewise; an unpinned path -> (path, None)."""
+    return cl.split_pin(path)
+
+
+def _rev_parse(root, spec):
+    try:
+        p = subprocess.run(["git", "-C", root, "rev-parse", "--verify", "--quiet", spec], capture_output=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return p.stdout.decode("ascii", errors="replace").strip() if p.returncode == 0 else None
+
+
+def _ref_problem(root, ref):
+    """None when the pin `ref` names a commit (7 to 40 hex digits) or a tag that git resolves in `root`; else the
+    finding's text. A branch or a symbolic ref (HEAD) is refused: it moves, so it pins nothing (P20-T1-6)."""
+    key = (root, ref)
+    if key not in _REF_CACHE:
+        if cl.HEX_REF_RX.match(ref):
+            ok = _rev_parse(root, ref + "^{commit}")
+            _REF_CACHE[key] = None if ok else "does not resolve at commit %s (unknown commit or no such path there)" % ref
+        elif _rev_parse(root, "refs/tags/%s^{commit}" % ref):
+            _REF_CACHE[key] = None
+        elif _rev_parse(root, ref + "^{commit}"):
+            _REF_CACHE[key] = "is pinned at %s, a branch or a symbolic ref, not a tag or a commit; pin a tag or a sha" % ref
+        else:
+            _REF_CACHE[key] = "does not resolve at tag %s (no such tag)" % ref
+    return _REF_CACHE[key]
 
 
 def _git_show(root, commit, path):
@@ -270,8 +322,8 @@ def _pointer_line_finding(r, text, n, root, register_rel):
     path, lo, hi, quoted = m.group(1), int(m.group(2)), int(m.group(3) or m.group(2)), m.group(4)
     path, commit = _split_pin(path)
     if commit:
-        body = _git_show(root, commit, path)
-        if _doomed(path) or body is None:
+        body = None if _ref_problem(root, commit) else _git_show(root, commit, path)
+        if _doomed(path, pinned=True) or body is None:
             return None    # rule 3 reports an unresolvable pin
         lines = body.split("\n")
     else:
@@ -289,7 +341,9 @@ def _pointer_line_finding(r, text, n, root, register_rel):
     return Finding(register_rel, n, "pointer-line", '#%s repo:%s:%s — "%s" not on that line (%s)' % (r["id"].lstrip("#"), shown, cited, quoted, where))
 
 
-def rule_pointer(rows, root, register_rel):
+def rule_pointer(rows, root, register_rel, archived=False):
+    """Rule 3 over the live register, or (archived=True) over the archive: there a superseded row's pointers are never
+    resolved, and a retired row's are resolved like a live row's, every `repo:` pointer pinned (P20-T1-3)."""
     out = []
     # do-not-cite.csv is `run,key,value,why,read_instead`; a prose restriction with no key has
     # `key = *`. Keyed by run, because the test is no longer an exact `(run, key)` tuple: see
@@ -298,10 +352,12 @@ def rule_pointer(rows, root, register_rel):
     for dr in _load_csv(os.path.join(root, DNC)):
         dnc[dr.get("run", "")].add(dr.get("key", ""))
     aliases, unkeyed = _keyed(_load_csv(os.path.join(root, ALIASES)), "alias")
-    if unkeyed:
+    if unkeyed and not archived:
         out.append(Finding(ALIASES, 1, "pointer", "%d row(s) in run-aliases.csv carry no 'alias' column and are "
                                                   "ignored; the columns are alias,run,file,key" % unkeyed))
     for n, r in enumerate(rows, 2):
+        if archived and r.get("status") != "retired":
+            continue    # an archived superseded row keeps its old evidence as written; a stray status is rule 0's
         try:
             ptrs = cl.parse_pointers(r["pointer"])
         except ValueError:
@@ -328,12 +384,19 @@ def rule_pointer(rows, root, register_rel):
             elif form == "repo":
                 path = text.split('"')[0].strip().rsplit(":", 1)[0]
                 path, commit = _split_pin(path)
-                if commit:
-                    if _doomed(path):
+                if archived and not commit:
+                    out.append(Finding(register_rel, n, "pointer", "%s: a retired row's repo: pointer must be pinned "
+                                                                   "(repo:<path>@<commit or tag>:<line>): %s" % (r["id"], path)))
+                elif commit:
+                    problem = _ref_problem(root, commit)
+                    kind = "commit" if cl.HEX_REF_RX.match(commit) else "tag"
+                    if _doomed(path, pinned=True):
                         out.append(Finding(register_rel, n, "pointer", "%s: repo path %s is a pre-restructure path (at the tag "
                                                                        "research-program-v1); cite the underlying evidence" % (r["id"], path)))
+                    elif problem:
+                        out.append(Finding(register_rel, n, "pointer", "%s: repo path %s %s" % (r["id"], path, problem)))
                     elif _git_show(root, commit, path) is None:
-                        out.append(Finding(register_rel, n, "pointer", "%s: repo path %s does not resolve at commit %s (unknown commit or no such path there)" % (r["id"], path, commit)))
+                        out.append(Finding(register_rel, n, "pointer", "%s: repo path %s does not resolve at %s %s (no such path there)" % (r["id"], path, kind, commit)))
                     else:
                         f = _pointer_line_finding(r, text, n, root, register_rel)
                         if f:
@@ -342,8 +405,7 @@ def rule_pointer(rows, root, register_rel):
                     out.append(Finding(register_rel, n, "pointer", "%s: repo path %s is a pre-restructure path (at the tag "
                                                                    "research-program-v1); cite the underlying evidence" % (r["id"], path)))
                 elif not os.path.exists(os.path.join(root, *path.split("/"))):
-                    hint = " (only a hex commit pin, 7 to 40 digits, is supported after @)" if re.search(r"@[^/@]+$", path) else ""
-                    out.append(Finding(register_rel, n, "pointer", "%s: repo path %s does not exist%s" % (r["id"], path, hint)))
+                    out.append(Finding(register_rel, n, "pointer", "%s: repo path %s does not exist" % (r["id"], path)))
                 else:
                     f = _pointer_line_finding(r, text, n, root, register_rel)
                     if f:
@@ -367,8 +429,11 @@ def rule_owner(rows, root, partial):
     return out
 
 
-def rule_tag(rows, root, allow_provisional):
+def rule_tag(rows, root, allow_provisional, archive=()):
+    """Rule 2: every tag names a live register row with its canonical suffix. A tag naming an archived row is a
+    finding: an archived row is cited from the archive, never from a page (Plan 20)."""
     out, by_id = [], {r["id"]: r for r in rows}
+    archived = {r["id"]: r for r in archive}
     for path in _tagged_files(root):
         rel, text = _rel(path, root), _read(path)
         prov = set()
@@ -378,6 +443,11 @@ def rule_tag(rows, root, allow_provisional):
                 # it is a provisional finding, never "not in the register", and block_of /
                 # id_int are never called on it.
                 prov.add((n, cid))
+            elif cid not in by_id and cid in archived:
+                a = archived[cid]
+                succ = " (its successor: %s)" % a["successor"] if a.get("successor", "").strip() else ""
+                out.append(Finding(rel, n, "tag", "%s is archived (%s in %s); a page never tags an archived row%s"
+                                   % (cid, a.get("status"), ARCHIVE, succ)))
             elif cid not in by_id:
                 out.append(Finding(rel, n, "tag", "%s is not in the register" % cid))
             else:
@@ -453,6 +523,65 @@ def rule_refgen(root, rows):
     else:
         for d in rg.contradictions_check(readme, rows):
             out.append(Finding(MIRRORS_README, 1, "refgen", d))
+    return out
+
+
+def rule_guide(root, rows, archive=(), register_rel=REGISTER, archive_rel=ARCHIVE):
+    """Rule 11: the runs' reading guides (P20-T1-7). A guide is inline on docs/reference/artifacts.md or its own file
+    testing/artifacts/<run>/GUIDE.md, linked from the run's Contents row; both forms are read. A link that names
+    another path or a missing file is a finding, and so is a run that keeps both forms. The wildcard sentence (CLAUDE.md
+    section 4, items 9 and 11): a `run:` pointer of a live row or an archived retired row whose key a wildcard in that
+    run's guide restricts is a finding, read from whichever form the run's guide takes."""
+    import reference_gen as rg
+    page = os.path.join(root, *ARTIFACTS_MD.split("/"))
+    if not os.path.exists(page):
+        return []                                   # rule 10 reports the missing page
+    text = _read(page)
+    try:
+        links = rg.guide_links(text)
+    except ValueError:
+        return []                                   # rule 10 reports the missing Contents table
+    out = []
+    inline = rg.inline_guides(text)
+    for run, target in sorted(links.items()):
+        want = "testing/artifacts/%s/%s" % (run, rg.GUIDE_NAME)
+        got = rg.guide_rel(target)
+        if got != want:
+            out.append(Finding(ARTIFACTS_MD, 1, "guide", "%s: the guide link %s names %s; a run's guide is %s"
+                               % (run, target, got, want)))
+        elif not os.path.isfile(os.path.join(root, *want.split("/"))):
+            out.append(Finding(ARTIFACTS_MD, 1, "guide", "%s: the linked guide %s does not exist" % (run, want)))
+        if run in inline:
+            out.append(Finding(ARTIFACTS_MD, inline[run][0][0], "guide", "%s: the guide is linked (%s) and also inline "
+                                                                       "here; a run keeps one guide" % (run, want)))
+    aliases, _ = _keyed(_load_csv(os.path.join(root, ALIASES)), "alias")
+    cache = {}
+
+    def wild(run):
+        if run not in cache:
+            src, body = rg.run_guide(root, run, text, links=links, inline=inline)
+            cache[run] = (src, rg.wildcard_keys(body))
+        return cache[run]
+
+    entries = [(register_rel, n, r) for n, r in enumerate(rows, 2)]
+    entries += [(archive_rel, n, r) for n, r in enumerate(archive, 2) if r.get("status") == "retired"]
+    for rel, n, r in entries:
+        try:
+            ptrs = cl.parse_pointers(r["pointer"])
+        except ValueError:
+            continue                                # rule 0 already reported it
+        for form, payload in ptrs:
+            parts = payload.split()
+            if form != "run" or len(parts) < 3:
+                continue
+            key = " ".join(parts[2:])
+            for run in dict.fromkeys([parts[0], aliases[parts[0]]["run"] if parts[0] in aliases else parts[0]]):
+                src, pats = wild(run)
+                hit = next((p for p in pats if rg.wildcard_match(p, key)), None)
+                if hit:
+                    out.append(Finding(rel, n, "guide", "%s: %s %s is restricted by the wildcard %s in its reading guide "
+                                                        "(%s)" % (r["id"], run, key, hit, src)))
+                    break
     return out
 
 
@@ -576,24 +705,47 @@ def _read_rows(root, register):
         return None, Finding(_rel(path, root), 1, "schema", str(e))
 
 
-def check(root=None, register=None, lua_dir=None, register_only=False, partial=False, allow_provisional=False):
+def _archive_path(root, register, archive):
+    """The archive to read beside the register: the one named, else the tree's own when the register is the tree's
+    own (a `--register <part>` slice is checked alone), else None."""
+    if archive:
+        return archive
+    return None if register else os.path.join(root, *ARCHIVE.split("/"))
+
+
+def _read_archive(root, register, archive):
+    """(archive rows, None) or (None, its schema finding). The tree's own archive may be absent (an empty archive); one
+    named with --archive must exist."""
+    path = _archive_path(root, register, archive)
+    if path is None or (not archive and not os.path.exists(path)):
+        return [], None
+    return _read_rows(root, path)
+
+
+def check(root=None, register=None, lua_dir=None, register_only=False, partial=False, allow_provisional=False, archive=None):
     root = root or REPO_ROOT
     reg_rel = _rel(register or os.path.join(root, *REGISTER.split("/")), root)
     rows, err = _read_rows(root, register)
     if err is not None:
         return [err]
-    findings = rule_schema(rows, reg_rel) + rule_pointer(rows, root, reg_rel)
+    arch, err = _read_archive(root, register, archive)
+    if err is not None:
+        return [err]
+    arch_rel = _rel(_archive_path(root, register, archive), root) if arch else ARCHIVE
+    findings = rule_schema(rows, reg_rel, arch, arch_rel) + rule_pointer(rows, root, reg_rel)
+    findings += rule_pointer(arch, root, arch_rel, archived=True)
     if register_only:
         return findings
     lua = lua_dir or os.path.join(root, *LUA_DIR.split("/"))
-    findings += rule_owner(rows, root, partial) + rule_tag(rows, root, allow_provisional) + rule_untagged(root)
-    findings += rule_generator(root, lua) + rule_refgen(root, rows) + rule_skill(root) + rule_example(root) + rule_rules_dup(root)
+    findings += rule_owner(rows, root, partial) + rule_tag(rows, root, allow_provisional, arch) + rule_untagged(root)
+    findings += rule_generator(root, lua) + rule_refgen(root, rows + arch) + rule_guide(root, rows, arch, reg_rel, arch_rel)
+    findings += rule_skill(root) + rule_example(root) + rule_rules_dup(root)
     return findings
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--root", default=REPO_ROOT); ap.add_argument("--register"); ap.add_argument("--lua-dir")
+    ap.add_argument("--root", default=REPO_ROOT); ap.add_argument("--register"); ap.add_argument("--archive"); ap.add_argument("--lua-dir")
     ap.add_argument("--register-only", action="store_true"); ap.add_argument("--partial", action="store_true")
     ap.add_argument("--staged", action="store_true"); ap.add_argument("--allow-provisional", action="store_true")
     ap.add_argument("--fix-tags", action="store_true"); ap.add_argument("--view"); ap.add_argument("--section-map", action="store_true")
@@ -623,7 +775,7 @@ def main(argv=None):
                 print("%s -> %s" % (src, ", ".join(ids)))
         if a.view or a.section_map:
             return 0
-    return _report(check(root, a.register, a.lua_dir, a.register_only, a.partial, a.allow_provisional))
+    return _report(check(root, a.register, a.lua_dir, a.register_only, a.partial, a.allow_provisional, a.archive))
 
 
 def _report(findings):
