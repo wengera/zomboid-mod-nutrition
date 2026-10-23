@@ -1,4 +1,4 @@
-"""The food hedonics budget oracle (Plan 19 Task 5; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md
+"""The food hedonics budget oracle (Plan 19 Task 5; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md@program-record-v19
 section B.3): seven reference diets over 14 days, the mod's food mood against vanilla's model of the same eats.
 
     python tools/hedonics_budget.py            the table: each diet's mean UNHAPPINESS and BOREDOM, mod and vanilla

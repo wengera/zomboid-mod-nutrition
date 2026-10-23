@@ -1,4 +1,4 @@
-"""The tuning-dial registry tool (Plan 19 Task 2; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md
+"""The tuning-dial registry tool (Plan 19 Task 2; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md@program-record-v19
 Part A; ruling T1-1).
 
     python tools/dials.py list [--domain D] [--src S]   a table of every dial, filtered by domain or source token

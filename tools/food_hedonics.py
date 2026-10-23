@@ -1,4 +1,4 @@
-"""The food hedonics table (Plan 19 Task 5; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md section
+"""The food hedonics table (Plan 19 Task 5; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md@program-record-v19 section
 B.2, rulings R1 and R4 of the task's amendments).
 
     python tools/food_hedonics.py --check     exit 1 when the generated file differs from a fresh classification

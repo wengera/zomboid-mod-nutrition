@@ -12,6 +12,8 @@
 -- complete and serverStop. A wrap laid AROUND this one (a later mod such as QualityCooking) still runs its own work.
 -- THE STATED EXCEPTION: the intake's wrappers ALWAYS call the saved original (#1067). These three do not, on a refused
 -- action alone, on purpose: refusing the eat is the point.
+-- Each sentinel is a global of its own (NR_Core re-creates NutritionRevamp on every load, #0943); the side test is per
+-- call, because this server/ file also runs in the client's Lua state (#0855), where serverStart passes through.
 -- Wrap order: this file must wrap OUTSIDE the intake's capture. Lua files run sorted case-insensitively (#0850), and
 -- "nr_server_intake.lua" sorts before "nr_server_intakeguard.lua", so the file's name is load-bearing
 -- (testing/tests/kernel/test_intake_guard.py holds the order).

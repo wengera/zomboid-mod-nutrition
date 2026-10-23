@@ -1,4 +1,4 @@
-"""The mod's sandbox option file, generated (Plan 19 Task 3f; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md
+"""The mod's sandbox option file, generated (Plan 19 Task 3f; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md@program-record-v19
 Part A, dial-inventory section 3.3: "This removes the triple listing of DEFAULTS, OPTIONS and sandbox-options.txt").
 
     python tools/sandbox_options.py --check     exit 1 when the option file differs from a fresh render

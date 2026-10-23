@@ -315,7 +315,7 @@ def test_the_balance_span_is_the_refit_game_choice(host):
     from .conftest import dial_line
     line = dial_line("deficit.BALANCE_SPAN_KCAL")                      # Plan 19: the provenance is the registry row's
     assert re.match(r"^D\['deficit\.BALANCE_SPAN_KCAL'\] = \{ value = 3970\.55,", line)
-    assert "game choice, refit in Plan 11g Task 7 on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012)" in line
+    assert "game choice, fitted on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012)" in line
     assert "S1271 open" in line
     assert all(s in line for s in ("S1613", "S1614", "S1255", "S1325", "S1312", "S1608", "S1892")), line
     E.BALANCE_SPAN_KCAL = 1500

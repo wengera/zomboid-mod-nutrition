@@ -1,5 +1,5 @@
 """The calibrated hunger curve's fit (Plan 15 Tasks 6 and 6c, Plan 16 Task 4b; spec
-docs/superpowers/specs/2026-10-16-game-feel-design.md section 2.1).
+docs/superpowers/specs/2026-10-16-game-feel-design.md@program-record-v19 section 2.1).
 
     python tools/fit_hunger_curve.py [--out <dir>]
 

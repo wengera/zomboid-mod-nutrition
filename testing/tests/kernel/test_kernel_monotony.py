@@ -42,19 +42,19 @@ def test_each_constant_names_its_rows_and_its_label():
         src = fh.read()
     for name in ("WINDOW_H", "HALF_LIFE_H", "SLOPE", "CAP", "STAPLE"):
         line = dial_line("monotony." + name)                            # Plan 19: the provenance is the registry row's
-        assert "game choice, Plan 11e (ruling 11e-1)" in line, name
+        assert "-- game choice" in line, name
     assert "#0042" in dial_line("monotony.SLOPE")
     assert "#0042" in dial_line("monotony.CAP")
     for row in ("S1592", "S1593", "S1594", "S1595", "S1596", "S1597"):
         assert row in src, row
     assert "free choice" in src                                         # S1594: the player choosing variety
     meal = dial_line("monotony.MEAL_KCAL")
-    assert "game choice, Plan 11e (ruling T3-3); the studies' unit is a served portion (S1592-S1595)" in meal
+    assert "-- game choice" in meal and "the studies' unit is a served portion (S1592-S1595)" in meal
     window = dial_line("monotony.WINDOW_H")
     assert "measured from the type's latest eat; a type eaten daily keeps its decayed older eats" in window
     cap = dial_line("monotony.CAP")
     for want in ("Angus 2026-10-11", "level-1 moodles", "S1592", "S1597", "direction, not size", "#2369",
-                 "Moodle.Update", "no longer binds the cap"):
+                 "Moodle.Update", "does not bind the cap"):
         assert want in cap, want
     bored = dial_line("monotony.BORED_MAX")
     assert "#2369" in bored and "UpdateBoredom @510-@575" in bored and "ruling T9-3" in bored
@@ -568,7 +568,7 @@ def test_the_dead_zone_constants_name_their_game_choice_and_thresholds(host):
         src = fh.read()
     for name in ("DEAD_ZONE", "HOLD_EPS"):
         line = dial_line("monotony." + name)
-        assert "game choice (spec section 10: the dead-zone width" in line, name
+        assert "-- game choice" in line and "the dead-zone width" in line, name
     for name in ("UNHAPPY_AT", "BORED_AT"):
         assert "#2369" in re.search(r"^K\.monotony\.%s = .*$" % name, src, re.M).group(0), name
 

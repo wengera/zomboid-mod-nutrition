@@ -1,4 +1,4 @@
-"""The gut-satiety joint fit (Plan 11g Task 5; spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md § 4).
+"""The gut-satiety joint fit (Plan 11g Task 5; spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md@program-record-v19 § 4).
 
     python tools/fit_gut_satiety.py --out <dir> [--grid <spec.json>] [--jobs N]
     python tools/fit_gut_satiety.py --compact <fit.json> --out <dir>

@@ -1,4 +1,4 @@
-"""The tooltip's fill hours (Plan 15 Task 9; spec docs/superpowers/specs/2026-10-16-game-feel-design.md section 4,
+"""The tooltip's fill hours (Plan 15 Task 9; spec docs/superpowers/specs/2026-10-16-game-feel-design.md@program-record-v19 section 4,
 decisions item 4: "replace vanilla's tooltip hunger line with a true one: about how long a food fills you, and its kcal").
 
     python tools/food_fills.py --check     exit 1 when the generated file differs from a fresh replay

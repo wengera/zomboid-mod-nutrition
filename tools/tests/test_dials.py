@@ -253,7 +253,7 @@ def test_source_line_and_provenance_read_the_line_as_written():
 
 
 def test_the_shipped_provenance_is_the_kernel_comment_verbatim():
-    assert dials.provenance("monotony.SLOPE").startswith("game choice, Plan 11e (ruling 11e-1): the level per recent portion")
+    assert dials.provenance("monotony.SLOPE").startswith("game choice: the level per recent portion")
 
 
 def test_list_filters_by_domain_and_by_src_token():

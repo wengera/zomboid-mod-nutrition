@@ -310,6 +310,7 @@ end
 
 -- Work and shivering draw above their floors; at rest (met < USE_MET_LO, S0683) the store also refills toward the
 -- carbohydrate target, so a working step never refills and a cold resting one refills less.
+-- USE_MET_LO stays above the thermoregulator's idle met (1.007-1.010 indoors), or a resting store never refills (#2984).
 function K.acute.glycogen(a, met, coldMult, cho24, dtH)
     local A = K.acute
     local work = A.USE_WORK * K.clamp((met - A.USE_MET_LO) / A.USE_MET_SPAN, 0, A.USE_MAX)

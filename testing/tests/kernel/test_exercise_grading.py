@@ -1,4 +1,4 @@
-"""Plan 11h Task 2 (C-2, spec docs/superpowers/specs/2026-10-13-exercise-grading-design.md): each Fitness exercise
+"""Plan 11h Task 2 (C-2, spec docs/superpowers/specs/2026-10-13-exercise-grading-design.md@program-record-v19): each Fitness exercise
 billed at its own MET.
 
 - NR_Server_Fitness.lua wraps ISFitnessAction.serverStart and serverStop once (never `new`): the wrapper calls the

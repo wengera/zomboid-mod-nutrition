@@ -169,7 +169,7 @@ def test_the_floor_epsilon_is_a_labelled_game_choice(host):
     assert host.K.hybrid.FLOOR_EPS == 0.05
     from .conftest import dial_line
     line = dial_line("hybrid.FLOOR_EPS")                                 # Plan 19: the provenance is the registry row's
-    assert "game choice" in line and "Rule 6" in line and "Task 9b fix 1" in line
+    assert "game choice" in line and "Rule 6" in line
 
 
 @pytest.mark.parametrize("stat", ["unhappy", "bored"])

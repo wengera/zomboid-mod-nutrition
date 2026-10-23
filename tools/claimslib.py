@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The claims register: schema constants, TSV IO and the tag / pointer / bound grammars.
 
-Spec: docs/superpowers/specs/2026-09-17-reference-restructure-design.md § The claims register."""
+Spec: docs/superpowers/specs/2026-09-17-reference-restructure-design.md@9dfc74b^ § The claims register."""
 import re
 
 COLUMNS = ("id", "claim", "grade", "pointer", "bound", "status", "successor", "kind", "source", "owner")

@@ -1,5 +1,5 @@
 """The health curve's severity-clock calibration (Plan 17 Task 1; spec docs/superpowers/specs/2026-10-19-health-combine-
-design.md sections 1.2 and 4.1).
+design.md@program-record-v19 sections 1.2 and 4.1).
 
 The curve f(tau) = 1 - ln(1 + a tau) / ln(1 + a T) opens at the slope a / ln(1 + a T) (`opening_slope`). On a severity
 clock the clock is the progress p itself (T = 1: BMI progress p = (bmi0 - bmi) / (bmi0 - 12) for starvation, the deficit

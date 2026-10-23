@@ -1,4 +1,4 @@
-"""The symptom adapters (Plan 18 Task 3; spec docs/superpowers/specs/2026-10-21-symptoms-design.md, sections 2-3).
+"""The symptom adapters (Plan 18 Task 3; spec docs/superpowers/specs/2026-10-21-symptoms-design.md@program-record-v19, sections 2-3).
 
 K.effects.symptoms (Task 2) leaves on record.effects the added pain per body part (E.pain, E.painOn), the endurance cap
 (E.enduranceCap, the lower of the Overfull row's and the causes') and the mood floors (E.stressFloor, E.unhappyFloor).

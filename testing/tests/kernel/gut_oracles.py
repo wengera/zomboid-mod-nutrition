@@ -1,4 +1,4 @@
-"""The gut-satiety oracle registry (Plan 11g Task 5; spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md § 4;
+"""The gut-satiety oracle registry (Plan 11g Task 5; spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md@program-record-v19 § 4;
 rulings 11g-2, 11g-3, T2-3, T3-1, T3-3): one table of every oracle the joint fit (tools/fit_gut_satiety.py) scores and
 Task 6's assertions read, so a target lives in one place. STUDY, the study figures test_satiety_gut_oracle.py's named
 distances are read against, lives here too, and that module imports it.

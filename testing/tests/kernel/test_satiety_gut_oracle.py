@@ -1,4 +1,4 @@
-"""The gut-satiety oracles (Plan 11g Task 3; spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md § 4; rulings
+"""The gut-satiety oracles (Plan 11g Task 3; spec docs/superpowers/specs/2026-10-12-gut-satiety-design.md@program-record-v19 § 4; rulings
 11g-2 and 11g-3): the new study oracles of the gut-satiety plan, encoded from the minted rows (S1799-S1894, Plan 11g Task 2)
 before any model change and pinned at the P model (meal pool P fed in full at the eat, HALF_LIFE_H 0.7 h). Each
 test pins today's reading and its distance to the study figure, so a change is noticed; its comment names the study

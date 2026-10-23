@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The science register: schema constants, TSV IO and the citation grammar.
 
-Spec: docs/superpowers/specs/2026-09-27-nutrition-mod-design.md § 0 and § 9. A row is one evidenced
+Spec: docs/superpowers/specs/2026-09-27-nutrition-mod-design.md@program-record-v19 § 0 and § 9. A row is one evidenced
 value the mod may ship: `id topic parameter value range population grade citation source status
 successor`. `topic` is one slug of TOPICS, so the rows a nutrient record or a system model needs are
 one filter away. The grades are the research reports' — MA (meta-analysis or systematic review), RCT,

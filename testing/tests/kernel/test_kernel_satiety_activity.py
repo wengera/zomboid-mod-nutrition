@@ -50,14 +50,14 @@ def test_the_constants(host):
 def test_each_activity_constant_names_its_rows_and_its_label():
     for name in ("ACUTE_MAX", "ACUTE_HALF_LIFE_H"):                 # Plan 19: the provenance is the registry row's
         line = dial_line("satiety." + name)
-        assert "game choice, fitted in Task 4b (Plan 11c)" in line, name
+        assert "-- game choice, fitted" in line, name
         assert "S1500" in line and "S1502" in line and "S1334" not in line, name
         assert re.search(r"S13(0[3-6])", line), name
     for kind in ("aerobic", "resistance", "walk"):
         line = dial_line("satiety.ACUTE_KIND." + kind)
         assert re.search(r"S1\d{3}", line), kind
     line = dial_line("satiety.ACUTE_DECAY_HALF_LIFE_H")
-    assert "game choice, Plan 11d (ruling 11d-1)" in line
+    assert "-- game choice" in line
     assert "S1500" in line and "S1502" in line
     line = dial_line("satiety.ACUTE_HALF_LIFE_H")
     assert "S1500" in line and "S1502" in line and "ACUTE_DECAY_HALF_LIFE_H" in line
@@ -67,10 +67,10 @@ def test_each_activity_constant_names_its_rows_and_its_label():
     assert "S1302" in line
     eng = src("NR_Kernel_Deficit.lua")
     line = dial_line("deficit.EX_LAG_TAU_D")                         # Plan 19: the provenance is the registry row's
-    assert "game choice, Plan 11d (ruling 11d-4)" in line
+    assert "-- game choice" in line
     assert "S1335 open" in line and "S1318" in line and "S1312" in line and "S1320" in line
     line = dial_line("deficit.EX_LAG_GAIN")
-    assert "game choice, Plan 11d (ruling 11d-4)" in line
+    assert "-- game choice" in line
     assert "S1320" in line and "S1664" in line and "S1516" in line
     # Plan 11g Task 7: the three fitted constants name the fit and its artifact; BALANCE_SPAN_KCAL alone carries the
     # deficit rows it was scored on (S1613, S1614, S1325's DEF arm, S1312) and S1892, the band Karl's BAL arm is held
@@ -78,7 +78,7 @@ def test_each_activity_constant_names_its_rows_and_its_label():
     # holding clauses
     for name in ("BALANCE_SPAN_KCAL", "EX_BYPASS_LO", "EX_BYPASS_HI"):
         line = dial_line("deficit." + name)
-        assert "game choice, refit in Plan 11g Task 7 on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012)" in line, name
+        assert "game choice, fitted on the deficit studies alone (tools/fit_deficit_drive.py, fit-11g-deficit-20261012)" in line, name
     line = dial_line("deficit.BALANCE_SPAN_KCAL")
     assert all(s in line for s in ("S1613", "S1614", "S1325", "S1312", "S1892")) and "held as constraints" in line
     for name in ("EX_BYPASS_LO", "EX_BYPASS_HI"):
@@ -86,11 +86,8 @@ def test_each_activity_constant_names_its_rows_and_its_label():
         assert "fitted with BALANCE_SPAN_KCAL (see its label)" in line and "held as constraints" not in line, name
         assert "S1613" not in line and "S1892" not in line, name
     line = dial_line("deficit.EX_BYPASS_HI")
-    assert "ruling T7-6" in line and "fit-11g-deficit-20261012b" in line and "0.49205" in line
-    assert "ruling T7-3" in line and "King" in line and "S1312" in line and "S1325" in line
-    for name in ("EX_BYPASS_LO", "EX_BYPASS_HI"):
-        line = dial_line("deficit." + name)
-        assert "ruling 11c-32" in line, name
+    assert "fit-11g-deficit-20261012b" in line and "0.49205" in line
+    assert "King" in line and "S1312" in line and "S1325" in line
     line = dial_line("deficit.EX_BYPASS_LO")
     assert "S1318" in line and "at its bound" in line
     assert "DEFICIT_FLOOR" not in eng                                  # removed in Plan 11g Task 7 fix 1 (ruling T7-1)

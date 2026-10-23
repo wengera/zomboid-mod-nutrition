@@ -1,4 +1,4 @@
-"""Food hedonics (Plan 19 Task 5; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md section B.2):
+"""Food hedonics (Plan 19 Task 5; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md@program-record-v19 section B.2):
 R1 plain energy (the classifier, the online-hour ring, the share and its floor), R2 preparation quality, R3
 alliesthesia and R4 the taste class beside the monotony type. Each rule has a test a plausible wrong change fails (the
 task's mutation pass): the plain threshold off by its sign, the happy side scaled, the share not rotating, the class

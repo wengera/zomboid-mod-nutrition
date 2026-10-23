@@ -2,7 +2,7 @@
 
 Until Task 5b the kernel charged basal urine as isotonic sodium, 336.7 mmol/d for the reference man whatever the
 intake, and no test ran a sodium balance longer than 10 h, so every realistic diet walked the character down the
-hyponatraemia ladder to death (05-sodium-drain.md). These oracles run the mod's own K.fluids, minute by minute, for
+hyponatraemia ladder to death (docs/superpowers/research/2026-10-10-live-study-replays/05-sodium-drain.md@program-record-v19). These oracles run the mod's own K.fluids, minute by minute, for
 10 game days on the kernel host and grade the balance against the science register:
 
 - the obligatory sodium loss, 8 mmol/d (S1665, IOM 2005 Table 6-1);
@@ -35,7 +35,7 @@ hyponatraemia ladder to death (05-sodium-drain.md). These oracles run the mod's 
   plasma vasopressin had risen;
 - sweat sodium adapts to a sodium deficit (Plan 11f Task 5b fix 3, candidate C-14): the effective concentration falls
   linearly with the deficit max(-na, 0) from the drawn baseline to 0.325 of it at 331 mmol, floored at 10 mmol/L
-  (08-sweat-sodium.md section 7; derivations resting on S1751, S1769, S1749, S1752, S1750 and S1753, the line a game
+  (docs/superpowers/research/2026-10-10-live-study-replays/08-sweat-sodium.md@program-record-v19 section 7; derivations resting on S1751, S1769, S1749, S1752, S1750 and S1753, the line a game
   choice, S1770 open). The deficit is the driver (S1747: "the presence of a salt deficit is required"; S1749, S1750),
   so heat work on plain water conserves toward about 96 mmol/d of sweat sodium while a replete worker keeps the draw.
   The detectable onset (a fall past S1762's ~15 % day-to-day variation, the test's criterion) at 296 mmol/d is graded
@@ -251,7 +251,7 @@ def test_a_salted_diet_reaches_urinary_balance_with_plasma_held(na_day):
 # Plan 15 Task 3's named non-reproduction: the drinking-volume oracle's readings under the basal net loss by lean mass
 # (2000 + 32 x (lm - 52.02) g/d, S1688, S2218, S2220), each below its band. The band is what people drink, AI-level
 # turnover with ordinary sweating and generous drinking (S1707, S1709); the new basal is the minimum net loss of a
-# sedentary body that does not sweat (water-report.md section 1), so drinking to thirst now drinks basal less food
+# sedentary body that does not sweat (docs/superpowers/research/2026-10-16-game-feel/water-report.md@program-record-v19 section 1), so drinking to thirst now drinks basal less food
 # water: the man 2434.56 - 700 = 1.73 L/d, the woman 1832.96 - 500 = 1.33 L/d (by construction). Under the AI 3700/2700
 # they sat at their bands' tops (about 3.0 and 2.2). Pinned at the reading so a change is noticed, and asserted still
 # under its band so a reading that comes back inside is promoted to a target; not re-fitted (Task 3 amendment 4).
@@ -260,7 +260,7 @@ DRINK_NAMED = {"man": 1.7593624653224822, "woman": 1.3436481768045616}   # miss 
 
 @pytest.mark.parametrize("body,band", [("man", (2.0, 3.0)), ("woman", (1.6, 2.2))])
 def test_drinking_to_thirst_drinks_what_people_drink(body, band):
-    # the drinking-volume oracle (a derivation, 07-thirst-volume.md section 8): days 4-10, after the salted diet's set
+    # the drinking-volume oracle (a derivation, docs/superpowers/research/2026-10-10-live-study-replays/07-thirst-volume.md@program-record-v19 section 8): days 4-10, after the salted diet's set
     # point has filled; "about" reads 5 % on the band's top. At steady state the drinks are the basal net loss (Plan 15
     # Task 3) less S1708's food water, so the level holds by construction, and both bodies now read under their bands
     # (DRINK_NAMED). What the oracle still tests is the absence of over-drinking (Plan 11f Task 5b fix 1, ruling
@@ -329,7 +329,7 @@ def _heat(days=11):
 
 
 SWEAT_BASE = 8 * 37.0                # the heat arm's daily sweat sodium at the draw, mmol
-SWEAT_FLOOR = 0.325 * SWEAT_BASE     # past DEF_FULL: 96.2 mmol/d (08-sweat-sodium.md section 7, derived)
+SWEAT_FLOOR = 0.325 * SWEAT_BASE     # past DEF_FULL: 96.2 mmol/d (docs/superpowers/research/2026-10-10-live-study-replays/08-sweat-sodium.md@program-record-v19 section 7, derived)
 
 
 def heat_table(days):

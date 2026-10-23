@@ -466,7 +466,7 @@ def test_the_volume_defence_relaxes_the_hypotonic_cap(host):
 
 def test_sweat_sodium_adapts_to_a_sodium_deficit(host):
     # Plan 11f Task 5b fix 3 (candidate C-14): the effective sweat sodium falls linearly with the deficit max(-na, 0)
-    # from the drawn baseline to MIN_FRAC of it at DEF_FULL, floored at ABS_MIN (08-sweat-sodium.md section 7). The
+    # from the drawn baseline to MIN_FRAC of it at DEF_FULL, floored at ABS_MIN (docs/superpowers/research/2026-10-10-live-study-replays/08-sweat-sodium.md@program-record-v19 section 7). The
     # deficit is the driver (S1747: "the presence of a salt deficit is required"), so a surplus never moves it
     F = host.K.fluids
     assert (F.NA_SWEAT_MIN_FRAC, F.NA_SWEAT_DEF_FULL, F.NA_SWEAT_ABS_MIN) == (0.325, 331, 10)

@@ -29,7 +29,7 @@ The replays, and where each departs from the study or the deleted oracle (each d
   three's warm-up eats fill the stomach and M at the eat (the server has no energy-only eat). Six against three held is
   the satiety replay at the energy state 1 (kinetics and the writer alone, no body), from M 0 at 08:00.
 - Karl 2021 (S1325), twin K (Plan 11f Task 2c, ruling 2b-3): Karl as the paper ran it, from its own numbers
-  (docs/superpowers/research/2026-10-10-live-study-replays/03-karl-2021-facts.md). It replaces Task 2b's twins E, Env,
+  (docs/superpowers/research/2026-10-10-live-study-replays/03-karl-2021-facts.md@program-record-v19). It replaces Task 2b's twins E, Env,
   V and C, whose bodies and expenditures no row gave. Each choice the paper leaves open is named:
     body     87.3 kg (Hennigar 2021, the same n = 10 of the same trial), male, built by the stand-in's own birth
              composition (K.body.split at 87.3 kg, no build flags: lm 67.8 kg, REE 1,748 kcal); the paper reports no

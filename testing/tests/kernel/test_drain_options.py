@@ -1,4 +1,4 @@
-"""The drain options (Plan 17 Task 3, spec docs/superpowers/specs/2026-10-19-health-combine-design.md sections 2.4, 4.2
+"""The drain options (Plan 17 Task 3, spec docs/superpowers/specs/2026-10-19-health-combine-design.md@program-record-v19 sections 2.4, 4.2
 and 4.3): NR.DeathPace and NR.HealthCombine, read in the options poll, hoisted into K.drain.OPT with the day length
 once a server minute (NR_Server_Effects' EFF.writeDrainOptions, called directly by the players' minute, P.minute), and the replay host's inputs for them.
 

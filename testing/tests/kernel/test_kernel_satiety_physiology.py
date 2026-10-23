@@ -53,14 +53,14 @@ def test_each_constant_names_its_row_or_its_label():
     assert "provisional" not in src.lower()                             # Plan 11g Task 6: every constant labelled
     for name in FIT:
         line = dial_line("satiety." + name)
-        assert "game choice, fitted in Plan 11g Task 6c fix 2 against S" in line, name    # the label the brief sets
+        assert "game choice, fitted against S" in line, name    # the label the brief sets
         assert "(tools/fit_gut_satiety.py, fit-11g-20261012d)" in line, name        # the fit and its artifact
         assert len(re.findall(r"S\d{4}", line)) >= 2, name                          # the rows that bound it
     for name in ("W_PROTEIN", "W_FAT", "MEAL_HALF_LIFE_H", "MEAL_REQ", "MEAL_STEEP"):
         line = dial_line("satiety." + name)
         assert re.search(r"S12(68|70) open", line), name                 # an open row is named open, never as evidence
     line = dial_line("satiety.MEAL_SEED_MAX")
-    assert "game choice (ruling 11c-30; re-derived in Plan 11g Task 6c fix 1, unchanged by fix 2)" in line and "0.214" in line
+    assert "-- game choice" in line and "0.214" in line
     for name in ("CIRCADIAN_A", "CIRCADIAN_PEAK_H"):
         line = dial_line("satiety." + name)
         assert "S1273" in line, name                                     # Scheer 2013, minted as S1273
@@ -425,7 +425,7 @@ def test_sleep_constants_and_their_derivation(host):
     assert re.search(r"^K\.satiety\.SLEEP_DEBT_FULL_H = K\.acute\.SLEEP_NEED_H - K\.satiety\.SLEEP_SHORT_H -- derived", src, re.M)
     for name in ("SLEEP_MAX", "SLEEP_SHORT_H"):
         line = dial_line("satiety." + name)
-        assert "game choice, Plan 11d (ruling 11d-2)" in line, name
+        assert "-- game choice" in line, name
         for row in ("S1284", "S1565", "S1564", "S1567"):
             assert row in line, (name, row)
     assert "S1568" in src and "S1282" in src                        # step against graded: not settled
@@ -435,7 +435,7 @@ def test_sleep_constants_and_their_derivation(host):
 
 def test_protein_fill_names_its_label_and_rows():
     line = dial_line("satiety.PROTEIN_FILL")                        # Plan 19: the provenance is the registry row's
-    assert "game choice, fitted in Plan 11g Task 6c" in line and "(ruling 11d-5" in line
+    assert "game choice, fitted against S" in line
     assert "no row names gastric fullness from protein" in line
     for row in ("S1222", "S1380", "S1383", "S1384"):
         assert row in line, row
@@ -545,7 +545,7 @@ def test_nicotine_constants_and_their_labels(host):
         src = fh.read()
     for name in ("NIC_MAX", "NIC_FADE_DAYS"):
         line = dial_line("satiety." + name)
-        assert "game choice, Plan 11e (" in line and "11e-2" in line, name
+        assert "-- game choice" in line, name
         for s in ("S1576", "S1577", "n = 13", "low certainty"):
             assert s in line, (name, s)
     line = dial_line("satiety.NIC_WITHDRAWAL_MAX")

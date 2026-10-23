@@ -15,10 +15,11 @@
 --    food's thirst reads halved on a client (#1147).
 --  * The fill line stands in for vanilla's hunger line only while the item's whole-item kcal is the fill table's
 --    within FILL_TOL, and never for an evolved recipe's result.
---  * The sentinel NR_ClientTooltip_Installed records the CLASS TABLE it wrapped and re-wraps only a re-created class
+--  * The sentinel NR_ClientTooltip_Installed, a global (#0943), records the CLASS TABLE it wrapped and re-wraps only a re-created class
 --    (#2844), never overwriting a saved original. The wrapper looks NutritionRevamp.client.tooltip up per call;
 --    linesFor runs BEFORE the original under a pcall, the original exactly once, the band under a pcall.
 --  * Client files load by path, so NR.client.text, the options and the view are looked up per call.
+-- Vanilla's argument order: drawRect and drawRectBorder take alpha first (x, y, w, h, a, r, g, b), drawText last (str, x, y, r, g, b, a, font).
 -- Cadence: per rendered frame while a tooltip is up, about nine guarded getters form the cache key; the vector is
 -- built once per type and whole-item macro tuple.
 local NR = NutritionRevamp

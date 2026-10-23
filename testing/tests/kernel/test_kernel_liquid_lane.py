@@ -1,5 +1,5 @@
 """The liquid lane slowed only by drink-borne energy (Plan 15 Task 14b; the liquid-emptying report,
-docs/superpowers/research/2026-10-16-game-feel/liquid-emptying-report.md).
+docs/superpowers/research/2026-10-16-game-feel/liquid-emptying-report.md@program-record-v19).
 
 Water drunk with or after a solid meal separates from it and empties at about its fasting pace (S2265 Houghton 1988's
 saline beside a solid meal, median half-time 8 min; S2267 Grimm 2017, as fast as fasted; S2269 Großmann 2025, mostly

@@ -1,4 +1,4 @@
-"""The lethal causes' symptoms (Plan 18 Task 2; spec docs/superpowers/specs/2026-10-21-symptoms-design.md, sections 1-3).
+"""The lethal causes' symptoms (Plan 18 Task 2; spec docs/superpowers/specs/2026-10-21-symptoms-design.md@program-record-v19, sections 1-3).
 
 K.effects.symptoms reads each cause's progress p = 1 - record.drain.frac[code] and folds the SYMPTOMS table of
 NR_Data_Effects.lua: the endurance cap (the lowest), the stress and unhappiness floors (the highest) and the added pain

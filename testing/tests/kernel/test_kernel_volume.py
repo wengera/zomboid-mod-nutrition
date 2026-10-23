@@ -2,7 +2,7 @@
 beyond its weight (stomach.volX), from the SR Legacy household measures the generated table carries
 (NR.data.volume, tools/food_nutrients.py); the physical stomach and its 730 and 1100 g caps stay on mass.
 
-The worked examples are the volume report's section 5 (docs/superpowers/research/2026-10-16-game-feel/volume-report.md),
+The worked examples are the volume report's section 5 (docs/superpowers/research/2026-10-16-game-feel/volume-report.md@program-record-v19),
 read through the mod's own items: fill = w + BETA x (V - w), with w the vector's mass (K.stomach.massOf) and V its
 plate volume (ml_per_g x w).
 """

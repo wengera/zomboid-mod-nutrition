@@ -1,5 +1,5 @@
 """The ordinary day's Overfull minutes (Plan 15 Task 14b; the close review's M1 and the liquid-emptying report,
-docs/superpowers/research/2026-10-16-game-feel/liquid-emptying-report.md section 7).
+docs/superpowers/research/2026-10-16-game-feel/liquid-emptying-report.md@program-record-v19 section 7).
 
 A fresh record (its seed plate at 07:00: 514 kcal, 501 since the hunger curve's re-fit moved the curve's
 inverse, larger on a sleep-off server since Plan 16 Task 4 (no morning trough: the stomach reads 382.2 g

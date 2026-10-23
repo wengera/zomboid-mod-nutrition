@@ -4,7 +4,7 @@
 -- createChildren is wrapped at file scope, before Events.OnCreatePlayer builds the window (#2521).
 -- The restore gap (#2502): vanilla's RestoreLayout looks layout.current up in xpSystemText, which has no entry for a
 -- mod tab, so SaveLayout never saves the mod's name as current; a window saved on the mod tab reopens on its default.
--- The sentinel NR_ClientTab_Installed records the class table it wrapped: the file wraps again only for a re-created
+-- The sentinel NR_ClientTab_Installed, a global (NR_Core re-creates NutritionRevamp, #0943), records the class table: it wraps again only for a re-created
 -- class, never because the method is no longer the wrapper. The wrappers look NutritionRevamp.client.tab up per call.
 -- ISTabPanel does not clip its active view, so the rows are drawn the panel's way, clipped by view.draw's minY and maxY.
 local NR = NutritionRevamp

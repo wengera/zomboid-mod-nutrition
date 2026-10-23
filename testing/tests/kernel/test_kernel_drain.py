@@ -1,5 +1,5 @@
 """The remaining-fraction drain (NR_Kernel_Drain.lua, K.drain; Plan 17 Task 2 and revision R1, spec docs/superpowers/
-specs/2026-10-19-health-combine-design.md sections 1, 2 and 9; the onsets and clocks of Plan 15 Tasks 4 and 6).
+specs/2026-10-19-health-combine-design.md@program-record-v19 sections 1, 2 and 9; the onsets and clocks of Plan 15 Tasks 4 and 6).
 
 Every lethal state keeps a remaining fraction, 1 at its onset and 0 at its death point (S2231-S2262), on a straight
 line on its own clock (revision R1): starvation by the smoothed BMI progress to 12 (S2234) and dehydration by the
