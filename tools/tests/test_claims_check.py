@@ -698,8 +698,8 @@ def test_a_live_status_in_the_archive_and_a_retired_row_in_the_register_are_find
         _tree(d, [_row(1), _ret(3)])
         _arch(d, [_row(2), _row(4, status="open")])
         f = cc.check(d, register_only=True)
-        assert any(x.path == cc.ARCHIVE and "#0002: a settled row in the archive" in x.detail for x in f)
-        assert any(x.path == cc.ARCHIVE and "#0004: a open row in the archive" in x.detail for x in f)
+        assert any(x.path == cc.ARCHIVE and "#0002: an archived row with status settled" in x.detail for x in f)
+        assert any(x.path == cc.ARCHIVE and "#0004: an archived row with status open" in x.detail for x in f)
         assert any(x.path == cc.REGISTER and "#0003: a retired row in the live register" in x.detail for x in f)
 
 

@@ -22,7 +22,7 @@ REGISTER = "docs/reference/claims.tsv"
 # The archive register: the same columns, one id space with the live file (ruling P20-T1-1). It holds only
 # superseded and retired rows (P20-T1-2); an absent archive is an empty one.
 ARCHIVE = "docs/reference/claims-archive.tsv"
-DNC ="docs/reference/do-not-cite.csv"
+DNC = "docs/reference/do-not-cite.csv"
 ALIASES = "docs/reference/run-aliases.csv"
 HARNESS_MD = "docs/reference/harness-commands.md"
 LUA_DIR = "testing/PZTestKit/PZTestKit/42/media/lua"
@@ -163,7 +163,7 @@ def rule_schema(rows, register_rel, archive=(), archive_rel=ARCHIVE):
             out.append(Finding(rel, n, "schema", "%s: duplicate id (first at %s)" % (r["id"], where)))
         seen.setdefault(r["id"], (rel, n))
         if archived and r.get("status") not in cl.ARCHIVE_STATUSES:
-            out.append(Finding(rel, n, "schema", "%s: a %s row in the archive; the archive holds only %s rows"
+            out.append(Finding(rel, n, "schema", "%s: an archived row with status %s; the archive holds only %s rows"
                                % (r["id"], r.get("status"), " and ".join(cl.ARCHIVE_STATUSES))))
         if not archived and r.get("status") == "retired":
             out.append(Finding(rel, n, "schema", "%s: a retired row in the live register; claims_delta.py's retire op "

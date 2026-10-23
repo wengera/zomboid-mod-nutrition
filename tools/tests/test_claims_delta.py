@@ -310,3 +310,25 @@ def test_archive_superseded_moves_every_superseded_row_in_id_order(tmp_path, cap
     assert [r["id"] for r in cl.read_register(reg)] == ["#0002"]
     assert [r["id"] for r in cl.read_register(arch)] == ["#0001", "#0003"]
     assert cd.archive_superseded(reg) == 0
+
+
+def test_archive_superseded_merges_into_an_archive_in_id_order(tmp_path):
+    reg = _register(tmp_path)
+    rows = cl.read_register(reg)
+    rows[0]["status"], rows[0]["successor"] = "superseded", "#0002"
+    rows[2]["status"], rows[2]["successor"] = "superseded", "#0002"
+    cl.write_register(reg, rows)
+    arch = os.path.join(os.path.dirname(reg), "claims-archive.tsv")
+    cl.write_register(arch, [{"id": "#0005", "claim": "x", "grade": "C", "pointer": "jar:A.e @1 L2", "bound": "",
+                              "status": "superseded", "successor": "#0002", "kind": "mechanism", "source": "s", "owner": ""}])
+    assert cd.archive_superseded(reg) == 2
+    assert [r["id"] for r in cl.read_register(arch)] == ["#0001", "#0003", "#0005"]
+
+
+def test_retire_keeps_the_archive_in_id_order(tmp_path):
+    reg, _ = _repo(tmp_path)
+    arch = os.path.join(os.path.dirname(reg), "claims-archive.tsv")
+    cl.write_register(arch, [{"id": "#0009", "claim": "Old.", "grade": "C", "pointer": "jar:A.e @1 L2", "bound": "",
+                              "status": "superseded", "successor": "#0001", "kind": "mechanism", "source": "s", "owner": ""}])
+    cd.apply(_delta(tmp_path, [_retire("#0003")]), [], register=reg, today="2026-10-23")
+    assert [r["id"] for r in cl.read_register(arch)] == ["#0003", "#0009"]
