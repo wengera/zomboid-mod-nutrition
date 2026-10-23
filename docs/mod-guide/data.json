@@ -401,13 +401,55 @@
    "y": "game hours until Peckish, or Hungry"
   },
   "SM1": {
-   "section": "Monotony",
+   "section": "Food mood",
    "series": [
     "SM1-m-kernel"
    ],
    "title": "Varying the diet lifts the mood",
    "x": "game hours after the last repeat",
    "y": "unhappiness"
+  },
+  "SM2": {
+   "section": "Food mood",
+   "series": [
+    "SM2-v-model-U",
+    "SM2-m-kernel-U",
+    "SM2-v-model-B",
+    "SM2-m-kernel-B"
+   ],
+   "title": "A fortnight on each diet, against vanilla",
+   "x": "diet",
+   "y": "mean unhappiness or boredom over the fortnight (0-100)"
+  },
+  "SM3": {
+   "section": "Food mood",
+   "series": [
+    "SM3-m-kernel"
+   ],
+   "title": "Plain fat, sugar and starch and the mood floor",
+   "x": "share of the last day's food that was plain energy (0-1)",
+   "y": "mood floor (unhappiness)"
+  },
+  "SM4": {
+   "section": "Food mood",
+   "series": [
+    "SM4-m-scale",
+    "SM4-v-model",
+    "SM4-m-kernel"
+   ],
+   "title": "Cooking skill and a dish's comfort",
+   "x": "the cook's Cooking level",
+   "y": "comfort against vanilla's; mean unhappiness"
+  },
+  "SM5": {
+   "section": "Food mood",
+   "series": [
+    "SM5-v-model",
+    "SM5-m-kernel"
+   ],
+   "title": "A stick of butter, full and hungry",
+   "x": "the eater",
+   "y": "unhappiness the butter adds"
   },
   "SN1": {
    "section": "Nutrients and foods",
@@ -68798,6 +68840,499 @@
    "units": {
     "x": "game hours after the last repeat",
     "y": "unhappiness"
+   }
+  },
+  {
+   "badge": "kernel",
+   "chart": "SM2",
+   "id": "SM2-m-kernel-B",
+   "label": "Nutrition Revamp, simulated",
+   "note": "The budget oracle's reference diets over 14 game days, the same eats on both sides, each stat moved 1.0 mood points a game hour toward 0 for the rest of play (a game choice of the oracle, on both sides); the cooked diet at Cooking 0. The diets keep the survivor alive and hydrated (rule R-1, the oracle's own check). Live proof of each rule on this build's hedonics: x501 the cook's scale, x502 the plain-energy floor and its release, x503 the hunger scale, x504 the taste class (Plan 19 Task 7).",
+   "points": [
+    [
+     "mixed",
+     3.0568475384344644
+    ],
+    [
+     "cooked",
+     4.236434928547007
+    ],
+    [
+     "canned",
+     9.63420518622476
+    ],
+    [
+     "butter",
+     26.264646309843997
+    ],
+    [
+     "sugar",
+     28.79232651694171
+    ],
+    [
+     "one food",
+     28.15302078250569
+    ]
+   ],
+   "provenance": {
+    "commit": "21f788a791",
+    "inputs": {
+     "cooking_level": 0,
+     "days": 14,
+     "diets": "hedonics_budget.DIETS",
+     "meals": "08:00, 13:00 and 20:00",
+     "stat": "BOREDOM",
+     "tool": "tools/hedonics_budget.py Oracle",
+     "upkeep_h": 1.0
+    },
+    "kind": "kernel",
+    "proof_run": "x502-20261022-223712",
+    "script": "tools/mod_guide_series.py"
+   },
+   "units": {
+    "x": "diet",
+    "y": "mean boredom over the fortnight (0-100)"
+   }
+  },
+  {
+   "badge": "kernel",
+   "chart": "SM2",
+   "id": "SM2-m-kernel-U",
+   "label": "Nutrition Revamp, simulated",
+   "note": "The budget oracle's reference diets over 14 game days, the same eats on both sides, each stat moved 1.0 mood points a game hour toward 0 for the rest of play (a game choice of the oracle, on both sides); the cooked diet at Cooking 0. The diets keep the survivor alive and hydrated (rule R-1, the oracle's own check). Live proof of each rule on this build's hedonics: x501 the cook's scale, x502 the plain-energy floor and its release, x503 the hunger scale, x504 the taste class (Plan 19 Task 7).",
+   "points": [
+    [
+     "mixed",
+     3.0504429609960355
+    ],
+    [
+     "cooked",
+     4.164726816044593
+    ],
+    [
+     "canned",
+     9.484280130874328
+    ],
+    [
+     "butter",
+     40.53277119939151
+    ],
+    [
+     "sugar",
+     57.263919703777205
+    ],
+    [
+     "one food",
+     28.149195661076657
+    ]
+   ],
+   "provenance": {
+    "commit": "21f788a791",
+    "inputs": {
+     "cooking_level": 0,
+     "days": 14,
+     "diets": "hedonics_budget.DIETS",
+     "meals": "08:00, 13:00 and 20:00",
+     "stat": "UNHAPPINESS",
+     "tool": "tools/hedonics_budget.py Oracle",
+     "upkeep_h": 1.0
+    },
+    "kind": "kernel",
+    "proof_run": "x502-20261022-223712",
+    "script": "tools/mod_guide_series.py"
+   },
+   "units": {
+    "x": "diet",
+    "y": "mean unhappiness over the fortnight (0-100)"
+   }
+  },
+  {
+   "badge": "vanilla-model",
+   "chart": "SM2",
+   "id": "SM2-v-model-B",
+   "label": "Vanilla, from the game's code",
+   "note": "The budget oracle's reference diets over 14 game days, the same eats on both sides, each stat moved 1.0 mood points a game hour toward 0 for the rest of play (a game choice of the oracle, on both sides); the cooked diet at Cooking 0. The diets keep the survivor alive and hydrated (rule R-1, the oracle's own check). VM17 over the oracle's own eats, equal to the oracle's vanilla side.",
+   "points": [
+    [
+     "mixed",
+     0.0
+    ],
+    [
+     "cooked",
+     0.0
+    ],
+    [
+     "canned",
+     0.0
+    ],
+    [
+     "butter",
+     0.0
+    ],
+    [
+     "sugar",
+     0.0
+    ],
+    [
+     "one food",
+     0.0
+    ]
+   ],
+   "provenance": {
+    "claims": [
+     "#3655",
+     "#3033",
+     "#0298",
+     "#4121"
+    ],
+    "formulas": [
+     "VM17"
+    ],
+    "kind": "vanilla-model"
+   },
+   "units": {
+    "x": "diet",
+    "y": "mean boredom over the fortnight (0-100)"
+   }
+  },
+  {
+   "badge": "vanilla-model",
+   "chart": "SM2",
+   "id": "SM2-v-model-U",
+   "label": "Vanilla, from the game's code",
+   "note": "The budget oracle's reference diets over 14 game days, the same eats on both sides, each stat moved 1.0 mood points a game hour toward 0 for the rest of play (a game choice of the oracle, on both sides); the cooked diet at Cooking 0. The diets keep the survivor alive and hydrated (rule R-1, the oracle's own check). VM17 over the oracle's own eats, equal to the oracle's vanilla side.",
+   "points": [
+    [
+     "mixed",
+     0.005729166666666663
+    ],
+    [
+     "cooked",
+     0.0
+    ],
+    [
+     "canned",
+     0.0
+    ],
+    [
+     "butter",
+     1.1494295634920637
+    ],
+    [
+     "sugar",
+     0.0
+    ],
+    [
+     "one food",
+     0.0
+    ]
+   ],
+   "provenance": {
+    "claims": [
+     "#3655",
+     "#3033",
+     "#0298",
+     "#4121"
+    ],
+    "formulas": [
+     "VM17"
+    ],
+    "kind": "vanilla-model"
+   },
+   "units": {
+    "x": "diet",
+    "y": "mean unhappiness over the fortnight (0-100)"
+   }
+  },
+  {
+   "badge": "kernel",
+   "chart": "SM3",
+   "id": "SM3-m-kernel",
+   "label": "Nutrition Revamp, from the mod's code",
+   "note": "The floor's curve on the registry's FLOOR_KNOTS; the share is read over at least SHARE_MIN_KCAL. Vanilla has no such floor. Live proof of each rule on this build's hedonics: x501 the cook's scale, x502 the plain-energy floor and its release, x503 the hunger scale, x504 the taste class (Plan 19 Task 7).",
+   "points": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     0.05,
+     0.0
+    ],
+    [
+     0.1,
+     0.0
+    ],
+    [
+     0.15,
+     0.0
+    ],
+    [
+     0.2,
+     0.0
+    ],
+    [
+     0.25,
+     0.0
+    ],
+    [
+     0.3,
+     0.0
+    ],
+    [
+     0.35,
+     0.0
+    ],
+    [
+     0.4,
+     0.0
+    ],
+    [
+     0.45,
+     0.0
+    ],
+    [
+     0.5,
+     0.0
+    ],
+    [
+     0.55,
+     3.0000000000000027
+    ],
+    [
+     0.6,
+     5.999999999999998
+    ],
+    [
+     0.65,
+     9.000000000000002
+    ],
+    [
+     0.7,
+     11.999999999999996
+    ],
+    [
+     0.75,
+     15.0
+    ],
+    [
+     0.8,
+     18.750000000000004
+    ],
+    [
+     0.85,
+     22.5
+    ],
+    [
+     0.9,
+     26.250000000000007
+    ],
+    [
+     0.95,
+     30.0
+    ],
+    [
+     1.0,
+     30.0
+    ]
+   ],
+   "provenance": {
+    "commit": "21f788a791",
+    "inputs": {
+     "dials": "hedonics.FLOOR_KNOTS",
+     "function": "K.hedonics.floorOf(share)",
+     "step": 0.05
+    },
+    "kind": "kernel",
+    "proof_run": "x502-20261022-223712",
+    "script": "tools/mod_guide_series.py"
+   },
+   "units": {
+    "x": "plain share of the last day's food",
+    "y": "mood floor (unhappiness)"
+   }
+  },
+  {
+   "badge": "kernel",
+   "chart": "SM4",
+   "id": "SM4-m-kernel",
+   "label": "Nutrition Revamp, simulated",
+   "note": "The budget oracle's sizing arm: the cooked diet with both sides standing at 20.0 and moving 2.0 mood points a game hour toward it, so a dish's comfort is not spent at the stat's floor of 0. Live proof of each rule on this build's hedonics: x501 the cook's scale, x502 the plain-energy floor and its release, x503 the hunger scale, x504 the taste class (Plan 19 Task 7).",
+   "points": [
+    [
+     "Cooking 0",
+     17.011407685366475
+    ],
+    [
+     "Cooking 3",
+     14.713503341594429
+    ],
+    [
+     "Cooking 10",
+     12.412666414829964
+    ]
+   ],
+   "provenance": {
+    "commit": "21f788a791",
+    "inputs": {
+     "arm": "sizing",
+     "bg": 20.0,
+     "cooking_level": 0,
+     "days": 14,
+     "diets": "hedonics_budget.DIETS",
+     "levels": [
+      0,
+      3,
+      10
+     ],
+     "meals": "08:00, 13:00 and 20:00",
+     "tool": "tools/hedonics_budget.py Oracle",
+     "upkeep_h": 2.0
+    },
+    "kind": "kernel",
+    "proof_run": "x501-20261022-222929",
+    "script": "tools/mod_guide_series.py"
+   },
+   "units": {
+    "x": "the cook's Cooking level",
+    "y": "mean unhappiness (0-100)"
+   }
+  },
+  {
+   "badge": "kernel",
+   "chart": "SM4",
+   "id": "SM4-m-scale",
+   "label": "Nutrition Revamp, from the mod's code",
+   "note": "The scale on an evolved dish's relief by its last cook's Cooking level; a fixed recipe's dish is not scaled (ruling T8-1). Live proof of each rule on this build's hedonics: x501 the cook's scale, x502 the plain-energy floor and its release, x503 the hunger scale, x504 the taste class (Plan 19 Task 7).",
+   "points": [
+    [
+     "Cooking 0",
+     0.8
+    ],
+    [
+     "Cooking 3",
+     1.0
+    ],
+    [
+     "Cooking 10",
+     1.5
+    ]
+   ],
+   "provenance": {
+    "commit": "21f788a791",
+    "inputs": {
+     "dials": "hedonics.PREP_KNOTS",
+     "function": "K.hedonics.prepScale(level)"
+    },
+    "kind": "kernel",
+    "proof_run": "x501-20261022-222929",
+    "script": "tools/mod_guide_series.py"
+   },
+   "units": {
+    "x": "the cook's Cooking level",
+    "y": "comfort against vanilla's (times)"
+   }
+  },
+  {
+   "badge": "vanilla-model",
+   "chart": "SM4",
+   "id": "SM4-v-model",
+   "label": "Vanilla, from the game's code",
+   "note": "The budget oracle's sizing arm: the cooked diet with both sides standing at 20.0 and moving 2.0 mood points a game hour toward it, so a dish's comfort is not spent at the stat's floor of 0. VM17 over the oracle's own eats, equal to the oracle's vanilla side.",
+   "points": [
+    [
+     "Cooking 0",
+     15.012500000000006
+    ],
+    [
+     "Cooking 3",
+     15.012500000000006
+    ],
+    [
+     "Cooking 10",
+     15.012500000000006
+    ]
+   ],
+   "provenance": {
+    "claims": [
+     "#3655",
+     "#3033",
+     "#0298",
+     "#4121"
+    ],
+    "formulas": [
+     "VM17"
+    ],
+    "kind": "vanilla-model"
+   },
+   "units": {
+    "x": "the cook's Cooking level",
+    "y": "mean unhappiness (0-100)"
+   }
+  },
+  {
+   "badge": "kernel",
+   "chart": "SM5",
+   "id": "SM5-m-kernel",
+   "label": "Nutrition Revamp, from the mod's code",
+   "note": "Base.Butter eaten whole, its UnhappyChange 20.0 off the game's item script; full is HUNGER 0, hungry just over the Hungry moodle's threshold. Live proof of each rule on this build's hedonics: x501 the cook's scale, x502 the plain-energy floor and its release, x503 the hunger scale, x504 the taste class (Plan 19 Task 7).",
+   "points": [
+    [
+     "full",
+     20.0
+    ],
+    [
+     "hungry",
+     12.0
+    ]
+   ],
+   "provenance": {
+    "commit": "21f788a791",
+    "inputs": {
+     "dials": "hedonics.ALLIES_F, hedonics.ALLIES_LEVEL",
+     "food": "Base.Butter",
+     "function": "K.hedonics.allies(unhappy, hunger)"
+    },
+    "kind": "kernel",
+    "proof_run": "x503-20261022-224322",
+    "script": "tools/mod_guide_series.py"
+   },
+   "units": {
+    "x": "the eater",
+    "y": "unhappiness the butter adds"
+   }
+  },
+  {
+   "badge": "vanilla-model",
+   "chart": "SM5",
+   "id": "SM5-v-model",
+   "label": "Vanilla, from the game's code",
+   "note": "Base.Butter eaten whole, its UnhappyChange 20.0 off the game's item script; full is HUNGER 0, hungry just over the Hungry moodle's threshold. ",
+   "points": [
+    [
+     "full",
+     20.0
+    ],
+    [
+     "hungry",
+     20.0
+    ]
+   ],
+   "provenance": {
+    "claims": [
+     "#3655",
+     "#3033",
+     "#0298",
+     "#4121"
+    ],
+    "formulas": [
+     "VM17"
+    ],
+    "kind": "vanilla-model"
+   },
+   "units": {
+    "x": "the eater",
+    "y": "unhappiness the butter adds"
    }
   },
   {

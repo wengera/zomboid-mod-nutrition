@@ -85,6 +85,21 @@
     /* ST3 (Plan 18 Task 5d): the fast's no-water line (S2d's Without water view) drawn in Thirst and salt */
     "ST3": { xMin: 0, yMin: 0, yMax: 100, endpoints: { "ST3-m-dry": "Death: dehydration" } },
     "SM1": { yMin: 0 },
+    /* SM2-SM5 (Plan 19 Task 8): the food hedonics, off the budget oracle's diets and the kernel's curves */
+    "SM2": {
+      facets: [
+        { label: "Unhappiness", series: ["SM2-v-model-U", "SM2-m-kernel-U"], unit: "mean unhappiness over the fortnight", yMin: 0 },
+        { label: "Boredom", series: ["SM2-v-model-B", "SM2-m-kernel-B"], unit: "mean boredom over the fortnight", yMin: 0 }
+      ]
+    },
+    "SM3": { xMin: 0, xMax: 1, yMin: 0 },
+    "SM4": {
+      facets: [
+        { label: "A cooked fortnight", series: ["SM4-v-model", "SM4-m-kernel"], unit: "mean unhappiness", yMin: 0 },
+        { label: "A dish's comfort", series: ["SM4-m-scale"], unit: "times vanilla's comfort", yMin: 0 }
+      ]
+    },
+    "SM5": { yMin: 0 },
     "SB1": {},
     "SB2": {
       yMin: -3, yMax: 2,

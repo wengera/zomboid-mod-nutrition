@@ -348,7 +348,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       <li><a href="#sys-eating">Eating</a></li>
       <li><a href="#sys-hunger">Hunger</a></li>
       <li><a href="#sys-thirst">Thirst</a></li>
-      <li><a href="#sys-monotony">Monotony</a></li>
+      <li><a href="#sys-food-mood">Food mood</a></li>
       <li><a href="#sys-body">The body</a></li>
       <li><a href="#sys-exercise">Exercise</a></li>
       <li><a href="#sys-strength">Strength</a></li>
@@ -435,6 +435,10 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
           <td>Follow the scale.</td>
           <td>Follow your body fat, scaled by your muscle.</td>
           <td>A heavily muscled survivor is no longer marked Overweight.</td></tr>
+        <tr><th scope="row"><a href="#sys-food-mood">Food mood</a></th>
+          <td>Each food lifts or sinks your mood by its own values, the same whatever else you eat.</td>
+          <td>Plain fat and sugar wear you down when they are most of what you eat, your Cooking level shows in your dishes, hunger eases a plain meal, and variety counts by taste as well as by food.</td>
+          <td>Butter and sugar are cheap calories, not a diet. Cook, and mix your meals.</td></tr>
         <tr><th scope="row"><a href="#sys-nutrients">Nutrients</a></th>
           <td>Calories, carbohydrate, fat and protein.</td>
           <td>Vitamins, minerals, fibre, essential fats, salt and potassium, most with a store and a daily need, and caffeine and alcohol beside them.</td>
@@ -590,7 +594,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
           <p class="dv-now"><span class="dv-k">This mod</span><span>Scurvy also makes your legs ache, wears you out and, as it goes on, makes you stressed and unhappy, on the game's own moodles.</span></p></li>
         <li><p class="dv-name">One food wears on your mood</p>
           <p class="dv-was"><span class="dv-k">Vanilla</span><span>Each food lifts or sinks your mood by its own values alone.</span></p>
-          <p class="dv-now"><span class="dv-k">This mod</span><span>Eating the same food day after day also lowers your mood, up to the first Unhappy and Bored level and no further.</span></p></li>
+          <p class="dv-now"><span class="dv-k">This mod</span><span>Eating the same food day after day also lowers your mood, as far as the first Unhappy and Bored level, and further if that food is plain fat or sugar (see <a href="#sys-food-mood">Food mood</a>).</span></p></li>
       </ol>
     </div>
     <div class="charts" data-scene="charts">
@@ -604,7 +608,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
         <p class="chart-note">Vanilla has no store to refill. From day <span data-fill="S3c-m-pool" data-pick="argmin.x|r0"></span> the survivor adds an orange a day. The vitamin C store climbs from <span data-fill="S3c-m-pool" data-pick="min.y|pct0"></span> percent full to <span data-fill="S3c-m-pool" data-pick="last.y|pct0"></span> percent by day <span data-fill="S3c-m-pool" data-pick="last.x|r0"></span>. Within days the orange lifts the store out of Clinical, which ends the scurvy damage; the health scurvy took comes back over about as long as it was Clinical, and its vitamin C goes on refilling the store over the following weeks. The band marks the week in which treated scurvy patients improved.</p>
       </figure>
     </div>
-    <p class="read-on" data-scene="links"><b>Read next</b> <a href="#sys-deficiency">Deficiency and excess</a> <a href="#sys-monotony">Monotony</a> <a href="#sys-nutrients">Nutrients and foods</a></p>
+    <p class="read-on" data-scene="links"><b>Read next</b> <a href="#sys-deficiency">Deficiency and excess</a> <a href="#sys-food-mood">Food mood</a> <a href="#sys-nutrients">Nutrients and foods</a></p>
     <details class="science" data-scene="science"><summary>The science</summary><div>
       <p>The vitamin C line is the mod's code replaying four TunaTinOpen a day with water; its grade crossings fall where the code puts them live (x151r, #2977, #2978). The mod calibrates vitamin C's onset on Hodges' controlled series as Padayatty 2016 reports it (S0225), so the code agrees with that mark by construction; S0224 is the self-experimenter. Vitamin C is never sped up by the onset option. On this diet fibre turns Marginal first, then choline. Clinical scurvy takes health down on a straight line to zero ninety days on, at every pace, a game choice where the studies give no time (S1168, #4041), and out of Clinical its ceiling recovers over about as long as it was Clinical (the chart's notes give the day; #4049); thiamine, slower now, turns Clinical only after that death.</p>
       <p>The mood readings are #3683, from x341 on the test food TKX.Mono450; the guide reads the stat against the first-level thresholds of #2369. The later days, from x342 and x343, no longer match the mod's replay at this build, whose mood floor now holds still near a moodle threshold (#3918), so they are not drawn. The week of improvement is Ververs 2019 (S0229).</p>
@@ -882,19 +886,47 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
     </div></details>
   </section>
 
-  <!-- ---------------------------------------------------------------- monotony -->
-  <section class="system" id="sys-monotony" aria-labelledby="sys-monotony-h">
-    <h2 id="sys-monotony-h">Monotony</h2>
-    <div class="blurb" data-block="blurb">
-      <p><span class="same-tag">About the same as vanilla</span> Food still lifts or sinks your mood as in vanilla, by each item's own values and its staleness. The mod adds a small memory: the same food day after day holds you at the first Unhappy and Bored level, never deeper, staples such as bread count for less, and varying your diet lifts it over the following days.</p>
+  <!-- ---------------------------------------------------------------- food mood -->
+  <section class="system" id="sys-food-mood" aria-labelledby="sys-food-mood-h">
+    <h2 id="sys-food-mood-h">Food mood: what you eat and how you cook it</h2>
+    <div class="changes" data-block="changes"><h3>What changes from vanilla</h3>
+      <ol class="diverge">
+        <li><p class="dv-name">Living on plain fat or sugar wears you down</p>
+          <p class="dv-was"><span class="dv-k">Vanilla</span><span>Butter, lard and cooking oil sadden you a little each time you eat them, the same however much of your food they are, so a stick of butter is the cheapest way to fill up.</span></p>
+          <p class="dv-now"><span class="dv-k">This mod</span><span>The mod keeps track of how much of your last day of play was spent eating plain energy: plain fat, sugar, flour or dry starch on its own. Once it is more than half of what you ate, a mood floor holds your unhappiness up, <span data-fill="SM3-m-kernel" data-pick="y@x=0.75|r0"></span> at three quarters and <span data-fill="SM3-m-kernel" data-pick="max.y|r0"></span> when it is nearly all you eat, and it lifts again as that food drops out of the day. A little butter beside real meals costs only vanilla's own sadness, and fat or sugar cooked into a dish is not plain.</span></p></li>
+        <li><p class="dv-name">Your Cooking skill shows in your dishes</p>
+          <p class="dv-was"><span class="dv-k">Vanilla</span><span>A stew or a salad cheers you by what goes into it, and your Cooking level matters only once you pack a dish with many ingredients.</span></p>
+          <p class="dv-now"><span class="dv-k">This mod</span><span>A dish you build up an ingredient at a time, such as a stew, a soup, a salad or a sandwich, also cheers you by its cook's Cooking level: a new cook's dish comforts you <span data-fill="SM4-m-scale" data-pick="y@x=Cooking 0|r1"></span> times as much as vanilla's, a master cook's <span data-fill="SM4-m-scale" data-pick="y@x=Cooking 10|r1"></span> times, and a few levels in it is vanilla's own. Skill never makes a dish sadder, and a dish from a fixed recipe is not scaled.</span></p></li>
+        <li><p class="dv-name">Hunger makes plain food easier to take</p>
+          <p class="dv-was"><span class="dv-k">Vanilla</span><span>A food saddens you just as much whether you are full or starving.</span></p>
+          <p class="dv-now"><span class="dv-k">This mod</span><span>While you are Hungry or worse, a food that would sadden you saddens you less: a whole stick of butter adds <span data-fill="SM5-m-kernel" data-pick="y@x=hungry|r0"></span> unhappiness instead of <span data-fill="SM5-v-model" data-pick="y@x=hungry|r0"></span>. A food you enjoy is never changed, and the easing is kept small, so living on plain food still costs you over the day.</span></p></li>
+        <li><p class="dv-name">Variety counts by taste as well as by food</p>
+          <p class="dv-was"><span class="dv-k">Vanilla</span><span>Each food lifts or sinks your mood by its own values, with no memory of what you ate before.</span></p>
+          <p class="dv-now"><span class="dv-k">This mod</span><span>Eating the same food day after day holds your unhappiness and boredom up, as far as the first Unhappy and Bored level for any one food. A little of that also counts the kind of taste, sweet, savoury, fatty or a bland staple, so a week of different sweets still drags. A dish counts as the taste of the ingredient that brings most of its calories. Staples such as bread count for less, and varying your diet lifts it all over the following days.</span></p></li>
+      </ol>
     </div>
     <div class="charts" data-block="charts">
+      <figure class="chart" data-chart="SM2">
+        <p class="chart-note">The same meals on both sides for a fortnight, each side losing a little unhappiness every hour to the rest of play. A varied diet averages <span data-fill="SM2-m-kernel-U" data-pick="y@x=mixed|r1"></span> unhappiness in the mod against vanilla's <span data-fill="SM2-v-model-U" data-pick="y@x=mixed|r1"></span>, the gentle cost of repeating foods, and a diet of dishes <span data-fill="SM2-m-kernel-U" data-pick="y@x=cooked|r1"></span>. Living on butter averages <span data-fill="SM2-m-kernel-U" data-pick="y@x=butter|r0"></span> against vanilla's <span data-fill="SM2-v-model-U" data-pick="y@x=butter|r0"></span>, on sugar <span data-fill="SM2-m-kernel-U" data-pick="y@x=sugar|r0"></span> and on one tinned food <span data-fill="SM2-m-kernel-U" data-pick="y@x=one food|r0"></span>. Vanilla's lines stay near zero: its happy foods and the hourly easing outweigh the few sad ones.</p>
+      </figure>
+      <figure class="chart" data-chart="SM3">
+        <p class="chart-note">Vanilla has no such mood floor. Up to half of the day's food as plain energy the mood floor stays at <span data-fill="SM3-m-kernel" data-pick="y@x=0.5|r0"></span>. From there it climbs to <span data-fill="SM3-m-kernel" data-pick="y@x=0.75|r0"></span> at three quarters and to <span data-fill="SM3-m-kernel" data-pick="max.y|r0"></span> when nearly everything you eat is plain, and as plain food drops out of the last day it falls back the same way.</p>
+      </figure>
+      <figure class="chart" data-chart="SM4">
+        <p class="chart-note">Over a fortnight of dishes, both sides starting from a little unhappiness carried in from the rest of play, vanilla averages <span data-fill="SM4-v-model" data-pick="y@x=Cooking 0|r1"></span> whatever the cook's level. In the mod a new cook's dishes average <span data-fill="SM4-m-kernel" data-pick="y@x=Cooking 0|r1"></span>, a cook a few levels in <span data-fill="SM4-m-kernel" data-pick="y@x=Cooking 3|r1"></span> and a master cook <span data-fill="SM4-m-kernel" data-pick="y@x=Cooking 10|r1"></span>. The other view shows each level's comfort against vanilla's.</p>
+      </figure>
+      <figure class="chart" data-chart="SM5">
+        <p class="chart-note">Full, a stick of butter adds <span data-fill="SM5-m-kernel" data-pick="y@x=full|r0"></span> unhappiness in both. Hungry, it adds <span data-fill="SM5-m-kernel" data-pick="y@x=hungry|r0"></span> in the mod and still <span data-fill="SM5-v-model" data-pick="y@x=hungry|r0"></span> in vanilla.</p>
+      </figure>
       <figure class="chart" data-chart="SM1">
         <p class="chart-note">Vanilla keeps no memory of your diet. After a run of the same food, unhappiness fades once the diet varies: from <span data-fill="SM1-m-kernel" data-pick="first.y|r0"></span> down to <span data-fill="SM1-m-kernel" data-pick="last.y|r0"></span> over <span data-fill="SM1-m-kernel" data-pick="delta.x|r0"></span> game hours.</p>
       </figure>
     </div>
     <details class="science" data-block="science"><summary>The science</summary><div>
-      <p>The live mood reading is #3683: the stat against the first-level thresholds of #2369, with boredom read as the mod's remembered target. The line is the mod's code replaying x343's own meals; x343's live ring misses that replay by more than its tolerance, so its points are not drawn.</p>
+      <p>Vanilla's food mood is each item's UnhappyChange and BoredomChange times the share eaten, added on the server inside the eat (#3655), and nothing but an antidepressant lowers unhappiness passively (#3033); the vanilla lines are that model (VM17) over the same eats. The fortnight's diets are the mod's budget check, <code>tools/hedonics_budget.py</code>: a varied diet, dishes, tins, butter beside one food a meal, sugar and one tinned food, the same eats on both sides, each stat eased a little every game hour on both, a stand-in for the rest of play that the game's own code does not have. Its bands keep a varied or cooked diet within a quarter of the first Unhappy step of vanilla's mean and put a diet of butter, sugar or one food at least three quarters of that step over it, every band passing at the shipped values. The cooking chart's fortnight stands both sides at a small standing unhappiness, so a dish's comfort is not lost at zero.</p>
+      <p>Plain energy: an energy-dense food that takes nearly all of its energy from one macro and is no treat in vanilla, unless it pairs fat or carbohydrate with salt the way palatable foods do (Fazzino 2019, S2291). Butter, margarine and mayonnaise count as plain whatever their salt, since they are almost all fat: the mod's choice where the studies price a salty fat as palatable. An unpleasant food is eaten at 40 to 65 per cent of a pleasant one's amount (S1599), and the mood floor's shape and size are the mod's own choice. The share is read over a ring of the last day's online hours, frozen while you are offline, and over at least about half a resting day's food, so a little plain food in an empty day is no diet of it.</p>
+      <p>Cooking: a dish's comfort scale by its last cook's level is the mod's choice of curve. Apes and people prefer food cooked over raw (S2298), but no study sizes how a cook's skill moves the eater's enjoyment. The scale applies to the dishes the game builds an ingredient at a time; a fixed recipe's result keeps vanilla's value, and vanilla's own skill term, which only trims the relief of a dish packed past the cook's level (#0298), stays as it is. Spices still cheer a dish the vanilla way (#4121).</p>
+      <p>Hunger: a sweet taste pleases the hungry and displeases the fed (Cabanac 1970, S2297), though an overnight fast changed no liking for sweet or fatty tastes in another study (S2290), so the direction is disputed and the size of the easing is the mod's choice, kept small. Taste class: eating one food lowers the liking of similar foods and leaves other kinds alone (Rolls 1981, S2294); the class weight is the mod's choice. The monotony line is the mod's code replaying x343's own meals; x343's live ring misses that replay by more than its tolerance, so its points are not drawn (#3683, #2369).</p>
     </div></details>
   </section>
 
@@ -1252,6 +1284,7 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       <li><b>S1273</b> Scheer FA, Morris CJ, Shea SA 2013. Obesity 21:421–423. doi:10.1002/oby.20351</li>
       <li><b>S1484</b> Osterholt KM, Roe LS, Rolls BJ 2007. Appetite 48:351–358. doi:10.1016/j.appet.2006.10.007</li>
       <li><b>S1566</b> Brondel L et al 2010. Am J Clin Nutr 91:1550–1559. doi:10.3945/ajcn.2009.28523</li>
+      <li><b>S1599</b> De Graaf C, De Jong LS, Lambers AC 1999. Physiol Behav 66:681–688. doi:10.1016/s0031-9384(98)00335-7</li>
       <li><b>S1608</b> Ohkawara K et al 2013. Obesity 21:336–343. doi:10.1002/oby.20032</li>
       <li><b>S1613</b> Johnstone AM et al 2002. Int J Obes 26:1623–1628. doi:10.1038/sj.ijo.0802151</li>
       <li><b>S1614</b> Clayton DJ et al 2016. Am J Clin Nutr 104:1545–1553. doi:10.3945/ajcn.116.136937</li>
@@ -1265,6 +1298,11 @@ button.badge[aria-expanded="true"] { background: var(--ink); color: var(--paper-
       <li><b>S2255</b> Watson JT et al 2011. PLoS One 6:e28345. doi:10.1371/journal.pone.0028345</li>
       <li><b>S2282</b> Jackson JM et al 2006. Nutrition 22:889–897. doi:10.1016/j.nut.2006.06.001</li>
       <li><b>S2283</b> Benedict FG 1915. A Study of Prolonged Fasting. Carnegie Institution of Washington Publication 203.</li>
+      <li><b>S2290</b> Drewnowski A, Greenwood MR 1983. Physiol Behav 30:629–633. doi:10.1016/0031-9384(83)90232-9</li>
+      <li><b>S2291</b> Fazzino TL, Rohde K, Sullivan DK 2019. Obesity (Silver Spring) 27:1761–1768. doi:10.1002/oby.22639</li>
+      <li><b>S2294</b> Rolls BJ, Rolls ET, Rowe EA, Sweeney K 1981. Physiol Behav 27:137–142. doi:10.1016/0031-9384(81)90310-3</li>
+      <li><b>S2297</b> Cabanac M, Duclaux R 1970. Science 168:496–497. doi:10.1126/science.168.3930.496</li>
+      <li><b>S2298</b> Wobber V, Hare B, Wrangham R 2008. J Hum Evol 55:340–348. doi:10.1016/j.jhevol.2008.03.003</li>
     </ol>
     <p>The S-ids are rows of the repository's science register, <code>docs/reference/science.tsv</code>; the #-ids are rows of its claims register, <code>docs/reference/claims.tsv</code>.</p>
   </div></details>

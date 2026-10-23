@@ -3,7 +3,8 @@
 
 The model feeds the player guide's vanilla-versus-mod charts with the vanilla side's `vanilla-model` series.
 Each formula is a small named function carrying the register rows it rests on in `FORMULAS`, keyed by the
-source map's names (VM1 to VM16 and JT1, `docs/superpowers/research/2026-10-15-mod-guide/source-map.md` § 4).
+source map's names (VM1 to VM16 and JT1, `docs/superpowers/research/2026-10-15-mod-guide/source-map.md` § 4), and
+VM17, the player guide's food mood (Plan 19 Task 8).
 The build: the rows are 42.20.4 claims unless their bound records a 42.21 re-read (CLAUDE.md § 2); the Plan 14
 Task 2 review re-read VM1-VM8, VM11-VM13 and VM16 on the 42.21 jar (buildid 25485521, jar 4a0e9546ec) and they
 hold, and the JT1 and #3880 reads were taken on 42.21. It is pure Python, deterministic, and runs no game: every rate is per game-second and is integrated over
@@ -223,6 +224,14 @@ FORMULAS = {
                     "2026-10-16 on 42.21; not minted); the peak at the drink's end and the zero do not depend on the "
                     "profile, only on the dose, the duration and the first sip. "
                     "intoxication_gain, intoxication_decay_per_hour, drink_rates."},
+    "VM17": {"claims": ["#3655", "#3033", "#0298", "#4121"],
+             "doc": "Food mood: an eat adds the item's UnhappyChange and BoredomChange times the share eaten (the "
+                    "utensil factor is 1 without a utensil), each stat held in [0, 100]; an evolved dish carries its "
+                    "own value, less 5 for each distinct ingredient and the spice's term (#0298, #4121). Nothing lowers "
+                    "UNHAPPINESS passively (#3033), so a stat fed only by food would sum every sad eat for ever: the "
+                    "model's upkeep, a stated number of mood points a game hour toward a standing background, stands in "
+                    "for the rest of play (the hedonics budget's game choice, applied to both sides alike; 0 is none). "
+                    "food_mood."},
     "JT1": {"claims": ["#3878", "#3879"],
             "doc": "The muscle traits' Strength XPBoosts from the 42.21 trait script (Weak -5, Feeble -2, Stout +2, "
                    "Strong +4) and applyTraits' arithmetic (seed 5, add, clamp [0, 10]): vanilla start levels Weak 0, "
@@ -724,6 +733,32 @@ def simulate(scenario):
         if c in grid_set:
             record(c)
     return out
+
+
+# ---- VM17: food mood -------------------------------------------------------------------------------------------
+
+def food_mood(eats, minutes, upkeep_h=0.0, bg=0.0):
+    """VM17: the mean UNHAPPINESS and BOREDOM over `minutes` game minutes of a schedule of eats, each stat starting at
+    the standing background `bg`. eats: [(minute, unhappy, bored)] in minute order, each value already times its share
+    eaten. Each minute applies its eats (the stat held in [0, 100]), then moves each stat toward bg by at most
+    upkeep_h / 60 (0 is no upkeep), then reads it: the hedonics budget's vanilla side, in the same order of
+    operations."""
+    up = upkeep_h / 60.0
+    u = b = float(bg)
+    su = sb = 0.0
+    j = 0
+    for t in range(minutes):
+        while j < len(eats) and eats[j][0] == t:
+            u = min(100.0, max(0.0, u + eats[j][1]))
+            b = min(100.0, max(0.0, b + eats[j][2]))
+            j += 1
+        u = max(bg, u - up) if u > bg else min(bg, u + up)
+        b = max(bg, b - up) if b > bg else min(bg, b + up)
+        su += u
+        sb += b
+    if j != len(eats):
+        raise ValueError("food_mood: an eat at minute %r is out of order or past the window" % (eats[j][0],))
+    return su / minutes, sb / minutes
 
 
 def main():

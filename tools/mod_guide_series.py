@@ -117,6 +117,10 @@ RUN = {
     # Plan 18 Task 4: the symptom layer live on the re-staged copy of mod/ at 6ee7c8d1: x494 the onset and the seeded
     # progress, x495 the release after a snack
     "x494": "x494-20261021-121229", "x495": "x495-20261021-132149",
+    # Plan 19 Task 7: the food hedonics live on the staged copy of mod/ at 3760ae05: x501 the cook's scale (R2), x502
+    # the plain-energy floor (R1), x503 the hunger scale (R3), x504 the taste class (R4) and the Rule 6 smoke
+    "x501": "x501-20261022-222929", "x502": "x502-20261022-223712", "x503": "x503-20261022-224322",
+    "x504": "x504-20261022-224728",
 }
 
 MAP_CHARTS = {
@@ -224,9 +228,22 @@ MAP_CHARTS = {
     "ST3": {"section": "Thirst and salt", "title": "Health without water",
            "x": "game days, no food and no water", "y": "health",
            "series": ["ST3-m-dry"]},
-    "SM1": {"section": "Monotony", "title": "Varying the diet lifts the mood",
+    "SM1": {"section": "Food mood", "title": "Varying the diet lifts the mood",
            "x": "game hours after the last repeat", "y": "unhappiness",
            "series": ["SM1-m-live", "SM1-m-kernel"]},
+    # Plan 19 Task 8: the food hedonics, off the budget oracle (tools/hedonics_budget.py) and the kernel's own curves
+    "SM2": {"section": "Food mood", "title": "A fortnight on each diet, against vanilla",
+           "x": "diet", "y": "mean unhappiness or boredom over the fortnight (0-100)",
+           "series": ["SM2-v-model-U", "SM2-m-kernel-U", "SM2-v-model-B", "SM2-m-kernel-B"]},
+    "SM3": {"section": "Food mood", "title": "Plain fat, sugar and starch and the mood floor",
+           "x": "share of the last day's food that was plain energy (0-1)", "y": "mood floor (unhappiness)",
+           "series": ["SM3-m-kernel"]},
+    "SM4": {"section": "Food mood", "title": "Cooking skill and a dish's comfort",
+           "x": "the cook's Cooking level", "y": "comfort against vanilla's; mean unhappiness",
+           "series": ["SM4-m-scale", "SM4-v-model", "SM4-m-kernel"]},
+    "SM5": {"section": "Food mood", "title": "A stick of butter, full and hungry",
+           "x": "the eater", "y": "unhappiness the butter adds",
+           "series": ["SM5-v-model", "SM5-m-kernel"]},
     "SB1": {"section": "The body", "title": "Lean mass at a deficit and a surplus, trained or not",
            "x": "game days, 0–60", "y": "lean kg",
            "series": ["SB1-m-def-rest", "SB1-m-def-train", "SB1-m-sur-rest", "SB1-m-sur-train"]},
@@ -3452,6 +3469,127 @@ def s_sm1():
     ]
 
 
+# ---- Food mood (Plan 19 Task 8): the hedonics against vanilla ---------------------------------------------------------
+# Every number is read at generation time: the diets' means off the budget oracle (tools/hedonics_budget.py, the mod's
+# kernels on the lupa host at HEAD, each diet's body through the server pipeline under rule R-1), the vanilla side off
+# VM17 over the oracle's own eats (checked equal to the oracle's vanilla means), and the curves off the kernel's dials.
+
+FM_DIETS = (("mixed", "mixed"), ("cooked (Cooking 0)", "cooked"), ("canned", "canned"), ("butter", "butter"),
+            ("sugar", "sugar"), ("one food", "one food"))   # the oracle's row label, the chart's category
+FM_LEVELS = (0, 3, 10)                                       # the cooking chart's levels: PREP_KNOTS' three knots
+FM_SHARE_STEP = 0.05                                         # the floor chart's step in plain share
+FM_FOOD = "Base.Butter"                                      # the hunger chart's sad food, eaten whole
+FM_PROOF = ("Live proof of each rule on this build's hedonics: x501 the cook's scale, x502 the plain-energy floor and "
+            "its release, x503 the hunger scale, x504 the taste class (Plan 19 Task 7).")
+_FM = {}
+
+
+def food_mood():
+    """The budget oracle run once: {"HB": the module, "o": the Oracle, "rows": label -> row, "sizing": label -> row,
+    "van": label -> (vu, vb), "van_sz": label -> (vu, vb)}. The vanilla means are VM17 over the oracle's own eats, and
+    the build fails if they differ from the oracle's own vanilla side."""
+    if _FM:
+        return _FM
+    import hedonics_budget as HB
+    o = HB.Oracle()
+    rows = {label: r for label, _, r in o.rows()}
+    sz_rows, _, _ = o.sizing()
+    sizing = {label: r for label, _, r in sz_rows}
+    van, van_sz = {}, {}
+    for table, out, upkeep, bg in ((rows, van, HB.UPKEEP_H, 0.0), (sizing, van_sz, HB.BG_UPKEEP_H, HB.BG_U)):
+        for label, r in table.items():
+            eats = [(e["minute"], e["unhappy"], e["bored"]) for e in o.eats(label.split(" (")[0])]
+            got = VM.food_mood(eats, HB.MINUTES, upkeep, bg)
+            if abs(got[0] - r["vu"]) > 1e-9 or abs(got[1] - r["vb"]) > 1e-9:
+                raise D.ProvenanceError("VM17 misses the budget oracle's vanilla side on %s: %r against %r"
+                                        % (label, got, (r["vu"], r["vb"])))
+            out[label] = got
+    _FM.update(HB=HB, o=o, rows=rows, sizing=sizing, van=van, van_sz=van_sz)
+    return _FM
+
+
+def fm_inputs(**extra):
+    HB = food_mood()["HB"]
+    d = {"tool": "tools/hedonics_budget.py Oracle", "days": HB.DAYS, "meals": "08:00, 13:00 and 20:00",
+         "diets": "hedonics_budget.DIETS", "upkeep_h": HB.UPKEEP_H, "cooking_level": HB.COOKING_LEVEL}
+    d.update(extra)
+    return d
+
+
+def s_sm2():
+    fm = food_mood()
+    HB = fm["HB"]
+    unit = "mean %s over the fortnight (0-100)"
+    note = ("The budget oracle's reference diets over %d game days, the same eats on both sides, each stat moved %s "
+            "mood points a game hour toward 0 for the rest of play (a game choice of the oracle, on both sides); the "
+            "cooked diet at Cooking %d. The diets keep the survivor alive and hydrated (rule R-1, the oracle's own "
+            "check). " % (HB.DAYS, HB.UPKEEP_H, HB.COOKING_LEVEL))
+    out = []
+    for stat, k, vk in (("unhappiness", "mu", 0), ("boredom", "mb", 1)):
+        tag = stat[0].upper()
+        out.append(series("SM2-v-model-" + tag, "Vanilla, from the game's code", "diet", unit % stat, "vanilla-model",
+                          [[cat, fm["van"][lab][vk]] for lab, cat in FM_DIETS], vmodel("VM17"),
+                          note + "VM17 over the oracle's own eats, equal to the oracle's vanilla side."))
+        out.append(series("SM2-m-kernel-" + tag, "Nutrition Revamp, simulated", "diet", unit % stat, "kernel",
+                          [[cat, fm["rows"][lab][k]] for lab, cat in FM_DIETS],
+                          kernel(fm_inputs(stat=stat.upper()), "x502"), note + FM_PROOF))
+    return out
+
+
+def s_sm3():
+    K = food_mood()["o"].K
+    n = int(round(1.0 / FM_SHARE_STEP))
+    xs = [round(i * FM_SHARE_STEP, 10) for i in range(n + 1)]
+    return [series("SM3-m-kernel", "Nutrition Revamp, from the mod's code", "plain share of the last day's food",
+                   "mood floor (unhappiness)", "kernel", [[x, float(K.hedonics.floorOf(x))] for x in xs],
+                   kernel({"function": "K.hedonics.floorOf(share)", "step": FM_SHARE_STEP,
+                           "dials": "hedonics.FLOOR_KNOTS"}, "x502"),
+                   "The floor's curve on the registry's FLOOR_KNOTS; the share is read over at least SHARE_MIN_KCAL. "
+                   "Vanilla has no such floor. " + FM_PROOF)]
+
+
+def s_sm4():
+    fm = food_mood()
+    HB, K = fm["HB"], fm["o"].K
+    cat = ["Cooking %d" % lv for lv in FM_LEVELS]
+    note = ("The budget oracle's sizing arm: the cooked diet with both sides standing at %s and moving %s mood points "
+            "a game hour toward it, so a dish's comfort is not spent at the stat's floor of 0. "
+            % (HB.BG_U, HB.BG_UPKEEP_H))
+    return [
+        series("SM4-m-scale", "Nutrition Revamp, from the mod's code", "the cook's Cooking level",
+               "comfort against vanilla's (times)", "kernel",
+               [[c, float(K.hedonics.prepScale(lv))] for c, lv in zip(cat, FM_LEVELS)],
+               kernel({"function": "K.hedonics.prepScale(level)", "dials": "hedonics.PREP_KNOTS"}, "x501"),
+               "The scale on an evolved dish's relief by its last cook's Cooking level; a fixed recipe's dish is not "
+               "scaled (ruling T8-1). " + FM_PROOF),
+        series("SM4-v-model", "Vanilla, from the game's code", "the cook's Cooking level", "mean unhappiness (0-100)",
+               "vanilla-model", [[c, fm["van_sz"]["cooked (Cooking %d)" % lv][0]] for c, lv in zip(cat, FM_LEVELS)],
+               vmodel("VM17"), note + "VM17 over the oracle's own eats, equal to the oracle's vanilla side."),
+        series("SM4-m-kernel", "Nutrition Revamp, simulated", "the cook's Cooking level", "mean unhappiness (0-100)",
+               "kernel", [[c, fm["sizing"]["cooked (Cooking %d)" % lv]["mu"]] for c, lv in zip(cat, FM_LEVELS)],
+               kernel(fm_inputs(arm="sizing", bg=HB.BG_U, upkeep_h=HB.BG_UPKEEP_H, levels=list(FM_LEVELS)), "x501"),
+               note + FM_PROOF),
+    ]
+
+
+def s_sm5():
+    o = food_mood()["o"]
+    K = o.K
+    u = float(o.items[FM_FOOD]["unhappy_change"])
+    hungry = float(K.hungerCurve.THRESHOLDS[K.hedonics.ALLIES_LEVEL]) + 1e-6
+    note = ("%s eaten whole, its UnhappyChange %s off the game's item script; full is HUNGER 0, hungry just over the "
+            "Hungry moodle's threshold. " % (FM_FOOD, u))
+    return [
+        series("SM5-v-model", "Vanilla, from the game's code", "the eater", "unhappiness the butter adds",
+               "vanilla-model", [["full", u], ["hungry", u]], vmodel("VM17"), note),
+        series("SM5-m-kernel", "Nutrition Revamp, from the mod's code", "the eater", "unhappiness the butter adds",
+               "kernel", [["full", float(K.hedonics.allies(u, 0.0))], ["hungry", float(K.hedonics.allies(u, hungry))]],
+               kernel({"function": "K.hedonics.allies(unhappy, hunger)", "food": FM_FOOD,
+                       "dials": "hedonics.ALLIES_F, hedonics.ALLIES_LEVEL"}, "x503"),
+               note + FM_PROOF),
+    ]
+
+
 def _band_y(name):
     return {"EMACIATED": -3, "VERY_UNDERWEIGHT": -2, "UNDERWEIGHT": -1, None: 0, "OVERWEIGHT": 1, "OBESE": 2}[name]
 
@@ -3998,4 +4136,4 @@ def s_validation():
 
 SERIES_DEFS = [s_h1, s_h2, s_h3, s_h4, s_s1a, s_s1b, s_s1c, s_s2a, s_s2b, s_s2c, s_s2d, s_s3a, s_s3b, s_s3c, s_s4a,
                s_s4b, s_s4c, s_s5a, s_s5b, s_s5c, s_s6a, s_s6b, s_s6c, s_sn1, s_se1, s_sh1, s_sh2, s_st1, s_st2, s_st3,
-               s_sm1, s_sb1, s_sb2, s_sx1, s_sx2, s_ss1, s_sd1, s_sd2, s_sc1, s_sv1, s_sh3, s_validation]
+               s_sm1, s_sm2, s_sm3, s_sm4, s_sm5, s_sb1, s_sb2, s_sx1, s_sx2, s_ss1, s_sd1, s_sd2, s_sc1, s_sv1, s_sh3, s_validation]

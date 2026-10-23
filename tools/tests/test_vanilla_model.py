@@ -28,7 +28,7 @@ def _first_hour(out, name, pred):
 
 # ---- FORMULAS ------------------------------------------------------------------------------------------------
 def test_formulas_cover_the_source_map_names():
-    assert set(vm.FORMULAS) == {"VM%d" % i for i in range(1, 17)} | {"JT1"}
+    assert set(vm.FORMULAS) == {"VM%d" % i for i in range(1, 18)} | {"JT1"}
     for name, f in vm.FORMULAS.items():
         assert f["claims"] and f["doc"].strip(), name
 
@@ -689,6 +689,28 @@ def test_t24_floor_clamps_the_weight_and_drains_health():
 def test_t24_no_drain_above_the_floor():
     out = vm.simulate({"hours": 24.0, "dt_min": 60.0, "start": {"weight_kg": 80.0, "calories": -2200.0}, "events": []})
     assert _at(out, "health", 24.0) == 100.0 and _at(out, "weight_kg", 24.0) < 80.0
+
+
+# ---- VM17: food mood (Plan 19 Task 8) ------------------------------------------------------------------------------
+def test_vm17_food_mood_by_hand():
+    # one butter (UnhappyChange 20) at minute 0, no upkeep: UNHAPPINESS holds at 20 for ever (#3033)
+    assert vm.food_mood([(0, 20.0, 0.0)], 60) == (20.0, 0.0)
+    # with an upkeep of 6 a game hour (0.1 a minute) toward 0, the stat falls 0.1 a minute after the eat's minute
+    u, b = vm.food_mood([(0, 20.0, 5.0)], 120, upkeep_h=6.0)
+    assert u == pytest.approx(sum(20.0 - 0.1 * (t + 1) for t in range(120)) / 120)
+    assert b == pytest.approx(sum(max(0.0, 5.0 - 0.1 * (t + 1)) for t in range(120)) / 120)
+    # each stat is held in [0, 100] at the eat, and a happy food cannot take it under 0
+    assert vm.food_mood([(0, 150.0, -30.0)], 1) == (100.0, 0.0)
+    # a standing background: the upkeep moves the stat toward it from either side
+    assert vm.food_mood([], 10, upkeep_h=60.0, bg=20.0) == (20.0, 20.0)
+    assert vm.food_mood([(0, -5.0, 0.0)], 2, upkeep_h=60.0, bg=20.0)[0] == pytest.approx((16.0 + 17.0) / 2)
+
+
+def test_vm17_refuses_an_eat_out_of_order_or_past_the_window():
+    with pytest.raises(ValueError):
+        vm.food_mood([(5, 1.0, 0.0), (2, 1.0, 0.0)], 10)
+    with pytest.raises(ValueError):
+        vm.food_mood([(10, 1.0, 0.0)], 10)
 
 
 def test_t24_floor_seconds():

@@ -50,18 +50,19 @@ FORBIDDEN = [
 ]
 
 SYSTEMS = [
-    "sys-nutrients", "sys-eating", "sys-hunger", "sys-thirst", "sys-monotony", "sys-body", "sys-exercise",
+    "sys-nutrients", "sys-eating", "sys-hunger", "sys-thirst", "sys-food-mood", "sys-body", "sys-exercise",
     "sys-strength", "sys-traits", "sys-deficiency", "sys-acute", "sys-screen", "sys-offline",
 ]
 SCENARIO_ANCHORS = ["s1", "s2", "s3", "s4", "s5", "s6"]
 # Plan 18 Task 5d: the audit's minor and same-as-vanilla sections shrink to a blurb; every other section opens with its
 # list of changes from vanilla (the s2 symptoms keep a detail block). Each list is the section's blocks in order.
-MINOR = ["s1", "sys-monotony", "sys-offline"]
+# Plan 19 Task 8: Monotony became Food mood, a divergence section (the food hedonics).
+MINOR = ["s1", "sys-offline"]
 SCENE_ORDER = {"s1": ["blurb", "charts", "links", "science"],
                "s2": ["changes", "detail", "charts", "links", "science"]}
 SCENE_ORDER.update({s: ["changes", "charts", "links", "science"] for s in ("s3", "s4", "s5", "s6")})
 BLOCK_ORDER = {s: ["changes", "charts", "science"] for s in SYSTEMS}
-BLOCK_ORDER.update({"sys-monotony": ["blurb", "charts", "science"], "sys-offline": ["blurb", "science"]})
+BLOCK_ORDER.update({"sys-offline": ["blurb", "science"]})
 SCENARIO_CHART = re.compile(r"S(\d)[a-z]")
 BACK_MATTER = ["options", "compatibility", "limitations", "references"]
 
@@ -650,6 +651,10 @@ class Scenarios(_Base):
         # ceiling is no longer wholly unread live; Severity now also scales the deadly dangers' symptoms
         r"No live run has read a recovering ceiling yet", r"No live game has shown a cap recovering yet",
         r"or an excess brings\. The excess option", r"the unhappiness lifts at once",
+        # Plan 19 Task 8: the food hedonics; a plain-energy diet holds unhappiness past the first Unhappy level, and
+        # food mood is no longer vanilla's alone
+        r"never deeper", r"up to the first Unhappy and Bored level and no further", r'id="sys-monotony"',
+        r">Monotony<", r"Food still lifts or sinks your mood as in vanilla",
     ]
 
     def test_task_11_stale_sentences_stay_gone(self):
@@ -1066,9 +1071,97 @@ class DivergenceFirst(_Base):
             with self.subTest(chart=cid):
                 self.assertRegex(_figure(self.html, cid), r"(?i)about the same as vanilla")
                 self.assertIn("about the same as vanilla", self.data["charts"][cid]["title"])
-        for cid in ("SN1", "S3a", "S3c", "SE1", "SH1", "ST2", "ST3", "SM1", "SB1", "SD1", "SD2", "SC1", "SV1"):
+        for cid in ("SN1", "S3a", "S3c", "SE1", "SH1", "ST2", "ST3", "SM1", "SM3", "SB1", "SD1", "SD2", "SC1", "SV1"):
             with self.subTest(chart=cid):
                 self.assertRegex(_figure(self.html, cid), r"Vanilla (?:has|keeps|tracks|carries) no")
+
+
+class FoodMood(_Base):
+    """Plan 19 Task 8: the Monotony topic became Food mood, a divergence section on the food hedonics (the stick of
+    butter, cooking skill, hunger and taste class), its numbers filled from data.json; each sentence that states a
+    number in words is guarded here against the registry and the kernel (the stale-sentence guard)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        sys.path.insert(0, os.path.join(REPO, "tools"))
+        import food_hedonics
+        cls.K = food_hedonics.runtime().globals().NutritionRevamp.kernel
+
+    def y(self, sid, x):
+        return evaluate_pick(self.series[sid]["points"], "y@x=%s" % x)[0]
+
+    def test_the_section_leads_with_its_four_changes_and_draws_its_charts(self):
+        body = _section(self.html, "sys-food-mood")
+        self.assertIn("Food mood: what you eat and how you cook it", body)
+        names = re.findall(r'<p class="dv-name">([^<]+)</p>', body)
+        self.assertEqual(names, ["Living on plain fat or sugar wears you down", "Your Cooking skill shows in your dishes",
+                                 "Hunger makes plain food easier to take", "Variety counts by taste as well as by food"])
+        charts = re.findall(r'data-chart="([^"]+)"', body)
+        self.assertEqual(charts, ["SM2", "SM3", "SM4", "SM5", "SM1"])
+        for cid in ("SM2", "SM3", "SM4", "SM5"):
+            self.assertEqual(self.data["charts"][cid]["section"], "Food mood")
+            self.assertIn('"%s": {' % cid, self.js)
+        self.assertIn('href="#sys-food-mood"', self.html[:self.html.index("</nav>")])
+
+    def test_the_section_renders(self):
+        """The render check: every fill in the section replaced by its display text (charts.js's evalPick, mirrored),
+        the tags stripped, and the rendered sentences read as the numbers say."""
+        body = _section(self.html, "sys-food-mood")
+        body = body[:body.index('<details class="science"')]
+
+        def fill(m):
+            return evaluate_pick(self.series[m.group(1)]["points"], m.group(2))[1]
+        text = re.sub(r'<span data-fill="([^"]+)" data-pick="([^"]+)"></span>', fill, body)
+        self.assertNotIn("data-fill", text)
+        text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", text))
+        self.assertIn("a new cook's dish comforts you 0.8 times as much as vanilla's, a master cook's 1.5 times", text)
+        self.assertIn("a whole stick of butter adds 12 unhappiness instead of 20", text)
+        self.assertRegex(text, r"a mood floor holds your unhappiness up, \d+ at three quarters and \d+ when it is nearly all")
+        self.assertRegex(text, r"Living on butter averages \d+ against vanilla's \d+, on sugar \d+ and on one tinned food \d+")
+
+    def test_the_limitations_and_ruling_t8_1_are_said(self):
+        body = _section(self.html, "sys-food-mood")
+        self.assertIn("a dish from a fixed recipe is not scaled", body)            # ruling T8-1: R2 is evolved dishes
+        self.assertIn("a fixed recipe's result keeps vanilla's value", body)
+        self.assertIn("the size of the easing is the mod's choice, kept small", body)         # R3's size
+        self.assertIn("is the mod's choice of curve", body)                                    # R2's curve
+        self.assertIn("Butter, margarine and mayonnaise count as plain whatever their salt", body)   # ruling T5-1
+
+    def test_the_numbers_said_in_words_still_hold(self):
+        K = self.K
+        # "Once it is more than half of what you ate" and "Up to half ... the floor stays at" 0
+        self.assertEqual(float(K.hedonics.FLOOR_KNOTS[1][1]), 0.5)
+        self.assertEqual(self.y("SM3-m-kernel", 0.5), 0.0)
+        self.assertGreater(self.y("SM3-m-kernel", 0.55), 0.0)
+        # "nearly everything you eat is plain": the top knot sits at a share near 1
+        self.assertEqual(max(p[1] for p in self.series["SM3-m-kernel"]["points"]), float(K.hedonics.FLOOR_KNOTS[3][2]))
+        self.assertGreaterEqual(float(K.hedonics.FLOOR_KNOTS[3][1]), 0.9)
+        # "the last day of play": a ring of 24 online hours
+        self.assertEqual(int(K.hedonics.RING_N), 24)
+        # "a few levels in it is vanilla's own": the neutral knot at level 3, scale 1
+        self.assertEqual(float(K.hedonics.PREP_KNOTS[2][1]), 3.0)
+        self.assertEqual(self.y("SM4-m-scale", "Cooking 3"), 1.0)
+        self.assertLess(self.y("SM4-m-scale", "Cooking 0"), 1.0)
+        self.assertGreater(self.y("SM4-m-scale", "Cooking 10"), 1.0)
+        # "vanilla averages ... whatever the cook's level"
+        self.assertEqual(len({p[1] for p in self.series["SM4-v-model"]["points"]}), 1)
+        # "Full, a stick of butter adds ... in both" and "Hungry ... still ... in vanilla"
+        self.assertEqual(self.y("SM5-m-kernel", "full"), self.y("SM5-v-model", "full"))
+        self.assertEqual(self.y("SM5-v-model", "hungry"), self.y("SM5-v-model", "full"))
+        self.assertLess(self.y("SM5-m-kernel", "hungry"), self.y("SM5-v-model", "hungry"))
+        # "Vanilla's lines stay near zero", and the degenerate diets are sadder than vanilla
+        for p in self.series["SM2-v-model-U"]["points"] + self.series["SM2-v-model-B"]["points"]:
+            self.assertLess(p[1], 2.0, p)
+        for diet in ("butter", "sugar", "one food"):
+            self.assertGreater(self.y("SM2-m-kernel-U", diet), self.y("SM2-v-model-U", diet) + 15.0, diet)
+        # the bands said in words: a quarter and three quarters of the first Unhappy step
+        step = float(K.monotony.UNHAPPY_AT[1])          # vanilla's UNHAPPY level-1 step (#2369)
+        self.assertEqual(step, 20.0)
+        self.assertEqual(float(K.hedonics.BUDGET_FAIR), step / 4)
+        self.assertEqual(float(K.hedonics.BUDGET_DEGEN), step * 3 / 4)
+        # "at least about half a resting day's food"
+        self.assertTrue(1000 <= float(K.hedonics.SHARE_MIN_KCAL) <= 2000)
 
 
 class CloseFixes(_Base):

@@ -131,12 +131,12 @@ def kh():
 def test_the_built_series_and_the_pending_and_dropped_ids_cover_the_map():
     built = set(SER)
     mapped = {i for c in S.MAP_CHARTS.values() for i in c["series"]}
-    assert len(mapped) == 176                                           # Plan 18 Task 5d: ST3's dry line
+    assert len(mapped) == 186                       # Plan 18 Task 5d: ST3's dry line; Plan 19 Task 8: SM2-SM5's ten
     assert built | set(S.PENDING_LIVE) | set(S.DROPPED) == mapped
     assert not (built & set(S.PENDING_LIVE)) and not (built & set(S.DROPPED))
     assert not (set(S.PENDING_LIVE) & set(S.DROPPED))
     # Plan 16 Task 11: x461b draws SE1's live liquid (its fill DROPPED on the window), x467 SH3's live returns
-    assert len(built) == 164 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 12      # Plan 17 Task 2b: x481's live line DROPPED
+    assert len(built) == 174 and len(S.PENDING_LIVE) == 0 and len(S.DROPPED) == 12      # Plan 17 Task 2b: x481's live line DROPPED
     assert DATA["charts"] == S.CHARTS
     assert D.coverage_gaps(built, DATA["charts"], S.PENDING_LIVE) == ([], [])
 
@@ -1171,6 +1171,74 @@ def _(kh, sid):
     b = kh.table({"lm": 59.5, "fm": 25.5, "fatT": 0, "thinT": 0})
     kh.K.traits.axes(b, 1)
     assert pt(sid, "soft 85 kg") == b.fatT == 1
+    return xs_of(sid)
+
+
+# ---- Food mood (Plan 19 Task 8): re-derived off the budget oracle's own run and a direct kernel call ----------------
+
+_HB = {}
+
+
+def hb():
+    """tools/hedonics_budget.py run here (its table and sizing arm), never through the series module's builders."""
+    if not _HB:
+        import hedonics_budget as HB
+        o = HB.Oracle()
+        _HB.update(HB=HB, o=o, rows={l: r for l, _, r in o.rows()}, sizing={l: r for l, _, r in o.sizing()[0]})
+    return _HB
+
+
+# the chart's categories, written here: the oracle's row of each
+SM2_ROWS = {"mixed": "mixed", "cooked": "cooked (Cooking 0)", "canned": "canned", "butter": "butter", "sugar": "sugar",
+            "one food": "one food"}
+
+
+@check("SM2-v-model-U", "SM2-m-kernel-U", "SM2-v-model-B", "SM2-m-kernel-B")
+def _(kh, sid):
+    key = {"SM2-v-model-U": "vu", "SM2-m-kernel-U": "mu", "SM2-v-model-B": "vb", "SM2-m-kernel-B": "mb"}[sid]
+    rows = hb()["rows"]
+    assert xs_of(sid) == list(SM2_ROWS)
+    for cat, label in SM2_ROWS.items():
+        assert pt(sid, cat) == pytest.approx(rows[label][key], abs=1e-9), (sid, cat)
+    return xs_of(sid)
+
+
+def test_sm2_the_vanilla_side_is_vm17_over_the_oracle_s_eats():
+    HB, o, rows = hb()["HB"], hb()["o"], hb()["rows"]
+    eats = [(e["minute"], e["unhappy"], e["bored"]) for e in o.eats("butter")]
+    assert VM.food_mood(eats, HB.MINUTES, HB.UPKEEP_H) == pytest.approx((rows["butter"]["vu"], rows["butter"]["vb"]))
+    assert SER["SM2-v-model-U"]["provenance"]["formulas"] == ["VM17"]
+
+
+@check("SM3-m-kernel")
+def _(kh, sid):
+    for x in (0.0, 0.5, 0.75, 0.95, 1.0):
+        assert pt(sid, x) == pytest.approx(float(kh.K.hedonics.floorOf(x)), abs=1e-12), x
+    assert pt(sid, 0.5) == 0 and pt(sid, 0.75) == float(kh.K.dials.get("hedonics.FLOOR_KNOTS.2.2"))
+    return xs_of(sid)
+
+
+@check("SM4-m-scale")
+def _(kh, sid):
+    assert [pt(sid, "Cooking %d" % lv) for lv in (0, 3, 10)] == [
+        float(kh.K.dials.get("hedonics.PREP_KNOTS.1.2")), 1.0, float(kh.K.dials.get("hedonics.PREP_KNOTS.3.2"))]
+    return xs_of(sid)
+
+
+@check("SM4-v-model", "SM4-m-kernel")
+def _(kh, sid):
+    key = "vu" if "-v-" in sid else "mu"
+    for lv in (0, 3, 10):
+        assert pt(sid, "Cooking %d" % lv) == pytest.approx(hb()["sizing"]["cooked (Cooking %d)" % lv][key], abs=1e-9)
+    return xs_of(sid)
+
+
+@check("SM5-v-model", "SM5-m-kernel")
+def _(kh, sid):
+    with open(os.path.join(REPO, "data", "food-items.json"), encoding="utf-8") as fh:
+        u = float(next(i for i in json.load(fh)["items"] if i["id"] == "Base.Butter")["unhappy_change"])
+    hungry = u * float(kh.K.dials.get("hedonics.ALLIES_F")) if "-m-" in sid else u
+    assert pt(sid, "full") == u and pt(sid, "hungry") == pytest.approx(hungry, abs=1e-12)
     return xs_of(sid)
 
 

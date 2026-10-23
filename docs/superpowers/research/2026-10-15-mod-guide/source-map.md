@@ -445,3 +445,21 @@ vanilla-model 31, vanilla-live 11, study 14.
 | M-11 | V2 is one 36-h session (ruling), re-estimated at about 9.5 min with the detached-launch fallback named. |
 | M-12 | The mood promise is "supported (inference …)", BOREDOM read as `moodLast_b`. |
 | Rulings | G12 closed with the `dataset` kind (H4, SN1 badges marked); sessions V1a, V1b, V2, V3, V4, M1, M2 all to run (V2a/V2b merged, M1 and M2 no longer optional); G17's three promises reworded or dropped (balance bonus dropped; sodium and iron reworded with their health drains dropped; hangover and withdrawal dropped unless M2 reads them); G8's admission test kept. |
+
+## Plan 19 Task 8: Food mood
+
+The Monotony topic became the divergence section "Food mood: what you eat and how you cook it" (`#sys-food-mood`), with
+four changes (the stick of butter, cooking skill, hunger, taste class) and four new charts beside SM1, every number
+read at generation time:
+
+| chart | series | source |
+|---|---|---|
+| SM2 | SM2-v-model-U, SM2-m-kernel-U, SM2-v-model-B, SM2-m-kernel-B | `tools/hedonics_budget.py` `Oracle.rows()` (the reference diets over 14 days, the same eats on both sides): the mod's means off the oracle, vanilla's off VM17 over the oracle's own eats, the build failing if VM17 misses the oracle's vanilla side |
+| SM3 | SM3-m-kernel | `K.hedonics.floorOf` on the registry's FLOOR_KNOTS, the plain share 0 to 1 by 0.05 |
+| SM4 | SM4-m-scale, SM4-v-model, SM4-m-kernel | `K.hedonics.prepScale` at Cooking 0, 3 and 10; the oracle's sizing arm (both sides standing at its background) for the cooked diet at those levels |
+| SM5 | SM5-v-model, SM5-m-kernel | `Base.Butter`'s UnhappyChange off `data/food-items.json`, and `K.hedonics.allies` full and just over the Hungry threshold |
+
+VM17 (`tools/vanilla_model.py` `food_mood`) is vanilla's food mood: each eat adds UnhappyChange and BoredomChange times
+the share eaten (#3655), nothing lowers UNHAPPINESS passively (#3033), an evolved dish carries its own value (#0298,
+#4121), and the oracle's upkeep toward a standing background is the oracle's game choice on both sides. The proof runs
+are x501-x504 (Plan 19 Task 7). Ruling T8-1: the cook's scale covers evolved dishes only, and the page says so.
