@@ -134,7 +134,8 @@ def x503():
     return {"sated_delta": [r6(u[L.BUTTER] * L.ALLIES_EAT_F * k) for k in (1.0, L.UTENSIL_SAD)],
             "hungry_delta": [r6(u[L.BUTTER] * L.ALLIES_EAT_F * L.ALLIES_F * k) for k in (1.0, L.UTENSIL_SAD)],
             "ratio": L.ALLIES_F, "lard_per_frac": [r6(u[L.LARD] * L.ALLIES_F * k) for k in (1.0, L.UTENSIL_SAD)],
-            "potato_readtime": u[L.POTATO], "potato_field_after": r6(5.0 * (1 - L.POTATO_F)),
+            "potato_readtime": u[L.POTATO], "potato_field_after_control": r6(5.0 * (1 - L.POTATO_F / 2)),
+            "potato_field_after": r6(5.0 * (1 - L.POTATO_F)),
             "potato_doubled_client": r6(5.0 * (1 - L.POTATO_F) + L.STALE_TERM),
             "counts": {"allies": 3, "restores": 3, "alliesFailures": 0}}
 
@@ -173,8 +174,19 @@ def dish_class(adds):
             "heaviest_portion_class": klass(max(adds, key=lambda t: kcal(t) or 0.0))}
 
 
+def dish_eat(adds):
+    """DISH_EAT: the dish's stored UnhappyChange at each Cooking level (vanilla's add x prepScale; the session leaves
+    Cooking at the fixture's level) and the delta of a whole eat, u x k for k in 1 and 1.25 (#0048)."""
+    out = {}
+    for lv in range(11):
+        u = L.vanilla_dish(adds, lv)[-1] * L.prep_scale(lv)
+        out[str(lv)] = {"u": r6(u), "delta": [r6(u * k) for k in (1.0, L.UTENSIL_GLAD)]}
+    return out
+
+
 def x504():
     return {"A": dish_class(L.DISH_A), "B": dish_class(L.DISH_B),
+            "dish_eat": {"A": dish_eat(L.DISH_A), "B": dish_eat(L.DISH_B), "unhappy_seed": L.UNHAPPY_SEED},
             "rule6": {"rule_p99": L.RULE_P99, "rule_max": L.RULE_MAX, "x391d_p99_adds": list(L.X391D_P99_ADDS),
                       "x391d_longest": list(L.X391D_LONGEST)}}
 

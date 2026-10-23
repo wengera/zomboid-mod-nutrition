@@ -44,7 +44,7 @@ GRADES = {
     "x502": {"H1", "RING", "FLOOR_OF", "RISE", "LAST", "OFFLINE", "RELEASE", "REPLAY_hedonics.f", "REPLAY_moodLast.u",
              "Z"},
     "x503": {"RING", "PRE", "SATED", "HUNGRY", "RATIO", "REMAINDER", "CANCEL", "I2", "COUNTS", "Z"},
-    "x504": {"RING", "CLASS_A", "CLASS_B", "IDLE", "F", "SMOKE", "P99", "MAX", "STARVE", "S", "Z"},
+    "x504": {"RING", "CLASS_A", "CLASS_B", "DISH_EAT", "IDLE", "F", "SMOKE", "P99", "MAX", "STARVE", "S", "Z"},
 }
 
 
@@ -144,9 +144,10 @@ def pair(v, st, cv=None, cst=SAME, w=10.0):
     cst = st if cst is SAME else cst
     md = {} if st is None else {"NR_PrepS": st}
     cmd = {} if cst is None else {"NR_PrepS": cst}
-    return {"s0": {"fields": {"getUnhappyChangeUnmodified": v}, "md": md, "wall": w},
-            "c": {"fields": {"getUnhappyChangeUnmodified": cv}, "md": cmd},
-            "s1": {"fields": {"getUnhappyChangeUnmodified": v}, "md": dict(md), "wall_after": w + 0.4}}
+    return {"s0": {"fields": {"getUnhappyChangeUnmodified": v}, "md": md, "wall": w, "resolved": True},
+            "c": {"fields": {"getUnhappyChangeUnmodified": cv}, "md": cmd, "resolved": True},
+            "s1": {"fields": {"getUnhappyChangeUnmodified": v}, "md": dict(md), "wall_after": w + 0.4,
+                   "resolved": True}}
 
 
 def dishes(scale_fn=lambda lv, k, v: v * L.prep_scale(lv), stamp_fn=lambda lv, k: L.prep_scale(lv)):
@@ -180,10 +181,19 @@ def test_client_needs_a_valid_pair_and_fails_an_unsynced_copy():
     D = dishes()
     D["D0"]["adds"][1]["read"] = pair(-8.0, 0.8, cst=None)
     assert L.grade_client(D)[0] == "falsified"
-    slow = {f"D{lv}": {"adds": [{"read": pair(-5.0, 1.0, w=0.0) | {"s1": {"fields": {"getUnhappyChangeUnmodified":
-                                                                                    -5.0}, "md": {"NR_PrepS": 1.0},
-                                                                         "wall_after": 5.0}}}]} for lv in L.LEVELS}
-    assert L.grade_client(slow)[0] == "unmeasured"                       # no pair inside a wall second
+    def spanning(span):
+        r = pair(-5.0, 1.0, w=0.0)
+        r["s1"]["wall_after"] = span
+        return {f"D{lv}": {"adds": [{"read": r}]} for lv in L.LEVELS}
+    assert L.grade_client(spanning(10.5))[0] == "unmeasured"              # past PAIR_SLACK_S: no valid pair
+    assert not L.pair_ok(spanning(10.5)["D3"]["adds"][0]["read"])
+    assert L.pair_ok(spanning(6.0)["D3"]["adds"][0]["read"])              # six bus steps, s0 = s1: valid (T7-1)
+    assert L.grade_client(spanning(6.0))[0] == "as_predicted"
+    moved = spanning(6.0)
+    moved["D3"]["adds"][0]["read"]["s1"]["fields"]["getUnhappyChangeUnmodified"] = -10.0
+    assert not L.pair_ok(moved["D3"]["adds"][0]["read"])                  # s0 != s1: the bracket refuses it
+    server_only = {f"D{lv}": {"adds": [{"read": {"s0": pair(-5.0, 1.0)["s0"]}}]} for lv in L.LEVELS}
+    assert L.grade_client(server_only) == ("unmeasured", {"pairs": 0, "invalid_pairs": 0, "off": []}, 0)
 
 
 def test_wrap_and_counts():
@@ -206,18 +216,25 @@ def test_wrap_and_counts():
 
 def test_rename_and_relog():
     rn = {"after": {"10": pair(-37.5, 1.5), "3": pair(-25.0, 1.0)},
-          "adds": [{"add": f"{L.LATE_ADD}@3", "read": pair(-30.0, 1.0)},
-                   {"add": f"{L.LATE_ADD}@10", "read": pair(-45.0, 1.5)}]}
+          "adds": [{"add": f"{L.LATE_ADD}@3", "completed": True, "read": pair(-30.0, 1.0)},
+                   {"add": f"{L.LATE_ADD}@10", "completed": True, "read": pair(-45.0, 1.5)}]}
     assert L.grade_rename({"RN": rn})[0] == "as_predicted"
     wiped = copy.deepcopy(rn)
     wiped["after"]["10"] = pair(-37.5, None)
     wiped["adds"][1]["read"] = pair(-63.75, 1.5)
     assert L.grade_rename({"RN": wiped})[0] == "falsified"
     assert L.grade_rename({"RN": {}})[0] == "unmeasured"
+    late = copy.deepcopy(rn)
+    late["adds"][1] = {"add": f"{L.LATE_ADD}@10", "completed": False}  # the Potato add never completed
+    assert L.grade_rename({"RN": late})[0] == "unmeasured"
+    late["after"]["10"] = pair(-37.5, None)                               # but the stamp read gone: the stamp half
+    assert L.grade_rename({"RN": late})[0] == "falsified"
+    late["after"]["10"]["s0"]["resolved"] = False                         # the dish itself unread: no stamp half
+    assert L.grade_rename({"RN": late})[0] == "unmeasured"
     rl = {"before": {str(lv): pair(-25.0 * L.prep_scale(lv), L.prep_scale(lv)) for lv in L.LEVELS},
           "after": {str(lv): pair(-25.0 * L.prep_scale(lv), L.prep_scale(lv)) for lv in L.LEVELS},
-          "adds": [{"add": f"{L.RELOG_ADD}@3", "read": pair(-32.0, 1.0)},
-                   {"add": f"{L.RELOG_ADD}@10", "read": pair(-48.0, 1.5)}]}
+          "adds": [{"add": f"{L.RELOG_ADD}@3", "completed": True, "read": pair(-32.0, 1.0)},
+                   {"add": f"{L.RELOG_ADD}@10", "completed": True, "read": pair(-48.0, 1.5)}]}
     assert L.grade_relog({"RL": rl})[0] == "as_predicted"
     lost = copy.deepcopy(rl)
     lost["after"]["0"] = pair(-20.0, None)
@@ -226,6 +243,16 @@ def test_rename_and_relog():
     moved["adds"][1]["read"] = pair(-51.0, 1.5)
     assert L.grade_relog({"RL": moved})[0] == "falsified"
     assert L.grade_relog({"RL": {}})[0] == "unmeasured"
+    nopep = copy.deepcopy(rl)
+    nopep["adds"][1] = {"add": f"{L.RELOG_ADD}@10", "completed": False}
+    assert L.grade_relog({"RL": nopep})[0] == "unmeasured"
+    nopep["after"]["10"] = pair(-37.5 * 1.5, 1.5)                         # a dish moved: the dish half alone
+    assert L.grade_relog({"RL": nopep})[0] == "falsified"
+    unstamped = copy.deepcopy(rl)                                          # no stamp before: D0's row skipped
+    unstamped["before"]["0"] = pair(-20.0, None)
+    unstamped["after"]["0"] = pair(-20.0, None)
+    v, obs, n = L.grade_relog({"RL": unstamped})
+    assert v == "as_predicted" and n == 2 and "0" not in [r["level"] for r in obs["dishes"]]
 
 
 # ================================================================ the pure grades: x502
@@ -247,6 +274,11 @@ def test_floor_of_and_rise():
     bad[3]["rec"]["hedonics.f"] = 0.0
     assert L.grade_floor_of(bad)[0] == "falsified"
     assert L.grade_floor_of([{"rec": {}}])[0] == "unmeasured"
+    zero = [{"tag": "E1", "rec": ring_rec(100.0, 100.0)}, {"tag": "E2", "rec": ring_rec(0.0, 0.0)}]
+    assert zero[0]["rec"]["hedonics.f"] == 0.0
+    assert L.grade_floor_of(zero)[0] == "unmeasured"                       # f 0 = floorOf: no floor to read
+    v, obs, n = L.grade_floor_of(reads + zero)                            # E1, E2 (shares 0.21, 0.42) at the foot
+    assert v == "as_predicted" and n == 2 and obs["rows_up"] == 2
     pred = [0.0, 0.0, 7.86624, 21.8604]
     assert L.grade_rise(eats, pred)[0] == "as_predicted"
     flat = copy.deepcopy(eats)
@@ -287,6 +319,12 @@ def test_offline_needs_the_ring_unmoved_and_its_stamp_moved_by_the_absence():
     late = {"rec": ring_rec(1262.2, 1262.2, s=2.35), "age": 3.30}         # 0.95 h into the slot
     assert L.grade_offline({"before": late, "after": a, "relog": rl})[0] == "unmeasured"
     assert L.grade_offline({})[0] == "unmeasured"
+    empty = {"rec": ring_rec(0.0, 0.0, s=2.7567), "age": 3.30}            # an empty ring: nothing to keep
+    empty_after = {"rec": ring_rec(0.0, 0.0, s=2.7567 + 0.27), "age": 3.63}
+    assert L.grade_offline({"before": empty, "after": empty_after, "relog": rl})[0] == "unmeasured"
+    nofloor = {"rec": ring_rec(100.0, 100.0, s=2.7567), "age": 3.30}       # kcal but f 0
+    nofloor_after = {"rec": ring_rec(100.0, 100.0, s=2.7567 + 0.27), "age": 3.63}
+    assert L.grade_offline({"before": nofloor, "after": nofloor_after, "relog": rl})[0] == "unmeasured"
 
 
 def test_release():
@@ -368,6 +406,16 @@ def test_sated_hungry_ratio_and_cancel():
     whole = allies_eats()
     whole[2]["frac"] = 1.0
     assert L.grade_cancel(whole)[0] == "unmeasured"
+    # each arm gated on its own before-read HUNGER: a seed that did not hold reads unmeasured, never falsified
+    for arm, h, fn in (("R3H", 0.2, L.grade_hungry), ("R3H", None, L.grade_hungry), ("R3C", 0.25, L.grade_cancel),
+                       ("R3S", 0.3, L.grade_sated), ("R3S", 0.3, L.grade_ratio), ("R3H", 0.1, L.grade_ratio)):
+        e = allies_eats(scale=1.0)                                          # every scale off: falsified if graded
+        L.arm_eat(e, arm)["stats0"]["Hunger"] = h
+        v, obs, n = fn(e)
+        assert v == "unmeasured" and n == 0, (arm, h, fn.__name__, v)
+    sated = allies_eats()
+    sated[0]["stats0"]["Hunger"] = 0.25                                   # at ALLIES_AT: still sated
+    assert L.grade_sated(sated)[0] == "as_predicted"
 
 
 def test_pre_and_remainder():
@@ -382,25 +430,41 @@ def test_pre_and_remainder():
     assert L.grade_remainder([])[0] == "unmeasured"
 
 
-def i2_eat(c_f1, s_rt0=15.0):
-    return {"arm": "I2", "landed": True, "frac": 0.5,
-            "item0": {"fields": {"getUnhappyChangeUnmodified": 5.0, "getUnhappyChange": s_rt0}},
+def i2c_eat(c_f1=5.0):
+    """The vanilla control: the stale potato, a quarter eaten sated (5 -> 3.75; read-time 13.75)."""
+    return {"arm": "I2C", "landed": True, "frac": 0.25, "stats0": {"Hunger": 0.002},
+            "item0": {"fields": {"getUnhappyChangeUnmodified": 5.0, "getUnhappyChange": 15.0}},
+            "item1": {"fields": {"getUnhappyChangeUnmodified": 3.75, "getUnhappyChange": 13.75}, "resolved": True},
+            "citem0": {"fields": {"getUnhappyChangeUnmodified": 5.0}},
+            "citem1": {"fields": {"getUnhappyChangeUnmodified": c_f1}}}
+
+
+def i2_eat(c_f1, s_rt0=13.75, hunger=0.32):
+    return {"arm": "I2", "landed": True, "frac": 1.0 / 3.0, "stats0": {"Hunger": hunger},
+            "item0": {"fields": {"getUnhappyChangeUnmodified": 3.75, "getUnhappyChange": s_rt0}},
             "item1": {"fields": {"getUnhappyChangeUnmodified": 2.5, "getUnhappyChange": 12.5}, "resolved": True},
             "citem0": {"fields": {"getUnhappyChangeUnmodified": 5.0}},
             "citem1": {"fields": {"getUnhappyChangeUnmodified": c_f1}}}
 
 
 def test_i2_reads_the_client_copy_undoubled():
-    assert L.grade_i2([i2_eat(2.5)])[0] == "as_predicted"
-    assert L.grade_i2([i2_eat(5.0)])[0] == "as_predicted"                 # the client kept its own
-    assert L.grade_i2([i2_eat(12.5)])[0] == "falsified"                   # the read-time value written in
-    assert L.grade_i2([i2_eat(7.0)])[0] == "falsified"
-    assert L.grade_i2([i2_eat(2.5, s_rt0=5.0)])[0] == "unmeasured"         # no stale term
+    c = i2c_eat()
+    assert L.grade_i2([c, i2_eat(2.5)])[0] == "as_predicted"
+    assert L.grade_i2([c, i2_eat(5.0)])[0] == "as_predicted"              # the client kept its own
+    assert L.grade_i2([c, i2_eat(12.5)])[0] == "falsified"                # the read-time value written in
+    assert L.grade_i2([c, i2_eat(7.0)])[0] == "falsified"
+    assert L.grade_i2([c, i2_eat(2.5, s_rt0=3.75)])[0] == "unmeasured"     # no stale term
+    assert L.grade_i2([c, i2_eat(12.5, hunger=0.2)])[0] == "unmeasured"     # not Hungry: never falsified
+    # the control: vanilla's own eat doubles the client's copy, so a doubled I2 is vanilla's, not the mod's
+    v, obs, n = L.grade_i2([i2c_eat(13.75), i2_eat(12.5)])
+    assert v == "unmeasured" and "I2C" in obs["why"] and obs["doubled_c"] is True
+    assert L.grade_i2([i2_eat(12.5)])[0] == "unmeasured"                   # the control unread
 
 
 def test_counts_503():
     key = "NutritionRevamp.server.hedonics.stats."
-    D = {"eats": allies_eats(), "S": {"hstats": {key + "allies": 0, key + "restores": 0, key + "alliesFailures": 0}},
+    D = {"eats": allies_eats() + [i2c_eat()],                             # the sated control adds no ally
+         "S": {"hstats": {key + "allies": 0, key + "restores": 0, key + "alliesFailures": 0}},
          "C": {"hstats": {key + "allies": 2, key + "restores": 2, key + "alliesFailures": 0}}}
     assert L.grade_counts_503(D)[0] == "as_predicted"
     D["C"]["hstats"][key + "restores"] = 0
@@ -421,6 +485,28 @@ def test_class():
         "as_predicted"
     assert L.grade_class({"A": P("fatty", "fatty")}, "A", "savoury", "savoury", flat=("fatty",))[0] == "falsified"
     assert L.grade_class({"A": {"eat": {"landed": False}}}, "A", "savoury", "savoury")[0] == "unmeasured"
+    unread = P("savoury", "savoury")
+    del unread["rec1"]["monotony.t.[@savoury].n"]                        # the count unread: never a falsification
+    assert L.grade_class({"A": unread}, "A", "savoury", "savoury", flat=("fatty",))[0] == "unmeasured"
+
+
+def dish_eat(u, d, landed=True):
+    return {"eat": {"landed": landed, "frac": 1.0, "stats0": {"Unhappiness": 60.0},
+                    "stats1": {"Unhappiness": 60.0 + d}, "rec0": {"moodLast.u": 0.0}, "rec1": {"moodLast.u": 0.0},
+                    "item0": {"fields": {"getUnhappyChange": u}}}}
+
+
+def test_dish_eat():
+    for k in (1.0, L.UTENSIL_GLAD):
+        D = {"A": dish_eat(-4.666667, -4.666667 * k), "B": dish_eat(-9.333333, -9.333333 * k)}
+        v, obs, n = L.grade_dish_eat(D)
+        assert v == "as_predicted" and n == 2 and obs["k"] == k
+    unscaled = {"A": dish_eat(-4.666667, -5.0), "B": dish_eat(-9.333333, -10.0)}     # the eat read vanilla's value
+    assert L.grade_dish_eat(unscaled)[0] == "falsified"
+    mixed = {"A": dish_eat(-4.666667, -4.666667), "B": dish_eat(-9.333333, -9.333333 * 1.25)}
+    assert L.grade_dish_eat(mixed)[0] == "falsified"                       # one k for both dishes
+    assert L.grade_dish_eat({"A": dish_eat(0.0, 0.0), "B": dish_eat(-9.3, -9.3, landed=False)})[0] == "unmeasured"
+    assert L.grade_dish_eat({})[0] == "unmeasured"
 
 
 def ring_doc(n=600, busy=2.0, end=100.0, minute_add=0.0, t0=1000):
@@ -545,7 +631,7 @@ class World:
     """The dedicated server, admin's client and the mod's hedonics seats as the Task 6 code reads them, stepped one
     game minute every GM_S wall seconds. `flags` are defects."""
 
-    def __init__(self, results_dir, flags=()):
+    def __init__(self, results_dir, flags=(), latency=True):
         self.dir = results_dir
         self.f = set(flags)
         self.t, self.age, self.speed, self.next_min = 0.0, L48.FIRST_SIGHT["age"], 1, GM_S
@@ -556,6 +642,7 @@ class World:
                     "monotony": {"t": {}}, "firstSeen": self.age,
                     "body": {"sex": 1, "fm": 14.0, "lm": 51.0, "lx": 0.0}}
         self.cooking, self.writes, self.lastWrite = 2, 0, 1
+        self.latency = latency
         self.h = {k: 0 for k in L.HSTATS}
         self.intake = {"eats": 0, "landed": 0}
         self.ghosts, self.load = 0, False
@@ -730,7 +817,10 @@ class World:
         scaled = u_rt * L.ALLIES_F if (u_rt > 0 and hungry and "no_allies" not in self.f) else u_rt
         field = it["u"]
         written = field - (u_rt - scaled)
-        self.stats["Unhappiness"] = min(100.0, max(0.0, self.stats["Unhappiness"] + scaled * f))
+        felt = scaled
+        if "dish_eat_unscaled" in self.f and it["type"] == L.DISH and it["md"].get("NR_PrepS"):
+            felt = it["u"] / it["md"]["NR_PrepS"] + it["state"]       # the eat reading vanilla's unscaled value
+        self.stats["Unhappiness"] = min(100.0, max(0.0, self.stats["Unhappiness"] + felt * f))
         kcal = it["cal"] * f
         for k in ("cal", "carbs", "lipids", "proteins", "hung"):
             it[k] *= (1 - f)
@@ -740,7 +830,9 @@ class World:
             if "no_restore" not in self.f and f < 1:
                 it["u"] = field * (1 - f)
                 self.h["restores"] += 1
-        if "doubled" in self.f:
+        if "doubled" in self.f and scaled < u_rt:          # the mod's Hungry eat sends the read-time value
+            it["c_u"] = it["u"] + it["state"]
+        if "vanilla_doubles" in self.f:                    # vanilla's own eat path does, on every eat
             it["c_u"] = it["u"] + it["state"]
         if it["type"] == L.DISH:
             plain = False
@@ -815,6 +907,14 @@ class World:
             json.dump(doc, fh)
 
     def ask(self, node, cmd, args="", timeout=30):
+        """The bus: the answer, then the step's wall (F1: the median `took` of x494 and x495, 1.25 s a server step and
+        0.35 s a client step), so a body run spends the wall a live one does."""
+        v = self.answer(node, cmd, args)
+        if self.latency:
+            self.sleep(1.25 if node == "server" else 0.35)
+        return v
+
+    def answer(self, node, cmd, args=""):
         side = "server" if node == "server" else "client"
         a = args.split() if isinstance(args, str) else []
         if side == "client" and not self.online:
@@ -970,7 +1070,7 @@ class World:
         self.complete_eat(iid, frac)
 
 
-def body_run(tmp_path, key, flags=(), monkeypatch=None):
+def body_run(tmp_path, key, flags=(), monkeypatch=None, wall=None):
     w = World(str(tmp_path), flags)
     out = {"steps": [], "notes": [], "phase_walls": {}, "phase_errors": {}, "verdicts": {}, "readings": {},
            "world_changes": {"left_in_place": []}}
@@ -994,6 +1094,8 @@ def body_run(tmp_path, key, flags=(), monkeypatch=None):
     S.body_run(S.phases())
     out["logs"] = {"mod_error": []}
     out["admin_lua_error"] = False
+    if wall is not None:
+        wall["end"] = max(pw.get("end", 0.0) for pw in out["phase_walls"].values())
     S.grade_all()
     assert not out["phase_errors"], out["phase_errors"]
     return {k: v["verdict"] for k, v in out["verdicts"].items()}, out
@@ -1019,15 +1121,49 @@ DEFECTS = [
     ("x501", "rename_wipes", {"RENAME", "RELOG", "COUNTS"}),
     ("x501", "relog_drops", {"RELOG", "COUNTS"}),
     ("x501", "no_wrap", {"WRAP"}),
-    ("x502", "no_floor", {"RISE", "FLOOR_OF", "RELEASE"}),
+    ("x502", "no_floor", {"RISE", "FLOOR_OF", "RELEASE", "OFFLINE"}),   # OFFLINE: no floor to keep, unmeasured
     ("x502", "offline_moves", {"OFFLINE"}),
     ("x502", "no_release", {"RELEASE", "FLOOR_OF"}),
     ("x503", "no_allies", {"HUNGRY", "RATIO", "CANCEL", "COUNTS"}),
     ("x503", "no_restore", {"REMAINDER", "COUNTS"}),
     ("x503", "doubled", {"I2"}),
+    ("x503", "vanilla_doubles", {"I2"}),
     ("x504", "class_portion", {"CLASS_A"}),
+    ("x504", "dish_eat_unscaled", {"DISH_EAT"}),
     ("x504", "heavy_load", {"P99", "MAX"}),
 ]
+
+
+BOOT_S = 85.0                                 # the session ready 52-85 s after the launch in x491-x495
+WALL_MARGIN_S = 60.0
+
+
+@pytest.mark.parametrize("key", sorted(L.SESSIONS))
+def test_the_body_fits_its_budget_at_live_bus_latency(tmp_path, monkeypatch, key):
+    """F2: on the latency-charged fake, the last phase's end plus the boot leaves WALL_MARGIN_S of the budget."""
+    wall = {}
+    body_run(tmp_path, key, monkeypatch=monkeypatch, wall=wall)
+    margin = L.SESSIONS[key]["budget_s"] - (wall["end"] + BOOT_S)
+    print(f"{key}: body {wall['end']:.1f} s, boot {BOOT_S} s, budget {L.SESSIONS[key]['budget_s']} s, "
+          f"margin {margin:.1f} s")
+    assert margin >= WALL_MARGIN_S, (key, wall["end"], margin)
+
+
+def test_the_vanilla_control_moves_i2_to_unmeasured_never_falsified(tmp_path, monkeypatch):
+    v, out = body_run(tmp_path, "x503", ("vanilla_doubles",), monkeypatch=monkeypatch)
+    assert v["I2"] == "unmeasured" and "I2C" in out["verdicts"]["I2"]["observed"]["why"]
+    v, out = body_run(tmp_path, "x503", ("doubled",), monkeypatch=monkeypatch)
+    assert v["I2"] == "falsified" and out["verdicts"]["I2"]["observed"]["doubled_c"] is False
+
+
+def test_x501_records_the_ids_guard_and_pairs_only_the_last_add(tmp_path, monkeypatch):
+    v, out = body_run(tmp_path, "x501", monkeypatch=monkeypatch)
+    D3 = out["checks"]["D3"]
+    assert D3["ids_agree"] is True and D3["server_id"] == int(D3["ref"][1:])
+    for lv in L.LEVELS:
+        adds = out["checks"][f"D{lv}"]["adds"]
+        assert [("c" in a["read"]) for a in adds] == [False] * (len(L.DISH_ADDS) - 1) + [True]
+    assert out["verdicts"]["CLIENT"]["observed"]["pairs"] == 3
 
 
 def test_the_relog_follows_a_dish_whose_id_moved(tmp_path, monkeypatch):

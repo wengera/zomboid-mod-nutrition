@@ -52,8 +52,10 @@ THE SESSIONS (the arms in order; every add and eat at speed 1):
         D3, D0, D10  for each Cooking level (3 first: the anchor, whose scale is 1, so its stored value is vanilla's):
             perk.set Cooking; five adds on a Pan through recipe.add (vanilla's ISAddItemInRecipe from the client, which
             the server completes): Carrots, Cabbage, Onion, Salt, Butter. Each add is polled on the server's hedonics
-            cooks counter (and the first on the new dish's id in the client's inventory), then read as a pair: the
-            server's dish fields and its NR_PrepS stamp, the client's, the server's again (one wall second).
+            cooks counter (and the first on the new dish's id in the client's inventory), then read on the server
+            (its dish fields and its NR_PrepS stamp); each dish's last add is read as a pair: the server's, the
+            client's, the server's again (inside PAIR_SLACK_S, the two server reads equal: ruling T7-1). After D3's
+            first add the server's item.get of the dish records ids_agree (the server's id against the client's).
         RN  item.rename of the D3 and D10 dishes (vanilla's rename: setName, setCustomName, syncItemFields from the
             client); the server's stamp read after; then Potato added to D3 at Cooking 3 and to D10 at Cooking 10.
         RL  the relog: admin quits, the players list polled until admin leaves, admin relaunched; every dish found
@@ -67,15 +69,17 @@ THE SESSIONS (the arms in order; every add and eat at speed 1):
         record read before the quit and after the rejoin); REL an eat of half a jar of peanut butter (not plain), then
         one writer minute and the read; C, R (the ring's pages).
   x503  S, H; R3S butter (ALLIES_EAT_F) eaten sated with UNHAPPINESS seeded at UNHAPPY_SEED (above the writer's 59, so
-        the writer never raises it); R3H the same Hungry (record.set satiety.M 0, then HUNGER set to HUNGRY_SEED; the
-        writer never lowers an unfed HUNGER, so it holds); I2 a potato aged stale (item.set age STALE_AGE_D), eaten
-        Hungry at POTATO_F; R3C lard, Hungry, its eat cancelled through action.cancel part way (vanilla's serverStop
-        eats the progress), last because its part is the largest intake (every eat's validStart and FOOD_EATEN level
-        are kept: a refused eat lands nothing and its grades read unmeasured); each eat read before and after:
-        UNHAPPINESS, HUNGER and moodLast.u on the server, the item's fields on the server, lastIntake; I2 also the
-        item on the client before and after. C, R.
-  x504  S, H; I spawns; A (Cooking set to the level read at S, never changed) Pan + Carrots x3 + BaconRashers, eaten
-        whole; B Pan + Carrots + BaconRashers, eaten whole; each eat's lastIntake and the monotony class keys read;
+        the writer never raises it); I2C the vanilla control: a potato aged stale (item.set age STALE_AGE_D), a quarter
+        of it (POTATO_F / 2) eaten sated with no seed (no alliesthesia, no restore); R3H the same butter eat Hungry
+        (record.set satiety.M 0, then HUNGER set to HUNGRY_SEED; the writer never lowers an unfed HUNGER, so it holds);
+        I2 another quarter of the stale potato eaten Hungry; R3C lard, Hungry, its eat cancelled through action.cancel
+        part way (vanilla's serverStop eats the progress), last because its part is the largest intake (every eat's
+        validStart and FOOD_EATEN level are kept: a refused eat lands nothing and its grades read unmeasured); each eat
+        read before and after: UNHAPPINESS, HUNGER and moodLast.u on the server, the item's fields on the server,
+        lastIntake; I2C and I2 also the item on the client before and after. C, R.
+  x504  S, H; I spawns; A (Cooking left at the fixture's level, never set) Pan + Carrots x3 + BaconRashers (each add
+        read on the server alone), UNHAPPINESS seeded at UNHAPPY_SEED, eaten whole; B Pan + Carrots + BaconRashers, the
+        same; each eat's lastIntake, UNHAPPINESS, moodLast.u, the dish's fields and the monotony class keys read;
         IDLE the frame timer (perf.local and tick.ring) over ARM_WALL_S with no load; LOAD ghost.load 60 mod feed and
         ghost.modq on (59 ghost records beside admin on the mod's own queue), settle, ghost.stats reset, the same
         window, ghost.stats, ghost.modq off, ghost.stop; C, R.
@@ -92,19 +96,23 @@ never as_predicted; every tolerance is named below, before any run):
     SCALE     D0 and D10 after each of their five adds: the server's stored UnhappyChange = the anchor's value after
               the same add x prepScale(level) within TOL_FIELD, and NR_PrepS = prepScale(level) within TOL_STAMP.
               Falsifier: an unscaled dish (the seat not reached), a compounded one (prepScale^k), or no stamp.
-    CLIENT    after every add of every dish, a valid pair (server, client, server inside PAIR_SLACK_S, both server reads
-              equal): the client's stored UnhappyChange equals the server's, and its NR_PrepS the server's (the R2
-              syncs; I1).
+    CLIENT    after each dish's last add (the only add of a dish read on the client), a valid pair (server, client,
+              server inside PAIR_SLACK_S, both server reads equal: ruling T7-1): the client's stored UnhappyChange
+              equals the server's, and its NR_PrepS the server's (the R2 syncs; I1).
     COUNTS    the server's cooks counter rose by the adds that completed, prepped by the reliefs made, unprepped by the
               adds on a stamped dish whose scale is not 1 (UNPREP_PRED), cookFailures by 0.
     RENAME    (I1) after the rename of D10 the server's NR_PrepS still reads prepScale(10) (the client's sync carried
               it back), and the Potato add then reads D3's post-Potato value x prepScale(10). Falsifier: the stamp gone
-              (the next add compounds: (V5 x 1.5 - 5) x 1.5) or wrong. D3's rename is a reading.
+              (the next add compounds: (V5 x 1.5 - 5) x 1.5) or wrong. D3's rename is a reading. Unmeasured when a
+              Potato add did not complete, unless D10's stamp was read off or gone (the stamp half alone).
     RELOG     after the relog, every dish's server stamp and stored value are as before it, on both sides; the Pepper
               add then reads D3's post-Pepper value x prepScale(10) on D10. Falsifier: a stamp lost or a value moved.
+              D0's and D10's rows count only with a stamp before the relog; unmeasured when a Pepper add did not
+              complete, unless a dish moved (the dish half alone).
   x502
     FLOOR_OF  on every record read after a landed eat, hedonics.f = floorOf(share) of the ring's own slots (the 24
-              plain and all sums, share = plain / max(all, SHARE_MIN_KCAL)) within F_TOL.
+              plain and all sums, share = plain / max(all, SHARE_MIN_KCAL)) within F_TOL; unmeasured unless a read's
+              floorOf stands above 0 (a ring at the curve's foot passes on a zero change), those reads the samples.
     RISE      hedonics.f after E1..E4 never falls, ends above 0, and each is the prerun's within PRED_F_TOL; the
               composed target moodLast.u after E4 at or over f.
     LAST      lastIntake after each eat: plain true, class fatty and allies 1 for butter; plain false, class fatty for
@@ -117,15 +125,18 @@ never as_predicted; every tolerance is named below, before any run):
               admin is on it again (the resume's gap, the touch less the last step, lies between). Unmeasured when
               launch - depart - SLACK_H is under GAP_MIN_H (an absence too short to tell a moved stamp from a frozen
               one), or when the ring's position plus the online bits ((a0 - s0) mod 1 + (depart - a0) + (a1 - back) +
-              SLACK_H) reaches an hour (an online rotation could fall in the gap).
+              SLACK_H) reaches an hour (an online rotation could fall in the gap), or when the ring before held no
+              floor (f 0) or no kcal (an unmoved empty ring passes on a zero change).
     RELEASE   after REL, f reads 0 (the share under the curve's foot), and moodLast.u fell by f's fall within
               U_FALL_TOL (the floor leaves the composed target at once).
     REPLAY_<f>  hedonics.f and moodLast.u on every ring row within REPLAY_TOL of the HEAD replay of the run's own
               inputs (the eats at the ring rows whose eats counter rose, each at its live item's calories, macros and
               hunger and its live fraction; the relog's rows offline).
   x503
-    PRE       (precondition) the server's HUNGER at each eat's before-read: at or under ALLIES_AT for R3S, over it for
-              R3H, R3C and I2.
+    PRE       (precondition) the server's HUNGER at each eat's before-read: at or under ALLIES_AT for R3S and I2C (the
+              sated arms, SATED_ARMS), over it for R3H, I2 and R3C. SATED, HUNGRY, RATIO, CANCEL and I2 each read
+              unmeasured when their own arm's before-read HUNGER is on the wrong side (a seed that did not hold is the
+              driver's, never the mod's).
     SATED     lastIntake.allies 1, and the UNHAPPINESS delta (corrected by the writer's fall of moodLast.u, if any) =
               u x f x k within D_TOL, u the read-time getUnhappyChange before, f the eaten fraction (1 - hung1 / hung0),
               k vanilla's utensil factor, 1 or 0.75 (the nearer; reported).
@@ -139,12 +150,21 @@ never as_predicted; every tolerance is named below, before any run):
     I2        the stale potato (the server's read-time value less its field = STALE_TERM) eaten Hungry: the client's
               stored field after is not the server's read-time value (the doubled state term an item-stats packet
               would write) and is the server's field after or the client's own field before, within TOL_FIELD;
-              unmeasured when the stale term is not read on the server.
-    COUNTS    the server's allies counter rose by the Hungry eats (3), restores by those whose item remained (3).
+              unmeasured when the stale term is not read on the server, and when the vanilla control I2C (the same
+              stale potato eaten sated: no alliesthesia, no restore) is unread or its client field after equals its
+              server read-time value after (vanilla's own eat path doubles the state term: not the mod's).
+    COUNTS    the server's allies counter rose by the Hungry eats (3), restores by those whose item remained (3);
+              the sated control I2C adds neither.
   x504
     CLASS_A   dish A (three Carrots, one BaconRashers): lastIntake.class savoury; the record's monotony @savoury count
               rose and @fatty did not. Falsifier: fatty (the class of the heaviest portion) or none.
-    CLASS_B   dish B (one Carrots, one BaconRashers): lastIntake.class fatty; @fatty rose.
+    CLASS_B   dish B (one Carrots, one BaconRashers): lastIntake.class fatty; @fatty rose. CLASS_A and CLASS_B read
+              unmeasured when the rising class count is unread after the eat.
+    DISH_EAT  each dish eaten whole after UNHAPPINESS is seeded at UNHAPPY_SEED: the delta (eat_delta) = u x f x k
+              within D_TOL, u the read-time getUnhappyChange before the eat (the dish's stored, scaled relief:
+              negative), k one of 1 and UTENSIL_GLAD for both dishes (a negative value with a utensil, #0048). B.5's
+              butter cooked into a dish, on the eat side: x501 grades the stored value at three Cooking levels, and the
+              eat does not depend on the level. Falsifier: no k fits (the eat reading an unscaled or moved value).
     IDLE, F, SMOKE, P99, MAX, STARVE, S  x391d's pre-registered Rule 6 grades (Plan 10c ruling 2) for the one LOAD arm
               against the session's IDLE arm: idle busy p99 <= IDLE_BUSY_P99_MAX and period p50 in IDLE_PERIOD_BAND;
               each arm >= MIN_FRAMES kept frames and >= MIN_MINUTE_FRAMES minute frames; the load and the queue on with
@@ -210,6 +230,7 @@ ALLIES_AT = 0.25                         # K.hungerCurve.THRESHOLDS[ALLIES_LEVEL
 CLASS_W = 0.1
 RING_N = 24
 UTENSIL_SAD = 0.75                       # vanilla's utensil factor on a positive unhappyChange x f (#0048)
+UTENSIL_GLAD = 1.25                      # and on a negative one (#0048; jar BodyDamage.JustAteFood @398-@406 L638-L640)
 UNHAPPY_HI = 59.0                        # the writer's UNHAPPINESS target ceiling (W.unhappyHi)
 
 # ---- the jar model of a Stir fry's UnhappyChange (EvolvedRecipe.addItem L398-L409, useSpice #4121)
@@ -298,7 +319,8 @@ H1_NIL_OK = ("hedonics.f", "hedonics.s", "hedonics.i", "hedonics.p.1", "hedonics
 ALLIES_EAT_F = 0.3                       # each butter eat three tenths of the stick: 6 sated (4.5 with a utensil)
 LARD = "Base.Lard"
 POTATO = "Base.Potato"
-POTATO_F = 0.5
+POTATO_F = 0.5                           # the potato's two eats, I2C then I2, a quarter of the whole each
+SATED_ARMS = ("R3S", "I2C")              # the arms eaten sated (HUNGER at or under ALLIES_AT)
 STALE_AGE_D = 30.0                       # Potato DaysFresh 28, DaysTotallyRotten 280: stale (food.txt)
 STALE_TERM = 10.0                        # stale adds 10 to the read-time UnhappyChange (#0042)
 HUNGRY_SEED = 0.32                       # between Hungry (0.25) and Very Hungry (0.45)
@@ -343,7 +365,16 @@ DEPART_CAP_S = 40.0
 REJOIN_CAP_S = 60.0
 QUIT_TIMEOUT_S = 30
 OFFLINE_HOLD_S = 30.0                    # wall held offline after the departure (the clock runs): 0.133 game h
-PAIR_SLACK_S = 1.0
+PAIR_SLACK_S = 10.0                      # a bracket of two equal server reads around the client read: six bus steps at
+                                         # the 0.25-2 s server latency of x491-x495; the field moves only at a driven
+                                         # add or rename. Ruling T7-1 (Plan 19 Task 7 fix 1): a pair of reads of a field
+                                         # that does not move between them (a dish's stored UnhappyChange, a stamp, an
+                                         # id) may span up to PAIR_SLACK_S wall seconds, provided the server reads
+                                         # bracket the client read with equal values (s0 = s1); CLAUDE.md s5's
+                                         # same-wall-second rule still binds every stat that moves (HUNGER, UNHAPPINESS,
+                                         # a floor's rise) -- why: that rule exists because stats rise between reads,
+                                         # and a static field cannot -- cost if wrong: a mid-pair write would go unseen,
+                                         # but the bracket catches it.
 TOL_FIELD = 1e-3                         # UnhappyChange is a Java float; every predicted value is exact in binary32
 TOL_STAMP = 1e-9
 F_TOL = 1e-4
@@ -487,11 +518,14 @@ def grade_scale(D, levels=(0, 10)):
 
 
 def grade_client(D, levels=LEVELS):
-    """CLIENT: every valid pair's client field and stamp equal the server's."""
+    """CLIENT: every valid pair's client field and stamp equal the server's (only the reads that hold a client read:
+    a dish's earlier adds are read on the server alone)."""
     used, bad, invalid = [], [], 0
     for lv in levels:
         for a in dish_adds(D, lv):
             r = a.get("read")
+            if not isinstance(r, dict) or "c" not in r:
+                continue
             if not pair_ok(r):
                 invalid += 1
                 continue
@@ -558,8 +592,13 @@ def grade_rename(D):
     s = prep_scale(10)
     obs = {"stamp_after_rename": st, "anchor_potato": anc, "d10_potato": v, "want": None if anc is None else anc * s,
            "d3_stamp_after_rename": stamp_of(g(rn, "after", "3"), "s0")}
-    if st is None and v is None:
+    read = g(rn, "after", "10", "s0", "resolved") is True        # D10 read after the rename (its stamp, or none)
+    if not read and st is None and v is None:
         return "unmeasured", dict(obs, why="no read after the rename"), 0
+    if not (add_row(rn, f"{LATE_ADD}@3").get("completed") and add_row(rn, f"{LATE_ADD}@10").get("completed")):
+        if read and (st is None or abs(st - s) > TOL_STAMP):     # the stamp half alone: off (or gone) when read
+            return "falsified", dict(obs, why="a Potato add did not complete; the stamp read off or gone"), 1
+        return "unmeasured", dict(obs, why="a Potato add did not complete"), 0
     ok = st is not None and abs(st - s) <= TOL_STAMP and anc is not None and v is not None and \
         abs(v - anc * s) <= TOL_FIELD
     return ("as_predicted" if ok else "falsified"), obs, 1
@@ -575,6 +614,8 @@ def grade_relog(D):
         b, a = before.get(lv), after.get(lv)
         if not pair_ok(b) or not pair_ok(a):
             continue
+        if lv != str(ANCHOR) and stamp_of(b, "s0") is None:      # no stamp before: the relog cannot show it kept
+            continue
         row = {"level": lv, "before": [field_of(b, "s0"), stamp_of(b, "s0")],
                "after": [field_of(a, "s0"), stamp_of(a, "s0")], "client_after": [field_of(a, "c"), stamp_of(a, "c")]}
         rows.append(row)
@@ -588,6 +629,10 @@ def grade_relog(D):
            "want": None if anc is None else anc * prep_scale(10)}
     if not rows:
         return "unmeasured", dict(obs, why="no valid pair before and after the relog"), 0
+    if not (add_row(rl, f"{RELOG_ADD}@3").get("completed") and add_row(rl, f"{RELOG_ADD}@10").get("completed")):
+        if bad:                                                   # the dish half alone: off when read
+            return "falsified", dict(obs, why="a Pepper add did not complete; a dish moved"), len(rows)
+        return "unmeasured", dict(obs, why="a Pepper add did not complete"), 0
     if anc is None or v is None or abs(v - anc * prep_scale(10)) > TOL_FIELD:
         bad.append({"pepper": [v, anc]})
     return ("falsified" if bad else "as_predicted"), obs, len(rows)
@@ -618,9 +663,10 @@ def grade_floor_of(reads):
         rows.append(row)
         if abs(row["f"] - row["want"]) > F_TOL:
             bad.append(row)
-    if not rows:
-        return "unmeasured", {"why": "no ring read"}, 0
-    return ("falsified" if bad else "as_predicted"), {"rows": rows, "off": bad}, len(rows)
+    n_up = sum(1 for r in rows if r["want"] > 0)
+    if not rows or n_up == 0:
+        return "unmeasured", {"why": "no ring read whose share stands above the curve's foot", "rows": rows}, 0
+    return ("falsified" if bad else "as_predicted"), {"rows": rows, "off": bad, "rows_up": n_up}, n_up
 
 
 def grade_rise(eats, pred_f):
@@ -670,6 +716,8 @@ def grade_offline(off):
            "u1": num(ra.get("moodLast.u"))}
     if not ring_ok(rb) or not ring_ok(ra) or None in (a0, a1, q, dep, lau, back, obs["s0"], obs["s1"]):
         return "unmeasured", dict(obs, why="a ring read or a relog age missing"), 0
+    if not obs["f0"] > 0 or sum(slots(rb)[1]) == 0:
+        return "unmeasured", dict(obs, why="no floor or no kcal in the ring before the relog: nothing to keep"), 0
     if lau - dep - SLACK_H < GAP_MIN_H:
         return "unmeasured", dict(obs, why="the absence too short to tell a moved stamp from a frozen one"), 0
     if (a0 - obs["s0"]) % 1.0 + (dep - a0) + (a1 - back) + SLACK_H >= 1.0:
@@ -677,7 +725,8 @@ def grade_offline(off):
     same_slots = slots(rb) == slots(ra) and obs["i0"] == obs["i1"]
     ds = obs["s1"] - obs["s0"]
     obs.update({"ds": ds, "band": [lau - dep - SLACK_H, back - q + SLACK_H], "same_slots": same_slots})
-    ok = same_slots and abs(obs["f1"] - obs["f0"]) <= F_TOL and obs["u0"] is not None and obs["u1"] is not None and         abs(obs["u1"] - obs["u0"]) <= U_GAP_TOL and obs["band"][0] <= ds <= obs["band"][1]
+    ok = (same_slots and abs(obs["f1"] - obs["f0"]) <= F_TOL and obs["u0"] is not None and obs["u1"] is not None
+          and abs(obs["u1"] - obs["u0"]) <= U_GAP_TOL and obs["band"][0] <= ds <= obs["band"][1])
     return ("as_predicted" if ok else "falsified"), obs, 1
 
 
@@ -751,13 +800,13 @@ def nearest_k(d, uf):
 
 
 def grade_pre(eats):
-    """PRE: HUNGER at each before-read: R3S at or under ALLIES_AT, the Hungry arms over it."""
+    """PRE: HUNGER at each before-read: R3S and I2C at or under ALLIES_AT, the Hungry arms over it."""
     rows, bad = [], []
     for e in eats:
         h = num(g(e, "stats0", "Hunger"))
-        if h is None:
+        if h is None or e.get("arm") is None:
             continue
-        hungry = e.get("arm") != "R3S"
+        hungry = e.get("arm") not in SATED_ARMS
         row = {"arm": e.get("arm"), "hunger": h, "hungry_wanted": hungry}
         rows.append(row)
         if (h > ALLIES_AT) != hungry:
@@ -774,12 +823,20 @@ def arm_eat(eats, arm):
     return {}
 
 
+def hungry_at(e):
+    """True when the arm's before-read HUNGER is over ALLIES_AT (Hungry), False at or under it, None unread."""
+    h = num(g(e, "stats0", "Hunger"))
+    return None if h is None else h > ALLIES_AT
+
+
 def grade_sated(eats):
     e = arm_eat(eats, "R3S")
     d, uf = eat_delta(e)
     k = nearest_k(d, uf)
     allies = num(g(e, "rec1", "lastIntake.allies"))
     obs = {"delta": d, "uf": uf, "k": k, "allies": allies, "frac": e.get("frac")}
+    if hungry_at(e) is not False:
+        return "unmeasured", dict(obs, why="the arm was not sated at its before-read"), 0
     if not e.get("landed") or d is None or uf is None or not uf > 0:
         return "unmeasured", obs, 0
     ok = allies == 1 and abs(d - uf * k) <= D_TOL
@@ -792,6 +849,8 @@ def grade_hungry(eats, arm="R3H"):
     ks = nearest_k(*eat_delta(s))
     allies = num(g(e, "rec1", "lastIntake.allies"))
     obs = {"delta": d, "uf": uf, "k_sated": ks, "allies": allies, "frac": e.get("frac")}
+    if hungry_at(e) is not True:
+        return "unmeasured", dict(obs, why="the arm was not Hungry at its before-read"), 0
     if not e.get("landed") or d is None or uf is None or not uf > 0:
         return "unmeasured", obs, 0
     cands = (ks,) if ks is not None else (1.0, UTENSIL_SAD)
@@ -804,6 +863,8 @@ def grade_ratio(eats):
     ds, ufs = eat_delta(arm_eat(eats, "R3S"))
     dh, ufh = eat_delta(arm_eat(eats, "R3H"))
     obs = {"sated": [ds, ufs], "hungry": [dh, ufh]}
+    if hungry_at(arm_eat(eats, "R3S")) is not False or hungry_at(arm_eat(eats, "R3H")) is not True:
+        return "unmeasured", dict(obs, why="an arm on the wrong side of Hungry at its before-read"), 0
     if None in (ds, ufs, dh, ufh) or not ufs > 0 or not ufh > 0 or not ds > 0:
         return "unmeasured", obs, 0
     r = (dh / ufh) / (ds / ufs)
@@ -841,9 +902,22 @@ def grade_cancel(eats):
     return v, obs, n
 
 
+def control_doubles(eats):
+    """The vanilla control I2C (the same stale potato eaten sated: no alliesthesia, no restore): True when its client
+    field after equals its server read-time value after within TOL_FIELD (vanilla's own eat path doubles the state
+    term), False when not, None when the control is unread."""
+    c = arm_eat(eats, "I2C")
+    c_f1 = num(g(c, "citem1", "fields", "getUnhappyChangeUnmodified"))
+    s_rt1 = num(g(c, "item1", "fields", "getUnhappyChange"))
+    if not c.get("landed") or None in (c_f1, s_rt1):
+        return None
+    return abs(c_f1 - s_rt1) <= TOL_FIELD
+
+
 def grade_i2(eats):
     """I2: the stale potato eaten Hungry: the client's stored field after is not the server's read-time value, and is
-    the server's field after or the client's own before."""
+    the server's field after or the client's own before. Unmeasured when the vanilla control I2C doubles too (or is
+    unread): a doubled field is then vanilla's, not the mod's."""
     e = arm_eat(eats, "I2")
     s_f1 = num(g(e, "item1", "fields", "getUnhappyChangeUnmodified"))
     s_rt1 = num(g(e, "item1", "fields", "getUnhappyChange"))
@@ -851,7 +925,15 @@ def grade_i2(eats):
     s_rt0 = num(g(e, "item0", "fields", "getUnhappyChange"))
     c_f0 = num(g(e, "citem0", "fields", "getUnhappyChangeUnmodified"))
     c_f1 = num(g(e, "citem1", "fields", "getUnhappyChangeUnmodified"))
-    obs = {"server_field": [s_f0, s_f1], "server_readtime": [s_rt0, s_rt1], "client_field": [c_f0, c_f1]}
+    doubled_c = control_doubles(eats)
+    obs = {"server_field": [s_f0, s_f1], "server_readtime": [s_rt0, s_rt1], "client_field": [c_f0, c_f1],
+           "doubled_c": doubled_c}
+    if hungry_at(e) is not True:
+        return "unmeasured", dict(obs, why="the arm was not Hungry at its before-read"), 0
+    if doubled_c is None:
+        return "unmeasured", dict(obs, why="the vanilla control I2C unread"), 0
+    if doubled_c:
+        return "unmeasured", dict(obs, why="vanilla's eat path doubles the state term (I2C)"), 0
     if not e.get("landed") or None in (s_f0, s_rt0, s_f1, s_rt1, c_f1):
         return "unmeasured", dict(obs, why="an item read missing"), 0
     if abs((s_rt0 - s_f0) - STALE_TERM) > TOL_FIELD:
@@ -867,7 +949,7 @@ def grade_counts_503(D):
     d = {k: (num(s1.get(key + k)) - num(s0.get(key + k))) if None not in (num(s1.get(key + k)), num(s0.get(key + k)))
          else None for k in ("allies", "restores", "alliesFailures")}
     eats = D.get("eats") or []
-    hungry = [e for e in eats if e.get("landed") and e.get("arm") != "R3S"]
+    hungry = [e for e in eats if e.get("landed") and e.get("arm") not in SATED_ARMS]
     remain = [e for e in hungry if g(e, "item1", "resolved") not in (False, None)]
     want = {"allies": len(hungry), "restores": len(remain), "alliesFailures": 0}
     obs = {"delta": d, "want": want}
@@ -884,12 +966,33 @@ def grade_class(D, label, want, rose, flat=()):
     n0 = {k: num(r0.get(k)) or 0.0 for k in CLASS_KEYS[:4]}
     n1 = {k: num(r1.get(k)) or 0.0 for k in CLASS_KEYS[:4]}
     obs = {"class": cls, "n0": n0, "n1": n1, "landed": g(P, "eat", "landed")}
+    key = f"monotony.t.[@{rose}].n"
     if not g(P, "eat", "landed") or "lastIntake.class" not in r1 and cls is None:
         return "unmeasured", obs, 0
-    key = f"monotony.t.[@{rose}].n"
+    if num(r1.get(key)) is None:
+        return "unmeasured", dict(obs, why=f"{key} unread after the eat"), 0
     ok = cls == want and n1[key] > n0[key] and all(n1[f"monotony.t.[@{k}].n"] <= n0[f"monotony.t.[@{k}].n"] + 1e-9
                                                    for k in flat)
     return ("as_predicted" if ok else "falsified"), obs, 1
+
+
+def grade_dish_eat(D, labels=("A", "B")):
+    """DISH_EAT: each dish eaten (UNHAPPINESS seeded at UNHAPPY_SEED first): the UNHAPPINESS delta (eat_delta) = u x f
+    x k within D_TOL, u the read-time getUnhappyChange before the eat (negative: the dish's scaled relief), f the eaten
+    fraction, k one of 1 and UTENSIL_GLAD (the same for every dish: a negative value eaten with a utensil is x1.25,
+    #0048). Falsifier: the eat reading an unscaled or otherwise moved value (no k fits)."""
+    rows = []
+    for lb in labels:
+        e = g(D, lb, "eat") or {}
+        d, uf = eat_delta(e)
+        if not e.get("landed") or d is None or uf is None or not uf < 0:
+            continue
+        rows.append({"dish": lb, "delta": d, "uf": uf, "frac": e.get("frac")})
+    if not rows:
+        return "unmeasured", {"why": "no dish eat with a negative u read"}, 0
+    fits = [k for k in (1.0, UTENSIL_GLAD) if all(abs(r["delta"] - r["uf"] * k) <= D_TOL for r in rows)]
+    obs = {"rows": rows, "k": fits[0] if fits else None}
+    return ("as_predicted" if fits else "falsified"), obs, len(rows)
 
 
 def pct(xs, p):
@@ -1300,9 +1403,9 @@ class Sess(G.Sess):
 class Prep(Sess):
     """x501: preparation quality (R2)."""
 
-    def add(self, P, label, level, base_ref, ingredient, first=False):
+    def add(self, P, label, level, base_ref, ingredient, first=False, pair=True):
         """recipe.add Stir_fry <base> <ingredient>; polled on the server's cooks counter (and, first, on the new dish's
-        id in the client's inventory); then the pair read. Returns the add row."""
+        id in the client's inventory); then the pair read (the server alone when not `pair`). Returns the add row."""
         a = {"add": f"{ingredient}@{level}", "ingredient": ingredient, "level": level, "base": base_ref,
              "completed": False}
         P.setdefault("adds", []).append(a)
@@ -1334,8 +1437,11 @@ class Prep(Sess):
                 return a
             ref = f"#{int(num(p['last'][0]))}"
             P["ref"] = ref
-        self.xs.sleep(SYNC_WAIT_S)
-        a["read"] = self.dish_read(label + "_r", ref)
+        if pair:                                       # the client's copy: wait for the seat's syncs first
+            self.xs.sleep(SYNC_WAIT_S)
+            a["read"] = self.dish_read(label + "_r", ref)
+        else:                                          # the server's: the seat writes it in the complete call
+            a["read"] = {"s0": self.item_read(label + "_r_s0", SRV, ref)}    # whose cooks counter was polled
         return a
 
     def dish(self, level):
@@ -1344,11 +1450,20 @@ class Prep(Sess):
         self.perk(f"{name}_perk", level)
         base = PAN
         for k, ing in enumerate(DISH_ADDS):
-            a = self.add(P, f"{name}_{k}", level, base, ing, first=(k == 0))
+            a = self.add(P, f"{name}_{k}", level, base, ing, first=(k == 0), pair=(k == len(DISH_ADDS) - 1))
             if not a.get("completed") or P.get("ref") is None:
                 self.xs.note(f"{name}: the dish stopped at add {k}")
                 return
+            if k == 0 and level == ANCHOR:
+                self.ids_guard(P)
             base = P["ref"]
+
+    def ids_guard(self, P):
+        """After D3's first add D3 is the only dish: the server's item.get of it against the client's id (concern 3: a
+        mismatch explains a run of unresolved server reads)."""
+        got = self.k("D3_srvid", SRV, "item.get", f"{USER} {DISH}")
+        sid, cid = num(got.get("id")), num(str(P.get("ref") or "")[1:] or None)
+        P["server_id"], P["ids_agree"] = sid, (sid is not None and sid == cid)
 
     def phase_I(self):
         self.spawn_all(SPAWNS_501)
@@ -1368,7 +1483,7 @@ class Prep(Sess):
             if ref is None:
                 continue
             self.perk(f"{label}_perk{lv}", lv)
-            self.add(P, f"{label}_{lv}", lv, ref, ingredient)
+            self.add(P, f"{label}_{lv}", lv, ref, ingredient, pair=False)     # RENAME and RELOG read the server
 
     def phase_RN(self):
         P = self.D["RN"] = {"renames": {}, "after": {}, "adds": []}
@@ -1596,13 +1711,14 @@ class Allies(Sess):
         P["write"] = self.wait_write(tag + "_w")
         return P
 
-    def arm(self, name, full, frac, hungry, cancel_after=None, client_item=False, pre=None):
+    def arm(self, name, full, frac, hungry, cancel_after=None, client_item=False, pre=None, unhappy=True):
         P = self.D[name] = {}
         if pre is not None:
             P["pre"] = pre()
         if hungry:
             P["seed"] = self.seed_hungry(name + "_hseed")
-        P["unhappy"] = self.seed_unhappy(name + "_useed")
+        if unhappy:
+            P["unhappy"] = self.seed_unhappy(name + "_useed")
         P["eat"] = self.eat(name, full, frac, arm=name, rec_paths=self.REC, client_item=client_item,
                             cancel_after=cancel_after)
 
@@ -1615,18 +1731,23 @@ class Allies(Sess):
     def phase_R3C(self):
         self.arm("R3C", LARD, 1, hungry=True, cancel_after=CANCEL_FRAC)
 
-    def phase_I2(self):
+    def phase_I2C(self):
+        """The vanilla control: the potato aged stale, a quarter eaten sated, with no seed (no alliesthesia, no
+        restore): its client field after is vanilla's own."""
         def pre():
-            return self.k("I2_age", SRV, "item.set", f"{USER} {POTATO} age {STALE_AGE_D}")
-        self.arm("I2", POTATO, POTATO_F, hungry=True, client_item=True, pre=pre)
+            return self.k("I2C_age", SRV, "item.set", f"{USER} {POTATO} age {STALE_AGE_D}")
+        self.arm("I2C", POTATO, POTATO_F / 2, hungry=False, client_item=True, pre=pre, unhappy=False)
+
+    def phase_I2(self):
+        self.arm("I2", POTATO, POTATO_F / 2, hungry=True, client_item=True)
 
     def phase_C(self):
         self.common_C()
 
     def phases(self):
         return [("S", self.common_S), ("H", self.phase_H), ("I", self.phase_I), ("R3S", self.phase_R3S),
-                ("R3H", self.phase_R3H), ("I2", self.phase_I2), ("R3C", self.phase_R3C), ("C", self.phase_C),
-                ("R", self.phase_R)]
+                ("I2C", self.phase_I2C), ("R3H", self.phase_R3H), ("I2", self.phase_I2), ("R3C", self.phase_R3C),
+                ("C", self.phase_C), ("R", self.phase_R)]
 
     def grade_all(self):
         D = self.D
@@ -1638,7 +1759,8 @@ class Allies(Sess):
         self.grade_set("RATIO", grade_ratio(self.eats), "the Hungry over the sated delta per unit off 0.6")
         self.grade_set("REMAINDER", grade_remainder(self.eats), "a remainder's field off the field x hung1 / hung0")
         self.grade_set("CANCEL", grade_cancel(self.eats), "a cancelled Hungry part not scaled, or allies off")
-        self.grade_set("I2", grade_i2(self.eats), "the client's field carrying the server's read-time value")
+        self.grade_set("I2", grade_i2(self.eats), "the client's field carrying the server's read-time value, where "
+                       "the vanilla control I2C does not")
         self.grade_set("COUNTS", grade_counts_503(D), "the allies or restores counter off the Hungry eats")
         self.grade_common()
         self.out["verdict_summary"] = {k: v.get("verdict") for k, v in self.out["verdicts"].items()}
@@ -1658,13 +1780,14 @@ class Taste(Sess):
         P = self.D[label] = {"adds": []}
         base = PAN
         for k, ing in enumerate(adds):
-            a = Prep.add(self, P, f"{label}_{k}", None, base, ing, first=(k == 0))
+            a = Prep.add(self, P, f"{label}_{k}", None, base, ing, first=(k == 0), pair=False)
             if not a.get("completed") or P.get("ref") is None:
                 self.xs.note(f"{label}: the dish stopped at add {k}")
                 return P
             base = P["ref"]
         P["rec0"] = self.rec(label + "_rec0", CLASS_KEYS, log=True)
-        P["eat"] = self.eat(label + "_eat", DISH, 1)
+        P["unhappy"] = self.k(label + "_useed", SRV, "stats.setany", f"{USER} UNHAPPINESS {UNHAPPY_SEED}")
+        P["eat"] = self.eat(label + "_eat", DISH, 1, arm=label, rec_paths=("moodLast.u",))
         if P["eat"].get("landed"):
             P["write"] = self.wait_write(label + "_write")
         P["rec1"] = self.rec(label + "_rec1", CLASS_KEYS, log=True)
@@ -1742,6 +1865,8 @@ class Taste(Sess):
         self.grade_set("CLASS_A", grade_class(D, "A", "savoury", "savoury", flat=("fatty",)),
                        "dish A read fatty (the heaviest portion's class) or no class, or @savoury not rising")
         self.grade_set("CLASS_B", grade_class(D, "B", "fatty", "fatty"), "dish B not fatty, or @fatty not rising")
+        self.grade_set("DISH_EAT", grade_dish_eat(D), "a dish eat's UNHAPPINESS delta off u x f x k for k in 1, 1.25 "
+                       "(the eat not reading the dish's stored, scaled value)")
         idle, load = g(D, "IDLE", "summary"), g(D, "LOAD", "summary")
         res = grade_rule6(idle or {}, load or {}, g(D, "LOAD", "stats"), g(D, "LOAD", "load_reply"),
                           g(D, "LOAD", "modq_on"))
