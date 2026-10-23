@@ -103,11 +103,18 @@ def test_the_profile_passes_its_checks():
 @pytest.mark.parametrize("key", sorted(L.SESSIONS))
 def test_preboot_on_the_repository_and_its_refusals(key):
     pre, ok = L.preboot(key, DRIVERS[key])
-    if pre.get("no_prior_artifact") is False:
-        pytest.skip("the session's artifact is committed: preboot refuses it by design")
     if not os.path.isfile(os.path.join(REPO, L48.FIXTURE_PLAYERS_DB)):
         pytest.skip("the default fixture cache is not provisioned on this machine")
-    assert ok, {k: v for k, v in pre.items() if v is not True}
+    if pre.get("no_prior_artifact") is False:
+        # once the session has run, its artifact folder makes preboot refuse (the gate working); every other check of
+        # the gate still holds on the live tree (0baf815a's precedent: the gate stays proved after the runs)
+        assert ok is False
+        nested = ("profile_checks", "harness_found", "fixture", "prerun")
+        rest = {k: v for k, v in pre.items() if k not in nested and k != "no_prior_artifact"}
+        assert all(v is True for v in rest.values()), rest
+        assert all(v is True for k, v in pre["profile_checks"].items() if k != "error"), pre["profile_checks"]
+    else:
+        assert ok, {k: v for k, v in pre.items() if v is not True}
     other = sorted(k for k in L.SESSIONS if k != key)[0]
     assert L.preboot(key, DRIVERS[other])[1] is False                     # a driver naming another session
     stale = L.preboot(key, DRIVERS[key], compute=lambda keys: {key: {"x": 1}})
