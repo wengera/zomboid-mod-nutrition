@@ -1158,6 +1158,8 @@ class FoodMood(_Base):
         # the bands said in words: a quarter and three quarters of the first Unhappy step
         step = float(K.monotony.UNHAPPY_AT[1])          # vanilla's UNHAPPY level-1 step (#2369)
         self.assertEqual(step, 20.0)
+        import hedonics_budget as HB
+        self.assertEqual(float(HB.BG_U), step)           # the sizing arm's background is that first step
         self.assertEqual(float(K.hedonics.BUDGET_FAIR), step / 4)
         self.assertEqual(float(K.hedonics.BUDGET_DEGEN), step * 3 / 4)
         # "at least about half a resting day's food"

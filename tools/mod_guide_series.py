@@ -3553,7 +3553,7 @@ def s_sm4():
     HB, K = fm["HB"], fm["o"].K
     cat = ["Cooking %d" % lv for lv in FM_LEVELS]
     note = ("The budget oracle's sizing arm: the cooked diet with both sides standing at %s and moving %s mood points "
-            "a game hour toward it, so a dish's comfort is not spent at the stat's floor of 0. "
+            "a game hour toward it (a game choice of the oracle, on both sides), so a dish's comfort is not spent at the stat's floor of 0. "
             % (HB.BG_U, HB.BG_UPKEEP_H))
     return [
         series("SM4-m-scale", "Nutrition Revamp, from the mod's code", "the cook's Cooking level",

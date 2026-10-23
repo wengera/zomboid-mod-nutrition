@@ -69157,7 +69157,7 @@
    "chart": "SM4",
    "id": "SM4-m-kernel",
    "label": "Nutrition Revamp, simulated",
-   "note": "The budget oracle's sizing arm: the cooked diet with both sides standing at 20.0 and moving 2.0 mood points a game hour toward it, so a dish's comfort is not spent at the stat's floor of 0. Live proof of each rule on this build's hedonics: x501 the cook's scale, x502 the plain-energy floor and its release, x503 the hunger scale, x504 the taste class (Plan 19 Task 7).",
+   "note": "The budget oracle's sizing arm: the cooked diet with both sides standing at 20.0 and moving 2.0 mood points a game hour toward it (a game choice of the oracle, on both sides), so a dish's comfort is not spent at the stat's floor of 0. Live proof of each rule on this build's hedonics: x501 the cook's scale, x502 the plain-energy floor and its release, x503 the hunger scale, x504 the taste class (Plan 19 Task 7).",
    "points": [
     [
      "Cooking 0",
@@ -69238,7 +69238,7 @@
    "chart": "SM4",
    "id": "SM4-v-model",
    "label": "Vanilla, from the game's code",
-   "note": "The budget oracle's sizing arm: the cooked diet with both sides standing at 20.0 and moving 2.0 mood points a game hour toward it, so a dish's comfort is not spent at the stat's floor of 0. VM17 over the oracle's own eats, equal to the oracle's vanilla side.",
+   "note": "The budget oracle's sizing arm: the cooked diet with both sides standing at 20.0 and moving 2.0 mood points a game hour toward it (a game choice of the oracle, on both sides), so a dish's comfort is not spent at the stat's floor of 0. VM17 over the oracle's own eats, equal to the oracle's vanilla side.",
    "points": [
     [
      "Cooking 0",
