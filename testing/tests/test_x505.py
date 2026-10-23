@@ -168,6 +168,9 @@ def test_grade_control():
     eats = x503_like()
     eats[0]["sitem1b"]["wall"] = eats[0]["sitem1b"]["wall_after"] = 100.0 + D.PAIR_SLACK_S + 1
     assert D.grade_control(eats)[0] == "unmeasured"                                # the bracket too wide
+    # an eat that never landed: item and client unchanged (field 5, read-time 15, client 15 from item.set's sync)
+    eats = [eat(D.CONTROL, 0.002, 5.0, 15.0, -0.18, 5.0, 15.0, -0.18, 15.0, 15.0, landed=False)] + x503_like()[1:]
+    assert D.grade_control(eats)[0] == "unmeasured" and D.grade_t72(eats)[0] == "unmeasured"
     assert D.grade_control([])[0] == "unmeasured"
 
 
@@ -200,10 +203,16 @@ def test_grade_t72_unmeasured_cases():
     assert D.grade_t72(x503_like(c_resolved=False))[0] == "unmeasured"
     assert D.grade_t72(x503_like(sb=(2.5, 12.0, -0.09)))[0] == "unmeasured"      # the bracket moved
     assert D.grade_t72(x503_like(sb_wall=100.0 + D.PAIR_SLACK_S + 1))[0] == "unmeasured"
-    # a fresh potato (no stale term) where the lowered and read-time values coincide cannot tell the sync apart
+    # nothing lowered (allies 1): the allies gate
     eats = [eat(D.CONTROL, 0.002, 5.0, 5.0, -0.18, 3.75, 3.75, -0.135, 5.0, 3.75),
             eat(D.ARM, 0.32, 3.75, 3.75, -0.135, 2.5, 2.5, -0.09, 3.75, 2.5, allies=1.0)]
     assert D.grade_t72(eats)[0] == "unmeasured"
+    # lowered (allies 0.6) but the read-time value so small that the lowered and restored values agree within
+    # TOL_FIELD (0.4 x rt0 x hung1/hung0 = 0.0004): the arm cannot tell the sync apart
+    eats = [eat(D.CONTROL, 0.002, 0.002, 0.002, -0.18, 0.0015, 0.0015, -0.135, 0.002, 0.0015),
+            eat(D.ARM, 0.32, 0.0015, 0.0015, -0.135, 0.001, 0.001, -0.09, 0.0015, 0.001, allies=0.6)]
+    v, obs, _ = D.grade_t72(eats)
+    assert v == "unmeasured" and "cannot tell" in obs["why"]
 
 
 def test_lowered_client_is_distinct_from_the_read_time_value_at_x503s_numbers():
