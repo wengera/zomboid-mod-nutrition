@@ -218,19 +218,29 @@ def test_rename_and_relog():
     rn = {"after": {"10": pair(-37.5, 1.5), "3": pair(-25.0, 1.0)},
           "adds": [{"add": f"{L.LATE_ADD}@3", "completed": True, "read": pair(-30.0, 1.0)},
                    {"add": f"{L.LATE_ADD}@10", "completed": True, "read": pair(-45.0, 1.5)}]}
-    assert L.grade_rename({"RN": rn})[0] == "as_predicted"
+    d10 = {"adds": [{"add": k, "completed": True, "read": pair(-37.5, 1.5)} for k in range(len(L.DISH_ADDS))]}
+    assert L.grade_rename({"RN": rn, "D10": d10})[0] == "as_predicted"
     wiped = copy.deepcopy(rn)
     wiped["after"]["10"] = pair(-37.5, None)
     wiped["adds"][1]["read"] = pair(-63.75, 1.5)
-    assert L.grade_rename({"RN": wiped})[0] == "falsified"
-    assert L.grade_rename({"RN": {}})[0] == "unmeasured"
+    assert L.grade_rename({"RN": wiped, "D10": d10})[0] == "falsified"
+    assert L.grade_rename({"RN": {}, "D10": d10})[0] == "unmeasured"
+    nostamp = copy.deepcopy(d10)                                           # D10 never stamped: SCALE's, not the rename's
+    nostamp["adds"][-1]["read"] = pair(-37.5, None)
+    assert L.grade_rename({"RN": rn, "D10": nostamp})[0] == "unmeasured"
+    assert L.grade_rename({"RN": rn})[0] == "unmeasured"                  # no D10 adds read at all
+    unres = copy.deepcopy(rn)                                              # adds complete, the after-read unresolved
+    unres["after"]["10"]["s0"]["resolved"] = False
+    assert L.grade_rename({"RN": unres, "D10": d10})[0] == "as_predicted"  # the Potato value alone carries it
+    unres["adds"][1]["read"] = pair(-63.75, 1.5)                          # compounded
+    assert L.grade_rename({"RN": unres, "D10": d10})[0] == "falsified"
     late = copy.deepcopy(rn)
     late["adds"][1] = {"add": f"{L.LATE_ADD}@10", "completed": False}  # the Potato add never completed
-    assert L.grade_rename({"RN": late})[0] == "unmeasured"
+    assert L.grade_rename({"RN": late, "D10": d10})[0] == "unmeasured"
     late["after"]["10"] = pair(-37.5, None)                               # but the stamp read gone: the stamp half
-    assert L.grade_rename({"RN": late})[0] == "falsified"
+    assert L.grade_rename({"RN": late, "D10": d10})[0] == "falsified"
     late["after"]["10"]["s0"]["resolved"] = False                         # the dish itself unread: no stamp half
-    assert L.grade_rename({"RN": late})[0] == "unmeasured"
+    assert L.grade_rename({"RN": late, "D10": d10})[0] == "unmeasured"
     rl = {"before": {str(lv): pair(-25.0 * L.prep_scale(lv), L.prep_scale(lv)) for lv in L.LEVELS},
           "after": {str(lv): pair(-25.0 * L.prep_scale(lv), L.prep_scale(lv)) for lv in L.LEVELS},
           "adds": [{"add": f"{L.RELOG_ADD}@3", "completed": True, "read": pair(-32.0, 1.0)},
@@ -490,8 +500,9 @@ def test_class():
     assert L.grade_class({"A": unread}, "A", "savoury", "savoury", flat=("fatty",))[0] == "unmeasured"
 
 
-def dish_eat(u, d, landed=True):
-    return {"eat": {"landed": landed, "frac": 1.0, "stats0": {"Unhappiness": 60.0},
+def dish_eat(u, d, landed=True, level=L.DISH_EAT_LEVEL):
+    return {"perk": {"level": L.DISH_EAT_LEVEL, "reply": {"after": level}},
+            "eat": {"landed": landed, "frac": 1.0, "stats0": {"Unhappiness": 60.0},
                     "stats1": {"Unhappiness": 60.0 + d}, "rec0": {"moodLast.u": 0.0}, "rec1": {"moodLast.u": 0.0},
                     "item0": {"fields": {"getUnhappyChange": u}}}}
 
@@ -507,6 +518,14 @@ def test_dish_eat():
     assert L.grade_dish_eat(mixed)[0] == "falsified"                       # one k for both dishes
     assert L.grade_dish_eat({"A": dish_eat(0.0, 0.0), "B": dish_eat(-9.3, -9.3, landed=False)})[0] == "unmeasured"
     assert L.grade_dish_eat({})[0] == "unmeasured"
+    # at Cooking 10 (scale 1.5) neither unscaled variant fits a scaled candidate
+    for k in (1.0, 1.25):
+        un = {"A": dish_eat(-7.5, -5.0 * k), "B": dish_eat(-15.0, -10.0 * k)}
+        assert L.grade_dish_eat(un)[0] == "falsified"
+    held = {"A": dish_eat(-7.5, -7.5), "B": dish_eat(-15.0, -15.0)}
+    assert L.grade_dish_eat(held)[0] == "as_predicted"
+    lost = {"A": dish_eat(-7.5, -7.5, level=3), "B": dish_eat(-15.0, -15.0, level=3)}   # Cooking did not hold
+    assert L.grade_dish_eat(lost)[0] == "unmeasured"
 
 
 def ring_doc(n=600, busy=2.0, end=100.0, minute_add=0.0, t0=1000):

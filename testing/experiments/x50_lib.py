@@ -77,7 +77,7 @@ THE SESSIONS (the arms in order; every add and eat at speed 1):
         validStart and FOOD_EATEN level are kept: a refused eat lands nothing and its grades read unmeasured); each eat
         read before and after: UNHAPPINESS, HUNGER and moodLast.u on the server, the item's fields on the server,
         lastIntake; I2C and I2 also the item on the client before and after. C, R.
-  x504  S, H; I spawns; A (Cooking left at the fixture's level, never set) Pan + Carrots x3 + BaconRashers (each add
+  x504  S, H; I spawns; A (Cooking set to DISH_EAT_LEVEL 10 first; restored at C from S's read) Pan + Carrots x3 + BaconRashers (each add
         read on the server alone), UNHAPPINESS seeded at UNHAPPY_SEED, eaten whole; B Pan + Carrots + BaconRashers, the
         same; each eat's lastIntake, UNHAPPINESS, moodLast.u, the dish's fields and the monotony class keys read;
         IDLE the frame timer (perf.local and tick.ring) over ARM_WALL_S with no load; LOAD ghost.load 60 mod feed and
@@ -163,8 +163,9 @@ never as_predicted; every tolerance is named below, before any run):
     DISH_EAT  each dish eaten whole after UNHAPPINESS is seeded at UNHAPPY_SEED: the delta (eat_delta) = u x f x k
               within D_TOL, u the read-time getUnhappyChange before the eat (the dish's stored, scaled relief:
               negative), k one of 1 and UTENSIL_GLAD for both dishes (a negative value with a utensil, #0048). B.5's
-              butter cooked into a dish, on the eat side: x501 grades the stored value at three Cooking levels, and the
-              eat does not depend on the level. Falsifier: no k fits (the eat reading an unscaled or moved value).
+              butter cooked into a dish, on the eat side: x501 grades the stored value at three Cooking levels; the
+              dishes are made at DISH_EAT_LEVEL 10 (scale 1.5), where the unscaled deltas fit no k, and a dish whose
+              Cooking did not hold reads unmeasured. Falsifier: no k fits (the eat reading an unscaled or moved value).
     IDLE, F, SMOKE, P99, MAX, STARVE, S  x391d's pre-registered Rule 6 grades (Plan 10c ruling 2) for the one LOAD arm
               against the session's IDLE arm: idle busy p99 <= IDLE_BUSY_P99_MAX and period p50 in IDLE_PERIOD_BAND;
               each arm >= MIN_FRAMES kept frames and >= MIN_MINUTE_FRAMES minute frames; the load and the queue on with
@@ -364,6 +365,8 @@ WRITE_CAP_S = 9.0                        # one writer minute at speed 1 (3.75 wa
 DEPART_CAP_S = 40.0
 REJOIN_CAP_S = 60.0
 QUIT_TIMEOUT_S = 30
+RELOG_HOLD_S = 5.0   # x501's relog: RELOG reads no clock across the gap, and the depart poll already saw admin leave
+DISH_EAT_LEVEL = 10   # x504's dishes made at Cooking 10 (prepScale 1.5): at 0 (0.8 = 1/UTENSIL_GLAD) an unscaled eat without a utensil reads as a scaled one with it, at 3 (scale 1) the two are one value
 OFFLINE_HOLD_S = 30.0                    # wall held offline after the departure (the clock runs): 0.133 game h
 PAIR_SLACK_S = 10.0                      # a bracket of two equal server reads around the client read: six bus steps at
                                          # the 0.25-2 s server latency of x491-x495; the field moves only at a driven
@@ -593,14 +596,18 @@ def grade_rename(D):
     obs = {"stamp_after_rename": st, "anchor_potato": anc, "d10_potato": v, "want": None if anc is None else anc * s,
            "d3_stamp_after_rename": stamp_of(g(rn, "after", "3"), "s0")}
     read = g(rn, "after", "10", "s0", "resolved") is True        # D10 read after the rename (its stamp, or none)
+    d10 = dish_adds(D, 10)
+    pre = stamp_of(d10[len(DISH_ADDS) - 1].get("read"), "s0") if len(d10) >= len(DISH_ADDS) else None
+    if pre is None:
+        return "unmeasured", dict(obs, why="D10 carried no stamp before the rename (SCALE's reading, not the rename's)"), 0
     if not read and st is None and v is None:
         return "unmeasured", dict(obs, why="no read after the rename"), 0
     if not (add_row(rn, f"{LATE_ADD}@3").get("completed") and add_row(rn, f"{LATE_ADD}@10").get("completed")):
         if read and (st is None or abs(st - s) > TOL_STAMP):     # the stamp half alone: off (or gone) when read
             return "falsified", dict(obs, why="a Potato add did not complete; the stamp read off or gone"), 1
         return "unmeasured", dict(obs, why="a Potato add did not complete"), 0
-    ok = st is not None and abs(st - s) <= TOL_STAMP and anc is not None and v is not None and \
-        abs(v - anc * s) <= TOL_FIELD
+    ok = anc is not None and v is not None and abs(v - anc * s) <= TOL_FIELD and \
+        (not read or (st is not None and abs(st - s) <= TOL_STAMP))
     return ("as_predicted" if ok else "falsified"), obs, 1
 
 
@@ -980,9 +987,12 @@ def grade_dish_eat(D, labels=("A", "B")):
     """DISH_EAT: each dish eaten (UNHAPPINESS seeded at UNHAPPY_SEED first): the UNHAPPINESS delta (eat_delta) = u x f
     x k within D_TOL, u the read-time getUnhappyChange before the eat (negative: the dish's scaled relief), f the eaten
     fraction, k one of 1 and UTENSIL_GLAD (the same for every dish: a negative value eaten with a utensil is x1.25,
-    #0048). Falsifier: the eat reading an unscaled or otherwise moved value (no k fits)."""
+    #0048); the dishes are made at DISH_EAT_LEVEL, a dish whose Cooking did not hold reads unmeasured.
+    Falsifier: the eat reading an unscaled or otherwise moved value (no k fits)."""
     rows = []
     for lb in labels:
+        if num(g(D, lb, "perk", "reply", "after")) != DISH_EAT_LEVEL:     # the Cooking level did not hold: unmeasured
+            continue
         e = g(D, lb, "eat") or {}
         d, uf = eat_delta(e)
         if not e.get("landed") or d is None or uf is None or not uf < 0:
@@ -1293,6 +1303,10 @@ class Sess(G.Sess):
         P["health"] = self.health("S_health")
         return P
 
+    def restore_cooking(self):
+        lv = num(g(self.D, "S", "cooking", "level"))
+        self.D["cooking_restore"] = self.perk("C_perk", int(lv)) if lv is not None else {"skipped": "unread at S"}
+
     def common_C(self):
         P = self.D["C"] = {}
         P["hstats"] = self.hstats("C_hstats")
@@ -1307,7 +1321,7 @@ class Sess(G.Sess):
         return ("C", "R")
 
     # -- the relog (x49_lib's)
-    def relog(self, label):
+    def relog(self, label, hold_s=OFFLINE_HOLD_S):
         P = {"quit_age": self.age(label + "_quit_a")}
         c = self.xs.clients.get(USER)
         q = {"wall0": self.xs.wall()}
@@ -1328,7 +1342,7 @@ class Sess(G.Sess):
         if not P["depart"]["done"]:
             self.xs.note(f"{label}: admin never left the server inside the cap; no rejoin")
             return P
-        self.sleep_until(self.xs.clock() + OFFLINE_HOLD_S)
+        self.sleep_until(self.xs.clock() + hold_s)
         P["launch_age"] = self.age(label + "_launch_a")
         P["launch"] = self.launch(self, USER, label.lower()) if self.launch else {"error": "no launcher"}
         if not g(P, "launch", "ready_took"):
@@ -1505,7 +1519,7 @@ class Prep(Sess):
             ref = g(self.D, f"D{lv}", "ref")
             if ref is not None:
                 P["before"][str(lv)] = self.dish_read(f"RL_before{lv}", ref)
-        P["relog"] = self.relog("RL")
+        P["relog"] = self.relog("RL", hold_s=RELOG_HOLD_S)
         if not g(P, "relog", "back", "done"):
             return
         self.xs.sleep(SYNC_WAIT_S)
@@ -1534,8 +1548,7 @@ class Prep(Sess):
                 P.setdefault("ids_changed", {})[str(lv)] = [old, new]
 
     def phase_C(self):
-        lv = num(g(self.D, "S", "cooking", "level"))
-        self.D["cooking_restore"] = self.perk("C_perk", int(lv)) if lv is not None else {"skipped": "unread at S"}
+        self.restore_cooking()
         self.common_C()
 
     def phases(self):
@@ -1778,6 +1791,7 @@ class Taste(Sess):
 
     def make(self, label, adds):
         P = self.D[label] = {"adds": []}
+        P["perk"] = self.perk(f"{label}_perk", DISH_EAT_LEVEL)
         base = PAN
         for k, ing in enumerate(adds):
             a = Prep.add(self, P, f"{label}_{k}", None, base, ing, first=(k == 0), pair=False)
@@ -1849,6 +1863,7 @@ class Taste(Sess):
                                                                                          "off")}
 
     def phase_C(self):
+        self.restore_cooking()
         self.common_C()
 
     def phases(self):

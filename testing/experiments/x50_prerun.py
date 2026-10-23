@@ -175,8 +175,8 @@ def dish_class(adds):
 
 
 def dish_eat(adds):
-    """DISH_EAT: the dish's stored UnhappyChange at each Cooking level (vanilla's add x prepScale; the session leaves
-    Cooking at the fixture's level) and the delta of a whole eat, u x k for k in 1 and 1.25 (#0048)."""
+    """DISH_EAT: the dish's stored UnhappyChange at each Cooking level (vanilla's add x prepScale; the session sets
+    Cooking to DISH_EAT_LEVEL, 10) and the delta of a whole eat, u x k for k in 1 and 1.25 (#0048)."""
     out = {}
     for lv in range(11):
         u = L.vanilla_dish(adds, lv)[-1] * L.prep_scale(lv)
