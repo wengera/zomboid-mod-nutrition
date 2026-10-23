@@ -112,6 +112,8 @@ From the 2026-10-07 architecture review; [performance#levers](../platform/perfor
 - **Sources a future harvest could not fetch.** Adolph 1947's survival-by-temperature table (the one source for the dehydration clock in heat); Peel 1997 BMJ and Keys 1945 (hunger-strike stages, Minnesota's week-by-week signs); Hodges 1969/1971 and Sheffield 1953 (the day each scurvy sign appears). No per-patient time from clinical scurvy, beriberi or pellagra to death was found. Hedonics gaps: Kramer 2001 (no text), Meiselman 1988 (record unresolved), where Drewnowski's sugar-fat optimum sits, a curve of pleasantness by hunger, cooking skill against the eater's enjoyment. `docs/superpowers/research/2026-10-16-game-feel/starvation-report.md@program-record-v19` § 5; `docs/superpowers/research/2026-10-21-hedonics/hedonics-report.md@program-record-v19` § 8.
 
 <a id="ideas"></a>
+- **The disuse arm still applies Alpert's ceiling.** The fasting partition dropped the ceiling from the deficit arm on the Minnesota evidence; that evidence weakens it for the disuse arm too, which still applies it (`mod/NutritionRevamp/common/media/lua/shared/NR_Kernel_Partition.lua`, the disuse arm's comment); no open-questions line names it. Plan 20 wave A1 moved it here from body-effects' Open section.
+
 ## Ideas for later
 
 Angus's own threads, in the order he named them: the Workshop upload, then the symptom-research plan, then single player.

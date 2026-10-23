@@ -157,6 +157,12 @@ A spread cap of ceil(queued / ticks a minute) with no headroom (k = 1) starved 1
 
 The harness's spread cap lowers each minute's run cap to ceil(k × queued / ticks a minute): with sixty names queued and 37 ticks a minute it cut the shipped cap of 13 and 14 to 2 and 3 a tick at k = 1 and k = 1.5, at every minute it was armed [#3758/M/n=1].
 A networked timed action ends on the server in real time: its Lua duration, adjusted, times 20 ms after its start, which the server's action manager checks against its millisecond clock [#3766/C/C-only].
+An offline drift study can decimate the slow minute and still reproduce the golden trace, and in the worked example, this mod's golden scenario (six stand-in players, 240 game minutes) re-run with the minute fired every k game minutes reproduces `trace-1.0.0.json` byte for byte at k = 1, and at k = 1, 2, 5, 10, 15 and 30 firing the 25 `OnTick` frames on every minute gives a trace byte-identical to firing them only on the fired minutes. [#3395/C/inference]
+A slow minute run every 2 game minutes already changes discrete state, and in the worked example, this mod's golden scenario at k = 2 leaves g4's effects key one band lower in its ninth slot (the insulin band, 6 against 5) at its departure snapshot and its effects epoch one rebuild behind from then on, and with the first sight aligned to the every-minute run's it still leaves 489 continuous leaves outside the band and g4's effects push pending at its departure. [#3397/C/inference]
+A coarse slow minute's drift grows with k, and in the worked example, this mod's Plan 10b golden scenario (0453181) run every 2, 5, 10, 15 and 30 game minutes moves the stamped stomach fill by at most 0.00519082, 0.0209444, 0.0478147, 0.0627612 and 0.250207 (its range over the k = 1 run 0.55197), the fat mass by at most 0.000857353, 0.00342864, 0.00761255, 0.0117298 and 0.0240727 kg, and the water pool by at most 30.1792, 120.717, 269.951, 415.958 and 853.294 g (range 3435.35), against firing every minute. [#3398/C/inference]
+A per-step quantity named per minute scales with the step under a coarse minute, and in the worked example, this mod's record field `fluids.sweatLmin` stores the step's sweat litres (the sweat rate times dtM / 60), so g2's value while moving reads 0.00203485 at k = 1 and 0.00406971 at k = 2, and the record keeps it as a derived field no reader uses. [#3399/C/inference]
+Hoisting the record engine's per-record constants keeps the golden trace but saves 0.3 % of the pipeline's C-Lua time, inside its noise (IQR -2.5 to 2.7). [#3414/C/inference]
+With the rebuild check kept every minute, the records alone on a slow tier change no band or grade leaf at K = 5, 10, 30 or 60, while the leaves outside the fairer band that the delay does not explain grow from 2 at K = 5 to 81 at K = 60. [#3416/C/inference]
 
 <a id="levers"></a>
 ### What a mod can do about its frame cost
@@ -181,6 +187,7 @@ A stat vanilla decays each tick falls between two minute writes, so the value a 
 Under Overlay, PANIC fell about 1.12 a game minute at either clock, linearly whatever its value, and a target of 6.5 written once a minute dropped under 6, the first PANIC moodle threshold, in every gap [#3392/M/n=1] [#3400/M/n=1] [#3401/M/n=1].
 Read on the client's moodle, a PANIC target of 10 written once a game minute held the moodle at level 1 with no transition over 3601 samples, while a target of 6.6 changed its level 45 times [#3770/M/n=1] [#3771/M/n=1].
 The updaters that move a stat each tick are [character-stats.md](../facts/character-stats.md#updaters)'s.
+A mod can heal a record once, before its step, and guard only the fields a later step reads in the same minute, and in the worked example, Metabolism, Nutrients and Effects each heal once before the minute's arithmetic, copy the fields that a later step, the bus step or the store reads before the next minute's heal, and re-stamp from the copy any the step left non-finite, while a field the step leaves non-finite outside those lists stays so until the next minute's pre-step heal. [#3804/C/inference]
 
 <a id="clocks"></a>
 ### Clocks and the engine's frame counter
@@ -295,6 +302,8 @@ Every live figure is one session with two real players at `DayLength` 1 unless t
 
 The sixty-player arithmetic rows are linear extrapolation from two players, and vanilla's own per-player cost at that load is in no reading, so the absolute frame there is unknown [#3440/M/arith.].
 The ghost run read about half the in-play run, so the two bases bracket the per-run cost rather than agree on it [#3405/M/n=1] [#3440/M/arith.].
+The bench on the third Plan 4 boot read within Plan 3's range and 2.1 per cent above its top after a discarded warm-up call [#3003/M/n=1].
+On the pre-release build `NutritionRevamp.bench_fast`, one whole fast-kernel step run through the mod's takeover entry point over a representative steady-state awake tick, cost 3.06 µs per call (100 000 calls in 306 ms), a per-tick floor of the handler's own cost rather than a worst case [#2822/M/n=1]; on the same fixture a takeover boot and an overlay boot answered `tick.rate` at 10.01 and 10.10 server ticks per second (ratio 0.990), so the handler held the tick rate within about 1 % of the seven updaters it replaces [#2823/M/n=1]; the shipped copy's `bench_fast` later read 4.36 µs in x222 [#3356/M/n=1].
 
 #### The minute by sub-step, live
 

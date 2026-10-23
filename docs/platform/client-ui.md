@@ -172,6 +172,7 @@ Two readings of the info tab bear on a mod that writes traits or perk levels.
 Whether and when the client's list carries it is a packet question, answered on [mp-model.md](mp-model.md#sync-globals).
 `ISCharacterScreen` and `ISPlayerStatsUI` each assign the Strength and Fitness perk levels to a field that neither file reads again [#2505/C/C-only].
 A remapped perk level therefore has no hidden reader on those two screens.
+The character-info tab's render, called outside the UI frame, ran once without an error [#3269/M/n=1], and the window's heights read the same after it as before [#3270/M/n=1].
 
 <a id="cadence"></a>
 ### Events and cadence

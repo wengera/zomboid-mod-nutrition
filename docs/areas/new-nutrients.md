@@ -175,7 +175,18 @@ None of those survivals is measured across a restart, which is why the store dec
 ### The record engine
 
 A record kept in modData and stepped on the slow minute is a number the engine never reads, so a live session can hold it to an offline replay of the arithmetic that steps it.
-What the mod's record engine measured on itself is a reading of the mod, [testing-your-mod.md](testing-your-mod.md#scenario-inputs).
+The readings that follow, to the end of this block, ran on the early acceptance builds, each on the build its row's bound names; they read those builds, not the release.
+A pill passes the mod by: across a vitamin pill on each boot the eat and drink wrappers' counters held, the last intake did not change and the caffeine pool held 0 [#2953/M/n=1].
+The whole Plan 4 build ran its first boot without a mod error, its nutrients adapter counting 1689 minutes and 0 errors [#2975/M/n=1].
+The second boot of the Plan 4 build, with sleep allowed and the onset dial at its maximum, ran without a mod error through four day closes [#2976/M/n=1].
+The records that take the onset dial, and vitamin K, crossed their grades inside the read brackets the mod's kernel replay puts them in, the replay's grades equal to the read ones at every interval [#2978/M/n=1].
+The epoch counts one per grade or excess-output change and nothing else in the session [#2979/M/n=1].
+An eaten vitamin lands on its record through the zero-order-hold step, a lettuce's vitamin C to the decimal the step gives [#2980/M/n=1].
+A loaf's phytate in the stomach buffer cut the iron absorbed per milligram emptied by about half a per cent (0.179025 to 0.179274 against 0.18), matching the kernel's per-minute value and not the meal-level exp(-0.0034 x 400) = 0.257 [#2981/M/n=1].
+The excess dial zeroes the output while the excess sum keeps integrating, and the output returns at the first read after the dial comes back [#2988/M/n=1].
+The client's mirror copy carries the record's grades, epoch and acute scalars at a fresh request [#2991/M/n=1].
+The fix wave's boot, the third of the Plan 4 build, ran without a mod error through three day closes [#2993/M/n=1].
+On the fix wave's build, a phytate-rich meal cuts iron by the meal in the stomach: with a loaf's 400 mg of phytate buffered the pool took 0.04658500815311469 mg of iron per mg emptied over the first interval, rising to 0.17069380181254554 over the last interval before the sleep hold, across the 113 intervals before the sleep hold [#2994/M/n=1]; the record took that at the buffer-calcium factor over those intervals, then read about 0.0012 under it from the hold's F_p4 interval through the bread's tail and the steak, a gap the run did not explain [#2995/M/n=1]; and a steak on an empty buffer took 0.18 across 33 intervals [#2996/M/n=1].
 
 <a id="fluids"></a>
 ### The fluids
@@ -187,7 +198,15 @@ A world-water drink ran on the server under no drink wrapper [#2942/M/n=1].
 A drink queued on a container the server had never seen raised in the action's `new` [#2943/M/n=1].
 The THIRST moodle read level 3 at 0.83 and level 4 at 1 [#2971/M/n=1].
 A mod can base its water need on lean mass with no sex term, and in the worked example, this mod's basal net water loss is 2000 + 32 x (lm - 52.02) g a day for the lean mass lm in kg, the 52.02 kg being the no-trait body's so the default character loses 2000 g, floored at 0 and multiplied by 1.5 under High Thirst or 0.5 under Low Thirst, High winning when both are held, and by the sandbox's stats-decrease multiplier, while sweat, cold diuresis and alcohol diuresis stay on top, unscaled. [#3909/C/inference] A mod can place the thirst moodle's levels on its own body-water deficit, and in the worked example, this mod's volume thirst reads 0.12 at a 1 % deficit, 0.25 at 2 %, 0.45 at 3 %, 0.84 at 4 % and 1.0 at 8 %, linear between, so Parched comes at the 4 % onset of its dehydration state, where the writer lifts its 0.83 THIRST cap, about 32 h without water at rest, and with the osmotic drive the combined thirst crosses level 3's 0.70 at 3 % at rest, about 24 h without water. [#3908/C/inference] In the worked example played live, the server's basal-loss scale read 1, 1.5, 1 and 0.5 with no thirst trait, with High Thirst added, with it removed and with Low Thirst added, and the ring's water loss read 83.56734841486286, 125.42421333884226, 83.80425827455322 and 42.19953652524523 g a game hour, ratios to the first of 1.5008758291119233, 1.0028349572432793 and 0.5049763732570439. [#3942/M/n=1]
-What the mod's fluids measured on themselves is a reading of the mod, [testing-your-mod.md](testing-your-mod.md#scenario-inputs).
+The mod's drink wrapper already lands a drink's water in the pool before any thirst view exists: 0.11304 litres drunk through the game's drink action counted 58 sips and 57 landings and moved 113.036 g through the stomach into `pool.water`, half of it within about 25 s [#2944/M/n=1].
+At first sight the record's fluids hold their creation values less the basal loss, the sodium balance equal to the kernel's to the last digit, with the epoch at 0, every record replete and the sleep state frozen on a server that disables sleep [#2961/M/n=1].
+On the build whose basal loss split by sex, a scenario that holds a subject at rest got the kernel's numbers for that subject, not the 80 kg male hand values: ten game hours took the fixture's female subject to a 1.436865654517884 % deficit and a target of 0.24593834838089368, the sodium balance exact and the water short only by the cold-diuresis term [#2963/M/n=1].
+A litre drunk through the drink action lands in full, the view falling at once and the deficit as the water absorbs, and the surplus after it clears at the stated 320 g an hour [#2966/M/n=1].
+A cola's sodium lands to the milligram through the stomach into the sodium balance [#2967/M/n=1].
+Record edits through `globalmoddata.setpath` drive the plasma-sodium index and the hypotonic cap as the kernel states them; the plan's 122 mmol/L for +8 L is an 80 kg male's and this subject read 113.03 [#2968/M/n=1].
+In the worked example played live on sodium-free food over five days, drinking to thirst from a refilled canteen, the record's sodium fell 7.976, 8.004, 7.990, 7.984 and 7.996 mmol per 24 hours, plasma sodium held at 140.07 to 141.49 mmol/L with the hyponatraemia grade 0 every day, and the auto-drink drank 2.809 and 2.607 L on the two days the ring covers whole. [#3688/M/n=1]
+On the build whose basal loss charged 336.7 mmol of sodium a day whatever the intake, a sodium-free diet with water drunk to balance diluted the body: in the chain replay of the live records plasma sodium fell from 140.16 toward 111.35 mmol/L, reaching hyponatraemia grade 1 at age 29.12, grade 2 at 84.12 and grade 3 at 108.12, and the admin died at world age 113.776. [#3689/M/n=1]
+World water lands at the action's own scale, within twice the window's highest THIRST, the action's planned litres unread, and the view falls [#2970/M/n=1].
 
 <a id="declared-nutrients"></a>
 ### The declared-nutrients contract
@@ -198,7 +217,7 @@ The loader stores an unrecognised key in the item's default modData, as a Double
 That landing is measured: a second mod's block for the same food replaced the string key by key on the server, the client's copy and a client-local spawn, and a vanilla food that no block gave the key read it missing ([#1281/M/n=1], [#3133/M/n=1], [#3134/M/n=1]).
 None of the thirteen vanilla foods read carries the key ([#3150/M/n=2]).
 
-What the mod's intake did with each source, declared, table and inferred, is a reading of the mod, [testing-your-mod.md](testing-your-mod.md#scenario-inputs) ([#3148/M/n=1], [#3145/M/n=1], [#3147/M/n=1]).
+What the mod's intake did with each source, declared, table and inferred, is a reading of the mod, [item-pass.md](item-pass.md#pipeline) ([#3148/M/n=1], [#3145/M/n=1], [#3147/M/n=1]).
 
 <a id="acute-states"></a>
 ### The acute states
@@ -208,7 +227,11 @@ A held sleep on a server that allows and needs sleep ran the world clock about t
 A beer drunk through the drink action raised INTOXICATION as the can emptied [#2950/M/n=1], and the value decays on a server at 7.5599 per game hour [#2951/M/n=1].
 A mod can offer game-sized and pharmacological strengths over the same stimulant kinetics, and in the worked example, this mod's enum option NR.StimulantRealism reads Game by default and Realistic as its second value: Game sets the caffeine offset's maximum to 0.12, so a held 107 mg cup moves the fatigue offset by 0.0500, the blood alcohol at which INTOXICATION reaches its full scale to 0.31 %, and the hangover's tail to 3 hours per 0.05 % of peak, with half the realistic sizes and an unhappiness floor of 21, where Realistic keeps 0.35, 0.20 %, 6 hours, the full sizes and 42; absorption, clearance, tolerance, withdrawal and the hangover's start after a peak of 0.05 % or more follow the science in both, and the server's options poll switches the active set once when the option changes. [#3921/C/inference]
 `BodyDamage.JustTookPill` adds the item's fatigue and stress terms [#2954/C/C-only] and ends by calling the pill's `OnEat` [#2955/C/C-only], and whether a script `OnEat` a mod gives the pill runs on the server is unmeasured [#2960/C/C-only/open].
-What the mod's acute states measured on themselves is a reading of the mod, [testing-your-mod.md](testing-your-mod.md#scenario-inputs).
+The readings that follow, to the end of this block, ran on the early acceptance builds, each on the build its row's bound names; they read those builds, not the release.
+The drink wrapper lands a beer's ethanol the same way: a 0.3-litre can drunk through the game's drink action counted 34 sips and 33 landings and put 7.937 g in `pool.ethanol` with 3.913 g still buffered, 11.850 g in all [#2958/M/n=1].
+A coffee's caffeine lands whole and the body load halves every five game hours for a fast metaboliser, the drain coefficient carrying its effect [#2982/M/n=1].
+A single beer drunk through the drink action read 0 blood alcohol at every read, at most 0.0663 g of ethanol a game minute leaving the stomach, while the day's alcohol total took it at once [#2983/M/n=1].
+A scenario that doses caffeine or alcohol gets it through the gut lane, never the stomach: a coffee's caffeine peaked at 82.92027821101543 mg at the stomach step's age 9.734182357788086 h, the drink's first read being at 7.785704612731934 h [#2997/M/n=1], and a single beer read a peak of 0.005682077809824218 %, 9 % under the whole-dose-at-once prediction, which it falsifies as a point; the replay from the landed state matches it, read as the sips spreading the landing [#2998/M/n=1].
 
 ## Options
 

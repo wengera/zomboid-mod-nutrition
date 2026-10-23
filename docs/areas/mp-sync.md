@@ -208,6 +208,7 @@ A client-side reader of any of these values therefore holds the last push's copy
 The client-to-server direction is narrower.
 The one client route for experience, and with it the trait list, is `SyncXp`, which the server accepts only from a connection whose role holds the `CanModifyPlayerStatsInThePlayerStatsUI` capability, so an ordinary player's client cannot push its own traits [#2612/C/C-only, #2595/C/C-only].
 Every authoritative write this mod makes to a player's state is therefore made on the server and announced by one of the pushes above or by the mod's own bus.
+The mod's first-sight mirror carries the body [#2910/M/n=1].
 
 <a id="global-moddata"></a>
 ### Global modData as a per-world store
