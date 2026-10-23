@@ -819,7 +819,7 @@ def is_dried_food(row):
     `Base.Macaroni` and `Base.Pasta`, nine recipes each -- are the ones where that skip removes a
     thirst the item really carries (`meta.counts.driedFoodThirstRows`). On the other 550 tagged
     rows the term was already 0: the item writes no `ThirstChange` at all (its `absentMacros`
-    says so), or it is a spice and its `share` is 0.
+    says so), or it is a spice, and `useSpice` has no thirst line.
     """
     return DRIED_FOOD_TAG in tag_names(row)
 
@@ -965,10 +965,13 @@ def contribution(item, use, level, rotten=False):
       so `thirstChange` is 0. 2522 rows. `hungerClamped` is still reported on such a row: it is
       the record that the *key* over-asks against the item's own hunger, not a claim that the
       dish moved any. A rotten spice below Cooking 7 is refused (`reason`, null macros).
-    * `reason` -- `"no hunger"` for an ingredient whose `HungerChange` is 0 (no denominator, so
-      no share), or Ruling R3's refusal for a row whose `nutrition_basis` is not `per_item`
-      (a per-litre drink's macros may not be shared out by an item's hunger): the macros are
-      then **null**, never 0, and the hunger arithmetic still stands.
+    * `reason` -- `"no hunger"` for an ingredient whose `HungerChange` is 0: no denominator, so a
+      non-spice's `share` is 0 and its macros 0, while a spice's `share` is 1 (Java's `use / 0`
+      is an infinity, capped at 1 by `useSpice L581-L583`) and its macros flow; Java's NaN for a
+      `:0` key over a 0 hunger is not mirrored (the scan reads a share of 0), and no vanilla spice
+      has a 0 hunger. Or Ruling R3's refusal for a row whose `nutrition_basis` is not `per_item`
+      (a per-litre drink's macros may not be shared out by an item's hunger): a refused row's
+      macros are **null**, never 0, and the hunger arithmetic still stands.
     * `hungerClamped` -- `addItem @934 L374-376` clamps `hunger` down to `|HungerChange|` when
       the key asks for more hunger than the ingredient has, **before** the skill reduction. The
       brief's verbatim formula omits that line; fidelity to the loader wins, so the clamp is

@@ -1069,6 +1069,24 @@ def test_a_spice_moves_its_macros_but_no_hunger():
     assert at0["skillBonus"] == recipe_scan.contribution(LETTUCE, 1, 0)["skillBonus"]
 
 
+def test_a_zero_hunger_spice_takes_a_whole_share():
+    """The 0-hunger spice branch (Plan 19 Task 4b review L2): `useSpice L581-L583` divides the use by a hunger of
+    0, an infinity the cap turns into 1, so the macros flow at the skill bonus and the row still reads "no hunger";
+    a `:0` key over a 0 hunger is Java's NaN, read here as a share of 0 (unmirrored; no vanilla spice has a 0 hunger).
+    """
+    spice = {"nutrition_basis": "per_item", "calories": 30.0, "carbohydrates": 6.0, "lipids": 0.0,
+             "proteins": 1.5, "hunger_change": 0.0, "thirst_change": 0.0, "spice": True}
+    c = recipe_scan.contribution(spice, 2, 0)
+    assert c["share"] == 1.0 and c["reason"] == "no hunger"
+    assert c["calories"] == 30.0 and c["carbohydrates"] == 6.0 and c["proteins"] == 1.5
+    c10 = recipe_scan.contribution(spice, 2, 10)
+    assert round(c10["calories"], 9) == round(30.0 * (1 + 10 / 15), 9)
+    zero = recipe_scan.contribution(spice, 0, 0)
+    assert zero["share"] == 0.0 and zero["calories"] == 0.0
+    plain = recipe_scan.contribution(dict(spice, spice=None), 2, 0)
+    assert plain["share"] == 0.0 and plain["calories"] == 0.0 and plain["reason"] == "no hunger"
+
+
 def test_a_rotten_spice_takes_the_rotten_arm():
     """`useSpice @39-@170 L571-L578` (#4123): a rotten spice's use is replaced by 0.05 of its
     base hunger at Cooking 7-8 and 0.10 at 9-10, rounded through `#.##` (HALF_EVEN); below 7
