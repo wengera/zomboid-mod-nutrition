@@ -80,7 +80,7 @@ RULES: 1. NEVER edited after its run. 2. A trivial, unmeasured or falsified read
 3. One live session at a time. 4. Free memory read before the boot, refused under 12 GB. 5. Never -safemode.
 6. Takes no argument: a bare call boots the session; any argument is refused before anything else runs.
 
-WALL: the body about 1.5 min on the latency-charged fake (test_x505's budget test), the boot 52-85 s; BUDGET_S 360.
+WALL: the body about 70.5 s measured on the latency-charged fake (test_x505's budget test), the boot 52-85 s; BUDGET_S 360.
 """
 import json
 import os
@@ -116,7 +116,7 @@ NR = L.NR
 MOD_DIR = L.MOD_DIR
 STAGE_ROOT = L.STAGE_ROOT                # release/NutritionRevamp, the upload copy
 STAGE_MOD = L.STAGE_MOD
-STAGED_FROM = "db561181"                 # mod/'s last commit (Plan 19 Task 9a), staged at Task 9b
+STAGED_FROM = "0b1b3f11"                 # mod/'s last commit (Plan 19 close fix wave), staged after it
 STAGED_VERSION = "1.0.0"
 MIN_FREE_GB = 12.0
 FIXTURE = "default"
@@ -163,10 +163,10 @@ HARNESS_FILES = L.HARNESS_FILES
 HARNESS_MARKERS = {
     "PZTestKit_Server.lua": tuple(f'TK.register("{c}", function(' for c in (
         "stats.all", "stats.setany", "record.set", "nutrition.get", "players", "perk.xp", "item.get", "item.set",
-        "health.get")),
+        "health.get", "time.multiplier")),
     "PZTestKit_Client.lua": tuple(f'TK.register("{c}", function(' for c in ("eat.action",)),
     "PZTestKit_Core.lua": tuple(f'TK.register("{c}", function(' for c in (
-        "time.snapshot", "lua.read", "witness.fields")),
+        "time.snapshot", "lua.read", "witness.fields", "lua.global")),
 }
 
 
