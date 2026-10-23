@@ -1,0 +1,29 @@
+# `x284-20261011-040034` reading guide
+
+**`x284-20261011-040034/steady-4.json`**, **`MANIFEST.json`**, the ring pages **`minute-ring-admin-1.json`**, **`minute-ring-admin-721.json`**, **`minute-ring-admin-1441.json`** and **`minute-ring-admin-1839.json`**, the replay's inputs **`start.json`**, **`start-stats.json`**, **`player.json`** and **`events.json`**, **`replay.json`**, and **`slot-p_00610064006d0069006e_a.json`** and **`_b.json`** — produced by `testing/experiments/x284_steady.py` on `x28_steady_lib.py`, both written before the first boot and committed at `1bbf6d3`, unedited since; on HEAD `1bbf6d3` (the same harness, `TKX_StudyFoods` and `replay_live` commits; `mod/` not booted)
+(500.6 s wall; `steady-4.json` 449431 bytes, sha256 `8abc239e…a8496cc1`, byte-for-byte identical to the run copy; `MANIFEST.json` the same staged manifest). **Plan 11f Task 5r, session 4 of the chain, its last**: one boot of `x28-steady` on a copy of `x283-20261011-035042`'s server folder, the `admin` client a fresh fixture restore; the same build, staged copy and settings; free memory 17.18 GB before the boot; every verify row ok; `server_error_count` 0; `admin` not parked; no mod not found.
+
+How to read it. As session 1 (ruling T5R-1's drink events and their one-minute landing offset, F-T5R-2's noise sips, F-T5-2 fixed in the lib). The chain by server reuse: the session starts from its own start record (`start.json`, gen 51, `satiety.t` 107.652); session 3's quit slots are gen 49 and 50; the first stop came at 107.72. The ring is empty from 105.684 to 106.801 (the attach gap). Row 7's graded day is chain day 5 (ages 113 to 137), wholly on this session's ring.
+- **Day 4's dinner and request-level day 5** (`readings.meal_es`, `stops`): D4_20 reads es 1.0455 at age 109.07, request 739.82 kcal, eats 750; D5_08 es 1.0461, request 624.45, eats 583.33; D5_13 es 1.0461, request 670.81, eats 700; D5_20 es 1.0468, request 740.80, eats 750; day 5's intake 2033.33 kcal (`readings.live_kcal_by_day.5`).
+- **Day 5's drinking and sodium** (`readings.fluid_days.5`): the ring covers the whole day (1440 rows, ages 113.01 to 137.00); 2606.83 g drunk on the mod side (`drunk_g_mod`), naPlasma 140.70 to 141.49, grade 0, `sweat6h_max` 0, `fluids.na_end` −44.56.
+- **REPLAY** (`verdicts.REPLAY.observed`, `replay.diff`): from the start record at offset 7, ok: HUNGER max 5.56e-4, `body.energyState` 1.12e-3, `satiety.L` 0, over n = 922 graded rows of 1795; `between` 866 (the noise events), offline 6. The replay took 857 autoDrop events, 3408.71 g; `replay.autodrops.held_in_start` holds 23 events up to the first row after the start record (s 53), all noise. The detector alone finds 17 drinks, 3.40 L, and none beyond the autoDrop events.
+- **STOPS**: all 15 done, none missed or late, every eat landed, every refill read back (R4_1630 skipped, before the session). **The ring**: 4 pages from age 106.801 to 137.567; errors and overwritten 0. **SODIUM**: grade 0 on chain days 4 to 6.
+- **F** and **Z**: the flush landed on the first poll; the slot files after the quit are gen 67 and 66 (`satiety.t` 137.468 and 134.250), `dead` false; no mod error line; `admin` not parked; `server_errors` empty.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | `n = 1` run, one fixture, one character, one host. |
+| `session`, `predictions`, `meta.phase_note`, `meta.staged_at`, `verdicts.STOPS.predicted`, `verdicts.SODIUM.predicted`; `deviations`, `world_changes` | the driver's tables and text | Written by the driver, not readings. |
+| `profile`, `doctor`, `timeline`; every epoch-ms stamp (`steps[*].epoch_ms_*`, the `lastWrite` values in `phases.D`) | settings, pre-run checks, walls | Settings and pre-run state, not readings; a wildcard, checked at review under § 4.9 (ruling T5-2). |
+| `phases.S.nutrition` and `steps[3].ack` `calories`, `carbs`, `lipids`, `proteins`, `weight`, `incWeight`, `incWeightLot`, `decWeight`; `steps[i].ack.before` of the 13 `eat.action` steps; `replay.inputs.player.macros`, `.weight`; `player.json` `macros`, `weight` | −251.63, −45.94, 9.04, 28.94; 79.87 | The vanilla Nutrition block under Nutrition false, not the mod's body. |
+| `phases.W.lastWrite_before`, `phases.W.lastWrite`; `replay.seconds`; `chain.copy_seconds` | epoch ms; 0.58 | Not game state. |
+| `phases.S.autodrink.after`, `steps[5].ack.after`; `stops[i].probe.autoDrink` and the `autodrink.probe` steps' `ack.autoDrink` | true | The setter's read-back and the flag's probes (#2941). |
+| `readings.requests.<label>`, all 13; `readings.hourly[i].es_replay`, `readings.meal_es[i].es_replay_next` | per-portion minutes; the run-time replay | Not row readings; the driver's replay copies. |
+| `chain.carry_in`, `chain.maint_kcal_in`, `chain.prev_*` (each key enumerated); `readings.maint_kcal`, `readings.maint_body` | −11.28; 2089.32; session 3's | Carried in by the chain, not read here. |
+| `readings.live_kcal_by_day.4`; `readings.fluid_days.4`, `readings.fluid_days.6` | 750.0; this session's slices | Partial chain days: day 4 began in x283; day 6 is the ring's last 0.56 h. Read the grade. |
+| `readings.fluid_days.5.writer_sips`, `.autodrops`; `replay.autodrops.n`, `replay.inputs.events_n`, `replay.eats_replayed` | 709; 709; 857; 870; 870 | Counts of the noise events (F-T5R-2). |
+| `replay.diff.classes.between`, `verdicts.REPLAY.observed.classes.between`, `replay.diff_extra.classes.between`; `replay.json` `diff.classes.between`, `diff_extra.classes.between` | 866 | Inflated by the noise events. |
+| `replay.autodrops.held_in_start`; `replay.autodrink_check.detected_beyond_autodrops` | 23 events; [] | Held back at the start record, not the session's drinking. |
+| parents of the keys above, as a whole: as session 1, and `readings.fluid_days.5` | — | Each holds citable children; cite a child by its path (§ 4.9). |

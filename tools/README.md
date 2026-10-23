@@ -375,7 +375,13 @@ import patterns from there.
   the two generated sections are fresh renders of `reference_gen.py` — the `Cited by` column of
   `docs/reference/artifacts.md` and the `## Contradictions` section of
   `references/wiki-mirrors/README.md`; a drift, an absent file or a README without its markers
-  is a finding on the file).
+  is a finding on the file), `guide` (rule 11: a Contents row's GUIDE.md link names that run's own
+  `testing/artifacts/<run>/GUIDE.md`, which exists, and the run keeps no inline block beside it; a
+  `run:` pointer of a live or an archived retired row whose key a backticked `*` pattern on a
+  `wildcard` line of that run's guide restricts is a finding). `--archive TSV` names the archive
+  (default `docs/reference/claims-archive.tsv`, beside the register): the schema rule reads both
+  files as one id space, an archived superseded row is never resolved, an archived retired row's
+  `repo:` pointers must be pinned, and a page tag naming an archived id is a finding.
   `--register-only` = schema + pointer (Phase 1; every harvest part is checked this way);
   `--partial` lets `owner` skip pages not yet written (Phases 2–3); `--staged` skips when nothing
   relevant is staged; `--allow-provisional` tolerates a `[T<task>.<n>]` tag an unapplied delta
@@ -395,6 +401,12 @@ import patterns from there.
   `superseded` is refused, and a `retarget` whose new owner page is not among `--pages` is noted.
   `supersede <id>` makes the `add` its `successor` cell names (a provisional id, wherever it sits) the row's single successor, or the one `add` directly after it when the cell is empty (the two-child form is `split`); a cell naming no `add` is refused (the cell was once ignored, review-t16 I1);
   a successor that already exists is `status` with a `successor` cell.
+  `retire <id>` (its `reason` cell required) pins every unpinned `repo:` pointer at HEAD's short sha,
+  each pinned quote checked at HEAD first, appends `; retired <date>: <reason>` to the bound, sets the
+  status `retired` and moves the row to `docs/reference/claims-archive.tsv`; a `status` delta never
+  writes `retired`, every op refuses an archived id, and an `add` mints past the highest id of both
+  files. `python tools/claims_delta.py archive-superseded [--register TSV] [--archive TSV] [--dry-run]`
+  moves every superseded row to the archive in id order (`--dry-run` prints the count).
 
 - `page_lint.py` — `python tools/page_lint.py <page.md>… [--partial] [--allow-provisional] [--register TSV] [--cap N]`. The page
   contract (spec § The page contract) as rules for `docs/areas`, `docs/platform`, `docs/facts`: the stamp
@@ -469,3 +481,4 @@ including capital-`Scripts` mod dirs and version-folder resolution).
 - `dials.py` — `python tools/dials.py list [--domain D] [--src S]` | `check` | `diff A [B]` | `set ID VALUE`. The tuning-dial registry `mod/NutritionRevamp/common/media/lua/shared/NR_Data_Dials.lua` (Plan 19 Task 2; ruling T1-1): `list` tables the dials; `check` validates each row (the row shape, unit, range, src tokens resolving in `science.tsv` and `claims.tsv`, `same` links, `fixed`, `opt` against `sandbox-options.txt`, the knot and ladder chains that must ascend, orphans and unknown `K.dials.get` ids) and exits 1 on a finding; `diff` compares two commits' rows (B absent: the working tree); `set` edits one row's value in place and prints the regeneration it needs. Tests: `tools/tests/test_dials.py`.
 - `dial_lint.py` — `python tools/dial_lint.py [paths...] [--summary]`. The dial lint (Plan 19 Task 2): E1 a magnitude with a provenance comment outside the registry, E2 an unlabelled numeric constant, E3 a field reading another dial's id, E4 a `K.dials` lookup inside a function body, W1 a probable inline dial (a warning); exits 1 on an E finding. A section 3 gate since the migration's last wave (Plan 19 Task 3g): 0 errors and 0 warnings on the mod; a vanilla mirror left in place carries the marker at the start of its comment (`VANILLA #NNNN: note`, or a jar cite), and a VANILLA anywhere else exempts nothing. Tests: `tools/tests/test_dial_lint.py`.
 - `sandbox_options.py` — `python tools/sandbox_options.py --check | --write`. The option file `mod/NutritionRevamp/42.21/media/sandbox-options.txt`, generated (Plan 19 Task 3f): the switches and scalers at the head, declared in the tool (the OnsetSpeed and Severity scalers written from their registry param rows in their head place, Plan 19 Task 3g), then one option per registry row that names one (`opt`), in the registry's line order, its range, default (three decimal places) and integer flag the row's; `--check` exits 1 on a difference. Tests: `tools/tests/test_sandbox_options.py`.
+- `comment_id_lint.py` — `python tools/comment_id_lint.py <dir> [--registry NR_Data_Dials.lua]`. The comment-id lint (Plan 20 Task 1): on each Lua line under `<dir>` that calls `K.dials.get` and carries a trailing comment, every `#dddd` or `Sdddd` token must appear in the src of a registry row the line reads (several gets on one line pool their srcs; a `same` row adds its target's src), and a `game choice` comment needs a row whose src says `game choice`. Reads the registry through `dials.py` (lupa); exits 1 on a finding; read-only.

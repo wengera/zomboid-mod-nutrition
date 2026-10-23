@@ -1,0 +1,52 @@
+# `x244a-20261007-174509` reading guide
+
+**`x244a-20261007-174509/notice.json`**, **`x244a-20261007-174509/MANIFEST.json`**, **`x244a-20261007-174509/gc.log`** and the 14 **`x244a-20261007-174509/posring/world-posring-<arm>_<user>.json`** — produced by `testing/experiments/x244a_notice.py`, written before the boot and committed at `48d7378` with the profile `testing/profiles/x24-notice-a.toml` before the run, unedited since, on HEAD `71271bc` (harness Lua `e15a9ca`, clean, the commit that added the client command `world.posring`; harness Python `ed4ac93`; `mod/` not booted)
+(888.4 s wall; `notice.json` 1371368 bytes, sha256 `cac5bd26…ca550558`, `gc.log` 359645 bytes, sha256 `6f073d87…505edd07`, the client ring documents 4008843 bytes in all; every file byte-for-byte identical to the run copies, copied by the driver; `MANIFEST.json` sha256 `c86e295a…2415b389`). **Plan 10c Task H4 session a, `DayLength` 1, N = 60: does a player notice the minute burst, and three draws each of `burst` and `budget15`.** Fixture `two`, Nutrition false, gclog on. Every verify row ok; `server_error_count` 0; `admin` not parked; free memory fell to 0.86 GB. Phase order S0, I, `burst1`, `b15_1`, `burst2`, `b15_2`, `b15_3`, `burst3`, Z.
+
+How to read it. The server side reads as `x243a-20261007-160539`'s guide: the same arm procedure (`ghost.load 60 <sched> feed`, `ghost.stats reset`, `perf.local`, `tick.ring`, 101.5 s with no server bus traffic, then the reads), the same kept populations, and `adds` against this session's own `summaries.I`. `summaries.decision6` gathers the six draws (`draws.<arm>`: the period p99 added, the longest window added, the starvation, `ghost_ms_per_minute_event` = `ghost.stats` ms over `minuteEventsSince`, and the busy a game minute over idle) and `summaries.decision6.total` their means and ratios. The client side: before each arm both clients armed `world.posring 20000 pace ±6` (the sign alternating arm by arm, `phases.<arm>.pace_dx`) and after the server's reads wrote their rings to `posring/`; `summaries.clients.<arm>.<user>` reads the client frames inside the server ring's kept span: `stamp` (gaps between successive distinct `getLastRemoteUpdate()` stamps of the remote player), `move` (gaps between client frames in which the remote player's position changed), `frame` (the client's own frame intervals), each with the gaps of 100 ms or more lined up with a server minute frame (within ±100 ms of it), the same against the minute frames shifted by half their spacing (`control`, about 313 ms here), and `lined_all` / `control_all` over every gap. `summaries.client_rule` applies the driver's rule to the stamp series. **The period column is the end-to-end period** (`summaries.<arm>.endPeriod`, a frame's start to the next frame's end); the artifact also carries the start-to-start `period` (`summaries.<arm>.period`), which held at 104 to 105 ms at its p99 and max in every x244c arm and 103 to 106 ms in the x244a and x244b arms; the one exception in all three sessions is a single 136 ms in x244a `burst2` (`summaries.burst2.period.max`), unexplained. The burst's busy (at most 77 ms, `summaries.burst3.busy.max`) fits inside that 100 ms cadence.
+
+**The players were 248 tiles apart** (`phases.S0.distance`, `phases.S0.pos`: their spawn points in fixture `two`). Admin's client therefore received bob only as a far player: a stamp every 400 ms at p50 and whole-tile positions that changed at most once an arm, by a whole-tile jump (`b15_1` read 10911 to 10921 in the kept span, `posring/world-posring-b15_1_admin.json`), so no move gap was read (`summaries.clients.<arm>.admin.move.gaps.n` 0); bob's client held no remote player at all (`summaries.clients.<arm>.bob.other_present` 0, an empty series). So the client rule here reads admin's far-player stream only, and bob's `not noticeable` is graded on an empty series (the driver has no empty-series guard; `do-not-cite.csv`). C and RULE are falsified for that reason. The near-player reading is `x244c-20261007-182845`.
+
+| arm | frames (minute) | busy p50 / p99 / max | minute busy p50 / max | end-to-end period p99 / max | longest window | adds: period p99, longest window | busy a game minute over idle | ghost ms a minute event | starved / minute events | ghost ms a run |
+|---|---|---|---|---|---|---|---|---|---|---|
+| I | 1019 (162) | 2 / 9 / 16 | 3 / 16 | 108 / 114 | 114 | — | (13.4 absolute) | — | — | — |
+| burst1 | 1018 (147) | 1 / 65 / 73 | 51 / 73 | 164 / 170 | 171 | 56, 57 | 47.81 | 48.74 | 0 / 152 | 0.840 |
+| b15_1 | 1016 (161) | 13 / 21 / 29 | 17 / 29 | 121 / 129 | 129 | 13, 15 | 50.06 | 52.13 | 0 / 165 | 0.899 |
+| burst2 | 1019 (150) | 1 / 57 / 67 | 46 / 67 | 157 / 166 | 166 | 49, 52 | 40.56 | 44.78 | 0 / 155 | 0.772 |
+| b15_2 | 1017 (161) | 11 / 22 / 41 | 16 / 41 | 121 / 139 | 139 | 13, 25 | 42.46 | 46.82 | 0 / 166 | 0.807 |
+| b15_3 | 1019 (161) | 11 / 21 / 31 | 16 / 31 | 120 / 129 | 129 | 12, 15 | 42.48 | 47.07 | 0 / 167 | 0.811 |
+| burst3 | 1019 (150) | 1 / 59 / 77 | 47 / 77 | 158 / 175 | 175 | 50, 61 | 39.90 | 45.15 | 0 / 155 | 0.778 |
+
+| arm | client | frames in span | client frame p50 / p99 / max | stamp gaps n, p50 / p99 / max | stamp gaps >= 100 ms: lined / control | move gaps n, p50 / p99 / max | move gaps >= 100 ms: lined / control | all move gaps lined / control |
+|---|---|---|---|---|---|---|---|---|
+| I | admin | 6138 | 17 / 20 / 24 | 228, 400 / 801 / 801 | 192 / 190 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| I | bob | 6138 | 17 / 20 / 25 | 0, None / None / None | 0 / 0 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| burst1 | admin | 6120 | 17 / 20 / 33 | 258, 383 / 833 / 834 | 221 / 205 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| burst1 | bob | 6120 | 17 / 19 / 21 | 0, None / None / None | 0 / 0 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| b15_1 | admin | 6109 | 17 / 19 / 23 | 229, 400 / 801 / 801 | 198 / 194 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| b15_1 | bob | 6109 | 17 / 19 / 27 | 0, None / None / None | 0 / 0 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| burst2 | admin | 6138 | 17 / 19 / 22 | 232, 400 / 815 / 834 | 211 / 203 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| burst2 | bob | 6137 | 17 / 19 / 28 | 0, None / None / None | 0 / 0 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| b15_2 | admin | 6127 | 17 / 19 / 22 | 216, 400 / 801 / 801 | 193 / 192 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| b15_2 | bob | 6127 | 17 / 19 / 20 | 0, None / None / None | 0 / 0 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| b15_3 | admin | 6138 | 17 / 19 / 21 | 236, 400 / 801 / 801 | 199 / 196 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| b15_3 | bob | 6137 | 17 / 19 / 38 | 0, None / None / None | 0 / 0 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| burst3 | admin | 6156 | 17 / 19 / 21 | 235, 400 / 834 / 850 | 211 / 210 | 0, None / None / None | 0 / 0 | 0 / 0 |
+| burst3 | bob | 6156 | 17 / 19 / 20 | 0, None / None / None | 0 / 0 | 0, None / None / None | 0 / 0 | 0 / 0 |
+
+- **The client rule on admin's far-player stream**: no draw showed lined-up gaps of 100 ms or more beyond the control (lined 192–221 against control 190–210 over 148–163 minute frames); the stamp gaps' max read 801 ms in the idle and `budget15` arms and 834–850 ms in the `burst` arms (`summaries.clients.<arm>.admin.stamp.gaps.max`). No client frame reached 100 ms in any arm (client frame max 20–38 ms on both clients).
+- **Decision 6, three draws**: `burst` added 49–56 ms at the period p99 and 52–61 ms to the longest window (166–175 ms); `budget15` added 12–13 ms and 15–25 ms (129–139 ms); no ghost starved in any arm. Ghost ms a minute event: `burst` 44.78–48.74 (mean 46.22), `budget15` 46.82–52.13 (mean 48.67), a ratio of 1.053; the busy a game minute over idle gives 1.052.
+- `b15_2`'s 41 ms frame set its 139 ms window; the mod's 07:00 day close did not fall in this session (`phases.Z.time.worldAge` 23.85 against 07:00 at 24.0, inference).
+- **The GC log**: 183 pauses, the largest 0.553 ms; inside the arms at most 0.037 ms; 35 allocation stalls, the longest 188.663 ms, at 28.97 to 29.19 s of JVM uptime (`gc.events.28.up_ms` to `gc.events.67.up_ms`), during boot, before any arm.
+- **Verdicts**: I, F, A6, B15P, B15S, TOT, S, G and Z as predicted; C and RULE falsified (bob's empty ring; the far-player stream).
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | `n = 1` run, one fixture, two characters, one host, both clients on the server's host; ghost records are cost, not behaviour. |
+| `session`, `predictions`, `constants`, `deviations`, `world_changes`, `meta.calibration_note`, `meta.cost_note`, `meta.client_note`, `meta.timer_note`, `meta.staging`, `verdicts.*.predicted`, `summaries.decision6.budget15_ruling2.empty_check_clause` | the driver's tables and text | Written before the run; not readings. |
+| `summaries.clients.<arm>.bob.stamp`, `summaries.clients.<arm>.bob.move`, `summaries.clients.<arm>.admin.move`, `summaries.client_rule.bob`, `summaries.client_rule.session_outcome`, `verdicts.RULE.observed.bob`, `verdicts.RULE.observed.session` | empty series; `not noticeable at this load` | bob's ring held no remote player (its own frame intervals and `other_present` 0 stay readings) and admin's far-player positions never changed in a span; an outcome graded on an empty series is no reading. |
+| `summaries.*.n_eq_band`, `summaries.*.ghost_over_fed_calibration` | bands; ratios | Arithmetic on x242b's calibration, computed by the driver. |
+| `phases.*.perf_read.avg`, `phases.*.perf_doc.avg`, `phases.*.perf_doc.samples_list.avg` | the avg summary | The engine's `avg-update-period` is no mean. |
+| `phases.<arm>.ring_read`, `phases.<arm>.perf_read`, the copies in `phases.<arm>.ring_doc` (`busy`, `period`, `endPeriod`, `over110`, `minuteFrames`) and `phases.<arm>.perf_doc` (`max`, `samples`), `phases.<arm>.reset.before`, `phases.<arm>.stop.stats`, `phases.<arm>.client_read.<user>` and `phases.<arm>.client_docs.<user>` (each listed in `do-not-cite.csv`) | the replies' summaries and headers | The harness's own summaries over every sample, frame or client frame, the first window, the bus-step frames and the client frames outside the span included; read `summaries.<arm>`, `summaries.<arm>.ghost` and `summaries.clients.<arm>.<user>` (the frames stay citable in `phases.<arm>.ring_doc.frames_list`, `phases.<arm>.perf_doc.samples_list` and the `posring/` documents). |

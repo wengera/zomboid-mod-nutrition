@@ -1,0 +1,11 @@
+# `fit-hunger-curve-20261018` reading guide
+
+**`fit-hunger-curve-20261018/fit-compact.json`** — 69304 bytes, sha256 `44753730…75301425`, byte-identical to `testing/runs/fit-hunger-curve-20261018/fit-compact.json`, the tool's whole output (no larger `fit.json` exists, so no `source_sha256` is kept). **Plan 16 Task 4b, the hunger curve re-fit for both server sleep settings; shipped.** `tools/fit_hunger_curve.py` at `e470f570` (`head`, committed), on the kernel of `e470f570`, whose knots are the chosen point.
+
+How to read it. Read it as `fit-hunger-curve-20261017b` above, with these changes. Every scenario runs in each configuration of `scenarios.CONFIGS`: `off`, the server's sleep off (no daily rhythm, the character never sleeps), and `on`, sleep allowed and needed, asleep 23:00 to 07:00 each night (`scenarios.SLEEP_MIN`, minutes after 07:00), the rhythm read on the body clock. `reading`, `shippedReading`, `previousReading` and each `stability.knots[i]` hold the joint `loss` (the configurations' losses weighted by `search.weights.configs` over the weights' sum) and `configs.off` and `configs.on`, each a whole reading as `reading` was before (in `stability`, its summary: the loss, the shares, the fast's returns and each meal's day-2 return). `vanilla` is the scored target for both configurations; `vanillaSleepOn` is vanilla's own cadence on the sleep-on nights, read beside it and never scored, its `censored` naming a meal the night outlasts before Peckish. `shipped` and `shippedReading` equal `chosen` and `reading`; `previous` and `previousReading` are the Task 14b knots (`fit-hunger-curve-20261017c`, the tool's `PREVIOUS`). `stability.sweep` carries its configuration. `profile` is the Peckish knot (`x3`) and `profileHungry` the Hungry knot (`x4`) across their bounds at 0.005, each row the joint loss and, per configuration, its loss, each meal's day-2 return, the shares and the fast's Peckish and Hungry returns (`t1`, `t2`).
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything here, as a study or a live reading | — | The mod's own satiety model replayed on the lupa host and mapped through the curve, against vanilla's modelled cadence; no study and no live game is read. |

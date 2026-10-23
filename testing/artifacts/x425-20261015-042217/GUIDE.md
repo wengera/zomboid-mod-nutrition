@@ -1,0 +1,5 @@
+# `x425-20261015-042217` reading guide
+
+**`x425-20261015-042217/melee.json`** — produced by `testing/experiments/x425_melee.py` on `testing/experiments/x42e_melee_lib.py`, both committed at `62ae2ee4` with `testing/tests/test_x42e_melee_lib.py` before the boot, unedited since; on HEAD `62ae2ee4` (harness Lua `c92ffdd7`, clean; probe `77768e30`; mod/ not booted); build `42.21.0`. 199.2 s wall; `melee.json` 45198 bytes, sha256 `6c896de0…d27d97aa`, byte-for-byte identical to the run copy. Every verify row ok; `server_error_count` 0; admin not parked; `phase_errors` empty; free memory 19.59 GB before the boot, 5.63 GB at ready.
+
+How to read it. **Unmeasured.** RCON `additem "admin" "Base.BaseballBat" 1` reached the client: `weapon.equip` answered ok, queued, two-handed (`checks.equip.equip_asks`), and the server's primary hand read `Base.BaseballBat` (`checks.equip.on_server`, `checks.equip.polls`), so the weapon route works. No zombie came within 2 tiles in the 120 s search after four `createhorde 1 admin` calls (`checks.melee.hordes`, 49 `misses`), no swing ran, and no event of any perk was recorded (`verdicts.7_melee.observed`).

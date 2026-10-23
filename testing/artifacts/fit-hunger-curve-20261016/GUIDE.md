@@ -1,0 +1,11 @@
+# `fit-hunger-curve-20261016` reading guide
+
+**`fit-hunger-curve-20261016/fit-compact.json`** — 6579 bytes, sha256 `35a7ee08…a5339a6f`, byte-identical to `testing/runs/fit-hunger-curve-20261016/fit-compact.json`, the tool's whole output (no larger `fit.json` exists, so no `source_sha256` is kept). **Plan 15 Task 6 fix 1, the calibrated hunger curve's knots; superseded in its choice by `fit-hunger-curve-20261017b`.** `tools/fit_hunger_curve.py` at `92f0c237` (`head`, committed), on the kernel of `92f0c237`.
+
+How to read it. `chosen` is the four searched knots with the foot: `K.hungerCurve.X[2..6]` in order (the foot `X[2]` is `foot`, set by its rule and not searched; `search` and `bounds` give the coordinate search, `start` its starting point, `candidates` the points scored). `reading` is the scores at the chosen point: `deepest` the highest of the three-meal days' lowest written HUNGER within 120 min of a meal, `share1` and `share2` the waking-hour shares at HUNGRY level 1 and 2 or more on those days, `returns` the hours from the fast's breakfast to HUNGER over 0.15, 0.25 and 0.45 and to the 0.69 cap (these four on the curve's own climb, the starvation flags off) and then to Starving as written (HUNGER over 0.70, the acute onset), `miss` each scored term and `loss` their sum of squares. `vanilla` is `tools/vanilla_model.py`'s targets: the three-can day's shares and one can's returns. `shipped` and `shippedReading` are the knots in the tree the fit ran on and their scores (equal to `chosen`). `verify` is the largest gap between the fit's Python mirror of the curve stage and the kernel's written HUNGER on a real replay of the chosen knots. `stability.knots` holds each knot at x0.95 and x1.05 with its loss and readings; `stability.sweep` the fast's breakfast at 200 to 1,300 kcal with the HUNGER before it, its lowest HUNGER and h_model within 120 min and the hours to levels 1 and 2. `scenarios` names the replays' meals, water and clock.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything here, as a study or a live reading | — | The mod's own satiety model replayed on the lupa host and mapped through the curve, against vanilla's modelled cadence; no study and no live game is read. |

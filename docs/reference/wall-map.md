@@ -376,7 +376,7 @@ in the plan's § Corrections applied (at the tag `research-program-v1`).
   `SyncItemFieldsPacket`'s wipe-and-replace of item modData — a partial map of the sync surface, not
   the whole of it (A3, A6, E10).
 - **A library residual, recorded here and owned by this slice's ledger task:**
-  [`artifacts.md`](artifacts.md)'s `x121` block describes `phases.M7`'s side tag as reading `client`;
+  [`x121`'s guide](../../testing/artifacts/x121-20260911-030023/GUIDE.md) describes `phases.M7`'s side tag as reading `client`;
   the artifact reads **`server` on the client**, and [#0854/M/n=1] says so correctly. The artifact
   wins (I9). Likewise, [`facts/other-mods/simplestatus.md`](../facts/other-mods/simplestatus.md) cites simpleStatus's `42.16/`
   tree: Steam added a `42.20/` tree on **2026-09-13**, so on 42.20.4 the live tree is `42.20/` and
@@ -434,8 +434,8 @@ Teardowns: [LTP](../facts/other-mods/longtermpreservation.md) ·
 [simpleStatus](../facts/other-mods/simplestatus.md) ·
 [AutoCook](../facts/other-mods/autocook.md).
 
-**Artifacts.** Read each run's block in
-[`artifacts.md`](artifacts.md) — including its *do not cite*
+**Artifacts.** Read each run's guide (its `GUIDE.md`, linked from
+[`artifacts.md`](artifacts.md)) — including its *do not cite*
 rows — before quoting any number. Slice 12:
 [`x121-20260911-030023`](../../testing/artifacts/x121-20260911-030023/platform-overrides.json) ·
 [`x122-20260911-032326`](../../testing/artifacts/x122-20260911-032326/platform-loader.json) ·
