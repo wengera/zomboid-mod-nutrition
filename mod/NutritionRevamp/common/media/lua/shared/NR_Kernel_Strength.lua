@@ -1,22 +1,15 @@
--- NR_Kernel_Strength.lua -- the body model's Strength (Plan 13, the lean-mass model): the constants table and its
--- sandbox options, the bio scale and the strength level, the growth law, detraining, regain and the remembered peak,
--- the neural factor T, the signal ring's day close and one closed day of the body (K.strength.day); beside them the
--- vanilla band of a level, the carry's trait factor and the acute carry factor. The level is written at the day close
--- by the server's Strength adapter (Plan 13 Task 14), never here.
--- Pure: numbers and Lua tables in, numbers, booleans, strings and Lua tables out, no Java. Slow-clock
--- code with no fast region, so math.exp, math.log, math.floor and the bounded numeric `for` over the
--- kernel's own tables are allowed. This file sorts after NR_Kernel.lua, and every K.clamp / K.min /
--- K.max reference is at call time; DEFAULTS.R is computed at this file's load, so those helpers and
--- K.HEIGHT_M must be defined in NR_Kernel.lua.
+-- NR_Kernel_Strength.lua: the lean-mass Strength model (constants and options, the bio scale and level, growth,
+-- detraining, regain, the peak, the neural factor T, one closed day), the band and carry factors, and the AddXP
+-- capture. The level is written at the day close by NR_Server_Strength, never here. Pure, no Java; slow-clock code.
+-- Sorts after NR_Kernel.lua; DEFAULTS.R is computed at this file's load, so K.clamp, K.min, K.max and K.HEIGHT_M
+-- must already be defined there.
 local K = NutritionRevamp.kernel
 K.strength = {}
 
--- ============================================================ the lean-mass strength model (Plan 13)
--- The constants table (ruling 13-1): every constant of the growth law, the energy gate and the lean
--- partition (point T, compact_T.json "chosen", under the oracle's key names), the game constants beside
--- them, and the strength-model block (ruling 13-45). K.strength.params merges a server's options over a
--- copy; every function below takes that table as P. M5, R and ffmiNaturalRaw are derived at file load, after the
--- functions they read; every other value is a registry row (NR_Data_Dials.lua, the strength block).
+-- ============================================================ the lean-mass strength model
+-- The fitted constants are point T (data/fits/strength-refit-T/compact_T.json "chosen", the oracle's key names).
+-- K.strength.params merges a server's options over a copy, taken as P below; M5, R and ffmiNaturalRaw are derived
+-- at file load, after the functions they read.
 K.strength.DEFAULTS = {
     -- point T (the growth law, the energy gate, the lean partition)
     k = K.dials.get("strength.DEFAULTS.k"),
@@ -81,14 +74,12 @@ K.strength.DEFAULTS = {
     perfectE = K.dials.get("strength.DEFAULTS.perfectE"),
 }
 
--- The growth law's coordinate: the lean F at bio level L (FFMI ffmi5 at 5, ffmiPerLevel a level, at K.HEIGHT_M).
+-- FFMI ffmi5 at 5, ffmiPerLevel a level, at K.HEIGHT_M.
 function K.strength.fOfBio(L, P)
     return (P.ffmi5 + (L - 5) * P.ffmiPerLevel) * (K.HEIGHT_M * K.HEIGHT_M)
 end
 
--- The bio level of a lean F, the inverse of fOfBio.
--- The untrained average's lean Favg, fOfBio(5) of DEFAULTS (52.02 kg at the shipped K.HEIGHT_M, 1.70 m), read at call time so it follows
--- K.HEIGHT_M: the reference the lean-scaled fat cuts and the fat starts divide by (Task 10b).
+-- The untrained average's lean, read at call time so it follows K.HEIGHT_M: the fat cuts and fat starts divide by it.
 function K.strength.averageLean()
     return K.strength.fOfBio(5, K.strength.DEFAULTS)
 end
@@ -97,7 +88,7 @@ function K.strength.bioLevel(F, P)
     return 5 + (F / (K.HEIGHT_M * K.HEIGHT_M) - P.ffmi5) / P.ffmiPerLevel
 end
 
--- General strength S = ((F - Fnm) / M5)^b * N0 * T (spec section 2.1); 0 at or below Fnm.
+-- 0 at or below Fnm.
 function K.strength.strengthOf(F, N0, T, P)
     if F <= P.Fnm then
         return 0
@@ -105,12 +96,12 @@ function K.strength.strengthOf(F, N0, T, P)
     return ((F - P.Fnm) / P.M5) ^ P.b * N0 * T
 end
 
--- The shown level, linear in S: 5 at the untrained average (S = 1), 10 at S = R (ruling 13-45).
+-- Linear in S: 5 at the untrained average (S = 1), 10 at S = R.
 function K.strength.level(F, N0, T, P)
     return 5 + 5 * (K.strength.strengthOf(F, N0, T, P) - 1) / (P.R - 1)
 end
 
--- The lean F at which level(F, N0, T, P) is L; Fnm where that level needs S <= 0 (below 5 - 5 / (R - 1)).
+-- Fnm where that level needs S <= 0.
 function K.strength.fOfLevel(L, N0, T, P)
     local S = 1 + (L - 5) * (P.R - 1) / 5
     if S <= 0 then
@@ -119,25 +110,22 @@ function K.strength.fOfLevel(L, N0, T, P)
     return P.Fnm + P.M5 * (S / (N0 * T)) ^ (1 / P.b)
 end
 
--- The growth threshold in sets a week at status s (spec section 5).
 function K.strength.threshold(s, P)
     return P.Sg0 * math.exp(P.beta * s)
 end
 
--- The effective set cap at status s (spec section 5).
 function K.strength.setCap(s, P)
     return P.Smax + (P.Smax1 - P.Smax) * s
 end
 
--- The training signal G of S weekly hard sets at status s, 1 at Sref for a novice (spec section 5).
+-- 1 at Sref for a novice.
 function K.strength.signal(S, s, P)
     local root = math.sqrt(K.min(S, K.strength.setCap(s, P))) - math.sqrt(K.strength.threshold(s, P))
     return K.max(0, root) / (math.sqrt(P.Sref) - math.sqrt(P.Sg0))
 end
 
--- R: the S of the untrained average after `years` of perfect training at Tmax, the growth law's
--- full-gate daily step from the average's creation body (spec section 2.4). It reads DEFAULTS only, never
--- a server's options; about 365 steps a year, run at file load and at a yearsTo10 change only (Rule 6).
+-- The S of the untrained average after `years` of perfect training. Reads DEFAULTS only; about 365 steps a year, so it
+-- runs at file load and at a yearsTo10 change only (Rule 6).
 function K.strength.R(years)
     local D = K.strength.DEFAULTS
     local F = K.strength.fOfBio(5, D)
@@ -151,8 +139,7 @@ function K.strength.R(years)
     return K.strength.strengthOf(F, 1, D.Tmax, D)
 end
 
--- The shown perk level n and the progress bar's fraction of the next level: n floors L + 1e-9 (a start
--- built exactly on its level never floors one low) into [0, L_MAX]; frac is 0 below 0 and at the cap.
+-- n floors L + 1e-9, so a start built exactly on its level never floors one low; frac is 0 below 0 and at the cap.
 function K.strength.shown(L)
     local n = K.clamp(math.floor(L + 1e-9), 0, K.strength.L_MAX)
     local frac = 0
@@ -162,14 +149,11 @@ function K.strength.shown(L)
     return n, frac
 end
 
--- The shown level's drop margin (Plan 13 Task 10c): the written level falls only once the continuous level is this
--- far below it, so a day's small loss never drops a level the next day's regain would restore.
+-- The written level falls only this far below, so a day's small loss never drops a level the next day restores.
 K.strength.DROP_MARGIN = K.dials.get("strength.DROP_MARGIN")
 
--- The written perk level n and the bar's fraction for continuous level L under the level last written Lw (nil, or not
--- a finite number, when none was written): n rises to floor(L) (shown's floor) when that is above Lw; drops to
--- floor(L + DROP_MARGIN), with shown's epsilon, only when L < Lw - DROP_MARGIN; else holds at Lw, clamped to
--- [0, L_MAX]. frac is L - n where L is above n and below L_MAX, else 0 (a held level shows an empty bar).
+-- Rises to floor(L) above Lw; drops only when L < Lw - DROP_MARGIN; else holds Lw (nil or non-finite Lw: none
+-- written). A held level shows an empty bar.
 function K.strength.heldLevel(L, Lw)
     local n, frac = K.strength.shown(L)
     if not K.finite(Lw) or n > Lw then
@@ -187,8 +171,7 @@ function K.strength.heldLevel(L, Lw)
     return n, frac
 end
 
--- The growth status s in [0, 1]: lean above the set point as a share of the cap's room (bio units by
--- construction); 0 when the cap sits at or below the set point.
+-- Lean above the set point as a share of the cap's room; 0 when the cap sits at or below the set point.
 function K.strength.status(body)
     if body.Fc <= body.F0 then
         return 0
@@ -196,15 +179,12 @@ function K.strength.status(body)
     return K.clamp((body.lm - body.F0) / (body.Fc - body.F0), 0, 1)
 end
 
--- The protein gate f_p at p g/kg/d: the fp_knots read flat past their ends (spec section 5).
 function K.strength.fp(p, P)
     return K.interp(P.fp_knots, p)
 end
 
--- The energy gate f_e at balance E kcal/d, status s, protein p g/kg/d and expenditure tdee (spec section 5):
--- zero at the status zero point E0s (deepened for a high-protein novice) and below; the balance gate bal
--- times the share of the way from E0s to balance in a deficit; from bal toward 1 across a surplus that
--- saturates at surplus_full of tdee, less full_drop with status.
+-- Zero at the status zero point E0s (deepened for a high-protein novice) and below; bal times the way from E0s in a
+-- deficit; toward 1 across a surplus saturating at surplus_full of tdee.
 function K.strength.fe(E, s, p, tdee, P)
     local ramp = K.clamp((p - P.nov_p0) / P.nov_pspan, 0, 1)
     local E0s = P.E0 * (1 - P.E0_drop * s) * (1 + P.a_nov * (1 - s) ^ 2 * ramp)
@@ -219,13 +199,8 @@ function K.strength.fe(E, s, p, tdee, P)
     return bal + (1 - bal) * K.min(1, E / full)
 end
 
--- The day's two lean-gain arms in kg, the biology clock ts applied to each (spec section 5); K.strength.day
--- composes them as their max. The growth arm: k a week times the room to the cap Fc, the signal, the two
--- gates and the alcohol gate, an Euler step times ts, never negative. The regain arm, while lm sits below the
--- held peak Pk (else 0): half-life regain_hl_wk at the signal capped at 1 and the same three gates (a drinking
--- day blunts the same synthesis, controller ruling), integrated exactly over the day, so the gap Pk - lm
--- closes by 1 - exp(-lr * min(1, G) * gates * ts / 7) and never past Pk at any clock (Task 11c, Task 11
--- review I-2: the Euler form's fraction ln2 * ts / (7 * regain_hl_wk) exceeds 1 inside the option ranges).
+-- The growth arm, an Euler step; the regain arm toward the held peak Pk, integrated exactly so it never passes Pk at
+-- any clock (the Euler fraction exceeds 1 inside the option ranges). A drinking day blunts both.
 function K.strength.growth(body, S, p, E, tdee, alcGkg, P, ts)
     local s = K.strength.status(body)
     local G = K.strength.signal(S, s, P)
@@ -239,16 +214,12 @@ function K.strength.growth(body, S, p, E, tdee, alcGkg, P, ts)
     return grow, regain
 end
 
--- The maintenance threshold S_m(s) in sets a week: the share m of the growth threshold (spec section 6).
 function K.strength.maintainSets(s, P)
     return P.m * K.strength.threshold(s, P)
 end
 
--- Detraining, in kg of lean lost today (spec section 6; ruling 13-2's exact form). Advances the grace
--- counter (a day below S_m adds one, any other day resets it); past grace_d / ts such days, and only while
--- lm is above the set point F0, lm - F0 falls by exp(-lam * ts * (1 - S / S_m) / 7), integrated exactly
--- over the day so no clock overshoots F0, lam's half-life lengthened by the status term. At ts > grace_d a
--- day below S_m detrains at grace 1, as the oracle does.
+-- Past grace_d / ts days below S_m, and only above F0, lm - F0 decays, integrated exactly so no clock overshoots F0.
+-- At ts > grace_d a day below S_m detrains at grace 1, as the oracle does.
 function K.strength.detrain(body, S, s, P, ts)
     local Sm = K.strength.maintainSets(s, P)
     if S < Sm then
@@ -263,16 +234,13 @@ function K.strength.detrain(body, S, s, P, ts)
     return (body.lm - body.F0) * (1 - math.exp(-lam * ts * (1 - S / Sm) / 7))
 end
 
--- The remembered peak (spec section 6): Pk holds the highest lm, then decays toward lm with a half-life of
--- peak_hl_yr years, the biology clock scaling the day.
+-- Pk holds the highest lm, then decays toward lm (peak_hl_yr), the biology clock scaling the day.
 function K.strength.peakStep(body, P, ts)
     local Pk = K.max(body.Pk, body.lm)
     body.Pk = body.lm + (Pk - body.lm) * math.exp(-math.log(2) / (P.peak_hl_yr * 365) * ts)
 end
 
--- The neural factor T (spec sections 4 and 6; ruling 13-45). Tgrace counts the days below m * Wsat and any
--- other day resets it; past Tgrace_d / ts such days T decays toward 1 on tauDownWk, else it rises toward
--- Tmax on tauUpWk at the signal's share of Wsat (capped at 1), both integrated exactly over the day.
+-- Past Tgrace_d / ts days below m * Wsat, T decays toward 1; else it rises toward Tmax, both exact over the day.
 function K.strength.neural(body, S, P, ts)
     if S < P.m * P.Wsat then
         body.Tgrace = body.Tgrace + 1
@@ -286,8 +254,7 @@ function K.strength.neural(body, S, P, ts)
     end
 end
 
--- The signal ring's day close (ruling 13-12): sig7 shifts one slot (slot 1 the oldest), the day's sigDay lands in
--- slot 7 and is zeroed. Returns the ring's sum, the closed week's Strength XP (the caller divides by xpPerSet).
+-- Slot 1 the oldest; returns the ring's sum, the closed week's Strength XP (the caller divides by xpPerSet).
 function K.strength.signalClose(body)
     local ring = body.sig7
     local n = K.body.WEEK_N
@@ -303,12 +270,8 @@ function K.strength.signalClose(body)
     return sum
 end
 
--- One closed day of the body (spec sections 5, 5.1 and 6), the oracle's exact Body.day: the larger of
--- growth's two arms (each with the biology clock ts applied), detraining at the day's opening status, the
--- partition arm by the sign of E (each charges growth's energy at grow / ts, ruling 13-3), the floors
--- (lm >= fMinShare * F0, lx >= 0, fm >= fmMin), then the peak and the neural factor (which reads S only). A tdee at or
--- below 0, or NaN, reads the energy gate at balance: the gate's surplus share divides by it. Writes lm, lx, fm, Pk,
--- grace, T and Tgrace; returns the day's dF, dX, dM before the floors.
+-- The oracle's exact Body.day. Partition by the sign of E charges growth's energy at grow / ts. A tdee at or below 0,
+-- or NaN, reads the energy gate at balance, since the gate divides by it. Returns dF, dX, dM before the floors.
 function K.strength.day(body, S, p, E, tdee, alcGkg, P, ts)
     local s = K.strength.status(body)
     local Egate = E
@@ -337,11 +300,8 @@ function K.strength.day(body, S, p, E, tdee, alcGkg, P, ts)
     return dF, dX, dM
 end
 
--- An immobilised day of the body (rulings 13-13 and 13-35), in place of K.strength.day: the disuse arm
--- (K.partition.disuse; the adapter stamps its day count tDisuse and anchor lm0dis) applied under the same floors
--- (lm >= fMinShare * F0, fm >= fmMin) with lx untouched; detraining runs at the day's opening status for its grace
--- counter alone, its kg discarded (the disuse curve already carries the immobilised loss); the neural factor steps and
--- the peak does not. Writes lm, fm, grace, T and Tgrace; returns the disuse arm's dFM, dLM before the floors.
+-- In place of K.strength.day: the disuse arm under the same floors, lx untouched; detraining runs for its grace counter
+-- alone, its kg discarded (the disuse curve already carries the loss); T steps, the peak does not.
 function K.strength.disuseDay(body, S, P, ts)
     local s = K.strength.status(body)
     local dFM, dLM = K.partition.disuse(body)
@@ -355,32 +315,22 @@ end
 K.strength.DEFAULTS.M5 = K.strength.fOfBio(5, K.strength.DEFAULTS) - K.strength.DEFAULTS.Fnm -- F5 - Fnm, so S = 1 at the average
 K.strength.DEFAULTS.R = K.strength.R(K.strength.DEFAULTS.yearsTo10) -- the S of level 10 (ruling 13-45)
 K.strength.DEFAULTS.ffmiNaturalRaw = K.strength.DEFAULTS.ffmiNatural - K.strength.DEFAULTS.kouriCoef * (1.8 - K.HEIGHT_M) -- the raw FFMI limit at K.HEIGHT_M, 24.37 at 1.70 m (ruling 13-47); 1.8 m is ffmiNatural's normalisation height (its row): no row needed
--- The strength sandbox options (Plan 13 Task 11; spec section 10; Plan 19 Task 3f): the registry's strength rows that
--- carry an option (opt) read into a server's P table (param), built at load by K.dials.paramOptions (NR_Kernel_Dials.lua),
--- one entry a row sorted by id: { id, key, opt, value, min, max, int, written }. A DEFAULTS row's option sets its P key;
--- RATE's multiplies k and PROTEIN_FULL's scales the protein knots' x. A double clamps to its range, an integer reads
--- the default out of range (K.readLeaf), and a read at the option file's three-place default reads the row's exact
--- value (K.dials.readParam: StrengthMaintainShare's 0.333 is m's third). tools/sandbox_options.py writes the option
--- file from the same rows, so a row is the option's one declaration.
+-- The strength sandbox options: the registry rows that carry an option. RATE multiplies k and PROTEIN_FULL scales the
+-- protein knots' x; a read at the option file's three-place default reads the row's exact value (K.dials.readParam).
+-- tools/sandbox_options.py writes the option file from the same rows, so a row is the option's one declaration.
 K.strength.OPTIONS = K.dials.paramOptions("strength")
 
--- The protein x at which the gate reaches 1, the last protein knot's (DEFAULTS.fp_knots[4][1] is this dial);
--- StrengthProteinFull moves it by scaling every knot's x.
+-- fp_knots[4][1] is this dial; StrengthProteinFull moves it by scaling every knot's x.
 K.strength.PROTEIN_FULL = K.dials.get("strength.PROTEIN_FULL")
 
--- The multiplier StrengthRate puts on the fitted growth rate k: 1, k itself.
 K.strength.RATE = K.dials.get("strength.RATE")
 
--- R's cache, one entry: the year value it was run for and its result; params re-runs K.strength.R only when the
--- option's year value differs from the last one (R is 365 steps a year, Rule 6).
+-- R's one-entry cache: R is 365 steps a year (Rule 6), so it re-runs only for a new year value.
 local rYears = K.strength.DEFAULTS.yearsTo10
 local rValue = K.strength.DEFAULTS.R
 
--- The strength parameters P of a sandbox table sv (SandboxVars.NR, or nil): a new table from DEFAULTS with every
--- option read through K.dials.readParam, k scaled by StrengthRate and the protein knots' x by StrengthProteinFull / K.strength.PROTEIN_FULL,
--- R for the year option and M5 from DEFAULTS (ruling 13-45). The load guard: at bio level 15's status in the
--- effective cap's room (capLevel held at the natural limit) the growth threshold must sit under the set cap, else
--- beta, Sg0 and Smax1 revert to DEFAULTS; returns P and whether it fell back.
+-- The load guard: at bio level 15's status, if the growth threshold reaches the set cap, beta, Sg0 and Smax1 revert to
+-- DEFAULTS; returns P and whether it fell back.
 function K.strength.params(sv)
     local S = K.strength
     local D = S.DEFAULTS
@@ -437,12 +387,10 @@ end
 
 -- ============================================================ the level band and the carry
 
--- The Java perk cap: getTotalXpForLevel(11) == getTotalXpForLevel(10) (#2859); BeyondTen's mastery
--- levels 11-15 live in its own modData, outside the model.
+-- getTotalXpForLevel(11) == getTotalXpForLevel(10) (#2859); BeyondTen's levels 11-15 live in its own modData.
 K.strength.L_MAX = K.dials.get("strength.L_MAX")
 
--- The acute carry terms. Dehydration in two steps (percent body mass), scaled by DEHYD_SWEAT_K when
--- the deficit arose from sweat or heat.
+-- Dehydration in two steps (% body mass), scaled by DEHYD_SWEAT_K when sweat or heat caused it.
 K.strength.DEHYD_PCT1 = K.dials.get("strength.DEHYD_PCT1")
 K.strength.DEHYD_STEP1 = K.dials.get("strength.DEHYD_STEP1")
 K.strength.DEHYD_PCT2 = K.dials.get("strength.DEHYD_PCT2")
@@ -464,19 +412,14 @@ K.strength.FAT_PER_10PT = K.dials.get("strength.FAT_PER_10PT")
 K.strength.FAT_KNEE = K.dials.get("strength.FAT_KNEE")
 K.strength.FAT_PER_PTS = K.dials.get("strength.FAT_PER_PTS")
 
--- The acute factor's clamp.
 K.strength.E_ACUTE_MIN = K.dials.get("strength.E_ACUTE_MIN")
 K.strength.E_ACUTE_MAX = K.dials.get("strength.E_ACUTE_MAX")
 
--- Vanilla's band remap as {highest level, trait}: the first row whose level is >= the shown level.
--- Level 5 carries no band trait (its row's trait is nil).
+-- {highest level, trait}: the first row at or above the shown level; level 5 carries no trait.
 K.strength.BANDS = { { 1, "WEAK" }, { 4, "FEEBLE" }, { 5, nil }, { 8, "STOUT" }, { 10, "STRONG" } } -- #2157: WEAK 0-1, FEEBLE 2-4, none 5, STOUT 6-8, STRONG >= 9
--- The four muscle-band trait names (CharacterTrait registry fields), the one list every server reader walks:
--- vanilla's remap removes them before it adds one back (#2157), and vanilla never lets a character hold two, so the
--- order is moot.
+-- Vanilla's remap removes all four before it adds one back (#2157) and never lets a character hold two.
 K.strength.MUSCLE_TRAITS = { "WEAK", "FEEBLE", "STOUT", "STRONG" }
 
--- The band trait vanilla's remap gives a level (nil at 5); a level above the table reads the last row.
 function K.strength.bandOf(level)
     local bands = K.strength.BANDS
     for i = 1, #bands do
@@ -487,10 +430,8 @@ function K.strength.bandOf(level)
     return bands[#bands][2]
 end
 
--- The acute carry factor: dehydration in two steps (x DEHYD_SWEAT_K from sweat or heat), hours awake
--- past the knee (halved from AM_FROM_H to AM_TO_H of the body clock's hourOfDay, K.circadian.hour; nil, with sleep
--- off, halves nothing: a game choice, Plan 16 spec section 6), capped, caffeine, clinical vitamin D deficiency and
--- body fat above FAT_KNEE, the sum clamped to [E_ACUTE_MIN, E_ACUTE_MAX].
+-- The sum clamped to [E_ACUTE_MIN, E_ACUTE_MAX]. The morning halving reads the body clock (K.circadian.hour); nil, with
+-- sleep off, halves nothing (a game choice).
 function K.strength.eAcute(dehydPct, sweatActive, hoursAwake, hourOfDay, caffeineActive, vitDClinical, bf)
     local S = K.strength
     local sweatK = 1
@@ -520,30 +461,26 @@ function K.strength.eAcute(dehydPct, sweatActive, hoursAwake, hourOfDay, caffein
     return K.clamp(e, S.E_ACUTE_MIN, S.E_ACUTE_MAX)
 end
 
--- The carry's trait factor by muscle band: the constructor's own values for the band trait a level implies (#2144;
--- ruling 13-7); the level-5 band, none, reads 1.
+-- The constructor's own values (#2144).
 K.strength.TRAIT_CARRY = { WEAK = 0.75, FEEBLE = 0.9, STOUT = 1.25, STRONG = 1.5 } -- VANILLA #2144
 
--- The carry's trait factor at Strength level n: TRAIT_CARRY of the band bandOf(n), 1 with no band (ruling 13-7).
 function K.strength.traitCarry(n)
     return K.strength.TRAIT_CARRY[K.strength.bandOf(n)] or 1
 end
 
--- The carry delta written through setMaxWeightDelta: the trait factor (traitCarry) times (1 + eAcute).
 function K.strength.carryDelta(traitCarry, eAcute)
     return traitCarry * (1 + eAcute) -- ruling 11
 end
 
--- ============================================================ the AddXP capture (spec section 4, ruling 13-11)
--- The protein factor vanilla's XP.AddXP applies off the server's protein store (#2112; the 42.21 jar's AddXP
--- @107-@190): x1.5 strictly between 50 and 300, x0.7 strictly below -300, else 1.
+-- ============================================================ the AddXP capture
+-- Vanilla's XP.AddXP protein factor off the server's store (#2112): x1.5 strictly between 50 and 300, x0.7 below -300.
 K.strength.PROTEIN_LO = 50 -- VANILLA #2112
 K.strength.PROTEIN_HI = 300 -- VANILLA #2112
 K.strength.PROTEIN_HI_FACTOR = 1.5 -- VANILLA #2112
 K.strength.PROTEIN_NEG = -300 -- VANILLA #2112
 K.strength.PROTEIN_NEG_FACTOR = 0.7 -- VANILLA #2112
 
--- The protein factor of a store (a NaN store compares false everywhere and reads 1).
+-- A NaN store compares false everywhere and reads 1.
 function K.strength.proteinFactor(store)
     local S = K.strength
     if store > S.PROTEIN_LO and store < S.PROTEIN_HI then
@@ -555,10 +492,7 @@ function K.strength.proteinFactor(store)
     return 1
 end
 
--- One Strength grant's training signal, in Strength XP before vanilla's multipliers: 0 for a non-finite or
--- non-positive amount; else the amount divided by the protein factor of store, the sandbox multiplier (one that is
--- not a positive finite number reads 1) and the book multiplier when above 1 (a non-finite one reads 1; #2113), times
--- 1 for a grant inside a recorded Fitness set (fitness true) or P.incidental for any other (S1951, S1961, S1962).
+-- 0 for a non-finite or non-positive amount; a grant outside a recorded Fitness set counts P.incidental (S1951).
 function K.strength.capture(amount, store, sandboxMult, bookMult, fitness, P)
     if not K.finite(amount) or not (amount > 0) then
         return 0
@@ -570,10 +504,8 @@ function K.strength.capture(amount, store, sandboxMult, bookMult, fitness, P)
     return xp * P.incidental
 end
 
--- The Strength XP before vanilla's multiplier chain that lands as xp after it: xp divided by the protein factor of
--- store, the sandbox multiplier (one that is not a positive finite number reads 1) and the book multiplier when above
--- 1 (a non-finite one reads 1). The capture's division (a landed grant back to its raw size) and the pin's (the raw
--- grant that lands as the bar's fraction, ruling 13-9).
+-- Divides out the protein factor, the sandbox multiplier and a book multiplier above 1 (non-finite ones read 1, #2113):
+-- the capture's division and the pin's (the raw grant that lands as the bar's fraction).
 function K.strength.rawXp(xp, store, sandboxMult, bookMult)
     local sm = sandboxMult
     if not K.finite(sm) or not (sm > 0) then
@@ -586,11 +518,9 @@ function K.strength.rawXp(xp, store, sandboxMult, bookMult)
     return xp / K.strength.proteinFactor(store) / sm / K.max(1, bm)
 end
 
--- ============================================================ the level write (spec section 7, Plan 13 Task 14)
--- The native XP pinned for shown level n and bar fraction frac over the cumulative ladder totals (totals[0] = 0):
--- level n's starting total plus frac of the way to the next, at most 1 XP below it (ruling 13-9; a float frac near 1
--- never lands on the next level's total); at L_MAX the level-9 total, the park, so
--- the engine's AddXP keeps firing its event (it returns before the event at the level-10 total, #2109).
+-- ============================================================ the level write
+-- Level n's starting total plus frac of the way, at most 1 XP below the next (a float frac near 1 never lands on it);
+-- at L_MAX the level-9 total, so the engine's AddXP keeps firing its event (#2109).
 function K.strength.pinXp(n, frac, totals)
     if n >= K.strength.L_MAX then
         return totals[K.strength.L_MAX - 1]
@@ -599,12 +529,10 @@ function K.strength.pinXp(n, frac, totals)
     return totals[n] + K.min(frac * gap, gap - 1)
 end
 
--- BeyondTen's mastery levels end at 15 (its BT.MAX_LEVEL, Shared.lua:10-12).
+-- BeyondTen's BT.MAX_LEVEL (Shared.lua:10-12).
 K.strength.MASTERY_MAX = K.dials.get("strength.MASTERY_MAX")
 
--- BeyondTen's stored mastery XP for shown level L (ruling 13-42): cost(f) + (L - f) (cost(f + 1) - cost(f)) with f the
--- floor of L + 1e-9 (shown's epsilon), clamped to [L_MAX, MASTERY_MAX]; cost(MASTERY_MAX) at or above it. cost(level)
--- is BeyondTen's cumulative mastery cost from level 10 (GetTotalMasteryCost for the Strength perk), 0 at 10.
+-- cost(level) is BeyondTen's cumulative mastery cost from level 10 (GetTotalMasteryCost), 0 at 10; f floors L + 1e-9.
 function K.strength.masteryXp(L, cost)
     local f = K.clamp(math.floor(L + 1e-9), K.strength.L_MAX, K.strength.MASTERY_MAX)
     local base = cost(f)

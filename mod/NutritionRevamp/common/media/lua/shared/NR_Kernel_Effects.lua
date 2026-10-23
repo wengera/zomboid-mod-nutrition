@@ -1,23 +1,14 @@
--- NR_Kernel_Effects.lua -- the effects layer's pure kernel (T1-1):
--- the twelve-band vector and its change test, the protein-energy grade, the energy-availability band and accrual
--- factor, the composer that folds the declarative table (NR_Data_Effects.lua, passed in as an argument -- the
--- kernel never reads NR.data) into record.effects, the fatigue offset, the vanilla accrual and recovery factors,
--- the night-vision machine, Short Sighted, the intoxication target and the vitamin C cold credit. The model is the
--- formulas briefing's sections A1-A4, B1, B3-B5, D1-D3, F1-F2 and J1; the health drains are K.drain's
--- (NR_Kernel_Drain.lua, Plan 15 Task 4).
--- The coefficient set is a pure function of (the nutrient grades and rungs, the band vector, the closed-day pe and
--- ea, the flags, the dial snapshot) and is rebuilt only when K.effects.changed says the key moved; the
--- per-minute scalars (fOff, the night-vision machine, the intoxication target) bypass it.
--- The band vector b is a Lua array of twelve integers at the indices K.effects.B names (caf, wd, bac, alc, hang,
--- bg, iuS, debt, iu, dehyd, hypo, ex). The wd band carries round(4 x wd x cafTol): both withdrawal rows scale by
--- wdQ x cafTol (A4), so banding the product keeps the set a function of the bands.
--- Time: dtD is real game days (the night-vision counter does not take the onset dial); ah is game
--- hours. Sex is indexed 1 male, 2 female (Plan 3's convention). Slow-clock code with no fast region:
--- math.floor is used; every K.clamp / K.min / K.max / K.fluids / K.training reference is at call time.
+-- NR_Kernel_Effects.lua: the effects layer's pure kernel: the twelve-band vector and its change test, the
+-- protein-energy grade, the energy-availability band, the composer that folds NR_Data_Effects.lua (passed in: the
+-- kernel never reads NR.data) into record.effects, the fatigue offset, vanilla's accrual and recovery factors, night
+-- vision, Short Sighted, intoxication, the vitamin C cold credit and the lethal causes' symptoms.
+-- The coefficient set is rebuilt only when K.effects.changed says its key moved; the per-minute scalars bypass it.
+-- The wd band carries round(4 x wd x cafTol), so the set stays a function of the bands. dtD is real game days.
+-- Slow-clock code; every `#` is on a kernel- or data-built Lua array, never a Java list. K.clamp, K.min, K.max,
+-- K.fluids and K.training resolve at call time.
 local K = NutritionRevamp.kernel
 K.effects = {}
 
--- The band vector's indices and length.
 K.effects.B = {
     caf = 1, -- no row needed: an index
     wd = 2, -- no row needed: an index
@@ -44,7 +35,7 @@ K.effects.ALC_EDGES = {
     K.dials.get("effects.ALC_EDGES.1"),
     K.dials.get("effects.ALC_EDGES.2"),
 }
--- The blood-glucose edges, mmol/L, descending: band 1 below the first (3.5), 2 below the second (3.0), 3 below the third (2.6).
+-- Descending: band 1 below the first, 2 below the second, 3 below the third.
 K.effects.BG_EDGES = {
     K.dials.get("effects.BG_EDGES.1"),
     K.dials.get("effects.BG_EDGES.2"),
@@ -59,7 +50,6 @@ K.effects.DEBT_EDGES = {
 }
 K.effects.IU_STEP = K.dials.get("effects.IU_STEP")
 K.effects.IU_BANDS = K.dials.get("effects.IU_BANDS")
--- The dehydration edges, per cent body mass.
 K.effects.DEHYD_EDGES = {
     K.dials.get("effects.DEHYD_EDGES.1"),
     K.dials.get("effects.DEHYD_EDGES.2"),
@@ -73,7 +63,7 @@ K.effects.DEHYD_EDGES = {
 K.effects.EX_STEP = K.dials.get("effects.EX_STEP")
 K.effects.EX_BANDS = K.dials.get("effects.EX_BANDS")
 
--- Energy availability (closed day, kcal per kg lean mass): the band edges, descending, and the accrual knots.
+-- Energy availability (closed day, kcal per kg lean mass).
 K.effects.EA_EDGES = {
     K.dials.get("effects.EA_EDGES.1"),
     K.dials.get("effects.EA_EDGES.2"),
@@ -85,7 +75,6 @@ K.effects.EA_MID_M = K.dials.get("effects.EA_MID_M")
 K.effects.EA_LOW = K.dials.get("effects.EA_LOW")
 K.effects.EA_LOW_M = K.dials.get("effects.EA_LOW_M")
 
--- The protein-energy grade (F1).
 K.effects.PE_BMI_OK = K.dials.get("effects.PE_BMI_OK")
 K.effects.PE_BMI_THIN = K.dials.get("effects.PE_BMI_THIN")
 K.effects.PE_BMI_LOW = K.dials.get("effects.PE_BMI_LOW")
@@ -95,23 +84,21 @@ K.effects.PE_PROT_OK = K.dials.get("effects.PE_PROT_OK")
 K.effects.PE_PROT_2 = K.dials.get("effects.PE_PROT_2")
 K.effects.PE_PROT_3 = K.dials.get("effects.PE_PROT_3")
 
--- The aiming multiplier (D1): clamp(1 + AIM_K x IU, AIM_LO, AIM_HI), IU at the band's lower edge.
+-- clamp(1 + AIM_K x IU, AIM_LO, AIM_HI), IU at the band's lower edge.
 K.effects.AIM_K = K.dials.get("effects.AIM_K")
 K.effects.AIM_LO = K.dials.get("effects.AIM_LO")
 K.effects.AIM_HI = K.dials.get("effects.AIM_HI")
 
--- The fatigue offset (B1): fOff = min(DEBT_K x debtH, DEBT_F_MAX) - cafOffset + fOffNut; the caffeine offset's
--- ceiling CAF_OFF_MAX is the active stimulant set's (K.acute.C, Plan 15 Task 10).
+-- fOff = min(DEBT_K x debtH, DEBT_F_MAX) - cafOffset + fOffNut; CAF_OFF_MAX is the stimulant set's (K.acute.C).
 K.effects.DEBT_K = K.dials.get("effects.DEBT_K")
 K.effects.DEBT_F_MAX = K.dials.get("effects.DEBT_F_MAX")
 K.effects.CAF_EC50 = K.dials.get("effects.CAF_EC50")
 K.effects.CAF_TOL_BLUNT = K.dials.get("effects.CAF_TOL_BLUNT")
 
--- Caffeine at sleep (A4, B6): satC = clamp((caf - zero) / (full - zero), 0, 1).
 K.effects.CAF_SLEEP_FULL = K.dials.get("effects.CAF_SLEEP_FULL")
 K.effects.CAF_SLEEP_ZERO = K.dials.get("effects.CAF_SLEEP_ZERO")
 
--- The engine part of accrual (B3) and recovery (B4): vanilla's own factors, clamped.
+-- Vanilla's own accrual and recovery factors, clamped.
 K.effects.END_FLOOR = 0.3 -- VANILLA #2270: the endDef floor
 K.effects.REST_DIV = 1.5 -- VANILLA #2271: sitting or resting divides the accrual
 K.effects.M_LO = K.dials.get("effects.M_LO")
@@ -119,22 +106,17 @@ K.effects.M_HI = K.dials.get("effects.M_HI")
 K.effects.R_LO = K.dials.get("effects.R_LO")
 K.effects.R_HI = K.dials.get("effects.R_HI")
 
--- The night-vision machine (D2).
 K.effects.NV_GRANT = K.dials.get("effects.NV_GRANT")
 K.effects.NV_SLOW = K.dials.get("effects.NV_SLOW")
 K.effects.NV_REGRANT = K.dials.get("effects.NV_REGRANT")
 K.effects.NV_ZINC = K.dials.get("effects.NV_ZINC")
 
--- The intoxication target: clamp(100 x bac / INTOX_FULL_BAC, 0, 100), the full BAC the active stimulant set's
--- (K.acute.C: 0.20 % Realistic, 0.31 % Game; Plan 15 Task 10).
 K.effects.INTOX_MAX = K.dials.get("effects.INTOX_MAX")
 
--- The vitamin C cold credit's gates (F2): replete, at least CREDIT_E24 (200 mg/d), exerting, cold-exposed.
 K.effects.CREDIT_E24 = K.dials.get("effects.CREDIT_E24")
 K.effects.CREDIT_B1 = K.dials.get("effects.CREDIT_B1")
 K.effects.CREDIT_COLD_H = K.dials.get("effects.CREDIT_COLD_H")
 
--- The B vitamins whose worst grade drives the stress rows (A4).
 K.effects.BGROUP = {
     "thiamine",
     "riboflavin",
@@ -144,7 +126,7 @@ K.effects.BGROUP = {
     "vitB12",
 }
 
--- A fresh record.effects (J1): every surface at its identity, the key unmatchable, the machine at rest.
+-- Every surface at its identity, the key unmatchable, the machine at rest.
 function K.effects.new()
     return {
         epoch = 0,
@@ -190,7 +172,6 @@ function K.effects.new()
     }
 end
 
--- min(n, max(0, floor(x / w))) with the floating-point guard.
 function K.effects.step(x, w, n)
     local q = math.floor(x / w + K.effects.BAND_EPS)
     return K.clamp(q, 0, n)
@@ -199,7 +180,6 @@ end
 -- The count of ascending edges at or below x (0 .. #edges).
 function K.effects.atOrAbove(x, edges)
     local n = 0
-    -- edges is a kernel-built Lua array (no Java list), so # is its length
     for i = 1, #edges do
         if x >= edges[i] then
             n = i
@@ -211,7 +191,6 @@ end
 -- The count of descending edges strictly above x (0 .. #edges).
 function K.effects.below(x, edges)
     local n = 0
-    -- edges is a kernel-built Lua array (no Java list), so # is its length
     for i = 1, #edges do
         if x < edges[i] then
             n = i
@@ -220,7 +199,7 @@ function K.effects.below(x, edges)
     return n
 end
 
--- Fill the twelve integer bands in place from record.acute and record.fluids (A2). No allocation.
+-- In place, no allocation.
 function K.effects.bands(b, acute, fluids)
     local E = K.effects
     local I = E.B
@@ -247,7 +226,6 @@ function K.effects.bands(b, acute, fluids)
     return b
 end
 
--- Whether the rebuild key moved: the nutrient epoch, the closed day, the dial snapshot or any band.
 function K.effects.changed(key, ep, day, dials, b)
     if key.ep ~= ep or key.day ~= day or key.dials ~= dials then
         return true
@@ -261,7 +239,6 @@ function K.effects.changed(key, ep, day, dials, b)
     return false
 end
 
--- Stamp the key element-wise (no allocation).
 function K.effects.stampKey(key, ep, day, dials, b)
     key.ep = ep
     key.day = day
@@ -273,11 +250,8 @@ function K.effects.stampKey(key, ep, day, dials, b)
     return key
 end
 
--- The protein-energy grade 1..4 at the day close (F1): the worse of the energy side (BMI, 0 =
--- unknown; starved days) and the protein side (the 7-day mean g/kg/d; nil or negative = unknown, grade 1).
--- starvedDays is the acute record's calendar count of low-intake days (K.acute.refeedDay), S0115's days of little or no
--- intake, kept apart from the drain's continuous unfed clock (K.drain.unfedH, which a nibble resets): the two can
--- disagree by up to a day at a fast's start (Plan 15 close, L4).
+-- The worse of the energy side (BMI, 0 unknown; starved days) and the protein side (nil or negative unknown).
+-- starvedDays is K.acute.refeedDay's calendar count, not the drain's unfed clock: they can differ by a day at a fast's start.
 function K.effects.peGrade(bmi, starvedDays, p7meanGkg)
     local E = K.effects
     local e = 1
@@ -308,14 +282,12 @@ function K.effects.peGrade(bmi, starvedDays, p7meanGkg)
     return K.max(e, p)
 end
 
--- The energy-availability band for the cold rows over the descending EA_EDGES (30, 20, 10): 0 at the first edge or
--- more, 1 under it, 2 under the second, 3 under the third.
+-- 0 at the first edge or more, 1 under it, 2 under the second, 3 under the third.
 function K.effects.eaBand(ea)
     return K.effects.below(ea, K.effects.EA_EDGES)
 end
 
--- The accrual factor of a low energy availability (A4): 1 at EA_FULL (30) or more, linear to EA_MID_M (1.25) at
--- EA_MID (15) and to EA_LOW_M (1.40) at EA_LOW (5), held below.
+-- 1 at EA_FULL or more, linear through (EA_MID, EA_MID_M) to (EA_LOW, EA_LOW_M), held below.
 function K.effects.eaAccrual(ea)
     local E = K.effects
     if ea >= E.EA_FULL then
@@ -330,7 +302,6 @@ function K.effects.eaAccrual(ea)
     return E.EA_LOW_M
 end
 
--- The selector's value for a row: a grade, a rung, a band, the pe grade, the ea band or a flag.
 function K.effects.selValue(row, nut, b, pe, ea, flags)
     local on = row.on
     if on == "grade" then
@@ -351,8 +322,7 @@ function K.effects.selValue(row, nut, b, pe, ea, flags)
     return flags[row.src]
 end
 
--- Whether a selector value matches at: nil matches true; a {lo, hi} matches a number in the inclusive range;
--- a number matches itself.
+-- nil matches true; a {lo, hi} an inclusive range; a number itself.
 function K.effects.atMatch(v, at)
     if at == nil then
         return v == true
@@ -363,9 +333,7 @@ function K.effects.atMatch(v, at)
     return v == at
 end
 
--- Whether a row folds: its gate on (VITD_EFFECTS -> vitdOn, BalanceBonus -> bonusOn, any other -> off), its
--- unless flag not true, its stimulant set (stim, Plan 15 Task 10) the flags' stim (nil reads 1, Game, the option's
--- default), its selector matching.
+-- VITD_EFFECTS gates on vitdOn, BalanceBonus on bonusOn, any other off; stim nil reads 1 (Game, the default).
 function K.effects.active(row, nut, b, pe, ea, flags, bonusOn, vitdOn)
     if row.stim ~= nil and row.stim ~= (flags.stim or 1) then
         return false
@@ -386,7 +354,6 @@ function K.effects.active(row, nut, b, pe, ea, flags, bonusOn, vitdOn)
     return K.effects.atMatch(K.effects.selValue(row, nut, b, pe, ea, flags), row.at)
 end
 
--- One fold step by the surface's operator.
 function K.effects.fold(op, cur, v)
     if op == "mul" then
         return cur * v
@@ -403,12 +370,10 @@ function K.effects.fold(op, cur, v)
     return cur or v ~= 0
 end
 
--- Fold every active row's entries: the penalty pass (bonusPass false) takes the entries without bonus, the
--- bonus pass the two exceptions.
+-- The penalty pass takes the entries without bonus, the bonus pass the two exceptions.
 function K.effects.foldRows(E, T, nut, b, pe, ea, flags, bonusOn, vitdOn, bonusPass)
     local S = T.SURF
     local rows = T.ROWS
-    -- ROWS and each list are Lua arrays the data file builds (no Java list), so # is their length
     for i = 1, #rows do
         local row = rows[i]
         if K.effects.active(row, nut, b, pe, ea, flags, bonusOn, vitdOn) then
@@ -424,10 +389,8 @@ function K.effects.foldRows(E, T, nut, b, pe, ea, flags, bonusOn, vitdOn, bonusP
     return E
 end
 
--- The Severity dial on one folded surface: mul 1 + (v - 1) x sev, add v x sev, a boolean with
--- sevMin false below it; a max surface (identity 0) v x sev, a min surface (identity 1) 1 - (1 - v) x sev, or, with a
--- sevMin, v at or above it and 1 below (an on/off effect, never partial: the Overfull slowing, Plan 15 Task 8 fix 1); the
--- machine surfaces untouched (surfaceStep skips them).
+-- mul 1 + (v - 1) x sev, add v x sev, max v x sev, min 1 - (1 - v) x sev; a sevMin surface is on or off, never
+-- partial (the Overfull slowing). Machine surfaces are skipped.
 function K.effects.sevScale(op, v, sev, sevMin)
     if op == "mul" then
         return 1 + (v - 1) * sev
@@ -453,8 +416,7 @@ function K.effects.sevScale(op, v, sev, sevMin)
     return v
 end
 
--- One surface's step of the composer: 1 resets it to its identity, 2 applies the Severity dial, 3 clamps it.
--- A machine surface (nightVision) is left to its own function.
+-- 1 resets to identity, 2 applies Severity, 3 clamps; a machine surface is left to its own function.
 function K.effects.surfaceStep(E, name, s, stage, sev)
     if s.machine then
         return E
@@ -473,10 +435,8 @@ function K.effects.surfaceStep(E, name, s, stage, sev)
     return E
 end
 
--- Compose record.effects from the table (A3's six steps): identity; the penalty fold (and the energy-availability
--- accrual factor on mNut); the Severity scaling; the bonus fold; the clamp; aimMul from the iu band; epoch + 1.
--- The machine surface (nightVision) is left to its own function, and E.enduranceCap (the lower of rowEndCap and the
--- symptom cap) to K.effects.symptoms, which the server runs every minute after any compose.
+-- Identity, the penalty fold (with the EA accrual factor on mNut), Severity, the bonus fold, the clamp, aimMul; epoch + 1.
+-- E.enduranceCap is K.effects.symptoms's, which the server runs every minute after any compose.
 function K.effects.compose(E, T, nut, b, pe, ea, flags, sev, bonusOn, vitdOn)
     local S = T.SURF
     for name, s in pairs(S) do
@@ -497,19 +457,16 @@ function K.effects.compose(E, T, nut, b, pe, ea, flags, sev, bonusOn, vitdOn)
     return E
 end
 
--- The worst grade over the B vitamins (the stress rows' flag bgroupMax).
 function K.effects.bgroupMax(nut)
     local m = 1
     local G = K.effects.BGROUP
-    -- BGROUP is a kernel-built Lua array, so # is its length
     for i = 1, #G do
         m = K.max(m, nut[G[i]].g)
     end
     return m
 end
 
--- The vitamin C cold credit's gate (F2): replete, at least CREDIT_E24 (200 mg/d) ingested over a day, an exerting day (a
--- training band-2 day, K.training.HARD_DAY_MIN, or 60 moderate minutes) and cold exposure on the 6 h memory.
+-- Replete, CREDIT_E24 over a day, an exerting day (a band-2 training day or 60 moderate minutes) and cold on the 6 h memory.
 function K.effects.coldCredit(vitCg, vitCe24, band1Day, band2Day, coldH)
     local E = K.effects
     if vitCg ~= 1 or vitCe24 < E.CREDIT_E24 or coldH < E.CREDIT_COLD_H then
@@ -521,8 +478,7 @@ function K.effects.coldCredit(vitCg, vitCe24, band1Day, band2Day, coldH)
     return band1Day >= E.CREDIT_B1
 end
 
--- The fatigue offset the writer adds to S + circ (B1): the felt debt, less caffeine's offset blunted by
--- tolerance, plus the nutritional offset. The offset's ceiling is the active stimulant set's (K.acute.C).
+-- The writer adds it to S + circ; caffeine's offset is blunted by tolerance.
 function K.effects.fOff(debtH, caf, cafTol, fOffNut)
     local E = K.effects
     local debt = K.min(E.DEBT_K * debtH, E.DEBT_F_MAX)
@@ -530,14 +486,13 @@ function K.effects.fOff(debtH, caf, cafTol, fOffNut)
     return debt - cafOff + fOffNut
 end
 
--- Caffeine's saturation at sleep (A4, B6): 0 at CAF_SLEEP_ZERO (32.1 mg), 1 at CAF_SLEEP_FULL (107 mg).
+-- 0 at CAF_SLEEP_ZERO, 1 at CAF_SLEEP_FULL.
 function K.effects.satC(caf)
     local E = K.effects
     return K.clamp((caf - E.CAF_SLEEP_ZERO) / (E.CAF_SLEEP_FULL - E.CAF_SLEEP_ZERO), 0, 1)
 end
 
--- Vanilla's own accrual factors (B3, #2270) as one relative factor: the endurance deficit (floor 0.3), resting,
--- the thermoregulator's fatigue multiplier, the sleep trait and StatsDecrease, clamped.
+-- Vanilla's accrual factors as one relative factor (#2270).
 function K.effects.mEngine(endLast, resting, thermoFatigue, sleepTrait, statsDecrease)
     local E = K.effects
     local m = K.max(E.END_FLOOR, 1 - endLast) / E.END_FLOOR
@@ -547,15 +502,14 @@ function K.effects.mEngine(endLast, resting, thermoFatigue, sleepTrait, statsDec
     return K.clamp(m * thermoFatigue * sleepTrait * statsDecrease, E.M_LO, E.M_HI)
 end
 
--- Vanilla's recovery factors (B4, #2276 / #2277): the bed ladder times the trait factor ff / t, clamped.
+-- Vanilla's recovery factors (#2276): the bed ladder times the trait factor, clamped.
 function K.effects.rEngine(bed, trait)
     local E = K.effects
     return K.clamp(bed * trait, E.R_LO, E.R_HI)
 end
 
--- One night-vision minute (D2): while vitamin A is replete, zinc not depleted and the preformed-retinol
--- EMA meets the requirement, the counter runs (half speed under iron or riboflavin depletion); otherwise it drops
--- to NV_GRANT - NV_REGRANT at most and runs down. Returns whether the trait is wanted; stamps E.nightVision.
+-- While vitamin A is replete, zinc not depleted and the retinol EMA meets the requirement the counter runs (half speed
+-- under iron or riboflavin depletion); otherwise it drops to NV_GRANT - NV_REGRANT at most. Stamps E.nightVision.
 function K.effects.nvMinute(E, vitAg, zincG, ironG, riboG, retOk, dtD)
     local A = K.effects
     local cond = vitAg == 1 and zincG < A.NV_ZINC and retOk == true
@@ -573,34 +527,26 @@ function K.effects.nvMinute(E, vitAg, zincG, ironG, riboG, retOk, dtD)
     return want
 end
 
--- Short Sighted (D3): clinical vitamin A at Severity 1 or more.
+-- Clinical vitamin A at Severity 1 or more.
 function K.effects.ssWant(vitAg, sev)
     return vitAg == 4 and sev >= 1
 end
 
--- The INTOXICATION target: 100 x bac / the active stimulant set's INTOX_FULL_BAC, clamped to the stat's range.
 function K.effects.intoxTarget(bac)
     local E = K.effects
     return K.clamp(E.INTOX_MAX * bac / K.acute.C.INTOX_FULL_BAC, 0, E.INTOX_MAX)
 end
 
--- The temperature offset the writer targets (G): the composed surface.
 function K.effects.tempOffset(E)
     return E.tempOffset
 end
 
--- The symptoms of the lethal causes (Plan 18; spec docs/superpowers/specs/2026-10-21-symptoms-design.md, sections 1-2):
--- each cause code 1-7 of K.drain carries a list of rows in the table's SYMPTOMS.CAUSES (NR_Data_Effects.lua), read on the
--- cause's progress p = 1 - D.frac[code], 0 at onset and 1 at its death point, so the symptoms follow the death pace and
--- ease while the ceiling recovers (Plan 17 R2). A row names a lever (endurance, pain, stress, unhappy), a shape (flat,
--- linear, knots) and its magnitude; pain also names its body parts. Overlap: the lowest endurance cap, pain summed per
--- body part under a cap, the highest stress and unhappiness floors. Pain applies only while the cause is active (its
--- bit in D.mask), never while it is merely recovering. Severity scales every magnitude (a cap by the min surface's
--- 1 - (1 - v) x sev); Overlay (vanilla owns HUNGER and THIRST) drops the causes marked overlayOff. Per minute, with no
--- allocation; with no cause applied the loop never runs.
+-- The lethal causes' symptoms (docs/superpowers/specs/2026-10-21-symptoms-design.md@program-record-v19): each K.drain
+-- cause's rows in SYMPTOMS.CAUSES read its progress p = 1 - D.frac[code], so they follow the death pace and ease as the
+-- ceiling recovers. Overlap: the lowest endurance cap, pain summed per part under a cap, the highest floors. Pain only
+-- while the cause is active, never while recovering. Per minute, no allocation.
 K.effects.PAIN_PARTS = 17 -- BodyPartType's 17 parts, indices 0..16 (MAX excluded): no row needed
--- The pain modifier per part index (VANILLA BodyPartType.<clinit> L13-L29, the first float argument painModifier,
--- BodyPartType.<init> @11-@14 L51; read on 42.21, Plan 18 Task 1 J5): PAIN's target is the sum of part pain x it.
+-- PAIN's target is the sum of part pain x its modifier (VANILLA BodyPartType.<clinit> L13-L29, read on 42.21).
 K.effects.PAIN_MOD = {
     [0] = 0.5, -- VANILLA L13: Hand_L
     0.5, -- VANILLA L14: Hand_R
@@ -620,19 +566,14 @@ K.effects.PAIN_MOD = {
     0.5, -- VANILLA L28: Foot_L
     0.5, -- VANILLA L29: Foot_R
 }
--- Half of one game minute's added-pain decay per real minute of day length: VANILLA BodyPart.DamageUpdate @2312-@2353
--- L500-L503 lowers it 0.005 a multiplier unit (Plan 18 Task 1 J3), 2 x dayMin units a game minute (#2922), so 0.01 x
--- dayMin a minute; measured 0.899983361325089 at the 90-minute day (x491-20261021-061440) and 0.15000031795638447 at
--- the 15-minute day (x492-20261021-062157). Added on top of a part's set value, it centres the dip between writes.
--- Centred, a cause's summed PAIN target stays inside Pain level 1 while 0.005 x dayMin x the sum of its parts' modifiers is
--- under 5: to about dayMin 833 for both lower legs, 1250 for Head and 1282 for Torso_Lower; on a longer day no
--- once-a-minute set holds level 1 (a limitation for the guide).
+-- Vanilla lowers added pain 0.005 a multiplier unit (#2922), 0.01 x dayMin a game minute; added on top of a part's set
+-- value, half of it centres the dip between writes. Past about dayMin 833 (both lower legs) no once-a-minute set holds
+-- Pain level 1: a limitation.
 K.effects.PAIN_HALF_DIP = 0.005 -- VANILLA BodyPart.DamageUpdate L500-L503 (the comment above)
 -- A cause code's bit in D.mask and D.recovering, 2^(code - 1) (K.drain.consider): no row needed.
 K.effects.BIT = { 1, 2, 4, 8, 16, 32, 64 }
 
--- A shape's value at progress p (0..1): flat v; linear from a at p 0 to b at p 1; knots, a flat array of (p, v) pairs
--- in ascending p, piecewise linear between them and held beyond the first and the last.
+-- flat v; linear a to b over p; knots a flat ascending (p, v) array, held beyond its ends.
 function K.effects.shapeAt(r, p)
     local sh = r.shape
     if sh == "flat" then
@@ -642,7 +583,6 @@ function K.effects.shapeAt(r, p)
         return r.a + (r.b - r.a) * p
     end
     local k = r.k
-    -- k is a Lua array the data file builds (no Java list), so # is its length
     local n = #k
     if p <= k[1] then
         return k[2]
@@ -657,14 +597,12 @@ function K.effects.shapeAt(r, p)
     return k[n]
 end
 
--- Whether a cause code's bit is set in a mask (D.mask or D.recovering).
 function K.effects.hasBit(mask, code)
     return math.floor(mask / K.effects.BIT[code]) % 2 == 1
 end
 
--- One cause's rows folded into the running cap and floors (returned) and, while active, its pain into E.pain.
+-- Returns the running cap and floors; pain goes into E.pain only while active.
 function K.effects.symptomRows(E, list, p, active, sev, cap, st, un)
-    -- list is a Lua array the data file builds (no Java list), so # is its length
     for j = 1, #list do
         local r = list[j]
         local lever = r.lever
@@ -682,14 +620,13 @@ function K.effects.symptomRows(E, list, p, active, sev, cap, st, un)
     return cap, st, un
 end
 
--- A cause's PAIN target t shared across its parts: each part gains t / n / its modifier of added pain.
+-- Each part gains t / n / its modifier.
 function K.effects.painShare(E, parts, t)
     if not (t > 0) then
         return
     end
     local P = E.pain
     local mod = K.effects.PAIN_MOD
-    -- parts is a Lua array the data file builds (no Java list), so # is its length
     local share = t / #parts
     for k = 1, #parts do
         local i = parts[k]
@@ -698,8 +635,7 @@ function K.effects.painShare(E, parts, t)
     E.painOn = true
 end
 
--- Each painful part capped at top / its modifier (the level-1 band's top at Severity 1), then the half dip added,
--- centring the minute's fall on the target.
+-- Each part capped at top / its modifier, then the half dip added, centring the minute's fall on the target.
 function K.effects.painCap(P, top, dayMin)
     local A = K.effects
     local dip = A.PAIN_HALF_DIP * dayMin
@@ -710,11 +646,8 @@ function K.effects.painCap(P, top, dayMin)
     end
 end
 
--- The minute's symptoms (spec sections 1.1-1.6): E.symCap (the causes' lowest endurance cap, clamped), E.enduranceCap
--- (the lower of it and the rows' Overfull cap), E.stressFloor and E.unhappyFloor (the highest, clamped), E.pain[i] (the
--- added pain per part index, summed, capped at the level-1 band's top over the part's modifier, plus the half dip on
--- every day length; 0 when none) and E.painOn (any pain). T is the effects table, D record.drain (frac, mask, recovering), sev
--- the Severity dial, overlay Mode 2, dayMin the day length (read only for pain; 0 when no cause is active).
+-- Writes E.symCap, E.enduranceCap (with the rows' Overfull cap), E.stressFloor, E.unhappyFloor, E.pain[i] and E.painOn.
+-- overlay is Mode 2; dayMin is read only for pain.
 function K.effects.symptoms(E, T, D, sev, overlay, dayMin)
     local S = T.SYMPTOMS
     local P = E.pain
@@ -729,7 +662,6 @@ function K.effects.symptoms(E, T, D, sev, overlay, dayMin)
     local un = 0
     if D.mask > 0 or D.recovering > 0 then
         local C = S.CAUSES
-        -- CAUSES is a Lua array the data file builds (no Java list), so # is its length
         for code = 1, #C do
             local c = C[code]
             local f = D.frac[code]

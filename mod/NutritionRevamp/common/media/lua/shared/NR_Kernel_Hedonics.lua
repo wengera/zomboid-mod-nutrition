@@ -1,30 +1,15 @@
--- NR_Kernel_Hedonics.lua -- food hedonics (Plan 19 Task 5; spec docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md
--- section B.2): four rules on top of vanilla's per-item UnhappyChange and BoredomChange, which stay the base (B.1).
--- Every magnitude is a dial of the hedonics domain (NR_Data_Dials.lua); every rule is pure, runs at an eat, an
--- ingredient add or the existing writer minute, never per tick (Rule 6), and its adapters are NR_Server_Hedonics's,
--- called from NR_Server_Intake and NR_Server_Writer (Task 6).
---  R1 plain energy (the stick of butter): a plain energy food is energy-dense (PLAIN_KCAL a 100 g or more), takes at
---     least PLAIN_SHARE of its macro energy from one macro, is no vanilla treat (UnhappyChange under 0), and falls in
---     none of S2291's sodium pairings (fat and sodium, carbohydrate and sodium), unless one macro gives PAIR_SHARE of
---     its energy or more: a food almost all one macro is eaten as plain energy whatever its salt (ruling T5-1: salted
---     butter, margarine, mayonnaise); a pairing is palatable (S2291, S2289).
---     The classification is a generated table (tools/food_hedonics.py, NR_Data_Hedonics.lua) from the nutrient data,
---     read through K.hedonics.isPlain so the generator and the budget oracle classify by the same rule. Each eat books
---     its kcal, and its plain kcal, into a ring of RING_N online hours (K.hedonics.book); the ring's plain share over
---     at least SHARE_MIN_KCAL drives an UNHAPPINESS floor on the FLOOR_KNOTS curve (K.hedonics.target), composed with
---     monotony's in the writer's self-releasing floor, so it releases as the share falls. An ingredient added to an
---     evolved dish is not an eat and never books.
---  R2 preparation quality: a cooked or evolved dish's relief (the negative side of its UnhappyChange) is scaled by the
---     cook's Cooking level on the PREP_KNOTS curve (K.hedonics.prep); a dish's sad side is never made worse by skill.
---  R3 alliesthesia: a food's sad UnhappyChange (the positive side) is scaled by ALLIES_F while the mod's HUNGER is at
---     the ALLIES_LEVEL moodle level or above (K.hedonics.allies); the happy side is never scaled.
---  R4 taste class: monotony also books a taste class (sweet, savoury, fatty, staple) beside the item type, weighted
---     CLASS_W (K.monotony.record's class argument; S2294 the key); a stew's class is its main ingredient's
---     (K.hedonics.dishClass).
--- The state record.hedonics = { s = the world age the current hour began, i = its slot, p = { plain kcal a slot },
--- a = { all kcal a slot } }: the slots are rotated by the online clock (s is a K.resume stamp, so the resume moves it
--- past an absence and no offline hour rolls one off), at the eat and in the writer minute; nothing is allocated after
--- the ring is made. Pure: Lua tables and numbers in and out, no Java; one statement a line for the coverage gate.
+-- NR_Kernel_Hedonics.lua: food hedonics, four rules on top of vanilla's UnhappyChange and BoredomChange (spec
+-- docs/superpowers/specs/2026-10-21-dials-and-hedonics-design.md@program-record-v19 section B.2). Pure, no Java; runs
+-- at an eat, an ingredient add or the writer minute, never per tick (Rule 6); the adapters are NR_Server_Hedonics's.
+--  R1 plain energy: an energy-dense food mostly from one macro, no vanilla treat and in none of S2291's sodium pairings
+--     (unless one macro gives PAIR_SHARE or more: salted butter is plain) books into a RING_N-hour ring, whose plain
+--     share drives an UNHAPPINESS floor composed with monotony's self-releasing one. An ingredient add never books.
+--     The table is generated (tools/food_hedonics.py) through isPlain, so generator and budget oracle agree.
+--  R2 preparation: a dish's relief is scaled by the cook's Cooking level; its sad side never is.
+--  R3 alliesthesia: a sad food is scaled by ALLIES_F at the ALLIES_LEVEL hunger moodle or above.
+--  R4 taste class: monotony also books a class (sweet, savoury, fatty, staple); a stew's is its main ingredient's.
+-- record.hedonics = { s, i, p, a }: s is a K.resume stamp, so no offline hour rolls a slot off;
+-- nothing is allocated after the ring is made. One statement a line for the coverage gate.
 local K = NutritionRevamp.kernel
 K.hedonics = {}
 
@@ -38,7 +23,6 @@ K.hedonics.CSOD_CARB = K.dials.get("hedonics.CSOD_CARB")
 K.hedonics.CSOD_NA = K.dials.get("hedonics.CSOD_NA")
 K.hedonics.FATTY_SHARE = K.dials.get("hedonics.FATTY_SHARE")
 
--- R1: the ring and the floor.
 K.hedonics.RING_N = 24 -- the hourly slots of the 24 online hours the share reads: structural, no row needed
 K.hedonics.SHARE_MIN_KCAL = K.dials.get("hedonics.SHARE_MIN_KCAL")
 K.hedonics.FLOOR_KNOTS = {
@@ -47,18 +31,15 @@ K.hedonics.FLOOR_KNOTS = {
     { K.dials.get("hedonics.FLOOR_KNOTS.3.1"), K.dials.get("hedonics.FLOOR_KNOTS.3.2") },
 }
 
--- R2: the Cooking level to the dish's relief scale.
 K.hedonics.PREP_KNOTS = {
     { 0, K.dials.get("hedonics.PREP_KNOTS.1.2") }, -- Cooking level 0, the perk's foot: no row needed
     { K.dials.get("hedonics.PREP_KNOTS.2.1"), 1 }, -- the level at which vanilla's relief stands: the neutral scale, no row needed
     { 10, K.dials.get("hedonics.PREP_KNOTS.3.2") }, -- Cooking level 10, the perk's top: no row needed
 }
 
--- R3: the hunger scale on a sad food and its moodle level.
 K.hedonics.ALLIES_F = K.dials.get("hedonics.ALLIES_F")
 K.hedonics.ALLIES_LEVEL = K.dials.get("hedonics.ALLIES_LEVEL")
 
--- R4: the taste class's portion weight.
 K.hedonics.CLASS_W = K.dials.get("hedonics.CLASS_W")
 
 -- The budget oracle's bands (tools/hedonics_budget.py reads them here): mean mood points over its 14 days.
@@ -68,10 +49,8 @@ K.hedonics.BUDGET_DEGEN = K.dials.get("hedonics.BUDGET_DEGEN")
 -- The taste classes and their monotony keys: a key starts with "@", which no full type does ("Module.Item").
 K.hedonics.CLASSES = { sweet = "@sweet", savoury = "@savoury", fatty = "@fatty", staple = "@staple" }
 
--- Whether a food's macro split falls in one of S2291's sodium pairings: fat over FSOD_FAT of its energy with sodium at
--- FSOD_NA % by weight or more, or carbohydrate over CSOD_CARB with sodium at CSOD_NA % or more. S2291's third pairing,
--- fat and simple sugars (each over 20 % of the energy), is never tested: the data carries no sugars, and a food at
--- PLAIN_SHARE 0.8 or more from one macro cannot meet it. isPlain asks it only under PAIR_SHARE.
+-- S2291's sodium pairings (fat with sodium, carbohydrate with sodium). Its third, fat with sugars, is never tested:
+-- the data carries no sugars, and isPlain asks only under PAIR_SHARE, where it cannot be met.
 function K.hedonics.paired(fatShare, carbShare, naPct)
     if fatShare > K.hedonics.FSOD_FAT and naPct >= K.hedonics.FSOD_NA then
         return true
@@ -79,9 +58,7 @@ function K.hedonics.paired(fatShare, carbShare, naPct)
     return carbShare > K.hedonics.CSOD_CARB and naPct >= K.hedonics.CSOD_NA
 end
 
--- Whether a food is plain energy (R1): p, c and l its protein, carbohydrate and fat grams (any basis), naPct its
--- sodium in % by weight, kcal100 its kcal a 100 g and unhappy vanilla's UnhappyChange. A food with no macro energy is
--- not plain.
+-- p, c, l in grams (any basis), naPct sodium % by weight; a food with no macro energy is not plain.
 function K.hedonics.isPlain(p, c, l, naPct, kcal100, unhappy)
     local ep = K.satiety.ATWATER_P * p
     local ec = K.satiety.ATWATER_C * c
@@ -100,9 +77,8 @@ function K.hedonics.isPlain(p, c, l, naPct, kcal100, unhappy)
     return not K.hedonics.paired(el / e, ec / e, naPct)
 end
 
--- A food's taste class (R4), by precedence: staple (the monotony staple rule, staple true), fatty (fat at FATTY_SHARE
--- of the macro energy or more), sweet (sweet true: the generator's reading of the food type and description), else
--- savoury. p, c and l as K.hedonics.isPlain's.
+-- Precedence: staple, fatty (FATTY_SHARE of the energy), sweet (the generator's reading of type and description),
+-- else savoury.
 function K.hedonics.tasteClass(p, c, l, staple, sweet)
     if staple == true then
         return "staple"
@@ -118,7 +94,6 @@ function K.hedonics.tasteClass(p, c, l, staple, sweet)
     return "savoury"
 end
 
--- A fresh ring at world age ageH: every slot 0, the current hour beginning at ageH in slot 1.
 function K.hedonics.new(ageH)
     local h = { s = ageH, i = 1, p = {}, a = {} }
     for k = 1, K.hedonics.RING_N do
@@ -128,9 +103,7 @@ function K.hedonics.new(ageH)
     return h
 end
 
--- Rotate ring h to world age ageH: each whole hour since the current one began opens the next slot, zeroed (the
--- whole ring at most), and s moves on by those hours. An age not a whole hour past s (behind it, equal or not a
--- number) leaves it. Returns h.
+-- Each whole hour since s opens the next slot, zeroed; an age not a whole hour past s leaves the ring.
 function K.hedonics.rotate(h, ageH)
     local d = math.floor(ageH - h.s)
     if not (d >= 1) then
@@ -146,8 +119,7 @@ function K.hedonics.rotate(h, ageH)
     return h
 end
 
--- One eat into ring h at world age ageH (R1): its kcal into the current hour, and into the plain sum when plain is
--- true. kcal that is not a positive finite number books nothing. Returns h.
+-- kcal that is not a positive finite number books nothing.
 function K.hedonics.book(h, ageH, kcal, plain)
     K.hedonics.rotate(h, ageH)
     if not K.finite(kcal) or kcal <= 0 then
@@ -160,8 +132,7 @@ function K.hedonics.book(h, ageH, kcal, plain)
     return h
 end
 
--- The plain share of ring h: its plain kcal over its kcal, the kcal read at SHARE_MIN_KCAL at least, so a little
--- plain food in an otherwise empty day is no diet of it.
+-- The kcal read at SHARE_MIN_KCAL at least, so a little plain food in an empty day is no diet of it.
 function K.hedonics.share(h)
     local p = 0
     local a = 0
@@ -172,13 +143,11 @@ function K.hedonics.share(h)
     return p / K.max(a, K.hedonics.SHARE_MIN_KCAL)
 end
 
--- The plain-energy floor of a share: the FLOOR_KNOTS curve, 0 under its foot and held at its last knot.
 function K.hedonics.floorOf(share)
     return K.interp(K.hedonics.FLOOR_KNOTS, share)
 end
 
--- The writer minute's plain-energy floor (R1) at world age ageH: ring h rotated to ageH, then its share's floor. h
--- is a healed ring (K.hedonics.heal); nil reads 0.
+-- h is a healed ring (K.hedonics.heal); nil reads 0.
 function K.hedonics.target(h, ageH)
     if h == nil then
         return 0
@@ -187,9 +156,7 @@ function K.hedonics.target(h, ageH)
     return K.hedonics.floorOf(K.hedonics.share(h))
 end
 
--- The heal (the #2833 pattern): a stored ring that is not a table, whose s is not a finite number at or before ageH,
--- whose i is not a slot, or whose p or a is not a table of RING_N finite numbers at 0 or more, is reset to a fresh
--- ring at ageH. Returns the ring to keep and whether it was reset (nil reads fresh, not reset).
+-- The #2833 heal: a corrupt ring resets to a fresh one; returns the ring and whether it was reset.
 function K.hedonics.heal(h, ageH)
     if h == nil then
         return K.hedonics.new(ageH), false
@@ -200,7 +167,6 @@ function K.hedonics.heal(h, ageH)
     return h, false
 end
 
--- Whether a stored ring is corrupt (K.hedonics.heal's reading).
 function K.hedonics.bad(h, ageH)
     if type(h) ~= "table" or not K.finite(h.s) or h.s > ageH then
         return true
@@ -211,7 +177,6 @@ function K.hedonics.bad(h, ageH)
     return K.hedonics.badSlots(h.p) or K.hedonics.badSlots(h.a)
 end
 
--- Whether a slot table is not RING_N finite numbers at 0 or more.
 function K.hedonics.badSlots(t)
     if type(t) ~= "table" then
         return true
@@ -224,8 +189,7 @@ function K.hedonics.badSlots(t)
     return false
 end
 
--- R2: a dish's UnhappyChange as the cook of Cooking level `level` makes it: its relief (a negative value) times the
--- PREP_KNOTS scale at the level (held at the curve's ends); a sad or neutral value is returned as it is.
+-- R2: relief (a negative value) times the PREP_KNOTS scale; a sad or neutral value is returned as it is.
 function K.hedonics.prep(unhappy, level)
     if not (unhappy < 0) then
         return unhappy
@@ -233,9 +197,7 @@ function K.hedonics.prep(unhappy, level)
     return unhappy * K.hedonics.prepScale(level)
 end
 
--- R3: a food's UnhappyChange as the eater at HUNGER `hunger` (the stat the mod writes) feels it: a sad value (over 0)
--- times ALLIES_F while hunger is over the ALLIES_LEVEL moodle threshold (K.hungerCurve.THRESHOLDS, a strict
--- greater-than, #0507); a happy or neutral value, or any value under the threshold, is returned as it is.
+-- R3: the threshold is a strict greater-than (#0507); a happy or neutral value is returned as it is.
 function K.hedonics.allies(unhappy, hunger)
     if unhappy > 0 and hunger > K.hungerCurve.THRESHOLDS[K.hedonics.ALLIES_LEVEL] then
         return unhappy * K.hedonics.ALLIES_F
@@ -243,7 +205,6 @@ function K.hedonics.allies(unhappy, hunger)
     return unhappy
 end
 
--- R4: the monotony key of a taste class, or nil for a class that is not one of CLASSES (nil included).
 function K.hedonics.classKey(class)
     if class == nil then
         return nil
@@ -251,8 +212,7 @@ function K.hedonics.classKey(class)
     return K.hedonics.CLASSES[class]
 end
 
--- R4: a dish's taste class, its main ingredient's: the class of the ingredient of most kcal (the first on a tie); nil
--- for none. classes and kcals are parallel lists, one entry an ingredient.
+-- R4: classes and kcals are parallel lists; the ingredient of most kcal wins, the first on a tie.
 function K.hedonics.dishClass(classes, kcals)
     local best = nil
     local top = 0
@@ -262,9 +222,7 @@ function K.hedonics.dishClass(classes, kcals)
     return best
 end
 
--- One ingredient against the heaviest so far (the dishClass loop body, kept out of the loop so the line-granular
--- coverage gate sees both outcomes): the ingredient's class and kcal when its kcal is a finite number over top, else
--- best and top as they were.
+-- The loop body, out of the loop so the line-granular coverage gate sees both outcomes.
 function K.hedonics.heavier(best, top, class, kcal)
     if K.finite(kcal) and kcal > top then
         return class, kcal
@@ -272,17 +230,13 @@ function K.hedonics.heavier(best, top, class, kcal)
     return best, top
 end
 
--- The seats' arithmetic (Plan 19 Task 6; the adapters are NR_Server_Hedonics.lua's).
-
--- R2: the PREP_KNOTS scale at Cooking level `level`, held at the curve's ends (K.hedonics.prep's factor, and the
--- stamp the add-ingredient seat keeps on a dish beside the relief it wrote).
+-- R2: also the stamp the add-ingredient seat keeps on a dish beside the relief it wrote.
 function K.hedonics.prepScale(level)
     return K.interp(K.hedonics.PREP_KNOTS, level)
 end
 
--- R2: the vanilla value of a dish's stored UnhappyChange that the seat wrote at stamped scale `scale`: a relief (a
--- value under 0) over the scale; a value at or over 0, or a scale that is not a finite number over 0, as it is.
--- Vanilla's next add starts from this value, so a dish of many adds is scaled once, never compounded.
+-- R2: the vanilla value under a seat-written relief. Vanilla's next add starts from it, so a dish of many adds is
+-- scaled once, never compounded.
 function K.hedonics.unprep(stored, scale)
     if not (stored < 0) or not K.finite(scale) or not (scale > 0) then
         return stored
@@ -290,17 +244,14 @@ function K.hedonics.unprep(stored, scale)
     return stored / scale
 end
 
--- R3: the stored UnhappyChange field the eat seat writes before vanilla's eat, so the read-time value vanilla
--- applies (the field plus its state terms, `unhappy`) reads K.hedonics.allies(unhappy, hunger): the field less the
--- part R3 takes off; a value R3 leaves returns the field as it is.
+-- R3: the field the eat seat writes before vanilla's eat, so the read-time value vanilla applies (field plus state
+-- terms) reads K.hedonics.allies(unhappy, hunger).
 function K.hedonics.alliesField(field, unhappy, hunger)
     return field - (unhappy - K.hedonics.allies(unhappy, hunger))
 end
 
--- R3: the field a part-eaten food's remainder keeps after the eat, as if R3 had never run: vanilla scaled the
--- written field for the remainder (multiplyFoodValues), so the same scale on the original field, after over
--- written, or the hunger ratio q when the written field was 0. nil when after is not a finite number (a finished
--- item reads NaN, #2832) or no ratio is known.
+-- R3: the remainder's field as if R3 never ran: vanilla scaled the written field (multiplyFoodValues), so the same
+-- ratio on the original, or q when the written field was 0. nil for a finished item, which reads NaN (#2832).
 function K.hedonics.alliesRestore(field, written, after, q)
     if not K.finite(after) then
         return nil

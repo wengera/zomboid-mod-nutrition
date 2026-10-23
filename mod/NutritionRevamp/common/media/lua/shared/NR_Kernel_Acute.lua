@@ -1,35 +1,15 @@
--- NR_Kernel_Acute.lua -- the acute states: caffeine (body load, the 7-day mean,
--- tolerance, withdrawal), alcohol (the Widmark load and blood alcohol, the hangover), muscle glycogen and
--- blood glucose, the sleep state (hours awake, the 24 h window's debt, the homeostatic S, the circadian
--- term, the freeze when the server disables sleep), the impairment unit and the refeeding risk state.
--- The model is the formulas briefing's sections C, D, E, F and G as the Task 9 amendments fix them.
--- Time: every dtH and ageH is GAME hours (ageH the world age, Plan 3's clock). Ruling T5-1 (run x151s):
--- a held sleep with sleep allowed runs the world clock about 20x, so a fast-forwarded sleep arrives as
--- many game minutes asleep and is simply a long sleep. Sex is indexed 1 male, 2 female (Plan 3's K.body
--- convention). The first-order relaxations (the caffeine tolerance, glycogen repletion, blood glucose and
--- the homeostatic S) use the exact exponential step x = target + (x - target) * exp(-dtH / tau), a
--- refinement of the briefing's Euler forms on Task 6's zero-order-hold precedent: the result is the same
--- at any step length, so a one-minute step and a long catch-up step agree (per-minute Euler differs from
--- it by under 2e-5 over a week). Pure: numbers and Lua tables in, numbers and Lua tables out, no Java.
--- Slow-clock code with no fast region. This file sorts after NR_Kernel.lua, and every K.clamp / K.min /
--- K.max reference is at call time.
--- The x151r fix wave (rulings T17-2..T17-4): caffeine and ethanol absorb from a gut lane (gutAlc, gutCaf;
--- absorbGut) the intake landing feeds directly, bypassing the stomach's two-lane drain (K.stomach.drain)
--- (one beer built no blood alcohol through the stomach, #2983); the shiver draw starts above a dead band
--- and glycogen refills whenever met < 3 (the thermoregulator's idle 1.007-1.010 indoors blocked every
--- refill, #2984); a sleep bout (boutH, gapH) tolerates awake gaps under BOUT_GAP_H (the harness hold's
--- isAsleep misses, #2840, never let a run reach the nap threshold, #2986).
--- sleepMinute takes the accrual and recovery multipliers
--- mAcc and rRec (nil reads 1, the Plan 4 behaviour) on chi_w and chi_s; three exponential memories join the
--- state -- exEma (exercise minutes, exerciseMinute), coldH (cold hours, coldMinute), retEma (ingested
--- retinol ug/day, retinolMinute) -- with lastVigAgeH (the last band-2 minute) and boutVig (latched at a
--- bout's first asleep minute); iu stores its sleep term on iuSleep; the glucose knee moves to 3.0-2.6 mmol/L.
+-- NR_Kernel_Acute.lua: the acute states: caffeine (load, 7-day mean, tolerance, withdrawal), alcohol (Widmark load,
+-- BAC, hangover), glycogen and blood glucose, sleep (hours awake, the window's debt, S, circ, the freeze when the
+-- server disables sleep), the body clock, the impairment unit, the exercise, cold and retinol memories and refeeding.
+-- Every dtH and ageH is GAME hours; a held sleep runs the world clock about 20x, so it arrives as a long sleep
+-- (ruling T5-1). The first-order relaxations use the exact exponential step, so a one-minute step and a long catch-up
+-- step agree. Caffeine and ethanol absorb from a gut lane the intake feeds directly, never through the stomach's
+-- drain (one beer built no blood alcohol through it, #2983). Pure, no Java; slow-clock code. Sorts after
+-- NR_Kernel.lua; K.clamp, K.min and K.max resolve at call time.
 local K = NutritionRevamp.kernel
 K.acute = {}
 
--- Caffeine.
--- Absorption fraction of the gut lane, applied once in K.acute.absorbGut; alcohol and
--- caffeine take the dose absorbGut releases, so nothing re-applies it.
+-- Applied once in K.acute.absorbGut; alcohol and caffeine take the dose it releases, so nothing re-applies it.
 K.acute.CAF_ABSORB = K.dials.get("acute.CAF_ABSORB")
 K.acute.CAF_THALF_H = K.dials.get("acute.CAF_THALF_H")
 K.acute.CAF_THALF_SLOW_H = K.dials.get("acute.CAF_THALF_SLOW_H")
@@ -44,11 +24,9 @@ K.acute.CAF_WD_PEAK_H = K.dials.get("acute.CAF_WD_PEAK_H")
 K.acute.CAF_WD_END_H = K.dials.get("acute.CAF_WD_END_H")
 K.acute.CAF_EFFECT_MGKG = K.dials.get("acute.CAF_EFFECT_MGKG")
 
--- The gut lane caffeine and ethanol absorb from: first order on this half-time, game hours.
+-- First order on this half-time, game hours.
 K.acute.GUT_T_HALF = K.dials.get("acute.GUT_T_HALF")
 
--- Alcohol.
--- The Widmark distribution factor, indexed by sex.
 K.acute.WIDMARK_R = {
     K.dials.get("acute.WIDMARK_R.1"),
     K.dials.get("acute.WIDMARK_R.2"),
@@ -56,28 +34,22 @@ K.acute.WIDMARK_R = {
 K.acute.BETA = K.dials.get("acute.BETA")
 K.acute.HANG_PEAK = K.dials.get("acute.HANG_PEAK")
 
--- The stimulant sizes (Plan 15 Task 10, spec section 5): NR.StimulantRealism (1 Game, the default; 2 Realistic)
--- selects the active set K.acute.C once, when the server's options read sees the value change
--- (K.acute.useStimulants), never per call; K.effects.fOff, K.effects.intoxTarget and K.acute.alcohol read C. Realistic
--- is the pharmacological strengths the mod shipped through Plan 14. Game overrides sizes only -- a cup's fatigue
--- offset, the intoxication per drink and the hangover's tail -- so every timing stays the science of both sets:
--- caffeine absorption, clearance, tolerance and withdrawal; alcohol absorption, the Widmark clearance and the
--- hangover's start at clearance. The hangover's effect sizes are the effects table's two hang rows, tagged stim 1 and
--- 2 (NR_Data_Effects.lua).
+-- The stimulant sets: NR.StimulantRealism (1 Game, the default; 2 Realistic) selects K.acute.C once, when the options
+-- read sees the value change, never per call. Game overrides sizes only (a cup's fatigue offset, the intoxication per
+-- drink, the hangover's tail), so every timing stays the science of both sets.
 K.acute.STIM_REALISTIC = {
     MODE = 2, -- no row needed: the option's value
     CAF_OFF_MAX = K.dials.get("acute.STIM_REALISTIC.CAF_OFF_MAX"),
     INTOX_FULL_BAC = K.dials.get("acute.STIM_REALISTIC.INTOX_FULL_BAC"),
     HANG_H = K.dials.get("acute.STIM_REALISTIC.HANG_H"),
 }
--- The Game overrides, keyed by constant name; a key left out reads the realistic value.
+-- A key left out reads the realistic value.
 K.acute.STIM_GAME_OVERRIDES = {
     MODE = 1, -- no row needed: the option's value
     CAF_OFF_MAX = K.dials.get("acute.STIM_GAME_OVERRIDES.CAF_OFF_MAX"),
     INTOX_FULL_BAC = K.dials.get("acute.STIM_GAME_OVERRIDES.INTOX_FULL_BAC"),
     HANG_H = K.dials.get("acute.STIM_GAME_OVERRIDES.HANG_H"),
 }
--- The two sets by option value: Game is the realistic set with the overrides laid over it.
 K.acute.STIM = { {}, K.acute.STIM_REALISTIC }
 for name, v in pairs(K.acute.STIM_REALISTIC) do
     K.acute.STIM[1][name] = v
@@ -87,8 +59,7 @@ for name, v in pairs(K.acute.STIM_GAME_OVERRIDES) do
 end
 K.acute.C = K.acute.STIM[1]
 
--- Select the active stimulant set for the option value mode (1 Game, 2 Realistic; anything else reads Game, the
--- default). Returns the set.
+-- Anything but 2 reads Game, the default.
 function K.acute.useStimulants(mode)
     local set = K.acute.STIM[mode]
     if set == nil then
@@ -98,7 +69,7 @@ function K.acute.useStimulants(mode)
     return set
 end
 
--- The alcohol impairment knots {BAC %, IU}: the unit at the third knot's BAC (0.05 %, S0893), the driving bands (S0905).
+-- {BAC %, IU}: the unit at the third knot's BAC (S0893), the driving bands (S0905).
 K.acute.IU_ALC_KNOTS = {
     { 0, 0 }, -- sober
     { K.dials.get("acute.IU_ALC_KNOTS.2.1"), K.dials.get("acute.IU_ALC_KNOTS.2.2") },
@@ -107,7 +78,6 @@ K.acute.IU_ALC_KNOTS = {
 }
 K.acute.IU_ALC_CAP = K.dials.get("acute.IU_ALC_CAP")
 
--- Glycogen, mmol glucosyl per kg dry muscle.
 K.acute.GLYC_REF = K.dials.get("acute.GLYC_REF")
 K.acute.GLYC_HIGH = K.dials.get("acute.GLYC_HIGH")
 K.acute.GLYC_LOW = K.dials.get("acute.GLYC_LOW")
@@ -123,7 +93,6 @@ K.acute.USE_SHIVER = K.dials.get("acute.USE_SHIVER")
 K.acute.SHIVER_FULL = K.dials.get("acute.SHIVER_FULL")
 K.acute.SHIVER_DEADBAND = K.dials.get("acute.SHIVER_DEADBAND")
 
--- Blood glucose, mmol/L.
 K.acute.BG_NORMAL = K.dials.get("acute.BG_NORMAL")
 K.acute.BG_EXERTION = K.dials.get("acute.BG_EXERTION")
 K.acute.BG_EX_G = K.dials.get("acute.BG_EX_G")
@@ -138,7 +107,6 @@ K.acute.IU_BG_HI = K.dials.get("acute.IU_BG_HI")
 K.acute.IU_BG_LO = K.dials.get("acute.IU_BG_LO")
 K.acute.IU_BG_MAX = K.dials.get("acute.IU_BG_MAX")
 
--- Sleep, game hours.
 K.acute.SLEEP_NEED_H = K.dials.get("acute.SLEEP_NEED_H")
 K.acute.CHI_W = K.dials.get("acute.CHI_W")
 K.acute.CHI_S = K.dials.get("acute.CHI_S")
@@ -154,26 +122,24 @@ K.acute.DEBT_MAX = K.dials.get("acute.DEBT_MAX")
 K.acute.REPAY = K.dials.get("acute.REPAY")
 K.acute.CIRC_AMP = K.dials.get("acute.CIRC_AMP")
 K.acute.CIRC_PEAK_H = K.dials.get("acute.CIRC_PEAK_H")
--- Sign: +CIRC_AMP (0.12) at CIRC_PEAK_H (04:00) = the sleep-propensity peak (the alertness trough); Plan 5's FATIGUE term ADDS circ.
+-- +CIRC_AMP at CIRC_PEAK_H, the sleep-propensity peak; the fatigue term ADDS circ.
 K.acute.IU_SLEEP_ZERO_H = K.dials.get("acute.IU_SLEEP_ZERO_H")
 K.acute.IU_SLEEP_SPAN_H = K.dials.get("acute.IU_SLEEP_SPAN_H")
 K.acute.IU_SLEEP_DEBT_H = K.dials.get("acute.IU_SLEEP_DEBT_H")
 K.acute.IU_SLEEP_MAX = K.dials.get("acute.IU_SLEEP_MAX")
 K.acute.VIG_WINDOW_H = K.dials.get("acute.VIG_WINDOW_H")
 
--- The Plan 5 memories: exponential sums decaying on their time constant.
+-- Exponential sums decaying on their time constant.
 K.acute.EX_TAU_H = K.dials.get("acute.EX_TAU_H")
 K.acute.COLD_ON = K.dials.get("acute.COLD_ON")
 K.acute.COLD_TAU_H = K.dials.get("acute.COLD_TAU_H")
 K.acute.RET_TAU_D = K.dials.get("acute.RET_TAU_D")
 
--- The impairment unit.
 K.acute.IU_DEHYD_FROM = K.dials.get("acute.IU_DEHYD_FROM")
 K.acute.IU_DEHYD_KNEE = K.dials.get("acute.IU_DEHYD_KNEE")
 K.acute.IU_DEHYD_SLOPE1 = K.dials.get("acute.IU_DEHYD_SLOPE1")
 K.acute.IU_DEHYD_SLOPE2 = K.dials.get("acute.IU_DEHYD_SLOPE2")
 K.acute.IU_DEHYD_MAX = K.dials.get("acute.IU_DEHYD_MAX")
--- The iron term by grade 1..4.
 K.acute.IU_IRON = {
     0, -- replete
     0, -- marginal
@@ -186,7 +152,6 @@ K.acute.CREDIT_MG = K.dials.get("acute.CREDIT_MG")
 K.acute.CREDIT_BASE_MG = K.dials.get("acute.CREDIT_BASE_MG")
 K.acute.IU_MAX = K.dials.get("acute.IU_MAX")
 
--- Refeeding.
 K.acute.LOW_KCAL_KG = K.dials.get("acute.LOW_KCAL_KG")
 K.acute.MASS_WINDOW_H = K.dials.get("acute.MASS_WINDOW_H")
 K.acute.RISK_BMI_HIGH = K.dials.get("acute.RISK_BMI_HIGH")
@@ -201,10 +166,7 @@ K.acute.RESTART_LOW_KCAL_KG = K.dials.get("acute.RESTART_LOW_KCAL_KG")
 K.acute.RESTART_LOW_BMI = K.dials.get("acute.RESTART_LOW_BMI")
 K.acute.REFEED_P = K.dials.get("acute.REFEED_P")
 
--- A fresh record.acute at world age ageH: no caffeine or alcohol on board or in the gut, the reference
--- glycogen and normal glucose, rested, no debt or sleep bout, no refeeding risk. bmi 0 until the first
--- refeedDay close. The Plan 5 fields: no exercise, cold or retinol memory, no band-2 minute on record
--- (lastVigAgeH far in the past), no vigorous latch, no sleep term.
+-- bmi is 0 until the first refeedDay close; lastVigAgeH lies far in the past.
 function K.acute.new(ageH)
     return {
         gutAlc = 0,
@@ -251,15 +213,12 @@ function K.acute.new(ageH)
     }
 end
 
--- The slow-metaboliser draw: the adapter passes a uniform roll in [0, 1) once per character.
+-- The adapter passes a uniform roll in [0, 1) once per character.
 function K.acute.drawSlowMet(roll)
     return roll < K.acute.CAF_SLOW_SHARE
 end
 
--- One gut-lane step over dtH hours: the fraction 1 - exp(-ln2 x dtH / GUT_T_HALF) of the
--- ethanol (g) and caffeine (mg) awaiting absorption moves out. Returns the ethanol and the caffeine
--- absorbed this step (the caffeine at CAF_ABSORB), the doses alcohol and caffeine then take. The intake
--- landing adds to gutAlc and gutCaf; neither key enters the stomach.
+-- Returns the ethanol and the caffeine absorbed (the caffeine at CAF_ABSORB); neither key enters the stomach.
 function K.acute.absorbGut(a, dtH)
     local f = 1 - math.exp(-0.6931471805599453 * dtH / K.acute.GUT_T_HALF)
     local alc = a.gutAlc * f
@@ -269,11 +228,8 @@ function K.acute.absorbGut(a, dtH)
     return alc, caf * K.acute.CAF_ABSORB
 end
 
--- One caffeine step: the body load decays first-order and takes this step's absorbed dose (mg); the
--- daily-rate EMA takes the step's sample (dose x 24 / dtH mg/day) with alpha = dtH / CAF_MEAN_H (168 h), written without
--- the division so a dose-only step (dtH 0) adds dose / 7; tolerance relaxes toward clamp(mean / CAF_TOL_REF, 0, 1)
--- on CAF_TOL_TAU_H (7 d) both ways; withdrawal hours accrue while tolerant and the load is under CAF_WD_LOW_MG (10.7 mg). wd is the
--- withdrawal intensity 0..1 (0 outside the episode). w is accepted for the call shape.
+-- The rate EMA is written without the division, so a dose-only step (dtH 0) adds dose / 7. Withdrawal hours accrue
+-- while tolerant and the load is under CAF_WD_LOW_MG; wd is 0 outside the episode. w is accepted for the call shape.
 function K.acute.caffeine(a, doseAbsMg, w, dtH)
     local A = K.acute
     local thalf = A.CAF_THALF_H
@@ -301,16 +257,13 @@ function K.acute.caffeine(a, doseAbsMg, w, dtH)
     return a
 end
 
--- Whether CAF_EFFECT_MGKG (3 mg/kg) is on board (S0626).
+-- S0626.
 function K.acute.caffeineActive(a, w)
     return a.caf >= K.acute.CAF_EFFECT_MGKG * w
 end
 
--- One alcohol step: the absorbed ethanol g lands, the Widmark zero-order elimination beta x r x w x 10
--- g/h drains it, BAC = load / (10 r w) per cent. The peak is tracked while BAC > 0; when BAC returns to 0
--- after a peak of at least HANG_PEAK (0.05 %) the hangover starts for C.HANG_H x peak/HANG_PEAK hours (the active stimulant set) and counts down; a
--- sub-threshold peak clears. Drinking again during a hangover ends it and starts a fresh episode at the
--- new BAC (game choice).
+-- Widmark zero-order elimination; a peak of at least HANG_PEAK starts the hangover when BAC returns to 0, a smaller
+-- one clears. Drinking again during a hangover starts a fresh episode (a game choice).
 function K.acute.alcohol(a, ethanolAbsG, w, sex, dtH)
     local A = K.acute
     local r = A.WIDMARK_R[sex]
@@ -339,8 +292,7 @@ function K.acute.alcohol(a, ethanolAbsG, w, sex, dtH)
     return a
 end
 
--- The alcohol term of the impairment unit: piecewise-linear over IU_ALC_KNOTS, the last segment extended
--- above the last knot (0.08 %) and capped at IU_ALC_CAP.
+-- The last segment extended above the last knot and capped at IU_ALC_CAP.
 function K.acute.iuAlcohol(bac)
     if bac <= 0 then
         return 0
@@ -348,7 +300,7 @@ function K.acute.iuAlcohol(bac)
     return K.min(K.interp(K.acute.IU_ALC_KNOTS, bac, true), K.acute.IU_ALC_CAP)
 end
 
--- The glycogen target for a 24 h carbohydrate intake cho24 g/kg/day (S0680 anchors).
+-- cho24 in g/kg/day (S0680 anchors).
 function K.acute.glycTarget(cho24)
     local A = K.acute
     local hi = K.clamp((cho24 - A.GLYC_PIVOT) / A.GLYC_SPAN, 0, 1)
@@ -356,10 +308,8 @@ function K.acute.glycTarget(cho24)
     return A.GLYC_REF + A.GLYC_HIGH * hi - A.GLYC_LOW * lo
 end
 
--- One glycogen step: the work draw (above USE_MET_LO, MET 3) and the shivering draw (above the coldMult dead band,
--- full at SHIVER_FULL, 3.5), mmol/kg/h; at rest (met < USE_MET_LO, the S0683 work floor) the store also relaxes toward the
--- carbohydrate target on GLYC_TAU_H (24 h), the refill and any shiver draw coexisting (a working
--- step never refills, a cold resting one refills less). Clamped to [0, GLYC_MAX]; g = clamp(G / GLYC_REF, 0, 1).
+-- Work and shivering draw above their floors; at rest (met < USE_MET_LO, S0683) the store also refills toward the
+-- carbohydrate target, so a working step never refills and a cold resting one refills less.
 function K.acute.glycogen(a, met, coldMult, cho24, dtH)
     local A = K.acute
     local work = A.USE_WORK * K.clamp((met - A.USE_MET_LO) / A.USE_MET_SPAN, 0, A.USE_MAX)
@@ -375,16 +325,13 @@ function K.acute.glycogen(a, met, coldMult, cho24, dtH)
     return a
 end
 
--- The glycogen state g read off the store: glyc over GLYC_REF clamped to [0, 1] (the glycogen step's own
--- write, and the load's recompute of it from the stored glyc).
+-- Also the load's recompute of g from the stored glyc.
 function K.acute.glycG(a)
     return K.clamp(a.glyc / K.acute.GLYC_REF, 0, 1)
 end
 
--- One blood-glucose step: carbohydrate absorbed this step (choAbsG > 0) restores toward BG_NORMAL (5.0) on BG_TAU_CHO_H (15 min);
--- otherwise the target is BG_EXERTION (2.5) under exertion with g < BG_EX_G (0.2; a.g, the glycogen step's), BG_ALC_FAST (3.0) with alcohol on
--- board after more than BG_ALC_FAST_H (12 h) of empty stomach, else BG_NORMAL (no fall from fasting alone, S0896), on BG_TAU_H (1 h).
--- Clamped to [BG_MIN, BG_MAX].
+-- Absorbed carbohydrate restores toward BG_NORMAL; otherwise BG_EXERTION under exertion with low glycogen, BG_ALC_FAST
+-- with alcohol after a long empty stomach, else BG_NORMAL: no fall from fasting alone (S0896).
 function K.acute.glucose(a, met, choAbsG, bac, stomachEmptyH, dtH)
     local A = K.acute
     local target = A.BG_NORMAL
@@ -401,51 +348,38 @@ function K.acute.glucose(a, met, choAbsG, bac, stomachEmptyH, dtH)
     return a
 end
 
--- The glucose term of the impairment unit: 0 at or above IU_BG_HI (3.0 mmol/L), linear to IU_BG_MAX (0.90) at IU_BG_LO (2.6), held below
--- (the Plan 4 knee was 3.5-3.0).
+-- 0 at or above IU_BG_HI, linear to IU_BG_MAX at IU_BG_LO, held below.
 function K.acute.iuGlucose(bg)
     local A = K.acute
     local x = K.clamp((A.IU_BG_HI - bg) / (A.IU_BG_HI - A.IU_BG_LO), 0, 1)
     return A.IU_BG_MAX * x
 end
 
--- The effective build-up time constant, game hours: chi_w / (mAcc x (1 + CHI_W_DEBT x min(debtH, CHI_W_DEBT_MAX))),
--- mAcc 1 when nil.
+-- mAcc nil reads 1.
 function K.acute.chiW(debtH, mAcc)
     local m = mAcc or 1
     return K.acute.CHI_W / (m * (1 + K.acute.CHI_W_DEBT * K.min(debtH, K.acute.CHI_W_DEBT_MAX)))
 end
 
--- The effective recovery time constant, game hours: chi_s / rRec, rRec 1 when nil.
+-- rRec nil reads 1.
 function K.acute.chiS(rRec)
     local r = rRec or 1
     return K.acute.CHI_S / r
 end
 
--- The body clock (Plan 16 spec section 2, Angus's design): record.acute.bodyHour, the character's own phase in hours of
--- the day (0-24), the hour the three daily-rhythm consumers read in place of the world clock's (the hunger factor,
--- K.satiety.circadian; the fatigue term circ, K.acute.circ; the carry morning halving, K.strength.eAcute). It runs
--- only while sleep is on (NR.sleepOn: SleepAllowed and SleepNeeded both true on a server): with sleep off there is
--- no rhythm (K.circadian.hour reads nil, so the hunger factor is 1, circ 0 and no halving; a game choice, spec
--- section 6). With sleep on it advances by each step's integrated online hours, so it freezes offline (the resume
--- leaves it, K.resume.KEPT); it is seeded at the world hour on a record that has none and on the first sleep-on step
--- after a sleep-off one (bodyOn, the setting the clock last ran under); a sleep-off step keeps the phase unused; and
--- the close of a main sleep (a bout of at least MAIN_SLEEP_H booked hours, K.acute.sleepMinute) sets it to WAKE_H
--- at the waking, plus the gap since (a game choice, spec section 6). Pure: no Java.
+-- The body clock record.acute.bodyHour, read by the hunger factor, circ and the carry's morning halving in place of the
+-- world hour. It runs only while sleep is on; with sleep off there is no rhythm (a game choice). It advances by online
+-- hours, so it freezes offline (K.resume.KEPT), and a main sleep's close sets it to WAKE_H plus the gap since.
 K.circadian = {}
 K.circadian.WAKE_H = K.dials.get("circadian.WAKE_H")
 K.circadian.MAIN_SLEEP_H = K.dials.get("circadian.MAIN_SLEEP_H")
 K.circadian.SUM_TOL_H = K.dials.get("circadian.SUM_TOL_H")
 
--- An hour wrapped into [0, 24).
 function K.circadian.wrap(h)
     return h - math.floor(h / 24) * 24
 end
 
--- One body-clock step of dtH online game hours (a.bodyHour, a.bodyOn). sleepOn false marks the clock off and keeps
--- its phase; sleepOn true advances it by dtH, or seeds it at worldHour (the hour of the world clock this minute)
--- when it has no finite phase or last ran under sleep off. A worldHour that is not finite seeds nothing: the clock
--- stays off and the next step seeds it.
+-- A worldHour that is not finite seeds nothing: the clock stays off and the next step seeds it.
 function K.circadian.step(a, sleepOn, worldHour, dtH)
     if not sleepOn then
         a.bodyOn = false
@@ -465,14 +399,13 @@ function K.circadian.step(a, sleepOn, worldHour, dtH)
     return a
 end
 
--- The close of a main sleep: the body woke at WAKE_H, sinceH game hours ago (the bout's awake gap at its close).
+-- sinceH is the bout's awake gap at its close.
 function K.circadian.wake(a, sinceH)
     a.bodyHour = K.circadian.wrap(K.circadian.WAKE_H + sinceH)
     return a
 end
 
--- The hour the daily-rhythm consumers read: record.acute.bodyHour when sleepOn and the clock runs (bodyOn) on a
--- finite phase, else nil (no rhythm).
+-- nil (no rhythm) unless sleepOn and the clock runs on a finite phase.
 function K.circadian.hour(record, sleepOn)
     if not sleepOn or type(record) ~= "table" then
         return nil
@@ -488,8 +421,7 @@ function K.circadian.hour(record, sleepOn)
     return nil
 end
 
--- The circadian term of fatigue at body hour hourOfDay: CIRC_AMP x cos(2 pi (hourOfDay - CIRC_PEAK_H) / 24); 0 when
--- hourOfDay is nil (no rhythm).
+-- 0 when hourOfDay is nil (no rhythm).
 function K.acute.circ(hourOfDay)
     if hourOfDay == nil then
         return 0
@@ -497,28 +429,12 @@ function K.acute.circ(hourOfDay)
     return K.acute.CIRC_AMP * math.cos(2 * math.pi * (hourOfDay - K.acute.CIRC_PEAK_H) / 24)
 end
 
--- One sleep step over dtH game hours at world age ageH; hourOfDay is the body clock's hour (K.circadian.hour), nil
--- with no rhythm. sleepDisabled (the server's SleepAllowed and
--- SleepNeeded not both true, the reset ahead of the hook, run x151s) freezes the state at rested: hours
--- awake, debt, the sleep run and the window's sleep are 0, S is S_RESTED and the window restarts at ageH,
--- so a later re-enable opens a fresh window; frozen is set and circ is K.acute.circ(hourOfDay). Otherwise: asleep, the
--- run (sleptH), the bout (boutH) and the window's sleep accrue, the bout's gap clears, hours awake reset to 0
--- once the bout reaches NAP_MIN_H (at that minute) and otherwise hold, and S decays on chi_s to
--- a debt floor capped at S_FLOOR_MAX; awake, the run clears, a bout in progress counts its gap (gapH) and ends
--- when the gap reaches BOUT_GAP_H -- a bout that had reset hours awake then credits the whole gap to them, the
--- waking having begun at its start -- hours awake accrue unless a bout of at least NAP_MIN_H is in progress,
--- and S rises toward 1 on chi_w shortened by the debt. A gap under BOUT_GAP_H inside a bout is so tolerated
--- (the harness hold's isAsleep misses, #2840). sleptH, the unbroken run, is the record's one
--- asleep-this-minute signal (above 0 after an asleep step, 0 after an awake one), which the live experiments'
--- rings read (x30_sleep_lib); the reset reads the bout. The 24 h window closes when ageH has run WINDOW_H past
--- its start: the shortfall against need (7.5 h x needFactor, the trait multiplier) adds to the debt, the
--- excess repays REPAY of itself, clamped [0, DEBT_MAX].
--- mAcc divides chi_w (the accrual multiplier) and rRec divides chi_s (the recovery
--- multiplier), each 1 when nil; their clamps are the caller's. At a bout's first asleep minute (boutH 0
--- before this step) boutVig latches whether a band-2 minute ended within VIG_WINDOW_H before ageH; it holds
--- until the next bout starts. A bout that closes with at least K.circadian.MAIN_SLEEP_H booked (boutH, asleep hours
--- only) is a main sleep: the body clock wakes at WAKE_H (K.circadian.wake) and this step's circ reads the reset hour;
--- a nap or an accelerated-sleep mod's few-minute bout leaves it.
+-- sleepDisabled (SleepAllowed and SleepNeeded not both true) freezes the state at rested and restarts the window at
+-- ageH, so a later re-enable opens a fresh one. A sleep bout tolerates awake gaps under BOUT_GAP_H (the harness hold's
+-- isAsleep misses, #2840); a bout that reached NAP_MIN_H credits a closing gap to hours awake. sleptH, the unbroken
+-- run, is 0 after any awake step; the reset reads the bout. A closing window books the shortfall against need x
+-- needFactor as debt and repays REPAY of any excess. A bout of at least MAIN_SLEEP_H booked hours is a main sleep and
+-- wakes the body clock; a nap or an accelerated-sleep mod's few-minute bout leaves it.
 function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepDisabled, mAcc, rRec)
     local A = K.acute
     if sleepDisabled then
@@ -585,14 +501,14 @@ function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepD
     return a
 end
 
--- The sleep term of the impairment unit: 0 at IU_SLEEP_ZERO_H (16 h) awake, 1 IU_SLEEP_SPAN_H later (24 h, S0892), plus debt / IU_SLEEP_DEBT_H (10.5), cap IU_SLEEP_MAX (1.5).
+-- 1 IU_SLEEP_SPAN_H after IU_SLEEP_ZERO_H awake (S0892), plus the debt term, capped.
 function K.acute.iuSleep(a)
     local A = K.acute
     local awake = K.clamp((a.awakeH - A.IU_SLEEP_ZERO_H) / A.IU_SLEEP_SPAN_H, 0, A.IU_SLEEP_MAX)
     return K.min(A.IU_SLEEP_MAX, awake + a.debtH / A.IU_SLEEP_DEBT_H)
 end
 
--- The dehydration term: 0 below IU_DEHYD_FROM (1 %), IU_DEHYD_SLOPE1 (0.45) per per cent to IU_DEHYD_KNEE (2 %), IU_DEHYD_SLOPE2 (0.22) per per cent above, cap IU_DEHYD_MAX (0.89).
+-- Two slopes either side of IU_DEHYD_KNEE, capped at IU_DEHYD_MAX.
 function K.acute.iuDehyd(dehydPct)
     local A = K.acute
     if dehydPct < A.IU_DEHYD_FROM then
@@ -605,9 +521,7 @@ function K.acute.iuDehyd(dehydPct)
     return K.min(y, A.IU_DEHYD_MAX)
 end
 
--- The impairment unit (1 IU = 24 h awake = BAC 0.05 %): the sleep, alcohol, dehydration, glucose and iron
--- terms summed, less the caffeine credit min(IU_sleep, CREDIT_BASE x min(1, caf / CREDIT_BASE_MG) + CREDIT_GAIN x min(1, caf / CREDIT_MG)), clamped [0, IU_MAX].
--- Additive. Writes a.iu and a.iuSleep (the sleep term, for the Plan 5 readers) and returns a.iu.
+-- 1 IU = 24 h awake = BAC 0.05 %. Additive, less the caffeine credit (never above IU_sleep); writes a.iu and a.iuSleep.
 function K.acute.iu(a, dehydPct, ironGrade)
     local A = K.acute
     local sleep = A.iuSleep(a)
@@ -618,9 +532,7 @@ function K.acute.iu(a, dehydPct, ironGrade)
     return a.iu
 end
 
--- One exercise step: exEma, the moderate-or-harder minutes of about the last EX_TAU_H (6 h), decays on
--- EX_TAU_H and takes this step's minutes (dtH x 60) when the training band is 1 or 2; a band-2 step stamps
--- lastVigAgeH = ageH, the world age sleepMinute's vigorous latch reads. band is 0, 1 or 2.
+-- A band-2 step stamps lastVigAgeH, which sleepMinute's vigorous latch reads.
 function K.acute.exerciseMinute(a, band, ageH, dtH)
     local A = K.acute
     local add = 0
@@ -634,8 +546,7 @@ function K.acute.exerciseMinute(a, band, ageH, dtH)
     return a
 end
 
--- One cold step: coldH, the cold hours of about the last COLD_TAU_H (6 h), decays on it and takes dtH when the
--- thermoregulator's coldMult is above COLD_ON.
+-- Cold is coldMult above COLD_ON.
 function K.acute.coldMinute(a, coldMult, dtH)
     local A = K.acute
     local add = 0
@@ -646,10 +557,7 @@ function K.acute.coldMinute(a, coldMult, dtH)
     return a
 end
 
--- One retinol step: retEma, the RET_TAU_D-day (14) EMA of the ingested preformed retinol in ug/day,
--- relaxes toward this step's rate ingestedUg / dtD by the fraction 1 - exp(-dtD / RET_TAU_D), the exact
--- step for a rate held over the step (a constant 900 ug/day reaches 900 x (1 - e^-1) in RET_TAU_D days at any
--- step length). A step of dtD <= 0 changes nothing.
+-- The exact step for a rate held over the step, so any step length agrees; dtD <= 0 changes nothing.
 function K.acute.retinolMinute(a, ingestedUg, dtD)
     if dtD <= 0 then
         return a
@@ -659,17 +567,10 @@ function K.acute.retinolMinute(a, ingestedUg, dtD)
     return a
 end
 
--- One refeeding day close: kcalPerKg the day's absorbed kcal per kg, w the mass kg at the close, ageH the
--- world age. Order: the refeeding window opens on a normal day that follows a low day while the previous
--- close left the risk high (refeedDayN 0; the low-day predecessor is a game choice so that a thin but
--- fed character does not cycle windows); the starvation count, the 90-day mass maximum, BMI (stored on
--- a.bmi for refeedEvent) and the 90-day loss update; the risk recomputes outside a window (S0115): high
--- (2) on any high criterion, 2 on two moderate ones, 1 on one, else 0. partial: the closed day is the character's
--- first, partial day (under 24 h since its birth), which is never a low day, so a new character does not start one
--- starved day in (Plan 15 close; the drain's unfed clock caps by age the same way). starvedDays counts record days
--- of little or no intake, S0115's criterion as written ("little or no intake for more than 5 / 10 days"), not the
--- drain's unfed hours (K.drain.unfedH), which a nibble resets: the two clocks answer different questions and can
--- disagree by up to a day at a fast's start (Plan 15 close, L4).
+-- The window opens on a normal day after a low day while the risk is high (a game choice, so a thin but fed character
+-- does not cycle windows). A first, partial day is never low, so a new character does not start a day starved.
+-- starvedDays counts days of little or no intake (S0115 as written), not the drain's unfed hours, which a nibble
+-- resets: the two can differ by a day at a fast's start.
 function K.acute.refeedDay(a, kcalPerKg, w, ageH, kDepleted, mgDepleted, alcoholHistory, partial)
     local A = K.acute
     local low = kcalPerKg < A.LOW_KCAL_KG and partial ~= true
@@ -712,10 +613,7 @@ function K.acute.refeedDay(a, kcalPerKg, w, ageH, kDepleted, mgDepleted, alcohol
     return a
 end
 
--- The refeeding event, called after refeedDay at the same close with a uniform roll in [0, 1): inside the
--- first REFEED_DAYS refeeding days the day counts and an intake above the restart limit (RESTART_KCAL_KG, 10 kcal/kg;
--- RESTART_LOW_KCAL_KG, 5, at RESTART_LOW_BMI, BMI 14, or below; S0116) rolls the event at REFEED_P; the close after day REFEED_DAYS ends the window (refeedDayN
--- -1) and the risk recomputes at the next close. Writes a.refeedEvent and returns it.
+-- Inside the first REFEED_DAYS days an intake above the restart limit (S0116) rolls the event at REFEED_P.
 function K.acute.refeedEvent(a, kcalPerKg, roll)
     local A = K.acute
     local event = false

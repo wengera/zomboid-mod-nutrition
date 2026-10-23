@@ -1,27 +1,17 @@
--- NR_Kernel_View.lua -- the interface's row model: the client's stored
--- mirror (the flat scalar table of NR_Kernel_Mirror.lua) in, at one of three visibility levels, and an array of
--- rows out; the four symptom classes the moodles show; the tooltip lines of one food's resolved vector
--- (K.vector.resolve). Pure: no engine global, no getText -- every label is a translation KEY and every text is
--- a KEY (isKey true: the class, band and grade words) or a formatted string, resolved by the client files.
--- One statement per line (the coverage gate is line-granular). This file sorts after NR_Kernel.lua,
--- NR_Kernel_Fluids.lua and NR_Kernel_Nutrients.lua; every K.* reference is at call time.
--- A row is { key, label, text, level, isKey } plus cls and n (the class level 0-4) on a class row; level is the
--- visibility level the row belongs to (1 Symptoms, 2 Bands, 3 Numbers). Labels: a class row UI_NR_Class_<cls>; a
--- grade row UI_NR_Row_<nutrient>; every other row UI_NR_Row_<mirror key without the nut_ prefix> (vitC_p,
--- vitC_x, body_weight, acute_caf ...); a tooltip line UI_NR_Tip_Source_<source> or UI_NR_Row_<vector key>.
--- Texts: UI_NR_Class_<cls>_<0-4> (deficiency and excess stop at 3), UI_NR_Band_<band or none>, UI_NR_Grade_<1-4>, UI_NR_Tip_Rich, UI_NR_Tip_Low,
--- UI_NR_Drain_<state name> (a drain row), UI_NR_Trend_<word> (the weight trend), UI_NR_Tip_Fills* (the tooltip's fill line).
+-- NR_Kernel_View.lua: the interface's row model: the client's stored mirror (NR_Kernel_Mirror.lua) in, at one of three
+-- visibility levels (1 Symptoms, 2 Bands, 3 Numbers), an array of rows out; the moodle classes; a food's tooltip lines.
+-- Pure: no engine global, no getText: every label and word is a translation KEY (isKey true) the client resolves.
+-- A row is { key, label, text, level, isKey } plus cls and n on a class row. One statement per line for the coverage
+-- gate. Sorts after NR_Kernel.lua, NR_Kernel_Fluids.lua and NR_Kernel_Nutrients.lua; K.* resolves at call time.
 local K = NutritionRevamp.kernel
 K.view = {}
 
--- The four symptom classes, closed, in display order. The Energy and Hydration classes are removed (Plan 15 Task 9;
--- spec section 4, items 1 and 10e): vanilla's calibrated hunger moodle, reaching Starving, and its thirst moodle,
--- reaching Parched, are the signals; the internal energy state stays (record.body.energyState), and the panel shows the
--- drain state, the weight trend and the dehydration per cent instead.
+-- The Energy and Hydration classes are removed: vanilla's calibrated hunger and thirst moodles are the signals, and the
+-- panel shows the drain state, the weight trend and the dehydration per cent instead.
 K.view.CLASSES = { "deficiency", "excess", "stimulant", "sleep" }
 
--- Each class ladder is the four ascending lower bounds of class levels 1-4; below the first the class reads 0.
--- stimulant: acute_caf, the caffeine in the body in mg (K.acute.caffeine).
+-- Each ladder is the four ascending lower bounds of class levels 1-4; below the first the class reads 0.
+-- stimulant: acute_caf, mg in the body.
 K.view.STIMULANT_AT = {
     K.dials.get("view.STIMULANT_AT.1"),
     K.dials.get("view.STIMULANT_AT.2"),
@@ -29,7 +19,7 @@ K.view.STIMULANT_AT = {
     K.dials.get("view.STIMULANT_AT.4"),
 }
 
--- sleep: acute_debtH, the sleep debt in game hours (K.acute, capped at K.acute.DEBT_MAX).
+-- sleep: acute_debtH, game hours (capped at K.acute.DEBT_MAX).
 K.view.SLEEP_AT = {
     K.dials.get("view.SLEEP_AT.1"),
     K.dials.get("view.SLEEP_AT.2"),
@@ -37,20 +27,19 @@ K.view.SLEEP_AT = {
     K.dials.get("view.SLEEP_AT.4"),
 }
 
--- deficiency and excess: the worst grade less one and the highest rung over the mirror's nut_<key>_g / _x, each
--- capped at the record engine's top rung, 3 (K.nutrients: g 1 replete .. 4 clinical, x 0..3).
-K.view.RUNG_MAX = 3 -- the record engine's top rung (NR_Kernel_Nutrients grades and excess ladders)
+-- deficiency and excess: the worst grade less one and the highest rung, each capped at the top rung, 3.
+K.view.RUNG_MAX = 3
 
--- The tooltip's "rich in" and "low" shares of the per-day requirement R a single item gives, and the lines of each.
+-- Shares of the per-day requirement one item gives.
 K.view.RICH_SHARE = K.dials.get("view.RICH_SHARE")
 K.view.LOW_SHARE = K.dials.get("view.LOW_SHARE")
 K.view.TIP_MAX = K.dials.get("view.TIP_MAX")
 
--- string.format patterns by digit count, never %d (the Kahlua %d rule, #0939).
+-- Patterns by digit count, never %d (the Kahlua %d rule, #0939).
 K.view.FORMATS = { "%.1f", "%.2f", "%.3f" }
 K.view.FORMATS[0] = "%.0f"
 
--- A number formatted with digits (0-3, default 0) after the point; "" for anything that is not a number, NaN or an infinity.
+-- "" for anything that is not a finite number.
 function K.view.fmt(v, digits)
     if type(v) ~= "number" or v ~= v then
         return ""
@@ -66,7 +55,6 @@ function K.view.fmt(v, digits)
     return string.format(K.view.FORMATS[d], v)
 end
 
--- fmt with a unit after a space; "" when there is no number.
 function K.view.unitText(v, digits, unit)
     local text = K.view.fmt(v, digits)
     if text ~= "" and unit ~= nil then
@@ -75,7 +63,7 @@ function K.view.unitText(v, digits, unit)
     return text
 end
 
--- An amount with its digits chosen by size: 0 at 100 and over, 1 at 10 and over, else 2.
+-- 0 digits at 100 and over, 1 at 10 and over, else 2.
 function K.view.amount(v, unit)
     local a = math.abs(v)
     local d = 2
@@ -87,7 +75,7 @@ function K.view.amount(v, unit)
     return K.view.unitText(v, d, unit)
 end
 
--- A visibility level clamped to 1..3 and floored; anything that is not a number reads 1, Symptoms.
+-- Anything that is not a number reads 1, Symptoms.
 function K.view.clampLevel(level)
     if type(level) ~= "number" or level ~= level then
         return 1
@@ -95,7 +83,7 @@ function K.view.clampLevel(level)
     return K.clamp(math.floor(level), 1, 3)
 end
 
--- The visibility level: max(the option, 3 with either Nutritionist trait), clamped 1..3.
+-- 3 with either Nutritionist trait.
 function K.view.level(optionLevel, hasTrait)
     local o = K.view.clampLevel(optionLevel)
     if hasTrait == true then
@@ -104,12 +92,12 @@ function K.view.level(optionLevel, hasTrait)
     return o
 end
 
--- The one per-frame test a surface makes: the mirror's arrival counter or the level moved.
+-- The one per-frame test a surface makes.
 function K.view.changed(received, lastReceived, level, lastLevel)
     return received ~= lastReceived or level ~= lastLevel
 end
 
--- The count of ladder thresholds v reaches (0 when v is not a number).
+-- 0 when v is not a number.
 function K.view.rung(v, at)
     local n = 0
     if type(v) ~= "number" then
@@ -123,9 +111,8 @@ function K.view.rung(v, at)
     return n
 end
 
--- The four class levels of a mirror m (nil reads all zero). m is a Lua-shaped table (the client's stored copy), so
--- pairs is allowed; the excess scan reads every nut_<key>_x it carries, the deficiency scan only the nut_<key>_g of a key
--- in def, the set of nutrients whose grade drives an effect (K.view.deficiencyKeys; nil reads none).
+-- m is the client's Lua-shaped copy, so pairs is allowed. The excess scan reads every nut_<key>_x,
+-- the deficiency scan only the nut_<key>_g of a key in def (K.view.deficiencyKeys; nil reads none).
 function K.view.classes(m, def)
     local c = { deficiency = 0, excess = 0, stimulant = 0, sleep = 0 }
     if m == nil then
@@ -139,12 +126,9 @@ function K.view.classes(m, def)
     return c
 end
 
--- The live state that marks a push, as one integer (Plan 15 Task 9): the sleep rung (units), the stimulant rung (tens),
--- the Overfull level (hundreds; massG, the mirror's stomachMass), the whole dehydration per cent (thousands, 0-9:
--- K.view.dehydDigit, the panel's figure), the weight trend word (ten-thousands, K.view.trendIndex 0-2) and the drain
--- sets (from the hundred-thousands, K.view.drainSignal 0-16383: the active and the recovering masks), so a new drain line,
--- trend word or per cent reaches the panel at the next slow minute. Deficiency and excess move with the nutrient epoch, which already marks a push.
--- nil reads 0 (the trend 1, steady).
+-- The live state that marks a push, as one integer of digits (sleep, stimulant, Overfull, dehydration %, trend word,
+-- then the drain sets), so a new drain line, trend word or per cent reaches the panel at the next slow minute.
+-- Deficiency and excess move with the nutrient epoch, which already marks a push.
 function K.view.pushSignature(dehydPct, caf, debtH, massG, drainSig, trend)
     local s = K.view.rung(caf or 0, K.view.STIMULANT_AT)
     local sl = K.view.rung(debtH or 0, K.view.SLEEP_AT)
@@ -154,8 +138,7 @@ function K.view.pushSignature(dehydPct, caf, debtH, massG, drainSig, trend)
     return K.view.digit(drainSig, 16383) * 100000 + t * 10000 + d * 1000 + o * 100 + s * 10 + sl
 end
 
--- record.drain's sets as one whole number for the push signature: the active mask plus 128 x the recovering mask
--- (Plan 17 revision R2) while a ceiling applies, 0 otherwise (no drain table, none applied, or a mask not a number).
+-- The active mask plus 128 x the recovering mask while a ceiling applies, else 0.
 function K.view.drainSignal(D)
     if type(D) ~= "table" or D.active ~= true or not K.finite(D.mask) or not K.finite(D.recovering) then
         return 0
@@ -163,7 +146,7 @@ function K.view.drainSignal(D)
     return D.mask + 128 * D.recovering
 end
 
--- A whole number from v, floored and clamped 0..hi; anything that is not a finite number reads 0.
+-- Anything that is not a finite number reads 0.
 function K.view.digit(v, hi)
     if not K.finite(v) then
         return 0
@@ -171,15 +154,12 @@ function K.view.digit(v, hi)
     return K.clamp(math.floor(v), 0, hi)
 end
 
--- A player's push phase inside the gap (rule #3498): a rolling hash of the username modulo the gap,
--- so players first seen together make their first push in different frames (#3456); it spreads only that first gap.
+-- A rolling hash of the username (#3456), so players first seen together push in different frames; only the first gap.
 function K.view.pushOffset(username, gapMs)
     return K.nameHash(username) % gapMs
 end
 
--- One mirror entry into the deficiency and excess classes: a numeric nut_<key>_g of a key in def (nil reads none)
--- raises deficiency to g - 1, a numeric nut_<key>_x raises excess to x, each capped at RUNG_MAX; anything else is
--- skipped.
+-- nil def reads none; anything not numeric is skipped.
 function K.view.scan(c, k, v, def)
     if type(v) ~= "number" or type(k) ~= "string" then
         return
@@ -193,7 +173,6 @@ function K.view.scan(c, k, v, def)
     end
 end
 
--- One row.
 function K.view.row(key, label, text, level, isKey)
     local r = {}
     r.key = key
@@ -204,23 +183,15 @@ function K.view.row(key, label, text, level, isKey)
     return r
 end
 
--- Append a row to rows and return it.
 function K.view.push(rows, key, label, text, level, isKey)
     local r = K.view.row(key, label, text, level, isKey)
     rows[#rows + 1] = r
     return r
 end
 
--- The row model: m the mirror (nil reads empty), level 1..3, order the nutrient keys whose grade rows
--- are listed (nil: none; K.view.gradedOrder gives the graded ones), fat the client's body-fat state { female, last }
--- (nil reads a man with no word held; K.view.fatRow), ungraded the keys with no grade whose excess still raises the
--- Excess class (nil: none; K.view.ungradedOrder), def the deficiency key set (K.view.classes). Every level: the four
--- class rows, then one line per active drain state (K.view.drainRows); Bands and up: the body block (band word, weight,
--- weight-trend word, body-fat word, Strength), the dehydration per cent above DEHYD_SHOW, each graded key's grade word
--- (a key the engine has not graded yet, g < 1, has no grade row: the panel lists every graded key, whether or not its
--- grade drives an effect) and every listed key's excess word while its rung is above 0; Numbers: the fat and lean mass
--- and the trend in kg a day, each graded key's pool percentage and excess rung, an ungraded key's rung while above 0,
--- and the caffeine, alcohol and sleep-debt figures.
+-- Every level: the four class rows, then one line per drain state (K.view.drainRows); Bands and up: the body block, the
+-- dehydration per cent above DEHYD_SHOW and each graded key's grade and excess words (a key not yet graded, g < 1, has no
+-- grade row); Numbers: the figures. order nil lists no grade rows; fat nil reads a man with no word held.
 function K.view.rows(m, level, order, fat, ungraded, def)
     local mm = m
     if mm == nil then
@@ -268,9 +239,7 @@ function K.view.rows(m, level, order, fat, ungraded, def)
     return rows
 end
 
--- One graded nutrient's rows: its grade word at Bands and up, its pool percentage at Numbers, then its excess row
--- (K.view.excessRow, the rung always at Numbers); while the mirror has not graded the key (g absent or below 1), the
--- excess row alone, and only while its rung is above 0.
+-- An ungraded key (g absent or under 1) shows its excess row alone, only while its rung is above 0.
 function K.view.nutrientRows(rows, m, key, lv)
     local g = m["nut_" .. key .. "_g"]
     if type(g) ~= "number" or g < 1 then
@@ -289,9 +258,7 @@ function K.view.nutrientRows(rows, m, key, lv)
     K.view.excessRow(rows, m, key, lv, true)
 end
 
--- One nutrient's excess row, labelled UI_NR_Row_<key>_x: at Numbers its rung as a figure (always, or only while
--- above 0); at Bands, while the rung is above 0, the Excess class word of that rung (capped at RUNG_MAX), amber
--- like a class row. None at Symptoms. A rung that is not a number above 0 (NaN included) is not above 0.
+-- At Numbers the rung as a figure; at Bands the Excess word while above 0; none at Symptoms. NaN is not above 0.
 function K.view.excessRow(rows, m, key, lv, always)
     local x = m["nut_" .. key .. "_x"]
     local raised = type(x) == "number" and x > 0
@@ -305,14 +272,9 @@ function K.view.excessRow(rows, m, key, lv, always)
     end
 end
 
--- --- the panel's signal lines (Plan 15 Task 9; spec section 4) -------------------------------------------------------
--- The drain lines: one row per active or recovering drain state, in code order, its label UI_NR_Row_drain and its text
--- the state's plain words, UI_NR_Drain_<name> (K.drain.states[code].name: "weakened by starvation", "suffering from
--- dehydration", "scurvy" ...) while it is active, or UI_NR_DrainRec_<name> ("recovering from starvation" ...) while it
--- recovers (Plan 17 revision R2: its cause has lapsed and its ceiling still applies), amber like a raised class. mask
--- and rec are the mirror's drain_mask and drain_rec (K.drain's sets of active and recovering codes, code c the bit
--- 2^(c - 1)); a mask that is not a finite number reads none. Pushed at level 1: the drain is the body's damage signal
--- the removed Energy moodle carried (decisions item 1), so every visibility level shows it.
+-- --- the panel's signal lines -----------------------------------------------------------------------------------------
+-- One row per active or recovering drain state, in code order, UI_NR_Drain_<name> or UI_NR_DrainRec_<name>. Pushed at
+-- level 1: the drain is the body's damage signal the removed Energy moodle carried, so every level shows it.
 function K.view.drainRows(rows, mask, rec)
     if not K.finite(mask) or mask < 0 then
         mask = 0
@@ -323,7 +285,6 @@ function K.view.drainRows(rows, mask, rec)
     if mask + rec <= 0 then
         return
     end
-    -- K.drain.states is a kernel-built Lua array, so # is its length
     for code = 1, #K.drain.states do
         local name = K.drain.states[code].name
         local text = nil
@@ -340,20 +301,17 @@ function K.view.drainRows(rows, mask, rec)
     end
 end
 
--- Whether drain code c's bit, 2^(c - 1), is set in mask (Lua 5.1 has no bit operators).
+-- Lua 5.1 has no bit operators.
 function K.view.hasBit(mask, c)
     return math.floor(mask / 2 ^ (c - 1)) % 2 == 1
 end
 
--- The weight trend: the server's 7-day body-mass slope (the mirror's body_trend, K.body.trend over the closed-day ring
--- body.mass7, kg a day) as a word at Bands, "losing", "steady" or "gaining", or No data while the mirror carries no body.
--- The word reads K.body.flags, the direction flags this mod sets vanilla's weight arrows from (NR_Server_Weight, ruling
--- 17), so the panel and the character screen's arrows never disagree (Plan 15 Task 9 fix 1, review M2): one threshold.
+-- The weight trend word reads K.body.flags, the flags that set vanilla's weight arrows (NR_Server_Weight), so the panel
+-- and the character screen never disagree: one threshold.
 K.view.TREND_WORDS = { "steady", "gaining" }
 K.view.TREND_WORDS[0] = "losing"
 
--- The trend word's index of a slope in kg a day: 0 losing (K.body.flags' decreasing), 2 gaining (its increasing), else
--- 1 steady; a slope that is not a finite number reads 1.
+-- A slope that is not a finite number reads 1, steady.
 function K.view.trendIndex(kgPerDay)
     if not K.finite(kgPerDay) then
         return 1
@@ -368,8 +326,7 @@ function K.view.trendIndex(kgPerDay)
     return 1
 end
 
--- The trend row at Bands: its word key UI_NR_Trend_<word>, or No data with no body (a body_weight that is not a positive
--- number or a body_trend that is not a finite number).
+-- No data with no body (a non-positive body_weight or a non-finite body_trend).
 function K.view.trendRow(rows, m)
     local text = K.view.NO_DATA
     if K.finite(m.body_trend) and K.finite(m.body_weight) and m.body_weight > 0 then
@@ -378,9 +335,7 @@ function K.view.trendRow(rows, m)
     K.view.push(rows, "body_trend", "UI_NR_Row_body_trend", text, 2, true)
 end
 
--- The dehydration row at Bands: the body-water deficit in per cent of body mass to one decimal, only above DEHYD_SHOW
--- (a figure that is not a finite number shows nothing). Vanilla's thirst moodle, reaching Parched, is the signal
--- (decisions item 10e); this row is its figure.
+-- Vanilla's thirst moodle is the signal; this row is its figure, shown only above DEHYD_SHOW.
 K.view.DEHYD_SHOW = K.dials.get("view.DEHYD_SHOW")
 function K.view.dehydRow(rows, pct)
     if not K.finite(pct) or pct <= K.view.DEHYD_SHOW then
@@ -389,16 +344,10 @@ function K.view.dehydRow(rows, pct)
     K.view.push(rows, "fluids_dehydPct", "UI_NR_Row_fluids_dehydPct", K.view.unitText(pct, 1, "%"), 2, false)
 end
 
--- --- the Deficiency moodle's nutrients (Plan 15 Task 9; spec section 4, item 8) ------------------------------------
--- The nutrients whose grade drives an effect: the Deficiency moodle and its class row read these alone (the panel's
--- grade rows still list every graded nutrient). Built from the tables at load, never a hand list (the test keeps the
--- set in step with them): every effects row on a nutrient's grade (on = "grade", whose src is the nutrient key), a gated
--- row only while its gate names a table flag that is true (fix 1, review L2: the composer folds a gated row only when its
--- gate holds, K.effects.active, so a gate the table does not set true, VITD_EFFECTS or a sandbox gate, never counts);
--- the members of the two grade aggregates the rows
--- read as flags, bgroupMax (K.effects.BGROUP) and anaemia (K.nutrients.ANAEMIA, with vitamin B12 through BGROUP); and
--- the nutrients of the drain engine's clinical onsets (K.drain.NUTRIENT). effects is NR.data.effects ({ ROWS, ... });
--- nil reads the onsets alone. Returns a set { [key] = true }.
+-- --- the Deficiency moodle's nutrients ---------------------------------------------------------------------------------
+-- The nutrients whose grade drives an effect, built from the tables at load, never a hand list: every grade row, a gated
+-- row only while its table flag is true (the composer folds a gated row only then), the grade aggregates' members and
+-- the drain's clinical onsets. nil effects reads the onsets alone.
 function K.view.deficiencyKeys(effects)
     local out = {}
     for _, key in pairs(K.drain.NUTRIENT) do
@@ -407,16 +356,13 @@ function K.view.deficiencyKeys(effects)
     if effects == nil or type(effects.ROWS) ~= "table" then
         return out
     end
-    -- ROWS is the data file's Lua array, so # is its length
     for i = 1, #effects.ROWS do
         K.view.deficiencyRow(out, effects, effects.ROWS[i])
     end
     return out
 end
 
--- One effects row into the deficiency set (the loop body, kept apart so the line-granular coverage gate sees each
--- outcome): a gated row whose table flag is not true adds nothing; a grade row adds its src; a flag row on a grade
--- aggregate adds every member.
+-- The loop body, kept apart so the line-granular coverage gate sees each outcome.
 function K.view.deficiencyRow(out, effects, row)
     if row.gated ~= nil and effects[row.gated] ~= true then
         return
@@ -429,13 +375,11 @@ function K.view.deficiencyRow(out, effects, row)
     if members == nil then
         return
     end
-    -- an aggregate's members are a kernel-built Lua array, so # is its length
     for i = 1, #members do
         out[members[i]] = true
     end
 end
 
--- The members of the grade aggregate a flag row reads (bgroupMax: K.effects.BGROUP; anaemia: K.nutrients.ANAEMIA), or
 -- nil for any other row.
 function K.view.aggregateOf(row)
     if row.on ~= "flag" then
@@ -450,19 +394,16 @@ function K.view.aggregateOf(row)
     return nil
 end
 
--- The ORDER keys of a records table ({ ORDER, REC }, NR.data.records) whose kind is graded (not in
--- K.nutrients.UNGRADED): the order a panel lists grade rows for. nil reads none.
+-- Kind not in K.nutrients.UNGRADED. nil reads none.
 function K.view.gradedOrder(records)
     return K.view.kindOrder(records, true)
 end
 
--- The ORDER keys whose kind is ungraded (in K.nutrients.UNGRADED): no grade row, but an excess that raises the Excess
--- class, so the panel names it (K.view.excessRow). nil reads none.
+-- No grade row, but an excess that raises the Excess class. nil reads none.
 function K.view.ungradedOrder(records)
     return K.view.kindOrder(records, false)
 end
 
--- The ORDER keys of records whose kind is graded (graded true) or ungraded (false), in order.
 function K.view.kindOrder(records, graded)
     local out = {}
     if records == nil then
@@ -478,20 +419,15 @@ function K.view.kindOrder(records, graded)
     return out
 end
 
--- The vector keys whose record sits under another key (#3240): the vector carries vitamin A as
--- retinol, the record engine as vitA (NR_Data_Records.lua: REC.vitA.key = "retinol"). The test pins this table to
--- every record whose own key field differs from its REC key; no other record differs.
+-- Vitamin A is retinol in the vector and vitA in the records (#3240); the test pins every key that differs.
 K.view.RECORD_KEY = { retinol = "vitA" }
 
--- The body mass a per-kg requirement is read at for the band. gc: a game choice, the 70 kg
--- reference adult of the DRI tables; the band ranks one item against a fixed daily amount, never the
--- character's own mass (the client holds no body).
+-- gc: a game choice, the DRI tables' 70 kg reference adult; the band ranks one item against a fixed daily amount,
+-- never the character's own mass (the client holds no body).
 K.view.REF_KG = K.dials.get("view.REF_KG")
 
--- The daily requirement of one record for a sex, or nil when it has none: R[sex] for an unscaled record; the
--- floor R[sex] for a per-protein maximum (max(R, Rscale x protein) is never below it); R[sex] x REF_KG for a
--- per-kg record; the record's RDA Rmin[sex] for a per-MJ record (its R is per MJ expended, not a daily amount;
--- the engine never reads Rmin, the band does); nil for any other scale or a missing number.
+-- A per-protein maximum reads its floor R; a per-kg record R x REF_KG; a per-MJ record its RDA Rmin (its R is per MJ
+-- expended, not a daily amount; the engine never reads Rmin, the band does); nil for any other scale.
 function K.view.dailyR(rec, sex)
     if type(rec.R) ~= "table" or type(rec.R[sex]) ~= "number" then
         return nil
@@ -510,10 +446,7 @@ function K.view.dailyR(rec, sex)
     return nil
 end
 
--- The per-key daily requirement map the tooltip's rich and low test reads, keyed by the VECTOR key (units is
--- NR.data.UNITS, whose keys are the vector's): for each unit key, the record under it (through RECORD_KEY) when
--- its unit is the vector's own, at K.view.dailyR for the sex (1 male, 2 female). nil records or units read an
--- empty map.
+-- Keyed by the VECTOR key; a record counts only when its unit is the vector's own. nil records or units read empty.
 function K.view.requirements(records, sex, units)
     local out = {}
     if records == nil or units == nil then
@@ -525,8 +458,6 @@ function K.view.requirements(records, sex, units)
     return out
 end
 
--- One unit key of the requirement map: the record under the key (through RECORD_KEY) when its unit is unit, at
--- K.view.dailyR for the sex, written into out.
 function K.view.requirementOf(out, records, sex, key, unit)
     local recKey = K.view.RECORD_KEY[key]
     if recKey == nil then
@@ -538,8 +469,7 @@ function K.view.requirementOf(out, records, sex, key, unit)
     end
 end
 
--- The share of the daily requirement R[key] one item's vector gives (a missing or non-number value reads 0), or
--- nil when the key has no positive requirement.
+-- A missing or non-number value reads 0; nil when the key has no positive requirement.
 function K.view.share(vector, R, key)
     local r = R[key]
     if type(r) ~= "number" or r <= 0 then
@@ -552,8 +482,7 @@ function K.view.share(vector, R, key)
     return v / r
 end
 
--- Whether share f beats the best so far: rich ranks the highest share at RICH_SHARE and over, low the lowest at
--- LOW_SHARE and under; a tie keeps the earlier key.
+-- A tie keeps the earlier key.
 function K.view.better(f, bestF, best, rich)
     if rich then
         return f >= K.view.RICH_SHARE and (best == nil or f > bestF)
@@ -561,7 +490,6 @@ function K.view.better(f, bestF, best, rich)
     return f <= K.view.LOW_SHARE and (best == nil or f < bestF)
 end
 
--- The best key of keys not yet picked, or nil.
 function K.view.pickOne(vector, R, keys, picked, rich)
     local best = nil
     local bestF = 0
@@ -576,7 +504,6 @@ function K.view.pickOne(vector, R, keys, picked, rich)
     return best
 end
 
--- Up to TIP_MAX rich (or low) lines appended to out, text the word key.
 function K.view.pickLines(out, vector, R, keys, picked, rich, word)
     for n = 1, K.view.TIP_MAX do
         local k = K.view.pickOne(vector, R, keys, picked, rich)
@@ -588,12 +515,9 @@ function K.view.pickLines(out, vector, R, keys, picked, rich, word)
     end
 end
 
--- The tooltip lines of one food: vector and source from K.vector.resolve, level 1..3, keys the keys
--- considered (nil: K.vector.KEYS), data { R = K.view.requirements(...), UNITS = NR.data.UNITS, fillH = the item's
--- fill hours (NR.data.fills.get) or nil } or nil. Every level: the fill line first when data.fillH is a number and the
--- vector carries its calories (K.view.fillRow; it stands in for vanilla's hunger line, which the client hides), then
--- the source line; Bands: the four macros as amounts, then up to three rich-in and three low keys; Numbers: every
--- non-zero key of keys with its amount and unit. A nil vector (the source "missing") is the source line alone.
+-- Every level: the fill line first (it stands in for vanilla's hunger line, which the client hides), then the source
+-- line; Bands: the macros and up to three rich and three low keys; Numbers: every non-zero key. A nil vector is the
+-- source line alone.
 function K.view.tooltip(vector, source, level, keys, data)
     local out = {}
     local src = source
@@ -638,12 +562,8 @@ function K.view.tooltip(vector, source, level, keys, data)
     return out
 end
 
--- The fill line (Plan 15 Task 9; decisions item 4): "A whole one fills you for about N h, K kcal" in place of vanilla's hunger
--- line, N the hours a precomputed replay of the item alone holds h_model under Peckish (tools/food_fills.py, the
--- generated NR_Data_Fills.lua; never a per-frame or per-hover simulation), shown to the nearest half hour; under
--- FILL_MIN_H "... under half an hour", at FILL_CAP_H or more "... more than FILL_CAP_H h". Per whole item (fix 1, L3). The row's
--- sep is the separator the client joins its label and text with. Nothing for an hours or a kcal that is not a finite
--- number.
+-- The fill line: the hours a precomputed replay of the item alone holds h_model under Peckish (tools/food_fills.py,
+-- NR_Data_Fills.lua; never a per-frame or per-hover simulation), to the nearest half hour, per whole item.
 K.view.FILL_MIN_H = K.dials.get("view.FILL_MIN_H")
 K.view.FILL_CAP_H = 24 -- the replay's horizon in game hours (tools/food_fills.py CAP_H), no row needed
 
@@ -672,15 +592,12 @@ function K.view.fillRow(out, hours, kcal)
     r.sep = " "
 end
 
--- The moodle value map: a class level onto MoodleFramework's 0..1 value, which
--- the framework reads against eight thresholds (MF_ISMoodle.lua getLevel :127). A symptom is a BAD moodle, so the
--- map runs down the framework's bad side: neutral is the framework's own stored default, 0.5 (MF_ISMoodle.lua :75),
--- where the moodle leaves the UI manager; each class's top level reaches 0.0, so a four-level class steps 0.125 a
--- level down and deficiency and excess (top rung 3) step one sixth.
+-- A symptom is a BAD moodle, so the map runs down MoodleFramework's bad side from its stored default 0.5, where the
+-- moodle leaves the UI manager (MF_ISMoodle.lua :75), to 0.0 at each class's top level.
 K.view.MOODLE_NEUTRAL = 0.5 -- gc: the framework's default stored value (MF_ISMoodle.lua:75), neutral under its thresholds
 K.view.MOODLE_LEVELS = 4 -- the class ladders' top level (STIMULANT_AT, SLEEP_AT, and Overfull's four levels)
 
--- A class's top level: RUNG_MAX for deficiency and excess, else MOODLE_LEVELS.
+-- RUNG_MAX for deficiency and excess.
 function K.view.moodleTop(cls)
     if cls == "deficiency" or cls == "excess" then
         return K.view.RUNG_MAX
@@ -688,9 +605,7 @@ function K.view.moodleTop(cls)
     return K.view.MOODLE_LEVELS
 end
 
--- The value a class level sets (floored, clamped 0..top; anything that is not a number reads 0): neutral 0.5 at 0
--- and 0.0 at the class's top, linear between (four-level 0.375 / 0.25 / 0.125 / 0.0; deficiency and excess 0.33333 /
--- 0.16667 / 0.0), clamped 0..1 by the mod because the framework never clamps (#2535).
+-- Clamped 0..1 by the mod because the framework never clamps (#2535).
 function K.view.moodleValue(level, cls)
     local top = K.view.moodleTop(cls)
     local n = level
@@ -701,10 +616,8 @@ function K.view.moodleValue(level, cls)
     return K.clamp(K.view.MOODLE_NEUTRAL - K.view.MOODLE_NEUTRAL * n / top, 0, 1)
 end
 
--- The framework's bad-side threshold k (1..4, bad1 the nearest to neutral) for a class: midway between the values of
--- levels k - 1 and k, so the framework's level equals the class level with no float tie (four-level 0.4375 / 0.3125 /
--- 0.1875 / 0.0625; deficiency and excess 0.41667 / 0.25 / 0.08333 and nil); nil above the class's top (the framework
--- then reads that threshold as unreachable, MF_ISMoodle.lua setThresholds :161-164).
+-- Midway between levels k - 1 and k, so the framework's level equals the class level with no float tie; nil above the
+-- class's top, which the framework reads as unreachable (MF_ISMoodle.lua :161-164).
 function K.view.moodleThreshold(k, cls)
     local top = K.view.moodleTop(cls)
     if k > top then
@@ -713,20 +626,15 @@ function K.view.moodleThreshold(k, cls)
     return K.view.MOODLE_NEUTRAL - K.view.MOODLE_NEUTRAL * (k - 0.5) / top
 end
 
--- The soft cap shown as the mod's own Overfull moodle, a fifth moodle class beside
--- the four (the panel's class rows stay the four of K.view.CLASSES). Its level reads the stomach's whole mass, both
--- lanes (the mirror's stomachMass), through K.satiety.discomfort over the comfortable maximum K.stomach.CAPACITY_MAX_G
--- (730 g) and the full scale K.stomach.CAPACITY_HARD_G (1100 g), 0-100; never the physical fill, which clamps at 1 at 730 g, nor the satiety F.
--- At level 4 the server refuses eating through vanilla's food timer (K.view.foodTimer, Plan 15 Task 8).
+-- Overfull reads the stomach's whole mass, both lanes, through K.satiety.discomfort: never the physical fill, which
+-- clamps at 1, nor the satiety F. At level 4 the server refuses eating through vanilla's food timer (K.view.foodTimer).
 K.view.OVERFULL_AT = {
     K.dials.get("view.OVERFULL_AT.1"),
     K.dials.get("view.OVERFULL_AT.2"),
     K.dials.get("view.OVERFULL_AT.3"),
 }
 
--- The Overfull level of a stomach mass in grams: 0 at or under K.stomach.CAPACITY_MAX_G (730 g; no discomfort), 1 above it, 2 from OVERFULL_AT's first edge (a third of
--- the scale), 3 from its second (two thirds), 4 at K.stomach.CAPACITY_HARD_G (1100 g) and over; a non-number, NaN or +infinity reads 0 (a negative mass reads
--- no discomfort, so 0).
+-- 0 at or under CAPACITY_MAX_G; a non-number, NaN, +infinity or negative mass reads 0.
 function K.view.fullnessLevel(massG)
     if type(massG) ~= "number" or massG ~= massG or massG == math.huge then
         return 0
@@ -738,18 +646,14 @@ function K.view.fullnessLevel(massG)
     return 1 + K.view.rung(d, K.view.OVERFULL_AT)
 end
 
--- The Overfull level of a record's stomach (Plan 15 Task 8): K.view.fullnessLevel over the mirror's rounded stomachMass
--- (K.mirror.stomachMass), the very number the client's Overfull moodle reads, so the server's refusal and Overfull
--- effects change level with the moodle the player sees. A record with no stomach, or a solid buffer with a mass key
--- that is not a number (malformed: Kinetics heals it on its own minute), reads 0, so neither the writer nor the effects
--- step raises on it.
+-- Over the mirror's rounded stomachMass, the very number the client's moodle reads, so the server's refusal changes level
+-- with the moodle the player sees. A malformed buffer reads 0, so neither the writer nor the effects step raises on it.
 K.view.MASS_KEYS = { "water", "proteins", "carbs", "lipids", "fibre" } -- K.stomach.massOf's keys, no row needed
 function K.view.overfullOf(record)
     local s = record.stomach
     if s == nil or type(s.buffer) ~= "table" then
         return 0
     end
-    -- MASS_KEYS is this file's Lua array, so # is its length
     for i = 1, #K.view.MASS_KEYS do
         if type(s.buffer[K.view.MASS_KEYS[i]]) ~= "number" then
             return 0
@@ -758,29 +662,22 @@ function K.view.overfullOf(record)
     return K.view.fullnessLevel(K.mirror.stomachMass(record))
 end
 
--- --- the food-timer bridge (Plan 15 Task 8; spec sections 2.3 and 2.4; jar-checks Check 1) ---------
--- The mod owns vanilla's health-from-food timer, which alone drives the FOOD_EATEN moodle (Well Fed) against 0, 1600,
--- 3200 and 4800 (#0511) and every vanilla eat and drink refusal at its level 3 (jar-checks Check 1c): the server writes
--- it each minute from the mod's own state and the client's copy follows in the 1 Hz stats packet (#3896). Vanilla
--- drains it by one unit per multiplier unit, 2 x dayMin a game minute (180 at the 90-minute day; #2385, #2922), so each
--- written value is sized from the day length (K.view.timerValues) to keep its band until the next write.
+-- --- the food-timer bridge ---------------------------------------------------------------------------------------------
+-- The mod owns vanilla's food timer, which alone drives Well Fed (#0511) and every vanilla eat and drink refusal at its
+-- level 3; the client's copy follows in the stats packet (#3896). Vanilla drains it 2 x dayMin units a game minute
+-- (#2922), so each written value is sized from the day length to keep its band until the next write.
 K.view.TIMER_WELL_FED = K.dials.get("view.TIMER_WELL_FED")
 K.view.TIMER_WELL_FED_2 = K.dials.get("view.TIMER_WELL_FED_2")
 K.view.TIMER_FULL = K.dials.get("view.TIMER_FULL")
 K.view.HOLD_MIN = K.dials.get("view.HOLD_MIN")
--- The meal pool M (weighted kcal, K.satiety) at or above which the character reads sated after a satisfying meal.
 K.view.WELL_FED_M = K.dials.get("view.WELL_FED_M")
 K.view.WELL_FED_2_AT = K.dials.get("view.WELL_FED_2_AT")
 K.view.REFUSE_AT = K.dials.get("view.REFUSE_AT")
--- FOOD_EATEN's band edges (VANILLA #0511), read by K.view.timerValues and K.view.timerBand.
 K.view.TIMER_BAND_2 = K.dials.get("view.TIMER_BAND_2")
 K.view.TIMER_BAND_3 = K.dials.get("view.TIMER_BAND_3")
 
--- The timer the bridge writes for an Overfull level, a meal pool M and whether a drain state is active: TIMER_FULL at
--- Overfull 4, whatever else holds (the stomach is full, starving or not); 0 while a drain is active (a starving body is
--- not Well Fed); TIMER_WELL_FED_2 while sated at Overfull 2 or 3, TIMER_WELL_FED while sated below it; else 0. An M that
--- is not a number at least WELL_FED_M (NaN included) reads unsated. Each value is K.view.timerValues(dayMin)'s; a nil
--- dayMin reads the 90-minute day (K.drain.DAY_MINUTES), so a caller may test the target against 0 before reading the day.
+-- TIMER_FULL at Overfull 4 whatever else holds; 0 while a drain is active (a starving body is not Well Fed); else the Well
+-- Fed values while sated. A nil dayMin reads the 90-minute day, so a caller may test the target against 0 first.
 function K.view.foodTimer(level, M, draining, dayMin)
     local wf1, wf2, full = K.view.timerValues(dayMin or K.drain.DAY_MINUTES)
     if level >= K.view.REFUSE_AT then
@@ -798,10 +695,8 @@ function K.view.foodTimer(level, M, draining, dayMin)
     return wf1
 end
 
--- The three written values at a day length of dayMin real minutes: each keeps its band through HOLD_MIN game minutes of
--- vanilla's drain (2 x dayMin units a game minute, #2385, #2922), never below the 90-minute values; the Well Fed values
--- stop at their band's top (TIMER_BAND_2 and TIMER_BAND_3, 1600 and 3200), where a day over 800 real minutes can no longer hold a level for a whole minute
--- with one write; the refusal has no top (level 4, above 4800, refuses alike).
+-- Never below the 90-minute values; the Well Fed values stop at their band's top, where a day over 800 real minutes can
+-- no longer hold a level for a whole minute with one write.
 function K.view.timerValues(dayMin)
     local d = K.drain.UNITS_PER_MIN * dayMin * K.view.HOLD_MIN
     local wf1 = K.min(K.view.TIMER_BAND_2, K.max(K.view.TIMER_WELL_FED, d + 1))
@@ -810,8 +705,7 @@ function K.view.timerValues(dayMin)
     return wf1, wf2, full
 end
 
--- The FOOD_EATEN band of a timer value, the bands the push is keyed on (#0511, strict greater-than, #0507): 0 at or
--- under 0, 1 to TIMER_BAND_2 (1600), 2 to TIMER_BAND_3 (3200), 3 above (the refusal; level 4 above 4800 refuses alike).
+-- Strict greater-than (#0507); level 4 above 4800 refuses alike.
 function K.view.timerBand(t)
     if t > K.view.TIMER_BAND_3 then
         return 3
@@ -825,8 +719,7 @@ function K.view.timerBand(t)
     return 0
 end
 
--- The moodle classes of a mirror m (nil reads all zero): the four K.view.classes reads (def its deficiency set),
--- plus overfull from the mirror's stomachMass (a mirror without it reads 0).
+-- A mirror without stomachMass reads overfull 0.
 function K.view.moodleClasses(m, def)
     local c = K.view.classes(m, def)
     c.overfull = 0
@@ -837,13 +730,10 @@ function K.view.moodleClasses(m, def)
     return c
 end
 
--- The level-1 hide option (Plan 15 Task 9; spec section 4, item 10d): the client's own option hides level 1 of the
--- Stimulant, Sleep and Excess moodles, the three whose first level is a mild state the player need not act on; the
--- panel's class rows always show the level.
+-- Hides level 1 of the three classes whose first level needs no action; the panel's class rows always show it.
 K.view.HIDE_ONE = { stimulant = true, sleep = true, excess = true }
 
--- The level a moodle shows for class cls at level n: 0 while hideOne is true, n is 1 and the class is one of HIDE_ONE,
--- else n.
+-- 0 while hideOne is true, n is 1 and the class is in HIDE_ONE.
 function K.view.shownLevel(cls, n, hideOne)
     if hideOne == true and n == 1 and K.view.HIDE_ONE[cls] == true then
         return 0
@@ -851,11 +741,9 @@ function K.view.shownLevel(cls, n, hideOne)
     return n
 end
 
--- --- the Body fat row (Bands and up): the fat fraction as a sex-specific word, with a hold --------------------------
--- The fraction is body_fm / body_weight off the mirror, so no new mirror field is sent. The cuts are the 20-39 y column
--- of the percent-body-fat table at the BMI cut-offs 18.5, 25 and 30 (Gallagher 2000, Table 4), used for every age: a game
--- choice. Each sex lists the four ascending lower bounds of bands 1-4 (lean, healthy, high, very high); below the first
--- the band is 0, very lean. Fractions, not percent.
+-- --- the Body fat row ------------------------------------------------------------------------------------------------
+-- body_fm / body_weight off the mirror, so no new field is sent. The cuts are Gallagher 2000's 20-39 y column at the BMI
+-- cut-offs, used for every age (a game choice). Fractions, not percent.
 K.view.FAT_CUTS_MALE = {
     K.dials.get("view.FAT_CUTS_MALE.1"),
     K.dials.get("view.FAT_CUTS_MALE.2"),
@@ -873,7 +761,7 @@ K.view.FAT_WORDS[0] = "veryLean"
 K.view.FAT_BAND = K.dials.get("view.FAT_BAND")
 K.view.NO_DATA = "UI_NR_Band_none" -- the band words' No data key, the row text when a mirror has no body
 
--- A key from prefix and word: the word when it is a non-empty string, else "none" (the band words' No data).
+-- An empty or non-string word reads "none" (No data).
 function K.view.bandKey(prefix, word)
     if type(word) ~= "string" or word == "" then
         return prefix .. "none"
@@ -881,9 +769,7 @@ function K.view.bandKey(prefix, word)
     return prefix .. word
 end
 
--- The band of v on the ascending lower bounds at, held: last (a whole number 0..#at) stays while v lies within band
--- of last's own range (last's lower bound less band up to its upper bound plus band); otherwise the plain rung of v.
--- A last that is not a whole number in range reads none.
+-- last stays while v lies within band of its own range; a last out of range reads none.
 function K.view.heldRung(v, at, last, band)
     local n = K.view.rung(v, at)
     if type(v) ~= "number" or type(last) ~= "number" or last ~= math.floor(last) or last < 0 or last > #at then
@@ -903,8 +789,7 @@ function K.view.heldRung(v, at, last, band)
     return n
 end
 
--- The body-fat band index (0 very lean .. 4 very high) of a mirror m for a sex (female true), holding last, or nil when
--- the mirror has no body (a body_weight that is not a positive number, or a body_fm that is not a number).
+-- nil with no body (a non-positive body_weight or a non-number body_fm).
 function K.view.fatBand(m, female, last)
     local w = m.body_weight
     local fm = m.body_fm
@@ -918,8 +803,7 @@ function K.view.fatBand(m, female, last)
     return K.view.heldRung(fm / w, cuts, last, K.view.FAT_BAND)
 end
 
--- The Strength row, pushed at level 2 (ruling 13-19): the true level truncated to one decimal, never rounded up (a 9.96 reads
--- 9.9, not 10.0 beside a native 9; a level built on an integer reads it whole), or No data when the mirror carries no finite body_level.
+-- Truncated to one decimal, never rounded up, so a 9.96 never reads 10.0 beside a native 9.
 function K.view.levelRow(rows, m)
     local v = m.body_level
     if not K.finite(v) then
@@ -930,8 +814,7 @@ function K.view.levelRow(rows, m)
     K.view.push(rows, "body_level", "UI_NR_Row_body_level", K.view.fmt(shown, 1), 2, false)
 end
 
--- The Body fat row, pushed at level 2: its text the band word (UI_NR_FatBand_<word>) or No data, its fatBand the index the
--- client holds for the next build (nil with no body). fat is { female, last } or nil.
+-- fatBand is the index the client holds for the next build; fat is { female, last } or nil.
 function K.view.fatRow(rows, m, fat)
     local female = false
     local last = nil

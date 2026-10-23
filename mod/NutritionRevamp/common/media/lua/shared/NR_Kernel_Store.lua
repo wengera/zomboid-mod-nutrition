@@ -1,91 +1,49 @@
--- NR_Kernel_Store.lua -- the persisted record's contract (spec § 4.8): the closed list of
--- INPUT paths a save holds, and the load that keeps a stored record's inputs and rebuilds everything else.
--- An input is a field a slow-clock step READS from the previous
--- minute and writes back (an accumulator, a clock stamp, a hysteresis or latch state, a once-per-character
--- draw, a creation constant, a day-close stamp held until the next close): no step can recompute it. A
--- derived field is one a step recomputes from the inputs before any step reads it, or recomputes every
--- minute and reads only as a one-minute-lag neutral; load drops it, so a formula change touches no save.
--- The classification below was read off each owning step (named per group); a reviewer diffs it there.
--- Paths are dotted; a `*` segment stands for every key of the table at that level (every nutrient key of
--- the order, every vector key, every ring slot). A path whose value is a table (a ring slot of bandWeek) is
--- copied deep.
--- load(raw, order) builds a fresh record from the kernel constructors (K.store.new for the identity; for each
--- sub-table raw carries, its own kernel constructor) and copies every INPUT path present in raw over it, so a
--- missing input keeps the constructor's default and an unknown or derived field never survives. The copy is
--- idempotent. After a load and until the first slow minute rebuilds them, the derived fields read their
--- constructor's neutral values (the mirror's rmod, energyState, dehydPct, iu, ... and the
--- effects set), except stomachFill, which load recomputes from the stomach's inputs (the physical fill and the writer's
--- fallback; the writer's F is W.satietyF), and fluids.thirstTarget and effects.intoxTarget, which load leaves nil: nil is the writer's no-write
--- for both, where the constructors' 0 would drive THIRST or INTOXICATION to 0.
--- Pure: Lua tables in, Lua tables out, no Java. Slow-clock and join-time code with no fast region. This file
--- sorts before NR_Kernel_Strength.lua, NR_Kernel_Vector.lua and NR_Kernel_View.lua and after the body,
--- acute, drain, effects, fluids, nutrients and stomach kernels; every K.* reference outside K.store is at call time.
+-- NR_Kernel_Store.lua: the persisted record's contract: the closed list of INPUT paths a save holds, and the load that
+-- keeps a stored record's inputs and rebuilds everything else. An input is a field a step reads from the previous
+-- minute and no step can recompute (an accumulator, a stamp, a latch, a draw, a creation constant); every other field
+-- is derived and dropped at load, so a formula change touches no save. A `*` segment stands for every key at its level.
+-- After a load the derived fields read their constructors' neutral values until the first slow minute, except
+-- stomachFill (recomputed) and fluids.thirstTarget and effects.intoxTarget, left nil: nil is the writer's no-write,
+-- where the constructors' 0 would drive THIRST or INTOXICATION to 0.
+-- Pure, no Java. Sorts after the body, acute, drain, effects, fluids, nutrients and stomach kernels and before
+-- Strength, Vector and View; every K.* reference outside K.store resolves at call time.
 local K = NutritionRevamp.kernel
 K.store = {}
 
-
--- The closed list of persisted paths, grouped by the step that owns each field.
+-- Grouped by the step that owns each field; a reviewer diffs each group against its owning step.
 K.store.INPUTS = {
-    -- identity (NR_Server_Store, NR_Server_Players): the key, the first and last world age seen, the respawn
-    -- count, the death flag
+    -- identity (NR_Server_Store, NR_Server_Players)
     "username", "firstSeen", "lastSeen", "resets", "dead",
-    -- satiety (NR_Server_Intake, NR_Server_Kinetics, NR_Server_Writer, NR_Server_Metabolism): the meal pool M (weighted kcal), which the writer
+    -- satiety: the meal pool M, which the writer
     -- seeds from HUNGER when absent or non-finite, the acute suppression state S and the exercise lag L (kcal/day)
-    "satiety.M", "satiety.S", "satiety.L", "satiety.t", "satiety.nicH", -- t: the writer's last step age in game hours, read across a restart (Plan 11c close, ruling C-1); nicH: the world age at the last minute the server's NICOTINE_WITHDRAWAL read 0 or fell, the nicotine fade's anchor (Plan 11e, ruling T2-A)
-    -- kinetics (NR_Server_Kinetics, K.stomach): the clock stamp the next minute's dtH reads, the liquid lane and the
-    -- solid buffer (ingest and ingestLiquid add, drain empties), the buffer's volume excess volX (ingest adds, drain
-    -- empties), its drink-borne energy liqKcal (ingestLiquid adds, drain empties; Plan 15 Task 14b), the absorbed pool
-    -- (toPool accumulates; a diagnostic no step reads back, kept because it cannot be rebuilt)
+    "satiety.M", "satiety.S", "satiety.L", "satiety.t", "satiety.nicH", -- t: the writer's last step age, read across a restart; nicH: the nicotine fade's anchor
+    -- kinetics: pool is a diagnostic no step reads back, kept because it cannot be rebuilt
     "kineticsAge", "stomach.liquid", "stomach.volX", "stomach.liqKcal", "stomach.buffer.*", "pool.*",
-    -- nutrients, per key (K.nutrients.minute, K.interact.two): the pools p and p2; the grade g, which the
-    -- next minute reads as gradeHyst's previous grade, and gl, the grade it left; ah, the hours at the grade
-    -- (the scurvy, beriberi and pellagra onsets read g == 4 with ah, so a dropped g would re-zero them); the
-    -- excess accumulators e24 and ext, the acute flag's hours ax and its rung axr; B12's damage hours dmg;
-    -- the iron store and haem compartments S and H and calcium's bone, laid lazily by K.interact.two (a
-    -- dropped S re-seeds iron replete). x, the excess rung, is recomputed every minute: derived.
+    -- nutrients, per key: g is gradeHyst's previous grade and ah its hours (the scurvy, beriberi and pellagra onsets read
+    -- g == 4 with ah); S, H and bone are laid lazily by K.interact.two (a dropped S re-seeds iron replete). x is derived.
     "nutrients.*.p", "nutrients.*.p2", "nutrients.*.g", "nutrients.*.gl", "nutrients.*.ah", "nutrients.*.e24",
     "nutrients.*.dmg", "nutrients.*.ext", "nutrients.*.ax", "nutrients.*.axr", "nutrients.*.S", "nutrients.*.H",
     "nutrients.*.bone",
-    -- nutrients, the state's own (K.nutrients.minute, NR_Server_Nutrients): the epoch counter the step bumps;
-    -- the adapter's clock stamp and the day index its close reads. allReplete, ironGrade, anaemia and
-    -- vitDClinical are recomputed at the end of every minute: derived.
+    -- nutrients, the state's own: allReplete, ironGrade, anaemia and vitDClinical are derived.
     "nutrients.epoch", "nutrients.lastAgeH", "nutrients.lastDayIndex",
-    -- body, the creation constants (K.body.create and new, NR_Server_Metabolism.ensureBody): the disuse and fat
-    -- references, sex, the birth world age, the set point F0, the natural cap Fc and the innate factor N0
+    -- body, the creation constants
     "body.lm0dis", "body.fmRef", "body.sex", "body.bornAge", "body.F0", "body.Fc", "body.N0",
-    -- body, the masses and clocks (K.strength.day, K.partition, K.energy, NR_Server_Metabolism): fat, lean F and the
-    -- labile lean, the remembered peak, the record's day count and the world age its open day started at
-    -- (K.body.calendar), the clock stamp
+    -- body, the masses and clocks
     "body.fm", "body.lm", "body.lx", "body.Pk", "body.dayIndex", "body.dayStartH", "body.lastAgeH",
-    -- body, the day accumulators (K.energy.minute and intake, zeroed by K.partition.closeDay) and the closed
-    -- day's stamps held until the next close (inDayClosed, pPrevKg)
+    -- body, the day accumulators and the closed day's stamps held until the next close
     "body.inDay", "body.eeDay", "body.ebDay", "body.actKcalDay", "body.exKcalDay", "body.pDay", "body.carbDay",
     "body.lipDay", "body.alcDay", "body.inDayClosed", "body.inDay2", "body.inDay3", "body.recentDays", "body.pPrevKg",
-    -- body, the 7-day rings (K.partition.closeDay pushes; K.training.closeDay shifts bandWeek)
     "body.eb7.*", "body.mass7.*", "body.p7.*", "body.bandWeek.*",
-    -- body, the trailing-24 h window (K.body.trailTo, trailAdd): its online clock and the six hourly rings.
-    -- The closed hours' sums c and the hour they were built for, ch, are derived: the constructor's ch -1 rebuilds them
+    -- body, the trailing-24 h window: c and ch are derived (the constructor's ch -1 rebuilds them)
     "body.trail.at", "body.trail.kcal.*", "body.trail.ee.*", "body.trail.ex.*", "body.trail.p.*", "body.trail.carb.*",
     "body.trail.lip.*",
-    -- body, adaptation (K.aerobic.tacDay steps tac from its last value at each close; K.energy.atStep steps
-    -- at): both are multi-day accumulators, never recomputed from the masses
-    "body.tac", "body.at", "body.epoc", -- epoc: the after-burn pool (K.energy.epoc, Plan 11f C-17), laid by the first exercise minute
-    -- body, training (K.training.sample and closeDay): the day's MET-minutes and band minutes
+    -- body, adaptation: multi-day accumulators, never recomputed from the masses
+    "body.tac", "body.at", "body.epoc", -- epoc: the after-burn pool, laid by the first exercise minute
     "body.metMinDay", "body.band1Day", "body.band2Day",
-    -- body, strength (K.strength.signalClose, day, detrain and neural; NR_Server_Metabolism's day close): the day's
-    -- signal and the closed days' ring, the closed week's sets, the grace counter, the neural factor and its grace
-    -- counter, the disuse day count; the trait rungs and the band word K.traits.axes reads back as its previous
-    -- state; the level last written and a write still due (NR_Server_Strength, Plan 13 Task 14; levelDue since Task
-    -- 24 M-8, so a write deferred on a sleeper or creation's first-minute re-pin survives a restart)
+    -- body, strength: levelDue keeps a write deferred on a sleeper or a first-minute re-pin across a restart
     "body.sigDay", "body.sig7.*", "body.S", "body.grace", "body.T", "body.Tgrace", "body.tDisuse", "body.fatT",
     "body.thinT", "body.band", "body.wroteL", "body.levelDue",
-    -- acute (K.acute.*, NR_Server_Nutrients.ensure and closeDay): the gut lane; caffeine's load, rate mean,
-    -- tolerance and low-hours, the slow-metaboliser draw; alcohol's load, peak and hangover; glycogen and
-    -- blood glucose (each relaxes from its last value); the sleep state, its bout, gap and window; the
-    -- refeeding close's counts, mass window, BMI, risk, day count and event; the exercise and cold EMAs and
-    -- the vigorous latch; the retinol EMA; the adapter's 7-day alcohol mean, day alcohol, last fed age and the
-    -- band baselines; the body clock's phase and the sleep setting it last ran under (K.circadian, Plan 16 Task 4).
-    -- bac, g, wd, circ, frozen, iu, iuSleep and av are recomputed each minute: derived.
+    -- acute: bac, g, wd, circ, frozen, iu, iuSleep and av are derived.
     "acute.gutAlc", "acute.gutCaf", "acute.caf", "acute.cafMean", "acute.cafTol", "acute.cafLowH",
     "acute.slowMet", "acute.alc", "acute.alcPeak", "acute.hang", "acute.hangH", "acute.glyc", "acute.bg",
     "acute.awakeH", "acute.debtH", "acute.sleptH", "acute.boutH", "acute.gapH", "acute.winStartH",
@@ -93,41 +51,25 @@ K.store.INPUTS = {
     "acute.bmi", "acute.refeedRisk", "acute.refeedDayN", "acute.refeedEvent", "acute.exEma",
     "acute.lastVigAgeH", "acute.boutVig", "acute.coldH", "acute.retEma", "acute.alc7", "acute.alcDayG",
     "acute.lastFedAgeH", "acute.lastB1", "acute.lastB2", "acute.bodyHour", "acute.bodyOn",
-    -- fluids (K.fluids.intake, losses and clearance; the writer's sip fold): the water, sodium
-    -- and potassium balances, the once-per-character sweat draws, the 6 h EMAs and the pending sip. dehydPct,
-    -- c, naPlasma, thirstTarget, sweatActive, sweatLmin, viewPct and fv are recomputed each minute: derived.
+    -- fluids: dehydPct, c, naPlasma, thirstTarget, sweatActive, sweatLmin, viewPct and fv are derived.
     "fluids.water", "fluids.na", "fluids.k", "fluids.sweatK", "fluids.naSweat", "fluids.sweat6h",
     "fluids.loss6h", "fluids.autoDrop",
-    -- effects (NR_Server_Effects, K.effects): the bus flag that survives a save (Plan 5 T10) and the set's
-    -- epoch counter; which band traits the mod itself added (a lost own flag orphans the trait); the
-    -- night-vision accumulator; the day close's protein-energy grade, energy availability and day, and the
-    -- exercise kcal the next close reads. The coefficient set, its key and the per-minute scalars are rebuilt
-    -- by the first minute (the default key forces a compose): derived.
+    -- effects: a lost own flag orphans the band trait; the coefficient set and its key are derived (the default key
+    -- forces a compose).
     "effects.dirty", "effects.epoch", "effects.own.nv", "effects.own.ss", "effects.nvDays", "effects.pe",
     "effects.ea", "effects.lastDay", "effects.exSeen",
-    -- drain (K.drain.step, NR_Server_Effects; Plan 15 Task 4, Plan 17 Task 2): starvation's onset BMI, the BMI clock's
-    -- reference while the state lasts, and the hours in the sodium and iron lethal states; starvation's clocks (Plan 15
-    -- Task 6 fixes 1 and 2): the world age the meal pool was last fed and the hours in the acute state, so a restart
-    -- mid-fast keeps the count; the hours in the starvation and dehydration states (the time clocks of the Vanilla and
-    -- Shortened paces) and the smoothed BMI clock (its BMI, BMI loss rate and anchor at the last close, and the largest
-    -- smoothed progress, so a restart neither re-anchors it nor lets it fall; Plan 17 spec section 1.2a), and the last
-    -- minute's deficit (dPrev, the Realistic dehydration line's rate, spec section 9), and the deficiencies' own hours
-    -- at clinical (scH, bbH, plH; revision R2, spec section 10: every hour clock counts back down while its cause is
-    -- absent, so a restart keeps a recovering ceiling). The active state, the active and recovering sets (mask,
-    -- recovering), the fractions, the target, the rate, the minute's amount, starvedH and recentKcal are recomputed:
-    -- derived.
+    -- drain: every hour clock counts back down while its cause is absent and the smoothed BMI clock keeps its anchor and
+    -- largest progress, so a restart keeps a recovering ceiling and neither re-anchors nor lets it fall. mask,
+    -- recovering, the fractions, the target, the rate, starvedH and recentKcal are derived.
     "drain.bmi0", "drain.naH", "drain.feH", "drain.fedAgeH", "drain.acuteH",
     "drain.stH", "drain.dhH", "drain.bClose", "drain.bRate", "drain.pAt", "drain.pS", "drain.dPrev",
     "drain.scH", "drain.bbH", "drain.plH",
-    "drain.spell", -- the meal spell (K.drain.spellStep, Plan 15 close H1): a refeed's fed spell survives a restart
-    -- reconciliation (NR_Server_Reconcile): the landing count. The baseline is re-seeded from
-    -- the vanilla stores at first sight, since the player save and the global table are written apart (#2098):
-    -- dropped.
-    "reconcile.count", "monotony", "moodLast", -- monotony (NR_Server_Intake IN.atEat, K.monotony; Plan 11e, ruling 11e-1): the recent eats by full type, { t = { [type] = { n, last } } }, copied whole and laid by the first eat; its entries are healed by K.monotony.heal at the eat; moodLast { u, b }: the UNHAPPINESS and BOREDOM floors' remembered targets (NR_Server_Writer W.moodWrote, Plan 11f Task 9b fix 2), on the record so a reconnect's new hoist reads the floor target last written, which the freeze keeps as the player left it
-    "hedonics", -- the plain-energy ring (K.hedonics, Plan 19 Task 5): { s, i, p, a }, copied whole and laid by the first eat; healed by K.hedonics.heal
+    "drain.spell", -- the meal spell: a refeed's fed spell survives a restart
+    -- reconciliation: the baseline is re-seeded at first sight, since player save and global table are written apart (#2098)
+    "reconcile.count", "monotony", "moodLast", -- monotony (NR_Server_Intake IN.atEat, K.monotony): copied whole, healed at the eat; moodLast: the mood floors' last targets, so a reconnect reads them as the player left them
+    "hedonics", -- the plain-energy ring (K.hedonics), copied whole, healed by K.hedonics.heal
 }
 
--- Split a dotted path into its segments (a fresh array of strings).
 function K.store.split(path)
     local out = {}
     local pos = 1
@@ -143,7 +85,7 @@ function K.store.split(path)
     return out
 end
 
--- Every INPUTS path as its segment array, built once at load.
+-- Built once at load.
 function K.store.compile(paths)
     local out = {}
     for i = 1, #paths do
@@ -154,7 +96,6 @@ end
 
 K.store.SEGS = K.store.compile(K.store.INPUTS)
 
--- A deep copy of v: a table is copied key by key, anything else is returned as is.
 function K.store.copy(v)
     if type(v) ~= "table" then
         return v
@@ -166,8 +107,7 @@ function K.store.copy(v)
     return out
 end
 
--- A fresh record: the identity fields only (NR_Server_Store's S.new shape, which calls this). The sub-tables
--- are laid by their adapters at first sight.
+-- The identity fields only; the adapters lay the sub-tables at first sight.
 function K.store.new(username, worldAgeHours)
     local r = {}
     r.username = username
@@ -178,8 +118,7 @@ function K.store.new(username, worldAgeHours)
     return r
 end
 
--- The world age a constructor stamps its clocks with: the record's last sight, else its first, else 0 (the
--- world's start; every clock the constructor stamps is an input the copy then overwrites).
+-- The last sight, else the first, else 0; every clock it stamps is an input the copy then overwrites.
 function K.store.ageOf(raw)
     if type(raw.lastSeen) == "number" then
         return raw.lastSeen
@@ -190,15 +129,9 @@ function K.store.ageOf(raw)
     return 0 -- the world's start, a stamp the copy overwrites; no row needed
 end
 
--- The default body the inputs are copied over, and the load's body contract. The stored body rb is healed in place
--- first, so the copy restores only values the steps can read, as K.heal.body heals them in memory: an absent sex, or
--- a number other than 1 or 2, reads 1 (any other index finds no requirement and stops every minute); an absent or
--- non-finite fm or lm the no-trait body's at the effective sex (specific: NR.SexSpecific); an absent or non-finite
--- lastAgeH ageH, the record's last sight. A non-finite number is saved as JSON null and reads back absent, so without
--- the heal one bad field cost the whole record. A value of another type is left for K.store.checkLeaf to reject. Then
--- K.body.create(nil, nil, P) at the effective sex (P the server's strength table, nil reading K.strength.DEFAULTS, so a
--- tuned server's cap holds), laid by K.body.new at the stored sex and clock; the copy then lays the stored
--- masses, set point, cap, peak, factors, rungs and rings over it.
+-- The stored body rb is healed in place first, as K.heal.body heals in memory: a non-finite number saves as JSON null
+-- and reads back absent, so without the heal one bad field cost the whole record. A sex other than 1 or 2 reads 1 (any
+-- other index stops every minute). P nil reads K.strength.DEFAULTS, so a tuned server's cap holds.
 function K.store.bodyBase(rb, ageH, specific, P)
     if rb.sex == nil or (type(rb.sex) == "number" and rb.sex ~= 1 and rb.sex ~= 2) then
         rb.sex = 1
@@ -214,8 +147,7 @@ function K.store.bodyBase(rb, ageH, specific, P)
     return K.body.new(spec, sex, lastAgeH)
 end
 
--- Heal t[k] to v in place when it is absent or a non-finite number; a value of another type is left for
--- K.store.checkLeaf to reject. Returns the value a constructor builds with: t[k] when finite, else v.
+-- Returns t[k] when finite, else v; a value of another type is left for K.store.checkLeaf to reject.
 function K.store.healLeaf(t, k, v)
     local x = t[k]
     if x == nil or (type(x) == "number" and not K.finite(x)) then
@@ -227,7 +159,6 @@ function K.store.healLeaf(t, k, v)
     return v
 end
 
--- The nutrient keys a load lays: the order when given, else every table-valued key of the stored state.
 function K.store.nutrientKeys(order, rn)
     if order ~= nil then
         return order
@@ -239,14 +170,12 @@ function K.store.nutrientKeys(order, rn)
     return out
 end
 
--- Append k to the key list out when its value v is a table (a nutrient key's state).
 function K.store.addKey(out, k, v)
     if type(v) == "table" then
         out[#out + 1] = k
     end
 end
 
--- The default sub-tables for every sub-table raw carries, each from its own kernel constructor.
 function K.store.defaults(rec, raw, order, specific, P)
     if type(raw.stomach) == "table" then
         rec.stomach = K.stomach.new() -- an empty stomach (ruling 11c-15); the stored buffer and liquid lane overwrite it
@@ -280,7 +209,6 @@ function K.store.defaults(rec, raw, order, specific, P)
     return rec
 end
 
--- One segment of a load's copy: dst and src at the same level; a `*` walks every key dst holds there.
 function K.store.overlay(dst, src, segs, i)
     local seg = segs[i]
     if seg ~= "*" then
@@ -293,9 +221,7 @@ function K.store.overlay(dst, src, segs, i)
     return dst
 end
 
--- One key of a load's copy: at the last segment the stored value is copied (deep) over the default, once
--- K.store.checkLeaf has passed it; above it the walk descends only where both sides hold a table. A missing stored
--- value keeps the default.
+-- The walk descends only where both sides hold a table; a missing stored value keeps the default.
 function K.store.overlayKey(dst, src, k, segs, i)
     local sv = src[k]
     if sv == nil then
@@ -313,10 +239,8 @@ function K.store.overlayKey(dst, src, k, segs, i)
     K.store.overlay(dv, sv, segs, i + 1)
 end
 
--- A stored input must have its default's type (a number where the constructor lays a number), and
--- one with no default (a lazily laid field: iron's S and H, calcium's bone, the satiety meal pool) must be a number, a
--- boolean or a table. Anything else is a corrupt file: the load raises, and the server lays a fresh record
--- (NR_Server_Store's S.load), never a record that every step fails on.
+-- A stored input must have its default's type, and a lazily laid one be a number, boolean or table; anything else
+-- raises, and the server lays a fresh record (NR_Server_Store's S.load), never one every step fails on.
 function K.store.checkLeaf(dv, sv, k)
     local t = type(sv)
     if dv ~= nil and t ~= type(dv) then
@@ -327,10 +251,7 @@ function K.store.checkLeaf(dv, sv, k)
     end
 end
 
--- The four fields Metabolism reads before the Nutrients minute refreshes them, recomputed from the loaded
--- inputs, each through the kernel's own function: nutrients.ironGrade (K.nutrients.gradeOf), nutrients.allReplete
--- (K.nutrients.allRepleteOf, read off the records argument), acute.g (K.acute.glycG) and fluids.dehydPct
--- (K.fluids.dehydPct at the body mass, no pending water). A part the record lacks keeps its constructor's value.
+-- The four fields Metabolism reads before the Nutrients minute refreshes them, each through the kernel's own function.
 function K.store.recompute(rec, records)
     local n = rec.nutrients
     if n ~= nil then
@@ -345,27 +266,22 @@ function K.store.recompute(rec, records)
     end
 end
 
--- allReplete of a loaded nutrient state when the records argument is present (nil leaves it, no global read).
+-- nil records leaves it: no global read.
 function K.store.recomputeReplete(n, records)
     if records ~= nil then
         n.allReplete = K.nutrients.allRepleteOf(n, records)
     end
 end
 
--- A loaded body with no stored closed-day stamp reads the resting expenditure as that day's absorbed kcal,
--- the value Nutrients' close already uses for a body with no closed day (K.energy.ree), so the first close is
--- not read as a 0 kcal day. (A stored stamp, copied from the record, is kept.)
+-- With no stored stamp the resting expenditure stands for the closed day's kcal, so the first close is not a 0 kcal day.
 function K.store.closeDefault(rec)
     if rec.body ~= nil and type(rec.body.inDayClosed) ~= "number" then
         rec.body.inDayClosed = K.energy.ree(rec.body.lm)
     end
 end
 
--- Load a stored record into a fresh record: the constructors' defaults, every INPUTS path present in raw
--- copied over them, the stomach fill and the four read-before-refresh fields recomputed. order is the nutrient key list (NR.data.records.ORDER); nil reads the stored state's own
--- keys. A non-table raw reads nil. records is the nutrient data (NR.data.records),
--- passed by the caller and never read from a global; specific is NR.SexSpecific and P the server's strength table
--- (nil reads K.strength.DEFAULTS), both for the default body (K.store.bodyBase).
+-- order nil reads the stored state's own keys; records is passed by the caller, never read from a global; specific and
+-- P are for the default body. A non-table raw reads nil.
 function K.store.load(raw, order, records, specific, P)
     if type(raw) ~= "table" then
         return nil
@@ -387,9 +303,8 @@ function K.store.load(raw, order, records, specific, P)
     return rec
 end
 
--- Load raw and lay the result into target in place: every key target holds is cleared and the
--- loaded record's keys are set on it, so a handle held on target reads the loaded record with no re-point. raw may be target itself: load copies every input deep before the
--- clear. Returns target, or nil with target untouched when raw is not a table.
+-- Every key of target is cleared and the loaded keys set on it, so a held handle reads the loaded record; raw may be
+-- target itself (load copies every input deep before the clear).
 function K.store.fillInPlace(target, raw, order, records, specific, P)
     local rec = K.store.load(raw, order, records, specific, P)
     if rec == nil then
@@ -408,7 +323,6 @@ function K.store.fillInPlace(target, raw, order, records, specific, P)
     return target
 end
 
--- One segment of the inputs-only walk: dst built as it goes; a `*` walks every key src holds there.
 function K.store.pick(dst, src, segs, i)
     local seg = segs[i]
     if seg ~= "*" then
@@ -421,8 +335,7 @@ function K.store.pick(dst, src, segs, i)
     return dst
 end
 
--- One key of the inputs-only walk: the last segment copies the value (deep); above it a table is descended,
--- its counterpart in dst laid on the way.
+-- A table is descended, its counterpart in dst laid on the way.
 function K.store.pickKey(dst, src, k, segs, i)
     local sv = src[k]
     if sv == nil then
@@ -441,8 +354,7 @@ function K.store.pickKey(dst, src, k, segs, i)
     K.store.pick(dst[k], sv, segs, i + 1)
 end
 
--- The table a save would hold: a fresh table of the INPUTS paths present in record, nothing else (the
--- complement is what load drops). The live record is pruned only by the first-sight load (fillInPlace); this is the contract's oracle.
+-- The contract's oracle: the live record is pruned only by the first-sight load.
 function K.store.inputsOnly(record)
     local out = {}
     local segs = K.store.SEGS
@@ -452,8 +364,7 @@ function K.store.inputsOnly(record)
     return out
 end
 
--- A file-safe name: letters, digits, _ and - kept, any other character _, an empty name "default". The server name
--- passes through it (getServerName is not sanitised, T1102.6: a name holding .. would make every write nil).
+-- getServerName is not sanitised (T1102.6): a name holding .. would make every write nil.
 function K.store.safeName(s)
     local out = {}
     for i = 1, string.len(s) do
@@ -470,14 +381,12 @@ function K.store.safeName(s)
     return table.concat(out)
 end
 
--- One code unit (0-65535) as four lower-case hex digits (K.hexDigits).
 function K.store.hex4(b)
     return K.hexDigits(b, 4)
 end
 
--- A username as lower-case hex, four digits a code unit: string.byte answers UTF-16 code units on Kahlua
--- (T1102.8), so a fixed width keeps every name a distinct file name (two digits a unit let U+0123 "A" and
--- U+0012 U+0341 both write 12341).
+-- string.byte answers UTF-16 code units on Kahlua (T1102.8), so a fixed four-digit width keeps every name a distinct
+-- file name.
 function K.store.hexName(username)
     local out = {}
     for i = 1, string.len(username) do
@@ -486,9 +395,8 @@ function K.store.hexName(username)
     return table.concat(out)
 end
 
--- Which of a pair of decoded files { gen = n, ... } is the newer: "a", "b", or nil when both are absent; a tie reads
--- "a"; a file whose gen is not a number reads as absent, so no comparison can raise. The store's writer opens the
--- OTHER file of the pair, never this one (getFileWriter truncates at the call, T1102.4).
+-- A tie reads "a"; a non-number gen reads absent. The writer opens the OTHER file of the pair, never this one
+-- (getFileWriter truncates at the call, T1102.4).
 function K.store.newest(a, b)
     a = K.store.withGen(a)
     b = K.store.withGen(b)
@@ -504,17 +412,17 @@ function K.store.newest(a, b)
     return "a"
 end
 
--- Whether a gap of gapMs has passed since last (nil: never, so due).
+-- nil last: never, so due.
 function K.store.due(last, now, gapMs)
     return last == nil or now - last >= gapMs
 end
 
--- A millisecond stamp as whole seconds (the index's unit).
+-- The index's unit.
 function K.store.seconds(ms)
     return math.floor(ms / 1000) -- milliseconds a second; no row needed
 end
 
--- A decoded file when its gen is a number, else nil (K.store.newest's guard).
+-- K.store.newest's guard.
 function K.store.withGen(d)
     if d == nil or type(d.gen) ~= "number" then
         return nil
@@ -522,15 +430,12 @@ function K.store.withGen(d)
     return d
 end
 
--- A player's save phase in [0, gapMs): a hash of the username (string.byte's code units), half a gap away from
--- K.view.pushOffset's push phase, so the saves of players first seen together after a boot spread over the gap
--- instead of falling into one drain.
+-- Half a gap from K.view.pushOffset's phase, so players first seen together after a boot spread their saves.
 function K.store.savePhase(username, gapMs)
     return (K.nameHash(username) + math.floor(gapMs / 2)) % gapMs
 end
 
--- The lastWrite a player's first save is timed from: one gap before now plus its phase, so the first save falls
--- savePhase ms after now (K.store.due).
+-- The first save falls savePhase ms after now.
 function K.store.firstLast(username, now, gapMs)
     return now - gapMs + K.store.savePhase(username, gapMs)
 end
