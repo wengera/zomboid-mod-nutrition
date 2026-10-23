@@ -506,6 +506,22 @@ def test_pointer_line_accepts_a_range_and_exempts_artifacts_and_lineless():
     assert _line_findings('repo:testing/artifacts/r/a.json:9 "nowhere"') == []
 
 
+def test_pointer_line_checks_a_run_guide_under_artifacts():
+    # The artifacts exemption is narrow (Plan 20 Task 4): a run's GUIDE.md is prose a pointer quotes by
+    # line, so a stale quote into it fails, while the run's JSON and any other file there stay exempt.
+    guide = "# Run r\n\nThe reading: **13** lines.\n"
+    with tempfile.TemporaryDirectory() as d:
+        _write(d, "testing/artifacts/r/GUIDE.md", guide)
+        _write(d, "testing/artifacts/r/notes.md", guide)
+        _tree(d, [_row(1, pointer='repo:testing/artifacts/r/GUIDE.md:3 "**13** lines"'),
+                  _row(2, pointer='repo:testing/artifacts/r/GUIDE.md:1 "**13** lines"'),
+                  _row(3, pointer='repo:testing/artifacts/r/notes.md:1 "nowhere"')])
+        f = [x for x in cc.check(d, register_only=True) if x.rule == "pointer-line"]
+        assert [x.detail for x in f] == ['#0002 repo:testing/artifacts/r/GUIDE.md:1 — "**13** lines" not on that line (found at 3)']
+    assert cc._is_run_guide("testing/artifacts/r/GUIDE.md") and cc._is_run_guide("testing/artifacts/r/GUIDE.md@abc1234")
+    assert not cc._is_run_guide("testing/artifacts/r/sub/GUIDE.md") and not cc._is_run_guide("testing/artifacts/r/a.json")
+
+
 def test_pointer_line_checks_a_superseded_row():
     with tempfile.TemporaryDirectory() as d:
         _write(d, "mod/x.lua", "a = 1\n")

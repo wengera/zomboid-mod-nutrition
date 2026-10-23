@@ -310,14 +310,22 @@ def _git_show(root, commit, path):
     return _SHOW_CACHE[key]
 
 
+def _is_run_guide(path):
+    """True for `testing/artifacts/<run>/GUIDE.md`, pinned or not: the one artifacts path rule 3b line-checks."""
+    import reference_gen as rg
+    parts = _split_pin(path)[0].split("/")
+    return len(parts) == 4 and parts[:2] == ["testing", "artifacts"] and parts[3] == rg.GUIDE_NAME
+
+
 def _pointer_line_finding(r, text, n, root, register_rel):
     """Rule 3b: a `repo:<path>:<line>[-<line>] "<text>"` pointer's quoted text must occur on that line
     (or inside that range) of the working-tree file. A path under testing/artifacts/ and a line-less
-    pointer are exempt; a superseded row is checked like any other (its stale quote is pinned to the last
+    pointer are exempt, except a run's reading guide `testing/artifacts/<run>/GUIDE.md`, which is
+    prose a pointer quotes by line like any page (Plan 20 Task 4); a superseded row is checked like any other (its stale quote is pinned to the last
     commit holding it), and so is every pointer of a multi-pointer cell; a missing file is rule 3's
     finding, not this one's."""
     m = REPO_LINE_RX.match(text.strip())
-    if not m or m.group(1).startswith("testing/artifacts/"):
+    if not m or (m.group(1).startswith("testing/artifacts/") and not _is_run_guide(m.group(1))):
         return None
     path, lo, hi, quoted = m.group(1), int(m.group(2)), int(m.group(3) or m.group(2)), m.group(4)
     path, commit = _split_pin(path)
