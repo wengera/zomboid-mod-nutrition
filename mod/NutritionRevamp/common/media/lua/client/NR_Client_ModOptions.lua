@@ -1,47 +1,18 @@
--- NR_Client_ModOptions.lua -- the mod's one PZAPI.ModOptions page: the panel keybind
--- (togglePanel), the tooltip-lines tick, the moodles tick and the level-1 moodles tick (Plan 15 Task 9, item 10d: off
--- hides level 1 of the Stimulant, Sleep and Excess moodles; a client setting, so each player chooses); the loader the
--- mod calls once itself; the four accessors every surface reads; and NR.client.text, the one translation lookup every client file goes through.
---
---
--- The page exists at FILE SCOPE (#2520: a row added after the main screen is built is not a known key until the
--- next one) and is loaded by the mod ONCE, after the page exists, inside a protected call (#2519: vanilla loads
--- ModOptions.ini only as the main screen is built, and a load applies a saved value only to a page that exists).
--- The vanilla API read (READ-ONLY, media/lua/client/PZAPI/ModOptions.lua on 42.20.4): PZAPI.ModOptions:create(id,
--- name) :247; Options:addTickBox(id, name, value, tooltip) :64; Options:addKeyBind(id, name, key, tooltip) :182;
--- option:getValue() (a tick's value, a bind's key); PZAPI.ModOptions:load() :292.
---
--- The default key is the semicolon: Keyboard.KEY_SEMICOLON, the LWJGL code 39 -- read from the jar on 42.20.4
--- (org/lwjglx/input/Keyboard.class, the ConstantValue of the static field KEY_SEMICOLON = 39 by a constant-pool
--- parse; KEY_K = 37). `;` is unbound in shared/keyBinding.lua and read by no media/lua/client handler outside debug
--- files; K is vanilla's Display FPS at keyBinding.lua:198. The code is named in one place (KEY_DEFAULT_CODE).
---
--- The research's minimal shape 1 (docs/superpowers/research/platform-client-ui.md), read in x183:
---  risk 1: ISLayoutManager.RegisterWindow restoring visible=true re-adds the panel before the key was ever pressed
---          (DefaultRestoreWindow's addToUIManager; NR_Client_Panel.lua records it on stats.restoredVisible) -- the
---          first registration measured (#3215); a saved visible=true line's restore unmeasured;
---  risk 2: whether layout.ini is written at all on the harness client's exit path -- measured in x183 (#3216 the layout write at the quit; #3218 the load 1 / 0 failures);
---  risk 3: whether PZAPI.ModOptions:load() called this early (OnGameStart) finds ModOptions.ini -- measured in x183 (#3216 the layout write at the quit; #3218 the load 1 / 0 failures).
---
--- Shape (the client-file discipline):
---  * Load order inside client/ is by path (#1055): _Mirror, _ModOptions, _Moodles, _Options, _Panel, _Tab,
---    _Tooltip, _View. NR_Client_Options.lua loads AFTER this file and merges mode and logLevel into the existing NR.client.options
---    table (never replacing it), so the accessors attach() sets at file scope stay; attach() runs again from this
---    file's OnGameStart handler, and the accessors read the page through the global sentinel per call, never
---    through a handle captured on NR.client.
---  * The sentinels are globals of their own (#0943: NR_Core re-creates NutritionRevamp on every load):
---    NR_ClientModOptions_Page (the page), NR_ClientModOptions_Loaded (the one load), NR_ClientModOptions_Installed
---    (the one OnGameStart listener closure, which looks NutritionRevamp up per call).
---  * Every engine and toolkit member is reached index-first inside a pcall (#0935, #1072); the file loads with no
---    engine (testing/tests/kernel/test_client_view_shape.py).
--- Cadence: the page once per Lua state; the accessors once per key press or per draw that reads them.
+-- NR_Client_ModOptions.lua -- the mod's one PZAPI.ModOptions page (the panel keybind and the tooltip, moodles and
+-- level-1 moodles ticks, each a per-player client setting), its four accessors, and NR.client.text, the one
+-- translation lookup every client file goes through.
+-- The page exists at FILE SCOPE (#2520: a row added after the main screen is built is not a known key until the next
+-- one) and is loaded by the mod ONCE, after the page exists, inside a pcall (#2519: a load applies a saved value only
+-- to a page that exists).
+-- The default key is the semicolon (LWJGL code 39, read from the jar): `;` is unbound in vanilla's keyBinding.lua.
+-- The shapes and their risks: docs/platform/client-ui.md.
+-- The sentinels are globals of their own (#0943: NR_Core re-creates NutritionRevamp on every load), and the accessors
+-- read the page through them per call, never through a handle captured on NR.client.
 local NR = NutritionRevamp
 
--- The translation lookup. key's string from getText, or on a miss -- getText absent, raising, answering
--- nil, a non-string or the key itself -- the fallback; when the fallback is nil or the key itself, the key's TAIL:
--- the key with UI_NR_ (or IGUI_NR_ / Moodles_NR_) and a leading Row_ stripped and every _ read as a space, so a
--- surface is readable before the translation files ship (UI_NR_Class_sleep_2 reads "Class sleep 2").
--- Defined defensively (only when absent) so whichever client file loads first may call it.
+-- On a miss (getText absent, raising, nil, a non-string or the key itself) the fallback, else the key's TAIL with its
+-- prefix stripped and every _ read as a space, so a surface is readable before the translations ship. Defined only
+-- when absent, so whichever client file loads first may call it.
 NR.client.tail = NR.client.tail or function(key)
     if type(key) ~= "string" then return tostring(key) end
     local t = string.gsub(key, "^UI_NR_", "")
@@ -62,12 +33,10 @@ NR.client.text = NR.client.text or function(key, fallback)
     return s
 end
 
--- The defaults, read when the page or its option is absent or getValue raises.
-local KEY_DEFAULT_CODE = 39 -- the LWJGL code of the semicolon (Keyboard.KEY_SEMICOLON on 42.20.4, read from the jar; see the header)
+local KEY_DEFAULT_CODE = 39 -- the LWJGL code of the semicolon (Keyboard.KEY_SEMICOLON, read from the jar)
 
 NR_ClientModOptions_Installed = NR_ClientModOptions_Installed or {}
 
--- Keyboard.KEY_SEMICOLON behind a nil check; KEY_DEFAULT_CODE when the class is absent.
 local function defaultKey()
     if Keyboard == nil then return KEY_DEFAULT_CODE end
     local ok, k = pcall(function() return Keyboard.KEY_SEMICOLON end)
@@ -75,14 +44,12 @@ local function defaultKey()
     return KEY_DEFAULT_CODE
 end
 
--- One option row added through the page's method name, index-first inside a pcall; the handle or nil.
 local function addRow(page, method, id, label, value, tip)
     local ok, present, handle = pcall(NR.call, page, method, id, label, value, tip)
     if ok and present then return handle end
     return nil
 end
 
--- The page, once per Lua state (the sentinel global NR_ClientModOptions_Page). A file-scope call.
 local function createPage()
     if NR_ClientModOptions_Page ~= nil then return NR_ClientModOptions_Page end
     if PZAPI == nil or PZAPI.ModOptions == nil or type(PZAPI.ModOptions.create) ~= "function" then return nil end
@@ -94,9 +61,8 @@ local function createPage()
     addRow(page, "addTickBox", "tooltipLines", text("UI_NR_TooltipLines", "Nutrition lines on food tooltips"), true, nil)
     addRow(page, "addTickBox", "moodles", text("UI_NR_Moodles", "Nutrition moodles"), true, nil)
     addRow(page, "addTickBox", "moodleLevelOne", text("UI_NR_MoodleLevelOne", "Show level 1 of the Stimulant, Sleep and Excess moodles"), true, nil)
-    -- Plan 15 Task 9 fix 1 (review L6): the page's apply (PZAPI's Options:apply, ModOptions.lua:21, called when the
-    -- player applies the options) runs the original first, then re-applies the moodles from the view's last classes,
-    -- so the moodles and level-1 ticks take effect at once rather than at the next push
+    -- The page's apply re-applies the moodles from the view's last classes, so the ticks take effect at once rather
+    -- than at the next push.
     local base = page.apply
     page.apply = function(self, ...)
         if base ~= nil then base(self, ...) end
@@ -108,7 +74,6 @@ local function createPage()
     return page
 end
 
--- The option handle id on the page, or nil: page.dict[id] (Options:getOption reads the same table).
 local function option(id)
     local page = NR_ClientModOptions_Page
     if page == nil then return nil end
@@ -117,7 +82,6 @@ local function option(id)
     return nil
 end
 
--- getValue of option id, index-first inside a pcall; nil on any failure.
 local function value(id)
     local h = option(id)
     if h == nil then return nil end
@@ -126,42 +90,37 @@ local function value(id)
     return nil
 end
 
--- The accessors and the loader, kept in a table no other file assigns, then copied onto NR.client.options.
+-- Kept in a table no other file assigns, then copied onto NR.client.options.
 NR.client.modOptions = {
     stats = { loads = 0, loadFailures = 0 },
 }
 local MO = NR.client.modOptions
 
--- The panel key code: the bind's value when it is a number, else the default semicolon.
 function MO.key()
     local v = value("togglePanel")
     if type(v) == "number" then return v end
     return defaultKey()
 end
 
--- Whether the tooltip band draws: the tick's value when it is a boolean, else true.
 function MO.tooltipLines()
     local v = value("tooltipLines")
     if type(v) == "boolean" then return v end
     return true
 end
 
--- Whether the moodles show: the tick's value when it is a boolean, else true.
 function MO.moodles()
     local v = value("moodles")
     if type(v) == "boolean" then return v end
     return true
 end
 
--- Whether level 1 of the Stimulant, Sleep and Excess moodles shows: the tick's value when it is a boolean, else true.
 function MO.moodleLevelOne()
     local v = value("moodleLevelOne")
     if type(v) == "boolean" then return v end
     return true
 end
 
--- The options applied: the moodles re-applied from the view's last classes (each looked up per call; nothing when
--- either is absent). true when it applied.
+-- true when it applied.
 function MO.onApply()
     local nr = NutritionRevamp
     local m, v = nr.client.moodles, nr.client.view
@@ -170,8 +129,7 @@ function MO.onApply()
     return true
 end
 
--- PZAPI.ModOptions:load() once per Lua state, after the page exists (#2519), inside a pcall. true when this call
--- loaded; false when it had already run, there is no page, or the API is absent.
+-- Once per Lua state, after the page exists (#2519). true when this call loaded.
 function MO.loadOnce()
     if NR_ClientModOptions_Loaded ~= nil then return false end
     if NR_ClientModOptions_Page == nil then return false end
@@ -187,7 +145,6 @@ function MO.loadOnce()
     return ok
 end
 
--- Copies the accessors onto NR.client.options (the table NR_Client_Options.lua merges into after this file loads).
 function MO.attach()
     local nr = NutritionRevamp
     if nr == nil or nr.client == nil or nr.client.modOptions == nil then return end
@@ -202,7 +159,6 @@ function MO.attach()
     o.page = NR_ClientModOptions_Page
 end
 
--- The OnGameStart listener's logic: re-attach, then the one load.
 function MO.onGameStart()
     MO.attach()
     MO.loadOnce()

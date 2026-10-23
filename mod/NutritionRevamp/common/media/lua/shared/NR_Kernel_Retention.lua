@@ -1,28 +1,18 @@
--- NR_Kernel_Retention.lua -- the state multipliers (spec § 4.2, data-pipeline report § B). The four
--- cook/storage states (cooked, burnt, rotten, frozen) scale the MOD nutrients per nutrient class; the
--- four vanilla macros pass through unscaled, because the engine applies no state modifier to the macros
--- except Eat's burnt divisor of 5 (#0036, #0019), which the eat wrapper owns, not this kernel. Burnt
--- replaces cooked on the cook axis (vanilla clears cooked when burnt); frozen and rotten are
--- independent multipliers (#0204). Canned is not a flag: a canned seed baseline already carries the
--- canned composition, so apply with no cook flag is identity. Every factor is a design-phase-v1
--- judgement or a USDA R6 basis, not a settled science row, so none carries a -- Sxxxx tag. Pure: tables
--- in, a fresh table out, no Java. This file sorts before NR_Kernel_Vector.lua, so it never touches
--- K.vector at module load -- every K.vector reference is at call time (macroSet is built lazily).
+-- NR_Kernel_Retention.lua -- the cook/storage state multipliers on the MOD nutrients per class. The vanilla macros pass
+-- through unscaled: the engine's only macro modifier is Eat's burnt divisor (#0036), which the eat wrapper owns. Burnt
+-- replaces cooked (vanilla clears cooked when burnt); frozen and rotten are independent (#0204). A canned seed already
+-- carries the canned composition. K.vector is read at call time (macroSet is built lazily).
 local K = NutritionRevamp.kernel
 K.retention = {}
 
--- Each mod-nutrient key's retention class. The four macros are absent (apply skips them anyway); a key
--- absent here is left unscaled, so a future nutrient is robust until its class is declared.
+-- A key absent here is left unscaled, so a future nutrient is robust until its class is declared.
 K.retention.CLASSES = {}
 K.retention.CLASSES.vitC = "watersol"
 K.retention.CLASSES.fibre = "stable"
 K.retention.CLASSES.water = "stable"
 K.retention.CLASSES.iron = "mineral"
 K.retention.CLASSES.phytate = "heatlabile"
--- The kinetics keys with a cooking-retention row. The B vitamins and choline lose to heat and cooking
--- water (thiamine retains 20-80 % across methods, S0252); they take the water-soluble class, whose
--- rotten term is already the vitC/folate/thiamin decay judgement. No B6 or choline retention fraction
--- is settled: the class is the direction only (design-phase-v1 game choice; open rows S0309 (B6), S0387 (choline)).
+-- The B vitamins and choline lose to heat and cooking water (S0252); the class gives the direction only (open S0309).
 K.retention.CLASSES.thiamine = "watersol"
 K.retention.CLASSES.riboflavin = "watersol"
 K.retention.CLASSES.niacin = "watersol"
@@ -30,41 +20,31 @@ K.retention.CLASSES.vitB6 = "watersol"
 K.retention.CLASSES.folate = "watersol"
 K.retention.CLASSES.vitB12 = "watersol"
 K.retention.CLASSES.choline = "watersol"
--- Carotene is stable: cooking RAISES its availability (it frees the carotenoid from the plant matrix),
--- a factor rather than a loss, which this loss-only table cannot express, so it is left unscaled.
+-- Carotene is left unscaled: cooking RAISES its availability, which this loss-only table cannot express.
 K.retention.CLASSES.carotene = "stable"
--- The minerals and electrolytes leach slightly into cooking water, like iron.
 K.retention.CLASSES.zinc = "mineral"
 K.retention.CLASSES.calcium = "mineral"
 K.retention.CLASSES.magnesium = "mineral"
 K.retention.CLASSES.sodium = "mineral"
 K.retention.CLASSES.potassium = "mineral"
--- Caffeine and ethanol ride the drink unscaled (no cook state applies to a fluid's vector).
 K.retention.CLASSES.caffeine = "stable"
 K.retention.CLASSES.ethanol = "stable"
--- retinol, vitD, vitE, vitK, iodine, selenium and efa have no settled retention row (open S0206, S0207, S0208 for D, E, K) and stay
--- unclassified, so unscaled.
+-- Unclassified, so unscaled: no settled retention row (open S0206).
 
--- FACTORS[class][state], every value in (0, 1]: the retained fraction of the class under the state.
+-- Every value in (0, 1]. No factor is a settled science row: design-phase-v1 game choices on a USDA R6 basis.
 K.retention.FACTORS = {}
--- watersol: cooked is the USDA R6 water-soluble loss band; burnt is the 0.6^2 judgement; rotten is the vitC/folate/thiamin decay judgement; frozen is the Rickman 2007 long-storage term.
--- design-phase-v1 game choice: no settled row; basis USDA R6 (cooked, water-soluble loss band) / Rickman 2007 (frozen storage); S0234 (vitamin C heat stability, settled: among the least heat-stable vitamins) is the nearest row and supports only the direction -- it is NOT a coefficient source.
+-- watersol: cooked the USDA R6 water-soluble band, burnt the 0.6^2 judgement, frozen Rickman 2007.
 K.retention.FACTORS.watersol = {cooked = 0.60, burnt = 0.36, rotten = 0.50, frozen = 0.95}
--- mineral: minerals are heat-stable with slight leaching; the burnt squaring is a judgement.
--- design-phase-v1 game choice: no settled row; basis USDA R6 (cooked, mineral leaching band).
+-- mineral: heat-stable with slight leaching.
 K.retention.FACTORS.mineral = {cooked = 0.95, burnt = 0.90, rotten = 1.0, frozen = 1.0}
--- stable: fibre and the water term are heat-stable across every state.
+-- stable: fibre and the water term, heat-stable in every state.
 K.retention.FACTORS.stable = {cooked = 1.0, burnt = 1.0, rotten = 1.0, frozen = 1.0}
--- heatlabile (phytate): cooking and soaking REDUCE phytate, which is beneficial for absorption; judgement.
--- design-phase-v1 game choice: no settled row.
+-- heatlabile (phytate): cooking REDUCES phytate, which helps absorption.
 K.retention.FACTORS.heatlabile = {cooked = 0.70, burnt = 0.49, rotten = 1.0, frozen = 1.0}
 
--- The macro lookup set, built once from the vector's MACROS list and cached. Lazy because K.vector
--- loads after this file; apply calls it at eat time, when the vector table is present.
+-- Lazy because K.vector loads after this file.
 local IS_MACRO = nil
 
--- Return the cached macro set, building it on first use from K.vector.MACROS (a Lua table, so # is a
--- Lua length, never a Java list).
 function K.retention.macroSet()
     if IS_MACRO == nil then
         IS_MACRO = {}
@@ -76,9 +56,7 @@ function K.retention.macroSet()
     return IS_MACRO
 end
 
--- The combined multiplier for one class under the state flags. The cook axis is burnt OR cooked (burnt
--- replaces cooked), then frozen and rotten multiply in independently; the product is clamped to <= 1 as
--- a structural guard (every factor is already <= 1, so retention never exceeds 100 %).
+-- The clamp to <= 1 is a structural guard: every factor is already <= 1.
 function K.retention.factor(class, flags)
     local f = K.retention.FACTORS[class]
     local combined = 1
@@ -98,9 +76,7 @@ function K.retention.factor(class, flags)
     return combined
 end
 
--- Apply the state flags to a vector: a fresh vector with the input copied in, then every classified,
--- non-macro key scaled by its class factor. The macros and any unclassified key pass through unscaled;
--- an out-of-schema key is dropped by the fixed-schema copy (K.vector.add over the declared keys).
+-- An out-of-schema key is dropped by the fixed-schema copy.
 function K.retention.apply(vector, flags)
     local out = K.vector.new()
     K.vector.add(out, vector, 1)

@@ -1,11 +1,7 @@
--- NR_Client_Options.lua -- the client reads the same options after the join sync has landed
--- (OnGameStart, #2446) for its log level, and prints the self-report once.
--- It MERGES into NR.client.options: NR_Client_ModOptions.lua (earlier in path order) has already attached its
--- accessors there, and a replacement would drop them until OnGameStart.
--- frameworks= names MoodleFramework when the moodle route NR_Client_Moodles.lua's OnGameBoot type test set (#2547) is
--- "framework", else none (read per call, never re-tested here); itemPass= is NR.itemPassActive()'s sentinel read.
--- Shape (the client-file discipline): the sentinel NR_ClientOptions_Installed is a global of its own holding the
--- OnGameStart closure, so a reload of this file adds no second listener; the closure looks NutritionRevamp up per call.
+-- NR_Client_Options.lua -- the client reads the options after the join sync has landed (OnGameStart, #2446) and prints
+-- the self-report once. It MERGES into NR.client.options: NR_Client_ModOptions.lua has already attached its accessors
+-- there, and a replacement would drop them until OnGameStart. The sentinel NR_ClientOptions_Installed holds the
+-- OnGameStart closure, so a reload adds no second listener.
 local NR = NutritionRevamp
 NR.client.options = NR.client.options or {}
 NR.client.options.mode = 1 -- NR.Mode's default, 1 Managed, until OnGameStart reads the option: an option value, no row needed
@@ -24,7 +20,7 @@ if NR_ClientOptions_Installed.start == nil and Events ~= nil and Events.OnGameSt
             if type(sv.Mode) == "number" then o.mode = sv.Mode end
             if type(sv.LogLevel) == "number" then o.logLevel = sv.LogLevel end
         end
-        -- Plan 19: the sandbox-backed dials the client reads follow the option as on the server (ruling T1-1)
+        -- The sandbox-backed dials the client reads follow the option as on the server.
         nr.kernel.dials.apply(sv, o.dialSeen)
         nr.log.level = o.logLevel
         local m = nr.client.moodles

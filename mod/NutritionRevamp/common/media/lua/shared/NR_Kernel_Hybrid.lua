@@ -1,14 +1,11 @@
--- NR_Kernel_Hybrid.lua -- the once-a-minute stat writer's arithmetic (the hybrid).
--- With vanilla's hunger, thirst and fatigue rise rates zeroed at the server's OnGameBoot (#3364-#3368), the writer
--- sets HUNGER, THIRST and FATIGUE, the STRESS, UNHAPPINESS, BOREDOM and FOOD_SICKNESS floors, PANIC, TEMPERATURE and
--- INTOXICATION once a player-minute, stepping by elapsed world age (#3371), after the minute's eats (#3383), with
--- each auto-drink sip folded into the THIRST target (#3382). Mode 2 (Overlay) writes everything but the first three.
--- HUNGER is the satiety model's h_model through the calibrated curve (K.hungerCurve.write, Plan 15 Task 6), then capped.
--- Pure: inp, out and c are tables the adapter owns and reuses; an out field left nil means "no write".
+-- NR_Kernel_Hybrid.lua -- the once-a-minute stat writer's arithmetic. With vanilla's hunger, thirst and fatigue rates
+-- zeroed at OnGameBoot (#3364), it steps by elapsed world age (#3371), after the minute's eats (#3383), folding each
+-- auto-drink sip into the THIRST target (#3382). Mode 2 (Overlay) writes everything but HUNGER, THIRST and FATIGUE.
+-- inp, out and c are tables the adapter owns and reuses; an out field left nil means "no write".
 local K = NutritionRevamp.kernel
 K.hybrid = {}
 
--- The dials K.hybrid.defaults reads at call time (Plan 19 Task 3a): the caps' margin under level 4 and the mood rises.
+-- K.hybrid.defaults reads these at call time.
 K.hybrid.CAP_MARGIN = K.dials.get("hybrid.CAP_MARGIN")
 K.hybrid.MOOD_RISE_UNHAPPY = K.dials.get("hybrid.MOOD_RISE_UNHAPPY")
 K.hybrid.MOOD_RISE_SICK = K.dials.get("hybrid.MOOD_RISE_SICK")
@@ -17,14 +14,14 @@ K.hybrid.MOOD_RISE_BORED = K.dials.get("hybrid.MOOD_RISE_BORED")
 
 function K.hybrid.defaults()
     return {
-        hungerCap = K.hybrid.HUNGRY_4 - K.hybrid.CAP_MARGIN, -- CAP_MARGIN under HUNGRY level 4 (#0508; Plan 5 ruling 14); lifted while starving (K.hybrid.caps)
-        thirstCap = K.hybrid.THIRST_4 - K.hybrid.CAP_MARGIN, -- CAP_MARGIN under THIRSTY level 4 (#0509; Plan 5 ruling 14); lifted while dehydrated (K.hybrid.caps)
-        moodRiseUnhappy = K.hybrid.MOOD_RISE_UNHAPPY, -- per game-second: one UNHAPPINESS band a game hour (#2369; open S1146)
-        moodRiseSick = K.hybrid.MOOD_RISE_SICK, -- per game-second: one SICK level a game hour on FOOD_SICKNESS (T1-1)
-        moodRiseStress = K.hybrid.MOOD_RISE_STRESS, moodRiseBored = K.hybrid.MOOD_RISE_BORED, -- per game-second: STRESS VANILLA #2231 reused (open S1146); BOREDOM one BORED level a game hour (#2369; game choice, Plan 11f ruling T9-3)
-        maxStepS = K.resume.STEP_M * 60, -- a step longer than STEP_M game minutes integrates STEP_M (a guard: the pipeline sub-steps a stall, K.resume.STEP_M)
-        liftedCap = 1,                   -- the stat's own top (#0021): a lifted cap, no row needed
-        starvingMin = K.hybrid.HUNGRY_4 + K.hybrid.CAP_MARGIN, -- CAP_MARGIN over HUNGRY level 4's strict threshold (#0508, #0507): HUNGER at least this under starvation's acute onset, so vanilla's Starving moodle shows: game choice (spec section 3.1; the chronic BMI onset follows the curve, Plan 15 Task 6, ruling I2)
+        hungerCap = K.hybrid.HUNGRY_4 - K.hybrid.CAP_MARGIN, -- under HUNGRY level 4 (#0508); lifted while starving
+        thirstCap = K.hybrid.THIRST_4 - K.hybrid.CAP_MARGIN, -- under THIRSTY level 4 (#0509); lifted while dehydrated
+        moodRiseUnhappy = K.hybrid.MOOD_RISE_UNHAPPY, -- per game-second: one UNHAPPINESS band a game hour (#2369)
+        moodRiseSick = K.hybrid.MOOD_RISE_SICK, -- per game-second
+        moodRiseStress = K.hybrid.MOOD_RISE_STRESS, moodRiseBored = K.hybrid.MOOD_RISE_BORED, -- per game-second (#2369)
+        maxStepS = K.resume.STEP_M * 60, -- a guard: the pipeline sub-steps a stall
+        liftedCap = 1,                   -- the stat's own top (#0021): no row needed
+        starvingMin = K.hybrid.HUNGRY_4 + K.hybrid.CAP_MARGIN, -- over HUNGRY level 4's strict threshold (#0507), so Starving shows under the acute onset
     }
 end
 
@@ -43,8 +40,7 @@ function K.hybrid.output()
     return { sip = 0, unhappyTarget = 0, boredTarget = 0 }
 end
 
--- The auto-drink sip since the last write: THIRST's fall below the value written, when no intake landed this
--- minute and a value was written.
+-- THIRST's fall below the value written, when no intake landed this minute.
 function K.hybrid.sip(thirst, lastThirst, sipOK)
     if not sipOK or lastThirst == nil then
         return 0
@@ -92,7 +88,7 @@ function K.hybrid.write(inp, out, c)
     if inp.foodSickTarget > 0 and inp.foodSick < inp.foodSickTarget then
         out.foodSick = K.min(inp.foodSickTarget, inp.foodSick + c.moodRiseSick * s)
     end
-    -- a FOOD_SICKNESS level raised at once, not at the floor's pace (Plan 15 Task 8 fix 1: the Overfull 4 nausea)
+    -- a FOOD_SICKNESS level is raised at once, not at the floor's pace (the Overfull 4 nausea)
     if inp.foodSickStep > 0 and (out.foodSick or inp.foodSick) < inp.foodSickStep then
         out.foodSick = inp.foodSickStep
     end
@@ -120,22 +116,15 @@ function K.hybrid.write(inp, out, c)
     out.endurance = K.hybrid.endCap(out.endurance, inp.endurance, inp.endCap)
 end
 
--- The ENDURANCE ceiling (Plan 15 Task 8; Plan 18): the effects' enduranceCap (the lower of the Overfull slowing's and the
--- lethal causes' symptom caps, K.effects.symptoms) holds ENDURANCE at or under it. e is the value this write already
--- chose (nil for none), e1 the value read; a cap of 1 or more, or NaN, holds nothing. Returns the value to write, or nil
--- for no write: a minute already at or under the cap writes nothing more.
--- The Endurance moodle's level edges, descending, the last the stat's floor: level 0 above 0.75, 1 above 0.5, 2 above
--- 0.25, 3 above 0.10, 4 at or under 0.10 (VANILLA MoodleStat.<clinit> @10-@25 L10, #3926; held on 42.21, Plan 18 Task 1
--- J12-J13; x493-20261021-062610 held caps 0.74, 0.49, 0.24 and 0.09 at levels 1 to 4 on both sides).
+-- The ENDURANCE ceiling: the effects' enduranceCap holds ENDURANCE at or under it; a cap of 1 or more, or NaN, holds
+-- nothing, and a minute already under it writes nothing more.
+-- VANILLA #3926: the Endurance moodle's level edges, descending; the last is the stat's floor.
 K.hybrid.END_EDGES = { 0.75, 0.5, 0.25, 0.10, 0 }
 K.hybrid.END_BAND_EPS = K.dials.get("hybrid.END_BAND_EPS")
 K.hybrid.END_REGEN_UNIT = 0.0000930 / 3 * 1.8 * 1.6 -- VANILLA #2258 at Very Fast regeneration and Fitness 10, the worst case
 
--- The ceiling at a day length of dayMin real minutes (Plan 15 Task 8 fix 1, generalised to every level in Plan 18): in
--- the level whose band holds the cap, room under the band's upper edge for one game minute of the worst standing
--- regeneration (2 x dayMin multiplier units, #2922; x493 measured 0.0066 a game minute for a rested character, and a
--- cap 0.002 under the edge flipped), never at or under the band's lower edge plus END_BAND_EPS nor above cap; a cap in
--- level 0's band (no moodle edge to keep), of 1 or more, or NaN is returned as it is.
+-- Room under the band's upper edge for one game minute of the worst standing regeneration (#2922: a cap 0.002 under
+-- the edge flipped), never at or under the lower edge plus END_BAND_EPS nor above cap; a level-0 cap returns as it is.
 function K.hybrid.capAt(cap, dayMin)
     local E = K.hybrid.END_EDGES
     if not (cap <= E[1]) then
@@ -162,7 +151,6 @@ function K.hybrid.endCap(e, e1, cap)
     return e
 end
 
--- The UNHAPPINESS and BOREDOM floors share one rule, moved here from write().
 -- A floor target that is nil or not a number reads 0.
 function K.hybrid.target(t)
     if t == nil or t ~= t then
@@ -173,11 +161,8 @@ end
 
 K.hybrid.FLOOR_EPS = K.dials.get("hybrid.FLOOR_EPS")
 
--- A mood floor (#3119): when the target fell since the last write (last), the stat v loses that fall once, never
--- below 0, whatever else raised it; then a stat under the target rises toward it by rise. A fall under FLOOR_EPS to a
--- target above 0 is held: last stays the remembered target, so the next write subtracts the whole fall since it (no
--- drift), and a fall to 0 always lands. Returns the value to write (nil when there is no target and no fall, or the
--- value is unchanged) and the target to remember as the next call's last.
+-- A mood floor (#3119): a fallen target is subtracted once, never below 0; a stat under the target rises by rise. A fall
+-- under FLOOR_EPS to a target above 0 is held (last stays), so the next write subtracts the whole fall: no drift.
 function K.hybrid.floor(v0, ut, last, rise)
     local keep = ut
     local fall = last - ut
@@ -201,10 +186,8 @@ function K.hybrid.floor(v0, ut, last, rise)
     return nil, keep
 end
 
--- Rule 6: BOREDOM's rise per this write. Vanilla resets BOREDOM every tick while PANIC > 5
--- (BodyDamage.UpdateBoredom @482-@509, #3015), so a rise written then is wiped and only costs a Stats.set: 0 while
--- the stat reads PANIC above 5. The target is still remembered (floor's second return), so the floor resumes at the
--- rate once panic drops; a fall still lands.
+-- Rule 6: vanilla resets BOREDOM every tick while PANIC > 5 (#3015), so a rise then only costs a Stats.set. The target is
+-- still remembered, so the floor resumes once panic drops.
 function K.hybrid.boredRise(inp, c, s)
     if inp.panic > 5 then
         return 0
@@ -212,13 +195,8 @@ function K.hybrid.boredRise(inp, c, s)
     return c.moodRiseBored * s
 end
 
--- Option B (Plan 15 Task 5; spec section 3.1; jar-checks Check 3): the caps lift at the crises, so vanilla's own
--- Starving and Parched moodles show. state is any table with the drain flags (record.drain, or the writer's input,
--- which copies them): starving (K.drain's starvation state active) lifts HUNGER's cap to 1, and under the acute onset
--- (starveAcute: 30 unfed hours, or, while the pool is unfed, the recent intake at 600 kcal or less) holds it at least starvingMin; under the chronic BMI onset alone HUNGER follows the
--- curve (ruling I2: the Starving moodle is appetite, the drain is the body); dehydrated (K.drain's dehydration state active, a body-water deficit of K.drain.DEHYD_ONSET, 4 %, or more) lifts THIRST's cap
--- to 1, where the thirst knots already read Parched (K.fluids.THIRST_KNOTS). Otherwise HUNGER stays under hungerCap and
--- THIRST under thirstCap, below level 4. Returns the HUNGER cap, the HUNGER minimum and the THIRST cap.
+-- The caps lift at the crises, so vanilla's own Starving and Parched moodles show. Under the chronic BMI onset alone
+-- HUNGER follows the curve: the Starving moodle is appetite, the drain is the body.
 function K.hybrid.caps(state, c)
     local hCap, hMin, tCap = c.hungerCap, 0, c.thirstCap
     if state.starving == true then
@@ -233,30 +211,23 @@ function K.hybrid.caps(state, c)
     return hCap, hMin, tCap
 end
 
--- The level-4 thresholds, each a strict greater-than (#0507): HUNGRY above HUNGRY_4 (0.70, #0508), THIRST above THIRST_4 (0.84, #0509).
+-- Each a strict greater-than (#0507).
 K.hybrid.HUNGRY_4 = K.dials.get("hybrid.HUNGRY_4")
 K.hybrid.THIRST_4 = K.dials.get("hybrid.THIRST_4")
 
--- Whether a HUNGER and a THIRST stand at level 4: vanilla's severe-moodle drain runs there (#0516), so the writer
--- sets the shared constant to 0 while this holds.
+-- Vanilla's severe-moodle drain runs there (#0516), so the writer sets the shared constant to 0 while this holds.
 function K.hybrid.severe(hunger, thirst)
     return hunger > K.hybrid.HUNGRY_4 or thirst > K.hybrid.THIRST_4
 end
 
--- Vanilla's other severe-moodle terms, which the shared constant also carries (#2356, x451): while the writer holds the
--- constant at 0 it re-applies them at vanilla's rates. Each is a multiple of the constant per multiplier unit:
--- SICK level 4 on either arm and BLEEDING level 4 the whole constant (BodyDamage.Update L2365, L2370, L2376); a
--- HEAVY_LOAD above level 2 the constant over (5 - level) / 10 on a one-in-ten roll a tick (Rand.PerThirtiethOfASecond
--- with 10 draws RandAbstract.Next(0, 10 f), a uniform float, under f: probability 1/10 whatever the frame rate, read on
--- 42.21), so in expectation the constant over (5 - level), half of it also going to back-muscle strain (L2391-L2393).
+-- Vanilla's other severe-moodle terms ride the same constant (#2356), so while the writer holds it at 0 it re-applies
+-- them. The heavy-load roll is 1/10 a tick whatever the frame rate, so in expectation the constant over (5 - level).
 K.hybrid.SEVERE_SICK = 1 -- VANILLA #2356 (SICK 4, either arm: the whole constant)
 K.hybrid.SEVERE_BLEED = 1 -- VANILLA #2356 (BLEEDING 4: the whole constant)
-K.hybrid.HEAVY_ROLL = 0.1 -- VANILLA #2356's roll (Rand.PerThirtiethOfASecond(10) @0-@28 L41-L42 over RandAbstract.Next(FF) L84, uniform; an inference, read on 42.21)
-K.hybrid.HEAVY_STRAIN = 0.5 -- VANILLA #2356 (half the heavy-load term goes to back-muscle strain, L2393)
+K.hybrid.HEAVY_ROLL = 0.1 -- VANILLA #2356's one-in-ten roll (an inference, read on 42.21)
+K.hybrid.HEAVY_STRAIN = 0.5 -- VANILLA #2356 (half the heavy-load term goes to back-muscle strain)
 
--- The multiple of the constant per multiplier unit the re-applied terms take at these moodle levels (sickArm: one of
--- the SICK arms holds; heavyOK: the HEAVY_LOAD term's further conditions hold), and its heavy-load share (the strain's
--- base). Levels are 0-4.
+-- sickArm: a SICK arm holds; heavyOK: the HEAVY_LOAD term's other conditions hold. Levels are 0-4.
 function K.hybrid.severeRate(sickLvl, sickArm, bleedLvl, heavyLvl, heavyOK)
     local f = 0
     if sickLvl == 4 and sickArm then

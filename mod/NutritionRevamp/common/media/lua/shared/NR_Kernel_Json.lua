@@ -1,15 +1,12 @@
--- NR_Kernel_Json.lua -- a JSON codec for the server-local store (the mod writes its own
--- serialiser). Pure: Lua values in, a string out, and back. A number is written by the caller's fmt (the adapter
--- passes tostring, which on Kahlua is Double.toString or a long below 1e14: a round trip, J2); a non-finite number
--- writes null. A table with keys exactly 1..#t (#t > 0) is an array, any other an object; an object's number key is
--- written "#<fmt(k)>" and read back as a number; a string key that starts with # gets one more # ("##5" reads "#5").
--- A table is an array only when t[1]..t[#t] are all present and no other key exists. A top-level non-table is unreadable. Decode answers nil and a message on malformed text.
+-- NR_Kernel_Json.lua -- the server-local store's JSON codec. Numbers go through the caller's fmt (tostring round-trips
+-- on Kahlua); a non-finite number writes null. An object's number key is written "#<fmt(k)>"; a string key starting
+-- with # gets one more # ("##5" reads "#5"). Decode answers nil and a message on malformed text.
 local K = NutritionRevamp.kernel
 K.json = {}
 
 K.json.ESC = { ['"'] = '\\"', ['\\'] = '\\\\', ['\n'] = '\\n', ['\r'] = '\\r', ['\t'] = '\\t' }
 
--- A control byte (< 32) as a \u00XX escape (K.hexDigits: %x on a float raises on Kahlua).
+-- (K.hexDigits: %x on a float raises on Kahlua)
 function K.json.ctl(b)
     return "\\u00" .. K.hexDigits(b, 2)
 end
@@ -42,7 +39,7 @@ function K.json.isArray(t)
     return count == n and K.json.dense(t, n)
 end
 
--- True when t[1]..t[n] are all present (no branch inside the loop body, for the line-hook coverage gate).
+-- (no branch inside the loop body, for the line-hook coverage gate)
 function K.json.dense(t, n)
     local ok = true
     for i = 1, n do
@@ -90,8 +87,7 @@ function K.json.emitTable(t, fmt, out)
     out[#out + 1] = "}"
 end
 
--- One object member: a number key written "#<fmt(k)>", a string key as is, any other key skipped. Returns the
--- next member's first flag. (A pairs loop whose body ends in an if leaves that end unexecuted under the line
+-- Returns the next member's first flag. (A pairs loop whose body ends in an if leaves that end unexecuted under the line
 -- hook, so the branching lives here.)
 function K.json.member(k, x, fmt, out, first)
     local key = k

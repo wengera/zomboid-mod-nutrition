@@ -1,22 +1,9 @@
--- NR_Data_Records.lua -- not a kernel file: the 27 declarative nutrient records the generic engine
--- (NR_Kernel_Nutrients.lua, K.nutrients.minute) loops over, as NR.data.records = { ORDER, REC } (Plan 4,
--- formulas briefing A2/A6).
--- Fix-1 rulings T7-1 (vitK k solved against its trial baseline), T7-2 (vitD uncapped) and T7-3 (per-record
--- chronic.holdD, B6 180 d).
--- Every number sits on its own line with its row: a settled S id, or `design-phase-v1` / `game choice`
--- naming the open row it rests on (testing/tests/kernel/test_data_records.py enforces it on this file).
--- This file sorts BEFORE the kernels (NR_Data_ < NR_Kernel_), so it never calls K at load time: each
--- derived rate is a literal computed in doubles, its expression and the kernel function that gives it
--- written in the comment, and the test recomputes it through that function to 1e-9.
--- Fields the engine reads (task-6 report): kind, R, scale, Rscale, absorb, k, pCap, ladder,
--- clinicalOnP2, p2Clinical, ul, chronic.perDay, chronic.holdD, chronic.store, acute.perKg, acute.abs, dialExp.
--- Fields for the adapters, never read by the engine: key (the vector key; nil when the vector has none),
--- unit (NR.data.UNITS for the key), Rmin, L, two, counter, derived, kFemale, trpShare, trpPerNE. A field no Lua
--- reads is not laid: a store mass a rate derives from sits in that rate's comment.
--- R is {male, female} per day on the INGESTED basis; the engine's absorbed requirement is R x absorb, and
--- absorb mirrors K.stomach.BIOAVAIL for the key (nil = the engine's default 1.0, open row S1060).
--- Ladders are {marginal, depleted, clinical} on p; a record with no ladder takes the engine's generic one.
--- Omitted with no record: phosphorus, manganese, omega-3 EPA/DHA.
+-- NR_Data_Records.lua -- not a kernel file: the declarative nutrient records K.nutrients.minute loops over, as
+-- NR.data.records = { ORDER, REC }. Every number sits on its own line with its row: a settled S id, or
+-- `design-phase-v1` / `game choice` naming the open row (test_data_records.py enforces it). This file sorts before the
+-- kernels, so each derived rate is a literal with its expression in the comment, and the test recomputes it to 1e-9.
+-- R is {male, female} per day on the INGESTED basis; the engine's absorbed requirement is R x absorb (nil absorb =
+-- 1.0, open S1060). A field no Lua reads is not laid.
 local NR = NutritionRevamp
 NR.data = NR.data or {}
 
@@ -51,7 +38,7 @@ NR.data.records = {
         "ethanol",
     },
     REC = {
-        -- Vitamin C: one pool calibrated to scurvy at 40 d; Store_eff = 76.5/0.0474 = 1613 mg closes on the 1500 mg pool.
+        -- Vitamin C: one pool calibrated to scurvy at 40 d.
         vitC = {
             key = "vitC",
             unit = "mg",
@@ -70,10 +57,7 @@ NR.data.records = {
             ul = 2000, -- mg/d, rung 1 (GI only), S0219
             pCap = 1.0, -- plasma and cells saturate at 100-200 mg/d, S0220/S0221
         },
-        -- Thiamine: energy-scaled requirement; the RDA rides as Rmin, read by the band only (K.view.dailyR), never by the engine: the
-        -- requirement is energy-scaled only. At the fixture's ~10 MJ/d the per-MJ requirement is 1.0 mg/d against the 1.2 mg/d RDA.
-        -- No UL (S0238). Alcohol
-        -- raises the drain (S0250 direction; the lambda magnitude is open S0553 and lives in K.interact).
+        -- Thiamine: energy-scaled; the RDA rides as Rmin for the band only (K.view.dailyR). No UL (S0238).
         thiamine = {
             key = "thiamine",
             unit = "mg",
@@ -87,7 +71,7 @@ NR.data.records = {
                 1.2, -- male RDA mg/d, S0235 (read by the band only (K.view.dailyR), never by the engine)
                 1.1, -- female RDA mg/d, S0235 (read by the band only (K.view.dailyR), never by the engine)
             },
-            k = 0.020844493746521427, -- = ln(1.2/0.5)/42: K.nutrients.calib(0.4166666666666667, 42); clinical at 42 d with none eaten, game choice (open S0243; Plan 15 ruling M2) inside S2255's one to three months and S2256's almost two months; S2258 saw 4-5 weeks at 0.5 mg/d stay subclinical; the 33.3 d half-life this implies exceeds S0240's 9-18 d isotope half-life: the onset wins, stated
+            k = 0.020844493746521427, -- = ln(1.2/0.5)/42: K.nutrients.calib(0.4166666666666667, 42); clinical at 42 d with none eaten, game choice (open S0243) inside S2255's one to three months; the implied half-life exceeds S0240's isotope one: the onset wins
             ladder = {
                 0.70, -- marginal: the generic rung, design-phase-v1 game choice (open S1057)
                 0.45, -- depleted: the generic rung, design-phase-v1 game choice (open S1057)
@@ -95,7 +79,7 @@ NR.data.records = {
             },
             pCap = 1.0, -- surplus excreted from the 1-12 h fast pool, S0241 (judgement)
         },
-        -- Riboflavin: no store row and no onset row (S0260 open), so it takes thiamine's isotope half-life (S0240), not thiamine's onset-calibrated rate. No UL (S0255).
+        -- Riboflavin: no store or onset row (S0260 open), so it takes thiamine's isotope half-life. No UL (S0255).
         riboflavin = {
             key = "riboflavin",
             unit = "mg",
@@ -107,9 +91,7 @@ NR.data.records = {
             k = 0.05134423559703299, -- = ln2/13.5: K.nutrients.kFromHalfLife(13.5); S0240's thiamine whole-body half-life midpoint, design-phase-v1 game choice (open S1067; onset open S0260)
             pCap = 1.0, -- urinary excretion rises sharply above ~1 mg/d (tissue saturation), S0257
         },
-        -- Niacin (mg NE): energy-scaled; NE = niacin + tryptophan/60, the tryptophan read from protein at trpShare
-        -- (NR_Server_Nutrients credits absorbed protein x 1000 x trpShare / trpPerNE to absorbed niacin).
-        -- The UL is nicotinic acid only (S0269, S0274): it can only fire on a supplement item.
+        -- Niacin (mg NE): NE = niacin + tryptophan/60 (NR_Server_Nutrients credits it). The UL is nicotinic acid only.
         niacin = {
             key = "niacin",
             unit = "mg",
@@ -135,8 +117,7 @@ NR.data.records = {
             trpShare = 0.011, -- tryptophan as 1.1 % of dietary protein, design-phase-v1 game choice (open S1069)
             trpPerNE = 60, -- mg tryptophan per mg NE, S0270
         },
-        -- Vitamin B6: R = max(RDA, 0.016 mg/g protein). Cross-check: Store_eff = 1.3/0.0239 = 54 mg against the
-        -- 170 mg body store (S0297), x3 off; the ONSET wins, stated.
+        -- Vitamin B6: R = max(RDA, 0.016 mg/g protein); the store cross-check is x3 off and the ONSET wins.
         vitB6 = {
             key = "vitB6",
             unit = "mg",
@@ -160,8 +141,7 @@ NR.data.records = {
             },
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
-        -- Folate (ug DFE): depleted 0.10 at 90 d; clinical (anaemia) at p(120 d). Cross-check: Store_eff =
-        -- 400/0.0256 = 15.6 mg against 5-10 mg (S0333), x1.5-3 off; the ONSET wins, stated.
+        -- Folate (ug DFE): the store cross-check is x1.5-3 off and the ONSET wins.
         folate = {
             key = "folate",
             unit = "ug",
@@ -180,10 +160,8 @@ NR.data.records = {
             ulBasis = "supplement", -- the UL is on folic acid from fortified food or supplements, not food folate (S1914, S0330)
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
-        -- Vitamin B12: two compartments at real scale (ruling 5's dial exponent 1, computed: 2303 d > 90): store p
-        -- first-order, functional p2 = min(1, p/fThreshold); clinical when p2 < 1, accruing dmg hours that
-        -- repletion does not clear (S0363). The per-eat absorption ceiling is Task 10/12's. No UL (S0353).
-        -- Requirement IOM 2.4; EFSA's 4 (S0351) and NNR's 2 (S0388) noted.
+        -- Vitamin B12: two compartments; clinical when p2 < 1, accruing dmg hours that repletion does not clear
+        -- (S0363). The per-eat absorption ceiling is K.interact.b12Ceiling. No UL (S0353).
         vitB12 = {
             key = "vitB12",
             unit = "ug",
@@ -206,8 +184,7 @@ NR.data.records = {
             },
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
-        -- Choline: the female rate x0.57 rides on NR_Server_Nutrients' kMul.choline (ruling T19-3; the engine reads
-        -- one k times ctx.kMul). The UL is supplement-only.
+        -- Choline: the female rate rides on NR_Server_Nutrients' kMul.choline. The UL is supplement-only.
         choline = {
             key = "choline",
             unit = "mg",
@@ -221,15 +198,13 @@ NR.data.records = {
             ladder = {
                 0.70, -- marginal: the generic rung, design-phase-v1 game choice (open S1057)
                 0.45, -- depleted: the generic rung, design-phase-v1 game choice (open S1057)
-                0.30, -- clinical: the 30 % fall of S0377 as the store fraction, briefing A2's calibration rung (onset 21 d, S0376/S0377); the plan table's 'generic' superseded by this derivation, design-phase-v1 game choice (open S1074; pool open S0382)
+                0.30, -- clinical: the 30 % fall of S0377 as the store fraction (onset 21 d), design-phase-v1 game choice (open S1074; pool open S0382)
             },
             ul = 3500, -- mg/d, S0373
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
-        -- Vitamin A (ug RAE): liver p (1.0 = 0.4 umol/g, the top of the balance zone) and plasma p2 = min(1,
-        -- p/plasmaKnee). The engine's ingested vitA must be PREFORMED retinol only: the UL, the chronic
-        -- dose and the acute dose are preformed (carotene exempt). Carotene conversion is x0 once p >= caroteneOff
-        -- (S0202). No cap: hoardable to toxicity.
+        -- Vitamin A (ug RAE): the ingested vitA must be PREFORMED retinol only (the UL and both doses are). Conversion
+        -- stops once p >= caroteneOff (S0202). No cap: hoardable to toxicity.
         vitA = {
             key = "retinol",
             unit = "ug",
@@ -259,9 +234,8 @@ NR.data.records = {
                 abs = 90000, -- ug in one sitting, rung 2, S1025: 100 x the MALE RDA for both sexes (S1025); the engine reads one scalar - a female threshold of 70000 is a known simplification
             },
         },
-        -- Vitamin D: one compartment at the parent half-life; p in units of serum 25(OH)D / 75 nmol/L (the 75 a
-        -- design-phase-v1 game choice, open S1065). No cutaneous term: no outdoor-daylight read exists on this build
-        -- (open S1064); with no sun no diet keeps D replete (formulas briefing L3).
+        -- Vitamin D: p in units of 25(OH)D / 75 nmol/L (open S1065). No cutaneous term: no outdoor-daylight read exists
+        -- (open S1064), so with no sun no diet keeps D replete.
         vitD = {
             key = "vitD",
             unit = "ug",
@@ -282,7 +256,7 @@ NR.data.records = {
                 store = 5, -- p >= 375/75 nmol/L, rung 2, S1030
             },
         },
-        -- Vitamin E: a ledger (tracked, no grade); the adipose turnover is open (S0213); no dietary deficiency.
+        -- Vitamin E: a ledger (tracked, no grade); no dietary deficiency.
         vitE = {
             key = "vitE",
             unit = "mg",
@@ -294,8 +268,7 @@ NR.data.records = {
             ul = 300, -- mg/d supplemental (EFSA), S0173
             ulBasis = "supplement", -- the UL is on vitamin E as a supplement (S0173): no food intake meets it
         },
-        -- Vitamin K: EFSA 1 ug/kg (the only requirement that closes both restriction trials); no clinical
-        -- effect is defensible (S0963/S0964), so Plan 5 maps nothing on its grade. No UL (S0186).
+        -- Vitamin K: no clinical effect is defensible (S0963), so nothing maps on its grade. No UL (S0186).
         vitK = {
             key = "vitK",
             unit = "ug",
@@ -305,10 +278,10 @@ NR.data.records = {
                 1, -- male AI ug per kg body mass per day (EFSA), S0185
                 1, -- female AI ug per kg body mass per day (EFSA), S0185
             },
-            k = 0.25946357728426606, -- = calibAt(0.155, 13, 10/80): S0961 (plasma K1 to 15.5 % of baseline after 13 d at ~10 ug/d from an 80 ug/d baseline; R is the intake that holds p = 1, so the baseline, not the IOM AI S0184 that ruling 6 rejects); S0962 cross-check p(21) ~ 0.516 vs 0.529 measured
+            k = 0.25946357728426606, -- = calibAt(0.155, 13, 10/80): S0961 (plasma K1 to 15.5 % of baseline after 13 d at ~10 ug/d from an 80 ug/d baseline; R is the intake that holds p = 1, so the baseline, not the IOM AI S0184); S0962 cross-check p(21) ~ 0.516 vs 0.529 measured
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
-        -- Pantothenate: a ledger; no dietary deficiency, pool open (S0287). No UL (S0280).
+        -- Pantothenate: a ledger; no dietary deficiency. No UL (S0280).
         pantothenate = {
             unit = "mg",
             kind = "ledger",
@@ -317,9 +290,8 @@ NR.data.records = {
                 5, -- female AI mg/d, S0277
             },
         },
-        -- Biotin: untracked. The only deficiency route is a raw-egg-white staple (S0316; 28 d asymptomatic S0319;
-        -- markers by day 14 S0320) and the food data carries no raw-egg flag, so K.interact.two never steps it and its
-        -- p stays 1 (Plan 11d Task 9b removed the raw-egg counter). No vector key; pool open (S0315). No UL (S0322).
+        -- Biotin: untracked. The only deficiency route is a raw-egg-white staple (S0316) and the food data carries no
+        -- raw-egg flag, so its p stays 1. No UL (S0322).
         biotin = {
             unit = "ug",
             kind = "counter",
@@ -328,8 +300,7 @@ NR.data.records = {
                 30, -- female AI ug/d, S0310
             },
         },
-        -- Iron: two compartments (A6), store S and haemoglobin iron H in mg, stepped by Task 10's ctx.two. The
-        -- engine reads no L: Task 10 applies it zero-order on H. ironGrade = g. No pCap: eta(p) is the repletion limit.
+        -- Iron: two compartments, stepped by K.interact.two; ironGrade = g. No pCap: eta(p) is the repletion limit.
         iron = {
             key = "iron",
             unit = "mg",
@@ -368,8 +339,7 @@ NR.data.records = {
                 },
             },
         },
-        -- Zinc: no reserve; the 7-week change on 3-5 mg/d solved at the nonzero intake. The phytate inhibition (the
-        -- magnesium slope reused, open S1084) is Task 10's. Its e24 drives copper (the 40 mg/d UL).
+        -- Zinc: no reserve; its e24 drives copper (the 40 mg/d UL).
         zinc = {
             key = "zinc",
             unit = "mg",
@@ -378,12 +348,11 @@ NR.data.records = {
                 11, -- male RDA mg/d, S0444
                 8, -- female RDA mg/d, S0444
             },
-            k = 0.031437653896880594, -- = -ln((0.5 - 4/11)/(1 - 4/11))/49: K.nutrients.calibAt(0.5, 49, 4/11); 7 wk at 3-5 mg/d, S0450; f 0.5 open S1083 (J's 0.0310169 used 4/11 rounded to 0.36)
+            k = 0.031437653896880594, -- = -ln((0.5 - 4/11)/(1 - 4/11))/49: K.nutrients.calibAt(0.5, 49, 4/11); 7 wk at 3-5 mg/d, S0450; f 0.5 open S1083
             ul = 40, -- mg/d, rung 1 and the copper drive, S0446/S1034
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
-        -- Copper: derived; it falls only under zinc excess, dp/dt = -kcu x max(0, e24_zn - ulZn)/ulZn, and recovers at
-        -- kcu toward 1. Dietary deficiency is unreported (S0475; the clinical signs S0474; S0537 the zinc x copper reading).
+        -- Copper: derived; it falls only under zinc excess (S0537) and recovers toward 1. Dietary deficiency is unreported.
         copper = {
             unit = "ug",
             kind = "derived",
@@ -398,8 +367,7 @@ NR.data.records = {
             ul = 10000, -- ug/d, unreachable from food, S0472
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
-        -- Magnesium: k = R_abs/store with the exchangeable soft-tissue store ~40 % of 25 g. The phytate factor
-        -- exp(-0.00093 x mg) (S0536) and the alcohol/caffeine losses (open S1086/S1087) are Task 10's.
+        -- Magnesium: the phytate factor and the alcohol/caffeine losses are K.interact's.
         magnesium = {
             key = "magnesium",
             unit = "mg",
@@ -419,9 +387,7 @@ NR.data.records = {
             ulBasis = "supplement", -- no UL on food magnesium (S0421): no food intake meets it
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
-        -- Calcium: a bone counter, bone += absorbed - 200 mg/d zero-order; a season moves it < 1 %. Used
-        -- for the calcium x iron factor and display. The counter takes the absorbed amount: absorb, the fraction the
-        -- stomach already applies (K.stomach.BIOAVAIL.calcium), is never applied again.
+        -- Calcium: a bone counter; it takes the absorbed amount, so absorb is never applied again.
         calcium = {
             key = "calcium",
             unit = "mg",
@@ -440,7 +406,7 @@ NR.data.records = {
             },
             ul = 2500, -- mg/d, S0410
         },
-        -- Iodine: k = R/thyroid store; thyroid up-regulation would slow it (direction only).
+        -- Iodine: thyroid up-regulation would slow it (direction only).
         iodine = {
             key = "iodine",
             unit = "ug",
@@ -458,8 +424,7 @@ NR.data.records = {
             ul = 1100, -- ug/d, S0458
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
-        -- Selenium: excess only (Keshan needs regional soil). The UL is the FNB's 400 (EFSA's 255, S1039, noted).
-        -- No acute or lethal number ships: that row is open (S1054).
+        -- Selenium: excess only. No acute or lethal number ships: that row is open (S1054).
         selenium = {
             key = "selenium",
             unit = "ug",
@@ -473,8 +438,7 @@ NR.data.records = {
                 perDay = 5000, -- ug/d endemic selenosis, rung 2, S0469
             },
         },
-        -- Fibre: a counter, the 7-day EMA of intake/R; relief needs sustained intake ~4 weeks (S0483).
-        -- The ladder is on the EMA, with no clinical rung.
+        -- Fibre: a counter, the 7-day EMA of intake/R (S0483); no clinical rung.
         fibre = {
             key = "fibre",
             unit = "g",
@@ -492,7 +456,7 @@ NR.data.records = {
                 0.0, -- game choice: no clinical rung for fibre (open S1090)
             },
         },
-        -- Essential fats (g LA + ALA): the PN-only evidence; real-food threshold open (S0571). No UL.
+        -- Essential fats (g LA + ALA): the real-food threshold is open (S0571). No UL.
         efa = {
             key = "efa",
             unit = "g",
@@ -509,8 +473,7 @@ NR.data.records = {
             },
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
-        -- Sodium and potassium: the fast pools (Task 8's K.fluids), not stepped by the engine. Potassium ships the
-        -- settled 2019 AI (S0398), not the plan's 4700 (no register row carries it).
+        -- Sodium and potassium: K.fluids' fast pools, not stepped by the engine.
         sodium = {
             key = "sodium",
             unit = "mg",
@@ -529,7 +492,7 @@ NR.data.records = {
                 2600, -- female AI mg/d, S0398
             },
         },
-        -- Caffeine and ethanol: the acute states (Task 9's K.acute); no requirement, never graded here.
+        -- Caffeine and ethanol: K.acute's states; no requirement, never graded here.
         caffeine = {
             key = "caffeine",
             unit = "mg",

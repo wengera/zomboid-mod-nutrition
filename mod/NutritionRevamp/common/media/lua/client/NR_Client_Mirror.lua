@@ -1,11 +1,7 @@
--- NR_Client_Mirror.lua -- the client's read-only copy of the server's mirror (spec § 4.8). It
--- installs what the server sends and never writes back; a client write to a field no packet
--- carries would only drift (#0129). The request is sent once at OnGameStart and again each time the
--- panel opens (NR_Client_Panel.lua). clearMirror drops the copy at the local player's death
--- (NR_Client_View.lua), so a respawn shows nothing of the dead character until its first push.
---
--- Shape (the client-file discipline): the sentinel NR_ClientMirror_Installed is a global of its own holding the
--- two handler closures, so a reload of this file adds no second handler; each looks NutritionRevamp up per call.
+-- NR_Client_Mirror.lua -- the client's read-only copy of the server's mirror: a client write to a field no packet
+-- carries would only drift (#0129). Requested at OnGameStart and on each panel open; dropped at the local player's
+-- death, so a respawn shows nothing of the dead character until its first push.
+-- The sentinel NR_ClientMirror_Installed holds the two handler closures, so a reload adds no second handler.
 local NR = NutritionRevamp
 if NR.client.received == nil then NR.client.received = 0 end
 
@@ -22,13 +18,13 @@ function NR.client.requestMirror()
     return ok
 end
 
--- The installed copy, and the arrival counter moved so the view rebuilds.
+-- The arrival counter moves so the view rebuilds.
 function NR.client.installMirror(m)
     NR.client.mirror = m
     NR.client.received = NR.client.received + 1
 end
 
--- No copy, and no arrival counted: the caller forces the view's rebuild (V.onPlayerDeath) from the empty mirror.
+-- No arrival counted: the caller forces the view's rebuild (V.onPlayerDeath).
 function NR.client.clearMirror()
     NR.client.mirror = nil
 end

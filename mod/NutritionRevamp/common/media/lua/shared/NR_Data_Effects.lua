@@ -1,69 +1,34 @@
--- NR_Data_Effects.lua -- not a kernel file: the declarative effects table the composer
--- (NR_Kernel_Effects.lua, K.effects.compose) folds into record.effects, as NR.data.effects = { SURF, ROWS, ... }
--- (formulas briefing A3-A4, B5, D3-D4, E3, F2, G, H1; T1-1).
--- SURF names each surface's fold operator (mul | add | max | min | or), its identity and its clamp. A surface
--- marked machine = true is written by its own kernel function on the slow clock (nightVision by K.effects.nvMinute)
--- and the composer never resets, scales or clamps it; sevMin on a boolean surface is the Severity below which it reads
--- false (Short Sighted). The health drains are not a surface: K.drain (NR_Kernel_Drain.lua, Plan 15 Task 4) owns them.
--- ROWS is an array of { src, on, at, list }: on is grade (record.nutrients[src].g), rung (record.nutrients[src].x),
--- band (the band named src in the twelve-band vector), flag (flags[src]; at nil matches true, a number or
--- {lo, hi} matches a numeric flag), pe (the protein-energy grade) or ea (K.effects.eaBand of the closed-day energy
--- availability); at is an integer or an inclusive {lo, hi}. A row may carry stim (1 Game, 2 Realistic: folded only
--- under that NR.StimulantRealism set, Plan 15 Task 10), gated (VITD_EFFECTS: folded only when
--- the composer's vitdOn is true; BalanceBonus: only when bonusOn is true) and unless (a flag name: the row is
--- skipped while that flag is true -- the "replaces" of the briefing). Each entry is { ch, s, v, row } with ch the
--- spec section 4.5 channel, s a surface, v its magnitude and row the science row it rests on; gc = true marks a
--- magnitude that is a game choice (its comment names the open row); bonus = true marks the two adequacy exceptions
--- the Severity dial does not scale (the vitamin C cold credit, BalanceBonus).
--- Band rows are evaluated at the band's lower edge (A2), so each band's magnitude is a literal computed in doubles
--- with its arithmetic in the comment; testing/tests/kernel/test_data_effects.py recomputes them and enforces that
--- every line with a number carries its row (an S id, a #nnnn claims row for a vanilla threshold, or a game choice
--- naming its open row).
--- Ruled differently from the briefing (the plan's rulings only): hungerMul and thirstMul dropped; POISON
--- ships 0 at every rung, so no row drives poisonTarget; the toxicity, hyponatraemia and refeeding rows
--- target FOOD_SICKNESS 30 / 55 / 85, never the SICKNESS stat; omega-3 ships nothing (S0919
--- is EPA-specific and the vector has no EPA key); iron excess has no infection row (ruling 17; S0989 is a
--- malaria-setting trial); the two vitamin D rows are gated off.
--- Additions beyond the briefing's SURF list, each named by its own A-section: bruise (F4's per-minute purpura
--- probability, A3's own example entry), tempHeat (G's dehydration heat side, applied by the adapter only while
--- exerting, met >= 3, so the set stays a pure function of its trigger), foodSickTarget (T1-1), rowEndCap (Plan 15
--- Task 8: the ENDURANCE ceiling of the Overfull slowing; the writer holds enduranceCap, the lower of it and the symptom
--- cap, K.effects.symptoms), foodSickStep (Task 8 fix 1: a FOOD_SICKNESS level the writer raises at once).
--- SYMPTOMS (Plan 18, spec docs/superpowers/specs/2026-10-21-symptoms-design.md) is the lethal causes' symptom table,
--- folded every minute by K.effects.symptoms on each cause's progress p = 1 - record.drain.frac[code], not by the
--- composer: CAUSES[code] = { name, overlayOff, list }, each list entry { lever, shape, ... } with lever endurance (a
--- cap), pain (a summed PAIN target shared over parts, part indices of BodyPartType), stress or unhappy (a floor) and
--- shape flat (v), linear (a at p 0, b at p 1) or knots (k, a flat array of p, v pairs). The magnitudes are game choices
--- set from Plan 18 Task 1's live probe (x491, x492, x493), each named once below; the research plan swaps the shapes.
+-- NR_Data_Effects.lua -- not a kernel file: the declarative effects table K.effects.compose folds into record.effects.
+-- SURF names each surface's fold (mul | add | max | min | or), identity and clamp; a machine surface is written by its
+-- own kernel function and never reset, scaled or clamped by the composer. ROWS are { src, on, at, list }; stim, gated
+-- and unless gate a row. gc marks a game-choice magnitude (its comment names the open row); bonus marks the adequacy
+-- exceptions the Severity dial never scales. Band rows read at the band's lower edge, so each magnitude is a literal
+-- with its arithmetic in the comment; test_data_effects.py recomputes them and enforces a row on every number line.
+-- The toxicity, hyponatraemia and refeeding rows target FOOD_SICKNESS, never SICKNESS; POISON ships 0 at every rung.
+-- SYMPTOMS is the lethal causes' symptom table, folded every minute by K.effects.symptoms on each cause's progress,
+-- not by the composer (docs/superpowers/specs/2026-10-21-symptoms-design.md@program-record-v19).
 local NR = NutritionRevamp
 NR.data = NR.data or {}
 
--- Plan 18's symptom rows every cause shares (SYMPTOMS below), one table each, read by K.effects.symptoms and never written.
--- The flat PAIN target summed over a cause's parts: Pain level 1 is PAIN above 10 and at most 20 (#2369), and 15 is its
--- band's middle; x491-20261021-061440 held added pain 20 on Torso_Lower (PAIN 14.3, modifier 0.78) at level 1 on both sides.
+-- The symptom rows every cause shares, read by K.effects.symptoms and never written. 15 is the middle of Pain level 1's
+-- band (above 10, at most 20, #2369).
 local SYM_PAIN = 15 -- game choice, flat while the cause is active, a placeholder for the researched pang and ache shapes (open S2247)
--- The endurance cap deepens with progress from Endurance level 1 at onset to level 4 at the death point, linear between
--- the four levels' caps at the 90-minute day, each level's upper edge less one game minute of the worst regeneration
--- (K.hybrid.capAt, which re-sizes them for the day length).
--- At the 90-minute day the moodle shows level 2 from p 0.307, 3 from p 0.640 and 4 from p 0.956.
--- x493-20261021-062610 held 0.74, 0.49, 0.24 and 0.09 at levels 1 to 4 on both sides.
+-- The endurance cap deepens from Endurance level 1 at onset to level 4 at the death point (K.hybrid.capAt re-sizes the
+-- caps for the day length). At the 90-minute day the moodle shows level 2 from p 0.307, 3 from p 0.640 and 4 from p 0.956.
 local SYM_END = { lever = "endurance", shape = "knots", k = {
     0, 0.73, -- level 1 at onset, under 0.75 (#3926); game choice (open S1176)
     1 / 3, 0.48, -- level 2, under 0.5 (#3926); game choice (open S1176)
     2 / 3, 0.23, -- level 3, under 0.25 (#3926); game choice (open S1176)
     1, 0.08, -- level 4 at the death point, under 0.10 (#3926); game choice (open S1176)
 } }
--- The stress floor: Stress level 1 (above 0.25) from p 0.417, level 2 (above 0.5; #2369) from p 0.82; x493 held 0.30 and
--- 0.55 at levels 1 and 2 on both sides, falling 0.00178 to 0.00182 a full game minute between writes.
--- In the partial first minute after a write it falls less.
+-- The stress floor; in the partial first minute after a write it falls less.
 local SYM_STRESS = { lever = "stress", shape = "knots", k = {
     0, 0, -- none at onset; game choice (open S1145)
     0.5, 0.30, -- Stress level 1 (above 0.25, #2369) from p 0.417 on the ramp from (0, 0); game choice (open S1145)
     0.9, 0.55, -- Stress level 2 (above 0.5, #2369) from p 0.82; game choice (open S1145)
     1, 0.55, -- held to the death point; game choice (open S1145)
 } }
--- The unhappiness floor: Unhappy level 1 (above 20) from p 0.40, level 2 (above 45; #2369) from p 0.82; x493 held 25
--- and 50 at levels 1 and 2 on both sides, never falling between writes (released by the writer's subtraction, #3119).
+-- The unhappiness floor, released by the writer's subtraction (#3119).
 local SYM_UNHAPPY = { lever = "unhappy", shape = "knots", k = {
     0, 0, -- none at onset; game choice (open S1145)
     0.5, 25, -- Unhappy level 1 (above 20, #2369) from p 0.40 on the ramp from (0, 0); game choice (open S1145)
@@ -74,7 +39,7 @@ local SYM_UNHAPPY = { lever = "unhappy", shape = "knots", k = {
 NR.data.effects = {
     -- The vitamin D rows ship gated off until an outdoor-daylight seat exists (no cutaneous term, open S1064).
     VITD_EFFECTS = false,
-    -- The bleeding time a spontaneous bruise starts at (F4; the adapter's event write).
+    -- The bleeding time a spontaneous bruise starts at (the adapter's event write).
     BRUISE_T0 = 0.05, -- game choice: about 1.79 x damageScaler health per bruise (open S1153)
     SURF = {
         mNut = { op = "mul", id = 1, lo = 1.0, hi = 2.0 }, -- fatigue accrual, nutritional part; game choice clamp above the 1.3 trait span #2271 (open S1133)
@@ -83,7 +48,7 @@ NR.data.effects = {
         unhappyTarget = { op = "add", id = 0, lo = 0, hi = 59 }, -- UNHAPPINESS floor; game choice cap one under the level-3 step 60 #2369 (open S1147)
         panicTarget = { op = "add", id = 0, lo = 0, hi = 64 }, -- PANIC floor; game choice cap one under the level-3 step 65 #2369 (open S1147)
         foodSickTarget = { op = "max", id = 0, lo = 0, hi = 85 }, -- FOOD_SICKNESS floor (T1-1): SICK levels from max(...)/100 #3130, #2369, never 90 or more (the red drain #2356); game choice (open S1165)
-        poisonTarget = { op = "max", id = 0, lo = 0, hi = 30 }, -- no row drives it: POISON 0 at every rung (ruling 12); the drain caps at 30 #2358
+        poisonTarget = { op = "max", id = 0, lo = 0, hi = 30 }, -- no row drives it: POISON 0 at every rung; the drain caps at 30 #2358
         healMul = { op = "mul", id = 1, lo = 0.5, hi = 1.0 }, -- wound healing; game choice floor (open S1149)
         bleedMul = { op = "mul", id = 1, lo = 1.0, hi = 1.25 }, -- total bleeding damage; game choice range (open S1152)
         infectMul = { op = "mul", id = 1, lo = 1.0, hi = 2.3 }, -- wound-infection progression; S0954 OR 2.31, as 2.30
@@ -91,16 +56,15 @@ NR.data.effects = {
         tempOffset = { op = "add", id = 0, lo = -0.5, hi = 0.3 }, -- core target offset, degrees C; game choice clamp around the -0.2 falls (S1016, open S1161) and the +0.3 rise (open S1160)
         tempHeat = { op = "add", id = 0, lo = 0, hi = 0.3 }, -- the exertion-gated heat side, degrees C; game choice magnitude (open S1160)
         speedMul = { op = "min", id = 1, lo = 0.75, hi = 1.0 }, -- the direct speed write; game choice floor (open S1176)
-        rowEndCap = { op = "min", id = 1, lo = 0.73, hi = 1.0, sevMin = 0.5 }, -- the rows' ENDURANCE ceiling (Plan 15 Task 8), under the writer's enduranceCap; game choice floor at the Overfull row's value, and on at Severity 0.5 or more, off below, never partial (open S1176)
-        foodSickStep = { op = "max", id = 0, lo = 0, hi = 85 }, -- a FOOD_SICKNESS level raised at once, not at the floor's pace (Plan 15 Task 8 fix); game choice (open S1165)
+        rowEndCap = { op = "min", id = 1, lo = 0.73, hi = 1.0, sevMin = 0.5 }, -- the rows' ENDURANCE ceiling, under the writer's enduranceCap; game choice floor at the Overfull row's value, and on at Severity 0.5 or more, off below, never partial (open S1176)
+        foodSickStep = { op = "max", id = 0, lo = 0, hi = 85 }, -- a FOOD_SICKNESS level raised at once, not at the floor's pace; game choice (open S1165)
         fOffNut = { op = "add", id = 0, lo = 0, hi = 0.15 }, -- the nutritional fatigue offset; game choice cap so no state alone crosses Tired 1 (open S1132)
         bruise = { op = "max", id = 0, lo = 0, hi = 1 }, -- spontaneous-bruise probability per game minute; a probability, no row needed
-        nightVision = { op = "or", id = false, machine = true }, -- K.effects.nvMinute (ruling 6)
-        shortSighted = { op = "or", id = false, sevMin = 1 }, -- ruling 7: only at Severity 1 or more; game choice gate (open S1143)
+        nightVision = { op = "or", id = false, machine = true }, -- K.effects.nvMinute
+        shortSighted = { op = "or", id = false, sevMin = 1 }, -- only at Severity 1 or more; game choice gate (open S1143)
     },
     ROWS = {
-        -- A4 fatigue accrual (mNut). Energy availability enters as K.effects.eaAccrual (continuous, closed day).
-        -- Vitamin D, B12, folate and protein: no row (S0778, S0910 null; protein open S0792).
+        -- Fatigue accrual (mNut); energy availability enters as K.effects.eaAccrual. Vitamin D, B12, folate: no row (S0778).
         { src = "iron", on = "grade", at = 3, unless = "anaemia", list = { -- iron depleted without anaemia, S0699
             { ch = "stat", s = "mNut", v = 1.11, row = "S0699", gc = true }, -- 1 + lambda 0.30 x SMD 0.38 = 1.114, as 1.11; S0699, S0775 cross-check; lambda game choice (open S1119)
         } },
@@ -122,8 +86,7 @@ NR.data.effects = {
         { src = "dehyd", on = "band", at = { 6, 8 }, list = { -- 4 % and above, held, S0895
             { ch = "stat", s = "mNut", v = 1.36, row = "S1121", gc = true }, -- 1 + 0.30 x 1.20, held above 4 %; game choice (open S1121)
         } },
-        -- Caffeine withdrawal: the wd band is round(4 x wd x cafTol) (K.effects.bands), so each row is (1 + 0.20 q) and
-        -- 10 q on unhappiness with q = band / 4 = wdQ x cafTol. S0805 time course, S0803 the symptom set.
+        -- Caffeine withdrawal: q = band / 4 = wdQ x cafTol (S0805).
         { src = "wd", on = "band", at = 1, list = { -- q 0.25, S0805
             { ch = "stat", s = "mNut", v = 1.05, row = "S0805", gc = true }, -- 1 + 0.20 x 0.25; game choice 0.20 (open S1122)
             { ch = "stat", s = "unhappyTarget", v = 2.5, row = "S0803", gc = true }, -- 10 x 0.25; game choice 10 (open S1145)
@@ -140,23 +103,20 @@ NR.data.effects = {
             { ch = "stat", s = "mNut", v = 1.20, row = "S0805", gc = true }, -- 1 + 0.20 x 1; game choice 0.20 (open S1122)
             { ch = "stat", s = "unhappyTarget", v = 10.0, row = "S0803", gc = true }, -- 10 x 1; game choice 10 (open S1145)
         } },
-        -- The hangover: one row per stimulant set (stim, K.acute.STIM; Plan 15 Task 10). Realistic (2) is the Plan 14
-        -- row; Game (1, the default) halves each size, the mild hangover of spec section 5. Both carry an unhappiness
-        -- floor (Task 10 fix 1, S0930's negative affect): Game's shows UNHAPPY level 1, Realistic's twice it.
+        -- The hangover, one row per stimulant set: Game (1, the default) halves Realistic's sizes. Both carry an unhappiness
+        -- floor (S0930's negative affect).
         { src = "hang", on = "band", at = 1, stim = 2, list = { -- the hangover flag, S0814/S0817/S0930
             { ch = "stat", s = "mNut", v = 1.15, row = "S0814", gc = true }, -- S0814 g 0.66 / S0817 g 0.47 via lambda; game choice (open S1127)
             { ch = "stat", s = "stressTarget", v = 0.10, row = "S0930", gc = true }, -- direction only, no pooled size (open S0943); game choice magnitude (open S1145)
-            { ch = "stat", s = "unhappyTarget", v = 42, row = "S0930", gc = true }, -- twice Game's, under the UNHAPPY level-2 step 45 #2369; game choice (spec section 10, item 9; open S1145, S0943)
+            { ch = "stat", s = "unhappyTarget", v = 42, row = "S0930", gc = true }, -- twice Game's, under the UNHAPPY level-2 step 45 #2369; game choice (open S1145, S0943)
         } },
         { src = "hang", on = "band", at = 1, stim = 1, list = { -- the hangover flag, Game: half each realistic size, S0814/S0817/S0930
-            { ch = "stat", s = "mNut", v = 1.075, row = "S0814", gc = true }, -- 1 + 0.15 / 2; game choice (spec section 10, item 9; open S1127)
-            { ch = "stat", s = "stressTarget", v = 0.05, row = "S0930", gc = true }, -- 0.10 / 2; game choice (spec section 10, item 9; open S1145)
-            { ch = "stat", s = "unhappyTarget", v = 21, row = "S0930", gc = true }, -- UNHAPPY level 1 is > 20 #2369 (the S2248 precedent); game choice (spec section 10, item 9; open S1145, S0943)
+            { ch = "stat", s = "mNut", v = 1.075, row = "S0814", gc = true }, -- 1 + 0.15 / 2; game choice (open S1127)
+            { ch = "stat", s = "stressTarget", v = 0.05, row = "S0930", gc = true }, -- 0.10 / 2; game choice (open S1145)
+            { ch = "stat", s = "unhappyTarget", v = 21, row = "S0930", gc = true }, -- UNHAPPY level 1 is > 20 #2369 (the S2248 precedent); game choice (open S1145, S0943)
         } },
-        -- A4 sleep recovery (rNut) and E3 panic from caffeine on board, by the 50 mg band (C = 50 x band).
-        -- rNut: 1 - 0.15 x satC, satC = clamp((C - 32.1) / (107 - 32.1), 0, 1), the 32.1 mg zero = 0.3 x 107 (S0797 x S0793,
-        -- 2^(-8.8/5) = 0.2952); S0795 direction; 0.15 game choice (open S1126). Panic: 15 C / 400 to 400 mg (S0929 low SMD
-        -- 0.61 x 24), then 15 + 49 (C - 400) / 400 to 64 at 800 mg; the slope a game choice (open S1145).
+        -- Sleep recovery (rNut) and panic from caffeine on board, C = 50 x band: rNut 1 - 0.15 x satC, satC = clamp((C - 32.1)
+        -- / (107 - 32.1), 0, 1) (S0797); panic 15 C / 400 to 400 mg (S0929), then 15 + 49 (C - 400) / 400 to 64 at 800 mg.
         { src = "caf", on = "band", at = 1, list = { -- 50 mg, S0795/S0929
             { ch = "stat", s = "rNut", v = 0.9641522029372497, row = "S0795", gc = true }, -- 1 - 0.15 x 17.9/74.9; game choice (open S1126)
             { ch = "stat", s = "panicTarget", v = 1.875, row = "S0929", gc = true }, -- 15 x 50/400; one SMD = one band, game choice (open S1144)
@@ -221,29 +181,25 @@ NR.data.effects = {
             { ch = "stat", s = "rNut", v = 0.85, row = "S0795", gc = true }, -- saturated; game choice (open S1126)
             { ch = "stat", s = "panicTarget", v = 64.0, row = "S0929", gc = true }, -- 15 + 49 x 400/400, S0929's 2.86 x 24 = 68.6 capped under 65; game choice slope (open S1145)
         } },
-        -- Alcohol: the episode peak band (0.0735 / 0.125 % = S0813's 0.50 / 0.85 g/kg over 10 r, r 0.68 open S1104).
+        -- Alcohol: the episode peak band (S0813; r open S1104).
         { src = "alc", on = "band", at = 1, list = { -- peak at least 0.0735 %, S0813
-            { ch = "stat", s = "rNut", v = 0.90, row = "S0813", gc = true }, -- the spec's bounded judgement; game choice (open S0853)
+            { ch = "stat", s = "rNut", v = 0.90, row = "S0813", gc = true }, -- a bounded judgement; game choice (open S0853)
         } },
         { src = "alc", on = "band", at = 2, list = { -- peak at least 0.125 %, S0813
             { ch = "stat", s = "rNut", v = 0.80, row = "S0813", gc = true }, -- range [0.80, 1.00] game choice (open S0853)
         } },
-        -- Exercise earlier today: the ex band (exEma / 7.5 min, full at EX_FULL 30 min, open S1148) gives 1 + 0.10 q,
-        -- q = band / 4, S0826 (+1.3 pp SWS), S0824; skipped while boutVig (the vigorous row replaces it, S0827/S0828).
+        -- Exercise earlier today: 1 + 0.10 q, q = band / 4 (S0826); skipped while boutVig, whose row replaces it (S0827).
         { src = "ex", on = "band", at = 1, unless = "boutVig", list = { -- q 0.25, S0826
-            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            -- a behaviour credit (S0826), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "rNut", v = 1.025, row = "S0826", gc = true, bonus = true }, -- 1 + 0.10 x 0.25; game choice 0.10 (open S1129)
         } },
         { src = "ex", on = "band", at = 2, unless = "boutVig", list = { -- q 0.50, S0826
-            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "rNut", v = 1.05, row = "S0826", gc = true, bonus = true }, -- 1 + 0.10 x 0.50; game choice 0.10 (open S1129)
         } },
         { src = "ex", on = "band", at = 3, unless = "boutVig", list = { -- q 0.75, S0826
-            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "rNut", v = 1.075, row = "S0826", gc = true, bonus = true }, -- 1 + 0.10 x 0.75; game choice 0.10 (open S1129)
         } },
         { src = "ex", on = "band", at = 4, unless = "boutVig", list = { -- q 1, S0826
-            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "rNut", v = 1.10, row = "S0826", gc = true, bonus = true }, -- 1 + 0.10 x 1; game choice 0.10 (open S1129)
         } },
         { src = "boutVig", on = "flag", list = {
@@ -252,23 +208,21 @@ NR.data.effects = {
         { src = "allReplete", on = "flag", gated = "BalanceBonus", list = {
             { ch = "stat", s = "rNut", v = 1.05, row = "S1175", gc = true, bonus = true }, -- BalanceBonus, the dial's fatigue-recovery half; game choice (open S1175)
         } },
-        -- A4 stress (STRESS 0..1, one SMD = one 0.25 band, open S1144).
+        -- Stress (STRESS 0..1, one SMD = one 0.25 band, open S1144).
         { src = "bgroupMax", on = "flag", at = 3, list = { -- the worst B-vitamin grade depleted, S0922
             { ch = "stat", s = "stressTarget", v = 0.03, row = "S1145", gc = true }, -- half the clinical rung; game choice (open S1145)
         } },
         { src = "bgroupMax", on = "flag", at = 4, list = { -- clinical, S0922
             { ch = "stat", s = "stressTarget", v = 0.06, row = "S0922", gc = true }, -- SMD 0.23 x band 0.25 = 0.0575, as 0.06; game choice convention (open S1144)
         } },
-        -- Plan 15 Task 4 (spec section 3.3): the dehydration mood rows sit in the 4-6 % band, apathy and weariness at
-        -- about 4.2 % (S2248), so panic moved here from 1.5 %; the placement is science's order (spec section 3.3).
+        -- The dehydration mood rows sit in the 4-6 % band: apathy and weariness at about 4.2 % (S2248).
         { src = "dehyd", on = "band", at = { 6, 8 }, list = { -- 4 % and above, S2248 (weariness, apathy, impatience at about 4 %)
             { ch = "stat", s = "stressTarget", v = 0.06, row = "S0098", gc = true }, -- direction only, no effect size; game choice (open S1145)
             { ch = "stat", s = "panicTarget", v = 7, row = "S0098", gc = true }, -- tension/anxiety p = 0.029; 7, not 6: level 1 is > 6 #2369; game choice (open S1145)
-            { ch = "stat", s = "unhappyTarget", v = 21, row = "S2248", gc = true }, -- apathy at about 4.2 %; 21: UNHAPPY level 1 is > 20 #2369; game choice (open S1145; spec section 3.3: vanilla-sized effects)
+            { ch = "stat", s = "unhappyTarget", v = 21, row = "S2248", gc = true }, -- apathy at about 4.2 %; 21: UNHAPPY level 1 is > 20 #2369; vanilla-sized; game choice (open S1145)
         } },
-        -- E3 panic and unhappiness from sleep loss (iuS band, iuSleepQ = band x 0.125): panic 14 x iuSleepQ capped 20
-        -- (S0916 SMD 0.57-0.63 x 24 = 13.7-15.1; the cap a game choice, open S1147); unhappiness 25 x iuSleepQ / 1.5
-        -- (S0915 SMD 0.27-1.14 x 22 = 6-25).
+        -- Panic and unhappiness from sleep loss (iuSleepQ = band x 0.125): panic 14 x iuSleepQ capped 20 (S0916),
+        -- unhappiness 25 x iuSleepQ / 1.5 (S0915).
         { src = "iuS", on = "band", at = 1, list = { -- 0.125 IU, S0916/S0915
             { ch = "stat", s = "panicTarget", v = 1.75, row = "S0916", gc = true }, -- 14 x 0.125; game choice convention (open S1144)
             { ch = "stat", s = "unhappyTarget", v = 2.0833333333333335, row = "S0915", gc = true }, -- 25 x 0.125/1.5; game choice convention (open S1144)
@@ -317,44 +271,35 @@ NR.data.effects = {
             { ch = "stat", s = "panicTarget", v = 20, row = "S0916", gc = true }, -- 14 x 1.5 = 21, capped 20; game choice cap (open S1147)
             { ch = "stat", s = "unhappyTarget", v = 25.0, row = "S0915", gc = true }, -- 25 x 1.5/1.5; game choice (open S1144)
         } },
-        -- E3 the exercise credit (target offsets only): q = ex band / 4; panic -11 q (S0932 anxiety SMD -0.47 x 24
-        -- = 11.3), unhappiness -13 q (S0932 depression SMD -0.61 x 22 = 13.4).
+        -- The exercise credit (target offsets only), q = band / 4: panic -11 q, unhappiness -13 q (S0932).
         { src = "ex", on = "band", at = 1, list = { -- q 0.25, S0932
-            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            -- a behaviour credit (S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "panicTarget", v = -2.75, row = "S0932", gc = true, bonus = true }, -- -11 x 0.25; game choice convention (open S1144)
-            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "unhappyTarget", v = -3.25, row = "S0932", gc = true, bonus = true }, -- -13 x 0.25; game choice convention (open S1144)
         } },
         { src = "ex", on = "band", at = 2, list = { -- q 0.50, S0932
-            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "panicTarget", v = -5.5, row = "S0932", gc = true, bonus = true }, -- -11 x 0.50; game choice (open S1144)
-            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "unhappyTarget", v = -6.5, row = "S0932", gc = true, bonus = true }, -- -13 x 0.50; game choice (open S1144)
         } },
         { src = "ex", on = "band", at = 3, list = { -- q 0.75, S0932
-            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "panicTarget", v = -8.25, row = "S0932", gc = true, bonus = true }, -- -11 x 0.75; game choice (open S1144)
-            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "unhappyTarget", v = -9.75, row = "S0932", gc = true, bonus = true }, -- -13 x 0.75; game choice (open S1144)
         } },
         { src = "ex", on = "band", at = 4, list = { -- q 1, S0932
-            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "panicTarget", v = -11.0, row = "S0932", gc = true, bonus = true }, -- -11 x 1; game choice (open S1144)
-            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
             { ch = "stat", s = "unhappyTarget", v = -13.0, row = "S0932", gc = true, bonus = true }, -- -13 x 1; game choice (open S1144)
         } },
-        -- E3/F2 vitamin D (gated off): unhappiness (S0920 SMD -0.32 per 1000 IU x 22 = 7, halved) and colds
-        -- (S0974 OR 0.94: at most 6 %). Semi-starvation mood: no row (S0113 symptom list, open S0937); omega-3: no row.
+        -- Vitamin D (gated off): unhappiness (S0920) and colds (S0974). Semi-starvation mood and omega-3: no row (open S0937).
         { src = "vitD", on = "grade", at = 3, gated = "VITD_EFFECTS", list = { -- depleted, S0920/S0974
             { ch = "stat", s = "unhappyTarget", v = 2, row = "S1145", gc = true }, -- half the clinical rung; game choice (open S1145)
             { ch = "body", s = "coldMul", v = 1.03, row = "S1158", gc = true }, -- half of S0974's 6 %; game choice (open S1158)
         } },
         { src = "vitD", on = "grade", at = 4, gated = "VITD_EFFECTS", list = { -- clinical, S0920/S0974
             { ch = "stat", s = "unhappyTarget", v = 4, row = "S0920", gc = true }, -- 7 halved for small-study bias, as 4; game choice (open S1145)
-            { ch = "body", s = "coldMul", v = 1.06, row = "S0974", gc = true }, -- OR 0.94, the spec's 6 % cut; game choice (open S1158)
+            { ch = "body", s = "coldMul", v = 1.06, row = "S0974", gc = true }, -- OR 0.94, a 6 % cut; game choice (open S1158)
         } },
-        -- B5 the nutritional fatigue offset (fOffNut, capped 0.15): dehydration +0.06 at 2 % linear to +0.10 at 4 %, held
-        -- (S0098/S0099 fatigue at 1.36-1.59 %; magnitudes open S0934); hypoglycaemia +0.10 (open S1132).
+        -- The nutritional fatigue offset (fOffNut, capped 0.15): dehydration from 2 %, held at 4 % (S0098); hypoglycaemia
+        -- +0.10 (open S1132).
         { src = "dehyd", on = "band", at = 3, list = { -- [2, 2.5) %, S0098
             { ch = "stat", s = "fOffNut", v = 0.06, row = "S0098", gc = true }, -- 0.06 at 2 %; game choice (open S0934)
         } },
@@ -367,25 +312,25 @@ NR.data.effects = {
         { src = "dehyd", on = "band", at = { 6, 8 }, list = { -- 4 % and above, held, S0098
             { ch = "stat", s = "fOffNut", v = 0.10, row = "S0098", gc = true }, -- 0.06 + 0.04, held; game choice (open S0934)
         } },
-        -- Blood glucose band 3 (below 2.6 mmol/L, S0897): fatigue (B5), speed (D4), temperature (G).
+        -- Blood glucose band 3 (below 2.6 mmol/L, S0897): fatigue, speed and temperature.
         { src = "bg", on = "band", at = 3, list = { -- below 2.6 mmol/L, S0897
-            { ch = "stat", s = "fOffNut", v = 0.10, row = "S1132", gc = true }, -- hypoglycaemia through fatigue (spec); game choice (open S1132)
+            { ch = "stat", s = "fOffNut", v = 0.10, row = "S1132", gc = true }, -- hypoglycaemia through fatigue; game choice (open S1132)
             { ch = "stat", s = "speedMul", v = 0.85, row = "S1176", gc = true }, -- game choice (open S1176)
             { ch = "stat", s = "tempOffset", v = -0.2, row = "S1014", gc = true }, -- S1014 direction (a listed cause of secondary hypothermia); game choice (open S1161)
         } },
         { src = "bg", on = "band", at = 2, list = { -- [2.6, 3.0) mmol/L, S0897
             { ch = "stat", s = "speedMul", v = 0.92, row = "S1176", gc = true }, -- game choice (open S1176)
         } },
-        -- D3 Short Sighted at clinical vitamin A (S0143 the clinical rung, S0144 xerophthalmia follows night blindness).
+        -- Short Sighted at clinical vitamin A (S0144: xerophthalmia follows night blindness).
         { src = "vitA", on = "grade", at = 4, list = { -- clinical, S0143
             { ch = "trait", s = "shortSighted", v = 1, row = "S0143", gc = true }, -- the toggle at clinical; game choice (open S1143)
         } },
-        -- D4 the direct speed write (min; computed and mirrored, unapplied until X47).
+        -- The direct speed write (min).
         { src = "dehyd", on = "band", at = 7, list = { -- [6, 10) %, dizziness at about 5.8 % (S2248); game choice (open S1098)
             { ch = "stat", s = "speedMul", v = 0.85, row = "S1176", gc = true }, -- game choice (open S1176)
         } },
-        { src = "dehyd", on = "band", at = 8, list = { -- 10 % and above, delirium at about 11 % (S2248): confusion and collapse (spec section 3.3)
-            { ch = "stat", s = "speedMul", v = 0.75, row = "S1176", gc = true }, -- the clamp's floor; game choice (open S1176; spec section 3.3: vanilla-sized effects)
+        { src = "dehyd", on = "band", at = 8, list = { -- 10 % and above, delirium at about 11 % (S2248): confusion and collapse
+            { ch = "stat", s = "speedMul", v = 0.75, row = "S1176", gc = true }, -- the clamp's floor, vanilla-sized; game choice (open S1176)
         } },
         { src = "iu", on = "band", at = { 20, 25 }, list = { -- 2.0 IU and above, S0750 the unit's anchor
             { ch = "stat", s = "speedMul", v = 0.90, row = "S1176", gc = true }, -- game choice (open S1176)
@@ -393,24 +338,22 @@ NR.data.effects = {
         { src = "hypo", on = "band", at = { 2, 3 }, list = { -- below 120 mmol/L, S1047 (CNS symptoms)
             { ch = "stat", s = "speedMul", v = 0.85, row = "S1176", gc = true }, -- game choice (open S1176)
         } },
-        -- Starvation in science's order (spec section 3.3, Plan 15 Task 4): the phase flag starve is K.drain.starvePhase of
-        -- the starvation clock (K.drain's starvedH, unfed hours), 1 weakness from the drain's onset (30 h), 2 cold intolerance and slower healing from day 3,
-        -- 3 infection and mood from day 14; the phase days are a game-pacing choice (open S2247). While a fast is under
-        -- way and before phase 3 (starveEarly) the protein-energy and energy-availability rows are held off, so infection
-        -- and colds wait for day 14; at phase 3 they return (the pe grade is 4 by then, S0115's 10 days).
+        -- Starvation in science's order: phase 1 weakness from the onset, 2 cold intolerance and slower healing from day 3,
+        -- 3 infection and mood from day 14 (pacing open S2247). Before phase 3 (starveEarly) the protein-energy and
+        -- energy-availability rows are held off, so infection and colds wait for day 14.
         { src = "starve", on = "flag", at = { 1, 3 }, list = { -- weakness: endurance (S2239 difficulty getting up and moving)
-            { ch = "stat", s = "mNut", v = 1.25, row = "S2247", gc = true }, -- the anaemia row's size; game choice (open S2247; spec section 3.3: the phase bands)
+            { ch = "stat", s = "mNut", v = 1.25, row = "S2247", gc = true }, -- the anaemia row's size; game choice (open S2247)
         } },
         { src = "starve", on = "flag", at = 2, list = { -- slower healing from day 3 (S2246 exhaustion)
-            { ch = "body", s = "healMul", v = 0.80, row = "S2247", gc = true }, -- the pe 3 row's size; game choice (open S2247; spec section 3.3: the phase bands)
+            { ch = "body", s = "healMul", v = 0.80, row = "S2247", gc = true }, -- the pe 3 row's size; game choice (open S2247)
         } },
         { src = "starve", on = "flag", at = { 2, 3 }, list = { -- cold intolerance (S2238 hypothermia under 35.5 C, S2246 body temperature)
-            { ch = "stat", s = "tempOffset", v = -0.2, row = "S2247", gc = true }, -- the iron-anaemia row's size; game choice (open S2247; spec section 3.3: the phase bands)
+            { ch = "stat", s = "tempOffset", v = -0.2, row = "S2247", gc = true }, -- the iron-anaemia row's size; game choice (open S2247)
         } },
         { src = "starve", on = "flag", at = 3, list = { -- mood from day 14 (S2239 apathy, S2245 depression)
-            { ch = "stat", s = "unhappyTarget", v = 21, row = "S2247", gc = true }, -- UNHAPPY level 1 is > 20 #2369; game choice (open S2247; spec section 3.3: the phase bands)
+            { ch = "stat", s = "unhappyTarget", v = 21, row = "S2247", gc = true }, -- UNHAPPY level 1 is > 20 #2369; game choice (open S2247)
         } },
-        -- F2 healing (H_pe, H_c, H_zn), bleeding (vitamin C), infection (protein-energy), colds (C_c, C_e, C_s; C_d above).
+        -- Healing, bleeding (vitamin C), infection (protein-energy) and colds.
         { src = "pe", on = "pe", at = 2, unless = "starveEarly", list = { -- protein-energy marginal, S0951/S0954
             { ch = "body", s = "healMul", v = 0.92, row = "S1150", gc = true }, -- game choice (open S1150; PEM healing size open S0129)
             { ch = "body", s = "infectMul", v = 1.15, row = "S1154", gc = true }, -- game choice (open S1154)
@@ -457,9 +400,8 @@ NR.data.effects = {
         { src = "debt", on = "band", at = 2, list = { -- debt 8 h and more, S0993
             { ch = "body", s = "coldMul", v = 2.5, row = "S0993", gc = true }, -- under 6 h OR 4.24-4.50, damped; game choice (open S1157)
         } },
-        -- G thermal: iron-deficiency anaemia (iron's clinical grade) and the exertion-gated dehydration heat side
-        -- +0.3 x clamp((d - 2)/2, 0, 1) at the band's lower edge (S1021 linear rise, no slope; 2 %/4 % the spec's knots),
-        -- from 3 %: heat intolerance comes with weakness at 3-4 % (spec section 3.3, Plan 15 Task 4; S2249).
+        -- Thermal: iron-deficiency anaemia, and the exertion-gated dehydration heat side +0.3 x clamp((d - 2)/2, 0, 1) from
+        -- 3 % (S1021, S2249).
         { src = "iron", on = "grade", at = 4, list = { -- iron clinical (anaemia), S1016
             { ch = "stat", s = "tempOffset", v = -0.2, row = "S1016" }, -- S1016: 36.0 vs 36.2 degrees C; iron-depleted non-anaemic equal controls
         } },
@@ -469,8 +411,8 @@ NR.data.effects = {
         { src = "dehyd", on = "band", at = { 6, 8 }, list = { -- 4 % and above, S1021
             { ch = "stat", s = "tempHeat", v = 0.3, row = "S1021", gc = true }, -- 0.3 x 1, held; game choice magnitude (open S1160)
         } },
-        -- H1 toxicity: FOOD_SICKNESS 30 at rung 1, 55 at rung 2, 85 at rung 3 (SICK 1/2/3, #3130, #2369), POISON 0.
-        -- Rung 1 is the UL rung (every record with an ul); a rung row matches its rung and above, and max keeps the worst.
+        -- Toxicity: FOOD_SICKNESS 30 / 55 / 85 at rungs 1 / 2 / 3 (SICK 1/2/3, #3130), POISON 0. A rung row matches its rung and
+        -- above, and max keeps the worst.
         { src = "vitC", on = "rung", at = { 1, 3 }, list = { -- UL 2000 mg/d, S1043
             { ch = "stat", s = "foodSickTarget", v = 30, row = "S1043", gc = true }, -- game choice (open S1165)
         } },
@@ -516,7 +458,6 @@ NR.data.effects = {
         { src = "selenium", on = "rung", at = { 1, 3 }, list = { -- UL 400 ug/d, S1038
             { ch = "stat", s = "foodSickTarget", v = 30, row = "S1038", gc = true }, -- game choice (open S1165)
         } },
-        -- Rung 2: chronic excess held or stored, or an acute rung-2 dose (the records that carry chronic or acute).
         { src = "vitB6", on = "rung", at = { 2, 3 }, list = { -- chronic 50 mg/d held 180 d, S0305
             { ch = "stat", s = "foodSickTarget", v = 55, row = "S0305", gc = true }, -- game choice (open S1165)
         } },
@@ -535,7 +476,7 @@ NR.data.effects = {
         { src = "iron", on = "rung", at = 3, list = { -- acute 60 mg/kg, the lethal rung (its drain is K.drain's), S1033
             { ch = "stat", s = "foodSickTarget", v = 85, row = "S1033", gc = true }, -- SICK 3, under 90 (#2356); game choice (open S1165)
         } },
-        -- H1 hyponatraemia (K.fluids.hyponatGrade, S0102/S1047) and refeeding (S0114/S0117: no drain).
+        -- Hyponatraemia (S0102) and refeeding (S0114: no drain).
         { src = "hypo", on = "band", at = 2, list = { -- below 120 mmol/L, S1047
             { ch = "stat", s = "foodSickTarget", v = 55, row = "S1047", gc = true }, -- CNS symptoms as sickness; game choice (open S1165)
         } },
@@ -545,15 +486,11 @@ NR.data.effects = {
         { src = "refeedEvent", on = "flag", list = {
             { ch = "stat", s = "foodSickTarget", v = 55, row = "S0114", gc = true }, -- fluid shift as sickness, S0117 no mortality; game choice (open S1165)
         } },
-        -- Overfull (Plan 15 Task 8; spec section 2.3): the flag overfull is the Overfull level of the stomach's whole mass
-        -- (K.view.overfullOf, the client moodle's own number), 3 from about 977 g, 4 at the 1100 g hard capacity (S1253).
-        -- Level 3 slows the body by one vanilla moodle level: ENDURANCE held at or under 0.73 shows the Endurance moodle's
-        -- level 1 (above 0.5 and at most 0.75, Moodle.Update read on 42.21), whose base-speed cut is Heavy Load level 1's
-        -- 0.15 of 0.8 (#2313) and whose combat cut is 0.07 (#2324), the one route to a player's speed (#2711). Level 4 adds
-        -- nausea, FOOD_SICKNESS raised at once to 30 (SICK 1, #3130, #2369; foodSickStep); its refusal is vanilla's timer
--- (K.view.foodTimer).
+        -- Overfull is the Overfull level of the stomach's whole mass (K.view.overfullOf), 4 at the 1100 g capacity (S1253).
+        -- Level 3 holds ENDURANCE at or under 0.73, the Endurance moodle's level 1, whose speed cut is the one route to a
+        -- player's speed (#2711). Level 4 adds nausea at once (SICK 1); its refusal is vanilla's timer (K.view.foodTimer).
         { src = "overfull", on = "flag", at = { 3, 4 }, list = { -- Bloated and Painfully stuffed, S1253 the scale's top
-            { ch = "stat", s = "rowEndCap", v = 0.73, row = "S1253", gc = true }, -- 0.75 less the standing regeneration of about 0.0056 a game minute at the 90-minute day (#2258), so the level holds between writes; game choice (open S1176; spec section 10: the Overfull 3 penalty size)
+            { ch = "stat", s = "rowEndCap", v = 0.73, row = "S1253", gc = true }, -- 0.75 less the standing regeneration of about 0.0056 a game minute at the 90-minute day (#2258), so the level holds between writes; game choice (open S1176)
         } },
         { src = "overfull", on = "flag", at = 4, list = { -- maximal discomfort at the hard capacity, S1253
             { ch = "stat", s = "foodSickStep", v = 30, row = "S1253", gc = true }, -- nausea as SICK 1 at once, the UL rung's size; vanilla's own decay (about 2.7 an hour, #3084) then lets it linger about 1.8 game hours; game choice (open S1165)
@@ -561,10 +498,8 @@ NR.data.effects = {
     },
     SYMPTOMS = {
         PAIN_TOP = 20, -- a part's added pain capped at 20 over its pain modifier, Pain level 1's band top (PAIN above 10, at most 20, #2369), so causes sharing a part add no more than level 1 there (causes on different parts still sum); game choice (open S1147)
-        -- A two-part cause's pair sums to twice that, so four states over three part groups can reach Pain level 3: a head cause,
-        -- a lower-torso cause and both leg causes (scurvy, wet beriberi) set PAIN 60 centred at Severity 1 (15 + 15 + 2 x 15),
-        -- the server's PAIN riding 58.75 to 58.84 at the 90-minute day, over level 3's 50 (#2369); the default fast's four
-        -- (two on the lower torso) stop at 50 centred, PAIN 49.11 to 49.17, level 2. InjurySeverity scales it in getPain.
+        -- A two-part cause sums to twice the top, so a head, a lower-torso and both leg causes reach Pain level 3 at Severity 1
+        -- (#2369); InjurySeverity scales it in getPain.
         CAP_LO = 0.05, -- the symptom cap's floor under Severity above 1, inside Endurance level 4 (at most 0.10, #3926); game choice (open S1176)
         STRESS_HI = 0.70, -- the stress floor's cap under Severity, one step under Stress level 3 at 0.75 (#2369), as the surfaces' caps (S1147); game choice (open S1147)
         UNHAPPY_HI = 59, -- the unhappiness floor's cap under Severity, one under Unhappy level 3 at 60 (#2369), as unhappyTarget's; game choice (open S1147)
@@ -624,7 +559,7 @@ NR.data.effects = {
                 SYM_STRESS,
                 SYM_UNHAPPY,
                 { lever = "pain", shape = "flat", v = SYM_PAIN, parts = {
-                    7, -- Torso_Lower, the gut of an acute overdose (spec section 1.3); game choice part pending research (open S1173)
+                    7, -- Torso_Lower, the gut of an acute overdose; game choice part pending research (open S1173)
                 } },
             } },
         },

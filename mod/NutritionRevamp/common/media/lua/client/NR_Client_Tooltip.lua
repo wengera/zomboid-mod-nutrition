@@ -1,84 +1,26 @@
--- NR_Client_Tooltip.lua -- the food-tooltip band: one sentinel wrap of
--- ISToolTipInv.render that draws the mod's own framed strip BELOW the engine's box, its lines the food's
--- nutrient vector through the intake's own per-item source chain (K.vector.resolve, shared with
--- NR_Server_Intake.lua's IN.chainOne), laid out by K.view.tooltip at the client's visibility level. The band
--- shows the per-item vector the intake's own chain resolves for a whole item at script scale; for an evolved
--- dish or a craft output the intake uses its dish and craft sources instead (NR_Server_Intake.lua), which the
--- band does not run (a scope gap stated).
---
--- Why a band below the box (docs/platform/client-ui.md#tooltip):
---  * The tooltip body is built in Java inside the one render method, which sizes the panel from its measure
---    pass and paints the background from that height before the draw pass (#2490, #2491), so a line drawn
---    after the original returns has no background: the band paints its own frame and sets its own height
---    (#2517). The wrap repeats the context-menu test before drawing, because the original draws nothing while
---    a context menu is flagged visible (#2496, #2516).
---  * No padBottom write: ObjectTooltip's padBottom is a public instance field (#2511) and the exposer gives a
---    release client no route to an instance field (#2735); the one route is reflective and debug-only (#2745).
---  * One wrap covers the item tooltip at every site the install constructs ISToolTipInv (#2494), and it
---    survives CleanUI, which still constructs the vanilla panel (#2499); under CleanUI a stack's tooltip
---    describes one representative item (#2500). The crafting-slot route (ISItemSlot.drawTooltip, #2495) is
---    not this plan.
---  * Tooltiplib is not installed on this machine (workshop 3694097672 absent on 2026-10-06):
---    the wrap is composable -- a sentinel, the original called exactly once per render, nothing replaced.
---  * The band sits beside the vanilla nutrition block, which shows under the debug tooltip option, on a
---    readable packaged label or for either Nutritionist trait (#2645); a harness client (-debug) may show both.
---
--- Two unknowns of the worked shape (docs/superpowers/research/platform-client-ui.md, Minimal shapes 2),
--- unmeasured on screen (the harness cannot hover, so stats.draws on a live client is unread):
---  1. whether a draw below a top-level element's rect lands on screen: UIElement.render's early returns read
---     the parent, so a parentless panel is not culled by them (#2512), but no other scissor was traced;
---  2. whether the setHeight below fights the next frame's recompute: the original sets the height to the
---     measured tooltip on every render (ISToolTipInv.lua, `self:setHeight(th)`), so the band's setHeight is
---     re-done each frame from that base and does not accumulate -- read from the code, not booted.
---  3. two branches (the close's D2): the original clamps the box to the screen from th alone (:76-81), so the band
---     is drawn BELOW the box (setHeight raised) unless bottom + band passes getPlayerScreenHeight(0) or anchorBottomLeft
---     is set (the box ends at its slot, my - th); then it is drawn ABOVE the box at y = -band, no setHeight. UNMEASURED.
---
--- What the band shows (the build block's rule, the reviewer's residual 8):
---  * PER WHOLE ITEM, at script scale. K.vector.resolve returns the whole-type vector (the table's seed, a
---    declared vector, or one inferred from the macros); the item's OWN four macros (the script's, re-based by
---    the item pass) are written over vector.calories/carbs/lipids/proteins before K.view.tooltip, so the band
---    shows the script's macros, never the table's seed macros.
---  * Never the instance's remaining fraction: a live macro shrinks with each partial eat in step with the raw
---    hunger (the leftover scaling, lessons #2843), so the four getters are re-scaled by
---    getBaseHunger / getHungChange (both non-zero, the ratio >= 1) back to the whole item; a never-eaten item
---    reads ratio 1. The inferred vector is built from those whole-item macros too.
---  * Never a thirst: a cooked food's thirst reads halved on a client (#1147); the band carries none.
---  * The fill line first (Plan 15 Task 9, decisions item 4): "A whole one fills you for about N h, K kcal" (per whole
---    item, like the band: never what is left of a part-eaten one, nor capped at the Overfull 4 refusal) from the generated fill
---    table (NR.data.fills, tools/food_fills.py: a replay of the item alone, precomputed per item type, never per frame or
---    per hover), in place of vanilla's hunger line, which T.hide hides around that draw; shown only while the item's whole-item kcal
---    is the table's within FILL_TOL (an evolved dish's or another mod's macros are not the replayed item's), and never for
---    an evolved recipe's result type, which the table leaves out.
---  * The cache key is fullType|declared|level|sex plus the four whole-item macros (after the rescale, each
---    %.3f): an evolved dish or a butchered instance with other macros takes its own entry, and the same-item
---    fast path keys on that same string.
---
--- Shape (the client-file discipline):
---  * The sentinel NR_ClientTooltip_Installed = { class, original, wrapper } is a global of its own (#0943),
---    never a field of NutritionRevamp, which NR_Core re-creates on every load. It records the CLASS TABLE it
---    wrapped and re-wraps only when ISToolTipInv is a different table (the class re-created; lessons #2844,
---    #2845) -- never merely because render is no longer the wrapper -- and never overwrites a saved original
---    of the same class. The wrapper closes over its own original.
---  * The wrapper names nothing from this file's load: it looks NutritionRevamp.client.tooltip up per call, so
---    a reload swaps the logic under the one wrap. linesFor runs BEFORE the original under a pcall (a failure
---    never touches the vanilla draw); the original is called exactly once; the band draws under a pcall.
---  * Every engine member is reached through the index-first guard (NR.call) inside a pcall (#0935, #1072);
---    NR.call itself does not pcall. Every Java global is named only inside a function behind a nil check, so
---    the file loads with no engine (testing/tests/kernel/test_client_tooltip_shape.py).
---  * Task 5's NR.client.text, NR.client.options.tooltipLines() and NR.client.view.level are looked up per
---    call, never at file scope: client files load alphabetically by path, so this file loads after
---    NR_Client_ModOptions.lua and before NR_Client_View.lua. A missing text function reads the fallback; a
---    missing option accessor reads the option's default, on; a missing view reads level 1.
---  * The cache is cleared by NR.client.tooltip.invalidate, registered on NR.client.view.listeners (called on
---    every view rebuild: a mirror arrival or a level change) at file scope when the view exists, else lazily
---    on the first linesFor; the hook closure lives on the global NR_ClientTooltip_Hook (not on the sentinel) and is registered once per
---    listeners table.
--- Draw calls in the vanilla argument order: ISUIElement:drawRect(x, y, w, h, a, r, g, b) (ISUIElement.lua:1191),
--- drawRectBorder(x, y, w, h, a, r, g, b) (:1219), drawText(str, x, y, r, g, b, a, font) (:1293).
--- Cadence: the wrapper runs per rendered frame while a tooltip is up; per frame it reads the hovered item's
--- type, modData, base hunger, hunger and four macros (about nine guarded getters) to form the cache key and
--- hits the cache (a same-item fast path first); the vector is built once per type and whole-item macro tuple.
+-- NR_Client_Tooltip.lua -- the food-tooltip band: one sentinel wrap of ISToolTipInv.render that draws the mod's own
+-- framed strip below the engine's box, its lines the food's vector through the intake's own source chain
+-- (K.vector.resolve). An evolved dish or a craft output uses the intake's dish and craft sources, which the band does
+-- not run (a scope gap). Why a band and how it is wrapped: docs/platform/client-ui.md#tooltip.
+-- Pitfalls:
+--  * The body is sized and painted in Java before the draw pass (#2490), so a line drawn after the original has no
+--    background: the band paints its own frame and sets its own height (#2517). The original draws nothing while a
+--    context menu is visible, so the wrap repeats that test (#2496).
+--  * No padBottom write: the exposer gives a release client no route to an instance field (#2735).
+--  * One wrap covers every site that constructs ISToolTipInv (#2494), CleanUI included (#2499).
+--  * The original clamps the box to the screen from its own height, so the band goes ABOVE the box under
+--    anchorBottomLeft or near the screen's bottom. Both on-screen draws are UNMEASURED (the harness cannot hover).
+--  * PER WHOLE ITEM at script scale: a live macro shrinks with each partial eat (#2843), so the getters are re-scaled
+--    by getBaseHunger / getHungChange; the item's own macros overwrite the table seed's. Never a thirst: a cooked
+--    food's thirst reads halved on a client (#1147).
+--  * The fill line stands in for vanilla's hunger line only while the item's whole-item kcal is the fill table's
+--    within FILL_TOL, and never for an evolved recipe's result.
+--  * The sentinel NR_ClientTooltip_Installed records the CLASS TABLE it wrapped and re-wraps only a re-created class
+--    (#2844), never overwriting a saved original. The wrapper looks NutritionRevamp.client.tooltip up per call;
+--    linesFor runs BEFORE the original under a pcall, the original exactly once, the band under a pcall.
+--  * Client files load by path, so NR.client.text, the options and the view are looked up per call.
+-- Cadence: per rendered frame while a tooltip is up, about nine guarded getters form the cache key; the vector is
+-- built once per type and whole-item macro tuple.
 local NR = NutritionRevamp
 local K = NR.kernel
 
@@ -104,7 +46,6 @@ NR.client.tooltip = {
 }
 local T = NR.client.tooltip
 
--- A Java member's value through the index-first guard inside a protected call (NR.try), or nil.
 local function read(obj, name, ...)
     if obj == nil then return nil end
     local ok, v = NR.try(obj, name, ...)
@@ -112,13 +53,12 @@ local function read(obj, name, ...)
     return nil
 end
 
--- A finite number, else 0.
 local function num(v)
     if NR.finite(v) then return v end
     return 0
 end
 
--- The readable word a translation key falls back to while its JSON is absent (Task 9 ships the keys).
+-- The readable word a translation key falls back to while its JSON is absent.
 function T.fallback(key)
     if type(key) ~= "string" then return "" end
     local src = string.match(key, "^UI_NR_Tip_Source_(.+)$")
@@ -133,7 +73,6 @@ function T.fallback(key)
     return key
 end
 
--- A key through Task 5's NR.client.text (looked up per call), else its fallback.
 function T.text(key)
     local fb = T.fallback(key)
     local ok, v = pcall(NR.text, key, fb)
@@ -141,7 +80,7 @@ function T.text(key)
     return fb
 end
 
--- The tooltipLines option (Task 5's accessor, looked up per call); its default, on, when absent or raising.
+-- Its default, on, when absent or raising.
 function T.optionOn()
     local nr = NutritionRevamp
     local o = nil
@@ -152,7 +91,7 @@ function T.optionOn()
     return v ~= false
 end
 
--- The client's visibility level (Task 5's NR.client.view.level), 1 when there is no view yet.
+-- 1 when there is no view yet.
 function T.level()
     local nr = NutritionRevamp
     local v = nil
@@ -161,8 +100,7 @@ function T.level()
     return v.level
 end
 
--- The local player's sex in the Plan 3 convention (1 male, 2 female): the view's V.female (read at its recompute),
--- 1 when there is no view or it holds none.
+-- 1 male, 2 female; 1 when there is no view or it holds none.
 function T.sex()
     local nr = NutritionRevamp
     local v = nil
@@ -171,7 +109,7 @@ function T.sex()
     return 1
 end
 
--- The per-key daily requirement map for a sex, built once per sex (K.view.requirements over NR.data).
+-- Built once per sex.
 function T.requirements(sex)
     local r = T.R[sex]
     if r ~= nil then return r end
@@ -182,7 +120,6 @@ function T.requirements(sex)
     return r
 end
 
--- The cache's clearing hook: every built entry, the same-item fast path and the requirement maps go.
 function T.invalidate()
     T.cache = {}
     T.last = nil
@@ -190,8 +127,7 @@ function T.invalidate()
     T.stats.invalidations = T.stats.invalidations + 1
 end
 
--- Register the invalidate hook on the view's listeners, once per listeners table. The closure lives on the
--- global NR_ClientTooltip_Hook and looks NutritionRevamp.client.tooltip up per call, so a reload of this file adds no second one.
+-- Once per listeners table; the closure lives on the global NR_ClientTooltip_Hook and looks the tooltip up per call.
 function T.hook()
     local nr = NutritionRevamp
     local v = nil
@@ -218,8 +154,7 @@ function T.hook()
     return true
 end
 
--- The whole-item factor of a live Food: base hunger over the raw hunger left (lessons #2843); 1 when either is
--- 0 or unreadable, or when the ratio is below 1 (never shrink a never-eaten item).
+-- 1 when either is 0 or unreadable, or below 1 (never shrink a never-eaten item).
 function T.wholeScale(item)
     local base = num(read(item, "getBaseHunger"))
     local raw = num(read(item, "getHungChange"))
@@ -229,7 +164,7 @@ function T.wholeScale(item)
     return s
 end
 
--- The item's NR_Nutrients default-modData string (the declared-nutrients contract, #2676), or nil.
+-- The declared-nutrients contract (#2676), or nil.
 function T.declaredOf(item)
     local md = read(item, "getModData")
     if type(md) ~= "table" then return nil end
@@ -238,8 +173,7 @@ function T.declaredOf(item)
     return nil
 end
 
--- A row of K.view.tooltip as one band line: the label, then the row's sep (": " when it has none) and the text when the
--- row has one.
+-- The row's sep defaults to ": ".
 function T.lineOf(row)
     local label = T.text(row.label)
     local txt = row.text
@@ -250,14 +184,13 @@ function T.lineOf(row)
     return label .. sep .. txt
 end
 
--- Whether a whole-item kcal is the fill table's within FILL_TOL (and 1 kcal): false when either is not a finite number.
+-- false when either is not a finite number.
 function T.sameKcal(kcal, tableKcal)
     if not NR.finite(kcal) or not NR.finite(tableKcal) then return false end
     return math.abs(kcal - tableKcal) <= T.FILL_TOL * tableKcal + 1
 end
 
--- The fill hours of an item for the band, or nil: the fill table's entry for the type (NR.data.fills.get) while the
--- item's whole-item kcal is the table's (T.sameKcal).
+-- nil unless the item's whole-item kcal is the table's (T.sameKcal).
 function T.fillOf(fullType, kcal)
     local nr = NutritionRevamp
     local fills = nr.data and nr.data.fills
@@ -267,23 +200,11 @@ function T.fillOf(fullType, kcal)
     return h
 end
 
--- Vanilla's hunger line (Plan 15 Task 9 and its fix 1): Food.DoTooltip draws it only while getHungerChange is not 0
--- and the item has no ItemTag.HIDE_HUNGER_CHANGE (jar Food.DoTooltip @67-@83 L1391-L1393 on 42.21), and an item reads
--- its script item's tags (InventoryItem.hasTag @0-@5 L2841 reads scriptItem's Item.hasTag; Item.itemTags is a
--- java.util.HashSet built in Item.<init> @102-@110 L122 and returned by Item.getTags @0-@4 L777, which
--- InventoryItem.getTags hands on). The tag's jar readers are Food.DoTooltip and the generator class
--- generation/ItemFoodScriptGenerator only (a jar-wide grep of HIDE_HUNGER_CHANGE), and no media/lua file reads it. The
--- wrapper hides the line around the one draw that shows the fill line in its place: when the hovered item's entry
--- carries a fill row and the band is on, T.hide adds the tag to the item's set just before the original draws, if the
--- set lacks it, and T.unhide takes it off right after (and at the next render, through the stale-depth reset, if the
--- original raised), so the set never keeps the tag past the draw, a food whose own kcal is not the table's keeps
--- vanilla's line, and vanilla's own tagged foods (the canned vegetables) are never touched. The pattern of
--- NutritionMakesSense's overlay (workshop 3690404044), which adds the tag only when absent and removes only its own,
--- so the two compose. The client's script items are its own. UNMEASURED: the harness cannot hover, and the set's add
--- from Lua rests on java.util.HashSet and ItemTag being exposed classes (LuaManager$Exposer.exposeAll). Cost: at most
--- four Java calls a frame while a food tooltip with a fill line is up, client-side.
+-- Vanilla's hunger line: Food.DoTooltip skips it for an item whose script tags hold HIDE_HUNGER_CHANGE, and no Lua reads
+-- the tag. T.hide adds the tag just before the original draws, only when absent, and T.unhide takes it off right
+-- after (or at the next render if the original raised), so vanilla's own tagged foods are never touched and
+-- NutritionMakesSense's same overlay composes. UNMEASURED: the harness cannot hover. At most four Java calls a frame.
 
--- ItemTag.HIDE_HUNGER_CHANGE behind a nil check, or nil.
 function T.hideTag()
     if ItemTag == nil then return nil end
     local ok, tag = pcall(function() return ItemTag.HIDE_HUNGER_CHANGE end)
@@ -291,8 +212,7 @@ function T.hideTag()
     return nil
 end
 
--- The hide tag added to an item's tag set when the set reads it absent; the set kept on T.pending for T.unhide.
--- true when it added.
+-- The set is kept on T.pending for T.unhide. true when it added.
 function T.hide(item)
     local tag = T.hideTag()
     if tag == nil then return false end
@@ -305,7 +225,7 @@ function T.hide(item)
     return true
 end
 
--- The tag T.hide added taken back off (nothing when none is pending); the remove's Java call alone is guarded.
+-- Only the remove's Java call is guarded.
 function T.unhide()
     local tags = T.pending
     T.pending = nil
@@ -314,7 +234,7 @@ function T.unhide()
     if ok and present then T.stats.shown = T.stats.shown + 1 end
 end
 
--- The widest line in pixels (the band is drawn at least that wide); 0 when nothing measures.
+-- 0 when nothing measures.
 function T.widthOf(lines)
     if getTextManager == nil or UIFont == nil or UIFont.Small == nil then return 0 end
     local ok, tm = pcall(getTextManager)
@@ -327,7 +247,6 @@ function T.widthOf(lines)
     return w
 end
 
--- The item's four whole-item macros at script scale (the live getters re-scaled by wholeScale).
 function T.macrosOf(item)
     local s = T.wholeScale(item)
     return {
@@ -338,16 +257,14 @@ function T.macrosOf(item)
     }
 end
 
--- The cache key: fullType|declared|level|sex|cal|carb|lip|pro, each macro %.3f (never %d).
+-- Each macro %.3f (never %d).
 function T.keyOf(fullType, declared, level, sex, m)
     return fullType .. "|" .. tostring(declared) .. "|" .. tostring(level) .. "|" .. tostring(sex)
         .. string.format("|%.3f|%.3f|%.3f|%.3f", m.calories, m.carbs, m.lipids, m.proteins)
 end
 
--- The band entry of one item: { lines, source } (lines.width the widest line in pixels, set beside the array
--- part), or nil for no item or a non-Food. The same item again answers from T.last after two Java reads (its hunger
--- left, which every eat moves, and its calories, so a macro change with the hunger unchanged is not shown stale) and
--- the cheap level and sex; the key and the macro tuple are built on a miss only.
+-- nil for no item or a non-Food. The same item again answers from T.last after two Java reads (the hunger left, which
+-- every eat moves, and the calories); the key is built on a miss only.
 function T.entryFor(item)
     if item == nil then return nil end
     T.hook()
@@ -377,7 +294,6 @@ function T.entryFor(item)
     return entry
 end
 
--- Build one entry: the whole-item macros, the source chain, the item's own macros over the vector, the lines.
 function T.build(item, fullType, declared, level, sex, macros)
     local nr = NutritionRevamp
     local K = nr.kernel
@@ -406,14 +322,12 @@ function T.build(item, fullType, declared, level, sex, macros)
     return { lines = lines, source = source }
 end
 
--- The band's lines for an item (the wrapper's per-frame call), or nil; lines.fill says the band leads with the fill line.
 function T.linesFor(item)
     local entry = T.entryFor(item)
     if entry == nil then return nil end
     return entry.lines
 end
 
--- The line step: the tooltip object's getLineSpacing, else LINE_SPACING.
 function T.step(el)
     local s = read(el.tooltip, "getLineSpacing")
     if type(s) == "number" and s > 0 then return s end
@@ -422,10 +336,8 @@ end
 
 T.SCREEN_H = 720 -- px, the screen height when getPlayerScreenHeight is absent or raises
 
--- Whether the band goes ABOVE the box (the close's D2): true under anchorBottomLeft (the original ends the box at
--- the anchor, ISToolTipInv.lua my - th, so a band below would cover the slot) or when the box's absolute bottom
--- plus the band passes the player's screen height (getPlayerScreenHeight(0), guarded; SCREEN_H when unread),
--- because the original clamps the box to the screen from the measured height alone (:76-81).
+-- ABOVE under anchorBottomLeft (a band below would cover the slot) or when the box's bottom plus the band passes the
+-- screen, because the original clamps the box from its measured height alone.
 function T.above(el, band)
     if el.anchorBottomLeft then return true end
     local top = num(read(el, "getAbsoluteY"))
@@ -438,9 +350,7 @@ function T.above(el, band)
     return bottom + band > sh
 end
 
--- Draw the band after the original returned: the option, the context-menu test again (#2496), then the frame at
--- the panel's colours and the lines -- below the box with the panel's height raised by the band (#2517), or above
--- it at y = -band with the height left as the original set it (T.above). Both on-screen draws are UNMEASURED.
+-- The context-menu test again (#2496); both on-screen draws are UNMEASURED.
 function T.band(el, lines)
     if lines == nil or #lines == 0 then return false end
     if not T.optionOn() then return false end
@@ -475,7 +385,6 @@ function T.band(el, lines)
     return true
 end
 
--- The wrapper body after the original: the band under one pcall, a failure counted and kept.
 function T.after(el, lines)
     local ok, err = pcall(T.band, el, lines)
     if ok then
@@ -485,11 +394,8 @@ function T.after(el, lines)
     end
 end
 
--- TEST-ONLY, for the driver (`lua.call NutritionRevamp.client.tooltip.probe Base.Apple`): the local
--- player's first inventory item of a full type, through ItemContainer.getFirstTypeRecurse(String) (jar 42.20.4
--- `ItemContainer.getFirstTypeRecurse(Ljava/lang/String;) @0 L1838`, a TypePredicate whose compareType matches a
--- dotted type against getFullType at `ItemContainer.compareType(String, InventoryItem) @23 L1419`), run through
--- the band's entry. Returns count, source (two scalars, so lua.call replies r1, r2); no item -> 0, "none".
+-- TEST-ONLY (`lua.call NutritionRevamp.client.tooltip.probe Base.Apple`): the local player's first item of a full
+-- type through getFirstTypeRecurse, run through the band's entry. Returns count, source; no item -> 0, "none".
 function T.probe(fullType)
     if getPlayer == nil or type(fullType) ~= "string" then return 0, "none" end
     local ok, p = pcall(getPlayer)
@@ -507,7 +413,7 @@ function T.probe(fullType)
     return #entry.lines, entry.source
 end
 
--- The clock in ms, or 0 where there is none (only a test host has none).
+-- 0 where there is none (only a test host has none).
 function T.now()
     if getTimestampMs == nil then return 0 end
     local ok, v = pcall(getTimestampMs)
@@ -577,7 +483,6 @@ local function makeWrapper(original)
     end
 end
 
--- The install (file scope): once per class table; a re-created ISToolTipInv is wrapped afresh.
 function T.install()
     if ISToolTipInv == nil or type(ISToolTipInv.render) ~= "function" then return false end
     local s = NR_ClientTooltip_Installed

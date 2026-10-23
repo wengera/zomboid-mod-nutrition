@@ -1,12 +1,9 @@
--- NR_Kernel.lua -- the pure kernel's namespace and its shared helpers. Tables in, tables out,
--- no Java object ever crosses into a kernel function (spec § 4.1); every function here is a
--- field of NutritionRevamp.kernel so the coverage gate can enumerate it.
+-- NR_Kernel.lua -- the pure kernel's namespace and shared helpers: no Java object crosses into a kernel function, and
+-- every function is a field of NutritionRevamp.kernel so the coverage gate can enumerate it.
 local K = NutritionRevamp.kernel
 K.version = NutritionRevamp.version
 
--- Clamp x into [lo, hi]. Every Stats write passes the stat's own clamp in Java (#2208); the
--- kernel clamps too so a delta it hands out never asks the engine to clamp. A NaN passes through unchanged (both
--- comparisons are false): the clamp does not sanitise, so a caller that must not write a NaN tests K.finite first.
+-- The engine clamps every Stats write too (#2208). A NaN passes through: a caller that must not write one tests K.finite.
 function K.clamp(x, lo, hi)
     if x < lo then
         return lo
@@ -17,7 +14,7 @@ function K.clamp(x, lo, hi)
     return x
 end
 
--- max(a, b) and min(a, b) without math.*, which the fast-path lint forbids per tick.
+-- Without math.*, which the fast-path lint forbids per tick.
 function K.max(a, b)
     if a > b then
         return a
@@ -32,13 +29,10 @@ function K.min(a, b)
     return b
 end
 
--- Whether x is a finite number: false for NaN, for an infinity and for any non-number. The one finiteness test,
--- NR_Core's NR.finite (the adapters' name for the same function).
+-- False for NaN, an infinity and a non-number; NR.finite is the adapters' name for it.
 K.finite = NutritionRevamp.finite
 
--- The piecewise-linear reading at x of knots kn ({ {x, y}, ... }, x ascending, at least two): the segment whose upper
--- knot is the first at or above x. extend true extends the end segments past the end knots; otherwise x is clamped
--- to [first, last] and the ends read flat.
+-- kn is { {x, y}, ... }, x ascending; extend reads the end segments past the end knots, else the ends read flat.
 function K.interp(kn, x, extend)
     local n = #kn -- a Lua table the kernel built, so # is defined on it
     if extend ~= true then
@@ -55,10 +49,8 @@ function K.interp(kn, x, extend)
     return y0 + (kn[seg][2] - y0) * (x - x0) / (kn[seg][1] - x0)
 end
 
--- One sandbox leaf from the table tbl at key: a boolean when the default is a boolean, else a number in [lo, hi]. Any
--- other type reads the default; so does a NaN; so does an out-of-range number, or with clampIt (a double option's
--- value is continuous, so its nearest bound is the operator's intent) the number is clamped to [lo, hi]. The one
--- clamp rule of every option read (Plan 13 ruling 13-32; NR_Server_Options calls it).
+-- One sandbox leaf: a wrong type, a NaN or an out-of-range number reads the default, or with clampIt (a double
+-- option is continuous, so its nearest bound is the intent) is clamped. The one clamp rule of every option read.
 function K.readLeaf(tbl, key, default, lo, hi, clampIt)
     if tbl == nil then
         return default
@@ -82,8 +74,7 @@ function K.readLeaf(tbl, key, default, lo, hi, clampIt)
     return v
 end
 
--- A username's rolling hash over string.byte's code units (31 a step, a prime modulus; no row needed): the one hash
--- the push phase (K.view.pushOffset) and the save phase (K.store.savePhase) read, so the two stay half a gap apart.
+-- The one username hash the push phase and the save phase both read, so the two stay half a gap apart.
 function K.nameHash(username)
     local h = 0
     for i = 1, string.len(username) do
@@ -94,7 +85,6 @@ end
 
 K.HEX = "0123456789abcdef" -- the digit lookup: %x on a float raises on Kahlua
 
--- n (a whole number in [0, 16^width)) as width lower-case hex digits, built from the lookup string.
 function K.hexDigits(n, width)
     local d = 1
     for i = 2, width do
@@ -109,16 +99,12 @@ function K.hexDigits(n, width)
     return out
 end
 
--- The tuning dials (Plan 19, spec Part A; ruling T1-1). NR.data.dials (NR_Data_Dials.lua, which sorts before every
--- kernel file) holds one row a dial; a kernel resolves its dials into its own table fields once, as it loads
--- (K.monotony.SLOPE = K.dials.get("monotony.SLOPE")), so a call site reads a plain field as before, no lookup runs per
--- tick or per minute (Rule 6), and the fields stay patchable (replay_live.set_constants, the fit tools). The
--- resolver lives here because this file loads before every other kernel file; the sandbox re-resolve is
--- NR_Kernel_Dials.lua's.
+-- The dials resolver lives here because this file loads before every other kernel file: a kernel resolves its dials
+-- into its own fields once at load, so no lookup runs per tick (Rule 6) and the fields stay patchable (the fit tools).
 K.dials = {}
 K.dials.DEPTH = 8 -- no row needed: the most `same` links a dial may follow before it reads as a cycle
 
--- The row of dial id. An unknown id, or a host that never loaded the registry, raises, so a typo fails at load.
+-- An unknown id, or a host that never loaded the registry, raises, so a typo fails at load.
 function K.dials.row(id)
     local data = NutritionRevamp.data
     local row = nil
@@ -131,9 +117,7 @@ function K.dials.row(id)
     return row
 end
 
--- The value of dial id: a row naming another dial (same) resolves to that dial's value, and a chain longer than
--- DEPTH raises as a cycle; a table value is the registry's own table, built by the constructor the kernel line had, so
--- its pairs order is unchanged; a kernel never writes into a table dial.
+-- A `same` row resolves to its target, a chain past DEPTH raises; a table value is the registry's own, never written.
 function K.dials.get(id)
     local row = K.dials.row(id)
     local hops = 0
@@ -147,7 +131,5 @@ function K.dials.get(id)
     return row.value
 end
 
--- The one shared height (m): fixed and sex-neutral, read by every BMI and FFMI in the mod (K.acute's refeeding BMI
--- among them). It lives here, outside any sub-table, because this file loads before every other kernel file; it
--- resolves from its dial, core.HEIGHT_M, once K.dials.get above is defined.
+-- The one shared height, fixed and sex-neutral, read by every BMI and FFMI; resolved once K.dials.get is defined.
 K.HEIGHT_M = K.dials.get("core.HEIGHT_M")

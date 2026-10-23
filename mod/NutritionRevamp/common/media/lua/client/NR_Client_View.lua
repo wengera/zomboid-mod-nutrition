@@ -1,34 +1,12 @@
--- NR_Client_View.lua -- the client's one row cache and the draw helper every surface shares (Plan 7 Task 5,
--- rulings 3, 5 and 16): the visibility level (max of the server option NR.VisibilityMode and a Nutritionist
--- trait), the row model K.view.rows builds from the stored mirror, the five moodle class levels
--- K.view.moodleClasses reads (the four classes and overfull), and view.draw, which paints a row list
--- onto any ISUIElement.
---
--- The mirror is read at the push cadence, never the frame cadence (#2692): refresh() makes the one per-frame test
--- K.view.changed(received, lastReceived, level, lastLevel) and rebuilds only when the arrival counter
--- NR.client.received or the level moved; the rebuild resolves every label and text through NR.client.text then, so
--- draw() walks the cached rows and calls no getText per frame. Nothing here walks the mirror in a render.
--- The level is recomputed on each mirror arrival (view.onMirror, called by one guarded line in NR_Client_Mirror.lua's
--- OnServerCommand handler after the install) and on OnCreatePlayer, never per frame. Trait tests compare
--- the registry object through hasTrait (#0550, #0551, #1162), behind a nil check on each enum.
--- The panel never shows a band label read from the client's trait list: the band row is the mirror's
--- body_band, a server value, and the trait read here is the Nutritionist test alone.
--- The grade rows list K.view.gradedOrder(NR.data.records), never the raw ORDER (the ungraded kinds would list a
--- replete grade and pool figures); cached on view.order at the first rebuild that has the records. The ungraded kinds
--- (K.view.ungradedOrder, cached on view.ungraded beside it) list only an excess row, while their rung is above 0, so
--- an Excess class an ungraded nutrient raises (selenium, vitamin E) is named. The Deficiency class reads only the
--- nutrients whose grade drives an effect, K.view.deficiencyKeys(NR.data.effects), cached on view.def beside them
--- (Plan 15 Task 9, item 8).
---
--- view.listeners is an array of functions, each called as fn(classes, rows, level) under its own pcall after every
--- rebuild (Task 8 appends the moodles' hook). A file that loads before this one (NR_Client_Moodles sorts first) may
--- create NR.client.view = { listeners = {} } itself: this file carries an existing listeners array over.
---
--- Shape (the client-file discipline): the sentinel NR_ClientView_Installed is a global of its own holding
--- the OnCreatePlayer and OnPlayerDeath closures, which look NutritionRevamp.client.view up per call; the side test is per call;
--- every Java global (getPlayer, CharacterTrait, SandboxVars, getTextManager, UIFont) is named only inside a function
--- behind a nil check, so the file loads with no engine (testing/tests/kernel/test_client_view_shape.py); every
--- handler body runs under one pcall. No @fastpath region: refresh's per-frame cost is one compare.
+-- NR_Client_View.lua -- the client's one row cache and the draw helper every surface shares: the visibility level, the
+-- rows K.view.rows builds from the stored mirror, and the five moodle class levels. The mirror is read at the push
+-- cadence, never the frame cadence (#2692): refresh() makes one compare per frame and rebuilds only when the arrival
+-- counter or the level moved, resolving every text then, so draw() calls no getText per frame.
+-- Trait tests compare the registry object through hasTrait (#0550). The band row is the mirror's body_band, a server
+-- value, never the client's trait list. The grade rows list K.view.gradedOrder, never the raw ORDER.
+-- view.listeners are called after every rebuild under their own pcall; NR_Client_Moodles sorts first and may create
+-- NR.client.view itself, so this file carries an existing listeners array over.
+-- The sentinel NR_ClientView_Installed holds the two closures; every Java global is named only behind a nil check.
 local NR = NutritionRevamp
 local prior = NR.client.view
 NR.client.view = {
@@ -54,13 +32,11 @@ if prior ~= nil and type(prior.listeners) == "table" then V.listeners = prior.li
 
 NR_ClientView_Installed = NR_ClientView_Installed or {}
 
-local DEFAULT_LINE = 14 -- px: the line height when the text manager is absent or raises (plan Task 5)
+local DEFAULT_LINE = 14 -- px: the line height when the text manager is absent or raises
 
--- A translation through NR.client.text when it exists, else the fallback or the key (NR.text).
 local text = NR.text
 
--- Whether player holds either Nutritionist trait: CharacterTrait.NUTRITIONIST / NUTRITIONIST2 (each nil-checked)
--- through player:hasTrait(enum), index-first inside a pcall. false on a nil player, an absent enum or any failure.
+-- false on a nil player, an absent enum or any failure.
 function V.readTrait(player)
     V.stats.traitReads = V.stats.traitReads + 1
     if player == nil or CharacterTrait == nil then return false end
@@ -77,8 +53,7 @@ function V.readTrait(player)
     return false
 end
 
--- Whether the local player is female, through player:isFemale() (NR.call, index-first, in a pcall): the sex the Body fat
--- row's cuts read, held in V.female by recompute. Unreadable (a nil player, a failed call) keeps the last answer.
+-- Unreadable keeps the last answer.
 function V.readFemale(player)
     if player == nil then return V.isFemale end
     local ok, present, v = pcall(NR.call, player, "isFemale")
@@ -86,16 +61,14 @@ function V.readFemale(player)
     return V.isFemale
 end
 
--- The server option SandboxVars.NR.SexSpecific: true only when it reads true (a missing or unreadable value is false,
--- the option's default), so every character reads the male values.
+-- Missing or unreadable reads false, the option's default, so every character reads the male values.
 function V.readSexSpecific()
     if SandboxVars == nil then return false end
     local ok, v = pcall(function() return SandboxVars.NR.SexSpecific end)
     return ok and v == true
 end
 
--- The server option SandboxVars.NR.VisibilityMode (1 Symptoms, 2 Bands, 3 Numbers); a missing or non-number value
--- reads 2, Bands, the option's default. K.view.level clamps it.
+-- 1 Symptoms, 2 Bands, 3 Numbers; a missing or non-number value reads 2, the default.
 function V.readOption()
     if SandboxVars == nil then return 2 end
     local ok, v = pcall(function() return SandboxVars.NR.VisibilityMode end)
@@ -103,15 +76,13 @@ function V.readOption()
     return 2
 end
 
--- The level from the option and the trait (K.view.level), or 2 (the default, Bands) when the kernel is absent.
 local function levelOf(optionLevel, hasTrait)
     local K = NutritionRevamp.kernel
     if K == nil or K.view == nil then return 2 end
     return K.view.level(optionLevel, hasTrait)
 end
 
--- Resolves every row's label and text once, at rebuild: labelText through text(label, nil), the key's tail, valueText through
--- text(text, text) when the row's text is a key (isKey), else the formatted string as it is.
+-- Once, at rebuild, so draw() resolves nothing per frame.
 local function resolveRows(rows)
     for i = 1, #rows do
         local r = rows[i]
@@ -124,7 +95,6 @@ local function resolveRows(rows)
     end
 end
 
--- The rebuild: the graded order (cached), the rows at the current level, the classes, the stamps, the listeners.
 local function rebuild(received)
     local nr = NutritionRevamp
     local K = nr.kernel
@@ -157,8 +127,7 @@ local function rebuild(received)
     end
 end
 
--- The one per-frame test: rebuild only when the mirror's arrival counter or the level moved (or force). true when
--- it rebuilt.
+-- true when it rebuilt.
 function V.refresh(force)
     local nr = NutritionRevamp
     local K = nr.kernel
@@ -177,7 +146,6 @@ function V.refresh(force)
     return true
 end
 
--- The level from the stored option and trait; true when it moved.
 function V.recompute(player)
     V.hasTrait = V.readTrait(player)
     V.isFemale = V.readFemale(player) -- the engine's sex, kept raw
@@ -188,8 +156,6 @@ function V.recompute(player)
     return V.level ~= before
 end
 
--- A mirror arrived (NR_Client_Mirror.lua's handler, after the install): re-read the trait and the option, then
--- refresh (the counter moved, so it rebuilds).
 function V.onMirror()
     local p = nil
     if getPlayer ~= nil then
@@ -200,8 +166,6 @@ function V.onMirror()
     V.refresh(false)
 end
 
--- OnCreatePlayer: the local player's trait and the option level (player 0 only; the mirror is the local
--- player's).
 function V.onCreatePlayer(playerNum, player)
     if not NR.isClient() then return end
     if playerNum ~= nil and playerNum ~= 0 then return end
@@ -212,9 +176,8 @@ function V.onCreatePlayer(playerNum, player)
     end
 end
 
--- OnPlayerDeath (the local player's; split-screen player 1's death keeps player 0's view): the mirror is
--- dropped and the view rebuilt empty, so the listeners (the moodles) clear and a respawn shows none of the dead
--- character's classes or rows until the server's first push for the new one (its first-sight mirror).
+-- Split-screen player 1's death keeps player 0's view. The view rebuilds empty, so the moodles clear and a respawn
+-- shows none of the dead character's rows until the server's first push.
 function V.onPlayerDeath(player)
     local nr = NutritionRevamp
     if not nr.isClient() then return end
@@ -224,7 +187,6 @@ function V.onPlayerDeath(player)
     V.refresh(true)
 end
 
--- The line height of font through getTextManager():getFontHeight(font), guarded; DEFAULT_LINE on any failure.
 function V.lineHeight(font)
     if getTextManager == nil or font == nil then return DEFAULT_LINE end
     local ok, h = pcall(function() return getTextManager():getFontHeight(font) end)
@@ -232,7 +194,6 @@ function V.lineHeight(font)
     return DEFAULT_LINE
 end
 
--- UIFont.Small behind a nil check, or nil.
 function V.smallFont()
     if UIFont == nil then return nil end
     local ok, f = pcall(function() return UIFont.Small end)
@@ -240,8 +201,7 @@ function V.smallFont()
     return nil
 end
 
--- The small font and its line height, read once and kept until the next rebuild or resolution change (the frame's
--- draws read two fields, no closure and no engine call): font, lineHeight.
+-- Kept until the next rebuild or resolution change: a frame's draws read two fields and call no engine.
 function V.metrics()
     if V.lh == nil then
         V.font = V.smallFont()
@@ -250,15 +210,11 @@ function V.metrics()
     return V.font, V.lh
 end
 
--- OnResolutionChange (the panel's handler calls it): the cached font metrics go, read again at the next draw.
 function V.onResolutionChange()
     V.lh = nil
 end
 
--- The scroll of a clipped surface (the panel and the tab): WHEEL_LINES rows a wheel notch. overflow is the rows'
--- overflow in px, n rows of lh px in room px, never below 0; clampScroll holds a scroll offset y in [0, over];
--- scrollBy moves el.scrollY by WHEEL_LINES lines of the cached line height times del, clamped, and answers true (the
--- event taken) only when there is overflow to scroll (over > 0) and del is a number.
+-- WHEEL_LINES rows a notch; scrollBy answers true (the event taken) only when there is overflow to scroll.
 V.WHEEL_LINES = 3
 
 function V.overflow(n, lh, room)
@@ -280,12 +236,8 @@ function V.scrollBy(el, del, over)
     return true
 end
 
--- Draws rows onto el: each row's label left at x and its text right-aligned at x + w, one line apart from y, in
--- font (nil: UIFont.Small); stops before a line would pass maxY (nil: no limit; the panel counts the rows left out
--- once per rebuild, in stats.overflowRows); skips a row whose top sits above minY (nil: no clip), the scrolled
--- panel's top clip, because the vanilla window clears its stencil before the subclass render (ISCollapsableWindow.lua:193-195).
--- Returns the y after the last row drawn. The caller holds the pcall (a render body); the row strings were
--- resolved at rebuild, and a row built elsewhere is resolved here.
+-- Stops before a line would pass maxY and skips a row above minY, because the vanilla window clears its stencil
+-- before the subclass render. The caller holds the pcall. Returns the y after the last row drawn.
 function V.draw(el, rows, x, y, w, font, maxY, minY)
     if el == nil or rows == nil then return y end
     local f, lh = font, nil

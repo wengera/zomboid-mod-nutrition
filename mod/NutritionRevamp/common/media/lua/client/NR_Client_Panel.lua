@@ -1,38 +1,12 @@
--- NR_Client_Panel.lua -- the collapsible nutrition panel: NR_Client_Panel derives
--- ISCollapsableWindow (movable and collapsible for free, #2467-#2471), one instance per player number built on
--- OnCreatePlayer, hidden and OFF the UI manager until the key opens it (#2469: an element off the manager is
--- neither updated nor rendered); player 0's is registered with ISLayoutManager.RegisterWindow("NutritionRevamp.panel",
--- ISCollapsableWindow, p), so its geometry lives in layout.ini and never in modData (#2473-#2476, #2518).
--- Opening sends NR.client.requestMirror() -- the spec's one client request (§ 4.8) -- and the panel redraws its rows
--- from NR.client.view, which rebuilds only when NR.client.received or the level moved (#2692): prerender makes the
--- one compare, render walks the cached rows, and nothing here reads the mirror.
--- The vanilla shapes read (READ-ONLY, media/lua/client/ISUI on 42.20.4): ISCollapsableWindow:new(x, y, w, h) :366,
--- prerender :152, render :179 (it clears the stencil prerender set, so the rows are clipped to the panel's height by
--- view.draw's maxY), titleBarHeight :298, setResizable :326; ISLayoutManager.RegisterWindow :6 restores at
--- registration, and DefaultRestoreWindow :45-47 calls addToUIManager + setVisible(true) when layout.ini says
--- visible=true.
---
--- The research's minimal shape 1, read in x183:
---  risk 1: the restore re-adds the panel visible before the key was ever pressed -- the first registration
---          measured (#3215); a saved visible=true line's restore unmeasured. stats.restoredVisible records
---          p:getIsVisible() right after RegisterWindow. The panel is instantiated BEFORE the registration (the
---          close's D3): RegisterWindow restores at once, and a saved pin=false visible=false line's RestoreLayout
---          calls collapse(), which indexes collapseButton (ISCollapsableWindow.lua:343-346), a child instantiate
---          builds (#2470); NR_Client_Moodles.lua instantiates its column the same way;
---  risk 2: whether layout.ini is written on the harness client's exit path -- measured in x183 (#3216 the layout write at the quit; #3218 the load 1 / 0 failures);
---  risk 3: whether PZAPI.ModOptions:load() at OnGameStart finds ModOptions.ini -- measured in x183 (#3216 the layout write at the quit; #3218 the load 1 / 0 failures).
--- The default key is the semicolon (code 39): `;` is unbound in shared/keyBinding.lua and read by no media/lua/client
--- handler outside debug files; K is vanilla's Display FPS at keyBinding.lua:198 (NR_Client_ModOptions.lua's header).
--- The height follows the rows: at each rebuild the panel is titleBarHeight + 4 + rows * line + 4 tall,
--- capped at the screen below its top, refit at the end of a drag and on a resolution change; past the cap the mouse wheel scrolls (a non-resizable window's width and
--- height are not restored from layout.ini, ISCollapsableWindow.RestoreLayout :337-340, so the height is the mod's).
---
--- Shape (the client-file discipline): the class is derived only when ISCollapsableWindow exists (else
--- NR.client.panel.cls stays nil and toggle answers false); the sentinel NR_ClientPanel_Installed is a global of its
--- own holding the three listener closures (OnCreatePlayer, OnKeyPressed, OnResolutionChange) and the instances, so a reload of this file or
--- of NR_Core adds no second listener and loses no window; the closures look NutritionRevamp.client.panel up per call;
--- every toolkit member is reached index-first inside a pcall; every handler body runs under one pcall; the file
--- loads with no engine (testing/tests/kernel/test_client_panel_shape.py).
+-- NR_Client_Panel.lua -- the collapsible nutrition panel, an ISCollapsableWindow per player number, hidden and OFF the
+-- UI manager until the key opens it (#2469: an element off the manager is neither updated nor rendered). Player 0's
+-- geometry lives in layout.ini via ISLayoutManager.RegisterWindow, never in modData (#2473). Opening sends the one
+-- client request; the rows redraw from NR.client.view, which rebuilds only when the mirror or the level moved (#2692).
+-- The panel is instantiated BEFORE RegisterWindow: its restore can call collapse(), which needs collapseButton (#2470).
+-- A non-resizable window's size is not restored from layout.ini, so the height is the mod's: it follows the rows,
+-- capped at the screen, and the wheel scrolls past the cap. The shapes and their risks: docs/platform/client-ui.md.
+-- The sentinel NR_ClientPanel_Installed holds the three listener closures and the instances, so a reload adds no
+-- second listener and loses no window; every handler body runs under one pcall.
 local NR = NutritionRevamp
 
 NR_ClientPanel_Installed = NR_ClientPanel_Installed or {}
@@ -47,20 +21,18 @@ NR.client.panel = {
 }
 local PANEL = NR.client.panel
 
-local LAYOUT_NAME = "NutritionRevamp.panel" -- the layout.ini window name (ruling 6)
-local WIDTH = 280 -- px, the panel's fixed size (plan Task 5 amendments)
+local LAYOUT_NAME = "NutritionRevamp.panel" -- the layout.ini window name
+local WIDTH = 280 -- px, the panel's fixed size
 local HEIGHT = 320 -- px, the first height before any rebuild sizes the panel to its rows
 local SCREEN_DEFAULT = 600 -- px, the screen height when getPlayerScreenHeight is absent or raises
 
 local START_X = 60 -- px, the first-sight position before any layout.ini restore
 local START_Y = 200 -- px
 local PAD = 8 -- px, the row inset from the frame
-local TITLE_GAP = 4 -- px below the title bar (plan Task 5)
+local TITLE_GAP = 4 -- px below the title bar
 
--- One method of el, index-first inside a pcall: (ok, result) (NR.try).
 local call = NR.try
 
--- A failure counted on the panel (NR.fail; the panel's table looked up per call).
 local function fail(err)
     NR.fail(NutritionRevamp.client.panel, "panel", err)
 end
@@ -82,7 +54,7 @@ if ISCollapsableWindow ~= nil and type(ISCollapsableWindow.derive) == "function"
             return o
         end
 
-        -- The frame, then the one compare (the view rebuilds only when the mirror's counter or the level moved).
+        -- The one compare: the view rebuilds only when the mirror's counter or the level moved.
         function cls:prerender()
             local base = ISCollapsableWindow
             if base ~= nil and base.prerender ~= nil then
@@ -97,14 +69,14 @@ if ISCollapsableWindow ~= nil and type(ISCollapsableWindow.derive) == "function"
             if not okF then fail(errF) end
         end
 
-        -- The wheel scrolls the rows when they overflow the capped height; true when it took the event.
+        -- true when it took the event.
         function cls:onMouseWheel(del)
             local ok, took = pcall(NutritionRevamp.client.panel.wheel, self, del)
             if not ok then fail(took) return false end
             return took
         end
 
-        -- The button's release ends a title-bar drag (the base clears moving): the height is refit at the new top.
+        -- A drag ends on release: the height is refit at the new top.
         function cls:onMouseUp(x, y)
             return NutritionRevamp.client.panel.release(self, ISCollapsableWindow.onMouseUp, x, y)
         end
@@ -113,13 +85,12 @@ if ISCollapsableWindow ~= nil and type(ISCollapsableWindow.derive) == "function"
             return NutritionRevamp.client.panel.release(self, ISCollapsableWindow.onMouseUpOutside, x, y)
         end
 
-        -- The title bar's X: the toggle's hide path, so the panel leaves the UI manager (#2469) and counts a close.
+        -- The title bar's X takes the hide path, so the panel leaves the UI manager (#2469).
         function cls:close()
             local ok, err = pcall(NutritionRevamp.client.panel.hide, self)
             if not ok then fail(err) end
         end
 
-        -- The frame, then the cached rows from below the title bar, unless collapsed.
         function cls:render()
             local ok, err = pcall(NutritionRevamp.client.panel.renderBody, self)
             if not ok then fail(err) end
@@ -127,7 +98,6 @@ if ISCollapsableWindow ~= nil and type(ISCollapsableWindow.derive) == "function"
     end
 end
 
--- The hide path: hidden and off the UI manager, one close counted; false when already hidden.
 function PANEL.hide(p)
     local P = NutritionRevamp.client.panel
     local _, vis = call(p, "getIsVisible")
@@ -138,7 +108,6 @@ function PANEL.hide(p)
     return true
 end
 
--- The screen height for player pn, guarded; SCREEN_DEFAULT on any failure.
 local function screenHeight(pn)
     if getPlayerScreenHeight == nil then return SCREEN_DEFAULT end
     local ok, h = pcall(getPlayerScreenHeight, pn)
@@ -146,10 +115,8 @@ local function screenHeight(pn)
     return SCREEN_DEFAULT
 end
 
--- Sizes the panel to the view's rows once per rebuild (stamped on the view's rebuild count) and again after a drag
--- or a resolution change (which drop the stamp): the height is
--- titleBarHeight + TITLE_GAP + rows * line + TITLE_GAP, capped at the screen height below the panel's top; the rows
--- that do not fit count once in view.stats.overflowRows, and the scroll offset is re-clamped.
+-- Once per rebuild and again after a drag or a resolution change; the rows that do not fit count once in
+-- view.stats.overflowRows.
 function PANEL.fit(self)
     local nr = NutritionRevamp
     local V = nr.client.view
@@ -181,9 +148,7 @@ function PANEL.fit(self)
     return true
 end
 
--- A mouse release: the base handler (ISCollapsableWindow.onMouseUp or onMouseUpOutside, which clear the drag's moving
--- flag), and when a drag was running, the fit stamp dropped so the next prerender refits the height under the cap at
--- the panel's new top. Answers the base's answer.
+-- After a drag, the fit stamp is dropped so the next prerender refits under the cap at the new top.
 function PANEL.release(self, base, x, y)
     local moved = self.moving == true
     local answer = nil
@@ -195,7 +160,6 @@ function PANEL.release(self, base, x, y)
     return answer
 end
 
--- OnResolutionChange: every panel refits at its next prerender, under the new screen's cap.
 function PANEL.onResolutionChange()
     local P = NutritionRevamp.client.panel
     local V = NutritionRevamp.client.view
@@ -205,12 +169,10 @@ function PANEL.onResolutionChange()
     end
 end
 
--- The wheel (the view's scrollBy over the overflow fit measured); true (the event taken) only when there is overflow.
 function PANEL.wheel(self, del)
     return NutritionRevamp.client.view.scrollBy(self, del, self.overflowPx or 0)
 end
 
--- The render body: the base render, the count, the rows from the scroll offset down to the panel's height.
 function PANEL.renderBody(self)
     local nr = NutritionRevamp
     local P = nr.client.panel
@@ -227,8 +189,7 @@ function PANEL.renderBody(self)
     V.draw(self, V.rows, PAD, th + TITLE_GAP - (self.scrollY or 0), w - 2 * PAD, nil, h, th + TITLE_GAP)
 end
 
--- OnCreatePlayer: one hidden instance per player number, off the UI manager; a second create for the same number (a
--- respawn) removes the old one first; player 0's registers with the layout manager, whose restore may re-add it.
+-- A respawn's second create removes the old instance first; player 0's restore may re-add it.
 function PANEL.onCreatePlayer(playerNum, player)
     local nr = NutritionRevamp
     local P = nr.client.panel
@@ -245,7 +206,7 @@ function PANEL.onCreatePlayer(playerNum, player)
     end
     local p = cls:new(START_X, START_Y, WIDTH, HEIGHT, pn)
     call(p, "initialise")
-    call(p, "instantiate") -- before RegisterWindow: its restore's collapse() needs collapseButton (D3)
+    call(p, "instantiate") -- before RegisterWindow: its restore's collapse() needs collapseButton
     call(p, "setResizable", false)
     call(p, "setRenderThisPlayerOnly", pn)
     call(p, "setVisible", false)
@@ -290,9 +251,7 @@ local function toggleBody(pn)
     return true
 end
 
--- Opens a hidden panel (onto the UI manager, visible, on top, one mirror request) or closes a visible one (hidden,
--- off the manager). A plain function the driver calls (lua.call NutritionRevamp.client.panel.toggle 0): true when
--- the panel is now open, false when it closed or there is none.
+-- A plain function the driver calls: true when the panel is now open.
 function PANEL.toggle(playerNum)
     local pn = playerNum
     if type(pn) ~= "number" then pn = tonumber(pn) or 0 end
@@ -304,8 +263,6 @@ function PANEL.toggle(playerNum)
     return open
 end
 
--- OnKeyPressed: the page's bind (NR.client.modOptions.key(), default semicolon) toggles player 0's panel; any other key does
--- nothing.
 function PANEL.onKey(key)
     local nr = NutritionRevamp
     local P = nr.client.panel

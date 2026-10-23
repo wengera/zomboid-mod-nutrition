@@ -1,44 +1,30 @@
--- NR_Kernel_Training.lua -- the body model's training signal: the aerobic side banks the
--- ENGINE's own MET value above its resting floor as MET-minutes (spec § 7 item 35; the second of the
--- two MET tables, never mixed with expenditure's Compendium METs) and sorts each minute into the two
--- intensity bands, with a one-off credit per climb. The day accumulators close into the seven-day band
--- ring. (The resistance side went in Plan 13 Task 12, ruling 13-18: the Strength signal is the AddXP
--- capture's, K.strength.signalClose.)
--- Pure: numbers and Lua tables in, numbers, booleans and Lua tables out, no Java. Slow-clock code with
--- no fast region, so math.floor and the bounded numeric `for` over the kernel's own tables
--- are allowed. This file sorts after NR_Kernel.lua, and every K.clamp / K.max reference is at call time.
+-- NR_Kernel_Training.lua -- the aerobic training signal: the ENGINE's own MET above its resting floor banked as
+-- MET-minutes (never mixed with expenditure's Compendium METs), sorted into two intensity bands with a one-off credit
+-- per climb, closed daily into the seven-day band ring. The Strength signal is the AddXP capture's, not this file's.
 local K = NutritionRevamp.kernel
 K.training = {}
 
--- The engine's resting MET floor; MET-minutes bank only what the engine reads above it.
+-- Every dial's meaning and source is its row in NR_Data_Dials.lua.
 K.training.MET_FLOOR = K.dials.get("training.MET_FLOOR")
 
--- Vanilla's heavy-load multipliers indexed by HEAVY_LOAD level 0-4 (index level + 1).
 K.training.LOAD_MULT = { 1, 1.5, 1.9, 2.3, 2.8 } -- VANILLA #2255 by HEAVY_LOAD level 0-4
 
--- The mass reference the MET-minutes scale by (weight / 80).
 K.training.MASS_REF = 80 -- VANILLA #0453 weight/80
 
--- The intensity bands' engine-MET thresholds.
 K.training.BAND1_MET = K.dials.get("training.BAND1_MET")
 K.training.BAND2_MET = K.dials.get("training.BAND2_MET")
 
--- The engine MET credited once per climb, by the climb state's Metabolics class.
 K.training.CLIMB_MET = { JumpFence = K.dials.get("training.CLIMB_MET.JumpFence"), ClimbRope = K.dials.get("training.CLIMB_MET.ClimbRope") }
 
--- The band-2 minutes that make a day a hard day.
 K.training.HARD_DAY_MIN = K.dials.get("training.HARD_DAY_MIN")
 
--- MET-minutes over dtM minutes: the engine MET above the floor, times the heavy-load multiplier
--- (level clamped 0-4), times weight over the mass reference.
 function K.training.metMinutes(engineMet, heavyLoadLevel, w, dtM)
     local level = math.floor(K.clamp(heavyLoadLevel, 0, 4))
     local above = K.max(engineMet - K.training.MET_FLOOR, 0)
     return above * K.training.LOAD_MULT[level + 1] * (w / K.training.MASS_REF) * dtM
 end
 
--- The intensity band: 2 at or above BAND2_MET or while exercising or swiping, 1 at or above BAND1_MET,
--- else 0.
+-- 2 also while exercising or swiping.
 function K.training.band(engineMet, exercising, swiping)
     if engineMet >= K.training.BAND2_MET or exercising or swiping then
         return 2
@@ -49,8 +35,6 @@ function K.training.band(engineMet, exercising, swiping)
     return 0
 end
 
--- One sample: bank the MET-minutes into metMinDay; band >= 1 adds dtM to band1Day, band 2 adds dtM
--- to band2Day too. Returns the band.
 function K.training.sample(body, engineMet, heavyLoadLevel, w, exercising, swiping, dtM)
     body.metMinDay = body.metMinDay + K.training.metMinutes(engineMet, heavyLoadLevel, w, dtM)
     local b = K.training.band(engineMet, exercising, swiping)
@@ -63,8 +47,7 @@ function K.training.sample(body, engineMet, heavyLoadLevel, w, exercising, swipi
     return b
 end
 
--- A climb's one-off credit: (CLIMB_MET[className] - MET_FLOOR) * w / MASS_REF into metMinDay; a nil or
--- unknown class credits 0. Returns the credit.
+-- A nil or unknown class credits 0.
 function K.training.climbCredit(body, className, w)
     local met = nil
     if className ~= nil then
@@ -78,9 +61,7 @@ function K.training.climbCredit(body, className, w)
     return credit
 end
 
--- Close the day: shift the seven-day band ring one slot (bandWeek[1] the oldest), write the day's
--- {band1Day, band2Day} into slot 7, and zero the day accumulators. Values are copied slot to slot, so
--- every slot stays its own table. Returns the body.
+-- Values are copied slot to slot, so every slot stays its own table.
 function K.training.closeDay(body)
     local ring = body.bandWeek
     local n = K.body.WEEK_N
@@ -96,8 +77,6 @@ function K.training.closeDay(body)
     return body
 end
 
--- The week: m1 = the band-1 minutes summed over the ring, hardDays = the days with band-2 minutes
--- >= HARD_DAY_MIN.
 function K.training.weekMinutes(body)
     local ring = body.bandWeek
     local m1 = 0

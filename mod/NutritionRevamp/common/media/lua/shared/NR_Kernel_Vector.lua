@@ -1,29 +1,23 @@
--- NR_Kernel_Vector.lua -- the nutrient vector: one flat table of named scalars, the four vanilla
--- macros plus the mod-nutrient keys (spec § 4.2, § 4.4). The kernel iterates the vector's own key
--- list and hard-codes only the four macros, so a nutrient is added by adding a key here, never a
--- code path. Pure: tables in, tables out, no Java. KEYS is a Lua table this file built, so `#` on it
--- is a Lua length, never a Java list (#0940).
+-- NR_Kernel_Vector.lua -- the nutrient vector, one flat table of named scalars. The kernel hard-codes only the four
+-- macros, so a nutrient is added by adding a key here, never a code path. `#` on this file's own tables is a Lua
+-- length, never a Java list (#0940).
 local K = NutritionRevamp.kernel
 K.vector = {}
 
--- The four vanilla macros, in the engine's order. The only nutrient names the kernel hard-codes.
+-- In the engine's order.
 K.vector.MACROS = {"calories", "carbs", "lipids", "proteins"}
 
--- The declared key list: the macros, the Plan 2 seed set, then the twenty-two kinetics keys Plan 4 adds
--- (the fat-soluble vitamins, the B vitamins and choline, the minerals and electrolytes, the essential
--- fats, caffeine and ethanol); the unit of each is NR.data.UNITS.
+-- The unit of each is NR.data.UNITS.
 K.vector.KEYS = {"calories", "carbs", "lipids", "proteins", "fibre", "water", "vitC", "iron", "phytate",
                  "retinol", "carotene", "vitD", "vitE", "vitK", "thiamine", "riboflavin", "niacin", "vitB6",
                  "folate", "vitB12", "choline", "sodium", "potassium", "calcium", "magnesium", "zinc",
                  "iodine", "selenium", "efa", "caffeine", "ethanol"}
 
--- The declared key list a reader iterates.
 function K.vector.keys()
     return K.vector.KEYS
 end
 
--- A fresh vector with every declared key set to 0. Slow-clock capture-path code (not a per-tick
--- fast region), so the `for` over this file's own KEYS table is allowed.
+-- Slow-clock capture-path code, so the `for` over this file's own KEYS is allowed.
 function K.vector.new()
     local v = {}
     for i = 1, #K.vector.KEYS do
@@ -32,11 +26,10 @@ function K.vector.new()
     return v
 end
 
--- One shared zero vector, read only (K.vector.craft's source for a type with no seed); never written.
+-- Read only; never written.
 K.vector.EMPTY = K.vector.new()
 
--- Accumulate src into dst over every declared key, scaled, and return dst (the same object, no
--- allocation): dst[k] = dst[k] + (src[k] or 0) * scale. A missing src key counts as 0.
+-- No allocation: dst is returned. A missing src key counts as 0.
 function K.vector.add(dst, src, scale)
     for i = 1, #K.vector.KEYS do
         local k = K.vector.KEYS[i]
@@ -45,15 +38,10 @@ function K.vector.add(dst, src, scale)
     return dst
 end
 
--- Four-source nutrient-vector assembly (spec § 4.2). Each function is pure: an injected lookup or an
--- already-resolved vector in, a fresh vector out, no NR.data reference, so the kernel stays testable
--- with no data file. The aggregating functions (baseline, dish, craft) take lookup(fullType) ->
--- seed vector or nil, and track the types it could not resolve in a `missing` list; the server
--- wrapper passes NR.data.nutrients.get as the lookup, the test a stub. The vector, the scratch and
--- the missing list are Lua tables this file built, so `#` on them is a Lua length, never a Java list.
+-- Vector assembly: an injected lookup in, a fresh vector out, no NR.data reference, so the kernel is testable with no
+-- data file. The aggregating functions list the types they could not resolve in `missing`.
 
--- One type's seed times the share eaten: a fresh vector plus a `missing` list naming the type when
--- lookup returned nil (the vector is then all-zero).
+-- A nil lookup leaves the vector all-zero and names the type in `missing`.
 function K.vector.baseline(lookup, fullType, share)
     local vec = K.vector.new()
     local missing = {}
@@ -66,11 +54,8 @@ function K.vector.baseline(lookup, fullType, share)
     return vec, missing
 end
 
--- A dish: sum each ingredient type (one entry per appearance in extraTypes) into a scratch vector,
--- then scale every key so the summed macro total matches the dish's own macro total -- recovering the
--- cooking share the ingredient list does not keep (jar read § A, #2650/#2651; the Salad 25.0 kcal at
--- Cooking 0, #0301). Returns the vector and a note {missing=<list>, scaled=<bool>}; a zero scratch
--- macro total or a non-positive dishMacroTotal leaves the sum unscaled with scaled=false.
+-- The sum is scaled so its macro total matches the dish's own, recovering the cooking share the ingredient list does
+-- not keep (#2650). A zero scratch total or a non-positive dishMacroTotal leaves it unscaled (scaled=false).
 function K.vector.dish(lookup, extraTypes, dishMacroTotal)
     local scratch = K.vector.new()
     local missing = {}
@@ -102,10 +87,8 @@ function K.vector.dish(lookup, extraTypes, dishMacroTotal)
     return scratch, note
 end
 
--- The instance scale (#3326-#3340): a table or craft vector is scaled to the
--- calories the eat delivered, b.cal x frac over the vector's own calories, with factor 1 -- the macros' own scale,
--- right for a plain, partial, caught, butchered, split or replaced item alike. With no calories on either side
--- (water, salt, makeCoffee) the hunger ratio instBase/scriptHunger with share, and 1 when the script hunger is 0.
+-- The instance scale (#3326): b.cal x frac over the vector's own calories, right for a plain, partial, caught, split or
+-- replaced item alike; with no calories on either side the hunger ratio, and 1 when the script hunger is 0.
 function K.vector.instanceScale(vecKcal, cal, frac, instBase, scriptHunger, share)
     if vecKcal ~= nil and vecKcal > 0 and cal ~= nil and cal > 0 then
         return cal * frac / vecKcal, 1
@@ -117,20 +100,14 @@ function K.vector.instanceScale(vecKcal, cal, frac, instBase, scriptHunger, shar
     return scale, share
 end
 
--- vec x scale as a new vector (vec untouched).
 function K.vector.scaled(vec, scale)
     local out = K.vector.new()
     K.vector.add(out, vec, scale)
     return out
 end
 
--- A crafted output: sum each consumed type's seed times its count times the share, over the
--- consumed-type-to-count map the hand-craft action writes (#2667). The count is consumed item
--- INSTANCES, not uses: the map is +1 per entry of getAllConsumedItems, one entry per consumed
--- InventoryItem (jar 42.20.4, CraftRecipeData.getAllConsumedItems @range L2220-L2235 into
--- CacheData.addAppliedItem @range L1825-L1828). MakeMeatPatty spends 40 USES of ONE MincedMeat tub
--- (#0745), so its map is { Base.MincedMeat = 1 }: the whole-tub seed once. A partly-used input lands
--- its whole seed (an Intake limitation; Plan 6's use fraction). Returns the vector and a `missing` list.
+-- The count is consumed INSTANCES, not uses (#2667): MakeMeatPatty spends 40 uses of ONE MincedMeat tub, so its map is
+-- { Base.MincedMeat = 1 }. A partly-used input lands its whole seed (a known limitation).
 function K.vector.craft(lookup, consumedCounts, share)
     local vec = K.vector.new()
     local missing = {}
@@ -145,23 +122,15 @@ function K.vector.craft(lookup, consumedCounts, share)
     return vec, missing
 end
 
--- A drink: the per-litre fluid vector times the litres drunk (Cola per-litre 400 x 0.3 = the per-can
--- figure, #0634). fluidVector is an already-resolved per-litre vector.
+-- fluidVector is per litre (#0634).
 function K.vector.fluid(fluidVector, litres)
     local vec = K.vector.new()
     K.vector.add(vec, fluidVector, litres)
     return vec
 end
 
--- The fallback inference: a food with no table entry and no declared vector takes
--- the four macros as read off the item and every other key as the template's per-kcal density times
--- the item's calories. templates is NR.data.infer (NR_Data_Infer.lua, generated: per FoodType the
--- median of key / calories over the item pass's own mapped food records, `_default` over all of them;
--- a judgement, not a measurement); the FoodType's entry, else `_default`; a nil foodType takes
--- `_default`. Calories <= 0, no templates or no `_default` -> the four macros only (the rest 0). A
--- missing macro reads 0. Returns a fresh vector. KEYS opens with the four MACROS (the order the
--- vector test pins), so the density loop starts after them; `#` on this file's own tables is a Lua
--- length.
+-- The fallback inference: the item's own macros, and every other key at the FoodType template's per-kcal density (the
+-- generated NR_Data_Infer.lua, a judgement, not a measurement). Calories <= 0 or no templates: the macros only.
 function K.vector.infer(macros, foodType, templates)
     local vec = K.vector.new()
     for i = 1, #K.vector.MACROS do
@@ -196,20 +165,13 @@ function K.vector.infer(macros, foodType, templates)
     return vec
 end
 
--- The trimmed text of s (leading and trailing whitespace dropped).
 function K.vector.trim(s)
     return string.match(s, "^%s*(.-)%s*$")
 end
 
--- The declared-nutrients contract: a food-content mod writes NR_Nutrients =
--- key:value;key:value in its item script, in the units contract (NR.data.UNITS, per item); the loader
--- does not know the key, so it lands as a string in the item's default modData (#0212, #1281). Parses
--- that string: each `;`-separated pair is key:value, whitespace around either ignored, an empty pair
--- (a trailing `;`) skipped. A key in KEYS takes its value (a later duplicate wins); a key outside KEYS
--- is skipped and named in the returned `unknown` list. A pair without a `:`, an empty key, or a value
--- that is not a finite number >= 0 makes the WHOLE string malformed: nil and a reason string. A string
--- with no pair at all is malformed too. Returns vec, unknown: the four macros as the string gives
--- them, else 0 (the caller fills them from the item, whose script block owns them).
+-- The declared-nutrients contract: a mod writes NR_Nutrients = key:value;... in its item script, which lands as a
+-- string in default modData (#0212). A key outside KEYS is skipped and named in `unknown`; a bad pair, an empty key or
+-- a value not a finite number >= 0 makes the WHOLE string malformed (nil and a reason). Macros absent read 0.
 function K.vector.declared(str)
     if type(str) ~= "string" then
         return nil, "not a string"
@@ -262,15 +224,8 @@ function K.vector.declared(str)
     return vec, unknown
 end
 
--- One food type through the source chain declared -> table -> inferred -> missing, shared
--- by the intake (NR_Server_Intake.lua, IN.chainOne) and the food tooltip, so the band shows what
--- the eat would land. declared is the item's NR_Nutrients default-modData string or nil; macros the item's own
--- { calories, carbs, lipids, proteins } or nil; foodType its FoodType or nil; data is NR.data's shape:
--- { nutrients = { get = fn(fullType) -> seed or nil }, infer = templates } (either part, or data, may be nil).
--- Returns vec, source, note: source is "declared", "table", "inferred" or "missing" (vec nil); note is the declared
--- string's unknown-key list, or its malformed reason (a string) when the chain fell through it, else nil. A declared
--- vector's four macros are the item's own (the script block owns them; a nil macros reads 0). The table's seed is
--- returned as the lookup gives it. Inference needs templates and finite calories above 0.
+-- Shared by the intake (IN.chainOne) and the food tooltip, so the tooltip shows what the eat would land. Returns vec,
+-- source ("declared", "table", "inferred" or "missing") and note. A declared vector's macros are the item's own.
 function K.vector.resolve(declared, macros, foodType, fullType, data)
     local note = nil
     if declared ~= nil then

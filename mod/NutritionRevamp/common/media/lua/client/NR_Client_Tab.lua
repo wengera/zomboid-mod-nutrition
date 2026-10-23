@@ -1,39 +1,12 @@
--- NR_Client_Tab.lua -- the character-info tab: one more tab on the vanilla
--- ISCharacterInfoWindow, built by wrapping three of its methods, drawing the view cache's rows.
--- The shape follows AutoCook's worked tab (docs/superpowers/research/platform-client-ui.md section C); its on-screen
--- draw is unmeasured (no click reaches the tab in the harness), and a stand-in test proves the wiring, never the engine.
---
--- The three wraps, under ONE sentinel (#0935, #1067, #2844, #2845):
---  * createChildren: the original first, then the tab is built and added under pcall. The window is built on
---    Events.OnCreatePlayer, so the wrap is installed at file scope, before that event (#2521).
---  * onTabTornOff(view, window): the registration of the torn-off window comes first, the original LAST (as
---    AutoCook does); player 0 only, like vanilla's own five.
---  * SaveLayout(name, layout): the original first (it rebuilds layout.tabs and layout.current from its five
---    views), then the mod appends its name to layout.tabs when its view is a tab of the panel.
---
--- The restore gap, closed (#2502, #2521): vanilla's RestoreLayout reads
---   if layout.current and not floating[layout.current] then self.panel:activateView(xpSystemText[layout.current])
--- (install:client/XpSystem/ISUI/ISCharacterInfoWindow.lua:287), and xpSystemText has no entry for a mod tab, so
--- a saved layout.current of the mod's name would reach activateView(nil). SaveLayout therefore sets
--- layout.current to nil when the mod tab is the active one, and never to the mod's name. The cost: a window
--- saved on the mod tab reopens on its default tab.
---
--- Shape: the sentinel NR_ClientTab_Installed is a global of its own, never a field of NutritionRevamp, which
--- NR_Core re-creates on every load (#0943). It records the class table it wrapped and the three originals;
--- the file wraps again only when ISCharacterInfoWindow is not that class table (a re-created class), never
--- merely because the method is no longer the wrapper (lessons, the re-wrap rule). The wrappers name nothing
--- from this file's load: they look NutritionRevamp.client.tab up per call, so a reload swaps the logic under the
--- wraps that stay installed. Every Java and vanilla global is named only behind a nil check, so the file loads
--- with no engine. The load order is alphabetical (_Tab sorts after _Panel and before _Tooltip and _View): NR.client.view
--- and NR.client.text are looked up per call, never captured at file scope; with no view the tab draws nothing.
--- The tab's name is the translated string (#2503); nothing else names it. No keybind, and no request to the
--- server: the panel's open does that and this tab reads the stored mirror through the view cache.
--- Cadence: the render reads the view cache's refresh(false), which re-reads on its own cadence; no @fastpath.
--- The clip and the scroll (the close's D1): ISTabPanel does not clip its active view (ISTabPanel.lua:106 draws the
--- frame only), so the rows are drawn the panel's way (NR_Client_Panel.lua's renderBody and wheel): view.draw stops
--- before a line would pass the tab's height (maxY) and skips a row above the top inset (minY); the wheel moves
--- scrollY by the view's WHEEL_LINES lines (V.scrollBy), clamped to the overflow (rows x line height - (height - 2 x
--- PAD)). The base render runs inside the render's one pcall.
+-- NR_Client_Tab.lua -- the character-info tab: one more tab on ISCharacterInfoWindow, built by wrapping three of its
+-- methods under ONE sentinel (#0935), drawing the view cache's rows (docs/platform/client-ui.md). Its on-screen draw is
+-- unmeasured (no click reaches the tab in the harness): a stand-in test proves the wiring, never the engine.
+-- createChildren is wrapped at file scope, before Events.OnCreatePlayer builds the window (#2521).
+-- The restore gap (#2502): vanilla's RestoreLayout looks layout.current up in xpSystemText, which has no entry for a
+-- mod tab, so SaveLayout never saves the mod's name as current; a window saved on the mod tab reopens on its default.
+-- The sentinel NR_ClientTab_Installed records the class table it wrapped: the file wraps again only for a re-created
+-- class, never because the method is no longer the wrapper. The wrappers look NutritionRevamp.client.tab up per call.
+-- ISTabPanel does not clip its active view, so the rows are drawn the panel's way, clipped by view.draw's minY and maxY.
 local NR = NutritionRevamp
 NR.client.tab = {
     stats = { added = 0, tornOff = 0, saves = 0, renders = 0, errors = 0, noView = 0 },
@@ -57,7 +30,7 @@ if ISPanelJoypad ~= nil then
         return o
     end
 
-    -- The base render and the rows, under one pcall (T.renderBody, looked up per call).
+    -- One pcall (T.renderBody, looked up per call).
     function NR_Client_TabPanel:render()
         local tab = NutritionRevamp.client.tab
         tab.stats.renders = tab.stats.renders + 1
@@ -68,7 +41,7 @@ if ISPanelJoypad ~= nil then
         end
     end
 
-    -- The wheel scrolls the rows when they overflow the tab; true when it took the event.
+    -- true when it took the event.
     function NR_Client_TabPanel:onMouseWheel(del)
         local tab = NutritionRevamp.client.tab
         local ok, took = pcall(tab.wheel, self, del)
@@ -81,7 +54,7 @@ if ISPanelJoypad ~= nil then
     end
 end
 
--- The rows' overflow in px: rows x line height - (height - 2 x PAD), never below 0 (the view's overflow).
+-- Never below 0.
 function T.overflow(el, view, lh)
     local n = 0
     if view.rows ~= nil then n = #view.rows end
@@ -90,7 +63,6 @@ function T.overflow(el, view, lh)
     return view.overflow(n, lh, h - 2 * PAD)
 end
 
--- The render body: the base render, the count, the scroll offset re-clamped, the rows clipped to the tab.
 function T.renderBody(el)
     ISPanelJoypad.render(el)
     local tab = NutritionRevamp.client.tab
@@ -103,15 +75,13 @@ function T.renderBody(el)
     local font, lh = view.metrics()
     local sy = view.clampScroll(el.scrollY or 0, T.overflow(el, view, lh))
     el.scrollY = sy
-    -- The window keeps whatever height the last vanilla view set from its own render (ISCharacterScreen.lua:245
-    -- setHeightAndParentHeight; ISUIElement.lua:321-330 walks the parents), so the tab re-asserts its own height
-    -- the same way each render, or its rows would paint past a window a shorter view left (the close re-review's
-    -- defect; unmeasured on screen, no click reaches the tab in the harness).
+    -- The window keeps the height the last vanilla view set, so the tab re-asserts its own each render, or its rows
+    -- would paint past a window a shorter view left.
     if el.setHeightAndParentHeight ~= nil then el:setHeightAndParentHeight(el.height) end
     view.draw(el, view.rows, PAD, PAD - sy, el.width - 2 * PAD, font, el.height, PAD)
 end
 
--- The wheel (the view's scrollBy over the tab's overflow); true (the event taken) only when there is overflow.
+-- true (the event taken) only when there is overflow.
 function T.wheel(el, del)
     local view = NutritionRevamp.client.view
     if type(del) ~= "number" or view == nil then return false end
@@ -124,7 +94,7 @@ local function failed(tab, err)
     tab.lastError = tostring(err)
 end
 
--- The mod's part of each wrap: plain functions on NR.client.tab, read per call by the wrappers.
+-- Plain functions on NR.client.tab, read per call by the wrappers.
 function T.afterCreate(win)
     local tab = NutritionRevamp.client.tab
     local ok, err = pcall(function()
@@ -171,7 +141,6 @@ function T.afterSave(win, layout)
     if not ok then failed(tab, err) end
 end
 
--- The one install: once per class table.
 if ISCharacterInfoWindow ~= nil and (NR_ClientTab_Installed == nil or NR_ClientTab_Installed.class ~= ISCharacterInfoWindow) then
     local inst = {
         class = ISCharacterInfoWindow,
