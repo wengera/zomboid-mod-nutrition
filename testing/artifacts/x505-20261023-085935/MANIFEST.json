@@ -1,0 +1,413 @@
+{
+  "42.21/media/sandbox-options.txt": {
+    "bytes": 9735,
+    "sha256": "01c3ada07dfaadca0bcf5c4d5cc1b97d491299bf29857823d1e674dcb1e8110a"
+  },
+  "42.21/mod.info": {
+    "bytes": 1067,
+    "sha256": "4fcf56c219aff98f6f14db62459337b72fe7ce738cc5e9ac05100e5ec98cecfa"
+  },
+  "CHANGELOG.md": {
+    "bytes": 16120,
+    "sha256": "ee7b8ebb0b7c5699be05710ae3a6d89f2ee206a307e06fdec6a560dd475a6804"
+  },
+  "COMPATIBILITY.md": {
+    "bytes": 13740,
+    "sha256": "57939e020af3f9e5b37e5cea5e493b23e24d3d93a0ad9231461d56c7a4ab6c10"
+  },
+  "README.md": {
+    "bytes": 50680,
+    "sha256": "a8c2996e761b3b24edf4490f3262ab6d90e4317abdaf44456c990a584d490bc7"
+  },
+  "common/media/lua/client/NR_Client_Mirror.lua": {
+    "bytes": 2436,
+    "gate_sha256": "5bd1d9dd21c40598e6d6b5cd6c8f763f311696937a420a3c8bb5e2d7e09e2f0a",
+    "sha256": "5bd1d9dd21c40598e6d6b5cd6c8f763f311696937a420a3c8bb5e2d7e09e2f0a"
+  },
+  "common/media/lua/client/NR_Client_ModOptions.lua": {
+    "bytes": 11495,
+    "gate_sha256": "7e8576f695d9617b1850287702dae4df688f9cefeb1252c9341e07ed4eb83aaa",
+    "sha256": "7e8576f695d9617b1850287702dae4df688f9cefeb1252c9341e07ed4eb83aaa"
+  },
+  "common/media/lua/client/NR_Client_Moodles.lua": {
+    "bytes": 24981,
+    "gate_sha256": "8bca529069d15b9273cfbe41ed1c247d5460750e8887d476fb87970c396d90fe",
+    "sha256": "8bca529069d15b9273cfbe41ed1c247d5460750e8887d476fb87970c396d90fe"
+  },
+  "common/media/lua/client/NR_Client_Options.lua": {
+    "bytes": 2572,
+    "gate_sha256": "fe5475bbfe49f0bab7f0e30fa6f495e0b3f1dee7298d5198a7c55e6a4d2ec38d",
+    "sha256": "fe5475bbfe49f0bab7f0e30fa6f495e0b3f1dee7298d5198a7c55e6a4d2ec38d"
+  },
+  "common/media/lua/client/NR_Client_Panel.lua": {
+    "bytes": 16563,
+    "gate_sha256": "36eadbabd27f356ad7fd8450f832b1efd41c4f57f885518dcd1c8380f9c447d2",
+    "sha256": "36eadbabd27f356ad7fd8450f832b1efd41c4f57f885518dcd1c8380f9c447d2"
+  },
+  "common/media/lua/client/NR_Client_Tab.lua": {
+    "bytes": 9734,
+    "gate_sha256": "8a2d5214bcea91dd97f241fcd6e8f8e85099524d488bf42b5dbfce07427624b0",
+    "sha256": "8a2d5214bcea91dd97f241fcd6e8f8e85099524d488bf42b5dbfce07427624b0"
+  },
+  "common/media/lua/client/NR_Client_Tooltip.lua": {
+    "bytes": 29751,
+    "gate_sha256": "cceabe698eb744f99e35cca2a9e8ab9ff44bcac42536d0e96f3569c8dbc2517e",
+    "sha256": "cceabe698eb744f99e35cca2a9e8ab9ff44bcac42536d0e96f3569c8dbc2517e"
+  },
+  "common/media/lua/client/NR_Client_View.lua": {
+    "bytes": 15392,
+    "gate_sha256": "f07ff77f9ec17acab1ac97dc03ca89522d8fae0f3938c134c2eda9583bd4b78f",
+    "sha256": "f07ff77f9ec17acab1ac97dc03ca89522d8fae0f3938c134c2eda9583bd4b78f"
+  },
+  "common/media/lua/client/NR_Data_Fills.lua": {
+    "bytes": 23551,
+    "gate_sha256": "e5cb30375830f2df0f9d724f4b8abc537d2a965609a99b7304a4d3c2910c0866",
+    "sha256": "e5cb30375830f2df0f9d724f4b8abc537d2a965609a99b7304a4d3c2910c0866"
+  },
+  "common/media/lua/server/NR_Server_Backup.lua": {
+    "bytes": 7712,
+    "gate_sha256": "474f0910c85f73f48b354c63e972bc7e8069f4af7f271f46dd6fff6b87c70c34",
+    "sha256": "474f0910c85f73f48b354c63e972bc7e8069f4af7f271f46dd6fff6b87c70c34"
+  },
+  "common/media/lua/server/NR_Server_Bench.lua": {
+    "bytes": 1619,
+    "gate_sha256": "813cba041335a01f284a26c3075c7e05f43d548ea67f814a2b79c845040af2ba",
+    "sha256": "813cba041335a01f284a26c3075c7e05f43d548ea67f814a2b79c845040af2ba"
+  },
+  "common/media/lua/server/NR_Server_Bus.lua": {
+    "bytes": 8094,
+    "gate_sha256": "eabec2e9d290ec5e3838a5b9875000be931d340157f95979161fb3dfbd9115a0",
+    "sha256": "eabec2e9d290ec5e3838a5b9875000be931d340157f95979161fb3dfbd9115a0"
+  },
+  "common/media/lua/server/NR_Server_Creation.lua": {
+    "bytes": 23255,
+    "gate_sha256": "0361514297b2321bbb80fe8a49a9da2759f7ba1b7497f3030725fa3aaab2a2e6",
+    "sha256": "0361514297b2321bbb80fe8a49a9da2759f7ba1b7497f3030725fa3aaab2a2e6"
+  },
+  "common/media/lua/server/NR_Server_Effects.lua": {
+    "bytes": 41275,
+    "gate_sha256": "5b7f5192bf6df3d989bcf90169af4b0e23bd29bda6f0b9427cce86902ddca0ae",
+    "sha256": "5b7f5192bf6df3d989bcf90169af4b0e23bd29bda6f0b9427cce86902ddca0ae"
+  },
+  "common/media/lua/server/NR_Server_Fitness.lua": {
+    "bytes": 8336,
+    "gate_sha256": "e69a2071a10386b5d8cf820701e1503d5cf7526ab4846f85f737e18f74fab250",
+    "sha256": "e69a2071a10386b5d8cf820701e1503d5cf7526ab4846f85f737e18f74fab250"
+  },
+  "common/media/lua/server/NR_Server_Hedonics.lua": {
+    "bytes": 16513,
+    "gate_sha256": "844c421c0b39f8fe0af2e5c11b8dcccb0840717a7759233229077e26ca124254",
+    "sha256": "844c421c0b39f8fe0af2e5c11b8dcccb0840717a7759233229077e26ca124254"
+  },
+  "common/media/lua/server/NR_Server_Intake.lua": {
+    "bytes": 54541,
+    "gate_sha256": "6ff3cc7645fe77b1fac23a2a558818aee3b3908328208435cdedaac3b8ba6278",
+    "sha256": "6ff3cc7645fe77b1fac23a2a558818aee3b3908328208435cdedaac3b8ba6278"
+  },
+  "common/media/lua/server/NR_Server_IntakeGuard.lua": {
+    "bytes": 14718,
+    "gate_sha256": "21bf82ae9835806603d1391c873af6b0aeefd5e82bdb6d8082aac70619890891",
+    "sha256": "21bf82ae9835806603d1391c873af6b0aeefd5e82bdb6d8082aac70619890891"
+  },
+  "common/media/lua/server/NR_Server_Kinetics.lua": {
+    "bytes": 14845,
+    "gate_sha256": "25ffe3951e7bccc8c5910e2774640f0c34fefc4e2a52064b6f30fc30a88166cb",
+    "sha256": "25ffe3951e7bccc8c5910e2774640f0c34fefc4e2a52064b6f30fc30a88166cb"
+  },
+  "common/media/lua/server/NR_Server_Metabolism.lua": {
+    "bytes": 35493,
+    "gate_sha256": "3f37a9e70e0a6ecc222db7daedda4b5461d9b704b4ad21f2d80c762608115777",
+    "sha256": "3f37a9e70e0a6ecc222db7daedda4b5461d9b704b4ad21f2d80c762608115777"
+  },
+  "common/media/lua/server/NR_Server_Minute.lua": {
+    "bytes": 4501,
+    "gate_sha256": "7d7241d8a56278d2e46621a67401c7611e371ef6769f867e9528767029442a25",
+    "sha256": "7d7241d8a56278d2e46621a67401c7611e371ef6769f867e9528767029442a25"
+  },
+  "common/media/lua/server/NR_Server_Nutrients.lua": {
+    "bytes": 31903,
+    "gate_sha256": "1ce94207172cb2a473a299dd6e531fc7c9dfed4f30a74936029d97d30082e45c",
+    "sha256": "1ce94207172cb2a473a299dd6e531fc7c9dfed4f30a74936029d97d30082e45c"
+  },
+  "common/media/lua/server/NR_Server_Options.lua": {
+    "bytes": 11409,
+    "gate_sha256": "1aeb3e02896e03ef4ee0fe3aeccd1311a262ee83905604dd5fc30de21623f954",
+    "sha256": "1aeb3e02896e03ef4ee0fe3aeccd1311a262ee83905604dd5fc30de21623f954"
+  },
+  "common/media/lua/server/NR_Server_Players.lua": {
+    "bytes": 14252,
+    "gate_sha256": "45b91860d183aa1d298bd76a7134c688c874ee127d2d245a5bb92e5647e0ba38",
+    "sha256": "45b91860d183aa1d298bd76a7134c688c874ee127d2d245a5bb92e5647e0ba38"
+  },
+  "common/media/lua/server/NR_Server_Reconcile.lua": {
+    "bytes": 8635,
+    "gate_sha256": "a59bc18bf5bc09ad3cbe6c3dd3ff6d94021e5cc6aa5f3f839a99958cc69feb0d",
+    "sha256": "a59bc18bf5bc09ad3cbe6c3dd3ff6d94021e5cc6aa5f3f839a99958cc69feb0d"
+  },
+  "common/media/lua/server/NR_Server_Store.lua": {
+    "bytes": 38141,
+    "gate_sha256": "bc0e25fd218f8e184595163a20affb050a0c1372b7a95a21b82bf45be91bf020",
+    "sha256": "bc0e25fd218f8e184595163a20affb050a0c1372b7a95a21b82bf45be91bf020"
+  },
+  "common/media/lua/server/NR_Server_Strength.lua": {
+    "bytes": 25619,
+    "gate_sha256": "c9ec6eded78abb7e3808651f68ac9dfc73fd4fdda1602e73e206999ba482734b",
+    "sha256": "c9ec6eded78abb7e3808651f68ac9dfc73fd4fdda1602e73e206999ba482734b"
+  },
+  "common/media/lua/server/NR_Server_Weight.lua": {
+    "bytes": 12082,
+    "gate_sha256": "f16c02356e52b49e697a7c8972be8f1d00ae16b65ae34c335c95a744668f6f41",
+    "sha256": "f16c02356e52b49e697a7c8972be8f1d00ae16b65ae34c335c95a744668f6f41"
+  },
+  "common/media/lua/server/NR_Server_Writer.lua": {
+    "bytes": 53472,
+    "gate_sha256": "665e3f7ee66071b0bde05eafe22a60c93678a2357a975b2a12db8dfecb8ea3e3",
+    "sha256": "665e3f7ee66071b0bde05eafe22a60c93678a2357a975b2a12db8dfecb8ea3e3"
+  },
+  "common/media/lua/shared/NR_Core.lua": {
+    "bytes": 16945,
+    "gate_sha256": "f24f38d0f2471d48362adba8b4f62b4469aa254015063a47178d5a8bf8647aeb",
+    "sha256": "f24f38d0f2471d48362adba8b4f62b4469aa254015063a47178d5a8bf8647aeb"
+  },
+  "common/media/lua/shared/NR_Data_Dials.lua": {
+    "bytes": 213593,
+    "gate_sha256": "9ae8915c3703a6efa0d4a77125da38852db1553f04a4eb5d8078d1a09cb328a6",
+    "sha256": "9ae8915c3703a6efa0d4a77125da38852db1553f04a4eb5d8078d1a09cb328a6"
+  },
+  "common/media/lua/shared/NR_Data_Effects.lua": {
+    "bytes": 56353,
+    "gate_sha256": "bc5eecf55a8b9d5a7bd54fb41308e98f2e9115ad4c1230bc8752809eb6dcd440",
+    "sha256": "bc5eecf55a8b9d5a7bd54fb41308e98f2e9115ad4c1230bc8752809eb6dcd440"
+  },
+  "common/media/lua/shared/NR_Data_Hedonics.lua": {
+    "bytes": 26123,
+    "gate_sha256": "284cac4e846f4694bae8b0d3311b15fdba464712e0d65631e7925001feead25b",
+    "sha256": "284cac4e846f4694bae8b0d3311b15fdba464712e0d65631e7925001feead25b"
+  },
+  "common/media/lua/shared/NR_Data_Infer.lua": {
+    "bytes": 16774,
+    "gate_sha256": "965af35af693f135de2be6b96f14b65b6834585b670a525cdabc5d341454ef7d",
+    "sha256": "965af35af693f135de2be6b96f14b65b6834585b670a525cdabc5d341454ef7d"
+  },
+  "common/media/lua/shared/NR_Data_Nutrients.lua": {
+    "bytes": 333534,
+    "gate_sha256": "d329b2a6aca7280d889cb8c4eb4162ef7904158a367d6a8fb02bc279f177a5ba",
+    "sha256": "d329b2a6aca7280d889cb8c4eb4162ef7904158a367d6a8fb02bc279f177a5ba"
+  },
+  "common/media/lua/shared/NR_Data_Records.lua": {
+    "bytes": 29912,
+    "gate_sha256": "4890c914e60f3e1ba51aa7551008ec0c45299671dd4c2a3eeb8f980d4e3534a8",
+    "sha256": "4890c914e60f3e1ba51aa7551008ec0c45299671dd4c2a3eeb8f980d4e3534a8"
+  },
+  "common/media/lua/shared/NR_Kernel.lua": {
+    "bytes": 5815,
+    "gate_sha256": "d78f0b5e583e968fdda41b176f6e7e1348aab45bacefd16fa3bc266b8e31599f",
+    "sha256": "d78f0b5e583e968fdda41b176f6e7e1348aab45bacefd16fa3bc266b8e31599f"
+  },
+  "common/media/lua/shared/NR_Kernel_Acute.lua": {
+    "bytes": 34365,
+    "gate_sha256": "17cccd56d5f38847ad3e07a255ddfa2e3b1dc8c7d960fedfcc73601929023cfa",
+    "sha256": "17cccd56d5f38847ad3e07a255ddfa2e3b1dc8c7d960fedfcc73601929023cfa"
+  },
+  "common/media/lua/shared/NR_Kernel_Aerobic.lua": {
+    "bytes": 6303,
+    "gate_sha256": "940ceb8b34d018d0ac2da451d64b79f6c166f2bf1ef3bb87bd25527ecd5dad7b",
+    "sha256": "940ceb8b34d018d0ac2da451d64b79f6c166f2bf1ef3bb87bd25527ecd5dad7b"
+  },
+  "common/media/lua/shared/NR_Kernel_Body.lua": {
+    "bytes": 18421,
+    "gate_sha256": "381460da858bfffb6c54743d1ee3442f7d9345fae8d1131ba335e5fb644081a1",
+    "sha256": "381460da858bfffb6c54743d1ee3442f7d9345fae8d1131ba335e5fb644081a1"
+  },
+  "common/media/lua/shared/NR_Kernel_Deficit.lua": {
+    "bytes": 8863,
+    "gate_sha256": "328f5386d798d76cc413de7d5661227bd9051b8db019d766aee63570f322fc8f",
+    "sha256": "328f5386d798d76cc413de7d5661227bd9051b8db019d766aee63570f322fc8f"
+  },
+  "common/media/lua/shared/NR_Kernel_Dials.lua": {
+    "bytes": 6436,
+    "gate_sha256": "ad3de0e42db53e945ffe8123ac4aa52abb373cb0bc92c6ae812f595d9d585357",
+    "sha256": "ad3de0e42db53e945ffe8123ac4aa52abb373cb0bc92c6ae812f595d9d585357"
+  },
+  "common/media/lua/shared/NR_Kernel_Drain.lua": {
+    "bytes": 39689,
+    "gate_sha256": "4c474aec0938f02968ef7f0eed592622dea3c84c1556be4dd2b4f96036637db6",
+    "sha256": "4c474aec0938f02968ef7f0eed592622dea3c84c1556be4dd2b4f96036637db6"
+  },
+  "common/media/lua/shared/NR_Kernel_Effects.lua": {
+    "bytes": 29584,
+    "gate_sha256": "d8cc9b3a6ea72dbf2cd845c1dd4a6e3daaafbfcf7efc8308cfca9a7794bb1697",
+    "sha256": "d8cc9b3a6ea72dbf2cd845c1dd4a6e3daaafbfcf7efc8308cfca9a7794bb1697"
+  },
+  "common/media/lua/shared/NR_Kernel_Energy.lua": {
+    "bytes": 21514,
+    "gate_sha256": "b6f661189f1116721cacfb11afa45a17617be445c3ea12ce6638d553da47765d",
+    "sha256": "b6f661189f1116721cacfb11afa45a17617be445c3ea12ce6638d553da47765d"
+  },
+  "common/media/lua/shared/NR_Kernel_Fluids.lua": {
+    "bytes": 19012,
+    "gate_sha256": "0d68429fa1b48ff9e15582b01a4cf23383ef9b1f58b4e9d367f6ae9b01440cf0",
+    "sha256": "0d68429fa1b48ff9e15582b01a4cf23383ef9b1f58b4e9d367f6ae9b01440cf0"
+  },
+  "common/media/lua/shared/NR_Kernel_Heal.lua": {
+    "bytes": 9282,
+    "gate_sha256": "0d06ffc6ac06ecef3061b573a98c3afba3078894522c87e402906ac48266496d",
+    "sha256": "0d06ffc6ac06ecef3061b573a98c3afba3078894522c87e402906ac48266496d"
+  },
+  "common/media/lua/shared/NR_Kernel_Hedonics.lua": {
+    "bytes": 14758,
+    "gate_sha256": "ab5a5b14d4e036d4e04e422f2e114fc488369504b5a20d9a26a0d7942dc39bf4",
+    "sha256": "ab5a5b14d4e036d4e04e422f2e114fc488369504b5a20d9a26a0d7942dc39bf4"
+  },
+  "common/media/lua/shared/NR_Kernel_HungerCurve.lua": {
+    "bytes": 6777,
+    "gate_sha256": "0b25036073c53ba49c0bef85b7ff9828f123601e0477c7b3297d17336e130cc8",
+    "sha256": "0b25036073c53ba49c0bef85b7ff9828f123601e0477c7b3297d17336e130cc8"
+  },
+  "common/media/lua/shared/NR_Kernel_Hybrid.lua": {
+    "bytes": 14078,
+    "gate_sha256": "25434a9a474d40ffcde4d7da6a562e53ee84048c400777cfa79dfdcfd859f1cb",
+    "sha256": "25434a9a474d40ffcde4d7da6a562e53ee84048c400777cfa79dfdcfd859f1cb"
+  },
+  "common/media/lua/shared/NR_Kernel_Intake.lua": {
+    "bytes": 11202,
+    "gate_sha256": "75e62750dea3de6450da78f3890d9a935e34b17454ed542befeb7e4c60158467",
+    "sha256": "75e62750dea3de6450da78f3890d9a935e34b17454ed542befeb7e4c60158467"
+  },
+  "common/media/lua/shared/NR_Kernel_Interact.lua": {
+    "bytes": 10033,
+    "gate_sha256": "ecd88d0202e2c6431af4a8ea88812bccfb69308bdd95fe99ce6b38986a7e1907",
+    "sha256": "ecd88d0202e2c6431af4a8ea88812bccfb69308bdd95fe99ce6b38986a7e1907"
+  },
+  "common/media/lua/shared/NR_Kernel_Json.lua": {
+    "bytes": 8363,
+    "gate_sha256": "2b906ddc34173034bb15cc69f7873a864435bb7cec69fd148749e598559964ea",
+    "sha256": "2b906ddc34173034bb15cc69f7873a864435bb7cec69fd148749e598559964ea"
+  },
+  "common/media/lua/shared/NR_Kernel_Mirror.lua": {
+    "bytes": 8751,
+    "gate_sha256": "542bdd748eb6eac39ef6f4c724305d8e5d6b4895917272900e5f77d51f78ab17",
+    "sha256": "542bdd748eb6eac39ef6f4c724305d8e5d6b4895917272900e5f77d51f78ab17"
+  },
+  "common/media/lua/shared/NR_Kernel_Monotony.lua": {
+    "bytes": 11864,
+    "gate_sha256": "7b404eb524d98961e74140cd68f164e765cf6c87e005a4e039167952dc2c61b0",
+    "sha256": "7b404eb524d98961e74140cd68f164e765cf6c87e005a4e039167952dc2c61b0"
+  },
+  "common/media/lua/shared/NR_Kernel_Nutrients.lua": {
+    "bytes": 14518,
+    "gate_sha256": "b0ebad2842eb2584c1d5d95e8e073f1635d56b18332de398d1a67a2b34d4effd",
+    "sha256": "b0ebad2842eb2584c1d5d95e8e073f1635d56b18332de398d1a67a2b34d4effd"
+  },
+  "common/media/lua/shared/NR_Kernel_Partition.lua": {
+    "bytes": 8066,
+    "gate_sha256": "4c11f4891a15cf8a807b66765ed4c5c10e99e4170bf266500b97fab397b43a56",
+    "sha256": "4c11f4891a15cf8a807b66765ed4c5c10e99e4170bf266500b97fab397b43a56"
+  },
+  "common/media/lua/shared/NR_Kernel_Reconcile.lua": {
+    "bytes": 3462,
+    "gate_sha256": "1e0e10ac4f385a3ddd590373847895262c2047bf7b925f3c44e57fedbc65f986",
+    "sha256": "1e0e10ac4f385a3ddd590373847895262c2047bf7b925f3c44e57fedbc65f986"
+  },
+  "common/media/lua/shared/NR_Kernel_Resume.lua": {
+    "bytes": 10684,
+    "gate_sha256": "5a352db688ebd81132a4a68540db9a2d247bf3fd24c9b7a0d86df53fef7c39de",
+    "sha256": "5a352db688ebd81132a4a68540db9a2d247bf3fd24c9b7a0d86df53fef7c39de"
+  },
+  "common/media/lua/shared/NR_Kernel_Retention.lua": {
+    "bytes": 6512,
+    "gate_sha256": "5e37142ffb3a32760f7b2d17c3007924ef6affa8a527c95eed5ff51fed062c13",
+    "sha256": "5e37142ffb3a32760f7b2d17c3007924ef6affa8a527c95eed5ff51fed062c13"
+  },
+  "common/media/lua/shared/NR_Kernel_Satiety.lua": {
+    "bytes": 17659,
+    "gate_sha256": "312c96fcc992185946828c973e5437bb82de618f8a6365c83722271662afe957",
+    "sha256": "312c96fcc992185946828c973e5437bb82de618f8a6365c83722271662afe957"
+  },
+  "common/media/lua/shared/NR_Kernel_Sched.lua": {
+    "bytes": 3576,
+    "gate_sha256": "45e36180859a8f4b77b30f44a15233adccbe85453b22b5ffd3386a7c3cfe0e3e",
+    "sha256": "45e36180859a8f4b77b30f44a15233adccbe85453b22b5ffd3386a7c3cfe0e3e"
+  },
+  "common/media/lua/shared/NR_Kernel_Stomach.lua": {
+    "bytes": 20192,
+    "gate_sha256": "ff48efee128a982d050f18ea821efa219eccb01cd4d6e325051f525f49b09827",
+    "sha256": "ff48efee128a982d050f18ea821efa219eccb01cd4d6e325051f525f49b09827"
+  },
+  "common/media/lua/shared/NR_Kernel_Store.lua": {
+    "bytes": 27912,
+    "gate_sha256": "0cb7147f44969d1421a3100115ec5654eac744ff2674e6292b82de5a80841fb3",
+    "sha256": "0cb7147f44969d1421a3100115ec5654eac744ff2674e6292b82de5a80841fb3"
+  },
+  "common/media/lua/shared/NR_Kernel_Strength.lua": {
+    "bytes": 30690,
+    "gate_sha256": "b05c93c7f05dc3eb045c2f6009b6f9ecddd8712afbe009a9dacfa7d49642e537",
+    "sha256": "b05c93c7f05dc3eb045c2f6009b6f9ecddd8712afbe009a9dacfa7d49642e537"
+  },
+  "common/media/lua/shared/NR_Kernel_Training.lua": {
+    "bytes": 4697,
+    "gate_sha256": "a7994a8f68c2dbd85293a09e3fc1294c53f9c0c8575719459890dcc446dadd67",
+    "sha256": "a7994a8f68c2dbd85293a09e3fc1294c53f9c0c8575719459890dcc446dadd67"
+  },
+  "common/media/lua/shared/NR_Kernel_Traits.lua": {
+    "bytes": 5574,
+    "gate_sha256": "5075712d73ef7b1ca21e697d3516d07ef397427addacae16c9178683de0f538b",
+    "sha256": "5075712d73ef7b1ca21e697d3516d07ef397427addacae16c9178683de0f538b"
+  },
+  "common/media/lua/shared/NR_Kernel_Vector.lua": {
+    "bytes": 13327,
+    "gate_sha256": "f012de44505c7d7d776db172e231354346ffe1458c0a4c68c773dad1db252ce4",
+    "sha256": "f012de44505c7d7d776db172e231354346ffe1458c0a4c68c773dad1db252ce4"
+  },
+  "common/media/lua/shared/NR_Kernel_View.lua": {
+    "bytes": 42912,
+    "gate_sha256": "8e99354f43e04c9b1944f74d42793d516c615424f7f7bb2d668ec4f2db05515e",
+    "sha256": "8e99354f43e04c9b1944f74d42793d516c615424f7f7bb2d668ec4f2db05515e"
+  },
+  "common/media/lua/shared/Translate/EN/IG_UI.json": {
+    "bytes": 38,
+    "sha256": "038c90ee3d9344f52079e62c397f77a28570bf458eef4aac059b8b97addcd3ce"
+  },
+  "common/media/lua/shared/Translate/EN/Moodles.json": {
+    "bytes": 812,
+    "sha256": "55f208d7cce873984d782a2ce03ec6921631cd7c8c3a93aef07a540e634caff6"
+  },
+  "common/media/lua/shared/Translate/EN/Sandbox.json": {
+    "bytes": 14939,
+    "sha256": "5f0094e6f62acc1ee330a28051b5e13f69251b5519694fa57d3d25e2eb08ea62"
+  },
+  "common/media/lua/shared/Translate/EN/UI.json": {
+    "bytes": 9407,
+    "sha256": "ed8a7312a098cf21208c307fbc88a8aae33dee7a4af893e0794b36f536528bde"
+  },
+  "common/media/scripts/NR_ItemPass_Food.txt": {
+    "bytes": 90127,
+    "gate_sha256": "639fbcf0bd913f7afdf54a8146027c59d4ac603469c84547056416fc8bfd0b2b",
+    "sha256": "639fbcf0bd913f7afdf54a8146027c59d4ac603469c84547056416fc8bfd0b2b"
+  },
+  "common/media/scripts/NR_Traits_Body.txt": {
+    "bytes": 5506,
+    "gate_sha256": "d29079f6f5a832dc1161a9d9dcc3316aeab3836b34806c5899ef2d19b6ca8ae3",
+    "sha256": "d29079f6f5a832dc1161a9d9dcc3316aeab3836b34806c5899ef2d19b6ca8ae3"
+  },
+  "common/media/ui/NutritionRevamp/deficiency.png": {
+    "bytes": 137,
+    "sha256": "dc843ded1b2fd2bb66706df06149b0c6cda734b6a2027c99bdcd933f9fa0fa56"
+  },
+  "common/media/ui/NutritionRevamp/excess.png": {
+    "bytes": 146,
+    "sha256": "5541fcfaee17e90100228654cccacb2c644727eb6c5a8cabed08ba5a7375304f"
+  },
+  "common/media/ui/NutritionRevamp/overfull.png": {
+    "bytes": 150,
+    "sha256": "5d76c7745dd9cd5f2964986dc0bfe19eb0fc5e627fda5820c2db8b503c9bb6b3"
+  },
+  "common/media/ui/NutritionRevamp/sleep.png": {
+    "bytes": 132,
+    "sha256": "9d62626dbccc4d024e83ab7f2012e0e311209757f7cf0f9b64f013997b8e7e80"
+  },
+  "common/media/ui/NutritionRevamp/stimulant.png": {
+    "bytes": 134,
+    "sha256": "1d1a9e5043ae8cd11f8c36a3d8d2d69bc5e469f9a0fc37cf664b8d3b8c6f7e22"
+  }
+}

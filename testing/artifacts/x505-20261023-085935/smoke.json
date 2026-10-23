@@ -1,0 +1,3988 @@
+{
+ "steps": [
+  {
+   "step": "S_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S",
+   "wall_before": 89.17,
+   "wall_after": 90.68,
+   "epoch_ms_before": 1792760464335,
+   "epoch_ms_after": 1792760465845,
+   "took": 1.51,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "S_sv",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G SandboxVars.Nutrition SandboxVars.DayLength SandboxVars.NR.Mode SandboxVars.NR.DeathPace SandboxVars.NR.HealthCombine SandboxVars.SleepAllowed NutritionRevamp.version NutritionRevamp.kernel.drain.OPT.pace NutritionRevamp.kernel.drain.OPT.combine NutritionRevamp.kernel.drain.OPT.dayMin",
+   "phase": "S",
+   "wall_before": 90.68,
+   "wall_after": 91.188,
+   "epoch_ms_before": 1792760465845,
+   "epoch_ms_after": 1792760466352,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 10,
+    "missing": {
+     "SandboxVars.SleepAllowed": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.Nutrition": false,
+     "SandboxVars.DayLength": 4,
+     "SandboxVars.NR.Mode": 1,
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1,
+     "NutritionRevamp.version": "1.0.0",
+     "NutritionRevamp.kernel.drain.OPT.pace": 2,
+     "NutritionRevamp.kernel.drain.OPT.combine": 1,
+     "NutritionRevamp.kernel.drain.OPT.dayMin": 90
+    }
+   }
+  },
+  {
+   "step": "S_clock",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S",
+   "wall_before": 91.188,
+   "wall_after": 92.698,
+   "epoch_ms_before": 1792760466352,
+   "epoch_ms_after": 1792760467863,
+   "took": 1.51,
+   "ack": {
+    "worldAge": 2.3405017852783203,
+    "hour": 9,
+    "minutes": 20,
+    "mult": 4.66577672958374,
+    "trueMult": 1,
+    "wall": 1792760467827
+   }
+  },
+  {
+   "step": "S_nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 92.698,
+   "wall_after": 94.713,
+   "epoch_ms_before": 1792760467863,
+   "epoch_ms_after": 1792760469878,
+   "took": 2.015,
+   "ack": {
+    "calories": 1.3423930406570435,
+    "carbs": -299.6746520996094,
+    "lipids": -69.91830444335938,
+    "proteins": -400,
+    "weight": 65.02499999999999,
+    "hunger": 0.020862732082605362,
+    "thirst": 0,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "S_stats_all",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 94.713,
+   "wall_after": 94.971,
+   "epoch_ms_before": 1792760469878,
+   "epoch_ms_after": 1792760470136,
+   "took": 0.258,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.00437443470582366,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.020862732082605362,
+     "Idleness": 0.022169403731822968,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.94503402709961,
+     "Thirst": 0,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792760470023,
+    "user": "admin",
+    "worldAge": 2.350111961364746,
+    "mult": 4.743310928344727
+   }
+  },
+  {
+   "step": "S_hstats",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.hedonics.stats.cooks NutritionRevamp.server.hedonics.stats.prepped NutritionRevamp.server.hedonics.stats.unprepped NutritionRevamp.server.hedonics.stats.cookFailures NutritionRevamp.server.hedonics.stats.passthrough NutritionRevamp.server.hedonics.stats.allies NutritionRevamp.server.hedonics.stats.restores NutritionRevamp.server.hedonics.stats.alliesFailures NutritionRevamp.server.hedonics.stats.booked NutritionRevamp.server.hedonics.stats.plain NutritionRevamp.server.hedonics.stats.healed NutritionRevamp.server.hedonics.stats.bookFailures NutritionRevamp.server.hedonics.wrappedCook NutritionRevamp.server.hedonics.lastError",
+   "phase": "S",
+   "wall_before": 94.971,
+   "wall_after": 96.739,
+   "epoch_ms_before": 1792760470136,
+   "epoch_ms_after": 1792760471904,
+   "took": 1.768,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 14,
+    "missing": {
+     "NutritionRevamp.server.hedonics.lastError": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.hedonics.stats.cooks": 0,
+     "NutritionRevamp.server.hedonics.stats.prepped": 0,
+     "NutritionRevamp.server.hedonics.stats.unprepped": 0,
+     "NutritionRevamp.server.hedonics.stats.cookFailures": 0,
+     "NutritionRevamp.server.hedonics.stats.passthrough": 0,
+     "NutritionRevamp.server.hedonics.stats.allies": 0,
+     "NutritionRevamp.server.hedonics.stats.restores": 0,
+     "NutritionRevamp.server.hedonics.stats.alliesFailures": 0,
+     "NutritionRevamp.server.hedonics.stats.booked": 0,
+     "NutritionRevamp.server.hedonics.stats.plain": 0,
+     "NutritionRevamp.server.hedonics.stats.healed": 0,
+     "NutritionRevamp.server.hedonics.stats.bookFailures": 0,
+     "NutritionRevamp.server.hedonics.wrappedCook": true
+    }
+   }
+  },
+  {
+   "step": "S_cooking",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Cooking",
+   "phase": "S",
+   "wall_before": 96.739,
+   "wall_after": 98.754,
+   "epoch_ms_before": 1792760471904,
+   "epoch_ms_after": 1792760473918,
+   "took": 2.015,
+   "ack": {
+    "perk": "Cooking",
+    "user": "admin",
+    "side": "server",
+    "xp": 0,
+    "level": 0,
+    "serverWorldAge": 2.366909980773926
+   }
+  },
+  {
+   "step": "S_health",
+   "side": "server",
+   "cmd": "health.get",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 98.754,
+   "wall_after": 100.769,
+   "epoch_ms_before": 1792760473918,
+   "epoch_ms_after": 1792760475934,
+   "took": 2.015,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "overall": 100,
+    "health": 100,
+    "parts": [
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100
+    ]
+   }
+  },
+  {
+   "step": "start_opts_server",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G SandboxVars.NR.DeathPace SandboxVars.NR.HealthCombine NutritionRevamp.server.options.deathPace NutritionRevamp.server.options.healthCombine NutritionRevamp.kernel.drain.OPT.pace NutritionRevamp.kernel.drain.OPT.combine NutritionRevamp.kernel.drain.OPT.dayMin NutritionRevamp.version",
+   "phase": "S",
+   "wall_before": 100.769,
+   "wall_after": 102.53,
+   "epoch_ms_before": 1792760475934,
+   "epoch_ms_after": 1792760477694,
+   "took": 1.761,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1,
+     "NutritionRevamp.server.options.deathPace": 2,
+     "NutritionRevamp.server.options.healthCombine": 1,
+     "NutritionRevamp.kernel.drain.OPT.pace": 2,
+     "NutritionRevamp.kernel.drain.OPT.combine": 1,
+     "NutritionRevamp.kernel.drain.OPT.dayMin": 90,
+     "NutritionRevamp.version": "1.0.0"
+    }
+   }
+  },
+  {
+   "step": "start_opts_client",
+   "side": "client",
+   "cmd": "lua.read",
+   "args": "_G SandboxVars.NR.DeathPace SandboxVars.NR.HealthCombine NutritionRevamp.version",
+   "phase": "S",
+   "wall_before": 102.53,
+   "wall_after": 103.041,
+   "epoch_ms_before": 1792760477694,
+   "epoch_ms_after": 1792760478206,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "_G",
+    "n": 3,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1,
+     "NutritionRevamp.version": "1.0.0"
+    }
+   }
+  },
+  {
+   "step": "I_Potato_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Potato",
+   "phase": "I",
+   "wall_before": 103.043,
+   "wall_after": 104.811,
+   "epoch_ms_before": 1792760478208,
+   "epoch_ms_after": 1792760479976,
+   "took": 1.768,
+   "ack": "no item Base.Potato in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "I_Potato_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Potato\" 1",
+   "phase": "I",
+   "wall_before": 104.811,
+   "wall_after": 104.833,
+   "epoch_ms_before": 1792760479976,
+   "epoch_ms_after": 1792760479998,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "I_Potato_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Potato",
+   "phase": "I",
+   "wall_before": 107.334,
+   "wall_after": 108.849,
+   "epoch_ms_before": 1792760482498,
+   "epoch_ms_after": 1792760484014,
+   "took": 1.515,
+   "ack": {
+    "fullType": "Base.Potato",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.18000000715255737,
+    "baseHunger": -0.18000000715255737,
+    "calories": 69.97000122070312,
+    "carbs": 15.930000305175781,
+    "lipids": 0.10000000149011612,
+    "proteins": 1.7000000476837158,
+    "id": 340101903,
+    "uses": 0.18000000715255737,
+    "fresh": true,
+    "offAge": 28,
+    "offAgeMax": 280,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 10,
+    "minutesToBurn": 30,
+    "thirstChange": -0.07000000029802322,
+    "hungerChange": -0.18000000715255737,
+    "isCookable": true,
+    "actualWeight": 0.20000000298023224,
+    "weight": 0.20000000298023224,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.4112634658813477
+   }
+  },
+  {
+   "step": "I2C_age",
+   "side": "server",
+   "cmd": "item.set",
+   "args": "admin Base.Potato age 30.0",
+   "phase": "I2C",
+   "wall_before": 108.853,
+   "wall_after": 110.114,
+   "epoch_ms_before": 1792760484018,
+   "epoch_ms_after": 1792760485278,
+   "took": 1.261,
+   "ack": {
+    "fullType": "Base.Potato",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 30,
+    "hungChange": -0.18000000715255737,
+    "baseHunger": -0.18000000715255737,
+    "calories": 69.97000122070312,
+    "carbs": 15.930000305175781,
+    "lipids": 0.10000000149011612,
+    "proteins": 1.7000000476837158,
+    "id": 340101903,
+    "uses": 0.18000000715255737,
+    "fresh": false,
+    "offAge": 28,
+    "offAgeMax": 280,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 10,
+    "minutesToBurn": 30,
+    "thirstChange": -0.07000000029802322,
+    "hungerChange": -0.13846154510974884,
+    "isCookable": true,
+    "actualWeight": 0.20000000298023224,
+    "weight": 0.20000000298023224,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Base.Potato",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.18000000715255737,
+     "baseHunger": -0.18000000715255737,
+     "calories": 69.97000122070312,
+     "carbs": 15.930000305175781,
+     "lipids": 0.10000000149011612,
+     "proteins": 1.7000000476837158,
+     "id": 340101903,
+     "uses": 0.18000000715255737,
+     "fresh": true,
+     "offAge": 28,
+     "offAgeMax": 280,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 10,
+     "minutesToBurn": 30,
+     "thirstChange": -0.07000000029802322,
+     "hungerChange": -0.18000000715255737,
+     "isCookable": true,
+     "actualWeight": 0.20000000298023224,
+     "weight": 0.20000000298023224,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "requested": 30,
+    "field": "age",
+    "gameMinute": 25,
+    "serverWorldAge": 2.4170379638671875
+   }
+  },
+  {
+   "step": "I2C_id",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Potato",
+   "phase": "I2C",
+   "wall_before": 110.114,
+   "wall_after": 110.876,
+   "epoch_ms_before": 1792760485279,
+   "epoch_ms_after": 1792760486040,
+   "took": 0.762,
+   "ack": {
+    "fullType": "Base.Potato",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 30,
+    "hungChange": -0.18000000715255737,
+    "baseHunger": -0.18000000715255737,
+    "calories": 69.97000122070312,
+    "carbs": 15.930000305175781,
+    "lipids": 0.10000000149011612,
+    "proteins": 1.7000000476837158,
+    "id": 340101903,
+    "uses": 0.18000000715255737,
+    "fresh": false,
+    "offAge": 28,
+    "offAgeMax": 280,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 10,
+    "minutesToBurn": 30,
+    "thirstChange": -0.07000000029802322,
+    "hungerChange": -0.13846154510974884,
+    "isCookable": true,
+    "actualWeight": 0.20000000298023224,
+    "weight": 0.20000000298023224,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.420145034790039
+   }
+  },
+  {
+   "step": "I2C_i0_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#340101903 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "I2C",
+   "wall_before": 110.876,
+   "wall_after": 112.888,
+   "epoch_ms_before": 1792760486041,
+   "epoch_ms_after": 1792760488052,
+   "took": 2.012,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#340101903",
+    "resolved": "admin/Base.Potato #340101903",
+    "fields": {
+     "getUnhappyChangeUnmodified": 5,
+     "getUnhappyChange": 15,
+     "getBoredomChange": 10,
+     "getName": "Potato (Stale, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.18000000715255737,
+     "getCalories": 69.97000122070312
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.429020881652832,
+    "count": 7
+   }
+  },
+  {
+   "step": "I2C_c0_f",
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "item #340101903 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "I2C",
+   "wall_before": 112.888,
+   "wall_after": 113.144,
+   "epoch_ms_before": 1792760488052,
+   "epoch_ms_after": 1792760488309,
+   "took": 0.256,
+   "ack": {
+    "side": "client",
+    "subject": "item",
+    "id": "#340101903",
+    "resolved": "admin/Base.Potato #340101903",
+    "fields": {
+     "getUnhappyChangeUnmodified": 15,
+     "getUnhappyChange": 15,
+     "getBoredomChange": 10,
+     "getName": "Potato (Fresh, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.18000000715255737,
+     "getCalories": 69.97000122070312
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.430675506591797,
+    "count": 7
+   }
+  },
+  {
+   "step": "I2C_rec0",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin moodLast.u lastIntake.fullType lastIntake.allies lastIntake.frac satiety.M hedonics.f",
+   "phase": "I2C",
+   "wall_before": 113.144,
+   "wall_after": 113.903,
+   "epoch_ms_before": 1792760488309,
+   "epoch_ms_after": 1792760489067,
+   "took": 0.759,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 6,
+    "missing": {
+     "lastIntake.fullType": "nil at lastIntake",
+     "lastIntake.allies": "nil at lastIntake",
+     "lastIntake.frac": "nil at lastIntake",
+     "hedonics.f": "nil at hedonics"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "moodLast.u": 0,
+     "satiety.M": 665.3476412789872
+    }
+   }
+  },
+  {
+   "step": "I2C_st0",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "I2C",
+   "wall_before": 113.903,
+   "wall_after": 114.911,
+   "epoch_ms_before": 1792760489067,
+   "epoch_ms_after": 1792760490076,
+   "took": 1.008,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.050225649029016495,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.025027571246027946,
+     "Idleness": 0.07483358681201935,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.849674224853516,
+     "Thirst": 0,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792760489824,
+    "user": "admin",
+    "worldAge": 2.4378929138183594,
+    "mult": 4.781035900115967
+   }
+  },
+  {
+   "step": "I2C_eat",
+   "side": "client",
+   "cmd": "eat.action",
+   "args": "Base.Potato 0.25",
+   "phase": "I2C",
+   "wall_before": 117.69,
+   "wall_after": 118.199,
+   "epoch_ms_before": 1792760492854,
+   "epoch_ms_after": 1792760493363,
+   "took": 0.509,
+   "ack": {
+    "queued": true,
+    "fraction": 0.25,
+    "spawned": "found",
+    "itemId": 340101903,
+    "itemBefore": {
+     "fullType": "Base.Potato",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.18000000715255737,
+     "baseHunger": -0.18000000715255737,
+     "calories": 69.97000122070312,
+     "carbs": 15.930000305175781,
+     "lipids": 0.10000000149011612,
+     "proteins": 1.7000000476837158,
+     "id": 340101903,
+     "uses": 0.18000000715255737,
+     "fresh": true,
+     "offAge": 28,
+     "offAgeMax": 280,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 10,
+     "minutesToBurn": 30,
+     "thirstChange": -0.07000000029802322,
+     "hungerChange": -0.18000000715255737,
+     "isCookable": true,
+     "actualWeight": 0.20000000298023224,
+     "weight": 0.20000000298023224,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.00420379638672,
+    "moodleFoodEaten": 1,
+    "before": {
+     "calories": 10.513846397399902,
+     "carbs": -297.4283142089844,
+     "lipids": -69.35423278808594,
+     "proteins": -400,
+     "weight": 65.0250015258789,
+     "hunger": 0.02572757750749588,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "I2C_st1",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "I2C",
+   "wall_before": 125.017,
+   "wall_after": 126.786,
+   "epoch_ms_before": 1792760500182,
+   "epoch_ms_after": 1792760501951,
+   "took": 1.769,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 2.602288007736206,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.020962707698345184,
+     "Idleness": 0.10673921555280685,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.81409454345703,
+     "Thirst": 0,
+     "Unhappiness": 3.75,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792760501829,
+    "user": "admin",
+    "worldAge": 2.4910717010498047,
+    "mult": 4.7759108543396
+   }
+  },
+  {
+   "step": "I2C_i1_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#340101903 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "I2C",
+   "wall_before": 126.786,
+   "wall_after": 128.803,
+   "epoch_ms_before": 1792760501951,
+   "epoch_ms_after": 1792760503967,
+   "took": 2.017,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#340101903",
+    "resolved": "admin/Base.Potato #340101903",
+    "fields": {
+     "getUnhappyChangeUnmodified": 3.75,
+     "getUnhappyChange": 13.75,
+     "getBoredomChange": 10,
+     "getName": "Potato (Stale, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.13500000536441803,
+     "getCalories": 52.477500915527344
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.4999208450317383,
+    "count": 7
+   }
+  },
+  {
+   "step": "I2C_c1_f",
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "item #340101903 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "I2C",
+   "wall_before": 129.803,
+   "wall_after": 130.065,
+   "epoch_ms_before": 1792760504968,
+   "epoch_ms_after": 1792760505230,
+   "took": 0.262,
+   "ack": {
+    "side": "client",
+    "subject": "item",
+    "id": "#340101903",
+    "resolved": "admin/Base.Potato #340101903",
+    "fields": {
+     "getUnhappyChangeUnmodified": 13.75,
+     "getUnhappyChange": 13.75,
+     "getBoredomChange": 10,
+     "getName": "Potato (Fresh, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.13500000536441803,
+     "getCalories": 52.477500915527344
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.5060014724731445,
+    "count": 7
+   }
+  },
+  {
+   "step": "I2C_i1b_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#340101903 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "I2C",
+   "wall_before": 130.065,
+   "wall_after": 130.826,
+   "epoch_ms_before": 1792760505230,
+   "epoch_ms_after": 1792760505991,
+   "took": 0.761,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#340101903",
+    "resolved": "admin/Base.Potato #340101903",
+    "fields": {
+     "getUnhappyChangeUnmodified": 3.75,
+     "getUnhappyChange": 13.75,
+     "getBoredomChange": 10,
+     "getName": "Potato (Stale, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.13500000536441803,
+     "getCalories": 52.477500915527344
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.508784294128418,
+    "count": 7
+   }
+  },
+  {
+   "step": "I2C_rec1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin moodLast.u lastIntake.fullType lastIntake.allies lastIntake.frac satiety.M hedonics.f",
+   "phase": "I2C",
+   "wall_before": 130.826,
+   "wall_after": 132.59,
+   "epoch_ms_before": 1792760505991,
+   "epoch_ms_after": 1792760507754,
+   "took": 1.764,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 6,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "moodLast.u": 0,
+     "lastIntake.fullType": "Base.Potato",
+     "lastIntake.allies": 1,
+     "lastIntake.frac": 0.25,
+     "satiety.M": 621.8449743581982,
+     "hedonics.f": 0
+    }
+   }
+  },
+  {
+   "step": "T72_hseed_M",
+   "side": "server",
+   "cmd": "record.set",
+   "args": "admin satiety.M 0",
+   "phase": "T72",
+   "wall_before": 132.592,
+   "wall_after": 132.851,
+   "epoch_ms_before": 1792760507757,
+   "epoch_ms_after": 1792760508016,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "path": "satiety.M",
+    "key": "M",
+    "keyType": "string",
+    "beforeType": "number",
+    "before": 609.8517103632892,
+    "afterType": "number",
+    "after": 0
+   }
+  },
+  {
+   "step": "T72_hseed_h",
+   "side": "server",
+   "cmd": "stats.setany",
+   "args": "admin HUNGER 0.32",
+   "phase": "T72",
+   "wall_before": 134.866,
+   "wall_after": 136.381,
+   "epoch_ms_before": 1792760510031,
+   "epoch_ms_after": 1792760511546,
+   "took": 1.515,
+   "ack": {
+    "ok": true,
+    "stat": "HUNGER",
+    "side": "server",
+    "requested": 0.32,
+    "before": 0.022365625947713852,
+    "after": 0.3199999928474426
+   }
+  },
+  {
+   "step": "T72_id",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Potato",
+   "phase": "T72",
+   "wall_before": 140.676,
+   "wall_after": 142.69,
+   "epoch_ms_before": 1792760515841,
+   "epoch_ms_after": 1792760517855,
+   "took": 2.014,
+   "ack": {
+    "fullType": "Base.Potato",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 30.00653839111328,
+    "hungChange": -0.13500000536441803,
+    "baseHunger": -0.18000000715255737,
+    "calories": 52.477500915527344,
+    "carbs": 11.947500228881836,
+    "lipids": 0.07500000298023224,
+    "proteins": 1.2750000953674316,
+    "id": 340101903,
+    "uses": 0.13500000536441803,
+    "fresh": false,
+    "offAge": 28,
+    "offAgeMax": 280,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 10,
+    "minutesToBurn": 30,
+    "thirstChange": -0.05250000208616257,
+    "hungerChange": -0.10384616255760193,
+    "isCookable": true,
+    "actualWeight": 0.15000002086162567,
+    "weight": 0.20000000298023224,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.5620269775390625
+   }
+  },
+  {
+   "step": "T72_i0_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#340101903 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "T72",
+   "wall_before": 142.69,
+   "wall_after": 143.957,
+   "epoch_ms_before": 1792760517855,
+   "epoch_ms_after": 1792760519121,
+   "took": 1.267,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#340101903",
+    "resolved": "admin/Base.Potato #340101903",
+    "fields": {
+     "getUnhappyChangeUnmodified": 3.75,
+     "getUnhappyChange": 13.75,
+     "getBoredomChange": 10,
+     "getName": "Potato (Stale, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.13500000536441803,
+     "getCalories": 52.477500915527344
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.566904067993164,
+    "count": 7
+   }
+  },
+  {
+   "step": "T72_c0_f",
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "item #340101903 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "T72",
+   "wall_before": 143.957,
+   "wall_after": 144.218,
+   "epoch_ms_before": 1792760519121,
+   "epoch_ms_after": 1792760519383,
+   "took": 0.261,
+   "ack": {
+    "side": "client",
+    "subject": "item",
+    "id": "#340101903",
+    "resolved": "admin/Base.Potato #340101903",
+    "fields": {
+     "getUnhappyChangeUnmodified": 13.75,
+     "getUnhappyChange": 13.75,
+     "getBoredomChange": 10,
+     "getName": "Potato (Fresh, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.13500000536441803,
+     "getCalories": 52.477500915527344
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.5678834915161133,
+    "count": 7
+   }
+  },
+  {
+   "step": "T72_rec0",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin moodLast.u lastIntake.fullType lastIntake.allies lastIntake.frac satiety.M hedonics.f",
+   "phase": "T72",
+   "wall_before": 144.218,
+   "wall_after": 144.728,
+   "epoch_ms_before": 1792760519383,
+   "epoch_ms_after": 1792760519893,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 6,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "moodLast.u": 0,
+     "lastIntake.fullType": "Base.Potato",
+     "lastIntake.allies": 1,
+     "lastIntake.frac": 0.25,
+     "satiety.M": 0,
+     "hedonics.f": 0
+    }
+   }
+  },
+  {
+   "step": "T72_st0",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "T72",
+   "wall_before": 144.728,
+   "wall_after": 146.742,
+   "epoch_ms_before": 1792760519893,
+   "epoch_ms_after": 1792760521907,
+   "took": 2.014,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 2.7298946380615234,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.5548970103263855,
+     "Idleness": 0.15995542705059052,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.742061614990234,
+     "Thirst": 0,
+     "Unhappiness": 3.75,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792760521826,
+    "user": "admin",
+    "worldAge": 2.5797643661499023,
+    "mult": 4.792719841003418
+   }
+  },
+  {
+   "step": "T72_eat",
+   "side": "client",
+   "cmd": "eat.action",
+   "args": "Base.Potato 0.25",
+   "phase": "T72",
+   "wall_before": 148.766,
+   "wall_after": 149.024,
+   "epoch_ms_before": 1792760523931,
+   "epoch_ms_after": 1792760524189,
+   "took": 0.258,
+   "ack": {
+    "queued": true,
+    "fraction": 0.25,
+    "spawned": "found",
+    "itemId": 340101903,
+    "itemBefore": {
+     "fullType": "Base.Potato",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.13500000536441803,
+     "baseHunger": -0.18000000715255737,
+     "calories": 52.477500915527344,
+     "carbs": 11.947500228881836,
+     "lipids": 0.07500000298023224,
+     "proteins": 1.2750000953674316,
+     "id": 340101903,
+     "uses": 0.13500000536441803,
+     "fresh": true,
+     "offAge": 28,
+     "offAgeMax": 280,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 10,
+     "minutesToBurn": 30,
+     "thirstChange": -0.05250000208616257,
+     "hungerChange": -0.13500000536441803,
+     "isCookable": true,
+     "actualWeight": 0.15000002086162567,
+     "weight": 0.20000000298023224,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.03567695617676,
+    "moodleFoodEaten": 0,
+    "before": {
+     "calories": 20.9058837890625,
+     "carbs": -294.80767822265625,
+     "lipids": -68.72830200195312,
+     "proteins": -400,
+     "weight": 65.0250015258789,
+     "hunger": 0.5569751262664795,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "T72_st1",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "T72",
+   "wall_before": 155.086,
+   "wall_after": 156.848,
+   "epoch_ms_before": 1792760530250,
+   "epoch_ms_after": 1792760532012,
+   "took": 1.762,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 6.146150588989258,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.03470781818032265,
+     "Idleness": 0.1865648329257965,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.71316146850586,
+     "Thirst": 0,
+     "Unhappiness": 6.5,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792760531825,
+    "user": "admin",
+    "worldAge": 2.624112129211426,
+    "mult": 4.781273365020752
+   }
+  },
+  {
+   "step": "T72_i1_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#340101903 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "T72",
+   "wall_before": 156.848,
+   "wall_after": 158.86,
+   "epoch_ms_before": 1792760532012,
+   "epoch_ms_after": 1792760534024,
+   "took": 2.012,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#340101903",
+    "resolved": "admin/Base.Potato #340101903",
+    "fields": {
+     "getUnhappyChangeUnmodified": 2.5,
+     "getUnhappyChange": 12.5,
+     "getBoredomChange": 10,
+     "getName": "Potato (Stale, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.08999999612569809,
+     "getCalories": 34.9849967956543
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.6329774856567383,
+    "count": 7
+   }
+  },
+  {
+   "step": "T72_c1_f",
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "item #340101903 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "T72",
+   "wall_before": 159.86,
+   "wall_after": 160.12,
+   "epoch_ms_before": 1792760535024,
+   "epoch_ms_after": 1792760535284,
+   "took": 0.26,
+   "ack": {
+    "side": "client",
+    "subject": "item",
+    "id": "#340101903",
+    "resolved": "admin/Base.Potato #340101903",
+    "fields": {
+     "getUnhappyChangeUnmodified": 12.5,
+     "getUnhappyChange": 12.5,
+     "getBoredomChange": 10,
+     "getName": "Potato (Fresh, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.08999999612569809,
+     "getCalories": 34.9849967956543
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.6390180587768555,
+    "count": 7
+   }
+  },
+  {
+   "step": "T72_i1b_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#340101903 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "T72",
+   "wall_before": 160.12,
+   "wall_after": 160.878,
+   "epoch_ms_before": 1792760535284,
+   "epoch_ms_after": 1792760536043,
+   "took": 0.758,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#340101903",
+    "resolved": "admin/Base.Potato #340101903",
+    "fields": {
+     "getUnhappyChangeUnmodified": 2.5,
+     "getUnhappyChange": 12.5,
+     "getBoredomChange": 10,
+     "getName": "Potato (Stale, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.08999999612569809,
+     "getCalories": 34.9849967956543
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.6418514251708984,
+    "count": 7
+   }
+  },
+  {
+   "step": "T72_rec1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin moodLast.u lastIntake.fullType lastIntake.allies lastIntake.frac satiety.M hedonics.f",
+   "phase": "T72",
+   "wall_before": 160.878,
+   "wall_after": 162.639,
+   "epoch_ms_before": 1792760536043,
+   "epoch_ms_after": 1792760537803,
+   "took": 1.761,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 6,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "moodLast.u": 0,
+     "lastIntake.fullType": "Base.Potato",
+     "lastIntake.allies": 0.6,
+     "lastIntake.frac": 0.333333388522817,
+     "satiety.M": 19.18761350974501,
+     "hedonics.f": 0
+    }
+   }
+  },
+  {
+   "step": "end_opts_server",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G SandboxVars.NR.DeathPace SandboxVars.NR.HealthCombine NutritionRevamp.server.options.deathPace NutritionRevamp.server.options.healthCombine NutritionRevamp.kernel.drain.OPT.pace NutritionRevamp.kernel.drain.OPT.combine NutritionRevamp.kernel.drain.OPT.dayMin NutritionRevamp.version",
+   "phase": "O",
+   "wall_before": 162.642,
+   "wall_after": 162.9,
+   "epoch_ms_before": 1792760537807,
+   "epoch_ms_after": 1792760538065,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1,
+     "NutritionRevamp.server.options.deathPace": 2,
+     "NutritionRevamp.server.options.healthCombine": 1,
+     "NutritionRevamp.kernel.drain.OPT.pace": 2,
+     "NutritionRevamp.kernel.drain.OPT.combine": 1,
+     "NutritionRevamp.kernel.drain.OPT.dayMin": 90,
+     "NutritionRevamp.version": "1.0.0"
+    }
+   }
+  },
+  {
+   "step": "end_opts_client",
+   "side": "client",
+   "cmd": "lua.read",
+   "args": "_G SandboxVars.NR.DeathPace SandboxVars.NR.HealthCombine NutritionRevamp.version",
+   "phase": "O",
+   "wall_before": 162.901,
+   "wall_after": 163.159,
+   "epoch_ms_before": 1792760538065,
+   "epoch_ms_after": 1792760538324,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "root": "_G",
+    "n": 3,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1,
+     "NutritionRevamp.version": "1.0.0"
+    }
+   }
+  },
+  {
+   "step": "C_hstats",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.hedonics.stats.cooks NutritionRevamp.server.hedonics.stats.prepped NutritionRevamp.server.hedonics.stats.unprepped NutritionRevamp.server.hedonics.stats.cookFailures NutritionRevamp.server.hedonics.stats.passthrough NutritionRevamp.server.hedonics.stats.allies NutritionRevamp.server.hedonics.stats.restores NutritionRevamp.server.hedonics.stats.alliesFailures NutritionRevamp.server.hedonics.stats.booked NutritionRevamp.server.hedonics.stats.plain NutritionRevamp.server.hedonics.stats.healed NutritionRevamp.server.hedonics.stats.bookFailures NutritionRevamp.server.hedonics.wrappedCook NutritionRevamp.server.hedonics.lastError",
+   "phase": "C",
+   "wall_before": 163.162,
+   "wall_after": 164.923,
+   "epoch_ms_before": 1792760538327,
+   "epoch_ms_after": 1792760540087,
+   "took": 1.761,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 14,
+    "missing": {
+     "NutritionRevamp.server.hedonics.lastError": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.hedonics.stats.cooks": 0,
+     "NutritionRevamp.server.hedonics.stats.prepped": 0,
+     "NutritionRevamp.server.hedonics.stats.unprepped": 0,
+     "NutritionRevamp.server.hedonics.stats.cookFailures": 0,
+     "NutritionRevamp.server.hedonics.stats.passthrough": 0,
+     "NutritionRevamp.server.hedonics.stats.allies": 1,
+     "NutritionRevamp.server.hedonics.stats.restores": 1,
+     "NutritionRevamp.server.hedonics.stats.alliesFailures": 0,
+     "NutritionRevamp.server.hedonics.stats.booked": 2,
+     "NutritionRevamp.server.hedonics.stats.plain": 0,
+     "NutritionRevamp.server.hedonics.stats.healed": 0,
+     "NutritionRevamp.server.hedonics.stats.bookFailures": 0,
+     "NutritionRevamp.server.hedonics.wrappedCook": true
+    }
+   }
+  },
+  {
+   "step": "C_restore",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "C",
+   "wall_before": 164.923,
+   "wall_after": 164.987,
+   "epoch_ms_before": 1792760540088,
+   "epoch_ms_after": 1792760540152,
+   "ack": {
+    "ok": true,
+    "reply": "Multiplier was set on the following value: 1.0"
+   }
+  },
+  {
+   "step": "C_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 164.987,
+   "wall_after": 166.496,
+   "epoch_ms_before": 1792760540152,
+   "epoch_ms_after": 1792760541661,
+   "took": 1.509,
+   "ack": {
+    "worldAge": 2.666691780090332,
+    "hour": 9,
+    "minutes": 40,
+    "mult": 4.788824558258057,
+    "trueMult": 1,
+    "wall": 1792760541428
+   }
+  },
+  {
+   "step": "C_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 166.496,
+   "wall_after": 166.753,
+   "epoch_ms_before": 1792760541661,
+   "epoch_ms_after": 1792760541918,
+   "took": 0.257,
+   "ack": {
+    "worldAge": 2.668466567993164,
+    "hour": 9,
+    "minutes": 40,
+    "mult": 4.779931545257568,
+    "trueMult": 1,
+    "wall": 1792760541826
+   }
+  }
+ ],
+ "notes": [],
+ "phase_walls": {
+  "S": {
+   "start": 89.17,
+   "end": 103.041
+  },
+  "I": {
+   "start": 103.043,
+   "end": 108.849
+  },
+  "I2C": {
+   "start": 108.853,
+   "end": 132.59
+  },
+  "T72": {
+   "start": 132.592,
+   "end": 162.639
+  },
+  "O": {
+   "start": 162.642,
+   "end": 163.159
+  },
+  "C": {
+   "start": 163.162,
+   "end": 166.753
+  }
+ },
+ "phase_errors": {},
+ "verdicts": {
+  "INI": {
+   "phase": "INI",
+   "predicted": "the seeded NR block holds DeathPace = 2 and HealthCombine = 1",
+   "falsifier": "the seeded options file lacks NR.DeathPace = 2 or NR.HealthCombine = 1",
+   "observed": {
+    "seeded_nr_block": {
+     "DeathPace": "2",
+     "HealthCombine": "1",
+     "Mode": "1"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 176.657
+  },
+  "OPT_SERVER": {
+   "phase": "OPT_SERVER",
+   "predicted": "SandboxVars.NR.DeathPace 2 and HealthCombine 1 on the server",
+   "falsifier": "SandboxVars.NR.DeathPace or HealthCombine reads another value on the server",
+   "observed": {
+    "side": "server",
+    "set": "end",
+    "values": {
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1
+    },
+    "want": {
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1
+    },
+    "error": null
+   },
+   "verdict": "as_predicted",
+   "wall": 176.658
+  },
+  "OPT_ADMIN": {
+   "phase": "OPT_ADMIN",
+   "predicted": "2 and 1 on admin",
+   "falsifier": "SandboxVars.NR.DeathPace or HealthCombine reads another value on admin",
+   "observed": {
+    "side": "client",
+    "set": "end",
+    "values": {
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1
+    },
+    "want": {
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1
+    },
+    "error": null
+   },
+   "verdict": "as_predicted",
+   "wall": 176.658
+  },
+  "MOD_READ": {
+   "phase": "MOD_READ",
+   "predicted": "server options.deathPace 2 and healthCombine 1, K.drain.OPT.pace 2 and combine 1",
+   "falsifier": "the server's polled options or K.drain.OPT read another value",
+   "observed": {
+    "side": "server",
+    "set": "end",
+    "values": {
+     "NutritionRevamp.server.options.deathPace": 2,
+     "NutritionRevamp.server.options.healthCombine": 1,
+     "NutritionRevamp.kernel.drain.OPT.pace": 2,
+     "NutritionRevamp.kernel.drain.OPT.combine": 1
+    },
+    "want": {
+     "NutritionRevamp.server.options.deathPace": 2,
+     "NutritionRevamp.server.options.healthCombine": 1,
+     "NutritionRevamp.kernel.drain.OPT.pace": 2,
+     "NutritionRevamp.kernel.drain.OPT.combine": 1
+    },
+    "error": null
+   },
+   "verdict": "as_predicted",
+   "wall": 176.658
+  },
+  "JOIN": {
+   "phase": "JOIN",
+   "predicted": "every verify row ok (1.0.0 on the server and admin), players at S holding admin",
+   "falsifier": "a verify row failed, or admin not on the server's players at S",
+   "observed": {
+    "verify": [
+     {
+      "side": "server",
+      "cmd": "lua.global",
+      "args": "NutritionRevamp.version",
+      "ok": true
+     },
+     {
+      "side": "client",
+      "cmd": "lua.global",
+      "args": "NutritionRevamp.version",
+      "ok": true
+     }
+    ],
+    "players": [
+     "admin"
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 176.658
+  },
+  "PRE": {
+   "phase": "PRE",
+   "predicted": "HUNGER at or under 0.25 at the control, over it at T72",
+   "falsifier": "HUNGER on the wrong side of Hungry at an arm's eat",
+   "observed": {
+    "rows": [
+     {
+      "arm": "I2C",
+      "hunger": 0.025027571246027946,
+      "hungry_wanted": false
+     },
+     {
+      "arm": "T72",
+      "hunger": 0.5548970103263855,
+      "hungry_wanted": true
+     }
+    ],
+    "off": []
+   },
+   "verdict": "as_predicted",
+   "wall": 176.658
+  },
+  "CONTROL": {
+   "phase": "CONTROL",
+   "predicted": "after the sated eat the client's stored field 13.75 = the server's read-time value (field 3.75 + 10.0)",
+   "falsifier": "after vanilla's sated part-eat the client's stored field is not the server's read-time value",
+   "observed": {
+    "server_field": [
+     5,
+     3.75
+    ],
+    "server_readtime": [
+     15,
+     13.75
+    ],
+    "server_hung": [
+     -0.18000000715255737,
+     -0.13500000536441803
+    ],
+    "client_field": [
+     15,
+     13.75
+    ],
+    "client_resolved": true,
+    "landed": true,
+    "frac": 0.25,
+    "hunger_before": 0.025027571246027946,
+    "allies": 1
+   },
+   "verdict": "as_predicted",
+   "wall": 176.658
+  },
+  "T7_2": {
+   "phase": "T7_2",
+   "predicted": "after the Hungry eat the server's field 2.5 (restored) and the client's stored field 12.5 = the server's read-time value, never 8.833333 (the lowered field, x503)",
+   "falsifier": "after the Hungry eat the client's stored field is not the server's read-time value (x503: the lowered field kept), or the server's remainder keeps the lowered field",
+   "observed": {
+    "server_field": [
+     3.75,
+     2.5
+    ],
+    "server_readtime": [
+     13.75,
+     12.5
+    ],
+    "server_hung": [
+     -0.13500000536441803,
+     -0.08999999612569809
+    ],
+    "client_field": [
+     13.75,
+     12.5
+    ],
+    "client_resolved": true,
+    "landed": true,
+    "frac": 0.333333388522817,
+    "hunger_before": 0.5548970103263855,
+    "allies": 0.6,
+    "control": "as_predicted",
+    "restored_want": 2.499999793039436,
+    "restored_readtime": 12.499999793039436,
+    "lowered": 8.83333342991493,
+    "keeps_lowered": false
+   },
+   "verdict": "as_predicted",
+   "wall": 176.658
+  },
+  "COUNTS": {
+   "phase": "COUNTS",
+   "predicted": "{'allies': 1, 'restores': 1, 'alliesFailures': 0}",
+   "falsifier": "the allies or restores counter off the Hungry eat",
+   "observed": {
+    "delta": {
+     "allies": 1,
+     "restores": 1,
+     "alliesFailures": 0
+    },
+    "want": {
+     "allies": 1,
+     "restores": 1,
+     "alliesFailures": 0
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 176.658
+  },
+  "Z": {
+   "phase": "Z",
+   "predicted": "no mod error line, no hedonics failure counter rising, admin not parked",
+   "falsifier": "a mod error line, a hedonics failure counter rising, or admin parked",
+   "observed": {
+    "mod_error": [],
+    "admin_lua_error": false,
+    "failures": {
+     "cookFailures": [
+      0,
+      0
+     ],
+     "alliesFailures": [
+      0,
+      0
+     ],
+     "bookFailures": [
+      0,
+      0
+     ]
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 176.658
+  }
+ },
+ "readings": {},
+ "world_changes": {
+  "restored": "fixture default restored into the run dir",
+  "left_in_place": [
+   "RCON additem Base.Potato x1"
+  ]
+ },
+ "checks": {
+  "S": {
+   "players": [
+    "admin"
+   ],
+   "sandbox": {
+    "SandboxVars.Nutrition": false,
+    "SandboxVars.DayLength": 4,
+    "SandboxVars.NR.Mode": 1,
+    "SandboxVars.NR.DeathPace": 2,
+    "SandboxVars.NR.HealthCombine": 1,
+    "NutritionRevamp.version": "1.0.0",
+    "NutritionRevamp.kernel.drain.OPT.pace": 2,
+    "NutritionRevamp.kernel.drain.OPT.combine": 1,
+    "NutritionRevamp.kernel.drain.OPT.dayMin": 90
+   },
+   "clock": {
+    "worldAge": 2.3405017852783203,
+    "hour": 9,
+    "minutes": 20,
+    "mult": 4.66577672958374,
+    "trueMult": 1,
+    "wall": 91.188,
+    "wall_after": 92.698
+   },
+   "nutrition": {
+    "calories": 1.3423930406570435,
+    "carbs": -299.6746520996094,
+    "lipids": -69.91830444335938,
+    "proteins": -400,
+    "weight": 65.02499999999999,
+    "hunger": 0.020862732082605362,
+    "thirst": 0,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "wall": 92.698,
+    "wall_after": 94.713,
+    "side": "server"
+   },
+   "stats_all": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.00437443470582366,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.020862732082605362,
+     "Idleness": 0.022169403731822968,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.94503402709961,
+     "Thirst": 0,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 94.713,
+    "user": "admin",
+    "worldAge": 2.350111961364746,
+    "mult": 4.743310928344727,
+    "wall_after": 94.971
+   },
+   "hstats": {
+    "NutritionRevamp.server.hedonics.stats.cooks": 0,
+    "NutritionRevamp.server.hedonics.stats.prepped": 0,
+    "NutritionRevamp.server.hedonics.stats.unprepped": 0,
+    "NutritionRevamp.server.hedonics.stats.cookFailures": 0,
+    "NutritionRevamp.server.hedonics.stats.passthrough": 0,
+    "NutritionRevamp.server.hedonics.stats.allies": 0,
+    "NutritionRevamp.server.hedonics.stats.restores": 0,
+    "NutritionRevamp.server.hedonics.stats.alliesFailures": 0,
+    "NutritionRevamp.server.hedonics.stats.booked": 0,
+    "NutritionRevamp.server.hedonics.stats.plain": 0,
+    "NutritionRevamp.server.hedonics.stats.healed": 0,
+    "NutritionRevamp.server.hedonics.stats.bookFailures": 0,
+    "NutritionRevamp.server.hedonics.wrappedCook": true
+   },
+   "cooking": {
+    "perk": "Cooking",
+    "user": "admin",
+    "side": "server",
+    "xp": 0,
+    "level": 0,
+    "serverWorldAge": 2.366909980773926,
+    "wall": 96.739,
+    "wall_after": 98.754
+   },
+   "health": 100
+  },
+  "I": {
+   "spawns": [
+    {
+     "type": "Base.Potato",
+     "n": 1,
+     "before": {
+      "id": null,
+      "fullType": null,
+      "hungChange": null,
+      "hungerChange": null,
+      "baseHunger": null,
+      "calories": null,
+      "uses": null,
+      "age": null,
+      "error": null,
+      "raw": "no item Base.Potato in admin's inventory",
+      "wall": 103.043
+     },
+     "additem": {
+      "ok": true,
+      "reply": ""
+     },
+     "after": {
+      "id": 340101903,
+      "fullType": "Base.Potato",
+      "hungChange": -0.18000000715255737,
+      "hungerChange": -0.18000000715255737,
+      "baseHunger": -0.18000000715255737,
+      "calories": 69.97000122070312,
+      "uses": 0.18000000715255737,
+      "age": 0,
+      "error": null,
+      "raw": null,
+      "wall": 107.334
+     },
+     "leftover_before": false,
+     "confirmed": true
+    }
+   ]
+  },
+  "I2C": {
+   "pre": {
+    "fullType": "Base.Potato",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 30,
+    "hungChange": -0.18000000715255737,
+    "baseHunger": -0.18000000715255737,
+    "calories": 69.97000122070312,
+    "carbs": 15.930000305175781,
+    "lipids": 0.10000000149011612,
+    "proteins": 1.7000000476837158,
+    "id": 340101903,
+    "uses": 0.18000000715255737,
+    "fresh": false,
+    "offAge": 28,
+    "offAgeMax": 280,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 10,
+    "minutesToBurn": 30,
+    "thirstChange": -0.07000000029802322,
+    "hungerChange": -0.13846154510974884,
+    "isCookable": true,
+    "actualWeight": 0.20000000298023224,
+    "weight": 0.20000000298023224,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Base.Potato",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.18000000715255737,
+     "baseHunger": -0.18000000715255737,
+     "calories": 69.97000122070312,
+     "carbs": 15.930000305175781,
+     "lipids": 0.10000000149011612,
+     "proteins": 1.7000000476837158,
+     "id": 340101903,
+     "uses": 0.18000000715255737,
+     "fresh": true,
+     "offAge": 28,
+     "offAgeMax": 280,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 10,
+     "minutesToBurn": 30,
+     "thirstChange": -0.07000000029802322,
+     "hungerChange": -0.18000000715255737,
+     "isCookable": true,
+     "actualWeight": 0.20000000298023224,
+     "weight": 0.20000000298023224,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "requested": 30,
+    "field": "age",
+    "gameMinute": 25,
+    "serverWorldAge": 2.4170379638671875,
+    "wall": 108.853,
+    "wall_after": 110.114,
+    "side": "server"
+   },
+   "eat": {
+    "tag": "I2C",
+    "arm": "I2C",
+    "food": "Base.Potato",
+    "asked": 0.25,
+    "landed": true,
+    "item0_get": {
+     "id": 340101903,
+     "calories": 69.97000122070312,
+     "carbs": 15.930000305175781,
+     "lipids": 0.10000000149011612,
+     "proteins": 1.7000000476837158,
+     "hungChange": -0.18000000715255737,
+     "baseHunger": -0.18000000715255737,
+     "age": 30,
+     "fresh": false,
+     "offAge": 28,
+     "raw": null
+    },
+    "ref": "#340101903",
+    "item0": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 5,
+      "getUnhappyChange": 15,
+      "getBoredomChange": 10,
+      "getName": "Potato (Stale, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.18000000715255737,
+      "getCalories": 69.97000122070312
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 110.876,
+     "wall_after": 112.888,
+     "calories": 69.97000122070312,
+     "carbs": 15.930000305175781,
+     "lipids": 0.10000000149011612,
+     "proteins": 1.7000000476837158,
+     "hungChange": -0.18000000715255737
+    },
+    "citem0": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 15,
+      "getUnhappyChange": 15,
+      "getBoredomChange": 10,
+      "getName": "Potato (Fresh, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.18000000715255737,
+      "getCalories": 69.97000122070312
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 112.888,
+     "wall_after": 113.144
+    },
+    "rec0": {
+     "moodLast.u": 0,
+     "satiety.M": 665.3476412789872
+    },
+    "stats0": {
+     "Unhappiness": 0,
+     "Hunger": 0.025027571246027946,
+     "Boredom": 0.050225649029016495,
+     "wall": 113.903,
+     "worldAge": 2.4378929138183594
+    },
+    "age0": 2.4503087997436523,
+    "queued": {
+     "queued": true,
+     "fraction": 0.25,
+     "spawned": "found",
+     "itemId": 340101903,
+     "validStart": true,
+     "maxTime": 232.00420379638672,
+     "moodleFoodEaten": 1,
+     "error": null,
+     "raw": null
+    },
+    "landed_age": 2.483567237854004,
+    "stats1": {
+     "Unhappiness": 3.75,
+     "Hunger": 0.020962707698345184,
+     "Boredom": 2.602288007736206,
+     "wall": 125.017,
+     "worldAge": 2.4910717010498047
+    },
+    "item1": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 3.75,
+      "getUnhappyChange": 13.75,
+      "getBoredomChange": 10,
+      "getName": "Potato (Stale, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.13500000536441803,
+      "getCalories": 52.477500915527344
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 126.786,
+     "wall_after": 128.803
+    },
+    "citem1": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 13.75,
+      "getUnhappyChange": 13.75,
+      "getBoredomChange": 10,
+      "getName": "Potato (Fresh, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.13500000536441803,
+      "getCalories": 52.477500915527344
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 129.803,
+     "wall_after": 130.065
+    },
+    "sitem1b": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 3.75,
+      "getUnhappyChange": 13.75,
+      "getBoredomChange": 10,
+      "getName": "Potato (Stale, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.13500000536441803,
+      "getCalories": 52.477500915527344
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 130.065,
+     "wall_after": 130.826
+    },
+    "rec1": {
+     "moodLast.u": 0,
+     "lastIntake.fullType": "Base.Potato",
+     "lastIntake.allies": 1,
+     "lastIntake.frac": 0.25,
+     "satiety.M": 621.8449743581982,
+     "hedonics.f": 0
+    },
+    "frac": 0.25
+   }
+  },
+  "T72": {
+   "seed": {
+    "M": {
+     "tag": "T72_hseed_M",
+     "path": "satiety.M",
+     "value": "0",
+     "age": 2.52652645111084,
+     "reply": {
+      "ok": true,
+      "before": 609.8517103632892,
+      "after": 0,
+      "error": null
+     }
+    },
+    "hunger": {
+     "ok": true,
+     "stat": "HUNGER",
+     "side": "server",
+     "requested": 0.32,
+     "before": 0.022365625947713852,
+     "after": 0.3199999928474426,
+     "wall": 134.866,
+     "wall_after": 136.381
+    },
+    "write": {
+     "done": true,
+     "last": 15,
+     "polls": 3
+    }
+   },
+   "eat": {
+    "tag": "T72",
+    "arm": "T72",
+    "food": "Base.Potato",
+    "asked": 0.25,
+    "landed": true,
+    "item0_get": {
+     "id": 340101903,
+     "calories": 52.477500915527344,
+     "carbs": 11.947500228881836,
+     "lipids": 0.07500000298023224,
+     "proteins": 1.2750000953674316,
+     "hungChange": -0.13500000536441803,
+     "baseHunger": -0.18000000715255737,
+     "age": 30.00653839111328,
+     "fresh": false,
+     "offAge": 28,
+     "raw": null
+    },
+    "ref": "#340101903",
+    "item0": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 3.75,
+      "getUnhappyChange": 13.75,
+      "getBoredomChange": 10,
+      "getName": "Potato (Stale, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.13500000536441803,
+      "getCalories": 52.477500915527344
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 142.69,
+     "wall_after": 143.957,
+     "calories": 52.477500915527344,
+     "carbs": 11.947500228881836,
+     "lipids": 0.07500000298023224,
+     "proteins": 1.2750000953674316,
+     "hungChange": -0.13500000536441803
+    },
+    "citem0": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 13.75,
+      "getUnhappyChange": 13.75,
+      "getBoredomChange": 10,
+      "getName": "Potato (Fresh, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.13500000536441803,
+      "getCalories": 52.477500915527344
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 143.957,
+     "wall_after": 144.218
+    },
+    "rec0": {
+     "moodLast.u": 0,
+     "lastIntake.fullType": "Base.Potato",
+     "lastIntake.allies": 1,
+     "lastIntake.frac": 0.25,
+     "satiety.M": 0,
+     "hedonics.f": 0
+    },
+    "stats0": {
+     "Unhappiness": 3.75,
+     "Hunger": 0.5548970103263855,
+     "Boredom": 2.7298946380615234,
+     "wall": 144.728,
+     "worldAge": 2.5797643661499023
+    },
+    "age0": 2.5886363983154297,
+    "queued": {
+     "queued": true,
+     "fraction": 0.25,
+     "spawned": "found",
+     "itemId": 340101903,
+     "validStart": true,
+     "maxTime": 232.03567695617676,
+     "moodleFoodEaten": 0,
+     "error": null,
+     "raw": null
+    },
+    "landed_age": 2.6170358657836914,
+    "stats1": {
+     "Unhappiness": 6.5,
+     "Hunger": 0.03470781818032265,
+     "Boredom": 6.146150588989258,
+     "wall": 155.086,
+     "worldAge": 2.624112129211426
+    },
+    "item1": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 2.5,
+      "getUnhappyChange": 12.5,
+      "getBoredomChange": 10,
+      "getName": "Potato (Stale, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.08999999612569809,
+      "getCalories": 34.9849967956543
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 156.848,
+     "wall_after": 158.86
+    },
+    "citem1": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 12.5,
+      "getUnhappyChange": 12.5,
+      "getBoredomChange": 10,
+      "getName": "Potato (Fresh, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.08999999612569809,
+      "getCalories": 34.9849967956543
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 159.86,
+     "wall_after": 160.12
+    },
+    "sitem1b": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 2.5,
+      "getUnhappyChange": 12.5,
+      "getBoredomChange": 10,
+      "getName": "Potato (Stale, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.08999999612569809,
+      "getCalories": 34.9849967956543
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 160.12,
+     "wall_after": 160.878
+    },
+    "rec1": {
+     "moodLast.u": 0,
+     "lastIntake.fullType": "Base.Potato",
+     "lastIntake.allies": 0.6,
+     "lastIntake.frac": 0.333333388522817,
+     "satiety.M": 19.18761350974501,
+     "hedonics.f": 0
+    },
+    "frac": 0.333333388522817
+   }
+  },
+  "C": {
+   "hstats": {
+    "NutritionRevamp.server.hedonics.stats.cooks": 0,
+    "NutritionRevamp.server.hedonics.stats.prepped": 0,
+    "NutritionRevamp.server.hedonics.stats.unprepped": 0,
+    "NutritionRevamp.server.hedonics.stats.cookFailures": 0,
+    "NutritionRevamp.server.hedonics.stats.passthrough": 0,
+    "NutritionRevamp.server.hedonics.stats.allies": 1,
+    "NutritionRevamp.server.hedonics.stats.restores": 1,
+    "NutritionRevamp.server.hedonics.stats.alliesFailures": 0,
+    "NutritionRevamp.server.hedonics.stats.booked": 2,
+    "NutritionRevamp.server.hedonics.stats.plain": 0,
+    "NutritionRevamp.server.hedonics.stats.healed": 0,
+    "NutritionRevamp.server.hedonics.stats.bookFailures": 0,
+    "NutritionRevamp.server.hedonics.wrappedCook": true
+   }
+  },
+  "restore": {
+   "restore_to": 1,
+   "set": {
+    "want": 1,
+    "rcon_ok": true,
+    "trueMult": 1,
+    "mult": 4.788824558258057,
+    "age": 2.666691780090332,
+    "wall": 164.987,
+    "tag": "C_restore",
+    "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one (#3762)",
+    "ok": true
+   },
+   "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one (#3762)",
+   "trueMult_after": 1,
+   "ok": true
+  },
+  "eats": [
+   {
+    "tag": "I2C",
+    "arm": "I2C",
+    "food": "Base.Potato",
+    "asked": 0.25,
+    "landed": true,
+    "item0_get": {
+     "id": 340101903,
+     "calories": 69.97000122070312,
+     "carbs": 15.930000305175781,
+     "lipids": 0.10000000149011612,
+     "proteins": 1.7000000476837158,
+     "hungChange": -0.18000000715255737,
+     "baseHunger": -0.18000000715255737,
+     "age": 30,
+     "fresh": false,
+     "offAge": 28,
+     "raw": null
+    },
+    "ref": "#340101903",
+    "item0": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 5,
+      "getUnhappyChange": 15,
+      "getBoredomChange": 10,
+      "getName": "Potato (Stale, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.18000000715255737,
+      "getCalories": 69.97000122070312
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 110.876,
+     "wall_after": 112.888,
+     "calories": 69.97000122070312,
+     "carbs": 15.930000305175781,
+     "lipids": 0.10000000149011612,
+     "proteins": 1.7000000476837158,
+     "hungChange": -0.18000000715255737
+    },
+    "citem0": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 15,
+      "getUnhappyChange": 15,
+      "getBoredomChange": 10,
+      "getName": "Potato (Fresh, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.18000000715255737,
+      "getCalories": 69.97000122070312
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 112.888,
+     "wall_after": 113.144
+    },
+    "rec0": {
+     "moodLast.u": 0,
+     "satiety.M": 665.3476412789872
+    },
+    "stats0": {
+     "Unhappiness": 0,
+     "Hunger": 0.025027571246027946,
+     "Boredom": 0.050225649029016495,
+     "wall": 113.903,
+     "worldAge": 2.4378929138183594
+    },
+    "age0": 2.4503087997436523,
+    "queued": {
+     "queued": true,
+     "fraction": 0.25,
+     "spawned": "found",
+     "itemId": 340101903,
+     "validStart": true,
+     "maxTime": 232.00420379638672,
+     "moodleFoodEaten": 1,
+     "error": null,
+     "raw": null
+    },
+    "landed_age": 2.483567237854004,
+    "stats1": {
+     "Unhappiness": 3.75,
+     "Hunger": 0.020962707698345184,
+     "Boredom": 2.602288007736206,
+     "wall": 125.017,
+     "worldAge": 2.4910717010498047
+    },
+    "item1": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 3.75,
+      "getUnhappyChange": 13.75,
+      "getBoredomChange": 10,
+      "getName": "Potato (Stale, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.13500000536441803,
+      "getCalories": 52.477500915527344
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 126.786,
+     "wall_after": 128.803
+    },
+    "citem1": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 13.75,
+      "getUnhappyChange": 13.75,
+      "getBoredomChange": 10,
+      "getName": "Potato (Fresh, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.13500000536441803,
+      "getCalories": 52.477500915527344
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 129.803,
+     "wall_after": 130.065
+    },
+    "sitem1b": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 3.75,
+      "getUnhappyChange": 13.75,
+      "getBoredomChange": 10,
+      "getName": "Potato (Stale, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.13500000536441803,
+      "getCalories": 52.477500915527344
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 130.065,
+     "wall_after": 130.826
+    },
+    "rec1": {
+     "moodLast.u": 0,
+     "lastIntake.fullType": "Base.Potato",
+     "lastIntake.allies": 1,
+     "lastIntake.frac": 0.25,
+     "satiety.M": 621.8449743581982,
+     "hedonics.f": 0
+    },
+    "frac": 0.25
+   },
+   {
+    "tag": "T72",
+    "arm": "T72",
+    "food": "Base.Potato",
+    "asked": 0.25,
+    "landed": true,
+    "item0_get": {
+     "id": 340101903,
+     "calories": 52.477500915527344,
+     "carbs": 11.947500228881836,
+     "lipids": 0.07500000298023224,
+     "proteins": 1.2750000953674316,
+     "hungChange": -0.13500000536441803,
+     "baseHunger": -0.18000000715255737,
+     "age": 30.00653839111328,
+     "fresh": false,
+     "offAge": 28,
+     "raw": null
+    },
+    "ref": "#340101903",
+    "item0": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 3.75,
+      "getUnhappyChange": 13.75,
+      "getBoredomChange": 10,
+      "getName": "Potato (Stale, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.13500000536441803,
+      "getCalories": 52.477500915527344
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 142.69,
+     "wall_after": 143.957,
+     "calories": 52.477500915527344,
+     "carbs": 11.947500228881836,
+     "lipids": 0.07500000298023224,
+     "proteins": 1.2750000953674316,
+     "hungChange": -0.13500000536441803
+    },
+    "citem0": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 13.75,
+      "getUnhappyChange": 13.75,
+      "getBoredomChange": 10,
+      "getName": "Potato (Fresh, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.13500000536441803,
+      "getCalories": 52.477500915527344
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 143.957,
+     "wall_after": 144.218
+    },
+    "rec0": {
+     "moodLast.u": 0,
+     "lastIntake.fullType": "Base.Potato",
+     "lastIntake.allies": 1,
+     "lastIntake.frac": 0.25,
+     "satiety.M": 0,
+     "hedonics.f": 0
+    },
+    "stats0": {
+     "Unhappiness": 3.75,
+     "Hunger": 0.5548970103263855,
+     "Boredom": 2.7298946380615234,
+     "wall": 144.728,
+     "worldAge": 2.5797643661499023
+    },
+    "age0": 2.5886363983154297,
+    "queued": {
+     "queued": true,
+     "fraction": 0.25,
+     "spawned": "found",
+     "itemId": 340101903,
+     "validStart": true,
+     "maxTime": 232.03567695617676,
+     "moodleFoodEaten": 0,
+     "error": null,
+     "raw": null
+    },
+    "landed_age": 2.6170358657836914,
+    "stats1": {
+     "Unhappiness": 6.5,
+     "Hunger": 0.03470781818032265,
+     "Boredom": 6.146150588989258,
+     "wall": 155.086,
+     "worldAge": 2.624112129211426
+    },
+    "item1": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 2.5,
+      "getUnhappyChange": 12.5,
+      "getBoredomChange": 10,
+      "getName": "Potato (Stale, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.08999999612569809,
+      "getCalories": 34.9849967956543
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 156.848,
+     "wall_after": 158.86
+    },
+    "citem1": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 12.5,
+      "getUnhappyChange": 12.5,
+      "getBoredomChange": 10,
+      "getName": "Potato (Fresh, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.08999999612569809,
+      "getCalories": 34.9849967956543
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 159.86,
+     "wall_after": 160.12
+    },
+    "sitem1b": {
+     "fields": {
+      "getUnhappyChangeUnmodified": 2.5,
+      "getUnhappyChange": 12.5,
+      "getBoredomChange": 10,
+      "getName": "Potato (Stale, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.08999999612569809,
+      "getCalories": 34.9849967956543
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 160.12,
+     "wall_after": 160.878
+    },
+    "rec1": {
+     "moodLast.u": 0,
+     "lastIntake.fullType": "Base.Potato",
+     "lastIntake.allies": 0.6,
+     "lastIntake.frac": 0.333333388522817,
+     "satiety.M": 19.18761350974501,
+     "hedonics.f": 0
+    },
+    "frac": 0.333333388522817
+   }
+  ]
+ },
+ "speeds": [
+  {
+   "want": 1,
+   "rcon_ok": true,
+   "trueMult": 1,
+   "mult": 4.788824558258057,
+   "age": 2.666691780090332,
+   "wall": 164.987,
+   "tag": "C_restore",
+   "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one (#3762)",
+   "ok": true
+  }
+ ],
+ "sets": [
+  {
+   "tag": "T72_hseed_M",
+   "path": "satiety.M",
+   "value": "0",
+   "age": 2.52652645111084,
+   "reply": {
+    "ok": true,
+    "before": 609.8517103632892,
+    "after": 0,
+    "error": null
+   }
+  }
+ ],
+ "read_sets": {
+  "start": {
+   "server": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1,
+     "NutritionRevamp.server.options.deathPace": 2,
+     "NutritionRevamp.server.options.healthCombine": 1,
+     "NutritionRevamp.kernel.drain.OPT.pace": 2,
+     "NutritionRevamp.kernel.drain.OPT.combine": 1,
+     "NutritionRevamp.kernel.drain.OPT.dayMin": 90,
+     "NutritionRevamp.version": "1.0.0"
+    },
+    "wall": 100.769,
+    "wall_after": 102.53
+   },
+   "client": {
+    "ok": true,
+    "side": "client",
+    "root": "_G",
+    "n": 3,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1,
+     "NutritionRevamp.version": "1.0.0"
+    },
+    "wall": 102.53,
+    "wall_after": 103.041
+   }
+  },
+  "end": {
+   "server": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 8,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1,
+     "NutritionRevamp.server.options.deathPace": 2,
+     "NutritionRevamp.server.options.healthCombine": 1,
+     "NutritionRevamp.kernel.drain.OPT.pace": 2,
+     "NutritionRevamp.kernel.drain.OPT.combine": 1,
+     "NutritionRevamp.kernel.drain.OPT.dayMin": 90,
+     "NutritionRevamp.version": "1.0.0"
+    },
+    "wall": 162.642,
+    "wall_after": 162.9
+   },
+   "client": {
+    "ok": true,
+    "side": "client",
+    "root": "_G",
+    "n": 3,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.NR.DeathPace": 2,
+     "SandboxVars.NR.HealthCombine": 1,
+     "NutritionRevamp.version": "1.0.0"
+    },
+    "wall": 162.901,
+    "wall_after": 163.159
+   }
+  }
+ },
+ "lib_x50": "x50_lib.py",
+ "run_id": "x505-20261023-085935",
+ "session_key": "x505",
+ "session": "Plan 19 Task 9b x505: the close's smoke boot of the staged copy at 0b1b3f11 (NR.DeathPace 2 and NR.HealthCombine 1 read back on the server and admin; the clean 1.0.0 join; no mod error) and the T7-2 arm: a stale potato eaten sated (vanilla's control) then Hungry, the client's stored field against the server's read-time value; one boot of x505-smoke",
+ "driver": "x505_smoke.py",
+ "lib": "x50_lib.py",
+ "user": "admin",
+ "profile": {
+  "name": "x505-smoke",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x505-smoke.toml",
+  "fixture": "default",
+  "description": "PZTestKit + the staged NutritionRevamp upload copy, fixture default, admin (debug), Nutrition off, DayLength 4, sleep off, NR.Mode 1, DeathPace 2, HealthCombine 1, build 42.21.0 - Plan 19 Task 9b: x505.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\NutritionRevamp\\Contents\\mods\\NutritionRevamp"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 4,
+   "NR": {
+    "Mode": 1,
+    "DeathPace": 2,
+    "HealthCombine": 1
+   }
+  },
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "preboot": {
+  "driver_file": true,
+  "driver_prefix": true,
+  "no_prior_artifact": true,
+  "mod_head": "0b1b3f11",
+  "staged_from_is_mod_head": true,
+  "profile_checks": {
+   "header_names_file": true,
+   "fixture": true,
+   "clients": true,
+   "sleep_off": true,
+   "mods_staged": true,
+   "nutrition_false": true,
+   "day_length": true,
+   "nr_block": true,
+   "verify_version": true,
+   "no_override": true,
+   "server_timeout": true
+  },
+  "values_distinct": true,
+  "harness_found": {
+   "PZTestKit_Server.lua": {
+    "TK.register(\"stats.all\", function(": true,
+    "TK.register(\"stats.setany\", function(": true,
+    "TK.register(\"record.set\", function(": true,
+    "TK.register(\"nutrition.get\", function(": true,
+    "TK.register(\"players\", function(": true,
+    "TK.register(\"perk.xp\", function(": true,
+    "TK.register(\"item.get\", function(": true,
+    "TK.register(\"item.set\", function(": true,
+    "TK.register(\"health.get\", function(": true,
+    "TK.register(\"time.multiplier\", function(": true
+   },
+   "PZTestKit_Client.lua": {
+    "TK.register(\"eat.action\", function(": true
+   },
+   "PZTestKit_Core.lua": {
+    "TK.register(\"time.snapshot\", function(": true,
+    "TK.register(\"lua.read\", function(": true,
+    "TK.register(\"witness.fields\", function(": true,
+    "TK.register(\"lua.global\", function(": true
+   }
+  },
+  "harness_markers": true,
+  "fixture": {
+   "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing/fixtures/default/cache/server/Saves/Multiplayer/pzt/players.db",
+   "length": 4086,
+   "has_key": false,
+   "store_dir": false,
+   "fresh": true
+  },
+  "fixture_fresh": true
+ },
+ "fixture": {
+  "name": "default",
+  "provision_run": "prov-20261008-073315",
+  "build": "42.21.0"
+ },
+ "argv": [],
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+  "ok   workshop index: 239 mods",
+  "ok   pytest available"
+ ],
+ "predictions": {
+  "INI": "the seeded NR block holds DeathPace = 2 and HealthCombine = 1",
+  "OPT_SERVER": "SandboxVars.NR.DeathPace 2 and HealthCombine 1 on the server",
+  "OPT_ADMIN": "2 and 1 on admin",
+  "MOD_READ": "server options.deathPace 2 and healthCombine 1, K.drain.OPT.pace 2 and combine 1",
+  "JOIN": "every verify row ok (1.0.0 on the server and admin), players at S holding admin",
+  "PRE": "HUNGER at or under 0.25 at the control, over it at T72",
+  "CONTROL": "after the sated eat the client's stored field 13.75 = the server's read-time value (field 3.75 + 10.0)",
+  "T7_2": "after the Hungry eat the server's field 2.5 (restored) and the client's stored field 12.5 = the server's read-time value, never 8.833333 (the lowered field, x503)",
+  "COUNTS": "{'allies': 1, 'restores': 1, 'alliesFailures': 0}",
+  "Z": "no mod error line, no hedonics failure counter rising, admin not parked"
+ },
+ "predicted": {
+  "control": {
+   "server_field": [
+    5.0,
+    3.75
+   ],
+   "server_readtime_after": 13.75,
+   "client_after": 13.75
+  },
+  "t72": {
+   "server_field": [
+    3.75,
+    2.5
+   ],
+   "server_readtime_after": 12.5,
+   "client_after": 12.5,
+   "client_lowered_x503": 8.833333,
+   "frac": 0.333333
+  },
+  "counts": {
+   "allies": 1,
+   "restores": 1,
+   "alliesFailures": 0
+  }
+ },
+ "constants": {
+  "KEY": "x505",
+  "PREFIX": "x505",
+  "PROFILE": "x505-smoke",
+  "ARTIFACT": "smoke.json",
+  "BUDGET_S": 360.0,
+  "_ME": "x505_smoke.py",
+  "DRIVER": "x505_smoke.py",
+  "SRV": "server",
+  "CLI": "client",
+  "USER": "admin",
+  "NR": "NutritionRevamp",
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_ROOT": "release/NutritionRevamp",
+  "STAGE_MOD": "release/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "STAGED_FROM": "0b1b3f11",
+  "STAGED_VERSION": "1.0.0",
+  "MIN_FREE_GB": 12.0,
+  "FIXTURE": "default",
+  "CLIENTS": [
+   "admin"
+  ],
+  "DAY_LENGTH": 4,
+  "MODE": 1,
+  "PACE_SET": 2,
+  "COMBINE_SET": 1,
+  "PACE_DEFAULT": 3,
+  "COMBINE_DEFAULT": 2,
+  "PRIOR_SETS": {
+   "x50": [
+    3,
+    2
+   ],
+   "x485": [
+    1,
+    1
+   ],
+   "x483": [
+    2,
+    3
+   ]
+  },
+  "SERVER_TIMEOUT_S": 240,
+  "SANDBOX_REL": [
+   "server",
+   "Server",
+   "pzt_SandboxVars.lua"
+  ],
+  "SERVER_PACE_G": "SandboxVars.NR.DeathPace",
+  "SERVER_COMBINE_G": "SandboxVars.NR.HealthCombine",
+  "MOD_PACE_G": "NutritionRevamp.server.options.deathPace",
+  "MOD_COMBINE_G": "NutritionRevamp.server.options.healthCombine",
+  "OPT_PACE_G": "NutritionRevamp.kernel.drain.OPT.pace",
+  "OPT_COMBINE_G": "NutritionRevamp.kernel.drain.OPT.combine",
+  "OPT_DAYMIN_G": "NutritionRevamp.kernel.drain.OPT.dayMin",
+  "VERSION_G": "NutritionRevamp.version",
+  "READ_PLAN": {
+   "server": [
+    "SandboxVars.NR.DeathPace",
+    "SandboxVars.NR.HealthCombine",
+    "NutritionRevamp.server.options.deathPace",
+    "NutritionRevamp.server.options.healthCombine",
+    "NutritionRevamp.kernel.drain.OPT.pace",
+    "NutritionRevamp.kernel.drain.OPT.combine",
+    "NutritionRevamp.kernel.drain.OPT.dayMin",
+    "NutritionRevamp.version"
+   ],
+   "client": [
+    "SandboxVars.NR.DeathPace",
+    "SandboxVars.NR.HealthCombine",
+    "NutritionRevamp.version"
+   ]
+  },
+  "GRADED_SET": "end",
+  "POTATO": "Base.Potato",
+  "EAT_F": 0.25,
+  "POTATO_U": 5.0,
+  "STALE_TERM": 10.0,
+  "STALE_AGE_D": 30.0,
+  "HUNGRY_SEED": 0.32,
+  "ALLIES_F": 0.6,
+  "ALLIES_AT": 0.25,
+  "CONTROL": "I2C",
+  "ARM": "T72",
+  "SPAWNS": [
+   [
+    "Base.Potato",
+    1
+   ]
+  ],
+  "TOL_FIELD": 0.001,
+  "REL_TOL": 0.002,
+  "PAIR_SLACK_S": 10.0,
+  "HARNESS_FILES": {
+   "PZTestKit_Server.lua": "testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua",
+   "PZTestKit_Client.lua": "testing/PZTestKit/PZTestKit/42/media/lua/client/PZTestKit_Client.lua",
+   "PZTestKit_Core.lua": "testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua"
+  },
+  "HARNESS_MARKERS": {
+   "PZTestKit_Server.lua": [
+    "TK.register(\"stats.all\", function(",
+    "TK.register(\"stats.setany\", function(",
+    "TK.register(\"record.set\", function(",
+    "TK.register(\"nutrition.get\", function(",
+    "TK.register(\"players\", function(",
+    "TK.register(\"perk.xp\", function(",
+    "TK.register(\"item.get\", function(",
+    "TK.register(\"item.set\", function(",
+    "TK.register(\"health.get\", function(",
+    "TK.register(\"time.multiplier\", function("
+   ],
+   "PZTestKit_Client.lua": [
+    "TK.register(\"eat.action\", function("
+   ],
+   "PZTestKit_Core.lua": [
+    "TK.register(\"time.snapshot\", function(",
+    "TK.register(\"lua.read\", function(",
+    "TK.register(\"witness.fields\", function(",
+    "TK.register(\"lua.global\", function("
+   ]
+  },
+  "PREDICTED": {
+   "control": {
+    "server_field": [
+     5.0,
+     3.75
+    ],
+    "server_readtime_after": 13.75,
+    "client_after": 13.75
+   },
+   "t72": {
+    "server_field": [
+     3.75,
+     2.5
+    ],
+    "server_readtime_after": 12.5,
+    "client_after": 12.5,
+    "client_lowered_x503": 8.833333,
+    "frac": 0.333333
+   },
+   "counts": {
+    "allies": 1,
+    "restores": 1,
+    "alliesFailures": 0
+   }
+  }
+ },
+ "constants_x50": {
+  "SRV": "server",
+  "CLI": "client",
+  "USER": "admin",
+  "NR": "NutritionRevamp",
+  "LIB_FILE": "x50_lib.py",
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_OUT": "release",
+  "STAGE_ROOT": "release/NutritionRevamp",
+  "STAGE_MOD": "release/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "STAGED_FROM": "3760ae05",
+  "STAGED_VERSION": "1.0.0",
+  "PRERUN_FILE": "testing/experiments/x50_prerun.json",
+  "MIN_FREE_GB": 12.0,
+  "PROFILE": "x50-hedonics",
+  "SESSIONS": {
+   "x501": {
+    "driver": "x501_prep.py",
+    "artifact": "prep.json",
+    "profile": "x50-hedonics",
+    "budget_s": 470.0
+   },
+   "x502": {
+    "driver": "x502_floor.py",
+    "artifact": "floor.json",
+    "profile": "x50-hedonics",
+    "budget_s": 470.0
+   },
+   "x503": {
+    "driver": "x503_allies.py",
+    "artifact": "allies.json",
+    "profile": "x50-hedonics",
+    "budget_s": 400.0
+   },
+   "x504": {
+    "driver": "x504_class.py",
+    "artifact": "class.json",
+    "profile": "x50-hedonics",
+    "budget_s": 470.0
+   }
+  },
+  "PROFILES": {
+   "x50-hedonics": {
+    "fixture": "default",
+    "clients": [
+     "admin"
+    ],
+    "day_length": 4,
+    "mode": 1,
+    "pace": 3,
+    "combine": 2
+   }
+  },
+  "SERVER_TIMEOUT_S": 240,
+  "DAY_MIN": 90.0,
+  "PREP_KNOTS": [
+   [
+    0.0,
+    0.8
+   ],
+   [
+    3.0,
+    1.0
+   ],
+   [
+    10.0,
+    1.5
+   ]
+  ],
+  "FLOOR_KNOTS": [
+   [
+    0.5,
+    0.0
+   ],
+   [
+    0.75,
+    15.0
+   ],
+   [
+    0.95,
+    30.0
+   ]
+  ],
+  "SHARE_MIN_KCAL": 1500.0,
+  "ALLIES_F": 0.6,
+  "ALLIES_AT": 0.25,
+  "CLASS_W": 0.1,
+  "RING_N": 24,
+  "UTENSIL_SAD": 0.75,
+  "UTENSIL_GLAD": 1.25,
+  "UNHAPPY_HI": 59.0,
+  "RECIPE": "Stir_fry",
+  "PAN": "Base.Pan",
+  "DISH": "Base.PanFriedVegetables",
+  "SPICE_N": {
+   "Base.Salt": 1,
+   "Base.Butter": 4,
+   "Base.Pepper": 1
+  },
+  "DISH_ADDS": [
+   "Base.Carrots",
+   "Base.Cabbage",
+   "Base.Onion",
+   "Base.Salt",
+   "Base.Butter"
+  ],
+  "LATE_ADD": "Base.Potato",
+  "RELOG_ADD": "Base.Pepper",
+  "LEVELS": [
+   3,
+   0,
+   10
+  ],
+  "ANCHOR": 3,
+  "SPAWNS_501": [
+   [
+    "Base.Pan",
+    3
+   ],
+   [
+    "Base.Carrots",
+    3
+   ],
+   [
+    "Base.Cabbage",
+    3
+   ],
+   [
+    "Base.Onion",
+    3
+   ],
+   [
+    "Base.Potato",
+    2
+   ],
+   [
+    "Base.Salt",
+    1
+   ],
+   [
+    "Base.Butter",
+    1
+   ],
+   [
+    "Base.Pepper",
+    1
+   ]
+  ],
+  "RENAMED": {
+   "3": "NRx50d3",
+   "10": "NRx50d10"
+  },
+  "VANILLA_D": [
+   -5.0,
+   -10.0,
+   -15.0,
+   -17.0,
+   -25.0,
+   -30.0,
+   -32.0
+  ],
+  "BUTTER": "Base.Butter",
+  "PEANUT": "Base.PeanutButter",
+  "BUTTER_F": 0.1,
+  "PLAIN_EATS": 4,
+  "PEANUT_F": 0.5,
+  "FOOD_TYPE": {
+   "Base.Butter": null,
+   "Base.PeanutButter": "NoExplicit",
+   "Base.Lard": "NoExplicit",
+   "Base.Potato": "Vegetables"
+  },
+  "CLASS_OF": {
+   "Base.Butter": "fatty",
+   "Base.PeanutButter": "fatty",
+   "Base.Lard": "fatty",
+   "Base.Potato": "staple"
+  },
+  "PLAIN_OF": {
+   "Base.Butter": true,
+   "Base.PeanutButter": false,
+   "Base.Lard": true,
+   "Base.Potato": false
+  },
+  "SLOTS": [
+   "hedonics.p.1",
+   "hedonics.p.2",
+   "hedonics.p.3",
+   "hedonics.p.4",
+   "hedonics.p.5",
+   "hedonics.p.6",
+   "hedonics.p.7",
+   "hedonics.p.8",
+   "hedonics.p.9",
+   "hedonics.p.10",
+   "hedonics.p.11",
+   "hedonics.p.12",
+   "hedonics.p.13",
+   "hedonics.p.14",
+   "hedonics.p.15",
+   "hedonics.p.16",
+   "hedonics.p.17",
+   "hedonics.p.18",
+   "hedonics.p.19",
+   "hedonics.p.20",
+   "hedonics.p.21",
+   "hedonics.p.22",
+   "hedonics.p.23",
+   "hedonics.p.24",
+   "hedonics.a.1",
+   "hedonics.a.2",
+   "hedonics.a.3",
+   "hedonics.a.4",
+   "hedonics.a.5",
+   "hedonics.a.6",
+   "hedonics.a.7",
+   "hedonics.a.8",
+   "hedonics.a.9",
+   "hedonics.a.10",
+   "hedonics.a.11",
+   "hedonics.a.12",
+   "hedonics.a.13",
+   "hedonics.a.14",
+   "hedonics.a.15",
+   "hedonics.a.16",
+   "hedonics.a.17",
+   "hedonics.a.18",
+   "hedonics.a.19",
+   "hedonics.a.20",
+   "hedonics.a.21",
+   "hedonics.a.22",
+   "hedonics.a.23",
+   "hedonics.a.24"
+  ],
+  "HED_READ": [
+   "hedonics.f",
+   "hedonics.s",
+   "hedonics.i",
+   "moodLast.u",
+   "lastIntake.fullType",
+   "lastIntake.plain",
+   "lastIntake.class",
+   "lastIntake.allies",
+   "lastIntake.frac",
+   "lastSeen",
+   "hedonics.p.1",
+   "hedonics.p.2",
+   "hedonics.p.3",
+   "hedonics.p.4",
+   "hedonics.p.5",
+   "hedonics.p.6",
+   "hedonics.p.7",
+   "hedonics.p.8",
+   "hedonics.p.9",
+   "hedonics.p.10",
+   "hedonics.p.11",
+   "hedonics.p.12",
+   "hedonics.p.13",
+   "hedonics.p.14",
+   "hedonics.p.15",
+   "hedonics.p.16",
+   "hedonics.p.17",
+   "hedonics.p.18",
+   "hedonics.p.19",
+   "hedonics.p.20",
+   "hedonics.p.21",
+   "hedonics.p.22",
+   "hedonics.p.23",
+   "hedonics.p.24",
+   "hedonics.a.1",
+   "hedonics.a.2",
+   "hedonics.a.3",
+   "hedonics.a.4",
+   "hedonics.a.5",
+   "hedonics.a.6",
+   "hedonics.a.7",
+   "hedonics.a.8",
+   "hedonics.a.9",
+   "hedonics.a.10",
+   "hedonics.a.11",
+   "hedonics.a.12",
+   "hedonics.a.13",
+   "hedonics.a.14",
+   "hedonics.a.15",
+   "hedonics.a.16",
+   "hedonics.a.17",
+   "hedonics.a.18",
+   "hedonics.a.19",
+   "hedonics.a.20",
+   "hedonics.a.21",
+   "hedonics.a.22",
+   "hedonics.a.23",
+   "hedonics.a.24"
+  ],
+  "EATS_G": "_G.NutritionRevamp.server.intake.stats.eats",
+  "LANDED_G": "_G.NutritionRevamp.server.intake.stats.landed",
+  "WRITES_G": "_G.NutritionRevamp.server.writer.stats.writes",
+  "RING_502": [
+   "hedonics.f",
+   "hedonics.s",
+   "hedonics.i",
+   "hedonics.p.1",
+   "hedonics.p.2",
+   "hedonics.p.3",
+   "hedonics.a.1",
+   "hedonics.a.2",
+   "hedonics.a.3",
+   "moodLast.u",
+   "moodLast.b",
+   "satiety.M",
+   "lastIntake.fullType",
+   "lastIntake.plain",
+   "lastIntake.class",
+   "lastIntake.allies",
+   "lastIntake.frac",
+   "monotony.t.[Base.Butter].n",
+   "monotony.t.[Base.PeanutButter].n",
+   "monotony.t.[@fatty].n",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed"
+  ],
+  "REPLAY_TOL": {
+   "hedonics.f": [
+    "abs",
+    0.0001
+   ],
+   "moodLast.u": [
+    "abs",
+    0.001
+   ]
+  },
+  "H1_NIL_OK": [
+   "hedonics.f",
+   "hedonics.s",
+   "hedonics.i",
+   "hedonics.p.1",
+   "hedonics.p.2",
+   "hedonics.p.3",
+   "hedonics.a.1",
+   "hedonics.a.2",
+   "hedonics.a.3",
+   "lastIntake.fullType",
+   "lastIntake.plain",
+   "lastIntake.class",
+   "lastIntake.allies",
+   "lastIntake.frac",
+   "monotony.t.[Base.Butter].n",
+   "monotony.t.[Base.PeanutButter].n",
+   "monotony.t.[@fatty].n",
+   "moodLast.u",
+   "moodLast.b"
+  ],
+  "ALLIES_EAT_F": 0.3,
+  "LARD": "Base.Lard",
+  "POTATO": "Base.Potato",
+  "POTATO_F": 0.5,
+  "SATED_ARMS": [
+   "R3S",
+   "I2C"
+  ],
+  "STALE_AGE_D": 30.0,
+  "STALE_TERM": 10.0,
+  "HUNGRY_SEED": 0.32,
+  "UNHAPPY_SEED": 60.0,
+  "CANCEL_FRAC": 0.4,
+  "SPAWNS_503": [
+   [
+    "Base.Butter",
+    1
+   ],
+   [
+    "Base.Lard",
+    1
+   ],
+   [
+    "Base.Potato",
+    1
+   ]
+  ],
+  "RING_503": [
+   "moodLast.u",
+   "moodLast.b",
+   "satiety.M",
+   "hedonics.f",
+   "lastIntake.fullType",
+   "lastIntake.allies",
+   "lastIntake.frac",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed"
+  ],
+  "BACON": "Base.BaconRashers",
+  "DISH_A": [
+   "Base.Carrots",
+   "Base.Carrots",
+   "Base.Carrots",
+   "Base.BaconRashers"
+  ],
+  "DISH_B": [
+   "Base.Carrots",
+   "Base.BaconRashers"
+  ],
+  "SPAWNS_504": [
+   [
+    "Base.Pan",
+    2
+   ],
+   [
+    "Base.Carrots",
+    4
+   ],
+   [
+    "Base.BaconRashers",
+    2
+   ]
+  ],
+  "CLASS_KEYS": [
+   "monotony.t.[@savoury].n",
+   "monotony.t.[@fatty].n",
+   "monotony.t.[@staple].n",
+   "monotony.t.[@sweet].n",
+   "monotony.t.[Base.PanFriedVegetables].n",
+   "lastIntake.fullType",
+   "lastIntake.class",
+   "lastIntake.plain"
+  ],
+  "RING_504": [
+   "moodLast.u",
+   "satiety.M",
+   "hedonics.f",
+   "lastIntake.class",
+   "monotony.t.[@savoury].n",
+   "monotony.t.[@fatty].n",
+   "monotony.t.[@staple].n",
+   "monotony.t.[@sweet].n",
+   "monotony.t.[Base.PanFriedVegetables].n",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed"
+  ],
+  "N_LOAD": 60,
+  "REALS": 1,
+  "RING_FRAMES": 1500,
+  "PERF_N": 400,
+  "ARM_WALL_S": 60.0,
+  "SETTLE_S": 5.0,
+  "MIN_FRAMES": 500,
+  "MIN_MINUTE_FRAMES": 12,
+  "IDLE_BUSY_P99_MAX": 10.0,
+  "IDLE_PERIOD_BAND": [
+   99.0,
+   101.0
+  ],
+  "RULE_P99": 20.0,
+  "RULE_MAX": 25.0,
+  "X391D_P99_ADDS": [
+   7.0,
+   10.0,
+   8.0
+  ],
+  "X391D_LONGEST": [
+   120.0,
+   123.0,
+   121.0
+  ],
+  "POLL_S": 0.25,
+  "ADD_CAP_S": 15.0,
+  "ID_CAP_S": 8.0,
+  "SYNC_WAIT_S": 1.0,
+  "RENAME_WAIT_S": 1.5,
+  "EAT_CAP_S": 30.0,
+  "WRITE_CAP_S": 9.0,
+  "DEPART_CAP_S": 40.0,
+  "REJOIN_CAP_S": 60.0,
+  "QUIT_TIMEOUT_S": 30,
+  "RELOG_HOLD_S": 5.0,
+  "DISH_EAT_LEVEL": 10,
+  "OFFLINE_HOLD_S": 30.0,
+  "PAIR_SLACK_S": 10.0,
+  "TOL_FIELD": 0.001,
+  "TOL_STAMP": 1e-09,
+  "F_TOL": 0.0001,
+  "PRED_F_TOL": 0.05,
+  "U_GAP_TOL": 0.5,
+  "U_FALL_TOL": 0.5,
+  "SLACK_H": 0.03333333333333333,
+  "GAP_MIN_H": 0.05,
+  "D_TOL": 0.3,
+  "RATIO_TOL": 0.08,
+  "REL_TOL": 0.002,
+  "OPT_PACE": "_G.NutritionRevamp.kernel.drain.OPT.pace",
+  "OPT_COMBINE": "_G.NutritionRevamp.kernel.drain.OPT.combine",
+  "OPT_DAYMIN": "_G.NutritionRevamp.kernel.drain.OPT.dayMin",
+  "LUA_DIR": "testing/PZTestKit/PZTestKit/42/media/lua",
+  "HARNESS_FILES": {
+   "PZTestKit_Server.lua": "testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua",
+   "PZTestKit_Client.lua": "testing/PZTestKit/PZTestKit/42/media/lua/client/PZTestKit_Client.lua",
+   "PZTestKit_Core.lua": "testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua"
+  },
+  "HARNESS_MARKERS": {
+   "PZTestKit_Server.lua": [
+    "TK.register(\"minute.ring\", function(",
+    "TK.register(\"stats.all\", function(",
+    "TK.register(\"stats.setany\", function(",
+    "TK.register(\"record.set\", function(",
+    "TK.register(\"nutrition.get\", function(",
+    "TK.register(\"players\", function(",
+    "TK.register(\"perk.set\", function(",
+    "TK.register(\"item.get\", function(",
+    "TK.register(\"item.set\", function(",
+    "TK.register(\"ghost.load\", function(",
+    "TK.register(\"ghost.modq\", function(",
+    "TK.register(\"ghost.stats\", function(",
+    "TK.register(\"ghost.stop\", function(",
+    "TK.register(\"tick.ring\", function(",
+    "TK.register(\"perf.local\", function(",
+    "TK.register(\"health.get\", function("
+   ],
+   "PZTestKit_Client.lua": [
+    "TK.register(\"inv.ids\", function(",
+    "TK.register(\"recipe.add\", function(",
+    "TK.register(\"item.rename\", function(",
+    "TK.register(\"eat.action\", function(",
+    "TK.register(\"action.cancel\", function("
+   ],
+   "PZTestKit_Core.lua": [
+    "TK.register(\"time.snapshot\", function(",
+    "TK.register(\"lua.read\", function(",
+    "TK.register(\"lua.global\", function(",
+    "TK.register(\"witness.fields\", function(",
+    "TK.register(\"witness.moddata\", function("
+   ]
+  },
+  "HSTATS": [
+   "cooks",
+   "prepped",
+   "unprepped",
+   "cookFailures",
+   "passthrough",
+   "allies",
+   "restores",
+   "alliesFailures",
+   "booked",
+   "plain",
+   "healed",
+   "bookFailures"
+  ],
+  "HSTATS_G": [
+   "NutritionRevamp.server.hedonics.stats.cooks",
+   "NutritionRevamp.server.hedonics.stats.prepped",
+   "NutritionRevamp.server.hedonics.stats.unprepped",
+   "NutritionRevamp.server.hedonics.stats.cookFailures",
+   "NutritionRevamp.server.hedonics.stats.passthrough",
+   "NutritionRevamp.server.hedonics.stats.allies",
+   "NutritionRevamp.server.hedonics.stats.restores",
+   "NutritionRevamp.server.hedonics.stats.alliesFailures",
+   "NutritionRevamp.server.hedonics.stats.booked",
+   "NutritionRevamp.server.hedonics.stats.plain",
+   "NutritionRevamp.server.hedonics.stats.healed",
+   "NutritionRevamp.server.hedonics.stats.bookFailures",
+   "NutritionRevamp.server.hedonics.wrappedCook",
+   "NutritionRevamp.server.hedonics.lastError"
+  ],
+  "FAIL_KEYS": [
+   "cookFailures",
+   "alliesFailures",
+   "bookFailures"
+  ],
+  "FIELDS": [
+   "getUnhappyChangeUnmodified",
+   "getUnhappyChange",
+   "getBoredomChange",
+   "getName",
+   "isCustomName",
+   "getHungChange",
+   "getCalories"
+  ],
+  "LOG_RX": "NutritionRevamp|NR_|hedonics|LuaError|STACK TRACE|lua error|attempted index|tried to call nil",
+  "MOD_ERR_RX": "NR_[A-Z][A-Za-z_]*\\.lua|failed:|STACK TRACE|attempted index|tried to call nil"
+ },
+ "meta": {
+  "budget_s": 360.0,
+  "deployed_harness_markers": {
+   "clients/admin/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "server/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "server/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true,
+   "server/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true
+  }
+ },
+ "commit": "264c4a24",
+ "harness_lua_commit": "ee23b53c",
+ "harness_lua_dirty": false,
+ "harness_py_commit": "52a7de93",
+ "xlib_commit": "45c49217",
+ "lib_commit": "3b954136",
+ "driver_commit": "0d1a25e0",
+ "manifest_gate": {
+  "commit": "0b1b3f11",
+  "staged_manifest": "release/NutritionRevamp/MANIFEST.json",
+  "staged_mod": "release/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "commit_full": "0b1b3f11e8e537f6d367a50a894065c10b50813d",
+  "mod_commit": "0b1b3f11",
+  "staged_manifest_sha256": "1722abf5e9fa971fbf237d1e6f69ee3e048bcc006f510350c8c2a0565e54e62c",
+  "files": 85,
+  "staged_equals_commit": true,
+  "staged_tree_equals_commit": true,
+  "staged_version": "1.0.0",
+  "ok": true,
+  "verify_rows_match": true,
+  "version_is_release": true
+ },
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 1.709,
+   "free_gb": 12.15
+  },
+  {
+   "tag": "ready",
+   "wall": 89.168,
+   "free_gb": 1.27
+  },
+  {
+   "tag": "after",
+   "wall": 176.661,
+   "free_gb": 15.3
+  }
+ ],
+ "lint_errors": [],
+ "sandbox_seeded": {
+  "DeathPace": "2",
+  "HealthCombine": "1",
+  "Mode": "1"
+ },
+ "server_launch_wall": 2.143,
+ "server_started_wall": 51.221,
+ "server_pid": 162160,
+ "sandbox_after_start": {
+  "Mode": "1",
+  "LogLevel": "2",
+  "LegacyMirror": "true",
+  "OnsetSpeed": "1.0",
+  "ExcessEffectsOn": "true",
+  "BalanceBonus": "true",
+  "Severity": "1.0",
+  "VisibilityMode": "2",
+  "SexSpecific": "false",
+  "StimulantRealism": "1",
+  "DeathPace": "2",
+  "HealthCombine": "1",
+  "StrengthTimeScale": "1.0",
+  "StrengthXPPerSet": "360.0",
+  "StrengthIncidentalWeight": "0.35",
+  "StrengthCapLevel": "16.5",
+  "StrengthTraitShare": "0.5",
+  "StrengthYearsToLevel10": "4.0",
+  "StrengthNeuralMax": "1.1",
+  "StrengthNeuralRiseWeeks": "3.0",
+  "StrengthNeuralDecayWeeks": "12.0",
+  "StrengthNeuralGraceDays": "21",
+  "StrengthNeuralSaturationSets": "5.0",
+  "StrengthRate": "1.0",
+  "StrengthThreshold": "0.5",
+  "StrengthThresholdRise": "3.0",
+  "StrengthTrainedSetCap": "12.0",
+  "StrengthProteinFull": "1.6",
+  "StrengthDeficitZero": "-650.0",
+  "StrengthDeficitZeroStatusDrop": "0.5",
+  "StrengthNoviceDeficitDepth": "6.0",
+  "StrengthBalanceGate": "1.0",
+  "StrengthBalanceGateStatusDrop": "0.5",
+  "StrengthSurplusFull": "0.1",
+  "StrengthSurplusFullStatusDrop": "0.5",
+  "StrengthTrainedNeedsSurplus": "0.0",
+  "LeanLossTrainingProtect": "0.35",
+  "LeanLossProteinProtect": "0.6",
+  "LeanLossProtectFloor": "0.1",
+  "LeanLossProteinFull": "1.6",
+  "StrengthMaintainShare": "0.333",
+  "StrengthGraceDays": "14",
+  "StrengthDetrainHalfLifeWeeks": "6.0",
+  "StrengthDetrainStatusSlowing": "2.0",
+  "StrengthRegainHalfLifeWeeks": "6.0",
+  "StrengthPeakHalfLifeYears": "2.0"
+ },
+ "session_ready_wall": 88.592,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  }
+ ],
+ "timeline": [
+  {
+   "t": 51.2,
+   "phase": "server_started",
+   "pid": 162160
+  },
+  {
+   "t": 51.3,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 88.6,
+   "phase": "client_ready",
+   "took": 37.0,
+   "user": "admin"
+  },
+  {
+   "t": 88.6,
+   "phase": "session_ready"
+  },
+  {
+   "t": 88.9,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 89.1,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 104.8,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Potato\" 1",
+   "ok": true
+  },
+  {
+   "t": 165.0,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 168.9,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 176.6,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 176.7,
+   "phase": "verdict",
+   "name": "INI",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 176.7,
+   "phase": "verdict",
+   "name": "OPT_SERVER",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 176.7,
+   "phase": "verdict",
+   "name": "OPT_ADMIN",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 176.7,
+   "phase": "verdict",
+   "name": "MOD_READ",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 176.7,
+   "phase": "verdict",
+   "name": "JOIN",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 176.7,
+   "phase": "verdict",
+   "name": "PRE",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 176.7,
+   "phase": "verdict",
+   "name": "CONTROL",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 176.7,
+   "phase": "verdict",
+   "name": "T7_2",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 176.7,
+   "phase": "verdict",
+   "name": "COUNTS",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 176.7,
+   "phase": "verdict",
+   "name": "Z",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "spawns": [
+  {
+   "type": "Base.Potato",
+   "n": 1,
+   "before": {
+    "id": null,
+    "fullType": null,
+    "hungChange": null,
+    "hungerChange": null,
+    "baseHunger": null,
+    "calories": null,
+    "uses": null,
+    "age": null,
+    "error": null,
+    "raw": "no item Base.Potato in admin's inventory",
+    "wall": 103.043
+   },
+   "additem": {
+    "ok": true,
+    "reply": ""
+   },
+   "after": {
+    "id": 340101903,
+    "fullType": "Base.Potato",
+    "hungChange": -0.18000000715255737,
+    "hungerChange": -0.18000000715255737,
+    "baseHunger": -0.18000000715255737,
+    "calories": 69.97000122070312,
+    "uses": 0.18000000715255737,
+    "age": 0,
+    "error": null,
+    "raw": null,
+    "wall": 107.334
+   },
+   "leftover_before": false,
+   "confirmed": true
+  }
+ ],
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 34.4,
+   "ready": 37.0
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "log": "NutritionRevamp|NR_|hedonics|LuaError|STACK TRACE|lua error|attempted index|tried to call nil",
+   "mod_error": "NR_[A-Z][A-Za-z_]*\\.lua|failed:|STACK TRACE|attempted index|tried to call nil"
+  },
+  "server": [
+   "LOG  : Mod          f:0 st:3,103,122,928> loading NutritionRevamp",
+   "LOG  : Mod          f:0 st:3,103,122,931> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+   "LOG  : Mod          f:0 st:3,103,122,931> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+   "LOG  : Mod          f:0 st:3,103,122,931> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+   "LOG  : Mod          f:0 st:3,103,122,931> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x505-20261023-085935\\server\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x505-20261023-085935\\server\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x505-20261023-085935\\server\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x505-20261023-085935\\server\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:3,103,164,102> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+   "LOG  : Lua          f:0 st:3,103,164,102> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:3,103,164,109> [NutritionRevamp] hedonics: ISAddItemInRecipe.complete wrapped",
+   "LOG  : Lua          f:0 st:3,103,164,118> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+   "LOG  : Lua          f:0 st:3,103,164,118> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:3,103,164,118> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+   "LOG  : Lua          f:0 st:3,103,164,118> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+   "LOG  : Lua          f:0 st:3,103,164,127> [NutritionRevamp] eat guard: ISEatFoodAction.serverStart wrapped",
+   "LOG  : Lua          f:0 st:3,103,164,127> [NutritionRevamp] eat guard: ISEatFoodAction.complete wrapped",
+   "LOG  : Lua          f:0 st:3,103,164,127> [NutritionRevamp] eat guard: ISEatFoodAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:3,103,164,262> [NutritionRevamp] writer: vanilla's hunger, thirst and fatigue rates saved and zeroed at boot (Mode 1); a mode change needs a restart",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:3,103,168,450> [NutritionRevamp] hedonics: add-ingredient wrapper true",
+   "LOG  : Lua          f:0 st:3,103,168,451> [NutritionRevamp] intake: wrappers true drink true world true",
+   "LOG  : Lua          f:0 st:3,103,168,451> [NutritionRevamp] eat guard: wraps true outside the intake true",
+   "LOG  : Lua          f:0 st:3,103,168,452> [NutritionRevamp] options: sleep off: the sleep state freezes at rested and the body clock stops",
+   "LOG  : Lua          f:0 st:3,103,168,452> [NutritionRevamp] options: death pace 2, health combining 1",
+   "LOG  : Lua          f:0 st:3,103,168,454> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=server mode=managed itemPass=true legacyMirror=on frameworks=n/a rates=zeroed limitations=15 nutritionOn=false log=2",
+   "LOG  : Lua          f:0 st:3,103,168,456> [NutritionRevamp] strength: xpUpdate.checkForLosingLevel wrapped",
+   "LOG  : Lua          f:341 st:3,103,204,031> [NutritionRevamp] backup: admin's backup rejected (absent)",
+   "LOG  : Lua          f:341 st:3,103,204,032> [NutritionRevamp] players: first sight of admin"
+  ],
+  "server_echo_excluded": 25,
+  "mod_error": [],
+  "clients": {
+   "admin": [
+    "LOG  : Mod          f:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x505-20261023-085935\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x505-20261023-085935\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x505-20261023-085935\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x505-20261023-085935\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] hedonics: ISAddItemInRecipe.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] eat guard: ISEatFoodAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] eat guard: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] eat guard: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=client mode=managed itemPass=true frameworks=none log=2"
+   ]
+  }
+ },
+ "verdict_summary": {
+  "INI": "as_predicted",
+  "OPT_SERVER": "as_predicted",
+  "OPT_ADMIN": "as_predicted",
+  "MOD_READ": "as_predicted",
+  "JOIN": "as_predicted",
+  "PRE": "as_predicted",
+  "CONTROL": "as_predicted",
+  "T7_2": "as_predicted",
+  "COUNTS": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "bus_dead": null,
+ "copied": [
+  "MANIFEST.json"
+ ],
+ "wall_seconds": 176.7
+}

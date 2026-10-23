@@ -22632,3 +22632,23 @@ x504-20261022-224728,checks.A.unhappy,the driver's UNHAPPINESS seed,"A write the
 x504-20261022-224728,checks.B.unhappy,the driver's UNHAPPINESS seed,"A write the driver made, not the mod.",`checks.B.eat.stats0`
 hedonics-budget-20261023,verdicts[*].why,"the band's text, e.g. UNHAPPINESS +3.04, BOREDOM +3.06, each at most +5.00",A rounded text copy of the row's du and db and the band.,"`rows[*].du`, `rows[*].db` and `verdicts[*].ok`"
 hedonics-budget-20261023,sizing.verdicts[*].why,"the sizing band's text, e.g. UNHAPPINESS +2.00, BOREDOM -0.00, each at most +5.00",A rounded text copy of the sizing row's du and db and the band.,"`sizing.rows[*].du`, `sizing.rows[*].db` and `sizing.verdicts[*].ok`"
+x505-20261023-085935,session,the driver's text,Written before the run; not a reading.,
+x505-20261023-085935,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x505-20261023-085935,predicted,the driver's predicted values,Computed before the run; not a reading.,`verdicts.<name>.observed`
+x505-20261023-085935,constants,the driver's constants,"Settings of the driver, not readings.",
+x505-20261023-085935,constants_x50,x50_lib's constants,"Settings of the driver, not readings.",
+x505-20261023-085935,world_changes,the driver's text,Written before the run; not readings.,
+x505-20261023-085935,meta.budget_s,360.0,The driver's own budget; not a reading.,
+x505-20261023-085935,verdicts.*.predicted,the driver's predictions,Copies of `predictions`; not readings.,`verdicts.<name>.observed`
+x505-20261023-085935,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x505-20261023-085935,preboot,the offline checks,Checks of files before the boot; not readings.,
+x505-20261023-085935,sets,the driver's satiety.M write,"A write the driver made, not the mod.",
+x505-20261023-085935,checks.T72.seed,the driver's HUNGER and satiety.M seed,Writes the driver made; never a reading of HUNGER reached by play.,`verdicts.PRE.observed.rows`
+x505-20261023-085935,checks.I2C.pre,the harness's age write,"The driver made the potato stale (item.set age 30, synced by the harness's sendItemStats); not an age reached by play.",`checks.I2C.eat.item0.fields`
+x505-20261023-085935,verdicts.OPT_SERVER.observed.want,the predicted values,A prediction; not a reading.,`verdicts.OPT_SERVER.observed.values`
+x505-20261023-085935,verdicts.OPT_ADMIN.observed.want,the predicted values,A prediction; not a reading.,`verdicts.OPT_ADMIN.observed.values`
+x505-20261023-085935,verdicts.MOD_READ.observed.want,the predicted values,A prediction; not a reading.,`verdicts.MOD_READ.observed.values`
+x505-20261023-085935,verdicts.COUNTS.observed.want,the predicted counts,A prediction; not a reading.,`verdicts.COUNTS.observed.delta`
+x505-20261023-085935,verdicts.T7_2.observed.restored_want,2.499999793039436,"The field before times hung1 / hung0, computed for the grade; not a reading.",`checks.T72.eat.item1.fields`
+x505-20261023-085935,verdicts.T7_2.observed.restored_readtime,12.499999793039436,"The restore's target plus the stale term, computed for the grade; not a reading.",`checks.T72.eat.item1.fields`
+x505-20261023-085935,verdicts.T7_2.observed.lowered,8.83333342991493,x503's lowered value recomputed at these reads for the falsifier; not a reading.,`checks.T72.eat.citem1.fields`
