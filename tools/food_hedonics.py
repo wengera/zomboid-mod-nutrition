@@ -22,7 +22,6 @@ oracle (tools/hedonics_budget.py) and the kernel read one rule:
 """
 import argparse
 import difflib
-import glob
 import json
 import os
 import re
@@ -30,12 +29,16 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared")
+KERNEL_TESTS = os.path.join(REPO, "testing", "tests", "kernel")
+if KERNEL_TESTS not in sys.path:
+    sys.path.insert(0, KERNEL_TESTS)
 OUT_LUA = os.path.join(SHARED, "NR_Data_Hedonics.lua")
 NUTRIENTS_JSON = os.path.join(REPO, "data", "food-nutrients.json")
 ITEMS_JSON = os.path.join(REPO, "data", "food-items.json")
 
 SWEET_FOOD_TYPES = ("Candy", "Fruits", "Berry", "Sugar", "Citrus", "Juice", "Chocolate", "Cocoa")
 SWEET_TAG = "base:sugar"
+CANDY_UNHAPPY = -1.0  # a game choice of the tool: an FDC candy record reads as a treat (Task 5 fix 1, F1)
 SWEET_WORDS = ("candies", "candy", "candied", "chocolate", "cookie", "cookies", "cake", "cakes", "pie", "pies", "muffin",
                "muffins", "doughnut", "doughnuts", "donut", "pastry", "pastries", "syrup", "honey", "jam", "jams", "jelly",
                "jellies", "marmalade", "sugar", "sugars", "ice cream", "pudding", "frosting", "brownie", "brownies",
@@ -43,20 +46,15 @@ SWEET_WORDS = ("candies", "candy", "candied", "chocolate", "cookie", "cookies", 
 SWEET_RX = re.compile(r"\b(?:%s)\b" % "|".join(re.escape(w) for w in SWEET_WORDS), re.I)
 
 
-def kernel_paths():
-    """NR_Core.lua, the dial registry, then every NR_Kernel*.lua in order: the kernel tests' load (their conftest's
-    pre_kernel_files and kernel_files)."""
-    return ([os.path.join(SHARED, "NR_Core.lua"), os.path.join(SHARED, "NR_Data_Dials.lua")]
-            + sorted(glob.glob(os.path.join(SHARED, "NR_Kernel*.lua"))))
-
-
 def runtime():
-    """A Lua 5.1 runtime with NR_Core.lua, the dial registry and every NR_Kernel*.lua loaded (the kernel tests' set)."""
+    """A Lua 5.1 runtime with the shared code loaded as the kernel tests' host loads it (server_host: its stub environment,
+    NR_Core.lua first, then every shared NR_*.lua in sorted order, the registry before the kernels)."""
     import lupa.lua51 as lua51
+    import server_host
     rt = lua51.LuaRuntime(unpack_returned_tuples=True)
-    for path in kernel_paths():
-        with open(path, encoding="utf-8") as fh:
-            rt.execute(fh.read())
+    rt.execute(server_host.ENV)
+    for path in server_host._shared_files():
+        server_host._load(rt, path)
     return rt
 
 
@@ -88,7 +86,7 @@ def inputs(food, item):
     unhappy = float(item.get("unhappy_change") or 0)
     if (food.get("fdc_description") or "").startswith("Candies,"):
         # an FDC candy record is a treat whatever vanilla scores the item (CandyPackage 0, its HardCandies -10)
-        unhappy = min(unhappy, -1.0)
+        unhappy = min(unhappy, CANDY_UNHAPPY)
     return (float(g.get("proteins") or 0.0), float(g.get("carbs") or 0.0), float(g.get("lipids") or 0.0),
             float(g.get("sodium") or 0.0) / 1000.0, float(g["calories"]), unhappy, item.get("food_type"))
 
