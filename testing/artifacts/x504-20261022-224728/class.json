@@ -1,0 +1,7648 @@
+{
+ "steps": [
+  {
+   "step": "S_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S",
+   "wall_before": 53.07,
+   "wall_after": 54.331,
+   "epoch_ms_before": 1792723701374,
+   "epoch_ms_after": 1792723702635,
+   "took": 1.261,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "S_sv",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G SandboxVars.Nutrition SandboxVars.DayLength SandboxVars.NR.Mode SandboxVars.NR.DeathPace SandboxVars.NR.HealthCombine SandboxVars.SleepAllowed NutritionRevamp.version NutritionRevamp.kernel.drain.OPT.pace NutritionRevamp.kernel.drain.OPT.combine NutritionRevamp.kernel.drain.OPT.dayMin",
+   "phase": "S",
+   "wall_before": 54.331,
+   "wall_after": 56.338,
+   "epoch_ms_before": 1792723702635,
+   "epoch_ms_after": 1792723704641,
+   "took": 2.007,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 10,
+    "missing": {
+     "SandboxVars.SleepAllowed": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "SandboxVars.Nutrition": false,
+     "SandboxVars.DayLength": 4,
+     "SandboxVars.NR.Mode": 1,
+     "SandboxVars.NR.DeathPace": 3,
+     "SandboxVars.NR.HealthCombine": 2,
+     "NutritionRevamp.version": "1.0.0",
+     "NutritionRevamp.kernel.drain.OPT.pace": 3,
+     "NutritionRevamp.kernel.drain.OPT.combine": 2,
+     "NutritionRevamp.kernel.drain.OPT.dayMin": 90
+    }
+   }
+  },
+  {
+   "step": "S_clock",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S",
+   "wall_before": 56.338,
+   "wall_after": 56.845,
+   "epoch_ms_before": 1792723704641,
+   "epoch_ms_after": 1792723705149,
+   "took": 0.507,
+   "ack": {
+    "worldAge": 2.33355712890625,
+    "hour": 9,
+    "minutes": 20,
+    "mult": 4.698087215423584,
+    "trueMult": 1,
+    "wall": 1792723704934
+   }
+  },
+  {
+   "step": "S_nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 56.845,
+   "wall_after": 58.357,
+   "epoch_ms_before": 1792723705149,
+   "epoch_ms_after": 1792723706660,
+   "took": 1.512,
+   "ack": {
+    "calories": 1.3376126289367676,
+    "carbs": -299.6758117675781,
+    "lipids": -69.91859436035156,
+    "proteins": -400,
+    "weight": 65.02499999999999,
+    "hunger": 0.020860254764556885,
+    "thirst": 0,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "S_stats_all",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 58.357,
+   "wall_after": 60.372,
+   "epoch_ms_before": 1792723706660,
+   "epoch_ms_after": 1792723708675,
+   "took": 2.015,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.0061875698156654835,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.020860254764556885,
+     "Idleness": 0.026345573365688324,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.93580627441406,
+     "Thirst": 0,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792723708527,
+    "user": "admin",
+    "worldAge": 2.3493824005126953,
+    "mult": 4.776604652404785
+   }
+  },
+  {
+   "step": "S_hstats",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.hedonics.stats.cooks NutritionRevamp.server.hedonics.stats.prepped NutritionRevamp.server.hedonics.stats.unprepped NutritionRevamp.server.hedonics.stats.cookFailures NutritionRevamp.server.hedonics.stats.passthrough NutritionRevamp.server.hedonics.stats.allies NutritionRevamp.server.hedonics.stats.restores NutritionRevamp.server.hedonics.stats.alliesFailures NutritionRevamp.server.hedonics.stats.booked NutritionRevamp.server.hedonics.stats.plain NutritionRevamp.server.hedonics.stats.healed NutritionRevamp.server.hedonics.stats.bookFailures NutritionRevamp.server.hedonics.wrappedCook NutritionRevamp.server.hedonics.lastError",
+   "phase": "S",
+   "wall_before": 60.372,
+   "wall_after": 60.624,
+   "epoch_ms_before": 1792723708676,
+   "epoch_ms_after": 1792723708928,
+   "took": 0.252,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 14,
+    "missing": {
+     "NutritionRevamp.server.hedonics.lastError": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.hedonics.stats.cooks": 0,
+     "NutritionRevamp.server.hedonics.stats.prepped": 0,
+     "NutritionRevamp.server.hedonics.stats.unprepped": 0,
+     "NutritionRevamp.server.hedonics.stats.cookFailures": 0,
+     "NutritionRevamp.server.hedonics.stats.passthrough": 0,
+     "NutritionRevamp.server.hedonics.stats.allies": 0,
+     "NutritionRevamp.server.hedonics.stats.restores": 0,
+     "NutritionRevamp.server.hedonics.stats.alliesFailures": 0,
+     "NutritionRevamp.server.hedonics.stats.booked": 0,
+     "NutritionRevamp.server.hedonics.stats.plain": 0,
+     "NutritionRevamp.server.hedonics.stats.healed": 0,
+     "NutritionRevamp.server.hedonics.stats.bookFailures": 0,
+     "NutritionRevamp.server.hedonics.wrappedCook": true
+    }
+   }
+  },
+  {
+   "step": "S_cooking",
+   "side": "server",
+   "cmd": "perk.xp",
+   "args": "admin Cooking",
+   "phase": "S",
+   "wall_before": 60.624,
+   "wall_after": 62.385,
+   "epoch_ms_before": 1792723708928,
+   "epoch_ms_after": 1792723710689,
+   "took": 1.761,
+   "ack": {
+    "perk": "Cooking",
+    "user": "admin",
+    "side": "server",
+    "xp": 0,
+    "level": 0,
+    "serverWorldAge": 2.358247756958008
+   }
+  },
+  {
+   "step": "S_health",
+   "side": "server",
+   "cmd": "health.get",
+   "args": "admin",
+   "phase": "S",
+   "wall_before": 62.385,
+   "wall_after": 64.142,
+   "epoch_ms_before": 1792723710689,
+   "epoch_ms_after": 1792723712446,
+   "took": 1.757,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "overall": 100,
+    "health": 100,
+    "parts": [
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100
+    ]
+   }
+  },
+  {
+   "step": "H_ring",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin start moodLast.u satiety.M hedonics.f lastIntake.class monotony.t.[@savoury].n monotony.t.[@fatty].n monotony.t.[@staple].n monotony.t.[@sweet].n monotony.t.[Base.PanFriedVegetables].n _G.NutritionRevamp.server.intake.stats.eats _G.NutritionRevamp.server.intake.stats.landed",
+   "phase": "H",
+   "wall_before": 64.144,
+   "wall_after": 64.404,
+   "epoch_ms_before": 1792723712447,
+   "epoch_ms_after": 1792723712708,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "armed": true,
+    "cap": 4320,
+    "paths": [
+     "moodLast.u",
+     "satiety.M",
+     "hedonics.f",
+     "lastIntake.class",
+     "monotony.t.[@savoury].n",
+     "monotony.t.[@fatty].n",
+     "monotony.t.[@staple].n",
+     "monotony.t.[@sweet].n",
+     "monotony.t.[Base.PanFriedVegetables].n",
+     "_G.NutritionRevamp.server.intake.stats.eats",
+     "_G.NutritionRevamp.server.intake.stats.landed"
+    ],
+    "stats": [
+     "HUNGER",
+     "THIRST",
+     "FATIGUE",
+     "BOREDOM",
+     "UNHAPPINESS",
+     "NICOTINE_WITHDRAWAL"
+    ],
+    "online": true,
+    "probe": {
+     "ok": true,
+     "side": "server",
+     "root": "record:admin",
+     "n": 11,
+     "missing": {
+      "hedonics.f": "nil at hedonics",
+      "lastIntake.class": "nil at lastIntake",
+      "monotony.t.[@savoury].n": "nil at monotony",
+      "monotony.t.[@fatty].n": "nil at monotony",
+      "monotony.t.[@staple].n": "nil at monotony",
+      "monotony.t.[@sweet].n": "nil at monotony",
+      "monotony.t.[Base.PanFriedVegetables].n": "nil at monotony"
+     },
+     "types": {},
+     "tables": {},
+     "values": {
+      "moodLast.u": 0,
+      "satiety.M": 706.2921683657389,
+      "_G.NutritionRevamp.server.intake.stats.eats": 0,
+      "_G.NutritionRevamp.server.intake.stats.landed": 0
+     }
+    }
+   }
+  },
+  {
+   "step": "I_Pan_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Pan",
+   "phase": "I",
+   "wall_before": 64.406,
+   "wall_after": 66.422,
+   "epoch_ms_before": 1792723712710,
+   "epoch_ms_after": 1792723714725,
+   "took": 2.016,
+   "ack": "no item Base.Pan in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "I_Pan_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Pan\" 2",
+   "phase": "I",
+   "wall_before": 66.422,
+   "wall_after": 66.43,
+   "epoch_ms_before": 1792723714725,
+   "epoch_ms_after": 1792723714733,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "I_Pan_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Pan",
+   "phase": "I",
+   "wall_before": 68.93,
+   "wall_after": 70.445,
+   "epoch_ms_before": 1792723717234,
+   "epoch_ms_after": 1792723718749,
+   "took": 1.515,
+   "ack": {
+    "fullType": "Base.Pan",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 982923818,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "isCookable": false,
+    "actualWeight": 1.5,
+    "weight": 1.5,
+    "customWeight": false,
+    "serverWorldAge": 2.393742561340332
+   }
+  },
+  {
+   "step": "I_Carrots_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Carrots",
+   "phase": "I",
+   "wall_before": 70.445,
+   "wall_after": 71.96,
+   "epoch_ms_before": 1792723718749,
+   "epoch_ms_after": 1792723720264,
+   "took": 1.515,
+   "ack": "no item Base.Carrots in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "I_Carrots_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Carrots\" 4",
+   "phase": "I",
+   "wall_before": 71.96,
+   "wall_after": 71.982,
+   "epoch_ms_before": 1792723720264,
+   "epoch_ms_after": 1792723720286,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "I_Carrots_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Carrots",
+   "phase": "I",
+   "wall_before": 74.482,
+   "wall_after": 75.491,
+   "epoch_ms_before": 1792723722786,
+   "epoch_ms_after": 1792723723795,
+   "took": 1.009,
+   "ack": {
+    "fullType": "Base.Carrots",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.07999999821186066,
+    "baseHunger": -0.07999999821186066,
+    "calories": 25.709999084472656,
+    "carbs": 6.010000228881836,
+    "lipids": 0.15000000596046448,
+    "proteins": 0.5799999833106995,
+    "id": 1561175435,
+    "uses": 0.07999999821186066,
+    "fresh": true,
+    "offAge": 6,
+    "offAgeMax": 8,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 10,
+    "minutesToBurn": 30,
+    "thirstChange": -0.03999999910593033,
+    "hungerChange": -0.07999999821186066,
+    "isCookable": true,
+    "actualWeight": 0.20000000298023224,
+    "weight": 0.20000000298023224,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.416823387145996
+   }
+  },
+  {
+   "step": "I_BaconRashers_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.BaconRashers",
+   "phase": "I",
+   "wall_before": 75.491,
+   "wall_after": 76.248,
+   "epoch_ms_before": 1792723723795,
+   "epoch_ms_after": 1792723724551,
+   "took": 0.757,
+   "ack": "no item Base.BaconRashers in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "I_BaconRashers_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.BaconRashers\" 2",
+   "phase": "I",
+   "wall_before": 76.248,
+   "wall_after": 76.263,
+   "epoch_ms_before": 1792723724551,
+   "epoch_ms_after": 1792723724567,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "I_BaconRashers_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.BaconRashers",
+   "phase": "I",
+   "wall_before": 78.764,
+   "wall_after": 79.274,
+   "epoch_ms_before": 1792723727067,
+   "epoch_ms_after": 1792723727577,
+   "took": 0.51,
+   "ack": {
+    "fullType": "Base.BaconRashers",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.03999999910593033,
+    "baseHunger": -0.03999999910593033,
+    "calories": 40.09000015258789,
+    "carbs": 0,
+    "lipids": 3.7899999618530273,
+    "proteins": 1.3899999856948853,
+    "id": 122761541,
+    "uses": 0.03999999910593033,
+    "fresh": true,
+    "offAge": 3,
+    "offAgeMax": 5,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 15,
+    "minutesToBurn": 35,
+    "thirstChange": 0,
+    "hungerChange": -0.03999999910593033,
+    "isCookable": true,
+    "actualWeight": 0.10000000149011612,
+    "weight": 0.10000000149011612,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.4336929321289062
+   }
+  },
+  {
+   "step": "A_perk",
+   "side": "server",
+   "cmd": "perk.set",
+   "args": "admin Cooking 10",
+   "phase": "A",
+   "wall_before": 79.276,
+   "wall_after": 80.291,
+   "epoch_ms_before": 1792723727580,
+   "epoch_ms_after": 1792723728595,
+   "took": 1.015,
+   "ack": {
+    "perk": "Cooking",
+    "requested": 10,
+    "side": "server",
+    "before": 0,
+    "setPerkLevelDebug": true,
+    "afterSetPerkLevelDebug": 10,
+    "setXPToLevel": true,
+    "after": 10,
+    "route": "setPerkLevelDebug"
+   }
+  },
+  {
+   "step": "A_0_ids0",
+   "side": "client",
+   "cmd": "inv.ids",
+   "args": "Base.PanFriedVegetables",
+   "phase": "A",
+   "wall_before": 82.304,
+   "wall_after": 82.562,
+   "epoch_ms_before": 1792723730608,
+   "epoch_ms_after": 1792723730866,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "fullType": "Base.PanFriedVegetables",
+    "items": {},
+    "n": 0
+   }
+  },
+  {
+   "step": "A_0_q",
+   "side": "client",
+   "cmd": "recipe.add",
+   "args": "Stir_fry Base.Pan Base.Carrots",
+   "phase": "A",
+   "wall_before": 82.562,
+   "wall_after": 83.069,
+   "epoch_ms_before": 1792723730866,
+   "epoch_ms_after": 1792723731372,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "queued": true,
+    "recipe": "Stir fry",
+    "base": {
+     "id": 982923818,
+     "fullType": "Base.Pan",
+     "name": "Frying Pan",
+     "custom": false
+    },
+    "used": {
+     "id": 1561175435,
+     "fullType": "Base.Carrots",
+     "name": "Carrots (Fresh)",
+     "custom": false
+    },
+    "usable": true,
+    "maxTime": 75
+   }
+  },
+  {
+   "step": "A_0_ids1",
+   "side": "client",
+   "cmd": "inv.ids",
+   "args": "Base.PanFriedVegetables",
+   "phase": "A",
+   "wall_before": 86.339,
+   "wall_after": 86.596,
+   "epoch_ms_before": 1792723734643,
+   "epoch_ms_after": 1792723734900,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "fullType": "Base.PanFriedVegetables",
+    "items": [
+     {
+      "id": 508688524,
+      "fullType": "Base.PanFriedVegetables",
+      "name": "Carrot Stir-fry (Fresh, Uncooked)",
+      "custom": false
+     }
+    ],
+    "n": 1
+   }
+  },
+  {
+   "step": "A_0_r_s0_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#508688524 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "A",
+   "wall_before": 86.596,
+   "wall_after": 86.856,
+   "epoch_ms_before": 1792723734900,
+   "epoch_ms_after": 1792723735160,
+   "took": 0.26,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#508688524",
+    "resolved": "admin/Base.PanFriedVegetables #508688524",
+    "fields": {
+     "getUnhappyChangeUnmodified": -7.5,
+     "getUnhappyChange": -7.5,
+     "getBoredomChange": 0,
+     "getName": "Carrot Stir-fry (Fresh, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.07999999821186066,
+     "getCalories": 29.9950008392334
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.466981887817383,
+    "count": 7
+   }
+  },
+  {
+   "step": "A_0_r_s0_md",
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "item:admin/#508688524 NR_PrepS",
+   "phase": "A",
+   "wall_before": 86.856,
+   "wall_after": 88.365,
+   "epoch_ms_before": 1792723735160,
+   "epoch_ms_after": 1792723736669,
+   "took": 1.509,
+   "ack": {
+    "side": "server",
+    "scope": "item",
+    "arg": "admin/#508688524",
+    "values": {
+     "NR_PrepS": "1.5"
+    },
+    "missing": {},
+    "worldAge": 2.473635673522949,
+    "resolved": "admin/Base.PanFriedVegetables #508688524",
+    "keyCount": 2,
+    "keys": [
+     "NR_PrepS:number",
+     "condition:Pan:number"
+    ],
+    "count": 1
+   }
+  },
+  {
+   "step": "A_1_q",
+   "side": "client",
+   "cmd": "recipe.add",
+   "args": "Stir_fry #508688524 Base.Carrots",
+   "phase": "A",
+   "wall_before": 90.378,
+   "wall_after": 90.635,
+   "epoch_ms_before": 1792723738681,
+   "epoch_ms_after": 1792723738938,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "queued": true,
+    "recipe": "Stir fry",
+    "base": {
+     "id": 508688524,
+     "fullType": "Base.PanFriedVegetables",
+     "name": "Carrot Stir-fry (Fresh, Uncooked)",
+     "custom": false
+    },
+    "used": {
+     "id": 1561175435,
+     "fullType": "Base.Carrots",
+     "name": "Carrots (Fresh)",
+     "custom": false
+    },
+    "usable": true,
+    "maxTime": 75
+   }
+  },
+  {
+   "step": "A_1_r_s0_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#508688524 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "A",
+   "wall_before": 92.399,
+   "wall_after": 94.411,
+   "epoch_ms_before": 1792723740703,
+   "epoch_ms_after": 1792723742714,
+   "took": 2.012,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#508688524",
+    "resolved": "admin/Base.PanFriedVegetables #508688524",
+    "fields": {
+     "getUnhappyChangeUnmodified": -7.5,
+     "getUnhappyChange": -7.5,
+     "getBoredomChange": 0,
+     "getName": "Vegetable Stir-fry (Fresh, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.09999999403953552,
+     "getCalories": 37.493751525878906
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.500265121459961,
+    "count": 7
+   }
+  },
+  {
+   "step": "A_1_r_s0_md",
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "item:admin/#508688524 NR_PrepS",
+   "phase": "A",
+   "wall_before": 94.411,
+   "wall_after": 96.424,
+   "epoch_ms_before": 1792723742714,
+   "epoch_ms_after": 1792723744728,
+   "took": 2.013,
+   "ack": {
+    "side": "server",
+    "scope": "item",
+    "arg": "admin/#508688524",
+    "values": {
+     "NR_PrepS": "1.5"
+    },
+    "missing": {},
+    "worldAge": 2.5091371536254883,
+    "resolved": "admin/Base.PanFriedVegetables #508688524",
+    "keyCount": 2,
+    "keys": [
+     "NR_PrepS:number",
+     "condition:Pan:number"
+    ],
+    "count": 1
+   }
+  },
+  {
+   "step": "A_2_q",
+   "side": "client",
+   "cmd": "recipe.add",
+   "args": "Stir_fry #508688524 Base.Carrots",
+   "phase": "A",
+   "wall_before": 98.187,
+   "wall_after": 98.444,
+   "epoch_ms_before": 1792723746491,
+   "epoch_ms_after": 1792723746747,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "queued": true,
+    "recipe": "Stir fry",
+    "base": {
+     "id": 508688524,
+     "fullType": "Base.PanFriedVegetables",
+     "name": "Vegetable Stir-fry (Fresh, Uncooked)",
+     "custom": false
+    },
+    "used": {
+     "id": 1634117350,
+     "fullType": "Base.Carrots",
+     "name": "Carrots (Fresh)",
+     "custom": false
+    },
+    "usable": true,
+    "maxTime": 75
+   }
+  },
+  {
+   "step": "A_2_r_s0_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#508688524 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "A",
+   "wall_before": 100.46,
+   "wall_after": 101.974,
+   "epoch_ms_before": 1792723748764,
+   "epoch_ms_after": 1792723750277,
+   "took": 1.514,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#508688524",
+    "resolved": "admin/Base.PanFriedVegetables #508688524",
+    "fields": {
+     "getUnhappyChangeUnmodified": 0,
+     "getUnhappyChange": 0,
+     "getBoredomChange": 0,
+     "getName": "Vegetable Stir-fry (Fresh, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.17999999225139618,
+     "getCalories": 67.48875427246094
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.533543586730957,
+    "count": 7
+   }
+  },
+  {
+   "step": "A_2_r_s0_md",
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "item:admin/#508688524 NR_PrepS",
+   "phase": "A",
+   "wall_before": 101.974,
+   "wall_after": 102.482,
+   "epoch_ms_before": 1792723750277,
+   "epoch_ms_after": 1792723750786,
+   "took": 0.508,
+   "ack": {
+    "side": "server",
+    "scope": "item",
+    "arg": "admin/#508688524",
+    "values": {},
+    "missing": [
+     "NR_PrepS"
+    ],
+    "worldAge": 2.5357608795166016,
+    "resolved": "admin/Base.PanFriedVegetables #508688524",
+    "keyCount": 1,
+    "keys": [
+     "condition:Pan:number"
+    ],
+    "count": 1
+   }
+  },
+  {
+   "step": "A_3_q",
+   "side": "client",
+   "cmd": "recipe.add",
+   "args": "Stir_fry #508688524 Base.BaconRashers",
+   "phase": "A",
+   "wall_before": 104.245,
+   "wall_after": 104.504,
+   "epoch_ms_before": 1792723752549,
+   "epoch_ms_after": 1792723752808,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "queued": true,
+    "recipe": "Stir fry",
+    "base": {
+     "id": 508688524,
+     "fullType": "Base.PanFriedVegetables",
+     "name": "Vegetable Stir-fry (Fresh, Uncooked)",
+     "custom": false
+    },
+    "used": {
+     "id": 122761541,
+     "fullType": "Base.BaconRashers",
+     "name": "Bacon Strip (Fresh, Uncooked)",
+     "custom": false
+    },
+    "usable": true,
+    "maxTime": 75
+   }
+  },
+  {
+   "step": "A_3_r_s0_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#508688524 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "A",
+   "wall_before": 106.278,
+   "wall_after": 108.292,
+   "epoch_ms_before": 1792723754582,
+   "epoch_ms_after": 1792723756596,
+   "took": 2.014,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#508688524",
+    "resolved": "admin/Base.PanFriedVegetables #508688524",
+    "fields": {
+     "getUnhappyChangeUnmodified": -7.5,
+     "getUnhappyChange": -7.5,
+     "getBoredomChange": 0,
+     "getName": "Vegetable and Bacon Stir-fry (Fresh, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.2199999988079071,
+     "getCalories": 114.26042175292969
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.5623579025268555,
+    "count": 7
+   }
+  },
+  {
+   "step": "A_3_r_s0_md",
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "item:admin/#508688524 NR_PrepS",
+   "phase": "A",
+   "wall_before": 108.292,
+   "wall_after": 109.304,
+   "epoch_ms_before": 1792723756596,
+   "epoch_ms_after": 1792723757608,
+   "took": 1.012,
+   "ack": {
+    "side": "server",
+    "scope": "item",
+    "arg": "admin/#508688524",
+    "values": {
+     "NR_PrepS": "1.5"
+    },
+    "missing": {},
+    "worldAge": 2.5667953491210938,
+    "resolved": "admin/Base.PanFriedVegetables #508688524",
+    "keyCount": 2,
+    "keys": [
+     "NR_PrepS:number",
+     "condition:Pan:number"
+    ],
+    "count": 1
+   }
+  },
+  {
+   "step": "A_rec0",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin monotony.t.[@savoury].n monotony.t.[@fatty].n monotony.t.[@staple].n monotony.t.[@sweet].n monotony.t.[Base.PanFriedVegetables].n lastIntake.fullType lastIntake.class lastIntake.plain",
+   "phase": "A",
+   "wall_before": 109.304,
+   "wall_after": 110.312,
+   "epoch_ms_before": 1792723757608,
+   "epoch_ms_after": 1792723758616,
+   "took": 1.008,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {
+     "monotony.t.[@savoury].n": "nil at monotony",
+     "monotony.t.[@fatty].n": "nil at monotony",
+     "monotony.t.[@staple].n": "nil at monotony",
+     "monotony.t.[@sweet].n": "nil at monotony",
+     "monotony.t.[Base.PanFriedVegetables].n": "nil at monotony",
+     "lastIntake.fullType": "nil at lastIntake",
+     "lastIntake.class": "nil at lastIntake",
+     "lastIntake.plain": "nil at lastIntake"
+    },
+    "types": {},
+    "tables": {},
+    "values": {}
+   }
+  },
+  {
+   "step": "A_useed",
+   "side": "server",
+   "cmd": "stats.setany",
+   "args": "admin UNHAPPINESS 60.0",
+   "phase": "A",
+   "wall_before": 110.312,
+   "wall_after": 112.33,
+   "epoch_ms_before": 1792723758616,
+   "epoch_ms_after": 1792723760634,
+   "took": 2.018,
+   "ack": {
+    "ok": true,
+    "stat": "UNHAPPINESS",
+    "side": "server",
+    "requested": 60,
+    "before": 0,
+    "after": 60
+   }
+  },
+  {
+   "step": "A_eat_id",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.PanFriedVegetables",
+   "phase": "A",
+   "wall_before": 112.33,
+   "wall_after": 113.088,
+   "epoch_ms_before": 1792723760634,
+   "epoch_ms_after": 1792723761392,
+   "took": 0.758,
+   "ack": {
+    "fullType": "Base.PanFriedVegetables",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0.004362185951322317,
+    "hungChange": -0.2199999988079071,
+    "baseHunger": -0.2199999988079071,
+    "calories": 114.26042175292969,
+    "carbs": 15.776250839233398,
+    "lipids": 4.815417289733887,
+    "proteins": 3.144166946411133,
+    "id": 508688524,
+    "uses": 0.2199999988079071,
+    "fresh": true,
+    "offAge": 3,
+    "offAgeMax": 5,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": -0.08685185015201569,
+    "hungerChange": -0.2199999988079071,
+    "isCookable": true,
+    "actualWeight": 1.9200000762939453,
+    "weight": 1.9200000762939453,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.5836524963378906
+   }
+  },
+  {
+   "step": "A_eat_i0_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#508688524 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "A",
+   "wall_before": 113.088,
+   "wall_after": 114.346,
+   "epoch_ms_before": 1792723761392,
+   "epoch_ms_after": 1792723762650,
+   "took": 1.258,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#508688524",
+    "resolved": "admin/Base.PanFriedVegetables #508688524",
+    "fields": {
+     "getUnhappyChangeUnmodified": -7.5,
+     "getUnhappyChange": -7.5,
+     "getBoredomChange": 0,
+     "getName": "Vegetable and Bacon Stir-fry (Fresh, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.2199999988079071,
+     "getCalories": 114.26042175292969
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.5889644622802734,
+    "count": 7
+   }
+  },
+  {
+   "step": "A_eat_rec0",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin moodLast.u",
+   "phase": "A",
+   "wall_before": 114.346,
+   "wall_after": 116.361,
+   "epoch_ms_before": 1792723762650,
+   "epoch_ms_after": 1792723764665,
+   "took": 2.015,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "moodLast.u": 0
+    }
+   }
+  },
+  {
+   "step": "A_eat_st0",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "A",
+   "wall_before": 116.361,
+   "wall_after": 116.869,
+   "epoch_ms_before": 1792723764665,
+   "epoch_ms_after": 1792723765173,
+   "took": 0.508,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.2807198166847229,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.0312355887144804,
+     "Idleness": 0.17674194276332855,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.794647216796875,
+     "Thirst": 0,
+     "Unhappiness": 60,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792723765031,
+    "user": "admin",
+    "worldAge": 2.600043296813965,
+    "mult": 4.7864155769348145
+   }
+  },
+  {
+   "step": "A_eat_eat",
+   "side": "client",
+   "cmd": "eat.action",
+   "args": "Base.PanFriedVegetables 1",
+   "phase": "A",
+   "wall_before": 120.394,
+   "wall_after": 120.654,
+   "epoch_ms_before": 1792723768698,
+   "epoch_ms_after": 1792723768957,
+   "took": 0.26,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 508688524,
+    "itemBefore": {
+     "fullType": "Base.PanFriedVegetables",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 5.563100330618909e-06,
+     "hungChange": -0.2199999988079071,
+     "baseHunger": -0.2199999988079071,
+     "calories": 114.26042175292969,
+     "carbs": 15.776250839233398,
+     "lipids": 4.815417289733887,
+     "proteins": 3.144166946411133,
+     "id": 508688524,
+     "uses": 0.2199999988079071,
+     "fresh": true,
+     "offAge": 3,
+     "offAgeMax": 5,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": -0.08685185015201569,
+     "hungerChange": -0.2199999988079071,
+     "isCookable": true,
+     "actualWeight": 1.9200000762939453,
+     "weight": 1.9200000762939453,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 348.0309476852417,
+    "moodleFoodEaten": 1,
+    "before": {
+     "calories": 21.486637115478516,
+     "carbs": -294.60015869140625,
+     "lipids": -68.6440658569336,
+     "proteins": -400,
+     "weight": 65.0250015258789,
+     "hunger": 0.03190816193819046,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "A_eat_st1",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "A",
+   "wall_before": 128.467,
+   "wall_after": 130.482,
+   "epoch_ms_before": 1792723776771,
+   "epoch_ms_after": 1792723778785,
+   "took": 2.015,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.40655431151390076,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0.4018203318119049,
+     "Hunger": 0,
+     "Idleness": 0.2126709371805191,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 14.86275863647461,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.790611267089844,
+     "Thirst": 0,
+     "Unhappiness": 52.5,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792723778534,
+    "user": "admin",
+    "worldAge": 2.659926414489746,
+    "mult": 4.784339427947998
+   }
+  },
+  {
+   "step": "A_eat_i1_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#508688524 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "A",
+   "wall_before": 130.482,
+   "wall_after": 131.998,
+   "epoch_ms_before": 1792723778786,
+   "epoch_ms_after": 1792723780302,
+   "took": 1.516,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#508688524",
+    "resolved": false,
+    "worldAge": 2.667019844055176,
+    "error": "no item #508688524 on admin"
+   }
+  },
+  {
+   "step": "A_eat_rec1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin moodLast.u",
+   "phase": "A",
+   "wall_before": 131.998,
+   "wall_after": 132.26,
+   "epoch_ms_before": 1792723780302,
+   "epoch_ms_after": 1792723780564,
+   "took": 0.262,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "moodLast.u": 0
+    }
+   }
+  },
+  {
+   "step": "A_rec1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin monotony.t.[@savoury].n monotony.t.[@fatty].n monotony.t.[@staple].n monotony.t.[@sweet].n monotony.t.[Base.PanFriedVegetables].n lastIntake.fullType lastIntake.class lastIntake.plain",
+   "phase": "A",
+   "wall_before": 136.304,
+   "wall_after": 138.313,
+   "epoch_ms_before": 1792723784607,
+   "epoch_ms_after": 1792723786617,
+   "took": 2.009,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {
+     "monotony.t.[@fatty].n": "nil at @fatty",
+     "monotony.t.[@staple].n": "nil at @staple",
+     "monotony.t.[@sweet].n": "nil at @sweet"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "monotony.t.[@savoury].n": 0.028565105438232426,
+     "monotony.t.[Base.PanFriedVegetables].n": 0.28565105438232424,
+     "lastIntake.fullType": "Base.PanFriedVegetables",
+     "lastIntake.class": "savoury",
+     "lastIntake.plain": false
+    }
+   }
+  },
+  {
+   "step": "B_perk",
+   "side": "server",
+   "cmd": "perk.set",
+   "args": "admin Cooking 10",
+   "phase": "B",
+   "wall_before": 138.317,
+   "wall_after": 139.577,
+   "epoch_ms_before": 1792723786620,
+   "epoch_ms_after": 1792723787881,
+   "took": 1.26,
+   "ack": {
+    "perk": "Cooking",
+    "requested": 10,
+    "side": "server",
+    "before": 10,
+    "setPerkLevelDebug": true,
+    "afterSetPerkLevelDebug": 10,
+    "setXPToLevel": true,
+    "after": 10,
+    "route": "already at level"
+   }
+  },
+  {
+   "step": "B_0_ids0",
+   "side": "client",
+   "cmd": "inv.ids",
+   "args": "Base.PanFriedVegetables",
+   "phase": "B",
+   "wall_before": 140.339,
+   "wall_after": 140.595,
+   "epoch_ms_before": 1792723788643,
+   "epoch_ms_after": 1792723788899,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "fullType": "Base.PanFriedVegetables",
+    "items": {},
+    "n": 0
+   }
+  },
+  {
+   "step": "B_0_q",
+   "side": "client",
+   "cmd": "recipe.add",
+   "args": "Stir_fry Base.Pan Base.Carrots",
+   "phase": "B",
+   "wall_before": 140.595,
+   "wall_after": 141.108,
+   "epoch_ms_before": 1792723788899,
+   "epoch_ms_after": 1792723789412,
+   "took": 0.513,
+   "ack": {
+    "ok": true,
+    "queued": true,
+    "recipe": "Stir fry",
+    "base": {
+     "id": 1178235832,
+     "fullType": "Base.Pan",
+     "name": "Frying Pan",
+     "custom": false
+    },
+    "used": {
+     "id": 1634117350,
+     "fullType": "Base.Carrots",
+     "name": "Carrots (Fresh)",
+     "custom": false
+    },
+    "usable": true,
+    "maxTime": 75
+   }
+  },
+  {
+   "step": "B_0_ids1",
+   "side": "client",
+   "cmd": "inv.ids",
+   "args": "Base.PanFriedVegetables",
+   "phase": "B",
+   "wall_before": 144.394,
+   "wall_after": 144.653,
+   "epoch_ms_before": 1792723792697,
+   "epoch_ms_after": 1792723792956,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "fullType": "Base.PanFriedVegetables",
+    "items": [
+     {
+      "id": 241085849,
+      "fullType": "Base.PanFriedVegetables",
+      "name": "Carrot Stir-fry (Fresh, Uncooked)",
+      "custom": false
+     }
+    ],
+    "n": 1
+   }
+  },
+  {
+   "step": "B_0_r_s0_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#241085849 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "B",
+   "wall_before": 144.653,
+   "wall_after": 146.416,
+   "epoch_ms_before": 1792723792956,
+   "epoch_ms_after": 1792723794719,
+   "took": 1.763,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#241085849",
+    "resolved": "admin/Base.PanFriedVegetables #241085849",
+    "fields": {
+     "getUnhappyChangeUnmodified": -7.5,
+     "getUnhappyChange": -7.5,
+     "getBoredomChange": 0,
+     "getName": "Carrot Stir-fry (Fresh, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.019999999552965164,
+     "getCalories": 7.498749256134033
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.7308692932128906,
+    "count": 7
+   }
+  },
+  {
+   "step": "B_0_r_s0_md",
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "item:admin/#241085849 NR_PrepS",
+   "phase": "B",
+   "wall_before": 146.416,
+   "wall_after": 146.928,
+   "epoch_ms_before": 1792723794719,
+   "epoch_ms_after": 1792723795231,
+   "took": 0.512,
+   "ack": {
+    "side": "server",
+    "scope": "item",
+    "arg": "admin/#241085849",
+    "values": {
+     "NR_PrepS": "1.5"
+    },
+    "missing": {},
+    "worldAge": 2.733531951904297,
+    "resolved": "admin/Base.PanFriedVegetables #241085849",
+    "keyCount": 2,
+    "keys": [
+     "NR_PrepS:number",
+     "condition:Pan:number"
+    ],
+    "count": 1
+   }
+  },
+  {
+   "step": "B_1_q",
+   "side": "client",
+   "cmd": "recipe.add",
+   "args": "Stir_fry #241085849 Base.BaconRashers",
+   "phase": "B",
+   "wall_before": 148.439,
+   "wall_after": 148.946,
+   "epoch_ms_before": 1792723796742,
+   "epoch_ms_after": 1792723797249,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "queued": true,
+    "recipe": "Stir fry",
+    "base": {
+     "id": 241085849,
+     "fullType": "Base.PanFriedVegetables",
+     "name": "Carrot Stir-fry (Fresh, Uncooked)",
+     "custom": false
+    },
+    "used": {
+     "id": 881211795,
+     "fullType": "Base.BaconRashers",
+     "name": "Bacon Strip (Fresh, Uncooked)",
+     "custom": false
+    },
+    "usable": true,
+    "maxTime": 75
+   }
+  },
+  {
+   "step": "B_1_r_s0_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#241085849 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "B",
+   "wall_before": 152.475,
+   "wall_after": 154.24,
+   "epoch_ms_before": 1792723800778,
+   "epoch_ms_after": 1792723802544,
+   "took": 1.765,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#241085849",
+    "resolved": "admin/Base.PanFriedVegetables #241085849",
+    "fields": {
+     "getUnhappyChangeUnmodified": -15,
+     "getUnhappyChange": -15,
+     "getBoredomChange": 0,
+     "getName": "Carrot and Bacon Stir-fry (Fresh, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.05999999865889549,
+     "getCalories": 54.27042007446289
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.766378402709961,
+    "count": 7
+   }
+  },
+  {
+   "step": "B_1_r_s0_md",
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "item:admin/#241085849 NR_PrepS",
+   "phase": "B",
+   "wall_before": 154.24,
+   "wall_after": 154.505,
+   "epoch_ms_before": 1792723802544,
+   "epoch_ms_after": 1792723802808,
+   "took": 0.265,
+   "ack": {
+    "side": "server",
+    "scope": "item",
+    "arg": "admin/#241085849",
+    "values": {
+     "NR_PrepS": "1.5"
+    },
+    "missing": {},
+    "worldAge": 2.766824722290039,
+    "resolved": "admin/Base.PanFriedVegetables #241085849",
+    "keyCount": 2,
+    "keys": [
+     "NR_PrepS:number",
+     "condition:Pan:number"
+    ],
+    "count": 1
+   }
+  },
+  {
+   "step": "B_rec0",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin monotony.t.[@savoury].n monotony.t.[@fatty].n monotony.t.[@staple].n monotony.t.[@sweet].n monotony.t.[Base.PanFriedVegetables].n lastIntake.fullType lastIntake.class lastIntake.plain",
+   "phase": "B",
+   "wall_before": 154.505,
+   "wall_after": 156.268,
+   "epoch_ms_before": 1792723802808,
+   "epoch_ms_after": 1792723804572,
+   "took": 1.763,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {
+     "monotony.t.[@fatty].n": "nil at @fatty",
+     "monotony.t.[@staple].n": "nil at @staple",
+     "monotony.t.[@sweet].n": "nil at @sweet"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "monotony.t.[@savoury].n": 0.028565105438232426,
+     "monotony.t.[Base.PanFriedVegetables].n": 0.28565105438232424,
+     "lastIntake.fullType": "Base.PanFriedVegetables",
+     "lastIntake.class": "savoury",
+     "lastIntake.plain": false
+    }
+   }
+  },
+  {
+   "step": "B_useed",
+   "side": "server",
+   "cmd": "stats.setany",
+   "args": "admin UNHAPPINESS 60.0",
+   "phase": "B",
+   "wall_before": 156.268,
+   "wall_after": 158.283,
+   "epoch_ms_before": 1792723804572,
+   "epoch_ms_after": 1792723806587,
+   "took": 2.015,
+   "ack": {
+    "ok": true,
+    "stat": "UNHAPPINESS",
+    "side": "server",
+    "requested": 60,
+    "before": 52.5,
+    "after": 60
+   }
+  },
+  {
+   "step": "B_eat_id",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.PanFriedVegetables",
+   "phase": "B",
+   "wall_before": 158.283,
+   "wall_after": 160.301,
+   "epoch_ms_before": 1792723806587,
+   "epoch_ms_after": 1792723808604,
+   "took": 2.018,
+   "ack": {
+    "fullType": "Base.PanFriedVegetables",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0.0028661887627094984,
+    "hungChange": -0.05999999865889549,
+    "baseHunger": -0.05999999865889549,
+    "calories": 54.27042007446289,
+    "carbs": 1.752916693687439,
+    "lipids": 4.46541690826416,
+    "proteins": 1.7908334732055664,
+    "id": 241085849,
+    "uses": 0.05999999865889549,
+    "fresh": true,
+    "offAge": 3,
+    "offAgeMax": 5,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": 0.006481482647359371,
+    "hungerChange": -0.05999999865889549,
+    "isCookable": true,
+    "actualWeight": 1.6800000667572021,
+    "weight": 1.6800000667572021,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.79300594329834
+   }
+  },
+  {
+   "step": "B_eat_i0_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#241085849 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "B",
+   "wall_before": 160.301,
+   "wall_after": 162.063,
+   "epoch_ms_before": 1792723808604,
+   "epoch_ms_after": 1792723810367,
+   "took": 1.762,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#241085849",
+    "resolved": "admin/Base.PanFriedVegetables #241085849",
+    "fields": {
+     "getUnhappyChangeUnmodified": -15,
+     "getUnhappyChange": -15,
+     "getBoredomChange": 0,
+     "getName": "Carrot and Bacon Stir-fry (Fresh, Uncooked)",
+     "isCustomName": false,
+     "getHungChange": -0.05999999865889549,
+     "getCalories": 54.27042007446289
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.800107955932617,
+    "count": 7
+   }
+  },
+  {
+   "step": "B_eat_rec0",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin moodLast.u",
+   "phase": "B",
+   "wall_before": 162.064,
+   "wall_after": 162.319,
+   "epoch_ms_before": 1792723810367,
+   "epoch_ms_after": 1792723810623,
+   "took": 0.255,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "moodLast.u": 0
+    }
+   }
+  },
+  {
+   "step": "B_eat_st0",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 162.319,
+   "wall_after": 164.331,
+   "epoch_ms_before": 1792723810623,
+   "epoch_ms_after": 1792723812634,
+   "took": 2.012,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.826478123664856,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 5.2886962890625,
+     "Hunger": 0,
+     "Idleness": 0.3031686842441559,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 13.182798385620117,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.78900146484375,
+     "Thirst": 0,
+     "Unhappiness": 60,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792723812533,
+    "user": "admin",
+    "worldAge": 2.8107595443725586,
+    "mult": 4.796496868133545
+   }
+  },
+  {
+   "step": "B_eat_eat",
+   "side": "client",
+   "cmd": "eat.action",
+   "args": "Base.PanFriedVegetables 1",
+   "phase": "B",
+   "wall_before": 166.343,
+   "wall_after": 166.599,
+   "epoch_ms_before": 1792723814646,
+   "epoch_ms_after": 1792723814903,
+   "took": 0.256,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 241085849,
+    "itemBefore": {
+     "fullType": "Base.PanFriedVegetables",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 4.688898570748279e-06,
+     "hungChange": -0.05999999865889549,
+     "baseHunger": -0.05999999865889549,
+     "calories": 54.27042007446289,
+     "carbs": 1.752916693687439,
+     "lipids": 4.46541690826416,
+     "proteins": 1.7908334732055664,
+     "id": 241085849,
+     "uses": 0.05999999865889549,
+     "fresh": true,
+     "offAge": 3,
+     "offAgeMax": 5,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0.006481482647359371,
+     "hungerChange": -0.05999999865889549,
+     "isCookable": true,
+     "actualWeight": 1.6800000667572021,
+     "weight": 1.6800000667572021,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 348.03692150115967,
+    "moodleFoodEaten": 1,
+    "before": {
+     "calories": 38.586116790771484,
+     "carbs": -290.4956970214844,
+     "lipids": -67.57569122314453,
+     "proteins": -400,
+     "weight": 65.0250015258789,
+     "hunger": 0,
+     "thirst": 0,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "B_eat_st1",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "B",
+   "wall_before": 176.432,
+   "wall_after": 176.944,
+   "epoch_ms_before": 1792723824735,
+   "epoch_ms_after": 1792723825247,
+   "took": 0.512,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 1.0211670398712158,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 7.449620723724365,
+     "Hunger": 0,
+     "Idleness": 0.3369752764701843,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 27.56047821044922,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.788516998291016,
+     "Thirst": 0.006481482647359371,
+     "Unhappiness": 45,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1792723825231,
+    "user": "admin",
+    "worldAge": 2.867097854614258,
+    "mult": 4.796571254730225
+   }
+  },
+  {
+   "step": "B_eat_i1_f",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/#241085849 getUnhappyChangeUnmodified,getUnhappyChange,getBoredomChange,getName,isCustomName,getHungChange,getCalories",
+   "phase": "B",
+   "wall_before": 176.944,
+   "wall_after": 178.455,
+   "epoch_ms_before": 1792723825247,
+   "epoch_ms_after": 1792723826759,
+   "took": 1.511,
+   "ack": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/#241085849",
+    "resolved": false,
+    "worldAge": 2.8728647232055664,
+    "error": "no item #241085849 on admin"
+   }
+  },
+  {
+   "step": "B_eat_rec1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin moodLast.u",
+   "phase": "B",
+   "wall_before": 178.455,
+   "wall_after": 180.469,
+   "epoch_ms_before": 1792723826759,
+   "epoch_ms_after": 1792723828773,
+   "took": 2.014,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 1,
+    "missing": {},
+    "types": {},
+    "tables": {},
+    "values": {
+     "moodLast.u": 0
+    }
+   }
+  },
+  {
+   "step": "B_rec1",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "record:admin monotony.t.[@savoury].n monotony.t.[@fatty].n monotony.t.[@staple].n monotony.t.[@sweet].n monotony.t.[Base.PanFriedVegetables].n lastIntake.fullType lastIntake.class lastIntake.plain",
+   "phase": "B",
+   "wall_before": 182.488,
+   "wall_after": 184.248,
+   "epoch_ms_before": 1792723830792,
+   "epoch_ms_after": 1792723832552,
+   "took": 1.76,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "record:admin",
+    "n": 8,
+    "missing": {
+     "monotony.t.[@staple].n": "nil at @staple",
+     "monotony.t.[@sweet].n": "nil at @sweet"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "monotony.t.[@savoury].n": 0.028565105438232426,
+     "monotony.t.[@fatty].n": 0.013567605018615723,
+     "monotony.t.[Base.PanFriedVegetables].n": 0.4207665305641827,
+     "lastIntake.fullType": "Base.PanFriedVegetables",
+     "lastIntake.class": "fatty",
+     "lastIntake.plain": false
+    }
+   }
+  },
+  {
+   "step": "IDLE_perf_arm",
+   "side": "server",
+   "cmd": "perf.local",
+   "args": "400",
+   "phase": "IDLE",
+   "wall_before": 184.252,
+   "wall_after": 184.513,
+   "epoch_ms_before": 1792723832555,
+   "epoch_ms_after": 1792723832817,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "armed": true,
+    "cap": 400,
+    "present": true,
+    "hooks": {
+     "evenPaused": true,
+     "tick": true,
+     "minute": true
+    }
+   }
+  },
+  {
+   "step": "IDLE_ring_arm",
+   "side": "server",
+   "cmd": "tick.ring",
+   "args": "1500",
+   "phase": "IDLE",
+   "wall_before": 184.513,
+   "wall_after": 186.279,
+   "epoch_ms_before": 1792723832817,
+   "epoch_ms_after": 1792723834583,
+   "took": 1.766,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "armed": true,
+    "cap": 1500,
+    "hooks": {
+     "evenPaused": true,
+     "tick": true,
+     "minute": true
+    }
+   }
+  },
+  {
+   "step": "IDLE_perf_read",
+   "side": "server",
+   "cmd": "perf.local",
+   "args": "read IDLE",
+   "phase": "IDLE",
+   "wall_before": 246.279,
+   "wall_after": 248.291,
+   "epoch_ms_before": 1792723894583,
+   "epoch_ms_after": 1792723896594,
+   "took": 2.012,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "tag": "IDLE",
+    "samples": 61,
+    "recorded": 61,
+    "max": {
+     "n": 61,
+     "p50": 104,
+     "p99": 115,
+     "max": 115,
+     "min": 101
+    },
+    "min": {
+     "n": 61,
+     "p50": 96,
+     "p99": 98,
+     "max": 98,
+     "min": 84
+    },
+    "avg": {
+     "n": 61,
+     "p50": 4,
+     "p99": 5,
+     "max": 5,
+     "min": 4
+    },
+    "cur": {
+     "n": 61,
+     "p50": 101,
+     "p99": 107,
+     "max": 107,
+     "min": 96
+    },
+    "result": "perf-local-IDLE",
+    "file": "pzt-results/perf-local-IDLE.json"
+   }
+  },
+  {
+   "step": "IDLE_ring_read",
+   "side": "server",
+   "cmd": "tick.ring",
+   "args": "read IDLE",
+   "phase": "IDLE",
+   "wall_before": 248.291,
+   "wall_after": 250.304,
+   "epoch_ms_before": 1792723896594,
+   "epoch_ms_after": 1792723898608,
+   "took": 2.013,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "tag": "IDLE",
+    "frames": 640,
+    "recorded": 640,
+    "cap": 1500,
+    "busy": {
+     "n": 640,
+     "p50": 0,
+     "p99": 3,
+     "max": 16,
+     "min": 0
+    },
+    "period": {
+     "n": 639,
+     "p50": 100,
+     "p99": 104,
+     "max": 105,
+     "min": 95
+    },
+    "endPeriod": {
+     "n": 639,
+     "p50": 100,
+     "p99": 106,
+     "max": 115,
+     "min": 85
+    },
+    "over110": 0,
+    "minuteFrames": 17,
+    "minuteBusyMax": 16,
+    "runsMax": 0,
+    "ghostMsMax": 0,
+    "armedAt": 1792723834529,
+    "hooks": {
+     "evenPaused": true,
+     "tick": true,
+     "minute": true
+    },
+    "result": "tick-ring-IDLE",
+    "file": "pzt-results/tick-ring-IDLE.json"
+   }
+  },
+  {
+   "step": "LOAD_load",
+   "side": "server",
+   "cmd": "ghost.load",
+   "args": "60 mod feed",
+   "phase": "LOAD",
+   "wall_before": 250.327,
+   "wall_after": 252.093,
+   "epoch_ms_before": 1792723898631,
+   "epoch_ms_after": 1792723900397,
+   "took": 1.766,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "N": 60,
+    "scheduler": "mod",
+    "online": 1,
+    "hooks": {
+     "evenPaused": true,
+     "tick": true,
+     "minute": true
+    },
+    "ghosts": 59,
+    "period": 1,
+    "feed": true,
+    "tpmSource": "hooks",
+    "tpmSeed": 38,
+    "carriers": [
+     "admin"
+    ],
+    "names": [
+     "ghost1_admin",
+     "ghost2_admin",
+     "ghost3_admin",
+     "ghost4_admin",
+     "ghost5_admin",
+     "ghost6_admin",
+     "ghost7_admin",
+     "ghost8_admin",
+     "ghost9_admin",
+     "ghost10_admin",
+     "ghost11_admin",
+     "ghost12_admin",
+     "ghost13_admin",
+     "ghost14_admin",
+     "ghost15_admin",
+     "ghost16_admin",
+     "ghost17_admin",
+     "ghost18_admin",
+     "ghost19_admin",
+     "ghost20_admin",
+     "ghost21_admin",
+     "ghost22_admin",
+     "ghost23_admin",
+     "ghost24_admin",
+     "ghost25_admin",
+     "ghost26_admin",
+     "ghost27_admin",
+     "ghost28_admin",
+     "ghost29_admin",
+     "ghost30_admin",
+     "ghost31_admin",
+     "ghost32_admin",
+     "ghost33_admin",
+     "ghost34_admin",
+     "ghost35_admin",
+     "ghost36_admin",
+     "ghost37_admin",
+     "ghost38_admin",
+     "ghost39_admin",
+     "ghost40_admin",
+     "ghost41_admin",
+     "ghost42_admin",
+     "ghost43_admin",
+     "ghost44_admin",
+     "ghost45_admin",
+     "ghost46_admin",
+     "ghost47_admin",
+     "ghost48_admin",
+     "ghost49_admin",
+     "ghost50_admin",
+     "ghost51_admin",
+     "ghost52_admin",
+     "ghost53_admin",
+     "ghost54_admin",
+     "ghost55_admin",
+     "ghost56_admin",
+     "ghost57_admin",
+     "ghost58_admin",
+     "ghost59_admin"
+    ]
+   }
+  },
+  {
+   "step": "LOAD_modq_on",
+   "side": "server",
+   "cmd": "ghost.modq",
+   "args": "on",
+   "phase": "LOAD",
+   "wall_before": 252.093,
+   "wall_after": 252.353,
+   "epoch_ms_before": 1792723900397,
+   "epoch_ms_after": 1792723900657,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "on": true,
+    "ghosts": 59
+   }
+  },
+  {
+   "step": "LOAD_reset",
+   "side": "server",
+   "cmd": "ghost.stats",
+   "args": "reset",
+   "phase": "LOAD",
+   "wall_before": 257.353,
+   "wall_after": 258.362,
+   "epoch_ms_before": 1792723905657,
+   "epoch_ms_after": 1792723906666,
+   "took": 1.009,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "reset": true,
+    "before": {
+     "ok": true,
+     "side": "server",
+     "active": true,
+     "scheduler": "mod",
+     "period": 1,
+     "ghosts": 59,
+     "ms": 50,
+     "failures": 0,
+     "runs": 59,
+     "usPerRun": 847.457627118644,
+     "minuteEventsSince": 2,
+     "minuteEvents": 2,
+     "tpmLast": 38,
+     "queued": 0,
+     "maxStaleMinutes": 1,
+     "starvedMinutes": 1,
+     "starvedEvents": 59,
+     "neverRun": 0,
+     "staleMinuteEvents": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "staleGameMinutes": [
+      0.6657600402832031,
+      0.6657600402832031,
+      0.6657600402832031,
+      0.6657600402832031,
+      0.6657600402832031,
+      0.6390380859375,
+      0.6390380859375,
+      0.6390380859375,
+      0.6390380859375,
+      0.6390380859375,
+      0.6390380859375,
+      0.6123733520507812,
+      0.6123733520507812,
+      0.6123733520507812,
+      0.6123733520507812,
+      0.6123733520507812,
+      0.6123733520507812,
+      0.5857086181640625,
+      0.5857086181640625,
+      0.5857086181640625,
+      0.5857086181640625,
+      0.5857086181640625,
+      0.5857086181640625,
+      0.5591011047363281,
+      0.5591011047363281,
+      0.5591011047363281,
+      0.5591011047363281,
+      0.5591011047363281,
+      0.5591011047363281,
+      0.5324363708496094,
+      0.5324363708496094,
+      0.5324363708496094,
+      0.5324363708496094,
+      0.5324363708496094,
+      0.5324363708496094,
+      0.5057716369628906,
+      0.5057716369628906,
+      0.5057716369628906,
+      0.5057716369628906,
+      0.5057716369628906,
+      0.5057716369628906,
+      0.4791069030761719,
+      0.4791069030761719,
+      0.4791069030761719,
+      0.4791069030761719,
+      0.4791069030761719,
+      0.4791069030761719,
+      0.4524993896484375,
+      0.4524993896484375,
+      0.4524993896484375,
+      0.4524993896484375,
+      0.4524993896484375,
+      0.4524993896484375,
+      0.42583465576171875,
+      0.42583465576171875,
+      0.42583465576171875,
+      0.42583465576171875,
+      0.42583465576171875,
+      0.42583465576171875
+     ],
+     "maxStaleGameMinutes": 1.008453369140625,
+     "staleGameNowMax": 0.6657600402832031,
+     "maxRunsPerFrame": 6,
+     "framesWithRuns": 10,
+     "frames": 63,
+     "meanRunsPerRunFrame": 5.9,
+     "meanRunsPerFrame": 0.9365079365079365,
+     "bodySyncs": 0,
+     "syncs": 0,
+     "suppressed": 0,
+     "feed": true,
+     "yielded": 0,
+     "dropped": 0,
+     "tpmSource": "hooks",
+     "tpmSeed": 38,
+     "storeGhostKeys": 0,
+     "wallSinceLoad": 6299,
+     "gameMinutesSinceLoad": 1.6742134094238281
+    }
+   }
+  },
+  {
+   "step": "LOAD_perf_arm",
+   "side": "server",
+   "cmd": "perf.local",
+   "args": "400",
+   "phase": "LOAD",
+   "wall_before": 258.362,
+   "wall_after": 259.625,
+   "epoch_ms_before": 1792723906666,
+   "epoch_ms_after": 1792723907928,
+   "took": 1.263,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "armed": true,
+    "cap": 400,
+    "present": true,
+    "hooks": {
+     "evenPaused": true,
+     "tick": true,
+     "minute": true
+    }
+   }
+  },
+  {
+   "step": "LOAD_ring_arm",
+   "side": "server",
+   "cmd": "tick.ring",
+   "args": "1500",
+   "phase": "LOAD",
+   "wall_before": 259.625,
+   "wall_after": 260.386,
+   "epoch_ms_before": 1792723907928,
+   "epoch_ms_after": 1792723908690,
+   "took": 0.761,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "armed": true,
+    "cap": 1500,
+    "hooks": {
+     "evenPaused": true,
+     "tick": true,
+     "minute": true
+    }
+   }
+  },
+  {
+   "step": "LOAD_perf_read",
+   "side": "server",
+   "cmd": "perf.local",
+   "args": "read LOAD",
+   "phase": "LOAD",
+   "wall_before": 320.386,
+   "wall_after": 322.403,
+   "epoch_ms_before": 1792723968690,
+   "epoch_ms_after": 1792723970707,
+   "took": 2.017,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "tag": "LOAD",
+    "samples": 60,
+    "recorded": 60,
+    "max": {
+     "n": 60,
+     "p50": 104,
+     "p99": 128,
+     "max": 128,
+     "min": 102
+    },
+    "min": {
+     "n": 60,
+     "p50": 95,
+     "p99": 99,
+     "max": 99,
+     "min": 83
+    },
+    "avg": {
+     "n": 60,
+     "p50": 4,
+     "p99": 5,
+     "max": 5,
+     "min": 4
+    },
+    "cur": {
+     "n": 60,
+     "p50": 100,
+     "p99": 111,
+     "max": 111,
+     "min": 89
+    },
+    "result": "perf-local-LOAD",
+    "file": "pzt-results/perf-local-LOAD.json"
+   }
+  },
+  {
+   "step": "LOAD_ring_read",
+   "side": "server",
+   "cmd": "tick.ring",
+   "args": "read LOAD",
+   "phase": "LOAD",
+   "wall_before": 322.403,
+   "wall_after": 323.411,
+   "epoch_ms_before": 1792723970707,
+   "epoch_ms_after": 1792723971715,
+   "took": 1.008,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "tag": "LOAD",
+    "frames": 631,
+    "recorded": 631,
+    "cap": 1500,
+    "busy": {
+     "n": 631,
+     "p50": 0,
+     "p99": 15,
+     "max": 21,
+     "min": 0
+    },
+    "period": {
+     "n": 630,
+     "p50": 100,
+     "p99": 104,
+     "max": 105,
+     "min": 94
+    },
+    "endPeriod": {
+     "n": 630,
+     "p50": 100,
+     "p99": 116,
+     "max": 122,
+     "min": 84
+    },
+    "over110": 0,
+    "minuteFrames": 16,
+    "minuteBusyMax": 21,
+    "runsMax": 21,
+    "ghostMsMax": 15,
+    "armedAt": 1792723908531,
+    "hooks": {
+     "evenPaused": true,
+     "tick": true,
+     "minute": true
+    },
+    "result": "tick-ring-LOAD",
+    "file": "pzt-results/tick-ring-LOAD.json"
+   }
+  },
+  {
+   "step": "LOAD_stats",
+   "side": "server",
+   "cmd": "ghost.stats",
+   "args": "",
+   "phase": "LOAD",
+   "wall_before": 323.411,
+   "wall_after": 324.42,
+   "epoch_ms_before": 1792723971715,
+   "epoch_ms_after": 1792723972724,
+   "took": 1.009,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "active": true,
+    "scheduler": "mod",
+    "period": 1,
+    "ghosts": 59,
+    "ms": 736,
+    "failures": 0,
+    "runs": 1062,
+    "usPerRun": 693.0320150659134,
+    "minuteEventsSince": 18,
+    "minuteEvents": 20,
+    "tpmLast": 38,
+    "queued": 0,
+    "maxStaleMinutes": 0,
+    "starvedMinutes": 0,
+    "starvedEvents": 0,
+    "neverRun": 0,
+    "staleMinuteEvents": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "staleGameMinutes": [
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125
+    ],
+    "maxStaleGameMinutes": 1.0124588012695312,
+    "staleGameNowMax": 0.23815155029296875,
+    "maxRunsPerFrame": 21,
+    "framesWithRuns": 79,
+    "frames": 660,
+    "meanRunsPerRunFrame": 13.443037974683545,
+    "meanRunsPerFrame": 1.6090909090909091,
+    "bodySyncs": 0,
+    "syncs": 0,
+    "suppressed": 0,
+    "feed": true,
+    "yielded": 0,
+    "dropped": 0,
+    "tpmSource": "hooks",
+    "tpmSeed": 38,
+    "storeGhostKeys": 0,
+    "wallSinceLoad": 66001,
+    "gameMinutesSinceLoad": 17.572917938232422,
+    "resetAt": 1792723906532
+   }
+  },
+  {
+   "step": "LOAD_modq_off",
+   "side": "server",
+   "cmd": "ghost.modq",
+   "args": "off",
+   "phase": "LOAD",
+   "wall_before": 324.42,
+   "wall_after": 326.43,
+   "epoch_ms_before": 1792723972724,
+   "epoch_ms_after": 1792723974733,
+   "took": 2.01,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "on": false
+   }
+  },
+  {
+   "step": "LOAD_stop",
+   "side": "server",
+   "cmd": "ghost.stop",
+   "args": "",
+   "phase": "LOAD",
+   "wall_before": 326.443,
+   "wall_after": 327.208,
+   "epoch_ms_before": 1792723974747,
+   "epoch_ms_after": 1792723975512,
+   "took": 0.765,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "stopped": true,
+    "cleared": 118,
+    "stats": {
+     "ok": true,
+     "side": "server",
+     "active": false,
+     "scheduler": "mod",
+     "period": 1,
+     "ghosts": 59,
+     "ms": 736,
+     "failures": 0,
+     "runs": 1062,
+     "usPerRun": 693.0320150659134,
+     "minuteEventsSince": 18,
+     "minuteEvents": 20,
+     "tpmLast": 38,
+     "queued": 0,
+     "maxStaleMinutes": 0,
+     "starvedMinutes": 0,
+     "starvedEvents": 0,
+     "neverRun": 0,
+     "staleMinuteEvents": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "staleGameMinutes": [
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875
+     ],
+     "maxStaleGameMinutes": 1.0124588012695312,
+     "staleGameNowMax": 1.0069656372070312,
+     "maxRunsPerFrame": 21,
+     "framesWithRuns": 79,
+     "frames": 689,
+     "meanRunsPerRunFrame": 13.443037974683545,
+     "meanRunsPerFrame": 1.5413642960812772,
+     "bodySyncs": 0,
+     "syncs": 0,
+     "suppressed": 0,
+     "feed": true,
+     "yielded": 0,
+     "dropped": 0,
+     "tpmSource": "hooks",
+     "tpmSeed": 38,
+     "storeGhostKeys": 0,
+     "wallSinceLoad": 68898,
+     "gameMinutesSinceLoad": 18.341732025146484,
+     "resetAt": 1792723906532
+    }
+   }
+  },
+  {
+   "step": "Z6_stop",
+   "side": "server",
+   "cmd": "ghost.stop",
+   "args": "",
+   "phase": "Z6",
+   "wall_before": 327.215,
+   "wall_after": 328.475,
+   "epoch_ms_before": 1792723975518,
+   "epoch_ms_after": 1792723976779,
+   "took": 1.26,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "stopped": true,
+    "cleared": 0,
+    "stats": {
+     "ok": true,
+     "side": "server",
+     "active": false,
+     "scheduler": "mod",
+     "period": 1,
+     "ghosts": 59,
+     "ms": 736,
+     "failures": 0,
+     "runs": 1062,
+     "usPerRun": 693.0320150659134,
+     "minuteEventsSince": 18,
+     "minuteEvents": 20,
+     "tpmLast": 38,
+     "queued": 0,
+     "maxStaleMinutes": 0,
+     "starvedMinutes": 0,
+     "starvedEvents": 0,
+     "neverRun": 0,
+     "staleMinuteEvents": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "staleGameMinutes": [
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312
+     ],
+     "maxStaleGameMinutes": 1.0124588012695312,
+     "staleGameNowMax": 1.2993621826171875,
+     "maxRunsPerFrame": 21,
+     "framesWithRuns": 79,
+     "frames": 689,
+     "meanRunsPerRunFrame": 13.443037974683545,
+     "meanRunsPerFrame": 1.5413642960812772,
+     "bodySyncs": 0,
+     "syncs": 0,
+     "suppressed": 0,
+     "feed": true,
+     "yielded": 0,
+     "dropped": 0,
+     "tpmSource": "hooks",
+     "tpmSeed": 38,
+     "storeGhostKeys": 0,
+     "wallSinceLoad": 70000,
+     "gameMinutesSinceLoad": 18.63412857055664,
+     "resetAt": 1792723906532
+    }
+   }
+  },
+  {
+   "step": "Z6_modq",
+   "side": "server",
+   "cmd": "ghost.modq",
+   "args": "off",
+   "phase": "Z6",
+   "wall_before": 328.475,
+   "wall_after": 330.487,
+   "epoch_ms_before": 1792723976779,
+   "epoch_ms_after": 1792723978791,
+   "took": 2.012,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "on": false
+   }
+  },
+  {
+   "step": "C_perk",
+   "side": "server",
+   "cmd": "perk.set",
+   "args": "admin Cooking 0",
+   "phase": "C",
+   "wall_before": 330.492,
+   "wall_after": 330.998,
+   "epoch_ms_before": 1792723978796,
+   "epoch_ms_after": 1792723979302,
+   "took": 0.506,
+   "ack": {
+    "perk": "Cooking",
+    "requested": 0,
+    "side": "server",
+    "before": 10,
+    "setPerkLevelDebug": true,
+    "afterSetPerkLevelDebug": 0,
+    "setXPToLevel": true,
+    "after": 0,
+    "route": "setPerkLevelDebug"
+   }
+  },
+  {
+   "step": "C_hstats",
+   "side": "server",
+   "cmd": "lua.read",
+   "args": "_G NutritionRevamp.server.hedonics.stats.cooks NutritionRevamp.server.hedonics.stats.prepped NutritionRevamp.server.hedonics.stats.unprepped NutritionRevamp.server.hedonics.stats.cookFailures NutritionRevamp.server.hedonics.stats.passthrough NutritionRevamp.server.hedonics.stats.allies NutritionRevamp.server.hedonics.stats.restores NutritionRevamp.server.hedonics.stats.alliesFailures NutritionRevamp.server.hedonics.stats.booked NutritionRevamp.server.hedonics.stats.plain NutritionRevamp.server.hedonics.stats.healed NutritionRevamp.server.hedonics.stats.bookFailures NutritionRevamp.server.hedonics.wrappedCook NutritionRevamp.server.hedonics.lastError",
+   "phase": "C",
+   "wall_before": 330.998,
+   "wall_after": 332.259,
+   "epoch_ms_before": 1792723979302,
+   "epoch_ms_after": 1792723980563,
+   "took": 1.261,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "root": "_G",
+    "n": 14,
+    "missing": {
+     "NutritionRevamp.server.hedonics.lastError": "nil"
+    },
+    "types": {},
+    "tables": {},
+    "values": {
+     "NutritionRevamp.server.hedonics.stats.cooks": 6,
+     "NutritionRevamp.server.hedonics.stats.prepped": 5,
+     "NutritionRevamp.server.hedonics.stats.unprepped": 3,
+     "NutritionRevamp.server.hedonics.stats.cookFailures": 0,
+     "NutritionRevamp.server.hedonics.stats.passthrough": 0,
+     "NutritionRevamp.server.hedonics.stats.allies": 0,
+     "NutritionRevamp.server.hedonics.stats.restores": 0,
+     "NutritionRevamp.server.hedonics.stats.alliesFailures": 0,
+     "NutritionRevamp.server.hedonics.stats.booked": 2,
+     "NutritionRevamp.server.hedonics.stats.plain": 0,
+     "NutritionRevamp.server.hedonics.stats.healed": 0,
+     "NutritionRevamp.server.hedonics.stats.bookFailures": 0,
+     "NutritionRevamp.server.hedonics.wrappedCook": true
+    }
+   }
+  },
+  {
+   "step": "C_restore",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "C",
+   "wall_before": 332.259,
+   "wall_after": 332.276,
+   "epoch_ms_before": 1792723980563,
+   "epoch_ms_after": 1792723980580,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "C_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 332.277,
+   "wall_after": 334.292,
+   "epoch_ms_before": 1792723980580,
+   "epoch_ms_after": 1792723982595,
+   "took": 2.015,
+   "ack": {
+    "worldAge": 3.565164566040039,
+    "hour": 10,
+    "minutes": 33,
+    "mult": 4.790608882904053,
+    "trueMult": 1,
+    "wall": 1792723982536
+   }
+  },
+  {
+   "step": "C_restore_t",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 334.292,
+   "wall_after": 334.803,
+   "epoch_ms_before": 1792723982595,
+   "epoch_ms_after": 1792723983106,
+   "took": 0.511,
+   "ack": {
+    "worldAge": 3.566941261291504,
+    "hour": 10,
+    "minutes": 34,
+    "mult": 4.792330265045166,
+    "trueMult": 1,
+    "wall": 1792723982933
+   }
+  },
+  {
+   "step": "R_read",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin read",
+   "phase": "R",
+   "wall_before": 334.808,
+   "wall_after": 336.321,
+   "epoch_ms_before": 1792723983112,
+   "epoch_ms_after": 1792723984625,
+   "took": 1.513,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "from": 1,
+    "rows": 72,
+    "skipped": 0,
+    "next": 73,
+    "more": false,
+    "oldest": 1,
+    "newest": 72,
+    "recorded": 72,
+    "overwritten": 0,
+    "cap": 4320,
+    "events": 72,
+    "errors": 0,
+    "gErrors": 0,
+    "result": "minute-ring-admin-1",
+    "file": "pzt-results/minute-ring-admin-1.json"
+   }
+  },
+  {
+   "step": "R_ring_stop",
+   "side": "server",
+   "cmd": "minute.ring",
+   "args": "admin stop",
+   "phase": "R",
+   "wall_before": 336.335,
+   "wall_after": 338.345,
+   "epoch_ms_before": 1792723984638,
+   "epoch_ms_after": 1792723986649,
+   "took": 2.01,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "stopped": true,
+    "recorded": 72,
+    "overwritten": 0,
+    "errors": 0
+   }
+  }
+ ],
+ "notes": [],
+ "phase_walls": {
+  "S": {
+   "start": 53.07,
+   "end": 64.142
+  },
+  "H": {
+   "start": 64.144,
+   "end": 64.404
+  },
+  "I": {
+   "start": 64.406,
+   "end": 79.274
+  },
+  "A": {
+   "start": 79.276,
+   "end": 138.314
+  },
+  "B": {
+   "start": 138.317,
+   "end": 184.248
+  },
+  "IDLE": {
+   "start": 184.252,
+   "end": 250.323
+  },
+  "LOAD": {
+   "start": 250.327,
+   "end": 327.21
+  },
+  "Z6": {
+   "start": 327.215,
+   "end": 330.487
+  },
+  "C": {
+   "start": 330.492,
+   "end": 334.803
+  },
+  "R": {
+   "start": 334.808,
+   "end": 338.345
+  }
+ },
+ "phase_errors": {},
+ "verdicts": {
+  "RING": {
+   "phase": "RING",
+   "predicted": "every page read, errors 0",
+   "falsifier": "a ring page unread or a ring error",
+   "observed": {
+    "pages": 1,
+    "errors": [
+     0
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 348.112
+  },
+  "CLASS_A": {
+   "phase": "CLASS_A",
+   "predicted": "savoury (by type {'Base.BaconRashers': 40.09, 'Base.Carrots': 77.13}); @savoury rises, @fatty does not",
+   "falsifier": "dish A read fatty (the heaviest portion's class) or no class, or @savoury not rising",
+   "observed": {
+    "class": "savoury",
+    "n0": {
+     "monotony.t.[@savoury].n": 0.0,
+     "monotony.t.[@fatty].n": 0.0,
+     "monotony.t.[@staple].n": 0.0,
+     "monotony.t.[@sweet].n": 0.0
+    },
+    "n1": {
+     "monotony.t.[@savoury].n": 0.028565105438232426,
+     "monotony.t.[@fatty].n": 0.0,
+     "monotony.t.[@staple].n": 0.0,
+     "monotony.t.[@sweet].n": 0.0
+    },
+    "landed": true
+   },
+   "verdict": "as_predicted",
+   "wall": 348.112
+  },
+  "CLASS_B": {
+   "phase": "CLASS_B",
+   "predicted": "fatty; @fatty rises",
+   "falsifier": "dish B not fatty, or @fatty not rising",
+   "observed": {
+    "class": "fatty",
+    "n0": {
+     "monotony.t.[@savoury].n": 0.028565105438232426,
+     "monotony.t.[@fatty].n": 0.0,
+     "monotony.t.[@staple].n": 0.0,
+     "monotony.t.[@sweet].n": 0.0
+    },
+    "n1": {
+     "monotony.t.[@savoury].n": 0.028565105438232426,
+     "monotony.t.[@fatty].n": 0.013567605018615723,
+     "monotony.t.[@staple].n": 0.0,
+     "monotony.t.[@sweet].n": 0.0
+    },
+    "landed": true
+   },
+   "verdict": "as_predicted",
+   "wall": 348.112
+  },
+  "DISH_EAT": {
+   "phase": "DISH_EAT",
+   "predicted": "each dish eat's UNHAPPINESS delta = u x f x k within 0.3, u the read-time getUnhappyChange (negative), k one of 1 and 1.25 for both dishes, at Cooking 10 (x50_prerun.json's x504 dish_eat): A u -7.5, delta -7.5 or -9.375; B u -15, delta -15 or -18.75; unscaled -5/-6.25 and -10/-12.5 falsify",
+   "falsifier": "a dish eat's UNHAPPINESS delta off u x f x k for k in 1, 1.25 (the eat not reading the dish's stored, scaled value)",
+   "observed": {
+    "rows": [
+     {
+      "dish": "A",
+      "delta": -7.5,
+      "uf": -7.5,
+      "frac": 1.0
+     },
+     {
+      "dish": "B",
+      "delta": -15.0,
+      "uf": -15.0,
+      "frac": 1.0
+     }
+    ],
+    "k": 1.0
+   },
+   "verdict": "as_predicted",
+   "wall": 348.112
+  },
+  "IDLE": {
+   "phase": "IDLE",
+   "predicted": "idle busy p99 <= 10.0 ms, period p50 in [99.0, 101.0]",
+   "falsifier": "idle busy p99 over 10 ms or period p50 outside 99-101",
+   "observed": {
+    "busy_p99": 3,
+    "period_p50": 100
+   },
+   "verdict": "as_predicted",
+   "wall": 348.112
+  },
+  "F": {
+   "phase": "F",
+   "predicted": "each arm >= 500 kept frames and >= 12 minute frames",
+   "falsifier": "too few frames",
+   "observed": {
+    "idle": [
+     619,
+     16
+    ],
+    "load": [
+     609,
+     16
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 348.112
+  },
+  "SMOKE": {
+   "phase": "SMOKE",
+   "predicted": "ghost.load and ghost.modq on ok with 59 ghosts, runs > 0",
+   "falsifier": "the load or the queue not on, or no ghost run",
+   "observed": {
+    "load_ok": true,
+    "modq_ok": true,
+    "ghosts": 59,
+    "runs": 1062
+   },
+   "verdict": "as_predicted",
+   "wall": 348.112
+  },
+  "P99": {
+   "phase": "P99",
+   "predicted": "the end-to-end p99 adds <= 20.0 ms over idle",
+   "falsifier": "the p99 add over 20 ms",
+   "observed": {
+    "load": 116,
+    "idle": 106,
+    "add": 10
+   },
+   "verdict": "as_predicted",
+   "wall": 348.112
+  },
+  "MAX": {
+   "phase": "MAX",
+   "predicted": "the longest window adds <= 25.0 ms over idle",
+   "falsifier": "the longest-window add over 25 ms",
+   "observed": {
+    "load": 122,
+    "idle": 115,
+    "add": 7
+   },
+   "verdict": "as_predicted",
+   "wall": 348.112
+  },
+  "STARVE": {
+   "phase": "STARVE",
+   "predicted": "starvedEvents 0",
+   "falsifier": "a starved minute event",
+   "observed": {
+    "starvedEvents": 0
+   },
+   "verdict": "as_predicted",
+   "wall": 348.112
+  },
+  "S": {
+   "phase": "S",
+   "predicted": "ghost failures 0, storeGhostKeys 0, neverRun 0",
+   "falsifier": "a ghost failure, a ghost store key or a never-run ghost",
+   "observed": {
+    "failures": 0,
+    "storeGhostKeys": 0,
+    "neverRun": 0
+   },
+   "verdict": "as_predicted",
+   "wall": 348.112
+  },
+  "Z": {
+   "phase": "Z",
+   "predicted": "no mod error line, no hedonics failure counter rising, admin not parked",
+   "falsifier": "a mod error line, a hedonics failure counter rising, or admin parked",
+   "observed": {
+    "mod_error": [],
+    "admin_lua_error": false,
+    "failures": {
+     "cookFailures": [
+      0,
+      0
+     ],
+     "alliesFailures": [
+      0,
+      0
+     ],
+     "bookFailures": [
+      0,
+      0
+     ]
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 348.112
+  }
+ },
+ "readings": {
+  "rule6": {
+   "p99_add": 10,
+   "x391d_p99_adds": [
+    7.0,
+    10.0,
+    8.0
+   ],
+   "longest_window": 122,
+   "x391d_longest": [
+    120.0,
+    123.0,
+    121.0
+   ],
+   "worst_end_to_end": 122,
+   "worst_minute_busy": 21
+  }
+ },
+ "world_changes": {
+  "restored": "fixture default restored into the run dir",
+  "left_in_place": [
+   "RCON additem Base.Pan x2",
+   "RCON additem Base.Carrots x4",
+   "RCON additem Base.BaconRashers x2",
+   "LOAD: 59 ghost records ran against admin under the mod's queue"
+  ]
+ },
+ "checks": {
+  "S": {
+   "players": [
+    "admin"
+   ],
+   "sandbox": {
+    "SandboxVars.Nutrition": false,
+    "SandboxVars.DayLength": 4,
+    "SandboxVars.NR.Mode": 1,
+    "SandboxVars.NR.DeathPace": 3,
+    "SandboxVars.NR.HealthCombine": 2,
+    "NutritionRevamp.version": "1.0.0",
+    "NutritionRevamp.kernel.drain.OPT.pace": 3,
+    "NutritionRevamp.kernel.drain.OPT.combine": 2,
+    "NutritionRevamp.kernel.drain.OPT.dayMin": 90
+   },
+   "clock": {
+    "worldAge": 2.33355712890625,
+    "hour": 9,
+    "minutes": 20,
+    "mult": 4.698087215423584,
+    "trueMult": 1,
+    "wall": 56.338,
+    "wall_after": 56.845
+   },
+   "nutrition": {
+    "calories": 1.3376126289367676,
+    "carbs": -299.6758117675781,
+    "lipids": -69.91859436035156,
+    "proteins": -400,
+    "weight": 65.02499999999999,
+    "hunger": 0.020860254764556885,
+    "thirst": 0,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "wall": 56.845,
+    "wall_after": 58.357,
+    "side": "server"
+   },
+   "stats_all": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.0061875698156654835,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.020860254764556885,
+     "Idleness": 0.026345573365688324,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.93580627441406,
+     "Thirst": 0,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 58.357,
+    "user": "admin",
+    "worldAge": 2.3493824005126953,
+    "mult": 4.776604652404785,
+    "wall_after": 60.372
+   },
+   "hstats": {
+    "NutritionRevamp.server.hedonics.stats.cooks": 0,
+    "NutritionRevamp.server.hedonics.stats.prepped": 0,
+    "NutritionRevamp.server.hedonics.stats.unprepped": 0,
+    "NutritionRevamp.server.hedonics.stats.cookFailures": 0,
+    "NutritionRevamp.server.hedonics.stats.passthrough": 0,
+    "NutritionRevamp.server.hedonics.stats.allies": 0,
+    "NutritionRevamp.server.hedonics.stats.restores": 0,
+    "NutritionRevamp.server.hedonics.stats.alliesFailures": 0,
+    "NutritionRevamp.server.hedonics.stats.booked": 0,
+    "NutritionRevamp.server.hedonics.stats.plain": 0,
+    "NutritionRevamp.server.hedonics.stats.healed": 0,
+    "NutritionRevamp.server.hedonics.stats.bookFailures": 0,
+    "NutritionRevamp.server.hedonics.wrappedCook": true
+   },
+   "cooking": {
+    "perk": "Cooking",
+    "user": "admin",
+    "side": "server",
+    "xp": 0,
+    "level": 0,
+    "serverWorldAge": 2.358247756958008,
+    "wall": 60.624,
+    "wall_after": 62.385
+   },
+   "health": 100
+  },
+  "H": {
+   "ring_start": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "armed": true,
+    "cap": 4320,
+    "paths": [
+     "moodLast.u",
+     "satiety.M",
+     "hedonics.f",
+     "lastIntake.class",
+     "monotony.t.[@savoury].n",
+     "monotony.t.[@fatty].n",
+     "monotony.t.[@staple].n",
+     "monotony.t.[@sweet].n",
+     "monotony.t.[Base.PanFriedVegetables].n",
+     "_G.NutritionRevamp.server.intake.stats.eats",
+     "_G.NutritionRevamp.server.intake.stats.landed"
+    ],
+    "stats": [
+     "HUNGER",
+     "THIRST",
+     "FATIGUE",
+     "BOREDOM",
+     "UNHAPPINESS",
+     "NICOTINE_WITHDRAWAL"
+    ],
+    "online": true,
+    "probe": {
+     "ok": true,
+     "side": "server",
+     "root": "record:admin",
+     "n": 11,
+     "missing": {
+      "hedonics.f": "nil at hedonics",
+      "lastIntake.class": "nil at lastIntake",
+      "monotony.t.[@savoury].n": "nil at monotony",
+      "monotony.t.[@fatty].n": "nil at monotony",
+      "monotony.t.[@staple].n": "nil at monotony",
+      "monotony.t.[@sweet].n": "nil at monotony",
+      "monotony.t.[Base.PanFriedVegetables].n": "nil at monotony"
+     },
+     "types": {},
+     "tables": {},
+     "values": {
+      "moodLast.u": 0,
+      "satiety.M": 706.2921683657389,
+      "_G.NutritionRevamp.server.intake.stats.eats": 0,
+      "_G.NutritionRevamp.server.intake.stats.landed": 0
+     }
+    },
+    "wall": 64.144,
+    "wall_after": 64.404
+   }
+  },
+  "I": {
+   "spawns": [
+    {
+     "type": "Base.Pan",
+     "n": 2,
+     "before": {
+      "id": null,
+      "fullType": null,
+      "hungChange": null,
+      "hungerChange": null,
+      "baseHunger": null,
+      "calories": null,
+      "uses": null,
+      "age": null,
+      "error": null,
+      "raw": "no item Base.Pan in admin's inventory",
+      "wall": 64.406
+     },
+     "additem": {
+      "ok": true,
+      "reply": ""
+     },
+     "after": {
+      "id": 982923818,
+      "fullType": "Base.Pan",
+      "hungChange": null,
+      "hungerChange": null,
+      "baseHunger": null,
+      "calories": null,
+      "uses": 1,
+      "age": 0,
+      "error": null,
+      "raw": null,
+      "wall": 68.93
+     },
+     "leftover_before": false,
+     "confirmed": true
+    },
+    {
+     "type": "Base.Carrots",
+     "n": 4,
+     "before": {
+      "id": null,
+      "fullType": null,
+      "hungChange": null,
+      "hungerChange": null,
+      "baseHunger": null,
+      "calories": null,
+      "uses": null,
+      "age": null,
+      "error": null,
+      "raw": "no item Base.Carrots in admin's inventory",
+      "wall": 70.445
+     },
+     "additem": {
+      "ok": true,
+      "reply": ""
+     },
+     "after": {
+      "id": 1561175435,
+      "fullType": "Base.Carrots",
+      "hungChange": -0.07999999821186066,
+      "hungerChange": -0.07999999821186066,
+      "baseHunger": -0.07999999821186066,
+      "calories": 25.709999084472656,
+      "uses": 0.07999999821186066,
+      "age": 0,
+      "error": null,
+      "raw": null,
+      "wall": 74.482
+     },
+     "leftover_before": false,
+     "confirmed": true
+    },
+    {
+     "type": "Base.BaconRashers",
+     "n": 2,
+     "before": {
+      "id": null,
+      "fullType": null,
+      "hungChange": null,
+      "hungerChange": null,
+      "baseHunger": null,
+      "calories": null,
+      "uses": null,
+      "age": null,
+      "error": null,
+      "raw": "no item Base.BaconRashers in admin's inventory",
+      "wall": 75.491
+     },
+     "additem": {
+      "ok": true,
+      "reply": ""
+     },
+     "after": {
+      "id": 122761541,
+      "fullType": "Base.BaconRashers",
+      "hungChange": -0.03999999910593033,
+      "hungerChange": -0.03999999910593033,
+      "baseHunger": -0.03999999910593033,
+      "calories": 40.09000015258789,
+      "uses": 0.03999999910593033,
+      "age": 0,
+      "error": null,
+      "raw": null,
+      "wall": 78.764
+     },
+     "leftover_before": false,
+     "confirmed": true
+    }
+   ]
+  },
+  "A": {
+   "adds": [
+    {
+     "add": "Base.Carrots@None",
+     "ingredient": "Base.Carrots",
+     "level": null,
+     "base": "Base.Pan",
+     "completed": true,
+     "queued": {
+      "ok": true,
+      "queued": true,
+      "usable": true,
+      "maxTime": 75,
+      "reason": null,
+      "base": {
+       "id": 982923818,
+       "fullType": "Base.Pan",
+       "name": "Frying Pan",
+       "custom": false
+      },
+      "used": {
+       "id": 1561175435,
+       "fullType": "Base.Carrots",
+       "name": "Carrots (Fresh)",
+       "custom": false
+      },
+      "raw": null
+     },
+     "poll": {
+      "done": true,
+      "last": 1,
+      "polls": 2
+     },
+     "new_ids": [
+      508688524
+     ],
+     "read": {
+      "s0": {
+       "fields": {
+        "getUnhappyChangeUnmodified": -7.5,
+        "getUnhappyChange": -7.5,
+        "getBoredomChange": 0,
+        "getName": "Carrot Stir-fry (Fresh, Uncooked)",
+        "isCustomName": false,
+        "getHungChange": -0.07999999821186066,
+        "getCalories": 29.9950008392334
+       },
+       "resolved": true,
+       "error": null,
+       "wall": 86.596,
+       "wall_after": 88.365,
+       "md": {
+        "NR_PrepS": "1.5"
+       }
+      }
+     }
+    },
+    {
+     "add": "Base.Carrots@None",
+     "ingredient": "Base.Carrots",
+     "level": null,
+     "base": "#508688524",
+     "completed": true,
+     "queued": {
+      "ok": true,
+      "queued": true,
+      "usable": true,
+      "maxTime": 75,
+      "reason": null,
+      "base": {
+       "id": 508688524,
+       "fullType": "Base.PanFriedVegetables",
+       "name": "Carrot Stir-fry (Fresh, Uncooked)",
+       "custom": false
+      },
+      "used": {
+       "id": 1561175435,
+       "fullType": "Base.Carrots",
+       "name": "Carrots (Fresh)",
+       "custom": false
+      },
+      "raw": null
+     },
+     "poll": {
+      "done": true,
+      "last": 2,
+      "polls": 1
+     },
+     "read": {
+      "s0": {
+       "fields": {
+        "getUnhappyChangeUnmodified": -7.5,
+        "getUnhappyChange": -7.5,
+        "getBoredomChange": 0,
+        "getName": "Vegetable Stir-fry (Fresh, Uncooked)",
+        "isCustomName": false,
+        "getHungChange": -0.09999999403953552,
+        "getCalories": 37.493751525878906
+       },
+       "resolved": true,
+       "error": null,
+       "wall": 92.399,
+       "wall_after": 96.424,
+       "md": {
+        "NR_PrepS": "1.5"
+       }
+      }
+     }
+    },
+    {
+     "add": "Base.Carrots@None",
+     "ingredient": "Base.Carrots",
+     "level": null,
+     "base": "#508688524",
+     "completed": true,
+     "queued": {
+      "ok": true,
+      "queued": true,
+      "usable": true,
+      "maxTime": 75,
+      "reason": null,
+      "base": {
+       "id": 508688524,
+       "fullType": "Base.PanFriedVegetables",
+       "name": "Vegetable Stir-fry (Fresh, Uncooked)",
+       "custom": false
+      },
+      "used": {
+       "id": 1634117350,
+       "fullType": "Base.Carrots",
+       "name": "Carrots (Fresh)",
+       "custom": false
+      },
+      "raw": null
+     },
+     "poll": {
+      "done": true,
+      "last": 3,
+      "polls": 1
+     },
+     "read": {
+      "s0": {
+       "fields": {
+        "getUnhappyChangeUnmodified": 0,
+        "getUnhappyChange": 0,
+        "getBoredomChange": 0,
+        "getName": "Vegetable Stir-fry (Fresh, Uncooked)",
+        "isCustomName": false,
+        "getHungChange": -0.17999999225139618,
+        "getCalories": 67.48875427246094
+       },
+       "resolved": true,
+       "error": null,
+       "wall": 100.46,
+       "wall_after": 102.482,
+       "md": {}
+      }
+     }
+    },
+    {
+     "add": "Base.BaconRashers@None",
+     "ingredient": "Base.BaconRashers",
+     "level": null,
+     "base": "#508688524",
+     "completed": true,
+     "queued": {
+      "ok": true,
+      "queued": true,
+      "usable": true,
+      "maxTime": 75,
+      "reason": null,
+      "base": {
+       "id": 508688524,
+       "fullType": "Base.PanFriedVegetables",
+       "name": "Vegetable Stir-fry (Fresh, Uncooked)",
+       "custom": false
+      },
+      "used": {
+       "id": 122761541,
+       "fullType": "Base.BaconRashers",
+       "name": "Bacon Strip (Fresh, Uncooked)",
+       "custom": false
+      },
+      "raw": null
+     },
+     "poll": {
+      "done": true,
+      "last": 4,
+      "polls": 2
+     },
+     "read": {
+      "s0": {
+       "fields": {
+        "getUnhappyChangeUnmodified": -7.5,
+        "getUnhappyChange": -7.5,
+        "getBoredomChange": 0,
+        "getName": "Vegetable and Bacon Stir-fry (Fresh, Uncooked)",
+        "isCustomName": false,
+        "getHungChange": -0.2199999988079071,
+        "getCalories": 114.26042175292969
+       },
+       "resolved": true,
+       "error": null,
+       "wall": 106.278,
+       "wall_after": 109.304,
+       "md": {
+        "NR_PrepS": "1.5"
+       }
+      }
+     }
+    }
+   ],
+   "perk": {
+    "level": 10,
+    "reply": {
+     "perk": "Cooking",
+     "requested": 10,
+     "before": 0,
+     "after": 10,
+     "route": "setPerkLevelDebug",
+     "error": null,
+     "raw": null
+    }
+   },
+   "ref": "#508688524",
+   "rec0": {},
+   "unhappy": {
+    "ok": true,
+    "stat": "UNHAPPINESS",
+    "side": "server",
+    "requested": 60,
+    "before": 0,
+    "after": 60,
+    "wall": 110.312,
+    "wall_after": 112.33
+   },
+   "eat": {
+    "tag": "A_eat",
+    "arm": "A",
+    "food": "Base.PanFriedVegetables",
+    "asked": 1,
+    "landed": true,
+    "item0_get": {
+     "id": 508688524,
+     "calories": 114.26042175292969,
+     "carbs": 15.776250839233398,
+     "lipids": 4.815417289733887,
+     "proteins": 3.144166946411133,
+     "hungChange": -0.2199999988079071,
+     "baseHunger": -0.2199999988079071,
+     "age": 0.004362185951322317,
+     "fresh": true,
+     "offAge": 3,
+     "raw": null
+    },
+    "ref": "#508688524",
+    "item0": {
+     "fields": {
+      "getUnhappyChangeUnmodified": -7.5,
+      "getUnhappyChange": -7.5,
+      "getBoredomChange": 0,
+      "getName": "Vegetable and Bacon Stir-fry (Fresh, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.2199999988079071,
+      "getCalories": 114.26042175292969
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 113.088,
+     "wall_after": 114.346,
+     "calories": 114.26042175292969,
+     "carbs": 15.776250839233398,
+     "lipids": 4.815417289733887,
+     "proteins": 3.144166946411133,
+     "hungChange": -0.2199999988079071
+    },
+    "rec0": {
+     "moodLast.u": 0
+    },
+    "stats0": {
+     "Unhappiness": 60,
+     "Hunger": 0.0312355887144804,
+     "Boredom": 0.2807198166847229,
+     "wall": 116.361,
+     "worldAge": 2.600043296813965
+    },
+    "age0": 2.6155662536621094,
+    "queued": {
+     "queued": true,
+     "fraction": 1,
+     "spawned": "found",
+     "itemId": 508688524,
+     "validStart": true,
+     "maxTime": 348.0309476852417,
+     "moodleFoodEaten": 1,
+     "error": null,
+     "raw": null
+    },
+    "landed_age": 2.6510791778564453,
+    "stats1": {
+     "Unhappiness": 52.5,
+     "Hunger": 0,
+     "Boredom": 0.40655431151390076,
+     "wall": 128.467,
+     "worldAge": 2.659926414489746
+    },
+    "item1": {
+     "fields": {},
+     "resolved": false,
+     "error": "no item #508688524 on admin",
+     "wall": 130.482,
+     "wall_after": 131.998
+    },
+    "rec1": {
+     "moodLast.u": 0
+    },
+    "frac": 1.0
+   },
+   "write": {
+    "done": true,
+    "last": 23,
+    "polls": 2
+   },
+   "rec1": {
+    "monotony.t.[@savoury].n": 0.028565105438232426,
+    "monotony.t.[Base.PanFriedVegetables].n": 0.28565105438232424,
+    "lastIntake.fullType": "Base.PanFriedVegetables",
+    "lastIntake.class": "savoury",
+    "lastIntake.plain": false
+   }
+  },
+  "perks": [
+   {
+    "level": 10,
+    "reply": {
+     "perk": "Cooking",
+     "requested": 10,
+     "before": 0,
+     "after": 10,
+     "route": "setPerkLevelDebug",
+     "error": null,
+     "raw": null
+    }
+   },
+   {
+    "level": 10,
+    "reply": {
+     "perk": "Cooking",
+     "requested": 10,
+     "before": 10,
+     "after": 10,
+     "route": "already at level",
+     "error": null,
+     "raw": null
+    }
+   },
+   {
+    "level": 0,
+    "reply": {
+     "perk": "Cooking",
+     "requested": 0,
+     "before": 10,
+     "after": 0,
+     "route": "setPerkLevelDebug",
+     "error": null,
+     "raw": null
+    }
+   }
+  ],
+  "B": {
+   "adds": [
+    {
+     "add": "Base.Carrots@None",
+     "ingredient": "Base.Carrots",
+     "level": null,
+     "base": "Base.Pan",
+     "completed": true,
+     "queued": {
+      "ok": true,
+      "queued": true,
+      "usable": true,
+      "maxTime": 75,
+      "reason": null,
+      "base": {
+       "id": 1178235832,
+       "fullType": "Base.Pan",
+       "name": "Frying Pan",
+       "custom": false
+      },
+      "used": {
+       "id": 1634117350,
+       "fullType": "Base.Carrots",
+       "name": "Carrots (Fresh)",
+       "custom": false
+      },
+      "raw": null
+     },
+     "poll": {
+      "done": true,
+      "last": 5,
+      "polls": 3
+     },
+     "new_ids": [
+      241085849
+     ],
+     "read": {
+      "s0": {
+       "fields": {
+        "getUnhappyChangeUnmodified": -7.5,
+        "getUnhappyChange": -7.5,
+        "getBoredomChange": 0,
+        "getName": "Carrot Stir-fry (Fresh, Uncooked)",
+        "isCustomName": false,
+        "getHungChange": -0.019999999552965164,
+        "getCalories": 7.498749256134033
+       },
+       "resolved": true,
+       "error": null,
+       "wall": 144.653,
+       "wall_after": 146.928,
+       "md": {
+        "NR_PrepS": "1.5"
+       }
+      }
+     }
+    },
+    {
+     "add": "Base.BaconRashers@None",
+     "ingredient": "Base.BaconRashers",
+     "level": null,
+     "base": "#241085849",
+     "completed": true,
+     "queued": {
+      "ok": true,
+      "queued": true,
+      "usable": true,
+      "maxTime": 75,
+      "reason": null,
+      "base": {
+       "id": 241085849,
+       "fullType": "Base.PanFriedVegetables",
+       "name": "Carrot Stir-fry (Fresh, Uncooked)",
+       "custom": false
+      },
+      "used": {
+       "id": 881211795,
+       "fullType": "Base.BaconRashers",
+       "name": "Bacon Strip (Fresh, Uncooked)",
+       "custom": false
+      },
+      "raw": null
+     },
+     "poll": {
+      "done": true,
+      "last": 6,
+      "polls": 2
+     },
+     "read": {
+      "s0": {
+       "fields": {
+        "getUnhappyChangeUnmodified": -15,
+        "getUnhappyChange": -15,
+        "getBoredomChange": 0,
+        "getName": "Carrot and Bacon Stir-fry (Fresh, Uncooked)",
+        "isCustomName": false,
+        "getHungChange": -0.05999999865889549,
+        "getCalories": 54.27042007446289
+       },
+       "resolved": true,
+       "error": null,
+       "wall": 152.475,
+       "wall_after": 154.505,
+       "md": {
+        "NR_PrepS": "1.5"
+       }
+      }
+     }
+    }
+   ],
+   "perk": {
+    "level": 10,
+    "reply": {
+     "perk": "Cooking",
+     "requested": 10,
+     "before": 10,
+     "after": 10,
+     "route": "already at level",
+     "error": null,
+     "raw": null
+    }
+   },
+   "ref": "#241085849",
+   "rec0": {
+    "monotony.t.[@savoury].n": 0.028565105438232426,
+    "monotony.t.[Base.PanFriedVegetables].n": 0.28565105438232424,
+    "lastIntake.fullType": "Base.PanFriedVegetables",
+    "lastIntake.class": "savoury",
+    "lastIntake.plain": false
+   },
+   "unhappy": {
+    "ok": true,
+    "stat": "UNHAPPINESS",
+    "side": "server",
+    "requested": 60,
+    "before": 52.5,
+    "after": 60,
+    "wall": 156.268,
+    "wall_after": 158.283
+   },
+   "eat": {
+    "tag": "B_eat",
+    "arm": "B",
+    "food": "Base.PanFriedVegetables",
+    "asked": 1,
+    "landed": true,
+    "item0_get": {
+     "id": 241085849,
+     "calories": 54.27042007446289,
+     "carbs": 1.752916693687439,
+     "lipids": 4.46541690826416,
+     "proteins": 1.7908334732055664,
+     "hungChange": -0.05999999865889549,
+     "baseHunger": -0.05999999865889549,
+     "age": 0.0028661887627094984,
+     "fresh": true,
+     "offAge": 3,
+     "raw": null
+    },
+    "ref": "#241085849",
+    "item0": {
+     "fields": {
+      "getUnhappyChangeUnmodified": -15,
+      "getUnhappyChange": -15,
+      "getBoredomChange": 0,
+      "getName": "Carrot and Bacon Stir-fry (Fresh, Uncooked)",
+      "isCustomName": false,
+      "getHungChange": -0.05999999865889549,
+      "getCalories": 54.27042007446289
+     },
+     "resolved": true,
+     "error": null,
+     "wall": 160.301,
+     "wall_after": 162.063,
+     "calories": 54.27042007446289,
+     "carbs": 1.752916693687439,
+     "lipids": 4.46541690826416,
+     "proteins": 1.7908334732055664,
+     "hungChange": -0.05999999865889549
+    },
+    "rec0": {
+     "moodLast.u": 0
+    },
+    "stats0": {
+     "Unhappiness": 60,
+     "Hunger": 0,
+     "Boredom": 0.826478123664856,
+     "wall": 162.319,
+     "worldAge": 2.8107595443725586
+    },
+    "age0": 2.819636344909668,
+    "queued": {
+     "queued": true,
+     "fraction": 1,
+     "spawned": "found",
+     "itemId": 241085849,
+     "validStart": true,
+     "maxTime": 348.03692150115967,
+     "moodleFoodEaten": 1,
+     "error": null,
+     "raw": null
+    },
+    "landed_age": 2.8639917373657227,
+    "stats1": {
+     "Unhappiness": 45,
+     "Hunger": 0,
+     "Boredom": 1.0211670398712158,
+     "wall": 176.432,
+     "worldAge": 2.867097854614258
+    },
+    "item1": {
+     "fields": {},
+     "resolved": false,
+     "error": "no item #241085849 on admin",
+     "wall": 176.944,
+     "wall_after": 178.455
+    },
+    "rec1": {
+     "moodLast.u": 0
+    },
+    "frac": 1.0
+   },
+   "write": {
+    "done": true,
+    "last": 35,
+    "polls": 1
+   },
+   "rec1": {
+    "monotony.t.[@savoury].n": 0.028565105438232426,
+    "monotony.t.[@fatty].n": 0.013567605018615723,
+    "monotony.t.[Base.PanFriedVegetables].n": 0.4207665305641827,
+    "lastIntake.fullType": "Base.PanFriedVegetables",
+    "lastIntake.class": "fatty",
+    "lastIntake.plain": false
+   }
+  },
+  "IDLE": {
+   "tag": "IDLE",
+   "load": false,
+   "perf_arm": {
+    "step": "IDLE_perf_arm",
+    "side": "server",
+    "cmd": "perf.local",
+    "args": "400",
+    "phase": "IDLE",
+    "wall_before": 184.252,
+    "wall_after": 184.513,
+    "epoch_ms_before": 1792723832555,
+    "epoch_ms_after": 1792723832817,
+    "took": 0.261,
+    "ack": {
+     "ok": true,
+     "side": "server",
+     "armed": true,
+     "cap": 400,
+     "present": true,
+     "hooks": {
+      "evenPaused": true,
+      "tick": true,
+      "minute": true
+     }
+    }
+   },
+   "ring_arm": {
+    "step": "IDLE_ring_arm",
+    "side": "server",
+    "cmd": "tick.ring",
+    "args": "1500",
+    "phase": "IDLE",
+    "wall_before": 184.513,
+    "wall_after": 186.279,
+    "epoch_ms_before": 1792723832817,
+    "epoch_ms_after": 1792723834583,
+    "took": 1.766,
+    "ack": {
+     "ok": true,
+     "side": "server",
+     "armed": true,
+     "cap": 1500,
+     "hooks": {
+      "evenPaused": true,
+      "tick": true,
+      "minute": true
+     }
+    }
+   },
+   "window_start_wall": 186.279,
+   "window_end_wall": 246.279,
+   "perf_read": {
+    "step": "IDLE_perf_read",
+    "side": "server",
+    "cmd": "perf.local",
+    "args": "read IDLE",
+    "phase": "IDLE",
+    "wall_before": 246.279,
+    "wall_after": 248.291,
+    "epoch_ms_before": 1792723894583,
+    "epoch_ms_after": 1792723896594,
+    "took": 2.012,
+    "ack": {
+     "ok": true,
+     "side": "server",
+     "tag": "IDLE",
+     "samples": 61,
+     "recorded": 61,
+     "max": {
+      "n": 61,
+      "p50": 104,
+      "p99": 115,
+      "max": 115,
+      "min": 101
+     },
+     "min": {
+      "n": 61,
+      "p50": 96,
+      "p99": 98,
+      "max": 98,
+      "min": 84
+     },
+     "avg": {
+      "n": 61,
+      "p50": 4,
+      "p99": 5,
+      "max": 5,
+      "min": 4
+     },
+     "cur": {
+      "n": 61,
+      "p50": 101,
+      "p99": 107,
+      "max": 107,
+      "min": 96
+     },
+     "result": "perf-local-IDLE",
+     "file": "pzt-results/perf-local-IDLE.json"
+    }
+   },
+   "ring_read": {
+    "step": "IDLE_ring_read",
+    "side": "server",
+    "cmd": "tick.ring",
+    "args": "read IDLE",
+    "phase": "IDLE",
+    "wall_before": 248.291,
+    "wall_after": 250.304,
+    "epoch_ms_before": 1792723896594,
+    "epoch_ms_after": 1792723898608,
+    "took": 2.013,
+    "ack": {
+     "ok": true,
+     "side": "server",
+     "tag": "IDLE",
+     "frames": 640,
+     "recorded": 640,
+     "cap": 1500,
+     "busy": {
+      "n": 640,
+      "p50": 0,
+      "p99": 3,
+      "max": 16,
+      "min": 0
+     },
+     "period": {
+      "n": 639,
+      "p50": 100,
+      "p99": 104,
+      "max": 105,
+      "min": 95
+     },
+     "endPeriod": {
+      "n": 639,
+      "p50": 100,
+      "p99": 106,
+      "max": 115,
+      "min": 85
+     },
+     "over110": 0,
+     "minuteFrames": 17,
+     "minuteBusyMax": 16,
+     "runsMax": 0,
+     "ghostMsMax": 0,
+     "armedAt": 1792723834529,
+     "hooks": {
+      "evenPaused": true,
+      "tick": true,
+      "minute": true
+     },
+     "result": "tick-ring-IDLE",
+     "file": "pzt-results/tick-ring-IDLE.json"
+    }
+   },
+   "drop_windows": [
+    [
+     1792723832817,
+     1792723834583
+    ],
+    [
+     1792723894583,
+     1792723896594
+    ]
+   ],
+   "summary": {
+    "frames_ring": 640,
+    "frames": 619,
+    "minute_frames": 16,
+    "busy": {
+     "n": 619,
+     "p50": 0,
+     "p99": 3,
+     "max": 16
+    },
+    "busy_minute": {
+     "n": 16,
+     "p50": 2,
+     "p99": 16,
+     "max": 16
+    },
+    "period": {
+     "n": 619,
+     "p50": 100,
+     "p99": 104,
+     "max": 105
+    },
+    "endPeriod": {
+     "n": 619,
+     "p50": 100,
+     "p99": 106,
+     "max": 115
+    },
+    "perf_max": {
+     "n": 55,
+     "p50": 103,
+     "p99": 115,
+     "max": 115
+    }
+   }
+  },
+  "LOAD": {
+   "tag": "LOAD",
+   "load": true,
+   "load_reply": {
+    "ok": true,
+    "side": "server",
+    "N": 60,
+    "scheduler": "mod",
+    "online": 1,
+    "hooks": {
+     "evenPaused": true,
+     "tick": true,
+     "minute": true
+    },
+    "ghosts": 59,
+    "period": 1,
+    "feed": true,
+    "tpmSource": "hooks",
+    "tpmSeed": 38,
+    "carriers": [
+     "admin"
+    ],
+    "names": [
+     "ghost1_admin",
+     "ghost2_admin",
+     "ghost3_admin",
+     "ghost4_admin",
+     "ghost5_admin",
+     "ghost6_admin",
+     "ghost7_admin",
+     "ghost8_admin",
+     "ghost9_admin",
+     "ghost10_admin",
+     "ghost11_admin",
+     "ghost12_admin",
+     "ghost13_admin",
+     "ghost14_admin",
+     "ghost15_admin",
+     "ghost16_admin",
+     "ghost17_admin",
+     "ghost18_admin",
+     "ghost19_admin",
+     "ghost20_admin",
+     "ghost21_admin",
+     "ghost22_admin",
+     "ghost23_admin",
+     "ghost24_admin",
+     "ghost25_admin",
+     "ghost26_admin",
+     "ghost27_admin",
+     "ghost28_admin",
+     "ghost29_admin",
+     "ghost30_admin",
+     "ghost31_admin",
+     "ghost32_admin",
+     "ghost33_admin",
+     "ghost34_admin",
+     "ghost35_admin",
+     "ghost36_admin",
+     "ghost37_admin",
+     "ghost38_admin",
+     "ghost39_admin",
+     "ghost40_admin",
+     "ghost41_admin",
+     "ghost42_admin",
+     "ghost43_admin",
+     "ghost44_admin",
+     "ghost45_admin",
+     "ghost46_admin",
+     "ghost47_admin",
+     "ghost48_admin",
+     "ghost49_admin",
+     "ghost50_admin",
+     "ghost51_admin",
+     "ghost52_admin",
+     "ghost53_admin",
+     "ghost54_admin",
+     "ghost55_admin",
+     "ghost56_admin",
+     "ghost57_admin",
+     "ghost58_admin",
+     "ghost59_admin"
+    ],
+    "wall": 250.327,
+    "wall_after": 252.093
+   },
+   "modq_on": {
+    "ok": true,
+    "side": "server",
+    "on": true,
+    "ghosts": 59,
+    "wall": 252.093,
+    "wall_after": 252.353
+   },
+   "reset": {
+    "ok": true,
+    "side": "server",
+    "reset": true,
+    "before": {
+     "ok": true,
+     "side": "server",
+     "active": true,
+     "scheduler": "mod",
+     "period": 1,
+     "ghosts": 59,
+     "ms": 50,
+     "failures": 0,
+     "runs": 59,
+     "usPerRun": 847.457627118644,
+     "minuteEventsSince": 2,
+     "minuteEvents": 2,
+     "tpmLast": 38,
+     "queued": 0,
+     "maxStaleMinutes": 1,
+     "starvedMinutes": 1,
+     "starvedEvents": 59,
+     "neverRun": 0,
+     "staleMinuteEvents": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "staleGameMinutes": [
+      0.6657600402832031,
+      0.6657600402832031,
+      0.6657600402832031,
+      0.6657600402832031,
+      0.6657600402832031,
+      0.6390380859375,
+      0.6390380859375,
+      0.6390380859375,
+      0.6390380859375,
+      0.6390380859375,
+      0.6390380859375,
+      0.6123733520507812,
+      0.6123733520507812,
+      0.6123733520507812,
+      0.6123733520507812,
+      0.6123733520507812,
+      0.6123733520507812,
+      0.5857086181640625,
+      0.5857086181640625,
+      0.5857086181640625,
+      0.5857086181640625,
+      0.5857086181640625,
+      0.5857086181640625,
+      0.5591011047363281,
+      0.5591011047363281,
+      0.5591011047363281,
+      0.5591011047363281,
+      0.5591011047363281,
+      0.5591011047363281,
+      0.5324363708496094,
+      0.5324363708496094,
+      0.5324363708496094,
+      0.5324363708496094,
+      0.5324363708496094,
+      0.5324363708496094,
+      0.5057716369628906,
+      0.5057716369628906,
+      0.5057716369628906,
+      0.5057716369628906,
+      0.5057716369628906,
+      0.5057716369628906,
+      0.4791069030761719,
+      0.4791069030761719,
+      0.4791069030761719,
+      0.4791069030761719,
+      0.4791069030761719,
+      0.4791069030761719,
+      0.4524993896484375,
+      0.4524993896484375,
+      0.4524993896484375,
+      0.4524993896484375,
+      0.4524993896484375,
+      0.4524993896484375,
+      0.42583465576171875,
+      0.42583465576171875,
+      0.42583465576171875,
+      0.42583465576171875,
+      0.42583465576171875,
+      0.42583465576171875
+     ],
+     "maxStaleGameMinutes": 1.008453369140625,
+     "staleGameNowMax": 0.6657600402832031,
+     "maxRunsPerFrame": 6,
+     "framesWithRuns": 10,
+     "frames": 63,
+     "meanRunsPerRunFrame": 5.9,
+     "meanRunsPerFrame": 0.9365079365079365,
+     "bodySyncs": 0,
+     "syncs": 0,
+     "suppressed": 0,
+     "feed": true,
+     "yielded": 0,
+     "dropped": 0,
+     "tpmSource": "hooks",
+     "tpmSeed": 38,
+     "storeGhostKeys": 0,
+     "wallSinceLoad": 6299,
+     "gameMinutesSinceLoad": 1.6742134094238281
+    },
+    "wall": 257.353,
+    "wall_after": 258.362
+   },
+   "perf_arm": {
+    "step": "LOAD_perf_arm",
+    "side": "server",
+    "cmd": "perf.local",
+    "args": "400",
+    "phase": "LOAD",
+    "wall_before": 258.362,
+    "wall_after": 259.625,
+    "epoch_ms_before": 1792723906666,
+    "epoch_ms_after": 1792723907928,
+    "took": 1.263,
+    "ack": {
+     "ok": true,
+     "side": "server",
+     "armed": true,
+     "cap": 400,
+     "present": true,
+     "hooks": {
+      "evenPaused": true,
+      "tick": true,
+      "minute": true
+     }
+    }
+   },
+   "ring_arm": {
+    "step": "LOAD_ring_arm",
+    "side": "server",
+    "cmd": "tick.ring",
+    "args": "1500",
+    "phase": "LOAD",
+    "wall_before": 259.625,
+    "wall_after": 260.386,
+    "epoch_ms_before": 1792723907928,
+    "epoch_ms_after": 1792723908690,
+    "took": 0.761,
+    "ack": {
+     "ok": true,
+     "side": "server",
+     "armed": true,
+     "cap": 1500,
+     "hooks": {
+      "evenPaused": true,
+      "tick": true,
+      "minute": true
+     }
+    }
+   },
+   "window_start_wall": 260.386,
+   "window_end_wall": 320.386,
+   "perf_read": {
+    "step": "LOAD_perf_read",
+    "side": "server",
+    "cmd": "perf.local",
+    "args": "read LOAD",
+    "phase": "LOAD",
+    "wall_before": 320.386,
+    "wall_after": 322.403,
+    "epoch_ms_before": 1792723968690,
+    "epoch_ms_after": 1792723970707,
+    "took": 2.017,
+    "ack": {
+     "ok": true,
+     "side": "server",
+     "tag": "LOAD",
+     "samples": 60,
+     "recorded": 60,
+     "max": {
+      "n": 60,
+      "p50": 104,
+      "p99": 128,
+      "max": 128,
+      "min": 102
+     },
+     "min": {
+      "n": 60,
+      "p50": 95,
+      "p99": 99,
+      "max": 99,
+      "min": 83
+     },
+     "avg": {
+      "n": 60,
+      "p50": 4,
+      "p99": 5,
+      "max": 5,
+      "min": 4
+     },
+     "cur": {
+      "n": 60,
+      "p50": 100,
+      "p99": 111,
+      "max": 111,
+      "min": 89
+     },
+     "result": "perf-local-LOAD",
+     "file": "pzt-results/perf-local-LOAD.json"
+    }
+   },
+   "ring_read": {
+    "step": "LOAD_ring_read",
+    "side": "server",
+    "cmd": "tick.ring",
+    "args": "read LOAD",
+    "phase": "LOAD",
+    "wall_before": 322.403,
+    "wall_after": 323.411,
+    "epoch_ms_before": 1792723970707,
+    "epoch_ms_after": 1792723971715,
+    "took": 1.008,
+    "ack": {
+     "ok": true,
+     "side": "server",
+     "tag": "LOAD",
+     "frames": 631,
+     "recorded": 631,
+     "cap": 1500,
+     "busy": {
+      "n": 631,
+      "p50": 0,
+      "p99": 15,
+      "max": 21,
+      "min": 0
+     },
+     "period": {
+      "n": 630,
+      "p50": 100,
+      "p99": 104,
+      "max": 105,
+      "min": 94
+     },
+     "endPeriod": {
+      "n": 630,
+      "p50": 100,
+      "p99": 116,
+      "max": 122,
+      "min": 84
+     },
+     "over110": 0,
+     "minuteFrames": 16,
+     "minuteBusyMax": 21,
+     "runsMax": 21,
+     "ghostMsMax": 15,
+     "armedAt": 1792723908531,
+     "hooks": {
+      "evenPaused": true,
+      "tick": true,
+      "minute": true
+     },
+     "result": "tick-ring-LOAD",
+     "file": "pzt-results/tick-ring-LOAD.json"
+    }
+   },
+   "stats": {
+    "ok": true,
+    "side": "server",
+    "active": true,
+    "scheduler": "mod",
+    "period": 1,
+    "ghosts": 59,
+    "ms": 736,
+    "failures": 0,
+    "runs": 1062,
+    "usPerRun": 693.0320150659134,
+    "minuteEventsSince": 18,
+    "minuteEvents": 20,
+    "tpmLast": 38,
+    "queued": 0,
+    "maxStaleMinutes": 0,
+    "starvedMinutes": 0,
+    "starvedEvents": 0,
+    "neverRun": 0,
+    "staleMinuteEvents": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "staleGameMinutes": [
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.23815155029296875,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.21120071411132812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.18465042114257812,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125,
+     0.1581573486328125
+    ],
+    "maxStaleGameMinutes": 1.0124588012695312,
+    "staleGameNowMax": 0.23815155029296875,
+    "maxRunsPerFrame": 21,
+    "framesWithRuns": 79,
+    "frames": 660,
+    "meanRunsPerRunFrame": 13.443037974683545,
+    "meanRunsPerFrame": 1.6090909090909091,
+    "bodySyncs": 0,
+    "syncs": 0,
+    "suppressed": 0,
+    "feed": true,
+    "yielded": 0,
+    "dropped": 0,
+    "tpmSource": "hooks",
+    "tpmSeed": 38,
+    "storeGhostKeys": 0,
+    "wallSinceLoad": 66001,
+    "gameMinutesSinceLoad": 17.572917938232422,
+    "resetAt": 1792723906532,
+    "wall": 323.411,
+    "wall_after": 324.42
+   },
+   "modq_off": {
+    "ok": true,
+    "side": "server",
+    "on": false,
+    "wall": 324.42,
+    "wall_after": 326.43
+   },
+   "stop": {
+    "ok": true,
+    "side": "server",
+    "stopped": true,
+    "cleared": 118,
+    "stats": {
+     "ok": true,
+     "side": "server",
+     "active": false,
+     "scheduler": "mod",
+     "period": 1,
+     "ghosts": 59,
+     "ms": 736,
+     "failures": 0,
+     "runs": 1062,
+     "usPerRun": 693.0320150659134,
+     "minuteEventsSince": 18,
+     "minuteEvents": 20,
+     "tpmLast": 38,
+     "queued": 0,
+     "maxStaleMinutes": 0,
+     "starvedMinutes": 0,
+     "starvedEvents": 0,
+     "neverRun": 0,
+     "staleMinuteEvents": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "staleGameMinutes": [
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      1.0069656372070312,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9800148010253906,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.9534645080566406,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875,
+      0.926971435546875
+     ],
+     "maxStaleGameMinutes": 1.0124588012695312,
+     "staleGameNowMax": 1.0069656372070312,
+     "maxRunsPerFrame": 21,
+     "framesWithRuns": 79,
+     "frames": 689,
+     "meanRunsPerRunFrame": 13.443037974683545,
+     "meanRunsPerFrame": 1.5413642960812772,
+     "bodySyncs": 0,
+     "syncs": 0,
+     "suppressed": 0,
+     "feed": true,
+     "yielded": 0,
+     "dropped": 0,
+     "tpmSource": "hooks",
+     "tpmSeed": 38,
+     "storeGhostKeys": 0,
+     "wallSinceLoad": 68898,
+     "gameMinutesSinceLoad": 18.341732025146484,
+     "resetAt": 1792723906532
+    },
+    "wall": 326.443,
+    "wall_after": 327.208
+   },
+   "drop_windows": [
+    [
+     1792723907928,
+     1792723908690
+    ],
+    [
+     1792723968690,
+     1792723970707
+    ]
+   ],
+   "summary": {
+    "frames_ring": 631,
+    "frames": 609,
+    "minute_frames": 16,
+    "busy": {
+     "n": 609,
+     "p50": 0,
+     "p99": 15,
+     "max": 21
+    },
+    "busy_minute": {
+     "n": 16,
+     "p50": 14,
+     "p99": 21,
+     "max": 21
+    },
+    "period": {
+     "n": 609,
+     "p50": 100,
+     "p99": 104,
+     "max": 105
+    },
+    "endPeriod": {
+     "n": 609,
+     "p50": 100,
+     "p99": 116,
+     "max": 122
+    },
+    "perf_max": {
+     "n": 56,
+     "p50": 104,
+     "p99": 122,
+     "max": 122
+    }
+   }
+  },
+  "Z6": {
+   "stop": {
+    "ok": true,
+    "side": "server",
+    "stopped": true,
+    "cleared": 0,
+    "stats": {
+     "ok": true,
+     "side": "server",
+     "active": false,
+     "scheduler": "mod",
+     "period": 1,
+     "ghosts": 59,
+     "ms": 736,
+     "failures": 0,
+     "runs": 1062,
+     "usPerRun": 693.0320150659134,
+     "minuteEventsSince": 18,
+     "minuteEvents": 20,
+     "tpmLast": 38,
+     "queued": 0,
+     "maxStaleMinutes": 0,
+     "starvedMinutes": 0,
+     "starvedEvents": 0,
+     "neverRun": 0,
+     "staleMinuteEvents": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "staleGameMinutes": [
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2993621826171875,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2724113464355469,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2458610534667969,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312,
+      1.2193679809570312
+     ],
+     "maxStaleGameMinutes": 1.0124588012695312,
+     "staleGameNowMax": 1.2993621826171875,
+     "maxRunsPerFrame": 21,
+     "framesWithRuns": 79,
+     "frames": 689,
+     "meanRunsPerRunFrame": 13.443037974683545,
+     "meanRunsPerFrame": 1.5413642960812772,
+     "bodySyncs": 0,
+     "syncs": 0,
+     "suppressed": 0,
+     "feed": true,
+     "yielded": 0,
+     "dropped": 0,
+     "tpmSource": "hooks",
+     "tpmSeed": 38,
+     "storeGhostKeys": 0,
+     "wallSinceLoad": 70000,
+     "gameMinutesSinceLoad": 18.63412857055664,
+     "resetAt": 1792723906532
+    },
+    "wall": 327.215,
+    "wall_after": 328.475
+   },
+   "modq_off": {
+    "ok": true,
+    "side": "server",
+    "on": false,
+    "wall": 328.475,
+    "wall_after": 330.487
+   }
+  },
+  "cooking_restore": {
+   "level": 0,
+   "reply": {
+    "perk": "Cooking",
+    "requested": 0,
+    "before": 10,
+    "after": 0,
+    "route": "setPerkLevelDebug",
+    "error": null,
+    "raw": null
+   }
+  },
+  "C": {
+   "hstats": {
+    "NutritionRevamp.server.hedonics.stats.cooks": 6,
+    "NutritionRevamp.server.hedonics.stats.prepped": 5,
+    "NutritionRevamp.server.hedonics.stats.unprepped": 3,
+    "NutritionRevamp.server.hedonics.stats.cookFailures": 0,
+    "NutritionRevamp.server.hedonics.stats.passthrough": 0,
+    "NutritionRevamp.server.hedonics.stats.allies": 0,
+    "NutritionRevamp.server.hedonics.stats.restores": 0,
+    "NutritionRevamp.server.hedonics.stats.alliesFailures": 0,
+    "NutritionRevamp.server.hedonics.stats.booked": 2,
+    "NutritionRevamp.server.hedonics.stats.plain": 0,
+    "NutritionRevamp.server.hedonics.stats.healed": 0,
+    "NutritionRevamp.server.hedonics.stats.bookFailures": 0,
+    "NutritionRevamp.server.hedonics.wrappedCook": true
+   }
+  },
+  "restore": {
+   "restore_to": 1,
+   "set": {
+    "want": 1,
+    "rcon_ok": true,
+    "trueMult": 1,
+    "mult": 4.790608882904053,
+    "age": 3.565164566040039,
+    "wall": 332.277,
+    "tag": "C_restore",
+    "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one (#3762)",
+    "ok": true
+   },
+   "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one (#3762)",
+   "trueMult_after": 1,
+   "ok": true
+  },
+  "R": {
+   "pages": [
+    {
+     "reply": {
+      "ok": true,
+      "from": 1,
+      "rows": 72,
+      "skipped": 0,
+      "next": 73,
+      "more": false,
+      "oldest": 1,
+      "newest": 72,
+      "recorded": 72,
+      "overwritten": 0,
+      "errors": 0,
+      "lastError": null,
+      "result": "minute-ring-admin-1"
+     },
+     "doc_rows": 72,
+     "file": "minute-ring-admin-1.json"
+    }
+   ],
+   "stop": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "stopped": true,
+    "recorded": 72,
+    "overwritten": 0,
+    "errors": 0,
+    "wall": 336.335,
+    "wall_after": 338.345
+   }
+  }
+ },
+ "speeds": [
+  {
+   "want": 1,
+   "rcon_ok": true,
+   "trueMult": 1,
+   "mult": 4.790608882904053,
+   "age": 3.565164566040039,
+   "wall": 332.277,
+   "tag": "C_restore",
+   "unit": "GameTime.getTrueMultiplier (the settimespeed number); mult is getMultiplier, the effective one (#3762)",
+   "ok": true
+  }
+ ],
+ "sets": [],
+ "lib_x50": "x50_lib.py",
+ "constants_x50": {
+  "SRV": "server",
+  "CLI": "client",
+  "USER": "admin",
+  "NR": "NutritionRevamp",
+  "LIB_FILE": "x50_lib.py",
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_OUT": "release",
+  "STAGE_ROOT": "release/NutritionRevamp",
+  "STAGE_MOD": "release/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "STAGED_FROM": "3760ae05",
+  "STAGED_VERSION": "1.0.0",
+  "PRERUN_FILE": "testing/experiments/x50_prerun.json",
+  "MIN_FREE_GB": 12.0,
+  "PROFILE": "x50-hedonics",
+  "SESSIONS": {
+   "x501": {
+    "driver": "x501_prep.py",
+    "artifact": "prep.json",
+    "profile": "x50-hedonics",
+    "budget_s": 470.0
+   },
+   "x502": {
+    "driver": "x502_floor.py",
+    "artifact": "floor.json",
+    "profile": "x50-hedonics",
+    "budget_s": 470.0
+   },
+   "x503": {
+    "driver": "x503_allies.py",
+    "artifact": "allies.json",
+    "profile": "x50-hedonics",
+    "budget_s": 400.0
+   },
+   "x504": {
+    "driver": "x504_class.py",
+    "artifact": "class.json",
+    "profile": "x50-hedonics",
+    "budget_s": 470.0
+   }
+  },
+  "PROFILES": {
+   "x50-hedonics": {
+    "fixture": "default",
+    "clients": [
+     "admin"
+    ],
+    "day_length": 4,
+    "mode": 1,
+    "pace": 3,
+    "combine": 2
+   }
+  },
+  "SERVER_TIMEOUT_S": 240,
+  "DAY_MIN": 90.0,
+  "PREP_KNOTS": [
+   [
+    0.0,
+    0.8
+   ],
+   [
+    3.0,
+    1.0
+   ],
+   [
+    10.0,
+    1.5
+   ]
+  ],
+  "FLOOR_KNOTS": [
+   [
+    0.5,
+    0.0
+   ],
+   [
+    0.75,
+    15.0
+   ],
+   [
+    0.95,
+    30.0
+   ]
+  ],
+  "SHARE_MIN_KCAL": 1500.0,
+  "ALLIES_F": 0.6,
+  "ALLIES_AT": 0.25,
+  "CLASS_W": 0.1,
+  "RING_N": 24,
+  "UTENSIL_SAD": 0.75,
+  "UTENSIL_GLAD": 1.25,
+  "UNHAPPY_HI": 59.0,
+  "RECIPE": "Stir_fry",
+  "PAN": "Base.Pan",
+  "DISH": "Base.PanFriedVegetables",
+  "SPICE_N": {
+   "Base.Salt": 1,
+   "Base.Butter": 4,
+   "Base.Pepper": 1
+  },
+  "DISH_ADDS": [
+   "Base.Carrots",
+   "Base.Cabbage",
+   "Base.Onion",
+   "Base.Salt",
+   "Base.Butter"
+  ],
+  "LATE_ADD": "Base.Potato",
+  "RELOG_ADD": "Base.Pepper",
+  "LEVELS": [
+   3,
+   0,
+   10
+  ],
+  "ANCHOR": 3,
+  "SPAWNS_501": [
+   [
+    "Base.Pan",
+    3
+   ],
+   [
+    "Base.Carrots",
+    3
+   ],
+   [
+    "Base.Cabbage",
+    3
+   ],
+   [
+    "Base.Onion",
+    3
+   ],
+   [
+    "Base.Potato",
+    2
+   ],
+   [
+    "Base.Salt",
+    1
+   ],
+   [
+    "Base.Butter",
+    1
+   ],
+   [
+    "Base.Pepper",
+    1
+   ]
+  ],
+  "RENAMED": {
+   "3": "NRx50d3",
+   "10": "NRx50d10"
+  },
+  "VANILLA_D": [
+   -5.0,
+   -10.0,
+   -15.0,
+   -17.0,
+   -25.0,
+   -30.0,
+   -32.0
+  ],
+  "BUTTER": "Base.Butter",
+  "PEANUT": "Base.PeanutButter",
+  "BUTTER_F": 0.1,
+  "PLAIN_EATS": 4,
+  "PEANUT_F": 0.5,
+  "FOOD_TYPE": {
+   "Base.Butter": null,
+   "Base.PeanutButter": "NoExplicit",
+   "Base.Lard": "NoExplicit",
+   "Base.Potato": "Vegetables"
+  },
+  "CLASS_OF": {
+   "Base.Butter": "fatty",
+   "Base.PeanutButter": "fatty",
+   "Base.Lard": "fatty",
+   "Base.Potato": "staple"
+  },
+  "PLAIN_OF": {
+   "Base.Butter": true,
+   "Base.PeanutButter": false,
+   "Base.Lard": true,
+   "Base.Potato": false
+  },
+  "SLOTS": [
+   "hedonics.p.1",
+   "hedonics.p.2",
+   "hedonics.p.3",
+   "hedonics.p.4",
+   "hedonics.p.5",
+   "hedonics.p.6",
+   "hedonics.p.7",
+   "hedonics.p.8",
+   "hedonics.p.9",
+   "hedonics.p.10",
+   "hedonics.p.11",
+   "hedonics.p.12",
+   "hedonics.p.13",
+   "hedonics.p.14",
+   "hedonics.p.15",
+   "hedonics.p.16",
+   "hedonics.p.17",
+   "hedonics.p.18",
+   "hedonics.p.19",
+   "hedonics.p.20",
+   "hedonics.p.21",
+   "hedonics.p.22",
+   "hedonics.p.23",
+   "hedonics.p.24",
+   "hedonics.a.1",
+   "hedonics.a.2",
+   "hedonics.a.3",
+   "hedonics.a.4",
+   "hedonics.a.5",
+   "hedonics.a.6",
+   "hedonics.a.7",
+   "hedonics.a.8",
+   "hedonics.a.9",
+   "hedonics.a.10",
+   "hedonics.a.11",
+   "hedonics.a.12",
+   "hedonics.a.13",
+   "hedonics.a.14",
+   "hedonics.a.15",
+   "hedonics.a.16",
+   "hedonics.a.17",
+   "hedonics.a.18",
+   "hedonics.a.19",
+   "hedonics.a.20",
+   "hedonics.a.21",
+   "hedonics.a.22",
+   "hedonics.a.23",
+   "hedonics.a.24"
+  ],
+  "HED_READ": [
+   "hedonics.f",
+   "hedonics.s",
+   "hedonics.i",
+   "moodLast.u",
+   "lastIntake.fullType",
+   "lastIntake.plain",
+   "lastIntake.class",
+   "lastIntake.allies",
+   "lastIntake.frac",
+   "lastSeen",
+   "hedonics.p.1",
+   "hedonics.p.2",
+   "hedonics.p.3",
+   "hedonics.p.4",
+   "hedonics.p.5",
+   "hedonics.p.6",
+   "hedonics.p.7",
+   "hedonics.p.8",
+   "hedonics.p.9",
+   "hedonics.p.10",
+   "hedonics.p.11",
+   "hedonics.p.12",
+   "hedonics.p.13",
+   "hedonics.p.14",
+   "hedonics.p.15",
+   "hedonics.p.16",
+   "hedonics.p.17",
+   "hedonics.p.18",
+   "hedonics.p.19",
+   "hedonics.p.20",
+   "hedonics.p.21",
+   "hedonics.p.22",
+   "hedonics.p.23",
+   "hedonics.p.24",
+   "hedonics.a.1",
+   "hedonics.a.2",
+   "hedonics.a.3",
+   "hedonics.a.4",
+   "hedonics.a.5",
+   "hedonics.a.6",
+   "hedonics.a.7",
+   "hedonics.a.8",
+   "hedonics.a.9",
+   "hedonics.a.10",
+   "hedonics.a.11",
+   "hedonics.a.12",
+   "hedonics.a.13",
+   "hedonics.a.14",
+   "hedonics.a.15",
+   "hedonics.a.16",
+   "hedonics.a.17",
+   "hedonics.a.18",
+   "hedonics.a.19",
+   "hedonics.a.20",
+   "hedonics.a.21",
+   "hedonics.a.22",
+   "hedonics.a.23",
+   "hedonics.a.24"
+  ],
+  "EATS_G": "_G.NutritionRevamp.server.intake.stats.eats",
+  "LANDED_G": "_G.NutritionRevamp.server.intake.stats.landed",
+  "WRITES_G": "_G.NutritionRevamp.server.writer.stats.writes",
+  "RING_502": [
+   "hedonics.f",
+   "hedonics.s",
+   "hedonics.i",
+   "hedonics.p.1",
+   "hedonics.p.2",
+   "hedonics.p.3",
+   "hedonics.a.1",
+   "hedonics.a.2",
+   "hedonics.a.3",
+   "moodLast.u",
+   "moodLast.b",
+   "satiety.M",
+   "lastIntake.fullType",
+   "lastIntake.plain",
+   "lastIntake.class",
+   "lastIntake.allies",
+   "lastIntake.frac",
+   "monotony.t.[Base.Butter].n",
+   "monotony.t.[Base.PeanutButter].n",
+   "monotony.t.[@fatty].n",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed"
+  ],
+  "REPLAY_TOL": {
+   "hedonics.f": [
+    "abs",
+    0.0001
+   ],
+   "moodLast.u": [
+    "abs",
+    0.001
+   ]
+  },
+  "H1_NIL_OK": [
+   "hedonics.f",
+   "hedonics.s",
+   "hedonics.i",
+   "hedonics.p.1",
+   "hedonics.p.2",
+   "hedonics.p.3",
+   "hedonics.a.1",
+   "hedonics.a.2",
+   "hedonics.a.3",
+   "lastIntake.fullType",
+   "lastIntake.plain",
+   "lastIntake.class",
+   "lastIntake.allies",
+   "lastIntake.frac",
+   "monotony.t.[Base.Butter].n",
+   "monotony.t.[Base.PeanutButter].n",
+   "monotony.t.[@fatty].n",
+   "moodLast.u",
+   "moodLast.b"
+  ],
+  "ALLIES_EAT_F": 0.3,
+  "LARD": "Base.Lard",
+  "POTATO": "Base.Potato",
+  "POTATO_F": 0.5,
+  "SATED_ARMS": [
+   "R3S",
+   "I2C"
+  ],
+  "STALE_AGE_D": 30.0,
+  "STALE_TERM": 10.0,
+  "HUNGRY_SEED": 0.32,
+  "UNHAPPY_SEED": 60.0,
+  "CANCEL_FRAC": 0.4,
+  "SPAWNS_503": [
+   [
+    "Base.Butter",
+    1
+   ],
+   [
+    "Base.Lard",
+    1
+   ],
+   [
+    "Base.Potato",
+    1
+   ]
+  ],
+  "RING_503": [
+   "moodLast.u",
+   "moodLast.b",
+   "satiety.M",
+   "hedonics.f",
+   "lastIntake.fullType",
+   "lastIntake.allies",
+   "lastIntake.frac",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed"
+  ],
+  "BACON": "Base.BaconRashers",
+  "DISH_A": [
+   "Base.Carrots",
+   "Base.Carrots",
+   "Base.Carrots",
+   "Base.BaconRashers"
+  ],
+  "DISH_B": [
+   "Base.Carrots",
+   "Base.BaconRashers"
+  ],
+  "SPAWNS_504": [
+   [
+    "Base.Pan",
+    2
+   ],
+   [
+    "Base.Carrots",
+    4
+   ],
+   [
+    "Base.BaconRashers",
+    2
+   ]
+  ],
+  "CLASS_KEYS": [
+   "monotony.t.[@savoury].n",
+   "monotony.t.[@fatty].n",
+   "monotony.t.[@staple].n",
+   "monotony.t.[@sweet].n",
+   "monotony.t.[Base.PanFriedVegetables].n",
+   "lastIntake.fullType",
+   "lastIntake.class",
+   "lastIntake.plain"
+  ],
+  "RING_504": [
+   "moodLast.u",
+   "satiety.M",
+   "hedonics.f",
+   "lastIntake.class",
+   "monotony.t.[@savoury].n",
+   "monotony.t.[@fatty].n",
+   "monotony.t.[@staple].n",
+   "monotony.t.[@sweet].n",
+   "monotony.t.[Base.PanFriedVegetables].n",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed"
+  ],
+  "N_LOAD": 60,
+  "REALS": 1,
+  "RING_FRAMES": 1500,
+  "PERF_N": 400,
+  "ARM_WALL_S": 60.0,
+  "SETTLE_S": 5.0,
+  "MIN_FRAMES": 500,
+  "MIN_MINUTE_FRAMES": 12,
+  "IDLE_BUSY_P99_MAX": 10.0,
+  "IDLE_PERIOD_BAND": [
+   99.0,
+   101.0
+  ],
+  "RULE_P99": 20.0,
+  "RULE_MAX": 25.0,
+  "X391D_P99_ADDS": [
+   7.0,
+   10.0,
+   8.0
+  ],
+  "X391D_LONGEST": [
+   120.0,
+   123.0,
+   121.0
+  ],
+  "POLL_S": 0.25,
+  "ADD_CAP_S": 15.0,
+  "ID_CAP_S": 8.0,
+  "SYNC_WAIT_S": 1.0,
+  "RENAME_WAIT_S": 1.5,
+  "EAT_CAP_S": 30.0,
+  "WRITE_CAP_S": 9.0,
+  "DEPART_CAP_S": 40.0,
+  "REJOIN_CAP_S": 60.0,
+  "QUIT_TIMEOUT_S": 30,
+  "RELOG_HOLD_S": 5.0,
+  "DISH_EAT_LEVEL": 10,
+  "OFFLINE_HOLD_S": 30.0,
+  "PAIR_SLACK_S": 10.0,
+  "TOL_FIELD": 0.001,
+  "TOL_STAMP": 1e-09,
+  "F_TOL": 0.0001,
+  "PRED_F_TOL": 0.05,
+  "U_GAP_TOL": 0.5,
+  "U_FALL_TOL": 0.5,
+  "SLACK_H": 0.03333333333333333,
+  "GAP_MIN_H": 0.05,
+  "D_TOL": 0.3,
+  "RATIO_TOL": 0.08,
+  "REL_TOL": 0.002,
+  "OPT_PACE": "_G.NutritionRevamp.kernel.drain.OPT.pace",
+  "OPT_COMBINE": "_G.NutritionRevamp.kernel.drain.OPT.combine",
+  "OPT_DAYMIN": "_G.NutritionRevamp.kernel.drain.OPT.dayMin",
+  "LUA_DIR": "testing/PZTestKit/PZTestKit/42/media/lua",
+  "HARNESS_FILES": {
+   "PZTestKit_Server.lua": "testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua",
+   "PZTestKit_Client.lua": "testing/PZTestKit/PZTestKit/42/media/lua/client/PZTestKit_Client.lua",
+   "PZTestKit_Core.lua": "testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua"
+  },
+  "HARNESS_MARKERS": {
+   "PZTestKit_Server.lua": [
+    "TK.register(\"minute.ring\", function(",
+    "TK.register(\"stats.all\", function(",
+    "TK.register(\"stats.setany\", function(",
+    "TK.register(\"record.set\", function(",
+    "TK.register(\"nutrition.get\", function(",
+    "TK.register(\"players\", function(",
+    "TK.register(\"perk.set\", function(",
+    "TK.register(\"item.get\", function(",
+    "TK.register(\"item.set\", function(",
+    "TK.register(\"ghost.load\", function(",
+    "TK.register(\"ghost.modq\", function(",
+    "TK.register(\"ghost.stats\", function(",
+    "TK.register(\"ghost.stop\", function(",
+    "TK.register(\"tick.ring\", function(",
+    "TK.register(\"perf.local\", function(",
+    "TK.register(\"health.get\", function("
+   ],
+   "PZTestKit_Client.lua": [
+    "TK.register(\"inv.ids\", function(",
+    "TK.register(\"recipe.add\", function(",
+    "TK.register(\"item.rename\", function(",
+    "TK.register(\"eat.action\", function(",
+    "TK.register(\"action.cancel\", function("
+   ],
+   "PZTestKit_Core.lua": [
+    "TK.register(\"time.snapshot\", function(",
+    "TK.register(\"lua.read\", function(",
+    "TK.register(\"lua.global\", function(",
+    "TK.register(\"witness.fields\", function(",
+    "TK.register(\"witness.moddata\", function("
+   ]
+  },
+  "HSTATS": [
+   "cooks",
+   "prepped",
+   "unprepped",
+   "cookFailures",
+   "passthrough",
+   "allies",
+   "restores",
+   "alliesFailures",
+   "booked",
+   "plain",
+   "healed",
+   "bookFailures"
+  ],
+  "HSTATS_G": [
+   "NutritionRevamp.server.hedonics.stats.cooks",
+   "NutritionRevamp.server.hedonics.stats.prepped",
+   "NutritionRevamp.server.hedonics.stats.unprepped",
+   "NutritionRevamp.server.hedonics.stats.cookFailures",
+   "NutritionRevamp.server.hedonics.stats.passthrough",
+   "NutritionRevamp.server.hedonics.stats.allies",
+   "NutritionRevamp.server.hedonics.stats.restores",
+   "NutritionRevamp.server.hedonics.stats.alliesFailures",
+   "NutritionRevamp.server.hedonics.stats.booked",
+   "NutritionRevamp.server.hedonics.stats.plain",
+   "NutritionRevamp.server.hedonics.stats.healed",
+   "NutritionRevamp.server.hedonics.stats.bookFailures",
+   "NutritionRevamp.server.hedonics.wrappedCook",
+   "NutritionRevamp.server.hedonics.lastError"
+  ],
+  "FAIL_KEYS": [
+   "cookFailures",
+   "alliesFailures",
+   "bookFailures"
+  ],
+  "FIELDS": [
+   "getUnhappyChangeUnmodified",
+   "getUnhappyChange",
+   "getBoredomChange",
+   "getName",
+   "isCustomName",
+   "getHungChange",
+   "getCalories"
+  ],
+  "LOG_RX": "NutritionRevamp|NR_|hedonics|LuaError|STACK TRACE|lua error|attempted index|tried to call nil",
+  "MOD_ERR_RX": "NR_[A-Z][A-Za-z_]*\\.lua|failed:|STACK TRACE|attempted index|tried to call nil"
+ },
+ "prerun_x50": {
+  "A": {
+   "by_type": {
+    "Base.BaconRashers": 40.09,
+    "Base.Carrots": 77.13
+   },
+   "class": "savoury",
+   "heaviest_portion_class": "fatty"
+  },
+  "B": {
+   "by_type": {
+    "Base.BaconRashers": 40.09,
+    "Base.Carrots": 25.71
+   },
+   "class": "fatty",
+   "heaviest_portion_class": "fatty"
+  },
+  "dish_eat": {
+   "A": {
+    "0": {
+     "delta": [
+      0.0,
+      0.0
+     ],
+     "u": 0.0
+    },
+    "1": {
+     "delta": [
+      -4.333333,
+      -5.416667
+     ],
+     "u": -4.333333
+    },
+    "10": {
+     "delta": [
+      -7.5,
+      -9.375
+     ],
+     "u": -7.5
+    },
+    "2": {
+     "delta": [
+      -4.666667,
+      -5.833333
+     ],
+     "u": -4.666667
+    },
+    "3": {
+     "delta": [
+      -5.0,
+      -6.25
+     ],
+     "u": -5.0
+    },
+    "4": {
+     "delta": [
+      -5.357143,
+      -6.696429
+     ],
+     "u": -5.357143
+    },
+    "5": {
+     "delta": [
+      -5.714286,
+      -7.142857
+     ],
+     "u": -5.714286
+    },
+    "6": {
+     "delta": [
+      -6.071429,
+      -7.589286
+     ],
+     "u": -6.071429
+    },
+    "7": {
+     "delta": [
+      -6.428571,
+      -8.035714
+     ],
+     "u": -6.428571
+    },
+    "8": {
+     "delta": [
+      -6.785714,
+      -8.482143
+     ],
+     "u": -6.785714
+    },
+    "9": {
+     "delta": [
+      -7.142857,
+      -8.928571
+     ],
+     "u": -7.142857
+    }
+   },
+   "B": {
+    "0": {
+     "delta": [
+      -8.0,
+      -10.0
+     ],
+     "u": -8.0
+    },
+    "1": {
+     "delta": [
+      -8.666667,
+      -10.833333
+     ],
+     "u": -8.666667
+    },
+    "10": {
+     "delta": [
+      -15.0,
+      -18.75
+     ],
+     "u": -15.0
+    },
+    "2": {
+     "delta": [
+      -9.333333,
+      -11.666667
+     ],
+     "u": -9.333333
+    },
+    "3": {
+     "delta": [
+      -10.0,
+      -12.5
+     ],
+     "u": -10.0
+    },
+    "4": {
+     "delta": [
+      -10.714286,
+      -13.392857
+     ],
+     "u": -10.714286
+    },
+    "5": {
+     "delta": [
+      -11.428571,
+      -14.285714
+     ],
+     "u": -11.428571
+    },
+    "6": {
+     "delta": [
+      -12.142857,
+      -15.178571
+     ],
+     "u": -12.142857
+    },
+    "7": {
+     "delta": [
+      -12.857143,
+      -16.071429
+     ],
+     "u": -12.857143
+    },
+    "8": {
+     "delta": [
+      -13.571429,
+      -16.964286
+     ],
+     "u": -13.571429
+    },
+    "9": {
+     "delta": [
+      -14.285714,
+      -17.857143
+     ],
+     "u": -14.285714
+    }
+   },
+   "unhappy_seed": 60.0
+  },
+  "rule6": {
+   "rule_max": 25.0,
+   "rule_p99": 20.0,
+   "x391d_longest": [
+    120.0,
+    123.0,
+    121.0
+   ],
+   "x391d_p99_adds": [
+    7.0,
+    10.0,
+    8.0
+   ]
+  }
+ },
+ "run_id": "x504-20261022-224728",
+ "session_key": "x504",
+ "session": "Plan 19 Task 7 x504: the taste class of two Stir fries by type-summed kcal, and the frame timer under a 60-record load; one boot of x50-hedonics",
+ "driver": "x504_class.py",
+ "lib": "x50_lib.py",
+ "user": "admin",
+ "profile": {
+  "name": "x50-hedonics",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x50-hedonics.toml",
+  "fixture": "default",
+  "description": "PZTestKit + the staged NutritionRevamp upload copy, fixture default, admin (debug), Nutrition off, DayLength 4, sleep off, NR.Mode 1, DeathPace 3, HealthCombine 2, build 42.21.0 - Plan 19 Task 7: x501-x504.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\NutritionRevamp\\Contents\\mods\\NutritionRevamp"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 4,
+   "NR": {
+    "Mode": 1,
+    "DeathPace": 3,
+    "HealthCombine": 2
+   }
+  },
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "preboot": {
+  "key": true,
+  "driver_file": true,
+  "driver_prefix": true,
+  "no_prior_artifact": true,
+  "staged_from_is_mod_head": true,
+  "profile_checks": {
+   "known_profile": true,
+   "header_names_file": true,
+   "fixture": true,
+   "clients": true,
+   "sleep_off": true,
+   "mods": true,
+   "mod_staged": true,
+   "nutrition_false": true,
+   "day_length": true,
+   "nr_block": true,
+   "verify_rows": true,
+   "no_override": true,
+   "server_timeout": true
+  },
+  "harness_found": {
+   "PZTestKit_Server.lua": {
+    "TK.register(\"minute.ring\", function(": true,
+    "TK.register(\"stats.all\", function(": true,
+    "TK.register(\"stats.setany\", function(": true,
+    "TK.register(\"record.set\", function(": true,
+    "TK.register(\"nutrition.get\", function(": true,
+    "TK.register(\"players\", function(": true,
+    "TK.register(\"perk.set\", function(": true,
+    "TK.register(\"item.get\", function(": true,
+    "TK.register(\"item.set\", function(": true,
+    "TK.register(\"ghost.load\", function(": true,
+    "TK.register(\"ghost.modq\", function(": true,
+    "TK.register(\"ghost.stats\", function(": true,
+    "TK.register(\"ghost.stop\", function(": true,
+    "TK.register(\"tick.ring\", function(": true,
+    "TK.register(\"perf.local\", function(": true,
+    "TK.register(\"health.get\", function(": true
+   },
+   "PZTestKit_Client.lua": {
+    "TK.register(\"inv.ids\", function(": true,
+    "TK.register(\"recipe.add\", function(": true,
+    "TK.register(\"item.rename\", function(": true,
+    "TK.register(\"eat.action\", function(": true,
+    "TK.register(\"action.cancel\", function(": true
+   },
+   "PZTestKit_Core.lua": {
+    "TK.register(\"time.snapshot\", function(": true,
+    "TK.register(\"lua.read\", function(": true,
+    "TK.register(\"lua.global\", function(": true,
+    "TK.register(\"witness.fields\", function(": true,
+    "TK.register(\"witness.moddata\", function(": true
+   }
+  },
+  "harness_markers": true,
+  "fixture": {
+   "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing/fixtures/default/cache/server/Saves/Multiplayer/pzt/players.db",
+   "length": 4086,
+   "has_key": false,
+   "store_dir": false,
+   "fresh": true
+  },
+  "fixture_fresh": true,
+  "prerun": {
+   "ok": true,
+   "committed": true,
+   "diff": null
+  },
+  "prerun_current": true
+ },
+ "fixture": {
+  "name": "default",
+  "provision_run": "prov-20261008-073315",
+  "build": "42.21.0"
+ },
+ "argv": [],
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+  "ok   workshop index: 239 mods",
+  "ok   pytest available"
+ ],
+ "predictions": {
+  "RING": "every page read, errors 0",
+  "CLASS_A": "savoury (by type {'Base.BaconRashers': 40.09, 'Base.Carrots': 77.13}); @savoury rises, @fatty does not",
+  "CLASS_B": "fatty; @fatty rises",
+  "DISH_EAT": "each dish eat's UNHAPPINESS delta = u x f x k within 0.3, u the read-time getUnhappyChange (negative), k one of 1 and 1.25 for both dishes, at Cooking 10 (x50_prerun.json's x504 dish_eat): A u -7.5, delta -7.5 or -9.375; B u -15, delta -15 or -18.75; unscaled -5/-6.25 and -10/-12.5 falsify",
+  "IDLE": "idle busy p99 <= 10.0 ms, period p50 in [99.0, 101.0]",
+  "F": "each arm >= 500 kept frames and >= 12 minute frames",
+  "SMOKE": "ghost.load and ghost.modq on ok with 59 ghosts, runs > 0",
+  "P99": "the end-to-end p99 adds <= 20.0 ms over idle",
+  "MAX": "the longest window adds <= 25.0 ms over idle",
+  "STARVE": "starvedEvents 0",
+  "S": "ghost failures 0, storeGhostKeys 0, neverRun 0",
+  "Z": "no mod error line, no hedonics failure counter rising, admin not parked"
+ },
+ "constants": {
+  "SRV": "server",
+  "CLI": "client",
+  "USER": "admin",
+  "NR": "NutritionRevamp",
+  "LIB_FILE": "x50_lib.py",
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_OUT": "release",
+  "STAGE_ROOT": "release/NutritionRevamp",
+  "STAGE_MOD": "release/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "STAGED_FROM": "3760ae05",
+  "STAGED_VERSION": "1.0.0",
+  "PRERUN_FILE": "testing/experiments/x50_prerun.json",
+  "MIN_FREE_GB": 12.0,
+  "PROFILE": "x50-hedonics",
+  "SESSIONS": {
+   "x501": {
+    "driver": "x501_prep.py",
+    "artifact": "prep.json",
+    "profile": "x50-hedonics",
+    "budget_s": 470.0
+   },
+   "x502": {
+    "driver": "x502_floor.py",
+    "artifact": "floor.json",
+    "profile": "x50-hedonics",
+    "budget_s": 470.0
+   },
+   "x503": {
+    "driver": "x503_allies.py",
+    "artifact": "allies.json",
+    "profile": "x50-hedonics",
+    "budget_s": 400.0
+   },
+   "x504": {
+    "driver": "x504_class.py",
+    "artifact": "class.json",
+    "profile": "x50-hedonics",
+    "budget_s": 470.0
+   }
+  },
+  "PROFILES": {
+   "x50-hedonics": {
+    "fixture": "default",
+    "clients": [
+     "admin"
+    ],
+    "day_length": 4,
+    "mode": 1,
+    "pace": 3,
+    "combine": 2
+   }
+  },
+  "SERVER_TIMEOUT_S": 240,
+  "DAY_MIN": 90.0,
+  "PREP_KNOTS": [
+   [
+    0.0,
+    0.8
+   ],
+   [
+    3.0,
+    1.0
+   ],
+   [
+    10.0,
+    1.5
+   ]
+  ],
+  "FLOOR_KNOTS": [
+   [
+    0.5,
+    0.0
+   ],
+   [
+    0.75,
+    15.0
+   ],
+   [
+    0.95,
+    30.0
+   ]
+  ],
+  "SHARE_MIN_KCAL": 1500.0,
+  "ALLIES_F": 0.6,
+  "ALLIES_AT": 0.25,
+  "CLASS_W": 0.1,
+  "RING_N": 24,
+  "UTENSIL_SAD": 0.75,
+  "UTENSIL_GLAD": 1.25,
+  "UNHAPPY_HI": 59.0,
+  "RECIPE": "Stir_fry",
+  "PAN": "Base.Pan",
+  "DISH": "Base.PanFriedVegetables",
+  "SPICE_N": {
+   "Base.Salt": 1,
+   "Base.Butter": 4,
+   "Base.Pepper": 1
+  },
+  "DISH_ADDS": [
+   "Base.Carrots",
+   "Base.Cabbage",
+   "Base.Onion",
+   "Base.Salt",
+   "Base.Butter"
+  ],
+  "LATE_ADD": "Base.Potato",
+  "RELOG_ADD": "Base.Pepper",
+  "LEVELS": [
+   3,
+   0,
+   10
+  ],
+  "ANCHOR": 3,
+  "SPAWNS_501": [
+   [
+    "Base.Pan",
+    3
+   ],
+   [
+    "Base.Carrots",
+    3
+   ],
+   [
+    "Base.Cabbage",
+    3
+   ],
+   [
+    "Base.Onion",
+    3
+   ],
+   [
+    "Base.Potato",
+    2
+   ],
+   [
+    "Base.Salt",
+    1
+   ],
+   [
+    "Base.Butter",
+    1
+   ],
+   [
+    "Base.Pepper",
+    1
+   ]
+  ],
+  "RENAMED": {
+   "3": "NRx50d3",
+   "10": "NRx50d10"
+  },
+  "VANILLA_D": [
+   -5.0,
+   -10.0,
+   -15.0,
+   -17.0,
+   -25.0,
+   -30.0,
+   -32.0
+  ],
+  "BUTTER": "Base.Butter",
+  "PEANUT": "Base.PeanutButter",
+  "BUTTER_F": 0.1,
+  "PLAIN_EATS": 4,
+  "PEANUT_F": 0.5,
+  "FOOD_TYPE": {
+   "Base.Butter": null,
+   "Base.PeanutButter": "NoExplicit",
+   "Base.Lard": "NoExplicit",
+   "Base.Potato": "Vegetables"
+  },
+  "CLASS_OF": {
+   "Base.Butter": "fatty",
+   "Base.PeanutButter": "fatty",
+   "Base.Lard": "fatty",
+   "Base.Potato": "staple"
+  },
+  "PLAIN_OF": {
+   "Base.Butter": true,
+   "Base.PeanutButter": false,
+   "Base.Lard": true,
+   "Base.Potato": false
+  },
+  "SLOTS": [
+   "hedonics.p.1",
+   "hedonics.p.2",
+   "hedonics.p.3",
+   "hedonics.p.4",
+   "hedonics.p.5",
+   "hedonics.p.6",
+   "hedonics.p.7",
+   "hedonics.p.8",
+   "hedonics.p.9",
+   "hedonics.p.10",
+   "hedonics.p.11",
+   "hedonics.p.12",
+   "hedonics.p.13",
+   "hedonics.p.14",
+   "hedonics.p.15",
+   "hedonics.p.16",
+   "hedonics.p.17",
+   "hedonics.p.18",
+   "hedonics.p.19",
+   "hedonics.p.20",
+   "hedonics.p.21",
+   "hedonics.p.22",
+   "hedonics.p.23",
+   "hedonics.p.24",
+   "hedonics.a.1",
+   "hedonics.a.2",
+   "hedonics.a.3",
+   "hedonics.a.4",
+   "hedonics.a.5",
+   "hedonics.a.6",
+   "hedonics.a.7",
+   "hedonics.a.8",
+   "hedonics.a.9",
+   "hedonics.a.10",
+   "hedonics.a.11",
+   "hedonics.a.12",
+   "hedonics.a.13",
+   "hedonics.a.14",
+   "hedonics.a.15",
+   "hedonics.a.16",
+   "hedonics.a.17",
+   "hedonics.a.18",
+   "hedonics.a.19",
+   "hedonics.a.20",
+   "hedonics.a.21",
+   "hedonics.a.22",
+   "hedonics.a.23",
+   "hedonics.a.24"
+  ],
+  "HED_READ": [
+   "hedonics.f",
+   "hedonics.s",
+   "hedonics.i",
+   "moodLast.u",
+   "lastIntake.fullType",
+   "lastIntake.plain",
+   "lastIntake.class",
+   "lastIntake.allies",
+   "lastIntake.frac",
+   "lastSeen",
+   "hedonics.p.1",
+   "hedonics.p.2",
+   "hedonics.p.3",
+   "hedonics.p.4",
+   "hedonics.p.5",
+   "hedonics.p.6",
+   "hedonics.p.7",
+   "hedonics.p.8",
+   "hedonics.p.9",
+   "hedonics.p.10",
+   "hedonics.p.11",
+   "hedonics.p.12",
+   "hedonics.p.13",
+   "hedonics.p.14",
+   "hedonics.p.15",
+   "hedonics.p.16",
+   "hedonics.p.17",
+   "hedonics.p.18",
+   "hedonics.p.19",
+   "hedonics.p.20",
+   "hedonics.p.21",
+   "hedonics.p.22",
+   "hedonics.p.23",
+   "hedonics.p.24",
+   "hedonics.a.1",
+   "hedonics.a.2",
+   "hedonics.a.3",
+   "hedonics.a.4",
+   "hedonics.a.5",
+   "hedonics.a.6",
+   "hedonics.a.7",
+   "hedonics.a.8",
+   "hedonics.a.9",
+   "hedonics.a.10",
+   "hedonics.a.11",
+   "hedonics.a.12",
+   "hedonics.a.13",
+   "hedonics.a.14",
+   "hedonics.a.15",
+   "hedonics.a.16",
+   "hedonics.a.17",
+   "hedonics.a.18",
+   "hedonics.a.19",
+   "hedonics.a.20",
+   "hedonics.a.21",
+   "hedonics.a.22",
+   "hedonics.a.23",
+   "hedonics.a.24"
+  ],
+  "EATS_G": "_G.NutritionRevamp.server.intake.stats.eats",
+  "LANDED_G": "_G.NutritionRevamp.server.intake.stats.landed",
+  "WRITES_G": "_G.NutritionRevamp.server.writer.stats.writes",
+  "RING_502": [
+   "hedonics.f",
+   "hedonics.s",
+   "hedonics.i",
+   "hedonics.p.1",
+   "hedonics.p.2",
+   "hedonics.p.3",
+   "hedonics.a.1",
+   "hedonics.a.2",
+   "hedonics.a.3",
+   "moodLast.u",
+   "moodLast.b",
+   "satiety.M",
+   "lastIntake.fullType",
+   "lastIntake.plain",
+   "lastIntake.class",
+   "lastIntake.allies",
+   "lastIntake.frac",
+   "monotony.t.[Base.Butter].n",
+   "monotony.t.[Base.PeanutButter].n",
+   "monotony.t.[@fatty].n",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed"
+  ],
+  "REPLAY_TOL": {
+   "hedonics.f": [
+    "abs",
+    0.0001
+   ],
+   "moodLast.u": [
+    "abs",
+    0.001
+   ]
+  },
+  "H1_NIL_OK": [
+   "hedonics.f",
+   "hedonics.s",
+   "hedonics.i",
+   "hedonics.p.1",
+   "hedonics.p.2",
+   "hedonics.p.3",
+   "hedonics.a.1",
+   "hedonics.a.2",
+   "hedonics.a.3",
+   "lastIntake.fullType",
+   "lastIntake.plain",
+   "lastIntake.class",
+   "lastIntake.allies",
+   "lastIntake.frac",
+   "monotony.t.[Base.Butter].n",
+   "monotony.t.[Base.PeanutButter].n",
+   "monotony.t.[@fatty].n",
+   "moodLast.u",
+   "moodLast.b"
+  ],
+  "ALLIES_EAT_F": 0.3,
+  "LARD": "Base.Lard",
+  "POTATO": "Base.Potato",
+  "POTATO_F": 0.5,
+  "SATED_ARMS": [
+   "R3S",
+   "I2C"
+  ],
+  "STALE_AGE_D": 30.0,
+  "STALE_TERM": 10.0,
+  "HUNGRY_SEED": 0.32,
+  "UNHAPPY_SEED": 60.0,
+  "CANCEL_FRAC": 0.4,
+  "SPAWNS_503": [
+   [
+    "Base.Butter",
+    1
+   ],
+   [
+    "Base.Lard",
+    1
+   ],
+   [
+    "Base.Potato",
+    1
+   ]
+  ],
+  "RING_503": [
+   "moodLast.u",
+   "moodLast.b",
+   "satiety.M",
+   "hedonics.f",
+   "lastIntake.fullType",
+   "lastIntake.allies",
+   "lastIntake.frac",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed"
+  ],
+  "BACON": "Base.BaconRashers",
+  "DISH_A": [
+   "Base.Carrots",
+   "Base.Carrots",
+   "Base.Carrots",
+   "Base.BaconRashers"
+  ],
+  "DISH_B": [
+   "Base.Carrots",
+   "Base.BaconRashers"
+  ],
+  "SPAWNS_504": [
+   [
+    "Base.Pan",
+    2
+   ],
+   [
+    "Base.Carrots",
+    4
+   ],
+   [
+    "Base.BaconRashers",
+    2
+   ]
+  ],
+  "CLASS_KEYS": [
+   "monotony.t.[@savoury].n",
+   "monotony.t.[@fatty].n",
+   "monotony.t.[@staple].n",
+   "monotony.t.[@sweet].n",
+   "monotony.t.[Base.PanFriedVegetables].n",
+   "lastIntake.fullType",
+   "lastIntake.class",
+   "lastIntake.plain"
+  ],
+  "RING_504": [
+   "moodLast.u",
+   "satiety.M",
+   "hedonics.f",
+   "lastIntake.class",
+   "monotony.t.[@savoury].n",
+   "monotony.t.[@fatty].n",
+   "monotony.t.[@staple].n",
+   "monotony.t.[@sweet].n",
+   "monotony.t.[Base.PanFriedVegetables].n",
+   "_G.NutritionRevamp.server.intake.stats.eats",
+   "_G.NutritionRevamp.server.intake.stats.landed"
+  ],
+  "N_LOAD": 60,
+  "REALS": 1,
+  "RING_FRAMES": 1500,
+  "PERF_N": 400,
+  "ARM_WALL_S": 60.0,
+  "SETTLE_S": 5.0,
+  "MIN_FRAMES": 500,
+  "MIN_MINUTE_FRAMES": 12,
+  "IDLE_BUSY_P99_MAX": 10.0,
+  "IDLE_PERIOD_BAND": [
+   99.0,
+   101.0
+  ],
+  "RULE_P99": 20.0,
+  "RULE_MAX": 25.0,
+  "X391D_P99_ADDS": [
+   7.0,
+   10.0,
+   8.0
+  ],
+  "X391D_LONGEST": [
+   120.0,
+   123.0,
+   121.0
+  ],
+  "POLL_S": 0.25,
+  "ADD_CAP_S": 15.0,
+  "ID_CAP_S": 8.0,
+  "SYNC_WAIT_S": 1.0,
+  "RENAME_WAIT_S": 1.5,
+  "EAT_CAP_S": 30.0,
+  "WRITE_CAP_S": 9.0,
+  "DEPART_CAP_S": 40.0,
+  "REJOIN_CAP_S": 60.0,
+  "QUIT_TIMEOUT_S": 30,
+  "RELOG_HOLD_S": 5.0,
+  "DISH_EAT_LEVEL": 10,
+  "OFFLINE_HOLD_S": 30.0,
+  "PAIR_SLACK_S": 10.0,
+  "TOL_FIELD": 0.001,
+  "TOL_STAMP": 1e-09,
+  "F_TOL": 0.0001,
+  "PRED_F_TOL": 0.05,
+  "U_GAP_TOL": 0.5,
+  "U_FALL_TOL": 0.5,
+  "SLACK_H": 0.03333333333333333,
+  "GAP_MIN_H": 0.05,
+  "D_TOL": 0.3,
+  "RATIO_TOL": 0.08,
+  "REL_TOL": 0.002,
+  "OPT_PACE": "_G.NutritionRevamp.kernel.drain.OPT.pace",
+  "OPT_COMBINE": "_G.NutritionRevamp.kernel.drain.OPT.combine",
+  "OPT_DAYMIN": "_G.NutritionRevamp.kernel.drain.OPT.dayMin",
+  "LUA_DIR": "testing/PZTestKit/PZTestKit/42/media/lua",
+  "HARNESS_FILES": {
+   "PZTestKit_Server.lua": "testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua",
+   "PZTestKit_Client.lua": "testing/PZTestKit/PZTestKit/42/media/lua/client/PZTestKit_Client.lua",
+   "PZTestKit_Core.lua": "testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua"
+  },
+  "HARNESS_MARKERS": {
+   "PZTestKit_Server.lua": [
+    "TK.register(\"minute.ring\", function(",
+    "TK.register(\"stats.all\", function(",
+    "TK.register(\"stats.setany\", function(",
+    "TK.register(\"record.set\", function(",
+    "TK.register(\"nutrition.get\", function(",
+    "TK.register(\"players\", function(",
+    "TK.register(\"perk.set\", function(",
+    "TK.register(\"item.get\", function(",
+    "TK.register(\"item.set\", function(",
+    "TK.register(\"ghost.load\", function(",
+    "TK.register(\"ghost.modq\", function(",
+    "TK.register(\"ghost.stats\", function(",
+    "TK.register(\"ghost.stop\", function(",
+    "TK.register(\"tick.ring\", function(",
+    "TK.register(\"perf.local\", function(",
+    "TK.register(\"health.get\", function("
+   ],
+   "PZTestKit_Client.lua": [
+    "TK.register(\"inv.ids\", function(",
+    "TK.register(\"recipe.add\", function(",
+    "TK.register(\"item.rename\", function(",
+    "TK.register(\"eat.action\", function(",
+    "TK.register(\"action.cancel\", function("
+   ],
+   "PZTestKit_Core.lua": [
+    "TK.register(\"time.snapshot\", function(",
+    "TK.register(\"lua.read\", function(",
+    "TK.register(\"lua.global\", function(",
+    "TK.register(\"witness.fields\", function(",
+    "TK.register(\"witness.moddata\", function("
+   ]
+  },
+  "HSTATS": [
+   "cooks",
+   "prepped",
+   "unprepped",
+   "cookFailures",
+   "passthrough",
+   "allies",
+   "restores",
+   "alliesFailures",
+   "booked",
+   "plain",
+   "healed",
+   "bookFailures"
+  ],
+  "HSTATS_G": [
+   "NutritionRevamp.server.hedonics.stats.cooks",
+   "NutritionRevamp.server.hedonics.stats.prepped",
+   "NutritionRevamp.server.hedonics.stats.unprepped",
+   "NutritionRevamp.server.hedonics.stats.cookFailures",
+   "NutritionRevamp.server.hedonics.stats.passthrough",
+   "NutritionRevamp.server.hedonics.stats.allies",
+   "NutritionRevamp.server.hedonics.stats.restores",
+   "NutritionRevamp.server.hedonics.stats.alliesFailures",
+   "NutritionRevamp.server.hedonics.stats.booked",
+   "NutritionRevamp.server.hedonics.stats.plain",
+   "NutritionRevamp.server.hedonics.stats.healed",
+   "NutritionRevamp.server.hedonics.stats.bookFailures",
+   "NutritionRevamp.server.hedonics.wrappedCook",
+   "NutritionRevamp.server.hedonics.lastError"
+  ],
+  "FAIL_KEYS": [
+   "cookFailures",
+   "alliesFailures",
+   "bookFailures"
+  ],
+  "FIELDS": [
+   "getUnhappyChangeUnmodified",
+   "getUnhappyChange",
+   "getBoredomChange",
+   "getName",
+   "isCustomName",
+   "getHungChange",
+   "getCalories"
+  ],
+  "LOG_RX": "NutritionRevamp|NR_|hedonics|LuaError|STACK TRACE|lua error|attempted index|tried to call nil",
+  "MOD_ERR_RX": "NR_[A-Z][A-Za-z_]*\\.lua|failed:|STACK TRACE|attempted index|tried to call nil"
+ },
+ "meta": {
+  "budget_s": 470.0,
+  "deployed_harness_markers": {
+   "clients/admin/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "server/mods/PZTestKit/42/media/lua/server/PZTestKit_Server.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "server/mods/PZTestKit/42/media/lua/client/PZTestKit_Client.lua": true,
+   "clients/admin/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true,
+   "server/mods/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua": true
+  }
+ },
+ "commit": "3b954136",
+ "harness_lua_commit": "ee23b53c",
+ "harness_lua_dirty": false,
+ "harness_py_commit": "52a7de93",
+ "xlib_commit": "45c49217",
+ "lib_commit": "3b954136",
+ "driver_commit": "3b954136",
+ "prerun_commit": "93697a2a",
+ "replay_tool_commit": "212e89f2",
+ "manifest_gate": {
+  "commit": "3760ae05",
+  "staged_manifest": "release/NutritionRevamp/MANIFEST.json",
+  "staged_mod": "release/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "commit_full": "3760ae0558f0a0c02240618bed0a6c915a2f278f",
+  "mod_commit": "3760ae05",
+  "staged_manifest_sha256": "f74f62a029fffcde4f7c195cf4d1a25419f2b3aaaf8e468013258c2816274f72",
+  "files": 85,
+  "staged_equals_commit": true,
+  "staged_tree_equals_commit": true,
+  "staged_version": "1.0.0",
+  "ok": true,
+  "verify_rows_match": true,
+  "version_is_release": true
+ },
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 1.685,
+   "free_gb": 15.99
+  },
+  {
+   "tag": "ready",
+   "wall": 53.068,
+   "free_gb": 2.3
+  },
+  {
+   "tag": "after",
+   "wall": 348.117,
+   "free_gb": 15.63
+  }
+ ],
+ "lint_errors": [],
+ "server_launch_wall": 2.109,
+ "server_started_wall": 16.914,
+ "server_pid": 324452,
+ "session_ready_wall": 52.291,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  }
+ ],
+ "timeline": [
+  {
+   "t": 16.9,
+   "phase": "server_started",
+   "pid": 324452
+  },
+  {
+   "t": 17.0,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 52.3,
+   "phase": "client_ready",
+   "took": 34.9,
+   "user": "admin"
+  },
+  {
+   "t": 52.3,
+   "phase": "session_ready"
+  },
+  {
+   "t": 52.8,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 53.0,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 66.4,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Pan\" 2",
+   "ok": true
+  },
+  {
+   "t": 72.0,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Carrots\" 4",
+   "ok": true
+  },
+  {
+   "t": 76.3,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.BaconRashers\" 2",
+   "ok": true
+  },
+  {
+   "t": 332.3,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 340.1,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 348.1,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 348.1,
+   "phase": "verdict",
+   "name": "RING",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 348.1,
+   "phase": "verdict",
+   "name": "CLASS_A",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 348.1,
+   "phase": "verdict",
+   "name": "CLASS_B",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 348.1,
+   "phase": "verdict",
+   "name": "DISH_EAT",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 348.1,
+   "phase": "verdict",
+   "name": "IDLE",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 348.1,
+   "phase": "verdict",
+   "name": "F",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 348.1,
+   "phase": "verdict",
+   "name": "SMOKE",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 348.1,
+   "phase": "verdict",
+   "name": "P99",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 348.1,
+   "phase": "verdict",
+   "name": "MAX",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 348.1,
+   "phase": "verdict",
+   "name": "STARVE",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 348.1,
+   "phase": "verdict",
+   "name": "S",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 348.1,
+   "phase": "verdict",
+   "name": "Z",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "spawns": [
+  {
+   "type": "Base.Pan",
+   "n": 2,
+   "before": {
+    "id": null,
+    "fullType": null,
+    "hungChange": null,
+    "hungerChange": null,
+    "baseHunger": null,
+    "calories": null,
+    "uses": null,
+    "age": null,
+    "error": null,
+    "raw": "no item Base.Pan in admin's inventory",
+    "wall": 64.406
+   },
+   "additem": {
+    "ok": true,
+    "reply": ""
+   },
+   "after": {
+    "id": 982923818,
+    "fullType": "Base.Pan",
+    "hungChange": null,
+    "hungerChange": null,
+    "baseHunger": null,
+    "calories": null,
+    "uses": 1,
+    "age": 0,
+    "error": null,
+    "raw": null,
+    "wall": 68.93
+   },
+   "leftover_before": false,
+   "confirmed": true
+  },
+  {
+   "type": "Base.Carrots",
+   "n": 4,
+   "before": {
+    "id": null,
+    "fullType": null,
+    "hungChange": null,
+    "hungerChange": null,
+    "baseHunger": null,
+    "calories": null,
+    "uses": null,
+    "age": null,
+    "error": null,
+    "raw": "no item Base.Carrots in admin's inventory",
+    "wall": 70.445
+   },
+   "additem": {
+    "ok": true,
+    "reply": ""
+   },
+   "after": {
+    "id": 1561175435,
+    "fullType": "Base.Carrots",
+    "hungChange": -0.07999999821186066,
+    "hungerChange": -0.07999999821186066,
+    "baseHunger": -0.07999999821186066,
+    "calories": 25.709999084472656,
+    "uses": 0.07999999821186066,
+    "age": 0,
+    "error": null,
+    "raw": null,
+    "wall": 74.482
+   },
+   "leftover_before": false,
+   "confirmed": true
+  },
+  {
+   "type": "Base.BaconRashers",
+   "n": 2,
+   "before": {
+    "id": null,
+    "fullType": null,
+    "hungChange": null,
+    "hungerChange": null,
+    "baseHunger": null,
+    "calories": null,
+    "uses": null,
+    "age": null,
+    "error": null,
+    "raw": "no item Base.BaconRashers in admin's inventory",
+    "wall": 75.491
+   },
+   "additem": {
+    "ok": true,
+    "reply": ""
+   },
+   "after": {
+    "id": 122761541,
+    "fullType": "Base.BaconRashers",
+    "hungChange": -0.03999999910593033,
+    "hungerChange": -0.03999999910593033,
+    "baseHunger": -0.03999999910593033,
+    "calories": 40.09000015258789,
+    "uses": 0.03999999910593033,
+    "age": 0,
+    "error": null,
+    "raw": null,
+    "wall": 78.764
+   },
+   "leftover_before": false,
+   "confirmed": true
+  }
+ ],
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 32.3,
+   "ready": 34.9
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "log": "NutritionRevamp|NR_|hedonics|LuaError|STACK TRACE|lua error|attempted index|tried to call nil",
+   "mod_error": "NR_[A-Z][A-Za-z_]*\\.lua|failed:|STACK TRACE|attempted index|tried to call nil"
+  },
+  "server": [
+   "LOG  : Mod          f:0 st:3,066,394,884> loading NutritionRevamp",
+   "LOG  : Mod          f:0 st:3,066,394,887> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+   "LOG  : Mod          f:0 st:3,066,394,887> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+   "LOG  : Mod          f:0 st:3,066,394,887> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+   "LOG  : Mod          f:0 st:3,066,394,887> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x504-20261022-224728\\server\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x504-20261022-224728\\server\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x504-20261022-224728\\server\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x504-20261022-224728\\server\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:3,066,404,202> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+   "LOG  : Lua          f:0 st:3,066,404,202> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:3,066,404,209> [NutritionRevamp] hedonics: ISAddItemInRecipe.complete wrapped",
+   "LOG  : Lua          f:0 st:3,066,404,219> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+   "LOG  : Lua          f:0 st:3,066,404,219> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:3,066,404,219> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+   "LOG  : Lua          f:0 st:3,066,404,219> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+   "LOG  : Lua          f:0 st:3,066,404,226> [NutritionRevamp] eat guard: ISEatFoodAction.serverStart wrapped",
+   "LOG  : Lua          f:0 st:3,066,404,226> [NutritionRevamp] eat guard: ISEatFoodAction.complete wrapped",
+   "LOG  : Lua          f:0 st:3,066,404,226> [NutritionRevamp] eat guard: ISEatFoodAction.serverStop wrapped",
+   "LOG  : Lua          f:0 st:3,066,404,334> [NutritionRevamp] writer: vanilla's hunger, thirst and fatigue rates saved and zeroed at boot (Mode 1); a mode change needs a restart",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "Stack trace:",
+   "LOG  : Lua          f:0 st:3,066,407,281> [NutritionRevamp] hedonics: add-ingredient wrapper true",
+   "LOG  : Lua          f:0 st:3,066,407,281> [NutritionRevamp] intake: wrappers true drink true world true",
+   "LOG  : Lua          f:0 st:3,066,407,281> [NutritionRevamp] eat guard: wraps true outside the intake true",
+   "LOG  : Lua          f:0 st:3,066,407,282> [NutritionRevamp] options: sleep off: the sleep state freezes at rested and the body clock stops",
+   "LOG  : Lua          f:0 st:3,066,407,283> [NutritionRevamp] options: death pace 3, health combining 2",
+   "LOG  : Lua          f:0 st:3,066,407,284> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=server mode=managed itemPass=true legacyMirror=on frameworks=n/a rates=zeroed limitations=15 nutritionOn=false log=2",
+   "LOG  : Lua          f:0 st:3,066,407,285> [NutritionRevamp] strength: xpUpdate.checkForLosingLevel wrapped",
+   "LOG  : Lua          f:344 st:3,066,442,990> [NutritionRevamp] backup: admin's backup rejected (absent)",
+   "LOG  : Lua          f:344 st:3,066,442,990> [NutritionRevamp] players: first sight of admin"
+  ],
+  "server_echo_excluded": 45,
+  "mod_error": [],
+  "clients": {
+   "admin": [
+    "LOG  : Mod          f:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x504-20261022-224728\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x504-20261022-224728\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x504-20261022-224728\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x504-20261022-224728\\clients\\admin\\mods\\NutritionRevamp\\42.21\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] fitness: ISFitnessAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] hedonics: ISAddItemInRecipe.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] eat guard: ISEatFoodAction.serverStart wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] eat guard: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] eat guard: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.21 side=client mode=managed itemPass=true frameworks=none log=2"
+   ]
+  }
+ },
+ "verdict_summary": {
+  "RING": "as_predicted",
+  "CLASS_A": "as_predicted",
+  "CLASS_B": "as_predicted",
+  "DISH_EAT": "as_predicted",
+  "IDLE": "as_predicted",
+  "F": "as_predicted",
+  "SMOKE": "as_predicted",
+  "P99": "as_predicted",
+  "MAX": "as_predicted",
+  "STARVE": "as_predicted",
+  "S": "as_predicted",
+  "Z": "as_predicted"
+ },
+ "bus_dead": null,
+ "copied": [
+  "MANIFEST.json",
+  "minute-ring-admin-1.json",
+  "perf-local-IDLE.json",
+  "perf-local-LOAD.json",
+  "tick-ring-IDLE.json",
+  "tick-ring-LOAD.json"
+ ],
+ "wall_seconds": 348.1
+}

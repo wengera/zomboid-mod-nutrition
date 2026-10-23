@@ -22559,3 +22559,71 @@ x495-20261021-132149,verdicts.REL_UNHAPPY.observed.l1.want,0,The predicted level
 x495-20261021-132149,verdicts.REL_END.observed.eased_max,1,The grade's bound; not a reading.,`verdicts.REL_END.observed.levels[*].got`
 x495-20261021-132149,verdicts.REL_END.observed.levels[*].want,the level of the own ENDURANCE,Computed for the grade; not a reading.,`verdicts.REL_END.observed.levels[*].got`
 x495-20261021-132149,verdicts.REL_STRESS.observed.levels[*].want,the predicted level,"A prediction, not a reading.",`verdicts.REL_STRESS.observed.levels[*].got`
+x501-20261022-222929,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x501-20261022-222929,constants,x50_lib's constants,"Settings of the driver, not readings.",
+x501-20261022-222929,constants_x50,x50_lib's constants,"Settings of the driver, not readings.",
+x501-20261022-222929,prerun_x50,the prerun's predictions,"The prediction, computed before the run; not a reading.",`verdicts.<name>.observed`
+x501-20261022-222929,world_changes,the driver's text,Written before the run; not readings.,
+x501-20261022-222929,meta.budget_s,the session's budget,The driver's own budget; not a reading.,
+x501-20261022-222929,verdicts.*.predicted,the driver's predictions,Copies of `predictions`; not readings.,`verdicts.<name>.observed`
+x501-20261022-222929,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x501-20261022-222929,preboot,the offline checks,Checks of files before the boot; not readings.,
+x502-20261022-223712,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x502-20261022-223712,constants,x50_lib's constants,"Settings of the driver, not readings.",
+x502-20261022-223712,constants_x50,x50_lib's constants,"Settings of the driver, not readings.",
+x502-20261022-223712,prerun_x50,the prerun's predictions,"The prediction, computed before the run; not a reading.",`verdicts.<name>.observed`
+x502-20261022-223712,world_changes,the driver's text,Written before the run; not readings.,
+x502-20261022-223712,meta.budget_s,the session's budget,The driver's own budget; not a reading.,
+x502-20261022-223712,verdicts.*.predicted,the driver's predictions,Copies of `predictions`; not readings.,`verdicts.<name>.observed`
+x502-20261022-223712,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x502-20261022-223712,preboot,the offline checks,Checks of files before the boot; not readings.,
+x503-20261022-224322,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x503-20261022-224322,constants,x50_lib's constants,"Settings of the driver, not readings.",
+x503-20261022-224322,constants_x50,x50_lib's constants,"Settings of the driver, not readings.",
+x503-20261022-224322,prerun_x50,the prerun's predictions,"The prediction, computed before the run; not a reading.",`verdicts.<name>.observed`
+x503-20261022-224322,world_changes,the driver's text,Written before the run; not readings.,
+x503-20261022-224322,meta.budget_s,the session's budget,The driver's own budget; not a reading.,
+x503-20261022-224322,verdicts.*.predicted,the driver's predictions,Copies of `predictions`; not readings.,`verdicts.<name>.observed`
+x503-20261022-224322,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x503-20261022-224322,preboot,the offline checks,Checks of files before the boot; not readings.,
+x504-20261022-224728,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
+x504-20261022-224728,constants,x50_lib's constants,"Settings of the driver, not readings.",
+x504-20261022-224728,constants_x50,x50_lib's constants,"Settings of the driver, not readings.",
+x504-20261022-224728,prerun_x50,the prerun's predictions,"The prediction, computed before the run; not a reading.",`verdicts.<name>.observed`
+x504-20261022-224728,world_changes,the driver's text,Written before the run; not readings.,
+x504-20261022-224728,meta.budget_s,the session's budget,The driver's own budget; not a reading.,
+x504-20261022-224728,verdicts.*.predicted,the driver's predictions,Copies of `predictions`; not readings.,`verdicts.<name>.observed`
+x504-20261022-224728,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
+x504-20261022-224728,preboot,the offline checks,Checks of files before the boot; not readings.,
+x501-20261022-222929,verdicts.ANCHOR.observed.rows[*].want,the jar model's value,"A prediction (x50_lib.vanilla_dish), not a reading.",`verdicts.ANCHOR.observed.rows[*].v`
+x501-20261022-222929,verdicts.SCALE.observed.rows[*].want,the anchor's value times the dial's scale,Computed for the grade; not a reading.,`verdicts.SCALE.observed.rows[*].v`
+x501-20261022-222929,verdicts.SCALE.observed.rows[*].scale,0.8 or 1.5,"The dial's scale (prepScale), a constant; not a reading.",`verdicts.SCALE.observed.rows[*].stamp`
+x501-20261022-222929,verdicts.COUNTS.observed.want,the predicted counts,A prediction; not a reading.,`verdicts.COUNTS.observed.delta`
+x501-20261022-222929,verdicts.RENAME.observed.want,-45.0,"The anchor's Potato value times 1.5, computed for the grade; not a reading.",`verdicts.RENAME.observed.d10_potato`
+x501-20261022-222929,verdicts.RELOG.observed.want,-48.0,"The anchor's Pepper value times 1.5, computed for the grade; not a reading.",`verdicts.RELOG.observed.d10_pepper`
+x501-20261022-222929,checks.perks[*].level,the level asked,A write the driver made; not a reading.,`checks.perks[*].reply.after`
+x501-20261022-222929,checks.cooking_restore.level,0,A write the driver made (S's read level); not a reading.,`checks.cooking_restore.reply.after`
+x502-20261022-223712,verdicts.FLOOR_OF.observed.rows[*].want,floorOf of the read's own share,Computed for the grade from the dials' curve; not a reading.,`verdicts.FLOOR_OF.observed.rows[*].f`
+x502-20261022-223712,verdicts.RISE.observed.pred_f,the prerun's f,A prediction; not a reading.,`verdicts.RISE.observed.f`
+x502-20261022-223712,verdicts.LAST.observed.rows[*].want,the hedonics table's flags,Computed from the generated table; not a reading.,`verdicts.LAST.observed.rows[*]`
+x502-20261022-223712,verdicts.OFFLINE.observed.band,"[0.10427900950113933, 0.346609624226888]","The grade's admissible band for ds, computed from the ages read and 2 game minutes of slack; not a reading.",`verdicts.OFFLINE.observed.ds`
+x502-20261022-223712,model_inputs.tol,the replay tolerances,The grade's settings; not readings.,
+x502-20261022-223712,verdicts.REPLAY_moodLast.u.verdict,falsified,"The 1e-3 tolerance is under the replay's own placement resolution (each eat booked at its landing row's age; the live landing age inside that minute is unlogged): a reading of the grade, not of the mod.",`x502-regrade-20261022` `regrade.json` `verdict` and `observed.rows`
+x502-20261022-223712,verdicts.REPLAY_moodLast.u.observed.over,13,As the verdict: rows over a tolerance under the replay's placement resolution.,`x502-regrade-20261022` `regrade.json` `observed.off`
+x502-20261022-223712,rows,the replay's rows (replay.json),"The replay's outputs, never a live reading; the live values are the ring's. `replay.json` has no `replay.` prefix.",`minute-ring-admin-1.json` `rows_list`
+x502-regrade-20261022,tol,the script's tolerances,"Settings of the script, not readings.",
+x502-regrade-20261022,eps_h,1e-06,"A setting of the script, not a reading.",
+x502-regrade-20261022,arms.early,the replay with each eat at the start of its minute,A placement the live run may not have had; only the band it spans with `arms.late` is the reading.,`observed.rows[*]`
+x502-regrade-20261022,arms.mid,the replay with each eat half-way through its minute,A placement the live run may not have had; a reading beside the grade only.,`observed.rows[*]`
+x503-20261022-224322,sets,the driver's satiety.M writes,"Writes the driver made, not the mod.",
+x503-20261022-224322,checks.*.seed,the driver's HUNGER and satiety.M seeds,Writes the driver made; never a reading of HUNGER reached by play.,`verdicts.PRE.observed.rows`
+x503-20261022-224322,checks.*.unhappy,the driver's UNHAPPINESS seed,"A write the driver made, not the mod.",`checks.<arm>.eat.stats0`
+x503-20261022-224322,checks.I2C.pre,the harness's age write,"The driver made the potato stale (item.set age 30, synced by the harness's sendItemStats); not an age reached by play.",`checks.I2C.eat.item0.fields`
+x503-20261022-224322,verdicts.REMAINDER.observed.rows[*].want,the field before times hung1 / hung0,Computed for the grade; not a reading.,`verdicts.REMAINDER.observed.rows[*].f1`
+x503-20261022-224322,verdicts.COUNTS.observed.want,the predicted counts,A prediction; not a reading.,`verdicts.COUNTS.observed.delta`
+x503-20261022-224322,verdicts.I2.verdict,unmeasured,The vanilla control's gate fired on vanilla's own item-stats packet at the end of Eat; the mod's arm is read off `checks.I2.eat`.,"`checks.I2.eat.citem1.fields`, `checks.I2C.eat.citem1.fields`"
+x504-20261022-224728,readings.rule6.x391d_p99_adds,"[7.0, 10.0, 8.0]","x391d's readings copied for comparison (#3744), not this run's.",x391d's artifact
+x504-20261022-224728,readings.rule6.x391d_longest,"[120.0, 123.0, 121.0]","x391d's readings copied for comparison (#3744), not this run's.",x391d's artifact
+x504-20261022-224728,checks.LOAD.reset.before,the ghost stats before the window's reset,The settle before the graded window (its starvedEvents 59 count the load's first minute).,"`verdicts.STARVE.observed`, `verdicts.S.observed`"
+x504-20261022-224728,checks.A.unhappy,the driver's UNHAPPINESS seed,"A write the driver made, not the mod.",`checks.A.eat.stats0`
+x504-20261022-224728,checks.B.unhappy,the driver's UNHAPPINESS seed,"A write the driver made, not the mod.",`checks.B.eat.stats0`
