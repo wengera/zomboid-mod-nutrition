@@ -22615,6 +22615,9 @@ x502-regrade-20261022,tol,the script's tolerances,"Settings of the script, not r
 x502-regrade-20261022,eps_h,1e-06,"A setting of the script, not a reading.",
 x502-regrade-20261022,arms.early,the replay with each eat at the start of its minute,A placement the live run may not have had; only the band it spans with `arms.late` is the reading.,`observed.rows[*]`
 x502-regrade-20261022,arms.mid,the replay with each eat half-way through its minute,A placement the live run may not have had; a reading beside the grade only.,`observed.rows[*]`
+x502-regrade-20261022,observed.rows[*].mid,the mid placement's target at each graded row,A verdict-level copy of `arms.mid`: a placement the live run may not have had.,"`observed.rows[*]` `early`, `late` and `live`"
+x502-regrade-20261022,observed.rows[*].d_mid,the mid placement's distance from the live target,A verdict-level copy of `arms.mid` against the live: a placement the live run may not have had.,"`observed.rows[*]` `early`, `late` and `live`"
+x502-regrade-20261022,observed.max_d_mid,the largest mid-placement distance,A verdict-level copy of `arms.mid` against the live: a placement the live run may not have had.,"`observed.rows[*]` `early`, `late` and `live`"
 x503-20261022-224322,sets,the driver's satiety.M writes,"Writes the driver made, not the mod.",
 x503-20261022-224322,checks.*.seed,the driver's HUNGER and satiety.M seeds,Writes the driver made; never a reading of HUNGER reached by play.,`verdicts.PRE.observed.rows`
 x503-20261022-224322,checks.*.unhappy,the driver's UNHAPPINESS seed,"A write the driver made, not the mod.",`checks.<arm>.eat.stats0`

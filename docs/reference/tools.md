@@ -134,6 +134,23 @@ The generated script file is a `/* */` header and LF text with no date, so a reb
 `python tools/food_fills.py --check` and `--write`, exactly one of them, replay every mapped food type alone through the shared kernel the server runs, from the default body at energy balance at a neutral hour, the item eaten at Peckish after the guide's 667 kcal plate, and write or check the client's generated fill table `NR_Data_Fills.lua`, each type's hours until h_model is back over the Peckish h_model, held at 24, and its kcal, leaving out an evolved recipe's result type; `--check` exits 1 when the file differs from a fresh replay. [#3945/C/C-only]
 It composes the kernel functions the server runs rather than the whole server replay, which runs too slowly for every food, so the hours are the item's own and not the clock's, and the generated file is never edited by hand.
 
+<a id="food-hedonics"></a>
+## `food_hedonics.py` — the food hedonics table
+
+`python tools/food_hedonics.py --check`, `--write` or `--list` classifies every food of the nutrient dataset that has a per-100 g record by the kernel's own rules, loaded on the lupa host as the kernel tests load them, and writes or checks the generated table `NR_Data_Hedonics.lua`: per food type, whether it is plain energy and its taste class.
+Plain energy is `K.hedonics.isPlain` over the per-100 g macros, the sodium as a percentage by weight, the energy density and vanilla's `UnhappyChange`; the taste class is `K.hedonics.tasteClass` over the same macros, the monotony staple rule and a sweet reading of the item's food type, its sugar tag or its composition record's description, the data carrying no sugars.
+`--check` exits 1 when the file differs from a fresh classification; a hedonics dial set through `dials.py set` is followed by `--write`, and the generated table is never edited by hand.
+The module's `runtime`, `inputs` and `sweet` are the interface the budget oracle and the player guide import, so the table, the oracle and the server classify by one rule.
+
+<a id="hedonics-budget"></a>
+## `hedonics_budget.py` — the food hedonics budget oracle
+
+`python tools/hedonics_budget.py [--sweep] [--json PATH]` runs seven reference diets over fourteen game days — a varied diet, evolved dishes, tins, butter beside one food a meal, sugar, one tinned food and a hungry butter fast — and prints each diet's mean UNHAPPINESS and BOREDOM under the mod's food mood against vanilla's model of the same eats, with the plain-energy floor and the composed target the mod reached.
+Each diet's body runs once through the mod's server pipeline on the lupa host, which asserts the character stays alive and hydrated and gives the HUNGER at each eat; the mood model then runs the hedonics and monotony kernels and the writer's floor in Lua, and vanilla's side adds each eat's values times its share, both sides eased by the same upkeep a game hour toward a standing background, the oracle's game choice.
+The bands are the hedonics domain's `BUDGET_FAIR` and `BUDGET_DEGEN` dials: a varied or cooked diet may be no sadder than vanilla by more than the first, on UNHAPPINESS and on BOREDOM, at each Cooking level it checks, and a degenerate diet must be sadder by the second or more; the tins and the butter fast are reported with no band, and the tool exits 1 when a band fails.
+`--sweep` adds the table at half and twice the upkeep, a sizing arm that stands both sides at a background so a dish's comfort shows the Cooking level, the butter fast with the hunger scale off, and every game-choice hedonics dial at 0.8 and 1.2 of its value; `--json` writes all of it.
+It runs no game and is read-only; `tools/tests/test_hedonics_budget.py` holds its bands, its hand cases and its sweep to no cliff, and the player guide's Food mood charts read its table and its sizing arm at generation time.
+
 <a id="fdc-fetch"></a>
 ## `fdc_fetch.py` — the source fetcher
 
@@ -245,6 +262,32 @@ A `.json` file under `lua/shared/Translate/` is exempt from the vanilla-path rul
 The staged item is `release/NutritionRevamp/` holding `workshop.txt` with an empty `id=`, an optional `preview.png` copied from beside the mod folder (its absence is a warning naming the 256 x 256 requirement), `Contents/mods/NutritionRevamp/` and a `MANIFEST.json` beside `Contents/` that the upload never carries; `release/` is gitignored.
 The manifest records each file's `sha256` and byte count and, for a `.txt` file under `media/scripts/` and a `.lua` file under `media/lua/`, a `gate_sha256` over its bytes with every CR dropped, so a CRLF file and its LF twin hash alike; `--previous` prints the added, removed, changed and script-changed lists and prints `SERVER EVENT: <n> script or Lua file(s) changed` when such a file was added or removed or its gate hash moved, the join checksum gating the Lua as it gates the scripts [#3814/C/C-only].
 `data/vanilla-relative-paths.txt` is the sorted list of every file under the install's `media/scripts` and `media/lua`, relative to `media/`, read from the install and written once, on build 42.20.4 on 2026-10-06; a new build's list is re-read from its install before a release is checked against it.
+
+<a id="dials"></a>
+## `dials.py` — the tuning-dial registry tool
+
+`python tools/dials.py list [--domain D] [--src S]`, `check`, `diff A [B]` and `set ID VALUE` read the mod's tuning-dial registry `NR_Data_Dials.lua`, one row a line, both through lupa, for the values as Lua evaluates them, and by line, for each row's value as written, its line number and its trailing provenance comment.
+`check` is a § 3 gate on every commit that touches `mod/`, the tool or either register: it fails a row the file does not evaluate to or one id on two lines, an unknown field, a missing unit, source or note, a value outside its own range, a source token that is not a science row, a register row, `game choice`, `vanilla`, `fitted` or `inference` or that names a row absent from its register, a broken `same` link, an option row whose option in the generated option file disagrees with it, a fixed row that is not its own range, a chain of knots or ladder steps that does not ascend in the order its reader divides by or reads it, an orphan row no `K.dials.get` names and a `K.dials.get` naming no row.
+`set` edits one row's value in place, keeping the line's format, refuses a `same` or fixed dial and a value the check refuses, and prints what to regenerate after it: the option file, the fill table, the hedonics table, the budget oracle's sweep, the guide data, the golden trace and the check itself, as the dial's domain needs.
+
+<a id="dial-lint"></a>
+## `dial_lint.py` — the dial lint
+
+`python tools/dial_lint.py [paths...]` scans the mod's kernel, server and client Lua, the registry and the generated and declarative data files aside, for a tunable magnitude left outside the registry and a dial read the wrong way, and is a § 3 gate on the mod at zero errors and zero warnings.
+Its first rule flags a top-level numeric constant whose comment carries a provenance marker unless the comment opens with the `VANILLA` marker and its register row or jar cite with no design provenance beside it, or says no row is needed; a `VANILLA` anywhere else in the comment exempts nothing.
+Its other rules flag a top-level numeric constant with no comment, a dial resolved into a local or into a field whose name differs from the dial's, a `K.dials.get` or `K.dials.row` inside a function body outside the resolver's own functions, and, as a warning, a probable inline dial in a function body.
+
+<a id="sandbox-options-tool"></a>
+## `sandbox_options.py` — the generated option file
+
+`python tools/sandbox_options.py --check` and `--write` render the mod's sandbox option file `42.21/media/sandbox-options.txt` from two sources: a fixed head of the mod's switches, enums and scalers declared in the tool, each scaler naming its registry row for its default and range, and one option per registry row that names one, in the registry's line order, its name, range, default and integer flag the row's.
+A double's numbers are written to three decimal places, which the mod's parameter read takes back to the row's exact value; `--check` exits 1 when the file differs from a fresh render, and the file is never edited by hand: a default or range changes in its registry row and then `--write` runs.
+
+<a id="x502-regrade"></a>
+## `x502_regrade.py` — the derived regrade of x502's composed target
+
+`python testing/experiments/x502_regrade.py [--out DIR]` grades x502's composed UNHAPPINESS target again on the run's committed inputs, never re-run: it replays them through `replay_live` four times, with each eat at the committed placement, at the start and at the end of the game minute it landed in, and half-way, and grades the live target inside the band the start and end placements span.
+Its output is the derived artifact `x502-regrade-20261022`; it refuses any argument it does not define and is frozen once that output is committed.
 
 <a id="xlib"></a>
 ## `xlib.py` — the drivers' shared session helpers
