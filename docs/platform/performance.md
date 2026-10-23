@@ -172,6 +172,7 @@ A mod has five levers on the frame it adds, and each rests on a mechanism above.
 Two more keep a mod from adding a frame by accident.
 A mod that asks for a collection asks for it inside its own frame [#3446/C/inference].
 A mod whose command handlers run long spends the packet pass that the vehicle-physics guard counts [#3447/C/inference].
+A tunable magnitude costs nothing per frame when it is resolved at load, and in the worked example, this mod keeps every one in a dial registry and each kernel resolves its dials into its own table fields once, when its file loads, so a call site reads a plain field and no lookup runs per tick or per minute [#4163/C/inference].
 A per-frame site is not free either: a queue drained on `OnTick` runs its early-out on every frame of the session, so its own empty check is part of its cost [#3428/C/C-only] [#2401/C/C-only].
 Whether that check costs more than the spreading saves at a given player count is a measurement and not a reading [#3442/C/inference]: an A/B of arms did not resolve it above one host's drift [#3483/M/n=1], and benched directly the mod's empty check cost 0.48, 0.41 and 0.39 µs a call, under [How to measure](#measure) [#3749/M/n=1].
 
@@ -289,6 +290,8 @@ Every live figure is one session with two real players at `DayLength` 1 unless t
 | one stored record on disk | 10877 bytes | [#3468/M/n=1] |
 | fifty-eight ghost minutes in one minute frame | busy 50 ms median, 81 p99, 88 max | [#3472/M/n=1] |
 | the longest engine window, burst against a 15 ms budget, six draws at `DayLength` 1 | 164 to 176 ms against 127 to 139 | [#3489/M/n=1] |
+| the food hedonics seats, offline stand-ins | Java calls an eat: 1 for a food that is not sad, 3 for a sad food sated, 8 and one item sync for a sad food Hungry; none a server minute | [#4162/C/inference] |
+| the build with the food hedonics, idle and under 59 ghost records | busy p99 3 ms and period p50 100 ms idle; end-to-end p99 116 ms against 106 idle, longest window 122 ms against 115, no starved minute | [#4151/M/n=1] |
 
 The sixty-player arithmetic rows are linear extrapolation from two players, and vanilla's own per-player cost at that load is in no reading, so the absolute frame there is unknown [#3440/M/arith.].
 The ghost run read about half the in-play run, so the two bases bracket the per-run cost rather than agree on it [#3405/M/n=1] [#3440/M/arith.].

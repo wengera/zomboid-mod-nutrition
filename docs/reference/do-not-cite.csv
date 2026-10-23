@@ -22630,3 +22630,5 @@ x504-20261022-224728,readings.rule6.x391d_longest,"[120.0, 123.0, 121.0]","x391d
 x504-20261022-224728,checks.LOAD.reset.before,the ghost stats before the window's reset,The settle before the graded window (its starvedEvents 59 count the load's first minute).,"`verdicts.STARVE.observed`, `verdicts.S.observed`"
 x504-20261022-224728,checks.A.unhappy,the driver's UNHAPPINESS seed,"A write the driver made, not the mod.",`checks.A.eat.stats0`
 x504-20261022-224728,checks.B.unhappy,the driver's UNHAPPINESS seed,"A write the driver made, not the mod.",`checks.B.eat.stats0`
+hedonics-budget-20261023,verdicts[*].why,"the band's text, e.g. UNHAPPINESS +3.04, BOREDOM +3.06, each at most +5.00",A rounded text copy of the row's du and db and the band.,"`rows[*].du`, `rows[*].db` and `verdicts[*].ok`"
+hedonics-budget-20261023,sizing.verdicts[*].why,"the sizing band's text, e.g. UNHAPPINESS +2.00, BOREDOM -0.00, each at most +5.00",A rounded text copy of the sizing row's du and db and the band.,"`sizing.rows[*].du`, `sizing.rows[*].db` and `sizing.verdicts[*].ok`"

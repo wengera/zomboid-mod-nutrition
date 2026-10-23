@@ -204,9 +204,13 @@ A herbal-tea ingredient additionally sums `foodSicknessChange` capped at 12, `pa
 
 A dish's `unhappyChange` is the unmodified value less five less five per duplicate, clamped at plus 25, with a further over-stuffing term once the extra-item count less two exceeds the chef's Cooking level [#0298].
 
+`EvolvedRecipe.addItem`'s non-spice line sets the dish's `UnhappyChange` to its unmodified value less 5 - 5d, where d counts the dish's earlier entries of the same type and, when the dish's extra items before the add less 2 exceed the chef's Cooking level c, also that excess less 3c; so the first three non-spice types are level-independent and a fourth at Cooking 0 adds 0 [#4152/C/C-only].
+
 A dish's `boredomChange` is zeroed in phase A and no non-spice ingredient moves it, but each spice's `useSpice` sets it to its raw value less 200 times the spice's use, the recipe's `:N` over 100, so a `:1` spice lowers it by 2 and a `:4` spice by 8 [#4120/C/C-only].
 
 Each spice's `useSpice` also sets the dish's `unhappyChange` to its raw value less 200 times the spice's use, with no clamp, so a `:1` spice lowers it by 2 and a `:4` spice by 8; a later non-spice add rewrites the field from that raw value, so the decrement stays [#4121/C/C-only].
+
+On a dedicated server with the nutrition mod loaded at its scale of 1, at Cooking 3, a Stir fry read a stored `UnhappyChange` of -5, -10, -15, -17 and -25 after Carrots, Cabbage, Onion, Salt and Butter, -30 after a Potato and -32 after a Pepper, its stamp 1 at each of the five adds: a new non-spice type -5, a `:1` spice -2 and a `:4` spice -8, the summation's own arithmetic [#4132/M/n=1] [#4152/C/C-only] [#4121/C/C-only].
 
 A Salad built from a bowl, a lettuce and a tomato banks 24.999998 kcal, 5.193333 carbohydrates, 0.28 lipids and 2.283333 proteins at Cooking 0, and 29.166666, 6.058888, 0.326667 and 2.663889 at Cooking 10 [#0301/M/n=1].
 

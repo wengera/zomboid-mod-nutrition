@@ -195,8 +195,8 @@ Each row here is one claim and carries its own tag, and a measured row names the
 | fertilized | boredom, unhappiness, stress | every modifier bypassed and the raw field returned, and `isRotten()` forced false [#0044] |
 | `RemoveNegativeEffectOnCooked` | `thirstChange`, `unhappyChange`, `boredomChange` | each set to 0 if positive on the cook transition, permanently and once, with nutrition untouched [#0045] |
 | `removeUnhappinessWhenCooked` | `unhappyChange` | set to 0 on the cook transition [#0046] |
-| utensil | BOREDOM | times 1.25 when `boredomChange * f` is negative, else times 0.75 [#0047] |
-| utensil | UNHAPPINESS | times 1.25 when `unhappyChange * f` is negative, else times 0.75 [#0048] |
+| utensil | BOREDOM | with a utensil, times 1.25 when `boredomChange * f` is negative, else times 0.75; without one, times 1 [#4153/C/C-only] |
+| utensil | UNHAPPINESS | with a utensil, times 1.25 when `unhappyChange * f` is negative, else times 0.75; without one, times 1 [#4154/C/C-only] |
 | HUNGER at its minimum | `healthFromFoodTimer` | plus `abs(getHungerChange()) * f * getHealthFromFoodTimeByHunger()`, doubled for a cooked item, capped at 11000.0 [#0054] |
 | alcoholic | intoxication | routed to `JustDrankBooze(food, f)` [#0055] |
 | Tutorial game mode | the sickness rolls | `JustAteFood` returns early, after the mood writes and before them [#0056] |

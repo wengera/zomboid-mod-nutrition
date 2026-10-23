@@ -116,6 +116,7 @@ A second mod's block for one of the same foods composes with the pass's per key,
 Foods the pass reasons out of the table have no block and read their own script values, and a mapped record that lives in the no-nutrition part file, Butter, is re-based like any other ([#3151/M/n=2]).
 
 The first boot of the whole build loaded the 90 121-byte script file and the generated Lua tables without an error on either side, and its three 20 s tick-rate windows read 0.9949 to 0.9950 of the previous build's 10 s window ([#3140/M/n=1], [#3142/M/n=1]).
+The same data classifies each food for the mod's food mood: a generated table, written by the kernel's own rule over each food's per-100 g record, reads Butter (0.643 % sodium by weight, fat 0.995 of its macro energy), Margarine and MayonnaiseFull as plain energy whatever their salt, Bacon, Pepperoni, Dip_Ranch and Pretzel as salt-paired and palatable, and Lard, the three oils, Sugar, Flour, dry Rice and dry Pasta as plain, 34 of the 522 classified food types plain ([#4157/C/inference], [the tools page](../reference/tools.md#food-hedonics)).
 What an eat does with the table, the template and a declared string is measured on the mod's side of the line and sits in [testing-your-mod.md](testing-your-mod.md#scenario-inputs); the declared string's grammar is [new-nutrients.md](new-nutrients.md#declared-nutrients).
 
 The pass is weighed against the craft recipes it feeds, because a crafted output carries its own block's numbers rather than its inputs' ([#0708]).

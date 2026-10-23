@@ -83,6 +83,8 @@ option MyMod.Severity
 }
 ```
 
+A mod can generate the file from a registry of its tunable values, so the file and the poll's clamp read one default and one range, and in the worked example, this mod renders its option file from a fixed head of switches, enums and scalers and one option per dial-registry row that names one, in the registry's line order, each with the row's range, default and integer flag, a double's numbers written to three decimal places [#4165/C/inference].
+
 <a id="lua-mirror"></a>
 ### The `SandboxVars` mirror and the option's name
 
@@ -165,6 +167,7 @@ The packet type requires `Capability.SandboxOptions` [#2450/C/C-only].
 The server's packet dispatch runs a packet's handler only when the authorization check passes, which it does only when the connection's role holds the packet's required capability, so a sandbox-options packet from a connection without that capability reaches no handler [#2450/C/C-only].
 Nothing announces the change to Lua, because the engine has no event for it ([Walls and bounds](#walls)) [#2451/C/C-only].
 A mod that cached a value therefore keeps the old one until it reads again, and a captured sub-table is the one reference the apply refreshes in place [#2451/C/C-only] [#2445/C/C-only].
+A mod can follow a change by polling and still leave alone the fields an unchanged option sets, and in the worked example, this mod's options poll re-resolves each dial whose row names an option by one clamp rule and writes the kernel field, and runs its domain's derive, only when the read differs from the last value it saw, while a parameter row is read into its domain's own table, a read within half the third decimal place of the default as the file writes it taken as the row's exact value [#4164/C/inference].
 A server `SandboxOptions:set` changes the option object but not `SandboxVars`, so a mod that polls `SandboxVars` never sees it [#2887/M/n=1].
 Setting `DayLength` to 4 on a running dedicated server through `SandboxOptions:set` read back 4 but left the clock at 6.47 ticks a game minute over the next 10 s, while a `time.multiplier` of 0.1674 gave 37 or 38 ticks between consecutive minute events. [#3394/M/n=1]
 A server Lua assignment into the nested `SandboxVars` leaf reaches a mod that polls it [#2914/M/n=1].
