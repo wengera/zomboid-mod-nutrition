@@ -423,8 +423,8 @@ function K.strength.params(sv)
     P.M5 = D.M5
     local fellBack = false
     local capBio = K.min(P.capLevel, 5 + (P.ffmiNaturalRaw - P.ffmi5) / P.ffmiPerLevel) -- K.body.create holds Fc at the natural limit
-    if capBio > 15 then
-        local s15 = (15 - 5) / (capBio - 5)
+    if capBio > K.strength.MASTERY_MAX then
+        local s15 = (K.strength.MASTERY_MAX - 5) / (capBio - 5)
         if S.threshold(s15, P) >= S.setCap(s15, P) then
             P.beta = D.beta
             P.Sg0 = D.Sg0

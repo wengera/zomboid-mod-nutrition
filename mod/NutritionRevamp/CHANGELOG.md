@@ -50,6 +50,16 @@ The mod now plays alongside the game's own rhythm: hunger and thirst follow vani
 - **A snack ends starving on time:** a snack of about 200 kcal eaten while Starving could fail to end the state, because the minute digested part of it before the check; the check now reads the snack as eaten.
 - **The server refuses an eat at the top Overfull level:** in Managed mode an eat queued past the menus is refused on the server too, with vanilla's cannot-eat-more line; a drink with no food value is never refused, a drink with food value from a bottle or carton is refused only by the menu, and an eat another mod makes by calling the game's eat directly is not refused.
 
+### Food mood and tunable numbers (since 2026-10-21, before the first upload)
+
+- **Plain fat and sugar wear you down:** a day spent mostly eating plain energy (butter, lard, oil, sugar, honey, flour, or plain rice, pasta or cereal on its own) holds unhappiness up with a mood floor, deeper as the day approaches all plain food, and it lifts as that food drops out of the day; a little butter beside real meals costs only vanilla's own sadness, and fat or sugar cooked into a dish is not plain.
+- **Cooking skill shows in your dishes:** a dish built up an ingredient at a time (a stew, a soup, a salad, a sandwich) cheers by the Cooking level of the cook of its last add, less than vanilla's for a new cook and more for a master; a dish that would sadden is never scaled, and a fixed recipe is not scaled.
+- **Hunger makes plain food easier to take:** while Hungry or worse, a food that would sadden saddens a little less; a food you enjoy is never changed.
+- **Variety counts by taste:** monotony also counts the kind of taste (sweet, savoury, fatty or a bland staple) at a tenth of the weight of the food itself, a dish counting as the taste of the ingredient that brings most of its calories.
+- **A part-eaten food keeps its true mood value on the client:** the hunger easing lowers a food's stored mood value around vanilla's eat, and the server now re-sends a remainder still in a container after putting the value back.
+- **The dial registry:** every tuning number of the mod is one row of `NR_Data_Dials.lua` with a unit, a range and a source, read once at load; `tools/dials.py` lists, checks, diffs and sets them, and `tools/dial_lint.py` flags a magnitude left outside the registry.
+- **Generated sandbox options:** the option file `sandbox-options.txt` is generated from the registry by `tools/sandbox_options.py`; no option's name, type, range, default or order changed.
+
 ### Compatibility
 
 The full table is `COMPATIBILITY.md`. In short:

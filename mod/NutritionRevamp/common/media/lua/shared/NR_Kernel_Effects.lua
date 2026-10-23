@@ -180,7 +180,7 @@ function K.effects.new()
         solAddH = 0,
         solMul = 1,
         pe = 1,
-        ea = 30,
+        ea = K.effects.EA_FULL, -- the no-cost availability until the first day closes (one dial with aerobic.EA_THRESHOLD)
         nvDays = 0,
         own = { nv = false, ss = false },
         intoxTarget = 0,
