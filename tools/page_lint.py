@@ -14,7 +14,7 @@ every relative link resolves to a page; a fragment must be a lowercase slug (`a-
 a fragment into a page of the three layers or into one of the three tagged reference pages (datasets.md,
 tools.md, wall-map.md) must name an `<a id>` on it (--partial skips a missing page). On areas/open-questions.md every
 `open` register row must carry a tag somewhere on the page (open-index). The reference profile
-(reference/datasets.md, reference/tools.md: tagged owners outside the contract's section shape; reference/research-notes.md, untagged) checks
+(reference/datasets.md, reference/tools.md: tagged owners outside the contract's section shape; reference/research-notes.md and process/lessons.md, untagged) checks
 the stamp, the anchors, the narrative markers and the links only: no section set, rule lines, walls,
 worked examples, cap or floor. reference/wall-map.md is in REFERENCE_PAGES so that a fragment into it
 is checked like one into datasets.md or tools.md; it is a link target only, never a page this lint is
@@ -52,7 +52,8 @@ PAGE_SECTIONS = {
     "areas/open-questions.md": ["Index", "Decisions", "Experiments", "See also"],
 }
 # Tagged owners outside the contract's section shape; wall-map.md is a fragment-checked link target only.
-REFERENCE_PAGES = ("reference/datasets.md", "reference/tools.md", "reference/wall-map.md", "reference/research-notes.md")
+REFERENCE_PAGES = ("reference/datasets.md", "reference/tools.md", "reference/wall-map.md", "reference/research-notes.md",
+                   "process/lessons.md")
 NO_FLOOR = ("facts/other-mods/", "areas/open-questions.md")           # the mod pages' Key facts are one line per technique; the index is rows
 OPEN_INDEX = "areas/open-questions.md"
 # Only these layers are under the page contract, so only they carry `<a id>` anchors: a link into

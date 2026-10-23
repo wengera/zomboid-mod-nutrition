@@ -288,3 +288,15 @@ def test_research_notes_take_the_reference_profile(tmp_path):
     p.write_text("# Research notes\n\n## Ideas for later\n- It was previously built.\n", encoding="utf-8")
     findings, _ = pl.lint(str(p), root=str(root), partial=True)
     assert sorted(f.rule for f in findings) == ["narrative", "stamp"]
+
+
+def test_process_lessons_take_the_reference_profile(tmp_path):
+    root = _tree(tmp_path, {})
+    (root / "docs" / "process").mkdir(parents=True)
+    p = root / "docs" / "process" / "lessons.md"
+    p.write_text("# Process lessons\n" + STAMP + "\n\n<a id=\"live-runs\"></a>\n## Live runs\n- **A rule.** Its incident. Cite: x1.\n", encoding="utf-8")
+    findings, _ = pl.lint(str(p), root=str(root), partial=True)
+    assert findings == []                           # no section, floor or rule-line finding
+    p.write_text("# Process lessons\n\n## Live runs\n- It was previously built.\n", encoding="utf-8")
+    findings, _ = pl.lint(str(p), root=str(root), partial=True)
+    assert sorted(f.rule for f in findings) == ["narrative", "stamp"]
