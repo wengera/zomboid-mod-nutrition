@@ -183,6 +183,7 @@ Not covered: the thirst-relief path beyond its named hook, the context-menu and 
 ## See also
 
 - [`../platform/lua-platform.md`](../platform/lua-platform.md#script-hooks) — how each hook resolves its name and which side calls it.
+- [`../platform/lessons.md`](../platform/lessons.md#rules) — never wrap a timed action's `new`; wrap `serverStart` and `serverStop`.
 - [`../facts/eating-pipeline.md`](../facts/eating-pipeline.md#eat) — the order of writes, partial eating and the drink path.
 - [`../facts/cooking-and-recipes.md`](../facts/cooking-and-recipes.md#cook-block) — the cook block, the craft split and the evolved dish.
 - [`../platform/mp-model.md`](../platform/mp-model.md#ownership) — who owns the stores, and where a completed and a cancelled eat resolve.

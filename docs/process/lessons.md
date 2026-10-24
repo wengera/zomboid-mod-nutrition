@@ -186,6 +186,7 @@ How to read a source:
   - `dial_lint`: Plan 19 Task 3g.
   - `sandbox_options`: Plan 19 Task 3f.
   - `food_hedonics`: Plan 19 Task 5.
+  - `comment_id_lint`: Plan 20 Task 6 (gate at its close).
   - `food_fills`: Plan 15 Task 9. It replays each item through the server's kernels for the tooltip's fill table.
   - `mod_guide_data`: Plan 14.
 - **A lupa bench stubs Java, so count a per-minute adapter's Java calls with a recording stub, against the build before.** The Plan 11g close caught two duplicated reads a player-minute that the bench could not see.
@@ -234,3 +235,4 @@ The full pytest count never drops. A reset by name deletes tests of dead code on
 | Plan 17, 2026-10-20 | 7545 | the curve-era x481 HEAD tests frozen into one archive test and one DROPPED-series check (task-2b report) |
 | Plan 18, 2026-10-21 | 7844 | the composer's dead enduranceCap test removed with its line (the close-fix report) |
 | Plan 19, 2026-10-23 | 8269 | none deleted; two `test_recipe_scan.py` spice tests replaced by name in eb97dbfb (`task-4b-report.md`) |
+| Plan 20, 2026-10-24 | 8329 | none deleted; `test_pointer_with_a_non_hex_pin_says_only_a_hex_commit_is_supported` replaced by name in 350040d0 (`task-1-report.md`) |
