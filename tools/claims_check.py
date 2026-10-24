@@ -10,7 +10,8 @@ byte-identical line for that set; a page's several rules on one set are never co
 other) · refgen (10: the two generated sections must be fresh renders of the register —
 docs/reference/artifacts.md's `Cited by` column and the `## Contradictions` section of
 references/wiki-mirrors/README.md; an absent page or a README without its reference_gen markers is a
-finding; see tools/reference_gen.py). --register-only runs 0 and 3; --partial lets
+finding; see tools/reference_gen.py) · guide (11) · orphan (12: a live row that no page tags; see
+rule_orphan). --register-only runs 0 and 3; --partial lets
 1 skip owner pages that do not exist yet; --section-map prints the source-section map; --staged
 skips the run when nothing relevant is staged."""
 import argparse, collections, csv, os, re, subprocess, sys
@@ -31,6 +32,9 @@ LAYER_DIRS = ("docs/areas", "docs/platform", "docs/facts")
 # page contract, so rule 4 never runs there, but a row owned by one of these still needs its tag to
 # resolve and to carry the canonical suffix. Every other reference page is generated or an index.
 REF_TAG_PAGES = ("docs/reference/datasets.md", "docs/reference/tools.md", "docs/reference/wall-map.md")
+# Rule 12 also counts the tags on the experiments table, which owns no row and so sits outside rule 2: a row whose
+# only citation is its experiment's line there is cited, not orphaned.
+ORPHAN_EXTRA_PAGES = ("docs/reference/experiments.md",)
 # Rule 10's inputs: the two files whose sections tools/reference_gen.py generates.
 ARTIFACTS_MD = "docs/reference/artifacts.md"
 MIRRORS_README = "references/wiki-mirrors/README.md"
@@ -472,6 +476,26 @@ def rule_tag(rows, root, allow_provisional, archive=()):
     return out
 
 
+def rule_orphan(rows, root, register_rel=REGISTER):
+    """Rule 12 (Plan 20 Task 7b, ruling P20-17): a live register row that nothing tags is a finding on its register
+    line. The tags are gathered, in the forms `cl.iter_tags` parses, from exactly the files rule 2 reads
+    (`_tagged_files`: every .md under docs/areas, docs/platform and docs/facts, the reference pages REF_TAG_PAGES
+    (datasets.md, tools.md, wall-map.md) and every .claude/skills/*/SKILL.md) plus ORPHAN_EXTRA_PAGES
+    (docs/reference/experiments.md). Archived rows are exempt (they are in the archive, not `rows`), and so is a
+    superseded row still in the live register, whose pages move to its successor (CLAUDE.md section 4, item 4).
+
+    It differs from rule 1, owner: rule 1 asks one page, the owner cell's, for a tag and skips a row whose owner cell
+    names no page; this rule asks every tagged file, so a row tagged only off its owner page passes it, and a row
+    with no tag anywhere fails it whatever its owner cell says. Neither rule reads the owner anchor's block."""
+    tagged = set()
+    extra = [os.path.join(root, *r.split("/")) for r in ORPHAN_EXTRA_PAGES]
+    for path in _tagged_files(root) + [p for p in extra if os.path.exists(p)]:
+        tagged.update(cid for _, cid, _ in cl.iter_tags(_read(path)))
+    return [Finding(register_rel, n, "orphan", "%s: a live row with no tag on any page; retire it, or tag its owner sentence"
+                    % r["id"])
+            for n, r in enumerate(rows, 2) if r["status"] != "superseded" and r["id"] not in tagged]
+
+
 def rule_untagged(root):
     out = []
     for path in _md_files(root, LAYER_DIRS):     # never under docs/reference/ (spec § Open questions 4)
@@ -747,7 +771,7 @@ def check(root=None, register=None, lua_dir=None, register_only=False, partial=F
     lua = lua_dir or os.path.join(root, *LUA_DIR.split("/"))
     findings += rule_owner(rows, root, partial) + rule_tag(rows, root, allow_provisional, arch) + rule_untagged(root)
     findings += rule_generator(root, lua) + rule_refgen(root, rows + arch) + rule_guide(root, rows, arch, reg_rel, arch_rel)
-    findings += rule_skill(root) + rule_example(root) + rule_rules_dup(root)
+    findings += rule_skill(root) + rule_example(root) + rule_rules_dup(root) + rule_orphan(rows, root, reg_rel)
     return findings
 
 

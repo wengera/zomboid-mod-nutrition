@@ -861,3 +861,64 @@ def test_guide_rule_is_quiet_without_a_wildcard_sentence():
         body = GUIDE_BODY.replace("a wildcard, ", "")
         link = "../../testing/artifacts/%s/GUIDE.md" % RUN
         assert _guide_tree(d, guide_file=body, inline=False, link=link) == []
+
+
+# --- Rule 12, orphan (Plan 20 Task 7b, ruling P20-17): a live row no page, skill or tagged reference page tags.
+
+_ORPHAN_PAGE = "# Core\n\n## How it works\n<a id=\"update\"></a>\n### U\nOne [#0001].\n"
+
+
+def _orphans(d, **kw):
+    return [x for x in cc.check(d, partial=True, **kw) if x.rule == "orphan"]
+
+
+def test_an_orphaned_live_row_is_a_finding_on_its_register_line():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1), _row(2), _row(3, status="open")], pages={"docs/facts/nutrition-core.md": _ORPHAN_PAGE})
+        f = _orphans(d)
+        assert [(x.path, x.line) for x in f] == [(cc.REGISTER, 3), (cc.REGISTER, 4)]
+        assert f[0].detail == "#0002: a live row with no tag on any page; retire it, or tag its owner sentence"
+        assert cc.exit_code(f) == 1
+
+
+def test_a_row_tagged_only_in_a_skill_passes():
+    skill = "---\nname: s\n---\n# S\n\n## Read first\n- docs/facts/nutrition-core.md\n\nThe skill cites [#0002].\n"
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1), _row(2)], pages={"docs/facts/nutrition-core.md": _ORPHAN_PAGE},
+              skills={cc.SKILLS_DIR + "/s/SKILL.md": skill})
+        assert _orphans(d) == []
+
+
+def test_a_row_tagged_only_in_experiments_md_passes():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1), _row(2)], pages={"docs/facts/nutrition-core.md": _ORPHAN_PAGE,
+                                            "docs/reference/experiments.md": "# Experiments\n\n| X1 | run [#0002] |\n"})
+        assert _orphans(d) == []
+
+
+def test_a_row_tagged_only_on_a_tagged_reference_page_passes():
+    for ref in cc.REF_TAG_PAGES:
+        with tempfile.TemporaryDirectory() as d:
+            _tree(d, [_row(1), _row(2)], pages={"docs/facts/nutrition-core.md": _ORPHAN_PAGE, ref: "# R\n\nIt reads [#0002].\n"})
+            assert _orphans(d) == [], ref
+
+
+def test_an_archived_row_with_no_tag_passes():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1), _row(4)], pages={"docs/facts/nutrition-core.md": _ORPHAN_PAGE.replace("[#0001]", "[#0001] [#0004]")})
+        _arch(d, [_sup(2, "#0004"), _ret(3)])
+        assert _orphans(d) == []
+
+
+def test_a_number_that_ends_in_a_row_id_is_not_its_tag():
+    """#3767's lookalike on body-effects.md: the digits 3767 inside -1663.0599488103767 are no tag."""
+    page = _ORPHAN_PAGE.replace("One [#0001].", "One [#0001], balances of -1663.0599488100002 kcal and #0002 bare.")
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1), _row(2)], pages={"docs/facts/nutrition-core.md": page})
+        assert [x.detail[:5] for x in _orphans(d)] == ["#0002"]
+
+
+def test_the_orphan_rule_is_skipped_by_register_only():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1), _row(2)], pages={"docs/facts/nutrition-core.md": _ORPHAN_PAGE})
+        assert not any(x.rule == "orphan" for x in cc.check(d, register_only=True))
