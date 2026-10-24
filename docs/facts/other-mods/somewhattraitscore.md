@@ -11,7 +11,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-04 · scope: one workshop mod r
 ## How it works
 
 The mod ships three folders in one Workshop item, `3498347699`: `SomewhatTraitsCore`, the server and client code; `SomewhatTraits`, which registers the traits; and `SomewhatTraitsSkills`, so a server or a test profile names each by its id rather than by the item [#1617/C/snapshot].
-The live tree on `42.20.4` is `42.15/` for all three; this page read it on 2026-10-04, its server file dated 2026-08-12 on disk.
+The live tree on `42.20.4` is `42.15/` for all three, read on 2026-10-04.
 Its patching surface is wide — 56 `function IS…:` headers and 66 save-and-wrap sites [#1624/C/snapshot] — and 24 of its `OnTick` registrations sit in its one server file [#2581/C/snapshot]; only the calorie write touches the nutrition store, and it is the corpus's only player macro write [#1588].
 
 <a id="what-it-does"></a>
@@ -53,7 +53,7 @@ Not covered: the mod's other traits, its patching of the timed actions, its clie
 ## Open
 <a id="open"></a>
 
-- The design must decide whether it writes over this handler or leaves the store to it, because the handler writes the same server-side calorie store a nutrition overhaul would own, a third of a kilocalorie every five seconds per player outside its band [#2091/M/n=1] [#2762/M/n=1].
+No open question is filed for this mod; the limits of its readings are under [Walls and bounds](#walls).
 
 ## See also
 

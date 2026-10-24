@@ -30,7 +30,6 @@ The in-box route answers the placement and background questions a band drawn bel
 
 It disables a provider for the session after 10 consecutive errors [#3546/C/snapshot].
 A render re-entered on its own call stack falls back to the render captured at boot instead of chaining again, and the depth counter is decremented after a `pcall`, so a body error cannot leave it raised [#3547/C/snapshot].
-Both are cheap to carry in any tooltip wrapper: the first bounds the cost of a contributor that keeps failing, the second bounds a wrap chain two mods have looped.
 
 <a id="mp"></a>
 ### The world-object server command

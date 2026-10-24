@@ -12,7 +12,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: what moves a playe
 - Sitting, resting or riding awake in a vehicle regenerates endurance at five times the standing rate, and sleep at twice it [#2260/C/C-only] [#2261/C/C-only].
 - The `EndRegen` sandbox option maps its values 1 to 5 onto 1.8, 1.3, 1.0, 0.7 and 0.4, defaults to 3, and multiplies every regeneration arm [#2265/C/C-only].
 - `getRecoveryMod` starts from a Fitness ladder running from 0.7 at level 0 to 1.6 at level 10 [#2262/C/C-only].
-- Awake fatigue accumulates at `fatigueIncrease` 3.45e-5 times the `StatsDecrease` multiplier, the endurance deficit floored at 0.3, the game clock, the sleep traits and the thermoregulator's fatigue multiplier, divided by 1.5 while sitting or resting [#2270/C/C-only].
+- Awake fatigue accumulates at `fatigueIncrease` 3.45e-5 times the `StatsDecrease` multiplier, the endurance deficit floored at 0.3, the game clock, the sleep traits and the thermoregulator's fatigue multiplier, divided by 1.5 while sitting or resting [#2270/C/C-only] [#2271/C/C-only].
 - Sleep takes fatigue above 0.3 down over a nominal 5 hours and the last 0.3 over a nominal 7 hours, scaled by bed type, Insomniac, Night Owl and the sleep traits [#2276/C/C-only].
 - The `TIRED` moodle fires above 0.6, 0.7, 0.8 and 0.9 on fatigue, on a strict greater-than [#2279/C/C-only].
 - A `TIRED` level and an `ENDURANCE` level each cut stomp power by the same 0.5, 0.2, 0.1 and 0.05 ladder, and the two compound [#2280/C/C-only].
@@ -20,14 +20,13 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: what moves a playe
 ## How it works
 
 Endurance and fatigue are two registered stats; their bounds, their defaults and the stat API a mod writes them through are [character-stats.md](../facts/character-stats.md#registry).
-Every path on this page writes one of the two stats, reads one of them, or reads a moodle level computed from one of them.
 The whole waking endurance model sits in one private method, `IsoPlayer.updateEndurance`, which returns for an animal and on a game client; the side gate and its owner are [mp-model.md](../platform/mp-model.md#ownership).
 Where each updater runs in the frame, and where the server's fatigue reset sits relative to the `CalculateStats` hook, is [character-stats.md](../facts/character-stats.md#tick-order).
 
 <a id="drain"></a>
 ### Drain: running, sprinting, dragging and loaded walking
 
-The drain arms of `IsoPlayer.updateEndurance`, decoded from the bytecode [#2251/C/C-only] [#2252/C/C-only] [#2255/C/C-only] [#2256/C/C-only]:
+The drain arms of `IsoPlayer.updateEndurance`, decoded [#2251/C/C-only] [#2252/C/C-only] [#2255/C/C-only] [#2256/C/C-only]:
 
 ```java
 float sneak = 1.0f;                                   // @40  L3437
@@ -73,66 +72,40 @@ The arm removes `rate × mult × 0.5 × asthma × GameTime.getMultiplier() × sn
 The multiplier chain starts at 1.4, becomes 2.9 under Overweight, and becomes 0.8 under Athletic, which is tested second and so overrides Overweight; it is then multiplied by 2.3, by `getPacingMod()` and by `getHyperthermiaMod()` [#2252/C/C-only].
 The weight-band traits' whole footprint on this chain is [body-and-weight.md](../facts/body-and-weight.md#weight-traits).
 Asthmatic raises the drain by replacing a 0.7 factor with 1.0, in the running arm and in the loaded-walking arm alike [#2253/C/C-only].
-Sneaking sets a 1.5 factor that multiplies the three drain arms of the method and reaches none of its regeneration arms, so sneaking raises the cost of whichever drain it rides on [#2254/C/C-only].
+Sneaking sets a 1.5 factor that multiplies the three drain arms of the method and reaches none of its regeneration arms [#2254/C/C-only].
 Under a heavy-load moodle the running arm is multiplied again, by 1.5, 1.9, 2.3 or 2.8 at moodle levels 1, 2, 3 and 4 [#2255/C/C-only].
 
-Walking has two drain paths of its own, and both are conditional.
 Walking drains endurance only above heavy-load level 2, at `runningEnduranceReduce × mult × 0.5 × asthma × sneak × multiplier × load ÷ 2`, where the multiplier chain carries a 3.0 stage in place of 2.3 and the load factor is 1.9 at level 3 and 2.3 at level 4 [#2256/C/C-only].
 The walking rate is the running constant whatever the gait, so a loaded walk is priced off the running rate rather than off a walking rate of its own.
 
-The endurance model has no day-length term.
-No arm of `IsoPlayer.updateEndurance` or of the sitting and vehicle regenerators multiplies by `GameTime.getDeltaMinutesPerDay()`, so waking endurance rates are per update, at most times the game-time multiplier, and do not scale with the day length, while the awake fatigue accumulation does [#2257/C/C-only].
-The one exception is the asleep regeneration arm, stated at [the regeneration anchor](#regen).
-A server that lengthens its day therefore stretches fatigue across the longer day while endurance drains and refills at the same per-update pace.
+No arm of `IsoPlayer.updateEndurance` or of the sitting and vehicle regenerators multiplies by `GameTime.getDeltaMinutesPerDay()`, so waking endurance rates do not scale with the day length, while the awake fatigue accumulation does [#2257/C/C-only].
+The one exception, the asleep arm, is at [the regeneration anchor](#regen).
 
 <a id="regen"></a>
 ### Regeneration and the recovery multipliers
-
-Every regeneration arm shares one product, `imobileEnduranceReduce × EndRegen multiplier × getRecoveryMod()`, and differs only in the factor in front of it and in the fatigue term beside it.
 
 Standing still, endurance regenerates at `imobileEnduranceReduce × EnduranceRegenMultiplier × getRecoveryMod() × (1 − 0.85 × fatigue) × multiplier`, and only while the heavy-load moodle is at level 1 or below; `imobileEnduranceReduce` is read from `ImobileEnduranceIncrease = 0.0000930/3` in the Lua `ZomboidGlobals` table [#2258/C/C-only].
 Walking, endurance regenerates at a quarter of the standing rate with a `(1 − fatigue)` term and no 0.85 factor, while the endurance moodle is below level 2 and the heavy-load moodle at level 1 or below; at endurance moodle level 2 or above, walking drains it instead, at `runningEnduranceReduce ÷ 7 × sneak` [#2259/C/C-only].
 Sitting on the ground or on furniture, resting, or riding awake in a vehicle regenerates endurance at five times the standing rate with a `(1 − 0.8 × fatigue)` term, the five being the hard-coded `sittingEnduranceMultiplier` rather than a Lua value [#2260/C/C-only].
 Asleep, endurance regenerates at twice the standing rate, multiplied by `getDeltaMinutesPerDay()` when every player is asleep, with no fatigue term at all [#2261/C/C-only].
+Fatigue therefore gates every waking regeneration arm and none of the sleeping one.
 The asleep endurance regeneration is in `IsoPlayer.updateStats_Sleeping`, one of the hook-skipped updaters, and `IsoPlayer.updateEndurance` has no asleep test, so a registered `CalculateStats` handler also drops sleep's endurance regeneration. [#2782/C/C-only]
 `IsoPlayer.allPlayersAsleep` counts the process's local `IsoPlayer.players` array, not the server's connected players. [#2788/C/C-only]
 
-Fatigue therefore gates every waking regeneration arm and none of the sleeping one.
-A tired character standing still recovers endurance more slowly than a rested one, and a fully fatigued character walking recovers none, while the same character asleep recovers at the full sleeping rate.
-
 The `EndRegen` sandbox option, an enum whose translation key is `EnduranceRegen`, maps its values 1, 2, 3, 4 and 5 to 1.8, 1.3, 1.0, 0.7 and 0.4, defaults to 3, and is multiplied into every regeneration arm [#2265/C/C-only].
-Which sandbox label corresponds to each integer is not read here; the mapping is the switch's.
 
-`getRecoveryMod` is the per-character multiplier every regeneration arm carries, and it is built from the Fitness perk and the weight-band traits.
-Its Fitness ladder and the pacing ladder that enters the drain, as read [#2262/C/C-only] [#2263/C/C-only]:
-
-| Fitness level | `getRecoveryMod` start | `getPacingMod` |
-|---|---|---|
-| 0 | 0.70 | 0.90 |
-| 1 | 0.80 | 0.80 |
-| 2 | 0.90 | 0.75 |
-| 3 | 1.00 | 0.70 |
-| 4 | 1.10 | 0.65 |
-| 5 | 1.20 | 0.60 |
-| 6 | 1.30 | 0.57 |
-| 7 | 1.40 | 0.53 |
-| 8 | 1.50 | 0.49 |
-| 9 | 1.55 | 0.46 |
-| 10 | 1.60 | 0.43 |
-
-`getRecoveryMod` starts from a Fitness ladder of 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.55 and 1.6 at levels 0 to 10 [#2262/C/C-only].
+`getRecoveryMod`, the per-character multiplier every regeneration arm carries, starts from a Fitness ladder of 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.55 and 1.6 at levels 0 to 10 [#2262/C/C-only].
 The weight-band traits then multiply that value cumulatively, and their four factors are live [#0183].
 After them come a lipid and a protein branch that can never fire, because the stores they test are clamped above their thresholds; that reading is [nutrition-core.md](../facts/nutrition-core.md#macro-effects).
 `getPacingMod` returns 0.9 at Fitness 0 and 0.8, 0.75, 0.7, 0.65, 0.6, 0.57, 0.53, 0.49, 0.46 and 0.43 at levels 1 to 10, so a fitter character's drain multiplier is smaller [#2263/C/C-only].
 
 `getHyperthermiaMod` returns 2.0 only when the hyperthermia moodle is at exactly level 4 and 1.0 at every other level, levels 2 and 3 included: its first test admits any level above 1 and its second then requires 4 [#2264/C/C-only].
-Read as written, the first test is dead weight and moderate heat costs no extra endurance at all.
 
-None of the three multipliers has a setter; the missing setters are listed under [Walls and bounds](#walls).
-A mod moves `getRecoveryMod` only through the Fitness perk or the weight-band traits, and `getPacingMod` only through the Fitness perk.
+None of the three multipliers has a setter ([Walls and bounds](#walls)), so a mod moves `getRecoveryMod` only through the Fitness perk or the weight-band traits, and `getPacingMod` only through the Fitness perk [#2287/C/C-only].
 
-Measured live, vanilla's awake endurance reaches the owning client within about one push: with ENDURANCE written to 0.6 on the server and rising under a harness walk, the client's copies lay 369.61376953125 to 1162.46142578125 ms behind the server's series; no handler wrote awake endurance on that boot (code inference; #3050's bound), so whether a handler's write is the one the push carries is still [X35](../areas/open-questions.md#x35)'s question [#3050/M/n=1] [#2082/C/open].
+Vanilla's awake endurance reaches the owning client within about one push: with ENDURANCE written to 0.6 on the server and rising under a harness walk, the client's copies lay 369.61376953125 to 1162.46142578125 ms behind the server's series [#3050/M/n=1]; no handler wrote awake endurance on that boot (code inference; #3050's bound), so whether a handler's write is the one the push carries is still [X35](../areas/open-questions.md#x35)'s question [#2082/C/open].
 
+The readings that follow ran on the later build their rows' bounds name, not the build of this page's stamp.
 Held once a game minute as a ceiling, ENDURANCE caps of 0.74, 0.49, 0.24 and 0.09 kept the Endurance moodle at levels 1, 2, 3 and 4 respectively on every server tick and client frame of each arm from a settle after its write. [#4076/M/n=1]
 A standing character's ENDURANCE climbed a median 3.659745187320486e-05 per multiplier unit between minute writes on DayLength 4, 0.006737649440765381 a game minute at the cap of 0.748, and at that cap the Endurance moodle read level 0 as well as level 1 between writes on the server and on the client. [#4077/M/n=1]
 Over 40 minute gaps a standing character's ENDURANCE climbed at most 3.708222207103933e-05 per multiplier unit, under the mod's worst-case END_REGEN_UNIT. [#4078/M/n=1]
@@ -140,7 +113,6 @@ Over 40 minute gaps a standing character's ENDURANCE climbed at most 3.708222207
 <a id="writers"></a>
 ### Event writers
 
-The per-update model is not the only writer.
 Endurance has three event writers outside the per-update model: one per melee swing, one per vault over a fence and one per exercise repetition [#2269/C/C-only].
 
 The per-swing drain, `CombatManager.processWeaponEndurance`, decoded [#2266/C/C-only]:
@@ -195,22 +167,19 @@ stats.add(FATIGUE, ZomboidGlobals.fatigueIncrease
 ```
 
 Awake fatigue accumulates at `fatigueIncrease × StatsDecrease × max(0.3, 1 − endurance) × multiplier × deltaMinutesPerDay × sleepTrait × thermoregulator fatigue multiplier ÷ restMod`, with `fatigueIncrease` 3.45e-5 read from the Lua `ZomboidGlobals` table [#2270/C/C-only].
-Endurance already drives fatigue through the deficit term, so a character who spends endurance also tires faster, and a fully rested body still accumulates fatigue at the floored deficit.
 The `StatsDecrease` multiplier and its mapping are [body-and-weight.md](../facts/body-and-weight.md#sandbox).
 Needs Less Sleep scales awake fatigue by 0.7 and Needs More Sleep by 1.3, and sitting on the ground, sitting on furniture or resting divides it by 1.5 [#2271/C/C-only].
-Resting therefore slows the fatigue climb rather than speeding it.
 
 The thermoregulator's fatigue multiplier is raised by both cold and heat and never falls below 1, so it can only speed fatigue up; with no thermoregulator the term is 1 [#2272/C/C-only].
 The primary and secondary thermal totals that feed it are unbounded on this page, and the rest of the thermal model is [body-and-weight.md](../facts/body-and-weight.md#multipliers).
 
-`ZomboidGlobals.sleepFatigueReduction` is loaded from the Lua table and read by nothing else in the jar, so the constant whose name suggests it owns sleep restoration owns nothing [#2273/C/C-only].
+`ZomboidGlobals.sleepFatigueReduction` is loaded from the Lua table and read by nothing else in the jar [#2273/C/C-only].
 
-Two writers sit outside the awake updater.
 Inside a toxic building without protection, fatigue rises by 1.0e-4 times the thirty-FPS multiplier on each update while it is below 1 [#2274/C/C-only].
 God mode resets fatigue, endurance and temperature to their defaults on every update [#2275/C/C-only].
 
 On a dedicated server the whole awake accumulation is moot unless the server allows and needs sleep, because the server resets fatigue ahead of it on every update; that reset and its gate are [character-stats.md](../facts/character-stats.md#tick-order).
-Measured live, the reset runs at the next update after a write: on a server whose ini set both options false, three server writes of FATIGUE 0.5 each read back 0.5 in the writing call, a per-tick server probe saw 0.5 and counted three falls of more than 0.1 in 301 ticks, and the next server read after each write was 9.99e-05 to 1.01e-04 [#2947/M/n=1].
+The reset runs at the next update after a write: on a server whose ini set both options false, three server writes of FATIGUE 0.5 each read back 0.5 in the writing call, a per-tick server probe saw 0.5 and counted three falls of more than 0.1 in 301 ticks, and the next server read after each write was 9.99e-05 to 1.01e-04 [#2947/M/n=1].
 With both options true the same write held: FATIGUE read 0.00637 at first sight against 9.781e-05 on the sleep-disabled boot, the write read 0.50060 at the next server read and 0.55930 at the end of a 60 s window, and the probe counted no fall in 600 ticks [#2948/M/n=1].
 
 <a id="sleep"></a>
@@ -246,7 +215,6 @@ if (stats.isAboveMinimum(FATIGUE)) {                            // @56 L3297
 Asleep, fatigue above 0.3 comes off at `dt ÷ (5 × t) × 0.7 × f × bed` per update and fatigue at or below 0.3 at `dt ÷ (7 × t) × 0.3 × f × bed`, so the top 0.7 is sized to clear over a nominal 5 hours and the last 0.3 over a nominal 7 [#2276/C/C-only].
 The bed factor is 0.6 on a floor, 0.75 on a floor with a pillow, 0.9 in a bad bed, 0.95 in a bad bed with a pillow, 1.05 in an average bed with a pillow, 1.1 in a good bed, 1.15 in a good bed with a pillow and 1.0 otherwise [#2276/C/C-only].
 Insomniac halves the rate and Night Owl multiplies it by 1.4, while Needs Less Sleep scales the nominal hours by 0.75 and Needs More Sleep by 1.18 [#2276/C/C-only].
-The nominal hours are the code's own constants, and the clock that drives them is the game's.
 The sleep fatigue clock `dt` equals the per-update advance of `GameTime.timeOfDay`, so it is game-hours and the 5- and 7-hour constants of sleep restoration are game-hours. [#2785/C/C-only]
 Fatigue's recovery while asleep is built from literals and the game clock, not from a `ZomboidGlobals` rate, so zeroing the Lua rates cannot stop it: `ZomboidGlobals.sleepFatigueReduction` is loaded and read by nothing. [#3363/C/C-only]
 Measured live with the rise rates zeroed and a player held asleep, HUNGER and THIRST did not move between per-minute writes over 92 asleep write intervals, while FATIGUE fell by vanilla's sleep recovery in every one, by 4.56e-4 to 7.99e-4 and 6.15e-4 on average from 0.1, until the next write restored it. [#3372/M/n=1]
@@ -256,14 +224,10 @@ Restoration waits for sleep to take hold: fatigue comes off only once `timeOfSle
 `timeOfSleep` and `delayToActuallySleep` are protected fields with public setters `setTimeOfSleep(F)` and `setDelayToSleep(F)` and no getters. [#2787/C/C-only]
 The base `IsoGameCharacter.updateStats_Sleeping` is an empty stub, so all of this is a player's alone; the stub is [character-stats.md](../facts/character-stats.md#updaters).
 
-Waking has its own fatigue write.
 `SleepingEvent.wakeUp` clears the asleep flag and, on a good bed with or without a pillow, removes a random 0.05 to 0.12 of fatigue scaled by the sleep event's sleeping time over 8 [#2278/C/C-only].
-The same method's other bed branches are not read here.
 
-No fatigue value wakes a sleeper.
-The player's waking check, run after the stat update for a sleeping player, wakes on the force-wake-up clock time, after more than 16 hours asleep, on aim or movement input in multiplayer, or on the force flag, and reads no stat; the sleeping event wakes a sleeper for very close zombies, a nightmare or intruders [#3029/C/C-only].
+No fatigue value wakes a sleeper: the player's waking check, run after the stat update for a sleeping player, wakes on the force-wake-up clock time, after more than 16 hours asleep, on aim or movement input in multiplayer, or on the force flag, and reads no stat; the sleeping event wakes a sleeper for very close zombies, a nightmare or intruders [#3029/C/C-only].
 Fatigue sets a bed sleep's length once, at its start, in the client's bed handler: the wake time is the time of day plus a random 10 to 13 hours per unit of fatigue plus one, shifted by the bed and the sleep traits and clamped to 3 to 16 hours, and the sleep dialog sets it from the hours the player picks instead [#3030/C/C-only].
-A fatigue write during sleep therefore neither wakes the player earlier nor keeps them asleep longer.
 
 On a server that allows and needs sleep, the harness's per-tick asleep hold read asleep at 1014 of 1200 server ticks over 120 s, and while the only player was held asleep the world clock ran about 20 times its waking rate, 61.764 game hours in 115.998 s of server wall time against 1.5095 game hours in 56.703 s awake [#2956/M/n=1].
 What the pre-release build's takeover handler did with that sleep is a reading of the mod, [testing-your-mod.md](../areas/testing-your-mod.md#scenario-inputs).
@@ -282,16 +246,14 @@ A `TIRED` level of exactly 4 drains sanity by 2.0e-6 on every update [#2283/C/C-
 
 The `ENDURANCE` moodle's cuts to base speed and to combat speed are moodle-level terms too, and they are [perception-speed.md](../facts/perception-speed.md#speed) and [perception-speed.md](../facts/perception-speed.md#combat).
 Fatigue's movement and combat reach is the `TIRED` moodle in the stomp, firearm, defence and sanity readers above; its reach into sight is [perception-speed.md](../facts/perception-speed.md#vision-cone).
-A moodle level has no setter of its own, as [Walls and bounds](#walls) states, so a mod that wants a level moves the stat underneath it.
 
 <a id="setters"></a>
 ### The setters a mod has
 
 The only setters on the character that take one float and are named for a speed, a modifier or a multiplier are `setSpeedMod`, `setStaggerTimeMod`, `setLevelUpMultiplier`, `setPathSpeed`, `setSneakLimpSpeedScale`, `setLastFallSpeed`, `IsoPlayer.setMoveSpeed` and `IsoPlayer.setCombatSpeed`, and the no-argument `IsoPlayer.setFitnessSpeed` is the ninth speed setter; all nine are `public` [#2286/C/C-only].
 None of the nine is an endurance, fatigue or recovery lever, and what each speed setter reaches is [perception-speed.md](../facts/perception-speed.md#speed).
-The setters a mod might expect for regeneration, recovery, pacing and fatigue do not exist; they are listed under [Walls and bounds](#walls).
 `setRunSpeedModifier` and `setEnduranceMod` exist only on script items, clothing and weapons, never on the character [#2288/C/C-only].
-The weapon one is the `EnduranceMod` the per-swing drain multiplies by.
+The weapon one is the `EnduranceMod` the per-swing drain multiplies by [#2266/C/C-only].
 
 `updateSpeedModifiers` resets the run, walk and combat speed-modifier fields to 1 and rebuilds them from worn items, and the server calls it immediately before every injuries packet, so those three fields cannot hold a mod's value [#2289/C/C-only].
 
@@ -299,15 +261,14 @@ The weapon one is the `EnduranceMod` the per-swing drain multiplies by.
 The cheat it writes is the one the base `updateEndurance` stub honours by resetting endurance; the stub is [character-stats.md](../facts/character-stats.md#updaters).
 
 `setFitnessSpeed` sets the `FitnessSpeed` animation variable to `Fitness ÷ 5 ÷ 1.1 − ENDURANCE moodle ÷ 20`, caps it at 1.5, and below 0.85 snaps it to 1.0 and raises the `FitnessStruggle` variable [#2291/C/C-only].
-It writes animation variables, not a field, so it changes an animation rather than a stat or a speed field.
 
 ## Walls and bounds
 <a id="walls"></a>
 
 The engine has no setter for a moodle level: the `Moodles` member list is twelve methods, none of which writes a level, so a mod moves a moodle only by moving the stat under it [#2285/C/C-only].
 The engine has no `setEnduranceRegenMod`, `setFatigueMod`, `setRecoveryMod`, `setPacingMod`, `setWalkSpeedModifier`, `setAttackDelay`, `setNimbleMod`, `setFatigueMultiplier` or `setEnduranceMultiplier` in any class: the recovery, pacing, fatigue and thermoregulator multipliers are computed only, and moved only through what they read [#2287/C/C-only].
-Every formula on this page is read from the bytecode of one jar and none of it was exercised on a live server, so the rates are the code's and not a measurement's.
-Not covered: the cadence of the injuries packet that carries the rebuilt speed fields; what writes `delayToActuallySleep`; the unit of the sleep clock against the game clock; the other bed branches of `SleepingEvent.wakeUp`; what the `TIRED` moodle does inside `Fitness.incFutureStiffness`; whether `CombatConfig` is reachable from Lua, and so whether the firearm penalties can be retuned at runtime; the thermal totals behind the thermoregulator's fatigue multiplier; and the sandbox labels behind the `EndRegen` integers.
+Every formula on this page is read from the bytecode of one jar, so its rates are the code's; only the readings tagged `M` are measurements.
+Not covered: the cadence of the injuries packet that carries the rebuilt speed fields; the other bed branches of `SleepingEvent.wakeUp`; what the `TIRED` moodle does inside `Fitness.incFutureStiffness`; whether `CombatConfig` is reachable from Lua, and so whether the firearm penalties can be retuned at runtime; the thermal totals behind the thermoregulator's fatigue multiplier; and the sandbox labels behind the `EndRegen` integers.
 
 ## Open
 <a id="open"></a>
@@ -315,7 +276,6 @@ Not covered: the cadence of the injuries packet that carries the rebuilt speed f
 - Does a `CalculateStats` handler that reproduces the skipped updaters, endurance and awake fatigue among them, track vanilla's stat trajectory stat by stat over several game-hours on a live server — settled by two boots of one fixture, one with and one without the handler; run x131c-20261004-181223 compared thirst and hunger but neither endurance arm nor the asleep fatigue, its sleep flag and run flag not holding; -> [X34](../areas/open-questions.md#x34) [#2081/C/open]
 - Is a `CalculateStats` handler's endurance write the last write before the player-stats push, as the tick order reads — settled by a handler writing a sentinel endurance each tick, read in client-first pairs; run x131c-20261004-181223 read the sentinel at rest only, its running pairs having walked ([character-stats.md](../facts/character-stats.md#tick-order)), and run x161s-20261006-031534 read only vanilla's awake write reaching the client [#3050/M/n=1]; -> [X35](../areas/open-questions.md#x35) [#2082/C/open]
 - Decision: where a mod moves endurance recovery — `getRecoveryMod` multiplies every regeneration arm but has no setter, so the levers are the Fitness perk, the weight-band traits, the `EndRegen` option, or a replacement of the whole stat tick through the hook the two experiments above test [#2258/C/C-only] [#2287/C/C-only].
-- Decision: whether fatigue is modelled at all on a server that does not both allow and need sleep, where the server pins it every update ahead of the `CalculateStats` hook (see [character-stats.md](../facts/character-stats.md#tick-order)).
 - Decision: whether the mod's endurance costs ride the per-update model, the three event writers, or both — the event writers sit outside the per-update model, so a per-update replacement that ignores them loses the swing, vault and exercise costs [#2269/C/C-only].
 
 ## See also

@@ -16,7 +16,6 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: how the Beyond Ten
 Beyond Ten extends every trainable skill to level 15 with mastery levels on top of the native 10 cap, a 15-slot skills UI and per-skill bonuses for ranks 11 to 15 [#1525/C/C-only].
 
 Nothing it does touches food, hunger or nutrition.
-It is on this shelf because the thing it extends is a capped engine stat, and the way it extends one without touching the engine is the shape a mod-side nutrient needs.
 
 <a id="architecture"></a>
 ### The parallel-stat blueprint
@@ -24,14 +23,8 @@ It is on this shelf because the thing it extends is a capped engine stat, and th
 Beyond Ten is workshop item `3765241705`, mod id `BeyondTen` by Patryk, examined in its `42` tree on 2026-09-04, whose Lua is eight files of which this reading covers the four shared ones plus one client compatibility file, with a `B41` root tree and a `common` tree beside the version one [#1524/C/C-only].
 
 Beyond Ten leaves the native cap untouched and layers a parallel stat the Java engine does not know about: mastery experience is banked in character modData once native experience is full, and levels are derived on read from stored experience against per-level costs of the level-10 cost plus the level-9-to-10 step times the ranks above 10 [#1526/C/C-only].
-The engine is therefore never told that a skill went past its cap, and nothing on the Java side has to be patched to make room for the extension.
-Only two things exist at rest: a number banked in a table the engine already saves, and a pure function that turns that number into a level ([#2855/C/C-only], [`#mp`](#mp)).
-Everything else the mod shows the player is computed from those two on demand.
 
 Beyond Ten delivers its effects three ways: idempotent wrappers on two vanilla action methods, injection of an effective level into the local variable that a vanilla Lua function reads so that vanilla's own formulas scale for free, and event-time maths for wear negation and carry weight, the last of which registers as a modifier provider with a carry-weight framework when that framework is present rather than clobbering the field [#1527/C/C-only].
-The three rest on different things: a wrapped method, a vanilla function's local variable, and an event [#1527/C/C-only].
-The injection is the fragile one: it survives only while the vanilla function it targets keeps the local-variable pattern it writes into ([#1532/C/C-only], [`#pitfalls`](#pitfalls)).
-The guard that lets the wrappers be installed a second time without stacking is the first of the techniques above ([#1529/C/C-only], [`#techniques`](#techniques)).
 
 Beyond Ten never writes a Java perk level: it calls no `setPerkLevelDebug`, `LevelPerk`, `LoseLevel` or `level0`, and its only Java experience writes are `setXPToLevel` and the six-argument `AddXP`, made on a dedicated server by its server file alone [#2849/C/C-only].
 On a dedicated server it parks the experience of every perk at Java level 10 at the level-9 cumulative total, 337500 for Strength and Fitness against a level-10 total of 487500 [#2102/C/arith.], and banks each tick's change (a fall included) above it as mastery experience, so while it runs a level-10 Strength or Fitness reads one level's worth of experience below its level [#2850/C/C-only].
@@ -39,18 +32,12 @@ Before a world save it writes the level-10 total back and parks the experience a
 Its effective level is the Java level below 10 and the mastery level from 10 to 15 only at 10, so levels 11 to 15 never reach `getPerkLevel` [#2853/C/C-only], and the Java ladder has no rung past 10 to hold them [#2859/C/C-only].
 On Strength and Fitness its mastery costs for levels 11 to 15 are 180000, 210000, 240000, 270000 and 300000 experience [#2854/C/arith.].
 
-The part of this blueprint a nutrition mod takes whole is the resting shape: a reservoir in character modData, values derived on read from that reservoir, wrappers written so that a reload cannot double them, and compatibility by handshake rather than by last write.
-The part it cannot take is the delivery mechanism the mod leans on hardest, for the reason the pitfall below gives.
-
 <a id="mp"></a>
 ### Multiplayer behaviour
 
 On a dedicated server Beyond Ten's authoritative mastery store is the global modData table `BeyondTen_ServerMastery_v1`, keyed by a digest of the account name and player index; the character modData key `BeyondTen` is only a mirror the server imports once as a migration and overwrites every tick, the client's copy is filled by the server commands `Sync` and `SyncPerk`, and the bonuses are recomputed from that store on both sides because both load the same shared files [#2855/C/C-only].
 
-That is a reading of the mod's Lua rather than an observation of a session: no run in the artifact tree evidences its multiplayer behaviour, and no desync was looked for under measurement.
-The rules the reading rests on belong to other pages and are not restated here — what a modData payload may carry and what the packet does to the receiver's table ([#1495], [`../wire-packets.md#moddata-packet`](../wire-packets.md#moddata-packet)), and when a player's table crosses sides at all ([#1637], [`../../platform/mp-model.md#player-moddata`](../../platform/mp-model.md#player-moddata)).
-Read against those rows, the per-tick overwrite is what keeps the character's table honest: a whole-table replace from either side lasts until the server's next tick, and the client never authors mastery experience.
-A nutrition mod that keeps a per-player store the same way takes on the same three parts: a copy the server owns, a mirror it re-publishes, and a command that fills the client's copy.
+What a modData payload may carry is [`../wire-packets.md#moddata-packet`](../wire-packets.md#moddata-packet) ([#1495]), and when a player's table crosses sides is [`../../platform/mp-model.md#player-moddata`](../../platform/mp-model.md#player-moddata) ([#1637]); against those, the per-tick overwrite keeps the character's table honest: a whole-table replace from either side lasts until the server's next tick, and the client never authors mastery experience.
 
 ## Walls and bounds
 
@@ -62,8 +49,7 @@ The mod has been updated since the reading was taken, and each of its code point
 ### Pitfalls
 
 Effective-level injection is inherently brittle, because each injection point pins a vanilla local-variable pattern and a game update silently breaks individual bonuses: it is acceptable for bonuses and not for core nutrient maths, which must own its own event tick instead [#1532/C/C-only].
-The failure mode is what makes it unacceptable for a core loop rather than the failure rate: the injected value simply stops arriving, the mod raises nothing, and the only symptom is a number that is quietly lower than it should be.
-A nutrient model whose totals drift that way is indistinguishable, from the player's side, from a nutrient model that is merely balanced badly.
+When it breaks, the injected value simply stops arriving, the mod raises nothing, and the only symptom is a number that is quietly lower than it should be.
 
 <a id="compat"></a>
 ### Compatibility
@@ -84,7 +70,6 @@ Not covered: its `B41` root tree, which this build does not load, the skills UI 
 
 - Whether the mastery state survives a dedicated-server round trip, and whether the two sides ever disagree about it — settled by a session that plants mastery experience on one side and censuses the character modData on both; no `X` id.
 - Whether the derived-on-read cost curve is stable across the mod's own updates — settled by re-locating the cost function by content at the next read and comparing it with the one stated above; no `X` id.
-- Decision: whether the design's nutrient effects attach through wrappers and event ticks only, or whether any of them may lean on an injected vanilla local — the injection mechanism fails silently and the wrapper and event mechanisms do not.
 
 ## See also
 

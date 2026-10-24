@@ -21,19 +21,15 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the field contract
 
 ## How it works
 
-Four packets carry food and nutrition state between a dedicated server and its client, and this page is the payload of each.
-Two of them are item packets and two are player packets, and a mod's reach on either side ends exactly at the field lists below.
-The character state around them — the player-fields blocks, experience and perk levels, the injuries floats and one body part at a time — rides its own packets, whose payloads follow the player packet's.
+Each reading below holds on the build its row's bound names: the stamp's build unless the bound says the row was re-read or taken on the later build.
+Four packets carry food and nutrition state between a dedicated server and its client, two item packets and two player packets, and the character state around them — the player-fields blocks, experience and perk levels, the injuries floats and one body part at a time — rides its own packets.
 Where a value is not in a list, no re-push repairs it: the receiving side keeps whatever it last computed or last read off the wire, indefinitely.
-The mechanisms — who sends each packet, when it fires, under what gate, what the receiver caches between sends, and which routes exist in the other direction — are [`platform/mp-model.md`](../platform/mp-model.md).
-This page states only what each payload contains, and what the two sides then read back.
+Who sends each packet, when, under what gate and what the receiver caches between sends is [`platform/mp-model.md`](../platform/mp-model.md); this page is each payload and what the two sides then read back.
 
 <a id="item-stats-packet"></a>
 ### The item packet's field contract
 
-Three things decide whether a value a mod writes onto an item shows up on a client: whether the field is in the packet's list, whether the sender's own value clears that field's write guard, and whether the receiver applies it.
-All three fail independently, and the rows below separate them.
-A field that is in the list but written behind a guard is the worst of the three, because it looks present and reads wrong.
+A value a mod writes onto an item shows on a client only if the field is in the packet's list, the sender's value clears that field's write guard, and the receiver applies it; the three fail independently, and a field in the list but behind a guard looks present and reads wrong.
 
 `ItemStatsPacket.setData` populates 43 distinct packet fields and `write` puts exactly those 43 on the wire: a container id and an item id for addressing, the `isFluidContainer` and `isFood` presence flags — pure gates in the receiver, never applied to the item — and 39 item-state values, which is the whole of what a Lua hook's write to an item can reach the other side through [#0334, #1036, #1396].
 Item sync is two packets, not one: `ItemStatsPacket` has seven members and runs server to client only, carrying those 43 fields and not `conditionMax`, with the send a silent no-op on a client, while `SyncItemFieldsPacket` has fifteen members, is the `syncItemFields()` route, and wipes and replaces the receiver's item modData [#1119].
@@ -41,12 +37,10 @@ Item sync is two packets, not one: `ItemStatsPacket` has seven members and runs 
 On the upload copy staged from mod/ at 0b1b3f11 the same sated quarter of a stale potato (stored 5, read-time 15), with the nutrition mod's alliesthesia scale at 1, again left the server's stored `UnhappyChange` 3.75, read-time 13.75, and the eater's client copy a stored 13.75, the server's read-time value [#4171/M/n=1].
 When each packet fires, and what the receiver's cached packet object does between sends, is [`platform/mp-model.md#packets`](../platform/mp-model.md#packets).
 
-Three fields in the list are easy to misread, and each one changes what a mod may assume.
 `isCustomName` is not a presence flag despite sitting beside the two that are: it is read off the item, `write` uses it only to decide whether the `16777216` bit-header flag is added while the name itself goes on the wire unconditionally, and the receiver applies it through the item's custom-name setter, so it is ordinary item state [#0335].
 `setData` writes the heat packet field twice — from the item heat getter and then from the food heat getter, which overwrites it for any food — `write` emits it once, and the receiver applies it into both the item heat and the food heat, while `customName` and `name` stay two distinct packet fields [#0337].
 And the receiver applies 40 of the 43: besides the two addressing fields, `uses` is written but never applied, because the receiving side rebuilds it from the used delta times the maximum uses only inside the drainable-combo branch and drops the wire value for any other item [#0336].
 
-Most of the food block is written conditionally, and that is the shape behind every stale read on this page.
 `ItemStatsPacket.write` puts twenty of its value fields on the wire only behind a bit-header flag and `parse` mirrors each guard, so a skipped field is simply not read; the table gives all twenty with the guard each sits behind — eighteen a plain non-zero test, `poisonDetectionLevel` a test against −1 and `fertilizedTime` the fertilized boolean — and the flag each one carries [#0338/C/C-only].
 
 | Guard in `write` (skipping it leaves the field stale) | Field(s) | Flag |
@@ -59,13 +53,10 @@ Most of the food block is written conditionally, and that is the shape behind ev
 | `isFertilized` | `fertilizedTime` — a stale time then lands on a *non*-fertilized item | 33554432 |
 
 The flag column is the bit each field's presence sets in the packet's header.
-The receiving half has no matching guard.
-The receiver applies unconditionally: the cooking-time setter is one of 31 food setters that run with no guard beyond the single is-food test, so whatever the field holds is written onto the item [#0339, #1203/C/C-only].
+The receiver applies unconditionally: the cooking-time setter is one of 31 food setters that run with no guard beyond the single is-food test, so whatever the field holds is written onto the item [#0339].
 Four groups of fields cannot carry a stale value, and it is worth knowing which: `extraItems` and `spices` are conditionally written but `parse` clears both before the flag test; `poisonPower`'s bit-header flag is added unconditionally; the seven pure booleans — frozen, tainted, cooked, burnt, alcoholic, custom-name and fertilized — are re-derived from the bit header on every parse; and `condition`, `uses`, `usedDelta`, `heat`, `name` and `actualWeight` are written outside the bit header altogether [#0344, #0345, #1205/C/C-only].
-What makes the stale read possible at all — one cached packet object per type with no reset, against a data setter that refreshes every field off the item before each send, so that the stale value lives on the receiving object and never originates on the sending one — is [`platform/mp-model.md#cached-packet`](../platform/mp-model.md#cached-packet).
-The practical shape is easy to state and easy to forget: a field a mod leaves at zero is a field the mod has no control over on the client.
+Why a skipped field arrives holding another item's value — one cached packet object per type with no reset — is [`platform/mp-model.md#cached-packet`](../platform/mp-model.md#cached-packet); a field a mod leaves at zero is a field the mod has no control over on the client.
 
-Two of the conditionally-written fields are lists rather than numbers, and they are the only place the packet carries what a dish was made of [#2629/C/C-only].
 `ItemStatsPacket` carries a food's `extraItems` and `spices` lists: `setData` copies both off the food, `write` puts each on the wire only when it is non-empty, `extraItems` behind flag `4194304` and `spices` behind flag `8388608`, as a one-byte count followed by one UTF string per entry, `parse` clears its copy of each list before the flag test, and `applyItemStats` replaces the food's own list with the packet's [#2629/C/C-only].
 `SyncItemFieldsPacket` carries neither list: a jar-wide grep for `extraItems` returns only `InventoryItem`, `ItemStatsPacket` and `EvolvedRecipe`, and one for `spices` adds only `Food`, so the item-stats packet is the only packet class that names either [#2630/C/C-only].
 A `syncItemFields()` call therefore leaves a dish's ingredient and spice lists where they were on the client, and of the two item packets only the item-stats send moves them; the item's saved blob is a separate carrier this page does not read [#2630/C/C-only].
@@ -81,40 +72,22 @@ poisonDetectionLevel poisonPower proteins spices stressChange thirstChange unhap
 usedDelta uses wetCooldown
 ```
 
-What the list omits is as load-bearing as what it carries.
 Nine item fields are absent from all 43 names: the cookable flag, the plain weight, the custom-weight flag, the age, the two age-window fields, the last-aged stamp, the freezing time and the rotten flag [#1398].
 A reverse-reference scan for callers of the age setter returns no packet class at all, which is the same boundary read from the other end; the scan is whole-jar and the source gives the setter no bytecode offset [#0333/C/C-only].
 
-The packet's own name list is the authoritative membership test, but it is not the list a probe can read.
-The harness reads zero-argument getters rather than fields, so the two lists differ in shape even where they agree in substance.
-Against the harness's own working set the split is therefore sharper, because every key in it is something a probe can actually read on both sides.
-That set is 28 keys, each a zero-argument getter, and what matters is whether the packet's data setter reads that getter: 16 of the 28 are read and 11 are omitted, with the item id carried as addressing rather than as state [#0903/C/C-only].
-
-| `TK.ITEM_STATE` keys | In `ItemStatsPacket.setData`? |
-|---|---|
-| `cooked` `burnt` `frozen` `hungChange` `baseHunger` `calories` `carbs` `lipids` `proteins` `uses` `cookingTime` `heat` `minutesToCook` `minutesToBurn` | **yes** — `setData` reads `isCooked`, `isBurnt`, `isFrozen`, `getHungChange`, `getBaseHunger`, `getCalories`, `getCarbohydrates`, `getLipids`, `getProteins`, `getCurrentUsesFloat`, `getCookingTime`, `getHeat`/`getItemHeat`, `getMinutesToCook`, `getMinutesToBurn` |
-| `thirstChange` | **yes, but lossy** — `setData` sends `getThirstChange()`, the *cooked-ladder* getter, and `applyItemStats` stores it with `setThirstChange`, i.e. as the **raw** field: 0.2 → 0.1 on the wire → 0.05 on read. One halving per server→client hop; it converges |
-| `actualWeight` | **yes, by a different getter** — `setData` fills the field from `getActualWeightUnmodded()`, not `getActualWeight()`, so which value arrives depends on a guard the sender may have moved |
-| `rotten` `age` `fresh` `offAge` `offAgeMax` `freezingTime` `hungerChange` `isCookable` `weight` `customWeight` `lastCookMinute` | **no.** `age` and `offAge`/`offAgeMax` are measured not to cross; `isCookable`/`isCustomWeight` are measured to stay wrong on the client; `hungerChange` is a read-time ladder getter, not a field (the packet carries the raw `hungChange` instead); `rotten` and `fresh` derive from `age` |
-| `id` | **carried, as addressing** — not state. `setData` reads the field `InventoryItem.id` straight into the packet's own `id`, which is how the receiving side finds the instance the rest of the payload is about; it is not a value a mod should treat as synced item state |
-
-The table is the membership split alone; the grade and the run behind each of its rows are carried by the register row its caption cites.
+The harness's probes read zero-argument getters rather than fields, so its working set is the list a probe can test on both sides: 28 keys, each a zero-argument getter, of which the packet's data setter reads 16 and omits 11, with the item id carried as addressing rather than as state [#0903/C/C-only].
 The data setter reads 14 of those getters directly — the cooked, burnt and frozen flags, the raw hunger change, the base hunger, the four macros, the current uses, the cooking time, the heat and the two cook and burn minute counts — and four of them are measured to cross, as are four of the five fields of the macro block, while the carbohydrate field moved from zero to zero, carries no information, and stays a code reading [#0904/M/n=1].
 Eleven item-state keys are absent from the packet — the rotten, fresh and cookable flags, the age and the two off-age bounds, the freezing time, the read-time hunger change, the plain and custom weights and the last cook minute — and five of them are measured not to cross or to stay wrong on the client: the age, the two off-age bounds, the cookable flag and the custom-weight flag [#0907/M/n=1].
 The rotten and fresh flags derive from the age and the read-time hunger change is a ladder getter rather than a field, so those three are code readings rather than measurements.
 The item id travels as addressing and not as state: the setter copies the item's own id field straight into the packet's id, which is how the receiving side finds the instance the rest of the payload is about [#0908/C/C-only].
 
-The weight field is the one entry whose value depends on the sender's own guards rather than on the field list.
 The packet fills its actual-weight field from the unmodded weight getter rather than the plain one, so which value arrives depends on a guard the sender may have moved [#0906/M/n=1].
 That getter returns zero when the item's display name equals its full type, and the display-name getter returns the item's own name field, so the packet fills the actual weight from a getter that can be guarded to zero, and that zero is what travels [#1425].
 A new item with no translation entry therefore ships weight 0 to every client [#1028].
-A probe that reads the weight on one side only cannot tell a guard from a sync, which is why both weight getters are read separately in every arm below.
+A probe that reads the weight on one side only cannot tell that guard from a sync, so both weight getters are read separately in every arm below.
 
-The macro block is the part a nutrition mod cares about most, and it is the part that behaves.
 A server-side write of the macros or of the raw hunger change arrives intact, the hunger change as the raw field so that each side ladders it once: calories 300 to 210, proteins 50 to 35, lipids 12 to 8.4 and the hunger change −0.6 to −0.42, equal on both sides to within the comparison tolerance, with the carbohydrate row moving from zero to zero and carrying no information [#1105/M/n=1, #1666/M/n=1].
 Both sides then read the raw field at −0.42 and the derived getter at −0.546, which is the correct shape: one ladder application per side [#1400/M/n=1].
-That is the one part of the item contract a nutrition mod can lean on without a workaround.
-It is also the control that makes the thirst row below legible: the same session read the hunger field right while the thirst field was wrong.
 
 Per field, graded by what was put to the test — a field carries information only when the two sides were first made to differ on it — the contract is twelve fields and field groups with their owning side and whether the packet carries each: `age`, `offAge`, `offAgeMax`, `freezingTime`, `lastAged` and the rotten field never travel, while `calories`, `burnt`, `cookingTime`, `heat`, `cooked`, `frozen`, the four macros and the mood deltas do [#0347/M/n=1].
 Only five of its twelve rows were made to differ in a run; the rest are code readings, and the measured arms of those five are the table at [the desyncs](#desyncs).
@@ -134,56 +107,35 @@ Only five of its twelve rows were made to differ in a run; the rest are code rea
 | `rotten` (the field) | — | no |
 | Cooking **perk level** (drives the evolved-recipe summation) | server | n/a (character sync, not `ItemStatsPacket`) |
 
-The table is the contract, not the evidence: each row says who owns the field and whether the packet carries it, and nothing more.
-
 <a id="player-stats-packet"></a>
 ### The player packet's field contract
 
-The player side has one carrier, and it runs whether or not anything changed.
-Nothing in its payload is conditional, so a quiet second costs exactly as many bytes as a busy one, and there is no window in which a client-side write to a carried field is safe.
 The server pushes the whole `Nutrition` object once a second unconditionally, through `NetworkPlayerAI.syncStats` on a 1000 ms `UpdateLimit`, inside `PacketType.PlayerStats`, whose `write` and `parse` embed `Nutrition.save` and `Nutrition.load` [#0114].
 `PlayerStatsPacket.write` is an unconditional full snapshot in a fixed order: the player id, the whole stats registry, the nutrition object's calories, proteins, lipids, carbs and weight, the time since the last smoke, and the body-damage main fields [#0564].
-
-```java
-PlayerID.write(bb);                                   // @0  L31
-getPlayer().getStats().save(bb.bb);                   // @5  L33  — one float per CharacterStat.ORDERED_STATS
-getPlayer().getNutrition().save(bb.bb);               // @19 L34  — calories, proteins, lipids, carbs, weight
-bb.putFloat(getPlayer().getTimeSinceLastSmoke());     // @33 L35
-getPlayer().getBodyDamage().saveMainFields(bb.bb);    // @44 L36
-```
-
 `Nutrition.save` and `Nutrition.load` write and read calories, proteins, lipids, carbohydrates and weight in that order, and `load` goes through the clamping setters, so the arriving numbers are clamped on the receiver rather than trusted as sent [#0108].
 Inbound, a client consumes exactly that: the nutrition save's five floats and nothing else, the weight narrowed to a float on the way out and widened back on the way in, with no flag byte anywhere in the payload [#1481].
 The narrowing is visible in the numbers themselves: the client's mirrored weight is exactly float32-representable at 6 of 6 snapshots while the server's is not at 5 of 5 drifted readings, because the nutrition getter is a double and the wire field is a float [#1487/M/n=1].
-That reading is obtainable only under a widened float rendering, so a probe that prints six decimals cannot see it.
-For a reader the consequence is that the two sides' weights are never expected to be equal to the bit, and a probe testing for equality reports a defect that is not there.
+That reading is obtainable only under a widened float rendering, and the two sides' weights are never expected to be equal to the bit, so a probe testing for equality reports a defect that is not there.
 
-What rides along with the nutrition block matters as much as the block itself.
-`Stats.save` writes the whole stat registry with no per-field bitmask, so hunger, thirst, endurance and fatigue ride along with the other 20 registered stats from anger to zombie infection [#0566].
-The registry's order, and why a stat a mod registers is outside it, is [`character-stats.md#registry`](character-stats.md#registry).
+`Stats.save` writes the whole stat registry with no per-field bitmask, so hunger, thirst, endurance and fatigue ride along with the other 20 registered stats from anger to zombie infection [#0566]; the registry's order, and why a stat a mod registers is outside it, is [`character-stats.md#registry`](character-stats.md#registry).
 A mod that writes any registered stat on a client is therefore writing into a value the next snapshot replaces, whether or not that mod's own field is involved.
 The packet carries neither moodles, which each side recomputes, nor `CharacterTraits` [#0567].
 The three weight-direction flags are not in it either, and the client agrees anyway because the engine recomputes them: the character update calls the nutrition update gated only on the character-stats switch, whose client arm calls the weight update, and the weight update sets all three flags before its client skip reaches the weight write [#1489].
 Neither player-stats packet carries a perk level or an experience value: `PlayerStatsPacket.write` writes the player id, the stats, the nutrition save, the time since the last smoke and the body-damage main fields, `SyncPlayerStatsPacket.write` writes the player id, the mask and either the nutrition save or the masked stat floats, and no method of either class references a perk or XP member [#2628/C/C-only].
 Perk levels and experience travel on their own packets, which are [the experience packet](#experience-packet) below.
 
-The other nutrition-bearing send on the eat path carries none of this.
 The `SyncPlayerStats` packet that `Eat` sends carries no nutrition bits: its mask is THIRST, HUNGER, ENDURANCE, STRESS, FATIGUE and PAIN, alongside `GameServer.sendSyncPlayerFields(player, 8)` [#0115].
-That packet has two forms keyed on its int mask, and only one of them is a nutrition carrier [#2627/C/C-only].
 With the mask at `-1`, `SyncPlayerStatsPacket.write` embeds `Nutrition.save` and `parse` calls `Nutrition.load`, replacing the receiver's whole `Nutrition` object — calories, proteins, lipids, carbohydrates and weight — and with any other mask it writes and reads one float per set bit, bit `i` selecting the stat at index `i` of `CharacterStat.ORDERED_STATS` [#2627/C/C-only].
 The `-1` form is the eat packet's payload under another packet type, so it lands through the same clamping setters, and a per-bit form never touches the nutrition store [#0108, #0113, #2627/C/C-only].
 The mask value of each stat is [`character-stats.md#registry`](character-stats.md#registry); who may send either form, and when, is [`platform/mp-model.md#sync-globals`](../platform/mp-model.md#sync-globals).
 
-The consequence for a mod is a fork with no third branch.
-A client-side Lua mod that writes vanilla nutrient numbers onto `IsoPlayer` is overwritten within a second by the 1 Hz packet, while one that writes its own fields is not overwritten, because custom fields are not in the packet — and it then desyncs from the vanilla numbers the server keeps recomputing [#0129/M/n=1].
-The overwrite arm of that reading is measured on vanilla calories only, and the custom-field arm is read off the packet's field list rather than measured.
+A client-side Lua mod that writes vanilla nutrient numbers onto `IsoPlayer` is overwritten within a second by the 1 Hz packet, while one that writes its own fields is not overwritten, because custom fields are not in the packet — and it then desyncs from the vanilla numbers the server keeps recomputing [#0129/M/n=1]; the overwrite arm is measured on vanilla calories only, and the custom-field arm is read off the packet's field list.
 Which side owns each quantity, and what the other side holds instead, is [`platform/mp-model.md#ownership`](../platform/mp-model.md#ownership).
 
 <a id="player-fields-packet"></a>
 ### The player-fields packet's six blocks
 
-The player-fields packet is a set of six optional blocks behind one mask byte, and the byte decides what a push carries [#2616/C/C-only].
-It carries a character's trait list, which the experience packet below carries too, and five other blocks beside it, so the bit a sender picks decides what the receiver has refreshed and what it keeps [#2616/C/C-only].
+The player-fields packet is a set of six optional blocks behind one mask byte, and the bit a sender picks decides what the receiver has refreshed and what it keeps [#2616/C/C-only].
 `SyncPlayerFieldsPacket.write` puts the player id and the mask byte on the wire and then, for each of the byte's six low bits that is set, in ascending order, writes one block through `writeParam`; `parseParam` mirrors the same switch, so the receiver reads exactly the blocks the sender wrote and in the same order, and the table gives each bit, what the sender writes and what the receiver does with it [#2616/C/C-only]:
 
 | Bit | Block | Sender writes | Receiver |
@@ -195,15 +147,12 @@ It carries a character's trait list, which the experience packet below carries t
 | `16` | the reading flag | `isReading` as a boolean | `setReading` |
 | `32` | fitness | `Fitness.save` | `Fitness.load` |
 
-The last column is where the blocks part company.
 The recipe and book blocks merge into what the receiver already holds, so a push never removes a recipe or a book from the far side [#2616/C/C-only].
-The trait block does the opposite.
 The trait block is a full replace keyed on registry locations: `CharacterTraits.write` puts a count and then each known trait's `CHARACTER_TRAIT` registry location as a string, and `CharacterTraits.read` first calls `reset`, which clears the known-trait list and sets every entry of the trait map false, and then adds each trait it reads, so the receiver's list becomes the sender's [#2617/C/C-only].
 A trait the receiver holds and the sender lacks is therefore gone after the push, and a push of an empty list empties the receiver's [#2617/C/C-only].
 
-Bit `8` carries the body's cold, infection and timer state, and not its health [#2618/C/C-only].
 `BodyDamage.saveMainFields` writes exactly eleven fields, in order the cold-catch value, the has-a-cold flag, the cold strength, the sneeze-or-cough timer as an int, the reduce-fake-infection flag, the health-from-food timer, the pain reduction, the cold reduction, the infection time, the infection mortality duration and the cold damage stage, and neither overall health nor any per-part field is among them [#2618/C/C-only].
-The same eleven fields are the last block of the once-a-second player-stats packet, as its code block above shows [#0114, #0564].
+The same eleven fields are the last block of the once-a-second player-stats packet, after the stats, the nutrition save and the time since the last smoke [#0114, #0564].
 A client's copy of the health-from-food timer is therefore, as read from the code and not measured, as fresh as the last of those two pushes, unless something on the client recomputes it, which this page does not read [#2618/C/C-only].
 Per-part state travels on [the body-part packet](#body-part-packet), never in this block [#2618/C/C-only].
 
@@ -214,9 +163,6 @@ Which Java calls and which Lua globals send which bits, under what gate and to w
 <a id="experience-packet"></a>
 ### The experience packet and the perk-level packet
 
-The experience packet and the perk-level packet both carry skill state, and they write into different places on the receiver.
-The experience packet replaces the whole skill state, and the perk-level packet writes three side fields and never touches the perk list [#2620/C/C-only] [#2623/C/C-only].
-
 `PlayerXpPacket.write` serialises the player's whole `XP` object with `XP.save`, `parse` reads it straight back with `XP.load` at version `249` unless the packet is inconsistent or the player is dead, and `processServer` does nothing but call `sendToClients` [#2622/C/C-only].
 The payload is therefore the whole experience save, in this order: the character's traits, the total experience as a float, the global level and last level as ints, the per-perk experience map as a count then each perk with its float experience, the per-perk level list as a count then each perk with its int level, and the multiplier map as a count then each perk with its float multiplier and its minimum and maximum level as bytes, all of which the receiver loads straight over its own copy [#2621/C/C-only].
 `XP.load` replaces rather than merges: it calls `CharacterTraits.load`, which resets the trait list before adding each name it reads, then clears the per-perk experience map, clears `perkList` and rebuilds one `PerkInfo` per wire entry, and clears the multiplier map before refilling it, skipping any entry whose perk does not resolve [#2620/C/C-only].
@@ -224,14 +170,12 @@ After the packet lands, the receiver's levels, per-perk experience, multipliers 
 That includes the trait list, so the experience packet is a second carrier of the same list the player-fields trait block carries, and it replaces it the same way [#2620/C/C-only] [#2621/C/C-only].
 Where those stores live, and which vanilla code writes them, is [`perks-and-strength.md#stores`](perks-and-strength.md#stores).
 
-The `SyncPerks` packet carries only the Sneak, Strength and Fitness levels as three ints, after the player index as a byte on the client's send and after the online id as a short on the server's relay, and both receivers write them into `remoteSneakLvl`, `remoteStrLvl` and `remoteFitLvl` rather than into the perk list, the client receiver returning for a local player [#2623/C/C-only].
-So the perk-level packet never writes the perk list, and the three remote fields are the only thing it changes [#2623/C/C-only].
+The `SyncPerks` packet carries only the Sneak, Strength and Fitness levels as three ints, after the player index as a byte on the client's send and after the online id as a short on the server's relay, and both receivers write them into `remoteSneakLvl`, `remoteStrLvl` and `remoteFitLvl` rather than into the perk list, the client receiver returning for a local player, so the packet never writes the perk list [#2623/C/C-only].
 Who sends each of the two, and how often, is [`platform/mp-model.md#packets`](../platform/mp-model.md#packets).
 
 <a id="injuries-packet"></a>
 ### The injuries packet's five floats
 
-The injuries packet carries the movement speeds and nothing else [#2624/C/C-only].
 `PlayerInjuriesPacket` carries five floats after the player id: the `IdleSpeed`, `StrafeSpeed` and `WalkInjury` animation variables, read off the player by the sender with fallbacks `0.01`, `1` and `0`, and the network AI's `walkSpeed` and `runSpeed`, and `parse` sets the three variables and the two network-AI fields in that order when the packet is consistent [#2624/C/C-only].
 None of the five is a stat, a perk or a nutrition value, so a mod that slows a character through a stat reaches the client's animation through whatever the server's speed code then writes into these fields, and through no other packet that names walk speed under that name, the grep bound [the walls](#walls) state [#2624/C/C-only] [#2625/C/C-only].
 How the walk and run speeds are computed, and what feeds them, is [`perception-speed.md#speed`](perception-speed.md#speed); when the packet is sent is [`platform/mp-model.md#sync-globals`](../platform/mp-model.md#sync-globals).
@@ -239,7 +183,6 @@ How the walk and run speeds are computed, and what feeds them, is [`perception-s
 <a id="body-part-packet"></a>
 ### The body-part packet's field mask
 
-The body-part packet carries per-part state one part at a time, and it selects its fields with a mask as wide as a long [#2626/C/C-only].
 `BodyPartSyncPacket` carries one body part: the player id, the part's index as a byte and a 64-bit field mask as a long, then for each of the mask's 42 low bits that is set the field `BodyPart.syncWrite` writes for key bit-plus-one; the switch covers keys 1 to 41, so 41 fields are selectable and key 1, mask value 1, is the part's health; the receiver's `parse` walks the same 42 bits and hands each set one to `BodyPart.sync`; the block gives every key, its mask bit and the type it puts on the wire [#2626/C/C-only]:
 
 ```
@@ -269,7 +212,7 @@ key bit  field                 type     key bit  field                 type
 
 The mask value of a key is `1 << bit`, so the part's health alone is mask `1` and every field at once is the low 41 bits set [#2626/C/C-only].
 A field outside the mask is not on the wire, and the receiver leaves its own copy of that field as it was [#2626/C/C-only].
-The packet carries no body-wide value, overall health is in neither this packet nor the main-field block, and the cold and infection timers and the pain and cold reductions travel in that block, above [#2626/C/C-only] [#2618/C/C-only].
+The packet carries no body-wide value, overall health is in neither this packet nor the main-field block, and the cold and infection timers and the pain and cold reductions travel in [the main-field block](#player-fields-packet) [#2626/C/C-only] [#2618/C/C-only].
 What each per-part field means to the body's own update is [`health-surfaces.md#wounds`](health-surfaces.md#wounds); who may send this packet is [`platform/mp-model.md#sync-globals`](../platform/mp-model.md#sync-globals).
 `BodyPart.syncWrite` writes `additionalPain` as a float, `BodyPart.sync` with a reader reads it back, and the `BodyDamageSync` updater carries it as field 23. [#4064/C/C-only]
 Before any explicit body-part sync the client's own copy of the lower torso's added pain read 19.472627639770508 under the server's hold at 20 and 39.44855499267578 under the hold at 40: the server's added pain reaches the owner's client without the mod sending a sync. [#4073/M/n=1]
@@ -277,30 +220,23 @@ Before any explicit body-part sync the client's own copy of the lower torso's ad
 <a id="moddata-packet"></a>
 ### The modData packet's type bytes
 
-The modData route is the one place a mod chooses its own payload, and the type byte decides what survives.
 The modData packet serialises the whole table; the table save silently drops any pair whose type byte is minus one, so strings, doubles, nested tables and booleans travel while functions and Java objects do not; the load wipes the receiver before it writes; the parse wipes it outright when the sender's table was empty; and the transmit returns silently if the player's square is null [#1495].
 A nested Lua table therefore crosses whole and carries its shape rather than having its contents merged into the receiver's: one mod's table arrived on the server as an empty table with the same eight leaves missing [#1337/M/n=1].
-Reading that as "nested tables sync" is the error the shape invites, because an empty table crosses just as faithfully as a full one.
-The type byte is the whole of the wire-safety rule: anything a mod stores that is not a string, a number, a boolean or another table is silently absent on the far side, with no error and no log line.
+An empty table crosses just as faithfully as a full one, so that reading is not "nested tables sync"; anything stored that is not a string, a number, a boolean or another table is absent on the far side with no error and no log line.
 The transmit is silent when it does nothing as well, so a census cannot tell a dropped key from a skipped call without a control key that is known to cross.
 Which direction wipes what, and which side loses data when some other mod transmits, is [`platform/mp-model.md#wipe-and-replace`](../platform/mp-model.md#wipe-and-replace).
 
 <a id="eat-food-packet"></a>
 ### The eat packet's field contract
 
-The eat packet's payload is the nutrition store and nothing else, and its handlers are inert.
 The server pushes the whole `Nutrition` object at eat time: `Eat` sends `PacketType.EatFood`, `EatFoodPacket.write` embeds `Nutrition.save`, and `parse` calls `Nutrition.load` on the receiver, overwriting its whole `Nutrition` [#0113].
 Receiving the packet applies no numbers of its own: `processClient` and `processServer` both only call `EatOnClient`, which fires `OnEat` and nothing else, while the numbers arrive through the `Nutrition.load` inside `parse` [#0116].
-A hook on that path is therefore a notification, not an intake point, and a mod that wants to change what an eat delivers cannot do it there.
-The store is replaced whole rather than merged, so any client-side change to it made between two eats is gone after the next one.
-Two sends leave the server on an eat and only one of them carries nutrition, which is why the other one is described under the player packet rather than here.
+A hook on that path is therefore a notification, not an intake point, and the store is replaced whole rather than merged, so any client-side change to it between two eats is gone after the next one.
 The order of writes inside `Eat`, and the rest of the intake path, is [`eating-pipeline.md#eat`](eating-pipeline.md#eat).
 
 <a id="cooked-thirst"></a>
 ### The cooked-food thirst value
 
-Every other value on the item packet is sent and stored through matching accessors, which is why this one field earns an anchor of its own.
-One field is sent through a different getter from the one the receiver stores into, and the mismatch is measurable.
 The item packet sends the cooked-ladder thirst getter, which halves a cooked food's value, and the receiver stores it with the raw setter, so the receiving side's own getter ladders it a second time, while the hunger field does not have this problem because the packet reads the raw field — the contrast that makes the thirst row a defect rather than a convention [#1408].
 The result is one halving per server-to-client hop: 0.2 becomes 0.1 on the wire and reads 0.05 on the client [#1038/M/n=2].
 
@@ -311,16 +247,9 @@ The bus renders every float rounded to six decimals, so the evidence here is a w
 <a id="desyncs"></a>
 ### The measured desyncs
 
-Every row below is a pair of reads of the same instance, or the same character, on one live dedicated server with one real client, the client half read first at every tag.
-A field carries information only where the two sides were first made to differ, so the synced rows are listed beside the desynced ones: a match on a field both sides already agreed about says nothing.
-The table is read field by field rather than run by run, because an arm belongs to a field and not to a session.
-A row that says a field travels is a row where a server-side write was made and the client's read afterwards matched it; a row that says a field desyncs is a row where the same kind of write was made and the client's read afterwards did not.
-The arms are not interchangeable: a cook transition, a direct write and a full accelerated game day exercise different push paths, so a field can travel under one and stay stale under another.
-Where two rows cover the same field on different arms, both are kept for that reason.
-Two distinctions run through the table and are easy to collapse.
-Not carried is not the same as desynced — a field the packet omits can still read the same on both sides, because neither side ever changed it.
-And agreement under an arm where both sides answer the same by construction is not evidence that anything is synced or recomputed.
-The Run column names the artifact each row rests on, and it is the run that row's own register pointer names.
+Every row below is a pair of reads of the same instance, or the same character, on one live dedicated server with one real client, the client half read first at every tag, and the Run column names the artifact the row's own register pointer names.
+A field carries information only where the two sides were first made to differ, so synced rows sit beside desynced ones; a cook transition, a direct write and a full accelerated game day exercise different push paths, so a field can travel under one arm and stay stale under another, and both rows are kept.
+Not carried is not the same as desynced — a field the packet omits can still read the same on both sides, because neither side ever changed it — and agreement under an arm where both sides answer the same by construction is not evidence that anything is synced or recomputed.
 
 | Field | Arm | Reading | Run |
 |---|---|---|---|
@@ -330,7 +259,7 @@ The Run column names the artifact each row rests on, and it is the run that row'
 | `burnt` | a burn transition | travels: the client received the change from false to true [#0350/M/n=1] | `exp02-20260910-030433` |
 | `cookingTime` | a cook transition | travels: the client received the change from 0 to 71.061172 [#0351/M/n=1] | `exp02-20260910-030433` |
 | `heat` | a cook transition | travels: the client received the change from 1 to 1.83512 [#0352/M/n=1] | `exp02-20260910-030433` |
-| `cookingTime` | an item synced immediately after another item | stale: an apple arrived on the client carrying the steak's cooking time of 71.119644, a value the apple had held on neither side, while its own non-zero minutes to cook 60 and minutes to burn 120 arrived correctly; it reproduced, and survived cooling the steak below the cooking gate [#0346/M/n=1, #1204/M/n=1] | `exp02-20260910-030433` |
+| `cookingTime` | an item synced immediately after another item | stale: an apple arrived on the client carrying the steak's cooking time of 71.119644, a value the apple had held on neither side, while its own non-zero minutes to cook 60 and minutes to burn 120 arrived correctly; it reproduced, and survived cooling the steak below the cooking gate [#0346/M/n=1] | `exp02-20260910-030433` |
 | `age` | four arms in one session | never reaches the client: with the server at 3.250943, 3.251331 and 3.5 the client read 0 after an explicit stats send, after a syncing aging call and after a full accelerated game day [#0348/M/n=1] | `exp02-20260910-030433` |
 | the aging fields as a group | two runs | do not cross: age was measured not to cross and the two off-age bounds moved from packet-read to measured, while the freezing time, the last-aged stamp and the rotten field are absent from the packet too but have not been measured [#1107/M/n=2] | `exp02-20260910-030433`, `td1-20260910-192457` |
 | `offAge`, `offAgeMax`, `freezingTime`, `lastAged`, `rotten` | a cook transition | item aging is server-owned and never crosses [#1242/M/n=1] | `td1-20260910-192457` |
@@ -350,16 +279,12 @@ The Run column names the artifact each row rests on, and it is the run that row'
 ### The staircase a client-side reader sees
 
 A client-side reader of the nutrition store is a staircase that steps only when a packet lands, while the server is a ramp, because the nutrition update jumps past its three explicit macro decays and the calorie update on a client arm, so a cross-side gap is a timing reading rather than float noise and equal is the wrong verdict to look for [#1483].
-Weight is the exception that proves the mechanism: its cross-side gap is negative at every post-action snapshot, the opposite sign to the macros', which is the weight update's client skip measured rather than read, because the client never recomputes weight and its staircase sits below a rising server [#1484/M/n=1].
+Weight is the exception: its cross-side gap is negative at every post-action snapshot, the opposite sign to the macros', which is the weight update's client skip measured rather than read, because the client never recomputes weight and its staircase sits below a rising server [#1484/M/n=1].
 That weight arm was exercised on the gain side only, so the loss arm and its opposite-signed band are untested.
 
-The way to read one is a band, not an equality.
 The cross-side comparison of the five drawn numbers is a 30-row table dated 2026-09-10 — six snapshots by five fields — each row graded against a band computed from that snapshot's own signed read skew rather than against equality, with the client half read first at every tag so the skew is non-negative [#1485/M/n=1].
 The decay rate the bands use is derived from the fixture's own day-length setting and corroborated by the session's own slope.
-Because the band is built from the snapshot's own read skew rather than from a fixed tolerance, a slow round trip widens the band instead of failing the row.
-A reading outside its band is a finding rather than a reason to re-run.
-The construction is what lets a client-side reader be graded at all, since the two sides are never sampled at the same instant.
-For a probe author the operative part is the ordering: read the client half first at every tag, so the skew has a known sign.
+Because the band is built from the snapshot's own read skew, a slow round trip widens the band instead of failing the row, and a reading outside its band is a finding rather than a reason to re-run; the operative part for a probe author is to read the client half first at every tag, so the skew has a known sign.
 
 | tag | field | server | client | gap | band | in band |
 |---|---|---|---|---|---|---|
@@ -394,17 +319,14 @@ For a probe author the operative part is the ordering: read the client half firs
 | | proteins | −1.111916422843933 | −1.0692952871322632 | 0.04262113571166992 | [0.0175165, 0.0556317] | **yes** |
 | | weight | 80.01726107890681 | 80.01630401611328 | **−0.0009570627935318043** | [−0.00125821, −0.00038614] (ρ +3.0932e-4, gain ×3) | **yes** |
 
-The table is the comparison alone; every cell in it comes from the run the caption's row names.
-Every macro gap at every one of the six snapshots landed inside its band, including the two the settle rule declined to grade, so the five numbers a client-side reader of this shape draws are the server's, late by under a second, and there is no unsynced-field authority hazard in reading them [#1486/M/n=1].
-The falsifier was never approached, so the rule is validated as consistent with a once-a-second push rather than as tight.
+Every macro gap at every one of the six snapshots landed inside its band, including the two the settle rule declined to grade, so the five numbers a client-side reader of this shape draws are the server's, late by under a second, and there is no unsynced-field authority hazard in reading them [#1486/M/n=1]; the falsifier was never approached, so the rule is validated as consistent with a once-a-second push rather than as tight.
 What a client's copy of a server-owned object is and is not — a push, not a simulation — is [`platform/mp-model.md#what-a-client-copy-is`](../platform/mp-model.md#what-a-client-copy-is).
 
 ## Walls and bounds
 <a id="walls"></a>
 
 - A zero-valued item-stats field is not trustworthy on a client: any of the twenty conditionally-written fields arrives carrying the previous packet's value whenever the sending item's own value is zero, so a client-side read on an item that should be zero may be reading another item's number; only the cooking time has been seen to carry over, and the other nineteen are read off the write and parse guard lists [#0361/M/n=1].
-- The unmodded actual-weight getter returns zero whenever an item's display name equals its full type: the same instance read a weight of 0.3 on the client, where the name resolved, and zero on the server, where the mod item's display name read as its full type [#3207/M/n=1].
-- That last reading is the display-name guard and never a weight fact; the weight facts are the plain getter and the direction flags.
+- The unmodded actual-weight getter returns zero whenever an item's display name equals its full type: the same instance read a weight of 0.3 on the client, where the name resolved, and zero on the server, where the mod item's display name read as its full type [#3207/M/n=1]; that reading is the display-name guard and never a weight fact, the weight facts being the plain getter and the direction flags.
 - A mod cannot add a field to the item packet, nor depend on a field it omits: the class has no reset, no registry, no callback and no per-field opt-in [#1144/M/n=1].
 - A mod cannot trust a zero-valued packet field, for the reason the first line gives [#1146/M/n=1].
 - A mod cannot trust a cooked food's thirst value read on a client [#1147/M/n=1].

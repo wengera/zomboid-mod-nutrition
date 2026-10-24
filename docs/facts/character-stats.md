@@ -25,10 +25,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the registered cha
 <a id="registry"></a>
 ### The stat registry and the `Stats` API
 
-The character stats are not a Java enum: they are a registry the stat class fills in its own initialiser, and a character's `Stats` object is a sparse map over that registry.
-The registry and the fixed order are built once, so every stat that exists when the class loads is in both, and a stat added later is in the registry only.
-
-The registry as the initialiser builds it, with each stat's bounds, its default and its index in the fixed order that saves and syncs walk [#2205/C/C-only]:
+The stats are not a Java enum but a registry the stat class fills in its initialiser; here it is, with each stat's bounds, its default and its index in the fixed order that saves and syncs walk [#2205/C/C-only]:
 
 | field | id | min | max | default | `ORDERED_STATS` index |
 |---|---|---|---|---|---|
@@ -60,12 +57,9 @@ The registry as the initialiser builds it, with each stat's bounds, its default 
 Endurance runs on `[0,1]` with a default of 1 at index 3, and fatigue on `[0,1]` with a default of 0 at index 4 [#2206/C/C-only].
 `Stats.get` reads a sparse map and falls back to the stat's own default, so a stat never written reads its default rather than zero and no stat is ever registered on a `Stats` instance [#2207/C/C-only].
 `Stats.set` passes every write through the stat's own clamp before storing it and returns whether the stored value changed [#2208/C/C-only].
-The bounds the clamp enforces cannot themselves be moved, which is [a wall](#walls).
 
-A mod can mint a stat of its own through the registration static stated at [the walls](#walls), but the fixed order is not rebuilt for it.
 A stat a mod registers is absent from `ORDERED_STATS` and therefore from every save and every sync: both save forms and the per-stat write walk that array, and the stats packet's mask is `1 << index` for a member and zero for a non-member [#2211/C/C-only].
 Such a stat is still reset with the others, because the reset-all method iterates the whole registry rather than the fixed order [#2212/C/C-only].
-Registering an id that already exists is [a wall](#walls) as well.
 Three endurance helpers on `Stats` are hard-coded: the recharging flag is a constant false, and the warning and danger thresholds are constants of 0.5 and 0.25 [#2213/C/C-only].
 `Stats.add`, `remove` and `reset` all write through `set`, so each clamps once to the stat's bounds and returns whether the stored value changed, and `add` sums in float. [#2800/C/C-only]
 Where the fixed order meets the wire — the packet's field order — is [the player-stats packet](wire-packets.md#player-stats-packet) [#0564].
@@ -79,7 +73,7 @@ On a live dedicated server the skip is whole and indifferent to the handler's an
 Against an overlay boot of the same fixture over eight game-hours, a takeover handler reproducing the seven updaters held thirst within 7e-6 per game-hour of the overlay boot's in seven of the eight hours, with hour 5, an hour the harness sleep command covered, 4.02e-4 apart and every hour within 2 % of vanilla's 0.0288, and hunger within 2 % in every hour, the hunger residual following the level the two boots started from, with no handler failure logged [#2809/M/n=1].
 Idleness left its pre-written band in four of those hours, two of them consecutive, so that prediction is falsified as graded; every out-of-band hour holds the clamp at 1 or the reset to 0 on movement at a time that differs between the boots, and the one hour in which idleness rose unclamped throughout read 0.600005 per game-hour on both [#2750/M/n=1].
 Stress and anger read 0 at every hourly sample of both boots, standing idle with no zombie, wound, infection or sound, so that session gave the stress terms no live measurement [#2751/M/n=1].
-Thirst's and hunger's rates, their trait multipliers and their gates are stated at [the hunger and thirst rates](../facts/body-and-weight.md#hunger-thirst), and endurance's and fatigue's at [the endurance drain](../facts/endurance-fatigue-sleep.md#drain) and [the fatigue accumulation](../facts/endurance-fatigue-sleep.md#fatigue), so the seven formulas a takeover reproduces are all reachable from this section.
+The rates a takeover reproduces are at [the hunger and thirst rates](../facts/body-and-weight.md#hunger-thirst), [the endurance drain](../facts/endurance-fatigue-sleep.md#drain) and [the fatigue accumulation](../facts/endurance-fatigue-sleep.md#fatigue).
 From hunger 0, vanilla's awake idle hunger with the FOOD_EATEN moodle down follows 1 - e^(-kt) with k = 9.6e-6 per game-second at StatsDecrease 3, so 1 - HUNGER halves every ln 2 / k = 20.06 game-hours. [#3342/C/arith.]
 Every per-update rise of HUNGER, THIRST and FATIGUE in the seven updaters is scaled by one of seven `ZomboidGlobals` statics — `thirstIncrease`, `thirstSleepingIncrease`, `hungerIncrease`, `hungerIncreaseWhenWellFed`, `hungerIncreaseWhileAsleep`, `hungerIncreaseWhenExercise` and `fatigueIncrease` — and the only writer of each is `ZomboidGlobals.Load`, which copies it once from the Lua table key of the same name. [#3362/C/C-only]
 Measured live with the six non-zero rise rates zeroed and no writer, a player's HUNGER, THIRST and FATIGUE stayed bit-for-bit at 0.3, 0.2 and 0.1 across 20 server reads spanning 0.5161 game hours awake, while STRESS fell 0.058332 over the 1944.39 game-seconds between the two whole-stat reads bracketing the window, against the 0.058332 the awake updater's stress decay predicts. [#3368/M/n=1]
@@ -90,7 +84,7 @@ With no `CalculateStats` handler registered, vanilla's decay took a PANIC of 0.5
 At a realistic target the decay stays linear: a PANIC of 10 written once a game minute fell 0.17916 a tick at `DayLength` 1 and 0.030061 a tick with `time.multiplier` 0.1674, and read 8.7444 to 8.9287 and 8.8560 to 8.8921 just before each write [#3400/M/n=1]. A PANIC of 6.5 written the same way dropped under 6, the first moodle threshold, in every gap at both spacings [#3401/M/n=1]. The `OnTick` read carrying the write's tick count sits one tick's fall above the value the `EveryOneMinute` handler reads before writing, so a once-a-minute write's floor is the target less the fall per tick times the ticks in the gap [#3402/M/n=1].
 
 The character's endurance updater does nothing but stamp the last-endurance value from the current endurance and, under the unlimited-endurance cheat, reset endurance to its default of 1 [#2215/C/C-only].
-It is not the endurance model: the player's model is a separate method the hook never sees, placed in [the tick order](#tick-order).
+The player's endurance model is a separate method, placed in [the tick order](#tick-order) [#2214/C/C-only].
 
 `Stats.getLastEndurance` has no caller in the jar and no vanilla Lua file names it, so the last-endurance stamp has no vanilla reader. [#2791/C/C-only]
 The unlimited-endurance test is `isUnlimitedEndurance()`, public, over `PlayerCheats`, which is not exposed. [#2792/C/C-only]
@@ -124,7 +118,6 @@ The wake-state updater runs its awake or sleeping path only when the process is 
 The character's own sleeping path is an empty method, so a non-player character's stats do not move through it while it sleeps [#2218/C/C-only].
 The player's sleeping path writes one field besides the stats — the time-of-sleep advance its restoration gate compares against — and carries no wake-up, no call that sets the asleep flag and no bed release [#2227/C/C-only].
 
-The awake arm of the wake-state updater, as read, is the one place stress, idleness and the idle-square timer move together.
 The awake updater writes stress, fatigue, hunger, idleness and the idle-square timer and nothing else. [#2781/C/C-only]
 Awake, stress falls per update by `StressDecrease × multiplier × deltaMinutesPerDay`, with no StatsDecrease, trait or moodle term. [#2772/C/C-only]
 Idle and on a square, idleness rises by `IdleIncrease × multiplier × deltaMinutesPerDay` once the idle-square timer reaches 1800 on an unchanged square and, independently, by a third of that indoors; not idle and not sitting, it falls by `IdleDecrease × multiplier × deltaMinutesPerDay`. [#2778/C/C-only]
@@ -176,21 +169,19 @@ IsoPlayer.update
         the seven updaters
 ```
 
-Intoxication is the one stat in this section whose decay runs on the body-damage tick rather than in the stat update.
 `BodyDamage.Update` removes its reduction value times the game-time multiplier from INTOXICATION on every call, with no day-length factor, after its return on a client for a live player, and it calls no Lua hook, so in multiplayer the decay runs on the server only and no handler can skip it [#2918/C/C-only].
 The internal update calls `BodyDamage.Update` before the stat update, so the decay lands before the hook in the same update and a handler's intoxication write is the later one [#2921/C/C-only].
 The constructor sets the reduction value to 0.0042 and the increase value to 400, two private fields behind public getter and setter pairs [#2919/C/C-only].
 Nothing else in the jar or the shipped Lua sets the reduction value and no save or load method names it, so a value a mod sets is gone after a reload [#2920/C/inference].
 In game time the decay is 0.504 times the day length in real minutes per game-hour, about 30.24 per game-hour on a 60-minute day and 45.36 on the 90-minute default day, so 100 intoxication clears in about 3.3 game-hours on the 60-minute day [#2922/C/arith.].
 Measured live, the decay runs at that rate: INTOXICATION written to 40 on the server fell 0.20123 per wall second and 7.5599 per game hour over 55.7 s at DayLength 1, the multiplier reading 4.781 to 4.799, against the 7.56 per game hour the reading predicts for that day length [#2951/M/n=1, #2922/C/arith.].
-Two writers raise the stat at the drink and at the eat.
-The fluid writer adds 400 times the alcohol it is handed, times 1.1 above 0.8 hunger and 1.25 between 0.6 and 0.8, and calls four pill effects on the character [#2923/C/C-only].
+Two writers raise it: the fluid writer adds 400 times the alcohol it is handed, times 1.1 above 0.8 hunger and 1.25 between 0.6 and 0.8, and calls four pill effects on the character [#2923/C/C-only].
 The food writer adds 400 times a rescaled fraction, quartered for a beer or low-alcohol item, times 1.25 above 0.8 hunger and 1.1 above 0.6, and calls the same four pill effects [#2924/C/C-only].
 What the drink path hands its writer is [the fluid path's](eating-pipeline.md#fluid-path).
 Measured live, a 0.3-litre can of beer drunk through the game's drink action raised INTOXICATION as the can emptied, 0.630 with 0.244 litres left, 2.703 at 0.115 and 5.054 with the can empty 4.2 s after the first read, to a per-tick peak of 5.0947 at HUNGER 0.46, and the stat then read 0.0914 24.7 s after the 5.054 read and 0 at the next [#2950/M/n=1].
 On build 42.21 at DayLength 4, four beers of 0.30000001192092896 litres drunk back to back peaked at 4.832712650299072, 6.402914524078369, 8.0963716506958 and 9.949642181396484, the first can's polls rising from 0 at world age 2.4643688201904297 to 0.4548163414001465 at 2.4670333862304688, and after the last INTOXICATION fell at −45.359711149302946 a game hour and first read 0 at world age 2.996976852416992, the last can's landing placed at 2.7832045555114746 [#3888/M/n=1].
 
-Panic, boredom, unhappiness and food sickness are driven by three more body-damage sub-updaters, which run in the same tick before the hook and which the hook never skips.
+Panic, boredom, unhappiness and food sickness move in three more body-damage sub-updaters, before the hook and never skipped by it.
 None of the three sets its stat to a level of its own: each adds or removes an amount from the stored value or resets the stat to its default on a named condition, so a value a `CalculateStats` handler writes after `BodyDamage.Update` is the base the next update's change starts from [#3017/C/inference].
 The panic updater counts the zombies newly in view since its last call, resets PANIC for a Desensitized character, and otherwise raises PANIC for new sightings or lets it decay [#3013/C/C-only].
 The rise is 7 per newly visible zombie, halved in a vehicle and scaled by the beta-blocker and the Cowardly, Brave and Desensitized traits, and the decay removes 0.06 times the thirty-FPS multiplier plus the months survived (at most 5), doubled asleep [#3014/C/C-only].
@@ -212,10 +203,7 @@ On a server with sleep neither allowed nor needed, a FATIGUE of 0.42 written in 
 On the same server an `OnTick` write of 0.42, outside the player update, reached the client as well, while the server's own reads between frames gave the reset value of about 1e-4; that the push carries what stands at the frame's tail, after `OnTick`, is an inference from that pair [#3058/M/n=1].
 A takeover handler's endurance write, folded every tick, reached the owning client as written: one client copy equalled the server's value read mid-regeneration a push earlier [#3079/M/n=1].
 A drink action's per-sip INTOXICATION increment lands outside the hook and stands for one update before a handler's next write replaces it, on the server and on the client [#3087/M/n=1].
-What these updaters leave to a mod's floors and the sickness stat they never touch are [the mood surface](health-surfaces.md#mood-surface) and [the poison section](health-surfaces.md#poison-infection).
-
-The frame's tail — `OnTick` and the network manager — is [the server tick order](../platform/server-lifecycle.md#tick-order), and the push that follows it is [the player-stats push](../platform/mp-model.md#packets).
-Which side runs the player's endurance model, and for whom it returns early, is [the ownership section](../platform/mp-model.md#ownership).
+What these updaters leave to a mod's floors is [the mood surface](health-surfaces.md#mood-surface) and [the poison section](health-surfaces.md#poison-infection); the frame's tail is [the server tick order](../platform/server-lifecycle.md#tick-order).
 
 <a id="discomfort"></a>
 ### DISCOMFORT: the body-damage updater and the client's copy
@@ -278,8 +266,8 @@ Not covered: the sound-stress source function and the awake path's stress decay,
 ## Open
 <a id="open"></a>
 
-- Whether a handler that reproduces the seven skipped updaters from the library's formulas tracks vanilla's stat trajectory stat by stat over several game-hours — settled by two boots of one fixture, with no handler and with the reproducing handler, sampling the seven stats hourly against a per-stat band; run x131c-20261004-181223 measured thirst and hunger but left stress, anger, endurance and the sleeping path unexercised, so the stress arm is still a first measurement to take; run x132r-20261005-072441 measured asleep thirst in band, left asleep fatigue and endurance trivial on a rested character and its running arm walked; -> [X34](../areas/open-questions.md#x34) [#2081/C/open].
-- Whether a handler's endurance write is the last before the player-stats push, as the tick order reads — settled by a sentinel endurance written each tick and read in client-first pairs at rest and running, beside an arm with the handler removed; run x131c-20261004-181223 took the resting pairs and no running pair, and run x132r-20261005-072441 none, no handler writing the sentinel and the run arm walking, and run x161s-20261006-031534 read only vanilla's awake write reaching the client within about one push [#3050/M/n=1]; -> [X35](../areas/open-questions.md#x35) [#2082/C/open].
+- Whether a handler that reproduces the seven skipped updaters tracks vanilla stat by stat over several game-hours: thirst, hunger and idleness are read ([the updaters](#updaters)); stress, anger, endurance and the sleeping path are unexercised; -> [X34](../areas/open-questions.md#x34) [#2081/C/open].
+- Whether a handler's endurance write is the last before the player-stats push, as the tick order reads: at rest it is ([the tick order](#tick-order)), no running pair is read, and vanilla's own awake write reaches the client within about one push [#3050/M/n=1]; -> [X35](../areas/open-questions.md#x35) [#2082/C/open].
 - Decision: whether a takeover handler integrates endurance from its own stored value or from the stat it reads back — the player's endurance model runs outside the hook, earlier in the same update [#2235/C/C-only], on the side [the ownership section](../platform/mp-model.md#ownership) states.
 - Decision: which of the updaters' non-stat side effects a takeover reproduces and which it drops — the last-endurance stamp [#2215/C/C-only], the anger decay and the idle-square timer [#2226/C/C-only], the time-of-sleep advance [#2227/C/C-only], the thirst ghost-mode gate [#0560/M/n=1], the auto-drink call [#2250/C/C-only] and the fitness stat's refresh [#2223/C/C-only].
 - Decision: whether a mod that owns intoxication writes it from the handler on every update, after the decay [#2921/C/C-only], or sets the reduction value to zero and sets it again after every load, since the value is not saved [#2920/C/inference].

@@ -16,7 +16,6 @@ StatsAPI is a Build 41 library that recalculates the character's stats in Lua [#
 Workshop item `2997722072` ships the mod `StatsAPI`, modversion 0.4.15 by albion with `versionMin=41.78.16`, as a root `mod.info` beside `media/`, with no `common/` and no version folder [#3530/C/snapshot].
 Its stat code is a Lua rewrite of the stat update under `client/`: it registers `Hook.CalculateStats`, reads `HungerIncrease`, `ThirstIncrease` and `FatigueIncrease` from `ZomboidGlobals`, and at file scope saves then zeroes `BoredomIncrease`, `BoredomDecrease` and `UnhappinessIncrease` [#3532/C/snapshot].
 It calls Build 41 members the 42.21 jar lacks: `getStressFromCigarettes`, a name no class carries, and `HasTrait` with a string, where the character carries only `hasTrait` overloads taking `CharacterTrait` [#3533/C/C-only].
-So its stat code names members this build lacks, and the game never finds the folder that holds it [#3533/C/C-only, #3531/C/C-only].
 
 <a id="discovery"></a>
 ### Why 42.21 never runs it
@@ -29,7 +28,6 @@ The resolver's fallback is `42.0`, not `42` ([#3505/C/C-only], [`../../platform/
 
 Undiscovered, StatsAPI shares nothing with a server mod on 42.21, and a port in the same layout still could not contest a server's stat hook, because a dedicated server never runs `client/` Lua [#3534/C/inference].
 A port's client-side stat writes would also be erased by the next player stats packet ([#0568/M/n=2], [`../../platform/mp-model.md#routes-client-to-server`](../../platform/mp-model.md#routes-client-to-server)).
-Its file-scope save is the technique of the first key fact: it keeps each rate it zeroes in a Lua copy, so the vanilla number stays readable once `ZomboidGlobals` holds zero [#3532/C/snapshot].
 
 ## Walls and bounds
 

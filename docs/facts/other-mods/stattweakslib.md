@@ -22,14 +22,13 @@ It registers `LazoloLibMain` on `OnPlayerUpdate`, which keeps closures over the 
 
 On 42.21 it raises on every local-player update before it writes any stat: each of its nine getters names a member the jar lacks, such as `Stats:getEndurance`, where `Stats` carries `get(CharacterStat)`, so its first read raises, and because that read never stores a value the same read raises again on the next update [#3539/C/C-only].
 A debug client parks on the first such raise ([#0954/M/n=2], [`../../platform/lua-platform.md#debug-break`](../../platform/lua-platform.md#debug-break)), while a release client aborts only the raising handler and keeps running the handlers behind it ([#3317/M/n=1], [`../../platform/lua-platform.md#raises`](../../platform/lua-platform.md#raises)).
-Its gradual-change path calls `LazDir`, which nothing in the file defines [#3540/C/snapshot].
-That path runs only once another mod has queued a change, so it is a second raise waiting behind the first.
+Its gradual-change path calls `LazDir`, which nothing in the file defines [#3540/C/snapshot]; that path runs only once another mod has queued a change, so it is a second raise waiting behind the first.
 
 <a id="collisions"></a>
 ### How it collides
 
 Stat Tweaks Lib never runs on a dedicated server, its one file being under `client/`, and it touches no `ZomboidGlobals` field, no item and no global modData; on a client its writes of a server-owned stat would be erased by the next player stats packet [#3541/C/inference].
-Nothing it does reaches a server's rates or its per-minute writes, so a server mod needs no guard against it; the cost it carries is a client log line on every update.
+A server mod therefore needs no guard against it; the cost it carries is a client log line on every update.
 
 ## Walls and bounds
 

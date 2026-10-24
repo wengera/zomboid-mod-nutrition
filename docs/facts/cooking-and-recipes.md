@@ -3,31 +3,30 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the cook and burn 
 
 ## Key facts
 
-- The cooking block ticks once per distinct game minute and each tick adds `heat` divided by 1.5 to `cookingTime` [#0260, #0261/M/n=1].
-- A cooking tick is multiplied by 0.05 when the container's own temperature is 1.6 or below, so a hot item in a cool container cooks at a twentieth of the rate [#0262/M/n=1].
-- `cookingTime` above `minutesToCook` flips the item cooked, and above `minutesToBurn` sets `burnt` and clears `cooked` [#0263/M/n=1, #0264/M/n=1].
-- Cooking and burning leave an item's stored nutrition untouched: 220 kcal before and after and a raw `hungChange` still -0.4, while the read-time `getHungerChange` drops to -0.133333 on the burnt item [#0277/M/n=1].
+- Cooking ticks once per distinct game minute, adding `heat` over 1.5 to `cookingTime`, at a twentieth of that rate when the container is at 1.6 or below [#0260, #0261/M/n=1, #0262/M/n=1].
+- Past `minutesToCook` the item turns cooked; past `minutesToBurn` it turns burnt and loses `cooked` [#0263/M/n=1, #0264/M/n=1].
+- Cooking and burning move no stored nutrition: 220 kcal and a raw `hungChange` of -0.4 either side, with only the read-time `getHungerChange` falling to -0.133333 when burnt [#0277/M/n=1].
 - One recipe input use is one raw `HungerChange` point, so an input of N on a food row whose `HungerChange` magnitude exceeds 1 costs N divided by that magnitude of one item [#0701/M/n=3].
-- Spending 10 of `Base.Icecream`'s 30 uses scaled every macro by one minus used over current uses, taking calories 1680 to 1120 [#0709/M/n=1].
-- An evolved recipe consumes 1 less 0.03 times the Cooking level of each ingredient, so 70 per cent of it is spent at Cooking 10 [#0290/M/n=1].
-- The evolved skill bonus is 1 plus the Cooking level over 15, which is 1.0 at Cooking 0 and 1.6667 at Cooking 10 [#0292/M/n=1].
-- Macros per unit of dish hunger scale by 1.0 at Cooking 0 and 1.1667 at Cooking 10 while the share is below 1 [#0293/M/n=1].
-- 68 kcal of ingredients produce 68.0 kcal of outputs at Cooking 0 and 79.667 kcal at Cooking 10, a gain the summation creates from nothing [#0304/M/n=1].
-- The game's own `ScriptManager` answers 969 craft recipes, 63 evolved recipes and 0 legacy recipes [#0679/M/n=1].
-- Cooking as such moves no calories anywhere in the recipe data: every non-zero craft delta is a recipe that changes what the item is [#0742/C/snapshot].
-- 15 of the 31 resolvable craft rows are non-zero in calories, and everything else reading 0 is conservation [#0750/C/snapshot].
-- The template arm does the evolved join's work: `resolvedVia` is `template` on 4 748 rows, `both` on 2 133 and `name` on 0 [#0720/C/snapshot].
-- The Cooking perk level that scales the summation is server-owned, so `skillBonus` and `share` are the server's whatever the client UI shows [#0759/M/n=1].
+- A partial spend scales every macro by one minus used over current uses: 10 of `Base.Icecream`'s 30 uses took calories 1680 to 1120 [#0709/M/n=1].
+- The evolved summation spends 3 per cent less of each ingredient per Cooking level, 70 per cent of it at Cooking 10 [#0290/M/n=1].
+- Its skill bonus is 1 plus the Cooking level over 15, 1.0 at Cooking 0 and 1.6667 at Cooking 10 [#0292/M/n=1].
+- So macros per unit of dish hunger scale 1.0 at Cooking 0 and 1.1667 at Cooking 10 while the share is below 1 [#0293/M/n=1].
+- The summation creates calories: 68 kcal of ingredients give 68.0 kcal at Cooking 0 and 79.667 kcal at Cooking 10 [#0304/M/n=1].
+- `ScriptManager` answers 969 craft recipes, 63 evolved recipes and 0 legacy recipes [#0679/M/n=1].
+- Cooking as such moves no calories in the recipe data; every non-zero craft delta changes what the item is [#0742/C/snapshot].
+- Of the 31 resolvable craft rows, 15 are non-zero in calories and every other 0 is conservation [#0750/C/snapshot].
+- The evolved join is the template arm's work: `resolvedVia` reads `template` on 4 748 rows, `both` on 2 133 and `name` on 0 [#0720/C/snapshot].
+- The summation runs at the server's Cooking level, whatever the client UI shows [#0759/M/n=1].
 
 ## How it works
+
+The readings that follow ran on the build their rows' bounds name; they read that build, not the release.
 
 <a id="cook-block"></a>
 ### The cook block
 
 Everything the game does about heat and food is one branch of one method, so a mod that wants different cooking behaviour changes the item's own script values, the container it sits in, or the replacement it turns into.
-
-The game has no separate oven or campfire class: `Food.update()` is the only cooking driver and an appliance contributes only through `ItemContainer.getTemprature()` [#0256].
-
+`Food.update()` is the only cooking driver; there is no oven or campfire class, and an appliance contributes only through `ItemContainer.getTemprature()` [#0256].
 `Food.update` recalculates the time multiplier, forces `cooked` for the already-cooked tag, updates temperature, ages the item when it is the server, and then, once per game minute while the item is cookable, unfrozen and above the heat gate, accumulates `cookingTime`, flips `cooked` and then `burnt`, rolls for a kitchen fire, and finally calls `updateRotting` [#0257]:
 
 ```java
@@ -64,95 +63,56 @@ ROT: updateRotting(c);                                                   // @125
 }
 ```
 
-The whole cooking block is gated on the item being cookable and not frozen [#0258].
+The block is gated on the item being cookable and not frozen [#0258], and needs the item's own `heat` above 1.6, the container also above 1.6 for the full rate [#0259/M/n=1].
+It ticks once per distinct game minute [#0260]; each tick adds `heat` divided by 1.5 to `cookingTime` [#0261/M/n=1], multiplied by 0.05 when the container's own temperature is 1.6 or below, so a hot item in a cool container cooks at a twentieth of the rate [#0262/M/n=1].
+Only the residual arm was measured, on one item at container temperature 1.0 [#0259/M/n=1, #0261/M/n=1, #0262/M/n=1].
 
-It needs the item's own `heat` above 1.6, and the container must also be above 1.6 for the full rate [#0259/M/n=1].
-
-The block ticks once per distinct game minute [#0260].
-
-Each tick adds `heat` divided by 1.5 to `cookingTime`, multiplied by 0.05 when the container's own temperature is 1.6 or below, so a hot item in a cool container cooks at a twentieth of the rate [#0261/M/n=1, #0262/M/n=1, #1209/C/C-only].
-
-Both arms were measured on one item on one fixture in a player inventory at container temperature 1.0, which is the residual arm only: the cook tick added 0.059658 against 0.059660 predicted at heat 1.78979, and the burn tick 0.061172 against 0.061171 at heat 1.83512 [#0259/M/n=1, #0261/M/n=1, #0262/M/n=1].
-
-`cookingTime` above `minutesToCook` flips the item cooked, measured on one `Base.Steak` with `MinutesToCook 50` primed to 51 and ticked once with no appliance [#0263/M/n=1].
-
-`cookingTime` above `minutesToBurn` sets `burnt` and clears `cooked`, measured on the same steak with `MinutesToBurn 70` primed to 71 [#0264/M/n=1].
-
+`cookingTime` above `minutesToCook` flips the item cooked [#0263/M/n=1]; above `minutesToBurn` it sets `burnt` and clears `cooked` [#0264/M/n=1].
 `setCooked(true)` and `setBurnt(true)` are ungated and sticky, and each also raises `cookingTime` to its own threshold when it is below, which is why an item that is not cookable can still be cooked [#0265].
 
-On the cook transition and only when the item is not rotten, `ReplaceOnCooked` adds each named item with the condition states copied over, removes the original and returns from `Food.update`, so the item is replaced and never flagged cooked [#0266].
-
-For ten named rice, pasta, water-pot and bowl types the cook transition rewrites the age axis to `age` 0, `offAge` 1 and `offAgeMax` 2 [#0268].
-
-On the cook transition in a microwave container a `BadInMicrowave` item gets `unhappyChange` 5, `boredomChange` 5 and `cookedInMicrowave` 1 [#0269].
-
+On the cook transition, and only when the item is not rotten, `ReplaceOnCooked` adds each named item with the condition states copied over, removes the original and returns from `Food.update`, so the item is replaced and never flagged cooked [#0266].
+For ten named rice, pasta, water-pot and bowl types the transition rewrites the age axis to `age` 0, `offAge` 1 and `offAgeMax` 2 [#0268].
+In a microwave container a `BadInMicrowave` item gets `unhappyChange` 5, `boredomChange` 5 and `cookedInMicrowave` 1 [#0269].
 A cookable item loses its tainted flag once `cookingTime` passes the smaller of `minutesToCook` and 10, while a non-cookable container boils taint off at 1.0 per minute, or 0.2 with the residual factor, past 10.0 [#0270].
 
 The cook transition awards 10.0 Cooking experience, skipped for the no-cooking-experience tag or a rotten item [#0271].
-
-That grant lands on the server: the credited delta was 2.5 with a chef set and 0 with it unset, because a default character's empty experience-boost map puts the 10.0 on the quarter arm, a ladder read from the code rather than measured [#1413/M/n=1].
-
-The scripted last-cook-minute flip is not a precondition of the transition: across two sessions the cooking block had already been entered twice 1.33 to 1.67 game minutes apart on one and the transition fired 907 ms before the flip reached the server on the other, so heat above the gate plus a cooking time past minutes-to-cook suffice and the minute gate reopens by itself within one game minute; the write is sent after the transition on the second run, so the pair proves the flip unnecessary and nothing else [#1418/M/n=2].
+The grant lands on the server: the credited delta was 2.5 with a chef set and 0 with it unset, because a default character's empty experience-boost map puts the 10.0 on the quarter arm, a ladder read from the code rather than measured [#1413/M/n=1].
+The scripted last-cook-minute flip is not a precondition of the transition: on one run the block had already been entered twice 1.33 to 1.67 game minutes apart, and on the other the transition fired 907 ms before the flip reached the server, so heat above the gate plus a cooking time past minutes-to-cook suffice and the minute gate reopens by itself within one game minute [#1418/M/n=2].
 
 A kitchen fire needs the item burnt with `cookingTime` at least 50 and at least twice `minutesToCook` plus half `minutesToBurn`, then rolls a framerate-adjusted 1 in 200 per minute on a powered non-campfire grid, starting a fire of strength 500000 and clearing the item's cookable flag [#0272].
 
-`getHeat()` returns the raw `Food.heat`, on which 1.0 is ambient and 0.2 a powered fridge, while the inventory remap is half of heat less one above 1 and one less heat less 0.2 over 0.8 below it; the source gives no bytecode offset for either getter [#0274/C/C-only].
-
-`IsoStove.getCurrentTemperature()` returns the stove temperature plus 100 over 100, so an item needs a stove above 60 to pass the heat gate, while a microwave jumps straight to its maximum temperature; the 60 is derived from the ramp formula rather than measured [#0275/C/arith.].
-
-The carrier for a cooking item's client copy is that same block's `sendItemStats`, gated on `isCookable && !isFrozen() && heat > 1.6f` and fired once per game minute, read from the code on this build [#1206/C/C-only].
+`getHeat()` returns the raw `Food.heat`, on which 1.0 is ambient and 0.2 a powered fridge, while the inventory remap is half of heat less one above 1 and one less heat less 0.2 over 0.8 below it [#0274/C/C-only].
+`IsoStove.getCurrentTemperature()` returns the stove temperature plus 100 over 100, so an item needs a stove above 60 to pass the heat gate, while a microwave jumps straight to its maximum temperature; the 60 is derived, not measured [#0275/C/arith.].
+A cooking item's client copy is carried by the block's own `sendItemStats`, gated on `isCookable && !isFrozen() && heat > 1.6f` and fired once per game minute [#1206/C/C-only].
 
 <a id="uses"></a>
 ### Recipe IO and the uses-not-items rule
 
-The `craftRecipe` block, its IO line grammar and the keys a mod may set are general to any mod and live in [the loader page](../platform/loader-and-scripts.md#craft-recipe-grammar); what follows is only what an input line costs a food item and what an output carries away.
+The `craftRecipe` grammar is [the loader page's](../platform/loader-and-scripts.md#craft-recipe-grammar); this block is only what an input line costs a food item and what an output carries away.
 
-Of the flags a line can carry, only `ItemCount`, `InheritFoodAge` and `InheritFood` change what an input line costs or what an output carries; the others do not [#0689].
+Of a line's flags only `ItemCount`, `InheritFoodAge` and `InheritFood` change what an input costs or an output carries [#0689].
+The input count is not the number of input lines: a leading minus or plus marks a fluid sub-line that the loader attaches to the preceding input, the count is the `inputs` list's size, and the dataset nests those 55 sub-lines and publishes `inputCount` as that same `inputs.size()` [#0695/M/n=10, #1737/C/C-only].
 
-The recipe input count is not the number of input lines: a leading minus or plus marks a fluid sub-line that the loader attaches to the preceding input instead of adding it to `inputs`, and the count is that list's size, so a recipe written with a fluid sub-line answers one less than its script has lines [#0695/M/n=10, #1737/C/C-only].
-
-The dataset nests those 55 sub-lines under the input above them and publishes `inputCount` as the loader's own `inputs.size()`, the same number the game's counter answered over ten recipes on one boot [#0695/M/n=10, #1737/C/C-only].
-
-An input line is consumed unless it is `mode:keep`: both no `mode:` and `mode:destroy` consume, because the reduction is skipped only when keep is true [#0694].
-
+An input line is consumed unless it is `mode:keep`: both no `mode:` and `mode:destroy` consume [#0694].
 A `mode:keep` line costs nothing: it selects and reserves an item, rolls its `MayDegrade*` check and is never reduced [#0699].
-
 A line flagged `ItemCount` costs N whole items: the consumption takes 1f per item and the destroy pass spends each item's whole remaining uses [#0700].
+Everything else is charged in uses, one use being one raw `HungerChange` point: `getMaxUses` is the integer of `abs(baseHunger × 100)` and the reduction runs `setCurrentUses` into `consumeHunger` into `multiplyFoodValues(1 − consumed / abs(hungChange))`, so an input of N on a food row whose `HungerChange` magnitude exceeds 1 costs N divided by that magnitude of one item [#0701/M/n=3].
+A food row with no usable `HungerChange` costs N whole items, because `getMaxUses` returns 1 when `baseHunger` is 0, and the row's `delta.notes` names the case [#0702].
+A drainable input is charged no macros, with a note: its uses are `UseDelta` steps of a bar, not nutrition [#0703].
+A `mode:destroy` line not flagged `ItemCount` is charged up to the whole items `RemoveItem` deletes, the annihilated remainder published as `delta.destroyWaste` [#0704].
 
-Everything else is charged in uses, and one use is one raw `HungerChange` point: `getMaxUses` is the integer of `abs(baseHunger × 100)` and the reduction runs `setCurrentUses` into `consumeHunger` into `multiplyFoodValues(1 − consumed / abs(hungChange))` [#0701/M/n=3].
-
-So an input of N on a food row whose `HungerChange` magnitude exceeds 1 costs N divided by that magnitude of one item, measured on three items on one boot and read server-side [#0701/M/n=3].
-
-A food row with no usable `HungerChange` costs N whole items, because `getMaxUses` returns 1 when `baseHunger` is 0, and the row's `delta.notes` names the case rather than silently scaling it [#0702].
-
-A drainable input is charged no macros, with a note: a drainable's uses are `UseDelta` steps of a bar rather than nutrition [#0703].
-
-A `mode:destroy` line that is not flagged `ItemCount` is charged up to the whole items `RemoveItem` deletes, and the annihilated remainder is published as `delta.destroyWaste` so that both hunger points moved and food removed from the world stay recoverable [#0704].
-
-An input flagged `InheritFood` makes the craft a split — the output takes one over the output count of the consumed instance's macros — so that input and every output drop out of the sum and the delta is 0 by construction; on the 2026-09-10 scan 17 recipes carry the flag, 8 of them resolvable and all 8 zero in all six macros [#0706/C/snapshot].
-
+An input flagged `InheritFood` makes the craft a split, the output taking one over the output count of the consumed instance's macros, so that input and every output drop out of the sum and the delta is 0 by construction; on the 2026-09-10 scan 17 recipes carry the flag, 8 of them resolvable and all 8 zero in all six macros [#0706/C/snapshot].
 `InheritFoodAge` is not a split: it copies age only, which is why `ScoopIceCream` carries it and still costs 560 kcal of ice cream [#0707].
-
-An output line is always an item count: the output builder loops N times and each result carries its own script macros [#0708].
-
+An output line is always an item count: the builder loops N times and each result carries its own script macros [#0708].
 A craft's outputs are built before the inputs are reduced [#0740].
 
-Spending 10 of `Base.Icecream`'s 30 uses scaled every macro by one minus used over current uses: `hungChange` −0.30 to −0.20, calories 1680 to 1120, carbohydrates 180 to 120, lipids 84 to 56 and proteins 26 to 17.333334 [#0709/M/n=1].
-
-That single item is the whole measured base of the fractional half of the rule, read server-side inside one Lua call on one boot [#0709/M/n=1].
-
-Spending all 40 of `Base.MincedMeat`'s uses took `hungChange` −0.40 to 0, calories 300 to 0, lipids 30 to 0 and proteins 46 to 0, with carbohydrates already 0 [#0710/M/n=1].
-
-Spending all 15 of `Base.Cheese`'s uses took `hungChange` −0.15 to 0, calories 113 to 0, carbohydrates 0.87 to 0, lipids 9.33 to 0 and proteins 6.4 to 0 [#0711/M/n=1].
-
-Across those three items the probe matched 96 of 96 compared fields with an empty mismatch list [#0712/M/n=3].
-
-`getMaxUses()` and `baseHunger` did not move across the reduction, so the denominator of the scaling is `currentUses`, equal to `maxUses` only while the item is whole [#0713/M/n=3].
+Spending 10 of `Base.Icecream`'s 30 uses scaled every macro by one minus used over current uses: `hungChange` −0.30 to −0.20, calories 1680 to 1120, carbohydrates 180 to 120, lipids 84 to 56 and proteins 26 to 17.333334; that one item is the whole measured base of the fractional half of the rule [#0709/M/n=1].
+Spending all 40 of `Base.MincedMeat`'s uses took `hungChange` −0.40 to 0, calories 300 to 0, lipids 30 to 0 and proteins 46 to 0, with carbohydrates already 0 [#0710/M/n=1]; all 15 of `Base.Cheese`'s took `hungChange` −0.15 to 0, calories 113 to 0, carbohydrates 0.87 to 0, lipids 9.33 to 0 and proteins 6.4 to 0 [#0711/M/n=1].
+Across the three the probe matched 96 of 96 compared fields [#0712/M/n=3].
+`getMaxUses()` and `baseHunger` did not move across the reduction, so the scaling's denominator is `currentUses`, equal to `maxUses` only while the item is whole [#0713/M/n=3].
 
 <a id="evolved"></a>
 ### The evolved summation
-
-An evolved recipe is the only place in the game where nutrition is moved between item instances rather than read off a script, and the whole of it is one Java method.
 
 `EvolvedRecipe.addItem` turns the base into the result item with zeroed macros, re-seeds them from the base food, carries the base's age across proportionally, and then per ingredient computes the hunger it spends, clamps it to the ingredient, shrinks it by 3 per cent per Cooking level, derives a share, adds the ingredient's macros times the skill bonus times that share to the dish, and removes the macros times that share from the ingredient [#0283]:
 
@@ -176,149 +136,89 @@ ing.hungChange  += hungerAfterSkill;   ing.baseHunger += hungerAfterSkill;// @13
 ing.calories    -= ing.calories * share;  … same for the other three …   // @1429–@1486 L428–431
 ```
 
-Phase A zeroes the result item's macros and then re-seeds them from the base food itself, so a pot of water contributes its own values [#0284].
+Phase A zeroes the result item's macros and re-seeds them from the base food itself, so a pot of water contributes its own values [#0284].
+The dish's age is carried across proportionally, the new `offAgeMax` times the old `age` over the old `offAgeMax`, and only when both items have real thresholds [#0285].
 
-The dish's age is carried across proportionally as the new `offAgeMax` times the old `age` over the old `offAgeMax`, and only when both items have real thresholds [#0285].
-
-An ingredient's `Name:use` points are hunger points: the summation divides `use` by 100 to get the hunger that ingredient spends, measured across two ingredients in one dish at two Cooking levels on one fixture [#0286/M/n=1].
-
+An ingredient's `Name:use` points are hunger points: the summation divides `use` by 100 to get the hunger it spends [#0286/M/n=1].
 A rotten ingredient spends 0.05 of the base's hunger at Cooking 7 or 8 and 0.10 at Cooking 9 or 10, and is refused below Cooking 7 [#0287].
-
-The hunger an ingredient spends is clamped to the absolute value of its own `getHungerChange()` before the Cooking reduction, so a key that asks for more hunger than the ingredient carries can only ever spend the whole ingredient [#0288].
-
-An evolved recipe consumes 1 less 0.03 times the Cooking level of an ingredient and banks its macros at the skill bonus times that same factor, measured on one dish across two perk levels in one session as a consumption share of 0.33333 falling to 0.23333, exactly 0.70 of it [#0290/M/n=1, #1210/M/n=1].
-
-The share an ingredient gives up is the smaller of 1 and the absolute ratio of the skill-shrunk hunger to the ingredient's own stored hunger, so it is capped at the whole ingredient, and it stayed below 1 in every measured arm [#0291/M/n=1].
+The spend is clamped to the absolute value of the ingredient's own `getHungerChange()` before the Cooking reduction, so a key asking for more hunger than the ingredient carries spends at most the whole ingredient [#0288].
+The spend then shrinks by 3 per cent per Cooking level, so 70 per cent of it is consumed at Cooking 10, measured as a lettuce share of 0.33333 at Cooking 0 falling to 0.23333 at Cooking 10 [#0290/M/n=1].
+The share given up is the smaller of 1 and the absolute ratio of the skill-shrunk hunger to the ingredient's own stored hunger, so it is capped at the whole ingredient, and it stayed below 1 in every measured arm [#0291/M/n=1].
 
 The skill bonus is 1 plus the Cooking level over 15, so 1.0 at Cooking 0 and 1.6667 at Cooking 10 [#0292/M/n=1].
-
 Macros per unit of dish hunger therefore scale by the skill bonus times one less 0.03 times the Cooking level while the share is below 1, which is 1.0 at Cooking 0 and 1.1667 at Cooking 10 [#0293/M/n=1].
-
-That same factor is 1.168 at Cooking 9, so Cooking 10 lands fractionally below Cooking 9 at 1.16667; the level-9 value is computed from the two expressions and not measured at that level [#0294/C/arith., #1211/M/n=1].
-
+That factor is 1.168 at Cooking 9, so Cooking 10 lands fractionally below Cooking 9 at 1.16667; the level-9 value is computed, not measured [#0294/C/arith., #1211/M/n=1].
 The dish gains an ingredient's macros times the skill bonus times the share while the ingredient loses only the macros times the share, so the gain-to-loss ratio is the skill bonus, up to 1.6667 at Cooking 10 [#0295/M/n=1].
+68 kcal of ingredients produce 68.0 kcal of outputs at Cooking 0 and 79.667 kcal at Cooking 10, a 17.2 per cent gain the summation creates from nothing, summed from the measured per-item values of one dish [#0304/M/n=1].
 
-A `Spice` ingredient on a food dish takes the spice branch, which adds no hunger to the dish, does not count against `MaxItems` and acts once per spice type per dish, and ends in `useSpice`, which lowers the dish's unhappiness and boredom and moves the spice's macros into the dish scaled by its share and the skill bonus [#4119/C/C-only].
+A Salad from a bowl, a lettuce and a tomato banks 24.999998 kcal, 5.193333 carbohydrates, 0.28 lipids and 2.283333 proteins at Cooking 0 and 29.166666, 6.058888, 0.326667 and 2.663889 at Cooking 10, every cell matching the summation to six decimal places [#0301/M/n=1].
+Cooking skill does not change a dish's hunger: the same Salad stores -0.11 at Cooking 0 and at Cooking 10 [#0302/M/n=1].
+A dish's `thirstChange` scales with the skill bonus times the share, -0.063333 at Cooking 0 and -0.073889 at Cooking 10, and the transfer is skipped for the dried-food tag [#0303/M/n=1].
 
 A herbal-tea ingredient additionally sums `foodSicknessChange` capped at 12, `painReduction`, `fluReduction`, `stressChange` and `reduceInfectionPower` onto the dish [#0297].
-
 A dish's `unhappyChange` is the unmodified value less five less five per duplicate, clamped at plus 25, with a further over-stuffing term once the extra-item count less two exceeds the chef's Cooking level [#0298].
-
 `EvolvedRecipe.addItem`'s non-spice line sets the dish's `UnhappyChange` to its unmodified value less 5 - 5d, where d counts the dish's earlier entries of the same type and, when the dish's extra items before the add less 2 exceed the chef's Cooking level c, also that excess less 3c; so the first three non-spice types are level-independent and a fourth at Cooking 0 adds 0 [#4152/C/C-only].
 
+A `Spice` ingredient on a food dish takes the spice branch, which adds no hunger to the dish, does not count against `MaxItems` and acts once per spice type per dish, and ends in `useSpice`, which lowers the dish's unhappiness and boredom and moves the spice's macros into the dish scaled by its share and the skill bonus [#4119/C/C-only].
+`useSpice` has two overloads: the float one, for a food spice on a food dish, records the spice and moves the dish's unhappiness, boredom and macros; the int one, for a non-food spice, only records the spice and uses it up; both send the dish's item stats on the server [#0381/C/C-only, #1278].
+The float one adds the spice's calories, proteins, carbohydrates and lipids to the dish times the skill bonus, 1 plus the Cooking level over 15, times the share, the use over the spice's hunger capped at 1; it takes each macro off the spice at the share of its full use, without the bonus, adds the use to the spice's hunger, uses the spice up once its hunger is above -0.01, and adds no hunger to the dish [#4122/C/C-only].
 A dish's `boredomChange` is zeroed in phase A and no non-spice ingredient moves it, but each spice's `useSpice` sets it to its raw value less 200 times the spice's use, the recipe's `:N` over 100, so a `:1` spice lowers it by 2 and a `:4` spice by 8 [#4120/C/C-only].
-
-Each spice's `useSpice` also sets the dish's `unhappyChange` to its raw value less 200 times the spice's use, with no clamp, so a `:1` spice lowers it by 2 and a `:4` spice by 8; a later non-spice add rewrites the field from that raw value, so the decrement stays [#4121/C/C-only].
-
-On a dedicated server with the nutrition mod loaded at its scale of 1, at Cooking 3, a Stir fry read a stored `UnhappyChange` of -5, -10, -15, -17 and -25 after Carrots, Cabbage, Onion, Salt and Butter, -30 after a Potato and -32 after a Pepper, its stamp 1 at each of the five adds: a new non-spice type -5, a `:1` spice -2 and a `:4` spice -8, the summation's own arithmetic [#4132/M/n=1] [#4152/C/C-only] [#4121/C/C-only].
-
-A Salad built from a bowl, a lettuce and a tomato banks 24.999998 kcal, 5.193333 carbohydrates, 0.28 lipids and 2.283333 proteins at Cooking 0, and 29.166666, 6.058888, 0.326667 and 2.663889 at Cooking 10 [#0301/M/n=1].
-
-Every one of those cells matches the summation to six decimal places, on one fixture with fresh ingredients per round and the perk pinned on the server [#0301/M/n=1].
-
-Cooking skill does not change a dish's hunger: the same Salad reads a stored hunger of -0.11 at Cooking 0 and at Cooking 10 [#0302/M/n=1].
-
-A dish's `thirstChange` scales with the skill bonus times the share, measured at -0.063333 at Cooking 0 and -0.073889 at Cooking 10, and the transfer is skipped for the dried-food tag [#0303/M/n=1].
-
-68 kcal of ingredients produce 68.0 kcal of outputs at Cooking 0 and 79.667 kcal at Cooking 10, a 17.2 per cent gain the summation creates from nothing [#0304/M/n=1].
-
-Those totals are summed from the measured per-item values of that one dish with its two ingredients at two Cooking levels [#0304/M/n=1].
-
-The timed action's call of the recipe's add-item method is the only Lua-to-Java bridge into the summation [#0325].
-
-`ISAddItemInRecipe:complete` calls `recipe:addItem(baseItem, usedItem, character)` and then, when `isServer()`, `sendItemStats` on the dish and on the used item while it still has a container, so a server-side wrapper of `complete` holds the ingredient instance, the base and the chef before the call and the finished dish after it [#2658/C/C-only].
-
-`EvolvedRecipe.addItem` calls no Lua function and fires no event: its whole body holds one Kahlua reference, the `HandWeapon` rawset below, and no `LuaManager` call, and no class in the jar contains `OnEvolvedRecipe` or `OnAddItemInRecipe` [#2657/C/C-only].
-That wrapper is therefore the one place a mod sees an ingredient instance and the dish it feeds side by side [#0325, #2658/C/C-only].
-
-What the dish carries out of the summation is two lists of item types and its result type's own modData, and nothing that records an ingredient's share.
-
-An evolved dish's ingredient list is `InventoryItem.extraItems`, an `ArrayList` of ingredient full types with no amount, created on the first add and appended once per add; `getExtraItemsWeight` feeds each entry to the item factory, which is why the entries are full types [#2650/C/C-only].
-
-`EvolvedRecipe.addItem` appends the used item's full type to the dish's `extraItems` after the whole macro transfer [#2651/C/C-only].
-
-A spice added to a food dish is appended to a second list, `Food.spices`, also as a full type, and the spice branch returns before the ingredient append, so a spice never enters the dish's `extraItems` [#2652/C/C-only].
-`EvolvedRecipe.useSpice` has two overloads: the float one, called for a food spice on a food dish, records the spice and moves the dish's unhappiness, boredom and macros; the int one, called for a non-food spice, only records the spice and uses it up; both send the dish's item stats on the server [#0381/C/C-only, #1278].
-
-`useSpice` adds the spice's calories, proteins, carbohydrates and lipids to the dish times the skill bonus, 1 plus the Cooking level over 15, times the share, the use over the spice's hunger capped at 1; it takes each macro off the spice at the share of its full use, without the bonus, adds the use to the spice's hunger, uses the spice up once its hunger is above -0.01, and adds no hunger to the dish [#4122/C/C-only].
-
+Each `useSpice` also sets the dish's `unhappyChange` to its raw value less 200 times the spice's use, with no clamp, so a `:1` spice lowers it by 2 and a `:4` spice by 8; a later non-spice add rewrites the field from that raw value, so the decrement stays [#4121/C/C-only].
 A rotten spice at Cooking 7 or 8 has its use replaced by 0.05 times its base hunger, and at 9 or 10 by 0.10 times, before the mood and macro lines move the dish, while the spice itself is still charged its full use; below Cooking 7 the usability check offers no rotten spice [#4123/C/C-only].
-
-The dish records each ingredient's type and, because every add appends, the number of times it was added, and records nothing about the hunger it contributed: the per-ingredient hunger `use / 100` is consumed into the dish's hunger and stored nowhere, and no class in the jar contains `extraItemsAmount`, `extraItemAmount`, `extraItemUses`, `extraItemsHunger` or `ingredientAmount` [#2653/C/C-only].
-
-`extraItems` holds `getFullType()` strings while `EvolvedRecipe.getItemsList()` is keyed by `getType()`, so joining a dish's list to the recipe's `use` values needs the module stripped from each entry [#2654/C/C-only].
-What a server-side reader can rebuild from the list is a nominal share per ingredient type, not the share the chef's level, the ingredient's remaining hunger and the clamp actually produced [#2653/C/C-only].
-How both lists are saved is [food-item-model.md](food-item-model.md#state-axes)'s, and which packet carries them to a client is [wire-packets.md](wire-packets.md#item-stats-packet)'s.
-
-`EvolvedRecipe.addItem` writes exactly one item-modData key, and only when the base item is a `HandWeapon`: the base's condition over its maximum condition, rawset as a number under a key built from the base's type [#2655/C/C-only].
-
-An evolved dish is a fresh instance built from the recipe's result type, so it carries that type's default modData and nothing from the base item's or the ingredients' modData, and a mod value in an ingredient's modData does not reach the dish [#2656/C/C-only].
+On a dedicated server with the nutrition mod loaded at its scale of 1, at Cooking 3, a Stir fry read a stored `UnhappyChange` of -5, -10, -15, -17 and -25 after Carrots, Cabbage, Onion, Salt and Butter, -30 after a Potato and -32 after a Pepper, its stamp 1 at each of the five adds: a new non-spice type -5, a `:1` spice -2 and a `:4` spice -8 [#4132/M/n=1] [#4152/C/C-only] [#4121/C/C-only].
 
 The Cooking perk level that scales the summation is server-owned, so a client-side perk write silently runs the recipe at the server's level and both `skillBonus` and `share` are the server's whatever the client UI shows [#0759/M/n=1].
 
-`data/evolved-recipes.json` applies the whole non-rotten path of that block per recipe-and-ingredient row at Cooking 0 and Cooking 10, carrying every term of the hunger, `hungerAfterSkill`, `share`, `skillBonus`, four-macro and thirst arithmetic in `at0` and `at10` rather than only the results [#0728].
+The timed action's call of the recipe's add-item method is the only Lua-to-Java bridge into the summation [#0325].
+`ISAddItemInRecipe:complete` calls `recipe:addItem(baseItem, usedItem, character)` and then, when `isServer()`, `sendItemStats` on the dish and on the used item while it still has a container, so a server-side wrapper of `complete` holds the ingredient instance, the base and the chef before the call and the finished dish after it [#2658/C/C-only].
+`EvolvedRecipe.addItem` calls no Lua function and fires no event: its body holds one Kahlua reference, the `HandWeapon` rawset below, and no `LuaManager` call, and no class in the jar contains `OnEvolvedRecipe` or `OnAddItemInRecipe` [#2657/C/C-only].
+That wrapper is therefore the one place a mod sees an ingredient instance and the dish it feeds side by side [#0325, #2658/C/C-only].
 
+An evolved dish's ingredient list is `InventoryItem.extraItems`, an `ArrayList` of ingredient full types with no amount, created on the first add and appended once per add; `getExtraItemsWeight` feeds each entry to the item factory, which is why the entries are full types [#2650/C/C-only].
+`addItem` appends the used item's full type after the whole macro transfer [#2651/C/C-only].
+A spice on a food dish goes to a second list, `Food.spices`, also as a full type, and the spice branch returns before the ingredient append, so a spice never enters `extraItems` [#2652/C/C-only].
+The dish records each ingredient's type and, because every add appends, the number of times it was added, and nothing about the hunger it contributed: the per-ingredient hunger `use / 100` is consumed into the dish's hunger and stored nowhere, and no class in the jar contains `extraItemsAmount`, `extraItemAmount`, `extraItemUses`, `extraItemsHunger` or `ingredientAmount` [#2653/C/C-only].
+`extraItems` holds `getFullType()` strings while `EvolvedRecipe.getItemsList()` is keyed by `getType()`, so joining a dish's list to the recipe's `use` values needs the module stripped from each entry [#2654/C/C-only]; what a server-side reader rebuilds from it is a nominal share per type, not the share the chef's level, the ingredient's remaining hunger and the clamp produced [#2653/C/C-only].
+How both lists are saved is [food-item-model.md](food-item-model.md#state-axes)'s, and which packet carries them is [wire-packets.md](wire-packets.md#item-stats-packet)'s.
+
+`addItem` writes exactly one item-modData key, and only when the base item is a `HandWeapon`: the base's condition over its maximum condition, rawset as a number under a key built from the base's type [#2655/C/C-only].
+An evolved dish is a fresh instance of the recipe's result type, so it carries that type's default modData and nothing from the base's or the ingredients' modData; a mod value in an ingredient's modData does not reach the dish [#2656/C/C-only].
+
+`data/evolved-recipes.json` applies the whole non-rotten path per recipe-and-ingredient row at Cooking 0 and 10, carrying every term of the hunger, `hungerAfterSkill`, `share`, `skillBonus`, four-macro and thirst arithmetic in `at0` and `at10` [#0728].
 The hunger clamp bites on 59 of the 6 881 rows from 17 over-asking keys on the 2026-09-10 scan, so `Base.Cherry`'s `Oatmeal:5` against a hunger of 3 is a `share` of 0.7 at Cooking 10 rather than 1.0 [#0729/C/snapshot].
-
-A `DRIED_FOOD`-tagged ingredient adds no thirst, and the skip bites on 27 rows — `Base.Ramen`, `Base.Macaroni` and `Base.Pasta` across nine recipes each — while the tag is on 577 rows in all, the other 550 having a thirst term already 0 [#0730/C/snapshot].
-
-A `Spice = true` ingredient row of the evolved-recipe dataset carries 0 in hunger and `hungerAfterSkill`, the spice branch adding no hunger to the dish, and carries `useSpice`'s transfer: a share of the key's use over the spice's own hunger capped at 1, with no skill cut, so it is the same at Cooking 0 and 10, and calories, proteins, carbohydrates and lipids at the skill bonus times that share, with thirst 0; of the 2 522 spice rows 2 260 move calories and 837 take a share of 1, in the 2026-10-22 scan [#4128/C/snapshot].
-
-A non-`per_item` ingredient row would carry null macros with a reason and still emit the hunger arithmetic, and it never fires on vanilla because all 374 carriers are `per_item` [#0733/C/snapshot].
-
-The generated Salad rows reproduce the measured dish: lettuce `share` 0.333333 and 0.233333, tomato 0.5 and 0.35, `skillBonus` 1.0 and 1.6667, and a dish of 25.0 kcal at Cooking 0 and 29.1667 at Cooking 10, the dataset side being arithmetic on code constants against the one measured dish [#0734/M/arith.].
+A `DRIED_FOOD`-tagged ingredient adds no thirst; the skip bites on 27 rows, `Base.Ramen`, `Base.Macaroni` and `Base.Pasta` across nine recipes each, while the tag is on 577 rows in all, the other 550 having a thirst term already 0 [#0730/C/snapshot].
+A `Spice = true` row carries 0 in hunger and `hungerAfterSkill` and carries `useSpice`'s transfer: a share of the key's use over the spice's own hunger capped at 1, with no skill cut, so the same at Cooking 0 and 10, and the four macros at the skill bonus times that share, with thirst 0; of the 2 522 spice rows 2 260 move calories and 837 take a share of 1, in the 2026-10-22 scan [#4128/C/snapshot].
+A non-`per_item` row would carry null macros with a reason and still emit the hunger arithmetic, and it never fires on vanilla because all 374 carriers are `per_item` [#0733/C/snapshot].
+The generated Salad rows reproduce the measured dish: lettuce `share` 0.333333 and 0.233333, tomato 0.5 and 0.35, `skillBonus` 1.0 and 1.6667, and a dish of 25.0 kcal at Cooking 0 and 29.1667 at Cooking 10 [#0734/M/arith.].
 
 <a id="evolved-join"></a>
 ### How an item reaches an evolved recipe
 
-No recipe lists its own ingredients: the carrier item names the recipe, and the loader builds the ingredient list from those keys at script-load time.
-
-`Item.OnScriptsLoaded` attaches an item's `EvolvedRecipe = <Name>:<use>` key, optionally suffixed `Cooked`, through two arms, with the five parse-time aliases applied first in `Item.DoParam` [#0718].
-
-It attaches the key to the recipe whose name matches and to every recipe whose `Template` equals that key [#0280].
-
+No recipe lists its own ingredients: `Item.OnScriptsLoaded` attaches each item's `EvolvedRecipe = <Name>:<use>` key, optionally suffixed `Cooked`, through two arms, with the five parse-time aliases applied first in `Item.DoParam` [#0718].
 The first arm is an exact, case-sensitive map lookup through `ScriptManager.getEvolvedRecipe(key)` [#0719].
+The second takes every recipe whose `Template` matches the key case-insensitively and does the work: on the 2026-09-10 scan `resolvedVia` is `template` on 4 748 rows, `both` on 2 133 and `name` on 0 [#0720/C/snapshot].
+Five key parts do match by name alone, `Waffles:8` on `Base.DriedApricots` and `Stir fry Griddle Pan` on the three pumpkins and `Base.Soybeans`, but each of those items also writes another key reaching the same recipe by template, so every row merges to `both` [#0721/C/snapshot].
+The five aliases are used on 5 key parts, `RicePan` three times, `RicePot` once and `Roasted Vegetables` once, and unaliased `RicePan:1` would reach 1 recipe instead of 4; this is a code reading only [#0722/C/C-only].
+`item Cinnamon` writes `ConeIceCream:1` against a recipe and template spelled `ConeIcecream`, the only miscased key in the install, so it resolves through the template arm, and a case-sensitive expansion loses exactly that pair and reports a false unmatched key [#0723/M/n=1].
+A key that matches no recipe name and no template throws `InvalidParameterException` [#0281].
 
-The second arm takes every recipe whose `Template` matches the key case-insensitively and does the work: on the 2026-09-10 scan `resolvedVia` is `template` on 4 748 rows, `both` on 2 133 and `name` on 0 [#0720/C/snapshot].
-
-Five key parts do match by name alone — `Waffles:8` on `Base.DriedApricots` and `Stir fry Griddle Pan` on the three pumpkins and `Base.Soybeans` — but each of those items also writes another key that reaches the same recipe by template, so every row merges to `both` [#0721/C/snapshot].
-
-The five parse-time aliases are really used on 5 key parts — `RicePan` three times, `RicePot` once and `Roasted Vegetables` once — and unaliased, `RicePan:1` would reach 1 recipe instead of 4; none of the run's five evolved probes is an alias target, so this is a code reading only [#0722/C/C-only].
-
-`item Cinnamon` writes `ConeIceCream:1` against a recipe and template spelled `ConeIcecream` — the only miscased key in the install — so it resolves through the template arm, and a case-sensitive expansion loses exactly that pair and reports a false unmatched key [#0723/M/n=1].
-
-An `EvolvedRecipe` key that matches no recipe name and no template throws `InvalidParameterException` [#0281].
-
-The `evolvedrecipe` block takes twelve keys: `BaseItem`, `Name`, `ResultItem`, `Cookable` on 44 blocks, `MaxItems`, `AddIngredientIfCooked` on 37, `AddIngredientSound` on 11, `CanAddSpicesEmpty` on 42, `Template`, and `MinimumWater` on 20 [#0282/C/snapshot].
-
-The remaining two, `IsHidden` and `AllowFrozenItem`, are recognised by the loader and used by no block, counted over the 62 blocks on the 2026-09-10 scan — the 62 in `evolvedrecipes.txt` plus `AddBaitToChum`, written in a fishing recipe file, being the 63 evolved recipes the game loads [#0282/C/snapshot, #0679/M/n=1].
-
+The `evolvedrecipe` block takes twelve keys: `BaseItem`, `Name`, `ResultItem`, `Cookable` on 44 blocks, `MaxItems`, `AddIngredientIfCooked` on 37, `AddIngredientSound` on 11, `CanAddSpicesEmpty` on 42, `Template`, `MinimumWater` on 20, and `IsHidden` and `AllowFrozenItem`, which the loader recognises and no block uses, over the 62 blocks of `evolvedrecipes.txt` on the 2026-09-10 scan; those 62 plus `AddBaitToChum`, in a fishing recipe file, are the 63 evolved recipes the game loads [#0282/C/snapshot, #0679/M/n=1].
 An ingredient is refused when its `use` is -1, when it is burnt, when it is rotten and the chef is below Cooking 7, when it is frozen and the recipe does not set `AllowFrozenItem`, when it is dangerous uncooked and uncooked and the result is not cookable, when it is not a spice and the extra-item list has reached `MaxItems`, or when `MinimumWater` exceeds the water in the base's fluid container [#0300].
 
-`AllowFrozenItem` is never set in vanilla, and the source gives no bytecode offset for the usability check itself [#0300].
-
-189 items write a `Salad:` key — 187 in `items/food.txt` and 2 in `items/drainable.txt`, `Base.Vinegar2` and `Base.Vinegar_Jug`, both `Spice = true` — and the live ingredient count is 189 for both `Salad` and `SaladClay` [#0763/M/n=2].
-
-`isCookable()` is set by the presence of the `Cookable` key and never reads the parsed value: `AddBaitToChum` writes `Cookable = false` and the game answers true, the only one of the 63 evolved recipes where a faithful text read and the game disagree, which is why the dataset carries the script value [#0766/M/n=1].
-
-`getResultItem()` strips the module, so a live `Salad` has to be compared against the dataset's `Base.Salad`, while `getBaseItem` is unstripped [#0767/M/n=5].
-
-The evolved-recipe context menu is three sites in the inventory pane's context menu: the probe that asks whether any evolved recipe applies, the submenu build, and the action queue that starts the add [#0326].
+189 items write a `Salad:` key, 187 in `items/food.txt` and 2 in `items/drainable.txt`, `Base.Vinegar2` and `Base.Vinegar_Jug`, both `Spice = true`, and the live ingredient count is 189 for both `Salad` and `SaladClay` [#0763/M/n=2].
+`isCookable()` is set by the presence of the `Cookable` key and never reads its value: `AddBaitToChum` writes `Cookable = false` and the game answers true, the only one of the 63 evolved recipes where a faithful text read and the game disagree, which is why the dataset carries the script value [#0766/M/n=1].
+`getResultItem()` strips the module, so a live `Salad` is compared against the dataset's `Base.Salad`, while `getBaseItem` is unstripped [#0767/M/n=5].
+The evolved-recipe context menu is three sites in the inventory pane's context menu: the probe asking whether any evolved recipe applies, the submenu build, and the action queue that starts the add [#0326].
 
 <a id="type-change"></a>
 ### What a type change moves
 
 A craft or a cook transition can change an item's nutrition only by replacing the item with one whose script declares different values, so every delta on this page is a difference between two script blocks weighed by what the inputs cost.
-
-Cooking and burning leave an item's stored nutrition untouched: 220 kcal before and after and a raw `hungChange` still -0.4, while the read-time `getHungerChange` drops to -0.133333 on the burnt item, measured over one cook and one burn transition on one item [#0277/M/n=1].
-
-`MakeToast` moves no macro either: `Base.BreadSlices` and `Base.Toast` both declare 177 kcal, 33 g carbohydrates, 2.22 g lipids and 5.9 g proteins, and differ only in `HungerChange`, −10 against −8 [#0741/C/arith.].
-
-Its delta is therefore 0 in all four macros with `hungerChange` +2.0, and `absentMacros` names the two thirst lines neither block writes [#0741/C/arith.].
-
+Cooking and burning leave an item's stored nutrition untouched: 220 kcal before and after and a raw `hungChange` still -0.4, while the read-time `getHungerChange` drops to -0.133333 on the burnt item [#0277/M/n=1].
+`MakeToast` moves no macro either: `Base.BreadSlices` and `Base.Toast` both declare 177 kcal, 33 g carbohydrates, 2.22 g lipids and 5.9 g proteins and differ only in `HungerChange`, −10 against −8, so the delta is 0 in all four macros with `hungerChange` +2.0, and `absentMacros` names the two thirst lines neither block writes [#0741/C/arith.].
 Cooking as such moves no calories anywhere in the recipe data: every non-zero craft delta is a recipe that changes what the item is [#0742/C/snapshot].
 
-The 31 resolvable craft deltas, largest absolute calorie change first, with each recipe's consumed inputs, produced outputs, calorie delta and hunger delta, on the 2026-09-10 scan; `[IC]` marks an input the script flags `ItemCount`, so that N is whole items [#0743/C/snapshot]:
+The 31 resolvable craft deltas, largest absolute calorie change first, on the 2026-09-10 scan; `[IC]` marks an input the script flags `ItemCount`, so that N is whole items [#0743/C/snapshot]:
 
 | Recipe | Consumed | Produced | Δ kcal | Δ hunger |
 |---|---|---|---:|---:|
@@ -355,57 +255,36 @@ The 31 resolvable craft deltas, largest absolute calorie change first, with each
 | `UnpackCigarettes` ‡ | 1 × CigarettePack | 20 × CigaretteSingle | 0 | 0 |
 
 `open_mac_and_cheese` creates 2 800 kcal out of nothing: 1 Macandcheese becomes 1 Macaroni plus 1 cheese_powdered at a hunger delta of −74 [#0744/C/arith.].
-
 `MakeMeatPatty` creates 312 kcal out of nothing: 40 uses of `Base.MincedMeat`, one whole tub, become 1 MeatPatty at a hunger delta of 0, the input weight resting on the measured per-use rule [#0745/M/arith.].
-
-The four corn mills — `GrindCornflour`, `GrindCornmeal`, `MillCornflour` and `MillCornmeal` — each destroy 496 kcal because neither `Base.Cornflour2` nor `Base.Cornmeal2` declares a macro key at all, so every one of those calories is an `absentMacros` substitution [#0746/C/arith.].
-
+The four corn mills, `GrindCornflour`, `GrindCornmeal`, `MillCornflour` and `MillCornmeal`, each destroy 496 kcal because neither `Base.Cornflour2` nor `Base.Cornmeal2` declares a macro key at all, so every one of those calories is an `absentMacros` substitution [#0746/C/arith.].
 `ScoopIceCream` destroys 105 kcal: 1 Cone as a whole item plus 10 uses of `Base.Icecream`, a third of a tub, become 1 ConeIcecream at a hunger delta of 0, again on the measured per-use rule [#0747/M/arith.].
-
-The 8 `InheritFood` splits among the 31, marked † above, read 0 by construction rather than by conservation, and each has exactly one consumed input [#0748/C/snapshot].
-
-The 3 rows counted as calories-absent-on-every-side, marked ‡, are cigarette recipes: neither cigarette row writes a `Calories` line, so their 0 is the `absentMacros` substitution, and `TakeACigarette` and `UnpackCigarettes` additionally charge a drainable input at 0 macros [#0749/C/snapshot].
-
-15 of the 31 resolvable rows are non-zero in calories, and everything else reading 0 is conservation — 1 Watermelon at 1 355 kcal equals 10 WatermelonSliced at 135.5 [#0750/C/snapshot].
-
-Ten of the 31 depend on the uses-not-items rule for their delta — seven of them exact `InheritFood` splits that read 0 under it; the eighth split reads 0 either way and is among the 21 that do not [#0773/C/snapshot].
+The 8 `InheritFood` splits, marked †, read 0 by construction rather than by conservation, and each has exactly one consumed input [#0748/C/snapshot].
+The 3 rows marked ‡ are cigarette recipes counted calories-absent-on-every-side: neither cigarette row writes a `Calories` line, so their 0 is the `absentMacros` substitution, and `TakeACigarette` and `UnpackCigarettes` also charge a drainable input at 0 macros [#0749/C/snapshot].
+15 of the 31 are non-zero in calories, and everything else reading 0 is conservation: 1 Watermelon at 1 355 kcal equals 10 WatermelonSliced at 135.5 [#0750/C/snapshot].
+Ten of the 31 depend on the uses-not-items rule for their delta, seven of them exact `InheritFood` splits that read 0 under it; the eighth split reads 0 either way and is among the 21 that do not [#0773/C/snapshot].
 
 None of the three `ReplaceOnCooked` links moves a macro: `Base.BaguetteDough` to `Base.Baguette` at a hunger delta of −8.0, `Base.BreadSlices` to `Base.Toast` at +2.0 and `Base.PancakesCraft` to `Base.Pancakes` at +4.0, each firing on the cook transition and only if the item is not rotten [#0752/C/arith.].
-
-Baking a baguette does move −15.0 of thirst, because `Base.BaguetteDough` writes `ThirstChange = 15` and `Base.Baguette` writes no thirst line at all — an absent-against-written substitution named in that row's `absentMacros`, while the other two cooked links' thirst 0 is a both-sides-absent zero [#0753/C/arith.].
-
+Baking a baguette does move −15.0 of thirst, because `Base.BaguetteDough` writes `ThirstChange = 15` and `Base.Baguette` writes no thirst line, an absent-against-written substitution named in that row's `absentMacros`, while the other two links' thirst 0 is a both-sides-absent zero [#0753/C/arith.].
 A `ReplaceOnCooked` replacement is added to the container by name and then calls `copyConditionStatesFrom` with the original, which copies condition, repair counts, head condition, sharpness, favourite, blood level, a drainable's uses and the original's modData keys that start with `condition:`, and no nutrition field, so the replacement holds its own script's values even when the original was part-eaten [#3337/C/C-only].
-
 The cook transition, and with it every `ReplaceOnCooked` swap, is driven by server-owned state: `Food.update` gates the age update on the server and both item-stats sends in the cooking block are server-gated [#0758].
-
-The `ReplaceOnRotten` melts and the `ReplaceOnUse` and `ReplaceOnDeplete` links are [facts/spoilage.md](spoilage.md#sealed)'s, and their counts and deltas are not repeated here.
+The `ReplaceOnRotten`, `ReplaceOnUse` and `ReplaceOnDeplete` links are [facts/spoilage.md](spoilage.md#sealed)'s.
 
 <a id="craft-split"></a>
 ### The craft split and the craft `OnCreate`
 
-A craft recipe moves nutrition between instances on two arms: the `InheritFood` split, which divides one input across the outputs, and the `OnCreate` summations, which add inputs into one output.
-Neither arm carries item modData from an input to an output, so a mod value crosses a craft only where the mod's own `OnCreate` writes it.
-
 The craft split is `InputFlag.InheritFood`, which `CraftRecipeData.createOutputItems` reads through `getFirstInputItemWithFlag`, and no class in the jar contains `PassNutritionThroughFood`, `PassNutrition` or `NutritionThroughFood` [#2659/C/C-only].
-
 When both the output and the `InheritFood` input are `Food`, `createOutputItems` calls `output.copyFoodFromSplit(input, OutputScript.getIntAmount())`, which copies nutrition at one over the output amount and then the frozen, cooked and burnt, temperature, poison and age states and the input's ingredient and spice lists, and copies no modData [#0706/C/snapshot, #2660/C/C-only].
 The ratio is the recipe's output count rather than a draw, so it is exactly recoverable from the recipe [#2660/C/C-only].
-
-`Food.copyNutritionFromRatio` writes nine fields, each the source's value times the ratio — `baseHunger`, `hungChange`, carbohydrates, lipids, proteins, calories, `unhappyChange`, `thirstChange` and `boredomChange` — and touches no modData and no item list [#2661/C/C-only].
-
+`Food.copyNutritionFromRatio` writes nine fields, each the source's value times the ratio, `baseHunger`, `hungChange`, carbohydrates, lipids, proteins, calories, `unhappyChange`, `thirstChange` and `boredomChange`, and touches no modData and no item list [#2661/C/C-only].
 It reads thirst through the state-modified `getThirstChange()` and writes it through the raw setter, so a split of a cooked food stores its thirst already halved and the cooked output halves it again when it is read [#0034/M/one-fixture, #2662/C/C-only].
-
 `Food.copyExtraItems` appends each of the input's ingredient entries onto the output's list and passes a non-empty spice list to `Food.setSpices`, which builds a fresh `ArrayList` from it or clears and refills the output's own, so a split output and its input hold separate spice lists [#2663/C/C-only].
-What a split costs its input, and why its calorie delta reads zero, is under [recipe IO](#uses).
+What a split costs its input is under [recipe IO](#uses).
 
 Craft output creation refuses to run for real on a client: `CraftRecipeData.createOutputsInternal` throws a `RuntimeException` reading `Cannot call with testOnly==false on client.` when its test-only flag is false and the process is a client [#2664/C/C-only].
-
 The craft `OnCreate` hook receives the `CraftRecipeData` object and the character through `LuaManager.caller.protectedCallVoid`, and the entity craft path calls it only after `createOutputs` succeeds, inside a `CraftLogicSystem.stop` that returns at once on a client [#2665/C/C-only].
-
 `CraftRecipeData` exposes the consumed and created instances to Lua through `getAllConsumedItems`, `getAllRecordedConsumedItems`, `getFirstInputItemWithFlag` and `getAllCreatedItems`, all public on a class in the exposer's set, the consumed list walking each item input's applied items [#2666/C/C-only].
-
 The shipped hand-craft action calls the recipe's `OnCreate`, then destroys and spends the used items, and then, when exactly one item was created, writes a map from each consumed item's full type to its count into that item's modData [#2667/C/C-only].
-That is the shape a mod value can take across a split: an `OnCreate` function reads the consumed instances off the recipe data and writes its own keys onto the created ones [#2666/C/C-only] [#2667/C/C-only].
+So a mod value crosses a craft only as an `OnCreate` function that reads the consumed instances off the recipe data and writes its own keys onto the created ones [#2666/C/C-only] [#2667/C/C-only].
 
 A second craft summation runs in Java: `RecipeCodeOnCreate.copyFoodValuesFromList` sums the consumed foods' `baseHunger` and four macros, skipping a spice unless it is fish roe, and writes the sums over the first created item's `baseHunger`, `hungChange` and macros, touching no modData; the omelette's `OnCreate` calls it over the consumed eggs [#2668/C/C-only].
 It sums each input's full-portion `baseHunger` rather than what is left of it, while the macros it sums are the input's current ones [#2668/C/C-only].
@@ -413,73 +292,49 @@ A craft output is a fresh `InventoryItemFactory.CreateItem` instance of the outp
 Of the craft input flags only `InheritFood` copies food values, nine fields at one over the output count; `InheritUses` and `InheritUsesAndEmpty` set the output's current uses from the input's share, which, on a `Food` with a non-zero `baseHunger`, runs `consumeHunger` into `multiplyFoodValues` and scales its macros and `hungChange` but not its `baseHunger`; `InheritCooked`, `InheritFoodAge` and `InheritFreezingTime` copy the cooked and burnt, age and frozen states; `InheritWeight` sets half the input's weight [#3338/C/C-only].
 Seven Java craft `OnCreate` functions write food values onto a created item: `copyFoodValuesFromList` through `makeOmelette` and `makeJar`, which sum the consumed foods' `baseHunger` and current macros, `cutFish`, `cutSmallAnimal`, `cutChicken`, which multiplies each created cut's own `baseHunger`, `hungChange` and four macros by the bird's larger hunger over the cuts' summed larger hungers, and `makeCoffee`, which sets `baseHunger` and `hungChange` to -0.05 and leaves the macros at the output script's, and `openMacAndCheese`, which overwrites the first created `base:pasta` item with a sixth of its own `baseHunger`, `hungChange`, four macros, unhappiness, thirst and boredom through `Food.copyFoodFromSplit` [#3575/C/C-only].
 
-
 <a id="butchering"></a>
 ### Butchered meat and its scale
 
-Meat from a carcass is the one food here whose instance nutrition is not its script's: the butchering path rescales it per animal, with a random draw on each field.
-
 `IsoAnimal.modifyMeat` is `public static` and sets `hungChange` to `baseHunger` times its two factors times a `Rand.Next(0.9, 1.1)` draw, sets `baseHunger` from the state-modified hunger getter, and scales calories, lipids and proteins each by the two factors and an independent draw, leaving carbohydrates untouched [#2669/C/C-only].
+But no Java class outside `IsoAnimal` contains `modifyMeat`, and both butchering call sites in the shipped `ButcheringUtil.lua` call the Lua function `ButcheringUtil.modifyMeat` rather than the Java method [#2670/C/C-only].
+The live scale is therefore Lua: `ButcheringUtil.modifyMeat` takes a ratio of animal size times the part's meat ratio times its hunger boost and applies it to hunger and all four macros, each field with its own `ZombRandFloat(0.9, 1.1)` draw, then sets `baseHunger` from the scaled hunger, and records nothing of the shared ratio on the meat item [#2671/C/C-only].
+It sets `baseHunger` from the state-modified `getHungerChange()` on the line after it scales `hungChange` and before it sets the meat's age, so a butchered cut leaves with `baseHunger` equal to `hungChange`, and its hunger and calories sit at the script's times one shared ratio and two independent `ZombRandFloat(0.9, 1.1)` draws [#3330/C/C-only].
+Because each field carries an independent draw, a factor recovered from one field lies within 10 per cent either side of the shared ratio, and factors recovered from two fields can disagree by up to 1.1 over 0.9, about 1.22 [#2672/C/arith.].
+Recovering a per-field factor needs the type's unscaled value, which Lua reads as [food-item-model.md](food-item-model.md#script-keys) states.
 
-No Java class outside `IsoAnimal` contains `modifyMeat`, and both butchering call sites in the shipped `ButcheringUtil.lua` call the Lua function `ButcheringUtil.modifyMeat` rather than the Java method [#2670/C/C-only].
-
-The live butchering scale is therefore Lua: `ButcheringUtil.modifyMeat` takes a ratio of animal size times the part's meat ratio times its hunger boost and applies it to hunger and all four macros, each field with its own `ZombRandFloat(0.9, 1.1)` draw, then sets `baseHunger` from the scaled hunger [#2671/C/C-only].
-
-Because each field carries an independent draw, a meat instance yields the butcher scale only per field: a factor recovered from one field lies within 10 per cent either side of the shared ratio, and factors recovered from two fields can disagree by up to 1.1 over 0.9, about 1.22 — the arithmetic is the part a re-reader redoes [#2672/C/arith.].
-Nothing in that function records the shared ratio on the meat item [#2671/C/C-only].
-`ButcheringUtil.modifyMeat` sets `baseHunger` from the state-modified `getHungerChange()` on the line after it scales `hungChange` and before it sets the meat's age, so a butchered cut leaves with `baseHunger` equal to `hungChange`, and its hunger and calories sit at the script's times one shared ratio and two independent `ZombRandFloat(0.9, 1.1)` draws [#3330/C/C-only].
 `RecipeCodeOnCreate.cutSmallAnimal`, the `ButcherSmallAnimal` craft's `OnCreate`, sets each created cut's `baseHunger` and `hungChange` to the consumed animal's remaining `hungChange` and its four macros to three quarters of the animal's current ones, so the cut's hunger and macros relate to the cut's own script by different factors [#3331/C/C-only].
 `RecipeCodeOnCreate.cutFish`, the `SliceFillet` craft's `OnCreate`, sets each of the two fillets' `baseHunger` and `hungChange` to half of the larger of the fish's `baseHunger` and `hungChange` and its four macros to half of the fish's current ones, and creates fish guts, when the fish is uncooked, at the guts script's own larger of `baseHunger` and `hungChange`, and a roe sac, when a month and chance roll gives a roe fraction above zero, at the fish's larger hunger times 0.05, 0.10 or 0.15 by the fish's size name, with the guts' and the roe sac's macros left at their scripts' values [#3332/C/C-only].
-Recovering a per-field factor needs the type's unscaled value, which Lua reads as [food-item-model.md](food-item-model.md#script-keys) states.
 
 <a id="dataset-fidelity"></a>
 ### The datasets against the running game
 
-Both datasets are built by reading the shipped scripts, so the measured layer is a cross-check against what the game itself loaded, not a source of new numbers.
-
-The game's own `ScriptManager` answered 969 craft recipes, 63 evolved recipes and 0 legacy recipes, each equal to the scan, on one boot of the default fixture with no world change [#0679/M/n=1].
-
+Both datasets read the shipped scripts, so the measured layer is a cross-check against what the game loaded, not a source of new numbers.
+The game's own `ScriptManager` answered 969 craft recipes, 63 evolved recipes and 0 legacy recipes, each equal to the scan, on one boot of the default fixture [#0679/M/n=1].
 Ten craft recipes were compared field for field: 77 raw rows of which 10 are the live-against-live output-list check, leaving 67 dataset fields with 65 matched at run time and 67 of 67 once replayed against the fixed scanner [#0680/M/n=10].
-
-The two run-time misses are one field: the scanner now reads `inputCount` as the loader does — 9 for `MakePizza` and 2 for `MakeMilkFromPowderBucket` — so the same comparison replayed offline against the committed artifact is 10 of 10 recipes and 77 of 77 raw rows [#0762/C/arith.].
-
-`getPossibleItems()` returned 189, 189, 56, 193 and 42 items for `Salad`, `SaladClay`, `ConeIcecream`, `Soup` and `AddBaitToChum` on that same boot [#0726/M/n=5].
-
-Each of those five live ingredient lists is set-equal to the dataset's ingredient list for that recipe, with 0 extra and 0 missing in both directions, an offline computation against the committed artifact rather than a verdict the run itself carried [#0727/M/arith.].
+The two run-time misses are one field: the scanner now reads `inputCount` as the loader does, 9 for `MakePizza` and 2 for `MakeMilkFromPowderBucket`, so the comparison replayed offline is 10 of 10 recipes and 77 of 77 raw rows [#0762/C/arith.].
+`getPossibleItems()` returned 189, 189, 56, 193 and 42 items for `Salad`, `SaladClay`, `ConeIcecream`, `Soup` and `AddBaitToChum` on that boot [#0726/M/n=5], each list set-equal to the dataset's for that recipe with 0 extra and 0 missing, an offline computation against the committed artifact [#0727/M/arith.].
 
 ## Walls and bounds
 <a id="walls"></a>
 
 Both cooking transitions were reproduced with no appliance at all, on one steak in a player's inventory primed server-side with heat 2.0, a reset cook minute and a `cookingTime` one minute past the threshold, in one live session at container temperature 1.0 throughout [#0276/M/one-fixture].
-
 An item's `heat` cannot be held at a requested value: `Food.update` runs the temperature update and the aging call before the cooking block and the game's own tick does the same between commands, so a requested 2.0 read back as 1.84703 and fell to 1.78979 inside one explicit update, and a longer cooking experiment needs a real appliance [#0278/M/n=1].
 
-The measured evolved-recipe arithmetic is a client-side reading: the summation's item replacement is server-gated, so the server still held the base and the untouched ingredients, and what a multiplayer server stores after a real add-item action was not measured, the summation itself being pure Java arithmetic that both sides run identically [#0360/M/one-side].
-
-The item removal on depletion is a jar reading only: `ItemUser` is not exposed to Kahlua, so the probe ran the exact setter the spend line executes and nothing after it, and reaching the removal needs a real `ISHandcraftAction` craft rather than an item command [#0714/C/C-only].
-
-The rotten branch — 0.05 times base hunger at Cooking 7 to 8, 0.10 times at Cooking 9 to 10 and refused below Cooking 7 — is the one arm of `addItem` the dataset leaves out: it publishes the fresh-ingredient contribution only, because the gate needs the instance's rotten flag, which is not script data [#0732].
-
-That a recipe whose IO is a drink completes server-side is an inference read from the code, not a reading of the path: the citation behind it is about drinking, and nothing has read the craft completion path for a fluid IO line, whose nutrition is excluded from these deltas anyway [#0760/C/inference].
+The measured evolved-recipe arithmetic is a client-side reading: the summation's item replacement is server-gated, so the server still held the base and the untouched ingredients, and what a multiplayer server stores after a real add-item action was not measured, the summation itself being pure Java arithmetic both sides run identically [#0360/M/one-side].
+The item removal on depletion is a jar reading only: `ItemUser` is not exposed to Kahlua, so the probe ran the exact setter the spend line executes and nothing after it, and reaching the removal needs a real `ISHandcraftAction` craft [#0714/C/C-only].
+The rotten branch, 0.05 times base hunger at Cooking 7 to 8, 0.10 times at Cooking 9 to 10 and refused below Cooking 7, is the one arm of `addItem` the dataset leaves out: it publishes the fresh-ingredient contribution only, because the gate needs the instance's rotten flag [#0732].
+That a recipe whose IO is a drink completes server-side is an inference, not a reading of the path: the citation behind it is about drinking, and nothing has read the craft completion path for a fluid IO line, whose nutrition is excluded from these deltas anyway [#0760/C/inference].
 
 The mirror says every ingredient adds minus five boredom and unhappiness the first time and that three of the same negates the bonus; the code zeroes an evolved dish's boredom in phase A and moves it only through a spice, by minus twice the spice's `:N`; it moves the dish's unhappiness by the unmodified value less five plus five per earlier copy of the same type, clamped at plus 25 with an over-stuffing term, for a non-spice ingredient and by minus twice the `:N` for a spice; and the bonus stops on the second identical copy with the penalty starting on the third [#4124/C/C-only].
-
 The mirror gives a roster of about 35 rows with no template mechanism; `generated/evolvedrecipes.txt` holds 62 evolved-recipe blocks, the 63rd being `AddBaitToChum` in the fishing recipe file as [the evolved join](#evolved-join) states, and an item's recipe key attaches both to the matching recipe and to every recipe whose template equals that key [#0366/C/C-only].
-
 The mirror says an evolved recipe inherits the age of its base ingredient only; the age is proportional instead, phase A setting the new age to the new `offAgeMax` times the old age over the old `offAgeMax` and only when both items have real thresholds, with ingredients contributing no age at all [#0367/C/C-only].
 
-A mod cannot change vanilla's cooking gates, timers or evolved-recipe perk scaling, all of which are Java [#1155/M/n=1].
-
-A mod can set per-item cook times through the script keys instead [#1156/M/n=1].
-
+A mod cannot change vanilla's cooking gates, timers or evolved-recipe perk scaling, all of which are Java [#1155/M/n=1]; it can set per-item cook times through the script keys instead [#1156/M/n=1].
 A mod can rewrite a crafted instance from `OnCooked`, whose registration and firing are read rather than driven end to end [#1154/M/n=1].
-
 A mod can control spice behaviour through the `Spice` script bool, whose spice branch ends in `useSpice`, which lowers the dish's unhappiness and boredom by twice the recipe's `:N` and moves the spice's macros into the dish at the skill bonus times its share [#4127/C/C-only].
-
 A cooked food's `thirstChange` cannot be trusted client-side; the per-hop arithmetic is [facts/wire-packets.md](wire-packets.md#cooked-thirst)'s [#1147/M/n=1].
 
 The engine has no per-entry amount on a dish's ingredient list, no Lua event inside the evolved summation and no `PassNutritionThroughFood` flag, so a per-ingredient share and a hook on the add exist only where a mod writes them [#2653/C/C-only] [#2657/C/C-only] [#2659/C/C-only].
-
 No vanilla arm carries item modData from an input to an output: the evolved summation, the craft split and the Java craft summation all leave it behind [#2656/C/C-only] [#2660/C/C-only] [#2668/C/C-only].
 
 Not covered: the cooking UI and the right-click path that reaches it, the crafting timed action end to end, cooking XP beyond the single grant in `Food.update`, `component CraftRecipe` blocks that build entities rather than items, the drying and furnace callers of the craft `OnCreate` dispatch, whether a consumed input's macros are already spent when `OnCreate` runs, which side runs the add-item and hand-craft actions on a dedicated server, and fluid nutrition, which is per litre and excluded from every delta on this page.
@@ -504,11 +359,11 @@ Not covered: the cooking UI and the right-click path that reaches it, the crafti
 
 ## See also
 
-- [platform/loader-and-scripts.md](../platform/loader-and-scripts.md#craft-recipe-grammar) — the `craftRecipe` block and its IO line grammar, general to any mod.
+- [platform/loader-and-scripts.md](../platform/loader-and-scripts.md#craft-recipe-grammar) — the `craftRecipe` block and its IO line grammar.
 - [facts/food-item-model.md](food-item-model.md#script-keys) — the script keys the cook block and the recipe loader read, and the state axes they write.
-- [facts/spoilage.md](spoilage.md#sealed) — the `ReplaceOnRotten`, `ReplaceOnUse` and `ReplaceOnDeplete` links, home canning's age rewrite, and what rot does to an item.
+- [facts/spoilage.md](spoilage.md#sealed) — the other `ReplaceOn*` links, home canning's age rewrite, and what rot does to an item.
 - [facts/eating-pipeline.md](eating-pipeline.md#modifiers) — the cooked, burnt and stale ladders that read `cooked` and `burnt` at eat time.
-- [facts/wire-packets.md](wire-packets.md#item-stats-packet) — which cooking fields cross the wire, which are absent, and the cooked-thirst halving.
+- [facts/wire-packets.md](wire-packets.md#item-stats-packet) — which cooking fields cross the wire and the cooked-thirst halving.
 - [platform/mp-model.md](../platform/mp-model.md#ownership) — which side owns the item instance, the Cooking perk and the item-stats sends.
 - [facts/other-mods/autocook.md](other-mods/autocook.md#architecture) and [facts/other-mods/longtermpreservation.md](other-mods/longtermpreservation.md#mp) — two mods that drive this pipeline from Lua.
 - [reference/datasets.md](../reference/datasets.md) — the column authority for `data/recipes.*` and `data/evolved-recipes.*`.

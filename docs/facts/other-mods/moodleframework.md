@@ -19,8 +19,6 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: one workshop mod t
 
 MoodleFramework is a workshop library that other mods call to put a moodle of their own on screen beside the vanilla stack.
 The mod ships no moodle texture and no moodle text of its own, so every moodle it draws is a consumer's [#2551/C/C-only].
-What it does is the registration surface and the value it draws; the architecture is the version-folder layout and what executes from it; the data model is where the value lives; the multiplayer section is the surface it lacks.
-Everything a consumer pays for, and everything the framework collides with, sits under [Walls and bounds](#pitfalls).
 
 <a id="what-it-does"></a>
 ### What it does
@@ -30,18 +28,13 @@ MoodleFramework registers no engine `MoodleType`: `MoodleType.register`, `regist
 It is a widget library and not a registry wrapper, so the registry's mutate-then-validate hazard on a duplicate id cannot reach it either [#1198/C/C-only].
 The vanilla stack offers no seat for a new moodle: `zombie.ui.MoodlesUI` has 15 members, the constructor, `getInstance`, `setCharacter`, `render`, `update`, `wiggle(MoodleType)`, two mouse handlers, `isCurrentlyAnimating`, two texture-size helpers and four `MoodleType`-keyed background helpers, with no add, insert or register, and although `exposeAll` exposes the class to Lua, reaching it gives a mod nothing to hand a new moodle to [#2554/C/C-only].
 `wiggle` and the four background helpers all take a registered `MoodleType`, which is exactly what a framework moodle never is [#2554/C/C-only].
-That is why the framework draws beside the vanilla stack rather than inside it.
 
 MoodleFramework's registration surface is two globals, `MF.createMoodle(moodleName)` and `MF.getMoodle(moodleName, playerNum)`: the first adds, on its first call for a name only, one `OnCreatePlayer` handler that constructs the widget, and the second returns the widget or nil [#2532/C/C-only].
 The create call takes nothing but the name, so polarity, thresholds, textures and text are all set afterwards on the instance the access call returns.
-The create call registers nothing with the engine; it records the name and waits for a player to exist.
-The access call reads a per-player-number store, which is what makes the library split-screen safe when the caller passes the player number.
 
 A MoodleFramework moodle's level and polarity are derived and never settable: `:setValue(value)` is the only write, and `:getLevel()` (0 to 4) and `:getGoodBadNeutral()` (1 good, 2 bad, 0 neutral) read the value against eight thresholds whose defaults are 0.1, 0.2, 0.3 and 0.4 bad and 0.6, 0.7, 0.8 and 0.9 good [#2533/C/C-only].
-Polarity is a consequence of where the value sits, so there is no good-moodle flag and no level setter to reach for.
 A good level and a bad level of the same depth share one level number, and the polarity getter is what tells them apart.
-The consequence for a consumer is that it controls a moodle through one float and a threshold table, and nothing else.
-A design that wants the level itself to be authoritative has to send a value the thresholds map to that level, because there is nothing to send a level to.
+A consumer that wants the level itself to be authoritative has to send a value the thresholds map to that level, because there is nothing to send a level to.
 On a live client a value of 0.5 left the moodle at level 0, polarity 0, off the UI manager and with no render call in about 4 s [#3191/M/n=1].
 A value moved back to 0.5 after 0.95 took the widget off the UI manager again and held its render count [#3193/M/n=1].
 
@@ -57,20 +50,16 @@ A boot confirms it: with a dedicated-server client the server logged one loading
 The `42.0/` and `42.13/` folders are not loaded on this build [#3505/C/C-only]; of their moodle files only the `42.0/` copy, identical to `common/`'s, carries the dead calls set out under [Pitfalls](#pitfalls).
 
 MoodleFramework runs on the client only: every Lua file in its four folders sits under `media/lua/client/` (`MF_ISMoodle.lua` in each, `MF_Config.lua` in `42.0/` and `common/`), it ships no code file under `lua/server/` or `lua/shared/`, and `MF` is therefore nil on a dedicated server [#2536/C/C-only].
-Client-only by layout is the strong form of the property: no guard can be reached by the wrong branch, because the server never loads the files.
-The only other content under its `media/lua` is a translation tree for its own options page, which is data and not code.
-Every framework call a consumer makes therefore lives in the consumer's own client file, and a server file that names `MF` reads nil.
 A boot read exactly that: the server's `MF` and the two names under it failed at the table while the client resolved all three [#3190/M/n=1].
+Every framework call a consumer makes therefore lives in the consumer's own client file, and a server file that names `MF` reads nil.
+The only other content under its `media/lua` is a translation tree for its own options page, which is data and not code.
 
 The `42.20` folder's `MF_ISMoodle.lua` calls `MF.hasBackground`, `MF.hasBGColor` and `MF.hasBorder` from `render()`, and all three are defined only in `MF_Config.lua`, so the config file is a hard runtime dependency of the moodle file and not an optional extra [#2541/C/C-only].
 The config file that executes is `common/`'s copy, byte-identical to the `42.0/` copy (`md5 559f9a62eb288ef78e452edfc329e631` both), because `42.20/` ships no counterpart for it [#2542/C/C-only].
-Which of the two identical copies executes is therefore bookkeeping and not behaviour.
 That the config file executes is measured: on the client `MF.key` read the mod's name and the four helpers the config file defines resolved as functions, and that no other file supplies them is a reading of the dated tree [#3189/M/n=1].
-The merge rule is load-bearing twice over here: it keeps the executing moodle file current, and it is the only thing that supplies that file's config dependency.
 Within the mod the Lua loader sorts each block case-insensitively [#0850/C/C-only], so the config file loads before the moodle file in the `common/` block and its options page is built at file scope.
 
 The mod's whole namespace is one global table, `MF`, created with an `or` guard in both files so that either may run first.
-Its events are all client-side and are listed under [Multiplayer](#mp).
 Its single touch of the nutrition system is a debug print of the player's proteins inside a moodle-level log line [#1589].
 
 <a id="data-model"></a>
@@ -82,16 +71,12 @@ A consumer therefore sets its value again after every player creation rather tha
 The widget instances live in a second table, keyed by player number and then by moodle name, which is the store the access call reads.
 
 The pre-`42.20` copies of `MF_ISMoodle.lua` wrote player modData and reset `getModData().Moodles` to an empty table on the session's first moodle, but never transmitted it; the `42.20` copy that executes writes no modData and reads it only for another moodle framework's `MoodleManager` key [#2539/C/C-only].
-Neither of those older copies executes on this build, and even they could not trigger a transmit wipe, because they never transmitted.
 The executing copy still carries the defensive accessor those copies needed: a missing character table, moodle table or moodle entry is recreated on access rather than raising.
-With the store out of modData that guard now protects against nothing but its own first use, and it costs nothing to keep.
 
 <a id="mp"></a>
 ### Multiplayer
 
 MoodleFramework has no multiplayer surface: `sendClientCommand`, `sendServerCommand` and `transmitModData` are absent from all four of its folders, and the only events it registers are `OnCreatePlayer`, `OnPlayerDeath` and `OnMainMenuEnter`, with no `OnClientCommand` or `OnServerCommand` handler [#2537/C/C-only].
-The framework carries nothing from the server and asks for nothing from it.
-The value a client draws is a value that client's own Lua set, and nothing else.
 The player-stats packet carries none of a mod's own fields, so there is no packet a framework moodle could read a server value from [#0129/M/n=1].
 The route a server-held nutrient takes to a framework moodle is the command bus [#1153/C/C-only], and the technique is written at [the techniques](#techniques).
 Because the executing copy writes no player modData, the [wipe-and-replace hazard](../../platform/mp-model.md#wipe-and-replace) of a player-modData transmit reaches the framework in neither direction: it cannot wipe a nutrition mod's keys, and a nutrition mod's transmit cannot wipe its levels.
@@ -109,13 +94,12 @@ Those two copies are byte-identical, the `42.13/` copy walks the moodle registry
 A release that drops both, or ships only folders the resolver scores above the build, puts the broken copy back in play, and a consumer cannot see which copy runs from its own code.
 
 MoodleFramework contains no `pcall` in any of its four folders: every call it makes into the engine and every call a consumer makes into it is unprotected, so the consumer's own protected call at the boundary is the only guard [#2546/C/C-only].
-That is the [boundary rule](../../platform/lua-platform.md#pcall) applied in full: the consumer wraps its own framework calls, because the framework wraps nothing.
 The harness client runs in debug mode, where an unguarded mod error [parks the client](../../platform/lua-platform.md#debug-break), so an unwrapped framework call is a test hazard as well as a runtime one.
 
 MoodleFramework positions its moodles at the frame cadence with no cache: `render()` calls `getXYPosition()` every frame for every visible moodle, and that walks every vanilla `MoodleType` in `Registries.MOODLE_TYPE`, reads a `getMoodleLevel` per type, walks another mod's `MoodleManager` modData table and sorts its own moodle-name list [#2549/C/C-only].
 That is a count of reads off the code, not a measured cost [#2549/C/C-only].
 Every moodle a consumer puts on the UI manager adds one such walk to each frame, so a consumer that registers N moodles adds N walks [#2549/C/C-only].
-Against the [read-cadence rule](../../areas/ui-and-moodles.md#read-cadence) this is the frame cadence and not the push cadence, and a consumer cannot cache it away because it is the framework's own code.
+This is the frame cadence, not the push cadence of the [read-cadence rule](../../areas/ui-and-moodles.md#read-cadence), and a consumer cannot cache it away because it is the framework's own code.
 What a consumer does control is how often it calls `:setValue`, and that is the cadence the read-cadence rule governs.
 
 A mod also cannot retune a vanilla moodle's thresholds nor change what a vanilla moodle does, so the framework is not a way around that wall [#1141/C/C-only].
@@ -124,18 +108,15 @@ A mod also cannot retune a vanilla moodle's thresholds nor change what a vanilla
 ### Compatibility
 
 MoodleFramework calls `HasTrait(String)`, `getTypeString` and `loadstring` nowhere in any of its four folders [#2545/C/C-only].
-No removed-API hazard is in its code, so its build risk on this front is only the version-folder layout above.
 
 MoodleFramework's config file mutates the engine's shared `Color.gray` in place from a Mod Options colour picker whose default is white rather than vanilla gray, on `OnMainMenuEnter` and on every apply of its options page [#2550/C/C-only].
 Any mod that draws with `Color.gray` on a client that has the framework installed draws with the framework's colour instead.
-A nutrition interface that never draws with that colour object is untouched by it.
 
 MoodleFramework has two consumers in the installed corpus holding seven moodles between them: `QualityCooking` creates one, `QualityCookingMeal`, and `MoreDifficultZonesB42` creates six, `SD6Tier1` to `SD6Tier6`, from a `common/media` file [#2556/C/snapshot].
 That count is swept on the dated census and the corpus drifts; the census reads each mod's live version folder only, so the second consumer is read from its file.
 A nutrition moodle therefore joins a stack that is already in use, and its names must not collide with those.
 
 `MoodlesUI` is called from vanilla's own Lua, where `ISReloadWeaponAction` calls `MoodlesUI.getInstance()` seven times, six of them to wiggle a vanilla moodle, and by no mod in the installed corpus, whose only mentions of the name are comments in MoodleFramework's own copies [#2557/C/snapshot].
-No corpus mod touches the Java stack, so there is no neighbour a framework moodle or a private widget could collide with there.
 Both the framework and a private widget are additive widgets rather than patches of a vanilla widget, so either satisfies the rule against patching what a resident interface mod redraws [#1083/C/snapshot].
 
 Not covered: vanilla's `PZAPI.ModOptions` signatures the config page assumes; `ISUIElement`'s lifecycle beyond adding to and removing from the UI manager; the translator's treatment of a mod's own `Moodles.json` keys; the other moodle-manager mod whose modData key the framework reads; the framework's frame-time cost; whether `CleanUI` moves, hides or redraws a framework moodle; split-screen and controller behaviour; and the death and respawn path beyond the two lines that remove and suspend a widget.

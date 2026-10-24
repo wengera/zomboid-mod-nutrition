@@ -3,71 +3,56 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: what a food item i
 
 ## Key facts
 
-- A food item's age axis stores `age` in days as a float with `offAge` and `offAgeMax` in whole days, and derives fresh, an un-named stale band, rotten and "never ages" from those three numbers rather than storing any of them [#0201].
-- The cooking axis stores `cookingTime` in game minutes of heat beside `heat`, `lastCookMinute` and the `cooked` and `burnt` flags, and `Food.update` is its only driver [#0202].
-- The freezing axis stores `freezingTime` as a 0–100 percentage beside `lastFrozenUpdate` and the `frozen` flag, and takes its freezing and thawing predicates from the container [#0203].
-- The three axes cross at only two points: `isFrozen()` zeroes the age rate and closes the cooking block, and `burnt` short-circuits both rot transition tests [#0204].
 - `Food.setRotten(boolean)` writes a field that nothing in the jar reads, and `isRotten()` answers from `age` instead: an `age` of 4.1 against an `offAgeMax` of 4 reads rotten with no setter call [#0205/C/C-only, #0206/M/n=1].
 - The routes that do move state are `setAge(offAgeMax + 1)` or `setAge(offAge)` for rot and `freeze()` or `setFreezingTime(100)` for freezing [#0210].
 - A non-custom-weight food's displayed weight is derived from its remaining hunger fraction, so rewriting `HungerChange` moves the weight unless `CustomWeight = true` opts the item out [#1214/C/C-only].
-- The item-level script-key reference is 114 distinct keys: 78 over the 722 `base:food` blocks and 82 over the 150 `base:drainable` blocks, 46 of them shared [#0215/C/snapshot].
+- An absent script key takes the engine's own default, which is not always zero: an item writing neither shelf-life key reads back the never-ages sentinel on both its script object and its instance [#0619/M/n=1].
+- A drink's nutrition lives on its fluid and is stated per litre: a full 0.3 L cola can reports 120 kcal against the fluid's per-litre 400 [#0604/M/n=2, #0631/M/n=1].
 - `Item.InstanceItem(String)` divides `HungerChange` and `ThirstChange` by 100 on the way onto the instance and inverts `CantBeFrozen` into a can-be-frozen setter [#0323].
 - Of the four poison keys the loader recognises, only `PoisonPower` is carried by anything that ships, on four `food.txt` blocks and no drainable block, counted 2026-09-10 [#0317/C/snapshot].
 - Eating a poisoned item adds `poisonPower * f` to POISON and `poisonPower * f / 6` to PAIN, halved with Iron Gut unless the item type is `Bleach` and doubled with Weak Stomach [#0050].
 - The game's own `ScriptManager` counts 722 `base:food` items, 150 `base:drainable` items and 61 fluid definitions, each equal to the shipped scan on two independent boots [#0608/M/n=2].
 - Ten spot-checked items match the live game field for field: 182 fields compared, 170 matched, 12 not applicable, 0 mismatched [#0609/M/n=10].
-- An absent script key takes the engine's own default, which is not always zero: an item writing neither shelf-life key reads back the never-ages sentinel on both its script object and its instance [#0619/M/n=1].
-- A drink's nutrition lives on its fluid and is stated per litre: a full 0.3 L cola can reports 120 kcal against the fluid's per-litre 400 [#0604/M/n=2, #0631/M/n=1].
 
 ## How it works
 
-This page is in six parts: the axes an item's state moves on, the setters that do not move them, the keys that seed them, the fluid blocks a drink's numbers come from, the poison fields, and how far the shipped dataset agrees with the running game.
-Everything here is the model one item carries in memory; what a client's copy of that model is allowed to be is [`wire-packets.md`](wire-packets.md#desyncs).
+This page is the model one item carries in memory; what a client's copy may be is [`wire-packets.md`](wire-packets.md#desyncs).
 
 <a id="state-axes"></a>
 ### The three state axes
 
-A food item is one `Food` instance, and its state moves on three axes that are stored separately and read back through derived predicates.
-Nothing on the item holds a freshness or a doneness value; every such reading is computed at the moment it is asked for.
-The practical consequence is that a mod reads a predicate and never a stored flag, because the predicate is a function of the numbers while the flag is not.
+Nothing on the item stores freshness or doneness: each is a predicate computed when asked, so a mod reads the predicate, never a flag.
 
 A food item's age axis stores `age` in days as a float with `offAge` and `offAgeMax` in whole days and `lastAged` in world hours, and derives `isFresh()` as `age < offAge`, `isRotten()` as `age >= offAgeMax`, an un-named stale band between the two and `canAge()` as `offAgeMax != 1000000000` [#0201].
-The rate that moves `age`, the container multipliers that scale it and the thresholds a script writes into the two bounds are [`spoilage.md`](spoilage.md#formula); this page owns only the shape of the axis.
+The rate, the container multipliers and the thresholds are [`spoilage.md`](spoilage.md#formula).
 
 A food item's cooking axis stores `cookingTime` in game minutes of heat alongside `heat`, `lastCookMinute` and the `cooked` and `burnt` flags, and `Food.update` is its only driver [#0202].
-The gates that decide when that driver flips a flag are [`cooking-and-recipes.md`](cooking-and-recipes.md#cook-block), and which side runs the driver and how often is [`spoilage.md`](spoilage.md#writes).
+Its gates are [`cooking-and-recipes.md`](cooking-and-recipes.md#cook-block); which side runs it is [`spoilage.md`](spoilage.md#writes).
 
 A food item's freezing axis stores `freezingTime` as a 0–100 percentage with `lastFrozenUpdate` and the `frozen` flag, is written by `Food.updateFreezing` and `freeze()`, and takes its `isFreezing()` and `isThawing()` predicates from the container together with `canBeFrozen()` [#0203].
-The container is therefore part of the state: an item that cannot be frozen never accumulates a freezing percentage at all, and one sitting in a player's inventory is in neither a fridge nor a freezer.
+A player's inventory is neither fridge nor freezer, and an item that cannot be frozen never accumulates a freezing percentage.
 
 The three state axes cross at only two points: `isFrozen()` zeroes the age rate and closes the cooking block, and `burnt` short-circuits both rot transition tests, so a burnt item never fires the container-update event for rot while its `age` still advances [#0204].
-Everywhere else the three are independent, which is why a frozen, burnt, rotten item is a reachable state rather than a contradiction.
-A rebalance therefore has three clocks to think about, and only the frozen and the burnt flags couple any two of them.
+Everywhere else they are independent, so a frozen, burnt, rotten item is a reachable state.
 
-The cooking flags can also be written directly, and the script does not police them.
-`setCooked` and `setBurnt` stick on an item whose script says `IsCookable = false`, and the state modifiers then apply in full — four matrix rows on one fixture, where uncookable bread flagged cooked gave 1.3 times its hunger relief and flagged burnt a fifth of its calories [#0062/M/one-fixture].
+`setCooked` and `setBurnt` stick on an item whose script says `IsCookable = false`, and the state modifiers then apply in full: on one fixture, uncookable bread flagged cooked gave 1.3 times its hunger relief and flagged burnt a fifth of its calories [#0062/M/one-fixture].
 
-Weight is the fourth reading that moves with state, and it too is derived rather than stored.
+Weight is derived, not stored.
 `Food.getActualWeight` has two arms: with `isCustomWeight` false it returns the script weight scaled by the hunger fraction, and with `isCustomWeight` true it takes the guarded `InventoryItem` route instead [#1029].
-So a non-custom-weight food's displayed weight derives from its remaining hunger fraction, and `CustomWeight = true` opts out of that derivation — read from the code rather than measured, and the consequence is that rewriting `HungerChange` is not weight-neutral [#1214/C/C-only].
+So a non-custom-weight food's displayed weight derives from its remaining hunger fraction, and `CustomWeight = true` opts out of that derivation; rewriting `HungerChange` is not weight-neutral [#1214/C/C-only].
 The weight split is the custom-weight flag choosing an arm: the server's true flag routes the actual-weight getter through the guarded inventory-item route and returns 0, while the client's false flag recomputes script weight times the hunger fraction and returns 0.35 [#1424/M/n=1].
-That is one session on one mod item, with the arms themselves read from the jar and the floats rounded to six decimals.
-
-A second guard sits in front of the unmodded-weight getter.
 `getActualWeightUnmodded()` returns 0 whenever `getDisplayName()` equals `getFullType()`, so an item with no translation entry reports weight 0 wherever its name does not resolve [#1027/M/n=1].
-That zero is the display-name guard rather than a weight reading, and it was taken on one session across items written for the test.
-What it costs a mod is under [Walls and bounds](#walls).
-Weight is the axis a nutrition rebalance moves without meaning to, which is why it sits here rather than with the body model.
+What that zero costs a mod is under [Walls and bounds](#walls).
 
-Beyond the axes an instance carries state that no script key seeds: two lists of item types and its own modData table.
+Beyond the axes an instance carries state no script key seeds: two lists of item types and its own modData table.
 `InventoryItem.extraItems` is saved behind header bit `32` as an `int` count and one item-registry `short` per entry, and loaded back through `WorldDictionary.getItemTypeFromID`, so an evolved dish keeps its ingredient list across a save [#2673/C/C-only].
 `Food.spices` is saved behind header bit `256` as a one-byte count and one written string per entry, and loaded back the same way [#2674/C/C-only].
 What fills the two lists is [`cooking-and-recipes.md`](cooking-and-recipes.md#evolved)'s.
 
 `InventoryItem.getModData()` is public on an exposed class and lazily creates the instance's own table, while `hasModData()` answers false for a table that exists but is empty, so calling the getter to test for mod data always finds a table [#2675/C/C-only].
 Every instance receives a deep, recursive copy of its type's default modData rather than a shared reference: `InstanceItem` calls `copyModData`, which wipes the instance table and runs `LuaManager.copyTable`, which copies a nested table through a recursive call, so a write to one instance's key reaches neither the type default nor a sibling instance [#2676/C/C-only].
-`Food.multiplyFoodValues`, which shrinks what is left of a part-eaten or part-spent item, touches no modData, no `extraItems` and no `spices`: its whole body is one setter call per scaled field, each the field times the factor, and a return [#2677/C/C-only].
-A value a mod keeps in an instance's modData therefore stays whole while the item's own nutrition shrinks around it [#2677/C/C-only].
+`Food.multiplyFoodValues`, which shrinks what is left of a part-eaten or part-spent item, touches no modData, no `extraItems` and no `spices`: its whole body is one setter call per scaled field, each the field times the factor, and a return, so a value a mod keeps in an instance's modData stays whole while the item's own nutrition shrinks around it [#2677/C/C-only].
+
 An item script's `OnCreate` runs at instantiation: `Item.InstanceItem(String,boolean)` calls `initialiseItem` on a fresh instance only when the current thread is the game thread, the loading thread or the server main thread, and `initialiseItem` resolves `getLuaCreate()` through `LuaManager.getFunctionObject` and calls it through `LuaManager.caller.protectedCallVoid`, so a spawn, craft output or replacement of a type that declares `OnCreate` passes through it when it is created on one of those three threads [#3327/C/C-only].
 `Fishing.onCreateFish`, the `OnCreate` of the fish item scripts, returns at once on a client, multiplies calories, lipids, carbohydrates and proteins by `2.2 * w / getActualWeight()` for a drawn weight `w` in kg, sets `baseHunger` to `-(w / weightFactor)` with a floor of 0.05 in magnitude that its bait exemption never lifts, because the exemption tests `fishConfig.itemType ~= "BaitFish"` while `itemType` holds the full type `Base.BaitFish`, so the test is true for every fish including bait and each lands at 0.05 or more (a vanilla bug a mod cannot fix), sets `hungChange` equal to it, and sets a custom actual weight of `2.2 * w`; the rod catch `Fish:createFish` and the fishing net run the same block on a fresh instance [#3328/C/C-only].
 A fish's macro scale and its hunger scale are independent: the macros go to `2.2 * w / Weight` times the script's and the hunger to `(w / weightFactor) / abs(HungerChange / 100)` times the script's, so a 2 kg `Base.LargemouthBass` (`Weight = 0.4`, `HungerChange = -15.0`, `weightFactor` 2) holds 11 times its script calories and 6.67 times its script hunger, a ratio of 0.606 between the two [#3329/C/arith.].
@@ -75,48 +60,29 @@ Three more spawn paths rescale a food instance: a trapped animal and a foraged d
 Attaching a food lure lowers the lure's `hungChange` alone, leaving its macros and `baseHunger`, so a part-used lure's stored calories no longer follow its stored hunger, while trap bait is reduced through `multiplyFoodValues` [#3334/C/C-only].
 Outside the item edit panel and two client test files, only nine shipped Lua files call `setCalories`, `setHungChange`, `setBaseHunger`, `multiplyFoodValues`, a `copyNutrition` method or `copyFoodFromSplit`: the three fishing files, the trap object, the butchering util, the forage system, the lure action, the client lure command and the bait action [#3335/C/snapshot].
 
-
 <a id="dead-setters"></a>
 ### The setters that write nothing
 
-Three of this model's setters look authoritative and are not.
-Each writes a field, and the field is either read by nothing or overwritten by the next tick.
-They fail in three different ways, so each is worth naming on its own.
-What they cost a mod is the same: a state change made the obvious way either does nothing at all, or survives only until the next tick on the side that ticks.
+Three setters look authoritative and are not: a state change made the obvious way does nothing, or survives only until the next tick on the side that ticks.
 
 `Food.setRotten(boolean)` writes a field that nothing in the jar reads [#0205/C/C-only].
-That reading is a whole-jar reverse-reference scan, so a reader outside the jar would not show in it; inside the jar there is none.
-
 `setRotten(true)` does not stick on an item; the working route to a rotten item is `setAge(getOffAgeMax() + 1)` [#0063/M/n=1].
-The probe behind that is a single smoke reading on one item, where the rotten predicate was still false after the call and the age route turned it true.
-
-The reason is the derivation.
 `isRotten()` derives from `age`: setting `age` to 4.1 on an item whose `offAgeMax` is 4 makes the item read rotten with no `setRotten` call [#0206/M/n=1].
-That is one item on one fixture, a client-side age write against a server-spawned item.
 
-The freeze flag has the mirror problem, for the opposite reason.
 `setFrozen(true)` is undone by the next `updateFreezing` tick on a server, because `isThawing()` is true while `freezingTime` is still 0 [#0207/C/C-only].
-Off a server it survives, and the reason is a call graph rather than a guard.
 `updateFreezing` has exactly one caller in the jar and every ticking route into `updateAge` is server-gated, so on a multiplayer client nothing thaws the `frozen` flag except toggling a generator near a powered fridge or freezer or an explicit Lua `item:updateAge()` [#0208/C/C-only].
-Both of those are code readings rather than measurements, and whether the same holds in single-player at default settings is unsettled.
-The asymmetry matters to a probe as much as to a mod, because a freeze that holds on a client is not evidence that the same freeze holds on a server.
+So a freeze that holds on a client is no evidence that it holds on a server.
 
-The same shape is visible in vanilla's own code, which writes the flag and the number together rather than choosing between them.
 Vanilla never trusts either rot flag alone: `ItemPickerJava.rotItem` calls `setRotten(true)` and then `setAge(getOffAgeMax())` [#0209].
-The pair is the pattern worth copying, and the age write is the half that does the work.
-
 The routes that do change an item's rot and freeze state are `setAge(offAgeMax + 1)` or `setAge(offAge)` for rot and `freeze()` or `setFreezingTime(100)` for freezing [#0210].
-Anything that wants a state change to survive a tick uses those and reads the predicate back rather than the flag.
-A probe that sets a flag and then reads that same flag back passes on all three setters and is still wrong about the item.
+A probe that sets a flag and reads the same flag back passes on all three setters and is still wrong about the item; read the predicate.
 
 <a id="script-keys"></a>
 ### The script keys
 
-Every `Key = Value` line of an `item` block reaches the same loader method, whatever the item type; what that method does with a key it knows, a key it does not and a repeated block is [`loader-and-scripts.md`](../platform/loader-and-scripts.md#script-dsl).
-This section owns the key list itself, and the four keys whose behaviour is not visible from the list.
+What the loader does with a known key, an unknown key and a repeated block is [`loader-and-scripts.md`](../platform/loader-and-scripts.md#script-dsl); this section owns the key list.
 
 `Item.InstanceItem(String)` copies the script fields onto the `Food` instance, dividing `HungerChange` and `ThirstChange` by 100 and inverting `CantBeFrozen` into a can-be-frozen setter [#0323].
-The division is why a script's hunger figure and an instance's never read the same, and the inversion is why an item's script says what it cannot do while its instance says what it can.
 Five common vanilla foods carry script `HungerChange` values of -20 (`CerealBowl`), -16 (`Banana`), -24 (`OpenBeans`), -10 (`BreadSlices`) and -40 (`Steak`, which also sets `DangerousUncooked`), so, for an illustrative menu, a breakfast of cereal and a banana, a lunch of opened beans and bread slices and a steak dinner remove 0.36, 0.34 and 0.40 hunger before item state, and 0.52 for the steak cooked under the times-1.3 cooked ladder. [#3341/C/snapshot]
 
 **The item-level script-key reference.** 114 distinct keys — 78 over the 722 `base:food` blocks of `food.txt` and 82 over the 150 `base:drainable` blocks of `drainable.txt`, 46 of them shared — each row giving the key's type, its occurrence count in each file, its Java field or getter and its runtime effect, read on `42.20.4`; the occurrence counts are a dated read of the two generated script files, 2026-09-10 [#0215/C/snapshot].
@@ -238,42 +204,28 @@ Five common vanilla foods carry script `HungerChange` values of -20 (`CerealBowl
 | `WorldStaticModel` | string | 718 | 150 | `Item.worldStaticModel` | model |
 | `WorldStaticModelsByIndex` | list | 2 | 0 | `Item.worldStaticModelsByIndex` | per-index models |
 
-The two count columns are occurrence counts in each of the two generated files, so a key with no occurrences in one of them is simply unused by that file's blocks.
-The runtime-effect column is what the engine does with a value, which is the column a rebalance reads; the per-item values themselves are the dataset.
+
+The count columns are occurrences in each generated file; the per-item values are the dataset, [`datasets.md`](../reference/datasets.md).
 How a value is typed as it is parsed belongs to the loader rather than to any key ([#0214], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#script-dsl)).
 
-Four of those rows need stating outside the table, because what they do is an absence.
-A key that parses into nowhere looks, in the table, exactly like a key that works.
-
+Four keys do their work by an absence, which the table cannot show.
 `IsWaterSource` has no branch in `Item.DoParam` on `42.20.4` — the literal survives only in the script generator's `ItemBuilder` class — so it lands in `defaultModData`, and it is carried by one shipped item, `item TestWaterMug` [#0217/C/snapshot].
-
 `RainFactor` has no branch in `Item.DoParam` and is recognised only by `FluidContainerScript` inside a `component FluidContainer` block, never at item top level, so at item level it lands in `defaultModData`, and it is carried by the same one shipped item [#0218/C/snapshot].
-Both land there by the loader's default arm, which writes an unrecognised key into the item's default modData rather than dropping it or throwing ([#0212], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#default-moddata)).
-That arm is also the route a mod nutrient can ride into a vanilla block.
-Each instance then gets its own deep copy of that table, as [the state axes](#state-axes) state.
-
-`Eattime` is the script-parser spelling of the eat-duration key, it has no Java consumer, and its only use is the Lua duration override [#0100/C/snapshot].
-The spelling is the trap: the getter is camel-cased and the key is not.
-What the eat action does with the value is [`eating-pipeline.md`](eating-pipeline.md#eat-type).
-
+Both land there by the loader's default arm, which writes an unrecognised key into the item's default modData rather than dropping it or throwing; that arm is also the route a mod nutrient can ride into a vanilla block ([#0212], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#default-moddata)).
+`Eattime` is the script-parser spelling of the eat-duration key, it has no Java consumer, and its only use is the Lua duration override [#0100/C/snapshot]; what the eat action does with it is [`eating-pipeline.md`](eating-pipeline.md#eat-type).
 One shipped item writes the item endurance key: of the food dataset's item records, counted 2026-09-10, only `Base.Ginseng` carries it, as `enduranceChange = 2.0`, which `Item.DoParam` accepts through a case-insensitive match [#2681/C/snapshot].
-The table's `enduranceChange` row is that one block, and what `Eat` does with the value is [`eating-pipeline.md`](eating-pipeline.md#eat)'s.
 
-A mod that wants a type's own numbers at run time can read some of them off the script and not others.
 A type's script hunger is recoverable from Lua: `Item.InstanceItem` writes both `hungChange` and `baseHunger` as the script's `HungerChange` over 100, and `Item.getHungerChange()` is a public bare read of the script field [#2678/C/C-only].
 Its thirst twin, `Item.getThirstChange()`, is a bare read of the script's thirst field in the same way, a getfield of `thirstChange` with no scaling, so a type's script thirst is recoverable from Lua through the script item as well [#2846/C/C-only].
 A type's script macros are not readable through `getScriptItem()`: `Item.calories`, `carbohydrates`, `lipids` and `proteins` are private and `Item` declares no getter for any of them, so a per-type macro is read off a fresh instance made through the `instanceItem` global [#2679/C/C-only].
 `InventoryItemFactory` is absent from the exposer's class set, so a mod reaches item construction through the `instanceItem` global, whose `String` overload calls `InventoryItemFactory.CreateItem` [#2680/C/C-only].
 
-A mod restating one of these keys does not replace the item's block.
-The restatement merges per key with the last body winning ([#1006/M/n=1], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#per-key-merge)), and the bodies replay sorted by stored script path rather than by load order ([#1055/M/n=2], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#sorted-replay)).
-Per-item values for every key in the table are the dataset rather than this page: [`datasets.md`](../reference/datasets.md).
+A mod restating one of these keys does not replace the item's block: the restatement merges per key with the last body winning ([#1006/M/n=1], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#per-key-merge)), and the bodies replay sorted by stored script path rather than by load order ([#1055/M/n=2], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#sorted-replay)).
 
 <a id="fluid-blocks"></a>
 ### The fluid blocks
 
-A drink's numbers live on a `fluid` script block rather than on its item, and that block's parser is stricter than the item loader in the one way that matters to a mod value.
-
+A drink's numbers live on a `fluid` script block, whose parser is stricter than the item loader.
 A `fluid` block has no default arm: an unrecognised value key or sub-block is logged as a `DebugType.General` error and, when `Core.debug` is set, throws `FluidDefinition error.`, and nothing stores it [#2682/C/C-only].
 A fluid's `properties` block has no default arm either: an unrecognised property key is logged as an error, throws under `Core.debug`, and is not stored [#2683/C/C-only].
 So the item block's route for a mod key has no counterpart on a fluid, and a per-fluid mod value lives in a table the mod owns [#2682/C/C-only] [#2683/C/C-only].
@@ -289,84 +241,60 @@ What a drink does with a container's numbers is [`eating-pipeline.md`](eating-pi
 <a id="poison"></a>
 ### The poison fields
 
-Four loader keys carry poison and only one of them is set by anything that ships, so three of the four are a mod-facing surface rather than a mechanic.
-Which of these fields the item packet carries to a client is [`wire-packets.md`](wire-packets.md#item-stats-packet).
+Four loader keys carry poison and only one is set by anything that ships; which fields the item packet carries is [`wire-packets.md`](wire-packets.md#item-stats-packet).
 
 `PoisonPower` parses into the instance's poison power, is set by four `food.txt` blocks and no drainable block, counted 2026-09-10, and is read by the eat-time body-damage path, by the evolved summation and by `ItemStatsPacket` [#0317/C/snapshot].
-It is the only one of the four that a shipped item actually sets.
-
 `Poison` parses into an instance field but `Food.isPoison()` has no Java and no vanilla-Lua caller — it is exposed to Kahlua only — and no shipped item sets the key [#0318/C/C-only].
-
 `PoisonDetectionLevel` parses into an instance field, is set by no shipped item, and is read by the character's known-poison check, the used-item properties, the poison copy helper, `ItemStatsPacket.setData`, the poison transfer and the forage icon [#0319].
-
 `UseForPoison` parses into an instance field, is set by no shipped item, and its getter has no Java and no vanilla-Lua caller although the value is serialised under bit 131072 in the item's save and load [#0320/C/C-only].
-The reader scans behind those three are the jar plus the vanilla Lua tree, so a reader outside both would not show in them, and the source gives no bytecode offset for the use-for-poison getter.
-`PoisonDetectionLevel` therefore has live readers but no shipped setter, while `Poison` and `UseForPoison` have neither, so a mod writing those two is writing for itself.
+So a mod writing `Poison` or `UseForPoison` is writing for itself.
 
 Poisoning a dish accumulates `poisonDetectionLevel` with a cap of 10, transfers `poisonPower` whole and zeroes the source item, writes the chef's name into the dish's modData under an added-poison-by key, and writes the event to the user log [#0321].
-The transfer being whole rather than shared is what makes one poisoned ingredient enough.
-
 The sandbox option `EnablePoisoning` gates only the user-interface path: a value of 2 disables poisoning entirely and 3 disables it for bleach [#0322].
-The gate is in the context menu, so a dish poisoned by any route that does not go through that menu is not gated at all.
+A dish poisoned by any route outside the context menu is not gated.
 
-What a poison number does at eat time is four independent branches inside `BodyDamage.JustAteFood`, applied or rolled in turn.
+At eat time `BodyDamage.JustAteFood` runs four independent branches, two additions and two rolls:
 
 - `JustAteFood` adds `poisonPower * f` to POISON and `poisonPower * f / 6` to PAIN, halving the poison with Iron Gut unless the item type is `Bleach` and doubling it with Weak Stomach [#0050].
 - A tainted item adds `20.0 * f` to POISON and `10.0 * f / 6` to PAIN [#0051].
 - The rot sickness roll fires at `clamp(age - offAgeMax, 1, 5) / (offAgeMax - offAge) * 100` per cent, or at 100 per cent when `offAgeMax <= offAge`, halved by Iron Gut, doubled by Weak Stomach and skipped when the character is already infected; a hit adds `5 * abs(hungChange * 10) * f` to POISON and a miss adds `2 * abs(hungChange * 10) * f` [#0052].
 - A dangerous uncooked item zeroes `healthFromFoodTimer` and rolls at 75 per cent, or 5 per cent with the `EGG` tag, halved by Iron Gut and zero for eggs with it, doubled by Weak Stomach; on a hit, when the character is not infected and the item is not burnt, it adds `15.0 * f` to POISON [#0053].
 
-The first two are unconditional additions and the last two are rolls, so a rebalance that moves an item's hunger figure moves the rot roll's payload with it.
-Nothing in this section is measured: all four keys, the dish transfer and the four eat-time branches are code readings on this build.
+A rebalance that moves an item's hunger figure moves the rot roll's payload with it.
 
 <a id="dataset-fidelity"></a>
 ### How far the dataset matches the running game
 
-The shipped food dataset is a read of the generated script files, and its columns are [`datasets.md`](../reference/datasets.md).
-What this section owns is the measured distance between that read and the running game: a census, ten field-for-field spot checks, three absent-against-zero read-backs, the fluid join and a three-drink probe.
-The five check types are unlike one another — a count, a field-for-field comparison, a read-back of absence, a join and a behavioural probe — so that one class of scanner error cannot pass all of them.
-What they license is reading the dataset instead of booting the game for any question about what an item *is*, because a mod reading these columns is reading the same load-time definition both sides start from ([#0646/C/inference], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#per-side-load)).
-What they do not license is reading it for what an instance currently is: an instance's state is the axes above, and the dataset carries only the script's seed values.
+The shipped food dataset is a read of the generated script files ([`datasets.md`](../reference/datasets.md)), and it may stand in for a boot on any question about what an item *is*, because a mod reading these columns reads the same load-time definition both sides start from ([#0646/C/inference], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#per-side-load)).
+It does not say what an instance currently is: that is the axes above.
+The readings below ran server-side on the default fixture, on the build the stamp names.
 
 The game's own `ScriptManager` counted 722 `base:food` items, 150 `base:drainable` items and 61 fluid definitions, each equal to the scan, on two independent boots [#0608/M/n=2].
 The live fluid id set is exactly equal to the 61 `fluid` script blocks in both directions [#0615/M/n=2].
-Both counts rest on two boots of the default fixture, the second of which left no committed artifact and is reproduced inside the first.
-The fluid-container bucket has no live census route at all and is therefore scanner-only.
+The fluid-container bucket has no live census route and is scanner-only.
 
 Ten spot-checked items matched the live game field for field: 182 fields compared, 170 matched, 12 not applicable, 0 mismatched, and no substitution was needed [#0609/M/n=10].
-The twelve not-applicable readings are a finding about drinks rather than a gap.
 A fluid container's live instance answers the four `InventoryItem` ageing and cooking getters — 1000000000 / 1000000000 / 60 / 120 — and none of the six `Food` nutrition getters, so a drink's nutrition is reachable only through its fluid [#0604/M/n=2].
-That is the two drinks of the ten, on one boot of the default fixture, read server-side.
 
-Absence in the dataset is load-bearing, and the live read-backs confirm it in both directions.
 `Base.CannedCorn` writes neither `DaysFresh` nor `DaysTotallyRotten`, and both its script object and its instance read back the 1000000000 sentinel, so an absent key's engine default is not always 0 [#0619/M/n=1].
 `Base.RatKing` writes `DaysFresh = DaysTotallyRotten = 0` and its instance reads back `offAge 0 / offAgeMax 0`, so it spawns already rotten [#0620/M/n=1].
 `Base.BreadSlices` writes `MinutesToCook 4` and no `MinutesToBurn` and reads back 4 / 120, so the unwritten half of a block takes its own default independently [#0621/M/n=1].
-Each of the three is one item on one boot of the default fixture, read server-side — enough to show that a zero and an absence are different values, not enough to enumerate every key's default.
 
-The join that puts a fluid's numbers on a container row was checked against the game rather than assumed.
 The fluid join was checked live on all six nutrition fields against the game's own `fluid.script` reading of Cola and JuiceGrape [#0624/M/n=2].
-Two fluids on one boot; that run's own transform labels are not citable, while its numbers and its match verdicts are.
-
-A fluid's numbers are per litre and the container multiplies them, which is the one place a dataset reader can be off by the size of the container.
 A full `Base.Pop2` container reported `calories 120.000008`, not Cola's per-litre 400 [#0631/M/n=1].
 Drinking a whole 0.3 L Cola can (`Base.Pop2`, f = 1.0) wrote +120.000031 kcal and +31.200001 g carbohydrates and moved HUNGER −0.036 and THIRST −0.090, leaving the can empty [#0634/M/n=1].
 Drinking half a 0.3 L Cola can (f = 0.5) wrote +60.0 kcal and +15.6 g carbohydrates and moved HUNGER −0.018 and THIRST −0.045, leaving 0.15 L, so `f` is a share of the current contents and not of the capacity [#0635/M/n=1].
 Drinking a whole 0.2 L JuiceBox (`Base.JuiceBox`, JuiceGrape, f = 1.0) wrote +80.0 kcal and +23.999996 g carbohydrates and moved HUNGER −0.020 and THIRST −0.060, leaving it empty [#0636/M/n=1].
 `healthFromFoodTimer` gained the truncated float32 sum `(int)(|hungerChange| × 13000)` on each drink — 468, 234 and 260 [#0637/M/n=3].
-All of the drink readings are one drink each on one boot of the default fixture, taken server-side with both snapshots inside a single Lua call, so no world time passes between them.
-A reader that ignores the unit is wrong by the size of the container rather than by a rounding, which is why the basis is a column of the dataset rather than a footnote to it.
-Every measured reading in this section was taken on the server side of a live session, so each is the authoritative copy rather than a client's.
+A reader that ignores the per-litre unit is wrong by the size of the container.
 
 ## Walls and bounds
 <a id="walls"></a>
 
-The item model's bounds are mostly the shape of the scans behind it, and its one mirror correction is about state rather than about values.
-
 The mirror says the nutritional-values rows are state-free; the code agrees for the macros, which are bare field reads with no cooked, burnt, rotten or frozen modifier, but its hunger column is the raw script value divided by 100 at instantiation and so an identity column rather than an arithmetic one, and its fat column is the script and Java lipids [#0369/M/n=1].
+The mirror's aging, fridge and freezer claims are [`spoilage.md`](spoilage.md#walls).
 
 A mod item's display name equals its full type on both sides before and after cooking while a vanilla control resolves its name on both sides and keeps 0.3 everywhere, so this dedicated server resolves vanilla item names perfectly well and the failure is not server-wide [#1426/M/n=2].
-Two items on one session, differing in more than one way at once, so the reading supports exactly "not dedicated-server-wide" and "this item's name does not resolve".
 
 A mod cannot ship a food absent from the translation table and have its weight arrive: the unmodded-weight guard returns zero and the item packet fills the wire's weight field from that getter [#1166/C/C-only].
 
@@ -374,15 +302,8 @@ A mod can run the per-key merge across every `base:food` item only with a workar
 
 A mod can put a custom key inside a vanilla `item` block, because the loader's default arm writes an unrecognised key into the item's default modData [#1125/C/C-only].
 
-The engine has no default arm on a `fluid` block or on its `properties` block, so a mod key there is an error and, under `Core.debug`, a throw [#2682/C/C-only] [#2683/C/C-only].
-
-No script getter reads a type's four macros, so a per-type macro costs a fresh instance [#2679/C/C-only].
-
-The dead-setter and one-caller readings are whole-jar reverse-reference scans over the jar and the vanilla Lua tree, so a reader living outside both — another mod, or a call from a UI script — would not appear in any of them.
-
-Every measured reading on this page comes from the default fixture on a single build, and the repeated ones repeat within one run or across two boots rather than across fixtures or worlds.
-
-The contradiction above is the only mirror row this page corrects; the mirror's aging, fridge and freezer claims are [`spoilage.md`](spoilage.md#walls).
+The dead-setter and one-caller readings are reverse-reference scans over the jar and the vanilla Lua tree, so a reader in another mod would not appear in them.
+Every measured reading on this page comes from the default fixture on a single build.
 
 Not covered: the item model was read for food, drainables and fluid containers only — the other item types that share the same loader, the fluid-container census inside the running game, the spawn-fill draw a part-filled container takes, the single-argument `Item.DoParam(String)` overload a valueless key takes, the fluid sample pool's size and its failure mode when a sample is never released, the fluid container's own save and sync routines, and any item-name table other than the shipped English one were never read.
 
@@ -392,18 +313,13 @@ Not covered: the item model was read for food, drainables and fluid containers o
 - `Food.rottenTime` has a getter, a setter and save and load support, no script key, one writer in the compost update and zero readers, and `Poison` and `UseForPoison` parse into fields with no Java or vanilla-Lua reader, so all three look like mod-facing API rather than mechanics — settled by a reader scan that reaches outside the jar and the vanilla Lua tree, which no scan behind this page does [#0379/C/C-only/open].
 - An item absent from the vanilla item-name table reading its display name as its full type and its unmodded weight as 0 on client and server identically, inside vanilla, is unverified: its only measured reading rests on a restricted artifact key, on one absent-name item beside one control in one session; re-measure by reading the display name and the unmodded weight of an absent-name vanilla food beside a named control on both sides, in a run whose key carries no restriction [#1427/M/n=1/unverified].
 - Whether 42.20.4 ever loads a B41-layout item-name translation file stays open by design, because separating it from the no-entry case needs an item-name JSON added to a mod tree, which is a write under the read-only workshop folder — settled by repeating the pair inside a writable copy of that tree [#1429/C/C-only/open].
-- The design must decide whether a rebalanced food sets `CustomWeight = true`: a non-custom-weight food's displayed weight derives from its remaining hunger fraction, so every rewritten hunger value moves a weight as well [#1214/C/C-only].
-- The design must decide whether every mod-added food ships a translation entry: an untranslated item's unmodded weight reads zero and that zero is what the wire carries [#1027/M/n=1, #1166/C/C-only].
-- The design must decide whether a mod nutrient rides an unrecognised key inside the vanilla `item` block or lives in a store of its own: the loader's default arm accepts the key and puts it in the item's default modData rather than rejecting the block ([#0212], [#1125/C/C-only]).
 - The design must decide how a per-instance mod value follows a part-eaten or part-spent item, given that the leftover multiply never touches modData [#2677/C/C-only].
-- The design must decide where a per-fluid mod value lives, given that a fluid block stores no unrecognised key and only the fluid object's type string is never null [#2682/C/C-only] [#2684/C/C-only].
 
 ## See also
 
-- [`spoilage.md`](spoilage.md#formula) — the aging formula, the rot thresholds and the container multipliers that move the age axis.
-- [`cooking-and-recipes.md`](cooking-and-recipes.md#cook-block) — the cook block that drives the cooking axis, and the evolved summation that reads the poison power.
-- [`eating-pipeline.md`](eating-pipeline.md#modifiers) — what the eat path does with these keys and these state flags.
-- [`wire-packets.md`](wire-packets.md#item-stats-packet) — which of these fields the item packet carries and which it omits.
-- [`loader-and-scripts.md`](../platform/loader-and-scripts.md#per-key-merge) — the loader that parses every key here, the per-key merge and the sorted replay.
-- [`mod-anatomy.md`](../platform/mod-anatomy.md#translations) — where a mod's item-name table has to live for a new food's name, and therefore its weight, to resolve.
-- [`datasets.md`](../reference/datasets.md) — the per-item and per-fluid columns, and every value this page does not restate.
+- [`spoilage.md`](spoilage.md#formula) — the aging formula, thresholds and container multipliers.
+- [`cooking-and-recipes.md`](cooking-and-recipes.md#cook-block) — the cook block and the evolved summation.
+- [`eating-pipeline.md`](eating-pipeline.md#modifiers) — what the eat path does with these keys and flags.
+- [`wire-packets.md`](wire-packets.md#item-stats-packet) — which of these fields the item packet carries.
+- [`loader-and-scripts.md`](../platform/loader-and-scripts.md#per-key-merge) — the loader, the per-key merge and the sorted replay.
+- [`mod-anatomy.md`](../platform/mod-anatomy.md#translations) — where a mod's item-name table lives, so a new food's name and weight resolve.

@@ -16,14 +16,12 @@ Verified against 42.21.0 (4a0e9546ec) · 2026-10-08 · scope: what the Nutrition
 Nutrition Makes Sense replaces vanilla's hunger, energy and weight model with its own: an energy reserve band on the calorie store, the Well Fed timer read as a stomach, an appetite curve on hunger, and a malnutrition value that slows endurance regeneration and natural recovery.
 Workshop item `3690404044` ships the mod id `NutritionMakesSense`, modversion 2.0.2 by Deharath, as a `42/mod.info` that sets `versionMin=42.14.0` beside its content under `common/`, so Build 42.21 finds it through that `mod.info` and loads it [#3513/C/snapshot].
 Every Java member its per-player tick reads or writes is on the 42.21 jar, and it reaches each through a helper that returns nil for a missing member and calls the rest under `pcall` [#3514/C/C-only].
-It keeps vanilla's own update running and corrects its results afterwards: it zeroes no rate and claims no stat hook (see [`#architecture`](#architecture)).
 
 <a id="architecture"></a>
 ### The server tick and what it writes
 
 On a dedicated server it registers one `EveryOneMinute` handler, installed from its `server/` entry file behind an `isServer()` test, that walks `getOnlinePlayers()` and for each player runs its model tick and then checks or sends a display snapshot; it registers its `OnPlayerUpdate` handler only where `isServer()` is false [#3515/C/snapshot].
 Each tick it reads `HUNGER`, the calorie, macro and weight stores, the Well Fed timer and `ENDURANCE`, runs a pure-Lua model, writes back `HUNGER` through `stats:set`, calories and weight through the `Nutrition` setters and the Well Fed timer, each only when it moved more than 0.00001, and rescales `ENDURANCE` itself; it assigns no `ZomboidGlobals` field and registers no `Hook.CalculateStats` [#3516/C/snapshot].
-The model is therefore a second writer on top of vanilla's, and what it does with a value it did not write decides every collision below.
 
 It hooks no intake: a rise of the calorie store above 0.5 kcal since its own last write is booked as a meal, sized as the rise plus its running estimate of vanilla's burn over the step, and the fat and protein eaten are the rises in those two stores [#3517/C/snapshot].
 It keeps 70 % of an eat's hunger drop by scaling the applied drop at its next tick and leaves the items' `HungerChange` alone, because, its own comment says, that key is also the portion reservoir that gates Eat Half and Eat Quarter and evolved-recipe ingredient use [#3518/C/snapshot].
