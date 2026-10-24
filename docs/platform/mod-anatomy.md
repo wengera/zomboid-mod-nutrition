@@ -23,13 +23,14 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: what a mod folder 
 
 ## How it works
 
+The readings that follow ran on the build their rows' bounds name; they read that build, not the release.
+
 <a id="mod-info-keys"></a>
 ### `mod.info` and the keys the loader reads
 
-`ChooseGameInfo.readModInfoAux` is a line scanner that tests whether each line contains `<key>=` in a fixed branch order, strips the token with a string replace and stores the rest; it recognises 17 keys plus `type=` nested inside a `pack=` block and silently ignores every other line [#0804/C/C-only].
+`ChooseGameInfo.readModInfoAux` is a line scanner that tests whether each line contains `<key>=` in a fixed branch order, strips the token with a string replace and stores the rest; it recognises 17 keys plus `type=` nested inside a `pack=` block and silently ignores every other line, so a misspelled key is neither an error nor a log entry [#0804/C/C-only].
 Because the parser tests `contains` rather than a prefix and strips with a string replace rather than a prefix cut, a value carrying an earlier branch's token is eaten by that branch — `url=https://x/name=1` is parsed as a `name` — and every occurrence of the token disappears from the stored value [#0806/C/C-only].
 `mod.info` keys are case-sensitive, which is why `modVersion=` is dropped [#0807/C/C-only].
-An unrecognised line is neither an error nor a log entry, so a misspelled key is invisible until whatever it was meant to buy turns out to be missing [#0804/C/C-only].
 Eight key spellings shipped by installed mods are not parsed at all because no branch tests them, in folder counts taken over the corpus on 2026-09-11: `authors` (11 folders), `modVersion` and `version` (2 each), `tags` (15), `pzversion` (10), `texts`, `supports` and `zoomX/Y/S` (1 each) [#0815/C/snapshot].
 The `id` key is the only handle a mod has: `Mods=` entries, `require=` entries and `ChooseGameInfo.Mods` are all keyed on it, and `loadMod` prints `loading <id>` from it, with 229 of the 230 installed folders counted on 2026-09-11 declaring one [#0808/M/n=1].
 Every experiment mod of this library ships exactly `name`, `id`, `description`, `modversion` and `versionMin` and nothing else, and across 8 mods declaring 9 ids every addressable id resolved and every mod loaded [#0816/M/n=1].
@@ -54,9 +55,6 @@ The `mod.info` key census over 230 installed mod folders is 17 recognised keys w
 | `url` | 5 | display only |
 | `loadModBefore` / `loadModAfter` | 1 / 1 | **advisory, client UI only.** `getLoadBefore` / `getLoadAfter` are read only by the mod selector's load-order panel and its order list box — they arrange the selector's list. The server loads in literal `Mods=` order |
 | `tags`, `pzversion`, `texts`, `supports`, `zoomX/Y/S` | 15 / 10 / 1 / 1 / 1 | **not parsed at all.** No branch tests them |
-| the keys this library declares | 8 mods, 9 ids | every experiment mod ships exactly `name` + `id` + `description` + `modversion` + `versionMin` and nothing else; every addressable id resolved and every mod loaded |
-
-The census counts folders, not declarations, and it counts every `mod.info` under a folder including copies no resolver can reach, so a key's folder count is an upper bound on how many mods the loader actually reads it from.
 
 <a id="load-order-declarations"></a>
 ### `Mods=` and `require=`: what each declaration guarantees
@@ -64,80 +62,63 @@ The census counts folders, not declarations, and it counts every `mod.info` unde
 `Mods=` resolves ids, not paths, in a pass that completes before any mod loads [#1219/C/C-only].
 On a dedicated server the load order is exactly the order of `Mods=`, with each entry's `require=` closure inserted ahead of it [#0817/C/C-only].
 `require=` is the only load-order declaration the loader acts on: `loadModAndRequired` loads every required id first, and `Mod.isAvailableRequired` makes the requiring mod unavailable if any required id is missing or version-gated [#0811/C/C-only].
-That second half is the one that bites: a `require=` naming an id the machine does not have takes the requiring mod down with it rather than degrading it.
 `loadModBefore=` and `loadModAfter=` are advisory and client-UI only: `getLoadBefore` and `getLoadAfter` are read only by the mod selector's load-order panel and order list box, which arrange the selector's list, and a dedicated server loads in literal `Mods=` order [#0814/C/C-only].
 `incompatible=` is display only: `getIncompatible` is called from exactly two places in the whole jar-plus-Lua tree, both mod-selector UI, no jar class but the declaring `ChooseGameInfo$Mod` so much as names it, and a server's `Mods=` ignores it [#0813/C/C-only].
-So a dedicated server honours exactly one of the four ordering keys, and the three a mod author is most likely to reach for change nothing outside the client's list.
-A mod that needs another mod's files to exist before its own run declares `require=`; a mod that merely prefers an order has no lever on a dedicated server at all.
-The order the loader announces is not the order script bodies replay in: that sort is the stored script path and is independent of `Mods=` position, and it lives at [the sorted replay](loader-and-scripts.md#sorted-replay).
+The order script bodies replay in is not the announced load order: it is [the sorted replay](loader-and-scripts.md#sorted-replay).
 
 <a id="mod-discovery"></a>
 ### How the game finds a mod folder
 
-Mod folders are discovered over a root order that defaults to workshop, then steam, then the local mods dir, each root walked recursively, and a directory counts as a mod folder if and only if it holds `common/mod.info`, tested first, or a `mod.info` in the version dir the name resolver picks — a discovery gate, not the id read [#0874/C/C-only].
+Mod folders are discovered over a root order that defaults to workshop, then steam, then the local mods dir, each root walked recursively, and a directory counts as a mod folder if and only if it holds `common/mod.info`, tested first, or a `mod.info` in the version dir the name resolver picks — a discovery gate, not the id read; the resulting folder list is cached in the file system object [#0874/C/C-only].
 The mod-folder acceptance test checks the `common/` copy first: `getAllModFoldersAux` accepts a folder as a mod when its `common/mod.info` exists or its version-dir `mod.info` does, and only then resolves the two media roots [#1373].
 A folder whose only `mod.info` sits at its root, the Build 41 layout, is not a mod folder on 42.21: `getAllModFoldersAux` tests only `common/mod.info` and the resolved version dir's `mod.info`, and with no entry naming a version from 42.0 up to the running build the resolver returns `42.0` ([#3554/C/C-only], [StatsAPI](../facts/other-mods/statsapi.md#discovery) is the installed example).
-Testing `common/` first here and the version dir first at the id read is not a contradiction: one decides whether a directory is a mod at all, the other decides which file supplies its id.
 Under a no-Steam launch exactly one mod root is searched, the cachedir's own `mods` folder, because the other two roots are resolved through calls gated on Steam mode; there is no server mod-folders argument, the string existing only in the main-menu state, and the workshop-items line needs Steam too [#1802/C/C-only].
-Every process this library drives runs that way, so a mod reaches a run only by being copied into each side's cachedir.
-The root order is a default and the resulting folder list is cached in the file system object, so what a session resolves ids against is fixed once it is built [#0874/C/C-only].
 `ZomboidFileSystem.loadMods` runs two passes — a resolution pass calling `loadModAndRequired` for every requested id, then a load pass calling `loadMod` for everything the first pass accepted — so every `not found` warning precedes every `loading` line [#0870/C/C-only].
-Reading a log therefore means reading the whole not-found block before the first load line, not scanning for the two interleaved.
-The loader probes every mod for animation-set and action-group folders and logs a benign missing-file line per folder a mod does not ship — three for one measured mod — and a run carrying them still records zero errors [#1454/M/n=2].
-Those lines are per-copied-mod baseline noise that every profile run carries, and a driver's log grep has to budget for them rather than treat them as findings.
+The loader probes every mod for animation-set and action-group folders and logs a benign missing-file line per folder a mod does not ship — three for one measured mod — and a run carrying them still records zero errors, so a driver's log grep budgets for them [#1454/M/n=2].
 
 <a id="id-chain"></a>
 ### The id chain: which `mod.info` supplies the id
 
 A mod folder's id comes from exactly one file: `readModInfoAux` builds `<versionDir>/mod.info` and parses it if it exists, otherwise `<commonDir>/mod.info`, otherwise warns that it cannot find a `mod.info` in the mod dir and returns null — never the folder name, never the mod root, and never two files [#0802/C/C-only].
+Discovery tests `common/` first and the id read tests the version dir first: one decides whether a directory is a mod at all, the other which file supplies its id.
 `ChooseGameInfo.getModDetails` resolves an id through a negative cache, then a positive cache, then the id-to-dir map; when the map has no entry it lists every mod folder and reads one `mod.info` per folder, registering one id per folder and returning as soon as the id matches [#0873/C/C-only].
 On a duplicate id across two mod folders `ChooseGameInfo.readModInfo` keeps whichever folder comes earlier in the discovered folder list, so a local `mods/` copy never beats a workshop copy of the same id [#0875/C/C-only].
-The two caches sitting in front of that scan remember a miss as well as a hit, so an id the negative cache already holds is answered from it rather than by another pass over the folder list [#0873/C/C-only].
-Nothing anywhere in the chain consults the folder's name, which is why a folder whose name has drifted is still addressable and an id that has drifted is not.
 Id resolution runs as a pass that completes before any mod loads: the failing boot's `not found` warning precedes the first `loading` line, and the succeeding boot's `loading` lines follow `Mods=` order exactly [#0820/M/n=2].
 For the requested-id lookup only the version dir's `mod.info` id is addressable: with the same folder and `Mods=` naming the `common/mod.info` id the boot printed `required mod "TKX_LoaderCommon" not found`, zero `loading` and `overrides` lines, all three probe globals unresolved and no media tree walked [#0819/M/n=1].
-That boot carried both `mod.info` files, so it measures addressability rather than the engine's id map, and a folder whose only `mod.info` is `common/mod.info` is untested as a purpose-built probe.
-A mod folder whose only `mod.info` is `common/mod.info` does nonetheless boot in normal play: one corpus mod printed three `loading AutoCook` lines, one on the server and two on the client [#0821/M/n=1].
+That boot carried both `mod.info` files, so a folder whose only `mod.info` is `common/mod.info` is untested as a purpose-built probe; such a folder does boot in normal play: one corpus mod printed three `loading AutoCook` lines, one on the server and two on the client [#0821/M/n=1].
 Four installed mods, counted over the corpus on 2026-09-11, carry `common/mod.info` as their only `mod.info`, and three of them rest on the jar fallback alone: their `versionDir` names a directory that ships no `mod.info`, so `readModInfoAux` takes `<commonDir>/mod.info` [#0822/C/snapshot].
-`ZomboidFileSystem.searchForModInfo` is dead code, referenced by nothing but its own recursive call [#1220/C/C-only].
-It is unreachable on `42.20.4`: a whole-jar scan finds its name only in `ZomboidFileSystem`'s constant pool, a per-method reference sweep finds the only call inside the method itself, and even its leaf branch delegates to `ChooseGameInfo.readModInfo` on the file's parent [#0803/C/C-only].
-Its body, read for the record, returns the first `mod.info` whose id matches the requested id in directory-listing order rather than simply the first `mod.info` found, and every file it passes over is still registered into the id-to-directory map and appended to the caller's list [#1374].
+`ZomboidFileSystem.searchForModInfo` is dead code, referenced by nothing but its own recursive call [#1220/C/C-only]; it is unreachable on `42.20.4`: a whole-jar scan finds its name only in `ZomboidFileSystem`'s constant pool, a per-method reference sweep finds the only call inside the method itself, and even its leaf branch delegates to `ChooseGameInfo.readModInfo` on the file's parent [#0803/C/C-only].
+Its body returns the first `mod.info` whose id matches the requested id in directory-listing order rather than simply the first `mod.info` found, and every file it passes over is still registered into the id-to-directory map and appended to the caller's list [#1374].
 Reading that body as the live chain is the commonest way to get this wrong: it searches several files and registers each one it meets, and the live chain from `loadMods` to `readModInfoAux` opens exactly one.
 
 <a id="version-dirs"></a>
 ### The version dir against `common/`
 
-`getModVersionDirName` lists the mod folder and keeps the entry name whose parsed version is at least `ChooseGameInfo.minRequiredVersion`, which is `GameVersion(42,0)`, and at most the running build, and when nothing qualifies returns that version's string, which `GameVersion`'s constructor formats as `42.0` [#3505/C/C-only].
+`getModVersionDirName` lists the mod folder and keeps the entry name whose parsed version is at least `ChooseGameInfo.minRequiredVersion`, which is `GameVersion(42,0)`, and at most the running build, and when nothing qualifies returns that version's string, which `GameVersion`'s constructor formats as `42.0`; a version dir named for a later build is never picked [#3505/C/C-only].
 `getGameVersionIntFromName` parses a version folder name as major times 1000 plus the minor capped at 999, so the third component is ignored — `42.20.1` and `42.20` both score 42020 — and a non-numeric entry scores 0 and is skipped [#0826/C/C-only].
 A tie in `getModVersionDirName` resolves by directory-listing order rather than by precision: the comparison keeps an entry whose score is greater than or equal to the best so far, so on a tie the last entry listed wins, and `42.20` and `42.20.1` score identically [#0880/C/C-only].
 A mod that ships both names therefore has no declared winner, and on this machine's sorted listing the later name wins by accident of the file system rather than by design.
-The resolver's ceiling is the running build, so a version dir named for a later build is never picked however precisely it is named [#3505/C/C-only].
 
 `ZomboidFileSystem.loadMod` runs two passes in order — pass A over the mod's common dir, then pass B over its version dir — each ending in an unconditional `activeFileMap.put`, so the version dir's file wins a same-relative-path collision and `common/` supplies everything the version dir does not ship [#1310].
 A `poster=` path is resolved against the version dir first and then `common/`, and a path ending `poster.png` is gated out of the loader's `overrides` print [#0810/C/C-only].
 Measured, the version dir wins and `common/` still runs: the shadowed marker read `version` on both sides while both the `common/` and the version-dir tree markers resolved [#0828/M/n=2].
-Inside one mod a same-relative-path collision resolves version-dir-wins, `common/` supplies everything the version folder does not ship, and both end up in one Lua state, translations excepted because the `Translator` merges rather than resolving through `activeFileMap` [#1048/M/n=2].
+For a mod shipping `common/` beside a version folder the version folder's file wins a same-relative-path collision, `common/` supplies everything the version folder does not ship, and both end up in one Lua state — with translations the exception, because the `Translator` merges rather than resolving through the file map [#1318/M/n=1, #1048/M/n=2].
 A live dedicated server printed exactly five `overrides` lines for one workshop mod — two translation JSONs shadowing vanilla in pass A, then three client Lua files shadowing `common/` in pass B — and no `.png` tail, so the mod's version dir resolved to `42.13/` rather than `42/` [#1315/M/n=1].
 The client's Lua state names the winning copy: `acceptIngredient` and `baseAcceptsSpice` resolved as functions although they are defined only in the version tree, the common-only `selectPreferedFood` and `ISContinue` resolved too, and `_G.AutoCook` carried a key count of 49 — 23 file-scope scalars plus 15, 4 and 7 functions from three files — where a common-wins state reads 47 [#1316/M/n=1].
 The console grep for a nil call, `HasTrait` or `getTypeString` returned 0 lines on the client and 0 on the server, and a common-wins state would have raised at three sites on the character-info window's build path, so the negative covers that whole path rather than one line [#1317/M/n=1].
 A version dir holding only a `mod.info` and no `media/` costs the mod nothing: the mod announced `loading`, its payload global resolved on both sides off `common/media`, and no required-mod-not-found line was printed [#0831/M/n=1].
 The same holds for a script: a mod whose only script sits under `common/media/scripts/`, beside a version dir holding only `mod.info`, had that script loaded on both sides, its `Calories = 400.0` reading 400 on an `Orange` spawned into the client's own inventory (the client reads its own script) and on the server's spawned `Base.Orange` [#3135/M/n=1].
-For a mod shipping `common/` beside a version folder the version folder's file wins a same-relative-path collision, `common/` supplies everything the version folder does not ship, and both end up in one Lua state — with translations the exception, because the `Translator` merges rather than resolving through the file map [#1318/M/n=1].
 The wiki's statement of the mod file order — `common/` first, then the closest versioning folder, overwriting — agrees with the measurement [#0833/W/one-side].
 
-This is the file-level merge and it decides which absolute path a relative path names.
-It is path-granular, so a file at a shared relative path replaces the whole file at that path and never part of one.
-The map itself, and the `overrides` line the loader prints before each overwriting put — the only visible signal that a collision happened, and easy to misread — are [the file map](loader-and-scripts.md#file-map).
-Which of two merged files executes, and in whose slot, is the execution list: that is [the Lua load order](loader-and-scripts.md#lua-load-order).
-The second merge, inside a script file, where a repeated block appends and a partial block merges per key, is [the per-key merge](loader-and-scripts.md#per-key-merge) and is not restated here.
+This merge is path-granular: a file at a shared relative path replaces the whole file at that path.
+The map and its `overrides` line are [the file map](loader-and-scripts.md#file-map), which of two merged files executes is [the Lua load order](loader-and-scripts.md#lua-load-order), and the merge inside a script file is [the per-key merge](loader-and-scripts.md#per-key-merge).
 
 <a id="folder-name"></a>
 ### The folder name against the declared id
 
 A mod folder's name is irrelevant and only the version directory's `mod.info` id is addressable [#1116/M/n=2].
 The rename to the declared id is a convenience and not a requirement: a probe folder installed under a name matching neither of the two ids it declares loaded normally when the mod list named the version directory's id — the loader printed `loading TKX_LoaderVersion` and its `overrides` line, the version-dir probe global resolved, both tree markers resolved, and both media roots were walked under the renamed folder [#0818/M/n=1, #1832/M/n=1].
-Both boots ran the dedicated-server path only, so the convenience reading is for `Mods=` resolution and not for the client's own mod selector.
-The practical consequence is that a workshop folder whose name has drifted from its declared id is not a defect to repair; a folder whose `mod.info` id has drifted from what `Mods=` asks for is.
+Both boots ran the dedicated-server path only, so the reading covers `Mods=` resolution and not the client's own mod selector.
 
 <a id="translations"></a>
 ### Translations
@@ -146,10 +127,8 @@ Only the B42 translation layout is read on this build: `Translator.tryFillMapFro
 `Translator.tryFillMapFromMods` walks each mod's `common/` dir and then its version dir through the file reader [#0840/C/C-only].
 It walks that pair through `tryFillMapFromFile`, which formats the translation path itself and fills one shared map key by key, so a mod's file does not replace vanilla's file and a key both define takes the later, mod's non-empty value [#3211].
 Vanilla's keys survive and the mod's are added, which makes translations the one thing in a mod tree whose file does not shadow vanilla's [#3210/C/inference].
-A mod may therefore add keys at a vanilla relative path without displacing vanilla's, which is the opposite of what the file map does to every other file in the tree.
 A mod's value for a key vanilla already defines does displace vanilla's value: the map is filled from vanilla's folder first and from the mods after it, and the per-key fill puts any non-empty value over an existing key [#3205/C/C-only].
 One session read exactly that on the client, a redefined interface key reading `TKX Type` against vanilla's `Item` and a redefined `Base.Apple` reading `TKX Apple` against `Apple` ([#3201/M/n=1], [#3202/M/n=1], [#1276/M/n=1]), beside a new interface key of the mod's that hit in the same run [#3200/M/n=1].
-That exception is what the version-dir merge rule above is bounded against: everything else in a mod tree resolves through the file map, and translations do not.
 A mod's own `Mod.json` can translate its displayed `name` and `description` through `Translator.readModTranslation` [#0809/C/C-only].
 
 A B42 `ItemName.json` entry resolves on the client: the item's display name read back as its translated text against a full type of `TKX.FibreBarJson` [#0842/M/n=1].
@@ -161,47 +140,39 @@ A dedicated server resolves no mod item's display name, JSON included: the serve
 A vanilla item's name and a vanilla interface key do resolve on a dedicated server, to vanilla's strings: a server-instantiated `Base.Apple` read `Apple` and `IGUI_invpanel_Type` read vanilla's `Item` [#3203/M/n=1].
 What the server lacks is the mods' values: in this run it missed the mod's new key and kept vanilla's values for the two it redefined, though its log carried the mod's `loading` line [#3204/M/n=1].
 The server's `getText` route returned a hit for the vanilla interface key and a miss, the key itself, for the mod's new one [#3209/M/n=1].
-`Translator.getTextInternal` is a prefix router over 25 key prefixes and `ItemName_` is not one of them; the item map is reached only by `getDisplayItemName`, which looks up the raw full type with spaces and hyphens folded to underscores [#0847/C/C-only, #1215/C/C-only].
-That router is why a translation-only load probe has to be gated on a `UI_` or `IGUI_` key: those prefixes are routed, an item name is not.
-Three items in one mod, one per translation state, is what makes those readings a discriminator rather than three unrelated observations, and each state was read once.
+`Translator.getTextInternal` is a prefix router over 25 key prefixes and `ItemName_` is not one of them; the item map is reached only by `getDisplayItemName`, which looks up the raw full type with spaces and hyphens folded to underscores, so a translation-only load probe is gated on a `UI_` or `IGUI_` key [#0847/C/C-only].
 The item-name table is loaded and working on the client and is simply unreachable from the `getText` global, so a miss there says nothing about whether the table holds the key.
-
 Ship a mod's item names in a B42 `ItemName.json` with bare `Module.Name` keys, because the B41 `ItemName_EN` table layout produces no name at all on this build [#1025/M/n=1].
 Never branch on an item's display name server-side or reach for it through `getText`, because a dedicated server resolves no mod display name and neither the bare nor the prefixed `getText` key form reaches one on either side [#1026/M/n=2].
-What the text route does and does not establish is bounded, and the bound is in [the open rows](#open) rather than here.
+What the text route does and does not establish is bounded in [the open rows](#open).
 
 <a id="missing-mod"></a>
 ### A missing mod, and what the error text does not say
 
 `loadModAndRequired` asks `ChooseGameInfo.getAvailableModDetails` for the id; on null it removes the id from the server's mod list and warns `required mod "<id>" not found`, and on success it recurses over the `require=` closure and then appends the id [#0871/C/C-only].
 `getAvailableModDetails` requires `Mod.isAvailable()`, which is where a failed `versionMin` or `versionMax` gate and a missing `require=` all turn into the same `required mod "<id>" not found` text, so the error does not say which of them fired [#0872/C/C-only].
-Four distinct conditions therefore share one line: an absent folder, an id nothing declares, a build outside the mod's declared range, and a dependency in either of those states.
-The warning also removes the id from the server's mod list before the load pass begins, so nothing downstream of the resolution pass ever sees it [#0871/C/C-only].
 The game does not fail on a mod it cannot find: the server logs a required-mod-not-found warning and boots normally with zero errors, and the client joins and spawns normally with the same warning and the mod simply inactive — which is what makes a mod-testing pipeline dangerous by default, since a profile whose mod never arrived produces a session where every probe answers and the run is green [#1817/M/n=1].
-A run therefore has to assert on the loading lines it expects, not merely on the absence of errors.
+A run therefore asserts on the loading lines it expects, not merely on the absence of errors.
 
 <a id="build-pinning"></a>
 ### Pinning a mod to a build
 
-`versionMin` and `versionMax` are hard gates, not notes: `Mod.isAvailableSelf` returns false when the build falls outside them, `getAvailableModDetails` then returns null, and the mod reports as `required mod "<id>" not found` [#0812/C/C-only].
-Of the installed corpus 154 folders declare `versionMin` and 13 declare `versionMax`, counted 2026-09-11 [#0812/C/C-only].
-Which end fired, and whether the mod was absent instead, the log does not distinguish — see [a missing mod](#missing-mod).
-A mod declaring neither key is gated by nothing and is offered to every build, which is why a mod that must not run on an older one has to say so explicitly [#0812/C/C-only].
-The build a mod pins against is the same build the version-dir resolver compares names to, so a mod pins its code by shipping a version dir per supported build and pins its availability with these two keys — the resolver is at [the version dir](#version-dirs).
+`versionMin` and `versionMax` are hard gates, not notes: `Mod.isAvailableSelf` returns false when the build falls outside them, `getAvailableModDetails` then returns null, and the mod reports as `required mod "<id>" not found`; of the installed corpus 154 folders declare `versionMin` and 13 declare `versionMax`, counted 2026-09-11 [#0812/C/C-only].
+A mod declaring neither key is gated by nothing and is offered to every build [#0812/C/C-only].
+Which end fired, or whether the mod was absent instead, the log does not say — see [a missing mod](#missing-mod); the build these keys compare against is the one [the version dir](#version-dirs) resolver uses.
 
 <a id="join"></a>
 ### What a join does to the client's mod list
 
 A running profile is a server-side decision the client inherits: the server's `Mods=` is authoritative on join and the client's own mod list is not consulted for what a joined session runs [#0876/C/C-only].
 On first launch the game writes a per-major-release marker file and wipes the enabled-mods list when the marker is missing, so anything that seeds an enabled-mods list seeds the marker alongside it [#1853].
-Those two together are why a client's own enabled list matters only up to the moment it connects, and why a list written without its marker is silently discarded before it is ever read.
 A session is therefore only as good as the server's list, and a mod enabled locally proves nothing about what that session ran.
-What the join does to the client's Lua states, and the reload that follows it, is [the two Lua states](overview.md#two-lua-states); the session shape around it is [the process model](overview.md#process-model).
+What the join does to the client's Lua states is [the two Lua states](overview.md#two-lua-states); the session shape around it is [the process model](overview.md#process-model).
 
 <a id="checksum-gate"></a>
 ### The checksum gate
 
-A mod cannot survive a multiplayer script mismatch: every loaded script file, mod files included, is fed to the checksummer, which drops every CR byte and folds the rest into one running MD5 that `ChecksumPacket.parseServer` compares, so the engine never inspects what a script says and a mismatch is a disconnect rather than a silent degrade [#1182/C/C-only].
+A mod cannot survive a multiplayer script mismatch: every loaded script file, mod files included, is fed to the checksummer, which drops every CR byte and folds the rest into one running MD5 that `ChecksumPacket.parseServer` compares, so the engine never inspects what a script says and a mismatch is a disconnect rather than a silent degrade; the hash covers every loaded script file, not only the mod's own [#1182/C/C-only].
 A script-checksum mismatch disconnects the client through `NetChecksum$Comparer.update`, which calls `forceDisconnect`, `serverDisconnected` and `kickReason`, while the server arm `AntiCheatChecksumUpdate.update` acts after a 60 s grace set by `IsoWorld.LUA_CHECKSUM_TIMEOUT_MS` [#1231/C/C-only].
 A role holding `Capability.BypassLuaChecksum` clears all three checksum flags [#1230/C/C-only].
 
@@ -213,11 +184,9 @@ The Lua arm is the same gate over the session's Lua: `LuaManager.LoadDirBase` ha
 Measured, one byte inside a comment of one Lua file kicks: a `user`-role client holding `NR_Core.lua` with `its versiom` for `its version` drew the server's `user bob will be kicked in 60000ms because Lua/script checksums do not match` warning and an anti-cheat `ChecksumUpdate` with reason `Lua incorrect checksum` and action `Kick`, and force-disconnected with `checksum-File doesn't match the one on the server` naming `media/lua/shared/nr_core.lua`, never fully connecting [#3374/M/n=1].
 That kick too is the client's arm and immediate: 1.227 s after the server's anti-cheat line, with one `LuaChecksum` user-log row, while the `admin` client, whose bytes matched, stayed connected [#3375/M/n=1].
 A Lua copy that differs only in line endings joins: the same file with every line ending CRLF fully connected, answered the harness 93.014 s after its read at ready, and left no checksum-mismatch line in either log [#3376/M/n=1].
-The normalisation is the only tolerance the gate offers: line endings may differ between the two copies and nothing else may.
 A generated script file keeps both copies identical by construction, the generator emitting one text for both and its `--check` gate comparing the file with a fresh emission [#3176/C/C-only].
-The hash covers every loaded script file rather than only the mod's own, so a mod that ships no scripts at all still joins a session whose whole script set has to agree [#1182/C/C-only].
-The two arms act at different times, and on a one-byte mismatch the client's arm acts first: the server's timed act is the code's backstop, which by inference a client running the shipped arm never lets it reach ([#1231/C/C-only], [#3137/M/n=1]).
-Script data loads per side and never crosses the wire, which is what makes the gate necessary and is [the per-side load](loader-and-scripts.md#per-side-load).
+On a one-byte mismatch the client's arm acts first, and the server's timed act is the code's backstop, which by inference a client running the shipped arm never lets it reach ([#1231/C/C-only], [#3137/M/n=1]).
+Script data loads per side and never crosses the wire, which is why the gate exists: [the per-side load](loader-and-scripts.md#per-side-load).
 
 <a id="client-only-mods"></a>
 ### A mod that loads on one side only
@@ -225,10 +194,8 @@ Script data loads per side and never crosses the wire, which is what makes the g
 A client-only mod registers nothing and runs no code on a dedicated server: every global of one measured mod answered unresolved server-side with the failure naming its first segment, while the harness control answered on both sides in the same batch [#1331/M/n=1].
 A mod can be 100 per cent client: one corpus mod has no server Lua in its live tree at all, so on a dedicated server it registers nothing and runs no code, and the only part of it the server loads is the shared translation tree [#1474/C/snapshot].
 A dedicated server does install and load a client-only mod's shared translation tree, printing one `overrides` line per shipped translation file — 13 for that mod, one per language tree it ships — so the loader's word `overrides` is file-level and not a key collision, and no mod Lua runs on the server because there is none to run [#1504/C/snapshot].
-The cost of being one-sided is therefore not zero on the server: the folder is still discovered, installed, walked and merged, and only the Lua is absent.
-A translation tree is shared rather than client-side, which is why it is the one part of a client-only mod the server still merges.
-Both readings are a snapshot of one mod tree on one sweep date, so they say what this shape costs and not how common the shape is.
-The converse trap is the one that catches mods that believe a directory name is a boundary: a mod's `media/lua/server/` tree executes in the client's Lua state too, and that is [the two Lua states](overview.md#two-lua-states).
+Both readings are a snapshot of one mod tree on one sweep date, so they say what this shape costs and not how common it is.
+The converse trap, a `media/lua/server/` tree executing in the client's Lua state too, is [the two Lua states](overview.md#two-lua-states).
 
 ## Walls and bounds
 <a id="walls"></a>
@@ -238,8 +205,7 @@ The measured merge rule is bounded to a mod whose version directory resolves to 
 The mirror says each version folder has its own `mod.info`, true as a permission and misleading as a plan: only one of a mod folder's `mod.info` files is ever read, so shipping two with different ids makes the other id unaddressable [#0881/M].
 The mirror says the minor version is dropped, so `42.1.5` is treated as `42.1`; this repository's own `mod_lint.version_dirs` tuple-parses a three-part folder name and ranks `42.20.1` above `42.20` as itself [#1659].
 Neither of those two readings is the engine's, which scores the two names identically — see [the version dir](#version-dirs).
-The corpus holds two three-part version folders, both named `42.20.1` and both a Skill Recovery Journal copy, and on both the tool reading and the mirror reading choose the same folder, so nothing observable differs today [#1660/C/snapshot].
-A mod shipping both `42.20` and `42.20.1` would separate those two readings and none does, so the disagreement is latent rather than live [#1660/C/snapshot].
+The corpus holds two three-part version folders, both named `42.20.1` and both a Skill Recovery Journal copy, and on both the tool reading and the mirror reading choose the same folder, so nothing observable differs today; a mod shipping both `42.20` and `42.20.1` would separate the two readings and none does [#1660/C/snapshot].
 Everything measured about the `mod.info` chain, the version dirs and the folder name was measured on the dedicated-server path, and the client's own mod-list call site, which reaches `getModDetails` from the selector rather than from `loadMods`, has never booted — the question that bound leaves is [an open row](#open) [#0877/C/C-only/open].
 The checksum gate is measured on one script file of one probe mod, for a one-byte mismatch, a line-ending-only copy and the `admin` role, and on one Lua file of this mod's frozen pre-release copy, for a one-byte comment change and a line-ending-only copy under the `user` role, in one boot each on one fixture; the server's timed arm, the animation flag, the Lua arm under any role but `user`, and any role but `user` and `admin` are code readings — see [the checksum gate](#checksum-gate) ([#1282/M/n=1], [#3374/M/n=1], [#3376/M/n=1], [#1231/C/C-only]).
 What one mod does with these mechanisms is the area page's: its version-dir shape, its `versionMin` and how its script files reach every side as one set of bytes are settled in [the layout section](../areas/packaging.md#layout) and [the checksum plan](../areas/packaging.md#checksum-plan).

@@ -66,155 +66,90 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-07 · scope: the standing rules
 
 ## How it works
 
+The readings below ran on the build their rows' bounds name; they read that build, not the release.
+
 <a id="anti-patterns"></a>
 ### What the corpus does that this mod will not
 
-The rules above are what the well-behaved heavy mods converge on.
-The lines below are the other half of the same reading: shapes the corpus ships, or shapes the corpus implies by what it gets away with, that this mod deliberately will not adopt.
-Each is a filter, not a criticism — several are the exemplar mod's best available option on this build.
-A filter line is used the way a rule is: as a test applied to this mod's own design before it is written, and as the first thing to check when a value behaves differently on the two sides of a session.
-Most of them were paid for by a mod that shipped and worked, which is what makes them worth stating: none of these shapes announces itself as a defect while it is being written.
-They divide into five groups, and each group is one question about where a cost or an authority ends up.
+The corpus ships these shapes, or gets away with them, and this mod will not adopt them.
+Apply each as a test before a design is written, and check it first when a value differs between the two sides of a session.
 
-Authority is the first group, and all three lines say the same thing from different sides: a value has exactly one owner, and the wire decides where that owner may be.
+**Authority.** A value has one owner, and the wire decides where that owner may sit.
 
 - Never give a mod's authority to a field the sync packet does not carry, and verify per field: a write to an uncarried field depends on the server copy alone, and no amount of re-pushing repairs the client's [#1076/M/n=1].
 - Read a food's numbers from the side that owns them and never build mod math on a getter whose value is transformed again on the wire: the item packet sends a cooked food's derived thirst getter and the receiver stores it as the raw field [#1084/M/n=2].
 - Keep server-authoritative per-player state out of player modData, or guarantee the client's copy is complete before any client transmits: player modData is a client-writable channel, and the mod that loses the data is never the mod that called `transmitModData` [#1085/M/n=2].
 
-The third of those is the one that constrains a neighbour rather than this mod alone: a mod that never transmits still loses server-only keys to somebody else's transmit, so this mod's own state has to survive a call it does not make.
-The teardown that supplied it is [`../facts/other-mods/simplestatus.md`](../facts/other-mods/simplestatus.md), and the route itself is [`mp-model.md`](mp-model.md#wipe-and-replace).
+The third line binds a mod that never transmits too, since a neighbour's transmit still costs it its server-only keys [#1085/M/n=2]: the route is [`mp-model.md`](mp-model.md#wipe-and-replace), the teardown [`simplestatus.md`](../facts/other-mods/simplestatus.md).
 
-The test all three apply is one question asked of three different artefacts: which side may write this value, and what does the other side hold instead.
-For a field the packet carries, the answer is that the server writes and the client mirrors, and a client-side write is discarded or simply never leaves.
-For a field the packet does not carry, the answer is that a client-side reader is reading its own copy forever, so the value either moves into script data, which both sides load identically and never sync, or it travels on this mod's own command.
-The check that separates those two cases is the packet's field list and never the field's name, and the getter a setter calls and never the key it writes.
-Neither check can be made once and trusted: the field list is per field and per build, which is the whole content of the first line above.
-
-The second group is about state that corrects itself, or fails to.
+**State that corrects itself.**
 
 - Make reconciliation converge rather than latch: one-shot repair logic and observation trackers that overwrite truth poison the value they were meant to protect [#1077/C/snapshot].
 - Keep core nutrient math in its own tick rather than injecting effective levels or local variables into engine functions: each injection point breaks silently on a game update [#1078/C/snapshot].
 
-Injection is acceptable for a bonus and not for core math, which is the distinction the exemplar mod itself draws; the cost of getting it wrong is a mod that still loads and quietly computes the wrong number.
-A converging reconciler re-derives its value from the stored inputs every time it runs, so a wrong intermediate state is corrected on the next pass instead of being written into the record.
-A latching one writes its conclusion once and keeps no way back, which is how an observation tracker ends up overwriting the truth it was built to observe.
-Both lines are the derive-on-read rule seen from the failure side: what is stored is the input, and everything else is recomputed.
+Injection is acceptable for a bonus and not for core math, the distinction the exemplar mod itself draws [#1078/C/snapshot].
 
-The third group is cost, and both lines are about paying it in the wrong place.
+**Cost.**
 
 - Keep simulation off `OnTick`: the 69 hook registrations there are concentrated in the heavy tier and nutrition has no business in it [#1080/C/snapshot].
 - Put the item pass's data in script files or lazily loaded modules rather than in Lua tables parsed at boot: data-as-Lua at scale pays its whole cost at load [#1081/C/snapshot].
 
-Both cost lines are about when the bill arrives rather than how large it is.
-The per-frame tier is already the crowded one before this mod's own work is added to it, which is what the hook-tier count says and is the whole of the cost argument here [#1080/C/snapshot].
-A table of item data parsed at boot costs its whole size before the first player joins, where the same data in a script file is read by the loader that was going to walk the script tree anyway.
-Nutrient decay is a slow quantity by construction, so it belongs on a slow hook, and nothing on this mod's critical path needs a reading more often than the minute tier gives it.
-The hook-tier count prices the crowd and not the frame, and the frame is where a dedicated server pays: every handler runs on the main thread inside the frame that fires it, and the minute event fires at most once a frame [#3426/C/C-only] [#3348/C/C-only].
-So the slow tier is slow in how often it runs and not in where it lands: the minute's work for every player lands in one frame unless the mod spreads it, and the slower clock events land in that same frame [#3441/C/inference] [#3508/C/C-only].
-The frame rules above are the half of the cost argument the corpus sweep could not make, and their mechanisms and measured costs are [`performance.md`](performance.md) [#3423/C/inference].
+The hook-tier count prices the crowd, not the frame: every handler runs on the main thread inside the frame that fires it, the minute event fires at most once a frame [#3426/C/C-only] [#3348/C/C-only], and the slower clock events land in that same frame, so the minute's work for every player lands in one frame unless the mod spreads it [#3441/C/inference] [#3508/C/C-only].
+The frame's mechanisms and measured costs are [`performance.md`](performance.md) [#3423/C/inference].
 
-The fourth group is hygiene, where the corpus's own practice and this mod's differ by scale rather than by taste.
+**Hygiene.**
 
 - Do not run a large multiplayer codebase with zero error handling: author discipline is what carries `KBW`, `HorseMod` and `damnlib` across 2 MB of Lua, and `KBW`'s own bug thread shows the cost when it slips [#1079/C/snapshot].
 - Never use `loadstring`: the engine removed it in the `42.20.x` security fixes, and the corpus count is zero [#1082/C/snapshot].
 
-Neither hygiene line says the corpus is careless: the trees running without protected calls are the ones with a single author holding the whole shape in mind.
-This mod has no such guarantee, because it is written to sit on a server beside mods it does not control, so the boundary calls are wrapped and the failures are made soft and visible rather than fatal to every handler behind them.
-The removed-function line is the cheapest of all of them to obey, since the corpus already does and the layout lint keeps it that way.
-
-The last group is about the mods and the files that sit beside this one.
+**Neighbours.**
 
 - Render through `MoodleFramework` or the mod's own panels rather than patching the widgets a resident interface mod already patches: `CleanUI` redraws the status surfaces on this server [#1083/C/snapshot].
 - Treat a `common/` file the version folder shadows as unmaintained, deleting it or keeping it building against the same interface as the live copy: it is unexecuted code on that build, and nothing in the mod asserts the merge direction it depends on [#1086/M/n=1].
 
-Rendering through a framework is the cooperative-detection rule applied to a surface rather than to a value, and the argument is the same: the last writer wins, and being the last writer is not a design.
-The shadowed-file line is the mirror image of the layout rule above it: the same merge that makes the layout worth shipping is what lets a dead copy rot unnoticed, and the copies measured in the corpus call members this build removed.
-An unguarded call to a removed member does not degrade a feature — it ends the body it fires in, which is why the shadowed copy is a hazard rather than clutter ([`lua-platform.md`](lua-platform.md#raises)).
-What makes it a filter rather than a note is that nothing in such a mod asserts the direction it depends on: the mod is correct only because the loader happens to prefer the other copy, and no test in it would notice if that changed.
+A shadowed copy is a hazard rather than clutter: the measured copies call members this build removed [#1086/M/n=1], and an unguarded call to a removed member ends the body it fires in ([`lua-platform.md`](lua-platform.md#raises)).
 
 <a id="testing-discipline"></a>
 ### What a reading of this game is allowed to claim
 
-Every measured rule on this page came off one instrument, and the instrument has its own failure modes.
-Two of them are general enough to be rules in their own right, because both produce a number that looks like an answer.
+Two failure modes of the instrument are rules in their own right, because both produce a number that looks like an answer.
 
 - A grep limit is a break and not a window, on the server log as much as the client's: the reader stops at the limit, so a result of exactly the limit means saturation and never exhaustion — size it above the expected count, and never report a saturated read as a census [#1763].
 - The missing-mod run reported zero server errors and that is not a contradiction: to this game a missing mod is a warning and a clean boot, so a zero error count must never be read as the mod loaded [#1821/M/n=1].
 
-Both are the same mistake in two costumes: a reading whose shape is set by the instrument, taken for a reading whose shape is set by the game.
-A saturated grep is the reader's ceiling; a clean boot is the classifier's silence.
 The error count a run prints is a classifier's output rather than a fault count, so the list is read before the number is quoted ([#1764], [#1247], [`harness.md`](harness.md#reading-a-reply)).
-
-What both rules ask for is one habit: say what the instrument would have shown had the answer been different.
-A grep whose limit sits above the predicted count can separate a full census from a truncated one; a grep at the predicted count cannot, and it fails in the direction that reads as a pass.
-A gate that asserts the mod took effect can separate a loaded mod from a merely named one; an error count cannot, and it fails in the same direction.
-Both failures are silent, and both are closed before the session is paid for rather than after it.
-A bound is recorded for the same reason, and it is the part of a measured rule that survives a build bump: the number may have to be taken again, but what was and was not exercised is what tells a later reader whether taking it again is necessary.
-A reading that comes back trivial, unmeasured or falsified is written as such and never re-run for a prettier number ([`harness.md`](harness.md#driver-rules)).
-
-Four further pieces of discipline belong to the harness and are stated there rather than here.
 A client-side reader of a server-owned store steps when a packet lands where the server ramps, so the client's series measures the push and not the simulation ([#1483], [`../facts/wire-packets.md`](../facts/wire-packets.md#staircase)).
-A client-side console grep sees each engine load line once per Lua state, so a client limit is sized against twice the predicted count ([`harness.md`](harness.md#reading-a-reply)).
-Every named experiment inherits the same six clauses of profile, driver, provenance and verdict discipline, and a rider on an existing session is preferred to a session of its own ([`harness.md`](harness.md#experiment-contract), [`../reference/experiments.md`](../reference/experiments.md)).
-A probe built to raise makes the run report failure by construction, which is the harness working rather than the probe failing, so the grade comes off the artifact and not off the console line ([`harness.md`](harness.md#driver-rules)).
-The one rule that belongs to both this page and that one is the last of the imperatives above, the server-side gate and the low client timeout a raising probe is given [#1963/M/n=2].
+The client console grep, the experiment contract and a raising probe's grade are harness rules: [`harness.md`](harness.md#reading-a-reply), [`#experiment-contract`](harness.md#experiment-contract) and [`#driver-rules`](harness.md#driver-rules).
+The one rule that belongs to both pages is the server-side gate and the low client timeout a raising probe is given [#1963/M/n=2].
 Its release-client half is measured: a release client given an unguarded raise of a second shape (a custom event) did not park, so the gate guards the debug client and a release client's survival is itself readable over the bus [#3317/M/n=1] [#3318/M/n=1].
 
 <a id="corpus-drift"></a>
 ### The corpus moves while you are counting it
 
-The installed workshop tree is not a fixed object, and nothing in this repository writes to it.
-Two things drift independently and both matter: the set of folders on disk, and the contents of any one of them.
+The set of folders on disk and the contents of any one of them drift independently.
 
 - Quote a corpus sweep with its stamp: the installed workshop tree is live and changes under a running session [#1964/C/snapshot].
 - Steam rewrites the subtree inside a workshop item rather than every folder node: one item's own folder still carried an August modification time while the mod folder inside it had been rewritten at 13:47 on 2026-09-10 [#1841/C/snapshot].
 
-The second line is why a modification time on the item folder is not a staleness check: the folder that moved is one level down, and an item whose own node looks months old may hold a tree rewritten minutes ago.
-Every count in this library that was taken over that tree therefore carries a date, and the dated inventory snapshot is the object the corpus rules are computed over rather than the live folder.
+So an item folder's modification time is no staleness check, because the folder that moved is one level down [#1841/C/snapshot].
+Every count over that tree carries a date, and a recount is a new reading with a new date; the stamp at the head of this page does the same one level up [#1964/C/snapshot].
 
-Dating a count is not bookkeeping; it is what makes the count falsifiable at all.
-A corpus rule such as the hook-tier line or the error-handling line is a statement about the mods that were installed on one particular afternoon, and the honest form of it names that afternoon.
-A recount is then a new reading with a new date rather than a confirmation of the old one, and the two disagreeing is information about the tree rather than a defect in either.
-The same discipline is what keeps a corpus rule from hardening into folklore: the pattern is common among the mods that survived on that tree, which is evidence about what works and not proof that the alternative fails.
-It also bounds how long a rule on this page is worth anything without a fresh look, since the game ships monthly patches and the tree follows them.
-The stamp at the head of this page carries the same discipline one level up, naming the build and the day the lines under it were read on [#1964/C/snapshot].
-
-Line cites into a workshop mod drift the same way, and they drift without becoming wrong.
+Line cites into a workshop mod drift the same way, without becoming wrong.
 
 - Every version-folder line cite in the client-only mod's teardown ([`../facts/other-mods/simplestatus.md`](../facts/other-mods/simplestatus.md)) names the tree as it stood on 2026-09-10, and Steam added a newer tree to the item on 2026-09-13 whose copy of the panel file is 589 lines against the read copy's 583, so those cites are drifted rather than wrong and must be re-located by content before being quoted elsewhere; the measured readings are unaffected, because the run booted the older tree [#1466/C/snapshot].
 
-The tree added on that date is the `42.20` one this build resolves, so the teardown's version-folder cites name a tree that is no longer the live one ([#2523/C/snapshot], [simplestatus.md#architecture](../facts/other-mods/simplestatus.md#architecture)).
-Re-locating a cite by content rather than by line number is the standing practice that follows from it, written as a rule [above](#rules), and it applies to this repository's own files as much as to the corpus.
-A line number is the least durable part of any cite, which is why every pointer in this library carries the text it names as well as the place it sat.
-A drifted cite is also not a falsified reading: a run that booted the older tree measured the older tree, and what moved is the address rather than the answer.
-The sweep counts themselves are the part of this section that no committed artifact backs, and they are listed under [Open](#open) rather than quoted as facts here.
+The tree added on that date is the `42.20` one this build resolves ([#2523/C/snapshot], [simplestatus.md#architecture](../facts/other-mods/simplestatus.md#architecture)).
+Re-locating a cite by content is the [rule above](#rules), and it applies to this repository's own files as much as to the corpus.
+The sweep counts themselves no committed artifact backs, so they are under [Open](#open).
 
 <a id="measure-the-mechanism"></a>
 ### Measure the mechanism, not the mirror
 
-The single reading that connects the rules on this page is that a client's copy of a server-owned value is a mirror, and a mirror can be measured perfectly and still tell you nothing about the thing it reflects.
-The mirror is not a metaphor for a display: it is what a client's copy of a server-owned object is on this build.
-A reader on that side sees exactly what the last packet left there, and it goes on seeing that after the server's own value has moved.
-So a measurement of the client is a measurement of the last push, and it is a measurement of the mechanism only when the push and the value are known to agree.
-
-Two of the rules above are that reading in two different places, and the third case is a row this page borrows from the packet facts.
-A cooked food's thirst is wrong on the client not because the client simulates differently but because of what the packet sends and how the receiver stores it, so the number is honest on both sides and the mechanism is the transformation between them ([#1084/M/n=2]).
-A field the packet does not carry is not slow to arrive; it never arrives, so re-pushing measures the sender and not the gap ([#1076/M/n=1]).
-A client-side series of a pushed store is a staircase whose step width is the push cadence, so reading it faster measures the reader ([#1483], [`../facts/wire-packets.md`](../facts/wire-packets.md#staircase)).
-
-The instrument rules under [what a reading may claim](#testing-discipline) are the same lesson turned on the harness itself: a grep limit and an error classifier both return a number whose shape belongs to the tool.
-
-So the practice is to name the mechanism before taking the number.
-Read the packet's field list rather than the field's name; read the getter that `setData` calls rather than the key it writes; read which file the loader mapped rather than which file the mod ships; read the dataset rather than a live instance whose zero may be a packet's omission ([#0651], [#1086/M/n=1]).
-Each of those is a question with a code answer that can be settled before a server is booted, which is why the rows those four readings rest on are jar and script reads rather than runs [#0651, #1086/M/n=1].
-The measurement then has something to falsify rather than something to report, and a reading that disagrees with the mechanism is worth more than one that agrees with it.
-Where the mechanism cannot be read, the rule is written with the bound that the mechanism is untraced, which is what the whole of [Walls and bounds](#walls) below records.
-An untraced mechanism is not a missing rule: the guard on a `server/` file is obeyed on the strength of the measurement alone, and the bound says only that a build bump could change the reason without changing the behaviour.
-
-For this mod's own tests the reading has a direct consequence.
-A test that reads a client-side value proves that the push arrived, and a test that reads the server's proves what the mod computed, so a pair of them is the smallest honest check of anything that crosses the wire.
-Reading both sides of one tick is what makes the comparison a comparison rather than two unrelated samples, and it is why every driver in this library reads the client first and the server second at each tag ([`harness.md`](harness.md#probes)).
+A client's copy of a server-owned value is a mirror of the last push, so a client measurement measures the push, and it measures the mechanism only when the push and the value are known to agree ([#1483]).
+A cooked food's thirst is wrong on the client because of what the packet sends and how the receiver stores it ([#1084/M/n=2]); a field the packet does not carry never arrives, so re-pushing measures the sender ([#1076/M/n=1]).
+So name the mechanism before taking the number: the packet's field list rather than the field's name, the getter `setData` calls rather than the key it writes, the file the loader mapped rather than the file the mod ships, and the dataset rather than a live instance whose zero may be a packet's omission — each a jar or script read settled before a server boots [#0651, #1086/M/n=1].
+Where the mechanism cannot be read, the rule carries the bound that it is untraced ([Walls](#walls)): the `server/` guard is obeyed on the measurement alone [#0855/M/n=1, #1075/M/n=1].
+A test that reads the client proves the push arrived and one that reads the server proves what the mod computed, so the smallest honest check of anything crossing the wire reads both at one tag ([`harness.md`](harness.md#probes)).
 
 ## Walls and bounds
 <a id="walls"></a>
@@ -258,23 +193,15 @@ Not covered: this page reads the corpus by static sweep and by line-level reads 
 
 ## See also
 
-- [`mod-anatomy.md`](mod-anatomy.md) — the mod folder, the version dir, the id chain and the translation tables these rules are written against.
-- [`loader-and-scripts.md`](loader-and-scripts.md) — the file map and the script merge the layout rule and the script-first rule rest on.
+- [`../process/lessons.md`](../process/lessons.md) — the repository's process lessons; this page keeps the engine rules.
+- [`overview.md`](overview.md) — where a question about this build is routed before it reaches any of these pages.
+- [`mod-anatomy.md`](mod-anatomy.md) and [`loader-and-scripts.md`](loader-and-scripts.md) — the folder, the id chain, the translation tables, the file map and the script merge the layout and script-first rules rest on.
 - [`lua-platform.md`](lua-platform.md) — Kahlua's limits, what `pcall` catches, what an unguarded raise aborts, and the debug client's modal break.
 - [`mp-model.md`](mp-model.md) — the routes mod state can travel, the wipe in both directions, and which side owns what.
-- [`harness.md`](harness.md) — the instrument every measured rule here came off, and the reply-reading rules the testing lessons belong to.
-- [`overview.md`](overview.md) — where a question about this build is routed before it reaches any of these pages.
 - [`performance.md`](performance.md) — the server frame, the scheduling primitives, the clocks and the measured costs the frame rules rest on.
+- [`harness.md`](harness.md) — the instrument every measured rule here came off, and its reply-reading rules.
 - [`../facts/wire-packets.md`](../facts/wire-packets.md) — the packet field lists, the cooked-thirst transformation and the staircase.
-- [`../facts/other-mods/catalog.md`](../facts/other-mods/catalog.md) — the corpus sweep itself, and the counts the corpus rules are computed over.
-- [`../facts/other-mods/simplestatus.md`](../facts/other-mods/simplestatus.md) — the teardown behind the player-modData rule.
-- [`../facts/other-mods/autocook.md`](../facts/other-mods/autocook.md) — the teardown behind the layout rule and the shadowed-file rule.
-- [`../facts/other-mods/longtermpreservation.md`](../facts/other-mods/longtermpreservation.md) — the teardown behind the script-first rule and the uncarried-field rule.
-- [`../facts/other-mods/itemquality.md`](../facts/other-mods/itemquality.md) — the reconciliation and unsynced-field failures the filter lines generalise.
-- [`../facts/other-mods/beyondten.md`](../facts/other-mods/beyondten.md) — the exemplar for idempotent patching, derived-on-read values and cooperative detection.
-- [`../areas/packaging.md`](../areas/packaging.md) — where the layout and neighbour rules become this mod's own decisions.
-- [`../areas/mp-sync.md`](../areas/mp-sync.md) — where the authority rules become a chosen route.
-- [`../areas/body-effects.md`](../areas/body-effects.md) — where the stat-hook rule and the debug-setter rule become levers a nutrition mod pulls.
 - [`../facts/perks-and-strength.md`](../facts/perks-and-strength.md#trait-remap) — the level writes, the level event and the band-trait remap the debug-setter rule rests on.
-- [`../reference/experiments.md`](../reference/experiments.md) — the standing experiment contract the testing discipline inherits.
-- [`../reference/wall-map.md`](../reference/wall-map.md) — the verdict rows the walls of the pages this one cites are drawn from.
+- [`../facts/other-mods/catalog.md`](../facts/other-mods/catalog.md) — the corpus sweep and its teardowns (`simplestatus`, `autocook`, `longtermpreservation`, `itemquality`, `beyondten`) behind the corpus rules.
+- [`../areas/packaging.md`](../areas/packaging.md), [`../areas/mp-sync.md`](../areas/mp-sync.md) and [`../areas/body-effects.md`](../areas/body-effects.md) — where these rules become the mod's own decisions.
+- [`../reference/experiments.md`](../reference/experiments.md) and [`../reference/wall-map.md`](../reference/wall-map.md) — the experiment contract and the verdict rows the walls are drawn from.
