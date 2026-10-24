@@ -922,3 +922,91 @@ def test_the_orphan_rule_is_skipped_by_register_only():
     with tempfile.TemporaryDirectory() as d:
         _tree(d, [_row(1), _row(2)], pages={"docs/facts/nutrition-core.md": _ORPHAN_PAGE})
         assert not any(x.rule == "orphan" for x in cc.check(d, register_only=True))
+
+
+# --- Rule 13, owner-block (Plan 20 Task 7c, ruling P20-18): a row owned at <page>#<anchor> is tagged inside the block.
+
+_BLOCK_PAGE = ("# Core\n\n<a id=\"rules\"></a>\n\n## Rules\n- Do x [#0003].\n\n## How it works\n<a id=\"update\"></a>\n"
+               "### U\nOne [#0001].\n\n### A deeper heading with no anchor\nTwo [#0002].\n\n<a id=\"other\"></a>\n### O\nThree.\n")
+
+
+def _blocks(d, **kw):
+    return [x for x in cc.check(d, partial=True, **kw) if x.rule == "owner-block"]
+
+
+def _block_rows(**owners):
+    return [_row(i, owner=owners.get("r%d" % i, "facts/nutrition-core.md#update")) for i in (1, 2, 3)]
+
+
+def test_a_row_tagged_on_its_owner_page_outside_its_block_is_a_finding():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, _block_rows(r1="facts/nutrition-core.md#other", r3="facts/nutrition-core.md#rules"),
+              pages={"docs/facts/nutrition-core.md": _BLOCK_PAGE})
+        f = _blocks(d)
+        assert [(x.path, x.line, x.detail) for x in f] == [
+            ("docs/facts/nutrition-core.md", 16, "#0001: owned at facts/nutrition-core.md#other but not tagged inside that block")]
+        assert not any(x.rule == "owner" for x in cc.check(d, partial=True))     # rule 1 passes it: the page carries the tag
+        assert cc.exit_code(f) == 1
+
+
+def test_a_row_tagged_inside_its_block_passes_and_a_deeper_unanchored_heading_stays_inside():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, _block_rows(r3="facts/nutrition-core.md#rules"), pages={"docs/facts/nutrition-core.md": _BLOCK_PAGE})
+        assert _blocks(d) == []
+
+
+def test_a_row_owned_at_rules_and_tagged_on_a_rules_line_passes():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, _block_rows(r3="facts/nutrition-core.md#rules"), pages={"docs/facts/nutrition-core.md": _BLOCK_PAGE})
+        assert not any(x.detail.startswith("#0003") for x in _blocks(d))
+        _tree(d, _block_rows(r3="facts/nutrition-core.md#update"), pages={"docs/facts/nutrition-core.md": _BLOCK_PAGE})
+        assert [x.detail[:5] for x in _blocks(d)] == ["#0003"]     # the Rules line sits outside #update's block
+
+
+def test_the_block_ends_at_the_next_anchor_and_at_the_next_h2():
+    lines = _BLOCK_PAGE.split("\n")
+    assert cc.anchor_block(lines, "rules") == (2, 7)                  # ## How it works closes it
+    assert cc.anchor_block(lines, "update") == (8, 15)                # the <a id="other"> line closes it
+    assert cc.anchor_block(lines, "other") == (15, len(lines))
+    assert cc.anchor_block(lines, "missing") is None
+
+
+def test_a_heading_slug_opens_a_block_when_the_page_has_no_such_a_id():
+    lines = "# P\n\n## Some Heading: here\n### Sub\nx\n## Next\ny\n".split("\n")
+    assert cc.anchor_block(lines, "some-heading-here") == (2, 5)
+    assert cc.anchor_block(lines, "sub") == (3, 5)
+
+
+def test_rows_left_to_the_other_rules_are_not_owner_block_findings():
+    page = _BLOCK_PAGE.replace(" [#0003]", "")
+    with tempfile.TemporaryDirectory() as d:
+        # #0001 owned at an anchor the page lacks (page_lint's), #0003 not on its owner page at all (rule 1's),
+        # #0002 owned on a reference page and tagged outside its block there (rule 1 as before)
+        _tree(d, _block_rows(r1="facts/nutrition-core.md#missing", r2="reference/tools.md#other"),
+              pages={"docs/facts/nutrition-core.md": page, "docs/reference/tools.md": "# T\n\n<a id=\"other\"></a>\nNone.\n\n<a id=\"x\"></a>\nIt [#0002].\n"})
+        assert _blocks(d) == []
+        assert [x.detail[:5] for x in cc.check(d, partial=True) if x.rule == "owner"] == ["#0003"]
+
+
+def test_a_superseded_row_is_not_checked_for_its_block():
+    with tempfile.TemporaryDirectory() as d:
+        rows = _block_rows(r3="facts/nutrition-core.md#rules")
+        rows[0].update(owner="facts/nutrition-core.md#other", status="superseded", successor="#0002")
+        _tree(d, rows, pages={"docs/facts/nutrition-core.md": _BLOCK_PAGE})
+        assert _blocks(d) == []
+
+
+def test_the_owner_block_rule_is_skipped_by_register_only():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, _block_rows(r1="facts/nutrition-core.md#other", r3="facts/nutrition-core.md#rules"),
+              pages={"docs/facts/nutrition-core.md": _BLOCK_PAGE})
+        assert not any(x.rule == "owner-block" for x in cc.check(d, register_only=True))
+
+
+def test_rule_2_reads_the_experiments_table():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, _block_rows(r3="facts/nutrition-core.md#rules"), pages={"docs/facts/nutrition-core.md": _BLOCK_PAGE,
+              "docs/reference/experiments.md": "# Experiments\n\n| X1 | run [#0002/M] |\n"})
+        f = [x for x in cc.check(d, partial=True) if x.rule == "tag"]
+        assert [(x.path, x.line, x.detail) for x in f] == [
+            ("docs/reference/experiments.md", 3, "#0002: suffix '/M' should be '' (run --fix-tags)")]

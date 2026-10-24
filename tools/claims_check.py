@@ -11,7 +11,8 @@ other) · refgen (10: the two generated sections must be fresh renders of the re
 docs/reference/artifacts.md's `Cited by` column and the `## Contradictions` section of
 references/wiki-mirrors/README.md; an absent page or a README without its reference_gen markers is a
 finding; see tools/reference_gen.py) · guide (11) · orphan (12: a live row that no page tags; see
-rule_orphan). --register-only runs 0 and 3; --partial lets
+rule_orphan) · owner-block (13: a live row owned at a layer page's anchor carries a tag inside that anchor's
+block; see rule_owner_block). --register-only runs 0 and 3; --partial lets
 1 skip owner pages that do not exist yet; --section-map prints the source-section map; --staged
 skips the run when nothing relevant is staged."""
 import argparse, collections, csv, os, re, subprocess, sys
@@ -28,13 +29,13 @@ ALIASES = "docs/reference/run-aliases.csv"
 HARNESS_MD = "docs/reference/harness-commands.md"
 LUA_DIR = "testing/PZTestKit/PZTestKit/42/media/lua"
 LAYER_DIRS = ("docs/areas", "docs/platform", "docs/facts")
-# Rule 2 also reads the three reference pages that own register rows: `docs/reference/` is outside the
-# page contract, so rule 4 never runs there, but a row owned by one of these still needs its tag to
-# resolve and to carry the canonical suffix. Every other reference page is generated or an index.
-REF_TAG_PAGES = ("docs/reference/datasets.md", "docs/reference/tools.md", "docs/reference/wall-map.md")
-# Rule 12 also counts the tags on the experiments table, which owns no row and so sits outside rule 2: a row whose
-# only citation is its experiment's line there is cited, not orphaned.
-ORPHAN_EXTRA_PAGES = ("docs/reference/experiments.md",)
+# Rule 2 also reads the reference pages that carry tags: `docs/reference/` is outside the page contract, so
+# rule 4 never runs there, but a tag there still has to resolve and carry the canonical suffix. The first three own
+# register rows; the experiments table owns none, but a row whose only citation is its experiment's line there is
+# cited, not orphaned (rule 12), so its tags are checked like any other (Plan 20 Task 7c). Every other reference
+# page is generated or an index.
+REF_TAG_PAGES = ("docs/reference/datasets.md", "docs/reference/tools.md", "docs/reference/wall-map.md",
+                 "docs/reference/experiments.md")
 # Rule 10's inputs: the two files whose sections tools/reference_gen.py generates.
 ARTIFACTS_MD = "docs/reference/artifacts.md"
 MIRRORS_README = "references/wiki-mirrors/README.md"
@@ -55,6 +56,7 @@ H2_RX = re.compile(r"^## (.+?)\s*$")
 CODE_SPAN_RX = re.compile(r"`[^`]*`")
 LINK_TARGET_RX = re.compile(r"\]\([^)\s]*\)")
 ANCHOR_LINE_RX = re.compile(r'^\s*<a id="[A-Za-z0-9_-]+"></a>\s*$')
+HEADING_RX = re.compile(r"^(#{1,6}) (.+?)\s*#*\s*$")
 RULES_DIRS = ("docs/areas", "docs/platform")
 FILE_LINES_RX = re.compile(r"`?([A-Za-z0-9_./-]+\.[A-Za-z0-9]+):\d+(?:[-–]\d+)?`?")
 
@@ -91,8 +93,8 @@ def _skill_files(root):
 
 
 def _tagged_files(root):
-    """Every file rule 2 checks and --fix-tags rewrites: the three layers, the three reference
-    pages that own register rows (when they exist), and the skills."""
+    """Every file rule 2 checks and --fix-tags rewrites: the three layers, the tagged reference pages
+    REF_TAG_PAGES (when they exist), and the skills."""
     extra = [os.path.join(root, *r.split("/")) for r in REF_TAG_PAGES]
     return list(_md_files(root, LAYER_DIRS)) + [p for p in extra if os.path.exists(p)] + _skill_files(root)
 
@@ -441,6 +443,73 @@ def rule_owner(rows, root, partial):
     return out
 
 
+def _slug(heading):
+    """A heading's fragment as GitHub renders it: lowercased, punctuation dropped, spaces to hyphens."""
+    return re.sub(r"\s", "-", re.sub(r"[^\w\s-]", "", heading.strip().lower()))
+
+
+def anchor_block(lines, anchor):
+    """(first, end) line indexes of `anchor`'s block in `lines`, end exclusive, or None when the page has no such anchor.
+    An `<a id="anchor"></a>` line opens the block and the next `<a id>` line or `#`/`##` heading closes it; a deeper
+    heading without its own anchor stays inside (the definition every Plan 20 wave's owner-in-block check used). An
+    anchor set directly above a heading (blank lines aside) owns that heading, so an anchor above a `##` keeps its
+    section rather than closing on it; on the layer pages every anchor sits below its `##` or above a `###`, where
+    this reads as the waves' check did. With no `<a id>`, a heading whose slug is the anchor opens the block, and the
+    next `<a id>` or heading of the same or a higher level closes it."""
+    tag = '<a id="%s"></a>' % anchor
+    for i, line in enumerate(lines):
+        if line.strip() == tag:
+            j = i + 1
+            while j < len(lines) and not lines[j].strip():
+                j += 1
+            if j < len(lines) and HEADING_RX.match(lines[j]):
+                j += 1
+            while j < len(lines) and not (ANCHOR_LINE_RX.match(lines[j]) or re.match(r"#{1,2} ", lines[j])):
+                j += 1
+            return i, j
+    for i, line in enumerate(lines):
+        m = HEADING_RX.match(line)
+        if m and _slug(m.group(2)) == anchor:
+            level, j = len(m.group(1)), i + 1
+            while j < len(lines):
+                h = HEADING_RX.match(lines[j])
+                if ANCHOR_LINE_RX.match(lines[j]) or (h and len(h.group(1)) <= level):
+                    break
+                j += 1
+            return i, j
+    return None
+
+
+def rule_owner_block(rows, root):
+    """Rule 13, owner-block (Plan 20 Task 7c, ruling P20-18): a live row owned at `<page>#<anchor>` on a layer page
+    (docs/areas, docs/platform, docs/facts) carries a tag inside that anchor's block (`anchor_block`), so its owner
+    sentence sits where its owner cell says. Rule 1 asks only that the page carry the tag somewhere, which let #3767's
+    owner sentence leave its block unseen. A superseded row, a row owned on a reference page, a page that does not
+    exist, a page without the anchor and a page that carries no tag for the row at all are left to rules 1 and
+    page_lint, as before."""
+    out, pages = [], {}
+    for r in rows:
+        if r["status"] == "superseded" or not cl.OWNER_RX.match(r["owner"]):
+            continue
+        page, anchor = r["owner"].split("#", 1)
+        if not ("docs/" + page).startswith(tuple(d + "/" for d in LAYER_DIRS)):
+            continue
+        if page not in pages:
+            path = os.path.join(root, "docs", *page.split("/"))
+            pages[page] = _read(path).replace("\r\n", "\n").split("\n") if os.path.exists(path) else None
+        lines = pages[page]
+        if lines is None:
+            continue
+        span = anchor_block(lines, anchor)
+        if span is None or r["id"] not in {cid for _, cid, _ in cl.iter_tags("\n".join(lines))}:
+            continue
+        first, end = span
+        if r["id"] not in {cid for _, cid, _ in cl.iter_tags("\n".join(lines[first:end]))}:
+            out.append(Finding("docs/" + page, first + 1, "owner-block", "%s: owned at %s but not tagged inside that block"
+                               % (r["id"], r["owner"])))
+    return out
+
+
 def rule_tag(rows, root, allow_provisional, archive=()):
     """Rule 2: every tag names a live register row with its canonical suffix. A tag naming an archived row is a
     finding: an archived row is cited from the archive, never from a page (Plan 20)."""
@@ -480,16 +549,14 @@ def rule_orphan(rows, root, register_rel=REGISTER):
     """Rule 12 (Plan 20 Task 7b, ruling P20-17): a live register row that nothing tags is a finding on its register
     line. The tags are gathered, in the forms `cl.iter_tags` parses, from exactly the files rule 2 reads
     (`_tagged_files`: every .md under docs/areas, docs/platform and docs/facts, the reference pages REF_TAG_PAGES
-    (datasets.md, tools.md, wall-map.md) and every .claude/skills/*/SKILL.md) plus ORPHAN_EXTRA_PAGES
-    (docs/reference/experiments.md). Archived rows are exempt (they are in the archive, not `rows`), and so is a
+    (datasets.md, tools.md, wall-map.md, experiments.md) and every .claude/skills/*/SKILL.md). Archived rows are exempt (they are in the archive, not `rows`), and so is a
     superseded row still in the live register, whose pages move to its successor (CLAUDE.md section 4, item 4).
 
     It differs from rule 1, owner: rule 1 asks one page, the owner cell's, for a tag and skips a row whose owner cell
     names no page; this rule asks every tagged file, so a row tagged only off its owner page passes it, and a row
-    with no tag anywhere fails it whatever its owner cell says. Neither rule reads the owner anchor's block."""
+    with no tag anywhere fails it whatever its owner cell says. Rule 13 reads the owner anchor's block."""
     tagged = set()
-    extra = [os.path.join(root, *r.split("/")) for r in ORPHAN_EXTRA_PAGES]
-    for path in _tagged_files(root) + [p for p in extra if os.path.exists(p)]:
+    for path in _tagged_files(root):
         tagged.update(cid for _, cid, _ in cl.iter_tags(_read(path)))
     return [Finding(register_rel, n, "orphan", "%s: a live row with no tag on any page; retire it, or tag its owner sentence"
                     % r["id"])
@@ -772,6 +839,7 @@ def check(root=None, register=None, lua_dir=None, register_only=False, partial=F
     findings += rule_owner(rows, root, partial) + rule_tag(rows, root, allow_provisional, arch) + rule_untagged(root)
     findings += rule_generator(root, lua) + rule_refgen(root, rows + arch) + rule_guide(root, rows, arch, reg_rel, arch_rel)
     findings += rule_skill(root) + rule_example(root) + rule_rules_dup(root) + rule_orphan(rows, root, reg_rel)
+    findings += rule_owner_block(rows, root)
     return findings
 
 
