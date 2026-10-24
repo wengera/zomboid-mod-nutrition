@@ -15,11 +15,6 @@ description: Writing, debugging or reviewing a Project Zomboid mod that is not a
   - docs/platform/performance.md — the server frame, what a handler costs in it, the scheduling primitives, the clocks, the measured costs and how to budget a change
 - docs/platform/lessons.md
 
-## Coverage
-`platform/` is not a modding manual.
-It holds what this library measured or read while building a nutrition mod on a dedicated `42.20.4` server with one client.
-A topic marked absent has no page, no rule and no claim here; an agent asked about it says so and reads the jar or the mirror, and never infers a wall from silence.
-
 ## Rules quoted
 - Ask the routing table which page owns a mechanism before reading any page: a mod reaches the game through four surfaces only, and the command bus is the one sanctioned client-to-server path for anything the engine does not sync [#0888/C/C-only].
 - Ship a `42/` tree with `42.x/` overrides beside `common/` and declare dependency order with `mod.info` `require=`: the version folder wins a same-relative-path collision while `common/` supplies everything that folder does not ship [#1073/M/n=2].
@@ -38,4 +33,4 @@ A topic marked absent has no page, no rule and no claim here; an agent asked abo
 - docs/platform/jar-research.md — the next source when no page carries the topic (skill `pz-jar-research`).
 - docs/platform/harness.md — proving on a live server that the mod loaded and does what it claims (skill `pz-mod-testing`).
 - docs/reference/tools.md#mod-lint — the layout lint to run on the mod folder before any boot.
-- docs/platform/overview.md#coverage — which topics have a page, the server lifecycle, the sandbox options, the client UI and server performance among them, and which are only touched or absent.
+- docs/platform/overview.md#coverage — which topics have a page and which are only touched or absent; an absent topic has no claim here, never a wall inferred from silence.

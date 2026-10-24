@@ -23,4 +23,4 @@ paths: ["testing/**"]
 - docs/reference/experiments.md — the named experiment specs a driver implements.
 - docs/platform/lua-platform.md#kahlua-limits — the dialect every harness Lua edit must parse under.
 - docs/reference/tools.md#claims-tools — the bus inventory generator and the Lua balance check a harness commit runs.
-- docs/process/lessons.md#live-runs — the incident behind each of CLAUDE.md § 5's live-run rules, and the driver pitfalls.
+- docs/process/lessons.md#live-runs — the incidents behind CLAUDE.md § 5 and the driver pitfalls.

@@ -9,13 +9,9 @@ The pages state what the game does and what a mod can and cannot change; the mod
 
 ## Reading order
 
-Read in this order:
-
 - [`CLAUDE.md`](CLAUDE.md) routes a task to the pages that answer it, in reading order, and carries the gates and the process rules.
-- [`docs/areas/`](docs/areas/) is the nutrition lens: one page per design area of the mod, each with its rules, its options, its walls and what stays open, and the open questions gathered in one index.
-- [`docs/platform/`](docs/platform/) is general modding knowledge — mod anatomy, the loader, the Lua platform, the multiplayer model, the server lifecycle, sandbox options, the client UI, the harness, jar research and the lessons — entered at [`overview.md`](docs/platform/overview.md).
-- [`docs/facts/`](docs/facts/) holds the measured mechanics of the vanilla food and nutrition systems and of the body they act on — the character stats, endurance, fatigue and sleep, perks and strength, exercise, perception and speed, and health — with [`other-mods/`](docs/facts/other-mods/) for the workshop corpus and its teardowns.
-- [`docs/reference/`](docs/reference/) holds [the register](docs/reference/claims.tsv), [the datasets](docs/reference/datasets.md), [the tools](docs/reference/tools.md), [the experiments](docs/reference/experiments.md), [the generated harness commands](docs/reference/harness-commands.md), [the wall map](docs/reference/wall-map.md), [the artifacts register](docs/reference/artifacts.md), [the science register](docs/reference/science.md) of the cited nutrition-science values the mod ships against, and [the research notes](docs/reference/research-notes.md), the open threads for the next design plan; [`docs/process/lessons.md`](docs/process/lessons.md) holds the process pitfalls behind CLAUDE.md's rules.
+- [`docs/areas/`](docs/areas/) is the nutrition lens, [`docs/platform/`](docs/platform/) general modding knowledge entered at [`overview.md`](docs/platform/overview.md), and [`docs/facts/`](docs/facts/) the measured vanilla mechanics, with [`other-mods/`](docs/facts/other-mods/) for the workshop corpus.
+- [`docs/reference/`](docs/reference/) holds [the register](docs/reference/claims.tsv), [the datasets](docs/reference/datasets.md), [the tools](docs/reference/tools.md), [the experiments](docs/reference/experiments.md), [the generated harness commands](docs/reference/harness-commands.md), [the wall map](docs/reference/wall-map.md), [the artifacts register](docs/reference/artifacts.md), [the science register](docs/reference/science.md) and [the research notes](docs/reference/research-notes.md); [`docs/process/lessons.md`](docs/process/lessons.md) holds the process pitfalls behind CLAUDE.md's rules.
 
 ## The tree
 
@@ -98,9 +94,5 @@ Projects the wiki names, listed for orientation; none is mirrored here.
 
 ### Internal sources
 
-The local install (`42.21` since 2026-10-08, `42.20.4` before it) at `D:\SteamLibrary\steamapps\common\ProjectZomboid` and its workshop folder are the standing evidence base, read-only; the pz-b42 findings on the nutrition weight model and on the ItemQuality and BeyondTen mods are stated in [`docs/facts/nutrition-core.md`](docs/facts/nutrition-core.md) and the teardowns under [`docs/facts/other-mods/`](docs/facts/other-mods/).
-
-## Related workspace
-
-The jar toolchain lives at `C:\Users\Angus\pz-b42`: read its `WORKSPACE.md` first, treat it as read-only from here, and reach the disassembler through `pz.sh` (`./pz.sh grep|methods|refs|dump <class> [method]`).
-[`docs/platform/jar-research.md`](docs/platform/jar-research.md) is how this reference turns a jar reading into a citable claim.
+The local install and its workshop folder (CLAUDE.md § 2) are the standing evidence base, read-only; the pz-b42 findings on the nutrition weight model and on the ItemQuality and BeyondTen mods are stated in [`docs/facts/nutrition-core.md`](docs/facts/nutrition-core.md) and the teardowns under [`docs/facts/other-mods/`](docs/facts/other-mods/).
+The jar toolchain at `C:\Users\Angus\pz-b42` is reached through `pz.sh` (CLAUDE.md § 2), and [`docs/platform/jar-research.md`](docs/platform/jar-research.md) is how a jar reading becomes a citable claim.

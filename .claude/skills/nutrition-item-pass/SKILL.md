@@ -28,6 +28,5 @@ description: Rebalancing vanilla food items — a partial `module Base` `item` b
 
 ## Also
 - docs/facts/eating-pipeline.md#modifiers — what an eat does with a re-based value, and the scale between a script and an instance.
-- docs/reference/datasets.md — the food dataset's columns, units and counts.
-- docs/reference/datasets.md#food-nutrients — the mapping, the extract and the nutrient record, and docs/reference/tools.md#food-nutrients — the pipeline's flags and the `--check` gate.
+- docs/reference/datasets.md — the food dataset's columns, units and counts, and its #food-nutrients section the mapping and the nutrient record; docs/reference/tools.md#food-nutrients — the pipeline's flags and its `--check` gate.
 - docs/areas/packaging.md — the script files' paths and the join checksum they ship under (skill `nutrition-packaging`).

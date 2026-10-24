@@ -24,6 +24,6 @@ description: Syncing a nutrition mod's state between a dedicated server and its 
 
 ## Also
 - docs/platform/lessons.md#anti-patterns — the sync rules and the authority filters that come with them.
-- docs/platform/harness.md#experiment-contract — the client-first paired read, the only way a silent sync failure is seen (skill `pz-mod-testing`).
+- docs/platform/harness.md#experiment-contract — the client-first paired read that sees a silent sync failure (skill `pz-mod-testing`).
 - docs/platform/server-lifecycle.md#global-moddata — the world-scoped store and its own rules.
 - docs/areas/new-nutrients.md — where the nutrient store this page routes is chosen (skill `nutrition-new-nutrients`).
