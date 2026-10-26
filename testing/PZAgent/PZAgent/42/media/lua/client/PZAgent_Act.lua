@@ -5,8 +5,9 @@
 -- args: goto x y [run]; open x y; loot x y [food|water|weapon|bandage|all]; eat <fullType>; drink; fight; flee x y;
 -- sleep. Every x y is a world square coordinate, as a scan reports it (an offset goes stale while the player moves).
 -- A player whose overall body health reads 0 is dead: every goal's start refuses with dead, and a running goto
--- fails dead at once (an absent reading is not dead). goto is stuck when its best distance to the target has
--- not improved by PROGRESS_EPS for STUCK_TICKS ticks (a dead body drifting, or a player held, moves but never nears).
+-- fails dead at once (an absent reading is not dead). goto is stuck when the player has not moved (|dx| + |dy| under
+-- STILL_EPS) for STUCK_TICKS consecutive ticks: a walk round a house grows the straight-line distance while it walks
+-- correctly (Stage A pass 2), so progress toward the target is never read. Every failed goto clears its walk.
 -- details: goto no square|no path|stuck|dead; open no square|no door|locked|not adjacent; loot not loaded|no container|
 -- not adjacent|empty|no match|interrupted; eat, drink none held|not valid|interrupted; fight done clear, failed
 -- no weapon|weapon broke|low health; flee done at, failed cornered; sleep done awake, failed not allowed|
@@ -22,7 +23,7 @@ A.goals = A.goals or {}
 A.goal = nil
 A.REPLAN_MAX = 3
 A.STUCK_TICKS = 90
-A.PROGRESS_EPS = 0.05     -- tiles: a goto's best distance must shrink by this within STUCK_TICKS
+A.STILL_EPS = 0.01        -- tiles, |dx| + |dy| between two ticks: under this the player has not moved
 
 local function split(args)
     local out = {}
@@ -93,25 +94,32 @@ local function dist(p, x, y)
     return math.sqrt(ex * ex + ey * ey)
 end
 
+-- a goto's failed exit: its walk is cleared as done's is (Stage A pass 2's first leg failed stuck with its walk left
+-- queued, and the next leg's walk waited 3661 ms behind it), then the goal fails with detail
+local function failWalk(p, g, detail)
+    pcall(ISTimedActionQueue.clear, p)
+    g.state, g.detail = "failed", detail
+end
+
 A.goals["goto"] = {
     start = function(argv)
         local x, y = tonumber(argv[1]), tonumber(argv[2])
         if x == nil or y == nil then return false, "bad args" end
-        return true, "", { x = x, y = y, run = argv[3] == "run", replans = 0, best = nil, still = 0 }
+        return true, "", { x = x, y = y, run = argv[3] == "run", replans = 0, lastX = nil, lastY = nil, still = 0 }
     end,
-    -- still counts the ticks since the best distance last shrank by PROGRESS_EPS; at STUCK_TICKS the walk is
-    -- cleared and re-queued, REPLAN_MAX times, then the goal fails stuck
+    -- still counts the consecutive ticks the player has not moved (the first tick reads the position); at
+    -- STUCK_TICKS the walk is cleared and re-queued, REPLAN_MAX times, then the goal fails stuck
     tick = function(p, g)
-        if isDead(p) then g.state, g.detail = "failed", "dead"; return end
+        if isDead(p) then failWalk(p, g, "dead"); return end
         if g.tx == nil then
             g.tx, g.ty = g.x, g.y
             local cell = getCell and getCell() or nil
             local _, sq = PZA.call(cell, "getGridSquare", g.tx, g.ty, p:getZ())
-            if sq == nil then g.state, g.detail = "failed", "no square"; return end
+            if sq == nil then failWalk(p, g, "no square"); return end
             g.sq = sq
             if g.run then PZA.call(p, "setRunning", true) end
             local ran, err = queueWalk(p, sq)
-            if not ran then g.state, g.detail = "failed", "no path"; return end
+            if not ran then failWalk(p, g, "no path"); return end
         end
         local d = dist(p, g.tx, g.ty)
         if d <= 1.0 then
@@ -119,15 +127,15 @@ A.goals["goto"] = {
             g.state, g.detail = "done", "d=" .. tostring(d)
             return
         end
-        if g.best == nil then
-            g.best = d
-        elseif d <= g.best - A.PROGRESS_EPS then
-            g.best, g.still = d, 0
-        else
+        local x, y = p:getX(), p:getY()
+        if g.lastX ~= nil and math.abs(x - g.lastX) + math.abs(y - g.lastY) < A.STILL_EPS then
             g.still = g.still + 1
+        else
+            g.still = 0
         end
+        g.lastX, g.lastY = x, y
         if g.still >= A.STUCK_TICKS then
-            if g.replans >= A.REPLAN_MAX then g.state, g.detail = "failed", "stuck"; return end
+            if g.replans >= A.REPLAN_MAX then failWalk(p, g, "stuck"); return end
             g.replans, g.still = g.replans + 1, 0
             pcall(ISTimedActionQueue.clear, p)
             queueWalk(p, g.sq)
@@ -519,10 +527,10 @@ local function awayFrom(p, ax, ay, dist)
     return math.floor(px + vx / n * dist), math.floor(py + vy / n * dist)
 end
 
--- drops a fight's step-back walk; one dropped before it is done (the zombies left, or the walk failed) is
--- cleared from the queue, since it would carry on and queue ahead of the next goal
+-- drops a fight's step-back walk; one dropped while it runs (the zombies left) is cleared from the queue, since it
+-- would carry on and queue ahead of the next goal (a failed one cleared its own walk, a done one too)
 local function dropStep(p, g)
-    if g.sub ~= nil and g.sub.state ~= "done" then pcall(ISTimedActionQueue.clear, p) end
+    if g.sub ~= nil and g.sub.state == "running" then pcall(ISTimedActionQueue.clear, p) end
     g.sub = nil
 end
 
@@ -569,8 +577,7 @@ A.goals["fight"] = {
 
 -- re-aims a flee FLEE_DIST tiles from the player, away from the centroid of the live zombies in sense
 -- radius; a target square that is unknown or solid keeps the current walk. The new walk inherits the
--- old one's stuck count and replans, so re-aiming never hides a player who is not moving; its best
--- distance starts afresh, measured to the new target on its first tick.
+-- old one's stuck count, replans and last position, so re-aiming never hides a player who is not moving.
 local function fleeReplan(p, g)
     local zs = liveZombies(p, PZA.sense.ZOMBIE_RADIUS)
     if #zs == 0 then return end
@@ -584,7 +591,7 @@ local function fleeReplan(p, g)
     local old = g.sub
     pcall(ISTimedActionQueue.clear, p)
     g.sub = subGoto(tx, ty, true)
-    g.sub.still, g.sub.replans = old.still, old.replans
+    g.sub.still, g.sub.replans, g.sub.lastX, g.sub.lastY = old.still, old.replans, old.lastX, old.lastY
 end
 
 A.goals["flee"] = {

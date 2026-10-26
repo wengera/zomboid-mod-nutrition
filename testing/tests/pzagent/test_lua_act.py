@@ -804,7 +804,7 @@ def test_task11_details_are_in_the_header_reasons_and_done_lines():
         assert x in done and x not in closed and re.search(r'"done",\s*"%s"' % x, src)
 
 
-# ---- Stage A pass 2 and 3: goto fails dead; stuck by progress; the chunked scan, emitted in parts --------------------
+# ---- Stage A pass 2 and 3: goto fails dead; the chunked scan, emitted in parts --------------------
 
 ALL_GOALS = (("goto", "13 20"), ("open", "13 20"), ("loot", "13 20"), ("eat", "Base.Apple"), ("drink", ""),
              ("fight", ""), ("flee", "13 20"), ("sleep", ""))          # stop is exempt (fix 1)
@@ -849,49 +849,87 @@ def test_main_acks_a_dead_players_goal_with_reason_dead(lua, fs):
     assert len(acks) == 1 and acks[0]["ok"] is False and acks[0]["reason"] == "dead"
 
 
-def test_goto_oscillating_without_approaching_is_stuck(lua):
-    load(lua)
-    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
-    t = {"n": 0}
-    p = make_player(); p.getX = lambda s: 10.0 if t["n"] % 2 == 0 else 10.5    # moves every tick, never nearer than 2.5
-    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
-    st = None
-    for _ in range(4 * 90 + 10):
-        st = tick(lua, p); t["n"] += 1
-        if st["state"] != "running":
-            break
-    assert st["state"] == "failed" and st["detail"] == "stuck"
-    assert len(g._queue.adds) == 4                                # the first add plus REPLAN_MAX re-adds
+# ---- Stage A pass 3: stuck is no movement; a failed goto clears its walk -----------------------------------------
 
-
-def test_goto_drifting_away_is_stuck(lua):
-    load(lua)
-    g = lua.globals(); g._cell = make_cell(squares={(23, 20, 0): sq(23, 20)})
-    t = {"n": 0}
-    p = make_player(); p.getY = lambda s: 20.0 + 0.01 * t["n"]   # the dead body's drift, across the target line
-    lua.eval("PZA.act.start({seq=1, goal='goto', args='23 20'}, ...)", p)
-    st = None
-    for _ in range(4 * 90 + 10):
-        st = tick(lua, p); t["n"] += 1
-        if st["state"] != "running":
-            break
-    assert st["state"] == "failed" and st["detail"] == "stuck"
-
-
-def test_goto_approaching_slowly_is_never_stuck(lua):
-    load(lua)
-    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
-    t = {"n": 0}
-    p = make_player(); p.getX = lambda s: 10.0 + 0.1 * (t["n"] // 30)    # 0.1 tile per 30 ticks
-    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
+def run_goto(lua, p, n):
     states = []
-    for _ in range(20 * 30 + 5):
-        st = tick(lua, p); t["n"] += 1
+    for _ in range(n):
+        st = tick(lua, p)
         states.append((st["state"], st["detail"]))
+        p.t["n"] += 1
         if st["state"] != "running":
             break
-    assert states[-1][0] == "done" and ("failed", "stuck") not in states
-    assert len(g._queue.adds) == 1                                # never a replan
+    return states
+
+
+def timed_player(**axes):
+    """make_player whose getX/getY are functions of p.t['n'], the tick count run_goto advances."""
+    p = make_player()
+    p.t = {"n": 0}
+    for k, f in axes.items():
+        setattr(p, k, (lambda f: lambda s: f(p.t["n"]))(f))
+    return p
+
+
+def test_goto_moving_without_approaching_is_never_stuck(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    p = timed_player(getX=lambda n: 10.0 if n % 2 == 0 else 10.5)    # moves every tick, never nearer than 2.5
+    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
+    states = run_goto(lua, p, 4 * 90 + 10)
+    assert set(states) == {("running", "")} and len(g._queue.adds) == 1   # never a replan
+
+
+def test_goto_whose_path_grows_the_distance_is_never_stuck(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    # out of the house by its far door (the distance grows from 3 to 9 over 300 ticks), then round to the target
+    p = timed_player(getX=lambda n: 10.0 - 0.02 * n if n < 300 else 4.0 + 0.05 * (n - 300))
+    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
+    states = run_goto(lua, p, 600)
+    assert states[-1][0] == "done" and ("failed", "stuck") not in states and len(g._queue.adds) == 1
+
+
+def test_an_unmoving_player_replans_then_fails_stuck_and_the_failure_clears_the_walk(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    p = timed_player(getX=lambda n: 10.0 + 0.004 * (n % 2))             # a jitter under STILL_EPS is no movement
+    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
+    states = run_goto(lua, p, 4 * 90 + 10)
+    assert states[-1] == ("failed", "stuck") and len(states) == 1 + 4 * 90
+    assert len(g._queue.adds) == 4                                     # the first add plus REPLAN_MAX re-adds
+    assert g._queue.cleared == 4 and g._queue.queue == []              # three replans, then the failure's own clear
+
+
+def test_every_failed_goto_exit_clears_its_walk(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares={})
+    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", make_player())
+    assert tick(lua, make_player())["detail"] == "no square" and g._queue.cleared == 1
+    g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    hp = {"v": 100.0}
+    p = health_player(hp)
+    lua.eval("PZA.act.start({seq=2, goal='goto', args='13 20'}, ...)", p)
+    assert tick(lua, p)["state"] == "running" and len(g._queue.queue) == 1
+    hp["v"] = 0.0
+    assert tick(lua, p)["detail"] == "dead" and g._queue.cleared == 2 and g._queue.queue == []
+    g.ISWalkToTimedAction = J(new=lambda cls, p, sq: (_ for _ in ()).throw(RuntimeError("no path")))
+    lua.eval("PZA.act.start({seq=3, goal='goto', args='13 20'}, ...)", make_player())
+    assert tick(lua, make_player())["detail"] == "no path" and g._queue.cleared == 3
+
+
+def test_a_failed_sub_walk_clears_once_for_open(lua):
+    load(lua)
+    g = lua.globals()
+    door = J(_cls="IsoDoor", IsOpen=lambda s: False, isLocked=lambda s: False, isBarricaded=lambda s: False)
+    squares = open_squares(10, 20)
+    squares[(16, 20, 0)] = osq(16, 20, objects=[door])
+    g._cell = make_cell(squares=squares)
+    p = make_player()                                                  # never moves: the approach walk is stuck
+    lua.eval("PZA.act.start({seq=1, goal='open', args='16 20'}, ...)", p)
+    st = tick(lua, p, 4 * 90 + 5)
+    assert st["state"] == "failed" and st["detail"] == "not adjacent"
+    assert g._queue.cleared == 4 and g._queue.queue == []
 
 
 def scan_world(lua, cx, cy, r):
@@ -1089,7 +1127,7 @@ def test_fight_clears_a_step_back_that_failed(lua):
     tick(lua, p, 2)
     tick(lua, p, 4 * 90 - 1)                            # the player never moves: three re-plans, each a clear
     assert g._queue.cleared == 3
-    tick(lua, p)                                        # the walk fails stuck: the fight drops and clears it
+    tick(lua, p)                                        # the walk fails stuck and clears itself; the fight drops it
     assert g._queue.cleared == 4 and lua.eval("PZA.act.status().state") == "running"
 
 
