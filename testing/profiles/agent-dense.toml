@@ -1,6 +1,6 @@
-# testing/profiles/agent-dense.toml - Plan 21: PZAgent beside the harness on the agent fixture (sandbox Zombies = 4, dense).
+# testing/profiles/agent-dense.toml - Plan 21: PZAgent beside the harness on the agent fixture (sandbox Zombies = 4, Normal).
 fixture = "agent"
-description = "PZTestKit + PZAgent, zombies High (Zombies = 4), 90-minute day, sleep allowed."
+description = "PZTestKit + PZAgent, zombies Normal (Zombies = 4), 90-minute day, sleep allowed. Needs its own provisioned fixture (pzt provision --name agent-dense --sandbox Zombies=4): a profile [sandbox] Zombies does not change a provisioned world (#1811), so the fixture stays agent until that one is provisioned."
 run = { hold = 5 }
 clients = ["admin"]
 verify = [

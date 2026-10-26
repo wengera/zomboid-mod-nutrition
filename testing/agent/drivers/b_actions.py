@@ -1,5 +1,5 @@
 """b_actions -- Plan 21 Task 10, Stage B (spec § 4.2): the actions' go/no-go. One boot of agent-nozombies (fixture
-`agent`, admin -debug, PZTestKit + PZAgent, zombies none); a fixed goal sequence, no policy.
+`agent0`, admin -debug, PZTestKit + PZAgent, zombies none); a fixed goal sequence, no policy.
 
 PHASES (each through xs.run_phase; a phase's fault is recorded and the next still runs):
   hello   wait for the hello line (HELLO_TIMEOUT_S) and the first frame (FRAME_TIMEOUT_S); the first frame's x, y is

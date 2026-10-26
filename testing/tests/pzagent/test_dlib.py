@@ -58,9 +58,12 @@ def test_state_dir_and_clear(tmp_path):
     D.clear_state_dir(cl)                      # absent: no error
     os.makedirs(sd)
     open(os.path.join(sd, "state.log"), "w").write("x")
+    bus = os.path.join(str(tmp_path), "Lua", "pzt-cmd.txt")   # the harness bus file beside pzagent/
+    open(bus, "w").write("y")
     D.clear_state_dir(cl)
     assert not os.path.exists(os.path.join(str(tmp_path), "Lua", "pzagent"))
-    assert os.path.isdir(os.path.join(str(tmp_path), "Lua")) or True
+    assert os.path.isdir(os.path.join(str(tmp_path), "Lua"))
+    assert open(bus).read() == "y"
 
 
 @pytest.mark.parametrize("name,fixture,zombies", [("agent", "agent", None), ("agent-nozombies", "agent0", 6),

@@ -94,7 +94,7 @@ The register lists all of these as do-not-cite (`n = 3`). They are shown here on
 4. **The `agent` fixture kept zombies under a boot-time `Zombies = 6`.**
    - In pass 1 the first frame already listed a zombie 7 tiles away. A zombie with `hasTarget` appeared during the first motion leg, 58 `hit` events followed, and health first read 0 at frame seq 2070 (`testing/artifacts/a_pipe-20261026-101003/state.log`, per its `GUIDE.md`).
    - Nine legs therefore went unpaired and the motion grade read `Infinity` (`a_pipe-20261026-101003/a_grade.txt` `cmd_motion_p90_ms`, `cmd_motion_paired` 11).
-   - Why the setting did not clear them is not settled; the guide says so. The zombie-free fixture `agent0` removed the confound: health read 100 and `nZombies` 0 in every frame of passes 2 and 3 (`voided_legs` 0 in both).
+   - The cause is settled: `Zombies` is fixed at world generation, so a boot-time value does not change a provisioned world and a fresh fixture is the remedy (#1811). The zombie-free fixture `agent0` removed the confound: health read 100 and `nZombies` 0 in every frame of passes 2 and 3 (`voided_legs` 0 in both).
 5. **The lupa test host (a host-only caveat).**
    - The offline Lua tests run under lupa 2.8's Lua 5.1 with `collectgarbage('stop')`. With the collector running, a Python object's wrapper was seen to resolve to a different object after 541 calls (`testing/tests/pzagent/conftest.py`, `make_lua` docstring).
    - The real client is Kahlua on the JVM, so this limits only the offline tests: a collector-dependent defect would surface only at a boot. This caveat has no artifact behind it; it is a reading of the test host's code.
@@ -116,7 +116,7 @@ It stops on death, a dead bus, a `lua_error` storm, low memory, the one-game-day
 
 **What each unrun stage would cost, so Angus can order it:**
 
-- **Stage B** (`testing/agent/drivers/b_actions.py`): one boot of `agent-nozombies`, which points at fixture `agent0` (`testing/profiles/agent-nozombies.toml` line 2; the driver's docstring still names fixture `agent`, which is stale). It runs five repetitions of scan → open → goto → loot food/water → eat → drink → goto spawn, with a wall budget of `BUDGET_S` 560 s, about 10 min (`b_actions.py` lines 71–79). Its gates are spec § 4.2's:
+- **Stage B** (`testing/agent/drivers/b_actions.py`): one boot of `agent-nozombies`, which points at fixture `agent0` (`testing/profiles/agent-nozombies.toml` line 2, and the driver's docstring). It runs five repetitions of scan → open → goto → loot food/water → eat → drink → goto spawn, with a wall budget of `BUDGET_S` 560 s, about 10 min (`b_actions.py` lines 71–79). Its gates are spec § 4.2's:
   - at least 4 of 5 sequences complete;
   - every failure carries a reason from the closed set;
   - the server sees 5 of 5 eats.
@@ -124,7 +124,7 @@ It stops on death, a dead bus, a `lua_error` storm, low memory, the one-game-day
 
 ## 5. Decisions taken
 
-The `Ruling:` lines of `.superpowers/sdd/2026-10-26-plan-21-agent-harness/progress.md`, verbatim, in order:
+The `Ruling:` lines of `.superpowers/sdd/2026-10-26-plan-21-agent-harness/progress.md`, verbatim, in order, with the rulings the ledger records inline (its lines 96, 103 and 157) quoted at their place:
 
 1. Ruling: P21-0 cmd.txt is key=value, not JSON — no Lua JSON decoder in the tree; the bus reads the same form — cost if wrong: a JSON decoder added later, the Python send() changed, nothing else.
 2. Ruling: P21-1 the link probes append at load and falls back to chunk files — append mode is unexercised in the harness — cost if wrong: stage A measures the wrong mode's cost once; the mode is in `hello`.
@@ -135,30 +135,36 @@ The `Ruling:` lines of `.superpowers/sdd/2026-10-26-plan-21-agent-harness/progre
 7. Ruling: PZAgent carries mod.info at the root and at 42/mod.info, identical, as PZTestKit does — the engine reads the version folder first (#1558) and mod_lint's mod-info-place warns otherwise; the plan's Task 1 named the root only — cost if wrong: one duplicate three-line file.
 8. Ruling: rotation switches the live file name (state.<n>.log) instead of copying; init starts a fresh segment when state.log exists; a failed write keeps its batch (buffer capped 2000, L.dropped) — the brief's copy is an unbounded hitch — cost if wrong: Python already orders by seq across all state*.log, so nothing downstream changes.
 9. Ruling: the tests package is renamed testing/tests/pzagent (git mv) and conftest inserts testing/ on sys.path; tests import agent.* directly — the plan's folder name collided — cost if wrong: one rename.
-10. Ruling: Task 4's brief test unpacks S.events wrongly; S.events returns (ev, cur) as Task 5 consumes — the test takes the tuple — cost if wrong: none.
-11. Ruling: getX/getY/getZ may be called directly on a player, zombie or square (as the harness does); every other Java member goes through PZA.call — cost if wrong: none on these three, present on every receiver.
-12. Ruling: spec § 2.1 fields the plan dropped — action {class,n}, sickness, wetness, temperature, scan hour — are added in Task 4 fix 1 where the jar has the member; hit {kind, part}, zombie reanimated and container looked stay out of the spike (Python tracks looted) — cost if wrong: a field added later.
-13. Ruling: every position goal takes absolute world coordinates (goto included; the plan's goto dx dy is dropped) — the planner works from scan coordinates and an offset goes stale while moving — cost if wrong: Task 8's motion phase computes x±10 from the frame.
-14. Ruling: not adjacent and interrupted join loot's closed set; a loot timeout with nothing moved fails interrupted; open handles windows through ISOpenCloseWindow when the install has it.
-15. Ruling: goto clears its walk at done (and sub-walks likewise) — the leftover walk corrupts the next goal's start — cost if wrong: a one-tile stop at each goal end.
-16. Ruling: Stage B resets the server's food timer and sets hunger 0.3 before each eat (recorded in world_changes) — the stage grades the actions, not the appetite — cost if wrong: the eat reading is of a prepared character, said in the guide.
-17. Ruling: pass 2 is allowed (budget 3): the scan is spread over ticks (a chunked scan, N squares per tick, the line emitted when complete), and the walk's stuck detector is re-worked after the write-up's state-log analysis names the cause; the tick gate is re-read on pass 2 with the clock quantisation named in the guide — cost if wrong: one more boot.
-18. Ruling: a zombie-free fixture agent0 (Zombies=6) is provisioned for Stages A and B (the nozombies profile points at it); fixture agent (Zombies=5) stays for Stage C — a sandbox change at boot does not despawn — cost if wrong: one 2.5-min provision.
-19. Ruling: pass 2 Lua: goto fails 'dead' at health 0; stuck judged by progress toward the target (distance not falling for STUCK_TICKS) rather than identical x,y; the scan chunked at 60 squares per tick, the line emitted when complete; driver a_pipe_2.py voids a leg during which health fell or a zombie was within radius; the tick gate stays and the guide names the 1 ms quantisation.
-20. Ruling: the scan15 gate reads the max per-tick scan step (the frame-cost quantity Rule 6 cares about) against 5 ms; the chunk sum is reported as the scan's latency — the spec's gate guards the frame, not the total — cost if wrong: a latency the report states anyway.
-21. Ruling: gate_a changed after pass 1's a_grade.txt was committed (the scan15 gate now needs per-tick figures a pass-1 artifact lacks); pass 1's verdict stands as graded at 3e550f1f (NO-GO either way: the character died) and its guide names that commit; no regrade — cost if wrong: a reader re-running a_grade on the pass-1 artifact sees scan15 fail for a missing field, which the guide explains.
-22. Ruling: pass 3 (the last of the budget): the scan is emitted in parts (one scanPart line per tick, ≤ 60 squares, part i/n; World reassembles; the gate's per-tick term is max(step + that tick's part-emit)); a 30 s rate-60 window reports the mod's ms per second ÷ 60 as the sub-ms mean tick cost beside the quantised p99; the p99 gate stays as written and the report says what the clock can resolve — cost if wrong: one more boot.
-23. Ruling: the start kit equips the spawned bat through the harness's client weapon.equip (recorded under readings.start_kit.armed) — an unarmed policy flees every threat and the stage would measure nothing about fighting — cost if wrong: one harness command in the readings. Review dispatched (opus).
-24. Ruling: the in-session memory stop is LIVE_MIN_FREE_GB = 0.5 on two consecutive 5-minute reads (the 12 GB floor is pre-boot only; the host runs at 2-3 GB with the game up) — cost if wrong: a thrashing host ends the run later than it could; every read is recorded.
-25. Ruling: bus_dead needs two consecutive failed polls (the dispatch said 60 s = one poll) — a single transient double failure must not end a 90-minute session.
-26. Ruling: the brief's rate-5 line was the controller's error, named here.
-27. Ruling: Stage A ends NO-GO on its 3-pass budget as the spec's § 4.1 and § 7 rule (no gate relaxed); the plan goes to the report (Task 13); Stages B and C are built, offline-tested and reviewed but not run — the report names their boot cost so Angus can order them — cost if wrong: two sessions Angus can start by one line.
+10. Ruling (process): Tasks 2-fix and 3 ran in parallel and both touched conftest.py; both landed cleanly but it violated the disjoint-files rule — no two implementers run at once from here unless their file sets are disjoint by name in the briefs.
+11. Ruling: Task 4's brief test unpacks S.events wrongly; S.events returns (ev, cur) as Task 5 consumes — the test takes the tuple — cost if wrong: none.
+12. Ruling: getX/getY/getZ may be called directly on a player, zombie or square (as the harness does); every other Java member goes through PZA.call — cost if wrong: none on these three, present on every receiver.
+13. Ruling: spec § 2.1 fields the plan dropped — action {class,n}, sickness, wetness, temperature, scan hour — are added in Task 4 fix 1 where the jar has the member; hit {kind, part}, zombie reanimated and container looked stay out of the spike (Python tracks looted) — cost if wrong: a field added later.
+14. Ruling: every position goal takes absolute world coordinates (goto included; the plan's goto dx dy is dropped) — the planner works from scan coordinates and an offset goes stale while moving — cost if wrong: Task 8's motion phase computes x±10 from the frame.
+15. Ruling: not adjacent and interrupted join loot's closed set; a loot timeout with nothing moved fails interrupted; open handles windows through ISOpenCloseWindow when the install has it.
+16. Ruling (inline, ledger l.96, Task 5b): A command-tick flush is not counted (ruled; the frame tick's own write is the cost).
+17. Ruling (inline, ledger l.103, Task 8): Budget: a worst-case motion phase overruns 540 s and stops cleanly as NO-GO (ruled acceptable).
+18. Ruling: goto clears its walk at done (and sub-walks likewise) — the leftover walk corrupts the next goal's start — cost if wrong: a one-tile stop at each goal end.
+19. Ruling: Stage B resets the server's food timer and sets hunger 0.3 before each eat (recorded in world_changes) — the stage grades the actions, not the appetite — cost if wrong: the eat reading is of a prepared character, said in the guide.
+20. Ruling: pass 2 is allowed (budget 3): the scan is spread over ticks (a chunked scan, N squares per tick, the line emitted when complete), and the walk's stuck detector is re-worked after the write-up's state-log analysis names the cause; the tick gate is re-read on pass 2 with the clock quantisation named in the guide — cost if wrong: one more boot.
+21. Ruling: a zombie-free fixture agent0 (Zombies=6) is provisioned for Stages A and B (the nozombies profile points at it); fixture agent (Zombies=5) stays for Stage C — a sandbox change at boot does not despawn — cost if wrong: one 2.5-min provision.
+22. Ruling: pass 2 Lua: goto fails 'dead' at health 0; stuck judged by progress toward the target (distance not falling for STUCK_TICKS) rather than identical x,y; the scan chunked at 60 squares per tick, the line emitted when complete; driver a_pipe_2.py voids a leg during which health fell or a zombie was within radius; the tick gate stays and the guide names the 1 ms quantisation.
+23. Ruling: the scan15 gate reads the max per-tick scan step (the frame-cost quantity Rule 6 cares about) against 5 ms; the chunk sum is reported as the scan's latency — the spec's gate guards the frame, not the total — cost if wrong: a latency the report states anyway.
+24. Ruling: gate_a changed after pass 1's a_grade.txt was committed (the scan15 gate now needs per-tick figures a pass-1 artifact lacks); pass 1's verdict stands as graded at 3e550f1f (NO-GO either way: the character died) and its guide names that commit; no regrade — cost if wrong: a reader re-running a_grade on the pass-1 artifact sees scan15 fail for a missing field, which the guide explains.
+25. Ruling: pass 3 (the last of the budget): the scan is emitted in parts (one scanPart line per tick, ≤ 60 squares, part i/n; World reassembles; the gate's per-tick term is max(step + that tick's part-emit)); a 30 s rate-60 window reports the mod's ms per second ÷ 60 as the sub-ms mean tick cost beside the quantised p99; the p99 gate stays as written and the report says what the clock can resolve — cost if wrong: one more boot.
+26. Ruling: the start kit equips the spawned bat through the harness's client weapon.equip (recorded under readings.start_kit.armed) — an unarmed policy flees every threat and the stage would measure nothing about fighting — cost if wrong: one harness command in the readings.
+27. Ruling: the in-session memory stop is LIVE_MIN_FREE_GB = 0.5 on two consecutive 5-minute reads (the 12 GB floor is pre-boot only; the host runs at 2-3 GB with the game up) — cost if wrong: a thrashing host ends the run later than it could; every read is recorded.
+28. Ruling: bus_dead needs two consecutive failed polls (the dispatch said 60 s = one poll) — a single transient double failure must not end a 90-minute session.
+29. Ruling (inline, ledger l.157, Task 10 fix 2): no separate re-review for a 3-test driver change that mirrors the reviewed a_pipe_3 pattern; the Stage B boot is its smoke test.
+30. Ruling: the brief's rate-5 line was the controller's error, named here.
+31. Ruling: Stage A ends NO-GO on its 3-pass budget as the spec's § 4.1 and § 7 rule (no gate relaxed); the plan goes to the report (Task 13); Stages B and C are built, offline-tested and reviewed but not run — the report names their boot cost so Angus can order them — cost if wrong: two sessions Angus can start by one line.
 
 **Re-derivation of the gates.** `python testing/agent/drivers/a_grade.py <artifact>` at HEAD `9f7c001d` (exit 1 on each):
 
 - **Pass 2:** it reproduces the committed `a_grade.txt` key for key, adding only the new `tick_mean_ms_at60` null.
 - **Pass 3:** it reproduces it exactly.
-- **Pass 1:** it disagrees with the committed file, as ruling 21 foresaw. The committed `a_pipe-20261026-101003/a_grade.txt` (graded at `3e550f1f`) reads `scan15_ms_max` 21. The re-derivation reads `scan15_ms_max` null and `scan15_latency_ms_max` 21, because the pass-1 artifact has no per-tick scan figures. Every `pass.*` value and the verdict (**NO-GO**) are the same.
+- **Pass 1:** it disagrees with the committed file, as ruling 24 foresaw. The committed `a_pipe-20261026-101003/a_grade.txt` (graded at `3e550f1f`) reads `scan15_ms_max` 21. The re-derivation reads `scan15_ms_max` null and `scan15_latency_ms_max` 21, because the pass-1 artifact has no per-tick scan figures. Every `pass.*` value and the verdict (**NO-GO**) are the same.
+
+**Addendum (the close review).** `d0c06574` (Task 10 fix 2) changed the Stage B driver's `scan_parts`: the scan it waits for is the `scanId` whose part 1 follows the ack, it awaits that scan's `done` part, and it checks `partsSeen` against `parts`. Ruling 29 waived its separate re-review and named the Stage B boot as its smoke test. The whole-branch review at the plan's close read it and found it correct; the Stage B smoke test it was to get never ran, since Stage B was not booted (ruling 31).
 
 ## 6. Recommendation
 
