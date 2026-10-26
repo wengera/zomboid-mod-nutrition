@@ -1287,3 +1287,27 @@ def test_an_open_whose_constructor_lacks_new_or_whose_queue_lacks_add_fails_no_d
     g.ISTimedActionQueue = J(clear=lambda p: q.clear(p))
     lua.eval("PZA.act.start({seq=2, goal='open', args='11 20'})")
     assert tick(lua, p)["detail"] == "no door" and q.adds == [] and g.pcallFails == 0
+
+
+# ---- Plan 21b Stage B pass 2: approach skips solidTrans squares ---------------------------------
+
+def test_loot_approach_skips_a_solidtrans_neighbour_and_walks_to_the_next_free_one(lua):
+    """Pass 1's rep 5 (b_actions-20261026-183143): the nearest neighbour of the container was a stove square
+    (isSolid false, isSolidTrans true), the walk stuck and the loot failed `not adjacent`."""
+    load(lua)
+    g = lua.globals()
+    box = make_container([item("Base.Bread", "Food")])
+    obj = J(_cls="IsoObject", getContainerCount=lambda s: 1, getContainerByIndex=lambda s, i: box)
+    stove = osq(12, 20)
+    stove.isSolidTrans = lambda s: True
+    plain = osq(12, 21)                                    # no isSolidTrans member: counts as not solidTrans
+    g._cell = make_cell(squares={(13, 20, 0): osq(13, 20, [obj]), (12, 20, 0): stove, (12, 21, 0): plain})
+    p = inv_player([], x=10.0, y=20.0)
+    lua.eval("PZA.act.start({seq=1, goal='loot', args='13 20 food'})")
+    st = tick(lua, p)
+    adds = g._queue.adds
+    assert st["state"] == "running" and [a.Type for a in adds] == ["ISWalkToTimedAction"]
+    assert (adds[0].sq.getX(adds[0].sq), adds[0].sq.getY(adds[0].sq)) == (12, 21)
+    g._cell = make_cell(squares={(13, 20, 0): osq(13, 20, [obj]), (12, 20, 0): stove})
+    lua.eval("PZA.act.start({seq=2, goal='loot', args='13 20 food'})")
+    assert tick(lua, p)["detail"] == "not adjacent"        # the stove alone: no free neighbour

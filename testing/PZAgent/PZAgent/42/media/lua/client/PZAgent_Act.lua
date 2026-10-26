@@ -250,7 +250,9 @@ local function cheb(p, x, y)
     return math.max(math.abs(math.floor(p:getX()) - x), math.abs(math.floor(p:getY()) - y))
 end
 
--- the non-solid square at Chebyshev distance 1 from (x, y) nearest the player, or nil
+-- the square at Chebyshev distance 1 from (x, y) nearest the player that is neither solid nor solidTrans
+-- (furniture: a stove or counter reads isSolid false and isSolidTrans true, and blocks the walk), or nil;
+-- an absent isSolidTrans member counts as not solidTrans
 local function adjacentTo(p, x, y, z)
     local bx, by, bd = nil, nil, nil
     for dy = -1, 1 do
@@ -258,7 +260,8 @@ local function adjacentTo(p, x, y, z)
             if dx ~= 0 or dy ~= 0 then
                 local sq = squareAt(x + dx, y + dy, z)
                 local _, solid = PZA.call(sq, "isSolid")
-                if sq ~= nil and solid ~= true then
+                local _, solidTrans = PZA.call(sq, "isSolidTrans")
+                if sq ~= nil and solid ~= true and solidTrans ~= true then
                     local d = dist(p, x + dx + 0.5, y + dy + 0.5)
                     if bd == nil or d < bd then bx, by, bd = x + dx, y + dy, d end
                 end
