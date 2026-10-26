@@ -89,6 +89,45 @@ def test_a_pass_1_artifact_grades_as_before():
     assert g["cmd_motion_n"] == 20 and g["cmd_motion_voided"] == 0 and g["verdict"] == "GO"
 
 
+# ================================================================ gate_a: the per-tick scan gate (fix 1)
+def scan_row(steps, emit=1, **over):
+    row = {"scanMs": sum(steps), "scanTicks": len(steps), "scanMsPerTick": list(steps), "scanStepMaxMs": max(steps),
+           "scanEmitMs": emit}
+    row.update(over)
+    return row
+
+
+def test_the_scan_gate_reads_the_per_tick_maximum_not_the_sum():
+    o = T1.passing_out()
+    o["readings"]["scans"]["15"] = [scan_row([1] * 16 + [0])] * 4 + [scan_row([5, 4, 3, 4], emit=0)]
+    o["readings"]["scans"]["15"][0] = scan_row([4] * 4, emit=0)                   # a 16 ms sum, every step <= 4
+    g = G.gate_a(o)
+    assert g["scan15_latency_ms_max"] == 16 and g["scan15_ms_max"] == 5 and g["pass"]["scan15"] is False
+    o["readings"]["scans"]["15"][4] = scan_row([4.9, 4, 3, 4], emit=0)
+    g = G.gate_a(o)
+    assert g["scan15_ms_max"] == 4.9 and g["pass"]["scan15"] is True and g["verdict"] == "GO", g
+
+
+def test_a_single_slow_step_or_a_slow_completing_emit_fails_the_scan_gate():
+    o = T1.passing_out()
+    o["readings"]["scans"]["15"][3] = scan_row([1] * 8 + [6] + [1] * 8)
+    g = G.gate_a(o)
+    assert g["scan15_ms_max"] == 6 and [k for k, v in g["pass"].items() if not v] == ["scan15"]
+    o = T1.passing_out()
+    o["readings"]["scans"]["15"][3] = scan_row([1] * 16 + [3], emit=2)          # the last tick: 3 + 2
+    assert G.gate_a(o)["scan15_ms_max"] == 5 and G.gate_a(o)["pass"]["scan15"] is False
+
+
+@pytest.mark.parametrize("drop", ["scanStepMaxMs", "scanEmitMs", "scanMsPerTick"])
+def test_a_missing_per_tick_figure_fails_the_scan_gate(drop):
+    o = T1.passing_out()
+    row = scan_row([1] * 17)
+    del row[drop]
+    o["readings"]["scans"]["15"][1] = row
+    g = G.gate_a(o)
+    assert g["scan15_ms_max"] is None and g["pass"]["scan15"] is False and g["verdict"] == "NO-GO"
+
+
 # ================================================================ the phases against FakeMod2
 class FakeMod2(T1.FakeMod):
     """FakeMod with pass 2's chunked scan, health and nZombies. `hurt` maps a goto's 1-based index to the health it
@@ -100,6 +139,7 @@ class FakeMod2(T1.FakeMod):
         self.hurt, self.zmap, self.chunk_ms = dict(hurt or {}), dict(zombies or {}), chunk_ms
         self.health, self.nz, self.gotos = 100.0, 0, 0
         self.pending = None           # (due tick, r, ticks)
+        self.emit_due = 0             # the completed scan line's emit cost, carried by the next frame
         self.at = {}                  # tick -> ("health"|"nz", value)
 
     def poll(self):
@@ -127,6 +167,7 @@ class FakeMod2(T1.FakeMod):
         if kind == "frame":
             body.update(health=self.health, nZombies=self.nz)
             body["cost"]["scanStepMs"] = self.chunk_ms if self.pending else 0
+            body["cost"]["scanEmitMs"], self.emit_due = self.emit_due, 0
         super().emit(kind, body)
 
     def step(self):
@@ -142,8 +183,10 @@ class FakeMod2(T1.FakeMod):
             sq = [{"x": int(self.x) + dx, "y": int(self.y) + dy, "z": 0, "solid": False}
                   for dy in range(-r, r + 1) for dx in range(-r, r + 1)]
             self.emit("scan", {"r": r, "squares": sq, "missing": [], "scanMs": self.chunk_ms * ticks,
-                               "scanTicks": ticks, "hour": 7})
+                               "scanTicks": ticks, "scanMsPerTick": [self.chunk_ms] * ticks,
+                               "scanStepMaxMs": self.chunk_ms, "hour": 7})
             self.flush()
+            self.emit_due = 2
 
 
 @pytest.fixture
@@ -176,7 +219,8 @@ def test_a_clean_run_records_hello_build_chunked_scans_and_twenty_unvoided_legs(
         ticks = math.ceil((2 * r + 1) ** 2 / 60)
         assert len(rows) == 5 and all(s["scanTicks"] == ticks and s["scanMs"] == ticks for s in rows), rows[0]
         assert all(s["ack"]["reason"] == "queued" and s["squares"] == (2 * r + 1) ** 2 for s in rows)
-        assert all(s["scanMsPerTick"] == 1 and "error" not in s for s in rows)
+        assert all(s["scanMsMeanPerTick"] == 1 and s["scanMsPerTick"] == [1] * ticks for s in rows)
+        assert all(s["scanStepMaxMs"] == 1 and s["scanEmitMs"] == 2 and "error" not in s for s in rows)
     assert [s["scanTicks"] for s in out["readings"]["scans"]["15"]] == [17] * 5
     m = out["readings"]["motion"]
     assert len(m) == 20 and not any(r.get("voided") for r in m)
@@ -187,6 +231,7 @@ def test_a_clean_run_records_hello_build_chunked_scans_and_twenty_unvoided_legs(
     out["client_lua_errors"] = 0
     g = G.gate_a(out)
     assert g["cmd_motion_n"] == 20 and g["cmd_motion_voided"] == 0 and g["pass"]["cmd_motion_p90"], g
+    assert g["scan15_ms_max"] == 3 and g["scan15_latency_ms_max"] == 17 and g["pass"]["scan15"], g   # 1 + 2 emit
     assert out["voided_legs"] == 0 and not any("voided" in n for n in out["notes"])
 
 

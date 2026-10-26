@@ -807,7 +807,7 @@ def test_task11_details_are_in_the_header_reasons_and_done_lines():
 # ---- Stage A pass 2: goto fails dead; stuck by progress; the chunked scan --------------------
 
 ALL_GOALS = (("goto", "13 20"), ("open", "13 20"), ("loot", "13 20"), ("eat", "Base.Apple"), ("drink", ""),
-             ("fight", ""), ("flee", "13 20"), ("sleep", ""), ("stop", ""))
+             ("fight", ""), ("flee", "13 20"), ("sleep", ""))          # stop is exempt (fix 1)
 
 
 def test_goto_fails_dead_at_once_when_health_reads_zero(lua):
@@ -1053,3 +1053,42 @@ def test_flee_resets_running_when_it_ends(lua):
     runs[:] = []
     lua.eval("PZA.act.start({seq=2, goal='flee', args='18 20'})")
     assert tick(lua, p)["detail"] == "cornered" and runs == [False]
+
+
+# ---- Stage A pass 2 fix 1: stop allowed when dead; the completing scan emit carried on the next frame ----------
+
+def test_a_dead_player_may_still_stop_a_running_goal(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    hp = {"v": 100.0}
+    p = health_player(hp)
+    assert lua.eval("PZA.act.start({seq=1, goal='sleep', args=''}, ...)", p)[0] is True
+    hp["v"] = 0.0
+    assert lua.eval("PZA.act.start({seq=2, goal='goto', args='13 20'}, ...)", p) == (False, "dead")
+    ok, reason, old = lua.eval("PZA.act.start({seq=3, goal='stop', args=''}, ...)", p)
+    assert ok is True and old["seq"] == 1 and old["detail"] == "superseded"
+    st = tick(lua, p)
+    assert st["name"] == "stop" and st["state"] == "done"
+
+
+def test_the_frame_after_a_completed_scan_carries_its_emit_cost_once(lua, fs):
+    import json
+    load(lua)
+    g = lua.globals(); g.getPlayer = lambda: make_player()
+    scan_world(lua, 10, 20, 2)                                   # 25 squares: one chunk, done on its first tick
+    lua.execute("PZA.main.init('admin')"); lua.execute("PZA.main.ready = true")
+    for _ in range(10):                                          # to tick 10, before the tick-12 frame
+        g._handlers[0]()
+    fs.write_cost_ms = 4                                         # every file write costs 4 ms from here
+    fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=scan\nargs=2\n"
+    g._handlers[0]()                                             # tick 11: the ack flush (4), then the scan line's
+    for _ in range(13):
+        g._handlers[0]()
+    lines = [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines()]
+    scan = [l for l in lines if l["kind"] == "scan"][0]
+    frames = [l for l in lines if l["kind"] == "frame"]
+    assert scan["scanTicks"] == 1 and scan["scanStepMaxMs"] == 25
+    after = [f for f in frames if f["seq"] > scan["seq"]]
+    assert after[0]["cost"]["scanEmitMs"] == 4                   # the scan line's own emit and flush
+    assert after[1]["cost"]["scanEmitMs"] == 0                   # reported once
+    assert all(f["cost"]["scanEmitMs"] == 0 for f in frames if f["seq"] < scan["seq"])

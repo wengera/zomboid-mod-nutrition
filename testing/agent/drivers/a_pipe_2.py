@@ -15,8 +15,10 @@ docstring) with these changes:
   rates   the hello wait also requires mode == "append" (anything else fails the phase) and records out["hello_build"];
           the per-frame cost lists add scanStepMs, and tickMs sums COST_KEYS (scanStepMs included).
   scans   each `scan r` is acked at once ("queued") and its line lands when its last chunk is done: the row records
-          scanMs (the gate's figure), scanTicks, scanMsPerTick (scanMs / scanTicks) and the ack's reason; a line with
-          no scanTicks is an error row (not the chunked scan). The next frame's senseMs and scanStepMs ride beside.
+          scanMs (the summed latency, ungraded), scanTicks, scanMsPerTick (the line's per-step ms list),
+          scanStepMaxMs (its largest), scanMsMeanPerTick (scanMs / scanTicks) and the ack's reason; a line with no
+          scanTicks is an error row (not the chunked scan). From the next frame: senseMs, scanStepMs and scanEmitMs
+          (the completing tick's line emit and flush). grades.gate_a's scan gate reads the per-tick maximum.
   motion  each leg records at_send and at_end ({health, nZombies} of the latest frame before the write and at the
           goal's end), min_health and max_nZombies over the leg's frames. A leg is `voided` (with its reason) when
           health at the send reads 0 or less ("dead at send"), when any frame of the leg reads health below the send's
@@ -217,13 +219,18 @@ class Pipe2(AP.Pipe):
         row.update({"scanMs": ms, "scanTicks": ticks, "squares": len(AP._seq(line.get("squares"))),
                     "bytes": AP._bytes(line), "missing": AP._seq(line.get("missing")), "seq": line.get("seq"),
                     "wallMs": line.get("wallMs"), "readPyMs": read, "acked": got,
-                    "scanMsPerTick": ms / ticks if ms is not None and ticks else None})
+                    "scanMsMeanPerTick": ms / ticks if ms is not None and ticks else None,
+                    "scanMsPerTick": AP._seq(line.get("scanMsPerTick")) if line.get("scanMsPerTick") is not None
+                    else None,
+                    "scanStepMaxMs": _num(line.get("scanStepMaxMs"))})
         if ticks is None:
             row["error"] = "no scanTicks: not the chunked scan"
         nf = self.next_frame(line["seq"], NEXT_FRAME_TIMEOUT_S)
         cost = (nf.get("cost") or {}) if nf else {}
         row["next_frame_senseMs"] = cost.get("senseMs") if nf else None
         row["next_frame_scanStepMs"] = cost.get("scanStepMs") if nf else None
+        # the completing tick's scan-line emit and flush, carried once on the first frame after the line
+        row["scanEmitMs"] = _num(cost.get("scanEmitMs")) if nf else None
         return row
 
     # ---- phase 3: motion (voided legs)

@@ -15,6 +15,7 @@ M.lastErrMs = -1e9
 M.lastGoalSeq = nil
 M.lastGoalState = nil
 M.lastLinkMs = 0
+M.lastScanEmitMs = 0
 M.hooked = M.hooked or false
 
 -- a configuration command: true and the ack's reason when handled, nil when cmd is a goal. scan r queues
@@ -72,8 +73,10 @@ local function body()
     local s = PZA.sense.scanStep(p)
     if s ~= nil then
         s.gameMin, s.worldAge = PZA.sense.clock()
+        local te = PZA.now()
         PZA.emit("scan", s)
         PZA.link.flush()
+        M.lastScanEmitMs = PZA.now() - te
     end
     local tSense = PZA.now()
     local every = math.max(1, math.floor(60 / PZA.sense.RATE))
@@ -89,9 +92,11 @@ local function body()
         local tLink = PZA.now()
         -- linkMs is the previous frame tick's flush ms (one-frame lag: this frame's flush runs after its emit)
         -- scanStepMs is this tick's scan chunk with its emit and flush when it completed (0 with no job); it is
-        -- in neither actMs nor senseMs, and the job's own scanMs sums its chunks
+        -- in neither actMs nor senseMs, and the job's own scanMs sums its chunks. scanEmitMs is the last completed
+        -- scan line's own emit and flush, carried once on the first frame after it (0 otherwise)
         cur.cost = { actMs = tScan - tAct, scanStepMs = tSense - tScan, senseMs = tLink - tSense, linkMs = M.lastLinkMs,
-                     pollMs = tAct - t0, dropped = PZA.link.dropped or 0 }
+                     pollMs = tAct - t0, dropped = PZA.link.dropped or 0, scanEmitMs = M.lastScanEmitMs }
+        M.lastScanEmitMs = 0
         PZA.emit("frame", cur)
         M.lastLinkMs = PZA.link.flush()
         M.prev = cur

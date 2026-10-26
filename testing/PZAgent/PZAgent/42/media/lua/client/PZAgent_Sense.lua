@@ -205,14 +205,15 @@ end
 -- The scan is a job walked SCAN_SQUARES_PER_TICK squares a tick (Stage A pass 1 read r=15, 961 squares, at
 -- 14-21 ms in one tick): scanStart fixes the (2r+1)^2 grid at the player's square at start, and scanStep
 -- walks the next chunk row by row, returning the finished scan when its last square is done (else nil),
--- with scanMs the sum of its steps' ms and scanTicks their count. One job at a time: a start replaces it.
+-- with scanMs the sum of its steps' ms, scanTicks their count, scanMsPerTick the list of each step's ms and
+-- scanStepMaxMs its largest (the per-tick load the Stage A gate reads). One job at a time: a start replaces it.
 S.SCAN_SQUARES_PER_TICK = 60
 S.job = nil
 
 local function newJob(p, r)
     local out = { r = r, squares = {}, missing = {} }
     out.hour = math.floor((S.clock()) / 60)
-    return { out = out, r = r, side = 2 * r + 1, i = 0, n = (2 * r + 1) * (2 * r + 1), ms = 0, ticks = 0,
+    return { out = out, r = r, side = 2 * r + 1, i = 0, n = (2 * r + 1) * (2 * r + 1), ms = 0, ticks = 0, steps = {},
              px = math.floor(p:getX()), py = math.floor(p:getY()), pz = p:getZ() }
 end
 
@@ -230,9 +231,13 @@ local function stepJob(job)
         if sq ~= nil then out.squares[#out.squares + 1] = square(sq, out.missing) end
         job.i = i + 1
     end
-    job.ms, job.ticks = job.ms + (PZA.now() - t0), job.ticks + 1
+    local dt = PZA.now() - t0
+    job.ms, job.ticks = job.ms + dt, job.ticks + 1
+    job.steps[job.ticks] = dt
     if job.i < job.n then return nil end
-    out.scanMs, out.scanTicks = job.ms, job.ticks
+    local top = 0
+    for k = 1, job.ticks do top = math.max(top, job.steps[k]) end
+    out.scanMs, out.scanTicks, out.scanMsPerTick, out.scanStepMaxMs = job.ms, job.ticks, job.steps, top
     return out
 end
 

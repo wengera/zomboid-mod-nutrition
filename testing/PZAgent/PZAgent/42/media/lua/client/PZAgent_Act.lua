@@ -52,12 +52,12 @@ local function isDead(p)
 end
 
 -- A new goal replaces a running one: the old walk is cleared and the old goal's status comes back
--- as failed "superseded" (third return) so the caller reports it. A dead player refuses every goal,
--- and the running one carries on to its own end.
+-- as failed "superseded" (third return) so the caller reports it. A dead player refuses every goal but
+-- stop (a dead body's running goal can still be stopped), and the running one carries on to its own end.
 function A.start(cmd, p)
     local def = A.goals[cmd.goal]
     if def == nil then return false, "unknown goal" end
-    if p ~= nil and isDead(p) then return false, "dead" end
+    if p ~= nil and cmd.goal ~= "stop" and isDead(p) then return false, "dead" end
     local argv = split(cmd.args)
     local ok, reason, st = def.start(argv)
     if not ok then return false, reason end

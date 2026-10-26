@@ -50,10 +50,14 @@ def test_pct_nearest_rank():
     assert G.pct([], 99) is None and G.pct([None, None], 50) is None
 
 
+# a chunked r=15 scan row (a_pipe_2's shape, Stage A pass 2 fix 1): 17 steps of at most 3 ms, a 16 ms sum
+STEP15 = {"scanMs": 16, "scanTicks": 17, "scanMsPerTick": [1] * 16 + [0], "scanStepMaxMs": 3, "scanEmitMs": 1}
+
+
 def passing_out():
     return {"mode": "append", "gaps": [], "lua_errors": 0, "client_lua_errors": 0,
             "readings": {"rates": {"5": {"tickMs": [0.5] * 299 + [1.9], "frames": 300, "expected": 300}},
-                         "scans": {"15": [{"scanMs": 4}] * 5},
+                         "scans": {"15": [STEP15] * 5},
                          "motion": [{"ack": {"wallMs": 1000}, "first_motion": {"wallMs": 1000 + d}}
                                     for d in [100] * 18 + [450, 900]]}}
 
@@ -61,7 +65,8 @@ def passing_out():
 def test_gate_a_passes_a_passing_set():
     g = G.gate_a(passing_out())
     assert g["verdict"] == "GO" and all(g["pass"].values()), g
-    assert g["tick_p99_ms_at5"] == 0.5 and g["scan15_ms_max"] == 4 and g["cmd_motion_p90_ms"] == 100
+    assert g["tick_p99_ms_at5"] == 0.5 and g["scan15_ms_max"] == 3 and g["cmd_motion_p90_ms"] == 100
+    assert g["scan15_latency_ms_max"] == 16
     assert g["gaps"] == 0 and g["lua_errors"] == 0 and g["mode"] == "append"
 
 
@@ -71,7 +76,7 @@ def _cross(name):
     if name == "tick_p99_at5":
         r["rates"]["5"]["tickMs"] = [0.5] * 290 + [2.0] * 10
     elif name == "scan15":
-        r["scans"]["15"] = [{"scanMs": 4}] * 4 + [{"scanMs": 5.0}]
+        r["scans"]["15"] = [STEP15] * 4 + [dict(STEP15, scanStepMaxMs=5.0)]
     elif name == "cmd_motion_p90":
         r["motion"] = [{"ack": {"wallMs": 0}, "first_motion": {"wallMs": d}} for d in [100] * 17 + [500] * 3]
     elif name == "gaps":
@@ -442,7 +447,9 @@ def test_the_phases_record_every_reading_on_a_correct_mod(tmp_path):
     assert [c["goal"] for c in mod.cmds[:3]] == ["rate"] * 3
     out["client_lua_errors"] = 0
     g = G.gate_a(out)
-    assert g["verdict"] == "GO", g
+    # the pass-1 scan line has no per-tick steps, so the amended scan gate (Stage A pass 2 fix 1) fails it; every
+    # other gate passes on the correct mod
+    assert [k for k, v in g["pass"].items() if not v] == ["scan15"], g
     persisted = json.loads((tmp_path / D.ARTIFACT).read_text(encoding="utf-8"))
     assert persisted["readings"]["rates"]["5"]["frames"] == out["readings"]["rates"]["5"]["frames"]
 

@@ -5,7 +5,7 @@ A gate whose reading is missing or empty fails; it never passes on nothing.
 import math
 
 TICK_P99_MS = 2.0          # spec § 4.1: per-tick cost at 5 Hz, p99 under this
-SCAN15_MS = 5.0            # spec § 4.1: a 15-tile scan under this (every one of the five)
+SCAN15_MS = 5.0            # spec § 4.1: a 15-tile scan's per-tick cost under this (every step of all five)
 CMD_MOTION_P90_MS = 500.0  # spec § 4.1: cmd -> motion, p90 under this
 MOTION_COMMANDS = 20      # a_pipe's ten round trips: every unvoided one is graded, and this many must be unvoided
 MIN_FRAME_SHARE = 0.9      # the tick gate needs at least this share of the nominal 60*r frames at 5 Hz
@@ -37,6 +37,18 @@ def cmd_motion_ms(motion_rows):
     return out
 
 
+def scan_step_ms(row):
+    """A chunked scan row's per-tick cost: max(scanStepMaxMs, last step + scanEmitMs), the completing tick paying for
+    its own chunk plus the scan line's emit and flush; None when any of the three is missing."""
+    row = row if isinstance(row, dict) else {}
+    top, emit = _num(row.get("scanStepMaxMs")), _num(row.get("scanEmitMs"))
+    steps = row.get("scanMsPerTick")
+    last = _num(steps[-1]) if isinstance(steps, list) and steps else None
+    if top is None or emit is None or last is None:
+        return None
+    return max(top, last + emit)
+
+
 def _count(v):
     if isinstance(v, (list, tuple)):
         return len(v)
@@ -48,7 +60,10 @@ def gate_a(out):
 
     tick_p99_ms_at5   p99 of the per-frame tickMs (pollMs + actMs + senseMs + linkMs; a_pipe_2 adds scanStepMs) at
                       rate 5; < TICK_P99_MS, on at least MIN_FRAME_SHARE of the window's nominal frames.
-    scan15_ms_max     the largest scanMs of the 15-tile scans (a_pipe_2: the chunked job's summed ms); < SCAN15_MS.
+    scan15_ms_max     the largest per-tick scan cost over the 15-tile scans: per row, max(scanStepMaxMs, the last
+                      step of scanMsPerTick + scanEmitMs), the completing tick carrying the line's emit and flush;
+                      < SCAN15_MS. A row missing any of the three fails the gate (a pass-1 row, which has only the
+                      one-tick scanMs, fails it). scan15_latency_ms_max is the largest summed scanMs, ungraded.
     cmd_motion_p90_ms p90 over every unvoided motion command of (first-motion frame wallMs - ack wallMs), both the
                       client's clock, an unpaired command +inf; < CMD_MOTION_P90_MS over at least MOTION_COMMANDS
                       unvoided commands. A row whose `voided` is set (a_pipe_2: the character's health fell or a
@@ -66,8 +81,10 @@ def gate_a(out):
     frames, expected = _num(r5.get("frames")), _num(r5.get("expected"))
     enough = frames is not None and bool(expected) and frames >= MIN_FRAME_SHARE * expected
     scans = ((rd.get("scans") or {}).get("15") or [])
+    scan_step = [scan_step_ms(s) for s in scans]
+    scan_max = max(scan_step) if scan_step and None not in scan_step else None
     scan_ms = [_num(s.get("scanMs")) for s in scans]
-    scan_max = max(scan_ms) if scan_ms and None not in scan_ms else None
+    scan_latency = max(scan_ms) if scan_ms and None not in scan_ms else None
     rows = [r for r in (rd.get("motion") or ()) if isinstance(r, dict)]
     voided = [str(r["voided"]) for r in rows if r.get("voided")]
     cm = cmd_motion_ms([r for r in rows if not r.get("voided")])
@@ -84,7 +101,8 @@ def gate_a(out):
         "lua_errors": errs == 0,
         "hello": mode in MODES,
     }
-    return {"mode": mode, "tick_p99_ms_at5": tick, "scan15_ms_max": scan_max, "cmd_motion_p90_ms": cm90,
+    return {"mode": mode, "tick_p99_ms_at5": tick, "scan15_ms_max": scan_max, "scan15_latency_ms_max": scan_latency,
+            "cmd_motion_p90_ms": cm90,
             "tick_frames_at5": frames, "cmd_motion_n": len(cm), "cmd_motion_voided": len(voided),
             "cmd_motion_voided_reasons": voided,
             "cmd_motion_paired": sum(1 for v in cm if v != math.inf), "gaps": gaps, "lua_errors": errs, "pass": passed,

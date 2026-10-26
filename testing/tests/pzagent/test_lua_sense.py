@@ -172,3 +172,14 @@ def test_scan_start_replaces_a_running_job_and_the_sync_helper_matches(lua):
     assert s["r"] == 15 and len(s["squares"]) == 961 and s["scanTicks"] == 17 and s["scanMs"] == 961
     for k in ("hour", "missing"):
         assert s[k] is not None
+
+
+def test_scan_records_each_steps_ms_and_their_maximum(lua):
+    load(lua)
+    clocked_cell(lua, 10, 20, 15)                                # 1 ms per square
+    s = lua.eval("PZA.sense.scan(...)", make_player(), 15)
+    steps = [s["scanMsPerTick"][i] for i in range(1, s["scanTicks"] + 1)]
+    assert len(s["scanMsPerTick"]) == s["scanTicks"] == 17
+    assert steps == [60] * 16 + [1] and s["scanStepMaxMs"] == 60 and sum(steps) == s["scanMs"]
+    s = lua.eval("PZA.sense.scan(...)", make_player(), 0)        # one square, one step
+    assert s["scanTicks"] == 1 and s["scanStepMaxMs"] == 1 and s["scanMsPerTick"][1] == 1
