@@ -75,3 +75,23 @@ def test_replay_is_byte_stable():
     a = json.dumps(replay(LOG).to_json(), sort_keys=True)
     b = json.dumps(replay(LOG).to_json(), sort_keys=True)
     assert a == b
+
+
+def test_nearest_unlooted_skips_empty_containers():
+    w = World()
+    w.apply(frame(0, {}))
+    w.apply(scan([sq(1, 0, containers=[{"type": "crate", "n": 0, "items": []}]),
+                  sq(4, 0, containers=[{"type": "crate", "n": 1, "items": ["Base.Nails"]}])]))
+    assert w.nearest_unlooted() == (4, 0, 0, 0)
+
+
+def test_food_heuristic_has_word_boundary():
+    from agent.world import FOOD_RX
+    assert FOOD_RX.search("Base.Ham") and not FOOD_RX.search("Base.Hammer")
+
+
+def test_unknown_kind_is_counted_not_applied():
+    w = World()
+    w.apply({"kind": "bogus", "seq": 1})
+    w.apply({"kind": "ack", "cmdSeq": 1, "ok": True})
+    assert w.unknown_kinds == 1 and w.last_ack["cmdSeq"] == 1

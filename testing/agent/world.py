@@ -4,15 +4,15 @@ No clock is read: zombies age by the frame's own `wallMs`, so `replay(path)` ove
 deterministic and `to_json()` is byte-stable (sorted keys, tuple keys rendered "x,y,z").
 
 HEURISTIC: FOOD_RX and WATER_RX guess from an item's fullType whether a container holds food or
-drink. They are guesses, not game data; the spike grades on outcomes, not on the heuristic.
+drink; a trailing word boundary keeps Base.Hammer from matching Ham. They are guesses, not game data; the spike grades on outcomes, not on the heuristic.
 """
 import json
 import math
 import re
 from collections import deque
 
-FOOD_RX = re.compile(r"\.(Apple|Bread|Milk|Water|Pop|Chips|Cereal|Cabbage|Carrots|Tomato|Egg|Steak|Chicken|Ham|Canned|Tuna|Peanut|Candy|Chocolate|Juice|Soda|Beer|Wine|Whiskey|Orange|Banana|Lettuce|Potato)")
-WATER_RX = re.compile(r"\.(WaterBottle|Pop|Juice|Milk|Soda|Bowl|Pot|Kettle|Bucket)")
+FOOD_RX = re.compile(r"\.(Apple|Bread|Milk|Water|Pop|Chips|Cereal|Cabbage|Carrots|Tomato|Egg|Steak|Chicken|Ham|Canned|Tuna|Peanut|Candy|Chocolate|Juice|Soda|Beer|Wine|Whiskey|Orange|Banana|Lettuce|Potato)\b")
+WATER_RX = re.compile(r"\.(WaterBottle|Pop|Juice|Milk|Soda|Bowl|Pot|Kettle|Bucket)\b")
 
 _ME_DROP = ("kind", "seq", "tick", "zombies", "goal")
 
@@ -43,11 +43,16 @@ class World:
         self.missing = []
         self.hello = None
         self.last_ack = None
+        self.unknown_kinds = 0
+        self._handlers = {"hello": self._hello, "frame": self._frame, "event": self._event,
+                          "scan": self._scan, "ack": self._ack}
 
     def apply(self, line):
-        fn = getattr(self, "_" + str(line.get("kind")), None)
+        fn = self._handlers.get(line.get("kind"))
         if fn:
             fn(line)
+        else:
+            self.unknown_kinds += 1
 
     def _hello(self, line):
         self.hello = {k: v for k, v in line.items() if k not in ("kind", "seq", "tick")}
@@ -103,7 +108,7 @@ class World:
         mx, my = self._me_xy()
         best = None
         for key, c in self.containers.items():
-            if c["looted"] or (rx and not any(rx.search(i) for i in c["items"])):
+            if c["looted"] or not c["n"] or not c["items"] or (rx and not any(rx.search(i) for i in c["items"])):
                 continue
             rank = (math.hypot(key[0] - mx, key[1] - my), key)
             if best is None or rank < best:
