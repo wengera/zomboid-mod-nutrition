@@ -83,3 +83,43 @@ def gate_a(out):
             "tick_frames_at5": frames, "cmd_motion_n": len(cm),
             "cmd_motion_paired": sum(1 for v in cm if v != math.inf), "gaps": gaps, "lua_errors": errs, "pass": passed,
             "verdict": "GO" if all(passed.values()) else "NO-GO"}
+
+
+# ================================================================ Stage B (spec § 4.2)
+from agent.reasons import REASONS                    # noqa: E402
+
+SEQUENCES = 5              # b_actions' repetitions
+COMPLETE_MIN = 4           # spec § 4.2: sequences completed, at least this many of SEQUENCES
+
+
+def gate_b(out):
+    """Stage B's go/no-go (spec § 4.2) from b_actions' artifact dict (its rows under readings.reps).
+
+    completed            repetitions whose `completed` is True (every step done); >= COMPLETE_MIN.
+    reasons_in_set       every step whose state is "failed" (a Lua-reported goal failure) carries a detail in
+                         agent.reasons.REASONS; a refused, timed-out or skipped step has no Lua detail and counts against
+                         `completed` only. No repetition at all fails it.
+    eats_seen_by_server  repetitions whose server_hunger.moved is True (the server's stats.all Hunger fell below its
+                         pre-eat reading within the driver's poll window); == SEQUENCES.
+    A missing reading (no readings.reps, a row without `completed` or `server_hunger`) fails its gate.
+    """
+    reps = (out.get("readings") or {}).get("reps")
+    reps = reps if isinstance(reps, list) else None
+    if reps:
+        completed = sum(1 for r in reps if r.get("completed") is True)
+        failed = [s for r in reps for s in (r.get("steps") or ()) if s.get("state") == "failed"]
+        bad = sorted({str(s.get("detail")) for s in failed if s.get("detail") not in REASONS})
+        in_set = not bad
+        eats = sum(1 for r in reps if (r.get("server_hunger") or {}).get("moved") is True)
+        fail_names = sorted({"%s:%s" % (s.get("goal"), s.get("detail")) for r in reps for s in (r.get("steps") or ())
+                             if s.get("state") != "done"})
+    else:
+        completed, in_set, eats, bad, fail_names = None, False, None, [], []
+    passed = {
+        "completed": completed is not None and completed >= COMPLETE_MIN,
+        "reasons_in_set": in_set,
+        "eats_seen_by_server": eats == SEQUENCES,
+    }
+    return {"sequences": len(reps) if reps is not None else None, "completed": completed, "reasons_in_set": in_set,
+            "reasons_outside_set": bad, "eats_seen_by_server": eats, "failing_steps": fail_names, "pass": passed,
+            "verdict": "GO" if all(passed.values()) else "NO-GO"}
