@@ -11,6 +11,8 @@ L.rot = 0
 L.chunk = 0
 L.seq = 0
 L.lastCmd = 0
+L.live = "state.log"
+L.dropped = 0
 
 local function writeAll(name, s, append)
     local w = getFileWriter(name, true, append)
@@ -40,6 +42,22 @@ function L.init(user)
     writeAll(probe, "1\n", false)
     writeAll(probe, "2\n", true)
     L.mode = (countLines(probe) == 2) and "append" or "chunk"
+    L.live = "state.log"
+    L.rot = 0
+    L.bytes = 0
+    local prev = getFileReader(L.dir .. "state.log", false)
+    if prev then
+        prev:close()
+        local n = 1
+        while true do
+            local r = getFileReader(L.dir .. "state." .. n .. ".log", false)
+            if not r then break end
+            r:close()
+            n = n + 1
+        end
+        L.rot = n
+        L.live = "state." .. n .. ".log"
+    end
     local ack = PZA.readKV(L.dir .. "ack.txt")
     L.lastCmd = (ack and tonumber(ack.seq)) or 0
     PZA.log("link " .. L.mode .. " lastCmd=" .. tostring(L.lastCmd))
@@ -59,26 +77,27 @@ function L.flush()
     local t0 = PZA.now()
     local s = table.concat(L.buf, "\n") .. "\n"
     L.buf = {}
+    local ok
     if L.mode == "chunk" then
         L.chunk = L.chunk + 1
-        writeAll(L.dir .. string.format("state-%06.0f.log", L.chunk), s, false)
+        ok = writeAll(L.dir .. string.format("state-%06.0f.log", L.chunk), s, false)
+        if not ok then L.chunk = L.chunk - 1 end
     else
+        -- rotate by switching the live file name: no read-back, no rewrite
         if L.bytes + #s > L.ROTATE_BYTES and L.bytes > 0 then
             L.rot = L.rot + 1
-            -- rotate by renaming forward: copy state.log's content into state.<n>.log, then restart it
-            local r = getFileReader(L.dir .. "state.log", false)
-            local old = {}
-            if r then
-                while true do local line = r:readLine(); if line == nil then break end; if line ~= "" then old[#old + 1] = line end end
-                r:close()
-            end
-            writeAll(L.dir .. "state." .. L.rot .. ".log", table.concat(old, "\n") .. "\n", false)
-            writeAll(L.dir .. "state.log", s, false)
-            L.bytes = #s
-            return PZA.now() - t0
+            L.live = "state." .. L.rot .. ".log"
+            L.bytes = 0
         end
-        writeAll(L.dir .. "state.log", s, true)
-        L.bytes = L.bytes + #s
+        ok = writeAll(L.dir .. L.live, s, true)
+        if ok then L.bytes = L.bytes + #s end
+    end
+    if not ok then
+        table.insert(L.buf, 1, string.sub(s, 1, -2))
+        while #L.buf > 2000 do
+            table.remove(L.buf, 1)
+            L.dropped = L.dropped + 1
+        end
     end
     return PZA.now() - t0
 end

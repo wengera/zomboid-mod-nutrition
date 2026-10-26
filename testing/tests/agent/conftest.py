@@ -17,9 +17,13 @@ class FakeFS:
         self.files = {}
         self.append_works = True
         self.opens = 0
+        self.fail_next = False
 
     def writer(self, name, create, append):
         self.opens += 1
+        if self.fail_next:
+            self.fail_next = False
+            return None
         fs = self
         if not (append and fs.append_works):
             fs.files[name] = ""
