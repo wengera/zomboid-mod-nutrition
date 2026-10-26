@@ -1313,12 +1313,12 @@ def test_loot_approach_skips_a_solidtrans_neighbour_and_walks_to_the_next_free_o
     assert tick(lua, p)["detail"] == "not adjacent"        # the stove alone: no free neighbour
 
 
-# ---- Stage C pass 2 Lua: the fight closes to REACH_R before swinging; a run-flagged walk asks to run every tick ----
+# ---- Stage C pass 2 Lua: the fight closes to its reach before swinging; a run-flagged walk asks to run every tick ----
 
 def test_fight_steps_toward_a_zombie_out_of_reach_and_never_swings_there(lua):
     load(lua)
     g = lua.globals()
-    zpos = {"x": 12.5, "y": 20.0}                       # 2.5 tiles east of the player at (10, 20): inside FIGHT_R, out of REACH_R
+    zpos = {"x": 12.5, "y": 20.0}                       # 2.5 tiles east of the player at (10, 20): inside FIGHT_R, out of reach
     z = J(getOnlineID=lambda s: 7, getX=lambda s: zpos["x"], getY=lambda s: zpos["y"], isDead=lambda s: False,
           getTarget=lambda s: None, isCrawling=lambda s: False)
     g._cell = make_cell(zombies=[z], squares=open_squares(10, 20))
@@ -1327,15 +1327,15 @@ def test_fight_steps_toward_a_zombie_out_of_reach_and_never_swings_there(lua):
     st = tick(lua, p)
     walk = g._queue.adds[-1]
     assert st["state"] == "running" and p.attacks == [] and p.faced == []
-    assert walk.Type == "ISWalkToTimedAction" and (walk.sq.getX(walk.sq), walk.sq.getY(walk.sq)) == (11, 20)
+    assert walk.Type == "ISWalkToTimedAction" and (walk.sq.getX(walk.sq), walk.sq.getY(walk.sq)) == (12, 20)
     tick(lua, p, 5)
     assert len(g._queue.adds) == 1 and p.attacks == []  # the step runs; it is not re-queued each tick
     zpos["y"] = 21.2                                    # the zombie moves to another square: the step is re-aimed
     tick(lua, p)
     walk = g._queue.adds[-1]
     assert len(g._queue.adds) == 2 and g._queue.cleared == 1 and p.attacks == []
-    assert (walk.sq.getX(walk.sq), walk.sq.getY(walk.sq)) == (11, 20)
-    zpos["x"], zpos["y"] = 11.2, 20.0                   # within REACH_R: the step is dropped and the swing runs
+    assert (walk.sq.getX(walk.sq), walk.sq.getY(walk.sq)) == (12, 21)  # the zombie's own square
+    zpos["x"], zpos["y"] = 11.0, 20.0                   # within reach (1.125): the step is dropped and the swing runs
     tick(lua, p)
     assert g._queue.cleared == 2 and g._queue.queue == [] and p.attacks == [0] and p.faced == [z]
     assert len(g._queue.adds) == 2
@@ -1344,13 +1344,12 @@ def test_fight_steps_toward_a_zombie_out_of_reach_and_never_swings_there(lua):
 def test_fight_swings_inside_reach_and_queues_no_step(lua):
     load(lua)
     g = lua.globals()
-    z = make_zombie(7, 11.2, 20.0)                      # 1.2 tiles: inside REACH_R = 1.5
+    z = make_zombie(7, 11.1, 20.0)                      # 1.1 tiles: inside the fallback reach 1.25 x 0.9 = 1.125
     g._cell = make_cell(zombies=[z], squares=open_squares(10, 20))
     p = make_player(weapon=weapon())
     lua.eval("PZA.act.start({seq=1, goal='fight', args=''})")
     tick(lua, p, 3)
     assert p.attacks == [0] and g._queue.adds == []     # one swing (the cooldown holds the rest), no walk
-    assert lua.eval("PZA.act.REACH_R") == 1.5
 
 
 def test_flee_asks_to_run_and_sprint_every_tick_and_clears_both_once_at_the_end(lua):
@@ -1387,3 +1386,107 @@ def test_a_walking_step_never_asks_to_run(lua):
     lua.eval("PZA.act.start({seq=1, goal='fight', args=''})")
     tick(lua, p, 4)
     assert g._queue.adds[-1].Type == "ISWalkToTimedAction" and runs == [] and sprints == []
+
+
+# ---- Task 7c fix 1: the closing step reaches the zombie; the reach is the weapon's; a superseded run is cleared ----
+
+def ranged_weapon(max_range=None, range_mod=None):
+    """a weapon stub whose getMaxRange(chr) and getRangeMod(chr) answer the given values (None: the member is absent)"""
+    w = weapon()
+    if max_range is not None:
+        w.getMaxRange = lambda s, chr: max_range
+    if range_mod is not None:
+        w.getRangeMod = lambda s, chr: range_mod
+    return w
+
+
+def test_reach_is_the_weapons_max_range_times_range_mod_times_the_margin(lua):
+    load(lua)
+    p = make_player()
+    reach = lambda w: lua.eval("PZA.act.reachOf(...)", p, w)
+    assert reach(ranged_weapon(1.25, 1.0)) == pytest.approx(1.125)
+    assert reach(ranged_weapon(1.25, 1.2)) == pytest.approx(1.35)
+    assert reach(ranged_weapon(1.25, None)) == pytest.approx(1.125)    # getRangeMod absent: the fallback 1.25
+    assert reach(ranged_weapon(None, 1.2)) == pytest.approx(1.125)     # getMaxRange absent: the fallback
+    assert reach(ranged_weapon(2.0, None)) == pytest.approx(1.125)
+
+
+def walking_fight(lua, zx, w, ticks=200, speed=0.05):
+    """a fight against a zombie standing at (zx, 20) from a player at (10, 20) who walks `speed` tiles a tick toward
+    the queued walk's square centre while a walk is queued (the review's probe); returns the player's distance to
+    the zombie at each DoAttack, the walk adds, and the player"""
+    g = lua.globals()
+    z = make_zombie(7, zx, 20.0)
+    g._cell = make_cell(zombies=[z], squares=open_squares(10, 20))
+    pos = {"x": 10.0, "y": 20.0}
+    p = make_player(weapon=w)
+    p.getX, p.getY = (lambda s: pos["x"]), (lambda s: pos["y"])
+    swings_at = []
+    p.DoAttack = lambda s, f: swings_at.append(((zx - pos["x"]) ** 2 + (20.0 - pos["y"]) ** 2) ** 0.5) or True
+    lua.eval("PZA.act.start({seq=1, goal='fight', args=''})")
+    for _ in range(ticks):
+        tick(lua, p)
+        g._clock["ms"] += 100                          # 10 ticks a second: the 1200 ms swing cadence comes round
+        if g._queue.queue:
+            sq = g._queue.queue[-1].sq
+            tx, ty = sq.getX(sq) + 0.5, sq.getY(sq) + 0.5
+            ex, ey = tx - pos["x"], ty - pos["y"]
+            n = (ex * ex + ey * ey) ** 0.5
+            if n > 0:
+                step = min(speed, n)
+                pos["x"] += ex / n * step
+                pos["y"] += ey / n * step
+    return swings_at, len(g._queue.adds), lua.eval("PZA.act.status().state")
+
+
+@pytest.mark.parametrize("zx", [12.74, 12.0])
+@pytest.mark.parametrize("w,reach", [(None, 1.125), ((1.25, 1.0), 1.125), ((1.25, 1.2), 1.35)])
+def test_a_walking_player_closes_on_a_standing_zombie_and_swings_inside_the_weapons_reach(lua, zx, w, reach):
+    load(lua)
+    wep = weapon() if w is None else ranged_weapon(*w)
+    swings_at, adds, state = walking_fight(lua, zx, wep)
+    assert state == "running" and len(swings_at) >= 2           # it reached the zombie and kept swinging
+    assert all(d <= reach + 1e-9 for d in swings_at)            # never a swing outside the reach
+    assert adds <= 2                                            # one closing walk (review probe: 188-198 adds before)
+
+
+def test_a_closing_walk_that_ends_short_of_reach_swings_from_there_and_never_re_queues(lua):
+    load(lua)
+    g = lua.globals()
+    z = make_zombie(7, 12.95, 20.95)                    # the far corner of square (12, 20): its centre is 0.64 tiles off
+    g._cell = make_cell(zombies=[z], squares=open_squares(10, 20))
+    pos = {"x": 11.0, "y": 19.0}                        # 2.76 tiles off, approaching along the diagonal
+    p = make_player(weapon=ranged_weapon(1.2, 1.0))     # reach 1.08: the walk ends done 0.5 from the centre, 1.14 off
+    p.getX, p.getY = (lambda s: pos["x"]), (lambda s: pos["y"])
+    lua.eval("PZA.act.start({seq=1, goal='fight', args=''})")
+    for _ in range(120):
+        tick(lua, p)
+        g._clock["ms"] += 100
+        if g._queue.queue:
+            sq = g._queue.queue[-1].sq
+            ex, ey = sq.getX(sq) + 0.5 - pos["x"], sq.getY(sq) + 0.5 - pos["y"]
+            n = (ex * ex + ey * ey) ** 0.5
+            pos["x"] += ex / n * min(0.05, n)
+            pos["y"] += ey / n * min(0.05, n)
+    assert len(g._queue.adds) == 1 and len(p.attacks) >= 2  # one walk; the fight swings from where it ended
+
+
+def test_a_superseded_flee_and_a_stop_clear_the_run_and_sprint_flags(lua):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(zombies=[make_zombie(7, 11.0, 20.0)], squares=open_squares(10, 20))
+    p = make_player(weapon=weapon())
+    runs, sprints = [], []
+    p.setRunning = lambda s, v: runs.append(v)
+    p.setSprinting = lambda s, v: sprints.append(v)
+    lua.eval("PZA.act.start({seq=1, goal='flee', args='18 20'}, ...)", p)
+    tick(lua, p)
+    assert runs[-1] is True and sprints[-1] is True
+    ok, _, old = lua.eval("PZA.act.start({seq=2, goal='fight', args=''}, ...)", p)
+    assert ok is True and old["detail"] == "superseded"
+    assert runs[-1] is False and sprints[-1] is False
+    runs[:], sprints[:] = [], []
+    lua.eval("PZA.act.start({seq=3, goal='stop', args=''}, ...)", p)
+    assert runs == [False] and sprints == [False]               # the superseded fight; stop's own tick follows
+    tick(lua, p)
+    assert runs == [False, False] and sprints == [False, False]

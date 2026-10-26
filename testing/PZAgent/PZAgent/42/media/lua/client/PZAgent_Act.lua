@@ -2,6 +2,7 @@
 -- sets state done|failed with a detail from its closed set: a failed detail from the `-- reasons:` line below, a done
 -- detail from the `-- done:` line (agent/reasons.py's REASONS and DONE; a test parses both). The walk is the game's own timed action,
 -- queued the way the harness's player.walk does [#2082: setRunning(true) does not make a walk run].
+-- A top-level goto x y run asks to run once, at its walk's start; a flee's run-flagged walk asks every tick (setRun).
 -- args: goto x y [run]; open x y; loot x y [food|water|weapon|bandage|all]; eat <fullType>; drink; fight; flee x y;
 -- sleep. Every x y is a world square coordinate, as a scan reports it (an offset goes stale while the player moves).
 -- A player whose overall body health reads 0 is dead: every goal's start refuses with dead, and a running goto
@@ -63,8 +64,17 @@ local function clearQueue(p)
     if ISTimedActionQueue ~= nil and ISTimedActionQueue.clear ~= nil then pcall(ISTimedActionQueue.clear, p) end
 end
 
--- A new goal replaces a running one: the old walk is cleared and the old goal's status comes back
--- as failed "superseded" (third return) so the caller reports it. A dead player refuses every goal but
+-- sets the player's run and sprint flags together (Stage C pass 2: run 1's flee frames read running false on all 92,
+-- the one setRunning(true) at the walk's start being #2082's finding again; the harness's TK.sprintWatch sets both
+-- every tick). Whether asking every tick makes the walk run is a reading for the C pass-2 frames' running and
+-- sprinting fields, not a fix known to work.
+local function setRun(p, on)
+    PZA.call(p, "setRunning", on)
+    PZA.call(p, "setSprinting", on)
+end
+
+-- A new goal replaces a running one: the old walk and the run and sprint flags are cleared and the old goal's
+-- status comes back as failed "superseded" (third return) so the caller reports it. A dead player refuses every goal but
 -- stop (a dead body's running goal can still be stopped), and the running one carries on to its own end.
 function A.start(cmd, p)
     local def = A.goals[cmd.goal]
@@ -75,7 +85,10 @@ function A.start(cmd, p)
     if not ok then return false, reason end
     local old = nil
     if A.goal ~= nil and A.goal.state == "running" then
-        if p ~= nil then clearQueue(p) end
+        if p ~= nil then
+            clearQueue(p)
+            setRun(p, false) -- a superseded flee's run outlives it otherwise
+        end
         A.goal.state, A.goal.detail = "failed", "superseded"
         old = A.status()
     end
@@ -139,7 +152,7 @@ A.goals["goto"] = {
             if not ran then failWalk(p, g, "no path"); return end
         end
         local d = dist(p, g.tx, g.ty)
-        if d <= 1.0 then
+        if d <= (g.doneR or 1.0) then
             clearQueue(p) -- the walk would carry on past the target and queue ahead of the next goal
             g.state, g.detail = "done", "d=" .. tostring(d)
             return
@@ -164,7 +177,7 @@ A.goals["stop"] = {
     start = function(argv) return true, "", {} end,
     tick = function(p, g)
         clearQueue(p)
-        PZA.call(p, "setRunning", false)
+        setRun(p, false)
         g.state, g.detail = "done", ""
     end,
 }
@@ -278,15 +291,6 @@ local function subGoto(x, y, run)
     local _, _, st = A.goals["goto"].start(argv)
     st.seq, st.name, st.state, st.detail, st.argv, st.ticks = 0, "goto", "running", "", {}, 0
     return st
-end
-
--- sets the player's run and sprint flags together (Stage C pass 2: run 1's flee frames read running false on all 92,
--- the one setRunning(true) at the walk's start being #2082's finding again; the harness's TK.sprintWatch sets both
--- every tick). Whether asking every tick makes the walk run is a reading for the C pass-2 frames' running and
--- sprinting fields, not a fix known to work.
-local function setRun(p, on)
-    PZA.call(p, "setRunning", on)
-    PZA.call(p, "setSprinting", on)
 end
 
 -- one tick of g.sub while it runs; its state after. A run-flagged sub-walk still running after its tick asks to run
@@ -519,19 +523,24 @@ A.goals["drink"] = {
 
 -- ---- fight, flee, sleep -------------------------------------------------------------------------
 -- fight swings the way the harness's attack.melee does (PZTestKit_Client.lua: faceThisObject(z), then
--- DoAttack(0) on a 1200 ms cadence) only within REACH_R, and walks toward a zombie between REACH_R and FIGHT_R;
--- DoAttack is reached through PZA.call, which indexes before it calls, under pcall. sleep is vanilla's own ground sleep with its dialog answered: ISWorldObjectContextMenu.onConfirmSleep
+-- DoAttack(0) on a 1200 ms cadence) only within the held weapon's reach (A.reachOf), and walks toward a zombie
+-- between that reach and FIGHT_R; DoAttack is reached through PZA.call, which indexes before it calls, under pcall.
+-- sleep is vanilla's own ground sleep with its dialog answered: ISWorldObjectContextMenu.onConfirmSleep
 -- (this, button, player, bed) with button.internal "YES" and bed nil, which runs the vanilla checks (zombies in
 -- sight, pain, panic) and sets the character asleep; a refusal there is a halo text, so a sleep that never
 -- comes within SLEEP_WAIT_MS reads as not allowed.
 A.FIGHT_R = 3             -- a zombie this close is fought
--- tiles: the swing runs only inside this; between it and FIGHT_R the fight steps toward the zombie (run 1's fight 27
--- swung 210 s at a zombie 2.74 tiles off). The harness's attack.melee swings at the nearest zombie "within 2 tiles";
--- the 42.21 install's Base.BaseballBat reads MaxRange = 1.25, MinRange = 0.61 (scripts/generated/items/weapon.txt
--- L6700, L6703; the jar's HandWeapon.getMaxRange(IsoGameCharacter) adds a per-character mod not read here), so 1.5 is
--- a spike constant to be read live, not a measured reach
-A.REACH_R = 1.5
-A.SWING_MS = 1200        -- the swing cadence, the harness's attack.melee nextAt
+-- The reach (tiles) is the held weapon's, as the engine reads it for a swing's targets: weapon:getMaxRange(chr) *
+-- weapon:getRangeMod(chr) (the jar's CombatManager.calcValidTargets L1445 and calculateHitListWeapon L2056). For a melee
+-- weapon getMaxRange(chr) is the script's MaxRange (HandWeapon L879; the aiming term at L877 is for ranged weapons
+-- only), and getRangeMod is 1.0, or 1.2 with the weapon's Blunt/Axe/Spear... perk at 7 or more (L491-L511). The
+-- fallback is the 42.21 install's Base.BaseballBat MaxRange = 1.25 (scripts/generated/items/weapon.txt L6700), and
+-- the margin keeps the swing inside the reach while both bodies move (run 1's fight 27 swung 210 s at a zombie 2.74
+-- tiles off, out of reach).
+A.REACH_FALLBACK = 1.25
+A.REACH_MARGIN = 0.9
+A.CLOSE_DONE_R = 0.5      -- a closing step's done radius (a goto's default is 1.0), so the reach check fires first
+A.SWING_MS = 1200       -- the swing cadence, the harness's attack.melee nextAt
 A.GRAB_R = 1.0            -- inside this, with no swing due, the player steps back
 A.STEP_BACK = 2           -- tiles stepped back, along the zombie-to-player line
 A.FLEE_HEALTH = 40        -- overall body health under this fails a fight (Python decides what next)
@@ -575,8 +584,19 @@ local function awayFrom(p, ax, ay, dist)
     return math.floor(px + vx / n * dist), math.floor(py + vy / n * dist)
 end
 
--- drops a fight's step walk (back, or toward the zombie); one dropped while it runs (the zombies left) is cleared from the queue, since it
--- would carry on and queue ahead of the next goal (a failed one cleared its own walk, a done one too)
+-- the held weapon's reach in tiles: getMaxRange(p) * getRangeMod(p), or REACH_FALLBACK when either member is
+-- absent or answers no number, times REACH_MARGIN
+function A.reachOf(p, w)
+    local okM, mx = PZA.call(w, "getMaxRange", p)
+    local okR, rm = PZA.call(w, "getRangeMod", p)
+    local r = A.REACH_FALLBACK
+    if okM and okR and type(mx) == "number" and type(rm) == "number" then r = mx * rm end
+    return r * A.REACH_MARGIN
+end
+
+-- drops a fight's step walk (back, or toward the zombie); one dropped while it runs (the zombies left) is cleared
+-- from the queue, since it would carry on and queue ahead of the next goal (a failed one cleared its own walk, a
+-- done one too)
 local function dropStep(p, g)
     if g.sub ~= nil and g.sub.state == "running" then clearQueue(p) end
     g.sub = nil
@@ -602,24 +622,30 @@ A.goals["fight"] = {
             return
         end
         g.quiet = 0
+        local reach = A.reachOf(p, w)
+        local zx, zy = math.floor(near.x), math.floor(near.y)
         -- a step toward the zombie is dropped once it is within reach or beyond FIGHT_R, and re-aimed (dropped here,
         -- queued again below) when the zombie's square changes
         if g.sub ~= nil and g.closing then
-            local zx, zy = math.floor(near.x), math.floor(near.y)
-            if near.d <= A.REACH_R or near.d > A.FIGHT_R or zx ~= g.zx or zy ~= g.zy then dropStep(p, g) end
+            if near.d <= reach or near.d > A.FIGHT_R or zx ~= g.zx or zy ~= g.zy then dropStep(p, g) end
         end
         if g.sub ~= nil then
-            if tickSub(p, g) == "running" then return end
+            local st = tickSub(p, g)
+            if st == "running" then return end
+            -- a closing walk that ended done is as near as a walk to that square gets: the fight swings from there
+            -- while the zombie stays on it, never re-queueing the same walk every tick
+            if st == "done" and g.closing then g.closedX, g.closedY = g.zx, g.zy end
             dropStep(p, g)
         end
         if near.d > A.FIGHT_R then return end
-        if near.d > A.REACH_R then
-            -- the square one tile short of the zombie along the player-to-zombie line (awayFrom at a negative
-            -- distance walks toward it), a walk, not a run
-            local tx, ty = awayFrom(p, near.x, near.y, 1 - near.d)
-            if tx == nil then return end
-            g.sub = subGoto(tx, ty, false)
-            g.closing, g.zx, g.zy = true, math.floor(near.x), math.floor(near.y)
+        local closed = g.closedX == zx and g.closedY == zy
+        if not closed then g.closedX, g.closedY = nil, nil end
+        if near.d > reach and not closed then
+            -- a walk (not a run) to the zombie's own square with a tight done radius, so the reach check above
+            -- drops it before the walk can end short of the zombie
+            g.sub = subGoto(zx, zy, false)
+            g.sub.doneR = A.CLOSE_DONE_R
+            g.closing, g.zx, g.zy = true, zx, zy
             tickSub(p, g)
             return
         end
