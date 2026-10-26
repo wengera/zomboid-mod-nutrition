@@ -22663,3 +22663,8 @@ a_pipe_2-20261026-115846,scan15_ms_max,45,"The pass-2 emit shape: the whole 99 K
 a_pipe_2-20261026-115846,readings.motion[0] and readings.motion[1],failed stuck / 3661 ms,"The first leg is a false stuck from pass 2's progress rule on a path that grows round the house; the second queued behind that leg's leftover walk. Defect readings, fixed in pass 3.",readings.motion[2..19]
 a_pipe_2-20261026-115846,readings.server[*].rttMs,—,"n = 3.",
 a_pipe_2-20261026-115846,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+a_pipe_3-20261026-130558,readings.rates.*.tickMs and every cost.*Ms,integers 0–3,"Quantised to a 1 ms clock; cite the rate-60 window mean (0.482 ms) or a bound, never a per-frame value.",readings.rate60.tick_mean_ms
+a_pipe_3-20261026-130558,cmd_motion_p90_ms and the +x legs' cmd_motion_host_ms,8130 / 7468–8555,"The direction-based first-motion measure on a detour: the walk started 77–180 ms after the ack and went south-west and north round the house before heading east. A measurement-definition reading, never a latency.",the −x legs (0.4–0.5 s) and the ack→first-position-change figures in the guide
+a_pipe_3-20261026-130558,cmd_motion_n,19,"The motion phase stopped on the 560 s budget after 19 of 20 legs.",
+a_pipe_3-20261026-130558,readings.server[*].rttMs,—,"n = 3.",
+a_pipe_3-20261026-130558,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",

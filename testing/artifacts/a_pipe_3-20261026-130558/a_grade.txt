@@ -1,0 +1,24 @@
+{
+ "cmd_motion_n": 19,
+ "cmd_motion_p90_ms": 8130,
+ "cmd_motion_paired": 19,
+ "cmd_motion_voided": 0,
+ "cmd_motion_voided_reasons": [],
+ "gaps": 0,
+ "lua_errors": 0,
+ "mode": "append",
+ "pass": {
+  "cmd_motion_p90": false,
+  "gaps": true,
+  "hello": true,
+  "lua_errors": true,
+  "scan15": false,
+  "tick_p99_at5": false
+ },
+ "scan15_latency_ms_max": 75,
+ "scan15_ms_max": 7,
+ "tick_frames_at5": 300,
+ "tick_mean_ms_at60": 0.4819744869661675,
+ "tick_p99_ms_at5": 2,
+ "verdict": "NO-GO"
+}
