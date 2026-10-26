@@ -25,7 +25,7 @@ THE CHANGES (everything else is b_actions.py's, imported and subclassed, never c
      container order, repeats kept; None when missing) and door_food / door_water in place of pass 1's pick and door.
   3. the wide scan (b_actions.SCAN_R_WIDE, 25) runs when either pick is missing from the near scan (note
      `no_stocked_container_in_scan`); a missing pick is then taken over the wide scan, and one still missing is noted
-     `no_food_pick` / `no_water_pick` with its open, goto and loot steps recorded `skipped` (the row then cannot
+     `no_food_pick` / `no_water_pick` with its goto and loot steps recorded `skipped` (the row then cannot
      complete). Pass 1's path stays: no container square at all -> `no_container_in_scan`, the wide scan, and
      `no_container_in_wide_scan` stops the row. A wide scan that returns nothing is noted `wide_scan_failed`.
 THE SEQUENCE: scan [-> scan 25] -> (open on the line) -> goto beside the food pick -> loot food -> (open on the line
@@ -72,8 +72,8 @@ BUDGET_S = BA.BUDGET_S
 REPO = DL.REPO
 _ME = os.path.basename(os.path.abspath(__file__))
 
-# drinkware the loot's water filter takes (a FluidContainer component): Base.DrinkingGlass, Base.Mugl, Base.MugRed,
-# Base.MugWhite, Base.MugSpiffo, Base.MugClay; the underscore variants (Mug_Copper_Coffee ...) are not matched
+# drinkware the loot's water filter takes (a FluidContainer component): Base.DrinkingGlass and the Mug<Name> ids
+# (Base.Mugl, Base.MugWhite, Base.MugSpiffo ...); an id with an underscore after Mug is not matched
 DRINKWARE_RX = re.compile(r"\.(DrinkingGlass|Mug[A-Za-z]*)\b")
 NEVER_WATER_RX = re.compile(r"\.Bleach\b")            # a fluid container the drink goal refuses as poison
 AGENT_LUA = BA.AGENT_LUA
