@@ -133,7 +133,10 @@ def test_need_eat_and_drink_track_what_the_events_say_is_held(tmp_path):
     assert d["inputs"]["need"] == "water" and d["goal"] == "scan" and link.cmds.count(("drink", "")) == 1
     w.apply(event("item_added", fullType="Base.WaterBottle"))
     w.apply(frame(wall=4000, hunger=0.6, thirst=0.6))
-    assert pol.tick() == "drink"
+    assert pol.tick() != "drink"                             # the failed drink still cools
+    for _ in range(P.FAILED_COOLDOWN_TICKS - 2):
+        pol.tick()
+    assert pol.tick() == "drink"                             # cooled: the water is worth a try
 
 
 # ================================================================ sleep
@@ -205,8 +208,44 @@ def test_a_goal_is_sent_only_when_it_differs_from_the_running_one(tmp_path):
                   goal={"seq": 2, "name": "flee", "state": "running", "detail": ""}))
     assert pol.tick() is None                                # a flee's target moving is not a change
     w.apply(event("goal_failed", goalSeq=2, reason="cornered"))
-    w.apply(frame(wall=5000, zombies=zs, health=30.0))
-    assert pol.tick() == "flee" and len(link.cmds) == 3      # a finished goal is re-sent
+    w.apply(frame(wall=5000, x=99.0, zombies=zs, health=30.0))
+    assert pol.tick() == "flee" and link.cmds[-1] == ("flee", "91 100")   # a finished goal, new args: sent
+
+
+def test_a_failed_goal_cools_for_ten_planner_ticks(tmp_path):
+    zs = [zombie(1, 103.0, 100.0)]
+    w, link, pol = make(tmp_path, frame(zombies=zs, health=30.0))
+    pol.scanned.add(None)                                    # nothing else to do: explore has no edge
+    assert pol.tick() == "flee" and link.cmds == [("flee", "92 100")]
+    w.apply(event("goal_failed", goalSeq=1, reason="cornered"))
+    for i in range(P.FAILED_COOLDOWN_TICKS):
+        w.apply(frame(wall=2000 + i, zombies=zs, health=30.0))
+        assert pol.tick() is None, i                         # the same flee is not re-sent while it cools
+    d = decisions(tmp_path)[-1]
+    assert d["inputs"]["cooled"] == ["flee", "92 100"] and d["branch"] is None
+    w.apply(frame(wall=3000, zombies=zs, health=30.0))
+    assert pol.tick() == "flee" and link.cmds == [("flee", "92 100")] * 2
+    assert decisions(tmp_path)[-1]["inputs"]["cooled"] is None
+
+
+def test_a_cooled_goal_passes_over_to_the_next_branch(tmp_path):
+    crate = {"type": "crate", "n": 1, "items": ["Base.Nails"]}
+    w, link, pol = make(tmp_path, scan([sq(102, 100, containers=[crate])]), frame(thirst=0.6))
+    assert pol.tick() == "drink"
+    w.apply(event("goal_failed", goalSeq=1, reason="not valid"))
+    w.apply(frame(wall=2000, thirst=0.6))
+    assert pol.tick() == "loot" and decisions(tmp_path)[-1]["inputs"]["cooled"] == ["drink", ""]
+
+
+def test_each_branch_logs_its_own_inputs(tmp_path):
+    crate = {"type": "crate", "n": 1, "items": ["Base.Apple"]}
+    w, link, pol = make(tmp_path, scan([sq(103, 100, containers=[crate])]), frame(hunger=0.6))
+    pol.tick()
+    d = decisions(tmp_path)[-1]
+    b = d["inputs"]["branches"]
+    assert d["branch"] == "forage" and b["forage"] == {"container": [103, 100, 0, 0]}
+    assert b["need"] == {"food": [], "waterOk": True} and d["inputs"]["need"] == "food"
+    assert b["threat"] == {} and b["sleep"] == {} and "explore" not in b      # explore was never tried
 
 
 def test_args_change_re_sends_a_goto(tmp_path):
@@ -225,7 +264,7 @@ def test_decision_log_line_shape(tmp_path):
     assert set(d) == {"wall", "gameMin", "branch", "inputs", "goal", "args", "sent"}
     assert d["wall"] == 12.5 and d["gameMin"] == 777
     assert set(d["inputs"]) == {"x", "y", "health", "hunger", "thirst", "fatigue", "armed", "threats", "nearest",
-                                "running", "need"}
+                                "running", "need", "cooled", "branches"}
 
 
 def test_branch_order_is_the_specs():

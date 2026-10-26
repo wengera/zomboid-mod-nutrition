@@ -15,6 +15,9 @@ HEURISTIC (a spike, deliberately dumb):
 - What is held is read off the World's events: an `item_added` adds its fullType, a finished `eat T` takes one T
   (all of them when it failed), and a `drink` that failed `none held` blocks drinking until an item matching
   world.WATER_RX is added. The events deque is bounded, so a long session forgets its oldest pickups.
+- A goal that failed is not chosen again with the same name and args for FAILED_COOLDOWN_TICKS planner ticks: its
+  branch is passed over and the next one tried (logged as inputs.cooled). Every branch tried logs its own inputs
+  (the chosen square, container or edge) under inputs.branches[<branch>].
 - A loot goal that finishes, done or failed, marks every container on its square looted, so a failing square is not
   retried. An explore walk that finishes is followed by one `scan` from where it ended.
 """
@@ -36,6 +39,7 @@ SCAN_R = 10
 BRANCHES = ("threat", "need", "sleep", "forage", "explore")
 BY_NAME = ("fight", "flee")
 CONFIG = ("scan",)
+FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed goal is not chosen again with the same name and args
 FINISHED = ("done", "failed")
 
 
@@ -50,6 +54,10 @@ class Policy:
         self.need_mark = None        # "water" or "food" when the need branch found nothing held; forage loots it
         self.explore_target = None   # the args of the last explore goto
         self.scanned = set()         # explore targets already scanned from (None: the start)
+        self.ticks = 0               # planner ticks so far
+        self.last_failed = None      # (goal, args, tick first seen failed) of the last goal that failed
+        self.failures_seen = set()   # cmd seqs whose failure has been noted
+        self.why = {}                # the branch being tried: its own inputs
 
     # ---------------------------------------------------------------- reading the world
     def _xy(self):
@@ -125,12 +133,14 @@ class Policy:
                         self.world.mark_looted(key)
 
     # ---------------------------------------------------------------- the branches, in order
+    # Each sets self.why, its own inputs (the chosen square, container or edge), logged under inputs.branches[<branch>].
     def threat(self):
         ts = self._threats()
         if not ts:
             return None
         health = self.world.me.get("health", 100.0)
         if self._armed() and len(ts) <= MAX_FIGHT and health >= FLEE_HEALTH:
+            self.why = {"fight": True}
             return ("fight", "")
         cx = sum(z["x"] for z in ts) / len(ts)
         cy = sum(z["y"] for z in ts) / len(ts)
@@ -142,15 +152,19 @@ class Policy:
             if best is None or rank > best[0]:
                 best = (rank, x, y)
         if best is not None:
+            self.why = {"centroid": [cx, cy], "square": [best[1], best[2]]}
             return ("flee", "%d %d" % (best[1], best[2]))
         mx, my = self._xy()
         vx, vy = mx - cx, my - cy
         n = math.hypot(vx, vy) or 1.0
-        return ("flee", "%d %d" % (math.floor(mx + vx / n * FLEE_DIST), math.floor(my + vy / n * FLEE_DIST)))
+        tx, ty = math.floor(mx + vx / n * FLEE_DIST), math.floor(my + vy / n * FLEE_DIST)
+        self.why = {"centroid": [cx, cy], "away": [tx, ty]}
+        return ("flee", "%d %d" % (tx, ty))
 
     def need(self):
         me = self.world.me
         food, water_ok = self._held()
+        self.why = {"food": food, "waterOk": water_ok}
         self.need_mark = None
         if me.get("thirst", 0.0) > THIRST_T:
             if water_ok:
@@ -175,20 +189,24 @@ class Policy:
             rank = (math.hypot(x - mx, y - my), x, y)
             if best is None or rank < best:
                 best = rank
+        self.why = {"square": [best[1], best[2]] if best else None}
         if best is not None and best[0] > SLEEP_NEAR:
             return ("goto", "%d %d" % (best[1], best[2]))
         return ("sleep", "")
 
     def forage(self):
         key = self.world.nearest_unlooted(self.need_mark)
+        self.why = {"container": list(key) if key else None}
         if key is None:
             return None
         return ("loot", "%d %d %s" % (key[0], key[1], self.need_mark or "all"))
 
     def explore(self):
         if self.explore_target not in self.scanned and self._current() is None:
+            self.why = {"scanFrom": self.explore_target}
             return ("scan", str(SCAN_R))
         edge = self.world.unexplored_edge()
+        self.why = {"edge": list(edge) if edge else None}
         if edge is None:
             return None
         return ("goto", "%d %d" % edge)
@@ -205,17 +223,37 @@ class Policy:
                 "nearest": min((math.hypot(z["x"] - mx, z["y"] - my) for z in ts), default=None),
                 "running": cur[0] if cur else None}
 
+    def _note_failures(self):
+        """The last failed goal sent, with the planner tick that first saw it fail."""
+        for seq, (state, _) in sorted(self._finished().items()):
+            if state == "failed" and seq not in self.failures_seen:
+                self.failures_seen.add(seq)
+                self.last_failed = self.sent[seq] + (self.ticks,)
+
+    def _cooling(self, choice):
+        f = self.last_failed
+        return f is not None and choice == f[:2] and self.ticks - f[2] < FAILED_COOLDOWN_TICKS
+
     def tick(self):
+        self.ticks += 1
         self._settle_loots()
+        self._note_failures()
         inputs = self._inputs()
         self.need_mark = None
-        branch, choice = None, None
+        branch, choice, cooled, tried = None, None, None, {}
         for name in BRANCHES:
-            choice = getattr(self, name)()
-            if choice is not None:
-                branch = name
+            self.why = {}
+            c = getattr(self, name)()
+            tried[name] = self.why
+            if c is not None and self._cooling(c):
+                cooled = list(c)                 # failed within FAILED_COOLDOWN_TICKS: the next branch is tried
+                continue
+            if c is not None:
+                branch, choice = name, c
                 break
         inputs["need"] = self.need_mark
+        inputs["cooled"] = cooled
+        inputs["branches"] = tried
         goal, args = choice if choice else (None, None)
         sent = False
         if choice is not None and self._differs(goal, args):

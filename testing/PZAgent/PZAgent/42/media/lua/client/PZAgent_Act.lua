@@ -1,5 +1,6 @@
 -- PZAgent_Act.lua — the goals (spec § 2.3). One goal at a time; each is a per-tick state machine that
--- sets state done|failed with a detail from its closed set, the `-- reasons:` line below (agent/reasons.py parses it). The walk is the game's own timed action,
+-- sets state done|failed with a detail from its closed set: a failed detail from the `-- reasons:` line below, a done
+-- detail from the `-- done:` line (agent/reasons.py's REASONS and DONE; a test parses both). The walk is the game's own timed action,
 -- queued the way the harness's player.walk does [#2082: setRunning(true) does not make a walk run].
 -- args: goto x y [run]; open x y; loot x y [food|water|weapon|bandage|all]; eat <fullType>; drink; fight; flee x y;
 -- sleep. Every x y is a world square coordinate, as a scan reports it (an offset goes stale while the player moves).
@@ -9,10 +10,12 @@
 -- details: goto no square|no path|stuck|dead; open no square|no door|locked|not adjacent; loot not loaded|no container|
 -- not adjacent|empty|no match|interrupted; eat, drink none held|not valid|interrupted; fight done clear, failed
 -- no weapon|weapon broke|low health; flee done at, failed cornered; sleep done awake, failed not allowed|
--- interrupted; any running goal superseded. The done details clear|at|awake sit in the closed set beside them.
+-- interrupted; any running goal superseded. Done details: goto d=<distance>; stop an empty detail; open open; loot
+-- moved=<n>; eat, drink consumed; fight clear; flee at; sleep awake (d= and moved= are prefixes, the empty one unlisted).
 -- open's locked is read after the toggle: a door or window still shut OPEN_MS after its queued open reads
 -- locked (locked from outside, a stuck door, a smashed or invincible window); only a barricade fails it up front.
--- reasons: bad args|no square|no path|stuck|superseded|no door|locked|not adjacent|no container|not loaded|empty|no match|none held|interrupted|not valid|clear|no weapon|weapon broke|low health|at|cornered|awake|not allowed|dead
+-- reasons: bad args|no square|no path|stuck|superseded|no door|locked|not adjacent|no container|not loaded|empty|no match|none held|interrupted|not valid|no weapon|weapon broke|low health|cornered|not allowed|dead
+-- done: d=|moved=|open|consumed|clear|at|awake
 PZA.act = PZA.act or {}
 local A = PZA.act
 A.goals = A.goals or {}
@@ -516,6 +519,13 @@ local function awayFrom(p, ax, ay, dist)
     return math.floor(px + vx / n * dist), math.floor(py + vy / n * dist)
 end
 
+-- drops a fight's step-back walk; one dropped before it is done (the zombies left, or the walk failed) is
+-- cleared from the queue, since it would carry on and queue ahead of the next goal
+local function dropStep(p, g)
+    if g.sub ~= nil and g.sub.state ~= "done" then pcall(ISTimedActionQueue.clear, p) end
+    g.sub = nil
+end
+
 A.goals["fight"] = {
     start = function(argv) return true, "", { quiet = 0 } end,
     tick = function(p, g)
@@ -527,14 +537,18 @@ A.goals["fight"] = {
         if h ~= nil and h < A.FLEE_HEALTH then g.state, g.detail = "failed", "low health"; return end
         local zs, near = liveZombies(p, PZA.sense.ZOMBIE_RADIUS)
         if near == nil then
+            dropStep(p, g)
             g.quiet = g.quiet + 1
-            if g.quiet >= A.CLEAR_TICKS then g.state, g.detail = "done", "clear" end
+            if g.quiet >= A.CLEAR_TICKS then
+                pcall(ISTimedActionQueue.clear, p)
+                g.state, g.detail = "done", "clear"
+            end
             return
         end
         g.quiet = 0
         if g.sub ~= nil then
             if tickSub(p, g) == "running" then return end
-            g.sub = nil
+            dropStep(p, g)
         end
         if near.d > A.FIGHT_R then return end
         PZA.call(p, "faceThisObject", near.z)
@@ -583,10 +597,35 @@ A.goals["flee"] = {
         if g.sub == nil then g.sub = subGoto(g.x, g.y, true) end
         if g.ticks % A.FLEE_REPLAN_TICKS == 0 then fleeReplan(p, g) end
         local st = tickSub(p, g)
+        if st == "running" then return end
+        PZA.call(p, "setRunning", false) -- the run outlives the walk otherwise
         if st == "done" then g.state, g.detail = "done", "at"; return end
-        if st == "failed" then g.state, g.detail = "failed", "cornered" end
+        g.state, g.detail = "failed", "cornered"
     end,
 }
+
+-- vanilla's menu gates, which onConfirmSleep does not check (ISVehicleMenu.lua L190-L206): on a client, sleep
+-- only when the server's SleepAllowed is true; when sleep is needed (not a client, or SleepNeeded), not within an
+-- hour of the last sleep (getHoursSurvived() - getLastHourSleeped() <= 1). Fails closed on an unreadable option.
+local function sleepAllowed(p)
+    local client = false
+    if isClient ~= nil then client = isClient() == true end
+    local needed = not client
+    if client then
+        local opts = getServerOptions ~= nil and getServerOptions() or nil
+        local okA, allowed = PZA.call(opts, "getBoolean", "SleepAllowed")
+        if not okA or allowed ~= true then return false end
+        local okN, need = PZA.call(opts, "getBoolean", "SleepNeeded")
+        if not okN then return false end
+        needed = need == true
+    end
+    if needed then
+        local okH, hours = PZA.call(p, "getHoursSurvived")
+        local okL, last = PZA.call(p, "getLastHourSleeped")
+        if okH and okL and hours ~= nil and last ~= nil and hours - last <= 1 then return false end
+    end
+    return true
+end
 
 -- done awake when isAsleep goes true then false; woken with less health than it lay down with, or with a
 -- live zombie in sense radius, it is interrupted
@@ -596,7 +635,7 @@ A.goals["sleep"] = {
         if g.calledAt == nil then
             local menu = ISWorldObjectContextMenu
             local fn = menu ~= nil and menu.onConfirmSleep or nil
-            if fn == nil then g.state, g.detail = "failed", "not allowed"; return end
+            if fn == nil or not sleepAllowed(p) then g.state, g.detail = "failed", "not allowed"; return end
             local _, num = PZA.call(p, "getPlayerNum")
             local ran = pcall(fn, nil, { internal = "YES" }, num or 0, nil)
             if not ran then g.state, g.detail = "failed", "not allowed"; return end

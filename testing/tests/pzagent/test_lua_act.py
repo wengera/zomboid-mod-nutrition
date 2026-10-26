@@ -791,7 +791,7 @@ def test_sleep_interrupted_when_woken_by_a_hit_or_a_zombie(lua):
     assert tick(lua, p)["detail"] == "interrupted"
 
 
-def test_task11_details_are_in_the_header_reasons_line():
+def test_task11_details_are_in_the_header_reasons_and_done_lines():
     import re
     src = open(lua_file("client/PZAgent_Act.lua"), encoding="utf-8").read()
     header = [l for l in src.splitlines() if l.startswith("-- reasons: ")][0]
@@ -799,8 +799,9 @@ def test_task11_details_are_in_the_header_reasons_line():
     used = set(re.findall(r'"failed",\s*"([^"]+)"', src))
     for x in ("no weapon", "weapon broke", "low health", "cornered", "not allowed", "interrupted"):
         assert x in used and x in closed
+    done = set([l for l in src.splitlines() if l.startswith("-- done: ")][0][len("-- done: "):].strip().split("|"))
     for x in ("clear", "at", "awake"):
-        assert x in closed and re.search(r'"done",\s*"%s"' % x, src)
+        assert x in done and x not in closed and re.search(r'"done",\s*"%s"' % x, src)
 
 
 # ---- Stage A pass 2: goto fails dead; stuck by progress; the chunked scan --------------------
@@ -952,3 +953,103 @@ def test_main_second_scan_replaces_a_running_one(lua, fs):
         g._handlers[0]()
     scans = [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines() if '"kind":"scan"' in l]
     assert [s["r"] for s in scans] == [1] and scans[0]["scanTicks"] == 1 and len(scans[0]["squares"]) == 9
+
+
+# ---- Task 11 fix 1: the sleep gates; fight drops its step-back; flee resets running ------------
+
+def server_options(lua, allowed=True, needed=True):
+    """isClient() true and getServerOptions():getBoolean(name) answering from the dict (an absent key is nil)"""
+    g = lua.globals()
+    opts = {}
+    if allowed is not None:
+        opts["SleepAllowed"] = allowed
+    if needed is not None:
+        opts["SleepNeeded"] = needed
+    g.isClient = lambda: True
+    so = J(getBoolean=lambda s, k: opts.get(k))
+    g.getServerOptions = lambda: so
+
+
+def sleep_tick(lua, p, seq):
+    lua.eval("PZA.act.start({seq=%d, goal='sleep', args=''})" % seq)
+    return tick(lua, p)
+
+
+def test_sleep_on_a_client_honours_sleep_allowed(lua):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    server_options(lua, allowed=False)
+    st = sleep_tick(lua, p, 1)
+    assert st["state"] == "failed" and st["detail"] == "not allowed" and list(g._sleeps) == []
+    server_options(lua, allowed=None)                   # an unreadable option fails closed
+    assert sleep_tick(lua, p, 2)["detail"] == "not allowed" and list(g._sleeps) == []
+    server_options(lua, allowed=True, needed=False)
+    assert sleep_tick(lua, p, 3)["state"] == "running" and len(g._sleeps) == 1
+
+
+def test_sleep_needed_refuses_within_an_hour_of_the_last_sleep(lua):
+    load(lua)
+    g = lua.globals()
+    hours = {"v": 30.5}
+    p = make_player()
+    p.getHoursSurvived = lambda s: hours["v"]
+    p.getLastHourSleeped = lambda s: 30
+    server_options(lua, allowed=True, needed=True)
+    assert sleep_tick(lua, p, 1)["detail"] == "not allowed" and list(g._sleeps) == []
+    server_options(lua, allowed=True, needed=False)     # SleepNeeded off: no too-early gate
+    assert sleep_tick(lua, p, 2)["state"] == "running" and len(g._sleeps) == 1
+    server_options(lua, allowed=True, needed=True)
+    hours["v"] = 31.5
+    assert sleep_tick(lua, p, 3)["state"] == "running" and len(g._sleeps) == 2
+    g.isClient = lambda: False                          # not a client: sleep is needed, the gate applies
+    hours["v"] = 31.0
+    assert sleep_tick(lua, p, 4)["detail"] == "not allowed" and len(g._sleeps) == 2
+
+
+def test_fight_clears_a_step_back_dropped_when_the_zombies_leave(lua):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(zombies=[make_zombie(7, 10.5, 20.0)], squares=open_squares(10, 20))
+    p = make_player(weapon=weapon())
+    lua.eval("PZA.act.start({seq=1, goal='fight', args=''})")
+    tick(lua, p, 2)                                      # the swing, then the step back queued
+    assert g._queue.adds[-1].Type == "ISWalkToTimedAction" and g._queue.cleared == 0
+    g._cell = make_cell(squares=open_squares(10, 20))
+    tick(lua, p)
+    assert g._queue.cleared == 1 and g._queue.queue == []
+    assert tick(lua, p, 58)["state"] == "running" and g._queue.cleared == 1
+    st = tick(lua, p)
+    assert st["detail"] == "clear" and g._queue.cleared == 2
+
+
+def test_fight_clears_a_step_back_that_failed(lua):
+    load(lua)
+    g = lua.globals()
+    squares = open_squares(10, 20)
+    g._cell = make_cell(zombies=[make_zombie(7, 10.5, 20.0)], squares=squares)
+    p = make_player(weapon=weapon())
+    lua.eval("PZA.act.start({seq=1, goal='fight', args=''})")
+    tick(lua, p, 2)
+    tick(lua, p, 4 * 90 - 1)                            # the player never moves: three re-plans, each a clear
+    assert g._queue.cleared == 3
+    tick(lua, p)                                        # the walk fails stuck: the fight drops and clears it
+    assert g._queue.cleared == 4 and lua.eval("PZA.act.status().state") == "running"
+
+
+def test_flee_resets_running_when_it_ends(lua):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(squares=open_squares(10, 20))
+    pos = {"x": 10.0}
+    p = make_player(); p.getX = lambda s: pos["x"]
+    runs = []
+    p.setRunning = lambda s, v: runs.append(v)
+    lua.eval("PZA.act.start({seq=1, goal='flee', args='18 20'})")
+    tick(lua, p)
+    pos["x"] = 18.2
+    assert tick(lua, p)["detail"] == "at" and runs == [True, False]
+    g._cell = make_cell(squares={})
+    runs[:] = []
+    lua.eval("PZA.act.start({seq=2, goal='flee', args='18 20'})")
+    assert tick(lua, p)["detail"] == "cornered" and runs == [False]

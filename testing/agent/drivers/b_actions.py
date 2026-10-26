@@ -364,8 +364,8 @@ class Actions(AP.Pipe):
         elif not ack.get("ok"):
             step["state"], step["detail"] = "refused", ack.get("reason")
         elif self.wait_until(lambda: seq in self.goal_end, GOAL_TIMEOUT_S):
-            # the end is read off the frames (a_pipe's goal_end map): the goal_done/goal_failed event cannot name its
-            # goal, since PZA.emit overwrites the body's seq (the goal's) with the line's own
+            # the end is read off the frames (a_pipe's goal_end map); the goal_done/goal_failed event names its goal
+            # as goalSeq since Task 11a (PZA.emit stamps the line's own seq), and this driver does not read it
             end = self.goal_end[seq]
             step["state"], step["detail"] = end["state"], end["detail"]
             step["endSeq"], step["endWallMs"] = end.get("seq"), end.get("wallMs")
