@@ -78,7 +78,6 @@ function S.frame(p)
         get(f.weapon, "type", w, "getFullType"); get(f.weapon, "condition", w, "getCondition"); get(f.weapon, "ammo", w, "getCurrentAmmoCount")
     end
     local okI, inv = PZA.call(p, "getInventory")
-    local _, items = PZA.call(inv, "getItems")
     local okG, items = PZA.call(inv, "getItems")
     local okC, n = PZA.call(items, "size")
     f.items = okC and n or 0
@@ -167,9 +166,9 @@ local function containersOf(o, missing)
     for _, c in ipairs(list) do
         local ct = { items = {} }
         getm(missing, ct, "type", c, "getType")
-        local _, items = PZA.call(c, "getItems")
+        local okG, items = PZA.call(c, "getItems")
         local okS, n = PZA.call(items, "size")
-        if not okS then PZA.missing(missing, "getItems") end
+        if not okG then PZA.missing(missing, "getItems") elseif not okS then PZA.missing(missing, "size") end
         ct.n = okS and n or 0
         for i = 0, ct.n - 1 do local _, it = PZA.call(items, "get", i); local _, ft = PZA.call(it, "getFullType"); ct.items[#ct.items + 1] = ft or "?" end
         out[#out + 1] = ct
