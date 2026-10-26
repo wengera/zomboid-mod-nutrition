@@ -49,6 +49,60 @@ def scan_step_ms(row):
     return max(top, last + emit)
 
 
+def _nums(v):
+    """A non-empty list of numbers, else None (any missing or non-numeric value is None)."""
+    if not isinstance(v, list) or not v:
+        return None
+    out = [_num(x) for x in v]
+    return None if None in out else out
+
+
+def part_emits(row):
+    """The emit each tick of a parts row performed (a_pipe_3, Stage A pass 3): the Lua serialises part i before its own
+    emit and flush is timed, so part i's line carries part i-1's emit as emitMs (part 1 carries 0) and the last part's
+    emit arrives as the next frame's cost.scanEmitMs. Tick i (the tick part i was walked and emitted) therefore performed
+    partEmitMs[i+1], and tick n performed scanEmitMs: the list is partEmitMs[1:] + [scanEmitMs] (0-based). None when the
+    two part lists are missing, unequal or hold a non-number, scanEmitMs is missing, or a part is missing (the row's
+    declared `parts` or its partNumbers, where carried, are not 1..len(partStepMs)): a lost part is a missing value."""
+    row = row if isinstance(row, dict) else {}
+    steps, emits, last = _nums(row.get("partStepMs")), _nums(row.get("partEmitMs")), _num(row.get("scanEmitMs"))
+    if steps is None or emits is None or last is None or len(steps) != len(emits):
+        return None
+    if "parts" in row and row["parts"] != len(steps):
+        return None
+    if "partNumbers" in row and row["partNumbers"] != list(range(1, len(steps) + 1)):
+        return None
+    return emits[1:] + [last]
+
+
+def scan_part_tick_ms(row):
+    """A parts row's per-tick cost: max over its ticks of (partStepMs[i] + the emit tick i performed, part_emits), the
+    worst single tick's walk plus the part emit that tick paid for; None on any missing value."""
+    done = part_emits(row)
+    if done is None:
+        return None
+    return max(s + e for s, e in zip(row["partStepMs"], done))
+
+
+def scan_tick_ms(row):
+    """The scan15 per-tick term of one row: a parts row (it carries partStepMs) by scan_part_tick_ms; a pass-2 row
+    (one whole line, its emit on the completing tick alone) by scan_step_ms, the same sum with every earlier tick's emit
+    0. None on a missing value."""
+    row = row if isinstance(row, dict) else {}
+    return scan_part_tick_ms(row) if "partStepMs" in row else scan_step_ms(row)
+
+
+def scan_latency_ms(row):
+    """A row's latency, ungraded: a parts row's walk sum (scanMs) plus every emit its ticks performed; a pass-2 row's
+    scanMs (as pass 2 graded it). None on a missing value."""
+    row = row if isinstance(row, dict) else {}
+    ms = _num(row.get("scanMs"))
+    if "partStepMs" not in row:
+        return ms
+    done = part_emits(row)
+    return ms + sum(done) if ms is not None and done is not None else None
+
+
 def _count(v):
     if isinstance(v, (list, tuple)):
         return len(v)
@@ -60,10 +114,15 @@ def gate_a(out):
 
     tick_p99_ms_at5   p99 of the per-frame tickMs (pollMs + actMs + senseMs + linkMs; a_pipe_2 adds scanStepMs) at
                       rate 5; < TICK_P99_MS, on at least MIN_FRAME_SHARE of the window's nominal frames.
-    scan15_ms_max     the largest per-tick scan cost over the 15-tile scans: per row, max(scanStepMaxMs, the last
-                      step of scanMsPerTick + scanEmitMs), the completing tick carrying the line's emit and flush;
-                      < SCAN15_MS. A row missing any of the three fails the gate (a pass-1 row, which has only the
-                      one-tick scanMs, fails it). scan15_latency_ms_max is the largest summed scanMs, ungraded.
+    scan15_ms_max     the largest per-tick scan cost over the 15-tile scans (scan_tick_ms); < SCAN15_MS. A parts
+                      row (a_pipe_3: partStepMs, partEmitMs, scanEmitMs) reads max over its ticks i of (partStepMs[i]
+                      + partEmitMs[i+1]), with scanEmitMs in place of partEmitMs[n+1]: part i is walked and emitted on
+                      tick i, and its emit's ms rides on part i+1 (the last part's on the next frame), so this is
+                      the worst single tick's walk plus the emit that tick performed. A pass-2 row reads max(
+                      scanStepMaxMs, the last step of scanMsPerTick + scanEmitMs), its one emit on the completing
+                      tick. A row missing any value fails the gate (a pass-1 row, which has only the one-tick scanMs,
+                      fails it). scan15_latency_ms_max is the largest latency, ungraded: a parts row's walk sum plus
+                      its emit sum, a pass-2 row's scanMs.
     cmd_motion_p90_ms p90 over every unvoided motion command of (first-motion frame wallMs - ack wallMs), both the
                       client's clock, an unpaired command +inf; < CMD_MOTION_P90_MS over at least MOTION_COMMANDS
                       unvoided commands. A row whose `voided` is set (a_pipe_2: the character's health fell or a
@@ -72,6 +131,8 @@ def gate_a(out):
     gaps              the link's seq gaps; 0.
     lua_errors        lua_error events on the link plus client console error hits; 0.
     hello             the hello line arrived with a mode of append or chunk.
+    tick_mean_ms_at60 ungraded: a_pipe_3's rate-60 window's sum(tickMs) / frames, the mean of quantised readings
+                      (readings.rate60.tick_mean_ms_at60; None when absent), reported beside the quantised p99 gate.
     A missing reading (no frames, no scans, no motion pairs, no gaps list, no error counts) fails its gate.
     """
     rd = out.get("readings") or {}
@@ -81,10 +142,11 @@ def gate_a(out):
     frames, expected = _num(r5.get("frames")), _num(r5.get("expected"))
     enough = frames is not None and bool(expected) and frames >= MIN_FRAME_SHARE * expected
     scans = ((rd.get("scans") or {}).get("15") or [])
-    scan_step = [scan_step_ms(s) for s in scans]
+    scan_step = [scan_tick_ms(s) for s in scans]
     scan_max = max(scan_step) if scan_step and None not in scan_step else None
-    scan_ms = [_num(s.get("scanMs")) for s in scans]
+    scan_ms = [scan_latency_ms(s) for s in scans]
     scan_latency = max(scan_ms) if scan_ms and None not in scan_ms else None
+    tick60 = _num((rd.get("rate60") or {}).get("tick_mean_ms_at60"))
     rows = [r for r in (rd.get("motion") or ()) if isinstance(r, dict)]
     voided = [str(r["voided"]) for r in rows if r.get("voided")]
     cm = cmd_motion_ms([r for r in rows if not r.get("voided")])
@@ -101,7 +163,7 @@ def gate_a(out):
         "lua_errors": errs == 0,
         "hello": mode in MODES,
     }
-    return {"mode": mode, "tick_p99_ms_at5": tick, "scan15_ms_max": scan_max, "scan15_latency_ms_max": scan_latency,
+    return {"mode": mode, "tick_p99_ms_at5": tick, "tick_mean_ms_at60": tick60, "scan15_ms_max": scan_max, "scan15_latency_ms_max": scan_latency,
             "cmd_motion_p90_ms": cm90,
             "tick_frames_at5": frames, "cmd_motion_n": len(cm), "cmd_motion_voided": len(voided),
             "cmd_motion_voided_reasons": voided,

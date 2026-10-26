@@ -3,6 +3,12 @@
 No clock is read: zombies age by the frame's own `wallMs`, so `replay(path)` over a log is
 deterministic and `to_json()` is byte-stable (sorted keys, tuple keys rendered "x,y,z").
 
+A scan arrives either whole (a `scan` line, Stage A passes 1-2) or in parts (`scanPart` lines, Stage A pass 3: one per
+tick, each carrying its scanId, part and parts). Parts are held by scanId and applied exactly as a `scan` line once every
+part 1..parts is held, so map, containers and buildings change once, at completion, never from a half scan. A part of a
+new scanId drops every other held, incomplete scan (the Lua replaces a running scan, and its parts stop): each counts in
+`dropped_scans`.
+
 HEURISTIC: FOOD_RX and WATER_RX guess from an item's fullType whether a container holds food or
 drink; a trailing word boundary keeps Base.Hammer from matching Ham. They are guesses, not game data; the spike grades on outcomes, not on the heuristic.
 """
@@ -44,8 +50,10 @@ class World:
         self.hello = None
         self.last_ack = None
         self.unknown_kinds = 0
+        self.dropped_scans = 0
+        self._parts = {}          # scanId -> {part number: line}, the scans still arriving
         self._handlers = {"hello": self._hello, "frame": self._frame, "event": self._event,
-                          "scan": self._scan, "ack": self._ack}
+                          "scan": self._scan, "scanPart": self._scan_part, "ack": self._ack}
 
     def apply(self, line):
         fn = self._handlers.get(line.get("kind"))
@@ -91,6 +99,27 @@ class World:
                 self.containers[(x, y, z, i)] = {"type": c.get("type"), "n": c.get("n", 0),
                                                  "items": _seq(c.get("items")), "looted": looted}
         self.missing = _seq(line.get("missing"))
+
+    def _scan_part(self, line):
+        sid = line.get("scanId")
+        for old in [k for k in self._parts if k != sid]:
+            del self._parts[old]
+            self.dropped_scans += 1
+        held = self._parts.setdefault(sid, {})
+        held[line.get("part")] = line
+        n = line.get("parts")
+        if not isinstance(n, int) or any(i not in held for i in range(1, n + 1)):
+            return
+        del self._parts[sid]
+        parts = [held[i] for i in range(1, n + 1)]
+        missing = []
+        for pl in parts:
+            for m in _seq(pl.get("missing")):
+                if m not in missing:
+                    missing.append(m)
+        whole = dict(parts[-1], kind="scan", squares=[q for pl in parts for q in _seq(pl.get("squares"))],
+                     missing=missing)
+        self._scan(whole)
 
     def _ack(self, line):
         self.last_ack = {k: line.get(k) for k in ("cmdSeq", "ok", "reason")}

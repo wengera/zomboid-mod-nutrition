@@ -109,3 +109,48 @@ def test_goal_event_settles_the_running_goal_by_goal_seq():
     w.apply(f)
     w.apply({"kind": "event", "seq": 11, "tick": 5, "wallMs": 3, "event": "goal_done", "goalSeq": 4})
     assert w.goal["state"] == "done"
+
+
+# ---- Stage A pass 3: the scan arrives in parts ------------------------------------------------------------------
+def part(sid, i, n, squares, missing=(), **k):
+    line = {"kind": "scanPart", "seq": 100 + i, "tick": i, "wallMs": i, "scanId": sid, "r": 1, "hour": 7, "part": i,
+            "parts": n, "squares": squares, "missing": list(missing), "stepMs": 1, "emitMs": 0 if i == 1 else 2}
+    if i == n:
+        line.update(done=True, scanMs=n, scanTicks=n, scanMsPerTick=[1] * n, scanStepMaxMs=1)
+    line.update(k)
+    return line
+
+
+def test_scan_parts_apply_once_at_completion_exactly_as_the_whole_line():
+    sqs = [sq(x, y, building=5 if x == 1 else None,
+              containers=[{"type": "fridge", "n": 1, "items": ["Base.Milk"]}] if (x, y) == (1, 1) else [])
+           for x in range(3) for y in range(3)]
+    w = World()
+    w.apply(part(1, 1, 3, sqs[:4], missing=["isSolid"]))
+    w.apply(part(1, 2, 3, sqs[4:8], missing=["isSolid", "getLightLevel"]))
+    assert w.map == {} and w.containers == {} and w.buildings == set()      # nothing lands before the last part
+    w.apply(part(1, 3, 3, sqs[8:], missing={}))                                 # a Lua empty table arrives as {}
+    whole = World()
+    whole.apply(scan(sqs))
+    assert w.map == whole.map and w.containers == whole.containers and w.buildings == whole.buildings == {5}
+    assert w.missing == ["isSolid", "getLightLevel"] and w.dropped_scans == 0 and w.unknown_kinds == 0
+    assert w.to_json()["map"] == whole.to_json()["map"]
+
+
+def test_a_superseded_incomplete_scan_is_dropped_and_counted():
+    w = World()
+    w.apply(part(1, 1, 3, [sq(0, 0)]))
+    w.apply(part(1, 2, 3, [sq(1, 0)]))
+    w.apply(part(2, 1, 1, [sq(5, 5)]))                     # a new scan replaced the first: its parts stop
+    assert w.dropped_scans == 1 and set(w.map) == {(5, 5, 0)}
+    w.apply(part(3, 1, 2, [sq(7, 7)]))
+    w.apply(part(4, 1, 1, [sq(8, 8)]))
+    assert w.dropped_scans == 2 and (7, 7, 0) not in w.map and (8, 8, 0) in w.map
+
+
+def test_a_single_part_scan_and_a_part_out_of_order_reassemble_in_part_order():
+    w = World()
+    w.apply(part(9, 2, 2, [sq(1, 0)], missing=["b"]))
+    assert w.map == {}                                     # done, but part 1 not yet seen: waits
+    w.apply(part(9, 1, 2, [sq(0, 0)], missing=["a"]))
+    assert set(w.map) == {(0, 0, 0), (1, 0, 0)} and w.missing == ["a", "b"] and w.dropped_scans == 0
