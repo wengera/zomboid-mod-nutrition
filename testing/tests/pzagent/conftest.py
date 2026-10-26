@@ -83,6 +83,22 @@ def make_cell(zombies=(), squares=None):
     return J(getZombieList=lambda s: zl, getGridSquare=lambda s, x, y, z: sq.get((int(x), int(y), int(z))))
 
 
+def make_queue():
+    q = J(queue=[], adds=[], cleared=0)
+
+    def add(a):
+        q.queue.append(a)
+        q.adds.append(a)
+
+    def clear(p=None):
+        q.queue[:] = []
+        q.cleared += 1
+    q.add, q.clear = add, clear
+    q.isPlayerDoingAction = lambda p=None: len(q.queue) > 0
+    q.getTimedActionQueue = lambda p=None: J(queue=q.queue)
+    return q
+
+
 @pytest.fixture
 def fs():
     return FakeFS()
@@ -102,4 +118,12 @@ def lua(fs):
     g.getCell = lambda: g._cell
     g._cell = make_cell()
     g.getGameTime = lambda: J(getHour=lambda s: 7, getMinutes=lambda s: 30, getWorldAgeHours=lambda s: 31.5)
+    q = make_queue()
+    g._queue = q
+    g.ISTimedActionQueue = J(add=lambda a: q.add(a), getTimedActionQueue=lambda p: q.getTimedActionQueue(p),
+                             isPlayerDoingAction=lambda p: q.isPlayerDoingAction(p), clear=lambda p: q.clear(p))
+    g.ISWalkToTimedAction = J(new=lambda cls, p, sq: J(Type="ISWalkToTimedAction", sq=sq))
+    handlers = []
+    g._handlers = handlers
+    g.Events = J(OnTick=J(Add=lambda f: handlers.append(f)))
     return L
