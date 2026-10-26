@@ -1,0 +1,74 @@
+import importlib.util, json, os
+
+# tests/agent is itself a package named "agent" (relative imports in the Lua tests), so it shadows
+# testing/agent; load link.py by path instead of "from agent.link import Link".
+_p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "agent", "link.py")
+_spec = importlib.util.spec_from_file_location("pzagent_link", _p)
+_mod = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_mod)
+Link = _mod.Link
+
+
+class FakeMod:
+    def __init__(self, d, chunk=False):
+        self.d, self.chunk, self.seq, self.n = d, chunk, 0, 0
+        os.makedirs(d, exist_ok=True)
+
+    def line(self, kind, **body):
+        self.seq += 1
+        body.update(kind=kind, seq=self.seq, tick=self.seq * 12, wallMs=1000 + self.seq)
+        s = json.dumps(body) + "\n"
+        if self.chunk:
+            self.n += 1
+            open(os.path.join(self.d, "state-%06d.log" % self.n), "w").write(s)
+        else:
+            open(os.path.join(self.d, "state.log"), "a").write(s)
+
+    def answer(self):
+        kv = dict(l.split("=", 1) for l in open(os.path.join(self.d, "cmd.txt")).read().splitlines())
+        self.line("ack", cmdSeq=int(kv["seq"]), ok=True, reason="")
+        return kv
+
+
+def test_tail_in_order_with_gaps_and_partial(tmp_path):
+    m = FakeMod(str(tmp_path)); lk = Link(str(tmp_path))
+    m.line("frame", x=1); m.line("frame", x=2)
+    assert [l["seq"] for l in lk.lines()] == [1, 2]
+    with open(tmp_path / "state.log", "a") as f: f.write('{"kind":"frame","seq":3')
+    assert lk.lines() == []
+    with open(tmp_path / "state.log", "a") as f: f.write(',"x":3}\n')
+    m.seq = 4; m.line("frame", x=5)                      # seq 5, a gap at 4
+    assert [l["seq"] for l in lk.lines()] == [3, 5]
+    assert lk.gaps == [(4, 5)]
+
+
+def test_chunk_files_read_in_number_order(tmp_path):
+    m = FakeMod(str(tmp_path), chunk=True); lk = Link(str(tmp_path))
+    for i in range(12): m.line("frame", x=i)
+    assert [l["x"] for l in lk.lines()] == list(range(12))
+
+
+def test_send_is_atomic_kv_and_ack_matches(tmp_path):
+    m = FakeMod(str(tmp_path)); lk = Link(str(tmp_path))
+    s = lk.send("goto", "3 4 run")
+    assert s == 1 and not os.path.exists(tmp_path / "cmd.txt.tmp")
+    assert m.answer() == {"seq": "1", "goal": "goto", "args": "3 4 run"}
+    lk.lines()
+    assert lk.ack_of(1)["ok"] is True and lk.ack_of(2) is None
+
+
+def test_await_goal_done_and_timeout(tmp_path):
+    m = FakeMod(str(tmp_path)); t = {"now": 0.0}
+    lk = Link(str(tmp_path), clock=lambda: t["now"])
+    s = lk.send("goto", "1 1")
+    m.line("frame", goal={"seq": s, "name": "goto", "state": "running", "detail": ""})
+    m.line("frame", goal={"seq": s, "name": "goto", "state": "done", "detail": "d=0.4"})
+    g = lk.await_goal(s, timeout_s=5)
+    assert g["state"] == "done"
+    s2 = lk.send("goto", "9 9")
+    def tick(): t["now"] += 1.0
+    try:
+        lk.await_goal(s2, timeout_s=3, poll_s=0, on_line=None, _sleep=lambda _: tick())
+        assert False
+    except TimeoutError as e:
+        assert "goal 2" in str(e)
