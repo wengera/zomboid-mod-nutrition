@@ -1,0 +1,3 @@
+name=PZAgent
+id=PZAgent
+description=Agent link: streams player and world state to files and runs goals sent by a planner. Test profiles only.
