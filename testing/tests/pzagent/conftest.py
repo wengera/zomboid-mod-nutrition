@@ -137,6 +137,7 @@ def lua(fs):
     valid = {"start": True}
     g._valid = valid
     g.ISOpenCloseDoor = J(new=lambda cls, p, item: J(Type="ISOpenCloseDoor", character=p, item=item))
+    g.ISOpenCloseWindow = J(new=lambda cls, p, obj: J(Type="ISOpenCloseWindow", character=p, object=obj))
     g.ISInventoryTransferAction = J(new=lambda cls, p, item, src, dest, time=None: J(
         Type="ISInventoryTransferAction", character=p, item=item, src=src, dest=dest))
     g.ISEatFoodAction = J(new=lambda cls, p, item, pct: J(Type="ISEatFoodAction", character=p, item=item, pct=pct,

@@ -15,7 +15,7 @@ def test_goto_queues_walk_and_reports_done_within_one_tile(lua):
     g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
     pos = {"x": 10.0}
     p = make_player(); p.getX = lambda s: pos["x"]
-    ok, reason, _ = lua.eval("PZA.act.start({seq=1, goal='goto', args='3 0'}, ...)", p)
+    ok, reason, _ = lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
     assert ok is True
     lua.eval("PZA.act.tick(...)", p)
     assert len(g._queue.queue) == 1 and lua.eval("PZA.act.status().state") == "running"
@@ -30,11 +30,11 @@ def test_goto_queues_walk_and_reports_done_within_one_tile(lua):
 def test_goto_no_square_fails_and_stuck_replans_then_fails(lua):
     load(lua)
     g = lua.globals(); g._cell = make_cell(squares={})
-    ok, reason, _ = lua.eval("PZA.act.start({seq=2, goal='goto', args='3 0'})")
+    ok, reason, _ = lua.eval("PZA.act.start({seq=2, goal='goto', args='13 20'})")
     lua.eval("PZA.act.tick(...)", make_player())
     assert lua.eval("PZA.act.status()")["detail"] == "no square"
     g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
-    lua.eval("PZA.act.start({seq=3, goal='goto', args='3 0'})")
+    lua.eval("PZA.act.start({seq=3, goal='goto', args='13 20'})")
     p = make_player()
     for _ in range(4 * 90 + 5):
         lua.eval("PZA.act.tick(...)", p)
@@ -47,7 +47,7 @@ def test_unknown_goal_and_stop(lua):
     load(lua)
     assert lua.eval("PZA.act.start({seq=4, goal='dance', args=''})") == (False, "unknown goal")
     g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
-    lua.eval("PZA.act.start({seq=5, goal='goto', args='3 0'}, ...)", make_player()); lua.eval("PZA.act.tick(...)", make_player())
+    lua.eval("PZA.act.start({seq=5, goal='goto', args='13 20'}, ...)", make_player()); lua.eval("PZA.act.tick(...)", make_player())
     lua.eval("PZA.act.start({seq=6, goal='stop', args=''}, ...)", make_player()); lua.eval("PZA.act.tick(...)", make_player())
     assert g._queue.cleared == 2 and lua.eval("PZA.act.status()")["state"] == "done"  # supersede clear + stop's own
 
@@ -82,10 +82,10 @@ def test_new_goal_clears_running_walk_and_reports_superseded(lua):
     load(lua)
     g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
     p = make_player()
-    lua.eval("PZA.act.start({seq=1, goal='goto', args='3 0'}, ...)", p)
+    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
     lua.eval("PZA.act.tick(...)", p)
     assert len(g._queue.adds) == 1
-    ok, reason, old = lua.eval("PZA.act.start({seq=2, goal='goto', args='3 0'}, ...)", p)
+    ok, reason, old = lua.eval("PZA.act.start({seq=2, goal='goto', args='13 20'}, ...)", p)
     assert ok is True and old["state"] == "failed" and old["detail"] == "superseded" and old["seq"] == 1
     lua.eval("PZA.act.tick(...)", p)
     assert g._queue.cleared == 1 and len(g._queue.adds) == 2
@@ -96,9 +96,9 @@ def test_main_reports_superseded_event_and_scan_lands_with_its_ack(lua, fs):
     g = lua.globals(); g.getPlayer = lambda: make_player()
     g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
     lua.execute("PZA.main.init('admin')"); lua.execute("PZA.main.ready = true")
-    fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=goto\nargs=3 0\n"
+    fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=goto\nargs=13 20\n"
     g._handlers[0]()
-    fs.files["pzagent/admin/cmd.txt"] = "seq=2\ngoal=goto\nargs=3 0\n"
+    fs.files["pzagent/admin/cmd.txt"] = "seq=2\ngoal=goto\nargs=13 20\n"
     g._handlers[0]()
     log = fs.files["pzagent/admin/state.log"]
     assert '"reason":"superseded"' in log
@@ -347,3 +347,66 @@ def test_every_failed_detail_is_in_the_header_reasons_line():
     for x in ("no door", "locked", "not adjacent", "no container", "not loaded", "empty", "no match",
               "none held", "interrupted", "not valid"):
         assert x in used
+
+
+# ---- Task 9 fix 0: world coordinates, windows, loot timeout ----------------------------------
+
+def test_goto_target_is_world_coordinates_not_an_offset(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20), (63, 70, 0): sq(63, 70)})
+    p = make_player(x=50.0, y=50.0)
+    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
+    tick(lua, p)
+    walk = g._queue.adds[0].sq
+    assert (walk.getX(walk), walk.getY(walk)) == (13, 20)
+
+
+def test_open_window_through_iso_open_close_window(lua):
+    load(lua)
+    g = lua.globals()
+    win = make_door(cls="IsoWindow")
+    g._cell = make_cell(squares={(11, 20, 0): osq(11, 20, [win])})
+    p = make_player()
+    lua.eval("PZA.act.start({seq=1, goal='open', args='11 20'})")
+    tick(lua, p)
+    assert [a.Type for a in g._queue.adds] == ["ISOpenCloseWindow"] and g._queue.adds[0].object is win
+    win.st["open"] = True
+    st = tick(lua, p)
+    assert st["state"] == "done" and st["detail"] == "open"
+    thump = make_door(cls="IsoThumpable"); thump.isWindow = lambda s: True
+    g._cell = make_cell(squares={(11, 20, 0): osq(11, 20, [thump])})
+    lua.eval("PZA.act.start({seq=2, goal='open', args='11 20'})")
+    tick(lua, p)
+    assert g._queue.adds[-1].Type == "ISOpenCloseWindow"
+    g._cell = make_cell(squares={(11, 20, 0): osq(11, 20, [make_door(cls="IsoWindow", locked=True)])})
+    lua.eval("PZA.act.start({seq=3, goal='open', args='11 20'})")
+    assert tick(lua, p)["detail"] == "locked"
+
+
+def test_open_prefers_the_door_when_a_square_holds_both(lua):
+    load(lua)
+    g = lua.globals()
+    door = make_door()
+    g._cell = make_cell(squares={(11, 20, 0): osq(11, 20, [make_door(cls="IsoWindow"), door])})
+    lua.eval("PZA.act.start({seq=1, goal='open', args='11 20'})")
+    tick(lua, make_player())
+    assert g._queue.adds[-1].Type == "ISOpenCloseDoor" and g._queue.adds[-1].item is door
+
+
+def test_loot_timeout_fails_interrupted_when_nothing_moved_else_reports_moved(lua):
+    load(lua)
+    g, box, held, p = loot_world(lua, [item("Base.Bread", "Food")], filt="food")
+    tick(lua, p)
+    g._clock["ms"] += 10000 + 3000
+    assert tick(lua, p)["state"] == "running"        # the budget is exceeded only past it
+    g._clock["ms"] += 1
+    st = tick(lua, p)
+    assert st["state"] == "failed" and st["detail"] == "interrupted"
+    bread, apple = item("Base.Bread", "Food"), item("Base.Apple", "Food")
+    g, box, held, p = loot_world(lua, [bread, apple], filt="food")
+    tick(lua, p)
+    held.append(bread)
+    assert tick(lua, p)["state"] == "running"
+    g._clock["ms"] += 10000 + 2 * 3000 + 1
+    st = tick(lua, p)
+    assert st["state"] == "done" and st["detail"] == "moved=1"

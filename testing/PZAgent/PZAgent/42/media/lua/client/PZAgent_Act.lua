@@ -1,6 +1,10 @@
 -- PZAgent_Act.lua — the goals (spec § 2.3). One goal at a time; each is a per-tick state machine that
 -- sets state done|failed with a detail from its closed set, the one line below (agent/reasons.py parses it). The walk is the game's own timed action,
 -- queued the way the harness's player.walk does [#2082: setRunning(true) does not make a walk run].
+-- args: goto x y [run]; open x y; loot x y [food|water|weapon|bandage|all]; eat <fullType>; drink. Every x y is a
+-- world square coordinate, as a scan reports it (an offset goes stale while the player moves).
+-- details: goto no square|no path|stuck; open no square|no door|locked|not adjacent; loot not loaded|no container|
+-- not adjacent|empty|no match|interrupted; eat, drink none held|not valid|interrupted; any running goal superseded.
 -- reasons: bad args|no square|no path|stuck|superseded|no door|locked|not adjacent|no container|not loaded|empty|no match|none held|interrupted|not valid
 PZA.act = PZA.act or {}
 local A = PZA.act
@@ -64,13 +68,13 @@ end
 
 A.goals["goto"] = {
     start = function(argv)
-        local dx, dy = tonumber(argv[1]), tonumber(argv[2])
-        if dx == nil or dy == nil then return false, "bad args" end
-        return true, "", { dx = dx, dy = dy, run = argv[3] == "run", replans = 0, lastX = nil, lastY = nil, still = 0 }
+        local x, y = tonumber(argv[1]), tonumber(argv[2])
+        if x == nil or y == nil then return false, "bad args" end
+        return true, "", { x = x, y = y, run = argv[3] == "run", replans = 0, lastX = nil, lastY = nil, still = 0 }
     end,
     tick = function(p, g)
         if g.tx == nil then
-            g.tx, g.ty = p:getX() + g.dx, p:getY() + g.dy
+            g.tx, g.ty = g.x, g.y
             local cell = getCell and getCell() or nil
             local _, sq = PZA.call(cell, "getGridSquare", g.tx, g.ty, p:getZ())
             if sq == nil then g.state, g.detail = "failed", "no square"; return end
@@ -103,10 +107,10 @@ A.goals["stop"] = {
 }
 
 -- ---- open, loot, eat, drink --------------------------------------------------------------------
--- open and loot take the target square's world x y (a scan's coordinates, not goto's offsets), walk
--- through a goto sub-state to the non-solid square at Chebyshev distance 1 nearest the player, then
--- queue the vanilla action. The constructors, read off the 42.21 install:
--- ISOpenCloseDoor:new(character, item); ISInventoryTransferAction:new(character, item, srcContainer,
+-- open and loot take the target square's world x y, walk through a goto sub-state to the non-solid
+-- square at Chebyshev distance 1 nearest the player, then queue the vanilla action. The constructors,
+-- read off the 42.21 install: ISOpenCloseDoor:new(character, item); ISOpenCloseWindow:new(character,
+-- object); ISInventoryTransferAction:new(character, item, srcContainer,
 -- destContainer, time); ISEatFoodAction:new(character, item, percentage);
 -- ISDrinkFluidAction:new(character, item, percentage). Vanilla Lua is reached under pcall.
 A.OPEN_MS = 5000          -- a queued open that leaves the door shut this long reads as locked
@@ -136,16 +140,22 @@ local function objectsOn(sq)
     return out
 end
 
-local function doorOn(sq)
+-- the square's door or window and its kind, door first (IsoThumpable answers both through isDoor/isWindow)
+local function openableOn(sq)
     local objs = objectsOn(sq)
+    local win = nil
     for _, o in ipairs(objs) do
-        if isA(o, "IsoDoor") then return o end
+        if isA(o, "IsoDoor") then return o, "door" end
+        if isA(o, "IsoWindow") and win == nil then win = o end
         if isA(o, "IsoThumpable") then
             local _, d = PZA.call(o, "isDoor")
-            if d == true then return o end
+            if d == true then return o, "door" end
+            local _, w = PZA.call(o, "isWindow")
+            if w == true and win == nil then win = o end
         end
     end
-    return nil
+    if win ~= nil then return win, "window" end
+    return nil, nil
 end
 
 local function containersOn(sq)
@@ -195,8 +205,8 @@ local function adjacentTo(p, x, y, z)
 end
 
 -- a goto state aimed at square (x, y)'s centre, set up the way A.start sets a goal
-local function subGoto(p, x, y)
-    local _, _, st = A.goals["goto"].start({ x + 0.5 - p:getX(), y + 0.5 - p:getY() })
+local function subGoto(x, y)
+    local _, _, st = A.goals["goto"].start({ x + 0.5, y + 0.5 })
     st.seq, st.name, st.state, st.detail, st.argv, st.ticks = 0, "goto", "running", "", {}, 0
     return st
 end
@@ -208,7 +218,7 @@ local function approach(p, g)
         if cheb(p, g.x, g.y) <= 1 then return "here" end
         local ax, ay = adjacentTo(p, g.x, g.y, p:getZ())
         if ax == nil then return "fail" end
-        g.sub = subGoto(p, ax, ay)
+        g.sub = subGoto(ax, ay)
     end
     if g.sub.state == "running" then
         g.sub.ticks = g.sub.ticks + 1
@@ -229,7 +239,7 @@ A.goals["open"] = {
         if g.door == nil then
             local sq = squareAt(g.x, g.y, p:getZ())
             if sq == nil then g.state, g.detail = "failed", "no square"; return end
-            g.door = doorOn(sq)
+            g.door, g.kind = openableOn(sq)
             if g.door == nil then g.state, g.detail = "failed", "no door"; return end
         end
         local _, isOpen = PZA.call(g.door, "IsOpen")
@@ -241,7 +251,8 @@ A.goals["open"] = {
             local at = approach(p, g)
             if at == "fail" then g.state, g.detail = "failed", "not adjacent"; return end
             if at == "walk" then return end
-            local ran = pcall(function() ISTimedActionQueue.add(ISOpenCloseDoor:new(p, g.door)) end)
+            local ctor = g.kind == "window" and ISOpenCloseWindow or ISOpenCloseDoor
+            local ran = pcall(function() ISTimedActionQueue.add(ctor:new(p, g.door)) end)
             if not ran then g.state, g.detail = "failed", "no door"; return end
             g.queuedAt = PZA.now()
             return
@@ -327,7 +338,8 @@ A.goals["loot"] = {
         end
         local moved = math.max(0, (invCount(p)) - g.before)
         local late = PZA.now() - g.queuedAt > A.LOOT_MS + A.LOOT_ITEM_MS * g.want
-        if moved >= g.want or late then g.state, g.detail = "done", "moved=" .. tostring(moved) end
+        if moved >= g.want or (late and moved > 0) then g.state, g.detail = "done", "moved=" .. tostring(moved); return end
+        if late then g.state, g.detail = "failed", "interrupted" end
     end,
 }
 
