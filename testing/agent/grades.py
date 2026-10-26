@@ -92,27 +92,47 @@ SEQUENCES = 5              # b_actions' repetitions
 COMPLETE_MIN = 4           # spec § 4.2: sequences completed, at least this many of SEQUENCES
 
 
+def _eat_seen(se):
+    """A row's server_eat saw the eat: some after-reading's hunger below the before's, or its calories above."""
+    if not isinstance(se, dict) or not isinstance(se.get("before"), dict):
+        return None
+    b = se["before"]
+    hb, cb = _num(b.get("hunger")), _num(b.get("calories"))
+    for a in se.get("after") or ():
+        a = a if isinstance(a, dict) else {}
+        ha, ca = _num(a.get("hunger")), _num(a.get("calories"))
+        if (hb is not None and ha is not None and ha < hb) or (cb is not None and ca is not None and ca > cb):
+            return True
+    return False
+
+
 def gate_b(out):
     """Stage B's go/no-go (spec § 4.2) from b_actions' artifact dict (its rows under readings.reps).
 
     completed            repetitions whose `completed` is True (every step done); >= COMPLETE_MIN.
     reasons_in_set       every step whose state is "failed" (a Lua-reported goal failure) carries a detail in
                          agent.reasons.REASONS; a refused, timed-out or skipped step has no Lua detail and counts against
-                         `completed` only. No repetition at all fails it.
-    eats_seen_by_server  repetitions whose server_hunger.moved is True (the server's stats.all Hunger fell below its
-                         pre-eat reading within the driver's poll window); == SEQUENCES.
-    A missing reading (no readings.reps, a row without `completed` or `server_hunger`) fails its gate.
+                         `completed` only.
+    eats_seen_by_server  repetitions whose server_eat shows the eat: an after-reading with the server's hunger below the
+                         pre-eat reading or its calories above it (re-derived here, never the driver's `moved`);
+                         == SEQUENCES.
+    A missing reading fails its gate: no readings.reps or an empty one fails all three; a row that is not a dict fails
+    all three; a row without `completed` fails `completed`; a row without a readable server_eat fails the eats gate.
+    `sequences` reports SEQUENCES (the target); `rows` the rows the artifact holds.
     """
     reps = (out.get("readings") or {}).get("reps")
     reps = reps if isinstance(reps, list) else None
-    if reps:
-        completed = sum(1 for r in reps if r.get("completed") is True)
-        failed = [s for r in reps for s in (r.get("steps") or ()) if s.get("state") == "failed"]
+    rows_ok = bool(reps) and all(isinstance(r, dict) for r in reps)
+    if rows_ok:
+        has_completed = all("completed" in r for r in reps)
+        completed = sum(1 for r in reps if r.get("completed") is True) if has_completed else None
+        failed = [s for r in reps for s in (r.get("steps") or ()) if isinstance(s, dict) and s.get("state") == "failed"]
         bad = sorted({str(s.get("detail")) for s in failed if s.get("detail") not in REASONS})
         in_set = not bad
-        eats = sum(1 for r in reps if (r.get("server_hunger") or {}).get("moved") is True)
+        seen = [_eat_seen(r.get("server_eat")) for r in reps]
+        eats = None if None in seen else sum(1 for v in seen if v)
         fail_names = sorted({"%s:%s" % (s.get("goal"), s.get("detail")) for r in reps for s in (r.get("steps") or ())
-                             if s.get("state") != "done"})
+                             if isinstance(s, dict) and s.get("state") != "done"})
     else:
         completed, in_set, eats, bad, fail_names = None, False, None, [], []
     passed = {
@@ -120,6 +140,6 @@ def gate_b(out):
         "reasons_in_set": in_set,
         "eats_seen_by_server": eats == SEQUENCES,
     }
-    return {"sequences": len(reps) if reps is not None else None, "completed": completed, "reasons_in_set": in_set,
-            "reasons_outside_set": bad, "eats_seen_by_server": eats, "failing_steps": fail_names, "pass": passed,
-            "verdict": "GO" if all(passed.values()) else "NO-GO"}
+    return {"sequences": SEQUENCES, "rows": len(reps) if reps is not None else None, "completed": completed,
+            "reasons_in_set": in_set, "reasons_outside_set": bad, "eats_seen_by_server": eats,
+            "failing_steps": fail_names, "pass": passed, "verdict": "GO" if all(passed.values()) else "NO-GO"}

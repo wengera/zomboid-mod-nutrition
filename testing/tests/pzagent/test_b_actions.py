@@ -9,6 +9,7 @@ solid, containers, floor, door?}], missing, scanMs, hour} with an empty table re
 import json
 import math
 import os
+import copy
 import re
 import types
 
@@ -44,7 +45,8 @@ def test_the_constants_name_the_drivers_own_file_and_profile():
     assert D.PROFILE == "testing/profiles/agent-nozombies.toml" and os.path.isfile(os.path.join(REPO, D.PROFILE))
     assert (D.BUDGET_S, D.USER, D.MIN_FREE_GB, D.SEQUENCES) == (560.0, "admin", 12.0, G.SEQUENCES)
     assert D.GOAL_TIMEOUT_S == 60.0 and D.EAT_POLL_S == 5.0 and D.EAT_POLL_MAX_S == 60.0
-    assert dict(D.SPAWN) == {"Base.WaterBottleFull": 1, "Base.Apple": D.SEQUENCES}
+    assert dict(D.SPAWN) == {"Base.WaterBottle": D.SEQUENCES, "Base.Apple": D.SEQUENCES}
+    assert D.EAT_HUNGER == 0.3 and not hasattr(D, "WATER_PREFIX_RX") and not hasattr(D, "water_like")
 
 
 def act_src():
@@ -65,16 +67,20 @@ def test_every_failed_detail_the_act_file_sets_is_in_the_set():
 
 
 # ================================================================ gate_b
+SEEN = {"before": {"hunger": 0.3, "calories": 1000.0}, "after": [{"hunger": 0.3, "calories": 1000.0},
+                                                                  {"hunger": 0.15, "calories": 1095.0}]}
+
+
 def passing_out():
-    rep = {"completed": True, "steps": [{"goal": "eat", "state": "done", "detail": "consumed"}],
-           "server_hunger": {"moved": True}}
-    return {"readings": {"reps": [dict(rep) for _ in range(5)]}}
+    rep = {"completed": True, "steps": [{"goal": "eat", "state": "done", "detail": "consumed"}], "server_eat": SEEN}
+    return {"readings": {"reps": [copy.deepcopy(rep) for _ in range(5)]}}
 
 
 def test_gate_b_passes_a_passing_set():
     g = G.gate_b(passing_out())
     assert g["verdict"] == "GO" and all(g["pass"].values()), g
-    assert (g["sequences"], g["completed"], g["reasons_in_set"], g["eats_seen_by_server"]) == (5, 5, True, 5)
+    assert (g["sequences"], g["rows"], g["completed"], g["reasons_in_set"], g["eats_seen_by_server"]) == (
+        5, 5, 5, True, 5)
 
 
 def test_gate_b_four_of_five_completed_passes_three_does_not():
@@ -97,7 +103,8 @@ def _cross(name):
     elif name == "reasons_in_set":
         reps[0]["steps"] = [{"goal": "open", "state": "failed", "detail": "door jammed"}]
     elif name == "eats_seen_by_server":
-        reps[3]["server_hunger"] = {"moved": False}
+        reps[3]["server_eat"]["after"] = [{"hunger": 0.3, "calories": 1000.0}] * 12
+        reps[3]["server_eat"]["moved"] = True                  # the driver's flag is never trusted: re-derived
     return o
 
 
@@ -108,6 +115,18 @@ def test_each_gate_crossed_alone_flips_it_and_the_verdict(name):
     assert [k for k, v in g["pass"].items() if not v] == [name]
 
 
+@pytest.mark.parametrize("after,seen", [({"hunger": 0.0, "calories": 1095.0}, True),     # hunger clamped, kcal rose
+                                        ({"hunger": 0.1, "calories": 1000.0}, True),     # hunger fell alone
+                                        ({"hunger": 0.0, "calories": 1000.0}, False),
+                                        ({"hunger": None, "calories": None}, False)])
+def test_an_eat_is_seen_by_hunger_falling_or_calories_rising(after, seen):
+    se = {"before": {"hunger": 0.0 if after["hunger"] == 0.0 else 0.3, "calories": 1000.0}, "after": [after]}
+    o = passing_out()
+    o["readings"]["reps"][0]["server_eat"] = se
+    assert G.gate_b(o)["eats_seen_by_server"] == (5 if seen else 4)
+    assert D.eat_seen(se["before"], after) is seen
+
+
 def test_a_refused_or_timed_out_step_counts_against_completed_only():
     o = passing_out()
     o["readings"]["reps"][0]["steps"].append({"goal": "eat", "state": "timeout", "detail": "goal 9 not finished"})
@@ -115,9 +134,14 @@ def test_a_refused_or_timed_out_step_counts_against_completed_only():
     assert G.gate_b(o)["reasons_in_set"] is True
 
 
-@pytest.mark.parametrize("drop", ["readings", "reps", "reps_empty", "completed_key", "server_hunger"])
+ALL3 = {"completed", "reasons_in_set", "eats_seen_by_server"}
+
+
+@pytest.mark.parametrize("drop", ["readings", "reps", "reps_empty", "completed_key", "server_eat", "before",
+                                  "row_not_dict"])
 def test_a_missing_reading_fails_its_gate(drop):
     o = passing_out()
+    reps = o.get("readings", {}).get("reps")
     if drop == "readings":
         del o["readings"]
     elif drop == "reps":
@@ -125,17 +149,27 @@ def test_a_missing_reading_fails_its_gate(drop):
     elif drop == "reps_empty":
         o["readings"]["reps"] = []
     elif drop == "completed_key":
-        for r in o["readings"]["reps"][:2]:
-            del r["completed"]
-    elif drop == "server_hunger":
-        del o["readings"]["reps"][0]["server_hunger"]
+        del reps[0]["completed"]                               # one row: four completed would otherwise pass
+    elif drop == "server_eat":
+        del reps[0]["server_eat"]
+    elif drop == "before":
+        reps[0]["server_eat"] = {"after": SEEN["after"]}
+    elif drop == "row_not_dict":
+        reps[2] = "rep 3"
     g = G.gate_b(o)
-    assert g["verdict"] == "NO-GO"
-    want = {"readings": {"completed", "reasons_in_set", "eats_seen_by_server"},
-            "reps": {"completed", "reasons_in_set", "eats_seen_by_server"},
-            "reps_empty": {"completed", "reasons_in_set", "eats_seen_by_server"},
-            "completed_key": {"completed"}, "server_hunger": {"eats_seen_by_server"}}[drop]
+    assert g["verdict"] == "NO-GO" and g["sequences"] == G.SEQUENCES
+    want = {"readings": ALL3, "reps": ALL3, "reps_empty": ALL3, "row_not_dict": ALL3, "completed_key": {"completed"},
+            "server_eat": {"eats_seen_by_server"}, "before": {"eats_seen_by_server"}}[drop]
     assert {k for k, v in g["pass"].items() if not v} == want
+    if drop in ("completed_key", "row_not_dict"):
+        assert g["completed"] is None
+
+
+def test_sequences_reports_the_target_and_rows_the_artifact():
+    o = passing_out()
+    o["readings"]["reps"] = o["readings"]["reps"][:3]
+    g = G.gate_b(o)
+    assert (g["sequences"], g["rows"], g["verdict"]) == (5, 3, "NO-GO")
 
 
 def test_b_grade_exits_on_the_verdict_and_writes_strict_json(tmp_path, capsys):
@@ -196,16 +230,27 @@ def test_door_between_and_beside():
     assert D.beside(scan, 0.5, 0.5, pick) is None                                 # x = 6 lies outside the scan
 
 
-def test_eat_choice_skips_drinks_and_falls_back():
-    assert D.eat_choice(["Base.WaterBottleFull", "Base.Pop", "Base.Bread"]) == ("Base.Bread", "looted")
-    assert D.eat_choice(["Base.Hammer", "Base.WaterBottleFull"]) == ("Base.Apple", "fallback")
+def test_eat_choice_takes_only_edible_food_ids():
+    assert D.eat_choice(["Base.WaterBottle", "Base.Pop", "Base.Wine", "Base.Whiskey", "Base.Bread"]) == (
+        "Base.Bread", "looted")
+    assert D.eat_choice(["Base.Watermelon", "Base.TinnedBeans", "Base.Hammer"]) == ("Base.Apple", "fallback")
     assert D.eat_choice([]) == ("Base.Apple", "fallback")
+    ids = D.food_ids()
+    assert "Base.Apple" in ids and "Base.Wine" not in ids and "Base.WaterBottle" not in ids
+    assert "Base.WaterBottleFull" not in ids
 
 
-def test_server_hunger_reads_the_stats_all_reply():
-    assert D.server_hunger({"ack": {"stats": {"Hunger": 0.25}}}) == 0.25
-    assert D.server_hunger({"ack": {"stats": {}}}) is None and D.server_hunger({"ack": "no online player"}) is None
-    assert D.server_hunger({"ack": {"stats": {"Hunger": True}}}) is None and D.server_hunger(None) is None
+def test_the_water_bottle_is_water_like_and_names_that_merely_start_with_water_are_not():
+    assert D.WATER_RX.search("Base.WaterBottle")
+    assert D.tier(sq(0, 0, containers=[{"items": ["Base.WaterBottle"]}])) == 2
+    assert D.tier(sq(0, 0, containers=[{"items": ["Base.WaterPurificationTablets"]}])) == 1
+
+
+def test_body_reading_reads_the_nutrition_get_reply():
+    assert D.body_reading({"ack": {"hunger": 0.25, "calories": 1200.5}, "wallMs": 7}) == {
+        "hunger": 0.25, "calories": 1200.5, "wallMs": 7}
+    assert D.body_reading({"ack": "no online player admin"}) == {"hunger": None, "calories": None, "wallMs": None}
+    assert D.body_reading({"ack": {"hunger": True}})["hunger"] is None and D.body_reading(None)["calories"] is None
 
 
 # ================================================================ pre-boot, on the real profile and a real run layout
@@ -286,30 +331,37 @@ class Clock:
 
 
 SHUT = {"open": False, "locked": False, "barricaded": False}
-FRIDGE = [{"type": "fridge", "n": 2, "items": ["Base.Apple", "Base.WaterBottleFull"]}]
+FRIDGE = [{"type": "fridge", "n": 2, "items": ["Base.Apple", "Base.WaterBottle"]}]
+APPLE_TIMER = 2080.0          # healthFromFoodTimer an apple adds (FOOD_EATEN level 2)
+REFUSE_TIMER = 3200.0         # FOOD_EATEN level 3: the eat and the drink refuse to start
 
 
 class FakeMod:
-    """PZAgent's Lua for Stage B, one tick at a time on `clock`. The spawn is (100.5, 200.5); a scan shows a line of
-    shut doors at x = 102 and five fridges at (105, 200..204); every goal ends after GOAL_TICKS. `fail` maps a step
-    label (goto, open, loot food, loot water, eat, drink) to the detail it fails with; `blind` keeps the server's
-    Hunger still; `no_containers` scans no container."""
+    """PZAgent's Lua and the server's body for Stage B, one tick at a time on `clock`. The spawn is (100.5, 200.5); a
+    scan shows a line of shut doors at x = 102 and five fridges at (105, 200..204); every goal ends after GOAL_TICKS.
+    The body: Hunger starts low (0.05) and rises only while the food timer is 0; an apple lowers Hunger by 0.15 to a
+    floor of 0, adds 95 calories and APPLE_TIMER; at a timer of REFUSE_TIMER or more the eat and the drink fail "not
+    valid". `fail` maps a step label (goto, open, loot food, loot water, eat, drink) to the detail it fails with;
+    `blind` keeps the server's reading still; `hunger_blind` keeps only its hunger still; `no_containers` scans none."""
     TPS = 60
     GOAL_TICKS = 20
     FRAME_EVERY = 12
+    RISE = 0.00005
 
-    def __init__(self, d, clock, fail=None, blind=False, no_containers=False):
+    def __init__(self, d, clock, fail=None, blind=False, hunger_blind=False, no_containers=False):
         os.makedirs(d, exist_ok=True)
         self.d, self.clock = d, clock
-        self.fail, self.blind, self.no_containers = dict(fail or {}), blind, no_containers
+        self.fail, self.blind, self.hunger_blind, self.no_containers = dict(fail or {}), blind, hunger_blind, \
+            no_containers
         self.seq = self.tick = self.last_cmd = 0
         self.buf = []
         self.x, self.y = 100.5, 200.5
-        self.hunger, self.thirst = 0.3, 0.2
+        self.hunger, self.thirst, self.calories, self.timer = 0.05, 0.2, 1000.0, 0.0
         self.inv, self.prev_items = [], 0
         self.goal = None
         self.ready = False
         self.cmds = []
+        self.log = []                 # ("cmd", label) and ("write", cmd) in the order they reached the game
 
     def emit(self, kind, body):
         self.seq += 1
@@ -357,6 +409,9 @@ class FakeMod:
             g["state"], g["detail"] = "failed", self.fail[lab]
             return
         a = g["argv"]
+        if g["name"] in ("eat", "drink") and self.timer >= REFUSE_TIMER:
+            g["state"], g["detail"] = "failed", "not valid"
+            return
         if g["name"] == "goto":
             self.x, self.y = float(a[0]), float(a[1])
             g["detail"] = "d=0.1"
@@ -366,14 +421,16 @@ class FakeMod:
             self.inv.append("Base.Apple")
             g["detail"] = "moved=1"
         elif lab == "loot water":
-            self.inv.append("Base.WaterBottleFull")
+            self.inv.append("Base.WaterBottle")
             g["detail"] = "moved=1"
         elif g["name"] == "eat":
             if a[0] not in self.inv:
                 g["state"], g["detail"] = "failed", "none held"
                 return
             self.inv.remove(a[0])
-            self.hunger = max(0.0, self.hunger - 0.05)
+            self.hunger = max(0.0, self.hunger - 0.15)
+            self.calories += 95.0
+            self.timer += APPLE_TIMER
             g["detail"] = "consumed"
         elif g["name"] == "drink":
             self.thirst = max(0.0, self.thirst - 0.1)
@@ -391,10 +448,13 @@ class FakeMod:
     def step(self):
         self.clock.t += 1.0 / self.TPS
         self.tick += 1
+        if self.timer <= 0:
+            self.hunger = min(1.0, self.hunger + self.RISE)
         cmd = self.poll()
         if cmd:
             self.cmds.append(cmd)
             a = cmd["args"].split()
+            self.log.append(("cmd", self.label(cmd["goal"], a)))
             if cmd["goal"] == "scan":
                 self.scan(int(a[0]))
             else:
@@ -432,33 +492,65 @@ class FakeMod:
         for _ in range(max(1, round(dt * self.TPS))):
             self.step()
 
+    # ---- the server's side of the bus (the real reply shapes: PZTestKit_Server.lua's @reply lines)
+    def snapshot(self):
+        return {"calories": self.calories, "carbs": 100.0, "lipids": 50.0, "proteins": 60.0, "weight": 80.0,
+                "hunger": self.hunger, "thirst": self.thirst, "statsApi": True, "incWeight": False,
+                "incWeightLot": False, "decWeight": False}
 
-def run_actions(tmp_path, budget_s=1e9, **flags):
+    def write(self, xs, tag, cmd, args):
+        self.sleep(0.05)
+        self.log.append(("write", cmd))
+        a = args.split()
+        if cmd == "foodtimer.set":
+            before = self.timer
+            self.timer = float(a[1])
+            return {"requested": float(a[1]), "before": before, "set": True, "after": self.timer}
+        if cmd == "stats.set" and a[1] == "hunger":
+            self.hunger = float(a[2])
+            snap = self.snapshot()
+            snap["applied"] = {"hunger": "stats"}
+            return snap
+        return "usage"
+
+    def read(self, xs, user):
+        self.sleep(0.05)
+        snap = self.snapshot()
+        if self.blind:
+            snap["hunger"], snap["calories"] = 0.3, 1000.0
+        elif self.hunger_blind:
+            snap["hunger"] = 0.3
+        return {"ack": snap, "wallMs": self.clock.t * 1000}
+
+
+def run_actions(tmp_path, budget_s=1e9, no_reset=False, **flags):
     clock = Clock()
     sd = str(tmp_path / "clients" / "admin" / "Lua" / "pzagent" / "admin")
     mod = FakeMod(sd, clock, **flags)
     out = D.new_out()
-    spawns, stats = [], []
+    spawns, reads = [], []
 
     def spawn(ft, n, tag):
         spawns.append((ft, n, tag))
         mod.inv.extend([ft] * n)
         return {"type": ft, "n": n, "confirmed": True}
 
-    def bus_stats(xs, user):
-        stats.append(user)
-        mod.sleep(0.05)
-        h = 0.3 if mod.blind else mod.hunger
-        return {"ack": {"side": "server", "user": user, "stats": {"Hunger": h, "Thirst": mod.thirst}, "missing": {}},
-                "wallMs": clock.t * 1000}
+    def body(xs, user):
+        reads.append(user)
+        return mod.read(xs, user)
+
+    def write(xs, tag, cmd, args):
+        return "skipped" if no_reset else mod.write(xs, tag, cmd, args)
 
     xs = X.Xs(out, node=lambda side: side, clock=clock.now, sleep=mod.sleep, budget_s=budget_s, user="admin")
     xs.path = str(tmp_path / D.ARTIFACT)
-    act = D.Actions(xs, Link(sd, clock=clock.now), clock=clock.now, sleep=mod.sleep, bus_stats=bus_stats,
+    act = D.Actions(xs, Link(sd, clock=clock.now), clock=clock.now, sleep=mod.sleep, body=body, write=write,
                     spawn=spawn)
+    if no_reset:
+        act.eat_reset = lambda row: None                     # today's driver before fix 1: no reset before the eat
     act.run()
     out["client_lua_errors"] = 0
-    return out, mod, spawns, stats
+    return out, mod, spawns, reads
 
 
 def labels(cmds):
@@ -470,12 +562,12 @@ def labels(cmds):
 
 
 def test_the_sequence_runs_every_step_in_order_on_a_correct_mod(tmp_path):
-    out, mod, spawns, stats = run_actions(tmp_path)
+    out, mod, spawns, reads = run_actions(tmp_path)
     assert out["phase_errors"] == {} and "budget_stop" not in out, out["phase_errors"]
     rd = out["readings"]
     assert rd["spawn_xy"]["x"] == 100.5 and rd["spawn_xy"]["y"] == 200.5
-    assert spawns == [("Base.WaterBottleFull", 1, "spawn_WaterBottleFull"), ("Base.Apple", 5, "spawn_Apple")]
-    assert [s["type"] for s in rd["spawned"]] == ["Base.WaterBottleFull", "Base.Apple"]
+    assert spawns == [("Base.WaterBottle", 5, "spawn_WaterBottle"), ("Base.Apple", 5, "spawn_Apple")]
+    assert [s["type"] for s in rd["spawned"]] == ["Base.WaterBottle", "Base.Apple"]
     assert labels(mod.cmds) == list(D.STEP_ORDER) * 5
     reps = rd["reps"]
     assert len(reps) == 5 and all(r["completed"] for r in reps)
@@ -496,12 +588,21 @@ def test_the_sequence_runs_every_step_in_order_on_a_correct_mod(tmp_path):
         for s in steps[1:]:
             assert s["ack"]["ok"] is True and s["gameMin"] >= 420 and s["worldAge"] == 31.5
         assert [s["detail"] for s in steps[3:7]] == ["moved=1", "moved=1", "consumed", "consumed"]
-        sh = r["server_hunger"]
-        assert sh["moved"] is True and len(sh["after"]) == 1
-        assert sh["after"][0]["hunger"] < sh["before"]["hunger"]
-        assert sh["after"][0]["wallMs"] - sh["before"]["wallMs"] >= D.EAT_POLL_S * 1000
-        assert sh["client_after"]["hunger"] < sh["client_before"]["hunger"]
-    assert stats == ["admin"] * 10
+        se = r["server_eat"]
+        assert se["moved"] is True and len(se["after"]) == 1
+        assert se["before"]["hunger"] == pytest.approx(0.3, abs=0.01) and se["before"]["calories"] == 1000.0 + 95.0 * i
+        assert se["after"][0]["hunger"] < se["before"]["hunger"] and se["after"][0]["calories"] > se["before"][
+            "calories"]
+        assert se["after"][0]["wallMs"] - se["before"]["wallMs"] >= D.EAT_POLL_S * 1000
+        assert "hunger" in se["client_before"] and "hunger" in se["client_after"]      # informational, may predate the write
+        assert [(w["cmd"], w["args"]) for w in se["resets"]] == [("foodtimer.set", "admin 0"),
+                                                                  ("stats.set", "admin hunger 0.3")]
+        assert se["resets"][0]["reply"]["after"] == 0.0 and se["resets"][1]["reply"]["hunger"] == 0.3
+    assert reads == ["admin"] * 10
+    writes = out["world_changes"]["writes"]
+    assert len(writes) == 10 and [w["rep"] for w in writes] == [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+    ev = [e for e in mod.log if e[0] == "write" or e[1] in ("loot water", "eat")]
+    assert ev == [("cmd", "loot water"), ("write", "foodtimer.set"), ("write", "stats.set"), ("cmd", "eat")] * 5
     assert out["gaps"] == [] and out["bad"] == 0 and out["lua_errors"] == 0 and out["missing"] == []
     g = G.gate_b(out)
     assert g["verdict"] == "GO" and g["completed"] == 5 and g["eats_seen_by_server"] == 5, g
@@ -531,27 +632,49 @@ def test_a_detail_outside_the_closed_set_fails_reasons_in_set(tmp_path):
 def test_a_failed_food_loot_eats_the_spawned_fallback(tmp_path):
     out, mod, _, _ = run_actions(tmp_path, fail={"loot food": "empty"})
     for r in out["readings"]["reps"]:
-        assert r["eat_pick"] == {"fullType": "Base.Apple", "from": "fallback", "added": ["Base.WaterBottleFull"]}
-        assert r["steps"][5]["state"] == "done" and r["server_hunger"]["moved"] is True
+        assert r["eat_pick"] == {"fullType": "Base.Apple", "from": "fallback", "added": ["Base.WaterBottle"]}
+        assert r["steps"][5]["state"] == "done" and r["server_eat"]["moved"] is True
     assert mod.inv.count("Base.Apple") == 0                                  # the five spawned apples, all eaten
 
 
 def test_a_server_that_never_sees_the_eat_polls_out_its_window(tmp_path):
-    out, _, _, stats = run_actions(tmp_path, blind=True)
+    out, _, _, reads = run_actions(tmp_path, blind=True)
     n = int(D.EAT_POLL_MAX_S / D.EAT_POLL_S)
     for r in out["readings"]["reps"]:
-        sh = r["server_hunger"]
-        assert sh["moved"] is False and len(sh["after"]) == n and all(a["hunger"] == 0.3 for a in sh["after"])
-    assert len(stats) == 5 * (n + 1)
+        se = r["server_eat"]
+        assert se["moved"] is False and len(se["after"]) == n and all(a["hunger"] == 0.3 for a in se["after"])
+    assert len(reads) == 5 * (n + 1)
     g = G.gate_b(out)
     assert g["eats_seen_by_server"] == 0 and [k for k, v in g["pass"].items() if not v] == ["eats_seen_by_server"]
 
 
 def test_a_failed_eat_is_not_polled(tmp_path):
-    out, _, _, stats = run_actions(tmp_path, fail={"eat": "interrupted"})
+    out, _, _, reads = run_actions(tmp_path, fail={"eat": "interrupted"})
     for r in out["readings"]["reps"]:
-        assert r["server_hunger"]["skipped"] == "eat failed" and r["server_hunger"]["after"] == []
-    assert len(stats) == 5                                                   # the pre-eat reading only
+        assert r["server_eat"]["skipped"] == "eat failed" and r["server_eat"]["after"] == []
+    assert len(reads) == 5                                                   # the pre-eat reading only
+
+
+def test_without_the_reset_a_full_food_timer_refuses_the_later_eats(tmp_path):
+    """The defect fix 1 closes, reproduced: no foodtimer/hunger write before the eat. Hunger clamps at 0 after the
+    first apple and stays there under the timer, from the second eat the timer refuses the drink and from the third the eat."""
+    out, _, _, _ = run_actions(tmp_path, no_reset=True)
+    reps = out["readings"]["reps"]
+    assert 0.05 < reps[0]["server_eat"]["before"]["hunger"] < 0.15
+    assert reps[1]["server_eat"]["before"]["hunger"] == 0.0
+    assert [r["steps"][5]["detail"] for r in reps[2:]] == ["not valid"] * 3
+    assert [r["steps"][6]["detail"] for r in reps[1:]] == ["not valid"] * 4      # the second apple tips the drink
+    g = G.gate_b(out)
+    assert g["eats_seen_by_server"] == 2 and g["completed"] == 1 and g["verdict"] == "NO-GO"
+
+
+def test_calories_alone_show_the_eat_when_the_hunger_reading_holds_still(tmp_path):
+    out, _, _, _ = run_actions(tmp_path, hunger_blind=True)
+    for r in out["readings"]["reps"]:
+        se = r["server_eat"]
+        assert se["moved"] is True and se["after"][-1]["hunger"] == se["before"]["hunger"] == 0.3
+        assert se["after"][-1]["calories"] > se["before"]["calories"]
+    assert G.gate_b(out)["eats_seen_by_server"] == 5
 
 
 def test_no_container_scans_wide_once_and_stops_the_repetition(tmp_path):

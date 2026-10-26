@@ -4,9 +4,9 @@
 PHASES (each through xs.run_phase; a phase's fault is recorded and the next still runs):
   hello   wait for the hello line (HELLO_TIMEOUT_S) and the first frame (FRAME_TIMEOUT_S); the first frame's x, y is
           the spawn (readings.spawn_xy), the target of every repetition's last goto.
-  spawn   the fallback items through xs.spawn (RCON additem confirmed by item.get): SPAWN's Base.WaterBottleFull x1
-          and Base.Apple x SEQUENCES, so every repetition's eat and drink have an item when its loot found none
-          (readings.spawned, xs.spawn's rows as returned).
+  spawn   the fallback items through xs.spawn (RCON additem confirmed by item.get): SPAWN's Base.WaterBottle and
+          Base.Apple, SEQUENCES of each (an auto-drink above thirst 0.1 can drain a bottle), so every repetition's
+          eat and drink have an item when its loot found none (readings.spawned, xs.spawn's rows as returned).
   rep1-5  one repetition each (rep_once), its row appended to readings.reps before its first step and persisted after:
             scan SCAN_R -> the pick: among the scan's squares with a non-empty `containers` not picked by an earlier
               repetition, the best tier (container items guessed food-like and water-like by world.FOOD_RX and
@@ -17,22 +17,31 @@ PHASES (each through xs.run_phase; a phase's fault is recorded and the next stil
             -> goto beside the pick: its non-solid 8-neighbour in the scan nearest the player, sent as the square's
               centre in world coordinates (none free -> the step is recorded skipped)
             -> loot x y food -> loot x y water
-            -> eat <fullType>: the first item_added event of this repetition whose fullType matches FOOD_RX and not
-              WATER_RX (a drink is not a top-level Food), else Base.Apple (the spawned fallback)
+            -> eat <fullType>: the first item_added event of this repetition whose fullType is an edible `food` id
+              of data/food-items.json (kind food, cant_eat unset: Wine and Whiskey are fluid containers, tinned food
+              needs an opener), else Base.Apple (the spawned fallback). eat_pick.from is the pick's provenance by
+              TYPE: "fallback" when no looted food-kind item was added, "looted" otherwise; since eat takes the
+              inventory's first item of that type, the item actually eaten may be a spawned apple when loot found an
+              apple (or the reverse), and the artifact cannot tell the two apart
             -> drink -> goto back to the spawn x, y.
           Every goal: its ack (ACK_TIMEOUT_S), then its end through a_pipe's goal_end map (the first frame whose goal
-          is that seq and done or failed; the frame's gameMin and worldAge are the step's game clock), GOAL_TIMEOUT_S. Around the eat: the server's stats.all Hunger before the eat's send, then,
-          when the eat ended done, every EAT_POLL_S up to EAT_POLL_MAX_S until Hunger fell below the pre-eat reading
-          (row.server_hunger {before, after[], moved}), each with this process's wall ms; the frames' client hunger
-          at the same points is kept beside it, informational.
+          is that seq and done or failed; the frame's gameMin and worldAge are the step's game clock), GOAL_TIMEOUT_S.
+          Around the eat: first the server writes `foodtimer.set admin 0` and `stats.set admin hunger EAT_HUNGER`
+          (an apple at low hunger clamps Hunger to 0 and fills healthFromFoodTimer; while the FOOD_EATEN moodle is
+          up the awake hunger rise is 0, and past level 3 the eat and drink refuse to start), each write kept under
+          out["world_changes"]["writes"] and the row's server_eat.resets; then the server's nutrition.get {hunger,
+          calories} before the eat's send (stats.all's stats map carries no calories); then, when the eat ended
+          done, every EAT_POLL_S up to EAT_POLL_MAX_S until Hunger fell below or calories rose above the pre-eat
+          reading (row.server_eat {before, after[], moved, resets}), each with this process's wall ms; the frames'
+          client hunger at the same points is kept beside it, informational.
           A row: rep, scan, pick, door, steps [{goal, args, seq, state, detail, ms, ack, gameMin, worldAge}],
-          eat_pick, server_hunger, notes, completed (every step planned ran and ended done).
+          eat_pick, server_eat, notes, completed (every step planned ran and ended done).
 
 A step's state: done | failed (the Lua's own detail, graded against agent.reasons.REASONS) | refused (the ack's
 reason) | timeout | skipped. out["missing"], gaps, bad, lua_errors and client_lua_errors as a_pipe's; the grade is
 b_grade.py over the artifact (grades.gate_b). out["finished"] is set last; the controller polls the persisted artifact.
 
-Clocks: a line's wallMs is the client's PZA.now(); a key ending in PyMs (and server_hunger's wallMs) is this
+Clocks: a line's wallMs is the client's PZA.now(); a key ending in PyMs (and server_eat's wallMs) is this
 process's time.time() in ms. The grade never subtracts one from the other.
 
 RULES: never edited after its run (the next pass is b_actions_2.py); takes no argument; one live session at a time;
@@ -41,8 +50,8 @@ free memory gated at MIN_FREE_GB before the boot; never -safemode.
 import json
 import math
 import os
-import re
 import sys
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TESTING = os.path.dirname(os.path.dirname(HERE))
@@ -76,16 +85,17 @@ GOAL_TIMEOUT_S = 60.0
 EAT_POLL_S = 5.0
 EAT_POLL_MAX_S = 60.0
 FALLBACK_FOOD = "Base.Apple"
-SPAWN = (("Base.WaterBottleFull", 1), (FALLBACK_FOOD, SEQUENCES))
+SPAWN = (("Base.WaterBottle", SEQUENCES), (FALLBACK_FOOD, SEQUENCES))
+EAT_HUNGER = 0.3                     # the server Hunger written before each eat (stats.set), the timer written 0
+FOOD_ITEMS = os.path.join(DL.REPO, "data", "food-items.json")
 POLL_S = 0.1
 AGENT_LUA = "testing/PZAgent"
 CLIENT_ERR_RX = AP.CLIENT_ERR_RX
-WATER_PREFIX_RX = re.compile(r"\.Water")
 STEP_ORDER = ("scan", "open", "goto", "loot food", "loot water", "eat", "drink", "goto")
 
 CONSTANTS = {k: globals()[k] for k in (
     "SEQUENCES", "HELLO_TIMEOUT_S", "FRAME_TIMEOUT_S", "ACK_TIMEOUT_S", "SCAN_R", "SCAN_R_WIDE", "SCAN_TIMEOUT_S",
-    "GOAL_TIMEOUT_S", "EAT_POLL_S", "EAT_POLL_MAX_S", "FALLBACK_FOOD", "SPAWN", "POLL_S", "BUDGET_S", "MIN_FREE_GB",
+    "GOAL_TIMEOUT_S", "EAT_POLL_S", "EAT_POLL_MAX_S", "EAT_HUNGER", "FALLBACK_FOOD", "SPAWN", "POLL_S", "BUDGET_S", "MIN_FREE_GB",
     "CLIENT_ERR_RX")}
 
 parse_argv = AP.parse_argv
@@ -97,7 +107,7 @@ _seq = AP._seq
 def new_out():
     return {"steps": [], "notes": [], "phase_walls": {}, "phase_errors": {}, "verdicts": {},
             "readings": {"spawn_xy": None, "spawned": [], "reps": []},
-            "world_changes": {"left_in_place": []}, "finished": False}
+            "world_changes": {"left_in_place": [], "writes": []}, "finished": False}
 
 
 def driver_checks(driver_file, repo=REPO, git_say=None, git_dirty=None):
@@ -156,17 +166,11 @@ def _items(sq):
     return [ft for c in _seq(sq.get("containers")) for ft in _seq((c or {}).get("items"))]
 
 
-def water_like(ft):
-    """WATER_RX, or any fullType whose name starts with Water (world.WATER_RX's trailing word boundary misses
-    Base.WaterBottleFull)."""
-    return bool(WATER_RX.search(ft) or WATER_PREFIX_RX.search(ft))
-
-
 def tier(sq):
     """0..3: one point for any item in the square's containers, one for a food-like, one for a water-like fullType."""
     items = [str(i) for i in _items(sq)]
     return ((1 if items else 0) + (1 if any(FOOD_RX.search(i) for i in items) else 0)
-            + (1 if any(water_like(i) for i in items) else 0))
+            + (1 if any(WATER_RX.search(i) for i in items) else 0))
 
 
 def by_xy(scan, z=None):
@@ -224,30 +228,67 @@ def beside(scan, px, py, pick):
     return None if best is None else (best[1], best[2])
 
 
-def eat_choice(added):
-    """The first fullType in `added` that is food-like and not a drink, else the fallback."""
+_FOOD_IDS = None
+
+
+def food_ids(path=FOOD_ITEMS):
+    """The edible food ids of the food dataset: kind food and cant_eat unset (loaded once)."""
+    global _FOOD_IDS
+    if _FOOD_IDS is None:
+        with open(path, encoding="utf-8") as fh:
+            items = json.load(fh)["items"]
+        _FOOD_IDS = frozenset(i["id"] for i in items if i.get("kind") == "food" and not i.get("cant_eat"))
+    return _FOOD_IDS
+
+
+def eat_choice(added, ids=None):
+    """The first fullType in `added` that is an edible food id, else the fallback."""
+    ids = food_ids() if ids is None else ids
     for ft in added:
-        ft = str(ft)
-        if FOOD_RX.search(ft) and not water_like(ft):
-            return ft, "looted"
+        if str(ft) in ids:
+            return str(ft), "looted"
     return FALLBACK_FOOD, "fallback"
 
 
-def server_hunger(r):
-    """stats.all's Hunger from a bus_stats row; None when the reply carries none."""
-    a = (r or {}).get("ack")
-    v = a.get("stats") if isinstance(a, dict) else None
-    v = v.get("Hunger") if isinstance(v, dict) else None
+def _num(v):
     return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+
+
+def body_reading(r):
+    """nutrition.get's hunger and calories from a reading row {ack, wallMs}; None for a field the reply lacks."""
+    a = (r or {}).get("ack")
+    a = a if isinstance(a, dict) else {}
+    return {"hunger": _num(a.get("hunger")), "calories": _num(a.get("calories")), "wallMs": (r or {}).get("wallMs")}
+
+
+def eat_seen(before, after):
+    """The server saw the eat: Hunger fell below, or calories rose above, the pre-eat reading."""
+    b, a = before or {}, after or {}
+    hb, ha, cb, ca = _num(b.get("hunger")), _num(a.get("hunger")), _num(b.get("calories")), _num(a.get("calories"))
+    return (hb is not None and ha is not None and ha < hb) or (cb is not None and ca is not None and ca > cb)
+
+
+def nutrition_get(xs, user):
+    """The server's nutrition.get for `user` (its hunger and calories) with this process's wall ms."""
+    row = xs.step("nutrition", X.SRV, "nutrition.get", user)
+    return {"ack": row.get("ack"), "wallMs": time.time() * 1000}
+
+
+def server_write(xs, tag, cmd, args):
+    """One server bus write; its reply."""
+    return xs.step(tag, X.SRV, cmd, args).get("ack")
 
 
 # ================================================================ the sequence
 class Actions(AP.Pipe):
-    """The hello, spawn and repetition phases over one Link; clock, sleep, bus_stats and spawn are injectable."""
+    """The hello, spawn and repetition phases over one Link; clock, sleep, spawn, body (the nutrition read) and
+    write (a server bus write) are injectable."""
 
-    def __init__(self, xs, link, spawn=None, **kw):
+    def __init__(self, xs, link, spawn=None, body=nutrition_get, write=server_write, **kw):
         kw.setdefault("poll_s", POLL_S)
         super().__init__(xs, link, **kw)
+        self.body = body
+        self.write = write
         self.rd.setdefault("spawn_xy", None)
         self.rd.setdefault("spawned", [])
         self.rd.setdefault("reps", [])
@@ -337,31 +378,38 @@ class Actions(AP.Pipe):
     def skip(self, row, name, args, why):
         row["steps"].append({"goal": name, "args": args, "state": "skipped", "detail": why})
 
-    def stats_row(self):
-        r = self.bus_stats(self.xs, USER)
-        return {"hunger": server_hunger(r), "wallMs": r.get("wallMs")}
+    def body_row(self):
+        return body_reading(self.body(self.xs, USER))
+
+    def eat_reset(self, row):
+        """foodtimer 0 and Hunger EAT_HUNGER on the server before the eat, each write recorded as a world change."""
+        for cmd, args in (("foodtimer.set", "%s 0" % USER), ("stats.set", "%s hunger %s" % (USER, EAT_HUNGER))):
+            tag = "rep%d_%s" % (row["rep"], cmd.split(".")[0])
+            reply = self.write(self.xs, tag, cmd, args)
+            w = {"rep": row["rep"], "cmd": cmd, "args": args, "reply": reply, "wallPyMs": self.py_ms()}
+            row["server_eat"]["resets"].append(w)
+            self.out["world_changes"].setdefault("writes", []).append(w)
 
     def eat_watch(self, row, step):
-        """After the eat: stats.all every EAT_POLL_S up to EAT_POLL_MAX_S until the server's Hunger fell below its
-        pre-eat reading; only when the eat ended done."""
-        sh = row["server_hunger"]
+        """After the eat: nutrition.get every EAT_POLL_S up to EAT_POLL_MAX_S until the server's Hunger fell below
+        or its calories rose above the pre-eat reading; only when the eat ended done."""
+        se = row["server_eat"]
         if step.get("state") != "done":
-            sh["skipped"] = "eat %s" % step.get("state")
+            se["skipped"] = "eat %s" % step.get("state")
             return
-        pre = sh["before"].get("hunger")
-        if pre is None:
-            sh["skipped"] = "no pre-eat Hunger"
+        if se["before"].get("hunger") is None and se["before"].get("calories") is None:
+            se["skipped"] = "no pre-eat reading"
             return
         t0 = self.clock()
         while self.clock() - t0 < EAT_POLL_MAX_S:
             t_next = self.clock() + EAT_POLL_S
             self.wait_until(lambda: self.clock() >= t_next, EAT_POLL_S + 1.0)
-            a = self.stats_row()
-            sh["after"].append(a)
-            if a["hunger"] is not None and a["hunger"] < pre:
-                sh["moved"] = True
+            a = self.body_row()
+            se["after"].append(a)
+            if eat_seen(se["before"], a):
+                se["moved"] = True
                 break
-        sh["client_after"] = self.frame_hunger()
+        se["client_after"] = self.frame_hunger()
 
     # ---- one repetition
     def rep_once(self, i):
@@ -371,7 +419,7 @@ class Actions(AP.Pipe):
             raise RuntimeError("no spawn x, y: the hello phase found no frame")
         self.xs.check()                     # a repetition past the budget records no row
         row = {"rep": i, "steps": [], "notes": [], "pick": None, "door": None, "eat_pick": None,
-               "server_hunger": {"before": {}, "after": [], "moved": False}, "completed": False}
+               "server_eat": {"before": {}, "after": [], "moved": False, "resets": []}, "completed": False}
         self.rd["reps"].append(row)
         a0 = len(self.added)
         try:
@@ -411,9 +459,10 @@ class Actions(AP.Pipe):
         self.goal(row, "loot", xy + " water")
         ft, src = eat_choice(self.added[a0:])
         row["eat_pick"] = {"fullType": ft, "from": src, "added": list(self.added[a0:])}
-        sh = row["server_hunger"]
-        sh["before"] = self.stats_row()
-        sh["client_before"] = self.frame_hunger()
+        self.eat_reset(row)
+        se = row["server_eat"]
+        se["before"] = self.body_row()
+        se["client_before"] = self.frame_hunger()
         step = self.goal(row, "eat", ft)
         self.eat_watch(row, step)
         self.goal(row, "drink")
