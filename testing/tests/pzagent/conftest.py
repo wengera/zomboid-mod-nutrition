@@ -132,6 +132,17 @@ def lua(fs):
     g.ISTimedActionQueue = J(add=lambda a: q.add(a), getTimedActionQueue=lambda p: q.getTimedActionQueue(p),
                              isPlayerDoingAction=lambda p: q.isPlayerDoingAction(p), clear=lambda p: q.clear(p))
     g.ISWalkToTimedAction = J(new=lambda cls, p, sq: J(Type="ISWalkToTimedAction", sq=sq))
+    # the four vanilla constructors Act's open/loot/eat/drink queue; each captures its arguments, and
+    # g._valid["start"] is what an eat or drink action's isValidStart answers
+    valid = {"start": True}
+    g._valid = valid
+    g.ISOpenCloseDoor = J(new=lambda cls, p, item: J(Type="ISOpenCloseDoor", character=p, item=item))
+    g.ISInventoryTransferAction = J(new=lambda cls, p, item, src, dest, time=None: J(
+        Type="ISInventoryTransferAction", character=p, item=item, src=src, dest=dest))
+    g.ISEatFoodAction = J(new=lambda cls, p, item, pct: J(Type="ISEatFoodAction", character=p, item=item, pct=pct,
+                                                         isValidStart=lambda s: valid["start"]))
+    g.ISDrinkFluidAction = J(new=lambda cls, p, item, pct: J(Type="ISDrinkFluidAction", character=p, item=item, pct=pct,
+                                                            isValidStart=lambda s: valid["start"]))
     handlers = []
     g._handlers = handlers
     g.Events = J(OnTick=J(Add=lambda f: handlers.append(f)))
