@@ -36,7 +36,7 @@ def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
     assert D.KEY == "a_pipe_3" and D.ARTIFACT == "a_pipe_3.json" and D.BUDGET_S == 560.0
     assert D.PROFILE == "testing/profiles/agent-nozombies.toml" and os.path.isfile(os.path.join(REPO, D.PROFILE))
     assert D.PASS2_RUN == "a_pipe_2-20261026-115846" and D.PASS2_RUN in D.__doc__
-    assert (D.RATE60, D.RATE60_WINDOW_S, D.RATE_BACK) == (60, 30.0, 5) and D.COST_KEYS == D.AP2.COST_KEYS
+    assert (D.RATE60, D.RATE60_WINDOW_S, D.RATE_BACK) == (60, 30.0, 10) and D.RATE_BACK == D.AP2.RATES[-1] and D.COST_KEYS == D.AP2.COST_KEYS
     assert D.CONSTANTS["inherited_from_a_pipe_2"]["WINDOW_S"] == D.AP2.WINDOW_S
     assert "mean of quantised readings" in D.__doc__ and "does NOT resolve" in D.__doc__
 
@@ -223,7 +223,7 @@ def test_a_clean_run_records_every_part_and_the_rate60_window(tmp_path, short_wi
     w = out["readings"]["rate60"]
     assert w["ack"]["ok"] and w["back_ack"]["ok"] and 0 <= w["frames"] - 120 <= 60 * D.AP2.POLL_S + 2 and w["tick_none"] == 0
     assert w["tick_mean_ms_at60"] == pytest.approx(0.6) and w["tick_sum"] == pytest.approx(0.6 * w["frames"])
-    assert mod.rate == 5                                         # the window put the rate back
+    assert mod.rate == 10                                        # the window put back the rates phase's last rate
     out["client_lua_errors"] = 0
     g = G.gate_a(out)
     assert g["scan15_ms_max"] == 3 and g["scan15_latency_ms_max"] == 17 + 17 * 2 and g["pass"]["scan15"], g
@@ -243,7 +243,7 @@ def test_the_rate60_window_is_the_mean_of_its_frames_quantised_costs(tmp_path, s
     assert w["tick_mean_ms_at60"] == pytest.approx(0.4 + 0.5, abs=0.02)   # 0.1 + 0.3 + mean(0, 1)
     assert sorted(set(w["tickMs"])) == [pytest.approx(0.4), pytest.approx(1.4)]
     assert w["wall_ms"] == w["frame_wallMs_last"] - w["frame_wallMs_first"]
-    assert abs(w["wall_ms"] - (w["frames"] - 1) * 1000 / 60) <= 2 and mod.rate == 5
+    assert abs(w["wall_ms"] - (w["frames"] - 1) * 1000 / 60) <= 2 and mod.rate == D.RATE_BACK == 10
 
 
 def test_a_frame_missing_a_cost_key_leaves_the_mean_unread(tmp_path, short_windows):
@@ -267,8 +267,8 @@ def test_a_rate_back_without_its_ack_fails_the_phase_after_keeping_the_row(tmp_p
     class Deaf(FakeMod3):
         def poll(self):
             cmd = super().poll()
-            if cmd and cmd["goal"] == "rate" and cmd["args"] == "5":
-                self.rate = 5.0
+            if cmd and cmd["goal"] == "rate" and cmd["args"] == "10":
+                self.rate = 10.0
                 return None                                  # applied, never acked
             return cmd
     clock = T1.Clock()
@@ -278,7 +278,7 @@ def test_a_rate_back_without_its_ack_fails_the_phase_after_keeping_the_row(tmp_p
     pipe = D.Pipe3(xs, Link(sd, clock=clock.now), clock=clock.now, sleep=mod.sleep)
     pipe.wait_until(lambda: pipe.hello is not None, 5)
     xs.run_phase("rate60", pipe.phase_rate60)
-    assert "no ack for rate 5 back" in xs.out["phase_errors"]["rate60"]["error"]
+    assert "no ack for rate 10 back" in xs.out["phase_errors"]["rate60"]["error"]
     assert xs.out["readings"]["rate60"]["frames"] > 0 and xs.out["readings"]["rate60"]["back_ack"] is None
 
 

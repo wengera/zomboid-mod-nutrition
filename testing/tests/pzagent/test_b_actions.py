@@ -61,7 +61,7 @@ def test_reasons_equal_the_act_headers_reasons_line():
 
 
 def test_every_failed_detail_the_act_file_sets_is_in_the_set():
-    found = set(re.findall(r'"failed",\s*"([^"]+)"', act_src()))
+    found = set(re.findall(r'(?:"failed",\s*|failWalk\(p, g, )"([^"]+)"', act_src()))
     assert found and found <= REASONS, found - REASONS
 
 
@@ -76,7 +76,7 @@ def test_done_equals_the_act_headers_done_line_and_every_done_detail_is_in_it():
 
 def test_no_failed_pair_uses_a_done_detail_and_no_done_pair_a_failed_one():
     src = act_src()
-    failed = set(re.findall(r'"failed",\s*"([^"]+)"', src))
+    failed = set(re.findall(r'(?:"failed",\s*|failWalk\(p, g, )"([^"]+)"', src))
     done = set(re.findall(r'"done",\s*"([^"]+)"', src))
     assert not (failed & DONE) and not (done & REASONS) and not (DONE & REASONS)
 

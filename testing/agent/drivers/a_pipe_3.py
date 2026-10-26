@@ -16,7 +16,9 @@ PHASES (each through xs.run_phase; a phase's fault is recorded and the next stil
 docstring) with these changes:
   rates   as pass 2 (a_pipe_2's own constants: RATES, WINDOW_S, ACK_TIMEOUT_S, HELLO_TIMEOUT_S).
   rate60  new, before scans: `rate 60` (a frame every tick), RATE60_WINDOW_S of wall clock collecting every frame after
-          its ack, then `rate 5` back (its ack awaited; a missing one fails the phase after the row is kept). The row:
+          its ack, then `rate RATE_BACK` back (its ack awaited; a missing one fails the phase after the row is kept):
+          RATE_BACK is AP2.RATES[-1] (10), the rate the rates phase leaves, so scans and motion run on the same
+          6-tick frames as pass 2's (its motion p90 498 ms is frame-quantised; rate 5 would double the period). The row:
           frames, expected (60 * window), tickMs (each frame's sum of COST_KEYS; None when a key is absent), tick_sum
           (the sum of tickMs), the window's wall (the last frame's wallMs minus the first's) and tick_mean_ms_at60 =
           tick_sum / frames (None when any frame lacks a key or none came).
@@ -74,7 +76,7 @@ _ME = os.path.basename(os.path.abspath(__file__))
 
 RATE60 = 60
 RATE60_WINDOW_S = 30.0
-RATE_BACK = 5
+RATE_BACK = AP2.RATES[-1]   # the rate the rates phase leaves (10): scans and motion run as in pass 2
 SCAN_RADII = (5, 10, 15)
 SCANS_PER_RADIUS = 5
 SCAN_TIMEOUT_S = 15.0

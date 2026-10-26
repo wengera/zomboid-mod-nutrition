@@ -406,7 +406,7 @@ def test_every_failed_detail_is_in_the_header_reasons_line():
     lines = [l for l in src.splitlines() if l.startswith("-- reasons: ")]
     assert len(lines) == 1
     closed = set(lines[0][len("-- reasons: "):].strip().split("|"))
-    used = set(re.findall(r'"failed",\s*"([^"]+)"', src))
+    used = set(re.findall(r'(?:"failed",\s*|failWalk\(p, g, )"([^"]+)"', src))
     assert used and used <= closed, used - closed
     for x in ("no door", "locked", "not adjacent", "no container", "not loaded", "empty", "no match",
               "none held", "interrupted", "not valid"):
@@ -796,7 +796,7 @@ def test_task11_details_are_in_the_header_reasons_and_done_lines():
     src = open(lua_file("client/PZAgent_Act.lua"), encoding="utf-8").read()
     header = [l for l in src.splitlines() if l.startswith("-- reasons: ")][0]
     closed = set(header[len("-- reasons: "):].strip().split("|"))
-    used = set(re.findall(r'"failed",\s*"([^"]+)"', src))
+    used = set(re.findall(r'(?:"failed",\s*|failWalk\(p, g, )"([^"]+)"', src))
     for x in ("no weapon", "weapon broke", "low health", "cornered", "not allowed", "interrupted"):
         assert x in used and x in closed
     done = set([l for l in src.splitlines() if l.startswith("-- done: ")][0][len("-- done: "):].strip().split("|"))
