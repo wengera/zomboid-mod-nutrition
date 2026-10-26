@@ -22683,3 +22683,8 @@ c_survive-20261026-183905,loop.last_decisions,the log's last ten lines,"A log ex
 c_survive-20261026-183905,the cause of the health fall over game minutes 574–587,100 -> 74.55,"The frames carry no body-part damage or wound state; no zombie within 12 tiles on any frame of the span; the cause is unread.",
 c_survive-20261026-183905,"readings.start_kit, world_changes",the harness's writes,"RCON additem of Base.BaseballBat and weapon.equip; not readings.",
 c_survive-20261026-183905,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+b_actions_2-20261026-194009,readings.reps[*].steps[*].ms for eat,5029–9670,"The eat action's own duration plus the queue; a timed-action length, not a link latency.",
+b_actions_2-20261026-194009,readings.reps[*].server_eat.before.hunger and resets,0.30,"Set by the harness before each eat (foodtimer.set 0; stats.set hunger 0.3): a prepared character, not a reading.",server_eat.after (the eat seen)
+b_actions_2-20261026-194009,the freezer at 11000 9697 reading empty then 7 items; rep 5 moved=4 against three item_added events,—,"Observations the run cannot explain; recorded in the guide, never cited.",
+b_actions_2-20261026-194009,"spawned, world_changes.writes",the harness's writes,"RCON additem of Base.WaterBottle x5 and Base.Apple x5 and the pre-eat stat writes; not readings.",
+b_actions_2-20261026-194009,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",

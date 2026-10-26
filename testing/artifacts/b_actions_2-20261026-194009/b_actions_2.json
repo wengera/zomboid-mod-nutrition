@@ -1,0 +1,2730 @@
+{
+ "steps": [
+  {
+   "step": "spawn_WaterBottle_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.WaterBottle",
+   "phase": "spawn",
+   "wall_before": 51.012,
+   "wall_after": 52.527,
+   "epoch_ms_before": 1793058060480,
+   "epoch_ms_after": 1793058061994,
+   "took": 1.515,
+   "ack": "no item Base.WaterBottle in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "spawn_WaterBottle_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.WaterBottle\" 5",
+   "phase": "spawn",
+   "wall_before": 52.527,
+   "wall_after": 52.535,
+   "epoch_ms_before": 1793058061994,
+   "epoch_ms_after": 1793058062002,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "spawn_WaterBottle_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.WaterBottle",
+   "phase": "spawn",
+   "wall_before": 55.036,
+   "wall_after": 56.297,
+   "epoch_ms_before": 1793058064503,
+   "epoch_ms_after": 1793058065764,
+   "took": 1.261,
+   "ack": {
+    "fullType": "Base.WaterBottle",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 2070241829,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "isCookable": false,
+    "actualWeight": 0.10000000149011612,
+    "weight": 0.10000000149011612,
+    "customWeight": false,
+    "serverWorldAge": 2.3413257598876953
+   }
+  },
+  {
+   "step": "spawn_Apple_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Apple",
+   "phase": "spawn",
+   "wall_before": 56.298,
+   "wall_after": 58.312,
+   "epoch_ms_before": 1793058065765,
+   "epoch_ms_after": 1793058067779,
+   "took": 2.014,
+   "ack": "no item Base.Apple in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "spawn_Apple_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Apple\" 5",
+   "phase": "spawn",
+   "wall_before": 58.312,
+   "wall_after": 58.336,
+   "epoch_ms_before": 1793058067779,
+   "epoch_ms_after": 1793058067803,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "spawn_Apple_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.Apple",
+   "phase": "spawn",
+   "wall_before": 60.838,
+   "wall_after": 62.102,
+   "epoch_ms_before": 1793058070305,
+   "epoch_ms_after": 1793058071569,
+   "took": 1.264,
+   "ack": {
+    "fullType": "Base.Apple",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.1599999964237213,
+    "baseHunger": -0.1599999964237213,
+    "calories": 95,
+    "carbs": 25.1299991607666,
+    "lipids": 0.3100000023841858,
+    "proteins": 0.4699999988079071,
+    "id": 795735149,
+    "uses": 0.1599999964237213,
+    "fresh": true,
+    "offAge": 5,
+    "offAgeMax": 8,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": -0.07000000029802322,
+    "hungerChange": -0.1599999964237213,
+    "isCookable": false,
+    "actualWeight": 0.20000000298023224,
+    "weight": 0.20000000298023224,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.3670310974121094
+   }
+  },
+  {
+   "step": "rep1_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "rep1",
+   "wall_before": 66.535,
+   "wall_after": 68.299,
+   "epoch_ms_before": 1793058076002,
+   "epoch_ms_after": 1793058077767,
+   "took": 1.764,
+   "ack": {
+    "requested": 0,
+    "before": 0,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "rep1_stats",
+   "side": "server",
+   "cmd": "stats.set",
+   "args": "admin hunger 0.3",
+   "phase": "rep1",
+   "wall_before": 68.299,
+   "wall_after": 69.81,
+   "epoch_ms_before": 1793058077767,
+   "epoch_ms_after": 1793058079277,
+   "took": 1.511,
+   "ack": {
+    "calories": 792.5736083984375,
+    "carbs": -1.2769101858139038,
+    "lipids": -0.41225969791412354,
+    "proteins": -0.3137551248073578,
+    "weight": 80,
+    "hunger": 0.30000001192092896,
+    "thirst": 0.0028419627342373133,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "applied": {
+     "hunger": "Stats:set(CharacterStat.HUNGER)"
+    }
+   }
+  },
+  {
+   "step": "nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "rep1",
+   "wall_before": 69.81,
+   "wall_after": 70.317,
+   "epoch_ms_before": 1793058079277,
+   "epoch_ms_after": 1793058079784,
+   "took": 0.507,
+   "ack": {
+    "calories": 792.3941650390625,
+    "carbs": -1.3160827159881592,
+    "lipids": -0.42490682005882263,
+    "proteins": -0.32338035106658936,
+    "weight": 80,
+    "hunger": 0.3000752031803131,
+    "thirst": 0.0029314998537302017,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "rep1",
+   "wall_before": 80.445,
+   "wall_after": 80.952,
+   "epoch_ms_before": 1793058089912,
+   "epoch_ms_after": 1793058090419,
+   "took": 0.507,
+   "ack": {
+    "calories": 1089.703125,
+    "carbs": 79.09629821777344,
+    "lipids": 8.385380744934082,
+    "proteins": 14.532235145568848,
+    "weight": 80.00032298114365,
+    "hunger": 0.17131605744361877,
+    "thirst": 0.004274614155292511,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "rep2_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "rep2",
+   "wall_before": 109.693,
+   "wall_after": 110.45,
+   "epoch_ms_before": 1793058119160,
+   "epoch_ms_after": 1793058119917,
+   "took": 0.757,
+   "ack": {
+    "requested": 0,
+    "before": 0,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "rep2_stats",
+   "side": "server",
+   "cmd": "stats.set",
+   "args": "admin hunger 0.3",
+   "phase": "rep2",
+   "wall_before": 110.45,
+   "wall_after": 111.21,
+   "epoch_ms_before": 1793058119917,
+   "epoch_ms_after": 1793058120677,
+   "took": 0.76,
+   "ack": {
+    "calories": 1065.6544189453125,
+    "carbs": 77.41381072998047,
+    "lipids": 7.842167854309082,
+    "proteins": 14.118817329406738,
+    "weight": 80.00200890891574,
+    "hunger": 0.30000001192092896,
+    "thirst": 0.0036027950700372458,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false,
+    "applied": {
+     "hunger": "Stats:set(CharacterStat.HUNGER)"
+    }
+   }
+  },
+  {
+   "step": "nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "rep2",
+   "wall_before": 111.21,
+   "wall_after": 112.471,
+   "epoch_ms_before": 1793058120677,
+   "epoch_ms_after": 1793058121939,
+   "took": 1.261,
+   "ack": {
+    "calories": 1065.37255859375,
+    "carbs": 77.35227966308594,
+    "lipids": 7.822301387786865,
+    "proteins": 14.103697776794434,
+    "weight": 80.00206978766892,
+    "hunger": 0.3001181185245514,
+    "thirst": 0.0037434380501508713,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "rep2",
+   "wall_before": 127.231,
+   "wall_after": 128.49,
+   "epoch_ms_before": 1793058136698,
+   "epoch_ms_after": 1793058137957,
+   "took": 1.259,
+   "ack": {
+    "calories": 1593.2711181640625,
+    "carbs": 175.4568634033203,
+    "lipids": 14.19320011138916,
+    "proteins": 31.58368492126465,
+    "weight": 80.00313085156995,
+    "hunger": 0.0021294455509632826,
+    "thirst": 0.005790151655673981,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "rep3_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "rep3",
+   "wall_before": 175.105,
+   "wall_after": 176.364,
+   "epoch_ms_before": 1793058184572,
+   "epoch_ms_after": 1793058185832,
+   "took": 1.259,
+   "ack": {
+    "requested": 0,
+    "before": 0,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "rep3_stats",
+   "side": "server",
+   "cmd": "stats.set",
+   "args": "admin hunger 0.3",
+   "phase": "rep3",
+   "wall_before": 176.364,
+   "wall_after": 178.375,
+   "epoch_ms_before": 1793058185832,
+   "epoch_ms_after": 1793058187842,
+   "took": 2.011,
+   "ack": {
+    "calories": 1552.02294921875,
+    "carbs": 172.6587371826172,
+    "lipids": 13.289754867553711,
+    "proteins": 30.896137237548828,
+    "weight": 80.00721189237538,
+    "hunger": 0.30000001192092896,
+    "thirst": 0.006143697537481785,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false,
+    "applied": {
+     "hunger": "Stats:set(CharacterStat.HUNGER)"
+    }
+   }
+  },
+  {
+   "step": "nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "rep3",
+   "wall_before": 178.375,
+   "wall_after": 178.881,
+   "epoch_ms_before": 1793058187842,
+   "epoch_ms_after": 1793058188349,
+   "took": 0.506,
+   "ack": {
+    "calories": 1551.9207763671875,
+    "carbs": 172.63636779785156,
+    "lipids": 13.2825288772583,
+    "proteins": 30.89063835144043,
+    "weight": 80.00724414479828,
+    "hunger": 0.300042986869812,
+    "thirst": 0.006195519119501114,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "rep3",
+   "wall_before": 190.009,
+   "wall_after": 190.517,
+   "epoch_ms_before": 1793058199477,
+   "epoch_ms_after": 1793058199984,
+   "took": 0.508,
+   "ack": {
+    "calories": 1618.9532470703125,
+    "carbs": 186.9874267578125,
+    "lipids": 13.22299575805664,
+    "proteins": 33.73116683959961,
+    "weight": 80.00819849933669,
+    "hunger": 0.12143980711698532,
+    "thirst": 0.0007102967356331646,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "rep4_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "rep4",
+   "wall_before": 230.339,
+   "wall_after": 231.348,
+   "epoch_ms_before": 1793058239806,
+   "epoch_ms_after": 1793058240815,
+   "took": 1.009,
+   "ack": {
+    "requested": 0,
+    "before": 0,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "rep4_stats",
+   "side": "server",
+   "cmd": "stats.set",
+   "args": "admin hunger 0.3",
+   "phase": "rep4",
+   "wall_before": 231.348,
+   "wall_after": 232.355,
+   "epoch_ms_before": 1793058240815,
+   "epoch_ms_after": 1793058241822,
+   "took": 1.007,
+   "ack": {
+    "calories": 1579.4498291015625,
+    "carbs": 184.63682556152344,
+    "lipids": 12.464136123657227,
+    "proteins": 33.153629302978516,
+    "weight": 80.01168869588128,
+    "hunger": 0.30000001192092896,
+    "thirst": 0.005181850865483284,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false,
+    "applied": {
+     "hunger": "Stats:set(CharacterStat.HUNGER)"
+    }
+   }
+  },
+  {
+   "step": "nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "rep4",
+   "wall_before": 232.355,
+   "wall_after": 234.368,
+   "epoch_ms_before": 1793058241822,
+   "epoch_ms_after": 1793058243835,
+   "took": 2.013,
+   "ack": {
+    "calories": 1578.938232421875,
+    "carbs": 184.52491760253906,
+    "lipids": 12.428006172180176,
+    "proteins": 33.12614059448242,
+    "weight": 80.01185278568119,
+    "hunger": 0.3002147674560547,
+    "thirst": 0.005445715971291065,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "rep4",
+   "wall_before": 245.599,
+   "wall_after": 246.358,
+   "epoch_ms_before": 1793058255067,
+   "epoch_ms_after": 1793058255825,
+   "took": 0.759,
+   "ack": {
+    "calories": 2295.86572265625,
+    "carbs": 255.85366821289062,
+    "lipids": 57.21123123168945,
+    "proteins": 37.46114730834961,
+    "weight": 80.01306077496429,
+    "hunger": 0.15164057910442352,
+    "thirst": 0.007017961237579584,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "rep5_foodtimer",
+   "side": "server",
+   "cmd": "foodtimer.set",
+   "args": "admin 0",
+   "phase": "rep5",
+   "wall_before": 299.532,
+   "wall_after": 300.287,
+   "epoch_ms_before": 1793058308999,
+   "epoch_ms_after": 1793058309754,
+   "took": 0.755,
+   "ack": {
+    "requested": 0,
+    "before": 0,
+    "set": true,
+    "after": 0
+   }
+  },
+  {
+   "step": "rep5_stats",
+   "side": "server",
+   "cmd": "stats.set",
+   "args": "admin hunger 0.3",
+   "phase": "rep5",
+   "wall_before": 300.287,
+   "wall_after": 302.297,
+   "epoch_ms_before": 1793058309754,
+   "epoch_ms_after": 1793058311764,
+   "took": 2.01,
+   "ack": {
+    "calories": 2247.21240234375,
+    "carbs": 252.71961975097656,
+    "lipids": 56.19947052001953,
+    "proteins": 36.69110107421875,
+    "weight": 80.0196706812003,
+    "hunger": 0.30000001192092896,
+    "thirst": 0.007137086242437363,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false,
+    "applied": {
+     "hunger": "Stats:set(CharacterStat.HUNGER)"
+    }
+   }
+  },
+  {
+   "step": "nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "rep5",
+   "wall_before": 302.297,
+   "wall_after": 302.804,
+   "epoch_ms_before": 1793058311764,
+   "epoch_ms_after": 1793058312271,
+   "took": 0.507,
+   "ack": {
+    "calories": 2247.135498046875,
+    "carbs": 252.7028350830078,
+    "lipids": 56.19404602050781,
+    "proteins": 36.686973571777344,
+    "weight": 80.01970572601203,
+    "hunger": 0.30003225803375244,
+    "thirst": 0.007177526596933603,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "nutrition",
+   "side": "server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "phase": "rep5",
+   "wall_before": 314.03,
+   "wall_after": 314.288,
+   "epoch_ms_before": 1793058323497,
+   "epoch_ms_after": 1793058323756,
+   "took": 0.258,
+   "ack": {
+    "calories": 3094.13623046875,
+    "carbs": 362.0483093261719,
+    "lipids": 121.98265075683594,
+    "proteins": 46.52610778808594,
+    "weight": 80.02131817377176,
+    "hunger": 0.10145984590053558,
+    "thirst": 0.008748521097004414,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  }
+ ],
+ "notes": [],
+ "phase_walls": {
+  "hello": {
+   "start": 51.004,
+   "end": 51.012
+  },
+  "spawn": {
+   "start": 51.012,
+   "end": 62.11
+  },
+  "rep1": {
+   "start": 62.111,
+   "end": 84.301
+  },
+  "rep2": {
+   "start": 84.303,
+   "end": 147.115
+  },
+  "rep3": {
+   "start": 147.116,
+   "end": 210.075
+  },
+  "rep4": {
+   "start": 210.077,
+   "end": 265.671
+  },
+  "rep5": {
+   "start": 265.674,
+   "end": 337.483
+  }
+ },
+ "phase_errors": {},
+ "verdicts": {},
+ "readings": {
+  "spawn_xy": {
+   "x": 10997.5,
+   "y": 9699.5,
+   "z": 0,
+   "seq": 2
+  },
+  "spawned": [
+   {
+    "type": "Base.WaterBottle",
+    "n": 5,
+    "before": {
+     "id": null,
+     "fullType": null,
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": null,
+     "age": null,
+     "error": null,
+     "raw": "no item Base.WaterBottle in admin's inventory",
+     "wall": 51.012
+    },
+    "additem": {
+     "ok": true,
+     "reply": ""
+    },
+    "after": {
+     "id": 2070241829,
+     "fullType": "Base.WaterBottle",
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": 1,
+     "age": 0,
+     "error": null,
+     "raw": null,
+     "wall": 55.036
+    },
+    "leftover_before": false,
+    "confirmed": true
+   },
+   {
+    "type": "Base.Apple",
+    "n": 5,
+    "before": {
+     "id": null,
+     "fullType": null,
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": null,
+     "age": null,
+     "error": null,
+     "raw": "no item Base.Apple in admin's inventory",
+     "wall": 56.298
+    },
+    "additem": {
+     "ok": true,
+     "reply": ""
+    },
+    "after": {
+     "id": 795735149,
+     "fullType": "Base.Apple",
+     "hungChange": -0.1599999964237213,
+     "hungerChange": -0.1599999964237213,
+     "baseHunger": -0.1599999964237213,
+     "calories": 95,
+     "uses": 0.1599999964237213,
+     "age": 0,
+     "error": null,
+     "raw": null,
+     "wall": 60.838
+    },
+    "leftover_before": false,
+    "confirmed": true
+   }
+  ],
+  "reps": [
+   {
+    "rep": 1,
+    "steps": [
+     {
+      "goal": "scan",
+      "args": "15",
+      "seq": 1,
+      "sentPyMs": 1793058071579.1606,
+      "ack": {
+       "cmdSeq": 1,
+       "kind": "ack",
+       "ok": true,
+       "reason": "queued",
+       "seq": 72,
+       "tick": 820,
+       "wallMs": 1793058071589
+      },
+      "ms": 855.85498046875,
+      "state": "done",
+      "detail": "squares=961 parts=49/49"
+     },
+     {
+      "goal": "goto",
+      "args": "10997.5 9699.5",
+      "seq": 2,
+      "sentPyMs": 1793058072447.0195,
+      "ack": {
+       "cmdSeq": 2,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 126,
+       "tick": 872,
+       "wallMs": 1793058072458
+      },
+      "state": "done",
+      "detail": "d=0",
+      "endSeq": 128,
+      "endWallMs": 1793058072523,
+      "gameMin": 562,
+      "worldAge": 2.371662139892578,
+      "ms": 108.121826171875
+     },
+     {
+      "goal": "loot",
+      "args": "10998 9698 food",
+      "seq": 3,
+      "sentPyMs": 1793058072555.1472,
+      "ack": {
+       "cmdSeq": 3,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 129,
+       "tick": 879,
+       "wallMs": 1793058072571
+      },
+      "state": "done",
+      "detail": "moved=1",
+      "endSeq": 136,
+      "endWallMs": 1793058073522,
+      "gameMin": 562,
+      "worldAge": 2.3761253356933594,
+      "ms": 1044.816162109375
+     },
+     {
+      "goal": "goto",
+      "args": "10999.5 9697.5",
+      "seq": 4,
+      "sentPyMs": 1793058073600.3618,
+      "ack": {
+       "cmdSeq": 4,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 137,
+       "tick": 941,
+       "wallMs": 1793058073607
+      },
+      "state": "done",
+      "detail": "d=1",
+      "endSeq": 147,
+      "endWallMs": 1793058075321,
+      "gameMin": 563,
+      "worldAge": 2.3841590881347656,
+      "ms": 1775.718994140625
+     },
+     {
+      "goal": "loot",
+      "args": "10999 9696 water",
+      "seq": 5,
+      "sentPyMs": 1793058075376.0847,
+      "ack": {
+       "cmdSeq": 5,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 148,
+       "tick": 1048,
+       "wallMs": 1793058075392
+      },
+      "state": "done",
+      "detail": "moved=1",
+      "endSeq": 153,
+      "endWallMs": 1793058075920,
+      "gameMin": 563,
+      "worldAge": 2.3868370056152344,
+      "ms": 626.180908203125
+     },
+     {
+      "goal": "eat",
+      "args": "Base.Oatmeal",
+      "seq": 6,
+      "sentPyMs": 1793058079784.829,
+      "ack": {
+       "cmdSeq": 6,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 173,
+       "tick": 1312,
+       "wallMs": 1793058079791
+      },
+      "state": "done",
+      "detail": "consumed",
+      "endSeq": 199,
+      "endWallMs": 1793058084722,
+      "gameMin": 565,
+      "worldAge": 2.4257640838623047,
+      "ms": 5029.4931640625
+     },
+     {
+      "goal": "drink",
+      "args": "",
+      "seq": 7,
+      "sentPyMs": 1793058090419.5212,
+      "ack": {
+       "cmdSeq": 7,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 228,
+       "tick": 1950,
+       "wallMs": 1793058090425
+      },
+      "state": "done",
+      "detail": "consumed",
+      "endSeq": 231,
+      "endWallMs": 1793058090720,
+      "gameMin": 567,
+      "worldAge": 2.452322006225586,
+      "ms": 318.23486328125
+     },
+     {
+      "goal": "goto",
+      "args": "10997.5 9699.5",
+      "seq": 8,
+      "sentPyMs": 1793058090737.7598,
+      "ack": {
+       "cmdSeq": 8,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 232,
+       "tick": 1970,
+       "wallMs": 1793058090760
+      },
+      "state": "done",
+      "detail": "d=0.98828125",
+      "endSeq": 248,
+      "endWallMs": 1793058093720,
+      "gameMin": 567,
+      "worldAge": 2.4657106399536133,
+      "ms": 3030.00390625
+     }
+    ],
+    "notes": [],
+    "eat_pick": {
+     "fullType": "Base.Oatmeal",
+     "from": "looted",
+     "added": [
+      "Base.Oatmeal",
+      "Base.DrinkingGlass"
+     ]
+    },
+    "server_eat": {
+     "before": {
+      "hunger": 0.3000752031803131,
+      "calories": 792.3941650390625,
+      "wallMs": 1793058079784.8108
+     },
+     "after": [
+      {
+       "hunger": 0.17131605744361877,
+       "calories": 1089.703125,
+       "wallMs": 1793058090419.498
+      }
+     ],
+     "moved": true,
+     "resets": [
+      {
+       "rep": 1,
+       "cmd": "foodtimer.set",
+       "args": "admin 0",
+       "reply": {
+        "requested": 0,
+        "before": 0,
+        "set": true,
+        "after": 0
+       },
+       "wallPyMs": 1793058077767.0347
+      },
+      {
+       "rep": 1,
+       "cmd": "stats.set",
+       "args": "admin hunger 0.3",
+       "reply": {
+        "calories": 792.5736083984375,
+        "carbs": -1.2769101858139038,
+        "lipids": -0.41225969791412354,
+        "proteins": -0.3137551248073578,
+        "weight": 80,
+        "hunger": 0.30000001192092896,
+        "thirst": 0.0028419627342373133,
+        "statsApi": "Stats:get(CharacterStat.HUNGER)",
+        "incWeight": false,
+        "incWeightLot": false,
+        "decWeight": false,
+        "applied": {
+         "hunger": "Stats:set(CharacterStat.HUNGER)"
+        }
+       },
+       "wallPyMs": 1793058079277.3599
+      }
+     ],
+     "client_before": {
+      "hunger": 0.0027771464083343744,
+      "seq": 153,
+      "wallMs": 1793058075920
+     },
+     "client_after": {
+      "hunger": 0.17115065455436707,
+      "seq": 224,
+      "wallMs": 1793058089720
+     }
+    },
+    "completed": true,
+    "pick_food": {
+     "x": 10998,
+     "y": 9698,
+     "z": 0,
+     "dist": 1.4142135623730951,
+     "tier": 1,
+     "items": 4,
+     "food": [
+      "Base.Oatmeal"
+     ],
+     "water": []
+    },
+    "pick_water": {
+     "x": 10999,
+     "y": 9696,
+     "z": 0,
+     "dist": 3.605551275463989,
+     "tier": 1,
+     "items": 8,
+     "food": [],
+     "water": [
+      "Base.DrinkingGlass"
+     ]
+    },
+    "scan": [
+     {
+      "r": 15,
+      "scanId": 1,
+      "seq": 125,
+      "parts": 49,
+      "partsSeen": 49,
+      "squares": 961,
+      "scanMs": 23,
+      "scanTicks": 49,
+      "missing": []
+     }
+    ],
+    "door_food": null,
+    "door_water": null
+   },
+   {
+    "rep": 2,
+    "steps": [
+     {
+      "goal": "scan",
+      "args": "15",
+      "seq": 9,
+      "sentPyMs": 1793058093770.7512,
+      "ack": {
+       "cmdSeq": 9,
+       "kind": "ack",
+       "ok": true,
+       "reason": "queued",
+       "seq": 249,
+       "tick": 2151,
+       "wallMs": 1793058093772
+      },
+      "ms": 856.947265625,
+      "state": "done",
+      "detail": "squares=961 parts=49/49"
+     },
+     {
+      "goal": "scan",
+      "args": "25",
+      "seq": 10,
+      "sentPyMs": 1793058094628.006,
+      "ack": {
+       "cmdSeq": 10,
+       "kind": "ack",
+       "ok": true,
+       "reason": "queued",
+       "seq": 303,
+       "tick": 2203,
+       "wallMs": 1793058094643
+      },
+      "ms": 2263.3515625,
+      "state": "done",
+      "detail": "squares=2601 parts=131/131"
+     },
+     {
+      "goal": "goto",
+      "args": "10999.5 9698.5",
+      "seq": 11,
+      "sentPyMs": 1793058096893.1084,
+      "ack": {
+       "cmdSeq": 11,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 446,
+       "tick": 2339,
+       "wallMs": 1793058096910
+      },
+      "state": "done",
+      "detail": "d=1",
+      "endSeq": 453,
+      "endWallMs": 1793058097922,
+      "gameMin": 569,
+      "worldAge": 2.484231948852539,
+      "ms": 1043.3076171875
+     },
+     {
+      "goal": "loot",
+      "args": "11000 9697 food",
+      "seq": 12,
+      "sentPyMs": 1793058097936.4192,
+      "ack": {
+       "cmdSeq": 12,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 454,
+       "tick": 2401,
+       "wallMs": 1793058097942
+      },
+      "state": "done",
+      "detail": "moved=7",
+      "endSeq": 483,
+      "endWallMs": 1793058102120,
+      "gameMin": 570,
+      "worldAge": 2.502976417541504,
+      "ms": 4277.803955078125
+     },
+     {
+      "goal": "goto",
+      "args": "10980.5 9721.5",
+      "seq": 13,
+      "sentPyMs": 1793058102214.9836,
+      "ack": {
+       "cmdSeq": 13,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 484,
+       "tick": 2658,
+       "wallMs": 1793058102226
+      },
+      "state": "done",
+      "detail": "d=0.9837843318702025",
+      "endSeq": 568,
+      "endWallMs": 1793058118721,
+      "gameMin": 574,
+      "worldAge": 2.575162887573242,
+      "ms": 16524.4951171875
+     },
+     {
+      "goal": "loot",
+      "args": "10979 9722 water",
+      "seq": 14,
+      "sentPyMs": 1793058118739.483,
+      "ack": {
+       "cmdSeq": 14,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 569,
+       "tick": 3650,
+       "wallMs": 1793058118759
+      },
+      "state": "done",
+      "detail": "moved=1",
+      "endSeq": 573,
+      "endWallMs": 1793058119121,
+      "gameMin": 574,
+      "worldAge": 2.5769481658935547,
+      "ms": 420.78271484375
+     },
+     {
+      "goal": "eat",
+      "args": "Base.Bread",
+      "seq": 15,
+      "sentPyMs": 1793058121939.0813,
+      "ack": {
+       "cmdSeq": 15,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 588,
+       "tick": 3842,
+       "wallMs": 1793058121959
+      },
+      "state": "done",
+      "detail": "consumed",
+      "endSeq": 637,
+      "endWallMs": 1793058131520,
+      "gameMin": 577,
+      "worldAge": 2.632112503051758,
+      "ms": 9670.29150390625
+     },
+     {
+      "goal": "drink",
+      "args": "",
+      "seq": 16,
+      "sentPyMs": 1793058137957.3262,
+      "ack": {
+       "cmdSeq": 16,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 670,
+       "tick": 4803,
+       "wallMs": 1793058137974
+      },
+      "state": "done",
+      "detail": "consumed",
+      "endSeq": 673,
+      "endWallMs": 1793058138321,
+      "gameMin": 579,
+      "worldAge": 2.662172317504883,
+      "ms": 425.73095703125
+     },
+     {
+      "goal": "goto",
+      "args": "10997.5 9699.5",
+      "seq": 17,
+      "sentPyMs": 1793058138383.0615,
+      "ack": {
+       "cmdSeq": 17,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 674,
+       "tick": 4828,
+       "wallMs": 1793058138391
+      },
+      "state": "done",
+      "detail": "d=0.981348623191197",
+      "endSeq": 766,
+      "endWallMs": 1793058156522,
+      "gameMin": 584,
+      "worldAge": 2.7431697845458984,
+      "ms": 18197.739501953125
+     }
+    ],
+    "notes": [
+     "no_stocked_container_in_scan"
+    ],
+    "eat_pick": {
+     "fullType": "Base.Bread",
+     "from": "looted",
+     "added": [
+      "Base.Bread",
+      "Base.Frozen_ChickenNuggets",
+      "Base.Frozen_ChickenNuggets",
+      "Base.Sausage",
+      "Base.IcecreamSandwich",
+      "Base.MeatPatty",
+      "Base.TVDinner",
+      "Base.Milk"
+     ]
+    },
+    "server_eat": {
+     "before": {
+      "hunger": 0.3001181185245514,
+      "calories": 1065.37255859375,
+      "wallMs": 1793058121939.0718
+     },
+     "after": [
+      {
+       "hunger": 0.0021294455509632826,
+       "calories": 1593.2711181640625,
+       "wallMs": 1793058137957.3113
+      }
+     ],
+     "moved": true,
+     "resets": [
+      {
+       "rep": 2,
+       "cmd": "foodtimer.set",
+       "args": "admin 0",
+       "reply": {
+        "requested": 0,
+        "before": 0,
+        "set": true,
+        "after": 0
+       },
+       "wallPyMs": 1793058119917.8057
+      },
+      {
+       "rep": 2,
+       "cmd": "stats.set",
+       "args": "admin hunger 0.3",
+       "reply": {
+        "calories": 1065.6544189453125,
+        "carbs": 77.41381072998047,
+        "lipids": 7.842167854309082,
+        "proteins": 14.118817329406738,
+        "weight": 80.00200890891574,
+        "hunger": 0.30000001192092896,
+        "thirst": 0.0036027950700372458,
+        "statsApi": "Stats:get(CharacterStat.HUNGER)",
+        "incWeight": true,
+        "incWeightLot": false,
+        "decWeight": false,
+        "applied": {
+         "hunger": "Stats:set(CharacterStat.HUNGER)"
+        }
+       },
+       "wallPyMs": 1793058120677.8254
+      }
+     ],
+     "client_before": {
+      "hunger": 0.17491646111011505,
+      "seq": 573,
+      "wallMs": 1793058119121
+     },
+     "client_after": {
+      "hunger": 0.0018537278519943357,
+      "seq": 662,
+      "wallMs": 1793058136521
+     }
+    },
+    "completed": true,
+    "pick_food": {
+     "x": 11000,
+     "y": 9697,
+     "z": 0,
+     "dist": 3.091510617275722,
+     "tier": 1,
+     "items": 7,
+     "food": [
+      "Base.Bread",
+      "Base.Sausage",
+      "Base.IcecreamSandwich",
+      "Base.MeatPatty",
+      "Base.TVDinner"
+     ],
+     "water": []
+    },
+    "pick_water": {
+     "x": 10979,
+     "y": 9722,
+     "z": 0,
+     "dist": 29.606514809189015,
+     "tier": 2,
+     "items": 3,
+     "food": [
+      "Base.Potato",
+      "Base.Sausage"
+     ],
+     "water": [
+      "Base.Milk"
+     ]
+    },
+    "scan": [
+     {
+      "r": 15,
+      "scanId": 2,
+      "seq": 302,
+      "parts": 49,
+      "partsSeen": 49,
+      "squares": 961,
+      "scanMs": 22,
+      "scanTicks": 49,
+      "missing": []
+     },
+     {
+      "r": 25,
+      "scanId": 3,
+      "seq": 445,
+      "parts": 131,
+      "partsSeen": 131,
+      "squares": 2601,
+      "scanMs": 54,
+      "scanTicks": 131,
+      "missing": []
+     }
+    ],
+    "door_food": null,
+    "door_water": null
+   },
+   {
+    "rep": 3,
+    "steps": [
+     {
+      "goal": "scan",
+      "args": "15",
+      "seq": 18,
+      "sentPyMs": 1793058156583.8884,
+      "ack": {
+       "cmdSeq": 18,
+       "kind": "ack",
+       "ok": true,
+       "reason": "queued",
+       "seq": 767,
+       "tick": 5920,
+       "wallMs": 1793058156587
+      },
+      "ms": 852.978515625,
+      "state": "done",
+      "detail": "squares=961 parts=49/49"
+     },
+     {
+      "goal": "scan",
+      "args": "25",
+      "seq": 19,
+      "sentPyMs": 1793058157437.139,
+      "ack": {
+       "cmdSeq": 19,
+       "kind": "ack",
+       "ok": true,
+       "reason": "queued",
+       "seq": 821,
+       "tick": 5972,
+       "wallMs": 1793058157457
+      },
+      "ms": 2247.95263671875,
+      "state": "done",
+      "detail": "squares=2601 parts=131/131"
+     },
+     {
+      "goal": "goto",
+      "args": "10980.5 9721.5",
+      "seq": 20,
+      "sentPyMs": 1793058159687.2463,
+      "ack": {
+       "cmdSeq": 20,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 964,
+       "tick": 6107,
+       "wallMs": 1793058159709
+      },
+      "state": "done",
+      "detail": "d=0.971004692529876",
+      "endSeq": 1045,
+      "endWallMs": 1793058175521,
+      "gameMin": 589,
+      "worldAge": 2.8275327682495117,
+      "ms": 15911.98876953125
+     },
+     {
+      "goal": "loot",
+      "args": "10979 9722 food",
+      "seq": 21,
+      "sentPyMs": 1793058175599.239,
+      "ack": {
+       "cmdSeq": 21,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1046,
+       "tick": 7061,
+       "wallMs": 1793058175608
+      },
+      "state": "done",
+      "detail": "moved=2",
+      "endSeq": 1052,
+      "endWallMs": 1793058176121,
+      "gameMin": 589,
+      "worldAge": 2.8302106857299805,
+      "ms": 532.76123046875
+     },
+     {
+      "goal": "open",
+      "args": "10977 9722",
+      "seq": 22,
+      "sentPyMs": 1793058176132.3438,
+      "ack": {
+       "cmdSeq": 22,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1053,
+       "tick": 7093,
+       "wallMs": 1793058176140
+      },
+      "state": "failed",
+      "detail": "locked",
+      "endSeq": 1084,
+      "endWallMs": 1793058182121,
+      "gameMin": 591,
+      "worldAge": 2.8568458557128906,
+      "ms": 6039.268798828125
+     },
+     {
+      "goal": "goto",
+      "args": "10977.5 9721.5",
+      "seq": 23,
+      "sentPyMs": 1793058182171.9429,
+      "ack": {
+       "cmdSeq": 23,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1085,
+       "tick": 7456,
+       "wallMs": 1793058182190
+      },
+      "state": "done",
+      "detail": "d=0.9726881152222582",
+      "endSeq": 1089,
+      "endWallMs": 1793058182722,
+      "gameMin": 591,
+      "worldAge": 2.8595237731933594,
+      "ms": 628.576171875
+     },
+     {
+      "goal": "loot",
+      "args": "10976 9722 water",
+      "seq": 24,
+      "sentPyMs": 1793058182800.5227,
+      "ack": {
+       "cmdSeq": 24,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1090,
+       "tick": 7493,
+       "wallMs": 1793058182807
+      },
+      "state": "done",
+      "detail": "moved=3",
+      "endSeq": 1103,
+      "endWallMs": 1793058184522,
+      "gameMin": 592,
+      "worldAge": 2.867556571960449,
+      "ms": 1772.420654296875
+     },
+     {
+      "goal": "eat",
+      "args": "Base.Potato",
+      "seq": 25,
+      "sentPyMs": 1793058188349.2017,
+      "ack": {
+       "cmdSeq": 25,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1123,
+       "tick": 7826,
+       "wallMs": 1793058188358
+      },
+      "state": "done",
+      "detail": "consumed",
+      "endSeq": 1154,
+      "endWallMs": 1793058194322,
+      "gameMin": 594,
+      "worldAge": 2.911012649536133,
+      "ms": 6042.2255859375
+     },
+     {
+      "goal": "drink",
+      "args": "",
+      "seq": 26,
+      "sentPyMs": 1793058199984.5986,
+      "ack": {
+       "cmdSeq": 26,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1183,
+       "tick": 8524,
+       "wallMs": 1793058199987
+      },
+      "state": "done",
+      "detail": "consumed",
+      "endSeq": 1186,
+      "endWallMs": 1793058200320,
+      "gameMin": 596,
+      "worldAge": 2.9375553131103516,
+      "ms": 429.83837890625
+     },
+     {
+      "goal": "goto",
+      "args": "10997.5 9699.5",
+      "seq": 27,
+      "sentPyMs": 1793058200414.4407,
+      "ack": {
+       "cmdSeq": 27,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1187,
+       "tick": 8550,
+       "wallMs": 1793058200427
+      },
+      "state": "done",
+      "detail": "d=0.981348623191197",
+      "endSeq": 1284,
+      "endWallMs": 1793058219521,
+      "gameMin": 601,
+      "worldAge": 3.0228710174560547,
+      "ms": 19123.0634765625
+     }
+    ],
+    "notes": [
+     "no_stocked_container_in_scan",
+     "door_already_open_food"
+    ],
+    "eat_pick": {
+     "fullType": "Base.Potato",
+     "from": "looted",
+     "added": [
+      "Base.Potato",
+      "Base.Sausage",
+      "Base.Bowl",
+      "Base.GlassTumbler",
+      "Base.Bowl"
+     ]
+    },
+    "server_eat": {
+     "before": {
+      "hunger": 0.300042986869812,
+      "calories": 1551.9207763671875,
+      "wallMs": 1793058188349.1943
+     },
+     "after": [
+      {
+       "hunger": 0.12143980711698532,
+       "calories": 1618.9532470703125,
+       "wallMs": 1793058199984.585
+      }
+     ],
+     "moved": true,
+     "resets": [
+      {
+       "rep": 3,
+       "cmd": "foodtimer.set",
+       "args": "admin 0",
+       "reply": {
+        "requested": 0,
+        "before": 0,
+        "set": true,
+        "after": 0
+       },
+       "wallPyMs": 1793058185832.1777
+      },
+      {
+       "rep": 3,
+       "cmd": "stats.set",
+       "args": "admin hunger 0.3",
+       "reply": {
+        "calories": 1552.02294921875,
+        "carbs": 172.6587371826172,
+        "lipids": 13.289754867553711,
+        "proteins": 30.896137237548828,
+        "weight": 80.00721189237538,
+        "hunger": 0.30000001192092896,
+        "thirst": 0.006143697537481785,
+        "statsApi": "Stats:get(CharacterStat.HUNGER)",
+        "incWeight": true,
+        "incWeightLot": false,
+        "decWeight": false,
+        "applied": {
+         "hunger": "Stats:set(CharacterStat.HUNGER)"
+        }
+       },
+       "wallPyMs": 1793058187842.5515
+      }
+     ],
+     "client_before": {
+      "hunger": 0.009181220084428787,
+      "seq": 1103,
+      "wallMs": 1793058184522
+     },
+     "client_after": {
+      "hunger": 0.12133190780878067,
+      "seq": 1179,
+      "wallMs": 1793058199320
+     }
+    },
+    "completed": false,
+    "pick_food": {
+     "x": 10979,
+     "y": 9722,
+     "z": 0,
+     "dist": 28.615476881549753,
+     "tier": 1,
+     "items": 2,
+     "food": [
+      "Base.Potato",
+      "Base.Sausage"
+     ],
+     "water": []
+    },
+    "pick_water": {
+     "x": 10976,
+     "y": 9722,
+     "z": 0,
+     "dist": 30.533789709656222,
+     "tier": 1,
+     "items": 8,
+     "food": [],
+     "water": [
+      "Base.Bowl",
+      "Base.Bowl"
+     ]
+    },
+    "scan": [
+     {
+      "r": 15,
+      "scanId": 4,
+      "seq": 820,
+      "parts": 49,
+      "partsSeen": 49,
+      "squares": 961,
+      "scanMs": 17,
+      "scanTicks": 49,
+      "missing": []
+     },
+     {
+      "r": 25,
+      "scanId": 5,
+      "seq": 963,
+      "parts": 131,
+      "partsSeen": 131,
+      "squares": 2601,
+      "scanMs": 51,
+      "scanTicks": 131,
+      "missing": []
+     }
+    ],
+    "door_food": {
+     "x": 10995,
+     "y": 9701,
+     "kind": "door",
+     "open": true
+    },
+    "door_water": {
+     "x": 10977,
+     "y": 9722,
+     "kind": "window",
+     "open": false
+    }
+   },
+   {
+    "rep": 4,
+    "steps": [
+     {
+      "goal": "scan",
+      "args": "15",
+      "seq": 28,
+      "sentPyMs": 1793058219544.7612,
+      "ack": {
+       "cmdSeq": 28,
+       "kind": "ack",
+       "ok": true,
+       "reason": "queued",
+       "seq": 1285,
+       "tick": 9698,
+       "wallMs": 1793058219555
+      },
+      "ms": 855.43359375,
+      "state": "done",
+      "detail": "squares=961 parts=49/49"
+     },
+     {
+      "goal": "scan",
+      "args": "25",
+      "seq": 29,
+      "sentPyMs": 1793058220400.4646,
+      "ack": {
+       "cmdSeq": 29,
+       "kind": "ack",
+       "ok": true,
+       "reason": "queued",
+       "seq": 1339,
+       "tick": 9749,
+       "wallMs": 1793058220408
+      },
+      "ms": 2244.912841796875,
+      "state": "done",
+      "detail": "squares=2601 parts=131/131"
+     },
+     {
+      "goal": "goto",
+      "args": "10980.5 9722.5",
+      "seq": 30,
+      "sentPyMs": 1793058222647.6,
+      "ack": {
+       "cmdSeq": 30,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1482,
+       "tick": 9884,
+       "wallMs": 1793058222661
+      },
+      "state": "done",
+      "detail": "d=0.9681768875550083",
+      "endSeq": 1565,
+      "endWallMs": 1793058238920,
+      "gameMin": 606,
+      "worldAge": 3.109023094177246,
+      "ms": 16320.078125
+     },
+     {
+      "goal": "loot",
+      "args": "10979 9723 food",
+      "seq": 31,
+      "sentPyMs": 1793058238967.6824,
+      "ack": {
+       "cmdSeq": 31,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1566,
+       "tick": 10863,
+       "wallMs": 1793058238974
+      },
+      "state": "done",
+      "detail": "moved=2",
+      "endSeq": 1573,
+      "endWallMs": 1793058239721,
+      "gameMin": 606,
+      "worldAge": 3.112593650817871,
+      "ms": 839.22509765625
+     },
+     {
+      "goal": "goto",
+      "args": "",
+      "state": "skipped",
+      "detail": "no water pick"
+     },
+     {
+      "goal": "loot",
+      "args": "water",
+      "state": "skipped",
+      "detail": "no water pick"
+     },
+     {
+      "goal": "eat",
+      "args": "Base.Crisps3",
+      "seq": 32,
+      "sentPyMs": 1793058243835.8274,
+      "ack": {
+       "cmdSeq": 32,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1594,
+       "tick": 11155,
+       "wallMs": 1793058243841
+      },
+      "state": "done",
+      "detail": "consumed",
+      "endSeq": 1626,
+      "endWallMs": 1793058249922,
+      "gameMin": 609,
+      "worldAge": 3.1578168869018555,
+      "ms": 6151.457275390625
+     },
+     {
+      "goal": "drink",
+      "args": "",
+      "seq": 33,
+      "sentPyMs": 1793058255825.3894,
+      "ack": {
+       "cmdSeq": 33,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1656,
+       "tick": 11875,
+       "wallMs": 1793058255843
+      },
+      "state": "done",
+      "detail": "consumed",
+      "endSeq": 1659,
+      "endWallMs": 1793058256120,
+      "gameMin": 611,
+      "worldAge": 3.185488700866699,
+      "ms": 316.93994140625
+     },
+     {
+      "goal": "goto",
+      "args": "10997.5 9699.5",
+      "seq": 34,
+      "sentPyMs": 1793058256142.3372,
+      "ack": {
+       "cmdSeq": 34,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1660,
+       "tick": 11894,
+       "wallMs": 1793058256158
+      },
+      "state": "done",
+      "detail": "d=0.981348623191197",
+      "endSeq": 1756,
+      "endWallMs": 1793058275120,
+      "gameMin": 616,
+      "worldAge": 3.269916534423828,
+      "ms": 18993.360107421875
+     }
+    ],
+    "notes": [
+     "no_stocked_container_in_scan",
+     "no_water_pick",
+     "door_already_open_food"
+    ],
+    "eat_pick": {
+     "fullType": "Base.Crisps3",
+     "from": "looted",
+     "added": [
+      "Base.Crisps3",
+      "Base.Salt"
+     ]
+    },
+    "server_eat": {
+     "before": {
+      "hunger": 0.3002147674560547,
+      "calories": 1578.938232421875,
+      "wallMs": 1793058243835.8208
+     },
+     "after": [
+      {
+       "hunger": 0.15164057910442352,
+       "calories": 2295.86572265625,
+       "wallMs": 1793058255825.3804
+      }
+     ],
+     "moved": true,
+     "resets": [
+      {
+       "rep": 4,
+       "cmd": "foodtimer.set",
+       "args": "admin 0",
+       "reply": {
+        "requested": 0,
+        "before": 0,
+        "set": true,
+        "after": 0
+       },
+       "wallPyMs": 1793058240815.2388
+      },
+      {
+       "rep": 4,
+       "cmd": "stats.set",
+       "args": "admin hunger 0.3",
+       "reply": {
+        "calories": 1579.4498291015625,
+        "carbs": 184.63682556152344,
+        "lipids": 12.464136123657227,
+        "proteins": 33.153629302978516,
+        "weight": 80.01168869588128,
+        "hunger": 0.30000001192092896,
+        "thirst": 0.005181850865483284,
+        "statsApi": "Stats:get(CharacterStat.HUNGER)",
+        "incWeight": true,
+        "incWeightLot": false,
+        "decWeight": false,
+        "applied": {
+         "hunger": "Stats:set(CharacterStat.HUNGER)"
+        }
+       },
+       "wallPyMs": 1793058241822.7944
+      }
+     ],
+     "client_before": {
+      "hunger": 0.12671074271202087,
+      "seq": 1573,
+      "wallMs": 1793058239721
+     },
+     "client_after": {
+      "hunger": 0.15140609443187714,
+      "seq": 1651,
+      "wallMs": 1793058254920
+     }
+    },
+    "completed": false,
+    "pick_food": {
+     "x": 10979,
+     "y": 9723,
+     "z": 0,
+     "dist": 29.41536139347107,
+     "tier": 1,
+     "items": 2,
+     "food": [
+      "Base.Crisps3",
+      "Base.Salt"
+     ],
+     "water": []
+    },
+    "pick_water": null,
+    "scan": [
+     {
+      "r": 15,
+      "scanId": 6,
+      "seq": 1338,
+      "parts": 49,
+      "partsSeen": 49,
+      "squares": 961,
+      "scanMs": 15,
+      "scanTicks": 49,
+      "missing": []
+     },
+     {
+      "r": 25,
+      "scanId": 7,
+      "seq": 1481,
+      "parts": 131,
+      "partsSeen": 131,
+      "squares": 2601,
+      "scanMs": 44,
+      "scanTicks": 131,
+      "missing": []
+     }
+    ],
+    "door_food": {
+     "x": 10995,
+     "y": 9701,
+     "kind": "door",
+     "open": true
+    },
+    "door_water": null
+   },
+   {
+    "rep": 5,
+    "steps": [
+     {
+      "goal": "scan",
+      "args": "15",
+      "seq": 35,
+      "sentPyMs": 1793058275141.768,
+      "ack": {
+       "cmdSeq": 35,
+       "kind": "ack",
+       "ok": true,
+       "reason": "queued",
+       "seq": 1757,
+       "tick": 13034,
+       "wallMs": 1793058275159
+      },
+      "ms": 863.703857421875,
+      "state": "done",
+      "detail": "squares=961 parts=49/49"
+     },
+     {
+      "goal": "scan",
+      "args": "25",
+      "seq": 36,
+      "sentPyMs": 1793058276006.123,
+      "ack": {
+       "cmdSeq": 36,
+       "kind": "ack",
+       "ok": true,
+       "reason": "queued",
+       "seq": 1811,
+       "tick": 13086,
+       "wallMs": 1793058276030
+      },
+      "ms": 2251.03076171875,
+      "state": "done",
+      "detail": "squares=2601 parts=131/131"
+     },
+     {
+      "goal": "open",
+      "args": "10994 9696",
+      "seq": 37,
+      "sentPyMs": 1793058278258.0005,
+      "ack": {
+       "cmdSeq": 37,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1954,
+       "tick": 13221,
+       "wallMs": 1793058278277
+      },
+      "state": "failed",
+      "detail": "locked",
+      "endSeq": 1994,
+      "endWallMs": 1793058285920,
+      "gameMin": 619,
+      "worldAge": 3.317896842956543,
+      "ms": 7686.69384765625
+     },
+     {
+      "goal": "goto",
+      "args": "10981.5 9675.5",
+      "seq": 38,
+      "sentPyMs": 1793058285945.175,
+      "ack": {
+       "cmdSeq": 38,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 1995,
+       "tick": 13682,
+       "wallMs": 1793058285958
+      },
+      "state": "done",
+      "detail": "d=0.981348623191197",
+      "endSeq": 2101,
+      "endWallMs": 1793058306937,
+      "gameMin": 624,
+      "worldAge": 3.4111814498901367,
+      "ms": 21075.30419921875
+     },
+     {
+      "goal": "loot",
+      "args": "10980 9674 food",
+      "seq": 39,
+      "sentPyMs": 1793058307020.4832,
+      "ack": {
+       "cmdSeq": 39,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 2102,
+       "tick": 14946,
+       "wallMs": 1793058307044
+      },
+      "state": "done",
+      "detail": "moved=4",
+      "endSeq": 2116,
+      "endWallMs": 1793058308938,
+      "gameMin": 625,
+      "worldAge": 3.419968605041504,
+      "ms": 1979.433349609375
+     },
+     {
+      "goal": "goto",
+      "args": "",
+      "state": "skipped",
+      "detail": "no water pick"
+     },
+     {
+      "goal": "loot",
+      "args": "water",
+      "state": "skipped",
+      "detail": "no water pick"
+     },
+     {
+      "goal": "eat",
+      "args": "Base.Chocolate",
+      "seq": 40,
+      "sentPyMs": 1793058312271.6646,
+      "ack": {
+       "cmdSeq": 40,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 2133,
+       "tick": 15260,
+       "wallMs": 1793058312276
+      },
+      "state": "done",
+      "detail": "consumed",
+      "endSeq": 2165,
+      "endWallMs": 1793058318337,
+      "gameMin": 627,
+      "worldAge": 3.46169376373291,
+      "ms": 6139.032470703125
+     },
+     {
+      "goal": "drink",
+      "args": "",
+      "seq": 41,
+      "sentPyMs": 1793058323756.081,
+      "ack": {
+       "cmdSeq": 41,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 2193,
+       "tick": 15950,
+       "wallMs": 1793058323775
+      },
+      "state": "done",
+      "detail": "consumed",
+      "endSeq": 2196,
+      "endWallMs": 1793058324139,
+      "gameMin": 629,
+      "worldAge": 3.487579345703125,
+      "ms": 427.040771484375
+     },
+     {
+      "goal": "goto",
+      "args": "10997.5 9699.5",
+      "seq": 42,
+      "sentPyMs": 1793058324183.125,
+      "ack": {
+       "cmdSeq": 42,
+       "kind": "ack",
+       "ok": true,
+       "reason": "",
+       "seq": 2197,
+       "tick": 15975,
+       "wallMs": 1793058324194
+      },
+      "state": "done",
+      "detail": "d=0.9988176986036768",
+      "endSeq": 2312,
+      "endWallMs": 1793058346937,
+      "gameMin": 635,
+      "worldAge": 3.5888309478759766,
+      "ms": 22765.1416015625
+     }
+    ],
+    "notes": [
+     "no_stocked_container_in_scan",
+     "no_water_pick"
+    ],
+    "eat_pick": {
+     "fullType": "Base.Chocolate",
+     "from": "looted",
+     "added": [
+      "Base.Chocolate",
+      "Base.Bread",
+      "Base.SugarCubes"
+     ]
+    },
+    "server_eat": {
+     "before": {
+      "hunger": 0.30003225803375244,
+      "calories": 2247.135498046875,
+      "wallMs": 1793058312271.6553
+     },
+     "after": [
+      {
+       "hunger": 0.10145984590053558,
+       "calories": 3094.13623046875,
+       "wallMs": 1793058323756.0686
+      }
+     ],
+     "moved": true,
+     "resets": [
+      {
+       "rep": 5,
+       "cmd": "foodtimer.set",
+       "args": "admin 0",
+       "reply": {
+        "requested": 0,
+        "before": 0,
+        "set": true,
+        "after": 0
+       },
+       "wallPyMs": 1793058309754.2534
+      },
+      {
+       "rep": 5,
+       "cmd": "stats.set",
+       "args": "admin hunger 0.3",
+       "reply": {
+        "calories": 2247.21240234375,
+        "carbs": 252.71961975097656,
+        "lipids": 56.19947052001953,
+        "proteins": 36.69110107421875,
+        "weight": 80.0196706812003,
+        "hunger": 0.30000001192092896,
+        "thirst": 0.007137086242437363,
+        "statsApi": "Stats:get(CharacterStat.HUNGER)",
+        "incWeight": true,
+        "incWeightLot": false,
+        "decWeight": false,
+        "applied": {
+         "hunger": "Stats:set(CharacterStat.HUNGER)"
+        }
+       },
+       "wallPyMs": 1793058311764.554
+      }
+     ],
+     "client_before": {
+      "hunger": 0.1585405170917511,
+      "seq": 2116,
+      "wallMs": 1793058308938
+     },
+     "client_after": {
+      "hunger": 0.10134949535131454,
+      "seq": 2190,
+      "wallMs": 1793058323337
+     }
+    },
+    "completed": false,
+    "pick_food": {
+     "x": 10980,
+     "y": 9674,
+     "z": 0,
+     "dist": 30.148975961606197,
+     "tier": 1,
+     "items": 5,
+     "food": [
+      "Base.Chocolate",
+      "Base.Bread",
+      "Base.Coffee2",
+      "Base.SugarCubes"
+     ],
+     "water": []
+    },
+    "pick_water": null,
+    "scan": [
+     {
+      "r": 15,
+      "scanId": 8,
+      "seq": 1810,
+      "parts": 49,
+      "partsSeen": 49,
+      "squares": 961,
+      "scanMs": 20,
+      "scanTicks": 49,
+      "missing": []
+     },
+     {
+      "r": 25,
+      "scanId": 9,
+      "seq": 1953,
+      "parts": 131,
+      "partsSeen": 131,
+      "squares": 2601,
+      "scanMs": 54,
+      "scanTicks": 131,
+      "missing": []
+     }
+    ],
+    "door_food": {
+     "x": 10994,
+     "y": 9696,
+     "kind": "window",
+     "open": false
+    },
+    "door_water": null
+   }
+  ]
+ },
+ "world_changes": {
+  "left_in_place": [
+   "RCON additem Base.WaterBottle x5",
+   "RCON additem Base.Apple x5"
+  ],
+  "writes": [
+   {
+    "rep": 1,
+    "cmd": "foodtimer.set",
+    "args": "admin 0",
+    "reply": {
+     "requested": 0,
+     "before": 0,
+     "set": true,
+     "after": 0
+    },
+    "wallPyMs": 1793058077767.0347
+   },
+   {
+    "rep": 1,
+    "cmd": "stats.set",
+    "args": "admin hunger 0.3",
+    "reply": {
+     "calories": 792.5736083984375,
+     "carbs": -1.2769101858139038,
+     "lipids": -0.41225969791412354,
+     "proteins": -0.3137551248073578,
+     "weight": 80,
+     "hunger": 0.30000001192092896,
+     "thirst": 0.0028419627342373133,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "applied": {
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     }
+    },
+    "wallPyMs": 1793058079277.3599
+   },
+   {
+    "rep": 2,
+    "cmd": "foodtimer.set",
+    "args": "admin 0",
+    "reply": {
+     "requested": 0,
+     "before": 0,
+     "set": true,
+     "after": 0
+    },
+    "wallPyMs": 1793058119917.8057
+   },
+   {
+    "rep": 2,
+    "cmd": "stats.set",
+    "args": "admin hunger 0.3",
+    "reply": {
+     "calories": 1065.6544189453125,
+     "carbs": 77.41381072998047,
+     "lipids": 7.842167854309082,
+     "proteins": 14.118817329406738,
+     "weight": 80.00200890891574,
+     "hunger": 0.30000001192092896,
+     "thirst": 0.0036027950700372458,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false,
+     "applied": {
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     }
+    },
+    "wallPyMs": 1793058120677.8254
+   },
+   {
+    "rep": 3,
+    "cmd": "foodtimer.set",
+    "args": "admin 0",
+    "reply": {
+     "requested": 0,
+     "before": 0,
+     "set": true,
+     "after": 0
+    },
+    "wallPyMs": 1793058185832.1777
+   },
+   {
+    "rep": 3,
+    "cmd": "stats.set",
+    "args": "admin hunger 0.3",
+    "reply": {
+     "calories": 1552.02294921875,
+     "carbs": 172.6587371826172,
+     "lipids": 13.289754867553711,
+     "proteins": 30.896137237548828,
+     "weight": 80.00721189237538,
+     "hunger": 0.30000001192092896,
+     "thirst": 0.006143697537481785,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false,
+     "applied": {
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     }
+    },
+    "wallPyMs": 1793058187842.5515
+   },
+   {
+    "rep": 4,
+    "cmd": "foodtimer.set",
+    "args": "admin 0",
+    "reply": {
+     "requested": 0,
+     "before": 0,
+     "set": true,
+     "after": 0
+    },
+    "wallPyMs": 1793058240815.2388
+   },
+   {
+    "rep": 4,
+    "cmd": "stats.set",
+    "args": "admin hunger 0.3",
+    "reply": {
+     "calories": 1579.4498291015625,
+     "carbs": 184.63682556152344,
+     "lipids": 12.464136123657227,
+     "proteins": 33.153629302978516,
+     "weight": 80.01168869588128,
+     "hunger": 0.30000001192092896,
+     "thirst": 0.005181850865483284,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false,
+     "applied": {
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     }
+    },
+    "wallPyMs": 1793058241822.7944
+   },
+   {
+    "rep": 5,
+    "cmd": "foodtimer.set",
+    "args": "admin 0",
+    "reply": {
+     "requested": 0,
+     "before": 0,
+     "set": true,
+     "after": 0
+    },
+    "wallPyMs": 1793058309754.2534
+   },
+   {
+    "rep": 5,
+    "cmd": "stats.set",
+    "args": "admin hunger 0.3",
+    "reply": {
+     "calories": 2247.21240234375,
+     "carbs": 252.71961975097656,
+     "lipids": 56.19947052001953,
+     "proteins": 36.69110107421875,
+     "weight": 80.0196706812003,
+     "hunger": 0.30000001192092896,
+     "thirst": 0.007137086242437363,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false,
+     "applied": {
+      "hunger": "Stats:set(CharacterStat.HUNGER)"
+     }
+    },
+    "wallPyMs": 1793058311764.554
+   }
+  ],
+  "restored": "fixture agent0 restored into the run dir"
+ },
+ "finished": true,
+ "pass1_run": "b_actions-20261026-183143",
+ "run_id": "b_actions_2-20261026-194009",
+ "session_key": "b_actions_2",
+ "driver": "b_actions_2.py",
+ "user": "admin",
+ "profile": {
+  "name": "agent-nozombies",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\agent-nozombies.toml",
+  "fixture": "agent0",
+  "description": "PZTestKit + PZAgent on agent0, the fixture provisioned with Zombies = 6 (none) in its record (Stage A pass 1 met zombies in the agent fixture under Zombies = 6: Zombies is fixed at world generation (#1811), so a fresh fixture is the remedy); [sandbox] Zombies = 6 is kept so the profile restates the value at seed whatever the fixture holds. 90-minute day, sleep allowed.",
+  "mods": [
+   "PZTestKit",
+   "PZAgent"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "PZAgent": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZAgent\\PZAgent"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Zombies": 6
+  },
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "preboot": {
+  "driver": "b_actions_2.py",
+  "profile_path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing/profiles/agent-nozombies.toml",
+  "profile": "agent-nozombies",
+  "commit": "41bf77a6",
+  "harness_lua_commit": "ee23b53c",
+  "harness_py_commit": "52a7de93",
+  "xlib_commit": "45c49217",
+  "agent_commit": "41bf77a6",
+  "harness_lua_dirty": false,
+  "doctor_clean": true,
+  "doctor": [
+   "ok   PZ java processes: none",
+   "ok   ports 27261/27262/27015: free",
+   "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+   "ok   workshop index: 239 mods",
+   "ok   pytest available"
+  ],
+  "lint_errors": [],
+  "driver_checks": {
+   "driver_file": true,
+   "driver_prefix": true,
+   "profile_exists": true,
+   "no_committed_artifact": true,
+   "agent_lua_dirty": false,
+   "pass1_driver_dirty": false,
+   "driver_dirty": false
+  }
+ },
+ "argv": [],
+ "constants": {
+  "PASS1_RUN": "b_actions-20261026-183143",
+  "DRINKWARE_RX": "\\.(DrinkingGlass|Mug[A-Za-z]*)\\b",
+  "NEVER_WATER_RX": "\\.Bleach\\b",
+  "WATER_RX": "\\.(WaterBottle|Pop|Juice|Milk|Soda|Bowl|Pot|Kettle|Bucket)\\b",
+  "inherited_from_b_actions": {
+   "SEQUENCES": 5,
+   "HELLO_TIMEOUT_S": 60.0,
+   "FRAME_TIMEOUT_S": 10.0,
+   "ACK_TIMEOUT_S": 10.0,
+   "SCAN_R": 15,
+   "SCAN_R_WIDE": 25,
+   "SCAN_TIMEOUT_S": 15.0,
+   "GOAL_TIMEOUT_S": 60.0,
+   "EAT_POLL_S": 5.0,
+   "EAT_POLL_MAX_S": 60.0,
+   "EAT_HUNGER": 0.3,
+   "FALLBACK_FOOD": "Base.Apple",
+   "SPAWN": [
+    [
+     "Base.WaterBottle",
+     5
+    ],
+    [
+     "Base.Apple",
+     5
+    ]
+   ],
+   "POLL_S": 0.1,
+   "BUDGET_S": 560.0,
+   "MIN_FREE_GB": 12.0,
+   "CLIENT_ERR_RX": "LuaError|STACK TRACE|attempted index|tried to call nil"
+  }
+ },
+ "fixture": {
+  "name": "agent0",
+  "provision_run": "prov-20261026-102802",
+  "build": "42.21.0"
+ },
+ "driver_commit": "ae894d70",
+ "memory_wait": [
+  {
+   "wall": 1793058009.4676962,
+   "free_gb": 15.83
+  }
+ ],
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 0.0,
+   "free_gb": 15.83
+  },
+  {
+   "tag": "ready",
+   "wall": 51.003,
+   "free_gb": 2.4
+  },
+  {
+   "tag": "after",
+   "wall": 347.088,
+   "free_gb": 15.97
+  }
+ ],
+ "timeline": [
+  {
+   "t": 14.9,
+   "phase": "server_started",
+   "pid": 343588
+  },
+  {
+   "t": 15.0,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 49.8,
+   "phase": "client_ready",
+   "took": 34.3,
+   "user": "admin"
+  },
+  {
+   "t": 49.8,
+   "phase": "session_ready"
+  },
+  {
+   "t": 50.5,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "ping",
+   "ok": true,
+   "got": "\"pong\""
+  },
+  {
+   "t": 51.0,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "ping",
+   "ok": true,
+   "got": "\"pong\""
+  },
+  {
+   "t": 52.6,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.WaterBottle\" 5",
+   "ok": true
+  },
+  {
+   "t": 58.4,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Apple\" 5",
+   "ok": true
+  },
+  {
+   "t": 339.7,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 347.1,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_launch_wall": 0.342,
+ "server_started_wall": 14.886,
+ "server_pid": 343588,
+ "session_ready_wall": 49.746,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "ping",
+   "expect": "pong",
+   "ok": true,
+   "got": "pong"
+  },
+  {
+   "side": "client",
+   "cmd": "ping",
+   "expect": "pong",
+   "ok": true,
+   "got": "pong"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "state_dir": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\b_actions_2-20261026-194009\\clients\\admin\\Lua\\pzagent\\admin",
+ "hello_wait_ms": 7.05712890625,
+ "hello": {
+  "build": "42.21",
+  "kind": "hello",
+  "modVersion": "0.1",
+  "mode": "append",
+  "rate": 5,
+  "seq": 1,
+  "tick": 1,
+  "user": "admin",
+  "wallMs": 1793058057644
+ },
+ "mode": "append",
+ "missing": [],
+ "gaps": [],
+ "bad": 0,
+ "lua_errors": 0,
+ "lua_error_lines": [],
+ "events": {
+  "item_added": 22,
+  "goal_done": 31,
+  "goal_failed": 2
+ },
+ "lines_read": 2312,
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 31.7,
+   "ready": 34.3
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "client_error": "LuaError|STACK TRACE|attempted index|tried to call nil"
+  },
+  "clients": {
+   "admin": []
+  }
+ },
+ "client_lua_errors": 0,
+ "bus_dead": null,
+ "copied": [],
+ "wall_seconds": 347.1
+}

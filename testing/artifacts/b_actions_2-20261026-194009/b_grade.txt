@@ -1,0 +1,19 @@
+{
+ "completed": 2,
+ "eats_seen_by_server": 5,
+ "failing_steps": [
+  "goto:no water pick",
+  "loot:no water pick",
+  "open:locked"
+ ],
+ "pass": {
+  "completed": false,
+  "eats_seen_by_server": true,
+  "reasons_in_set": true
+ },
+ "reasons_in_set": true,
+ "reasons_outside_set": [],
+ "rows": 5,
+ "sequences": 5,
+ "verdict": "NO-GO"
+}
