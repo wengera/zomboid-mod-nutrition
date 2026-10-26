@@ -1,12 +1,5 @@
-import importlib.util, json, os
-
-# tests/agent is itself a package named "agent" (relative imports in the Lua tests), so it shadows
-# testing/agent; load link.py by path instead of "from agent.link import Link".
-_p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "agent", "link.py")
-_spec = importlib.util.spec_from_file_location("pzagent_link", _p)
-_mod = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_mod)
-Link = _mod.Link
+import json, os
+from agent.link import Link
 
 
 class FakeMod:

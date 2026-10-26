@@ -1,9 +1,11 @@
 """The lupa host for PZAgent's Lua: Python stubs stand in for the Java globals (ruling P21-3)."""
 import os
+import sys
 import pytest
 from lupa import LuaRuntime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.join(ROOT, "testing"))
 LUA = os.path.join(ROOT, "testing", "PZAgent", "PZAgent", "42", "media", "lua")
 
 
