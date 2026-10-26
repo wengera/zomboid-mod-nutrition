@@ -1,13 +1,15 @@
 -- PZAgent_Act.lua — the goals (spec § 2.3). One goal at a time; each is a per-tick state machine that
 -- sets state done|failed with a detail from its closed set, the `-- reasons:` line below (agent/reasons.py parses it). The walk is the game's own timed action,
 -- queued the way the harness's player.walk does [#2082: setRunning(true) does not make a walk run].
--- args: goto x y [run]; open x y; loot x y [food|water|weapon|bandage|all]; eat <fullType>; drink. Every x y is a
--- world square coordinate, as a scan reports it (an offset goes stale while the player moves).
+-- args: goto x y [run]; open x y; loot x y [food|water|weapon|bandage|all]; eat <fullType>; drink; fight; flee x y;
+-- sleep. Every x y is a world square coordinate, as a scan reports it (an offset goes stale while the player moves).
 -- details: goto no square|no path|stuck; open no square|no door|locked|not adjacent; loot not loaded|no container|
--- not adjacent|empty|no match|interrupted; eat, drink none held|not valid|interrupted; any running goal superseded.
+-- not adjacent|empty|no match|interrupted; eat, drink none held|not valid|interrupted; fight done clear, failed
+-- no weapon|weapon broke|low health; flee done at, failed cornered; sleep done awake, failed not allowed|
+-- interrupted; any running goal superseded. The done details clear|at|awake sit in the closed set beside them.
 -- open's locked is read after the toggle: a door or window still shut OPEN_MS after its queued open reads
 -- locked (locked from outside, a stuck door, a smashed or invincible window); only a barricade fails it up front.
--- reasons: bad args|no square|no path|stuck|superseded|no door|locked|not adjacent|no container|not loaded|empty|no match|none held|interrupted|not valid
+-- reasons: bad args|no square|no path|stuck|superseded|no door|locked|not adjacent|no container|not loaded|empty|no match|none held|interrupted|not valid|clear|no weapon|weapon broke|low health|at|cornered|awake|not allowed
 PZA.act = PZA.act or {}
 local A = PZA.act
 A.goals = A.goals or {}
@@ -210,11 +212,22 @@ local function adjacentTo(p, x, y, z)
     return bx, by
 end
 
--- a goto state aimed at square (x, y)'s centre, set up the way A.start sets a goal
-local function subGoto(x, y)
-    local _, _, st = A.goals["goto"].start({ x + 0.5, y + 0.5 })
+-- a goto state aimed at square (x, y)'s centre, set up the way A.start sets a goal; run makes it a run
+local function subGoto(x, y, run)
+    local argv = { x + 0.5, y + 0.5 }
+    if run then argv[3] = "run" end
+    local _, _, st = A.goals["goto"].start(argv)
     st.seq, st.name, st.state, st.detail, st.argv, st.ticks = 0, "goto", "running", "", {}, 0
     return st
+end
+
+-- one tick of g.sub while it runs; its state after
+local function tickSub(p, g)
+    if g.sub.state == "running" then
+        g.sub.ticks = g.sub.ticks + 1
+        A.goals["goto"].tick(p, g.sub)
+    end
+    return g.sub.state
 end
 
 -- walks next to (g.x, g.y): "here" once within one square, "walk" while the sub-goto runs, "fail" when
@@ -226,12 +239,9 @@ local function approach(p, g)
         if ax == nil then return "fail" end
         g.sub = subGoto(ax, ay)
     end
-    if g.sub.state == "running" then
-        g.sub.ticks = g.sub.ticks + 1
-        A.goals["goto"].tick(p, g.sub)
-    end
-    if g.sub.state == "running" then return "walk" end
-    if g.sub.state == "done" then return "here" end
+    local st = tickSub(p, g)
+    if st == "running" then return "walk" end
+    if st == "done" then return "here" end
     return "fail"
 end
 
@@ -424,5 +434,167 @@ A.goals["drink"] = {
         local _, amount = PZA.call(g.fc, "getAmount")
         if amount ~= nil and amount < g.before then g.state, g.detail = "done", "consumed"; return end
         if PZA.now() - g.queuedAt > A.CONSUME_MS then g.state, g.detail = "failed", "interrupted" end
+    end,
+}
+
+-- ---- fight, flee, sleep -------------------------------------------------------------------------
+-- fight swings the way the harness's attack.melee does (PZTestKit_Client.lua: faceThisObject(z), then
+-- DoAttack(0) on a 1200 ms cadence); DoAttack is reached through PZA.call, which indexes before it calls, under
+-- pcall. sleep is vanilla's own ground sleep with its dialog answered: ISWorldObjectContextMenu.onConfirmSleep
+-- (this, button, player, bed) with button.internal "YES" and bed nil, which runs the vanilla checks (zombies in
+-- sight, pain, panic) and sets the character asleep; a refusal there is a halo text, so a sleep that never
+-- comes within SLEEP_WAIT_MS reads as not allowed.
+A.FIGHT_R = 3             -- a zombie this close is fought
+A.SWING_MS = 1200         -- the swing cadence, the harness's attack.melee nextAt
+A.GRAB_R = 1.0            -- inside this, with no swing due, the player steps back
+A.STEP_BACK = 2           -- tiles stepped back, along the zombie-to-player line
+A.FLEE_HEALTH = 40        -- overall body health under this fails a fight (Python decides what next)
+A.CLEAR_TICKS = 60        -- ticks with no live zombie within PZA.sense.ZOMBIE_RADIUS before a fight is done
+A.FLEE_REPLAN_TICKS = 30  -- a flee re-aims this often, away from the zombies' centroid
+A.FLEE_DIST = 8           -- tiles a re-aimed flee runs from the player's position
+A.SLEEP_WAIT_MS = 10000   -- a sleep not begun within this wall time is not allowed
+
+-- the live zombies within r of the player, as {z, x, y, d}, and the nearest of them
+local function liveZombies(p, r)
+    local out, best = {}, nil
+    local cell = getCell and getCell() or nil
+    local _, list = PZA.call(cell, "getZombieList")
+    local okN, n = PZA.call(list, "size")
+    if not okN then return out, nil end
+    local px, py = p:getX(), p:getY()
+    for i = 0, n - 1 do
+        local _, z = PZA.call(list, "get", i)
+        local _, dead = PZA.call(z, "isDead")
+        if z ~= nil and dead ~= true then
+            local zx, zy = z:getX(), z:getY()
+            local ex, ey = zx - px, zy - py
+            local d = math.sqrt(ex * ex + ey * ey)
+            if d <= r then
+                local e = { z = z, x = zx, y = zy, d = d }
+                out[#out + 1] = e
+                if best == nil or d < best.d then best = e end
+            end
+        end
+    end
+    return out, best
+end
+
+local function healthOf(p)
+    local _, bd = PZA.call(p, "getBodyDamage")
+    local ok, h = PZA.call(bd, "getOverallBodyHealth")
+    if ok then return h end
+    return nil
+end
+
+-- the square `dist` tiles from the player along the unit vector away from (ax, ay), or nil when the
+-- player stands on that point
+local function awayFrom(p, ax, ay, dist)
+    local px, py = p:getX(), p:getY()
+    local vx, vy = px - ax, py - ay
+    local n = math.sqrt(vx * vx + vy * vy)
+    if n == 0 then return nil, nil end
+    return math.floor(px + vx / n * dist), math.floor(py + vy / n * dist)
+end
+
+A.goals["fight"] = {
+    start = function(argv) return true, "", { quiet = 0 } end,
+    tick = function(p, g)
+        local _, w = PZA.call(p, "getPrimaryHandItem")
+        if w == nil then g.state, g.detail = "failed", "no weapon"; return end
+        local okC, cond = PZA.call(w, "getCondition")
+        if okC and cond ~= nil and cond <= 0 then g.state, g.detail = "failed", "weapon broke"; return end
+        local h = healthOf(p)
+        if h ~= nil and h < A.FLEE_HEALTH then g.state, g.detail = "failed", "low health"; return end
+        local zs, near = liveZombies(p, PZA.sense.ZOMBIE_RADIUS)
+        if near == nil then
+            g.quiet = g.quiet + 1
+            if g.quiet >= A.CLEAR_TICKS then g.state, g.detail = "done", "clear" end
+            return
+        end
+        g.quiet = 0
+        if g.sub ~= nil then
+            if tickSub(p, g) == "running" then return end
+            g.sub = nil
+        end
+        if near.d > A.FIGHT_R then return end
+        PZA.call(p, "faceThisObject", near.z)
+        local now = PZA.now()
+        if g.lastSwing == nil or now - g.lastSwing >= A.SWING_MS then
+            pcall(PZA.call, p, "DoAttack", 0)
+            g.lastSwing = now
+            return
+        end
+        if near.d < A.GRAB_R then
+            local bx, by = awayFrom(p, near.x, near.y, A.STEP_BACK)
+            if bx == nil then return end
+            g.sub = subGoto(bx, by, false)
+            tickSub(p, g)
+        end
+    end,
+}
+
+-- re-aims a flee FLEE_DIST tiles from the player, away from the centroid of the live zombies in sense
+-- radius; a target square that is unknown or solid keeps the current walk. The new walk inherits the
+-- old one's stuck count, so re-aiming never hides a player who is not moving.
+local function fleeReplan(p, g)
+    local zs = liveZombies(p, PZA.sense.ZOMBIE_RADIUS)
+    if #zs == 0 then return end
+    local cx, cy = 0, 0
+    for _, e in ipairs(zs) do cx, cy = cx + e.x, cy + e.y end
+    local tx, ty = awayFrom(p, cx / #zs, cy / #zs, A.FLEE_DIST)
+    if tx == nil then return end
+    local sq = squareAt(tx, ty, p:getZ())
+    local _, solid = PZA.call(sq, "isSolid")
+    if sq == nil or solid == true then return end
+    local old = g.sub
+    pcall(ISTimedActionQueue.clear, p)
+    g.sub = subGoto(tx, ty, true)
+    g.sub.still, g.sub.replans, g.sub.lastX, g.sub.lastY = old.still, old.replans, old.lastX, old.lastY
+end
+
+A.goals["flee"] = {
+    start = function(argv)
+        local x, y = xyArgs(argv)
+        if x == nil then return false, "bad args" end
+        return true, "", { x = x, y = y }
+    end,
+    tick = function(p, g)
+        if g.sub == nil then g.sub = subGoto(g.x, g.y, true) end
+        if g.ticks % A.FLEE_REPLAN_TICKS == 0 then fleeReplan(p, g) end
+        local st = tickSub(p, g)
+        if st == "done" then g.state, g.detail = "done", "at"; return end
+        if st == "failed" then g.state, g.detail = "failed", "cornered" end
+    end,
+}
+
+-- done awake when isAsleep goes true then false; woken with less health than it lay down with, or with a
+-- live zombie in sense radius, it is interrupted
+A.goals["sleep"] = {
+    start = function(argv) return true, "", {} end,
+    tick = function(p, g)
+        if g.calledAt == nil then
+            local menu = ISWorldObjectContextMenu
+            local fn = menu ~= nil and menu.onConfirmSleep or nil
+            if fn == nil then g.state, g.detail = "failed", "not allowed"; return end
+            local _, num = PZA.call(p, "getPlayerNum")
+            local ran = pcall(fn, nil, { internal = "YES" }, num or 0, nil)
+            if not ran then g.state, g.detail = "failed", "not allowed"; return end
+            g.calledAt, g.hp = PZA.now(), healthOf(p)
+            return
+        end
+        local okA, asleep = PZA.call(p, "isAsleep")
+        if not okA then g.state, g.detail = "failed", "not allowed"; return end
+        if asleep == true then g.slept = true; return end
+        if g.slept then
+            local h = healthOf(p)
+            local _, near = liveZombies(p, PZA.sense.ZOMBIE_RADIUS)
+            if (h ~= nil and g.hp ~= nil and h < g.hp) or near ~= nil then
+                g.state, g.detail = "failed", "interrupted"
+            else
+                g.state, g.detail = "done", "awake"
+            end
+            return
+        end
+        if PZA.now() - g.calledAt > A.SLEEP_WAIT_MS then g.state, g.detail = "failed", "not allowed" end
     end,
 }

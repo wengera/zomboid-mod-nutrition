@@ -1,5 +1,5 @@
 import pytest
-from .conftest import lua_file, make_player, make_cell, J
+from .conftest import lua_file, make_player, make_cell, make_zombie, J
 
 
 def load(lua):
@@ -565,3 +565,239 @@ def test_drink_with_is_poisonous_absent_is_none_held(lua):
     lua.eval("PZA.act.start({seq=1, goal='drink', args=''})")
     assert tick(lua, p)["detail"] == "none held"
     assert g._queue.adds == []
+
+
+# ---- Task 11: fight, flee, sleep -------------------------------------------------------------
+
+def weapon(cond=10):
+    c = {"v": cond}
+    w = J(_cls="HandWeapon", getFullType=lambda s: "Base.BaseballBat", getCondition=lambda s: c["v"])
+    w.cond = c
+    return w
+
+
+def health_player(hp, **k):
+    """a make_player whose overall body health reads hp["v"]"""
+    p = make_player(**k)
+    bd = J(getOverallBodyHealth=lambda s: hp["v"])
+    p.getBodyDamage = lambda s: bd
+    return p
+
+
+def open_squares(cx, cy, r=12):
+    return {(x, y, 0): osq(x, y) for x in range(cx - r, cx + r + 1) for y in range(cy - r, cy + r + 1)}
+
+
+def test_fight_faces_and_swings_on_the_1200_ms_cooldown(lua):
+    load(lua)
+    g = lua.globals()
+    z = make_zombie(7, 12.0, 20.0)
+    g._cell = make_cell(zombies=[z])
+    p = make_player(weapon=weapon())
+    assert lua.eval("PZA.act.start({seq=1, goal='fight', args=''})")[0] is True
+    st = tick(lua, p)
+    assert st["state"] == "running" and p.faced == [z] and p.attacks == [0]     # DoAttack(0), the harness's call
+    g._clock["ms"] += 1199
+    tick(lua, p)
+    assert p.attacks == [0]
+    g._clock["ms"] += 1
+    tick(lua, p)
+    assert p.attacks == [0, 0] and len(p.faced) == 3
+
+
+def test_fight_waits_beyond_fight_r_and_ignores_the_dead(lua):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(zombies=[make_zombie(1, 14.0, 20.0), make_zombie(2, 11.0, 20.0, dead=True)])
+    p = make_player(weapon=weapon())
+    lua.eval("PZA.act.start({seq=1, goal='fight', args=''})")
+    assert tick(lua, p)["state"] == "running"
+    assert p.attacks == [] and p.faced == []          # 4 tiles is outside FIGHT_R = 3; the dead one is no threat
+
+
+def test_fight_steps_back_two_tiles_inside_the_grab_window(lua):
+    load(lua)
+    g = lua.globals()
+    z = make_zombie(7, 10.5, 20.0)                      # 0.5 east of the player at (10, 20)
+    g._cell = make_cell(zombies=[z], squares=open_squares(10, 20))
+    p = make_player(weapon=weapon())
+    lua.eval("PZA.act.start({seq=1, goal='fight', args=''})")
+    tick(lua, p)
+    assert p.attacks == [0] and g._queue.adds == []     # the swing is due first
+    st = tick(lua, p)                                   # no swing due, dist < 1: a walk 2 tiles west
+    walk = g._queue.adds[-1]
+    assert walk.Type == "ISWalkToTimedAction" and (walk.sq.getX(walk.sq), walk.sq.getY(walk.sq)) == (8, 20)
+    assert st["state"] == "running" and p.attacks == [0]
+    tick(lua, p)
+    assert len(g._queue.adds) == 1                      # the step back runs; it is not re-queued each tick
+
+
+def test_fight_done_clear_after_60_quiet_ticks(lua):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(zombies=[make_zombie(1, 12.0, 20.0)])
+    p = make_player(weapon=weapon())
+    lua.eval("PZA.act.start({seq=1, goal='fight', args=''})")
+    tick(lua, p)
+    g._cell = make_cell(zombies=[make_zombie(1, 12.0, 20.0, dead=True)])
+    assert tick(lua, p, 59)["state"] == "running"
+    st = tick(lua, p)
+    assert st["state"] == "done" and st["detail"] == "clear"
+
+
+def test_fight_failures(lua):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(zombies=[make_zombie(1, 12.0, 20.0)])
+    lua.eval("PZA.act.start({seq=1, goal='fight', args=''})")
+    assert tick(lua, make_player())["detail"] == "no weapon"
+    lua.eval("PZA.act.start({seq=2, goal='fight', args=''})")
+    assert tick(lua, make_player(weapon=weapon(cond=0)))["detail"] == "weapon broke"
+    hp = {"v": 80.0}
+    p = health_player(hp, weapon=weapon())
+    lua.eval("PZA.act.start({seq=3, goal='fight', args=''})")
+    assert tick(lua, p)["state"] == "running"
+    hp["v"] = 39.9
+    st = tick(lua, p)
+    assert st["state"] == "failed" and st["detail"] == "low health"
+
+
+def test_fight_never_calls_an_absent_do_attack(lua):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(zombies=[make_zombie(1, 12.0, 20.0)])
+    p = make_player(weapon=weapon())
+    p.DoAttack = None
+    lua.eval("PZA.act.start({seq=1, goal='fight', args=''})")
+    assert tick(lua, p)["state"] == "running" and lua.eval("PZA.errors") == 0
+
+
+def test_flee_runs_to_its_target_and_is_done_at(lua):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(squares=open_squares(10, 20))
+    pos = {"x": 10.0}
+    p = make_player(); p.getX = lambda s: pos["x"]
+    runs = []
+    p.setRunning = lambda s, v: runs.append(v)
+    assert lua.eval("PZA.act.start({seq=1, goal='flee', args='18 20'})")[0] is True
+    st = tick(lua, p)
+    walk = g._queue.adds[-1]
+    assert st["state"] == "running" and runs == [True] and (walk.sq.getX(walk.sq), walk.sq.getY(walk.sq)) == (18, 20)
+    pos["x"] = 18.2
+    st = tick(lua, p)
+    assert st["state"] == "done" and st["detail"] == "at"
+    assert lua.eval("PZA.act.start({seq=2, goal='flee', args='18'})") == (False, "bad args")
+
+
+def test_flee_replans_every_30_ticks_away_from_the_zombie_centroid(lua):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(zombies=[make_zombie(1, 10.0, 18.0), make_zombie(2, 10.0, 16.0)],
+                        squares=open_squares(10, 20, r=10))
+    p = make_player()                                   # at (10, 20); the centroid is (10, 17), north
+    lua.eval("PZA.act.start({seq=1, goal='flee', args='14 20'})")
+    tick(lua, p, 29)
+    assert len(g._queue.adds) == 1
+    tick(lua, p)                                        # tick 30: 8 tiles south of the player
+    walk = g._queue.adds[-1]
+    assert len(g._queue.adds) == 2 and (walk.sq.getX(walk.sq), walk.sq.getY(walk.sq)) == (10, 28)
+    assert g._queue.cleared >= 1 and lua.eval("PZA.act.status().state") == "running"
+
+
+def test_flee_replan_keeps_its_walk_when_the_away_square_is_unknown(lua):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(zombies=[make_zombie(1, 10.0, 17.0)], squares={(14, 20, 0): osq(14, 20)})
+    p = make_player()
+    lua.eval("PZA.act.start({seq=1, goal='flee', args='14 20'})")
+    st = tick(lua, p, 30)
+    assert len(g._queue.adds) == 1 and st["state"] == "running"
+
+
+def test_flee_cornered_on_no_square_or_stuck(lua):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(squares={})
+    lua.eval("PZA.act.start({seq=1, goal='flee', args='18 20'})")
+    st = tick(lua, make_player())
+    assert st["state"] == "failed" and st["detail"] == "cornered"
+    g._cell = make_cell(squares={(18, 20, 0): osq(18, 20)})
+    lua.eval("PZA.act.start({seq=2, goal='flee', args='18 20'})")
+    st = tick(lua, make_player(), 4 * 90 + 5)            # the player never moves: the walk is stuck
+    assert st["state"] == "failed" and st["detail"] == "cornered"
+
+
+def test_sleep_calls_the_vanilla_ground_sleep_and_is_done_awake(lua):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    assert lua.eval("PZA.act.start({seq=1, goal='sleep', args=''})")[0] is True
+    st = tick(lua, p)
+    assert list(g._sleeps) == [("YES", 0, None)] and st["state"] == "running"   # the ground: bed nil
+    p.asleep["v"] = True
+    g._clock["ms"] += 60000                             # asleep past the 10 s wait is still running
+    assert tick(lua, p, 3)["state"] == "running"
+    p.asleep["v"] = False
+    st = tick(lua, p)
+    assert st["state"] == "done" and st["detail"] == "awake"
+
+
+def test_sleep_not_allowed_when_the_call_raises_or_sleep_never_comes(lua):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    g._sleep["raise"] = True
+    lua.eval("PZA.act.start({seq=1, goal='sleep', args=''})")
+    assert tick(lua, p)["detail"] == "not allowed"
+    g._sleep["raise"] = False
+    lua.eval("PZA.act.start({seq=2, goal='sleep', args=''})")
+    tick(lua, p)
+    g._clock["ms"] += 10000
+    assert tick(lua, p)["state"] == "running"
+    g._clock["ms"] += 1
+    st = tick(lua, p)
+    assert st["state"] == "failed" and st["detail"] == "not allowed"
+    g.ISWorldObjectContextMenu = None                   # the entry absent: refused, never nil-called
+    lua.eval("PZA.act.start({seq=3, goal='sleep', args=''})")
+    assert tick(lua, p)["detail"] == "not allowed"
+    p.isAsleep = None                                   # isAsleep absent: fails closed
+    g.ISWorldObjectContextMenu = lua.eval("{onConfirmSleep = function() end}")
+    lua.eval("PZA.act.start({seq=4, goal='sleep', args=''})")
+    tick(lua, p)
+    assert tick(lua, p)["detail"] == "not allowed"
+
+
+def test_sleep_interrupted_when_woken_by_a_hit_or_a_zombie(lua):
+    load(lua)
+    g = lua.globals()
+    hp = {"v": 90.0}
+    p = health_player(hp)
+    lua.eval("PZA.act.start({seq=1, goal='sleep', args=''})")
+    tick(lua, p)
+    p.asleep["v"] = True
+    tick(lua, p)
+    hp["v"] = 70.0
+    p.asleep["v"] = False
+    st = tick(lua, p)
+    assert st["state"] == "failed" and st["detail"] == "interrupted"
+    hp["v"] = 90.0
+    lua.eval("PZA.act.start({seq=2, goal='sleep', args=''})")
+    tick(lua, p)
+    p.asleep["v"] = True
+    tick(lua, p)
+    g._cell = make_cell(zombies=[make_zombie(1, 15.0, 20.0)])
+    p.asleep["v"] = False
+    assert tick(lua, p)["detail"] == "interrupted"
+
+
+def test_task11_details_are_in_the_header_reasons_line():
+    import re
+    src = open(lua_file("client/PZAgent_Act.lua"), encoding="utf-8").read()
+    header = [l for l in src.splitlines() if l.startswith("-- reasons: ")][0]
+    closed = set(header[len("-- reasons: "):].strip().split("|"))
+    used = set(re.findall(r'"failed",\s*"([^"]+)"', src))
+    for x in ("no weapon", "weapon broke", "low health", "cornered", "not allowed", "interrupted"):
+        assert x in used and x in closed
+    for x in ("clear", "at", "awake"):
+        assert x in closed and re.search(r'"done",\s*"%s"' % x, src)

@@ -71,17 +71,24 @@ STAT_NAMES = ("HUNGER", "THIRST", "FATIGUE", "ENDURANCE", "PANIC", "PAIN", "FOOD
 MOODLE_NAMES = ("HUNGRY", "THIRST", "TIRED", "ENDURANCE", "PANIC", "PAIN", "INJURED", "BLEEDING", "SICK", "WET", "STRESS", "UNHAPPY")
 
 
-def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_levels=None):
+def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_levels=None, weapon=None):
+    """`weapon` is the primary hand item; faceThisObject and DoAttack record into p.faced and p.attacks, and
+    isAsleep answers p.asleep["v"] (Task 11's fight and sleep)."""
     vals = {"HUNGER": hunger, "THIRST": 0.2, "FATIGUE": 0.1, "ENDURANCE": 0.9, "PANIC": 0.0, "PAIN": 0.0,
             "FOOD_SICKNESS": 0.0, "WETNESS": 5.0, "TEMPERATURE": 37.0}
     stats = J(get=lambda s, stat: vals[stat])
     levels = moodle_levels or {}
     bd = J(getOverallBodyHealth=lambda s: health, getHealth=lambda s: health)
     inv = J(getItems=lambda s: J(size=lambda s2: len(items), get=lambda s2, i: J(getFullType=lambda s3, i=i: items[i])))
-    return J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: z, getDir=lambda s: "N",
-             isPlayerMoving=lambda s: False, IsRunning=lambda s: False, isSprinting=lambda s: False,
-             getStats=lambda s: stats, getBodyDamage=lambda s: bd, getInventory=lambda s: inv,
-             getPrimaryHandItem=lambda s: None, getMoodles=lambda s: J(getMoodleLevel=lambda s2, t: levels.get(t, 0)))
+    faced, attacks, asleep = [], [], {"v": False}
+    p = J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: z, getDir=lambda s: "N",
+          isPlayerMoving=lambda s: False, IsRunning=lambda s: False, isSprinting=lambda s: False,
+          getStats=lambda s: stats, getBodyDamage=lambda s: bd, getInventory=lambda s: inv,
+          getPrimaryHandItem=lambda s: weapon, getMoodles=lambda s: J(getMoodleLevel=lambda s2, t: levels.get(t, 0)),
+          faceThisObject=lambda s, o: faced.append(o), DoAttack=lambda s, f: attacks.append(f) or True,
+          isAsleep=lambda s: asleep["v"], getPlayerNum=lambda s: 0)
+    p.faced, p.attacks, p.asleep = faced, attacks, asleep
+    return p
 
 
 def make_zombie(zid, x, y, dead=False):
@@ -124,10 +131,14 @@ def lua(fs):
 
 
 def make_lua(fs, runtime=lua51.LuaRuntime):
-    """The stubbed host, Lua 5.1 by default. Under lupa's default (Lua 5.5) runtime a Lua GC can leave a
-    stale Python wrapper that a later call reaches as a different object (seen as 'J object is not
-    callable' in the loot filters test, gone with collectgarbage('stop'))."""
+    """The stubbed host, Lua 5.1 by default, with Lua's collector stopped. Under lupa 2.8, on either runtime, a
+    Lua collection can leave a Python object's wrapper resolving to a different object: a Lua function that
+    calls p:getX() each call and W:new(p, sq) every 90th call, on plain Python objects, reads p as a function
+    after 541 calls (seen here as a goto's p:getX() reading nil a tick after its third re-plan, and earlier as
+    'J object is not callable' in the loot filters test); with collectgarbage('stop') it ran 50000 calls
+    clean. The real client is Kahlua on the JVM, so the collector is no part of what these tests check."""
     L = runtime(unpack_returned_tuples=True)
+    L.execute("collectgarbage('stop')")
     g = L.globals()
     g.getFileWriter = fs.writer
     g.getFileReader = fs.reader
@@ -160,6 +171,15 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
                                                          isValidStart=lambda s: valid["start"]))
     g.ISDrinkFluidAction = J(new=lambda cls, p, item, pct: J(Type="ISDrinkFluidAction", character=p, item=item, pct=pct,
                                                             isValidStart=lambda s: valid["start"]))
+    # the vanilla sleep entry Act calls, ISWorldObjectContextMenu.onConfirmSleep(this, button, player, bed), a Lua
+    # function as in the game: each call lands in g._sleeps as (button.internal, player, bed), and with
+    # g._sleep["raise"] set it raises a Lua error instead
+    sleeps, sleep = [], {"raise": False}
+    g._sleeps, g._sleep = sleeps, sleep
+    g._sleepRec = lambda internal, player, bed: sleeps.append((internal, player, bed))
+    L.execute("ISWorldObjectContextMenu = { onConfirmSleep = function(this, button, player, bed)"
+              " if _sleep.raise then error('onConfirmSleep raised') end"
+              " _sleepRec(button.internal, player, bed) end }")
     handlers = []
     g._handlers = handlers
     g.Events = J(OnTick=J(Add=lambda f: handlers.append(f)))
