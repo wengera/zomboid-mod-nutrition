@@ -142,8 +142,8 @@ The `Ruling:` lines of `.superpowers/sdd/2026-10-26-plan-21-agent-harness/progre
 14. Ruling: every position goal takes absolute world coordinates (goto included; the plan's goto dx dy is dropped) — the planner works from scan coordinates and an offset goes stale while moving — cost if wrong: Task 8's motion phase computes x±10 from the frame.
 15. Ruling: not adjacent and interrupted join loot's closed set; a loot timeout with nothing moved fails interrupted; open handles windows through ISOpenCloseWindow when the install has it.
 16. Ruling (inline, ledger l.96, Task 5b): A command-tick flush is not counted (ruled; the frame tick's own write is the cost).
-17. Ruling (inline, ledger l.103, Task 8): Budget: a worst-case motion phase overruns 540 s and stops cleanly as NO-GO (ruled acceptable).
-18. Ruling: goto clears its walk at done (and sub-walks likewise) — the leftover walk corrupts the next goal's start — cost if wrong: a one-tile stop at each goal end.
+17. Ruling: goto clears its walk at done (and sub-walks likewise) — the leftover walk corrupts the next goal's start — cost if wrong: a one-tile stop at each goal end.
+18. Ruling (inline, ledger l.103, Task 8): Budget: a worst-case motion phase overruns 540 s and stops cleanly as NO-GO (ruled acceptable).
 19. Ruling: Stage B resets the server's food timer and sets hunger 0.3 before each eat (recorded in world_changes) — the stage grades the actions, not the appetite — cost if wrong: the eat reading is of a prepared character, said in the guide.
 20. Ruling: pass 2 is allowed (budget 3): the scan is spread over ticks (a chunked scan, N squares per tick, the line emitted when complete), and the walk's stuck detector is re-worked after the write-up's state-log analysis names the cause; the tick gate is re-read on pass 2 with the clock quantisation named in the guide — cost if wrong: one more boot.
 21. Ruling: a zombie-free fixture agent0 (Zombies=6) is provisioned for Stages A and B (the nozombies profile points at it); fixture agent (Zombies=5) stays for Stage C — a sandbox change at boot does not despawn — cost if wrong: one 2.5-min provision.
@@ -157,6 +157,9 @@ The `Ruling:` lines of `.superpowers/sdd/2026-10-26-plan-21-agent-harness/progre
 29. Ruling (inline, ledger l.157, Task 10 fix 2): no separate re-review for a 3-test driver change that mirrors the reviewed a_pipe_3 pattern; the Stage B boot is its smoke test.
 30. Ruling: the brief's rate-5 line was the controller's error, named here.
 31. Ruling: Stage A ends NO-GO on its 3-pass budget as the spec's § 4.1 and § 7 rule (no gate relaxed); the plan goes to the report (Task 13); Stages B and C are built, offline-tested and reviewed but not run — the report names their boot cost so Angus can order them — cost if wrong: two sessions Angus can start by one line.
+32. Ruling: gate_a was edited after pass 2's a_grade.txt as well (1406d70e); the report re-derives pass 2 key for key and the guide pins its gate commit; no regrade; the rule is now a versioned gate function per pass — cost if wrong: none for the recorded verdicts.
+33. Ruling: the spec deviations the close found (no stuck event; SCAN_S dead; fixture agent sets only Zombies; the world golden synthetic; per-goal headers partial) are accepted for the spike and named in the report's addendum — cost if wrong: a later plan adds them.
+34. Ruling (wording): direct member calls are allowed on getX/getY/getZ and on nil-checked file handles (readLine/close/write); everything else through PZA.call.
 
 **Re-derivation of the gates.** `python testing/agent/drivers/a_grade.py <artifact>` at HEAD `9f7c001d` (exit 1 on each):
 
