@@ -1,6 +1,8 @@
 -- PZAgent_Main.lua — the one OnTick hook (loads last by name). Each tick: poll cmd.txt, run the goal,
 -- emit a frame every 60/RATE ticks with the goal status and the tick's own cost, flush. Everything sits
 -- inside one pcall; a raise counts in PZA.errors and reports as a lua_error event once a second.
+-- A frame's cost.linkMs lags one frame: it is the previous frame tick's flush, since a frame is
+-- serialised at its emit, before its own flush has run (the first frame reads 0).
 PZA.main = PZA.main or {}
 local M = PZA.main
 PZA.tick = 0
@@ -9,6 +11,7 @@ M.prev = nil
 M.lastErrMs = -1e9
 M.lastGoalSeq = nil
 M.lastGoalState = nil
+M.lastLinkMs = 0
 M.hooked = M.hooked or false
 
 local function config(cmd, p)
@@ -76,9 +79,10 @@ local function body()
         cur.goal = st
         cur.gameMin, cur.worldAge = gameMin, worldAge
         local tLink = PZA.now()
-        cur.cost = { actMs = tSense - tAct, senseMs = tLink - tSense, linkMs = 0, pollMs = tAct - t0, dropped = PZA.link.dropped or 0 }
+        -- linkMs is the previous frame tick's flush ms (one-frame lag: this frame's flush runs after its emit)
+        cur.cost = { actMs = tSense - tAct, senseMs = tLink - tSense, linkMs = M.lastLinkMs, pollMs = tAct - t0, dropped = PZA.link.dropped or 0 }
         PZA.emit("frame", cur)
-        cur.cost.linkMs = PZA.link.flush()
+        M.lastLinkMs = PZA.link.flush()
         M.prev = cur
     end
 end

@@ -20,6 +20,8 @@ class FakeFS:
         self.append_works = True
         self.opens = 0
         self.fail_next = False
+        self.write_cost_ms = 0     # added to the lua fixture's clock by every write (a flush's own cost)
+        self.clock = None
 
     def writer(self, name, create, append):
         self.opens += 1
@@ -30,7 +32,10 @@ class FakeFS:
         if not (append and fs.append_works):
             fs.files[name] = ""
         class W:
-            def write(self, s): fs.files[name] = fs.files.get(name, "") + s
+            def write(self, s):
+                fs.files[name] = fs.files.get(name, "") + s
+                if fs.write_cost_ms and fs.clock is not None:
+                    fs.clock["ms"] += fs.write_cost_ms
             def close(self): pass
         return W()
 
@@ -119,6 +124,7 @@ def lua(fs):
     clock = {"ms": 1000}
     g.getTimestampMs = lambda: clock["ms"]
     g._clock = clock
+    fs.clock = clock
     g.print = lambda *a: None
     L.execute(open(lua_file("shared/PZAgent_Core.lua"), encoding="utf-8").read())
     g.getCell = lambda: g._cell

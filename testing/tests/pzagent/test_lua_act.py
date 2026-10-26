@@ -410,3 +410,18 @@ def test_loot_timeout_fails_interrupted_when_nothing_moved_else_reports_moved(lu
     g._clock["ms"] += 10000 + 2 * 3000 + 1
     st = tick(lua, p)
     assert st["state"] == "done" and st["detail"] == "moved=1"
+
+
+# ---- Task 5b: cost.linkMs reports the previous frame's flush --------------------------------
+
+def test_frame_link_ms_is_the_previous_frames_flush(lua, fs):
+    import json
+    load(lua)
+    g = lua.globals(); g.getPlayer = lambda: make_player()
+    lua.execute("PZA.main.init('admin')"); lua.execute("PZA.main.ready = true")
+    fs.write_cost_ms = 3
+    for _ in range(24):                     # RATE 5: a frame every 12 ticks, so two frames
+        g._handlers[0]()
+    frames = [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines() if '"kind":"frame"' in l]
+    assert len(frames) == 2
+    assert frames[0]["cost"]["linkMs"] == 0 and frames[1]["cost"]["linkMs"] == 3
