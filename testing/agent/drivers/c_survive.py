@@ -19,22 +19,31 @@ PHASES (each through xs.run_phase; a phase's fault is recorded and the next stil
               [<username>, ...], {} when nobody is online); one needs row is sampled there, so the client frame and
               the server reading share a wall second: [gameMin, hunger, thirst, fatigue, health, serverHunger]
               (serverHunger the stats map's Hunger, None when the read failed);
-            every MEM_POLL_S: host free memory (xlib.free_gb);
+            every MEM_POLL_S, the first one MEM_POLL_S after the loop's start: host free memory (xlib.free_gb),
+              every read under out["memory_reads"];
             at PLANNER_HZ: policy.tick() (it writes decision.log beside the artifact; the driver keeps the last ten
               lines); a `fight` sent opens a fights row {seq, startS, startWallMs, gameMin, health, threats,
               nearest, end}, its end ({state, detail, wallMs}, the client's clock) read off the goal's end;
             every PERSIST_S: out["loop"] rebuilt and xs.persist() (the controller polls the persisted artifact).
           STOP CONDITIONS, the first that holds ends the loop, named in out["stop"] {reason, detail, wallS, gameMin}:
-            death           a frame's health <= 0, or a `players` reply (a list, or {} for nobody) without USER;
-            bus_dead        no good server reply (stats.all with a stats map, or a players list) for BUS_DEAD_S,
-                            no link line for BUS_DEAD_S (the client parked or gone), xlib's BusDead (a stalled step
-                            and no pong), or the client parked in the debugger (xs.check);
-            lua_error_storm more than STORM_N lua_error events read within a STORM_WINDOW_S window;
-            memory          a MEM_POLL_S reading below MIN_FREE_GB (None counts as low, xlib.memory_ok);
+            death           a frame's health <= 0, or a `players` reply (a list, or {} for nobody) without USER; a
+                            players reply that is an error (a string, a dict with an `error` key, a stall) is no
+                            death: it counts as a failed read, the last one kept as loop.players_error;
+            bus_dead        BUS_DEAD_POLLS consecutive failed server polls (neither stats.all with a stats map nor a
+                            players list; SERVER_POLL_S apart, so one failed poll is never enough), no link line for
+                            BUS_DEAD_S (the client parked or gone), xlib's BusDead (a stalled step and no pong), or
+                            the client parked in the debugger (xs.check);
+            lua_error_storm more than STORM_N lua_error events within a STORM_WINDOW_S window of the client's own
+                            clock (each event's wallMs), so a backlog read at once is no storm;
+            memory          MEM_LOW_READS consecutive reads below LIVE_MIN_FREE_GB (None counts as low,
+                            xlib.memory_ok); MIN_FREE_GB is the pre-boot floor only: a running server and client
+                            leave the host at 2-3 GB (the `ready` readings of a_pipe and a_pipe_2);
             day_cap         the loop's own wall time reaches DAY_CAP_S (one game day at the 90-minute day);
             budget          xs.check's wall budget (BUDGET_S from the end of the memory gate, the boot included);
             error           anything else the loop raised (its type and message).
           A death keeps out["loop"]["death"] {via, detail, wallS, gameMin, last_decisions}.
+  The kit's weapon.equip is asked every EQUIP_RETRY_S up to EQUIP_TIMEOUT_S until its reply is ok (x42e's pattern),
+  every ask under readings.start_kit.equip_asks; `armed` is read off the frames only.
 out["loop"]: ticks (planner ticks, one decision.log line each), decisions (goals sent), last_decisions (the log's last
 ten lines), needs, fights, lua_errors_per_min ({loop minute: count}), cost ({n, p50, p99, max} of each frame's tick
 cost, the sum of COST_KEYS), goal_outcomes ({goal: {state: {detail: n}}} over every goal the policy sent, scan
@@ -80,13 +89,17 @@ PLANNER_HZ = 2
 SERVER_POLL_S = 60
 PERSIST_S = 30
 MEM_POLL_S = 300
+LIVE_MIN_FREE_GB = 0.5               # the in-session floor (MIN_FREE_GB is the pre-boot one)
+MEM_LOW_READS = 2                    # consecutive reads below LIVE_MIN_FREE_GB that stop the loop
 DAY_CAP_S = 5400
-BUS_DEAD_S = 60
+BUS_DEAD_S = 60                      # link silence; and the dispatch's 60 s, which BUS_DEAD_POLLS polls exceed
+BUS_DEAD_POLLS = 2                   # consecutive failed server polls (SERVER_POLL_S apart) that stop the loop
 STORM_N = 10                         # more lua_error events than this within STORM_WINDOW_S is a storm
 STORM_WINDOW_S = 60
 HELLO_TIMEOUT_S = 60.0
 FRAME_TIMEOUT_S = 10.0
 EQUIP_TIMEOUT_S = 15.0
+EQUIP_RETRY_S = 1.0
 KIT = "Base.BaseballBat"
 POLL_S = 0.1
 DECISION_LOG = "decision.log"
@@ -99,8 +112,9 @@ FINISHED = ("done", "failed")
 STOPS = ("death", "bus_dead", "lua_error_storm", "memory", "day_cap", "budget", "error")
 
 CONSTANTS = {k: globals()[k] for k in (
-    "BUDGET_S", "MIN_FREE_GB", "PLANNER_HZ", "SERVER_POLL_S", "PERSIST_S", "MEM_POLL_S", "DAY_CAP_S", "BUS_DEAD_S",
-    "STORM_N", "STORM_WINDOW_S", "HELLO_TIMEOUT_S", "FRAME_TIMEOUT_S", "EQUIP_TIMEOUT_S", "KIT", "POLL_S",
+    "BUDGET_S", "MIN_FREE_GB", "PLANNER_HZ", "SERVER_POLL_S", "PERSIST_S", "MEM_POLL_S", "LIVE_MIN_FREE_GB",
+    "MEM_LOW_READS", "DAY_CAP_S", "BUS_DEAD_S", "BUS_DEAD_POLLS", "STORM_N", "STORM_WINDOW_S", "HELLO_TIMEOUT_S",
+    "FRAME_TIMEOUT_S", "EQUIP_TIMEOUT_S", "EQUIP_RETRY_S", "KIT", "POLL_S",
     "COST_KEYS", "CLIENT_ERR_RX")}
 
 Spec = collections.namedtuple("Spec", "key driver profile artifact")
@@ -160,7 +174,10 @@ def tick_cost(cost):
 
 
 def players_list(reply):
-    """The `players` reply as a list of usernames; None when it is not a collection (an error string or a stall)."""
+    """The `players` reply as a list of usernames ({} -> [], nobody online); None when it is not one: an error string,
+    or a dict with an `error` key (the bus's own failure reply, a stall included)."""
+    if isinstance(reply, dict) and ("error" in reply or X.stalled(reply)):
+        return None
     if isinstance(reply, (list, dict)):
         return [str(n) for n in _seq(reply)]
     return None
@@ -234,8 +251,9 @@ class Survive(AP.Pipe):
         self.free = free
         self.spawn = spawn or xs.spawn
         self.equip = equip
-        lim = {k: globals()[k] for k in ("PLANNER_HZ", "SERVER_POLL_S", "PERSIST_S", "MEM_POLL_S", "DAY_CAP_S",
-                                          "BUS_DEAD_S", "STORM_N", "STORM_WINDOW_S")}
+        lim = {k: globals()[k] for k in ("PLANNER_HZ", "SERVER_POLL_S", "PERSIST_S", "MEM_POLL_S", "LIVE_MIN_FREE_GB",
+                                          "MEM_LOW_READS", "DAY_CAP_S", "BUS_DEAD_S", "BUS_DEAD_POLLS", "STORM_N",
+                                          "STORM_WINDOW_S")}
         lim.update(limits or {})
         self.lim = lim
         run_dir = os.path.dirname(xs.path) if xs.path else os.getcwd()
@@ -246,7 +264,8 @@ class Survive(AP.Pipe):
         self.frame = None            # the latest frame line (frames are not kept: a day is ~27000 of them)
         self.n_frames = 0
         self.n_lua_errors = 0
-        self.err_times = deque()     # loop clock of each lua_error read, inside the storm window
+        self.err_times = deque()     # the client clock (wallMs / 1000) of each lua_error, inside the storm window
+        self.client_now = None       # the latest line's client clock (s)
         self.err_per_min = {}
         self.costs = []
         self.death_frame = None
@@ -259,7 +278,10 @@ class Survive(AP.Pipe):
         self.fights = []
         self.server_polls = 0
         self.server_fails = 0
+        self.fails_in_row = 0
+        self.players_error = None
         self.mem_rows = []
+        self.mem_low_in_row = 0
 
     # ---- reading the link (a_pipe's on_line, bounded for a day-long session)
     def loop_s(self):
@@ -268,6 +290,9 @@ class Survive(AP.Pipe):
     def on_line(self, l):
         self.world.apply(l)
         self.last_seq = max(self.last_seq, l.get("seq", 0))
+        w = _num(l.get("wallMs"))
+        if w is not None:
+            self.client_now = w / 1000.0 if self.client_now is None else max(self.client_now, w / 1000.0)
         k = l.get("kind")
         if k == "frame":
             self.frame = l
@@ -299,7 +324,8 @@ class Survive(AP.Pipe):
                     self.lua_errors.append(l)
                 s = self.loop_s()
                 if s is not None:
-                    self.err_times.append(s)
+                    if w is not None:
+                        self.err_times.append(w / 1000.0)
                     m = str(int(s // 60))
                     self.err_per_min[m] = self.err_per_min.get(m, 0) + 1
         for m in _seq(l.get("missing")):
@@ -347,7 +373,17 @@ class Survive(AP.Pipe):
         self.rd["start_kit"] = kit
         kit["spawn"] = self.spawn(KIT, 1, "spawn_" + KIT.split(".")[-1])
         self.xs.persist()
-        kit["equip"] = self.equip(self.xs, KIT)
+        asks, end = [], self.clock() + EQUIP_TIMEOUT_S
+        while True:
+            r = self.equip(self.xs, KIT)
+            a = r if isinstance(r, dict) else {"raw": r}
+            asks.append({k: a.get(k) for k in ("ok", "queued", "itemId", "twoHands", "reason", "raw")})
+            if a.get("ok") is True or self.clock() >= end:
+                break
+            t_next = self.clock() + EQUIP_RETRY_S
+            self.wait_until(lambda: self.clock() >= t_next, EQUIP_RETRY_S + 1.0)
+        kit["equip"] = asks[-1]
+        kit["equip_asks"] = asks
         kit["armed"] = self.wait_until(lambda: self.armed_with(KIT), EQUIP_TIMEOUT_S)
         if not kit["armed"]:
             self.xs.note("start kit: no frame shows %s in the primary hand after %ss" % (KIT, EQUIP_TIMEOUT_S))
@@ -359,10 +395,10 @@ class Survive(AP.Pipe):
         self.t_loop0 = now
         self.loop["startPyMs"] = now * 1000.0
         self.last_line_t = now
-        self.last_bus_ok = now
         lim = self.lim
         tick_dt = 1.0 / lim["PLANNER_HZ"]
-        next_tick, next_server, next_mem, next_persist = now, now, now, now + lim["PERSIST_S"]
+        next_tick, next_server, next_persist = now, now, now + lim["PERSIST_S"]
+        next_mem = now + lim["MEM_POLL_S"]
         try:
             while True:
                 now = self.clock()
@@ -405,9 +441,9 @@ class Survive(AP.Pipe):
         """The stops read off the link: a death frame, a lua_error storm, a silent link."""
         if self.death_frame is not None:
             raise Stop("death", "frame seq %s health %s" % (self.death_frame["seq"], self.death_frame["health"]))
-        s = now - self.t_loop0
-        while self.err_times and self.err_times[0] < s - self.lim["STORM_WINDOW_S"]:
-            self.err_times.popleft()
+        if self.client_now is not None:
+            while self.err_times and self.err_times[0] < self.client_now - self.lim["STORM_WINDOW_S"]:
+                self.err_times.popleft()
         if len(self.err_times) > self.lim["STORM_N"]:
             raise Stop("lua_error_storm", "%d lua_error events within %ss" % (len(self.err_times),
                                                                                self.lim["STORM_WINDOW_S"]))
@@ -421,24 +457,36 @@ class Survive(AP.Pipe):
         stats = server_stats(r.get("ack"))
         if stats is not None:
             self.world.merge_server(stats, r.get("wallMs"))
-        names = players_list(self.players(self.xs))
+        reply = self.players(self.xs)
+        names = players_list(reply)
         me = self.world.me
         self.needs.append([me.get("gameMin"), me.get("hunger"), me.get("thirst"), me.get("fatigue"),
                            me.get("health"), _num((stats or {}).get("Hunger"))])
+        if names is None:
+            self.players_error = {"wallS": now - self.t_loop0, "reply": str(reply)[:300]}
         if stats is not None or names is not None:
-            self.last_bus_ok = now
+            self.fails_in_row = 0
         else:
             self.server_fails += 1
+            self.fails_in_row += 1
         if names is not None and USER not in names:
             raise Stop("death", "players reply without %s: %s" % (USER, names))
-        if now - self.last_bus_ok >= self.lim["BUS_DEAD_S"]:
-            raise Stop("bus_dead", "no good server reply for %ss" % self.lim["BUS_DEAD_S"])
+        if self.fails_in_row >= self.lim["BUS_DEAD_POLLS"]:
+            raise Stop("bus_dead", "%d consecutive failed server polls, %ss apart (over the dispatch's %ss)" % (
+                self.fails_in_row, self.lim["SERVER_POLL_S"], BUS_DEAD_S))
 
     def memory_read(self, now):
+        """One free-memory read, kept under out["memory_reads"]; MEM_LOW_READS in a row below LIVE_MIN_FREE_GB stop."""
         g = self.free()
         self.mem_rows.append({"wallS": now - self.t_loop0, "free_gb": g})
-        if not X.memory_ok(g, MIN_FREE_GB):
-            raise Stop("memory", "free %s GB below %s GB" % (g, MIN_FREE_GB))
+        self.out["memory_reads"] = list(self.mem_rows)
+        if X.memory_ok(g, self.lim["LIVE_MIN_FREE_GB"]):
+            self.mem_low_in_row = 0
+            return
+        self.mem_low_in_row += 1
+        if self.mem_low_in_row >= self.lim["MEM_LOW_READS"]:
+            raise Stop("memory", "%d consecutive reads below %s GB, the last %s GB" % (
+                self.mem_low_in_row, self.lim["LIVE_MIN_FREE_GB"], g))
 
     def planner_tick(self):
         f = self.frame or {}
@@ -494,7 +542,7 @@ class Survive(AP.Pipe):
             "cost": {"n": len(cs), "p50": pct(cs, 50), "p99": pct(cs, 99), "max": max(cs) if cs else None,
                      "keys": list(COST_KEYS)},
             "goal_outcomes": self.goal_outcomes(), "server_polls": self.server_polls,
-            "server_fails": self.server_fails, "memory": list(self.mem_rows)})
+            "server_fails": self.server_fails, "players_error": self.players_error, "memory": list(self.mem_rows)})
         self.sync_out()
         self.xs.persist()
 

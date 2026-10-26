@@ -115,7 +115,10 @@ def test_tick_cost_sums_the_cost_keys_present():
 
 def test_players_and_stats_replies_are_read_by_their_shapes():
     assert D.players_list(["admin", "bob"]) == ["admin", "bob"] and D.players_list({}) == []
-    assert D.players_list("timeout") is None and D.players_list({"error": "x"}) == ["x"]
+    assert D.players_list("timeout") is None
+    assert D.players_list({"error": "TimeoutError: no reply"}) is None                # a bus failure, never a name
+    assert D.players_list({"error": "skipped: server bus dead after stats"}) is None
+    assert D.players_list({"1": "admin"}) == ["admin"]
     assert D.server_stats({"stats": {"Hunger": 0.2}}) == {"Hunger": 0.2}
     assert D.server_stats("no online player admin") is None and D.server_stats({"error": "TimeoutError"}) is None
 
@@ -159,7 +162,9 @@ class SurviveMod:
     FRAME_EVERY = 2
     GOAL_TICKS = 5
 
-    def __init__(self, d, clock, die_at=None, zombie_at=None, lua_err_from=None, silent_from=None, mode="append"):
+    def __init__(self, d, clock, die_at=None, zombie_at=None, lua_err_from=None, silent_from=None, mode="append",
+                 lua_err_every=1.0):
+        self.lua_err_every = lua_err_every
         os.makedirs(d, exist_ok=True)
         self.d, self.clock = d, clock
         self.die_at, self.zombie_at, self.lua_err_from, self.silent_from, self.mode = (
@@ -271,7 +276,7 @@ class SurviveMod:
             if g["ticks"] >= self.GOAL_TICKS:
                 self.end(g)
         if self.lua_err_from is not None and self.s() >= self.lua_err_from and (
-                self.last_err_s is None or self.s() - self.last_err_s >= 1.0):
+                self.last_err_s is None or self.s() - self.last_err_s >= self.lua_err_every - 1e-9):
             self.last_err_s = self.s()
             self.emit("event", {"event": "lua_error", "msg": "boom"})
         if self.tick % self.FRAME_EVERY == 0:
@@ -300,20 +305,29 @@ class Server:
     """The server's bus replies in their real shapes. `stats_bad_from` / `players_bad_from` (mod seconds): the read
     answers a failure from then; `gone_from`: the players list lacks admin from then (an empty {})."""
 
-    def __init__(self, mod, stats_bad_from=None, players_bad_from=None, gone_from=None, bus_dead_from=None):
+    def __init__(self, mod, stats_bad_from=None, players_bad_from=None, gone_from=None, bus_dead_from=None,
+                 bad_until=None, players_error_from=None, stall_at=None, stall_s=0.0):
         self.mod = mod
         self.stats_bad_from, self.players_bad_from, self.gone_from, self.bus_dead_from = (
             stats_bad_from, players_bad_from, gone_from, bus_dead_from)
+        self.bad_until, self.players_error_from, self.stall_at, self.stall_s = (
+            bad_until, players_error_from, stall_at, stall_s)
         self.stats_calls, self.players_calls = [], []
 
     def after(self, t):
         return t is not None and self.mod.s() >= t
 
+    def bad(self, t):
+        return self.after(t) and not self.after(self.bad_until)
+
     def stats(self, xs, user):
         self.stats_calls.append(self.mod.s())
+        if self.after(self.stall_at) and self.stall_s:
+            self.mod.sleep(self.stall_s)              # the call blocks; the client keeps writing meanwhile
+            self.stall_s = 0.0
         if self.after(self.bus_dead_from):
             raise X.BusDead("server bus dead after stats")
-        if self.after(self.stats_bad_from):
+        if self.bad(self.stats_bad_from):
             return {"ack": "no online player admin", "wallMs": self.mod.clock.t * 1000}
         m = self.mod
         return {"ack": {"side": "server", "user": user, "worldAge": 31.5, "mult": 1.0, "wall": 1,
@@ -322,14 +336,17 @@ class Server:
 
     def players(self, xs):
         self.players_calls.append(self.mod.s())
-        if self.after(self.players_bad_from):
+        if self.bad(self.players_bad_from):
             return "timeout"
+        if self.after(self.players_error_from):
+            return {"error": "TimeoutError: no reply"}
         if self.after(self.gone_from):
             return {}
         return ["admin"]
 
 
-def run_survive(tmp_path, limits=None, budget_s=1e9, free=lambda: 30.0, parked_at=None, server=None, **flags):
+def run_survive(tmp_path, limits=None, budget_s=1e9, free=lambda: 30.0, parked_at=None, server=None, equip_fails=0,
+                **flags):
     clock = Clock()
     sd = str(tmp_path / "clients" / "admin" / "Lua" / "pzagent" / "admin")
     mod = SurviveMod(sd, clock, **flags)
@@ -342,9 +359,11 @@ def run_survive(tmp_path, limits=None, budget_s=1e9, free=lambda: 30.0, parked_a
         return {"type": ft, "n": n, "confirmed": True}
 
     def equip(xs, ft):
-        equips.append(ft)
+        equips.append((ft, mod.s()))
+        if len(equips) <= equip_fails:
+            return {"ok": False, "fullType": ft, "queued": False, "reason": "no %s in the local inventory" % ft}
         mod.weapon = dict(BAT)
-        return {"ok": True, "fullType": ft, "queued": True}
+        return {"ok": True, "fullType": ft, "itemId": 41, "twoHands": True, "queued": True}
 
     seen = {}
     client = types.SimpleNamespace(seen=seen)
@@ -379,9 +398,10 @@ def test_the_planner_loop_sends_the_policys_goals_and_stops_at_the_day_cap(tmp_p
     assert out["phase_errors"] == {}, out["phase_errors"]
     assert out["stop"]["reason"] == "day_cap" and out["stop"]["wallS"] == pytest.approx(40, abs=0.2)
     assert out["mode"] == "append" and r.spawns == [("Base.BaseballBat", 1, "spawn_BaseballBat")]
-    assert r.equips == ["Base.BaseballBat"]
+    assert [e[0] for e in r.equips] == ["Base.BaseballBat"]
     kit = out["readings"]["start_kit"]
     assert kit["armed"] is True and kit["spawn"]["confirmed"] is True and kit["equip"]["queued"] is True
+    assert len(kit["equip_asks"]) == 1 and kit["equip_asks"][0]["ok"] is True
     loop = out["loop"]
     log = decisions(tmp_path)
     assert loop["ticks"] == len(log) and loop["ticks"] == pytest.approx(40 * D.PLANNER_HZ, abs=2)
@@ -438,8 +458,27 @@ def test_a_players_reply_without_the_user_is_a_death(tmp_path):
 def test_no_good_server_reply_for_bus_dead_s_stops_the_loop(tmp_path):
     r = run_survive(tmp_path, server={"stats_bad_from": 0.0, "players_bad_from": 0.0})
     st = r.out["stop"]
-    assert st["reason"] == "bus_dead" and "no good server reply" in st["detail"]
+    assert st["reason"] == "bus_dead" and "2 consecutive failed server polls" in st["detail"]
     assert st["wallS"] == pytest.approx(60, abs=0.2) and r.out["loop"]["server_fails"] == 2
+
+
+def test_one_failed_server_poll_between_good_ones_is_not_bus_dead(tmp_path):
+    # the polls land at loop 0, 60 and 120 s; only the second fails, stats and players both
+    r = run_survive(tmp_path, limits={"DAY_CAP_S": 130},
+                    server={"stats_bad_from": 30.0, "players_bad_from": 30.0, "bad_until": 90.0})
+    assert r.out["stop"]["reason"] == "day_cap" and r.out["loop"]["server_fails"] == 1
+    assert r.out["loop"]["needs"][1][5] is None and r.out["loop"]["needs"][2][5] == pytest.approx(0.11)
+    # two failed polls that are not consecutive are not bus_dead either
+    r = run_survive(tmp_path / "b", limits={"DAY_CAP_S": 130, "SERVER_POLL_S": 20},
+                    server={"stats_bad_from": 15.0, "players_bad_from": 15.0, "bad_until": 25.0})
+    assert r.out["stop"]["reason"] == "day_cap" and r.out["loop"]["server_fails"] == 1
+
+
+def test_a_players_error_reply_is_no_death(tmp_path):
+    r = run_survive(tmp_path, limits={"DAY_CAP_S": 30, "SERVER_POLL_S": 5}, server={"players_error_from": 7.0})
+    assert r.out["stop"]["reason"] == "day_cap" and "death" not in r.out["loop"]
+    pe = r.out["loop"]["players_error"]
+    assert pe is not None and "TimeoutError" in pe["reply"] and r.out["loop"]["server_fails"] == 0
     # one good reader keeps the bus alive
     r = run_survive(tmp_path / "b", limits={"DAY_CAP_S": 130}, server={"stats_bad_from": 0.0})
     assert r.out["stop"]["reason"] == "day_cap" and r.out["loop"]["needs"][-1][5] is None
@@ -477,14 +516,51 @@ def test_ten_lua_errors_in_a_minute_are_not_a_storm(tmp_path):
     assert r.out["stop"]["reason"] == "day_cap" and r.out["lua_errors"] >= 20
 
 
-def test_low_memory_on_the_periodic_read_stops_the_loop(tmp_path):
-    reads = iter([30.0, 20.0, 8.5])
+def test_a_live_host_at_the_ready_readings_never_stops_on_memory(tmp_path):
+    # a running server and client leave the host at 2-3 GB (a_pipe ready 2.31, a_pipe_2 ready 2.65)
+    r = run_survive(tmp_path, limits={"DAY_CAP_S": 40, "MEM_POLL_S": 10}, free=lambda: 2.5)
+    assert r.out["stop"]["reason"] == "day_cap"
+    walls = [m["wallS"] for m in r.out["memory_reads"]]
+    assert walls[0] == pytest.approx(10, abs=0.2) and len(walls) >= 3                  # the first read after MEM_POLL_S
+    assert r.out["memory_reads"] == r.out["loop"]["memory"]
+    assert (D.LIVE_MIN_FREE_GB, D.MEM_LOW_READS, D.MIN_FREE_GB) == (0.5, 2, 12.0)
+
+
+def test_two_consecutive_low_reads_stop_on_memory_and_one_does_not(tmp_path):
+    reads = iter([0.4, 0.4])
     r = run_survive(tmp_path, limits={"MEM_POLL_S": 10}, free=lambda: next(reads))
     st = r.out["stop"]
-    assert st["reason"] == "memory" and "8.5" in st["detail"] and st["wallS"] == pytest.approx(20, abs=0.2)
-    assert [m["free_gb"] for m in r.out["loop"]["memory"]] == [30.0, 20.0, 8.5]
-    r = run_survive(tmp_path / "b", limits={"MEM_POLL_S": 10}, free=lambda: None)          # no reading counts as low
-    assert r.out["stop"]["reason"] == "memory"
+    assert st["reason"] == "memory" and "2 consecutive reads below 0.5 GB" in st["detail"]
+    assert st["wallS"] == pytest.approx(20, abs=0.2) and [m["free_gb"] for m in r.out["memory_reads"]] == [0.4, 0.4]
+    alt = iter([0.4, 3.0] * 10)
+    r = run_survive(tmp_path / "b", limits={"DAY_CAP_S": 60, "MEM_POLL_S": 10}, free=lambda: next(alt))
+    assert r.out["stop"]["reason"] == "day_cap" and len(r.out["memory_reads"]) >= 5
+    r = run_survive(tmp_path / "c", limits={"MEM_POLL_S": 10}, free=lambda: None)   # no reading counts as low
+    assert r.out["stop"]["reason"] == "memory" and len(r.out["memory_reads"]) == 2
+
+
+def test_the_equip_is_asked_again_until_its_reply_is_ok(tmp_path):
+    r = run_survive(tmp_path, limits={"DAY_CAP_S": 5}, equip_fails=2)
+    kit = r.out["readings"]["start_kit"]
+    assert [a["ok"] for a in kit["equip_asks"]] == [False, False, True] and kit["armed"] is True
+    assert "no Base.BaseballBat" in kit["equip_asks"][0]["reason"] and kit["equip"]["itemId"] == 41
+    gaps = [b[1] - a[1] for a, b in zip(r.equips, r.equips[1:])]
+    assert all(g == pytest.approx(D.EQUIP_RETRY_S, abs=0.15) for g in gaps)
+    r = run_survive(tmp_path / "b", limits={"DAY_CAP_S": 5}, equip_fails=100)    # never ok: the asks stop at the cap
+    kit = r.out["readings"]["start_kit"]
+    assert kit["armed"] is False and 14 <= len(kit["equip_asks"]) <= 17 and r.out["stop"]["reason"] == "day_cap"
+
+
+def test_a_backlog_of_lua_errors_read_at_once_is_no_storm(tmp_path):
+    # one error every 7 s of the client clock: never more than 9 in a 60 s window; a stalled stats call holds the
+    # driver 85 s, so 12 of them are read in one pump. Stamped at the read, they would be a storm
+    r = run_survive(tmp_path, limits={"DAY_CAP_S": 160}, lua_err_from=1.0, lua_err_every=7.0,
+                    server={"stall_at": 30.0, "stall_s": 85.0})
+    assert r.out["stop"]["reason"] == "day_cap" and r.out["lua_errors"] >= 20
+    # the same rate at one a second is a storm on the client clock
+    r = run_survive(tmp_path / "b", limits={"DAY_CAP_S": 160}, lua_err_from=1.0,
+                    server={"stall_at": 30.0, "stall_s": 85.0})
+    assert r.out["stop"]["reason"] == "lua_error_storm"
 
 
 def test_the_wall_budget_stops_the_loop(tmp_path):
@@ -562,8 +638,24 @@ def test_grade_c_reads_a_synthetic_artifact():
     assert ns["peak"] == {"hunger": 0.3, "thirst": 0.6, "fatigue": 0.3} and ns["min_health"] == 40.0
     lines = g["report_lines"]
     assert lines[0].startswith("died after 1800 s") and any(l.startswith("death via frame") for l in lines)
+    assert g["outcome"] == "died"
     assert any("goal goto: done 5 (d= x5); failed 1 (no path x1)" == l for l in lines)
     assert all("\n" not in l for l in lines)
+
+
+@pytest.mark.parametrize("reason,survived", [("day_cap", True), ("budget", True), ("death", False),
+                                             ("bus_dead", None), ("lua_error_storm", None), ("memory", None),
+                                             ("error", None)])
+def test_survived_is_true_only_for_day_cap_or_budget(reason, survived):
+    o = synthetic()
+    o["stop"] = {"reason": reason, "detail": "x", "wallS": 900.0}
+    if reason != "death":
+        del o["loop"]["death"]
+    g = GC.grade_c(o)
+    assert g["survived"] is survived
+    assert g["outcome"] == {True: "survived (%s)" % reason, False: "died"}.get(
+        survived, "undecided: the session stopped on %s" % reason)
+    assert g["report_lines"][0].startswith(g["outcome"])
 
 
 def test_grade_c_on_a_survived_and_an_empty_artifact():

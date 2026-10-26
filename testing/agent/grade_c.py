@@ -11,6 +11,7 @@ import math
 
 from agent.reasons import DONE
 
+SURVIVED = ("day_cap", "budget")     # the stops a character lived through: the session ended, the character did not
 NEEDS_FIELDS = ("gameMin", "hunger", "thirst", "fatigue", "health", "serverHunger")
 PREFIXES = tuple(d for d in DONE if d.endswith("="))
 
@@ -79,6 +80,26 @@ def fights_summary(fights):
     return {"count": len(fights), "outcomes": outcomes}
 
 
+def survived_of(reason):
+    """True for a stop the character lived through (SURVIVED), False for a death, None for any other stop or none:
+    a dead bus, a storm, memory or an error ended the session before the answer was known."""
+    if reason in SURVIVED:
+        return True
+    if reason == "death":
+        return False
+    return None
+
+
+def outcome_of(reason):
+    if reason is None:
+        return "no stop recorded"
+    if reason in SURVIVED:
+        return "survived (%s)" % reason
+    if reason == "death":
+        return "died"
+    return "undecided: the session stopped on %s" % reason
+
+
 def grade_c(out):
     out = _d(out)
     loop = _d(out.get("loop"))
@@ -102,7 +123,8 @@ def grade_c(out):
         "run_id": out.get("run_id"),
         "finished": out.get("finished") is True,
         "stop": {"reason": reason, "detail": stop.get("detail"), "gameMin": stop.get("gameMin")} if stop else None,
-        "survived": None if not stop else reason != "death",
+        "survived": survived_of(reason),
+        "outcome": outcome_of(reason),
         "survival_s": survival_s,
         "start_kit_armed": _d(_d(out.get("readings")).get("start_kit")).get("armed"),
         "needs": _l(loop.get("needs")),
@@ -141,8 +163,7 @@ def report_lines(g):
         lines.append("no loop ran: stop %s (%s)" % (st.get("reason"), st.get("detail")))
     else:
         lines.append("%s after %.0f s of the loop (%.1f wall min), stop %s: %s" % (
-            "survived" if g["survived"] else "died", g["survival_s"], g["survival_s"] / 60.0, st.get("reason"),
-            st.get("detail")))
+            g["outcome"], g["survival_s"], g["survival_s"] / 60.0, st.get("reason"), st.get("detail")))
     if g["start_kit_armed"] is not None:
         lines.append("start kit %s" % ("equipped (a frame showed the bat in hand)" if g["start_kit_armed"]
                                        else "not seen in hand: the policy flees every threat unarmed"))
