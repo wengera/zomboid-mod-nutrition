@@ -109,7 +109,7 @@ def test_main_reports_superseded_event_and_scan_lands_with_its_ack(lua, fs):
     fs.files["pzagent/admin/cmd.txt"] = "seq=3\ngoal=scan\nargs=1\n"
     g._handlers[0]()
     log = fs.files["pzagent/admin/state.log"]
-    assert '"kind":"scan"' in log and log.count('"kind":"ack"') == 3 and '"scanMs":' in log
+    assert '"kind":"scanPart"' in log and log.count('"kind":"ack"') == 3 and '"done":true' in log and '"scanMs":' in log
 
 
 # ---- Task 9: open, loot, eat, drink ----------------------------------------------------------
@@ -804,7 +804,7 @@ def test_task11_details_are_in_the_header_reasons_and_done_lines():
         assert x in done and x not in closed and re.search(r'"done",\s*"%s"' % x, src)
 
 
-# ---- Stage A pass 2: goto fails dead; stuck by progress; the chunked scan --------------------
+# ---- Stage A pass 2 and 3: goto fails dead; stuck by progress; the chunked scan, emitted in parts --------------------
 
 ALL_GOALS = (("goto", "13 20"), ("open", "13 20"), ("loot", "13 20"), ("eat", "Base.Apple"), ("drink", ""),
              ("fight", ""), ("flee", "13 20"), ("sleep", ""))          # stop is exempt (fix 1)
@@ -910,37 +910,44 @@ def scan_world(lua, cx, cy, r):
     return calls
 
 
-def test_main_scan_is_queued_chunked_and_lands_when_its_last_square_is_done(lua, fs):
+def log_lines(fs):
     import json
+    return [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines()]
+
+
+def test_main_scan_is_queued_and_emitted_one_part_per_tick(lua, fs):
     load(lua)
     g = lua.globals(); g.getPlayer = lambda: make_player()
     scan_world(lua, 10, 20, 15)
     lua.execute("PZA.main.init('admin')"); lua.execute("PZA.main.ready = true")
     fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=scan\nargs=15\n"
-    landed = None
+    per_tick = []
     for i in range(1, 30):
+        n0 = len(log_lines(fs))
         g._handlers[0]()
-        lines = [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines()]
+        lines = log_lines(fs)
         if i == 1:
             acks = [l for l in lines if l["kind"] == "ack"]
             assert len(acks) == 1 and acks[0]["ok"] is True and acks[0]["reason"] == "queued"
-        if landed is None and any(l["kind"] == "scan" for l in lines):
-            landed = i
-    lines = [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines()]
-    scans = [l for l in lines if l["kind"] == "scan"]
-    assert landed == 17 and len(scans) == 1                      # ceil(961 / 60) ticks
-    s = scans[0]
-    assert s["r"] == 15 and len(s["squares"]) == 961 and s["scanTicks"] == 17 and s["scanMs"] == 961
+        per_tick.append([l["part"] for l in lines[n0:] if l["kind"] == "scanPart"])
+    assert per_tick == [[k] for k in range(1, 18)] + [[]] * 12      # ceil(961 / 60) parts, one a tick, each flushed
+    lines = log_lines(fs)
+    assert not any(l["kind"] == "scan" for l in lines)
+    parts = [l for l in lines if l["kind"] == "scanPart"]
+    assert {p["scanId"] for p in parts} == {1} and {p["parts"] for p in parts} == {17} and {p["r"] for p in parts} == {15}
+    assert [p.get("done") for p in parts] == [None] * 16 + [True] and sum(len(p["squares"]) for p in parts) == 961
+    last = parts[-1]
+    assert last["scanTicks"] == 17 and last["scanMs"] == 961 and last["scanStepMaxMs"] == 60
     for k in ("hour", "missing", "gameMin", "worldAge"):
-        assert k in s
+        assert k in last
+    assert "gameMin" not in parts[0]
     frames = [l for l in lines if l["kind"] == "frame"]
-    assert frames[0]["cost"]["scanStepMs"] == 60                 # tick 12: one chunk of 60 squares
+    assert frames[0]["cost"]["scanStepMs"] == 60                 # tick 12: one chunk of 60 squares (its emit costs 0 here)
     assert frames[0]["cost"]["senseMs"] == 0                     # the chunk is not the frame's sense cost
     assert frames[1]["cost"]["scanStepMs"] == 0                  # tick 24: the job is done
 
 
-def test_main_second_scan_replaces_a_running_one(lua, fs):
-    import json
+def test_main_second_scan_replaces_a_running_one_and_its_parts_stop(lua, fs):
     load(lua)
     g = lua.globals(); g.getPlayer = lambda: make_player()
     scan_world(lua, 10, 20, 15)
@@ -951,8 +958,57 @@ def test_main_second_scan_replaces_a_running_one(lua, fs):
     fs.files["pzagent/admin/cmd.txt"] = "seq=2\ngoal=scan\nargs=1\n"
     for _ in range(30):
         g._handlers[0]()
-    scans = [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines() if '"kind":"scan"' in l]
-    assert [s["r"] for s in scans] == [1] and scans[0]["scanTicks"] == 1 and len(scans[0]["squares"]) == 9
+    parts = [l for l in log_lines(fs) if l["kind"] == "scanPart"]
+    assert [(p["scanId"], p["part"], p.get("done")) for p in parts] == [(1, 1, None), (1, 2, None), (1, 3, None),
+                                                                        (2, 1, True)]
+    assert parts[-1]["r"] == 1 and len(parts[-1]["squares"]) == 9 and parts[-1]["scanTicks"] == 1
+    assert parts[-1]["emitMs"] == 0                              # a new scan's first part carries no emit
+
+
+def floor_cost_writes(lua, fs):
+    """Every file write costs 1 ms of the fixture clock per square it carries (its '"floor"' keys), so a part's emit
+    and flush reads its own square count."""
+    clock = lua.globals()._clock
+
+    def writer(name, create, append):
+        w = fs.writer(name, create, append)
+        if w is None:
+            return None
+
+        class CW:
+            def write(self, s):
+                clock["ms"] += s.count('"floor"')
+                w.write(s)
+
+            def close(self):
+                w.close()
+        return CW()
+    lua.globals().getFileWriter = writer
+
+
+def test_each_part_carries_the_previous_parts_emit_and_the_next_frame_the_last_ones(lua, fs):
+    load(lua)
+    g = lua.globals(); g.getPlayer = lambda: make_player()
+    scan_world(lua, 10, 20, 15)
+    lua.execute("PZA.main.init('admin')"); lua.execute("PZA.main.ready = true")
+    for _ in range(4):                                           # the r=15 job starts on tick 5: parts on ticks 5-21
+        g._handlers[0]()
+    floor_cost_writes(lua, fs)
+    fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=scan\nargs=15\n"
+    for _ in range(40):
+        g._handlers[0]()
+    lines = log_lines(fs)
+    parts = [l for l in lines if l["kind"] == "scanPart"]
+    frames = [l for l in lines if l["kind"] == "frame"]
+    assert [p["emitMs"] for p in parts] == [0] + [60] * 16      # part i carries part i-1's emit (60 squares, 60 ms)
+    assert [p["stepMs"] for p in parts] == [60] * 16 + [1]
+    last = parts[-1]
+    after = [f for f in frames if f["seq"] > last["seq"]]
+    assert after[0]["cost"]["scanEmitMs"] == 1                   # the last part's own emit: one square, 1 ms
+    assert after[1]["cost"]["scanEmitMs"] == 0                   # reported once
+    assert all(f["cost"]["scanEmitMs"] == 0 for f in frames if f["seq"] < last["seq"])   # a mid-scan frame carries none
+    mid = [f for f in frames if parts[0]["seq"] < f["seq"] < last["seq"]]
+    assert mid and all(f["cost"]["scanStepMs"] == 120 for f in mid)   # the tick's 60 ms walk plus its 60 ms part emit
 
 
 # ---- Task 11 fix 1: the sleep gates; fight drops its step-back; flee resets running ------------
@@ -1085,7 +1141,8 @@ def test_the_frame_after_a_completed_scan_carries_its_emit_cost_once(lua, fs):
     for _ in range(13):
         g._handlers[0]()
     lines = [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines()]
-    scan = [l for l in lines if l["kind"] == "scan"][0]
+    scan = [l for l in lines if l["kind"] == "scanPart"][0]
+    assert scan["done"] is True and scan["part"] == scan["parts"] == 1 and scan["emitMs"] == 0
     frames = [l for l in lines if l["kind"] == "frame"]
     assert scan["scanTicks"] == 1 and scan["scanStepMaxMs"] == 25
     after = [f for f in frames if f["seq"] > scan["seq"]]

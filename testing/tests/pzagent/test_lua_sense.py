@@ -121,7 +121,7 @@ def test_action_from_queue_and_zombie_id_fallback(lua):
     assert f["zombies"][1]["id"] == "i0"
 
 
-# ---- Stage A pass 2: the chunked scan ----------------------------------------------------------
+# ---- Stage A pass 2 and 3: the chunked scan, emitted in parts ----------------------------------------------------------
 
 def clocked_cell(lua, cx, cy, r):
     """Every square of the (2r+1)^2 grid around (cx, cy); each getGridSquare call costs 1 ms of the fixture clock
@@ -139,39 +139,104 @@ def clocked_cell(lua, cx, cy, r):
     return calls
 
 
-def test_scan_job_r15_takes_17_steps_and_sums_its_per_step_ms(lua):
+def step_parts(lua, p, limit=40):
+    """scanStep until a part carries done (or limit steps): the parts in order, each a dict with its squares a list."""
+    parts = []
+    while len(parts) < limit:
+        part = lua.eval("PZA.sense.scanStep(...)", p)
+        if part is None:
+            break
+        d = {k: part[k] for k in ("scanId", "r", "part", "parts", "stepMs", "done", "scanMs", "scanTicks",
+                                  "scanStepMaxMs", "hour")}
+        d["squares"] = list((part["squares"] or {}).values())
+        d["missing"] = list((part["missing"] or {}).values())
+        d["scanMsPerTick"] = list(part["scanMsPerTick"].values()) if part["scanMsPerTick"] is not None else None
+        parts.append(d)
+        if d["done"]:
+            break
+    return parts
+
+
+def test_scan_job_r15_yields_17_contiguous_parts_of_its_walk(lua):
     load(lua)
     assert lua.eval("PZA.sense.SCAN_SQUARES_PER_TICK") == 60
     calls = clocked_cell(lua, 10, 20, 15)
     pos = {"x": 10.0}
     p = make_player(); p.getX = lambda s: pos["x"]
     lua.eval("PZA.sense.scanStart(...)", p, 15)
-    out, steps, per = None, 0, []
-    while out is None and steps < 40:
+    parts, per = [], []
+    while len(parts) < 40:
         n0 = len(calls)
-        out = lua.eval("PZA.sense.scanStep(...)", p)
-        steps += 1
+        got = step_parts(lua, p, limit=1)
+        if not got:
+            break
+        parts += got
         per.append(len(calls) - n0)
         pos["x"] = 30.0                                          # the grid is the one at start
-    assert steps == 17 and per == [60] * 16 + [1]
-    assert out["scanTicks"] == 17 and out["scanMs"] == 961 and out["r"] == 15 and len(out["squares"]) == 961
+        if got[0]["done"]:
+            break
+    assert [q["part"] for q in parts] == list(range(1, 18)) and {q["parts"] for q in parts} == {17}
+    assert per == [60] * 16 + [1] and [len(q["squares"]) for q in parts] == [60] * 16 + [1]
+    assert [q["stepMs"] for q in parts] == [60] * 16 + [1] and {q["scanId"] for q in parts} == {parts[0]["scanId"]}
+    assert [q["done"] for q in parts] == [None] * 16 + [True]
+    last = parts[-1]
+    assert last["scanTicks"] == 17 and last["scanMs"] == 961 and last["scanStepMaxMs"] == 60
+    assert last["scanMsPerTick"] == [60] * 16 + [1] and all(q["scanMs"] is None for q in parts[:-1])
     assert min(c[0] for c in calls) == -5 and max(c[0] for c in calls) == 25
     assert lua.eval("PZA.sense.scanStep(...)", p) is None        # no job: nothing
 
 
-def test_scan_start_replaces_a_running_job_and_the_sync_helper_matches(lua):
+def test_the_parts_union_is_the_synchronous_scan(lua):
     load(lua)
     clocked_cell(lua, 10, 20, 15)
     p = make_player()
     lua.eval("PZA.sense.scanStart(...)", p, 15)
-    assert lua.eval("PZA.sense.scanStep(...)", p) is None
-    lua.eval("PZA.sense.scanStart(...)", p, 2)
-    out = lua.eval("PZA.sense.scanStep(...)", p)
-    assert out["r"] == 2 and len(out["squares"]) == 25 and out["scanTicks"] == 1
-    s = lua.eval("PZA.sense.scan(...)", p, 15)
-    assert s["r"] == 15 and len(s["squares"]) == 961 and s["scanTicks"] == 17 and s["scanMs"] == 961
+    parts = step_parts(lua, p)
+    whole = lua.eval("PZA.sense.scan(...)", p, 15)
+    key = lambda q: (q["x"], q["y"], q["z"])
+    union = [key(q) for part in parts for q in part["squares"]]
+    assert len(union) == len(set(union)) == 961
+    assert sorted(union) == sorted(key(q) for q in whole["squares"].values())
+    assert whole["r"] == 15 and whole["scanTicks"] == 17 and whole["scanMs"] == 961 and whole["scanStepMaxMs"] == 60
+    assert [whole["scanMsPerTick"][i] for i in range(1, 18)] == [60] * 16 + [1]
     for k in ("hour", "missing"):
-        assert s[k] is not None
+        assert whole[k] is not None
+
+
+def test_each_scan_start_takes_a_new_id_and_replaces_the_running_job(lua):
+    load(lua)
+    clocked_cell(lua, 10, 20, 15)
+    p = make_player()
+    lua.eval("PZA.sense.scanStart(...)", p, 15)
+    first = step_parts(lua, p, limit=3)
+    assert [q["part"] for q in first] == [1, 2, 3] and not any(q["done"] for q in first)
+    lua.eval("PZA.sense.scanStart(...)", p, 2)
+    second = step_parts(lua, p)
+    assert second[0]["scanId"] == first[0]["scanId"] + 1
+    assert [(q["part"], q["parts"], q["r"], len(q["squares"]), q["done"]) for q in second] == [(1, 1, 2, 25, True)]
+    assert lua.eval("PZA.sense.scanStep(...)", p) is None        # the replaced job's parts stop
+    s = lua.eval("PZA.sense.scan(...)", p, 15)                    # the sync helper takes no id and leaves none running
+    assert len(s["squares"]) == 961 and lua.eval("PZA.sense.job") is None
+    lua.eval("PZA.sense.scanStart(...)", p, 0)
+    assert step_parts(lua, p)[0]["scanId"] == first[0]["scanId"] + 2
+
+
+def test_a_parts_missing_lists_what_its_own_squares_lacked_and_the_whole_unions_them(lua):
+    load(lua)
+    plain = lambda x, y: J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: 0, isSolid=lambda s: False,
+                           isSolidTrans=lambda s: False, getLightLevel=lambda s, i: 0.5,
+                           getObjects=lambda s: J(size=lambda s2: 0), getWorldObjects=lambda s: J(size=lambda s2: 0))
+    bare = lambda x, y: J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: 0)
+    squares = {(x, y, 0): (bare(x, y) if (x, y) == (10, 20) else plain(x, y)) for x in range(9, 12) for y in range(19, 22)}
+    lua.globals()._cell = J(getGridSquare=lambda s, x, y, z: squares.get((int(x), int(y), int(z))))
+    lua.execute("PZA.sense.SCAN_SQUARES_PER_TICK = 4")             # 9 squares: parts of 4, 4, 1; (10, 20) is the 5th
+    p = make_player()
+    lua.eval("PZA.sense.scanStart(...)", p, 1)
+    parts = step_parts(lua, p)
+    assert [q["parts"] for q in parts] == [3, 3, 3] and [len(q["squares"]) for q in parts] == [4, 4, 1]
+    assert parts[0]["missing"] == [] and "isSolid" in parts[1]["missing"] and parts[2]["missing"] == []
+    whole = lua.eval("PZA.sense.scan(...)", p, 1)
+    assert sorted(whole["missing"].values()) == sorted(parts[1]["missing"])
 
 
 def test_scan_records_each_steps_ms_and_their_maximum(lua):

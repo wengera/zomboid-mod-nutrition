@@ -1,5 +1,5 @@
 -- PZAgent_Main.lua — the one OnTick hook (loads last by name). The tick order: player → init → poll →
--- act → scan chunk → frame. No player means nothing is polled or emitted; the link is initialised (M.init) before the
+-- act → scan part → frame. No player means nothing is polled or emitted; the link is initialised (M.init) before the
 -- first poll, then cmd.txt is polled, the goal runs, and every 60/RATE ticks a frame carries the goal
 -- status and the tick's own cost, then flushes. Everything sits inside one pcall; a raise counts in
 -- PZA.errors and, once the link is initialised, reports as a lua_error event once a second (its flush
@@ -16,10 +16,11 @@ M.lastGoalSeq = nil
 M.lastGoalState = nil
 M.lastLinkMs = 0
 M.lastScanEmitMs = 0
+M.lastPartEmitMs = 0
 M.hooked = M.hooked or false
 
 -- a configuration command: true and the ack's reason when handled, nil when cmd is a goal. scan r queues
--- the chunked scan job (a running one is replaced) and acks "queued"; its line lands from body.
+-- the chunked scan job under the next scanId (a running one is replaced) and acks "queued"; its parts land from body.
 local function config(cmd, p)
     local v = tonumber(cmd.args)
     if cmd.goal == "rate" and v and v > 0 then PZA.sense.RATE = v; return true, "" end
@@ -68,15 +69,20 @@ local function body()
     end
     local tAct = PZA.now()
     PZA.act.tick(p)
-    -- one chunk of a running scan; its line lands (and flushes) the tick its last square is done
+    -- one chunk of a running scan, emitted (and flushed) as its scanPart line on the tick it is walked. A part is
+    -- serialised before its own emit and flush is timed, so part i carries part i-1's as emitMs (part 1 reads 0) and
+    -- the last part's lands as the next frame's cost.scanEmitMs; the last part also carries gameMin and worldAge
     local tScan = PZA.now()
-    local s = PZA.sense.scanStep(p)
-    if s ~= nil then
-        s.gameMin, s.worldAge = PZA.sense.clock()
+    local part = PZA.sense.scanStep(p)
+    if part ~= nil then
+        if part.part == 1 then M.lastPartEmitMs = 0 end
+        part.emitMs = M.lastPartEmitMs
+        if part.done then part.gameMin, part.worldAge = PZA.sense.clock() end
         local te = PZA.now()
-        PZA.emit("scan", s)
+        PZA.emit("scanPart", part)
         PZA.link.flush()
-        M.lastScanEmitMs = PZA.now() - te
+        M.lastPartEmitMs = PZA.now() - te
+        if part.done then M.lastScanEmitMs = M.lastPartEmitMs end
     end
     local tSense = PZA.now()
     local every = math.max(1, math.floor(60 / PZA.sense.RATE))
@@ -91,9 +97,9 @@ local function body()
         cur.gameMin, cur.worldAge = gameMin, worldAge
         local tLink = PZA.now()
         -- linkMs is the previous frame tick's flush ms (one-frame lag: this frame's flush runs after its emit)
-        -- scanStepMs is this tick's scan chunk with its emit and flush when it completed (0 with no job); it is
-        -- in neither actMs nor senseMs, and the job's own scanMs sums its chunks. scanEmitMs is the last completed
-        -- scan line's own emit and flush, carried once on the first frame after it (0 otherwise)
+        -- scanStepMs is this tick's scan chunk with its part's emit and flush (0 with no job); it is in neither
+        -- actMs nor senseMs, and the job's own scanMs sums its chunks' walks. scanEmitMs is the last completed scan's
+        -- last part's own emit and flush, carried once on the first frame after it (0 otherwise)
         cur.cost = { actMs = tScan - tAct, scanStepMs = tSense - tScan, senseMs = tLink - tSense, linkMs = M.lastLinkMs,
                      pollMs = tAct - t0, dropped = PZA.link.dropped or 0, scanEmitMs = M.lastScanEmitMs }
         M.lastScanEmitMs = 0
