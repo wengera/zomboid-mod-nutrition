@@ -16,8 +16,10 @@ HEURISTIC (a spike, deliberately dumb):
   (all of them when it failed), and a `drink` that failed `none held` blocks drinking until an item matching
   world.WATER_RX is added. The events deque is bounded, so a long session forgets its oldest pickups.
 - A goal that failed is not chosen again with the same name and args for FAILED_COOLDOWN_TICKS planner ticks: its
-  branch is passed over and the next one tried (logged as inputs.cooled). Every branch tried logs its own inputs
-  (the chosen square, container or edge) under inputs.branches[<branch>].
+  branch is passed over and the next one tried (logged as inputs.cooled). Two exceptions: a goal the Lua failed as
+  `superseded` (this policy's own next send replaced it) is not a failure and never cools, and the `threat` branch is
+  never passed over (a threat is not waited out; its own choice adapts, `flee` when unarmed). Every branch tried
+  logs its own inputs (the chosen square, container or edge) under inputs.branches[<branch>].
 - A loot goal that finishes, done or failed, marks every container on its square looted, so a failing square is not
   retried. An explore walk that finishes is followed by one `scan` from where it ended.
 """
@@ -41,6 +43,7 @@ BY_NAME = ("fight", "flee")
 CONFIG = ("scan",)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed goal is not chosen again with the same name and args
 FINISHED = ("done", "failed")
+PREEMPTED = "superseded"     # the detail PZAgent_Act.lua A.start gives the goal a new send replaced
 
 
 class Policy:
@@ -225,8 +228,8 @@ class Policy:
 
     def _note_failures(self):
         """The last failed goal sent, with the planner tick that first saw it fail."""
-        for seq, (state, _) in sorted(self._finished().items()):
-            if state == "failed" and seq not in self.failures_seen:
+        for seq, (state, why) in sorted(self._finished().items()):
+            if state == "failed" and why != PREEMPTED and seq not in self.failures_seen:
                 self.failures_seen.add(seq)
                 self.last_failed = self.sent[seq] + (self.ticks,)
 
@@ -245,7 +248,7 @@ class Policy:
             self.why = {}
             c = getattr(self, name)()
             tried[name] = self.why
-            if c is not None and self._cooling(c):
+            if name != "threat" and c is not None and self._cooling(c):   # a threat is never waited out
                 cooled = list(c)                 # failed within FAILED_COOLDOWN_TICKS: the next branch is tried
                 continue
             if c is not None:

@@ -213,19 +213,52 @@ def test_a_goal_is_sent_only_when_it_differs_from_the_running_one(tmp_path):
 
 
 def test_a_failed_goal_cools_for_ten_planner_ticks(tmp_path):
-    zs = [zombie(1, 103.0, 100.0)]
-    w, link, pol = make(tmp_path, frame(zombies=zs, health=30.0))
+    w, link, pol = make(tmp_path, frame(thirst=0.6))
     pol.scanned.add(None)                                    # nothing else to do: explore has no edge
-    assert pol.tick() == "flee" and link.cmds == [("flee", "92 100")]
-    w.apply(event("goal_failed", goalSeq=1, reason="cornered"))
+    assert pol.tick() == "drink" and link.cmds == [("drink", "")]
+    w.apply(event("goal_failed", goalSeq=1, reason="not valid"))
     for i in range(P.FAILED_COOLDOWN_TICKS):
-        w.apply(frame(wall=2000 + i, zombies=zs, health=30.0))
-        assert pol.tick() is None, i                         # the same flee is not re-sent while it cools
+        w.apply(frame(wall=2000 + i, thirst=0.6))
+        assert pol.tick() is None, i                         # the same drink is not re-sent while it cools
     d = decisions(tmp_path)[-1]
-    assert d["inputs"]["cooled"] == ["flee", "92 100"] and d["branch"] is None
-    w.apply(frame(wall=3000, zombies=zs, health=30.0))
-    assert pol.tick() == "flee" and link.cmds == [("flee", "92 100")] * 2
+    assert d["inputs"]["cooled"] == ["drink", ""] and d["branch"] is None
+    w.apply(frame(wall=3000, thirst=0.6))
+    assert pol.tick() == "drink" and link.cmds == [("drink", "")] * 2
     assert decisions(tmp_path)[-1]["inputs"]["cooled"] is None
+
+
+def test_a_preempted_goal_is_not_a_failure_and_is_chosen_again_at_once(tmp_path):
+    w, link, pol = make(tmp_path, frame(thirst=0.6))
+    assert pol.tick() == "drink"
+    w.apply(event("goal_failed", goalSeq=1, reason="superseded"))   # PZAgent_Act A.start: failed "superseded"
+    w.apply(frame(wall=2000, thirst=0.6))
+    assert pol.tick() == "drink" and link.cmds == [("drink", "")] * 2
+    assert pol.last_failed is None and decisions(tmp_path)[-1]["inputs"]["cooled"] is None
+
+
+@pytest.mark.parametrize("reason, me, want", [("weapon broke", {"weapon": BAT}, "fight"), ("no weapon", {}, "flee")])
+def test_a_failed_fight_never_passes_the_threat_branch_over(tmp_path, reason, me, want):
+    zs = [zombie(1, 103.0, 100.0)]
+    w, link, pol = make(tmp_path, frame(zombies=zs, weapon=BAT))
+    assert pol.tick() == "fight"
+    w.apply(event("goal_failed", goalSeq=1, reason=reason))
+    w.apply(frame(wall=2000, zombies=zs, **me))
+    assert pol.tick() == want and decisions(tmp_path)[-1]["branch"] == "threat"
+    assert pol.last_failed[:2] == ("fight", "")              # noted, yet the threat branch answered
+
+
+def test_a_failed_loot_still_cools_for_ten_planner_ticks(tmp_path):
+    crate = {"type": "crate", "n": 1, "items": ["Base.Nails"]}
+    w, link, pol = make(tmp_path, scan([sq(102, 100, containers=[crate])]), frame())
+    pol.scanned.add(None)
+    assert pol.tick() == "loot"
+    w.apply(event("goal_failed", goalSeq=1, reason="not adjacent"))
+    w.apply(frame(wall=2000))
+    assert pol.last_failed is None
+    pol.tick()
+    assert pol.last_failed[:2] == ("loot", "102 100 all") and pol._cooling(("loot", "102 100 all"))
+    pol.ticks += P.FAILED_COOLDOWN_TICKS
+    assert not pol._cooling(("loot", "102 100 all"))
 
 
 def test_a_cooled_goal_passes_over_to_the_next_branch(tmp_path):
