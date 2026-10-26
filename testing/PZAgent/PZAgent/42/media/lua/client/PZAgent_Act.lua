@@ -661,6 +661,7 @@ A.goals["fight"] = {
             if bx == nil then return end
             g.sub = subGoto(bx, by, false)
             g.closing = false
+            g.closedX, g.closedY = nil, nil  -- a step-back forgets the closed square, so the fight closes again after it
             tickSub(p, g)
         end
     end,
