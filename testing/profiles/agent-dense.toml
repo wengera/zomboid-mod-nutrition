@@ -1,0 +1,26 @@
+# testing/profiles/agent-dense.toml - Plan 21: PZAgent beside the harness on the agent fixture (sandbox Zombies = 4, dense).
+fixture = "agent"
+description = "PZTestKit + PZAgent, zombies High (Zombies = 4), 90-minute day, sleep allowed."
+run = { hold = 5 }
+clients = ["admin"]
+verify = [
+  { side = "server", cmd = "ping", expect = "pong" },
+  { side = "client", cmd = "ping", expect = "pong" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "PZAgent"
+path = "testing/PZAgent/PZAgent"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 120
+
+[sandbox]
+Zombies = 4
