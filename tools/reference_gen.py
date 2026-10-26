@@ -33,7 +33,7 @@ MIRROR_WRONG = "mirror wrong:"
 # A cell boundary is a `|` that is not escaped as `\|`.
 PIPE_RX = re.compile(r"(?<!\\)\|")
 TABLE_SEP_RX = re.compile(r"^\|\s*:?-")
-RUN_ID_IN_CELL_RX = re.compile(r"[a-z0-9]+-\d{8}-\d{6}")
+RUN_ID_IN_CELL_RX = re.compile(r"[a-z0-9_]+-\d{8}-\d{6}")  # a run id may carry an underscore (a_pipe-…, Plan 21)
 CONTRADICTIONS_INTRO = (
     "Generated from [the claims register](../../docs/reference/claims.tsv) by "
     "`python tools/reference_gen.py contradictions --write`; never edit it by hand: "

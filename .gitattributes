@@ -12,3 +12,6 @@ mod/**/*.png binary
 data/vanilla-relative-paths.txt text eol=lf
 testing/spikes/** text eol=lf
 docs/mod-guide/** text eol=lf
+testing/artifacts/a_pipe-*/** -text
+testing/artifacts/b_actions-*/** -text
+testing/artifacts/c_survive-*/** -text

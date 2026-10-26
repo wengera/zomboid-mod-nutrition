@@ -22652,3 +22652,9 @@ x505-20261023-085935,verdicts.COUNTS.observed.want,the predicted counts,A predic
 x505-20261023-085935,verdicts.T7_2.observed.restored_want,2.499999793039436,"The field before times hung1 / hung0, computed for the grade; not a reading.",`checks.T72.eat.item1.fields`
 x505-20261023-085935,verdicts.T7_2.observed.restored_readtime,12.499999793039436,"The restore's target plus the stale term, computed for the grade; not a reading.",`checks.T72.eat.item1.fields`
 x505-20261023-085935,verdicts.T7_2.observed.lowered,8.83333342991493,x503's lowered value recomputed at these reads for the falsifier; not a reading.,`checks.T72.eat.citem1.fields`
+a_pipe-20261026-101003,readings.motion[*] (cmdSeq 28–38),failed stuck / a timeout,"A defect reading: the character was dying (28) or dead (29–38); cite the failure and its cause (the guide), never a latency.",
+a_pipe-20261026-101003,cmd_motion_p90_ms,Infinity,"Nine of twenty legs unpaired because the character was dead; not a latency.",readings.motion[*].cmd_motion_host_ms for cmdSeq 19–27 (this run's live legs only)
+a_pipe-20261026-101003,readings.rates.5.tickMs p99,2,"Quantised to a 1 ms clock: a 2 is 1–2 ms; cite as a bound, never as a value.",
+a_pipe-20261026-101003,readings.server[*].rttMs,1509.0 / 2011.8 / 1762.9,"n = 3, taken with the character dead.",
+a_pipe-20261026-101003,readings.server[*].ack.mult,4.799…,"getMultiplier, not the true multiplier (#3762).",
+a_pipe-20261026-101003,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",

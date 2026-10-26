@@ -121,3 +121,9 @@ def test_wildcard_keys_and_wildcard_match():
     assert rg.wildcard_match("phases.*.mem_before", "phases.B.mem_before.kb")
     assert not rg.wildcard_match("phases.*.mem_before", "phases.B.mem_after")
     assert not rg.wildcard_match("epoch_ms_*", "steps[1].epoch")
+
+
+def test_run_id_in_cell_keeps_an_underscored_prefix():
+    # Plan 21 drivers name their runs a_pipe-…, b_actions-…: the id is the whole token, not the part after the underscore.
+    assert rg.RUN_ID_IN_CELL_RX.search("`a_pipe-20261026-101003`").group(0) == "a_pipe-20261026-101003"
+    assert rg.RUN_ID_IN_CELL_RX.search("`x505-20261023-085935`").group(0) == "x505-20261023-085935"
