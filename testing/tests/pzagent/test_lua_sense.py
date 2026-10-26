@@ -139,7 +139,7 @@ def clocked_cell(lua, cx, cy, r):
     return calls
 
 
-def step_parts(lua, p, limit=40):
+def step_parts(lua, p, limit=80):
     """scanStep until a part carries done (or limit steps): the parts in order, each a dict with its squares a list."""
     parts = []
     while len(parts) < limit:
@@ -157,15 +157,15 @@ def step_parts(lua, p, limit=40):
     return parts
 
 
-def test_scan_job_r15_yields_17_contiguous_parts_of_its_walk(lua):
+def test_scan_job_r15_yields_49_contiguous_parts_of_its_walk(lua):
     load(lua)
-    assert lua.eval("PZA.sense.SCAN_SQUARES_PER_TICK") == 60
+    assert lua.eval("PZA.sense.SCAN_SQUARES_PER_TICK") == 20
     calls = clocked_cell(lua, 10, 20, 15)
     pos = {"x": 10.0}
     p = make_player(); p.getX = lambda s: pos["x"]
     lua.eval("PZA.sense.scanStart(...)", p, 15)
     parts, per = [], []
-    while len(parts) < 40:
+    while len(parts) < 80:
         n0 = len(calls)
         got = step_parts(lua, p, limit=1)
         if not got:
@@ -175,13 +175,14 @@ def test_scan_job_r15_yields_17_contiguous_parts_of_its_walk(lua):
         pos["x"] = 30.0                                          # the grid is the one at start
         if got[0]["done"]:
             break
-    assert [q["part"] for q in parts] == list(range(1, 18)) and {q["parts"] for q in parts} == {17}
-    assert per == [60] * 16 + [1] and [len(q["squares"]) for q in parts] == [60] * 16 + [1]
-    assert [q["stepMs"] for q in parts] == [60] * 16 + [1] and {q["scanId"] for q in parts} == {parts[0]["scanId"]}
-    assert [q["done"] for q in parts] == [None] * 16 + [True]
+    # ceil(961 / 20) = 49 parts: 48 of 20 squares and the last of 1
+    assert [q["part"] for q in parts] == list(range(1, 50)) and {q["parts"] for q in parts} == {49}
+    assert per == [20] * 48 + [1] and [len(q["squares"]) for q in parts] == [20] * 48 + [1]
+    assert [q["stepMs"] for q in parts] == [20] * 48 + [1] and {q["scanId"] for q in parts} == {parts[0]["scanId"]}
+    assert [q["done"] for q in parts] == [None] * 48 + [True]
     last = parts[-1]
-    assert last["scanTicks"] == 17 and last["scanMs"] == 961 and last["scanStepMaxMs"] == 60
-    assert last["scanMsPerTick"] == [60] * 16 + [1] and all(q["scanMs"] is None for q in parts[:-1])
+    assert last["scanTicks"] == 49 and last["scanMs"] == 961 and last["scanStepMaxMs"] == 20
+    assert last["scanMsPerTick"] == [20] * 48 + [1] and all(q["scanMs"] is None for q in parts[:-1])
     assert min(c[0] for c in calls) == -5 and max(c[0] for c in calls) == 25
     assert lua.eval("PZA.sense.scanStep(...)", p) is None        # no job: nothing
 
@@ -197,8 +198,9 @@ def test_the_parts_union_is_the_synchronous_scan(lua):
     union = [key(q) for part in parts for q in part["squares"]]
     assert len(union) == len(set(union)) == 961
     assert sorted(union) == sorted(key(q) for q in whole["squares"].values())
-    assert whole["r"] == 15 and whole["scanTicks"] == 17 and whole["scanMs"] == 961 and whole["scanStepMaxMs"] == 60
-    assert [whole["scanMsPerTick"][i] for i in range(1, 18)] == [60] * 16 + [1]
+    assert len(parts) == 49 and [q["part"] for q in parts] == list(range(1, 50))
+    assert whole["r"] == 15 and whole["scanTicks"] == 49 and whole["scanMs"] == 961 and whole["scanStepMaxMs"] == 20
+    assert [whole["scanMsPerTick"][i] for i in range(1, 50)] == [20] * 48 + [1]
     for k in ("hour", "missing"):
         assert whole[k] is not None
 
@@ -213,7 +215,8 @@ def test_each_scan_start_takes_a_new_id_and_replaces_the_running_job(lua):
     lua.eval("PZA.sense.scanStart(...)", p, 2)
     second = step_parts(lua, p)
     assert second[0]["scanId"] == first[0]["scanId"] + 1
-    assert [(q["part"], q["parts"], q["r"], len(q["squares"]), q["done"]) for q in second] == [(1, 1, 2, 25, True)]
+    assert [(q["part"], q["parts"], q["r"], len(q["squares"]), q["done"]) for q in second] == [(1, 2, 2, 20, None),
+                                                                                                  (2, 2, 2, 5, True)]
     assert lua.eval("PZA.sense.scanStep(...)", p) is None        # the replaced job's parts stop
     s = lua.eval("PZA.sense.scan(...)", p, 15)                    # the sync helper takes no id and leaves none running
     assert len(s["squares"]) == 961 and lua.eval("PZA.sense.job") is None
@@ -244,7 +247,40 @@ def test_scan_records_each_steps_ms_and_their_maximum(lua):
     clocked_cell(lua, 10, 20, 15)                                # 1 ms per square
     s = lua.eval("PZA.sense.scan(...)", make_player(), 15)
     steps = [s["scanMsPerTick"][i] for i in range(1, s["scanTicks"] + 1)]
-    assert len(s["scanMsPerTick"]) == s["scanTicks"] == 17
-    assert steps == [60] * 16 + [1] and s["scanStepMaxMs"] == 60 and sum(steps) == s["scanMs"]
+    assert len(s["scanMsPerTick"]) == s["scanTicks"] == 49
+    assert steps == [20] * 48 + [1] and s["scanStepMaxMs"] == 20 and sum(steps) == s["scanMs"]
     s = lua.eval("PZA.sense.scan(...)", make_player(), 0)        # one square, one step
     assert s["scanTicks"] == 1 and s["scanStepMaxMs"] == 1 and s["scanMsPerTick"][1] == 1
+
+
+# ---- Plan 21b Task 1: the timed-action queue index-checked before the call --------------------------------------
+
+def test_a_frame_without_the_vanilla_queue_carries_no_action_and_raises_nothing(lua):
+    load(lua)
+    lua.execute("pcallFails = 0\n"
+                "local rawPcall = pcall\n"
+                "pcall = function(...)\n"
+                "    local r = { rawPcall(...) }\n"
+                "    if not r[1] then pcallFails = pcallFails + 1 end\n"
+                "    return unpack(r)\n"
+                "end")
+    g = lua.globals()
+    g.ISTimedActionQueue = None
+    f = lua.eval("PZA.sense.frame(...)", make_player())
+    assert f["action"] is None and f["x"] == 10.0 and g.pcallFails == 0
+    lua.execute("ISTimedActionQueue = {}")                       # the class without getTimedActionQueue
+    assert lua.eval("PZA.sense.frame(...)", make_player())["action"] is None and g.pcallFails == 0
+    lua.execute("ISTimedActionQueue = {getTimedActionQueue = function(p) return nil end}")
+    assert lua.eval("PZA.sense.frame(...)", make_player())["action"] is None and g.pcallFails == 0
+    lua.execute("ISTimedActionQueue = {getTimedActionQueue = function(p) return {queue = 'x'} end}")
+    assert lua.eval("PZA.sense.frame(...)", make_player())["action"] is None and g.pcallFails == 0
+    lua.execute("ISTimedActionQueue = {getTimedActionQueue = function(p) return {queue = {}} end}")
+    a = lua.eval("PZA.sense.frame(...)", make_player())["action"]
+    assert a["n"] == 0 and a["class"] is None and g.pcallFails == 0
+
+
+def test_a_queue_object_that_is_not_a_lua_table_is_never_indexed(lua):
+    load(lua)
+    g = lua.globals()
+    g.ISTimedActionQueue = J(getTimedActionQueue=lambda p: J(queue=[1, 2]))   # a Java-like object, a Python list
+    assert lua.eval("PZA.sense.frame(...)", make_player())["action"] is None

@@ -960,7 +960,7 @@ def test_main_scan_is_queued_and_emitted_one_part_per_tick(lua, fs):
     lua.execute("PZA.main.init('admin')"); lua.execute("PZA.main.ready = true")
     fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=scan\nargs=15\n"
     per_tick = []
-    for i in range(1, 30):
+    for i in range(1, 62):
         n0 = len(log_lines(fs))
         g._handlers[0]()
         lines = log_lines(fs)
@@ -968,21 +968,22 @@ def test_main_scan_is_queued_and_emitted_one_part_per_tick(lua, fs):
             acks = [l for l in lines if l["kind"] == "ack"]
             assert len(acks) == 1 and acks[0]["ok"] is True and acks[0]["reason"] == "queued"
         per_tick.append([l["part"] for l in lines[n0:] if l["kind"] == "scanPart"])
-    assert per_tick == [[k] for k in range(1, 18)] + [[]] * 12      # ceil(961 / 60) parts, one a tick, each flushed
+    assert per_tick == [[k] for k in range(1, 50)] + [[]] * 12      # ceil(961 / 20) parts, one a tick, each flushed
     lines = log_lines(fs)
     assert not any(l["kind"] == "scan" for l in lines)
     parts = [l for l in lines if l["kind"] == "scanPart"]
-    assert {p["scanId"] for p in parts} == {1} and {p["parts"] for p in parts} == {17} and {p["r"] for p in parts} == {15}
-    assert [p.get("done") for p in parts] == [None] * 16 + [True] and sum(len(p["squares"]) for p in parts) == 961
+    assert {p["scanId"] for p in parts} == {1} and {p["parts"] for p in parts} == {49} and {p["r"] for p in parts} == {15}
+    assert [p.get("done") for p in parts] == [None] * 48 + [True] and sum(len(p["squares"]) for p in parts) == 961
     last = parts[-1]
-    assert last["scanTicks"] == 17 and last["scanMs"] == 961 and last["scanStepMaxMs"] == 60
+    assert last["scanTicks"] == 49 and last["scanMs"] == 961 and last["scanStepMaxMs"] == 20
     for k in ("hour", "missing", "gameMin", "worldAge"):
         assert k in last
     assert "gameMin" not in parts[0]
     frames = [l for l in lines if l["kind"] == "frame"]
-    assert frames[0]["cost"]["scanStepMs"] == 60                 # tick 12: one chunk of 60 squares (its emit costs 0 here)
+    assert frames[0]["cost"]["scanStepMs"] == 20                 # tick 12: one chunk of 20 squares (its emit costs 0 here)
     assert frames[0]["cost"]["senseMs"] == 0                     # the chunk is not the frame's sense cost
-    assert frames[1]["cost"]["scanStepMs"] == 0                  # tick 24: the job is done
+    assert [f["cost"]["scanStepMs"] for f in frames[1:4]] == [20] * 3   # ticks 24, 36, 48: the job still walks
+    assert frames[4]["cost"]["scanStepMs"] == 0                  # tick 60: the job is done (its last part on tick 49)
 
 
 def test_main_second_scan_replaces_a_running_one_and_its_parts_stop(lua, fs):
@@ -1029,24 +1030,24 @@ def test_each_part_carries_the_previous_parts_emit_and_the_next_frame_the_last_o
     g = lua.globals(); g.getPlayer = lambda: make_player()
     scan_world(lua, 10, 20, 15)
     lua.execute("PZA.main.init('admin')"); lua.execute("PZA.main.ready = true")
-    for _ in range(4):                                           # the r=15 job starts on tick 5: parts on ticks 5-21
+    for _ in range(4):                                           # the r=15 job starts on tick 5: parts on ticks 5-53
         g._handlers[0]()
     floor_cost_writes(lua, fs)
     fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=scan\nargs=15\n"
-    for _ in range(40):
+    for _ in range(72):
         g._handlers[0]()
     lines = log_lines(fs)
     parts = [l for l in lines if l["kind"] == "scanPart"]
     frames = [l for l in lines if l["kind"] == "frame"]
-    assert [p["emitMs"] for p in parts] == [0] + [60] * 16      # part i carries part i-1's emit (60 squares, 60 ms)
-    assert [p["stepMs"] for p in parts] == [60] * 16 + [1]
+    assert [p["emitMs"] for p in parts] == [0] + [20] * 48      # part i carries part i-1's emit (20 squares, 20 ms)
+    assert [p["stepMs"] for p in parts] == [20] * 48 + [1]
     last = parts[-1]
     after = [f for f in frames if f["seq"] > last["seq"]]
     assert after[0]["cost"]["scanEmitMs"] == 1                   # the last part's own emit: one square, 1 ms
     assert after[1]["cost"]["scanEmitMs"] == 0                   # reported once
     assert all(f["cost"]["scanEmitMs"] == 0 for f in frames if f["seq"] < last["seq"])   # a mid-scan frame carries none
     mid = [f for f in frames if parts[0]["seq"] < f["seq"] < last["seq"]]
-    assert mid and all(f["cost"]["scanStepMs"] == 120 for f in mid)   # the tick's 60 ms walk plus its 60 ms part emit
+    assert mid and all(f["cost"]["scanStepMs"] == 40 for f in mid)   # the tick's 20 ms walk plus its 20 ms part emit
 
 
 # ---- Task 11 fix 1: the sleep gates; fight drops its step-back; flee resets running ------------
@@ -1169,12 +1170,12 @@ def test_the_frame_after_a_completed_scan_carries_its_emit_cost_once(lua, fs):
     import json
     load(lua)
     g = lua.globals(); g.getPlayer = lambda: make_player()
-    scan_world(lua, 10, 20, 2)                                   # 25 squares: one chunk, done on its first tick
+    scan_world(lua, 10, 20, 1)                                   # 9 squares: one chunk, done on its first tick
     lua.execute("PZA.main.init('admin')"); lua.execute("PZA.main.ready = true")
     for _ in range(10):                                          # to tick 10, before the tick-12 frame
         g._handlers[0]()
     fs.write_cost_ms = 4                                         # every file write costs 4 ms from here
-    fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=scan\nargs=2\n"
+    fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=scan\nargs=1\n"
     g._handlers[0]()                                             # tick 11: the ack flush (4), then the scan line's
     for _ in range(13):
         g._handlers[0]()
@@ -1182,8 +1183,107 @@ def test_the_frame_after_a_completed_scan_carries_its_emit_cost_once(lua, fs):
     scan = [l for l in lines if l["kind"] == "scanPart"][0]
     assert scan["done"] is True and scan["part"] == scan["parts"] == 1 and scan["emitMs"] == 0
     frames = [l for l in lines if l["kind"] == "frame"]
-    assert scan["scanTicks"] == 1 and scan["scanStepMaxMs"] == 25
+    assert scan["scanTicks"] == 1 and scan["scanStepMaxMs"] == 9
     after = [f for f in frames if f["seq"] > scan["seq"]]
     assert after[0]["cost"]["scanEmitMs"] == 4                   # the scan line's own emit and flush
     assert after[1]["cost"]["scanEmitMs"] == 0                   # reported once
     assert all(f["cost"]["scanEmitMs"] == 0 for f in frames if f["seq"] < scan["seq"])
+
+
+# ---- Plan 21b Task 1: the vanilla classes index-checked before every action build ------------------------------
+
+def count_failed_pcalls(lua):
+    """Wraps the global pcall so every caught raise is counted in _G.pcallFails: a guard that index-checks before the
+    call leaves it at 0 (a caught raise still parks a -debug client)."""
+    lua.execute("pcallFails = 0\n"
+                "local rawPcall = pcall\n"
+                "pcall = function(...)\n"
+                "    local r = { rawPcall(...) }\n"
+                "    if not r[1] then pcallFails = pcallFails + 1 end\n"
+                "    return unpack(r)\n"
+                "end")
+
+
+def test_a_goto_without_the_vanilla_walk_class_fails_no_path_and_raises_nothing(lua):
+    load(lua)
+    count_failed_pcalls(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    g.ISWalkToTimedAction = None
+    p = make_player()
+    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
+    st = tick(lua, p)
+    assert st["state"] == "failed" and st["detail"] == "no path" and g._queue.adds == []
+    assert g.pcallFails == 0 and g._queue.cleared == 1          # failWalk still clears through the loaded queue
+    g.ISWalkToTimedAction = J()                                 # the class without its new
+    lua.eval("PZA.act.start({seq=2, goal='goto', args='13 20'}, ...)", p)
+    assert tick(lua, p)["detail"] == "no path" and g.pcallFails == 0 and g._queue.adds == []
+
+
+def test_a_goto_without_the_vanilla_queue_fails_no_path_and_raises_nothing(lua):
+    load(lua)
+    count_failed_pcalls(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    g.ISTimedActionQueue = None
+    p = make_player()
+    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
+    st = tick(lua, p)
+    assert st["state"] == "failed" and st["detail"] == "no path" and g.pcallFails == 0
+    lua.eval("PZA.act.start({seq=2, goal='stop', args=''}, ...)", p)   # stop clears nothing it cannot index
+    assert tick(lua, p)["state"] == "done" and g.pcallFails == 0
+
+
+def test_a_loot_without_the_vanilla_transfer_class_fails_not_loaded(lua):
+    load(lua)
+    count_failed_pcalls(lua)
+    lua.globals().ISInventoryTransferAction = None
+    g, box, held, p = loot_world(lua, [item("Base.Bread", "Food")], filt="food")
+    st = tick(lua, p)
+    assert st["state"] == "failed" and st["detail"] == "not loaded"     # the class not loaded, not "no match"
+    assert g._queue.adds == [] and g.pcallFails == 0
+    g.ISInventoryTransferAction = J()                                   # the class without its new
+    g, box, held, p = loot_world(lua, [item("Base.Bread", "Food")], filt="food")
+    assert tick(lua, p)["detail"] == "not loaded" and g._queue.adds == [] and g.pcallFails == 0
+
+
+def test_an_eat_whose_constructor_lacks_new_is_refused_before_any_call(lua):
+    load(lua)
+    count_failed_pcalls(lua)
+    g = lua.globals()
+    g.ISEatFoodAction = J()                                     # the class without its new: queueConsume returns false
+    p = inv_player([item("Base.Bread", "Food")])
+    lua.eval("PZA.act.start({seq=1, goal='eat', args='Base.Bread'})")
+    st = tick(lua, p)
+    assert st["state"] == "failed" and st["detail"] == "not valid" and g._queue.adds == [] and g.pcallFails == 0
+
+
+def test_an_action_without_is_valid_start_or_a_missing_queue_is_refused_before_any_call(lua):
+    load(lua)
+    count_failed_pcalls(lua)
+    g = lua.globals()
+    g.ISEatFoodAction = J(new=lambda cls, p, it, pct: J(Type="ISEatFoodAction"))   # no isValidStart
+    p = inv_player([item("Base.Bread", "Food")])
+    lua.eval("PZA.act.start({seq=1, goal='eat', args='Base.Bread'})")
+    assert tick(lua, p)["detail"] == "not valid" and g._queue.adds == [] and g.pcallFails == 0
+    q = g._queue
+    g.ISTimedActionQueue = J(clear=lambda p: q.clear(p))       # the queue without its add
+    fc = J(isEmpty=lambda s: False, isPoisonous=lambda s: False, isFilledWithCleanWater=lambda s: True,
+           getAmount=lambda s: 1.0)
+    p = inv_player([item("Base.WaterBottle", fluid=fc)])
+    lua.eval("PZA.act.start({seq=2, goal='drink', args=''})")
+    assert tick(lua, p)["detail"] == "not valid" and q.adds == [] and g.pcallFails == 0
+
+
+def test_an_open_whose_constructor_lacks_new_or_whose_queue_lacks_add_fails_no_door(lua):
+    load(lua)
+    count_failed_pcalls(lua)
+    g = lua.globals()
+    g._cell = make_cell(squares={(11, 20, 0): osq(11, 20, [make_door()])})
+    p = make_player()
+    g.ISOpenCloseDoor = J()
+    lua.eval("PZA.act.start({seq=1, goal='open', args='11 20'})")
+    assert tick(lua, p)["detail"] == "no door" and g._queue.adds == [] and g.pcallFails == 0
+    g.ISOpenCloseDoor = J(new=lambda cls, p, item: J(Type="ISOpenCloseDoor"))
+    q = g._queue
+    g.ISTimedActionQueue = J(clear=lambda p: q.clear(p))
+    lua.eval("PZA.act.start({seq=2, goal='open', args='11 20'})")
+    assert tick(lua, p)["detail"] == "no door" and q.adds == [] and g.pcallFails == 0

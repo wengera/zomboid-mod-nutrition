@@ -93,11 +93,19 @@ function S.frame(p)
             else PZA.missing(S.missing, "MoodleType." .. name) end
         end
     else PZA.missing(S.missing, "getMoodles") end
-    -- the player's timed-action queue is vanilla Lua: guarded, its first action's Type and the length
-    local okQ, q = pcall(function() return ISTimedActionQueue.getTimedActionQueue(p).queue end)
-    if okQ and q ~= nil then
-        local okN, qn = pcall(function() return #q end)
-        if okN then f.action = { class = q[1] ~= nil and q[1].Type or nil, n = qn } end
+    -- the player's timed-action queue is vanilla Lua: the class and its member are index-checked before the call (a
+    -- missing one leaves the frame without action, never a raise), the returned object and its queue read only as
+    -- Lua tables, so #q is a Lua length, never a Java list's; the call itself stays under pcall
+    if ISTimedActionQueue ~= nil and ISTimedActionQueue.getTimedActionQueue ~= nil then
+        local okQ, tq = pcall(ISTimedActionQueue.getTimedActionQueue, p)
+        local q = nil
+        if okQ and type(tq) == "table" then q = tq.queue end
+        if type(q) == "table" then
+            local first = q[1]
+            local cls = nil
+            if type(first) == "table" then cls = first.Type end
+            f.action = { class = cls, n = #q }
+        end
     end
     f.zombies, f.nZombies = zombies(p, f.x, f.y)
     return f
@@ -211,7 +219,10 @@ end
 -- walk ms), missing (the members this chunk's squares lacked) }; the last part also carries done = true, scanMs (the
 -- summed stepMs), scanTicks, scanMsPerTick (each part's stepMs) and scanStepMaxMs (its largest). Main stamps each
 -- part's emitMs. One job at a time: a start replaces it, and the replaced job's parts stop.
-S.SCAN_SQUARES_PER_TICK = 60
+-- 20 squares a part (Stage A pass 3, testing/artifacts/a_pipe_3-20261026-130558/GUIDE.md § 1): 60-square parts read
+-- 3-7 ms a tick, the walk about 1 ms beside an emit of about 0.5 ms per KB plus about 0.5 ms a line; a 20-square part
+-- projects to about 4.1-4.5 ms peak.
+S.SCAN_SQUARES_PER_TICK = 20
 S.job = nil
 S.scanId = 0
 

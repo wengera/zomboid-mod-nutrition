@@ -52,6 +52,17 @@ local function isDead(p)
     return h ~= nil and h <= 0
 end
 
+-- true when the vanilla timed-action queue and its add are loaded (index-checked, never called to find out)
+local function queueLoaded()
+    return ISTimedActionQueue ~= nil and ISTimedActionQueue.add ~= nil
+end
+
+-- clears the player's vanilla timed-action queue: the class and its clear index-checked first (an unloaded queue has
+-- nothing to clear), the call under pcall for a raise inside vanilla Lua
+local function clearQueue(p)
+    if ISTimedActionQueue ~= nil and ISTimedActionQueue.clear ~= nil then pcall(ISTimedActionQueue.clear, p) end
+end
+
 -- A new goal replaces a running one: the old walk is cleared and the old goal's status comes back
 -- as failed "superseded" (third return) so the caller reports it. A dead player refuses every goal but
 -- stop (a dead body's running goal can still be stopped), and the running one carries on to its own end.
@@ -64,7 +75,7 @@ function A.start(cmd, p)
     if not ok then return false, reason end
     local old = nil
     if A.goal ~= nil and A.goal.state == "running" then
-        if p ~= nil then pcall(ISTimedActionQueue.clear, p) end
+        if p ~= nil then clearQueue(p) end
         A.goal.state, A.goal.detail = "failed", "superseded"
         old = A.status()
     end
@@ -84,7 +95,13 @@ function A.tick(p)
     A.goals[g.name].tick(p, g)
 end
 
+-- queues the vanilla walk to sq; false, "no walk action" when the queue or the walk class or its new is not loaded
+-- (index-checked before the call: a missing one is the goal's own failure, never a raise under pcall; goto maps it to
+-- no path, the reason a refused walk already takes), the call itself under pcall for a raise inside vanilla Lua
 local function queueWalk(p, sq)
+    if not queueLoaded() or ISWalkToTimedAction == nil or ISWalkToTimedAction.new == nil then
+        return false, "no walk action"
+    end
     local ran, err = pcall(function() ISTimedActionQueue.add(ISWalkToTimedAction:new(p, sq)) end)
     return ran, err
 end
@@ -97,7 +114,7 @@ end
 -- a goto's failed exit: its walk is cleared as done's is (Stage A pass 2's first leg failed stuck with its walk left
 -- queued, and the next leg's walk waited 3661 ms behind it), then the goal fails with detail
 local function failWalk(p, g, detail)
-    pcall(ISTimedActionQueue.clear, p)
+    clearQueue(p)
     g.state, g.detail = "failed", detail
 end
 
@@ -123,7 +140,7 @@ A.goals["goto"] = {
         end
         local d = dist(p, g.tx, g.ty)
         if d <= 1.0 then
-            pcall(ISTimedActionQueue.clear, p) -- the walk would carry on past the target and queue ahead of the next goal
+            clearQueue(p) -- the walk would carry on past the target and queue ahead of the next goal
             g.state, g.detail = "done", "d=" .. tostring(d)
             return
         end
@@ -137,7 +154,7 @@ A.goals["goto"] = {
         if g.still >= A.STUCK_TICKS then
             if g.replans >= A.REPLAN_MAX then failWalk(p, g, "stuck"); return end
             g.replans, g.still = g.replans + 1, 0
-            pcall(ISTimedActionQueue.clear, p)
+            clearQueue(p)
             queueWalk(p, g.sq)
         end
     end,
@@ -146,7 +163,7 @@ A.goals["goto"] = {
 A.goals["stop"] = {
     start = function(argv) return true, "", {} end,
     tick = function(p, g)
-        pcall(ISTimedActionQueue.clear, p)
+        clearQueue(p)
         PZA.call(p, "setRunning", false)
         g.state, g.detail = "done", ""
     end,
@@ -158,7 +175,8 @@ A.goals["stop"] = {
 -- read off the 42.21 install: ISOpenCloseDoor:new(character, item); ISOpenCloseWindow:new(character,
 -- object); ISInventoryTransferAction:new(character, item, srcContainer,
 -- destContainer, time); ISEatFoodAction:new(character, item, percentage);
--- ISDrinkFluidAction:new(character, item, percentage). Vanilla Lua is reached under pcall.
+-- ISDrinkFluidAction:new(character, item, percentage). Each vanilla class and member is index-checked before the
+-- call (a missing one is the goal's own failure), and the call is under pcall for a raise inside vanilla Lua.
 A.OPEN_MS = 5000          -- a queued open that leaves the door shut this long reads as locked
 A.CONSUME_MS = 20000      -- an eat or drink not seen landing within this wall time is interrupted
 A.LOOT_MS = 10000         -- a loot's wall budget: this, plus LOOT_ITEM_MS per queued transfer
@@ -307,7 +325,8 @@ A.goals["open"] = {
             if at == "walk" then return end
             local ctor = ISOpenCloseDoor
             if g.kind == "window" then ctor = ISOpenCloseWindow end
-            if ctor == nil then g.state, g.detail = "failed", "no door"; return end
+            -- the vanilla class, its new and the queue's add index-checked before the call (no raise to catch)
+            if ctor == nil or ctor.new == nil or not queueLoaded() then g.state, g.detail = "failed", "no door"; return end
             local ran = pcall(function() ISTimedActionQueue.add(ctor:new(p, g.door)) end)
             if not ran then g.state, g.detail = "failed", "no door"; return end
             g.queuedAt = PZA.now()
@@ -382,6 +401,11 @@ A.goals["loot"] = {
             if unloaded == #g.boxes then g.state, g.detail = "failed", "not loaded"; return end
             if seen == 0 then g.state, g.detail = "failed", "empty"; return end
             if #picks == 0 then g.state, g.detail = "failed", "no match"; return end
+            -- the vanilla transfer class, its new and the queue's add index-checked once before the loop: a missing
+            -- one is the vanilla class not loaded, not "no match", so the goal fails not loaded
+            if ISInventoryTransferAction == nil or ISInventoryTransferAction.new == nil or not queueLoaded() then
+                g.state, g.detail = "failed", "not loaded"; return
+            end
             local before, inv = invCount(p)
             local queued = 0
             for _, pick in ipairs(picks) do
@@ -399,10 +423,14 @@ A.goals["loot"] = {
     end,
 }
 
--- builds ctor:new(p, it, 1), checks its isValidStart and queues it; false when any step refuses
+-- builds ctor:new(p, it, 1), checks its isValidStart and queues it; false when any step refuses. The class, its new,
+-- the action's isValidStart and the queue's add are index-checked before each call (a missing one is false, never a
+-- raise under pcall); the calls stay under pcall for a raise inside vanilla Lua
 local function queueConsume(p, g, ctor, it)
+    if ctor == nil or ctor.new == nil or not queueLoaded() then return false end
     local ran, act = pcall(function() return ctor:new(p, it, 1) end)
     if not ran or act == nil then return false end
+    if act.isValidStart == nil then return false end
     local okV, valid = pcall(function() return act:isValidStart() end)
     if not okV or valid ~= true then return false end
     local okA = pcall(function() ISTimedActionQueue.add(act) end)
@@ -530,7 +558,7 @@ end
 -- drops a fight's step-back walk; one dropped while it runs (the zombies left) is cleared from the queue, since it
 -- would carry on and queue ahead of the next goal (a failed one cleared its own walk, a done one too)
 local function dropStep(p, g)
-    if g.sub ~= nil and g.sub.state == "running" then pcall(ISTimedActionQueue.clear, p) end
+    if g.sub ~= nil and g.sub.state == "running" then clearQueue(p) end
     g.sub = nil
 end
 
@@ -548,7 +576,7 @@ A.goals["fight"] = {
             dropStep(p, g)
             g.quiet = g.quiet + 1
             if g.quiet >= A.CLEAR_TICKS then
-                pcall(ISTimedActionQueue.clear, p)
+                clearQueue(p)
                 g.state, g.detail = "done", "clear"
             end
             return
@@ -589,7 +617,7 @@ local function fleeReplan(p, g)
     local _, solid = PZA.call(sq, "isSolid")
     if sq == nil or solid == true then return end
     local old = g.sub
-    pcall(ISTimedActionQueue.clear, p)
+    clearQueue(p)
     g.sub = subGoto(tx, ty, true)
     g.sub.still, g.sub.replans, g.sub.lastX, g.sub.lastY = old.still, old.replans, old.lastX, old.lastY
 end
@@ -644,6 +672,9 @@ A.goals["sleep"] = {
             local fn = menu ~= nil and menu.onConfirmSleep or nil
             if fn == nil or not sleepAllowed(p) then g.state, g.detail = "failed", "not allowed"; return end
             local _, num = PZA.call(p, "getPlayerNum")
+            -- the one site whose raise would park a -debug client: fn is index-checked above, but
+            -- ISWorldObjectContextMenu.onConfirmSleep(this, button, player, bed) is vanilla Lua that can raise inside
+            -- itself, which no index check prevents, so the pcall stays
             local ran = pcall(fn, nil, { internal = "YES" }, num or 0, nil)
             if not ran then g.state, g.detail = "failed", "not allowed"; return end
             g.calledAt, g.hp = PZA.now(), healthOf(p)
