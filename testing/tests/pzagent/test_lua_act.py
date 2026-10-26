@@ -1,4 +1,11 @@
-from .conftest import lua_file, make_player, make_cell, J
+import pytest
+from .conftest import lua_file, make_player, make_cell, make_lua, lua51, J
+
+
+@pytest.fixture
+def lua(fs):
+    """Act's tests run on the Lua 5.1 host (Kahlua's dialect); see make_lua."""
+    return make_lua(fs, lua51.LuaRuntime)
 
 
 def load(lua):
@@ -120,9 +127,9 @@ def osq(x, y, objects=(), solid=False):
              getObjects=lambda s: jlist(objs))
 
 
-def make_door(opened=False, locked=False, cls="IsoDoor"):
+def make_door(opened=False, locked=False, cls="IsoDoor", barricaded=False):
     st = {"open": opened}
-    d = J(_cls=cls, IsOpen=lambda s: st["open"], isLocked=lambda s: locked, isBarricaded=lambda s: False)
+    d = J(_cls=cls, IsOpen=lambda s: st["open"], isLocked=lambda s: locked, isBarricaded=lambda s: barricaded)
     d.st = st
     return d
 
@@ -138,12 +145,16 @@ def make_container(items, loaded=True):
     return c
 
 
-def inv_player(items, x=10.0, y=20.0):
-    """A player whose inventory is a mutable list; getFirstTypeRecurse/getCountTypeRecurse read it."""
+def inv_player(items, x=10.0, y=20.0, bagged=()):
+    """A player whose inventory is a mutable list; getFirstType/getCountType read it (the top level), and
+    the *Recurse forms also see `bagged` (items inside a bag)."""
     p = make_player(x=x, y=y)
+    deep = lambda: list(items) + list(bagged)
     inv = J(getItems=lambda s: jlist(items),
-            getFirstTypeRecurse=lambda s, t: next((i for i in items if i.getFullType(i) == t), None),
-            getCountTypeRecurse=lambda s, t: sum(1 for i in items if i.getFullType(i) == t))
+            getFirstType=lambda s, t: next((i for i in items if i.getFullType(i) == t), None),
+            getCountType=lambda s, t: sum(1 for i in items if i.getFullType(i) == t),
+            getFirstTypeRecurse=lambda s, t: next((i for i in deep() if i.getFullType(i) == t), None),
+            getCountTypeRecurse=lambda s, t: sum(1 for i in deep() if i.getFullType(i) == t))
     p.getInventory = lambda s: inv
     p.inv = inv
     return p
@@ -199,10 +210,10 @@ def test_open_failures(lua):
     g._cell = make_cell(squares={(13, 20, 0): osq(13, 20, [J(_cls="IsoObject")])})
     lua.eval("PZA.act.start({seq=3, goal='open', args='13 20'})")
     assert tick(lua, p)["detail"] == "no door"
-    g._cell = make_cell(squares={(13, 20, 0): osq(13, 20, [make_door(locked=True)]), (12, 20, 0): osq(12, 20)})
+    g._cell = make_cell(squares={(13, 20, 0): osq(13, 20, [make_door(barricaded=True)]), (12, 20, 0): osq(12, 20)})
     lua.eval("PZA.act.start({seq=4, goal='open', args='13 20'})")
     st = tick(lua, p)
-    assert st["state"] == "failed" and st["detail"] == "locked"
+    assert st["state"] == "failed" and st["detail"] == "locked"     # a barricade fails up front
     g._cell = make_cell(squares={(13, 20, 0): osq(13, 20, [make_door()]), (12, 20, 0): osq(12, 20, solid=True)})
     lua.eval("PZA.act.start({seq=5, goal='open', args='13 20'})")
     assert tick(lua, p)["detail"] == "not adjacent"
@@ -222,6 +233,26 @@ def test_open_that_never_opens_is_locked_and_an_open_door_is_done_at_once(lua):
     lua.eval("PZA.act.start({seq=2, goal='open', args='13 20'})")
     st = tick(lua, p)
     assert st["state"] == "done" and st["detail"] == "open"
+
+
+def test_open_a_locked_door_is_toggled_and_locked_is_read_after(lua):
+    load(lua)
+    g = lua.globals()
+    door = make_door(locked=True)
+    g._cell = make_cell(squares={(11, 20, 0): osq(11, 20, [door])})
+    p = make_player()
+    lua.eval("PZA.act.start({seq=1, goal='open', args='11 20'})")
+    assert tick(lua, p)["state"] == "running"              # queued: from inside, the toggle unlocks it
+    assert [a.Type for a in g._queue.adds] == ["ISOpenCloseDoor"]
+    door.st["open"] = True
+    assert tick(lua, p)["detail"] == "open"
+    shut = make_door(locked=True)
+    g._cell = make_cell(squares={(11, 20, 0): osq(11, 20, [shut])})
+    lua.eval("PZA.act.start({seq=2, goal='open', args='11 20'})")
+    tick(lua, p)
+    g._clock["ms"] += 5001
+    st = tick(lua, p)
+    assert st["state"] == "failed" and st["detail"] == "locked"
 
 
 def loot_world(lua, contents, loaded=True, filt=""):
@@ -306,6 +337,42 @@ def test_eat_consumed_and_failures(lua):
     assert st["state"] == "failed" and st["detail"] == "interrupted"
 
 
+def test_eat_refuses_a_non_food_before_the_constructor_and_ignores_bags(lua):
+    load(lua)
+    g = lua.globals()
+    made = []
+    g.ISEatFoodAction = J(new=lambda cls, p, it, pct: made.append(it) or J(Type="ISEatFoodAction", isValidStart=lambda s: True))
+    p = inv_player([item("Base.Pills")], bagged=[item("Base.Bread", "Food")])
+    lua.eval("PZA.act.start({seq=1, goal='eat', args='Base.Pills'})")
+    assert tick(lua, p)["detail"] == "not valid"
+    assert made == [] and g._queue.adds == []               # ISEatFoodAction:new never ran on a non-Food
+    lua.eval("PZA.act.start({seq=2, goal='eat', args='Base.Bread'})")
+    assert tick(lua, p)["detail"] == "none held"            # a bag-only item is not held at the top level
+
+
+def test_drink_skips_poison_and_prefers_clean_water(lua):
+    load(lua)
+    g = lua.globals()
+
+    def fluid(clean=False, poison=False):
+        return J(getAmount=lambda s: 0.5, isEmpty=lambda s: False,
+                 isPoisonous=lambda s: poison, isFilledWithCleanWater=lambda s: clean)
+    bleach = item("Base.Bleach", fluid=fluid(poison=True))
+    juice = item("Base.JuiceBox", fluid=fluid())
+    water = item("Base.WaterBottle", fluid=fluid(clean=True))
+    p = inv_player([bleach, juice, water])
+    lua.eval("PZA.act.start({seq=1, goal='drink', args=''})")
+    tick(lua, p)
+    assert g._queue.adds[-1].item is water
+    p = inv_player([bleach, juice])
+    lua.eval("PZA.act.start({seq=2, goal='drink', args=''})")
+    tick(lua, p)
+    assert g._queue.adds[-1].item is juice
+    p = inv_player([bleach])
+    lua.eval("PZA.act.start({seq=3, goal='drink', args=''})")
+    assert tick(lua, p)["detail"] == "none held"
+
+
 def test_drink_consumed_and_failures(lua):
     load(lua)
     g = lua.globals()
@@ -376,11 +443,16 @@ def test_open_window_through_iso_open_close_window(lua):
     thump = make_door(cls="IsoThumpable"); thump.isWindow = lambda s: True
     g._cell = make_cell(squares={(11, 20, 0): osq(11, 20, [thump])})
     lua.eval("PZA.act.start({seq=2, goal='open', args='11 20'})")
-    tick(lua, p)
-    assert g._queue.adds[-1].Type == "ISOpenCloseWindow"
-    g._cell = make_cell(squares={(11, 20, 0): osq(11, 20, [make_door(cls="IsoWindow", locked=True)])})
+    n = len(g._queue.adds)
+    assert tick(lua, p)["detail"] == "no door"              # openWindow takes an IsoWindow only
+    assert len(g._queue.adds) == n
+    g._cell = make_cell(squares={(11, 20, 0): osq(11, 20, [make_door(cls="IsoWindow", barricaded=True)])})
     lua.eval("PZA.act.start({seq=3, goal='open', args='11 20'})")
     assert tick(lua, p)["detail"] == "locked"
+    g._cell = make_cell(squares={(11, 20, 0): osq(11, 20, [make_door(cls="IsoWindow")])})
+    g.ISOpenCloseWindow = None
+    lua.eval("PZA.act.start({seq=4, goal='open', args='11 20'})")
+    assert tick(lua, p)["detail"] == "no door"
 
 
 def test_open_prefers_the_door_when_a_square_holds_both(lua):

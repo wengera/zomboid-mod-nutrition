@@ -3,6 +3,7 @@ import os
 import sys
 import pytest
 from lupa import LuaRuntime
+import lupa.lua51 as lua51
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, os.path.join(ROOT, "testing"))
@@ -117,7 +118,14 @@ def fs():
 
 @pytest.fixture
 def lua(fs):
-    L = LuaRuntime(unpack_returned_tuples=True)
+    return make_lua(fs)
+
+
+def make_lua(fs, runtime=LuaRuntime):
+    """The stubbed host. test_lua_act passes lua51.LuaRuntime: under lupa's default (Lua 5.5) runtime a
+    Lua GC can leave a stale Python wrapper that a later call reaches as a different object (seen as
+    'J object is not callable' in the loot filters test, gone with collectgarbage('stop')); Kahlua is 5.1."""
+    L = runtime(unpack_returned_tuples=True)
     g = L.globals()
     g.getFileWriter = fs.writer
     g.getFileReader = fs.reader

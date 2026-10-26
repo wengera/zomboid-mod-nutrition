@@ -1,10 +1,12 @@
 -- PZAgent_Act.lua — the goals (spec § 2.3). One goal at a time; each is a per-tick state machine that
--- sets state done|failed with a detail from its closed set, the one line below (agent/reasons.py parses it). The walk is the game's own timed action,
+-- sets state done|failed with a detail from its closed set, the `-- reasons:` line below (agent/reasons.py parses it). The walk is the game's own timed action,
 -- queued the way the harness's player.walk does [#2082: setRunning(true) does not make a walk run].
 -- args: goto x y [run]; open x y; loot x y [food|water|weapon|bandage|all]; eat <fullType>; drink. Every x y is a
 -- world square coordinate, as a scan reports it (an offset goes stale while the player moves).
 -- details: goto no square|no path|stuck; open no square|no door|locked|not adjacent; loot not loaded|no container|
 -- not adjacent|empty|no match|interrupted; eat, drink none held|not valid|interrupted; any running goal superseded.
+-- open's locked is read after the toggle: a door or window still shut OPEN_MS after its queued open reads
+-- locked (locked from outside, a stuck door, a smashed or invincible window); only a barricade fails it up front.
 -- reasons: bad args|no square|no path|stuck|superseded|no door|locked|not adjacent|no container|not loaded|empty|no match|none held|interrupted|not valid
 PZA.act = PZA.act or {}
 local A = PZA.act
@@ -144,7 +146,9 @@ local function objectsOn(sq)
     return out
 end
 
--- the square's door or window and its kind, door first (IsoThumpable answers both through isDoor/isWindow)
+-- the square's door or window and its kind, door first. A door is an IsoDoor or an IsoThumpable whose
+-- isDoor is true; a window is an IsoWindow only, since ISOpenCloseWindow:perform calls
+-- character:openWindow(object), which the jar takes as IsoWindow alone (a thumpable window would raise).
 local function openableOn(sq)
     local objs = objectsOn(sq)
     local win = nil
@@ -154,8 +158,6 @@ local function openableOn(sq)
         if isA(o, "IsoThumpable") then
             local _, d = PZA.call(o, "isDoor")
             if d == true then return o, "door" end
-            local _, w = PZA.call(o, "isWindow")
-            if w == true and win == nil then win = o end
         end
     end
     if win ~= nil then return win, "window" end
@@ -249,13 +251,15 @@ A.goals["open"] = {
         local _, isOpen = PZA.call(g.door, "IsOpen")
         if isOpen == true then g.state, g.detail = "done", "open"; return end
         if g.queuedAt == nil then
-            local _, locked = PZA.call(g.door, "isLocked")
+            -- no isLocked pre-check: IsoDoor.ToggleDoorActual unlocks a door that canBeOpenFromInside
             local _, barricaded = PZA.call(g.door, "isBarricaded")
-            if locked == true or barricaded == true then g.state, g.detail = "failed", "locked"; return end
+            if barricaded == true then g.state, g.detail = "failed", "locked"; return end
             local at = approach(p, g)
             if at == "fail" then g.state, g.detail = "failed", "not adjacent"; return end
             if at == "walk" then return end
-            local ctor = g.kind == "window" and ISOpenCloseWindow or ISOpenCloseDoor
+            local ctor = ISOpenCloseDoor
+            if g.kind == "window" then ctor = ISOpenCloseWindow end
+            if ctor == nil then g.state, g.detail = "failed", "no door"; return end
             local ran = pcall(function() ISTimedActionQueue.add(ctor:new(p, g.door)) end)
             if not ran then g.state, g.detail = "failed", "no door"; return end
             g.queuedAt = PZA.now()
@@ -364,13 +368,17 @@ A.goals["eat"] = {
         if argv[1] == nil then return false, "bad args" end
         return true, "", { want = argv[1] }
     end,
+    -- top level only: ISEatFoodAction:isValid on an MP client checks the main inventory's containsID, and
+    -- vanilla transfers a bag's item out first; a non-Food item is refused before ISEatFoodAction:new,
+    -- whose getDuration calls the Food-only getBaseHunger (a caught raise still parks a -debug client)
     tick = function(p, g)
         local _, inv = PZA.call(p, "getInventory")
-        local _, count = PZA.call(inv, "getCountTypeRecurse", g.want)
+        local _, count = PZA.call(inv, "getCountType", g.want)
         count = count or 0
         if g.queuedAt == nil then
-            local _, it = PZA.call(inv, "getFirstTypeRecurse", g.want)
+            local _, it = PZA.call(inv, "getFirstType", g.want)
             if it == nil then g.state, g.detail = "failed", "none held"; return end
+            if not isA(it, "Food") then g.state, g.detail = "failed", "not valid"; return end
             if not queueConsume(p, g, ISEatFoodAction, it) then g.state, g.detail = "failed", "not valid"; return end
             g.before = count
             return
@@ -380,18 +388,25 @@ A.goals["eat"] = {
     end,
 }
 
--- the first top-level inventory item holding a non-empty fluid container, and that container
+-- a top-level inventory item holding a non-empty, non-poisonous fluid container, and that container:
+-- the first filled with clean water, else the first other one (bleach or petrol is never drunk)
 local function firstDrink(p)
     local _, inv = PZA.call(p, "getInventory")
     local _, items = PZA.call(inv, "getItems")
     local okN, n = PZA.call(items, "size")
+    local anyIt, anyFc = nil, nil
     for i = 0, (okN and n or 0) - 1 do
         local _, it = PZA.call(items, "get", i)
         local _, fc = PZA.call(it, "getFluidContainer")
         local _, empty = PZA.call(fc, "isEmpty")
-        if fc ~= nil and empty ~= true then return it, fc end
+        local _, poison = PZA.call(fc, "isPoisonous")
+        if fc ~= nil and empty ~= true and poison ~= true then
+            local _, clean = PZA.call(fc, "isFilledWithCleanWater")
+            if clean == true then return it, fc end
+            if anyIt == nil then anyIt, anyFc = it, fc end
+        end
     end
-    return nil, nil
+    return anyIt, anyFc
 end
 
 A.goals["drink"] = {
