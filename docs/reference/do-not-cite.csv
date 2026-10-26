@@ -22668,3 +22668,8 @@ a_pipe_3-20261026-130558,cmd_motion_p90_ms and the +x legs' cmd_motion_host_ms,8
 a_pipe_3-20261026-130558,cmd_motion_n,19,"The motion phase stopped on the 560 s budget after 19 of 20 legs.",
 a_pipe_3-20261026-130558,readings.server[*].rttMs,—,"n = 3.",
 a_pipe_3-20261026-130558,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+a_pipe_4-20261026-181848,readings.rates.*.tickMs and every cost.*Ms,integers 0–7,"Quantised to a 1 ms clock; cite the rate-60 window mean (0.794 ms) or a bound, never a per-frame value.",readings.rate60.tick_mean_ms_at60
+a_pipe_4-20261026-181848,cmd_motion_p90_ms and the +x legs' first_motion,7629 / 7457–8578,"The direction-based first-motion measure on the agent0 detour (pass 3's reading repeated); ungraded in gate_a4; never a latency.",cmd_move_p90_ms (ack to first position change, 195) and the per-leg first_move
+a_pipe_4-20261026-181848,the per-rate means' difference from pass 3's,0.15–0.31 ms,"A difference between two sessions on one host with the tick Lua unchanged between them; unattributed (host state as likely as code), so never a cost.",the run's own means with their 1 ms-clock caveat
+a_pipe_4-20261026-181848,readings.server[*].rttMs,—,"n = 3.",
+a_pipe_4-20261026-181848,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",

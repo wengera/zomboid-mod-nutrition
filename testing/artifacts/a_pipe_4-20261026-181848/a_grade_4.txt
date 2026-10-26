@@ -1,0 +1,28 @@
+{
+ "cmd_motion_n": 20,
+ "cmd_motion_p90_ms": 7629,
+ "cmd_motion_paired": 20,
+ "cmd_motion_voided": 0,
+ "cmd_motion_voided_reasons": [],
+ "cmd_move_n": 20,
+ "cmd_move_p90_ms": 195,
+ "cmd_move_paired": 20,
+ "gaps": 0,
+ "lua_errors": 0,
+ "mode": "append",
+ "pass": {
+  "cmd_move_p90": true,
+  "gaps": true,
+  "hello": true,
+  "lua_errors": true,
+  "scan15": false,
+  "tick_mean_at60": true
+ },
+ "scan15_latency_ms_max": 117,
+ "scan15_ms_max": 7,
+ "tick60_frames": 1800,
+ "tick_frames_at5": 300,
+ "tick_mean_ms_at60": 0.7938888888888889,
+ "tick_p99_ms_at5": 2,
+ "verdict": "NO-GO"
+}
