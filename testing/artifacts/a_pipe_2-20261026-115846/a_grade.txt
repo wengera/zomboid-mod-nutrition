@@ -1,0 +1,23 @@
+{
+ "cmd_motion_n": 20,
+ "cmd_motion_p90_ms": 498,
+ "cmd_motion_paired": 19,
+ "cmd_motion_voided": 0,
+ "cmd_motion_voided_reasons": [],
+ "gaps": 0,
+ "lua_errors": 0,
+ "mode": "append",
+ "pass": {
+  "cmd_motion_p90": true,
+  "gaps": true,
+  "hello": true,
+  "lua_errors": true,
+  "scan15": false,
+  "tick_p99_at5": false
+ },
+ "scan15_latency_ms_max": 19,
+ "scan15_ms_max": 45,
+ "tick_frames_at5": 300,
+ "tick_p99_ms_at5": 2,
+ "verdict": "NO-GO"
+}

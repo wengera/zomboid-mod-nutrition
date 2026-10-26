@@ -22658,3 +22658,8 @@ a_pipe-20261026-101003,readings.rates.5.tickMs p99,2,"Quantised to a 1 ms clock:
 a_pipe-20261026-101003,readings.server[*].rttMs,1509.0 / 2011.8 / 1762.9,"n = 3, taken with the character dead.",
 a_pipe-20261026-101003,readings.server[*].ack.mult,4.799…,"getMultiplier, not the true multiplier (#3762).",
 a_pipe-20261026-101003,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+a_pipe_2-20261026-115846,readings.rates.*.tickMs and every cost.*Ms,integers 0–3,"Quantised to a 1 ms clock: a p99 of 2 is 1–2 ms; cite as a bound or the window mean, never a per-frame value.",
+a_pipe_2-20261026-115846,scan15_ms_max,45,"The pass-2 emit shape: the whole 99 KB scan line written in one tick; superseded by pass 3's parts. Cite as the one-tick emit cost of a 99 KB line, not as the scan's cost.",readings.scans.15[*].scanMsPerTick and scanEmitMs
+a_pipe_2-20261026-115846,readings.motion[0] and readings.motion[1],failed stuck / 3661 ms,"The first leg is a false stuck from pass 2's progress rule on a path that grows round the house; the second queued behind that leg's leftover walk. Defect readings, fixed in pass 3.",readings.motion[2..19]
+a_pipe_2-20261026-115846,readings.server[*].rttMs,—,"n = 3.",
+a_pipe_2-20261026-115846,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
