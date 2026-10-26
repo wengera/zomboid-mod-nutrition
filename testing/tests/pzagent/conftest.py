@@ -61,15 +61,21 @@ class J:
         return self.__dict__.get(name)
 
 
-def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=()):
-    stats = J(getHunger=lambda s: hunger, getThirst=lambda s: 0.2, getFatigue=lambda s: 0.1,
-              getEndurance=lambda s: 0.9, getPanic=lambda s: 0.0, getPain=lambda s: 0.0)
+STAT_NAMES = ("HUNGER", "THIRST", "FATIGUE", "ENDURANCE", "PANIC", "PAIN", "FOOD_SICKNESS", "WETNESS", "TEMPERATURE")
+MOODLE_NAMES = ("HUNGRY", "THIRST", "TIRED", "ENDURANCE", "PANIC", "PAIN", "INJURED", "BLEEDING", "SICK", "WET", "STRESS", "UNHAPPY")
+
+
+def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_levels=None):
+    vals = {"HUNGER": hunger, "THIRST": 0.2, "FATIGUE": 0.1, "ENDURANCE": 0.9, "PANIC": 0.0, "PAIN": 0.0,
+            "FOOD_SICKNESS": 0.0, "WETNESS": 5.0, "TEMPERATURE": 37.0}
+    stats = J(get=lambda s, stat: vals[stat])
+    levels = moodle_levels or {}
     bd = J(getOverallBodyHealth=lambda s: health, getHealth=lambda s: health)
     inv = J(getItems=lambda s: J(size=lambda s2: len(items), get=lambda s2, i: J(getFullType=lambda s3, i=i: items[i])))
     return J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: z, getDir=lambda s: "N",
              isPlayerMoving=lambda s: False, IsRunning=lambda s: False, isSprinting=lambda s: False,
              getStats=lambda s: stats, getBodyDamage=lambda s: bd, getInventory=lambda s: inv,
-             getPrimaryHandItem=lambda s: None, getMoodles=lambda s: J(getMoodleLevel=lambda s2, t: 0))
+             getPrimaryHandItem=lambda s: None, getMoodles=lambda s: J(getMoodleLevel=lambda s2, t: levels.get(t, 0)))
 
 
 def make_zombie(zid, x, y, dead=False):
@@ -117,6 +123,9 @@ def lua(fs):
     L.execute(open(lua_file("shared/PZAgent_Core.lua"), encoding="utf-8").read())
     g.getCell = lambda: g._cell
     g._cell = make_cell()
+    g.CharacterStat = J(**{n: n for n in STAT_NAMES})
+    g.MoodleType = J(**{n: n for n in MOODLE_NAMES})
+    g.instanceof = lambda o, cls: getattr(o, "_cls", None) == cls
     g.getGameTime = lambda: J(getHour=lambda s: 7, getMinutes=lambda s: 30, getWorldAgeHours=lambda s: 31.5)
     q = make_queue()
     g._queue = q
