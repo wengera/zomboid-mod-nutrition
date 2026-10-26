@@ -119,3 +119,56 @@ def test_action_from_queue_and_zombie_id_fallback(lua):
     f = lua.eval("PZA.sense.frame(...)", make_player())
     assert f["action"]["class"] == "ISEatFoodAction" and f["action"]["n"] == 2
     assert f["zombies"][1]["id"] == "i0"
+
+
+# ---- Stage A pass 2: the chunked scan ----------------------------------------------------------
+
+def clocked_cell(lua, cx, cy, r):
+    """Every square of the (2r+1)^2 grid around (cx, cy); each getGridSquare call costs 1 ms of the fixture clock
+    and is recorded."""
+    clock = lua.globals()._clock
+    squares = {(x, y, 0): J(getX=lambda s, x=x: x, getY=lambda s, y=y: y, getZ=lambda s: 0)
+               for x in range(cx - r, cx + r + 1) for y in range(cy - r, cy + r + 1)}
+    calls = []
+
+    def grid(s, x, y, z):
+        clock["ms"] += 1
+        calls.append((int(x), int(y)))
+        return squares.get((int(x), int(y), int(z)))
+    lua.globals()._cell = J(getGridSquare=grid)
+    return calls
+
+
+def test_scan_job_r15_takes_17_steps_and_sums_its_per_step_ms(lua):
+    load(lua)
+    assert lua.eval("PZA.sense.SCAN_SQUARES_PER_TICK") == 60
+    calls = clocked_cell(lua, 10, 20, 15)
+    pos = {"x": 10.0}
+    p = make_player(); p.getX = lambda s: pos["x"]
+    lua.eval("PZA.sense.scanStart(...)", p, 15)
+    out, steps, per = None, 0, []
+    while out is None and steps < 40:
+        n0 = len(calls)
+        out = lua.eval("PZA.sense.scanStep(...)", p)
+        steps += 1
+        per.append(len(calls) - n0)
+        pos["x"] = 30.0                                          # the grid is the one at start
+    assert steps == 17 and per == [60] * 16 + [1]
+    assert out["scanTicks"] == 17 and out["scanMs"] == 961 and out["r"] == 15 and len(out["squares"]) == 961
+    assert min(c[0] for c in calls) == -5 and max(c[0] for c in calls) == 25
+    assert lua.eval("PZA.sense.scanStep(...)", p) is None        # no job: nothing
+
+
+def test_scan_start_replaces_a_running_job_and_the_sync_helper_matches(lua):
+    load(lua)
+    clocked_cell(lua, 10, 20, 15)
+    p = make_player()
+    lua.eval("PZA.sense.scanStart(...)", p, 15)
+    assert lua.eval("PZA.sense.scanStep(...)", p) is None
+    lua.eval("PZA.sense.scanStart(...)", p, 2)
+    out = lua.eval("PZA.sense.scanStep(...)", p)
+    assert out["r"] == 2 and len(out["squares"]) == 25 and out["scanTicks"] == 1
+    s = lua.eval("PZA.sense.scan(...)", p, 15)
+    assert s["r"] == 15 and len(s["squares"]) == 961 and s["scanTicks"] == 17 and s["scanMs"] == 961
+    for k in ("hour", "missing"):
+        assert s[k] is not None

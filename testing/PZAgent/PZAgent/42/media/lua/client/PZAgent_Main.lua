@@ -1,5 +1,5 @@
 -- PZAgent_Main.lua — the one OnTick hook (loads last by name). The tick order: player → init → poll →
--- act → frame. No player means nothing is polled or emitted; the link is initialised (M.init) before the
+-- act → scan chunk → frame. No player means nothing is polled or emitted; the link is initialised (M.init) before the
 -- first poll, then cmd.txt is polled, the goal runs, and every 60/RATE ticks a frame carries the goal
 -- status and the tick's own cost, then flushes. Everything sits inside one pcall; a raise counts in
 -- PZA.errors and, once the link is initialised, reports as a lua_error event once a second (its flush
@@ -17,19 +17,15 @@ M.lastGoalState = nil
 M.lastLinkMs = 0
 M.hooked = M.hooked or false
 
+-- a configuration command: true and the ack's reason when handled, nil when cmd is a goal. scan r queues
+-- the chunked scan job (a running one is replaced) and acks "queued"; its line lands from body.
 local function config(cmd, p)
     local v = tonumber(cmd.args)
-    if cmd.goal == "rate" and v and v > 0 then PZA.sense.RATE = v; return true end
-    if cmd.goal == "radius" and v and v > 0 then PZA.sense.ZOMBIE_RADIUS = v; return true end
+    if cmd.goal == "rate" and v and v > 0 then PZA.sense.RATE = v; return true, "" end
+    if cmd.goal == "radius" and v and v > 0 then PZA.sense.ZOMBIE_RADIUS = v; return true, "" end
     if cmd.goal == "scan" and v and v >= 0 then
-        if p ~= nil then
-            local ts = PZA.now()
-            local s = PZA.sense.scan(p, v)
-            s.scanMs = PZA.now() - ts
-            s.gameMin, s.worldAge = PZA.sense.clock()
-            PZA.emit("scan", s)
-        end
-        return true
+        if p ~= nil then PZA.sense.scanStart(p, v) end
+        return true, "queued"
     end
     return nil
 end
@@ -61,16 +57,24 @@ local function body()
     if not M.ready then local _, u = PZA.call(p, "getUsername"); M.init(u or "admin"); M.ready = true end
     local cmd = PZA.link.poll()
     if cmd ~= nil then
-        local handled = config(cmd, p)
+        local handled, why = config(cmd, p)
         if handled == nil then
             local ok, reason, old = PZA.act.start(cmd, p)
             if old ~= nil then goalEvent(old, PZA.sense.clock()) end
             PZA.link.ack(cmd.seq, ok, reason)
-        else PZA.link.ack(cmd.seq, true, "") end
+        else PZA.link.ack(cmd.seq, true, why) end
         PZA.link.flush()
     end
     local tAct = PZA.now()
     PZA.act.tick(p)
+    -- one chunk of a running scan; its line lands (and flushes) the tick its last square is done
+    local tScan = PZA.now()
+    local s = PZA.sense.scanStep(p)
+    if s ~= nil then
+        s.gameMin, s.worldAge = PZA.sense.clock()
+        PZA.emit("scan", s)
+        PZA.link.flush()
+    end
     local tSense = PZA.now()
     local every = math.max(1, math.floor(60 / PZA.sense.RATE))
     if PZA.tick % every == 0 then
@@ -84,7 +88,10 @@ local function body()
         cur.gameMin, cur.worldAge = gameMin, worldAge
         local tLink = PZA.now()
         -- linkMs is the previous frame tick's flush ms (one-frame lag: this frame's flush runs after its emit)
-        cur.cost = { actMs = tSense - tAct, senseMs = tLink - tSense, linkMs = M.lastLinkMs, pollMs = tAct - t0, dropped = PZA.link.dropped or 0 }
+        -- scanStepMs is this tick's scan chunk with its emit and flush when it completed (0 with no job); it is
+        -- in neither actMs nor senseMs, and the job's own scanMs sums its chunks
+        cur.cost = { actMs = tScan - tAct, scanStepMs = tSense - tScan, senseMs = tLink - tSense, linkMs = M.lastLinkMs,
+                     pollMs = tAct - t0, dropped = PZA.link.dropped or 0 }
         PZA.emit("frame", cur)
         M.lastLinkMs = PZA.link.flush()
         M.prev = cur

@@ -3,19 +3,23 @@
 -- queued the way the harness's player.walk does [#2082: setRunning(true) does not make a walk run].
 -- args: goto x y [run]; open x y; loot x y [food|water|weapon|bandage|all]; eat <fullType>; drink; fight; flee x y;
 -- sleep. Every x y is a world square coordinate, as a scan reports it (an offset goes stale while the player moves).
--- details: goto no square|no path|stuck; open no square|no door|locked|not adjacent; loot not loaded|no container|
+-- A player whose overall body health reads 0 is dead: every goal's start refuses with dead, and a running goto
+-- fails dead at once (an absent reading is not dead). goto is stuck when its best distance to the target has
+-- not improved by PROGRESS_EPS for STUCK_TICKS ticks (a dead body drifting, or a player held, moves but never nears).
+-- details: goto no square|no path|stuck|dead; open no square|no door|locked|not adjacent; loot not loaded|no container|
 -- not adjacent|empty|no match|interrupted; eat, drink none held|not valid|interrupted; fight done clear, failed
 -- no weapon|weapon broke|low health; flee done at, failed cornered; sleep done awake, failed not allowed|
 -- interrupted; any running goal superseded. The done details clear|at|awake sit in the closed set beside them.
 -- open's locked is read after the toggle: a door or window still shut OPEN_MS after its queued open reads
 -- locked (locked from outside, a stuck door, a smashed or invincible window); only a barricade fails it up front.
--- reasons: bad args|no square|no path|stuck|superseded|no door|locked|not adjacent|no container|not loaded|empty|no match|none held|interrupted|not valid|clear|no weapon|weapon broke|low health|at|cornered|awake|not allowed
+-- reasons: bad args|no square|no path|stuck|superseded|no door|locked|not adjacent|no container|not loaded|empty|no match|none held|interrupted|not valid|clear|no weapon|weapon broke|low health|at|cornered|awake|not allowed|dead
 PZA.act = PZA.act or {}
 local A = PZA.act
 A.goals = A.goals or {}
 A.goal = nil
 A.REPLAN_MAX = 3
 A.STUCK_TICKS = 90
+A.PROGRESS_EPS = 0.05     -- tiles: a goto's best distance must shrink by this within STUCK_TICKS
 
 local function split(args)
     local out = {}
@@ -30,11 +34,27 @@ function A.status()
     return { seq = g.seq, name = g.name, state = g.state, detail = g.detail or "" }
 end
 
+-- the overall body health, or nil when it cannot be read
+local function healthOf(p)
+    local _, bd = PZA.call(p, "getBodyDamage")
+    local ok, h = PZA.call(bd, "getOverallBodyHealth")
+    if ok then return h end
+    return nil
+end
+
+-- dead only on a reading of 0 or less; an absent reading is not dead
+local function isDead(p)
+    local h = healthOf(p)
+    return h ~= nil and h <= 0
+end
+
 -- A new goal replaces a running one: the old walk is cleared and the old goal's status comes back
--- as failed "superseded" (third return) so the caller reports it.
+-- as failed "superseded" (third return) so the caller reports it. A dead player refuses every goal,
+-- and the running one carries on to its own end.
 function A.start(cmd, p)
     local def = A.goals[cmd.goal]
     if def == nil then return false, "unknown goal" end
+    if p ~= nil and isDead(p) then return false, "dead" end
     local argv = split(cmd.args)
     local ok, reason, st = def.start(argv)
     if not ok then return false, reason end
@@ -74,9 +94,12 @@ A.goals["goto"] = {
     start = function(argv)
         local x, y = tonumber(argv[1]), tonumber(argv[2])
         if x == nil or y == nil then return false, "bad args" end
-        return true, "", { x = x, y = y, run = argv[3] == "run", replans = 0, lastX = nil, lastY = nil, still = 0 }
+        return true, "", { x = x, y = y, run = argv[3] == "run", replans = 0, best = nil, still = 0 }
     end,
+    -- still counts the ticks since the best distance last shrank by PROGRESS_EPS; at STUCK_TICKS the walk is
+    -- cleared and re-queued, REPLAN_MAX times, then the goal fails stuck
     tick = function(p, g)
+        if isDead(p) then g.state, g.detail = "failed", "dead"; return end
         if g.tx == nil then
             g.tx, g.ty = g.x, g.y
             local cell = getCell and getCell() or nil
@@ -93,9 +116,13 @@ A.goals["goto"] = {
             g.state, g.detail = "done", "d=" .. tostring(d)
             return
         end
-        local x, y = p:getX(), p:getY()
-        if g.lastX == x and g.lastY == y then g.still = g.still + 1 else g.still = 0 end
-        g.lastX, g.lastY = x, y
+        if g.best == nil then
+            g.best = d
+        elseif d <= g.best - A.PROGRESS_EPS then
+            g.best, g.still = d, 0
+        else
+            g.still = g.still + 1
+        end
         if g.still >= A.STUCK_TICKS then
             if g.replans >= A.REPLAN_MAX then g.state, g.detail = "failed", "stuck"; return end
             g.replans, g.still = g.replans + 1, 0
@@ -479,13 +506,6 @@ local function liveZombies(p, r)
     return out, best
 end
 
-local function healthOf(p)
-    local _, bd = PZA.call(p, "getBodyDamage")
-    local ok, h = PZA.call(bd, "getOverallBodyHealth")
-    if ok then return h end
-    return nil
-end
-
 -- the square `dist` tiles from the player along the unit vector away from (ax, ay), or nil when the
 -- player stands on that point
 local function awayFrom(p, ax, ay, dist)
@@ -535,7 +555,8 @@ A.goals["fight"] = {
 
 -- re-aims a flee FLEE_DIST tiles from the player, away from the centroid of the live zombies in sense
 -- radius; a target square that is unknown or solid keeps the current walk. The new walk inherits the
--- old one's stuck count, so re-aiming never hides a player who is not moving.
+-- old one's stuck count and replans, so re-aiming never hides a player who is not moving; its best
+-- distance starts afresh, measured to the new target on its first tick.
 local function fleeReplan(p, g)
     local zs = liveZombies(p, PZA.sense.ZOMBIE_RADIUS)
     if #zs == 0 then return end
@@ -549,7 +570,7 @@ local function fleeReplan(p, g)
     local old = g.sub
     pcall(ISTimedActionQueue.clear, p)
     g.sub = subGoto(tx, ty, true)
-    g.sub.still, g.sub.replans, g.sub.lastX, g.sub.lastY = old.still, old.replans, old.lastX, old.lastY
+    g.sub.still, g.sub.replans = old.still, old.replans
 end
 
 A.goals["flee"] = {

@@ -801,3 +801,154 @@ def test_task11_details_are_in_the_header_reasons_line():
         assert x in used and x in closed
     for x in ("clear", "at", "awake"):
         assert x in closed and re.search(r'"done",\s*"%s"' % x, src)
+
+
+# ---- Stage A pass 2: goto fails dead; stuck by progress; the chunked scan --------------------
+
+ALL_GOALS = (("goto", "13 20"), ("open", "13 20"), ("loot", "13 20"), ("eat", "Base.Apple"), ("drink", ""),
+             ("fight", ""), ("flee", "13 20"), ("sleep", ""), ("stop", ""))
+
+
+def test_goto_fails_dead_at_once_when_health_reads_zero(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    hp = {"v": 100.0}
+    p = health_player(hp)
+    assert lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)[0] is True
+    assert tick(lua, p)["state"] == "running"
+    hp["v"] = 0.0
+    st = tick(lua, p)
+    assert st["state"] == "failed" and st["detail"] == "dead"
+
+
+def test_a_dead_player_refuses_every_goal_and_an_absent_health_is_not_dead(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    dead = health_player({"v": 0.0})
+    for i, (goal, args) in enumerate(ALL_GOALS):
+        assert lua.eval("PZA.act.start({seq=%d, goal='%s', args='%s'}, ...)" % (i + 1, goal, args), dead) == (False, "dead")
+    assert lua.eval("PZA.act.status().name") == "idle"
+    nobody = make_player(); nobody.getBodyDamage = None           # no reading: not dead
+    assert lua.eval("PZA.act.start({seq=20, goal='goto', args='13 20'}, ...)", nobody)[0] is True
+    assert tick(lua, nobody)["state"] == "running"
+    blank = health_player({"v": None})                           # getOverallBodyHealth answers nil: not dead
+    assert lua.eval("PZA.act.start({seq=21, goal='goto', args='13 20'}, ...)", blank)[0] is True
+    assert tick(lua, blank)["state"] == "running"
+
+
+def test_main_acks_a_dead_players_goal_with_reason_dead(lua, fs):
+    import json
+    load(lua)
+    g = lua.globals(); g.getPlayer = lambda: health_player({"v": 0.0})
+    g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    lua.execute("PZA.main.init('admin')"); lua.execute("PZA.main.ready = true")
+    fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=goto\nargs=13 20\n"
+    g._handlers[0]()
+    acks = [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines() if '"kind":"ack"' in l]
+    assert len(acks) == 1 and acks[0]["ok"] is False and acks[0]["reason"] == "dead"
+
+
+def test_goto_oscillating_without_approaching_is_stuck(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    t = {"n": 0}
+    p = make_player(); p.getX = lambda s: 10.0 if t["n"] % 2 == 0 else 10.5    # moves every tick, never nearer than 2.5
+    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
+    st = None
+    for _ in range(4 * 90 + 10):
+        st = tick(lua, p); t["n"] += 1
+        if st["state"] != "running":
+            break
+    assert st["state"] == "failed" and st["detail"] == "stuck"
+    assert len(g._queue.adds) == 4                                # the first add plus REPLAN_MAX re-adds
+
+
+def test_goto_drifting_away_is_stuck(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(23, 20, 0): sq(23, 20)})
+    t = {"n": 0}
+    p = make_player(); p.getY = lambda s: 20.0 + 0.01 * t["n"]   # the dead body's drift, across the target line
+    lua.eval("PZA.act.start({seq=1, goal='goto', args='23 20'}, ...)", p)
+    st = None
+    for _ in range(4 * 90 + 10):
+        st = tick(lua, p); t["n"] += 1
+        if st["state"] != "running":
+            break
+    assert st["state"] == "failed" and st["detail"] == "stuck"
+
+
+def test_goto_approaching_slowly_is_never_stuck(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    t = {"n": 0}
+    p = make_player(); p.getX = lambda s: 10.0 + 0.1 * (t["n"] // 30)    # 0.1 tile per 30 ticks
+    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
+    states = []
+    for _ in range(20 * 30 + 5):
+        st = tick(lua, p); t["n"] += 1
+        states.append((st["state"], st["detail"]))
+        if st["state"] != "running":
+            break
+    assert states[-1][0] == "done" and ("failed", "stuck") not in states
+    assert len(g._queue.adds) == 1                                # never a replan
+
+
+def scan_world(lua, cx, cy, r):
+    """A cell whose every square in the (2r+1)^2 grid around (cx, cy) exists; each getGridSquare call costs 1 ms of
+    the fixture's clock, so a scan's ms counts its squares."""
+    g = lua.globals()
+    clock = g._clock
+    squares = {(x, y, 0): sq(x, y) for x in range(cx - r, cx + r + 1) for y in range(cy - r, cy + r + 1)}
+    calls = []
+
+    def grid(s, x, y, z):
+        clock["ms"] += 1
+        calls.append((int(x), int(y)))
+        return squares.get((int(x), int(y), int(z)))
+    g._cell = J(getZombieList=lambda s: J(size=lambda s2: 0, get=lambda s2, i: None), getGridSquare=grid)
+    return calls
+
+
+def test_main_scan_is_queued_chunked_and_lands_when_its_last_square_is_done(lua, fs):
+    import json
+    load(lua)
+    g = lua.globals(); g.getPlayer = lambda: make_player()
+    scan_world(lua, 10, 20, 15)
+    lua.execute("PZA.main.init('admin')"); lua.execute("PZA.main.ready = true")
+    fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=scan\nargs=15\n"
+    landed = None
+    for i in range(1, 30):
+        g._handlers[0]()
+        lines = [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines()]
+        if i == 1:
+            acks = [l for l in lines if l["kind"] == "ack"]
+            assert len(acks) == 1 and acks[0]["ok"] is True and acks[0]["reason"] == "queued"
+        if landed is None and any(l["kind"] == "scan" for l in lines):
+            landed = i
+    lines = [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines()]
+    scans = [l for l in lines if l["kind"] == "scan"]
+    assert landed == 17 and len(scans) == 1                      # ceil(961 / 60) ticks
+    s = scans[0]
+    assert s["r"] == 15 and len(s["squares"]) == 961 and s["scanTicks"] == 17 and s["scanMs"] == 961
+    for k in ("hour", "missing", "gameMin", "worldAge"):
+        assert k in s
+    frames = [l for l in lines if l["kind"] == "frame"]
+    assert frames[0]["cost"]["scanStepMs"] == 60                 # tick 12: one chunk of 60 squares
+    assert frames[0]["cost"]["senseMs"] == 0                     # the chunk is not the frame's sense cost
+    assert frames[1]["cost"]["scanStepMs"] == 0                  # tick 24: the job is done
+
+
+def test_main_second_scan_replaces_a_running_one(lua, fs):
+    import json
+    load(lua)
+    g = lua.globals(); g.getPlayer = lambda: make_player()
+    scan_world(lua, 10, 20, 15)
+    lua.execute("PZA.main.init('admin')"); lua.execute("PZA.main.ready = true")
+    fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=scan\nargs=15\n"
+    for _ in range(3):
+        g._handlers[0]()
+    fs.files["pzagent/admin/cmd.txt"] = "seq=2\ngoal=scan\nargs=1\n"
+    for _ in range(30):
+        g._handlers[0]()
+    scans = [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines() if '"kind":"scan"' in l]
+    assert [s["r"] for s in scans] == [1] and scans[0]["scanTicks"] == 1 and len(scans[0]["squares"]) == 9

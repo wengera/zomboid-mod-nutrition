@@ -202,16 +202,57 @@ local function square(sq, missing)
     return q
 end
 
-function S.scan(p, r)
-    local cell = getCell and getCell() or nil
+-- The scan is a job walked SCAN_SQUARES_PER_TICK squares a tick (Stage A pass 1 read r=15, 961 squares, at
+-- 14-21 ms in one tick): scanStart fixes the (2r+1)^2 grid at the player's square at start, and scanStep
+-- walks the next chunk row by row, returning the finished scan when its last square is done (else nil),
+-- with scanMs the sum of its steps' ms and scanTicks their count. One job at a time: a start replaces it.
+S.SCAN_SQUARES_PER_TICK = 60
+S.job = nil
+
+local function newJob(p, r)
     local out = { r = r, squares = {}, missing = {} }
     out.hour = math.floor((S.clock()) / 60)
-    local px, py, pz = math.floor(p:getX()), math.floor(p:getY()), p:getZ()
-    for dy = -r, r do
-        for dx = -r, r do
-            local _, sq = PZA.call(cell, "getGridSquare", px + dx, py + dy, pz)
-            if sq ~= nil then out.squares[#out.squares + 1] = square(sq, out.missing) end
-        end
+    return { out = out, r = r, side = 2 * r + 1, i = 0, n = (2 * r + 1) * (2 * r + 1), ms = 0, ticks = 0,
+             px = math.floor(p:getX()), py = math.floor(p:getY()), pz = p:getZ() }
+end
+
+-- walks job's next chunk; the finished scan table once its last square is done, else nil
+local function stepJob(job)
+    local t0 = PZA.now()
+    local cell = getCell and getCell() or nil
+    local stop = math.min(job.n, job.i + S.SCAN_SQUARES_PER_TICK)
+    local out = job.out
+    while job.i < stop do
+        local i = job.i
+        local dy = math.floor(i / job.side) - job.r
+        local dx = i % job.side - job.r
+        local _, sq = PZA.call(cell, "getGridSquare", job.px + dx, job.py + dy, job.pz)
+        if sq ~= nil then out.squares[#out.squares + 1] = square(sq, out.missing) end
+        job.i = i + 1
     end
+    job.ms, job.ticks = job.ms + (PZA.now() - t0), job.ticks + 1
+    if job.i < job.n then return nil end
+    out.scanMs, out.scanTicks = job.ms, job.ticks
+    return out
+end
+
+function S.scanStart(p, r)
+    S.job = newJob(p, r)
+end
+
+-- one chunk of the running job; the finished scan on the tick its last square is done, else nil
+function S.scanStep(p)
+    local job = S.job
+    if job == nil then return nil end
+    local out = stepJob(job)
+    if out ~= nil then S.job = nil end
+    return out
+end
+
+-- the synchronous form, for tests: its own job, stepped to the end; a running S.job is left alone
+function S.scan(p, r)
+    local job = newJob(p, r)
+    local out = nil
+    while out == nil do out = stepJob(job) end
     return out
 end
