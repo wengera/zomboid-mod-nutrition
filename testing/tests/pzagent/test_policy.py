@@ -102,6 +102,142 @@ def test_threat_flee_without_a_map_runs_flee_dist_away(tmp_path):
     assert link.cmds == [("flee", "100 92")]
 
 
+# ================================================================ threat hysteresis (Plan 21b Stage C pass 2)
+def running(seq, name):
+    return {"seq": seq, "name": name, "state": "running", "detail": ""}
+
+
+def clocked(pol):
+    t = {"now": 0.0}
+    pol.clock = lambda: t["now"]
+    return t
+
+
+def test_a_running_fight_holds_the_threat_branch_until_disengage_r(tmp_path):
+    crate = {"type": "crate", "n": 1, "items": ["Base.Nails"]}
+    w, link, pol = make(tmp_path, scan([sq(101, 100, containers=[crate])]),
+                        frame(zombies=[zombie(1, 105.0, 100.0)], weapon=BAT))
+    assert pol.tick() == "fight"
+    w.apply(frame(wall=2000, zombies=[zombie(1, 107.0, 100.0)], weapon=BAT, goal=running(1, "fight")))
+    assert pol.tick() is None and link.cmds == [("fight", "")]          # 7 tiles: beyond DANGER_R, inside DISENGAGE_R
+    d = decisions(tmp_path)[-1]
+    assert d["branch"] == "threat" and d["goal"] == "fight" and d["inputs"]["threats"] == 1
+    w.apply(frame(wall=3000, zombies=[zombie(1, 111.0, 100.0)], weapon=BAT, goal=running(1, "fight")))
+    assert pol.tick() == "loot" and link.cmds[-1] == ("loot", "101 100 all")   # 11 tiles: disengaged
+    assert decisions(tmp_path)[-1]["branch"] == "forage"
+
+
+def test_with_no_threat_goal_running_a_zombie_at_seven_tiles_is_no_threat(tmp_path):
+    w, link, pol = make(tmp_path, frame(zombies=[zombie(1, 107.0, 100.0)], weapon=BAT))
+    pol.tick()
+    assert decisions(tmp_path)[-1]["branch"] != "threat"
+
+
+def test_a_running_flee_turns_to_fight_only_with_one_threat_and_a_health_margin(tmp_path):
+    three = [zombie(1, 103.0, 100.0), zombie(2, 103.0, 101.0), zombie(3, 104.0, 100.0)]
+    w, link, pol = make(tmp_path, frame(zombies=three, weapon=BAT, health=74.0))
+    assert pol.tick() == "flee" and decisions(tmp_path)[-1]["inputs"]["branches"]["threat"]["flee"] == "many"
+    w.apply(event("zombie_leave", id=3))
+    w.apply(frame(wall=2000, zombies=three[:2], weapon=BAT, health=74.0, goal=running(1, "flee")))
+    assert pol.tick() is None and [c[0] for c in link.cmds] == ["flee"]   # two threats at 74: the flee is held
+    assert decisions(tmp_path)[-1]["inputs"]["branches"]["threat"]["flee"] == "held"
+    w.apply(event("zombie_leave", id=2))
+    w.apply(frame(wall=3000, zombies=three[:1], weapon=BAT, health=59.0, goal=running(1, "flee")))
+    assert pol.tick() is None                                # one threat under FLEE_HEALTH + REFIGHT_MARGIN: held
+    w.apply(frame(wall=4000, zombies=three[:1], weapon=BAT, health=74.0, goal=running(1, "flee")))
+    assert pol.tick() == "fight" and link.cmds[-1] == ("fight", "")
+
+
+def test_a_running_fight_turns_to_flee_only_on_the_flee_conditions(tmp_path):
+    two = [zombie(1, 103.0, 100.0), zombie(2, 103.0, 101.0)]
+    w, link, pol = make(tmp_path, frame(zombies=two, weapon=BAT, health=74.0))
+    assert pol.tick() == "fight"
+    for i, n in enumerate([1, 2, 1]):                         # the run-1 flapping: threats 2, 1, 2, 1
+        if n == 1:
+            w.apply(event("zombie_leave", id=2))
+        w.apply(frame(wall=2000 + i, zombies=two[:n], weapon=BAT, health=74.0, goal=running(1, "fight")))
+        assert pol.tick() is None and decisions(tmp_path)[-1]["inputs"]["threats"] == n, i
+    assert link.cmds == [("fight", "")]
+
+
+@pytest.mark.parametrize("health, want", [(59.0, "flee"), (61.0, "fight")])
+def test_two_threats_under_flee_health_pair_are_fled(tmp_path, health, want):
+    w, link, pol = make(tmp_path, frame(zombies=[zombie(1, 103.0, 100.0), zombie(2, 103.0, 101.0)], weapon=BAT,
+                                        health=health))
+    assert pol.tick() == want
+    if want == "flee":
+        assert decisions(tmp_path)[-1]["inputs"]["branches"]["threat"]["flee"] == "pair"
+
+
+@pytest.mark.parametrize("dist, want", [(5.0, "flee"), (1.5, None)])
+def test_a_fight_that_does_not_close_in_fight_max_s_flees(tmp_path, dist, want):
+    w, link, pol = make(tmp_path, frame(zombies=[zombie(1, 100.0 + dist, 100.0)], weapon=BAT))
+    t = clocked(pol)
+    assert pol.tick() == "fight" and pol.fight_since == 0.0
+    t["now"] = P.FIGHT_MAX_S
+    w.apply(frame(wall=2000, zombies=[zombie(1, 100.0 + dist, 100.0)], weapon=BAT, goal=running(1, "fight")))
+    assert pol.tick() is None                                # at FIGHT_MAX_S exactly: not yet
+    t["now"] = P.FIGHT_MAX_S + 1.0
+    w.apply(frame(wall=3000, zombies=[zombie(1, 100.0 + dist, 100.0)], weapon=BAT, goal=running(1, "fight")))
+    assert pol.tick() == want
+    if want == "flee":
+        d = decisions(tmp_path)[-1]
+        assert d["inputs"]["branches"]["threat"]["flee"] == "stalled" and d["inputs"]["fight_s"] == 21.0
+        assert pol.fight_since is None and pol.stall_flee is True
+
+
+def test_a_stalled_fights_flee_is_held_until_the_zombie_closes(tmp_path):
+    w, link, pol = make(tmp_path, frame(zombies=[zombie(1, 105.0, 100.0)], weapon=BAT))
+    t = clocked(pol)
+    pol.tick()
+    t["now"] = 21.0
+    w.apply(frame(wall=2000, zombies=[zombie(1, 105.0, 100.0)], weapon=BAT, goal=running(1, "fight")))
+    assert pol.tick() == "flee"
+    w.apply(frame(wall=3000, zombies=[zombie(1, 105.0, 100.0)], weapon=BAT, goal=running(2, "flee")))
+    assert pol.tick() is None                                # one threat at full health, yet the stall's flee holds
+    assert decisions(tmp_path)[-1]["inputs"]["branches"]["threat"]["flee"] == "stalled"
+    w.apply(frame(wall=4000, zombies=[zombie(1, 101.5, 100.0)], weapon=BAT, goal=running(2, "flee")))
+    assert pol.tick() == "fight" and pol.fight_since == 21.0 and pol.stall_flee is False
+
+
+def test_fight_since_resets_when_the_running_goal_changes(tmp_path):
+    w, link, pol = make(tmp_path, frame(zombies=[zombie(1, 105.0, 100.0)], weapon=BAT))
+    t = clocked(pol)
+    pol.tick()
+    t["now"] = 15.0
+    w.apply(event("goal_failed", goalSeq=1, reason="weapon broke"))
+    w.apply(frame(wall=2000, zombies=[zombie(1, 105.0, 100.0)], weapon=BAT))
+    assert pol.tick() == "fight" and pol.fight_since == 15.0   # a new fight: its own clock
+    t["now"] = 30.0
+    w.apply(frame(wall=3000, zombies=[zombie(1, 105.0, 100.0)], weapon=BAT, goal=running(2, "fight")))
+    assert pol.tick() is None and decisions(tmp_path)[-1]["inputs"]["fight_s"] == 15.0
+
+
+def test_the_log_line_carries_mode_and_fight_s(tmp_path):
+    w, link, pol = make(tmp_path, frame(zombies=[zombie(1, 103.0, 100.0)], weapon=BAT))
+    t = clocked(pol)
+    pol.tick()
+    d = decisions(tmp_path)[-1]
+    assert (d["inputs"]["mode"], d["inputs"]["fight_s"]) == (None, None)
+    t["now"] = 7.5
+    w.apply(frame(wall=2000, zombies=[zombie(1, 103.0, 100.0)], weapon=BAT, goal=running(1, "fight")))
+    pol.tick()
+    d = decisions(tmp_path)[-1]
+    assert (d["inputs"]["mode"], d["inputs"]["fight_s"]) == ("fight", 7.5)
+    w.apply(frame(wall=3000, zombies=[zombie(1, 103.0, 100.0)], weapon=BAT, health=30.0, goal=running(1, "fight")))
+    pol.tick()                                               # flee sent
+    w.apply(frame(wall=4000, zombies=[zombie(1, 103.0, 100.0)], weapon=BAT, health=30.0, goal=running(2, "flee")))
+    pol.tick()
+    d = decisions(tmp_path)[-1]
+    assert (d["inputs"]["mode"], d["inputs"]["fight_s"]) == ("flee", None)
+
+
+def test_the_hysteresis_constants():
+    assert (P.DISENGAGE_R, P.FLEE_HEALTH_PAIR, P.REFIGHT_MARGIN, P.FIGHT_MAX_S, P.FIGHT_REACH) == (
+        10.0, 60.0, 20.0, 20.0, 2.0)
+    assert (P.FLEE_HEALTH, P.MAX_FIGHT) == (40.0, 2)
+
+
 # ================================================================ need
 def test_need_drinks_when_thirsty_and_eats_a_held_food(tmp_path):
     w, link, pol = make(tmp_path, frame(thirst=0.6))
@@ -297,7 +433,7 @@ def test_decision_log_line_shape(tmp_path):
     assert set(d) == {"wall", "gameMin", "branch", "inputs", "goal", "args", "sent"}
     assert d["wall"] == 12.5 and d["gameMin"] == 777
     assert set(d["inputs"]) == {"x", "y", "health", "hunger", "thirst", "fatigue", "armed", "threats", "nearest",
-                                "running", "need", "cooled", "branches"}
+                                "running", "mode", "fight_s", "need", "cooled", "branches"}
 
 
 def test_branch_order_is_the_specs():
@@ -331,13 +467,23 @@ def test_the_death_log_reproduces_its_last_ten_decisions(tmp_path):
     a, cmds = replay_decisions(tmp_path, "a.log")
     b, _ = replay_decisions(tmp_path, "b.log")
     assert a == b                                            # deterministic, byte for byte
-    with open(DEATH_TAIL, encoding="utf-8") as f:
-        golden = f.read().splitlines()
-    assert len(golden) == 10 and a[-10:] == golden
     last = [json.loads(ln) for ln in a[-10:]]
     assert last[-1]["inputs"]["health"] == 0.0               # the log ends on the death
     assert cmds[-2:] == [("fight", ""), ("flee", "92 100")]  # the fight failed low health; the bot fled
     assert [d["goal"] for d in last[-3:]] == ["flee", "flee", "flee"] and not any(d["sent"] for d in last[-2:])
+    assert [(d["wall"], d["goal"], d["args"], d["sent"], d["inputs"]["branches"]["threat"]["flee"]) for d in last] == (
+        [(22.5, "flee", "92 100", False, "pair")]
+        + [(w, "flee", "92 100", False, "health") for w in (23.5, 24.5, 25.5, 26.5, 27.5, 28.5)]
+        + [(w, "flee", "108 100", False, "health") for w in (29.5, 30.5, 31.5)])
+    # The DEATH_TAIL golden is the pre-pass-2 policy's (Plan 21b Stage C pass 2 changed one decision by name): at wall
+    # 22.5 it fought two threats at health 46 and sent the flee a second later; the pair rule (two threats under
+    # FLEE_HEALTH_PAIR) flees at once. Every later line chooses the same goal and args.
+    with open(DEATH_TAIL, encoding="utf-8") as f:
+        old = [json.loads(ln) for ln in f.read().splitlines()]
+    assert len(old) == 10 and (old[0]["goal"], old[0]["inputs"]["health"], old[0]["inputs"]["threats"]) == ("fight",
+                                                                                                          46.0, 2)
+    assert old[1]["goal"] == "flee" and old[1]["sent"] is True and last[1]["sent"] is False
+    assert [(d["wall"], d["goal"], d["args"]) for d in old[1:]] == [(d["wall"], d["goal"], d["args"]) for d in last[1:]]
 
 
 def test_the_death_log_has_sixty_lines_and_its_frames_carry_the_sent_seqs(tmp_path):

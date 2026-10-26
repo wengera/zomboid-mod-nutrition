@@ -22,6 +22,19 @@ HEURISTIC (a spike, deliberately dumb):
   logs its own inputs (the chosen square, container or edge) under inputs.branches[<branch>].
 - A loot goal that finishes, done or failed, marks every container on its square looted, so a failing square is not
   retried. An explore walk that finishes is followed by one `scan` from where it ended.
+- Threat hysteresis (Plan 21b Stage C pass 2, from run c_survive-20261026-183905's death). A zombie is a threat
+  within DANGER_R, but while a threat goal (`fight` or `flee`, the running "mode") runs, within DISENGAGE_R: a threat
+  engaged at 6 tiles holds the branch until it is beyond 10 or dead, so the bot never turns its back to loot.
+- Fight or flee: flee when unarmed, when threats > MAX_FIGHT, when health < FLEE_HEALTH, or when threats >= 2 and
+  health < FLEE_HEALTH_PAIR. A running flee turns back to fight only with one threat and health >= FLEE_HEALTH +
+  REFIGHT_MARGIN; a running fight turns to flee only on the flee conditions, never because a threat count dropped.
+- A fight that does not close: the wall clock of the running fight's send is kept (fight_since, reset whenever the
+  running goal changes); a fight that has run longer than FIGHT_MAX_S with its nearest threat beyond FIGHT_REACH
+  flees. Run 1's 210 s standoff: its zombie stood 2.74 tiles away, inside the Lua's FIGHT_R 3 but beyond the bat's
+  reach, and the fight swung without approaching (endurance 0.95 to 0.32). That flee is held, not turned back to
+  fight, while it runs and the nearest threat stays beyond FIGHT_REACH.
+- The decision log's inputs carry `mode` (the running threat goal, else None) and `fight_s` (seconds the running
+  fight has run, else None).
 """
 import json
 import math
@@ -29,10 +42,15 @@ import math
 from agent.world import FOOD_RX, WATER_RX
 
 DANGER_R = 6.0        # a zombie this close is a threat
+DISENGAGE_R = 10.0    # while a fight or flee runs, a zombie this close is still a threat
 THIRST_T = 0.5
 HUNGER_T = 0.5
 FATIGUE_T = 0.7
 FLEE_HEALTH = 40.0    # PZA.act.FLEE_HEALTH: under it a threat is fled, never fought
+FLEE_HEALTH_PAIR = 60.0   # two or more threats are fled under this health
+REFIGHT_MARGIN = 20.0     # a running flee turns to fight only at health >= FLEE_HEALTH + this, one threat
+FIGHT_MAX_S = 20.0    # wall seconds a fight may run with its nearest threat out of reach
+FIGHT_REACH = 2.0     # tiles: a nearest threat beyond this is not being fought
 MAX_FIGHT = 2         # more threats than this are fled
 FLEE_DIST = 8         # tiles, when no known square lies away from the threats
 NIGHT_FROM, NIGHT_TO = 21 * 60, 6 * 60   # game minutes of the day
@@ -61,16 +79,34 @@ class Policy:
         self.last_failed = None      # (goal, args, tick first seen failed) of the last goal that failed
         self.failures_seen = set()   # cmd seqs whose failure has been noted
         self.why = {}                # the branch being tried: its own inputs
+        self.fight_since = None      # clock() when the running fight was sent, else None
+        self.stall_flee = False      # the running flee was sent because a fight did not close
 
     # ---------------------------------------------------------------- reading the world
     def _xy(self):
         me = self.world.me
         return me.get("x", 0.0), me.get("y", 0.0)
 
+    def _mode(self):
+        """The running threat goal, `fight` or `flee`, else None."""
+        cur = self._current()
+        return cur[0] if cur is not None and cur[0] in BY_NAME else None
+
+    def _fight_s(self):
+        """Seconds the running fight has run, else None."""
+        if self._mode() != "fight" or self.fight_since is None:
+            return None
+        return self.clock() - self.fight_since
+
     def _threats(self):
         mx, my = self._xy()
+        r = DISENGAGE_R if self._mode() is not None else DANGER_R
         return [z for z in self.world.zombies.values()
-                if z.get("x") is not None and math.hypot(z["x"] - mx, z["y"] - my) <= DANGER_R]
+                if z.get("x") is not None and math.hypot(z["x"] - mx, z["y"] - my) <= r]
+
+    def _nearest(self, ts):
+        mx, my = self._xy()
+        return min((math.hypot(z["x"] - mx, z["y"] - my) for z in ts), default=None)
 
     def _armed(self):
         w = self.world.me.get("weapon")
@@ -135,16 +171,41 @@ class Policy:
                     if key[0] == x and key[1] == y:
                         self.world.mark_looted(key)
 
+    def _flee_reason(self, ts):
+        """Why the threat branch flees, by the hysteresis in the module docstring; None when it fights."""
+        health = self.world.me.get("health", 100.0)
+        n, mode = len(ts), self._mode()
+        if not self._armed():
+            return "unarmed"
+        if n > MAX_FIGHT:
+            return "many"
+        if health < FLEE_HEALTH:
+            return "health"
+        if n >= 2 and health < FLEE_HEALTH_PAIR:
+            return "pair"
+        near = self._nearest(ts)
+        if mode == "flee":
+            if self.stall_flee and near > FIGHT_REACH:
+                return "stalled"
+            if n > 1 or health < FLEE_HEALTH + REFIGHT_MARGIN:
+                return "held"
+            return None
+        fs = self._fight_s()
+        if fs is not None and fs > FIGHT_MAX_S and near > FIGHT_REACH:
+            return "stalled"
+        return None
+
     # ---------------------------------------------------------------- the branches, in order
     # Each sets self.why, its own inputs (the chosen square, container or edge), logged under inputs.branches[<branch>].
     def threat(self):
         ts = self._threats()
         if not ts:
             return None
-        health = self.world.me.get("health", 100.0)
-        if self._armed() and len(ts) <= MAX_FIGHT and health >= FLEE_HEALTH:
+        reason = self._flee_reason(ts)
+        if reason is None:
             self.why = {"fight": True}
             return ("fight", "")
+        self.why = {"flee": reason}
         cx = sum(z["x"] for z in ts) / len(ts)
         cy = sum(z["y"] for z in ts) / len(ts)
         best = None
@@ -155,13 +216,13 @@ class Policy:
             if best is None or rank > best[0]:
                 best = (rank, x, y)
         if best is not None:
-            self.why = {"centroid": [cx, cy], "square": [best[1], best[2]]}
+            self.why.update(centroid=[cx, cy], square=[best[1], best[2]])
             return ("flee", "%d %d" % (best[1], best[2]))
         mx, my = self._xy()
         vx, vy = mx - cx, my - cy
         n = math.hypot(vx, vy) or 1.0
         tx, ty = math.floor(mx + vx / n * FLEE_DIST), math.floor(my + vy / n * FLEE_DIST)
-        self.why = {"centroid": [cx, cy], "away": [tx, ty]}
+        self.why.update(centroid=[cx, cy], away=[tx, ty])
         return ("flee", "%d %d" % (tx, ty))
 
     def need(self):
@@ -218,13 +279,11 @@ class Policy:
     def _inputs(self):
         me = self.world.me
         ts = self._threats()
-        mx, my = self._xy()
         cur = self._current()
         return {"x": me.get("x"), "y": me.get("y"), "health": me.get("health"), "hunger": me.get("hunger"),
                 "thirst": me.get("thirst"), "fatigue": me.get("fatigue"), "armed": self._armed(),
-                "threats": len(ts),
-                "nearest": min((math.hypot(z["x"] - mx, z["y"] - my) for z in ts), default=None),
-                "running": cur[0] if cur else None}
+                "threats": len(ts), "nearest": self._nearest(ts),
+                "running": cur[0] if cur else None, "mode": self._mode(), "fight_s": self._fight_s()}
 
     def _note_failures(self):
         """The last failed goal sent, with the planner tick that first saw it fail."""
@@ -267,6 +326,8 @@ class Policy:
                 self.scanned.add(self.explore_target)
             else:
                 self.running = (goal, args, seq)
+                self.fight_since = self.clock() if goal == "fight" else None
+                self.stall_flee = goal == "flee" and tried["threat"].get("flee") == "stalled"
                 if branch == "explore":
                     self.explore_target = args
         line = {"wall": self.clock(), "gameMin": self.world.me.get("gameMin"), "branch": branch,
