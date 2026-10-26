@@ -84,7 +84,11 @@ A.goals["goto"] = {
             if not ran then g.state, g.detail = "failed", "no path"; return end
         end
         local d = dist(p, g.tx, g.ty)
-        if d <= 1.0 then g.state, g.detail = "done", "d=" .. tostring(d); return end
+        if d <= 1.0 then
+            pcall(ISTimedActionQueue.clear, p) -- the walk would carry on past the target and queue ahead of the next goal
+            g.state, g.detail = "done", "d=" .. tostring(d)
+            return
+        end
         local x, y = p:getX(), p:getY()
         if g.lastX == x and g.lastY == y then g.still = g.still + 1 else g.still = 0 end
         g.lastX, g.lastY = x, y

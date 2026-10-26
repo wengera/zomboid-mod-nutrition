@@ -1,6 +1,9 @@
--- PZAgent_Main.lua — the one OnTick hook (loads last by name). Each tick: poll cmd.txt, run the goal,
--- emit a frame every 60/RATE ticks with the goal status and the tick's own cost, flush. Everything sits
--- inside one pcall; a raise counts in PZA.errors and reports as a lua_error event once a second.
+-- PZAgent_Main.lua — the one OnTick hook (loads last by name). The tick order: player → init → poll →
+-- act → frame. No player means nothing is polled or emitted; the link is initialised (M.init) before the
+-- first poll, then cmd.txt is polled, the goal runs, and every 60/RATE ticks a frame carries the goal
+-- status and the tick's own cost, then flushes. Everything sits inside one pcall; a raise counts in
+-- PZA.errors and, once the link is initialised, reports as a lua_error event once a second (its flush
+-- under its own pcall, so the handler never raises).
 -- A frame's cost.linkMs lags one frame: it is the previous frame tick's flush, since a frame is
 -- serialised at its emit, before its own flush has run (the first frame reads 0).
 PZA.main = PZA.main or {}
@@ -53,6 +56,8 @@ local function body()
     PZA.tick = PZA.tick + 1
     local t0 = PZA.now()
     local p = getPlayer()
+    if p == nil then return end
+    if not M.ready then local _, u = PZA.call(p, "getUsername"); M.init(u or "admin"); M.ready = true end
     local cmd = PZA.link.poll()
     if cmd ~= nil then
         local handled = config(cmd, p)
@@ -63,8 +68,6 @@ local function body()
         else PZA.link.ack(cmd.seq, true, "") end
         PZA.link.flush()
     end
-    if p == nil then return end
-    if not M.ready then local _, u = PZA.call(p, "getUsername"); M.init(u or "admin"); M.ready = true end
     local tAct = PZA.now()
     PZA.act.tick(p)
     local tSense = PZA.now()
@@ -92,10 +95,10 @@ local function onTick()
     if not ok then
         PZA.errors = PZA.errors + 1
         local now = PZA.now()
-        if now - M.lastErrMs >= 1000 then
+        if M.ready and now - M.lastErrMs >= 1000 then
             M.lastErrMs = now
             PZA.emit("event", { event = "lua_error", msg = tostring(err) })
-            PZA.link.flush()
+            pcall(PZA.link.flush)
         end
     end
 end

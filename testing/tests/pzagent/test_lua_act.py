@@ -425,3 +425,61 @@ def test_frame_link_ms_is_the_previous_frames_flush(lua, fs):
     frames = [json.loads(l) for l in fs.files["pzagent/admin/state.log"].splitlines() if '"kind":"frame"' in l]
     assert len(frames) == 2
     assert frames[0]["cost"]["linkMs"] == 0 and frames[1]["cost"]["linkMs"] == 3
+
+
+# ---- Task 5c: no poll or flush before init; goto clears its walk at done ---------------------
+
+def test_tick_without_a_player_before_init_polls_and_writes_nothing(lua, fs):
+    load(lua)
+    g = lua.globals(); g.getPlayer = lambda: None
+    fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=stop\nargs=\n"
+    for _ in range(30):
+        g._handlers[0]()
+    assert lua.eval("PZA.errors") == 0 and fs.opens == 0
+    assert list(fs.files) == ["pzagent/admin/cmd.txt"] and not lua.eval("PZA.main.ready")
+
+
+def test_raise_before_init_counts_and_never_re_raises(lua, fs):
+    load(lua)
+    g = lua.globals(); g.getPlayer = lambda: (_ for _ in ()).throw(RuntimeError("boom"))
+    for _ in range(30):
+        g._handlers[0]()                    # a raise out of the handler would fail the test here
+    assert lua.eval("PZA.errors") == 30 and fs.files == {} and fs.opens == 0
+
+
+def test_tick_inits_the_link_before_its_first_poll(lua, fs):
+    load(lua)
+    g = lua.globals(); g.getPlayer = lambda: make_player()
+    g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    fs.files["pzagent/admin/cmd.txt"] = "seq=1\ngoal=goto\nargs=13 20\n"
+    g._handlers[0]()
+    log = fs.files["pzagent/admin/state.log"]
+    kinds = [l.split('"kind":"')[1].split('"')[0] for l in log.splitlines()]
+    assert kinds[:2] == ["hello", "ack"] and lua.eval("PZA.errors") == 0
+
+
+def test_goto_done_clears_its_walk(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    pos = {"x": 10.0}
+    p = make_player(); p.getX = lambda s: pos["x"]
+    lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20'}, ...)", p)
+    tick(lua, p)
+    assert len(g._queue.queue) == 1 and g._queue.cleared == 0
+    pos["x"] = 12.6
+    assert tick(lua, p)["state"] == "done"
+    assert g._queue.cleared == 1 and g._queue.queue == []
+
+
+def test_open_sub_walk_is_cleared_before_the_open_is_queued(lua):
+    load(lua)
+    g = lua.globals()
+    door = make_door()
+    g._cell = make_cell(squares={(13, 20, 0): osq(13, 20, [door]), (12, 20, 0): osq(12, 20)})
+    pos = {"x": 10.0}
+    p = make_player(); p.getX = lambda s: pos["x"]
+    lua.eval("PZA.act.start({seq=1, goal='open', args='13 20'})")
+    tick(lua, p)
+    pos["x"] = 12.2
+    tick(lua, p)
+    assert g._queue.cleared == 1 and [a.Type for a in g._queue.queue] == ["ISOpenCloseDoor"]
