@@ -48,6 +48,41 @@ class FakeFS:
         return R()
 
 
+class J:
+    """A Java-like object: methods from a dict; a missing member is a missing attribute (nil in Lua)."""
+    def __init__(self, **m):
+        for k, v in m.items():
+            setattr(self, k, v)
+
+    def __getattr__(self, name):
+        return None
+
+    def __getitem__(self, name):
+        return self.__dict__.get(name)
+
+
+def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=()):
+    stats = J(getHunger=lambda s: hunger, getThirst=lambda s: 0.2, getFatigue=lambda s: 0.1,
+              getEndurance=lambda s: 0.9, getPanic=lambda s: 0.0, getPain=lambda s: 0.0)
+    bd = J(getOverallBodyHealth=lambda s: health, getHealth=lambda s: health)
+    inv = J(getItems=lambda s: J(size=lambda s2: len(items), get=lambda s2, i: J(getFullType=lambda s3, i=i: items[i])))
+    return J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: z, getDir=lambda s: "N",
+             isPlayerMoving=lambda s: False, IsRunning=lambda s: False, isSprinting=lambda s: False,
+             getStats=lambda s: stats, getBodyDamage=lambda s: bd, getInventory=lambda s: inv,
+             getPrimaryHandItem=lambda s: None, getMoodles=lambda s: J(getMoodleLevel=lambda s2, t: 0))
+
+
+def make_zombie(zid, x, y, dead=False):
+    return J(getOnlineID=lambda s: zid, getX=lambda s: x, getY=lambda s: y, isDead=lambda s: dead,
+             getTarget=lambda s: None, isCrawling=lambda s: False)
+
+
+def make_cell(zombies=(), squares=None):
+    zl = J(size=lambda s: len(zombies), get=lambda s, i: zombies[i])
+    sq = squares or {}
+    return J(getZombieList=lambda s: zl, getGridSquare=lambda s, x, y, z: sq.get((int(x), int(y), int(z))))
+
+
 @pytest.fixture
 def fs():
     return FakeFS()
@@ -64,4 +99,7 @@ def lua(fs):
     g._clock = clock
     g.print = lambda *a: None
     L.execute(open(lua_file("shared/PZAgent_Core.lua"), encoding="utf-8").read())
+    g.getCell = lambda: g._cell
+    g._cell = make_cell()
+    g.getGameTime = lambda: J(getHour=lambda s: 7, getMinutes=lambda s: 30, getWorldAgeHours=lambda s: 31.5)
     return L
