@@ -1,0 +1,11 @@
+position: 10.5,11.0,0
+game time: minute 470 of day, world age 31.5h
+needs: hunger 0.3 thirst 0.2 fatigue 0.1 health 100.0
+goal: goto (done) 10,12
+threats: 1 (nearest 2.0)
+container fridge at 10,9: 2 items
+container crate at 11,10: 1 items
+container shelf at 11,10: 1 items
+unexplored edge: 10,11
+event: zombie_enter at 2100
+event: hit at 5100

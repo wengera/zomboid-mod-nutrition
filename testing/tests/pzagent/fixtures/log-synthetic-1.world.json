@@ -1,0 +1,236 @@
+{
+ "buildings": [
+  77
+ ],
+ "containers": {
+  "10,9,0,0": {
+   "items": [
+    "Base.Milk",
+    "Base.Apple"
+   ],
+   "looted": false,
+   "n": 2,
+   "type": "fridge"
+  },
+  "11,10,0,0": {
+   "items": [
+    "Base.Hammer"
+   ],
+   "looted": false,
+   "n": 1,
+   "type": "crate"
+  },
+  "11,10,0,1": {
+   "items": [
+    "Base.WaterBottle"
+   ],
+   "looted": false,
+   "n": 1,
+   "type": "shelf"
+  }
+ },
+ "events": [
+  {
+   "dist": 2.0,
+   "event": "zombie_enter",
+   "gameMin": 454,
+   "id": 3,
+   "wallMs": 2100,
+   "worldAge": 31.5,
+   "x": 8.0,
+   "y": 10.5
+  },
+  {
+   "by": 1,
+   "event": "hit",
+   "gameMin": 459,
+   "wallMs": 5100,
+   "worldAge": 31.5,
+   "x": 10.0,
+   "y": 10.5
+  }
+ ],
+ "goal": {
+  "detail": "10,12",
+  "name": "goto",
+  "seq": 1,
+  "state": "done"
+ },
+ "hello": {
+  "build": "42.21.0",
+  "modVersion": "0.1",
+  "mode": "agent",
+  "rate": 30,
+  "user": "tester",
+  "wallMs": 500
+ },
+ "last_ack": {
+  "cmdSeq": 1,
+  "ok": true,
+  "reason": ""
+ },
+ "map": {
+  "10,10,0": {
+   "containers": [],
+   "floor": [
+    "Base.Nails"
+   ],
+   "solid": false,
+   "solidTrans": false,
+   "x": 10,
+   "y": 10,
+   "z": 0
+  },
+  "10,11,0": {
+   "containers": [],
+   "floor": [],
+   "solid": false,
+   "solidTrans": false,
+   "x": 10,
+   "y": 11,
+   "z": 0
+  },
+  "10,9,0": {
+   "building": 77,
+   "containers": [
+    {
+     "items": [
+      "Base.Milk",
+      "Base.Apple"
+     ],
+     "n": 2,
+     "type": "fridge"
+    }
+   ],
+   "floor": [],
+   "room": "kitchen",
+   "solid": false,
+   "solidTrans": false,
+   "x": 10,
+   "y": 9,
+   "z": 0
+  },
+  "11,10,0": {
+   "building": 77,
+   "containers": [
+    {
+     "items": [
+      "Base.Hammer"
+     ],
+     "n": 1,
+     "type": "crate"
+    },
+    {
+     "items": [
+      "Base.WaterBottle"
+     ],
+     "n": 1,
+     "type": "shelf"
+    }
+   ],
+   "floor": [],
+   "solid": false,
+   "solidTrans": false,
+   "x": 11,
+   "y": 10,
+   "z": 0
+  },
+  "11,11,0": {
+   "containers": [],
+   "floor": [],
+   "light": true,
+   "solid": false,
+   "solidTrans": false,
+   "x": 11,
+   "y": 11,
+   "z": 0
+  },
+  "11,9,0": {
+   "containers": [],
+   "floor": [],
+   "solid": false,
+   "solidTrans": false,
+   "x": 11,
+   "y": 9,
+   "z": 0
+  },
+  "9,10,0": {
+   "containers": [],
+   "door": {
+    "barricaded": false,
+    "locked": false,
+    "open": false
+   },
+   "floor": [],
+   "solid": false,
+   "solidTrans": false,
+   "x": 9,
+   "y": 10,
+   "z": 0
+  },
+  "9,11,0": {
+   "containers": [],
+   "floor": [],
+   "solid": false,
+   "solidTrans": false,
+   "window": {
+    "locked": true,
+    "open": false
+   },
+   "x": 9,
+   "y": 11,
+   "z": 0
+  },
+  "9,9,0": {
+   "containers": [],
+   "floor": [],
+   "solid": true,
+   "solidTrans": false,
+   "x": 9,
+   "y": 9,
+   "z": 0
+  }
+ },
+ "me": {
+  "cost": {
+   "actMs": 0.1,
+   "dropped": 0,
+   "linkMs": 0.1,
+   "pollMs": 0.1,
+   "senseMs": 0.2
+  },
+  "dir": "N",
+  "endurance": 0.9,
+  "fatigue": 0.1,
+  "gameMin": 470,
+  "health": 100.0,
+  "hunger": 0.35,
+  "items": 3,
+  "moving": true,
+  "nZombies": 1,
+  "pain": 0.0,
+  "panic": 0.0,
+  "running": false,
+  "sprinting": false,
+  "thirst": 0.2,
+  "wallMs": 16000,
+  "worldAge": 31.5,
+  "x": 10.5,
+  "y": 11.0,
+  "z": 0
+ },
+ "missing": [
+  "getRoom"
+ ],
+ "server": {},
+ "zombies": {
+  "1": {
+   "crawler": false,
+   "dist": 2.0,
+   "hasTarget": true,
+   "seenWallMs": 16000,
+   "x": 12.5,
+   "y": 11.0
+  }
+ }
+}
