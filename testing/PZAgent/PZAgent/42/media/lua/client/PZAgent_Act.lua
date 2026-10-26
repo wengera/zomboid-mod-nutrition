@@ -280,11 +280,22 @@ local function subGoto(x, y, run)
     return st
 end
 
--- one tick of g.sub while it runs; its state after
+-- sets the player's run and sprint flags together (Stage C pass 2: run 1's flee frames read running false on all 92,
+-- the one setRunning(true) at the walk's start being #2082's finding again; the harness's TK.sprintWatch sets both
+-- every tick). Whether asking every tick makes the walk run is a reading for the C pass-2 frames' running and
+-- sprinting fields, not a fix known to work.
+local function setRun(p, on)
+    PZA.call(p, "setRunning", on)
+    PZA.call(p, "setSprinting", on)
+end
+
+-- one tick of g.sub while it runs; its state after. A run-flagged sub-walk still running after its tick asks to run
+-- again (setRun), every tick; its owner clears the flags when the walk ends
 local function tickSub(p, g)
     if g.sub.state == "running" then
         g.sub.ticks = g.sub.ticks + 1
         A.goals["goto"].tick(p, g.sub)
+        if g.sub.run and g.sub.state == "running" then setRun(p, true) end
     end
     return g.sub.state
 end
@@ -508,13 +519,19 @@ A.goals["drink"] = {
 
 -- ---- fight, flee, sleep -------------------------------------------------------------------------
 -- fight swings the way the harness's attack.melee does (PZTestKit_Client.lua: faceThisObject(z), then
--- DoAttack(0) on a 1200 ms cadence); DoAttack is reached through PZA.call, which indexes before it calls, under
--- pcall. sleep is vanilla's own ground sleep with its dialog answered: ISWorldObjectContextMenu.onConfirmSleep
+-- DoAttack(0) on a 1200 ms cadence) only within REACH_R, and walks toward a zombie between REACH_R and FIGHT_R;
+-- DoAttack is reached through PZA.call, which indexes before it calls, under pcall. sleep is vanilla's own ground sleep with its dialog answered: ISWorldObjectContextMenu.onConfirmSleep
 -- (this, button, player, bed) with button.internal "YES" and bed nil, which runs the vanilla checks (zombies in
 -- sight, pain, panic) and sets the character asleep; a refusal there is a halo text, so a sleep that never
 -- comes within SLEEP_WAIT_MS reads as not allowed.
 A.FIGHT_R = 3             -- a zombie this close is fought
-A.SWING_MS = 1200         -- the swing cadence, the harness's attack.melee nextAt
+-- tiles: the swing runs only inside this; between it and FIGHT_R the fight steps toward the zombie (run 1's fight 27
+-- swung 210 s at a zombie 2.74 tiles off). The harness's attack.melee swings at the nearest zombie "within 2 tiles";
+-- the 42.21 install's Base.BaseballBat reads MaxRange = 1.25, MinRange = 0.61 (scripts/generated/items/weapon.txt
+-- L6700, L6703; the jar's HandWeapon.getMaxRange(IsoGameCharacter) adds a per-character mod not read here), so 1.5 is
+-- a spike constant to be read live, not a measured reach
+A.REACH_R = 1.5
+A.SWING_MS = 1200        -- the swing cadence, the harness's attack.melee nextAt
 A.GRAB_R = 1.0            -- inside this, with no swing due, the player steps back
 A.STEP_BACK = 2           -- tiles stepped back, along the zombie-to-player line
 A.FLEE_HEALTH = 40        -- overall body health under this fails a fight (Python decides what next)
@@ -558,7 +575,7 @@ local function awayFrom(p, ax, ay, dist)
     return math.floor(px + vx / n * dist), math.floor(py + vy / n * dist)
 end
 
--- drops a fight's step-back walk; one dropped while it runs (the zombies left) is cleared from the queue, since it
+-- drops a fight's step walk (back, or toward the zombie); one dropped while it runs (the zombies left) is cleared from the queue, since it
 -- would carry on and queue ahead of the next goal (a failed one cleared its own walk, a done one too)
 local function dropStep(p, g)
     if g.sub ~= nil and g.sub.state == "running" then clearQueue(p) end
@@ -585,11 +602,27 @@ A.goals["fight"] = {
             return
         end
         g.quiet = 0
+        -- a step toward the zombie is dropped once it is within reach or beyond FIGHT_R, and re-aimed (dropped here,
+        -- queued again below) when the zombie's square changes
+        if g.sub ~= nil and g.closing then
+            local zx, zy = math.floor(near.x), math.floor(near.y)
+            if near.d <= A.REACH_R or near.d > A.FIGHT_R or zx ~= g.zx or zy ~= g.zy then dropStep(p, g) end
+        end
         if g.sub ~= nil then
             if tickSub(p, g) == "running" then return end
             dropStep(p, g)
         end
         if near.d > A.FIGHT_R then return end
+        if near.d > A.REACH_R then
+            -- the square one tile short of the zombie along the player-to-zombie line (awayFrom at a negative
+            -- distance walks toward it), a walk, not a run
+            local tx, ty = awayFrom(p, near.x, near.y, 1 - near.d)
+            if tx == nil then return end
+            g.sub = subGoto(tx, ty, false)
+            g.closing, g.zx, g.zy = true, math.floor(near.x), math.floor(near.y)
+            tickSub(p, g)
+            return
+        end
         PZA.call(p, "faceThisObject", near.z)
         local now = PZA.now()
         if g.lastSwing == nil or now - g.lastSwing >= A.SWING_MS then
@@ -601,6 +634,7 @@ A.goals["fight"] = {
             local bx, by = awayFrom(p, near.x, near.y, A.STEP_BACK)
             if bx == nil then return end
             g.sub = subGoto(bx, by, false)
+            g.closing = false
             tickSub(p, g)
         end
     end,
@@ -636,7 +670,7 @@ A.goals["flee"] = {
         if g.ticks % A.FLEE_REPLAN_TICKS == 0 then fleeReplan(p, g) end
         local st = tickSub(p, g)
         if st == "running" then return end
-        PZA.call(p, "setRunning", false) -- the run outlives the walk otherwise
+        setRun(p, false) -- the run and the sprint outlive the walk otherwise
         if st == "done" then g.state, g.detail = "done", "at"; return end
         g.state, g.detail = "failed", "cornered"
     end,
