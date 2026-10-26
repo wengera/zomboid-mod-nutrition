@@ -22673,3 +22673,8 @@ a_pipe_4-20261026-181848,cmd_motion_p90_ms and the +x legs' first_motion,7629 / 
 a_pipe_4-20261026-181848,the per-rate means' difference from pass 3's,0.15–0.31 ms,"A difference between two sessions on one host with the tick Lua unchanged between them; unattributed (host state as likely as code), so never a cost.",the run's own means with their 1 ms-clock caveat
 a_pipe_4-20261026-181848,readings.server[*].rttMs,—,"n = 3.",
 a_pipe_4-20261026-181848,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+b_actions-20261026-183143,readings.reps[*].steps[*].ms for eat,4778–4914,"The eat action's own duration plus the queue; a timed-action length, not a link latency.",
+b_actions-20261026-183143,readings.reps[*].server_eat.before.hunger and resets,0.30,"Set by the harness (foodtimer.set 0; stats.set hunger 0.3) before each eat so the eat could land: a prepared character, not a reading.",server_eat.after (the eat seen: hunger fell, calories rose)
+b_actions-20261026-183143,"the DrinkingGlass, Bleach and Dogfood item facts in the guide",—,"Read off the install's item scripts for the guide's cause analysis, not off the run.",
+b_actions-20261026-183143,"spawned, world_changes.writes",the harness's writes,"RCON additem of Base.WaterBottle x5 and Base.Apple x5 and the pre-eat stat writes; not readings.",
+b_actions-20261026-183143,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",

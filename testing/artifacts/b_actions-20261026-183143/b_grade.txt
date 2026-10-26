@@ -1,0 +1,19 @@
+{
+ "completed": 0,
+ "eats_seen_by_server": 5,
+ "failing_steps": [
+  "goto:stuck",
+  "loot:no match",
+  "loot:not adjacent"
+ ],
+ "pass": {
+  "completed": false,
+  "eats_seen_by_server": true,
+  "reasons_in_set": true
+ },
+ "reasons_in_set": true,
+ "reasons_outside_set": [],
+ "rows": 5,
+ "sequences": 5,
+ "verdict": "NO-GO"
+}
