@@ -1,0 +1,1804 @@
+{
+ "steps": [
+  {
+   "step": "spawn_BaseballBat_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.BaseballBat",
+   "phase": "kit",
+   "wall_before": 52.981,
+   "wall_after": 54.498,
+   "epoch_ms_before": 1793054398233,
+   "epoch_ms_after": 1793054399750,
+   "took": 1.517,
+   "ack": "no item Base.BaseballBat in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "spawn_BaseballBat_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.BaseballBat\" 1",
+   "phase": "kit",
+   "wall_before": 54.498,
+   "wall_after": 54.607,
+   "epoch_ms_before": 1793054399750,
+   "epoch_ms_after": 1793054399859,
+   "ack": {
+    "ok": true,
+    "reply": "Item Base.BaseballBat Added in admin's inventory."
+   }
+  },
+  {
+   "step": "spawn_BaseballBat_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.BaseballBat",
+   "phase": "kit",
+   "wall_before": 57.109,
+   "wall_after": 58.369,
+   "epoch_ms_before": 1793054402360,
+   "epoch_ms_after": 1793054403620,
+   "took": 1.26,
+   "ack": {
+    "fullType": "Base.BaseballBat",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 1091816352,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "isCookable": false,
+    "actualWeight": 2,
+    "weight": 2,
+    "customWeight": false,
+    "serverWorldAge": 2.3584394454956055
+   }
+  },
+  {
+   "step": "equip_BaseballBat",
+   "side": "client:admin",
+   "cmd": "weapon.equip",
+   "args": "Base.BaseballBat",
+   "phase": "kit",
+   "wall_before": 58.37,
+   "wall_after": 58.628,
+   "epoch_ms_before": 1793054403622,
+   "epoch_ms_after": 1793054403879,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "fullType": "Base.BaseballBat",
+    "queued": true,
+    "itemId": 1091816352,
+    "twoHands": true
+   }
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 59.672,
+   "wall_after": 60.44,
+   "epoch_ms_before": 1793054404924,
+   "epoch_ms_after": 1793054405692,
+   "took": 0.768,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.006849254947155714,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.001537337782792747,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.0015950965462252498,
+     "Idleness": 0.027714556083083153,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.957733154296875,
+     "Thirst": 0.0013302984880283475,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793054405425,
+    "user": "admin",
+    "worldAge": 2.3668441772460938,
+    "mult": 4.784219264984131
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 60.44,
+   "wall_after": 62.452,
+   "epoch_ms_before": 1793054405692,
+   "epoch_ms_after": 1793054407703,
+   "took": 2.012,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 119.756,
+   "wall_after": 120.516,
+   "epoch_ms_before": 1793054465008,
+   "epoch_ms_after": 1793054465768,
+   "took": 0.76,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.17836998403072357,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.011497105471789837,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.010763050056993961,
+     "Idleness": 0.059684887528419495,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0.22306430339813232,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.977272033691406,
+     "Thirst": 0.0090177608653903,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793054465533,
+    "user": "admin",
+    "worldAge": 2.633768081665039,
+    "mult": 4.800367832183838
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 120.516,
+   "wall_after": 122.532,
+   "epoch_ms_before": 1793054465768,
+   "epoch_ms_after": 1793054467783,
+   "took": 2.016,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 179.758,
+   "wall_after": 180.521,
+   "epoch_ms_before": 1793054525009,
+   "epoch_ms_after": 1793054525773,
+   "took": 0.763,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 0.9199452996253967,
+     "Fatigue": 0.021585701033473015,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.019781772047281265,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 4.5955491065979,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0.011026769876480103,
+     "Temperature": 37.265621185302734,
+     "Thirst": 0.0168443750590086,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793054525531,
+    "user": "admin",
+    "worldAge": 2.8987693786621094,
+    "mult": 4.792210102081299
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 180.521,
+   "wall_after": 180.778,
+   "epoch_ms_before": 1793054525773,
+   "epoch_ms_after": 1793054526030,
+   "took": 0.257,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 239.796,
+   "wall_after": 240.303,
+   "epoch_ms_before": 1793054585048,
+   "epoch_ms_after": 1793054585554,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 0.736345112323761,
+     "Fatigue": 0.03193885087966919,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.02876858226954937,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 13.292473793029785,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0.07296454161405563,
+     "Temperature": 37.183685302734375,
+     "Thirst": 0.02490849234163761,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793054585532,
+    "user": "admin",
+    "worldAge": 3.1652727127075195,
+    "mult": 4.795668125152588
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 240.303,
+   "wall_after": 240.809,
+   "epoch_ms_before": 1793054585554,
+   "epoch_ms_after": 1793054586060,
+   "took": 0.506,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 299.815,
+   "wall_after": 300.32,
+   "epoch_ms_before": 1793054645066,
+   "epoch_ms_after": 1793054645572,
+   "took": 0.505,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 0.5527449250221252,
+     "Fatigue": 0.04400952532887459,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.03767360746860504,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 24.561145782470703,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0.14894092082977295,
+     "Temperature": 37.13481903076172,
+     "Thirst": 0.03272608295083046,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793054645527,
+    "user": "admin",
+    "worldAge": 3.4317846298217773,
+    "mult": 4.7963104248046875
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 300.32,
+   "wall_after": 300.826,
+   "epoch_ms_before": 1793054645572,
+   "epoch_ms_after": 1793054646078,
+   "took": 0.506,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 359.896,
+   "wall_after": 360.403,
+   "epoch_ms_before": 1793054705148,
+   "epoch_ms_after": 1793054705655,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 0.3728167414665222,
+     "Fatigue": 0.062004204839468,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.04649747535586357,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 36.60720443725586,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0.21939487755298615,
+     "Temperature": 37.14137649536133,
+     "Thirst": 0.040492139756679535,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793054705524,
+    "user": "admin",
+    "worldAge": 3.698300361633301,
+    "mult": 4.794618606567383
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 360.403,
+   "wall_after": 360.908,
+   "epoch_ms_before": 1793054705655,
+   "epoch_ms_after": 1793054706160,
+   "took": 0.505,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 419.969,
+   "wall_after": 420.48,
+   "epoch_ms_before": 1793054765221,
+   "epoch_ms_after": 1793054765731,
+   "took": 0.511,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 0.2410692572593689,
+     "Fatigue": 0.08651424199342728,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.055237725377082825,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 44.59733200073242,
+     "Panic": 4.104552745819092,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0.26828718185424805,
+     "Temperature": 37.33245086669922,
+     "Thirst": 0.04872304946184158,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793054765530,
+    "user": "admin",
+    "worldAge": 3.96474552154541,
+    "mult": 4.798638820648193
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 420.48,
+   "wall_after": 420.99,
+   "epoch_ms_before": 1793054765731,
+   "epoch_ms_after": 1793054766242,
+   "took": 0.51,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  }
+ ],
+ "notes": [
+  {
+   "wall": 467.11,
+   "phase": "survive",
+   "note": "stop death: frame seq 2461 health 0"
+  }
+ ],
+ "phase_walls": {
+  "hello": {
+   "start": 52.97,
+   "end": 52.98
+  },
+  "kit": {
+   "start": 52.981,
+   "end": 59.671
+  },
+  "survive": {
+   "start": 59.672,
+   "end": 467.112
+  }
+ },
+ "phase_errors": {},
+ "verdicts": {},
+ "readings": {
+  "start_kit": {
+   "type": "Base.BaseballBat",
+   "spawn": {
+    "type": "Base.BaseballBat",
+    "n": 1,
+    "before": {
+     "id": null,
+     "fullType": null,
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": null,
+     "age": null,
+     "error": null,
+     "raw": "no item Base.BaseballBat in admin's inventory",
+     "wall": 52.981
+    },
+    "additem": {
+     "ok": true,
+     "reply": "Item Base.BaseballBat Added in admin's inventory."
+    },
+    "after": {
+     "id": 1091816352,
+     "fullType": "Base.BaseballBat",
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": 1,
+     "age": 0,
+     "error": null,
+     "raw": null,
+     "wall": 57.109
+    },
+    "leftover_before": false,
+    "confirmed": true
+   },
+   "equip": {
+    "ok": true,
+    "queued": true,
+    "itemId": 1091816352,
+    "twoHands": true,
+    "reason": null,
+    "raw": null
+   },
+   "armed": true,
+   "equip_asks": [
+    {
+     "ok": true,
+     "queued": true,
+     "itemId": 1091816352,
+     "twoHands": true,
+     "reason": null,
+     "raw": null
+    }
+   ]
+  }
+ },
+ "loop": {
+  "startPyMs": 1793054404924.0261,
+  "wallS": 407.43753457069397,
+  "ticks": 795,
+  "decisions": 45,
+  "last_decisions": [
+   {
+    "args": "10734 10609",
+    "branch": "threat",
+    "gameMin": 669,
+    "goal": "flee",
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "centroid": [
+        10713.78662109375,
+        10645.32421875
+       ],
+       "square": [
+        10734,
+        10609
+       ]
+      }
+     },
+     "cooled": null,
+     "fatigue": 0.10627267509698868,
+     "health": 10.467689514160156,
+     "hunger": 0.061194442212581635,
+     "nearest": 1.6447426123266895,
+     "need": null,
+     "running": "flee",
+     "thirst": 0.054698649793863297,
+     "threats": 2,
+     "x": 10713.6904296875,
+     "y": 10647.2763671875
+    },
+    "sent": false,
+    "wall": 1793054807.447093
+   },
+   {
+    "args": "10734 10609",
+    "branch": "threat",
+    "gameMin": 669,
+    "goal": "flee",
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "centroid": [
+        10713.76220703125,
+        10645.93359375
+       ],
+       "square": [
+        10734,
+        10609
+       ]
+      }
+     },
+     "cooled": null,
+     "fatigue": 0.10627267509698868,
+     "health": 10.467689514160156,
+     "hunger": 0.061194442212581635,
+     "nearest": 1.627140103113783,
+     "need": null,
+     "running": "flee",
+     "thirst": 0.054698649793863297,
+     "threats": 2,
+     "x": 10713.66796875,
+     "y": 10647.8681640625
+    },
+    "sent": false,
+    "wall": 1793054807.8709369
+   },
+   {
+    "args": "10734 10609",
+    "branch": "threat",
+    "gameMin": 669,
+    "goal": "flee",
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "centroid": [
+        10713.72705078125,
+        10646.84765625
+       ],
+       "square": [
+        10734,
+        10609
+       ]
+      }
+     },
+     "cooled": null,
+     "fatigue": 0.1067638099193573,
+     "health": 8.304557800292969,
+     "hunger": 0.061338528990745544,
+     "nearest": 1.5934920756750746,
+     "need": null,
+     "running": "flee",
+     "thirst": 0.05483685061335564,
+     "threats": 2,
+     "x": 10713.646484375,
+     "y": 10648.7490234375
+    },
+    "sent": false,
+    "wall": 1793054808.3921542
+   },
+   {
+    "args": "10734 10609",
+    "branch": "threat",
+    "gameMin": 669,
+    "goal": "flee",
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "centroid": [
+        10713.6962890625,
+        10647.76171875
+       ],
+       "square": [
+        10734,
+        10609
+       ]
+      }
+     },
+     "cooled": null,
+     "fatigue": 0.10725673288106918,
+     "health": 7.2236480712890625,
+     "hunger": 0.06148255616426468,
+     "nearest": 1.560859734752699,
+     "need": null,
+     "running": "flee",
+     "thirst": 0.05497519671916962,
+     "threats": 2,
+     "x": 10713.63671875,
+     "y": 10649.630859375
+    },
+    "sent": false,
+    "wall": 1793054808.917995
+   },
+   {
+    "args": "10734 10609",
+    "branch": "threat",
+    "gameMin": 669,
+    "goal": "flee",
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "centroid": [
+        10713.68115234375,
+        10648.37109375
+       ],
+       "square": [
+        10734,
+        10609
+       ]
+      }
+     },
+     "cooled": null,
+     "fatigue": 0.10725673288106918,
+     "health": 6.1427459716796875,
+     "hunger": 0.06148255616426468,
+     "nearest": 1.5402994365142046,
+     "need": null,
+     "running": "flee",
+     "thirst": 0.05497519671916962,
+     "threats": 2,
+     "x": 10713.6328125,
+     "y": 10650.2197265625
+    },
+    "sent": false,
+    "wall": 1793054809.436051
+   },
+   {
+    "args": "10734 10609",
+    "branch": "threat",
+    "gameMin": 669,
+    "goal": "flee",
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "centroid": [
+        10713.66943359375,
+        10648.98046875
+       ],
+       "square": [
+        10734,
+        10609
+       ]
+      }
+     },
+     "cooled": null,
+     "fatigue": 0.10725673288106918,
+     "health": 6.1427459716796875,
+     "hunger": 0.06148255616426468,
+     "nearest": 1.5227427928242327,
+     "need": null,
+     "running": "flee",
+     "thirst": 0.05497519671916962,
+     "threats": 2,
+     "x": 10713.6318359375,
+     "y": 10650.8115234375
+    },
+    "sent": false,
+    "wall": 1793054809.8530262
+   },
+   {
+    "args": "10734 10609",
+    "branch": "threat",
+    "gameMin": 669,
+    "goal": "flee",
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "centroid": [
+        10713.66455078125,
+        10649.89453125
+       ],
+       "square": [
+        10734,
+        10609
+       ]
+      }
+     },
+     "cooled": null,
+     "fatigue": 0.10775180160999298,
+     "health": 3.980255126953125,
+     "hunger": 0.061626605689525604,
+     "nearest": 1.4875742917782528,
+     "need": null,
+     "running": "flee",
+     "thirst": 0.055113762617111206,
+     "threats": 2,
+     "x": 10713.630859375,
+     "y": 10651.6904296875
+    },
+    "sent": false,
+    "wall": 1793054810.3735733
+   },
+   {
+    "args": "10734 10609",
+    "branch": "threat",
+    "gameMin": 669,
+    "goal": "flee",
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "centroid": [
+        10713.66064453125,
+        10650.80810546875
+       ],
+       "square": [
+        10734,
+        10609
+       ]
+      }
+     },
+     "cooled": null,
+     "fatigue": 0.1082487627863884,
+     "health": 2.8985748291015625,
+     "hunger": 0.061770617961883545,
+     "nearest": 1.4562593517085054,
+     "need": null,
+     "running": "flee",
+     "thirst": 0.05525250360369682,
+     "threats": 2,
+     "x": 10713.62890625,
+     "y": 10652.572265625
+    },
+    "sent": false,
+    "wall": 1793054810.9000394
+   },
+   {
+    "args": "10734 10609",
+    "branch": "threat",
+    "gameMin": 670,
+    "goal": "flee",
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "centroid": [
+        10713.64892578125,
+        10651.40185546875
+       ],
+       "square": [
+        10734,
+        10609
+       ]
+      }
+     },
+     "cooled": null,
+     "fatigue": 0.1082487627863884,
+     "health": 1.8167495727539062,
+     "hunger": 0.061770617961883545,
+     "nearest": 1.4612511282884666,
+     "need": null,
+     "running": "flee",
+     "thirst": 0.05525250360369682,
+     "threats": 2,
+     "x": 10713.61328125,
+     "y": 10653.1611328125
+    },
+    "sent": false,
+    "wall": 1793054811.4178057
+   },
+   {
+    "args": "10734 10609",
+    "branch": "threat",
+    "gameMin": 670,
+    "goal": "flee",
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "centroid": [
+        10713.6240234375,
+        10652.31591796875
+       ],
+       "square": [
+        10734,
+        10609
+       ]
+      }
+     },
+     "cooled": null,
+     "fatigue": 0.10874800384044647,
+     "health": 0.7349777221679688,
+     "hunger": 0.06191468983888626,
+     "nearest": 1.4290112840061462,
+     "need": null,
+     "running": "flee",
+     "thirst": 0.05539152771234512,
+     "threats": 2,
+     "x": 10713.5888671875,
+     "y": 10654.04296875
+    },
+    "sent": false,
+    "wall": 1793054811.9430351
+   }
+  ],
+  "needs": [
+   [
+    561,
+    0.0014881726820021868,
+    0.0012410584604367614,
+    0.0014218272408470511,
+    100,
+    0.0015950965462252498
+   ],
+   [
+    577,
+    0.010641556233167648,
+    0.008915422484278679,
+    0.011364682577550411,
+    95.23207092285156,
+    0.010763050056993961
+   ],
+   [
+    593,
+    0.019661538302898407,
+    0.016733799129724503,
+    0.02144499123096466,
+    74.38496398925781,
+    0.019781772047281265
+   ],
+   [
+    609,
+    0.028649330139160156,
+    0.024803411215543747,
+    0.03180316463112831,
+    74.51190185546875,
+    0.02876858226954937
+   ],
+   [
+    625,
+    0.03755541890859604,
+    0.032622404396533966,
+    0.04381083697080612,
+    74.63894653320312,
+    0.03767360746860504
+   ],
+   [
+    641,
+    0.046380333602428436,
+    0.04038829356431961,
+    0.06172344088554382,
+    74.76771545410156,
+    0.04649747535586357
+   ],
+   [
+    657,
+    0.05512170493602753,
+    0.04859991744160652,
+    0.0861344039440155,
+    74.89511108398438,
+    0.055237725377082825
+   ]
+  ],
+  "needs_fields": [
+   "gameMin",
+   "hunger",
+   "thirst",
+   "fatigue",
+   "health",
+   "serverHunger"
+  ],
+  "fights": [
+   {
+    "seq": 7,
+    "startS": 24.92891216278076,
+    "startWallMs": 1793054429675,
+    "gameMin": 568,
+    "health": 100,
+    "threats": 1,
+    "nearest": 5.899134957212643,
+    "end": {
+     "state": "failed",
+     "detail": "superseded",
+     "wallMs": 1793054440895,
+     "from": "event"
+    }
+   },
+   {
+    "seq": 27,
+    "startS": 109.51701784133911,
+    "startWallMs": 1793054514273,
+    "gameMin": 591,
+    "health": 74.88043975830078,
+    "threats": 1,
+    "nearest": 5.2805126510626055,
+    "end": {
+     "state": "failed",
+     "detail": "superseded",
+     "wallMs": 1793054724360,
+     "from": "event"
+    }
+   },
+   {
+    "seq": 29,
+    "startS": 320.8889937400818,
+    "startWallMs": 1793054725675,
+    "gameMin": 647,
+    "health": 74.56078338623047,
+    "threats": 2,
+    "nearest": 3.504549203525909,
+    "end": {
+     "state": "failed",
+     "detail": "superseded",
+     "wallMs": 1793054727793,
+     "from": "event"
+    }
+   },
+   {
+    "seq": 31,
+    "startS": 323.3913390636444,
+    "startWallMs": 1793054728274,
+    "gameMin": 647,
+    "health": 74.64631652832031,
+    "threats": 2,
+    "nearest": 4.199973587679693,
+    "end": {
+     "state": "failed",
+     "detail": "superseded",
+     "wallMs": 1793054728845,
+     "from": "event"
+    }
+   },
+   {
+    "seq": 33,
+    "startS": 324.4371235370636,
+    "startWallMs": 1793054729273,
+    "gameMin": 648,
+    "health": 74.6748275756836,
+    "threats": 2,
+    "nearest": 4.605154918173061,
+    "end": {
+     "state": "failed",
+     "detail": "superseded",
+     "wallMs": 1793054730310,
+     "from": "event"
+    }
+   },
+   {
+    "seq": 35,
+    "startS": 326.42017364501953,
+    "startWallMs": 1793054731273,
+    "gameMin": 648,
+    "health": 74.73184967041016,
+    "threats": 1,
+    "nearest": 5.767666752409132,
+    "end": {
+     "state": "failed",
+     "detail": "superseded",
+     "wallMs": 1793054731879,
+     "from": "event"
+    }
+   },
+   {
+    "seq": 44,
+    "startS": 355.3644742965698,
+    "startWallMs": 1793054760273,
+    "gameMin": 656,
+    "health": 74.76681518554688,
+    "threats": 1,
+    "nearest": 5.21594391265506,
+    "end": {
+     "state": "failed",
+     "detail": "low health",
+     "wallMs": 1793054793873,
+     "from": "frame"
+    }
+   }
+  ],
+  "lua_errors_per_min": {},
+  "cost": {
+   "n": 2080,
+   "p50": 1,
+   "p99": 2,
+   "max": 7,
+   "keys": [
+    "pollMs",
+    "actMs",
+    "scanStepMs",
+    "senseMs",
+    "linkMs"
+   ]
+  },
+  "goal_outcomes": {
+   "loot": {
+    "done": {
+     "moved=3": 4,
+     "moved=6": 4,
+     "moved=7": 2,
+     "moved=4": 2,
+     "moved=5": 2,
+     "moved=1": 2
+    },
+    "failed": {
+     "not adjacent": 3,
+     "superseded": 2
+    }
+   },
+   "fight": {
+    "failed": {
+     "superseded": 6,
+     "low health": 1
+    }
+   },
+   "goto": {
+    "failed": {
+     "superseded": 2
+    },
+    "done": {
+     "d=0.980772176654701": 1,
+     "d=0.9924647627179599": 1,
+     "d=0.9904197504308246": 1,
+     "d=0.9815424780881895": 1,
+     "d=0.991819298375406": 1
+    }
+   },
+   "flee": {
+    "failed": {
+     "superseded": 4,
+     "cornered": 1
+    }
+   }
+  },
+  "server_polls": 7,
+  "server_fails": 0,
+  "players_error": null,
+  "memory": [
+   {
+    "wallS": 300.0148241519928,
+    "free_gb": 2.69
+   }
+  ],
+  "death": {
+   "via": "frame",
+   "detail": "frame seq 2461 health 0",
+   "wallS": 407.43751287460327,
+   "gameMin": 670,
+   "frame": {
+    "health": 0,
+    "seq": 2461,
+    "wallMs": 1793054812273,
+    "gameMin": 670
+   },
+   "last_decisions": [
+    {
+     "args": "10734 10609",
+     "branch": "threat",
+     "gameMin": 669,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10713.78662109375,
+         10645.32421875
+        ],
+        "square": [
+         10734,
+         10609
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.10627267509698868,
+      "health": 10.467689514160156,
+      "hunger": 0.061194442212581635,
+      "nearest": 1.6447426123266895,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.054698649793863297,
+      "threats": 2,
+      "x": 10713.6904296875,
+      "y": 10647.2763671875
+     },
+     "sent": false,
+     "wall": 1793054807.447093
+    },
+    {
+     "args": "10734 10609",
+     "branch": "threat",
+     "gameMin": 669,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10713.76220703125,
+         10645.93359375
+        ],
+        "square": [
+         10734,
+         10609
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.10627267509698868,
+      "health": 10.467689514160156,
+      "hunger": 0.061194442212581635,
+      "nearest": 1.627140103113783,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.054698649793863297,
+      "threats": 2,
+      "x": 10713.66796875,
+      "y": 10647.8681640625
+     },
+     "sent": false,
+     "wall": 1793054807.8709369
+    },
+    {
+     "args": "10734 10609",
+     "branch": "threat",
+     "gameMin": 669,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10713.72705078125,
+         10646.84765625
+        ],
+        "square": [
+         10734,
+         10609
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.1067638099193573,
+      "health": 8.304557800292969,
+      "hunger": 0.061338528990745544,
+      "nearest": 1.5934920756750746,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.05483685061335564,
+      "threats": 2,
+      "x": 10713.646484375,
+      "y": 10648.7490234375
+     },
+     "sent": false,
+     "wall": 1793054808.3921542
+    },
+    {
+     "args": "10734 10609",
+     "branch": "threat",
+     "gameMin": 669,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10713.6962890625,
+         10647.76171875
+        ],
+        "square": [
+         10734,
+         10609
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.10725673288106918,
+      "health": 7.2236480712890625,
+      "hunger": 0.06148255616426468,
+      "nearest": 1.560859734752699,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.05497519671916962,
+      "threats": 2,
+      "x": 10713.63671875,
+      "y": 10649.630859375
+     },
+     "sent": false,
+     "wall": 1793054808.917995
+    },
+    {
+     "args": "10734 10609",
+     "branch": "threat",
+     "gameMin": 669,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10713.68115234375,
+         10648.37109375
+        ],
+        "square": [
+         10734,
+         10609
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.10725673288106918,
+      "health": 6.1427459716796875,
+      "hunger": 0.06148255616426468,
+      "nearest": 1.5402994365142046,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.05497519671916962,
+      "threats": 2,
+      "x": 10713.6328125,
+      "y": 10650.2197265625
+     },
+     "sent": false,
+     "wall": 1793054809.436051
+    },
+    {
+     "args": "10734 10609",
+     "branch": "threat",
+     "gameMin": 669,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10713.66943359375,
+         10648.98046875
+        ],
+        "square": [
+         10734,
+         10609
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.10725673288106918,
+      "health": 6.1427459716796875,
+      "hunger": 0.06148255616426468,
+      "nearest": 1.5227427928242327,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.05497519671916962,
+      "threats": 2,
+      "x": 10713.6318359375,
+      "y": 10650.8115234375
+     },
+     "sent": false,
+     "wall": 1793054809.8530262
+    },
+    {
+     "args": "10734 10609",
+     "branch": "threat",
+     "gameMin": 669,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10713.66455078125,
+         10649.89453125
+        ],
+        "square": [
+         10734,
+         10609
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.10775180160999298,
+      "health": 3.980255126953125,
+      "hunger": 0.061626605689525604,
+      "nearest": 1.4875742917782528,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.055113762617111206,
+      "threats": 2,
+      "x": 10713.630859375,
+      "y": 10651.6904296875
+     },
+     "sent": false,
+     "wall": 1793054810.3735733
+    },
+    {
+     "args": "10734 10609",
+     "branch": "threat",
+     "gameMin": 669,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10713.66064453125,
+         10650.80810546875
+        ],
+        "square": [
+         10734,
+         10609
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.1082487627863884,
+      "health": 2.8985748291015625,
+      "hunger": 0.061770617961883545,
+      "nearest": 1.4562593517085054,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.05525250360369682,
+      "threats": 2,
+      "x": 10713.62890625,
+      "y": 10652.572265625
+     },
+     "sent": false,
+     "wall": 1793054810.9000394
+    },
+    {
+     "args": "10734 10609",
+     "branch": "threat",
+     "gameMin": 670,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10713.64892578125,
+         10651.40185546875
+        ],
+        "square": [
+         10734,
+         10609
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.1082487627863884,
+      "health": 1.8167495727539062,
+      "hunger": 0.061770617961883545,
+      "nearest": 1.4612511282884666,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.05525250360369682,
+      "threats": 2,
+      "x": 10713.61328125,
+      "y": 10653.1611328125
+     },
+     "sent": false,
+     "wall": 1793054811.4178057
+    },
+    {
+     "args": "10734 10609",
+     "branch": "threat",
+     "gameMin": 670,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10713.6240234375,
+         10652.31591796875
+        ],
+        "square": [
+         10734,
+         10609
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.10874800384044647,
+      "health": 0.7349777221679688,
+      "hunger": 0.06191468983888626,
+      "nearest": 1.4290112840061462,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.05539152771234512,
+      "threats": 2,
+      "x": 10713.5888671875,
+      "y": 10654.04296875
+     },
+     "sent": false,
+     "wall": 1793054811.9430351
+    }
+   ]
+  }
+ },
+ "stop": {
+  "reason": "death",
+  "detail": "frame seq 2461 health 0",
+  "wallS": 407.43744254112244,
+  "gameMin": 670,
+  "worldAge": 4.172520637512207
+ },
+ "world_changes": {
+  "left_in_place": [
+   "RCON additem Base.BaseballBat x1"
+  ],
+  "restored": "fixture agent restored into the run dir"
+ },
+ "finished": true,
+ "run_id": "c_survive-20261026-183905",
+ "session_key": "c_survive",
+ "driver": "c_survive.py",
+ "user": "admin",
+ "profile": {
+  "name": "agent",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\agent.toml",
+  "fixture": "agent",
+  "description": "PZTestKit + PZAgent, zombies Low, 90-minute day, sleep allowed.",
+  "mods": [
+   "PZTestKit",
+   "PZAgent"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "PZAgent": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZAgent\\PZAgent"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {},
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "preboot": {
+  "driver": "c_survive.py",
+  "profile_path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing/profiles/agent.toml",
+  "profile": "agent",
+  "commit": "4b025035",
+  "harness_lua_commit": "ee23b53c",
+  "harness_py_commit": "52a7de93",
+  "xlib_commit": "45c49217",
+  "agent_commit": "4b025035",
+  "harness_lua_dirty": false,
+  "doctor_clean": true,
+  "doctor": [
+   "ok   PZ java processes: none",
+   "ok   ports 27261/27262/27015: free",
+   "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+   "ok   workshop index: 239 mods",
+   "ok   pytest available"
+  ],
+  "lint_errors": [],
+  "driver_checks": {
+   "driver_file": true,
+   "driver_prefix": true,
+   "profile_exists": true,
+   "no_committed_artifact": true,
+   "agent_lua_dirty": false,
+   "agent_py_dirty": false,
+   "driver_dirty": false
+  }
+ },
+ "argv": [],
+ "constants": {
+  "BUDGET_S": 5700.0,
+  "MIN_FREE_GB": 12.0,
+  "PLANNER_HZ": 2,
+  "SERVER_POLL_S": 60,
+  "PERSIST_S": 30,
+  "MEM_POLL_S": 300,
+  "LIVE_MIN_FREE_GB": 0.5,
+  "MEM_LOW_READS": 2,
+  "DAY_CAP_S": 5400,
+  "BUS_DEAD_S": 60,
+  "BUS_DEAD_POLLS": 2,
+  "STORM_N": 10,
+  "STORM_WINDOW_S": 60,
+  "HELLO_TIMEOUT_S": 60.0,
+  "FRAME_TIMEOUT_S": 10.0,
+  "EQUIP_TIMEOUT_S": 15.0,
+  "EQUIP_RETRY_S": 1.0,
+  "KIT": "Base.BaseballBat",
+  "POLL_S": 0.1,
+  "COST_KEYS": [
+   "pollMs",
+   "actMs",
+   "scanStepMs",
+   "senseMs",
+   "linkMs"
+  ],
+  "CLIENT_ERR_RX": "LuaError|STACK TRACE|attempted index|tried to call nil"
+ },
+ "fixture": {
+  "name": "agent",
+  "provision_run": "prov-20261026-092028",
+  "build": "42.21.0"
+ },
+ "driver_commit": "7b01bc87",
+ "c_survive_commit": "7b01bc87",
+ "memory_wait": [
+  {
+   "wall": 1793054345.252015,
+   "free_gb": 16.05
+  }
+ ],
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 0.0,
+   "free_gb": 16.05
+  },
+  {
+   "tag": "ready",
+   "wall": 52.969,
+   "free_gb": 2.49
+  },
+  {
+   "tag": "after",
+   "wall": 476.978,
+   "free_gb": 16.3
+  }
+ ],
+ "timeline": [
+  {
+   "t": 15.2,
+   "phase": "server_started",
+   "pid": 348112
+  },
+  {
+   "t": 15.3,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 52.0,
+   "phase": "client_ready",
+   "took": 36.4,
+   "user": "admin"
+  },
+  {
+   "t": 52.0,
+   "phase": "session_ready"
+  },
+  {
+   "t": 52.5,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "ping",
+   "ok": true,
+   "got": "\"pong\""
+  },
+  {
+   "t": 53.0,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "ping",
+   "ok": true,
+   "got": "\"pong\""
+  },
+  {
+   "t": 54.7,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.BaseballBat\" 1",
+   "ok": true
+  },
+  {
+   "t": 469.2,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 477.1,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_launch_wall": 0.442,
+ "server_started_wall": 15.138,
+ "server_pid": 348112,
+ "session_ready_wall": 51.957,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "ping",
+   "expect": "pong",
+   "ok": true,
+   "got": "pong"
+  },
+  {
+   "side": "client",
+   "cmd": "ping",
+   "expect": "pong",
+   "ok": true,
+   "got": "pong"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "state_dir": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\c_survive-20261026-183905\\clients\\admin\\Lua\\pzagent\\admin",
+ "hello_wait_ms": 10.1748046875,
+ "hello": {
+  "build": "42.21",
+  "kind": "hello",
+  "modVersion": "0.1",
+  "mode": "append",
+  "rate": 5,
+  "seq": 1,
+  "tick": 1,
+  "user": "admin",
+  "wallMs": 1793054395768
+ },
+ "mode": "append",
+ "hello_build": "42.21",
+ "missing": [],
+ "gaps": [],
+ "bad": 0,
+ "lua_errors": 0,
+ "lua_error_lines": [],
+ "events": {
+  "zombie_enter": 10,
+  "item_added": 70,
+  "goal_done": 21,
+  "goal_failed": 19,
+  "zombie_leave": 8,
+  "hit": 92
+ },
+ "lines_read": 2461,
+ "frames_read": 2080,
+ "memory_reads": [
+  {
+   "wallS": 300.0148241519928,
+   "free_gb": 2.69
+  }
+ ],
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 33.8,
+   "ready": 36.4
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "client_error": "LuaError|STACK TRACE|attempted index|tried to call nil"
+  },
+  "clients": {
+   "admin": []
+  }
+ },
+ "client_lua_errors": 0,
+ "bus_dead": null,
+ "copied": [
+  "decision.log"
+ ],
+ "wall_seconds": 477.0
+}

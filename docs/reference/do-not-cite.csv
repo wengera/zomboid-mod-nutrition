@@ -22678,3 +22678,8 @@ b_actions-20261026-183143,readings.reps[*].server_eat.before.hunger and resets,0
 b_actions-20261026-183143,"the DrinkingGlass, Bleach and Dogfood item facts in the guide",—,"Read off the install's item scripts for the guide's cause analysis, not off the run.",
 b_actions-20261026-183143,"spawned, world_changes.writes",the harness's writes,"RCON additem of Base.WaterBottle x5 and Base.Apple x5 and the pre-eat stat writes; not readings.",
 b_actions-20261026-183143,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+c_survive-20261026-183905,loop.cost.p50 and p99 and every per-frame cost,1 / 2,"Quantised to a 1 ms clock; cite the mean (0.786 ms) or a bound.",the mean in the guide
+c_survive-20261026-183905,loop.last_decisions,the log's last ten lines,"A log excerpt kept for the death read, not a reading; decision.log is the record.",
+c_survive-20261026-183905,the cause of the health fall over game minutes 574–587,100 -> 74.55,"The frames carry no body-part damage or wound state; no zombie within 12 tiles on any frame of the span; the cause is unread.",
+c_survive-20261026-183905,"readings.start_kit, world_changes",the harness's writes,"RCON additem of Base.BaseballBat and weapon.equip; not readings.",
+c_survive-20261026-183905,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
