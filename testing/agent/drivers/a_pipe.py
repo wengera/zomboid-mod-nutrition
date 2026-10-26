@@ -4,14 +4,16 @@ admin -debug, PZTestKit + PZAgent, zombies none); the agent sits still and the d
 PHASES (each through xs.run_phase; a phase's fault is recorded and the next still runs):
   rates   wait for the hello line (HELLO_TIMEOUT_S; out["hello"], out["mode"]); then for r in RATES: `rate r`, its ack
           (ACK_TIMEOUT_S), WINDOW_S of wall clock collecting every frame after the ack: the frame count against the
-          nominal 60*r, the per-frame cost lists pollMs/actMs/senseMs/linkMs and their sum tickMs, dropped's max, the
+          nominal r * WINDOW_S (60*r at 60 ticks/s), the per-frame cost lists pollMs/actMs/senseMs/linkMs and their sum tickMs, dropped's max, the
           first and last frame wallMs and the state files' bytes at the window's ends.
   scans   for r in SCAN_RADII: SCANS_PER_RADIUS `scan r`, each awaited by its scan line (SCAN_TIMEOUT_S): scanMs, the
           square count, the line's re-serialised byte length, its missing list and the next frame's senseMs.
   motion  MOTION_TRIPS round trips of `goto <x+10> <y>` then `goto <x-10> <y>` (world coordinates, x and y the latest
-          frame's, read before each command and sent unrounded); per command the Python wall ms at the write, the
-          ack's wallMs, the first frame whose x is off the pre-command x by more than MOTION_EPS (its wallMs, seq, x
-          and the Python wall ms at which it was read) and the goal's final state/detail (GOAL_TIMEOUT_S).
+          frame's once two consecutive frames stand still (SETTLE_S cap; settled and settleMs recorded), sent
+          unrounded); per command the Python wall ms at the write, the ack's wallMs, the first frame displaced from
+          the pre-command x by more than MOTION_EPS in the command's own direction (its wallMs, seq, x and the Python
+          wall ms at which it was read), the goal's final state/detail (GOAL_TIMEOUT_S), and the informational
+          cmd_motion_host_ms (first-motion wallMs - sentPyMs, two clocks on one host; never graded).
   server  SERVER_CALLS harness stats.all round trips (_dlib.bus_stats), the bus's cost beside the link's.
 
 Every reading sits under out["readings"] with its raw values (no rounding). out["missing"] is the union of every missing
@@ -60,18 +62,22 @@ SCAN_TIMEOUT_S = 15.0
 NEXT_FRAME_TIMEOUT_S = 5.0
 MOTION_TRIPS = 10
 MOTION_DX = (10, -10)                # goto takes world coordinates: the target is the pre-command x + dx, y kept
-MOTION_EPS = 0.2
+MOTION_EPS = 0.2                     # tiles of displacement in the command's own direction
+SETTLE_S = 3.0                       # before x0: two consecutive frames with equal x, y, waited for up to this
 GOAL_TIMEOUT_S = 30.0
 SERVER_CALLS = 3
 POLL_S = 0.1
 COST_KEYS = ("pollMs", "actMs", "senseMs", "linkMs")
 AGENT_LUA = "testing/PZAgent"
-# an error line in the client console (the onTick pcall reports its raises as lua_error events; this catches the rest)
-CLIENT_ERR_RX = r"STACK TRACE|LuaError|attempted index|tried to call nil|Exception thrown"
+# a Lua error line in the client console (the onTick pcall reports its raises as lua_error events; this catches the
+# rest). Lua-specific only, after pzt/client.py's lua_error: every client boot prints the benign Java
+# "AdvancedAnimator$1.visitFileFailed> Exception thrown" eight times, so a generic exception pattern is NO-GO on every run.
+CLIENT_ERR_RX = r"LuaError|STACK TRACE|attempted index|tried to call nil"
+ECHO_RX = r"PZTK: "
 
 CONSTANTS = {k: globals()[k] for k in (
     "HELLO_TIMEOUT_S", "ACK_TIMEOUT_S", "RATES", "WINDOW_S", "SCAN_RADII", "SCANS_PER_RADIUS", "SCAN_TIMEOUT_S",
-    "NEXT_FRAME_TIMEOUT_S", "MOTION_TRIPS", "MOTION_DX", "MOTION_EPS", "GOAL_TIMEOUT_S", "SERVER_CALLS", "POLL_S",
+    "NEXT_FRAME_TIMEOUT_S", "MOTION_TRIPS", "MOTION_DX", "MOTION_EPS", "SETTLE_S", "GOAL_TIMEOUT_S", "SERVER_CALLS", "POLL_S",
     "BUDGET_S", "MIN_FREE_GB", "CLIENT_ERR_RX")}
 
 
@@ -183,6 +189,8 @@ class Pipe:
                 self.missing.append(m)
 
     def pump(self):
+        if not os.path.isdir(self.link.dir):      # cleared before the start; the Lua makes it on its first ticks
+            return []
         lines = self.link.lines()
         for l in lines:
             self.on_line(l)
@@ -233,7 +241,7 @@ class Pipe:
     def rate_window(self, r):
         sent = self.py_ms()
         seq = self.link.send("rate", str(r))
-        row = {"rate": r, "cmdSeq": seq, "sentPyMs": sent, "expected": 60 * r, "window_s": WINDOW_S}
+        row = {"rate": r, "cmdSeq": seq, "sentPyMs": sent, "expected": r * WINDOW_S, "window_s": WINDOW_S}
         ack = self.await_ack(seq)
         row["ack"] = ack
         if ack is None:
@@ -300,9 +308,10 @@ class Pipe:
 
     def one_goto(self, trip, dx):
         """`goto <x0+dx> <y0>` in world coordinates, x0 and y0 the latest frame's own values (str, unrounded)."""
-        self.pump()
+        settle_t0 = self.py_ms()
+        settled = self.wait_until(self.still, SETTLE_S)
         x0, y0 = self.world.me.get("x"), self.world.me.get("y")
-        row = {"trip": trip, "dx": dx, "x0": x0, "y0": y0}
+        row = {"trip": trip, "dx": dx, "x0": x0, "y0": y0, "settled": settled, "settleMs": self.py_ms() - settle_t0}
         if not isinstance(x0, (int, float)) or not isinstance(y0, (int, float)):
             row["error"] = "no frame before the command: no x0, y0"
             return row
@@ -325,11 +334,23 @@ class Pipe:
         row["donePyMs"] = self.py_ms()
         row["first_motion"] = None
         after = ack["seq"] if ack else 0
+        sign = 1.0 if dx > 0 else -1.0
         for f, read in self.frames[i0:]:
-            if f["seq"] > after and isinstance(f.get("x"), (int, float)) and abs(f["x"] - x0) > MOTION_EPS:
+            if f["seq"] > after and isinstance(f.get("x"), (int, float)) and (f["x"] - x0) * sign > MOTION_EPS:
                 row["first_motion"] = {"seq": f["seq"], "wallMs": f.get("wallMs"), "x": f["x"], "readPyMs": read}
                 break
+        fm = row["first_motion"]
+        # informational, not graded: the client's frame wallMs against this process's write time (same host, two
+        # clocks); the graded figure is grades.cmd_motion_ms (ack wallMs to frame wallMs, the client's clock alone)
+        row["cmd_motion_host_ms"] = (fm["wallMs"] - sent) if fm and isinstance(fm.get("wallMs"), (int, float)) else None
         return row
+
+    def still(self):
+        """The last two frames stand on the same x, y (a walk that runs on past its goal's done has ended)."""
+        if len(self.frames) < 2:
+            return False
+        a, b = self.frames[-2][0], self.frames[-1][0]
+        return a.get("x") is not None and (a.get("x"), a.get("y")) == (b.get("x"), b.get("y"))
 
     # ---- phase 4: server
     def phase_server(self):
@@ -350,6 +371,29 @@ class Pipe:
         self.xs.persist()
 
 
+def client_errors(consoles):
+    """{user: [Lua error lines]} over each client's console.txt, the harness echo excluded, and their total."""
+    import re
+    rx, echo, never = re.compile(CLIENT_ERR_RX), re.compile(ECHO_RX), re.compile(r"(?!x)x")
+    found, n = {}, 0
+    for user, path in consoles:
+        lines, _ = X.grep_noecho(path, rx, 80, echo, never)
+        found[user] = lines
+        n += len(lines)
+    return found, n
+
+
+def memory_gate(xs, wait=None):
+    """The memory wait before the boot; a false result refuses. The wall budget's clock restarts after it, so a long
+    wait never eats the session's budget; the readings stay under out["memory_wait"]."""
+    ok, readings = (wait or DL.wait_memory)(MIN_FREE_GB)
+    xs.out["memory_wait"] = readings
+    if not ok:
+        xs.refuse("blocked: memory")
+    xs.t0 = xs.clock()
+    return readings
+
+
 def clearing_make_client(make):
     """pzt.session.make_client, then the stale pzagent/ folder removed before the client is started (the fixture
     snapshot copies the client's Lua/ folder; a kept ack.txt would make the Lua skip every seq up to it)."""
@@ -362,7 +406,6 @@ def clearing_make_client(make):
 
 # ================================================================ the boot
 def main(budget_s=BUDGET_S):
-    import re
     from _common import ask, hard_kill                       # noqa: E402
     import x49b_lib as B                                     # noqa: E402
     from pzt import fixture as fx, profile, session          # noqa: E402
@@ -390,20 +433,13 @@ def main(budget_s=BUDGET_S):
                 "fixture": {"name": rec_fx.get("name"), "provision_run": rec_fx.get("provision_run"),
                             "build": rec_fx.get("build")},
                 "driver_commit": DL.C.git_say("log", "-1", "--format=%h", "--", f"testing/agent/drivers/{DRIVER}")})
-    mok, readings = DL.wait_memory(MIN_FREE_GB)
-    out["memory_wait"] = readings
-    if not mok:
-        xs.refuse("blocked: memory")
+    memory_gate(xs)
     xs.mem("preboot")
     xs.persist()
     pipe = None
-    real_make = session.make_client
     try:
-        session.make_client = clearing_make_client(real_make)
-        try:
-            out.update(DL.boot(xs, prof, rec_fx, run_dir, [USER], started, clients, holder))
-        finally:
-            session.make_client = real_make
+        out.update(DL.boot(xs, prof, rec_fx, run_dir, [USER], started, clients, holder,
+                           make_client=clearing_make_client(session.make_client)))
         xs.mem("ready")
         xs.persist()
         if not all(v.get("ok") for v in out["verify"]):
@@ -421,14 +457,8 @@ def main(budget_s=BUDGET_S):
         every = list(started)
 
         def read_logs():
-            rx = re.compile(CLIENT_ERR_RX)
-            never = re.compile(r"(?!x)x")
-            Lg = out["logs"] = {"patterns": {"client_error": CLIENT_ERR_RX}, "clients": {}}
-            n = 0
-            for c in every:
-                lines, _ = X.grep_noecho(c.console, rx, 80, re.compile(r"PZTK: "), never)
-                Lg["clients"][getattr(c, "username", "?")] = lines
-                n += len(lines)
+            found, n = client_errors([(getattr(c, "username", "?"), c.console) for c in every])
+            out["logs"] = {"patterns": {"client_error": CLIENT_ERR_RX}, "clients": found}
             out["client_lua_errors"] = n
 
         if pipe is not None:

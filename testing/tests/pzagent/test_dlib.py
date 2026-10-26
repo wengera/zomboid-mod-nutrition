@@ -120,3 +120,22 @@ def test_bus_stats_adds_wall_ms():
             return {"ack": {"ok": True}}
     r = D.bus_stats(Xs(), "admin")
     assert r["ack"] == {"ok": True} and r["wallMs"] > 1e12
+
+
+def test_boot_passes_make_client_to_attach_clients(monkeypatch):
+    seen = {}
+    srv = types.SimpleNamespace(start=lambda timeout=None: None, proc=types.SimpleNamespace(pid=7), build="42.21.0")
+    monkeypatch.setattr(D, "make_server", lambda *a, **kw: srv)
+
+    def attach(run_dir, prof, server, rec, tl, users=None, started=None, make_client="unset"):
+        seen["make_client"] = make_client
+        return {}
+    monkeypatch.setattr(D, "attach_clients", attach)
+    monkeypatch.setattr(D, "verify", lambda prof, server, clients, tl: [])
+    xs = types.SimpleNamespace(wall=lambda: 0.0, tl=types.SimpleNamespace(mark=lambda *a, **kw: None), server=None)
+    prof = types.SimpleNamespace(mods=[], sources={}, skip=(), sandbox={}, ini={}, gclog=False, server_timeout=1)
+    mk = object()
+    D.boot(xs, prof, {}, "run", ["admin"], [], {}, {}, make_client=mk)
+    assert seen["make_client"] is mk
+    D.boot(xs, prof, {}, "run", ["admin"], [], {}, {})
+    assert seen["make_client"] is None                     # attach_clients' own default (pzt.session.make_client)

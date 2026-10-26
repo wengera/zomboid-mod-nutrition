@@ -72,9 +72,10 @@ def preboot(me, profile_path):
     return pre, ok
 
 
-def boot(xs, prof, rec_fx, run_dir, users, started, clients, holder):
+def boot(xs, prof, rec_fx, run_dir, users, started, clients, holder, make_client=None):
     """x505's boot: make_server, start, attach the clients, verify. Fills `holder["server"]`, `clients` and `started`
-    in place; returns the out fields x505's main sets at that point."""
+    in place; returns the out fields x505's main sets at that point. `make_client` (default pzt.session.make_client)
+    reaches attach_clients: a driver wraps it to act on a client after its restore and before its start."""
     out = {}
     server = make_server(run_dir, rec_fx, mods=prof.mods, mod_sources=prof.sources, mod_skip=prof.skip,
                          sandbox=prof.sandbox or None, ini=prof.ini, gclog=prof.gclog)
@@ -85,7 +86,8 @@ def boot(xs, prof, rec_fx, run_dir, users, started, clients, holder):
     out["server_started_wall"] = xs.wall()
     out["server_pid"] = server.proc.pid
     xs.tl.mark("server_started", pid=server.proc.pid)
-    clients.update(attach_clients(run_dir, prof, server, rec_fx, xs.tl, users=list(users), started=started))
+    clients.update(attach_clients(run_dir, prof, server, rec_fx, xs.tl, users=list(users), started=started,
+                                  make_client=make_client))
     xs.tl.mark("session_ready")
     out["session_ready_wall"] = xs.wall()
     out["build"] = server.build

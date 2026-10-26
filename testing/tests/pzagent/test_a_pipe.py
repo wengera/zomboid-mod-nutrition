@@ -53,7 +53,7 @@ def test_pct_nearest_rank():
 
 def passing_out():
     return {"mode": "append", "gaps": [], "lua_errors": 0, "client_lua_errors": 0,
-            "readings": {"rates": {"5": {"tickMs": [0.5] * 299 + [1.9]}},
+            "readings": {"rates": {"5": {"tickMs": [0.5] * 299 + [1.9], "frames": 300, "expected": 300}},
                          "scans": {"15": [{"scanMs": 4}] * 5},
                          "motion": [{"ack": {"wallMs": 1000}, "first_motion": {"wallMs": 1000 + d}}
                                     for d in [100] * 18 + [450, 900]]}}
@@ -123,6 +123,27 @@ def test_a_missing_reading_fails_its_gate(drop):
 def test_cmd_motion_is_the_client_clock_difference():
     rows = [{"ack": {"wallMs": 5000}, "first_motion": {"wallMs": 5120, "readPyMs": 1.7e12}, "sentPyMs": 1.7e12 - 9e9}]
     assert G.cmd_motion_ms(rows) == [120]
+    assert G.cmd_motion_ms(rows + [{"ack": {"wallMs": 1}, "first_motion": None}, {"error": "no x0"}]) == [
+        120, math.inf, math.inf]
+
+
+def test_every_sent_command_is_graded_unpaired_ones_as_inf():
+    o = passing_out()
+    o["readings"]["motion"] = ([{"ack": {"wallMs": 0}, "first_motion": None}] * 18
+                               + [{"ack": {"wallMs": 0}, "first_motion": {"wallMs": 100}}] * 2)
+    g = G.gate_a(o)
+    assert g["pass"]["cmd_motion_p90"] is False and g["verdict"] == "NO-GO"
+    assert g["cmd_motion_n"] == 20 and g["cmd_motion_paired"] == 2 and g["cmd_motion_p90_ms"] == math.inf
+    o = passing_out()
+    o["readings"]["motion"] = o["readings"]["motion"][:19]          # a cut-short phase: fast, but not every command
+    assert G.gate_a(o)["pass"]["cmd_motion_p90"] is False
+
+
+@pytest.mark.parametrize("frames,ok", [(269, False), (270, True), (300, True), (None, False)])
+def test_the_tick_gate_needs_ninety_percent_of_the_nominal_frames(frames, ok):
+    o = passing_out()
+    o["readings"]["rates"]["5"]["frames"] = frames
+    assert G.gate_a(o)["pass"]["tick_p99_at5"] is ok
 
 
 def test_a_grade_exits_on_the_verdict(tmp_path, capsys):
@@ -207,11 +228,48 @@ def test_the_run_layout_state_dir_is_cleared_before_the_client_starts(tmp_path):
     assert D.DL.state_dir(c) == str(stale)
 
 
-def test_main_patches_make_client_where_attach_clients_reads_it():
-    from pzt import session
+def test_main_passes_the_clearing_make_client_through_the_boot_seam():
     src = open(D.__file__, encoding="utf-8").read()
-    assert "session.make_client = clearing_make_client(real_make)" in src
-    assert 'globals()["make_client"]' in open(session.__file__, encoding="utf-8").read()
+    assert "make_client=clearing_make_client(session.make_client)" in src
+    assert "session.make_client =" not in src                       # no module-global patch
+
+
+BENIGN = ("ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown\n"
+          "\tjava.nio.file.NoSuchFileException: C:/run/clients/admin/mods/PZTestKit/common/media/AnimSets"
+          " at WindowsException.translateToIOException(null:-1).\n"
+          "\tStack trace:\n"
+          "\t\tjava.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)\n")
+
+
+def test_the_console_regex_skips_the_benign_boot_exceptions_and_counts_a_lua_error(tmp_path):
+    con = tmp_path / "console.txt"
+    con.write_text("LOG  : General boot\n" + BENIGN * 8, encoding="utf-8")       # every client boot prints these 8
+    found, n = D.client_errors([("admin", str(con))])
+    assert n == 0 and found == {"admin": []}
+    with open(con, "a", encoding="utf-8") as fh:
+        fh.write("ERROR: General f:120> LuaError: attempted index: x of non-table: null\n")
+        fh.write("LOG  : General PZTK: echo LuaError probe\n")                    # the harness echo, excluded
+    found, n = D.client_errors([("admin", str(con))])
+    assert n == 1 and "LuaError" in found["admin"][0]
+
+
+def test_the_memory_wait_never_eats_the_budget():
+    c = Clock()
+    xs = X.Xs(D.new_out(), node=lambda s: s, clock=c.now, budget_s=540.0)
+
+    def wait(gb):
+        c.t += 1500.0
+        return True, [{"wall": c.t, "free_gb": gb}]
+    D.memory_gate(xs, wait=wait)
+    assert xs.wall() == 0 and xs.out["memory_wait"][0]["free_gb"] == 12.0
+    xs.check()                                                         # no Budget raised
+    xs2 = X.Xs(D.new_out(), node=lambda s: s, clock=c.now)
+    with pytest.raises(SystemExit):
+        D.memory_gate(xs2, wait=lambda gb: (False, [{"wall": 0, "free_gb": 3.0}]))
+    assert xs2.out["error"] == "blocked: memory" and xs2.out["memory_wait"][0]["free_gb"] == 3.0
+    src = open(D.__file__, encoding="utf-8").read()
+    i_x, i_g, i_b = src.index("xs = X.Xs("), src.index("memory_gate(xs)"), src.index("DL.boot(")
+    assert i_x < i_g < i_b
 
 
 # ================================================================ the phases against a FakeMod
@@ -231,8 +289,10 @@ class FakeMod:
     TPS = 60
 
     def __init__(self, d, clock, silent=False, still=False, scan_ms=3, cost=(0.1, 0.2, 0.3, 0.0), move_delay=3,
-                 walk=0.08, lua_error_at=None):
-        os.makedirs(d, exist_ok=True)
+                 walk=0.08, lua_error_at=None, overshoot=False, dir_at_tick=0):
+        self.overshoot, self.dir_at_tick, self.drift, self.drift_dir = overshoot, dir_at_tick, 0, 0.0
+        if dir_at_tick == 0:
+            os.makedirs(d, exist_ok=True)
         self.d, self.clock = d, clock
         self.silent, self.still, self.scan_ms, self.cost = silent, still, scan_ms, cost
         self.move_delay, self.walk, self.lua_error_at = move_delay, walk, lua_error_at
@@ -280,8 +340,9 @@ class FakeMod:
     def step(self):
         self.clock.t += 1.0 / self.TPS
         self.tick += 1
-        if self.silent:
+        if self.silent or self.tick < self.dir_at_tick:
             return
+        os.makedirs(self.d, exist_ok=True)
         cmd = self.poll()
         if cmd:
             self.cmds.append(cmd)
@@ -312,7 +373,10 @@ class FakeMod:
             self.emit("event", {"event": "lua_error", "msg": "boom"})
             self.flush()
         g = self.goal
-        if g is not None:
+        if self.drift > 0:                     # the walk runs on past its goal's done (overshoot)
+            self.x += self.drift_dir * self.walk
+            self.drift -= 1
+        elif g is not None:
             if g["state"] != "running":
                 if g.get("reported"):
                     self.goal = None
@@ -326,6 +390,8 @@ class FakeMod:
                     self.x += math.copysign(min(self.walk, abs(d)), d)
                     if abs(g["tx"] - self.x) <= 1.0:
                         g["state"], g["detail"] = "done", "d=%s" % abs(g["tx"] - self.x)
+                        if self.overshoot:
+                            self.drift, self.drift_dir = round(1.0 / self.walk), math.copysign(1.0, d)
         every = max(1, math.floor(60 / self.rate))
         if self.tick % every == 0:
             p, a, s, l = self.cost
@@ -408,7 +474,7 @@ def test_a_mod_that_never_moves_fails_cmd_motion(tmp_path, short_window):
     assert len(m) == 20 and all(r["first_motion"] is None and r["goal"]["state"] == "failed" for r in m)
     out["client_lua_errors"] = 0
     g = G.gate_a(out)
-    assert g["pass"]["cmd_motion_p90"] is False and g["cmd_motion_p90_ms"] is None and g["verdict"] == "NO-GO"
+    assert g["pass"]["cmd_motion_p90"] is False and g["cmd_motion_p90_ms"] == math.inf and g["verdict"] == "NO-GO"
 
 
 def test_a_slow_scan_and_a_lua_error_fail_their_gates(tmp_path, short_window):
@@ -433,6 +499,23 @@ def test_the_budget_stops_a_phase_and_is_recorded(tmp_path):
     assert "budget_stop" in out["phase_walls"]["rates"] and out["budget_stop"]["why"].startswith("wall ")
     assert out["readings"]["rates"] == {}          # the first window never closed
     assert len(out["readings"]["server"]) == 3     # the server phase has no poll, so it still runs
+
+
+def test_a_walk_that_runs_on_past_done_never_reads_as_the_next_commands_motion(tmp_path, short_window):
+    out, _, _, _ = run_pipe(tmp_path, overshoot=True)
+    m = out["readings"]["motion"]
+    assert len(m) == 20 and all(r["settled"] for r in m), [r.get("settleMs") for r in m]
+    for r in m:
+        fm = r["first_motion"]
+        assert fm is not None and (fm["x"] - r["x0"]) * r["dx"] > 0, r      # displaced in the command's direction
+        assert r["cmd_motion_host_ms"] == fm["wallMs"] - r["sentPyMs"]
+    assert max(r["settleMs"] for r in m) > 100                              # it did wait out the drift
+
+
+def test_a_state_dir_the_lua_has_not_made_yet_is_waited_for(tmp_path, short_window):
+    out, _, _, _ = run_pipe(tmp_path, dir_at_tick=90)
+    assert out["phase_errors"] == {} and out["mode"] == "append"
+    assert out["hello_wait_ms"] >= 1000
 
 
 def test_a_goto_with_no_frame_yet_is_recorded_and_never_sent(tmp_path):
