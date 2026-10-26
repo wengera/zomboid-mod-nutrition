@@ -7,7 +7,7 @@ import math
 TICK_P99_MS = 2.0          # spec § 4.1: per-tick cost at 5 Hz, p99 under this
 SCAN15_MS = 5.0            # spec § 4.1: a 15-tile scan under this (every one of the five)
 CMD_MOTION_P90_MS = 500.0  # spec § 4.1: cmd -> motion, p90 under this
-MOTION_COMMANDS = 20      # a_pipe's ten round trips: every one is graded
+MOTION_COMMANDS = 20      # a_pipe's ten round trips: every unvoided one is graded, and this many must be unvoided
 MIN_FRAME_SHARE = 0.9      # the tick gate needs at least this share of the nominal 60*r frames at 5 Hz
 MODES = ("append", "chunk")
 
@@ -46,11 +46,14 @@ def _count(v):
 def gate_a(out):
     """Stage A's go/no-go (spec § 4.1) from a_pipe's artifact dict.
 
-    tick_p99_ms_at5   p99 of the per-frame tickMs (pollMs + actMs + senseMs + linkMs) at rate 5; < TICK_P99_MS, on at
-                      least MIN_FRAME_SHARE of the window's nominal frames.
-    scan15_ms_max     the largest scanMs of the 15-tile scans; < SCAN15_MS.
-    cmd_motion_p90_ms p90 over every motion command of (first-motion frame wallMs - ack wallMs), both the client's
-                      clock, an unpaired command +inf; < CMD_MOTION_P90_MS over at least MOTION_COMMANDS commands.
+    tick_p99_ms_at5   p99 of the per-frame tickMs (pollMs + actMs + senseMs + linkMs; a_pipe_2 adds scanStepMs) at
+                      rate 5; < TICK_P99_MS, on at least MIN_FRAME_SHARE of the window's nominal frames.
+    scan15_ms_max     the largest scanMs of the 15-tile scans (a_pipe_2: the chunked job's summed ms); < SCAN15_MS.
+    cmd_motion_p90_ms p90 over every unvoided motion command of (first-motion frame wallMs - ack wallMs), both the
+                      client's clock, an unpaired command +inf; < CMD_MOTION_P90_MS over at least MOTION_COMMANDS
+                      unvoided commands. A row whose `voided` is set (a_pipe_2: the character's health fell or a
+                      zombie was in radius during the leg, or it was dead at the send) leaves both the pairs and the
+                      count, and is reported in cmd_motion_voided with its reasons; a pass-1 row has no `voided`.
     gaps              the link's seq gaps; 0.
     lua_errors        lua_error events on the link plus client console error hits; 0.
     hello             the hello line arrived with a mode of append or chunk.
@@ -65,7 +68,9 @@ def gate_a(out):
     scans = ((rd.get("scans") or {}).get("15") or [])
     scan_ms = [_num(s.get("scanMs")) for s in scans]
     scan_max = max(scan_ms) if scan_ms and None not in scan_ms else None
-    cm = cmd_motion_ms(rd.get("motion"))
+    rows = [r for r in (rd.get("motion") or ()) if isinstance(r, dict)]
+    voided = [str(r["voided"]) for r in rows if r.get("voided")]
+    cm = cmd_motion_ms([r for r in rows if not r.get("voided")])
     cm90 = pct(cm, 90)
     gaps = _count(out.get("gaps"))
     ev, con = _count(out.get("lua_errors")), _count(out.get("client_lua_errors"))
@@ -80,7 +85,8 @@ def gate_a(out):
         "hello": mode in MODES,
     }
     return {"mode": mode, "tick_p99_ms_at5": tick, "scan15_ms_max": scan_max, "cmd_motion_p90_ms": cm90,
-            "tick_frames_at5": frames, "cmd_motion_n": len(cm),
+            "tick_frames_at5": frames, "cmd_motion_n": len(cm), "cmd_motion_voided": len(voided),
+            "cmd_motion_voided_reasons": voided,
             "cmd_motion_paired": sum(1 for v in cm if v != math.inf), "gaps": gaps, "lua_errors": errs, "pass": passed,
             "verdict": "GO" if all(passed.values()) else "NO-GO"}
 

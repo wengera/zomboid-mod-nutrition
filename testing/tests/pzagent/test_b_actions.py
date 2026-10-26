@@ -20,7 +20,6 @@ from agent.drivers import b_actions as D
 from agent.drivers import b_grade as BG
 from agent.link import Link
 from agent.reasons import REASONS
-from pzt import fixture as fx
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 ACT_LUA = os.path.join(REPO, "testing", "PZAgent", "PZAgent", "42", "media", "lua", "client", "PZAgent_Act.lua")
@@ -254,19 +253,6 @@ def test_body_reading_reads_the_nutrition_get_reply():
 
 
 # ================================================================ pre-boot, on the real profile and a real run layout
-@pytest.fixture
-def agent_fixture(tmp_path, monkeypatch):
-    root = tmp_path / "fixtures"
-    sv = root / "agent" / "cache" / "server" / "Server"
-    sv.mkdir(parents=True)
-    (sv / "pzt_SandboxVars.lua").write_text("SandboxVars = {\n    Zombies = 5,\n    DayLength = 4,\n}\n")
-    (root / "agent" / "fixture.json").write_text(json.dumps(
-        {"name": "agent", "build": "42.21.0", "server": {"name": "pzt", "mods": ["PZTestKit"]},
-         "clients": {"admin": {}}}))
-    monkeypatch.setattr(fx, "FIXTURES", str(root))
-    return root
-
-
 def stub_checks(monkeypatch, dirty=False, lint=(), tracked=""):
     monkeypatch.setattr(D.DL.C, "doctor", lambda: (True, "ok"))
     monkeypatch.setattr(D.DL.harness, "lint_paths", lambda srcs: list(lint))

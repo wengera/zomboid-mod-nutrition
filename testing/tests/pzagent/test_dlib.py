@@ -1,12 +1,11 @@
 """drivers/_dlib.py: the memory wait, the state dir, preboot, and the three profiles (offline; nothing boots)."""
-import json
 import os
 import types
 
 import pytest
 
 from agent.drivers import _dlib as D
-from pzt import fixture as fx, profile
+from pzt import profile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 PROFILES = os.path.join(REPO, "testing", "profiles")
@@ -64,24 +63,11 @@ def test_state_dir_and_clear(tmp_path):
     assert os.path.isdir(os.path.join(str(tmp_path), "Lua")) or True
 
 
-@pytest.fixture
-def agent_fixture(tmp_path, monkeypatch):
-    """A throwaway `agent` fixture (the real one is machine-local and gitignored)."""
-    root = tmp_path / "fixtures"
-    sv = root / "agent" / "cache" / "server" / "Server"
-    sv.mkdir(parents=True)
-    (sv / "pzt_SandboxVars.lua").write_text("SandboxVars = {\n    Zombies = 5,\n    DayLength = 4,\n}\n")
-    (root / "agent" / "fixture.json").write_text(json.dumps(
-        {"name": "agent", "build": "42.21.0", "server": {"name": "pzt", "mods": ["PZTestKit"]},
-         "clients": {"admin": {}}}))
-    monkeypatch.setattr(fx, "FIXTURES", str(root))
-    return root
-
-
-@pytest.mark.parametrize("name,zombies", [("agent", None), ("agent-nozombies", 6), ("agent-dense", 4)])
-def test_agent_profiles_resolve(agent_fixture, name, zombies):
+@pytest.mark.parametrize("name,fixture,zombies", [("agent", "agent", None), ("agent-nozombies", "agent0", 6),
+                                                  ("agent-dense", "agent", 4)])
+def test_agent_profiles_resolve(agent_fixture, name, fixture, zombies):
     p = profile.load(os.path.join(PROFILES, name + ".toml"))
-    assert p.fixture == "agent" and p.users == ["admin"]
+    assert p.fixture == fixture and p.users == ["admin"]
     assert p.sources["PZAgent"].replace("\\", "/").endswith("testing/PZAgent/PZAgent")
     assert "PZTestKit" in p.sources and p.mods[0] == "PZTestKit" and "PZAgent" in p.mods
     assert p.ini == {"SleepAllowed": True, "SleepNeeded": True}

@@ -1,4 +1,5 @@
 """The lupa host for PZAgent's Lua: Python stubs stand in for the Java globals (ruling P21-3)."""
+import json
 import os
 import sys
 import pytest
@@ -184,3 +185,26 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g._handlers = handlers
     g.Events = J(OnTick=J(Add=lambda f: handlers.append(f)))
     return L
+
+
+def write_agent_fixtures(root):
+    """Throwaway `agent` (Zombies = 5) and `agent0` (Zombies = 6) fixture records under root, each with its server's
+    SandboxVars file: the real fixtures are machine-local and gitignored, and the agent profiles name one or the other
+    (agent-nozombies names agent0 since Stage A pass 2)."""
+    for name, zombies in (("agent", 5), ("agent0", 6)):
+        sv = root / name / "cache" / "server" / "Server"
+        sv.mkdir(parents=True)
+        (sv / "pzt_SandboxVars.lua").write_text("SandboxVars = {\n    Zombies = %d,\n    DayLength = 4,\n}\n" % zombies)
+        (root / name / "fixture.json").write_text(json.dumps(
+            {"name": name, "build": "42.21.0", "server": {"name": "pzt", "mods": ["PZTestKit"]},
+             "clients": {"admin": {}}}))
+    return root
+
+
+@pytest.fixture
+def agent_fixture(tmp_path, monkeypatch):
+    """The throwaway agent fixtures (write_agent_fixtures), pzt.fixture pointed at them."""
+    from pzt import fixture as fx
+    root = write_agent_fixtures(tmp_path / "fixtures")
+    monkeypatch.setattr(fx, "FIXTURES", str(root))
+    return root

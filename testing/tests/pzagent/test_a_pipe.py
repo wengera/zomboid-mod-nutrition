@@ -17,7 +17,6 @@ from agent import grades as G
 from agent.drivers import a_pipe as D
 from agent.drivers import a_grade as AG
 from agent.link import Link
-from pzt import fixture as fx
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 X = D.X
@@ -157,20 +156,6 @@ def test_a_grade_exits_on_the_verdict(tmp_path, capsys):
 
 
 # ================================================================ pre-boot, on the real profile and a real run layout
-@pytest.fixture
-def agent_fixture(tmp_path, monkeypatch):
-    """A throwaway `agent` fixture (the real one is machine-local and gitignored), test_dlib's."""
-    root = tmp_path / "fixtures"
-    sv = root / "agent" / "cache" / "server" / "Server"
-    sv.mkdir(parents=True)
-    (sv / "pzt_SandboxVars.lua").write_text("SandboxVars = {\n    Zombies = 5,\n    DayLength = 4,\n}\n")
-    (root / "agent" / "fixture.json").write_text(json.dumps(
-        {"name": "agent", "build": "42.21.0", "server": {"name": "pzt", "mods": ["PZTestKit"]},
-         "clients": {"admin": {}}}))
-    monkeypatch.setattr(fx, "FIXTURES", str(root))
-    return root
-
-
 def stub_checks(monkeypatch, dirty=False, lint=(), tracked=""):
     monkeypatch.setattr(D.DL.C, "doctor", lambda: (True, "ok"))
     monkeypatch.setattr(D.DL.harness, "lint_paths", lambda srcs: list(lint))

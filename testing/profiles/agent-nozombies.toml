@@ -1,6 +1,6 @@
-# testing/profiles/agent-nozombies.toml - Plan 21: PZAgent beside the harness on the agent fixture (sandbox Zombies = 6, none).
-fixture = "agent"
-description = "PZTestKit + PZAgent, zombies None (Zombies = 6), 90-minute day, sleep allowed."
+# testing/profiles/agent-nozombies.toml - Plan 21: PZAgent beside the harness on the agent0 fixture (sandbox Zombies = 6, none).
+fixture = "agent0"
+description = "PZTestKit + PZAgent on agent0, the fixture provisioned with Zombies = 6 (none) in its record (Stage A pass 1 met zombies in the agent fixture under Zombies = 6, cause unsettled); [sandbox] Zombies = 6 is kept so the profile restates the value at seed whatever the fixture holds. 90-minute day, sleep allowed."
 run = { hold = 5 }
 clients = ["admin"]
 verify = [
