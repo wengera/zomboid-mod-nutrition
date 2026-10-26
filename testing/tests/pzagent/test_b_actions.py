@@ -344,13 +344,16 @@ class FakeMod:
     The body: Hunger starts low (0.05) and rises only while the food timer is 0; an apple lowers Hunger by 0.15 to a
     floor of 0, adds 95 calories and APPLE_TIMER; at a timer of REFUSE_TIMER or more the eat and the drink fail "not
     valid". `fail` maps a step label (goto, open, loot food, loot water, eat, drink) to the detail it fails with;
-    `blind` keeps the server's reading still; `hunger_blind` keeps only its hunger still; `no_containers` scans none."""
+    `blind` keeps the server's reading still; `hunger_blind` keeps only its hunger still; `no_containers` scans none; a scan
+    is acked "queued" and emitted as scanPart lines (test_a_pipe_3's FakeMod3 shapes), `drop_parts` part numbers never
+    emitted."""
     TPS = 60
     GOAL_TICKS = 20
     FRAME_EVERY = 12
     RISE = 0.00005
+    PART_SQUARES = 60
 
-    def __init__(self, d, clock, fail=None, blind=False, hunger_blind=False, no_containers=False):
+    def __init__(self, d, clock, fail=None, blind=False, hunger_blind=False, no_containers=False, drop_parts=()):
         os.makedirs(d, exist_ok=True)
         self.d, self.clock = d, clock
         self.fail, self.blind, self.hunger_blind, self.no_containers = dict(fail or {}), blind, hunger_blind, \
@@ -364,6 +367,7 @@ class FakeMod:
         self.ready = False
         self.cmds = []
         self.log = []                 # ("cmd", label) and ("write", cmd) in the order they reached the game
+        self.scan_id, self.job, self.drop_parts = 10, None, set(drop_parts)
 
     def emit(self, kind, body):
         self.seq += 1
@@ -398,9 +402,27 @@ class FakeMod:
         return s
 
     def scan(self, r):
+        """Pass 3's Lua: the grid is fixed at the start under the next scanId (a running scan is replaced); its
+        squares go out as scanPart lines of at most PART_SQUARES, one per tick from the ack's own tick."""
         px, py = math.floor(self.x), math.floor(self.y)
         sqs = [self.square(px + dx, py + dy) for dy in range(-r, r + 1) for dx in range(-r, r + 1)]
-        self.emit("scan", {"r": r, "squares": sqs, "missing": {}, "scanMs": 3, "hour": 7})
+        self.scan_id += 1
+        self.job = {"id": self.scan_id, "r": r, "squares": sqs, "parts": math.ceil(len(sqs) / self.PART_SQUARES),
+                    "next": 1}
+
+    def scan_part(self):
+        j = self.job
+        k, n, m = j["next"], j["parts"], self.PART_SQUARES
+        body = {"scanId": j["id"], "r": j["r"], "hour": 7, "part": k, "parts": n,
+                "squares": j["squares"][(k - 1) * m:k * m], "missing": {}, "stepMs": 1, "emitMs": 2 if k > 1 else 0}
+        if k == n:
+            body.update(done=True, scanMs=n, scanTicks=n, scanMsPerTick=[1] * n, scanStepMaxMs=1)
+            self.job = None
+        else:
+            j["next"] = k + 1
+        if k not in self.drop_parts:
+            self.emit("scanPart", body)
+        self.flush()
 
     def label(self, goal, a):
         return goal + (" " + a[2] if goal == "loot" and len(a) > 2 else "")
@@ -462,8 +484,10 @@ class FakeMod:
             else:
                 self.goal = {"seq": cmd["seq"], "name": cmd["goal"], "argv": a, "state": "running", "detail": "",
                              "ticks": 0}
-            self.emit("ack", {"cmdSeq": cmd["seq"], "ok": True, "reason": ""})
+            self.emit("ack", {"cmdSeq": cmd["seq"], "ok": True, "reason": "queued" if cmd["goal"] == "scan" else ""})
             self.flush()
+        if self.job is not None:
+            self.scan_part()
         if not self.ready:
             self.emit("hello", {"modVersion": "0.1", "build": "42.21.0", "user": "admin", "rate": 5,
                                 "mode": "append"})
@@ -709,3 +733,37 @@ def test_a_silent_link_fails_every_phase_with_no_hello(tmp_path):
     pe = xs.out["phase_errors"]
     assert "no hello" in pe["hello"]["error"] and all("no hello" in pe["rep%d" % i]["error"] for i in range(1, 6))
     assert xs.out["readings"]["reps"] == [] and G.gate_b(xs.out)["verdict"] == "NO-GO"
+
+
+def test_the_scan_step_awaits_the_done_part_and_unions_the_parts(tmp_path):
+    out, mod, _, _ = run_actions(tmp_path)
+    n15 = math.ceil(31 * 31 / FakeMod.PART_SQUARES)
+    for i, r in enumerate(out["readings"]["reps"]):
+        sc = r["scan"][0]
+        assert (sc["r"], sc["scanId"], sc["parts"], sc["partsSeen"], sc["squares"]) == (15, 11 + i, n15, n15, 31 * 31)
+        assert sc["scanTicks"] == n15 and sc["missing"] == []
+        st = r["steps"][0]
+        assert st["ack"]["reason"] == "queued" and st["detail"] == "squares=961 parts=%d/%d" % (n15, n15)
+    with open(os.path.join(mod.d, "state.log"), encoding="utf-8") as fh:
+        kinds = {json.loads(ln)["kind"] for ln in fh if ln.strip()}
+    assert "scanPart" in kinds and "scan" not in kinds                      # no whole-scan line any more
+
+
+def test_a_scan_whose_done_part_never_comes_times_out_within_its_window(tmp_path):
+    n15 = math.ceil(31 * 31 / FakeMod.PART_SQUARES)
+    out, mod, _, _ = run_actions(tmp_path, drop_parts={n15, math.ceil(51 * 51 / FakeMod.PART_SQUARES)})
+    for r in out["readings"]["reps"]:
+        s15, s25 = r["steps"][0], r["steps"][1]
+        assert s15["state"] == "timeout" and s15["detail"].startswith("no done part")
+        assert D.SCAN_TIMEOUT_S * 1000 <= s15["ms"] <= (D.SCAN_TIMEOUT_S + 1) * 1000
+        assert s25["args"] == "25" and s25["state"] == "timeout" and r["pick"] is None
+        assert r["notes"] == ["no_container_in_scan", "no_container_in_wide_scan"]
+
+
+def test_a_gappy_scan_still_unions_the_parts_that_came(tmp_path):
+    out, _, _, _ = run_actions(tmp_path, drop_parts={2})
+    n15 = math.ceil(31 * 31 / FakeMod.PART_SQUARES)
+    for r in out["readings"]["reps"]:
+        sc = r["scan"][0]
+        assert sc["partsSeen"] == n15 - 1 and sc["squares"] == 31 * 31 - FakeMod.PART_SQUARES
+        assert r["completed"] is True                                         # the fridges lie outside part 2

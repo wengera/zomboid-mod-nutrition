@@ -8,7 +8,9 @@ PHASES (each through xs.run_phase; a phase's fault is recorded and the next stil
           Base.Apple, SEQUENCES of each (an auto-drink above thirst 0.1 can drain a bottle), so every repetition's
           eat and drink have an item when its loot found none (readings.spawned, xs.spawn's rows as returned).
   rep1-5  one repetition each (rep_once), its row appended to readings.reps before its first step and persisted after:
-            scan SCAN_R -> the pick: among the scan's squares with a non-empty `containers` not picked by an earlier
+            scan SCAN_R (acked "queued"; its squares arrive as scanPart lines, one per tick, the scan's parts being
+              those of the scanId whose part 1 is the first after the ack, awaited up to the part carrying done
+              within SCAN_TIMEOUT_S of the send, the whole their union) -> the pick: among the scan's squares with a non-empty `containers` not picked by an earlier
               repetition, the best tier (container items guessed food-like and water-like by world.FOOD_RX and
               WATER_RX, one point each, one more for any item), nearest the player within it; none -> the row's
               notes take `no_container_in_scan` and SCAN_R_WIDE is scanned once; still none -> the row stops there
@@ -296,11 +298,14 @@ class Actions(AP.Pipe):
         self.added = []           # item_added fullTypes, in line order
         self.end_clock = {}       # goal seq -> the game clock of its first done/failed frame
         self.picked = set()
+        self.parts = []           # scanPart lines, in arrival order
 
     def on_line(self, l):
         super().on_line(l)
         k = l.get("kind")
-        if k == "event" and l.get("event") == "item_added":
+        if k == "scanPart":
+            self.parts.append(l)
+        elif k == "event" and l.get("event") == "item_added":
             self.added.append(l.get("fullType"))
         elif k == "frame":
             g = l.get("goal") or {}
@@ -334,23 +339,59 @@ class Actions(AP.Pipe):
         f = self.frames[-1][0] if self.frames else {}
         return {"hunger": f.get("hunger"), "seq": f.get("seq"), "wallMs": f.get("wallMs")}
 
+    def scan_parts(self, n0, after_seq):
+        """The parts of the scan whose part 1 is the first scanPart after `after_seq` (from self.parts[n0:]), in arrival
+        order, and whether its done part has come (a_pipe_3's rule: the ack names no scanId)."""
+        mine = [l for l in self.parts[n0:] if l.get("seq", 0) > after_seq]
+        first = next((l for l in mine if l.get("part") == 1), None)
+        if first is None:
+            return [], False
+        got = [l for l in mine if l.get("scanId") == first.get("scanId")]
+        return got, any(l.get("done") for l in got)
+
     def scan(self, row, r):
-        n0 = len(self.scans)
+        """`scan r`: acked "queued", its squares in scanPart lines up to the one carrying done, all within
+        SCAN_TIMEOUT_S of the send; the whole is the union of the parts (World reassembles the same parts itself)."""
+        n0 = len(self.parts)
         sent = self.py_ms()
         seq = self.link.send("scan", str(r))
         step = {"goal": "scan", "args": str(r), "seq": seq, "sentPyMs": sent}
         row["steps"].append(step)
-        self.wait_until(lambda: len(self.scans) > n0 and self.link.ack_of(seq) is not None, SCAN_TIMEOUT_S)
-        step["ack"] = self.link.ack_of(seq)
+
+        def done():
+            ack = self.link.ack_of(seq)
+            return ack is not None and (not ack.get("ok") or self.scan_parts(n0, ack["seq"])[1])
+        self.wait_until(done, SCAN_TIMEOUT_S)
+        ack = self.link.ack_of(seq)
+        step["ack"] = ack
         step["ms"] = self.py_ms() - sent
-        if len(self.scans) <= n0:
-            step["state"], step["detail"] = "timeout", "no scan line"
+        if ack is None:
+            step["state"], step["detail"] = "timeout", "no ack"
             return None
-        line = self.scans[n0][0]
-        step["state"], step["detail"] = "done", "squares=%d" % len(_seq(line.get("squares")))
-        row.setdefault("scan", []).append({"r": r, "seq": line.get("seq"), "squares": len(_seq(line.get("squares"))),
-                                           "scanMs": line.get("scanMs"), "missing": _seq(line.get("missing"))})
-        return line
+        if not ack.get("ok"):
+            step["state"], step["detail"] = "refused", ack.get("reason")
+            return None
+        parts, finished = self.scan_parts(n0, ack["seq"])
+        if not finished:
+            step["state"], step["detail"] = "timeout", "no done part (%d parts)" % len(parts)
+            return None
+        parts = sorted(parts, key=lambda l: l.get("part") or 0)
+        last = next(l for l in parts if l.get("done"))
+        missing = []
+        for l in parts:
+            for m in _seq(l.get("missing")):
+                if m not in missing:
+                    missing.append(m)
+        whole = {"kind": "scan", "scanId": last.get("scanId"), "r": last.get("r"), "seq": last.get("seq"),
+                 "squares": [q for l in parts for q in _seq(l.get("squares"))], "missing": missing}
+        declared = last.get("parts")
+        step["state"] = "done"
+        step["detail"] = "squares=%d parts=%d/%s" % (len(whole["squares"]), len(parts), declared)
+        row.setdefault("scan", []).append({"r": r, "scanId": whole["scanId"], "seq": whole["seq"],
+                                           "parts": declared, "partsSeen": len(parts),
+                                           "squares": len(whole["squares"]), "scanMs": last.get("scanMs"),
+                                           "scanTicks": last.get("scanTicks"), "missing": missing})
+        return whole
 
     def goal(self, row, name, args=""):
         sent = self.py_ms()
