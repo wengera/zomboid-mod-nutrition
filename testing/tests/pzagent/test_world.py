@@ -95,3 +95,17 @@ def test_unknown_kind_is_counted_not_applied():
     w.apply({"kind": "bogus", "seq": 1})
     w.apply({"kind": "ack", "cmdSeq": 1, "ok": True})
     assert w.unknown_kinds == 1 and w.last_ack["cmdSeq"] == 1
+
+
+def test_goal_event_settles_the_running_goal_by_goal_seq():
+    w = World()
+    f = frame(0, {}); f["goal"] = {"seq": 4, "name": "goto", "state": "running", "detail": ""}
+    w.apply(f)
+    w.apply({"kind": "event", "seq": 9, "tick": 3, "wallMs": 1, "event": "goal_failed", "goalSeq": 3, "reason": "superseded"})
+    assert w.goal["state"] == "running"                       # an older goal's event leaves the running one alone
+    w.apply({"kind": "event", "seq": 10, "tick": 4, "wallMs": 2, "event": "goal_failed", "goalSeq": 4, "reason": "stuck"})
+    assert w.goal == {"seq": 4, "name": "goto", "state": "failed", "detail": "stuck"}
+    assert w.events[-1]["goalSeq"] == 4
+    w.apply(f)
+    w.apply({"kind": "event", "seq": 11, "tick": 5, "wallMs": 3, "event": "goal_done", "goalSeq": 4})
+    assert w.goal["state"] == "done"

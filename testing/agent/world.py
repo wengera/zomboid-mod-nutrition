@@ -72,6 +72,8 @@ class World:
 
     def _event(self, line):
         self.events.append({k: v for k, v in line.items() if k not in ("kind", "seq", "tick")})
+        if line.get("event") in ("goal_done", "goal_failed") and self.goal and self.goal.get("seq") == line.get("goalSeq"):
+            self.goal = dict(self.goal, state=line["event"][5:], detail=line.get("reason", self.goal.get("detail", "")))
         if line.get("event") == "zombie_leave":
             self.zombies.pop(line.get("id"), None)
 

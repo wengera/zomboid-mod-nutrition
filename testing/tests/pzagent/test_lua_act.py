@@ -1,11 +1,5 @@
 import pytest
-from .conftest import lua_file, make_player, make_cell, make_lua, lua51, J
-
-
-@pytest.fixture
-def lua(fs):
-    """Act's tests run on the Lua 5.1 host (Kahlua's dialect); see make_lua."""
-    return make_lua(fs, lua51.LuaRuntime)
+from .conftest import lua_file, make_player, make_cell, J
 
 
 def load(lua):
@@ -109,6 +103,9 @@ def test_main_reports_superseded_event_and_scan_lands_with_its_ack(lua, fs):
     g._handlers[0]()
     log = fs.files["pzagent/admin/state.log"]
     assert '"reason":"superseded"' in log
+    import json
+    ev = [json.loads(l) for l in log.splitlines() if '"reason":"superseded"' in l][0]
+    assert ev["goalSeq"] == 1 and ev["seq"] != 1         # the goal's seq survives emit's own line seq
     fs.files["pzagent/admin/cmd.txt"] = "seq=3\ngoal=scan\nargs=1\n"
     g._handlers[0]()
     log = fs.files["pzagent/admin/state.log"]
@@ -377,8 +374,8 @@ def test_drink_consumed_and_failures(lua):
     load(lua)
     g = lua.globals()
     amount = {"v": 0.5}
-    fc = J(getAmount=lambda s: amount["v"], isEmpty=lambda s: amount["v"] <= 0)
-    empty = J(getAmount=lambda s: 0.0, isEmpty=lambda s: True)
+    fc = J(getAmount=lambda s: amount["v"], isEmpty=lambda s: amount["v"] <= 0, isPoisonous=lambda s: False)
+    empty = J(getAmount=lambda s: 0.0, isEmpty=lambda s: True, isPoisonous=lambda s: False)
     bottle = item("Base.WaterBottle", fluid=fc)
     held = [item("Base.Bread", "Food"), item("Base.EmptyBottle", fluid=empty), bottle]
     p = inv_player(held)
@@ -555,3 +552,16 @@ def test_open_sub_walk_is_cleared_before_the_open_is_queued(lua):
     pos["x"] = 12.2
     tick(lua, p)
     assert g._queue.cleared == 1 and [a.Type for a in g._queue.queue] == ["ISOpenCloseDoor"]
+
+
+# ---- Task 11a: drink's poison check fails closed ---------------------------------------------
+
+def test_drink_with_is_poisonous_absent_is_none_held(lua):
+    load(lua)
+    g = lua.globals()
+    unknown = item("Base.WaterBottle", fluid=J(getAmount=lambda s: 0.5, isEmpty=lambda s: False,
+                                               isFilledWithCleanWater=lambda s: True))
+    p = inv_player([unknown])
+    lua.eval("PZA.act.start({seq=1, goal='drink', args=''})")
+    assert tick(lua, p)["detail"] == "none held"
+    assert g._queue.adds == []

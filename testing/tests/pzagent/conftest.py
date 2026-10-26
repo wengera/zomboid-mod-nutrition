@@ -118,13 +118,15 @@ def fs():
 
 @pytest.fixture
 def lua(fs):
+    """Every Lua test runs on the Lua 5.1 host: Kahlua is a 5.1 dialect (testing/tests/kernel/conftest.py
+    does the same)."""
     return make_lua(fs)
 
 
-def make_lua(fs, runtime=LuaRuntime):
-    """The stubbed host. test_lua_act passes lua51.LuaRuntime: under lupa's default (Lua 5.5) runtime a
-    Lua GC can leave a stale Python wrapper that a later call reaches as a different object (seen as
-    'J object is not callable' in the loot filters test, gone with collectgarbage('stop')); Kahlua is 5.1."""
+def make_lua(fs, runtime=lua51.LuaRuntime):
+    """The stubbed host, Lua 5.1 by default. Under lupa's default (Lua 5.5) runtime a Lua GC can leave a
+    stale Python wrapper that a later call reaches as a different object (seen as 'J object is not
+    callable' in the loot filters test, gone with collectgarbage('stop'))."""
     L = runtime(unpack_returned_tuples=True)
     g = L.globals()
     g.getFileWriter = fs.writer

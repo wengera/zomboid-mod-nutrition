@@ -399,8 +399,9 @@ local function firstDrink(p)
         local _, it = PZA.call(items, "get", i)
         local _, fc = PZA.call(it, "getFluidContainer")
         local _, empty = PZA.call(fc, "isEmpty")
-        local _, poison = PZA.call(fc, "isPoisonous")
-        if fc ~= nil and empty ~= true and poison ~= true then
+        local okP, poison = PZA.call(fc, "isPoisonous")
+        -- fails closed: a container whose isPoisonous is absent is never drunk
+        if fc ~= nil and empty ~= true and okP and poison == false then
             local _, clean = PZA.call(fc, "isFilledWithCleanWater")
             if clean == true then return it, fc end
             if anyIt == nil then anyIt, anyFc = it, fc end

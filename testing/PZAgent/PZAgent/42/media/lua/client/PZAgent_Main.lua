@@ -42,12 +42,13 @@ function M.init(user)
     PZA.link.flush()
 end
 
--- the first frame tick that sees a goal's done or failed state reports it once per goal seq
+-- the first frame tick that sees a goal's done or failed state reports it once per goal seq; the goal's
+-- seq rides as goalSeq, since PZA.emit stamps the line's own seq over a body's seq
 local function goalEvent(st, gameMin, worldAge)
     if st.state ~= "done" and st.state ~= "failed" then return end
     if M.lastGoalSeq == st.seq and M.lastGoalState == st.state then return end
     M.lastGoalSeq, M.lastGoalState = st.seq, st.state
-    local e = { event = "goal_done", seq = st.seq, gameMin = gameMin, worldAge = worldAge }
+    local e = { event = "goal_done", goalSeq = st.seq, gameMin = gameMin, worldAge = worldAge }
     if st.state == "failed" then e.event, e.reason = "goal_failed", st.detail end
     PZA.emit("event", e)
 end
