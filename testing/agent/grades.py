@@ -229,3 +229,66 @@ def gate_b(out):
     return {"sequences": SEQUENCES, "rows": len(reps) if reps is not None else None, "completed": completed,
             "reasons_in_set": in_set, "reasons_outside_set": bad, "eats_seen_by_server": eats,
             "failing_steps": fail_names, "pass": passed, "verdict": "GO" if all(passed.values()) else "NO-GO"}
+
+
+# ================================================================ Stage A pass 4 (the report's § 6 changes)
+TICK_MEAN_MS_AT60 = 1.0    # the report's § 6 change 1: tick_mean_ms_at60 < 1 ms (pass 3 read 0.482)
+MOVE_EPS_TILES = 0.01      # a frame has moved when hypot(x - x0, y - y0) exceeds this (a_pipe_4's first_move)
+
+
+def cmd_move_ms(motion_rows):
+    """Per motion command row: the first-move frame's `wallMs` minus the ack's `wallMs` (a_pipe_4's `first_move`, the
+    first frame after the ack whose position left the settled start by more than MOVE_EPS_TILES in any direction), both
+    the client's own clock. A command with no ack or no first move (or never sent) is +inf: it counts, and counts as
+    the slowest (the same shape as cmd_motion_ms)."""
+    out = []
+    for r in motion_rows or ():
+        a = _num((r.get("ack") or {}).get("wallMs"))
+        m = _num((r.get("first_move") or {}).get("wallMs"))
+        out.append(m - a if a is not None and m is not None else math.inf)
+    return out
+
+
+def gate_a4(out):
+    """Stage A pass 4's go/no-go from a_pipe_4's artifact dict: gate_a with the report's § 6 changes 1 and 3 (change 2,
+    the 20-square parts, is the Lua's; its gate is scan15 unchanged).
+
+    tick_mean_at60    § 6 change 1, "Restate the tick gate on the 60 Hz mean": readings.rate60.tick_mean_ms_at60 <
+                      TICK_MEAN_MS_AT60, on at least MIN_FRAME_SHARE of rate60.expected frames (rate60.frames, reported
+                      as tick60_frames).
+    scan15            § 6 change 2, "Emit the scan in 20-square parts": as gate_a, the largest per-tick cost over the
+                      15-tile scans (scan_tick_ms over readings.scans.15) < SCAN15_MS; scan15_latency_ms_max ungraded.
+    cmd_move_p90      § 6 change 3, "Grade ack → first position change": p90 over every unvoided motion command of
+                      cmd_move_ms (first-move frame wallMs - ack wallMs, the client's clock, an unpaired command +inf)
+                      < CMD_MOTION_P90_MS over at least MOTION_COMMANDS unvoided commands; cmd_move_n and
+                      cmd_move_paired report the count and the paired count. A voided row leaves both, as in gate_a.
+    gaps              as gate_a: the link's seq gaps; 0.
+    lua_errors        as gate_a: lua_error events on the link plus client console error hits; 0.
+    hello             as gate_a: the hello line arrived with a mode of append or chunk.
+    tick_p99_ms_at5   ungraded: gate_a's p99 of the per-frame tickMs at rate 5 (quantised to the 1 ms clock).
+    cmd_motion_p90_ms ungraded: gate_a's directional measure (cmd_motion_ms, the first frame past MOTION_EPS in the
+                      commanded direction), beside the graded first move.
+    A missing reading (no rate60 mean or frames, no scans, no motion pairs, no gaps list, no error counts) fails its
+    gate.
+    """
+    g = gate_a(out)
+    rd = out.get("readings") or {}
+    r60 = rd.get("rate60") or {}
+    mean60 = _num(r60.get("tick_mean_ms_at60"))
+    frames60, expected60 = _num(r60.get("frames")), _num(r60.get("expected"))
+    enough60 = frames60 is not None and bool(expected60) and frames60 >= MIN_FRAME_SHARE * expected60
+    rows = [r for r in (rd.get("motion") or ()) if isinstance(r, dict)]
+    cm = cmd_move_ms([r for r in rows if not r.get("voided")])
+    cm90 = pct(cm, 90)
+    old = g["pass"]
+    passed = {
+        "tick_mean_at60": mean60 is not None and mean60 < TICK_MEAN_MS_AT60 and enough60,
+        "scan15": old["scan15"],
+        "cmd_move_p90": cm90 is not None and cm90 < CMD_MOTION_P90_MS and len(cm) >= MOTION_COMMANDS,
+        "gaps": old["gaps"],
+        "lua_errors": old["lua_errors"],
+        "hello": old["hello"],
+    }
+    g.update({"cmd_move_p90_ms": cm90, "cmd_move_n": len(cm), "cmd_move_paired": sum(1 for v in cm if v != math.inf),
+              "tick60_frames": frames60, "pass": passed, "verdict": "GO" if all(passed.values()) else "NO-GO"})
+    return g
