@@ -11,13 +11,18 @@ M.lastGoalSeq = nil
 M.lastGoalState = nil
 M.hooked = M.hooked or false
 
-local function config(cmd)
+local function config(cmd, p)
     local v = tonumber(cmd.args)
     if cmd.goal == "rate" and v and v > 0 then PZA.sense.RATE = v; return true end
     if cmd.goal == "radius" and v and v > 0 then PZA.sense.ZOMBIE_RADIUS = v; return true end
     if cmd.goal == "scan" and v and v >= 0 then
-        local okP, p = pcall(getPlayer)
-        if okP and p ~= nil then local s = PZA.sense.scan(p, v); s.gameMin, s.worldAge = PZA.sense.clock(); PZA.emit("scan", s) end
+        if p ~= nil then
+            local ts = PZA.now()
+            local s = PZA.sense.scan(p, v)
+            s.scanMs = PZA.now() - ts
+            s.gameMin, s.worldAge = PZA.sense.clock()
+            PZA.emit("scan", s)
+        end
         return true
     end
     return nil
@@ -36,7 +41,7 @@ local function goalEvent(st, gameMin, worldAge)
     if st.state ~= "done" and st.state ~= "failed" then return end
     if M.lastGoalSeq == st.seq and M.lastGoalState == st.state then return end
     M.lastGoalSeq, M.lastGoalState = st.seq, st.state
-    local e = { event = "goal_done", gameMin = gameMin, worldAge = worldAge }
+    local e = { event = "goal_done", seq = st.seq, gameMin = gameMin, worldAge = worldAge }
     if st.state == "failed" then e.event, e.reason = "goal_failed", st.detail end
     PZA.emit("event", e)
 end
@@ -44,15 +49,17 @@ end
 local function body()
     PZA.tick = PZA.tick + 1
     local t0 = PZA.now()
+    local p = getPlayer()
     local cmd = PZA.link.poll()
     if cmd ~= nil then
-        local handled = config(cmd)
+        local handled = config(cmd, p)
         if handled == nil then
-            local ok, reason = PZA.act.start(cmd)
+            local ok, reason, old = PZA.act.start(cmd, p)
+            if old ~= nil then goalEvent(old, PZA.sense.clock()) end
             PZA.link.ack(cmd.seq, ok, reason)
         else PZA.link.ack(cmd.seq, true, "") end
+        PZA.link.flush()
     end
-    local p = getPlayer()
     if p == nil then return end
     if not M.ready then local _, u = PZA.call(p, "getUsername"); M.init(u or "admin"); M.ready = true end
     local tAct = PZA.now()

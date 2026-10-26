@@ -1,5 +1,5 @@
 -- PZAgent_Act.lua — the goals (spec § 2.3). One goal at a time; each is a per-tick state machine that
--- sets state done|failed with a detail from its closed set. The walk is the game's own timed action,
+-- sets state done|failed with a detail from its closed set (no square, no path, stuck, bad args, superseded, ...). The walk is the game's own timed action,
 -- queued the way the harness's player.walk does [#2082: setRunning(true) does not make a walk run].
 PZA.act = PZA.act or {}
 local A = PZA.act
@@ -21,15 +21,23 @@ function A.status()
     return { seq = g.seq, name = g.name, state = g.state, detail = g.detail or "" }
 end
 
-function A.start(cmd)
+-- A new goal replaces a running one: the old walk is cleared and the old goal's status comes back
+-- as failed "superseded" (third return) so the caller reports it.
+function A.start(cmd, p)
     local def = A.goals[cmd.goal]
     if def == nil then return false, "unknown goal" end
     local argv = split(cmd.args)
     local ok, reason, st = def.start(argv)
     if not ok then return false, reason end
+    local old = nil
+    if A.goal ~= nil and A.goal.state == "running" then
+        if p ~= nil then pcall(ISTimedActionQueue.clear, p) end
+        A.goal.state, A.goal.detail = "failed", "superseded"
+        old = A.status()
+    end
     st.seq, st.name, st.state, st.detail, st.argv, st.ticks = cmd.seq, cmd.goal, "running", "", argv, 0
     A.goal = st
-    return true, ""
+    return true, "", old
 end
 
 function A.tick(p)
