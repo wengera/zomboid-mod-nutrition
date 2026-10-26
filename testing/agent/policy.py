@@ -28,13 +28,15 @@ HEURISTIC (a spike, deliberately dumb):
 - Fight or flee: flee when unarmed, when threats > MAX_FIGHT, when health < FLEE_HEALTH, or when threats >= 2 and
   health < FLEE_HEALTH_PAIR. A running flee turns back to fight only with one threat and health >= FLEE_HEALTH +
   REFIGHT_MARGIN; a running fight turns to flee only on the flee conditions, never because a threat count dropped.
-- A fight that does not close: the wall clock of the running fight's send is kept (fight_since, reset whenever the
-  running goal changes); a fight that has run longer than FIGHT_MAX_S with its nearest threat beyond FIGHT_REACH
-  flees. Run 1's 210 s standoff: its zombie stood 2.74 tiles away, inside the Lua's FIGHT_R 3 but beyond the bat's
+- A fight that does not close: a stall clock (out_of_reach_since) starts when a fight is sent and restarts on every
+  planner tick of the running fight whose nearest threat is within FIGHT_REACH or that reads no threat at all; a
+  fight whose nearest threat has stayed beyond FIGHT_REACH for longer than FIGHT_MAX_S flees. A melee whose zombie is
+  knocked back a tick, or a new zombie arriving after the last one died, restarts nothing old: the clock counts only
+  the unbroken time out of reach, never the fight's age. Run 1's 210 s standoff: its zombie stood 2.74 tiles away, inside the Lua's FIGHT_R 3 but beyond the bat's
   reach, and the fight swung without approaching (endurance 0.95 to 0.32). That flee is held, not turned back to
   fight, while it runs and the nearest threat stays beyond FIGHT_REACH.
-- The decision log's inputs carry `mode` (the running threat goal, else None) and `fight_s` (seconds the running
-  fight has run, else None).
+- The decision log's inputs carry `mode` (the running threat goal, else None) and `fight_s` (the running fight's
+  stall clock: seconds its nearest threat has been out of FIGHT_REACH, read before this tick restarts it; else None).
 """
 import json
 import math
@@ -79,7 +81,7 @@ class Policy:
         self.last_failed = None      # (goal, args, tick first seen failed) of the last goal that failed
         self.failures_seen = set()   # cmd seqs whose failure has been noted
         self.why = {}                # the branch being tried: its own inputs
-        self.fight_since = None      # clock() when the running fight was sent, else None
+        self.out_of_reach_since = None   # the stall clock: clock() since the running fight's nearest is out of reach
         self.stall_flee = False      # the running flee was sent because a fight did not close
 
     # ---------------------------------------------------------------- reading the world
@@ -93,10 +95,18 @@ class Policy:
         return cur[0] if cur is not None and cur[0] in BY_NAME else None
 
     def _fight_s(self):
-        """Seconds the running fight has run, else None."""
-        if self._mode() != "fight" or self.fight_since is None:
+        """Seconds the running fight's nearest threat has been beyond FIGHT_REACH (the stall clock), else None."""
+        if self._mode() != "fight" or self.out_of_reach_since is None:
             return None
-        return self.clock() - self.fight_since
+        return self.clock() - self.out_of_reach_since
+
+    def _restart_stall_clock(self):
+        """Restarts the running fight's stall clock when no threat is read or the nearest is within FIGHT_REACH."""
+        if self._mode() != "fight":
+            return
+        near = self._nearest(self._threats())
+        if near is None or near <= FIGHT_REACH:
+            self.out_of_reach_since = self.clock()
 
     def _threats(self):
         mx, my = self._xy()
@@ -301,6 +311,7 @@ class Policy:
         self._settle_loots()
         self._note_failures()
         inputs = self._inputs()
+        self._restart_stall_clock()
         self.need_mark = None
         branch, choice, cooled, tried = None, None, None, {}
         for name in BRANCHES:
@@ -326,7 +337,7 @@ class Policy:
                 self.scanned.add(self.explore_target)
             else:
                 self.running = (goal, args, seq)
-                self.fight_since = self.clock() if goal == "fight" else None
+                self.out_of_reach_since = self.clock() if goal == "fight" else None
                 self.stall_flee = goal == "flee" and tried["threat"].get("flee") == "stalled"
                 if branch == "explore":
                     self.explore_target = args
