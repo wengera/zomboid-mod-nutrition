@@ -145,10 +145,10 @@ function PZA.emitFrame(body)
     L.buf[#L.buf + 1] = enc.frame(body, same)
 end
 
--- a positional map part, into the backlog; at BACKLOG_MAX the oldest lines are cut to make room and L.overflow
--- records the size before the cut and the lines cut (accumulating until Main emits it and clears it)
+-- a map part's body, into the backlog unstamped: L.flush stamps and encodes it as it is taken, so every line's seq
+-- rises in file order (ruling S-11). At BACKLOG_MAX the oldest bodies are cut to make room and L.overflow records
+-- the size before the cut and the parts cut (accumulating until Main emits it and clears it)
 function L.queueMap(body)
-    stamp("map", body)
     local bl = L.backlog
     local n = #bl
     if n >= L.BACKLOG_MAX then
@@ -164,7 +164,7 @@ function L.queueMap(body)
             L.overflow = { queued = n, cut = cut }
         end
     end
-    bl[#bl + 1] = PZA.enc.map(body)
+    bl[#bl + 1] = body
 end
 
 -- the one write of a flush: chunk mode a new chunk file, append mode the live file, rotated by name past ROTATE_BYTES
@@ -186,9 +186,12 @@ local function write(s)
     return ok
 end
 
--- once a tick: the whole immediate buffer, then backlog lines from the front while their bytes fit BUDGET_BYTES (a
--- single line over the budget goes alone, so the backlog never stalls), in one write. A failed write leaves both
--- queues as they were, the immediate buffer capped at BUF_MAX lines (L.dropped counts the cut). Answers the ms taken.
+-- once a tick: the whole immediate buffer, then map parts from the front of the backlog, each stamped and encoded as
+-- it is taken (so its seq follows every line before it), while the encoded bytes fit BUDGET_BYTES (a single line over
+-- the budget goes alone, so the backlog never stalls); one write. A part that does not fit gives its seq back. A
+-- failed write gives the parts' seqs back and leaves both queues as they were, the immediate buffer capped at BUF_MAX
+-- lines (L.dropped counts the cut, and the next frame is full, so a reader's base is never a frame it lost).
+-- Answers the ms taken.
 function L.flush()
     local buf, bl = L.buf, L.backlog
     local nb, nl = #buf, #bl
@@ -196,13 +199,20 @@ function L.flush()
     local t0 = PZA.now()
     local out = {}
     for i = 1, nb do out[i] = buf[i] end
+    local seq0 = L.seq
     local used, take = 0, 0
     while take < nl do
-        local size = #bl[take + 1]
-        if take > 0 and used + size > L.BUDGET_BYTES then break end
+        local body = bl[take + 1]
+        stamp("map", body)
+        local line = PZA.enc.map(body)
+        local size = #line
+        if take > 0 and used + size > L.BUDGET_BYTES then
+            L.seq = L.seq - 1
+            break
+        end
         take = take + 1
         used = used + size
-        out[nb + take] = bl[take]
+        out[nb + take] = line
     end
     if write(concat(out, "\n") .. "\n") then
         L.buf = {}
@@ -212,27 +222,35 @@ function L.flush()
             L.backlog = kept
         end
     else
+        L.seq = seq0
         while #L.buf > L.BUF_MAX do
             table.remove(L.buf, 1)
             L.dropped = L.dropped + 1
+            L.forceFull = true
         end
     end
     return PZA.now() - t0
 end
 
--- the command file: its first non-empty line as one JSON object with a numeric seq; a seq at or below lastCmd is
--- old. A malformed line is skipped and counted once in L.badCmd (the same line polled again is not recounted).
+-- a command's seq: a finite integral number
+local function goodSeq(seq)
+    return type(seq) == "number" and seq == seq and seq ~= math.huge and seq ~= -math.huge and seq == math.floor(seq)
+end
+
+-- the command file: its first non-empty line as one JSON object with a good seq; a seq at or below lastCmd is old.
+-- A malformed line is skipped and counted once in L.badCmd (polled again, not recounted until a good line between).
 function L.poll()
     local line = firstLine(L.dir .. "cmd.txt")
     if line == nil then return nil end
     local c = PZA.decode(line)
-    if type(c) ~= "table" or type(c.seq) ~= "number" then
+    if type(c) ~= "table" or not goodSeq(c.seq) then
         if line ~= L.lastBad then
             L.lastBad = line
             L.badCmd = L.badCmd + 1
         end
         return nil
     end
+    L.lastBad = nil
     local seq = c.seq
     if seq <= L.lastCmd then return nil end
     L.lastCmd = seq

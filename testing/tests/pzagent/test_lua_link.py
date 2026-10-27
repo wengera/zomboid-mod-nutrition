@@ -139,11 +139,31 @@ def test_a_tick_writes_one_file_open_frame_then_act_then_map(lua, fs):
     assert out[0].startswith('["frame"')
     assert json.loads(out[1])["kind"] == "act"
     assert all(l.startswith('["map"') for l in out[2:])
-    # the map parts in queue order; every seq unique (one counter across emit, emitFrame and queueMap)
+    # the map parts in queue order, queued before the frame yet stamped at the flush: seq rises in file order (S-11)
     assert [json.loads(l)[pza1.ORDER["map"].index("part")] for l in out[2:]] == [1, 2, 3]
-    seqs = [json.loads(out[0])[1], json.loads(out[1])["seq"]] + [json.loads(l)[1] for l in out[2:]]
-    assert sorted(seqs) == [1, 2, 3, 4, 5] and len(set(seqs)) == 5
+    assert [file_seq(l) for l in out] == [1, 2, 3, 4, 5]
     assert lua.eval("#PZA.link.buf") == 0 and lua.eval("#PZA.link.backlog") == 0
+
+
+def file_seq(line):
+    v = json.loads(line)
+    return v["seq"] if isinstance(v, dict) else v[1]
+
+
+def test_seq_rises_by_one_line_by_line_over_ticks_with_a_deferred_backlog(lua, fs):
+    load(lua)
+    for i in range(10):
+        queue_map(lua, padded_map(1, 600))                      # 600 bytes: two parts a tick under the budget
+    for tick in range(4):
+        lua.globals().PZA.tick = tick
+        emit_frame(lua, frame_body(x=float(tick)))
+        lua.execute("PZA.emit('event', {event='door', gameMin=%d})" % tick)
+        lua.execute("PZA.link.flush()")
+    out = raw(fs)
+    assert sum(1 for l in out if l.startswith('["map"')) == 8 and lua.eval("#PZA.link.backlog") == 2
+    seqs = [file_seq(l) for l in out]
+    assert seqs == list(range(1, len(out) + 1))
+    assert lua.eval("PZA.link.seq") == len(out)                 # a part left over gave its seq back
 
 
 def test_flush_returns_the_ms_its_write_took(lua, fs):
@@ -207,8 +227,8 @@ def test_401_queued_lines_cut_the_oldest_and_set_overflow(lua, fs):
     assert lua.eval("#PZA.link.backlog") == 400
     o = lua.eval("PZA.link.overflow")
     assert (o["queued"], o["cut"]) == (400, 1)
-    first = json.loads(lua.eval("PZA.link.backlog[1]"))
-    assert first[pza1.ORDER["map"].index("part")] == 2         # the oldest went
+    assert lua.eval("PZA.link.backlog[1].part") == 2           # the oldest went
+    assert lua.eval("PZA.link.backlog[1].seq") is None         # stored unstamped (S-11)
     queue_map(lua, map_body(part=402, parts=402))
     o = lua.eval("PZA.link.overflow")
     assert (o["queued"], o["cut"]) == (400, 2)                # cut accumulates until Main clears it
@@ -290,6 +310,7 @@ def test_a_failed_write_requeues_and_the_next_flush_writes_everything_once(lua, 
     lua.execute("PZA.link.flush()")
     out = raw(fs)
     assert len(out) == 3 and out[0].startswith('["frame"') and out[2].startswith('["map"')
+    assert [file_seq(l) for l in out] == [1, 2, 3]            # the failed flush gave the part's seq back
     lua.execute("PZA.link.flush()")
     assert len(raw(fs)) == 3
 
@@ -302,6 +323,21 @@ def test_a_failed_write_caps_the_buffer_and_counts_the_cut(lua, fs):
     assert lua.eval("#PZA.link.buf") == 2000 and lua.eval("PZA.link.dropped") == 1
     lua.execute("PZA.link.flush()")
     assert lines(fs)[0]["i"] == 2
+
+
+def test_a_cut_line_forces_the_next_frame_full(lua, fs):
+    load(lua)
+    emit_frame(lua, frame_body())
+    lua.execute("PZA.link.flush()")
+    emit_frame(lua, frame_body())                              # a delta, its base the frame above
+    lua.execute("PZA.link.BUF_MAX = 1")
+    fs.fail_next = True
+    lua.execute("PZA.emit('event', {event='door'}); PZA.link.flush()")
+    assert lua.eval("PZA.link.dropped") == 1 and lua.eval("PZA.link.forceFull") is True
+    emit_frame(lua, frame_body())
+    lua.execute("PZA.link.flush()")
+    out = raw(fs)
+    assert len(out) == 3 and group_at(json.loads(out[2]), "stats") is not True     # full again
 
 
 # ---- cmd.txt and ack.txt, one JSON line each ----------------------------------------------------------------------
@@ -335,6 +371,25 @@ def test_a_malformed_cmd_txt_is_skipped_and_counted_once(lua, fs):
     assert DIR + "ack.txt" not in fs.files
     fs.files[DIR + "cmd.txt"] = '{"seq":1,"aid":"a1","type":"stop","args":{}}'
     assert lua.eval("PZA.link.poll()")["seq"] == 1
+
+
+def test_a_bad_line_counts_again_after_a_good_one(lua, fs):
+    load(lua)
+    bad, good = '{"seq":', '{"seq":1,"aid":"a1","type":"stop","args":{}}'
+    for line in (bad, good, bad):
+        fs.files[DIR + "cmd.txt"] = line + "\n"
+        lua.eval("PZA.link.poll()")
+    assert lua.eval("PZA.link.badCmd") == 2
+
+
+def test_a_non_finite_or_fractional_seq_is_a_bad_command(lua, fs):
+    load(lua)
+    for line in ('{"seq":1e999,"aid":"a1","type":"stop","args":{}}', '{"seq":-1e999,"aid":"a1","type":"stop"}',
+                 '{"seq":2.5,"aid":"a1","type":"stop","args":{}}'):
+        fs.files[DIR + "cmd.txt"] = line + "\n"
+        assert lua.eval("PZA.link.poll()") is None, line
+    assert lua.eval("PZA.link.badCmd") == 3 and lua.eval("PZA.link.lastCmd") == 0
+    assert DIR + "ack.txt" not in fs.files
 
 
 def test_last_cmd_recovered_from_ack_after_reset(lua, fs):

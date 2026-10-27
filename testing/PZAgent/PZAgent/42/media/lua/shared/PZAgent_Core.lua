@@ -160,6 +160,7 @@ local function decodeObject(s, p, depth)
     end
 end
 
+-- a null element leaves a hole (# stops there); command args never carry one
 local function decodeArray(s, p, depth)
     local t, n = {}, 0
     p = skip(s, p + 1)

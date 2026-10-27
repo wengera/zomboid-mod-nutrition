@@ -92,9 +92,16 @@ def test_decode_nested_arrays_literals_and_whitespace(lua):
 
 def test_decode_an_escaped_string(lua):
     assert decode(lua, r'"a\"b\\c\/d\ne\rf\tg"') == 'a"b\\c/d\ne\rf\tg'
-    assert decode(lua, r'"Aé"') == "Aé"                 # \uXXXX as UTF-8 bytes
-    assert decode(lua, r'"€"') == "€"
-    assert decode(lua, r'"\u0001\u000c"') == "\x01\x0c"                 # a control byte
+    # real escapes (a backslash, then u and four hex digits), built from chr(92) so no editor folds them into the
+    # character: each is written as its UTF-8 bytes, the 1-, 2- and 3-byte branches of utf8()
+    def esc_bytes(*codes):
+        lua.globals()._s = '"' + "".join(chr(92) + "u" + c for c in codes) + '"'
+        return list(py(lua.eval("{string.byte(PZA.decode(_s), 1, -1)}")))
+    assert esc_bytes("0041") == [65]
+    assert esc_bytes("00e9") == [195, 169]
+    assert esc_bytes("20ac") == [226, 130, 172]
+    assert esc_bytes("0041", "00e9", "20AC") == [65, 195, 169, 226, 130, 172]
+    assert esc_bytes("0001", "000c") == [1, 12]                         # a control byte
 
 
 def test_decode_numbers_with_exponents(lua):
