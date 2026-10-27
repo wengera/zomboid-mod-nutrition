@@ -1,0 +1,8953 @@
+{
+ "steps": [
+  {
+   "step": "bench_json_0",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.json 500",
+   "phase": "x2_bench",
+   "wall_before": 85.848,
+   "wall_after": 86.613,
+   "epoch_ms_before": 1793085988278,
+   "epoch_ms_after": 1793085989043,
+   "took": 0.765,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.json",
+    "n": 500,
+    "ms": 551,
+    "usPerCall": 1102
+   }
+  },
+  {
+   "step": "bench_jsonNoSort_0",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.jsonNoSort 500",
+   "phase": "x2_bench",
+   "wall_before": 86.613,
+   "wall_after": 87.629,
+   "epoch_ms_before": 1793085989043,
+   "epoch_ms_after": 1793085990059,
+   "took": 1.016,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.jsonNoSort",
+    "n": 500,
+    "ms": 464,
+    "usPerCall": 928
+   }
+  },
+  {
+   "step": "bench_compact_0",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.compact 500",
+   "phase": "x2_bench",
+   "wall_before": 87.629,
+   "wall_after": 88.141,
+   "epoch_ms_before": 1793085990059,
+   "epoch_ms_after": 1793085990571,
+   "took": 0.512,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.compact",
+    "n": 500,
+    "ms": 73,
+    "usPerCall": 146
+   }
+  },
+  {
+   "step": "bench_concat_0",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.concat 500",
+   "phase": "x2_bench",
+   "wall_before": 88.141,
+   "wall_after": 88.649,
+   "epoch_ms_before": 1793085990571,
+   "epoch_ms_after": 1793085991079,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.concat",
+    "n": 500,
+    "ms": 1,
+    "usPerCall": 2
+   }
+  },
+  {
+   "step": "bench_openWrite_0",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.openWrite 500",
+   "phase": "x2_bench",
+   "wall_before": 88.649,
+   "wall_after": 89.159,
+   "epoch_ms_before": 1793085991079,
+   "epoch_ms_after": 1793085991589,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.openWrite",
+    "n": 500,
+    "ms": 69,
+    "usPerCall": 138
+   }
+  },
+  {
+   "step": "bench_openWrite20_0",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.openWrite20 500",
+   "phase": "x2_bench",
+   "wall_before": 89.159,
+   "wall_after": 89.668,
+   "epoch_ms_before": 1793085991589,
+   "epoch_ms_after": 1793085992098,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.openWrite20",
+    "n": 500,
+    "ms": 54,
+    "usPerCall": 108
+   }
+  },
+  {
+   "step": "bench_openOnly_0",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.openOnly 500",
+   "phase": "x2_bench",
+   "wall_before": 89.668,
+   "wall_after": 90.176,
+   "epoch_ms_before": 1793085992098,
+   "epoch_ms_after": 1793085992606,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.openOnly",
+    "n": 500,
+    "ms": 31,
+    "usPerCall": 62
+   }
+  },
+  {
+   "step": "bench_poll_0",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.poll 500",
+   "phase": "x2_bench",
+   "wall_before": 90.176,
+   "wall_after": 90.685,
+   "epoch_ms_before": 1793085992606,
+   "epoch_ms_after": 1793085993115,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.poll",
+    "n": 500,
+    "ms": 27,
+    "usPerCall": 54
+   }
+  },
+  {
+   "step": "bench_heldOpen_0",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.heldOpen 1",
+   "phase": "x2_bench",
+   "wall_before": 90.685,
+   "wall_after": 91.194,
+   "epoch_ms_before": 1793085993115,
+   "epoch_ms_after": 1793085993624,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.heldOpen",
+    "n": 1,
+    "ms": 0,
+    "usPerCall": 0
+   }
+  },
+  {
+   "step": "bench_heldWrite_0",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.heldWrite 500",
+   "phase": "x2_bench",
+   "wall_before": 91.194,
+   "wall_after": 91.706,
+   "epoch_ms_before": 1793085993624,
+   "epoch_ms_after": 1793085994136,
+   "took": 0.512,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.heldWrite",
+    "n": 500,
+    "ms": 2,
+    "usPerCall": 4
+   }
+  },
+  {
+   "step": "bench_heldClose_0",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.heldClose 1",
+   "phase": "x2_bench",
+   "wall_before": 91.706,
+   "wall_after": 92.217,
+   "epoch_ms_before": 1793085994136,
+   "epoch_ms_after": 1793085994647,
+   "took": 0.511,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.heldClose",
+    "n": 1,
+    "ms": 0,
+    "usPerCall": 0
+   }
+  },
+  {
+   "step": "bench_json_1",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.json 500",
+   "phase": "x2_bench",
+   "wall_before": 92.22,
+   "wall_after": 93.236,
+   "epoch_ms_before": 1793085994650,
+   "epoch_ms_after": 1793085995666,
+   "took": 1.016,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.json",
+    "n": 500,
+    "ms": 625,
+    "usPerCall": 1250
+   }
+  },
+  {
+   "step": "bench_jsonNoSort_1",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.jsonNoSort 500",
+   "phase": "x2_bench",
+   "wall_before": 93.236,
+   "wall_after": 94.253,
+   "epoch_ms_before": 1793085995666,
+   "epoch_ms_after": 1793085996683,
+   "took": 1.017,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.jsonNoSort",
+    "n": 500,
+    "ms": 463,
+    "usPerCall": 926
+   }
+  },
+  {
+   "step": "bench_compact_1",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.compact 500",
+   "phase": "x2_bench",
+   "wall_before": 94.253,
+   "wall_after": 94.765,
+   "epoch_ms_before": 1793085996683,
+   "epoch_ms_after": 1793085997195,
+   "took": 0.512,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.compact",
+    "n": 500,
+    "ms": 74,
+    "usPerCall": 148
+   }
+  },
+  {
+   "step": "bench_concat_1",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.concat 500",
+   "phase": "x2_bench",
+   "wall_before": 94.765,
+   "wall_after": 95.276,
+   "epoch_ms_before": 1793085997195,
+   "epoch_ms_after": 1793085997706,
+   "took": 0.511,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.concat",
+    "n": 500,
+    "ms": 0,
+    "usPerCall": 0
+   }
+  },
+  {
+   "step": "bench_openWrite_1",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.openWrite 500",
+   "phase": "x2_bench",
+   "wall_before": 95.276,
+   "wall_after": 96.037,
+   "epoch_ms_before": 1793085997706,
+   "epoch_ms_after": 1793085998467,
+   "took": 0.761,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.openWrite",
+    "n": 500,
+    "ms": 84,
+    "usPerCall": 168
+   }
+  },
+  {
+   "step": "bench_openWrite20_1",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.openWrite20 500",
+   "phase": "x2_bench",
+   "wall_before": 96.038,
+   "wall_after": 96.544,
+   "epoch_ms_before": 1793085998467,
+   "epoch_ms_after": 1793085998974,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.openWrite20",
+    "n": 500,
+    "ms": 59,
+    "usPerCall": 118
+   }
+  },
+  {
+   "step": "bench_openOnly_1",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.openOnly 500",
+   "phase": "x2_bench",
+   "wall_before": 96.544,
+   "wall_after": 97.052,
+   "epoch_ms_before": 1793085998974,
+   "epoch_ms_after": 1793085999482,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.openOnly",
+    "n": 500,
+    "ms": 30,
+    "usPerCall": 60
+   }
+  },
+  {
+   "step": "bench_poll_1",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.poll 500",
+   "phase": "x2_bench",
+   "wall_before": 97.052,
+   "wall_after": 97.559,
+   "epoch_ms_before": 1793085999482,
+   "epoch_ms_after": 1793085999989,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.poll",
+    "n": 500,
+    "ms": 27,
+    "usPerCall": 54
+   }
+  },
+  {
+   "step": "bench_heldOpen_1",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.heldOpen 1",
+   "phase": "x2_bench",
+   "wall_before": 97.559,
+   "wall_after": 98.067,
+   "epoch_ms_before": 1793085999989,
+   "epoch_ms_after": 1793086000497,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.heldOpen",
+    "n": 1,
+    "ms": 0,
+    "usPerCall": 0
+   }
+  },
+  {
+   "step": "bench_heldWrite_1",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.heldWrite 500",
+   "phase": "x2_bench",
+   "wall_before": 98.067,
+   "wall_after": 98.577,
+   "epoch_ms_before": 1793086000497,
+   "epoch_ms_after": 1793086001007,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.heldWrite",
+    "n": 500,
+    "ms": 2,
+    "usPerCall": 4
+   }
+  },
+  {
+   "step": "bench_heldClose_1",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.heldClose 1",
+   "phase": "x2_bench",
+   "wall_before": 98.577,
+   "wall_after": 99.09,
+   "epoch_ms_before": 1793086001007,
+   "epoch_ms_after": 1793086001520,
+   "took": 0.513,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.heldClose",
+    "n": 1,
+    "ms": 0,
+    "usPerCall": 0
+   }
+  },
+  {
+   "step": "bench_json_2",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.json 500",
+   "phase": "x2_bench",
+   "wall_before": 99.091,
+   "wall_after": 100.359,
+   "epoch_ms_before": 1793086001521,
+   "epoch_ms_after": 1793086002789,
+   "took": 1.268,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.json",
+    "n": 500,
+    "ms": 637,
+    "usPerCall": 1274
+   }
+  },
+  {
+   "step": "bench_jsonNoSort_2",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.jsonNoSort 500",
+   "phase": "x2_bench",
+   "wall_before": 100.359,
+   "wall_after": 101.126,
+   "epoch_ms_before": 1793086002789,
+   "epoch_ms_after": 1793086003556,
+   "took": 0.767,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.jsonNoSort",
+    "n": 500,
+    "ms": 519,
+    "usPerCall": 1038
+   }
+  },
+  {
+   "step": "bench_compact_2",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.compact 500",
+   "phase": "x2_bench",
+   "wall_before": 101.126,
+   "wall_after": 101.894,
+   "epoch_ms_before": 1793086003556,
+   "epoch_ms_after": 1793086004324,
+   "took": 0.768,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.compact",
+    "n": 500,
+    "ms": 83,
+    "usPerCall": 166
+   }
+  },
+  {
+   "step": "bench_concat_2",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.concat 500",
+   "phase": "x2_bench",
+   "wall_before": 101.894,
+   "wall_after": 102.402,
+   "epoch_ms_before": 1793086004324,
+   "epoch_ms_after": 1793086004832,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.concat",
+    "n": 500,
+    "ms": 0,
+    "usPerCall": 0
+   }
+  },
+  {
+   "step": "bench_openWrite_2",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.openWrite 500",
+   "phase": "x2_bench",
+   "wall_before": 102.402,
+   "wall_after": 102.912,
+   "epoch_ms_before": 1793086004832,
+   "epoch_ms_after": 1793086005342,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.openWrite",
+    "n": 500,
+    "ms": 68,
+    "usPerCall": 136
+   }
+  },
+  {
+   "step": "bench_openWrite20_2",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.openWrite20 500",
+   "phase": "x2_bench",
+   "wall_before": 102.912,
+   "wall_after": 103.423,
+   "epoch_ms_before": 1793086005342,
+   "epoch_ms_after": 1793086005853,
+   "took": 0.511,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.openWrite20",
+    "n": 500,
+    "ms": 60,
+    "usPerCall": 120
+   }
+  },
+  {
+   "step": "bench_openOnly_2",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.openOnly 500",
+   "phase": "x2_bench",
+   "wall_before": 103.423,
+   "wall_after": 103.932,
+   "epoch_ms_before": 1793086005853,
+   "epoch_ms_after": 1793086006362,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.openOnly",
+    "n": 500,
+    "ms": 38,
+    "usPerCall": 76
+   }
+  },
+  {
+   "step": "bench_poll_2",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.poll 500",
+   "phase": "x2_bench",
+   "wall_before": 103.932,
+   "wall_after": 104.439,
+   "epoch_ms_before": 1793086006362,
+   "epoch_ms_after": 1793086006869,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.poll",
+    "n": 500,
+    "ms": 27,
+    "usPerCall": 54
+   }
+  },
+  {
+   "step": "bench_heldOpen_2",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.heldOpen 1",
+   "phase": "x2_bench",
+   "wall_before": 104.439,
+   "wall_after": 104.95,
+   "epoch_ms_before": 1793086006869,
+   "epoch_ms_after": 1793086007380,
+   "took": 0.511,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.heldOpen",
+    "n": 1,
+    "ms": 0,
+    "usPerCall": 0
+   }
+  },
+  {
+   "step": "bench_heldWrite_2",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.heldWrite 500",
+   "phase": "x2_bench",
+   "wall_before": 104.95,
+   "wall_after": 105.458,
+   "epoch_ms_before": 1793086007380,
+   "epoch_ms_after": 1793086007888,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.heldWrite",
+    "n": 500,
+    "ms": 2,
+    "usPerCall": 4
+   }
+  },
+  {
+   "step": "bench_heldClose_2",
+   "side": "client",
+   "cmd": "bench.global",
+   "args": "PZA.bench.heldClose 1",
+   "phase": "x2_bench",
+   "wall_before": 105.458,
+   "wall_after": 105.967,
+   "epoch_ms_before": 1793086007888,
+   "epoch_ms_after": 1793086008397,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "PZA.bench.heldClose",
+    "n": 1,
+    "ms": 0,
+    "usPerCall": 0
+   }
+  },
+  {
+   "step": "damage_server_arm",
+   "side": "server",
+   "cmd": "fall.probe",
+   "args": "admin",
+   "phase": "x3_load",
+   "wall_before": 216.126,
+   "wall_after": 216.886,
+   "epoch_ms_before": 1793086118556,
+   "epoch_ms_after": 1793086119316,
+   "took": 0.76,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "hooked": true,
+    "maxFracture": 0,
+    "legs": [
+     "UpperLeg_L=0",
+     "UpperLeg_R=0",
+     "LowerLeg_L=0",
+     "LowerLeg_R=0",
+     "Foot_L=0",
+     "Foot_R=0"
+    ],
+    "counts": {},
+    "fall": {}
+   }
+  },
+  {
+   "step": "damage_client_arm",
+   "side": "client",
+   "cmd": "event.watch",
+   "args": "OnPlayerGetDamage",
+   "phase": "x3_load",
+   "wall_before": 216.886,
+   "wall_after": 217.394,
+   "epoch_ms_before": 1793086119316,
+   "epoch_ms_after": 1793086119824,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "event": "OnPlayerGetDamage",
+    "hooked": true,
+    "count": 0,
+    "fires": {}
+   }
+  },
+  {
+   "step": "add_1",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Plank\" 1",
+   "phase": "x3_load",
+   "wall_before": 217.394,
+   "wall_after": 217.556,
+   "epoch_ms_before": 1793086119824,
+   "epoch_ms_after": 1793086119986,
+   "ack": {
+    "ok": true,
+    "reply": "Item Base.Plank Added in admin's inventory."
+   }
+  },
+  {
+   "step": "add_2",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Plank\" 1",
+   "phase": "x3_load",
+   "wall_before": 217.769,
+   "wall_after": 217.795,
+   "epoch_ms_before": 1793086120199,
+   "epoch_ms_after": 1793086120225,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "add_3",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Plank\" 1",
+   "phase": "x3_load",
+   "wall_before": 218.109,
+   "wall_after": 218.226,
+   "epoch_ms_before": 1793086120539,
+   "epoch_ms_after": 1793086120656,
+   "ack": {
+    "ok": true,
+    "reply": "Item Base.Plank Added in admin's inventory."
+   }
+  },
+  {
+   "step": "add_4",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Plank\" 1",
+   "phase": "x3_load",
+   "wall_before": 218.336,
+   "wall_after": 218.412,
+   "epoch_ms_before": 1793086120766,
+   "epoch_ms_after": 1793086120842,
+   "ack": {
+    "ok": true,
+    "reply": "Item Base.Plank Added in admin's inventory."
+   }
+  },
+  {
+   "step": "add_5",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Plank\" 1",
+   "phase": "x3_load",
+   "wall_before": 218.522,
+   "wall_after": 218.634,
+   "epoch_ms_before": 1793086120952,
+   "epoch_ms_after": 1793086121064,
+   "ack": {
+    "ok": true,
+    "reply": "Item Base.Plank Added in admin's inventory."
+   }
+  },
+  {
+   "step": "add_6",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.Plank\" 1",
+   "phase": "x3_load",
+   "wall_before": 218.74,
+   "wall_after": 218.842,
+   "epoch_ms_before": 1793086121170,
+   "epoch_ms_after": 1793086121272,
+   "ack": {
+    "ok": true,
+    "reply": "Item Base.Plank Added in admin's inventory."
+   }
+  },
+  {
+   "step": "damage_server_read",
+   "side": "server",
+   "cmd": "fall.probe",
+   "args": "admin",
+   "phase": "x3_load",
+   "wall_before": 282.704,
+   "wall_after": 284.715,
+   "epoch_ms_before": 1793086185134,
+   "epoch_ms_after": 1793086187145,
+   "took": 2.011,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "hooked": true,
+    "maxFracture": 0,
+    "legs": [
+     "UpperLeg_L=0",
+     "UpperLeg_R=0",
+     "LowerLeg_L=0",
+     "LowerLeg_R=0",
+     "Foot_L=0",
+     "Foot_R=0"
+    ],
+    "counts": {
+     "HEAVYLOAD": 49
+    },
+    "fall": {}
+   }
+  },
+  {
+   "step": "damage_client_read",
+   "side": "client",
+   "cmd": "event.watch",
+   "args": "OnPlayerGetDamage read",
+   "phase": "x3_load",
+   "wall_before": 284.715,
+   "wall_after": 284.972,
+   "epoch_ms_before": 1793086187145,
+   "epoch_ms_after": 1793086187402,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "event": "OnPlayerGetDamage",
+    "hooked": true,
+    "count": 0,
+    "fires": {}
+   }
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "server",
+   "wall_before": 285.2,
+   "wall_after": 286.709,
+   "epoch_ms_before": 1793086187630,
+   "epoch_ms_after": 1793086189139,
+   "took": 1.509,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 0.8892875909805298,
+     "Fatigue": 0.03465772420167923,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.030409572646021843,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 3.1785154342651367,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 37.22496032714844,
+     "Thirst": 0.026972748339176178,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793086188930,
+    "user": "admin",
+    "worldAge": 3.216904640197754,
+    "mult": 4.795048236846924
+   }
+  }
+ ],
+ "notes": [],
+ "phase_walls": {
+  "hello_and_map": {
+   "start": 84.964,
+   "end": 85.847
+  },
+  "x2_bench": {
+   "start": 85.848,
+   "end": 105.969
+  },
+  "x1_motor": {
+   "start": 105.971,
+   "end": 216.123
+  },
+  "x3_load": {
+   "start": 216.126,
+   "end": 285.193
+  },
+  "server": {
+   "start": 285.2,
+   "end": 286.709
+  }
+ },
+ "phase_errors": {},
+ "verdicts": {
+  "x1_forcerun_runs": {
+   "phase": "x1_forcerun_runs",
+   "predicted": "median forcerun pace >= 1.3 x walk's",
+   "falsifier": "forcerun's median pace below 1.3 x walk's",
+   "observed": {
+    "pace": 3.707733093237295,
+    "walk": 2.051212391013422,
+    "ratio": 1.8075812672940474
+   },
+   "verdict": "as_predicted",
+   "wall": 216.014
+  },
+  "x1_setrun_walks": {
+   "phase": "x1_setrun_walks",
+   "predicted": "median setrun pace within 0.05 of walk's",
+   "falsifier": "setrun's median pace outside 0.05 of walk's",
+   "observed": {
+    "pace": 2.0038858607003047,
+    "walk": 2.051212391013422,
+    "ratio": 0.9769275329456569
+   },
+   "verdict": "as_predicted",
+   "wall": 216.015
+  },
+  "x1_autowalk_runs": {
+   "phase": "x1_autowalk_runs",
+   "predicted": "median autowalk forcerun pace >= 1.3 x walk's",
+   "falsifier": "the autowalk forcerun legs' median pace below 1.3 x walk's",
+   "observed": {
+    "pace": 3.7761755644013926,
+    "walk": 2.051212391013422,
+    "ratio": 1.8409481051037015,
+    "voided_legs": 1
+   },
+   "verdict": "as_predicted",
+   "wall": 216.015
+  },
+  "x1_autowalk_heads": {
+   "phase": "x1_autowalk_heads",
+   "predicted": "every autowalk leg's heading error <= 15.0 deg",
+   "falsifier": "an autowalk leg's heading error above 15.0 deg",
+   "observed": {
+    "heading_error_deg": [
+     0.3350032460755668,
+     0.7835862126686675,
+     0.7751365999513493,
+     1.3794796624639436,
+     0.7841533227853373,
+     1.5172931177699753
+    ],
+    "max": 1.5172931177699753,
+    "unread_legs": 0,
+    "voided_legs": 1
+   },
+   "verdict": "as_predicted",
+   "wall": 216.016
+  },
+  "x1_forcerun_tick": {
+   "phase": "x1_forcerun_tick",
+   "predicted": "read either way (a walk confirms the frameStep reading)",
+   "falsifier": "none: read either way",
+   "observed": {
+    "pace": 2.032311480978261,
+    "walk": 2.051212391013422,
+    "ratio": 0.9907854934389204,
+    "legs": 3
+   },
+   "verdict": "recorded",
+   "wall": 216.016
+  },
+  "x1_once_holds": {
+   "phase": "x1_once_holds",
+   "predicted": "the once leg's updForceRun count >= 0.9 of its autoWalk frames",
+   "falsifier": "updForceRun on fewer than 0.9 of the once leg's autoWalk frames",
+   "observed": {
+    "updForceRun": 0,
+    "frames": 15,
+    "fraction": 0.0,
+    "leg_frames": 16
+   },
+   "verdict": "falsified",
+   "wall": 216.016
+  },
+  "x1_endurance": {
+   "phase": "x1_endurance",
+   "predicted": "forcerun's endurance slope more negative than walk's",
+   "falsifier": "forcerun's slope not below walk's",
+   "observed": {
+    "forcerun": -0.0012665489018295407,
+    "walk": 0.0
+   },
+   "verdict": "as_predicted",
+   "wall": 216.016
+  },
+  "x3_drops_at_level3_only": {
+   "phase": "x3_drops_at_level3_only",
+   "predicted": "every drop at HEAVY_LOAD >= 3",
+   "falsifier": "a drop at HEAVY_LOAD <= 2",
+   "observed": {
+    "drops": 34,
+    "below_level3": 0,
+    "unread_level": 0,
+    "levels": [
+     "3"
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 285.19
+  },
+  "x3_floor_75": {
+   "phase": "x3_floor_75",
+   "predicted": "no drop from a health <= 75.0",
+   "falsifier": "a drop from a health <= 75.0",
+   "observed": {
+    "drops": 34,
+    "from_at_or_below_floor": 0,
+    "frames_at_or_below_floor": 0,
+    "min_health": 81.92774963378906
+   },
+   "verdict": "unmeasured",
+   "wall": 285.192
+  },
+  "x3_drops_while_still": {
+   "phase": "x3_drops_while_still",
+   "predicted": "recorded",
+   "falsifier": "none: recorded",
+   "observed": {
+    "drops": 6,
+    "fall": 2.6843948364257812
+   },
+   "verdict": "recorded",
+   "wall": 285.192
+  },
+  "x3_level2_no_drop": {
+   "phase": "x3_level2_no_drop",
+   "predicted": "no drop while walking at level 2",
+   "falsifier": "a drop while walking at level 2",
+   "observed": {
+    "drops": 0,
+    "level2_frames": 86,
+    "drop_after": {
+     "weight": 16.55500030517578,
+     "maxWeight": 12,
+     "level": 2,
+     "seq": 1571
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 285.193
+  },
+  "x3_server_hears_heavyload": {
+   "phase": "x3_server_hears_heavyload",
+   "predicted": "the server listener counts HEAVYLOAD > 0",
+   "falsifier": "no HEAVYLOAD tag counted above 0",
+   "observed": {
+    "counts": {
+     "HEAVYLOAD": 49
+    },
+    "hooked": true,
+    "drops": 34
+   },
+   "verdict": "as_predicted",
+   "wall": 285.193
+  },
+  "x3_client_hears_heavyload": {
+   "phase": "x3_client_hears_heavyload",
+   "predicted": 0,
+   "falsifier": "the client hears it (> 0)",
+   "observed": {
+    "event_watch_count": 0,
+    "damage_events_heavyload": 0,
+    "damage_events": 0,
+    "hooked": true,
+    "drops": 34
+   },
+   "verdict": "as_predicted",
+   "wall": 285.193
+  },
+  "x3_level3_at_ratio": {
+   "phase": "x3_level3_at_ratio",
+   "predicted": "level 3 at a carry ratio >= 1.5 and < 1.75 (#3926)",
+   "falsifier": "level 3 at a ratio outside [1.5, 1.75)",
+   "observed": {
+    "level3_at_ratio": 1.6295833587646484,
+    "level_reached": null,
+    "load_stalled_at": null
+   },
+   "verdict": "as_predicted",
+   "wall": 285.193
+  }
+ },
+ "readings": {
+  "bench": {
+   "rows": [
+    {
+     "arm": "json",
+     "rep": 0,
+     "n": 500,
+     "ms": 551,
+     "usPerCall": 1102,
+     "error": null
+    },
+    {
+     "arm": "jsonNoSort",
+     "rep": 0,
+     "n": 500,
+     "ms": 464,
+     "usPerCall": 928,
+     "error": null
+    },
+    {
+     "arm": "compact",
+     "rep": 0,
+     "n": 500,
+     "ms": 73,
+     "usPerCall": 146,
+     "error": null
+    },
+    {
+     "arm": "concat",
+     "rep": 0,
+     "n": 500,
+     "ms": 1,
+     "usPerCall": 2,
+     "error": null
+    },
+    {
+     "arm": "openWrite",
+     "rep": 0,
+     "n": 500,
+     "ms": 69,
+     "usPerCall": 138,
+     "error": null
+    },
+    {
+     "arm": "openWrite20",
+     "rep": 0,
+     "n": 500,
+     "ms": 54,
+     "usPerCall": 108,
+     "error": null
+    },
+    {
+     "arm": "openOnly",
+     "rep": 0,
+     "n": 500,
+     "ms": 31,
+     "usPerCall": 62,
+     "error": null
+    },
+    {
+     "arm": "poll",
+     "rep": 0,
+     "n": 500,
+     "ms": 27,
+     "usPerCall": 54,
+     "error": null
+    },
+    {
+     "arm": "heldOpen",
+     "rep": 0,
+     "n": 1,
+     "ms": 0,
+     "usPerCall": 0,
+     "error": null
+    },
+    {
+     "arm": "heldWrite",
+     "rep": 0,
+     "n": 500,
+     "ms": 2,
+     "usPerCall": 4,
+     "error": null
+    },
+    {
+     "arm": "heldClose",
+     "rep": 0,
+     "n": 1,
+     "ms": 0,
+     "usPerCall": 0,
+     "error": null
+    },
+    {
+     "arm": "json",
+     "rep": 1,
+     "n": 500,
+     "ms": 625,
+     "usPerCall": 1250,
+     "error": null
+    },
+    {
+     "arm": "jsonNoSort",
+     "rep": 1,
+     "n": 500,
+     "ms": 463,
+     "usPerCall": 926,
+     "error": null
+    },
+    {
+     "arm": "compact",
+     "rep": 1,
+     "n": 500,
+     "ms": 74,
+     "usPerCall": 148,
+     "error": null
+    },
+    {
+     "arm": "concat",
+     "rep": 1,
+     "n": 500,
+     "ms": 0,
+     "usPerCall": 0,
+     "error": null
+    },
+    {
+     "arm": "openWrite",
+     "rep": 1,
+     "n": 500,
+     "ms": 84,
+     "usPerCall": 168,
+     "error": null
+    },
+    {
+     "arm": "openWrite20",
+     "rep": 1,
+     "n": 500,
+     "ms": 59,
+     "usPerCall": 118,
+     "error": null
+    },
+    {
+     "arm": "openOnly",
+     "rep": 1,
+     "n": 500,
+     "ms": 30,
+     "usPerCall": 60,
+     "error": null
+    },
+    {
+     "arm": "poll",
+     "rep": 1,
+     "n": 500,
+     "ms": 27,
+     "usPerCall": 54,
+     "error": null
+    },
+    {
+     "arm": "heldOpen",
+     "rep": 1,
+     "n": 1,
+     "ms": 0,
+     "usPerCall": 0,
+     "error": null
+    },
+    {
+     "arm": "heldWrite",
+     "rep": 1,
+     "n": 500,
+     "ms": 2,
+     "usPerCall": 4,
+     "error": null
+    },
+    {
+     "arm": "heldClose",
+     "rep": 1,
+     "n": 1,
+     "ms": 0,
+     "usPerCall": 0,
+     "error": null
+    },
+    {
+     "arm": "json",
+     "rep": 2,
+     "n": 500,
+     "ms": 637,
+     "usPerCall": 1274,
+     "error": null
+    },
+    {
+     "arm": "jsonNoSort",
+     "rep": 2,
+     "n": 500,
+     "ms": 519,
+     "usPerCall": 1038,
+     "error": null
+    },
+    {
+     "arm": "compact",
+     "rep": 2,
+     "n": 500,
+     "ms": 83,
+     "usPerCall": 166,
+     "error": null
+    },
+    {
+     "arm": "concat",
+     "rep": 2,
+     "n": 500,
+     "ms": 0,
+     "usPerCall": 0,
+     "error": null
+    },
+    {
+     "arm": "openWrite",
+     "rep": 2,
+     "n": 500,
+     "ms": 68,
+     "usPerCall": 136,
+     "error": null
+    },
+    {
+     "arm": "openWrite20",
+     "rep": 2,
+     "n": 500,
+     "ms": 60,
+     "usPerCall": 120,
+     "error": null
+    },
+    {
+     "arm": "openOnly",
+     "rep": 2,
+     "n": 500,
+     "ms": 38,
+     "usPerCall": 76,
+     "error": null
+    },
+    {
+     "arm": "poll",
+     "rep": 2,
+     "n": 500,
+     "ms": 27,
+     "usPerCall": 54,
+     "error": null
+    },
+    {
+     "arm": "heldOpen",
+     "rep": 2,
+     "n": 1,
+     "ms": 0,
+     "usPerCall": 0,
+     "error": null
+    },
+    {
+     "arm": "heldWrite",
+     "rep": 2,
+     "n": 500,
+     "ms": 2,
+     "usPerCall": 4,
+     "error": null
+    },
+    {
+     "arm": "heldClose",
+     "rep": 2,
+     "n": 1,
+     "ms": 0,
+     "usPerCall": 0,
+     "error": null
+    }
+   ],
+   "summary": {
+    "json": {
+     "median_usPerCall": 1250,
+     "bytes": 2740,
+     "reps": 3,
+     "us_per_kb": 467.15328467153284
+    },
+    "jsonNoSort": {
+     "median_usPerCall": 928,
+     "bytes": 2740,
+     "reps": 3,
+     "us_per_kb": 346.814598540146
+    },
+    "compact": {
+     "median_usPerCall": 148,
+     "bytes": 1244,
+     "reps": 3,
+     "us_per_kb": 121.82636655948554
+    },
+    "concat": {
+     "median_usPerCall": 0,
+     "bytes": 2740,
+     "reps": 3
+    },
+    "openWrite": {
+     "median_usPerCall": 138,
+     "bytes": 2740,
+     "reps": 3,
+     "us_per_kb": 51.573722627737226
+    },
+    "openWrite20": {
+     "median_usPerCall": 118,
+     "bytes": 20,
+     "reps": 3
+    },
+    "openOnly": {
+     "median_usPerCall": 62,
+     "bytes": null,
+     "reps": 3
+    },
+    "poll": {
+     "median_usPerCall": 54,
+     "bytes": null,
+     "reps": 3
+    },
+    "heldOpen": {
+     "median_usPerCall": 0,
+     "bytes": null,
+     "reps": 3
+    },
+    "heldWrite": {
+     "median_usPerCall": 4,
+     "bytes": 2740,
+     "reps": 3,
+     "us_per_kb": 1.494890510948905
+    },
+    "heldClose": {
+     "median_usPerCall": 0,
+     "bytes": null,
+     "reps": 3
+    }
+   }
+  },
+  "motor": {
+   "legs": [
+    {
+     "arm": "walk",
+     "leg": 0,
+     "from": {
+      "x": 10993.40625,
+      "y": 9700.1279296875
+     },
+     "to": {
+      "end": "B",
+      "x": 10982.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 4,
+     "ack": {
+      "cmdSeq": 4,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 180,
+      "tick": 1465,
+      "wallMs": 1793086013130
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9765625",
+      "seq": 233,
+      "wallMs": 1793086018310
+     },
+     "frames": 52,
+     "pace": 2.051212391013422,
+     "endurance_slope": 0.0,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 52
+     },
+     "first_move": {
+      "seq": 182,
+      "wallMs": 1793086013310,
+      "x": 10993.353515625,
+      "y": 9700.1494140625,
+      "readPyMs": 1793086013340.2317
+     },
+     "cmd_move_ms": 180,
+     "error": null,
+     "sentPyMs": 1793086013118.5066,
+     "args": "10982.5 9699.5",
+     "ackPyMs": 1793086013229.987,
+     "donePyMs": 1793086018408.899,
+     "wall_ms": 5180,
+     "legPyMs": 5290.5146484375
+    },
+    {
+     "arm": "walk",
+     "leg": 1,
+     "from": {
+      "x": 10983.130859375,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "A",
+      "x": 10993.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 5,
+     "ack": {
+      "cmdSeq": 5,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 238,
+      "tick": 1802,
+      "wallMs": 1793086018748
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9755859375",
+      "seq": 286,
+      "wallMs": 1793086023412
+     },
+     "frames": 47,
+     "pace": 2.0794270833333335,
+     "endurance_slope": 0.0,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 47
+     },
+     "first_move": {
+      "seq": 240,
+      "wallMs": 1793086018910,
+      "x": 10983.2099609375,
+      "y": 9699.5,
+      "readPyMs": 1793086018949.3733
+     },
+     "cmd_move_ms": 162,
+     "error": null,
+     "sentPyMs": 1793086018735.524,
+     "args": "10993.5 9699.5",
+     "ackPyMs": 1793086018844.0535,
+     "donePyMs": 1793086023437.6702,
+     "wall_ms": 4664,
+     "legPyMs": 4702.31103515625
+    },
+    {
+     "arm": "walk",
+     "leg": 2,
+     "from": {
+      "x": 10992.8701171875,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "B",
+      "x": 10982.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 6,
+     "ack": {
+      "cmdSeq": 6,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 290,
+      "tick": 2104,
+      "wallMs": 1793086023780
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9755859375",
+      "seq": 339,
+      "wallMs": 1793086028511
+     },
+     "frames": 48,
+     "pace": 2.0371577574967406,
+     "endurance_slope": 0.0,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 48
+     },
+     "first_move": {
+      "seq": 292,
+      "wallMs": 1793086023909,
+      "x": 10992.8505859375,
+      "y": 9699.5,
+      "readPyMs": 1793086023982.1692
+     },
+     "cmd_move_ms": 129,
+     "error": null,
+     "sentPyMs": 1793086023764.9724,
+     "args": "10982.5 9699.5",
+     "ackPyMs": 1793086023872.2678,
+     "donePyMs": 1793086028516.4343,
+     "wall_ms": 4731,
+     "legPyMs": 4751.5654296875
+    },
+    {
+     "arm": "setrun",
+     "leg": 0,
+     "from": {
+      "x": 10983.1298828125,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "A",
+      "x": 10993.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 7,
+     "ack": {
+      "cmdSeq": 7,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 344,
+      "tick": 2415,
+      "wallMs": 1793086028964
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9755859375",
+      "seq": 393,
+      "wallMs": 1793086033711
+     },
+     "frames": 48,
+     "pace": 2.003014605978261,
+     "endurance_slope": 0.0,
+     "flags": {
+      "running": 47,
+      "sprinting": 47,
+      "forceRun": 0,
+      "updRunning": 47,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 48
+     },
+     "first_move": {
+      "seq": 346,
+      "wallMs": 1793086029110,
+      "x": 10983.1611328125,
+      "y": 9699.5,
+      "readPyMs": 1793086029161.6687
+     },
+     "cmd_move_ms": 146,
+     "error": null,
+     "sentPyMs": 1793086028946.9934,
+     "args": "10993.5 9699.5 setrun",
+     "ackPyMs": 1793086029055.8818,
+     "donePyMs": 1793086033774.0234,
+     "wall_ms": 4747,
+     "legPyMs": 4827.154296875
+    },
+    {
+     "arm": "setrun",
+     "leg": 1,
+     "from": {
+      "x": 10992.8701171875,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "B",
+      "x": 10982.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 8,
+     "ack": {
+      "cmdSeq": 8,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 398,
+      "tick": 2730,
+      "wallMs": 1793086034215
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9755859375",
+      "seq": 448,
+      "wallMs": 1793086039010
+     },
+     "frames": 49,
+     "pace": 2.0257302989130435,
+     "endurance_slope": 0.0,
+     "flags": {
+      "running": 48,
+      "sprinting": 48,
+      "forceRun": 0,
+      "updRunning": 47,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 49
+     },
+     "first_move": {
+      "seq": 401,
+      "wallMs": 1793086034410,
+      "x": 10992.80078125,
+      "y": 9699.5,
+      "readPyMs": 1793086034414.5264
+     },
+     "cmd_move_ms": 195,
+     "error": null,
+     "sentPyMs": 1793086034200.8503,
+     "args": "10982.5 9699.5 setrun",
+     "ackPyMs": 1793086034307.8943,
+     "donePyMs": 1793086039026.4226,
+     "wall_ms": 4795,
+     "legPyMs": 4825.819580078125
+    },
+    {
+     "arm": "setrun",
+     "leg": 2,
+     "from": {
+      "x": 10983.1298828125,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "A",
+      "x": 10993.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 9,
+     "ack": {
+      "cmdSeq": 9,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 453,
+      "tick": 3045,
+      "wallMs": 1793086039464
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9755859375",
+      "seq": 502,
+      "wallMs": 1793086044211
+     },
+     "frames": 48,
+     "pace": 2.0038858607003047,
+     "endurance_slope": 0.0,
+     "flags": {
+      "running": 47,
+      "sprinting": 47,
+      "forceRun": 0,
+      "updRunning": 47,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 48
+     },
+     "first_move": {
+      "seq": 455,
+      "wallMs": 1793086039612,
+      "x": 10983.1611328125,
+      "y": 9699.5,
+      "readPyMs": 1793086039666.6936
+     },
+     "cmd_move_ms": 148,
+     "error": null,
+     "sentPyMs": 1793086039452.4995,
+     "args": "10993.5 9699.5 setrun",
+     "ackPyMs": 1793086039559.6423,
+     "donePyMs": 1793086044266.1506,
+     "wall_ms": 4747,
+     "legPyMs": 4813.758056640625
+    },
+    {
+     "arm": "forcerun",
+     "leg": 0,
+     "from": {
+      "x": 10992.8701171875,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "B",
+      "x": 10982.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 10,
+     "ack": {
+      "cmdSeq": 10,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 507,
+      "tick": 3360,
+      "wallMs": 1793086044716
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9580078125",
+      "seq": 536,
+      "wallMs": 1793086047410
+     },
+     "frames": 28,
+     "pace": 3.707733093237295,
+     "endurance_slope": -0.0012665489018295407,
+     "flags": {
+      "running": 26,
+      "sprinting": 0,
+      "forceRun": 26,
+      "updRunning": 26,
+      "updForceRun": 26,
+      "autoWalk": 0,
+      "frames": 28
+     },
+     "first_move": {
+      "seq": 510,
+      "wallMs": 1793086044909,
+      "x": 10992.7392578125,
+      "y": 9699.5,
+      "readPyMs": 1793086044913.3325
+     },
+     "cmd_move_ms": 193,
+     "error": null,
+     "sentPyMs": 1793086044696.734,
+     "args": "10982.5 9699.5 forcerun",
+     "ackPyMs": 1793086044806.9548,
+     "donePyMs": 1793086047487.897,
+     "wall_ms": 2694,
+     "legPyMs": 2791.279052734375
+    },
+    {
+     "arm": "forcerun",
+     "leg": 1,
+     "from": {
+      "x": 10981.646484375,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "A",
+      "x": 10993.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 11,
+     "ack": {
+      "cmdSeq": 11,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 545,
+      "tick": 3572,
+      "wallMs": 1793086048248
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.96484375",
+      "seq": 577,
+      "wallMs": 1793086051310
+     },
+     "frames": 31,
+     "pace": 3.73046875,
+     "endurance_slope": -0.001031041145324707,
+     "flags": {
+      "running": 30,
+      "sprinting": 0,
+      "forceRun": 30,
+      "updRunning": 30,
+      "updForceRun": 30,
+      "autoWalk": 0,
+      "frames": 31
+     },
+     "first_move": {
+      "seq": 547,
+      "wallMs": 1793086048410,
+      "x": 10981.7294921875,
+      "y": 9699.5,
+      "readPyMs": 1793086048447.953
+     },
+     "cmd_move_ms": 162,
+     "error": null,
+     "sentPyMs": 1793086048232.4387,
+     "args": "10993.5 9699.5 forcerun",
+     "ackPyMs": 1793086048341.0176,
+     "donePyMs": 1793086051335.2544,
+     "wall_ms": 3062,
+     "legPyMs": 3102.8935546875
+    },
+    {
+     "arm": "forcerun",
+     "leg": 2,
+     "from": {
+      "x": 10993.5302734375,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "B",
+      "x": 10982.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 12,
+     "ack": {
+      "cmdSeq": 12,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 581,
+      "tick": 3777,
+      "wallMs": 1793086051665
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.93359375",
+      "seq": 611,
+      "wallMs": 1793086054510
+     },
+     "frames": 29,
+     "pace": 3.702905011115228,
+     "endurance_slope": -0.001503314290727888,
+     "flags": {
+      "running": 28,
+      "sprinting": 0,
+      "forceRun": 27,
+      "updRunning": 28,
+      "updForceRun": 28,
+      "autoWalk": 0,
+      "frames": 29
+     },
+     "first_move": {
+      "seq": 582,
+      "wallMs": 1793086051710,
+      "x": 10993.498046875,
+      "y": 9699.5,
+      "readPyMs": 1793086051762.0703
+     },
+     "cmd_move_ms": 45,
+     "error": null,
+     "sentPyMs": 1793086051654.2534,
+     "args": "10982.5 9699.5 forcerun",
+     "ackPyMs": 1793086051762.074,
+     "donePyMs": 1793086054548.365,
+     "wall_ms": 2845,
+     "legPyMs": 2894.1875
+    },
+    {
+     "arm": "forcerun_tick",
+     "leg": 0,
+     "from": {
+      "x": 10981.6220703125,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "A",
+      "x": 10993.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 13,
+     "ack": {
+      "cmdSeq": 13,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 619,
+      "tick": 3995,
+      "wallMs": 1793086055297
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9658203125",
+      "seq": 676,
+      "wallMs": 1793086060809
+     },
+     "frames": 56,
+     "pace": 2.0506153873372335,
+     "endurance_slope": 0.0005386742678555576,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 55,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 56
+     },
+     "first_move": {
+      "seq": 622,
+      "wallMs": 1793086055510,
+      "x": 10981.703125,
+      "y": 9699.5,
+      "readPyMs": 1793086055615.9585
+     },
+     "cmd_move_ms": 213,
+     "error": null,
+     "sentPyMs": 1793086055292.51,
+     "args": "10993.5 9699.5 forcerun_tick",
+     "ackPyMs": 1793086055399.6892,
+     "donePyMs": 1793086060870.2122,
+     "wall_ms": 5512,
+     "legPyMs": 5577.81884765625
+    },
+    {
+     "arm": "forcerun_tick",
+     "leg": 1,
+     "from": {
+      "x": 10992.8798828125,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "B",
+      "x": 10982.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 14,
+     "ack": {
+      "cmdSeq": 14,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 680,
+      "tick": 4349,
+      "wallMs": 1793086061197
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9853515625",
+      "seq": 730,
+      "wallMs": 1793086066010
+     },
+     "frames": 49,
+     "pace": 2.032311480978261,
+     "endurance_slope": 0.0006242593129475912,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 48,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 49
+     },
+     "first_move": {
+      "seq": 683,
+      "wallMs": 1793086061410,
+      "x": 10992.798828125,
+      "y": 9699.5,
+      "readPyMs": 1793086061509.3
+     },
+     "cmd_move_ms": 213,
+     "error": null,
+     "sentPyMs": 1793086061188.702,
+     "args": "10982.5 9699.5 forcerun_tick",
+     "ackPyMs": 1793086061296.3674,
+     "donePyMs": 1793086066097.4866,
+     "wall_ms": 4813,
+     "legPyMs": 4908.991455078125
+    },
+    {
+     "arm": "forcerun_tick",
+     "leg": 2,
+     "from": {
+      "x": 10983.1396484375,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "A",
+      "x": 10993.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 15,
+     "ack": {
+      "cmdSeq": 15,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 734,
+      "tick": 4657,
+      "wallMs": 1793086066331
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9658203125",
+      "seq": 783,
+      "wallMs": 1793086071109
+     },
+     "frames": 48,
+     "pace": 2.0189511306805827,
+     "endurance_slope": 0.00045901538209982136,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 47,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 48
+     },
+     "first_move": {
+      "seq": 736,
+      "wallMs": 1793086066510,
+      "x": 10983.1962890625,
+      "y": 9699.5,
+      "readPyMs": 1793086066530.1306
+     },
+     "cmd_move_ms": 179,
+     "error": null,
+     "sentPyMs": 1793086066312.1453,
+     "args": "10993.5 9699.5 forcerun_tick",
+     "ackPyMs": 1793086066423.8955,
+     "donePyMs": 1793086071118.3555,
+     "wall_ms": 4778,
+     "legPyMs": 4806.34814453125
+    },
+    {
+     "arm": "forcesprint",
+     "leg": 0,
+     "from": {
+      "x": 10992.8798828125,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "B",
+      "x": 10982.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 16,
+     "ack": {
+      "cmdSeq": 16,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 788,
+      "tick": 4971,
+      "wallMs": 1793086071563
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.931640625",
+      "seq": 811,
+      "wallMs": 1793086073710
+     },
+     "frames": 22,
+     "pace": 4.594582447473736,
+     "endurance_slope": -0.0072935933158511206,
+     "flags": {
+      "running": 1,
+      "sprinting": 20,
+      "forceRun": 20,
+      "updRunning": 1,
+      "updForceRun": 21,
+      "autoWalk": 0,
+      "frames": 22
+     },
+     "first_move": {
+      "seq": 790,
+      "wallMs": 1793086071710,
+      "x": 10992.869140625,
+      "y": 9699.5,
+      "readPyMs": 1793086071770.8765
+     },
+     "cmd_move_ms": 147,
+     "error": null,
+     "sentPyMs": 1793086071549.623,
+     "args": "10982.5 9699.5 forcesprint",
+     "ackPyMs": 1793086071662.4827,
+     "donePyMs": 1793086073797.7937,
+     "wall_ms": 2147,
+     "legPyMs": 2248.28076171875
+    },
+    {
+     "arm": "forcesprint",
+     "leg": 1,
+     "from": {
+      "x": 10981.4443359375,
+      "y": 9699.5
+     },
+     "to": {
+      "end": "A",
+      "x": 10993.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 17,
+     "ack": {
+      "cmdSeq": 17,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 817,
+      "tick": 5131,
+      "wallMs": 1793086074233
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9335983467786938",
+      "seq": 849,
+      "wallMs": 1793086077310
+     },
+     "frames": 31,
+     "pace": 4.684016827968682,
+     "endurance_slope": -0.0047830988383762195,
+     "flags": {
+      "running": 7,
+      "sprinting": 23,
+      "forceRun": 23,
+      "updRunning": 7,
+      "updForceRun": 30,
+      "autoWalk": 0,
+      "frames": 31
+     },
+     "first_move": {
+      "seq": 825,
+      "wallMs": 1793086075009,
+      "x": 10981.458984375,
+      "y": 9699.5029296875,
+      "readPyMs": 1793086075078.5872
+     },
+     "cmd_move_ms": 776,
+     "error": null,
+     "sentPyMs": 1793086074223.111,
+     "args": "10993.5 9699.5 forcesprint",
+     "ackPyMs": 1793086074330.4802,
+     "donePyMs": 1793086077332.9746,
+     "wall_ms": 3077,
+     "legPyMs": 3109.93701171875
+    },
+    {
+     "arm": "forcesprint",
+     "leg": 2,
+     "from": {
+      "x": 10993.517578125,
+      "y": 9699.5029296875
+     },
+     "to": {
+      "end": "B",
+      "x": 10982.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 18,
+     "ack": {
+      "cmdSeq": 18,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 853,
+      "tick": 5337,
+      "wallMs": 1793086077668
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9580122921340221",
+      "seq": 875,
+      "wallMs": 1793086079709
+     },
+     "frames": 21,
+     "pace": 5.163445723684211,
+     "endurance_slope": -0.01172884635295553,
+     "flags": {
+      "running": 1,
+      "sprinting": 19,
+      "forceRun": 19,
+      "updRunning": 1,
+      "updForceRun": 20,
+      "autoWalk": 0,
+      "frames": 21
+     },
+     "first_move": {
+      "seq": 854,
+      "wallMs": 1793086077710,
+      "x": 10993.4443359375,
+      "y": 9699.5029296875,
+      "readPyMs": 1793086077761.5032
+     },
+     "cmd_move_ms": 42,
+     "error": null,
+     "sentPyMs": 1793086077653.7732,
+     "args": "10982.5 9699.5 forcesprint",
+     "ackPyMs": 1793086077761.507,
+     "donePyMs": 1793086079788.871,
+     "wall_ms": 2041,
+     "legPyMs": 2135.20361328125
+    }
+   ],
+   "centre": [
+    {
+     "arm": "centre",
+     "leg": "calibration",
+     "from": {
+      "x": 10981.470703125,
+      "y": 9699.47265625
+     },
+     "to": {
+      "end": "M",
+      "x": 10988.0,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 19,
+     "ack": {
+      "cmdSeq": 19,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 882,
+      "tick": 5498,
+      "wallMs": 1793086080347
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9689468675972706",
+      "seq": 918,
+      "wallMs": 1793086083809
+     },
+     "frames": 35,
+     "pace": 2.122218081678403,
+     "endurance_slope": 0.0006595265342755049,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 35
+     },
+     "first_move": {
+      "seq": 891,
+      "wallMs": 1793086081210,
+      "x": 10981.59375,
+      "y": 9699.4765625,
+      "readPyMs": 1793086081285.0513
+     },
+     "cmd_move_ms": 863,
+     "error": null,
+     "sentPyMs": 1793086080327.0183,
+     "args": "10988.0 9699.5",
+     "ackPyMs": 1793086080435.398,
+     "donePyMs": 1793086083860.2583,
+     "wall_ms": 3462,
+     "legPyMs": 3533.323486328125
+    },
+    {
+     "arm": "centre",
+     "leg": 0,
+     "from": {
+      "x": 10984.19140625,
+      "y": 9699.5810546875
+     },
+     "to": {
+      "end": "M",
+      "x": 10988.0,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 21,
+     "ack": {
+      "cmdSeq": 21,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 944,
+      "tick": 5845,
+      "wallMs": 1793086086131
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9914230645860344",
+      "seq": 961,
+      "wallMs": 1793086087709
+     },
+     "frames": 16,
+     "pace": 1.910412425061768,
+     "endurance_slope": 0.0009372919857541746,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 16
+     },
+     "first_move": {
+      "seq": 946,
+      "wallMs": 1793086086310,
+      "x": 10984.29296875,
+      "y": 9699.5810546875,
+      "readPyMs": 1793086086335.8699
+     },
+     "cmd_move_ms": 179,
+     "error": null,
+     "sentPyMs": 1793086086116.7942,
+     "args": "10988.0 9699.5",
+     "ackPyMs": 1793086086224.0767,
+     "donePyMs": 1793086087730.2476,
+     "wall_ms": 1578,
+     "legPyMs": 1613.5078125
+    },
+    {
+     "arm": "centre",
+     "leg": 1,
+     "from": {
+      "x": 10981.4697265625,
+      "y": 9699.5546875
+     },
+     "to": {
+      "end": "M",
+      "x": 10988.0,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 23,
+     "ack": {
+      "cmdSeq": 23,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1001,
+      "tick": 6166,
+      "wallMs": 1793086091481
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9669941402285374",
+      "seq": 1031,
+      "wallMs": 1793086094310
+     },
+     "frames": 29,
+     "pace": 2.0568712269067206,
+     "endurance_slope": 0.0004072913101741246,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 29
+     },
+     "first_move": {
+      "seq": 1003,
+      "wallMs": 1793086091610,
+      "x": 10981.5048828125,
+      "y": 9699.5546875,
+      "readPyMs": 1793086091686.4224
+     },
+     "cmd_move_ms": 129,
+     "error": null,
+     "sentPyMs": 1793086091469.9893,
+     "args": "10988.0 9699.5",
+     "ackPyMs": 1793086091580.5195,
+     "donePyMs": 1793086094352.716,
+     "wall_ms": 2829,
+     "legPyMs": 2882.8466796875
+    },
+    {
+     "arm": "centre",
+     "leg": 2,
+     "from": {
+      "x": 10993.501953125,
+      "y": 9699.4150390625
+     },
+     "to": {
+      "end": "M",
+      "x": 10988.0,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 25,
+     "ack": {
+      "cmdSeq": 25,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1060,
+      "tick": 6493,
+      "wallMs": 1793086096931
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9980702854703017",
+      "seq": 1091,
+      "wallMs": 1793086099912
+     },
+     "frames": 30,
+     "pace": 2.1453020174807995,
+     "endurance_slope": 0.0009068200968480546,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 30
+     },
+     "first_move": {
+      "seq": 1069,
+      "wallMs": 1793086097810,
+      "x": 10993.470703125,
+      "y": 9699.4150390625,
+      "readPyMs": 1793086097886.5261
+     },
+     "cmd_move_ms": 879,
+     "error": null,
+     "sentPyMs": 1793086096923.9001,
+     "args": "10988.0 9699.5",
+     "ackPyMs": 1793086097033.7715,
+     "donePyMs": 1793086100018.2815,
+     "wall_ms": 2981,
+     "legPyMs": 3094.476806640625
+    },
+    {
+     "arm": "centre",
+     "leg": 3,
+     "from": {
+      "x": 10981.46875,
+      "y": 9699.5927734375
+     },
+     "to": {
+      "end": "M",
+      "x": 10988.0,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 27,
+     "ack": {
+      "cmdSeq": 27,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1120,
+      "tick": 6834,
+      "wallMs": 1793086102614
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9669941402285374",
+      "seq": 1151,
+      "wallMs": 1793086105509
+     },
+     "frames": 30,
+     "pace": 2.0329315961218715,
+     "endurance_slope": 0.0005899088582089628,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 30
+     },
+     "first_move": {
+      "seq": 1123,
+      "wallMs": 1793086102810,
+      "x": 10981.5927734375,
+      "y": 9699.5927734375,
+      "readPyMs": 1793086102916.412
+     },
+     "cmd_move_ms": 196,
+     "error": null,
+     "sentPyMs": 1793086102593.6777,
+     "args": "10988.0 9699.5",
+     "ackPyMs": 1793086102701.6294,
+     "donePyMs": 1793086105590.9973,
+     "wall_ms": 2895,
+     "legPyMs": 2997.392578125
+    },
+    {
+     "arm": "centre",
+     "leg": 4,
+     "from": {
+      "x": 10990.671875,
+      "y": 9699.443359375
+     },
+     "to": {
+      "end": "M",
+      "x": 10988.0,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 29,
+     "ack": {
+      "cmdSeq": 29,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1179,
+      "tick": 7161,
+      "wallMs": 1793086108064
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9746333484338583",
+      "seq": 1191,
+      "wallMs": 1793086109110
+     },
+     "frames": 11,
+     "pace": 1.6897528772703934,
+     "endurance_slope": 0.001227831816649413,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 11
+     },
+     "first_move": {
+      "seq": 1181,
+      "wallMs": 1793086108212,
+      "x": 10990.615234375,
+      "y": 9699.4443359375,
+      "readPyMs": 1793086108257.8474
+     },
+     "cmd_move_ms": 148,
+     "error": null,
+     "sentPyMs": 1793086108044.321,
+     "args": "10988.0 9699.5",
+     "ackPyMs": 1793086108151.6575,
+     "donePyMs": 1793086109120.1023,
+     "wall_ms": 1046,
+     "legPyMs": 1075.85400390625
+    },
+    {
+     "arm": "centre",
+     "leg": 5,
+     "from": {
+      "x": 10981.478515625,
+      "y": 9699.5947265625
+     },
+     "to": {
+      "end": "M",
+      "x": 10988.0,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 31,
+     "ack": {
+      "cmdSeq": 31,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1220,
+      "tick": 7386,
+      "wallMs": 1793086111814
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9689468675972706",
+      "seq": 1251,
+      "wallMs": 1793086114709
+     },
+     "frames": 30,
+     "pace": 2.0412364296476238,
+     "endurance_slope": 0.00054352435835079,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 30
+     },
+     "first_move": {
+      "seq": 1223,
+      "wallMs": 1793086112009,
+      "x": 10981.6025390625,
+      "y": 9699.5947265625,
+      "readPyMs": 1793086112017.6335
+     },
+     "cmd_move_ms": 195,
+     "error": null,
+     "sentPyMs": 1793086111800.604,
+     "args": "10988.0 9699.5",
+     "ackPyMs": 1793086111908.5027,
+     "donePyMs": 1793086114797.0269,
+     "wall_ms": 2895,
+     "legPyMs": 2996.556884765625
+    }
+   ],
+   "autowalk": [
+    {
+     "arm": "walk",
+     "leg": 0,
+     "kind": "autowalk",
+     "dx": 1,
+     "dy": 0,
+     "vx": -1.0,
+     "vy": 0.0,
+     "ix": -0.707107,
+     "iy": -0.707107,
+     "correction_deg": 0.0,
+     "heading_signed_deg": -0.33500324607624066,
+     "seconds": 3.0,
+     "from": {
+      "x": 10987.3544921875,
+      "y": 9699.5205078125
+     },
+     "settled": true,
+     "cmdSeq": 22,
+     "ack": {
+      "cmdSeq": 22,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 966,
+      "tick": 5967,
+      "wallMs": 1793086088163
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=5.777444855357917",
+      "seq": 998,
+      "wallMs": 1793086091210
+     },
+     "frames": 31,
+     "pace": 1.942729086686262,
+     "endurance_slope": 0.0007466475168863932,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 30,
+      "frames": 31
+     },
+     "first_move": {
+      "seq": 968,
+      "wallMs": 1793086088310,
+      "x": 10987.28515625,
+      "y": 9699.5205078125,
+      "readPyMs": 1793086088369.6392
+     },
+     "cmd_move_ms": 147,
+     "heading_error_deg": 0.3350032460755668,
+     "displacement": 5.845803048056987,
+     "voided": "left the strip",
+     "off_strip_frames": 3,
+     "error": null,
+     "sentPyMs": 1793086088153.7866,
+     "args": "-0.707107 -0.707107 3.0",
+     "ackPyMs": 1793086088261.214,
+     "donePyMs": 1793086091252.461,
+     "wall_ms": 3047,
+     "autoWalk_frames": 30,
+     "autoWalk_updForceRun": 0,
+     "off_strip_first": {
+      "seq": 995,
+      "x": 10981.9384765625,
+      "y": 9699.5546875
+     },
+     "legPyMs": 3098.824951171875
+    },
+    {
+     "arm": "forcerun",
+     "leg": 1,
+     "kind": "autowalk",
+     "dx": -1,
+     "dy": 0,
+     "vx": 1.0,
+     "vy": 0.0,
+     "ix": 0.707107,
+     "iy": 0.707107,
+     "correction_deg": 0.0,
+     "heading_signed_deg": -0.7835862126683821,
+     "seconds": 1.5,
+     "from": {
+      "x": 10987.37890625,
+      "y": 9699.517578125
+     },
+     "settled": true,
+     "cmdSeq": 24,
+     "ack": {
+      "cmdSeq": 24,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1036,
+      "tick": 6365,
+      "wallMs": 1793086094798
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=5.569856814970204",
+      "seq": 1053,
+      "wallMs": 1793086096310
+     },
+     "frames": 16,
+     "pace": 3.7132606887328485,
+     "endurance_slope": 0.000590364138285319,
+     "flags": {
+      "running": 15,
+      "sprinting": 0,
+      "forceRun": 14,
+      "updRunning": 15,
+      "updForceRun": 16,
+      "autoWalk": 15,
+      "frames": 16
+     },
+     "first_move": {
+      "seq": 1038,
+      "wallMs": 1793086094910,
+      "x": 10987.423828125,
+      "y": 9699.517578125,
+      "readPyMs": 1793086094997.712
+     },
+     "cmd_move_ms": 112,
+     "heading_error_deg": 0.7835862126686675,
+     "displacement": 5.569856814970204,
+     "voided": null,
+     "off_strip_frames": 0,
+     "error": null,
+     "sentPyMs": 1793086094782.361,
+     "args": "0.707107 0.707107 1.5 forcerun",
+     "ackPyMs": 1793086094889.5073,
+     "donePyMs": 1793086096389.6992,
+     "wall_ms": 1512,
+     "autoWalk_frames": 15,
+     "autoWalk_updForceRun": 15,
+     "legPyMs": 1607.432373046875
+    },
+    {
+     "arm": "forcerun",
+     "leg": 2,
+     "kind": "autowalk",
+     "dx": 2,
+     "dy": 0,
+     "vx": -2.0,
+     "vy": 0.0,
+     "ix": -1.414214,
+     "iy": -1.414214,
+     "correction_deg": 0.0,
+     "heading_signed_deg": -0.7751365999515656,
+     "seconds": 1.5,
+     "from": {
+      "x": 10988.65234375,
+      "y": 9699.4931640625
+     },
+     "settled": true,
+     "cmdSeq": 26,
+     "ack": {
+      "cmdSeq": 26,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1096,
+      "tick": 6698,
+      "wallMs": 1793086100353
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=5.569843545356636",
+      "seq": 1113,
+      "wallMs": 1793086101910
+     },
+     "frames": 16,
+     "pace": 3.82360470868279,
+     "endurance_slope": -4.553794860839844e-05,
+     "flags": {
+      "running": 15,
+      "sprinting": 0,
+      "forceRun": 15,
+      "updRunning": 15,
+      "updForceRun": 15,
+      "autoWalk": 15,
+      "frames": 16
+     },
+     "first_move": {
+      "seq": 1098,
+      "wallMs": 1793086100510,
+      "x": 10988.5380859375,
+      "y": 9699.4931640625,
+      "readPyMs": 1793086100552.8816
+     },
+     "cmd_move_ms": 157,
+     "heading_error_deg": 0.7751365999513493,
+     "displacement": 5.77494253485026,
+     "voided": null,
+     "off_strip_frames": 0,
+     "error": null,
+     "sentPyMs": 1793086100336.907,
+     "args": "-1.414214 -1.414214 1.5 forcerun",
+     "ackPyMs": 1793086100447.037,
+     "donePyMs": 1793086101947.8406,
+     "wall_ms": 1557,
+     "autoWalk_frames": 15,
+     "autoWalk_updForceRun": 15,
+     "legPyMs": 1611.129638671875
+    },
+    {
+     "arm": "once",
+     "leg": 3,
+     "kind": "autowalk",
+     "dx": -1.95,
+     "dy": 0,
+     "vx": 1.95,
+     "vy": 0.0,
+     "ix": 1.378858,
+     "iy": 1.378858,
+     "correction_deg": 0.0,
+     "heading_signed_deg": -1.3794796624637797,
+     "seconds": 1.5,
+     "from": {
+      "x": 10987.37890625,
+      "y": 9699.517578125
+     },
+     "settled": true,
+     "cmdSeq": 28,
+     "ack": {
+      "cmdSeq": 28,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1157,
+      "tick": 7039,
+      "wallMs": 1793086106031
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=2.948151452158332",
+      "seq": 1174,
+      "wallMs": 1793086107610
+     },
+     "frames": 16,
+     "pace": 2.0508320643081634,
+     "endurance_slope": 0.0011096795399983723,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 15,
+      "frames": 16
+     },
+     "first_move": {
+      "seq": 1159,
+      "wallMs": 1793086106209,
+      "x": 10987.4658203125,
+      "y": 9699.517578125,
+      "readPyMs": 1793086106237.588
+     },
+     "cmd_move_ms": 178,
+     "heading_error_deg": 1.3794796624639436,
+     "displacement": 3.0829247556221877,
+     "voided": null,
+     "off_strip_frames": 0,
+     "error": null,
+     "sentPyMs": 1793086106020.046,
+     "args": "1.378858 1.378858 1.5 once",
+     "ackPyMs": 1793086106131.7676,
+     "donePyMs": 1793086107617.8374,
+     "wall_ms": 1579,
+     "autoWalk_frames": 15,
+     "autoWalk_updForceRun": 0,
+     "legPyMs": 1597.85986328125
+    },
+    {
+     "arm": "forcerun",
+     "leg": 4,
+     "kind": "autowalk",
+     "dx": 1,
+     "dy": 0,
+     "vx": -1.0,
+     "vy": 0.0,
+     "ix": -0.707107,
+     "iy": -0.707107,
+     "correction_deg": 0.0,
+     "heading_signed_deg": -0.7841533227848743,
+     "seconds": 1.5,
+     "from": {
+      "x": 10988.62890625,
+      "y": 9699.4931640625
+     },
+     "settled": true,
+     "cmdSeq": 30,
+     "ack": {
+      "cmdSeq": 30,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1196,
+      "tick": 7251,
+      "wallMs": 1793086109564
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=5.568880343811618",
+      "seq": 1213,
+      "wallMs": 1793086111110
+     },
+     "frames": 16,
+     "pace": 3.7761755644013926,
+     "endurance_slope": 0.0005001071927390203,
+     "flags": {
+      "running": 15,
+      "sprinting": 0,
+      "forceRun": 15,
+      "updRunning": 15,
+      "updForceRun": 15,
+      "autoWalk": 15,
+      "frames": 16
+     },
+     "first_move": {
+      "seq": 1198,
+      "wallMs": 1793086109709,
+      "x": 10988.541015625,
+      "y": 9699.4931640625,
+      "readPyMs": 1793086109766.1448
+     },
+     "cmd_move_ms": 145,
+     "heading_error_deg": 0.7841533227853373,
+     "displacement": 5.708542432459098,
+     "voided": null,
+     "off_strip_frames": 0,
+     "error": null,
+     "sentPyMs": 1793086109552.325,
+     "args": "-0.707107 -0.707107 1.5 forcerun",
+     "ackPyMs": 1793086109659.9243,
+     "donePyMs": 1793086111157.7368,
+     "wall_ms": 1546,
+     "autoWalk_frames": 15,
+     "autoWalk_updForceRun": 15,
+     "legPyMs": 1605.56298828125
+    },
+    {
+     "arm": "walk",
+     "leg": 5,
+     "kind": "autowalk",
+     "dx": -1,
+     "dy": 0,
+     "vx": 1.0,
+     "vy": 0.0,
+     "ix": 0.707107,
+     "iy": 0.707107,
+     "correction_deg": 0.0,
+     "heading_signed_deg": -1.5172931177701514,
+     "seconds": 3.0,
+     "from": {
+      "x": 10987.376953125,
+      "y": 9699.517578125
+     },
+     "settled": true,
+     "cmdSeq": 32,
+     "ack": {
+      "cmdSeq": 32,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1256,
+      "tick": 7585,
+      "wallMs": 1793086115130
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=6.129045979625323",
+      "seq": 1288,
+      "wallMs": 1793086118209
+     },
+     "frames": 31,
+     "pace": 2.111850526837193,
+     "endurance_slope": 0.0006120456938506683,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 30,
+      "frames": 31
+     },
+     "first_move": {
+      "seq": 1258,
+      "wallMs": 1793086115309,
+      "x": 10987.4638671875,
+      "y": 9699.517578125,
+      "readPyMs": 1793086115336.251
+     },
+     "cmd_move_ms": 179,
+     "heading_error_deg": 1.5172931177699753,
+     "displacement": 6.122263783780947,
+     "voided": null,
+     "off_strip_frames": 0,
+     "error": null,
+     "sentPyMs": 1793086115116.2566,
+     "args": "0.707107 0.707107 3.0",
+     "ackPyMs": 1793086115229.6746,
+     "donePyMs": 1793086118220.896,
+     "wall_ms": 3079,
+     "autoWalk_frames": 30,
+     "autoWalk_updForceRun": 0,
+     "legPyMs": 3104.8935546875
+    }
+   ],
+   "toggle": [],
+   "approach": {
+    "arm": "approach",
+    "leg": null,
+    "from": {
+     "x": 10997.5,
+     "y": 9699.5
+    },
+    "to": {
+     "end": "A",
+     "x": 10993.5,
+     "y": 9699.5
+    },
+    "settled": true,
+    "cmdSeq": 2,
+    "ack": {
+     "cmdSeq": 2,
+     "kind": "ack",
+     "ok": true,
+     "reason": "",
+     "seq": 151,
+     "tick": 1182,
+     "wallMs": 1793086008414
+    },
+    "goal": {
+     "state": "done",
+     "detail": "d=0.9814040142119493",
+     "seq": 174,
+     "wallMs": 1793086012710
+    },
+    "frames": 22,
+    "pace": 1.5356354678243147,
+    "endurance_slope": 0.0,
+    "flags": {
+     "running": 0,
+     "sprinting": 0,
+     "forceRun": 0,
+     "updRunning": 0,
+     "updForceRun": 0,
+     "autoWalk": 0,
+     "frames": 22
+    },
+    "first_move": {
+     "seq": 153,
+     "wallMs": 1793086008710,
+     "x": 10997.2890625,
+     "y": 9699.607421875,
+     "readPyMs": 1793086008735.2024
+    },
+    "cmd_move_ms": 296,
+    "error": null,
+    "sentPyMs": 1793086008407.5635,
+    "args": "10993.5 9699.5",
+    "ackPyMs": 1793086008518.0864,
+    "donePyMs": 1793086012793.2715,
+    "wall_ms": 4296,
+    "legPyMs": 4385.78662109375
+   },
+   "rate_on": {
+    "rate": 10,
+    "sentPyMs": 1793086012793.3506,
+    "cmdSeq": 3,
+    "ack": {
+     "cmdSeq": 3,
+     "kind": "ack",
+     "ok": true,
+     "reason": "",
+     "seq": 175,
+     "tick": 1446,
+     "wallMs": 1793086012817
+    }
+   },
+   "autowalk_calibration": {
+    "arm": "walk",
+    "leg": "calibration",
+    "kind": "autowalk",
+    "dx": 1,
+    "dy": 0,
+    "vx": -1.0,
+    "vy": 0.0,
+    "ix": -0.707107,
+    "iy": -0.707107,
+    "correction_deg": 0.0,
+    "heading_signed_deg": -1.989184497598842,
+    "seconds": 1.5,
+    "from": {
+     "x": 10987.376953125,
+     "y": 9699.482421875
+    },
+    "settled": true,
+    "cmdSeq": 20,
+    "ack": {
+     "cmdSeq": 20,
+     "kind": "ack",
+     "ok": true,
+     "reason": "",
+     "seq": 922,
+     "tick": 5729,
+     "wallMs": 1793086084196
+    },
+    "goal": {
+     "state": "done",
+     "detail": "d=2.8415560800582",
+     "seq": 939,
+     "wallMs": 1793086085710
+    },
+    "frames": 16,
+    "pace": 1.9028946168042857,
+    "endurance_slope": 0.0009370247522989908,
+    "flags": {
+     "running": 0,
+     "sprinting": 0,
+     "forceRun": 0,
+     "updRunning": 0,
+     "updForceRun": 0,
+     "autoWalk": 15,
+     "frames": 16
+    },
+    "first_move": {
+     "seq": 924,
+     "wallMs": 1793086084309,
+     "x": 10987.2978515625,
+     "y": 9699.4765625,
+     "readPyMs": 1793086084400.8867
+    },
+    "cmd_move_ms": 113,
+    "heading_error_deg": 1.9891844975987512,
+    "displacement": 2.8415560800582,
+    "voided": null,
+    "off_strip_frames": 0,
+    "error": null,
+    "sentPyMs": 1793086084184.735,
+    "args": "-0.707107 -0.707107 1.5",
+    "ackPyMs": 1793086084291.9412,
+    "donePyMs": 1793086085795.5654,
+    "wall_ms": 1514,
+    "autoWalk_frames": 15,
+    "autoWalk_updForceRun": 0,
+    "legPyMs": 1610.95458984375
+   },
+   "autowalk_correction_deg": 0.0,
+   "toggle_skipped": {
+    "forcerun": 3.707733093237295,
+    "walk": 2.051212391013422
+   },
+   "return": {
+    "arm": "return",
+    "leg": null,
+    "from": {
+     "x": 10993.50390625,
+     "y": 9699.35546875
+    },
+    "to": {
+     "end": "A",
+     "x": 10993.5,
+     "y": 9699.5
+    },
+    "settled": true,
+    "cmdSeq": 33,
+    "ack": {
+     "cmdSeq": 33,
+     "kind": "ack",
+     "ok": true,
+     "reason": "",
+     "seq": 1290,
+     "tick": 7778,
+     "wallMs": 1793086118347
+    },
+    "goal": {
+     "state": "done",
+     "detail": "d=0.14458402752595115",
+     "seq": 1292,
+     "wallMs": 1793086118409
+    },
+    "frames": 1,
+    "pace": null,
+    "endurance_slope": null,
+    "flags": {
+     "running": 0,
+     "sprinting": 0,
+     "forceRun": 0,
+     "updRunning": 0,
+     "updForceRun": 0,
+     "autoWalk": 0,
+     "frames": 1
+    },
+    "first_move": null,
+    "cmd_move_ms": null,
+    "error": null,
+    "sentPyMs": 1793086118336.2717,
+    "args": "10993.5 9699.5",
+    "ackPyMs": 1793086118443.9517,
+    "donePyMs": 1793086118444.2415,
+    "wall_ms": 62,
+    "legPyMs": 107.990234375
+   },
+   "paces": {
+    "walk": 2.051212391013422,
+    "setrun": 2.0038858607003047,
+    "forcerun": 3.707733093237295,
+    "forcerun_tick": 2.032311480978261,
+    "forcesprint": 4.684016827968682,
+    "toggle": null
+   },
+   "deadline_skipped": 0,
+   "rate_back": {
+    "rate": 5,
+    "sentPyMs": 1793086118447.0698,
+    "cmdSeq": 34,
+    "ack": {
+     "cmdSeq": 34,
+     "kind": "ack",
+     "ok": true,
+     "reason": "",
+     "seq": 1293,
+     "tick": 7785,
+     "wallMs": 1793086118465
+    }
+   }
+  },
+  "load": {
+   "server_arm": {
+    "ok": true,
+    "side": "server",
+    "hooked": true,
+    "maxFracture": 0,
+    "legs": [
+     "UpperLeg_L=0",
+     "UpperLeg_R=0",
+     "LowerLeg_L=0",
+     "LowerLeg_R=0",
+     "Foot_L=0",
+     "Foot_R=0"
+    ],
+    "counts": {},
+    "fall": {},
+    "wall": 216.126,
+    "wall_after": 216.886
+   },
+   "client_arm": {
+    "ok": true,
+    "side": "client",
+    "event": "OnPlayerGetDamage",
+    "hooked": true,
+    "count": 0,
+    "fires": {},
+    "wall": 216.886,
+    "wall_after": 217.394
+   },
+   "before": {
+    "weight": 1.5550000667572021,
+    "maxWeight": 12,
+    "level": 0,
+    "health": 100,
+    "seq": 1294
+   },
+   "adds": [
+    {
+     "i": 1,
+     "rcon": {
+      "ok": true,
+      "reply": "Item Base.Plank Added in admin's inventory."
+     },
+     "frame_weight": 4.555000305175781,
+     "frame_maxWeight": 12,
+     "level": 0,
+     "frame_seq": 1303,
+     "weight_rose": true
+    },
+    {
+     "i": 2,
+     "rcon": {
+      "ok": true,
+      "reply": ""
+     },
+     "frame_weight": 7.555000305175781,
+     "frame_maxWeight": 12,
+     "level": 0,
+     "frame_seq": 1306,
+     "weight_rose": true
+    },
+    {
+     "i": 3,
+     "rcon": {
+      "ok": true,
+      "reply": "Item Base.Plank Added in admin's inventory."
+     },
+     "frame_weight": 10.555000305175781,
+     "frame_maxWeight": 12,
+     "level": 0,
+     "frame_seq": 1308,
+     "weight_rose": true
+    },
+    {
+     "i": 4,
+     "rcon": {
+      "ok": true,
+      "reply": "Item Base.Plank Added in admin's inventory."
+     },
+     "frame_weight": 13.555000305175781,
+     "frame_maxWeight": 12,
+     "level": 1,
+     "frame_seq": 1310,
+     "weight_rose": true
+    },
+    {
+     "i": 5,
+     "rcon": {
+      "ok": true,
+      "reply": "Item Base.Plank Added in admin's inventory."
+     },
+     "frame_weight": 16.55500030517578,
+     "frame_maxWeight": 12,
+     "level": 2,
+     "frame_seq": 1312,
+     "weight_rose": true
+    },
+    {
+     "i": 6,
+     "rcon": {
+      "ok": true,
+      "reply": "Item Base.Plank Added in admin's inventory."
+     },
+     "frame_weight": 19.55500030517578,
+     "frame_maxWeight": 12,
+     "level": 3,
+     "frame_seq": 1314,
+     "weight_rose": true
+    }
+   ],
+   "level3_at_ratio": 1.6295833587646484,
+   "level3_at_add": 6,
+   "planks_added": 6,
+   "walk_loaded": [
+    {
+     "arm": "walk_loaded",
+     "leg": 0,
+     "from": {
+      "x": 10993.50390625,
+      "y": 9699.35546875
+     },
+     "to": {
+      "end": "B",
+      "x": 10982.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 35,
+     "ack": {
+      "cmdSeq": 35,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1315,
+      "tick": 7961,
+      "wallMs": 1793086121398
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9747346174538435",
+      "seq": 1350,
+      "wallMs": 1793086127510
+     },
+     "frames": 31,
+     "pace": 1.6771686770315501,
+     "endurance_slope": -0.0019490023454030354,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 31
+     },
+     "first_move": {
+      "seq": 1317,
+      "wallMs": 1793086121710,
+      "x": 10993.357421875,
+      "y": 9699.35546875,
+      "readPyMs": 1793086121804.885
+     },
+     "cmd_move_ms": 312,
+     "error": null,
+     "sentPyMs": 1793086121380.2815,
+     "args": "10982.5 9699.5",
+     "ackPyMs": 1793086121490.6912,
+     "donePyMs": 1793086127616.5896,
+     "wall_ms": 6112,
+     "legPyMs": 6236.419189453125
+    },
+    {
+     "arm": "walk_loaded",
+     "leg": 1,
+     "from": {
+      "x": 10983.1923828125,
+      "y": 9699.486328125
+     },
+     "to": {
+      "end": "A",
+      "x": 10993.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 36,
+     "ack": {
+      "cmdSeq": 36,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1354,
+      "tick": 8366,
+      "wallMs": 1793086128148
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9707994010354463",
+      "seq": 1388,
+      "wallMs": 1793086133909
+     },
+     "frames": 29,
+     "pace": 1.6829427083333333,
+     "endurance_slope": -0.001903846859931946,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 29
+     },
+     "first_move": {
+      "seq": 1355,
+      "wallMs": 1793086128309,
+      "x": 10983.236328125,
+      "y": 9699.486328125,
+      "readPyMs": 1793086128354.8157
+     },
+     "cmd_move_ms": 161,
+     "error": null,
+     "sentPyMs": 1793086128137.137,
+     "args": "10993.5 9699.5",
+     "ackPyMs": 1793086128246.647,
+     "donePyMs": 1793086133966.4812,
+     "wall_ms": 5761,
+     "legPyMs": 5829.47509765625
+    },
+    {
+     "arm": "walk_loaded",
+     "leg": 2,
+     "from": {
+      "x": 10992.8115234375,
+      "y": 9699.486328125
+     },
+     "to": {
+      "end": "B",
+      "x": 10982.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 37,
+     "ack": {
+      "cmdSeq": 37,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1391,
+      "tick": 8741,
+      "wallMs": 1793086134397
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9737287988668486",
+      "seq": 1421,
+      "wallMs": 1793086139910
+     },
+     "frames": 28,
+     "pace": 1.72566422884651,
+     "endurance_slope": -0.0018965445322320321,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 28
+     },
+     "first_move": {
+      "seq": 1392,
+      "wallMs": 1793086134509,
+      "x": 10992.7939453125,
+      "y": 9699.486328125,
+      "readPyMs": 1793086134596.267
+     },
+     "cmd_move_ms": 112,
+     "error": null,
+     "sentPyMs": 1793086134383.4934,
+     "args": "10982.5 9699.5",
+     "ackPyMs": 1793086134490.6235,
+     "donePyMs": 1793086140006.8342,
+     "wall_ms": 5513,
+     "legPyMs": 5623.486572265625
+    },
+    {
+     "arm": "walk_loaded",
+     "leg": 3,
+     "from": {
+      "x": 10983.19140625,
+      "y": 9699.486328125
+     },
+     "to": {
+      "end": "A",
+      "x": 10993.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 38,
+     "ack": {
+      "cmdSeq": 38,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1425,
+      "tick": 9110,
+      "wallMs": 1793086140550
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9707994010354463",
+      "seq": 1456,
+      "wallMs": 1793086146310
+     },
+     "frames": 29,
+     "pace": 1.6834353005186145,
+     "endurance_slope": -0.001642469848905291,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 29
+     },
+     "first_move": {
+      "seq": 1426,
+      "wallMs": 1793086140710,
+      "x": 10983.2353515625,
+      "y": 9699.486328125,
+      "readPyMs": 1793086140751.5527
+     },
+     "cmd_move_ms": 160,
+     "error": null,
+     "sentPyMs": 1793086140534.3464,
+     "args": "10993.5 9699.5",
+     "ackPyMs": 1793086140643.5151,
+     "donePyMs": 1793086146354.8264,
+     "wall_ms": 5760,
+     "legPyMs": 5820.556640625
+    },
+    {
+     "arm": "walk_loaded",
+     "leg": 4,
+     "from": {
+      "x": 10992.8115234375,
+      "y": 9699.486328125
+     },
+     "to": {
+      "end": "B",
+      "x": 10982.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 39,
+     "ack": {
+      "cmdSeq": 39,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1459,
+      "tick": 9484,
+      "wallMs": 1793086146781
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9707994010354463",
+      "seq": 1490,
+      "wallMs": 1793086152309
+     },
+     "frames": 28,
+     "pace": 1.727908912771687,
+     "endurance_slope": -0.0017423346255041534,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 28
+     },
+     "first_move": {
+      "seq": 1460,
+      "wallMs": 1793086146910,
+      "x": 10992.7763671875,
+      "y": 9699.486328125,
+      "readPyMs": 1793086146992.7349
+     },
+     "cmd_move_ms": 129,
+     "error": null,
+     "sentPyMs": 1793086146774.5469,
+     "args": "10982.5 9699.5",
+     "ackPyMs": 1793086146886.6406,
+     "donePyMs": 1793086152396.3164,
+     "wall_ms": 5528,
+     "legPyMs": 5621.893310546875
+    }
+   ],
+   "drop": {
+    "k": 1,
+    "predicted_ratio": 1.3795833587646484,
+    "rule": "level2 band",
+    "weight": 19.55500030517578,
+    "maxWeight": 12,
+    "planks": 6,
+    "cmdSeq": 40,
+    "ack": {
+     "cmdSeq": 40,
+     "kind": "ack",
+     "ok": true,
+     "reason": "",
+     "seq": 1567,
+     "tick": 10725,
+     "wallMs": 1793086167464
+    },
+    "goal": {
+     "state": "done",
+     "detail": "moved=1",
+     "seq": 1571,
+     "wallMs": 1793086167909
+    },
+    "error": null,
+    "sentPyMs": 1793086167454.7852,
+    "args": "Base.Plank 1",
+    "ackPyMs": 1793086167563.1343,
+    "donePyMs": 1793086167980.2053,
+    "after": {
+     "weight": 16.55500030517578,
+     "maxWeight": 12,
+     "level": 2,
+     "seq": 1571
+    }
+   },
+   "walk_level2": [
+    {
+     "arm": "walk_level2",
+     "leg": 0,
+     "from": {
+      "x": 10983.1884765625,
+      "y": 9699.486328125
+     },
+     "to": {
+      "end": "A",
+      "x": 10993.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 41,
+     "ack": {
+      "cmdSeq": 41,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1572,
+      "tick": 10757,
+      "wallMs": 1793086167996
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9864228760182071",
+      "seq": 1600,
+      "wallMs": 1793086173309
+     },
+     "frames": 27,
+     "pace": 1.7989926110222045,
+     "endurance_slope": 0.0,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 27
+     },
+     "first_move": {
+      "seq": 1574,
+      "wallMs": 1793086168309,
+      "x": 10983.3349609375,
+      "y": 9699.486328125,
+      "readPyMs": 1793086168405.6106
+     },
+     "cmd_move_ms": 313,
+     "error": null,
+     "sentPyMs": 1793086167980.448,
+     "args": "10993.5 9699.5",
+     "ackPyMs": 1793086168088.1187,
+     "donePyMs": 1793086173391.575,
+     "wall_ms": 5313,
+     "legPyMs": 5411.2763671875
+    },
+    {
+     "arm": "walk_level2",
+     "leg": 1,
+     "from": {
+      "x": 10992.8173828125,
+      "y": 9699.486328125
+     },
+     "to": {
+      "end": "B",
+      "x": 10982.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 42,
+     "ack": {
+      "cmdSeq": 42,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1604,
+      "tick": 11119,
+      "wallMs": 1793086174032
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.971775866785193",
+      "seq": 1631,
+      "wallMs": 1793086179110
+     },
+     "frames": 26,
+     "pace": 1.8725753749218912,
+     "endurance_slope": 0.0,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 26
+     },
+     "first_move": {
+      "seq": 1606,
+      "wallMs": 1793086174310,
+      "x": 10992.5830078125,
+      "y": 9699.486328125,
+      "readPyMs": 1793086174326.358
+     },
+     "cmd_move_ms": 278,
+     "error": null,
+     "sentPyMs": 1793086174013.0857,
+     "args": "10982.5 9699.5",
+     "ackPyMs": 1793086174119.741,
+     "donePyMs": 1793086179207.2007,
+     "wall_ms": 5078,
+     "legPyMs": 5194.25048828125
+    },
+    {
+     "arm": "walk_level2",
+     "leg": 2,
+     "from": {
+      "x": 10983.1689453125,
+      "y": 9699.486328125
+     },
+     "to": {
+      "end": "A",
+      "x": 10993.5,
+      "y": 9699.5
+     },
+     "settled": true,
+     "cmdSeq": 43,
+     "ack": {
+      "cmdSeq": 43,
+      "kind": "ack",
+      "ok": true,
+      "reason": "",
+      "seq": 1635,
+      "tick": 11462,
+      "wallMs": 1793086179750
+     },
+     "goal": {
+      "state": "done",
+      "detail": "d=0.9932581614099728",
+      "seq": 1663,
+      "wallMs": 1793086185109
+     },
+     "frames": 27,
+     "pace": 1.839453125,
+     "endurance_slope": 0.0,
+     "flags": {
+      "running": 0,
+      "sprinting": 0,
+      "forceRun": 0,
+      "updRunning": 0,
+      "updForceRun": 0,
+      "autoWalk": 0,
+      "frames": 27
+     },
+     "first_move": {
+      "seq": 1636,
+      "wallMs": 1793086179909,
+      "x": 10983.212890625,
+      "y": 9699.486328125,
+      "readPyMs": 1793086179942.8955
+     },
+     "cmd_move_ms": 159,
+     "error": null,
+     "sentPyMs": 1793086179726.786,
+     "args": "10993.5 9699.5",
+     "ackPyMs": 1793086179836.5034,
+     "donePyMs": 1793086185134.4844,
+     "wall_ms": 5359,
+     "legPyMs": 5407.752685546875
+    }
+   ],
+   "server_read": {
+    "ok": true,
+    "side": "server",
+    "hooked": true,
+    "maxFracture": 0,
+    "legs": [
+     "UpperLeg_L=0",
+     "UpperLeg_R=0",
+     "LowerLeg_L=0",
+     "LowerLeg_R=0",
+     "Foot_L=0",
+     "Foot_R=0"
+    ],
+    "counts": {
+     "HEAVYLOAD": 49
+    },
+    "fall": {},
+    "wall": 282.704,
+    "wall_after": 284.715
+   },
+   "client_read": {
+    "ok": true,
+    "side": "client",
+    "event": "OnPlayerGetDamage",
+    "hooked": true,
+    "count": 0,
+    "fires": {},
+    "wall": 284.715,
+    "wall_after": 284.972
+   },
+   "trace": [
+    {
+     "seq": 1295,
+     "wallMs": 1793086118709,
+     "health": 100,
+     "level": 0,
+     "weight": 1.5550000667572021,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1296,
+     "wallMs": 1793086118910,
+     "health": 100,
+     "level": 0,
+     "weight": 1.5550000667572021,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1297,
+     "wallMs": 1793086119109,
+     "health": 100,
+     "level": 0,
+     "weight": 1.5550000667572021,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1298,
+     "wallMs": 1793086119309,
+     "health": 100,
+     "level": 0,
+     "weight": 1.5550000667572021,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1299,
+     "wallMs": 1793086119509,
+     "health": 100,
+     "level": 0,
+     "weight": 1.5550000667572021,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1300,
+     "wallMs": 1793086119711,
+     "health": 100,
+     "level": 0,
+     "weight": 1.5550000667572021,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1301,
+     "wallMs": 1793086119909,
+     "health": 100,
+     "level": 0,
+     "weight": 1.5550000667572021,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1303,
+     "wallMs": 1793086120109,
+     "health": 100,
+     "level": 0,
+     "weight": 4.555000305175781,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1304,
+     "wallMs": 1793086120309,
+     "health": 100,
+     "level": 0,
+     "weight": 4.555000305175781,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1306,
+     "wallMs": 1793086120510,
+     "health": 100,
+     "level": 0,
+     "weight": 7.555000305175781,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1308,
+     "wallMs": 1793086120709,
+     "health": 100,
+     "level": 0,
+     "weight": 10.555000305175781,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1310,
+     "wallMs": 1793086120910,
+     "health": 100,
+     "level": 1,
+     "weight": 13.555000305175781,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1312,
+     "wallMs": 1793086121109,
+     "health": 100,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1314,
+     "wallMs": 1793086121311,
+     "health": 100,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1316,
+     "wallMs": 1793086121510,
+     "health": 99.6090087890625,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1317,
+     "wallMs": 1793086121710,
+     "health": 99.6090087890625,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1318,
+     "wallMs": 1793086121909,
+     "health": 99.62326049804688,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1319,
+     "wallMs": 1793086122109,
+     "health": 99.62326049804688,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1320,
+     "wallMs": 1793086122310,
+     "health": 99.62326049804688,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1322,
+     "wallMs": 1793086122509,
+     "health": 98.84760284423828,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1323,
+     "wallMs": 1793086122710,
+     "health": 98.84760284423828,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1324,
+     "wallMs": 1793086122909,
+     "health": 98.86186218261719,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1325,
+     "wallMs": 1793086123110,
+     "health": 98.86186218261719,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1326,
+     "wallMs": 1793086123309,
+     "health": 98.86186218261719,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1327,
+     "wallMs": 1793086123509,
+     "health": 98.87611389160156,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1328,
+     "wallMs": 1793086123709,
+     "health": 98.87611389160156,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1329,
+     "wallMs": 1793086123910,
+     "health": 98.89037322998047,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1330,
+     "wallMs": 1793086124110,
+     "health": 98.89037322998047,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1331,
+     "wallMs": 1793086124310,
+     "health": 98.89037322998047,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1333,
+     "wallMs": 1793086124511,
+     "health": 98.11390686035156,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1334,
+     "wallMs": 1793086124710,
+     "health": 98.11390686035156,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1335,
+     "wallMs": 1793086124912,
+     "health": 97.73299407958984,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1336,
+     "wallMs": 1793086125110,
+     "health": 97.73299407958984,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1337,
+     "wallMs": 1793086125310,
+     "health": 97.73299407958984,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1338,
+     "wallMs": 1793086125511,
+     "health": 97.74725341796875,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1339,
+     "wallMs": 1793086125709,
+     "health": 97.74725341796875,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1341,
+     "wallMs": 1793086125910,
+     "health": 96.57484436035156,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1342,
+     "wallMs": 1793086126111,
+     "health": 96.57484436035156,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1343,
+     "wallMs": 1793086126309,
+     "health": 96.57484436035156,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1344,
+     "wallMs": 1793086126509,
+     "health": 96.58909606933594,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1345,
+     "wallMs": 1793086126709,
+     "health": 96.58909606933594,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1346,
+     "wallMs": 1793086126909,
+     "health": 96.60335540771484,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1347,
+     "wallMs": 1793086127109,
+     "health": 96.60335540771484,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1348,
+     "wallMs": 1793086127310,
+     "health": 96.60335540771484,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1350,
+     "wallMs": 1793086127510,
+     "health": 96.61760711669922,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1351,
+     "wallMs": 1793086127709,
+     "health": 96.61760711669922,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1352,
+     "wallMs": 1793086127909,
+     "health": 96.23587036132812,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1353,
+     "wallMs": 1793086128110,
+     "health": 96.23587036132812,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1355,
+     "wallMs": 1793086128309,
+     "health": 96.23587036132812,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1356,
+     "wallMs": 1793086128509,
+     "health": 95.85449981689453,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1357,
+     "wallMs": 1793086128710,
+     "health": 95.85449981689453,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1358,
+     "wallMs": 1793086128909,
+     "health": 95.8687515258789,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1359,
+     "wallMs": 1793086129110,
+     "health": 95.8687515258789,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1360,
+     "wallMs": 1793086129311,
+     "health": 95.8687515258789,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1361,
+     "wallMs": 1793086129510,
+     "health": 95.88301086425781,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1362,
+     "wallMs": 1793086129710,
+     "health": 95.88301086425781,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1364,
+     "wallMs": 1793086129910,
+     "health": 95.10627746582031,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1365,
+     "wallMs": 1793086130109,
+     "health": 95.10627746582031,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1366,
+     "wallMs": 1793086130309,
+     "health": 95.10627746582031,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1368,
+     "wallMs": 1793086130509,
+     "health": 94.32957458496094,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1369,
+     "wallMs": 1793086130710,
+     "health": 94.32957458496094,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1371,
+     "wallMs": 1793086130910,
+     "health": 93.55284118652344,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1372,
+     "wallMs": 1793086131110,
+     "health": 93.55284118652344,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1373,
+     "wallMs": 1793086131310,
+     "health": 93.55284118652344,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1374,
+     "wallMs": 1793086131509,
+     "health": 93.17169952392578,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1375,
+     "wallMs": 1793086131709,
+     "health": 93.17169952392578,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1376,
+     "wallMs": 1793086131909,
+     "health": 92.78987884521484,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1377,
+     "wallMs": 1793086132109,
+     "health": 92.78987884521484,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1378,
+     "wallMs": 1793086132310,
+     "health": 92.78987884521484,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1379,
+     "wallMs": 1793086132509,
+     "health": 92.80413818359375,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1380,
+     "wallMs": 1793086132709,
+     "health": 92.80413818359375,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1381,
+     "wallMs": 1793086132911,
+     "health": 92.42267608642578,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1382,
+     "wallMs": 1793086133110,
+     "health": 92.42267608642578,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1383,
+     "wallMs": 1793086133311,
+     "health": 92.42267608642578,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1385,
+     "wallMs": 1793086133509,
+     "health": 91.24921417236328,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1386,
+     "wallMs": 1793086133709,
+     "health": 91.24921417236328,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1388,
+     "wallMs": 1793086133909,
+     "health": 91.26347351074219,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1389,
+     "wallMs": 1793086134110,
+     "health": 91.26347351074219,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1390,
+     "wallMs": 1793086134309,
+     "health": 91.26347351074219,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1392,
+     "wallMs": 1793086134509,
+     "health": 91.27772521972656,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1393,
+     "wallMs": 1793086134709,
+     "health": 91.27772521972656,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1394,
+     "wallMs": 1793086134909,
+     "health": 90.89556884765625,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1395,
+     "wallMs": 1793086135109,
+     "health": 90.89556884765625,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1396,
+     "wallMs": 1793086135309,
+     "health": 90.89556884765625,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1397,
+     "wallMs": 1793086135509,
+     "health": 90.90982055664062,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1398,
+     "wallMs": 1793086135710,
+     "health": 90.90982055664062,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1399,
+     "wallMs": 1793086135909,
+     "health": 90.92407989501953,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1400,
+     "wallMs": 1793086136109,
+     "health": 90.92407989501953,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1401,
+     "wallMs": 1793086136309,
+     "health": 90.92407989501953,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1402,
+     "wallMs": 1793086136510,
+     "health": 90.93833923339844,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1403,
+     "wallMs": 1793086136709,
+     "health": 90.93833923339844,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1404,
+     "wallMs": 1793086136910,
+     "health": 90.55681610107422,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1405,
+     "wallMs": 1793086137110,
+     "health": 90.55681610107422,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1406,
+     "wallMs": 1793086137309,
+     "health": 90.55681610107422,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1407,
+     "wallMs": 1793086137509,
+     "health": 90.5710678100586,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1408,
+     "wallMs": 1793086137709,
+     "health": 90.5710678100586,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1409,
+     "wallMs": 1793086137909,
+     "health": 90.5853271484375,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1410,
+     "wallMs": 1793086138109,
+     "health": 90.5853271484375,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1411,
+     "wallMs": 1793086138309,
+     "health": 90.5853271484375,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1412,
+     "wallMs": 1793086138509,
+     "health": 90.59957885742188,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1413,
+     "wallMs": 1793086138709,
+     "health": 90.59957885742188,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1414,
+     "wallMs": 1793086138909,
+     "health": 90.61383819580078,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1415,
+     "wallMs": 1793086139109,
+     "health": 90.61383819580078,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1416,
+     "wallMs": 1793086139310,
+     "health": 90.61383819580078,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1418,
+     "wallMs": 1793086139511,
+     "health": 89.44056701660156,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1419,
+     "wallMs": 1793086139709,
+     "health": 89.44056701660156,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1421,
+     "wallMs": 1793086139910,
+     "health": 89.45482635498047,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1422,
+     "wallMs": 1793086140109,
+     "health": 89.45482635498047,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1423,
+     "wallMs": 1793086140310,
+     "health": 89.45482635498047,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1424,
+     "wallMs": 1793086140509,
+     "health": 89.46908569335938,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1426,
+     "wallMs": 1793086140710,
+     "health": 89.46908569335938,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1427,
+     "wallMs": 1793086140910,
+     "health": 89.08759307861328,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1428,
+     "wallMs": 1793086141109,
+     "health": 89.08759307861328,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1429,
+     "wallMs": 1793086141309,
+     "health": 89.08759307861328,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1430,
+     "wallMs": 1793086141509,
+     "health": 89.10185241699219,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1431,
+     "wallMs": 1793086141709,
+     "health": 89.10185241699219,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1432,
+     "wallMs": 1793086141909,
+     "health": 89.11610412597656,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1433,
+     "wallMs": 1793086142109,
+     "health": 89.11610412597656,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1434,
+     "wallMs": 1793086142310,
+     "health": 89.11610412597656,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1435,
+     "wallMs": 1793086142509,
+     "health": 88.73429107666016,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1436,
+     "wallMs": 1793086142710,
+     "health": 88.73429107666016,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1437,
+     "wallMs": 1793086142909,
+     "health": 88.74855041503906,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1438,
+     "wallMs": 1793086143109,
+     "health": 88.74855041503906,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1439,
+     "wallMs": 1793086143310,
+     "health": 88.74855041503906,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1440,
+     "wallMs": 1793086143509,
+     "health": 88.76280212402344,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1441,
+     "wallMs": 1793086143709,
+     "health": 88.76280212402344,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1442,
+     "wallMs": 1793086143909,
+     "health": 88.38082885742188,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1443,
+     "wallMs": 1793086144111,
+     "health": 88.38082885742188,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1444,
+     "wallMs": 1793086144311,
+     "health": 88.38082885742188,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1445,
+     "wallMs": 1793086144509,
+     "health": 88.39508056640625,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1446,
+     "wallMs": 1793086144709,
+     "health": 88.39508056640625,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1448,
+     "wallMs": 1793086144909,
+     "health": 87.61772918701172,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1449,
+     "wallMs": 1793086145110,
+     "health": 87.61772918701172,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1450,
+     "wallMs": 1793086145309,
+     "health": 87.61772918701172,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1451,
+     "wallMs": 1793086145510,
+     "health": 87.63198852539062,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1452,
+     "wallMs": 1793086145710,
+     "health": 87.63198852539062,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1453,
+     "wallMs": 1793086145910,
+     "health": 87.646240234375,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1454,
+     "wallMs": 1793086146109,
+     "health": 87.646240234375,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1456,
+     "wallMs": 1793086146310,
+     "health": 87.646240234375,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1457,
+     "wallMs": 1793086146510,
+     "health": 87.26499938964844,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1458,
+     "wallMs": 1793086146710,
+     "health": 87.26499938964844,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1460,
+     "wallMs": 1793086146910,
+     "health": 87.27925872802734,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1461,
+     "wallMs": 1793086147109,
+     "health": 87.27925872802734,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1462,
+     "wallMs": 1793086147310,
+     "health": 87.27925872802734,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1463,
+     "wallMs": 1793086147510,
+     "health": 87.29351043701172,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1464,
+     "wallMs": 1793086147709,
+     "health": 87.29351043701172,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1465,
+     "wallMs": 1793086147909,
+     "health": 86.9113998413086,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1466,
+     "wallMs": 1793086148110,
+     "health": 86.9113998413086,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1467,
+     "wallMs": 1793086148309,
+     "health": 86.9113998413086,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1468,
+     "wallMs": 1793086148509,
+     "health": 86.53034973144531,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1469,
+     "wallMs": 1793086148709,
+     "health": 86.53034973144531,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1471,
+     "wallMs": 1793086148909,
+     "health": 85.75279235839844,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1472,
+     "wallMs": 1793086149109,
+     "health": 85.75279235839844,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1473,
+     "wallMs": 1793086149310,
+     "health": 85.75279235839844,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1474,
+     "wallMs": 1793086149510,
+     "health": 85.76704406738281,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1475,
+     "wallMs": 1793086149709,
+     "health": 85.76704406738281,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1476,
+     "wallMs": 1793086149910,
+     "health": 85.78130340576172,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1477,
+     "wallMs": 1793086150110,
+     "health": 85.78130340576172,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1478,
+     "wallMs": 1793086150309,
+     "health": 85.78130340576172,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1479,
+     "wallMs": 1793086150509,
+     "health": 85.79556274414062,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1480,
+     "wallMs": 1793086150709,
+     "health": 85.79556274414062,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1481,
+     "wallMs": 1793086150909,
+     "health": 85.41433715820312,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1482,
+     "wallMs": 1793086151109,
+     "health": 85.41433715820312,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1483,
+     "wallMs": 1793086151311,
+     "health": 85.41433715820312,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1485,
+     "wallMs": 1793086151511,
+     "health": 84.63740539550781,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1486,
+     "wallMs": 1793086151709,
+     "health": 84.63740539550781,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1487,
+     "wallMs": 1793086151909,
+     "health": 84.65166473388672,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1488,
+     "wallMs": 1793086152109,
+     "health": 84.65166473388672,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1490,
+     "wallMs": 1793086152309,
+     "health": 84.65166473388672,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1491,
+     "wallMs": 1793086152510,
+     "health": 84.66592407226562,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1492,
+     "wallMs": 1793086152709,
+     "health": 84.66592407226562,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1493,
+     "wallMs": 1793086152909,
+     "health": 84.68017578125,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1494,
+     "wallMs": 1793086153109,
+     "health": 84.68017578125,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1495,
+     "wallMs": 1793086153309,
+     "health": 84.68017578125,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1496,
+     "wallMs": 1793086153509,
+     "health": 84.29930114746094,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1497,
+     "wallMs": 1793086153709,
+     "health": 84.29930114746094,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1498,
+     "wallMs": 1793086153909,
+     "health": 83.91796875,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1499,
+     "wallMs": 1793086154110,
+     "health": 83.91796875,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1500,
+     "wallMs": 1793086154309,
+     "health": 83.91796875,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1501,
+     "wallMs": 1793086154509,
+     "health": 83.9322280883789,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1502,
+     "wallMs": 1793086154709,
+     "health": 83.9322280883789,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1503,
+     "wallMs": 1793086154910,
+     "health": 83.94648742675781,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1504,
+     "wallMs": 1793086155110,
+     "health": 83.94648742675781,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1505,
+     "wallMs": 1793086155311,
+     "health": 83.94648742675781,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1506,
+     "wallMs": 1793086155509,
+     "health": 83.96073913574219,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1507,
+     "wallMs": 1793086155710,
+     "health": 83.96073913574219,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1508,
+     "wallMs": 1793086155909,
+     "health": 83.97499084472656,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1509,
+     "wallMs": 1793086156109,
+     "health": 83.97499084472656,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1510,
+     "wallMs": 1793086156309,
+     "health": 83.97499084472656,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1511,
+     "wallMs": 1793086156509,
+     "health": 83.98925018310547,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1512,
+     "wallMs": 1793086156709,
+     "health": 83.98925018310547,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1513,
+     "wallMs": 1793086156910,
+     "health": 84.00350952148438,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1514,
+     "wallMs": 1793086157109,
+     "health": 84.00350952148438,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1515,
+     "wallMs": 1793086157309,
+     "health": 84.00350952148438,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1516,
+     "wallMs": 1793086157510,
+     "health": 84.01776123046875,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1517,
+     "wallMs": 1793086157709,
+     "health": 84.01776123046875,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1518,
+     "wallMs": 1793086157909,
+     "health": 84.03202056884766,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1519,
+     "wallMs": 1793086158109,
+     "health": 84.03202056884766,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1520,
+     "wallMs": 1793086158309,
+     "health": 84.03202056884766,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1521,
+     "wallMs": 1793086158509,
+     "health": 83.65052795410156,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1522,
+     "wallMs": 1793086158709,
+     "health": 83.65052795410156,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1523,
+     "wallMs": 1793086158909,
+     "health": 83.66477966308594,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1524,
+     "wallMs": 1793086159109,
+     "health": 83.66477966308594,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1525,
+     "wallMs": 1793086159309,
+     "health": 83.66477966308594,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1526,
+     "wallMs": 1793086159510,
+     "health": 83.67903900146484,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1527,
+     "wallMs": 1793086159709,
+     "health": 83.67903900146484,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1528,
+     "wallMs": 1793086159909,
+     "health": 83.69329833984375,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1529,
+     "wallMs": 1793086160110,
+     "health": 83.69329833984375,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1530,
+     "wallMs": 1793086160310,
+     "health": 83.69329833984375,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1531,
+     "wallMs": 1793086160510,
+     "health": 83.70755004882812,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1532,
+     "wallMs": 1793086160710,
+     "health": 83.70755004882812,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1533,
+     "wallMs": 1793086160910,
+     "health": 83.7218017578125,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1534,
+     "wallMs": 1793086161110,
+     "health": 83.7218017578125,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1535,
+     "wallMs": 1793086161311,
+     "health": 83.7218017578125,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1536,
+     "wallMs": 1793086161509,
+     "health": 83.7360610961914,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1537,
+     "wallMs": 1793086161710,
+     "health": 83.7360610961914,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1538,
+     "wallMs": 1793086161910,
+     "health": 83.75032043457031,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1539,
+     "wallMs": 1793086162109,
+     "health": 83.75032043457031,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1540,
+     "wallMs": 1793086162309,
+     "health": 83.75032043457031,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1541,
+     "wallMs": 1793086162509,
+     "health": 83.76457214355469,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1542,
+     "wallMs": 1793086162709,
+     "health": 83.76457214355469,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1543,
+     "wallMs": 1793086162910,
+     "health": 83.77882385253906,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1544,
+     "wallMs": 1793086163109,
+     "health": 83.77882385253906,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1545,
+     "wallMs": 1793086163310,
+     "health": 83.77882385253906,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1546,
+     "wallMs": 1793086163509,
+     "health": 83.39775085449219,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1547,
+     "wallMs": 1793086163709,
+     "health": 83.39775085449219,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1549,
+     "wallMs": 1793086163910,
+     "health": 82.61955261230469,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1550,
+     "wallMs": 1793086164110,
+     "health": 82.61955261230469,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1551,
+     "wallMs": 1793086164309,
+     "health": 82.61955261230469,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1552,
+     "wallMs": 1793086164510,
+     "health": 82.63380432128906,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1553,
+     "wallMs": 1793086164709,
+     "health": 82.63380432128906,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1554,
+     "wallMs": 1793086164909,
+     "health": 82.64805603027344,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1555,
+     "wallMs": 1793086165109,
+     "health": 82.64805603027344,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1556,
+     "wallMs": 1793086165311,
+     "health": 82.64805603027344,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1557,
+     "wallMs": 1793086165511,
+     "health": 82.66231536865234,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1558,
+     "wallMs": 1793086165709,
+     "health": 82.66231536865234,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1559,
+     "wallMs": 1793086165909,
+     "health": 82.67657470703125,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1560,
+     "wallMs": 1793086166109,
+     "health": 82.67657470703125,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1561,
+     "wallMs": 1793086166309,
+     "health": 82.67657470703125,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1562,
+     "wallMs": 1793086166509,
+     "health": 82.69082641601562,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1563,
+     "wallMs": 1793086166709,
+     "health": 82.69082641601562,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1564,
+     "wallMs": 1793086166909,
+     "health": 82.30940246582031,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1565,
+     "wallMs": 1793086167109,
+     "health": 82.30940246582031,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1566,
+     "wallMs": 1793086167309,
+     "health": 82.30940246582031,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1568,
+     "wallMs": 1793086167510,
+     "health": 81.92774963378906,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "class": "ISDropWorldItemAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1569,
+     "wallMs": 1793086167710,
+     "health": 81.92774963378906,
+     "level": 3,
+     "weight": 19.55500030517578,
+     "moving": false,
+     "action": {
+      "class": "ISDropWorldItemAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1571,
+     "wallMs": 1793086167909,
+     "health": 81.94200897216797,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1573,
+     "wallMs": 1793086168110,
+     "health": 81.94200897216797,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1574,
+     "wallMs": 1793086168309,
+     "health": 81.94200897216797,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1575,
+     "wallMs": 1793086168510,
+     "health": 81.95626831054688,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1576,
+     "wallMs": 1793086168710,
+     "health": 81.95626831054688,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1577,
+     "wallMs": 1793086168910,
+     "health": 81.97052001953125,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1578,
+     "wallMs": 1793086169110,
+     "health": 81.97052001953125,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1579,
+     "wallMs": 1793086169309,
+     "health": 81.97052001953125,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1580,
+     "wallMs": 1793086169509,
+     "health": 81.98477172851562,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1581,
+     "wallMs": 1793086169709,
+     "health": 81.98477172851562,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1582,
+     "wallMs": 1793086169909,
+     "health": 81.99903106689453,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1583,
+     "wallMs": 1793086170109,
+     "health": 81.99903106689453,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1584,
+     "wallMs": 1793086170309,
+     "health": 81.99903106689453,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1585,
+     "wallMs": 1793086170509,
+     "health": 82.01329040527344,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1586,
+     "wallMs": 1793086170709,
+     "health": 82.01329040527344,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1587,
+     "wallMs": 1793086170911,
+     "health": 82.02754211425781,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1588,
+     "wallMs": 1793086171110,
+     "health": 82.02754211425781,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1589,
+     "wallMs": 1793086171311,
+     "health": 82.02754211425781,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1590,
+     "wallMs": 1793086171509,
+     "health": 82.04179382324219,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1591,
+     "wallMs": 1793086171709,
+     "health": 82.04179382324219,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1592,
+     "wallMs": 1793086171910,
+     "health": 82.0560531616211,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1593,
+     "wallMs": 1793086172109,
+     "health": 82.0560531616211,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1594,
+     "wallMs": 1793086172309,
+     "health": 82.0560531616211,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1595,
+     "wallMs": 1793086172509,
+     "health": 82.0703125,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1596,
+     "wallMs": 1793086172710,
+     "health": 82.0703125,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1597,
+     "wallMs": 1793086172909,
+     "health": 82.08456420898438,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1598,
+     "wallMs": 1793086173109,
+     "health": 82.08456420898438,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1600,
+     "wallMs": 1793086173309,
+     "health": 82.08456420898438,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1601,
+     "wallMs": 1793086173509,
+     "health": 82.09881591796875,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1602,
+     "wallMs": 1793086173709,
+     "health": 82.09881591796875,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1603,
+     "wallMs": 1793086173909,
+     "health": 82.11307525634766,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1605,
+     "wallMs": 1793086174109,
+     "health": 82.11307525634766,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1606,
+     "wallMs": 1793086174310,
+     "health": 82.11307525634766,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1607,
+     "wallMs": 1793086174510,
+     "health": 82.12733459472656,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1608,
+     "wallMs": 1793086174710,
+     "health": 82.12733459472656,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1609,
+     "wallMs": 1793086174910,
+     "health": 82.14158630371094,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1610,
+     "wallMs": 1793086175110,
+     "health": 82.14158630371094,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1611,
+     "wallMs": 1793086175309,
+     "health": 82.14158630371094,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1612,
+     "wallMs": 1793086175510,
+     "health": 82.15583801269531,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1613,
+     "wallMs": 1793086175709,
+     "health": 82.15583801269531,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1614,
+     "wallMs": 1793086175910,
+     "health": 82.17009735107422,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1615,
+     "wallMs": 1793086176110,
+     "health": 82.17009735107422,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1616,
+     "wallMs": 1793086176310,
+     "health": 82.17009735107422,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1617,
+     "wallMs": 1793086176510,
+     "health": 82.18435668945312,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1618,
+     "wallMs": 1793086176709,
+     "health": 82.18435668945312,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1619,
+     "wallMs": 1793086176909,
+     "health": 82.1986083984375,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1620,
+     "wallMs": 1793086177109,
+     "health": 82.1986083984375,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1621,
+     "wallMs": 1793086177309,
+     "health": 82.1986083984375,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1622,
+     "wallMs": 1793086177509,
+     "health": 82.21286010742188,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1623,
+     "wallMs": 1793086177709,
+     "health": 82.21286010742188,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1624,
+     "wallMs": 1793086177910,
+     "health": 82.22711944580078,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1625,
+     "wallMs": 1793086178110,
+     "health": 82.22711944580078,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1626,
+     "wallMs": 1793086178309,
+     "health": 82.22711944580078,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1627,
+     "wallMs": 1793086178509,
+     "health": 82.24137878417969,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1628,
+     "wallMs": 1793086178709,
+     "health": 82.24137878417969,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1629,
+     "wallMs": 1793086178910,
+     "health": 82.25563049316406,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1631,
+     "wallMs": 1793086179110,
+     "health": 82.25563049316406,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1632,
+     "wallMs": 1793086179309,
+     "health": 82.25563049316406,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1633,
+     "wallMs": 1793086179509,
+     "health": 82.26988220214844,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1634,
+     "wallMs": 1793086179709,
+     "health": 82.26988220214844,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1636,
+     "wallMs": 1793086179909,
+     "health": 82.28414154052734,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1637,
+     "wallMs": 1793086180109,
+     "health": 82.28414154052734,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1638,
+     "wallMs": 1793086180310,
+     "health": 82.28414154052734,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1639,
+     "wallMs": 1793086180509,
+     "health": 82.29840087890625,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1640,
+     "wallMs": 1793086180710,
+     "health": 82.29840087890625,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1641,
+     "wallMs": 1793086180909,
+     "health": 82.31265258789062,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1642,
+     "wallMs": 1793086181109,
+     "health": 82.31265258789062,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1643,
+     "wallMs": 1793086181310,
+     "health": 82.31265258789062,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1644,
+     "wallMs": 1793086181510,
+     "health": 82.326904296875,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1645,
+     "wallMs": 1793086181710,
+     "health": 82.326904296875,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1646,
+     "wallMs": 1793086181910,
+     "health": 82.3411636352539,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1647,
+     "wallMs": 1793086182110,
+     "health": 82.3411636352539,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1648,
+     "wallMs": 1793086182310,
+     "health": 82.3411636352539,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1649,
+     "wallMs": 1793086182509,
+     "health": 82.35542297363281,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1650,
+     "wallMs": 1793086182710,
+     "health": 82.35542297363281,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1651,
+     "wallMs": 1793086182909,
+     "health": 82.36967468261719,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1652,
+     "wallMs": 1793086183109,
+     "health": 82.36967468261719,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1653,
+     "wallMs": 1793086183309,
+     "health": 82.36967468261719,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1654,
+     "wallMs": 1793086183509,
+     "health": 82.38392639160156,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1655,
+     "wallMs": 1793086183709,
+     "health": 82.38392639160156,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1656,
+     "wallMs": 1793086183910,
+     "health": 82.39818572998047,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1657,
+     "wallMs": 1793086184110,
+     "health": 82.39818572998047,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1658,
+     "wallMs": 1793086184311,
+     "health": 82.39818572998047,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1659,
+     "wallMs": 1793086184509,
+     "health": 82.41244506835938,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1660,
+     "wallMs": 1793086184709,
+     "health": 82.41244506835938,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1661,
+     "wallMs": 1793086184909,
+     "health": 82.42669677734375,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": true,
+     "action": {
+      "class": "ISWalkToTimedAction",
+      "n": 1
+     }
+    },
+    {
+     "seq": 1663,
+     "wallMs": 1793086185109,
+     "health": 82.42669677734375,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1664,
+     "wallMs": 1793086185309,
+     "health": 82.42669677734375,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1665,
+     "wallMs": 1793086185509,
+     "health": 82.44094848632812,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1666,
+     "wallMs": 1793086185709,
+     "health": 82.44094848632812,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1667,
+     "wallMs": 1793086185909,
+     "health": 82.45520782470703,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1668,
+     "wallMs": 1793086186109,
+     "health": 82.45520782470703,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1669,
+     "wallMs": 1793086186309,
+     "health": 82.45520782470703,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1670,
+     "wallMs": 1793086186509,
+     "health": 82.46946716308594,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1671,
+     "wallMs": 1793086186709,
+     "health": 82.46946716308594,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1672,
+     "wallMs": 1793086186909,
+     "health": 82.48371887207031,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1673,
+     "wallMs": 1793086187109,
+     "health": 82.48371887207031,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1674,
+     "wallMs": 1793086187309,
+     "health": 82.48371887207031,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    },
+    {
+     "seq": 1675,
+     "wallMs": 1793086187509,
+     "health": 82.49797058105469,
+     "level": 2,
+     "weight": 16.55500030517578,
+     "moving": false,
+     "action": {
+      "n": 0
+     }
+    }
+   ],
+   "windows": {
+    "walk_loaded": [
+     1314,
+     1490
+    ],
+    "still": [
+     1490,
+     1566
+    ],
+    "drop": [
+     1566,
+     1571
+    ],
+    "walk_level2": [
+     1571,
+     1663
+    ]
+   },
+   "drops": [
+    {
+     "seq": 1316,
+     "wallMs": 1793086121510,
+     "from": 100,
+     "to": 99.6090087890625,
+     "fall": 0.3909912109375,
+     "level": 3,
+     "moving": false,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1322,
+     "wallMs": 1793086122509,
+     "from": 99.62326049804688,
+     "to": 98.84760284423828,
+     "fall": 0.7756576538085938,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1333,
+     "wallMs": 1793086124511,
+     "from": 98.89037322998047,
+     "to": 98.11390686035156,
+     "fall": 0.7764663696289062,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1335,
+     "wallMs": 1793086124912,
+     "from": 98.11390686035156,
+     "to": 97.73299407958984,
+     "fall": 0.38091278076171875,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1341,
+     "wallMs": 1793086125910,
+     "from": 97.74725341796875,
+     "to": 96.57484436035156,
+     "fall": 1.1724090576171875,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1352,
+     "wallMs": 1793086127909,
+     "from": 96.61760711669922,
+     "to": 96.23587036132812,
+     "fall": 0.38173675537109375,
+     "level": 3,
+     "moving": false,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1356,
+     "wallMs": 1793086128509,
+     "from": 96.23587036132812,
+     "to": 95.85449981689453,
+     "fall": 0.38137054443359375,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1364,
+     "wallMs": 1793086129910,
+     "from": 95.88301086425781,
+     "to": 95.10627746582031,
+     "fall": 0.7767333984375,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1368,
+     "wallMs": 1793086130509,
+     "from": 95.10627746582031,
+     "to": 94.32957458496094,
+     "fall": 0.776702880859375,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1371,
+     "wallMs": 1793086130910,
+     "from": 94.32957458496094,
+     "to": 93.55284118652344,
+     "fall": 0.7767333984375,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1374,
+     "wallMs": 1793086131509,
+     "from": 93.55284118652344,
+     "to": 93.17169952392578,
+     "fall": 0.38114166259765625,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1376,
+     "wallMs": 1793086131909,
+     "from": 93.17169952392578,
+     "to": 92.78987884521484,
+     "fall": 0.3818206787109375,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1381,
+     "wallMs": 1793086132911,
+     "from": 92.80413818359375,
+     "to": 92.42267608642578,
+     "fall": 0.38146209716796875,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1385,
+     "wallMs": 1793086133509,
+     "from": 92.42267608642578,
+     "to": 91.24921417236328,
+     "fall": 1.1734619140625,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1394,
+     "wallMs": 1793086134909,
+     "from": 91.27772521972656,
+     "to": 90.89556884765625,
+     "fall": 0.3821563720703125,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1404,
+     "wallMs": 1793086136910,
+     "from": 90.93833923339844,
+     "to": 90.55681610107422,
+     "fall": 0.38152313232421875,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1418,
+     "wallMs": 1793086139511,
+     "from": 90.61383819580078,
+     "to": 89.44056701660156,
+     "fall": 1.1732711791992188,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1427,
+     "wallMs": 1793086140910,
+     "from": 89.46908569335938,
+     "to": 89.08759307861328,
+     "fall": 0.38149261474609375,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1435,
+     "wallMs": 1793086142509,
+     "from": 89.11610412597656,
+     "to": 88.73429107666016,
+     "fall": 0.38181304931640625,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1442,
+     "wallMs": 1793086143909,
+     "from": 88.76280212402344,
+     "to": 88.38082885742188,
+     "fall": 0.3819732666015625,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1448,
+     "wallMs": 1793086144909,
+     "from": 88.39508056640625,
+     "to": 87.61772918701172,
+     "fall": 0.7773513793945312,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1457,
+     "wallMs": 1793086146510,
+     "from": 87.646240234375,
+     "to": 87.26499938964844,
+     "fall": 0.3812408447265625,
+     "level": 3,
+     "moving": false,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1465,
+     "wallMs": 1793086147909,
+     "from": 87.29351043701172,
+     "to": 86.9113998413086,
+     "fall": 0.382110595703125,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1468,
+     "wallMs": 1793086148509,
+     "from": 86.9113998413086,
+     "to": 86.53034973144531,
+     "fall": 0.38105010986328125,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1471,
+     "wallMs": 1793086148909,
+     "from": 86.53034973144531,
+     "to": 85.75279235839844,
+     "fall": 0.777557373046875,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1481,
+     "wallMs": 1793086150909,
+     "from": 85.79556274414062,
+     "to": 85.41433715820312,
+     "fall": 0.3812255859375,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1485,
+     "wallMs": 1793086151511,
+     "from": 85.41433715820312,
+     "to": 84.63740539550781,
+     "fall": 0.7769317626953125,
+     "level": 3,
+     "moving": true,
+     "window": "walk_loaded"
+    },
+    {
+     "seq": 1496,
+     "wallMs": 1793086153509,
+     "from": 84.68017578125,
+     "to": 84.29930114746094,
+     "fall": 0.3808746337890625,
+     "level": 3,
+     "moving": false,
+     "window": "still"
+    },
+    {
+     "seq": 1498,
+     "wallMs": 1793086153909,
+     "from": 84.29930114746094,
+     "to": 83.91796875,
+     "fall": 0.3813323974609375,
+     "level": 3,
+     "moving": false,
+     "window": "still"
+    },
+    {
+     "seq": 1521,
+     "wallMs": 1793086158509,
+     "from": 84.03202056884766,
+     "to": 83.65052795410156,
+     "fall": 0.38149261474609375,
+     "level": 3,
+     "moving": false,
+     "window": "still"
+    },
+    {
+     "seq": 1546,
+     "wallMs": 1793086163509,
+     "from": 83.77882385253906,
+     "to": 83.39775085449219,
+     "fall": 0.381072998046875,
+     "level": 3,
+     "moving": false,
+     "window": "still"
+    },
+    {
+     "seq": 1549,
+     "wallMs": 1793086163910,
+     "from": 83.39775085449219,
+     "to": 82.61955261230469,
+     "fall": 0.7781982421875,
+     "level": 3,
+     "moving": false,
+     "window": "still"
+    },
+    {
+     "seq": 1564,
+     "wallMs": 1793086166909,
+     "from": 82.69082641601562,
+     "to": 82.30940246582031,
+     "fall": 0.3814239501953125,
+     "level": 3,
+     "moving": false,
+     "window": "still"
+    },
+    {
+     "seq": 1568,
+     "wallMs": 1793086167510,
+     "from": 82.30940246582031,
+     "to": 81.92774963378906,
+     "fall": 0.38165283203125,
+     "level": 3,
+     "moving": false,
+     "window": "drop"
+    }
+   ],
+   "damage_events": []
+  },
+  "line": {
+   "scan": {
+    "r": 15,
+    "cmdSeq": 1,
+    "sentPyMs": 1793085987404.3726,
+    "ack": {
+     "cmdSeq": 1,
+     "kind": "ack",
+     "ok": true,
+     "reason": "queued",
+     "seq": 15,
+     "tick": 147,
+     "wallMs": 1793085987417
+    },
+    "done": true,
+    "parts": 49,
+    "declared": 49,
+    "map_squares": 961
+   },
+   "me": {
+    "x": 10997.5,
+    "y": 9699.5,
+    "z": 0
+   },
+   "ax": 10993,
+   "ay": 9699,
+   "bx": 10982,
+   "by": 9699,
+   "dir": "-x",
+   "dist": 4.0,
+   "candidates": 1302,
+   "targets": {
+    "A": [
+     10993.5,
+     9699.5
+    ],
+    "B": [
+     10982.5,
+     9699.5
+    ],
+    "M": [
+     10988.0,
+     9699.5
+    ]
+   },
+   "strip_squares": 36
+  },
+  "server": [
+   {
+    "i": 0,
+    "startPyMs": 1793086187630.0703,
+    "rttMs": 1509.53759765625,
+    "ack": {
+     "side": "server",
+     "stats": {
+      "Anger": 0,
+      "Boredom": 0,
+      "Discomfort": 0,
+      "Endurance": 0.8892875909805298,
+      "Fatigue": 0.03465772420167923,
+      "Fitness": 0,
+      "FoodSickness": 0,
+      "Hunger": 0.030409572646021843,
+      "Idleness": 0,
+      "Intoxication": 0,
+      "Morale": 1,
+      "NicotineWithdrawal": 0,
+      "Pain": 3.1785154342651367,
+      "Panic": 0,
+      "Poison": 0,
+      "Sanity": 1,
+      "Sickness": 0,
+      "Stress": 0,
+      "Temperature": 37.22496032714844,
+      "Thirst": 0.026972748339176178,
+      "Unhappiness": 0,
+      "Wetness": 0,
+      "ZombieFever": 0,
+      "ZombieInfection": 0
+     },
+     "missing": {},
+     "wall": 1793086188930,
+     "user": "admin",
+     "worldAge": 3.216904640197754,
+     "mult": 4.795048236846924
+    },
+    "wallMs": 1793086189139.6055
+   }
+  ]
+ },
+ "world_changes": {
+  "left_in_place": [],
+  "restored": "fixture agent0 restored into the run dir"
+ },
+ "finished": true,
+ "run_id": "p22_probe-20261027-032502",
+ "session_key": "p22_probe",
+ "driver": "p22_probe.py",
+ "user": "admin",
+ "profile": {
+  "name": "agent-nozombies",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\agent-nozombies.toml",
+  "fixture": "agent0",
+  "description": "PZTestKit + PZAgent on agent0, the fixture provisioned with Zombies = 6 (none) in its record (Stage A pass 1 met zombies in the agent fixture under Zombies = 6: Zombies is fixed at world generation (#1811), so a fresh fixture is the remedy); [sandbox] Zombies = 6 is kept so the profile restates the value at seed whatever the fixture holds. 90-minute day, sleep allowed.",
+  "mods": [
+   "PZTestKit",
+   "PZAgent"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "PZAgent": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZAgent\\PZAgent"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Zombies": 6
+  },
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "preboot": {
+  "driver": "p22_probe.py",
+  "profile_path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing/profiles/agent-nozombies.toml",
+  "profile": "agent-nozombies",
+  "commit": "1261079a",
+  "harness_lua_commit": "ee23b53c",
+  "harness_py_commit": "52a7de93",
+  "xlib_commit": "45c49217",
+  "agent_commit": "1261079a",
+  "harness_lua_dirty": false,
+  "doctor_clean": true,
+  "doctor": [
+   "ok   PZ java processes: none",
+   "ok   ports 27261/27262/27015: free",
+   "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+   "ok   workshop index: 239 mods",
+   "ok   pytest available"
+  ],
+  "lint_errors": [],
+  "driver_checks": {
+   "driver_file": true,
+   "driver_prefix": true,
+   "profile_exists": true,
+   "no_committed_artifact": true,
+   "agent_lua_dirty": false,
+   "driver_dirty": false,
+   "agent_py_dirty": false
+  }
+ },
+ "argv": [],
+ "constants": {
+  "BUDGET_S": 720.0,
+  "MIN_FREE_GB": 12.0,
+  "CLIENT_ERR_RX": "LuaError|STACK TRACE|attempted index|tried to call nil",
+  "MOD_VERSION": "0.2",
+  "HELLO_TIMEOUT_S": 60.0,
+  "ACK_TIMEOUT_S": 10.0,
+  "POLL_S": 0.1,
+  "SCAN_R": 15,
+  "SCAN_TIMEOUT_S": 30.0,
+  "LINE_LEN": 12,
+  "LINE_DIRS": [
+   [
+    "+x",
+    1,
+    0
+   ],
+   [
+    "+y",
+    0,
+    1
+   ],
+   [
+    "-x",
+    -1,
+    0
+   ],
+   [
+    "-y",
+    0,
+    -1
+   ]
+  ],
+  "FALLBACK_DX": 10,
+  "BENCH_REPS": 3,
+  "BENCH_ARMS": [
+   [
+    "json",
+    500
+   ],
+   [
+    "jsonNoSort",
+    500
+   ],
+   [
+    "compact",
+    500
+   ],
+   [
+    "concat",
+    500
+   ],
+   [
+    "openWrite",
+    500
+   ],
+   [
+    "openWrite20",
+    500
+   ],
+   [
+    "openOnly",
+    500
+   ],
+   [
+    "poll",
+    500
+   ]
+  ],
+  "HELD_ARMS": [
+   [
+    "heldOpen",
+    1
+   ],
+   [
+    "heldWrite",
+    500
+   ],
+   [
+    "heldClose",
+    1
+   ]
+  ],
+  "US_PER_KB_ARMS": [
+   "json",
+   "jsonNoSort",
+   "compact",
+   "openWrite",
+   "heldWrite"
+  ],
+  "S20_BYTES": 20,
+  "BENCH_BYTES_KEY": {
+   "json": "json21Bytes",
+   "jsonNoSort": "noSortBytes",
+   "compact": "compactBytes",
+   "concat": "json21Bytes",
+   "openWrite": "json21Bytes",
+   "heldWrite": "json21Bytes"
+  },
+  "MOTOR_ARMS": [
+   "walk",
+   "setrun",
+   "forcerun",
+   "forcerun_tick",
+   "forcesprint"
+  ],
+  "LEGS_PER_ARM": 3,
+  "SETTLE_S": 3.0,
+  "GOAL_TIMEOUT_S": 40.0,
+  "AUTOWALK_LEGS": [
+   [
+    1,
+    0,
+    3.0,
+    "walk"
+   ],
+   [
+    -1,
+    0,
+    1.5,
+    "forcerun"
+   ],
+   [
+    2,
+    0,
+    1.5,
+    "forcerun"
+   ],
+   [
+    -1.95,
+    0,
+    1.5,
+    "once"
+   ],
+   [
+    1,
+    0,
+    1.5,
+    "forcerun"
+   ],
+   [
+    -1,
+    0,
+    3.0,
+    "walk"
+   ]
+  ],
+  "AUTOWALK_PAD_S": 10.0,
+  "X1_DEADLINE_S": 450.0,
+  "CALIBRATE_LEG": [
+   1,
+   0,
+   1.5,
+   "walk"
+  ],
+  "CALIBRATE_TOL_DEG": 15.0,
+  "SNAP_DEG": 45.0,
+  "CALIBRATE_MIN_TILES": 1.0,
+  "X1_RATE_HZ": 10,
+  "X1_RATE_BACK_HZ": 5,
+  "TOGGLE_IF_BELOW": 1.3,
+  "TOGGLE_LEGS": 3,
+  "RUN_RATIO": 1.3,
+  "SETRUN_TOL": 0.05,
+  "HEADING_MAX_DEG": 15.0,
+  "ONCE_HOLD_FRAC": 0.9,
+  "LOAD_MAX_ADDS": 14,
+  "LOAD_ITEM": "Base.Plank",
+  "LOAD_SETTLE_S": 5.0,
+  "HEAVY_LEVEL": 3,
+  "LEVEL2_RATIO": 1.25,
+  "LEVEL3_RATIO": 1.5,
+  "LEVEL4_RATIO": 1.75,
+  "PLANK_W": 3.0,
+  "WALK_S": 30.0,
+  "HEALTH_FLOOR": 75.0,
+  "WALK_MAX_LEGS": 12,
+  "STILL_S": 15.0,
+  "DROP_TIMEOUT_S": 20.0,
+  "WALK2_S": 15.0,
+  "DROP_EPS": 0.05,
+  "MOVE_EPS_TILES": 0.01
+ },
+ "predictions": {
+  "x1_forcerun_runs": "median forcerun pace >= 1.3 x walk's",
+  "x1_setrun_walks": "median setrun pace within 0.05 of walk's",
+  "x1_autowalk_runs": "median autowalk forcerun pace >= 1.3 x walk's",
+  "x1_autowalk_heads": "every autowalk leg's heading error <= 15.0 deg",
+  "x1_forcerun_tick": "read either way (a walk confirms the frameStep reading)",
+  "x1_once_holds": "the once leg's updForceRun count >= 0.9 of its autoWalk frames",
+  "x1_endurance": "forcerun's endurance slope more negative than walk's",
+  "x3_drops_at_level3_only": "every drop at HEAVY_LOAD >= 3",
+  "x3_floor_75": "no drop from a health <= 75.0",
+  "x3_drops_while_still": "recorded",
+  "x3_level2_no_drop": "no drop while walking at level 2",
+  "x3_server_hears_heavyload": "the server listener counts HEAVYLOAD > 0",
+  "x3_client_hears_heavyload": 0,
+  "x3_level3_at_ratio": "level 3 at a carry ratio >= 1.5 and < 1.75 (#3926)"
+ },
+ "fixture": {
+  "name": "agent0",
+  "provision_run": "prov-20261026-102802",
+  "build": "42.21.0"
+ },
+ "driver_commit": "1261079a",
+ "memory_wait": [
+  {
+   "wall": 1793085902.430474,
+   "free_gb": 15.62
+  }
+ ],
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 0.0,
+   "free_gb": 15.62
+  },
+  {
+   "tag": "ready",
+   "wall": 84.963,
+   "free_gb": 2.88
+  },
+  {
+   "tag": "after",
+   "wall": 296.394,
+   "free_gb": 16.63
+  }
+ ],
+ "timeline": [
+  {
+   "t": 47.4,
+   "phase": "server_started",
+   "pid": 355408
+  },
+  {
+   "t": 47.5,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 83.7,
+   "phase": "client_ready",
+   "took": 35.9,
+   "user": "admin"
+  },
+  {
+   "t": 83.7,
+   "phase": "session_ready"
+  },
+  {
+   "t": 84.7,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "ping",
+   "ok": true,
+   "got": "\"pong\""
+  },
+  {
+   "t": 85.0,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "ping",
+   "ok": true,
+   "got": "\"pong\""
+  },
+  {
+   "t": 216.1,
+   "phase": "verdict",
+   "name": "x1_forcerun_runs",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 216.1,
+   "phase": "verdict",
+   "name": "x1_setrun_walks",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 216.1,
+   "phase": "verdict",
+   "name": "x1_autowalk_runs",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 216.1,
+   "phase": "verdict",
+   "name": "x1_autowalk_heads",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 216.1,
+   "phase": "verdict",
+   "name": "x1_forcerun_tick",
+   "verdict": "recorded"
+  },
+  {
+   "t": 216.1,
+   "phase": "verdict",
+   "name": "x1_once_holds",
+   "verdict": "falsified"
+  },
+  {
+   "t": 216.1,
+   "phase": "verdict",
+   "name": "x1_endurance",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 217.6,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Plank\" 1",
+   "ok": true
+  },
+  {
+   "t": 217.8,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Plank\" 1",
+   "ok": true
+  },
+  {
+   "t": 218.3,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Plank\" 1",
+   "ok": true
+  },
+  {
+   "t": 218.5,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Plank\" 1",
+   "ok": true
+  },
+  {
+   "t": 218.7,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Plank\" 1",
+   "ok": true
+  },
+  {
+   "t": 218.9,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.Plank\" 1",
+   "ok": true
+  },
+  {
+   "t": 285.2,
+   "phase": "verdict",
+   "name": "x3_drops_at_level3_only",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 285.2,
+   "phase": "verdict",
+   "name": "x3_floor_75",
+   "verdict": "unmeasured"
+  },
+  {
+   "t": 285.2,
+   "phase": "verdict",
+   "name": "x3_drops_while_still",
+   "verdict": "recorded"
+  },
+  {
+   "t": 285.2,
+   "phase": "verdict",
+   "name": "x3_level2_no_drop",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 285.2,
+   "phase": "verdict",
+   "name": "x3_server_hears_heavyload",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 285.2,
+   "phase": "verdict",
+   "name": "x3_client_hears_heavyload",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 285.2,
+   "phase": "verdict",
+   "name": "x3_level3_at_ratio",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 288.8,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 296.4,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_launch_wall": 0.336,
+ "server_started_wall": 47.38,
+ "server_pid": 355408,
+ "session_ready_wall": 83.701,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "ping",
+   "expect": "pong",
+   "ok": true,
+   "got": "pong"
+  },
+  {
+   "side": "client",
+   "cmd": "ping",
+   "expect": "pong",
+   "ok": true,
+   "got": "pong"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "state_dir": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\p22_probe-20261027-032502\\clients\\admin\\Lua\\pzagent\\admin",
+ "hello_wait_ms": 8.61328125,
+ "hello": {
+  "build": "42.21",
+  "kind": "hello",
+  "modVersion": "0.2",
+  "mode": "append",
+  "rate": 5,
+  "seq": 1,
+  "tick": 1,
+  "user": "admin",
+  "wallMs": 1793085984530
+ },
+ "mode": "append",
+ "bench_info": {
+  "compactBytes": 1244,
+  "json21Bytes": 2740,
+  "noSortBytes": 2740,
+  "seq": 2,
+  "squares": 20,
+  "wallMs": 1793085984533
+ },
+ "missing": [],
+ "gaps": [],
+ "bad": 0,
+ "lua_errors": 0,
+ "lua_error_lines": [],
+ "events": {
+  "goal_done": 40,
+  "item_added": 6,
+  "hit": 12
+ },
+ "lines_read": 1675,
+ "voided_legs": 0,
+ "frames_n": 1523,
+ "damage_events_n": 0,
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 33.3,
+   "ready": 35.9
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "client_error": "LuaError|STACK TRACE|attempted index|tried to call nil"
+  },
+  "clients": {
+   "admin": []
+  }
+ },
+ "client_lua_errors": 0,
+ "bus_dead": null,
+ "copied": [],
+ "wall_seconds": 296.4
+}
