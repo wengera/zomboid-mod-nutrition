@@ -181,6 +181,7 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     fs.clock = clock
     g.print = lambda *a: None
     L.execute(open(lua_file("shared/PZAgent_Core.lua"), encoding="utf-8").read())
+    L.execute(open(lua_file("shared/PZAgent_Schema.lua"), encoding="utf-8").read())
     g.getCell = lambda: g._cell
     g._cell = make_cell()
     g.CharacterStat = J(**{n: n for n in STAT_NAMES})

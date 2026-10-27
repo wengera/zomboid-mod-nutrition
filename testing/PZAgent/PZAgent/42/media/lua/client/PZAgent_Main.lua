@@ -37,7 +37,6 @@ function M.init(user)
     local build = getCore and getCore() or nil
     local _, ver = PZA.call(build, "getVersionNumber")
     PZA.emit("hello", { modVersion = PZA.VERSION, build = ver or "", user = user, rate = PZA.sense.RATE, mode = PZA.link.mode })
-    if PZA.bench ~= nil and PZA.bench.sizes ~= nil then PZA.emit("bench", PZA.bench.sizes()) end -- probe X2's encoder sizes
     PZA.link.flush()
 end
 
