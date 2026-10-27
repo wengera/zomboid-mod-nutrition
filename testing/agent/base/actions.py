@@ -38,7 +38,9 @@ def _ok(kind, v):
     if kind == "int":
         return isinstance(v, int) and not isinstance(v, bool)
     if kind == "float":
-        return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            return False
+        return isinstance(v, int) or math.isfinite(v)   # an int of any size; a float only when finite
     if kind == "str":
         return isinstance(v, str)
     return isinstance(v, str) and v in _ENUMS[kind]
