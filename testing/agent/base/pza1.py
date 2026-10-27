@@ -17,12 +17,12 @@ POSITIONAL = ("frame", "map")
 ENVELOPE = ("kind", "seq", "tick", "wallMs")
 # each kind's top-level fields in order
 ORDER = {
-    "hello": ("kind", "proto", "mod", "build", "user", "rate", "caps", "mode"),
+    "hello": ("kind", "seq", "tick", "wallMs", "proto", "mod", "build", "user", "rate", "caps", "mode"),
     "frame": ("kind", "seq", "tick", "wallMs", "gameMin", "worldAge", "me", "stats", "body", "load", "weapon", "action", "act", "zombies", "cost"),
     "map": ("kind", "seq", "tick", "wallMs", "mode", "scanId", "part", "parts", "squares", "missing"),
-    "event": ("kind", "event", "gameMin"),
-    "act": ("kind", "aid", "type", "state", "reason", "result", "snapshot"),
-    "reply": ("kind", "to", "body"),
+    "event": ("kind", "seq", "tick", "wallMs", "event", "gameMin"),
+    "act": ("kind", "seq", "tick", "wallMs", "aid", "type", "state", "reason", "result", "snapshot"),
+    "reply": ("kind", "seq", "tick", "wallMs", "to", "body"),
 }
 # a frame's groups, elidable in a delta
 GROUPS = {
@@ -49,7 +49,7 @@ SHAPES = {
     "frame": {"me": ("group", "me"), "stats": ("group", "stats"), "body": ("group", "body"), "load": ("group", "load"), "weapon": ("group", "weapon"), "action": ("group", "action"), "act": ("group", "act"), "zombies": ("list", "zombie"), "cost": ("group", "cost")},
     "container": {"items": ("vlist", None)},
     "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None)},
-    "map": {"squares": ("list", "square")},
+    "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
 REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted"))
 ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate")
@@ -150,6 +150,16 @@ def _enc(owner, d, same=()):
     return "[" + ",".join(out) + "]"
 
 
+def _keyed_check(body):
+    kind = body.get("kind")
+    absent = [f for f in ENVELOPE if f not in body]
+    if absent:
+        raise ValueError("PZA/1 %s: the envelope lacks %s" % (kind, absent))
+    extra = set(body) - _keyed_fields(body)
+    if extra:
+        raise ValueError("PZA/1 %s: unknown fields %s" % (kind, sorted(extra)))
+
+
 def _keyed_fields(body):
     kind = body.get("kind")
     if kind == "event":
@@ -172,9 +182,7 @@ def encode(kind, body, same=()):
         return _enc(kind, body, frozenset(same))
     if same:
         raise ValueError("PZA/1 %s: a keyed line elides nothing" % kind)
-    extra = set(body) - _keyed_fields(body)
-    if extra:
-        raise ValueError("PZA/1 %s: unknown fields %s" % (kind, sorted(extra)))
+    _keyed_check(body)
     return json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
@@ -207,7 +215,8 @@ def _dec(owner, a, top=False):
 
 def decode(obj):
     """A parsed line (a list for a positional kind, a dict for a keyed one) as its keyed dict; an elided group is
-    SAME. ValueError on an unknown kind, a kind in the wrong form, an unknown field or a wrong arity."""
+    SAME. ValueError on an unknown kind, a kind in the wrong form, a keyed line without the envelope, an unknown field
+    or a wrong arity."""
     if isinstance(obj, list):
         kind = obj[0] if obj else None
         if kind not in POSITIONAL:
@@ -217,9 +226,7 @@ def decode(obj):
         kind = obj.get("kind")
         if kind not in KINDS or kind in POSITIONAL:
             raise ValueError("PZA/1: not a keyed kind: %r" % (kind,))
-        extra = set(obj) - _keyed_fields(obj)
-        if extra:
-            raise ValueError("PZA/1 %s: unknown fields %s" % (kind, sorted(extra)))
+        _keyed_check(obj)
         return dict(obj)
     raise ValueError("PZA/1: not a line: %r" % (obj,))
 

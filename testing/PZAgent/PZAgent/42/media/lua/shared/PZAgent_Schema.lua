@@ -10,12 +10,12 @@ PZA = PZA or {}
 PZA.schema = {
     PROTO = "PZA/1",
     order = {
-        hello = { "kind", "proto", "mod", "build", "user", "rate", "caps", "mode" },
+        hello = { "kind", "seq", "tick", "wallMs", "proto", "mod", "build", "user", "rate", "caps", "mode" },
         frame = { "kind", "seq", "tick", "wallMs", "gameMin", "worldAge", "me", "stats", "body", "load", "weapon", "action", "act", "zombies", "cost" },
         map = { "kind", "seq", "tick", "wallMs", "mode", "scanId", "part", "parts", "squares", "missing" },
-        event = { "kind", "event", "gameMin" },
-        act = { "kind", "aid", "type", "state", "reason", "result", "snapshot" },
-        reply = { "kind", "to", "body" },
+        event = { "kind", "seq", "tick", "wallMs", "event", "gameMin" },
+        act = { "kind", "seq", "tick", "wallMs", "aid", "type", "state", "reason", "result", "snapshot" },
+        reply = { "kind", "seq", "tick", "wallMs", "to", "body" },
     },
     groups = {
         me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk" },
@@ -303,7 +303,7 @@ end
 --   part: This part's number, from 1.
 --   parts: The scan's number of parts.
 --   squares: The squares this part carries.
---   missing: The number of positions in this part with no loaded square.
+--   missing: The Java member names the scan could not read on this part.
 PZA.enc.map = function(b)
     return "[\"map\""
         .. "," .. v(b.seq)
@@ -314,6 +314,6 @@ PZA.enc.map = function(b)
         .. "," .. v(b.part)
         .. "," .. v(b.parts)
         .. "," .. list(b.squares, enc_square)
-        .. "," .. v(b.missing)
+        .. "," .. list(b.missing, v)
         .. "]"
 end

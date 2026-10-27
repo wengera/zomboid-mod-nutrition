@@ -72,6 +72,9 @@
       "type": "object",
       "properties": {
         "kind": {"description": "The line kind.", "const": "hello"},
+        "seq": {"description": "The envelope: the line's sequence number.", "type": "integer"},
+        "tick": {"description": "The envelope: the client tick the line was written on.", "type": "integer"},
+        "wallMs": {"description": "The envelope: the client's wall clock in epoch milliseconds.", "type": "integer"},
         "proto": {"description": "The protocol name.", "const": "PZA/1"},
         "mod": {"description": "The mod version.", "type": "string"},
         "build": {"description": "The game build the client reports.", "type": "string"},
@@ -80,7 +83,7 @@
         "caps": {"description": "The skill types this build accepts.", "type": "array", "items": {"$ref": "#/$defs/actionType"}},
         "mode": {"description": "How the mod writes its out file.", "$ref": "#/$defs/linkMode"}
       },
-      "required": ["kind", "proto", "mod", "build", "user", "rate", "caps", "mode"]
+      "required": ["kind", "seq", "tick", "wallMs", "proto", "mod", "build", "user", "rate", "caps", "mode"]
     },
 
     "frame": {
@@ -287,7 +290,7 @@
         "part": {"description": "This part's number, from 1.", "type": "integer"},
         "parts": {"description": "The scan's number of parts.", "type": "integer"},
         "squares": {"description": "The squares this part carries.", "type": "array", "items": {"$ref": "#/$defs/square"}},
-        "missing": {"description": "The number of positions in this part with no loaded square.", "type": "integer"}
+        "missing": {"description": "The Java member names the scan could not read on this part.", "type": "array", "items": {"type": "string"}}
       },
       "required": ["kind", "seq", "tick", "wallMs", "mode", "scanId", "part", "parts", "squares", "missing"]
     },
@@ -341,16 +344,19 @@
     },
 
     "event": {
-      "description": "One engine event; the per-kind fields sit flat beside event and gameMin.",
+      "description": "One engine event, under the seq, tick and wallMs envelope every line carries; the per-kind fields sit flat beside event and gameMin.",
       "x-role": "kind",
       "x-encoding": "keyed",
       "type": "object",
       "properties": {
         "kind": {"description": "The line kind.", "const": "event"},
+        "seq": {"description": "The envelope: the line's sequence number.", "type": "integer"},
+        "tick": {"description": "The envelope: the client tick the line was written on.", "type": "integer"},
+        "wallMs": {"description": "The envelope: the client's wall clock in epoch milliseconds.", "type": "integer"},
         "event": {"description": "The event's kind.", "$ref": "#/$defs/eventKind"},
         "gameMin": {"description": "The game clock in minutes when the event fired.", "type": "number"}
       },
-      "required": ["kind", "event", "gameMin"],
+      "required": ["kind", "seq", "tick", "wallMs", "event", "gameMin"],
       "oneOf": [
         {"$ref": "#/$defs/event_damage"},
         {"$ref": "#/$defs/event_swing"},
@@ -452,6 +458,9 @@
       "type": "object",
       "properties": {
         "kind": {"description": "The line kind.", "const": "act"},
+        "seq": {"description": "The envelope: the line's sequence number.", "type": "integer"},
+        "tick": {"description": "The envelope: the client tick the line was written on.", "type": "integer"},
+        "wallMs": {"description": "The envelope: the client's wall clock in epoch milliseconds.", "type": "integer"},
         "aid": {"description": "The skill's action id from its cmd line.", "type": "string"},
         "type": {"description": "The skill's type.", "$ref": "#/$defs/actionType"},
         "state": {"description": "The skill's new state.", "$ref": "#/$defs/actState"},
@@ -463,7 +472,7 @@
           {"$ref": "#/$defs/result_rate"}]},
         "snapshot": {"description": "The player's state when the line was written.", "$ref": "#/$defs/snapshot"}
       },
-      "required": ["kind", "aid", "type", "state", "reason", "result", "snapshot"]
+      "required": ["kind", "seq", "tick", "wallMs", "aid", "type", "state", "reason", "result", "snapshot"]
     },
     "snapshot": {
       "description": "The player's state when an act line was written.",
@@ -568,10 +577,13 @@
       "type": "object",
       "properties": {
         "kind": {"description": "The line kind.", "const": "reply"},
+        "seq": {"description": "The envelope: the line's sequence number.", "type": "integer"},
+        "tick": {"description": "The envelope: the client tick the line was written on.", "type": "integer"},
+        "wallMs": {"description": "The envelope: the client's wall clock in epoch milliseconds.", "type": "integer"},
         "to": {"description": "The seq of the command it answers.", "type": "integer"},
         "body": {"description": "The answer.", "type": "object"}
       },
-      "required": ["kind", "to", "body"]
+      "required": ["kind", "seq", "tick", "wallMs", "to", "body"]
     },
 
     "cmd": {

@@ -69,7 +69,8 @@ def rand_square(rng):
 def rand_map(rng, seq=1):
     return {"kind": "map", "seq": seq, "tick": rng.randrange(0, 10 ** 6), "wallMs": rng.randrange(10 ** 12, 2 * 10 ** 12),
             "mode": rng.choice(["full", "delta"]), "scanId": rng.randrange(1, 50), "part": 1, "parts": 3,
-            "squares": [rand_square(rng) for _ in range(rng.randrange(0, 41))], "missing": rng.randrange(0, 5)}
+            "squares": [rand_square(rng) for _ in range(rng.randrange(0, 41))],
+            "missing": rng.choice([[], ["getModData"], ["getContainerCount", "getWindow"]])}
 
 
 def test_frame_round_trips_over_200_random_frames():
@@ -140,15 +141,37 @@ def test_decode_refuses_a_wrong_arity_and_an_unknown_kind():
 
 
 def test_a_keyed_act_round_trips():
-    act = {"kind": "act", "aid": "a7", "type": "attack", "state": "done", "reason": "",
+    act = {"kind": "act", "seq": 41, "tick": 900, "wallMs": 1761550000123, "aid": "a7", "type": "attack", "state": "done", "reason": "",
            "result": {"swings": 3, "attackStarted": True, "meleeDelay": 0.5, "targetDead": True},
            "snapshot": {"me": {"x": 1.5, "y": 2.25, "z": 0, "health": 88.5}, "nearest": None}}
     line = pza1.encode("act", act)
     assert json.loads(line) == act
     assert line == json.dumps(act, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     assert pza1.decode(json.loads(line)) == act
-    ev = {"kind": "event", "event": "damage", "gameMin": 123.5, "tag": "HEAVYLOAD", "amount": 0.39, "side": "client"}
+    ev = {"kind": "event", "seq": 42, "tick": 901, "wallMs": 1761550000140, "event": "damage", "gameMin": 123.5, "tag": "HEAVYLOAD", "amount": 0.39, "side": "client"}
     assert pza1.decode(json.loads(pza1.encode("event", ev))) == ev
+
+
+def test_every_keyed_kind_requires_the_envelope():
+    act = {"kind": "act", "seq": 7, "tick": 120, "wallMs": 1761550000500, "aid": "a1", "type": "stop", "state": "done",
+           "reason": "", "result": {}, "snapshot": {"me": {"x": 1, "y": 2, "z": 0, "health": 100}, "nearest": None}}
+    assert pza1.decode(act) == act
+    for k in pza1.KINDS:
+        assert pza1.ORDER[k][:4] == pza1.ENVELOPE, k
+    for f in pza1.ENVELOPE[1:]:
+        bare = {k: v for k, v in act.items() if k != f}
+        with pytest.raises(ValueError):
+            pza1.decode(bare)
+        with pytest.raises(ValueError):
+            pza1.encode("act", bare)
+    for kind, body in (("hello", {"proto": "PZA/1", "mod": "0.3", "build": "42.21.0", "user": "admin", "rate": 5,
+                                  "caps": list(pza1.ACTION_TYPES), "mode": "append"}),
+                       ("reply", {"to": 3, "body": {}}),
+                       ("event", {"event": "overflow", "gameMin": 1.5, "queued": 4, "cut": 2})):
+        line = dict(body, kind=kind, seq=1, tick=2, wallMs=3)
+        assert pza1.decode(json.loads(pza1.encode(kind, line))) == line
+        with pytest.raises(ValueError):
+            pza1.decode(dict(body, kind=kind))
 
 
 def test_the_constants():
@@ -256,7 +279,7 @@ def test_the_lua_frame_encoder_writes_what_python_encodes(lua_schema):
 
 def test_the_lua_map_encoder_writes_what_python_encodes(lua_schema):
     m = {"kind": "map", "seq": 3, "tick": 77, "wallMs": 1761550000999, "mode": "full", "scanId": 2, "part": 1,
-         "parts": 1, "missing": 0,
+         "parts": 1, "missing": ["getWindow", 'odd"name\\'],
          "squares": [
              {"x": 100, "y": 200, "z": 0, "solid": False, "solidTrans": False, "light": 0.8, "room": "kitchen",
               "building": 12, "door": {"open": False, "locked": True, "barricaded": False}, "window": None,
