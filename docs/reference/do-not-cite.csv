@@ -22688,3 +22688,9 @@ b_actions_2-20261026-194009,readings.reps[*].server_eat.before.hunger and resets
 b_actions_2-20261026-194009,the freezer at 11000 9697 reading empty then 7 items; rep 5 moved=4 against three item_added events,—,"Observations the run cannot explain; recorded in the guide, never cited.",
 b_actions_2-20261026-194009,"spawned, world_changes.writes",the harness's writes,"RCON additem of Base.WaterBottle x5 and Base.Apple x5 and the pre-eat stat writes; not readings.",
 b_actions_2-20261026-194009,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+c_survive_2-20261026-195516,loop.cost.p50 and p99 and every per-frame cost,1 / 2,"Quantised to a 1 ms clock; cite the mean or a bound.",the mean in the guide
+c_survive_2-20261026-195516,loop.last_decisions,the log's last ten lines,"A log excerpt kept for the death read; decision.log is the record.",
+c_survive_2-20261026-195516,the cause of the health fall over game minutes 568–578,100 -> 74.56,"The frames carry no body-part damage, wound or carried-weight state; the onset at the 37th looted item is a correlation in two runs, not a cause.",
+c_survive_2-20261026-195516,whether the fight's swings landed,—,"DoAttack is not a queued action and the frame carries no zombie health; the closing step is readable, the swing is not.",
+c_survive_2-20261026-195516,"readings.start_kit, world_changes",the harness's writes,"RCON additem of Base.BaseballBat and weapon.equip; not readings.",
+c_survive_2-20261026-195516,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",

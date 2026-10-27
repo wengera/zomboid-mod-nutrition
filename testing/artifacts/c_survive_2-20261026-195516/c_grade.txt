@@ -1,0 +1,878 @@
+{
+ "client_lua_errors": 0,
+ "cost_max": 6,
+ "cost_n": 645,
+ "cost_p50": 1,
+ "cost_p99": 2,
+ "deaths": [
+  {
+   "detail": "frame seq 857 health 0",
+   "gameMin": 593,
+   "last_decisions": [
+    {
+     "args": "10711 10620",
+     "branch": "threat",
+     "gameMin": 592,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10729.847005208334,
+         10640.806315104166
+        ],
+        "flee": "many",
+        "square": [
+         10711,
+         10620
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.020829441025853157,
+      "fight_s": null,
+      "health": 33.152015686035156,
+      "hunger": 0.018910236656665802,
+      "mode": null,
+      "nearest": 0.48215393780282406,
+      "need": null,
+      "running": null,
+      "thirst": 0.01631857454776764,
+      "threats": 3,
+      "x": 10729.01171875,
+      "y": 10639.6083984375
+     },
+     "sent": true,
+     "wall": 1793059090.2313063
+    },
+    {
+     "args": "10711 10620",
+     "branch": "threat",
+     "gameMin": 592,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10729.972981770834,
+         10640.78515625
+        ],
+        "flee": "many",
+        "square": [
+         10711,
+         10620
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.020829441025853157,
+      "fight_s": null,
+      "health": 33.152015686035156,
+      "hunger": 0.018910236656665802,
+      "mode": "flee",
+      "nearest": 0.48375440649741275,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.01631857454776764,
+      "threats": 3,
+      "x": 10729.01171875,
+      "y": 10639.6083984375
+     },
+     "sent": false,
+     "wall": 1793059090.7560277
+    },
+    {
+     "args": "10711 10620",
+     "branch": "threat",
+     "gameMin": 592,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10729.921223958334,
+         10641.064453125
+        ],
+        "flee": "many",
+        "square": [
+         10711,
+         10620
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.021006470546126366,
+      "fight_s": null,
+      "health": 22.685943603515625,
+      "hunger": 0.01906070113182068,
+      "mode": "flee",
+      "nearest": 0.48375440649741275,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.01645814999938011,
+      "threats": 3,
+      "x": 10729.01171875,
+      "y": 10639.6083984375
+     },
+     "sent": false,
+     "wall": 1793059091.2933433
+    },
+    {
+     "args": "10711 10620",
+     "branch": "threat",
+     "gameMin": 592,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10729.945963541666,
+         10640.925130208334
+        ],
+        "flee": "many",
+        "square": [
+         10711,
+         10620
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.021006470546126366,
+      "fight_s": null,
+      "health": 22.685943603515625,
+      "hunger": 0.01906070113182068,
+      "mode": "flee",
+      "nearest": 0.48375440649741275,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.01645814999938011,
+      "threats": 3,
+      "x": 10729.01171875,
+      "y": 10639.6083984375
+     },
+     "sent": false,
+     "wall": 1793059091.7133849
+    },
+    {
+     "args": "10711 10620",
+     "branch": "threat",
+     "gameMin": 592,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10729.737955729166,
+         10640.710611979166
+        ],
+        "flee": "many",
+        "square": [
+         10711,
+         10620
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.021182995289564133,
+      "fight_s": null,
+      "health": 17.81170654296875,
+      "hunger": 0.019211215898394585,
+      "mode": "flee",
+      "nearest": 0.4840766233842829,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.016597069799900055,
+      "threats": 3,
+      "x": 10729.01171875,
+      "y": 10639.6083984375
+     },
+     "sent": false,
+     "wall": 1793059092.2436843
+    },
+    {
+     "args": "10711 10620",
+     "branch": "threat",
+     "gameMin": 592,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10729.634114583334,
+         10640.702473958334
+        ],
+        "flee": "many",
+        "square": [
+         10711,
+         10620
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.021182995289564133,
+      "fight_s": null,
+      "health": 15.366180419921875,
+      "hunger": 0.019211215898394585,
+      "mode": "flee",
+      "nearest": 0.4840766233842829,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.016597069799900055,
+      "threats": 3,
+      "x": 10729.01171875,
+      "y": 10639.6083984375
+     },
+     "sent": false,
+     "wall": 1793059092.764416
+    },
+    {
+     "args": "10711 10620",
+     "branch": "threat",
+     "gameMin": 593,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10729.918294270834,
+         10640.719075520834
+        ],
+        "flee": "many",
+        "square": [
+         10711,
+         10620
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.02135881595313549,
+      "fight_s": null,
+      "health": 11.901870727539062,
+      "hunger": 0.019361702725291252,
+      "mode": "flee",
+      "nearest": 0.4999732964060587,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.01673513650894165,
+      "threats": 3,
+      "x": 10729.01171875,
+      "y": 10639.6083984375
+     },
+     "sent": false,
+     "wall": 1793059093.2956116
+    },
+    {
+     "args": "10711 10620",
+     "branch": "threat",
+     "gameMin": 593,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10729.9423828125,
+         10640.942708333334
+        ],
+        "flee": "many",
+        "square": [
+         10711,
+         10620
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.02135881595313549,
+      "fight_s": null,
+      "health": 11.901870727539062,
+      "hunger": 0.019361702725291252,
+      "mode": "flee",
+      "nearest": 0.4928932579503499,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.01673513650894165,
+      "threats": 3,
+      "x": 10729.01171875,
+      "y": 10639.6083984375
+     },
+     "sent": false,
+     "wall": 1793059093.7202477
+    },
+    {
+     "args": "10711 10620",
+     "branch": "threat",
+     "gameMin": 593,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10729.928059895834,
+         10640.982096354166
+        ],
+        "flee": "many",
+        "square": [
+         10711,
+         10620
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.021534033119678497,
+      "fight_s": null,
+      "health": 5.8830413818359375,
+      "hunger": 0.019512178376317024,
+      "mode": "flee",
+      "nearest": 0.41082534710058055,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.016872486099600792,
+      "threats": 3,
+      "x": 10728.9296875,
+      "y": 10639.55859375
+     },
+     "sent": false,
+     "wall": 1793059094.248089
+    },
+    {
+     "args": "10711 10620",
+     "branch": "threat",
+     "gameMin": 593,
+     "goal": "flee",
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10729.938802083334,
+         10640.782877604166
+        ],
+        "flee": "many",
+        "square": [
+         10711,
+         10620
+        ]
+       }
+      },
+      "cooled": null,
+      "fatigue": 0.021534033119678497,
+      "fight_s": null,
+      "health": 5.8830413818359375,
+      "hunger": 0.019512178376317024,
+      "mode": "flee",
+      "nearest": 0.41907276980157054,
+      "need": null,
+      "running": "flee",
+      "thirst": 0.016872486099600792,
+      "threats": 3,
+      "x": 10728.8720703125,
+      "y": 10639.4638671875
+     },
+     "sent": false,
+     "wall": 1793059094.7711146
+    }
+   ],
+   "via": "frame",
+   "wallS": 118.99973154067993
+  }
+ ],
+ "decisions": 25,
+ "decisions_per_min": 12.605086414236814,
+ "fights": {
+  "count": 2,
+  "outcomes": {
+   "failed:superseded": 2
+  }
+ },
+ "finished": true,
+ "goal_outcomes": {
+  "fight": {
+   "failed": {
+    "superseded": 2
+   }
+  },
+  "flee": {
+   "failed": {
+    "cornered": 2,
+    "superseded": 1
+   }
+  },
+  "goto": {
+   "failed": {
+    "superseded": 1
+   }
+  },
+  "loot": {
+   "done": {
+    "moved=": 15
+   },
+   "failed": {
+    "superseded": 3
+   }
+  }
+ },
+ "last_decisions": [
+  {
+   "args": "10711 10620",
+   "branch": "threat",
+   "gameMin": 592,
+   "goal": "flee",
+   "inputs": {
+    "armed": true,
+    "branches": {
+     "threat": {
+      "centroid": [
+       10729.847005208334,
+       10640.806315104166
+      ],
+      "flee": "many",
+      "square": [
+       10711,
+       10620
+      ]
+     }
+    },
+    "cooled": null,
+    "fatigue": 0.020829441025853157,
+    "fight_s": null,
+    "health": 33.152015686035156,
+    "hunger": 0.018910236656665802,
+    "mode": null,
+    "nearest": 0.48215393780282406,
+    "need": null,
+    "running": null,
+    "thirst": 0.01631857454776764,
+    "threats": 3,
+    "x": 10729.01171875,
+    "y": 10639.6083984375
+   },
+   "sent": true,
+   "wall": 1793059090.2313063
+  },
+  {
+   "args": "10711 10620",
+   "branch": "threat",
+   "gameMin": 592,
+   "goal": "flee",
+   "inputs": {
+    "armed": true,
+    "branches": {
+     "threat": {
+      "centroid": [
+       10729.972981770834,
+       10640.78515625
+      ],
+      "flee": "many",
+      "square": [
+       10711,
+       10620
+      ]
+     }
+    },
+    "cooled": null,
+    "fatigue": 0.020829441025853157,
+    "fight_s": null,
+    "health": 33.152015686035156,
+    "hunger": 0.018910236656665802,
+    "mode": "flee",
+    "nearest": 0.48375440649741275,
+    "need": null,
+    "running": "flee",
+    "thirst": 0.01631857454776764,
+    "threats": 3,
+    "x": 10729.01171875,
+    "y": 10639.6083984375
+   },
+   "sent": false,
+   "wall": 1793059090.7560277
+  },
+  {
+   "args": "10711 10620",
+   "branch": "threat",
+   "gameMin": 592,
+   "goal": "flee",
+   "inputs": {
+    "armed": true,
+    "branches": {
+     "threat": {
+      "centroid": [
+       10729.921223958334,
+       10641.064453125
+      ],
+      "flee": "many",
+      "square": [
+       10711,
+       10620
+      ]
+     }
+    },
+    "cooled": null,
+    "fatigue": 0.021006470546126366,
+    "fight_s": null,
+    "health": 22.685943603515625,
+    "hunger": 0.01906070113182068,
+    "mode": "flee",
+    "nearest": 0.48375440649741275,
+    "need": null,
+    "running": "flee",
+    "thirst": 0.01645814999938011,
+    "threats": 3,
+    "x": 10729.01171875,
+    "y": 10639.6083984375
+   },
+   "sent": false,
+   "wall": 1793059091.2933433
+  },
+  {
+   "args": "10711 10620",
+   "branch": "threat",
+   "gameMin": 592,
+   "goal": "flee",
+   "inputs": {
+    "armed": true,
+    "branches": {
+     "threat": {
+      "centroid": [
+       10729.945963541666,
+       10640.925130208334
+      ],
+      "flee": "many",
+      "square": [
+       10711,
+       10620
+      ]
+     }
+    },
+    "cooled": null,
+    "fatigue": 0.021006470546126366,
+    "fight_s": null,
+    "health": 22.685943603515625,
+    "hunger": 0.01906070113182068,
+    "mode": "flee",
+    "nearest": 0.48375440649741275,
+    "need": null,
+    "running": "flee",
+    "thirst": 0.01645814999938011,
+    "threats": 3,
+    "x": 10729.01171875,
+    "y": 10639.6083984375
+   },
+   "sent": false,
+   "wall": 1793059091.7133849
+  },
+  {
+   "args": "10711 10620",
+   "branch": "threat",
+   "gameMin": 592,
+   "goal": "flee",
+   "inputs": {
+    "armed": true,
+    "branches": {
+     "threat": {
+      "centroid": [
+       10729.737955729166,
+       10640.710611979166
+      ],
+      "flee": "many",
+      "square": [
+       10711,
+       10620
+      ]
+     }
+    },
+    "cooled": null,
+    "fatigue": 0.021182995289564133,
+    "fight_s": null,
+    "health": 17.81170654296875,
+    "hunger": 0.019211215898394585,
+    "mode": "flee",
+    "nearest": 0.4840766233842829,
+    "need": null,
+    "running": "flee",
+    "thirst": 0.016597069799900055,
+    "threats": 3,
+    "x": 10729.01171875,
+    "y": 10639.6083984375
+   },
+   "sent": false,
+   "wall": 1793059092.2436843
+  },
+  {
+   "args": "10711 10620",
+   "branch": "threat",
+   "gameMin": 592,
+   "goal": "flee",
+   "inputs": {
+    "armed": true,
+    "branches": {
+     "threat": {
+      "centroid": [
+       10729.634114583334,
+       10640.702473958334
+      ],
+      "flee": "many",
+      "square": [
+       10711,
+       10620
+      ]
+     }
+    },
+    "cooled": null,
+    "fatigue": 0.021182995289564133,
+    "fight_s": null,
+    "health": 15.366180419921875,
+    "hunger": 0.019211215898394585,
+    "mode": "flee",
+    "nearest": 0.4840766233842829,
+    "need": null,
+    "running": "flee",
+    "thirst": 0.016597069799900055,
+    "threats": 3,
+    "x": 10729.01171875,
+    "y": 10639.6083984375
+   },
+   "sent": false,
+   "wall": 1793059092.764416
+  },
+  {
+   "args": "10711 10620",
+   "branch": "threat",
+   "gameMin": 593,
+   "goal": "flee",
+   "inputs": {
+    "armed": true,
+    "branches": {
+     "threat": {
+      "centroid": [
+       10729.918294270834,
+       10640.719075520834
+      ],
+      "flee": "many",
+      "square": [
+       10711,
+       10620
+      ]
+     }
+    },
+    "cooled": null,
+    "fatigue": 0.02135881595313549,
+    "fight_s": null,
+    "health": 11.901870727539062,
+    "hunger": 0.019361702725291252,
+    "mode": "flee",
+    "nearest": 0.4999732964060587,
+    "need": null,
+    "running": "flee",
+    "thirst": 0.01673513650894165,
+    "threats": 3,
+    "x": 10729.01171875,
+    "y": 10639.6083984375
+   },
+   "sent": false,
+   "wall": 1793059093.2956116
+  },
+  {
+   "args": "10711 10620",
+   "branch": "threat",
+   "gameMin": 593,
+   "goal": "flee",
+   "inputs": {
+    "armed": true,
+    "branches": {
+     "threat": {
+      "centroid": [
+       10729.9423828125,
+       10640.942708333334
+      ],
+      "flee": "many",
+      "square": [
+       10711,
+       10620
+      ]
+     }
+    },
+    "cooled": null,
+    "fatigue": 0.02135881595313549,
+    "fight_s": null,
+    "health": 11.901870727539062,
+    "hunger": 0.019361702725291252,
+    "mode": "flee",
+    "nearest": 0.4928932579503499,
+    "need": null,
+    "running": "flee",
+    "thirst": 0.01673513650894165,
+    "threats": 3,
+    "x": 10729.01171875,
+    "y": 10639.6083984375
+   },
+   "sent": false,
+   "wall": 1793059093.7202477
+  },
+  {
+   "args": "10711 10620",
+   "branch": "threat",
+   "gameMin": 593,
+   "goal": "flee",
+   "inputs": {
+    "armed": true,
+    "branches": {
+     "threat": {
+      "centroid": [
+       10729.928059895834,
+       10640.982096354166
+      ],
+      "flee": "many",
+      "square": [
+       10711,
+       10620
+      ]
+     }
+    },
+    "cooled": null,
+    "fatigue": 0.021534033119678497,
+    "fight_s": null,
+    "health": 5.8830413818359375,
+    "hunger": 0.019512178376317024,
+    "mode": "flee",
+    "nearest": 0.41082534710058055,
+    "need": null,
+    "running": "flee",
+    "thirst": 0.016872486099600792,
+    "threats": 3,
+    "x": 10728.9296875,
+    "y": 10639.55859375
+   },
+   "sent": false,
+   "wall": 1793059094.248089
+  },
+  {
+   "args": "10711 10620",
+   "branch": "threat",
+   "gameMin": 593,
+   "goal": "flee",
+   "inputs": {
+    "armed": true,
+    "branches": {
+     "threat": {
+      "centroid": [
+       10729.938802083334,
+       10640.782877604166
+      ],
+      "flee": "many",
+      "square": [
+       10711,
+       10620
+      ]
+     }
+    },
+    "cooled": null,
+    "fatigue": 0.021534033119678497,
+    "fight_s": null,
+    "health": 5.8830413818359375,
+    "hunger": 0.019512178376317024,
+    "mode": "flee",
+    "nearest": 0.41907276980157054,
+    "need": null,
+    "running": "flee",
+    "thirst": 0.016872486099600792,
+    "threats": 3,
+    "x": 10728.8720703125,
+    "y": 10639.4638671875
+   },
+   "sent": false,
+   "wall": 1793059094.7711146
+  }
+ ],
+ "lua_errors": 0,
+ "lua_errors_max_per_min": 0,
+ "needs": [
+  [
+   561,
+   0.0016474244184792042,
+   0.0013739760033786297,
+   0.0015938758151605725,
+   100,
+   0.00176980288233608
+  ],
+  [
+   577,
+   0.010800031945109367,
+   0.009051548317074776,
+   0.011536281555891037,
+   77.64293670654297,
+   0.010921468026936054
+  ]
+ ],
+ "needs_fields": [
+  "gameMin",
+  "hunger",
+  "thirst",
+  "fatigue",
+  "health",
+  "serverHunger"
+ ],
+ "needs_summary": {
+  "first": {
+   "fatigue": 0.0015938758151605725,
+   "gameMin": 561,
+   "health": 100,
+   "hunger": 0.0016474244184792042,
+   "serverHunger": 0.00176980288233608,
+   "thirst": 0.0013739760033786297
+  },
+  "hunger_client_server_max_diff": 0.0001223784638568759,
+  "last": {
+   "fatigue": 0.011536281555891037,
+   "gameMin": 577,
+   "health": 77.64293670654297,
+   "hunger": 0.010800031945109367,
+   "serverHunger": 0.010921468026936054,
+   "thirst": 0.009051548317074776
+  },
+  "min_health": 77.64293670654297,
+  "paired_rows": 2,
+  "peak": {
+   "fatigue": 0.011536281555891037,
+   "hunger": 0.010800031945109367,
+   "thirst": 0.009051548317074776
+  },
+  "rows": 2
+ },
+ "outcome": "died",
+ "report_lines": [
+  "died after 119 s of the loop (2.0 wall min), stop death: frame seq 857 health 0",
+  "start kit equipped (a frame showed the bat in hand)",
+  "25 decisions sent over 230 planner ticks (12.6 per min)",
+  "needs: 2 rows; peak hunger 0.01, thirst 0.01, fatigue 0.01; min health 77.6; client-server hunger max diff 0.000 over 2 paired rows",
+  "fights: 2 failed:superseded x2",
+  "death via frame at game minute 593; the last decision: flee 10711 10620 (branch threat)",
+  "per-tick cost p50 1.000 ms, p99 2.000 ms, max 6.000 ms over 645 frames",
+  "lua_error events 0 (max 0 in a minute); client console Lua errors 0",
+  "goal fight: failed 2 (superseded x2)",
+  "goal flee: failed 3 (cornered x2, superseded x1)",
+  "goal goto: failed 1 (superseded x1)",
+  "goal loot: done 15 (moved= x15); failed 3 (superseded x3)"
+ ],
+ "run_id": "c_survive_2-20261026-195516",
+ "server_fails": 0,
+ "server_polls": 2,
+ "session_key": "c_survive_2",
+ "start_kit_armed": true,
+ "stop": {
+  "detail": "frame seq 857 health 0",
+  "gameMin": 593,
+  "reason": "death"
+ },
+ "survival_s": 118.99958086013794,
+ "survived": false,
+ "ticks": 230,
+ "ticks_per_min": 115.96679501097869
+}
