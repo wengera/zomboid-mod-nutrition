@@ -1370,3 +1370,98 @@ def test_the_swing_writes_both_latches_false_before_do_attack(lua, fs):
     tick(lua, p)
     assert len(seen) == 1
     assert seen[0][-2:] == [("setForceRun", False), ("setForceSprint", False)]
+
+
+# ---- a raising Java member in the runner's own reads (ruling S-15) ---------------------------------------------------
+
+def boom(*a):
+    raise RuntimeError("java raised")
+
+
+@pytest.mark.parametrize("member", ["setAutoWalk", "setAutoWalkDirection"])
+def test_steer_without_the_auto_walk_fails_not_loaded(lua, fs, member):
+    load(lua)
+    p = make_player()
+    setattr(p, member, None)
+    start(lua, p, "steer", vx=1, vy=0, seconds=3)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "not loaded") and ended(lua)
+    assert ("setAutoWalk", True) not in p.sets and lua.eval("PZA.skills.errors") == 0
+
+
+def test_a_raising_dead_check_rejects_interrupted_and_is_counted(lua, fs):
+    load(lua)
+    p = make_player()
+    p.getBodyDamage = boom
+    start(lua, p, "walkTo", x=12, y=20)
+    a = acts(lua, fs)
+    assert states(a) == [("a1", "rejected", "interrupted")] and ended(lua)
+    assert a[0]["snapshot"]["me"]["x"] == 10.0 and a[0]["snapshot"]["me"].get("health") is None
+    assert lua.eval("PZA.skills.errors") == 2 and "java raised" in lua.eval("PZA.skills.lastError")
+
+
+def test_stop_reads_no_dead_check_so_a_raising_body_still_stops(lua, fs):
+    load(lua)
+    p = make_player()
+    p.getBodyDamage = boom
+    start(lua, p, "stop")
+    tick(lua, p)
+    assert [s[1:] for s in states(acts(lua, fs))] == [("accepted", ""), ("done", "")] and ended(lua)
+
+
+def test_a_raising_snapshot_read_leaves_its_field_absent_and_the_end_still_lands(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "stop")
+    p.getX, p.getZ = boom, boom
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "") and ended(lua)
+    me = a[-1]["snapshot"]["me"]
+    assert me.get("x") is None and me.get("y") is None and me.get("z") is None and me["health"] == 100.0
+    assert lua.eval("PZA.skills.errors") == 2
+    assert list(p.sets[-3:]) == OFF
+
+
+def test_a_raising_nearest_zombie_leaves_nearest_absent(lua, fs):
+    load(lua)
+    lua.globals()._boom = boom
+    lua.execute("PZA.sense = { nearestZombie = function(p) return _boom() end }")
+    p = make_player()
+    start(lua, p, "fly")
+    a = acts(lua, fs)
+    assert states(a) == [("a1", "rejected", "unknown type")] and a[0]["snapshot"].get("nearest") is None
+    assert a[0]["snapshot"]["me"]["x"] == 10.0 and lua.eval("PZA.skills.errors") == 1
+
+
+def test_a_raising_motor_setter_is_counted_and_the_others_still_run(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "steer", vx=1, vy=0, seconds=1, gait="run")
+    tick(lua, p)
+    p.setForceRun = boom
+    lua.globals()._clock["ms"] += 1000
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "done", "") and ended(lua)
+    assert list(p.sets[-2:]) == [("setForceSprint", False), ("setAutoWalk", False)]
+    assert lua.eval("PZA.motor.wantRun") is False and lua.eval("PZA.skills.errors") == 1
+
+
+def test_a_raise_at_a_superseded_end_still_starts_the_new_skill(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "steer", vx=1, vy=0, seconds=5)
+    tick(lua, p)
+    p.setAutoWalk = boom
+    start(lua, p, "stop", aid="a2")
+    assert states(acts(lua, fs))[-2:] == [("a1", "failed", "superseded"), ("a2", "accepted", "")]
+    assert lua.eval("PZA.skills.cur.aid") == "a2" and lua.eval("PZA.skills.errors") == 1
+
+
+def test_the_off_setters_are_the_motors(lua):
+    load(lua)
+    src = open(lua_file("client/PZAgent_Motor.lua"), encoding="utf-8").read()
+    off = src[src.index("function MO.off(p)"):]
+    off = off[:off.index("\nend")]
+    names = re.findall(r'PZA\.call\(p, "(\w+)", false\)', off)
+    assert names == [name for name, _ in OFF] == list(lua.eval("PZA.skills.OFF_SETTERS").values())

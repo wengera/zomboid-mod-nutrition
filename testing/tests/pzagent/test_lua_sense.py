@@ -488,3 +488,74 @@ def test_nearest_zombie_is_the_closest_live_one_or_nil(lua):
     assert n["id"] == 9 and abs(n["dist"] - 3.0) < 1e-9
     g._cell = make_cell()
     assert lua.eval("PZA.sense.nearestZombie(...)", make_player()) is None
+
+
+# ---- a raising Java member (ruling S-15) -----------------------------------------------------------------------------
+
+def boom(*a):
+    raise RuntimeError("java raised")
+
+
+def test_a_raising_group_reader_costs_only_its_group_and_the_frame_still_encodes(lua):
+    load(lua)
+    p = make_player(weapon=make_weapon())
+    p.getStats = boom
+    f = frame(lua, p)
+    assert f["stats"] is not None and f["stats"]["hunger"] is None
+    assert f["me"]["x"] == 10.0 and f["body"]["health"] == 100.0 and f["load"]["max"] == 8
+    assert f["weapon"]["type"] is not None
+    assert "raise:stats" in missing(lua) and lua.eval("PZA.sense.frameErrors") == 1
+    assert "java raised" in lua.eval("PZA.sense.lastFrameError")
+    assert lua.eval("PZA.enc.stats(...)", f["stats"]) == "[" + ",".join(["null"] * 9) + "]"
+
+
+def test_a_raising_required_body_keeps_its_parts_array_and_a_nullable_group_is_nil(lua):
+    load(lua)
+    p = make_player(weapon=make_weapon())
+    p.getBodyDamage, p.getPrimaryHandItem = boom, boom
+    f = frame(lua, p)
+    assert lua.eval("PZA.enc.body(...)", f["body"]) == "[null,null,null,null,[]]"
+    assert f["weapon"] is None
+    assert {"raise:body", "raise:weapon"} <= set(missing(lua)) and lua.eval("PZA.sense.frameErrors") == 2
+
+
+def test_a_raising_position_leaves_me_empty_and_the_zombies_an_empty_array(lua):
+    load(lua)
+    lua.globals()._cell = make_cell(zombies=[live_zombie(1, 12.0, 20.0)])
+    p = make_player()
+    p.getX = boom
+    f = frame(lua, p)
+    assert f["me"]["x"] is None and f["me"]["y"] is None and list(f["zombies"].values()) == []
+    assert "raise:me" in missing(lua)
+
+
+def test_a_raising_event_kind_costs_only_its_events(lua):
+    load(lua)
+    p = make_player(items=("Base.Apple",))
+    lua.eval("PZA.sense.firstSight(...)", p)
+    prev = frame(lua, p)
+    from .conftest import make_item
+    p.held.append(make_item("Base.Plank", 1077))
+    p.isAttackStarted = boom
+    ev, cur = events(lua, p, prev)
+    assert [(e["event"], e["itemId"]) for e in ev if e["event"] == "item_added"] == [("item_added", 1077)]
+    assert cur["me"]["x"] == 10.0
+    assert "raise:event:swing" in missing(lua) and lua.eval("PZA.sense.frameErrors") == 1
+
+
+def test_an_event_kind_raising_midway_adds_none_of_its_events_and_keeps_its_last_state(lua):
+    load(lua)
+    p = make_player(items=("Base.Apple",))
+    lua.eval("PZA.sense.firstSight(...)", p)
+    prev = frame(lua, p)
+    from .conftest import make_item
+    p.held.append(make_item("Base.Plank", 1077))
+    bad = make_item("Base.Nail", 1078)
+    bad.getFullType = boom
+    p.held.append(bad)
+    ev, prev = events(lua, p, prev)
+    assert [e for e in ev if e["event"] == "item_added"] == []
+    assert "raise:event:item" in missing(lua)
+    p.held.remove(bad)
+    ev, _ = events(lua, p, prev)
+    assert [e["itemId"] for e in ev if e["event"] == "item_added"] == [1077]

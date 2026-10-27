@@ -3,19 +3,21 @@ args, against (a) a bare player exposing no member but getX/getY/getZ, (b) a pla
 full player with every vanilla class it may reach set to nil; (c) S.frame on (a) and (b); Main's tick once on each.
 
 What each case asserts:
-- (a) and (d): the skill's last act line is rejected or failed with a reason in the schema's enum (stop, whose interface
-  is done, is done; attack in reach needs no vanilla class and swings), nothing raised, the runner idle, and no caught
-  raise anywhere: a pcall-counting wrapper (test_lua_motor.py's) counts every pcall that returns false, which must stay
+- (a) and (d): the skill's last act line is the (state, reason) its interface gives on that fault, pinned per case (stop,
+  whose interface is done, is done; attack in reach needs no vanilla class and swings), nothing raised, the runner idle,
+  and no caught raise anywhere: a pcall-counting wrapper (test_lua_motor.py's) counts every pcall that returns false, which must stay
   0, since a caught raise still parks the -debug client (#0957) and the skills' paths are index-first.
-- (b): a raise inside the Java stub is expected; the assertion is only that it never propagates out of K.start or K.tick,
-  that the runner counts it (K.errors) and that the skill ends rejected or failed with a reason in the enum.
+- (b): a raise inside the Java stub is expected (ruling S-15: a supported fault to contain); the assertion is that it
+  never propagates out of K.start or K.tick, that the runner counts it (K.errors) and that the skill ends rejected or
+  failed with a reason in the enum; stop, whose only player work is the queue clear already under pcall, ends done.
 - (c): S.frame returns every group present, the unreadable fields nil, and S.missing non-empty; the frame encodes
-  through the Link and decodes through pza1.
+  through the Link and decodes through pza1; on the raising player each group's raise is counted in S.frameErrors.
 - Main: one OnTick after an init with a full player, the player then swapped for the fault player, each command type of
   PZA.schema.actions in cmd.txt: nothing propagates out of the handler and at most one lua_error event lands.
 
-The cases marked xfail(strict=True) are the Lua's findings at 420d91c2, each named in its reason: when the Lua is fixed the
-strict xfail turns into a failure and the marker comes off.
+The test was committed at eef30811 against the Lua at dd79ed27 with 12 strict xfails naming three defects (a raise
+escaping the runner, a raise escaping S.frame, steer without the auto-walk reading as done); Task 9 fix 2 (ruling S-15)
+fixed the Lua and took every marker off.
 """
 import json
 
@@ -87,11 +89,22 @@ def world(g, zombie_x=11.0):
     g._cell = make_cell([make_zombie(5, zombie_x, 20.0)], {(x, y, 0): sq for x in range(6, 16) for y in range(15, 26)})
 
 
+def load(lua, files):
+    """Executes each client file in order (the game's load order)."""
+    for f in files:
+        lua.execute(open(lua_file(f), encoding="utf-8").read())
+
+
+def clear_vanilla(g):
+    """Sets every vanilla class a skill may reach to nil."""
+    for name in VANILLA:
+        g[name] = None
+
+
 def skills_host(zombie_x=11.0):
     fs = FakeFS()
     lua = make_lua(fs)
-    for f in SKILL_FILES:
-        lua.execute(open(lua_file(f), encoding="utf-8").read())
+    load(lua, SKILL_FILES)
     g = lua.globals()
     g.PZA.tick = 0
     lua.execute("PZA.link.init('admin')")
@@ -112,7 +125,7 @@ def act_lines(lua, fs):
 
 def drive(lua, g, p, case, ticks=400, jump_at=5):
     """Start the case's command and tick the runner; the clock jumps 30 s at tick `jump_at` so every wall budget
-    (OPEN_MS, CONSUME_MS, APPROACH_MS, steer's seconds) runs out. Returns the act lines."""
+    (OPEN_MS, CONSUME_MS, APPROACH_MS, steer's seconds) runs out. Returns None; act_lines reads what it emitted."""
     typ, args = VALID[case]
     cmd = lua.table_from({"seq": 1, "aid": "a1", "type": typ, "args": args}, recursive=True)
     lua.eval("PZA.skills.start")(cmd, p)
@@ -138,8 +151,7 @@ def assert_failed_in_enum(end):
 
 def test_the_cases_cover_every_action_type_of_the_schema():
     lua = make_lua(FakeFS())
-    for f in SKILL_FILES:
-        lua.execute(open(lua_file(f), encoding="utf-8").read())
+    load(lua, SKILL_FILES)
     schema = set(lua.eval("PZA.schema.actions").keys())
     skills = set(lua.eval("PZA.skills.types").keys())
     assert schema == set(pza1.ACTION_TYPES) == {t for t, _ in VALID.values()}
@@ -155,41 +167,45 @@ def test_the_pcall_counter_counts_a_caught_raise():
 
 # ---- (a) a bare player ---------------------------------------------------------------------------------------------
 
-STEER_BARE = pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
-    "Lua finding: steer on a player without setAutoWalk/setAutoWalkDirection reports done (PZA.call answers false "
-    "silently and the skill never checks it), so a skill that never steered reads as a success"))
+# the (state, reason) each skill's interface gives on a player with no member but getX/getY/getZ, pinned so a rejected bad
+# args from an args drift cannot pass as the fault path: walkTo never moves (stuck); steer has no auto-walk (not
+# loaded); attack holds nothing; open reads the shut door as not opening (locked, at OPEN_MS); loot queues its transfers
+# but cannot read the inventory grow, so its budget runs out (interrupted); the item skills find no inventory (none
+# held); stop's interface is done
+BARE = {"walkTo": ("failed", "stuck"), "steer": ("failed", "not loaded"), "attack": ("rejected", "no weapon"),
+        "open": ("failed", "locked"), "loot": ("failed", "interrupted"), "equip": ("rejected", "none held"),
+        "eat": ("rejected", "none held"), "drink": ("rejected", "none held"), "drop": ("rejected", "none held"),
+        "stop": ("done", "")}
 
 
-@pytest.mark.parametrize("case", [pytest.param(c, marks=STEER_BARE) if c == "steer" else c for c in SKILL_CASES])
-def test_a_bare_player_ends_rejected_or_failed_with_no_raise(case):
+def test_the_bare_table_covers_every_skill_case():
+    assert set(BARE) == set(SKILL_CASES)
+
+
+@pytest.mark.parametrize("case", SKILL_CASES)
+def test_a_bare_player_ends_as_the_interface_says_with_no_raise(case):
     lua, fs, g = skills_host()
     lua.execute(PCALL_COUNTER)
     p = bare_player()
     drive(lua, g, p, case)
     end = ended(act_lines(lua, fs))
-    if case == "stop":
-        assert end["state"] == "done"                     # stop's interface: it clears what is there and is done
-    else:
-        assert_failed_in_enum(end)
+    assert (end["state"], end["reason"]) == BARE[case]
     assert lua.eval("PZA.skills.cur") is None
     assert lua.eval("PZA.skills.errors") == 0 and g.pcallFails == 0
 
 
 # ---- (b) a player whose every member raises -------------------------------------------------------------------------
 
-RAISE_FINDING = pytest.mark.xfail(strict=True, raises=RuntimeError, reason=(
-    "Lua finding: K.start reads isDead(p) and K.snapshot(p) outside the S-12 pcall, and K.tick's finish emits its "
-    "snapshot outside it too (leaving K.cur set), so a raising player's error propagates out of the runner"))
-
-
-@RAISE_FINDING
 @pytest.mark.parametrize("case", SKILL_CASES)
 def test_a_raising_player_never_propagates_and_the_runner_counts_it(case):
     lua, fs, g = skills_host()
     p = Raising()
     drive(lua, g, p, case, ticks=5)
     end = ended(act_lines(lua, fs))
-    assert_failed_in_enum(end)
+    if case == "stop":
+        assert (end["state"], end["reason"]) == ("done", "")   # its only player work, the queue clear, is under pcall
+    else:
+        assert_failed_in_enum(end)
     assert lua.eval("PZA.skills.cur") is None and lua.eval("PZA.skills.errors") >= 1
 
 
@@ -213,15 +229,16 @@ def test_s_frame_on_a_bare_player_has_every_group_with_nil_fields_and_names_the_
     assert g.pcallFails == 0
 
 
-@pytest.mark.xfail(strict=True, raises=RuntimeError, reason=(
-    "Lua finding: S.frame reads every member through PZA.call with no guard, so a raising player's error propagates "
-    "out of S.frame (Main's pcall catches it; the frame is lost)"))
 def test_s_frame_on_a_raising_player_returns_a_frame_and_names_the_missing():
     lua, fs, g = skills_host()
     f = lua.eval("PZA.sense.frame")(Raising())
     for grp in ("me", "stats", "body", "load"):
         assert f[grp] is not None, grp
-    assert len(list(lua.eval("PZA.sense.missing").values())) > 0
+    assert f.me.x is None and f.me.y is None and f.me.dir is None and f.stats.hunger is None
+    assert f.body.health is None and f.load.weight is None and f.weapon is None
+    missing = set(lua.eval("PZA.sense.missing").values())
+    assert {"raise:me", "raise:stats", "raise:body", "raise:load", "raise:weapon"} <= missing
+    assert lua.eval("PZA.sense.frameErrors") >= 5
 
 
 # ---- (d) every vanilla class absent ---------------------------------------------------------------------------------
@@ -237,8 +254,7 @@ ABSENT = {"walkTo": ("failed", "no path"), "steer": ("failed", "not loaded"), "o
 def test_every_vanilla_class_absent_fails_as_the_interface_says_with_no_raise(case):
     lua, fs, g = skills_host()
     p = full_player()
-    for name in VANILLA:
-        g[name] = None
+    clear_vanilla(g)
     lua.execute(PCALL_COUNTER)
     drive(lua, g, p, case)
     end = ended(act_lines(lua, fs))
@@ -251,8 +267,7 @@ def test_every_vanilla_class_absent_fails_as_the_interface_says_with_no_raise(ca
 def test_attack_out_of_reach_with_the_walk_absent_runs_out_its_approach():
     lua, fs, g = skills_host(zombie_x=14.0)
     p = full_player()
-    for name in VANILLA:
-        g[name] = None
+    clear_vanilla(g)
     lua.execute(PCALL_COUNTER)
     drive(lua, g, p, "attack")
     end = ended(act_lines(lua, fs))
@@ -267,8 +282,7 @@ def main_host(fault):
     `bare`, `raise`, or `absent` (the full player with every vanilla class nil)."""
     fs = FakeFS()
     lua = make_lua(fs)
-    for f in MAIN_FILES:
-        lua.execute(open(lua_file(f), encoding="utf-8").read())
+    load(lua, MAIN_FILES)
     g = lua.globals()
     world(g)
     cur = {"p": full_player()}
@@ -280,8 +294,7 @@ def main_host(fault):
     elif fault == "raise":
         cur["p"] = Raising()
     else:
-        for name in VANILLA:
-            g[name] = None
+        clear_vanilla(g)
     return lua, fs, g
 
 
@@ -300,4 +313,4 @@ def test_main_tick_on_each_fault_never_propagates_and_reports_at_most_one_lua_er
     assert len(errors) <= 1
     if fault != "raise":
         assert errors == [] and lua.eval("PZA.errors") == 0 and g.pcallFails == 0
-        assert [l["state"] for l in lines if l["kind"] == "act" and l["aid"] == "a1"][:1] != []
+        assert any(l["kind"] == "act" and l["aid"] == "a1" for l in lines)

@@ -11,7 +11,10 @@
 -- every vanilla class and its member are index-checked before the call. A raise inside a skill's check or tick (ruling
 -- S-12) is caught by the runner: a check's raise is rejected bad args, a tick's raise ends the skill failed interrupted,
 -- each counted in K.errors with its message in K.lastError; a caught raise still parks the -debug client (#0957), so the
--- index-first rule stands and this guard only keeps the runner's state consistent on a release client.
+-- index-first rule stands and this guard only keeps the runner's state consistent on a release client. Ruling S-15
+-- extends it to the runner's own reads: the dead check in K.start (a raise is rejected interrupted), every read of
+-- K.snapshot (a raise leaves its field absent) and MO.off at a skill's end, each counted in K.errors; the runner goes
+-- idle before its end line, so a raise never leaves K.cur set.
 -- The skills: walkTo, steer, stop (movement); attack, interact, equip, consume, drop (one engine action each, ported from
 -- Plan 21's PZAgent_Act.lua goals, whose state machines with several steps are the planner's now).
 PZA.skills = PZA.skills or {}
@@ -89,13 +92,38 @@ K.queueLoaded, K.clearQueue, K.queueWalk, K.gaitOf = queueLoaded, clearQueue, qu
 
 -- ---- the runner -----------------------------------------------------------------------------------------------------
 
--- the player's state for an act line: me {x, y, z, health} (each absent when unreadable) and the nearest zombie
--- {id, dist} through Sense when it is loaded and provides one, else nil (the line omits it, which the reader takes as null)
-function K.snapshot(p)
-    local x, y = posOf(p)
+-- a raise the runner caught (S-12 inside a skill's check or tick; S-15 in its own reads and at a skill's end): counted,
+-- its message kept
+local function caught(err)
+    K.errors = K.errors + 1
+    K.lastError = tostring(err)
+end
+
+-- fn(...)'s answer, or nil with the raise caught (S-15: a raising Java member inside a present one is a supported fault)
+local function safely(fn, ...)
+    local ok, v, w = pcall(fn, ...)
+    if ok then return v, w end
+    caught(v)
+    return nil, nil
+end
+
+local function zOf(p)
     local _, z = PZA.call(p, "getZ")
-    local near = PZA.sense ~= nil and PZA.sense.nearestZombie ~= nil and PZA.sense.nearestZombie(p) or nil
-    return { me = { x = x, y = y, z = z, health = healthOf(p) }, nearest = near }
+    return z
+end
+
+local function nearestOf(p)
+    if PZA.sense == nil or PZA.sense.nearestZombie == nil then return nil end
+    return PZA.sense.nearestZombie(p)
+end
+
+-- the player's state for an act line: me {x, y, z, health} (each absent when unreadable) and the nearest zombie
+-- {id, dist} through Sense when it is loaded and provides one, else nil (the line omits it, which the reader takes as
+-- null). Each read runs under pcall (S-15): a raise leaves its field absent and is counted in K.errors, so the snapshot
+-- never raises (Main's scan and rate take it too).
+function K.snapshot(p)
+    local x, y = safely(posOf, p)
+    return { me = { x = x, y = y, z = safely(zOf, p), health = safely(healthOf, p) }, nearest = safely(nearestOf, p) }
 end
 
 -- one act line; snapshot only on rejected, failed and done
@@ -105,26 +133,30 @@ local function emitAct(p, aid, typ, state, reason, result)
     PZA.emit("act", body)
 end
 
--- a raise caught inside a skill's check or tick: counted, its message kept (S-12)
-local function caught(err)
-    K.errors = K.errors + 1
-    K.lastError = tostring(err)
+-- MO.off with each of its setters under pcall (S-15): the wants dropped, then every setter in OFF_SETTERS tried whatever
+-- the one before it did, each raise counted; the setters are MO.off's (PZAgent_Motor.lua), kept in step with it
+K.OFF_SETTERS = { "setForceRun", "setForceSprint", "setAutoWalk" }
+local function offSafely(p)
+    MO.want("walk")
+    for _, name in ipairs(K.OFF_SETTERS) do safely(PZA.call, p, name, false) end
 end
 
--- the running skill's end: its act line, the latches off, the runner idle; a failure also clears the vanilla queue, and
--- a failure with no reason is interrupted (a failed line never carries an empty reason)
+-- the running skill's end: the runner idle, its act line, the latches off; a failure also clears the vanilla queue, and
+-- a failure with no reason is interrupted (a failed line never carries an empty reason). The runner goes idle first and
+-- every read and setter after it is guarded (S-15), so a raise at a skill's end never leaves K.cur set or a latch untried.
 local function finish(p, cur, state, reason, result)
+    K.cur = nil
     if state == "failed" then
         clearQueue(p)
         if reason == nil or reason == "" then reason = "interrupted" end
     end
     emitAct(p, cur.aid, cur.type, state, reason, result)
-    MO.off(p)
-    K.cur = nil
+    offSafely(p)
 end
 
 -- a command from the Link's poll; it emits, and returns nothing the caller needs. A command with an empty aid is
--- rejected bad args, an unknown type unknown type, a dead player dead (but for stop), a failed check its reason;
+-- rejected bad args, an unknown type unknown type, a dead player dead (but for stop; a dead check that raises is
+-- rejected interrupted, S-15), a failed check its reason;
 -- otherwise a running skill ends failed superseded (its line first) and the new one starts with accepted.
 function K.start(cmd, p)
     local aid, typ = cmd.aid, cmd.type
@@ -137,9 +169,17 @@ function K.start(cmd, p)
         emitAct(p, aid, typ, "rejected", "unknown type")
         return
     end
-    if typ ~= "stop" and isDead(p) then
-        emitAct(p, aid, typ, "rejected", "dead")
-        return
+    if typ ~= "stop" then
+        local readable, dead = pcall(isDead, p)
+        if not readable then
+            caught(dead)
+            emitAct(p, aid, typ, "rejected", "interrupted")
+            return
+        end
+        if dead then
+            emitAct(p, aid, typ, "rejected", "dead")
+            return
+        end
     end
     local args = type(cmd.args) == "table" and cmd.args or {}
     local ran, ok, reason, st = pcall(def.check, args, p)
@@ -256,8 +296,9 @@ K.types.walkTo = {
 -- The game's auto-walk (setAutoWalk, setAutoWalkDirection) along a world vector, rotated into input space by
 -- K.inputVector so the planner sends world vectors; the gait through MO.want, so a run is re-asserted by the Motor's
 -- OnPlayerUpdate handler every frame. Done once seconds of wall time have passed, result {d = tiles from its start};
--- no stuck rule. The runner's MO.off at every end sends setAutoWalk(false). Vector2 and its new are index-checked
--- before the call (not loaded).
+-- no stuck rule. The runner's MO.off at every end sends setAutoWalk(false). Vector2 and its new, and the player's
+-- setAutoWalk and setAutoWalkDirection, are index-checked before the first call (not loaded: a player without the
+-- auto-walk never steered, so it never reads as done).
 K.types.steer = {
     check = function(args, p)
         local vx, vy, s, gait = args.vx, args.vy, args.seconds, gaitOf(args)
@@ -270,6 +311,9 @@ K.types.steer = {
         if isDead(p) then return "failed", "dead" end
         if st.startMs == nil then
             if Vector2 == nil or Vector2.new == nil then return "failed", "not loaded" end
+            if not PZA.field(p, "setAutoWalk") or not PZA.field(p, "setAutoWalkDirection") then
+                return "failed", "not loaded"
+            end
             clearQueue(p)
             st.x0, st.y0 = posOf(p)
             st.startMs = PZA.now()
@@ -288,7 +332,7 @@ K.types.steer = {
 }
 
 -- ---- stop {} --------------------------------------------------------------------------------------------------------
--- clears the vanilla queue on its first tick and is done {}; the runner's MO.off clears the latches and the auto-walk
+-- clears the vanilla queue on its first tick and is done {}; the runner's end clears the latches and the auto-walk
 K.types.stop = {
     check = function(args, p) return true, "", {} end,
     tick = function(p, st)

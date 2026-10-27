@@ -202,17 +202,46 @@ local function act()
     return K.status()
 end
 
+-- a raising Java member is a supported fault (ruling S-15): each group reader runs under pcall in S.frame and each event
+-- kind's reader under pcall in S.events, so an engine exception inside a present member costs that group or kind, never
+-- the frame. A raise is counted in S.frameErrors, its message kept in S.lastFrameError, and the group or event kind
+-- recorded in S.missing as "raise:<name>" (the pcall cannot name the member; the group it sat in can). The index-first
+-- reads stand inside every reader: a caught raise still parks the -debug client (#0957), so these pcalls contain only
+-- what an index check cannot foresee.
+S.frameErrors = S.frameErrors or 0
+S.lastFrameError = nil
+
+-- a raise caught under name: counted, its message kept, the name recorded
+local function raised(name, err)
+    S.frameErrors = S.frameErrors + 1
+    S.lastFrameError = tostring(err)
+    PZA.missing(S.missing, "raise:" .. name)
+end
+
+-- fn(...)'s answers, or nil (and the raise counted under name) when it raises
+local function guarded(name, fn, ...)
+    local ok, a, b = pcall(fn, ...)
+    if ok then return a, b end
+    raised(name, a)
+    return nil, nil
+end
+
+-- the frame: a required group (me, stats, body, load) whose reader raised is its table with every field nil (body keeps
+-- its parts array, the zombies their empty array); a nullable group (weapon, action, act) is nil; gameMin and worldAge
+-- read 0, as S.clock answers an unreadable clock
 function S.frame(p)
     local f = {}
-    f.gameMin, f.worldAge = S.clock()
-    f.me = me(p)
-    f.stats = stats(p)
-    f.body = body(p)
-    f.load = carry(p)
-    f.weapon = weapon(p)
-    f.action = action(p)
-    f.act = act()
-    f.zombies, S.zobj = zombies(f.me.x, f.me.y)
+    f.gameMin, f.worldAge = guarded("clock", S.clock)
+    if f.gameMin == nil then f.gameMin, f.worldAge = 0, 0 end
+    f.me = guarded("me", me, p) or {}
+    f.stats = guarded("stats", stats, p) or {}
+    f.body = guarded("body", body, p) or { parts = {} }
+    f.load = guarded("load", carry, p) or {}
+    f.weapon = guarded("weapon", weapon, p)
+    f.action = guarded("action", action, p)
+    f.act = guarded("act", act)
+    f.zombies, S.zobj = guarded("zombies", zombies, f.me.x, f.me.y)
+    if f.zombies == nil then f.zombies, S.zobj = {}, {} end
     return f
 end
 
@@ -337,6 +366,81 @@ local function doorsAround(px, py, pz)
     return out
 end
 
+-- the readers of S.events, one per event kind, each appending its events to the list it is given
+local function damageEvents(ev, gameMin)
+    for _, d in ipairs(S.damage) do
+        if d.isLocal == true then
+            ev[#ev + 1] = { event = "damage", gameMin = gameMin, tag = d.tag, amount = d.amount, side = "client" }
+        else
+            S.damageRemote = S.damageRemote + 1
+        end
+    end
+end
+
+local function swingEvents(ev, gameMin, p)
+    local okA, started = PZA.call(p, "isAttackStarted")
+    if okA then
+        if started == true and S.lastAttack ~= true then
+            local _, delay = PZA.call(p, "getMeleeDelay")
+            ev[#ev + 1] = { event = "swing", gameMin = gameMin, attackStarted = true, meleeDelay = delay }
+        end
+        S.lastAttack = started == true
+    end
+end
+
+local function deathEvents(ev, gameMin, prev, seen)
+    for _, z in ipairs(prev ~= nil and prev.zombies or {}) do
+        local obj = z.id ~= nil and seen[z.id] or nil
+        if obj ~= nil and isDead(obj) then ev[#ev + 1] = { event = "zombie_dead", gameMin = gameMin, id = z.id } end
+    end
+end
+
+local function itemEvents(ev, gameMin, p)
+    local last = S.lastInv
+    local now = S.invIds(p, last)
+    if now == nil then return end
+    if last ~= nil then
+        local added, removed = sortedIds(now), sortedIds(last)
+        for _, id in ipairs(added) do
+            if last[id] == nil then ev[#ev + 1] = itemAdded(id, now[id], gameMin) end
+        end
+        for _, id in ipairs(removed) do
+            if now[id] == nil then
+                ev[#ev + 1] = { event = "item_removed", gameMin = gameMin, itemId = id, fullType = last[id].fullType }
+            end
+        end
+    end
+    S.lastInv = now
+end
+
+local function doorEvents(ev, gameMin, m)
+    if type(m.x) ~= "number" or type(m.y) ~= "number" or type(m.z) ~= "number" then return end
+    local doors = doorsAround(math.floor(m.x), math.floor(m.y), math.floor(m.z))
+    local was = S.lastDoors
+    if was ~= nil then
+        local keys = sortedIds(doors)
+        for _, key in ipairs(keys) do
+            local dnow, dwas = doors[key], was[key]
+            if dwas ~= nil and dwas.open ~= dnow.open then
+                ev[#ev + 1] = { event = "door", gameMin = gameMin, x = dnow.x, y = dnow.y, z = dnow.z, open = dnow.open }
+            end
+        end
+    end
+    S.lastDoors = doors
+end
+
+-- one event kind's reader fn(part, ...) under pcall (S-15): its events join ev only when it ran through, so a raise
+-- costs that kind's events this call (none half-read), never the other kinds or the frame
+local function collect(ev, name, fn, ...)
+    local part = {}
+    local ok, err = pcall(fn, part, ...)
+    if not ok then
+        raised(name, err)
+        return
+    end
+    for i = 1, #part do ev[#ev + 1] = part[i] end
+end
+
 -- the typed events since prev (spec § 2.1), each { event = <kind>, gameMin, <the kind's fields flat> } without kind or
 -- the envelope (Main emits each through PZA.emit("event", ev)):
 --   damage{tag, amount, side = "client"}: the damage hook's records of the local player, drained;
@@ -347,62 +451,19 @@ end
 --   door{x, y, z, open}: a door or window within DOOR_R whose IsOpen changed since the last call (one first seen is
 --   recorded without an event).
 -- Returns ev and the new frame (cur).
+-- Each kind through collect; the damage records are drained whatever the damage reader did, so a raising record is
+-- never read twice.
 function S.events(p, prev)
     local seen = S.zobj or {}
     local cur = S.frame(p)
     local gameMin = cur.gameMin
     local ev = {}
-    for _, d in ipairs(S.damage) do
-        if d.isLocal == true then
-            ev[#ev + 1] = { event = "damage", gameMin = gameMin, tag = d.tag, amount = d.amount, side = "client" }
-        else
-            S.damageRemote = S.damageRemote + 1
-        end
-    end
+    collect(ev, "event:damage", damageEvents, gameMin)
     S.damage = {}
-    local okA, started = PZA.call(p, "isAttackStarted")
-    if okA then
-        if started == true and S.lastAttack ~= true then
-            local _, delay = PZA.call(p, "getMeleeDelay")
-            ev[#ev + 1] = { event = "swing", gameMin = gameMin, attackStarted = true, meleeDelay = delay }
-        end
-        S.lastAttack = started == true
-    end
-    for _, z in ipairs(prev ~= nil and prev.zombies or {}) do
-        local obj = z.id ~= nil and seen[z.id] or nil
-        if obj ~= nil and isDead(obj) then ev[#ev + 1] = { event = "zombie_dead", gameMin = gameMin, id = z.id } end
-    end
-    local last = S.lastInv
-    local now = S.invIds(p, last)
-    if now ~= nil then
-        if last ~= nil then
-            local added, removed = sortedIds(now), sortedIds(last)
-            for _, id in ipairs(added) do
-                if last[id] == nil then ev[#ev + 1] = itemAdded(id, now[id], gameMin) end
-            end
-            for _, id in ipairs(removed) do
-                if now[id] == nil then
-                    ev[#ev + 1] = { event = "item_removed", gameMin = gameMin, itemId = id, fullType = last[id].fullType }
-                end
-            end
-        end
-        S.lastInv = now
-    end
-    local m = cur.me
-    if type(m.x) == "number" and type(m.y) == "number" and type(m.z) == "number" then
-        local doors = doorsAround(math.floor(m.x), math.floor(m.y), math.floor(m.z))
-        local was = S.lastDoors
-        if was ~= nil then
-            local keys = sortedIds(doors)
-            for _, key in ipairs(keys) do
-                local dnow, dwas = doors[key], was[key]
-                if dwas ~= nil and dwas.open ~= dnow.open then
-                    ev[#ev + 1] = { event = "door", gameMin = gameMin, x = dnow.x, y = dnow.y, z = dnow.z, open = dnow.open }
-                end
-            end
-        end
-        S.lastDoors = doors
-    end
+    collect(ev, "event:swing", swingEvents, gameMin, p)
+    collect(ev, "event:zombie_dead", deathEvents, gameMin, prev, seen)
+    collect(ev, "event:item", itemEvents, gameMin, p)
+    collect(ev, "event:door", doorEvents, gameMin, cur.me)
     return ev, cur
 end
 
