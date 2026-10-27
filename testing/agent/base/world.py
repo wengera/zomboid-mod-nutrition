@@ -20,6 +20,9 @@ It reads what the transport gives: keyed full dicts, every delta frame already m
   newest scanId seen and `damage_seen_i` (else a relaunched client's scans would all be dropped as older).
   `reply`: `last_reply`.
 
+`stuck` is the planner's memory, not the lines': `mark_stuck(x, y)` records a walk target that ended stuck at the
+current gameMin and `unexplored_edge` leaves it out for STUCK_TTL_MIN game minutes; `to_json` does not carry it.
+
 The server's side comes in through `merge_server(stats, wall_ms)` and `merge_damage(reply, wall_ms)`, a
 `damage.watch` reply whose `last` records not yet seen (by `i`) land in `damage` tagged `server` (spec § 9).
 
@@ -45,6 +48,7 @@ FOOD_RX = re.compile(r"\.(?:(?:Canned|Tinned)\w*|Macandcheese|PowerBar|Apple|Bre
 WATER_RX = re.compile(r"\.(?:WaterBottle(?:Full)?|Pop|Juice|Milk|Soda|Bowl|Pot|Kettle|Bucket)\b")
 
 ZOMBIE_TTL_S = 10
+STUCK_TTL_MIN = 60   # game minutes an edge whose walk ended stuck is left out of unexplored_edge
 GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 DEQUE_N = 500
 
@@ -86,6 +90,7 @@ class World:
         self.missing_items = 0
         self.dropped_scans = 0
         self.map_lines = 0
+        self.stuck = {}              # (x, y) -> gameMin: a walk target that ended stuck, set by the planner
         self.replay_bad = 0          # replay(): the transport's dropped lines; 0 for a live World
         self.replay_gaps = []        # replay(): the transport's seq gaps; [] for a live World
         self._newest_scan = None
@@ -206,11 +211,22 @@ class World:
                 best = rank
         return best[1] if best else None
 
+    def mark_stuck(self, x, y):
+        """Remember the walk target (x, y) as stuck at the current gameMin (the planner's, never a line's)."""
+        self.stuck[(x, y)] = self.game_min or 0.0
+
+    def _stuck_now(self):
+        now = self.game_min or 0.0
+        return {k for k, at in self.stuck.items() if now - at < STUCK_TTL_MIN}
+
     def unexplored_edge(self):
+        """The nearest open square with an unmapped neighbour, ties by (x, y); a square marked stuck within the last
+        STUCK_TTL_MIN game minutes is left out."""
         mx, my = self._me_xy()
+        skip = self._stuck_now() if self.stuck else ()
         best = None
         for (x, y, z), s in self.map.items():
-            if s.get("solid"):
+            if s.get("solid") or (x, y) in skip:
                 continue
             if all((x + dx, y + dy, z) in self.map for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
                 continue

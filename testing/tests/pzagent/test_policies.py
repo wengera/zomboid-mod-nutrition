@@ -373,6 +373,55 @@ def test_a_scan_that_times_out_is_retried(tmp_path):
     assert r.acts.history[0].state == "timeout" and [a.type for a in r.acts.history] == ["scan", "scan"]
 
 
+# I4 (the whole-pass review): run 1 re-sent a walkTo that failed `stuck` to the same edge 20 times.
+def test_the_stuck_ttl_constant():
+    from agent.base import world as W
+    assert W.STUCK_TTL_MIN == 60
+
+
+@pytest.mark.parametrize("reason", ["stuck", "no path", "no square"])
+def test_a_stuck_edge_is_not_chosen_again_until_its_ttl_passes(tmp_path, reason):
+    r = Rig(tmp_path)
+    r.frame(game_min=480.0)
+    e = Explore(r.world, r.acts, r.clock)
+    e.step()
+    r.answer()
+    r.scan([square(x, y) for x in range(99, 102) for y in range(199, 202)])
+    r.frame(game_min=480.0)
+    e.step()
+    first = r.cmd()
+    assert first == ("walkTo", {"x": 99, "y": 200, "gait": "walk"})
+    r.answer({"state": "failed", "reason": reason})
+    r.frame(game_min=481.0)
+    e.step()
+    assert r.cmd()[0] == "walkTo" and r.cmd() != first             # a different edge
+    assert r.world.stuck == {(99, 200): 481.0}
+    r.answer({"state": "failed", "reason": "superseded"})            # not a stuck reason: nothing remembered
+    assert set(r.world.stuck) == {(99, 200)}
+    r.frame(game_min=481.0 + 59.0)
+    e.step()
+    assert r.cmd() != first                                          # inside the TTL
+    r.answer()
+    r.frame(game_min=481.0 + 60.0)
+    e.step()
+    assert r.cmd() == first                                          # the TTL passed: the edge again
+
+
+def test_a_walk_that_ends_done_or_fails_otherwise_is_not_remembered(tmp_path):
+    r = Rig(tmp_path)
+    r.frame()
+    e = Explore(r.world, r.acts, r.clock)
+    e.step()
+    r.answer()
+    r.scan([square(x, y) for x in range(99, 102) for y in range(199, 202)])
+    r.frame()
+    e.step()
+    r.answer({"state": "failed", "reason": "interrupted"})
+    r.frame()
+    e.step()
+    assert r.cmd() == ("walkTo", {"x": 99, "y": 200, "gait": "walk"}) and r.world.stuck == {}
+
+
 @pytest.mark.parametrize("x, place", [(105.0, 110), (115.0, 120), (104.9, 100), (114.9, 110)])
 def test_a_place_is_a_uniform_half_up_grid(tmp_path, x, place):
     r = Rig(tmp_path)

@@ -34,7 +34,10 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   `SPRINT_R`, else a run; re-aimed on every end of its steer. A player standing on the centroid steers along +x.
 - `Explore`: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
   `scanned` from its send and dropped again when the scan ends other than `done`, so a pre-empted, timed-out or
-  rejected scan is retried), then a `WalkTo` at a walk to `world.unexplored_edge()`; no edge, no command.
+  rejected scan is retried), then a `WalkTo` at a walk to `world.unexplored_edge()`; no edge, no command. A walk
+  that ends `failed` with a reason in `STUCK_REASONS` has its target marked in the World (`world.mark_stuck`), and
+  `unexplored_edge` leaves it out for `STUCK_TTL_MIN` (60) game minutes, so it is never re-sent inside them (the
+  whole-pass review's I4: run 1 re-sent a walk that failed `stuck` to the same edge 20 times).
 - `LootHouse`: at load level `LOOT_MAX_LEVEL` (1) or below an `Interact(x, y, "loot", want)` at
   `world.nearest_unlooted(want)` (any container for `want="all"`), every container on that square marked looted when
   the interact ends, done, failed, rejected or timed out, except a `failed "superseded"`, which a newer send replaced
@@ -68,6 +71,7 @@ LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is 
 DROP_AT = 3           # at this load level or above the policy drops (the heavy-load drain falls at level 3) ...
 DROP_TO = 2           # ... down to this level, and between the two sends nothing
 PREEMPTED = "superseded"   # the reason the Lua fails an action a newer send replaced
+STUCK_REASONS = ("stuck", "no path", "no square")   # a walkTo failed for one of these: its target is remembered
 WEAPON_RX = re.compile(r"\.(BaseballBat|Hammer|Axe|Crowbar|Knife|Pan|Pistol|Shotgun|Rifle)")
 
 
@@ -251,6 +255,7 @@ class Explore(Policy):
         super().__init__(world, actions, clock)
         self.scanned = set()   # the places scanned from, or with a scan still running
         self._scan = None      # (place, Action) of the last scan sent, until it ends
+        self._walk = None      # ((x, y), Action) of the last walk sent, until it ends
 
     def place(self):
         """The player's square on a uniform SCAN_R grid (half up, never Python's half-even round)."""
@@ -258,6 +263,11 @@ class Explore(Policy):
         return int(math.floor(mx / SCAN_R + 0.5)) * SCAN_R, int(math.floor(my / SCAN_R + 0.5)) * SCAN_R
 
     def observe(self):
+        if self._walk is not None and self.actions.done(self._walk[1]):
+            (x, y), a = self._walk
+            self._walk = None
+            if a.state == "failed" and a.reason in STUCK_REASONS:
+                self.world.mark_stuck(x, y)
         if self._scan is None or not self.actions.done(self._scan[1]):
             return
         place, a = self._scan
@@ -280,6 +290,8 @@ class Explore(Policy):
         if cmd.TYPE == "scan":
             self.scanned.add(self.place())
             self._scan = (self.place(), action)
+        elif cmd.TYPE == "walkTo":
+            self._walk = ((cmd.x, cmd.y), action)
 
 
 class LootHouse(Policy):
