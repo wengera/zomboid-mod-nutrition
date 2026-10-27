@@ -314,3 +314,23 @@ def test_the_lua_schema_tables(lua_schema):
     assert L.eval("table.concat(PZA.schema.records.square, ',')") == ",".join(pza1.RECORDS["square"])
     assert L.eval("PZA.schema.gaits.sprint") is True
     assert L.eval("table.concat(PZA.schema.events.damage, ',')") == "tag,amount,side"
+
+
+# ---- the descriptions the fix wave corrected (M3): what Main writes ----------------------------------------------
+
+COST = {
+    "tickMs": "The previous tick's whole body in ms (a single tick on the 1 ms clock).",
+    "actMs": "This tick's skill tick in ms (a single tick).",
+    "senseMs": "This tick's events and frame read in ms (a single tick).",
+    "mapMs": "This tick's scan or watch step in ms (a single tick).",
+    "linkMs": "The previous tick's flush in ms.",
+    "tickMaxMs": "The worst body since the last frame, in ms.",
+    "over5": "The bodies of 5 ms or more since the last frame.",
+    "dropped": "The number of lines dropped.",
+}
+
+
+def test_the_cost_descriptions_name_single_tick_spans_never_a_mean():
+    with open(SCHEMA, encoding="utf-8") as fh:
+        props = json.load(fh)["$defs"]["cost"]["properties"]
+    assert {k: v["description"] for k, v in props.items()} == COST

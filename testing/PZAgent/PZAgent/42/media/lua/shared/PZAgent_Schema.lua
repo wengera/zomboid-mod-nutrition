@@ -243,13 +243,13 @@ end
 PZA.enc.act = enc_act
 
 -- group cost: The mod's own cost on the client.
---   tickMs: The mean tick cost in milliseconds since the last frame.
---   actMs: The mean skill cost in milliseconds.
---   senseMs: The mean sense cost in milliseconds.
---   mapMs: The mean map cost in milliseconds.
---   linkMs: The mean link cost in milliseconds.
---   tickMaxMs: The worst tick cost in milliseconds.
---   over5: The number of ticks over five milliseconds.
+--   tickMs: The previous tick's whole body in ms (a single tick on the 1 ms clock).
+--   actMs: This tick's skill tick in ms (a single tick).
+--   senseMs: This tick's events and frame read in ms (a single tick).
+--   mapMs: This tick's scan or watch step in ms (a single tick).
+--   linkMs: The previous tick's flush in ms.
+--   tickMaxMs: The worst body since the last frame, in ms.
+--   over5: The bodies of 5 ms or more since the last frame.
 --   dropped: The number of lines dropped.
 local function enc_cost(t)
     if t == nil then return "null" end

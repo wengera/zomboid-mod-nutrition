@@ -233,13 +233,13 @@
       "x-order": ["tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped"],
       "type": "object",
       "properties": {
-        "tickMs": {"description": "The mean tick cost in milliseconds since the last frame.", "type": "number"},
-        "actMs": {"description": "The mean skill cost in milliseconds.", "type": "number"},
-        "senseMs": {"description": "The mean sense cost in milliseconds.", "type": "number"},
-        "mapMs": {"description": "The mean map cost in milliseconds.", "type": "number"},
-        "linkMs": {"description": "The mean link cost in milliseconds.", "type": "number"},
-        "tickMaxMs": {"description": "The worst tick cost in milliseconds.", "type": "number"},
-        "over5": {"description": "The number of ticks over five milliseconds.", "type": "integer"},
+        "tickMs": {"description": "The previous tick's whole body in ms (a single tick on the 1 ms clock).", "type": "number"},
+        "actMs": {"description": "This tick's skill tick in ms (a single tick).", "type": "number"},
+        "senseMs": {"description": "This tick's events and frame read in ms (a single tick).", "type": "number"},
+        "mapMs": {"description": "This tick's scan or watch step in ms (a single tick).", "type": "number"},
+        "linkMs": {"description": "The previous tick's flush in ms.", "type": "number"},
+        "tickMaxMs": {"description": "The worst body since the last frame, in ms.", "type": "number"},
+        "over5": {"description": "The bodies of 5 ms or more since the last frame.", "type": "integer"},
         "dropped": {"description": "The number of lines dropped.", "type": "integer"}
       },
       "required": ["tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped"]
