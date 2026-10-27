@@ -60,8 +60,9 @@ def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
     for k, v in brief.items():
         assert getattr(D, k) == v and D.CONSTANTS[k] == v, k
     assert D.STOPS == ("death", "bus_dead", "lua_error_storm", "memory", "day_cap", "budget", "error")
-    assert D.PHASES == ("hello", "kit", "survive") and D.USER == "admin"
-    assert (D.LAST_FRAMES, D.DEATH_WINDOW_S, D.LAST_DECISIONS) == (30, 300, 10) and GT.DEATH_TOL == 0.10
+    assert D.PHASES == ("hello", "kit", "damage_hook", "survive") and D.USER == "admin"
+    assert (D.LAST_FRAMES, D.DEATH_WINDOW_S, D.LAST_DECISIONS) == (300, 300, 10) and GT.DEATH_TOL == 0.10
+    assert GT.DANGER_R == 6.0
 
 
 @pytest.mark.parametrize("name,path", [
@@ -149,11 +150,13 @@ class DayMod(FakeMod):
     its own clock since it was made: `die_from` (body.health falls by `drain` a tick from then, to `floor` (0); each
     drop is a server HEAVYLOAD record of `amount` (default `drain`) when `server_damage`), `client_damage` (one client
     damage event at the drain's start), `zombie_at` (zombie ZID at 1.5 tiles from then until an attack kills it),
-    `lua_err_from` / `lua_err_every`, `silent_from` (no line written from then), `hello_mode`."""
+    `lua_err_from` / `lua_err_every`, `silent_from` (no line written from then), `hello_mode`, `no_hello` (no hello
+    line), `zombie_far_s` (the zombie stands at 8 tiles for that long before it closes to `zombie_dist`) and
+    `bite_at` (body.bitten 0 -> 1 and a hurt part from then: a wound the server never hears)."""
 
     def __init__(self, d, clock, die_from=None, drain=5.0, amount=None, floor=0.0, server_damage=True,
                  client_damage=False, zombie_at=None, lua_err_from=None, lua_err_every=1.0, silent_from=None,
-                 hello_mode="append"):
+                 hello_mode="append", no_hello=False, zombie_far_s=0.0, zombie_dist=1.5, bite_at=None):
         super().__init__(d, clock=clock.now)
         self.clk, self.t0 = clock, clock.t
         self.hz = 10
@@ -162,10 +165,12 @@ class DayMod(FakeMod):
         self.zombie_at, self.zombie_dead = zombie_at, False
         self.lua_err_from, self.lua_err_every, self.last_err = lua_err_from, lua_err_every, None
         self.silent_from = silent_from
+        self.zombie_far_s, self.zombie_dist, self.bite_at = zombie_far_s, zombie_dist, bite_at
         self.health, self.weapon, self.has_kit = 100.0, None, False
         self.pending, self.cmd_seen, self.cmds = [], 0, []
         self.server_records = []
-        self.hello(mode=hello_mode)
+        if not no_hello:
+            self.hello(mode=hello_mode)
         self.next_t = clock.t
         self._tick()
         self.next_t += 1.0 / self.hz
@@ -232,10 +237,13 @@ class DayMod(FakeMod):
                 self.last_err is None or self.s() - self.last_err >= self.lua_err_every - 1e-9):
             self.last_err = self.s()
             self.event("lua_error", msg="boom")
-        zs = [{"id": ZID, "x": 101.5, "y": 200.0, "dist": 1.5, "hasTarget": True, "crawler": False,
+        dist = 8.0 if self._zombie_live() and self.s() < self.zombie_at + self.zombie_far_s else self.zombie_dist
+        zs = [{"id": ZID, "x": 100.0 + dist, "y": 200.0, "dist": dist, "hasTarget": True, "crawler": False,
                "health": 1.0}] if self._zombie_live() else []
-        self.frame(gameMin=480.0 + self.s() * 16.0 / 60.0, body=dict(DEFAULT_FRAME["body"], health=self.health),
-                   weapon=self.weapon, zombies=zs)
+        body = dict(DEFAULT_FRAME["body"], health=self.health)
+        if self.bite_at is not None and self.s() >= self.bite_at - 1e-9:
+            body.update(bitten=1, parts=[{"i": 5, "h": 80.0}])
+        self.frame(gameMin=480.0 + self.s() * 16.0 / 60.0, body=body, weapon=self.weapon, zombies=zs)
 
 
 class FakeServer:
@@ -261,6 +269,7 @@ class FakeBus:
         self.gone_from, self.players_error_from, self.bus_dead_from = gone_from, players_error_from, bus_dead_from
         self.stall_at, self.stall_s, self.bus_s = stall_at, stall_s, bus_s
         self.asked, self.stats_calls, self.players_calls, self.damage_calls = [], [], [], []
+        self.hooked_ms = None        # the listener records from its install on (TK.DW.hook), never before
 
     def after(self, t):
         return t is not None and self.mod.s() >= t
@@ -302,13 +311,16 @@ class FakeBus:
         if cmd == "damage.watch":
             parts = args.split()
             since = int(parts[2]) if len(parts) == 3 else 0
-            self.damage_calls.append((m.s(), since))
+            self.damage_calls.append((m.s(), since, args))
+            if self.hooked_ms is None:
+                self.hooked_ms = round(m.clk.t * 1000)
+            heard = [r for r in m.server_records if r["wall"] >= self.hooked_ms]
             counts = {}
-            for r in m.server_records:
+            for r in heard:
                 counts[r["tag"]] = counts.get(r["tag"], 0) + 1
-            last = [dict(r) for r in m.server_records if r["i"] > since]
+            last = [dict(r) for r in heard if r["i"] > since]
             return {"ok": True, "side": "server", "hooked": True, "user": parts[0], "counts": counts or {},
-                    "n": len(m.server_records), "last": last or {}, "dropped": 0}
+                    "n": len(heard), "last": last or {}, "dropped": 0}
         return {"error": "unknown command " + cmd}
 
 
@@ -361,6 +373,9 @@ def test_a_clean_day_runs_every_phase_and_stops_at_the_day_cap(tmp_path, monkeyp
                                                                  "wallMs": kit["item"]["wallMs"]}
     assert kit["equip"]["state"] == "done" and kit["weapon_frame"]["type"] == D.KIT
     assert kit["armed"] is True and kit["ok"] is True
+    dh = out["readings"]["damage_hook"]
+    assert dh["ok"] is True and dh["hooked"] is True and dh["n"] == 0 and dh["last_i"] == 0
+    assert list(out["readings"]) == ["hello", "kit", "damage_hook"] and out["loop"]["started"] is True
     loop = out["loop"]
     log = decisions(tmp_path)
     assert loop["ticks"] == len(log) and loop["ticks"] == pytest.approx(40 * D.PLANNER_HZ, abs=2)
@@ -404,7 +419,8 @@ def test_the_server_is_polled_on_schedule_with_one_paired_needs_row_each(tmp_pat
 
 def test_damage_watch_is_polled_since_the_last_index_and_merged_tagged_server(tmp_path, monkeypatch):
     r = run_day(tmp_path, monkeypatch, limits={"DAY_CAP_S": 100}, die_from=45.0, drain=0.05)
-    calls = r.bus.damage_calls
+    hook, calls = r.bus.damage_calls[0], [c[:2] for c in r.bus.damage_calls[1:]]
+    assert hook[2] == "admin"                                              # the listener installed at the kit's end
     t0 = calls[0][0]
     assert [round(t - t0) for t, _ in calls] == [0, 30, 60, 90] and r.out["stop"]["reason"] == "day_cap"
 
@@ -417,7 +433,7 @@ def test_damage_watch_is_polled_since_the_last_index_and_merged_tagged_server(tm
     assert w.damage_counts_server == {"HEAVYLOAD": last} and len(r.mod.server_records) > last
     assert [d["side"] for d in w.damage] == ["server"] * min(last, 500)   # World.damage keeps the last 500
     dm = r.out["loop"]["damage"]
-    assert dm["polls"] == 4 and dm["fails"] == 0 and dm["lost"] == 0 and dm["since"] == last == dm["merged"]
+    assert dm["polls"] == 5 and dm["fails"] == 0 and dm["lost"] == 0 and dm["since"] == last == dm["merged"]
     assert dm["totals"] == {"HEAVYLOAD": {"n": dm["since"], "amount": pytest.approx(0.05 * dm["since"])}}
     g = GT.grade_d(r.out)
     assert g["health_lost_by_source"]["HEAVYLOAD"]["n"] == dm["since"]
@@ -449,16 +465,16 @@ def test_a_fight_is_read_off_the_decision_logs_threat_branch(tmp_path, monkeypat
 
 # ================================================================ the death record and death_explained
 def test_a_heavyload_death_keeps_its_record_and_the_frames_explain_it(tmp_path, monkeypatch):
-    r = run_day(tmp_path, monkeypatch, die_from=12.0, drain=5.0, client_damage=True)
+    r = run_day(tmp_path, monkeypatch, die_from=40.0, drain=5.0, client_damage=True)
     st, death = r.out["stop"], r.out["loop"]["death"]
-    assert st["reason"] == "death" and st["detail"].endswith("body.health 0") and st["wallS"] < 12.0
+    assert st["reason"] == "death" and st["detail"].endswith("body.health 0") and st["wallS"] < 40.0
     assert set(death) == {"via", "detail", "wallS", "gameMin", "frame", "last_decisions", "last_frames",
                           "server_damage", "client_damage", "window_ms"}
     assert death["via"] == "frame" and death["frame"]["health"] == 0.0
     assert death["last_decisions"] == decisions(tmp_path)[-10:] and len(death["last_decisions"]) == 10
     lf = death["last_frames"]
     assert len(lf) == D.LAST_FRAMES and lf[-1]["body"]["health"] == 0.0 and lf[0]["body"]["health"] == 100.0
-    assert all(set(f) >= {"seq", "wallMs", "me", "body", "load"} for f in lf)
+    assert all(set(f) >= {"seq", "wallMs", "me", "body", "load", "zombies"} for f in lf)
     assert [f["seq"] for f in lf] == sorted(f["seq"] for f in lf)
     assert len(death["server_damage"]) == 20 == len(r.mod.server_records)  # the final read brought the last ones
     assert {d["tag"] for d in death["server_damage"]} == {"HEAVYLOAD"} and death["server_damage"][0]["i"] == 1
@@ -466,9 +482,11 @@ def test_a_heavyload_death_keeps_its_record_and_the_frames_explain_it(tmp_path, 
     assert death["window_ms"]["to"] - death["window_ms"]["from"] == D.DEATH_WINDOW_S * 1000
     g = GT.grade_d(r.out)
     assert g["survived"] is False and g["outcome"] == "died" and g["death_explained"] is True
+    assert g["death_explained_by"] == "tagged"
     c = g["death_check"]
     assert c["health_fall"] == pytest.approx(100.0) and c["server_amount"] == pytest.approx(100.0)
-    assert c["server_n"] == 20 and c["frames_n"] == 30 and c["why"] is None
+    assert c["server_n"] == 20 and c["frames_n"] == 300 and c["why"] is None and c["tagged"]["explained"] is True
+    assert c["wound"]["explained"] is False and c["wound"]["why"] == "no wound in the window's frames"
     assert c["frames_window_ms"] == {"from": lf[0]["wallMs"], "to": lf[-1]["wallMs"]}
     assert c["server_window_ms"]["from"] == lf[0]["wallMs"] and c["server_tags"] == {"HEAVYLOAD": 100.0}
     assert g["health_lost_by_source"] == {"HEAVYLOAD": {"n": 20, "amount": 100.0}}
@@ -479,6 +497,97 @@ def test_health_held_just_above_stop_health_is_no_death(tmp_path, monkeypatch):
     r = run_day(tmp_path, monkeypatch, limits={"DAY_CAP_S": 30}, die_from=8.0, drain=5.0, floor=0.5)
     assert r.out["stop"]["reason"] == "day_cap" and "death" not in r.out["loop"]
     assert r.day.frames[-1]["body"]["health"] == 0.5
+
+
+def _wound_day(tmp_path, monkeypatch, **flags):
+    # the zombie stands at 8 tiles from 30 s, closes to 2 at 32 s; health falls 0.5 a tick from 33 s to 0 at 53 s
+    kw = dict(die_from=33.0, drain=0.5, server_damage=False, zombie_at=30.0, zombie_far_s=2.0, zombie_dist=2.0,
+              bite_at=33.0)
+    kw.update(flags)
+    return run_day(tmp_path, monkeypatch, **kw)
+
+
+def test_a_wound_death_is_explained_by_the_wound_arm(tmp_path, monkeypatch):
+    r = _wound_day(tmp_path, monkeypatch)
+    assert r.out["stop"]["reason"] == "death" and r.out["loop"]["death"]["server_damage"] == []
+    g = GT.grade_d(r.out)
+    assert g["death_explained"] is True and g["death_explained_by"] == "wound"
+    c = g["death_check"]
+    assert c["tagged"]["explained"] is False and c["health_fall"] == pytest.approx(100.0) and c["frames_n"] == 300
+    w = c["wound"]
+    assert w["explained"] is True and w["what"] == "bitten 0 -> 1" and w["wound_health"] == pytest.approx(100.0)
+    assert w["frame_seq"] == w["fall_seq"] and w["gameMin"] is not None
+    assert w["zombie"]["id"] == ZID and w["zombie"]["dist"] == 2.0 and w["zombie"]["seq"] <= w["frame_seq"]
+    assert any(l.startswith("death explained by the frames (wound)") for l in g["report_lines"])
+
+
+def test_a_wound_death_with_no_zombie_near_is_not_explained(tmp_path, monkeypatch):
+    r = _wound_day(tmp_path, monkeypatch, zombie_at=None)
+    g = GT.grade_d(r.out)
+    assert g["death_explained"] is False and g["death_explained_by"] is None
+    assert g["death_check"]["wound"]["why"].startswith("no zombie within 6.0 tiles")
+    r = _wound_day(tmp_path / "far", monkeypatch, zombie_far_s=1000.0)       # at 8 tiles: beyond DANGER_R
+    assert GT.grade_d(r.out)["death_explained"] is False
+
+
+def test_a_wound_after_the_fall_began_does_not_explain_it(tmp_path, monkeypatch):
+    r = _wound_day(tmp_path, monkeypatch, bite_at=40.0)
+    c = GT.grade_d(r.out)["death_check"]
+    assert c["explained"] is False and c["explained_by"] is None and "after the fall began" in c["wound"]["why"]
+
+
+def test_the_wound_arm_reads_parts_and_names_the_nearest_zombie():
+    def fr(seq, health, parts=(), zombies=(), **wounds):
+        return {"seq": seq, "wallMs": 1000 + 100 * seq, "gameMin": 600 + seq,
+                "body": dict({"health": health, "bleeding": 0, "scratched": 0, "bitten": 0, "parts": list(parts)},
+                             **wounds), "zombies": list(zombies)}
+    near = [{"id": 3, "dist": 5.5}, {"id": 4, "dist": 2.5}, {"id": 9, "dist": 7.0}]
+    frames = [fr(1, 100.0, zombies=near), fr(2, 100.0, parts=[{"i": 2, "h": 90.0}]), fr(3, 70.0), fr(4, 0.0)]
+    w = GT.death_check({"last_frames": frames})["wound"]
+    assert w["explained"] is True and w["what"] == "part 2 appears at 90.0" and w["frame_seq"] == 2
+    assert w["zombie"] == {"id": 4, "dist": 2.5, "seq": 1} and w["wound_health"] == 100.0
+    frames = [fr(1, 100.0, parts=[{"i": 2, "h": 90.0}], zombies=near), fr(2, 60.0, parts=[{"i": 2, "h": 50.0}]),
+              fr(3, 0.0, parts=[{"i": 2, "h": 50.0}])]
+    c = GT.death_check({"last_frames": frames, "server_damage": [{"i": 1, "tag": "BLEEDING", "amount": 10.0,
+                                                                   "wall": 1300}]})
+    assert c["explained_by"] == "wound" and c["wound"]["what"] == "part 2 falls 90.0 -> 50.0"
+    assert c["wound"]["wound_health"] == 90.0                                  # the fall 100 less the tagged 10
+    frames = [fr(1, 100.0, zombies=[{"id": 9, "dist": 6.01}]), fr(2, 0.0, scratched=1)]
+    assert GT.death_check({"last_frames": frames})["explained"] is False      # 6.01 is beyond DANGER_R
+    frames = [fr(1, 100.0, zombies=[{"id": 9, "dist": 6.0}]), fr(2, 0.0, bleeding=1)]
+    assert GT.death_check({"last_frames": frames})["explained_by"] == "wound"  # within, at exactly 6.0
+
+
+def test_a_park_in_the_hello_is_bus_dead_and_never_survived(tmp_path, monkeypatch):
+    def setup(day):
+        day.xs.clients["admin"].seen["lua_error"] = 1
+    r = run_day(tmp_path, monkeypatch, no_hello=True, setup=setup)
+    st = r.out["stop"]
+    assert st["reason"] == "bus_dead" and "parked" in st["detail"] and "started" not in r.out["loop"]
+    g = GT.grade_d(r.out)
+    assert g["survived"] is None and g["loop_started"] is False
+
+
+def test_a_stop_before_the_loop_ran_is_never_survived(tmp_path, monkeypatch):
+    r = run_day(tmp_path, monkeypatch, no_hello=True, budget_s=5.0)
+    assert r.out["stop"]["reason"] == "budget" and "started" not in r.out["loop"]
+    g = GT.grade_d(r.out)
+    assert g["survived"] is None and g["outcome"] == "undecided: the session stopped on budget before the loop ran"
+    o = {"stop": {"reason": "day_cap", "wallS": 9.0}, "loop": {}}
+    assert GT.grade_d(o)["survived"] is None and GT.grade_d(dict(o, loop={"started": True}))["survived"] is True
+
+
+def test_the_damage_listener_is_installed_once_at_the_kits_end(tmp_path, monkeypatch):
+    r = run_day(tmp_path, monkeypatch, limits={"DAY_CAP_S": 40})
+    dw = [i for i, a in enumerate(r.bus.asked) if a[1] == "damage.watch"]
+    installs = [i for i in dw if r.bus.asked[i][2] == "admin"]
+    assert len(installs) == 1 and installs[0] == dw[0]
+    assert r.bus.asked[installs[0]][3] == D.SERVER_TIMEOUT_S
+    item_gets = [i for i, a in enumerate(r.bus.asked) if a[1] == "item.get"]
+    stats = [i for i, a in enumerate(r.bus.asked) if a[1] == "stats.all"]
+    assert max(item_gets) < installs[0] < min(stats)                        # after the kit, before the loop
+    assert all(r.bus.asked[i][2].startswith("admin since ") for i in dw[1:])
+    assert r.out["phase_walls"]["damage_hook"]["start"] >= r.out["phase_walls"]["kit"]["end"]
 
 
 def test_a_death_without_server_records_is_not_explained(tmp_path, monkeypatch):
@@ -497,13 +606,13 @@ def test_a_death_whose_server_amounts_miss_the_fall_by_more_than_ten_percent_is_
 
 
 def test_a_players_reply_without_the_user_is_a_death_with_its_record(tmp_path, monkeypatch):
-    r = run_day(tmp_path, monkeypatch, limits={"SERVER_POLL_S": 5}, bus={"gone_from": 12.0})
+    r = run_day(tmp_path, monkeypatch, limits={"SERVER_POLL_S": 5}, bus={"gone_from": 35.0})
     st = r.out["stop"]
     assert st["reason"] == "death" and "players reply without admin" in st["detail"]
     death = r.out["loop"]["death"]
     assert death["via"] == "players" and death["frame"] is None and len(death["last_frames"]) == D.LAST_FRAMES
     g = GT.grade_d(r.out)
-    assert g["death_explained"] is False and g["deaths"][0]["via"] == "players"
+    assert g["death_explained"] is False and g["death_explained_by"] is None and g["deaths"][0]["via"] == "players"
 
 
 def _frames(healths, t0=1000, dt=100):
@@ -703,7 +812,8 @@ def test_the_decision_log_is_copied_with_the_artifact(tmp_path, monkeypatch):
                                              ("bus_dead", None), ("lua_error_storm", None), ("memory", None),
                                              ("error", None)])
 def test_survived_is_true_only_for_day_cap_or_budget(reason, survived):
-    g = GT.grade_d({"stop": {"reason": reason, "detail": "x", "wallS": 900.0}, "loop": {"wallS": 900.0}})
+    g = GT.grade_d({"stop": {"reason": reason, "detail": "x", "wallS": 900.0},
+                    "loop": {"wallS": 900.0, "started": True}})
     assert g["survived"] is survived
     assert g["outcome"] == {True: "survived (%s)" % reason, False: "died"}.get(
         survived, "undecided: the session stopped on %s" % reason)

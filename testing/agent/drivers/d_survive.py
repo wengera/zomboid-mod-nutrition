@@ -19,10 +19,13 @@ out["readings"][phase]):
            is KIT (EQUIP_TIMEOUT_S). {spawn, item {itemId, source, seq, wallMs} | None, equip {aid, state, reason,
            result, ended_wall} | None, weapon_frame {seq, wallMs, type} | None, armed, ok}. An unconfirmed spawn or
            equip is recorded and the session goes on (the planner flees every threat while unarmed).
+  damage_hook  (fix 1) the server's damage listener installed at the kit's end: `damage.watch USER` once
+           (x5_combat's damage_hook), its records merged as the loop's polls merge them; {ok, hooked, n, counts,
+           last_i, ack}.
   survive  the planner loop, every POLL_S of the clock:
              pump the transport (each line into World, then Actions): a frame's body.health <= STOP_HEALTH, the
                lua_error events and the link's silence are read here; the last LAST_FRAMES frames' {seq, wallMs,
-               gameMin, worldAge, me, body, load, stats} are kept;
+               gameMin, worldAge, me, body, load, stats, zombies [{id, dist}]} are kept;
              at PLANNER_HZ: survive.tick(world, actions) (it writes decision.log beside the artifact; the driver
                reads it incrementally, keeps its last LAST_DECISIONS lines and builds the fights from its threat
                branch); every Action it returns is kept with its end (loop.actions);
@@ -32,7 +35,7 @@ out["readings"][phase]):
                needs_pairs [{frameSeq, frameWallMs, serverWallMs, dtMs, paired}] beside it: paired when the frame
                and the read are within PAIR_S (the same wall second; serverHunger None when the read failed);
                then the `players` list (@reply [<username>, ...], {} when nobody is online);
-             every DAMAGE_POLL_S, the first at the loop's start (it installs the server's listener):
+             every DAMAGE_POLL_S, the first at the loop's start:
                `damage.watch USER since <i>`, i the largest record index merged, merged by World.merge_damage; each
                new record kept as {i, tag, amount, wall (the server's TK.now, epoch ms), wallMs (the merge, this
                process's clock)} (the last SERVER_RECORDS_KEPT of them) and summed by tag (loop.damage.totals:
@@ -57,10 +60,13 @@ out["readings"][phase]):
              error           anything else the loop raised (its type and message).
 THE DEATH RECORD (spec § 10: the frames explain a death): out["loop"]["death"] {via ("frame" | "players"), detail,
 wallS, gameMin, frame (the death frame or None), last_decisions (the decision log's last LAST_DECISIONS lines),
-last_frames (the last LAST_FRAMES frames' {seq, wallMs, gameMin, worldAge, me, body, load, stats}), server_damage (the
-server's records merged into World, with their i and server wall, whose wall (else wallMs) lies within DEATH_WINDOW_S
-before the client's clock at the stop), client_damage (World.damage's client records within the same window),
+last_frames (the last LAST_FRAMES frames' {seq, wallMs, gameMin, worldAge, me, body, load, stats, zombies [{id,
+dist}]}), server_damage (the server's records merged into World, with their i and server wall, whose wall (else
+wallMs) lies within DEATH_WINDOW_S before the client's clock at the stop), client_damage (World.damage's client records within the same window),
 window_ms {from, to}}. A final `damage.watch since` read precedes it, so the records up to the death are merged.
+grade_d's death_check reads it by two arms (ruling S-16): the server's tagged amounts, or a wound off the frames.
+A stop before the loop ran writes loop.started absent, and grade_d never counts it survived; a park in the hello
+phase is named bus_dead (fix 1).
 
 out["loop"]: wallS, ticks, decisions, last_decisions, needs, needs_fields, needs_pairs, fights [{startS, startWall,
 gameMin, health, threats, threats_max, nearest, ticks, sent, fight_ticks, flee {reason: n}, end {endS, gameMin,
@@ -133,7 +139,7 @@ KIT_TIMEOUT_S = 30.0                 # x5_combat.py L116
 EQUIP_TIMEOUT_S = 30.0               # x5_combat.py L117
 ACT_TIMEOUT_S = 10.0                 # Equip's deadline; x5_combat.py L123
 SERVER_TIMEOUT_S = 10.0              # the damage.watch step's bus timeout; x5_combat.py L122
-LAST_FRAMES = 30                     # the brief: the death record keeps the last 30 frames
+LAST_FRAMES = 300                    # fix 1 (S-16): the last 300 frames (30 s at 10 Hz) hold a wound's onset
 DEATH_WINDOW_S = 300                 # the brief: the damage records of the last 5 minutes
 PAIR_S = 1.0                         # a needs row's frame and server read share a wall second (CLAUDE.md § 5)
 SERVER_RECORDS_KEPT = 2000           # the damage records kept for the death window (10 polls of damage.watch's 200)
@@ -154,7 +160,7 @@ CONSTANTS = {k: globals()[k] for k in (
     "HELLO_TIMEOUT_S", "FRAME_TIMEOUT_S", "KIT", "POLL_S", "LAST_DECISIONS", "KIT_TIMEOUT_S", "EQUIP_TIMEOUT_S",
     "ACT_TIMEOUT_S", "SERVER_TIMEOUT_S", "LAST_FRAMES", "DEATH_WINDOW_S", "PAIR_S", "SERVER_RECORDS_KEPT",
     "PARK_RX")}
-PHASES = ("hello", "kit", "survive")
+PHASES = ("hello", "kit", "damage_hook", "survive")
 
 
 def parse_argv(argv, driver_file):
@@ -289,7 +295,9 @@ def damage_last(ack):
 def frame_row(f):
     """A frame as the death record keeps it: {seq, wallMs, gameMin, worldAge, me, body, load, stats}."""
     return {"seq": f.get("seq"), "wallMs": f.get("wallMs"), "gameMin": f.get("gameMin"), "worldAge": f.get("worldAge"),
-            "me": f.get("me"), "body": f.get("body"), "load": f.get("load"), "stats": f.get("stats")}
+            "me": f.get("me"), "body": f.get("body"), "load": f.get("load"), "stats": f.get("stats"),
+            "zombies": [{"id": z.get("id"), "dist": z.get("dist")} for z in f.get("zombies") or ()
+                        if isinstance(z, dict)]}
 
 
 def body_health(f):
@@ -597,6 +605,7 @@ class Day:
         self.t_loop0 = now
         self.fights.t0 = now
         self.loop["startPyMs"] = now * 1000.0
+        self.loop["started"] = True                  # grade_d: a stop before the loop ran is never survived
         self.last_line_t = now
         lim = self.lim
         tick_dt = 1.0 / lim["PLANNER_HZ"]
@@ -684,17 +693,26 @@ class Day:
             raise Stop("bus_dead", "%d consecutive failed server polls, %ss apart" % (
                 self.fails_in_row, self.lim["SERVER_POLL_S"]))
 
-    def damage_poll(self):
+    def phase_damage_hook(self):
+        """Fix 1: the server's damage listener installed at the kit's end (x5_combat's damage_hook: `damage.watch USER`
+        once), its records merged as the loop's polls merge them; {ok, hooked, n, counts, last_i, ack}."""
+        ack = self.damage_poll(args=USER)
+        a = ack if isinstance(ack, dict) else {}
+        self.rd["damage_hook"] = {"ok": a.get("ok"), "hooked": a.get("hooked"), "n": a.get("n"),
+                                  "counts": a.get("counts"), "last_i": self.since_i, "ack": ack}
+
+    def damage_poll(self, args=None):
         """damage.watch USER since <i>: the new records merged into the World, kept with their i and server wall, and
         summed by tag; a gap in the indices (records aged out of the server's list) counts in `lost`."""
         dm = self.damage
         dm["polls"] += 1
-        ack = self.xs.step("damage_watch", X.SRV, "damage.watch", "%s since %d" % (USER, self.since_i),
-                           timeout=SERVER_TIMEOUT_S, log=False).get("ack")
+        args = args or "%s since %d" % (USER, self.since_i)
+        ack = self.xs.step("damage_watch", X.SRV, "damage.watch", args, timeout=SERVER_TIMEOUT_S,
+                           log=False).get("ack")
         if not (isinstance(ack, dict) and ack.get("ok") is True):
             dm["fails"] += 1
             dm["last_error"] = str(ack)[:300]
-            return
+            return ack
         merge_ms = self.clock() * 1000.0
         seen = set(self.world.damage_seen_i)
         new = [r for r in damage_last(ack) if r["i"] not in seen]
@@ -711,6 +729,7 @@ class Day:
             t["amount"] += _num(r.get("amount")) or 0.0
         dm["merged"] += len(new)
         dm["since"], dm["dropped"], dm["counts"] = self.since_i, ack.get("dropped"), ack.get("counts")
+        return ack
 
     def memory_read(self, now):
         """c_survive's memory_read: one free-memory read; MEM_LOW_READS in a row below LIVE_MIN_FREE_GB stop."""
@@ -788,6 +807,7 @@ class Day:
         self.xs.run_phase("hello", self.phase_hello)
         if self.ready:
             self.xs.run_phase("kit", self.phase_kit)
+            self.xs.run_phase("damage_hook", self.phase_damage_hook)
             self.xs.run_phase("survive", self.phase_survive)
         else:
             self.xs.note("no hello: the kit and the loop skipped")
@@ -797,8 +817,12 @@ class Day:
             # server poll names bus_dead, x5_combat fix 1's naming)
             bs = self.out.get("budget_stop")
             pe = self.out.get("phase_errors", {})
-            reason, detail = ("budget", bs.get("why")) if bs else ("error", "; ".join(
-                "%s: %s" % (k, v.get("error")) for k, v in pe.items()) or "the loop did not run")
+            # (fix 1: a park in the hello phase is bus_dead, as check_budget names it in the loop)
+            if bs:
+                reason, detail = ("bus_dead" if "parked" in str(bs.get("why")) else "budget"), bs.get("why")
+            else:
+                reason, detail = "error", "; ".join("%s: %s" % (k, v.get("error")) for k, v in pe.items()) or (
+                    "the loop did not run")
             self.set_stop(reason, detail)
         self.xs.persist()
 

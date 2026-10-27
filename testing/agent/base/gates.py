@@ -319,21 +319,83 @@ def d_fights(rows):
             "health_lost": lost, "flee_reasons": flee}
 
 
+DANGER_R = 6.0                       # ruling S-16: agent/base/planner/survive.py's DANGER_R, a zombie this close
+WOUND_KEYS = ("bleeding", "scratched", "bitten")
+
+
+def _wound(prev, cur):
+    """What wound a frame shows that the frame before it did not, or None: body.bleeding, body.scratched or
+    body.bitten rising from 0, or a body.parts entry {i, h} appearing or its h falling."""
+    b0, b1 = _dd(prev.get("body")), _dd(cur.get("body"))
+    for k in WOUND_KEYS:
+        if not (_num(b0.get(k)) or 0) and (_num(b1.get(k)) or 0) > 0:
+            return "%s 0 -> %s" % (k, b1.get(k))
+    p0 = {_dd(p).get("i"): _num(_dd(p).get("h")) for p in _ll(b0.get("parts"))}
+    for p in _ll(b1.get("parts")):
+        i, h = _dd(p).get("i"), _num(_dd(p).get("h"))
+        if i not in p0:
+            return "part %s appears at %s" % (i, h)
+        if h is not None and p0[i] is not None and h < p0[i]:
+            return "part %s falls %s -> %s" % (i, p0[i], h)
+    return None
+
+
+def _wound_arm(frames, fall, tagged):
+    """Arm B (ruling S-16): the window's frames show a wound at or before the frame where the health first falls,
+    and a zombie within DANGER_R in a frame at or before that wound frame; wound_health is the untagged remainder
+    (fall - tagged). frames: the window's frames with a wallMs and a body.health, in order."""
+    w = {"explained": False, "why": None, "what": None, "frame_seq": None, "gameMin": None, "wallMs": None,
+         "fall_seq": None, "zombie": None, "wound_health": fall - tagged, "danger_r": DANGER_R}
+    hp = [_num(_dd(f.get("body")).get("health")) for f in frames]
+    fall_k = next((k for k in range(1, len(frames)) if hp[k] < hp[k - 1]), None)
+    if fall_k is None:
+        w["why"] = "no health fall in the window"
+        return w
+    w["fall_seq"] = frames[fall_k].get("seq")
+    found = next(((k, x) for k in range(1, len(frames)) for x in [_wound(frames[k - 1], frames[k])] if x), None)
+    if found is None:
+        w["why"] = "no wound in the window's frames"
+        return w
+    k, w["what"] = found
+    f = frames[k]
+    w.update(frame_seq=f.get("seq"), gameMin=f.get("gameMin"), wallMs=f.get("wallMs"))
+    if k > fall_k:
+        w["why"] = "the wound (seq %s) comes after the fall began (seq %s)" % (f.get("seq"), w["fall_seq"])
+        return w
+    for g in reversed(frames[:k + 1]):
+        near = [z for z in _ll(g.get("zombies")) if isinstance(z, dict) and _num(z.get("dist")) is not None
+                and z["dist"] <= DANGER_R]
+        if near:
+            z = min(near, key=lambda r: (r["dist"], str(r.get("id"))))
+            w["zombie"] = {"id": z.get("id"), "dist": z["dist"], "seq": g.get("seq")}
+            break
+    if w["zombie"] is None:
+        w["why"] = "no zombie within %s tiles at or before the wound" % DANGER_R
+        return w
+    w["explained"] = True
+    return w
+
+
 def death_check(death):
-    """Whether the frames explain a death (spec § 10): the health fall over the death record's last_frames (the sum of
-    every drop in body.health between consecutive frames) against the sum of the server's damage `amount`s whose
-    server `wall` lies in the same window, (the first frame's wallMs, the last frame's wallMs] (a record at the first
-    frame's time already shows in it). Explained when the window holds server records and |fall - amount| <=
-    DEATH_TOL * amount; not explained otherwise, `why` naming the reason."""
+    """Whether the frames explain a death (spec § 10, ruling S-16), by either of two arms over the death record's
+    last_frames (the window (the first frame's wallMs, the last frame's wallMs]; the health fall the sum of every drop
+    in body.health between consecutive frames):
+      arm A, tagged: the window holds the server's damage records (by their server `wall`; a record at the first
+        frame's time already shows in it) and |fall - their amounts| <= DEATH_TOL * amounts. The server hears only
+        the tagged terms (#2357); the wound terms fire no OnPlayerGetDamage (#2364).
+      arm B, wound (_wound_arm): a wound in the frames at or before the fall's first frame and a zombie within
+        DANGER_R at or before the wound, the untagged remainder reported as wound_health.
+    explained is either arm, explained_by "tagged" (arm A first), "wound" or None; `tagged` and `wound` keep each
+    arm's verdict and why; the arm A numbers stay at the top level."""
     death = _dd(death)
-    hs = [(_num(f.get("wallMs")), _num(_dd(f.get("body")).get("health")))
-          for f in _ll(death.get("last_frames")) if isinstance(f, dict)]
-    hs = [(w, h) for w, h in hs if w is not None and h is not None]
-    r = {"explained": False, "why": None, "tol": DEATH_TOL, "frames_n": len(hs), "frames_window_ms": None,
-         "health_fall": None, "server_window_ms": None, "server_n": 0, "server_amount": None, "server_tags": {},
-         "diff": None}
+    frames = [f for f in _ll(death.get("last_frames")) if isinstance(f, dict) and _num(f.get("wallMs")) is not None
+              and _num(_dd(f.get("body")).get("health")) is not None]
+    hs = [(f["wallMs"], f["body"]["health"]) for f in frames]
+    r = {"explained": False, "explained_by": None, "why": None, "tol": DEATH_TOL, "frames_n": len(hs),
+         "frames_window_ms": None, "health_fall": None, "server_window_ms": None, "server_n": 0, "server_amount": None,
+         "server_tags": {}, "diff": None, "tagged": {"explained": False, "why": None}, "wound": None}
     if len(hs) < 2:
-        r["why"] = "fewer than two frames with a wallMs and a body.health"
+        r["why"] = r["tagged"]["why"] = "fewer than two frames with a wallMs and a body.health"
         return r
     lo, hi = hs[0][0], hs[-1][0]
     r["frames_window_ms"] = {"from": lo, "to": hi}
@@ -345,18 +407,26 @@ def death_check(death):
     for d in recs:
         t = str(d.get("tag"))
         r["server_tags"][t] = r["server_tags"].get(t, 0.0) + d["amount"]
-    if not recs:
-        r["why"] = "no server damage record in the frames' window"
-        return r
     amount = sum(d["amount"] for d in recs)
-    r["server_amount"], r["diff"] = amount, r["health_fall"] - amount
-    if amount <= 0:
-        r["why"] = "the server's records in the window sum to %s" % amount
-        return r
-    r["explained"] = abs(r["diff"]) <= DEATH_TOL * amount
-    if not r["explained"]:
-        r["why"] = "the fall %s and the server's %s differ by more than %s of it" % (r["health_fall"], amount,
-                                                                                     DEATH_TOL)
+    ta = r["tagged"]
+    if not recs:
+        ta["why"] = "no server damage record in the frames' window"
+    else:
+        r["server_amount"], r["diff"] = amount, r["health_fall"] - amount
+        if amount <= 0:
+            ta["why"] = "the server's records in the window sum to %s" % amount
+        else:
+            ta["explained"] = abs(r["diff"]) <= DEATH_TOL * amount
+            if not ta["explained"]:
+                ta["why"] = "the fall %s and the server's %s differ by more than %s of it" % (
+                    r["health_fall"], amount, DEATH_TOL)
+    r["wound"] = _wound_arm(frames, r["health_fall"], amount)
+    if ta["explained"]:
+        r["explained"], r["explained_by"] = True, "tagged"
+    elif r["wound"]["explained"]:
+        r["explained"], r["explained_by"] = True, "wound"
+    else:
+        r["why"] = "tagged: %s; wound: %s" % (ta["why"], r["wound"]["why"])
     return r
 
 
@@ -364,7 +434,8 @@ def grade_d(out):
     """The survival acceptance's report (spec § 10; no gate, no verdict), off `testing/agent/drivers/d_survive.py`'s
     artifact, in grade_c's shape (testing/agent/grade_c.py L113-L160):
 
-      survived, outcome, stop, survival_s  the stop (out["stop"]) and the loop's wall seconds at it.
+      survived, outcome, stop, survival_s  the stop (out["stop"]) and the loop's wall seconds at it; survived is
+                                           never true unless the loop ran (loop.started; loop_started).
       game_minutes                         the stop's gameMin minus the session's first frame's (loop.first_game_min).
       start_kit_armed                      readings.kit.armed (a frame showed the bat in hand).
       actions                              {n, by_type {type: {state: n}}, failed_reasons} over loop.actions (the
@@ -375,9 +446,12 @@ def grade_d(out):
       health_lost_by_source                the server's damage.watch records merged over the loop, by tag
                                            (loop.damage.totals {tag: {n, amount}}), the server's own counts beside.
       deaths                               the death record's via, detail, gameMin and last decisions.
-      death_explained, death_check         None without a death record; else death_check's verdict and numbers: the
-                                           frames' window and health fall, the server's window, record count and
-                                           amount, the difference and the tolerance.
+      death_explained, death_explained_by, death_check
+                                           None without a death record; else death_check's verdict, the arm that
+                                           explained it ("tagged" | "wound" | None) and every number: the frames'
+                                           window and health fall, the server's window, record count, amount and
+                                           difference, the tolerance, and the wound arm's frame, zombie and
+                                           wound_health.
       cost, lua_errors, parks, gaps        the frames' tick cost and the link's counters.
     `report_lines` are one-line findings a reviewer can quote."""
     out = _dd(out)
@@ -394,6 +468,10 @@ def grade_d(out):
                        "wallS": death.get("wallS", survival_s), "gameMin": death.get("gameMin", stop.get("gameMin")),
                        "last_decisions": _ll(death.get("last_decisions"))})
     check = death_check(death) if death else None
+    started = loop.get("started") is True
+    survived, outcome = survived_of(reason), outcome_of(reason)
+    if survived is True and not started:             # fix 1: a stop before the loop ran is never survived
+        survived, outcome = None, "undecided: the session stopped on %s before the loop ran" % reason
     dmg = _dd(loop.get("damage"))
     frames = _dd(out.get("frames"))
     cost = _dd(loop.get("cost"))
@@ -404,8 +482,9 @@ def grade_d(out):
         "run_id": out.get("run_id"),
         "finished": out.get("finished") is True,
         "stop": {"reason": reason, "detail": stop.get("detail"), "gameMin": stop.get("gameMin")} if stop else None,
-        "survived": survived_of(reason),
-        "outcome": outcome_of(reason),
+        "loop_started": started,
+        "survived": survived,
+        "outcome": outcome,
         "survival_s": survival_s,
         "game_minutes": g1 - g0 if g0 is not None and g1 is not None else None,
         "start_kit_armed": _dd(_dd(out.get("readings")).get("kit")).get("armed"),
@@ -421,6 +500,7 @@ def grade_d(out):
         "damage_polls": {k: dmg.get(k) for k in ("polls", "fails", "merged", "lost", "dropped")},
         "deaths": deaths,
         "death_explained": check["explained"] if check is not None else None,
+        "death_explained_by": check["explained_by"] if check is not None else None,
         "death_check": check,
         "cost": {k: cost.get(k) for k in ("n", "p50", "p99", "max", "tickMaxMs", "over5")},
         "lua_errors": _num(frames.get("lua_errors")),
@@ -475,10 +555,15 @@ def report_lines_d(g):
             d["via"], d["gameMin"], last.get("branch"), last.get("action")))
     c = g.get("death_check")
     if c is not None:
-        lines.append("death %s by the frames: health fall %s over %d frames against the server's %s over %d records "
-                     "in the same window (tol %s)%s" % (
-                         "explained" if c["explained"] else "NOT explained", _fmt(c["health_fall"], "%.3f"),
-                         c["frames_n"], _fmt(c["server_amount"], "%.3f"), c["server_n"], c["tol"],
+        wd = _dd(c.get("wound"))
+        zd = _dd(wd.get("zombie"))
+        lines.append("death %s by the frames (%s): health fall %s over %d frames against the server's tagged %s over "
+                     "%d records in the same window (tol %s); wound %s at seq %s, zombie %s at %s tiles, wound "
+                     "health %s%s" % (
+                         "explained" if c["explained"] else "NOT explained", c.get("explained_by") or "no arm",
+                         _fmt(c["health_fall"], "%.3f"), c["frames_n"], _fmt(c["server_amount"], "%.3f"),
+                         c["server_n"], c["tol"], wd.get("what"), wd.get("frame_seq"), zd.get("id"),
+                         zd.get("dist"), _fmt(wd.get("wound_health"), "%.3f"),
                          "" if c["why"] is None else ": " + c["why"]))
     co = g["cost"]
     lines.append("per-tick cost p50 %s ms, p99 %s ms, max %s ms over %s frames; worst tickMaxMs %s, over5 %s" % (
