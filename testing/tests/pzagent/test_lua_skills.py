@@ -548,6 +548,28 @@ def test_attack_out_of_reach_after_the_approach_budget(lua, fs):
     assert list(p.attacks) == [] and lua.globals()._queue.queue == []
 
 
+def test_attack_whose_approach_walk_cannot_queue_fails_on_that_tick_with_the_walks_reason(lua, fs):
+    """Fix wave M5: a sub-walk failing on its first tick ends the attack at once, never burning APPROACH_MS."""
+    load(lua)
+    _, p = attack_world(lua, zx=13.0)
+    lua.globals().ISWalkToTimedAction = None
+    start(lua, p, "attack", targetId=7)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "no path") and ended(lua)
+    assert list(p.attacks) == [] and lua.globals()._queue.queue == []
+
+
+def test_attack_whose_approach_square_is_absent_fails_on_that_tick_with_no_square(lua, fs):
+    load(lua)
+    z = make_zombie(7, 13.0, 20.0)
+    sense(lua, [z])
+    lua.globals()._cell = make_cell(zombies=[z])
+    p = make_player(weapon=make_weapon())
+    start(lua, p, "attack", targetId=7)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "no square") and ended(lua)
+
+
 def test_attack_started_true_then_false_is_done_with_the_largest_melee_delay(lua, fs):
     load(lua)
     _, p = attack_world(lua)
@@ -1287,7 +1309,7 @@ QUEUELESS = [
     ("consume", {"itemId": 1000}, "not loaded"),
     ("consume", {"itemId": 1001}, "not loaded"),
     ("drop", {"itemId": 1000}, "not loaded"),
-    ("attack", {"targetId": 7}, "out of reach"),
+    ("attack", {"targetId": 7}, "no path"),
 ]
 
 
@@ -1309,9 +1331,6 @@ def test_every_skill_without_the_vanilla_queue_fails_its_reason_and_raises_nothi
     p = make_player(items=("Base.Bread", "Base.WaterBottle"), weapon=make_weapon())
     start(lua, p, typ, **args)
     tick(lua, p)
-    if typ == "attack":
-        g._clock["ms"] += 4000
-        tick(lua, p)
     assert states(acts(lua, fs))[-1] == ("a1", "failed", reason)
     assert lua.eval("PZA.skills.errors") == 0 and list(p.sets[-3:]) == OFF
 

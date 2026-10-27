@@ -516,7 +516,8 @@ end
 -- attack.melee swings (PZTestKit_Client.lua: faceThisObject(z), then DoAttack(0)), only within the held weapon's reach
 -- (K.reachOf). check: the zombie alive within ATTACK_R of the player, else rejected no target (a check-time rejection
 -- only); a held weapon, else no weapon. Beyond the reach one approach walk at a run (a sub-walk to the zombie's position)
--- for up to APPROACH_MS, then failed out of reach; within the reach the walk is cleared, the run dropped, and
+-- for up to APPROACH_MS, then failed out of reach (a walk that fails, as one that cannot queue, ends it at once failed
+-- with the walk's reason: no square, no path, stuck); within the reach the walk is cleared, the run dropped, and
 -- faceThisObject(z) and DoAttack(0) are called once, DoAttack through PZA.call (index-first) under pcall, its return
 -- never read (the jar: DoAttack always returns false). From the swing on, each tick reads isAttackStarted and
 -- getMeleeDelay through PZA.call; done when attackStarted has read true and then false, or SWING_MS after the swing.
@@ -595,7 +596,8 @@ local function attackApproach(p, st)
         st.sub, st.approachAt = subWalk(zx, zy, "run"), now
     end
     if now - st.approachAt >= K.APPROACH_MS then return "failed", "out of reach" end
-    tickSub(p, st.sub)
+    -- a sub-walk that fails (no square, no path: it cannot queue; stuck) ends the attack at once with its reason
+    if tickSub(p, st.sub) == "failed" then return "failed", st.sub.reason or "out of reach" end
     return nil
 end
 

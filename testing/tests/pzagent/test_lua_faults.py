@@ -244,7 +244,7 @@ def test_s_frame_on_a_raising_player_returns_a_frame_and_names_the_missing():
 # ---- (d) every vanilla class absent ---------------------------------------------------------------------------------
 
 # the reason each skill's interface gives with its vanilla class absent; attack needs none in reach (it swings), and out
-# of reach its approach walk cannot queue, so it runs out its approach budget
+# of reach its approach walk cannot queue, so it fails at once with the walk's reason (fix wave M5)
 ABSENT = {"walkTo": ("failed", "no path"), "steer": ("failed", "not loaded"), "open": ("failed", "not loaded"),
           "loot": ("failed", "not loaded"), "equip": ("failed", "not loaded"), "eat": ("failed", "not loaded"),
           "drink": ("failed", "not loaded"), "drop": ("failed", "not loaded"), "stop": ("done", "")}
@@ -264,14 +264,14 @@ def test_every_vanilla_class_absent_fails_as_the_interface_says_with_no_raise(ca
     assert lua.eval("PZA.skills.errors") == 0 and g.pcallFails == 0
 
 
-def test_attack_out_of_reach_with_the_walk_absent_runs_out_its_approach():
+def test_attack_out_of_reach_with_the_walk_absent_fails_no_path_on_its_first_tick():
     lua, fs, g = skills_host(zombie_x=14.0)
     p = full_player()
     clear_vanilla(g)
     lua.execute(PCALL_COUNTER)
-    drive(lua, g, p, "attack")
+    drive(lua, g, p, "attack", ticks=1)
     end = ended(act_lines(lua, fs))
-    assert (end["state"], end["reason"]) == ("failed", "out of reach")
+    assert (end["state"], end["reason"]) == ("failed", "no path")
     assert lua.eval("PZA.skills.errors") == 0 and g.pcallFails == 0
 
 
