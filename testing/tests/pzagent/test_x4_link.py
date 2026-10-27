@@ -133,15 +133,16 @@ COST = {"tickMs": 0.6, "actMs": 0.05, "senseMs": 0.1, "mapMs": 0.0, "linkMs": 0.
 class ScriptedMod(FakeMod):
     """The fake Lua: sleep(dt) runs its ticks (one frame a tick at `hz`) on the shared clock. Flags: `still` (a walk
     never moves; it times out), `new_door` (a door appears on a square after the first scan, with no map delta),
-    `lua_error_at` (a lua_error event on that tick), `cost` laid over COST."""
+    `lua_error_at` (a lua_error event on that tick), `short` (a walk stops that many tiles short of its target),
+    `cost` laid over COST."""
     SPEED = 3.0           # tiles a second
     DELAY = 2             # ticks between the accepted act and the first step
 
-    def __init__(self, d, clock, still=False, new_door=None, lua_error_at=None, **cost):
+    def __init__(self, d, clock, still=False, new_door=None, lua_error_at=None, short=0.0, **cost):
         super().__init__(d, clock=clock.now)
         self.clk = clock
         self.hz, self.x, self.y = 10, 100.5, 200.5
-        self.still, self.new_door, self.lua_error_at = still, new_door, lua_error_at
+        self.still, self.new_door, self.lua_error_at, self.short = still, new_door, lua_error_at, short
         self.cost = dict(COST, **cost)
         self.cmd_seen, self.goal, self.parts, self.scans, self.ticks = 0, None, [], 0, 0
         self.next_t = clock.t
@@ -182,7 +183,8 @@ class ScriptedMod(FakeMod):
             self.parts = [(i + 1, n, grid[i * 20:(i + 1) * 20]) for i in range(n)]
             self.act(aid, "done", t, result={})
         elif t == "walkTo":
-            self.goal = {"aid": aid, "x": args["x"], "y": args["y"], "wait": self.DELAY}
+            back = math.copysign(self.short, self.x - args["x"]) if self.short else 0.0
+            self.goal = {"aid": aid, "x": args["x"] + back, "y": args["y"], "wait": self.DELAY}
 
     def _tick(self):
         self.ticks += 1
@@ -210,7 +212,15 @@ class ScriptedMod(FakeMod):
         self.frame(me=me, cost=dict(self.cost, mapMs=0.8 if scanning else 0.0))
 
 
-def run_x4(tmp_path, monkeypatch=None, **flags):
+# the probe's real stats.all reply (testing/artifacts/p22_probe-20261027-032502/p22_probe.json readings.server[0].ack)
+PROBE_STATS = {"Anger": 0, "Boredom": 0, "Discomfort": 0, "Endurance": 0.8892875909805298,
+               "Fatigue": 0.03465772420167923, "Fitness": 0, "FoodSickness": 0, "Hunger": 0.030409572646021843,
+               "Idleness": 0, "Intoxication": 0, "Morale": 1, "NicotineWithdrawal": 0, "Pain": 3.1785154342651367,
+               "Panic": 0, "Poison": 0, "Sanity": 1, "Sickness": 0, "Stress": 0, "Temperature": 37.22496032714844,
+               "Thirst": 0.026972748339176178, "Unhappiness": 0, "Wetness": 0, "ZombieFever": 0, "ZombieInfection": 0}
+
+
+def run_x4(tmp_path, budget_s=1e9, **flags):
     clock = Clock()
     sd = str(tmp_path / "clients" / "admin" / "Lua" / "pzagent" / "admin")
     mod = ScriptedMod(sd, clock, **flags)
@@ -218,14 +228,15 @@ def run_x4(tmp_path, monkeypatch=None, **flags):
     asked = []
 
     def ask(node, cmd, args, timeout=30):
-        asked.append((node, cmd, args))
+        asked.append((node, cmd, args, timeout))
         mod.sleep(0.05)
         if cmd == "players":
             return ["admin"]
-        return {"side": "server", "user": args, "worldAge": 8.0, "mult": 1.0, "wall": 1, "stats": {"HUNGER": 0.1},
-                "missing": []}
+        return {"side": "server", "stats": dict(PROBE_STATS), "missing": {}, "wall": int(clock.t * 1000),
+                "user": args, "worldAge": 3.216904640197754, "mult": 4.795048236846924}
 
-    xs = X.Xs(out, node=lambda side: side, ask=ask, clock=clock.now, sleep=mod.sleep, budget_s=1e9, user="admin")
+    xs = X.Xs(out, node=lambda side: side, ask=ask, clock=clock.now, sleep=mod.sleep, budget_s=budget_s,
+              user="admin")
     xs.path = str(tmp_path / D.ARTIFACT)
     x4 = D.X4(xs, FileTransport(sd, clock=clock.now), clock=clock.now, sleep=mod.sleep)
     x4.run()
@@ -263,7 +274,7 @@ def test_a_clean_fake_run_reads_every_phase_and_grades_go(clean_run):
     walk = rd["walk"]
     assert len(walk["legs"]) == 20
     for i, leg in enumerate(walk["legs"]):
-        assert leg["end"]["state"] == "done", leg
+        assert leg["end"]["state"] == "done" and leg["settled"] is True, leg
         assert leg["target"]["x"] == pytest.approx(leg["x0"] + (6 if i % 2 == 0 else -6))
         fm = leg["first_move"]
         assert fm is not None and fm["seq"] > leg["accepted_seq"]
@@ -274,10 +285,14 @@ def test_a_clean_fake_run_reads_every_phase_and_grades_go(clean_run):
     assert fs["scan"]["complete"] and fs["final_squares"] == 961 and fs["kept_squares"] >= 961
     for kind in GT.MAP_KINDS:
         assert fs["kept"][kind]["ratio"] == 1.0 and fs["kept"][kind]["total"] > 0, kind
+        assert fs["kept"][kind]["absent"] == 0 and fs["kept"][kind]["seen"] == fs["kept"][kind]["total"], kind
+    assert fs["settled"] is True
     ww = rd["worst_window"]
     assert ww["stopped"] == "span" and ww["span_s"] >= 600.0
     assert ww["span_s"] == D.frames_span_s(out["frames"]["cost"][:ww["frames"]])
     assert [a[1] for a in asked] == ["stats.all", "players"] and rd["server"]["players"]["ack"] == ["admin"]
+    assert rd["server"]["stats"]["ack"]["missing"] == {} and "Hunger" in rd["server"]["stats"]["ack"]["stats"]
+    assert all(a[3] == 10.0 for a in asked)
     fr = out["frames"]
     assert fr["n"] == len(fr["cost"]) and fr["gaps"] == 0 and fr["bad"] == 0 and fr["lua_errors"] == 0
     assert set(fr["cost"][0]) == {"seq", "tick", "wallMs", "cost"}
@@ -310,6 +325,55 @@ def test_a_door_the_kept_map_never_heard_of_fails_map_kept(tmp_path, monkeypatch
     assert kept["doors"]["kept"] == kept["doors"]["total"] - 1 and kept["doors"]["ratio"] < 0.99
     assert kept["walls"]["ratio"] == 1.0
     assert GT.gate_x4(out)["pass"]["map_kept"] is False
+
+
+def test_a_short_last_leg_across_a_square_edge_leaves_the_ratio_and_counts_the_new_columns_absent(tmp_path,
+                                                                                                    monkeypatch):
+    """One leg +6 from 100.5 that stops 0.6 short: 105.9, across the edge into square 105. The final scan, centred
+    there (x 90..120), holds columns 116..120 the first scan (x 85..115) never sent: absent, not lost."""
+    monkeypatch.setattr(D, "WALK_LEGS", 1)
+    monkeypatch.setattr(D, "WORST_WINDOW_S", 5.0)
+    monkeypatch.setattr(D, "RATE60_S", 2.0)
+    out, mod, _ = run_x4(tmp_path, short=0.6)
+    assert mod.x == pytest.approx(105.9) and math.floor(mod.x) == 105
+    fs = out["readings"]["final_scan"]
+    assert fs["settled"] is True and fs["x"] == pytest.approx(105.9)
+    new = [square(x, y) for x in range(116, 121) for y in range(185, 216)]
+    want = {"walls": sum(s["solid"] for s in new), "doors": sum(s["door"] is not None for s in new),
+            "windows": sum(s["window"] is not None for s in new), "containers": sum(len(s["containers"]) for s in new)}
+    for kind in GT.MAP_KINDS:
+        k = fs["kept"][kind]
+        assert k["absent"] == want[kind] and k["ratio"] == 1.0 and k["kept"] == k["total"] - k["absent"], (kind, k)
+    assert sum(want.values()) > 0 and GT.gate_x4(out)["pass"]["map_kept"] is True
+
+
+def test_a_reserve_stop_keeps_the_server_reading_and_the_artifact_graded(tmp_path, monkeypatch):
+    monkeypatch.setattr(D, "WALK_LEGS", 1)
+    monkeypatch.setattr(D, "RATE60_S", 2.0)
+    out, _, asked = run_x4(tmp_path, budget_s=70.0)
+    ww = out["readings"]["worst_window"]
+    assert ww["stopped"] == "reserve" and ww["span_s"] < 600.0 and out.get("budget_stop") is None
+    assert [a[1] for a in asked] == ["stats.all", "players"] and all(a[3] <= 10.0 for a in asked)
+    assert out["readings"]["server"]["players"]["ack"] == ["admin"] and "server" not in out["phase_errors"]
+    g = GT.gate_x4(out)
+    assert g["pass"]["worst_tick"] is False and g["gates"]["worst_tick"]["value"]["span_s"] < 600.0
+    persisted = tmp_path / D.ARTIFACT
+    assert persisted.is_file() and XG.main([str(persisted)]) == 1
+
+
+def test_the_server_steps_take_the_budgets_remaining_seconds(tmp_path):
+    clock = Clock()
+    out = D.new_out()
+    seen = []
+    xs = X.Xs(out, node=lambda side: side, ask=lambda n, c, a, timeout=30: seen.append(timeout) or ["admin"],
+              clock=clock.now, budget_s=100.0, user="admin")
+    x4 = D.X4(xs, FileTransport(str(tmp_path)), clock=clock.now)
+    clock.t += 96.0
+    x4.server()
+    assert seen == [4.0, 4.0]
+    clock.t += 10.0
+    x4.server()
+    assert seen[2:] == [1.0, 1.0]
 
 
 def test_a_lua_error_event_is_counted_and_fails_its_gate(tmp_path, monkeypatch):
@@ -396,7 +460,23 @@ def test_map_kept_counts_by_kind_and_reads_an_empty_kind_as_one(tmp_path):
     m = D.map_kept(lost + walls[1:], conts[1:], final)
     assert m["walls"]["kept"] == m["walls"]["total"] - 1 and m["containers"]["kept"] == m["containers"]["total"] - 1
     m = D.map_kept([], [], [square(1, 1)])
-    assert m["doors"] == {"kept": 0, "total": 0, "ratio": 1.0, "note": "the final scan read none: ratio 1.0"}
+    assert m["doors"] == {"kept": 0, "total": 0, "absent": 0, "seen": 0, "ratio": 1.0,
+                          "note": "no square of this kind both maps saw: ratio 1.0"}
+
+
+def test_map_kept_reads_fidelity_over_the_squares_both_saw_and_reports_absent():
+    first = [square(x, y) for x in range(0, 40) for y in range(0, 6)]
+    final = [square(x, y) for x in range(1, 41) for y in range(0, 6)]       # one column the kept map never saw
+    conts = [(s["x"], s["y"], 0, c["type"]) for s in first for c in s["containers"]]
+    m = D.map_kept(first, conts, final)
+    col = [s for s in final if s["x"] == 40]
+    want = {"walls": sum(s["solid"] for s in col), "doors": sum(s["door"] is not None for s in col),
+            "windows": sum(s["window"] is not None for s in col),
+            "containers": sum(len(s["containers"]) for s in col)}
+    assert sum(want.values()) > 0
+    for kind in GT.MAP_KINDS:
+        assert m[kind]["absent"] == want[kind] and m[kind]["ratio"] == 1.0, (kind, m[kind])
+        assert m[kind]["seen"] == m[kind]["total"] - m[kind]["absent"] == m[kind]["kept"]
 
 
 def test_scan_reading_waits_for_every_part_of_the_newest_scan(tmp_path):

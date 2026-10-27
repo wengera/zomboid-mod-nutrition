@@ -17,17 +17,20 @@ each reading at out["readings"][phase]):
                 start x0 to x0 + LEG_DX (i even) or x0 - LEG_DX (i odd) at the start's y, gait "walk", each awaited to
                 a terminal state or LEG_TIMEOUT_S (Actions' deadline: `timeout`), the agent settled (two frames within
                 MOVE_EPS_TILES, SETTLE_S at most) before each. {start, legs [{leg, x0, y0, target, aid,
-                accepted_seq, accepted_wallMs, accepted_wall, at_accept, first_move {seq, wallMs, x, y} | None, end
-                {state, reason, result, ended_wall}}], map_deltas}. first_move is the first frame after the accepted
-                act whose position is more than MOVE_EPS_TILES from the position at accept (any direction).
-  final_scan    the kept map snapshotted (world.map squares and world.containers within SCAN_R of the agent's square,
-                square by square), then Scan(SCAN_R) as `scan`; the final scan's squares against the kept ones:
-                {x, y, kept_squares, final_squares, scan {...as scan}, kept {walls, doors, windows, containers: {kept,
-                total, ratio[, note]}}}. walls: final squares with solid true that the kept map also reads solid;
-                doors, windows: a non-null door or window; containers: by square and type. total 0 reads ratio 1.0.
+                accepted_seq, accepted_wallMs, accepted_wall, settled, at_accept, first_move {seq, wallMs, x, y} |
+                None, end {state, reason, result, ended_wall}}], map_deltas}. first_move is the first frame after the
+                accepted act whose position is more than MOVE_EPS_TILES from the position at accept (any direction).
+  final_scan    settle, then the whole kept map snapshotted (world.map and world.containers; the final scan's squares
+                define the window), then Scan(SCAN_R) as `scan`; the final scan's squares against the kept ones:
+                {x, y, settled, kept_squares, final_squares, scan {...as scan}, kept {walls, doors, windows,
+                containers: {kept, total, absent, seen, ratio[, note]}}}. walls: final squares with solid true that the
+                kept map also reads solid; doors, windows: a non-null door or window; containers: by square and type.
+                absent: on a square the kept map holds no entry for (coverage); ratio = kept / (total - absent), the
+                fidelity over the squares both saw; seen 0 reads ratio 1.0.
   worst_window  pump standing still until the frames' cost rows span WORST_WINDOW_S (the 10-minute window of the worst
                 tick, ruling P22-4), or until the budget's last RESERVE_S. {span_s, frames, stopped "span" | "reserve"}.
-  server        stats.all for USER and players, each step's row kept raw: {stats, players}.
+  server        stats.all for USER and players, each step's row kept raw: {stats, players}; each step's timeout is
+                min(10 s, the budget's remaining), so a reserve stop keeps the reading.
 
 FRAMES (out["frames"]): `cost` every frame's {seq, tick, wallMs, cost}; `n` frames; `gaps` the transport's seq gaps
 (count) and `gap_list`; `bad` lines dropped; `lua_errors` the lua_error events and `lua_error_msgs`; `parks` the
@@ -301,26 +304,28 @@ def _sq_key(s):
     return (s["x"], s["y"], s.get("z") or 0)
 
 
-def snapshot_kept(world, cx, cy, r=SCAN_R):
-    """The kept map within r of the square (cx, cy) (the scan's (2r+1)^2 grid): its squares (copies) and its
-    containers as (x, y, z, type), from world.map and world.containers."""
-    def near(x, y):
-        return abs(x - cx) <= r and abs(y - cy) <= r
-    squares = [json.loads(json.dumps(s)) for k, s in world.map.items() if near(k[0], k[1])]
-    conts = [(k[0], k[1], k[2], c.get("type")) for k, c in world.containers.items() if near(k[0], k[1])]
+def snapshot_kept(world):
+    """The whole kept map (the final scan's squares define the window): its squares (copies) and its containers as
+    (x, y, z, type), from world.map and world.containers."""
+    squares = [json.loads(json.dumps(s)) for s in world.map.values()]
+    conts = [(k[0], k[1], k[2], c.get("type")) for k, c in world.containers.items()]
     return squares, conts
 
 
-def _ratio(kept, total):
-    r = {"kept": kept, "total": total, "ratio": kept / total if total else 1.0}
-    if not total:
-        r["note"] = "the final scan read none: ratio 1.0"
+def _ratio(kept, total, absent):
+    """Fidelity over the squares both maps saw: ratio = kept / seen, seen = total - absent; seen 0 reads 1.0."""
+    seen = total - absent
+    r = {"kept": kept, "total": total, "absent": absent, "seen": seen, "ratio": kept / seen if seen else 1.0}
+    if not seen:
+        r["note"] = "no square of this kind both maps saw: ratio 1.0"
     return r
 
 
 def map_kept(kept_squares, kept_containers, final_squares):
-    """The kept map against the final scan: per kind, of the final scan's squares (containers: (square, type) pairs)
-    how many the kept map also holds."""
+    """The kept map against the final scan, per kind over the final scan's squares (containers: (square, type)
+    pairs): `total` the final scan's, `absent` those on a square the kept map holds no entry for (never sent by a full
+    scan: coverage, reported for the guide), `kept` those the kept map also holds, `ratio` kept / (total - absent):
+    the kept map's fidelity over the squares both saw."""
     kept = {_sq_key(s): s for s in kept_squares}
     final = {_sq_key(s): s for s in final_squares}
     tests = (("walls", lambda s: s.get("solid") is True), ("doors", lambda s: s.get("door") is not None),
@@ -328,11 +333,13 @@ def map_kept(kept_squares, kept_containers, final_squares):
     out = {}
     for kind, test in tests:
         total = [k for k, s in final.items() if test(s)]
-        out[kind] = _ratio(sum(1 for k in total if k in kept and test(kept[k])), len(total))
+        out[kind] = _ratio(sum(1 for k in total if k in kept and test(kept[k])), len(total),
+                           sum(1 for k in total if k not in kept))
     want = collections.Counter((k[0], k[1], k[2], c.get("type")) for k, s in final.items()
                                for c in (s.get("containers") or ()) if isinstance(c, dict))
     have = collections.Counter(kept_containers)
-    out["containers"] = _ratio(sum(min(n, have[c]) for c, n in want.items()), sum(want.values()))
+    out["containers"] = _ratio(sum(min(n, have[c]) for c, n in want.items()), sum(want.values()),
+                               sum(n for c, n in want.items() if c[:3] not in kept))
     return out
 
 
@@ -460,26 +467,26 @@ class X4:
         if start is None:
             raise RuntimeError("no position to walk from")
         for i in range(WALK_LEGS):
-            self.settle()
+            settled = self.settle()
             x0, y0 = self.me()
             tx = x0 + (LEG_DX if i % 2 == 0 else -LEG_DX)
             i0 = len(self.lines)
             a = self.actions.send(pza1.WalkTo(float(tx), float(start[1]), "walk"), deadline_s=LEG_TIMEOUT_S)
             self.wait(lambda: self.actions.done(a), LEG_TIMEOUT_S + 1.0)
             leg = {"leg": i + 1, "x0": x0, "y0": y0, "target": {"x": tx, "y": start[1]}, "aid": a.aid,
-                   "accepted_wall": a.acked_wall}
+                   "accepted_wall": a.acked_wall, "settled": settled}
             leg.update(leg_reading(self.lines[i0:], a.aid, x0, y0))
             leg["end"] = _end(a)
             r["legs"].append(leg)
             r["map_deltas"] += leg["map_deltas"]
 
     def final_scan(self):
+        settled = self.settle()
         pos = self.me()
         if pos is None:
             raise RuntimeError("no position to scan from")
-        cx, cy = math.floor(pos[0]), math.floor(pos[1])
-        kept_sq, kept_c = snapshot_kept(self.world, cx, cy)
-        r = self.reading("final_scan", {"x": pos[0], "y": pos[1], "kept_squares": len(kept_sq)})
+        kept_sq, kept_c = snapshot_kept(self.world)
+        r = self.reading("final_scan", {"x": pos[0], "y": pos[1], "settled": settled, "kept_squares": len(kept_sq)})
         scan, final = self._scan()
         r.update({"scan": scan, "final_squares": len(final), "kept": map_kept(kept_sq, kept_c, final)})
 
@@ -504,8 +511,12 @@ class X4:
             self.sleep(POLL_S)
 
     def server(self):
-        self.reading("server", {"stats": self.xs.step("stats", "server", "stats.all", USER),
-                                "players": self.xs.step("players", "server", "players")})
+        """Each step's timeout is min(10, the budget's remaining seconds), so a reserve stop keeps the reading."""
+        def timeout():
+            return max(1.0, min(10.0, self.xs.budget_s - self.xs.wall()))
+        r = self.reading("server", {})
+        r["stats"] = self.xs.step("stats", "server", "stats.all", USER, timeout=timeout())
+        r["players"] = self.xs.step("players", "server", "players", timeout=timeout())
 
     def run(self):
         self.xs.run_phase("hello", self.hello)

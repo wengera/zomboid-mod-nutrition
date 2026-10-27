@@ -19,7 +19,10 @@ is ok. The gates and the paths they read:
   cmd_move_p90    readings.walk.legs: per leg first_move.wallMs - accepted_wallMs (both the client's clock; a leg
                   without first_move or accepted_wallMs is +inf), the nearest-rank p90 < MOVE_P90_MS (500 ms) over at
                   least MIN_LEGS (20) legs.
-  map_kept        readings.final_scan.kept: walls, doors, windows and containers each `ratio` >= MAP_KEPT_MIN (0.99).
+  map_kept        readings.final_scan.kept: walls, doors, windows and containers each `ratio` >= MAP_KEPT_MIN
+                  (0.99); the ratio is fidelity, kept / (total - absent) over the squares both the kept map and the
+                  final scan saw; `absent` (a final square no full scan ever sent: coverage) is reported for the
+                  guide, never graded.
 
 Ungraded beside the verdict: `sidecar_trigger` ("fired", "not fired", or "unmeasured" with no flushing frame),
 `emit_mean_ms` and `emit_worst_ms`.
