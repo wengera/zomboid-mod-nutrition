@@ -220,7 +220,10 @@ end
 -- S.damage, and the next S.events drains them as damage events. Hooked once; the body under pcall, a raise counted in
 -- S.damageErrors, never propagated into the game's damage path. S.damage holds at most DAMAGE_MAX entries between
 -- drains (before the first frame nothing drains it); past the cap an entry is dropped and counted in S.damageDropped.
+-- Only a record whose character is the local player becomes a damage event; another character's is counted in
+-- S.damageRemote and carried nowhere else.
 S.DAMAGE_MAX = 200
+S.damageRemote = S.damageRemote or 0
 S.damage = S.damage or {}
 S.damageErrors = S.damageErrors or 0
 S.damageDropped = S.damageDropped or 0
@@ -257,6 +260,7 @@ function S.invIds(p, known)
     for i = 0, n - 1 do
         local _, it = PZA.call(items, "get", i)
         local okI, id = PZA.call(it, "getID")
+        if not okI or id == nil then PZA.missing(S.missing, "getID") end
         if okI and id ~= nil then
             local k = known ~= nil and known[id] or nil
             if k == nil then
@@ -306,7 +310,8 @@ local function portalOf(o)
     return false
 end
 
--- every door and window within DOOR_R of (px, py) on floor pz, by "x,y,z,k" (k the object's index on its square),
+-- every door and window within DOOR_R of (px, py) on floor pz, by "x,y,z,k" (k the portal's ordinal among its
+-- square's portals, so another object added to or dropped on the square never shifts one portal's key onto another),
 -- each its IsOpen read
 local function doorsAround(px, py, pz)
     local out = {}
@@ -318,11 +323,13 @@ local function doorsAround(px, py, pz)
             local _, sq = PZA.call(cell, "getGridSquare", x, y, pz)
             local _, list = PZA.call(sq, "getObjects")
             local okN, n = PZA.call(list, "size")
+            local k = 0
             for i = 0, (okN and type(n) == "number" and n or 0) - 1 do
                 local _, o = PZA.call(list, "get", i)
                 if o ~= nil and portalOf(o) then
+                    k = k + 1
                     local okO, open = PZA.call(o, "IsOpen")
-                    if okO then out[x .. "," .. y .. "," .. pz .. "," .. i] = { x = x, y = y, z = pz, open = open == true } end
+                    if okO then out[x .. "," .. y .. "," .. pz .. "," .. k] = { x = x, y = y, z = pz, open = open == true } end
                 end
             end
         end
@@ -332,7 +339,7 @@ end
 
 -- the typed events since prev (spec § 2.1), each { event = <kind>, gameMin, <the kind's fields flat> } without kind or
 -- the envelope (Main emits each through PZA.emit("event", ev)):
---   damage{tag, amount, side = "client"}: the damage hook's records, drained;
+--   damage{tag, amount, side = "client"}: the damage hook's records of the local player, drained;
 --   swing{attackStarted, meleeDelay}: isAttackStarted reads true where the last events call read it not true;
 --   zombie_dead{id}: a zombie in prev's frame whose object now answers isDead;
 --   item_added{itemId, fullType, weight} / item_removed{itemId, fullType}: the inventory's ids against S.lastInv
@@ -346,7 +353,11 @@ function S.events(p, prev)
     local gameMin = cur.gameMin
     local ev = {}
     for _, d in ipairs(S.damage) do
-        ev[#ev + 1] = { event = "damage", gameMin = gameMin, tag = d.tag, amount = d.amount, side = "client" }
+        if d.isLocal == true then
+            ev[#ev + 1] = { event = "damage", gameMin = gameMin, tag = d.tag, amount = d.amount, side = "client" }
+        else
+            S.damageRemote = S.damageRemote + 1
+        end
     end
     S.damage = {}
     local okA, started = PZA.call(p, "isAttackStarted")
@@ -379,7 +390,7 @@ function S.events(p, prev)
     end
     local m = cur.me
     if type(m.x) == "number" and type(m.y) == "number" and type(m.z) == "number" then
-        local doors = doorsAround(math.floor(m.x), math.floor(m.y), m.z)
+        local doors = doorsAround(math.floor(m.x), math.floor(m.y), math.floor(m.z))
         local was = S.lastDoors
         if was ~= nil then
             local keys = sortedIds(doors)
@@ -396,9 +407,15 @@ function S.events(p, prev)
 end
 
 -- the live zombie whose online id is id, as its object (the IsoZombie the attack skill faces), or nil for an unknown
--- or dead id; the whole cell list, not the frame's radius
+-- or dead id: the last frame's object for that id first (S.zobj, checked with isDead), else the whole cell list, not
+-- the frame's radius
 function S.zombieById(p, id)
     if id == nil then return nil end
+    local known = S.zobj ~= nil and S.zobj[id] or nil
+    if known ~= nil then
+        if isDead(known) then return nil end
+        return known
+    end
     local list = zombieList()
     if list == nil then return nil end
     for _, z in ipairs(list) do

@@ -150,6 +150,7 @@ def test_sense_names_none_of_the_players_latch_readers():
     src = open(lua_file("client/PZAgent_Sense.lua"), encoding="utf-8").read()
     for name in ("isForceRun", "isForceSprint", "IsRunning", "isSprinting"):
         assert not re.search(r'"%s"' % name, src), name
+        assert not re.search(r':%s\s*\(' % name, src), name      # the method-call form too
 
 
 def test_load_reads_weight_max_the_heavy_load_level_and_the_item_count(lua):
@@ -257,8 +258,8 @@ def test_damage_records_become_client_damage_events_once(lua):
     g._damageHandlers[0](make_player(), "ZOMBIE", 1.25)
     ev, cur = events(lua, p, prev)
     dmg = [e for e in ev if e["event"] == "damage"]
-    assert [(e["tag"], e["amount"], e["side"], e["gameMin"]) for e in dmg] == [("FALLDOWN", 4.5, "client", 450),
-                                                                              ("ZOMBIE", 1.25, "client", 450)]
+    assert [(e["tag"], e["amount"], e["side"], e["gameMin"]) for e in dmg] == [("FALLDOWN", 4.5, "client", 450)]
+    assert lua.eval("PZA.sense.damageRemote") == 1               # the second player's record is no event of ours
     assert all(sorted(e.keys()) == ["amount", "event", "gameMin", "side", "tag"] for e in dmg)
     ev, _ = events(lua, p, cur)
     assert [e for e in ev if e["event"] == "damage"] == []
@@ -364,6 +365,41 @@ def test_a_door_toggled_within_four_tiles_is_a_door_event(lua):
     assert [e for e in ev if e["event"] == "door"] == []
 
 
+def test_a_stair_z_is_floored_in_the_door_event(lua):
+    load(lua)
+    st = {"open": False}
+    lua.globals()._cell = make_cell(squares={(12, 20, 0): door_square(st)})
+    p = make_player(z=0.5)
+    prev = frame(lua, p)
+    _, prev = events(lua, p, prev)
+    st["open"] = True
+    ev, _ = events(lua, p, prev)
+    doors = [e for e in ev if e["event"] == "door"]
+    assert [(e["x"], e["y"], e["z"], e["open"]) for e in doors] == [(12, 20, 0, True)]
+    assert lua.eval("PZA.enc.v(...)", doors[0]["z"]) == "0"
+
+
+def test_an_object_inserted_before_two_portals_never_shifts_their_states(lua):
+    load(lua)
+    a, b = {"open": False}, {"open": True}
+    da = J(_cls="IsoDoor", IsOpen=lambda s: a["open"])
+    wb = J(_cls="IsoWindow", IsOpen=lambda s: b["open"])
+    objs = [da, wb]
+    sq = J(getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]))
+    lua.globals()._cell = make_cell(squares={(11, 20, 0): sq})
+    p = make_player()
+    prev = frame(lua, p)
+    _, prev = events(lua, p, prev)
+    objs.insert(0, J(_cls="IsoWorldInventoryObject"))             # a dropped item lands before both portals
+    ev, prev = events(lua, p, prev)
+    assert [e for e in ev if e["event"] == "door"] == []
+    a["open"] = True
+    ev, _ = events(lua, p, prev)
+    assert [(e["x"], e["y"], e["open"]) for e in ev if e["event"] == "door"] == [(11, 20, True)]
+    ev, _ = events(lua, p, prev)
+    assert [e for e in ev if e["event"] == "door"] == []
+
+
 def test_first_sight_is_one_item_added_per_held_item(lua):
     load(lua)
     p = make_player(items=("Base.Apple", "Base.Plank", "Base.WaterBottle"))
@@ -413,6 +449,34 @@ def test_zombie_by_id_is_the_live_zombie_object_and_nil_for_a_dead_or_unknown_id
     assert lua.eval("PZA.sense.zombieById(...)", p, 7) is a     # beyond the frame's radius too
     assert lua.eval("PZA.sense.zombieById(...)", p, 8) is None
     assert lua.eval("PZA.sense.zombieById(...)", p, 99) is None
+
+
+def test_zombie_by_id_takes_the_last_frames_object_before_walking_the_cell(lua):
+    load(lua)
+    g = lua.globals()
+    z = live_zombie(7, 12.0, 20.0)
+    zl = J(size=lambda s: 1, get=lambda s, i: z)
+    calls = {"n": 0}
+
+    def zombie_list(s):
+        calls["n"] += 1
+        return zl
+    g._cell = J(getZombieList=zombie_list, getGridSquare=lambda s, x, y, zz: None)
+    p = make_player()
+    frame(lua, p)                                                # the frame saw zombie 7
+    n0 = calls["n"]
+    assert lua.eval("PZA.sense.zombieById(...)", p, 7) is z and calls["n"] == n0
+    z.st["dead"] = True
+    assert lua.eval("PZA.sense.zombieById(...)", p, 7) is None and calls["n"] == n0
+    assert lua.eval("PZA.sense.zombieById(...)", p, 8) is None and calls["n"] == n0 + 1   # unknown: the walk
+
+
+def test_an_item_whose_id_cannot_be_read_is_reported_missing(lua):
+    load(lua)
+    p = make_player(items=("Base.Apple",))
+    del p.held[0].getID
+    lua.eval("PZA.sense.firstSight(...)", p)
+    assert "getID" in missing(lua)
 
 
 def test_nearest_zombie_is_the_closest_live_one_or_nil(lua):
