@@ -234,3 +234,256 @@ def measure_x5(out):
         "encounters": {"n": len(rows), "voided": sum(1 for r in rows if r.get("void"))},
         "stop": out.get("stop"),
     }
+
+
+# ================================================================ D: the survival acceptance, a report and no gate
+SURVIVED = ("day_cap", "budget")     # grade_c.py L13: the stops a character lived through
+DEATH_TOL = 0.10                     # the brief: the frames' health fall within 10 % of the server's damage amounts
+D_NEEDS_FIELDS = ("gameMin", "hunger", "thirst", "fatigue", "health", "serverHunger")
+
+
+def _dd(v):
+    return v if isinstance(v, dict) else {}
+
+
+def _ll(v):
+    return v if isinstance(v, list) else []
+
+
+def survived_of(reason):
+    """grade_c.py's survived_of (L87-L95), copied: True for a stop the character lived through (SURVIVED), False for a
+    death, None for any other stop or none (the session ended before the answer was known)."""
+    if reason in SURVIVED:
+        return True
+    if reason == "death":
+        return False
+    return None
+
+
+def outcome_of(reason):
+    """grade_c.py's outcome_of (L98-L105), copied."""
+    if reason is None:
+        return "no stop recorded"
+    if reason in SURVIVED:
+        return "survived (%s)" % reason
+    if reason == "death":
+        return "died"
+    return "undecided: the session stopped on %s" % reason
+
+
+def d_needs_summary(rows, pairs):
+    """grade_c.py's needs_summary (L67-L78) over d_survive's needs, the client-server hunger difference read only over
+    the rows whose needs_pairs entry is paired (the frame and the server read in the same wall second)."""
+    rows, pairs = _ll(rows), _ll(pairs)
+    ok = [r for r in rows if isinstance(r, list) and len(r) == len(D_NEEDS_FIELDS)]
+    paired = [r for r, p in zip(rows, pairs) if isinstance(r, list) and len(r) == len(D_NEEDS_FIELDS)
+              and _dd(p).get("paired") is True and _num(r[1]) is not None and _num(r[5]) is not None]
+    diffs = [abs(r[1] - r[5]) for r in paired]
+    peak = {f: max((r[i] for r in ok if _num(r[i]) is not None), default=None)
+            for i, f in enumerate(D_NEEDS_FIELDS) if f in ("hunger", "thirst", "fatigue")}
+    return {"rows": len(ok), "first": dict(zip(D_NEEDS_FIELDS, ok[0])) if ok else None,
+            "last": dict(zip(D_NEEDS_FIELDS, ok[-1])) if ok else None, "peak": peak,
+            "min_health": min((r[4] for r in ok if _num(r[4]) is not None), default=None),
+            "hunger_client_server_max_diff": max(diffs) if diffs else None, "paired_rows": len(diffs),
+            "unpaired_rows": sum(1 for p in pairs if _dd(p).get("paired") is not True)}
+
+
+def d_actions(rows):
+    """{type: {state: n}} over the planner's sends, and {type: {reason: n}} over those ended failed, rejected or
+    timeout."""
+    rows = [a for a in _ll(rows) if isinstance(a, dict)]
+    by, why = {}, {}
+    for a in rows:
+        t, s = str(a.get("type")), str(a.get("state"))
+        d = by.setdefault(t, {})
+        d[s] = d.get(s, 0) + 1
+        if s in ("failed", "rejected", "timeout"):
+            r, w = str(a.get("reason") or ""), why.setdefault(t, {})
+            w[r] = w.get(r, 0) + 1
+    return {"n": len(rows), "by_type": by, "failed_reasons": why}
+
+
+def d_fights(rows):
+    """The fights off the decision log's threat branch: their count, how many fought (a fight tick seen) or fled (a
+    flee tick seen), how many are still open, the health each lost while it ran (None for an open one), and the flee
+    reasons summed."""
+    rows = [f for f in _ll(rows) if isinstance(f, dict)]
+    lost, flee = [], {}
+    for f in rows:
+        h0, h1 = _num(f.get("health")), _num(_dd(f.get("end")).get("health"))
+        lost.append(h0 - h1 if h0 is not None and h1 is not None else None)
+        for k, n in _dd(f.get("flee")).items():
+            flee[k] = flee.get(k, 0) + (_num(n) or 0)
+    return {"count": len(rows), "fought": sum(1 for f in rows if (_num(f.get("fight_ticks")) or 0) > 0),
+            "fled": sum(1 for f in rows if _dd(f.get("flee"))), "open": sum(1 for f in rows if f.get("end") is None),
+            "health_lost": lost, "flee_reasons": flee}
+
+
+def death_check(death):
+    """Whether the frames explain a death (spec § 10): the health fall over the death record's last_frames (the sum of
+    every drop in body.health between consecutive frames) against the sum of the server's damage `amount`s whose
+    server `wall` lies in the same window, (the first frame's wallMs, the last frame's wallMs] (a record at the first
+    frame's time already shows in it). Explained when the window holds server records and |fall - amount| <=
+    DEATH_TOL * amount; not explained otherwise, `why` naming the reason."""
+    death = _dd(death)
+    hs = [(_num(f.get("wallMs")), _num(_dd(f.get("body")).get("health")))
+          for f in _ll(death.get("last_frames")) if isinstance(f, dict)]
+    hs = [(w, h) for w, h in hs if w is not None and h is not None]
+    r = {"explained": False, "why": None, "tol": DEATH_TOL, "frames_n": len(hs), "frames_window_ms": None,
+         "health_fall": None, "server_window_ms": None, "server_n": 0, "server_amount": None, "server_tags": {},
+         "diff": None}
+    if len(hs) < 2:
+        r["why"] = "fewer than two frames with a wallMs and a body.health"
+        return r
+    lo, hi = hs[0][0], hs[-1][0]
+    r["frames_window_ms"] = {"from": lo, "to": hi}
+    r["server_window_ms"] = {"from": lo, "to": hi, "rule": "from < wall <= to"}
+    r["health_fall"] = sum(max(0.0, a[1] - b[1]) for a, b in zip(hs, hs[1:]))
+    recs = [d for d in _ll(death.get("server_damage")) if isinstance(d, dict) and _num(d.get("wall")) is not None
+            and lo < d["wall"] <= hi and _num(d.get("amount")) is not None]
+    r["server_n"] = len(recs)
+    for d in recs:
+        t = str(d.get("tag"))
+        r["server_tags"][t] = r["server_tags"].get(t, 0.0) + d["amount"]
+    if not recs:
+        r["why"] = "no server damage record in the frames' window"
+        return r
+    amount = sum(d["amount"] for d in recs)
+    r["server_amount"], r["diff"] = amount, r["health_fall"] - amount
+    if amount <= 0:
+        r["why"] = "the server's records in the window sum to %s" % amount
+        return r
+    r["explained"] = abs(r["diff"]) <= DEATH_TOL * amount
+    if not r["explained"]:
+        r["why"] = "the fall %s and the server's %s differ by more than %s of it" % (r["health_fall"], amount,
+                                                                                     DEATH_TOL)
+    return r
+
+
+def grade_d(out):
+    """The survival acceptance's report (spec § 10; no gate, no verdict), off `testing/agent/drivers/d_survive.py`'s
+    artifact, in grade_c's shape (testing/agent/grade_c.py L113-L160):
+
+      survived, outcome, stop, survival_s  the stop (out["stop"]) and the loop's wall seconds at it.
+      game_minutes                         the stop's gameMin minus the session's first frame's (loop.first_game_min).
+      start_kit_armed                      readings.kit.armed (a frame showed the bat in hand).
+      actions                              {n, by_type {type: {state: n}}, failed_reasons} over loop.actions (the
+                                           planner's sends with their ends).
+      needs, needs_summary                 the needs series [gameMin, hunger, thirst, fatigue, health, serverHunger]
+                                           and its summary, the client-server hunger difference over paired rows.
+      fights                               the decision log's threat-branch runs (loop.fights).
+      health_lost_by_source                the server's damage.watch records merged over the loop, by tag
+                                           (loop.damage.totals {tag: {n, amount}}), the server's own counts beside.
+      deaths                               the death record's via, detail, gameMin and last decisions.
+      death_explained, death_check         None without a death record; else death_check's verdict and numbers: the
+                                           frames' window and health fall, the server's window, record count and
+                                           amount, the difference and the tolerance.
+      cost, lua_errors, parks, gaps        the frames' tick cost and the link's counters.
+    `report_lines` are one-line findings a reviewer can quote."""
+    out = _dd(out)
+    loop = _dd(out.get("loop"))
+    stop = _dd(out.get("stop"))
+    reason = stop.get("reason")
+    survival_s = _num(stop.get("wallS"))
+    survival_s = survival_s if survival_s is not None else _num(loop.get("wallS"))
+    g0, g1 = _num(loop.get("first_game_min")), _num(stop.get("gameMin"))
+    death = _dd(loop.get("death"))
+    deaths = []
+    if reason == "death" or death:
+        deaths.append({"via": death.get("via"), "detail": death.get("detail", stop.get("detail")),
+                       "wallS": death.get("wallS", survival_s), "gameMin": death.get("gameMin", stop.get("gameMin")),
+                       "last_decisions": _ll(death.get("last_decisions"))})
+    check = death_check(death) if death else None
+    dmg = _dd(loop.get("damage"))
+    frames = _dd(out.get("frames"))
+    cost = _dd(loop.get("cost"))
+    per_min = _dd(loop.get("lua_errors_per_min"))
+    g = {
+        "grade": "grade_d",
+        "session_key": out.get("session_key"),
+        "run_id": out.get("run_id"),
+        "finished": out.get("finished") is True,
+        "stop": {"reason": reason, "detail": stop.get("detail"), "gameMin": stop.get("gameMin")} if stop else None,
+        "survived": survived_of(reason),
+        "outcome": outcome_of(reason),
+        "survival_s": survival_s,
+        "game_minutes": g1 - g0 if g0 is not None and g1 is not None else None,
+        "start_kit_armed": _dd(_dd(out.get("readings")).get("kit")).get("armed"),
+        "ticks": _num(loop.get("ticks")),
+        "decisions": _num(loop.get("decisions")),
+        "actions": d_actions(loop.get("actions")),
+        "needs": _ll(loop.get("needs")),
+        "needs_fields": list(D_NEEDS_FIELDS),
+        "needs_summary": d_needs_summary(loop.get("needs"), loop.get("needs_pairs")),
+        "fights": d_fights(loop.get("fights")),
+        "health_lost_by_source": {str(k): dict(_dd(v)) for k, v in sorted(_dd(dmg.get("totals")).items())},
+        "damage_counts_server": dmg.get("counts"),
+        "damage_polls": {k: dmg.get(k) for k in ("polls", "fails", "merged", "lost", "dropped")},
+        "deaths": deaths,
+        "death_explained": check["explained"] if check is not None else None,
+        "death_check": check,
+        "cost": {k: cost.get(k) for k in ("n", "p50", "p99", "max", "tickMaxMs", "over5")},
+        "lua_errors": _num(frames.get("lua_errors")),
+        "lua_errors_max_per_min": max((_num(v) or 0 for v in per_min.values()), default=0),
+        "parks": _num(frames.get("parks")),
+        "gaps": _num(frames.get("gaps")),
+        "server_polls": _num(loop.get("server_polls")),
+        "server_fails": _num(loop.get("server_fails")),
+    }
+    g["report_lines"] = report_lines_d(g)
+    return g
+
+
+def _fmt(v, f="%.2f"):
+    return "n/a" if _num(v) is None else f % v
+
+
+def report_lines_d(g):
+    """grade_d's one-line findings (grade_c.py's report_lines, L167-L196, on the new fields)."""
+    lines = []
+    st = g.get("stop") or {}
+    if g.get("survival_s") is None:
+        lines.append("no loop ran: stop %s (%s)" % (st.get("reason"), st.get("detail")))
+    else:
+        lines.append("%s after %.0f s of the loop (%.1f wall min, %s game min), stop %s: %s" % (
+            g["outcome"], g["survival_s"], g["survival_s"] / 60.0, _fmt(g.get("game_minutes"), "%.0f"),
+            st.get("reason"), st.get("detail")))
+    if g.get("start_kit_armed") is not None:
+        lines.append("start kit %s" % ("equipped (a frame showed the bat in hand)" if g["start_kit_armed"]
+                                       else "not seen in hand: the planner flees every threat unarmed"))
+    acts = g["actions"]
+    per = "; ".join("%s %s" % (t, ", ".join("%s %d" % (s, n) for s, n in sorted(d.items())))
+                    for t, d in sorted(acts["by_type"].items()))
+    lines.append("%d actions sent over %s planner ticks: %s" % (acts["n"], _fmt(g.get("ticks"), "%d"), per or "none"))
+    ns = g["needs_summary"]
+    if ns["rows"]:
+        lines.append("needs: %d rows; peak hunger %s, thirst %s, fatigue %s; min health %s; client-server hunger "
+                     "max diff %s over %d paired rows (%d unpaired)" % (
+                         ns["rows"], _fmt(ns["peak"]["hunger"]), _fmt(ns["peak"]["thirst"]),
+                         _fmt(ns["peak"]["fatigue"]), _fmt(ns["min_health"], "%.1f"),
+                         _fmt(ns["hunger_client_server_max_diff"], "%.3f"), ns["paired_rows"], ns["unpaired_rows"]))
+    fs = g["fights"]
+    lines.append("fights: %d (fought %d, fled %d, open %d); flee reasons %s" % (
+        fs["count"], fs["fought"], fs["fled"], fs["open"], fs["flee_reasons"] or "none"))
+    hl = g["health_lost_by_source"]
+    lines.append("health lost by source (the server's damage.watch): %s" % (", ".join(
+        "%s %s over %d records" % (k, _fmt(_dd(v).get("amount"), "%.3f"), _num(_dd(v).get("n")) or 0)
+        for k, v in hl.items()) or "none recorded"))
+    for d in g["deaths"]:
+        last = d["last_decisions"][-1] if d["last_decisions"] else {}
+        lines.append("death via %s at game minute %s; the last decision: branch %s, action %s" % (
+            d["via"], d["gameMin"], last.get("branch"), last.get("action")))
+    c = g.get("death_check")
+    if c is not None:
+        lines.append("death %s by the frames: health fall %s over %d frames against the server's %s over %d records "
+                     "in the same window (tol %s)%s" % (
+                         "explained" if c["explained"] else "NOT explained", _fmt(c["health_fall"], "%.3f"),
+                         c["frames_n"], _fmt(c["server_amount"], "%.3f"), c["server_n"], c["tol"],
+                         "" if c["why"] is None else ": " + c["why"]))
+    co = g["cost"]
+    lines.append("per-tick cost p50 %s ms, p99 %s ms, max %s ms over %s frames; worst tickMaxMs %s, over5 %s" % (
+        _fmt(co.get("p50"), "%.3f"), _fmt(co.get("p99"), "%.3f"), _fmt(co.get("max"), "%.3f"),
+        _fmt(co.get("n"), "%d"), _fmt(co.get("tickMaxMs"), "%.3f"), _fmt(co.get("over5"), "%d")))
+    lines.append("lua_error events %s (max %s in a minute); parks %s; gaps %s" % (
+        _fmt(g["lua_errors"], "%d"), g["lua_errors_max_per_min"], _fmt(g["parks"], "%d"), _fmt(g["gaps"], "%d")))
+    return lines
