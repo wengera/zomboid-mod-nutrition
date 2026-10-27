@@ -189,8 +189,11 @@ def measure_x5(out):
                                with |pair_after.client_health - pair_after.server_health| <= AGREE_TOL (the client's
                                copy of the zombie's health in the frame nearest the server's read, within the
                                driver's PAIR_SLACK_S); `voided` the swings whose pair_void is not false.
-      loop_ms                  {p50, p90, n} over the encounters' loop_ms (the first action's accept minus the first
-                               sight, the client's clock).
+      loop_ms                  {p50, p90, n} over the encounters' loop_ms, raw: the first action's accept minus the
+                               first sight (the client's clock). When the first action is an attack it holds the
+                               driver's synchronous zombie.get before the send (that swing's pre_read_ms).
+      loop_ms_net              {p50, p90, n}: loop_ms minus the first swing's pre_read_ms when the first action was
+                               that swing (its loop_ms is set), else loop_ms: the agent's own loop, sight to accept.
       kills                    {n, per_encounter [killed, None for a voided encounter]}.
       health_lost              per encounter: body.health at the first sight minus at the end.
       server_tags              per encounter: the server's damage.watch per-tag rise.
@@ -206,7 +209,15 @@ def measure_x5(out):
     kept = [s.get("pair_after") or {} for s in swings if s.get("pair_void") is False]
     diffs = [(_num(p.get("client_health")), _num(p.get("server_health"))) for p in kept]
     agree = sum(1 for c, s in diffs if c is not None and s is not None and abs(c - s) <= AGREE_TOL)
-    loops = [v for v in (_num(r.get("loop_ms")) for r in rows if not r.get("void")) if v is not None]
+    loops, nets = [], []
+    for r in rows:
+        v = _num(r.get("loop_ms"))
+        if r.get("void") or v is None:
+            continue
+        first = next((s for s in r.get("swings") or () if isinstance(s, dict)), None)
+        pre = _num(first.get("pre_read_ms")) if first and _num(first.get("loop_ms")) is not None else 0
+        loops.append(v)
+        nets.append(v - (pre or 0))
     return {
         "measure": "measure_x5",
         "attack_started_share": {"share": _share(started, len(done)), "started": started, "n": len(done)},
@@ -215,6 +226,7 @@ def measure_x5(out):
         "client_server_agreement": {"share": _share(agree, len(kept)), "agree": agree, "n": len(kept),
                                     "voided": len(swings) - len(kept), "tol": AGREE_TOL},
         "loop_ms": {"p50": pct(loops, 50), "p90": pct(loops, 90), "n": len(loops)},
+        "loop_ms_net": {"p50": pct(nets, 50), "p90": pct(nets, 90), "n": len(nets)},
         "kills": {"n": sum(1 for r in rows if r.get("killed") is True),
                   "per_encounter": [None if r.get("void") else r.get("killed") for r in rows]},
         "health_lost": [r.get("health_lost") for r in rows],

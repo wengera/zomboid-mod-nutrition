@@ -19,8 +19,10 @@ each reading at out["readings"][phase]):
   encounters   up to ENCOUNTERS encounters, readings.encounters {planned, rows [...]}, each row:
                  i, near (the `zombie.near 1` reply {ok, requested, spawned, at, dists [, reason]}), void (None, or
                  why: a reply not ok or spawning none, or no new zombie in a frame within SIGHT_TIMEOUT_S);
-                 zid and seen {seq, wallMs, wall, dist, health}: the first frame listing a zombie id no frame listed
-                 before the spawn (the nearest such id); body_at_sight;
+                 zid and seen {seq, wallMs, wall, dist, health}: the first frame after the spawn step listing a
+                 zombie id the last frame before it did not list (the nearest such id; scoped to the encounter, as
+                 the dead and last-seen marks are, so a server that reuses a dead zombie's online id neither voids the
+                 sight nor ends the encounter at once); body_at_sight;
                  then the Fight policy ticked at FIGHT_HZ (every POLL_S: pump, the end checks; every 1 / FIGHT_HZ s:
                  observe, choose and send, a `zombie.get` of the target taken right before an attack's send and
                  another right after its end is read) until the end: `dead` (a zombie_dead event for zid or a frame
@@ -39,11 +41,15 @@ each reading at out["readings"][phase]):
                  midpoint), pair_before, pair_after ({server_ms, server_health, frame_seq, frame_wallMs, dt_ms,
                  client_health, void, why}: the reply against the frame listing the target nearest it by wall time,
                  pair_before among the frames before the accept, pair_after among those after the end act; void when
-                 apart by more than PAIR_SLACK_S, no such frame lists the target (a kill: Sense lists no dead zombie)
-                 or the server read no health),
+                 apart by more than PAIR_SLACK_S, no such frame lists the target (a kill: Sense lists no dead zombie),
+                 the server read no health, or the fence is missing (no accept act, or no end act: a rejected or
+                 timed-out attack is voided, never paired unfenced)), pre_read_ms (the pre-send zombie.get's round
+                 trip, epoch_ms_after - epoch_ms_before; 0 when none was taken),
                  pair_void (pair_after's void: the pair measure_x5's agreement reads), loop_ms (the encounter's loop
                  latency on the swing that was its first action, else None)}];
-                 loop_ms (the first action's accept act wallMs minus seen.wallMs, both the client's clock);
+                 loop_ms (the first action's accept act wallMs minus seen.wallMs, both the client's clock: raw, so
+                 when the first action is an attack it holds the pre-send zombie.get's round trip, that swing's
+                 pre_read_ms; measure_x5's loop_ms_net subtracts it and is the agent's own loop);
                  approach [{seq, wallMs, dist}: zid's distance in each frame from the sight to the end of the first
                  swing whose attackStarted read true, for the fight reflex ruling]; body_at_end, health_lost
                  (body_at_sight - body_at_end);
@@ -54,7 +60,13 @@ each reading at out["readings"][phase]):
 STOPS (out["stop"] {reason, detail, wall, encounter}, the first that holds): `health` (a frame's body.health at or
 below STOP_HEALTH), `death` (a frame's body.health <= 0, or a `players` reply, a list or {} for nobody, without USER;
 an error reply is no death), `budget` (the wall budget's last RESERVE_S reached), `encounters` (ENCOUNTERS run),
-`no_hello`; a phase that ends on xlib's Budget or a fault names `budget_stop` or `phase_error`.
+`no_hello`; a phase that ends on xlib's Budget names `budget_stop`, on xlib's BusDead (a stalled step and no pong)
+`bus_dead` (detail: the step after which the bus died), on a fault `phase_error`.
+
+THE INSTRUMENT'S COST ON THE FIGHT: each swing takes two synchronous server round trips (the zombie.get right before
+its send and the one right after its end is read; about 0.3 s each, so about 0.6 s a swing) during which the driver
+neither pumps nor ticks the Fight. The fight is slower than the bare agent's and the zombie gets those seconds to
+hit, so `health_lost` reads high against an uninstrumented fight; each step's `took` is in out["steps"].
 
 FRAMES (out["frames"]): as x4_link's: `cost` every frame's {seq, tick, wallMs, cost}; `n`; `gaps`, `gap_list`; `bad`;
 `lua_errors`, `lua_error_msgs`; `parks` (the console's PARK_RX lines, plus 1 when pzt saw the park and the console
@@ -389,14 +401,32 @@ def swing_row(act, pre, post, frames, slack_s=PAIR_SLACK_S):
     """One attack's row (the module docstring): `act` its action_row, `pre` and `post` the server_reading taken
     right before its send and right after its end was read (None when not taken)."""
     tid = act["args"].get("targetId")
-    pb = pair_reading(frames, tid, pre, slack_s, before_seq=act["accepted_seq"])
-    pa = pair_reading(frames, tid, post, slack_s, after_seq=act["ended_seq"])
+    pb = fence(pair_reading(frames, tid, pre, slack_s, before_seq=act["accepted_seq"]), act["accepted_seq"],
+               "no accept act")
+    pa = fence(pair_reading(frames, tid, post, slack_s, after_seq=act["ended_seq"]), act["ended_seq"], "no end act")
     row = {k: act[k] for k in ("aid", "accepted_wall", "ended_wall", "accepted_seq", "accepted_wallMs", "ended_seq",
                                "ended_wallMs", "state", "reason", "result")}
     row.update({"targetId": tid, "client_health_before": health_before(frames, tid, act["accepted_seq"]),
                 "client_health_after": health_after(frames, tid, act["ended_seq"]), "server_before": pre,
-                "server_after": post, "pair_before": pb, "pair_after": pa, "pair_void": pa["void"], "loop_ms": None})
+                "server_after": post, "pair_before": pb, "pair_after": pa, "pair_void": pa["void"],
+                "pre_read_ms": read_ms(pre), "loop_ms": None})
     return row
+
+
+def fence(pair, seq, what):
+    """A swing's pair voided when its fence seq is None (a rejected or timed-out attack): never paired unfenced."""
+    if seq is None:
+        pair["void"] = True
+        pair["why"] = "; ".join(w for w in (pair["why"], "unfenced: %s" % what) if w)
+    return pair
+
+
+def read_ms(server):
+    """A server_reading's round trip in ms (epoch_ms_after - epoch_ms_before); 0 when there was no read."""
+    if not isinstance(server, dict):
+        return 0
+    b, a = _num(server.get("epoch_ms_before")), _num(server.get("epoch_ms_after"))
+    return a - b if a is not None and b is not None else 0
 
 
 def approach_reading(frames, zid, until_seq):
@@ -440,9 +470,9 @@ class X5:
         self.world = World()
         self.actions = Actions(transport, clock=clock)
         self.lines = []
-        self.seen_ids = set()       # every zombie id a frame has listed
-        self.zlast = {}             # zombie id -> the client wallMs of the last frame listing it
-        self.dead_ids = set()       # ids a zombie_dead event named or a frame listed at health <= 0
+        self.frame_ids = set()      # the zombie ids the last frame listed
+        self.zlast = {}             # zombie id -> the client wallMs of the last frame listing it (this encounter)
+        self.dead_ids = set()       # ids a zombie_dead event named or a frame listed at health <= 0 (this encounter)
         self.since_i = 0            # the largest damage.watch record index seen
         self.counts = {}            # the server's per-tag damage totals, as last read
         self.last_persist = clock()
@@ -456,9 +486,10 @@ class X5:
             if l.get("kind") == "frame":
                 fr["cost"].append(cost_row(l))
                 fr["n"] += 1
+                self.frame_ids = set()
                 for z in l.get("zombies") or ():
                     if isinstance(z, dict) and z.get("id") is not None:
-                        self.seen_ids.add(z["id"])
+                        self.frame_ids.add(z["id"])
                         self.zlast[z["id"]] = l.get("wallMs")
                         h = _num(z.get("health"))
                         if h is not None and h <= 0:
@@ -609,8 +640,10 @@ class X5:
             self.set_stop("death", "players reply without %s: %s" % (USER, names), row["i"])
 
     def encounter(self, i):
+        self.pump()
         t0, i0 = self.clock(), len(self.lines)
-        known = set(self.seen_ids)
+        known = set(self.frame_ids)                 # the encounter's scope: ids, marks and lines from here on
+        self.zlast, self.dead_ids = {}, set()
         row = {"i": i, "void": None, "start_wall": self.xs.wall(), "near": None, "zid": None, "seen": None,
                "killed": None, "actions": [], "swings": [], "approach": [], "loop_ms": None, "stopped_aid": None}
         row["near"] = self.server("near", "zombie.near", "1").get("ack")
@@ -725,6 +758,8 @@ class X5:
             bs = self.out.get("budget_stop")
             if bs:
                 self.set_stop("budget_stop", bs.get("why"))
+            elif self.xs.bus_dead:
+                self.set_stop("bus_dead", "server bus dead after %s" % self.xs.bus_dead)
             else:
                 self.set_stop("phase_error", sorted(self.out.get("phase_errors") or {}))
 

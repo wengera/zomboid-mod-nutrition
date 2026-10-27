@@ -115,12 +115,14 @@ class CombatMod(FakeMod):
     `near_fail` (encounter numbers whose zombie.near spawns none), `dead_player` (players replies {}), `close` (tiles
     a zombie closes a frame), `bus_s` (seconds each bus reply takes), `ambient` (a still zombie, id 6000, listed at 9
     tiles from the first frame on, before any spawn), `vanish_ticks` (a spawned zombie leaves the frames that many
-    ticks after its spawn with no zombie_dead event: a despawn)."""
+    ticks after its spawn with no zombie_dead event: a despawn), `reuse_ids` (every spawn takes online id 7001 again,
+    as the server may reuse a dead zombie's id), `bus_dead_at` (the zombie.near of that encounter and every ping
+    stall: a dead bus)."""
     SWING_TICKS = 3       # ticks from an attack's accept to its end
     REACH = 2.0           # tiles: a walkTo ends when the zombie is this close
 
     def __init__(self, d, clock, start_dist=4.0, body_drop=5.0, near_fail=(), dead_player=False, close=0.5,
-                 bus_s=0.05, ambient=False, vanish_ticks=None):
+                 bus_s=0.05, ambient=False, vanish_ticks=None, reuse_ids=False, bus_dead_at=None):
         super().__init__(d, clock=clock.now)
         self.clk = clock
         self.hz, self.x, self.y = 10, 100.5, 200.5
@@ -131,7 +133,7 @@ class CombatMod(FakeMod):
         if ambient:
             self.zombies[6000] = {"dist": 9.0, "health": 1.0, "dead": False, "gone": False, "swings": 0, "age": 0,
                                   "still": True}
-        self.vanish_ticks = vanish_ticks
+        self.vanish_ticks, self.reuse_ids, self.bus_dead_at = vanish_ticks, reuse_ids, bus_dead_at
         self.next_id, self.nears = 7001, 0
         self.cmd_seen, self.walk, self.attack, self.pending = 0, None, None, []
         self.server_damage = []      # the server's damage.watch records {i, tag, amount, wall}
@@ -155,7 +157,8 @@ class CombatMod(FakeMod):
 
     def spawn(self):
         zid = self.next_id
-        self.next_id += 1
+        if not self.reuse_ids:
+            self.next_id += 1
         self.zombies[zid] = {"dist": self.start_dist, "health": 1.0, "dead": False, "gone": False, "swings": 0,
                              "age": 0, "still": False}
         return zid
@@ -260,6 +263,8 @@ def make_ask(mod, clock, asked):
             if not mod.has_kit:
                 return "no item %s in admin's inventory" % D.KIT
             return {"fullType": D.KIT, "id": KIT_ID, "uses": 1, "age": 0, "weight": 1.5}
+        if cmd == "ping" or (cmd == "zombie.near" and mod.nears + 1 == mod.bus_dead_at):
+            return {"error": "TimeoutError: no reply within %s s" % timeout}
         if cmd == "zombie.near":
             mod.nears += 1
             if mod.nears in mod.near_fail:
@@ -571,3 +576,67 @@ def test_a_zombie_absent_from_the_frames_for_gone_s_ends_its_encounter(tmp_path,
     assert D.GONE_S * 1000 < r["end"]["wallMs"] - last_seen <= D.GONE_S * 1000 + 200
     assert r["actions"] and all(a["type"] == "walkTo" and a["state"] in ("done", "failed") for a in r["actions"])
     assert r["swings"] == [] and r["server_end"]["found"] is True and r["server_end"]["dead"] is False
+
+
+# ================================================================ fix 1
+def test_loop_ms_is_reported_raw_and_net_of_the_pre_swing_server_read(tmp_path, monkeypatch):
+    """Live, zombie.near places the zombie about a tile off, so the first action is an Attack and the synchronous
+    zombie.get before its send sits inside the raw loop: raw - net is that step's round trip."""
+    monkeypatch.setattr(D, "ENCOUNTERS", 2)
+    out, mod, asked, x5 = run_x5(tmp_path, start_dist=1.5, bus_s=0.3)
+    rows = out["readings"]["encounters"]["rows"]
+    for r in rows:
+        s1, s2 = r["swings"]
+        assert s1["loop_ms"] == r["loop_ms"] and s1["pre_read_ms"] == pytest.approx(300, abs=1)
+        assert s1["pre_read_ms"] == s1["server_before"]["epoch_ms_after"] - s1["server_before"]["epoch_ms_before"]
+        assert s2["pre_read_ms"] == pytest.approx(300, abs=1)
+    m = GT.measure_x5(out)
+    raw = sorted(r["loop_ms"] for r in rows)
+    net = sorted(r["loop_ms"] - r["swings"][0]["pre_read_ms"] for r in rows)
+    assert m["loop_ms"] == {"p50": raw[0], "p90": raw[1], "n": 2}
+    assert m["loop_ms_net"] == {"p50": net[0], "p90": net[1], "n": 2}
+    assert raw[0] - net[0] == pytest.approx(300, abs=1) and net[0] > 0
+
+
+def test_a_walk_first_leaves_the_net_loop_equal_to_the_raw(clean_run):
+    out = clean_run[0]
+    rows = out["readings"]["encounters"]["rows"]
+    assert all(s["pre_read_ms"] > 0 for r in rows for s in r["swings"])
+    m = GT.measure_x5(out)
+    assert m["loop_ms_net"] == m["loop_ms"]
+    walk = rows[0]["actions"][0]
+    assert walk["type"] == "walkTo"
+
+
+def test_an_unfenced_pair_is_voided():
+    frames = [{"kind": "frame", "seq": 1, "wallMs": 1000, "zombies": [{"id": 9, "health": 0.8}]},
+              {"kind": "frame", "seq": 3, "wallMs": 1100, "zombies": [{"id": 9, "health": 0.8}]}]
+    server = {"ok": True, "found": True, "health": 0.8, "dead": False, "wallMs": 1050,
+              "epoch_ms_before": 1000, "epoch_ms_after": 1100}
+    act = {"aid": "a1", "args": {"targetId": 9}, "accepted_wall": None, "ended_wall": 5.0, "accepted_seq": None,
+           "accepted_wallMs": None, "ended_seq": None, "ended_wallMs": None, "state": "timeout", "reason": "",
+           "result": None}
+    row = D.swing_row(act, server, server, frames)
+    for k in ("pair_before", "pair_after"):
+        assert row[k]["void"] is True and "unfenced" in row[k]["why"], k
+    assert row["pair_void"] is True and row["pre_read_ms"] == 100
+    fenced = D.swing_row(dict(act, accepted_seq=2, ended_seq=2), server, server, frames)
+    assert fenced["pair_before"]["frame_seq"] == 1 and fenced["pair_after"]["frame_seq"] == 3
+    assert fenced["pair_void"] is False
+    assert D.swing_row(act, None, None, frames)["pre_read_ms"] == 0
+
+
+def test_a_dead_bus_names_the_stop_bus_dead(tmp_path):
+    out, mod, asked, x5 = run_x5(tmp_path, bus_dead_at=2)
+    assert out["stop"]["reason"] == "bus_dead" and out["stop"]["detail"]
+    assert "encounters" in out["phase_walls"] and out["phase_walls"]["encounters"].get("bus_dead")
+    assert out["phase_errors"] == {} and len(out["readings"]["encounters"]["rows"]) == 1
+
+
+def test_a_reused_online_id_is_sighted_and_fought_again(tmp_path, monkeypatch):
+    monkeypatch.setattr(D, "ENCOUNTERS", 3)
+    out, mod, asked, x5 = run_x5(tmp_path, reuse_ids=True)
+    rows = out["readings"]["encounters"]["rows"]
+    assert [r["zid"] for r in rows] == [7001] * 3 and all(r["void"] is None for r in rows)
+    assert all(r["end"]["reason"] == "dead" and len(r["swings"]) == 2 for r in rows)
+    assert all(r["swings"][0]["client_health_before"] == 1.0 for r in rows)
