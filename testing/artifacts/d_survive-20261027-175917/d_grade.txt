@@ -1,0 +1,630 @@
+died after 244 s of the loop (4.1 wall min, 68 game min), stop death: frame seq 4824 body.health 0
+start kit equipped (a frame showed the bat in hand)
+148 actions sent over 461 planner ticks: attack done 49, failed 1, rejected 1; drop done 50; interact done 23, failed 3; scan done 3; steer done 5, failed 2; walkTo done 11
+needs: 5 rows; peak hunger 0.04, thirst 0.04, fatigue 0.05; min health 17.3; client-server hunger max diff 0.000 over 5 paired rows (0 unpaired)
+fights: 3 (fought 3, fled 1, open 1); flee reasons {'many': 3, 'held': 14, 'pair': 12, 'health': 7}
+health lost by source (the server's damage.watch): BLEEDING 6.693 over 315 records, HEAVYLOAD 22.161 over 46 records
+death via frame at game minute 628; the last decision: branch threat, action None
+death explained by the frames (wound): health fall 80.345 over 300 frames against the server's tagged 6.584 over 280 records in the same window (tol 0.1); wound part 0 falls 87.83306884765625 -> 87.82674407958984 at seq 4410, zombie 30436 at 1.2304392977625982 tiles, wound health 73.761
+per-tick cost p50 1.000 ms, p99 3.000 ms, max 14.000 ms over 2556 frames; worst tickMaxMs 18.000, over5 457
+lua_error events 0 (max 0 in a minute); parks 0; gaps 0
+{
+ "actions": {
+  "by_type": {
+   "attack": {
+    "done": 49,
+    "failed": 1,
+    "rejected": 1
+   },
+   "drop": {
+    "done": 50
+   },
+   "interact": {
+    "done": 23,
+    "failed": 3
+   },
+   "scan": {
+    "done": 3
+   },
+   "steer": {
+    "done": 5,
+    "failed": 2
+   },
+   "walkTo": {
+    "done": 11
+   }
+  },
+  "failed_reasons": {
+   "attack": {
+    "no target": 1,
+    "superseded": 1
+   },
+   "interact": {
+    "superseded": 3
+   },
+   "steer": {
+    "dead": 1,
+    "superseded": 1
+   }
+  },
+  "n": 148
+ },
+ "cost": {
+  "max": 14,
+  "n": 2556,
+  "over5": 457,
+  "p50": 1,
+  "p99": 3,
+  "tickMaxMs": 18
+ },
+ "damage_counts_server": {
+  "BLEEDING": 1122,
+  "HEAVYLOAD": 46
+ },
+ "damage_polls": {
+  "dropped": 968,
+  "fails": 0,
+  "lost": 807,
+  "merged": 361,
+  "polls": 11
+ },
+ "death_check": {
+  "diff": 73.76058747037314,
+  "explained": true,
+  "explained_by": "wound",
+  "frames_n": 300,
+  "frames_window_ms": {
+   "from": 1793138637457,
+   "to": 1793138667358
+  },
+  "health_fall": 80.3448486328125,
+  "server_amount": 6.584261162439361,
+  "server_n": 280,
+  "server_tags": {
+   "BLEEDING": 6.584261162439361
+  },
+  "server_window_ms": {
+   "from": 1793138637457,
+   "rule": "from < wall <= to",
+   "to": 1793138667358
+  },
+  "tagged": {
+   "explained": false,
+   "why": "the fall 80.3448486328125 and the server's 6.584261162439361 differ by more than 0.1 of it"
+  },
+  "tol": 0.1,
+  "why": null,
+  "wound": {
+   "danger_r": 6.0,
+   "explained": true,
+   "fall_seq": 4410,
+   "frame_seq": 4410,
+   "gameMin": 620,
+   "wallMs": 1793138637856,
+   "what": "part 0 falls 87.83306884765625 -> 87.82674407958984",
+   "why": null,
+   "wound_health": 73.76058747037314,
+   "zombie": {
+    "dist": 1.2304392977625982,
+    "id": 30436,
+    "seq": 4410
+   }
+  }
+ },
+ "death_explained": true,
+ "death_explained_by": "wound",
+ "deaths": [
+  {
+   "detail": "frame seq 4824 body.health 0",
+   "gameMin": 628,
+   "last_decisions": [
+    {
+     "action": null,
+     "branch": "threat",
+     "gameMin": 626,
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10758.724609375,
+         10656.8935546875
+        ],
+        "flee": "pair",
+        "holding": "a147",
+        "nearest": 0.544515697634791
+       }
+      },
+      "cooled": null,
+      "fight_s": null,
+      "health": 42.086368560791016,
+      "held": 3,
+      "hunger": 0.0367489755153656,
+      "load": 4,
+      "mode": "flee",
+      "nearest": 0.5047619082749907,
+      "need": null,
+      "running": "steer",
+      "thirst": 0.03805401921272278,
+      "threats": 2,
+      "x": 10759.720703125,
+      "y": 10659.560546875
+     },
+     "sent": false,
+     "wall": 1793138660.3690674
+    },
+    {
+     "action": null,
+     "branch": "threat",
+     "gameMin": 626,
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10758.724609375,
+         10656.8935546875
+        ],
+        "flee": "pair",
+        "holding": "a147",
+        "nearest": 0.544515697634791
+       }
+      },
+      "cooled": null,
+      "fight_s": null,
+      "health": 42.086368560791016,
+      "held": 3,
+      "hunger": 0.0367489755153656,
+      "load": 4,
+      "mode": "flee",
+      "nearest": 0.5049734716718148,
+      "need": null,
+      "running": "steer",
+      "thirst": 0.03805401921272278,
+      "threats": 2,
+      "x": 10759.7216796875,
+      "y": 10659.5634765625
+     },
+     "sent": false,
+     "wall": 1793138660.8083668
+    },
+    {
+     "action": null,
+     "branch": "threat",
+     "gameMin": 626,
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10758.724609375,
+         10656.8935546875
+        ],
+        "flee": "pair",
+        "holding": "a147",
+        "nearest": 0.544515697634791
+       }
+      },
+      "cooled": null,
+      "fight_s": null,
+      "health": 40.78545379638672,
+      "held": 3,
+      "hunger": 0.0367489755153656,
+      "load": 4,
+      "mode": "flee",
+      "nearest": 0.5215172917982023,
+      "need": null,
+      "running": "steer",
+      "thirst": 0.03805401921272278,
+      "threats": 2,
+      "x": 10759.7216796875,
+      "y": 10659.5634765625
+     },
+     "sent": false,
+     "wall": 1793138661.3536718
+    },
+    {
+     "action": {
+      "args": {
+       "gait": "sprint",
+       "seconds": 3.0,
+       "vx": 0.38118422430632665,
+       "vy": 0.9244991006701868
+      },
+      "type": "steer"
+     },
+     "branch": "threat",
+     "gameMin": 626,
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10758.680338541666,
+         10657.054036458334
+        ],
+        "flee": "health",
+        "nearest": 0.6934501481073865
+       }
+      },
+      "cooled": null,
+      "fight_s": null,
+      "health": 28.01776885986328,
+      "held": 3,
+      "hunger": 0.03689686954021454,
+      "load": 4,
+      "mode": "flee",
+      "nearest": 0.6934501481073865,
+      "need": null,
+      "running": null,
+      "thirst": 0.03821628913283348,
+      "threats": 2,
+      "x": 10759.80078125,
+      "y": 10659.771484375
+     },
+     "sent": true,
+     "wall": 1793138661.895348
+    },
+    {
+     "action": null,
+     "branch": "threat",
+     "gameMin": 627,
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10758.680338541666,
+         10657.054036458334
+        ],
+        "flee": "health",
+        "holding": "a148",
+        "nearest": 0.6934501481073865
+       }
+      },
+      "cooled": null,
+      "fight_s": null,
+      "health": 28.01776885986328,
+      "held": 3,
+      "hunger": 0.03689686954021454,
+      "load": 4,
+      "mode": "flee",
+      "nearest": 1.580137272919518,
+      "need": null,
+      "running": "steer",
+      "thirst": 0.03821628913283348,
+      "threats": 2,
+      "x": 10760.14453125,
+      "y": 10660.642578125
+     },
+     "sent": false,
+     "wall": 1793138662.333796
+    },
+    {
+     "action": null,
+     "branch": "threat",
+     "gameMin": 627,
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10758.680338541666,
+         10657.054036458334
+        ],
+        "flee": "health",
+        "holding": "a148",
+        "nearest": 0.6934501481073865
+       }
+      },
+      "cooled": null,
+      "fight_s": null,
+      "health": 22.665786743164062,
+      "held": 2,
+      "hunger": 0.03702010586857796,
+      "load": 4,
+      "mode": "flee",
+      "nearest": 2.11232297257169,
+      "need": null,
+      "running": "steer",
+      "thirst": 0.03837675601243973,
+      "threats": 2,
+      "x": 10760.671875,
+      "y": 10661.5458984375
+     },
+     "sent": false,
+     "wall": 1793138662.8750834
+    },
+    {
+     "action": null,
+     "branch": "threat",
+     "gameMin": 627,
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10758.680338541666,
+         10657.054036458334
+        ],
+        "flee": "health",
+        "holding": "a148",
+        "nearest": 0.6934501481073865
+       }
+      },
+      "cooled": null,
+      "fight_s": null,
+      "health": 22.665786743164062,
+      "held": 2,
+      "hunger": 0.03702010586857796,
+      "load": 4,
+      "mode": "flee",
+      "nearest": 1.9525558252693973,
+      "need": null,
+      "running": "steer",
+      "thirst": 0.03837675601243973,
+      "threats": 2,
+      "x": 10761.0234375,
+      "y": 10661.6181640625
+     },
+     "sent": false,
+     "wall": 1793138663.3532917
+    },
+    {
+     "action": {
+      "args": {
+       "gait": "run",
+       "seconds": 3.0,
+       "vx": 0.4587605880718344,
+       "vy": 0.8885599151615972
+      },
+      "type": "steer"
+     },
+     "branch": "threat",
+     "gameMin": 628,
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10761.7255859375,
+         10663.11669921875
+        ],
+        "flee": "health",
+        "nearest": 2.1449945779656305
+       }
+      },
+      "cooled": null,
+      "fight_s": null,
+      "health": 6.626861572265625,
+      "held": 2,
+      "hunger": 0.03733532503247261,
+      "load": 4,
+      "mode": "flee",
+      "nearest": 2.1449945779656305,
+      "need": null,
+      "running": null,
+      "thirst": 0.03885788097977638,
+      "threats": 2,
+      "x": 10762.986328125,
+      "y": 10665.55859375
+     },
+     "sent": true,
+     "wall": 1793138666.369205
+    },
+    {
+     "action": null,
+     "branch": "threat",
+     "gameMin": 628,
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10761.7255859375,
+         10663.11669921875
+        ],
+        "flee": "health",
+        "holding": "a149",
+        "nearest": 2.1449945779656305
+       }
+      },
+      "cooled": null,
+      "fight_s": null,
+      "health": 3.9532012939453125,
+      "held": 2,
+      "hunger": 0.03748298063874245,
+      "load": 4,
+      "mode": "flee",
+      "nearest": 1.7548328152657995,
+      "need": null,
+      "running": "steer",
+      "thirst": 0.0390210784971714,
+      "threats": 2,
+      "x": 10763.2236328125,
+      "y": 10666.0234375
+     },
+     "sent": false,
+     "wall": 1793138666.6984713
+    },
+    {
+     "action": null,
+     "branch": "threat",
+     "gameMin": 628,
+     "inputs": {
+      "armed": true,
+      "branches": {
+       "threat": {
+        "centroid": [
+         10761.7255859375,
+         10663.11669921875
+        ],
+        "flee": "health",
+        "holding": "a149",
+        "nearest": 2.1449945779656305
+       }
+      },
+      "cooled": null,
+      "fight_s": null,
+      "health": 1.2806167602539062,
+      "held": 2,
+      "hunger": 0.03748298063874245,
+      "load": 4,
+      "mode": "flee",
+      "nearest": 2.0899863506400744,
+      "need": null,
+      "running": "steer",
+      "thirst": 0.0390210784971714,
+      "threats": 2,
+      "x": 10763.6455078125,
+      "y": 10666.8671875
+     },
+     "sent": false,
+     "wall": 1793138667.129103
+    }
+   ],
+   "via": "frame",
+   "wallS": 244.9823043346405
+  }
+ ],
+ "decisions": 148,
+ "fights": {
+  "count": 3,
+  "fled": 1,
+  "flee_reasons": {
+   "health": 7,
+   "held": 14,
+   "many": 3,
+   "pair": 12
+  },
+  "fought": 3,
+  "health_lost": [
+   0,
+   0,
+   null
+  ],
+  "open": 1
+ },
+ "finished": true,
+ "game_minutes": 68,
+ "gaps": 0,
+ "grade": "grade_d",
+ "health_lost_by_source": {
+  "BLEEDING": {
+   "amount": 6.693247824674472,
+   "n": 315
+  },
+  "HEAVYLOAD": {
+   "amount": 22.161251097917557,
+   "n": 46
+  }
+ },
+ "loop_started": true,
+ "lua_errors": 0,
+ "lua_errors_max_per_min": 0,
+ "needs": [
+  [
+   563,
+   0.0020614841487258673,
+   0.0017196637345477939,
+   0.0020414162427186966,
+   100,
+   0.002183903707191348
+  ],
+  [
+   579,
+   0.011058873496949673,
+   0.009425122290849686,
+   0.01201646402478218,
+   96.51561737060547,
+   0.011180358938872814
+  ],
+  [
+   595,
+   0.020126238465309143,
+   0.01755043864250183,
+   0.022429220378398895,
+   81.60545349121094,
+   0.020246611908078194
+  ],
+  [
+   611,
+   0.028929535299539566,
+   0.02646763063967228,
+   0.03345327079296112,
+   81.73341369628906,
+   0.029048748314380646
+  ],
+  [
+   627,
+   0.03711867332458496,
+   0.038536421954631805,
+   0.04827094078063965,
+   17.316146850585938,
+   0.03720245882868767
+  ]
+ ],
+ "needs_fields": [
+  "gameMin",
+  "hunger",
+  "thirst",
+  "fatigue",
+  "health",
+  "serverHunger"
+ ],
+ "needs_summary": {
+  "first": {
+   "fatigue": 0.0020414162427186966,
+   "gameMin": 563,
+   "health": 100,
+   "hunger": 0.0020614841487258673,
+   "serverHunger": 0.002183903707191348,
+   "thirst": 0.0017196637345477939
+  },
+  "hunger_client_server_max_diff": 0.0001224195584654808,
+  "last": {
+   "fatigue": 0.04827094078063965,
+   "gameMin": 627,
+   "health": 17.316146850585938,
+   "hunger": 0.03711867332458496,
+   "serverHunger": 0.03720245882868767,
+   "thirst": 0.038536421954631805
+  },
+  "min_health": 17.316146850585938,
+  "paired_rows": 5,
+  "peak": {
+   "fatigue": 0.04827094078063965,
+   "hunger": 0.03711867332458496,
+   "thirst": 0.038536421954631805
+  },
+  "rows": 5,
+  "unpaired_rows": 0
+ },
+ "outcome": "died",
+ "parks": 0,
+ "report_lines": [
+  "died after 244 s of the loop (4.1 wall min, 68 game min), stop death: frame seq 4824 body.health 0",
+  "start kit equipped (a frame showed the bat in hand)",
+  "148 actions sent over 461 planner ticks: attack done 49, failed 1, rejected 1; drop done 50; interact done 23, failed 3; scan done 3; steer done 5, failed 2; walkTo done 11",
+  "needs: 5 rows; peak hunger 0.04, thirst 0.04, fatigue 0.05; min health 17.3; client-server hunger max diff 0.000 over 5 paired rows (0 unpaired)",
+  "fights: 3 (fought 3, fled 1, open 1); flee reasons {'many': 3, 'held': 14, 'pair': 12, 'health': 7}",
+  "health lost by source (the server's damage.watch): BLEEDING 6.693 over 315 records, HEAVYLOAD 22.161 over 46 records",
+  "death via frame at game minute 628; the last decision: branch threat, action None",
+  "death explained by the frames (wound): health fall 80.345 over 300 frames against the server's tagged 6.584 over 280 records in the same window (tol 0.1); wound part 0 falls 87.83306884765625 -> 87.82674407958984 at seq 4410, zombie 30436 at 1.2304392977625982 tiles, wound health 73.761",
+  "per-tick cost p50 1.000 ms, p99 3.000 ms, max 14.000 ms over 2556 frames; worst tickMaxMs 18.000, over5 457",
+  "lua_error events 0 (max 0 in a minute); parks 0; gaps 0"
+ ],
+ "run_id": "d_survive-20261027-175917",
+ "server_fails": 0,
+ "server_polls": 5,
+ "session_key": "d_survive",
+ "start_kit_armed": true,
+ "stop": {
+  "detail": "frame seq 4824 body.health 0",
+  "gameMin": 628,
+  "reason": "death"
+ },
+ "survival_s": 244.22170305252075,
+ "survived": false,
+ "ticks": 461
+}

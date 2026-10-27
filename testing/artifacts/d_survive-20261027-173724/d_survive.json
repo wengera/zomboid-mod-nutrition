@@ -1,0 +1,3875 @@
+{
+ "steps": [
+  {
+   "step": "kit_id0",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.BaseballBat",
+   "phase": "kit",
+   "wall_before": 56.7,
+   "wall_after": 56.956,
+   "epoch_ms_before": 1793137101658,
+   "epoch_ms_after": 1793137101914,
+   "took": 0.256,
+   "ack": "no item Base.BaseballBat in admin's inventory",
+   "ack_shape": "str"
+  },
+  {
+   "step": "kit_additem",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "additem \"admin\" \"Base.BaseballBat\" 1",
+   "phase": "kit",
+   "wall_before": 56.956,
+   "wall_after": 56.967,
+   "epoch_ms_before": 1793137101914,
+   "epoch_ms_after": 1793137101924,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "kit_id1",
+   "side": "server",
+   "cmd": "item.get",
+   "args": "admin Base.BaseballBat",
+   "phase": "kit",
+   "wall_before": 59.468,
+   "wall_after": 60.729,
+   "epoch_ms_before": 1793137104425,
+   "epoch_ms_after": 1793137105686,
+   "took": 1.261,
+   "ack": {
+    "fullType": "Base.BaseballBat",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 469832530,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "isCookable": false,
+    "actualWeight": 2,
+    "weight": 2,
+    "customWeight": false,
+    "serverWorldAge": 2.3669233322143555
+   }
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 61.926,
+   "wall_after": 62.685,
+   "epoch_ms_before": 1793137106884,
+   "epoch_ms_after": 1793137107642,
+   "took": 0.759,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.008545206859707832,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.0017378119518980384,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.00178062345366925,
+     "Idleness": 0.030940935015678406,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.95335388183594,
+     "Thirst": 0.0014851652085781097,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793137107471,
+    "user": "admin",
+    "worldAge": 2.3757753372192383,
+    "mult": 4.781569957733154
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 62.69,
+   "wall_after": 64.451,
+   "epoch_ms_before": 1793137107648,
+   "epoch_ms_after": 1793137109409,
+   "took": 1.761,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 122.013,
+   "wall_after": 122.52,
+   "epoch_ms_before": 1793137166971,
+   "epoch_ms_after": 1793137167478,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.05016859248280525,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.01168028637766838,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.010931277647614479,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0.4771198630332947,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 37.10007095336914,
+     "Thirst": 0.009163375943899155,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793137167471,
+    "user": "admin",
+    "worldAge": 2.64223575592041,
+    "mult": 4.794187545776367
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 122.526,
+   "wall_after": 124.541,
+   "epoch_ms_before": 1793137167483,
+   "epoch_ms_after": 1793137169498,
+   "took": 2.015,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 182.02,
+   "wall_after": 182.529,
+   "epoch_ms_before": 1793137226978,
+   "epoch_ms_after": 1793137227486,
+   "took": 0.509,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.02188030816614628,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.019945237785577774,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 2.1575844287872314,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 37.261322021484375,
+     "Thirst": 0.01708768680691719,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793137227471,
+    "user": "admin",
+    "worldAge": 2.9071531295776367,
+    "mult": 4.797781944274902
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 182.536,
+   "wall_after": 184.547,
+   "epoch_ms_before": 1793137227493,
+   "epoch_ms_after": 1793137229504,
+   "took": 2.011,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 242.062,
+   "wall_after": 242.569,
+   "epoch_ms_before": 1793137287019,
+   "epoch_ms_after": 1793137287527,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.03221464529633522,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.028930172324180603,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0.28790175914764404,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 37.181175231933594,
+     "Thirst": 0.025131208822131157,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793137287469,
+    "user": "admin",
+    "worldAge": 3.173649787902832,
+    "mult": 4.799844741821289
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 242.574,
+   "wall_after": 244.586,
+   "epoch_ms_before": 1793137287532,
+   "epoch_ms_after": 1793137289544,
+   "took": 2.012,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 302.081,
+   "wall_after": 302.589,
+   "epoch_ms_before": 1793137347038,
+   "epoch_ms_after": 1793137347546,
+   "took": 0.508,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.04231657460331917,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.03783394396305084,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 37.133811950683594,
+     "Thirst": 0.03294537961483002,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793137347468,
+    "user": "admin",
+    "worldAge": 3.4401817321777344,
+    "mult": 4.799683570861816
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 302.594,
+   "wall_after": 304.605,
+   "epoch_ms_before": 1793137347552,
+   "epoch_ms_after": 1793137349563,
+   "took": 2.011,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 362.157,
+   "wall_after": 362.667,
+   "epoch_ms_before": 1793137407115,
+   "epoch_ms_after": 1793137407624,
+   "took": 0.51,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 0.052351199090480804,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.046655524522066116,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 37.114192962646484,
+     "Thirst": 0.040702901780605316,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793137407467,
+    "user": "admin",
+    "worldAge": 3.7066822052001953,
+    "mult": 4.795112133026123
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 362.673,
+   "wall_after": 364.685,
+   "epoch_ms_before": 1793137407631,
+   "epoch_ms_after": 1793137409642,
+   "took": 2.012,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 422.195,
+   "wall_after": 422.708,
+   "epoch_ms_before": 1793137467152,
+   "epoch_ms_after": 1793137467666,
+   "took": 0.513,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 0.9974355697631836,
+     "Fatigue": 0.06236562132835388,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.0553583987057209,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 8.147347398335114e-05,
+     "Temperature": 37.11289596557617,
+     "Thirst": 0.04844421520829201,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793137467470,
+    "user": "admin",
+    "worldAge": 3.973219871520996,
+    "mult": 4.798667907714844
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 422.717,
+   "wall_after": 424.726,
+   "epoch_ms_before": 1793137467674,
+   "epoch_ms_after": 1793137469684,
+   "took": 2.009,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 482.288,
+   "wall_after": 482.545,
+   "epoch_ms_before": 1793137527246,
+   "epoch_ms_after": 1793137527503,
+   "took": 0.257,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 0.803434431552887,
+     "Fatigue": 0.07266882807016373,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.06391901522874832,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 5.972863674163818,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0.1858447790145874,
+     "Temperature": 37.204280853271484,
+     "Thirst": 0.056455209851264954,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793137527472,
+    "user": "admin",
+    "worldAge": 4.239731788635254,
+    "mult": 4.800537109375
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 482.55,
+   "wall_after": 484.564,
+   "epoch_ms_before": 1793137527508,
+   "epoch_ms_after": 1793137529521,
+   "took": 2.014,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "stats",
+   "side": "server",
+   "cmd": "stats.all",
+   "args": "admin",
+   "phase": "survive",
+   "wall_before": 542.35,
+   "wall_after": 542.612,
+   "epoch_ms_before": 1793137587307,
+   "epoch_ms_after": 1793137587569,
+   "took": 0.262,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0,
+     "Discomfort": 0,
+     "Endurance": 0.6381942629814148,
+     "Fatigue": 0.08320450782775879,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.07250164449214935,
+     "Idleness": 0,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 17.737850189208984,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0.40123042464256287,
+     "Temperature": 37.14348220825195,
+     "Thirst": 0.06430745124816895,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1793137587471,
+    "user": "admin",
+    "worldAge": 4.506246566772461,
+    "mult": 4.797044277191162
+   }
+  },
+  {
+   "step": "players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "survive",
+   "wall_before": 542.618,
+   "wall_after": 544.631,
+   "epoch_ms_before": 1793137587576,
+   "epoch_ms_after": 1793137589589,
+   "took": 2.013,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  }
+ ],
+ "notes": [
+  {
+   "wall": 555.24,
+   "phase": "survive",
+   "note": "stop error: PermissionError: [WinError 5] Access is denied: 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt.tmp' -> 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt'"
+  },
+  {
+   "wall": 555.273,
+   "phase": "survive",
+   "note": "phase survive raised: PermissionError: [WinError 5] Access is denied: 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt.tmp' -> 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt'"
+  }
+ ],
+ "phase_walls": {
+  "hello": {
+   "start": 54.926,
+   "end": 54.934
+  },
+  "damage_hook": {
+   "start": 54.935,
+   "end": 56.699
+  },
+  "kit": {
+   "start": 56.7,
+   "end": 61.924
+  },
+  "survive": {
+   "start": 61.926,
+   "end": 555.273
+  }
+ },
+ "phase_errors": {
+  "survive": {
+   "error": "PermissionError: [WinError 5] Access is denied: 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt.tmp' -> 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt'",
+   "tb": "Traceback (most recent call last):\n  File \"C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\xlib.py\", line 329, in run_phase\n    fn()\n    ~~^^\n  File \"C:\\Users\\Angus\\repos\\project_zomboid\\testing\\agent\\drivers\\d_survive.py\", line 633, in phase_survive\n    self.planner_tick()\n    ~~~~~~~~~~~~~~~~~^^\n  File \"C:\\Users\\Angus\\repos\\project_zomboid\\testing\\agent\\drivers\\d_survive.py\", line 748, in planner_tick\n    a = self.planner.tick(self.world, self.actions)\n  File \"C:\\Users\\Angus\\repos\\project_zomboid\\testing\\agent\\base\\planner\\survive.py\", line 243, in tick\n    action = owner.send(cmd) if owner is not None else self.actions.send(cmd)\n             ~~~~~~~~~~^^^^^\n  File \"C:\\Users\\Angus\\repos\\project_zomboid\\testing\\agent\\base\\planner\\policies.py\", line 99, in send\n    action = self.actions.send(cmd)\n  File \"C:\\Users\\Angus\\repos\\project_zomboid\\testing\\agent\\base\\actions.py\", line 78, in send\n    self.transport.send({\"seq\": self.transport.cmd_seq + 1, \"aid\": aid, \"type\": cmd.TYPE, \"args\": args})\n    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Angus\\repos\\project_zomboid\\testing\\agent\\base\\transport\\files.py\", line 128, in send\n    os.replace(tmp, os.path.join(self.dir, \"cmd.txt\"))\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [WinError 5] Access is denied: 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt.tmp' -> 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt'\n"
+  }
+ },
+ "verdicts": {},
+ "readings": {
+  "hello": {
+   "ok": true,
+   "proto": "PZA/1",
+   "mode": "append",
+   "build": "42.21",
+   "hello": {
+    "build": "42.21",
+    "caps": [
+     "attack",
+     "consume",
+     "drop",
+     "equip",
+     "interact",
+     "rate",
+     "scan",
+     "steer",
+     "stop",
+     "walkTo"
+    ],
+    "kind": "hello",
+    "mod": "1.0",
+    "mode": "append",
+    "proto": "PZA/1",
+    "rate": 10,
+    "seq": 1,
+    "tick": 1,
+    "user": "admin",
+    "wallMs": 1793137096690
+   },
+   "first_frame": {
+    "seq": 42,
+    "wallMs": 1793137097328
+   },
+   "wait_ms": 8.47315788269043
+  },
+  "damage_hook": {
+   "ok": true,
+   "hooked": true,
+   "n": 0,
+   "counts": {},
+   "last_i": 0,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "user": "admin",
+    "hooked": true,
+    "dropped": 0,
+    "last": {},
+    "n": 0,
+    "counts": {}
+   }
+  },
+  "kit": {
+   "spawn": {
+    "type": "Base.BaseballBat",
+    "n": 1,
+    "before": {
+     "id": null,
+     "fullType": null,
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": null,
+     "age": null,
+     "error": null,
+     "raw": "no item Base.BaseballBat in admin's inventory",
+     "wall": 56.7
+    },
+    "additem": {
+     "ok": true,
+     "reply": ""
+    },
+    "after": {
+     "id": 469832530,
+     "fullType": "Base.BaseballBat",
+     "hungChange": null,
+     "hungerChange": null,
+     "baseHunger": null,
+     "calories": null,
+     "uses": 1,
+     "age": 0,
+     "error": null,
+     "raw": null,
+     "wall": 59.468
+    },
+    "leftover_before": false,
+    "confirmed": true
+   },
+   "item": {
+    "itemId": 469832530,
+    "source": "item_added",
+    "seq": 225,
+    "wallMs": 1793137102047
+   },
+   "equip": {
+    "aid": "a1",
+    "state": "done",
+    "reason": "",
+    "result": {
+     "itemId": 469832530
+    },
+    "ended_wall": 1793137106.882104
+   },
+   "weapon_frame": {
+    "seq": 277,
+    "wallMs": 1793137106848,
+    "type": "Base.BaseballBat"
+   },
+   "armed": true,
+   "ok": true
+  }
+ },
+ "loop": {
+  "startPyMs": 1793137106884.127,
+  "started": true,
+  "wallS": 493.3135983943939,
+  "ticks": 900,
+  "decisions": 180,
+  "last_decisions": [
+   {
+    "action": null,
+    "branch": "threat",
+    "gameMin": 692,
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "approach": false,
+       "dist": 1.097299103652225,
+       "fight": true,
+       "holding": "a178",
+       "target": 32404
+      }
+     },
+     "cooled": null,
+     "fight_s": 0.5435647964477539,
+     "health": 94.53929901123047,
+     "held": 1,
+     "hunger": 0.07352610677480698,
+     "load": 2,
+     "mode": "fight",
+     "nearest": 1.097299103652225,
+     "need": null,
+     "running": "attack",
+     "thirst": 0.06524166464805603,
+     "threats": 1,
+     "x": 10733.2626953125,
+     "y": 10641.732421875
+    },
+    "sent": false,
+    "wall": 1793137595.2117183
+   },
+   {
+    "action": {
+     "args": {
+      "targetId": 32404
+     },
+     "type": "attack"
+    },
+    "branch": "threat",
+    "gameMin": 692,
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "approach": false,
+       "dist": 1.097299103652225,
+       "fight": true,
+       "target": 32404
+      }
+     },
+     "cooled": null,
+     "fight_s": 0.4391663074493408,
+     "health": 94.55021667480469,
+     "held": 1,
+     "hunger": 0.07352610677480698,
+     "load": 2,
+     "mode": "fight",
+     "nearest": 1.097299103652225,
+     "need": null,
+     "running": null,
+     "thirst": 0.06524166464805603,
+     "threats": 1,
+     "x": 10733.2626953125,
+     "y": 10641.732421875
+    },
+    "sent": true,
+    "wall": 1793137595.6522148
+   },
+   {
+    "action": null,
+    "branch": "threat",
+    "gameMin": 692,
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "approach": false,
+       "dist": 1.097299103652225,
+       "fight": true,
+       "holding": "a179",
+       "target": 32404
+      }
+     },
+     "cooled": null,
+     "fight_s": 0.5448377132415771,
+     "health": 94.5611343383789,
+     "held": 1,
+     "hunger": 0.07366825640201569,
+     "load": 2,
+     "mode": "fight",
+     "nearest": 1.097299103652225,
+     "need": null,
+     "running": "attack",
+     "thirst": 0.0653713047504425,
+     "threats": 1,
+     "x": 10733.2626953125,
+     "y": 10641.732421875
+    },
+    "sent": false,
+    "wall": 1793137596.1957607
+   },
+   {
+    "action": null,
+    "branch": "threat",
+    "gameMin": 692,
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "approach": false,
+       "dist": 1.097299103652225,
+       "fight": true,
+       "holding": "a179",
+       "target": 32404
+      }
+     },
+     "cooled": null,
+     "fight_s": 0.4340200424194336,
+     "health": 94.5720443725586,
+     "held": 1,
+     "hunger": 0.07366825640201569,
+     "load": 2,
+     "mode": "fight",
+     "nearest": 1.097299103652225,
+     "need": null,
+     "running": "attack",
+     "thirst": 0.0653713047504425,
+     "threats": 1,
+     "x": 10733.2626953125,
+     "y": 10641.732421875
+    },
+    "sent": false,
+    "wall": 1793137596.6298146
+   },
+   {
+    "action": {
+     "args": {
+      "targetId": 32404
+     },
+     "type": "attack"
+    },
+    "branch": "threat",
+    "gameMin": 692,
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "approach": false,
+       "dist": 1.097299103652225,
+       "fight": true,
+       "target": 32404
+      }
+     },
+     "cooled": null,
+     "fight_s": 0.5364010334014893,
+     "health": 94.58296203613281,
+     "held": 1,
+     "hunger": 0.07381047308444977,
+     "load": 2,
+     "mode": "fight",
+     "nearest": 1.097299103652225,
+     "need": null,
+     "running": null,
+     "thirst": 0.06550100445747375,
+     "threats": 1,
+     "x": 10733.2626953125,
+     "y": 10641.732421875
+    },
+    "sent": true,
+    "wall": 1793137597.167393
+   },
+   {
+    "action": null,
+    "branch": "threat",
+    "gameMin": 693,
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "approach": false,
+       "dist": 1.097299103652225,
+       "fight": true,
+       "holding": "a180",
+       "target": 32404
+      }
+     },
+     "cooled": null,
+     "fight_s": 0.5371756553649902,
+     "health": 94.59387969970703,
+     "held": 1,
+     "hunger": 0.07381047308444977,
+     "load": 2,
+     "mode": "fight",
+     "nearest": 1.097299103652225,
+     "need": null,
+     "running": "attack",
+     "thirst": 0.06550100445747375,
+     "threats": 1,
+     "x": 10733.2626953125,
+     "y": 10641.732421875
+    },
+    "sent": false,
+    "wall": 1793137597.703446
+   },
+   {
+    "action": null,
+    "branch": "threat",
+    "gameMin": 693,
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "approach": false,
+       "dist": 1.097299103652225,
+       "fight": true,
+       "holding": "a180",
+       "target": 32404
+      }
+     },
+     "cooled": null,
+     "fight_s": 0.43007659912109375,
+     "health": 94.60479736328125,
+     "held": 1,
+     "hunger": 0.07395268976688385,
+     "load": 2,
+     "mode": "fight",
+     "nearest": 1.097299103652225,
+     "need": null,
+     "running": "attack",
+     "thirst": 0.065630704164505,
+     "threats": 1,
+     "x": 10733.2626953125,
+     "y": 10641.732421875
+    },
+    "sent": false,
+    "wall": 1793137598.133545
+   },
+   {
+    "action": {
+     "args": {
+      "targetId": 32404
+     },
+     "type": "attack"
+    },
+    "branch": "threat",
+    "gameMin": 693,
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "approach": false,
+       "dist": 1.097299103652225,
+       "fight": true,
+       "target": 32404
+      }
+     },
+     "cooled": null,
+     "fight_s": 0.5415530204772949,
+     "health": 94.61570739746094,
+     "held": 1,
+     "hunger": 0.07395268976688385,
+     "load": 2,
+     "mode": "fight",
+     "nearest": 1.097299103652225,
+     "need": null,
+     "running": null,
+     "thirst": 0.065630704164505,
+     "threats": 1,
+     "x": 10733.2626953125,
+     "y": 10641.732421875
+    },
+    "sent": true,
+    "wall": 1793137598.6760678
+   },
+   {
+    "action": null,
+    "branch": "threat",
+    "gameMin": 693,
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "approach": false,
+       "dist": 1.097299103652225,
+       "fight": true,
+       "holding": "a181",
+       "target": 32404
+      }
+     },
+     "cooled": null,
+     "fight_s": 0.546273946762085,
+     "health": 94.62662506103516,
+     "held": 1,
+     "hunger": 0.07409491389989853,
+     "load": 2,
+     "mode": "fight",
+     "nearest": 1.097299103652225,
+     "need": null,
+     "running": "attack",
+     "thirst": 0.06576041132211685,
+     "threats": 1,
+     "x": 10733.2626953125,
+     "y": 10641.732421875
+    },
+    "sent": false,
+    "wall": 1793137599.2213955
+   },
+   {
+    "action": null,
+    "branch": "threat",
+    "gameMin": 693,
+    "inputs": {
+     "armed": true,
+     "branches": {
+      "threat": {
+       "approach": false,
+       "dist": 1.097299103652225,
+       "fight": true,
+       "holding": "a181",
+       "target": 32404
+      }
+     },
+     "cooled": null,
+     "fight_s": 0.43437695503234863,
+     "health": 94.63754272460938,
+     "held": 1,
+     "hunger": 0.07409491389989853,
+     "load": 2,
+     "mode": "fight",
+     "nearest": 1.097299103652225,
+     "need": null,
+     "running": "attack",
+     "thirst": 0.06576041132211685,
+     "threats": 1,
+     "x": 10733.2626953125,
+     "y": 10641.732421875
+    },
+    "sent": false,
+    "wall": 1793137599.655797
+   }
+  ],
+  "needs": [
+   [
+    562,
+    0.0016583874821662903,
+    0.0013831270625814795,
+    0.0016057220054790378,
+    100,
+    0.00178062345366925
+   ],
+   [
+    578,
+    0.010809793137013912,
+    0.009060348384082317,
+    0.011547002010047436,
+    93.48783111572266,
+    0.010931277647614479
+   ],
+   [
+    594,
+    0.019824916496872902,
+    0.01697748713195324,
+    0.021739864721894264,
+    84.8992919921875,
+    0.019945237785577774
+   ],
+   [
+    610,
+    0.028810914605855942,
+    0.025026198476552963,
+    0.03207902982831001,
+    86.60995483398438,
+    0.028930172324180603
+   ],
+   [
+    626,
+    0.03771580010652542,
+    0.03284174203872681,
+    0.04218253120779991,
+    88.32061767578125,
+    0.03783394396305084
+   ],
+   [
+    642,
+    0.04653840884566307,
+    0.04059959203004837,
+    0.05221755430102348,
+    90.00834655761719,
+    0.046655524522066116
+   ],
+   [
+    658,
+    0.05524236336350441,
+    0.04834096133708954,
+    0.06223204731941223,
+    91.51878356933594,
+    0.0553583987057209
+   ],
+   [
+    674,
+    0.063804030418396,
+    0.05634916201233864,
+    0.07253213226795197,
+    92.96074676513672,
+    0.06391901522874832
+   ],
+   [
+    690,
+    0.07238775491714478,
+    0.06420357525348663,
+    0.08304252475500107,
+    94.37556457519531,
+    0.07250164449214935
+   ]
+  ],
+  "needs_fields": [
+   "gameMin",
+   "hunger",
+   "thirst",
+   "fatigue",
+   "health",
+   "serverHunger"
+  ],
+  "needs_pairs": [
+   {
+    "frameSeq": 284,
+    "frameWallMs": 1793137107548,
+    "serverWallMs": 1793137107642.727,
+    "dtMs": 94.72705078125,
+    "paired": true
+   },
+   {
+    "frameSeq": 1280,
+    "frameWallMs": 1793137167447,
+    "serverWallMs": 1793137167478.5393,
+    "dtMs": 31.539306640625,
+    "paired": true
+   },
+   {
+    "frameSeq": 2218,
+    "frameWallMs": 1793137227448,
+    "serverWallMs": 1793137227486.9226,
+    "dtMs": 38.922607421875,
+    "paired": true
+   },
+   {
+    "frameSeq": 2855,
+    "frameWallMs": 1793137287446,
+    "serverWallMs": 1793137287527.6057,
+    "dtMs": 81.605712890625,
+    "paired": true
+   },
+   {
+    "frameSeq": 3492,
+    "frameWallMs": 1793137347547,
+    "serverWallMs": 1793137347546.688,
+    "dtMs": 0.31201171875,
+    "paired": true
+   },
+   {
+    "frameSeq": 4127,
+    "frameWallMs": 1793137407547,
+    "serverWallMs": 1793137407624.8914,
+    "dtMs": 77.891357421875,
+    "paired": true
+   },
+   {
+    "frameSeq": 4765,
+    "frameWallMs": 1793137467648,
+    "serverWallMs": 1793137467666.3394,
+    "dtMs": 18.33935546875,
+    "paired": true
+   },
+   {
+    "frameSeq": 5515,
+    "frameWallMs": 1793137527446,
+    "serverWallMs": 1793137527503.4597,
+    "dtMs": 57.459716796875,
+    "paired": true
+   },
+   {
+    "frameSeq": 6259,
+    "frameWallMs": 1793137587547,
+    "serverWallMs": 1793137587569.7034,
+    "dtMs": 22.703369140625,
+    "paired": true
+   }
+  ],
+  "fights": [
+   {
+    "startS": 356.35005474090576,
+    "startWall": 1793137463.2341816,
+    "gameMin": 657,
+    "health": 91.41064453125,
+    "threats": 1,
+    "threats_max": 1,
+    "nearest": 5.851935381143415,
+    "ticks": 248,
+    "sent": 105,
+    "fight_ticks": 248,
+    "flee": {},
+    "end": null
+   }
+  ],
+  "actions": [
+   {
+    "aid": "a2",
+    "type": "interact",
+    "args": {
+     "x": 10721,
+     "y": 10629,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 2.7907798290252686,
+    "endedS": 4.224514961242676
+   },
+   {
+    "aid": "a3",
+    "type": "interact",
+    "args": {
+     "x": 10722,
+     "y": 10629,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 4.441521883010864,
+    "endedS": 8.588810682296753
+   },
+   {
+    "aid": "a4",
+    "type": "interact",
+    "args": {
+     "x": 10720,
+     "y": 10629,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 8.912281513214111,
+    "endedS": 13.706151962280273
+   },
+   {
+    "aid": "a5",
+    "type": "interact",
+    "args": {
+     "x": 10722,
+     "y": 10633,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 13.919866800308228,
+    "endedS": 16.089759588241577
+   },
+   {
+    "aid": "a6",
+    "type": "interact",
+    "args": {
+     "x": 10724,
+     "y": 10632,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 16.41639280319214,
+    "endedS": 21.30337643623352
+   },
+   {
+    "aid": "a7",
+    "type": "interact",
+    "args": {
+     "x": 10724,
+     "y": 10633,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 21.411582469940186,
+    "endedS": 24.87548041343689
+   },
+   {
+    "aid": "a8",
+    "type": "drop",
+    "args": {
+     "itemId": 94602839
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 24.982484340667725,
+    "endedS": 25.31302785873413
+   },
+   {
+    "aid": "a9",
+    "type": "drop",
+    "args": {
+     "itemId": 272187464
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 25.42339849472046,
+    "endedS": 25.63991355895996
+   },
+   {
+    "aid": "a10",
+    "type": "interact",
+    "args": {
+     "x": 10725,
+     "y": 10633,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 25.964303016662598,
+    "endedS": 29.43822169303894
+   },
+   {
+    "aid": "a11",
+    "type": "drop",
+    "args": {
+     "itemId": 650775805
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 29.439250230789185,
+    "endedS": 29.658812522888184
+   },
+   {
+    "aid": "a12",
+    "type": "drop",
+    "args": {
+     "itemId": 810451484
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 29.980441331863403,
+    "endedS": 30.708137035369873
+   },
+   {
+    "aid": "a13",
+    "type": "interact",
+    "args": {
+     "x": 10724,
+     "y": 10636,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 30.7090744972229,
+    "endedS": 36.608208656311035
+   },
+   {
+    "aid": "a14",
+    "type": "drop",
+    "args": {
+     "itemId": 538423341
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 36.932209491729736,
+    "endedS": 37.37064003944397
+   },
+   {
+    "aid": "a15",
+    "type": "drop",
+    "args": {
+     "itemId": 1034854646
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 37.47895669937134,
+    "endedS": 37.81049394607544
+   },
+   {
+    "aid": "a16",
+    "type": "drop",
+    "args": {
+     "itemId": 1364859368
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 37.917824506759644,
+    "endedS": 38.14110827445984
+   },
+   {
+    "aid": "a17",
+    "type": "interact",
+    "args": {
+     "x": 10726,
+     "y": 10634,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 38.46525239944458,
+    "endedS": 42.71413564682007
+   },
+   {
+    "aid": "a18",
+    "type": "drop",
+    "args": {
+     "itemId": 503987410
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 42.935354232788086,
+    "endedS": 43.1547966003418
+   },
+   {
+    "aid": "a19",
+    "type": "drop",
+    "args": {
+     "itemId": 1437767743
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 43.47581505775452,
+    "endedS": 43.700084924697876
+   },
+   {
+    "aid": "a20",
+    "type": "drop",
+    "args": {
+     "itemId": 1599390291
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 43.92257857322693,
+    "endedS": 44.142306327819824
+   },
+   {
+    "aid": "a21",
+    "type": "drop",
+    "args": {
+     "itemId": 1600086824
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 44.461915731430054,
+    "endedS": 44.6926155090332
+   },
+   {
+    "aid": "a22",
+    "type": "drop",
+    "args": {
+     "itemId": 1850015430
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 44.90909552574158,
+    "endedS": 45.130855560302734
+   },
+   {
+    "aid": "a23",
+    "type": "interact",
+    "args": {
+     "x": 10725,
+     "y": 10630,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 45.45312476158142,
+    "endedS": 52.970720291137695
+   },
+   {
+    "aid": "a24",
+    "type": "drop",
+    "args": {
+     "itemId": 1966567293
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 52.971745014190674,
+    "endedS": 53.30101132392883
+   },
+   {
+    "aid": "a25",
+    "type": "interact",
+    "args": {
+     "x": 10727,
+     "y": 10629,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 53.4083468914032,
+    "endedS": 55.054903507232666
+   },
+   {
+    "aid": "a26",
+    "type": "drop",
+    "args": {
+     "itemId": 2062874611
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 55.48792052268982,
+    "endedS": 55.714022159576416
+   },
+   {
+    "aid": "a27",
+    "type": "drop",
+    "args": {
+     "itemId": 2063561309
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 55.93021368980408,
+    "endedS": 56.14793276786804
+   },
+   {
+    "aid": "a28",
+    "type": "interact",
+    "args": {
+     "x": 10721,
+     "y": 10627,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 56.47416543960571,
+    "endedS": 62.73053598403931
+   },
+   {
+    "aid": "a29",
+    "type": "drop",
+    "args": {
+     "itemId": 54202560
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 64.74305558204651,
+    "endedS": 64.9728753566742
+   },
+   {
+    "aid": "a30",
+    "type": "drop",
+    "args": {
+     "itemId": 149280606
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 65.4059009552002,
+    "endedS": 65.51780581474304
+   },
+   {
+    "aid": "a31",
+    "type": "drop",
+    "args": {
+     "itemId": 296759125
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 65.95145916938782,
+    "endedS": 66.17125058174133
+   },
+   {
+    "aid": "a32",
+    "type": "drop",
+    "args": {
+     "itemId": 523776198
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 66.3870849609375,
+    "endedS": 66.50130128860474
+   },
+   {
+    "aid": "a33",
+    "type": "interact",
+    "args": {
+     "x": 10720,
+     "y": 10627,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 66.93303918838501,
+    "endedS": 73.24227643013
+   },
+   {
+    "aid": "a34",
+    "type": "drop",
+    "args": {
+     "itemId": 616619600
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 73.45531105995178,
+    "endedS": 73.67387199401855
+   },
+   {
+    "aid": "a35",
+    "type": "drop",
+    "args": {
+     "itemId": 828354906
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 73.88796901702881,
+    "endedS": 74.1077208518982
+   },
+   {
+    "aid": "a36",
+    "type": "drop",
+    "args": {
+     "itemId": 853050368
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 74.43211150169373,
+    "endedS": 74.65779042243958
+   },
+   {
+    "aid": "a37",
+    "type": "drop",
+    "args": {
+     "itemId": 1995437121
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 74.87665390968323,
+    "endedS": 75.10041832923889
+   },
+   {
+    "aid": "a38",
+    "type": "drop",
+    "args": {
+     "itemId": 579936435
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 75.42551493644714,
+    "endedS": 75.64555072784424
+   },
+   {
+    "aid": "a39",
+    "type": "drop",
+    "args": {
+     "itemId": 787426289
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 75.8604667186737,
+    "endedS": 76.08462595939636
+   },
+   {
+    "aid": "a40",
+    "type": "interact",
+    "args": {
+     "x": 10720,
+     "y": 10633,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "failed",
+    "reason": "not adjacent",
+    "sentS": 76.41540479660034,
+    "endedS": 82.51319336891174
+   },
+   {
+    "aid": "a41",
+    "type": "interact",
+    "args": {
+     "x": 10720,
+     "y": 10634,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 82.94169521331787,
+    "endedS": 89.16748404502869
+   },
+   {
+    "aid": "a42",
+    "type": "drop",
+    "args": {
+     "itemId": 757436172
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 89.38916802406311,
+    "endedS": 89.50450563430786
+   },
+   {
+    "aid": "a43",
+    "type": "interact",
+    "args": {
+     "x": 10720,
+     "y": 10635,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 89.9396276473999,
+    "endedS": 91.0323588848114
+   },
+   {
+    "aid": "a44",
+    "type": "drop",
+    "args": {
+     "itemId": 64262947
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 91.46236300468445,
+    "endedS": 91.7920560836792
+   },
+   {
+    "aid": "a45",
+    "type": "interact",
+    "args": {
+     "x": 10720,
+     "y": 10636,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 91.90201616287231,
+    "endedS": 94.89084267616272
+   },
+   {
+    "aid": "a46",
+    "type": "drop",
+    "args": {
+     "itemId": 982480878
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 94.89204382896423,
+    "endedS": 95.00490212440491
+   },
+   {
+    "aid": "a47",
+    "type": "drop",
+    "args": {
+     "itemId": 1106009811
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 95.43345904350281,
+    "endedS": 95.6565945148468
+   },
+   {
+    "aid": "a48",
+    "type": "drop",
+    "args": {
+     "itemId": 1233576365
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 95.98155117034912,
+    "endedS": 96.2055070400238
+   },
+   {
+    "aid": "a49",
+    "type": "interact",
+    "args": {
+     "x": 10720,
+     "y": 10637,
+     "kind": "loot",
+     "filter": "all"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 96.41871070861816,
+    "endedS": 100.36308860778809
+   },
+   {
+    "aid": "a50",
+    "type": "drop",
+    "args": {
+     "itemId": 741664444
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 100.4744610786438,
+    "endedS": 100.80682063102722
+   },
+   {
+    "aid": "a51",
+    "type": "drop",
+    "args": {
+     "itemId": 1501751194
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 100.9160041809082,
+    "endedS": 101.13518786430359
+   },
+   {
+    "aid": "a52",
+    "type": "drop",
+    "args": {
+     "itemId": 1297882956
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 101.45979523658752,
+    "endedS": 101.67957878112793
+   },
+   {
+    "aid": "a53",
+    "type": "scan",
+    "args": {
+     "r": 10
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 101.89475965499878,
+    "endedS": 102.00874161720276
+   },
+   {
+    "aid": "a54",
+    "type": "walkTo",
+    "args": {
+     "x": 10721,
+     "y": 10645,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 102.44134640693665,
+    "endedS": 116.19761943817139
+   },
+   {
+    "aid": "a55",
+    "type": "scan",
+    "args": {
+     "r": 10
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 116.41058087348938,
+    "endedS": 116.52499771118164
+   },
+   {
+    "aid": "a56",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 116.96066379547119,
+    "endedS": 124.71843695640564
+   },
+   {
+    "aid": "a57",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 129.71961212158203,
+    "endedS": 135.78311491012573
+   },
+   {
+    "aid": "a58",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 140.77785539627075,
+    "endedS": 146.87110424041748
+   },
+   {
+    "aid": "a59",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 152.309344291687,
+    "endedS": 158.32051491737366
+   },
+   {
+    "aid": "a60",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 163.30499815940857,
+    "endedS": 169.37074303627014
+   },
+   {
+    "aid": "a61",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 174.81075716018677,
+    "endedS": 182.7676911354065
+   },
+   {
+    "aid": "a62",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 189.29884338378906,
+    "endedS": 195.34703850746155
+   },
+   {
+    "aid": "a63",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 200.2642023563385,
+    "endedS": 206.33227396011353
+   },
+   {
+    "aid": "a64",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 211.32875800132751,
+    "endedS": 217.3340983390808
+   },
+   {
+    "aid": "a65",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 222.43251299858093,
+    "endedS": 228.52907299995422
+   },
+   {
+    "aid": "a66",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 233.8549542427063,
+    "endedS": 239.93163180351257
+   },
+   {
+    "aid": "a67",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 248.91221141815186,
+    "endedS": 254.98731589317322
+   },
+   {
+    "aid": "a68",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 259.8937907218933,
+    "endedS": 265.9593152999878
+   },
+   {
+    "aid": "a69",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 270.95077109336853,
+    "endedS": 276.96590209007263
+   },
+   {
+    "aid": "a70",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 281.9820330142975,
+    "endedS": 288.04882740974426
+   },
+   {
+    "aid": "a71",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 293.494104385376,
+    "endedS": 299.5843379497528
+   },
+   {
+    "aid": "a72",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 308.7158658504486,
+    "endedS": 314.78396797180176
+   },
+   {
+    "aid": "a73",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 319.7737135887146,
+    "endedS": 325.86585760116577
+   },
+   {
+    "aid": "a74",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 331.28926825523376,
+    "endedS": 337.36251425743103
+   },
+   {
+    "aid": "a75",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 342.3592441082001,
+    "endedS": 348.4215142726898
+   },
+   {
+    "aid": "a76",
+    "type": "walkTo",
+    "args": {
+     "x": 10742,
+     "y": 10642,
+     "gait": "walk"
+    },
+    "state": "failed",
+    "reason": "superseded",
+    "sentS": 353.842120885849,
+    "endedS": 356.4691183567047
+   },
+   {
+    "aid": "a77",
+    "type": "walkTo",
+    "args": {
+     "x": 10737,
+     "y": 10644,
+     "gait": "run"
+    },
+    "state": "failed",
+    "reason": "stuck",
+    "sentS": 356.35003900527954,
+    "endedS": 366.8296239376068
+   },
+   {
+    "aid": "a78",
+    "type": "walkTo",
+    "args": {
+     "x": 10733,
+     "y": 10642,
+     "gait": "run"
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 366.8322446346283,
+    "endedS": 367.60201239585876
+   },
+   {
+    "aid": "a79",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 367.81578397750854,
+    "endedS": 368.7945158481598
+   },
+   {
+    "aid": "a80",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 368.7953519821167,
+    "endedS": 369.76910519599915
+   },
+   {
+    "aid": "a81",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 369.77030968666077,
+    "endedS": 370.7476317882538
+   },
+   {
+    "aid": "a82",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 370.85828852653503,
+    "endedS": 371.84957361221313
+   },
+   {
+    "aid": "a83",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 371.85036301612854,
+    "endedS": 372.82816100120544
+   },
+   {
+    "aid": "a84",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 372.82980251312256,
+    "endedS": 373.802686214447
+   },
+   {
+    "aid": "a85",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 373.80409717559814,
+    "endedS": 374.77516508102417
+   },
+   {
+    "aid": "a86",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 374.77606558799744,
+    "endedS": 375.75175976753235
+   },
+   {
+    "aid": "a87",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 375.8597574234009,
+    "endedS": 376.839581489563
+   },
+   {
+    "aid": "a88",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 376.84093594551086,
+    "endedS": 377.8292577266693
+   },
+   {
+    "aid": "a89",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 377.83085083961487,
+    "endedS": 378.8020746707916
+   },
+   {
+    "aid": "a90",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 378.8034429550171,
+    "endedS": 379.7751727104187
+   },
+   {
+    "aid": "a91",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 379.77651286125183,
+    "endedS": 380.75150966644287
+   },
+   {
+    "aid": "a92",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 380.85849118232727,
+    "endedS": 381.8230173587799
+   },
+   {
+    "aid": "a93",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 381.8249819278717,
+    "endedS": 382.80905294418335
+   },
+   {
+    "aid": "a94",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 382.81025671958923,
+    "endedS": 383.78153681755066
+   },
+   {
+    "aid": "a95",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 383.7826430797577,
+    "endedS": 384.7588219642639
+   },
+   {
+    "aid": "a96",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 384.8657076358795,
+    "endedS": 385.8384299278259
+   },
+   {
+    "aid": "a97",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 385.8393669128418,
+    "endedS": 386.8146781921387
+   },
+   {
+    "aid": "a98",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 386.81644082069397,
+    "endedS": 387.7966237068176
+   },
+   {
+    "aid": "a99",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 387.7983992099762,
+    "endedS": 388.7683892250061
+   },
+   {
+    "aid": "a100",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 388.7694478034973,
+    "endedS": 389.75277042388916
+   },
+   {
+    "aid": "a101",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 389.86038064956665,
+    "endedS": 390.83440470695496
+   },
+   {
+    "aid": "a102",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 390.8353261947632,
+    "endedS": 391.8153123855591
+   },
+   {
+    "aid": "a103",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 391.816287279129,
+    "endedS": 392.8000888824463
+   },
+   {
+    "aid": "a104",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 392.8014540672302,
+    "endedS": 394.8573694229126
+   },
+   {
+    "aid": "a105",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 394.85905957221985,
+    "endedS": 395.8344192504883
+   },
+   {
+    "aid": "a106",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 395.94172739982605,
+    "endedS": 396.91429376602173
+   },
+   {
+    "aid": "a107",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 396.91549277305603,
+    "endedS": 398.0037817955017
+   },
+   {
+    "aid": "a108",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 398.4307541847229,
+    "endedS": 399.4178099632263
+   },
+   {
+    "aid": "a109",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 399.4192328453064,
+    "endedS": 400.3901822566986
+   },
+   {
+    "aid": "a110",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 400.39156556129456,
+    "endedS": 401.36961579322815
+   },
+   {
+    "aid": "a111",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 401.37078309059143,
+    "endedS": 402.34844040870667
+   },
+   {
+    "aid": "a112",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 402.4620192050934,
+    "endedS": 403.4399220943451
+   },
+   {
+    "aid": "a113",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 403.4408473968506,
+    "endedS": 404.4153940677643
+   },
+   {
+    "aid": "a114",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 404.41656732559204,
+    "endedS": 405.3921265602112
+   },
+   {
+    "aid": "a115",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 405.39364862442017,
+    "endedS": 406.3685631752014
+   },
+   {
+    "aid": "a116",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 406.37005949020386,
+    "endedS": 407.3528571128845
+   },
+   {
+    "aid": "a117",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 407.46055006980896,
+    "endedS": 408.43096828460693
+   },
+   {
+    "aid": "a118",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 408.4318861961365,
+    "endedS": 409.4051687717438
+   },
+   {
+    "aid": "a119",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 409.4065034389496,
+    "endedS": 410.37387228012085
+   },
+   {
+    "aid": "a120",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 410.37523198127747,
+    "endedS": 411.357013463974
+   },
+   {
+    "aid": "a121",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 411.35884618759155,
+    "endedS": 412.34114384651184
+   },
+   {
+    "aid": "a122",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 412.4476683139801,
+    "endedS": 413.42326378822327
+   },
+   {
+    "aid": "a123",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 413.4248540401459,
+    "endedS": 414.39872574806213
+   },
+   {
+    "aid": "a124",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 414.40072679519653,
+    "endedS": 415.3784534931183
+   },
+   {
+    "aid": "a125",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 415.3790690898895,
+    "endedS": 416.34670186042786
+   },
+   {
+    "aid": "a126",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 416.45411562919617,
+    "endedS": 417.43265199661255
+   },
+   {
+    "aid": "a127",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 417.43407011032104,
+    "endedS": 418.41219568252563
+   },
+   {
+    "aid": "a128",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 418.41325640678406,
+    "endedS": 419.3871977329254
+   },
+   {
+    "aid": "a129",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 419.38848543167114,
+    "endedS": 420.3620343208313
+   },
+   {
+    "aid": "a130",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 422.6387541294098,
+    "endedS": 424.9255938529968
+   },
+   {
+    "aid": "a131",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 424.92696619033813,
+    "endedS": 425.9080259799957
+   },
+   {
+    "aid": "a132",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 426.0157239437103,
+    "endedS": 426.99372601509094
+   },
+   {
+    "aid": "a133",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 426.99519300460815,
+    "endedS": 427.96976947784424
+   },
+   {
+    "aid": "a134",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 427.97103786468506,
+    "endedS": 428.94754219055176
+   },
+   {
+    "aid": "a135",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 428.94838428497314,
+    "endedS": 430.0279498100281
+   },
+   {
+    "aid": "a136",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 430.02899837493896,
+    "endedS": 431.0078616142273
+   },
+   {
+    "aid": "a137",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 431.0090482234955,
+    "endedS": 431.98449087142944
+   },
+   {
+    "aid": "a138",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 431.98550391197205,
+    "endedS": 432.9617977142334
+   },
+   {
+    "aid": "a139",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 432.96279287338257,
+    "endedS": 433.943443775177
+   },
+   {
+    "aid": "a140",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 433.94470381736755,
+    "endedS": 434.92170333862305
+   },
+   {
+    "aid": "a141",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 435.02913451194763,
+    "endedS": 436.0059792995453
+   },
+   {
+    "aid": "a142",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 436.00774359703064,
+    "endedS": 436.9918940067291
+   },
+   {
+    "aid": "a143",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 436.9938311576843,
+    "endedS": 437.96938371658325
+   },
+   {
+    "aid": "a144",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 437.97076058387756,
+    "endedS": 438.95800137519836
+   },
+   {
+    "aid": "a145",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 438.9597191810608,
+    "endedS": 440.05013394355774
+   },
+   {
+    "aid": "a146",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 440.4752268791199,
+    "endedS": 441.57081747055054
+   },
+   {
+    "aid": "a147",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 441.9955213069916,
+    "endedS": 443.08767557144165
+   },
+   {
+    "aid": "a148",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 443.5178256034851,
+    "endedS": 444.59952306747437
+   },
+   {
+    "aid": "a149",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 445.0294678211212,
+    "endedS": 446.13132643699646
+   },
+   {
+    "aid": "a150",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 446.45413303375244,
+    "endedS": 447.54601430892944
+   },
+   {
+    "aid": "a151",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 447.97354435920715,
+    "endedS": 449.0639386177063
+   },
+   {
+    "aid": "a152",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 449.4929521083832,
+    "endedS": 450.5906629562378
+   },
+   {
+    "aid": "a153",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 451.01576709747314,
+    "endedS": 452.11142683029175
+   },
+   {
+    "aid": "a154",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 452.43121814727783,
+    "endedS": 454.9258117675781
+   },
+   {
+    "aid": "a155",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 454.92709255218506,
+    "endedS": 456.0094702243805
+   },
+   {
+    "aid": "a156",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 456.0104808807373,
+    "endedS": 457.10444045066833
+   },
+   {
+    "aid": "a157",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 457.42766404151917,
+    "endedS": 458.5305631160736
+   },
+   {
+    "aid": "a158",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 458.53244733810425,
+    "endedS": 459.6185030937195
+   },
+   {
+    "aid": "a159",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 459.93806886672974,
+    "endedS": 461.02330803871155
+   },
+   {
+    "aid": "a160",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 461.02475595474243,
+    "endedS": 462.11555314064026
+   },
+   {
+    "aid": "a161",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 462.4380476474762,
+    "endedS": 463.51088094711304
+   },
+   {
+    "aid": "a162",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 463.5119242668152,
+    "endedS": 464.60584831237793
+   },
+   {
+    "aid": "a163",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 465.0327467918396,
+    "endedS": 466.1163136959076
+   },
+   {
+    "aid": "a164",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 466.44195532798767,
+    "endedS": 467.52941370010376
+   },
+   {
+    "aid": "a165",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 467.53029680252075,
+    "endedS": 468.6200454235077
+   },
+   {
+    "aid": "a166",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 468.939346075058,
+    "endedS": 470.02163100242615
+   },
+   {
+    "aid": "a167",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 470.02313685417175,
+    "endedS": 471.1087806224823
+   },
+   {
+    "aid": "a168",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 471.4299809932709,
+    "endedS": 472.50797033309937
+   },
+   {
+    "aid": "a169",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 472.509263753891,
+    "endedS": 473.59424567222595
+   },
+   {
+    "aid": "a170",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 474.02206468582153,
+    "endedS": 475.10757851600647
+   },
+   {
+    "aid": "a171",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 475.4311285018921,
+    "endedS": 476.51110649108887
+   },
+   {
+    "aid": "a172",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 476.51311230659485,
+    "endedS": 477.6007869243622
+   },
+   {
+    "aid": "a173",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 478.03360509872437,
+    "endedS": 479.1263544559479
+   },
+   {
+    "aid": "a174",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 479.44518303871155,
+    "endedS": 480.6921570301056
+   },
+   {
+    "aid": "a175",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 482.8149552345276,
+    "endedS": 484.74147772789
+   },
+   {
+    "aid": "a176",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 484.74259090423584,
+    "endedS": 485.83319664001465
+   },
+   {
+    "aid": "a177",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 485.8351631164551,
+    "endedS": 486.9165813922882
+   },
+   {
+    "aid": "a178",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 487.34894943237305,
+    "endedS": 488.4475989341736
+   },
+   {
+    "aid": "a179",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 488.76808071136475,
+    "endedS": 489.85712695121765
+   },
+   {
+    "aid": "a180",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 490.2832534313202,
+    "endedS": 491.3615529537201
+   },
+   {
+    "aid": "a181",
+    "type": "attack",
+    "args": {
+     "targetId": 32404
+    },
+    "state": "done",
+    "reason": "",
+    "sentS": 491.7919166088104,
+    "endedS": 492.8884563446045
+   }
+  ],
+  "lua_errors_per_min": {},
+  "cost": {
+   "n": 5028,
+   "p50": 1,
+   "p99": 2,
+   "max": 10,
+   "tickMaxMs": 16,
+   "over5": 185
+  },
+  "server_polls": 9,
+  "server_fails": 0,
+  "players_error": null,
+  "memory": [
+   {
+    "wallS": 300.0125141143799,
+    "free_gb": 2.49
+   }
+  ],
+  "damage": {
+   "polls": 18,
+   "fails": 0,
+   "since": 41,
+   "merged": 41,
+   "lost": 0,
+   "dropped": 0,
+   "counts": {
+    "HEAVYLOAD": 41
+   },
+   "totals": {
+    "HEAVYLOAD": {
+     "n": 41,
+     "amount": 17.8106250166893
+    }
+   }
+  },
+  "first_game_min": 559,
+  "game_min": 693
+ },
+ "frames": {
+  "n": 5028,
+  "gaps": 0,
+  "gap_list": [],
+  "bad": 0,
+  "lua_errors": 0,
+  "lua_error_msgs": [],
+  "parks": 0
+ },
+ "world_changes": {
+  "left_in_place": [
+   "RCON additem Base.BaseballBat x1"
+  ],
+  "restored": "fixture agent restored into the run dir"
+ },
+ "stop": {
+  "reason": "error",
+  "detail": "PermissionError: [WinError 5] Access is denied: 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt.tmp' -> 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt'",
+  "wallS": 493.31356549263,
+  "gameMin": 693,
+  "worldAge": 4.562636375427246
+ },
+ "finished": true,
+ "run_id": "d_survive-20261027-173724",
+ "session_key": "d_survive",
+ "driver": "d_survive.py",
+ "user": "admin",
+ "profile": {
+  "name": "agent",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\agent.toml",
+  "fixture": "agent",
+  "description": "PZTestKit + PZAgent, zombies Low, 90-minute day, sleep allowed.",
+  "mods": [
+   "PZTestKit",
+   "PZAgent"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "PZAgent": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZAgent\\PZAgent"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {},
+  "users": [
+   "admin"
+  ],
+  "client_overrides": {},
+  "gclog": false
+ },
+ "preboot": {
+  "driver": "d_survive.py",
+  "profile_path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing/profiles/agent.toml",
+  "profile": "agent",
+  "commit": "95596a91",
+  "harness_lua_commit": "e4d5b71b",
+  "harness_py_commit": "52a7de93",
+  "xlib_commit": "45c49217",
+  "agent_commit": "95596a91",
+  "harness_lua_dirty": false,
+  "doctor_clean": true,
+  "doctor": [
+   "ok   PZ java processes: none",
+   "ok   ports 27261/27262/27015: free",
+   "ok   fixture 'default' present (build 42.21.0, 9.9 MB)",
+   "ok   workshop index: 240 mods",
+   "ok   pytest available"
+  ],
+  "lint_errors": [],
+  "driver_checks": {
+   "driver_file": true,
+   "driver_prefix": true,
+   "profile_exists": true,
+   "no_committed_artifact": true,
+   "agent_lua_dirty": false,
+   "agent_base_dirty": false,
+   "driver_dirty": false
+  }
+ },
+ "argv": [],
+ "constants": {
+  "BUDGET_S": 5700.0,
+  "MIN_FREE_GB": 12.0,
+  "DAY_CAP_S": 5400,
+  "PLANNER_HZ": 2,
+  "SERVER_POLL_S": 60,
+  "DAMAGE_POLL_S": 30,
+  "PERSIST_S": 30,
+  "MEM_POLL_S": 300,
+  "LIVE_MIN_FREE_GB": 0.5,
+  "STOP_HEALTH": 0.0,
+  "MEM_LOW_READS": 2,
+  "BUS_DEAD_S": 60,
+  "BUS_DEAD_POLLS": 2,
+  "STORM_N": 10,
+  "STORM_WINDOW_S": 60,
+  "HELLO_TIMEOUT_S": 60.0,
+  "FRAME_TIMEOUT_S": 10.0,
+  "KIT": "Base.BaseballBat",
+  "POLL_S": 0.1,
+  "LAST_DECISIONS": 10,
+  "KIT_TIMEOUT_S": 30.0,
+  "EQUIP_TIMEOUT_S": 30.0,
+  "ACT_TIMEOUT_S": 10.0,
+  "SERVER_TIMEOUT_S": 10.0,
+  "LAST_FRAMES": 300,
+  "DEATH_WINDOW_S": 300,
+  "PAIR_S": 1.0,
+  "SERVER_RECORDS_KEPT": 2000,
+  "PARK_RX": "LuaError|STACK TRACE|attempted index|tried to call nil"
+ },
+ "fixture": {
+  "name": "agent",
+  "provision_run": "prov-20261026-092028",
+  "build": "42.21.0"
+ },
+ "driver_commit": "95596a91",
+ "memory_wait": [
+  {
+   "wall": 1793137044.958141,
+   "free_gb": 15.43
+  }
+ ],
+ "memory": [
+  {
+   "tag": "preboot",
+   "wall": 0.0,
+   "free_gb": 15.43
+  },
+  {
+   "tag": "ready",
+   "wall": 54.924,
+   "free_gb": 2.07
+  },
+  {
+   "tag": "after",
+   "wall": 565.255,
+   "free_gb": 15.84
+  }
+ ],
+ "timeline": [
+  {
+   "t": 15.4,
+   "phase": "server_started",
+   "pid": 367392
+  },
+  {
+   "t": 15.4,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 53.2,
+   "phase": "client_ready",
+   "took": 37.3,
+   "user": "admin"
+  },
+  {
+   "t": 53.2,
+   "phase": "session_ready"
+  },
+  {
+   "t": 54.7,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "ping",
+   "ok": true,
+   "got": "\"pong\""
+  },
+  {
+   "t": 54.9,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "ping",
+   "ok": true,
+   "got": "\"pong\""
+  },
+  {
+   "t": 57.0,
+   "phase": "rcon",
+   "cmd": "additem \"admin\" \"Base.BaseballBat\" 1",
+   "ok": true
+  },
+  {
+   "t": 555.3,
+   "phase": "error",
+   "failed_phase": "survive",
+   "detail": "[WinError 5] Access is denied: 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt.tmp' -> 'C:\\\\Users\\\\Angus\\\\repos\\\\proje"
+  },
+  {
+   "t": 557.7,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 565.3,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_launch_wall": 0.351,
+ "server_started_wall": 15.337,
+ "server_pid": 367392,
+ "session_ready_wall": 53.164,
+ "build": "42.21.0",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "ping",
+   "expect": "pong",
+   "ok": true,
+   "got": "pong"
+  },
+  {
+   "side": "client",
+   "cmd": "ping",
+   "expect": "pong",
+   "ok": true,
+   "got": "pong"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "state_dir": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\d_survive-20261027-173724\\clients\\admin\\Lua\\pzagent\\admin",
+ "missing": [],
+ "memory_reads": [
+  {
+   "wallS": 300.0125141143799,
+   "free_gb": 2.49
+  }
+ ],
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 34.8,
+   "ready": 37.3
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "park": "LuaError|STACK TRACE|attempted index|tried to call nil"
+  },
+  "clients": {
+   "admin": []
+  }
+ },
+ "bus_dead": null,
+ "copied": [
+  "decision.log"
+ ],
+ "wall_seconds": 565.3,
+ "grade_d": {
+  "grade": "grade_d",
+  "session_key": "d_survive",
+  "run_id": "d_survive-20261027-173724",
+  "finished": false,
+  "stop": {
+   "reason": "error",
+   "detail": "PermissionError: [WinError 5] Access is denied: 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt.tmp' -> 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt'",
+   "gameMin": 693
+  },
+  "loop_started": true,
+  "survived": null,
+  "outcome": "undecided: the session stopped on error",
+  "survival_s": 493.31356549263,
+  "game_minutes": 134,
+  "start_kit_armed": true,
+  "ticks": 900,
+  "decisions": 180,
+  "actions": {
+   "n": 180,
+   "by_type": {
+    "interact": {
+     "done": 17,
+     "failed": 1
+    },
+    "drop": {
+     "done": 33
+    },
+    "scan": {
+     "done": 2
+    },
+    "walkTo": {
+     "failed": 23,
+     "done": 1
+    },
+    "attack": {
+     "done": 103
+    }
+   },
+   "failed_reasons": {
+    "interact": {
+     "not adjacent": 1
+    },
+    "walkTo": {
+     "stuck": 22,
+     "superseded": 1
+    }
+   }
+  },
+  "needs": [
+   [
+    562,
+    0.0016583874821662903,
+    0.0013831270625814795,
+    0.0016057220054790378,
+    100,
+    0.00178062345366925
+   ],
+   [
+    578,
+    0.010809793137013912,
+    0.009060348384082317,
+    0.011547002010047436,
+    93.48783111572266,
+    0.010931277647614479
+   ],
+   [
+    594,
+    0.019824916496872902,
+    0.01697748713195324,
+    0.021739864721894264,
+    84.8992919921875,
+    0.019945237785577774
+   ],
+   [
+    610,
+    0.028810914605855942,
+    0.025026198476552963,
+    0.03207902982831001,
+    86.60995483398438,
+    0.028930172324180603
+   ],
+   [
+    626,
+    0.03771580010652542,
+    0.03284174203872681,
+    0.04218253120779991,
+    88.32061767578125,
+    0.03783394396305084
+   ],
+   [
+    642,
+    0.04653840884566307,
+    0.04059959203004837,
+    0.05221755430102348,
+    90.00834655761719,
+    0.046655524522066116
+   ],
+   [
+    658,
+    0.05524236336350441,
+    0.04834096133708954,
+    0.06223204731941223,
+    91.51878356933594,
+    0.0553583987057209
+   ],
+   [
+    674,
+    0.063804030418396,
+    0.05634916201233864,
+    0.07253213226795197,
+    92.96074676513672,
+    0.06391901522874832
+   ],
+   [
+    690,
+    0.07238775491714478,
+    0.06420357525348663,
+    0.08304252475500107,
+    94.37556457519531,
+    0.07250164449214935
+   ]
+  ],
+  "needs_fields": [
+   "gameMin",
+   "hunger",
+   "thirst",
+   "fatigue",
+   "health",
+   "serverHunger"
+  ],
+  "needs_summary": {
+   "rows": 9,
+   "first": {
+    "gameMin": 562,
+    "hunger": 0.0016583874821662903,
+    "thirst": 0.0013831270625814795,
+    "fatigue": 0.0016057220054790378,
+    "health": 100,
+    "serverHunger": 0.00178062345366925
+   },
+   "last": {
+    "gameMin": 690,
+    "hunger": 0.07238775491714478,
+    "thirst": 0.06420357525348663,
+    "fatigue": 0.08304252475500107,
+    "health": 94.37556457519531,
+    "serverHunger": 0.07250164449214935
+   },
+   "peak": {
+    "hunger": 0.07238775491714478,
+    "thirst": 0.06420357525348663,
+    "fatigue": 0.08304252475500107
+   },
+   "min_health": 84.8992919921875,
+   "hunger_client_server_max_diff": 0.00012223597150295973,
+   "paired_rows": 9,
+   "unpaired_rows": 0
+  },
+  "fights": {
+   "count": 1,
+   "fought": 1,
+   "fled": 0,
+   "open": 1,
+   "health_lost": [
+    null
+   ],
+   "flee_reasons": {}
+  },
+  "health_lost_by_source": {
+   "HEAVYLOAD": {
+    "n": 41,
+    "amount": 17.8106250166893
+   }
+  },
+  "damage_counts_server": {
+   "HEAVYLOAD": 41
+  },
+  "damage_polls": {
+   "polls": 18,
+   "fails": 0,
+   "merged": 41,
+   "lost": 0,
+   "dropped": 0
+  },
+  "deaths": [],
+  "death_explained": null,
+  "death_explained_by": null,
+  "death_check": null,
+  "cost": {
+   "n": 5028,
+   "p50": 1,
+   "p99": 2,
+   "max": 10,
+   "tickMaxMs": 16,
+   "over5": 185
+  },
+  "lua_errors": 0,
+  "lua_errors_max_per_min": 0,
+  "parks": 0,
+  "gaps": 0,
+  "server_polls": 9,
+  "server_fails": 0,
+  "report_lines": [
+   "undecided: the session stopped on error after 493 s of the loop (8.2 wall min, 134 game min), stop error: PermissionError: [WinError 5] Access is denied: 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt.tmp' -> 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt'",
+   "start kit equipped (a frame showed the bat in hand)",
+   "180 actions sent over 900 planner ticks: attack done 103; drop done 33; interact done 17, failed 1; scan done 2; walkTo done 1, failed 23",
+   "needs: 9 rows; peak hunger 0.07, thirst 0.06, fatigue 0.08; min health 84.9; client-server hunger max diff 0.000 over 9 paired rows (0 unpaired)",
+   "fights: 1 (fought 1, fled 0, open 1); flee reasons none",
+   "health lost by source (the server's damage.watch): HEAVYLOAD 17.811 over 41 records",
+   "per-tick cost p50 1.000 ms, p99 2.000 ms, max 10.000 ms over 5028 frames; worst tickMaxMs 16.000, over5 185",
+   "lua_error events 0 (max 0 in a minute); parks 0; gaps 0"
+  ]
+ }
+}

@@ -1,0 +1,222 @@
+undecided: the session stopped on error after 493 s of the loop (8.2 wall min, 134 game min), stop error: PermissionError: [WinError 5] Access is denied: 'C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\d_survive-20261027-173724\\clients\\admin\\Lua\\pzagent\\admin\\cmd.txt.tmp' -> 'C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\d_survive-20261027-173724\\clients\\admin\\Lua\\pzagent\\admin\\cmd.txt'
+start kit equipped (a frame showed the bat in hand)
+180 actions sent over 900 planner ticks: attack done 103; drop done 33; interact done 17, failed 1; scan done 2; walkTo done 1, failed 23
+needs: 9 rows; peak hunger 0.07, thirst 0.06, fatigue 0.08; min health 84.9; client-server hunger max diff 0.000 over 9 paired rows (0 unpaired)
+fights: 1 (fought 1, fled 0, open 1); flee reasons none
+health lost by source (the server's damage.watch): HEAVYLOAD 17.811 over 41 records
+per-tick cost p50 1.000 ms, p99 2.000 ms, max 10.000 ms over 5028 frames; worst tickMaxMs 16.000, over5 185
+lua_error events 0 (max 0 in a minute); parks 0; gaps 0
+{
+ "actions": {
+  "by_type": {
+   "attack": {
+    "done": 103
+   },
+   "drop": {
+    "done": 33
+   },
+   "interact": {
+    "done": 17,
+    "failed": 1
+   },
+   "scan": {
+    "done": 2
+   },
+   "walkTo": {
+    "done": 1,
+    "failed": 23
+   }
+  },
+  "failed_reasons": {
+   "interact": {
+    "not adjacent": 1
+   },
+   "walkTo": {
+    "stuck": 22,
+    "superseded": 1
+   }
+  },
+  "n": 180
+ },
+ "cost": {
+  "max": 10,
+  "n": 5028,
+  "over5": 185,
+  "p50": 1,
+  "p99": 2,
+  "tickMaxMs": 16
+ },
+ "damage_counts_server": {
+  "HEAVYLOAD": 41
+ },
+ "damage_polls": {
+  "dropped": 0,
+  "fails": 0,
+  "lost": 0,
+  "merged": 41,
+  "polls": 18
+ },
+ "death_check": null,
+ "death_explained": null,
+ "death_explained_by": null,
+ "deaths": [],
+ "decisions": 180,
+ "fights": {
+  "count": 1,
+  "fled": 0,
+  "flee_reasons": {},
+  "fought": 1,
+  "health_lost": [
+   null
+  ],
+  "open": 1
+ },
+ "finished": true,
+ "game_minutes": 134,
+ "gaps": 0,
+ "grade": "grade_d",
+ "health_lost_by_source": {
+  "HEAVYLOAD": {
+   "amount": 17.8106250166893,
+   "n": 41
+  }
+ },
+ "loop_started": true,
+ "lua_errors": 0,
+ "lua_errors_max_per_min": 0,
+ "needs": [
+  [
+   562,
+   0.0016583874821662903,
+   0.0013831270625814795,
+   0.0016057220054790378,
+   100,
+   0.00178062345366925
+  ],
+  [
+   578,
+   0.010809793137013912,
+   0.009060348384082317,
+   0.011547002010047436,
+   93.48783111572266,
+   0.010931277647614479
+  ],
+  [
+   594,
+   0.019824916496872902,
+   0.01697748713195324,
+   0.021739864721894264,
+   84.8992919921875,
+   0.019945237785577774
+  ],
+  [
+   610,
+   0.028810914605855942,
+   0.025026198476552963,
+   0.03207902982831001,
+   86.60995483398438,
+   0.028930172324180603
+  ],
+  [
+   626,
+   0.03771580010652542,
+   0.03284174203872681,
+   0.04218253120779991,
+   88.32061767578125,
+   0.03783394396305084
+  ],
+  [
+   642,
+   0.04653840884566307,
+   0.04059959203004837,
+   0.05221755430102348,
+   90.00834655761719,
+   0.046655524522066116
+  ],
+  [
+   658,
+   0.05524236336350441,
+   0.04834096133708954,
+   0.06223204731941223,
+   91.51878356933594,
+   0.0553583987057209
+  ],
+  [
+   674,
+   0.063804030418396,
+   0.05634916201233864,
+   0.07253213226795197,
+   92.96074676513672,
+   0.06391901522874832
+  ],
+  [
+   690,
+   0.07238775491714478,
+   0.06420357525348663,
+   0.08304252475500107,
+   94.37556457519531,
+   0.07250164449214935
+  ]
+ ],
+ "needs_fields": [
+  "gameMin",
+  "hunger",
+  "thirst",
+  "fatigue",
+  "health",
+  "serverHunger"
+ ],
+ "needs_summary": {
+  "first": {
+   "fatigue": 0.0016057220054790378,
+   "gameMin": 562,
+   "health": 100,
+   "hunger": 0.0016583874821662903,
+   "serverHunger": 0.00178062345366925,
+   "thirst": 0.0013831270625814795
+  },
+  "hunger_client_server_max_diff": 0.00012223597150295973,
+  "last": {
+   "fatigue": 0.08304252475500107,
+   "gameMin": 690,
+   "health": 94.37556457519531,
+   "hunger": 0.07238775491714478,
+   "serverHunger": 0.07250164449214935,
+   "thirst": 0.06420357525348663
+  },
+  "min_health": 84.8992919921875,
+  "paired_rows": 9,
+  "peak": {
+   "fatigue": 0.08304252475500107,
+   "hunger": 0.07238775491714478,
+   "thirst": 0.06420357525348663
+  },
+  "rows": 9,
+  "unpaired_rows": 0
+ },
+ "outcome": "undecided: the session stopped on error",
+ "parks": 0,
+ "report_lines": [
+  "undecided: the session stopped on error after 493 s of the loop (8.2 wall min, 134 game min), stop error: PermissionError: [WinError 5] Access is denied: 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt.tmp' -> 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt'",
+  "start kit equipped (a frame showed the bat in hand)",
+  "180 actions sent over 900 planner ticks: attack done 103; drop done 33; interact done 17, failed 1; scan done 2; walkTo done 1, failed 23",
+  "needs: 9 rows; peak hunger 0.07, thirst 0.06, fatigue 0.08; min health 84.9; client-server hunger max diff 0.000 over 9 paired rows (0 unpaired)",
+  "fights: 1 (fought 1, fled 0, open 1); flee reasons none",
+  "health lost by source (the server's damage.watch): HEAVYLOAD 17.811 over 41 records",
+  "per-tick cost p50 1.000 ms, p99 2.000 ms, max 10.000 ms over 5028 frames; worst tickMaxMs 16.000, over5 185",
+  "lua_error events 0 (max 0 in a minute); parks 0; gaps 0"
+ ],
+ "run_id": "d_survive-20261027-173724",
+ "server_fails": 0,
+ "server_polls": 9,
+ "session_key": "d_survive",
+ "start_kit_armed": true,
+ "stop": {
+  "detail": "PermissionError: [WinError 5] Access is denied: 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt.tmp' -> 'C:\\\\Users\\\\Angus\\\\repos\\\\project_zomboid\\\\testing\\\\runs\\\\d_survive-20261027-173724\\\\clients\\\\admin\\\\Lua\\\\pzagent\\\\admin\\\\cmd.txt'",
+  "gameMin": 693,
+  "reason": "error"
+ },
+ "survival_s": 493.31356549263,
+ "survived": null,
+ "ticks": 900
+}
