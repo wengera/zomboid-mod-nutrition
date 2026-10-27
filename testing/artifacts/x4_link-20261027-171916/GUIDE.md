@@ -75,7 +75,7 @@ So every one of the session's 24 commands (2 `rate`, 2 `scan`, 20 `walkTo`) fell
 - **The 60 Hz window's reading** (`frames.cost` seq 211–2016): every tick wrote a frame, so every one of the 1806 `linkMs` is a flushing tick's flush: mean **0.2691029900332226 ms**, worst **2**, under both the 1 ms and the 3 ms. This is the honest reading of the flush per flushing tick: the mean over every flush of the window, which the clock's quantisation does not bias, where the gate's subset is biased to at least 1.
 - **What `linkMs` leaves out.** The frame's positional encode is outside every timed span (How to read it). Taking the flush plus the tick's unattributed remainder as an upper bound on the emit with the encode, over the 1805 ticks 182–1986 it reads 0:841 1:835 2:116 3:12 8:1, mean 0.6155124653739612 ms, under 1; its worst is 3 on twelve ticks and 8 on tick 182 alone, the `rate` 60 command's tick, whose 7 unattributed ms the frames do not split between the command's handling, its act line and the forced full frame's encode.
 
-The controller's **ruling S-18** reads the trigger as **not fired**: the gate's "fired" is the quantisation artifact above, and over the 60 Hz window the flush averages 0.2691029900332226 ms with a worst of 2 ms, both under § 8 (6)'s 1 ms and 3 ms, so K2's transport spike does not run and the frozen `gate_x4` is not edited. This guide reads it the same on the flush; with the encode bounded, the mean is not fired on either reading, and the worst is not fired on every tick but tick 182, where the bound (8) does not separate the encode from the command.
+The controller's **ruling S-18** reads the trigger as **not fired**: the gate's "fired" is the quantisation artifact above, and over the 60 Hz window the flush averages 0.2691029900332226 ms with a worst of 2 ms, both under § 8 (6)'s 1 ms and 3 ms, so K2's transport spike does not run and the frozen `gate_x4` is not edited. This guide reads it the same on the flush; with the encode bounded, the mean is not fired on the flush (0.2691029900332226 ms) nor on the bound (0.6155124653739612 ms), and the worst is not fired on every tick but tick 182, where the bound (8) does not separate the encode from the command.
 
 **Scan parts under the positional encoder.** Each scan's 49 parts went out one a tick (98 `full` lines, one per tick), 20 squares a part in 1150–1689 bytes (the last parts 106 and 107). 16 frames read the flush of a tick that wrote one part (1150–1549 bytes): `linkMs` 0 on 8 and 1 on 8. Pass 4 read 1.67 ms (max 4) for a 2102–2103 B JSON part of the same 20 squares (`testing/artifacts/a_pipe_4-20261026-181848/GUIDE.md` line 60); 16 readings on the 1 ms clock bound this run's part flush near half a millisecond and do not measure it.
 
@@ -184,7 +184,7 @@ All 20 legs moved and ended `done` with an empty `reason`; none lacks a first mo
 | `gate_x4.sidecar_trigger` | "fired" | A mean over the 1 ms clock's readings above 0, at least 1 by construction; ruling S-18 reads the trigger as not fired (§ 1, § 5). |
 | `gate_x4.emit_mean_ms` as the emit per flushing tick | 1.0576131687242798 | The subset reading above 0; the flush per flushing tick is the 60 Hz window's 0.2691029900332226 mean over 1806 flushes. |
 | `frames.cost[*].cost.linkMs` and `cost.tickMs` at 10 Hz as a frame tick's cost | 0–3 | They sample the tick before each frame tick, which reads and writes no frame. |
-| any single `cost.*Ms` reading | integers 0–19 | The 1 ms clock: a reading is a bound, never a value. |
+| any single `cost.*Ms` reading | integers 0–19 | The 1 ms clock: a reading is a bound, never a value; a mean over many is cited, or a worst, max or nearest-rank percentile, or a count at a threshold, each as a ±1 ms bound. |
 | `readings.final_scan.kept.*.absent` as square coverage | 0 | Per kind: 91 of the 961 final squares were not in the kept map. |
 | `readings.walk.legs[*].target` as the path walked | x0 ± 6 at y 9699.5 | Every leg looped, reaching y 9695.5 and 9701.5 within x 10993.2–11003.05 (§ 2). |
 | `readings.walk.legs[*]` latency finer than a frame | 128–181 | Frame-quantised at about 100 ms (the first move is always the second frame after the accept). |
@@ -192,3 +192,10 @@ All 20 legs moved and ended `done` with an empty `reason`; none lacks a first mo
 | `readings.server.stats.ack.mult` | 4.800405979156494 | getMultiplier, not the true multiplier (#3762). |
 | every `reason` and error text | empty | Empty in this run; a text is the driver's or the Lua's message, not a reading. |
 | `constants`, `preboot`, `profile`, `fixture`, `argv`, `memory`, `memory_wait`, `world_changes`, `steps`, `verify` | the driver's tables | Written before or around the run, or the server reading's raw steps; not readings. |
+
+## Corrections
+
+2026-10-27, Plan 22 Task 16 fix round 1 (the Task 13 review's Nit 5 and Minor 1):
+
+1. § 1, the emit against the sidecar trigger: "the mean is not fired on either reading" named no pair; it is the flush (0.2691029900332226 ms) and the bound (0.6155124653739612 ms), the gate's own 1.0576131687242798 reading being fired.
+2. The do-not-cite table's single-reading row now says how a worst, max, nearest-rank percentile or threshold count is cited (a ±1 ms bound), matching `docs/reference/do-not-cite.csv`.
