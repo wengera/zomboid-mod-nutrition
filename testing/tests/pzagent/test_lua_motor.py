@@ -121,3 +121,19 @@ def test_a_player_without_the_latch_members_never_raises(lua):
     lua.eval("PZA.motor.off")(p)
     assert lua.eval("PZA.motor.updErrors") == 0 and lua.globals().pcallFails == 0
     assert lua.eval("PZA.motor.updRunning") is None and lua.eval("PZA.motor.updForceRun") is None
+
+
+def test_update_reads_force_sprint_after_its_asserts(lua):
+    """Plan 22 Task 5: the frame's me.forceSprint is MO.updForceSprint, read after the asserts like the other three."""
+    load(lua)
+    p = make_player()
+    lua.execute("PZA.motor.want('sprint')")
+    fire(lua, p)
+    assert lua.eval("PZA.motor.updForceSprint") is True
+    lua.execute("PZA.motor.want('walk')")
+    p.motor["forceSprint"] = False
+    fire(lua, p)
+    assert lua.eval("PZA.motor.updForceSprint") is False
+    del p.isForceSprint
+    fire(lua, p)
+    assert lua.eval("PZA.motor.updForceSprint") is None
