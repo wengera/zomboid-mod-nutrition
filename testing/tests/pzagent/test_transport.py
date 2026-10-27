@@ -271,5 +271,56 @@ def test_send_refuses_a_non_finite_number_before_any_write(tmp_path):
     assert tr.cmd_seq == 0
 
 
+CMD1 = {"type": "scan", "seq": 1, "args": {"r": 5}, "aid": "a1"}
+
+
+def test_send_retries_the_replace_on_a_sharing_violation(tmp_path, monkeypatch):
+    from agent.base.transport import files
+    _, tr, _ = pair(tmp_path)
+    real, calls, slept = os.replace, [], []
+
+    def flaky(src, dst):
+        calls.append(1)
+        if len(calls) <= 2:
+            raise PermissionError(5, "Access is denied")
+        return real(src, dst)
+
+    monkeypatch.setattr(files.os, "replace", flaky)
+    monkeypatch.setattr(files.time, "sleep", slept.append)
+    tr.send(CMD1)
+    assert json.loads((tmp_path / "cmd.txt").read_text())["aid"] == "a1"
+    assert tr.replace_retries == 2 and tr.cmd_seq == 1
+    assert slept == [files.REPLACE_SLEEP_S] * 2
+
+
+def test_send_raises_after_the_retries_run_out(tmp_path, monkeypatch):
+    from agent.base.transport import files
+    _, tr, _ = pair(tmp_path)
+    calls = []
+
+    def always(src, dst):
+        calls.append(1)
+        raise PermissionError(5, "Access is denied")
+
+    monkeypatch.setattr(files.os, "replace", always)
+    monkeypatch.setattr(files.time, "sleep", lambda s: None)
+    try:
+        tr.send(CMD1)
+        assert False, "no raise"
+    except PermissionError:
+        pass
+    assert len(calls) == files.REPLACE_TRIES
+    assert tr.cmd_seq == 0 and tr.replace_retries == files.REPLACE_TRIES - 1
+
+
+def test_send_without_a_collision_counts_no_retry(tmp_path, monkeypatch):
+    from agent.base.transport import files
+    _, tr, _ = pair(tmp_path)
+    slept = []
+    monkeypatch.setattr(files.time, "sleep", slept.append)
+    tr.send(CMD1)
+    assert tr.replace_retries == 0 and slept == []
+
+
 def test_file_transport_satisfies_the_protocol(tmp_path):
     assert isinstance(FileTransport(str(tmp_path)), Transport)

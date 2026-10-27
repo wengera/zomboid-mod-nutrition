@@ -9,6 +9,9 @@ The delta rule (ruling S-6): the Lua elides a frame group equal to the last one 
 running merged frame. A full frame (no group elided) replaces it; a delta frame is merged into it with
 `pza1.merge_delta` and becomes it. A delta before any full frame has no base: it counts in `bad` and is dropped.
 `lines()` returns full frames only, each a deep copy (a caller may mutate it); `SAME` never leaves the transport.
+
+Counters: `bad`, `gaps`, and `replace_retries` (a `send` whose replace met a Windows sharing violation retries it up
+to `REPLACE_TRIES` attempts, `REPLACE_SLEEP_S` apart, and re-raises the last `PermissionError` when they run out).
 """
 import copy
 import json
@@ -21,6 +24,8 @@ from agent.base import pza1
 CHUNK_RX = re.compile(r"state-(\d{6})\.log$")
 ROT_RX = re.compile(r"state\.(\d+)\.log$")
 CMD_KEYS = frozenset(("seq", "aid", "type", "args"))
+REPLACE_TRIES = 50       # attempts at the cmd.txt replace: Windows refuses a rename onto a file the Lua holds open
+REPLACE_SLEEP_S = 0.01   # between attempts; a collision clears within one client tick (16 ms at 60 Hz)
 
 
 def _is_seq(x):
@@ -34,7 +39,8 @@ class FileTransport:
         self.cmd_seq = 0
         self.expect = 1
         self.gaps = []
-        self.bad = 0                # lines dropped: malformed, outside the schema, or a delta without a base
+        self.replace_retries = 0    # cmd.txt replaces retried after a sharing violation
+        self.bad = 0             # lines dropped: malformed, outside the schema, or a delta without a base
         self.running = None         # the last full frame, every delta merged in
         self.last_line_wall = None  # the clock at the last read that returned a line
         self._pos = {}              # file -> bytes consumed
@@ -125,5 +131,14 @@ class FileTransport:
         tmp = os.path.join(self.dir, "cmd.txt.tmp")
         with open(tmp, "w", encoding="utf-8", newline="\n") as f:
             f.write(text)
-        os.replace(tmp, os.path.join(self.dir, "cmd.txt"))
+        dst = os.path.join(self.dir, "cmd.txt")
+        for attempt in range(REPLACE_TRIES):
+            try:
+                os.replace(tmp, dst)
+                break
+            except PermissionError:
+                if attempt == REPLACE_TRIES - 1:
+                    raise
+                self.replace_retries += 1
+                time.sleep(REPLACE_SLEEP_S)
         self.cmd_seq = cmd["seq"]
