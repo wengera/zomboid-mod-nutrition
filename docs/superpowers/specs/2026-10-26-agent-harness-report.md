@@ -161,6 +161,24 @@ The `Ruling:` lines of `.superpowers/sdd/2026-10-26-plan-21-agent-harness/progre
 33. Ruling: the spec deviations the close found (no stuck event; SCAN_S dead; fixture agent sets only Zombies; the world golden synthetic; per-goal headers partial) are accepted for the spike and named in the report's addendum — cost if wrong: a later plan adds them.
 34. Ruling (wording): direct member calls are allowed on getX/getY/getZ and on nil-checked file handles (readLine/close/write); everything else through PZA.call.
 
+**Plan 21b** (added 2026-10-26 with § 7): the four rulings carried in from the opening of the plan file `docs/superpowers/plans/2026-10-26-plan-21b-agent-harness-go-with-changes.md`, then every `Ruling:` line of `.superpowers/sdd/2026-10-26-plan-21b-agent-harness-go-with-changes/progress.md`, verbatim and in order. A ruling that sits mid-line in the ledger is quoted from its `Ruling:`, with the ledger line named.
+
+35. **P21b-0** Angus's order adopts the report's § 6 changes 1–3 as the pass-4 gate `gate_a4`; the spec's 3-pass budget is exceeded by this one ordered pass, named as such in the artifact's guide and the report's § 7 — cost if wrong: one 14-minute session.
+36. **P21b-1** `BUDGET_S` for pass 4 is 800 s (pass 3 ran out of its 560 s budget after 19 of 20 legs on 14 s detour legs; CLAUDE.md § 5's split rule is about 15 minutes of wall time, and 800 s plus the boot stays under it) — cost if wrong: a longer session.
+37. **P21b-2** The motion measure changes (change 3's first option); the legs keep starting from wherever the character settled (change 3's second option is not taken), so the detour legs stay in the artifact as a second reading of the route — cost if wrong: none for the graded figure.
+38. **P21b-3** The two parked must-fix items (research-notes' "Must fix before Stage B" and "Must fix before Stage C") land in Tasks 1 and 2 before any boot, since all three boots follow in one plan — cost if wrong: none.
+39. (ledger l.26, Task 2 review) Ruling: the pre-existing _settle_loots behaviour (a pre-empted loot's square is marked looted, policy.py L129-136) is carried to research-notes by Task 9's writer B, not fixed now — a threat-interrupted loot square is lost for the session, a dumb-spike behaviour the report can name — cost if wrong: one unretried container in Stage C.
+40. (ledger l.29, Task 1 review) Ruling: no fix round before the boot — cost if wrong: none for the measurement.
+41. Ruling: the scan15 NO-GO is Stage A's final verdict (no gate relaxed; the report's § 7 names the spec's § 4.4 fallback since the 20-square pass failed its scan gate) AND the Stage B and C boots proceed — Angus's order "run the go-with-changes boot" adopted the sequence the close message named (pass 4, then B, then C; the report's § 6 conditions neither on pass 4), and the failing gate measures a client-side scan stutter (5-7 ms ticks for ~49 ticks a scan), not the goals or survival B and C measure; the plan's Task 3 line "no further boot runs" is overridden by this ruling — cost if wrong: two unattended sessions (~105 min) Angus did not want, stoppable at any poll.
+42. Ruling: one Stage B fix pass (spec § 4.2 budget 4; the plan's Task 5 allows one): b_actions_2.py — beside() excludes solidTrans and container squares; the pick ranks containers by dataset food and water-like items over the whole scan; the wide scan runs when no container holds food or water, so a stocked neighbour (and its door: `open` has never run live) is reached — built offline now, booted after Stage C ends (one session at a time) — cost if wrong: one ~5 min session.
+43. Ruling: Stage C launches now, before B's fix pass, under the earlier ruling that Angus's order covers C; C's goals do not depend on the Stage B gate (the eat, drink, loot and goto goals all ran live; the completion failure is the fixture's stock) — cost if wrong: the 95-minute session.
+44. Ruling: Task 5b is amended (task-5b-amendments.md, sent to the running implementer): the Lua adjacentTo skips isSolidTrans squares (its own commit + test), and the driver takes two picks per repetition (food container, water container; WATER_RX widened with DrinkingGlass|Mug, never Bleach) — spec § 4.2 says "loot each container food then water", so two containers are within the sequence — cost if wrong: one ~5 min session.
+45. Ruling: spec § 4.3's one fix pass is forced — the four defects are mechanism (no disengage radius; no fight/flee hysteresis; a fight never re-evaluated; the pair-of-threats health rule) not luck — Task 7b: policy hysteresis + thin driver c_survive_2.py (c_survive.py frozen), booted after Stage B pass 2 — cost if wrong: one <= 95 min session and the implementer's time.
+46. Ruling: two Lua defects join the Stage C fix pass as Task 7c, after Task 5b's Lua commit lands (one writer on Act.lua at a time): the fight goal steps toward its target until within the weapon's reach before attacking, and the flee goal runs — cost if wrong: the C2 session reads them again.
+47. Ruling: no Stage B pass 3 (budget 2 of 4 used) — the completion gate is bound by the fixture's stock of fluid containers and by the sequence counting a failed `open` on a window the walk did not need; every goal functions live, which is what Stage B measures; the report says the gate as specified cannot pass on agent0 and names what a pass 3 would need (a stocked fixture or a sequence that opens only a door it must pass) — cost if wrong: a 6-minute session not run.
+48. Ruling: Stage C ends at 2 of its 3 runs; no third run in this plan and no dense run (a death twice) — the fix pass's defects are fixed and read (no flap; the reach), and what remains is the game (three zombies at the spawn house against a walking flee) and the unexplained pre-contact health fall, which the write-up is asked to trace against the scan map; a third run without a diagnosed cause would read the same — cost if wrong: one 95-min session Angus can order with the diagnosis.
+49. Ruling: the DISENGAGE_R count widening the "too many" rule is a defect of the pass-2 policy, named in the report and research-notes as the first fix of any third run (the hold uses 10 tiles; the count rules keep 6); no third run in this plan (the ruling above stands) — cost if wrong: none now.
+
 **Re-derivation of the gates.** `python testing/agent/drivers/a_grade.py <artifact>` at HEAD `9f7c001d` (exit 1 on each):
 
 - **Pass 2:** it reproduces the committed `a_grade.txt` key for key, adding only the new `tick_mean_ms_at60` null.
@@ -191,5 +209,254 @@ After that, **Stage B** (about 10 min, one boot on `agent0`) and then **Stage C*
 - The scan failure is the per-KB emit of a file append, which a smaller part size addresses.
 
 No artifact measures a JVM agent or a `PZAgent_Server.lua` scan, so neither can be recommended on this evidence. The fallback stays unwarranted unless the 20-square pass also fails its scan gate.
+
+Plan 21b ran these changes: § 7.
+
+Model: claude-opus-5-5
+
+## 7. The go-with-changes passes (Plan 21b, 2026-10-26)
+
+Plan 21b booted five live sessions on 42.21. Each landed as a byte-identical artifact with a reading guide, and every path below is relative to `testing/artifacts/`:
+
+| Run | Folder | Grade file | Verdict |
+|---|---|---|---|
+| Stage A pass 4 | `a_pipe_4-20261026-181848` | `a_grade_4.txt` | NO-GO on `scan15` alone |
+| Stage B pass 1 | `b_actions-20261026-183143` | `b_grade.txt` | NO-GO on `completed` (0 of 5) |
+| Stage B pass 2 | `b_actions_2-20261026-194009` | `b_grade.txt` | NO-GO on `completed` (2 of 5) |
+| Stage C run 1 | `c_survive-20261026-183905` | `c_grade.txt` | died (no gate) |
+| Stage C pass 2 | `c_survive_2-20261026-195516` | `c_grade.txt` | died (no gate) |
+
+The guides are the authority for the readings, and the grade files are the authority for the verdicts. A number given here without a key is a guide's reading, and its section is named.
+
+**In short.** The pipe and the action goals work live. Over the five runs the link read 0 gaps and 0 Lua errors. In the second Stage B pass, `goto`, `loot`, `eat`, `drink` and `scan` completed every time they were sent. Of the three changes in § 6, two closed their gates (the tick, the motion). The scan gate failed again: the 20-square parts halved the mean scan tick but not the worst one. No gate ended GO:
+- Stage B's completion gate cannot pass on the `agent0` fixture.
+- Both survival runs died of zombie damage, after 109 and 32 game minutes of the loop, before any need rose far enough to trigger an `eat`, `drink` or `sleep` goal.
+
+### 7.1 What Plan 21b ran and why
+
+Angus adopted § 6 with the order "run the go-with-changes boot" (ruling 35, P21b-0). The plan ran:
+1. **Change 1, the tick gate on the 60 Hz mean.** `gate_a4` grades `tick_mean_ms_at60 < 1 ms` and reports the 5 Hz p99 ungraded beside it.
+2. **Change 2, 20-square scan parts.** `S.SCAN_SQUARES_PER_TICK = 20`, against pass 3's 60 (`a_pipe_4-20261026-181848/GUIDE.md`, "How to read it").
+3. **Change 3, motion graded from the ack to the first position change.** `grades.cmd_move_ms`: the first frame after the ack that moved more than `MOVE_EPS_TILES` 0.01 tiles in any direction. The legs still start wherever the character settled (ruling 37, P21b-2), so the detour legs stay in the artifact.
+
+Pass 4 is a fourth Stage A pass, one beyond the spec's § 4.1 budget of three, which Angus ordered (ruling 35). It was graded by a new, versioned `gate_a4`. The frozen `gate_a` was not edited.
+
+Before any boot, the two must-fix items parked at Plan 21's close landed (ruling 38, P21b-3):
+- **Task 1, Lua.** Vanilla classes are index-checked before every action is built.
+- **Task 2, the policy's cooldown.** The policy never cools a pre-empted goal and never passes over the threat branch.
+
+Both commits are named in the guides' provenance: `942859f2` in `a_pipe_4-20261026-181848/GUIDE.md`, and the policy at `4744e066` in `c_survive-20261026-183905/GUIDE.md`.
+
+Spec § 4.1 sends a Stage A NO-GO straight to the report. Ruling 41 overrode that: Stages B and C booted after pass 4's NO-GO, because the failing gate measures a client-side scan stutter, not the goals or survival that B and C measure. Each stage then took one fix pass:
+- Stage B pass 2, on rulings 42 and 44.
+- Stage C pass 2, on rulings 45 and 46.
+
+### 7.2 Stage A pass 4 against its three changes
+
+`a_pipe_4-20261026-181848/a_grade_4.txt`: `verdict` **NO-GO**. `pass.tick_mean_at60`, `pass.cmd_move_p90`, `pass.gaps`, `pass.lua_errors` and `pass.hello` are all true. `pass.scan15` is **false**.
+
+| Change | Pass 3 reading | Pass 4 reading | `gate_a4` |
+|---|---|---|---|
+| 1. Tick gate on the 60 Hz mean | `tick_mean_ms_at60` 0.482 (`a_pipe_3-20261026-130558/a_pipe_3.json` `readings.rate60.tick_mean_ms_at60`) | `tick_mean_ms_at60` 0.7938888888888889 on `tick60_frames` 1800 | < 1 ms: **pass** |
+| 2. Scan in 20-square parts | `scan15_ms_max` 7 with 60-square parts (`a_pipe_3-20261026-130558/a_grade.txt`) | `scan15_ms_max` 7; `scan15_latency_ms_max` 117, ungraded (pass 3: 75) | < 5 ms: **fail** |
+| 3. Ack → first move | `cmd_motion_p90_ms` 8130, directional and do-not-cite; first change 77–180 ms (pass 3 `GUIDE.md` § 3) | `cmd_move_p90_ms` 195 on `cmd_move_n` 20, `cmd_move_paired` 20 | < 500 ms: **pass** |
+
+All pass-4 readings are from `a_pipe_4-20261026-181848/a_grade_4.txt`.
+
+- **The tick.** The 5 Hz p99 still reads 2 (`tick_p99_ms_at5` 2 on `tick_frames_at5` 300, ungraded), so `gate_a`'s `< 2` would still fail on the clock, as § 3 wall 1 says.
+- **Motion.**
+  - The graded legs read 110–220 ms (`a_pipe_4-20261026-181848/GUIDE.md` § 3). That is within one to two frame periods of the ack: frames are about 100 ms apart at rate 10, so the figure is frame-quantised, and its do-not-cite row bars citing it more finely.
+  - The ungraded directional figure read 7629 (`cmd_motion_p90_ms`), the same detour as pass 3.
+  - All 20 legs ended `done` (`events` `goal_done` 20, GUIDE, "How to read it"). None was voided (`a_grade_4.txt` `cmd_motion_voided` 0). The session finished inside `BUDGET_S` 800 at `wall_seconds` 610.8 with no budget stop (GUIDE, header).
+- **The plumbing.** `gaps` 0, `lua_errors` 0, `mode` `append` (`a_grade_4.txt`); `state.log` seq 1–6351 with no gap (GUIDE § 4).
+
+**The scan finding.** The 20-square parts halved the mean scan tick and left the worst one at 7 ms (`a_pipe_4-20261026-181848/GUIDE.md` § 1):
+- **The mean fell.** A full part's tick averaged 2.29 ms, against pass 3's 4.3.
+- **The tail stayed.** Over the 245 r = 15 ticks, 14 read 5 ms or more, and every scan held at least one.
+- **The emit carries a per-line cost that does not shrink with the part.** Through the origin the emit reads 0.829 ms per KB, against pass 3's 0.495. A 2.1 KB part's emit reads 1.67 ms on average (the binned table), where pass 3's fit predicts about 1.39.
+- **The whole scan costs more.** An r = 15 scan now emits 80–86 ms over 49 lines, against pass 3's 47–55 ms over 17, and its latency is 103–117 ms.
+- **The projection did not hold.** Pass 3's projection of a 4.1–4.5 ms peak (§ 2 above) assumed the peak would sit about 2.7 ms above the mean tick. It sits about 4.7 ms above it.
+
+**The host read slower than in pass 3, and the run cannot say why.** Every window's mean frame cost read 0.15–0.31 ms above pass 3's (`a_pipe_4-20261026-181848/GUIDE.md` § 2):
+
+| Rate | Pass 4 mean (ms) | Pass 3 mean (ms) |
+|---|---|---|
+| 2 Hz | 1.017 | 0.792 |
+| 5 Hz | 0.777 | 0.540 |
+| 10 Hz | 0.705 | 0.552 |
+| 60 Hz | 0.794 | 0.482 |
+
+At 60 Hz the rise is spread over `pollMs`, `linkMs` and `senseMs`. Yet `PZAgent_Main.lua` and `PZAgent_Link.lua`, which hold the poll and the flush, did not change between the two passes' Lua. The guide does not separate a Lua cost from the host's state, and neither does this report. The per-KB emit rise above may share the same cause.
+
+**The verdict** on `gate_a4` is **NO-GO on `scan15` alone**. It is Stage A's final verdict, and no gate was relaxed (ruling 41).
+
+**What this says about the spec's § 4.4 fallback.** § 6 left the JVM-agent fallback "unwarranted unless the 20-square pass also fails its scan gate". The 20-square pass failed its scan gate, so the fallback's condition, and spec § 4.1's ("a cost line failing after 3 passes → … the report names the fallback (§ 4.4) and whether `PZAgent_Server.lua` would help"), is now met. On this evidence:
+- **The failing cost is the client's own Lua.** The walk is a 0.567 ms mean per 20-square part, and the rest is a per-line serialise-and-append whose cost does not fall below about 1.7 ms for a 2 KB line (`a_pipe_4-20261026-181848/GUIDE.md` § 1). The file append happens in that Kahlua emit.
+- **A JVM agent on a localhost socket** would replace the Kahlua serialisation and the file append with Java. Whether a socket write is cheaper per line than this append is **not measured**: no artifact of Plan 21 or 21b reads a socket or a JVM agent. Unless the agent also walked the squares in Java, it would leave the walk's cost where it is (inference).
+- **A server-side scan (`PZAgent_Server.lua`)** would move the same Kahlua walk and emit off the client's frame and onto the server's frame. The server's frame is where this repository's Rule 6 judges cost (CLAUDE.md § 1). Its result would then have to reach Python through a server file or the bus, whose `stats.all` round trips are of the order of 0.5–2 s (§ 2 above, n = 3, do-not-cite). That is an inference: no server-side scan was built or measured.
+- **The fallback is not recommended on this evidence.** It is named because its condition is met. What fails is a client-side stutter of 5–7 ms on a few ticks of an r = 15 scan, for a test tool: 14 of the 245 ticks of five r = 15 scans in pass 4. Neither alternative has a reading that says it is cheaper. A measurement comes before any build (§ 7.6).
+
+### 7.3 Stage B — the actions
+
+Spec § 4.2 runs a fixed sequence with no policy, on the zombie-free fixture `agent0`. Its gates are: sequences completed ≥ 4 of 5; failures carry a reason from the closed set; the server sees 5 of 5 eats.
+
+**Pass 1** (`b_actions-20261026-183143/b_grade.txt`): `verdict` **NO-GO**.
+
+| Gate | Reading | Pass |
+|---|---|---|
+| Sequences completed | `completed` 0 | false |
+| Failure reasons in the closed set | `reasons_in_set` true, `reasons_outside_set` `[]` | true |
+| Eats seen by the server | `eats_seen_by_server` 5 | true |
+
+`failing_steps`: `goto:stuck`, `loot:no match`, `loot:not adjacent`.
+
+- **The goals ran live for the first time.** Stage A ran only `goto`, and this was the first live run of `loot`, `eat` and `drink` (`b_actions-20261026-183143/GUIDE.md` § 4):
+  - `eat`: 5 of 5 ended `consumed`.
+  - `drink`: 5 of 5 ended `consumed`.
+  - `loot`: 1 of 10 ended `done`, moving one `Base.Oatmeal`. That oatmeal was eaten and seen by the server.
+  - `goto`: 9 of 10 ended `done`.
+  - `scan`: 5 of 5, each 49 parts and 961 squares, with `missing` `[]`.
+  - `open`: **never sent**, because no door or window lay on the straight line to any pick.
+- **Every eat was seen by the server.** On every repetition the server's `nutrition.get` after the eat read hunger lower and calories higher (GUIDE § 3). The character was prepared first: the harness reset the food timer and set hunger to 0.3 before each eat. The deltas are therefore not food values (do-not-cite).
+- **The fixture's stock** (GUIDE §§ 5 and 7, cause 1). No container square in reach held both a Food-class item and an item with a fluid container. The pick's fullType regexes matched none of the house's items, so every pick was ranked by distance alone. A row completes only when both of its loots end `done` on its single pick, so on this fixture `completed` read 0 whatever the pick.
+- **The two beside-square defects, one in the driver and one in the Lua** (GUIDE § 7, cause 2). The driver's `beside` and the Lua's `adjacentTo` both keep any neighbour that is not `solid`. In repetition 5 they chose the kitchen stove, a `solidTrans` square that cannot be stood on. The `goto` there failed `stuck`, and both loots failed `not adjacent`, each after 360 ticks with the character unmoved. The state machines reported this correctly.
+- **Clean plumbing.** `gaps` `[]`, `lua_errors` 0, 35 commands acked (GUIDE § 6 and header).
+
+**Pass 2** (`b_actions_2-20261026-194009/b_grade.txt`): `verdict` **NO-GO**.
+
+| Gate | Reading | Pass |
+|---|---|---|
+| Sequences completed | `completed` 2 | false |
+| Failure reasons in the closed set | `reasons_in_set` true | true |
+| Eats seen by the server | `eats_seen_by_server` 5 | true |
+
+`failing_steps`: `goto:no water pick`, `loot:no water pick`, `open:locked`.
+
+- **What changed** (rulings 42 and 44; `b_actions_2-20261026-194009/GUIDE.md`, "How to read it"):
+  - Each repetition takes two picks, one food and one water. The food pick is ranked by the dataset's edible food ids, and the water pick by water-like fullTypes, with `Base.Bleach` excluded.
+  - `beside_free` excludes squares that are `solid`, `solidTrans` or hold a container.
+  - The Lua's `approach` skips `solidTrans` squares (`e1d298d3`).
+  - An r = 25 scan runs when the r = 15 scan lacks a pick.
+- **Pass 1's three failure details are gone** (GUIDE §§ 1 and 4):
+  - `goto`: 13 of 13 ended `done`, none `stuck`.
+  - `loot`: 8 of 8 ended `done`, moving 21 items in all.
+  - Every eat was a looted item, and all 5 were seen by the server.
+  - `drink`: 5 of 5 `consumed`.
+  - Seven of the eight loots were queued from two squares (Chebyshev distance) away, and all of them moved their items.
+  - Two repetitions completed end to end. The second walked about 29 tiles to a neighbouring house for its water.
+- **`open` is live, but its `done` path is not.** Two opens were sent and both failed `locked`, on windows that every scan holding them reads `locked` true. In both rows, the `goto` that followed reached its target by another route (GUIDE § 4), so neither open was needed. This is a defect of the driver's sequence, not of the goal: `door_between` sends `open` on the planned straight line without reading the scan's `locked` flag (GUIDE § 7, cause 2). Row 3 failed on this step alone.
+- **The gate is bound by the fixture.** Within r = 25 the scans saw only 4 water-like items, in 3 squares. A square picked for water is excluded for water afterwards, so at most 3 repetitions can hold a water pick. Rows 4 and 5 had none (GUIDE § 7, cause 1). **With these rules on `agent0`, `completed` cannot reach 4 whatever else goes right.** Food was not the limit: rep 5's wide scan still held 6 food items.
+
+**Budget.** Spec § 4.2 allows 4 passes; **2 of 4 were used**. Ruling 47 stopped Stage B there. A pass 3 would change the measure, not the Lua, in two ways:
+- Send `open` only when a `goto` fails, or skip a window or door the scan reads locked.
+- Either let a water square be picked again while it still holds water, or give the fixture water within reach.
+
+Without the water change, a pass 3 on `agent0` reads `completed` ≤ 3 by construction (GUIDE § 7).
+
+### 7.4 Stage C — survival
+
+Stage C has no gate (spec § 4.3). It ran the scripted policy on the `agent` fixture (Zombies = 5), with a bat spawned and equipped by the harness (`c_grade.txt` `start_kit_armed` true in both runs).
+
+**Run 1** (`c_survive-20261026-183905`).
+
+- **The death.** `c_grade.txt` `outcome` **died**, `survival_s` 407.43744254112244. The character died at `stop.gameMin` 670, 109 game minutes into the loop on a 90-minute day (GUIDE, "The stop").
+  - It died of zombie damage. At the last decision, hunger, thirst and fatigue read 0.062, 0.055 and 0.109 (GUIDE, "The stop").
+  - **No `eat`, `drink` or `sleep` goal was ever sent** (GUIDE § 1).
+- **The loop held.** It ran 795 planner ticks and sent 45 goals, and every goal was acked and seen to end (`decisions_per_min` 6.626784183506872, `ticks_per_min` 117.07318724195474). `lua_errors_max_per_min` was 0, and the server answered 7 of 7 polls (GUIDE § 5).
+- **`loot` worked.** 16 of 21 loots moved items. Three failed `not adjacent` on `solidTrans` neighbours: Stage B pass 1's neighbour rule, recurring live (GUIDE § 3).
+- **`fight` and `flee` ran live for the first time, and neither ever ended `done`** (GUIDE § 3).
+- **The four policy defects**, as ruling 45 names them, with the guide's evidence (GUIDE § 4):
+  1. *No disengage radius* and 2. *no fight/flee hysteresis.* A zombie hovering at the 6-tile `DANGER_R` edge flipped the policy between flee and fight 8 times in 7.6 s.
+  3. *A fight that is never re-evaluated.* Fight 27 stood for 210.1 s while a zombie waited at 2.74 tiles. Endurance fell from 0.951 to 0.318.
+  4. *The pair-of-threats health rule.* The policy held fight 44 against two grabbing zombies until health fell under 40. That fight took health from 74.77 to 39.67 in 33.6 s.
+- **The two Lua defects** (ruling 46; GUIDE § 4):
+  - The `fight` goal only swings within 3 tiles and has no approach step.
+  - The `flee` goal walked: `running` and `sprinting` read false on all 92 of its frames. The two zombies stayed 0.72–1.78 tiles behind it until the death.
+- **An unexplained health fall** (GUIDE § 4). Over game minutes 574–587, health fell from 100 to 74.55 while the character looted, with no zombie within 12 tiles on any frame. The run's files do not show the cause.
+
+**Pass 2** (`c_survive_2-20261026-195516`): the policy at `2715fdae`, the Lua at `704317f9`.
+
+- **What changed** (GUIDE, "How to read it"):
+  - *Hysteresis.* While a fight or flee runs, a zombie counts as a threat within `DISENGAGE_R` 10 tiles instead of 6.
+  - *A stricter pair rule.* With two threats and health under 60, the bot flees (`pair`).
+  - *A turn back to fight* needs a single threat and health of at least 60.
+  - *A stall clock.* A fight flees after 20 s out of reach.
+  - *The fight's approach.* It steps to the held weapon's reach before swinging.
+  - *The flee's run.* It asks to run every tick.
+- **The death, sooner.** `c_grade.txt` `outcome` **died**, `survival_s` 118.99958086013794. The character died at `stop.gameMin` 593, 32 game minutes into the loop.
+  - It died of zombie damage, pinned in the open by three zombies, with needs under 0.02 (GUIDE, "The stop").
+  - The loop ran 230 planner ticks and sent 25 goals (`decisions_per_min` 12.605086414236814, `ticks_per_min` 115.96679501097869). As in run 1, every goal sent was acked and seen to end.
+- **What the fixes changed** (GUIDE §§ 2–4):
+  - **The flap is gone.** The encounter took 5 threat goals, 3 of them superseded, against run 1's 10 superseded threat goals.
+  - **The fight closed.** Fight 23 reached 0.48 tiles within about 2.4 s, and the stall clock never read above 2.0 s. No kill is read, and the frames cannot show a swing.
+  - **The pair rule fled at health 59.93**, where run 1's fight held on down to 39.67.
+- **Fights.** `c_grade.txt` `fights.count` 2, both ending `failed:superseded`. They lasted 0.54 s and 9.14 s, against run 1's 7 fights of 0.6–210.1 s.
+- **What still failed** (GUIDE, conclusion):
+  1. **The disengage radius widened the threat count.** On the tick after the first fight was sent, the count read 3 instead of 1, so the bot fled from a single zombie at 5.23 tiles. Ruling 49 names this the first fix of any third run.
+  2. **The flee is flagged as a run but moves at a walk's pace.** `running` and `sprinting` read true on all 154 flee frames. Yet it moved at 1.588 and 1.402 tiles/s, against 1.591 tiles/s for a `goto` in the same run, and run 1's walking flee read 1.471 tiles/s. The zombies stayed within 0.46–1.54 tiles and pinned the character twice: one `cornered` at health 35.44, and one at the death. The frames do not show what drives the gait.
+  3. **The looting fall recurred exactly** ("The looting fall, traced"):
+     - Health fell from 100 to 74.56 over game minutes 568–578, with no zombie within 8.48 tiles and no window square crossed.
+     - Every drop was a whole multiple of about 0.39.
+     - The fall began at the 37th inventory item, a `Base.Shorts_LongDenim`. Run 1's fall began at the same item count and the same item.
+     - It ended at the same health as run 1's (74.56 here, 74.55 there), after a loss of about 25.4 in each run.
+     - Its cause is not read. The guide names the frame fields that would decide it: per-body-part damage, carried weight against carry capacity, and an encumbrance moodle. It refutes the driver docstring's reading ("looting with its back turned"): this fall came before any zombie came within 8.48 tiles and before any fight was sent.
+- **Both survival runs shared two findings** (`c_survive-20261026-183905/GUIDE.md` § 1, `c_survive_2-20261026-195516/GUIDE.md` § 1):
+  - **The needs were not exercised.** No `eat`, `drink` or `sleep` was sent in either run, so in survival those goals are unread.
+  - **The policy did not count the loot as food.** `world.py`'s `FOOD_RX` puts `\b` after each name, so it misses `Base.CannedMilk`, `Base.TinnedSoup` and `Base.Macandcheese`. The policy's held-food list read `[]` while those items were in the inventory.
+- **The dense run did not run.** Spec § 4.3 runs it only after a run survives, and both runs ended in a death (`c_survive_2-20261026-195516/GUIDE.md` § 6).
+- **Budget.** Spec § 4.3 allows 3 runs; **2 of 3 were used**. Ruling 48 stopped there: a third run without a diagnosed cause for the fall, and without a flee that outpaces the zombies, would read the same.
+
+### 7.5 The cost of the whole loop
+
+| Quantity | Reading | Source |
+|---|---|---|
+| Frame tick mean at 60 Hz (the five measured spans; a mean of a 1 ms clock, not one tick, not the tail) | 0.794 ms over 1800 frames (pass 3: 0.482) | `a_pipe_4-20261026-181848/a_grade_4.txt` `tick_mean_ms_at60`, `tick60_frames` |
+| Frame tick at 5 Hz, idle | p50 1, p99 2, max 3 ms; mean 0.777 | `a_pipe_4-20261026-181848/GUIDE.md` § 2 (`readings.rates.5`) |
+| Per-tick cost across the survival loop at 5 Hz, run 1 | p50 1, p99 2, max 7 ms; mean 0.786 over 2080 frames | `c_survive-20261026-183905/c_grade.txt` `cost_p50`, `cost_p99`, `cost_max`, `cost_n`; mean from `GUIDE.md` § 5 |
+| Per-tick cost across the survival loop at 5 Hz, pass 2 | p50 1, p99 2, max 6 ms; mean 0.845 over 645 frames | `c_survive_2-20261026-195516/c_grade.txt` `cost_*`; mean from `GUIDE.md` § 5 |
+| The tail in the survival loops | run 1: 5 of its 7 frames of 4 ms or more directly follow an `ack`, on the tick that reads a new command and starts its goal (`pollMs` 4–5); pass 2: its one frame over 3 ms (6 ms, `pollMs` 5) likewise | each Stage C `GUIDE.md` § 5 |
+| r = 15 scan, worst tick | 7 ms | `a_pipe_4-20261026-181848/a_grade_4.txt` `scan15_ms_max` |
+| r = 15 scan, latency (walk plus every emit, ungraded) | 117 ms max | `a_grade_4.txt` `scan15_latency_ms_max` |
+| r = 15 and r = 25 scans, ack → done part, client clock | 794–800 ms over 49 ticks, and 2156–2163 ms over 131 ticks | `b_actions_2-20261026-194009/GUIDE.md` § 5 |
+| Ack → first move, p90 | 195 ms (within one to two 100 ms frame periods) | `a_pipe_4-20261026-181848/a_grade_4.txt` `cmd_move_p90_ms` |
+| Bytes written per minute | 88350 at 2 Hz, 220784 at 5 Hz, 442210 at 10 Hz | `a_pipe_4-20261026-181848/GUIDE.md`, "How to read it" (`state_bytes_end − state_bytes_start`) |
+| Planner rate | 117.07 and 115.97 ticks a minute against `PLANNER_HZ` 2 (120 a minute) | each Stage C `c_grade.txt` `ticks_per_min` |
+| Lua errors | 0 in all five runs | `a_grade_4.txt` `lua_errors`; each Stage B `GUIDE.md` § 6; each Stage C `c_grade.txt` `lua_errors_max_per_min` |
+
+The survival loop's goals, scans and nearby zombies left the 5 Hz frame cost where Stage A's idle 5 Hz window put it: the same p50 and p99, and means of 0.777–0.845 ms. Only the tail grew, on goal-start ticks.
+
+### 7.6 Recommendation, restated
+
+**Go-with-changes, as a tool for driving a character in a test. Not yet as a survival agent.**
+- **The pipe holds.** Across the eight boots of Plans 21 and 21b the link read 0 gaps and 0 Lua errors, in append mode wherever a guide reads the mode (§ 1; § 7.5; the Stage B guides' § 6; the Stage C guides' gapless `state.log`).
+- **The ack-to-walk responds within one to two frame periods.**
+- **The mean frame cost stays under 1 ms**, measured with the run unable to tell its own Lua from the host.
+- **Four goals do their job live:** `goto`, `loot`, `eat` and `drink` (§ 7.3). An eat lands on the server every time.
+- **These are what a nutrition-mod test would drive.**
+- **Survival is the open part.** The scripted bot died twice, both times to the goal layer's combat (a flee no faster than a walk) and to one policy rule, and once more to a health fall the frames cannot name.
+
+**Spike D** (an LLM planning over `summary.py`'s view) is **still not worth running**. A baseline now exists, 407.4 s and 109 game minutes of loop in run 1 and 119.0 s and 32 game minutes in pass 2 (each Stage C `c_grade.txt` `survival_s`; `stop.gameMin` 670 and 593). But the two deaths were decided mostly below the planner (the one policy defect, ruling 49, is the exception):
+- the flee cannot outpace the zombies;
+- the ~25-point looting fall precedes any choice an LLM would make.
+
+An LLM choosing among the same goals would meet the same floor. The needs, the part of survival a nutrition mod cares about, were never exercised. Revisit spike D once a scripted run lives long enough to send `eat`, `drink` and `sleep`.
+
+**The next changes, in order of value:**
+
+| # | Change | Size |
+|---|---|---|
+| 1 | **Trace the looting fall.** Add per-body-part damage, carried weight against carry capacity, and an encumbrance flag to the frame (the fields `c_survive_2-20261026-195516/GUIDE.md`, "The looting fall, traced", names). | A `PZAgent_Sense.lua` change and its offline tests; read on the next Stage C run. Each new member is checked in the jar first. |
+| 2 | **Make the flee outpace a walk.** The run flags are set and the pace is a walk's; the frames do not say what drives the gait. | A jar read first, then a Lua change and its tests. |
+| 3 | **Fix `DISENGAGE_R` widening the threat count** (ruling 49): the hold uses 10 tiles, and the count rules keep 6. | A `policy.py` edit and its tests. |
+| 4 | **Fix `FOOD_RX`** so that `CannedMilk`, `TinnedSoup` and `Macandcheese` count as held food. Without it the `need` branch cannot eat what the loot brought back. | A `world.py` regex and its tests. |
+| 5 | **The third Stage C run**, after 1–4: the last of the spec's 3 runs. | One detached session of up to about 95 minutes. |
+| 6 | **Stage B pass 3**, if Angus wants the completion gate itself: `open` only when a `goto` fails or the scan reads the window unlocked, plus either a re-pickable water square or a stocked fixture. | A driver change and one session of about 6 minutes (ruling 47). |
+| 7 | **Measure the scan tail before any fallback**: for example, emit fewer bytes per square, or probe a single write's cost by line size. | A Lua constant or a probe, then one Stage A session. |
+
+**The JVM fallback's status.** Its condition is met, because the 20-square pass failed its scan gate (§ 7.2). It is **not recommended**. The failing cost is a client-side stutter on a few ticks of an r = 15 scan, and no artifact measures a socket, a JVM agent or a server-side scan. Change 7 would decide whether the stutter needs one.
+
+### 7.7 Decisions taken
+
+Plan 21b's rulings, verbatim, are appended to § 5 as items 35–49: the four P21b rulings from the plan file, then the ledger's `Ruling:` lines in order.
 
 Model: claude-opus-5-5
