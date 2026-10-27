@@ -19,13 +19,30 @@ function MO.want(gait)
     MO.wantSprint = gait == "sprint"
 end
 
--- every skill's end: both latches and the auto-walk cleared on the player, and the wants dropped so the handler
--- asserts nothing more
+MO.offErrors = MO.offErrors or 0
+
+-- one setter written false under pcall: nil when it ran (or is absent), else the raise's message
+local function clear(p, name)
+    local ok, err = pcall(PZA.call, p, name, false)
+    if ok then return nil end
+    return tostring(err)
+end
+
+-- every skill's end: the wants dropped so the handler asserts nothing more, then both latches and the auto-walk cleared
+-- on the player, each setter under its own pcall (ruling S-15: a raising Java member inside a present one is a supported
+-- fault), so a raise never leaves the next setter untried. Answers the raises caught, counted in MO.offErrors, and the
+-- last one's message (the runner counts them in K.errors).
 function MO.off(p)
     MO.wantRun, MO.wantSprint = false, false
-    PZA.call(p, "setForceRun", false)
-    PZA.call(p, "setForceSprint", false)
-    PZA.call(p, "setAutoWalk", false)
+    local n, last = 0, nil
+    local e1 = clear(p, "setForceRun")
+    local e2 = clear(p, "setForceSprint")
+    local e3 = clear(p, "setAutoWalk")
+    if e1 ~= nil then n, last = n + 1, e1 end
+    if e2 ~= nil then n, last = n + 1, e2 end
+    if e3 ~= nil then n, last = n + 1, e3 end
+    MO.offErrors = MO.offErrors + n
+    return n, last
 end
 
 -- the member's answer, or nil when it is absent

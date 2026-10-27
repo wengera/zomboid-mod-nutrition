@@ -65,6 +65,24 @@ def test_off_clears_the_latches_once_and_stops_the_asserts(lua):
     assert len(p.sets) == 3
 
 
+def boom(*a):
+    raise RuntimeError("java raised")
+
+
+def test_off_guards_each_setter_so_a_raising_one_leaves_the_others_cleared_and_is_counted(lua):
+    """Fix wave M1: MO.off owns the per-setter guard (S-15) the runner's offSafely duplicated."""
+    load(lua)
+    p = make_player()
+    lua.execute("PZA.motor.want('sprint')")
+    p.setForceRun = boom
+    n, err = lua.eval("PZA.motor.off")(p)
+    assert p.sets == [("setForceSprint", False), ("setAutoWalk", False)]
+    assert n == 1 and "java raised" in err and lua.eval("PZA.motor.offErrors") == 1
+    assert lua.eval("PZA.motor.wantRun") is False and lua.eval("PZA.motor.wantSprint") is False
+    p2 = make_player()
+    assert lua.eval("PZA.motor.off")(p2)[0] == 0 and lua.eval("PZA.motor.offErrors") == 1
+
+
 def test_the_reads_land_after_the_asserts_and_an_absent_member_leaves_nil(lua):
     load(lua)
     p = make_player()

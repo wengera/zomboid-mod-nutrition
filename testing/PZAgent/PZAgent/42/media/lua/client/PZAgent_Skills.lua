@@ -133,17 +133,10 @@ local function emitAct(p, aid, typ, state, reason, result)
     PZA.emit("act", body)
 end
 
--- MO.off with each of its setters under pcall (S-15): the wants dropped, then every setter in OFF_SETTERS tried whatever
--- the one before it did, each raise counted; the setters are MO.off's (PZAgent_Motor.lua), kept in step with it
-K.OFF_SETTERS = { "setForceRun", "setForceSprint", "setAutoWalk" }
-local function offSafely(p)
-    MO.want("walk")
-    for _, name in ipairs(K.OFF_SETTERS) do safely(PZA.call, p, name, false) end
-end
-
 -- the running skill's end: the runner idle, its act line, the latches off; a failure also clears the vanilla queue, and
 -- a failure with no reason is interrupted (a failed line never carries an empty reason). The runner goes idle first and
--- every read and setter after it is guarded (S-15), so a raise at a skill's end never leaves K.cur set or a latch untried.
+-- every read and setter after it is guarded (S-15: K.snapshot's reads here, each setter in MO.off), so a raise at a
+-- skill's end never leaves K.cur set or a latch untried; MO.off's caught raises are counted in K.errors.
 local function finish(p, cur, state, reason, result)
     K.cur = nil
     if state == "failed" then
@@ -151,7 +144,11 @@ local function finish(p, cur, state, reason, result)
         if reason == nil or reason == "" then reason = "interrupted" end
     end
     emitAct(p, cur.aid, cur.type, state, reason, result)
-    offSafely(p)
+    local n, err = MO.off(p)
+    if n > 0 then
+        K.errors = K.errors + n
+        K.lastError = err
+    end
 end
 
 -- a command from the Link's poll; it emits, and returns nothing the caller needs. A command with an empty aid is

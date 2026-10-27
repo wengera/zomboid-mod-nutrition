@@ -1458,10 +1458,9 @@ def test_a_raise_at_a_superseded_end_still_starts_the_new_skill(lua, fs):
     assert lua.eval("PZA.skills.cur.aid") == "a2" and lua.eval("PZA.skills.errors") == 1
 
 
-def test_the_off_setters_are_the_motors(lua):
+def test_the_runner_ends_through_mo_off_and_keeps_no_setter_list_of_its_own(lua):
+    """Fix wave M1: MO.off owns the per-setter guard; the runner's offSafely and K.OFF_SETTERS are gone."""
     load(lua)
-    src = open(lua_file("client/PZAgent_Motor.lua"), encoding="utf-8").read()
-    off = src[src.index("function MO.off(p)"):]
-    off = off[:off.index("\nend")]
-    names = re.findall(r'PZA\.call\(p, "(\w+)", false\)', off)
-    assert names == [name for name, _ in OFF] == list(lua.eval("PZA.skills.OFF_SETTERS").values())
+    src = open(lua_file("client/PZAgent_Skills.lua"), encoding="utf-8").read()
+    assert "offSafely" not in src and "OFF_SETTERS" not in src and "MO.off(p)" in src
+    assert lua.eval("PZA.skills.OFF_SETTERS") is None
