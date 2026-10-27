@@ -23,7 +23,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   the nearest stays beyond FIGHT_REACH; a running fight turns to flee only on the flee conditions or its stall
   (`Fight.stalled`: the nearest beyond FIGHT_REACH for more than FIGHT_MAX_S unbroken seconds), never because a
   threat count dropped. The flee steers from the held threats' centroid.
-- `need`: thirst > THIRST_T consumes the held item of least id whose fullType matches WATER_RX, else marks `water`;
+- `need`: while its own `Consume` is current it holds, before any threshold is read (a frame that already reads the
+  drink's effect must not let a lower branch supersede it); else thirst > THIRST_T consumes the held item of least id whose fullType matches WATER_RX, else marks `water`;
   then hunger > HUNGER_T consumes a held FOOD_RX item, else marks `food`; nothing held, the branch passes and
   `forage` loots for the mark (`all` with none) through `LootHouse`, which never loots at load level 3 and drops
   down to 2 (spec § 9 (1)). `explore` scans each new place and walks to the unexplored edge.
@@ -38,7 +39,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
 import json
 import time
 
-from agent.base.planner.policies import FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Explore, Fight, Flee, LootHouse, zdist
+from agent.base.planner.policies import (FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Explore, Fight, Flee, LootHouse,
+                                         item_id_ok, zdist)
 from agent.base.pza1 import Consume
 from agent.base.world import FOOD_RX, WATER_RX
 
@@ -101,7 +103,7 @@ class Survive:
 
     def _held_item(self, rx):
         ids = [i for i, it in self.world.inventory.items()
-               if isinstance(i, int) and not isinstance(i, bool) and rx.search(it.get("fullType") or "")]
+               if item_id_ok(i) and rx.search(it.get("fullType") or "")]
         return min(ids) if ids else None
 
     def _flee_reason(self, held, n):
@@ -155,10 +157,13 @@ class Survive:
         if want == "flee":
             policy.threats = held
         ans = self._answer(policy)
-        self.why = {"fight": True} if reason is None else {"flee": reason}
+        self.why.update({"fight": True} if reason is None else {"flee": reason})
         return ans if ans is not None else (policy, None)
 
     def _need(self):
+        if self.need_last is not None and self.actions.current is self.need_last:
+            self.why = {"holding": self.need_last.aid}   # hold first: a frame past the drink must not supersede it
+            return None, None
         st = self.world.stats or {}
         pick = None
         if (st.get("thirst") or 0.0) > THIRST_T:
@@ -172,9 +177,6 @@ class Survive:
         self.why = {"item": pick, "mark": self.need_mark}
         if pick is None:
             return None
-        if self.need_last is not None and self.actions.current is self.need_last:
-            self.why["holding"] = self.need_last.aid
-            return None, None
         return None, Consume(pick)
 
     def _forage(self):

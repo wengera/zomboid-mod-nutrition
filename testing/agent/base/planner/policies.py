@@ -23,8 +23,9 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
 - `Flee`: a `Steer` of `FLEE_S` seconds along the unit vector from the threats' centroid through the player (the
   `threats` list its caller passes, else every zombie the World holds), at a sprint when the nearest is within
   `SPRINT_R`, else a run; re-aimed on every end of its steer. A player standing on the centroid steers along +x.
-- `Explore`: a `Scan(SCAN_R)` once per place (the player's square rounded to `SCAN_R` tiles, kept in `scanned` when
-  the scan is sent), then a `WalkTo` at a walk to `world.unexplored_edge()`; no edge, no command.
+- `Explore`: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
+  `scanned` from its send and dropped again when the scan ends other than `done`, so a pre-empted, timed-out or
+  rejected scan is retried), then a `WalkTo` at a walk to `world.unexplored_edge()`; no edge, no command.
 - `LootHouse`: below load level `LOAD_STOP` an `Interact(x, y, "loot", want)` at `world.nearest_unlooted(want)` (any
   container for `want="all"`), every container on that square marked looted when the interact ends, done, failed,
   rejected or timed out, except a `failed "superseded"`, which a newer send replaced before it ran (Plan 21 lost such
@@ -57,6 +58,11 @@ WEAPON_RX = re.compile(r"\.(BaseballBat|Hammer|Axe|Crowbar|Knife|Pan|Pistol|Shot
 def me_xy(world):
     me = world.me or {}
     return me.get("x") or 0.0, me.get("y") or 0.0
+
+
+def item_id_ok(iid):
+    """An inventory key usable as a command's itemId: an int, not a bool."""
+    return isinstance(iid, int) and not isinstance(iid, bool)
 
 
 def zdist(world, z):
@@ -187,11 +193,21 @@ class Flee(Policy):
 class Explore(Policy):
     def __init__(self, world, actions, clock=time.time):
         super().__init__(world, actions, clock)
-        self.scanned = set()   # the places scanned from
+        self.scanned = set()   # the places scanned from, or with a scan still running
+        self._scan = None      # (place, Action) of the last scan sent, until it ends
 
     def place(self):
+        """The player's square on a uniform SCAN_R grid (half up, never Python's half-even round)."""
         mx, my = me_xy(self.world)
-        return int(round(mx / SCAN_R)) * SCAN_R, int(round(my / SCAN_R)) * SCAN_R
+        return int(math.floor(mx / SCAN_R + 0.5)) * SCAN_R, int(math.floor(my / SCAN_R + 0.5)) * SCAN_R
+
+    def observe(self):
+        if self._scan is None or not self.actions.done(self._scan[1]):
+            return
+        place, a = self._scan
+        self._scan = None
+        if a.state != "done":
+            self.scanned.discard(place)
 
     def choose(self):
         place = self.place()
@@ -207,6 +223,7 @@ class Explore(Policy):
     def sent(self, cmd, action):
         if cmd.TYPE == "scan":
             self.scanned.add(self.place())
+            self._scan = (self.place(), action)
 
 
 class LootHouse(Policy):
@@ -237,7 +254,7 @@ class LootHouse(Policy):
         best = None
         for iid, it in self.world.inventory.items():
             ft = it.get("fullType") or ""
-            if not isinstance(iid, int) or isinstance(iid, bool):
+            if not item_id_ok(iid):
                 continue
             if ft == wielded or WEAPON_RX.search(ft) or FOOD_RX.search(ft) or WATER_RX.search(ft):
                 continue

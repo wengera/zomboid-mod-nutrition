@@ -67,10 +67,11 @@ def test_threat_ignores_a_zombie_beyond_danger_r(tmp_path):
     assert last(tmp_path)["branch"] != "threat"
 
 
-def test_a_threat_engaged_at_six_tiles_holds_beyond_six_within_ten(tmp_path):
+@pytest.mark.parametrize("engage", [5.5, 6.0])           # 6.0: the `<= DANGER_R` boundary
+def test_a_threat_engaged_at_six_tiles_holds_beyond_six_within_ten(tmp_path, engage):
     r, sv = make(tmp_path)
     r.scan([square(101, 200, containers=[CRATE])])
-    r.frame(zombies=[zombie(1, 105.5, 200.0)])
+    r.frame(zombies=[zombie(1, 100.0 + engage, 200.0)])
     tick(r, sv)
     assert r.cmd()[0] == "walkTo" and last(tmp_path)["branch"] == "threat"
     r.answer()
@@ -151,7 +152,8 @@ def test_a_running_flee_turns_to_fight_only_with_one_threat_and_a_health_margin(
     r.answer()
     r.frame(zombies=three[:1], health=74.0)
     tick(r, sv)
-    assert r.cmd() == ("walkTo", {"x": 103, "y": 200, "gait": "run"}) and threat_why(tmp_path) == {"fight": True}
+    assert r.cmd() == ("walkTo", {"x": 103, "y": 200, "gait": "run"})
+    assert threat_why(tmp_path) == {"fight": True, "target": 1, "dist": 3.0, "approach": False}
 
 
 def test_a_running_fight_turns_to_flee_only_on_the_flee_conditions(tmp_path):
@@ -200,7 +202,8 @@ def test_a_stalled_fights_flee_is_held_until_the_zombie_closes(tmp_path):
     r.answer()
     r.frame(zombies=[zombie(1, 101.5, 200.0)])
     tick(r, sv)
-    assert r.cmd() == ("attack", {"targetId": 1}) and threat_why(tmp_path) == {"fight": True}
+    assert r.cmd() == ("attack", {"targetId": 1}) and threat_why(tmp_path)["fight"] is True
+    assert "flee" not in threat_why(tmp_path)
 
 
 def test_the_log_line_carries_mode_and_fight_s(tmp_path):
@@ -249,6 +252,32 @@ def test_need_consumes_a_held_water_bottle_by_id_when_thirsty_then_food(tmp_path
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 702})
     all_sends_valid(r)
+
+
+def test_need_holds_its_running_consume_before_reading_the_thresholds(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan([square(101, 200, containers=[CRATE])])
+    r.event("item_added", itemId=701, fullType="Base.WaterBottleFull", weight=1.0)
+    r.frame(thirst=0.6)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 701})
+    r.frame(thirst=0.4)                                      # the drink already reads, the consume still current
+    assert tick(r, sv) is None
+    d = last(tmp_path)
+    assert d["branch"] == "need" and d["sent"] is False and d["action"] is None
+    assert [a.type for a in r.acts.history] == ["consume"]
+    r.answer({"state": "done", "result": {"itemId": 701}})
+    r.frame(thirst=0.4)
+    tick(r, sv)
+    assert r.cmd()[0] == "interact" and last(tmp_path)["branch"] == "forage"
+
+
+def test_the_threat_inputs_reach_the_log(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zombie(1, 103.0, 200.0), zombie(2, 103.0, 202.0)], weapon=None)
+    tick(r, sv)
+    why = threat_why(tmp_path)
+    assert why["flee"] == "unarmed" and why["centroid"] == [103.0, 201.0] and why["nearest"] == 3.0
 
 
 def test_need_marks_food_and_falls_through_to_forage_for_it(tmp_path):

@@ -252,6 +252,45 @@ def test_explore_scans_once_at_a_place_then_walks_to_the_unexplored_edge(tmp_pat
     all_sends_valid(r)
 
 
+@pytest.mark.parametrize("end", [{"state": "failed", "reason": "superseded"}, {"state": "failed", "reason": "dead"},
+                                 "rejected"])
+def test_a_scan_that_ends_other_than_done_is_retried(tmp_path, end):
+    r = Rig(tmp_path)
+    r.frame()
+    e = Explore(r.world, r.acts, r.clock)
+    e.step()
+    assert r.cmd() == ("scan", {"r": 10})
+    assert e.step() is None                                  # running: not re-sent
+    if end == "rejected":
+        r.fake.act(r.acts.history[-1].aid, "rejected", "scan", reason="not loaded")
+        r.pump()
+    else:
+        r.answer(end)
+    e.step()
+    assert r.cmd() == ("scan", {"r": 10}) and [a.type for a in r.acts.history] == ["scan", "scan"]
+    r.answer()
+    e.step()
+    assert [a.type for a in r.acts.history] == ["scan", "scan"]   # done: the place is scanned, no edge yet
+
+
+def test_a_scan_that_times_out_is_retried(tmp_path):
+    r = Rig(tmp_path)
+    r.frame()
+    e = Explore(r.world, r.acts, r.clock)
+    e.step()
+    r.advance(31.0)                                          # past the default 30 s deadline
+    r.frame()
+    e.step()
+    assert r.acts.history[0].state == "timeout" and [a.type for a in r.acts.history] == ["scan", "scan"]
+
+
+@pytest.mark.parametrize("x, place", [(105.0, 110), (115.0, 120), (104.9, 100), (114.9, 110)])
+def test_a_place_is_a_uniform_half_up_grid(tmp_path, x, place):
+    r = Rig(tmp_path)
+    r.frame(x=x, y=x + 100.0)
+    assert Explore(r.world, r.acts, r.clock).place() == (place, place + 100)
+
+
 def test_explore_with_no_edge_sends_nothing(tmp_path):
     r = Rig(tmp_path)
     r.frame()
