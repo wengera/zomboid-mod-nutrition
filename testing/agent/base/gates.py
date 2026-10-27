@@ -168,3 +168,57 @@ def gate_x4(out):
             "verdict": "GO" if all(g["ok"] for g in gates.values()) else "NO-GO",
             "sidecar_trigger": trigger, "emit_mean_ms": mean, "emit_worst_ms": worst, "emit_frames": n,
             "sidecar_thresholds": {"mean_ms": SIDECAR_MEAN_MS, "worst_ms": SIDECAR_WORST_MS}}
+
+
+# ================================================================ X5: a measurement, no gate
+AGREE_TOL = 0.5      # a zombie's health: the client's copy agrees with the server's within this
+
+
+def _share(k, n):
+    return k / n if n else None
+
+
+def measure_x5(out):
+    """X5's report (spec § 10: a measurement with pass lines, no gate; no verdict), off
+    `testing/agent/drivers/x5_combat.py`'s artifact, readings.encounters.rows (a voided encounter's row has no swings):
+
+      attack_started_share     over the swings (attack actions) ended `done`: {share, started, n}, `started` those whose
+                               result.attackStarted is true.
+      melee_delay              {min, p50, max, n} over the done swings' numeric result.meleeDelay (p50 nearest-rank).
+      client_server_agreement  over the swings whose pair_void is false: {share, agree, n, voided, tol}, `agree` those
+                               with |pair_after.client_health - pair_after.server_health| <= AGREE_TOL (the client's
+                               copy of the zombie's health in the frame nearest the server's read, within the
+                               driver's PAIR_SLACK_S); `voided` the swings whose pair_void is not false.
+      loop_ms                  {p50, p90, n} over the encounters' loop_ms (the first action's accept minus the first
+                               sight, the client's clock).
+      kills                    {n, per_encounter [killed, None for a voided encounter]}.
+      health_lost              per encounter: body.health at the first sight minus at the end.
+      server_tags              per encounter: the server's damage.watch per-tag rise.
+      encounters               {n, voided}; stop: the driver's out["stop"].
+    """
+    rows = ((out.get("readings") or {}).get("encounters") or {}).get("rows")
+    rows = [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else []
+    swings = [s for r in rows if not r.get("void") for s in r.get("swings") or () if isinstance(s, dict)]
+    done = [s for s in swings if s.get("state") == "done"]
+    started = sum(1 for s in done if isinstance(s.get("result"), dict) and s["result"].get("attackStarted") is True)
+    delays = [_num(s["result"].get("meleeDelay")) for s in done if isinstance(s.get("result"), dict)]
+    delays = sorted(d for d in delays if d is not None)
+    kept = [s.get("pair_after") or {} for s in swings if s.get("pair_void") is False]
+    diffs = [(_num(p.get("client_health")), _num(p.get("server_health"))) for p in kept]
+    agree = sum(1 for c, s in diffs if c is not None and s is not None and abs(c - s) <= AGREE_TOL)
+    loops = [v for v in (_num(r.get("loop_ms")) for r in rows if not r.get("void")) if v is not None]
+    return {
+        "measure": "measure_x5",
+        "attack_started_share": {"share": _share(started, len(done)), "started": started, "n": len(done)},
+        "melee_delay": {"min": delays[0] if delays else None, "p50": pct(delays, 50),
+                        "max": delays[-1] if delays else None, "n": len(delays)},
+        "client_server_agreement": {"share": _share(agree, len(kept)), "agree": agree, "n": len(kept),
+                                    "voided": len(swings) - len(kept), "tol": AGREE_TOL},
+        "loop_ms": {"p50": pct(loops, 50), "p90": pct(loops, 90), "n": len(loops)},
+        "kills": {"n": sum(1 for r in rows if r.get("killed") is True),
+                  "per_encounter": [None if r.get("void") else r.get("killed") for r in rows]},
+        "health_lost": [r.get("health_lost") for r in rows],
+        "server_tags": [r.get("server_tags") for r in rows],
+        "encounters": {"n": len(rows), "voided": sum(1 for r in rows if r.get("void"))},
+        "stop": out.get("stop"),
+    }
