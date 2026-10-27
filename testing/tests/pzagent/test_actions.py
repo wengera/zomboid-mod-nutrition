@@ -44,6 +44,8 @@ def test_send_writes_the_typed_command(tmp_path):
     Attack(True),
     Scan("5"),
     Interact(1, 2.5, "open"),
+    WalkTo(float("nan"), 2),
+    Steer(float("inf"), 0.0, 1.0),
 ])
 def test_a_bad_field_raises_type_error_before_any_write(tmp_path, cmd):
     _, tr, acts, _ = rig(tmp_path)
@@ -160,3 +162,30 @@ def test_terminal_states_and_the_fake_rejects_nothing_actions_sends(tmp_path):
         m.answer()
         acts.pump(tr.lines())
         assert a.state == "done", (cmd, a.reason)
+
+
+def test_a_second_accepted_neither_moves_acked_wall_nor_regresses_the_state(tmp_path):
+    m, tr, acts, t = rig(tmp_path)
+    a = acts.send(WalkTo(1, 2))
+    t["now"] = 1001.0
+    m.answer({"walkTo": ["accepted", "progress"]})
+    acts.pump(tr.lines())
+    assert (a.state, a.acked_wall) == ("progress", 1001.0)
+    t["now"] = 1002.0
+    m.act("a1", "accepted", "walkTo")
+    acts.pump(tr.lines())
+    assert (a.state, a.acked_wall) == ("progress", 1001.0)
+
+
+def test_an_act_after_done_counts_late_and_changes_nothing(tmp_path):
+    m, tr, acts, t = rig(tmp_path)
+    a = acts.send(Scan(4))
+    t["now"] = 1001.0
+    m.answer()
+    acts.pump(tr.lines())
+    assert (a.state, a.result, a.ended_wall) == ("done", {}, 1001.0)
+    t["now"] = 1002.0
+    m.act("a1", "done", "scan", result={"n": 9})
+    acts.pump(tr.lines())
+    assert (a.state, a.result, a.ended_wall) == ("done", {}, 1001.0)
+    assert acts.late_acts == 1 and acts.unknown_acts == 0

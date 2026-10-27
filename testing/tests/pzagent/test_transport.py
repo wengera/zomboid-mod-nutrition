@@ -137,6 +137,17 @@ def test_a_full_frame_replaces_the_running_frame(tmp_path):
     assert [l["stats"]["pain"] for l in got] == [0.5, 0.5, 0, 0]
 
 
+def test_a_returned_frame_is_a_copy_of_the_running_frame(tmp_path):
+    m, tr, _ = pair(tmp_path)
+    m.frame()
+    (f1,) = tr.lines()
+    f1["me"]["x"] = -1.0
+    f1["body"]["parts"].append({"i": 0, "h": 1.0})
+    m.frame()                                               # a delta, me and body elided
+    (f2,) = tr.lines()
+    assert f2["me"]["x"] == 100 and f2["body"]["parts"] == []
+
+
 # -- tailing (Plan 21's cases) ----------------------------------------------------------------------------------------
 
 def test_tail_in_order_with_gaps_and_partial(tmp_path):
@@ -189,8 +200,11 @@ def test_an_unknown_kind_or_a_bad_shape_counts_bad_without_raising(tmp_path):
     m.raw(json.dumps(["ack", 4]) + "\n")
     m.raw("[]\n")
     m.raw("7\n")
-    assert tr.lines() == []
-    assert tr.bad == 6
+    m.raw('{"kind":"event","event":[1],"seq":1,"tick":0,"wallMs":0,"gameMin":0}\n')   # a TypeError in decode
+    m.seq = 4
+    m.hello()                                                         # a good line later in the same read
+    assert [(l["kind"], l["seq"]) for l in tr.lines()] == [("hello", 5)]
+    assert tr.bad == 7
 
 
 def test_stray_state_file_names_are_ignored(tmp_path):
@@ -243,6 +257,18 @@ def test_send_refuses_a_bad_envelope_before_any_write(tmp_path):
         except ValueError:
             pass
     assert not os.path.exists(tmp_path / "cmd.txt") and tr.cmd_seq == 0
+
+
+def test_send_refuses_a_non_finite_number_before_any_write(tmp_path):
+    _, tr, _ = pair(tmp_path)
+    for x in (float("nan"), float("inf")):
+        try:
+            tr.send({"seq": 1, "aid": "a1", "type": "walkTo", "args": {"x": x, "y": 2, "gait": "walk"}})
+            assert False, x
+        except ValueError:
+            pass
+    assert not os.path.exists(tmp_path / "cmd.txt") and not os.path.exists(tmp_path / "cmd.txt.tmp")
+    assert tr.cmd_seq == 0
 
 
 def test_file_transport_satisfies_the_protocol(tmp_path):

@@ -8,8 +8,9 @@ a positional kind, a dict a keyed one); a line that fails either is counted in `
 The delta rule (ruling S-6): the Lua elides a frame group equal to the last one it sent, so the transport keeps one
 running merged frame. A full frame (no group elided) replaces it; a delta frame is merged into it with
 `pza1.merge_delta` and becomes it. A delta before any full frame has no base: it counts in `bad` and is dropped.
-`lines()` returns full frames only; `SAME` never leaves the transport.
+`lines()` returns full frames only, each a deep copy (a caller may mutate it); `SAME` never leaves the transport.
 """
+import copy
 import json
 import os
 import re
@@ -69,7 +70,7 @@ class FileTransport:
                 continue
             try:
                 line = pza1.decode(json.loads(raw.decode("utf-8")))
-            except ValueError:      # JSONDecodeError and UnicodeDecodeError are ValueErrors
+            except (ValueError, TypeError):  # bad JSON or UTF-8 (ValueErrors), a value of the wrong type in decode
                 line = None
             if line is not None and _is_seq(line.get("seq")):
                 out.append(line)
@@ -109,7 +110,7 @@ class FileTransport:
                 if l is None:
                     self.bad += 1
                     continue
-            out.append(l)
+            out.append(copy.deepcopy(l) if l["kind"] == "frame" else l)
         if out:
             self.last_line_wall = self.clock()
         return out
@@ -120,7 +121,7 @@ class FileTransport:
             raise ValueError("PZA/1 cmd: want the keys %s, got %r" % (sorted(CMD_KEYS), cmd))
         if not _is_seq(cmd["seq"]) or cmd["seq"] <= self.cmd_seq:
             raise ValueError("PZA/1 cmd: seq %r is not above %d" % (cmd["seq"], self.cmd_seq))
-        text = json.dumps(cmd, sort_keys=True) + "\n"
+        text = json.dumps(cmd, sort_keys=True, allow_nan=False) + "\n"
         tmp = os.path.join(self.dir, "cmd.txt.tmp")
         with open(tmp, "w", encoding="utf-8", newline="\n") as f:
             f.write(text)

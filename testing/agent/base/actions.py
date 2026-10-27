@@ -8,6 +8,7 @@ from `sent_wall` goes `timeout`, once. The terminal states are final: a late act
 Actions knows the transport's seam only, never its files.
 """
 import dataclasses
+import math
 import time
 from typing import Any, Optional
 
@@ -37,7 +38,7 @@ def _ok(kind, v):
     if kind == "int":
         return isinstance(v, int) and not isinstance(v, bool)
     if kind == "float":
-        return isinstance(v, (int, float)) and not isinstance(v, bool)
+        return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
     if kind == "str":
         return isinstance(v, str)
     return isinstance(v, str) and v in _ENUMS[kind]
@@ -107,8 +108,10 @@ class Actions:
         if l.get("snapshot") is not None:
             a.snapshot = l["snapshot"]
         if state == "accepted":
-            a.state = state
-            a.acked_wall = now
+            if a.state == "sent":
+                a.state = state
+            if a.acked_wall is None:
+                a.acked_wall = now
         elif state == "progress":
             a.state = state
             a.progress.append(l)
