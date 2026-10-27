@@ -10,7 +10,6 @@ import json
 import math
 import os
 import copy
-import re
 import types
 
 import pytest
@@ -19,14 +18,12 @@ from agent import grades as G
 from agent.drivers import b_actions as D
 from agent.drivers import b_grade as BG
 from agent.link import Link
-from agent.reasons import DONE, REASONS
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-ACT_LUA = os.path.join(REPO, "testing", "PZAgent", "PZAgent", "42", "media", "lua", "client", "PZAgent_Act.lua")
 X = D.X
 
 
-# ================================================================ static: refusal, constants, the closed reason set
+# ================================================================ static: refusal, constants
 def test_the_driver_refuses_arguments_before_main():
     with open(D.__file__, encoding="utf-8") as fh:
         src = fh.read()
@@ -46,39 +43,6 @@ def test_the_constants_name_the_drivers_own_file_and_profile():
     assert D.GOAL_TIMEOUT_S == 60.0 and D.EAT_POLL_S == 5.0 and D.EAT_POLL_MAX_S == 60.0
     assert dict(D.SPAWN) == {"Base.WaterBottle": D.SEQUENCES, "Base.Apple": D.SEQUENCES}
     assert D.EAT_HUNGER == 0.3 and not hasattr(D, "WATER_PREFIX_RX") and not hasattr(D, "water_like")
-
-
-def act_src():
-    with open(ACT_LUA, encoding="utf-8") as fh:
-        return fh.read()
-
-
-def test_reasons_equal_the_act_headers_reasons_line():
-    lines = [ln for ln in act_src().splitlines() if ln.startswith("-- reasons:")]
-    assert len(lines) == 1
-    header = {r.strip() for r in lines[0][len("-- reasons:"):].split("|")}
-    assert header == set(REASONS)
-
-
-def test_every_failed_detail_the_act_file_sets_is_in_the_set():
-    found = set(re.findall(r'(?:"failed",\s*|failWalk\(p, g, )"([^"]+)"', act_src()))
-    assert found and found <= REASONS, found - REASONS
-
-
-def test_done_equals_the_act_headers_done_line_and_every_done_detail_is_in_it():
-    lines = [ln for ln in act_src().splitlines() if ln.startswith("-- done:")]
-    assert len(lines) == 1
-    header = {r.strip() for r in lines[0][len("-- done:"):].split("|")}
-    assert header == set(DONE)
-    found = set(re.findall(r'"done",\s*"([^"]+)"', act_src()))
-    assert found == set(DONE), found ^ set(DONE)
-
-
-def test_no_failed_pair_uses_a_done_detail_and_no_done_pair_a_failed_one():
-    src = act_src()
-    failed = set(re.findall(r'(?:"failed",\s*|failWalk\(p, g, )"([^"]+)"', src))
-    done = set(re.findall(r'"done",\s*"([^"]+)"', src))
-    assert not (failed & DONE) and not (done & REASONS) and not (DONE & REASONS)
 
 
 # ================================================================ gate_b

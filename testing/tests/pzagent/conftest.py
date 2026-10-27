@@ -78,8 +78,42 @@ MOODLE_NAMES = ("HUNGRY", "THIRST", "TIRED", "ENDURANCE", "PANIC", "PAIN", "INJU
                 "HEAVY_LOAD")
 
 
+FOODS = ("Base.Bread", "Base.Apple", "Base.CannedBeans", "Base.Crisps")
+
+
+def make_fluid(amount=0.5, poison=False, clean=True):
+    """A fluid container whose amount is fc.st["amount"] (a drink lowers it)."""
+    st = {"amount": amount}
+    fc = J(getAmount=lambda s: st["amount"], isEmpty=lambda s: st["amount"] <= 0, isPoisonous=lambda s: poison,
+           isFilledWithCleanWater=lambda s: clean)
+    fc.st = st
+    return fc
+
+
+def make_item(ft, iid, food=()):
+    """An inventory item of full type ft and id iid: IsFood true for a name in FOODS or `food`, a fluid container for a
+    name holding Bottle (clean water) or Bleach (poisonous), never a two-hand weapon, weight 1.0."""
+    is_food = ft in FOODS or ft in food
+    fc = make_fluid() if "Bottle" in ft else make_fluid(poison=True, clean=False) if "Bleach" in ft else None
+    return J(getFullType=lambda s: ft, getID=lambda s: iid, getWeight=lambda s: 1.0, IsFood=lambda s: is_food,
+             getFluidContainer=lambda s: fc, isTwoHandWeapon=lambda s: False,
+             getHungerChange=lambda s: -0.1 if is_food else 0.0)
+
+
+def make_weapon(max_range=1.25, range_mod=1.0, cond=10, wid=900, two_hands=False):
+    """A held melee weapon: getMaxRange(chr) and getRangeMod(chr) answer max_range and range_mod (None makes the
+    member absent)."""
+    w = J(_cls="HandWeapon", getFullType=lambda s: "Base.BaseballBat", getCondition=lambda s: cond,
+          getID=lambda s: wid, isTwoHandWeapon=lambda s: two_hands)
+    if max_range is not None:
+        w.getMaxRange = lambda s, chr: max_range
+    if range_mod is not None:
+        w.getRangeMod = lambda s, chr: range_mod
+    return w
+
+
 def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_levels=None, weapon=None,
-                weight=4.5, max_weight=8, part_health=None, square="sq", wounds=(0, 0, 0)):
+                weight=4.5, max_weight=8, part_health=None, square="sq", wounds=(0, 0, 0), food=()):
     """`weapon` is the primary hand item; faceThisObject and DoAttack record into p.faced and p.attacks, and
     isAsleep answers p.asleep["v"] (Task 11's fight and sleep).
     Plan 22 probe: the motor setters (setForceRun, setForceSprint, setAutoWalk, setAutoWalkDirection, setRunning,
@@ -96,8 +130,10 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
            getNumPartsBleeding=lambda s: wounds[0], getNumPartsScratched=lambda s: wounds[1],
            getNumPartsBitten=lambda s: wounds[2], HasInjury=lambda s: any(wounds),
            getBodyParts=lambda s: J(size=lambda s2: len(parts), get=lambda s2, i: parts[i]))
-    inv = J(getItems=lambda s: J(size=lambda s2: len(items), get=lambda s2, i: J(getFullType=lambda s3, i=i: items[i])),
-            getCapacityWeight=lambda s: weight)
+    held = [make_item(ft, 1000 + i, food=food) for i, ft in enumerate(items)]
+    inv = J(getItems=lambda s: J(size=lambda s2: len(held), get=lambda s2, i: held[i]),
+            getCapacityWeight=lambda s: weight,
+            getItemById=lambda s, iid: next((it for it in held if it.getID(it) == iid), None))
     faced, attacks, asleep = [], [], {"v": False}
     p = J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: z, getDir=lambda s: "N",
           isPlayerMoving=lambda s: False, IsRunning=lambda s: False, isSprinting=lambda s: False,
@@ -106,6 +142,12 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
           faceThisObject=lambda s, o: faced.append(o), DoAttack=lambda s, f: attacks.append(f) or True,
           isAsleep=lambda s: asleep["v"], getPlayerNum=lambda s: 0)
     p.faced, p.attacks, p.asleep = faced, attacks, asleep
+    # Plan 22 Task 4: items are make_item objects (ids 1000 + i) in the mutable list p.held, which the inventory's
+    # getItems and getItemById read; isAttackStarted and getMeleeDelay read p.attack["started"] and p.attack["delay"]
+    p.held = held
+    attack = {"started": False, "delay": 0.0}
+    p.attack = attack
+    p.isAttackStarted, p.getMeleeDelay = lambda s: attack["started"], lambda s: attack["delay"]
     sets, motor = [], {"forceRun": False, "forceSprint": False, "autoWalk": False}
 
     def setter(name, key=None):
@@ -124,9 +166,9 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
     return p
 
 
-def make_zombie(zid, x, y, dead=False):
+def make_zombie(zid, x, y, dead=False, health=1.0):
     return J(getOnlineID=lambda s: zid, getX=lambda s: x, getY=lambda s: y, isDead=lambda s: dead,
-             getTarget=lambda s: None, isCrawling=lambda s: False)
+             getTarget=lambda s: None, isCrawling=lambda s: False, getHealth=lambda s: health)
 
 
 def make_cell(zombies=(), squares=None):
@@ -234,6 +276,12 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g.getCore = lambda: core
     g.ISDropWorldItemAction = J(new=lambda cls, p, item, sq, xo, yo, zo, rot, multi: J(
         Type="ISDropWorldItemAction", character=p, item=item, args=(sq, xo, yo, zo, rot, multi)))
+    # Plan 22 Task 4: ISEquipWeaponAction:new(character, item, time, isPrimary, twoHands) records its five arguments
+    # into g._equips
+    equips = []
+    g._equips = equips
+    g.ISEquipWeaponAction = J(new=lambda cls, p, item, t, primary, two: equips.append((p, item, t, primary, two)) or J(
+        Type="ISEquipWeaponAction", character=p, item=item))
     return L
 
 
