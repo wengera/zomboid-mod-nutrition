@@ -577,7 +577,7 @@ def test_a_stop_before_the_loop_ran_is_never_survived(tmp_path, monkeypatch):
     assert GT.grade_d(o)["survived"] is None and GT.grade_d(dict(o, loop={"started": True}))["survived"] is True
 
 
-def test_the_damage_listener_is_installed_once_at_the_kits_end(tmp_path, monkeypatch):
+def test_the_damage_listener_is_installed_once_before_the_kit(tmp_path, monkeypatch):
     r = run_day(tmp_path, monkeypatch, limits={"DAY_CAP_S": 40})
     dw = [i for i, a in enumerate(r.bus.asked) if a[1] == "damage.watch"]
     installs = [i for i in dw if r.bus.asked[i][2] == "admin"]
@@ -585,7 +585,7 @@ def test_the_damage_listener_is_installed_once_at_the_kits_end(tmp_path, monkeyp
     assert r.bus.asked[installs[0]][3] == D.SERVER_TIMEOUT_S
     item_gets = [i for i, a in enumerate(r.bus.asked) if a[1] == "item.get"]
     stats = [i for i, a in enumerate(r.bus.asked) if a[1] == "stats.all"]
-    assert max(item_gets) < installs[0] < min(stats)                        # after the kit, before the loop
+    assert installs[0] < min(item_gets) and installs[0] < min(stats)      # before the kit, before the loop
     assert all(r.bus.asked[i][2].startswith("admin since ") for i in dw[1:])
     assert r.out["phase_walls"]["kit"]["start"] >= r.out["phase_walls"]["damage_hook"]["end"]
 
@@ -690,8 +690,8 @@ def test_xlib_busdead_stops_the_loop_as_bus_dead(tmp_path, monkeypatch):
 def test_a_bus_dead_before_the_loop_names_the_stop_bus_dead(tmp_path, monkeypatch):
     r = run_day(tmp_path, monkeypatch, bus={"bus_dead_from": 0.0})
     st = r.out["stop"]
-    assert st["reason"] == "bus_dead" and st["detail"].startswith("server bus dead after kit")
-    assert r.out["phase_walls"]["kit"].get("bus_dead") and r.out["loop"]["server_polls"] == 0
+    assert st["reason"] == "bus_dead" and st["detail"].startswith("server bus dead after ")
+    assert r.out["phase_walls"]["damage_hook"].get("bus_dead") and r.out["loop"]["server_polls"] == 0
 
 
 def test_a_silent_link_stops_the_loop_as_bus_dead(tmp_path, monkeypatch):
