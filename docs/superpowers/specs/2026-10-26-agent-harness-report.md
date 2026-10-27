@@ -247,7 +247,7 @@ Before any boot, the two must-fix items parked at Plan 21's close landed (ruling
 
 Both commits are named in the guides' provenance: `942859f2` in `a_pipe_4-20261026-181848/GUIDE.md`, and the policy at `4744e066` in `c_survive-20261026-183905/GUIDE.md`.
 
-Spec § 4.1 sends a Stage A NO-GO straight to the report. Ruling 41 overrode that: Stages B and C booted after pass 4's NO-GO, because the failing gate measures a client-side scan stutter, not the goals or survival that B and C measure. Each stage then took one fix pass:
+Spec § 4.1 sends a Stage A NO-GO straight to the report. Ruling 41 overrode that: Stages B and C booted after pass 4's NO-GO, because the failing gate measures a client-side scan stutter, not the goals or survival that B and C measure. Ruling 43 was the second override: Stage C booted on Stage B's NO-GO, against spec § 4.2's exit ("else NO-GO … on to the report") and the plan's "gated on Stage B GO". Each stage then took one fix pass:
 - Stage B pass 2, on rulings 42 and 44.
 - Stage C pass 2, on rulings 45 and 46.
 
@@ -433,9 +433,9 @@ The survival loop's goals, scans and nearby zombies left the 5 Hz frame cost whe
 - **The mean frame cost stays under 1 ms**, measured with the run unable to tell its own Lua from the host.
 - **Four goals do their job live:** `goto`, `loot`, `eat` and `drink` (§ 7.3). An eat lands on the server every time.
 - **These are what a nutrition-mod test would drive.**
-- **Survival is the open part.** The scripted bot died twice, both times to the goal layer's combat (a flee no faster than a walk) and to one policy rule, and once more to a health fall the frames cannot name.
+- **Survival is the open part.** The scripted bot died twice: run 1 after four policy defects (ruling 45), and pass 2, after they were fixed, to the game's own mechanics (three zombies against a flee no faster than a walk) with one policy defect left (ruling 49). Both runs also lost about a quarter of their health to a fall the frames cannot name.
 
-**Spike D** (an LLM planning over `summary.py`'s view) is **still not worth running**. A baseline now exists, 407.4 s and 109 game minutes of loop in run 1 and 119.0 s and 32 game minutes in pass 2 (each Stage C `c_grade.txt` `survival_s`; `stop.gameMin` 670 and 593). But the two deaths were decided mostly below the planner (the one policy defect, ruling 49, is the exception):
+**Spike D** (an LLM planning over `summary.py`'s view) is **still not worth running**. A baseline now exists, 407.4 s and 109 game minutes of loop in run 1 and 119.0 s and 32 game minutes in pass 2 (each Stage C `c_grade.txt` `survival_s`; `stop.gameMin` 670 and 593). But run 1's death followed four policy defects (ruling 45), and pass 2's, after they were fixed, followed the game's own mechanics (three zombies against a walking flee) with one remaining policy defect (ruling 49); what is left below the planner is:
 - the flee cannot outpace the zombies;
 - the ~25-point looting fall precedes any choice an LLM would make.
 
