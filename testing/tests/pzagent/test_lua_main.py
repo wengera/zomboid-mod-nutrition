@@ -13,10 +13,11 @@ CMD = DIR + "cmd.txt"
 
 
 def load(lua):
-    """The client files in the game's load order (by name: Link, Main, Map, Motor, Sense, Skills), so Main reaches every
-    other module only at tick time."""
-    for f in ("client/PZAgent_Link.lua", "client/PZAgent_Main.lua", "client/PZAgent_Map.lua",
-              "client/PZAgent_Motor.lua", "client/PZAgent_Sense.lua", "client/PZAgent_Skills.lua"):
+    """The shared world readers, then the client files in the game's load order (by name: Link, Main, Map, Motor, Sense,
+    Skills, SkillsWorld), so Main reaches every other module only at tick time."""
+    for f in ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Main.lua",
+              "client/PZAgent_Map.lua", "client/PZAgent_Motor.lua", "client/PZAgent_Sense.lua",
+              "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua"):
         lua.execute(open(lua_file(f), encoding="utf-8").read())
 
 

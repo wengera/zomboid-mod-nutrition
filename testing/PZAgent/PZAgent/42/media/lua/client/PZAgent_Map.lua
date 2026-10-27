@@ -25,51 +25,17 @@ MP.missing = {}             -- the members the watch's squares lacked (a delta l
 MP.errors = 0               -- raises in the map phase, caught by Main's own pcall round it (S-15; raise:map in missing)
 MP.lastError = nil
 
-local function getm(miss, out, key, obj, member, ...)
-    local ok, v = PZA.call(obj, member, ...)
-    if ok then out[key] = v else PZA.missing(miss, member) end
-    return ok, v
-end
+local W = PZA.world
+local getm = W.getm
 
 function MP.key(x, y, z)
     return x .. "," .. y .. "," .. z
 end
 
-local function objectsOf(sq)
-    local out = {}
-    local _, list = PZA.call(sq, "getObjects")
-    local okN, n = PZA.call(list, "size")
-    if not okN or type(n) ~= "number" then return out end
-    for i = 0, n - 1 do local _, o = PZA.call(list, "get", i); if o ~= nil then out[#out + 1] = o end end
-    return out
-end
-
-local function isA(o, cls)
-    return instanceof ~= nil and instanceof(o, cls) == true
-end
-
--- door, window or neither, by type first: IsoWindow and IsoThumpable also answer IsOpen/isLocked/isBarricaded
-local function kindOf(o)
-    if isA(o, "IsoDoor") then return "door" end
-    if isA(o, "IsoWindow") then return "window" end
-    if isA(o, "IsoThumpable") then
-        local _, d = PZA.call(o, "isDoor")
-        if d == true then return "door" end
-        local _, w = PZA.call(o, "isWindow")
-        if w == true then return "window" end
-    end
-    return nil
-end
-
+-- the object's containers (PZA.world.containersOf) as the schema's container records { type, n, items }
 local function containersOf(o, missing)
-    local out, list = {}, {}
-    local okN, cn = PZA.call(o, "getContainerCount")
-    if okN and type(cn) == "number" then
-        for i = 0, cn - 1 do local _, c = PZA.call(o, "getContainerByIndex", i); if c ~= nil then list[#list + 1] = c end end
-    else
-        local okC, c = PZA.call(o, "getContainer")
-        if okC and c ~= nil then list[1] = c end
-    end
+    local out = {}
+    local list = W.containersOf(o)
     for _, c in ipairs(list) do
         local ct = { items = {} }
         getm(missing, ct, "type", c, "getType")
@@ -92,11 +58,11 @@ function MP.square(sq, missing)
     getm(missing, q, "solid", sq, "isSolid"); getm(missing, q, "solidTrans", sq, "isSolidTrans"); getm(missing, q, "light", sq, "getLightLevel", 0)
     local okR, room = PZA.call(sq, "getRoom"); if okR and room ~= nil then local _, nm = PZA.call(room, "getName"); q.room = nm end
     local okB, b = PZA.call(sq, "getBuilding"); if okB and b ~= nil then local _, id = PZA.call(b, "getID"); q.building = id end
-    local objs = objectsOf(sq)
+    local objs = W.objectsOn(sq)
     for _, o in ipairs(objs) do
         local cts = containersOf(o, missing)
         for _, ct in ipairs(cts) do q.containers[#q.containers + 1] = ct end
-        local kind = kindOf(o)
+        local kind = W.kindOf(o)
         if kind ~= nil then
             local _, open = PZA.call(o, "IsOpen")
             local _, locked = PZA.call(o, "isLocked")
@@ -132,10 +98,8 @@ end
 
 -- the player's position, or nil when any of x, y, z cannot be read as a number
 local function posOf(p)
-    local okX, x = PZA.call(p, "getX")
-    local okY, y = PZA.call(p, "getY")
-    local okZ, z = PZA.call(p, "getZ")
-    if not (okX and okY and okZ) or type(x) ~= "number" or type(y) ~= "number" or type(z) ~= "number" then return nil end
+    local x, y, z = W.posOf(p, true)
+    if x == nil or y == nil or z == nil then return nil end
     return x, y, z
 end
 

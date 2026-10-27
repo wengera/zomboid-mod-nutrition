@@ -12,7 +12,8 @@
 -- K.tick, senseMs this tick's events and frame read, mapMs this tick's scan or watch step, linkMs the previous tick's
 -- flush (a frame is encoded at its emit, before its own flush), tickMaxMs the worst body since the last frame and
 -- over5 the bodies of 5 ms or more since it (the ticks before this one), dropped the Link's dropped lines.
--- Main loads before Map, Motor, Sense and Skills (client files load by name), so it reaches them only at tick time.
+-- Main loads before Map, Motor, Sense, Skills and SkillsWorld (client files load by name), so it reaches them only at
+-- tick time.
 -- Everything sits inside one pcall; a raise counts in PZA.errors and, once the link is initialised, reports as a
 -- lua_error event once a second (its flush under its own pcall, so the handler never raises). The map phase runs under
 -- its own pcall besides (ruling S-15 extended to the map): a raise there counts in PZA.errors and PZA.map.errors, is

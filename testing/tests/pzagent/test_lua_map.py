@@ -14,8 +14,9 @@ LIVE = "pzagent/admin/state.log"
 
 
 def load(lua, init=False):
-    for f in ("client/PZAgent_Link.lua", "client/PZAgent_Motor.lua", "client/PZAgent_Skills.lua",
-              "client/PZAgent_Sense.lua", "client/PZAgent_Map.lua"):
+    for f in ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Motor.lua",
+              "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua", "client/PZAgent_Sense.lua",
+              "client/PZAgent_Map.lua"):
         lua.execute(open(lua_file(f), encoding="utf-8").read())
     lua.globals().PZA.tick = 0
     if init:
@@ -462,3 +463,65 @@ def test_a_light_only_change_queues_nothing_and_a_door_toggle_on_it_still_does(l
     assert len(queued) == 1
     q = queued[0]["squares"][1]
     assert q["door"]["open"] is True and q["light"] == 0.9      # the line carries the real light
+
+
+# ---- the shared world readers (fix wave M2: PZA.world in shared/PZAgent_World.lua) ---------------------------------
+
+def test_the_client_files_keep_no_private_copy_of_a_world_reader():
+    client = lua_file("client")
+    for f in sorted(os.listdir(client)):
+        src = open(os.path.join(client, f), encoding="utf-8").read()
+        for name in ("objectsOn", "objectsOf", "openableOn", "kindOf", "portalOf", "containersOn", "getm", "isA"):
+            assert re.search(r"local function %s\(" % name, src) is None, (f, name)
+    world = open(lua_file("shared/PZAgent_World.lua"), encoding="utf-8").read()
+    code = "\n".join(re.sub(r'"[^"]*"', '""', l.split("--")[0]) for l in world.splitlines())
+    assert re.findall(r"[\w\])]:\w+\s*\(", code) == []                  # every Java member through PZA.call
+
+
+def test_world_pos_of_reads_numbers_only_and_z_on_request(lua):
+    load(lua)
+    p = make_player(x=3.5, y=4.5, z=1)
+    assert list(lua.eval("{PZA.world.posOf(...)}", p).values()) == [3.5, 4.5]
+    assert list(lua.eval("{PZA.world.posOf(..., true)}", p).values()) == [3.5, 4.5, 1]
+    odd = J(getX=lambda s: "x", getY=lambda s: 2.0)
+    x, y, z = lua.eval("PZA.world.posOf(..., true)", odd)
+    assert (x, y, z) == (None, 2.0, None)
+
+
+def test_world_objects_on_fills_a_scratch_table_and_answers_its_count(lua):
+    load(lua)
+    objs = [J(n=1), None, J(n=2)]
+    sq = J(getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]))
+    scratch = lua.eval("{ 'stale1', 'stale2', 'stale3' }")
+    out, n = lua.eval("PZA.world.objectsOn(...)", sq, scratch)
+    assert n == 2 and out[1].n == 1 and out[2].n == 2 and out[3] == "stale3"
+    out, n = lua.eval("PZA.world.objectsOn(...)", J())
+    assert n == 0 and len(out) == 0
+
+
+def test_world_kind_of_and_openable_on_keep_the_thumpable_window_out_of_the_open(lua):
+    load(lua)
+    door = J(_cls="IsoThumpable", isDoor=lambda s: True)
+    twin = J(_cls="IsoThumpable", isDoor=lambda s: False, isWindow=lambda s: True)
+    win = J(_cls="IsoWindow")
+    assert [lua.eval("PZA.world.kindOf(...)", o) for o in (door, twin, win, J(_cls="IsoObject"))] == \
+        ["door", "window", "window", None]
+
+    def square(*objs):
+        return J(getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]))
+    o, k = lua.eval("PZA.world.openableOn(...)", square(twin))
+    assert (o, k) == (None, None)
+    o, k = lua.eval("PZA.world.openableOn(...)", square(twin, win, door))
+    assert k == "door" and o is door
+    o, k = lua.eval("PZA.world.openableOn(...)", square(twin, win))
+    assert k == "window" and o is win
+
+
+def test_world_containers_on_reads_indexed_containers_else_the_one(lua):
+    load(lua)
+    a, b, c = J(c="a"), J(c="b"), J(c="c")
+    multi = J(getContainerCount=lambda s: 2, getContainerByIndex=lambda s, i: (a, b)[i])
+    single = J(getContainer=lambda s: c)
+    objs = [multi, single, J()]
+    sq = J(getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]))
+    assert [x.c for x in lua.eval("PZA.world.containersOn(...)", sq).values()] == ["a", "b", "c"]

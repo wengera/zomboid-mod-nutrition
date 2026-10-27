@@ -28,10 +28,11 @@ from .conftest import FakeFS, J, lua_file, make_cell, make_lua, make_player, mak
 
 LIVE = "pzagent/admin/state.log"
 CMD = "pzagent/admin/cmd.txt"
-SKILL_FILES = ("client/PZAgent_Link.lua", "client/PZAgent_Motor.lua", "client/PZAgent_Sense.lua",
-               "client/PZAgent_Skills.lua")
-MAIN_FILES = ("client/PZAgent_Link.lua", "client/PZAgent_Main.lua", "client/PZAgent_Map.lua",
-              "client/PZAgent_Motor.lua", "client/PZAgent_Sense.lua", "client/PZAgent_Skills.lua")
+SKILL_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Motor.lua",
+               "client/PZAgent_Sense.lua", "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua")
+MAIN_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Main.lua",
+              "client/PZAgent_Map.lua", "client/PZAgent_Motor.lua", "client/PZAgent_Sense.lua",
+              "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua")
 VANILLA = ("ISTimedActionQueue", "ISWalkToTimedAction", "ISOpenCloseDoor", "ISOpenCloseWindow",
            "ISInventoryTransferAction", "ISEatFoodAction", "ISDrinkFluidAction", "ISDropWorldItemAction",
            "ISEquipWeaponAction", "Vector2")

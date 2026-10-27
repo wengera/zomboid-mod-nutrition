@@ -13,8 +13,8 @@ GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 
 
 def load(lua):
-    for f in ("client/PZAgent_Link.lua", "client/PZAgent_Motor.lua", "client/PZAgent_Skills.lua",
-              "client/PZAgent_Sense.lua"):
+    for f in ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Motor.lua",
+              "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua", "client/PZAgent_Sense.lua"):
         lua.execute(open(lua_file(f), encoding="utf-8").read())
 
 

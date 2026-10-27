@@ -11,11 +11,8 @@ S.ZOMBIE_RADIUS = 12
 S.DOOR_R = 4              -- tiles (Chebyshev, the player's floor): the door and window watch's reach
 S.missing = {}
 
-local function getm(miss, out, key, obj, member, ...)
-    local ok, v = PZA.call(obj, member, ...)
-    if ok then out[key] = v else PZA.missing(miss, member) end
-    return ok, v
-end
+local W = PZA.world
+local getm = W.getm
 
 local function get(out, key, obj, member, ...)
     return getm(S.missing, out, key, obj, member, ...)
@@ -57,9 +54,8 @@ end
 
 -- a zombie's distance from (px, py), with its position, or nil when its position cannot be read
 local function distOf(z, px, py)
-    local okX, zx = PZA.call(z, "getX")
-    local okY, zy = PZA.call(z, "getY")
-    if not okX or not okY or type(zx) ~= "number" or type(zy) ~= "number" then return nil end
+    local zx, zy = W.posOf(z)
+    if zx == nil or zy == nil then return nil end
     local ex, ey = zx - px, zy - py
     return math.sqrt(ex * ex + ey * ey), zx, zy
 end
@@ -328,21 +324,11 @@ function S.firstSight(p)
     return ev
 end
 
--- door or window, by type first (the map's kindOf rule in PZAgent_Map.lua: IsoThumpable answers by isDoor/isWindow)
-local function portalOf(o)
-    if instanceof == nil then return false end
-    if instanceof(o, "IsoDoor") == true or instanceof(o, "IsoWindow") == true then return true end
-    if instanceof(o, "IsoThumpable") == true then
-        local _, d = PZA.call(o, "isDoor")
-        local _, w = PZA.call(o, "isWindow")
-        return d == true or w == true
-    end
-    return false
-end
-
--- every door and window within DOOR_R of (px, py) on floor pz, by "x,y,z,k" (k the portal's ordinal among its
--- square's portals, so another object added to or dropped on the square never shifts one portal's key onto another),
--- each its IsOpen read
+-- every door and window (PZA.world.kindOf: by type first, an IsoThumpable by isDoor/isWindow) within DOOR_R of
+-- (px, py) on floor pz, by "x,y,z,k" (k the portal's ordinal among its square's portals, so another object added to or
+-- dropped on the square never shifts one portal's key onto another), each its IsOpen read; the squares' objects are read
+-- into one scratch table (W.objectsOn's out), so the walk allocates none per square
+local scratch = {}
 local function doorsAround(px, py, pz)
     local out = {}
     local cell = getCell ~= nil and getCell() or nil
@@ -351,12 +337,11 @@ local function doorsAround(px, py, pz)
     for y = py - r, py + r do
         for x = px - r, px + r do
             local _, sq = PZA.call(cell, "getGridSquare", x, y, pz)
-            local _, list = PZA.call(sq, "getObjects")
-            local okN, n = PZA.call(list, "size")
             local k = 0
-            for i = 0, (okN and type(n) == "number" and n or 0) - 1 do
-                local _, o = PZA.call(list, "get", i)
-                if o ~= nil and portalOf(o) then
+            local objs, n = W.objectsOn(sq, scratch)
+            for i = 1, n do
+                local o = objs[i]
+                if W.kindOf(o) ~= nil then
                     k = k + 1
                     local okO, open = PZA.call(o, "IsOpen")
                     if okO then out[x .. "," .. y .. "," .. pz .. "," .. k] = { x = x, y = y, z = pz, open = open == true } end
