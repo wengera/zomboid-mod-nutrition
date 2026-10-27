@@ -280,7 +280,7 @@ class Steer(_Cmd):
 
 @dataclasses.dataclass(frozen=True)
 class Attack(_Cmd):
-    """Step to the weapon's reach of a zombie, face it and swing until it dies or the skill ends."""
+    """One swing at the target: done when the swing ends; read `result.attackStarted` and the target's health in the next frame; a target out of reach is approached first within the skill's budget, else `out of reach`."""
     TYPE: ClassVar[str] = "attack"
     targetId: int  # The zombie's online id.
 

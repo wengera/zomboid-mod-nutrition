@@ -334,3 +334,19 @@ def test_the_cost_descriptions_name_single_tick_spans_never_a_mean():
     with open(SCHEMA, encoding="utf-8") as fh:
         props = json.load(fh)["$defs"]["cost"]["properties"]
     assert {k: v["description"] for k, v in props.items()} == COST
+
+
+# ---- (M4): what attack does, before any LLM reads it ------------------------------------------------------------
+
+TOOLS = os.path.join(ROOT, "testing", "agent", "base", "schema", "tools.json")
+ATTACK = ("One swing at the target: done when the swing ends; read `result.attackStarted` and the target's health in the "
+          "next frame; a target out of reach is approached first within the skill's budget, else `out of reach`.")
+
+
+def test_the_attack_description_is_one_swing_in_the_schema_the_tools_and_the_module():
+    with open(SCHEMA, encoding="utf-8") as fh:
+        assert json.load(fh)["$defs"]["args_attack"]["description"] == ATTACK
+    with open(TOOLS, encoding="utf-8") as fh:
+        tool = [t for t in json.load(fh) if t["name"] == "attack"]
+    assert len(tool) == 1 and tool[0]["description"] == ATTACK
+    assert ATTACK in open(os.path.join(ROOT, "testing", "agent", "base", "pza1.py"), encoding="utf-8").read()
