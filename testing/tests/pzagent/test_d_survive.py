@@ -420,7 +420,7 @@ def test_the_server_is_polled_on_schedule_with_one_paired_needs_row_each(tmp_pat
 def test_damage_watch_is_polled_since_the_last_index_and_merged_tagged_server(tmp_path, monkeypatch):
     r = run_day(tmp_path, monkeypatch, limits={"DAY_CAP_S": 100}, die_from=45.0, drain=0.05)
     hook, calls = r.bus.damage_calls[0], [c[:2] for c in r.bus.damage_calls[1:]]
-    assert hook[2] == "admin"                                              # the listener installed at the kit's end
+    assert hook[2] == "admin"                                              # the listener installed before the kit
     t0 = calls[0][0]
     assert [round(t - t0) for t, _ in calls] == [0, 30, 60, 90] and r.out["stop"]["reason"] == "day_cap"
 

@@ -694,7 +694,7 @@ class Day:
                 self.fails_in_row, self.lim["SERVER_POLL_S"]))
 
     def phase_damage_hook(self):
-        """Fix 1: the server's damage listener installed at the kit's end (x5_combat's damage_hook: `damage.watch USER`
+        """Fix 1 and the controller residual: the server's damage listener installed before the kit (x5_combat's damage_hook: `damage.watch USER`
         once), its records merged as the loop's polls merge them; {ok, hooked, n, counts, last_i, ack}."""
         ack = self.damage_poll(args=USER)
         a = ack if isinstance(ack, dict) else {}
@@ -813,7 +813,7 @@ class Day:
             self.xs.note("no hello: the kit and the loop skipped")
         if self.out.get("stop") is None:
             # the loop never began (an earlier phase's fault or the budget): named all the same (c_survive's run)
-            # (only a failed hello reaches here: a kit phase ended on xlib's BusDead still runs the loop, whose first
+            # (only a failed hello reaches here: a damage_hook or kit phase ended on xlib's BusDead still runs the loop, whose first
             # server poll names bus_dead, x5_combat fix 1's naming)
             bs = self.out.get("budget_stop")
             pe = self.out.get("phase_errors", {})
