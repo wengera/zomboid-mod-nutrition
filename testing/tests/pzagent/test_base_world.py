@@ -372,7 +372,38 @@ def test_to_json_is_byte_stable_and_replay_merges_deltas_as_the_fake_wrote(tmp_p
     assert w.map[(100, 200, 0)]["door"]["open"] is True and w.missing == ["getModData"] and w.map_lines == 4
     assert w.inventory == {501: {"fullType": "Base.CannedMilk", "weight": 0.75},
                            503: {"fullType": "Base.WaterBottleFull", "weight": 1.25}}
-    assert list(w.damage) == [{"tag": "ZOMBIE", "amount": 0.5, "side": "client", "wallMs": w.damage[0]["wallMs"]}]
+    assert list(w.damage) == [{"tag": "ZOMBIE", "amount": 0.5, "side": "client", "wallMs": 1003100}]
     assert w.acts["a1"]["state"] == "done" and w.hello["proto"] == "PZA/1"
     assert w.nearest_unlooted("food") == (100, 200, 0, 0)
     assert w.unknown_kinds == 0 and w.dropped_scans == 0
+    assert w.replay_bad == 0 and w.replay_gaps == []
+    live = World()
+    assert live.replay_bad == 0 and live.replay_gaps == []
+
+
+def test_a_new_hello_resets_the_scan_and_damage_indexes():
+    hello = {"kind": "hello", "seq": 1, "tick": 0, "wallMs": 0, "proto": "PZA/1", "mod": "fake", "build": "42.21.0",
+             "user": "agent", "rate": 10, "caps": [], "mode": "append"}
+    w = World()
+    w.apply(hello)
+    w.apply(mapline([_sq(5, 5)], scan_id=3))
+    w.merge_damage({"ok": True, "counts": {}, "n": 1, "dropped": 0,
+                    "last": [{"i": 1, "tag": "X", "amount": 1.0, "wall": 1}]}, 10)
+    w.apply(dict(hello, seq=2))                                   # a client relaunch: scanId restarts
+    w.apply(mapline([_sq(1, 1)], scan_id=1))
+    assert (1, 1, 0) in w.map and w.dropped_scans == 0
+    w.merge_damage({"ok": True, "counts": {}, "n": 1, "dropped": 0,
+                    "last": [{"i": 1, "tag": "Y", "amount": 2.0, "wall": 2}]}, 20)
+    assert [d["tag"] for d in w.damage] == ["X", "Y"]
+
+
+def test_acts_are_keyed_by_string_and_damage_seen_i_renders_numerically():
+    w = World()
+    a = {"kind": "act", "seq": 2, "tick": 1, "wallMs": 1, "type": "stop", "state": "accepted", "reason": "",
+         "result": None, "snapshot": None}
+    w.apply(a)                                                    # no aid
+    w.apply(dict(a, aid="a1"))
+    assert set(w.acts) == {"None", "a1"}
+    last = [{"i": i, "tag": "X", "amount": 1.0, "wall": 1} for i in (10, 9, 2)]
+    w.merge_damage({"ok": True, "counts": {}, "n": 3, "dropped": 0, "last": last}, 5)
+    assert json.loads(w.to_json())["damageSeenI"] == [2, 9, 10]

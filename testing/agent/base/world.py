@@ -15,7 +15,10 @@ It reads what the transport gives: keyed full dicts, every delta frame already m
 - `event`: every event line in `events` (deque 500); `item_added`/`item_removed` build `inventory[itemId] =
   {fullType, weight}` (ruling P22-2), an unknown id's removal counted in `missing_items`; a client `damage` event
   appends `{tag, amount, side, wallMs}` to `damage` (deque 500); `zombie_dead` drops the zombie.
-- `act`: `acts[aid]` the last act line for the aid. `hello`: the last hello line. `reply`: `last_reply`.
+- `act`: `acts[str(aid)]` the last act line for the aid. `hello`: the last hello line, and a new session: the Lua
+  restarts its `scanId` and the server's `damage.watch` record numbers restart with the server, so a hello resets the
+  newest scanId seen and `damage_seen_i` (else a relaunched client's scans would all be dropped as older).
+  `reply`: `last_reply`.
 
 The server's side comes in through `merge_server(stats, wall_ms)` and `merge_damage(reply, wall_ms)`, a
 `damage.watch` reply whose `last` records not yet seen (by `i`) land in `damage` tagged `server` (spec § 9).
@@ -44,6 +47,13 @@ WATER_RX = re.compile(r"\.(?:WaterBottle(?:Full)?|Pop|Juice|Milk|Soda|Bowl|Pot|K
 ZOMBIE_TTL_S = 10
 GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 DEQUE_N = 500
+
+
+def _num_first(v):
+    """A sort key: numbers ascending first, then anything else by its JSON."""
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return (0, v, "")
+    return (1, 0, json.dumps(v, sort_keys=True))
 
 
 def _key(k):
@@ -76,6 +86,8 @@ class World:
         self.missing_items = 0
         self.dropped_scans = 0
         self.map_lines = 0
+        self.replay_bad = 0          # replay(): the transport's dropped lines; 0 for a live World
+        self.replay_gaps = []        # replay(): the transport's seq gaps; [] for a live World
         self._newest_scan = None
         self._handlers = {"hello": self._hello, "frame": self._frame, "map": self._map, "event": self._event,
                           "act": self._act, "reply": self._reply}
@@ -90,12 +102,14 @@ class World:
 
     def _hello(self, line):
         self.hello = line
+        self._newest_scan = None
+        self.damage_seen_i = set()
 
     def _reply(self, line):
         self.last_reply = line
 
     def _act(self, line):
-        self.acts[line.get("aid")] = line
+        self.acts[str(line.get("aid"))] = line
 
     def _frame(self, line):
         wall = line.get("wallMs", 0)
@@ -230,7 +244,7 @@ class World:
             "buildings": sorted(self.buildings, key=lambda b: json.dumps(b, sort_keys=True)),
             "inventory": {str(k): v for k, v in self.inventory.items()},
             "damage": list(self.damage),
-            "damageSeenI": sorted(self.damage_seen_i, key=lambda i: json.dumps(i)),
+            "damageSeenI": sorted(self.damage_seen_i, key=_num_first),
             "damageCountsServer": self.damage_counts_server,
             "events": list(self.events),
             "acts": self.acts,
@@ -247,16 +261,21 @@ class World:
 
 
 def replay(path):
-    """A World from a state.log read through FileTransport, so delta frames merge as they do live. A file named
+    """A World from a state.log read through FileTransport, so delta frames merge as they do live; the transport's
+    `bad` and `gaps` are kept as `replay_bad` and `replay_gaps`. A file named
     `state.log` is read from its own directory (its rotations and chunks with it); any other name is copied alone
     into a temporary directory as `state.log`."""
     w = World()
     if os.path.basename(path) == "state.log":
-        lines = FileTransport(os.path.dirname(os.path.abspath(path))).lines()
+        tr = FileTransport(os.path.dirname(os.path.abspath(path)))
+        lines = tr.lines()
     else:
         with tempfile.TemporaryDirectory() as d:
             shutil.copyfile(path, os.path.join(d, "state.log"))
-            lines = FileTransport(d).lines()
+            tr = FileTransport(d)
+            lines = tr.lines()
     for line in lines:
         w.apply(line)
+    w.replay_bad = tr.bad
+    w.replay_gaps = list(tr.gaps)
     return w
