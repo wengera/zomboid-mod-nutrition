@@ -1,7 +1,7 @@
 -- PZAgent_Act.lua — the goals (spec § 2.3). One goal at a time; each is a per-tick state machine that
 -- sets state done|failed with a detail from its closed set: a failed detail from the `-- reasons:` line below, a done
 -- detail from the `-- done:` line (agent/reasons.py's REASONS and DONE; a test parses both). The walk is the game's own timed action,
--- queued the way the harness's player.walk does [#2082: setRunning(true) does not make a walk run].
+-- queued the way the harness's player.walk does [the register's #2082 bound: x131c's running arm only walked, so setRunning(true) does not make a walk run].
 -- A top-level goto x y run asks to run once, at its walk's start; a flee's run-flagged walk asks every tick (setRun).
 -- args: goto x y [run]; open x y; loot x y [food|water|weapon|bandage|all]; eat <fullType>; drink; fight; flee x y;
 -- sleep. Every x y is a world square coordinate, as a scan reports it (an offset goes stale while the player moves).
@@ -65,7 +65,7 @@ local function clearQueue(p)
 end
 
 -- sets the player's run and sprint flags together (Stage C pass 2: run 1's flee frames read running false on all 92,
--- the one setRunning(true) at the walk's start being #2082's finding again; the harness's TK.sprintWatch sets both
+-- the one setRunning(true) at the walk's start being the reading in #2082's bound again; the harness's TK.sprintWatch sets both
 -- every tick). Whether asking every tick makes the walk run is a reading for the C pass-2 frames' running and
 -- sprinting fields, not a fix known to work.
 local function setRun(p, on)
