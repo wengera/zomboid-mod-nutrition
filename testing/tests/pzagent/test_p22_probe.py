@@ -752,8 +752,10 @@ def test_input_vectors_follow_the_engines_mapping():
         assert (iy + ix, iy - ix) == (pytest.approx(wx * r2, abs=1e-5), pytest.approx(wy * r2, abs=1e-5))
     assert D.input_vector(1, 0) == (0.707107, 0.707107) and D.input_vector(0, 0) == (0.0, 0.0)
     assert D.input_vector(1, 0, -45.0) == (1.0, 0.0)
+    # only a +-45 deg snap is applied (a 90 or 180 reading is a deflected leg), and none under 1 tile of movement
     assert [D.correction_of(a) for a in (None, 0.0, 15.0, 20.0, 30.0, 45.0, -50.0, 100.0, 180.0)] == [
-        0.0, 0.0, 0.0, 0.0, -45.0, -45.0, 45.0, -90.0, -180.0]
+        0.0, 0.0, 0.0, 0.0, -45.0, -45.0, 45.0, 0.0, 0.0]
+    assert D.correction_of(45.0, 0.6) == 0.0 and D.correction_of(45.0, 1.0) == -45.0 and D.CALIBRATE_MIN_TILES == 1.0
     fr = [{"x": 0, "y": 0}, {"x": 1, "y": 1}]
     assert D.heading_signed_deg(fr, 1, 0) == pytest.approx(45) and D.heading_signed_deg(fr, 0, 1) == pytest.approx(-45)
     assert D.heading_signed_deg(fr, -1, -1) == pytest.approx(180) and D.heading_signed_deg(fr[:1], 1, 0) is None

@@ -156,6 +156,7 @@ X1_DEADLINE_S = 450.0      # past this loop wall (from the memory gate, the boot
 CALIBRATE_LEG = (1, 0, 1.5, "walk")   # the ungraded first autowalk leg: world (1 along the axis, 0), 1.5 s, walk
 CALIBRATE_TOL_DEG = 15.0   # a calibration heading error above this is snapped to 45 deg and corrected
 SNAP_DEG = 45.0
+CALIBRATE_MIN_TILES = 1.0  # a calibration leg that moved less than this gives no correction (its heading is noise)
 LEGS_PER_ARM = 3
 SETTLE_S = 3.0
 GOAL_TIMEOUT_S = 40.0
@@ -192,7 +193,7 @@ CONSTANTS = {k: globals()[k] for k in (
     "BUDGET_S", "MIN_FREE_GB", "CLIENT_ERR_RX", "MOD_VERSION", "HELLO_TIMEOUT_S", "ACK_TIMEOUT_S", "POLL_S", "SCAN_R",
     "SCAN_TIMEOUT_S", "LINE_LEN", "LINE_DIRS", "FALLBACK_DX", "BENCH_REPS", "BENCH_ARMS", "HELD_ARMS",
     "US_PER_KB_ARMS", "S20_BYTES", "BENCH_BYTES_KEY", "MOTOR_ARMS", "LEGS_PER_ARM", "SETTLE_S", "GOAL_TIMEOUT_S",
-    "AUTOWALK_LEGS", "AUTOWALK_PAD_S", "X1_DEADLINE_S", "CALIBRATE_LEG", "CALIBRATE_TOL_DEG", "SNAP_DEG", "X1_RATE_HZ", "X1_RATE_BACK_HZ", "TOGGLE_IF_BELOW", "TOGGLE_LEGS", "RUN_RATIO", "SETRUN_TOL",
+    "AUTOWALK_LEGS", "AUTOWALK_PAD_S", "X1_DEADLINE_S", "CALIBRATE_LEG", "CALIBRATE_TOL_DEG", "SNAP_DEG", "CALIBRATE_MIN_TILES", "X1_RATE_HZ", "X1_RATE_BACK_HZ", "TOGGLE_IF_BELOW", "TOGGLE_LEGS", "RUN_RATIO", "SETRUN_TOL",
     "HEADING_MAX_DEG", "ONCE_HOLD_FRAC", "LOAD_MAX_ADDS", "LOAD_ITEM", "LOAD_SETTLE_S", "HEAVY_LEVEL",
     "LEVEL2_RATIO", "LEVEL3_RATIO", "LEVEL4_RATIO", "PLANK_W", "WALK_S", "HEALTH_FLOOR", "WALK_MAX_LEGS", "STILL_S",
     "DROP_TIMEOUT_S", "WALK2_S", "DROP_EPS")}
@@ -378,12 +379,18 @@ def heading_signed_deg(frames, dx, dy):
     return 180.0 if a == -180.0 else a
 
 
-def correction_of(signed_deg, tol=CALIBRATE_TOL_DEG):
+def correction_of(signed_deg, displacement=None, tol=CALIBRATE_TOL_DEG):
     """The extra rotation for every later autowalk vector: minus the calibration's signed heading error snapped to
-    the nearest multiple of SNAP_DEG, when its magnitude is above tol; else 0 (no reading included)."""
+    the nearest multiple of SNAP_DEG, when its magnitude is above tol; else 0 (no reading included). Two guards (the
+    fix-3 re-review): only a +-45 deg snap is applied, the one frame error the jar's L3025-L3026 transform can give (a
+    +-90 or 180 reading is a deflected leg, not a frame), and none when the calibration moved under CALIBRATE_MIN_TILES
+    (a leg that barely moved reads a direction the engine did not choose)."""
     if signed_deg is None or abs(signed_deg) <= tol:
         return 0.0
-    return -SNAP_DEG * round(signed_deg / SNAP_DEG) + 0.0
+    if displacement is not None and displacement < CALIBRATE_MIN_TILES:
+        return 0.0
+    snapped = -SNAP_DEG * round(signed_deg / SNAP_DEG) + 0.0
+    return snapped if abs(snapped) == SNAP_DEG else 0.0
 
 
 def _arg(v):
@@ -828,8 +835,12 @@ class Probe(AP2.Pipe2):
         else:
             row = self.autowalk_leg("calibration", dx, dy, s, arm)
         self.mt["autowalk_calibration"] = row
-        corr = correction_of(row.get("heading_signed_deg"))
+        corr = correction_of(row.get("heading_signed_deg"), row.get("displacement"))
         self.mt["autowalk_correction_deg"] = corr
+        raw = correction_of(row.get("heading_signed_deg"))
+        if raw != corr:
+            self.mt["autowalk_correction_note"] = "guarded: a %s deg snap or a %s-tile calibration is not applied" % (
+                raw, row.get("displacement"))
         self.sync_out()
         return corr
 
