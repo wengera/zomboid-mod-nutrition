@@ -5047,12 +5047,14 @@ end
 -- lazily, by the first damage.watch on this side (TK.DW.hooked), serves every watched user, and never raises: its body
 -- runs under pcall. The listener reads the character's username through TK.call and records only for a watched
 -- username, so a user not yet online can be watched. Per user it counts every tag and keeps the last TK.DW_MAX
--- records {i, tag, amount, wall}, i a running index from 1 and wall TK.now(); a record aged out of the list counts in
--- dropped. The fall.probe listener above is not reused: it keeps FALLDOWN records only. Every Java member is reached
--- through TK.call under pcall (TK.DW.read).
+-- records {i, tag, amount, wall} in a ring (st.ring, record i at slot (i - 1) % TK.DW_MAX + 1, an O(1) append with no
+-- shift), i a running index from 1 that never wraps (st.n) and wall TK.now(); a read reports in dropped the records
+-- after its since that the ring no longer holds. The fall.probe listener above is not reused: it keeps FALLDOWN
+-- records only. Every Java member is reached through TK.call under pcall (TK.DW.read). The cap is 5000 since the
+-- acceptance run 2 (Plan 22): at about one BLEEDING record per part per 100 ms, 200 lost most of a bleed at a 30 s poll.
 TK.DW = TK.DW or {}
 TK.DW.users = TK.DW.users or {}
-TK.DW_MAX = 200
+TK.DW_MAX = 5000
 
 -- One Java member read under pcall: (true, value) when the member exists and answers, (false, nil) otherwise.
 function TK.DW.read(obj, name, ...)
@@ -5070,29 +5072,28 @@ function TK.DW.record(character, tag, amount)
     local t = tostring(tag)
     st.counts[t] = (st.counts[t] or 0) + 1
     st.n = st.n + 1
-    st.last[#st.last + 1] = { i = st.n, tag = t, amount = amount, wall = TK.now() }
-    while #st.last > TK.DW_MAX do
-        table.remove(st.last, 1)
-        st.dropped = st.dropped + 1
-    end
+    st.ring[(st.n - 1) % TK.DW_MAX + 1] = { i = st.n, tag = t, amount = amount, wall = TK.now() }
 end
 
+-- The installed listener is kept in TK.DW.listener so damage.unwatch can remove it when no user is left.
 function TK.DW.hook()
     if TK.DW.hooked then return true end
     if Events == nil or Events.OnPlayerGetDamage == nil then return false end
-    Events.OnPlayerGetDamage.Add(function(character, tag, amount)
+    TK.DW.listener = function(character, tag, amount)
         pcall(TK.DW.record, character, tag, amount)
-    end)
+    end
+    Events.OnPlayerGetDamage.Add(TK.DW.listener)
     TK.DW.hooked = true
     return true
 end
 
 -- <user> [since <i>]. The first call installs the listener and starts the user's record; every call replies the
--- user's per-tag counts, the total recorded n, the records aged out and the kept records with index > i (all with no
--- since).
+-- user's per-tag counts, the total recorded n, the ring's records with index > i (all with no since) in index order,
+-- and dropped, the records with index > i the ring no longer holds (with no since, every record aged out), so a since
+-- older than the ring's oldest record is never silent. i is a non-negative integer, anything else is the usage.
 -- @args <user> [since <i>]
 -- @reply {ok, side, hooked, user, counts = {tag: n}, n, last = [{i, tag, amount, wall}], dropped [, reason]} | string
--- @purpose Watches one user's OnPlayerGetDamage tags on the server (keyed by username, so an offline user can be watched): per-tag counts and the last 200 records, read since an index.
+-- @purpose Watches one user's OnPlayerGetDamage tags on the server (keyed by username, so an offline user can be watched): per-tag counts and a ring of the last 5000 records, read since an index, with the records a since missed counted in dropped.
 TK.register("damage.watch", function(argv)
     local usage = "usage: damage.watch <user> [since <i>]"
     local user = argv[1]
@@ -5102,22 +5103,29 @@ TK.register("damage.watch", function(argv)
     if argv[2] ~= nil then
         if argv[2] ~= "since" then return usage end
         since = tonumber(argv[3])
-        if since == nil then return usage end
+        if since == nil or since < 0 or since ~= math.floor(since) then return usage end
     end
     local out = { ok = false, side = TK.side, user = user }
     out.hooked = TK.DW.hook()
     if not out.hooked then out.reason = "no Events.OnPlayerGetDamage on this side" end
     local st = TK.DW.users[user]
     if st == nil then
-        st = { counts = {}, last = {}, n = 0, dropped = 0 }
+        st = { counts = {}, ring = {}, n = 0 }
         TK.DW.users[user] = st
     end
-    local last = {}
-    for k = 1, #st.last do
-        local r = st.last[k]
-        if r.i > since then last[#last + 1] = r end
+    local oldest = st.n - TK.DW_MAX + 1
+    if oldest < 1 then oldest = 1 end
+    local from = since + 1
+    local dropped = 0
+    if from < oldest then
+        dropped = oldest - from
+        from = oldest
     end
-    out.counts, out.n, out.last, out.dropped = st.counts, st.n, last, st.dropped
+    local last = {}
+    for i = from, st.n do
+        last[#last + 1] = st.ring[(i - 1) % TK.DW_MAX + 1]
+    end
+    out.counts, out.n, out.last, out.dropped = st.counts, st.n, last, dropped
     out.ok = out.hooked
     return out
 end)
@@ -5172,5 +5180,39 @@ TK.register("zombie.get", function(argv)
         end
         i = i + 1
     end
+    return out
+end)
+
+-- ---- Plan 22 fix wave H: damage.unwatch (server)
+-- <user>. Stops damage.watch for one user: its counts and ring are dropped, and when no watched user is left the
+-- shared OnPlayerGetDamage listener is removed (TK.DW.hooked false), so the next damage.watch installs it afresh and
+-- starts the user at n = 0. watched says whether the user was watched, n the records it had counted, hooked whether
+-- the listener is still installed. An unwatched user is not an error.
+-- @args <user>
+-- @reply {ok, side, user, watched, n, hooked} | string
+-- @purpose Stops damage.watch for one user on the server: drops its counts and records, and removes the listener when no watched user is left.
+TK.register("damage.unwatch", function(argv)
+    local user = argv[1]
+    if user == nil or tostring(user) == "" then return "usage: damage.unwatch <user>" end
+    user = tostring(user)
+    local out = { ok = true, side = TK.side, user = user, watched = false, n = 0 }
+    local st = TK.DW.users[user]
+    if st ~= nil then
+        out.watched = true
+        out.n = st.n
+        TK.DW.users[user] = nil
+    end
+    if TK.DW.hooked and next(TK.DW.users) == nil then
+        local removed = false
+        if TK.DW.listener ~= nil and Events ~= nil and Events.OnPlayerGetDamage ~= nil
+                and Events.OnPlayerGetDamage.Remove ~= nil then
+            removed = pcall(Events.OnPlayerGetDamage.Remove, TK.DW.listener)
+        end
+        if removed then
+            TK.DW.hooked = false
+            TK.DW.listener = nil
+        end
+    end
+    out.hooked = TK.DW.hooked == true
     return out
 end)

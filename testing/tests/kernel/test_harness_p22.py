@@ -1,8 +1,10 @@
 """The Plan 22 Task 7 harness commands, offline: PZTestKit_Server.lua's Plan 22 Task 7 block (damage.watch,
-zombie.get), from its marker line to the end of the file, in a bare Lua 5.1 runtime with a stub TK, a stub findPlayer
-(the file's own is a local defined above the block), an Events.OnPlayerGetDamage recorder and a stub getCell whose
-zombie list is Lua stand-ins. They pin each command's reply shape (an empty count or record list is {} on the bus, a
-Lua empty table), the listener's username keying, its one-install guard, its 200-record cap and its pcall guard. The
+zombie.get) and the fix wave H block after it (damage.unwatch), from the Task 7 marker line to the end of the file, in
+a bare Lua 5.1 runtime with a stub TK, a stub findPlayer (the file's own is a local defined above the block), an
+Events.OnPlayerGetDamage recorder with Add and Remove and a stub getCell whose zombie list is Lua stand-ins. They pin
+each command's reply shape (an empty count or record list is {} on the bus, a Lua empty table), the listener's username
+keying, its one-install guard, its 5000-record ring and the count a since misses, the since check, the unwatch and its
+listener removal, and its pcall guard. The
 first live session that uses them is their smoke test. The harness is never a kernel file, so the coverage gate is
 untouched."""
 import os
@@ -13,6 +15,7 @@ from .server_host import REPO
 
 SERVER = os.path.join(REPO, "testing", "PZTestKit", "PZTestKit", "42", "media", "lua", "server", "PZTestKit_Server.lua")
 MARK = "-- ---- Plan 22 Task 7: damage.watch and zombie.get (server)"
+MARK_H = "-- ---- Plan 22 fix wave H: damage.unwatch (server)"
 
 ENV = r"""
 T = { listeners = {}, clock = 0 }
@@ -43,7 +46,14 @@ findPlayer = function(name)
     if name == "admin" then return T.admin end
     return nil
 end
-Events = { OnPlayerGetDamage = { Add = function(fn) T.listeners[#T.listeners + 1] = fn end } }
+Events = { OnPlayerGetDamage = {
+    Add = function(fn) T.listeners[#T.listeners + 1] = fn end,
+    Remove = function(fn)
+        for i = #T.listeners, 1, -1 do
+            if T.listeners[i] == fn then table.remove(T.listeners, i) end
+        end
+    end,
+} }
 TK = { side = "server", commands = {} }
 TK.register = function(name, fn) TK.commands[name] = fn end
 TK.now = function() T.clock = T.clock + 1; return T.clock end
@@ -90,12 +100,12 @@ def counts(t):
     return dict(t.items())
 
 
-def test_the_marker_is_the_blocks_first_line_and_it_registers_two_commands():
+def test_the_markers_open_their_blocks_and_they_register_three_commands():
     with open(SERVER, encoding="utf-8", newline="") as fh:
         lines = fh.read().split("\r\n")
-    assert MARK in lines
+    assert MARK in lines and MARK_H in lines and lines.index(MARK) < lines.index(MARK_H)
     s = Server()
-    for name in ("damage.watch", "zombie.get"):
+    for name in ("damage.watch", "zombie.get", "damage.unwatch"):
         assert s.TK.commands[name] is not None
 
 
@@ -148,17 +158,43 @@ def test_damage_watch_since_returns_only_later_records():
     assert r.n == 3 and counts(r.counts) == {"HEAVYLOAD": 2, "FALLDOWN": 1}
 
 
-def test_damage_watch_caps_the_records_at_200_and_counts_the_dropped():
+def test_damage_watch_keeps_a_ring_of_the_last_5000_and_names_what_a_since_missed():
     s = Server()
     cmd(s, "damage.watch", "admin")
-    assert s.TK.DW_MAX == 200
-    for _ in range(201):
+    assert s.TK.DW_MAX == 5000
+    for _ in range(5100):
         fire(s, "admin", "HEAVYLOAD")
+    assert len(s.TK.DW.users["admin"].ring) == 5000                 # the ring never grows past its cap
+    r = cmd(s, "damage.watch", "admin")                             # no since: everything aged out is missed
+    recs = lst(r.last)
+    assert r.n == 5100 and r.dropped == 100 and len(recs) == 5000
+    assert recs[0].i == 101 and recs[-1].i == 5100
+    assert [x.i for x in recs] == list(range(101, 5101))
+    assert counts(r.counts) == {"HEAVYLOAD": 5100}
+    r = cmd(s, "damage.watch", "admin", "since", "50")              # records 51..100 aged out after the since
+    recs = lst(r.last)
+    assert r.dropped == 50 and len(recs) == 5000 and recs[0].i == 101 and recs[-1].i == 5100
+    r = cmd(s, "damage.watch", "admin", "since", "100")             # the ring's oldest is 101: nothing missed
+    assert r.dropped == 0 and len(r.last) == 5000
+    r = cmd(s, "damage.watch", "admin", "since", "5000")
+    recs = lst(r.last)
+    assert r.dropped == 0 and [x.i for x in recs] == list(range(5001, 5101))
+    r = cmd(s, "damage.watch", "admin", "since", "5100")
+    assert r.dropped == 0 and len(r.last) == 0 and r.n == 5100
+
+
+def test_damage_watch_ring_wraps_in_order_past_several_laps():
+    s = Server()
+    s.rt.execute("TK.DW_MAX = 3")
+    cmd(s, "damage.watch", "admin")
+    for k in range(1, 11):
+        fire(s, "admin", "T%d" % k)
     r = cmd(s, "damage.watch", "admin")
     recs = lst(r.last)
-    assert r.n == 201 and r.dropped == 1 and len(recs) == 200
-    assert recs[0].i == 2 and recs[-1].i == 201
-    assert counts(r.counts) == {"HEAVYLOAD": 201}
+    assert [x.i for x in recs] == [8, 9, 10] and [x.tag for x in recs] == ["T8", "T9", "T10"]
+    assert r.n == 10 and r.dropped == 7
+    r = cmd(s, "damage.watch", "admin", "since", "8")
+    assert [x.i for x in lst(r.last)] == [9, 10] and r.dropped == 0
 
 
 def test_damage_watch_listener_never_raises():
@@ -183,6 +219,43 @@ def test_damage_watch_usage():
     assert cmd(s, "damage.watch") == "usage: damage.watch <user> [since <i>]"
     assert cmd(s, "damage.watch", "admin", "since", "x") == "usage: damage.watch <user> [since <i>]"
     assert len(s.T.listeners) == 0
+
+
+def test_damage_watch_since_must_be_a_non_negative_integer():
+    s = Server()
+    usage = "usage: damage.watch <user> [since <i>]"
+    for bad in (("since",), ("since", "1.5"), ("since", "-1"), ("since", "abc"), ("from", "3")):
+        assert cmd(s, "damage.watch", "admin", *bad) == usage, bad
+    assert len(s.T.listeners) == 0                                  # a refused call installs nothing
+    r = cmd(s, "damage.watch", "admin", "since", "0")
+    assert r.ok is True and r.n == 0
+
+
+def test_damage_unwatch_drops_the_users_records_and_the_last_unwatch_removes_the_listener():
+    s = Server()
+    cmd(s, "damage.watch", "admin")
+    cmd(s, "damage.watch", "bob")
+    fire(s, "admin", "HEAVYLOAD")
+    fire(s, "admin", "FALLDOWN")
+    r = cmd(s, "damage.unwatch", "admin")
+    assert r.ok is True and r.side == "server" and r.user == "admin" and r.watched is True and r.n == 2
+    assert r.hooked is True and len(s.T.listeners) == 1             # bob is still watched
+    assert s.TK.DW.users["admin"] is None
+    fire(s, "admin", "HEAVYLOAD")                                   # no longer recorded
+    r = cmd(s, "damage.unwatch", "bob")
+    assert r.watched is True and r.n == 0 and r.hooked is False and len(s.T.listeners) == 0
+    r = cmd(s, "damage.watch", "admin")                             # a fresh watch re-hooks and starts at zero
+    assert r.ok is True and r.n == 0 and len(r.last) == 0 and len(s.T.listeners) == 1
+    fire(s, "admin", "FALLDOWN")
+    assert cmd(s, "damage.watch", "admin").n == 1
+
+
+def test_damage_unwatch_of_an_unwatched_user_and_usage():
+    s = Server()
+    r = cmd(s, "damage.unwatch", "carol")
+    assert r.ok is True and r.user == "carol" and r.watched is False and r.n == 0 and r.hooked is False
+    assert cmd(s, "damage.unwatch") == "usage: damage.unwatch <user>"
+    assert cmd(s, "damage.unwatch", "") == "usage: damage.unwatch <user>"
 
 
 def test_zombie_get_finds_health_and_position_by_online_id():
