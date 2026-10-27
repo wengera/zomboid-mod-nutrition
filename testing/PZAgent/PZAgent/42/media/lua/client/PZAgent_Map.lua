@@ -22,6 +22,8 @@ MP.seen = {}
 MP.lastDelta = {}
 MP.watchIdx = 0
 MP.missing = {}             -- the members the watch's squares lacked (a delta line carries an empty list)
+MP.errors = 0               -- raises in the map phase, caught by Main's own pcall round it (S-15; raise:map in missing)
+MP.lastError = nil
 
 local function getm(miss, out, key, obj, member, ...)
     local ok, v = PZA.call(obj, member, ...)

@@ -314,3 +314,72 @@ def test_main_tick_on_each_fault_never_propagates_and_reports_at_most_one_lua_er
     if fault != "raise":
         assert errors == [] and lua.eval("PZA.errors") == 0 and g.pcallFails == 0
         assert any(l["kind"] == "act" and l["aid"] == "a1" for l in lines)
+
+
+# ---- the map phase under its own pcall (fix wave I9: S-15 extended to Map) -------------------------------------------
+
+def raising_square_host():
+    """Main loaded in the game's order, the init tick run with a full player at (10, 20) and the rate at 60 (a frame every
+    tick); every square round the player answers its position and solidity but raises on getObjects (a modded object)."""
+    fs = FakeFS()
+    lua = make_lua(fs)
+    load(lua, MAIN_FILES)
+    g = lua.globals()
+
+    def objects(s):
+        raise RuntimeError("java raised: getObjects")
+    sqs = {}
+    for x in range(0, 21):
+        for y in range(10, 31):
+            sqs[(x, y, 0)] = J(getObjects=objects, isSolid=lambda s: False, isSolidTrans=lambda s: False,
+                               getX=lambda s, x=x: x, getY=lambda s, y=y: y, getZ=lambda s: 0)
+    g._cell = make_cell([], sqs)
+    p = full_player()
+    g.getPlayer = lambda: p
+    g._handlers[0]()                                          # the init tick
+    lua.execute("PZA.sense.RATE = 60")
+    return lua, fs, g
+
+
+def live_lines(lua, fs):
+    lua.execute("PZA.link.flush()")
+    return [pza1.decode(json.loads(l)) for l in fs.files.get(LIVE, "").split("\n") if l.strip()]
+
+
+def test_a_square_raising_on_every_visit_still_emits_every_frame_and_one_lua_error_a_second():
+    lua, fs, g = raising_square_host()
+    n = 12
+    for _ in range(n):
+        g._clock["ms"] += 1000                                # a second a tick: reportError's limit lets each one out
+        g._handlers[0]()
+    out = live_lines(lua, fs)
+    frames = [l for l in out if l["kind"] == "frame"]
+    errors = [l for l in out if l["kind"] == "event" and l["event"] == "lua_error"]
+    assert len(frames) == n                                   # the frame is emitted on every raising tick
+    assert len(errors) == n and all("getObjects" in e["msg"] for e in errors)
+    assert lua.eval("PZA.errors") == n and lua.eval("PZA.map.errors") == n
+    assert "raise:map" in set(lua.eval("PZA.map.missing").values())
+
+
+def test_the_map_raise_is_rate_limited_to_one_lua_error_a_second_and_never_stalls_the_watch():
+    lua, fs, g = raising_square_host()
+    idx0 = lua.eval("PZA.map.watchIdx")
+    for _ in range(30):                                       # 30 ticks inside one second of the client clock
+        g._handlers[0]()
+    out = live_lines(lua, fs)
+    assert len([l for l in out if l["kind"] == "frame"]) == 30
+    assert len([l for l in out if l["kind"] == "event" and l["event"] == "lua_error"]) == 1
+    assert lua.eval("PZA.errors") == 30 and lua.eval("PZA.map.watchIdx") != idx0   # the watch moves on
+
+
+def test_a_raising_scan_step_drops_the_job_and_the_watch_takes_over():
+    lua, fs, g = raising_square_host()
+    fs.files[CMD] = json.dumps({"seq": 1, "aid": "s1", "type": "scan", "args": {"r": 3}}) + "\n"
+    g._handlers[0]()                                          # the scan accepted, its first step raised
+    assert lua.eval("PZA.map.job") is None
+    g._clock["ms"] += 1000
+    g._handlers[0]()
+    out = live_lines(lua, fs)
+    assert [l["state"] for l in out if l["kind"] == "act" and l["aid"] == "s1"] == ["done"]
+    assert len([l for l in out if l["kind"] == "frame"]) == 2
+    assert len([l for l in out if l["kind"] == "map"]) == 0 and lua.eval("PZA.map.errors") == 2

@@ -14,7 +14,10 @@
 -- over5 the bodies of 5 ms or more since it (the ticks before this one), dropped the Link's dropped lines.
 -- Main loads before Map, Motor, Sense and Skills (client files load by name), so it reaches them only at tick time.
 -- Everything sits inside one pcall; a raise counts in PZA.errors and, once the link is initialised, reports as a
--- lua_error event once a second (its flush under its own pcall, so the handler never raises).
+-- lua_error event once a second (its flush under its own pcall, so the handler never raises). The map phase runs under
+-- its own pcall besides (ruling S-15 extended to the map): a raise there counts in PZA.errors and PZA.map.errors, is
+-- named raise:map in PZA.map.missing and reports as a lua_error under the same once-a-second limit, a running scan job is
+-- dropped (its walk would retry the raising square every tick), and the tick goes on to emit its frame and flush.
 PZA.main = PZA.main or {}
 local M = PZA.main
 PZA.tick = 0
@@ -111,6 +114,22 @@ local function mainCommand(cmd, p)
     return true
 end
 
+-- the map phase: the scan job's next part while a job runs, else the watch's next squares
+local function mapStep(p)
+    local MP = PZA.map
+    if MP.job ~= nil then MP.scanStep(p) else MP.watchStep(p) end
+end
+
+-- a raise in the map phase (S-15): counted and named on the map, the job dropped, reported as Main reports any raise
+local function mapRaised(err)
+    local MP = PZA.map
+    MP.errors = (MP.errors or 0) + 1
+    MP.lastError = tostring(err)
+    MP.job = nil
+    PZA.missing(MP.missing, "raise:map")
+    reportError(err)
+end
+
 local function body()
     PZA.tick = PZA.tick + 1
     local p = getPlayer()
@@ -120,7 +139,7 @@ local function body()
         M.init(u or "admin", p)
         return
     end
-    local L, K, S, MP = PZA.link, PZA.skills, PZA.sense, PZA.map
+    local L, K, S = PZA.link, PZA.skills, PZA.sense
     local cmd = L.poll()
     if cmd ~= nil and not mainCommand(cmd, p) then K.start(cmd, p) end
     local t0 = PZA.now()
@@ -133,7 +152,8 @@ local function body()
         if ev ~= nil then for i = 1, #ev do PZA.emit("event", ev[i]) end end
     end
     local t2 = PZA.now()
-    if MP.job ~= nil then MP.scanStep(p) else MP.watchStep(p) end
+    local okMap, errMap = pcall(mapStep, p)
+    if not okMap then mapRaised(errMap) end
     local t3 = PZA.now()
     if L.overflow ~= nil then
         PZA.emit("event", { event = "overflow", gameMin = gameMin(), queued = L.overflow.queued, cut = L.overflow.cut })
