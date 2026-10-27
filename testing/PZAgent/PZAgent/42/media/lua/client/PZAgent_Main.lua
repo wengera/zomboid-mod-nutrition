@@ -1,7 +1,8 @@
 -- PZAgent_Main.lua — the one OnTick hook (spec § 8, Plan 22 Task 6). The tick order: player → init → poll → skills →
 -- sense → map → flush. No player means nothing is polled, emitted or flushed. The first tick with a player is the init
--- tick: the Link initialised (M.init), hello, the inventory's first sight as item_added events and one flush, and
--- nothing else. Every later tick: the poll (scan{r} and rate{hz} answered here by one act line, ruling P22-5; every
+-- tick: the Link initialised (M.init), hello, the inventory's first sight as item_added events (under its own pcall:
+-- M.ready is set after hello, so a raise there is one lua_error, never a re-init) and one flush, and nothing else.
+-- Every later tick: the poll (scan{r} and rate{hz} answered here by one act line, ruling P22-5; every
 -- other command to the runner, K.start), the running skill's tick (K.tick), every max(1, floor(60 / S.RATE)) ticks
 -- the events and the frame read (S.events, or S.frame on the first), the map (the scan job's next part while a job
 -- runs, else the watch's next squares), an overflow event when the Link cut its backlog, the frame emitted with its
@@ -44,7 +45,26 @@ local function caps()
     return out
 end
 
--- the init tick's work (p, the player, read again when absent)
+-- a raise caught by Main: counted in PZA.errors and, once the link is initialised, emitted as a lua_error event at
+-- most once a second (the caller flushes); answers true when it emitted
+local function reportError(err)
+    PZA.errors = PZA.errors + 1
+    local now = PZA.now()
+    if not M.ready or now - M.lastErrMs < 1000 then return false end
+    M.lastErrMs = now
+    PZA.emit("event", { event = "lua_error", gameMin = gameMin(), msg = tostring(err) })
+    return true
+end
+
+-- the inventory's first sight as item_added events (under M.init's pcall: a raise here is reported, never re-inits)
+local function firstSight(p)
+    local ev = PZA.sense.firstSight(p)
+    for i = 1, #ev do PZA.emit("event", ev[i]) end
+end
+
+-- the init tick's work (p, the player, read again when absent). M.ready is set once the Link is initialised and hello
+-- emitted, so a raise after that point never runs L.init again; the first sight runs under its own pcall, its raise
+-- reported as a lua_error on this tick, and the one flush follows either way
 function M.init(user, p)
     local L, S = PZA.link, PZA.sense
     L.init(user)
@@ -52,9 +72,10 @@ function M.init(user, p)
     local _, ver = PZA.call(core, "getVersionNumber")
     PZA.emit("hello", { proto = PZA.schema.PROTO, mod = PZA.VERSION, build = ver or "", user = user, rate = S.RATE,
                         caps = caps(), mode = L.mode })
-    local ev = S.firstSight(p or getPlayer())
-    for i = 1, #ev do PZA.emit("event", ev[i]) end
-    L.flush()
+    M.ready = true
+    local ok, err = pcall(firstSight, p or getPlayer())
+    if not ok then reportError(err) end
+    M.lastLinkMs = L.flush()
 end
 
 -- a whole number in lo..hi
@@ -97,7 +118,6 @@ local function body()
     if not M.ready then
         local _, u = PZA.call(p, "getUsername")
         M.init(u or "admin", p)
-        M.ready = true
         return
     end
     local L, K, S, MP = PZA.link, PZA.skills, PZA.sense, PZA.map
@@ -136,14 +156,10 @@ local function onTick()
     M.lastBodyMs = ms
     if ms > M.maxMs then M.maxMs = ms end
     if ms >= M.OVER_MS then M.over5 = M.over5 + 1 end
-    if not ok then
-        PZA.errors = PZA.errors + 1
-        local now = PZA.now()
-        if M.ready and now - M.lastErrMs >= 1000 then
-            M.lastErrMs = now
-            PZA.emit("event", { event = "lua_error", gameMin = gameMin(), msg = tostring(err) })
-            pcall(PZA.link.flush)
-        end
+    if not ok and reportError(err) then
+        -- the raised tick's flush (its body ms above already fed tickMaxMs and over5); its ms is the next frame's linkMs
+        local okF, fms = pcall(PZA.link.flush)
+        if okF and type(fms) == "number" then M.lastLinkMs = fms end
     end
 end
 

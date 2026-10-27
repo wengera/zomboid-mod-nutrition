@@ -4,10 +4,13 @@
 --   the scan job (moved from Sense): scan{r} walks the (2r+1)^2 grid SCAN_SQUARES_PER_TICK squares a tick, each part
 --   queued as a map line in mode "full" { scanId, part, parts, squares, missing };
 --   the watch, a dirty set: each tick the next WATCH_PER_TICK squares of the (2 WATCH_R + 1)^2 ring round the player
---   (by index, cycling) are encoded through PZA.enc.square, and a square whose encoding differs from the last one
---   emitted (MP.seen; a key never seen counts as changed) is queued as a one-square map line in mode "delta"
+--   (by index, cycling) are read, and a square whose dirty key differs from the last one emitted (MP.seen; a key
+--   never seen counts as changed) is queued as a one-square map line in mode "delta"
 --   { scanId = 0, part = 1, parts = 1 }, at most once every DELTA_MIN_TICKS ticks a square (MP.lastDelta).
--- MP.seen holds the encoding of every square ever emitted (full or delta) and MP.lastDelta the tick of every delta, both
+-- The dirty key is the square's encoding without light (ruling S-14, MP.watchKey): the dirty set means a world change
+-- (walls, doors, windows, containers, floor), and an unrounded light level would dirty most of the ring at every
+-- lighting drift and fill the budget with deltas; an emitted line still carries the real light.
+-- MP.seen holds the dirty key of every square ever emitted (full or delta) and MP.lastDelta the tick of every delta, both
 -- unbounded: a session sees a few thousand squares, about 100 bytes of string each. Every Java member is reached
 -- through PZA.call (index-first); a member a square lacks is named in the part's missing list, never nil-called.
 PZA.map = PZA.map or {}
@@ -108,12 +111,30 @@ function MP.square(sq, missing)
     return q
 end
 
--- the encoding a square was last emitted with, by its key (a square without a readable position is never keyed)
+-- the dirty key of a square record: its PZA.enc.square encoding with light left out (ruling S-14); q is left as it was
+function MP.watchKey(q)
+    local light = q.light
+    q.light = nil
+    local e = PZA.enc.square(q)
+    q.light = light
+    return e
+end
+
+-- the dirty key a square was last emitted with, by its key (a square without a readable position is never keyed)
 local function remember(q)
     if q.x == nil or q.y == nil or q.z == nil then return nil end
     local key = MP.key(q.x, q.y, q.z)
-    MP.seen[key] = PZA.enc.square(q)
+    MP.seen[key] = MP.watchKey(q)
     return key
+end
+
+-- the player's position, or nil when any of x, y, z cannot be read as a number
+local function posOf(p)
+    local okX, x = PZA.call(p, "getX")
+    local okY, y = PZA.call(p, "getY")
+    local okZ, z = PZA.call(p, "getZ")
+    if not (okX and okY and okZ) or type(x) ~= "number" or type(y) ~= "number" or type(z) ~= "number" then return nil end
+    return x, y, z
 end
 
 -- The scan is a job walked SCAN_SQUARES_PER_TICK squares a tick (Stage A pass 1 read r=15, 961 squares, at
@@ -134,10 +155,8 @@ MP.scanId = 0
 
 -- a job over the (2r+1)^2 grid at the player's square, or nil when the player's position cannot be read
 local function newJob(p, r, id)
-    local okX, x = PZA.call(p, "getX")
-    local okY, y = PZA.call(p, "getY")
-    local okZ, z = PZA.call(p, "getZ")
-    if not (okX and okY and okZ) or type(x) ~= "number" or type(y) ~= "number" or type(z) ~= "number" then return nil end
+    local x, y, z = posOf(p)
+    if x == nil then return nil end
     local side = 2 * r + 1
     local n = side * side
     local gameMin = PZA.sense ~= nil and PZA.sense.clock ~= nil and PZA.sense.clock() or 0
@@ -215,21 +234,20 @@ function MP.scan(p, r)
 end
 
 -- the watch: the next WATCH_PER_TICK squares of the ring round the player's square (MP.watchIdx cycling over its
--- (2 WATCH_R + 1)^2 indexes, row by row, the ring re-centred each tick), each encoded and queued as a delta when its
--- encoding is not MP.seen's and its last delta is DELTA_MIN_TICKS ticks old or more (a held change is read again on a
--- later cycle). An absent square still takes its index. Answers the deltas queued.
+-- (2 WATCH_R + 1)^2 indexes, row by row, the ring re-centred each tick), each read and queued as a delta when its
+-- dirty key (MP.watchKey: the encoding without light) is not MP.seen's and its last delta is DELTA_MIN_TICKS ticks
+-- old or more (a held change is read again on a later cycle). An absent square still takes its index. Answers the
+-- deltas queued.
 function MP.watchStep(p)
-    local okX, x = PZA.call(p, "getX")
-    local okY, y = PZA.call(p, "getY")
-    local okZ, z = PZA.call(p, "getZ")
-    if not (okX and okY and okZ) or type(x) ~= "number" or type(y) ~= "number" or type(z) ~= "number" then return 0 end
+    local x, y, z = posOf(p)
+    if x == nil then return 0 end
     local cell = getCell and getCell() or nil
     local r = MP.WATCH_R
     local side = 2 * r + 1
     local n = side * side
     local px, py = math.floor(x), math.floor(y)
     local tick = PZA.tick or 0
-    local seen, last, enc = MP.seen, MP.lastDelta, PZA.enc.square
+    local seen, last, watchKey = MP.seen, MP.lastDelta, MP.watchKey
     local queued = 0
     for _ = 1, MP.WATCH_PER_TICK do
         local i = MP.watchIdx % n
@@ -239,7 +257,7 @@ function MP.watchStep(p)
             local q = MP.square(sq, MP.missing)
             if q.x ~= nil and q.y ~= nil and q.z ~= nil then
                 local key = MP.key(q.x, q.y, q.z)
-                local e = enc(q)
+                local e = watchKey(q)
                 local at = last[key]
                 if e ~= seen[key] and (at == nil or tick - at >= MP.DELTA_MIN_TICKS) then
                     seen[key] = e

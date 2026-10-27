@@ -328,3 +328,40 @@ def test_main_is_lf_and_names_no_removed_api():
     assert b"\r\n" not in src
     for gone in (b"PZA.act", b"link.ack", b"scanPart", b"goalEvent", b"local function config"):
         assert gone not in src
+
+
+# ---- Fix 1: the init guarded; the error path's flush timed -------------------------------------------------------
+
+def test_a_raise_in_the_first_sight_inits_once_reports_one_lua_error_and_the_ticks_go_on(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    g.getPlayer = lambda: p
+    lua.execute("PZA.sense.firstSight = function(p) error('first sight boom') end")
+    names = live_writes(lua, fs)
+    run(g)                                                      # tick 1: init
+    out = lines(fs)
+    assert [l["kind"] for l in out] == ["hello", "event"]
+    assert out[1]["event"] == "lua_error" and "first sight boom" in out[1]["msg"]
+    assert names[DIR + "probe.log"] == 2 and names[LIVE] == 1 and lua.eval("PZA.errors") == 1
+    run(g, 11)                                                  # ticks 2-12: no re-init, frames on 6 and 12
+    assert names[DIR + "probe.log"] == 2 and kinds(fs).count("hello") == 1
+    assert [l["tick"] for l in lines(fs) if l["kind"] == "frame"] == [6, 12] and lua.eval("PZA.errors") == 1
+
+
+def test_a_raised_ticks_body_ms_feeds_the_window_and_its_flush_is_the_next_link_ms(lua, fs):
+    g, p = setup(lua, fs)                                       # tick 1: init
+    clock = g._clock
+    fs.write_cost_ms = 4
+    run(g, 3)                                                   # ticks 2-4: nothing written
+
+    def boom():
+        clock["ms"] += 9
+        raise RuntimeError("boom")
+    g.getPlayer = boom
+    run(g)                                                      # tick 5: a 9 ms body that raises; its lua_error flush 4 ms
+    g.getPlayer = lambda: p
+    run(g)                                                      # tick 6: the frame
+    (f,) = [l for l in lines(fs) if l["kind"] == "frame"]
+    c = f["cost"]
+    assert (c["tickMs"], c["tickMaxMs"], c["over5"], c["linkMs"]) == (9, 9, 1, 4)

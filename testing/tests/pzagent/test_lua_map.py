@@ -268,7 +268,7 @@ def test_a_scan_part_line_decodes_to_the_squares_it_walked(lua, fs):
                              "room": "kitchen", "building": 7, "door": {"open": False, "locked": False,
                                                                         "barricaded": False},
                              "window": None, "containers": [], "floor": []}]
-    assert lua.eval("PZA.map.seen['11,20,0']") == lua.eval("PZA.enc.square(PZA.map.square(...))", full_square(11, 20, door=True), lua.table())
+    assert lua.eval("PZA.map.seen['11,20,0']") == lua.eval("PZA.map.watchKey(PZA.map.square(...))", full_square(11, 20, door=True), lua.table())
 
 
 def test_map_square_has_exactly_the_schemas_square_keys(lua):
@@ -292,7 +292,8 @@ def test_map_reads_every_java_member_through_pza_call():
 # ---- the watch ---------------------------------------------------------------------------------------------------
 
 def full_square(x, y, door=False, window=False, box=False, floor=False, state=None):
-    """A square with every member; with door, an IsoDoor whose IsOpen reads state["open"]."""
+    """A square with every member, its light state["light"] (0.5 by default); with door, an IsoDoor whose IsOpen reads
+    state["open"]."""
     st = state if state is not None else {"open": False}
     objs = []
     if door:
@@ -306,7 +307,7 @@ def full_square(x, y, door=False, window=False, box=False, floor=False, state=No
         objs.append(J(getContainer=lambda s: cont))
     wos = [J(getItem=lambda s: J(getFullType=lambda s2: "Base.Plank"))] if floor else []
     return J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: 0, isSolid=lambda s: False,
-             isSolidTrans=lambda s: False, getLightLevel=lambda s, i: 0.5,
+             isSolidTrans=lambda s: False, getLightLevel=lambda s, i: st.get("light", 0.5),
              getRoom=lambda s: J(getName=lambda s2: "kitchen"), getBuilding=lambda s: J(getID=lambda s2: 7),
              getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]),
              getWorldObjects=lambda s: J(size=lambda s2: len(wos), get=lambda s2, i: wos[i]))
@@ -381,7 +382,7 @@ def test_a_door_toggled_on_a_seen_square_queues_one_delta_and_seen_updates(lua, 
     assert (d["mode"], d["scanId"], d["part"], d["parts"], len(d["squares"])) == ("delta", 0, 1, 1, 1)
     assert d["squares"][1]["x"] == 12 and d["squares"][1]["door"]["open"] is True
     after = lua.eval("PZA.map.seen['12,21,0']")
-    assert after != before and after == lua.eval("PZA.enc.square(...)", d["squares"][1])
+    assert after != before and after == lua.eval("PZA.map.watchKey(...)", d["squares"][1])
     lua.execute("PZA.link.flush()")
     (m,) = map_lines(fs)
     assert m["mode"] == "delta" and m["squares"][0]["door"] == {"open": True, "locked": False, "barricaded": False}
@@ -434,3 +435,30 @@ def test_a_missing_square_is_skipped_and_the_watch_index_still_advances(lua):
     p = make_player()
     assert watch(lua, p, 1) == 0 and backlog(lua) == []
     assert lua.eval("PZA.map.watchIdx") == 8
+
+
+# ---- Fix 1: the dirty key excludes light (ruling S-14) -----------------------------------------------------------
+
+def test_the_dirty_key_is_the_encoding_without_light_and_leaves_the_record_alone(lua):
+    load(lua)
+    t = lua.eval("PZA.map.square(...)", full_square(3, 4, door=True), lua.table())
+    k = lua.eval("PZA.map.watchKey(...)", t)
+    assert t["light"] == 0.5 and k == lua.eval("PZA.enc.square(...)", t).replace(",0.5,", ",null,", 1)
+
+
+def test_a_light_only_change_queues_nothing_and_a_door_toggle_on_it_still_does(lua):
+    load(lua)
+    st, calls = watch_world(lua)
+    p = make_player()
+    seed_ring(lua, p)
+    st["light"] = 0.9
+    for t in range(1, 45):                                      # two whole cycles: the square read twice
+        watch(lua, p, t)
+    assert backlog(lua) == []
+    st["open"] = True
+    for t in range(45, 68):
+        watch(lua, p, t)
+    queued = backlog(lua)
+    assert len(queued) == 1
+    q = queued[0]["squares"][1]
+    assert q["door"]["open"] is True and q["light"] == 0.9      # the line carries the real light
