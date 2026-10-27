@@ -14,7 +14,8 @@ byte for byte.
 import json
 import os
 
-from agent.base.world import FOOD_RX, WATER_RX, ZOMBIE_TTL_S, World, replay
+from agent.base.replay import replay as replay_summary
+from agent.base.world import FOOD_RX, WATER_RX, ZOMBIE_TTL_S, World
 
 from .fakemod import DEFAULT_FRAME, FakeMod
 
@@ -24,6 +25,11 @@ GOLDEN = os.path.join(FIX, "pza1-synthetic-1.world.json")
 
 DOOR = {"open": False, "locked": False, "barricaded": False}
 WINDOW = {"open": False, "locked": True, "barricaded": False}
+
+
+def replay(path):
+    """The World a replay of `path` ends with (`agent.base.replay`, moved out of world.py under M6)."""
+    return replay_summary(path).world
 
 
 # -- the synthetic log ------------------------------------------------------------------------------------------------
@@ -376,9 +382,8 @@ def test_to_json_is_byte_stable_and_replay_merges_deltas_as_the_fake_wrote(tmp_p
     assert w.acts["a1"]["state"] == "done" and w.hello["proto"] == "PZA/1"
     assert w.nearest_unlooted("food") == (100, 200, 0, 0)
     assert w.unknown_kinds == 0 and w.dropped_scans == 0
-    assert w.replay_bad == 0 and w.replay_gaps == []
-    live = World()
-    assert live.replay_bad == 0 and live.replay_gaps == []
+    s = replay_summary(LOG)
+    assert s.bad == 0 and s.gaps == 0 and s.gap_list == [] and s.world_json == a
 
 
 def test_a_new_hello_resets_the_scan_and_damage_indexes():

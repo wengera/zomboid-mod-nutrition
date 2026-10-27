@@ -34,13 +34,8 @@ data (`docs/reference/research-notes.md`: matching against `data/food-items.json
 """
 import json
 import math
-import os
 import re
-import shutil
-import tempfile
 from collections import deque
-
-from agent.base.transport.files import FileTransport
 
 FOOD_RX = re.compile(r"\.(?:(?:Canned|Tinned)\w*|Macandcheese|PowerBar|Apple|Bread|Milk|Water|Pop|Chips|Cereal|"
                      r"Cabbage|Carrots|Tomato|Egg|Steak|Chicken|Ham|Tuna|Peanut|Candy|Chocolate|Juice|Soda|Beer|Wine|"
@@ -91,8 +86,6 @@ class World:
         self.dropped_scans = 0
         self.map_lines = 0
         self.stuck = {}              # (x, y) -> gameMin: a walk target that ended stuck, set by the planner
-        self.replay_bad = 0          # replay(): the transport's dropped lines; 0 for a live World
-        self.replay_gaps = []        # replay(): the transport's seq gaps; [] for a live World
         self._newest_scan = None
         self._handlers = {"hello": self._hello, "frame": self._frame, "map": self._map, "event": self._event,
                           "act": self._act, "reply": self._reply}
@@ -277,24 +270,3 @@ class World:
             "mapLines": self.map_lines,
         })
         return json.dumps(d, sort_keys=True, indent=1, ensure_ascii=False)
-
-
-def replay(path):
-    """A World from a state.log read through FileTransport, so delta frames merge as they do live; the transport's
-    `bad` and `gaps` are kept as `replay_bad` and `replay_gaps`. A file named
-    `state.log` is read from its own directory (its rotations and chunks with it); any other name is copied alone
-    into a temporary directory as `state.log`."""
-    w = World()
-    if os.path.basename(path) == "state.log":
-        tr = FileTransport(os.path.dirname(os.path.abspath(path)))
-        lines = tr.lines()
-    else:
-        with tempfile.TemporaryDirectory() as d:
-            shutil.copyfile(path, os.path.join(d, "state.log"))
-            tr = FileTransport(d)
-            lines = tr.lines()
-    for line in lines:
-        w.apply(line)
-    w.replay_bad = tr.bad
-    w.replay_gaps = list(tr.gaps)
-    return w
