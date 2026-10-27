@@ -1,0 +1,227 @@
+[
+  {
+    "name": "walkTo",
+    "description": "Walk the vanilla path to a world position at a gait.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "The target world x in tiles."
+        },
+        "y": {
+          "type": "number",
+          "description": "The target world y in tiles."
+        },
+        "gait": {
+          "type": "string",
+          "enum": [
+            "walk",
+            "run",
+            "sprint"
+          ],
+          "description": "The gait to move at.",
+          "default": "walk"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "steer",
+    "description": "Move along a world vector for a time, without a path, at a gait.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "vx": {
+          "type": "number",
+          "description": "The world vector's x component."
+        },
+        "vy": {
+          "type": "number",
+          "description": "The world vector's y component."
+        },
+        "seconds": {
+          "type": "number",
+          "description": "How long to steer in seconds."
+        },
+        "gait": {
+          "type": "string",
+          "enum": [
+            "walk",
+            "run",
+            "sprint"
+          ],
+          "description": "The gait to move at.",
+          "default": "walk"
+        }
+      },
+      "required": [
+        "vx",
+        "vy",
+        "seconds"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "attack",
+    "description": "Step to the weapon's reach of a zombie, face it and swing until it dies or the skill ends.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "targetId": {
+          "type": "integer",
+          "description": "The zombie's online id."
+        }
+      },
+      "required": [
+        "targetId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "interact",
+    "description": "Open or close the door or window on a square, or loot its containers.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "integer",
+          "description": "The square's x."
+        },
+        "y": {
+          "type": "integer",
+          "description": "The square's y."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "open",
+            "close",
+            "loot"
+          ],
+          "description": "What to do."
+        },
+        "filter": {
+          "type": "string",
+          "enum": [
+            "food",
+            "water",
+            "weapon",
+            "bandage",
+            "all"
+          ],
+          "description": "Which items a loot takes.",
+          "default": "all"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "kind"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "equip",
+    "description": "Equip an inventory item in the primary hand.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer",
+          "description": "The item's id."
+        }
+      },
+      "required": [
+        "itemId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "consume",
+    "description": "Eat or drink an inventory item.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer",
+          "description": "The item's id."
+        }
+      },
+      "required": [
+        "itemId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "drop",
+    "description": "Drop an inventory item on the player's square.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer",
+          "description": "The item's id."
+        }
+      },
+      "required": [
+        "itemId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "stop",
+    "description": "Stop the current skill and every motor flag.",
+    "input_schema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "scan",
+    "description": "Queue a full map scan of the squares within a radius.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "r": {
+          "type": "integer",
+          "description": "The scan radius in tiles."
+        }
+      },
+      "required": [
+        "r"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "rate",
+    "description": "Set the frame rate.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "hz": {
+          "type": "integer",
+          "description": "The frame rate in frames a second."
+        }
+      },
+      "required": [
+        "hz"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

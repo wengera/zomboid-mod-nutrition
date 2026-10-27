@@ -1,0 +1,708 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pza1.json",
+  "title": "PZA/1",
+  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string.",
+  "x-proto": "PZA/1",
+  "x-kinds": ["hello", "frame", "map", "event", "act", "reply"],
+  "oneOf": [
+    {"$ref": "#/$defs/hello"},
+    {"$ref": "#/$defs/frame"},
+    {"$ref": "#/$defs/map"},
+    {"$ref": "#/$defs/event"},
+    {"$ref": "#/$defs/act"},
+    {"$ref": "#/$defs/reply"}
+  ],
+  "$defs": {
+    "gait": {
+      "description": "The gait a move runs at.",
+      "type": "string",
+      "enum": ["walk", "run", "sprint"]
+    },
+    "ikind": {
+      "description": "What an interact does to its square's object.",
+      "type": "string",
+      "enum": ["open", "close", "loot"]
+    },
+    "filter": {
+      "description": "Which items a loot takes.",
+      "type": "string",
+      "enum": ["food", "water", "weapon", "bandage", "all"]
+    },
+    "actionType": {
+      "description": "A skill type a cmd line names.",
+      "type": "string",
+      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate"]
+    },
+    "actState": {
+      "description": "A skill's lifecycle state.",
+      "type": "string",
+      "enum": ["accepted", "rejected", "progress", "done", "failed"]
+    },
+    "reason": {
+      "description": "The closed set of reasons a skill is rejected or fails with.",
+      "type": "string",
+      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted"]
+    },
+    "eventKind": {
+      "description": "The kind of an engine event line.",
+      "type": "string",
+      "enum": ["damage", "swing", "zombie_dead", "item_added", "item_removed", "door", "lua_error", "overflow"]
+    },
+    "mapMode": {
+      "description": "Whether a map scan sends every square in range or only the changed ones.",
+      "type": "string",
+      "enum": ["full", "delta"]
+    },
+    "linkMode": {
+      "description": "How the mod writes its out file.",
+      "type": "string",
+      "enum": ["append", "chunk"]
+    },
+    "side": {
+      "description": "The side whose listener saw a damage event.",
+      "type": "string",
+      "enum": ["client", "server"]
+    },
+
+    "hello": {
+      "description": "The first line of a session: the protocol, the mod and what it accepts.",
+      "x-role": "kind",
+      "x-encoding": "keyed",
+      "type": "object",
+      "properties": {
+        "kind": {"description": "The line kind.", "const": "hello"},
+        "proto": {"description": "The protocol name.", "const": "PZA/1"},
+        "mod": {"description": "The mod version.", "type": "string"},
+        "build": {"description": "The game build the client reports.", "type": "string"},
+        "user": {"description": "The client's user name.", "type": "string"},
+        "rate": {"description": "The frame rate in frames a second.", "type": "number"},
+        "caps": {"description": "The skill types this build accepts.", "type": "array", "items": {"$ref": "#/$defs/actionType"}},
+        "mode": {"description": "How the mod writes its out file.", "$ref": "#/$defs/linkMode"}
+      },
+      "required": ["kind", "proto", "mod", "build", "user", "rate", "caps", "mode"]
+    },
+
+    "frame": {
+      "description": "One observation of the player, sent every frame, a delta eliding unchanged groups as true.",
+      "x-role": "kind",
+      "x-encoding": "positional",
+      "x-order": ["kind", "seq", "tick", "wallMs", "gameMin", "worldAge", "me", "stats", "body", "load", "weapon", "action", "act", "zombies", "cost"],
+      "type": "object",
+      "properties": {
+        "kind": {"description": "The line kind.", "const": "frame"},
+        "seq": {"description": "The line's sequence number.", "type": "integer"},
+        "tick": {"description": "The client tick the line was written on.", "type": "integer"},
+        "wallMs": {"description": "The client's wall clock in milliseconds.", "type": "number"},
+        "gameMin": {"description": "The game clock in minutes.", "type": "number"},
+        "worldAge": {"description": "The world age in hours.", "type": "number"},
+        "me": {"description": "The player's position and gait.", "$ref": "#/$defs/me"},
+        "stats": {"description": "The player's character stats.", "$ref": "#/$defs/stats"},
+        "body": {"description": "The player's health and wounds.", "$ref": "#/$defs/body"},
+        "load": {"description": "The player's carried weight and its moodle level.", "$ref": "#/$defs/load"},
+        "weapon": {"description": "The primary hand weapon, null when none.", "anyOf": [{"$ref": "#/$defs/weapon"}, {"type": "null"}]},
+        "action": {"description": "The current timed action, null when none.", "anyOf": [{"$ref": "#/$defs/action"}, {"type": "null"}]},
+        "act": {"description": "The current skill, null when none.", "anyOf": [{"$ref": "#/$defs/act_now"}, {"type": "null"}]},
+        "zombies": {"description": "The zombies in sense range, nearest first.", "type": "array", "items": {"$ref": "#/$defs/zombie"}},
+        "cost": {"description": "The mod's own cost on the client.", "$ref": "#/$defs/cost"}
+      },
+      "required": ["kind", "seq", "tick", "wallMs", "gameMin", "worldAge", "me", "stats", "body", "load", "weapon", "action", "act", "zombies", "cost"]
+    },
+    "me": {
+      "description": "The player's position and gait.",
+      "x-role": "group",
+      "x-group": "me",
+      "x-encoding": "positional",
+      "x-order": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk"],
+      "type": "object",
+      "properties": {
+        "x": {"description": "The world x in tiles.", "type": "number"},
+        "y": {"description": "The world y in tiles.", "type": "number"},
+        "z": {"description": "The floor level.", "type": "number"},
+        "dir": {"description": "The facing direction name.", "type": "string"},
+        "pace": {"description": "The measured pace in tiles a second.", "type": "number"},
+        "moving": {"description": "Whether the player is moving.", "type": "boolean"},
+        "running": {"description": "Whether the running flag is set.", "type": "boolean"},
+        "sprinting": {"description": "Whether the sprinting flag is set.", "type": "boolean"},
+        "forceRun": {"description": "The force-run flag read after the frame.", "type": "boolean"},
+        "forceSprint": {"description": "The force-sprint flag read after the frame.", "type": "boolean"},
+        "autoWalk": {"description": "Whether auto-walk is on.", "type": "boolean"}
+      },
+      "required": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk"]
+    },
+    "stats": {
+      "description": "The player's character stats.",
+      "x-role": "group",
+      "x-group": "stats",
+      "x-encoding": "positional",
+      "x-order": ["hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature"],
+      "type": "object",
+      "properties": {
+        "hunger": {"description": "The hunger stat.", "type": "number"},
+        "thirst": {"description": "The thirst stat.", "type": "number"},
+        "fatigue": {"description": "The fatigue stat.", "type": "number"},
+        "endurance": {"description": "The endurance stat.", "type": "number"},
+        "panic": {"description": "The panic stat.", "type": "number"},
+        "pain": {"description": "The pain stat.", "type": "number"},
+        "sickness": {"description": "The food sickness stat.", "type": "number"},
+        "wetness": {"description": "The wetness stat.", "type": "number"},
+        "temperature": {"description": "The body temperature in degrees Celsius.", "type": "number"}
+      },
+      "required": ["hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature"]
+    },
+    "body": {
+      "description": "The player's health and wounds.",
+      "x-role": "group",
+      "x-group": "body",
+      "x-encoding": "positional",
+      "x-order": ["health", "bleeding", "scratched", "bitten", "parts"],
+      "type": "object",
+      "properties": {
+        "health": {"description": "The overall body health.", "type": "number"},
+        "bleeding": {"description": "The number of bleeding parts.", "type": "integer"},
+        "scratched": {"description": "The number of scratched parts.", "type": "integer"},
+        "bitten": {"description": "The number of bitten parts.", "type": "integer"},
+        "parts": {"description": "The body parts below full health.", "type": "array", "items": {"$ref": "#/$defs/part"}}
+      },
+      "required": ["health", "bleeding", "scratched", "bitten", "parts"]
+    },
+    "load": {
+      "description": "The player's carried weight and its moodle level.",
+      "x-role": "group",
+      "x-group": "load",
+      "x-encoding": "positional",
+      "x-order": ["weight", "max", "level", "n"],
+      "type": "object",
+      "properties": {
+        "weight": {"description": "The carried weight.", "type": "number"},
+        "max": {"description": "The maximum carry weight.", "type": "number"},
+        "level": {"description": "The heavy-load moodle level.", "type": "integer"},
+        "n": {"description": "The number of inventory items.", "type": "integer"}
+      },
+      "required": ["weight", "max", "level", "n"]
+    },
+    "weapon": {
+      "description": "The primary hand weapon.",
+      "x-role": "group",
+      "x-group": "weapon",
+      "x-encoding": "positional",
+      "x-order": ["type", "cond", "reach", "ammo"],
+      "type": "object",
+      "properties": {
+        "type": {"description": "The weapon's full type.", "type": "string"},
+        "cond": {"description": "The weapon's condition.", "type": "number"},
+        "reach": {"description": "The engine's reach, max range times range mod.", "type": "number"},
+        "ammo": {"description": "The loaded ammunition count, null for a melee weapon.", "type": ["integer", "null"]}
+      },
+      "required": ["type", "cond", "reach", "ammo"]
+    },
+    "action": {
+      "description": "The current timed action.",
+      "x-role": "group",
+      "x-group": "action",
+      "x-encoding": "positional",
+      "x-order": ["class", "n"],
+      "type": "object",
+      "properties": {
+        "class": {"description": "The head action's Type.", "type": "string"},
+        "n": {"description": "The number of queued actions.", "type": "integer"}
+      },
+      "required": ["class", "n"]
+    },
+    "act_now": {
+      "description": "The current skill.",
+      "x-role": "group",
+      "x-group": "act",
+      "x-encoding": "positional",
+      "x-order": ["aid", "state"],
+      "type": "object",
+      "properties": {
+        "aid": {"description": "The skill's action id.", "type": "string"},
+        "state": {"description": "The skill's state.", "$ref": "#/$defs/actState"}
+      },
+      "required": ["aid", "state"]
+    },
+    "cost": {
+      "description": "The mod's own cost on the client.",
+      "x-role": "group",
+      "x-group": "cost",
+      "x-encoding": "positional",
+      "x-order": ["tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped"],
+      "type": "object",
+      "properties": {
+        "tickMs": {"description": "The mean tick cost in milliseconds since the last frame.", "type": "number"},
+        "actMs": {"description": "The mean skill cost in milliseconds.", "type": "number"},
+        "senseMs": {"description": "The mean sense cost in milliseconds.", "type": "number"},
+        "mapMs": {"description": "The mean map cost in milliseconds.", "type": "number"},
+        "linkMs": {"description": "The mean link cost in milliseconds.", "type": "number"},
+        "tickMaxMs": {"description": "The worst tick cost in milliseconds.", "type": "number"},
+        "over5": {"description": "The number of ticks over five milliseconds.", "type": "integer"},
+        "dropped": {"description": "The number of lines dropped.", "type": "integer"}
+      },
+      "required": ["tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped"]
+    },
+    "part": {
+      "description": "One body part below full health.",
+      "x-role": "record",
+      "x-encoding": "positional",
+      "x-order": ["i", "h"],
+      "type": "object",
+      "properties": {
+        "i": {"description": "The body part index.", "type": "integer"},
+        "h": {"description": "The body part's health.", "type": "number"}
+      },
+      "required": ["i", "h"]
+    },
+    "zombie": {
+      "description": "One zombie in sense range.",
+      "x-role": "record",
+      "x-encoding": "positional",
+      "x-order": ["id", "x", "y", "dist", "hasTarget", "crawler", "health"],
+      "type": "object",
+      "properties": {
+        "id": {"description": "The zombie's online id.", "type": "integer"},
+        "x": {"description": "The world x in tiles.", "type": "number"},
+        "y": {"description": "The world y in tiles.", "type": "number"},
+        "dist": {"description": "The distance from the player in tiles.", "type": "number"},
+        "hasTarget": {"description": "Whether the zombie has a target.", "type": "boolean"},
+        "crawler": {"description": "Whether the zombie crawls.", "type": "boolean"},
+        "health": {"description": "The zombie's health.", "type": "number"}
+      },
+      "required": ["id", "x", "y", "dist", "hasTarget", "crawler", "health"]
+    },
+
+    "map": {
+      "description": "One part of a map scan: the squares it carries by position.",
+      "x-role": "kind",
+      "x-encoding": "positional",
+      "x-order": ["kind", "seq", "tick", "wallMs", "mode", "scanId", "part", "parts", "squares", "missing"],
+      "type": "object",
+      "properties": {
+        "kind": {"description": "The line kind.", "const": "map"},
+        "seq": {"description": "The line's sequence number.", "type": "integer"},
+        "tick": {"description": "The client tick the line was written on.", "type": "integer"},
+        "wallMs": {"description": "The client's wall clock in milliseconds.", "type": "number"},
+        "mode": {"description": "A full scan or a delta of changed squares.", "$ref": "#/$defs/mapMode"},
+        "scanId": {"description": "The scan this part belongs to.", "type": "integer"},
+        "part": {"description": "This part's number, from 1.", "type": "integer"},
+        "parts": {"description": "The scan's number of parts.", "type": "integer"},
+        "squares": {"description": "The squares this part carries.", "type": "array", "items": {"$ref": "#/$defs/square"}},
+        "missing": {"description": "The number of positions in this part with no loaded square.", "type": "integer"}
+      },
+      "required": ["kind", "seq", "tick", "wallMs", "mode", "scanId", "part", "parts", "squares", "missing"]
+    },
+    "square": {
+      "description": "One grid square.",
+      "x-role": "record",
+      "x-encoding": "positional",
+      "x-order": ["x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor"],
+      "type": "object",
+      "properties": {
+        "x": {"description": "The square's x.", "type": "integer"},
+        "y": {"description": "The square's y.", "type": "integer"},
+        "z": {"description": "The square's floor level.", "type": "integer"},
+        "solid": {"description": "Whether the square blocks movement.", "type": "boolean"},
+        "solidTrans": {"description": "Whether the square blocks movement but not sight.", "type": "boolean"},
+        "light": {"description": "The square's light level.", "type": "number"},
+        "room": {"description": "The room name, null outside.", "type": ["string", "null"]},
+        "building": {"description": "The building id, null outside.", "type": ["integer", "null"]},
+        "door": {"description": "The square's door, null when none.", "anyOf": [{"$ref": "#/$defs/portal"}, {"type": "null"}]},
+        "window": {"description": "The square's window, null when none.", "anyOf": [{"$ref": "#/$defs/portal"}, {"type": "null"}]},
+        "containers": {"description": "The square's containers.", "type": "array", "items": {"$ref": "#/$defs/container"}},
+        "floor": {"description": "The full types of the items on the floor.", "type": "array", "items": {"type": "string"}}
+      },
+      "required": ["x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor"]
+    },
+    "portal": {
+      "description": "A door or a window.",
+      "x-role": "record",
+      "x-encoding": "positional",
+      "x-order": ["open", "locked", "barricaded"],
+      "type": "object",
+      "properties": {
+        "open": {"description": "Whether it is open.", "type": "boolean"},
+        "locked": {"description": "Whether it is locked.", "type": "boolean"},
+        "barricaded": {"description": "Whether it is barricaded.", "type": "boolean"}
+      },
+      "required": ["open", "locked", "barricaded"]
+    },
+    "container": {
+      "description": "One container on a square.",
+      "x-role": "record",
+      "x-encoding": "positional",
+      "x-order": ["type", "n", "items"],
+      "type": "object",
+      "properties": {
+        "type": {"description": "The container type.", "type": "string"},
+        "n": {"description": "The number of items in it.", "type": "integer"},
+        "items": {"description": "The full types of the items in it.", "type": "array", "items": {"type": "string"}}
+      },
+      "required": ["type", "n", "items"]
+    },
+
+    "event": {
+      "description": "One engine event; the per-kind fields sit flat beside event and gameMin.",
+      "x-role": "kind",
+      "x-encoding": "keyed",
+      "type": "object",
+      "properties": {
+        "kind": {"description": "The line kind.", "const": "event"},
+        "event": {"description": "The event's kind.", "$ref": "#/$defs/eventKind"},
+        "gameMin": {"description": "The game clock in minutes when the event fired.", "type": "number"}
+      },
+      "required": ["kind", "event", "gameMin"],
+      "oneOf": [
+        {"$ref": "#/$defs/event_damage"},
+        {"$ref": "#/$defs/event_swing"},
+        {"$ref": "#/$defs/event_zombie_dead"},
+        {"$ref": "#/$defs/event_item_added"},
+        {"$ref": "#/$defs/event_item_removed"},
+        {"$ref": "#/$defs/event_door"},
+        {"$ref": "#/$defs/event_lua_error"},
+        {"$ref": "#/$defs/event_overflow"}
+      ]
+    },
+    "event_damage": {
+      "description": "The player took body damage.",
+      "x-role": "event",
+      "properties": {
+        "event": {"description": "The event's kind.", "const": "damage"},
+        "tag": {"description": "The engine's damage type tag.", "type": "string"},
+        "amount": {"description": "The damage amount.", "type": "number"},
+        "side": {"description": "The side whose listener saw it.", "$ref": "#/$defs/side"}
+      },
+      "required": ["tag", "amount", "side"]
+    },
+    "event_swing": {
+      "description": "The player swung a weapon.",
+      "x-role": "event",
+      "properties": {
+        "event": {"description": "The event's kind.", "const": "swing"},
+        "attackStarted": {"description": "Whether the engine started the attack.", "type": "boolean"},
+        "meleeDelay": {"description": "The melee delay after the swing.", "type": "number"}
+      },
+      "required": ["attackStarted", "meleeDelay"]
+    },
+    "event_zombie_dead": {
+      "description": "A zombie died.",
+      "x-role": "event",
+      "properties": {
+        "event": {"description": "The event's kind.", "const": "zombie_dead"},
+        "id": {"description": "The zombie's online id.", "type": "integer"}
+      },
+      "required": ["id"]
+    },
+    "event_item_added": {
+      "description": "An item entered the inventory.",
+      "x-role": "event",
+      "properties": {
+        "event": {"description": "The event's kind.", "const": "item_added"},
+        "itemId": {"description": "The item's id.", "type": "integer"},
+        "fullType": {"description": "The item's full type.", "type": "string"},
+        "weight": {"description": "The item's weight.", "type": "number"}
+      },
+      "required": ["itemId", "fullType", "weight"]
+    },
+    "event_item_removed": {
+      "description": "An item left the inventory.",
+      "x-role": "event",
+      "properties": {
+        "event": {"description": "The event's kind.", "const": "item_removed"},
+        "itemId": {"description": "The item's id.", "type": "integer"},
+        "fullType": {"description": "The item's full type.", "type": "string"}
+      },
+      "required": ["itemId", "fullType"]
+    },
+    "event_door": {
+      "description": "A door changed state.",
+      "x-role": "event",
+      "properties": {
+        "event": {"description": "The event's kind.", "const": "door"},
+        "x": {"description": "The door square's x.", "type": "integer"},
+        "y": {"description": "The door square's y.", "type": "integer"},
+        "z": {"description": "The door square's floor level.", "type": "integer"},
+        "open": {"description": "Whether the door is now open.", "type": "boolean"}
+      },
+      "required": ["x", "y", "z", "open"]
+    },
+    "event_lua_error": {
+      "description": "A Lua error the mod caught.",
+      "x-role": "event",
+      "properties": {
+        "event": {"description": "The event's kind.", "const": "lua_error"},
+        "msg": {"description": "The error message.", "type": "string"}
+      },
+      "required": ["msg"]
+    },
+    "event_overflow": {
+      "description": "The link cut lines over its byte budget.",
+      "x-role": "event",
+      "properties": {
+        "event": {"description": "The event's kind.", "const": "overflow"},
+        "queued": {"description": "The number of lines queued.", "type": "integer"},
+        "cut": {"description": "The number of lines cut.", "type": "integer"}
+      },
+      "required": ["queued", "cut"]
+    },
+
+    "act": {
+      "description": "A skill's state change, with its result and a snapshot.",
+      "x-role": "kind",
+      "x-encoding": "keyed",
+      "type": "object",
+      "properties": {
+        "kind": {"description": "The line kind.", "const": "act"},
+        "aid": {"description": "The skill's action id from its cmd line.", "type": "string"},
+        "type": {"description": "The skill's type.", "$ref": "#/$defs/actionType"},
+        "state": {"description": "The skill's new state.", "$ref": "#/$defs/actState"},
+        "reason": {"description": "Why it was rejected or failed, empty otherwise.", "anyOf": [{"$ref": "#/$defs/reason"}, {"const": ""}]},
+        "result": {"description": "The skill's result, its fields by type.", "anyOf": [
+          {"$ref": "#/$defs/result_walkTo"}, {"$ref": "#/$defs/result_steer"}, {"$ref": "#/$defs/result_attack"},
+          {"$ref": "#/$defs/result_interact"}, {"$ref": "#/$defs/result_equip"}, {"$ref": "#/$defs/result_consume"},
+          {"$ref": "#/$defs/result_drop"}, {"$ref": "#/$defs/result_stop"}, {"$ref": "#/$defs/result_scan"},
+          {"$ref": "#/$defs/result_rate"}]},
+        "snapshot": {"description": "The player's state when the line was written.", "$ref": "#/$defs/snapshot"}
+      },
+      "required": ["kind", "aid", "type", "state", "reason", "result", "snapshot"]
+    },
+    "snapshot": {
+      "description": "The player's state when an act line was written.",
+      "type": "object",
+      "properties": {
+        "me": {"description": "The player's position and health.", "type": "object", "properties": {
+          "x": {"description": "The world x in tiles.", "type": "number"},
+          "y": {"description": "The world y in tiles.", "type": "number"},
+          "z": {"description": "The floor level.", "type": "number"},
+          "health": {"description": "The overall body health.", "type": "number"}},
+          "required": ["x", "y", "z", "health"]},
+        "nearest": {"description": "The nearest zombie, null when none.", "anyOf": [{"type": "object", "properties": {
+          "id": {"description": "The zombie's online id.", "type": "integer"},
+          "dist": {"description": "The distance from the player in tiles.", "type": "number"}},
+          "required": ["id", "dist"]}, {"type": "null"}]}
+      },
+      "required": ["me", "nearest"]
+    },
+    "result_walkTo": {
+      "description": "A walkTo's result.",
+      "x-role": "result",
+      "x-type": "walkTo",
+      "type": "object",
+      "properties": {"d": {"description": "The distance left to the target in tiles.", "type": "number"}}
+    },
+    "result_steer": {
+      "description": "A steer's result.",
+      "x-role": "result",
+      "x-type": "steer",
+      "type": "object",
+      "properties": {"d": {"description": "The distance moved in tiles.", "type": "number"}}
+    },
+    "result_attack": {
+      "description": "An attack's result.",
+      "x-role": "result",
+      "x-type": "attack",
+      "type": "object",
+      "properties": {
+        "swings": {"description": "The number of swings made.", "type": "integer"},
+        "attackStarted": {"description": "Whether the engine started the last attack.", "type": "boolean"},
+        "meleeDelay": {"description": "The melee delay after the last swing.", "type": "number"},
+        "targetDead": {"description": "Whether the target is dead.", "type": "boolean"}
+      }
+    },
+    "result_interact": {
+      "description": "An interact's result: moved for a loot, open for an open or close.",
+      "x-role": "result",
+      "x-type": "interact",
+      "type": "object",
+      "properties": {
+        "moved": {"description": "The number of items looted.", "type": "integer"},
+        "open": {"description": "Whether the door or window is now open.", "type": "boolean"}
+      }
+    },
+    "result_equip": {
+      "description": "An equip's result.",
+      "x-role": "result",
+      "x-type": "equip",
+      "type": "object",
+      "properties": {"itemId": {"description": "The item now in the primary hand.", "type": "integer"}}
+    },
+    "result_consume": {
+      "description": "A consume's result.",
+      "x-role": "result",
+      "x-type": "consume",
+      "type": "object",
+      "properties": {"itemId": {"description": "The item eaten or drunk.", "type": "integer"}}
+    },
+    "result_drop": {
+      "description": "A drop's result.",
+      "x-role": "result",
+      "x-type": "drop",
+      "type": "object",
+      "properties": {"moved": {"description": "The number of items dropped.", "type": "integer"}}
+    },
+    "result_stop": {
+      "description": "A stop's result, empty.",
+      "x-role": "result",
+      "x-type": "stop",
+      "type": "object",
+      "properties": {}
+    },
+    "result_scan": {
+      "description": "A scan's result.",
+      "x-role": "result",
+      "x-type": "scan",
+      "type": "object",
+      "properties": {"queued": {"description": "The number of map parts queued.", "type": "integer"}}
+    },
+    "result_rate": {
+      "description": "A rate's result.",
+      "x-role": "result",
+      "x-type": "rate",
+      "type": "object",
+      "properties": {"hz": {"description": "The frame rate now in force.", "type": "integer"}}
+    },
+
+    "reply": {
+      "description": "The answer to a query command.",
+      "x-role": "kind",
+      "x-encoding": "keyed",
+      "type": "object",
+      "properties": {
+        "kind": {"description": "The line kind.", "const": "reply"},
+        "to": {"description": "The seq of the command it answers.", "type": "integer"},
+        "body": {"description": "The answer.", "type": "object"}
+      },
+      "required": ["kind", "to", "body"]
+    },
+
+    "cmd": {
+      "description": "The one JSON line of cmd.txt: a skill for the mod to run.",
+      "type": "object",
+      "properties": {
+        "seq": {"description": "The command's sequence number.", "type": "integer"},
+        "aid": {"description": "The action id the act lines answer with.", "type": "string"},
+        "type": {"description": "The skill type.", "$ref": "#/$defs/actionType"},
+        "args": {"description": "The skill's arguments, by type.", "anyOf": [
+          {"$ref": "#/$defs/args_walkTo"}, {"$ref": "#/$defs/args_steer"}, {"$ref": "#/$defs/args_attack"},
+          {"$ref": "#/$defs/args_interact"}, {"$ref": "#/$defs/args_equip"}, {"$ref": "#/$defs/args_consume"},
+          {"$ref": "#/$defs/args_drop"}, {"$ref": "#/$defs/args_stop"}, {"$ref": "#/$defs/args_scan"},
+          {"$ref": "#/$defs/args_rate"}]}
+      },
+      "required": ["seq", "aid", "type", "args"]
+    },
+    "args_walkTo": {
+      "description": "Walk the vanilla path to a world position at a gait.",
+      "x-role": "args",
+      "x-type": "walkTo",
+      "type": "object",
+      "properties": {
+        "x": {"description": "The target world x in tiles.", "type": "number"},
+        "y": {"description": "The target world y in tiles.", "type": "number"},
+        "gait": {"description": "The gait to move at.", "$ref": "#/$defs/gait", "default": "walk"}
+      },
+      "required": ["x", "y"],
+      "additionalProperties": false
+    },
+    "args_steer": {
+      "description": "Move along a world vector for a time, without a path, at a gait.",
+      "x-role": "args",
+      "x-type": "steer",
+      "type": "object",
+      "properties": {
+        "vx": {"description": "The world vector's x component.", "type": "number"},
+        "vy": {"description": "The world vector's y component.", "type": "number"},
+        "seconds": {"description": "How long to steer in seconds.", "type": "number"},
+        "gait": {"description": "The gait to move at.", "$ref": "#/$defs/gait", "default": "walk"}
+      },
+      "required": ["vx", "vy", "seconds"],
+      "additionalProperties": false
+    },
+    "args_attack": {
+      "description": "Step to the weapon's reach of a zombie, face it and swing until it dies or the skill ends.",
+      "x-role": "args",
+      "x-type": "attack",
+      "type": "object",
+      "properties": {
+        "targetId": {"description": "The zombie's online id.", "type": "integer"}
+      },
+      "required": ["targetId"],
+      "additionalProperties": false
+    },
+    "args_interact": {
+      "description": "Open or close the door or window on a square, or loot its containers.",
+      "x-role": "args",
+      "x-type": "interact",
+      "type": "object",
+      "properties": {
+        "x": {"description": "The square's x.", "type": "integer"},
+        "y": {"description": "The square's y.", "type": "integer"},
+        "kind": {"description": "What to do.", "$ref": "#/$defs/ikind"},
+        "filter": {"description": "Which items a loot takes.", "$ref": "#/$defs/filter", "default": "all"}
+      },
+      "required": ["x", "y", "kind"],
+      "additionalProperties": false
+    },
+    "args_equip": {
+      "description": "Equip an inventory item in the primary hand.",
+      "x-role": "args",
+      "x-type": "equip",
+      "type": "object",
+      "properties": {
+        "itemId": {"description": "The item's id.", "type": "integer"}
+      },
+      "required": ["itemId"],
+      "additionalProperties": false
+    },
+    "args_consume": {
+      "description": "Eat or drink an inventory item.",
+      "x-role": "args",
+      "x-type": "consume",
+      "type": "object",
+      "properties": {
+        "itemId": {"description": "The item's id.", "type": "integer"}
+      },
+      "required": ["itemId"],
+      "additionalProperties": false
+    },
+    "args_drop": {
+      "description": "Drop an inventory item on the player's square.",
+      "x-role": "args",
+      "x-type": "drop",
+      "type": "object",
+      "properties": {
+        "itemId": {"description": "The item's id.", "type": "integer"}
+      },
+      "required": ["itemId"],
+      "additionalProperties": false
+    },
+    "args_stop": {
+      "description": "Stop the current skill and every motor flag.",
+      "x-role": "args",
+      "x-type": "stop",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "args_scan": {
+      "description": "Queue a full map scan of the squares within a radius.",
+      "x-role": "args",
+      "x-type": "scan",
+      "type": "object",
+      "properties": {
+        "r": {"description": "The scan radius in tiles.", "type": "integer"}
+      },
+      "required": ["r"],
+      "additionalProperties": false
+    },
+    "args_rate": {
+      "description": "Set the frame rate.",
+      "x-role": "args",
+      "x-type": "rate",
+      "type": "object",
+      "properties": {
+        "hz": {"description": "The frame rate in frames a second.", "type": "integer"}
+      },
+      "required": ["hz"],
+      "additionalProperties": false
+    }
+  }
+}
