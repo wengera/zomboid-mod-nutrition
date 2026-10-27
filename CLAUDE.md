@@ -80,7 +80,7 @@ Run every gate a commit's paths trigger; each ends at its pass. A generator's `-
 | `python tools/mod_guide_data.py --check`; `docs/mod-guide/data.json` names mod/'s last commit, so it is regenerated after every commit under `mod/`, a README or CHANGELOG edit included | `mod/`, `data/food-nutrients.*`, `docs/reference/do-not-cite.csv`, `tools/mod_guide_data.py`, `tools/mod_guide_series.py`, `tools/vanilla_model.py`, `docs/mod-guide/` | in sync |
 | `python -m pytest tools/tests testing/tests -q`, read from a saved file | any commit | green; the count never drops |
 
-The pytest baseline is 8649 passed (28 skipped) on 2026-10-26 at the Plan 21 close; a reset is by name only, deleting tests of dead code and naming each in its task report, and the count's history is [process/lessons#test-baseline](docs/process/lessons.md#test-baseline).
+The pytest baseline is 8745 passed (28 skipped) on 2026-10-26 at the Plan 21b close; a reset is by name only, deleting tests of dead code and naming each in its task report, and the count's history is [process/lessons#test-baseline](docs/process/lessons.md#test-baseline).
 
 ## 4. Extending the reference
 
