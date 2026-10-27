@@ -11,8 +11,9 @@ character moves (and health > 75 unless the floor is off); a `damage` event per 
 bus answers bench.global, fall.probe, event.watch, stats.all and ping with their handlers' reply shapes
 (docs/reference/harness-commands.md).
 
-The autowalk legs run 1 s here (SHORT_AUTOWALK, an autouse patch): the fake walks 1.6 and runs 3.2 tiles/s, so the
-probe's 5 s legs leave the 12-square strip and void (test_the_real_autowalk_legs_leave_the_strip_and_void)."""
+The probe's own autowalk legs (3 s walks, 1.5 s runs, each re-centred) stay on the 12-square strip at the fake's 1.6
+and 3.2 tiles/s; a 4.5 tiles/s run voids the running legs. The 20 degree heading case runs 1 s legs (SHORT_AUTOWALK),
+since a 4.8-tile leg at 20 degrees crosses the side row and voids."""
 import math
 import os
 
@@ -27,11 +28,6 @@ REPO = T1.REPO
 X = D.X
 REAL_AUTOWALK = list(D.AUTOWALK_LEGS)
 SHORT_AUTOWALK = [(dx, dy, 1.0, arm) for dx, dy, _, arm in REAL_AUTOWALK]
-
-
-@pytest.fixture(autouse=True)
-def short_autowalk(monkeypatch):
-    monkeypatch.setattr(D, "AUTOWALK_LEGS", SHORT_AUTOWALK)
 
 BENCH_INFO = {"json21Bytes": 2560, "compactBytes": 1600, "noSortBytes": 2560, "squares": 20}
 BENCH_US = {"json": 900.0, "jsonNoSort": 700.0, "compact": 400.0, "concat": 5.0, "openWrite": 600.0,
@@ -71,8 +67,9 @@ def test_every_constant_of_the_brief_is_in_constants():
                                ("openWrite", 500), ("openWrite20", 500), ("openOnly", 500), ("poll", 500)]
     assert c["HELD_ARMS"] == [("heldOpen", 1), ("heldWrite", 500), ("heldClose", 1)]
     assert c["MOTOR_ARMS"] == ["walk", "setrun", "forcerun", "forcerun_tick", "forcesprint"]
-    assert c["AUTOWALK_LEGS"] == [(1, 0, 5, "walk"), (-1, 0, 5, "forcerun"), (2, 0, 5, "forcerun"),
-                                  (-1.95, 0, 5, "once"), (1, 0, 5, "forcerun"), (-1, 0, 5, "walk")]
+    assert c["AUTOWALK_LEGS"] == [(1, 0, 3.0, "walk"), (-1, 0, 1.5, "forcerun"), (2, 0, 1.5, "forcerun"),
+                                  (-1.95, 0, 1.5, "once"), (1, 0, 1.5, "forcerun"), (-1, 0, 3.0, "walk")]
+    assert c["X1_RATE_HZ"] == 10 and c["X1_RATE_BACK_HZ"] == 5 and "10 Hz" in D.__doc__
     assert set(D.US_PER_KB_ARMS) == {"json", "jsonNoSort", "compact", "openWrite", "heldWrite"}
     assert c["MOVE_EPS_TILES"] == D.AP4.MOVE_EPS_TILES
     for name in ("pace", "endurance slope", "flags", "heading error", "PREDICTIONS", "not gates", "RULES",
@@ -225,13 +222,15 @@ class FakeModP(T3.FakeMod3):
 
     def __init__(self, d, clock, version="0.2", forcerun_runs=True, heading_err=0.0, drop_level=3, floor=True,
                  drop_every=1, client_hears=False, server_heavy=True, once_holds=True, setrun_runs=False,
-                 endurance_flat=False, level3_from=1.5, blocked=(), **kw):
+                 endurance_flat=False, level3_from=1.5, blocked=(), run_tps=None, **kw):
         super().__init__(d, clock, **kw)
         self.version, self.forcerun_runs, self.heading_err = version, forcerun_runs, heading_err
         self.drop_level, self.floor, self.drop_every = drop_level, floor, drop_every
         self.client_hears, self.server_heavy, self.once_holds = client_hears, server_heavy, once_holds
         self.setrun_runs, self.endurance_flat, self.level3_from = setrun_runs, endurance_flat, level3_from
         self.blocked = set(blocked)
+        if run_tps is not None:
+            self.RUN_TPS = run_tps
         self.pg = None
         self.load = self.LOAD0
         self.endurance = 1.0
@@ -422,10 +421,8 @@ def verdicts(out, prefix):
 
 @pytest.fixture(scope="module")
 def clean_run(tmp_path_factory):
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(D, "AUTOWALK_LEGS", SHORT_AUTOWALK)
-        probe, out, mod, calls = make_probe(tmp_path_factory.mktemp("clean"))
-        probe.run()
+    probe, out, mod, calls = make_probe(tmp_path_factory.mktemp("clean"))
+    probe.run()
     return probe, out, mod, calls
 
 
@@ -462,10 +459,19 @@ def test_a_correct_mod_records_every_reading_and_every_grade_as_predicted(clean_
     assert gotos[0] == "100.5 200.5" and gotos[1] == "111.5 200.5" and gotos[4] == "100.5 200.5 setrun"
     aw = m["autowalk"]
     assert [c["args"] for c in mod.cmds if c["goal"] == "autowalk"] == [
-        "1 0 1.0", "-1 0 1.0 forcerun", "2 0 1.0 forcerun", "-1.95 0 1.0 once", "1 0 1.0 forcerun", "-1 0 1.0"]
+        "1 0 3.0", "-1 0 1.5 forcerun", "2 0 1.5 forcerun", "-1.95 0 1.5 once", "1 0 1.5 forcerun", "-1 0 3.0"]
     assert all(r["heading_error_deg"] == pytest.approx(0, abs=1e-6) and r["displacement"] > 1.0 for r in aw)
     assert not any(r["voided"] for r in aw) and line["strip_squares"] == 36
-    assert m["centre"]["arm"] == "centre" and m["centre"]["to"]["x"] == 106.0 and m["deadline_skipped"] == 0
+    assert len(m["centre"]) == 6 and all(r["arm"] == "centre" and r["to"]["x"] == 106.0 for r in m["centre"])
+    assert m["deadline_skipped"] == 0 and all(r["frames"] >= 10 for r in aw)      # 10 Hz: a 1.5 s leg's frames
+    # the config commands: rate 10 after the approach, every leg between, rate 5 at X1's end (before X3's adds)
+    seq = [(c["goal"], c["args"]) for c in mod.cmds if c["goal"] in ("rate", "goto", "autowalk")]
+    i10, i5 = seq.index(("rate", "10")), seq.index(("rate", "5"))
+    assert seq[0] == ("goto", "100.5 200.5") and i10 == 1 and [g for g, _ in seq].count("rate") == 2
+    x1 = seq[i10 + 1:i5]
+    assert len([g for g, _ in x1 if g == "goto"]) == 15 + 6 + 1 and len([g for g, _ in x1 if g == "autowalk"]) == 6
+    assert all(g == "goto" for g, a in seq[i5 + 1:])                  # X3's legs only after rate 5
+    assert m["rate_on"]["ack"]["ok"] and m["rate_back"]["ack"]["ok"] and mod.rate == 5
     assert gotos[16] == "106.0 200.5" and line["targets"]["M"] == [106.0, 200.5]
     assert verdicts(out, "x1_") == {"x1_forcerun_runs": "as_predicted", "x1_setrun_walks": "as_predicted",
                                     "x1_autowalk_runs": "as_predicted", "x1_autowalk_heads": "as_predicted",
@@ -521,7 +527,8 @@ def test_a_forcerun_that_walks_fails_and_runs_the_toggle_legs(tmp_path):
     assert v["x1_setrun_walks"] == "as_predicted"
 
 
-def test_a_twenty_degree_autowalk_heading_fails_the_heads_grade(tmp_path):
+def test_a_twenty_degree_autowalk_heading_fails_the_heads_grade(tmp_path, monkeypatch):
+    monkeypatch.setattr(D, "AUTOWALK_LEGS", SHORT_AUTOWALK)
     probe, out, _, _ = make_probe(tmp_path, heading_err=20.0)
     run_phases(probe, ["hello_and_map", "x1_motor"])
     v = out["verdicts"]["x1_autowalk_heads"]
@@ -640,17 +647,21 @@ def test_a_load_that_never_reaches_level_three_reads_unmeasured(tmp_path, monkey
     assert v["x3_level3_at_ratio"] == "unmeasured" and v["x3_drops_at_level3_only"] == "unmeasured"
 
 
-def test_the_real_autowalk_legs_leave_the_strip_and_void(tmp_path, monkeypatch):
-    monkeypatch.setattr(D, "AUTOWALK_LEGS", REAL_AUTOWALK)
-    probe, out, _, _ = make_probe(tmp_path, heading_err=20.0)
+def test_the_probes_autowalk_legs_stay_on_the_strip_and_a_faster_run_voids(tmp_path):
+    probe, out, _, _ = make_probe(tmp_path)
     run_phases(probe, ["hello_and_map", "x1_motor"])
     aw = out["readings"]["motor"]["autowalk"]
-    assert len(aw) == 6 and all(r["voided"] == "left the strip" and r["off_strip_frames"] > 0 for r in aw)
-    assert all(r["heading_error_deg"] == pytest.approx(20.0) and r["pace"] is not None for r in aw)   # still recorded
+    assert len(aw) == 6 and not any(r["voided"] for r in aw) and all(r["off_strip_frames"] == 0 for r in aw)
+    assert verdicts(out, "x1_")["x1_autowalk_runs"] == "as_predicted"
+    probe, out, _, _ = make_probe(tmp_path / "fast", run_tps=5.5)   # 8.25 tiles in 1.5 s: past the 7 tiles ahead
+    run_phases(probe, ["hello_and_map", "x1_motor"])
+    aw = out["readings"]["motor"]["autowalk"]
+    assert [r["voided"] for r in aw] == [None] + ["left the strip"] * 4 + [None], [r["voided"] for r in aw]
+    assert all(r["pace"] == pytest.approx(5.5) and r["heading_error_deg"] is not None for r in aw[1:5])   # kept
     v = verdicts(out, "x1_")
-    # a voided leg is out of every sample: the 20 degree error falsifies nothing
-    assert v["x1_autowalk_heads"] == v["x1_autowalk_runs"] == v["x1_once_holds"] == "unmeasured"
-    assert out["verdicts"]["x1_autowalk_heads"]["observed"]["voided_legs"] == 6
+    # a voided leg is out of every sample: the runs and the once leg read unmeasured, the two walks still head
+    assert v["x1_autowalk_runs"] == v["x1_once_holds"] == "unmeasured" and v["x1_autowalk_heads"] == "as_predicted"
+    assert out["verdicts"]["x1_autowalk_heads"]["observed"]["voided_legs"] == 4
 
 
 def test_the_autowalk_vector_follows_a_minus_x_line(tmp_path):
@@ -659,7 +670,7 @@ def test_the_autowalk_vector_follows_a_minus_x_line(tmp_path):
     line = out["readings"]["line"]
     assert (line["ax"], line["ay"], line["bx"], line["by"], line["dir"]) == (100, 200, 89, 200, "-x")
     assert [c["args"] for c in mod.cmds if c["goal"] == "autowalk"] == [
-        "-1 0 1.0", "1 0 1.0 forcerun", "-2 0 1.0 forcerun", "1.95 0 1.0 once", "-1 0 1.0 forcerun", "1 0 1.0"]
+        "-1 0 3.0", "1 0 1.5 forcerun", "-2 0 1.5 forcerun", "1.95 0 1.5 once", "-1 0 1.5 forcerun", "1 0 3.0"]
     aw = out["readings"]["motor"]["autowalk"]
     assert [(r["vx"], r["vy"]) for r in aw][:2] == [(-1.0, 0.0), (1.0, 0.0)] and not any(r["voided"] for r in aw)
     assert verdicts(out, "x1_")["x1_autowalk_heads"] == "as_predicted"
@@ -710,8 +721,10 @@ def test_the_x1_deadline_skips_the_remaining_legs(tmp_path, monkeypatch):
     m = out["readings"]["motor"]
     sk = [r for r in m["legs"] + m["autowalk"] if r.get("skipped")]
     assert sk and all(r["skipped"] == "x1 deadline" for r in sk) and m["return"]["skipped"] == "x1 deadline"
-    assert m["centre"]["skipped"] == "x1 deadline" and len(m["legs"]) == 15 and len(m["autowalk"]) == 6
-    assert m["deadline_skipped"] == len(sk) + 2
+    assert all(r["skipped"] == "x1 deadline" for r in m["centre"]) and len(m["centre"]) == 6
+    assert len(m["legs"]) == 15 and len(m["autowalk"]) == 6
+    assert m["deadline_skipped"] == len(sk) + 6 + 1
+    assert m["rate_back"]["ack"]["ok"] and mod.rate == 5
     assert out["phase_errors"] == {} and "budget_stop" not in out
     assert out["readings"]["load"]["level3_at_add"] == 4                # X3 still had its wall
     assert len([c for c in mod.cmds if c["goal"] == "autowalk"]) == 0

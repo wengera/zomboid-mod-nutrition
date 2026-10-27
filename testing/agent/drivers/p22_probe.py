@@ -23,15 +23,20 @@ every later phase skips):
                  (heldOpen 1, heldWrite HELD_N, heldClose 1). Rows {arm, rep, n, ms, usPerCall, error}; a reply with
                  error or a non-dict is a row with error (never raised). Summary per arm: the median usPerCall over
                  the reps, the bytes from bench_info and us_per_kb = usPerCall / (bytes / 1024) for US_PER_KB_ARMS.
-  x1_motor       `goto A walk` (the approach, arm `approach`, ungraded); MOTOR_ARMS x LEGS_PER_ARM legs, each to the
+  x1_motor       `goto A walk` (the approach, arm `approach`, ungraded); `rate X1_RATE_HZ` (10 Hz frames through
+                 X1, ack awaited; the readings do not depend on the rate); MOTOR_ARMS x LEGS_PER_ARM legs, each to the
                  end of the line the character is not at (so the legs alternate A->B, B->A across the whole phase);
-                 a `goto` to the line's midpoint M (arm `centre`, ungraded); the AUTOWALK_LEGS, each (dx, dy)
-                 written along the line's axis (dx along it, A toward B, so the first leg heads from M toward B; dy
-                 across it), a leg whose frames leave the checked strip (the LINE_LEN squares and the rows one either
+                 the AUTOWALK_LEGS (3 s walks, 1.5 s runs: about 4.8 tiles each), each after its own `goto` to the
+                 line's midpoint M (arm `centre`, ungraded; its 1.0 done radius is accepted: the start lands within
+                 a tile of M on the side it came from and the alternating legs head the other way, so at least 5
+                 tiles of checked strip lie ahead), each (dx, dy) written along the line's axis (dx along it, A
+                 toward B, so the first leg heads from M toward B; dy across it), a leg whose frames leave the checked strip (the LINE_LEN squares and the rows one either
                  side; the fallback's band from A to B likewise) voided "left the strip", its heading and pace kept
                  and its samples out of every grade; the `toggle` arm only when pace_of("forcerun") <
                  TOGGLE_IF_BELOW x pace_of("walk"); a `goto A walk` back (arm `return`, ungraded). Past
-                 X1_DEADLINE_S of the loop wall no new leg starts: each is recorded skipped ("x1 deadline").
+                 X1_DEADLINE_S of the loop wall no new leg starts: each is recorded skipped ("x1 deadline"). X1
+                 ends with `rate X1_RATE_BACK_HZ` (5), ack awaited, before X3; both acks are kept (rate_on,
+                 rate_back).
   x3_load        the server `fall.probe admin` listener and the client `event.watch OnPlayerGetDamage`; `before` from
                  the latest frame; up to LOAD_MAX_ADDS RCON `additem "admin" "Base.Plank" 1` (the route that
                  reaches the client), each awaited by a frame whose weight rose (LOAD_SETTLE_S), until a frame
@@ -143,8 +148,11 @@ X1_DEADLINE_S = 330.0      # past this loop wall X1 starts no new leg (each reco
 LEGS_PER_ARM = 3
 SETTLE_S = 3.0
 GOAL_TIMEOUT_S = 40.0
-AUTOWALK_LEGS = [(1, 0, 5, "walk"), (-1, 0, 5, "forcerun"), (2, 0, 5, "forcerun"), (-1.95, 0, 5, "once"),
-                 (1, 0, 5, "forcerun"), (-1, 0, 5, "walk")]
+AUTOWALK_LEGS = [(1, 0, 3.0, "walk"), (-1, 0, 1.5, "forcerun"), (2, 0, 1.5, "forcerun"), (-1.95, 0, 1.5, "once"),
+                 (1, 0, 1.5, "forcerun"), (-1, 0, 3.0, "walk")]   # ~4.8 tiles each at 1.6 / 3.2 tiles/s: inside the
+                                                                  # >= 5 tiles of strip ahead of a re-centred start
+X1_RATE_HZ = 10            # `rate 10` after the approach: a 1.5 s leg carries ~15 frames for its pace
+X1_RATE_BACK_HZ = 5        # `rate 5` at X1's end, before X3
 AUTOWALK_PAD_S = 10.0      # an autowalk leg's goal timeout is its seconds plus this
 TOGGLE_IF_BELOW = 1.3
 TOGGLE_LEGS = 3
@@ -173,7 +181,7 @@ CONSTANTS = {k: globals()[k] for k in (
     "BUDGET_S", "MIN_FREE_GB", "CLIENT_ERR_RX", "MOD_VERSION", "HELLO_TIMEOUT_S", "ACK_TIMEOUT_S", "POLL_S", "SCAN_R",
     "SCAN_TIMEOUT_S", "LINE_LEN", "LINE_DIRS", "FALLBACK_DX", "BENCH_REPS", "BENCH_ARMS", "HELD_ARMS",
     "US_PER_KB_ARMS", "S20_BYTES", "BENCH_BYTES_KEY", "MOTOR_ARMS", "LEGS_PER_ARM", "SETTLE_S", "GOAL_TIMEOUT_S",
-    "AUTOWALK_LEGS", "AUTOWALK_PAD_S", "X1_DEADLINE_S", "TOGGLE_IF_BELOW", "TOGGLE_LEGS", "RUN_RATIO", "SETRUN_TOL",
+    "AUTOWALK_LEGS", "AUTOWALK_PAD_S", "X1_DEADLINE_S", "X1_RATE_HZ", "X1_RATE_BACK_HZ", "TOGGLE_IF_BELOW", "TOGGLE_LEGS", "RUN_RATIO", "SETRUN_TOL",
     "HEADING_MAX_DEG", "ONCE_HOLD_FRAC", "LOAD_MAX_ADDS", "LOAD_ITEM", "LOAD_SETTLE_S", "HEAVY_LEVEL",
     "LEVEL2_RATIO", "LEVEL3_RATIO", "LEVEL4_RATIO", "PLANK_W", "WALK_S", "HEALTH_FLOOR", "WALK_MAX_LEGS", "STILL_S",
     "DROP_TIMEOUT_S", "WALK2_S", "DROP_EPS")}
@@ -437,7 +445,7 @@ class Probe(AP2.Pipe2):
         self.line_dir = "+x"
         self.strip = set()
         self.at_end = "A"                # which end of the line the character is at (set by the approach)
-        self.mt = {"legs": [], "autowalk": [], "toggle": []}
+        self.mt = {"legs": [], "centre": [], "autowalk": [], "toggle": []}
         self.ld = {}
         self.x3_seq0 = None
         self.windows = {}
@@ -714,13 +722,15 @@ class Probe(AP2.Pipe2):
         try:
             self.mt["approach"] = self.x1_goto("approach", "A", goal_arm="walk")
             self.at_end = "A"
+            self.mt["rate_on"] = self.set_rate(X1_RATE_HZ)
             for arm in MOTOR_ARMS:
                 for leg in range(LEGS_PER_ARM):
                     self.mt["legs"].append(self.x1_goto(arm, leg=leg))
                     self.sync_out()
                 self.xs.persist()
-            self.mt["centre"] = self.x1_goto("centre", "M", goal_arm="walk")
             for i, (dx, dy, s, arm) in enumerate(AUTOWALK_LEGS):
+                # re-centred before every leg: each starts within the goto's 1.0 done radius of M
+                self.mt["centre"].append(self.x1_goto("centre", "M", goal_arm="walk", leg=i))
                 row = self.skipped_row(arm, i, "autowalk") if self.x1_late() else self.autowalk_leg(i, dx, dy, s, arm)
                 self.mt["autowalk"].append(row)
                 self.sync_out()
@@ -738,10 +748,25 @@ class Probe(AP2.Pipe2):
             self.mt["paces"] = {arm: self.pace_of(arm) for arm in MOTOR_ARMS + ["toggle"]}
             self.mt["deadline_skipped"] = sum(1 for r in self.x1_rows() if r.get("skipped"))
             self.grade_x1()
+            self.mt["rate_back"] = self.set_rate(X1_RATE_BACK_HZ)
+
+    def set_rate(self, hz):
+        """The `rate <hz>` config command, its ack awaited; a budget stop while awaiting it is recorded, never
+        raised (it runs in X1's finally)."""
+        row = {"rate": hz, "sentPyMs": self.py_ms()}
+        row["cmdSeq"] = self.link.send("rate", str(hz))
+        try:
+            row["ack"] = self.await_ack(row["cmdSeq"], ACK_TIMEOUT_S)
+        except X.Budget as e:
+            row["ack"], row["error"] = None, "budget: %s" % e
+            return row
+        if row["ack"] is None:
+            row["error"] = "no ack"
+        return row
 
     def x1_rows(self):
-        one = [self.mt.get(k) for k in ("approach", "centre", "return") if self.mt.get(k)]
-        return one + self.mt["legs"] + self.mt["autowalk"] + self.mt["toggle"]
+        one = [self.mt.get(k) for k in ("approach", "return") if self.mt.get(k)]
+        return one + self.mt["centre"] + self.mt["legs"] + self.mt["autowalk"] + self.mt["toggle"]
 
     def grade_x1(self):
         legs = self.mt["legs"] + self.mt["toggle"]
