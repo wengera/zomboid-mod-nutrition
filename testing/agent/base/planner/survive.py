@@ -26,8 +26,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
 - `need`: while its own `Consume` is current it holds, before any threshold is read (a frame that already reads the
   drink's effect must not let a lower branch supersede it); else thirst > THIRST_T consumes the held item of least id whose fullType matches WATER_RX, else marks `water`;
   then hunger > HUNGER_T consumes a held FOOD_RX item, else marks `food`; nothing held, the branch passes and
-  `forage` loots for the mark (`all` with none) through `LootHouse`, which never loots at load level 3 and drops
-  down to 2 (spec § 9 (1)). `explore` scans each new place and walks to the unexplored edge.
+  `forage` loots for the mark (`all` with none) through `LootHouse`, which loots only at load level 0-1, never at 2,
+  and drops from 3 down to 2 (spec § 9 (1)). `explore` scans each new place and walks to the unexplored edge.
 - A command whose action ended `failed` (any reason but `superseded`, which this planner's own next send caused),
   `timeout` or `rejected` is not chosen again with the same type and args for FAILED_COOLDOWN_TICKS planner ticks:
   its branch is passed over and the next one tried (logged as inputs.cooled); the threat branch is never passed

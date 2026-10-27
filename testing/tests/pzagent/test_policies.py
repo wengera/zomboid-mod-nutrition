@@ -362,9 +362,51 @@ def test_loothouse_never_loots_at_level_three_and_drops_the_heaviest_other_item_
     assert lh.step() is None                                 # nothing left to drop, and no loot at level 3
     assert [a.type for a in r.acts.history] == ["drop", "drop"]
     r.frame(level=2)
+    assert lh.step() is None                                 # level 2: no loot (spec § 9 (1)) and no drop
+    r.frame(level=1)
     lh.step()
     assert r.cmd()[0] == "interact"
     all_sends_valid(r)
+
+
+# I1 (the whole-pass review): spec § 9 (1), "a policy stops looting before level 3" -- a loot with filter `all` at
+# level 2 took run 1 and run 2 to level 3 and 4 in one interact.
+def test_the_load_guard_constants_name_the_levels():
+    assert (P.LOOT_MAX_LEVEL, P.DROP_AT, P.DROP_TO) == (1, 3, 2)
+    assert not hasattr(P, "LOAD_STOP")
+
+
+@pytest.mark.parametrize("level, want", [(0, "interact"), (1, "interact"), (2, None), (3, "drop"), (4, "drop")])
+def test_loothouse_loots_only_at_level_0_or_1_and_drops_at_3_or_above(tmp_path, level, want):
+    r = Rig(tmp_path)
+    r.scan([square(102, 200, containers=[CRATE])])
+    r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
+    r.frame(level=level)
+    a = LootHouse(r.world, r.acts, r.clock).step()
+    assert (a.type if a is not None else None) == want
+    if want is None:
+        assert r.acts.history == []
+
+
+def test_drops_bring_the_level_to_two_and_then_nothing_is_sent_until_it_is_under_two(tmp_path):
+    r = Rig(tmp_path)
+    r.scan([square(102, 200, containers=[CRATE])])
+    for iid, wt in [(602, 3.0), (603, 2.0), (604, 1.0)]:
+        r.event("item_added", itemId=iid, fullType="Base.Plank", weight=wt)
+    r.frame(level=3)
+    lh = LootHouse(r.world, r.acts, r.clock)
+    lh.step()
+    assert r.cmd() == ("drop", {"itemId": 602})
+    r.answer()
+    r.event("item_removed", itemId=602, fullType="Base.Plank")
+    r.frame(level=2)                                         # the drop brought it to 2
+    for _ in range(3):
+        assert lh.step() is None                             # no loot, no further drop
+        r.frame(level=2)
+    assert [a.type for a in r.acts.history] == ["drop"]
+    r.frame(level=1)
+    lh.step()
+    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "all"})
 
 
 # ================================================================ every policy's sends

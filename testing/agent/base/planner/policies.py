@@ -26,13 +26,16 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
 - `Explore`: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
   `scanned` from its send and dropped again when the scan ends other than `done`, so a pre-empted, timed-out or
   rejected scan is retried), then a `WalkTo` at a walk to `world.unexplored_edge()`; no edge, no command.
-- `LootHouse`: below load level `LOAD_STOP` an `Interact(x, y, "loot", want)` at `world.nearest_unlooted(want)` (any
-  container for `want="all"`), every container on that square marked looted when the interact ends, done, failed,
-  rejected or timed out, except a `failed "superseded"`, which a newer send replaced before it ran (Plan 21 lost such
-  a square for the session: `docs/reference/research-notes.md`, "A pre-empted loot's square is marked looted"). At
-  level `LOAD_STOP` or above (spec § 9 (1): the heavy-load drain falls at level 3) it never loots: it sends `Drop` of
-  the heaviest held item that is neither the wielded weapon's type, nor a `WEAPON_RX` name, nor food or water by
-  `FOOD_RX`/`WATER_RX`, one a decision, until the frame's level reads 2 or less; with nothing to drop, no command.
+- `LootHouse`: at load level `LOOT_MAX_LEVEL` (1) or below an `Interact(x, y, "loot", want)` at
+  `world.nearest_unlooted(want)` (any container for `want="all"`), every container on that square marked looted when
+  the interact ends, done, failed, rejected or timed out, except a `failed "superseded"`, which a newer send replaced
+  before it ran (Plan 21 lost such a square for the session: `docs/reference/research-notes.md`, "A pre-empted loot's
+  square is marked looted"). Spec § 9 (1), "a policy stops looting before level 3": a loot with filter `all` takes a
+  whole container, so one interact at level 2 lifted runs 1 and 2 to level 3 and 4; the guard is the level, since a
+  container's weight is not readable per item. At level 2 it sends nothing; at `DROP_AT` (3) or above it sends `Drop`
+  of the heaviest held item that is neither the wielded weapon's type, nor a `WEAPON_RX` name, nor food or water by
+  `FOOD_RX`/`WATER_RX`, one a decision, until the frame's level reads `DROP_TO` (2); with nothing to drop, no command.
+  No loot is sent again until the level is back under 2.
 
 HEURISTIC: WEAPON_RX names the weapons a survivor keeps by fullType, as FOOD_RX and WATER_RX guess food and drink
 (`agent.base.world`); none is game data.
@@ -50,7 +53,9 @@ MISSES_TO_APPROACH = 2   # attack results in a row with attackStarted false befo
 FLEE_S = 3.0          # seconds a flee's steer runs before it is re-aimed
 SPRINT_R = 2.0        # tiles: a nearest zombie within this is fled at a sprint
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
-LOAD_STOP = 3         # the heavy-load level at which looting stops and dropping starts
+LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
+DROP_AT = 3           # at this load level or above the policy drops (the heavy-load drain falls at level 3) ...
+DROP_TO = 2           # ... down to this level, and between the two sends nothing
 PREEMPTED = "superseded"   # the reason the Lua fails an action a newer send replaced
 WEAPON_RX = re.compile(r"\.(BaseballBat|Hammer|Axe|Crowbar|Knife|Pan|Pistol|Shotgun|Rifle)")
 
@@ -265,10 +270,13 @@ class LootHouse(Policy):
 
     def choose(self):
         level = self.level()
-        if level >= LOAD_STOP:
+        if level >= DROP_AT:
             iid = self.spare()
             self.why = {"level": level, "drop": iid}
             return None if iid is None else Drop(iid)
+        if level > LOOT_MAX_LEVEL:
+            self.why = {"level": level, "hold": True}
+            return None
         key = self.world.nearest_unlooted(None if self.want == "all" else self.want)
         self._key = key
         self.why = {"level": level, "want": self.want, "container": list(key) if key else None}
