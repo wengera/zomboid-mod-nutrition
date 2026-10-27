@@ -3,12 +3,16 @@ driver is never invoked.
 
 The phases run against FakeModP, test_a_pipe_3's FakeMod3 (the scan in parts) with the probe's Lua shapes
 (probe-interface.md §§ 1-5): a 0.2 hello and its `bench` line; `goto x y [arm]` walking at WALK_TPS or RUN_TPS by arm;
-`autowalk dx dy s [arm]` along the commanded vector (an optional heading error); `drop <fullType> <n>`; frames carrying
+`autowalk dx dy s [arm]` along the commanded vector (an optional heading error); `drop <fullType> <n>`; an RCON
+`additem` (the test's stand-in for xs.rcon) raising the load unless it stalls; frames carrying
 moving, running, sprinting, endurance, weight, maxWeight, moodles.HEAVY_LOAD and motor {forceRun, autoWalk,
 updRunning, updForceRun}; a health that falls 0.39 every DROP_EVERY frames while HEAVY_LOAD >= the drop level and the
 character moves (and health > 75 unless the floor is off); a `damage` event per drop when the client hears. The fake
-bus answers bench.global, fall.probe, event.watch, inventory.add, stats.all and ping with their handlers' reply shapes
-(docs/reference/harness-commands.md)."""
+bus answers bench.global, fall.probe, event.watch, stats.all and ping with their handlers' reply shapes
+(docs/reference/harness-commands.md).
+
+The autowalk legs run 1 s here (SHORT_AUTOWALK, an autouse patch): the fake walks 1.6 and runs 3.2 tiles/s, so the
+probe's 5 s legs leave the 12-square strip and void (test_the_real_autowalk_legs_leave_the_strip_and_void)."""
 import math
 import os
 
@@ -21,6 +25,13 @@ from . import test_a_pipe_3 as T3
 
 REPO = T1.REPO
 X = D.X
+REAL_AUTOWALK = list(D.AUTOWALK_LEGS)
+SHORT_AUTOWALK = [(dx, dy, 1.0, arm) for dx, dy, _, arm in REAL_AUTOWALK]
+
+
+@pytest.fixture(autouse=True)
+def short_autowalk(monkeypatch):
+    monkeypatch.setattr(D, "AUTOWALK_LEGS", SHORT_AUTOWALK)
 
 BENCH_INFO = {"json21Bytes": 2560, "compactBytes": 1600, "noSortBytes": 2560, "squares": 20}
 BENCH_US = {"json": 900.0, "jsonNoSort": 700.0, "compact": 400.0, "concat": 5.0, "openWrite": 600.0,
@@ -43,12 +54,12 @@ def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
     assert os.path.basename(D.__file__) == D.DRIVER == D.KEY + ".py" == "p22_probe.py"
     assert D.KEY == "p22_probe" and D.ARTIFACT == "p22_probe.json" and D.USER == "admin"
     assert D.PROFILE == "testing/profiles/agent-nozombies.toml" and os.path.isfile(os.path.join(REPO, D.PROFILE))
-    assert D.BUDGET_S == 660.0 and D.MIN_FREE_GB == D.DL.MIN_FREE_GB
+    assert D.BUDGET_S == 720.0 and D.MIN_FREE_GB == D.DL.MIN_FREE_GB and D.X1_DEADLINE_S == 330.0
 
 
 def test_every_constant_of_the_brief_is_in_constants():
     c = D.CONSTANTS
-    want = {"BUDGET_S": 660.0, "LINE_LEN": 12, "BENCH_REPS": 3, "LEGS_PER_ARM": 3, "SETTLE_S": 3.0,
+    want = {"BUDGET_S": 720.0, "X1_DEADLINE_S": 330.0, "LINE_LEN": 12, "BENCH_REPS": 3, "LEGS_PER_ARM": 3, "SETTLE_S": 3.0,
             "GOAL_TIMEOUT_S": 40.0, "TOGGLE_IF_BELOW": 1.3, "LOAD_MAX_ADDS": 14, "LOAD_ITEM": "Base.Plank",
             "LOAD_SETTLE_S": 5.0, "WALK_S": 30.0, "STILL_S": 15.0, "PLANK_W": 3.0, "WALK2_S": 15.0,
             "HEALTH_FLOOR": 75.0, "HEAVY_LEVEL": 3, "LEVEL2_RATIO": 1.25, "LEVEL3_RATIO": 1.5, "LEVEL4_RATIO": 1.75,
@@ -96,10 +107,13 @@ def test_preboot_on_the_real_profile(agent_fixture, monkeypatch):
     assert ok, pre
     assert pre["profile"] == "agent-nozombies" and pre["driver_checks"] == {
         "driver_file": True, "driver_prefix": True, "profile_exists": True, "no_committed_artifact": True,
-        "agent_lua_dirty": False, "driver_dirty": False}
+        "agent_lua_dirty": False, "driver_dirty": False, "agent_py_dirty": False}
     dirty["v"] = "testing/PZAgent"
     pre, ok = D.preboot(D.__file__)
     assert not ok and pre["driver_checks"]["agent_lua_dirty"] is True
+    dirty["v"] = "testing/agent"
+    pre, ok = D.preboot(D.__file__)
+    assert not ok and pre["driver_checks"]["agent_py_dirty"] is True
     dirty["v"] = None
     tracked["v"] = "testing/artifacts/p22_probe-20261027-120000/p22_probe.json"
     pre, ok = D.preboot(D.__file__)
@@ -211,12 +225,13 @@ class FakeModP(T3.FakeMod3):
 
     def __init__(self, d, clock, version="0.2", forcerun_runs=True, heading_err=0.0, drop_level=3, floor=True,
                  drop_every=1, client_hears=False, server_heavy=True, once_holds=True, setrun_runs=False,
-                 endurance_flat=False, level3_from=1.5, **kw):
+                 endurance_flat=False, level3_from=1.5, blocked=(), **kw):
         super().__init__(d, clock, **kw)
         self.version, self.forcerun_runs, self.heading_err = version, forcerun_runs, heading_err
         self.drop_level, self.floor, self.drop_every = drop_level, floor, drop_every
         self.client_hears, self.server_heavy, self.once_holds = client_hears, server_heavy, once_holds
         self.setrun_runs, self.endurance_flat, self.level3_from = setrun_runs, endurance_flat, level3_from
+        self.blocked = set(blocked)
         self.pg = None
         self.load = self.LOAD0
         self.endurance = 1.0
@@ -241,7 +256,7 @@ class FakeModP(T3.FakeMod3):
         cmd = super().poll()
         if self.job is not None and not self.job.get("fixed"):
             for s in self.job["squares"]:
-                s["solidTrans"] = False
+                s["solidTrans"] = (s["x"], s["y"]) in self.blocked
             self.job["fixed"] = True
         if cmd and cmd["goal"] in ("goto", "autowalk", "drop"):
             self.cmds.append(cmd)
@@ -349,7 +364,7 @@ class FakeModP(T3.FakeMod3):
                                             "isLocal": True})
 
 
-def make_probe(tmp_path, budget_s=1e9, bench_error=(), **flags):
+def make_probe(tmp_path, budget_s=1e9, bench_error=(), stall=False, **flags):
     clock = T1.Clock()
     sd = str(tmp_path / "clients" / "admin" / "Lua" / "pzagent" / "admin")
     mod = FakeModP(sd, clock, **flags)
@@ -377,15 +392,19 @@ def make_probe(tmp_path, budget_s=1e9, bench_error=(), **flags):
         if cmd == "event.watch":
             return {"ok": True, "side": "client", "event": a[0], "hooked": True, "count": mod.client_count,
                     "fires": [{"wallMs": 1}] * mod.client_count}
-        if cmd == "inventory.add":
-            mod.load += D.PLANK_W
-            return {"ok": True, "fullType": a[1], "count": int(a[2]), "side": "server", "invWeight": mod.load,
-                    "maxWeight": mod.MAXW}
         return {"ok": True, "user": args, "stats": {"HUNGER": 0.1}}
 
     xs = X.Xs(out, node=lambda side: side, ask=ask, clock=clock.now, sleep=mod.sleep, budget_s=budget_s,
               user="admin", predictions=D.PREDICTIONS)
     xs.path = str(tmp_path / D.ARTIFACT)
+
+    def rcon(cmd, tag):                       # xs.rcon's stand-in: the reply shape {ok, reply}
+        calls.append(("rcon", cmd, tag))
+        mod.sleep(0.05)
+        if not stall:
+            mod.load += D.PLANK_W
+        return {"ok": True, "reply": "Item Base.Plank added to admin's inventory"}
+    xs.rcon = rcon
     probe = D.Probe(xs, Link(sd, clock=clock.now), clock=clock.now, sleep=mod.sleep)
     return probe, out, mod, calls
 
@@ -403,8 +422,10 @@ def verdicts(out, prefix):
 
 @pytest.fixture(scope="module")
 def clean_run(tmp_path_factory):
-    probe, out, mod, calls = make_probe(tmp_path_factory.mktemp("clean"))
-    probe.run()
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(D, "AUTOWALK_LEGS", SHORT_AUTOWALK)
+        probe, out, mod, calls = make_probe(tmp_path_factory.mktemp("clean"))
+        probe.run()
     return probe, out, mod, calls
 
 
@@ -441,8 +462,11 @@ def test_a_correct_mod_records_every_reading_and_every_grade_as_predicted(clean_
     assert gotos[0] == "100.5 200.5" and gotos[1] == "111.5 200.5" and gotos[4] == "100.5 200.5 setrun"
     aw = m["autowalk"]
     assert [c["args"] for c in mod.cmds if c["goal"] == "autowalk"] == [
-        "1 0 5", "-1 0 5 forcerun", "2 0 5 forcerun", "-1.95 0 5 once", "1 0 5 forcerun", "-1 0 5"]
-    assert all(r["heading_error_deg"] == pytest.approx(0, abs=1e-6) and r["displacement"] > 7 for r in aw)
+        "1 0 1.0", "-1 0 1.0 forcerun", "2 0 1.0 forcerun", "-1.95 0 1.0 once", "1 0 1.0 forcerun", "-1 0 1.0"]
+    assert all(r["heading_error_deg"] == pytest.approx(0, abs=1e-6) and r["displacement"] > 1.0 for r in aw)
+    assert not any(r["voided"] for r in aw) and line["strip_squares"] == 36
+    assert m["centre"]["arm"] == "centre" and m["centre"]["to"]["x"] == 106.0 and m["deadline_skipped"] == 0
+    assert gotos[16] == "106.0 200.5" and line["targets"]["M"] == [106.0, 200.5]
     assert verdicts(out, "x1_") == {"x1_forcerun_runs": "as_predicted", "x1_setrun_walks": "as_predicted",
                                     "x1_autowalk_runs": "as_predicted", "x1_autowalk_heads": "as_predicted",
                                     "x1_forcerun_tick": "recorded", "x1_once_holds": "as_predicted",
@@ -456,7 +480,10 @@ def test_a_correct_mod_records_every_reading_and_every_grade_as_predicted(clean_
     assert ld["drop"]["k"] == 1 and ld["drop"]["predicted_ratio"] == pytest.approx(1.25)
     assert ld["drop"]["goal"]["detail"] == "moved=1" and ld["drop"]["after"]["level"] == 2
     assert ("client", "event.watch", "OnPlayerGetDamage read") in [c for c in calls]
-    assert ("server", "fall.probe", "admin") in calls
+    assert ("server", "fall.probe", "admin") in calls and not [c for c in calls if c[1] == "inventory.add"]
+    assert [c[1:] for c in calls if c[0] == "rcon"] == [('additem "admin" "Base.Plank" 1', "add_%d" % i)
+                                                         for i in range(1, 5)]
+    assert all(a["weight_rose"] and a["rcon"]["ok"] for a in ld["adds"]) and "load_stalled_at" not in ld
     assert ld["walk_loaded"] and ld["walk_level2"] and all(r["arm"] == "walk_loaded" for r in ld["walk_loaded"])
     assert ld["floor_reached"]["arm"] == "walk_loaded"
     tr = ld["trace"]
@@ -573,6 +600,9 @@ def test_the_budget_stops_a_phase_and_is_recorded(tmp_path):
     assert out["verdicts"]["x1_forcerun_runs"]["verdict"] == "unmeasured"     # graded in the phase's finally
     assert "budget_stop" in out["phase_walls"]["x3_load"]
     assert len(out["readings"]["server"]) == 1                       # the server phase has no poll, so it runs
+    # the readback never ran: no counts, no drops, so every X3 grade but the recorded one reads unmeasured
+    v = verdicts(out, "x3_")
+    assert v.pop("x3_drops_while_still") == "recorded" and set(v.values()) == {"unmeasured"}, v
 
 
 def test_no_open_line_falls_back_to_the_pass4_leg(tmp_path, monkeypatch):
@@ -608,3 +638,80 @@ def test_a_load_that_never_reaches_level_three_reads_unmeasured(tmp_path, monkey
     assert "level3_at_ratio" not in ld and ld["level_reached"] == 0 and len(ld["adds"]) == 2
     v = verdicts(out, "x3_")
     assert v["x3_level3_at_ratio"] == "unmeasured" and v["x3_drops_at_level3_only"] == "unmeasured"
+
+
+def test_the_real_autowalk_legs_leave_the_strip_and_void(tmp_path, monkeypatch):
+    monkeypatch.setattr(D, "AUTOWALK_LEGS", REAL_AUTOWALK)
+    probe, out, _, _ = make_probe(tmp_path, heading_err=20.0)
+    run_phases(probe, ["hello_and_map", "x1_motor"])
+    aw = out["readings"]["motor"]["autowalk"]
+    assert len(aw) == 6 and all(r["voided"] == "left the strip" and r["off_strip_frames"] > 0 for r in aw)
+    assert all(r["heading_error_deg"] == pytest.approx(20.0) and r["pace"] is not None for r in aw)   # still recorded
+    v = verdicts(out, "x1_")
+    # a voided leg is out of every sample: the 20 degree error falsifies nothing
+    assert v["x1_autowalk_heads"] == v["x1_autowalk_runs"] == v["x1_once_holds"] == "unmeasured"
+    assert out["verdicts"]["x1_autowalk_heads"]["observed"]["voided_legs"] == 6
+
+
+def test_the_autowalk_vector_follows_a_minus_x_line(tmp_path):
+    probe, out, mod, _ = make_probe(tmp_path, blocked={(101, 200)})
+    run_phases(probe, ["hello_and_map", "x1_motor"])
+    line = out["readings"]["line"]
+    assert (line["ax"], line["ay"], line["bx"], line["by"], line["dir"]) == (100, 200, 89, 200, "-x")
+    assert [c["args"] for c in mod.cmds if c["goal"] == "autowalk"] == [
+        "-1 0 1.0", "1 0 1.0 forcerun", "-2 0 1.0 forcerun", "1.95 0 1.0 once", "-1 0 1.0 forcerun", "1 0 1.0"]
+    aw = out["readings"]["motor"]["autowalk"]
+    assert [(r["vx"], r["vy"]) for r in aw][:2] == [(-1.0, 0.0), (1.0, 0.0)] and not any(r["voided"] for r in aw)
+    assert verdicts(out, "x1_")["x1_autowalk_heads"] == "as_predicted"
+
+
+def test_axis_vectors_and_strips():
+    assert D.axis_vector("+x", 1, 0) == (1.0, 0.0) and D.axis_vector("-x", -1.95, 0) == (1.95, 0.0)
+    assert D.axis_vector("+y", 2, 0) == (0.0, 2.0) and D.axis_vector("-y", 1, 0) == (0.0, -1.0)
+    assert D.axis_vector("+x", 0, 1) == (0.0, 1.0)                        # dy: across the axis
+    assert [D._arg(v) for v in (1.0, -1.0, -1.95, -0.0, 0.0, 2)] == ["1", "-1", "-1.95", "0", "0", "2"]
+    st = D.strip_of(10, 20, "+y", 12)
+    assert len(st) == 36 and (9, 20) in st and (11, 31) in st and (10, 32) not in st and (12, 20) not in st
+    assert D.strip_of(5, 5, "-x", 3) == {(x, y) for x in (3, 4, 5) for y in (4, 5, 6)}
+    fr = [{"x": 10.2, "y": 20.9}, {"x": 11.99, "y": 31.5}, {"x": 12.0, "y": 25.0}]
+    assert D.off_strip(fr, st) == [fr[2]]
+
+
+def test_a_stalled_load_stops_at_once_and_x3_reads_unmeasured(tmp_path):
+    probe, out, _, calls = make_probe(tmp_path, stall=True)
+    run_phases(probe, ["hello_and_map", "x3_load"])
+    ld = out["readings"]["load"]
+    assert ld["load_stalled_at"] == 1 and len(ld["adds"]) == 1 and ld["adds"][0]["weight_rose"] is False
+    assert ld["load_stalled_reply"]["ok"] is True and ld["planks_added"] == 0 and ld["level_reached"] == 0
+    assert len([c for c in calls if c[0] == "rcon"]) == 1
+    assert ld["drop"]["error"] == "no plank added: nothing to drop"
+    v = verdicts(out, "x3_")
+    assert v.pop("x3_drops_while_still") == "recorded" and set(v.values()) == {"unmeasured"}, v
+
+
+@pytest.mark.parametrize("flags, unmeasured", [
+    ({"drop_level": 9}, {"x3_server_hears_heavyload", "x3_client_hears_heavyload", "x3_drops_at_level3_only",
+                         "x3_floor_75"}),
+    ({"drop_every": 40}, {"x3_floor_75"})])
+def test_x3_grades_without_their_evidence_read_unmeasured(tmp_path, flags, unmeasured):
+    probe, out, mod, _ = make_probe(tmp_path, **flags)
+    run_phases(probe, ["hello_and_map", "x3_load"])
+    v = verdicts(out, "x3_")
+    assert {k for k, x in v.items() if x == "unmeasured"} == unmeasured, v
+    assert "falsified" not in v.values()
+    if "drop_every" in flags:
+        assert 0 < mod.drops and mod.health > D.HEALTH_FLOOR and v["x3_server_hears_heavyload"] == "as_predicted"
+
+
+def test_the_x1_deadline_skips_the_remaining_legs(tmp_path, monkeypatch):
+    monkeypatch.setattr(D, "X1_DEADLINE_S", 40.0)
+    probe, out, mod, _ = make_probe(tmp_path)
+    run_phases(probe, ["hello_and_map", "x1_motor", "x3_load"])
+    m = out["readings"]["motor"]
+    sk = [r for r in m["legs"] + m["autowalk"] if r.get("skipped")]
+    assert sk and all(r["skipped"] == "x1 deadline" for r in sk) and m["return"]["skipped"] == "x1 deadline"
+    assert m["centre"]["skipped"] == "x1 deadline" and len(m["legs"]) == 15 and len(m["autowalk"]) == 6
+    assert m["deadline_skipped"] == len(sk) + 2
+    assert out["phase_errors"] == {} and "budget_stop" not in out
+    assert out["readings"]["load"]["level3_at_add"] == 4                # X3 still had its wall
+    assert len([c for c in mod.cmds if c["goal"] == "autowalk"]) == 0
