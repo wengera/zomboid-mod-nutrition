@@ -28,7 +28,7 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   for `UNREACHABLE_S` wall seconds: `nearest_zombie` skips it, so the Fight takes another target or, with none, sends
   nothing (Survive then flees, reason `unreachable`). A swing not started neither counts nor resets the streak; a
   fall, a new target or a target no frame lists restarts it. `unreachable` (id -> wall until) is passed in so a
-  later Fight of the same planner keeps it.
+  later Fight of the same planner keeps it. An attack ending `failed` for a walk reason (`STUCK_REASONS`) marks its target the same way.
 - `Flee`: a `Steer` of `FLEE_S` seconds along the unit vector from the threats' centroid through the player (the
   `threats` list its caller passes, else every zombie the World holds), at a sprint when the nearest is within
   `SPRINT_R`, else a run; re-aimed on every end of its steer. A player standing on the centroid steers along +x.
@@ -84,6 +84,12 @@ def me_xy(world):
 def item_id_ok(iid):
     """An inventory key usable as a command's itemId: an int, not a bool."""
     return isinstance(iid, int) and not isinstance(iid, bool)
+
+
+def target_id_ok(zid):
+    """A zombie id a Fight can target: an int, not a bool (a nil read keys the zombie None); the one rule
+    `world.nearest_zombie` and Survive's reachable-threat set share."""
+    return isinstance(zid, int) and not isinstance(zid, bool)
 
 
 def zdist(world, z):
@@ -184,6 +190,9 @@ class Fight(Policy):
         if a is None or a.type != "attack" or not self.actions.done(a) or a is self._counted:
             return
         self._counted = a
+        if a.state == "failed" and a.reason in STUCK_REASONS:   # the approach walk could not queue (Minor 3)
+            self.unreachable[a.args.get("targetId")] = self.clock() + UNREACHABLE_S
+            return
         if not isinstance(a.result, dict):
             return
         if a.result.get("attackStarted") is False:

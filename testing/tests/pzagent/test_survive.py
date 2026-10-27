@@ -419,3 +419,19 @@ def test_the_decision_log_is_byte_stable_under_an_injected_clock(tmp_path):
         assert d["wall"] == 1000.0 + 0.25 * (i + 1) and d["gameMin"] == 480.0 + i
     branches = [json.loads(ln)["branch"] for ln in lines]
     assert {"threat", "need", "forage", "explore"} <= set(branches)
+
+
+# P9 (the wave's Minor 8): a zombie whose id read nil is a danger but never a fight target.
+def test_a_lone_nil_id_zombie_is_fled_never_held(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zombie(None, 103.0, 200.0)])
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "unreachable"
+    assert last(tmp_path)["inputs"]["threats"] == 1
+
+
+def test_a_nil_id_zombie_beside_an_int_id_one_leaves_the_int_id_the_target(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zombie(None, 101.0, 200.0), zombie(5, 101.5, 200.0)])
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 5}) and threat_why(tmp_path)["fight"] is True

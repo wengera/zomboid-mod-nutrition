@@ -43,7 +43,7 @@ import json
 import time
 
 from agent.base.planner.policies import (FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Explore, Fight, Flee, LootHouse,
-                                         blocked, item_id_ok, zdist)
+                                         blocked, item_id_ok, target_id_ok, zdist)
 from agent.base.pza1 import Consume
 from agent.base.world import FOOD_RX, WATER_RX
 
@@ -111,10 +111,11 @@ class Survive:
         return min(ids) if ids else None
 
     def _reachable_held(self):
-        """The held threats not marked unreachable."""
+        """The held threats a Fight can target and not marked unreachable (a nil-id zombie is a danger, never a
+        target)."""
         skip = blocked(self.unreachable, self.clock())
         r = self._hold_r()
-        return [z for zid, z in self.world.zombies.items() if zid not in skip and z.get("x") is not None
+        return [z for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in skip and z.get("x") is not None
                 and z.get("y") is not None and zdist(self.world, z) <= r]
 
     def _flee_reason(self, held, n):

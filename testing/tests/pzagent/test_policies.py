@@ -8,7 +8,7 @@ import pytest
 
 from agent.base.actions import Actions
 from agent.base.planner import policies as P
-from agent.base.planner.policies import Explore, Fight, Flee, LootHouse
+from agent.base.planner.policies import UNREACHABLE_S, Explore, Fight, Flee, LootHouse
 from agent.base.transport.files import FileTransport
 from agent.base.world import World
 
@@ -579,3 +579,33 @@ def test_every_send_of_every_policy_is_valid_against_action_args(tmp_path):
 def test_explore_says_it_scans_per_place_grid():
     """N3 (the whole-pass review): spec § 6's "once at a new building or on request" is read as the place grid."""
     assert "per 10-tile place" in P.__doc__ and "new building" in P.__doc__
+
+
+# P9 (the wave's Minor 3): an attack whose approach walk cannot queue ends `failed` at once; the target is unreachable.
+@pytest.mark.parametrize("reason", ["no path", "no square", "stuck"])
+def test_an_attack_failed_for_its_approach_marks_the_target_unreachable(tmp_path, reason):
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(7, 101.0, 200.0)])
+    f = Fight(r.world, r.acts, r.clock)
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 7})
+    r.answer({"state": "failed", "reason": reason})
+    r.frame(zombies=[zombie(7, 101.0, 200.0)])
+    f.step()
+    assert f.unreachable == {7: r.clock() + UNREACHABLE_S}
+    for _ in range(39):                                      # every planner tick of 20 s: never an Attack on 7
+        r.advance(0.5)
+        r.frame(zombies=[zombie(7, 101.0, 200.0)])
+        assert f.step() is None
+    assert [a.type for a in r.acts.history].count("attack") == 1
+
+
+def test_an_attack_failed_otherwise_does_not_mark_the_target(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(7, 101.0, 200.0)])
+    f = Fight(r.world, r.acts, r.clock)
+    f.step()
+    r.answer({"state": "failed", "reason": "interrupted"})
+    r.frame(zombies=[zombie(7, 101.0, 200.0)])
+    assert f.step() is not None and r.cmd() == ("attack", {"targetId": 7})
+    assert f.unreachable == {}
