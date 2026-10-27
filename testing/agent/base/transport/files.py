@@ -10,6 +10,10 @@ running merged frame. A full frame (no group elided) replaces it; a delta frame 
 `pza1.merge_delta` and becomes it. A delta before any full frame has no base: it counts in `bad` and is dropped.
 `lines()` returns full frames only, each a deep copy (a caller may mutate it); `SAME` never leaves the transport.
 
+`cmd_seq` starts at the `seq` of `ack.txt` when the dir holds one (the last command the Lua accepted; a missing,
+malformed or negative one seeds 0): the drivers clear the state dir before a session (`_dlib.clear_state_dir`), and
+this is the fallback for a dir they did not, where a first command at seq 1 would read as old and nothing would answer.
+
 Counters: `bad`, `gaps`, and `replace_retries` (a `send` whose replace met a Windows sharing violation retries it up
 to `REPLACE_TRIES` attempts, `REPLACE_SLEEP_S` apart, and re-raises the last `PermissionError` when they run out).
 """
@@ -32,11 +36,22 @@ def _is_seq(x):
     return isinstance(x, int) and not isinstance(x, bool)
 
 
+def _acked_seq(state_dir):
+    """The seq in state_dir's ack.txt, or 0 when it is absent, malformed or not a non-negative int."""
+    try:
+        with open(os.path.join(state_dir, "ack.txt"), encoding="utf-8") as f:
+            ack = json.loads(f.read())
+    except (OSError, ValueError):
+        return 0
+    seq = ack.get("seq") if isinstance(ack, dict) else None
+    return seq if _is_seq(seq) and seq >= 0 else 0
+
+
 class FileTransport:
     def __init__(self, state_dir, clock=time.time):
         self.dir = state_dir
         self.clock = clock
-        self.cmd_seq = 0
+        self.cmd_seq = _acked_seq(state_dir)
         self.expect = 1
         self.gaps = []
         self.replace_retries = 0    # cmd.txt replaces retried after a sharing violation

@@ -324,3 +324,25 @@ def test_send_without_a_collision_counts_no_retry(tmp_path, monkeypatch):
 
 def test_file_transport_satisfies_the_protocol(tmp_path):
     assert isinstance(FileTransport(str(tmp_path)), Transport)
+
+
+# -- M8 (the whole-pass review): cmd_seq seeded from ack.txt -----------------------------------------------------------
+# The Lua ignores every command whose seq is not above ack.txt's (PZAgent_Link.lua L255); a FileTransport on a state dir
+# the driver did not clear starts above it, so its first command is not taken for an old one.
+
+def test_cmd_seq_is_seeded_from_ack_txt(tmp_path):
+    from agent.base.actions import Actions
+    (tmp_path / "ack.txt").write_text('{"seq":40}\n', encoding="utf-8")
+    tr = FileTransport(str(tmp_path))
+    assert tr.cmd_seq == 40
+    Actions(tr).send(pza1.Stop())
+    assert json.loads((tmp_path / "cmd.txt").read_text(encoding="utf-8"))["seq"] >= 41
+
+
+def test_a_bad_or_absent_ack_txt_seeds_zero(tmp_path):
+    assert FileTransport(str(tmp_path)).cmd_seq == 0
+    for i, text in enumerate(['{"seq":', '{"seq":"40"}', '[40]', '{"seq":true}', '{"seq":-3}', '\xff']):
+        d = tmp_path / str(i)
+        d.mkdir()
+        (d / "ack.txt").write_text(text, encoding="latin-1")
+        assert FileTransport(str(d)).cmd_seq == 0, text
