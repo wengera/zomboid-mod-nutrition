@@ -837,8 +837,10 @@ A.goals["sleep"] = {
 -- autowalk steers through the input layer, with no path: setAutoWalk(true) and setAutoWalkDirection(Vector2.new(dx, dy))
 -- feed the input vector a held key does (IsoPlayer.getInputMoveVector L4317-L4327, jar-research-movement.md Q2), the
 -- vector's length kept as given. Its arm: walk asks nothing more; forcerun sets PZA.motor.forceRun for the
--- OnPlayerUpdate assert; once calls setForceRun(true) once at the start, never again (whether the latch holds while the
--- input vector is non-zero). It is done d=<tiles from its start> once seconds of wall time have passed; no stuck rule.
+-- OnPlayerUpdate assert; once calls setForceRun(true) once, on the goal's second tick, never again (whether the latch
+-- holds while the input vector is non-zero): the engine's per-frame reset clears forceRun when the previous frame's input
+-- vector was zero (jar-research-movement.md Q1, L2608-L2610), as it is on the auto-walk's first frame, so a latch set
+-- beside setAutoWalk(true) is wiped once; one tick later the auto-walk vector is in playerMoveDir. It is done d=<tiles from its start> once seconds of wall time have passed; no stuck rule.
 -- Every exit calls A.motorOff. Vector2 and its new are index-checked before the call (not loaded).
 A.AUTOWALK_ARMS = { walk = true, forcerun = true, once = true }
 
@@ -863,9 +865,9 @@ A.goals["autowalk"] = {
             PZA.call(p, "setAutoWalk", true)
             PZA.call(p, "setAutoWalkDirection", Vector2.new(g.dx, g.dy))
             if g.arm == "forcerun" and PZA.motor ~= nil then PZA.motor.forceRun = true end
-            if g.arm == "once" then PZA.call(p, "setForceRun", true) end
             return
         end
+        if g.arm == "once" and g.ticks == 2 then PZA.call(p, "setForceRun", true) end
         if PZA.now() - g.startMs >= g.seconds * 1000 then endAutowalk(p, g, "done", "d=" .. tostring(dist(p, g.x0, g.y0))) end
     end,
 }

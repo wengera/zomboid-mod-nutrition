@@ -142,7 +142,11 @@ function B.openOnly()
     PZA.call(w, "close")
 end
 
-function B.heldOpen() B.w = open() end
+-- a writer already held is closed first, so a repeated heldOpen never leaks one
+function B.heldOpen()
+    PZA.call(B.w, "close")
+    B.w = open()
+end
 function B.heldWrite() PZA.call(B.w, "write", S21) end
 
 function B.heldClose()

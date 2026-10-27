@@ -1808,3 +1808,17 @@ def test_drop_interrupted_at_the_budget_with_none_gone_else_moved(lua):
     g._clock["ms"] += 10000 + 3000 * 2 + 1
     st = tick(lua, p)
     assert st["state"] == "done" and st["detail"] == "moved=1"
+
+
+# ---- Plan 22 probe fix 1: the autowalk once arm asserts on its second tick ------------------------------------------
+
+def test_autowalk_once_asks_set_force_run_on_its_second_tick_only(lua):
+    load(lua)
+    g, p, pos = autowalk(lua, "2 0 5 once")
+    st, made = tick_sets(lua, p)
+    assert st["state"] == "running" and not any(n == "setForceRun" for n, _ in made)
+    st, made = tick_sets(lua, p)
+    assert made == [("setForceRun", True)]
+    for _ in range(4):
+        st, made = tick_sets(lua, p)
+        assert st["state"] == "running" and made == []

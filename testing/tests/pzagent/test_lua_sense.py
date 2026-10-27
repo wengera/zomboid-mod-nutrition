@@ -360,3 +360,17 @@ def test_the_damage_hook_is_added_once_and_a_raise_inside_it_is_counted(lua):
     g.getPlayer = lambda: (_ for _ in ()).throw(RuntimeError("boom"))
     g._damageHandlers[0](make_player(), "FALLDOWN", 1.0)        # a raise out of the hook would fail the test here
     assert lua.eval("PZA.sense.damageErrors") == 1 and lua.eval("#PZA.sense.damage") == 0
+
+
+def test_the_damage_list_is_capped_and_the_frame_counts_the_dropped(lua):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    g.getPlayer = lambda: p
+    assert "damageDropped" not in dict(lua.eval("PZA.sense.frame(...)", p))
+    prev = lua.eval("PZA.sense.frame(...)", p)
+    for _ in range(201):
+        g._damageHandlers[0](p, "FALLDOWN", 1.0)
+    assert lua.eval("#PZA.sense.damage") == 200 and lua.eval("PZA.sense.damageDropped") == 1
+    ev, cur = lua.eval("PZA.sense.events(...)", p, prev)
+    assert sum(1 for e in ev.values() if e["event"] == "damage") == 200 and cur["damageDropped"] == 1

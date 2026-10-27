@@ -24,6 +24,7 @@ class FakeFS:
         self.fail_next = False
         self.write_cost_ms = 0     # added to the lua fixture's clock by every write (a flush's own cost)
         self.clock = None
+        self.writers = []          # every writer opened, in order; each one's closed flag is set by its close
 
     def writer(self, name, create, append):
         self.opens += 1
@@ -34,12 +35,16 @@ class FakeFS:
         if not (append and fs.append_works):
             fs.files[name] = ""
         class W:
+            closed = False
             def write(self, s):
                 fs.files[name] = fs.files.get(name, "") + s
                 if fs.write_cost_ms and fs.clock is not None:
                     fs.clock["ms"] += fs.write_cost_ms
-            def close(self): pass
-        return W()
+            def close(self):
+                self.closed = True
+        w = W()
+        fs.writers.append(w)
+        return w
 
     def reader(self, name, create):
         if name not in self.files:

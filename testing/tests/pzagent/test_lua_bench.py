@@ -122,3 +122,15 @@ def test_main_init_emits_the_bench_line_after_hello(lua, fs):
     assert b["json21Bytes"] == len(call(lua, "json")) and b["compactBytes"] == len(call(lua, "compact"))
     assert b["noSortBytes"] == len(call(lua, "jsonNoSort")) and b["squares"] == 20
     assert lines[0]["modVersion"] == "0.2"
+
+
+def test_a_second_held_open_closes_the_first_writer(lua, fs):
+    load(lua)
+    lua.execute("PZA.link.init('admin')")
+    n = len(fs.writers)
+    call(lua, "heldOpen")
+    call(lua, "heldOpen")
+    first, second = fs.writers[n:]
+    assert first.closed is True and second.closed is False
+    call(lua, "heldClose")
+    assert second.closed is True

@@ -149,6 +149,7 @@ function S.frame(p)
         end
     end
     f.zombies, f.nZombies = zombies(p, f.x, f.y)
+    if (S.damageDropped or 0) > 0 then f.damageDropped = S.damageDropped end
     return f
 end
 
@@ -160,12 +161,20 @@ end
 
 -- the client's OnPlayerGetDamage (Plan 22 probe X3, interface § 4): each call appends { tag, amount, isLocal } to
 -- S.damage, and the next S.events drains them as damage events. Hooked once; the body under pcall, a raise counted in
--- S.damageErrors, never propagated into the game's damage path.
+-- S.damageErrors, never propagated into the game's damage path. S.damage holds at most DAMAGE_MAX entries between
+-- drains (before the first frame nothing drains it); past the cap an entry is dropped and counted in S.damageDropped,
+-- which the frame carries while it is above 0.
+S.DAMAGE_MAX = 200
 S.damage = S.damage or {}
 S.damageErrors = S.damageErrors or 0
+S.damageDropped = S.damageDropped or 0
 S.damageHooked = S.damageHooked or false
 
 local function recordDamage(ch, tag, amount)
+    if #S.damage >= S.DAMAGE_MAX then
+        S.damageDropped = S.damageDropped + 1
+        return
+    end
     local me = getPlayer ~= nil and getPlayer() or nil
     S.damage[#S.damage + 1] = { tag = tostring(tag), amount = amount, isLocal = ch == me }
 end
