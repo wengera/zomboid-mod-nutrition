@@ -269,6 +269,16 @@ def test_the_unreachable_memory_is_shared_with_a_later_fight(tmp_path):
     assert Fight(r.world, r.acts, r.clock, unreachable=memo).step() is None
 
 
+def test_a_nil_id_zombie_is_never_a_target(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(zombies=[dict(zombie(7, 101.0, 200.0), id=None)])
+    f = Fight(r.world, r.acts, r.clock)
+    assert f.step() is None and r.acts.history == []
+    r.frame(zombies=[dict(zombie(7, 101.0, 200.0), id=None), zombie(8, 103.0, 200.0)])
+    f.step()
+    assert r.cmd() == ("walkTo", {"x": 103, "y": 200, "gait": "run"})
+
+
 def test_fight_with_no_zombie_sends_nothing(tmp_path):
     r = Rig(tmp_path)
     r.frame()

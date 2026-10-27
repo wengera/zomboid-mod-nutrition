@@ -14,6 +14,8 @@ byte for byte.
 import json
 import os
 
+import pytest
+
 from agent.base.replay import replay as replay_summary
 from agent.base.world import FOOD_RX, WATER_RX, ZOMBIE_TTL_S, World
 
@@ -177,12 +179,32 @@ def test_a_zombie_dead_event_removes_it():
     assert set(w.zombies) == {1}
 
 
-def test_nearest_zombie_by_dist():
+def test_nearest_zombie_by_the_distance_from_the_current_me():
     w = World()
     assert w.nearest_zombie() is None
-    w.apply(frame(0, [zed(1, 3.0), zed(2, 1.5), zed(3, None)]))
+    w.apply(frame(0, [zed(1, 3.0, x=3.0), zed(2, 1.5, x=1.5), zed(3, None, x=2.0)], me=me_at(0.0, 0.0)))
     zid, z = w.nearest_zombie()
     assert zid == 2 and z["dist"] == 1.5
+
+
+# M7 (the whole-pass review): the stored `dist` is the frame's, kept up to ZOMBIE_TTL_S after the zombie left the
+# frames; a zombie whose id read nil was keyed None and reached `Attack(int(None))`.
+def test_a_stale_zombie_ranks_by_its_distance_from_where_the_player_is_now():
+    w = World()
+    w.apply(frame(0, [zed(1, 1.0, x=1.0), zed(2, 2.0, x=-2.0)], me=me_at(0.0, 0.0)))
+    w.apply(frame(1000, [zed(2, 3.0, x=-2.0)], me=me_at(-1.0, 0.0)))    # 1 left the frames; the player moved
+    assert w.zombies[1]["dist"] == 1.0                                    # its stored dist: stale
+    assert w.nearest_zombie()[0] == 2                                     # 1 is 2 tiles away now, 2 is 1
+
+
+@pytest.mark.parametrize("zid", [None, "7", 7.0, True])
+def test_a_zombie_whose_id_is_not_an_int_is_never_nearest(zid):
+    w = World()
+    w.apply(frame(0, [zed(zid, 0.5, x=0.5), zed(9, 4.0, x=4.0)], me=me_at(0.0, 0.0)))
+    assert w.nearest_zombie()[0] == 9
+    w = World()
+    w.apply(frame(0, [zed(zid, 0.5, x=0.5)], me=me_at(0.0, 0.0)))
+    assert w.nearest_zombie() is None
 
 
 def test_an_unknown_kind_counts_and_never_raises():

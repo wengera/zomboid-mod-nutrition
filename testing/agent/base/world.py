@@ -229,18 +229,20 @@ class World:
         return (best[1], best[2]) if best else None
 
     def nearest_zombie(self, exclude=()):
-        """(id, zombie) of the least `dist`, ties by id; a zombie without a dist or whose id is in `exclude` is never
-        nearest; None if none."""
+        """(id, zombie) nearest the current `me` by its last seen `x, y`, ties by id; None if none. A zombie kept up to
+        ZOMBIE_TTL_S after it left the frames is ranked from where the player is now, never by its stored frame
+        `dist` (the whole-pass review's M7); a zombie whose id is not an int (a nil read keys it None), without a
+        position, or in `exclude` is never nearest."""
+        mx, my = self._me_xy()
         best = None
         for zid, z in self.zombies.items():
-            if zid in exclude:
+            if not isinstance(zid, int) or isinstance(zid, bool) or zid in exclude:
                 continue
-            d = z.get("dist")
-            if d is None:
+            if z.get("x") is None or z.get("y") is None:
                 continue
-            rank = (d, str(zid))
-            if best is None or rank < best[0]:
-                best = (rank, zid)
+            rank = (math.hypot(z["x"] - mx, z["y"] - my), zid)
+            if best is None or rank < best:
+                best = rank
         return (best[1], self.zombies[best[1]]) if best else None
 
     # -- serialisation --------------------------------------------------------------------------------------------

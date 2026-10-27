@@ -217,7 +217,7 @@ class Fight(Policy):
             self.why["unreachable"] = skipped
         if self.approach or d > FIGHT_REACH:
             return WalkTo(int(z["x"]), int(z["y"]), "run")
-        return Attack(int(zid))
+        return Attack(zid)   # nearest_zombie yields int ids only (M7)
 
     def sent(self, cmd, action):
         if cmd.TYPE == "walkTo":
