@@ -32,7 +32,8 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
 - `Flee`: a `Steer` of `FLEE_S` seconds along the unit vector from the threats' centroid through the player (the
   `threats` list its caller passes, else every zombie the World holds), at a sprint when the nearest is within
   `SPRINT_R`, else a run; re-aimed on every end of its steer. A player standing on the centroid steers along +x.
-- `Explore`: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
+- `Explore`: it scans per 10-tile place, spec § 6's "once at a new building or on request" read as the place
+  grid: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
   `scanned` from its send and dropped again when the scan ends other than `done`, so a pre-empted, timed-out or
   rejected scan is retried), then a `WalkTo` at a walk to `world.unexplored_edge()`; no edge, no command. A walk
   that ends `failed` with a reason in `STUCK_REASONS` has its target marked in the World (`world.mark_stuck`), and

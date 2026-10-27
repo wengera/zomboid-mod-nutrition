@@ -574,3 +574,8 @@ def test_every_send_of_every_policy_is_valid_against_action_args(tmp_path):
                 r.frame(zombies=zs, level=level)
     assert {a.type for a in r.acts.history} >= {"walkTo", "attack", "steer", "scan", "interact", "drop"}
     all_sends_valid(r)
+
+
+def test_explore_says_it_scans_per_place_grid():
+    """N3 (the whole-pass review): spec § 6's "once at a new building or on request" is read as the place grid."""
+    assert "per 10-tile place" in P.__doc__ and "new building" in P.__doc__

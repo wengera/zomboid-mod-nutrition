@@ -55,7 +55,7 @@ class FileTransport:
         self.expect = 1
         self.gaps = []
         self.replace_retries = 0    # cmd.txt replaces retried after a sharing violation
-        self.bad = 0             # lines dropped: malformed, outside the schema, or a delta without a base
+        self.bad = 0                # lines dropped: malformed, outside the schema, or a delta without a base
         self.running = None         # the last full frame, every delta merged in
         self.last_line_wall = None  # the clock at the last read that returned a line
         self._pos = {}              # file -> bytes consumed

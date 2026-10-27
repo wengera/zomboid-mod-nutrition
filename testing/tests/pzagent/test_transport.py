@@ -346,3 +346,11 @@ def test_a_bad_or_absent_ack_txt_seeds_zero(tmp_path):
         d.mkdir()
         (d / "ack.txt").write_text(text, encoding="latin-1")
         assert FileTransport(str(d)).cmd_seq == 0, text
+
+
+def test_the_init_comments_share_one_column():
+    """N2 (the whole-pass review): `self.bad`'s comment fell out of the column in the Task 18 fix."""
+    import inspect
+    src = inspect.getsource(FileTransport.__init__).splitlines()
+    cols = {ln.index("  # ") for ln in src if ln.lstrip().startswith("self.") and "  # " in ln}
+    assert len(cols) == 1, cols
