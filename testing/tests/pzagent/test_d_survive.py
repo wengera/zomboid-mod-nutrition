@@ -60,7 +60,7 @@ def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
     for k, v in brief.items():
         assert getattr(D, k) == v and D.CONSTANTS[k] == v, k
     assert D.STOPS == ("death", "bus_dead", "lua_error_storm", "memory", "day_cap", "budget", "error")
-    assert D.PHASES == ("hello", "kit", "damage_hook", "survive") and D.USER == "admin"
+    assert D.PHASES == ("hello", "damage_hook", "kit", "survive") and D.USER == "admin"
     assert (D.LAST_FRAMES, D.DEATH_WINDOW_S, D.LAST_DECISIONS) == (300, 300, 10) and GT.DEATH_TOL == 0.10
     assert GT.DANGER_R == 6.0
 
@@ -375,7 +375,7 @@ def test_a_clean_day_runs_every_phase_and_stops_at_the_day_cap(tmp_path, monkeyp
     assert kit["armed"] is True and kit["ok"] is True
     dh = out["readings"]["damage_hook"]
     assert dh["ok"] is True and dh["hooked"] is True and dh["n"] == 0 and dh["last_i"] == 0
-    assert list(out["readings"]) == ["hello", "kit", "damage_hook"] and out["loop"]["started"] is True
+    assert list(out["readings"]) == ["hello", "damage_hook", "kit"] and out["loop"]["started"] is True
     loop = out["loop"]
     log = decisions(tmp_path)
     assert loop["ticks"] == len(log) and loop["ticks"] == pytest.approx(40 * D.PLANNER_HZ, abs=2)
@@ -587,7 +587,7 @@ def test_the_damage_listener_is_installed_once_at_the_kits_end(tmp_path, monkeyp
     stats = [i for i, a in enumerate(r.bus.asked) if a[1] == "stats.all"]
     assert max(item_gets) < installs[0] < min(stats)                        # after the kit, before the loop
     assert all(r.bus.asked[i][2].startswith("admin since ") for i in dw[1:])
-    assert r.out["phase_walls"]["damage_hook"]["start"] >= r.out["phase_walls"]["kit"]["end"]
+    assert r.out["phase_walls"]["kit"]["start"] >= r.out["phase_walls"]["damage_hook"]["end"]
 
 
 def test_a_death_without_server_records_is_not_explained(tmp_path, monkeypatch):

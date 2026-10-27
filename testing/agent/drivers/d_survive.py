@@ -19,7 +19,7 @@ out["readings"][phase]):
            is KIT (EQUIP_TIMEOUT_S). {spawn, item {itemId, source, seq, wallMs} | None, equip {aid, state, reason,
            result, ended_wall} | None, weapon_frame {seq, wallMs, type} | None, armed, ok}. An unconfirmed spawn or
            equip is recorded and the session goes on (the planner flees every threat while unarmed).
-  damage_hook  (fix 1) the server's damage listener installed at the kit's end: `damage.watch USER` once
+  damage_hook  (fix 1) the server's damage listener installed before the kit (controller residual: damage during the kit is heard): `damage.watch USER` once
            (x5_combat's damage_hook), its records merged as the loop's polls merge them; {ok, hooked, n, counts,
            last_i, ack}.
   survive  the planner loop, every POLL_S of the clock:
@@ -160,7 +160,7 @@ CONSTANTS = {k: globals()[k] for k in (
     "HELLO_TIMEOUT_S", "FRAME_TIMEOUT_S", "KIT", "POLL_S", "LAST_DECISIONS", "KIT_TIMEOUT_S", "EQUIP_TIMEOUT_S",
     "ACT_TIMEOUT_S", "SERVER_TIMEOUT_S", "LAST_FRAMES", "DEATH_WINDOW_S", "PAIR_S", "SERVER_RECORDS_KEPT",
     "PARK_RX")}
-PHASES = ("hello", "kit", "damage_hook", "survive")
+PHASES = ("hello", "damage_hook", "kit", "survive")
 
 
 def parse_argv(argv, driver_file):
@@ -806,8 +806,8 @@ class Day:
     def run(self):
         self.xs.run_phase("hello", self.phase_hello)
         if self.ready:
-            self.xs.run_phase("kit", self.phase_kit)
             self.xs.run_phase("damage_hook", self.phase_damage_hook)
+            self.xs.run_phase("kit", self.phase_kit)
             self.xs.run_phase("survive", self.phase_survive)
         else:
             self.xs.note("no hello: the kit and the loop skipped")
