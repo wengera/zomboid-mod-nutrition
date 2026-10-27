@@ -91,7 +91,7 @@ The client's hunger and the server's differ by at most 0.00012223597150295973 (`
 
 ## 4. The cost, what the frames cannot say, the host, corrections
 
-**The per-tick cost** (`loop.cost`, over the 5028 frames read; `d_grade.txt` line 7): `tickMs` p50 1, p99 2, max 10 ms; `tickMaxMs` 16 (seq 42, the first frame: the init); `over5` 185 over 183 frames. `tickMs` at 10 Hz samples the tick before each frame tick (X4's guide, "How to read it"), so `tickMaxMs` and `over5` are the readings of the frame ticks. **Against X4's command bursts (#4207):** of the 181 commands (179 `accepted` act lines and two `scan`s, which answer `done` at once), 147 fell in a frame window whose worst tick read 5 to 11 ms; of the 183 windows holding a tick of 5 ms or more, 145 hold an accept line, 5 a `map` line, 3 an act's end, 1 an event and 28 no line at all. So the session's 5 ms ticks are X4's command bursts, now at 181 commands; the 28 with no line are spread over the session (game minutes 569–692).
+**The per-tick cost** (`loop.cost`, over the 5028 frames read; `d_grade.txt` line 7): `tickMs` p50 1, p99 2, max 10 ms; `tickMaxMs` 16 (seq 42, in the first frame's window: ticks 1–6, the init and the first sight, the window holding the hello, 32 `map` lines and 8 `item_added` events, so the frames do not pin the tick to the init); `over5` 185 over 183 frames. `tickMs` at 10 Hz samples the tick before each frame tick (X4's guide, "How to read it"), so `tickMaxMs` and `over5` are the readings of the frame ticks. **Against X4's command bursts (#4207):** of the 181 commands (179 `accepted` act lines and two `scan`s, which answer `done` at once), 147 fell in a frame window whose worst tick read 5 to 11 ms; of the 183 windows holding a tick of 5 ms or more (a window is the `state.log` lines after one frame up to the next, classed exclusively by the first kind it holds in the order: an `accepted` or `rejected` act line, a `map` line, an act's end (`done` or `failed`), an event, `progress` lines only, with the hello, which sits only in the first window beside `map` lines, outranked), 145 hold an accept line, 8 a `map` line, 1 an act's end, 1 an event, none `progress` lines only and 28 no line at all, 183 in all. So the session's 5 ms ticks are X4's command bursts, now at 181 commands; the 28 with no line are spread over the session (game minutes 569–692).
 
 **What the frames cannot say.**
 
@@ -128,3 +128,10 @@ The client's hunger and the server's differ by at most 0.00012223597150295973 (`
 | every `reason`, `detail`, `error`, `tb` and `note` text | — | The driver's, the transport's or the Lua's message, not a reading. |
 | `loop.last_decisions`, `grade_d.deaths` | ten `decision.log` lines; `[]` | A log excerpt, not a reading; cite `decision.log` by line. |
 | `constants`, `preboot`, `profile`, `fixture`, `argv`, `memory`, `memory_wait`, `memory_reads`, `world_changes`, `steps`, `verify`, `state_dir`, `copied` | the driver's tables | Written before or around the run, or the bus's raw steps; not readings. |
+
+## Corrections
+
+2026-10-27, Plan 22 Task 19a fix round 1 (each recomputed from this folder's `state.log`, decoded with `testing/agent/base/pza1.py` and merged frame by frame, over the frames to seq 6409):
+
+1. § 4, the worst tick: "seq 42, the first frame: the init" assigned the 16 ms to the init; the first frame's window (ticks 1–6) also holds the first sight (32 `map` lines, 8 `item_added` events, the hello), so the tick is placed in that window.
+2. § 4, the slow windows: the split first written (145 accept, 5 `map`, 3 end, 1 event, 28 none) summed to 182 of 183 under no stated rule, and no priority order of the four kinds reproduces it, so which window it dropped is not known; the split is now exclusive under a stated order and sums to 183 (145, 8, 1, 1, 28, no window holding `progress` lines only).
