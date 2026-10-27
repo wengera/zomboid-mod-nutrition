@@ -324,6 +324,14 @@ def test_a_raise_in_the_body_counts_and_emits_lua_error_once_a_second(lua, fs):
     assert lua.eval("PZA.errors") == 32 and "frame" in kinds(fs)
 
 
+def test_mains_header_says_the_first_frames_door_states_are_recorded_without_an_event():
+    """Fix wave N4: the first frame comes from S.frame, later ones from S.events, so a reader need not trace it."""
+    src = open(lua_file("client/PZAgent_Main.lua"), encoding="utf-8").read()
+    header = src[:src.index("PZA.main = ")]
+    assert "the first window's door states are recorded without an event" in " ".join(
+        l.lstrip("- ").strip() for l in header.splitlines())
+
+
 def test_main_is_lf_and_names_no_removed_api():
     src = open(lua_file("client/PZAgent_Main.lua"), "rb").read()
     assert b"\r\n" not in src

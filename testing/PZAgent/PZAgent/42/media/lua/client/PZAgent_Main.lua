@@ -7,6 +7,8 @@
 -- the events and the frame read (S.events, or S.frame on the first), the map (the scan job's next part while a job
 -- runs, else the watch's next squares), an overflow event when the Link cut its backlog, the frame emitted with its
 -- cost group, and one L.flush, called once every tick (it writes nothing when both queues are empty).
+-- The first frame comes from S.frame, later ones carry S.events, so the first window's door states are recorded without
+-- an event (S.events' door rule: one first seen is recorded silently).
 -- The frame is read in the sense phase and emitted after the map so its cost carries this tick's map ms; its cost on
 -- the 1 ms clock (PZA.now, getTimestampMs: ruling P22-4): tickMs the previous tick's whole body, actMs this tick's
 -- K.tick, senseMs this tick's events and frame read, mapMs this tick's scan or watch step, linkMs the previous tick's
