@@ -390,6 +390,23 @@ local function adjacentTo(p, x, y, z)
     return bx, by
 end
 
+-- queues cls:new(...) on the vanilla timed-action queue: true when queued, else false and the reason. The class, its new
+-- and the queue's add are index-checked before any call (not loaded: a missing one is the skill's own failure, never a
+-- raise under pcall); new and add each run under pcall for a raise inside vanilla Lua, a raise or a nil action failing
+-- with bad (the caller's reason). vet, when given, is asked of the built action before the add and answers nil to pass
+-- or the reason it refuses with (queueConsume's isValidStart).
+local function queueAction(cls, bad, vet, ...)
+    if cls == nil or cls.new == nil or not queueLoaded() then return false, "not loaded" end
+    local made, action = pcall(cls.new, cls, ...)
+    if not made or action == nil then return false, bad end
+    if vet ~= nil then
+        local why = vet(action)
+        if why ~= nil then return false, why end
+    end
+    if not pcall(ISTimedActionQueue.add, action) then return false, bad end
+    return true, nil
+end
+
 -- A sub-walk: walkTo's own state, built by its check and aimed at (x, y) at gait, run by a skill's approach as a sub-state
 -- (Act's subGoto/tickSub form), never a second command: a skill stays one action with one act line sequence.
 local function subWalk(x, y, gait)
@@ -521,7 +538,11 @@ local function attackApproach(p, st)
     if d ~= nil and d <= K.reachOf(p, w) then
         if st.sub ~= nil and st.sub.state == "running" then clearQueue(p) end
         st.sub = nil
+        -- the approach's run dropped before the swing by construction: the wants off and both latches written false
+        -- here, never left to the engine's per-frame wipe
         MO.want("walk")
+        PZA.call(p, "setForceRun", false)
+        PZA.call(p, "setForceSprint", false)
         PZA.call(p, "faceThisObject", st.z)
         local _, called = pcall(PZA.call, p, "DoAttack", 0)
         if called == true then st.swings = 1 end
@@ -638,10 +659,8 @@ local function openTick(p, st)
         local ctor = ISOpenCloseDoor
         if st.dkind == "window" then ctor = ISOpenCloseWindow end
         -- the vanilla class, its new and the queue's add index-checked before the call (no raise to catch)
-        if ctor == nil or ctor.new == nil or not queueLoaded() then return "failed", "not loaded" end
-        local made, action = pcall(ctor.new, ctor, p, st.door)
-        if not made or action == nil then return "failed", "no door" end
-        if not pcall(ISTimedActionQueue.add, action) then return "failed", "no door" end
+        local ok, why = queueAction(ctor, "no door", nil, p, st.door)
+        if not ok then return "failed", why end
         st.queuedAt = PZA.now()
         return nil
     end
@@ -696,8 +715,7 @@ local function lootTick(p, st)
         local before, inv = invCount(p)
         local queued = 0
         for _, pick in ipairs(picks) do
-            local made, action = pcall(T.new, T, p, pick[1], pick[2], inv)
-            if made and action ~= nil and pcall(ISTimedActionQueue.add, action) then queued = queued + 1 end
+            if queueAction(T, "no match", nil, p, pick[1], pick[2], inv) then queued = queued + 1 end
         end
         if queued == 0 then return "failed", "no match" end
         st.before, st.want, st.queuedAt = before, queued, PZA.now()
@@ -749,12 +767,9 @@ K.types.equip = {
         if isDead(p) then return "failed", "dead" end
         if primaryId(p) == st.id then return "done", { itemId = st.id } end
         if st.queuedAt == nil then
-            local E = ISEquipWeaponAction
-            if E == nil or E.new == nil or not queueLoaded() then return "failed", "not loaded" end
             local _, two = PZA.call(st.item, "isTwoHandWeapon")
-            local made, action = pcall(E.new, E, p, st.item, 50, true, two == true)
-            if not made or action == nil then return "failed", "not valid" end
-            if not pcall(ISTimedActionQueue.add, action) then return "failed", "not valid" end
+            local ok, why = queueAction(ISEquipWeaponAction, "not valid", nil, p, st.item, 50, true, two == true)
+            if not ok then return "failed", why end
             st.queuedAt = PZA.now()
             return nil
         end
@@ -782,19 +797,21 @@ local function undrinkable(it, fc)
     return empty == true or not okP or poison ~= false
 end
 
--- builds ctor:new(p, it, 1), checks its isValidStart and queues it; nil when queued, else the failure's reason: not
--- loaded when the class, its new or the queue's add is absent, not valid when the action refuses or raises. The class,
--- its new, the action's isValidStart and the queue's add are index-checked before each call (a missing one is a reason,
--- never a raise under pcall); the calls stay under pcall for a raise inside vanilla Lua
-local function queueConsume(p, ctor, it)
-    if ctor == nil or ctor.new == nil or not queueLoaded() then return "not loaded" end
-    local made, action = pcall(ctor.new, ctor, p, it, 1)
-    if not made or action == nil then return "not valid" end
+-- the built action's isValidStart, index-checked before the call and under pcall: nil when it answers true, else not valid
+local function validStart(action)
     if action.isValidStart == nil then return "not valid" end
     local okV, valid = pcall(action.isValidStart, action)
     if not okV or valid ~= true then return "not valid" end
-    if not pcall(ISTimedActionQueue.add, action) then return "not valid" end
     return nil
+end
+
+-- builds ctor:new(p, it, 1), checks its isValidStart and queues it; nil when queued, else the failure's reason: not
+-- loaded when the class, its new or the queue's add is absent, not valid when the action refuses or raises. The class,
+-- its new, the action's isValidStart and the queue's add are index-checked before each call (a missing one is a reason,
+-- never a raise under pcall); the calls stay under pcall for a raise inside vanilla Lua (queueAction, vetted by validStart)
+local function queueConsume(p, ctor, it)
+    local _, why = queueAction(ctor, "not valid", validStart, p, it, 1)
+    return why
 end
 
 local function consumeLanded(p, st)
@@ -847,12 +864,10 @@ K.types.drop = {
         if isDead(p) then return "failed", "dead" end
         if st.queuedAt == nil then
             local okS, sq = PZA.call(p, "getCurrentSquare")
-            local D = ISDropWorldItemAction
-            if D == nil or D.new == nil or not queueLoaded() or not okS or sq == nil then return "failed", "not loaded" end
+            if not okS or sq == nil then return "failed", "not loaded" end
             st.before = (invCount(p))
-            local made, action = pcall(D.new, D, p, st.item, sq, 0, 0, 0, 0, false)
-            if not made or action == nil then return "failed", "not valid" end
-            if not pcall(ISTimedActionQueue.add, action) then return "failed", "not valid" end
+            local ok, why = queueAction(ISDropWorldItemAction, "not valid", nil, p, st.item, sq, 0, 0, 0, 0, false)
+            if not ok then return "failed", why end
             st.queuedAt = PZA.now()
             return nil
         end

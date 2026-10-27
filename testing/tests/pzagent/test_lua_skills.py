@@ -1224,3 +1224,149 @@ def test_drop_is_done_when_the_inventory_shrinks_though_the_id_still_answers(lua
     tick(lua, p)
     a = acts(lua, fs)
     assert states(a)[-1] == ("a1", "done", "") and a[-1]["result"] == {"moved": 1}
+
+
+# ---- Task 4 fix 1: the reset's re-cover gaps; the mid-skill death; the run dropped at the swing ----------------------
+
+def test_interact_open_opens_a_thumpable_door(lua, fs):
+    load(lua)
+    g = lua.globals()
+    door = make_door(cls="IsoThumpable")
+    door.isDoor = lambda s: True
+    g._cell = make_cell(squares={(11, 20, 0): osq(11, 20, [J(_cls="IsoThumpable", isDoor=lambda s: False), door])})
+    p = make_player()
+    start(lua, p, "interact", x=11, y=20, kind="open")
+    tick(lua, p)
+    assert [a.Type for a in g._queue.adds] == ["ISOpenCloseDoor"] and g._queue.adds[0].item is door
+
+
+def test_consume_of_a_container_without_is_poisonous_is_not_valid(lua, fs):
+    load(lua)
+    p = make_player(items=("Base.WaterBottle",))
+    fc = p.held[0].getFluidContainer(p.held[0])
+    fc.isPoisonous = None
+    start(lua, p, "consume", itemId=1000)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "not valid") and lua.globals()._queue.adds == []
+
+
+@pytest.mark.parametrize("item,cls", [("Base.Bread", "ISEatFoodAction"), ("Base.WaterBottle", "ISDrinkFluidAction")])
+def test_a_consume_action_without_is_valid_start_is_not_valid_and_never_queued(lua, fs, item, cls):
+    load(lua)
+    g = lua.globals()
+    setattr(g, cls, J(new=lambda c, p, it, pct: J(Type=cls)))
+    # every pcall that catches a raise is counted: the absent isValidStart is index-checked, never called to find out
+    lua.execute("pcallFails = 0; local raw = pcall; pcall = function(...) local r = { raw(...) };"
+                " if not r[1] then pcallFails = pcallFails + 1 end; return unpack(r) end")
+    p = make_player(items=(item,))
+    start(lua, p, "consume", itemId=1000)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "not valid") and g._queue.adds == []
+    assert lua.eval("PZA.skills.errors") == 0 and lua.eval("pcallFails") == 0
+
+
+def test_interact_loot_whose_sub_walk_fails_is_not_adjacent_with_the_queue_cleared(lua, fs):
+    load(lua)
+    g = lua.globals()
+    box = make_box([citem("Base.Axe")])
+    obj = J(_cls="IsoObject", getContainerCount=lambda s: 1, getContainerByIndex=lambda s, i: box)
+    g._cell = make_cell(squares={(13, 20, 0): osq(13, 20, [obj]), (12, 20, 0): osq(12, 20)})
+    g.ISWalkToTimedAction = None
+    p = make_player()
+    start(lua, p, "interact", x=13, y=20, kind="loot")
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "not adjacent")
+    assert g._queue.cleared >= 2 and g._queue.queue == [] and g._queue.adds == []   # tickSub's clear, then the runner's
+
+
+QUEUELESS = [
+    ("walkTo", {"x": 12, "y": 20}, "no path"),
+    ("interact", {"x": 11, "y": 20, "kind": "open"}, "not loaded"),
+    ("interact", {"x": 11, "y": 20, "kind": "loot"}, "not loaded"),
+    ("equip", {"itemId": 1000}, "not loaded"),
+    ("consume", {"itemId": 1000}, "not loaded"),
+    ("consume", {"itemId": 1001}, "not loaded"),
+    ("drop", {"itemId": 1000}, "not loaded"),
+    ("attack", {"targetId": 7}, "out of reach"),
+]
+
+
+@pytest.mark.parametrize("typ,args,reason", QUEUELESS, ids=[q[0] + "-" + q[2] + "-" + str(i) for i, q in enumerate(QUEUELESS)])
+def test_every_skill_without_the_vanilla_queue_fails_its_reason_and_raises_nothing(lua, fs, typ, args, reason):
+    load(lua)
+    g = lua.globals()
+    z = make_zombie(7, 13.0, 20.0)
+    sense(lua, [z])
+    squares = {(12, 20, 0): "target", (13, 20, 0): "zsq"}
+    if typ == "interact" and args["kind"] == "open":
+        squares[(11, 20, 0)] = osq(11, 20, [make_door()])
+    elif typ == "interact":
+        box = make_box([citem("Base.Axe")])
+        squares[(11, 20, 0)] = osq(11, 20, [J(_cls="IsoObject", getContainerCount=lambda s: 1,
+                                               getContainerByIndex=lambda s, i: box)])
+    g._cell = make_cell(zombies=[z], squares=squares)
+    g.ISTimedActionQueue = None
+    p = make_player(items=("Base.Bread", "Base.WaterBottle"), weapon=make_weapon())
+    start(lua, p, typ, **args)
+    tick(lua, p)
+    if typ == "attack":
+        g._clock["ms"] += 4000
+        tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", reason)
+    assert lua.eval("PZA.skills.errors") == 0 and list(p.sets[-3:]) == OFF
+
+
+@pytest.mark.parametrize("typ", ["steer", "stop"])
+def test_the_queueless_skills_run_without_the_vanilla_queue(lua, fs, typ):
+    load(lua)
+    lua.globals().ISTimedActionQueue = None
+    p = make_player()
+    args = {"vx": 1, "vy": 0, "seconds": 1} if typ == "steer" else {}
+    start(lua, p, typ, **args)
+    tick(lua, p)
+    lua.globals()._clock["ms"] += 1000
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "done", "") and lua.eval("PZA.skills.errors") == 0
+
+
+def setup_running(lua, typ):
+    """a running skill of typ after one tick: its player and the args used"""
+    g = lua.globals()
+    if typ == "attack":
+        _, p = attack_world(lua, zx=13.0)
+        start(lua, p, "attack", targetId=7)
+    elif typ == "interact":
+        box_world(lua, [citem("Base.Axe")])
+        p = make_player()
+        start(lua, p, "interact", x=11, y=20, kind="loot")
+    else:
+        p = make_player(items=("Base.Bread",))
+        start(lua, p, typ, itemId=1000)
+    tick(lua, p)
+    assert not ended(lua) and len(g._queue.adds) >= 1, typ
+    return p
+
+
+@pytest.mark.parametrize("typ", ["attack", "interact", "equip", "consume", "drop"])
+def test_a_player_dying_mid_skill_fails_it_dead_with_the_motor_off(lua, fs, typ):
+    load(lua)
+    sense(lua)
+    p = setup_running(lua, typ)
+    p.getBodyDamage = lambda s: J(getOverallBodyHealth=lambda s2: 0.0)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "dead") and ended(lua)
+    assert list(p.sets[-3:]) == OFF and lua.globals()._queue.queue == []
+
+
+def test_the_swing_writes_both_latches_false_before_do_attack(lua, fs):
+    load(lua)
+    _, p = attack_world(lua, zx=13.0)
+    pos = mover(p, 10.0, 20.0)
+    seen = []
+    p.DoAttack = lambda s, f: seen.append(list(p.sets)) or False
+    start(lua, p, "attack", targetId=7)
+    tick(lua, p)
+    pos["x"] = 12.0
+    tick(lua, p)
+    assert len(seen) == 1
+    assert seen[0][-2:] == [("setForceRun", False), ("setForceSprint", False)]
