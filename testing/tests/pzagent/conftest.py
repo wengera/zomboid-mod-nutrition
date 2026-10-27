@@ -69,18 +69,30 @@ class J:
 
 
 STAT_NAMES = ("HUNGER", "THIRST", "FATIGUE", "ENDURANCE", "PANIC", "PAIN", "FOOD_SICKNESS", "WETNESS", "TEMPERATURE")
-MOODLE_NAMES = ("HUNGRY", "THIRST", "TIRED", "ENDURANCE", "PANIC", "PAIN", "INJURED", "BLEEDING", "SICK", "WET", "STRESS", "UNHAPPY")
+MOODLE_NAMES = ("HUNGRY", "THIRST", "TIRED", "ENDURANCE", "PANIC", "PAIN", "INJURED", "BLEEDING", "SICK", "WET", "STRESS", "UNHAPPY",
+                "HEAVY_LOAD")
 
 
-def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_levels=None, weapon=None):
+def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_levels=None, weapon=None,
+                weight=4.5, max_weight=8, part_health=None, square="sq", wounds=(0, 0, 0)):
     """`weapon` is the primary hand item; faceThisObject and DoAttack record into p.faced and p.attacks, and
-    isAsleep answers p.asleep["v"] (Task 11's fight and sleep)."""
+    isAsleep answers p.asleep["v"] (Task 11's fight and sleep).
+    Plan 22 probe: the motor setters (setForceRun, setForceSprint, setAutoWalk, setAutoWalkDirection, setRunning,
+    setSprinting) record (name, value) into p.sets and the latest value into p.motor, which isForceRun, isForceSprint and
+    isAutoWalk read; getMaxWeight answers max_weight, the inventory's getCapacityWeight weight, getCurrentSquare square;
+    the body damage's getNumPartsBleeding/Scratched/Bitten answer wounds, HasInjury any(wounds), and getBodyParts lists
+    one part per part_health entry (17 parts at 100 by default)."""
     vals = {"HUNGER": hunger, "THIRST": 0.2, "FATIGUE": 0.1, "ENDURANCE": 0.9, "PANIC": 0.0, "PAIN": 0.0,
             "FOOD_SICKNESS": 0.0, "WETNESS": 5.0, "TEMPERATURE": 37.0}
     stats = J(get=lambda s, stat: vals[stat])
     levels = moodle_levels or {}
-    bd = J(getOverallBodyHealth=lambda s: health, getHealth=lambda s: health)
-    inv = J(getItems=lambda s: J(size=lambda s2: len(items), get=lambda s2, i: J(getFullType=lambda s3, i=i: items[i])))
+    parts = [J(getHealth=lambda s, h=h: h) for h in (part_health if part_health is not None else [100.0] * 17)]
+    bd = J(getOverallBodyHealth=lambda s: health, getHealth=lambda s: health,
+           getNumPartsBleeding=lambda s: wounds[0], getNumPartsScratched=lambda s: wounds[1],
+           getNumPartsBitten=lambda s: wounds[2], HasInjury=lambda s: any(wounds),
+           getBodyParts=lambda s: J(size=lambda s2: len(parts), get=lambda s2, i: parts[i]))
+    inv = J(getItems=lambda s: J(size=lambda s2: len(items), get=lambda s2, i: J(getFullType=lambda s3, i=i: items[i])),
+            getCapacityWeight=lambda s: weight)
     faced, attacks, asleep = [], [], {"v": False}
     p = J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: z, getDir=lambda s: "N",
           isPlayerMoving=lambda s: False, IsRunning=lambda s: False, isSprinting=lambda s: False,
@@ -89,6 +101,21 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
           faceThisObject=lambda s, o: faced.append(o), DoAttack=lambda s, f: attacks.append(f) or True,
           isAsleep=lambda s: asleep["v"], getPlayerNum=lambda s: 0)
     p.faced, p.attacks, p.asleep = faced, attacks, asleep
+    sets, motor = [], {"forceRun": False, "forceSprint": False, "autoWalk": False}
+
+    def setter(name, key=None):
+        def f(s, v):
+            sets.append((name, v))
+            if key is not None:
+                motor[key] = v
+        return f
+    p.setForceRun, p.setForceSprint = setter("setForceRun", "forceRun"), setter("setForceSprint", "forceSprint")
+    p.setAutoWalk, p.setAutoWalkDirection = setter("setAutoWalk", "autoWalk"), setter("setAutoWalkDirection")
+    p.setRunning, p.setSprinting = setter("setRunning"), setter("setSprinting")
+    p.isForceRun, p.isForceSprint = lambda s: motor["forceRun"], lambda s: motor["forceSprint"]
+    p.isAutoWalk = lambda s: motor["autoWalk"]
+    p.getMaxWeight, p.getCurrentSquare = lambda s: max_weight, lambda s: square
+    p.sets, p.motor = sets, motor
     return p
 
 
@@ -183,7 +210,24 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
               " _sleepRec(button.internal, player, bed) end }")
     handlers = []
     g._handlers = handlers
-    g.Events = J(OnTick=J(Add=lambda f: handlers.append(f)))
+    # Plan 22 probe: OnPlayerUpdate and OnPlayerGetDamage keep their handlers in g._updHandlers and g._damageHandlers,
+    # a Vector2 whose new records (x, y), a core whose toggle-to-run is g._core.toggle (setToggleToRun records into
+    # g._core.toggles), and ISDropWorldItemAction's 8-argument new
+    upd_handlers, damage_handlers = [], []
+    g._updHandlers, g._damageHandlers = upd_handlers, damage_handlers
+    g.Events = J(OnTick=J(Add=lambda f: handlers.append(f)), OnPlayerUpdate=J(Add=lambda f: upd_handlers.append(f)),
+                 OnPlayerGetDamage=J(Add=lambda f: damage_handlers.append(f)))
+    g.Vector2 = J(new=lambda x, y: J(_cls="Vector2", x=x, y=y))
+    core = J(toggle=False, toggles=[])
+
+    def set_toggle(s, v):
+        core.toggles.append(v)
+        core.toggle = v
+    core.isToggleToRun, core.setToggleToRun = lambda s: core.toggle, set_toggle
+    g._core = core
+    g.getCore = lambda: core
+    g.ISDropWorldItemAction = J(new=lambda cls, p, item, sq, xo, yo, zo, rot, multi: J(
+        Type="ISDropWorldItemAction", character=p, item=item, args=(sq, xo, yo, zo, rot, multi)))
     return L
 
 

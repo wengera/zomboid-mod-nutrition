@@ -284,3 +284,79 @@ def test_a_queue_object_that_is_not_a_lua_table_is_never_indexed(lua):
     g = lua.globals()
     g.ISTimedActionQueue = J(getTimedActionQueue=lambda p: J(queue=[1, 2]))   # a Java-like object, a Python list
     assert lua.eval("PZA.sense.frame(...)", make_player())["action"] is None
+
+
+# ---- Plan 22 probe X1-X3: HEAVY_LOAD, weight, body, motor, the client damage event ----------------------------------
+
+def test_heavy_load_moodle_and_the_carried_weight(lua):
+    load(lua)
+    f = lua.eval("PZA.sense.frame(...)", make_player(moodle_levels={"HEAVY_LOAD": 2}, weight=11.25, max_weight=8))
+    assert f["moodles"]["HEAVY_LOAD"] == 2 and f["weight"] == 11.25 and f["maxWeight"] == 8
+
+
+def test_body_lists_the_hurt_parts_and_counts_them(lua):
+    load(lua)
+    healths = [100.0] * 17
+    healths[3], healths[11] = 62.5, 99.0
+    f = lua.eval("PZA.sense.frame(...)", make_player(part_health=healths, wounds=(1, 2, 0)))
+    b = f["body"]
+    assert b["bleeding"] == 1 and b["scratched"] == 2 and b["bitten"] == 0 and b["injured"] is True
+    assert b["nParts"] == 2 and [list(e.values()) for e in b["parts"].values()] == [[3, 62.5], [11, 99.0]]
+    import json
+    line = json.loads(lua.eval("PZA.json(...)", b))
+    assert line["parts"] == [[3, 62.5], [11, 99]] and line["nParts"] == 2
+
+
+def test_body_without_hurt_parts_carries_no_parts_key(lua):
+    load(lua)
+    f = lua.eval("PZA.sense.frame(...)", make_player())
+    assert f["body"]["nParts"] == 0 and f["body"]["parts"] is None and f["body"]["injured"] is False
+
+
+def test_a_missing_get_body_parts_is_reported_not_raised(lua):
+    load(lua)
+    p = make_player()
+    bd = p.getBodyDamage(p)
+    del bd.getBodyParts
+    f = lua.eval("PZA.sense.frame(...)", p)
+    assert f["body"]["nParts"] == 0 and "getBodyParts" in list(lua.eval("PZA.sense.missing").values())
+
+
+def test_motor_block_copies_pza_motor_and_reads_the_players_latches(lua):
+    load(lua)
+    p = make_player()
+    f = lua.eval("PZA.sense.frame(...)", p)
+    assert f["motor"]["forceRun"] is False and f["motor"]["autoWalk"] is False and f["motor"]["upd"] is None
+    lua.execute(open(lua_file("client/PZAgent_Motor.lua"), encoding="utf-8").read())
+    p.motor["forceRun"], p.motor["autoWalk"] = True, True
+    lua.execute("PZA.motor.upd = 7; PZA.motor.updErrors = 1; PZA.motor.updRunning = true; PZA.motor.updForceRun = false")
+    m = lua.eval("PZA.sense.frame(...)", p)["motor"]
+    assert m["forceRun"] is True and m["forceSprint"] is False and m["autoWalk"] is True
+    assert m["upd"] == 7 and m["updErrors"] == 1 and m["updRunning"] is True and m["updForceRun"] is False
+    assert m["updSprinting"] is None
+
+
+def test_two_damage_calls_land_as_two_events_on_the_next_events_and_none_after(lua):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    g.getPlayer = lambda: p
+    assert len(g._damageHandlers) == 1
+    prev = lua.eval("PZA.sense.frame(...)", p)
+    g._damageHandlers[0](p, "FALLDOWN", 4.5)
+    g._damageHandlers[0](make_player(), "ZOMBIE", 1.25)
+    ev, cur = lua.eval("PZA.sense.events(...)", p, prev)
+    dmg = [e for e in ev.values() if e["event"] == "damage"]
+    assert [(e["tag"], e["amount"], e["isLocal"]) for e in dmg] == [("FALLDOWN", 4.5, True), ("ZOMBIE", 1.25, False)]
+    ev, _ = lua.eval("PZA.sense.events(...)", p, cur)
+    assert [e for e in ev.values() if e["event"] == "damage"] == []
+
+
+def test_the_damage_hook_is_added_once_and_a_raise_inside_it_is_counted(lua):
+    load(lua)
+    lua.execute(open(lua_file("client/PZAgent_Sense.lua"), encoding="utf-8").read())
+    g = lua.globals()
+    assert len(g._damageHandlers) == 1
+    g.getPlayer = lambda: (_ for _ in ()).throw(RuntimeError("boom"))
+    g._damageHandlers[0](make_player(), "FALLDOWN", 1.0)        # a raise out of the hook would fail the test here
+    assert lua.eval("PZA.sense.damageErrors") == 1 and lua.eval("#PZA.sense.damage") == 0

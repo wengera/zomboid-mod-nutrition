@@ -22,7 +22,8 @@ end
 local STATS = { { "hunger", "HUNGER" }, { "thirst", "THIRST" }, { "fatigue", "FATIGUE" }, { "endurance", "ENDURANCE" },
                 { "panic", "PANIC" }, { "pain", "PAIN" }, { "sickness", "FOOD_SICKNESS" }, { "wetness", "WETNESS" },
                 { "temperature", "TEMPERATURE" } }
-local MOODLES = { "HUNGRY", "THIRST", "TIRED", "ENDURANCE", "PANIC", "PAIN", "INJURED", "BLEEDING", "SICK", "WET", "STRESS", "UNHAPPY" }
+local MOODLES = { "HUNGRY", "THIRST", "TIRED", "ENDURANCE", "PANIC", "PAIN", "INJURED", "BLEEDING", "SICK", "WET", "STRESS", "UNHAPPY",
+                  "HEAVY_LOAD" }
 
 function S.clock()
     local gt = getGameTime ~= nil and getGameTime() or nil
@@ -58,6 +59,41 @@ local function zombies(p, px, py)
     return out, count
 end
 
+-- Plan 22 probe X1-X3's frame fields (interface § 3). body: the body damage's counts and every part whose health reads
+-- under 100 as { index, health } (index 0-based, the getBodyParts order), parts written only when non-empty (PZA.json
+-- writes an empty table as {}), nParts always
+local function body(bd)
+    local b = {}
+    get(b, "bleeding", bd, "getNumPartsBleeding"); get(b, "scratched", bd, "getNumPartsScratched")
+    get(b, "bitten", bd, "getNumPartsBitten"); get(b, "injured", bd, "HasInjury")
+    local okP, list = PZA.call(bd, "getBodyParts")
+    local okN, n = PZA.call(list, "size")
+    if not okP then PZA.missing(S.missing, "getBodyParts") elseif not okN then PZA.missing(S.missing, "size") end
+    local parts = {}
+    for i = 0, (okN and n or 0) - 1 do
+        local _, part = PZA.call(list, "get", i)
+        local okH, h = PZA.call(part, "getHealth")
+        if okH and h ~= nil and h < 100 then parts[#parts + 1] = { i, h } end
+    end
+    b.nParts = #parts
+    if #parts > 0 then b.parts = parts end
+    return b
+end
+
+-- motor: the player's own run latches and auto-walk, beside PZA.motor's OnPlayerUpdate readings (each absent while nil;
+-- PZA.motor itself is absent before PZAgent_Motor.lua loads)
+local MOTOR_KEYS = { "updRunning", "updForceRun", "updSprinting", "upd", "updErrors" }
+
+local function motor(p)
+    local mo = {}
+    get(mo, "forceRun", p, "isForceRun"); get(mo, "forceSprint", p, "isForceSprint"); get(mo, "autoWalk", p, "isAutoWalk")
+    local m = PZA.motor
+    if m ~= nil then
+        for _, k in ipairs(MOTOR_KEYS) do mo[k] = m[k] end
+    end
+    return mo
+end
+
 function S.frame(p)
     local f = { x = p:getX(), y = p:getY(), z = p:getZ() }
     get(f, "dir", p, "getDir"); f.dir = f.dir ~= nil and tostring(f.dir) or nil
@@ -71,6 +107,11 @@ function S.frame(p)
     else PZA.missing(S.missing, "getStats") end
     local okB, bd = PZA.call(p, "getBodyDamage")
     if okB then get(f, "health", bd, "getOverallBodyHealth") else PZA.missing(S.missing, "getBodyDamage") end
+    if okB then f.body = body(bd) end
+    f.motor = motor(p)
+    local okInv, pinv = PZA.call(p, "getInventory")
+    if okInv then get(f, "weight", pinv, "getCapacityWeight") end
+    get(f, "maxWeight", p, "getMaxWeight")
     local okW, w = PZA.call(p, "getPrimaryHandItem")
     if not okW then PZA.missing(S.missing, "getPrimaryHandItem") end
     if okW and w ~= nil then
@@ -117,9 +158,33 @@ local function byId(list)
     return m
 end
 
+-- the client's OnPlayerGetDamage (Plan 22 probe X3, interface § 4): each call appends { tag, amount, isLocal } to
+-- S.damage, and the next S.events drains them as damage events. Hooked once; the body under pcall, a raise counted in
+-- S.damageErrors, never propagated into the game's damage path.
+S.damage = S.damage or {}
+S.damageErrors = S.damageErrors or 0
+S.damageHooked = S.damageHooked or false
+
+local function recordDamage(ch, tag, amount)
+    local me = getPlayer ~= nil and getPlayer() or nil
+    S.damage[#S.damage + 1] = { tag = tostring(tag), amount = amount, isLocal = ch == me }
+end
+
+function S.onDamage(ch, tag, amount)
+    local ok = pcall(recordDamage, ch, tag, amount)
+    if not ok then S.damageErrors = S.damageErrors + 1 end
+end
+
+if not S.damageHooked and Events ~= nil and Events.OnPlayerGetDamage ~= nil then
+    Events.OnPlayerGetDamage.Add(S.onDamage)
+    S.damageHooked = true
+end
+
 function S.events(p, prev)
     local cur = S.frame(p)
     local ev = {}
+    for _, d in ipairs(S.damage) do ev[#ev + 1] = { event = "damage", tag = d.tag, amount = d.amount, isLocal = d.isLocal } end
+    S.damage = {}
     local was, now = byId(prev.zombies or {}), byId(cur.zombies or {})
     for id, z in pairs(now) do if was[id] == nil then ev[#ev + 1] = { event = "zombie_enter", id = id, dist = z.dist } end end
     for id, _ in pairs(was) do if now[id] == nil then ev[#ev + 1] = { event = "zombie_leave", id = id } end end

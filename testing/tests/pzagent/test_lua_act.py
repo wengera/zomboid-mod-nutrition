@@ -3,7 +3,8 @@ from .conftest import lua_file, make_player, make_cell, make_zombie, J
 
 
 def load(lua):
-    for f in ("client/PZAgent_Link.lua", "client/PZAgent_Sense.lua", "client/PZAgent_Act.lua", "client/PZAgent_Main.lua"):
+    for f in ("client/PZAgent_Link.lua", "client/PZAgent_Sense.lua", "client/PZAgent_Act.lua", "client/PZAgent_Main.lua",
+              "client/PZAgent_Motor.lua", "client/PZAgent_Bench.lua"):
         lua.execute(open(lua_file(f), encoding="utf-8").read())
 
 
@@ -524,7 +525,7 @@ def test_tick_inits_the_link_before_its_first_poll(lua, fs):
     g._handlers[0]()
     log = fs.files["pzagent/admin/state.log"]
     kinds = [l.split('"kind":"')[1].split('"')[0] for l in log.splitlines()]
-    assert kinds[:2] == ["hello", "ack"] and lua.eval("PZA.errors") == 0
+    assert kinds[:3] == ["hello", "bench", "ack"] and lua.eval("PZA.errors") == 0
 
 
 def test_goto_done_clears_its_walk(lua):
@@ -1490,3 +1491,320 @@ def test_a_superseded_flee_and_a_stop_clear_the_run_and_sprint_flags(lua):
     assert runs == [False] and sprints == [False]               # the superseded fight; stop's own tick follows
     tick(lua, p)
     assert runs == [False, False] and sprints == [False, False]
+
+
+# ---- Plan 22 probe X1-X3: the goto motor arms, A.motorOff, autowalk, drop ---------------------------------------------
+
+OFF = [("setRunning", False), ("setSprinting", False), ("setForceRun", False), ("setForceSprint", False),
+       ("setAutoWalk", False)]
+
+
+def arm_goto(lua, arm, seq=1):
+    """a goto to (13, 20) with the given arm and a player at x = pos['x'] (10.0: running until pos['x'] >= 12)"""
+    g = lua.globals(); g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    pos = {"x": 10.0}
+    p = make_player(); p.getX = lambda s: pos["x"]
+    args = "13 20" if arm is None else "13 20 " + arm
+    ok, reason, _ = lua.eval("PZA.act.start({seq=%d, goal='goto', args='%s'}, ...)" % (seq, args), p)
+    assert ok is True, reason
+    return g, p, pos
+
+
+def tick_sets(lua, p):
+    """one tick; the motor sets it made"""
+    n = len(p.sets)
+    st = tick(lua, p)
+    return st, p.sets[n:]
+
+
+def motor(lua, key):
+    return lua.eval("PZA.motor.%s" % key)
+
+
+@pytest.mark.parametrize("arm", [None, "walk"])
+def test_a_walk_arm_asks_nothing_and_its_done_turns_every_motor_ask_off(lua, arm):
+    load(lua)
+    g, p, pos = arm_goto(lua, arm)
+    for _ in range(3):
+        st, made = tick_sets(lua, p)
+        assert st["state"] == "running" and made == []
+    pos["x"] = 12.6
+    st, made = tick_sets(lua, p)
+    assert st["state"] == "done" and made == OFF
+    assert motor(lua, "forceRun") is False and motor(lua, "forceSprint") is False
+
+
+@pytest.mark.parametrize("arm", ["setrun", "run"])
+def test_a_setrun_arm_asks_run_and_sprint_every_tick_from_the_tick(lua, arm):
+    load(lua)
+    g, p, pos = arm_goto(lua, arm)
+    for _ in range(4):
+        st, made = tick_sets(lua, p)
+        assert st["state"] == "running"
+        assert ("setRunning", True) in made and made.count(("setSprinting", True)) == 1
+        assert not any(n in ("setForceRun", "setForceSprint") for n, _ in made)
+    assert motor(lua, "forceRun") is False
+    pos["x"] = 12.6
+    st, made = tick_sets(lua, p)
+    assert st["state"] == "done" and made == OFF
+
+
+def test_a_forcerun_arm_sets_the_motor_flag_and_never_calls_set_force_run_from_the_tick(lua):
+    load(lua)
+    g, p, pos = arm_goto(lua, "forcerun")
+    for _ in range(3):
+        st, made = tick_sets(lua, p)
+        assert st["state"] == "running" and made == [] and motor(lua, "forceRun") is True
+    assert motor(lua, "forceSprint") is False
+    pos["x"] = 12.6
+    st, made = tick_sets(lua, p)
+    assert st["state"] == "done" and made == OFF and motor(lua, "forceRun") is False
+
+
+def test_the_forcerun_arm_reaches_the_player_through_the_on_player_update_handler(lua):
+    load(lua)
+    g, p, pos = arm_goto(lua, "forcerun")
+    tick(lua, p)
+    g._updHandlers[0](p)
+    g._updHandlers[0](p)
+    assert p.sets == [("setForceRun", True)] * 2
+    pos["x"] = 12.6
+    tick(lua, p)
+    g._updHandlers[0](p)
+    assert p.sets[-len(OFF):] == OFF                    # the handler asks nothing once the goal is over
+
+
+def test_a_forcerun_tick_arm_asks_set_force_run_every_tick_and_leaves_the_motor_flag_clear(lua):
+    load(lua)
+    g, p, pos = arm_goto(lua, "forcerun_tick")
+    for _ in range(4):
+        st, made = tick_sets(lua, p)
+        assert st["state"] == "running" and made == [("setForceRun", True)] and motor(lua, "forceRun") is False
+    pos["x"] = 12.6
+    st, made = tick_sets(lua, p)
+    assert st["state"] == "done" and made == OFF
+
+
+def test_a_forcesprint_arm_sets_both_motor_flags(lua):
+    load(lua)
+    g, p, pos = arm_goto(lua, "forcesprint")
+    st, made = tick_sets(lua, p)
+    assert made == [] and motor(lua, "forceRun") is True and motor(lua, "forceSprint") is True
+    g._updHandlers[0](p)
+    assert p.sets == [("setForceRun", True), ("setForceSprint", True)]
+    pos["x"] = 12.6
+    tick(lua, p)
+    assert motor(lua, "forceRun") is False and motor(lua, "forceSprint") is False
+
+
+@pytest.mark.parametrize("was", [False, True])
+def test_a_toggle_arm_sets_toggle_to_run_once_and_restores_the_value_read_before(lua, was):
+    load(lua)
+    g, p, pos = arm_goto(lua, "toggle")
+    g._core.toggle = was
+    tick(lua, p, 3)
+    assert list(g._core.toggles) == [True] and motor(lua, "toggleWas") is was and motor(lua, "forceRun") is True
+    pos["x"] = 12.6
+    assert tick(lua, p)["state"] == "done"
+    assert list(g._core.toggles) == [True, was] and g._core.toggle is was and motor(lua, "toggleWas") is None
+    assert motor(lua, "forceRun") is False
+
+
+def test_an_unknown_arm_is_bad_args(lua):
+    load(lua)
+    assert lua.eval("PZA.act.start({seq=1, goal='goto', args='13 20 sprint'})") == (False, "bad args")
+    assert lua.eval("PZA.act.start({seq=2, goal='goto', args='13 20 once'})") == (False, "bad args")
+
+
+def test_a_stuck_failure_turns_the_motor_off(lua):
+    load(lua)
+    g, p, pos = arm_goto(lua, "forcesprint")
+    st = tick(lua, p, 4 * 90 + 5)
+    assert st["state"] == "failed" and st["detail"] == "stuck"
+    assert p.sets[-len(OFF):] == OFF and motor(lua, "forceRun") is False and motor(lua, "forceSprint") is False
+
+
+def test_a_no_square_failure_turns_the_motor_off(lua):
+    load(lua)
+    g, p, pos = arm_goto(lua, "forcerun")
+    g._cell = make_cell(squares={})
+    st, made = tick_sets(lua, p)
+    assert st["detail"] == "no square" and made == OFF and motor(lua, "forceRun") is False
+
+
+def test_a_superseded_goto_and_a_stop_turn_the_motor_off(lua):
+    load(lua)
+    g, p, pos = arm_goto(lua, "toggle")
+    tick(lua, p)
+    assert motor(lua, "forceRun") is True and list(g._core.toggles) == [True]
+    n = len(p.sets)
+    ok, _, old = lua.eval("PZA.act.start({seq=2, goal='goto', args='13 20 forcerun'}, ...)", p)
+    assert ok is True and old["detail"] == "superseded"
+    assert p.sets[n:] == OFF and motor(lua, "forceRun") is False and list(g._core.toggles) == [True, False]
+    tick(lua, p)
+    assert motor(lua, "forceRun") is True
+    n = len(p.sets)
+    lua.eval("PZA.act.start({seq=3, goal='stop', args=''}, ...)", p)
+    assert p.sets[n:] == OFF and motor(lua, "forceRun") is False
+    tick(lua, p)
+    assert p.sets[n:] == OFF + OFF and lua.eval("PZA.act.status()")["state"] == "done"
+
+
+def test_a_flee_sub_walk_takes_no_motor_off_at_its_end(lua):
+    load(lua)
+    g = lua.globals(); g._cell = make_cell(squares=open_squares(10, 20))
+    pos = {"x": 10.0}
+    p = make_player(); p.getX = lambda s: pos["x"]
+    lua.eval("PZA.act.start({seq=1, goal='flee', args='18 20'})")
+    tick(lua, p)
+    pos["x"] = 18.2
+    assert tick(lua, p)["detail"] == "at"
+    assert not any(n in ("setForceRun", "setAutoWalk") for n, _ in p.sets)
+
+
+# autowalk ----------------------------------------------------------------------------------------------------------
+
+def autowalk(lua, args, p=None, seq=1):
+    g = lua.globals()
+    pos = {"x": 10.0}
+    if p is None:
+        p = make_player()
+    p.getX = lambda s: pos["x"]
+    ok, reason, _ = lua.eval("PZA.act.start({seq=%d, goal='autowalk', args='%s'}, ...)" % (seq, args), p)
+    assert ok is True, reason
+    return g, p, pos
+
+
+def test_autowalk_sets_auto_walk_and_its_direction_once_and_is_done_at_its_deadline(lua):
+    load(lua)
+    g, p, pos = autowalk(lua, "1.95 0 2")
+    g._queue.queue.append("old walk")
+    st, made = tick_sets(lua, p)
+    assert st["state"] == "running" and g._queue.cleared == 1 and g._queue.queue == []
+    assert [m[0] for m in made] == ["setAutoWalk", "setAutoWalkDirection"] and made[0][1] is True
+    v = made[1][1]
+    assert v._cls == "Vector2" and (v.x, v.y) == (1.95, 0)
+    g._clock["ms"] += 1999
+    pos["x"] = 12.0
+    st, made = tick_sets(lua, p)
+    assert st["state"] == "running" and made == []
+    g._clock["ms"] += 1
+    pos["x"] = 13.0
+    st, made = tick_sets(lua, p)
+    assert st["state"] == "done" and st["detail"].startswith("d=") and float(st["detail"][2:]) == 3.0
+    assert made == OFF
+
+
+def test_autowalk_once_asks_set_force_run_exactly_once(lua):
+    load(lua)
+    g, p, pos = autowalk(lua, "2 0 2 once")
+    tick(lua, p, 5)
+    g._clock["ms"] += 2000
+    tick(lua, p)
+    assert p.sets.count(("setForceRun", True)) == 1 and lua.eval("PZA.motor.forceRun") is False
+    assert lua.eval("PZA.act.status()")["state"] == "done"
+
+
+def test_autowalk_forcerun_sets_the_motor_flag_until_its_end(lua):
+    load(lua)
+    g, p, pos = autowalk(lua, "1 0 2 forcerun")
+    tick(lua, p, 3)
+    assert motor(lua, "forceRun") is True and ("setForceRun", True) not in p.sets
+    g._clock["ms"] += 2000
+    assert tick(lua, p)["state"] == "done" and motor(lua, "forceRun") is False
+
+
+def test_autowalk_bad_args(lua):
+    load(lua)
+    for args in ("", "1", "1 0", "1 0 0", "1 0 -2", "x 0 2", "1 0 2 sprint", "1 0 2 setrun"):
+        assert lua.eval("PZA.act.start({seq=1, goal='autowalk', args='%s'})" % args) == (False, "bad args"), args
+
+
+def test_autowalk_without_vector2_fails_not_loaded(lua):
+    load(lua)
+    count_failed_pcalls(lua)
+    for v in (None, J()):
+        lua.globals().Vector2 = v
+        g, p, pos = autowalk(lua, "1 0 2")
+        st, made = tick_sets(lua, p)
+        assert st["state"] == "failed" and st["detail"] == "not loaded" and ("setAutoWalk", True) not in made
+        assert g.pcallFails == 0
+
+
+def test_autowalk_fails_dead_when_health_reads_zero(lua):
+    load(lua)
+    hp = {"v": 100.0}
+    g, p, pos = autowalk(lua, "1 0 5", p=health_player(hp))
+    tick(lua, p)
+    hp["v"] = 0.0
+    st, made = tick_sets(lua, p)
+    assert st["state"] == "failed" and st["detail"] == "dead" and made == OFF
+
+
+# drop --------------------------------------------------------------------------------------------------------------
+
+def drop(lua, held, args, seq=1):
+    p = inv_player(held)
+    ok, reason, _ = lua.eval("PZA.act.start({seq=%d, goal='drop', args='%s'}, ...)" % (seq, args), p)
+    assert ok is True, reason
+    return lua.globals(), p
+
+
+def test_drop_queues_one_floor_drop_per_matching_item_up_to_n_and_reports_moved(lua):
+    load(lua)
+    planks = [item("Base.Plank") for _ in range(3)]
+    axe = item("Base.Axe", "HandWeapon")
+    held = [axe, planks[0], planks[1], planks[2]]
+    g, p = drop(lua, held, "Base.Plank 2")
+    st = tick(lua, p)
+    adds = g._queue.adds
+    assert st["state"] == "running" and [a.Type for a in adds] == ["ISDropWorldItemAction"] * 2
+    assert adds[0].item is planks[0] and adds[1].item is planks[1] and adds[0].character is p
+    assert all(tuple(a.args) == ("sq", 0, 0, 0, 0, False) for a in adds)
+    held.remove(planks[0])
+    assert tick(lua, p)["state"] == "running"
+    held.remove(planks[1])
+    st = tick(lua, p)
+    assert st["state"] == "done" and st["detail"] == "moved=2"
+
+
+def test_drop_none_held_and_bad_args(lua):
+    load(lua)
+    g, p = drop(lua, [item("Base.Axe")], "Base.Plank 1")
+    assert tick(lua, p)["detail"] == "none held" and g._queue.adds == []
+    for args in ("", "Base.Plank", "Base.Plank x", "Base.Plank 0"):
+        assert lua.eval("PZA.act.start({seq=2, goal='drop', args='%s'})" % args) == (False, "bad args"), args
+
+
+def test_drop_without_the_vanilla_class_or_a_square_fails_not_loaded(lua):
+    load(lua)
+    count_failed_pcalls(lua)
+    g = lua.globals()
+    for cls in (None, J()):
+        g.ISDropWorldItemAction = cls
+        g2, p = drop(lua, [item("Base.Plank")], "Base.Plank 1")
+        assert tick(lua, p)["detail"] == "not loaded" and g._queue.adds == []
+    g.ISDropWorldItemAction = J(new=lambda cls, *a: J(Type="ISDropWorldItemAction"))
+    g2, p = drop(lua, [item("Base.Plank")], "Base.Plank 1")
+    del p.getCurrentSquare
+    assert tick(lua, p)["detail"] == "not loaded" and g._queue.adds == []
+    assert g.pcallFails == 0
+
+
+def test_drop_interrupted_at_the_budget_with_none_gone_else_moved(lua):
+    load(lua)
+    planks = [item("Base.Plank") for _ in range(2)]
+    held = list(planks)
+    g, p = drop(lua, held, "Base.Plank 5")
+    tick(lua, p)
+    assert len(g._queue.adds) == 2
+    g._clock["ms"] += 10000 + 3000 * 2 + 1
+    st = tick(lua, p)
+    assert st["state"] == "failed" and st["detail"] == "interrupted"
+    held2 = [item("Base.Plank") for _ in range(2)]
+    g, p = drop(lua, held2, "Base.Plank 2", seq=2)
+    tick(lua, p)
+    held2.pop()
+    g._clock["ms"] += 10000 + 3000 * 2 + 1
+    st = tick(lua, p)
+    assert st["state"] == "done" and st["detail"] == "moved=1"

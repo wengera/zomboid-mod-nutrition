@@ -2,18 +2,18 @@
 -- sets state done|failed with a detail from its closed set: a failed detail from the `-- reasons:` line below, a done
 -- detail from the `-- done:` line (agent/reasons.py's REASONS and DONE; a test parses both). The walk is the game's own timed action,
 -- queued the way the harness's player.walk does [the register's #2082 bound: x131c's running arm only walked, so setRunning(true) does not make a walk run].
--- A top-level goto x y run asks to run once, at its walk's start; a flee's run-flagged walk asks every tick (setRun).
--- args: goto x y [run]; open x y; loot x y [food|water|weapon|bandage|all]; eat <fullType>; drink; fight; flee x y;
--- sleep. Every x y is a world square coordinate, as a scan reports it (an offset goes stale while the player moves).
+-- args: goto x y [walk|run|setrun|forcerun|forcerun_tick|forcesprint|toggle]; autowalk dx dy seconds [walk|forcerun|once];
+-- drop <fullType> <n>; open x y; loot x y [food|water|weapon|bandage|all]; eat <fullType>; drink; fight; flee x y; sleep.
+-- Every x y is a world square coordinate, as a scan reports it (an offset goes stale while the player moves).
 -- A player whose overall body health reads 0 is dead: every goal's start refuses with dead, and a running goto
 -- fails dead at once (an absent reading is not dead). goto is stuck when the player has not moved (|dx| + |dy| under
 -- STILL_EPS) for STUCK_TICKS consecutive ticks: a walk round a house grows the straight-line distance while it walks
 -- correctly (Stage A pass 2), so progress toward the target is never read. Every failed goto clears its walk.
 -- details: goto no square|no path|stuck|dead; open no square|no door|locked|not adjacent; loot not loaded|no container|
--- not adjacent|empty|no match|interrupted; eat, drink none held|not valid|interrupted; fight done clear, failed
--- no weapon|weapon broke|low health; flee done at, failed cornered; sleep done awake, failed not allowed|
--- interrupted; any running goal superseded. Done details: goto d=<distance>; stop an empty detail; open open; loot
--- moved=<n>; eat, drink consumed; fight clear; flee at; sleep awake (d= and moved= are prefixes, the empty one unlisted).
+-- not adjacent|empty|no match|interrupted; eat, drink none held|not valid|interrupted; fight done clear, failed no weapon|
+-- weapon broke|low health; flee done at, failed cornered; sleep done awake, failed not allowed|interrupted; autowalk not
+-- loaded|dead; drop not loaded|none held|not valid|interrupted; any running goal superseded. Done details: goto, autowalk
+-- d=<distance>; stop empty; open open; loot, drop moved=<n>; eat, drink consumed; fight clear; flee at; sleep awake.
 -- open's locked is read after the toggle: a door or window still shut OPEN_MS after its queued open reads
 -- locked (locked from outside, a stuck door, a smashed or invincible window); only a barricade fails it up front.
 -- reasons: bad args|no square|no path|stuck|superseded|no door|locked|not adjacent|no container|not loaded|empty|no match|none held|interrupted|not valid|no weapon|weapon broke|low health|cornered|not allowed|dead
@@ -87,8 +87,8 @@ function A.start(cmd, p)
     if A.goal ~= nil and A.goal.state == "running" then
         if p ~= nil then
             clearQueue(p)
-            setRun(p, false) -- a superseded flee's run outlives it otherwise
         end
+        A.motorOff(p) -- a superseded flee's run, or a goto's motor arm, outlives it otherwise
         A.goal.state, A.goal.detail = "failed", "superseded"
         old = A.status()
     end
@@ -105,7 +105,7 @@ function A.tick(p)
         return
     end
     g.ticks = g.ticks + 1
-    A.goals[g.name].tick(p, g)
+    local def = A.goals[g.name]; if def.top ~= nil then def.top(p, g) else def.tick(p, g) end -- top: a top-level tick
 end
 
 -- queues the vanilla walk to sq; false, "no walk action" when the queue or the walk class or its new is not loaded
@@ -133,9 +133,9 @@ end
 
 A.goals["goto"] = {
     start = function(argv)
-        local x, y = tonumber(argv[1]), tonumber(argv[2])
-        if x == nil or y == nil then return false, "bad args" end
-        return true, "", { x = x, y = y, run = argv[3] == "run", replans = 0, lastX = nil, lastY = nil, still = 0 }
+        local x, y, arm = tonumber(argv[1]), tonumber(argv[2]), A.gotoArm(argv[3])
+        if x == nil or y == nil or arm == nil then return false, "bad args" end
+        return true, "", { x = x, y = y, arm = arm, run = arm == "setrun", replans = 0, lastX = nil, lastY = nil, still = 0 }
     end,
     -- still counts the consecutive ticks the player has not moved (the first tick reads the position); at
     -- STUCK_TICKS the walk is cleared and re-queued, REPLAN_MAX times, then the goal fails stuck
@@ -177,7 +177,7 @@ A.goals["stop"] = {
     start = function(argv) return true, "", {} end,
     tick = function(p, g)
         clearQueue(p)
-        setRun(p, false)
+        A.motorOff(p)
         g.state, g.detail = "done", ""
     end,
 }
@@ -302,6 +302,78 @@ local function tickSub(p, g)
         if g.sub.run and g.sub.state == "running" then setRun(p, true) end
     end
     return g.sub.state
+end
+
+-- ---- the goto motor arms and A.motorOff (Plan 22 probe X1) ------------------------------------------------------
+-- A top-level goto's third word is its motor arm: walk (the default) asks nothing; run or setrun asks setRunning and
+-- setSprinting every tick, as a flee's run-flagged sub-walk does through tickSub (the walk's start also sets
+-- setRunning once, as it always has for a run-flagged walk); forcerun and forcesprint set PZA.motor's flags, which
+-- PZAgent_Motor.lua's OnPlayerUpdate handler re-asserts as setForceRun (and setForceSprint) every frame;
+-- forcerun_tick asks setForceRun from this tick instead, one frame late; toggle is forcerun with the core's
+-- toggle-to-run read into PZA.motor.toggleWas and set on at the walk's start. The arm is the top-level goto's only
+-- (goto's top below); a sub-walk (tickSub) runs goto's tick alone. Every goto exit (done, failed), every superseded
+-- goal (A.start) and stop call A.motorOff.
+A.GOTO_ARMS = { walk = true, setrun = true, forcerun = true, forcerun_tick = true, forcesprint = true, toggle = true }
+
+-- the arm a goto's third word names, run being setrun's other name (the flee's sub-walks'); nil for an unknown one
+function A.gotoArm(word)
+    local arm = word or "walk"
+    if arm == "run" then arm = "setrun" end
+    if A.GOTO_ARMS[arm] then return arm end
+    return nil
+end
+
+-- the game core, or nil when getCore is not loaded
+local function core()
+    if getCore == nil then return nil end
+    return getCore()
+end
+
+-- every motor ask off: the run and sprint flags, the run and sprint latches, the auto-walk, PZA.motor's flags (the
+-- OnPlayerUpdate assert stops) and the core's toggle-to-run restored to the value read before the walk set it. Every
+-- member through PZA.call (a missing one is skipped); a nil p still clears PZA.motor and the toggle
+function A.motorOff(p)
+    setRun(p, false)
+    PZA.call(p, "setForceRun", false)
+    PZA.call(p, "setForceSprint", false)
+    PZA.call(p, "setAutoWalk", false)
+    local m = PZA.motor
+    if m == nil then return end
+    m.forceRun, m.forceSprint = false, false
+    if m.toggleWas ~= nil then
+        PZA.call(core(), "setToggleToRun", m.toggleWas)
+        m.toggleWas = nil
+    end
+end
+
+-- a top-level goto's arm, once at its walk's start (the first tick that leaves it running): forcerun, forcesprint and
+-- toggle set PZA.motor.forceRun, forcesprint also forceSprint, toggle reads the core's toggle-to-run into toggleWas
+-- before setting it on (an absent isToggleToRun leaves the toggle alone); then every tick setrun asks setRun and
+-- forcerun_tick asks setForceRun
+local function armTick(p, g)
+    local arm = g.arm
+    local m = PZA.motor
+    if not g.armed then
+        g.armed = true
+        if m ~= nil and (arm == "forcerun" or arm == "forcesprint" or arm == "toggle") then m.forceRun = true end
+        if m ~= nil and arm == "forcesprint" then m.forceSprint = true end
+        if m ~= nil and arm == "toggle" then
+            local okT, was = PZA.call(core(), "isToggleToRun")
+            if okT then
+                m.toggleWas = was
+                PZA.call(core(), "setToggleToRun", true)
+            end
+        end
+    end
+    if arm == "setrun" then setRun(p, true) end
+    if arm == "forcerun_tick" then PZA.call(p, "setForceRun", true) end
+end
+
+-- the top-level goto: the walk's tick, then its arm while it runs, A.motorOff at its exit (done or failed)
+A.goals["goto"].top = function(p, g)
+    A.goals["goto"].tick(p, g)
+    if g.state ~= "running" then A.motorOff(p); return end
+    armTick(p, g)
 end
 
 -- walks next to (g.x, g.y): "here" once within one square, "walk" while the sub-goto runs, "fail" when
@@ -758,5 +830,86 @@ A.goals["sleep"] = {
             return
         end
         if PZA.now() - g.calledAt > A.SLEEP_WAIT_MS then g.state, g.detail = "failed", "not allowed" end
+    end,
+}
+
+-- ---- autowalk, drop (Plan 22 probe X1-X3) ------------------------------------------------------
+-- autowalk steers through the input layer, with no path: setAutoWalk(true) and setAutoWalkDirection(Vector2.new(dx, dy))
+-- feed the input vector a held key does (IsoPlayer.getInputMoveVector L4317-L4327, jar-research-movement.md Q2), the
+-- vector's length kept as given. Its arm: walk asks nothing more; forcerun sets PZA.motor.forceRun for the
+-- OnPlayerUpdate assert; once calls setForceRun(true) once at the start, never again (whether the latch holds while the
+-- input vector is non-zero). It is done d=<tiles from its start> once seconds of wall time have passed; no stuck rule.
+-- Every exit calls A.motorOff. Vector2 and its new are index-checked before the call (not loaded).
+A.AUTOWALK_ARMS = { walk = true, forcerun = true, once = true }
+
+local function endAutowalk(p, g, state, detail)
+    A.motorOff(p)
+    g.state, g.detail = state, detail
+end
+
+A.goals["autowalk"] = {
+    start = function(argv)
+        local dx, dy, s = tonumber(argv[1]), tonumber(argv[2]), tonumber(argv[3])
+        local arm = argv[4] or "walk"
+        if dx == nil or dy == nil or s == nil or s <= 0 or not A.AUTOWALK_ARMS[arm] then return false, "bad args" end
+        return true, "", { dx = dx, dy = dy, seconds = s, arm = arm }
+    end,
+    tick = function(p, g)
+        if isDead(p) then endAutowalk(p, g, "failed", "dead"); return end
+        if g.startMs == nil then
+            if Vector2 == nil or Vector2.new == nil then endAutowalk(p, g, "failed", "not loaded"); return end
+            clearQueue(p)
+            g.x0, g.y0, g.startMs = p:getX(), p:getY(), PZA.now()
+            PZA.call(p, "setAutoWalk", true)
+            PZA.call(p, "setAutoWalkDirection", Vector2.new(g.dx, g.dy))
+            if g.arm == "forcerun" and PZA.motor ~= nil then PZA.motor.forceRun = true end
+            if g.arm == "once" then PZA.call(p, "setForceRun", true) end
+            return
+        end
+        if PZA.now() - g.startMs >= g.seconds * 1000 then endAutowalk(p, g, "done", "d=" .. tostring(dist(p, g.x0, g.y0))) end
+    end,
+}
+
+-- drop queues vanilla's own floor drop, ISDropWorldItemAction:new(character, item, sq, xoffset, yoffset, zoffset,
+-- rotation, isMultiple) (the 42.21 install's media/lua/shared/TimedActions/ISDropWorldItemAction.lua:157), onto the
+-- player's own square, for up to n top-level inventory items of fullType (probe X3's heavy-load drain). The class, its
+-- new, the queue's add and the player's getCurrentSquare are index-checked first (not loaded); each queue add stays
+-- under pcall for a raise inside vanilla Lua, and none queued is not valid. Done moved=<k> once the inventory's size has
+-- fallen by the queued count, or by one or more when the loot goal's wall budget (LOOT_MS + LOOT_ITEM_MS per queued
+-- drop) passes; interrupted when it passes with none gone.
+A.goals["drop"] = {
+    start = function(argv)
+        local n = tonumber(argv[2])
+        if argv[1] == nil or n == nil or n < 1 then return false, "bad args" end
+        return true, "", { want = argv[1], n = math.floor(n) }
+    end,
+    tick = function(p, g)
+        if g.queuedAt == nil then
+            local okS, sq = PZA.call(p, "getCurrentSquare")
+            if ISDropWorldItemAction == nil or ISDropWorldItemAction.new == nil or not queueLoaded() or not okS or sq == nil then
+                g.state, g.detail = "failed", "not loaded"; return
+            end
+            local before, inv = invCount(p)
+            local _, items = PZA.call(inv, "getItems")
+            local picks = {}
+            for i = 0, before - 1 do
+                local _, it = PZA.call(items, "get", i)
+                local _, ft = PZA.call(it, "getFullType")
+                if it ~= nil and #picks < g.n and tostring(ft) == g.want then picks[#picks + 1] = it end
+            end
+            if #picks == 0 then g.state, g.detail = "failed", "none held"; return end
+            local queued = 0
+            for _, it in ipairs(picks) do
+                local ran = pcall(function() ISTimedActionQueue.add(ISDropWorldItemAction:new(p, it, sq, 0, 0, 0, 0, false)) end)
+                if ran then queued = queued + 1 end
+            end
+            if queued == 0 then g.state, g.detail = "failed", "not valid"; return end
+            g.before, g.queued, g.queuedAt = before, queued, PZA.now()
+            return
+        end
+        local gone = math.max(0, g.before - (invCount(p)))
+        local late = PZA.now() - g.queuedAt > A.LOOT_MS + A.LOOT_ITEM_MS * g.queued
+        if gone >= g.queued or (late and gone > 0) then g.state, g.detail = "done", "moved=" .. tostring(gone); return end
+        if late then g.state, g.detail = "failed", "interrupted" end
     end,
 }
