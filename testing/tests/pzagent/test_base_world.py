@@ -434,3 +434,24 @@ def test_acts_are_keyed_by_string_and_damage_seen_i_renders_numerically():
     last = [{"i": i, "tag": "X", "amount": 1.0, "wall": 1} for i in (10, 9, 2)]
     w.merge_damage({"ok": True, "counts": {}, "n": 3, "dropped": 0, "last": last}, 5)
     assert json.loads(w.to_json())["damageSeenI"] == [2, 9, 10]
+
+
+# -- M12 (the whole-pass review), ruling S-27: reasons.py's docstring rewritten, its code frozen -------------------------
+
+def test_the_plan_21_reasons_module_imports_unchanged_and_names_no_deleted_file():
+    import hashlib
+
+    from agent import reasons
+    from agent.base import pza1
+    assert reasons.REASONS == frozenset({
+        "bad args", "no square", "no path", "stuck", "superseded", "no door", "locked", "not adjacent", "no container",
+        "not loaded", "empty", "no match", "none held", "interrupted", "not valid",
+        "no weapon", "weapon broke", "low health", "cornered", "not allowed", "dead"})
+    assert reasons.DONE == frozenset({"d=", "moved=", "open", "consumed", "clear", "at", "awake"})
+    src = open(reasons.__file__, encoding="utf-8").read()
+    code = src[src.index('"""', 3) + 3:]
+    # the code below the docstring, byte for byte as frozen (sha256 read at b5ada9f9)
+    assert hashlib.sha256(code.encode("utf-8")).hexdigest() == (
+        "21d3b07c8562024ff8aa32c1d35e889327e61256dd1f2a871efc96e6c2063a96")
+    assert "PZAgent_Act" not in reasons.__doc__ and "pza1.REASONS" in reasons.__doc__
+    assert reasons.REASONS != pza1.REASONS
