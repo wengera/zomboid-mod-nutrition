@@ -5040,3 +5040,137 @@ if type(TK.MR) == "table" and type(TK.MR.sample) == "function" and TK.MR.sampleB
         return row
     end
 end
+
+-- ---- Plan 22 Task 7: damage.watch and zombie.get (server)
+-- The agent link's client (PZAgent) is deaf to body-damage events: the heavy-load drain runs on the server only. The
+-- server therefore keeps one read-only Events.OnPlayerGetDamage listener for the agent's driver. It is installed once,
+-- lazily, by the first damage.watch on this side (TK.DW.hooked), serves every watched user, and never raises: its body
+-- runs under pcall. The listener reads the character's username through TK.call and records only for a watched
+-- username, so a user not yet online can be watched. Per user it counts every tag and keeps the last TK.DW_MAX
+-- records {i, tag, amount, wall}, i a running index from 1 and wall TK.now(); a record aged out of the list counts in
+-- dropped. The fall.probe listener above is not reused: it keeps FALLDOWN records only. Every Java member is reached
+-- through TK.call under pcall (TK.DW.read).
+TK.DW = TK.DW or {}
+TK.DW.users = TK.DW.users or {}
+TK.DW_MAX = 200
+
+-- One Java member read under pcall: (true, value) when the member exists and answers, (false, nil) otherwise.
+function TK.DW.read(obj, name, ...)
+    local ran, ok, v = pcall(TK.call, obj, name, ...)
+    if ran and ok then return true, v end
+    return false, nil
+end
+
+-- The listener body: one record for a watched user's character, nothing for anyone else.
+function TK.DW.record(character, tag, amount)
+    local ok, name = TK.DW.read(character, "getUsername")
+    if not ok or name == nil then return end
+    local st = TK.DW.users[tostring(name)]
+    if st == nil then return end
+    local t = tostring(tag)
+    st.counts[t] = (st.counts[t] or 0) + 1
+    st.n = st.n + 1
+    st.last[#st.last + 1] = { i = st.n, tag = t, amount = amount, wall = TK.now() }
+    while #st.last > TK.DW_MAX do
+        table.remove(st.last, 1)
+        st.dropped = st.dropped + 1
+    end
+end
+
+function TK.DW.hook()
+    if TK.DW.hooked then return true end
+    if Events == nil or Events.OnPlayerGetDamage == nil then return false end
+    Events.OnPlayerGetDamage.Add(function(character, tag, amount)
+        pcall(TK.DW.record, character, tag, amount)
+    end)
+    TK.DW.hooked = true
+    return true
+end
+
+-- <user> [since <i>]. The first call installs the listener and starts the user's record; every call replies the
+-- user's per-tag counts, the total recorded n, the records aged out and the kept records with index > i (all with no
+-- since).
+-- @args <user> [since <i>]
+-- @reply {ok, side, hooked, user, counts = {tag: n}, n, last = [{i, tag, amount, wall}], dropped [, reason]} | string
+-- @purpose Watches one user's OnPlayerGetDamage tags on the server (keyed by username, so an offline user can be watched): per-tag counts and the last 200 records, read since an index.
+TK.register("damage.watch", function(argv)
+    local usage = "usage: damage.watch <user> [since <i>]"
+    local user = argv[1]
+    if user == nil or tostring(user) == "" then return usage end
+    user = tostring(user)
+    local since = 0
+    if argv[2] ~= nil then
+        if argv[2] ~= "since" then return usage end
+        since = tonumber(argv[3])
+        if since == nil then return usage end
+    end
+    local out = { ok = false, side = TK.side, user = user }
+    out.hooked = TK.DW.hook()
+    if not out.hooked then out.reason = "no Events.OnPlayerGetDamage on this side" end
+    local st = TK.DW.users[user]
+    if st == nil then
+        st = { counts = {}, last = {}, n = 0, dropped = 0 }
+        TK.DW.users[user] = st
+    end
+    local last = {}
+    for k = 1, #st.last do
+        local r = st.last[k]
+        if r.i > since then last[#last + 1] = r end
+    end
+    out.counts, out.n, out.last, out.dropped = st.counts, st.n, last, st.dropped
+    out.ok = out.hooked
+    return out
+end)
+
+-- <onlineId>. Walks the server cell's zombie list (size()/get(i)) for the zombie whose getOnlineID is the id and
+-- reads its health, position and dead flag; each field is absent when its read fails. found = false with ok = true
+-- when no zombie carries the id; ok = false with a reason when the cell or its list is unreachable.
+-- @args <onlineId>
+-- @reply {ok, side, id, found, health, x, y, z, dead [, reason]} | string
+-- @purpose Server-side read of one zombie's health, position and dead flag by its online id.
+TK.register("zombie.get", function(argv)
+    local id = tonumber(argv[1])
+    if id == nil or id ~= math.floor(id) then return "usage: zombie.get <onlineId>" end
+    local out = { ok = false, side = TK.side, id = id, found = false }
+    if getCell == nil then
+        out.reason = "no getCell on this side"
+        return out
+    end
+    local ran, cell = pcall(getCell)
+    if not ran or cell == nil then
+        out.reason = "no cell"
+        return out
+    end
+    local okL, list = TK.DW.read(cell, "getZombieList")
+    if not okL or list == nil then
+        out.reason = "no zombie list"
+        return out
+    end
+    local okN, n = TK.DW.read(list, "size")
+    if not okN or type(n) ~= "number" then
+        out.reason = "no zombie list size"
+        return out
+    end
+    out.ok = true
+    local i = 0
+    while i < n do
+        local okZ, z = TK.DW.read(list, "get", i)
+        local okI, zid = TK.DW.read(z, "getOnlineID")
+        if okZ and okI and zid == id then
+            out.found = true
+            local okH, h = TK.DW.read(z, "getHealth")
+            if okH and type(h) == "number" then out.health = h end
+            local okX, x = TK.DW.read(z, "getX")
+            if okX then out.x = x end
+            local okY, y = TK.DW.read(z, "getY")
+            if okY then out.y = y end
+            local okZz, zz = TK.DW.read(z, "getZ")
+            if okZz then out.z = zz end
+            local okD, d = TK.DW.read(z, "isDead")
+            if okD then out.dead = d == true end
+            return out
+        end
+        i = i + 1
+    end
+    return out
+end)
