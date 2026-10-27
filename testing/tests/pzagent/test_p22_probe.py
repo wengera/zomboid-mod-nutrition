@@ -11,7 +11,9 @@ character moves (and health > 75 unless the floor is off); a `damage` event per 
 bus answers bench.global, fall.probe, event.watch, stats.all and ping with their handlers' reply shapes
 (docs/reference/harness-commands.md).
 
-The probe's own autowalk legs (3 s walks, 1.5 s runs, each re-centred) stay on the 12-square strip at the fake's 1.6
+The fake maps an autowalk's input vector to the world as the engine does (IsoPlayer.updateMovementFromInput
+L3025-L3026: world x = iy + ix, world y = iy - ix; mapping="identity" leaves it as sent), so the autowalk tests pass
+only when the driver's rotation into input space is right. The probe's own autowalk legs (3 s walks, 1.5 s runs, each re-centred) stay on the 12-square strip at the fake's 1.6
 and 3.2 tiles/s; a 4.5 tiles/s run voids the running legs. The 20 degree heading case runs 1 s legs (SHORT_AUTOWALK),
 since a 4.8-tile leg at 20 degrees crosses the side row and voids."""
 import math
@@ -50,12 +52,12 @@ def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
     assert os.path.basename(D.__file__) == D.DRIVER == D.KEY + ".py" == "p22_probe.py"
     assert D.KEY == "p22_probe" and D.ARTIFACT == "p22_probe.json" and D.USER == "admin"
     assert D.PROFILE == "testing/profiles/agent-nozombies.toml" and os.path.isfile(os.path.join(REPO, D.PROFILE))
-    assert D.BUDGET_S == 720.0 and D.MIN_FREE_GB == D.DL.MIN_FREE_GB and D.X1_DEADLINE_S == 330.0
+    assert D.BUDGET_S == 720.0 and D.MIN_FREE_GB == D.DL.MIN_FREE_GB and D.X1_DEADLINE_S == 450.0
 
 
 def test_every_constant_of_the_brief_is_in_constants():
     c = D.CONSTANTS
-    want = {"BUDGET_S": 720.0, "X1_DEADLINE_S": 330.0, "LINE_LEN": 12, "BENCH_REPS": 3, "LEGS_PER_ARM": 3, "SETTLE_S": 3.0,
+    want = {"BUDGET_S": 720.0, "X1_DEADLINE_S": 450.0, "CALIBRATE_TOL_DEG": 15.0, "CALIBRATE_LEG": (1, 0, 1.5, "walk"), "LINE_LEN": 12, "BENCH_REPS": 3, "LEGS_PER_ARM": 3, "SETTLE_S": 3.0,
             "GOAL_TIMEOUT_S": 40.0, "TOGGLE_IF_BELOW": 1.3, "LOAD_MAX_ADDS": 14, "LOAD_ITEM": "Base.Plank",
             "LOAD_SETTLE_S": 5.0, "WALK_S": 30.0, "STILL_S": 15.0, "PLANK_W": 3.0, "WALK2_S": 15.0,
             "HEALTH_FLOOR": 75.0, "HEAVY_LEVEL": 3, "LEVEL2_RATIO": 1.25, "LEVEL3_RATIO": 1.5, "LEVEL4_RATIO": 1.75,
@@ -222,13 +224,14 @@ class FakeModP(T3.FakeMod3):
 
     def __init__(self, d, clock, version="0.2", forcerun_runs=True, heading_err=0.0, drop_level=3, floor=True,
                  drop_every=1, client_hears=False, server_heavy=True, once_holds=True, setrun_runs=False,
-                 endurance_flat=False, level3_from=1.5, blocked=(), run_tps=None, **kw):
+                 endurance_flat=False, level3_from=1.5, blocked=(), run_tps=None, mapping="engine", **kw):
         super().__init__(d, clock, **kw)
         self.version, self.forcerun_runs, self.heading_err = version, forcerun_runs, heading_err
         self.drop_level, self.floor, self.drop_every = drop_level, floor, drop_every
         self.client_hears, self.server_heavy, self.once_holds = client_hears, server_heavy, once_holds
         self.setrun_runs, self.endurance_flat, self.level3_from = setrun_runs, endurance_flat, level3_from
         self.blocked = set(blocked)
+        self.mapping = mapping
         if run_tps is not None:
             self.RUN_TPS = run_tps
         self.pg = None
@@ -273,7 +276,9 @@ class FakeModP(T3.FakeMod3):
         if cmd["goal"] == "goto":
             g.update(tx=float(a[0]), ty=float(a[1]), arm=a[2] if len(a) > 2 else "walk")
         elif cmd["goal"] == "autowalk":
-            g.update(dx=float(a[0]), dy=float(a[1]), s=float(a[2]), arm=a[3] if len(a) > 3 else "walk")
+            ix, iy = float(a[0]), float(a[1])
+            wx, wy = (ix, iy) if self.mapping == "identity" else (iy + ix, iy - ix)     # the engine's L3025-L3026
+            g.update(dx=wx, dy=wy, ix=ix, iy=iy, s=float(a[2]), arm=a[3] if len(a) > 3 else "walk")
         else:
             g.update(k=int(a[1]), arm=None)
         self.pg = g
@@ -459,17 +464,23 @@ def test_a_correct_mod_records_every_reading_and_every_grade_as_predicted(clean_
     assert gotos[0] == "100.5 200.5" and gotos[1] == "111.5 200.5" and gotos[4] == "100.5 200.5 setrun"
     aw = m["autowalk"]
     assert [c["args"] for c in mod.cmds if c["goal"] == "autowalk"] == [
-        "1 0 3.0", "-1 0 1.5 forcerun", "2 0 1.5 forcerun", "-1.95 0 1.5 once", "1 0 1.5 forcerun", "-1 0 3.0"]
+        "0.707107 0.707107 1.5", "0.707107 0.707107 3.0", "-0.707107 -0.707107 1.5 forcerun",
+        "1.414214 1.414214 1.5 forcerun", "-1.378858 -1.378858 1.5 once", "0.707107 0.707107 1.5 forcerun",
+        "-0.707107 -0.707107 3.0"]
+    cal = m["autowalk_calibration"]
+    assert cal["arm"] == "walk" and cal["leg"] == "calibration" and (cal["vx"], cal["vy"]) == (1.0, 0.0)
+    assert cal["heading_signed_deg"] == pytest.approx(0, abs=1e-6) and m["autowalk_correction_deg"] == 0
+    assert all(r["correction_deg"] == 0 and (r["ix"], r["iy"]) == D.input_vector(r["vx"], r["vy"]) for r in aw)
     assert all(r["heading_error_deg"] == pytest.approx(0, abs=1e-6) and r["displacement"] > 1.0 for r in aw)
     assert not any(r["voided"] for r in aw) and line["strip_squares"] == 36
-    assert len(m["centre"]) == 6 and all(r["arm"] == "centre" and r["to"]["x"] == 106.0 for r in m["centre"])
+    assert len(m["centre"]) == 7 and all(r["arm"] == "centre" and r["to"]["x"] == 106.0 for r in m["centre"])
     assert m["deadline_skipped"] == 0 and all(r["frames"] >= 10 for r in aw)      # 10 Hz: a 1.5 s leg's frames
     # the config commands: rate 10 after the approach, every leg between, rate 5 at X1's end (before X3's adds)
     seq = [(c["goal"], c["args"]) for c in mod.cmds if c["goal"] in ("rate", "goto", "autowalk")]
     i10, i5 = seq.index(("rate", "10")), seq.index(("rate", "5"))
     assert seq[0] == ("goto", "100.5 200.5") and i10 == 1 and [g for g, _ in seq].count("rate") == 2
     x1 = seq[i10 + 1:i5]
-    assert len([g for g, _ in x1 if g == "goto"]) == 15 + 6 + 1 and len([g for g, _ in x1 if g == "autowalk"]) == 6
+    assert len([g for g, _ in x1 if g == "goto"]) == 15 + 7 + 1 and len([g for g, _ in x1 if g == "autowalk"]) == 7
     assert all(g == "goto" for g, a in seq[i5 + 1:])                  # X3's legs only after rate 5
     assert m["rate_on"]["ack"]["ok"] and m["rate_back"]["ack"]["ok"] and mod.rate == 5
     assert gotos[16] == "106.0 200.5" and line["targets"]["M"] == [106.0, 200.5]
@@ -670,7 +681,9 @@ def test_the_autowalk_vector_follows_a_minus_x_line(tmp_path):
     line = out["readings"]["line"]
     assert (line["ax"], line["ay"], line["bx"], line["by"], line["dir"]) == (100, 200, 89, 200, "-x")
     assert [c["args"] for c in mod.cmds if c["goal"] == "autowalk"] == [
-        "-1 0 3.0", "1 0 1.5 forcerun", "-2 0 1.5 forcerun", "1.95 0 1.5 once", "-1 0 1.5 forcerun", "1 0 3.0"]
+        "-0.707107 -0.707107 1.5", "-0.707107 -0.707107 3.0", "0.707107 0.707107 1.5 forcerun",
+        "-1.414214 -1.414214 1.5 forcerun", "1.378858 1.378858 1.5 once", "-0.707107 -0.707107 1.5 forcerun",
+        "0.707107 0.707107 3.0"]
     aw = out["readings"]["motor"]["autowalk"]
     assert [(r["vx"], r["vy"]) for r in aw][:2] == [(-1.0, 0.0), (1.0, 0.0)] and not any(r["voided"] for r in aw)
     assert verdicts(out, "x1_")["x1_autowalk_heads"] == "as_predicted"
@@ -721,10 +734,44 @@ def test_the_x1_deadline_skips_the_remaining_legs(tmp_path, monkeypatch):
     m = out["readings"]["motor"]
     sk = [r for r in m["legs"] + m["autowalk"] if r.get("skipped")]
     assert sk and all(r["skipped"] == "x1 deadline" for r in sk) and m["return"]["skipped"] == "x1 deadline"
-    assert all(r["skipped"] == "x1 deadline" for r in m["centre"]) and len(m["centre"]) == 6
+    assert all(r["skipped"] == "x1 deadline" for r in m["centre"]) and len(m["centre"]) == 7
     assert len(m["legs"]) == 15 and len(m["autowalk"]) == 6
-    assert m["deadline_skipped"] == len(sk) + 6 + 1
+    assert m["autowalk_calibration"]["skipped"] == "x1 deadline" and m["autowalk_correction_deg"] == 0
+    assert m["deadline_skipped"] == len(sk) + 7 + 1 + 1
     assert m["rate_back"]["ack"]["ok"] and mod.rate == 5
     assert out["phase_errors"] == {} and "budget_stop" not in out
     assert out["readings"]["load"]["level3_at_add"] == 4                # X3 still had its wall
     assert len([c for c in mod.cmds if c["goal"] == "autowalk"]) == 0
+
+
+def test_input_vectors_follow_the_engines_mapping():
+    for wx, wy in ((1, 0), (-1.95, 0), (0, 2), (0.6, -0.8)):
+        ix, iy = D.input_vector(wx, wy)
+        r2 = math.sqrt(2)
+        # the engine's world vector (iy + ix, iy - ix) is the wanted one scaled by sqrt 2 (an input length kept)
+        assert (iy + ix, iy - ix) == (pytest.approx(wx * r2, abs=1e-5), pytest.approx(wy * r2, abs=1e-5))
+    assert D.input_vector(1, 0) == (0.707107, 0.707107) and D.input_vector(0, 0) == (0.0, 0.0)
+    assert D.input_vector(1, 0, -45.0) == (1.0, 0.0)
+    assert [D.correction_of(a) for a in (None, 0.0, 15.0, 20.0, 30.0, 45.0, -50.0, 100.0, 180.0)] == [
+        0.0, 0.0, 0.0, 0.0, -45.0, -45.0, 45.0, -90.0, -180.0]
+    fr = [{"x": 0, "y": 0}, {"x": 1, "y": 1}]
+    assert D.heading_signed_deg(fr, 1, 0) == pytest.approx(45) and D.heading_signed_deg(fr, 0, 1) == pytest.approx(-45)
+    assert D.heading_signed_deg(fr, -1, -1) == pytest.approx(180) and D.heading_signed_deg(fr[:1], 1, 0) is None
+
+
+def test_a_fake_without_the_engines_transform_is_corrected_by_minus_45(tmp_path):
+    # identity mapping: the wanted world (1, 0) sent as (0.707107, 0.707107) walks at +45 deg (counter-clockwise in
+    # world x, y), so the snapped correction is -45 deg and every later leg is sent rotated by it
+    probe, out, mod, _ = make_probe(tmp_path, mapping="identity")
+    run_phases(probe, ["hello_and_map", "x1_motor"])
+    m = out["readings"]["motor"]
+    assert m["autowalk_calibration"]["heading_signed_deg"] == pytest.approx(45.0, abs=0.5)
+    assert m["autowalk_correction_deg"] == -45.0
+    aw = m["autowalk"]
+    assert all(r["correction_deg"] == -45.0 for r in aw) and (aw[0]["ix"], aw[0]["iy"]) == (1.0, 0.0)
+    assert all(r["heading_error_deg"] <= D.CALIBRATE_TOL_DEG for r in aw) and not any(r["voided"] for r in aw)
+    assert verdicts(out, "x1_")["x1_autowalk_heads"] == "as_predicted"
+    # the engine's mapping reads no correction (the clean run asserts 0 too)
+    probe, out, _, _ = make_probe(tmp_path / "engine")
+    run_phases(probe, ["hello_and_map", "x1_motor"])
+    assert out["readings"]["motor"]["autowalk_correction_deg"] == 0

@@ -30,7 +30,14 @@ every later phase skips):
                  line's midpoint M (arm `centre`, ungraded; its 1.0 done radius is accepted: the start lands within
                  a tile of M on the side it came from and the alternating legs head the other way, so at least 5
                  tiles of checked strip lie ahead), each (dx, dy) written along the line's axis (dx along it, A
-                 toward B, so the first leg heads from M toward B; dy across it), a leg whose frames leave the checked strip (the LINE_LEN squares and the rows one either
+                 toward B, so the first leg heads from M toward B; dy across it) as the wanted WORLD vector and sent
+                 in the engine's INPUT space (input_vector: the inverse of IsoPlayer.updateMovementFromInput
+                 L3025-L3026, world x = iy + ix, world y = iy - ix; the length kept as an input length), the heading
+                 graded against the world vector. Before them, an ungraded calibration leg (a centre goto, then
+                 CALIBRATE_LEG, world (1, 0) along the axis for 1.5 s, recorded as autowalk_calibration): a signed
+                 heading error above CALIBRATE_TOL_DEG is snapped to the nearest 45 deg and its negative applied to
+                 every later vector (autowalk_correction_deg; 0 otherwise or with no reading). A leg whose frames
+                 leave the checked strip (the LINE_LEN squares and the rows one either
                  side; the fallback's band from A to B likewise) voided "left the strip", its heading and pace kept
                  and its samples out of every grade; the `toggle` arm only when pace_of("forcerun") <
                  TOGGLE_IF_BELOW x pace_of("walk"); a `goto A walk` back (arm `return`, ungraded). Past
@@ -144,7 +151,11 @@ BENCH_BYTES_KEY = {"json": "json21Bytes", "jsonNoSort": "noSortBytes", "compact"
                    "concat": "json21Bytes", "openWrite": "json21Bytes", "heldWrite": "json21Bytes"}
 
 MOTOR_ARMS = ["walk", "setrun", "forcerun", "forcerun_tick", "forcesprint"]
-X1_DEADLINE_S = 330.0      # past this loop wall X1 starts no new leg (each recorded skipped), so X3 keeps its wall
+X1_DEADLINE_S = 450.0      # past this loop wall (from the memory gate, the boot included) X1 starts no new leg (each
+                           # recorded skipped), so X3 keeps its wall
+CALIBRATE_LEG = (1, 0, 1.5, "walk")   # the ungraded first autowalk leg: world (1 along the axis, 0), 1.5 s, walk
+CALIBRATE_TOL_DEG = 15.0   # a calibration heading error above this is snapped to 45 deg and corrected
+SNAP_DEG = 45.0
 LEGS_PER_ARM = 3
 SETTLE_S = 3.0
 GOAL_TIMEOUT_S = 40.0
@@ -181,7 +192,7 @@ CONSTANTS = {k: globals()[k] for k in (
     "BUDGET_S", "MIN_FREE_GB", "CLIENT_ERR_RX", "MOD_VERSION", "HELLO_TIMEOUT_S", "ACK_TIMEOUT_S", "POLL_S", "SCAN_R",
     "SCAN_TIMEOUT_S", "LINE_LEN", "LINE_DIRS", "FALLBACK_DX", "BENCH_REPS", "BENCH_ARMS", "HELD_ARMS",
     "US_PER_KB_ARMS", "S20_BYTES", "BENCH_BYTES_KEY", "MOTOR_ARMS", "LEGS_PER_ARM", "SETTLE_S", "GOAL_TIMEOUT_S",
-    "AUTOWALK_LEGS", "AUTOWALK_PAD_S", "X1_DEADLINE_S", "X1_RATE_HZ", "X1_RATE_BACK_HZ", "TOGGLE_IF_BELOW", "TOGGLE_LEGS", "RUN_RATIO", "SETRUN_TOL",
+    "AUTOWALK_LEGS", "AUTOWALK_PAD_S", "X1_DEADLINE_S", "CALIBRATE_LEG", "CALIBRATE_TOL_DEG", "SNAP_DEG", "X1_RATE_HZ", "X1_RATE_BACK_HZ", "TOGGLE_IF_BELOW", "TOGGLE_LEGS", "RUN_RATIO", "SETRUN_TOL",
     "HEADING_MAX_DEG", "ONCE_HOLD_FRAC", "LOAD_MAX_ADDS", "LOAD_ITEM", "LOAD_SETTLE_S", "HEAVY_LEVEL",
     "LEVEL2_RATIO", "LEVEL3_RATIO", "LEVEL4_RATIO", "PLANK_W", "WALK_S", "HEALTH_FLOOR", "WALK_MAX_LEGS", "STILL_S",
     "DROP_TIMEOUT_S", "WALK2_S", "DROP_EPS")}
@@ -336,6 +347,43 @@ def axis_vector(dirname, dx, dy):
     ux, uy = AXES[dirname]
     vx, vy = dx * ux - dy * uy, dx * uy + dy * ux
     return (vx + 0.0) or 0.0, (vy + 0.0) or 0.0           # never a -0.0
+
+
+def input_vector(wx, wy, correction_deg=0.0):
+    """The auto-walk input vector for a wanted world vector (wx, wy): its unit direction, rotated by correction_deg,
+    taken into the engine's input space by the inverse of IsoPlayer.updateMovementFromInput @136-157 L3025-L3026
+    (42.21: playerMoveDir.x = iy + ix, playerMoveDir.y = iy - ix), its length L = |(wx, wy)| kept as an INPUT length
+    (as the key vectors' L206-L207): ix = L (ux - uy) / sqrt 2, iy = L (ux + uy) / sqrt 2, so the engine's world
+    vector is L sqrt 2 (ux, uy). Rounded to 6 decimals; (0, 0) for a zero vector."""
+    n = math.hypot(wx, wy)
+    if n == 0:
+        return 0.0, 0.0
+    th = math.atan2(wy, wx) + math.radians(correction_deg)
+    ux, uy = math.cos(th), math.sin(th)
+    r2 = math.sqrt(2.0)
+    return round(n * (ux - uy) / r2, 6) + 0.0, round(n * (ux + uy) / r2, 6) + 0.0
+
+
+def heading_signed_deg(frames, dx, dy):
+    """The signed angle in degrees (-180, 180] from the commanded (dx, dy) to the first-to-last displacement
+    (counter-clockwise positive in world x, y); None where heading_error_deg is None."""
+    p = _placed(frames)
+    if len(p) < 2 or math.hypot(dx, dy) == 0:
+        return None
+    ex, ey = p[-1]["x"] - p[0]["x"], p[-1]["y"] - p[0]["y"]
+    if math.hypot(ex, ey) == 0:
+        return None
+    a = math.degrees(math.atan2(ey, ex) - math.atan2(dy, dx))
+    a = (a + 180.0) % 360.0 - 180.0
+    return 180.0 if a == -180.0 else a
+
+
+def correction_of(signed_deg, tol=CALIBRATE_TOL_DEG):
+    """The extra rotation for every later autowalk vector: minus the calibration's signed heading error snapped to
+    the nearest multiple of SNAP_DEG, when its magnitude is above tol; else 0 (no reading included)."""
+    if signed_deg is None or abs(signed_deg) <= tol:
+        return 0.0
+    return -SNAP_DEG * round(signed_deg / SNAP_DEG) + 0.0
 
 
 def _arg(v):
@@ -653,24 +701,28 @@ class Probe(AP2.Pipe2):
     def next_end(self):
         return "B" if self.at_end == "A" else "A"
 
-    def autowalk_leg(self, i, dx, dy, s, arm):
-        """One `autowalk` leg, its (dx, dy) written along the line's axis (axis_vector); a leg whose frames leave the
-        checked strip is voided (its readings kept, its samples out of every grade)."""
+    def autowalk_leg(self, i, dx, dy, s, arm, correction_deg=0.0):
+        """One `autowalk` leg: its (dx, dy) written along the line's axis (axis_vector) as the wanted world vector,
+        sent as input_vector's (ix, iy) with the calibration's correction; graded against the world vector. A leg
+        whose frames leave the checked strip is voided (its readings kept, its samples out of every grade)."""
         settled = self.wait_until(self.still, SETTLE_S)
         me = self.world.me
         x0, y0 = _num(me.get("x")), _num(me.get("y"))
         vx, vy = axis_vector(self.line_dir, dx, dy)
-        row = {"arm": arm, "leg": i, "kind": "autowalk", "dx": dx, "dy": dy, "vx": vx, "vy": vy, "seconds": s,
+        ix, iy = input_vector(vx, vy, correction_deg)
+        row = {"arm": arm, "leg": i, "kind": "autowalk", "dx": dx, "dy": dy, "vx": vx, "vy": vy, "ix": ix, "iy": iy,
+               "correction_deg": correction_deg, "heading_signed_deg": None, "seconds": s,
                "from": {"x": x0, "y": y0}, "settled": settled, "cmdSeq": None, "ack": None, "goal": None,
                "frames": 0, "pace": None, "endurance_slope": None, "flags": None, "first_move": None,
                "cmd_move_ms": None, "heading_error_deg": None, "displacement": None, "voided": None,
                "off_strip_frames": 0, "error": None}
-        args = "%s %s %s" % (_arg(vx), _arg(vy), s) + ("" if arm == "walk" else " %s" % arm)
+        args = "%s %s %s" % (_arg(ix), _arg(iy), s) + ("" if arm == "walk" else " %s" % arm)
         t0 = self.py_ms()
         ack, i0 = self.run_goal("autowalk", args, s + AUTOWALK_PAD_S, row)
         if row["error"] is None or row["error"] == "timeout":
             fr = self.read_leg(row, ack, i0, x0, y0)
             row["heading_error_deg"] = heading_error_deg(fr, vx, vy)
+            row["heading_signed_deg"] = heading_signed_deg(fr, vx, vy)
             row["displacement"] = displacement(fr)
             aw = [f for f in fr if _motor(f).get("autoWalk") is True]
             row["autoWalk_frames"] = len(aw)       # the frames the walk ran on (not before it latched or after its end)
@@ -728,10 +780,12 @@ class Probe(AP2.Pipe2):
                     self.mt["legs"].append(self.x1_goto(arm, leg=leg))
                     self.sync_out()
                 self.xs.persist()
+            corr = self.calibrate()
             for i, (dx, dy, s, arm) in enumerate(AUTOWALK_LEGS):
                 # re-centred before every leg: each starts within the goto's 1.0 done radius of M
                 self.mt["centre"].append(self.x1_goto("centre", "M", goal_arm="walk", leg=i))
-                row = self.skipped_row(arm, i, "autowalk") if self.x1_late() else self.autowalk_leg(i, dx, dy, s, arm)
+                row = (self.skipped_row(arm, i, "autowalk") if self.x1_late()
+                       else self.autowalk_leg(i, dx, dy, s, arm, corr))
                 self.mt["autowalk"].append(row)
                 self.sync_out()
             self.xs.persist()
@@ -764,8 +818,23 @@ class Probe(AP2.Pipe2):
             row["error"] = "no ack"
         return row
 
+    def calibrate(self):
+        """The ungraded calibration leg (a centre goto, then CALIBRATE_LEG through input_vector with no correction):
+        its signed heading error, snapped by correction_of, is the correction every later autowalk vector takes."""
+        self.mt["centre"].append(self.x1_goto("centre", "M", goal_arm="walk", leg="calibration"))
+        dx, dy, s, arm = CALIBRATE_LEG
+        if self.x1_late():
+            row = self.skipped_row(arm, "calibration", "autowalk")
+        else:
+            row = self.autowalk_leg("calibration", dx, dy, s, arm)
+        self.mt["autowalk_calibration"] = row
+        corr = correction_of(row.get("heading_signed_deg"))
+        self.mt["autowalk_correction_deg"] = corr
+        self.sync_out()
+        return corr
+
     def x1_rows(self):
-        one = [self.mt.get(k) for k in ("approach", "return") if self.mt.get(k)]
+        one = [self.mt.get(k) for k in ("approach", "autowalk_calibration", "return") if self.mt.get(k)]
         return one + self.mt["centre"] + self.mt["legs"] + self.mt["autowalk"] + self.mt["toggle"]
 
     def grade_x1(self):
