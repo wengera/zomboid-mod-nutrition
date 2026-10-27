@@ -69,6 +69,8 @@ How to read a source:
 - **Never use `%g` or `%G` on a value that can be tiny in Kahlua; use `tostring`.** Kahlua's `%g` never returns below about 1e-292, and it froze x391g's server for 2787 s (#3763, #3764). `kahlua_lint`'s `format-g` rule catches it.
 - **`lua.setpath`, `record.set` and `lua.call` are the drivers' only setters and caller.** No chunk runner exists, because `loadstring` is removed on 42.20.x. `lua.setpath` has been two-sided since Plan 7; `record.set` is Plan 11b ruling 11b-3's.
 - **A test client opens no helper dialog.** Source: Angus, 2026-10-13.
+- **Before a boot, check a completion gate whose items come from the world against the fixture's stock.** Plan 21b's Stage B gate asked each of five repetitions to loot food and water. On fixture `agent0` no container held both, so pass 1 (`b_actions-20261026-183143`) could complete none whatever its pick. Pass 2 (`b_actions_2-20261026-194009`) picked each water square once, and the 3 water squares in reach capped it below the gate of 4. Both caps were read off the scans only after the boots. Source: the Plan 21b ledger's Stage B rulings and pass 2's guide § 7.
+- **A rule that a driver and the mod it drives each copy is fixed in both, or kept in one place.** In Stage B pass 1, the driver's `beside` and the link's `adjacentTo` both kept any neighbour that is not `isSolid`. A stove square stopped the driver's goto, and by the same rule the Lua's loots. Stage C's first run used only the Lua's copy and failed three loots the same way. The fix took two commits, `e1d298d3` (the Lua) and `e1af7ba6` (the driver). Source: `b_actions-20261026-183143/GUIDE.md` "Cause 2" and the Plan 21b ledger.
 
 <a id="register-and-deltas"></a>
 ## Register and deltas
