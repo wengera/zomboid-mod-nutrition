@@ -1,0 +1,345 @@
+{
+ "act": null,
+ "action": null,
+ "acts": {
+  "a1": {
+   "aid": "a1",
+   "kind": "act",
+   "reason": "",
+   "result": {
+    "d": 0.25
+   },
+   "seq": 40,
+   "snapshot": {
+    "me": {
+     "health": 100.0,
+     "x": 100.0,
+     "y": 200.0,
+     "z": 0
+    },
+    "nearest": null
+   },
+   "state": "done",
+   "tick": 27,
+   "type": "walkTo",
+   "wallMs": 1003700
+  }
+ },
+ "body": {
+  "bitten": 0,
+  "bleeding": 0,
+  "health": 100,
+  "parts": [],
+  "scratched": 0
+ },
+ "buildings": [
+  7
+ ],
+ "containers": {
+  "100,200,0,0": {
+   "items": [
+    "Base.CannedMilk"
+   ],
+   "looted": false,
+   "n": 1,
+   "type": "fridge"
+  },
+  "101,201,0,0": {
+   "items": [
+    "Base.Hammer"
+   ],
+   "looted": false,
+   "n": 1,
+   "type": "crate"
+  }
+ },
+ "cost": {
+  "actMs": 0.05,
+  "dropped": 0,
+  "linkMs": 0.05,
+  "mapMs": 0,
+  "over5": 0,
+  "senseMs": 0.1,
+  "tickMaxMs": 0.8,
+  "tickMs": 0.2
+ },
+ "damage": [
+  {
+   "amount": 0.5,
+   "side": "client",
+   "tag": "ZOMBIE",
+   "wallMs": 1003100
+  }
+ ],
+ "damageCountsServer": null,
+ "damageSeenI": [],
+ "droppedScans": 0,
+ "events": [
+  {
+   "event": "item_added",
+   "fullType": "Base.CannedMilk",
+   "gameMin": 488.0,
+   "itemId": 501,
+   "kind": "event",
+   "seq": 14,
+   "tick": 9,
+   "wallMs": 1001300,
+   "weight": 0.75
+  },
+  {
+   "event": "item_added",
+   "fullType": "Base.Hammer",
+   "gameMin": 488.0,
+   "itemId": 502,
+   "kind": "event",
+   "seq": 15,
+   "tick": 9,
+   "wallMs": 1001300,
+   "weight": 1.0
+  },
+  {
+   "event": "item_added",
+   "fullType": "Base.WaterBottleFull",
+   "gameMin": 488.0,
+   "itemId": 503,
+   "kind": "event",
+   "seq": 16,
+   "tick": 9,
+   "wallMs": 1001300,
+   "weight": 1.25
+  },
+  {
+   "event": "zombie_dead",
+   "gameMin": 495.0,
+   "id": 12,
+   "kind": "event",
+   "seq": 25,
+   "tick": 16,
+   "wallMs": 1002200
+  },
+  {
+   "event": "item_removed",
+   "fullType": "Base.Hammer",
+   "gameMin": 498.0,
+   "itemId": 502,
+   "kind": "event",
+   "seq": 29,
+   "tick": 19,
+   "wallMs": 1002600
+  },
+  {
+   "amount": 0.5,
+   "event": "damage",
+   "gameMin": 502.0,
+   "kind": "event",
+   "seq": 34,
+   "side": "client",
+   "tag": "ZOMBIE",
+   "tick": 23,
+   "wallMs": 1003100
+  }
+ ],
+ "frameWallMs": 1004000,
+ "gameMin": 509,
+ "hello": {
+  "build": "42.21.0",
+  "caps": [
+   "walkTo",
+   "steer",
+   "attack",
+   "interact",
+   "equip",
+   "consume",
+   "drop",
+   "stop",
+   "scan",
+   "rate"
+  ],
+  "kind": "hello",
+  "mod": "fake",
+  "mode": "append",
+  "proto": "PZA/1",
+  "rate": 10,
+  "seq": 1,
+  "tick": 0,
+  "user": "agent",
+  "wallMs": 1000000
+ },
+ "inventory": {
+  "501": {
+   "fullType": "Base.CannedMilk",
+   "weight": 0.75
+  },
+  "503": {
+   "fullType": "Base.WaterBottleFull",
+   "weight": 1.25
+  }
+ },
+ "lastReply": null,
+ "load": {
+  "level": 0,
+  "max": 8,
+  "n": 12,
+  "weight": 4.5
+ },
+ "map": {
+  "100,200,0": {
+   "building": 7,
+   "containers": [
+    {
+     "items": [
+      "Base.CannedMilk"
+     ],
+     "n": 1,
+     "type": "fridge"
+    }
+   ],
+   "door": {
+    "barricaded": false,
+    "locked": false,
+    "open": true
+   },
+   "floor": [],
+   "light": 0.75,
+   "room": "kitchen",
+   "solid": false,
+   "solidTrans": false,
+   "window": null,
+   "x": 100,
+   "y": 200,
+   "z": 0
+  },
+  "100,201,0": {
+   "building": 7,
+   "containers": [],
+   "door": null,
+   "floor": [],
+   "light": 0.75,
+   "room": "kitchen",
+   "solid": false,
+   "solidTrans": false,
+   "window": {
+    "barricaded": false,
+    "locked": true,
+    "open": false
+   },
+   "x": 100,
+   "y": 201,
+   "z": 0
+  },
+  "101,200,0": {
+   "building": 7,
+   "containers": [],
+   "door": null,
+   "floor": [],
+   "light": 0.75,
+   "room": "kitchen",
+   "solid": false,
+   "solidTrans": false,
+   "window": null,
+   "x": 101,
+   "y": 200,
+   "z": 0
+  },
+  "101,201,0": {
+   "building": 7,
+   "containers": [
+    {
+     "items": [
+      "Base.Hammer"
+     ],
+     "n": 1,
+     "type": "crate"
+    }
+   ],
+   "door": null,
+   "floor": [
+    "Base.Axe"
+   ],
+   "light": 0.75,
+   "room": "kitchen",
+   "solid": false,
+   "solidTrans": false,
+   "window": null,
+   "x": 101,
+   "y": 201,
+   "z": 0
+  },
+  "102,200,0": {
+   "building": null,
+   "containers": [],
+   "door": null,
+   "floor": [],
+   "light": 0.75,
+   "room": null,
+   "solid": false,
+   "solidTrans": false,
+   "window": null,
+   "x": 102,
+   "y": 200,
+   "z": 0
+  },
+  "102,201,0": {
+   "building": null,
+   "containers": [],
+   "door": null,
+   "floor": [],
+   "light": 0.75,
+   "room": null,
+   "solid": true,
+   "solidTrans": false,
+   "window": null,
+   "x": 102,
+   "y": 201,
+   "z": 0
+  }
+ },
+ "mapLines": 4,
+ "me": {
+  "autoWalk": false,
+  "dir": "S",
+  "forceRun": false,
+  "forceSprint": false,
+  "moving": true,
+  "pace": 0,
+  "running": false,
+  "sprinting": false,
+  "x": 107,
+  "y": 200,
+  "z": 0
+ },
+ "missing": [
+  "getModData"
+ ],
+ "missingItems": 0,
+ "server": {},
+ "stats": {
+  "endurance": 1,
+  "fatigue": 0.05,
+  "hunger": 0.25,
+  "pain": 0,
+  "panic": 0,
+  "sickness": 0,
+  "temperature": 37,
+  "thirst": 0.1,
+  "wetness": 0
+ },
+ "unknownKinds": 0,
+ "weapon": {
+  "ammo": null,
+  "cond": 0.9,
+  "reach": 1.2,
+  "type": "Base.BaseballBat"
+ },
+ "zombies": {
+  "11": {
+   "crawler": false,
+   "dist": 2.75,
+   "hasTarget": true,
+   "health": 1.5,
+   "seenWallMs": 1004000,
+   "x": 102.75,
+   "y": 200
+  }
+ }
+}

@@ -1,0 +1,378 @@
+"""World from PZA/1 lines (Plan 22 Task 9a): the frame's groups, zombies aged by wallMs, the map by square with its
+containers and looted marks, the inventory by item id, damage from the client's events and the server's damage.watch
+replies, the act lines, a byte-stable to_json and a replay of a state.log through FileTransport (delta frames merged
+as live). The heuristics are Plan 21's (`testing/agent/world.py`, frozen) with FOOD_RX and WATER_RX widened.
+
+The committed fixtures `fixtures/pza1-synthetic-1.log` and `.world.json` are written by `_write_synthetic` below, run
+once by hand from the repository root:
+
+    cd testing && python -c "from tests.pzagent.test_base_world import _regenerate; _regenerate()"
+
+and pinned by two tests: the replay equals the committed JSON byte for byte, and the fake mod regenerates the log
+byte for byte.
+"""
+import json
+import os
+
+from agent.base.world import FOOD_RX, WATER_RX, ZOMBIE_TTL_S, World, replay
+
+from .fakemod import DEFAULT_FRAME, FakeMod
+
+FIX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
+LOG = os.path.join(FIX, "pza1-synthetic-1.log")
+GOLDEN = os.path.join(FIX, "pza1-synthetic-1.world.json")
+
+DOOR = {"open": False, "locked": False, "barricaded": False}
+WINDOW = {"open": False, "locked": True, "barricaded": False}
+
+
+# -- the synthetic log ------------------------------------------------------------------------------------------------
+
+def _sq(x, y, z=0, **k):
+    d = {"x": x, "y": y, "z": z, "solid": False, "solidTrans": False, "light": 0.75, "room": None, "building": None,
+         "door": None, "window": None, "containers": [], "floor": []}
+    d.update(k)
+    return d
+
+
+SCAN_PARTS = [
+    [_sq(100, 200, room="kitchen", building=7, door=DOOR,
+         containers=[{"type": "fridge", "n": 1, "items": ["Base.CannedMilk"]}]),
+     _sq(101, 200, room="kitchen", building=7)],
+    [_sq(100, 201, room="kitchen", building=7, window=WINDOW),
+     _sq(101, 201, room="kitchen", building=7, containers=[{"type": "crate", "n": 1, "items": ["Base.Hammer"]}],
+         floor=["Base.Axe"])],
+    [_sq(102, 200), _sq(102, 201, solid=True)],
+]
+
+
+def _write_synthetic(state_dir, sink=None):
+    """The synthetic PZA/1 session: a hello, 30 frames (a full frame every 10, deltas between), two zombies that move
+    then one dies, a `map full` scan of 3 parts (one door, one window, two containers), a `map delta` of the door
+    opened, item_added x 3, item_removed x 1, a client damage event, two act lines. `sink`, a list, collects each
+    keyed line the fake mod returns. Returns the FakeMod."""
+    t = {"ms": 1_000_000}
+    m = FakeMod(str(state_dir), clock=lambda: t["ms"] / 1000.0)
+    if sink is not None:
+        emit = m._emit
+        m._emit = lambda kind, body, same=(): sink.append(emit(kind, body, same)) or sink[-1]
+
+    def step():
+        t["ms"] += 100
+
+    m.hello()
+    step()
+    for i in range(30):
+        me = dict(DEFAULT_FRAME["me"], x=100.0 + (i // 2) * 0.5, moving=i % 4 != 3)
+        stats = dict(DEFAULT_FRAME["stats"], hunger=0.1 if i < 20 else 0.25)
+        zs = [{"id": 11, "x": 110.0 - i * 0.25, "y": 200.0, "dist": 10.0 - i * 0.25,
+               "hasTarget": i >= 5, "crawler": False, "health": 1.5}]
+        if i < 15:
+            zs.append({"id": 12, "x": 104.0, "y": 204.0 - i * 0.25, "dist": 5.5 - i * 0.125,
+                       "hasTarget": True, "crawler": i >= 10, "health": 0.5})
+        m.frame(me=me, stats=stats, zombies=zs, gameMin=480.0 + i)
+        step()
+        if i in (5, 6, 7):
+            m.map_full(SCAN_PARTS[i - 5], scan_id=1, part=i - 4, parts=3, missing=["getModData"] if i == 6 else ())
+            step()
+        if i == 8:
+            m.event("item_added", itemId=501, fullType="Base.CannedMilk", weight=0.75)
+            m.event("item_added", itemId=502, fullType="Base.Hammer", weight=1.0)
+            m.event("item_added", itemId=503, fullType="Base.WaterBottleFull", weight=1.25)
+            step()
+        if i == 12:
+            m.map_delta(dict(SCAN_PARTS[0][0], door=dict(DOOR, open=True)))
+            step()
+        if i == 15:
+            m.event("zombie_dead", id=12)
+            step()
+        if i == 18:
+            m.event("item_removed", itemId=502, fullType="Base.Hammer")
+            step()
+        if i == 22:
+            m.event("damage", tag="ZOMBIE", amount=0.5, side="client")
+            step()
+        if i == 24:
+            m.act("a1", "accepted", "walkTo")
+            step()
+        if i == 26:
+            m.act("a1", "done", "walkTo", result={"d": 0.25})
+            step()
+    return m
+
+
+def _regenerate():
+    """Write the committed fixtures (run once by hand; see the module docstring)."""
+    import shutil
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        _write_synthetic(d)
+        shutil.copyfile(os.path.join(d, "state.log"), LOG)
+    with open(GOLDEN, "w", encoding="utf-8", newline="\n") as f:
+        f.write(replay(LOG).to_json() + "\n")
+
+
+# -- helpers ----------------------------------------------------------------------------------------------------------
+
+def frame(wall, zombies=(), **groups):
+    line = {"kind": "frame", "seq": 1, "tick": 1, "wallMs": wall, "gameMin": 480.0, "worldAge": 8.0,
+            "zombies": list(zombies)}
+    for g in ("me", "stats", "body", "load", "weapon", "action", "act", "cost"):
+        line[g] = DEFAULT_FRAME[g]
+    line.update(groups)
+    return line
+
+
+def zed(i, dist, x=0.0, y=0.0):
+    return {"id": i, "x": x, "y": y, "dist": dist, "hasTarget": False, "crawler": False, "health": 1.0}
+
+
+def mapline(squares, mode="full", scan_id=1, part=1, parts=1, missing=()):
+    return {"kind": "map", "seq": 2, "tick": 2, "wallMs": 0, "mode": mode, "scanId": scan_id, "part": part,
+            "parts": parts, "squares": list(squares), "missing": list(missing)}
+
+
+def event(kind, wall=0, **fields):
+    return dict({"kind": "event", "seq": 3, "tick": 3, "wallMs": wall, "event": kind, "gameMin": 480.0}, **fields)
+
+
+def me_at(x, y):
+    return dict(DEFAULT_FRAME["me"], x=x, y=y)
+
+
+# -- frames and zombies -----------------------------------------------------------------------------------------------
+
+def test_a_frame_fills_every_group_as_the_dict_it_carries():
+    w = World()
+    w.apply(frame(1000, load={"weight": 9.0, "max": 8.0, "level": 1, "n": 3}, action=None))
+    assert w.me == DEFAULT_FRAME["me"] and w.me["x"] == 100.0
+    assert w.stats == DEFAULT_FRAME["stats"] and w.body == DEFAULT_FRAME["body"]
+    assert w.load["level"] == 1 and w.weapon["type"] == "Base.BaseballBat"
+    assert w.action is None and w.act is None
+    assert w.game_min == 480.0 and w.frame_wall_ms == 1000
+
+
+def test_zombies_are_kept_by_id_and_age_out_by_wallMs():
+    assert ZOMBIE_TTL_S == 10
+    w = World()
+    w.apply(frame(1000, [zed(7, 2.0, 1.0, 2.0)]))
+    assert w.zombies[7] == {"x": 1.0, "y": 2.0, "dist": 2.0, "hasTarget": False, "crawler": False, "health": 1.0,
+                            "seenWallMs": 1000}
+    w.apply(frame(11000, []))
+    assert 7 in w.zombies
+    w.apply(frame(11001, []))
+    assert 7 not in w.zombies
+
+
+def test_a_zombie_dead_event_removes_it():
+    w = World()
+    w.apply(frame(0, [zed(1, 3.0), zed(2, 4.0)]))
+    w.apply(event("zombie_dead", id=2))
+    assert set(w.zombies) == {1}
+
+
+def test_nearest_zombie_by_dist():
+    w = World()
+    assert w.nearest_zombie() is None
+    w.apply(frame(0, [zed(1, 3.0), zed(2, 1.5), zed(3, None)]))
+    zid, z = w.nearest_zombie()
+    assert zid == 2 and z["dist"] == 1.5
+
+
+def test_an_unknown_kind_counts_and_never_raises():
+    w = World()
+    w.apply({"kind": "bogus", "seq": 1})
+    w.apply({"seq": 2})
+    assert w.unknown_kinds == 2
+
+
+def test_merge_server_keeps_the_stats_and_their_wall():
+    w = World()
+    w.merge_server({"hunger": 0.5}, 1234)
+    assert w.server == {"stats": {"hunger": 0.5}, "wallMs": 1234}
+
+
+# -- the map ----------------------------------------------------------------------------------------------------------
+
+def test_a_map_full_part_applies_its_squares_and_containers_at_once():
+    w = World()
+    w.apply(mapline(SCAN_PARTS[0], part=1, parts=3))
+    assert set(w.map) == {(100, 200, 0), (101, 200, 0)}            # no whole-scan hold
+    assert w.map[(100, 200, 0)]["door"] == DOOR
+    assert w.containers == {(100, 200, 0, 0): {"type": "fridge", "n": 1, "items": ["Base.CannedMilk"],
+                                               "looted": False}}
+    assert w.buildings == {7}
+    w.apply(mapline(SCAN_PARTS[1], part=2, parts=3, missing=["getModData"]))
+    w.apply(mapline(SCAN_PARTS[2], part=3, parts=3, missing=["getModData", "isSolid"]))
+    assert len(w.map) == 6 and len(w.containers) == 2
+    assert (101, 201, 0, 0) in w.containers                      # the floor list is not a container
+    assert w.missing == ["getModData", "isSolid"] and w.map_lines == 3 and w.dropped_scans == 0
+
+
+def test_a_looted_mark_survives_a_rescan_of_the_same_type_only():
+    w = World()
+    box = lambda typ: [_sq(1, 1, containers=[{"type": typ, "n": 1, "items": ["Base.Milk"]}])]
+    w.apply(mapline(box("fridge")))
+    w.mark_looted((1, 1, 0, 0))
+    w.mark_looted((9, 9, 9, 9))                                   # unknown: ignored
+    w.apply(mapline(box("fridge"), scan_id=2))
+    assert w.containers[(1, 1, 0, 0)]["looted"] is True
+    w.apply(mapline(box("crate"), scan_id=3))
+    assert w.containers[(1, 1, 0, 0)]["looted"] is False
+
+
+def test_a_square_rescanned_with_fewer_containers_drops_the_stale_ones():
+    w = World()
+    two = [{"type": "fridge", "n": 1, "items": ["Base.Milk"]}, {"type": "crate", "n": 1, "items": ["Base.Nails"]}]
+    w.apply(mapline([_sq(1, 1, containers=two)]))
+    assert set(w.containers) == {(1, 1, 0, 0), (1, 1, 0, 1)}
+    w.apply(mapline([_sq(1, 1, containers=two[:1])], mode="delta"))
+    assert set(w.containers) == {(1, 1, 0, 0)}
+
+
+def test_a_map_delta_replaces_one_square():
+    w = World()
+    w.apply(mapline(SCAN_PARTS[0]))
+    w.apply(mapline([dict(SCAN_PARTS[0][0], door=dict(DOOR, open=True))], mode="delta"))
+    assert w.map[(100, 200, 0)]["door"]["open"] is True
+    assert w.map[(101, 200, 0)] == SCAN_PARTS[0][1]
+    assert w.map_lines == 2 and w.dropped_scans == 0
+
+
+def test_a_null_square_and_a_bad_damage_record_never_raise():
+    w = World()
+    w.apply(mapline([None, _sq(1, 1)]))
+    w.merge_damage({"ok": True, "counts": {}, "n": 0, "last": [None, {"i": 1, "tag": "X", "amount": 1.0}],
+                    "dropped": 0}, 5)
+    assert set(w.map) == {(1, 1, 0)} and len(w.damage) == 1
+
+
+def test_a_full_part_of_an_older_scan_is_dropped_and_counted():
+    w = World()
+    w.apply(mapline([_sq(5, 5)], scan_id=4))
+    w.apply(mapline([_sq(1, 1)], scan_id=3, part=2, parts=2))
+    assert w.dropped_scans == 1 and (1, 1, 0) not in w.map
+    w.apply(mapline([_sq(6, 6)], scan_id=4, part=2, parts=2))     # the same scan's next part is not older
+    w.apply(mapline([_sq(2, 2)], mode="delta", scan_id=1))        # a delta is never dropped
+    assert w.dropped_scans == 1 and {(5, 5, 0), (6, 6, 0), (2, 2, 0)} <= set(w.map)
+
+
+# -- inventory, damage, acts, events ----------------------------------------------------------------------------------
+
+def test_item_events_build_the_inventory_by_id():
+    w = World()
+    w.apply(event("item_added", itemId=1, fullType="Base.Apple", weight=0.2))
+    w.apply(event("item_added", itemId=2, fullType="Base.Hammer", weight=1.0))
+    w.apply(event("item_removed", itemId=1, fullType="Base.Apple"))
+    w.apply(event("item_removed", itemId=99, fullType="Base.Nails"))
+    assert w.inventory == {2: {"fullType": "Base.Hammer", "weight": 1.0}}
+    assert w.missing_items == 1 and len(w.events) == 4
+
+
+def test_damage_lands_from_both_sides():
+    w = World()
+    w.apply(event("damage", wall=500, tag="ZOMBIE", amount=0.5, side="client"))
+    reply = {"ok": True, "counts": {"HEAVYLOAD": 2}, "n": 2, "dropped": 0,
+             "last": [{"i": 1, "tag": "HEAVYLOAD", "amount": 0.381, "wall": 10},
+                      {"i": 2, "tag": "HEAVYLOAD", "amount": 0.381, "wall": 11}]}
+    w.merge_damage(reply, 900)
+    w.merge_damage(dict(reply, counts={"HEAVYLOAD": 3}, n=3,
+                        last=reply["last"] + [{"i": 3, "tag": "HEAVYLOAD", "amount": 0.25, "wall": 12}]), 950)
+    assert list(w.damage) == [
+        {"tag": "ZOMBIE", "amount": 0.5, "side": "client", "wallMs": 500},
+        {"tag": "HEAVYLOAD", "amount": 0.381, "side": "server", "wallMs": 900},
+        {"tag": "HEAVYLOAD", "amount": 0.381, "side": "server", "wallMs": 900},
+        {"tag": "HEAVYLOAD", "amount": 0.25, "side": "server", "wallMs": 950},
+    ]
+    assert w.damage_counts_server == {"HEAVYLOAD": 3} and w.damage_seen_i == {1, 2, 3}
+    assert w.damage.maxlen == 500 and w.events.maxlen == 500
+
+
+def test_act_lines_keep_the_last_per_aid_and_hello_and_reply():
+    w = World()
+    w.apply({"kind": "hello", "seq": 1, "tick": 0, "wallMs": 0, "proto": "PZA/1", "mod": "fake", "build": "42.21.0",
+             "user": "agent", "rate": 10, "caps": ["walkTo"], "mode": "append"})
+    a = {"kind": "act", "seq": 2, "tick": 1, "wallMs": 1, "aid": "a1", "type": "walkTo", "state": "accepted",
+         "reason": "", "result": None, "snapshot": None}
+    w.apply(a)
+    w.apply(dict(a, seq=3, state="done", result={}))
+    w.apply(dict(a, seq=4, aid="a2", state="rejected", reason="bad args"))
+    w.apply({"kind": "reply", "seq": 5, "tick": 1, "wallMs": 2, "to": 4, "body": {"ok": True}})
+    assert w.acts["a1"]["state"] == "done" and w.acts["a2"]["reason"] == "bad args"
+    assert w.hello["proto"] == "PZA/1" and w.last_reply["to"] == 4 and w.unknown_kinds == 0
+
+
+# -- the heuristics ---------------------------------------------------------------------------------------------------
+
+def test_the_widened_patterns():
+    for name in ("Base.CannedMilk", "Base.TinnedSoup", "Base.Macandcheese", "Base.PowerBar", "Base.Apple",
+                 "Base.Ham", "Base.CannedCorn"):
+        assert FOOD_RX.search(name), name
+    for name in ("Base.Hammer", "Base.Nails", "Base.WaterBottleEmpty", "Base.Axe"):
+        assert not FOOD_RX.search(name), name
+    assert WATER_RX.search("Base.WaterBottleFull") and WATER_RX.search("Base.WaterBottle")
+    assert not WATER_RX.search("Base.WaterBottleEmpty") and not WATER_RX.search("Base.CannedMilk")
+
+
+def test_nearest_unlooted_filters_and_skips_the_looted_and_the_empty():
+    w = World()
+    w.apply(frame(0, me=me_at(0.0, 0.0)))
+    w.apply(mapline([_sq(1, 0, containers=[{"type": "crate", "n": 1, "items": ["Base.Nails"]}]),
+                     _sq(2, 0, containers=[{"type": "crate", "n": 0, "items": []}], floor=["Base.Apple"]),
+                     _sq(5, 0, containers=[{"type": "fridge", "n": 1, "items": ["Base.CannedMilk"]}]),
+                     _sq(9, 0, containers=[{"type": "shelf", "n": 1, "items": ["Base.WaterBottleFull"]}])]))
+    assert w.nearest_unlooted() == (1, 0, 0, 0)
+    assert w.nearest_unlooted("food") == (5, 0, 0, 0)
+    assert w.nearest_unlooted("water") == (9, 0, 0, 0)
+    w.mark_looted((5, 0, 0, 0))
+    assert w.nearest_unlooted("food") is None
+
+
+def test_unexplored_edge_as_plan_21():
+    w = World()
+    assert w.unexplored_edge() is None
+    w.apply(frame(0, me=me_at(1.0, 1.0)))
+    w.apply(mapline([_sq(x, y, solid=(x, y) == (0, 0)) for x in range(3) for y in range(3)]))
+    assert w.unexplored_edge() == (0, 1)       # (1,1) is interior; ties at distance 1 break by (x, y)
+
+
+def test_the_heuristics_survive_a_null_me():
+    w = World()
+    w.apply(frame(0, me=None))
+    w.apply(mapline([_sq(1, 0, containers=[{"type": "crate", "n": 1, "items": ["Base.Nails"]}])]))
+    assert w.me is None and w.nearest_unlooted() == (1, 0, 0, 0) and w.unexplored_edge() == (1, 0)
+
+
+# -- replay and the fixtures ------------------------------------------------------------------------------------------
+
+def test_replay_of_the_committed_log_equals_the_committed_json_byte_for_byte():
+    with open(GOLDEN, encoding="utf-8", newline="") as f:
+        assert replay(LOG).to_json() + "\n" == f.read()
+
+
+def test_the_fake_mod_regenerates_the_committed_log_byte_for_byte(tmp_path):
+    _write_synthetic(tmp_path)
+    with open(LOG, "rb") as f:
+        assert (tmp_path / "state.log").read_bytes() == f.read()
+
+
+def test_to_json_is_byte_stable_and_replay_merges_deltas_as_the_fake_wrote(tmp_path):
+    a, b = replay(LOG).to_json(), replay(LOG).to_json()
+    assert a == b
+    wrote = []
+    _write_synthetic(tmp_path, sink=wrote)                        # the keyed, SAME-free lines the fake wrote
+    direct = World()
+    for line in wrote:
+        direct.apply(line)
+    assert replay(str(tmp_path / "state.log")).to_json() == a
+    assert json.loads(direct.to_json()) == json.loads(a)          # equal values (the wire writes 100.0 as 100)
+    w = replay(LOG)
+    assert w.stats["hunger"] == 0.25 and w.me["x"] == 107.0 and set(w.zombies) == {11}
+    assert w.containers[(100, 200, 0, 0)]["items"] == ["Base.CannedMilk"]
+    assert w.map[(100, 200, 0)]["door"]["open"] is True and w.missing == ["getModData"] and w.map_lines == 4
+    assert w.inventory == {501: {"fullType": "Base.CannedMilk", "weight": 0.75},
+                           503: {"fullType": "Base.WaterBottleFull", "weight": 1.25}}
+    assert list(w.damage) == [{"tag": "ZOMBIE", "amount": 0.5, "side": "client", "wallMs": w.damage[0]["wallMs"]}]
+    assert w.acts["a1"]["state"] == "done" and w.hello["proto"] == "PZA/1"
+    assert w.nearest_unlooted("food") == (100, 200, 0, 0)
+    assert w.unknown_kinds == 0 and w.dropped_scans == 0
