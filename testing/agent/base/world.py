@@ -219,10 +219,13 @@ class World:
                 best = rank
         return (best[1], best[2]) if best else None
 
-    def nearest_zombie(self):
-        """(id, zombie) of the least `dist`, ties by id; a zombie without a dist is never nearest; None if none."""
+    def nearest_zombie(self, exclude=()):
+        """(id, zombie) of the least `dist`, ties by id; a zombie without a dist or whose id is in `exclude` is never
+        nearest; None if none."""
         best = None
         for zid, z in self.zombies.items():
+            if zid in exclude:
+                continue
             d = z.get("dist")
             if d is None:
                 continue

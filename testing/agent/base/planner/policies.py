@@ -20,6 +20,15 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   the Fight is made and restarted by every `observe()` that reads no zombie or the nearest within `FIGHT_REACH`;
   `stalled` reads true once the nearest has been beyond `FIGHT_REACH` for more than `FIGHT_MAX_S` unbroken wall
   seconds (a knock-back for one tick restarts nothing old; the clock counts the unbroken time out of reach only).
+  Within reach that clock is not the stall: run 1 (the whole-pass review's I2) swung 103 attacks, every one `done`
+  with `attackStarted` true, at zombie 32404 behind a locked door, its health 1.167 on all 1530 frames listing it, and
+  the out-of-reach clock restarted on every tick. The no-progress stall: `STALL_SWINGS` consecutive `done` attacks
+  on one target with `attackStarted` true, read off `Actions`' ended records, whose target's health (the frame's
+  `zombies[*].health` for its id) did not fall below the health at the streak's start, make that target unreachable
+  for `UNREACHABLE_S` wall seconds: `nearest_zombie` skips it, so the Fight takes another target or, with none, sends
+  nothing (Survive then flees, reason `unreachable`). A swing not started neither counts nor resets the streak; a
+  fall, a new target or a target no frame lists restarts it. `unreachable` (id -> wall until) is passed in so a
+  later Fight of the same planner keeps it.
 - `Flee`: a `Steer` of `FLEE_S` seconds along the unit vector from the threats' centroid through the player (the
   `threats` list its caller passes, else every zombie the World holds), at a sprint when the nearest is within
   `SPRINT_R`, else a run; re-aimed on every end of its steer. A player standing on the centroid steers along +x.
@@ -50,6 +59,8 @@ from agent.base.world import FOOD_RX, WATER_RX
 FIGHT_REACH = 2.0     # tiles: a nearest zombie beyond this is walked to, within it attacked
 FIGHT_MAX_S = 20.0    # wall seconds the nearest may stay beyond FIGHT_REACH before the fight reads stalled
 MISSES_TO_APPROACH = 2   # attack results in a row with attackStarted false before one approach walk
+STALL_SWINGS = 3      # started swings in a row on one target that took no health before it reads unreachable
+UNREACHABLE_S = 20.0  # wall seconds a no-progress target is skipped
 FLEE_S = 3.0          # seconds a flee's steer runs before it is re-aimed
 SPRINT_R = 2.0        # tiles: a nearest zombie within this is fled at a sprint
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
@@ -114,16 +125,47 @@ class Policy:
         return None if cmd is None else self.send(cmd)
 
 
+def blocked(unreachable, now):
+    """The ids of `unreachable` (id -> wall until) still skipped at `now`."""
+    return {zid for zid, until in unreachable.items() if until > now}
+
+
 class Fight(Policy):
-    def __init__(self, world, actions, clock=time.time):
+    def __init__(self, world, actions, clock=time.time, unreachable=None):
         super().__init__(world, actions, clock)
         self.out_of_reach_since = clock()   # the stall clock: since when the nearest has been out of reach
         self.misses = 0                     # attack results in a row with attackStarted false
         self.approach = False               # the next command is an approach walk
+        self.unreachable = {} if unreachable is None else unreachable   # target id -> wall until it is skipped
+        self.no_progress = 0                # started swings in a row on `_streak_id` that took no health
+        self._streak_id = None
+        self._streak_h = None               # the target's health at the streak's start
         self._counted = None                # the last attack whose result was counted
 
+    def blocked(self):
+        return blocked(self.unreachable, self.clock())
+
+    def _target_health(self, zid):
+        z = self.world.zombies.get(zid)
+        return None if z is None else z.get("health")
+
+    def _swing_landed_nothing(self, zid):
+        """Count one started swing on `zid` against its health at the streak's start; mark the target unreachable
+        after STALL_SWINGS that took none."""
+        h = self._target_health(zid)
+        if zid != self._streak_id or h is None:
+            self._streak_id, self._streak_h, self.no_progress = None, None, 0
+            return
+        if self._streak_h is None or h < self._streak_h:
+            self._streak_h, self.no_progress = h, 0
+            return
+        self.no_progress += 1
+        if self.no_progress >= STALL_SWINGS:
+            self.unreachable[zid] = self.clock() + UNREACHABLE_S
+            self._streak_id, self._streak_h, self.no_progress = None, None, 0
+
     def _nearest(self):
-        nz = self.world.nearest_zombie()
+        nz = self.world.nearest_zombie(exclude=self.blocked())
         if nz is None or nz[1].get("x") is None or nz[1].get("y") is None:
             return None
         zid, z = nz
@@ -146,6 +188,8 @@ class Fight(Policy):
                 self.misses = 0
         else:
             self.misses = 0
+            if a.state == "done" and a.result.get("attackStarted") is True:
+                self._swing_landed_nothing(a.args.get("targetId"))
 
     def fight_s(self):
         """Seconds the nearest has been out of reach (the stall clock)."""
@@ -157,11 +201,16 @@ class Fight(Policy):
 
     def choose(self):
         near = self._nearest()
+        skipped = sorted(self.blocked(), key=str)
         if near is None:
             self.why = {"target": None}
+            if skipped:
+                self.why["unreachable"] = skipped
             return None
         zid, z, d = near
         self.why = {"target": zid, "dist": d, "approach": self.approach}
+        if skipped:
+            self.why["unreachable"] = skipped
         if self.approach or d > FIGHT_REACH:
             return WalkTo(int(z["x"]), int(z["y"]), "run")
         return Attack(int(zid))
@@ -169,6 +218,8 @@ class Fight(Policy):
     def sent(self, cmd, action):
         if cmd.TYPE == "walkTo":
             self.approach = False
+        elif cmd.TYPE == "attack" and cmd.targetId != self._streak_id:   # a new target: its streak starts here
+            self._streak_id, self._streak_h, self.no_progress = cmd.targetId, self._target_health(cmd.targetId), 0
 
 
 class Flee(Policy):

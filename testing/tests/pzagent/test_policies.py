@@ -180,6 +180,95 @@ def test_a_tick_within_reach_restarts_the_stall_clock(tmp_path):
     assert f.stalled is True                                 # 20.5 s unbroken out of reach
 
 
+# I2 (the whole-pass review): run 1's 103 attacks, every one `done` with `attackStarted` true, zombie 32404's health
+# 1.167 on all 1530 frames listing it -- a target within FIGHT_REACH behind a locked door held the fight forever.
+def zh(zid, x, y, health):
+    return dict(zombie(zid, x, y), health=health)
+
+
+def swing_at(r, f, zid, x, health, started=True):
+    """Step the fight, expect an attack on zid, answer it done with `started`, then a frame with the target at
+    `health`."""
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": zid})
+    r.answer({"state": "done", "result": swing(started)})
+    r.frame(zombies=[zh(zid, x, 200.0, health)])
+
+
+def test_the_no_progress_constants():
+    assert (P.STALL_SWINGS, P.UNREACHABLE_S) == (3, 20.0)
+
+
+def test_three_started_swings_that_take_no_health_make_the_target_unreachable(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(zombies=[zh(7, 101.0, 200.0, 1.167)])
+    f = Fight(r.world, r.acts, r.clock)
+    for _ in range(3):
+        swing_at(r, f, 7, 101.0, 1.167)
+    a = f.step()                                             # the fourth decision
+    assert a is None or a.args.get("targetId") != 7
+    assert len([x for x in r.acts.history if x.type == "attack"]) == 3
+    assert f.why["unreachable"] == [7]
+    r.advance(P.UNREACHABLE_S - 0.5)
+    r.frame(zombies=[zh(7, 101.0, 200.0, 1.167)])
+    assert f.step() is None                                  # still inside UNREACHABLE_S
+    r.advance(1.0)
+    r.frame(zombies=[zh(7, 101.0, 200.0, 1.167)])
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 7})            # past it: tried again
+
+
+def test_an_unreachable_target_falls_through_to_another(tmp_path):
+    r = Rig(tmp_path)
+    two = lambda: [zh(7, 101.0, 200.0, 1.167), zh(8, 101.5, 201.0, 1.0)]
+    r.frame(zombies=two())
+    f = Fight(r.world, r.acts, r.clock)
+    for _ in range(3):
+        f.step()
+        assert r.cmd() == ("attack", {"targetId": 7})
+        r.answer({"state": "done", "result": swing(True)})
+        r.frame(zombies=two())
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 8})
+
+
+def test_swings_whose_target_loses_health_keep_the_fight(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(zombies=[zh(7, 101.0, 200.0, 1.0)])
+    f = Fight(r.world, r.acts, r.clock)
+    for h in (0.9, 0.9, 0.8, 0.8, 0.8, 0.7):                 # a fall within every three swings
+        swing_at(r, f, 7, 101.0, h)
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 7}) and len(r.acts.history) == 7
+
+
+def test_a_done_swing_not_started_does_not_count(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(zombies=[zh(7, 101.0, 200.0, 1.0)])
+    f = Fight(r.world, r.acts, r.clock)
+    swing_at(r, f, 7, 101.0, 1.0)
+    swing_at(r, f, 7, 101.0, 1.0, started=False)
+    swing_at(r, f, 7, 101.0, 1.0)
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 7})            # two started swings only: still fighting
+    r.answer({"state": "done", "result": swing(True)})
+    r.frame(zombies=[zh(7, 101.0, 200.0, 1.0)])
+    a = f.step()
+    assert a is None or a.args.get("targetId") != 7          # the third started swing
+
+
+def test_the_unreachable_memory_is_shared_with_a_later_fight(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(zombies=[zh(7, 101.0, 200.0, 1.0)])
+    memo = {}
+    f = Fight(r.world, r.acts, r.clock, unreachable=memo)
+    for _ in range(3):
+        swing_at(r, f, 7, 101.0, 1.0)
+    f.step()
+    assert set(memo) == {7}
+    assert Fight(r.world, r.acts, r.clock, unreachable=memo).step() is None
+
+
 def test_fight_with_no_zombie_sends_nothing(tmp_path):
     r = Rig(tmp_path)
     r.frame()

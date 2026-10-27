@@ -206,6 +206,28 @@ def test_a_stalled_fights_flee_is_held_until_the_zombie_closes(tmp_path):
     assert "flee" not in threat_why(tmp_path)
 
 
+# I2: a target whose three started swings took no health is unreachable for UNREACHABLE_S; the threat branch flees
+# rather than attack it again (run 1's 103 attacks on zombie 32404).
+def test_an_unreachable_only_threat_is_fled_never_attacked_again(tmp_path):
+    r, sv = make(tmp_path)
+    z = lambda: [dict(zombie(1, 101.0, 200.0), health=1.167)]
+    r.frame(zombies=z())
+    for _ in range(3):
+        tick(r, sv)
+        assert r.cmd() == ("attack", {"targetId": 1})
+        r.answer({"state": "done", "result": swing(True)})
+        r.frame(zombies=z())
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "unreachable"
+    for _ in range(3):
+        r.answer()
+        r.advance(1.0)
+        r.frame(zombies=z())
+        tick(r, sv)
+        assert r.cmd()[0] == "steer"
+    assert [a.type for a in r.acts.history].count("attack") == 3
+
+
 def test_the_log_line_carries_mode_and_fight_s(tmp_path):
     r, sv = make(tmp_path)
     r.frame(zombies=[zombie(1, 103.0, 200.0)])

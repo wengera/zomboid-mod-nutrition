@@ -23,6 +23,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   the nearest stays beyond FIGHT_REACH; a running fight turns to flee only on the flee conditions or its stall
   (`Fight.stalled`: the nearest beyond FIGHT_REACH for more than FIGHT_MAX_S unbroken seconds), never because a
   threat count dropped. The flee steers from the held threats' centroid.
+- Unreachable (the whole-pass review's I2): a target whose STALL_SWINGS started swings took no health is skipped for
+  UNREACHABLE_S (`policies.Fight`); Survive keeps that memory in `unreachable` across its Fights, and when every held
+  threat is skipped the branch flees (reason `unreachable`), never attacking it again until its time runs out.
 - `need`: while its own `Consume` is current it holds, before any threshold is read (a frame that already reads the
   drink's effect must not let a lower branch supersede it); else thirst > THIRST_T consumes the held item of least id whose fullType matches WATER_RX, else marks `water`;
   then hunger > HUNGER_T consumes a held FOOD_RX item, else marks `food`; nothing held, the branch passes and
@@ -40,7 +43,7 @@ import json
 import time
 
 from agent.base.planner.policies import (FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Explore, Fight, Flee, LootHouse,
-                                         item_id_ok, zdist)
+                                         blocked, item_id_ok, zdist)
 from agent.base.pza1 import Consume
 from agent.base.world import FOOD_RX, WATER_RX
 
@@ -74,6 +77,7 @@ class Survive:
         self.fight = None
         self.flee = None
         self.stall_flee = False   # the running flee was chosen because a fight stalled
+        self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
         self.loot = LootHouse(world, actions, clock)
         self.explore = Explore(world, actions, clock)
         self.need_last = None     # the last Consume sent
@@ -106,6 +110,13 @@ class Survive:
                if item_id_ok(i) and rx.search(it.get("fullType") or "")]
         return min(ids) if ids else None
 
+    def _reachable_held(self):
+        """The held threats not marked unreachable."""
+        skip = blocked(self.unreachable, self.clock())
+        r = self._hold_r()
+        return [z for zid, z in self.world.zombies.items() if zid not in skip and z.get("x") is not None
+                and z.get("y") is not None and zdist(self.world, z) <= r]
+
     def _flee_reason(self, held, n):
         """Why the threat branch flees, by the hysteresis in the module docstring; None when it fights."""
         health = self._health()
@@ -117,6 +128,8 @@ class Survive:
             return "health"
         if n >= 2 and health < FLEE_HEALTH_PAIR:
             return "pair"
+        if not self._reachable_held():
+            return "unreachable"
         near = min(zdist(self.world, z) for z in held)
         if self.mode == "flee":
             if self.stall_flee and near > FIGHT_REACH:
@@ -148,7 +161,8 @@ class Survive:
         want = "fight" if reason is None else "flee"
         if want != self.mode:
             if want == "fight":
-                self.fight, self.flee, self.stall_flee = Fight(self.world, self.actions, self.clock), None, False
+                self.fight = Fight(self.world, self.actions, self.clock, unreachable=self.unreachable)
+                self.flee, self.stall_flee = None, False
             else:
                 self.flee, self.fight = Flee(self.world, self.actions, self.clock), None
                 self.stall_flee = reason == "stalled"
