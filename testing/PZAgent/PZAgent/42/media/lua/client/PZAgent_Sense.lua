@@ -242,6 +242,7 @@ function S.frame(p)
     f.act = guarded("act", act)
     f.zombies, S.zobj = guarded("zombies", zombies, f.me.x, f.me.y)
     if f.zombies == nil then f.zombies, S.zobj = {}, {} end
+    S.last = f
     return f
 end
 
@@ -489,21 +490,12 @@ function S.zombieById(p, id)
     return nil
 end
 
--- the nearest live zombie in the cell list as { id, dist }, or nil when none (the runner's snapshot)
+-- the nearest live zombie as { id, dist } (the runner's snapshot): the last frame's first zombie record, the frame's
+-- list being sorted nearest first within ZOMBIE_RADIUS, or nil before the first frame or when it listed none; no cell
+-- walk, so a snapshot (every rejected, failed and done act, every scan and rate) costs no Java call
 function S.nearestZombie(p)
-    local okX, px = PZA.call(p, "getX")
-    local okY, py = PZA.call(p, "getY")
-    local list = zombieList()
-    if not okX or not okY or list == nil then return nil end
-    local best = nil
-    for _, z in ipairs(list) do
-        if not isDead(z) then
-            local d = distOf(z, px, py)
-            if d ~= nil and (best == nil or d < best.dist) then
-                local _, zid = PZA.call(z, "getOnlineID")
-                best = { id = zid, dist = d }
-            end
-        end
-    end
-    return best
+    local f = S.last
+    local z = f ~= nil and f.zombies ~= nil and f.zombies[1] or nil
+    if z == nil then return nil end
+    return { id = z.id, dist = z.dist }
 end

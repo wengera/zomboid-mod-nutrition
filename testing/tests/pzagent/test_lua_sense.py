@@ -479,15 +479,45 @@ def test_an_item_whose_id_cannot_be_read_is_reported_missing(lua):
     assert "getID" in missing(lua)
 
 
-def test_nearest_zombie_is_the_closest_live_one_or_nil(lua):
+def test_nearest_zombie_is_the_last_frames_closest_live_one_or_nil(lua):
+    """Fix wave M9: the snapshot's nearest is the last frame's first zombie (the frame sorts them nearest first)."""
     load(lua)
     g = lua.globals()
+    assert lua.eval("PZA.sense.nearestZombie(...)", make_player()) is None      # no frame yet
     g._cell = make_cell(zombies=[make_zombie(7, 15.0, 20.0), make_zombie(8, 11.0, 20.0, dead=True),
                                  make_zombie(9, 10.0, 23.0)])
+    frame(lua, make_player())
     n = lua.eval("PZA.sense.nearestZombie(...)", make_player())
-    assert n["id"] == 9 and abs(n["dist"] - 3.0) < 1e-9
+    assert dict(n) == {"id": 9, "dist": 3.0}
     g._cell = make_cell()
+    frame(lua, make_player())
     assert lua.eval("PZA.sense.nearestZombie(...)", make_player()) is None
+
+
+def test_nearest_zombie_reads_no_cell_list(lua):
+    """Fix wave M9: with 50 zombies in the cell list, the snapshot's nearest calls the cell's list reader not once."""
+    load(lua)
+    g = lua.globals()
+    zs = [make_zombie(100 + i, 10.0 + 0.1 * (i + 1), 20.0) for i in range(50)]
+    calls = {"list": 0, "get": 0}
+
+    def get(s, i):
+        calls["get"] += 1
+        return zs[i]
+    zl = J(size=lambda s: len(zs), get=get)
+
+    def zombie_list(s):
+        calls["list"] += 1
+        return zl
+    g._cell = J(getZombieList=zombie_list, getGridSquare=lambda s, x, y, z: None)
+    frame(lua, make_player())
+    seen = dict(calls)
+    assert seen["list"] >= 1 and seen["get"] >= 50
+    n = lua.eval("PZA.sense.nearestZombie(...)", make_player())
+    assert n["id"] == 100 and abs(n["dist"] - 0.1) < 1e-9
+    snap = lua.eval("PZA.skills.snapshot(...)", make_player())
+    assert snap["nearest"]["id"] == 100
+    assert calls == seen
 
 
 # ---- a raising Java member (ruling S-15) -----------------------------------------------------------------------------
