@@ -62,7 +62,11 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   doors were all broken, door debris on the floor, so `exterior_doors` was empty while its doorways stood open): each
   `(room square, outside square)` pair of the building, sorted, whose orthogonal step from a room square of it to a
   mapped, non-solid square with no room reads not blocked (`blocked`: the kept `blockN`/`blockW` false, a null read
-  blocked) — a doorway whose door is open or gone, an open window or a missing wall; memoised per map version.
+  blocked) — a doorway whose door is open or gone, or a missing wall; memoised per map version. A window's edge is
+  never one (survival 2 fix round 1, the review's G1: five of building 3's seven were smashed windows, and the jar's
+  path follower fails a player's path at a window it cannot climb, `PathFindBehavior2.checkDoorHoppableWindow`, a
+  review reading): the square holding the edge carries a `window` record and that edge's `edgeN`/`edgeW` reads
+  true (both edges flagged on one window square read both as windows).
 - `by_use()`: the inventory's ids by the item's own `use` (the engine's answer, Plan 23 Task 9b), else
   `agent.base.items.use_of` (the
   dataset; a `food` the dataset marks `cant_eat` reads `other`), an id the planner marked empty (`mark_empty`, kept in
@@ -465,9 +469,21 @@ class World:
         """The mapped squares of `building` with a door, sorted (cached per map version: read it, never change it)."""
         return self._indexes()[2].get(building, [])
 
+    def _window_edge(self, a, b):
+        """The edge between two orthogonally adjacent squares is a window's: the square holding it (a square keeps its
+        own north and west edges) carries a `window` record and that edge's `edgeN`/`edgeW` reads true. With both its
+        edges flagged the record does not say which holds the window, so both read as windows."""
+        if b[1] != a[1]:
+            holder, field = (a, "edgeN") if b[1] == a[1] - 1 else (b, "edgeN")
+        else:
+            holder, field = (a, "edgeW") if b[0] == a[0] - 1 else (b, "edgeW")
+        s = self.map.get(holder) or {}
+        return s.get("window") is not None and bool(s.get(field))
+
     def openings(self, building):
         """The building's openings (the module docstring): `(room square, outside square)` pairs, sorted, each step
-        between the two read not blocked; memoised per map version (read it, never change it)."""
+        between the two read not blocked and not a window's edge (`_window_edge`); memoised per map version (read it,
+        never change it)."""
         def walk():
             out = []
             for sq in self.interiors().get(building, ()):
@@ -476,7 +492,7 @@ class World:
                     s = self.map.get(n)
                     if s is None or s.get("solid") or s.get("room") is not None:
                         continue
-                    if not self._orth_blocked(sq, n):
+                    if not self._orth_blocked(sq, n) and not self._window_edge(sq, n):
                         out.append((sq, n))
             return sorted(out)
         return self.memo(("openings", building), walk)

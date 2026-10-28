@@ -795,21 +795,26 @@ def test_unknown_open_reads_an_unmapped_diagonal_corner_open_and_the_default_ref
 
 def test_openings_name_the_open_doorway_of_a_room_whose_doors_are_broken():
     """Survival 2 (ruling P23-AJ 3 as amended, the chain's E2): building 3's bathroom, its doors broken (door debris
-    on the floor, no door record anywhere), walled on every side but one doorway on the west edge of (2, 2): the
-    openings are that one step out; a shut edge, a null edge and an unmapped neighbour are none."""
+    on the floor, no door record anywhere), one doorway on the west edge of (2, 2) and, beside it as on E2's map, a
+    smashed window on the west edge of (2, 1) (its record `open` false, `edgeW` true, `blockW` false): the openings
+    are the doorway only (fix round 1, the review's G1 and M3); a window on a south edge, held by the square below,
+    is none either; a shut edge, a null edge and an unmapped neighbour are none."""
     debris = ["Base.UnusableWood", "Base.Doorknob", "Base.Hinge"]
     over = {}
     for x in (2, 3):
         for y in (1, 2, 3):
-            over[(x, y)] = {"room": "bathroom", "building": 3, "blockW": x == 2 and y != 2, "blockN": y == 1}
+            over[(x, y)] = {"room": "bathroom", "building": 3, "blockW": x == 2 and y == 3, "blockN": y == 1,
+                            "edgeW": x == 2 and y != 2}
+    over[(2, 1)]["window"] = {"open": False, "locked": True, "barricaded": False}   # smashed: blockW false
     over[(2, 2)]["floor"] = debris
     for y in (1, 2, 3):
         over[(4, y)] = {"blockW": True}
-    for x in (2, 3):
-        over[(x, 4)] = {"blockN": True}
+    over[(2, 4)] = {"blockN": True}
+    over[(3, 4)] = {"blockN": False, "edgeN": True, "window": {"open": False, "locked": True, "barricaded": False}}
     w = _world(_grid(0, 0, 5, 5, over=over), me=(2.5, 2.5))
     assert w.doors_of(3) == []
     assert w.openings(3) == [((2, 2, 0), (1, 2, 0))]
+    assert not w.blocked((2, 1, 0), (1, 1, 0)) and not w.blocked((3, 3, 0), (3, 4, 0))   # open edges, windows both
     over[(2, 2)].update(blockW=True, door=DOOR)                    # the doorway shut: a closed door's edge
     w = _world(_grid(0, 0, 5, 5, over=over), me=(2.5, 2.5))
     assert w.openings(3) == []
