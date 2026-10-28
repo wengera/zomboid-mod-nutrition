@@ -382,6 +382,42 @@ def test_a_raising_scan_step_drops_the_job_and_the_watch_takes_over():
     g._clock["ms"] += 1000
     g._handlers[0]()
     out = live_lines(lua, fs)
-    assert [l["state"] for l in out if l["kind"] == "act" and l["aid"] == "s1"] == ["done"]
+    s1 = [l for l in out if l["kind"] == "act" and l["aid"] == "s1"]
+    assert [(l["state"], l["reason"]) for l in s1] == [("done", ""), ("failed", "interrupted")]   # 2.8: never waited on
+    assert s1[1]["type"] == "scan" and s1[1]["snapshot"] is not None
     assert len([l for l in out if l["kind"] == "frame"]) == 2
     assert len([l for l in out if l["kind"] == "map"]) == 0 and lua.eval("PZA.map.errors") == 2
+
+
+# ---- X4 fix pass 2.8 (fix-wave review Minors 5 and 6, ruling S-30): a scan's raise always ends its act line ---------
+
+def test_a_raising_scan_start_answers_the_scan_failed_interrupted_and_the_tick_goes_on():
+    lua, fs, g = raising_square_host()
+    p = g.getPlayer()
+    real_x = p.getX
+
+    def raising_x(s):
+        raise RuntimeError("java raised: getX")
+    lua.execute("PZA.map.WATCH_EVERY = 6")                    # keep the watch off the raising squares on this tick
+    p.getX = raising_x
+    fs.files[CMD] = json.dumps({"seq": 1, "aid": "s1", "type": "scan", "args": {"r": 3}}) + "\n"
+    g._handlers[0]()
+    p.getX = real_x
+    out = live_lines(lua, fs)
+    s1 = [l for l in out if l["kind"] == "act" and l["aid"] == "s1"]
+    assert [(l["type"], l["state"], l["reason"]) for l in s1] == [("scan", "failed", "interrupted")]
+    assert lua.eval("PZA.map.job") is None and lua.eval("PZA.map.errors") == 1
+    assert "raise:map" in set(lua.eval("PZA.map.missing").values())
+    assert lua.eval("PZA.main.ready") is True
+
+
+def test_a_job_dropped_by_the_map_phase_names_its_scans_aid_once():
+    lua, fs, g = raising_square_host()
+    fs.files[CMD] = json.dumps({"seq": 1, "aid": "s1", "type": "scan", "args": {"r": 3}}) + "\n"
+    for _ in range(5):
+        g._clock["ms"] += 1000
+        g._handlers[0]()                                      # the job drops on the first; the watch raises after
+    out = live_lines(lua, fs)
+    s1 = [l for l in out if l["kind"] == "act" and l["aid"] == "s1"]
+    assert [l["state"] for l in s1] == ["done", "failed"]
+    assert [l for l in out if l["kind"] == "act" and l["aid"] != "s1"] == []

@@ -26,7 +26,8 @@
 -- lua_error event once a second (its flush under its own pcall, so the handler never raises). The map phase runs under
 -- its own pcall besides (ruling S-15 extended to the map): a raise there counts in PZA.errors and PZA.map.errors, is
 -- named raise:map in PZA.map.missing and reports as a lua_error under the same once-a-second limit, a running scan job is
--- dropped (its walk would retry the raising square every tick), and the tick goes on to emit its frame and flush.
+-- dropped (its walk would retry the raising square every tick) and its scan's aid ends failed interrupted, and the tick
+-- goes on to emit its frame and flush; a scan start that raises is answered failed interrupted the same way.
 PZA.main = PZA.main or {}
 local M = PZA.main
 PZA.tick = 0
@@ -106,9 +107,21 @@ local function whole(v, lo, hi)
     return type(v) == "number" and v == math.floor(v) and v >= lo and v <= hi
 end
 
+-- a map raise (S-15): counted and named on the map, reported as Main reports any raise
+local function countMapRaise(err)
+    local MP = PZA.map
+    MP.errors = (MP.errors or 0) + 1
+    MP.lastError = tostring(err)
+    PZA.missing(MP.missing, "raise:map")
+    reportError(err)
+end
+
 -- scan{r} (r in 1..30) and rate{hz} (hz in 1..60), answered by one act line: done with { queued = the job's parts } /
--- { hz }, or rejected bad args (an empty aid, a bad argument) or not loaded (the player's position unreadable). Neither
--- touches the runner's skill. Answers true when cmd was one of the two.
+-- { hz }, or rejected bad args (an empty aid, a bad argument) or not loaded (the player's position unreadable), or
+-- failed interrupted when PZA.map.scanStart raised (X4 fix pass 2.8, fix-wave review Minor 6: under its own pcall, a
+-- map raise counted, so the scan is never left without its line; a running job is kept). A started job carries the
+-- scan's aid (the map phase ends it failed if it drops the job). Neither touches the runner's skill. Answers true
+-- when cmd was one of the two.
 local function mainCommand(cmd, p)
     local typ = cmd.type
     if typ ~= "scan" and typ ~= "rate" then return false end
@@ -121,8 +134,12 @@ local function mainCommand(cmd, p)
             PZA.link.forceFull = true
             body.state, body.reason, body.result = "done", "", { hz = a.hz }
         elseif typ == "scan" and whole(a.r, 1, 30) then
-            local parts = PZA.map.scanStart(p, a.r)
-            if parts ~= nil then
+            local okS, parts = pcall(PZA.map.scanStart, p, a.r)
+            if not okS then
+                countMapRaise(parts)
+                body.state, body.reason = "failed", "interrupted"
+            elseif parts ~= nil then
+                PZA.map.job.aid = cmd.aid
                 body.state, body.reason, body.result = "done", "", { queued = parts }
             else
                 body.reason = "not loaded"
@@ -144,14 +161,18 @@ local function mapStep(p)
     end
 end
 
--- a raise in the map phase (S-15): counted and named on the map, the job dropped, reported as Main reports any raise
-local function mapRaised(err)
+-- a raise in the map phase (S-15): counted and named on the map and reported, the job dropped; a dropped job's scan
+-- (answered done at its start) gets a second act line, failed interrupted (X4 fix pass 2.8, fix-wave review Minor 5),
+-- so a planner reading the aid's last line never takes a part-walked scan for a whole one
+local function mapRaised(err, p)
     local MP = PZA.map
-    MP.errors = (MP.errors or 0) + 1
-    MP.lastError = tostring(err)
+    local job = MP.job
     MP.job = nil
-    PZA.missing(MP.missing, "raise:map")
-    reportError(err)
+    countMapRaise(err)
+    if job ~= nil and job.aid ~= nil then
+        PZA.emit("act", { aid = job.aid, type = "scan", state = "failed", reason = "interrupted", result = {},
+                          snapshot = PZA.skills.snapshot(p) })
+    end
 end
 
 local function body()
@@ -179,7 +200,7 @@ local function body()
     end
     local t2 = PZA.now()
     local okMap, errMap = pcall(mapStep, p)
-    if not okMap then mapRaised(errMap) end
+    if not okMap then mapRaised(errMap, p) end
     local t3 = PZA.now()
     local pollMs, startMs, actMs, senseMs, mapMs = t0 - tp, ts - t0, t1 - ts, t2 - t1, t3 - t2
     noteMax("poll", pollMs); noteMax("start", startMs); noteMax("act", actMs)
