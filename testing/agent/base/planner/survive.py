@@ -385,7 +385,9 @@ class Survive:
         `walk` corner): `group_steer`, the flee steers (sprints) while a leg can move, until one ends stuck. A
         `stuck` corner keeps swinging against the group, re-tested every tick: with the nearest beyond POINT_BLANK_R
         and its stuck read STUCK_RETRY_S old, it ends for one steer leg (`group_steer` "retry"; that leg read stuck in
-        turn is a new `stuck` corner). It stays
+        turn is a new `stuck` corner). Fix round 1: on a room square with no way out (`_trapped`, R3) no group is read:
+        no leg can move there, so the corner stands at once; and the corner follows its Fight's re-pin to the nearest
+        zombie within POINT_BLANK_R (R4, `policies.Fight`). It stays
         cornered on that id until the zombie is dead, gone, or marked unreachable and out of reach (a `walk` corner:
         marked at all), or the nearest held threat is beyond `corner_free`: CORNER_FREE_R for a stuck leg's corner,
         CORNERED_R for the others (a way out is never known at melee range, every exit's line starting within
@@ -398,6 +400,8 @@ class Survive:
             return None
         skip = blocked(self.unreachable, self.clock())
         group = self._group(held)
+        if group and self._trapped(held, inside):
+            group = None   # fix round 1, R3: on a room square with no way out no leg can move: the corner stands
         if self.cornered is not None:
             if group and self.corner_kind != "stuck":   # fix round 1, G1: a group gathering on a corner is steered from
                 self.cornered, self._corner_fight, self.group_steer = None, None, group
@@ -512,15 +516,19 @@ class Survive:
         reach = self._reachable_held()
         return "flip" if reach and min(zdist(self.world, z) for _, z in reach) > FIGHT_REACH else None
 
-    def _trapped_fight(self, held, inside):
-        """Fix round 1, the review's G3: a flee on a room square with no way out (`_exit_known`) and no adoption left
-        (`policies.adoptable`: no exterior door on this floor, or this episode's adoption already dropped) never
-        steers: armed with a reachable held threat, `("fight", None)`; else None (the Flee's trapped hold: M4, an
-        unarmed character inside with no way out stands)."""
-        if not (inside and self._armed() and self._reachable_held()) or self._exit_known(held):
-            return None
+    def _trapped(self, held, inside):
+        """On a room square with no way out (`_exit_known`) and no adoption left (`policies.adoptable`: no exterior
+        door on this floor, or this episode's adoption already dropped)."""
+        if not inside or self._exit_known(held):
+            return False
         f = self.flee
-        if adoptable(self.world) and (f is None or not f.adopted or f.plan is not None):
+        return not (adoptable(self.world) and (f is None or not f.adopted or f.plan is not None))
+
+    def _trapped_fight(self, held, inside):
+        """Fix round 1, the review's G3: a flee trapped on a room square (`_trapped`) never steers: armed with a
+        reachable held threat, `("fight", None)`; else None (the Flee's trapped hold: M4, an unarmed character inside
+        with no way out stands)."""
+        if not (self._armed() and self._reachable_held() and self._trapped(held, inside)):
             return None
         return "fight", None
 
@@ -583,6 +591,8 @@ class Survive:
         if self.sheltered:
             self.why["sheltered"] = True
         if kind == "cornered":
+            if self.fight.target is not None:
+                self.cornered = self.fight.target   # fix round 1, R4: the corner follows its Fight's point-blank re-pin
             self.why["cornered"] = self.cornered
         if self.group_steer is not None:
             self.why["group"] = self.group_steer

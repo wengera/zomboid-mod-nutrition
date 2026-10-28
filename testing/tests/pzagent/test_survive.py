@@ -5,6 +5,7 @@ end on the fake mod. Plan 23 Task 13 (ruling P23-F): the forage and explore test
 goal tests (`planner/goals.py`'s scripted source: Stock for a need, LootBuilding for a building, ExploreToward)."""
 import functools
 import json
+import math
 import os
 import shutil
 import tempfile
@@ -1463,12 +1464,11 @@ def closed_room(bid=2):
 
 @pytest.mark.parametrize("nx, cornered", [(103.7, True), (104.5, False)])   # the nearest at 1.2 and 2.0 tiles
 def test_on_a_room_square_with_no_way_out_the_nearest_within_cornered_r_is_fought(tmp_path, nx, cornered):
-    """Rule 2: three zombies came in (`many`), no exterior door or opening known: the nearest at 2.0 is fought on the
-    first tick as the trapped fight (fix round 1, the review's G3: inside with no way out and nothing to adopt, armed,
-    the flee is the Fight, never a steer). Named change, ruling P23-AP 2: with the nearest at 1.2 the other two at 2.83
-    make three within GROUP_NEAR_R, a group: the first tick steers (the `inside` corner is not taken while a leg may
-    move, as P23-AM 4 steered three within 1.5 on a room square); the leg unmoved STEP_STALL_S with zombie 1 in reach
-    reads stuck and the `stuck` corner fights it."""
+    """Rule 2: three zombies came in (`many`), no exterior door or opening known: the nearest at 1.2 is fought on the
+    first tick as `cornered`; at 2.0 too, as the trapped fight (fix round 1, the review's G3: inside with no way out
+    and nothing to adopt, armed, the flee is the Fight, never a steer). Survival 4 (e07a52cb) steered at 1.2 first
+    (three within GROUP_NEAR_R, a group); its fix round 1, R3, reads no group on a trapped room square (no leg can
+    move there), so the corner stands at once, as before survival 4."""
     r, sv = make(tmp_path)
     r.scan(closed_room())
     me = (102.5, 202.5)
@@ -1477,19 +1477,8 @@ def test_on_a_room_square_with_no_way_out_the_nearest_within_cornered_r_is_fough
     assert P.exit_plan(r.world, list(r.world.zombies.values())) is None and not P.adoptable(r.world)
     tick(r, sv)
     w = threat_why(tmp_path)
-    if not cornered:
-        assert r.cmd() == ("attack", {"targetId": 1}) and w["fight"] is True and "cornered" not in w
-        return
-    assert r.cmd()[0] == "steer" and w["group"] == "near" and "cornered" not in w
-    r.fake.answer({"steer": ["accepted"]})
-    r.pump()
-    for _ in range(2):
-        r.advance(0.5)
-        r.frame(x=me[0], y=me[1], zombies=zs)
-        tick(r, sv)
-    w = threat_why(tmp_path)
-    assert r.cmd() == ("attack", {"targetId": 1}) and w["fight"] is True and w["cornered"] == 1
-    assert sv.corner_kind == "stuck"
+    assert r.cmd() == ("attack", {"targetId": 1}) and w["fight"] is True and "group" not in w
+    assert (w.get("cornered") == 1) is cornered
 
 
 @pytest.mark.parametrize("weapon", [BAT, None])
@@ -2279,8 +2268,9 @@ def group_at_melee(me):
 @pytest.mark.parametrize("room", [False, True])
 def test_three_within_cornered_r_after_a_leg_that_moved_are_steered_from_not_fought(tmp_path, room):
     """Ruling P23-AM 4: a `many` steer leg moved two tiles and three zombies followed within CORNERED_R: the branch
-    steers again (a sprint, away from the group), never stands to swing; on a room square too (HEAD cornered there
-    and attacked)."""
+    steers again (a sprint, away from the group), never stands to swing outside. Named change, survival 4 fix round 1
+    (R3): on the closed room's square (no way out, nothing to adopt) no leg can move, so the corner swings at once
+    (iteration 3 steered there, one leg into the walls first)."""
     r, sv = make(tmp_path)
     r.scan(closed_room())
     me = (102.5, 205.6)
@@ -2294,6 +2284,10 @@ def test_three_within_cornered_r_after_a_leg_that_moved_are_steered_from_not_fou
     assert P.on_room(r.world) is room
     a = tick(r, sv)
     w = threat_why(tmp_path)
+    if room:
+        assert a is not None and a.type == "attack" and w["cornered"] == 2 and "group" not in w
+        assert sv.corner_kind == "inside"
+        return
     assert a is not None and a.type == "steer" and a.args["gait"] == "sprint" and len(r.acts.history) == 2
     assert "cornered" not in w and sv.mode == "flee"
     assert all(a.type != "attack" for a in r.acts.history) and w["flee"] == "many"
@@ -2789,3 +2783,89 @@ def test_a_zombie_ahead_of_the_away_vector_but_not_of_the_turned_leg_cuts_it_onc
     r.frame(x=me[0], y=me[1], zombies=zs)
     a = tick(r, sv)
     assert a is not None and a.type == "steer" and threat_why(tmp_path)["cut"] == [4]
+
+
+# ================================================================ survival 4 fix round 1 (the review of e07a52cb)
+def ring(me, d=5.0, n=8):
+    """`n` zombies (ids 11..) on a circle `d` tiles round `me`: every heading has one within its cone or tube."""
+    return [zombie(11 + k, me[0] + d * math.cos(2 * math.pi * k / n), me[1] + d * math.sin(2 * math.pi * k / n), me=me)
+            for k in range(n)]
+
+
+def test_a_leg_aimed_with_a_zombie_ahead_is_not_cut_when_the_frames_relist_it_and_r1_reads_it_stuck(tmp_path):
+    """G1 through one Survive: zombie 1 at 1.2 tiles and a ring of eight at 5 tiles (a group): the group steer's leg
+    takes the fallback heading with ring zombies ahead (`_aimed` not empty). The next frames list the same zombies as
+    new records: no cut (e07a52cb read the last tick's records as id None, cut the leg every tick and R1 never came);
+    the leg held at 0.5 s, and at 1.0 s, unmoved STEP_STALL_S with zombie 1 in reach, R1's `stuck` corner attacks."""
+    r, sv = make(tmp_path)
+    r.scan(open_yard())
+    me = (100.5, 201.5)
+    zs = [zombie(1, 99.3, 201.5, me=me)] + ring(me)
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    leg = tick(r, sv)
+    assert leg.type == "steer" and threat_why(tmp_path)["group"] == "hold" and sv.flee._leg[3]
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    r.advance(0.5)
+    r.frame(x=me[0], y=me[1], zombies=[dict(z) for z in zs])
+    assert tick(r, sv) is None and threat_why(tmp_path)["holding"] == leg.aid and "cut" not in threat_why(tmp_path)
+    r.advance(0.5)
+    r.frame(x=me[0], y=me[1], zombies=[dict(z) for z in zs])
+    a = tick(r, sv)
+    assert a.type == "attack" and a.args == {"targetId": 1} and sv.corner_kind == "stuck"
+    assert [x.type for x in r.acts.history] == ["steer", "attack"]
+
+
+def test_the_cut_never_counts_a_zombie_the_world_no_longer_holds(tmp_path):
+    """G1: a record the World has replaced (or dropped) reads no id; only the World's current records are read."""
+    from agent.base.pza1 import Steer
+    r = Rig(tmp_path)
+    r.scan(open_yard())
+    me = (100.5, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(4, 106.5, 201.5, me=me)])
+    f = P.Flee(r.world, r.acts, r.clock)
+    f._aimed = frozenset([4])
+    f.send(Steer(1.0, 0.0, P.FLEE_S, "sprint"))
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    stale = [dict(r.world.zombies[4])]
+    r.advance(0.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(4, 106.4, 201.5, me=me)])
+    f.threats = stale
+    f.observe()
+    assert f.busy() and f._cut is None
+
+
+def test_e2_bathroom_with_four_held_behind_the_walls_corners_at_once(tmp_path):
+    """R3 on E2's line 177 (12839 at 0.48 tiles in the bathroom's doorway, its line clear; 12788 at 5.21 behind the
+    wall; no way out, nothing to adopt), with two more held 3.9 and 4.9 tiles west outside the walls: four held, a
+    group, but a trapped room square: no leg can move, so the corner's attack on 12839 at once (e07a52cb steered a
+    leg into the walls first)."""
+    w = e2_world(177)
+    for zid, x, y in ((99901, 10734.5, 10633.5), (99902, 10733.5, 10634.5)):
+        w.zombies[zid] = dict(zombie(zid, x, y), seenWallMs=w.frame_wall_ms)
+    held = [z for z in w.zombies.values() if z.get("x") is not None and P.zdist(w, z) <= S.DANGER_R]
+    assert len(held) == S.GROUP_HOLD_N and P.exit_plan(w, held) is None and not P.adoptable(w)
+    r = Rig(tmp_path)
+    sv = Survive(w, r.acts, str(tmp_path / "decision.log"), r.clock)
+    sv.tick(w, r.acts)
+    why = threat_why(tmp_path)
+    assert r.cmd() == ("attack", {"targetId": 12839}) and why["cornered"] == 12839 and "group" not in why
+
+
+@pytest.mark.parametrize("d2, d3, want", [(0.9, 0.5, 3), (1.3, 1.1, 2)])
+def test_a_corner_re_pins_to_the_nearest_zombie_within_point_blank_at_each_attack(tmp_path, d2, d3, want):
+    """R4 (E4: the corner swung at 19032 while 19035 at 0.48 tiles bit): the `stuck` corner on 2 (1.1 tiles); its
+    attack ends, 2 at 0.9 and 3 at 0.5: the next attack is on 3, the corner's id with it; with 2 at 1.3 and 3 at
+    1.1, nearer but beyond POINT_BLANK_R, the pin on 2 holds."""
+    r, sv = make(tmp_path)
+    me = stuck_corner(r, sv)
+    r.fake.answer({"attack": [{"state": "done", "result": swing(True)}]})
+    r.pump()
+    r.advance(0.5)
+    zs = [zombie(1, me[0] - 1.0, me[1] + 0.7, me=me), zombie(2, me[0], me[1] + d2, me=me),
+          zombie(3, me[0] + d3, me[1], me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    a = tick(r, sv)
+    assert a.type == "attack" and a.args == {"targetId": want} and sv.cornered == want
+    assert threat_why(tmp_path)["cornered"] == want

@@ -1307,3 +1307,19 @@ def test_a_walk_failed_otherwise_or_that_moved_is_no_stuck_pair(tmp_path, end):
         assert r.world.stuck_run["to"] == [first] and target in r.world.stuck
     else:
         assert r.world.stuck_run is None
+
+
+def test_the_place_is_rescanned_again_at_the_stuck_walk_cap(tmp_path):
+    """Fix round 1, R2: the place is dropped from `scanned` at the STUCK_AREA_N-th pair and again at the cap's."""
+    import types
+    from agent.base import world as W
+    r = Rig(tmp_path)
+    r.frame(x=100.5, y=200.5, game_min=480.0)
+    e = Explore(r.world, r.acts, r.clock)
+    dropped = []
+    for k in range(W.STUCK_AREA_N + W.STUCK_WALK_CAP):
+        e.scanned.add(e.place())
+        e._walk_ended((90 + k, 190), types.SimpleNamespace(state="failed", reason="stuck"), (100.5, 200.5))
+        dropped.append(e.place() not in e.scanned)
+    assert dropped == [k + 1 in (W.STUCK_AREA_N, W.STUCK_AREA_N + W.STUCK_WALK_CAP)
+                       for k in range(W.STUCK_AREA_N + W.STUCK_WALK_CAP)]

@@ -114,7 +114,8 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   into them): on every threat tick the running steer leg's heading is re-read against the held threats (`_cut_leg`:
   `_ahead`, AHEAD_R, AHEAD_CONE and the CORRIDOR_R tube, beyond SPRINT_R); a threat ahead that was not ahead when the
   leg was aimed cuts it, and the next choose re-aims by the turn rules (its why's `cut` the ids), the new leg
-  superseding it.
+  superseding it. Fix round 1: the cut reads the World's current records by id (G1), and a cornered Fight
+  (`point_blank`) re-pins at each choose to the nearest zombie within POINT_BLANK_R (R4).
 - `Explore`: it scans per 10-tile place, spec § 6's "once at a new building or on request" read as the place
   grid: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
   `scanned` from its send and dropped again when the scan ends other than `done`, so a pre-empted, timed-out or
@@ -161,7 +162,7 @@ import time
 
 from agent.base.items import use_of
 from agent.base.pza1 import Attack, Interact, Scan, Steer, Stop, WalkTo
-from agent.base.world import STUCK_AREA_N, me_floor, me_xy
+from agent.base.world import STUCK_AREA_N, STUCK_WALK_CAP, me_floor, me_xy
 
 DANGER_R = 6.0        # tiles: a zombie this close is a threat (Survive's threat branch; the night sends nothing)
 FIGHT_REACH = 2.0     # tiles: a nearest zombie beyond this is walked to, within it attacked
@@ -478,7 +479,21 @@ class Fight(Policy):
             self.why["unreachable"] = skipped
         return cmd
 
+    def _repin_point_blank(self):
+        """Survival 4 fix round 1, R4 (E4: the corner's pin stayed on 19032 while 19035 at 0.48 tiles dealt the first
+        wound and was never swung at): a cornered Fight (`point_blank`) re-pins, at each choose, to the nearest zombie
+        within POINT_BLANK_R that it may target, when that is not its pin."""
+        if not self.point_blank:
+            return
+        skip = self.blocked()
+        if self.only is not None:
+            skip = skip | {zid for zid in self.world.zombies if zid not in self.only}
+        nz = self.world.nearest_zombie(exclude=skip)
+        if nz is not None and nz[0] != self.target and zdist(self.world, nz[1]) <= POINT_BLANK_R:
+            self.target, self.repositioned = nz[0], False
+
     def _choose(self):
+        self._repin_point_blank()
         t = self._target(pin=True)
         if t is None:
             self.why = {"target": None, "pinned": False}
@@ -715,12 +730,17 @@ class Flee(Policy):
         """Ruling P23-AP 3 (E4's line 440: a leg aimed west before 19032 and 19035 were listed ran 8.92 tiles into
         them): the running steer leg's heading re-read against this tick's held threats beyond SPRINT_R (`_ahead`: the
         cone and the tube the aim refuses); one ahead that was not ahead at its aim cuts it (`_dropped`, so the next
-        choose re-aims by the turn rules and the new leg supersedes it), logged as the next steer's `cut`."""
+        choose re-aims by the turn rules and the new leg supersedes it), logged as the next steer's `cut`. Fix round 1
+        (the review's G1): the World's current records by id, the held ones (within DISENGAGE_R) beyond SPRINT_R, never
+        the caller's list, which may be the last tick's records, every one replaced since by its frame (an id read None
+        is never new: e07a52cb cut a fallback leg on every tick, so R1's stuck read never came)."""
         leg = self._leg
         if leg[0] is self._dropped:
             return
-        far = [z for z in self._threats() if zdist(self.world, z) > SPRINT_R]
-        new = [i for i in self._ids(self._ahead(leg[2], far)) if i not in leg[3]]
+        far = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and z.get("x") is not None
+               and z.get("y") is not None and SPRINT_R < zdist(self.world, z) <= DISENGAGE_R]
+        ahead = {id(z) for z in self._ahead(leg[2], [z for _, z in far])}
+        new = sorted((zid for zid, z in far if id(z) in ahead and zid not in leg[3]), key=repr)
         if new:
             self._dropped, self._cut = leg[0], new
 
@@ -1127,8 +1147,8 @@ class Explore(Policy):
             self.world.mark_stuck(*to)
         if a.state == "failed" and a.reason == "stuck" and moved < STUCK_MOVE:
             self.world.mark_stuck_pair((int(math.floor(start[0])), int(math.floor(start[1]))), to)
-            if len(self.world.stuck_run["to"]) == STUCK_AREA_N:
-                self.scanned.discard(self.place())
+            if len(self.world.stuck_run["to"]) in (STUCK_AREA_N, STUCK_AREA_N + STUCK_WALK_CAP):
+                self.scanned.discard(self.place())   # the scan the source falls back to (fix round 1, R2: at the cap)
         elif a.state == "done" or moved >= STUCK_MOVE:
             self.world.clear_stuck_run()
 

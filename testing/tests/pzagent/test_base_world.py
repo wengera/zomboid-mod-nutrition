@@ -926,8 +926,9 @@ def test_flood_honours_the_blocked_edges_the_locked_gate_and_its_limit():
 def test_two_unmoved_stuck_walks_from_the_players_square_leave_only_edges_in_the_open():
     """The pocket: the nearest edge (5, 12) lies across the fence. One stuck pair keeps it; the second in a row from
     the player's square (`stuck_here`) answers the nearest edge whose straight line is clear, (0, 7), the line along
-    row 7; a pair from another square restarts the run, `clear_stuck_run` ends it, the player off the square or
-    STUCK_TTL_MIN on reads it no more."""
+    row 7; a pair from a square two off restarts the run (fix round 1, M1: one touching it continues it),
+    `clear_stuck_run` ends it, the player more than 1.0 tile from the square's centre or STUCK_TTL_MIN on reads it no
+    more."""
     w = _world(pocket(), me=(5.5, 7.5))
     assert w.unexplored_edge() == (5, 12) and not w.stuck_here()
     w.mark_stuck_pair((5, 7), (6, 12))
@@ -936,12 +937,12 @@ def test_two_unmoved_stuck_walks_from_the_players_square_leave_only_edges_in_the
     assert w.stuck_run["to"] == [(6, 12), (7, 12)] and w.stuck_here()
     assert w.unexplored_edge() == (0, 7) and w.line_clear((5.5, 7.5), (0.5, 7.5))
     assert not w.line_clear((5.5, 7.5), (5.5, 12.5))
-    w.mark_stuck_pair((4, 7), (5, 12))
-    assert w.stuck_run["to"] == [(5, 12)] and not w.stuck_here()
+    w.mark_stuck_pair((3, 7), (5, 12))
+    assert w.stuck_run == {"from": (3, 7), "to": [(5, 12)], "at": w.world_minutes()} and not w.stuck_here()
     w.mark_stuck_pair((5, 7), (6, 12))
     w.mark_stuck_pair((5, 7), (7, 12))
-    w.apply(frame(0, me=me_at(4.5, 7.5)))
-    assert not w.stuck_here()                                           # off the square
+    w.apply(frame(0, me=me_at(4.4, 7.5)))
+    assert not w.stuck_here()                                           # 1.1 tiles off the square's centre
     w.apply(frame(0, me=me_at(5.5, 7.5), worldAge=8.0 + 60.0 / 60.0))
     assert not w.stuck_here()                                           # STUCK_TTL_MIN on
     w.apply(frame(0, me=me_at(5.5, 7.5)))
@@ -990,3 +991,27 @@ def test_stuck_a_reachable_edge_whose_line_crosses_a_fence_is_not_answered():
     w.mark_stuck_pair((5, 7), (6, 12))
     assert w.reachable((5, 7, 0), (12, 7, 0)) and not w.line_clear((5.5, 7.5), (12.5, 7.5))
     assert w.unexplored_edge() == (5, 0)
+
+
+def test_stuck_here_holds_through_a_half_tile_drift_across_the_squares_edge():
+    """Fix round 1, M1: the player nudged half a tile west across (5, 7)'s edge, onto (4, 7): still stuck there, and a
+    pair from (4, 7) continues the run from (5, 7)."""
+    w = _world(pocket(), me=(5.5, 7.5))
+    w.mark_stuck_pair((5, 7), (6, 12))
+    w.apply(frame(0, me=me_at(4.9, 7.5)))
+    w.mark_stuck_pair((4, 7), (7, 12))
+    assert w.stuck_run["from"] == (5, 7) and len(w.stuck_run["to"]) == 2 and w.stuck_here()
+    assert w.unexplored_edge() == (0, 7)
+
+
+def test_stuck_after_stuck_walk_cap_walks_in_the_open_no_edge_is_answered():
+    """Fix round 1, R2: past the two pairs that restrict the edge, STUCK_WALK_CAP (3) more in a row (walks in the open
+    failing unmoved too): no edge, so the source loots or scans."""
+    from agent.base import world as W
+    assert W.STUCK_WALK_CAP == 3
+    w = _world(pocket(), me=(5.5, 7.5))
+    for i in range(W.STUCK_AREA_N + W.STUCK_WALK_CAP - 1):
+        w.mark_stuck_pair((5, 7), (0, i))
+    assert w.unexplored_edge() is not None
+    w.mark_stuck_pair((5, 7), (1, 0))
+    assert w.unexplored_edge() is None

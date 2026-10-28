@@ -39,11 +39,13 @@ north of a locked gate, each target the next square of one fenced-off area, 21.8
 to)` records a walk from square `frm` to `to` that failed `stuck` having moved the player under 0.5 tiles
 (`policies.Explore`), `stuck_run` the pairs in a row from one square (`clear_stuck_run` ends the row: a walk that
 moved or arrived); once STUCK_AREA_N (2) stand in a row from the player's own square within STUCK_TTL_MIN
-(`stuck_here`), `unexplored_edge` proposes only an edge square whose straight line from the player is clear
+(`stuck_here`, the player within 1.0 tile of the run's square: fix round 1, M1), `unexplored_edge` proposes only an
+edge square whose straight line from the player is clear
 (`line_clear`, `unknown_open=False`: no known blocking edge, no unknown square, between) and which a bounded flood
 from the player reaches (`flood`, `reachable`: REACH_LIMIT 400 squares over the kept map, each step `blocked`-read),
 and none when no such square is known (the goal source then loots or scans: never a third walk from that square).
-Neither is in `to_json`.
+After STUCK_WALK_CAP (3) more unmoved stuck walks in a row (those in the open failing too: fix round 1, R2) it answers
+none. Neither is in `to_json`.
 
 The server's side comes in through `merge_server(stats, wall_ms)` and `merge_damage(reply, wall_ms)`, a
 `damage.watch` reply whose `last` records not yet seen (by `i`) land in `damage` tagged `server` (spec § 9).
@@ -100,6 +102,7 @@ ZOMBIE_TTL_S = 10
 STUCK_TTL_MIN = 60   # game minutes an edge whose walk ended stuck is left out of unexplored_edge
 STUCK_AREA_N = 2     # unmoved stuck walks in a row from one square before its edges must lie in the open (P23-AP 1)
 REACH_LIMIT = 400    # squares a reachability flood visits at most (P23-AP 1)
+STUCK_WALK_CAP = 3   # unmoved stuck walks in a row past STUCK_AREA_N before no edge is answered (P23-AP fix 1, R2)
 REFUSED_TTL_MIN = 120   # world minutes a food whose consume was refused `not valid` reads `other` (P23-AD)
 GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 DEQUE_N = 500
@@ -325,22 +328,25 @@ class World:
 
     def mark_stuck_pair(self, frm, to):
         """A walk from square `frm` (x, y) to `to` failed `stuck` with the player moved under 0.5 tiles (P23-AP 1): the
-        pair joins `stuck_run` when the run is from `frm`, else starts a new run (the planner's, never a line's)."""
+        pair joins `stuck_run` when the run is from `frm` or a square touching it (fix round 1, M1: a half-tile drift
+        across a square's edge), else starts a new run (the planner's, never a line's)."""
         run = self.stuck_run
-        tos = run["to"] + [to] if run is not None and run["from"] == frm else [to]
-        self.stuck_run = {"from": frm, "to": tos, "at": self.world_minutes()}
+        near = run is not None and max(abs(run["from"][0] - frm[0]), abs(run["from"][1] - frm[1])) <= 1
+        self.stuck_run = {"from": run["from"] if near else frm, "to": (run["to"] if near else []) + [to],
+                          "at": self.world_minutes()}
 
     def clear_stuck_run(self):
         """A walk that moved the player or arrived ends the run of stuck pairs."""
         self.stuck_run = None
 
     def stuck_here(self):
-        """STUCK_AREA_N or more stuck pairs in a row from the player's own square, the last within STUCK_TTL_MIN."""
+        """STUCK_AREA_N or more stuck pairs in a row from the run's square, the last within STUCK_TTL_MIN, the player
+        within 1.0 tile of that square's centre (fix round 1, M1: not the exact floored square)."""
         run = self.stuck_run
         if run is None or len(run["to"]) < STUCK_AREA_N or self.world_minutes() - run["at"] >= STUCK_TTL_MIN:
             return False
         mx, my = me_xy(self)
-        return run["from"] == (int(math.floor(mx)), int(math.floor(my)))
+        return math.hypot(mx - run["from"][0] - 0.5, my - run["from"][1] - 0.5) <= 1.0
 
     def unexplored_edge(self):
         """The nearest open square with an unmapped neighbour, ties by (x, y); a square marked stuck within the last
@@ -361,6 +367,8 @@ class World:
         if not self.stuck_here():
             best = min(cands)
             return best[1], best[2]
+        if len(self.stuck_run["to"]) >= STUCK_AREA_N + STUCK_WALK_CAP:
+            return None   # fix round 1, R2: STUCK_WALK_CAP walks in the open failed unmoved too: a loot or a scan
         floor = me_floor(self)
         reach = self.flood((int(math.floor(mx)), int(math.floor(my)), floor))
         for _, x, y, z in sorted(c for c in cands if c[3] == floor and (c[1], c[2], floor) in reach):
