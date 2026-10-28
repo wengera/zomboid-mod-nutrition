@@ -18,14 +18,14 @@ PZA.schema = {
         reply = { "kind", "seq", "tick", "wallMs", "to", "body" },
     },
     groups = {
-        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk" },
+        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed" },
         stats = { "hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature" },
         body = { "health", "bleeding", "scratched", "bitten", "parts" },
         load = { "weight", "max", "level", "n" },
         weapon = { "type", "cond", "reach", "ammo" },
         action = { "class", "n" },
         act = { "aid", "state" },
-        cost = { "tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped" },
+        cost = { "tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs" },
     },
     records = {
         part = { "i", "h" },
@@ -168,9 +168,11 @@ PZA.enc.square = enc_square
 --   forceRun: The force-run flag read after the frame.
 --   forceSprint: The force-sprint flag read after the frame.
 --   autoWalk: Whether auto-walk is on.
+--   zombiesSeen: The cell's zombie list size, the frame's one walk.
+--   zombiesListed: The zombies the frame lists, those alive within the sense radius.
 local function enc_me(t)
     if t == nil then return "null" end
-    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "]"
+    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "]"
 end
 PZA.enc.me = enc_me
 
@@ -251,9 +253,17 @@ PZA.enc.act = enc_act
 --   tickMaxMs: The worst body since the last frame, in ms.
 --   over5: The bodies of 5 ms or more since the last frame.
 --   dropped: The number of lines dropped.
+--   pollMs: This tick's command poll in ms, the ack write included (a single tick).
+--   startMs: This tick's command start in ms, Main's scan or rate answer or the runner's start (a single tick).
+--   maxActMs: The worst skill tick since the last frame, in ms.
+--   maxSenseMs: The worst events and frame read since the last frame, in ms.
+--   maxMapMs: The worst scan or watch step since the last frame, in ms.
+--   maxLinkMs: The worst flush since the last frame, in ms.
+--   maxPollMs: The worst command poll since the last frame, in ms.
+--   maxStartMs: The worst command start since the last frame, in ms.
 local function enc_cost(t)
     if t == nil then return "null" end
-    return "[" .. v(t.tickMs) .. "," .. v(t.actMs) .. "," .. v(t.senseMs) .. "," .. v(t.mapMs) .. "," .. v(t.linkMs) .. "," .. v(t.tickMaxMs) .. "," .. v(t.over5) .. "," .. v(t.dropped) .. "]"
+    return "[" .. v(t.tickMs) .. "," .. v(t.actMs) .. "," .. v(t.senseMs) .. "," .. v(t.mapMs) .. "," .. v(t.linkMs) .. "," .. v(t.tickMaxMs) .. "," .. v(t.over5) .. "," .. v(t.dropped) .. "," .. v(t.pollMs) .. "," .. v(t.startMs) .. "," .. v(t.maxActMs) .. "," .. v(t.maxSenseMs) .. "," .. v(t.maxMapMs) .. "," .. v(t.maxLinkMs) .. "," .. v(t.maxPollMs) .. "," .. v(t.maxStartMs) .. "]"
 end
 PZA.enc.cost = enc_cost
 

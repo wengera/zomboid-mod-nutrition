@@ -31,7 +31,8 @@ def frame_body(x=10.5, stats_hunger=0.25, **over):
     """A full frame body (every field of the schema's order but the envelope)."""
     b = {"gameMin": 4321.25, "worldAge": 31.5,
          "me": {"x": x, "y": -20.125, "z": 0, "dir": "N", "pace": 3.5, "moving": True, "running": False,
-                "sprinting": False, "forceRun": False, "forceSprint": False, "autoWalk": False},
+                "sprinting": False, "forceRun": False, "forceSprint": False, "autoWalk": False, "zombiesSeen": 0,
+                "zombiesListed": 0},
          "stats": {"hunger": stats_hunger, "thirst": 0.5, "fatigue": 0.125, "endurance": 0.75, "panic": 0, "pain": 0,
                    "sickness": 0, "wetness": 5, "temperature": 37},
          "body": {"health": 100, "bleeding": 0, "scratched": 0, "bitten": 0, "parts": []},
@@ -41,7 +42,8 @@ def frame_body(x=10.5, stats_hunger=0.25, **over):
          "act": None,
          "zombies": [],
          "cost": {"tickMs": 0.5, "actMs": 0, "senseMs": 0.25, "mapMs": 0, "linkMs": 0, "tickMaxMs": 1, "over5": 0,
-                  "dropped": 0}}
+                  "dropped": 0, "pollMs": 0, "startMs": 0, "maxActMs": 0, "maxSenseMs": 0.25, "maxMapMs": 0,
+                  "maxLinkMs": 0, "maxPollMs": 0, "maxStartMs": 0}}
     b.update(over)
     return b
 

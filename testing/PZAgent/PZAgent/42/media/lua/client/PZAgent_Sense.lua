@@ -63,12 +63,13 @@ end
 local function byDist(a, b) return a.dist < b.dist end
 
 -- the live zombies within ZOMBIE_RADIUS, nearest first, as the schema's zombie records; S.zobj maps each record's id
--- to its object, so the next events call can ask a zombie seen in this frame whether it died
+-- to its object, so the next events call can ask a zombie seen in this frame whether it died; the third answer is the
+-- cell list's size (me.zombiesSeen, review M15), nil when the list cannot be read
 local function zombies(px, py)
     local out, objs = {}, {}
     local list = zombieList()
-    if list == nil then PZA.missing(S.missing, "getZombieList"); return out, objs end
-    if px == nil or py == nil then return out, objs end
+    if list == nil then PZA.missing(S.missing, "getZombieList"); return out, objs, nil end
+    if px == nil or py == nil then return out, objs, #list end
     for _, z in ipairs(list) do
         if not isDead(z) then
             local d, zx, zy = distOf(z, px, py)
@@ -85,7 +86,7 @@ local function zombies(px, py)
         end
     end
     table.sort(out, byDist)
-    return out, objs
+    return out, objs, #list
 end
 
 -- me: the position, facing and moving reads, the pace measured from the previous frame (S.prev: x, y, wallMs; nil on
@@ -214,17 +215,18 @@ local function raised(name, err)
     PZA.missing(S.missing, "raise:" .. name)
 end
 
--- fn(...)'s answers, or nil (and the raise counted under name) when it raises
+-- fn(...)'s answers (up to three), or nil (and the raise counted under name) when it raises
 local function guarded(name, fn, ...)
-    local ok, a, b = pcall(fn, ...)
-    if ok then return a, b end
+    local ok, a, b, c = pcall(fn, ...)
+    if ok then return a, b, c end
     raised(name, a)
-    return nil, nil
+    return nil, nil, nil
 end
 
 -- the frame: a required group (me, stats, body, load) whose reader raised is its table with every field nil (body keeps
 -- its parts array, the zombies their empty array); a nullable group (weapon, action, act) is nil; gameMin and worldAge
--- read 0, as S.clock answers an unreadable clock
+-- read 0, as S.clock answers an unreadable clock. me also carries the zombie walk's counts: zombiesSeen the cell list's
+-- size (nil when unread) and zombiesListed the frame's zombie records, so a reader tells a listing gap from a range gap
 function S.frame(p)
     local f = {}
     f.gameMin, f.worldAge = guarded("clock", S.clock)
@@ -236,8 +238,10 @@ function S.frame(p)
     f.weapon = guarded("weapon", weapon, p)
     f.action = guarded("action", action, p)
     f.act = guarded("act", act)
-    f.zombies, S.zobj = guarded("zombies", zombies, f.me.x, f.me.y)
+    local seen
+    f.zombies, S.zobj, seen = guarded("zombies", zombies, f.me.x, f.me.y)
     if f.zombies == nil then f.zombies, S.zobj = {}, {} end
+    f.me.zombiesSeen, f.me.zombiesListed = seen, #f.zombies
     S.last = f
     return f
 end

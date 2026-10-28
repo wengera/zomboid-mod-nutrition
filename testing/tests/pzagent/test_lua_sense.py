@@ -589,3 +589,17 @@ def test_an_event_kind_raising_midway_adds_none_of_its_events_and_keeps_its_last
     p.held.remove(bad)
     ev, _ = events(lua, p, prev)
     assert [e["itemId"] for e in ev if e["event"] == "item_added"] == [1077]
+
+
+# ---- X4 fix pass 1: the cell list's size against the zombies listed (M15) ----------------------------------------------
+
+def test_me_carries_the_cell_lists_size_and_the_zombies_listed(lua):
+    load(lua)
+    zs = [make_zombie(1, 12.0, 20.0), make_zombie(2, 11.0, 20.0, dead=True), make_zombie(3, 40.0, 20.0),
+          make_zombie(4, 10.0, 25.0)]
+    lua.globals()._cell = make_cell(zombies=zs)
+    f = frame(lua, make_player())
+    assert (f["me"]["zombiesSeen"], f["me"]["zombiesListed"]) == (4, 2)
+    lua.globals()._cell = make_cell()
+    f = frame(lua, make_player())
+    assert (f["me"]["zombiesSeen"], f["me"]["zombiesListed"]) == (0, 0)

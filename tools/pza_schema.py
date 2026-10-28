@@ -11,7 +11,10 @@ orders and enums, `encode`, `decode`, `merge_delta` and the command dataclasses)
 `testing/agent/base/schema/tools.json` (one Anthropic tool per action type). A generated file is never edited by hand.
 
 `load()` refuses a schema whose parts disagree (an x-order that is not its properties, an enum without its per-kind
-definitions, a property without a description), so no field, kind or enum reaches a target unchecked. `--check`
+definitions, a property without a description), so no field, kind or enum reaches a target unchecked. A group's fields
+are only ever appended at the end of its x-order; its `x-prior` names its arity before the last append (the X4 fix
+pass's `me` and `cost`), and `decode` reads a line of that arity with the appended fields absent, so a log written
+before the append still replays; any other arity is refused. `--check`
 compares with CRLF read as LF on both sides; `--write` writes LF, UTF-8. Stdlib only.
 """
 import argparse
@@ -130,7 +133,11 @@ def load(path=SCHEMA):
         if gname in groups:
             _need(groups[gname]["def"] == defname, "group %s names two definitions" % gname)
             return
-        groups[gname] = {"def": defname, "order": order_of(defname)}
+        order_g = order_of(defname)
+        prior = defs[defname].get("x-prior")
+        _need(prior is None or (type(prior) is int and 0 < prior < len(order_g)),
+              "%s: x-prior is not an arity below its x-order's" % defname)
+        groups[gname] = {"def": defname, "order": order_g, "prior": prior}
         fill(gname, defname, False)
 
     def visit_record(rname):
@@ -520,7 +527,7 @@ def _dec(owner, a, top=False):
     if a is None:
         return None
     order = _POS[owner]
-    if not isinstance(a, list) or len(a) != len(order):
+    if not isinstance(a, list) or (len(a) != len(order) and len(a) != PRIOR.get(owner)):
         raise ValueError("PZA/1 %s: want %s fields, got %r" % (owner, len(order), a))
     shapes = SHAPES.get(owner, {})
     d = {}
@@ -605,6 +612,8 @@ def render_py(sch=None):
     P.append("ENVELOPE = %s" % _pl(ENVELOPE))
     P.extend(_pdict("ORDER", {k: sch["order"][k] for k in sch["kinds"]}, "each kind's top-level fields in order"))
     P.extend(_pdict("GROUPS", {g: d["order"] for g, d in sch["groups"].items()}, "a frame's groups, elidable in a delta"))
+    P.extend(_pdict("PRIOR", {g: d["prior"] for g, d in sch["groups"].items() if d.get("prior") is not None},
+                    "a group's arity before its last appended fields: a line of it decodes with those fields absent"))
     P.extend(_pdict("RECORDS", {r: d["order"] for r, d in sch["records"].items()}, "the positional records"))
     P.extend(_pdict("SHAPES", {o: {f: list(s) for f, s in sh.items()} for o, sh in sch["shapes"].items() if sh},
                     'each positional field that is not a plain value: ("group" | "rec" | "list" | "vlist", its name)'))

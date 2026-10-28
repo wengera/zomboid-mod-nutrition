@@ -164,3 +164,20 @@ def test_a_schema_inconsistency_is_refused(tmp_path):
     bad.write_text(json.dumps(raw), encoding="utf-8")
     with pytest.raises(ValueError):
         PS.load(str(bad))
+
+
+@pytest.mark.parametrize("prior", [0, 13, 14, "11", 11.0, True])
+def test_an_x_prior_that_is_not_an_arity_below_the_groups_is_refused(tmp_path, prior):
+    """X4 fix pass: a group's x-prior is an int in 1 .. len(x-order) - 1 (the arity before its last append)."""
+    raw = json.load(open(PS.SCHEMA, encoding="utf-8"))
+    raw["$defs"]["me"]["x-prior"] = prior
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps(raw), encoding="utf-8")
+    with pytest.raises(ValueError):
+        PS.load(str(bad))
+
+
+def test_the_prior_arities_reach_the_python_module():
+    sch = PS.load()
+    assert {g: d["prior"] for g, d in sch["groups"].items() if d["prior"] is not None} == {"me": 11, "cost": 8}
+    assert 'PRIOR = {\n    "me": 11,\n    "cost": 8,\n}' in PS.render_py(sch)

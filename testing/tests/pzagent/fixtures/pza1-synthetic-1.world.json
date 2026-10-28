@@ -58,8 +58,16 @@
   "dropped": 0,
   "linkMs": 0.05,
   "mapMs": 0,
+  "maxActMs": 0.05,
+  "maxLinkMs": 0.05,
+  "maxMapMs": 0,
+  "maxPollMs": 0,
+  "maxSenseMs": 0.1,
+  "maxStartMs": 0,
   "over5": 0,
+  "pollMs": 0,
   "senseMs": 0.1,
+  "startMs": 0,
   "tickMaxMs": 0.8,
   "tickMs": 0.2
  },
@@ -306,7 +314,9 @@
   "sprinting": false,
   "x": 107,
   "y": 200,
-  "z": 0
+  "z": 0,
+  "zombiesListed": 0,
+  "zombiesSeen": 0
  },
  "missing": [
   "getModData"

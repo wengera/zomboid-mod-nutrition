@@ -374,3 +374,60 @@ def test_a_raised_ticks_body_ms_feeds_the_window_and_its_flush_is_the_next_link_
     (f,) = [l for l in lines(fs) if l["kind"] == "frame"]
     c = f["cost"]
     assert (c["tickMs"], c["tickMaxMs"], c["over5"], c["linkMs"]) == (9, 9, 1, 4)
+
+
+# ---- X4 fix pass 1: the poll and the start timed, the per-phase maxima since the last frame (I8) ------------------
+
+def phase_costs(lua, g, plan):
+    """Wraps the poll, the start (K.start, and MP.scanStart inside Main's own scan answer), K.tick, S.frame (S.events
+    reads it), and the scan and watch steps, so tick t's phase costs plan[t][phase] ms (phase in poll, start, act,
+    sense, map); the flush's own cost is fs.write_cost_ms."""
+    clock = g._clock
+    g._ms = lambda ph: clock.__setitem__("ms", clock["ms"] + plan.get(g.PZA.tick, {}).get(ph, 0))
+    lua.execute("""
+        local L, K, S, MP = PZA.link, PZA.skills, PZA.sense, PZA.map
+        local poll, start, tick, frame = L.poll, K.start, K.tick, S.frame
+        local scanStart, scanStep, watch = MP.scanStart, MP.scanStep, MP.watchStep
+        L.poll = function() _ms('poll'); return poll() end
+        K.start = function(c, p) _ms('start'); return start(c, p) end
+        MP.scanStart = function(p, r) _ms('start'); return scanStart(p, r) end
+        K.tick = function(p) _ms('act'); return tick(p) end
+        S.frame = function(p) _ms('sense'); return frame(p) end
+        MP.scanStep = function(p) _ms('map'); return scanStep(p) end
+        MP.watchStep = function(p) _ms('map'); return watch(p) end
+    """)
+
+
+def test_the_cost_carries_this_ticks_poll_and_start_and_the_worst_of_each_phase_since_the_last_frame(lua, fs):
+    g, p = setup(lua, fs)                                       # tick 1: init
+    g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    phase_costs(lua, g, {2: {"poll": 3, "start": 9, "act": 1}, 3: {"act": 6, "map": 2}, 4: {"map": 5},
+                         6: {"poll": 1, "start": 2, "act": 3, "sense": 1, "map": 1},
+                         9: {"poll": 4, "act": 2}, 12: {"act": 1}})
+    cmd(fs, 1, "scan", r=3)
+    run(g)                                                      # tick 2: the scan's poll and start; its 3 parts on 2-4
+    run(g, 3)                                                   # ticks 3-5
+    cmd(fs, 2, "walkTo", x=13, y=20)
+    run(g)                                                      # tick 6: the frame; a walkTo's poll and start
+    run(g, 6)                                                   # ticks 7-12: the second frame on tick 12
+    f1, f2 = [l["cost"] for l in lines(fs) if l["kind"] == "frame"]
+    assert (f1["pollMs"], f1["startMs"]) == (1, 2)              # tick 6's own poll and start
+    assert (f1["maxPollMs"], f1["maxStartMs"], f1["maxActMs"], f1["maxSenseMs"], f1["maxMapMs"]) == (3, 9, 6, 1, 5)
+    assert (f2["pollMs"], f2["startMs"]) == (0, 0)              # tick 12 polled nothing new
+    assert (f2["maxPollMs"], f2["maxStartMs"], f2["maxActMs"], f2["maxSenseMs"], f2["maxMapMs"]) == (4, 0, 2, 0, 0)
+    assert all(isinstance(c[k], (int, float)) for c in (f1, f2) for k in pza1.GROUPS["cost"])
+
+
+def test_max_link_ms_is_the_worst_flush_since_the_last_frame(lua, fs):
+    g, p = setup(lua, fs)                                       # tick 1: init (its flush is before the window)
+    fs.write_cost_ms = 0
+    run(g, 2)                                                   # ticks 2-3
+    fs.write_cost_ms = 5
+    lua.execute("PZA.emit('event', {event = 'lua_error', msg = 'a', gameMin = 0})")
+    run(g)                                                      # tick 4 flushes it: 5 ms
+    fs.write_cost_ms = 2
+    run(g, 2)                                                   # tick 5 flushes nothing; tick 6 the frame (2 ms)
+    run(g, 6)                                                   # ticks 7-12: tick 12's frame
+    f1, f2 = [l["cost"] for l in lines(fs) if l["kind"] == "frame"]
+    assert f1["maxLinkMs"] == 5 and f1["linkMs"] == 0           # tick 4's flush; tick 5 flushed nothing
+    assert f2["maxLinkMs"] == 2 and f2["linkMs"] == 0           # tick 6's frame flush, after the first frame's emit

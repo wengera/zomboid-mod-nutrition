@@ -18,7 +18,8 @@ DEFAULT_FRAME = {
     "gameMin": 480.0,
     "worldAge": 8.0,
     "me": {"x": 100.0, "y": 200.0, "z": 0, "dir": "S", "pace": 0.0, "moving": False, "running": False,
-           "sprinting": False, "forceRun": False, "forceSprint": False, "autoWalk": False},
+           "sprinting": False, "forceRun": False, "forceSprint": False, "autoWalk": False,
+           "zombiesSeen": 0, "zombiesListed": 0},
     "stats": {"hunger": 0.1, "thirst": 0.1, "fatigue": 0.05, "endurance": 1.0, "panic": 0.0, "pain": 0.0,
               "sickness": 0.0, "wetness": 0.0, "temperature": 37.0},
     "body": {"health": 100.0, "bleeding": 0, "scratched": 0, "bitten": 0, "parts": []},
@@ -28,7 +29,8 @@ DEFAULT_FRAME = {
     "act": None,
     "zombies": [],
     "cost": {"tickMs": 0.2, "actMs": 0.05, "senseMs": 0.1, "mapMs": 0.0, "linkMs": 0.05, "tickMaxMs": 0.8,
-             "over5": 0, "dropped": 0},
+             "over5": 0, "dropped": 0, "pollMs": 0.0, "startMs": 0.0, "maxActMs": 0.05, "maxSenseMs": 0.1,
+             "maxMapMs": 0.0, "maxLinkMs": 0.05, "maxPollMs": 0.0, "maxStartMs": 0.0},
 }
 
 DEFAULT_HELLO = {"proto": pza1.PROTO, "mod": "fake", "build": "42.21.0", "user": "agent", "rate": 10,

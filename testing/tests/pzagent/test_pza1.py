@@ -35,7 +35,8 @@ def rand_frame(rng, seq=1):
         "gameMin": lua_float(rng, 0, 10 ** 5), "worldAge": maybe(rng, lua_float(rng, 0, 1000)),
         "me": {"x": lua_float(rng), "y": lua_float(rng), "z": rng.randrange(0, 3), "dir": rng.choice(["N", "SE", "W"]),
                "pace": lua_float(rng, 0, 6), "moving": b(), "running": b(), "sprinting": b(), "forceRun": b(),
-               "forceSprint": b(), "autoWalk": maybe(rng, b())},
+               "forceSprint": b(), "autoWalk": maybe(rng, b()), "zombiesSeen": rng.randrange(0, 200),
+               "zombiesListed": rng.randrange(0, 6)},
         "stats": {k: lua_float(rng, 0, 1) for k in pza1.GROUPS["stats"]},
         "body": {"health": lua_float(rng, 0, 100), "bleeding": rng.randrange(0, 3), "scratched": rng.randrange(0, 3),
                  "bitten": 0, "parts": parts},
@@ -47,7 +48,10 @@ def rand_frame(rng, seq=1):
         "zombies": rng.choice([zombies, zombies, None]) if not zombies else zombies,
         "cost": {"tickMs": lua_float(rng, 0, 5), "actMs": lua_float(rng, 0, 1), "senseMs": lua_float(rng, 0, 1),
                  "mapMs": lua_float(rng, 0, 1), "linkMs": lua_float(rng, 0, 1), "tickMaxMs": lua_float(rng, 0, 9),
-                 "over5": rng.randrange(0, 4), "dropped": 0},
+                 "over5": rng.randrange(0, 4), "dropped": 0, "pollMs": lua_float(rng, 0, 1),
+                 "startMs": lua_float(rng, 0, 9), "maxActMs": lua_float(rng, 0, 9), "maxSenseMs": lua_float(rng, 0, 3),
+                 "maxMapMs": lua_float(rng, 0, 3), "maxLinkMs": lua_float(rng, 0, 3), "maxPollMs": lua_float(rng, 0, 1),
+                 "maxStartMs": lua_float(rng, 0, 9)},
     }
 
 
@@ -327,6 +331,14 @@ COST = {
     "tickMaxMs": "The worst body since the last frame, in ms.",
     "over5": "The bodies of 5 ms or more since the last frame.",
     "dropped": "The number of lines dropped.",
+    "pollMs": "This tick's command poll in ms, the ack write included (a single tick).",
+    "startMs": "This tick's command start in ms, Main's scan or rate answer or the runner's start (a single tick).",
+    "maxActMs": "The worst skill tick since the last frame, in ms.",
+    "maxSenseMs": "The worst events and frame read since the last frame, in ms.",
+    "maxMapMs": "The worst scan or watch step since the last frame, in ms.",
+    "maxLinkMs": "The worst flush since the last frame, in ms.",
+    "maxPollMs": "The worst command poll since the last frame, in ms.",
+    "maxStartMs": "The worst command start since the last frame, in ms.",
 }
 
 
@@ -350,3 +362,28 @@ def test_the_attack_description_is_one_swing_in_the_schema_the_tools_and_the_mod
         tool = [t for t in json.load(fh) if t["name"] == "attack"]
     assert len(tool) == 1 and tool[0]["description"] == ATTACK
     assert ATTACK in open(os.path.join(ROOT, "testing", "agent", "base", "pza1.py"), encoding="utf-8").read()
+
+
+# ---- X4 fix pass 1: the fields appended to me and cost, and a line written before them -------------------------------
+
+def test_me_and_cost_append_their_new_fields_after_the_prior_prefix():
+    assert pza1.GROUPS["me"][11:] == ("zombiesSeen", "zombiesListed")
+    assert pza1.GROUPS["cost"][8:] == ("pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs",
+                                       "maxPollMs", "maxStartMs")
+    assert pza1.PRIOR == {"me": 11, "cost": 8}
+
+
+def test_a_frame_written_before_the_append_decodes_with_the_new_fields_absent_and_no_other_arity_does():
+    rng = random.Random(29)
+    arr = json.loads(pza1.encode("frame", rand_frame(rng)))
+    me, cost = pza1.ORDER["frame"].index("me"), pza1.ORDER["frame"].index("cost")
+    old = list(arr)
+    old[me], old[cost] = arr[me][:11], arr[cost][:8]
+    d = pza1.decode(old)
+    assert list(d["me"]) == list(pza1.GROUPS["me"][:11]) and list(d["cost"]) == list(pza1.GROUPS["cost"][:8])
+    for g, n in (("me", 12), ("me", 10), ("cost", 9), ("cost", 15)):
+        bad = list(arr)
+        i = pza1.ORDER["frame"].index(g)
+        bad[i] = (arr[i] + [0] * n)[:n]
+        with pytest.raises(ValueError):
+            pza1.decode(bad)

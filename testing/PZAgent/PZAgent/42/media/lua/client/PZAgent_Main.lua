@@ -13,7 +13,11 @@
 -- the 1 ms clock (PZA.now, getTimestampMs: ruling P22-4): tickMs the previous tick's whole body, actMs this tick's
 -- K.tick, senseMs this tick's events and frame read, mapMs this tick's scan or watch step, linkMs the previous tick's
 -- flush (a frame is encoded at its emit, before its own flush), tickMaxMs the worst body since the last frame and
--- over5 the bodies of 5 ms or more since it (the ticks before this one), dropped the Link's dropped lines.
+-- over5 the bodies of 5 ms or more since it (the ticks before this one), dropped the Link's dropped lines; pollMs this
+-- tick's L.poll (its ack write included), startMs this tick's command start (Main's scan or rate answer, else K.start),
+-- and the per-phase maxima since the last frame (X4 fix pass, review I8: a burst on a tick that writes no frame is
+-- attributed): maxPollMs, maxStartMs, maxActMs, maxSenseMs and maxMapMs over every tick since the last frame's emit,
+-- this one included, and maxLinkMs over the flushes since it (the last frame's own flush included, this tick's not).
 -- Main loads before Map, Motor, Sense, Skills and SkillsWorld (client files load by name), so it reaches them only at
 -- tick time.
 -- Everything sits inside one pcall; a raise counts in PZA.errors and, once the link is initialised, reports as a
@@ -33,7 +37,15 @@ M.lastBodyMs = 0
 M.lastLinkMs = 0
 M.maxMs = 0
 M.over5 = 0
+M.PHASES = { "poll", "start", "act", "sense", "map", "link" }
+M.phaseMax = {}
+for _, ph in ipairs(M.PHASES) do M.phaseMax[ph] = 0 end
 M.hooked = M.hooked or false
+
+-- a phase's span into its maximum since the last frame
+local function noteMax(ph, ms)
+    if ms > M.phaseMax[ph] then M.phaseMax[ph] = ms end
+end
 
 -- the game clock's minute, or 0 while Sense cannot read it (a lua_error may come from Sense itself)
 local function gameMin()
@@ -82,6 +94,7 @@ function M.init(user, p)
     local ok, err = pcall(firstSight, p or getPlayer())
     if not ok then reportError(err) end
     M.lastLinkMs = L.flush()
+    noteMax("link", M.lastLinkMs)
 end
 
 -- a whole number in lo..hi
@@ -143,9 +156,11 @@ local function body()
         return
     end
     local L, K, S = PZA.link, PZA.skills, PZA.sense
+    local tp = PZA.now()
     local cmd = L.poll()
-    if cmd ~= nil and not mainCommand(cmd, p) then K.start(cmd, p) end
     local t0 = PZA.now()
+    if cmd ~= nil and not mainCommand(cmd, p) then K.start(cmd, p) end
+    local ts = PZA.now()
     K.tick(p)
     local t1 = PZA.now()
     local cur = nil
@@ -158,18 +173,26 @@ local function body()
     local okMap, errMap = pcall(mapStep, p)
     if not okMap then mapRaised(errMap) end
     local t3 = PZA.now()
+    local pollMs, startMs, actMs, senseMs, mapMs = t0 - tp, ts - t0, t1 - ts, t2 - t1, t3 - t2
+    noteMax("poll", pollMs); noteMax("start", startMs); noteMax("act", actMs)
+    noteMax("sense", senseMs); noteMax("map", mapMs)
     if L.overflow ~= nil then
         PZA.emit("event", { event = "overflow", gameMin = gameMin(), queued = L.overflow.queued, cut = L.overflow.cut })
         L.overflow = nil
     end
     if cur ~= nil then
-        cur.cost = { tickMs = M.lastBodyMs, actMs = t1 - t0, senseMs = t2 - t1, mapMs = t3 - t2, linkMs = M.lastLinkMs,
-                     tickMaxMs = M.maxMs, over5 = M.over5, dropped = L.dropped or 0 }
+        local mx = M.phaseMax
+        cur.cost = { tickMs = M.lastBodyMs, actMs = actMs, senseMs = senseMs, mapMs = mapMs, linkMs = M.lastLinkMs,
+                     tickMaxMs = M.maxMs, over5 = M.over5, dropped = L.dropped or 0, pollMs = pollMs, startMs = startMs,
+                     maxActMs = mx.act, maxSenseMs = mx.sense, maxMapMs = mx.map, maxLinkMs = mx.link,
+                     maxPollMs = mx.poll, maxStartMs = mx.start }
         M.maxMs, M.over5 = 0, 0
+        for _, ph in ipairs(M.PHASES) do mx[ph] = 0 end
         PZA.emitFrame(cur)
         M.prev = cur
     end
     M.lastLinkMs = L.flush()
+    noteMax("link", M.lastLinkMs)
 end
 
 local function onTick()
@@ -182,7 +205,10 @@ local function onTick()
     if not ok and reportError(err) then
         -- the raised tick's flush (its body ms above already fed tickMaxMs and over5); its ms is the next frame's linkMs
         local okF, fms = pcall(PZA.link.flush)
-        if okF and type(fms) == "number" then M.lastLinkMs = fms end
+        if okF and type(fms) == "number" then
+            M.lastLinkMs = fms
+            noteMax("link", fms)
+        end
     end
 end
 

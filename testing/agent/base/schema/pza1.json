@@ -116,7 +116,8 @@
       "x-role": "group",
       "x-group": "me",
       "x-encoding": "positional",
-      "x-order": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk"],
+      "x-prior": 11,
+      "x-order": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed"],
       "type": "object",
       "properties": {
         "x": {"description": "The world x in tiles.", "type": "number"},
@@ -129,9 +130,11 @@
         "sprinting": {"description": "Whether the sprinting flag is set.", "type": "boolean"},
         "forceRun": {"description": "The force-run flag read after the frame.", "type": "boolean"},
         "forceSprint": {"description": "The force-sprint flag read after the frame.", "type": "boolean"},
-        "autoWalk": {"description": "Whether auto-walk is on.", "type": "boolean"}
+        "autoWalk": {"description": "Whether auto-walk is on.", "type": "boolean"},
+        "zombiesSeen": {"description": "The cell's zombie list size, the frame's one walk.", "type": "integer"},
+        "zombiesListed": {"description": "The zombies the frame lists, those alive within the sense radius.", "type": "integer"}
       },
-      "required": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk"]
+      "required": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed"]
     },
     "stats": {
       "description": "The player's character stats.",
@@ -230,7 +233,8 @@
       "x-role": "group",
       "x-group": "cost",
       "x-encoding": "positional",
-      "x-order": ["tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped"],
+      "x-prior": 8,
+      "x-order": ["tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs"],
       "type": "object",
       "properties": {
         "tickMs": {"description": "The previous tick's whole body in ms (a single tick on the 1 ms clock).", "type": "number"},
@@ -240,9 +244,17 @@
         "linkMs": {"description": "The previous tick's flush in ms.", "type": "number"},
         "tickMaxMs": {"description": "The worst body since the last frame, in ms.", "type": "number"},
         "over5": {"description": "The bodies of 5 ms or more since the last frame.", "type": "integer"},
-        "dropped": {"description": "The number of lines dropped.", "type": "integer"}
+        "dropped": {"description": "The number of lines dropped.", "type": "integer"},
+        "pollMs": {"description": "This tick's command poll in ms, the ack write included (a single tick).", "type": "number"},
+        "startMs": {"description": "This tick's command start in ms, Main's scan or rate answer or the runner's start (a single tick).", "type": "number"},
+        "maxActMs": {"description": "The worst skill tick since the last frame, in ms.", "type": "number"},
+        "maxSenseMs": {"description": "The worst events and frame read since the last frame, in ms.", "type": "number"},
+        "maxMapMs": {"description": "The worst scan or watch step since the last frame, in ms.", "type": "number"},
+        "maxLinkMs": {"description": "The worst flush since the last frame, in ms.", "type": "number"},
+        "maxPollMs": {"description": "The worst command poll since the last frame, in ms.", "type": "number"},
+        "maxStartMs": {"description": "The worst command start since the last frame, in ms.", "type": "number"}
       },
-      "required": ["tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped"]
+      "required": ["tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs"]
     },
     "part": {
       "description": "One body part below full health.",

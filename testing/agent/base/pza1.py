@@ -26,14 +26,19 @@ ORDER = {
 }
 # a frame's groups, elidable in a delta
 GROUPS = {
-    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk"),
+    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed"),
     "stats": ("hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature"),
     "body": ("health", "bleeding", "scratched", "bitten", "parts"),
     "load": ("weight", "max", "level", "n"),
     "weapon": ("type", "cond", "reach", "ammo"),
     "action": ("class", "n"),
     "act": ("aid", "state"),
-    "cost": ("tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped"),
+    "cost": ("tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs"),
+}
+# a group's arity before its last appended fields: a line of it decodes with those fields absent
+PRIOR = {
+    "me": 11,
+    "cost": 8,
 }
 # the positional records
 RECORDS = {
@@ -190,7 +195,7 @@ def _dec(owner, a, top=False):
     if a is None:
         return None
     order = _POS[owner]
-    if not isinstance(a, list) or len(a) != len(order):
+    if not isinstance(a, list) or (len(a) != len(order) and len(a) != PRIOR.get(owner)):
         raise ValueError("PZA/1 %s: want %s fields, got %r" % (owner, len(order), a))
     shapes = SHAPES.get(owner, {})
     d = {}
