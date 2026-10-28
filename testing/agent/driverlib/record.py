@@ -11,12 +11,15 @@ whole death window; the chain's lineage reads the last one), `poll_errors` the P
 when the session runs one, else None (session.py, THE SHOTS; the index is <run dir>/shots/shots.jsonl, one line a
 shot). The server reads' counts are the session's ServerReads'.
 
-death_record(session, via, detail) -> {via ("frame" | "players"), detail, wallS, gameMin, frame (the death frame or
-None), last_decisions, last_frames, server_damage (the server's records, with their i and server wall, whose wall (else
-the merge's wallMs) lies within DEATH_WINDOW_S before the client's clock at the stop), client_damage (the World's
-client records in the same window), window_ms {from, to}}. It only builds the dict: Session.death_record makes the
-last `damage.watch since` read before it (so the records up to the death are merged). gates.grade_d's death_check
-reads it. Nothing here touches the bus.
+death_record(session, via, detail) -> {via ("event" | "frame" | "players"), detail, wallS, gameMin, frame (the death
+frame or None: Session.death_frame, its `signal` "event" (the Lua's death event, PZA/1.3, ruling P23-AO: its seq,
+wallMs, gameMin and health the event's, `frameSeq` the frame the Lua emitted after it, `event` its fields) or
+"frame_health" (the first frame whose body.health read <= STOP_HEALTH)), event (Session.death_event, the death event's
+seq, wallMs and fields, or None: also kept when a 0 frame came first), last_decisions, last_frames, server_damage (the
+server's records, with their i and server wall, whose wall (else the merge's wallMs) lies within DEATH_WINDOW_S before
+the client's clock at the stop), client_damage (the World's client records in the same window), window_ms {from,
+to}}. It only builds the dict: Session.death_record makes the last `damage.watch since` read before it (so the records
+up to the death are merged). gates.grade_d's death_check reads it. Nothing here touches the bus.
 
 Clocks: `*S` keys are the driver's clock in seconds since the loop began; a line's wallMs is the client's clock (ms).
 """
@@ -73,5 +76,6 @@ def death_record(session, via, detail):
     client = [dict(r) for r in s.world.damage
               if r.get("side") != "server" and in_window(r.get("wallMs"), lo, hi)]
     return {"via": via, "detail": detail, "wallS": s.loop_s(), "gameMin": s.world.game_min,
-            "frame": s.death_frame, "last_decisions": s.tail.last(), "last_frames": list(s.frames),
+            "frame": s.death_frame, "event": getattr(s, "death_event", None), "last_decisions": s.tail.last(),
+            "last_frames": list(s.frames),
             "server_damage": server, "client_damage": client, "window_ms": {"from": lo, "to": hi}}

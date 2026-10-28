@@ -410,3 +410,27 @@ def test_death_window_reports_frames_and_truncation():
 def test_gate_names_each_artifacts_lineage_source():
     r = E.gate_e1([art(), art(lineage={"ok": True}), art()])
     assert r["lineage_sources"] == [None, "loop", "rebuilt"]
+
+
+# ---------------------------------------------------------------- PZA/1.3: the death event (ruling P23-AO)
+def test_the_death_check_names_the_signal_that_ended_the_session():
+    for via, signal in (("frame", "frame_health"), ("players", "players"), ("event", "event"), (None, None)):
+        a = _death_art(300, wound_at=100, health_from=105)
+        if via is not None:
+            a["loop"]["death"]["via"] = via
+        assert E.grade_e1(a)["death"]["check"]["signal"] == signal, via
+
+
+def test_an_event_death_ends_the_window_at_the_events_frame():
+    """The fourth chain's shape: the health fell to 19.5 and froze; the event's frame (frameSeq) ends the window, so
+    the frozen frames after it, read until the stop settled, are no part of it."""
+    a = _death_art(300, wound_at=100, health_from=280)        # 100 down to 5 over seq 281..300
+    fr = a["loop"]["last_frames"]
+    for f in fr[290:]:
+        f["body"]["health"] = fr[289]["body"]["health"]      # frozen from seq 290 on
+    a["loop"]["death"].update(via="event", frame={"signal": "event", "seq": 289, "health": 50.0, "frameSeq": 290})
+    d = E.grade_e1(a)["death"]
+    assert d["check"]["signal"] == "event" and d["first_wound_seq"] == 101
+    assert d["window_frames_n"] == 191 and d["check"]["frames_window_ms"]["to"] == fr[289]["wallMs"]
+    a["loop"]["death"]["frame"]["frameSeq"] = None            # the event's frame never read: every kept frame
+    assert E.grade_e1(a)["death"]["window_frames_n"] == 201

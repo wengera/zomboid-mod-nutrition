@@ -150,6 +150,15 @@ class FakeMod:
         body.update(fields)
         return self._emit("event", body)
 
+    def death(self, **fields):
+        """PZA/1.3's death event (ruling P23-AO), as the Lua writes it before its frame: DEFAULT_FRAME's worldAge,
+        position and health, zombiesKilled 0 and via "hook", with `fields` laid over them."""
+        me = DEFAULT_FRAME["me"]
+        body = {"worldAge": DEFAULT_FRAME["worldAge"], "x": me["x"], "y": me["y"], "z": me["z"],
+                "health": DEFAULT_FRAME["body"]["health"], "zombiesKilled": 0, "via": "hook"}
+        body.update(fields)
+        return self.event("death", **body)
+
     def map_full(self, squares, scan_id=1, part=1, parts=1, missing=()):
         self.scan_id = scan_id
         return self._emit("map", {"mode": "full", "scanId": scan_id, "part": part, "parts": parts,

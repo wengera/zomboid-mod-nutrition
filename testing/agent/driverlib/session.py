@@ -24,7 +24,8 @@ out["readings"][phase]):
                fullType, seq, wallMs}, equip (None when no Equip was sent), weapon_frame, armed, ok}. An unconfirmed
                spawn or equip is recorded and the session goes on.
   loop         every poll_s of the clock: pump the transport (each line into World, then Actions; a frame's
-               body.health <= STOP_HEALTH, the lua_error events and the link's silence are read here); at
+               body.health <= STOP_HEALTH, the death event, the lua_error events and the link's silence are read
+               here); at
                PLANNER_HZ the planner's tick (its decision log read incrementally, the fights built off its threat
                branch; each sent action's branch and a consume's use kept beside it, Session.send_meta); the
                server reads (below); every MEM_POLL_S a host free-memory read; every PERSIST_S out["loop"]
@@ -57,8 +58,13 @@ one caller at a time, so the loop's end joins the worker with a timeout covering
 bus timeout plus the liveness ping: Session.polls_join_s; ServerReads.end), records loop.polls_joined, and skips the
 death record's final damage read while the worker is still in a read (damage.final_error names it).
 STOP CONDITIONS, the first that holds ends the loop, named in out["stop"] {reason, detail, wallS, gameMin, worldAge}:
-  death            a frame's body.health <= STOP_HEALTH, or a `players` reply (a list, or {} for nobody) without the
-                   user (an error reply is no death: a failed read, the last kept as loop.players_error);
+  death            the Lua's `death` event (PZA/1.3, ruling P23-AO; detail `event death seq N ...`), a frame's
+                   body.health <= STOP_HEALTH, or a `players` reply (a list, or {} for nobody) without the user (an
+                   error reply is no death: a failed read, the last kept as loop.players_error). The client's
+                   health copy is no reliable death signal in multiplayer (the fourth chain's froze at 19.5 on the
+                   dead character), so the event is the primary one; the first of the event and a 0 frame, by line
+                   order, is the death frame (Session.death_frame, its `signal` "event" or "frame_health"), and
+                   loop.death.via names it: "event", "frame" or "players";
   bus_dead         BUS_DEAD_POLLS consecutive failed server polls (neither a stats map nor a players list), no link
                    line for BUS_DEAD_S, xlib's BusDead or a bus already dead, or the client parked in the debugger;
   lua_error_storm  more than STORM_N lua_error events within STORM_WINDOW_S of the client's own clock;
@@ -70,7 +76,7 @@ A death writes out["loop"]["death"] (record.death_record). A stop before the loo
 THE SHOTS (ruling P23-AL; `shots`, a shots.ShotTaker, or None for none): the worker starts beside the server reads at
 the loop's start; each planner tick marks `shot_moment()` (the latest frame's seq, wallMs, gameMin and health, the
 latest decision line's branch, flee and goal, the open fight's index, the decision log's line count), the death frame
-marks a final `death` and THE STOP a final `stop` after its settle; after the poll worker's join the taker ends
+(a 0 frame's or the death event's) marks a final `death` and THE STOP a final `stop` after its settle; after the poll worker's join the taker ends
 (its finals taken, its worker joined within shots.SHOT_JOIN_S, loop.shots_joined). Its summary is loop.shots
 (record.loop_summary; None without a taker). A shot never blocks the loop or raises into it (shots.py's docstring).
 
@@ -468,7 +474,8 @@ class Session:
         self.err_per_min = {}
         self.ticks_ms, self.tick_max, self.over5 = [], None, 0
         self.missing = []
-        self.death_frame = None
+        self.death_frame = None       # the first death signal off the link: a 0 frame's or the death event's
+        self.death_event = None       # the Lua's death event (PZA/1.3), its seq, wallMs and fields
         self.t_loop0 = None
         self.last_line_t = None
         self.ready = False
@@ -527,11 +534,17 @@ class Session:
                 self.tick_max = c["tickMaxMs"] if self.tick_max is None else max(self.tick_max, c["tickMaxMs"])
             self.over5 += _num(c.get("over5")) or 0
             h = body_health(l)
+            df = self.death_frame
+            if df is not None and df.get("signal") == "event" and df.get("frameSeq") is None and (
+                    (l.get("seq") or 0) > (df["seq"] or 0)):
+                df["frameSeq"] = l.get("seq")        # the event's own frame: the Lua emits it after the event
             if h is not None and h <= self.lim["STOP_HEALTH"] and self.death_frame is None:
-                self.death_frame = {"health": h, "seq": l.get("seq"), "wallMs": l.get("wallMs"),
-                                    "gameMin": l.get("gameMin")}
+                self.death_frame = {"signal": "frame_health", "health": h, "seq": l.get("seq"),
+                                    "wallMs": l.get("wallMs"), "gameMin": l.get("gameMin")}
                 self.mark_shot("death")
             self.on_frame(l)
+        elif k == "event" and l.get("event") == "death":
+            self.read_death_event(l)
         elif k == "event" and l.get("event") == "lua_error":
             fr["lua_errors"] += 1
             fr["lua_error_msgs"] = (fr["lua_error_msgs"] + [l.get("msg")])[-20:]
@@ -545,6 +558,19 @@ class Session:
             for m in l.get("missing") or ():
                 if m not in self.missing:
                     self.missing.append(m)
+
+    def read_death_event(self, l):
+        """The Lua's death event (PZA/1.3): the first kept as self.death_event; when no 0 frame came first it is the
+        death frame, signal "event", read off the event's own fields (the Lua reads them off the frame it emits next:
+        its health is the client's copy, not necessarily 0), frameSeq that frame's seq once a later frame is read."""
+        if self.death_event is not None:
+            return
+        self.death_event = {f: l.get(f) for f in ("seq", "wallMs", "gameMin") + pza1.EVENT_FIELDS["death"]}
+        if self.death_frame is None:
+            self.death_frame = {"signal": "event", "health": l.get("health"), "seq": l.get("seq"),
+                                "wallMs": l.get("wallMs"), "gameMin": l.get("gameMin"), "frameSeq": None,
+                                "event": dict(self.death_event)}
+            self.mark_shot("death")
 
     def wait(self, pred, timeout_s):
         """Pump every poll until pred() or timeout_s; True when pred() held. xs.check() guards it."""
@@ -782,9 +808,13 @@ class Session:
             raise Stop("bus_dead" if "parked" in str(e) else "budget", str(e))
 
     def check_lines(self, now):
-        """The stops read off the link: a death frame, a lua_error storm, a silent link."""
-        if self.death_frame is not None:
-            raise Stop("death", "frame seq %s body.health %s" % (self.death_frame["seq"], self.death_frame["health"]))
+        """The stops read off the link: the death event or a 0 frame, a lua_error storm, a silent link."""
+        df = self.death_frame
+        if df is not None:
+            if df.get("signal") == "event":
+                raise Stop("death", "event death seq %s via %s body.health %s" % (df["seq"], df["event"].get("via"),
+                                                                                df["health"]))
+            raise Stop("death", "frame seq %s body.health %s" % (df["seq"], df["health"]))
         if self.client_now is not None:
             while self.err_times and self.err_times[0] < self.client_now - self.lim["STORM_WINDOW_S"]:
                 self.err_times.popleft()
@@ -882,6 +912,14 @@ class Session:
         self.tail.read()
         return record.death_record(self, via, detail)
 
+    def death_via(self):
+        """loop.death.via: "event" (the Lua's death event first), "frame" (a 0 frame first) or "players" (neither
+        before the players reply)."""
+        df = self.death_frame
+        if df is None:
+            return "players"
+        return "event" if df.get("signal") == "event" else "frame"
+
     def set_stop(self, reason, detail, at=None):
         """The session's first stop, named in out["stop"] at `at` (stop_point(), else now); a death also writes
         out["loop"]["death"]."""
@@ -889,7 +927,7 @@ class Session:
             return
         self.out["stop"] = dict({"reason": reason, "detail": detail}, **(at or self.stop_point()))
         if reason == "death":
-            self.loop["death"] = self.death_record("frame" if self.death_frame is not None else "players", detail)
+            self.loop["death"] = self.death_record(self.death_via(), detail)
         self.xs.note("stop %s: %s" % (reason, detail))
 
     def run(self):

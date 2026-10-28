@@ -4,7 +4,8 @@
 Reads (every key tolerated missing; a non-dict reads as empty, nothing raises):
   out.stop {reason, wallS}; out.loop.{first_game_min, game_min, wallS, last_frames [{seq, wallMs, gameMin, body, load,
   stats, me}], actions [{type, state, sentS, endedS, use, branch}], night.sleeps [{state, sleptH, fatigueBefore,
-  fatigueAfter}], fights [{fight_ticks, flee {..}, end}], first_world_age, cost, lineage, death {last_frames, server_damage}}.
+  fatigueAfter}], fights [{fight_ticks, flee {..}, end}], first_world_age, cost, lineage, death {via, frame {signal,
+  seq, frameSeq}, last_frames, server_damage}}.
 A consume action `use` is "drink"/"water" or "eat"/"food" (anything else counts under needs.unknown); a drop action
 `branch` is "load" (a guard drop) or "threat" (a flee drop).
 
@@ -18,6 +19,8 @@ from agent.base import gates as GT
 from agent.driverlib import chain as CH
 
 SURVIVED = GT.SURVIVED
+# loop.death.via -> the signal that ended the session (e_death's check.signal; PZA/1.3 added "event", ruling P23-AO)
+SIGNALS = {"event": "event", "frame": "frame_health", "players": "players"}
 ALIVE_MINUTES = 1440.0               # the chain day: 24 game hours summed over its sessions
 STAND_OFF_TICKS = 20
 _USE = {"drink": "drink", "water": "drink", "eat": "eat", "food": "eat"}
@@ -173,7 +176,10 @@ def e_death(out):
     scratched + bitten rose over the row before it (so the wound arm sees the rise), runs to the end of every kept
     frame, and gates.death_check grades the death record restricted to it. window_truncated: the first wound is the
     first row the frames can show (a rise at the second frame, or a wound already on at the first), so its onset may
-    lie before them."""
+    lie before them. When the death frame is the Lua's death event's (PZA/1.3, ruling P23-AO: death.frame.signal
+    "event") and its frameSeq is known, the frames end at the event's own frame (the frames after it, read until the
+    stop settled, are the dead character's). check.signal names what ended the session (SIGNALS: death.via "event",
+    "frame" or "players" as "event", "frame_health" or "players"; None for a record without via)."""
     out = _d(out)
     loop = _d(out.get("loop"))
     if _d(out.get("stop")).get("reason") != "death":
@@ -181,9 +187,14 @@ def e_death(out):
     death = _d(loop.get("death"))
     frames = [f for f in _l(loop.get("last_frames")) if isinstance(f, dict)] or \
         [f for f in _l(death.get("last_frames")) if isinstance(f, dict)]
+    dframe = _d(death.get("frame"))
+    end = _n(dframe.get("frameSeq")) if dframe.get("signal") == "event" else None
+    if end is not None:
+        frames = [f for f in frames if (_n(f.get("seq")) or 0) <= end]
     k = next((i for i in range(1, len(frames)) if GT._wound(frames[i - 1], frames[i])), None)
     window = frames[k - 1:] if k is not None else frames
     check = GT.death_check(dict(death, last_frames=window))
+    check["signal"] = SIGNALS.get(death.get("via"))
     on = bool(frames) and any((_n(_d(frames[0].get("body")).get(w)) or 0) > 0 for w in GT.WOUND_KEYS)
     return {"first_wound_seq": frames[k].get("seq") if k is not None else None, "window_frames": len(window),
             "window_frames_n": len(window), "window_truncated": k == 1 or on,

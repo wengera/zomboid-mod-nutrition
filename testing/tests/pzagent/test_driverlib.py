@@ -394,12 +394,14 @@ class DayMod(FakeMod):
     `first_sight_ticks` (the held bat's item_added arrives that many ticks after the first frame, whose load.n
     already counts it) and `late_old` (an older bat, id OLD_ID, item_added on the tick after the spawn's tick, before
     the new bat's). A `sleep` stays accepted until the next command, which ends it `failed superseded`.
+    `death_at` (PZA/1.3, ruling P23-AO): one death event on the first tick from then, before that tick's frame, its
+    health the frame's (frozen from then on: the drain stops, as the fourth chain's client copy froze above 0).
     Every other command, stop included, is accepted and done."""
 
     def __init__(self, d, clock, die_from=None, drain=5.0, amount=None, floor=0.0, server_damage=True,
                  client_damage=False, zombie_at=None, lua_err_from=None, lua_err_every=1.0, silent_from=None,
                  hello_mode="append", no_hello=False, zombie_far_s=0.0, zombie_dist=1.5, bite_at=None, held=False,
-                 wielded=False, first_sight_ticks=0, late_old=False):
+                 wielded=False, first_sight_ticks=0, late_old=False, death_at=None):
         super().__init__(d, clock=clock.now)
         self.clk, self.t0 = clock, clock.t
         self.hz = 10
@@ -413,6 +415,7 @@ class DayMod(FakeMod):
         self.pending, self.cmd_seen, self.cmds = [], 0, []
         self.late, self.late_old, self.sleeping, self.load_n = [], late_old, None, 1 if held else 0
         self.server_records = []
+        self.death_at, self.died = death_at, False
         if held:                                                              # a chain's later session: the bat kept
             self.has_kit = True
             ev = {"itemId": KIT_ID, "fullType": KIT, "weight": 1.5, "use": "weapon"}
@@ -490,7 +493,8 @@ class DayMod(FakeMod):
                 self.event("item_added", **d[1])
         self.late = [d for d in self.late if d[0] > 0]
         wall = int(round(self.clk.t * 1000))
-        if self.die_from is not None and self.s() >= self.die_from - 1e-9 and self.health > self.floor:
+        if self.die_from is not None and self.s() >= self.die_from - 1e-9 and self.health > self.floor and \
+                not self.died:
             if self.client_damage and self.health == 100.0:
                 self.event("damage", tag="HEAVYLOAD", amount=self.drain, side="client")
             self.health = max(self.floor, self.health - self.drain)
@@ -501,6 +505,10 @@ class DayMod(FakeMod):
                 self.last_err is None or self.s() - self.last_err >= self.lua_err_every - 1e-9):
             self.last_err = self.s()
             self.event("lua_error", msg="boom")
+        if self.death_at is not None and not self.died and self.s() >= self.death_at - 1e-9:
+            self.died = True
+            self.death(gameMin=480.0 + self.s() * 16.0 / 60.0, x=100.0, y=200.0, health=self.health,
+                       zombiesKilled=1 if self.zombie_dead else 0)
         dist = 8.0 if self._zombie_live() and self.s() < self.zombie_at + self.zombie_far_s else self.zombie_dist
         zs = [{"id": ZID, "x": 100.0 + dist, "y": 200.0, "dist": dist, "hasTarget": True, "crawler": False,
                "health": 1.0}] if self._zombie_live() else []
@@ -748,9 +756,10 @@ def test_a_heavyload_death_keeps_its_record_and_the_frames_explain_it(tmp_path, 
     r = run_session(tmp_path, monkeypatch, mode, die_from=40.0, drain=5.0, client_damage=True)
     st, death = r.out["stop"], r.out["loop"]["death"]
     assert st["reason"] == "death" and st["detail"].endswith("body.health 0") and st["wallS"] < 40.0
-    assert set(death) == {"via", "detail", "wallS", "gameMin", "frame", "last_decisions", "last_frames",
+    assert set(death) == {"via", "detail", "wallS", "gameMin", "frame", "event", "last_decisions", "last_frames",
                           "server_damage", "client_damage", "window_ms"}
-    assert death["via"] == "frame" and death["frame"]["health"] == 0.0
+    assert death["via"] == "frame" and death["frame"]["health"] == 0.0 and death["frame"]["signal"] == "frame_health"
+    assert death["event"] is None
     assert death["last_decisions"] == decisions(tmp_path)[-10:] and len(death["last_decisions"]) == 10
     lf = death["last_frames"]
     assert len(lf) == fr_n(r.out) and lf[-1]["body"]["health"] == 0.0 and lf[0]["body"]["health"] == 100.0
@@ -1234,3 +1243,48 @@ def test_the_kit_matches_its_spawn_by_a_new_id_not_a_late_older_bat(tmp_path, mo
     assert len(r.xs.server.rcons) == 1 and kit["item"]["source"] == "item_added"
     assert kit["item"]["itemId"] == KIT_ID
     assert [c["args"] for c in r.mod.cmds if c["type"] == "equip"] == [{"itemId": KIT_ID}]
+
+
+# ================================================================ PZA/1.3: the death event (ruling P23-AO)
+@pytest.mark.parametrize("mode", MODES)
+def test_the_death_event_stops_the_loop_when_the_health_never_reads_0(tmp_path, monkeypatch, mode):
+    """The fourth chain's death: the client's health froze above 0 on the dead character and no frame read 0; the Lua's
+    death event ends the loop, named by its seq, and its frame is the death frame."""
+    r = run_session(tmp_path, monkeypatch, mode, die_from=20.0, drain=0.5, death_at=30.0)
+    st, death = r.out["stop"], r.out["loop"]["death"]
+    ev = death["event"]
+    assert st["reason"] == "death" and st["detail"] == "event death seq %s via hook body.health %s" % (
+        ev["seq"], ev["health"])
+    assert death["via"] == "event" and 0.0 < ev["health"] < 100.0 and ev["zombiesKilled"] == 0
+    assert set(ev) == {"seq", "wallMs", "gameMin"} | set(pza1.EVENT_FIELDS["death"])
+    df = death["frame"]
+    assert df["signal"] == "event" and df["seq"] == ev["seq"] and df["health"] == ev["health"]
+    assert df["event"] == ev and df["frameSeq"] == ev["seq"] + 1          # the frame the Lua wrote after it
+    lf = r.out["loop"]["last_frames"]
+    assert all(f["body"]["health"] > 0.0 for f in lf)                     # no 0 frame: the event alone stopped it
+    assert lf[-1]["seq"] > df["frameSeq"] and lf[-1]["body"]["health"] == ev["health"]   # the frames go on after it
+    g = GT.grade_d(r.out)
+    assert g["survived"] is False and g["deaths"][0]["via"] == "event"
+
+
+@pytest.mark.parametrize("mode", MODES)
+def test_a_0_frame_before_the_event_stays_the_death_frame_and_the_event_is_kept(tmp_path, monkeypatch, mode):
+    r = run_session(tmp_path, monkeypatch, mode, die_from=40.0, drain=5.0, death_at=42.0)
+    death = r.out["loop"]["death"]
+    assert r.out["stop"]["detail"].startswith("frame seq ") and death["via"] == "frame"
+    assert death["frame"]["signal"] == "frame_health" and death["frame"]["health"] == 0.0
+    assert death["event"] is not None and death["event"]["seq"] > death["frame"]["seq"]   # read in the stop's settle
+
+
+def test_only_the_first_death_event_is_kept_and_another_kind_is_no_death(tmp_path):
+    xs = types.SimpleNamespace(user="admin", out=S.new_out(), path=None, copied=[])
+    sess = S.Session.__new__(S.Session)
+    sess.out, sess.death_frame, sess.death_event, sess.shots = xs.out, None, None, None
+    sess.mark_shot = lambda final=None: None
+    sess.read_death_event({"kind": "event", "event": "death", "seq": 7, "wallMs": 1, "gameMin": 5.0, "worldAge": 1.0,
+                           "x": 1.0, "y": 2.0, "z": 0, "health": 19.5, "zombiesKilled": 1, "via": "isDead"})
+    sess.read_death_event({"kind": "event", "event": "death", "seq": 9, "health": 3.0})
+    assert sess.death_event["seq"] == 7 and sess.death_frame["seq"] == 7 and sess.death_via() == "event"
+    with pytest.raises(S.Stop) as e:
+        sess.check_lines.__func__(types.SimpleNamespace(death_frame=sess.death_frame), 0.0)
+    assert e.value.reason == "death" and e.value.detail == "event death seq 7 via isDead body.health 19.5"
