@@ -63,12 +63,12 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   `why["cap"]`. Every container on the looted square is marked looted when the interact ends, done, failed, rejected
   or timed out, except a `failed "superseded"`, which a newer send replaced before it ran (Plan 21 lost such a square
   for the session: `docs/reference/research-notes.md`, "A pre-empted loot's square is marked looted"). The level
-  guard stays the backstop, spec § 9 (1), "a policy stops looting before level 3": at level 2 it sends nothing; at
-  `DROP_AT` (3) or above it sends `Drop` of `spare()`, the heaviest held item that is neither the wielded weapon's
-  type, nor of use `weapon`, `food` or `water` by `world.by_use()` (a bottle the planner marked empty reads `other`,
-  so it is dropped), one a decision, until the frame's level reads `DROP_TO` (2); with nothing to drop, no command.
-  No loot is sent again until the level is back under 2. Survive's flee sends one `spare()` drop of its own at
-  `DROP_AT` (`survive.py`).
+  guard stays the backstop, spec § 9 (1), "a policy stops looting before level 3": above LOOT_MAX_LEVEL it sends
+  nothing (`why["hold"]`), and no loot is sent again until the level is back under 2. It never drops (Plan 23 Task 12):
+  the drop is Survive's `load` branch, which at `DROP_AT` (3) or above sends `Drop` of `spare(world)`, the heaviest
+  held item that is neither the wielded weapon's type, nor of use `weapon`, `food` or `water` by `world.by_use()` (a
+  bottle the planner marked empty reads `other`, so it is dropped), one a decision, until the frame's level reads
+  `DROP_TO` (2); Survive's flee sends one `spare()` drop of its own at `DROP_AT` (`survive.py`).
 
 HEURISTIC: an item's use is `agent.base.items.use_of`: food and water off `data/food-items.json` (the dataset's food and
 fluid containers), a weapon by `items.WEAPON_RX`'s fullType names, which is no game data (the dataset names no weapon).
@@ -76,8 +76,9 @@ fluid containers), a weapon by `items.WEAPON_RX`'s fullType names, which is no g
 import math
 import time
 
-from agent.base.pza1 import Attack, Drop, Interact, Scan, Steer, WalkTo
+from agent.base.pza1 import Attack, Interact, Scan, Steer, WalkTo
 
+DANGER_R = 6.0        # tiles: a zombie this close is a threat (Survive's threat branch; the night sends nothing)
 FIGHT_REACH = 2.0     # tiles: a nearest zombie beyond this is walked to, within it attacked
 FIGHT_MAX_S = 20.0    # wall seconds the target may stay beyond FIGHT_REACH before the fight reads stalled
 DISENGAGE_R = 10.0    # tiles: a pinned target beyond this is dropped (and Survive's hold radius while a threat runs)
@@ -91,8 +92,8 @@ SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded 
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
 LOAD_RATIO_MAX = 1.0  # a loot fills to this times the frame's load.max (level 1 holds up to 1.25 of it, #3926)
 LOOT_WANTS = ("food", "water", "weapon", "bandage")   # a loot's want and filter: one use, never `all` (P23-8)
-DROP_AT = 3           # at this load level or above the policy drops (the heavy-load drain falls at level 3) ...
-DROP_TO = 2           # ... down to this level, and between the two sends nothing
+DROP_AT = 3           # at this load level or above Survive's load branch drops (the heavy-load drain falls at 3) ...
+DROP_TO = 2           # ... down to this level, and between the two neither drops nor loots
 KEPT_USES = ("weapon", "food", "water")   # the uses a drop never takes
 PREEMPTED = "superseded"   # the reason the Lua fails an action a newer send replaced
 STUCK_REASONS = ("stuck", "no path", "no square")   # a walkTo failed for one of these: its target is remembered
@@ -163,6 +164,23 @@ class Policy:
             return None
         cmd = self.choose()
         return None if cmd is None else self.send(cmd)
+
+
+def spare(world):
+    """The id of the heaviest held item that is neither the wielded weapon's type nor of use weapon, food or water by
+    `world.by_use()` (so a bottle marked empty is `other`, and spare), ties by the least id; else None. Survive's load
+    branch and its flee drop it."""
+    wielded = (world.weapon or {}).get("type")
+    by_use = world.by_use()
+    kept = {iid for use in KEPT_USES for iid in by_use[use]}
+    best = None
+    for iid, it in world.inventory.items():
+        if not item_id_ok(iid) or iid in kept or (it.get("fullType") or "") == wielded:
+            continue
+        rank = (-(it.get("weight") or 0.0), iid)
+        if best is None or rank < best:
+            best = rank
+    return best[1] if best else None
 
 
 def blocked(unreachable, now):
@@ -447,27 +465,8 @@ class LootHouse(Policy):
                 self.world.mark_looted(key)
         self.pending = still
 
-    def spare(self):
-        """The id of the heaviest held item that is neither the wielded weapon's type nor of use weapon, food or water
-        by `world.by_use()` (so a bottle marked empty is `other`, and spare), else None."""
-        wielded = (self.world.weapon or {}).get("type")
-        by_use = self.world.by_use()
-        kept = {iid for use in KEPT_USES for iid in by_use[use]}
-        best = None
-        for iid, it in self.world.inventory.items():
-            if not item_id_ok(iid) or iid in kept or (it.get("fullType") or "") == wielded:
-                continue
-            rank = (-(it.get("weight") or 0.0), iid)
-            if best is None or rank < best:
-                best = rank
-        return best[1] if best else None
-
     def choose(self):
         level = self.level()
-        if level >= DROP_AT:
-            iid = self.spare()
-            self.why = {"level": level, "drop": iid}
-            return None if iid is None else Drop(iid)
         if level > LOOT_MAX_LEVEL:
             self.why = {"level": level, "hold": True}
             return None

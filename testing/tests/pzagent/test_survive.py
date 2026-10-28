@@ -38,8 +38,9 @@ def threat_why(tmp_path):
 
 
 # ================================================================ the list and its constants
-def test_branch_order_is_plan_21s_without_sleep_and_the_needs_fire_at_the_first_moodle():
-    assert S.BRANCHES == ("threat", "need", "forage", "explore")
+def test_branch_order_puts_the_load_and_the_night_after_the_need_and_the_needs_fire_at_the_first_moodle():
+    assert S.BRANCHES == ("threat", "need", "load", "night", "forage", "explore")   # Task 13 replaces the last two
+    assert S.DANGER_R is P.DANGER_R
     assert (S.DANGER_R, S.DISENGAGE_R, S.THIRST_T, S.HUNGER_T) == (6.0, 10.0, 0.12, 0.15)   # [#0509], [#0508]
     assert S.STOCK_WANTS == ("water", "food", "bandage", "weapon") and set(S.STOCK_WANTS) == set(P.LOOT_WANTS)
     assert (S.FLEE_HEALTH, S.FLEE_HEALTH_PAIR, S.REFIGHT_MARGIN, S.MAX_FIGHT) == (40.0, 60.0, 20.0, 2)
@@ -321,8 +322,69 @@ def test_forage_never_loots_at_load_level_three(tmp_path):
     r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
     r.frame(level=3)
     tick(r, sv)
-    assert r.cmd() == ("drop", {"itemId": 602}) and last(tmp_path)["branch"] == "forage"
+    assert r.cmd() == ("drop", {"itemId": 602}) and last(tmp_path)["branch"] == "load"   # Task 12: was "forage"
     assert last(tmp_path)["inputs"]["load"] == 3
+    assert last(tmp_path)["inputs"]["branches"]["load"] == {"level": 3, "drop": 602}
+
+
+# ================================================================ Plan 23 Task 12: the load branch, the night's inputs
+@pytest.mark.parametrize("level, want", [(2, None), (3, "drop"), (4, "drop")])
+def test_the_load_branch_drops_one_spare_item_at_drop_at_or_above(tmp_path, level, want):
+    r, sv = make(tmp_path)
+    r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
+    r.frame(level=level)
+    tick(r, sv)
+    assert (last(tmp_path)["branch"] == "load") is (want is not None)
+    if want:
+        assert r.cmd() == ("drop", {"itemId": 602})
+
+
+def test_the_load_branch_holds_on_its_drop_then_drops_the_next_and_passes_with_nothing_spare(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan([square(101, 200, containers=[CRATE])])
+    r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
+    r.event("item_added", itemId=603, fullType="Base.Nails", weight=0.5)
+    r.frame(level=3)
+    tick(r, sv)
+    assert r.cmd() == ("drop", {"itemId": 602})
+    r.frame(level=3)
+    assert tick(r, sv) is None and last(tmp_path)["branch"] == "load"   # its drop is current: held
+    r.answer()
+    r.event("item_removed", itemId=602, fullType="Base.Plank")
+    r.frame(level=3)
+    tick(r, sv)
+    assert r.cmd() == ("drop", {"itemId": 603})
+    r.answer()
+    r.event("item_removed", itemId=603, fullType="Base.Nails")
+    r.frame(level=3)
+    tick(r, sv)                                              # nothing spare: load passes, forage holds no loot at 3
+    d = last(tmp_path)
+    assert d["branch"] == "explore" and d["inputs"]["branches"]["load"] == {"level": 3, "drop": None}
+    assert d["inputs"]["branches"]["forage"]["hold"] is True
+
+
+def test_the_load_branch_drops_before_the_night_sleeps(tmp_path):
+    from .test_night import house
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110))
+    r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
+    r.frame(x=111.5, y=201.5, fatigue=0.65, level=3)
+    tick(r, sv)
+    assert r.cmd() == ("drop", {"itemId": 602}) and last(tmp_path)["branch"] == "load"
+    r.answer()
+    r.event("item_removed", itemId=602, fullType="Base.Plank")
+    r.frame(x=111.5, y=201.5, fatigue=0.65, level=2)
+    tick(r, sv)
+    assert r.cmd() == ("sleep", {}) and last(tmp_path)["branch"] == "night"
+
+
+def test_the_log_inputs_carry_the_hour_and_fatigue(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(hour=21.5, fatigue=0.25)
+    tick(r, sv)
+    d = last(tmp_path)
+    assert (d["inputs"]["hour"], d["inputs"]["fatigue"]) == (21.5, 0.25)
+    assert d["inputs"]["branches"]["night"] == {"wants": False}
 
 
 # ================================================================ the cooldown

@@ -1,7 +1,8 @@
 """The scripted survivor (Plan 22 Task 10, spec § 3): a priority list over the World, ticked by its driver.
 
-`Survive(world, actions, log_path, clock).tick(world, actions)` tries the branches in order (threat, need, forage,
-explore; no sleep, ruling P22-1), takes the first that answers, and returns the `Action` it sent or None. A branch
+`Survive(world, actions, log_path, clock).tick(world, actions)` tries the branches in order (threat, need, load,
+night, forage, explore; Plan 23 Task 12 adds `load` and `night`, Task 13 replaces `forage` and `explore` with the
+goal), takes the first that answers, and returns the `Action` it sent or None. A branch
 answers with a command to send or, while its own action is still current, with none (it holds: nothing is sent and
 no lower branch runs). A branch whose answer differs from the current action's sender sends at once, so a higher
 branch pre-empts a lower one's action (the Lua fails the old one `superseded`). The branches run the policies of
@@ -52,31 +53,40 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   first of STOCK_WANTS (`water`, `food`, `bandage`, `weapon`) for which `world.nearest_unlooted(use)` answers a
   container; none, it passes. Every loot carries `maxWeight` = the frame's `load.max` times
   `policies.LOAD_RATIO_MAX` (1.0), 0.0 (no cap) when `load.max` reads no positive number; the level guard stays the
-  backstop: a loot only at load level 0-1, never at 2, and drops from 3 down to 2 (spec § 9 (1)). `explore` scans
+  backstop: a loot only at load level 0-1, never at 2 or above (spec § 9 (1)). `explore` scans
   each new place and walks to the unexplored edge.
 - A command whose action ended `failed` (any reason but `superseded`, which this planner's own next send caused),
   `timeout` or `rejected` is not chosen again with the same type and args for FAILED_COOLDOWN_TICKS planner ticks:
   its branch is passed over and the next one tried (logged as inputs.cooled); the threat branch is never passed
   over. Every branch tried logs its own inputs under inputs.branches[<branch>].
+- `load` (Plan 23 Task 12, split out of `LootHouse`): at load level `policies.DROP_AT` (3) or above it sends one
+  `Drop` of `policies.spare(world)` a decision (logged `level`, `drop`), holding while that drop is current, until the
+  frame's level reads `DROP_TO` (2); with nothing spare, or under DROP_AT, it passes. It runs before `night`, so a
+  heavy load is dropped before the sleep.
+- `night` (Plan 23 Task 12, P23-9): `night.Night` (its docstring is the design record). Its own running action holds
+  first, before the want is read (a sleep is never superseded by its fatigue falling under the want); not wanting, it
+  passes (logged `{"wants": false}`); wanting, it shelters in a known interior and sleeps, holds NOT_SAFE_S after a
+  sleep refused `not safe`, and with no shelter known sets `night.want_shelter` and passes. Its `why` carries `step`,
+  `building` and `shunned`.
 - The log's inputs carry `mode` (the running threat policy at the tick's start, else None), `threats` (the DANGER_R
-  count), `held` (the count within the hold radius) and `fight_s` (the running fight's stall clock read before this
-  tick restarts it, else None).
+  count), `held` (the count within the hold radius), `fight_s` (the running fight's stall clock read before this
+  tick restarts it, else None), and the frame's `fatigue` and `hour` (the night's inputs).
 """
 import json
 import time
 
-from agent.base.planner.policies import (DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Explore, Fight,
-                                         Flee, LootHouse, blocked, item_id_ok, target_id_ok, zdist)
+from agent.base.planner.night import Night
+from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Explore,
+                                         Fight, Flee, LootHouse, blocked, item_id_ok, spare, target_id_ok, zdist)
 from agent.base.pza1 import Consume, Drop
 
-DANGER_R = 6.0            # a zombie this close is a threat
 THIRST_T = 0.12          # the first THIRST moodle fires above 0.12 [#0509]
 HUNGER_T = 0.15          # the first HUNGRY moodle fires above 0.15 [#0508]
 FLEE_HEALTH = 40.0        # under it a threat is fled, never fought
 FLEE_HEALTH_PAIR = 60.0   # two or more threats are fled under this health
 REFIGHT_MARGIN = 20.0     # a running flee turns to fight only at health >= FLEE_HEALTH + this, one threat
 MAX_FIGHT = 2             # more threats than this are fled
-BRANCHES = ("threat", "need", "forage", "explore")
+BRANCHES = ("threat", "need", "load", "night", "forage", "explore")
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
 REFUSED = "not valid"    # the reason the Lua's consume fails an item it cannot eat or drink (an empty bottle)
@@ -105,7 +115,9 @@ class Survive:
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
         self.loot = LootHouse(world, actions, clock)
         self.explore = Explore(world, actions, clock)
+        self.night = Night(world, actions, clock)
         self.need_last = None     # the last Consume sent
+        self.load_last = None     # the last load Drop sent
         self.need_mark = None     # "water" or "food" when need found nothing held; forage loots for it
         self.consume_refused = None   # a food id whose consume ended failed "not valid" on this tick (logged only)
         self.ticks = 0
@@ -115,7 +127,7 @@ class Survive:
 
     # ---------------------------------------------------------------- reading the world
     def _policies(self):
-        return [p for p in (self.loot, self.explore, self.fight, self.flee) if p is not None]
+        return [p for p in (self.loot, self.explore, self.night, self.fight, self.flee) if p is not None]
 
     def _within(self, r):
         return [z for z in self.world.zombies.values()
@@ -213,7 +225,7 @@ class Survive:
         as the Flee's own action so the steer waits on it (the drop skill is quick); None otherwise."""
         if self.flee_dropped or self.flee.busy() or ((self.world.load or {}).get("level") or 0) < DROP_AT:
             return None
-        iid = self.loot.spare()
+        iid = spare(self.world)
         if iid is None:
             return None
         self.flee_dropped = True
@@ -238,6 +250,38 @@ class Survive:
         if pick is None:
             return None
         return None, Consume(pick)
+
+    def _load(self):
+        """At load level DROP_AT or above, one `Drop` of `spare(world)` a decision, holding while it is current; with
+        nothing spare, or under DROP_AT, it passes."""
+        if self.load_last is not None and self.actions.current is self.load_last:
+            self.why = {"holding": self.load_last.aid}
+            return None, None
+        level = (self.world.load or {}).get("level") or 0
+        if level < DROP_AT:
+            self.why = {"level": level}
+            return None
+        iid = spare(self.world)
+        self.why = {"level": level, "drop": iid}
+        return None if iid is None else (None, Drop(iid))
+
+    def _night(self):
+        """`night.Night`: its own running action holds first (a sleep is never superseded by a fatigue falling under
+        the want); not wanting, it passes; a sleep refused `not safe` holds the branch NOT_SAFE_S."""
+        n = self.night
+        n.observe()
+        if n.busy():
+            self.why = dict(n.why, holding=n.last.aid)
+            return n, None
+        if not n.wants():
+            n.idle()
+            self.why = dict(n.why)
+            return None
+        cmd = n.choose()
+        self.why = dict(n.why)
+        if cmd is None:
+            return (n, None) if n.why.get("hold") else None
+        return n, cmd
 
     def _forage(self):
         """Loot for the need's mark, else for the first of STOCK_WANTS a container answers; never `all`."""
@@ -281,7 +325,7 @@ class Survive:
         held = self._within(self._hold_r())
         cur = self.actions.current
         return {"x": me.get("x"), "y": me.get("y"), "health": self._health(), "hunger": st.get("hunger"),
-                "thirst": st.get("thirst"), "armed": self._armed(), "load": (self.world.load or {}).get("level"),
+                "thirst": st.get("thirst"), "fatigue": st.get("fatigue"), "hour": me.get("hour"), "armed": self._armed(), "load": (self.world.load or {}).get("level"),
                 "threats": len(self._within(DANGER_R)), "held": len(held),
                 "nearest": min((zdist(self.world, z) for z in held), default=None),
                 "running": cur.type if cur is not None else None, "mode": self.mode,
@@ -317,8 +361,10 @@ class Survive:
         action = None
         if cmd is not None:
             action = owner.send(cmd) if owner is not None else self.actions.send(cmd)
-            if owner is None:
+            if owner is None and branch == "need":
                 self.need_last = action
+            elif owner is None and branch == "load":
+                self.load_last = action
             self._watch.append(action)
         line = {"wall": self.clock(), "gameMin": self.world.game_min, "branch": branch, "inputs": inputs,
                 "action": {"type": cmd.TYPE, "args": cmd.args()} if cmd is not None else None,

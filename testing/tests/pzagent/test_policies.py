@@ -59,9 +59,9 @@ class Rig:
         self.acts.pump(lines)
 
     def frame(self, x=100.0, y=200.0, zombies=(), weapon=BAT, health=100.0, hunger=0.1, thirst=0.1, level=0,
-              game_min=480.0, wounds=None, load_max=8.0):
-        me = dict(DEFAULT_FRAME["me"], x=x, y=y)
-        stats = dict(DEFAULT_FRAME["stats"], hunger=hunger, thirst=thirst)
+              game_min=480.0, wounds=None, load_max=8.0, fatigue=0.05, hour=8.0, z=0):
+        me = dict(DEFAULT_FRAME["me"], x=x, y=y, z=z, hour=hour)
+        stats = dict(DEFAULT_FRAME["stats"], hunger=hunger, thirst=thirst, fatigue=fatigue)
         body = dict(DEFAULT_FRAME["body"], health=health, **(wounds or {}))
         load = dict(DEFAULT_FRAME["load"], level=level, max=load_max)
         self.fake.frame(me=me, stats=stats, body=body, load=load, weapon=weapon, zombies=list(zombies),
@@ -551,31 +551,25 @@ def test_a_superseded_loot_keeps_its_container(tmp_path):
     assert r.cmd()[0] == "interact" and len(r.acts.history) == 2
 
 
-def test_loothouse_never_loots_at_level_three_and_drops_the_heaviest_other_item_until_two(tmp_path):
+def test_spare_is_the_heaviest_held_item_of_no_kept_use_and_loothouse_never_drops(tmp_path):
     r = Rig(tmp_path)
     r.scan([square(102, 200, containers=[CRATE])])
     for iid, ft, wt in [(601, "Base.BaseballBat", 9.0), (602, "Base.Plank", 3.0), (603, "Base.Nails", 0.5),
                         (604, "Base.TinnedSoup", 5.0), (605, "Base.Crowbar", 4.0), (606, "Base.WaterBottle", 6.0)]:
         r.event("item_added", itemId=iid, fullType=ft, weight=wt)
     r.frame(level=3)
-    lh = LootHouse(r.world, r.acts, r.clock, want="bandage")
-    lh.step()
-    assert r.cmd() == ("drop", {"itemId": 602})               # not the bat, the crowbar, the soup or the water
-    r.answer()
+    assert P.spare(r.world) == 602                           # not the bat, the crowbar, the soup or the water
     r.event("item_removed", itemId=602, fullType="Base.Plank")
-    r.frame(level=3)
-    lh.step()
-    assert r.cmd() == ("drop", {"itemId": 603})
-    r.answer()
+    assert P.spare(r.world) == 603
     r.event("item_removed", itemId=603, fullType="Base.Nails")
-    r.frame(level=3)
-    assert lh.step() is None                                 # nothing left to drop, and no loot at level 3
-    assert [a.type for a in r.acts.history] == ["drop", "drop"]
+    assert P.spare(r.world) is None
+    lh = LootHouse(r.world, r.acts, r.clock, want="bandage")
+    assert lh.step() is None and lh.why == {"level": 3, "hold": True}   # Task 12: the drop is Survive's load branch
     r.frame(level=2)
-    assert lh.step() is None                                 # level 2: no loot (spec § 9 (1)) and no drop
+    assert lh.step() is None                                 # level 2: no loot (spec § 9 (1))
     r.frame(level=1)
     lh.step()
-    assert r.cmd()[0] == "interact"
+    assert r.cmd()[0] == "interact" and [a.type for a in r.acts.history] == ["interact"]
     all_sends_valid(r)
 
 
@@ -586,8 +580,8 @@ def test_the_load_guard_constants_name_the_levels():
     assert not hasattr(P, "LOAD_STOP")
 
 
-@pytest.mark.parametrize("level, want", [(0, "interact"), (1, "interact"), (2, None), (3, "drop"), (4, "drop")])
-def test_loothouse_loots_only_at_level_0_or_1_and_drops_at_3_or_above(tmp_path, level, want):
+@pytest.mark.parametrize("level, want", [(0, "interact"), (1, "interact"), (2, None), (3, None), (4, None)])
+def test_loothouse_loots_only_at_level_0_or_1_and_never_drops(tmp_path, level, want):
     r = Rig(tmp_path)
     r.scan([square(102, 200, containers=[CRATE])])
     r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
@@ -598,22 +592,16 @@ def test_loothouse_loots_only_at_level_0_or_1_and_drops_at_3_or_above(tmp_path, 
         assert r.acts.history == []
 
 
-def test_drops_bring_the_level_to_two_and_then_nothing_is_sent_until_it_is_under_two(tmp_path):
+def test_from_level_three_nothing_is_sent_until_the_level_is_under_two(tmp_path):
     r = Rig(tmp_path)
     r.scan([square(102, 200, containers=[CRATE])])
     for iid, wt in [(602, 3.0), (603, 2.0), (604, 1.0)]:
         r.event("item_added", itemId=iid, fullType="Base.Plank", weight=wt)
-    r.frame(level=3)
     lh = LootHouse(r.world, r.acts, r.clock, want="bandage")
-    lh.step()
-    assert r.cmd() == ("drop", {"itemId": 602})
-    r.answer()
-    r.event("item_removed", itemId=602, fullType="Base.Plank")
-    r.frame(level=2)                                         # the drop brought it to 2
-    for _ in range(3):
-        assert lh.step() is None                             # no loot, no further drop
-        r.frame(level=2)
-    assert [a.type for a in r.acts.history] == ["drop"]
+    for level in (3, 2, 2, 2):
+        r.frame(level=level)
+        assert lh.step() is None                             # no loot, and no drop (Survive's load branch drops)
+    assert r.acts.history == []
     r.frame(level=1)
     lh.step()
     assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "bandage", "maxWeight": 8.0})
@@ -635,7 +623,7 @@ def test_every_send_of_every_policy_is_valid_against_action_args(tmp_path):
                 if p.step() is not None:
                     r.answer()
                 r.frame(zombies=zs, level=level)
-    assert {a.type for a in r.acts.history} >= {"walkTo", "attack", "steer", "scan", "interact", "drop"}
+    assert {a.type for a in r.acts.history} >= {"walkTo", "attack", "steer", "scan", "interact"}   # drop: Survive's
     all_sends_valid(r)
 
 
@@ -814,7 +802,6 @@ def test_spare_drops_an_empty_marked_bottle(tmp_path):
     for iid, ft, wt in [(601, "Base.BaseballBat", 9.0), (602, "Base.Nails", 0.5), (606, "Base.WaterBottle", 6.0)]:
         r.event("item_added", itemId=iid, fullType=ft, weight=wt)
     r.frame(level=3)
-    lh = LootHouse(r.world, r.acts, r.clock)
-    assert lh.spare() == 602
+    assert P.spare(r.world) == 602
     r.world.mark_empty(606)
-    assert lh.spare() == 606
+    assert P.spare(r.world) == 606
