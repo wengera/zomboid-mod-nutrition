@@ -1,12 +1,14 @@
 -- PZAgent_Main.lua — the one OnTick hook (spec § 8, Plan 22 Task 6). The tick order: player → init → poll → skills →
 -- sense → map → flush. No player means nothing is polled, emitted or flushed. The first tick with a player is the init
--- tick: the Link initialised (M.init), hello, the inventory's first sight as item_added events (under its own pcall:
--- M.ready is set after hello, so a raise there is one lua_error, never a re-init) and one flush, and nothing else.
+-- tick: the Link initialised (M.init), hello, the inventory's first sight as item_added events queued in the Link's
+-- backlog (under its own pcall: M.ready is set after hello, so a raise there is one lua_error, never a re-init) and
+-- one flush, and nothing else.
 -- Every later tick: the poll (scan{r} and rate{hz} answered here by one act line, ruling P22-5; every
 -- other command to the runner, K.start), the running skill's tick (K.tick), every max(1, floor(60 / S.RATE)) ticks
 -- the events and the frame read (S.events, or S.frame on the first), the map (the scan job's next part while a job
--- runs, else, on the watch's ticks (MP.watchDue: every 6th whatever the rate), its next squares), an overflow event when the Link cut its backlog, the frame emitted with its
--- cost group, and one L.flush, called once every tick (it writes nothing when both queues are empty).
+-- runs, else, on the watch's ticks (MP.watchDue: every 6th whatever the rate), its next squares), an overflow event
+-- when the Link cut its backlog, the frame emitted with its cost group, and one L.flush, called once every tick (it
+-- writes nothing when both queues are empty).
 -- The first frame comes from S.frame, later ones carry S.events, so the first window's door states are recorded without
 -- an event (S.events' door rule: one first seen is recorded silently).
 -- The frame is read in the sense phase and emitted after the map so its cost carries this tick's map ms; its cost on
@@ -74,10 +76,12 @@ local function reportError(err)
     return true
 end
 
--- the inventory's first sight as item_added events (under M.init's pcall: a raise here is reported, never re-inits)
+-- the inventory's first sight as item_added events (under M.init's pcall: a raise here is reported, never re-inits),
+-- queued behind the Link's backlog so a large inventory drains under its byte budget over ticks (X4 fix pass 2.2: the
+-- init tick read 19 ms in X4); the reads themselves are this tick's
 local function firstSight(p)
     local ev = PZA.sense.firstSight(p)
-    for i = 1, #ev do PZA.emit("event", ev[i]) end
+    for i = 1, #ev do PZA.link.queueLine("event", ev[i]) end
 end
 
 -- the init tick's work (p, the player, read again when absent). M.ready is set once the Link is initialised and hello

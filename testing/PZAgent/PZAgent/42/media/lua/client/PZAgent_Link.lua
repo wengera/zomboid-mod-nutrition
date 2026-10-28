@@ -2,8 +2,9 @@
 -- when append does not hold: ruling P21-1), one file write a flush and one flush a tick. Three writers share one seq:
 -- PZA.emit (a keyed JSON line, into the immediate buffer), PZA.emitFrame (a positional frame, into the immediate
 -- buffer; a full frame every FULL_EVERY frames, else each group whose encoding equals the last one sent is elided as
--- true) and L.queueMap (a positional map part, into the backlog, which drains BUDGET_BYTES a flush and is capped at
--- BACKLOG_MAX lines, the oldest cut and L.overflow set for Main to emit once). In: cmd.txt as one JSON line read by
+-- true) and L.queueMap / L.queueLine (a positional map part, or a keyed line that may wait such as the inventory's
+-- first sight, into the backlog, which drains BUDGET_BYTES a flush and is capped at BACKLOG_MAX lines, the oldest cut
+-- and L.overflow set for Main to emit once). In: cmd.txt as one JSON line read by
 -- seq through PZA.decode; ack.txt holds {"seq":N}, the last accepted seq, so a Lua reset never replays a command.
 -- The Lua writer is rooted at the cachedir's Lua folder and allows ini/cfg/txt/log/json only [#1866]. No writer is
 -- held across ticks: every write opens, writes and closes.
@@ -167,6 +168,13 @@ function L.queueMap(body)
     bl[#bl + 1] = body
 end
 
+-- a keyed line's body (an event) into the backlog behind the map parts already there, unstamped like them: it drains
+-- under the same budget, so a burst of keyed lines (the inventory's first sight, X4 fix pass 2.2) spreads over ticks
+function L.queueLine(kind, body)
+    body.kind = kind
+    L.queueMap(body)
+end
+
 -- the one write of a flush: chunk mode a new chunk file, append mode the live file, rotated by name past ROTATE_BYTES
 local function write(s)
     if L.mode == "chunk" then
@@ -186,8 +194,8 @@ local function write(s)
     return ok
 end
 
--- once a tick: the whole immediate buffer, then map parts from the front of the backlog, each stamped and encoded as
--- it is taken (so its seq follows every line before it), while the encoded bytes fit BUDGET_BYTES (a single line over
+-- once a tick: the whole immediate buffer, then the backlog's lines from its front (map parts, positional; a queued
+-- keyed line, as JSON), each stamped and encoded as it is taken (so its seq follows every line before it), while the encoded bytes fit BUDGET_BYTES (a single line over
 -- the budget goes alone, so the backlog never stalls); one write. A part that does not fit gives its seq back. A
 -- failed write gives the parts' seqs back and leaves both queues as they were, the immediate buffer capped at BUF_MAX
 -- lines (L.dropped counts the cut, and the next frame is full, so a reader's base is never a frame it lost).
@@ -203,8 +211,9 @@ function L.flush()
     local used, take = 0, 0
     while take < nl do
         local body = bl[take + 1]
-        stamp("map", body)
-        local line = PZA.enc.map(body)
+        local kind = body.kind or "map"
+        stamp(kind, body)
+        local line = (kind == "map") and PZA.enc.map(body) or PZA.json(body)
         local size = #line
         if take > 0 and used + size > L.BUDGET_BYTES then
             L.seq = L.seq - 1

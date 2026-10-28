@@ -457,3 +457,42 @@ def test_max_link_ms_is_the_worst_flush_since_the_last_frame(lua, fs):
     f1, f2 = [l["cost"] for l in lines(fs) if l["kind"] == "frame"]
     assert f1["maxLinkMs"] == 5 and f1["linkMs"] == 0           # tick 4's flush; tick 5 flushed nothing
     assert f2["maxLinkMs"] == 2 and f2["linkMs"] == 0           # tick 6's frame flush, after the first frame's emit
+
+
+# ---- X4 fix pass 2.2: the init burst spread under the Link's budget (review I7) --------------------------------------
+
+def test_the_first_sight_and_the_watchs_first_squares_drain_under_the_budget_and_a_frame_goes_every_tick(lua, fs):
+    """8 held items (long full types) and 32 first-seen squares: the inventory's first sight goes through the backlog,
+    so no tick's flush carries more than BUDGET_BYTES of queued lines (a single oversize line alone), and at 60 Hz the
+    frame still goes every tick."""
+    load(lua)
+    g = lua.globals()
+    budget = lua.eval("PZA.link.BUDGET_BYTES")
+    names = ["Base.%s%s" % (chr(65 + i), "x" * 200) for i in range(8)]
+    p = make_player(items=names)
+    g.getPlayer = lambda: p
+    squares = {}
+    for x in range(4, 12):                                     # 32 squares of the watch's ring round (10, 20)
+        for y in range(14, 18):
+            squares[(x, y, 0)] = sq(x, y)
+    g._cell = make_cell(squares=squares)
+    writes = []
+
+    def tick():
+        before = fs.files.get(LIVE, "")
+        run(g)
+        writes.append([l for l in fs.files.get(LIVE, "")[len(before):].split("\n") if l])
+    tick()                                                      # tick 1: init
+    cmd(fs, 1, "rate", hz=60)
+    for _ in range(80):                                         # ticks 2-81
+        tick()
+    for w in writes:
+        queued = [l for l in w if not l.startswith('["frame"') and '"kind":"hello"' not in l and '"kind":"act"' not in l]
+        assert len(queued) <= 1 or sum(len(l) for l in queued) <= budget, [len(l) for l in queued]
+    assert all(any(l.startswith('["frame"') for l in w) for w in writes[1:])
+    out = lines(fs)
+    added = [l["fullType"] for l in out if l["kind"] == "event" and l["event"] == "item_added"]
+    assert added == names
+    deltas = {(m["squares"][0]["x"], m["squares"][0]["y"]) for m in out if m["kind"] == "map"}
+    assert deltas == {(x, y) for (x, y, _) in squares}
+    assert [l["seq"] for l in out] == list(range(1, len(out) + 1))
