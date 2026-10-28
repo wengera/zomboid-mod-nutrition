@@ -334,3 +334,79 @@ def test_the_drivers_loop_lineage_wins_over_a_rebuild():
     g = E.grade_e1(art())
     assert g["lineage_source"] is None and g["lineage"] is None
     assert E.grade_e1(art(lineage=None), prev)["lineage_source"] == "rebuilt"
+
+
+# ---------------------------------------------------------------- fix wave G (C-2, I-2, I-5)
+def _aged(first_age, last_age, **kw):
+    """A session whose last kept frame stands at worldAge last_age (hours); the gameMin clock is the time of day."""
+    a = art(**kw)
+    a["loop"]["last_frames"][-1]["worldAge"] = last_age
+    return a
+
+
+def test_minutes_read_off_worldage_across_midnight():
+    a = _aged(0, 31.0, game_min=60.0, first=1380.0, first_world_age=7.0)    # 23:00 to 01:00 on the clock, 24 h in age
+    g = E.grade_e1(a)
+    assert g["game_minutes"] == pytest.approx(1440.0) and g["minutes_source"] == "loop.first_world_age"
+    a = _aged(0, 31.0, game_min=60.0, first=1380.0)
+    a["readings"] = {"hello": {"first_frame": {"worldAge": 7.0}}}
+    g = E.grade_e1(a)
+    assert g["game_minutes"] == pytest.approx(1440.0) and g["minutes_source"] == "readings.hello.first_frame"
+
+
+def test_minutes_fall_back_to_a_wrap_safe_gamemin_difference():
+    g = E.grade_e1(art(game_min=60.0, first=1380.0))              # no worldAge source: 23:00 to 01:00
+    assert g["game_minutes"] == 120.0 and g["minutes_source"] == "gameMin"
+    assert E.grade_e1(art(game_min=900.0, first=100.0))["game_minutes"] == 800.0
+    assert E.grade_e1(art(first=None))["minutes_source"] is None
+    r = E.gate_e1([art(game_min=60.0, first=1380.0)])
+    assert r["gates"]["alive_through"]["value"] == 120.0           # positive, not -1320
+
+
+def test_report_line_names_the_minutes_source():
+    lines = E.grade_e1(art(game_min=900.0, first=100.0))["report_lines"]
+    assert any("800 game min (gameMin)" in l for l in lines)
+
+
+def _fight(ticks=5, end=True, flee=None):
+    return {"fight_ticks": ticks, "flee": flee or {}, "end": {"health": 90} if end else None}
+
+
+def test_fights_resolved_gate_fails_a_stand_off_and_an_unended_fight():
+    ok = good(1440.0, fights=[_fight(), _fight(30, end=True, flee={"stalled": 2})])
+    r = E.gate_e1([ok])
+    assert r["gates"]["fights_resolved"] == {"ok": True, "value": 0, "threshold": 0, "n": 1}
+    so = good(1440.0, fights=[_fight(), _fight(30, end=False, flee={"unreachable": 1})])
+    r = E.gate_e1([so])
+    assert r["gates"]["fights_resolved"]["ok"] is False and r["verdict"] == "NO-GO"
+    # an open fight that is not the last, or in a session not stopped at the cap, is unresolved
+    assert E.gate_e1([good(1440.0, fights=[_fight(end=False), _fight()])])["gates"]["fights_resolved"]["value"] == 1
+    d = good(1440.0, fights=[_fight(end=False)])
+    d["stop"]["reason"] = "budget"
+    assert E.gate_e1([d])["gates"]["fights_resolved"]["ok"] is False
+
+
+def test_the_last_open_fight_of_a_day_cap_session_is_cut_by_the_cap():
+    cut = good(1440.0, fights=[_fight(), _fight(8, end=False)])
+    assert E.gate_e1([cut])["gates"]["fights_resolved"]["ok"] is True
+    assert E.grade_e1(cut)["fights_unresolved"] == 0
+    # and across the chain the unresolved count sums
+    bad = good(1440.0, fights=[_fight(end=False), _fight()])
+    assert E.gate_e1([bad, bad])["gates"]["fights_resolved"]["value"] == 2
+    lines = E.report_lines_e(dict(E.grade_e1(bad), gate=E.gate_e1([bad])))
+    assert "fights_resolved 1 unresolved FAIL" in lines[0] and any("unresolved 1" in l for l in lines[1:])
+
+
+def test_death_window_reports_frames_and_truncation():
+    a = _death_art(3000, wound_at=100, health_from=2990)     # a wound far before the old 300-frame tail
+    d = E.grade_e1(a)["death"]
+    assert d["first_wound_seq"] == 101 and d["window_frames"] == 2901 and d["window_truncated"] is False
+    a = _death_art(300, wound_at=1, health_from=100)         # the first wound is the first row the window can see
+    assert E.grade_e1(a)["death"]["window_truncated"] is True
+    a = _death_art(300, wound_at=0, health_from=100)         # bleeding already on in the first kept frame
+    assert E.grade_e1(a)["death"]["window_truncated"] is True
+
+
+def test_gate_names_each_artifacts_lineage_source():
+    r = E.gate_e1([art(), art(lineage={"ok": True}), art()])
+    assert r["lineage_sources"] == [None, "loop", "rebuilt"]

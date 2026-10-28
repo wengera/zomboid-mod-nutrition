@@ -4,7 +4,7 @@
 Reads (every key tolerated missing; a non-dict reads as empty, nothing raises):
   out.stop {reason, wallS}; out.loop.{first_game_min, game_min, wallS, last_frames [{seq, wallMs, gameMin, body, load,
   stats, me}], actions [{type, state, sentS, endedS, use, branch}], night.sleeps [{state, sleptH, fatigueBefore,
-  fatigueAfter}], fights [{fight_ticks, flee {..}, end}], cost, lineage, death {last_frames, server_damage}}.
+  fatigueAfter}], fights [{fight_ticks, flee {..}, end}], first_world_age, cost, lineage, death {last_frames, server_damage}}.
 A consume action `use` is "drink"/"water" or "eat"/"food" (anything else counts under needs.unknown); a drop action
 `branch` is "load" (a guard drop) or "threat" (a flee drop).
 
@@ -128,10 +128,52 @@ def e_load(loop):
             "flee_drops": sum(1 for a in drops if a.get("branch") == "threat")}
 
 
+def e_minutes(out):
+    """(game minutes, source): (last worldAge - first worldAge) * 60, the first from loop.first_world_age (source
+    "loop.first_world_age") else readings.hello.first_frame.worldAge ("readings.hello.first_frame"), the last from the
+    last kept frame else stop.worldAge; without a first worldAge the loop.game_min less loop.first_game_min clock
+    difference, one midnight wrap added when negative ("gameMin"); (None, None) when nothing reads."""
+    out = _d(out)
+    loop = _d(out.get("loop"))
+    frames = [f for f in _l(loop.get("last_frames")) if isinstance(f, dict)]
+    last = _n(frames[-1].get("worldAge")) if frames else None
+    last = last if last is not None else _n(_d(out.get("stop")).get("worldAge"))
+    for first, src in ((_n(loop.get("first_world_age")), "loop.first_world_age"),
+                       (_n(_d(_d(_d(out.get("readings")).get("hello")).get("first_frame")).get("worldAge")),
+                        "readings.hello.first_frame")):
+        if first is not None and last is not None:
+            return (last - first) * 60.0, src
+    g0, g1 = _n(loop.get("first_game_min")), _n(loop.get("game_min"))
+    if g0 is None or g1 is None:
+        return None, None
+    return (g1 - g0 if g1 >= g0 else g1 - g0 + 1440.0), "gameMin"
+
+
+def unresolved_fights(out):
+    """Fights of one session neither ended nor cut by the day cap: every fight without an `end` except the last one of
+    a session that stopped at the day cap, and every stand-off (more than STAND_OFF_TICKS fight ticks, a flee dict
+    naming unreachable or stalled, no end)."""
+    out = _d(out)
+    rows = [f for f in _l(_d(out.get("loop")).get("fights")) if isinstance(f, dict)]
+    cap = _d(out.get("stop")).get("reason") == "day_cap"
+    n = 0
+    for i, f in enumerate(rows):
+        if f.get("end") is not None:
+            continue
+        flee = _d(f.get("flee"))
+        stand = (_n(f.get("fight_ticks")) or 0) > STAND_OFF_TICKS and ("unreachable" in flee or "stalled" in flee)
+        if stand or not (cap and i == len(rows) - 1):
+            n += 1
+    return n
+
+
 def e_death(out):
-    """None unless the stop is a death; else {first_wound_seq, window_frames_n, explained, check}: the window opens one
-    row before the first kept frame whose bleeding + scratched + bitten rose over the row before it (so the wound arm
-    sees the rise), runs to the end, and gates.death_check grades the death record restricted to it."""
+    """None unless the stop is a death; else {first_wound_seq, window_frames, window_frames_n (the same count),
+    window_truncated, explained, check}: the window opens one row before the first kept frame whose bleeding +
+    scratched + bitten rose over the row before it (so the wound arm sees the rise), runs to the end of every kept
+    frame, and gates.death_check grades the death record restricted to it. window_truncated: the first wound is the
+    first row the frames can show (a rise at the second frame, or a wound already on at the first), so its onset may
+    lie before them."""
     out = _d(out)
     loop = _d(out.get("loop"))
     if _d(out.get("stop")).get("reason") != "death":
@@ -142,18 +184,20 @@ def e_death(out):
     k = next((i for i in range(1, len(frames)) if GT._wound(frames[i - 1], frames[i])), None)
     window = frames[k - 1:] if k is not None else frames
     check = GT.death_check(dict(death, last_frames=window))
-    return {"first_wound_seq": frames[k].get("seq") if k is not None else None, "window_frames_n": len(window),
+    on = bool(frames) and any((_n(_d(frames[0].get("body")).get(w)) or 0) > 0 for w in GT.WOUND_KEYS)
+    return {"first_wound_seq": frames[k].get("seq") if k is not None else None, "window_frames": len(window),
+            "window_frames_n": len(window), "window_truncated": k == 1 or on,
             "explained": check["explained"], "check": check}
 
 
 def grade_e1(out, prev=None):
-    """The chain session report (Plan 23 Task 15): survived (stop in SURVIVED), game_minutes (loop.game_min less
-    loop.first_game_min), needs, fights, load, lineage (loop.lineage when a dict, else chain.lineage_diff(prev, first kept frame) given prev;
+    """The chain session report (Plan 23 Task 15): survived (stop in SURVIVED), game_minutes and minutes_source
+    (e_minutes: worldAge), needs, fights, fights_unresolved, load, lineage (loop.lineage when a dict, else chain.lineage_diff(prev, first kept frame) given prev;
     lineage_source loop | rebuilt | None), cost {p50, p99, max, over5}, death (e_death), report_lines."""
     out = _d(out)
     loop = _d(out.get("loop"))
     stop = _d(out.get("stop"))
-    g0, g1 = _n(loop.get("first_game_min")), _n(loop.get("game_min"))
+    minutes, msrc = e_minutes(out)
     frames = [f for f in _l(loop.get("last_frames")) if isinstance(f, dict)]
     if isinstance(loop.get("lineage"), dict):          # the driver record is the truth (P23-X)
         lineage, source = loop["lineage"], "loop"
@@ -165,8 +209,8 @@ def grade_e1(out, prev=None):
     g = {"grade": "grade_e1", "session_key": out.get("session_key"), "run_id": out.get("run_id"),
          "stop": {"reason": stop.get("reason"), "detail": stop.get("detail")} if stop else None,
          "survived": stop.get("reason") in SURVIVED,
-         "game_minutes": g1 - g0 if g0 is not None and g1 is not None else None,
-         "needs": e_needs(out), "fights": e_fights(loop.get("fights")), "load": e_load(loop), "lineage": lineage, "lineage_source": source,
+         "game_minutes": minutes, "minutes_source": msrc,
+         "needs": e_needs(out), "fights": e_fights(loop.get("fights")), "fights_unresolved": unresolved_fights(out), "load": e_load(loop), "lineage": lineage, "lineage_source": source,
          "cost": {k: cost.get(k) for k in ("p50", "p99", "max", "over5")}, "death": e_death(out)}
     g["report_lines"] = report_lines_e(g)
     return g
@@ -180,11 +224,14 @@ def report_lines_e(g):
     if isinstance(gate, dict):
         lines.append("gate_e1 %s: %s" % (gate.get("verdict"), ", ".join(
             "%s %s >= %s %s" % (k, _d(v).get("value"), _d(v).get("threshold"), "ok" if _d(v).get("ok") else "FAIL")
-            if k != "death_explained" else "%s %s" % (k, "ok" if _d(v).get("ok") else "FAIL")
+            if k not in ("death_explained", "fights_resolved") else
+            "%s %s%s" % (k, "%s unresolved " % v.get("value") if k == "fights_resolved" else "",
+                         "ok" if _d(v).get("ok") else "FAIL")
             for k, v in _d(gate.get("gates")).items())))
     st = _d(g.get("stop"))
-    lines.append("%s (stop %s), %s game min" % ("survived" if g.get("survived") else "not survived", st.get("reason"),
-                                               _f(g.get("game_minutes"), "%.0f")))
+    lines.append("%s (stop %s), %s game min (%s)" % ("survived" if g.get("survived") else "not survived",
+                                                    st.get("reason"), _f(g.get("game_minutes"), "%.0f"),
+                                                    g.get("minutes_source")))
     nd = _d(g.get("needs"))
     for k in ("drink", "eat"):
         v = _d(nd.get(k))
@@ -196,6 +243,7 @@ def report_lines_e(g):
     fs = _d(g.get("fights"))
     lines.append("fights: %s (ended %s, fled %s, stand-offs %s)" % (fs.get("n"), fs.get("ended"), fs.get("fled"),
                                                                    fs.get("stand_offs")))
+    lines.append("fights_resolved: unresolved %s" % g.get("fights_unresolved"))
     ld = _d(g.get("load"))
     lines.append("load: max ratio %s, guard drops %s, flee drops %s" % (
         _f(ld.get("max_ratio"), "%.3f"), ld.get("guard_drops"), ld.get("flee_drops")))
@@ -214,8 +262,8 @@ def report_lines_e(g):
 
 
 def gate_e1(outs):
-    """{verdict, gates} over a chain artifacts in order: alive_through (the summed game_minutes >= 1440 and no
-    death), drink_done, eat_done, sleep_done (each >= 1 summed done), and death_explained when an artifact died (the
+    """{verdict, gates, lineage_sources} over a chain artifacts in order: alive_through (the summed game_minutes >= 1440
+    and no death), fights_resolved (no unresolved fight summed over the chain, value the count), drink_done, eat_done, sleep_done (each >= 1 summed done), and death_explained when an artifact died (the
     first death in the chain). Each gate {ok, value, threshold, n} (n the artifacts read); verdict GO when every gate
     is ok, else NO-GO."""
     outs = [_d(o) for o in _l(outs)]
@@ -229,6 +277,8 @@ def gate_e1(outs):
     done = {k: sum(_d(g["needs"].get(k)).get("done", 0) for g in grades) for k in ("drink", "eat", "sleep")}
     gates = {"alive_through": {"ok": minutes >= ALIVE_MINUTES and not dead, "value": minutes,
                                "threshold": ALIVE_MINUTES, "n": n}}
+    unresolved = sum(g["fights_unresolved"] for g in grades)
+    gates["fights_resolved"] = {"ok": unresolved == 0, "value": unresolved, "threshold": 0, "n": n}
     for k in ("drink", "eat", "sleep"):
         gates["%s_done" % k] = {"ok": done[k] >= 1, "value": done[k], "threshold": 1, "n": n}
     first = next((g["death"] for g in grades if g["death"] is not None), None)
@@ -236,4 +286,4 @@ def gate_e1(outs):
         gates["death_explained"] = {"ok": first["explained"] is True, "value": first["explained"],
                                     "threshold": True, "n": n}
     ok = bool(grades) and all(v["ok"] for v in gates.values())
-    return {"verdict": "GO" if ok else "NO-GO", "gates": gates}
+    return {"verdict": "GO" if ok else "NO-GO", "gates": gates, "lineage_sources": [g["lineage_source"] for g in grades]}
