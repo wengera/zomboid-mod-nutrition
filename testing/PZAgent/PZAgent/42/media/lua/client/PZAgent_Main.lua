@@ -3,7 +3,7 @@
 -- tick: the Link initialised (M.init), hello, the inventory's first sight as item_added events queued in the Link's
 -- backlog (under its own pcall: M.ready is set after hello, so a raise there is one lua_error, never a re-init) and
 -- one flush, and nothing else.
--- Every later tick: the poll (scan{r} and rate{hz} answered here by one act line, ruling P22-5; every
+-- Every later tick: the poll every third tick (L.POLL_EVERY, P23-4; scan{r} and rate{hz} answered here by one act line, ruling P22-5; every
 -- other command to the runner, K.start), the running skill's tick (K.tick), every max(1, floor(60 / S.RATE)) ticks
 -- the events and the frame read (S.events, or S.frame on the first), the map (the scan job's next part while a job
 -- runs, else, on the watch's ticks (MP.watchDue: every 6th whatever the rate), its next squares), an overflow event
@@ -188,7 +188,7 @@ local function body()
     end
     local L, K, S = PZA.link, PZA.skills, PZA.sense
     local tp = PZA.now()
-    local cmd = L.poll()
+    local cmd = L.poll(PZA.tick)
     local t0 = PZA.now()
     if cmd ~= nil and not mainCommand(cmd, p) then K.start(cmd, p) end
     local ts = PZA.now()

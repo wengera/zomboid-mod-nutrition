@@ -63,7 +63,7 @@ local function countLines(name)
     return n
 end
 
--- the first line holding a non-blank character, or nil (no file, or none); polled every tick, so no closure
+-- the first line holding a non-blank character, or nil (no file, or none); polled every L.POLL_EVERY-th tick, so no closure
 local function firstLine(name)
     local r = getFileReader(name, false)
     if r == nil then return nil end
@@ -250,7 +250,11 @@ end
 
 -- the command file: its first non-empty line as one JSON object with a good seq; a seq at or below lastCmd is old.
 -- A malformed line is skipped and counted once in L.badCmd (polled again, not recounted until a good line between).
-function L.poll()
+-- Paced (P23-4): given the tick number it returns nil at once, opening nothing, unless tick % L.POLL_EVERY == 0; a nil
+-- tick polls now.
+L.POLL_EVERY = 3
+function L.poll(tick)
+    if tick ~= nil and tick % L.POLL_EVERY ~= 0 then return nil end
     local line = firstLine(L.dir .. "cmd.txt")
     if line == nil then return nil end
     local c = PZA.decode(line)

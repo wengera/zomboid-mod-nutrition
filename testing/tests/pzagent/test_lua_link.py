@@ -451,3 +451,35 @@ def test_a_map_line_decodes_through_pza1(lua, fs):
     out = raw(fs)
     assert len(out) == 1 and out[0].startswith('["map"')
     assert pza1.decode(json.loads(out[0])) == dict(m, kind="map", seq=1, tick=0, wallMs=1000)
+
+
+# ---- the poll every third tick (Plan 23 Task 5, P23-4) -----------------------------------------------------------
+
+def count_reads(lua, fs):
+    """Counts every getFileReader call (the fake FS's `opens` counts writers only); the returned list holds the names."""
+    names = []
+
+    def reader(name, create):
+        names.append(name)
+        return fs.reader(name, create)
+    lua.globals().getFileReader = reader
+    return names
+
+
+def test_the_poll_opens_cmd_txt_on_every_third_tick_only(lua, fs):
+    load(lua)
+    assert lua.eval("PZA.link.POLL_EVERY") == 3
+    fs.files[DIR + "cmd.txt"] = '{"seq":1,"aid":"a1","type":"stop","args":{}}\n'
+    reads = count_reads(lua, fs)
+    accepted = [t for t in range(1, 31) if lua.eval("PZA.link.poll(%d)" % t) is not None]
+    assert len(reads) == 10 and set(reads) == {DIR + "cmd.txt"}
+    assert accepted == [3]
+
+
+def test_a_command_written_between_polls_is_read_at_the_next_poll_tick(lua, fs):
+    load(lua)
+    for t in (1, 2, 3):
+        assert lua.eval("PZA.link.poll(%d)" % t) is None
+    fs.files[DIR + "cmd.txt"] = '{"seq":1,"aid":"a1","type":"stop","args":{}}\n'      # written at tick 4
+    got = [t for t in range(4, 8) if lua.eval("PZA.link.poll(%d)" % t) is not None]
+    assert got == [6]

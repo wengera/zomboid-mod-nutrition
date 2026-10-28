@@ -290,6 +290,7 @@ def main_host(fault):
     g.getPlayer = lambda: cur["p"]
     g._handlers[0]()                                          # the init tick
     assert lua.eval("PZA.main.ready") is True
+    lua.execute("PZA.tick = 2")                               # the next tick is 3, a poll tick (L.POLL_EVERY, P23-4)
     if fault == "bare":
         cur["p"] = bare_player()
     elif fault == "raise":
@@ -338,6 +339,7 @@ def raising_square_host():
     p = full_player()
     g.getPlayer = lambda: p
     g._handlers[0]()                                          # the init tick
+    lua.execute("PZA.tick = 2")                               # the next tick is 3, a poll tick (L.POLL_EVERY, P23-4)
     lua.execute("PZA.sense.RATE = 60")
     lua.execute("PZA.map.WATCH_EVERY = 1")                    # the watch due every tick (X4 fix pass 2.1 paces it at 6)
     return lua, fs, g

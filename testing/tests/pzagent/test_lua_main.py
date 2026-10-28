@@ -65,6 +65,13 @@ def run(g, n=1):
         g._handlers[0]()
 
 
+def before_poll(g):
+    """Runs ticks until the next tick is a poll tick (the Link polls every L.POLL_EVERY-th tick, P23-4), so a command
+    written now is read, acked and answered by the one tick run next."""
+    while (g.PZA.tick + 1) % g.PZA.link.POLL_EVERY != 0:
+        run(g)
+
+
 # ---- init: hello, the first sight, one flush ---------------------------------------------------------------------
 
 def test_the_first_tick_with_a_player_writes_hello_the_first_sight_and_one_flush(lua, fs):
@@ -183,6 +190,7 @@ def test_a_walk_to_is_acked_by_an_accepted_line_in_the_same_ticks_single_flush(l
     g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
     names = live_writes(lua, fs)
     n0 = len(lines(fs))
+    before_poll(g)
     cmd(fs, 1, "walkTo", x=13, y=20)
     run(g)
     new = lines(fs)[n0:]
@@ -193,6 +201,7 @@ def test_a_walk_to_is_acked_by_an_accepted_line_in_the_same_ticks_single_flush(l
 def test_a_dead_players_walk_to_is_rejected_dead(lua, fs):
     g, p = setup(lua, fs, p=make_player(health=0.0))
     g._cell = make_cell(squares={(13, 20, 0): sq(13, 20)})
+    before_poll(g)
     cmd(fs, 1, "walkTo", x=13, y=20)
     run(g)
     acts = [l for l in lines(fs) if l["kind"] == "act"]
@@ -200,11 +209,11 @@ def test_a_dead_players_walk_to_is_rejected_dead(lua, fs):
 
 
 def test_rate_60_is_answered_done_and_the_next_frame_is_full(lua, fs):
-    g, p = setup(lua, fs, ticks=12)                             # frames on ticks 6 (full) and 12 (a delta)
+    g, p = setup(lua, fs, ticks=14)                             # frames on ticks 6 (full) and 12 (a delta)
     raw = [json.loads(l) for l in fs.files[LIVE].split("\n") if l.startswith('["frame"')]
     assert any(v is True for v in raw[1][6:13])                 # sanity: the second frame elides a group
     cmd(fs, 1, "rate", hz=60)
-    run(g)                                                      # tick 13: answered; a frame every tick now
+    run(g)                                                      # tick 15: answered; a frame every tick now
     acts = [l for l in lines(fs) if l["kind"] == "act"]
     assert len(acts) == 1
     a = acts[0]
@@ -212,7 +221,7 @@ def test_rate_60_is_answered_done_and_the_next_frame_is_full(lua, fs):
     assert a["snapshot"]["me"]["x"] == 10.0
     assert lua.eval("PZA.sense.RATE") == 60 and lua.eval("PZA.skills.cur") is None
     raw = [json.loads(l) for l in fs.files[LIVE].split("\n") if l.startswith('["frame"')]
-    assert raw[-1][2] == 13 and not any(v is True for v in raw[-1])    # tick 13's frame, full
+    assert raw[-1][2] == 15 and not any(v is True for v in raw[-1])    # tick 15's frame, full
     run(g)
     raw2 = [json.loads(l) for l in fs.files[LIVE].split("\n") if l.startswith('["frame"')]
     assert len(raw2) == len(raw) + 1
@@ -223,6 +232,7 @@ def test_bad_rate_and_scan_args_are_rejected_bad_args(lua, fs):
     for seq, (typ, args) in enumerate([("rate", {"hz": 0}), ("rate", {"hz": 61}), ("rate", {"hz": "x"}),
                                        ("rate", {}), ("scan", {"r": 0}), ("scan", {"r": 31}), ("scan", {"r": "5"}),
                                        ("rate", {"hz": 7.5}), ("scan", {"r": 2.5})], start=1):
+        before_poll(g)
         cmd(fs, seq, typ, **args)
         run(g)
     acts = [l for l in lines(fs) if l["kind"] == "act"]
@@ -242,6 +252,7 @@ def test_scan_15_is_answered_done_and_49_map_lines_follow_under_the_budget(lua, 
     g, p = setup(lua, fs)
     scan_world(lua, 10, 20, 15)
     budget = lua.eval("PZA.link.BUDGET_BYTES")
+    before_poll(g)
     cmd(fs, 1, "scan", r=15)
     per_tick = []
     for i in range(70):
@@ -277,6 +288,7 @@ def test_a_second_scan_replaces_a_running_one_and_its_parts_stop(lua, fs):
 def test_one_flush_a_tick_over_100_ticks_with_a_scan_running(lua, fs):
     g, p = setup(lua, fs)
     scan_world(lua, 10, 20, 15)
+    before_poll(g)
     cmd(fs, 1, "scan", r=15)
     run(g)                                                      # the command's tick (its ack write is the Link's poll)
     for _ in range(100):
@@ -531,16 +543,29 @@ def test_the_first_sight_and_the_watchs_first_squares_drain_under_the_budget_and
         run(g)
         writes.append([l for l in fs.files.get(LIVE, "")[len(before):].split("\n") if l])
     tick()                                                      # tick 1: init
+    tick()                                                      # tick 2; the poll is tick 3
     cmd(fs, 1, "rate", hz=60)
-    for _ in range(80):                                         # ticks 2-81
+    for _ in range(79):                                         # ticks 3-81
         tick()
     for w in writes:
         queued = [l for l in w if not l.startswith('["frame"') and '"kind":"hello"' not in l and '"kind":"act"' not in l]
         assert len(queued) <= 1 or sum(len(l) for l in queued) <= budget, [len(l) for l in queued]
-    assert all(any(l.startswith('["frame"') for l in w) for w in writes[1:])
+    assert all(any(l.startswith('["frame"') for l in w) for w in writes[2:])
     out = lines(fs)
     added = [l["fullType"] for l in out if l["kind"] == "event" and l["event"] == "item_added"]
     assert added == names
     deltas = {(m["squares"][0]["x"], m["squares"][0]["y"]) for m in out if m["kind"] == "map"}
     assert deltas == {(x, y) for (x, y, _) in squares}
     assert [l["seq"] for l in out] == list(range(1, len(out) + 1))
+
+
+def test_main_passes_the_tick_to_the_poll(lua, fs):
+    g, p = setup(lua, fs)
+    lua.execute("""
+        local L = PZA.link
+        PZA_seen = {}
+        local poll = L.poll
+        L.poll = function(tick) PZA_seen[#PZA_seen + 1] = tick; return poll(tick) end
+    """)
+    run(g, 6)
+    assert [lua.eval("PZA_seen[%d]" % i) for i in range(1, 7)] == [2, 3, 4, 5, 6, 7]
