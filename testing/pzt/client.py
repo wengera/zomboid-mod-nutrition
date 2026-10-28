@@ -271,32 +271,66 @@ HIDDEN_WINDOWS = ("charinfowindow", "charinfowindow.info", "charinfowindow.skill
 DEBUG_OPTIONS = "UI.DisableLogoState=true\nUI.DisableWelcomeMessage=true\nUI.DebugConsole.StartVisible=false\n"
 
 
+CHAT_WINDOW = "chat"   # ISChat's layout.ini name (Chat/ISChat.lua RegisterWindow('chat', ...))
+# ISChat's literal minimumHeight (Chat/ISChat.lua:143). Its font-dependent minimum (:206) may be larger,
+# but ISResizeWidget:resize caps y + height at the screen height after the minimum clamp, so a window
+# whose bottom edge is the screen's is restored at exactly this height.
+CHAT_HEIGHT = 90
+
+
 def uncover_scene(cache):
-    """Every client prepare, every profile (P23-AN): the game's helper dialogs off in options.ini
-    and the saved character-info window closed in Lua/layout.ini, both in the per-run client copy."""
+    """Every client prepare, every profile (P23-AN), in the per-run client copy: the game's helper
+    dialogs off in options.ini; in Lua/layout.ini the saved character-info window closed and the chat
+    window (which ISChat.createChat always shows) moved to the screen's bottom-left corner at its
+    smallest height."""
     upsert_options(os.path.join(cache, "options.ini"), HELPER_OPTIONS)
-    hide_layout_windows(os.path.join(cache, "Lua", "layout.ini"), HIDDEN_WINDOWS)
+    edit_layout(os.path.join(cache, "Lua", "layout.ini"), _uncover_layout_line)
 
 
-def hide_layout_windows(path, names):
-    """Write visible=false on every layout.ini line naming one of `names` (in each resolution
-    section), keeping every other line, token and line ending byte for byte. ISLayoutManager
-    restores a window's visibility from its line; a missing file or line is left alone (the
-    character-info window then opens hidden: its visibleOnStartup defaults false)."""
+def _uncover_layout_line(tokens, screen_h):
+    """One layout.ini line's tokens (name first) under a [WxH] section of height `screen_h`
+    (None outside a section), edited for P23-AN; any other line comes back unchanged."""
+    if tokens[0] in HIDDEN_WINDOWS:
+        return _set_fields(tokens, (("visible", "false"),))
+    if tokens[0] == CHAT_WINDOW and screen_h is not None:
+        return _set_fields(tokens, (("x", "0"), ("y", str(screen_h - CHAT_HEIGHT)),
+                                    ("height", str(CHAT_HEIGHT))))
+    return tokens
+
+
+def _set_fields(tokens, fields):
+    """Set key=value tokens in place, appending a missing one; every other token kept."""
+    out = list(tokens)
+    for key, value in fields:
+        at = next((i for i, t in enumerate(out) if i and t.split("=", 1)[0] == key), None)
+        if at is None:
+            out.append(f"{key}={value}")
+        else:
+            out[at] = f"{key}={value}"
+    return out
+
+
+def edit_layout(path, edit):
+    """Rewrite a layout.ini line by line through edit(tokens, screen_h), as ISLayoutManager.ReadIni
+    reads it ([WxH] sections, then space-separated `name key=value ...` lines), keeping every
+    unedited line and every line ending byte for byte. A missing file is left missing; the file
+    is written only when its text changed (so a second prepare changes nothing)."""
     if not os.path.exists(path):
         return
     text = open(path, encoding="utf-8", newline="").read()
     out = []
+    screen_h = None
     for line in text.splitlines(keepends=True):
         body = line.rstrip("\r\n")
         tokens = body.split(" ")
-        if tokens[0] in names:
-            at = next((i for i, t in enumerate(tokens) if t.startswith("visible=")), None)
-            if at is None:
-                tokens.append("visible=false")
-            else:
-                tokens[at] = "visible=false"
-            line = " ".join(tokens) + line[len(body):]
+        head = body.strip()
+        if head.startswith("[") and head.endswith("]"):
+            dims = head[1:-1].split("x")
+            screen_h = int(dims[1]) if len(dims) == 2 and dims[1].isdigit() else None
+        elif head:
+            edited = edit(tokens, screen_h)
+            if edited != tokens:
+                line = " ".join(edited) + line[len(body):]
         out.append(line)
     new = "".join(out)
     if new != text:
