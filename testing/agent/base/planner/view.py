@@ -18,7 +18,8 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   tiles, each count cumulative.
 - `last_goal {type, args, state, reason}`: the runner's last record row, else None. `events`: the kinds of the last
   three event lines. `want_shelter`: `night.want_shelter` (the night wants and knows no shelter).
-- Beyond the brief's keys, the scripted source's reads: `edge` (`world.unexplored_edge()` as [x, y], else None),
+- Beyond the brief's keys, the scripted source's reads: `edge` (`world.unexplored_edge()` as [x, y], else None; after
+  two unmoved stuck walks from the player's square only a square in the open, P23-AP 1),
   `scanned_here` (the player's place, `policies.place_of`, is in the goal kit's `Explore.scanned`), `stock_uses` (the
   uses of `goals.STOCK_WANTS` for which the kit's `LootHouse.target` answers a container now), `cooled` (the goals
   the runner refuses for now, `GoalRunner.cooling()`: `[{type, args}]`, fix 1 I4).

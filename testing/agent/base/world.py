@@ -34,7 +34,16 @@ stuck marks here, the night's and the Shelter goal's shuns); `game_min` stays fo
 
 `stuck` is the planner's memory, not the lines': `mark_stuck(x, y)` records a walk target that ended stuck at the
 current `world_minutes()` and `unexplored_edge` leaves it out for STUCK_TTL_MIN game minutes; `to_json` does not
-carry it.
+carry it. Survival 4 (ruling P23-AP 1, the chain's E4: twelve walks failed `stuck` one after the other from the square
+north of a locked gate, each target the next square of one fenced-off area, 21.85 game minutes): `mark_stuck_pair(frm,
+to)` records a walk from square `frm` to `to` that failed `stuck` having moved the player under 0.5 tiles
+(`policies.Explore`), `stuck_run` the pairs in a row from one square (`clear_stuck_run` ends the row: a walk that
+moved or arrived); once STUCK_AREA_N (2) stand in a row from the player's own square within STUCK_TTL_MIN
+(`stuck_here`), `unexplored_edge` proposes only an edge square whose straight line from the player is clear
+(`line_clear`, `unknown_open=False`: no known blocking edge, no unknown square, between) and which a bounded flood
+from the player reaches (`flood`, `reachable`: REACH_LIMIT 400 squares over the kept map, each step `blocked`-read),
+and none when no such square is known (the goal source then loots or scans: never a third walk from that square).
+Neither is in `to_json`.
 
 The server's side comes in through `merge_server(stats, wall_ms)` and `merge_damage(reply, wall_ms)`, a
 `damage.watch` reply whose `last` records not yet seen (by `i`) land in `damage` tagged `server` (spec § 9).
@@ -89,6 +98,8 @@ from agent.base.items import USES, cant_eat, use_of
 
 ZOMBIE_TTL_S = 10
 STUCK_TTL_MIN = 60   # game minutes an edge whose walk ended stuck is left out of unexplored_edge
+STUCK_AREA_N = 2     # unmoved stuck walks in a row from one square before its edges must lie in the open (P23-AP 1)
+REACH_LIMIT = 400    # squares a reachability flood visits at most (P23-AP 1)
 REFUSED_TTL_MIN = 120   # world minutes a food whose consume was refused `not valid` reads `other` (P23-AD)
 GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 DEQUE_N = 500
@@ -151,6 +162,8 @@ class World:
         self.scans_dropped = set()   # the aids of the scans whose job the Lua dropped (scan_dropped, S-32)
         self.map_lines = 0
         self.stuck = {}              # (x, y) -> world_minutes(): a walk target that ended stuck, set by the planner
+        self.stuck_run = None        # {"from": (x, y), "to": [(x, y)...], "at": world_minutes()}: the unmoved stuck
+                                     # walks in a row from one square (P23-AP 1), set by the planner
         self.map_version = 0         # rises on every square applied: the key of the map's cached reads
         self._memo = {}              # key -> (map_version, value): the cache of memo()
         self._indexed = None         # (map_version, {building: [room squares]}, {building: [door squares]})
@@ -310,21 +323,74 @@ class World:
         now = self.world_minutes()
         return {k for k, at in self.stuck.items() if now - at < STUCK_TTL_MIN}
 
+    def mark_stuck_pair(self, frm, to):
+        """A walk from square `frm` (x, y) to `to` failed `stuck` with the player moved under 0.5 tiles (P23-AP 1): the
+        pair joins `stuck_run` when the run is from `frm`, else starts a new run (the planner's, never a line's)."""
+        run = self.stuck_run
+        tos = run["to"] + [to] if run is not None and run["from"] == frm else [to]
+        self.stuck_run = {"from": frm, "to": tos, "at": self.world_minutes()}
+
+    def clear_stuck_run(self):
+        """A walk that moved the player or arrived ends the run of stuck pairs."""
+        self.stuck_run = None
+
+    def stuck_here(self):
+        """STUCK_AREA_N or more stuck pairs in a row from the player's own square, the last within STUCK_TTL_MIN."""
+        run = self.stuck_run
+        if run is None or len(run["to"]) < STUCK_AREA_N or self.world_minutes() - run["at"] >= STUCK_TTL_MIN:
+            return False
+        mx, my = me_xy(self)
+        return run["from"] == (int(math.floor(mx)), int(math.floor(my)))
+
     def unexplored_edge(self):
         """The nearest open square with an unmapped neighbour, ties by (x, y); a square marked stuck within the last
-        STUCK_TTL_MIN game minutes is left out."""
+        STUCK_TTL_MIN game minutes is left out. While `stuck_here` (P23-AP 1), only a square on the player's floor
+        that the player's `flood` reaches and whose straight line from the player is clear (`line_clear` to its
+        centre, `unknown_open=False`), else None."""
         mx, my = me_xy(self)
         skip = self._stuck_now() if self.stuck else ()
-        best = None
+        cands = []
         for (x, y, z), s in self.map.items():
             if s.get("solid") or (x, y) in skip:
                 continue
             if all((x + dx, y + dy, z) in self.map for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
                 continue
-            rank = (math.hypot(x - mx, y - my), x, y)
-            if best is None or rank < best:
-                best = rank
-        return (best[1], best[2]) if best else None
+            cands.append((math.hypot(x - mx, y - my), x, y, z))
+        if not cands:
+            return None
+        if not self.stuck_here():
+            best = min(cands)
+            return best[1], best[2]
+        floor = me_floor(self)
+        reach = self.flood((int(math.floor(mx)), int(math.floor(my)), floor))
+        for _, x, y, z in sorted(c for c in cands if c[3] == floor and (c[1], c[2], floor) in reach):
+            if self.line_clear((mx, my), (x + 0.5, y + 0.5)):
+                return x, y
+        return None
+
+    def flood(self, start, limit=REACH_LIMIT):
+        """The squares a breadth-first flood from `start` (x, y, z) reaches over the kept map (P23-AP 1): each step to
+        one of the 8 neighbours on its floor, mapped, not solid, the step not `blocked` (a closed or locked door's
+        edge is); `start` itself always, at most `limit` squares in all."""
+        start = tuple(start)
+        seen, queue, i = {start}, [start], 0
+        while i < len(queue):
+            a = queue[i]
+            i += 1
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    b = (a[0] + dx, a[1] + dy, a[2])
+                    if b in seen or self._solid(b) or self.blocked(a, b):
+                        continue
+                    seen.add(b)
+                    queue.append(b)
+                    if len(seen) >= limit:
+                        return seen
+        return seen
+
+    def reachable(self, frm, to, limit=REACH_LIMIT):
+        """`to` (x, y, z) lies within `flood(frm, limit)`: a way over the kept map's open steps (P23-AP 1)."""
+        return tuple(to) in self.flood(frm, limit)
 
     def nearest_zombie(self, exclude=()):
         """(id, zombie) nearest the current `me` by its last seen `x, y`, ties by id; None if none. A zombie kept up to

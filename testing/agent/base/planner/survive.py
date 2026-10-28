@@ -103,6 +103,16 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   running fight keeps its pin), so a shelter or exit walk at melee range is superseded by the corner's attack, or,
   with three or more within CORNERED_R and no stuck leg, by rule 4's steer (`Flee.give_way` drops the walk); rule 4
   then reads "not stuck" for "a leg that moved", a walk having no leg.
+- Survival 4 (ruling P23-AP, the chain's E4: it died at game minute 627 after a `walk` corner on one or two zombies
+  held 35 ticks while the group formed outside 1.5 tiles, and a steer leg aimed before two zombies ahead were listed
+  ran into them; twelve walks from one stuck square cost 21.85 game minutes before):
+  1. The goal source leaves a stuck area (`world.unexplored_edge` after two unmoved stuck walks from the player's
+     square: only a square in the open, else a loot or the scan; `goals.py`'s docstring).
+  2. A corner ends for a closing group (`_group`): GROUP_HOLD_N (4) held, or GROUP_R_N (3) within GROUP_NEAR_R (3.0
+     tiles), whichever first, ends a `walk` or `inside` corner and blocks a new one while the last leg is not stuck
+     (the group steer, logged `group`); a `stuck` corner keeps swinging, but with the nearest beyond POINT_BLANK_R
+     and its stuck read STUCK_RETRY_S (2 s) old one steer leg is tried (`group` "retry").
+  3. A running steer leg is cut and re-aimed when a held threat comes ahead of it (`policies.Flee._cut_leg`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -163,8 +173,8 @@ from agent.base.items import days_fresh
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH,
-                                         PREEMPTED, Fight, Flee, adoptable, blocked, exit_plan, in_building, in_reach,
-                                         item_id_ok, line_to, spare, target_id_ok, zdist)
+                                         POINT_BLANK_R, PREEMPTED, Fight, Flee, adoptable, blocked, exit_plan,
+                                         in_building, in_reach, item_id_ok, line_to, spare, target_id_ok, zdist)
 from agent.base.planner.view import view
 from agent.base.pza1 import Consume, Drop
 
@@ -178,7 +188,10 @@ HOLD_BREAK_R = 3.0        # tiles: a held threat this near breaks every hold wha
 CLOSING_TICKS = 3         # ... as does the nearest held threat closing on this many ticks in a row within DANGER_R
 CORNER_FREE_R = DISENGAGE_R / 2   # tiles: a cornered Fight ends once the nearest held threat is beyond this
 FLIP_MIN_S = 5.0          # wall seconds a flee walk runs before a fight's walk may supersede it (P23-AM 1)
-GROUP_R_N = 3             # held threats within CORNERED_R that make a group: steered from, not cornered (P23-AM 4)
+GROUP_R_N = 3             # zombies within GROUP_NEAR_R that make a group: steered from, not cornered (P23-AM 4, AP 2)
+GROUP_NEAR_R = 3.0        # tiles: ... (P23-AP 2: a third zombie this near; P23-AM 4 read 1.5, CORNERED_R)
+GROUP_HOLD_N = 4          # held threats (within the hold radius) that make a group too (P23-AP 2)
+STUCK_RETRY_S = 2.0       # wall seconds after a stuck read before a stuck corner against a group tries a leg (P23-AP 2)
 BRANCHES = ("threat", "need", "load", "night", "goal")
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -186,7 +199,8 @@ REFUSED = "not valid"    # the reason the Lua's consume fails an item it cannot 
 
 __all__ = ["Survive", "BRANCHES", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER_T", "FLEE_HEALTH",
            "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS",
-           "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N"]
+           "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
+           "GROUP_HOLD_N", "STUCK_RETRY_S"]
 
 
 def _key(typ, args):
@@ -205,7 +219,8 @@ class Survive:
         self.stall_flee = False   # the running flee was chosen because a fight stalled
         self.flee_dropped = False  # the running flee episode sent its one load drop
         self.flee_many = False    # the running flee episode's reason was `many` (P23-AM 1: it stays a flee)
-        self.group_steer = False  # this tick: a group within CORNERED_R after a leg that moved, steered (P23-AM 4)
+        self.group_steer = None   # this tick: why a group at melee range is steered from, not cornered (`_group`:
+                                  # "near" or "hold", P23-AM 4 and AP 2; "retry", a stuck corner's leg), else None
         self.sheltered = False    # a flee's shelter plan ended inside: a threat whose line clears is fought (P23-AG)
         self.door = None          # the door fight's targets this tick (`_door_targets`) while sheltered, else None
         self.broken = None        # the breach that broke a due hold this tick (P23-AJ 1), else None
@@ -213,6 +228,7 @@ class Survive:
         self.cornered = None      # the zombie id a cornered Fight runs on (P23-AJ 2), else None
         self.corner_free = CORNER_FREE_R   # tiles: the nearest beyond this ends the corner (fix round 1)
         self.corner_kind = None   # "stuck", "inside" or "walk" (amendment 6: taken on any walk), the running corner's
+        self.stuck_wall = None    # wall of the stuck read a `stuck` corner was taken on (P23-AP 2: STUCK_RETRY_S)
         self._corner_fight = None   # the Fight made for the corner
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
         self.night = Night(world, actions, clock)
@@ -362,9 +378,14 @@ class Survive:
           except while a fight runs (it keeps its own pin, Task 10), on the nearest zombie within CORNERED_R whose
           line is not read blocked and that is not marked unreachable (run 1's 103 swings at a zombie behind a locked
           door: these corners respect the marks, their Fight's `mark_free_r` 0).
-        Rule 4 (P23-AM 4, as amendment 6 widens the corner): with GROUP_R_N or more held within CORNERED_R and the
-        last leg not stuck, no corner, and a running corner not taken `stuck` ends (fix round 1, G1: E3's group came
-        one at a time onto a `walk` corner): `group_steer`, the flee steers (sprints) until a leg ends stuck. It stays
+        Rule 4 (P23-AM 4, as amendment 6 widens the corner, and survival 4's ruling P23-AP 2: E4's `walk` corner on
+        one or two zombies held 35 ticks while the group formed outside 1.5 tiles, the held count rising from three to
+        six): with a group (`_group`: GROUP_HOLD_N held, or GROUP_R_N within GROUP_NEAR_R) and the last leg not stuck,
+        no corner, and a running corner not taken `stuck` ends (fix round 1, G1: E3's group came one at a time onto a
+        `walk` corner): `group_steer`, the flee steers (sprints) while a leg can move, until one ends stuck. A
+        `stuck` corner keeps swinging against the group, re-tested every tick: with the nearest beyond POINT_BLANK_R
+        and its stuck read STUCK_RETRY_S old, it ends for one steer leg (`group_steer` "retry"; that leg read stuck in
+        turn is a new `stuck` corner). It stays
         cornered on that id until the zombie is dead, gone, or marked unreachable and out of reach (a `walk` corner:
         marked at all), or the nearest held threat is beyond `corner_free`: CORNER_FREE_R for a stuck leg's corner,
         CORNERED_R for the others (a way out is never known at melee range, every exit's line starting within
@@ -376,10 +397,14 @@ class Survive:
             self.cornered = None
             return None
         skip = blocked(self.unreachable, self.clock())
-        group = sum(1 for z in held if zdist(self.world, z) <= CORNERED_R) >= GROUP_R_N
+        group = self._group(held)
         if self.cornered is not None:
             if group and self.corner_kind != "stuck":   # fix round 1, G1: a group gathering on a corner is steered from
-                self.cornered, self._corner_fight, self.group_steer = None, None, True
+                self.cornered, self._corner_fight, self.group_steer = None, None, group
+                return None
+            if (group and nearest > POINT_BLANK_R and self.stuck_wall is not None
+                    and self.clock() - self.stuck_wall >= STUCK_RETRY_S):   # P23-AP 2: a moved leg's chance
+                self.cornered, self._corner_fight, self.group_steer = None, None, "retry"
                 return None
             z = self.world.zombies.get(self.cornered)
             if (z is not None and z.get("x") is not None and z.get("y") is not None and nearest <= self.corner_free
@@ -401,12 +426,21 @@ class Survive:
         if nearest > CORNERED_R or not reach:
             return None
         if group and not stuck:
-            self.group_steer = True   # P23-AM 4: against a group the branch steers (sprints) until a leg ends stuck
+            self.group_steer = group   # P23-AM 4: against a group the branch steers (sprints) until a leg ends stuck
             return None
         self.corner_kind = "stuck" if stuck else ("inside" if inside else "walk")
         self.corner_free = CORNER_FREE_R if stuck else CORNERED_R
+        self.stuck_wall = self.clock() if stuck else None
         self.cornered = min(reach, key=lambda p: (zdist(self.world, p[1]), repr(p[0])))[0]
         return self.cornered
+
+    def _group(self, held):
+        """Why the held threats are a group the branch steers from rather than corners (P23-AM 4, ruling P23-AP 2),
+        else None: `hold` with GROUP_HOLD_N or more held (the hold radius's list), `near` with GROUP_R_N or more within
+        GROUP_NEAR_R (a third zombie that near; iteration 3 read three within CORNERED_R, which this takes in)."""
+        if len(held) >= GROUP_HOLD_N:
+            return "hold"
+        return "near" if sum(1 for z in held if zdist(self.world, z) <= GROUP_NEAR_R) >= GROUP_R_N else None
 
     def _threat_plan(self, held, breach):
         """The threat branch's one decision (ruling P23-AJ), `(kind, reason)`, the machines only executing it:
@@ -432,7 +466,7 @@ class Survive:
         re-closing."""
         inside = self.night.inside()
         self.sheltered = self.flee is not None and self.flee.sheltered and inside
-        self.broken, self.group_steer = None, False
+        self.broken, self.group_steer = None, None
         self.door = self._door_targets() if self.sheltered else None
         if self.door:
             return "door", None
@@ -538,7 +572,7 @@ class Survive:
             self.flee_many = self.flee_many or reason == "many"
             policy.threats = held
             policy.hold_ok = breach is None
-            policy.many, policy.steer_now = self.flee_many, self.group_steer
+            policy.many, policy.steer_now = self.flee_many, self.group_steer is not None
             if self.group_steer:
                 policy.give_way()   # amendment 6: the group pre-empts a running walk, as the corner does
             ans = self._flee_drop() or self._answer(policy)
@@ -550,6 +584,8 @@ class Survive:
             self.why["sheltered"] = True
         if kind == "cornered":
             self.why["cornered"] = self.cornered
+        if self.group_steer is not None:
+            self.why["group"] = self.group_steer
         if self.broken is not None:
             self.why["breach"] = self.broken
         return ans if ans is not None else (policy, None)

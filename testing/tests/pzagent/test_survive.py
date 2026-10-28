@@ -1463,9 +1463,12 @@ def closed_room(bid=2):
 
 @pytest.mark.parametrize("nx, cornered", [(103.7, True), (104.5, False)])   # the nearest at 1.2 and 2.0 tiles
 def test_on_a_room_square_with_no_way_out_the_nearest_within_cornered_r_is_fought(tmp_path, nx, cornered):
-    """Rule 2: three zombies came in (`many`), no exterior door or opening known: the nearest at 1.2 is fought on the
-    first tick as `cornered`; at 2.0 too, as the trapped fight (fix round 1, the review's G3: inside with no way out
-    and nothing to adopt, armed, the flee is the Fight, never a steer)."""
+    """Rule 2: three zombies came in (`many`), no exterior door or opening known: the nearest at 2.0 is fought on the
+    first tick as the trapped fight (fix round 1, the review's G3: inside with no way out and nothing to adopt, armed,
+    the flee is the Fight, never a steer). Named change, ruling P23-AP 2: with the nearest at 1.2 the other two at 2.83
+    make three within GROUP_NEAR_R, a group: the first tick steers (the `inside` corner is not taken while a leg may
+    move, as P23-AM 4 steered three within 1.5 on a room square); the leg unmoved STEP_STALL_S with zombie 1 in reach
+    reads stuck and the `stuck` corner fights it."""
     r, sv = make(tmp_path)
     r.scan(closed_room())
     me = (102.5, 202.5)
@@ -1474,8 +1477,19 @@ def test_on_a_room_square_with_no_way_out_the_nearest_within_cornered_r_is_fough
     assert P.exit_plan(r.world, list(r.world.zombies.values())) is None and not P.adoptable(r.world)
     tick(r, sv)
     w = threat_why(tmp_path)
-    assert r.cmd() == ("attack", {"targetId": 1}) and w["fight"] is True
-    assert (w.get("cornered") == 1) is cornered
+    if not cornered:
+        assert r.cmd() == ("attack", {"targetId": 1}) and w["fight"] is True and "cornered" not in w
+        return
+    assert r.cmd()[0] == "steer" and w["group"] == "near" and "cornered" not in w
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    for _ in range(2):
+        r.advance(0.5)
+        r.frame(x=me[0], y=me[1], zombies=zs)
+        tick(r, sv)
+    w = threat_why(tmp_path)
+    assert r.cmd() == ("attack", {"targetId": 1}) and w["fight"] is True and w["cornered"] == 1
+    assert sv.corner_kind == "stuck"
 
 
 @pytest.mark.parametrize("weapon", [BAT, None])
@@ -1587,8 +1601,11 @@ def test_an_exit_walk_that_stops_moving_for_exit_stall_s_is_dropped_and_the_next
     assert P.EXIT_STALL_S == 1.0
 
 
-def test_a_running_exit_walk_is_pre_empted_by_the_corner(tmp_path):
-    """Fix round 1 (G2): mid-walk a zombie comes within CORNERED_R: the attack goes, superseding the walk."""
+@pytest.mark.parametrize("held", [3, 4])
+def test_a_running_exit_walk_is_pre_empted_by_the_corner(tmp_path, held):
+    """Fix round 1 (G2): mid-walk a zombie comes within CORNERED_R: the attack goes, superseding the walk. Named
+    change, ruling P23-AP 2: that holds with three held (zombie 3 died); with four held (GROUP_HOLD_N) they are a
+    group: no corner, the group steer drops the walk (`give_way`: the exit refused) and steers."""
     from .test_policies import two_door_house
     r, sv = make(tmp_path)
     r.scan([q for q in two_door_house() if q["x"] < 115])     # the group east on unscanned ground: no hold
@@ -1597,11 +1614,19 @@ def test_a_running_exit_walk_is_pre_empted_by_the_corner(tmp_path):
     r.frame(x=me[0], y=me[1], zombies=east)
     tick(r, sv)
     assert r.cmd() == ("walkTo", {"x": 111.5, "y": 198.5, "gait": "run"}) and threat_why(tmp_path)["flee"] == "many"
+    walk = r.acts.history[-1]
     r.fake.answer({"walkTo": ["accepted"]})
     r.pump()
-    r.frame(x=me[0], y=me[1], zombies=east + [zombie(4, 112.5, 201.8, me=me)])
+    if held == 3:
+        r.event("zombie_dead", id=3)
+    r.frame(x=me[0], y=me[1], zombies=east[:held - 1] + [zombie(4, 112.5, 201.8, me=me)])
     tick(r, sv)
-    assert r.cmd() == ("attack", {"targetId": 4}) and threat_why(tmp_path)["cornered"] == 4
+    w = threat_why(tmp_path)
+    if held == 3:
+        assert r.cmd() == ("attack", {"targetId": 4}) and w["cornered"] == 4
+        return
+    assert r.cmd()[0] == "steer" and w["group"] == "hold" and "cornered" not in w
+    assert walk.state == "accepted" and sv.flee.exit is None and sv.flee._dropped is walk
 
 
 def test_a_held_threat_within_hold_break_r_breaks_the_sheltered_hold_too(tmp_path):
@@ -1643,9 +1668,10 @@ def test_inside_at_melee_range_the_corner_fights_before_any_walk_out_then_walks_
 ARTIFACTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "artifacts")
 E2 = os.path.join(ARTIFACTS, "e_day_2-20261028-124249")
 E3 = os.path.join(ARTIFACTS, "e_day_3-20261028-153631")
+E4 = os.path.join(ARTIFACTS, "e_day_4-20261028-173649")
 
 
-@functools.lru_cache(maxsize=2)
+@functools.lru_cache(maxsize=3)
 def _run_lines(run):
     """A run's state.log through FileTransport (the delta frames merged as live) and its decision walls by log
     line."""
@@ -1733,11 +1759,12 @@ def test_e2_at_game_minute_585_the_zombie_in_the_bathroom_doorway_is_fought_not_
 
 def test_a_marked_zombie_within_cornered_r_still_corners_and_is_swung_at(tmp_path):
     """Fix round 1 (the review's I3): zombie 1 marked unreachable (its line once read blocked) bites at 1.2 tiles in a
-    room with no way out: the corner ignores the mark and its Fight swings at it."""
+    room with no way out: the corner ignores the mark and its Fight swings at it. Named change, ruling P23-AP 2: the
+    other two stand at 3.05 tiles (were 2.83), so no third zombie is within GROUP_NEAR_R (no group)."""
     r, sv = make(tmp_path)
     r.scan(closed_room())
     me = (102.5, 202.5)
-    zs = [zombie(1, 103.7, 202.5, me=me), zombie(2, 100.5, 200.5, me=me), zombie(3, 104.5, 204.5, me=me)]
+    zs = [zombie(1, 103.7, 202.5, me=me), zombie(2, 100.5, 200.2, me=me), zombie(3, 104.5, 204.8, me=me)]
     r.frame(x=me[0], y=me[1], zombies=zs)
     sv.unreachable[1] = r.clock() + 20.0
     tick(r, sv)
@@ -1872,13 +1899,18 @@ def test_the_survival_3_constants():
 
 
 def e3_replay(tmp_path, first_line, last_line, setup=None):
-    """E3's decision lines `first_line`..`last_line` replayed through a fresh Survive on the recorded worlds, its
+    """E3's decision lines `first_line`..`last_line` replayed (`run_replay`)."""
+    return run_replay(E3, tmp_path, first_line, last_line, setup)
+
+
+def run_replay(run, tmp_path, first_line, last_line, setup=None):
+    """A run's decision lines `first_line`..`last_line` replayed through a fresh Survive on the recorded worlds, its
     clock the recorded walls: a steer leg still running FLEE_S after its send is answered `done` (the Lua's steer ends
     at its seconds), a walk is left running. `setup(r, sv, w)` runs before the first tick. Returns the Rig, the
     Survive and {line: (decision row, Action sent or None)}."""
     r = Rig(tmp_path)
     sv, out = None, {}
-    for line, wall, w in run_worlds(E3, range(first_line, last_line + 1)):
+    for line, wall, w in run_worlds(run, range(first_line, last_line + 1)):
         r.t["now"] = wall
         if sv is None:
             sv = Survive(w, r.acts, str(tmp_path / "decision.log"), r.clock)
@@ -1892,11 +1924,11 @@ def e3_replay(tmp_path, first_line, last_line, setup=None):
     return r, sv, out
 
 
-def e3_world_at_seq(seq):
-    """A World of E3's state.log up to the line of `seq`."""
+def e3_world_at_seq(seq, run=E3):
+    """A World of a run's state.log (E3's by default) up to the line of `seq`."""
     from agent.base.world import World
     w = World()
-    for ln in _run_lines(E3)[0]:
+    for ln in _run_lines(run)[0]:
         w.apply(ln)
         if ln.get("seq", 0) >= seq:
             return w
@@ -1962,23 +1994,25 @@ def test_e3_after_the_first_many_flee_no_fight_walk_supersedes_it_while_the_grou
 
 
 def test_e3_a_group_gathering_on_a_walk_corner_is_steered_from_not_fought_standing():
-    """Fix round 1, G1, on E3's lines 254-284 through the same one Survive: the `walk` corner takes 14926 alone at
-    258 (1.08 tiles) and 267 (1.50); by 271 three are within CORNERED_R (14918 at 0.20, 14960 at 0.38, 14961 at
-    1.39) and the corner, taken on no stuck leg, ends for rule 4's sprint steer (c41f9880 held it and swung through
-    284). The recorded frames never move the player, so the leg stands: 272-274 hold it, and at 275 it has stood
-    STEP_STALL_S (from 272's 135.55 s) with the group in reach, which R1 reads stuck: the `stuck` corner's attack,
-    as rule 4 rules after a stuck leg."""
+    """Fix round 1, G1, on E3's lines 254-284 through the same one Survive. Named change, ruling P23-AP 2: fix round
+    1's `walk` corner took 14926 alone at 258 (1.08 tiles) with four held, and ended for the steer at 271 (three
+    within CORNERED_R); now four held are a group (GROUP_HOLD_N) from 258: no corner, the running sprint leg is held
+    (`group` "hold"), and at 260 (the leg's FLEE_S out) the next sprint leg goes. The recorded frames never move the
+    player, so that leg stands, and at 263, STEP_STALL_S after it with 14918 in reach, R1 reads it stuck: the `stuck`
+    corner's attack on 14918 (0.55 tiles), as rule 4 rules after a stuck leg; no attack before it."""
     sent, out = _e3_sequential()
-    assert out[258][1].type == "attack" and out[258][0]["inputs"]["branches"]["threat"]["cornered"] == 14926
-    d, steer = out[271]
+    for line in (258, 259):
+        d, a = out[line]
+        why = d["inputs"]["branches"]["threat"]
+        assert a is None and why["group"] == "hold" and why["holding"] == "a3" and "cornered" not in why, line
+    d, steer = out[260]
     why = d["inputs"]["branches"]["threat"]
-    assert steer.type == "steer" and steer.args["gait"] == "sprint" and "cornered" not in why and why["flee"] == "many"
-    for line in range(272, 275):
-        assert out[line][1] is None and out[line][0]["inputs"]["branches"]["threat"]["holding"] == steer.aid, line
-    assert all(not (a.type == "attack" and out[271][0]["wall"] <= a.sent_wall < out[275][0]["wall"]) for a in sent)
-    d, a = out[275]
-    assert a.type == "attack" and d["wall"] - out[272][0]["wall"] >= P.STEP_STALL_S
-    assert steer.state == "sent"     # the leg never ended: R1 read it stuck while it ran
+    assert steer.type == "steer" and steer.args["gait"] == "sprint" and why["group"] == "hold"
+    assert "cornered" not in why and why["flee"] == "many"
+    assert all(not (a.type == "attack" and out[254][0]["wall"] <= a.sent_wall < out[263][0]["wall"]) for a in sent)
+    d, a = out[263]
+    assert a.type == "attack" and a.args == {"targetId": 14918} and d["inputs"]["branches"]["threat"]["cornered"]
+    assert d["wall"] - out[260][0]["wall"] >= P.STEP_STALL_S and steer.state == "sent"   # R1: stuck while it ran
 
 
 def test_a_walk_corner_on_one_zombie_ends_when_two_more_come_within_cornered_r(tmp_path):
@@ -2036,13 +2070,13 @@ def test_e3_the_enter_walk_standing_with_a_threat_within_danger_r_is_dropped_and
     assert out[255][1] is None and out[255][0]["inputs"]["branches"]["threat"]["holding"] == steer.aid
 
 
-@pytest.mark.parametrize("line, want", [(260, ("attack", 14926)), (271, ("steer", None))])
+@pytest.mark.parametrize("line, want", [(260, ("steer", "hold")), (271, ("steer", "hold"))])
 def test_e3_at_melee_range_on_the_shelter_walk_the_corner_answers(tmp_path, line, want):
     """The coordinator's amendment 6 (E3's write-up, concern 4): lines 260-275 passed with a zombie within 1.5 tiles
     and no corner, the character on the plan's enter walk (no steer leg, no room square). Now the corner is judged on
-    every threat tick whatever runs: at line 260 (14926 at 0.51 tiles, its line clear, one within CORNERED_R) the
-    walk is superseded by the corner's attack; at line 271 (three within CORNERED_R, no stuck leg) rule 4 steers, a
-    sprint."""
+    every threat tick whatever runs: at line 271 (three within CORNERED_R, no stuck leg) rule 4 steers, a sprint.
+    Named change, ruling P23-AP 2: at line 260 (14926 at 0.51 tiles, one within CORNERED_R) fix round 1 attacked;
+    five are held there, a group (GROUP_HOLD_N), so the group steer drops the walk there too."""
     def setup(r, sv, w):
         e3_on_the_enter_step(r, sv, w)
         sv.flee.threats, sv.flee.many = [z for z in w.zombies.values() if z.get("x") is not None], True
@@ -2051,12 +2085,9 @@ def test_e3_at_melee_range_on_the_shelter_walk_the_corner_answers(tmp_path, line
     r, sv, out = e3_replay(tmp_path, line, line, setup=setup)
     d, a = out[line]
     why = d["inputs"]["branches"]["threat"]
-    assert a is not None and a.type == want[0]
-    if want[0] == "attack":
-        assert a.args == {"targetId": 14926} and why["cornered"] == 14926 and sv.corner_kind == "walk"
-    else:
-        assert a.args["gait"] == "sprint" and "cornered" not in why and why["flee"] == "many"
-        assert why["ended"] == "pre-empted" and sv.flee.plan is None and sv.flee.picked   # the walk dropped
+    assert a is not None and a.type == want[0] and why["group"] == want[1] and d["inputs"]["held"] >= S.GROUP_HOLD_N
+    assert a.args["gait"] == "sprint" and "cornered" not in why and why["flee"] == "many"
+    assert why["ended"] == "pre-empted" and sv.flee.plan is None and sv.flee.picked   # the walk dropped
 
 
 def many_yard(r, me=(100.5, 201.5), endurance=1.0, d=4.0):
@@ -2407,3 +2438,354 @@ def test_a_many_flee_s_running_shelter_walk_keeps_the_flee_past_flip_min_s(tmp_p
         r.frame(x=me[0], y=me[1], zombies=zs)
         assert tick(r, sv) is None and threat_why(tmp_path)["holding"] == walk.aid, k
     assert threat_why(tmp_path)["flee"] == "steps" and r.t["now"] - walk.sent_wall > S.FLIP_MIN_S
+
+
+# ================================================================ survival 4 (ruling P23-AP): E4's stuck area and group
+# E4 (e_day_4-20261028-173649) died at game minute 627: twelve walks failed stuck from one square north of a locked gate
+# (21.85 game minutes), a `walk` corner held 35 ticks while the group formed outside 1.5 tiles (decision.log lines
+# 447-481), and a steer leg aimed west at line 440 ran into two zombies listed after it was aimed.
+def test_the_survival_4_constants():
+    assert (S.GROUP_R_N, S.GROUP_NEAR_R, S.GROUP_HOLD_N, S.STUCK_RETRY_S) == (3, 3.0, 4, 2.0)
+
+
+def test_e4_the_third_proposal_from_the_stuck_square_is_no_walk_across_the_fence_row(tmp_path):
+    """Ruling P23-AP 1 on E4's lines 86-115 through one Survive (the recorded worlds, the character standing on
+    (10732.84, 10641.54) north of the locked gate (10732, 10642) throughout; building 2's containers read looted, as the
+    loot goal that ended `done` at line 54 left them; a scan answered done, a walk failed `stuck` 6 s after its send,
+    as a13-a24 ended 5.994-5.996 s after their accepts). The first two proposals are the record's rows 3 and 4,
+    (10738, 10642) and (10742, 10642), both across the fence row (their lines blocked); each fails unmoved, a stuck
+    pair from (10732, 10641). The third (the record's row 5 walked to (10742, 10641), across the fence line on the west
+    edges of x 10735) is ExploreToward (10734, 10630): the place rescanned first, then a walk north whose straight line
+    is clear and which the flood from the player reaches."""
+    r = Rig(tmp_path)
+    sv, proposals, sends = None, [], []
+    for line, wall, w in run_worlds(E4, range(86, 116)):
+        r.t["now"] = wall
+        if sv is None:
+            sv = Survive(w, r.acts, str(tmp_path / "decision.log"), r.clock)
+            for k in list(w.containers):
+                w.mark_looted(k)
+        cur = r.acts.current
+        if cur is not None and cur.type == "scan":
+            r.answer()
+        elif cur is not None and cur.type == "walkTo" and wall - cur.sent_wall >= 6.0:
+            r.answer({"state": "failed", "reason": "stuck"})
+        a = sv.tick(w, r.acts)
+        why = last(tmp_path)["inputs"]["branches"]["goal"]
+        if why.get("proposed"):
+            proposals.append((line, why["proposed"], why["args"]))
+        if a is not None:
+            sends.append((line, a.type, a.args))
+    me = (w.me["x"], w.me["y"])
+    assert [p[1:] for p in proposals[:3]] == [("ExploreToward", {"x": 10738, "y": 10642}),
+                                              ("ExploreToward", {"x": 10742, "y": 10642}),
+                                              ("ExploreToward", {"x": 10734, "y": 10630})]
+    assert proposals[2][0] == 113 and w.stuck_run["to"] == [(10738, 10642), (10742, 10642)]
+    for x, y in ((10738, 10642), (10742, 10642), (10742, 10641)):
+        assert not w.line_clear(me, (x + 0.5, y + 0.5)), (x, y)
+    assert w.line_clear(me, (10734.5, 10630.5)) and w.reachable((10732, 10641, 0), (10734, 10630, 0))
+    third = [s for s in sends if s[0] >= 113]
+    assert third[:2] == [(113, "scan", {"r": 10}), (114, "walkTo", {"x": 10734, "y": 10630, "gait": "walk"})]
+    assert all(s[2].get("y", 0) < 10642 for s in third if s[1] == "walkTo")
+
+
+def e4_flee(r, sv, w):
+    """`run_replay`'s setup for E4's last fight: the `many` flee episode E4 ran from line 412 (a fresh Flee)."""
+    sv.mode, sv.flee_many = "flee", True
+    sv.flee = P.Flee(w, r.acts, r.clock, shunned=sv.night.shunned)
+
+
+def test_e4_the_walk_corner_ends_when_the_held_count_reaches_four_and_the_group_steer_goes(tmp_path):
+    """Ruling P23-AP 2 on E4's lines 447-481 through one Survive (the recorded worlds; the `many` flee E4 ran). Line
+    447: 19032 at 1.35 tiles, 19035 at 2.54, 19030 at 6.69 (three held, two within GROUP_NEAR_R): the `walk` corner
+    attacks 19032, as the record did. At line 453 19042 comes within the hold radius (9.81 tiles on the replay's frame;
+    the record's line 454 read the held count 4): four held, a group (GROUP_HOLD_N), so the corner ends and the group
+    sprint steer is sent, not the attack (the record held the corner to line 481, the held count rising to six). The
+    recorded frames never answer the steer with movement: the leg read stuck (R1) is a `stuck` corner from line 457,
+    and its retry (STUCK_RETRY_S, the nearest beyond POINT_BLANK_R) one more leg at 462."""
+    r, sv, out = run_replay(E4, tmp_path, 447, 481, setup=e4_flee)
+    d, a = out[447]
+    assert a.type == "attack" and a.args == {"targetId": 19032} and d["inputs"]["branches"]["threat"]["cornered"]
+    for line in range(448, 453):
+        why = out[line][0]["inputs"]["branches"]["threat"]
+        assert out[line][1] is None and why["cornered"] == 19032 and out[line][0]["inputs"]["held"] == 3, line
+    d, steer = out[453]
+    why = d["inputs"]["branches"]["threat"]
+    assert d["inputs"]["held"] == S.GROUP_HOLD_N and why["group"] == "hold" and "cornered" not in why
+    assert steer.type == "steer" and steer.args["gait"] == "sprint" and why["flee"] == "many"
+    assert all(out[ln][1] is None for ln in range(454, 457))
+    d, a = out[457]
+    assert a.type == "attack" and d["inputs"]["branches"]["threat"]["cornered"] == 19032
+    d, retry = out[462]
+    why = d["inputs"]["branches"]["threat"]
+    assert retry.type == "steer" and why["group"] == "retry" and d["inputs"]["nearest"] > P.POINT_BLANK_R
+    assert d["wall"] - out[457][0]["wall"] >= S.STUCK_RETRY_S
+
+
+def test_e4_line_440s_leg_is_cut_at_seq_3950_and_re_aimed(tmp_path):
+    """Ruling P23-AP 3: E4's line-440 leg, a sprint along (-0.892, -0.451) from (10778.22, 10645.98), aimed with
+    19042, 19043 and 19045 held (nothing ahead). At seq 3950 the frames list 19032 at 7.43 tiles 12 degrees off that
+    heading (inside AHEAD_CONE and AHEAD_R) and 19035 at 9.18 (past AHEAD_R, 2.3 tiles off the tube): the leg is cut
+    (`_cut` [19032]) and the next choose re-aims by the turn rules, a heading with no held threat beyond SPRINT_R
+    ahead. The record ran the leg 8.92 tiles on, to 1.26 and 2.31 tiles of them (seq 3975)."""
+    from agent.base.pza1 import Steer
+    w440 = next(run_worlds(E4, [440]))[2]
+    r = Rig(tmp_path)
+    f = P.Flee(w440, r.acts, r.clock)
+    f.threats = [z for z in w440.zombies.values() if z.get("x") is not None and P.zdist(w440, z) <= P.DISENGAGE_R]
+    heading = (-0.8923450287767858, -0.45135390728048114)
+    far = [z for z in f.threats if P.zdist(w440, z) > P.SPRINT_R]
+    assert f._ahead(heading, far) == []
+    f.send(Steer(heading[0], heading[1], P.FLEE_S, "sprint"))
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    w = e3_world_at_seq(3950, run=E4)
+    f.world = w
+    f.threats = [z for z in w.zombies.values() if z.get("x") is not None and P.zdist(w, z) <= P.DISENGAGE_R]
+    r.advance(1.4)
+    f.observe()
+    assert not f.busy() and f._cut == [19032]
+    cmd = f.choose()
+    new = (cmd.vx, cmd.vy)
+    assert cmd.TYPE == "steer" and f.why["cut"] == [19032] and f._cut is None
+    far = [z for z in f.threats if P.zdist(w, z) > P.SPRINT_R]
+    assert f._ahead(new, far) == [] and abs(new[0] * heading[0] + new[1] * heading[1]) < 0.99
+
+
+def test_e4_lines_438_to_442_the_leg_is_cut_where_19032_is_first_listed(tmp_path):
+    """Rule 3 through one Survive (E4's flee from line 438, a fresh Flee): the leg sent at 438 is the record's 440
+    heading (turn 90, (-0.893, -0.451)); at 442, the first frame listing 19032 (9.3 tiles, in the tube just past the
+    leg's AHEAD_R end), the leg is cut and a new sprint leg sent, turned away (`cut` [19032])."""
+    r, sv, out = run_replay(E4, tmp_path, 438, 442, setup=e4_flee)
+    d, leg = out[438]
+    assert leg.type == "steer" and (round(leg.args["vx"], 3), round(leg.args["vy"], 3)) == (-0.893, -0.451)
+    assert all(out[ln][1] is None for ln in (439, 440, 441))
+    d, cut = out[442]
+    why = d["inputs"]["branches"]["threat"]
+    assert cut.type == "steer" and why["cut"] == [19032] and cut.args["vx"] > 0.0
+
+
+@pytest.mark.parametrize("far, group", [(9.0, "hold"), (None, None)])
+def test_a_walk_corner_ends_once_four_are_held(tmp_path, far, group):
+    """Ruling P23-AP 2's hold count: a `walk` corner on zombie 1 at 1.2 tiles with two more held 8 tiles east keeps
+    swinging (three held); a fourth held at 9 tiles ends it for the group's sprint steer, no attack sent."""
+    r, sv = make(tmp_path)
+    r.scan(open_yard(80, 115))
+    me = (100.5, 201.5)
+    zs = [zombie(1, 99.3, 201.5, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    tick(r, sv)
+    attack = r.acts.history[-1]
+    assert r.cmd() == ("attack", {"targetId": 1}) and sv.corner_kind == "walk"
+    r.fake.answer({"attack": ["accepted"]})
+    r.pump()
+    zs += [zombie(2, 108.5, 201.5, me=me), zombie(3, 108.5, 203.5, me=me)]
+    if far is not None:
+        zs.append(zombie(4, me[0] + far, 199.5, me=me))
+    r.advance(0.5)
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    if group is None:
+        assert a is None and w["cornered"] == 1 and w["holding"] == attack.aid and "group" not in w
+        return
+    assert a is not None and a.type == "steer" and a.args["gait"] == "sprint" and w["group"] == "hold"
+    assert "cornered" not in w and sv.cornered is None and [x.type for x in r.acts.history] == ["attack", "steer"]
+
+
+@pytest.mark.parametrize("d3, group", [(2.9, "near"), (3.2, None)])
+def test_a_third_zombie_within_group_near_r_ends_the_walk_corner(tmp_path, d3, group):
+    """Ruling P23-AP 2's near count: zombie 1 at 1.2 tiles cornered, zombie 2 at 2.5; a third at 2.9 tiles (within
+    GROUP_NEAR_R) ends the corner for the steer, at 3.2 it does not."""
+    r, sv = make(tmp_path)
+    r.scan(open_yard())
+    me = (100.5, 201.5)
+    zs = [zombie(1, 99.3, 201.5, me=me), zombie(2, 100.5, 204.0, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 1}) and sv.corner_kind == "walk"
+    r.fake.answer({"attack": ["accepted"]})
+    r.pump()
+    r.advance(0.5)
+    r.frame(x=me[0], y=me[1], zombies=zs + [zombie(3, 100.5, 201.5 - d3, me=me)])
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a is not None and a.type == "steer" and w.get("group") == "near") is (group is not None)
+    assert (w.get("cornered") == 1) is (group is None)
+
+
+def stuck_corner(r, sv):
+    """`test_three_within_cornered_r_after_a_stuck_leg_are_fought`'s geometry: a leg that moved 0.1 tiles, then three
+    within CORNERED_R: the `stuck` corner's attack on 2 at 1.1 tiles; returns the player's position."""
+    r.scan(open_yard())
+    me = (100.5, 201.5)
+    zs = [zombie(1, 97.5, 201.5, me=me), zombie(2, 97.5, 202.5, me=me), zombie(3, 97.5, 200.5, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    tick(r, sv)
+    r.answer()
+    me = (100.6, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=group_at_melee(me))
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 2}) and sv.corner_kind == "stuck"
+    r.fake.answer({"attack": ["accepted"]})
+    r.pump()
+    return me
+
+
+def back_off(me, d):
+    """The three of `group_at_melee` stepped back so the nearest stands `d` tiles off (all within GROUP_NEAR_R)."""
+    return [zombie(1, me[0] - d, me[1] + 0.6, me=me), zombie(2, me[0], me[1] + d, me=me),
+            zombie(3, me[0] + d, me[1] + 0.6, me=me)]
+
+
+@pytest.mark.parametrize("d, wait, retry", [(1.2, 2.0, True), (1.2, 1.5, False), (0.9, 2.5, False)])
+def test_a_stuck_corner_against_a_group_tries_one_leg_once_the_nearest_is_beyond_point_blank(tmp_path, d, wait,
+                                                                                             retry):
+    """Ruling P23-AP 2: a `stuck` corner keeps swinging against the group, re-tested every tick: with the nearest
+    beyond POINT_BLANK_R (1.2 tiles) and the stuck read STUCK_RETRY_S old, the corner ends for one sprint steer leg
+    (`group` "retry"); at 1.5 s, or with the nearest at 0.9, it keeps swinging."""
+    r, sv = make(tmp_path)
+    me = stuck_corner(r, sv)
+    attack = r.acts.history[-1]
+    r.advance(wait)
+    r.frame(x=me[0], y=me[1], zombies=back_off(me, d))
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    if not retry:
+        assert a is None and w["cornered"] == 2 and w["holding"] == attack.aid and sv.corner_kind == "stuck"
+        return
+    assert a is not None and a.type == "steer" and a.args["gait"] == "sprint" and w["group"] == "retry"
+    assert sv.cornered is None and sv.mode == "flee" and sv.flee.stuck() is False
+
+
+def test_a_retried_leg_read_stuck_is_a_new_stuck_corner_with_its_own_retry_clock(tmp_path):
+    """The retry's leg stands STEP_STALL_S with the group in reach (R1): a new `stuck` corner, its stuck read now, so
+    no second retry before STUCK_RETRY_S more."""
+    r, sv = make(tmp_path)
+    me = stuck_corner(r, sv)
+    r.advance(2.0)
+    r.frame(x=me[0], y=me[1], zombies=back_off(me, 1.2))
+    tick(r, sv)
+    assert r.cmd()[0] == "steer"
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    for _ in range(2):
+        r.advance(0.5)
+        r.frame(x=me[0], y=me[1], zombies=back_off(me, 1.2))
+        tick(r, sv)
+    assert r.cmd()[0] == "attack" and sv.corner_kind == "stuck" and sv.stuck_wall == r.clock()
+    attack = r.acts.history[-1]
+    r.fake.answer({"attack": ["accepted"]})
+    r.pump()
+    r.advance(1.5)
+    r.frame(x=me[0], y=me[1], zombies=back_off(me, 1.2))
+    assert tick(r, sv) is None and threat_why(tmp_path)["holding"] == attack.aid
+
+
+def test_a_running_leg_is_cut_and_re_aimed_when_a_zombie_comes_into_its_cone(tmp_path):
+    """Ruling P23-AP 3: the `many` leg runs east from the three west; zombie 4 appears 6 tiles east, dead ahead: the
+    leg is cut and a new sprint leg sent, turned off it (`cut` [4]); the new leg is not cut again for 4."""
+    r, sv = make(tmp_path)
+    zs = many_yard(r)
+    tick(r, sv)
+    leg = r.acts.history[-1]
+    assert leg.type == "steer" and leg.args["vx"] == pytest.approx(1.0)
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    me = (101.5, 201.5)
+    r.advance(0.5)
+    zs = [zombie(i, z["x"], z["y"], me=me) for i, z in zip((1, 2, 3), zs)] + [zombie(4, 107.5, 201.6, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a is not None and a.type == "steer" and w["cut"] == [4] and w["turn"] not in (None, 0)
+    far = [z for z in sv.flee.threats if P.zdist(r.world, z) > P.SPRINT_R]
+    assert sv.flee._ahead((a.args["vx"], a.args["vy"]), far) == []
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    r.advance(0.5)
+    r.frame(x=me[0] + 0.5, y=me[1], zombies=zs)
+    assert tick(r, sv) is None and threat_why(tmp_path)["holding"] == a.aid
+
+
+@pytest.mark.parametrize("x4", [103.3, None])
+def test_a_running_leg_is_not_cut_for_a_zombie_within_sprint_r_or_with_none_new_ahead(tmp_path, x4):
+    """Rule 3's limits: a zombie 1.8 tiles ahead (within SPRINT_R, which the aim never refuses either) or no new one:
+    the leg runs on."""
+    r, sv = make(tmp_path)
+    zs = many_yard(r)
+    tick(r, sv)
+    leg = r.acts.history[-1]
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    me = (101.5, 201.5)
+    r.advance(0.5)
+    zs = [zombie(i, z["x"], z["y"], me=me) for i, z in zip((1, 2, 3), zs)]
+    if x4 is not None:
+        zs.append(zombie(4, x4, 201.5, me=me))
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    assert tick(r, sv) is None and threat_why(tmp_path)["holding"] == leg.aid
+
+
+def test_a_threat_already_ahead_at_the_aim_never_cuts_the_leg(tmp_path):
+    """A leg aimed with zombie 4 ahead (every heading refused, the fallback keeping it: `_aimed`) is not cut for 4;
+    the same leg aimed with nothing ahead is."""
+    from agent.base.pza1 import Steer
+    r = Rig(tmp_path)
+    r.scan(open_yard())
+    me = (100.5, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(4, 106.5, 201.5, me=me)])
+    f = P.Flee(r.world, r.acts, r.clock)
+    f._aimed = frozenset([4])
+    f.send(Steer(1.0, 0.0, P.FLEE_S, "sprint"))
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    r.advance(0.5)
+    r.frame(x=me[0] + 0.5, y=me[1], zombies=[zombie(4, 106.0, 201.5, me=me)])
+    f.observe()
+    assert f.busy() and f._cut is None
+    f._leg = f._leg[:3] + (frozenset(),)
+    f.observe()
+    assert not f.busy() and f._cut == [4]
+
+
+def test_a_stuck_corner_on_one_zombie_never_retries(tmp_path):
+    """The retry is the group's (P23-AP 2): a `stuck` corner on one zombie, 2.5 s on with it at 1.2 tiles, swings on."""
+    r, sv = make(tmp_path)
+    r.scan(open_yard())
+    me = (100.5, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 97.5, 201.5, me=me), zombie(2, 100.5, 205.0, me=me)],
+            health=50.0)
+    tick(r, sv)
+    r.answer()
+    me = (100.6, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.5, 201.5, me=me)], health=50.0)
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 1}) and sv.corner_kind == "stuck"
+    attack = r.acts.history[-1]
+    r.fake.answer({"attack": ["accepted"]})
+    r.pump()
+    r.advance(2.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.4, 201.5, me=me)], health=50.0)
+    assert tick(r, sv) is None and threat_why(tmp_path)["holding"] == attack.aid
+
+
+def test_a_zombie_ahead_of_the_away_vector_but_not_of_the_turned_leg_cuts_it_once_it_comes_ahead(tmp_path):
+    """The aim's ahead is the chosen heading's (P23-AP 3): zombie 4 dead east at 5.5 tiles turns the `many` leg off the
+    away vector (east), nothing ahead of the leg; when 4 then stands on the leg's own heading, the leg is cut."""
+    r, sv = make(tmp_path)
+    zs = many_yard(r)
+    me = (100.5, 201.5)
+    zs = zs + [zombie(4, 106.0, 201.5, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    tick(r, sv)
+    leg = r.acts.history[-1]
+    h = (leg.args["vx"], leg.args["vy"])
+    assert leg.type == "steer" and threat_why(tmp_path)["turn"] not in (None, 0) and threat_why(tmp_path)["ahead"] == [4]
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    r.advance(0.5)
+    zs = zs[:3] + [zombie(4, me[0] + 6.0 * h[0], me[1] + 6.0 * h[1], me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    a = tick(r, sv)
+    assert a is not None and a.type == "steer" and threat_why(tmp_path)["cut"] == [4]

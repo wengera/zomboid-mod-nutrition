@@ -892,3 +892,101 @@ def test_door_way_an_open_door_s_own_edge_leads_out_past_its_wall_and_a_south_wa
     over[(3, 3)]["building"] = 6
     w = _world(_grid(0, 0, 5, 5, over=over), me=(0.5, 0.5))
     assert (3, 4, 0) in w.doors_of(6) and (3, 4, 0) not in w.doors_of(5) and N.exterior_doors(w, 6, 0) == [(3, 4, 0)]
+
+
+# -- survival 4 (ruling P23-AP 1): the stuck pairs, the flood and the edge in the open --------------------------------
+GATE = {"open": False, "locked": True, "barricaded": False}
+
+
+def pocket():
+    """A 13 x 13 yard: a fence row on the north edges of y 8 (x 0..12) with a locked gate at (5, 8), and a fence line
+    on the west edges of x 8 from y 3 to y 7, so (5, 7) stands in a pocket open to the west and north (E4's square
+    north of a locked gate, its targets south of the fence or east of the line)."""
+    over = {(x, 8): {"blockN": True} for x in range(13)}
+    over[(5, 8)] = {"blockN": True, "edgeN": True, "door": GATE}
+    over.update({(8, y): {"blockW": True} for y in range(3, 8)})
+    return _grid(0, 0, 12, 12, over=over)
+
+
+def test_the_survival_4_world_constants():
+    from agent.base import world as W
+    assert (W.STUCK_AREA_N, W.REACH_LIMIT) == (2, 400)
+
+
+def test_flood_honours_the_blocked_edges_the_locked_gate_and_its_limit():
+    w = _world(pocket(), me=(5.5, 7.5))
+    f = w.flood((5, 7, 0))
+    assert (5, 7, 0) in f and (0, 7, 0) in f and (12, 0, 0) in f      # round the line's north end
+    assert (5, 8, 0) not in f and (5, 12, 0) not in f and not any(sq[1] >= 8 for sq in f)
+    assert w.reachable((5, 7, 0), (12, 2, 0)) and not w.reachable((5, 7, 0), (5, 9, 0))
+    assert len(w.flood((5, 7, 0), limit=5)) == 5 and not w.reachable((5, 7, 0), (0, 7, 0), limit=5)
+    assert w.flood((40, 40, 0)) == {(40, 40, 0)}                        # an unmapped start floods nothing more
+
+
+def test_two_unmoved_stuck_walks_from_the_players_square_leave_only_edges_in_the_open():
+    """The pocket: the nearest edge (5, 12) lies across the fence. One stuck pair keeps it; the second in a row from
+    the player's square (`stuck_here`) answers the nearest edge whose straight line is clear, (0, 7), the line along
+    row 7; a pair from another square restarts the run, `clear_stuck_run` ends it, the player off the square or
+    STUCK_TTL_MIN on reads it no more."""
+    w = _world(pocket(), me=(5.5, 7.5))
+    assert w.unexplored_edge() == (5, 12) and not w.stuck_here()
+    w.mark_stuck_pair((5, 7), (6, 12))
+    assert not w.stuck_here() and w.unexplored_edge() == (5, 12)
+    w.mark_stuck_pair((5, 7), (7, 12))
+    assert w.stuck_run["to"] == [(6, 12), (7, 12)] and w.stuck_here()
+    assert w.unexplored_edge() == (0, 7) and w.line_clear((5.5, 7.5), (0.5, 7.5))
+    assert not w.line_clear((5.5, 7.5), (5.5, 12.5))
+    w.mark_stuck_pair((4, 7), (5, 12))
+    assert w.stuck_run["to"] == [(5, 12)] and not w.stuck_here()
+    w.mark_stuck_pair((5, 7), (6, 12))
+    w.mark_stuck_pair((5, 7), (7, 12))
+    w.apply(frame(0, me=me_at(4.5, 7.5)))
+    assert not w.stuck_here()                                           # off the square
+    w.apply(frame(0, me=me_at(5.5, 7.5), worldAge=8.0 + 60.0 / 60.0))
+    assert not w.stuck_here()                                           # STUCK_TTL_MIN on
+    w.apply(frame(0, me=me_at(5.5, 7.5)))
+    w.mark_stuck_pair((5, 7), (6, 12))
+    assert w.stuck_here()
+    w.clear_stuck_run()
+    assert w.stuck_run is None and not w.stuck_here() and w.unexplored_edge() == (5, 12)
+    w.mark_stuck_pair((5, 7), (6, 12))
+    assert "stuck_run" not in w.to_json() and "stuckRun" not in w.to_json()   # the planner's memory: goldens unmoved
+
+
+def test_stuck_in_a_closed_pen_no_edge_is_answered():
+    """Every edge's line crosses the pen's fence: none, so the goal source loots or scans."""
+    over = {(x, y): {} for x in range(7) for y in range(7)}
+    for x in range(2, 5):
+        over[(x, 2)] = {"blockN": True}
+        over[(x, 5)] = {"blockN": True}
+    for y in range(2, 5):
+        over[(2, y)] = dict(over.get((2, y), {}), blockW=True)
+        over[(5, y)] = dict(over.get((5, y), {}), blockW=True)
+    w = _world(_grid(0, 0, 6, 6, over=over), me=(3.5, 3.5))
+    assert w.unexplored_edge() is not None
+    w.mark_stuck_pair((3, 3), (0, 3))
+    w.mark_stuck_pair((3, 3), (3, 0))
+    assert w.stuck_here() and w.unexplored_edge() is None
+    assert w.flood((3, 3, 0)) == {(x, y, 0) for x in range(2, 5) for y in range(2, 5)}
+
+
+def test_stuck_an_edge_the_bounded_flood_never_reaches_is_not_answered():
+    """A 31 x 31 open yard: every edge lies 15 tiles off, its line clear, but the flood stops at REACH_LIMIT squares
+    (radius 9-10): no edge is reachable, so none is answered."""
+    w = _world(_grid(0, 0, 30, 30), me=(15.5, 15.5))
+    edge = w.unexplored_edge()
+    assert edge is not None and w.line_clear((15.5, 15.5), (edge[0] + 0.5, edge[1] + 0.5))
+    w.mark_stuck_pair((15, 15), (0, 15))
+    w.mark_stuck_pair((15, 15), (30, 15))
+    assert w.stuck_here() and len(w.flood((15, 15, 0))) == 400 and w.unexplored_edge() is None
+    assert not w.reachable((15, 15, 0), edge + (0,)) and w.reachable((15, 15, 0), edge + (0,), limit=961)
+
+
+def test_stuck_a_reachable_edge_whose_line_crosses_a_fence_is_not_answered():
+    """The pocket with the yard run west to x -10: the nearest edge the flood reaches, (12, 7), lies round the north end
+    of the x 8 fence line, its straight line across it; the answer is the nearest reached edge in the open, (5, 0)."""
+    w = _world(_grid(-10, 0, -1, 12) + pocket(), me=(5.5, 7.5))
+    w.mark_stuck_pair((5, 7), (5, 12))
+    w.mark_stuck_pair((5, 7), (6, 12))
+    assert w.reachable((5, 7, 0), (12, 7, 0)) and not w.line_clear((5.5, 7.5), (12.5, 7.5))
+    assert w.unexplored_edge() == (5, 0)

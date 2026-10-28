@@ -49,9 +49,13 @@ the nearest known building for which the view's `shelter` reads true (`night.she
 exterior door on the player's floor) and that is not shunned, when `want_shelter`; `LootBuilding` the nearest
 building with a container not yet looted (`containers > looted`); `ExploreToward` the view's `edge`, else the
 player's own square while `scanned_here` is false (a fresh session's first scan, before the map holds an edge);
-else `Rest(REST_S)`. A loot goal (`Stock`, `LootBuilding`) is proposed only at the view's load level
-`LOOT_MAX_LEVEL` or below, so a heavy load never proposes a goal that fails on its first step. A candidate the view's
-`cooled` lists is passed over for the next.
+else `Rest(REST_S)`. The edge leaves a stuck area (ruling P23-AP 1, E4's twelve walks from one square north of a
+locked gate): after two walks from the player's square failed `stuck` unmoved, `world.unexplored_edge` answers only a
+square a bounded flood from the player reaches and whose straight line from it crosses no known blocking edge, else
+none, and the kit's `Explore` has dropped the place from `scanned`; so the source proposes a loot, else the scan of
+the player's own square, never a third walk from that square. A loot goal (`Stock`, `LootBuilding`) is proposed only
+at the view's load level `LOOT_MAX_LEVEL` or below, so a heavy load never proposes a goal that fails on its first
+step. A candidate the view's `cooled` lists is passed over for the next.
 
 `GoalRunner(source, clock, shunned=None)`: `current` (the running goal or None), `history` (the record rows,
 `loop.goals` of task-15-amendments.md: `{type, args, state, reason, startS, endS, source}`, `startS`/`endS` seconds

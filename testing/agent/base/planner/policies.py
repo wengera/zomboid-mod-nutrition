@@ -110,6 +110,11 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   and the shelter walks go at a sprint (FLEE_GAIT a run otherwise) while the frame's `stats.endurance` reads above
   SPRINT_END (0.5), or, with none read, for SPRINT_MAX_S (20) wall seconds from the episode's first such sprint.
   With `steer_now` (Survive's group at melee range, its last leg not stuck), the choose steers first.
+  Survival 4 (ruling P23-AP 3, E4's line 440: a leg aimed west before two zombies there were listed ran 8.92 tiles
+  into them): on every threat tick the running steer leg's heading is re-read against the held threats (`_cut_leg`:
+  `_ahead`, AHEAD_R, AHEAD_CONE and the CORRIDOR_R tube, beyond SPRINT_R); a threat ahead that was not ahead when the
+  leg was aimed cuts it, and the next choose re-aims by the turn rules (its why's `cut` the ids), the new leg
+  superseding it.
 - `Explore`: it scans per 10-tile place, spec § 6's "once at a new building or on request" read as the place
   grid: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
   `scanned` from its send and dropped again when the scan ends other than `done`, so a pre-empted, timed-out or
@@ -119,7 +124,11 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   command. A walk that ends `failed` with a reason in `STUCK_REASONS` has its target marked in the World
   (`world.mark_stuck`), and
   `unexplored_edge` leaves it out for `STUCK_TTL_MIN` (60) game minutes, so it is never re-sent inside them (the
-  whole-pass review's I4: run 1 re-sent a walk that failed `stuck` to the same edge 20 times).
+  whole-pass review's I4: run 1 re-sent a walk that failed `stuck` to the same edge 20 times). Survival 4 (ruling
+  P23-AP 1, E4's twelve walks from one square north of a locked gate): a walk failed `stuck` with the player moved
+  under STUCK_MOVE is a stuck pair from its start square (`world.mark_stuck_pair`), a walk that moved or arrived ends
+  the run (`clear_stuck_run`); at the STUCK_AREA_N-th pair in a row the player's place is dropped from `scanned` (the
+  scan the goal source falls back to), and `unexplored_edge` then answers only a square in the open.
 - `LootHouse` (Plan 23 Task 11, P23-7, P23-8): at load level `LOOT_MAX_LEVEL` (1) or below an
   `Interact(x, y, "loot", want, maxWeight=cap)` at `world.nearest_unlooted(want)`, `want` one of `LOOT_WANTS`
   (`food`, `water`, `weapon`, `bandage`), set by the caller (the `Stock` and `LootBuilding` goals), and never `all`:
@@ -152,7 +161,7 @@ import time
 
 from agent.base.items import use_of
 from agent.base.pza1 import Attack, Interact, Scan, Steer, Stop, WalkTo
-from agent.base.world import me_floor, me_xy
+from agent.base.world import STUCK_AREA_N, me_floor, me_xy
 
 DANGER_R = 6.0        # tiles: a zombie this close is a threat (Survive's threat branch; the night sends nothing)
 FIGHT_REACH = 2.0     # tiles: a nearest zombie beyond this is walked to, within it attacked
@@ -643,7 +652,9 @@ class Flee(Policy):
         self._exit_read = None   # the last exit step whose end observe() read
         self._exit_anchor = None  # (wall, (x, y)) of the exit step's send or its walk's last STUCK_MOVE (G2)
         self._dropped = None     # an exit or shelter walk dropped while still current (G2, P23-AM 2): not waited on
-        self._leg = None         # (Action, (x, y) at its send, heading) of the last steer leg
+        self._leg = None         # (Action, (x, y) at its send, heading, ids ahead at its aim) of the last steer leg
+        self._aimed = frozenset()  # the held ids `_ahead` of the heading the last `_steer` chose (P23-AP 3)
+        self._cut = None         # the ids newly ahead that cut the running leg (P23-AP 3), till a steer logs them
         self._leg_anchor = None  # (wall, (x, y)) of the running leg's send or its last STUCK_MOVE (fix round 1, R1)
         self._leg_still = 0.0    # wall seconds the running leg has left the player within STUCK_MOVE of that anchor
 
@@ -681,6 +692,7 @@ class Flee(Policy):
         self._observe_exit()
         if self._leg is not None and self.actions.current is self._leg[0]:
             self._leg_anchor, self._leg_still = self._still_for(self._leg_anchor)
+            self._cut_leg()
         a = self._step
         if a is None or a is self._read or self.plan is None:
             return
@@ -693,6 +705,24 @@ class Flee(Policy):
         self.ended = _night().shelter_ended(self.plan, a)
         if self.ended not in ("advance", "resend", "passed"):
             self._drop(a.state == "failed" and a.reason in _night().SHUN_REASONS)
+
+    def _ids(self, zs):
+        """The World's ids of the zombie records `zs` (this tick's dicts), sorted."""
+        ids = {id(z): zid for zid, z in self.world.zombies.items()}
+        return sorted((ids.get(id(z)) for z in zs), key=repr)
+
+    def _cut_leg(self):
+        """Ruling P23-AP 3 (E4's line 440: a leg aimed west before 19032 and 19035 were listed ran 8.92 tiles into
+        them): the running steer leg's heading re-read against this tick's held threats beyond SPRINT_R (`_ahead`: the
+        cone and the tube the aim refuses); one ahead that was not ahead at its aim cuts it (`_dropped`, so the next
+        choose re-aims by the turn rules and the new leg supersedes it), logged as the next steer's `cut`."""
+        leg = self._leg
+        if leg[0] is self._dropped:
+            return
+        far = [z for z in self._threats() if zdist(self.world, z) > SPRINT_R]
+        new = [i for i in self._ids(self._ahead(leg[2], far)) if i not in leg[3]]
+        if new:
+            self._dropped, self._cut = leg[0], new
 
     def _still_for(self, anchor):
         """`(anchor, seconds)`: the anchor `(wall, (x, y))` moved on to now when the player has moved STUCK_MOVE or
@@ -1022,10 +1052,11 @@ class Flee(Policy):
         heading = _rotate(v, turn) if turn is not None else (_rotate(v, STEER_TURNS[1]) if stuck else v)
         near = min(zdist(self.world, z) for z in ts)
         gait = "sprint" if near <= SPRINT_R or self._group_sprint(near) else "run"
-        ids = {id(z): zid for zid, z in self.world.zombies.items()}
-        ahead = sorted((ids.get(id(z)) for z in self._ahead(v, far)), key=repr)
+        self._aimed = frozenset(self._ids(self._ahead(heading, far)))
         self.why = {"centroid": [cx, cy], "nearest": near, "turn": turn, "probe": probe, "stuck": stuck,
-                    "ahead": ahead, "shelter": None, "ended": self.ended}
+                    "ahead": self._ids(self._ahead(v, far)), "shelter": None, "ended": self.ended}
+        if self._cut is not None:
+            self.why["cut"], self._cut = self._cut, None
         return Steer(heading[0], heading[1], FLEE_S, gait)
 
     def sent(self, cmd, action):
@@ -1037,7 +1068,7 @@ class Flee(Policy):
             self._exit_a, self._exit_anchor = action, (self.clock(), me_xy(self.world))
         elif cmd.TYPE == "steer":
             mx, my = me_xy(self.world)
-            self._leg = (action, (mx, my), (cmd.vx, cmd.vy))
+            self._leg = (action, (mx, my), (cmd.vx, cmd.vy), self._aimed)
             self._leg_anchor, self._leg_still = (self.clock(), (mx, my)), 0.0
         self._chosen = None
 
@@ -1055,10 +1086,8 @@ class Explore(Policy):
 
     def observe(self):
         if self._walk is not None and self.actions.done(self._walk[1]):
-            (x, y), a = self._walk
+            self._walk_ended(*self._walk)
             self._walk = None
-            if a.state == "failed" and a.reason in STUCK_REASONS:
-                self.world.mark_stuck(x, y)
         if self._last is not None and self._last[0] in self.world.scans_dropped:
             self.scanned.discard(self._last[1])   # S-32: the job stopped short of its parts, the scan stays done
             self._last = None
@@ -1085,8 +1114,23 @@ class Explore(Policy):
             self.scanned.add(self.place())
             self._scan = (self.place(), action)
             self._last = (action.aid, self.place())
-        elif cmd.TYPE == "walkTo":
-            self._walk = ((int(math.floor(cmd.x)), int(math.floor(cmd.y))), action)   # the square, for mark_stuck
+        elif cmd.TYPE == "walkTo":   # the target square, for mark_stuck; the player's position, for the stuck pair
+            self._walk = ((int(math.floor(cmd.x)), int(math.floor(cmd.y))), action, me_xy(self.world))
+
+    def _walk_ended(self, to, a, start):
+        """A walk's end: a target failed for a STUCK_REASONS reason is marked stuck; one failed `stuck` with the
+        player moved under STUCK_MOVE from its start is a stuck pair from the start's square (P23-AP 1), and the
+        rescan of the player's place once STUCK_AREA_N stand in a row there (the goal source's scan, never a third
+        walk); a walk that moved the player or ended done ends the run."""
+        moved = math.hypot(me_xy(self.world)[0] - start[0], me_xy(self.world)[1] - start[1])
+        if a.state == "failed" and a.reason in STUCK_REASONS:
+            self.world.mark_stuck(*to)
+        if a.state == "failed" and a.reason == "stuck" and moved < STUCK_MOVE:
+            self.world.mark_stuck_pair((int(math.floor(start[0])), int(math.floor(start[1]))), to)
+            if len(self.world.stuck_run["to"]) == STUCK_AREA_N:
+                self.scanned.discard(self.place())
+        elif a.state == "done" or moved >= STUCK_MOVE:
+            self.world.clear_stuck_run()
 
 
 class LootHouse(Policy):

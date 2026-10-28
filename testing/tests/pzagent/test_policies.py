@@ -1248,3 +1248,62 @@ def test_in_building_reads_a_door_kept_on_the_outdoor_square_as_the_building_s(t
     assert r.world.map[(111, 203, 0)].get("building") is None
     assert P.in_building(r.world, zombie(1, 111.5, 203.4), 1)
     assert not P.in_building(r.world, zombie(2, 111.5, 204.4), 1)
+
+
+# ================================================================ survival 4 (ruling P23-AP 1): the stuck pairs
+def stuck_walk(r, e, reason="stuck", me=(100.5, 200.5)):
+    """One Explore walk sent from `me` and ended failed `reason` with the player still at `me`; returns its target."""
+    r.frame(x=me[0], y=me[1], game_min=480.0)
+    e.step()
+    typ, args = r.cmd()
+    assert typ == "walkTo"
+    r.answer({"state": "failed", "reason": reason})
+    r.frame(x=me[0], y=me[1], game_min=480.0)
+    e.observe()
+    return int(args["x"]), int(args["y"])
+
+
+def test_two_unmoved_stuck_walks_make_a_stuck_run_and_drop_the_place_for_a_rescan(tmp_path):
+    """A walk failed `stuck` with the player moved under STUCK_MOVE is a stuck pair from its start square; the second
+    in a row makes `stuck_here` and drops the place from `scanned`, so the next choose scans it again."""
+    r = Rig(tmp_path)
+    r.frame(x=100.5, y=200.5, game_min=480.0)
+    e = Explore(r.world, r.acts, r.clock)
+    e.step()
+    r.answer()
+    r.scan([square(x, y) for x in range(98, 104) for y in range(198, 204)])
+    first = stuck_walk(r, e)
+    assert r.world.stuck_run["from"] == (100, 200) and r.world.stuck_run["to"] == [first]
+    assert not r.world.stuck_here() and e.place() in e.scanned
+    second = stuck_walk(r, e)
+    assert r.world.stuck_run["to"] == [first, second] and r.world.stuck_here()
+    assert e.place() not in e.scanned
+    r.frame(x=100.5, y=200.5, game_min=480.0)
+    e.step()
+    assert r.cmd() == ("scan", {"r": 10})
+
+
+@pytest.mark.parametrize("end", ["no path", "moved", "done"])
+def test_a_walk_failed_otherwise_or_that_moved_is_no_stuck_pair(tmp_path, end):
+    """`no path` marks the target stuck but is no pair (the run kept); a `stuck` walk that moved the player 0.6 tiles,
+    or a walk that ended done, ends the run."""
+    r = Rig(tmp_path)
+    r.frame(x=100.5, y=200.5, game_min=480.0)
+    e = Explore(r.world, r.acts, r.clock)
+    e.step()
+    r.answer()
+    r.scan([square(x, y) for x in range(98, 104) for y in range(198, 204)])
+    first = stuck_walk(r, e)
+    r.frame(x=100.5, y=200.5, game_min=480.0)
+    e.step()
+    target = (int(r.cmd()[1]["x"]), int(r.cmd()[1]["y"]))
+    if end == "done":
+        r.answer()
+    else:
+        r.answer({"state": "failed", "reason": "stuck" if end == "moved" else end})
+    r.frame(x=101.1 if end == "moved" else 100.5, y=200.5, game_min=480.0)
+    e.observe()
+    if end == "no path":
+        assert r.world.stuck_run["to"] == [first] and target in r.world.stuck
+    else:
+        assert r.world.stuck_run is None
