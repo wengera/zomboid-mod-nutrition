@@ -1,6 +1,6 @@
 -- PZAgent_SkillsWorld.lua — the skills that act on the world (Plan 22 spec § 7; split from PZAgent_Skills.lua in the
 -- fix wave, M2): attack, interact, equip, consume, drop, one engine action each, ported from Plan 21's PZAgent_Act.lua
--- goals. Loads after PZAgent_Skills.lua (client files load by name, "." before "W") and registers each skill into
+-- goals, and sleep (Plan 23 Task 8), vanilla's own sleep sequence. Loads after PZAgent_Skills.lua (client files load by name, "." before "W") and registers each skill into
 -- PZA.skills.types; the runner there (K.start, K.tick) owns every act line, the S-12 and S-15 guards and MO.off at every
 -- end, as its header says. The runner's helpers come from K (K.isDead, K.dist, K.clearQueue, K.queueLoaded) and the
 -- world readers from PZA.world (shared/PZAgent_World.lua: positions, a square's objects, its door or window, its
@@ -558,6 +558,159 @@ K.types.drop = {
         end
         if K.itemById(p, st.id) == nil or (invCount(p)) < st.before then return "done", { moved = 1 } end
         if PZA.now() - st.queuedAt > K.LOOT_MS + K.LOOT_ITEM_MS then return "failed", "interrupted" end
+        return nil
+    end,
+}
+
+-- ---- sleep {} -------------------------------------------------------------------------------------------------------
+-- Sleep where the player stands, as vanilla's own sleep does it: ISWorldObjectContextMenu.onSleepWalkToComplete
+-- (the 42.21 install's media/lua/client/ISUI/ISWorldObjectContextMenu.lua L1034-L1098; P23-E) copied step by step, each
+-- Java member through PZA.call and each vanilla global index-checked first. check: any of the Stats' three zombie counts
+-- (getNumVisibleZombies, getNumChasingZombies, getNumVeryCloseZombies) above 0 is rejected not safe (L1036); unless
+-- getSleepingTabletEffect reads 2000 or more, the PAIN moodle at 2 or more with FATIGUE at 0.85 or less, or the PANIC
+-- moodle at 1 or more, is not valid (L1041-L1050), as is getVariableBoolean("ExerciseEnded") reading false (L1052); on a
+-- client whose server options read SleepAllowed false, not allowed (the server's fast-forward and its FATIGUE reset key
+-- on it). An unreadable count or moodle counts as 0. The first tick clears the vanilla queue and computes the hours as
+-- the handler does (L1057-L1082): ZombRand(f * 10, f * 13) + 1 for FATIGUE f (ZombRand absent: the midpoint f * 11.5),
+-- the bed type from ISWorldObjectContextMenu.getBedQuality(p, nil) ("floor" when absent, raising or not a string) with
+-- its -1, +1 and x 0.7, the INSOMNIAC, NEEDS_LESS_SLEEP and NEEDS_MORE_SLEEP factors (a missing CharacterTrait constant
+-- applies none), clamped to 3..16, and the wake hour that plus getTimeOfDay wrapped at 24; then setBed(nil),
+-- setBedType, setForceWakeUpTime, setAsleepTime(0) and setAsleep(true) (L1084-L1088). The wake hour is set every time:
+-- every wake leaves it at -1, and a sleep without its own has no clock wake (docs/superpowers/specs/
+-- 2026-10-28-plan-23-jar-reads.md § 3). The fade, UIManager.setFadeBeforeUI and FadeOut (L1095-L1096), is index-checked
+-- and under pcall, skipped where absent (a -debug client). The client's asleep flag reaches the server through the player
+-- packet (the jar note's § 3), so the frame keeps flowing while asleep. Later ticks: isAsleep reading anything but true
+-- is done {sleptH (world hours since the check, through PZA.sense.clock), fatigueBefore, fatigueAfter, bedType}; still
+-- asleep after SLEEP_MS of wall is interrupted. A player without setAsleep fails not loaded on the first tick.
+K.SLEEP_MS = 3600000      -- an hour of wall: a sleep still running this long is interrupted
+
+-- the world age in hours through Sense's clock (its second answer), 0 while Sense is not loaded
+local function worldAge()
+    local S = PZA.sense
+    if S == nil or S.clock == nil then return 0 end
+    local _, w = S.clock()
+    return w or 0
+end
+
+-- a number read through PZA.call(obj, name, ...), nil when it cannot be read
+local function numOf(obj, name, ...)
+    local ok, v = PZA.call(obj, name, ...)
+    if ok and type(v) == "number" then return v end
+    return nil
+end
+
+-- the Stats object's CharacterStat reading of name (FATIGUE), nil when the constant, the member or the number is absent
+local function statOf(p, name)
+    local c = CharacterStat ~= nil and CharacterStat[name] or nil
+    if c == nil then return nil end
+    local _, st = PZA.call(p, "getStats")
+    return numOf(st, "get", c)
+end
+
+-- the moodle level of MoodleType[name], 0 when the constant or the reading is absent
+local function moodleLevel(p, name)
+    local t = MoodleType ~= nil and MoodleType[name] or nil
+    if t == nil then return 0 end
+    local _, m = PZA.call(p, "getMoodles")
+    return numOf(m, "getMoodleLevel", t) or 0
+end
+
+-- true when the player reads the trait CharacterTrait[name]; a missing constant or member reads false
+local function hasTrait(p, name)
+    local t = CharacterTrait ~= nil and CharacterTrait[name] or nil
+    if t == nil then return false end
+    local _, has = PZA.call(p, "hasTrait", t)
+    return has == true
+end
+
+-- the reason vanilla refuses the sleep with, or nil (the handler's L1036-L1054, and the server's SleepAllowed)
+local function sleepRefusal(p)
+    local _, st = PZA.call(p, "getStats")
+    local seen = (numOf(st, "getNumVisibleZombies") or 0) + (numOf(st, "getNumChasingZombies") or 0)
+    if seen + (numOf(st, "getNumVeryCloseZombies") or 0) > 0 then return "not safe" end
+    if (numOf(p, "getSleepingTabletEffect") or 0) < 2000 then
+        if moodleLevel(p, "PAIN") >= 2 and (statOf(p, "FATIGUE") or 0) <= 0.85 then return "not valid" end
+        if moodleLevel(p, "PANIC") >= 1 then return "not valid" end
+    end
+    local _, exerciseEnded = PZA.call(p, "getVariableBoolean", "ExerciseEnded")
+    if exerciseEnded == false then return "not valid" end
+    if isClient ~= nil and isClient() == true and getServerOptions ~= nil then
+        local _, allowed = PZA.call(getServerOptions(), "getBoolean", "SleepAllowed")
+        if allowed == false then return "not allowed" end
+    end
+    return nil
+end
+
+-- the bed type vanilla's getBedQuality answers with no bed, "floor" when it is absent, raises or answers no string
+local function bedQuality(p)
+    local M = ISWorldObjectContextMenu
+    if M == nil or M.getBedQuality == nil then return "floor" end
+    local ok, bed = pcall(M.getBedQuality, p, nil)
+    if ok and type(bed) == "string" then return bed end
+    return "floor"
+end
+
+-- true when bedType is kind or names kind's pillow variant (the handler's bedType:contains)
+local function bedIs(bedType, kind, pillow)
+    return bedType == kind or string.find(bedType, pillow, 1, true) ~= nil
+end
+
+-- the hours of sleep for FATIGUE f on bedType, as the handler computes them (L1057-L1078)
+local function sleepHoursFor(p, f, bedType)
+    local h = f * 11.5
+    if ZombRand ~= nil then h = ZombRand(f * 10, f * 13) end
+    h = h + 1
+    if bedIs(bedType, "goodBed", "goodBedPillow") then h = h - 1 end
+    if bedIs(bedType, "badBed", "badBedPillow") then h = h + 1 end
+    if bedIs(bedType, "floor", "floorPillow") then h = h * 0.7 end
+    if hasTrait(p, "INSOMNIAC") then h = h * 0.5 end
+    if hasTrait(p, "NEEDS_LESS_SLEEP") then h = h * 0.75 end
+    if hasTrait(p, "NEEDS_MORE_SLEEP") then h = h * 1.18 end
+    return math.max(3, math.min(16, h))
+end
+
+-- the first tick: the queue cleared, the hours and the wake hour, the five setters in the handler's order, the fade;
+-- false when the player has no setAsleep
+local function fallAsleep(p, st)
+    clearQueue(p)
+    local bedType = bedQuality(p)
+    local hours = sleepHoursFor(p, st.fatigue0 or 0, bedType)
+    local gt = getGameTime ~= nil and getGameTime() or nil
+    local wake = hours + (numOf(gt, "getTimeOfDay") or 0)
+    if wake >= 24 then wake = wake - 24 end
+    PZA.call(p, "setBed", nil)
+    PZA.call(p, "setBedType", bedType)
+    PZA.call(p, "setForceWakeUpTime", wake)
+    PZA.call(p, "setAsleepTime", 0)
+    local set = PZA.call(p, "setAsleep", true)
+    if not set then return false end
+    if UIManager ~= nil and UIManager.setFadeBeforeUI ~= nil and UIManager.FadeOut ~= nil then
+        local i = numOf(p, "getPlayerNum") or 0
+        pcall(UIManager.setFadeBeforeUI, i, true)
+        pcall(UIManager.FadeOut, i, 1)
+    end
+    st.queuedAt, st.bedType, st.hours = PZA.now(), bedType, hours
+    return true
+end
+
+K.types.sleep = {
+    check = function(args, p)
+        local why = sleepRefusal(p)
+        if why ~= nil then return false, why end
+        return true, "", { fatigue0 = statOf(p, "FATIGUE"), worldAge0 = worldAge(), queuedAt = nil }
+    end,
+    tick = function(p, st)
+        if isDead(p) then return "failed", "dead" end
+        if st.queuedAt == nil then
+            if not fallAsleep(p, st) then return "failed", "not loaded" end
+            return nil
+        end
+        local _, asleep = PZA.call(p, "isAsleep")
+        if asleep ~= true then
+            return "done", { sleptH = worldAge() - st.worldAge0, fatigueBefore = st.fatigue0,
+                             fatigueAfter = statOf(p, "FATIGUE"), bedType = st.bedType }
+        end
+        if PZA.now() - st.queuedAt > K.SLEEP_MS then return "failed", "interrupted" end
         return nil
     end,
 }

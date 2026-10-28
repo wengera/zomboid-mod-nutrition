@@ -113,7 +113,8 @@ def make_weapon(max_range=1.25, range_mod=1.0, cond=10, wid=900, two_hands=False
 
 
 def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_levels=None, weapon=None,
-                weight=4.5, max_weight=8, part_health=None, square="sq", wounds=(0, 0, 0), food=()):
+                weight=4.5, max_weight=8, part_health=None, square="sq", wounds=(0, 0, 0), food=(),
+                zombies_near=(0, 0, 0), traits=()):
     """`weapon` is the primary hand item; faceThisObject and DoAttack record into p.faced and p.attacks, and
     isAsleep answers p.asleep["v"] (Task 11's fight and sleep).
     Plan 22 probe: the motor setters (setForceRun, setForceSprint, setAutoWalk, setAutoWalkDirection, setRunning,
@@ -163,6 +164,28 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
     p.isAutoWalk = lambda s: motor["autoWalk"]
     p.getMaxWeight, p.getCurrentSquare = lambda s: max_weight, lambda s: square
     p.sets, p.motor = sets, motor
+    # Plan 23 Task 8 (sleep): the stats answer the three zombie counts of `zombies_near` (visible, chasing, very close),
+    # hasTrait answers membership of `traits`, and the five sleep setters (setBed, setBedType, setForceWakeUpTime,
+    # setAsleepTime, setAsleep) record (name, value) into p.sleep in call order, setAsleep also writing p.asleep["v"]
+    zc = list(zombies_near)
+    p.zombies_near = zc
+    stats.getNumVisibleZombies = lambda s: zc[0]
+    stats.getNumChasingZombies = lambda s: zc[1]
+    stats.getNumVeryCloseZombies = lambda s: zc[2]
+    p.stat_values = vals
+    trait_set = set(traits)
+    p.hasTrait = lambda s, t: t in trait_set
+    sleep = []
+    p.sleep = sleep
+
+    def sleep_setter(name):
+        def f(s, v):
+            sleep.append((name, v))
+            if name == "setAsleep":
+                asleep["v"] = v
+        return f
+    for name in ("setBed", "setBedType", "setForceWakeUpTime", "setAsleepTime", "setAsleep"):
+        setattr(p, name, sleep_setter(name))
     return p
 
 

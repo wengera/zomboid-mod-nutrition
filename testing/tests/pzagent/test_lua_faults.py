@@ -35,9 +35,9 @@ MAIN_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZA
               "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua")
 VANILLA = ("ISTimedActionQueue", "ISWalkToTimedAction", "ISOpenCloseDoor", "ISOpenCloseWindow",
            "ISInventoryTransferAction", "ISEatFoodAction", "ISDrinkFluidAction", "ISDropWorldItemAction",
-           "ISEquipWeaponAction", "Vector2")
+           "ISEquipWeaponAction", "Vector2", "ISWorldObjectContextMenu", "UIManager")
 MAIN_TYPES = ("scan", "rate")          # answered by Main, never the runner (ruling P22-5)
-PENDING_TYPES = ("sleep",)             # in the schema since PZA/1.2 (Plan 23 Task 4); its skill lands in Task 8
+PENDING_TYPES = ()                     # sleep, in the schema since PZA/1.2 (Plan 23 Task 4), got its skill in Task 8
 
 # valid args for every action type of the schema; a case name maps to its type (interact and consume take two)
 VALID = {
@@ -51,6 +51,7 @@ VALID = {
     "drink": ("consume", {"itemId": 1002}),
     "drop": ("drop", {"itemId": 1000}),
     "stop": ("stop", {}),
+    "sleep": ("sleep", {}),
     "scan": ("scan", {"r": 3}),
     "rate": ("rate", {"hz": 5}),
 }
@@ -125,9 +126,12 @@ def act_lines(lua, fs):
     return out
 
 
+JUMP_MS = {"sleep": 3600001}         # sleep's budget is K.SLEEP_MS, an hour of wall
+
+
 def drive(lua, g, p, case, ticks=400, jump_at=5):
-    """Start the case's command and tick the runner; the clock jumps 30 s at tick `jump_at` so every wall budget
-    (OPEN_MS, CONSUME_MS, APPROACH_MS, steer's seconds) runs out. Returns None; act_lines reads what it emitted."""
+    """Start the case's command and tick the runner; the clock jumps 30 s (JUMP_MS for a longer budget) at tick
+    `jump_at` so every wall budget (OPEN_MS, CONSUME_MS, APPROACH_MS, steer's seconds, SLEEP_MS) runs out. Returns None; act_lines reads what it emitted."""
     typ, args = VALID[case]
     cmd = lua.table_from({"seq": 1, "aid": "a1", "type": typ, "args": args}, recursive=True)
     lua.eval("PZA.skills.start")(cmd, p)
@@ -135,7 +139,7 @@ def drive(lua, g, p, case, ticks=400, jump_at=5):
         if lua.eval("PZA.skills.cur") is None:
             break
         if i == jump_at:
-            g._clock["ms"] += 30000
+            g._clock["ms"] += JUMP_MS.get(case, 30000)
         lua.eval("PZA.skills.tick")(p)
 
 
@@ -173,11 +177,11 @@ def test_the_pcall_counter_counts_a_caught_raise():
 # args from an args drift cannot pass as the fault path: walkTo never moves (stuck); steer has no auto-walk (not
 # loaded); attack holds nothing; open reads the shut door as not opening (locked, at OPEN_MS); loot queues its transfers
 # but cannot read the inventory grow, so its budget runs out (interrupted); the item skills find no inventory (none
-# held); stop's interface is done
+# held); stop's interface is done; sleep finds no setter to put the player to sleep with (not loaded)
 BARE = {"walkTo": ("failed", "stuck"), "steer": ("failed", "not loaded"), "attack": ("rejected", "no weapon"),
         "open": ("failed", "locked"), "loot": ("failed", "interrupted"), "equip": ("rejected", "none held"),
         "eat": ("rejected", "none held"), "drink": ("rejected", "none held"), "drop": ("rejected", "none held"),
-        "stop": ("done", "")}
+        "stop": ("done", ""), "sleep": ("failed", "not loaded")}
 
 
 def test_the_bare_table_covers_every_skill_case():
@@ -246,10 +250,12 @@ def test_s_frame_on_a_raising_player_returns_a_frame_and_names_the_missing():
 # ---- (d) every vanilla class absent ---------------------------------------------------------------------------------
 
 # the reason each skill's interface gives with its vanilla class absent; attack needs none in reach (it swings), and out
-# of reach its approach walk cannot queue, so it fails at once with the walk's reason (fix wave M5)
+# of reach its approach walk cannot queue, so it fails at once with the walk's reason (fix wave M5); sleep needs none (the
+# floor bed, ZombRand's midpoint, no fade) and the player stays asleep until its hour of wall runs out (interrupted)
 ABSENT = {"walkTo": ("failed", "no path"), "steer": ("failed", "not loaded"), "open": ("failed", "not loaded"),
           "loot": ("failed", "not loaded"), "equip": ("failed", "not loaded"), "eat": ("failed", "not loaded"),
-          "drink": ("failed", "not loaded"), "drop": ("failed", "not loaded"), "stop": ("done", "")}
+          "drink": ("failed", "not loaded"), "drop": ("failed", "not loaded"), "stop": ("done", ""),
+          "sleep": ("failed", "interrupted")}
 
 
 @pytest.mark.parametrize("case", SKILL_CASES)

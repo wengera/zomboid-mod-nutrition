@@ -1135,8 +1135,19 @@ def run_failed_consume(lua):
     return p
 
 
+def run_sleep(lua):
+    p = make_player()
+    sleep_clock(lua)
+    start(lua, p, "sleep", aid="sleep")
+    tick(lua, p)
+    lua.globals()._wa["h"] += 6.0
+    p.asleep["v"] = False
+    tick(lua, p)
+    return p
+
+
 RUNS = [run_walk_to, run_steer, run_stop, run_attack, run_interact, run_loot, run_equip, run_consume, run_drop,
-        run_failed_attack, run_failed_consume]
+        run_failed_attack, run_failed_consume, run_sleep]
 
 
 @pytest.mark.parametrize("run", RUNS, ids=[r.__name__ for r in RUNS])
@@ -1541,3 +1552,149 @@ def test_a_negative_max_weight_is_bad_args(lua, fs):
     box_world(lua, [witem("Base.A")])
     start(lua, make_player(), "interact", aid="neg", x=11, y=20, kind="loot", maxWeight=-1)
     assert states(acts(lua, fs))[-1] == ("neg", "rejected", "bad args")
+
+
+# ---- sleep (Plan 23 Task 8, P23-E) -----------------------------------------------------------------------------------
+
+def sleep_clock(lua, h=100.0):
+    """PZA.sense.clock answering (0, the world age in g._wa["h"]), added to whatever PZA.sense the test set."""
+    g = lua.globals()
+    wa = {"h": h}
+    g._wa = wa
+    g._waH = lambda: wa["h"]
+    lua.execute("PZA.sense = PZA.sense or {}; PZA.sense.clock = function() return 0, _waH() end")
+    return wa
+
+
+def test_sleep_with_a_zombie_visible_is_rejected_not_safe(lua, fs):
+    load(lua)
+    for i, near in enumerate(((1, 0, 0), (0, 2, 0), (0, 0, 1))):
+        p = make_player(zombies_near=near)
+        start(lua, p, "sleep", aid="z%d" % i)
+        assert states(acts(lua, fs))[-1] == ("z%d" % i, "rejected", "not safe"), near
+        assert p.sleep == [] and lua.eval("PZA.skills.cur") is None
+
+
+def test_sleep_under_pain_or_panic_is_not_valid(lua, fs):
+    load(lua)
+    pain = make_player(moodle_levels={"PAIN": 2})
+    start(lua, pain, "sleep", aid="pain")
+    panic = make_player(moodle_levels={"PANIC": 1})
+    start(lua, panic, "sleep", aid="panic")
+    tired = make_player(moodle_levels={"PAIN": 2})          # pain refuses only while fatigue is 0.85 or less
+    tired.stat_values["FATIGUE"] = 0.9
+    start(lua, tired, "sleep", aid="tired")
+    out = states(acts(lua, fs))
+    assert ("pain", "rejected", "not valid") in out and ("panic", "rejected", "not valid") in out
+    assert ("tired", "accepted", "") in out
+    assert pain.sleep == [] and panic.sleep == []
+
+
+def test_sleep_sets_the_wake_time_the_bed_type_and_asleep_then_is_done_when_awake(lua, fs):
+    load(lua)
+    g = lua.globals()
+    wa = sleep_clock(lua)
+    g.ZombRand = lambda a, b: int(a)                         # vanilla's ZombRand(min, max): the low end here
+    p = make_player()
+    p.stat_values["FATIGUE"] = 0.7
+    start(lua, p, "sleep")
+    tick(lua, p)
+    names = [n for n, _ in p.sleep]
+    assert names == ["setBed", "setBedType", "setForceWakeUpTime", "setAsleepTime", "setAsleep"]
+    vals = dict(p.sleep)
+    assert vals["setBed"] is None and vals["setBedType"] == "floor"
+    assert vals["setAsleepTime"] == 0 and vals["setAsleep"] is True
+    hours = (int(0.7 * 10) + 1) * 0.7                        # ZombRand(7, 9.1) + 1 = 8, the floor's x 0.7
+    assert 3 <= hours <= 16
+    assert vals["setForceWakeUpTime"] == pytest.approx(hours + 8.0)   # the host's getTimeOfDay is 8.0
+    assert g._queue.cleared >= 1 and not ended(lua)
+    tick(lua, p)
+    assert not ended(lua)                                    # asleep: still running
+    wa["h"] += 8.0
+    p.stat_values["FATIGUE"] = 0.05
+    p.asleep["v"] = False
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "")
+    assert a[-1]["result"] == {"sleptH": 8, "fatigueBefore": 0.7, "fatigueAfter": 0.05, "bedType": "floor"}
+
+
+def test_sleep_wake_hour_wraps_at_24_and_applies_the_trait_factors(lua, fs):
+    load(lua)
+    g = lua.globals()
+    g.ZombRand = lambda a, b: int(a)
+    g.CharacterTrait = J(INSOMNIAC="INSOMNIAC", NEEDS_LESS_SLEEP="NEEDS_LESS_SLEEP", NEEDS_MORE_SLEEP="NEEDS_MORE_SLEEP")
+    g.getGameTime = lambda: J(getHour=lambda s: 22, getMinutes=lambda s: 0, getWorldAgeHours=lambda s: 1.0,
+                              getTimeOfDay=lambda s: 22.0)
+    p = make_player(traits=("NEEDS_MORE_SLEEP",))
+    p.stat_values["FATIGUE"] = 1.0
+    start(lua, p, "sleep")
+    tick(lua, p)
+    hours = (10 + 1) * 0.7 * 1.18
+    assert dict(p.sleep)["setForceWakeUpTime"] == pytest.approx(hours + 22.0 - 24.0)
+
+
+def test_sleep_hours_clamp_to_three_and_a_good_bed_takes_an_hour_off(lua, fs):
+    load(lua)
+    g = lua.globals()
+    g.ZombRand = lambda a, b: int(a)
+    lua.execute("ISWorldObjectContextMenu.getBedQuality = function(p, bed) return 'goodBed' end")
+    p = make_player()
+    p.stat_values["FATIGUE"] = 0.0                           # ZombRand(0, 0) + 1 - 1 = 0 -> 3
+    start(lua, p, "sleep")
+    tick(lua, p)
+    vals = dict(p.sleep)
+    assert vals["setBedType"] == "goodBed" and vals["setForceWakeUpTime"] == pytest.approx(3 + 8.0)
+
+
+def test_sleep_not_allowed_on_a_client_whose_server_forbids_it(lua, fs):
+    load(lua)
+    g = lua.globals()
+    g.isClient = lambda: True
+    allowed = {"v": False}
+    g.getServerOptions = lambda: J(getBoolean=lambda s, k: allowed["v"] if k == "SleepAllowed" else None)
+    p = make_player()
+    start(lua, p, "sleep", aid="no")
+    allowed["v"] = True
+    start(lua, p, "sleep", aid="yes")
+    out = states(acts(lua, fs))
+    assert ("no", "rejected", "not allowed") in out and ("yes", "accepted", "") in out
+    assert all(x[0] != "no" or x[1] == "rejected" for x in out)
+
+
+def test_sleep_times_out_interrupted(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    start(lua, p, "sleep")
+    tick(lua, p)
+    g._clock["ms"] += lua.eval("PZA.skills.SLEEP_MS")
+    tick(lua, p)
+    assert not ended(lua)
+    g._clock["ms"] += 1
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "interrupted") and ended(lua)
+    assert list(p.sets[-3:]) == OFF
+
+
+def test_sleep_fails_dead_when_the_player_dies_asleep(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "sleep")
+    tick(lua, p)
+    p.getBodyDamage = lambda s: J(getOverallBodyHealth=lambda s2: 0.0)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "dead") and ended(lua)
+
+
+def test_sleep_fades_through_ui_manager_when_it_is_loaded(lua, fs):
+    load(lua)
+    g = lua.globals()
+    fades = []
+    g._fade = lambda *a: fades.append(a)
+    lua.execute("UIManager = { setFadeBeforeUI = function(i, b) _fade('before', i, b) end,"
+                " FadeOut = function(i, t) _fade('out', i, t) end }")
+    p = make_player()
+    start(lua, p, "sleep")
+    tick(lua, p)
+    assert fades == [("before", 0, True), ("out", 0, 1)]
