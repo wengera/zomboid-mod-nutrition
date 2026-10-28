@@ -3,7 +3,7 @@ exp03-20260910-045523,rows.r3_6_movement.row3_walking.caloriesRatioVsIdle,`measu
 exp03-20260910-045523,summary.r3_6.row3_walking.ratio,`measured: 1.2399` (vs `predicted: 4.875`),"The branch has 5 moving samples at indices 0, 1, 13, 27, 39 — one adjacent pair and three isolated ones. A least-squares line through them charges ~35 s of idle time to the walking branch, so the number measures the sampling gaps. The current guard writes `null` here. **Rows 3–6 are not measured.**",
 exp03-20260910-045523,summary.r8.hungerExactlyFlat,`false`,"The queued `ISEatFoodAction` completed 9 samples into the window, so the whole-window fit straddles the gate. The gated segment (samples 0–8) is in fact bit-exactly flat at hunger `0.2`; read `rows.r8_food_eaten.raw` split at sample 9. The current script writes `null` plus a reason when the gate is not up for every sample.",read `rows.r8_food_eaten.raw` split at sample 9
 exp03-20260910-045523,summary.r12.allBandsMatch,`false`,"The two `false` bands are the 50 kg / 65 kg weight drift above, not a band-boundary mismatch. **Seven** of the eleven weights held exactly (70 / 75 / 80 / 85 / 95 / 100 / 105 — those whose gain threshold sat above the primed 500 kcal); the four low ones (45 / 50 / 55 / 65) drifted, and **nine of the eleven bands match**. The current script writes `null` plus `allBandsMatchReason` whenever a weight drifted, and surfaces `allWeightsHeldExactly`.",
-exp03-20260910-045523,rows.r8_food_eaten.foodTimerDecayNote,"`""~1200 units/real-s at settimespeed 30 (measured at speed 1 in the smoke run); 11000 from a real eat lasts <10 s there""`","Wrong in mechanism and ~20 % out in number. The decay is not on a frame/real clock: it is `minutesPerDay/30` units per **game**-second — **3.000** on this fixture's 90-minute day, measured flat across this row's own samples 0–8 (the same file's `rows.r8_food_eaten.raw`), 2.0 on the 60-minute default, frame-rate independent and, in game time, independent of `settimespeed`. The real wall-clock figure at speed 30 on this fixture is ≈1 438 units/real-s, not ~1 200. Read [`facts/body-and-weight.md#moodles`](../facts/body-and-weight.md#moodles) instead; the note text is corrected in the current script.","Read [`facts/body-and-weight.md#moodles`](../facts/body-and-weight.md#moodles) instead"
+exp03-20260910-045523,rows.r8_food_eaten.foodTimerDecayNote,"`""~1200 units/real-s at settimespeed 30 (measured at speed 1 in the smoke run); 11000 from a real eat lasts <10 s there""`","Wrong in mechanism and ~20 % out in number. The decay is not on a frame/real clock: it is `minutesPerDay/30` units per **game**-second — **3.000** on this fixture's 90-minute day, measured flat across this row's own samples 0–8 (the same file's `rows.r8_food_eaten.raw`), 2.0 on the 60-minute default, frame-rate independent and, in game time, independent of `settimespeed`. The real wall-clock figure at speed 30 on this fixture is ≈1 438 units/real-s, not ~1 200. Read [`facts/body-and-weight.md#moodles`](../facts/body-and-weight.md#moodles) instead; the note text is corrected in the current script.",Read [`facts/body-and-weight.md#moodles`](../facts/body-and-weight.md#moodles) instead
 scenario-20260910-052624,evaluation.carb_drain_per_game_day,`−300.3`,"Whole-run fit. The subject died at game-hour 35 and `Nutrition.update` stops on a corpse, so the partial pre-death hour (h34→h35, a −9.57 carb step against a −12.59 full hour) is inside the window and the 37 dead hours contribute nothing. Over the alive window the same fit gives **−302.4 /game-day**, which is the figure that matches `0.0035 × 86 400` and the one runs 2 and 3 return over their whole traces.",
 scenario-20260910-052624,evaluation.calorie_burn_per_game_day,`−1389.9`,"Same contamination, same cause: **−1399.7 /game-day** over the alive window.",
 scenario-20260910-052624,evaluation.measured_delta_kg,"`1.073`, `0.358`, `81.073`, `3700`, `−437.9`, `−141.4`, `0.7`, `0`",Corpse readings taken 37 game-hours after the stores stopped moving. The live model check on this run is the **alive window**: measured **+1.045 kg** vs predicted **+1.057** over 34 game-hours.,
@@ -256,8 +256,8 @@ x132d-20261005-060046,verdicts.X13.verdict,`falsified` / summary.x13 `B7 negativ
 x132d-20261005-060046,"summary.counters_P1_delta, summary.counters_after_all, summary.verdicts, verdicts.P1a_sides.observed.counter_delta, verdicts.P3_half.observed.counter_delta, verdicts.P2_control.observed.counter_delta",nulls on every _server key,"The string-to-None fault: these nulls are a parse failure, not absent counters.",cite `snapshots.<tag>.moddata.server.values`
 x132d-20261005-060046,greps.lua_errors,"server 17, client 12","The pattern's `Exception thrown` alternative matched vanilla boot noise (AdvancedAnimator visitFileFailed, IsoPropertyType lookupOrDefaultStr) that the server's error collector classifies as baseline; no line names a Lua error.",cite `server_error_count` (0) and `client_lua_error` (false)
 x132d-20261005-060046,greps.syncitemfields.server,`1`,"The one hit is the harness's own echo of the P2 drink reply, whose payload contains the word syncItemFields; no SyncItemFields error was logged.",cite `server_error_count` (0)
-x132d-20261005-060046,verdicts.P1e_client_arrival,"first moves both 3.521 s","Each poll is a client-then-server nutrition pair about 1.5 to 2 s wide, so both first moves fall in one poll window; the client's delta in that poll was +17 against the server's +89. It shows arrival within a poll or two, not a latency.",cite the poll rows `phases.P1.polls` and `phases.P3.polls` as a granularity-bound reading
-x132d-20261005-060046,"snapshots.*.globals.server.NutritionRevamp.server.store.records.admin.stomachFill",`1` after P1,"stomachFill is bulk over FULL_BULK clamped to 1, and the seeded-full stomach plus a can exceeds 8, so the scalar is pinned at its clamp.",cite the `stomach.bulk` values
+x132d-20261005-060046,verdicts.P1e_client_arrival,first moves both 3.521 s,"Each poll is a client-then-server nutrition pair about 1.5 to 2 s wide, so both first moves fall in one poll window; the client's delta in that poll was +17 against the server's +89. It shows arrival within a poll or two, not a latency.",cite the poll rows `phases.P1.polls` and `phases.P3.polls` as a granularity-bound reading
+x132d-20261005-060046,snapshots.*.globals.server.NutritionRevamp.server.store.records.admin.stomachFill,`1` after P1,"stomachFill is bulk over FULL_BULK clamped to 1, and the seeded-full stomach plus a can exceeds 8, so the scalar is pinned at its clamp.",cite the `stomach.bulk` values
 x132e-20261005-062748,verdicts,`unmeasured` / `falsified` after P0,"The wrap cycle (TKX_EatHook re-wrapping over NutritionRevamp's wrapper at OnServerStarted, its old closure calling the overwritten global original) overflowed the stack inside every completed eat, so Eat never ran; no phase after P0 read the question it asks, and A6_completed's falsified is the cycle too.",cite `phases.*.delta` and `server_errors` for the cycle itself
 x132e-20261005-062748,summary,x24/x33 unmeasured,The same cycle; the summary restates the phase verdicts.,cite `phases.*.delta`
 x132e-20261005-062748,phases.Q1.delta.eats,`497`,"One eat action recursing to a stack overflow, not 497 eats; the same holds for every phase's eats and completes_server delta.",cite `server_errors` and `phases.Q1.kcal`
@@ -291,115 +291,115 @@ x132r-20261005-072441,verdicts.X34-asleep.observed.thirst_band,in band,Computed 
 x132r-20261005-072441,verdicts.X4-push.observed.nopush_ms_range,53–1133 ms,"A bracket around the command round trip, not an arrival; only the lower bound is compared.",cite `verdicts.X4-push.observed.nopush_lower_min`
 x141s-20261005-105131,verdicts.X50-remap.verdict,`trivial`,"Keyed on STOUT, which the level-5 start never gave; FEEBLE's absence after the level-3 write is the reading.",cite `trait_pairs` (tags a0 a7 a14 r y) and `events`
 x141s-20261005-105131,summary.verdicts.X50-remap,`trivial`,The same.,the same
-x141s-20261005-105131,verdicts.X39-AddXP.verdict,`falsified`,"The LevelPerk half was never exercised (no grant crossed a level); the AddXP half is as predicted.",cite `phases.B.events0` and `phases.B.events1`
+x141s-20261005-105131,verdicts.X39-AddXP.verdict,`falsified`,The LevelPerk half was never exercised (no grant crossed a level); the AddXP half is as predicted.,cite `phases.B.events0` and `phases.B.events1`
 x141s-20261005-105131,summary.verdicts.X39-AddXP,`falsified`,The same.,the same
 x141s-20261005-105131,verdicts.X39-AddXP.observed.levelperk_delta_over_crossing,0,No crossing happened.,—
-x141s-20261005-105131,verdicts.X40.verdict,`falsified`,"The prediction left out the admin role's kick exemption and the debug channel of the check's log.","cite `verdicts.X40.observed` as no kick and no line for the admin"
+x141s-20261005-105131,verdicts.X40.verdict,`falsified`,The prediction left out the admin role's kick exemption and the debug channel of the check's log.,cite `verdicts.X40.observed` as no kick and no line for the admin
 x141s-20261005-105131,summary.verdicts.X40,`falsified`,The same.,the same
 x141s-20261005-105131,constants.TARGET_XP,37600,"Chosen as above level 6's total, but 37500 is the level-5 total; no crossing followed.",—
 x141s-20261005-105131,constants.L6_TOTAL,37500,"37500 is the level-5 cumulative total (#2102), not level 6's.",—
-x141a-20261005-111005,verdicts.X36.verdict,`as_predicted`,"The rise is the rep path (exerciseRepeat); the Fitness.update decay tick was not exercised.",cite `verdicts.X36.observed` as the rep path only
+x141a-20261005-111005,verdicts.X36.verdict,`as_predicted`,The rise is the rep path (exerciseRepeat); the Fitness.update decay tick was not exercised.,cite `verdicts.X36.observed` as the rep path only
 x141a-20261005-111005,summary.verdicts.X36,`as_predicted`,The same.,the same
-x141a-20261005-111005,arm_summaries.*.metwatch_raw_rate,—,"The first 50 ticks (5 s) of each window only.",cite the polls and `new_hist_keys`
+x141a-20261005-111005,arm_summaries.*.metwatch_raw_rate,—,The first 50 ticks (5 s) of each window only.,cite the polls and `new_hist_keys`
 x141a-20261005-111005,arm_summaries.*.metwatch_raw_target,—,The same.,the same
 x141a-20261005-111005,verdicts.X37.observed.*.raw_rate_max,—,The same.,the same
-x141a-20261005-111005,phases.M.result.returns,`false` x5,"DoAttack's return is not a hit.",cite `verdicts.X39-hit.observed.count_deltas`
-x141a-20261005-111005,client_lua_error,`true`,"The probe's own get(0) on an empty action stack.",—
-x141a-20261005-111005,server_error_count,51,"13 are the probe's get(0) reads on an empty stack; the rest boot baseline.",—
-x141b-20261005-122603,verdicts.A.verdict,`falsified`,"The split was compared with a drifted later weight read; at 80 kg it matches exactly.",cite `verdicts.A.observed.fm`/`.lm` against `split_expected` at 80
+x141a-20261005-111005,phases.M.result.returns,`false` x5,DoAttack's return is not a hit.,cite `verdicts.X39-hit.observed.count_deltas`
+x141a-20261005-111005,client_lua_error,`true`,The probe's own get(0) on an empty action stack.,—
+x141a-20261005-111005,server_error_count,51,13 are the probe's get(0) reads on an empty stack; the rest boot baseline.,—
+x141b-20261005-122603,verdicts.A.verdict,`falsified`,The split was compared with a drifted later weight read; at 80 kg it matches exactly.,cite `verdicts.A.observed.fm`/`.lm` against `split_expected` at 80
 x141b-20261005-122603,summary.verdicts.A,`falsified`,The same.,the same
 x141b-20261005-122603,verdicts.A.observed.ok_split,`false`,The same.,the same
-x141b-20261005-122603,verdicts.B.observed.dec_after_first_close_both,`true`,"Vanilla updateWeight writes the flags every tick; the day-0 reads are true where the mod writes false.",cite the day-0 cycles as vanilla overwriting the flags
-x141b-20261005-122603,cadence[*].latency_ms_from_boundary_est,1055.8-1752.6,"Upper bounds against an estimated boundary; the poll before each was 1.0 s earlier.",cite as an upper bound only
-x141b-20261005-122603,verdicts.F.observed.reads[*].match,`true`,"Fill was ~0 (no eat landed); both forms read 1 there.",—
-x141b-20261005-122603,verdicts.E1.verdict,`as_predicted`,"No intake landed; the macro maps sat at their zero-intake values.",cite the calories arm only
+x141b-20261005-122603,verdicts.B.observed.dec_after_first_close_both,`true`,Vanilla updateWeight writes the flags every tick; the day-0 reads are true where the mod writes false.,cite the day-0 cycles as vanilla overwriting the flags
+x141b-20261005-122603,cadence[*].latency_ms_from_boundary_est,1055.8-1752.6,Upper bounds against an estimated boundary; the poll before each was 1.0 s earlier.,cite as an upper bound only
+x141b-20261005-122603,verdicts.F.observed.reads[*].match,`true`,Fill was ~0 (no eat landed); both forms read 1 there.,—
+x141b-20261005-122603,verdicts.E1.verdict,`as_predicted`,No intake landed; the macro maps sat at their zero-intake values.,cite the calories arm only
 x141b-20261005-122603,prediction_apriori.male80,—,The subject is female.,`prediction_live`
-x141b-20261005-122603,FAST.*.client.worldAge,—,"The client world age ran behind and stepped backwards at speed 5.",—
-x141c-20261005-132133,verdicts.U-rise.verdict,`falsified`,"age_drop is the read after the drop minute; the record riseHeldH reached 6 at each rise.",phases.U.polls[*].scal.riseHeldH
-x141c-20261005-132133,summary.verdicts.U-rise,`falsified`,"Same grader error as verdicts.U-rise.",phases.U.polls[*].scal.riseHeldH
-x141c-20261005-132133,verdicts.T-tac.verdict,`falsified`,"The grader used the post-shift ring; tacDay runs before the shift.",phases.T.pre_body.body.bandWeek
-x141c-20261005-132133,summary.verdicts.T-tac,`falsified`,"Same grader ring choice as verdicts.T-tac.",phases.T.pre_body.body.bandWeek
+x141b-20261005-122603,FAST.*.client.worldAge,—,The client world age ran behind and stepped backwards at speed 5.,—
+x141c-20261005-132133,verdicts.U-rise.verdict,`falsified`,age_drop is the read after the drop minute; the record riseHeldH reached 6 at each rise.,phases.U.polls[*].scal.riseHeldH
+x141c-20261005-132133,summary.verdicts.U-rise,`falsified`,Same grader error as verdicts.U-rise.,phases.U.polls[*].scal.riseHeldH
+x141c-20261005-132133,verdicts.T-tac.verdict,`falsified`,The grader used the post-shift ring; tacDay runs before the shift.,phases.T.pre_body.body.bandWeek
+x141c-20261005-132133,summary.verdicts.T-tac,`falsified`,Same grader ring choice as verdicts.T-tac.,phases.T.pre_body.body.bandWeek
 x141c-20261005-132133,verdicts.T-tac.observed.tac_pred,0.998702944681775,"Computed on the post-shift ring (m1 27.96, target 1.029).",phases.T.post_body.body.tac
-x141c-20261005-132133,verdicts.H-rmod.observed.band,"[0.848, 0.860]","A prediction; the ratio read 0.904.",verdicts.H-rmod.observed.ratio
-x141c-20261005-132133,verdicts.D-reps.observed.squats,1 rep,"The squat set stopped after ~3-5 s for a reason the run does not show; not a rep rate.",—
-x141c-20261005-132133,phases.C.reads[*].dt,0.0,"The first read was issued as the set returned; it bounds nothing below.",phases.C.str1.carryWrites
-x141s-20261005-105131,verdicts.X50-push.observed.client_first_3_after_write_s,0.0,"The driver subtracted the wrong wall; the client first read 3 within 2 s of the request (1.77 s).","cite steps.a_write.wall_before and steps.a0_client.wall_after"
+x141c-20261005-132133,verdicts.H-rmod.observed.band,"[0.848, 0.860]",A prediction; the ratio read 0.904.,verdicts.H-rmod.observed.ratio
+x141c-20261005-132133,verdicts.D-reps.observed.squats,1 rep,The squat set stopped after ~3-5 s for a reason the run does not show; not a rep rate.,—
+x141c-20261005-132133,phases.C.reads[*].dt,0.0,The first read was issued as the set returned; it bounds nothing below.,phases.C.str1.carryWrites
+x141s-20261005-105131,verdicts.X50-push.observed.client_first_3_after_write_s,0.0,The driver subtracted the wrong wall; the client first read 3 within 2 s of the request (1.77 s).,cite steps.a_write.wall_before and steps.a0_client.wall_after
 x141s-20261005-105131,verdicts.X50-write,`as_predicted`,"The prediction read before=6 and the level read 5, so the grade carries the ladder error.",cite phases.A.write
 x141s-20261005-105131,summary.verdicts.X50-write,`as_predicted`,The same.,the same
-x141b2-20261005-144202,verdicts.A0.verdict,`as_predicted`,"The client read the flags false at every read of the session; only the server half discriminates.",cite `phases.FAST.cycles[*].server` for day 0
+x141b2-20261005-144202,verdicts.A0.verdict,`as_predicted`,The client read the flags false at every read of the session; only the server half discriminates.,cite `phases.FAST.cycles[*].server` for day 0
 x141b2-20261005-144202,summary.verdicts.A0,`as_predicted`,The same.,the same
-x141b2-20261005-144202,verdicts.E.observed.rows[*].match,`true`,"Nothing landed (the items existed only on the client); at fill ~0 both forms read 1.",—
-x141b2-20261005-144202,verdicts.G.observed.log_total_at_end,0,"No rep ran (the failed eats held the action queue).",—
+x141b2-20261005-144202,verdicts.E.observed.rows[*].match,`true`,Nothing landed (the items existed only on the client); at fill ~0 both forms read 1.,—
+x141b2-20261005-144202,verdicts.G.observed.log_total_at_end,0,No rep ran (the failed eats held the action queue).,—
 x141b2-20261005-144202,phases.FAST.watches[*].boundary_epoch_ms_est,—,"Estimated from the cycles' (age, wall) pairs, not a stamp.",cite as an estimate only
-x151w-20261005-161652,verdicts.A.verdict,`falsified`,"The auto-grade: extAir did not move because the character's air read 22.0 throughout; the climate half is unmeasured.",cite `summaries.A0.fields` and `climate`
+x151w-20261005-161652,verdicts.A.verdict,`falsified`,The auto-grade: extAir did not move because the character's air read 22.0 throughout; the climate half is unmeasured.,cite `summaries.A0.fields` and `climate`
 x151w-20261005-161652,summary.verdicts.A,`falsified`,The same.,the same
-x151w-20261005-161652,verdicts.*.verdict,`see_raw`,"Placeholders; the grades are the reading guide's.",cite the phase keys
+x151w-20261005-161652,verdicts.*.verdict,`see_raw`,Placeholders; the grades are the reading guide's.,cite the phase keys
 x151w-20261005-161652,records[*].mirror_pool_water,0,"The mirror is a snapshot sent on request, not a live read of the pool.",cite `records[*].pool.water`
-x151w-20261005-161652,phases.*.watch.raw,—,"The first 50 ticks (5 s) of each window only.",cite `phases.*.watch.fields`
-x151w-20261005-161652,phases.C.spawn.attempts[*].id,678729060,"B1's canteen: the client read finds the first canteen of the type.",—
-x151s-20261005-165844,boot*.*.watch.raw,—,"The first 50 ticks (5 s) of each window only.",cite `<boot>.<arm>.watch.fields` and `watch.resets`
-x151s-20261005-165844,boot*.*.watch.fields.asleep,"n 0, reset","The probe tracks a boolean only in its histogram.",cite `<boot>.<arm>.watch.hist`
+x151w-20261005-161652,phases.*.watch.raw,—,The first 50 ticks (5 s) of each window only.,cite `phases.*.watch.fields`
+x151w-20261005-161652,phases.C.spawn.attempts[*].id,678729060,B1's canteen: the client read finds the first canteen of the type.,—
+x151s-20261005-165844,boot*.*.watch.raw,—,The first 50 ticks (5 s) of each window only.,cite `<boot>.<arm>.watch.fields` and `watch.resets`
+x151s-20261005-165844,boot*.*.watch.fields.asleep,"n 0, reset",The probe tracks a boolean only in its histogram.,cite `<boot>.<arm>.watch.hist`
 x151s-20261005-165844,boot*.*.watch.fields.dUpd,"n 0, reset","dUpd needs fatUpd, which no window saw.",cite `<boot>.<arm>.watch.fields.fatUpd`
 x151s-20261005-165844,summaries.*.fatigue_slope.per_wall_s,e.g. 0.009495,"First-to-last over a window that holds a write, a drink, a pill or a whole sleep.",cite the polls either side
-x151s-20261005-165844,summaries.*.fatigue_slope.per_game_h,e.g. 0.3567,"The same.",cite the polls either side
-x151s-20261005-165844,summaries.boot1.B.intox_slope.per_wall_s,-0.005375,"Spans the rise and the fall.",cite `boot1.B.polls`
-x151s-20261005-165844,summaries.boot1.B.intox_slope.per_game_h,-0.2022,"Spans the rise and the fall.",cite `boot1.B.polls`
-x151s-20261005-165844,boot*.S0.markers.NR_IntakeDrink_Installed,null,"lua.global answers no value for a table; the wrapper counted sips on boot 1.",cite `boot1.B.record_after.counters`
-x151t-20261005-183551,verdicts,see_raw,"Every phase verdict is a placeholder; the grade is read off the records.",cite `records` and `summaries.<arm>.series`
+x151s-20261005-165844,summaries.*.fatigue_slope.per_game_h,e.g. 0.3567,The same.,cite the polls either side
+x151s-20261005-165844,summaries.boot1.B.intox_slope.per_wall_s,-0.005375,Spans the rise and the fall.,cite `boot1.B.polls`
+x151s-20261005-165844,summaries.boot1.B.intox_slope.per_game_h,-0.2022,Spans the rise and the fall.,cite `boot1.B.polls`
+x151s-20261005-165844,boot*.S0.markers.NR_IntakeDrink_Installed,null,lua.global answers no value for a table; the wrapper counted sips on boot 1.,cite `boot1.B.record_after.counters`
+x151t-20261005-183551,verdicts,see_raw,Every phase verdict is a placeholder; the grade is read off the records.,cite `records` and `summaries.<arm>.series`
 x151t-20261005-183551,summaries.B.hand_80kg_male,e.g. 0.3142056088904117,"The Task 11 hand case (80 kg male), not this run's female subject.",cite `summaries.B.cmp`
-x151t-20261005-183551,summaries.F2.a_holds[*].kernel,e.g. 0.8075968383302108,"The kernel view on the first-sight mass while the live mass had moved.",cite the live fields beside it
-x151t-20261005-183551,summaries.F2.b_holds[*].kernel,e.g. 0.8662359950087947,"The kernel view on the first-sight mass while the live mass had moved.",cite the live fields beside it
-x151t-20261005-183551,summaries.E.off_holds[*].kernel,e.g. 1.1586318202041324,"The kernel view on the first-sight mass while the live mass had moved.",cite the live fields beside it
-x151t-20261005-183551,summaries.E.on_holds[*].kernel,e.g. 1.1589380470435497,"The kernel view on the first-sight mass while the live mass had moved.",cite the live fields beside it
-x151t-20261005-183551,phases.S0.sentinels,null,"lua.global answers no value for a table.",cite `phases.D.counters_after` and `phases.C.counters_after`
-x151t-20261005-183551,phases.S0.nutrients_stats.heals,null,"No such counter.",—
-x151t-20261005-183551,phases.A.nutrients_stats.heals,null,"No such counter.",—
-x151t-20261005-183551,phases.Z.nutrients_stats.heals,null,"No such counter.",—
-x151t-20261005-183551,logs.server_luaerr,40 lines,"The driver's pattern also matches the harness's lua.global log lines for the mod's error fields; none is a mod error.",cite `server_error_count` and `phases.Z.nutrients_stats.errors`
-x151r-20261005-192030,verdicts,see_raw,"Every phase verdict is a placeholder; the grade is read off the records.",cite `records` and the `summaries` named in the register
+x151t-20261005-183551,summaries.F2.a_holds[*].kernel,e.g. 0.8075968383302108,The kernel view on the first-sight mass while the live mass had moved.,cite the live fields beside it
+x151t-20261005-183551,summaries.F2.b_holds[*].kernel,e.g. 0.8662359950087947,The kernel view on the first-sight mass while the live mass had moved.,cite the live fields beside it
+x151t-20261005-183551,summaries.E.off_holds[*].kernel,e.g. 1.1586318202041324,The kernel view on the first-sight mass while the live mass had moved.,cite the live fields beside it
+x151t-20261005-183551,summaries.E.on_holds[*].kernel,e.g. 1.1589380470435497,The kernel view on the first-sight mass while the live mass had moved.,cite the live fields beside it
+x151t-20261005-183551,phases.S0.sentinels,null,lua.global answers no value for a table.,cite `phases.D.counters_after` and `phases.C.counters_after`
+x151t-20261005-183551,phases.S0.nutrients_stats.heals,null,No such counter.,—
+x151t-20261005-183551,phases.A.nutrients_stats.heals,null,No such counter.,—
+x151t-20261005-183551,phases.Z.nutrients_stats.heals,null,No such counter.,—
+x151t-20261005-183551,logs.server_luaerr,40 lines,The driver's pattern also matches the harness's lua.global log lines for the mod's error fields; none is a mod error.,cite `server_error_count` and `phases.Z.nutrients_stats.errors`
+x151r-20261005-192030,verdicts,see_raw,Every phase verdict is a placeholder; the grade is read off the records.,cite `records` and the `summaries` named in the register
 x151r-20261005-192030,records[*].nutrients.allReplete,null,"witness.moddata lists a nested leaf whose value is false under missing; null here means false, not absent.",read the per-key `g` in `nut`
 x151r-20261005-192030,nut[*].allReplete,null,"witness.moddata lists a nested leaf whose value is false under missing; null here means false, not absent.",read the per-key `g` in `nut`
 x151r-20261005-192030,summaries.A.intervals[*].allReplete,null,"Copied from the nut reads, where a false leaf reads null.",read `summaries.A.intervals[*].obs_g`
-x151r-20261005-192030,records[*].nutrients.anaemia,null,"The false-leaf reading of witness.moddata.",—
-x151r-20261005-192030,records[*].nutrients.vitDClinical,null,"The false-leaf reading of witness.moddata.",read `nut[*].keys.vitD.g`
-x151r-20261005-192030,records[*].body.inDayClosed,null,"The field does not exist until Metabolism's first day close.",cite it from `records[173]` on
+x151r-20261005-192030,records[*].nutrients.anaemia,null,The false-leaf reading of witness.moddata.,—
+x151r-20261005-192030,records[*].nutrients.vitDClinical,null,The false-leaf reading of witness.moddata.,read `nut[*].keys.vitD.g`
+x151r-20261005-192030,records[*].body.inDayClosed,null,The field does not exist until Metabolism's first day close.,cite it from `records[173]` on
 x151r-20261005-192030,summaries.C.series[*].pred,e.g. 3.5285,"The replay spreads each interval's absorbed caffeine evenly, up to 0.164 mg off the exact step.",cite `records[*].acute.caf` and `summaries.C.series[*].thalf_fit`
 x151r-20261005-192030,summaries.E.series[*].dGlyc_kernel_at_met,e.g. -0.1824,"The work term alone, without the shivering term the kernel adds above coldMult 1.",cite the `quick` rows
 x151r-20261005-192030,summaries.F.pred.measured_share,e.g. awakeH 37.52,"Replayed at the asleep share of 35 stats.get reads (0.771), not the record's per-minute share.",cite the `records` of the hold
-x151r-20261005-192030,phases.S0.sentinels.NR_IntakeDrink_Installed,null,"lua.global answers no value for a table.",cite `phases.C.counters_after`
-x151r-20261005-192030,phases.S0.sentinels.NR_IntakeWorld_Installed,null,"lua.global answers no value for a table.",—
-x151r-20261005-192030,logs.server_luaerr,40 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `server_error_count` and `phases.Z.nutrients_stats.errors`
-x151r-20261005-192030,logs.client_luaerr,20 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `client_lua_error`
-x151r2-20261005-202409,verdicts,see_raw,"Every phase verdict is a placeholder; the grade is read off the records.",cite `records` and the `summaries` named in the register
+x151r-20261005-192030,phases.S0.sentinels.NR_IntakeDrink_Installed,null,lua.global answers no value for a table.,cite `phases.C.counters_after`
+x151r-20261005-192030,phases.S0.sentinels.NR_IntakeWorld_Installed,null,lua.global answers no value for a table.,—
+x151r-20261005-192030,logs.server_luaerr,40 lines,Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.,cite `server_error_count` and `phases.Z.nutrients_stats.errors`
+x151r-20261005-192030,logs.client_luaerr,20 lines,Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.,cite `client_lua_error`
+x151r2-20261005-202409,verdicts,see_raw,Every phase verdict is a placeholder; the grade is read off the records.,cite `records` and the `summaries` named in the register
 x151r2-20261005-202409,summaries.B.intervals[*].perMg,e.g. 0.701889,"Where landed_inside is true a drink or meal landed inside the interval, so the buffer decrement is not what emptied.",cite the intervals with landed_inside false
-x151r2-20261005-202409,summaries.E.intervals[*].pred_dGlyc,e.g. -4.668673,"Where the two reads carry different MET the replay holds the first read's MET across the interval.",cite the same-MET intervals
-x151r2-20261005-202409,pending[*].lastMealCa,null,"The handoff lives inside one server tick; a bus read between ticks finds nothing.",cite `records[*].buffer.calcium`
-x151r2-20261005-202409,phases.S0.sentinels.NR_IntakeDrink_Installed,null,"lua.global answers no value for a table.",cite `phases.C.counters_after`
-x151r2-20261005-202409,phases.S0.sentinels.NR_IntakeWorld_Installed,null,"lua.global answers no value for a table.",—
-x151r2-20261005-202409,logs.server_luaerr,40 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `server_error_count` and `phases.Z.nutrients_stats.errors`
-x151r2-20261005-202409,logs.client_luaerr,20 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `client_lua_error`
-x161s-20261006-031534,verdicts,see_raw,"Every phase verdict is a placeholder; the grade is read off the raw.",cite `phases` and `watches`
+x151r2-20261005-202409,summaries.E.intervals[*].pred_dGlyc,e.g. -4.668673,Where the two reads carry different MET the replay holds the first read's MET across the interval.,cite the same-MET intervals
+x151r2-20261005-202409,pending[*].lastMealCa,null,The handoff lives inside one server tick; a bus read between ticks finds nothing.,cite `records[*].buffer.calcium`
+x151r2-20261005-202409,phases.S0.sentinels.NR_IntakeDrink_Installed,null,lua.global answers no value for a table.,cite `phases.C.counters_after`
+x151r2-20261005-202409,phases.S0.sentinels.NR_IntakeWorld_Installed,null,lua.global answers no value for a table.,—
+x151r2-20261005-202409,logs.server_luaerr,40 lines,Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.,cite `server_error_count` and `phases.Z.nutrients_stats.errors`
+x151r2-20261005-202409,logs.client_luaerr,20 lines,Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.,cite `client_lua_error`
+x161s-20261006-031534,verdicts,see_raw,Every phase verdict is a placeholder; the grade is read off the raw.,cite `phases` and `watches`
 x161s-20261006-031534,summaries.X75.a_poison_watch,e.g. per_game_h 3.2368,"The window was armed before POISON was written, so first is the pre-write 0.",cite `summaries.X75.a_poison_statsall`
 x161s-20261006-031534,summaries.X75.a_fs_watch,e.g. per_game_h 5.3263,"The window was armed before POISON was written, so the rise starts mid-window.",cite `summaries.X75.a_fs_statsall`
-x161s-20261006-031534,phases.X76.watch_a.dmg,POISON 538,"The counters were not reset before this window; the values are X75c's.",—
-x161s-20261006-031534,summaries.X76.c_dmg,SICK 287,"A copy of the raw counters.",cite `phases.X76.watch_c.dmg`
-x161s-20261006-031534,summaries.X75.c_dmg,POISON 538,"A copy of the raw counters.",cite `phases.X75.watch_c.dmg`
-x161s-20261006-031534,phases.X75.c_health_after,c_health_after,"Both phases wrote the same tag.",cite `health_reads[109]`
-x161s-20261006-031534,phases.X76.c_health_after,c_health_after,"Both phases wrote the same tag.",cite `health_reads[137]`
+x161s-20261006-031534,phases.X76.watch_a.dmg,POISON 538,The counters were not reset before this window; the values are X75c's.,—
+x161s-20261006-031534,summaries.X76.c_dmg,SICK 287,A copy of the raw counters.,cite `phases.X76.watch_c.dmg`
+x161s-20261006-031534,summaries.X75.c_dmg,POISON 538,A copy of the raw counters.,cite `phases.X75.watch_c.dmg`
+x161s-20261006-031534,phases.X75.c_health_after,c_health_after,Both phases wrote the same tag.,cite `health_reads[109]`
+x161s-20261006-031534,phases.X76.c_health_after,c_health_after,Both phases wrote the same tag.,cite `health_reads[137]`
 x161s-20261006-031534,summaries.X81.fraction_of_gap,0.49986,"Measured from the temp.core read before the write, not the stat the write replaced.",cite `phases.X81.write` and `phases.X81.watch.fields.core`
-x161s-20261006-031534,summaries.X80.pred_per_game_h,3.6 and 1.8,"Tier-0 predictions; both windows ran at tier 3.",—
+x161s-20261006-031534,summaries.X80.pred_per_game_h,3.6 and 1.8,Tier-0 predictions; both windows ran at tier 3.,—
 x161s-20261006-031534,logs.server_luaerr,40 lines,"Vanilla AdvancedAnimator visitFileFailed and IsoPropertyType lookupOrDefaultStr lines and the harness echo of the driver's lastError and errors reads, which the driver's pattern matches; none is a mod error.",cite `server_error_count`
-x161s-20261006-031534,logs.client_luaerr,12 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `client_lua_error`
-x161s-20261006-031534,phases.X81.watch.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
-x161s-20261006-031534,phases.X88.watch.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
-x161s-20261006-031534,phases.X75.watch_a.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
-x161s-20261006-031534,phases.X75.watch_b.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
-x161s-20261006-031534,phases.X75.watch_c.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
-x161s-20261006-031534,phases.X76.watch_c.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
-x161s-20261006-031534,phases.X35.watch.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
-x161s-20261006-031534,phases.X35.watch.dmg.SICK,SICK 287,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X76.watch_c.dmg.SICK`
-x161s-20261006-031534,summaries.X75.a_dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
-x161s-20261006-031534,summaries.X75.b_dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,logs.client_luaerr,12 lines,Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.,cite `client_lua_error`
+x161s-20261006-031534,phases.X81.watch.dmg.BLEEDING,BLEEDING 151,A stale counter: the probe never clears a previous window's tag keys.,cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X88.watch.dmg.BLEEDING,BLEEDING 151,A stale counter: the probe never clears a previous window's tag keys.,cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X75.watch_a.dmg.BLEEDING,BLEEDING 151,A stale counter: the probe never clears a previous window's tag keys.,cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X75.watch_b.dmg.BLEEDING,BLEEDING 151,A stale counter: the probe never clears a previous window's tag keys.,cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X75.watch_c.dmg.BLEEDING,BLEEDING 151,A stale counter: the probe never clears a previous window's tag keys.,cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X76.watch_c.dmg.BLEEDING,BLEEDING 151,A stale counter: the probe never clears a previous window's tag keys.,cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X35.watch.dmg.BLEEDING,BLEEDING 151,A stale counter: the probe never clears a previous window's tag keys.,cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X35.watch.dmg.SICK,SICK 287,A stale counter: the probe never clears a previous window's tag keys.,cite `phases.X76.watch_c.dmg.SICK`
+x161s-20261006-031534,summaries.X75.a_dmg.BLEEDING,BLEEDING 151,A stale counter: the probe never clears a previous window's tag keys.,cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,summaries.X75.b_dmg.BLEEDING,BLEEDING 151,A stale counter: the probe never clears a previous window's tag keys.,cite `phases.X78.watch.dmg.BLEEDING`
 x161p-20261006-035559,summaries,copies,Derived copies of phase keys made in the driver.,cite the `boot1.phases` and `boot2.phases` keys
 x161p-20261006-035559,boot1.phases.X82.a_watch.fields.intoxication.min,0,The window was armed before the write; the pre-write value.,cite `boot1.phases.X82.a_pairs`
 x161p-20261006-035559,boot1.phases.X82.c_watch.fields.intoxication.min,0,The window was armed before the hold; the pre-write value.,cite `boot1.phases.X82.c_watch.raw_strings`
@@ -412,18 +412,18 @@ x161p-20261006-035559,boot1.logs.server_luaerr,40 lines,Vanilla engine lines and
 x161p-20261006-035559,boot1.logs.client_luaerr,16 lines,Vanilla AdvancedAnimator lines; none is a mod error.,cite `boot1.client_lua_error`
 x161p-20261006-035559,boot2.logs.server_luaerr,35 lines,Vanilla engine lines and the harness's echo of the driver's error reads; none is a mod error.,cite `boot2.server_error_count`
 x161p-20261006-035559,boot2.logs.client_luaerr,16 lines,Vanilla AdvancedAnimator lines; none is a mod error.,cite `boot2.client_lua_error`
-x161f-20261006-055908,watches[*].result.dmg.*.count,-1,"The reset sentinel: the tag never fired in that window.",cite the count as 0 with the sentinel stated
-x161f-20261006-055908,watches[*].result.dmg.*.sum,-1,"The reset sentinel: the tag never fired in that window.",—
-x161f-20261006-055908,summaries.A.identity,same_minute 0,"The first record only; no bracket fell inside one slow minute.",cite `brackets` with the post-run arithmetic
-x161f-20261006-055908,summaries.H.pairs,eq_f32 false,"The server read preceded the record read in each round.",cite `brackets`
-x161f-20261006-055908,summaries.B.sleep[*].S_pred,e.g. 0.5710596734818129,"A wholly asleep step; about 15 per cent of minutes stepped awake.",cite `summaries.B.sleep[*].S_live`
-x161f-20261006-055908,summaries.B.sleep[*].ratio_pred,e.g. 0.7831735112929856,"A wholly asleep step; about 15 per cent of minutes stepped awake.","cite only as the falsified wholly-asleep prediction (#3076 does)"
+x161f-20261006-055908,watches[*].result.dmg.*.count,-1,The reset sentinel: the tag never fired in that window.,cite the count as 0 with the sentinel stated
+x161f-20261006-055908,watches[*].result.dmg.*.sum,-1,The reset sentinel: the tag never fired in that window.,—
+x161f-20261006-055908,summaries.A.identity,same_minute 0,The first record only; no bracket fell inside one slow minute.,cite `brackets` with the post-run arithmetic
+x161f-20261006-055908,summaries.H.pairs,eq_f32 false,The server read preceded the record read in each round.,cite `brackets`
+x161f-20261006-055908,summaries.B.sleep[*].S_pred,e.g. 0.5710596734818129,A wholly asleep step; about 15 per cent of minutes stepped awake.,cite `summaries.B.sleep[*].S_live`
+x161f-20261006-055908,summaries.B.sleep[*].ratio_pred,e.g. 0.7831735112929856,A wholly asleep step; about 15 per cent of minutes stepped awake.,cite only as the falsified wholly-asleep prediction (#3076 does)
 x161f-20261006-055908,summaries.D.x35_client_match_fold_on,12 of 73,"Counted over all of phase D, fold-off windows and the value 1 included.",cite `stats_all[137]` and `stats_all[138]`
 x161f-20261006-055908,summaries.D.kernel_fold_rest,e.g. 2.7599272630962624e-05,"A synthetic per-read delta, not a per-tick one.",—
 x161f-20261006-055908,summaries.F.unhappy_rise_slope_per_h,-2.802308852215408,"Fitted across a release, not a rise.",cite `stats_all[552]` to `stats_all[569]`
 x161f-20261006-055908,summaries.E.stress.slope_per_h_all,0.0056028670251019805,"Fitted across the hold, not the rise.",cite `summaries.E.rise_slope_per_h`
-x161f-20261006-055908,phases.I.result.shots,3,"The shots had no target.",—
-x161f-20261006-055908,summaries.A.first_effects,—,"Pairs full[0]'s mAcc with recs[0]'s wall and age.",—
+x161f-20261006-055908,phases.I.result.shots,3,The shots had no target.,—
+x161f-20261006-055908,summaries.A.first_effects,—,Pairs full[0]'s mAcc with recs[0]'s wall and age.,—
 x161f-20261006-055908,logs.server_luaerr,40 lines,"The first 40 lines the driver kept (its cap, `logs.limits.luaerr`), not a count: the full run log matched 141 times, vanilla engine lines and the harness echo of the driver error reads; none is a mod error.",cite `server_error_count`
 x161f-20261006-055908,logs.client_luaerr,38 lines,"The lines the driver kept (the cap `logs.limits.luaerr` is 40), not a count: vanilla AdvancedAnimator lines and the harness echo of the driver reads; none is a mod error.",cite `client_lua_error`
 x161b-20261006-065751,watches[*].result.dmg.*.count,-1,The reset sentinel: the tag never fired in that window.,cite the count as 0 with the sentinel stated
@@ -431,10 +431,10 @@ x161b-20261006-065751,watches[*].result.dmg.*.sum,-1,The reset sentinel: the tag
 x161b-20261006-065751,recs[*].effects.own.nv,null,"The witness walk turns a false leaf into nil, so a false flag reads null: a false leaf only (a true read is genuine).",cite `full[*].effects.own`
 x161b-20261006-065751,recs[*].effects.own.ss,null,"The witness walk turns a false leaf into nil, so a false flag reads null.",cite `full[*].effects.own`
 x161b-20261006-065751,phases.A.withdrawn,false,"The driver's stop test waited for own.nv false, which a record read never shows.",cite `stats_get[66]` to `stats_get[76]`
-x161b-20261006-065751,phases.A.remove.before,false,"The harness's lower-cased trait name (night_vision) misses the list key (nightvision), so the check reads false whatever the list holds.","cite `phases.A.remove.traitList` or the `stats_get` trait lists"
-x161b-20261006-065751,phases.A.remove.after,false,"The harness's lower-cased trait name (night_vision) misses the list key (nightvision), so the check reads false whatever the list holds.","cite `phases.A.remove.traitList` or the `stats_get` trait lists"
-x161b-20261006-065751,phases.A.foreign_rm.before,false,"The harness's lower-cased trait name (night_vision) misses the list key (nightvision), so the check reads false whatever the list holds.","cite `phases.A.remove.traitList` or the `stats_get` trait lists"
-x161b-20261006-065751,phases.A.foreign_rm.after,false,"The harness's lower-cased trait name (night_vision) misses the list key (nightvision), so the check reads false whatever the list holds.","cite `phases.A.remove.traitList` or the `stats_get` trait lists"
+x161b-20261006-065751,phases.A.remove.before,false,"The harness's lower-cased trait name (night_vision) misses the list key (nightvision), so the check reads false whatever the list holds.",cite `phases.A.remove.traitList` or the `stats_get` trait lists
+x161b-20261006-065751,phases.A.remove.after,false,"The harness's lower-cased trait name (night_vision) misses the list key (nightvision), so the check reads false whatever the list holds.",cite `phases.A.remove.traitList` or the `stats_get` trait lists
+x161b-20261006-065751,phases.A.foreign_rm.before,false,"The harness's lower-cased trait name (night_vision) misses the list key (nightvision), so the check reads false whatever the list holds.",cite `phases.A.remove.traitList` or the `stats_get` trait lists
+x161b-20261006-065751,phases.A.foreign_rm.after,false,"The harness's lower-cased trait name (night_vision) misses the list key (nightvision), so the check reads false whatever the list holds.",cite `phases.A.remove.traitList` or the `stats_get` trait lists
 x161b-20261006-065751,phases.B.sev05_removed,false,"The driver's stop test waited for own.ss false, which a record read never shows.",cite `stats_get[90]` to `stats_get[99]`
 x161b-20261006-065751,phases.B.g3_removed,false,"The driver's stop test waited for own.ss false, which a record read never shows.",cite `stats_get[103]` to `stats_get[111]`
 x161b-20261006-065751,summaries.BR.p_ge1_per_day,0.3934693402873666,"The Poisson form 1 - e^-0.5, not I-F4's per-minute product.",cite I-F4's 0.39352200042286156
@@ -475,18 +475,18 @@ x172b-20261006-130714,summaries.F_cola,"ok false, no rows",The arm took no readi
 x172b-20261006-130714,logs.server,80 lines,"The first 80 matching lines the driver kept (its cap, `logs.limits.log`), not a count.",
 x172b-20261006-130714,logs.client,80 lines,"The first 80 matching lines the driver kept (its cap), not a count.",
 x172b-20261006-130714,logs.client_checksum,[],"The client's console log never carries the checksum kick's reason string, so an empty list here is not an absence reading.",cite `phases.Z.tk_version_client` and `client_seen`
-x181-20261006-152607,predictions,the driver's PRED table,"Written before the boot; not a reading.",cite `verdicts.<leg>.observed` or `phases.<leg>`
+x181-20261006-152607,predictions,the driver's PRED table,Written before the boot; not a reading.,cite `verdicts.<leg>.observed` or `phases.<leg>`
 x181-20261006-152607,constants,the driver's constants,"Settings of the driver (waits, limits, thresholds named), not readings.",
 x181-20261006-152607,mf_tree,the dated tree re-read,"Copied into the driver before the boot from a shell listing, not read by the run.",cite the driver's docstring as the dated re-read
-x181-20261006-152607,baseline,"tick 10.104011887072808","A constant copied from x161b-20261006-065751, not this run.",cite `x161b-20261006-065751` `body.json` `phases.J.tick.result.ticksPerSecond`
-x181-20261006-152607,verdicts.*.predicted,the driver's predictions,"Copies of `predictions` beside each grade; not readings.",cite `verdicts.<leg>.observed`
+x181-20261006-152607,baseline,tick 10.104011887072808,"A constant copied from x161b-20261006-065751, not this run.",cite `x161b-20261006-065751` `body.json` `phases.J.tick.result.ticksPerSecond`
+x181-20261006-152607,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<leg>.observed`
 x181-20261006-152607,logs.server,80 lines,"The first 80 matching lines the driver kept (its cap, `logs.limits.log`), not a count.",cite `logs.server_load` for the loading line
 x181-20261006-152607,logs.client,80 lines,"The first 80 matching lines the driver kept (its cap), not a count.",cite `logs.client_load` for the loading lines
 x181-20261006-152607,phases.iii_control.state.onUI,unresolved,"The flag is never set before the first non-neutral value, so the unresolved read is the field's absence and not a false.",cite `phases.iii_control.moodle_fields.addedToUIManager` with it
 x181-20261006-152607,verdicts.i.line_counts_exact,true,"A grade of the driver's, not a reading.",cite `logs.server_load` and `logs.client_load`
 x182-20261006-152945,predictions,the driver's PRED table,"Written before the boot, with its jar basis; not a reading.",cite `verdicts.<leg>.observed` or `phases.<leg>`
 x182-20261006-152945,constants,the driver's constants,"Settings of the driver, not readings.",
-x182-20261006-152945,verdicts.*.predicted,the driver's predictions,"Copies of `predictions` beside each grade; not readings.",cite `verdicts.<leg>.observed`
+x182-20261006-152945,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<leg>.observed`
 x182-20261006-152945,vanilla,"Item, Apple","Read by the driver from the install's EN files at import, not from the game.",cite `D:/SteamLibrary/steamapps/common/ProjectZomboid/media/lua/shared/Translate/EN/` directly
 x182-20261006-152945,logs.server,72 lines,"Every line the driver's broad pattern matched (under its cap of 80), not a count of anything the pattern names.",cite `logs.server_load` for the loading line
 x182-20261006-152945,logs.client,67 lines,"Every line the driver's broad pattern matched (under its cap of 80), not a count of anything the pattern names.",cite `logs.client_load` for the loading lines
@@ -519,34 +519,34 @@ x183b-20261006-175149,deviations,the driver's list,Written before the first boot
 x183b-20261006-175149,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<arm>.observed`
 x183b-20261006-175149,verdicts.I.verdict,falsified,"The pattern caught the harness's echoes of the driver's own server-side probes, not a mod line.",cite `logs.server_ui` and `logs.server_ui_mod`
 x183b-20261006-175149,logs.server,120 lines,"The first 120 matching lines the driver kept (its cap, `logs.limits.log`), not a count.",
-x191-20261006-191554,predictions,the driver's PRED table,"Written before the boot; not a reading.",cite `verdicts.<arm>.observed` or `phases.<arm>`
+x191-20261006-191554,predictions,the driver's PRED table,Written before the boot; not a reading.,cite `verdicts.<arm>.observed` or `phases.<arm>`
 x191-20261006-191554,constants,the driver's constants,"Settings of the driver (waits, caps, the move position), not readings.",
 x191-20261006-191554,baseline,"ticks 10.003..., 10.052..., 10.002...","Copied from x183b-20261006-175149, not this run.",cite that run's own file
 x191-20261006-191554,deviations,the driver's list,Written before the boot; not readings.,
 x191-20261006-191554,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<arm>.observed`
 x191-20261006-191554,phases.BC.C.*.first.after,0,"The driver's own write of 0 inside its lua.setpath read, not a reading.",cite the `.before` or `.value` beside it
 x191-20261006-191554,phases.BC.C.*.restored,the written-back value,"The driver's own write restoring the field, not a reading.",cite the `.before` or `.value` beside it
-x191-20261006-191554,phases.A.A3.action.set_remove.traitList,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A3.pairs`
-x191-20261006-191554,phases.A.A3.action.push.traitList,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A3.pairs`
-x191-20261006-191554,phases.BC.C.setY,ok true,"The call did not raise; not the position it left.",cite `phases.BC.C.y_moved.r1`
-x191-20261006-191554,phases.A.A1.action.listBefore,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A1.action.after`
-x191-20261006-191554,phases.A.A2.action.local_remove.listBefore,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A2.pairs`
-x191-20261006-191554,phases.A.A2.action.local_remove.listAfter,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A2.pairs`
-x192-20261006-194648,predictions,the driver's PRED table,"Written before the run; not a reading.",cite `verdicts.<arm>.observed`
+x191-20261006-191554,phases.A.A3.action.set_remove.traitList,{},The empty Lua table the encoder writes as an object; an empty list.,cite `phases.A.A3.pairs`
+x191-20261006-191554,phases.A.A3.action.push.traitList,{},The empty Lua table the encoder writes as an object; an empty list.,cite `phases.A.A3.pairs`
+x191-20261006-191554,phases.BC.C.setY,ok true,The call did not raise; not the position it left.,cite `phases.BC.C.y_moved.r1`
+x191-20261006-191554,phases.A.A1.action.listBefore,{},The empty Lua table the encoder writes as an object; an empty list.,cite `phases.A.A1.action.after`
+x191-20261006-191554,phases.A.A2.action.local_remove.listBefore,{},The empty Lua table the encoder writes as an object; an empty list.,cite `phases.A.A2.pairs`
+x191-20261006-191554,phases.A.A2.action.local_remove.listAfter,{},The empty Lua table the encoder writes as an object; an empty list.,cite `phases.A.A2.pairs`
+x192-20261006-194648,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<arm>.observed`
 x192-20261006-194648,constants,the driver's constants,"Settings of the driver (waits, caps), not readings.",
 x192-20261006-194648,deviations,the driver's list,Written before the run; not readings.,
 x192-20261006-194648,world_changes,the driver's text,Written before the run; not readings.,
 x192-20261006-194648,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<arm>.observed`
 x192-20261006-194648,inputs,the kernel's K.store.INPUTS,"A copy of NR_Kernel_Store.lua taken at the run, not a reading.",cite the kernel file
-x192-20261006-194648,verdicts.B.verdict,falsified,"Falsified only on the layout.ini witness (the fixture's client snapshot carries the file).",cite the clauses in `verdicts.B.observed`
+x192-20261006-194648,verdicts.B.verdict,falsified,Falsified only on the layout.ini witness (the fixture's client snapshot carries the file).,cite the clauses in `verdicts.B.observed`
 x192-20261006-194648,boots.2.death.reduce.after,100,"Read in the call's own tick, before the server applied the death.",cite `verdicts.F.observed.isDead_wall`
-x192-20261006-194648,boots.1.A.set_vitC.after,0.05,"The driver's own write read back.",cite `verdicts.A.observed.record.vitC.p`
-x192-20261006-194648,boots.1.A.set_buffer.after,123.5,"The driver's own write read back.",cite `verdicts.A.observed.record.buffer.calories`
-x192-20261006-194648,boots.2.kill.set_vitC.after,0.07,"The driver's own write read back; the reading is its absence after the kill.",cite `verdicts.KILL.observed.pre3`
-x192-20261006-194648,verdicts.KILL.observed.write.after,0.07,"The driver's own write read back; the reading is its absence after the kill.",cite `verdicts.KILL.observed.pre3.resets`
+x192-20261006-194648,boots.1.A.set_vitC.after,0.05,The driver's own write read back.,cite `verdicts.A.observed.record.vitC.p`
+x192-20261006-194648,boots.1.A.set_buffer.after,123.5,The driver's own write read back.,cite `verdicts.A.observed.record.buffer.calories`
+x192-20261006-194648,boots.2.kill.set_vitC.after,0.07,The driver's own write read back; the reading is its absence after the kill.,cite `verdicts.KILL.observed.pre3`
+x192-20261006-194648,verdicts.KILL.observed.write.after,0.07,The driver's own write read back; the reading is its absence after the kill.,cite `verdicts.KILL.observed.pre3.resets`
 x192-20261006-194648,log_lines.*.wall_seen,walls,"When the tail first saw the line, an upper bound on its time.",
-x192-20261006-194648,boots.*.*.plant_*.after,the planted values,"The driver's own writes read back; not readings of the mod.",
-x192-20261006-194648,boots.1.C.bob_*.after,the planted values,"The driver's own writes read back; not readings of the mod.",
+x192-20261006-194648,boots.*.*.plant_*.after,the planted values,The driver's own writes read back; not readings of the mod.,
+x192-20261006-194648,boots.1.C.bob_*.after,the planted values,The driver's own writes read back; not readings of the mod.,
 x192-20261006-194648,verdicts.*.observed.*_line.wall_seen,walls,"When the tail first saw the line, an upper bound on its time (the log_lines.*.wall_seen reason).",
 x193-20261006-201004,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<arm>.observed`
 x193-20261006-201004,constants,the driver's constants,"Settings of the driver (waits, caps), not readings.",
@@ -650,10 +650,10 @@ x223a-20261007-085224,meta.edit,the edit's description,The driver's own text; no
 x223a-20261007-085224,meta.changed_file,NR_Core.lua's path,The driver's own constant; not a reading.,cite `meta.tree_diff`
 x223a-20261007-085224,meta.harness_commit,aaa51f4,The driver's own constant; not a reading.,cite `harness_py_commit`
 x223a-20261007-085224,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside the grade; not readings.,
-x223a-20261007-085224,verdicts.a.observed.bob_disconnect_evidence,true,"The driver's regex matched settings-table lines (SafetyDisconnectDelay); not a disconnect reading.",cite the bob connection log
+x223a-20261007-085224,verdicts.a.observed.bob_disconnect_evidence,true,The driver's regex matched settings-table lines (SafetyDisconnectDelay); not a disconnect reading.,cite the bob connection log
 x223a-20261007-085224,verdicts.a.observed.server_mismatch_lines,3,"Counts the pattern's matches, which include the server's luaChecksum hash line; not a count of mismatches.",cite `logs.server_mismatch.hits`
 x223a-20261007-085224,verdicts.a.observed.bob_mismatch_lines,1,Counts `client: DoLuaChecksum start/end` lines; not mismatches.,cite `logs.bob_console_tail`
-x223a-20261007-085224,verdicts.a.observed.admin_mismatch_lines,3,"Counts DoLuaChecksum lines (and in boot a an admin-chat echo); not mismatches.",cite `logs.admin_mismatch.hits`
+x223a-20261007-085224,verdicts.a.observed.admin_mismatch_lines,3,Counts DoLuaChecksum lines (and in boot a an admin-chat echo); not mismatches.,cite `logs.admin_mismatch.hits`
 x223a-20261007-085224,live.bob.hits,the settings-table lines,A wide pattern's matches; not checksum lines.,cite `logs.bob_console_tail`
 x223b-20261007-085832,predictions,the driver's PRED table,Written before the run; not a reading.,"cite reads, db, logs.*_mismatch.hits and the log files"
 x223b-20261007-085832,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
@@ -662,15 +662,15 @@ x223b-20261007-085832,meta.edit,the edit's description,The driver's own text; no
 x223b-20261007-085832,meta.changed_file,NR_Core.lua's path,The driver's own constant; not a reading.,cite `meta.tree_diff`
 x223b-20261007-085832,meta.harness_commit,aaa51f4,The driver's own constant; not a reading.,cite `harness_py_commit`
 x223b-20261007-085832,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside the grade; not readings.,
-x223b-20261007-085832,verdicts.b.observed.bob_disconnect_evidence,true,"The driver's regex matched settings-table lines (SafetyDisconnectDelay); not a disconnect reading.",cite the bob connection log
+x223b-20261007-085832,verdicts.b.observed.bob_disconnect_evidence,true,The driver's regex matched settings-table lines (SafetyDisconnectDelay); not a disconnect reading.,cite the bob connection log
 x223b-20261007-085832,verdicts.b.observed.server_mismatch_lines,1,"Counts the pattern's matches, which include the server's luaChecksum hash line; not a count of mismatches.",cite `logs.server_mismatch.hits`
 x223b-20261007-085832,verdicts.b.observed.bob_mismatch_lines,2,Counts `client: DoLuaChecksum start/end` lines; not mismatches.,cite `logs.bob_console_tail`
-x223b-20261007-085832,verdicts.b.observed.admin_mismatch_lines,2,"Counts DoLuaChecksum lines (and in boot a an admin-chat echo); not mismatches.",cite `logs.admin_mismatch.hits`
+x223b-20261007-085832,verdicts.b.observed.admin_mismatch_lines,2,Counts DoLuaChecksum lines (and in boot a an admin-chat echo); not mismatches.,cite `logs.admin_mismatch.hits`
 x223b-20261007-085832,live.bob.hits,the settings-table lines,A wide pattern's matches; not checksum lines.,cite `logs.bob_console_tail`
 x223a-20261007-085224,phases.boot.bob_seen,{},The harness's marker parser saw none of its STATE markers; not a reading of where bob's client stood.,cite the bob connection log
 x223a-20261007-085224,client_seen,bob with no marker,The harness's marker parser saw none of its STATE markers; not a reading of where bob's client stood.,cite the bob connection log
 x223a-20261007-085224,phases.boot.bob_alive_at_end,true,"The process, not the connection.",cite `reads` players_at_end and the server user log
-x223b-20261007-085832,verdicts.b.verdict,falsified,"A defect of the driver's grade: its mismatch pattern matched non-mismatch lines; the observations are the prediction's.",cite `reads` and the server user log
+x223b-20261007-085832,verdicts.b.verdict,falsified,A defect of the driver's grade: its mismatch pattern matched non-mismatch lines; the observations are the prediction's.,cite `reads` and the server user log
 x224-20261007-092319,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
 x224-20261007-092319,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
 x224-20261007-092319,deviations,the driver's list,Written before the run; not readings.,
@@ -21996,10 +21996,10 @@ x422-20261015-034556,constants,the lib's constants,The driver's settings; not a 
 x422-20261015-034556,memory,host free memory rows,"Host state, not a game reading.",
 x422-20261015-034556,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x421-20261015-033735,verdicts.1,as_predicted,"A grade defect: every boost map read empty because the harness walk raised (keySet), so no Fitness boost was a vacuous pass.",`x422-20261015-034556` `verdicts.1`
-x421-20261015-033735,checks.defs.server.Obese.xpBoosts,{},"The harness walk raised and returned an empty map; not a reading of the definition.",`x422-20261015-034556` `checks.defs`
+x421-20261015-033735,checks.defs.server.Obese.xpBoosts,{},The harness walk raised and returned an empty map; not a reading of the definition.,`x422-20261015-034556` `checks.defs`
 x421-20261015-033735,verdicts.2,falsified,"Falsified on admin's unread edits record (the client was parked), not on any edit.",`x422-20261015-034556` `verdicts.2`
-x421-20261015-033735,verdicts.8,falsified,"The phase never ran (the driver stopped before N1); no event was read.",`x422-20261015-034556` `verdicts.8`
-x422-20261015-034556,verdicts.7,unmeasured,"The in-driver grade folds three sources into one verdict; two of them did not separate a silent source from an unrun one.",`checks.S7.pushups`
+x421-20261015-033735,verdicts.8,falsified,The phase never ran (the driver stopped before N1); no event was read.,`x422-20261015-034556` `verdicts.8`
+x422-20261015-034556,verdicts.7,unmeasured,The in-driver grade folds three sources into one verdict; two of them did not separate a silent source from an unrun one.,`checks.S7.pushups`
 x423-20261015-040740,session,the driver's text,Written before the run; not a reading.,
 x423-20261015-040740,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x423-20261015-040740,constants,the lib's constants,The driver's settings; not a reading.,
@@ -22019,7 +22019,7 @@ x425-20261015-042217,memory,host free memory rows,"Host state, not a game readin
 x425-20261015-042217,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x425-20261015-042217,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
 x423-20261015-040740,verdicts.7_melee,falsified,"Falsified as graded on the client's dead target, which the lib counted as a hit; the server logged every hit packet not consistent with weapon null, so no hit reached the server's hit path.",`server-stdout.log:2395-2410`; `x425-20261015-042217`
-x423-20261015-040740,checks.melee.windows[0].result.targetDead,true,"A client read of a target the server's hit path never reached; not hit evidence.",`server-stdout.log:2395-2410`
+x423-20261015-040740,checks.melee.windows[0].result.targetDead,true,A client read of a target the server's hit path never reached; not hit evidence.,`server-stdout.log:2395-2410`
 x423-20261015-040740,reading.vanilla_strength_rate_s4,the driver's comparison constant,"Copied from the research note, not measured.",`verdicts.pushups.observed`
 x431-20261015-051916,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x431-20261015-051916,constants,the lib's constants,The driver's settings; not a reading.,
@@ -22028,7 +22028,7 @@ x431-20261015-051916,steps,the driver steps: every raw bus reply,"Raw replies an
 x431-20261015-051916,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
 x431-20261015-051916,checks.W12.F,the driver's fOfLevel(12.3),"The driver's computed set value, not a reading.",`checks.W12.after.lm`
 x431-20261015-051916,checks.W95.F,the driver's fOfLevel(9.5),"The driver's computed set value, not a reading.",`checks.W95.after.lm`
-x431-20261015-051916,checks.W12.mirror_read.rc0,the client's mirror receive count,"A client counter the request waits on; not a reading.",`checks.W12.mirror_read.body_level`
+x431-20261015-051916,checks.W12.mirror_read.rc0,the client's mirror receive count,A client counter the request waits on; not a reading.,`checks.W12.mirror_read.body_level`
 x432-20261015-052247,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x432-20261015-052247,constants,the lib's constants,The driver's settings; not a reading.,
 x432-20261015-052247,memory,host free memory rows,"Host state, not a game reading.",
@@ -22042,7 +22042,7 @@ x433-20261015-052759,memory,host free memory rows,"Host state, not a game readin
 x433-20261015-052759,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x433-20261015-052759,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
 x433-20261015-052759,verdicts.21_a_state,unmeasured,"Unmeasured as graded: the lib reads a trait list answered as {}, the harness's empty list, as unread.",`x433-regrade-20261015` `verdicts.21_a_state`
-x433-20261015-052759,checks.S.prof_table,the install's profession costs and boosts,"A copy of the install's script table the expectation reads; not a game reading.",`checks.Ca.prof`
+x433-20261015-052759,checks.S.prof_table,the install's profession costs and boosts,A copy of the install's script table the expectation reads; not a game reading.,`checks.Ca.prof`
 x434-20261015-053645,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x434-20261015-053645,constants,the lib's constants,The driver's settings; not a reading.,
 x434-20261015-053645,memory,host free memory rows,"Host state, not a game reading.",
@@ -22050,8 +22050,8 @@ x434-20261015-053645,steps,the driver steps: every raw bus reply,"Raw replies an
 x434-20261015-053645,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
 x434-20261015-053645,checks.day1.placed.ebDay,260,"The set value; ebDay is recomputed every minute as inDay - eeDay, so it did not hold to the close.",`verdicts.22_close1.observed.inputs.E`
 x434-20261015-053645,checks.day2.placed.ebDay,260,"The set value; ebDay is recomputed every minute as inDay - eeDay, so it did not hold to the close.",`verdicts.22_close2.observed.inputs.E`
-x434-20261015-053645,checks.day3.placed.ebDay,260,"The set value on a dead character; no close followed.",`verdicts.22_close3`
-x434-20261015-053645,server_errors,two pzt-cmd.txt read errors,"The harness bus's own file read meeting the driver's write; not a mod or game fault.",`logs.mod_error`
+x434-20261015-053645,checks.day3.placed.ebDay,260,The set value on a dead character; no close followed.,`verdicts.22_close3`
+x434-20261015-053645,server_errors,two pzt-cmd.txt read errors,The harness bus's own file read meeting the driver's write; not a mod or game fault.,`logs.mod_error`
 fit-13-fatgain2-20261015,chosen.values.s1254,0.0020205036817756436,"A log ratio, ln(slope / 125); not a slope.",the slope 125 x e to the value: 125.25 kcal/d per kg of fat
 fit-13-fatgain-20261015,chosen.values.s1254,0.009519265287838224,"A log ratio, ln(slope / 100); not a slope.",the slope 100 x e to the value
 x436-20261015-094119,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
@@ -22059,18 +22059,18 @@ x436-20261015-094119,constants,the lib's constants,The driver's settings; not a 
 x436-20261015-094119,memory,host free memory rows,"Host state, not a game reading.",
 x436-20261015-094119,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x436-20261015-094119,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
-x436-20261015-094119,checks.S.prof_table,the install's profession costs and boosts,"A copy of the install's script table the expectation reads; not a game reading.",`checks.Ca.prof`
+x436-20261015-094119,checks.S.prof_table,the install's profession costs and boosts,A copy of the install's script table the expectation reads; not a game reading.,`checks.Ca.prof`
 x436-20261015-094119,verdicts.36_names,falsified,"Falsified by the driver's own Obese prediction (Obese), a vanilla label not read before the run; the mod's three names read as staged.",`checks.S.labels`
 x435-20261015-101839,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x435-20261015-101839,constants,the lib's constants,The driver's settings; not a reading.,
 x435-20261015-101839,memory,host free memory rows,"Host state, not a game reading.",
 x435-20261015-101839,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings. Their time.snapshot `mult` is getMultiplier, about 4.7 times the true multiplier (#3762).",`checks`
 x435-20261015-101839,checks.S.time.mult,getMultiplier,"The time.snapshot `mult` is getMultiplier, not the true multiplier (#3762).",`checks.S.time.trueMult`
-x435-20261015-101839,server_errors,one pzt-cmd.txt read error,"The harness bus's own file read meeting the driver's write; not a mod or game fault.",`logs.mod_error`
-x435-20261015-101839,checks.day1.placed.inDay_reply,the inDay set's reply,"The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.",`verdicts.35_E1.observed.E`
-x435-20261015-101839,checks.day2.placed.inDay_reply,the inDay set's reply,"The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.",`verdicts.35_E2.observed.E`
-x435-20261015-101839,checks.day3.placed.inDay_reply,the inDay set's reply,"The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.",`verdicts.35_E3.observed.E`
-x435-20261015-101839,checks.day4.placed.inDay_reply,the inDay set's reply,"The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.",`verdicts.35_E4.observed.E`
+x435-20261015-101839,server_errors,one pzt-cmd.txt read error,The harness bus's own file read meeting the driver's write; not a mod or game fault.,`logs.mod_error`
+x435-20261015-101839,checks.day1.placed.inDay_reply,the inDay set's reply,The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.,`verdicts.35_E1.observed.E`
+x435-20261015-101839,checks.day2.placed.inDay_reply,the inDay set's reply,The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.,`verdicts.35_E2.observed.E`
+x435-20261015-101839,checks.day3.placed.inDay_reply,the inDay set's reply,The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.,`verdicts.35_E3.observed.E`
+x435-20261015-101839,checks.day4.placed.inDay_reply,the inDay set's reply,The set value (eeDay + 260 at the set); the close's E is lower by the minutes after it.,`verdicts.35_E4.observed.E`
 x436-20261015-094119,verdict_summary.36_names,a copy of the run's do-not-cite verdict,"The run's own verdict, graded off a prediction or a read the regrade corrects; not a reading.",`x436-regrade-20261015` `verdicts.36_names_mod`
 x436-regrade-20261015,verdicts.36_names_mod.run_verdict_36_names,a copy of the run's do-not-cite verdict,"The run's own verdict, graded off a prediction or a read the regrade corrects; not a reading.",`verdicts.36_names_mod`
 x433-20261015-052759,verdict_summary.21_a_state,a copy of the run's do-not-cite verdict,"The run's own verdict, graded off a prediction or a read the regrade corrects; not a reading.",`x433-regrade-20261015` `verdicts.21_a_state`
@@ -22086,7 +22086,7 @@ x441-20261015-172803,speeds[1].mult,143.48155212402344,"getMultiplier, not the t
 x441-20261015-172803,speeds[2].mult,4.77319860458374,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[2].trueMult`
 x441-20261015-172803,speeds[3].mult,143.6147003173828,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[3].trueMult`
 x441-20261015-172803,speeds[4].mult,4.795438766479492,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[4].trueMult`
-x441-20261015-172803,server_errors,one pzt-cmd.txt read error,"The harness bus's own file read meeting the driver's write; not a game fault.",
+x441-20261015-172803,server_errors,one pzt-cmd.txt read error,The harness bus's own file read meeting the driver's write; not a game fault.,
 x442-20261015-173502,session,the driver's text,Written before the run; not a reading.,
 x442-20261015-173502,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x442-20261015-173502,constants,the lib's constants,The driver's settings; not a reading.,
@@ -22150,8 +22150,8 @@ x445-20261015-175946,speeds[0].mult,4.786447525024414,"getMultiplier, not the tr
 x445-20261015-175946,speeds[1].mult,143.9350128173828,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[1].trueMult`
 x445-20261015-175946,speeds[2].mult,4.785208702087402,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[2].trueMult`
 x445-20261015-175946,speeds[3].mult,4.797118663787842,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[3].trueMult`
-x445-20261015-175946,verdicts.V4_B_decay,unmeasured,"Two of the four beers never landed: the sealed Base.BeerBottle and Base.BeerImported refused the fill (a driver design defect).",
-x445-20261015-175946,verdicts.V4_B_zero,unmeasured,"Two of the four beers never landed: the sealed Base.BeerBottle and Base.BeerImported refused the fill (a driver design defect).",
+x445-20261015-175946,verdicts.V4_B_decay,unmeasured,Two of the four beers never landed: the sealed Base.BeerBottle and Base.BeerImported refused the fill (a driver design defect).,
+x445-20261015-175946,verdicts.V4_B_zero,unmeasured,Two of the four beers never landed: the sealed Base.BeerBottle and Base.BeerImported refused the fill (a driver design defect).,
 x446-20261015-180608,session,the driver's text,Written before the run; not a reading.,
 x446-20261015-180608,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x446-20261015-180608,constants,the lib's constants,The driver's settings; not a reading.,
@@ -22162,7 +22162,7 @@ x446-20261015-180608,speeds[0].mult,23.90497589111328,"getMultiplier, not the tr
 x446-20261015-180608,speeds[1].mult,4.784737586975098,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[1].trueMult`
 x446-20261015-180608,speeds[2].mult,23.87346076965332,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[2].trueMult`
 x446-20261015-180608,speeds[3].mult,4.7718915939331055,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[3].trueMult`
-x446-20261015-180608,server_errors,one pzt-cmd.txt read error,"The harness bus's own file read meeting the driver's write; not a mod or game fault.",
+x446-20261015-180608,server_errors,one pzt-cmd.txt read error,The harness bus's own file read meeting the driver's write; not a mod or game fault.,
 x445b-20261015-181249,session,the driver's text,Written before the run; not a reading.,
 x445b-20261015-181249,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x445b-20261015-181249,constants,the lib's constants,The driver's settings; not a reading.,
@@ -22192,15 +22192,15 @@ x447-20261015-181709,speeds[11].mult,4.7761454582214355,"getMultiplier, not the 
 x447-20261015-181709,speeds[12].mult,23.843534469604492,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[12].trueMult`
 x447-20261015-181709,speeds[13].mult,4.7930121421813965,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[13].trueMult`
 x447-20261015-181709,speeds[14].mult,4.7797698974609375,"getMultiplier, not the true multiplier (#3762); the row's `trueMult` and `ok` are the reading.",`speeds[14].trueMult`
-x447-20261015-181709,server_errors,one pzt-cmd.txt read error,"The harness bus's own file read meeting the driver's write; not a mod or game fault.",
-x447-20261015-181709,verdicts.M2_replay_HUNGER,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
-x447-20261015-181709,verdicts.M2_replay_body.energyState,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
-x447-20261015-181709,verdicts.M2_replay_THIRST,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
-x447-20261015-181709,verdicts.M2_replay_acute.caf,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
-x447-20261015-181709,verdicts.M2_replay_acute.bac,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
-x447-20261015-181709,verdicts.M2_replay_acute.hang,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
-x447-20261015-181709,verdicts.M2_hangover,falsified,"Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.",
-x447-20261015-181709,verdicts.M2_replay_acute.debtH,as_predicted,"Trivial: acute.debtH read 0 on both sides on every row.",
+x447-20261015-181709,server_errors,one pzt-cmd.txt read error,The harness bus's own file read meeting the driver's write; not a mod or game fault.,
+x447-20261015-181709,verdicts.M2_replay_HUNGER,falsified,Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.,
+x447-20261015-181709,verdicts.M2_replay_body.energyState,falsified,Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.,
+x447-20261015-181709,verdicts.M2_replay_THIRST,falsified,Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.,
+x447-20261015-181709,verdicts.M2_replay_acute.caf,falsified,Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.,
+x447-20261015-181709,verdicts.M2_replay_acute.bac,falsified,Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.,
+x447-20261015-181709,verdicts.M2_replay_acute.hang,falsified,Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.,
+x447-20261015-181709,verdicts.M2_hangover,falsified,Falsified by the replay's missing inputs: five drinks drunk live failed the fill gate on a stale probe (the undrunk second coffee's cup) and left the replay; not a grade of the kernel.,
+x447-20261015-181709,verdicts.M2_replay_acute.debtH,as_predicted,Trivial: acute.debtH read 0 on both sides on every row.,
 x447-20261015-181709,drinks[2].fill_ok,false,"The fill read ok; the gate failed on the probe's first container, the undrunk second coffee's cup.",`drinks[2].fill`
 x447-20261015-181709,drinks[3].fill_ok,false,"The fill read ok; the gate failed on the probe's first container, the undrunk second coffee's cup.",`drinks[3].fill`
 x447-20261015-181709,drinks[4].fill_ok,false,"The fill read ok; the gate failed on the probe's first container, the undrunk second coffee's cup.",`drinks[4].fill`
@@ -22212,21 +22212,21 @@ x447-regrade-20261015,verdicts.M2r_THIRST.run_verdict,a copy of the run's do-not
 x447-regrade-20261015,verdicts.M2r_acute.caf.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded on a replay without five live drinks; not a reading.",`verdicts.M2r_acute.caf`
 x447-regrade-20261015,verdicts.M2r_acute.bac.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded on a replay without five live drinks; not a reading.",`verdicts.M2r_acute.bac`
 x447-regrade-20261015,verdicts.M2r_acute.hang.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded on a replay without five live drinks; not a reading.",`verdicts.M2r_acute.hang`
-x447-regrade-20261015,verdicts.M2r_acute.debtH.run_verdict,a copy of the run's verdict,"The run's own (trivial) verdict; not a reading.",
+x447-regrade-20261015,verdicts.M2r_acute.debtH.run_verdict,a copy of the run's verdict,The run's own (trivial) verdict; not a reading.,
 x447-regrade-20261015,verdicts.M2r_hangover.run_verdict,a copy of the run's do-not-cite verdict,"The run's own verdict, graded on a replay without five live drinks; not a reading.",`verdicts.M2r_hangover`
-x447-regrade-20261015,verdicts.M2r_acute.debtH,as_predicted,"Trivial: acute.debtH read 0 on both sides on every row.",
-x447-20261015-181709,replay.fields,the run replay's field stats,"The replay without five live-drunk drinks; not a grade of the kernel.",`x447-regrade-20261015` `replay.fields`
+x447-regrade-20261015,verdicts.M2r_acute.debtH,as_predicted,Trivial: acute.debtH read 0 on both sides on every row.,
+x447-20261015-181709,replay.fields,the run replay's field stats,The replay without five live-drunk drinks; not a grade of the kernel.,`x447-regrade-20261015` `replay.fields`
 x447-20261015-181709,checks.X.nights[0].booked,0.26607513427734375,"The driver's poll of acute.sleptH, the unbroken asleep run the mod zeroes on every awake drain (the hold's isAsleep misses about one drain in six, #2840); not the mod's sleep booking, which was 41.0 game hours asleep over the night (Plan 16 Task 7).",the ring pages' `acute.sleptH` rows by `dtM`, and `acute.winSleptH`
 x447-20261015-181709,checks.X.nights[0].booked_h,0.26607513427734375,"The driver's poll of acute.sleptH, the unbroken asleep run the mod zeroes on every awake drain (the hold's isAsleep misses about one drain in six, #2840); not the mod's sleep booking, which was 41.0 game hours asleep over the night (Plan 16 Task 7).",the ring pages' `acute.sleptH` rows by `dtM`, and `acute.winSleptH`
-x447-regrade-20261015,verdicts.REP.observed.run_fields,a copy of the run replay's field stats,"The replay without five live-drunk drinks; not a grade of the kernel.",`replay.fields`
-x447-regrade-20261015,verdicts.REP.observed.rebuilt_fields,the rebuilt run replay's field stats,"The replay without five live-drunk drinks; not a grade of the kernel.",`replay.fields`
+x447-regrade-20261015,verdicts.REP.observed.run_fields,a copy of the run replay's field stats,The replay without five live-drunk drinks; not a grade of the kernel.,`replay.fields`
+x447-regrade-20261015,verdicts.REP.observed.rebuilt_fields,the rebuilt run replay's field stats,The replay without five live-drunk drinks; not a grade of the kernel.,`replay.fields`
 x451-20261016-131617,session,the driver's text,Written before the run; not a reading.,
 x451-20261016-131617,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x451-20261016-131617,constants,the lib's constants,The driver's settings; not a reading.,
 x451-20261016-131617,memory,host free memory rows,"Host state, not a game reading.",
-x451-20261016-131617,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`readings` and `windows`
+x451-20261016-131617,steps,the driver steps: every raw bus reply,Raw replies and the driver's bus timing; not readings.,`readings` and `windows`
 x451-20261016-131617,verdicts.LW_B.observed.slope_per_s,0.0,"The driver's assumed slope for B (health held), not a reading.",`windows.B`
-x451-20261016-131617,readings.const_writes[*].set.value,nil,"The setter's void return; the reading is the getter's.",`readings.const_writes[*].get.value`
+x451-20261016-131617,readings.const_writes[*].set.value,nil,The setter's void return; the reading is the getter's.,`readings.const_writes[*].get.value`
 x452-20261017-071527,session,the driver's text,Written before the run; not a reading.,
 x452-20261017-071527,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x452-20261017-071527,constants,the lib's constants,The driver's settings and the prerun's bands; not a reading.,
@@ -22239,14 +22239,14 @@ x453-20261017-072518,session,the driver's text,Written before the run; not a rea
 x453-20261017-072518,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x453-20261017-072518,constants,the lib's constants,The driver's settings; not a reading.,
 x453-20261017-072518,memory,host free memory rows,"Host state, not a game reading.",
-x453-20261017-072518,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
+x453-20261017-072518,steps,the driver steps: every raw bus reply,Raw replies and the driver's bus timing; not readings.,`checks`
 x453-20261017-072518,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
 x453-20261017-072518,verdicts.OF_REACH,falsified,"The session's eat cycle (about 7 game minutes) outlasted the prediction's 3, so the stomach never reached Overfull 4; not a reading of the bridge.",`checks.X.eats`
 x454-20261017-073220,session,the driver's text,Written before the run; not a reading.,
 x454-20261017-073220,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x454-20261017-073220,constants,the lib's constants,The driver's settings; not a reading.,
 x454-20261017-073220,memory,host free memory rows,"Host state, not a game reading.",
-x454-20261017-073220,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
+x454-20261017-073220,steps,the driver steps: every raw bus reply,Raw replies and the driver's bus timing; not readings.,`checks`
 x454-20261017-073220,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
 x454-20261017-073220,verdicts.ONSET.verdict,falsified,"Graded on ring ages, one row ahead of the record; on the record's drain.starvedH the onset grades as predicted.",`minute-ring-admin-1.json` rows' `drain.starvedH`; `x45g-onset-regrade-20261017`
 x454-20261017-073220,verdicts.PAIRS_hungry.verdict,falsified,"One client read at the new level ahead of the last server read before it, the pair's own later server read outside the 0.3 s slack; not a reading of the sync.",`verdicts.PAIRS_hungry.observed.mismatches`
@@ -22254,28 +22254,28 @@ x455-20261017-073633,session,the driver's text,Written before the run; not a rea
 x455-20261017-073633,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x455-20261017-073633,constants,the lib's constants,The driver's settings; not a reading.,
 x455-20261017-073633,memory,host free memory rows,"Host state, not a game reading.",
-x455-20261017-073633,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
+x455-20261017-073633,steps,the driver steps: every raw bus reply,Raw replies and the driver's bus timing; not readings.,`checks`
 x455-20261017-073633,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
 x455-20261017-073633,verdicts.ONSET.verdict,falsified,"Graded on ring ages, one row ahead of the record; on the record's drain.starvedH the onset grades as predicted.",`minute-ring-admin-1.json` rows' `drain.starvedH`; `x45g-onset-regrade-20261017`
 x456-20261017-074015,session,the driver's text,Written before the run; not a reading.,
 x456-20261017-074015,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x456-20261017-074015,constants,the lib's constants,The driver's settings; not a reading.,
 x456-20261017-074015,memory,host free memory rows,"Host state, not a game reading.",
-x456-20261017-074015,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
+x456-20261017-074015,steps,the driver steps: every raw bus reply,Raw replies and the driver's bus timing; not readings.,`checks`
 x456-20261017-074015,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
 x456-20261017-074015,verdicts.PAIRS_thirst.verdict,falsified,"One client read at the new level ahead of the last server read before it, the pair's own later server read outside the 0.3 s slack; not a reading of the sync.",`verdicts.PAIRS_thirst.observed.mismatches`
 x457-20261017-074403,session,the driver's text,Written before the run; not a reading.,
 x457-20261017-074403,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x457-20261017-074403,constants,the lib's constants,The driver's settings; not a reading.,
 x457-20261017-074403,memory,host free memory rows,"Host state, not a game reading.",
-x457-20261017-074403,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
+x457-20261017-074403,steps,the driver steps: every raw bus reply,Raw replies and the driver's bus timing; not readings.,`checks`
 x457-20261017-074403,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
 x455-20261017-073633,verdicts.N_BLEED.observed.predicted_per_gh,35.66311058183672,"The driver's prediction from x451's wound term and the whole constant, not vanilla's measured rate.",`verdicts.N_BLEED.observed.rate_per_gh`
-x455-20261017-073633,verdicts.N_BLEED.verdict,falsified,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
-x455-20261017-073633,verdicts.N_BLEED.observed.rel_err,-0.7043519559486223,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
-x455-20261017-073633,verdicts.S_BLEED.verdict,falsified,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
-x455-20261017-073633,verdicts.S_BLEED.observed.excess_per_gh,24.895102185147667,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
-x455-20261017-073633,verdicts.S_BLEED.observed.bias_bound_per_gh,0.12705882352941178,"N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.",`checks.windows.N` and `checks.windows.SB`
+x455-20261017-073633,verdicts.N_BLEED.verdict,falsified,N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.,`checks.windows.N` and `checks.windows.SB`
+x455-20261017-073633,verdicts.N_BLEED.observed.rel_err,-0.7043519559486223,N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.,`checks.windows.N` and `checks.windows.SB`
+x455-20261017-073633,verdicts.S_BLEED.verdict,falsified,N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.,`checks.windows.N` and `checks.windows.SB`
+x455-20261017-073633,verdicts.S_BLEED.observed.excess_per_gh,24.895102185147667,N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.,`checks.windows.N` and `checks.windows.SB`
+x455-20261017-073633,verdicts.S_BLEED.observed.bias_bound_per_gh,0.12705882352941178,N ran under the food heal (foodTimer 971); not a reading of vanilla's bleed term or of the re-apply's size.,`checks.windows.N` and `checks.windows.SB`
 x455-20261017-073633,verdicts.S_BLEED.observed.starve_per_gh,1.0416666666666667,"The driver's 25 / 24, not a reading.",`checks.windows.N` and `checks.windows.SB`
 x455-20261017-073633,verdicts.S_BLEED.observed.tol_per_gh,4.454999975860119,"The driver's tolerance, not a reading.",`checks.windows.N` and `checks.windows.SB`
 x455-regrade-20261017,verdicts.SB_ABS.observed.predicted_per_gh,36.70477724850338,"The prediction's arithmetic, not a reading.",`verdicts.SB_ABS.observed.rate_per_gh`
@@ -22284,9 +22284,9 @@ x453b-20261017-080807,session,the driver's text,Written before the run; not a re
 x453b-20261017-080807,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x453b-20261017-080807,constants,the frozen lib's constants,The driver's settings; not a reading.,`constants_x45h`
 x453b-20261017-080807,memory,host free memory rows,"Host state, not a game reading.",
-x453b-20261017-080807,steps,the driver steps: every raw bus reply,"Raw replies and the driver's bus timing; not readings.",`checks`
+x453b-20261017-080807,steps,the driver steps: every raw bus reply,Raw replies and the driver's bus timing; not readings.,`checks`
 x453b-20261017-080807,speeds[*].mult,getMultiplier,"getMultiplier, not the true multiplier (#3762).",`speeds[*].trueMult`
-x453b-20261017-080807,verdicts.OF_REFUSE.verdict,falsified,"The harness queues the eat whatever isValidStart answers; the verdict is not a reading of the menu's refusal.",`checks.X.refusal`
+x453b-20261017-080807,verdicts.OF_REFUSE.verdict,falsified,The harness queues the eat whatever isValidStart answers; the verdict is not a reading of the menu's refusal.,`checks.X.refusal`
 x452b-20261017-153935,session,the driver's text,Written before the run; not a reading.,
 x452b-20261017-153935,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x452b-20261017-153935,constants,the lib's constants,The driver's settings and the prerun's bands; not a reading.,
@@ -22414,7 +22414,7 @@ x482-20261020-071425,steps,the bus steps,"Plumbing: every bus call and its reply
 x481-20261020-070821,verdicts.OPEN_SLOPE.observed.pred,3.5286149962487285,The kernel formula's slope for the ring's bmi0; not a reading.,`verdicts.OPEN_SLOPE.observed.live`
 x481-20261020-070821,verdicts.OPEN_SLOPE.observed.slope0,3.5422538904582876,The kernel formula's slope at the onset; not a reading.,`verdicts.OPEN_SLOPE.observed.live`
 x481-20261020-070821,verdicts.OPEN_SLOPE.observed.body_ratio,0.9938983979961523,The formula's body scaling; not a reading.,`verdicts.OPEN_SLOPE.observed.bmi0`
-x481-20261020-070821,checks.open,the opening computation,"The live slope beside the kernel formula's; only its live leaf is a reading.",`verdicts.OPEN_SLOPE.observed.live`
+x481-20261020-070821,checks.open,the opening computation,The live slope beside the kernel formula's; only its live leaf is a reading.,`verdicts.OPEN_SLOPE.observed.live`
 x481-20261020-070821,verdicts.FOLLOW.observed.arm_on,94.68595558654495,The HEAD replay's target; not the live game's.,`verdicts.FOLLOW.observed.target`
 x481-20261020-070821,verdicts.FOLLOW.observed.arm_off,95.04377557603152,The HEAD replay's target without the switch; not the live game's.,`verdicts.FOLLOW.observed.target`
 x481-20261020-070821,verdicts.BERI_ON.observed.lag_gm,0.6661605834960938,"Measured from set_age, the age read after the record.set reply; ring row s 86 already shows p 0.3, so the write landed before s 86's read and s 87 came 1.09 to 1.20 game minutes after it.",ring rows s 86 and s 87 `age` and `checks.B.set_p.age_before`
@@ -22438,7 +22438,7 @@ x484-20261020-142509,predictions,the driver's PRED table,Written before the run;
 x484-20261020-142509,constants,x48b_lib's constants,The driver's settings; not a reading.,
 x484-20261020-142509,constants_x48b,x48b_lib's constants,The driver's settings; not a reading.,
 x484-20261020-142509,constants_x48_phases,x48_lib's phase constants,The driver's settings; not a reading.,
-x484-20261020-142509,prerun_x48b,x48b_prerun.json's session block,"The HEAD replay written before the run; not a live reading.",`verdicts.<name>.observed`
+x484-20261020-142509,prerun_x48b,x48b_prerun.json's session block,The HEAD replay written before the run; not a live reading.,`verdicts.<name>.observed`
 x484-20261020-142509,meta.budget_s,the driver's budget,The driver's own budget; not a reading.,
 x484-20261020-142509,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,`verdicts.<name>.observed`
 x484-20261020-142509,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
@@ -22457,7 +22457,7 @@ x485-20261020-213026,meta.budget_s,510.0,The driver's own budget; not a reading.
 x485-20261020-213026,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,`verdicts.<name>.observed`
 x485-20261020-213026,verdicts.*.falsifier,the driver's falsifiers,Written before the run; not readings.,`verdicts.<name>.observed`
 x485-20261020-213026,readings.client_server_options.predicted,the declared defaults 3 and 2,The driver's prediction beside the reading; not a reading.,`readings.client_server_options.admin` and `.bob`
-x485-20261020-213026,preboot.keys_at_commit,the two keys' texts,"Read from mod/'s UI.json at 4ff68475 before the boot; not a live reading.",`text_sets.*.admin`
+x485-20261020-213026,preboot.keys_at_commit,the two keys' texts,Read from mod/'s UI.json at 4ff68475 before the boot; not a live reading.,`text_sets.*.admin`
 x485-20261020-213026,logs.bob_connections.force_any,one force-disconnect exit line,"The teardown's own quit, not a kick.",`logs.bob_connections.force_checksum`
 x491-20261021-061440,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x491-20261021-061440,constants,the lib's constants,"Settings of the driver, not readings.",
@@ -22492,7 +22492,7 @@ x493-20261021-062610,verdicts.P4_CLIMB.observed.hi,9.10656e-05,"END_REGEN_UNIT x
 x493-20261021-062610,verdicts.P4_CLIMB.observed.median_over_base,1.1805629636517696,A ratio to a constant; not a reading.,`verdicts.P4_CLIMB.observed.median_per_unit`
 x493-20261021-062610,verdicts.P4_TIGHT.observed.margin,0.0020000000000000018,0.75 minus the cap; not a reading.,
 x493-20261021-062610,verdicts.P4_TIGHT.observed.flip_predicted,true,The grade's prediction from the climb; not a reading.,`verdicts.P4_TIGHT.observed.flip_seen`
-x492-20261021-062157,notes[1],"RELOG: admin never left the server inside the cap; no rejoin",The depart poll's misreading of the players reply {}; admin had left.,`readings.RESTART.set.r2`
+x492-20261021-062157,notes[1],RELOG: admin never left the server inside the cap; no rejoin,The depart poll's misreading of the players reply {}; admin had left.,`readings.RESTART.set.r2`
 x494-20261021-121229,predictions,the driver's PRED table,Written before the run; not a reading.,`verdicts.<name>.observed`
 x494-20261021-121229,constants,the lib's constants,"Settings of the driver, not readings.",
 x494-20261021-121229,constants_x49b,the lib's constants,"Settings of the driver, not readings.",
@@ -22653,47 +22653,47 @@ x505-20261023-085935,verdicts.T7_2.observed.restored_want,2.499999793039436,"The
 x505-20261023-085935,verdicts.T7_2.observed.restored_readtime,12.499999793039436,"The restore's target plus the stale term, computed for the grade; not a reading.",`checks.T72.eat.item1.fields`
 x505-20261023-085935,verdicts.T7_2.observed.lowered,8.83333342991493,x503's lowered value recomputed at these reads for the falsifier; not a reading.,`checks.T72.eat.citem1.fields`
 a_pipe-20261026-101003,readings.motion[*] (cmdSeq 28–38),failed stuck / a timeout,"A defect reading: the character was dying (28) or dead (29–38); cite the failure and its cause (the guide), never a latency.",
-a_pipe-20261026-101003,cmd_motion_p90_ms,Infinity,"Nine of twenty legs unpaired because the character was dead; not a latency.",readings.motion[*].cmd_motion_host_ms for cmdSeq 19–27 (this run's live legs only)
+a_pipe-20261026-101003,cmd_motion_p90_ms,Infinity,Nine of twenty legs unpaired because the character was dead; not a latency.,readings.motion[*].cmd_motion_host_ms for cmdSeq 19–27 (this run's live legs only)
 a_pipe-20261026-101003,readings.rates.5.tickMs p99,2,"Quantised to a 1 ms clock: a 2 is 1–2 ms; cite as a bound, never as a value.",
 a_pipe-20261026-101003,readings.server[*].rttMs,1509.0 / 2011.8 / 1762.9,"n = 3, taken with the character dead.",
 a_pipe-20261026-101003,readings.server[*].ack.mult,4.799…,"getMultiplier, not the true multiplier (#3762).",
-a_pipe-20261026-101003,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+a_pipe-20261026-101003,"constants, preboot, profile, fixture, argv",the driver's tables,Written before the run; not readings.,
 a_pipe_2-20261026-115846,readings.rates.*.tickMs and every cost.*Ms,integers 0–3,"Quantised to a 1 ms clock: a p99 of 2 is 1–2 ms; cite as a bound or the window mean, never a per-frame value.",
 a_pipe_2-20261026-115846,scan15_ms_max,45,"The pass-2 emit shape: the whole 99 KB scan line written in one tick; superseded by pass 3's parts. Cite as the one-tick emit cost of a 99 KB line, not as the scan's cost.",readings.scans.15[*].scanMsPerTick and scanEmitMs
 a_pipe_2-20261026-115846,readings.motion[0] and readings.motion[1],failed stuck / 3661 ms,"The first leg is a false stuck from pass 2's progress rule on a path that grows round the house; the second queued behind that leg's leftover walk. Defect readings, fixed in pass 3.",readings.motion[2..19]
-a_pipe_2-20261026-115846,readings.server[*].rttMs,—,"n = 3.",
-a_pipe_2-20261026-115846,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+a_pipe_2-20261026-115846,readings.server[*].rttMs,—,n = 3.,
+a_pipe_2-20261026-115846,"constants, preboot, profile, fixture, argv",the driver's tables,Written before the run; not readings.,
 a_pipe_3-20261026-130558,readings.rates.*.tickMs and every cost.*Ms,integers 0–3,"Quantised to a 1 ms clock; cite the rate-60 window mean (0.482 ms) or a bound, never a per-frame value.",readings.rate60.tick_mean_ms_at60
 a_pipe_3-20261026-130558,cmd_motion_p90_ms and the +x legs' cmd_motion_host_ms,8130 / 7468–8555,"The direction-based first-motion measure on a detour: the walk started 77–180 ms after the ack and went south-west and north round the house before heading east. A measurement-definition reading, never a latency.",the −x legs (0.4–0.5 s) and the ack→first-position-change figures in the guide
-a_pipe_3-20261026-130558,cmd_motion_n,19,"The motion phase stopped on the 560 s budget after 19 of 20 legs.",
-a_pipe_3-20261026-130558,readings.server[*].rttMs,—,"n = 3.",
-a_pipe_3-20261026-130558,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+a_pipe_3-20261026-130558,cmd_motion_n,19,The motion phase stopped on the 560 s budget after 19 of 20 legs.,
+a_pipe_3-20261026-130558,readings.server[*].rttMs,—,n = 3.,
+a_pipe_3-20261026-130558,"constants, preboot, profile, fixture, argv",the driver's tables,Written before the run; not readings.,
 a_pipe_4-20261026-181848,readings.rates.*.tickMs and every cost.*Ms,integers 0–7,"Quantised to a 1 ms clock; cite the rate-60 window mean (0.794 ms) or a bound, never a per-frame value.",readings.rate60.tick_mean_ms_at60
-a_pipe_4-20261026-181848,cmd_motion_p90_ms and the +x legs' first_motion,7629 / 7457–8578,"The direction-based first-motion measure on the agent0 detour (pass 3's reading repeated); ungraded in gate_a4; never a latency.",cmd_move_p90_ms (ack to first position change, 195) and the per-leg first_move
+a_pipe_4-20261026-181848,cmd_motion_p90_ms and the +x legs' first_motion,7629 / 7457–8578,The direction-based first-motion measure on the agent0 detour (pass 3's reading repeated); ungraded in gate_a4; never a latency.,cmd_move_p90_ms (ack to first position change, 195) and the per-leg first_move
 a_pipe_4-20261026-181848,the per-rate means' difference from pass 3's,0.15–0.31 ms,"A difference between two sessions on one host with the tick Lua unchanged between them; unattributed (host state as likely as code), so never a cost.",the run's own means with their 1 ms-clock caveat
-a_pipe_4-20261026-181848,readings.server[*].rttMs,—,"n = 3.",
-a_pipe_4-20261026-181848,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+a_pipe_4-20261026-181848,readings.server[*].rttMs,—,n = 3.,
+a_pipe_4-20261026-181848,"constants, preboot, profile, fixture, argv",the driver's tables,Written before the run; not readings.,
 b_actions-20261026-183143,readings.reps[*].steps[*].ms for eat,4778–4914,"The eat action's own duration plus the queue; a timed-action length, not a link latency.",
 b_actions-20261026-183143,readings.reps[*].server_eat.before.hunger and resets,0.30,"Set by the harness (foodtimer.set 0; stats.set hunger 0.3) before each eat so the eat could land: a prepared character, not a reading.",server_eat.after (the eat seen: hunger fell, calories rose)
 b_actions-20261026-183143,"the DrinkingGlass, Bleach and Dogfood item facts in the guide",—,"Read off the install's item scripts for the guide's cause analysis, not off the run.",
-b_actions-20261026-183143,"spawned, world_changes.writes",the harness's writes,"RCON additem of Base.WaterBottle x5 and Base.Apple x5 and the pre-eat stat writes; not readings.",
-b_actions-20261026-183143,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
-c_survive-20261026-183905,loop.cost.p50 and p99 and every per-frame cost,1 / 2,"Quantised to a 1 ms clock; cite the mean (0.786 ms) or a bound.",the mean in the guide
+b_actions-20261026-183143,"spawned, world_changes.writes",the harness's writes,RCON additem of Base.WaterBottle x5 and Base.Apple x5 and the pre-eat stat writes; not readings.,
+b_actions-20261026-183143,"constants, preboot, profile, fixture, argv",the driver's tables,Written before the run; not readings.,
+c_survive-20261026-183905,loop.cost.p50 and p99 and every per-frame cost,1 / 2,Quantised to a 1 ms clock; cite the mean (0.786 ms) or a bound.,the mean in the guide
 c_survive-20261026-183905,loop.last_decisions,the log's last ten lines,"A log excerpt kept for the death read, not a reading; decision.log is the record.",
-c_survive-20261026-183905,the cause of the health fall over game minutes 574–587,100 -> 74.55,"The frames carry no body-part damage or wound state; no zombie within 12 tiles on any frame of the span; the cause is unread.",
-c_survive-20261026-183905,"readings.start_kit, world_changes",the harness's writes,"RCON additem of Base.BaseballBat and weapon.equip; not readings.",
-c_survive-20261026-183905,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+c_survive-20261026-183905,the cause of the health fall over game minutes 574–587,100 -> 74.55,The frames carry no body-part damage or wound state; no zombie within 12 tiles on any frame of the span; the cause is unread.,
+c_survive-20261026-183905,"readings.start_kit, world_changes",the harness's writes,RCON additem of Base.BaseballBat and weapon.equip; not readings.,
+c_survive-20261026-183905,"constants, preboot, profile, fixture, argv",the driver's tables,Written before the run; not readings.,
 b_actions_2-20261026-194009,readings.reps[*].steps[*].ms for eat,5029–9670,"The eat action's own duration plus the queue; a timed-action length, not a link latency.",
 b_actions_2-20261026-194009,readings.reps[*].server_eat.before.hunger and resets,0.30,"Set by the harness before each eat (foodtimer.set 0; stats.set hunger 0.3): a prepared character, not a reading.",server_eat.after (the eat seen)
 b_actions_2-20261026-194009,the freezer at 11000 9697 reading empty then 7 items; rep 5 moved=4 against three item_added events,—,"Observations the run cannot explain; recorded in the guide, never cited.",
-b_actions_2-20261026-194009,"spawned, world_changes.writes",the harness's writes,"RCON additem of Base.WaterBottle x5 and Base.Apple x5 and the pre-eat stat writes; not readings.",
-b_actions_2-20261026-194009,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
-c_survive_2-20261026-195516,loop.cost.p50 and p99 and every per-frame cost,1 / 2,"Quantised to a 1 ms clock; cite the mean or a bound.",the mean in the guide
-c_survive_2-20261026-195516,loop.last_decisions,the log's last ten lines,"A log excerpt kept for the death read; decision.log is the record.",
+b_actions_2-20261026-194009,"spawned, world_changes.writes",the harness's writes,RCON additem of Base.WaterBottle x5 and Base.Apple x5 and the pre-eat stat writes; not readings.,
+b_actions_2-20261026-194009,"constants, preboot, profile, fixture, argv",the driver's tables,Written before the run; not readings.,
+c_survive_2-20261026-195516,loop.cost.p50 and p99 and every per-frame cost,1 / 2,Quantised to a 1 ms clock; cite the mean or a bound.,the mean in the guide
+c_survive_2-20261026-195516,loop.last_decisions,the log's last ten lines,A log excerpt kept for the death read; decision.log is the record.,
 c_survive_2-20261026-195516,the cause of the health fall over game minutes 568–578,100 -> 74.56,"The frames carry no body-part damage, wound or carried-weight state; the onset at the 37th inventory item (the 29th looted) is a correlation in two runs, not a cause.",
 c_survive_2-20261026-195516,whether the fight's swings landed,—,"DoAttack is not a queued action and the frame carries no zombie health; the closing step is readable, the swing is not.",
-c_survive_2-20261026-195516,"readings.start_kit, world_changes",the harness's writes,"RCON additem of Base.BaseballBat and weapon.equip; not readings.",
-c_survive_2-20261026-195516,"constants, preboot, profile, fixture, argv",the driver's tables,"Written before the run; not readings.",
+c_survive_2-20261026-195516,"readings.start_kit, world_changes",the harness's writes,RCON additem of Base.BaseballBat and weapon.equip; not readings.,
+c_survive_2-20261026-195516,"constants, preboot, profile, fixture, argv",the driver's tables,Written before the run; not readings.,
 p22_probe-20261027-032502,readings.motor.*.cmd_move_ms,42–776,"Frame-quantised: frames 6 ticks (about 100 ms) apart at rate 10; cite as within one to eight frame periods of the ack, never as the walk's start time.",readings.motor.*.first_move.seq
 p22_probe-20261027-032502,readings.motor.legs[*].flags.running and flags.sprinting and flags.updRunning as gait,47–48 of 48–49 frames on the setrun legs,A run flag set from OnTick still reads true when the frame and the next OnPlayerUpdate read it while the gait is a walk; never a gait reading.,readings.motor.paces
 p22_probe-20261027-032502,readings.motor.autowalk[0].pace,1.942729086686262,"Voided: the leg left the checked strip past B; its heading is kept, its pace is out of every grade.",readings.motor.autowalk[5].pace
@@ -22782,7 +22782,7 @@ x4_link_3-20261028-101928,readings.scan.mapMs and readings.final_scan.scan.mapMs
 x4_link_3-20261028-101928,readings.server.stats.ack.mult,4.794972896575928,"getMultiplier, not the true multiplier (#3762).",
 x4_link_3-20261028-101928,every reason and error text (readings.*.act.reason and readings.walk.legs[*].end.reason),empty,"Empty in this run; a text is the driver's or the Lua's message, not a reading.",
 x4_link_3-20261028-101928,"constants, preboot, profile, fixture, argv, memory, memory_wait, world_changes, steps, verify",the driver tables,"Written before or around the run, or the server reading's raw steps; not readings.",
-x5_combat_2-20261028-105844,measure_x5.client_server_agreement.tol as the copies' agreement,0.5,"The tolerance; the size of the agreement is the largest pair_after difference over the 2 pairs (GUIDE.md).",readings.encounters.rows[*].swings[*].pair_after
+x5_combat_2-20261028-105844,measure_x5.client_server_agreement.tol as the copies' agreement,0.5,The tolerance; the size of the agreement is the largest pair_after difference over the 2 pairs (GUIDE.md).,readings.encounters.rows[*].swings[*].pair_after
 x5_combat_2-20261028-105844,readings.encounters.rows[*].health_lost and measure_x5.health_lost as the agent's fight's cost,"23.109, 2.539, 1.453, 1.453, 1.815","Encounter 1 is the one fight; encounters 2-5 ended unpinned behind a closed door with no swing, their fall the wound drain of encounter 1's wounds (about 0.36 per 500 ms, the bleeding records a small part of it; GUIDE.md).",state.log
 x5_combat_2-20261028-105844,"readings.encounters.rows[1..4].killed, measure_x5.kills.per_encounter[1..4] and the attack_started_share over 7 swings as the fight's outcome",false; 5 of 7,"Encounters 2-5 never swung: their zombie stood behind a closed door (square 10725,10629 blockW true) and the pinned Fight read the line blocked (ruling P23-K); the share is encounter 1's.",readings.encounters.rows[0]
 x5_combat_2-20261028-105844,readings.encounters.rows[*].server_tags and measure_x5.server_tags as the damage the character took,"BLEEDING 368, 120, 150, 130, 120","Counts of bleeding records of 0.0028-0.0111 health each, a small part of the wound drain.",readings.encounters.rows[*].health_lost
@@ -22790,11 +22790,11 @@ x5_combat_2-20261028-105844,the swing events' meleeDelay in state.log as a swing
 x5_combat_2-20261028-105844,readings.encounters.rows[*].near.dists finer than a hundredth,"1, 0.78, 1.45, ...",The harness rounds the spawn distance to the hundredth.,readings.encounters.rows[*].seen.dist
 x5_combat_2-20261028-105844,"every reason, why, void, detail and error text (readings.encounters.rows[*].void, actions[*].reason, swings[*].reason, pair_after.why, stop.detail)",—,"The driver's or the Lua's message, not a reading.",
 x5_combat_2-20261028-105844,"constants, preboot, profile, fixture, argv, memory, memory_wait, world_changes, steps, verify",the driver tables,"Written before or around the run, or the bus's raw steps; not readings.",
-e_day-20261028-110422,loop.cost.* and the frames' cost group as a per-tick cost at 10 Hz,"p50 0, p99 1, max 5, over5 295","The 1 ms clock; a 10 Hz frame's tickMs samples the tick before the frame tick (ruling P22-4); cite the X4 sessions for the base's cost.",readings
+e_day-20261028-110422,loop.cost.* and the frames' cost group as a per-tick cost at 10 Hz,"p50 0, p99 1, max 5, over5 295",The 1 ms clock; a 10 Hz frame's tickMs samples the tick before the frame tick (ruling P22-4); cite the X4 sessions for the base's cost.,readings
 e_day-20261028-110422,"every free-text reason, detail and error string (stop.detail, actions[*].reason, goals[*].reason, a string-valued why field of the decision log)",—,"The driver's, the planner's or the Lua's message, not a reading; the decision log's numeric, id and boolean why fields (dist, line, marked, unreachable, reposition, centroid, flee) are readings.",
 e_day-20261028-110422,"constants, preboot, profile, fixture, argv, memory, memory_wait, world_changes, steps, verify, chain",the driver tables,"Written before or around the run, or the bus's raw steps; not readings.",
-e_day-20261028-110422,loop.lineage,null,"A chain's first session has no previous artifact.",
-e_day-20261028-110422,grade_e1.death.check.tagged as the death's explanation,"explained false","The server's BLEEDING records sum 27.0 of the 100 health fall; the wound arm explains the death (grade_e1.death.check.explained_by wound).",grade_e1.death.check.explained
+e_day-20261028-110422,loop.lineage,null,A chain's first session has no previous artifact.,
+e_day-20261028-110422,grade_e1.death.check.tagged as the death's explanation,explained false,The server's BLEEDING records sum 27.0 of the 100 health fall; the wound arm explains the death (grade_e1.death.check.explained_by wound).,grade_e1.death.check.explained
 x5_combat_2-20261028-105844,measure_x5.client_server_agreement.voided as swings the 2 s cap voided,5,"Four by the cap (a2, a3, a4, a9), one (a10) by the kill, its read in time but the zombie dead (GUIDE.md sections 2 and 4).",readings.encounters.rows[0].swings[*].poll_pair
 x5_combat_2-20261028-105844,measure_x5.loop_ms and measure_x5.loop_ms_net as the agent's sight-to-attack loop,"p50 105, p90 155","Only encounter 1's first action was an attack; encounters 2-5's were a reposition walk, and in encounters 1, 2 and 5 the listing frame came before the zombie.near reply, the raw holding 112, 57 and 120 ms of the driver's wait; the agent's own loop read 35-54 ms (GUIDE.md section 4).",readings.encounters.rows[*].listing.ackMs
 x5_combat_2-20261028-105844,readings.encounters.rows[*].swings[*].pre_read_ms as a read's latency,0,No read is taken before a send in this driver; the instrument's wait moved to the pairing wait after a swing's end (GUIDE.md section 4).,readings.encounters.rows[0].swings[*].poll_pair
@@ -22830,11 +22830,17 @@ e_day_3-20261028-153631,grade_e1.load.max_ratio as the load the loot built or th
 e_day_3-20261028-153631,grade_e1.death.window_frames as the frames to the death,126,"Seq 2434 to 2580: one kept frame before the first wound to the last kept frame, one of them after the death frame seq 2576.",grade_e1.death.first_wound_seq
 e_day_3-20261028-153631,state.log frames seq 2598-2615 body.health as the character's health,63.73676300048828,"Read after the death frame's 0 and the inventory's removal (seq 2579-2597), on a dead character (GUIDE.md section 3).",loop.death.frame
 e_day_3-20261028-153631,loop.damage.merged and grade_e1.death.check.server_amount as every record the server wrote to the death,"147, 1.04991478449665",The records' own server times end 3.413 s before the death frame and the poll runs every 5 s; they are every record a poll returned (GUIDE.md section 3).,loop.damage.lost
-e_day_4-20261028-173649,"grade_e1.survived, grade_e1.game_minutes, stop.reason, stop.gameMin and stop.worldAge as the session's outcome","survived, 227, day_cap, 786","The character died at game minute 627 (the inventory removed at seq 4243-4254, the position frozen) and body.health never read 0, so the driver saw no death: the grade and the stop read a dead character looping to the cap (GUIDE.md).",state.log seq 4243-4254 event
+e_day_4-20261028-173649,"grade_e1.survived, grade_e1.game_minutes, stop.reason, stop.gameMin and stop.worldAge as the session's outcome","survived, 227, day_cap, 786","The character died at game minute 627 (the inventory removed at seq 4236-4254, the weapon group null from seq 4255) and body.health never read 0, so the driver saw no death: the grade and the stop read a dead character looping to the cap (GUIDE.md).",state.log seq 4236-4254 event
 e_day_4-20261028-173649,loop.cost.* and the frames' cost group as a per-tick cost at 10 Hz,"p50 0, p99 1, max 3, over5 240",The 1 ms clock; a 10 Hz frame's tickMs samples the tick before the frame tick (ruling P22-4); cite the X4 sessions for the base's cost.,readings
 e_day_4-20261028-173649,"every free-text reason, detail and error string (stop.detail, actions[*].reason, goals[*].reason, a string-valued why field of the decision log)",—,"The driver's, the planner's or the Lua's message, not a reading; the decision log's numeric, id and boolean why fields and the planner's fixed-value why fields (flee, step, shelter, turn, stuck, ahead, ended, cornered, probe) are readings.",
 e_day_4-20261028-173649,"constants, preboot, profile, fixture, argv, memory, memory_wait, world_changes, steps, verify, chain",the driver tables,"Written before or around the run, or the bus's raw steps; not readings.",
 e_day_4-20261028-173649,loop.lineage,null,A chain's first session has no previous artifact.,
 e_day_4-20261028-173649,loop.last_decisions and loop.death.last_decisions,ten decision.log lines,"A log excerpt, not a reading; cite decision.log by line.",decision.log
 e_day_4-20261028-173649,shots/shots.jsonl grab_ms and pyMs as the capture's cost or clock,per shot,The host's clock and the grab's own duration under the GIL; the session's loop cost is loop.cost (restricted above) and the X4 sessions.,
-e_day_4-20261028-173649,"every frame, decision line and shot after seq 4254 as a reading of the character",the dead character,"The character is dead from seq 4243-4254; the frames keep its last body, the planner keeps deciding and the shots show the death screen (GUIDE.md).",state.log seq 1-4254
+e_day_4-20261028-173649,"every frame, decision line and shot after seq 4254 as a reading of a living character",the dead character,"The character is dead from seq 4236-4254; the frames keep its last body, the planner keeps deciding and the shots show the death screen: citable as what the driver read of a dead character and as evidence of the death, never as the character's state (GUIDE.md).",state.log seq 1-4254
+e_day_4-20261028-173649,grade_e1.load.max_ratio as the load the session carried,0.0,"Read over the kept frames seq 7884-11308, every one after the inventory left; to seq 4234 the ratio read at most 0.5545833508173624 (GUIDE.md section 3).",state.log seq 10-4234 frame
+e_day_4-20261028-173649,grade_e1.fights_unresolved and grade_e1.death as the session's fights and death,"0, null","The day cap excused a last fight that ran on a dead character, and no death was seen (GUIDE.md section 4).",state.log seq 4235-4254
+e_day_4-20261028-173649,"loop.fights[2].ticks, .sent, .threats_max and .flee as the last fight's","1270, 197, 10, {many 27, held 11, unarmed 1190}",They take in the 1190 ticks after the death; to the death the fight is decision.log lines 411-490 (GUIDE.md section 3).,decision.log lines 411-490
+e_day_4-20261028-173649,loop.needs rows from game minute 642 and their loop.needs_pairs,the dead character's stats,Read after the death (GUIDE.md section 5).,state.log seq 4234 frame
+e_day_4-20261028-173649,"loop.damage.merged, counts and totals as the records to the death","473, 12.161777424160391",The polls ran to the cap and the record keeps no record times (GUIDE.md section 3).,
+e_day_4-20261028-173649,shots/shots.jsonl seq as the frame a shot shows,per shot,The latest frame the loop had read at the mark; the grab follows on the worker (shot 42: 199.2 ms after seq 4255's frame; GUIDE.md section 6).,shots/shots.jsonl pyMs paired with state.log wallMs
