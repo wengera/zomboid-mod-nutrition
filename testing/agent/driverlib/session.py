@@ -28,6 +28,15 @@ merged, kept (the last SERVER_RECORDS_KEPT) and summed by tag. With `polls` (a p
 are scheduled at the loop's start on the worker and the loop merges, at every pass, each result newer than the last it
 merged (so a slow bus never holds the loop): a stats result and a players result make one server poll; a read that
 raised on the worker counts as that half failed.
+THE WORKER AND THE MAIN THREAD: the worker's reads run through xs.step, which appends rows to out["steps"] and, on a
+stall, adds a ping row and (xs.mark_dead) out["abort"], a note and a timeline mark, all while the loop's xs.persist may
+be serialising out. A list append mid-dump is harmless; a key added mid-dump (the stall and dead-bus path only) makes
+that one persist raise "dictionary changed size", which Xs.persist catches, its tmp-and-replace write keeping the last
+artifact whole: at most one PERSIST_S of staleness, never a corrupt file. A later change that adds worker-side writes
+keeps to that rule or moves the write to the merge. The bus itself (pzt's CommandBus: one seq, one command file) takes
+one caller at a time, so the loop's end joins the worker with a timeout covering the longest read (the step's 30 s
+bus timeout plus the liveness ping: Session.polls_join_s), records loop.polls_joined, and skips the death record's
+final damage read while the worker is still in a read (damage.final_error names it).
 STOP CONDITIONS, the first that holds ends the loop, named in out["stop"] {reason, detail, wallS, gameMin, worldAge}:
   death            a frame's body.health <= STOP_HEALTH, or a `players` reply (a list, or {} for nobody) without the
                    user (an error reply is no death: a failed read, the last kept as loop.players_error);
@@ -64,7 +73,6 @@ from agent.base.actions import Actions                # noqa: E402
 from agent.base.planner.policies import item_id_ok    # noqa: E402
 from agent.base.planner.survive import Survive        # noqa: E402
 from agent.base.world import World                    # noqa: E402
-from agent.driverlib import record                    # noqa: E402
 
 REPO = DL.REPO
 DEFAULTS = {
@@ -100,12 +108,13 @@ DEFAULTS = {
     "PARK_RX": r"LuaError|STACK TRACE|attempted index|tried to call nil",
 }
 DECISION_LOG = "decision.log"
+STEP_TIMEOUT_S = 30.0         # xlib.Xs.step's default bus timeout: the stats and players reads'
+NEEDS_FIELDS = ["gameMin", "hunger", "thirst", "fatigue", "health", "serverHunger"]
 AGENT_LUA = "testing/PZAgent"
 AGENT_BASE = "testing/agent/base"
 DRIVERLIB = "testing/agent/driverlib"
 STOPS = ("death", "bus_dead", "lua_error_storm", "memory", "day_cap", "budget", "error")
 PHASES = ("hello", "damage_hook", "kit", "loop")
-NEEDS_FIELDS = record.NEEDS_FIELDS
 
 
 # ================================================================ arguments and the boot's seams
@@ -216,7 +225,8 @@ def _d(v):
     return v if isinstance(v, dict) else {}
 
 
-in_window = record.in_window
+def in_window(t, lo, hi):
+    return _num(t) is not None and lo <= t <= hi
 
 
 def players_list(reply):
@@ -388,10 +398,11 @@ class Stop(Exception):
 class Session:
     """The hello, damage-hook, kit and loop phases over one FileTransport (the module docstring). `planner_factory
     (world, actions, log_path, clock)` makes the planner once; clock, sleep, players (the players read), free (the
-    memory read), limits (laid over DEFAULTS), poll_s (default POLL_S) and polls (a PollThread) are injectable."""
+    memory read), limits (laid over DEFAULTS), poll_s (default POLL_S), polls (a PollThread) and polls_join_s (the
+    worker's join at the loop's end; default the longest read) are injectable."""
 
     def __init__(self, xs, transport, planner_factory=Survive, clock=time.time, sleep=time.sleep,
-                 players=read_players, free=X.free_gb, limits=None, poll_s=None, polls=None):
+                 players=read_players, free=X.free_gb, limits=None, poll_s=None, polls=None, polls_join_s=None):
         self.xs, self.tr, self.clock, self.sleep = xs, transport, clock, sleep
         self.user = xs.user
         self.out = xs.out
@@ -403,6 +414,9 @@ class Session:
         self.players, self.free = players, free
         self.poll_s = self.lim["POLL_S"] if poll_s is None else poll_s
         self.polls = polls
+        # the join at the loop's end covers the longest read: a bus step's timeout and its liveness ping
+        self.polls_join_s = polls_join_s if polls_join_s is not None else (
+            max(STEP_TIMEOUT_S, self.lim["SERVER_TIMEOUT_S"]) + getattr(xs, "ping_timeout_s", 5))
         self.world = World()
         self.actions = Actions(transport, clock=clock)
         run_dir = os.path.dirname(xs.path) if xs.path else os.getcwd()
@@ -605,6 +619,7 @@ class Session:
         next_persist, next_mem = now + lim["PERSIST_S"], now + lim["MEM_POLL_S"]
         if self.polls is not None:
             self.start_polls()
+        stop = None
         try:
             while True:
                 now = self.clock()
@@ -633,17 +648,16 @@ class Session:
                     self.save()
                 self.sleep(self.poll_s)
         except Stop as s:
-            self.end_polls()
-            self.set_stop(s.reason, s.detail)
+            stop = (s.reason, s.detail)
         except X.BusDead as e:
-            self.end_polls()
-            self.set_stop("bus_dead", "xlib BusDead: %s" % e)
+            stop = ("bus_dead", "xlib BusDead: %s" % e)
         except Exception as e:                       # noqa: BLE001 - the loop's own fault ends it, named
-            self.end_polls()
-            self.set_stop("error", "%s: %s" % (type(e).__name__, e))
+            stop = ("error", "%s: %s" % (type(e).__name__, e))
             raise
         finally:
-            self.end_polls()
+            self.end_polls()                         # joined before the stop's own bus read (the death record)
+            if stop is not None:
+                self.set_stop(*stop)
             self.save()
 
     def check_budget(self):
@@ -704,8 +718,14 @@ class Session:
             self.fails_in_row += 1
 
     def check_players(self, names):
+        self.check_death(names)
+        self.check_fails()
+
+    def check_death(self, names):
         if names is not None and self.user not in names:
             raise Stop("death", "players reply without %s: %s" % (self.user, names))
+
+    def check_fails(self):
         if self.fails_in_row >= self.lim["BUS_DEAD_POLLS"]:
             raise Stop("bus_dead", "%d consecutive failed server polls, %ss apart" % (
                 self.fails_in_row, self.lim["SERVER_POLL_S"]))
@@ -758,8 +778,17 @@ class Session:
         p.start()
 
     def end_polls(self):
-        if self.polls is not None:
-            self.polls.stop()
+        """The worker stopped and joined (polls_join_s); loop.polls_joined records whether it ended, and a worker
+        still in a read is noted (the death record's final read is then skipped)."""
+        if self.polls is None or "polls_joined" in self.loop:
+            return
+        joined = self.polls.stop(self.polls_join_s)
+        self.loop["polls_joined"] = joined
+        if not joined:
+            self.xs.note("the poll worker did not end within %ss: a read still in flight" % self.polls_join_s)
+
+    def polls_busy(self):
+        return self.polls is not None and self.polls.alive()
 
     def _new(self, name):
         got = self.polls.latest(name)
@@ -784,9 +813,8 @@ class Session:
 
     def merge_polls(self, now):
         """Each result newer than the last merged, and each read that raised on the worker (a failed half); the
-        players check and the dead-bus check as the synchronous poll makes them. Never waits on the bus."""
-        if self.xs.bus_dead:
-            raise Stop("bus_dead", "server bus dead after %s" % self.xs.bus_dead)
+        players check and the dead-bus check as the synchronous poll makes them, after the merge (a death reply that
+        landed with the worker's mark_dead is a death). Never waits on the bus."""
         names = None
         st, pl, dg = self._new("stats"), self._new("players"), self._new("damage")
         errs = self.polls.errors[self._err_i:]
@@ -808,7 +836,13 @@ class Session:
         if dg is not None:
             self.damage["polls"] += 1
             self.damage_merge(dg[0])
-        self.check_players(names)
+        self.check_death(names)
+        if self.xs.bus_dead:
+            raise Stop("bus_dead", "server bus dead after %s" % self.xs.bus_dead)
+        self.check_fails()
+        t = getattr(self.polls, "_thread", None)
+        if t is not None and not t.is_alive():
+            raise Stop("error", "the poll worker ended outside a read")
 
     # -- memory, the planner -------------------------------------------------------------------------------------
     def memory_read(self, now):
@@ -840,6 +874,16 @@ class Session:
         self.xs.persist()
 
     def death_record(self, via, detail):
+        """A last damage.watch read (skipped while the poll worker is still in a read: one bus caller at a time;
+        guarded: a dead bus keeps what was merged), then record.death_record."""
+        if self.polls_busy():
+            self.damage["final_error"] = "poll worker still in a read"
+        else:
+            try:
+                self.damage_poll()
+            except Exception as e:                   # noqa: BLE001 - the record is written whatever the bus does
+                self.damage["final_error"] = "%s: %s" % (type(e).__name__, e)
+        self.tail.read()
         return record.death_record(self, via, detail)
 
     def set_stop(self, reason, detail):
@@ -871,3 +915,7 @@ class Session:
                     "the loop did not run")
             self.set_stop(reason, detail)
         self.xs.persist()
+
+
+# record reads this module's helpers; imported last so either module may be imported first
+from agent.driverlib import record                    # noqa: E402

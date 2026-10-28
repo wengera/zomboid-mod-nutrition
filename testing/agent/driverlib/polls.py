@@ -34,17 +34,25 @@ class PollThread:
             self._jobs.append({"name": name, "every_s": float(every_s), "fn": fn, "next": None})
 
     def start(self):
-        if self._thread is None:
+        """Start the worker (again after a stop: a stopped PollThread may be restarted once its worker has ended)."""
+        if self._thread is None or not self._thread.is_alive():
+            self._halt.clear()
             self._thread = threading.Thread(target=self._run, name="PollThread", daemon=True)
             self._thread.start()
 
     def stop(self, timeout_s=5.0):
-        """Ask the worker to stop and join it; True when it ended within timeout_s (a read in flight finishes first)."""
+        """Ask the worker to stop and join it; True when it ended within timeout_s. A read in flight is never
+        interrupted: a caller that must not overlap it passes a timeout covering the longest read, and reads
+        `alive()` when the join timed out."""
         self._halt.set()
         if self._thread is None:
             return True
         self._thread.join(timeout_s)
         return not self._thread.is_alive()
+
+    def alive(self):
+        """True while the worker thread runs (a read may be in flight)."""
+        return self._thread is not None and self._thread.is_alive()
 
     def latest(self, name):
         """(result, wall) of the newest finished read of `name`, else (None, None)."""

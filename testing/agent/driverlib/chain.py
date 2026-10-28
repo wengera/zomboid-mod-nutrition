@@ -9,19 +9,13 @@ import math
 import os
 import sys
 
+from agent.driverlib.session import _d, _num
+
 TESTING = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PZT = os.path.join(TESTING, "pzt")
 
 LINEAGE_TOL = {"position": 0.5, "health": 0.01, "stat": 0.001, "inventory_n": 0, "game_min": 0.0}
 STATS = ("hunger", "thirst", "fatigue")
-
-
-def _num(v):
-    return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
-
-
-def _d(v):
-    return v if isinstance(v, dict) else {}
 
 
 def _within(prev, now, tol):

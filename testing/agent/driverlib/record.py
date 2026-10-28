@@ -9,22 +9,14 @@ last_frames, poll_errors}: `last_frames` the last LAST_FRAMES frames (the chain'
 death_record(session, via, detail) -> {via ("frame" | "players"), detail, wallS, gameMin, frame (the death frame or
 None), last_decisions, last_frames, server_damage (the server's records, with their i and server wall, whose wall (else
 the merge's wallMs) lies within DEATH_WINDOW_S before the client's clock at the stop), client_damage (the World's
-client records in the same window), window_ms {from, to}}, after a last `damage.watch since` read (guarded: a dead bus
-keeps what was merged), so the records up to the death are merged. gates.grade_d's death_check reads it.
+client records in the same window), window_ms {from, to}}. It only builds the dict: Session.death_record makes the
+last `damage.watch since` read before it (so the records up to the death are merged). gates.grade_d's death_check
+reads it. Nothing here touches the bus.
 
 Clocks: `*S` keys are the driver's clock in seconds since the loop began; a line's wallMs is the client's clock (ms).
 """
 from agent.base import gates as GT
-
-NEEDS_FIELDS = ["gameMin", "hunger", "thirst", "fatigue", "health", "serverHunger"]
-
-
-def _num(v):
-    return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
-
-
-def in_window(t, lo, hi):
-    return _num(t) is not None and lo <= t <= hi
+from agent.driverlib.session import NEEDS_FIELDS, _num, in_window
 
 
 def action_rows(sent, t0):
@@ -55,11 +47,6 @@ def loop_summary(session):
 
 def death_record(session, via, detail):
     s = session
-    try:
-        s.damage_poll()
-    except Exception as e:                           # noqa: BLE001 - the record is written whatever the bus does
-        s.damage["final_error"] = "%s: %s" % (type(e).__name__, e)
-    s.tail.read()
     hi = (s.client_now if s.client_now is not None else s.clock()) * 1000.0
     lo = hi - s.lim["DEATH_WINDOW_S"] * 1000.0
     server = [dict(r) for r in s.server_records

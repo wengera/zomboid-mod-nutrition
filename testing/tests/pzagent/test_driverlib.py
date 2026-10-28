@@ -401,10 +401,10 @@ PORT_LIMITS = {"DAMAGE_POLL_S": 30}
 
 
 def run_session(tmp_path, monkeypatch, mode="sync", limits=None, budget_s=1e9, free=lambda: 30.0, bus=None,
-                setup=None, polls=None, sleep=None, **flags):
+                setup=None, polls=None, sleep=None, port=True, polls_join_s=None, **flags):
     """One Session on DayMod and a bus (FakeBus from the `bus` knobs, or an object with bind(mod) and ask). `polls`
     is a PollThread or a callable of the fake clock making one; mode "polls" without one runs InlinePolls. `sleep`
-    wraps the mod's sleep. PORT_LIMITS lie under `limits`."""
+    wraps the mod's sleep. PORT_LIMITS lie under `limits` unless port is False (the library's own defaults)."""
     clock = Clock()
     sd = str(tmp_path / "clients" / "admin" / "Lua" / "pzagent" / "admin")
     mod = DayMod(sd, clock, **flags)
@@ -422,9 +422,10 @@ def run_session(tmp_path, monkeypatch, mode="sync", limits=None, budget_s=1e9, f
         polls = polls(clock)
     elif polls is None and mode == "polls":
         polls = InlinePolls(clock=clock.now)
-    lim = dict(PORT_LIMITS, **(limits or {}))
+    lim = dict(PORT_LIMITS if port else {}, **(limits or {}))
     sess = S.Session(xs, FileTransport(sd, clock=clock.now), planner_factory=Survive, clock=clock.now,
-                     sleep=sleep(mod.sleep) if sleep else mod.sleep, free=free, limits=lim, polls=polls)
+                     sleep=sleep(mod.sleep) if sleep else mod.sleep, free=free, limits=lim, polls=polls,
+                     polls_join_s=polls_join_s)
     if setup is not None:
         setup(sess)
     sess.run()
@@ -521,6 +522,7 @@ def test_damage_watch_is_polled_since_the_last_index_and_merged_tagged_server(tm
     assert dm["totals"] == {"HEAVYLOAD": {"n": dm["since"], "amount": pytest.approx(0.05 * dm["since"])}}
     g = GT.grade_d(r.out)
     assert g["health_lost_by_source"]["HEAVYLOAD"]["n"] == dm["since"]
+    assert any(l.startswith("health lost by source (the server's damage.watch): HEAVYLOAD") for l in g["report_lines"])
 
 
 @pytest.mark.parametrize("mode", MODES)
@@ -546,7 +548,14 @@ def test_a_heavyload_death_keeps_its_record_and_the_frames_explain_it(tmp_path, 
     c = g["death_check"]
     assert c["health_fall"] == pytest.approx(100.0) and c["server_amount"] == pytest.approx(100.0)
     assert c["server_n"] == 20 and c["frames_n"] == 300 and c["why"] is None and c["tagged"]["explained"] is True
+    assert c["wound"]["explained"] is False and c["wound"]["why"] == "no wound in the window's frames"
+    assert c["frames_window_ms"] == {"from": lf[0]["wallMs"], "to": lf[-1]["wallMs"]}
+    assert c["server_window_ms"]["from"] == lf[0]["wallMs"] and c["server_tags"] == {"HEAVYLOAD": 100.0}
     assert g["health_lost_by_source"] == {"HEAVYLOAD": {"n": 20, "amount": 100.0}}
+    assert any(l.startswith("death explained by the frames") for l in g["report_lines"])
+    assert "final_error" not in r.out["loop"]["damage"]                        # the final read ran
+    if mode == "polls":
+        assert r.out["loop"]["polls_joined"] is True
 
 
 @pytest.mark.parametrize("mode", MODES)
@@ -694,8 +703,118 @@ def test_a_poll_thread_session_never_blocks_the_loop_on_a_slow_server_read(tmp_p
     first = bus.reads[0]
     assert first["thread"] != main
     assert first["ticks_out"] > first["ticks_in"]                             # the loop ticked through the 2 s read
-    assert r.out["loop"]["server_polls"] >= 1 and r.day.world.server["stats"]["Hunger"] == pytest.approx(0.11)
+    loop = r.out["loop"]
+    assert loop["server_polls"] >= 1 and r.day.world.server["stats"]["Hunger"] == pytest.approx(0.11)
+    assert len(loop["needs"]) == loop["server_polls"] and loop["server_fails"] == 0
+    assert loop["needs_pairs"] and all(p["paired"] is True and p["dtMs"] <= 1000.0 for p in loop["needs_pairs"])
+    assert loop["polls_joined"] is True
     assert r.day.polls._thread is not None and not r.day.polls._thread.is_alive()
+
+
+# ================================================================ fix 1: the join, the defaults' cadence
+class BlockingBus:
+    """A bus whose loop stats.all read blocks on an event (set by the test after the run) on the worker; it counts
+    the calls in flight at once, so a second caller while the first is blocked shows as max_in_flight 2."""
+
+    def __init__(self):
+        self.mod, self.sess, self.inner = None, None, None
+        self.release = threading.Event()
+        self.lock = threading.Lock()
+        self.in_flight = self.max_in_flight = 0
+        self.blocked = threading.Event()
+
+    def bind(self, mod):
+        self.mod = mod
+        self.inner = FakeBus(mod, bus_s=0.0)
+
+    def ask(self, node, cmd, args, timeout=30):
+        with self.lock:
+            self.in_flight += 1
+            self.max_in_flight = max(self.max_in_flight, self.in_flight)
+        try:
+            if cmd == "stats.all" and self.sess is not None and self.sess.t_loop0 is not None:
+                self.blocked.set()
+                self.release.wait(10.0)
+            return self.inner.ask(node, cmd, args, timeout)
+        finally:
+            with self.lock:
+                self.in_flight -= 1
+
+
+def test_a_read_past_the_join_skips_the_final_damage_read_and_never_overlaps_it(tmp_path, monkeypatch):
+    bus = BlockingBus()
+
+    def setup(sess):
+        bus.sess = sess
+
+    def paced(mod_sleep):
+        def sleep(dt):
+            if bus.sess is not None and bus.sess.t_loop0 is not None:
+                bus.blocked.wait(5.0)                                         # the worker is in its read first
+            mod_sleep(dt)
+        return sleep
+    t0 = time.time()
+    try:
+        r = run_session(tmp_path, monkeypatch, bus=bus, setup=setup, sleep=paced, die_from=20.0, drain=5.0,
+                        polls=lambda clock: P.PollThread(clock=clock.now), polls_join_s=0.2)
+    finally:
+        bus.release.set()
+    took = time.time() - t0
+    loop = r.out["loop"]
+    assert r.out["stop"]["reason"] == "death" and loop["polls_joined"] is False
+    assert loop["damage"]["final_error"] == "poll worker still in a read"
+    assert bus.max_in_flight == 1                                             # no second caller during the read
+    assert loop["death"]["via"] == "frame" and loop["death"]["last_frames"][-1]["body"]["health"] == 0.0
+    assert any("did not end within 0.2s" in n["note"] for n in r.out["notes"])
+    assert took < 10.0                                                        # one 0.2 s join, not a wait per path
+    assert r.day.polls_join_s == 0.2
+    assert _until(lambda: not r.day.polls.alive())                           # released: the worker ends
+
+
+def test_the_join_timeout_covers_the_longest_read_by_default(tmp_path):
+    out = S.new_out()
+    xs = X.Xs(out, node=lambda side: side, ask=lambda *a, **k: None, budget_s=1e9, user="admin")
+    xs.path = str(tmp_path / "s.json")
+    s = S.Session(xs, FileTransport(str(tmp_path / "sd"), clock=time.time), polls=P.PollThread())
+    assert s.polls_join_s == S.STEP_TIMEOUT_S + xs.ping_timeout_s == 35.0
+
+
+@pytest.mark.parametrize("mode", ("sync", "thread"))
+def test_a_clean_day_at_the_library_defaults(tmp_path, monkeypatch, mode):
+    """DAMAGE_POLL_S 5 (the library's default, every new driver's), synchronous and through a real PollThread."""
+    kw = {}
+    if mode == "thread":
+        def paced(mod_sleep):
+            def sleep(dt):
+                time.sleep(0.01)                                              # the worker keeps up in real time
+                mod_sleep(dt)
+            return sleep
+
+        class Bus0:
+            def bind(self, mod):
+                self.inner = FakeBus(mod, bus_s=0.0)                         # the worker never moves the fake clock
+                self.mod = mod
+
+            def ask(self, *a, **k):
+                return self.inner.ask(*a, **k)
+        kw = dict(bus=Bus0(), sleep=paced, polls=lambda clock: P.PollThread(clock=clock.now, idle_s=0.001))
+    r = run_session(tmp_path, monkeypatch, port=False, limits={"DAY_CAP_S": 40}, die_from=20.0, drain=0.05,
+                    floor=80.0, **kw)
+    fb = r.bus.inner if mode == "thread" else r.bus
+    assert r.out["stop"]["reason"] == "day_cap" and r.out["stop"]["wallS"] == pytest.approx(40, abs=0.2)
+    assert r.out["phase_errors"] == {}
+    calls = fb.damage_calls[1:]                                               # the hook's install first
+    gaps = [b[0] - a[0] for a, b in zip(calls, calls[1:])]
+    assert len(calls) >= 7 and all(abs(g - 5.0) <= 0.6 for g in gaps), gaps          # a bus call costs bus_s
+    sinces = [c[1] for c in calls]
+    assert sinces == sorted(sinces) and sinces[-1] > 0                        # since advances with the records
+    dm = r.out["loop"]["damage"]
+    assert dm["fails"] == 0 and dm["lost"] == 0 and dm["since"] == dm["merged"] > 0
+    loop = r.out["loop"]
+    assert loop["needs_pairs"] and all(p["paired"] is True for p in loop["needs_pairs"])
+    assert len(loop["needs"]) == loop["server_polls"] == 1 and loop["server_fails"] == 0
+    if mode == "thread":
+        assert loop["polls_joined"] is True
 
 
 # ================================================================ record
