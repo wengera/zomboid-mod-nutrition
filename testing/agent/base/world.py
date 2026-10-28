@@ -51,7 +51,8 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   blocked edges, never `edgeN`/`edgeW` (any wall, window or door edge whatever its state), which the square record
   keeps for the view and a later sight reading (ruling P23-K). With `unknown_open=True` (the flee's steer probe, Plan
   23 survival 1 fix round 2) an unknown square is open ground: only a known solid square, or a blocked edge between
-  two known squares, refuses the line.
+  two known squares, refuses the line; a diagonal step's unknown corner square is neither solid nor edged (fix round
+  3, F5), a known one read as by default (`blocked(a, b, unknown_open=True)`).
 - `reachable_adjacent(target_xy, z)`, `interiors()`, `doors_of(building)`. The map walk behind the last two is cached
   per map version (fix wave P, M-4): `map_version` rises on every square applied, and `_index()` (one walk: the room
   squares and the door squares by building) is rebuilt lazily on the first read after it moved; `memo(key, fn)`
@@ -355,10 +356,12 @@ class World:
             return self._edge(a, "blockW")
         return self._edge(b, "blockW")
 
-    def blocked(self, a, b):
+    def blocked(self, a, b, unknown_open=False):
         """Whether the step between two adjacent squares `(x, y, z)` is blocked (the module docstring's rule); a
         pair that is not adjacent on one floor raises ValueError, the same square is never blocked, and a step to or
-        from a square the map does not hold always is."""
+        from a square the map does not hold always is. `unknown_open` (the flee's steer probe): a step to or from an
+        unknown square never is, and a diagonal's unknown corner square is neither solid nor bounded by a blocked
+        edge (a known corner is read as by default; survival 1 fix round 3, F5)."""
         a, b = tuple(a), tuple(b)
         dx, dy = b[0] - a[0], b[1] - a[1]
         if a[2] != b[2] or abs(dx) > 1 or abs(dy) > 1:
@@ -366,14 +369,13 @@ class World:
         if dx == 0 and dy == 0:
             return False
         if a not in self.map or b not in self.map:
-            return True
+            return not unknown_open
         if dx == 0 or dy == 0:
             return self._orth_blocked(a, b)
-        c1, c2 = (b[0], a[1], a[2]), (a[0], b[1], a[2])
-        if self._solid(c1) or self._solid(c2):
+        corners = [c for c in ((b[0], a[1], a[2]), (a[0], b[1], a[2])) if not unknown_open or c in self.map]
+        if any(self._solid(c) for c in corners):
             return True
-        return (self._orth_blocked(a, c1) or self._orth_blocked(a, c2) or self._orth_blocked(c1, b)
-                or self._orth_blocked(c2, b))
+        return any(self._orth_blocked(a, c) or self._orth_blocked(c, b) for c in corners)
 
     @staticmethod
     def _bresenham(x0, y0, x1, y1):
@@ -405,7 +407,7 @@ class World:
         if unknown_open:
             if any(sq in self.map and self._solid(sq) for sq in sqs[1:-1]):
                 return False
-            return not any(p in self.map and q in self.map and self.blocked(p, q) for p, q in zip(sqs, sqs[1:]))
+            return not any(self.blocked(p, q, unknown_open=True) for p, q in zip(sqs, sqs[1:]))
         if any(self._solid(sq) for sq in sqs[1:-1]):
             return False
         return not any(self.blocked(p, q) for p, q in zip(sqs, sqs[1:]))

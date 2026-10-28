@@ -886,9 +886,15 @@ def test_spare_drops_an_empty_marked_bottle(tmp_path):
 
 
 # ================================================================ survival 1 fix round 1: the steer reads the map (I4)
-def fence_west():
-    """An open grid round the player at (100.5, 201.5) with a fence between x 98 and 99 for y 196..206 (`blockW`)."""
-    return grid(90, 110, 190, 212, {(99, y): {"blockW": True} for y in range(196, 207)})
+def fence_west(boxed=True):
+    """An open grid round the player at (100.5, 201.5) with a fence between x 98 and 99 for y 196..206 (`blockW`);
+    `boxed`, walls along y 196 and y 207 too (`blockN`), so every heading is blocked within AHEAD_R (fix round 3)."""
+    at = {(99, y): {"blockW": True} for y in range(196, 207)}
+    if boxed:
+        for x in range(90, 111):
+            for y in (196, 207):
+                at[(x, y)] = dict(at.get((x, y), {}), blockN=True)
+    return grid(90, 110, 190, 212, at)
 
 
 def test_a_fence_ahead_turns_the_heading_to_the_nearest_clear_one(tmp_path):
@@ -987,3 +993,75 @@ def test_the_steer_probe_reads_unscanned_ground_as_open(tmp_path):
     r.frame(x=101.5, y=201.5, zombies=[zombie(1, 104.5, 201.5, me=(101.5, 201.5))])
     f.step()
     assert f.why["turn"] not in (0, None)
+
+
+# ================================================================ survival 1 fix round 3
+def test_a_heading_clear_over_ahead_r_wins_over_one_clear_only_at_steer_probe(tmp_path):
+    """F3: the fence unboxed: 60 degrees is clear over 3 tiles and runs into the fence after it; 90, a 30-degree turn
+    on, is clear over AHEAD_R (9 tiles) and wins."""
+    r = Rig(tmp_path)
+    r.scan(fence_west(boxed=False))
+    me = (100.5, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 103.5, 201.5, me=me)])
+    f = Flee(r.world, r.acts, r.clock)
+    f.step()
+    _, args = r.cmd()
+    sixty = (-math.cos(math.radians(60)), -math.sin(math.radians(60)))
+    assert r.world.line_clear(me, (me[0] + 3 * sixty[0], me[1] + 3 * sixty[1]), unknown_open=True)
+    assert not r.world.line_clear(me, (me[0] + 7 * sixty[0], me[1] + 7 * sixty[1]), unknown_open=True)
+    assert f.why["turn"] == 90 and f.why["probe"] == P.AHEAD_R
+    assert (args["vx"], args["vy"]) == (pytest.approx(0.0), pytest.approx(-1.0))
+
+
+def test_a_stuck_turn_never_re_chooses_the_stuck_heading(tmp_path):
+    """F4: the away vector turned 30 degrees since the stuck leg; its +30 turn is the stuck heading itself, skipped
+    (within 15 degrees of it); the -30 turn goes."""
+    r = Rig(tmp_path)
+    r.scan(grid(85, 115, 185, 218))
+    me = (100.5, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 103.5, 201.5, me=me)])
+    f = Flee(r.world, r.acts, r.clock)
+    f.step()
+    assert (r.cmd()[1]["vx"], f.why["turn"]) == (pytest.approx(-1.0), 0)
+    r.answer()
+    v1 = (-math.cos(math.radians(30)), math.sin(math.radians(30)))   # the away vector now: (-1, 0) turned -30
+    me2 = (me[0] - 0.2, me[1])                                       # 0.2 tiles: stuck
+    r.frame(x=me2[0], y=me2[1], zombies=[zombie(1, me2[0] - 3 * v1[0], me2[1] - 3 * v1[1], me=me2)])
+    f.step()
+    _, args = r.cmd()
+    assert f.why["stuck"] is True and f.why["turn"] == -30
+    assert (args["vx"], args["vy"]) == (pytest.approx(-0.5), pytest.approx(math.cos(math.radians(30))))
+    assert P.STUCK_SKIP_DEG == 15.0
+
+
+def long_house(door_open=True):
+    """Building 1: room squares x 112..120 by y 200..202, its west door at (112, 201), and open ground x 100..111."""
+    from .test_night import CLOSED, OPEN
+    door = OPEN if door_open else CLOSED
+    sqs = grid(100, 111, 196, 207)
+    for x in range(112, 121):
+        for y in range(200, 203):
+            at_door = (x, y) == (112, 201)
+            sqs.append(square(x, y, room="hall", building=1, door=door if at_door else None,
+                              blockW=(x == 112) and not (at_door and door["open"]), blockN=(y == 200),
+                              edgeW=(x == 112), edgeN=(y == 200)))
+    return sqs
+
+
+@pytest.mark.parametrize("inside, closes", [(118.5, False), (114.5, True)])
+def test_the_re_close_goes_only_from_nearer_the_door_than_every_zombie(tmp_path, inside, closes):
+    """F2: adopted 6 tiles inside, a zombie 3 tiles outside the open door with a clear line: the interact would walk
+    the character to it, so the steer instead; 2 tiles inside, the close."""
+    r = Rig(tmp_path)
+    r.scan(long_house())
+    me = (inside, 201.5)
+    z = zombie(1, 109.5, 201.5, me=me)
+    r.frame(x=me[0], y=me[1], zombies=[z])
+    f = Flee(r.world, r.acts, r.clock)
+    f.threats = [r.world.zombies[1]]
+    f.step()
+    assert r.world.line_clear(me, (109.5, 201.5))
+    if closes:
+        assert r.cmd() == ("interact", {"x": 112, "y": 201, "kind": "close", "filter": "all", "maxWeight": 0.0})
+    else:
+        assert r.cmd()[0] == "steer" and [a.type for a in r.acts.history] == ["steer"]

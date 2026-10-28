@@ -16,68 +16,70 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
 - `Fight`: one pinned target (Plan 23 Task 10): the zombie id given as `target=`, else the nearest by
   `world.nearest_zombie()` at the first `choose`, kept until it is dead or gone from the World, unreachable, or beyond
   `DISENGAGE_R` (10 tiles), and never swapped for a nearer one otherwise; dropped, the next `choose` pins again. With
-  `only` set (a set of ids: Survive's door fight, P23-AG fix round 1 I3) it neither pins nor keeps a zombie outside
-  it. Beyond `FIGHT_REACH` a `WalkTo` of its square's centre (`centre`, as every walk to a square) at a run (the Lua's
-  `walkTo` paths there, around walls), within it an
-  `Attack` of its id once the line holds. The line check (ruling P23-K) answers run 1 swinging 103 attacks at a zombie
-  behind a locked door: within reach the Fight reads `world.line_clear` from the player to the target over the map's
-  blocked edges (a closed door or an intact window blocks, an open doorway does not); false, it walks once at a run to
-  the centre of the square of `world.reachable_adjacent(target)` nearest the player, within REPOSITION_R (2.5
-  tiles) of the player by its centre, from whose centre the line is clear (`repositioned`), and a second blocked
-  read, or no such square, marks the target unreachable and the next is tried. `reachable_adjacent` lists the squares open to the
-  target, not to the player, and the radius is crow-fly, so it bounds the detour without excluding it: a square
-  within 2.5 tiles may still lie across the wall the line crosses (`test_policies.walled_south`'s case at 2.5 tiles
-  walks round a solid block). Ruling P23-R keeps the radius alone this plan: the base has no path search, and a
-  walk that cannot reach the square fails or ends short, and the next choose's blocked read (the second, as
-  `repositioned` holds) marks the target; cost if wrong, a short detour walked before the target is dropped.
-  The line is read only when the map holds both end squares on the player's floor; over an unscanned end it is None
-  and the swing goes ahead, left to the no-progress stall below. `why` logs `target`, `pinned`, `dist`, `approach`,
-  `line` and `reposition` (the square chosen, else None), and `marked` when this choose marked a target. Two `attack`
-  results in a row whose `attackStarted` is False force one approach walk before the next attack (a result that is
-  not a dict, as a failed attack's null, neither counts nor resets). The stall clock is Plan 21's
-  `out_of_reach_since`: started when the Fight is made and restarted by every `observe()` that reads no target or the
-  target within `FIGHT_REACH`; `stalled` reads true once the target has been beyond `FIGHT_REACH` for more than
-  `FIGHT_MAX_S` unbroken wall seconds (a knock-back for one tick restarts nothing old; the clock counts the unbroken
-  time out of reach only). Within reach that clock is not the stall: run 1 (the whole-pass review's I2) swung 103
-  attacks, every one `done` with `attackStarted` true, at zombie 32404 behind a locked door, its health 1.167 on all
+  `only` set (a set of ids: Survive's door fight, P23-AG fix round 1 I3) it neither pins nor keeps a zombie outside it.
+  Beyond `FIGHT_REACH` a `WalkTo` of its square's centre (`centre`, as every walk to a square) at a run (the Lua's
+  `walkTo` paths there, around walls), within it an `Attack` of its id once the line holds. The line check (ruling
+  P23-K) answers run 1 swinging 103 attacks at a zombie behind a locked door: within reach the Fight reads
+  `world.line_clear` from the player to the target over the map's blocked edges (a closed door or an intact window
+  blocks, an open doorway does not); false, it walks once at a run to the centre of the square of
+  `world.reachable_adjacent(target)` nearest the player, within REPOSITION_R (2.5 tiles) of the player by its centre,
+  from whose centre the line is clear (`repositioned`), and a second blocked read, or no such square, marks the target
+  unreachable and the next is tried. `reachable_adjacent` lists the squares open to the target, not to the player, and
+  the radius is crow-fly, so it bounds the detour without excluding it: a square within 2.5 tiles may still lie across
+  the wall the line crosses (`test_policies.walled_south`'s case at 2.5 tiles walks round a solid block). Ruling P23-R
+  keeps the radius alone this plan: the base has no path search, and a walk that cannot reach the square fails or ends
+  short, and the next choose's blocked read (the second, as `repositioned` holds) marks the target; cost if wrong, a
+  short detour walked before the target is dropped. The line is read only when the map holds both end squares on the
+  player's floor; over an unscanned end it is None and the swing goes ahead, left to the no-progress stall below. `why`
+  logs `target`, `pinned`, `dist`, `approach`, `line` and `reposition` (the square chosen, else None), and `marked` when
+  this choose marked a target. Two `attack` results in a row whose `attackStarted` is False force one approach walk
+  before the next attack (a result that is not a dict, as a failed attack's null, neither counts nor resets). The stall
+  clock is Plan 21's `out_of_reach_since`: started when the Fight is made and restarted by every `observe()` that reads
+  no target or the target within `FIGHT_REACH`; `stalled` reads true once the target has been beyond `FIGHT_REACH` for
+  more than `FIGHT_MAX_S` unbroken wall seconds (a knock-back for one tick restarts nothing old; the clock counts the
+  unbroken time out of reach only). Within reach that clock is not the stall: run 1 (the whole-pass review's I2) swung
+  103 attacks, every one `done` with `attackStarted` true, at zombie 32404 behind a locked door, its health 1.167 on all
   1530 frames listing it, and the out-of-reach clock restarted on every tick. The no-progress stall: `STALL_SWINGS`
-  consecutive `done` attacks on one target with `attackStarted` true, read off `Actions`' ended records, whose
-  target's health (the frame's `zombies[*].health` for its id) did not fall below the health at the streak's start,
-  make that target unreachable for `UNREACHABLE_S` wall seconds: `nearest_zombie` skips it, so the Fight takes another
-  target or, with none, sends nothing (Survive then flees, reason `unreachable`). A swing not started neither counts
-  nor resets the streak; a fall, a new target or a target no frame lists restarts it. `unreachable` (id -> wall until)
-  is passed in so a later Fight of the same planner keeps it. An attack ending `failed` for a walk reason
-  (`STUCK_REASONS`) marks its target the same way.
+  consecutive `done` attacks on one target with `attackStarted` true, read off `Actions`' ended records, whose target's
+  health (the frame's `zombies[*].health` for its id) did not fall below the health at the streak's start, make that
+  target unreachable for `UNREACHABLE_S` wall seconds: `nearest_zombie` skips it, so the Fight takes another target or,
+  with none, sends nothing (Survive then flees, reason `unreachable`). A swing not started neither counts nor resets the
+  streak; a fall, a new target or a target no frame lists restarts it. `unreachable` (id -> wall until) is passed in so
+  a later Fight of the same planner keeps it. An attack ending `failed` for a walk reason (`STUCK_REASONS`) marks its
+  target the same way.
 - `Flee` (one per flee episode): a `Steer` of `FLEE_S` seconds away from the threats (the `threats` list its caller
-  passes, else every zombie the World holds), at a sprint when the nearest is within `SPRINT_R`, else a run; re-aimed
-  on every end of its steer. Every leg runs along the sum of the unit vectors from each threat to the player, each
-  weighted by 1/distance (ruling P23-AG 3, amended at fix round 1 to every leg: away from the centroid and from the
-  nearest, so a group spread round the player is not fled into); a zero sum steers along +x. The steer reads the map
-  (fix round 1, I4: the chain's E1 died sprinting 15 s into a fence the World already held as `blockW`, the group
-  biting): the away vector turns by STEER_TURNS (30, 60, 90 degrees either way, nearest first) to the first heading
-  whose `world.line_clear` over STEER_PROBE (3) tiles is true, an unknown square read open (fix round 2, concern 1:
-  unscanned ground is no wall, so the flee does not bend along the scanned area's edge), and along which no held
-  threat beyond SPRINT_R lies within AHEAD_R (9 tiles, a 3 s leg at E1's 3 tiles/s) inside AHEAD_CONE (20 degrees) or
-  in the CORRIDOR_R tube (fix round 2, T2: E1's first leg, set by a melee zombie at 0.18 tiles, ran at the far pair);
-  with none such, the first clear on the map, else the away vector kept. A leg that ended having moved under
-  STUCK_MOVE (0.5) tiles is stuck, and the next leg's turn skips the away vector's own 0. The shelter (ruling P23-AG
-  1): at each re-aim until a plan is chosen (fix round 2, T1: a melee zombie's corridor refusal is retried once it
-  has moved), the episode picks: standing on a room square, it adopts that building (fix round 2, concern 3) with its
-  plan kept to the exterior door nearest the threats and read done; else, of the buildings not shunned
-  (`night.shunned_now` over `shunned`, Night's store) with no known zombie on one of their room or door squares, the
-  exterior door the map reads neither locked nor barricaded whose `night.approach_square` lies within SHELTER_FLEE_R
-  (25 tiles) of the player, is no nearer any held threat than the player is to it, and has no known zombie ahead
-  within CORRIDOR_R (2 tiles) of the straight line to it (`in_corridor`), the nearest such square first; the plan
-  (`night.shelter_plan(..., door=)`) is kept to that door, and its steps (`night.shelter_step`: approach, open, enter,
-  close) go out with their walks at FLEE_GAIT, a run (never a sprint: it drains the endurance the night needs). A
-  step's end is read by `night.shelter_ended`: `advance`, `resend` and `passed` keep the plan; any other end drops it
-  for the steer (the episode never picks again), shunning the building only for a reason in `night.SHUN_REASONS`.
-  Once the close ended with the player inside (`sheltered`), choose holds with no command while every threat reads
-  line-blocked (`line_to` False), or while the door reads closed and no threat's line reads clear (an unknown line
-  holds: concern 2); else it re-sends the close when the door reads open (again after each close that ended done,
-  never after one that did not), unless a known zombie stands within DOOR_CLEAR_R (1.5 tiles) of the door (concern
-  4); else drops the plan for the steer. A plan done with the player outside is dropped for the steer. `night`
-  imports this module at its top, so the Flee imports `night` at the call (`_night()`).
+  passes, else every zombie the World holds), at a sprint when the nearest is within `SPRINT_R`, else a run; re-aimed on
+  every end of its steer. Every leg runs along the sum of the unit vectors from each threat to the player, each weighted
+  by 1/distance (ruling P23-AG 3, amended at fix round 1 to every leg: away from the centroid and from the nearest, so a
+  group spread round the player is not fled into); a zero sum steers along +x. The steer reads the map (fix round 1, I4:
+  the chain's E1 died sprinting 15 s into a fence the World already held as `blockW`, the group biting): the away vector
+  turns by STEER_TURNS (30, 60, 90 degrees either way, nearest first) to the first heading whose `world.line_clear` over
+  AHEAD_R (9 tiles, about a leg's run: fix round 3, F3) is true, else over STEER_PROBE (3) tiles, an unknown square read
+  open (`unknown_open`, its unknown diagonal corner open too: F5) (fix round 2, concern 1: unscanned ground is no wall,
+  so the flee does not bend along the scanned area's edge), and along which no held threat beyond SPRINT_R lies within
+  AHEAD_R (9 tiles, a 3 s leg at E1's 3 tiles/s) inside AHEAD_CONE (20 degrees) or in the CORRIDOR_R tube (fix round 2,
+  T2: E1's first leg, set by a melee zombie at 0.18 tiles, ran at the far pair); with none such, the first clear on the
+  map, else the away vector kept. A leg that ended having moved under STUCK_MOVE (0.5) tiles is stuck, and the next
+  leg's turn skips the away vector's own 0 and every heading within STUCK_SKIP_DEG (15 degrees) of the stuck leg's (F4).
+  The shelter (ruling P23-AG 1): at each re-aim until a plan is chosen (fix round 2, T1: a melee zombie's corridor
+  refusal is retried once it has moved), the episode picks: standing on a room square, it adopts that building (fix
+  round 2, concern 3) with its plan kept to its open exterior door nearest the threats, else its exterior door nearest
+  them (F1), and read done; else, of the buildings not shunned (`night.shunned_now` over `shunned`, Night's store) with
+  no known zombie on one of their room or door squares, the exterior door the map reads neither locked nor barricaded
+  whose `night.approach_square` lies within SHELTER_FLEE_R (25 tiles) of the player, is no nearer any held threat than
+  the player is to it, and has no known zombie ahead within CORRIDOR_R (2 tiles) of the straight line to it
+  (`in_corridor`), the nearest such square first; the plan (`night.shelter_plan(..., door=)`) is kept to that door, and
+  its steps (`night.shelter_step`: approach, open, enter, close) go out with their walks at FLEE_GAIT, a run (never a
+  sprint: it drains the endurance the night needs). A step's end is read by `night.shelter_ended`: `advance`, `resend`
+  and `passed` keep the plan; any other end drops it for the steer (the episode never picks again), shunning the
+  building only for a reason in `night.SHUN_REASONS`. Once the close ended with the player inside (`sheltered`), choose
+  holds with no command while every threat reads line-blocked (`line_to` False), or while the door reads closed and no
+  threat's line reads clear (an unknown line holds: concern 2); else it re-sends the close when the door reads open
+  (again after each close that ended done, never after one that did not), unless a known zombie stands within
+  DOOR_CLEAR_R (1.5 tiles) of the door (concern 4) or the player's square is no nearer the door square than every known
+  zombie's (F2: the Lua's close walks the player to the door); else drops the plan for the steer. A plan done with the
+  player outside is dropped for the steer. `night` imports this module at its top, so the Flee imports `night` at the
+  call (`_night()`).
 - `Explore`: it scans per 10-tile place, spec § 6's "once at a new building or on request" read as the place
   grid: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
   `scanned` from its send and dropped again when the scan ends other than `done`, so a pre-empted, timed-out or
@@ -141,6 +143,7 @@ STUCK_MOVE = 0.5      # tiles: a steer leg that moved less is stuck, and the nex
 AHEAD_R = 9.0         # tiles: a 3 s leg at about 3 tiles/s (E1's flee): a held threat this far ahead refuses a heading
 AHEAD_CONE = 20.0     # degrees: ... within this cone of it (or in its CORRIDOR_R tube), beyond SPRINT_R (fix 2, T2)
 DOOR_CLEAR_R = 1.5    # tiles: no re-close is tried with a known zombie this near the door square's centre (fix 2)
+STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
 LOAD_RATIO_MAX = 1.0  # a loot fills to this times the frame's load.max (level 1 holds up to 1.25 of it, #3926)
@@ -482,7 +485,7 @@ class Flee(Policy):
         self._step = None        # the last shelter step's Action
         self._read = None        # the last shelter step whose end observe() read
         self._close = None       # the last re-sent close's Action (the sheltered re-close)
-        self._leg = None         # (Action, (x, y) at its send) of the last steer leg
+        self._leg = None         # (Action, (x, y) at its send, heading) of the last steer leg
 
     @property
     def sheltered(self):
@@ -521,23 +524,27 @@ class Flee(Policy):
 
     def _adopt(self, ts):
         """The player stands on a room square of a known building (fix round 2, concern 3: a loot left its entry door
-        open): that building's plan kept to its exterior door nearest the threats, read done (`sheltered`), so the
-        inside hold, the re-close and the door fight apply; None when it has no exterior door on this floor."""
+        open): that building's plan kept to its open exterior door nearest the threats, else its exterior door nearest
+        them (fix round 3, F1: the open door is the one to guard), read done (`sheltered`), so the inside hold, the
+        re-close and the door fight apply; None when it has no exterior door on this floor."""
         N = _night()
         b = (self.world.map.get(N.player_square(self.world)) or {}).get("building")
         doors = N.exterior_doors(self.world, b, me_floor(self.world)) if b is not None else []
         if not doors:
             return None
-        door = min(doors, key=lambda d: (min(math.hypot(z["x"] - d[0] - 0.5, z["y"] - d[1] - 0.5) for z in ts), d))
+        def rank(d):
+            is_open = bool(((self.world.map.get(d) or {}).get("door") or {}).get("open"))
+            return not is_open, min(math.hypot(z["x"] - d[0] - 0.5, z["y"] - d[1] - 0.5) for z in ts), d
+        door = min(doors, key=rank)
         return N.shelter_plan(self.world, b, door=door, step="done")
 
     def _pick(self, ts):
         """The shelter plan to run (ruling P23-AG and its fix rounds), else None: standing on a room square, the
         building adopted (`_adopt`); else of the buildings not shunned (`night.shunned_now`) with no known zombie on
         one of their squares (M4), each exterior door the map reads neither locked nor barricaded whose
-        `night.approach_square` lies within SHELTER_FLEE_R of the player, no nearer any held threat than the player is to it, with no known zombie in its
-        corridor (`in_corridor`, I1 and M3); the nearest such square first, ties by the building, then the door; the
-        plan `night.shelter_plan(..., door=)` kept to that door."""
+        `night.approach_square` lies within SHELTER_FLEE_R of the player, no nearer any held threat than the player
+        is to it, with no known zombie in its corridor (`in_corridor`, I1 and M3); the nearest such square first, ties
+        by the building, then the door; the plan `night.shelter_plan(..., door=)` kept to that door."""
         N = _night()
         if (self.world.map.get(N.player_square(self.world)) or {}).get("room") is not None:
             return self._adopt(ts)
@@ -569,8 +576,10 @@ class Flee(Policy):
         """The plan's next step (its walks at FLEE_GAIT); once done inside, a hold while every threat reads
         line-blocked, or while the door reads closed and no threat's line reads clear (an unknown line holds: fix
         round 2, concern 2); else one re-sent close of a door that reads open (again after each close that ended
-        done), unless a known zombie stands within DOOR_CLEAR_R of the door (concern 4); else the plan dropped (I2).
-        None with the plan dropped: the steer follows."""
+        done), unless a known zombie stands within DOOR_CLEAR_R of the door (concern 4) or the player's square is no
+        nearer the door square than every known zombie (fix round 3, F2: the Lua's close walks the player to the door,
+        so never toward a zombie nearer it); else the plan dropped (I2). None with the plan dropped: the steer
+        follows."""
         N = _night()
         cmd, step = N.shelter_step(self.world, self.plan)
         b = self.plan["building"]
@@ -592,9 +601,12 @@ class Flee(Policy):
             self.why = {"shelter": b, "step": "done"}
             return None
         failed = self._close is not None and self.actions.done(self._close) and self._close.state != "done"
-        at_door = any(math.hypot(z["x"] - door[0] - 0.5, z["y"] - door[1] - 0.5) < DOOR_CLEAR_R
+        sq = N.player_square(self.world)
+        mine = math.hypot(sq[0] - door[0], sq[1] - door[1])   # square to square, as each zombie's below
+        guarded = any(math.hypot(z["x"] - door[0] - 0.5, z["y"] - door[1] - 0.5) < DOOR_CLEAR_R
+                      or math.hypot(math.floor(z["x"]) - door[0], math.floor(z["y"]) - door[1]) <= mine
                       for z in self._known())
-        if rec is not None and rec.get("open") and not failed and not at_door:
+        if rec is not None and rec.get("open") and not failed and not guarded:
             self._chosen = "close"
             self.why = {"shelter": b, "step": "reclose"}
             return Interact(door[0], door[1], "close")
@@ -623,10 +635,10 @@ class Flee(Policy):
         mx, my = me_xy(self.world)
         return math.hypot(mx - self._leg[1][0], my - self._leg[1][1]) < STUCK_MOVE
 
-    def _clear(self, v):
-        """The map's line STEER_PROBE tiles along `v`, an unknown square open (fix round 2, concern 1)."""
+    def _clear(self, v, reach=STEER_PROBE):
+        """The map's line `reach` tiles along `v`, an unknown square open (fix round 2, concern 1)."""
         mx, my = me_xy(self.world)
-        return self.world.line_clear((mx, my), (mx + STEER_PROBE * v[0], my + STEER_PROBE * v[1]), unknown_open=True)
+        return self.world.line_clear((mx, my), (mx + reach * v[0], my + reach * v[1]), unknown_open=True)
 
     def _ahead(self, v, far):
         """The threats of `far` a leg along `v` would run at: within AHEAD_R and AHEAD_CONE of it, or in the
@@ -645,10 +657,11 @@ class Flee(Policy):
     def _steer(self, ts):
         """A leg along the sum of the unit vectors from each threat to the player, each weighted by 1/distance (ruling
         P23-AG 3, amended at fix round 1: every leg), +x when it is zero (the away vector); turned by STEER_TURNS,
-        nearest first, to the first heading whose STEER_PROBE-tile line is clear on the map (I4; an unknown square
-        open) and along which no held threat beyond SPRINT_R lies ahead (`_ahead`, T2); with none such, the first
-        clear on the map, else the away vector kept. After a leg that moved under STUCK_MOVE the turn skips the away
-        vector's own 0 (turning +30 when nothing is clear)."""
+        nearest first, to the first heading clear of the map over AHEAD_R (fix round 3, F3: the leg runs about that
+        far) and along which no held threat beyond SPRINT_R lies ahead (`_ahead`, T2); else the first such heading
+        clear over STEER_PROBE (I4; an unknown square open throughout); else the first clear over STEER_PROBE, else
+        the away vector kept. After a leg that moved under STUCK_MOVE the turn skips the away vector's own 0 and every
+        heading within STUCK_SKIP_DEG of the stuck leg's (F4), turning +30 when nothing is left."""
         mx, my = me_xy(self.world)
         cx = sum(z["x"] for z in ts) / len(ts)
         cy = sum(z["y"] for z in ts) / len(ts)
@@ -662,17 +675,25 @@ class Flee(Policy):
         v = (1.0, 0.0) if n == 0.0 else (vx / n, vy / n)
         stuck = self._stuck()
         turns = STEER_TURNS[1:] if stuck else STEER_TURNS
+        if stuck:
+            h0 = self._leg[2]
+            cos_skip = math.cos(math.radians(STUCK_SKIP_DEG))
+            turns = tuple(t for t in turns if _rotate(v, t)[0] * h0[0] + _rotate(v, t)[1] * h0[1] < cos_skip)
         far = [z for z in ts if zdist(self.world, z) > SPRINT_R]
-        turn = next((t for t in turns if self._clear(_rotate(v, t)) and not self._ahead(_rotate(v, t), far)), None)
-        if turn is None:
-            turn = next((t for t in turns if self._clear(_rotate(v, t))), None)
+        turn, probe = None, None
+        for reach, group in ((AHEAD_R, True), (STEER_PROBE, True), (STEER_PROBE, False)):
+            turn = next((t for t in turns if self._clear(_rotate(v, t), reach)
+                         and not (group and self._ahead(_rotate(v, t), far))), None)
+            if turn is not None:
+                probe = reach
+                break
         heading = _rotate(v, turn) if turn is not None else (_rotate(v, STEER_TURNS[1]) if stuck else v)
         near = min(zdist(self.world, z) for z in ts)
         gait = "sprint" if near <= SPRINT_R else "run"
         ids = {id(z): zid for zid, z in self.world.zombies.items()}
         ahead = sorted((ids.get(id(z)) for z in self._ahead(v, far)), key=repr)
-        self.why = {"centroid": [cx, cy], "nearest": near, "turn": turn, "stuck": stuck, "ahead": ahead,
-                    "shelter": None, "ended": self.ended}
+        self.why = {"centroid": [cx, cy], "nearest": near, "turn": turn, "probe": probe, "stuck": stuck,
+                    "ahead": ahead, "shelter": None, "ended": self.ended}
         return Steer(heading[0], heading[1], FLEE_S, gait)
 
     def sent(self, cmd, action):
@@ -682,7 +703,7 @@ class Flee(Policy):
             self._close = action
         elif cmd.TYPE == "steer":
             mx, my = me_xy(self.world)
-            self._leg = (action, (mx, my))
+            self._leg = (action, (mx, my), (cmd.vx, cmd.vy))
         self._chosen = None
 
 

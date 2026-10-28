@@ -777,3 +777,17 @@ def test_a_refusal_excludes_the_food_for_refused_ttl_min_world_minutes_only():
         x.apply(frame(0, gameMin=81.0, worldAge=1521.0 / 60.0))       # +121
     assert w.by_use()["food"] == [8] and "refusedIds" not in json.loads(w.to_json())
     assert w.to_json() == twin.to_json()                               # nothing refused now: the same bytes
+
+
+def test_unknown_open_reads_an_unmapped_diagonal_corner_open_and_the_default_refuses_it():
+    """Survival 1 fix round 3 (F5): a diagonal step between two known squares, one corner square unmapped."""
+    a, b = (0, 0, 0), (1, 1, 0)
+    w = _world([s for s in _grid(-1, -1, 2, 2) if (s["x"], s["y"]) != (0, 1)], me=(0.5, 0.5))
+    assert w.blocked(a, b) and w.blocked(b, a)
+    assert not w.blocked(a, b, unknown_open=True) and not w.blocked(b, a, unknown_open=True)
+    assert not w.line_clear((0.5, 0.5), (1.5, 1.5)) and w.line_clear((0.5, 0.5), (1.5, 1.5), unknown_open=True)
+    w = _world(_grid(-1, -1, 2, 2, over={(0, 1): {"solid": True}}), me=(0.5, 0.5))   # a known solid corner: as today
+    assert w.blocked(a, b, unknown_open=True)
+    w = _world([s for s in _grid(-1, -1, 2, 2, over={(1, 0): {"blockW": True}}) if (s["x"], s["y"]) != (0, 1)],
+               me=(0.5, 0.5))                                   # the known corner's edge still blocks
+    assert w.blocked(a, b, unknown_open=True)

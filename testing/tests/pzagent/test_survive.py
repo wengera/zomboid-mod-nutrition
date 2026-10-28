@@ -1305,3 +1305,20 @@ def test_a_door_fight_that_steps_off_the_room_drops_the_stale_flee(tmp_path):
     r2.frame(x=me[0], y=me[1], zombies=[zombie(1, 112.5, 201.5, me=me)])
     tick(r2, sv2)
     assert sv2.mode == "fight" and sv2.flee is None and sv2.fight.only is None
+
+
+# ================================================================ survival 1 fix round 3
+def test_an_adopted_building_guards_its_open_door_before_the_nearer_closed_one(tmp_path):
+    """F1: a loot entered by the north door left it open; the group nears the closed west door; the re-close names
+    the open north door."""
+    from .test_night import CLOSED, OPEN, house
+    r, sv = make(tmp_path)
+    north = [square(113, y) for y in range(194, 200)]
+    north_door = square(113, 200, room="kitchen", building=1, door=OPEN, blockN=False, edgeN=True)
+    r.scan(grid(95, 108, 196, 207) + house(1, 112, door=CLOSED) + north + [north_door])
+    me = (113.5, 201.5)
+    zs = [zombie(1, 108.5, 201.5, me=me), zombie(2, 109.0, 201.5, me=me), zombie(3, 113.5, 196.5, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    tick(r, sv)
+    assert r.cmd() == ("interact", {"x": 113, "y": 200, "kind": "close", "filter": "all", "maxWeight": 0.0})
+    assert sv.flee.door() == (113, 200, 0)
