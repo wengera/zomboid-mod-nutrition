@@ -2,68 +2,89 @@
 
 `Night` is a `policies.Policy`, one action at a time; `survive.Survive` runs it as its `night` branch, after `threat`,
 `need` and `load` (so a heavy load is dropped before the sleep) and before the goal (Task 13; until then `forage`
-and `explore`).
+and `explore`). The shelter steps are module functions (`shelter_plan`, `shelter_step`, `shelter_ended`) so Task 13's
+`Shelter(building)` goal runs the same machine.
 
 - The want (`wants()`): the frame's `stats.fatigue` above TIRED_T 0.6 (the first TIRED moodle), or the frame's
   `me.hour` at LATE_HOUR 22.0 or later with fatigue above LATE_FATIGUE 0.3. A frame with no `hour` (a log older than
-  PZA/1.2) reads as daytime. A sleep that ended `done` with its `fatigueAfter` under TIRED_T clears the want (`rested`)
-  while the frame's fatigue reads under TIRED_T, so a character woken at 23:00 with fatigue above LATE_FATIGUE does
-  not lie down again at once; the first frame at TIRED_T or above ends the clearance.
+  PZA/1.2) reads as daytime. A sleep that ended `done` with its `fatigueAfter` under TIRED_T clears the want
+  (`rested`), so a character woken at 23:00 with fatigue above LATE_FATIGUE does not lie down again at once; the
+  clearance ends at the first frame at TIRED_T or above, or at the first frame whose hour reads under LATE_HOUR (a
+  new day: the late rule fires again the next night). A sleep refused `not allowed` (the server's SleepAllowed off,
+  which does not change within a session) ends the want for the session (`allowed` False, ruling P23-U), logged once
+  as `why.barred` on the tick that read it.
 - Inside (`inside()`): the player's square `(floor(x), floor(y), floor(z))` is in `world.map` with a `room` that is
   not None. Every frame inside adds the square's building to `visited`.
-- The shelter (`choose()`), with a zombie within DANGER_R sending nothing (the threat branch owns it): inside, `Sleep()`
+- The choice (`choose()`), with a zombie within DANGER_R sending nothing (the threat branch owns it): inside, `Sleep()`
   at once (no walk), except while a plan's `close` step is due. Outside, a plan: of `world.interiors()`, the buildings
-  (a building id that is not None) with at least one door square in `world.doors_of(b)` on the player's floor and not
-  shunned, ranked visited first (a building the character has stood in), then by the distance from the player to its
-  nearest interior square on that floor, ties by the id. Its door: a door that read open first, then one that read
-  neither locked nor barricaded, then any, each nearest the player. Its interior square: the building's interior square
-  on the floor nearest the door square, the door square itself only when it is the only one (so the close is one step
-  away and the character does not stand in the doorway). The steps, each one `Action`:
-  (a) `approach`: `WalkTo` at a walk to the centre of the door square's adjacent square, skipped when the player
-      already stands within one square (Chebyshev) of the door, as the Lua's interact would be;
-  (b) `open`: `Interact(dx, dy, "open")`, skipped when the door read open at its last record;
-  (c) `enter`: `WalkTo` at a walk to the interior square's centre;
-  (d) `close`: `Interact(dx, dy, "close")` on the door;
-  (e) `sleep`: `Sleep()` (inside by then).
-  The adjacent square (ruling, Task 12): the first of `world.reachable_adjacent(door, z)` (nearest the player first)
-  that has no room, the outside square; when none has (a closed door blocks its own edge, so the square across it is
-  never listed as reachable, and every diagonal through the door's corner reads blocked), the nearest mapped,
-  non-solid neighbour with no room, the Lua interact's own approach rule (`approach` in `PZAgent_SkillsWorld.lua`
-  reads no edge). Cost if wrong: an approach to the wrong side of a wall, which the open then fails `not adjacent`,
-  shunning the building.
-- A step's end (`observe()`): `done` advances the plan; `failed` for a reason in SHUN_REASONS (`locked`, `not
-  adjacent`, `no door`, and the walk reasons `policies.STUCK_REASONS`) shuns the plan's building for SHUN_MIN 120 game
-  minutes (`shunned {building: gameMin}`) and drops the plan, so the next choose tries the next building; a `close`
-  that fails otherwise is passed over (the character is inside: it sleeps with the door as it is); a `superseded` step
-  (a higher branch's send) is sent again; any other end keeps the step, and Survive's failed-action cooldown passes the
-  branch over for its ticks. A sleep `rejected` or `failed` `not safe` (a zombie visible, chasing or very close; the
-  threat branch owns one within DANGER_R, one beyond it is no threat but blocks the sleep) holds the branch for
-  NOT_SAFE_S 30 wall seconds from the refusal's `ended_wall` (`hold_until`: Survive answers the branch with no command, so no lower branch walks the
-  character out of its shelter); a sleep `done` records `last_sleep` (`gameMin` and the result's `sleptH`,
-  `fatigueBefore`, `fatigueAfter`, `bedType`) and sets `rested` when `fatigueAfter` (else the frame's fatigue) reads
-  under TIRED_T.
-- `want_shelter`: True while the branch wants and knows no building to shelter in (outside, no ranked building); the
-  goal layer's `Shelter` (Task 13) reads it off `survive.night`. False otherwise.
+  (an id that is not None, not shunned) for which `shelter_plan` answers, ranked visited first (a building the
+  character has stood in), then by the distance from the player to its nearest interior square on the player's
+  floor, ties by the id. None answers: `want_shelter` True (the goal layer's `Shelter`, Task 13, reads it off
+  `survive.night`), no command; False otherwise.
+- The shelter machine (`shelter_plan(world, building)`, a dict; `shelter_step(world, plan)`; `shelter_ended(plan,
+  action)`):
+  - Its doors are the building's exterior doors on the player's floor: a door square of `world.doors_of(b)` with at
+    least one mapped, non-solid orthogonal neighbour whose `room` is None. An interior door between two rooms is never
+    a candidate (the review's I1). They are ranked: read open first, then neither locked nor barricaded, then any,
+    each nearest the player. No exterior door: no plan.
+  - For the door in use, the interior square is the building's room square on that floor nearest the door, the door
+    square itself only when it is the only one (the close is then one step away and the character is not in the
+    doorway).
+  - The steps, each one `Action`: (a) `approach`, a `WalkTo` at a walk to the centre of the door's approach square,
+    skipped when the player already stands within one square (Chebyshev) of the door; (b) `open`, `Interact(dx, dy,
+    "open")`, skipped when the door read open at its last record; (c) `enter`, a `WalkTo` at a walk to the interior
+    square's centre; (d) `close`, `Interact(dx, dy, "close")`. Then the plan reads `done` and Night sends `Sleep()`.
+  - The approach step is kept beside the Lua interact's own walk to the door (`approach` in `PZAgent_SkillsWorld.lua`)
+    so a walk that cannot reach the door fails under the walk's own reason (`stuck`, `no path`), which the shun reads,
+    rather than inside the open as `not adjacent`.
+  - The approach square (ruling, Task 12): the first of `world.reachable_adjacent(door, z)` (nearest the player first)
+    with no room, the outside square; when none has (a closed door blocks its own edge, so the square across it is
+    never listed as reachable, and every diagonal through the door's corner reads blocked), the nearest mapped,
+    non-solid neighbour with no room, the Lua interact's own approach rule (it reads no edge). Cost if wrong: an
+    approach to the wrong side of a wall, which the open then fails `not adjacent`, moving to the next door.
+  - A step's end (`shelter_ended`): `done` advances; a `superseded` step is sent again (`resend`); a `close` that ends
+    any other way is passed over (`passed`: the character is inside and never shuns the building it shelters in, the
+    review's M2); `failed` for a reason in SHUN_REASONS (`locked`, `not adjacent`, `no door`, and the walk reasons
+    `policies.STUCK_REASONS`) moves to the building's next exterior door at its approach (`next door`), and with no
+    next door answers `shun`; any other end (`timeout`, `rejected`, another failure) is retried (`retry`), at most
+    STEP_RETRIES 3 times per building, then `shun`. Night shuns the building for SHUN_MIN 120 game minutes (`shunned
+    {building: gameMin}`) and drops the plan, so the next choose tries the next building.
+- A sleep's end (`observe()`): `not safe` (a zombie visible, chasing or very close; one beyond DANGER_R is no threat
+  but blocks the sleep) holds the branch NOT_SAFE_S 30 wall seconds and `not valid` (pain, panic, a vehicle) NOT_VALID_S
+  60 (ruling P23-U), each from the refusal's `ended_wall`, `rejected` or `failed` alike (`hold_until`: Survive answers
+  the branch with no command, so no lower branch walks the character out of its shelter; threat and need stay above
+  it); `not allowed` ends the want (above); `done` records `last_sleep` (`gameMin` and the result's `sleptH`,
+  `fatigueBefore`, `fatigueAfter`, `bedType`), drops the plan and sets `rested` when `fatigueAfter` (else the frame's
+  fatigue) reads under TIRED_T.
+- The record for the drivers' `loop.night` (task-15-amendments.md): `wants_n` (the ticks Survive's night branch
+  wanted, counted by Survive), `steps` (`[{step, building, aid, state, reason, startS, endS}]`, one per shelter step
+  ended) and `sleeps` (`[{aid, state, reason, result, startS, endS, fatigueBefore, fatigueAfter, sleptH, bedType}]`),
+  `startS`/`endS` the action's sent and ended wall in seconds from the policy's creation on the injected clock.
 - `why` (logged by Survive under the branch): `step` (the step chosen, or None), `building`, `shunned` (the buildings
-  shunned now, sorted), plus `threat`, `hold` (wall seconds left), `inside` and `want_shelter` when they apply.
+  shunned now, sorted), `aid` (the action sent, once sent), plus `threat`, `hold` (wall seconds left), `inside`,
+  `want_shelter`, `ended` (the outcome of the step end read this tick) and `barred` when they apply.
 """
 import json
 import math
 import time
 
-from agent.base.planner.policies import DANGER_R, STUCK_REASONS, PREEMPTED, Policy, me_floor, me_xy, zdist
+from agent.base.planner.policies import DANGER_R, PREEMPTED, STUCK_REASONS, Policy, me_floor, me_xy, zdist
 from agent.base.pza1 import Interact, Sleep, WalkTo
 
 TIRED_T = 0.6         # the first TIRED moodle fires above 0.6 [#2279]
 LATE_HOUR = 22.0      # from this hour of day ...
 LATE_FATIGUE = 0.3    # ... the branch wants at a fatigue above this
-SHUN_MIN = 120        # game minutes a building whose shelter step failed is passed over
+SHUN_MIN = 120        # game minutes a building whose shelter failed is passed over
 NOT_SAFE_S = 30.0     # wall seconds the branch holds after a sleep refused `not safe`
+NOT_VALID_S = 60.0    # wall seconds the branch holds after a sleep refused `not valid` (ruling P23-U)
+STEP_RETRIES = 3      # non-shun ends of shelter steps a building takes before it is shunned
 SHUN_REASONS = ("locked", "not adjacent", "no door") + STUCK_REASONS
-NOT_SAFE = "not safe"
-STEPS = ("approach", "open", "enter", "close", "sleep")
+HOLD_S = {"not safe": NOT_SAFE_S, "not valid": NOT_VALID_S}
+NOT_ALLOWED = "not allowed"
+SHELTER_STEPS = ("approach", "open", "enter", "close")
 
-__all__ = ["Night", "TIRED_T", "LATE_HOUR", "LATE_FATIGUE", "SHUN_MIN", "NOT_SAFE_S", "SHUN_REASONS", "STEPS"]
+__all__ = ["Night", "TIRED_T", "LATE_HOUR", "LATE_FATIGUE", "SHUN_MIN", "NOT_SAFE_S", "NOT_VALID_S", "STEP_RETRIES",
+           "SHUN_REASONS", "SHELTER_STEPS", "shelter_plan", "shelter_step", "shelter_ended", "exterior_doors"]
 
 
 def _num(v):
@@ -74,17 +95,151 @@ def _centre(sq):
     return sq[0] + 0.5, sq[1] + 0.5
 
 
+def _dist(world, sq):
+    mx, my = me_xy(world)
+    c = _centre(sq)
+    return math.hypot(c[0] - mx, c[1] - my)
+
+
+def player_square(world):
+    """The player's floored square `(x, y, z)`, None when the frame has no position."""
+    me = world.me or {}
+    x, y = me.get("x"), me.get("y")
+    if not (_num(x) and _num(y)):
+        return None
+    return int(math.floor(x)), int(math.floor(y)), me_floor(world)
+
+
+def _outdoor(world, sq):
+    s = world.map.get(sq)
+    return s is not None and not s.get("solid") and s.get("room") is None
+
+
+# ---------------------------------------------------------------- the shelter machine
+def exterior_doors(world, building, z):
+    """The building's exterior door squares on floor `z` (a mapped, non-solid, room-less orthogonal neighbour), ranked
+    open first, then neither locked nor barricaded, then any, each nearest the player."""
+    def rank(sq):
+        d = world.map[sq].get("door") or {}
+        state = 0 if d.get("open") else (2 if d.get("locked") or d.get("barricaded") else 1)
+        return state, _dist(world, sq), sq
+    doors = [sq for sq in world.doors_of(building) if sq[2] == z
+             and any(_outdoor(world, (sq[0] + dx, sq[1] + dy, z)) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))]
+    return sorted(doors, key=rank)
+
+
+def approach_square(world, door):
+    """The square the approach walks to (the module docstring's ruling), None when the door has no free neighbour
+    outside."""
+    for sq in world.reachable_adjacent((door[0], door[1]), door[2]):
+        if world.map[sq].get("room") is None:
+            return sq
+    out = [(_dist(world, sq), sq) for sq in ((door[0] + dx, door[1] + dy, door[2]) for dx in (-1, 0, 1)
+                                             for dy in (-1, 0, 1)) if sq != door and _outdoor(world, sq)]
+    return min(out)[1] if out else None
+
+
+def _inside_for(rooms, door):
+    deeper = [sq for sq in rooms if sq != door] or rooms
+    return min(deeper, key=lambda sq: (math.hypot(sq[0] - door[0], sq[1] - door[1]), sq))
+
+
+def shelter_plan(world, building):
+    """A shelter plan for `building` on the player's floor: `{building, doors, door_i, rooms, inside, step, retries,
+    near}`, `near` the distance from the player to its nearest room square; None with no exterior door or no room."""
+    z = me_floor(world)
+    rooms = [sq for sq in world.interiors().get(building, ()) if sq[2] == z]
+    doors = exterior_doors(world, building, z)
+    if not rooms or not doors:
+        return None
+    return {"building": building, "doors": doors, "door_i": 0, "rooms": rooms, "inside": _inside_for(rooms, doors[0]),
+            "step": "approach", "retries": 0, "near": min(_dist(world, sq) for sq in rooms)}
+
+
+def _door(plan):
+    return plan["doors"][plan["door_i"]]
+
+
+def _near(world, door):
+    sq = player_square(world)
+    return sq is not None and sq[2] == door[2] and max(abs(sq[0] - door[0]), abs(sq[1] - door[1])) <= 1
+
+
+def _next_door(plan):
+    """Move to the next exterior door at its approach; False when none is left."""
+    if plan["door_i"] + 1 >= len(plan["doors"]):
+        return False
+    plan["door_i"] += 1
+    plan["inside"] = _inside_for(plan["rooms"], _door(plan))
+    plan["step"] = "approach"
+    return True
+
+
+def shelter_step(world, plan):
+    """(command, step) of the plan's next step, skipping an approach the player stands at and an open of a door that
+    read open; (None, "done") once the close ended; (None, "shun") when no door is left to try."""
+    while plan["step"] != "done":
+        door, step = _door(plan), plan["step"]
+        if step == "approach":
+            if _near(world, door):
+                plan["step"] = "open"
+                continue
+            sq = approach_square(world, door)
+            if sq is not None:
+                c = _centre(sq)
+                return WalkTo(c[0], c[1], "walk"), step
+            if not _next_door(plan):
+                return None, "shun"
+            continue
+        if step == "open":
+            if ((world.map.get(door) or {}).get("door") or {}).get("open"):
+                plan["step"] = "enter"
+                continue
+            return Interact(door[0], door[1], "open"), step
+        if step == "enter":
+            c = _centre(plan["inside"])
+            return WalkTo(c[0], c[1], "walk"), step
+        return Interact(door[0], door[1], "close"), step
+    return None, "done"
+
+
+def shelter_ended(plan, action):
+    """Read a shelter step's end into the plan (the module docstring's rule): `advance`, `resend`, `passed`, `next
+    door`, `retry` or `shun`."""
+    step = plan["step"]
+    if action.state == "failed" and action.reason == PREEMPTED:
+        return "resend"
+    if action.state == "done":
+        plan["step"] = SHELTER_STEPS[SHELTER_STEPS.index(step) + 1] if step != "close" else "done"
+        return "advance"
+    if step == "close":
+        plan["step"] = "done"
+        return "passed"
+    if action.state == "failed" and action.reason in SHUN_REASONS:
+        return "next door" if _next_door(plan) else "shun"
+    plan["retries"] += 1
+    return "retry" if plan["retries"] < STEP_RETRIES else "shun"
+
+
+# ---------------------------------------------------------------- the policy
 class Night(Policy):
     def __init__(self, world, actions, clock=time.time):
         super().__init__(world, actions, clock)
+        self.t0 = clock()
         self.want_shelter = False
+        self.allowed = True     # False once a sleep was refused `not allowed`: no want for the session
         self.shunned = {}       # building -> the gameMin it was shunned at
         self.visited = set()    # the buildings whose interior the character has stood in
         self.last_sleep = None  # {gameMin, sleptH, fatigueBefore, fatigueAfter, bedType} of the last sleep done
-        self.rested = False     # the last sleep ended under TIRED_T: no want while fatigue stays under it
-        self.hold_until = None  # wall until which a sleep refused `not safe` holds the branch
-        self.plan = None        # {building, door, inside, step} while sheltering
+        self.rested = False     # the last sleep ended under TIRED_T (the module docstring's clearance)
+        self.hold_until = None  # wall until which a refused sleep holds the branch
+        self.plan = None        # the shelter plan while sheltering
+        self.wants_n = 0        # ticks the night branch wanted (Survive counts them)
+        self.steps = []         # each shelter step ended, for loop.night
+        self.sleeps = []        # each sleep ended, for loop.night
         self._read = None       # the last action whose end observe() has read
+        self._sent = None       # (step, building) of the last command chosen
+        self._note = {}         # what observe read this tick, merged into why
 
     # ---------------------------------------------------------------- reading the frame
     def fatigue(self):
@@ -96,6 +251,8 @@ class Night(Policy):
         return h if _num(h) else None
 
     def wants(self):
+        if not self.allowed:
+            return False
         f = self.fatigue()
         if self.rested and f < TIRED_T:
             return False
@@ -104,15 +261,9 @@ class Night(Policy):
         h = self.hour()
         return h is not None and h >= LATE_HOUR and f > LATE_FATIGUE
 
-    def _square(self):
-        me = self.world.me or {}
-        x, y = me.get("x"), me.get("y")
-        if not (_num(x) and _num(y)):
-            return None
-        return int(math.floor(x)), int(math.floor(y)), me_floor(self.world)
-
     def inside(self):
-        s = self.world.map.get(self._square())
+        sq = player_square(self.world)
+        s = self.world.map.get(sq) if sq is not None else None
         return s is not None and s.get("room") is not None
 
     def shunned_now(self):
@@ -120,88 +271,33 @@ class Night(Policy):
         return {b for b, at in self.shunned.items() if now - at < SHUN_MIN}
 
     def holding(self):
-        """Wall seconds the branch still holds after a sleep refused `not safe`, else 0.0."""
+        """Wall seconds the branch still holds after a refused sleep, else 0.0."""
         if self.hold_until is None:
             return 0.0
         return max(0.0, self.hold_until - self.clock())
 
     def idle(self):
-        """The branch does not want: no plan, no shelter wanted."""
+        """The branch does not want: no plan, no shelter wanted; a `not allowed` read this tick is logged once."""
         self.plan, self.want_shelter = None, False
-        self.why = {"wants": False}
+        self.why = dict({"wants": False}, **self._note)
+        self._note = {}
 
-    # ---------------------------------------------------------------- the plan
-    def _dist(self, sq):
-        mx, my = me_xy(self.world)
-        c = _centre(sq)
-        return math.hypot(c[0] - mx, c[1] - my)
+    # ---------------------------------------------------------------- the record
+    def _s(self, wall):
+        return wall - self.t0 if _num(wall) else None
 
-    def _door_rank(self, sq):
-        d = self.world.map[sq].get("door") or {}
-        state = 0 if d.get("open") else (2 if d.get("locked") or d.get("barricaded") else 1)
-        return state, self._dist(sq), sq
-
-    def _plan_for(self, b, rooms, z):
-        doors = [sq for sq in self.world.doors_of(b) if sq[2] == z]
-        inner = [sq for sq in rooms if sq[2] == z]
-        if not doors or not inner:
-            return None
-        door = min(doors, key=self._door_rank)
-        deeper = [sq for sq in inner if sq != door] or inner
-        target = min(deeper, key=lambda sq: (math.hypot(sq[0] - door[0], sq[1] - door[1]), sq))
-        return {"building": b, "door": door, "inside": target, "step": "approach",
-                "rank": (b not in self.visited, min(self._dist(sq) for sq in inner), json.dumps(b))}
-
-    def _new_plan(self):
-        z = me_floor(self.world)
-        skip = self.shunned_now()
-        plans = [self._plan_for(b, rooms, z) for b, rooms in self.world.interiors().items()
-                 if b is not None and b not in skip]
-        plans = [p for p in plans if p is not None]
-        if not plans:
-            return None
-        best = min(plans, key=lambda p: p["rank"])
-        del best["rank"]
-        return best
-
-    def _approach(self, door):
-        """The square the approach walks to (the module docstring's ruling), None when the door has no free
-        neighbour outside."""
-        for sq in self.world.reachable_adjacent((door[0], door[1]), door[2]):
-            if self.world.map[sq].get("room") is None:
-                return sq
-        out = []
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                sq = (door[0] + dx, door[1] + dy, door[2])
-                s = self.world.map.get(sq)
-                if sq == door or s is None or s.get("solid") or s.get("room") is not None:
-                    continue
-                out.append((self._dist(sq), sq))
-        return min(out)[1] if out else None
-
-    def _shun(self, building):
-        self.shunned[building] = self.world.game_min or 0.0
-        self.plan = None
-
-    def _near_door(self, door):
-        sq = self._square()
-        return sq is not None and sq[2] == door[2] and max(abs(sq[0] - door[0]), abs(sq[1] - door[1])) <= 1
-
-    def _door_open(self, door):
-        d = (self.world.map.get(door) or {}).get("door") or {}
-        return bool(d.get("open"))
-
-    def _advance(self):
-        self.plan["step"] = STEPS[STEPS.index(self.plan["step"]) + 1]
+    def _row(self, a):
+        return {"aid": a.aid, "state": a.state, "reason": a.reason, "startS": self._s(a.sent_wall),
+                "endS": self._s(a.ended_wall)}
 
     # ---------------------------------------------------------------- the policy
     def observe(self):
-        sq = self._square()
+        sq = player_square(self.world)
         s = self.world.map.get(sq) if sq is not None else None
         if s is not None and s.get("room") is not None and s.get("building") is not None:
             self.visited.add(s["building"])
-        if self.rested and self.fatigue() >= TIRED_T:
+        h = self.hour()
+        if self.rested and (self.fatigue() >= TIRED_T or (h is not None and h < LATE_HOUR)):
             self.rested = False
         a = self.last
         if a is None or a is self._read or not self.actions.done(a):
@@ -210,24 +306,28 @@ class Night(Policy):
         if a.type == "sleep":
             self._sleep_ended(a)
             return
-        if self.plan is None or (a.state == "failed" and a.reason == PREEMPTED):
+        step, building = self._sent
+        self.steps.append(dict(self._row(a), step=step, building=building))
+        if self.plan is None or self.plan["building"] != building:
             return
-        if a.state == "done":
-            self._advance()
-        elif a.state == "failed" and a.reason in SHUN_REASONS:
-            self._shun(self.plan["building"])
-        elif self.plan["step"] == "close":
-            self._advance()   # inside: a close that failed otherwise is passed over, the sleep goes ahead
+        out = shelter_ended(self.plan, a)
+        self._note = {"ended": out}
+        if out == "shun":
+            self.shunned[building] = self.world.game_min or 0.0
+            self.plan = None
 
     def _sleep_ended(self, a):
-        if a.state in ("rejected", "failed") and a.reason == NOT_SAFE:
+        res = a.result if isinstance(a.result, dict) else {}
+        keys = ("fatigueBefore", "fatigueAfter", "sleptH", "bedType")
+        self.sleeps.append(dict(self._row(a), result=a.result, **{k: res.get(k) for k in keys}))
+        if a.state in ("rejected", "failed") and a.reason in HOLD_S:
             ended = a.ended_wall if _num(a.ended_wall) else self.clock()
-            self.hold_until = ended + NOT_SAFE_S   # from the refusal's own wall, not the tick that read it
+            self.hold_until = ended + HOLD_S[a.reason]   # from the refusal's own wall, not the tick that read it
+        elif a.state in ("rejected", "failed") and a.reason == NOT_ALLOWED:
+            self.allowed = False
+            self._note = {"barred": NOT_ALLOWED}
         elif a.state == "done":
-            res = a.result if isinstance(a.result, dict) else {}
-            self.last_sleep = {"gameMin": self.world.game_min, "sleptH": res.get("sleptH"),
-                               "fatigueBefore": res.get("fatigueBefore"), "fatigueAfter": res.get("fatigueAfter"),
-                               "bedType": res.get("bedType")}
+            self.last_sleep = dict({"gameMin": self.world.game_min}, **{k: res.get(k) for k in keys})
             after = res.get("fatigueAfter")
             self.rested = (after if _num(after) else self.fatigue()) < TIRED_T
             self.plan = None
@@ -235,8 +335,22 @@ class Night(Policy):
     def choose(self):
         cmd, step = self._choose()
         building = self.plan["building"] if self.plan is not None else self.why.get("building")
-        self.why = dict(self.why, step=step, building=building, shunned=sorted(self.shunned_now(), key=json.dumps))
+        self._sent = (step, building)
+        self.why = dict(self.why, step=step, building=building, shunned=sorted(self.shunned_now(), key=json.dumps),
+                        **self._note)
+        self._note = {}
         return cmd
+
+    def sent(self, cmd, action):
+        self.why["aid"] = action.aid
+
+    def _new_plan(self):
+        skip = self.shunned_now()
+        plans = [shelter_plan(self.world, b) for b in self.world.interiors() if b is not None and b not in skip]
+        plans = [p for p in plans if p is not None]
+        if not plans:
+            return None
+        return min(plans, key=lambda p: (p["building"] not in self.visited, p["near"], json.dumps(p["building"])))
 
     def _choose(self):
         self.why, self.want_shelter = {}, False
@@ -251,36 +365,23 @@ class Night(Policy):
         self.hold_until = None
         p = self.plan
         if p is not None and p["step"] == "close":
-            return Interact(p["door"][0], p["door"][1], "close"), "close"
-        if self.inside():
-            self.why.update(inside=True, building=(self.world.map.get(self._square()) or {}).get("building"))
-            if p is not None:
-                p["step"] = "sleep"
+            return shelter_step(self.world, p)
+        if self.inside() or (p is not None and p["step"] == "done"):
+            sq = player_square(self.world)
+            self.why.update(inside=self.inside(), building=(self.world.map.get(sq) or {}).get("building"))
             return Sleep(), "sleep"
         while True:
             if self.plan is None:
                 self.plan = self._new_plan()
-            p = self.plan
-            if p is None:
+            if self.plan is None:
                 self.want_shelter = True
                 self.why["want_shelter"] = True
                 return None, None
-            if p["step"] == "approach":
-                if self._near_door(p["door"]):
-                    self._advance()
-                else:
-                    sq = self._approach(p["door"])
-                    if sq is None:
-                        self._shun(p["building"])   # no free square outside the door: the next building
-                        continue
-                    return WalkTo(sq[0] + 0.5, sq[1] + 0.5, "walk"), "approach"
-            if p["step"] == "open":
-                if self._door_open(p["door"]):
-                    self._advance()
-                else:
-                    return Interact(p["door"][0], p["door"][1], "open"), "open"
-            if p["step"] in ("enter", "sleep"):   # outside again after a sleep step: walk back in
-                p["step"] = "enter"
-                c = _centre(p["inside"])
-                return WalkTo(c[0], c[1], "walk"), "enter"
-            return None, None
+            cmd, step = shelter_step(self.world, self.plan)
+            if step == "shun":
+                self.shunned[self.plan["building"]] = self.world.game_min or 0.0
+                self.plan = None
+                continue
+            if step == "done":
+                return Sleep(), "sleep"
+            return cmd, step

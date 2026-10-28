@@ -65,9 +65,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   heavy load is dropped before the sleep.
 - `night` (Plan 23 Task 12, P23-9): `night.Night` (its docstring is the design record). Its own running action holds
   first, before the want is read (a sleep is never superseded by its fatigue falling under the want); not wanting, it
-  passes (logged `{"wants": false}`); wanting, it shelters in a known interior and sleeps, holds NOT_SAFE_S after a
-  sleep refused `not safe`, and with no shelter known sets `night.want_shelter` and passes. Its `why` carries `step`,
-  `building` and `shunned`.
+  passes (logged `{"wants": false}`); wanting (counted in `night.wants_n`), it shelters in a known interior and
+  sleeps, holds NOT_SAFE_S after a sleep refused `not safe` and NOT_VALID_S after `not valid`, stops wanting for the
+  session after `not allowed` (ruling P23-U), and with no shelter known sets `night.want_shelter` and passes. Its
+  `why` carries `step`, `building`, `shunned` and the sent action's `aid`.
 - The log's inputs carry `mode` (the running threat policy at the tick's start, else None), `threats` (the DANGER_R
   count), `held` (the count within the hold radius), `fight_s` (the running fight's stall clock read before this
   tick restarts it, else None), and the frame's `fatigue` and `hour` (the night's inputs).
@@ -267,7 +268,8 @@ class Survive:
 
     def _night(self):
         """`night.Night`: its own running action holds first (a sleep is never superseded by a fatigue falling under
-        the want); not wanting, it passes; a sleep refused `not safe` holds the branch NOT_SAFE_S."""
+        the want); not wanting, it passes; a refused sleep's hold answers with no command. Each tick it wants counts in
+        `night.wants_n`; `self.why` is the night's own `why`, so the `aid` its `sent` adds reaches the log."""
         n = self.night
         n.observe()
         if n.busy():
@@ -277,8 +279,9 @@ class Survive:
             n.idle()
             self.why = dict(n.why)
             return None
+        n.wants_n += 1
         cmd = n.choose()
-        self.why = dict(n.why)
+        self.why = n.why
         if cmd is None:
             return (n, None) if n.why.get("hold") else None
         return n, cmd
@@ -326,7 +329,8 @@ class Survive:
         held = self._within(self._hold_r())
         cur = self.actions.current
         return {"x": me.get("x"), "y": me.get("y"), "health": self._health(), "hunger": st.get("hunger"),
-                "thirst": st.get("thirst"), "fatigue": st.get("fatigue"), "hour": me.get("hour"), "armed": self._armed(), "load": (self.world.load or {}).get("level"),
+                "thirst": st.get("thirst"), "fatigue": st.get("fatigue"), "hour": me.get("hour"),
+                "armed": self._armed(), "load": (self.world.load or {}).get("level"),
                 "threats": len(self._within(DANGER_R)), "held": len(held),
                 "nearest": min((zdist(self.world, z) for z in held), default=None),
                 "running": cur.type if cur is not None else None, "mode": self.mode,

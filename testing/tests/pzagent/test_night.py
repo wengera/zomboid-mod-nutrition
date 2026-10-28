@@ -288,3 +288,167 @@ def test_a_running_sleep_is_held_when_fatigue_falls_under_the_want(tmp_path):
     assert tick(r, sv) is None
     d = last(tmp_path)
     assert d["branch"] == "night" and d["sent"] is False and [a.type for a in r.acts.history] == ["sleep"]
+
+
+# ================================================================ Task 12 fix 1
+def two_door_house(exterior2=None):
+    """house(1, 110) with an open interior door at (111, 201) between two rooms; with `exterior2`, a second exterior
+    door on the west wall at (110, 202)."""
+    sqs = house(1, 110)
+    for s in sqs:
+        if (s["x"], s["y"]) == (111, 201):
+            s["door"] = dict(OPEN)
+        if exterior2 is not None and (s["x"], s["y"]) == (110, 202):
+            s["door"], s["blockW"] = dict(exterior2), not exterior2["open"]
+    return sqs
+
+
+def test_an_interior_door_is_never_the_shelters_door(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan(two_door_house())
+    r.frame(x=100.0, y=201.5, fatigue=0.65)
+    assert N.exterior_doors(r.world, 1, 0) == [(110, 201, 0)]
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 109.5, "y": 201.5, "gait": "walk"})
+    assert sv.night.shunned == {} and sv.night.want_shelter is False
+
+
+def test_a_failed_open_tries_the_buildings_next_exterior_door_before_the_shun(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan(two_door_house(exterior2=LOCKED))
+    r.frame(x=109.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    assert r.cmd() == ("interact", {"x": 110, "y": 201, "kind": "open", "filter": "all", "maxWeight": 0.0})
+    r.answer({"state": "failed", "reason": "locked"})
+    r.frame(x=109.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    assert r.cmd() == ("interact", {"x": 110, "y": 202, "kind": "open", "filter": "all", "maxWeight": 0.0})
+    assert sv.night.shunned == {} and night_why(tmp_path)["ended"] == "next door"
+    r.answer({"state": "failed", "reason": "locked"})
+    r.frame(x=109.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    assert sv.night.shunned == {1: 480.0} and sv.night.want_shelter is True
+
+
+def test_a_sleep_refused_not_allowed_ends_the_want_for_the_session(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110) + [square(x, y) for x in range(99, 102) for y in range(199, 202)])
+    r.frame(x=111.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    end(r, {"state": "rejected", "reason": "not allowed"})
+    r.frame(x=111.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    assert sv.night.allowed is False and last(tmp_path)["branch"] != "night"
+    assert night_why(tmp_path) == {"wants": False, "barred": "not allowed"}   # logged once
+    for _ in range(12):
+        if r.acts.current is not None:
+            r.answer()
+        r.advance(2.5)
+        r.frame(x=111.5, y=201.5, fatigue=0.9, hour=23.0)
+        tick(r, sv)
+        assert night_why(tmp_path) == {"wants": False}
+    assert [a.type for a in r.acts.history].count("sleep") == 1
+
+
+def test_a_sleep_refused_not_valid_holds_the_branch_for_not_valid_s(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110) + [square(x, y) for x in range(99, 102) for y in range(199, 202)])
+    r.frame(x=111.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    end(r, {"state": "rejected", "reason": "not valid"})
+    for i in range(23):                                       # 2.5 .. 57.5 s: held, nothing sent
+        r.advance(2.5)
+        r.frame(x=111.5, y=201.5, fatigue=0.65)
+        assert tick(r, sv) is None, i
+        assert last(tmp_path)["branch"] == "night" and night_why(tmp_path)["hold"] > 0.0, i
+    r.advance(2.5)                                            # 60.0 s: tried again
+    r.frame(x=111.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    assert [a.type for a in r.acts.history] == ["sleep", "sleep"]
+
+
+def test_the_rested_latch_clears_with_the_new_day(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110) + [square(x, y) for x in range(99, 102) for y in range(199, 202)])
+    r.frame(x=111.5, y=201.5, fatigue=0.65, hour=23.0)
+    tick(r, sv)
+    r.answer(DONE_SLEEP)
+    r.frame(x=111.5, y=201.5, fatigue=0.35, hour=23.0)
+    tick(r, sv)
+    assert sv.night.rested is True and sv.night.wants() is False
+    if r.acts.current is not None:
+        r.answer()
+    r.frame(x=111.5, y=201.5, fatigue=0.1, hour=6.0)           # the next morning
+    tick(r, sv)
+    assert sv.night.rested is False
+    if r.acts.current is not None:
+        r.answer()
+    r.frame(x=111.5, y=201.5, fatigue=0.5, hour=22.5)          # the next night, under TIRED_T
+    tick(r, sv)
+    assert sv.night.wants() is True and r.cmd() == ("sleep", {}) and last(tmp_path)["branch"] == "night"
+
+
+@pytest.mark.parametrize("reason", ["not adjacent", "no door", "interrupted"])
+def test_a_failed_close_never_shuns_the_shelter_the_character_is_in(tmp_path, reason):
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110))
+    r.frame(x=109.5, y=201.5, fatigue=0.65)
+    tick(r, sv)                                               # open
+    r.answer()
+    r.frame(x=109.5, y=201.5, fatigue=0.65)
+    tick(r, sv)                                               # enter
+    r.answer()
+    r.frame(x=110.5, y=200.5, fatigue=0.65)
+    tick(r, sv)
+    assert r.cmd()[1]["kind"] == "close"
+    r.answer({"state": "failed", "reason": reason})
+    r.frame(x=110.5, y=200.5, fatigue=0.65)
+    tick(r, sv)
+    assert r.cmd() == ("sleep", {}) and sv.night.shunned == {} and night_why(tmp_path)["ended"] == "passed"
+
+
+def test_a_step_ending_otherwise_is_retried_step_retries_times_then_the_building_is_shunned(tmp_path):
+    r = Rig(tmp_path)
+    r.scan(house(1, 110))
+    r.frame(x=100.0, y=201.5, fatigue=0.65)
+    n = Night(r.world, r.acts, r.clock)
+    for i in range(N.STEP_RETRIES):
+        assert n.step() is not None and r.cmd()[0] == "walkTo", i
+        r.answer({"state": "failed", "reason": "interrupted"})
+        r.frame(x=100.0, y=201.5, fatigue=0.65)
+    assert n.step() is None and n.shunned == {1: 480.0} and n.want_shelter is True
+    assert [a.type for a in r.acts.history] == ["walkTo"] * N.STEP_RETRIES
+
+
+def test_the_night_keeps_its_record_for_loop_night(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110))
+    for x, y in ((109.5, 201.5), (109.5, 201.5), (110.5, 200.5), (110.5, 200.5)):
+        r.frame(x=x, y=y, fatigue=0.65)
+        tick(r, sv)
+        assert night_why(tmp_path)["aid"] == r.acts.history[-1].aid
+        r.advance(1.0)
+        r.answer(DONE_SLEEP if r.cmd()[0] == "sleep" else "done")
+    assert r.cmd() == ("sleep", {})
+    r.frame(x=110.5, y=200.5, fatigue=0.05)
+    tick(r, sv)
+    n = sv.night
+    assert n.wants_n == 4
+    assert [(s["step"], s["building"], s["state"]) for s in n.steps] == [("open", 1, "done"), ("enter", 1, "done"),
+                                                                         ("close", 1, "done")]
+    assert [s["aid"] for s in n.steps] == [a.aid for a in r.acts.history[:3]]
+    assert n.steps[0]["startS"] == 0.0 and n.steps[0]["endS"] == 1.0
+    assert len(n.sleeps) == 1 and n.sleeps[0]["state"] == "done" and n.sleeps[0]["sleptH"] == 8.0
+    assert n.sleeps[0]["fatigueAfter"] == 0.05 and n.sleeps[0]["result"]["bedType"] == "floor"
+
+
+def test_the_shelter_machine_runs_without_night(tmp_path):
+    """Task 13's Shelter goal calls the same functions."""
+    r = Rig(tmp_path)
+    r.scan(house(1, 110))
+    r.frame(x=100.0, y=201.5)
+    plan = N.shelter_plan(r.world, 1)
+    assert plan["doors"] == [(110, 201, 0)] and plan["inside"] == (110, 200, 0) and plan["step"] == "approach"
+    cmd, step = N.shelter_step(r.world, plan)
+    assert step == "approach" and cmd.TYPE == "walkTo"
+    assert N.shelter_plan(r.world, 2) is None
