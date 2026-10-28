@@ -53,6 +53,8 @@ else `Rest(REST_S)`. A loot goal (`Stock`, `LootBuilding`) is proposed only at t
 `GoalRunner(source, clock, shunned=None)`: `current` (the running goal or None), `history` (the record rows,
 `loop.goals` of task-15-amendments.md: `{type, args, state, reason, startS, endS, source}`, `startS`/`endS` seconds
 on the injected clock from the runner's creation, `source` the source's `NAME`), `kit`, `cooled`, `why`.
+`rows()` is the record's `loop.goals`: copies of `history`, then the running goal's row (state "running", `endS`
+None; Task 16d, the drivers' copy of it removed).
 `observe(world, actions)`, which Survive calls every tick before its branches whether or not the goal branch runs
 (fix 1, I1): the kit's bookkeeping, then the running goal is closed `superseded` (reason: the type of the action
 that replaced it) when the last action sent is not its own, its own being its last sent action, else its `mark` (the
@@ -603,6 +605,14 @@ class GoalRunner:
         if self.current is not None:
             self.current.sent(cmd, action)
         return action
+
+    def rows(self):
+        """loop.goals: every goal that ended (copies of `history`), then the running one with endS None."""
+        rows = [dict(r) for r in self.history]
+        g = self.current
+        if g is not None:
+            rows.append(dict(g.row(), startS=self._s(g.started_wall), endS=None, source=self._name()))
+        return rows
 
     def line(self):
         g = self.current or self._ended_now

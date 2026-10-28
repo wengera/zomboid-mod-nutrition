@@ -19,6 +19,7 @@ from agent.base.planner.goals import ScriptedSource
 from agent.base.planner.survive import Survive
 from agent.base.transport.files import FileTransport
 from agent.driverlib import chain as CH
+from agent.driverlib import day as CH_DAY
 from agent.driverlib import polls as P
 from agent.driverlib import session as S
 from agent.drivers import e_day as E
@@ -72,17 +73,17 @@ def test_nothing_is_imported_from_a_frozen_driver():
               or "drivers" in l or l.split()[1] in ("agent.link", "agent.grades", "agent.grade_c", "agent.world",
                                                      "agent.policy")]
     assert frozen == [], frozen
-    for need in ("import _dlib as DL", "import xlib as X", "from agent.driverlib import session as DS",
-                 "from agent.driverlib import chain as CH", "from agent.driverlib.polls import PollThread",
+    for need in ("import xlib as X", "from agent.driverlib import session as DS",
+                 "from agent.driverlib import day as DY", "from agent.driverlib.polls import PollThread",
                  "from agent.base import gates_e as GE", "from agent.base.planner.survive import Survive",
                  "from agent.base.planner.goals import ScriptedSource"):
         assert need in imports, need
     assert "Survive(world, actions, log_path, clock, source=ScriptedSource())" in src
-    assert "else PollThread(clock)" in src and "make_client=DS.clearing_make_client(session.make_client)" in src
-    assert "rec_fx = fx.load(args[\"fixture\"])" in src
-    i_x, i_g, i_b = src.index("xs = X.Xs("), src.index("    DS.memory_gate(xs, MIN_FREE_GB)"), src.index("DL.boot(")
-    assert i_x < i_g < i_b
-    assert "grade(out)" in src and "xs.copy_artifacts(REPO, run_id, run_dir, ARTIFACT)" in src
+    assert "else PollThread(clock)" in src
+    # the boot is the library's (Task 16d): driverlib/day.boot_and_run, its order tested in test_driverlib.py
+    assert "DY.boot_and_run(args, lambda: preboot(_ME, args), run_session, grade, key=KEY, driver=DRIVER," in src
+    assert 'grade_key="grade_e1"' in src and 'DY.grade(out, "grade_e1", GE.grade_e1)' in src
+    assert E.Chain is CH_DAY.Chain and E.parse_argv is CH_DAY.parse_argv and E.flags is CH_DAY.flags
     doc = E.__doc__
     for word in ("RULES", "--session", "--fixture", "--prev", "pzt snapshot --from-run", "never edited after its run",
                  "goals", "night", "lineage", "t_loop0_ms", "use", "branch", "day_cap"):
@@ -91,7 +92,7 @@ def test_nothing_is_imported_from_a_frozen_driver():
 
 def test_the_chain_record_names_the_session_the_fixture_the_prev_and_the_commit():
     args = {"session": 2, "fixture": "chain-1", "prev": "testing/runs/e_day-1/e_day.json"}
-    assert E.chain_record(args, "agent", "abc1234") == {
+    assert CH_DAY.chain_record(args, "agent", "abc1234") == {
         "session": 2, "fixture_arg": "chain-1", "profile_fixture": "agent",
         "prev": "testing/runs/e_day-1/e_day.json", "commit": "abc1234"}
 
@@ -99,15 +100,15 @@ def test_the_chain_record_names_the_session_the_fixture_the_prev_and_the_commit(
 def test_load_prev_reads_an_artifact_and_names_a_bad_one(tmp_path):
     p = tmp_path / "a.json"
     p.write_text(json.dumps({"loop": {"last_frames": [{"seq": 1}]}}), encoding="utf-8")
-    assert E.load_prev(str(p)) == ({"loop": {"last_frames": [{"seq": 1}]}}, None)
-    art, err = E.load_prev(str(tmp_path / "missing.json"))
+    assert CH_DAY.load_prev(str(p)) == ({"loop": {"last_frames": [{"seq": 1}]}}, None)
+    art, err = CH_DAY.load_prev(str(tmp_path / "missing.json"))
     assert art is None and "missing.json" in err
     (tmp_path / "bad.json").write_text("{not json", encoding="utf-8")
-    art, err = E.load_prev(str(tmp_path / "bad.json"))
+    art, err = CH_DAY.load_prev(str(tmp_path / "bad.json"))
     assert art is None and err
     (tmp_path / "list.json").write_text("[1]", encoding="utf-8")
-    assert E.load_prev(str(tmp_path / "list.json"))[0] is None
-    assert E.load_prev(None) == (None, None)
+    assert CH_DAY.load_prev(str(tmp_path / "list.json"))[0] is None
+    assert CH_DAY.load_prev(None) == (None, None)
 
 
 def _chain_fixture(root, name):
@@ -119,24 +120,28 @@ def _chain_fixture(root, name):
 
 
 def test_preboot_on_the_real_profile(agent_fixture, monkeypatch, tmp_path):
-    monkeypatch.setattr(E.DL.C, "doctor", lambda: (True, "ok"))
-    monkeypatch.setattr(E.DL.harness, "lint_paths", lambda srcs: [])
-    monkeypatch.setattr(E.DL.C, "git_dirty", lambda rel: (False, ""))
-    real = E.DL.C.git_say
+    monkeypatch.setattr(S.DL.C, "doctor", lambda: (True, "ok"))
+    monkeypatch.setattr(S.DL.harness, "lint_paths", lambda srcs: [])
+    monkeypatch.setattr(S.DL.C, "git_dirty", lambda rel: (False, ""))
+    real = S.DL.C.git_say
     tracked = {"v": ""}
-    monkeypatch.setattr(E.DL.C, "git_say", lambda *a: tracked["v"] if a[0] == "ls-files" else real(*a))
+    monkeypatch.setattr(S.DL.C, "git_say", lambda *a: tracked["v"] if a[0] == "ls-files" else real(*a))
     pre, ok = E.preboot(E.__file__, E.flags([]))
     assert ok, pre
     assert pre["profile"] == "agent" and pre["driver_checks"]["driver_file"] is True
     assert pre["driver_checks"]["driverlib_dirty"] is False and pre["driverlib_commit"]
-    assert pre["chain_checks"] == {"fixture": "agent", "fixture_ok": True, "fixture_error": None, "prev": None,
-                                   "prev_ok": None, "prev_error": None}
+    assert pre["chain_checks"] == {"fixture": "agent", "fixture_ok": True, "fixture_error": None,
+                                   "fixture_session": None, "prev": None, "prev_ok": None, "prev_error": None,
+                                   "prev_frames": None, "prev_session": None, "session": 1,
+                                   "session_consistent": None}
     _chain_fixture(agent_fixture, "chain-1")
     prev = tmp_path / "e_day.json"
     prev.write_text(json.dumps({"loop": {"last_frames": [{"seq": 1}]}}), encoding="utf-8")
     pre, ok = E.preboot(E.__file__, E.flags(["--session", "2", "--fixture", "chain-1", "--prev", str(prev)]))
     assert ok, pre
     assert pre["chain_checks"]["fixture_ok"] is True and pre["chain_checks"]["prev_ok"] is True
+    assert pre["chain_checks"]["prev_frames"] is True and pre["chain_checks"]["fixture_session"] == 1
+    assert pre["chain_checks"]["session_consistent"] is True
     pre, ok = E.preboot(E.__file__, E.flags(["--fixture", "nope"]))
     assert ok is False and pre["chain_checks"]["fixture_ok"] is False and "nope" in pre["chain_checks"]["fixture_error"]
     pre, ok = E.preboot(E.__file__, E.flags(["--prev", str(tmp_path / "gone.json")]))
@@ -144,9 +149,9 @@ def test_preboot_on_the_real_profile(agent_fixture, monkeypatch, tmp_path):
     tracked["v"] = "testing/artifacts/e_day-20261028-120000/e_day.json"
     assert E.preboot(E.__file__, E.flags([]))[1] is False
     tracked["v"] = ""
-    monkeypatch.setattr(E.DL.C, "git_dirty", lambda rel: (rel == "testing/agent/driverlib", ""))
+    monkeypatch.setattr(S.DL.C, "git_dirty", lambda rel: (rel == "testing/agent/driverlib", ""))
     assert E.preboot(E.__file__, E.flags([]))[1] is False
-    monkeypatch.setattr(E.DL.C, "git_dirty", lambda rel: (False, ""))
+    monkeypatch.setattr(S.DL.C, "git_dirty", lambda rel: (False, ""))
     assert E.preboot(os.path.join(os.path.dirname(E.__file__), "d_survive.py"), E.flags([]))[1] is False
 
 
@@ -334,8 +339,7 @@ def test_a_clean_session_stops_at_the_day_cap_with_the_chain_record(tmp_path, mo
     assert s.polls is not None and loop["polls_joined"] is True and loop["poll_errors"] == []
     assert loop["goals"] and all(set(g) == GOAL_KEYS for g in loop["goals"])
     assert all(g["source"] == "scripted" for g in loop["goals"])
-    assert loop["goals"] == s.planner.goals.history + ([E.goal_row(s.planner.goals)]
-                                                        if s.planner.goals.current is not None else [])
+    assert loop["goals"] == s.planner.goals.rows()
     assert loop["night"] == {"wants": 0, "steps": [], "sleeps": []}
     assert loop["lineage"] is None
     assert loop["t_loop0_ms"] == loop["startPyMs"] == s.t_loop0 * 1000.0
@@ -352,7 +356,7 @@ def test_a_clean_session_stops_at_the_day_cap_with_the_chain_record(tmp_path, mo
 
 def test_a_second_session_with_prev_records_the_lineage_diff(tmp_path, monkeypatch):
     a = run_chain(tmp_path, monkeypatch, name="a.json", day_cap_s=10)
-    prev, err = E.load_prev(str(tmp_path / "a.json"))
+    prev, err = CH_DAY.load_prev(str(tmp_path / "a.json"))
     assert err is None and prev["loop"]["last_frames"]
     args = E.flags(["--session", "2", "--prev", str(tmp_path / "a.json")])
     assert args["session"] == 2
@@ -361,8 +365,9 @@ def test_a_second_session_with_prev_records_the_lineage_diff(tmp_path, monkeypat
     first = b.day.first_frame
     assert first["seq"] == 2 and first["gameMin"] == 480.0                     # the hello is seq 1
     assert lin == CH.lineage_diff(prev, first)
-    assert lin["game_min"] == {"prev": a.out["loop"]["last_frames"][-1]["gameMin"], "now": 480.0}
-    assert lin["ok"] is False                                                 # the fake's clock began a new day
+    gm = a.out["loop"]["last_frames"][-1]["gameMin"]
+    assert lin["game_min"] == {"prev": gm, "now": 480.0, "delta": 480.0 - gm, "tol": 3.0, "ok": False}
+    assert lin["ok"] is False and gm - 480.0 > 3.0                         # the fake's clock began a new day
     assert b.out["grade_e1"]["lineage"] == lin
     same = {"loop": {"last_frames": [{"seq": 9, "gameMin": 480.0, "me": {"x": 100.0, "y": 200.0},
                                       "body": {"health": 100.0}, "stats": {"hunger": 0.1, "thirst": 0.1,

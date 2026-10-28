@@ -9,6 +9,8 @@ driver copied its helpers from the last one. This package holds that shared code
 - `polls`    `PollThread`, the server reads run on a worker thread so a slow bus never blocks the loop;
 - `record`   the artifact's loop summary, action rows and death record, built off a Session;
 - `chain`    a chained day's lineage check between two sessions and the `pzt snapshot` argv between them.
+- `day`      the day drivers' shared session (Task 16d): their arguments, the chain's pre-boot checks, `Chain` (the
+             Session with the chain's record) and `boot_and_run`, the boot a day driver calls.
 
 The library is not frozen: it changes as the drivers need, and its tests guard it. A session's artifact names the
 tree's commit (`out["preboot"]["commit"]`, with `driverlib_commit` beside it, and the pre-boot checks refuse a dirty

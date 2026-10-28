@@ -5,8 +5,9 @@ controller snapshotted off the last one's run), the scripted survivor `Survive(s
 file channel, the server's reads off a `PollThread` (P23-13: no server read stalls the planner). A chain of these
 sessions is graded by `gates_e.gate_e1` over its artifacts in order; each session's `grade_e1` is written at its end.
 
-The driver is thin: its constants, its arguments, its pre-boot checks, `Chain` (the library's `Session` with the two
-hooks) and its boot. Everything else is the library's, documented in `driverlib/session.py`'s docstring.
+The driver is thin: its constants, its pre-boot checks and its planner. The day's arguments, chain inputs, `Chain`
+(the library's `Session` with the two hooks) and the boot (`day.boot_and_run`) are `driverlib/day.py`'s (moved there
+by Task 16d, shared with f_goals.py); the rest is the library's, documented in `driverlib/session.py`'s docstring.
 
 PHASES (driverlib.session, each through xs.run_phase; a phase's fault lands under out["phase_errors"][name]; each
 reading at out["readings"][phase]):
@@ -31,12 +32,14 @@ task-15-amendments.md:
   night       {wants (the ticks the night branch wanted), steps [{step, building, aid, state, reason, startS, endS}],
               sleeps [{aid, state, reason, result, startS, endS, fatigueBefore, fatigueAfter, sleptH, bedType}]};
   lineage     with --prev, chain.lineage_diff(the previous artifact, this session's first frame): its last kept frame
-              (loop.last_frames[-1]) against the first frame, each quantity {prev, now}, ok within LINEAGE_TOL; None
-              for a chain's first session;
+              (loop.last_frames[-1]) against the first frame, each quantity {prev, now, delta, tol, ok}, ok within
+              LINEAGE_TOL (ruling P23-Y: gameMin 3.0, each stat 0.005, position 0.5, health 0.01, the inventory
+              count equal); None for a chain's first session;
   t_loop0_ms  the loop's start in epoch ms on this host's clock, the frames' wallMs base (gates_e.frame_times).
 out["chain"] {session, fixture_arg (the fixture booted), profile_fixture (the profile's own `fixture`, reported
-beside it), prev (the path), commit (the tree's)}; out["preboot"]["chain_checks"] {fixture, fixture_ok,
-fixture_error, prev, prev_ok, prev_error}; out["grade_e1"] is gates_e.grade_e1(out) (its lineage the record's
+beside it), prev (the path), commit (the tree's)}; out["preboot"]["chain_checks"] (day.chain_checks: {fixture,
+fixture_ok, fixture_error, fixture_session, prev, prev_ok, prev_error, prev_frames, prev_session, session,
+session_consistent}); out["grade_e1"] is gates_e.grade_e1(out) (its lineage the record's
 loop.lineage, read off the session's first frame), else out["grade_e1_error"]; out["finished"] is set last.
 
 Clocks: a line's wallMs is the client's clock (ms); `*S` keys are this process's clock in seconds since the loop
@@ -49,10 +52,11 @@ before the boot; never -safemode; launched by the controller and polled through 
 after each session the controller snapshots its run into the next session's fixture with `pzt snapshot --from-run
 <run dir> --name <next> --parent <this fixture> --session <n>` (chain.snapshot_cmd; the summary prints it), then
 boots `e_day.py --session <n+1> --fixture <next> --prev <this artifact>`. The pre-boot checks refuse a dirty agent
-Lua, agent base, driver library or driver, a committed artifact of this key, a fixture with no record or cache and a
---prev that does not read as an artifact. Nothing is imported from a frozen driver but `_dlib` and `xlib`.
+Lua, agent base, driver library or driver, a committed artifact of this key, a fixture with no record or cache (or
+an unreadable one) and a --prev that does not read as an artifact carrying loop.last_frames; a --session that does
+not follow the fixture's or the prev's session is reported (session_consistent), never refused. Nothing is imported
+from a frozen driver but `xlib` (and `_dlib` through the library).
 """
-import json
 import os
 import sys
 import time
@@ -63,16 +67,14 @@ for _p in (HERE, os.path.join(TESTING, "experiments"), TESTING):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-import _dlib as DL                                    # noqa: E402
 import xlib as X                                      # noqa: E402
 from agent.base import gates_e as GE                  # noqa: E402
 from agent.base.planner.goals import ScriptedSource   # noqa: E402
 from agent.base.planner.survive import Survive        # noqa: E402
-from agent.base.transport.files import FileTransport  # noqa: E402
-from agent.driverlib import chain as CH               # noqa: E402
+from agent.driverlib import day as DY                 # noqa: E402
 from agent.driverlib import session as DS             # noqa: E402
+from agent.driverlib.day import ALLOWED, DEFAULT_FIXTURE, Chain, flags, parse_argv   # noqa: E402,F401
 from agent.driverlib.polls import PollThread          # noqa: E402
-from pzt import fixture as fx                         # noqa: E402
 
 KEY = "e_day"
 DRIVER = "e_day.py"
@@ -86,71 +88,17 @@ DAMAGE_POLL_S = 5
 MIN_FREE_GB = DS.DEFAULTS["MIN_FREE_GB"]
 LIMITS = {"DAY_CAP_S": DAY_CAP_S, "PLANNER_HZ": PLANNER_HZ, "DAMAGE_POLL_S": DAMAGE_POLL_S}
 CONSTANTS = dict(DS.DEFAULTS, **LIMITS, BUDGET_S=BUDGET_S)
-ALLOWED = ("--session", "--fixture", "--prev")
-DEFAULT_FIXTURE = "agent"
 REPO = DS.REPO
 _ME = os.path.basename(os.path.abspath(__file__))
-
-
-# ================================================================ arguments
-def parse_argv(argv, driver_file):
-    """The one-line refusal of anything but ALLOWED (each once, with one value) and of a --session that is not an int
-    >= 1, else None."""
-    refusal = DS.parse_argv(argv, driver_file, ALLOWED)
-    if refusal:
-        return refusal
-    s = DS.parse_flags(argv, ALLOWED).get("--session")
-    if s is not None and not (s.isdigit() and int(s) >= 1):
-        return "%s: --session takes an int >= 1; refused: %s" % (os.path.basename(driver_file), " ".join(argv))
-    return None
-
-
-def flags(argv):
-    """{session, fixture, prev} off an argv parse_argv accepted (the defaults 1, DEFAULT_FIXTURE, None)."""
-    f = DS.parse_flags(argv, ALLOWED) or {}
-    return {"session": int(f.get("--session", 1)), "fixture": f.get("--fixture", DEFAULT_FIXTURE),
-            "prev": f.get("--prev")}
-
-
-def load_prev(path):
-    """(the previous session's artifact, None), or (None, why) when it does not read as one; (None, None) without a
-    path."""
-    if path is None:
-        return None, None
-    try:
-        with open(path, encoding="utf-8") as fh:
-            art = json.load(fh)
-    except (OSError, ValueError) as e:
-        return None, "%s: %s" % (type(e).__name__, e)
-    if not isinstance(art, dict):
-        return None, "not an artifact (a JSON %s): %s" % (type(art).__name__, path)
-    return art, None
-
-
-def chain_record(args, profile_fixture, commit):
-    """out["chain"]: the session, the fixture booted beside the profile's own, the previous artifact's path and the
-    tree's commit."""
-    return {"session": args["session"], "fixture_arg": args["fixture"], "profile_fixture": profile_fixture,
-            "prev": args["prev"], "commit": commit}
 
 
 # ================================================================ pre-boot
 def preboot(driver_file, args, repo=REPO):
     """The library's pre-boot checks (DS.preboot: _dlib's, the library's commit and the driver's own, a dirty library
-    refused) and the chain's: the fixture's record and cache (fx.load), and --prev read as an artifact."""
+    refused) and the chain's (DY.chain_checks)."""
     pre, ok = DS.preboot(driver_file, KEY, DRIVER, PROFILE, repo)
-    cc = {"fixture": args["fixture"], "fixture_ok": False, "fixture_error": None, "prev": args["prev"],
-          "prev_ok": None, "prev_error": None}
-    try:
-        fx.load(args["fixture"])
-        cc["fixture_ok"] = True
-    except SystemExit as e:                      # fx.load names a missing record or cache by SystemExit
-        cc["fixture_error"] = str(e)
-    if args["prev"] is not None:
-        art, cc["prev_error"] = load_prev(args["prev"])
-        cc["prev_ok"] = art is not None
-    pre["chain_checks"] = cc
-    return pre, bool(ok and cc["fixture_ok"] and cc["prev_ok"] is not False)
+    pre["chain_checks"], ok2 = DY.chain_checks(args)
+    return pre, bool(ok and ok2)
 
 
 # ================================================================ the session
@@ -158,126 +106,28 @@ def planner(world, actions, log_path, clock):
     return Survive(world, actions, log_path, clock, source=ScriptedSource())
 
 
-def goal_row(runner):
-    """The running goal as a record row: its own row, startS from the runner's creation, endS None."""
-    g = runner.current
-    start = g.started_wall - runner.t0 if isinstance(g.started_wall, (int, float)) else None
-    return dict(g.row(), startS=start, endS=None, source=getattr(runner.source, "NAME", None))
-
-
-class Chain(DS.Session):
-    """The library's Session with the chain's hooks: the first frame kept, the goals, the night, the lineage and the
-    loop's start in the record."""
-
-    def __init__(self, xs, transport, prev=None, **kw):
-        self.prev = prev
-        self.first_frame = None
-        super().__init__(xs, transport, **kw)
-
-    def on_frame(self, line):
-        if self.first_frame is None:
-            self.first_frame = DS.frame_row(line)
-
-    def extra_record(self):
-        p = self.planner
-        goals = [dict(r) for r in p.goals.history]
-        if p.goals.current is not None:
-            goals.append(goal_row(p.goals))
-        n = p.night
-        return {"goals": goals,
-                "night": {"wants": n.wants_n, "steps": [dict(r) for r in n.steps],
-                          "sleeps": [dict(r) for r in n.sleeps]},
-                "lineage": CH.lineage_diff(self.prev, self.first_frame) if self.prev is not None else None,
-                "t_loop0_ms": self.t_loop0 * 1000.0 if self.t_loop0 is not None else None}
-
-
 def make_session(xs, transport, prev=None, clock=time.time, sleep=time.sleep, free=X.free_gb, polls=None,
                  limits=None):
-    """The driver's Chain: its planner, LIMITS (with `limits` laid over them) and a PollThread on `clock`."""
+    """The library's Chain with the driver's planner, LIMITS (with `limits` laid over them) and a PollThread on
+    `clock`."""
     return Chain(xs, transport, prev=prev, planner_factory=planner, clock=clock, sleep=sleep, free=free,
                  limits=dict(LIMITS, **(limits or {})), polls=polls if polls is not None else PollThread(clock))
 
 
+def run_session(xs, transport, prev, pre):
+    make_session(xs, transport, prev).run()
+
+
 def grade(out):
     """out["grade_e1"] (gates_e.grade_e1 over the record, its lineage loop.lineage), else out["grade_e1_error"]."""
-    try:
-        out["grade_e1"] = GE.grade_e1(out)
-    except Exception as e:                               # noqa: BLE001 - the controller re-grades the artifact
-        out["grade_e1_error"] = "%s: %s" % (type(e).__name__, e)
+    DY.grade(out, "grade_e1", GE.grade_e1)
 
 
 # ================================================================ the boot
 def main(args, budget_s=BUDGET_S):
-    from _common import ask, hard_kill                       # noqa: E402
-    import x49b_lib as B                                     # noqa: E402
-    from pzt import profile, session                         # noqa: E402
-    from pzt.bus import resolve_side                         # noqa: E402
-    from pzt.paths import new_run_dir                        # noqa: E402
-
-    pre, ok = preboot(_ME, args)
-    if not ok:
-        print(json.dumps({"preboot": pre}, indent=1, default=str)[:20000])
-        print("a pre-boot check failed; the session was not started")
-        sys.exit(1)
-    prof = profile.load(os.path.join(REPO, PROFILE))
-    rec_fx = fx.load(args["fixture"])
-    prev = load_prev(args["prev"])[0]
-    run_id, run_dir = new_run_dir(KEY)
-    tl = session.Timeline()
-    clients, started = {}, []
-    holder = {"server": None}
-    out = DS.new_out()
-    out["world_changes"]["restored"] = "fixture %s restored into the run dir" % args["fixture"]
-    xs = X.Xs(out, node=lambda side: resolve_side(side, holder["server"], clients), tl=tl, clients=clients,
-              ask=ask, budget_s=budget_s, user=USER)
-    xs.path = os.path.join(run_dir, ARTIFACT)
-    out.update({"run_id": run_id, "session_key": KEY, "driver": _ME, "user": USER, "profile": prof.report(),
-                "preboot": pre, "argv": sys.argv[1:], "constants": CONSTANTS,
-                "chain": chain_record(args, prof.fixture, DL.C.git_say("rev-parse", "--short", "HEAD")),
-                "fixture": {"name": rec_fx.get("name"), "provision_run": rec_fx.get("provision_run"),
-                            "build": rec_fx.get("build"), "parent": rec_fx.get("parent"),
-                            "session": rec_fx.get("session")},
-                "driver_commit": DL.C.git_say("log", "-1", "--format=%h", "--", "testing/agent/drivers/" + DRIVER)})
-    DS.memory_gate(xs, MIN_FREE_GB)
-    xs.mem("preboot")
-    xs.persist()
-    try:
-        out.update(DL.boot(xs, prof, rec_fx, run_dir, [USER], started, clients, holder,
-                           make_client=DS.clearing_make_client(session.make_client)))
-        xs.mem("ready")
-        xs.persist()
-        if not all(v.get("ok") for v in out["verify"]):
-            out["abort"] = "a verify row failed: the session is not the one asked for"
-            tl.mark("error", detail=out["abort"])
-        else:
-            out["state_dir"] = DL.state_dir(clients[USER])
-            make_session(xs, FileTransport(DL.state_dir(clients[USER])), prev).run()
-    except Exception as e:                                   # noqa: BLE001
-        import traceback
-        out["error"], out["traceback"] = "%s: %s" % (type(e).__name__, e), traceback.format_exc()[-3000:]
-        tl.mark("error", detail=str(e)[:200])
-    finally:
-        every = list(started)
-
-        def read_logs():
-            found, n = DS.count_parks([(getattr(c, "username", "?"), c.console) for c in every], xs.parked())
-            out["logs"] = {"patterns": {"park": DS.DEFAULTS["PARK_RX"]}, "clients": found}
-            out["frames"]["parks"] = n
-
-        xs.finish(B.bounded_teardown, hard_kill, every, read_logs=read_logs)
-        xs.mem("after")
-        grade(out)
-        out["finished"] = True
-        xs.persist()
-        xs.copy_artifacts(REPO, run_id, run_dir, ARTIFACT)
-    n = args["session"]
-    print(json.dumps({"run_id": run_id, "run_dir": run_dir, "error": out.get("error"), "abort": out.get("abort"),
-                      "phase_errors": {k: v.get("error") for k, v in out.get("phase_errors", {}).items()},
-                      "budget_stop": out.get("budget_stop"), "stop": out.get("stop"), "chain": out.get("chain"),
-                      "report": (out.get("grade_e1") or {}).get("report_lines"),
-                      "snapshot_cmd": CH.snapshot_cmd(run_dir, "e_day-after-%d" % n, args["fixture"], n),
-                      "wall_seconds": out.get("wall_seconds")}, indent=1, default=str))
-    return out
+    return DY.boot_and_run(args, lambda: preboot(_ME, args), run_session, grade, key=KEY, driver=DRIVER,
+                           artifact=ARTIFACT, profile=PROFILE, constants=CONSTANTS, grade_key="grade_e1", user=USER,
+                           budget_s=budget_s, min_free_gb=MIN_FREE_GB)
 
 
 if __name__ == "__main__":

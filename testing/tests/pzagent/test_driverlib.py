@@ -24,6 +24,7 @@ from agent.base import gates as GT
 from agent.base.planner.survive import Survive
 from agent.base.transport.files import FileTransport
 from agent.driverlib import chain as CH
+from agent.driverlib import day as DY
 from agent.driverlib import polls as P
 from agent.driverlib import record as R
 from agent.driverlib import session as S
@@ -170,17 +171,117 @@ def _frame(x=100.0, y=200.0, health=100.0, hunger=0.1, n=12, gmin=480.0):
 
 
 def test_lineage_diff_is_ok_only_within_the_tolerances():
+    assert CH.LINEAGE_TOL == {"position": 0.5, "health": 0.01, "stat": 0.005, "inventory_n": 0, "game_min": 3.0}
     prev = {"loop": {"last_frames": [_frame(x=0.0), _frame()]}}
     d = CH.lineage_diff(prev, _frame())
-    assert d["ok"] is True and d["position"] == {"prev": [100.0, 200.0], "now": [100.0, 200.0], "d": 0.0}
-    assert d["health"] == {"prev": 100.0, "now": 100.0} and d["inventory_n"] == {"prev": 12, "now": 12}
-    assert d["stats"]["hunger"] == {"prev": 0.1, "now": 0.1} and d["game_min"] == {"prev": 480.0, "now": 480.0}
+    assert d["ok"] is True
+    assert d["position"] == {"prev": [100.0, 200.0], "now": [100.0, 200.0], "d": 0.0, "tol": 0.5, "ok": True}
+    assert d["health"] == {"prev": 100.0, "now": 100.0, "delta": 0.0, "tol": 0.01, "ok": True}
+    assert d["inventory_n"] == {"prev": 12, "now": 12, "delta": 0, "tol": 0, "ok": True}
+    assert d["stats"]["hunger"] == {"prev": 0.1, "now": 0.1, "delta": 0.0, "tol": 0.005, "ok": True}
+    assert d["game_min"] == {"prev": 480.0, "now": 480.0, "delta": 0.0, "tol": 3.0, "ok": True}
     d = CH.lineage_diff(prev, _frame(x=101.0))
-    assert d["ok"] is False and d["position"]["d"] == pytest.approx(1.0)
+    assert d["ok"] is False and d["position"]["d"] == pytest.approx(1.0) and d["position"]["ok"] is False
     assert CH.lineage_diff(prev, _frame(x=100.4))["ok"] is True
-    for bad in (_frame(health=99.98), _frame(hunger=0.1011), _frame(n=13), _frame(gmin=481.0)):
-        assert CH.lineage_diff(prev, bad)["ok"] is False
+    # P23-Y: the teardown save a few game minutes on, the stats moved with it
+    late = CH.lineage_diff(prev, _frame(gmin=483.0, hunger=0.104))
+    assert late["ok"] is True and late["game_min"]["delta"] == 3.0
+    assert late["stats"]["hunger"]["delta"] == pytest.approx(0.004)
+    for bad, key in ((_frame(health=99.98), "health"), (_frame(n=13), "inventory_n"), (_frame(gmin=483.5), "game_min"),
+                     (_frame(gmin=476.0), "game_min")):
+        r = CH.lineage_diff(prev, bad)
+        assert r["ok"] is False and r[key]["ok"] is False, key
+    r = CH.lineage_diff(prev, _frame(hunger=0.106))
+    assert r["ok"] is False and r["stats"]["hunger"]["ok"] is False
+    assert r["stats"]["hunger"]["delta"] == pytest.approx(0.006)
     assert CH.lineage_diff({}, _frame())["ok"] is False and CH.lineage_diff(None, None)["ok"] is False
+    assert CH.lineage_diff({}, _frame())["game_min"] == {"prev": None, "now": 480.0, "delta": None, "tol": 3.0,
+                                                        "ok": False}
+
+
+# ================================================================ day (Task 16d: the day drivers' shared session)
+def _fixture_rec(root, name, session=None, body=None):
+    (root / name / "cache" / "server").mkdir(parents=True)
+    rec = {"name": name, "build": "42.21.0", "server": {"name": "pzt", "mods": ["PZTestKit"]}, "clients": {}}
+    if session is not None:
+        rec["session"] = session
+    (root / name / "fixture.json").write_text(body if body is not None else json.dumps(rec), encoding="utf-8")
+
+
+def _artifact(path, frames=True, session=None):
+    art = {"loop": {"last_frames": [_frame()] if frames else []}}
+    if session is not None:
+        art["chain"] = {"session": session}
+    path.write_text(json.dumps(art), encoding="utf-8")
+    return str(path)
+
+
+def test_chain_checks_refuse_a_bad_fixture_or_prev_and_report_the_sessions_order(agent_fixture, tmp_path):
+    cc, ok = DY.chain_checks(DY.flags([]))
+    assert ok and cc == {"fixture": "agent", "fixture_ok": True, "fixture_error": None, "fixture_session": None,
+                         "prev": None, "prev_ok": None, "prev_error": None, "prev_frames": None,
+                         "prev_session": None, "session": 1, "session_consistent": None}
+    cc, ok = DY.chain_checks(DY.flags(["--fixture", "nope"]))
+    assert not ok and cc["fixture_ok"] is False and "nope" in cc["fixture_error"]
+    _fixture_rec(agent_fixture, "corrupt", body="{not json")                   # a traceback before: now a refusal
+    cc, ok = DY.chain_checks(DY.flags(["--fixture", "corrupt"]))
+    assert not ok and cc["fixture_error"].startswith("JSONDecodeError")
+    _fixture_rec(agent_fixture, "chain-1", session=1)
+    good = _artifact(tmp_path / "a.json", session=1)
+    cc, ok = DY.chain_checks(DY.flags(["--session", "2", "--fixture", "chain-1", "--prev", good]))
+    assert ok and cc["prev_ok"] is True and cc["prev_frames"] is True and cc["prev_error"] is None
+    assert (cc["fixture_session"], cc["prev_session"], cc["session_consistent"]) == (1, 1, True)
+    bare = _artifact(tmp_path / "bare.json", frames=False)
+    cc, ok = DY.chain_checks(DY.flags(["--session", "2", "--fixture", "chain-1", "--prev", bare]))
+    assert not ok and cc["prev_ok"] is True and cc["prev_frames"] is False and "last_frames" in cc["prev_error"]
+    (tmp_path / "other.json").write_text(json.dumps({"stop": None}), encoding="utf-8")
+    cc, ok = DY.chain_checks(DY.flags(["--prev", str(tmp_path / "other.json")]))
+    assert not ok and cc["prev_frames"] is False
+    # the session's order is reported, never refused
+    cc, ok = DY.chain_checks(DY.flags(["--session", "3", "--fixture", "chain-1", "--prev", good]))
+    assert ok and cc["session_consistent"] is False
+    later = _artifact(tmp_path / "b.json", session=2)
+    cc, ok = DY.chain_checks(DY.flags(["--session", "2", "--fixture", "chain-1", "--prev", later]))
+    assert ok and cc["session_consistent"] is False
+    cc, ok = DY.chain_checks(DY.flags(["--session", "2", "--prev", _artifact(tmp_path / "c.json")]))
+    assert ok and cc["session_consistent"] is None                              # nothing to compare
+
+
+def test_boot_and_run_keeps_the_boots_order():
+    src = open(DY.__file__, encoding="utf-8").read()
+    body = src[src.index("    pre, ok = preboot()", src.index("def boot_and_run(")):]          # past the docstring
+    order = ["pre, ok = preboot()", "sys.exit(1)", "rec_fx = fx.load(args[\"fixture\"])", "new_run_dir(key)",
+             "xs = X.Xs(", "DS.memory_gate(xs, min_free_gb)",
+             "DL.boot(xs, prof, rec_fx, run_dir, [user], started, clients, holder,",
+             "make_client=DS.clearing_make_client(session.make_client)",
+             "if not all(v.get(\"ok\") for v in out[\"verify\"])",
+             "run_session(xs, FileTransport(DL.state_dir(clients[user])), prev, pre)", "finally:",
+             "xs.finish(B.bounded_teardown, hard_kill, every, read_logs=read_logs)", "grade_fn(out)",
+             "out[\"finished\"] = True", "xs.copy_artifacts(repo, run_id, run_dir, artifact)",
+             "CH.snapshot_cmd(run_dir, \"%s-after-%d\" % (key, n), args[\"fixture\"], n)"]
+    at = [body.index(s) for s in order]
+    assert at == sorted(at), order
+
+
+def test_the_day_chain_lays_the_drivers_extra_and_copied_over_its_record(tmp_path):
+    xs = types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=str(tmp_path / "a.json"))
+    c = DY.Chain(xs, None, extra=lambda s: {"llm": {"n": 1}, "lineage": "x"}, copied=("goals.log",),
+                 planner_factory=Survive, clock=lambda: 5.0)
+    assert xs.copied == ["goals.log", "decision.log"]
+    rec = c.extra_record()
+    assert rec["llm"] == {"n": 1} and rec["lineage"] == "x" and rec["goals"] == [] and rec["t_loop0_ms"] is None
+    assert rec["night"] == {"wants": 0, "steps": [], "sleeps": []}
+    plain = DY.Chain(types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=None), None,
+                     planner_factory=Survive, clock=lambda: 5.0)
+    assert set(plain.extra_record()) == {"goals", "night", "lineage", "t_loop0_ms"}
+
+
+def test_day_grade_records_a_failure_rather_than_raising():
+    out = {}
+    DY.grade(out, "grade_x", lambda o: {"ok": 1})
+    assert out == {"grade_x": {"ok": 1}}
+    DY.grade(out, "grade_y", lambda o: 1 / 0)
+    assert out["grade_y_error"].startswith("ZeroDivisionError") and "grade_y" not in out
 
 
 def test_snapshot_cmd_is_the_pzt_snapshot_argv():

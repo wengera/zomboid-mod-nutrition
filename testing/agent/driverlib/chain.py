@@ -3,7 +3,8 @@
 `snapshot_cmd(run_dir, name, parent, session)` is the `pzt snapshot --from-run` argv the controller runs between two
 sessions. `lineage_diff(prev_artifact, first_frame)` checks the new session picked up where the last one ended: the
 last session's last kept frame (`out["loop"]["last_frames"][-1]`) against the new session's first frame, each quantity
-{prev, now}, `ok` only when every `now` lies within LINEAGE_TOL of its `prev`.
+{prev, now, delta, tol, ok}, `ok` only when every `now` lies within LINEAGE_TOL of its `prev` (ruling P23-Y: the
+clock and the stats move a little between the last kept frame and the server's save at teardown).
 """
 import math
 import os
@@ -14,12 +15,10 @@ from agent.driverlib.session import _d, _num
 TESTING = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PZT = os.path.join(TESTING, "pzt")
 
-LINEAGE_TOL = {"position": 0.5, "health": 0.01, "stat": 0.001, "inventory_n": 0, "game_min": 0.0}
+# Ruling P23-Y: the server saves the world at teardown, a few game minutes after the last kept frame, so the restored
+# clock and stats move a little past it; position, health and the inventory count do not move with time alone
+LINEAGE_TOL = {"position": 0.5, "health": 0.01, "stat": 0.005, "inventory_n": 0, "game_min": 3.0}
 STATS = ("hunger", "thirst", "fatigue")
-
-
-def _within(prev, now, tol):
-    return _num(prev) is not None and _num(now) is not None and abs(now - prev) <= tol + 1e-12
 
 
 def _last_frame(prev_artifact):
@@ -27,9 +26,17 @@ def _last_frame(prev_artifact):
     return frames[-1] if isinstance(frames, list) and frames and isinstance(frames[-1], dict) else {}
 
 
+def _pair(prev, now, tol):
+    """{prev, now, delta (now - prev, None unless both are numbers), tol, ok (|delta| within tol)}."""
+    delta = now - prev if _num(prev) is not None and _num(now) is not None else None
+    return {"prev": prev, "now": now, "delta": delta, "tol": tol,
+            "ok": delta is not None and abs(delta) <= tol + 1e-12}
+
+
 def lineage_diff(prev_artifact, first_frame):
-    """{position {prev, now, d}, health, stats {hunger, thirst, fatigue}, inventory_n, game_min (each {prev, now}),
-    ok}. Position is [x, y] and d the planar distance in tiles; inventory_n is the frame's load.n."""
+    """{position {prev, now, d, tol, ok}, health, stats {hunger, thirst, fatigue}, inventory_n, game_min (each
+    {prev, now, delta, tol, ok}), ok}: each quantity's delta beside its LINEAGE_TOL tolerance. Position is [x, y] and
+    d the planar distance in tiles; inventory_n is the frame's load.n; ok only when every quantity is."""
     a, b = _last_frame(prev_artifact), _d(first_frame)
     am, bm = _d(a.get("me")), _d(b.get("me"))
     pa = [am.get("x"), am.get("y")] if am else None
@@ -37,17 +44,15 @@ def lineage_diff(prev_artifact, first_frame):
     d = None
     if pa and pb and all(_num(v) is not None for v in pa + pb):
         d = math.hypot(pb[0] - pa[0], pb[1] - pa[1])
-    out = {"position": {"prev": pa, "now": pb, "d": d},
-           "health": {"prev": _d(a.get("body")).get("health"), "now": _d(b.get("body")).get("health")},
-           "stats": {k: {"prev": _d(a.get("stats")).get(k), "now": _d(b.get("stats")).get(k)} for k in STATS},
-           "inventory_n": {"prev": _d(a.get("load")).get("n"), "now": _d(b.get("load")).get("n")},
-           "game_min": {"prev": a.get("gameMin"), "now": b.get("gameMin")}}
-    ok = (d is not None and d <= LINEAGE_TOL["position"]
-          and _within(out["health"]["prev"], out["health"]["now"], LINEAGE_TOL["health"])
-          and all(_within(v["prev"], v["now"], LINEAGE_TOL["stat"]) for v in out["stats"].values())
-          and _within(out["inventory_n"]["prev"], out["inventory_n"]["now"], LINEAGE_TOL["inventory_n"])
-          and _within(out["game_min"]["prev"], out["game_min"]["now"], LINEAGE_TOL["game_min"]))
-    out["ok"] = bool(ok)
+    tol = LINEAGE_TOL
+    out = {"position": {"prev": pa, "now": pb, "d": d, "tol": tol["position"],
+                        "ok": d is not None and d <= tol["position"] + 1e-12},
+           "health": _pair(_d(a.get("body")).get("health"), _d(b.get("body")).get("health"), tol["health"]),
+           "stats": {k: _pair(_d(a.get("stats")).get(k), _d(b.get("stats")).get(k), tol["stat"]) for k in STATS},
+           "inventory_n": _pair(_d(a.get("load")).get("n"), _d(b.get("load")).get("n"), tol["inventory_n"]),
+           "game_min": _pair(a.get("gameMin"), b.get("gameMin"), tol["game_min"])}
+    out["ok"] = bool(out["position"]["ok"] and out["health"]["ok"] and all(v["ok"] for v in out["stats"].values())
+                     and out["inventory_n"]["ok"] and out["game_min"]["ok"])
     return out
 
 

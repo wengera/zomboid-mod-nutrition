@@ -317,6 +317,22 @@ def test_the_runners_record_rows_carry_the_contract_keys(tmp_path):
     assert ScriptedSource.NAME == "scripted" and GoalRunner(ScriptedSource(), r.clock).source.NAME == "scripted"
 
 
+def test_rows_are_the_history_then_the_running_goal(tmp_path):
+    r = Rig(tmp_path)
+    r.frame()
+    runner = GoalRunner(Src(Rest(5.0), Rest(10.0)), r.clock)
+    assert runner.rows() == []
+    runner.tick(r.world, r.acts)
+    r.advance(5.0)
+    runner.tick(r.world, r.acts)
+    r.advance(2.0)
+    rows = runner.rows()
+    assert rows[0] == runner.history[0] and rows[0] is not runner.history[0]
+    assert rows[1] == {"type": "Rest", "args": {"seconds": 10.0}, "state": "running", "reason": None, "startS": 5.0,
+                       "endS": None, "source": "test"}
+    assert len(rows) == 2 and len(runner.history) == 1
+
+
 def test_a_goal_past_goal_max_s_is_failed_and_replaced(tmp_path):
     r = Rig(tmp_path)
     r.frame()
