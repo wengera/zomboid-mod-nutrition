@@ -89,8 +89,15 @@ def restore_client(name, user, run_dir):
 def snapshot_from_run(name, run_dir, parent, session, run_id=None):
     """A fixture from a finished run's caches (Plan 23 spec § 4, P23-1): the world the server saved at the session's
     stop, under the parent fixture's record with its lineage. The run's `server/` and each parent client's
-    `clients/<user>/` are snapshotted with the provision's skip lists."""
-    import datetime
+    `clients/<user>/` are snapshotted with the provision's skip lists. A snapshot never overwrites a fixture (spec
+    section 4): `name` equal to `parent`, or a fixture folder already at `name`, is refused before anything is read or
+    copied (a SystemExit naming it; `pzt snapshot` passes it through)."""
+    if name == parent:
+        raise SystemExit(f"refused: --name '{name}' is the parent fixture; a snapshot never overwrites its parent")
+    if os.path.exists(fixture_dir(name)):
+        raise SystemExit(f"refused: fixture '{name}' already exists ({fixture_dir(name)}); a snapshot never "
+                         f"overwrites one: name the chain's next fixture")
+    import datetime                     # function-local: a module import shifts the register's fixture.py pointers
     rec = load(parent)
     server_cache = os.path.join(run_dir, "server")
     if not os.path.isdir(server_cache):
