@@ -29,7 +29,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")
 ART = os.path.join(ROOT, "testing", "artifacts")
 
 LIVE = {
-    # run id: (frames the guide states, sha256 of the final World's to_json()). All four re-recorded under the PZA/1.1
+    # run id: (frames the guide states, sha256 of the final World's to_json()). The first four re-recorded under the PZA/1.1
     # field additions of 1d2e2d24 (Plan 22 X4 fix pass 1: me's zombiesSeen and zombiesListed, cost's pollMs .. maxStartMs),
     # which the X4 fix pass 1b decoder reads as None in these logs written before them: the final World carries the ten
     # keys as null, and with them removed each JSON hashed to its previous golden (checked before re-recording).
@@ -37,6 +37,9 @@ LIVE = {
     "x5_combat-20261027-173248": (993, "bc4a9295264516031a3a3672a72f7e719a57bf736240b905eb15205c511dc19d"),
     "d_survive-20261027-173724": (5033, "8503532354f48785af2524b508adb1b08b803ff2152a90b71f23450bd760b8a4"),
     "d_survive-20261027-175917": (2568, "68d84488a1c7da8b94c1ef142d9c3d0c0ec1aa7cd54e6b592da0e9e5f3de0a99"),
+    # The X4 fix pass session (PZA/1.1 written natively; the fifth live run), recorded at the close on 25d8bd6f:
+    # x4_link_2-20261027-210612/GUIDE.md:15 "The driver read 7505 frames" plus the 17 frames after its last read -> 7522.
+    "x4_link_2-20261027-210612": (7522, "be5e8a1e5a758796be78352960cac8801f9c5ec6fd93b70874db64f753458d6a"),
 }
 
 
