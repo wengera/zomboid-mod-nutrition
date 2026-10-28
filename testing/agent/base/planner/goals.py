@@ -1,5 +1,7 @@
 """The goal layer (Plan 23 Task 13, spec § 8, P23-10, P23-B): typed goals under the instincts, chosen by a source
-behind one seam (`GoalSource.propose(view) -> Goal`) that the scripted source and Task 14's LLM source share.
+behind one seam (`GoalSource.propose(view) -> Goal | None`) that the scripted source and Task 14's LLM source share;
+None is *pending* (ruling P23-AC): the source has no answer yet (the LLM's call in flight), and the scripted source
+never answers it.
 
 `Survive`'s last branch, `goal`, runs one goal at a time through `GoalRunner`; the instincts above it (threat, need,
 load, night) pre-empt it. The goal types are `schema/goals.json`'s five, each a dataclass whose fields are that
@@ -19,8 +21,9 @@ a class attribute equal to the entry's `const`:
   `shelter_ended`, never re-implemented): approach the exterior door, open it, step in, close it; `done "inside"`
   once the plan reads done, `failed "no plan"` with no exterior door or room on the player's floor, `failed "shun"`
   when the machine shuns the building; both shun the building in the kit's `shunned` for `night.SHUN_MIN` game
-  minutes (fix 1, I3), the store `Night.shunned` is when the runner is given it (`GoalRunner(..., shunned=)`, M6), so
-  the night and the goal pass over the same buildings; the view reads it.
+  minutes (fix 1, I3) on `World.world_minutes()` (monotonic across midnight: fix wave P, I-1), the store
+  `Night.shunned` is when the runner is given it (`GoalRunner(..., shunned=)`, M6), so the night and the goal pass
+  over the same buildings; the view reads it.
 - `Stock(kind)`: `LootHouse` with `want = kind` (water or food) over the nearest containers holding that use;
   `done "stocked"` once `world.by_use()[kind]` holds more ids than at the goal's start, `failed "none found"` when no
   container answers, `failed "load"` above `LOOT_MAX_LEVEL`.
@@ -59,19 +62,24 @@ None; Task 16d, the drivers' copy of it removed).
 (fix 1, I1): the kit's bookkeeping, then the running goal is closed `superseded` (reason: the type of the action
 that replaced it) when the last action sent is not its own, its own being its last sent action, else its `mark` (the
 last action sent when the runner took it, so a goal that has sent nothing, a Rest or one whose first command was
-cooled, is superseded too: fix 1, the spec gap), or closed `failed "goal budget"` past its budget in wall seconds
-from its proposal; so the row's `endS` and the log's `goal` read the pre-emption on the tick after the instinct's
-send, not when the goal branch next runs. `tick(world, actions, view=None)` observes first unless `observe` ran since
-the last tick (a runner ticked alone), lets the running goal read its own end, and with no goal running asks the
-source once (`view` is the dict, or a callable building it only then), so at most one proposal a tick; the new goal
-steps at once. A superseded goal is gone; the source may propose the same goal again. A goal that ends `failed`
-having sent nothing (a first-step failure: an unknown building, no plan) is cooled per `(type, args)` for
+cooled, is superseded too: fix 1, the spec gap), closed `superseded` (reason `hold`) once another branch has answered
+GOAL_HOLD_SUPERSEDE_TICKS (20) planner ticks in a row without sending (an instinct's hold-without-send never moves
+the history, so the mark never reads it: fix wave P, M-7; Survive reports each tick through `held(by_other)`), or
+closed `failed "goal budget"` past its budget in wall seconds from when it was taken; so the row's `endS` and the
+log's `goal` read the pre-emption on the tick after the instinct's send, not when the goal branch next runs.
+`tick(world, actions, view=None)` observes first unless `observe` ran since the last tick (a runner ticked alone),
+lets the running goal read its own end, and with no goal running asks the source once (`view` is the dict, or a
+callable building it only then), so at most one proposal a tick; the new goal steps at once. A source answering None
+is pending (P23-AC): no goal this tick, `pending` true (Survive's goal branch then holds, so nothing lower runs), the
+log's `goal` reads `{"pending": <source NAME>}`, and the next tick asks again with a fresh view; the budget starts
+only when a goal is taken. A superseded goal is gone; the source may propose the same goal again. A goal that ends
+`failed` having sent nothing (a first-step failure: an unknown building, no plan) is cooled per `(type, args)` for
 GOAL_COOL_S (30) wall seconds (fix 1, I4): the view lists the cooled goals (`cooled`), the scripted source passes
 them over, and a cooled goal a source still proposes is refused for that tick (`why.refused`), no row written.
 `send(cmd)` sends the
 goal's command and hands the `Action` to the goal (Survive sends through it, as the owner). `line()` is the
 decision log's `goal` field: `{type, args, state, source}` of the running goal, or of the one that ended this tick,
-else None.
+else `{"pending": <source NAME>}` while the source is pending, else None.
 """
 import json
 import math
@@ -88,6 +96,7 @@ from agent.base.pza1 import Scan, WalkTo
 
 GOAL_MAX_S = 90.0     # wall seconds a goal may run before it is failed "goal budget" and replaced (a Rest: P23-W)
 GOAL_COOL_S = 30.0    # wall seconds a goal that failed having sent nothing is not taken again (fix 1, I4)
+GOAL_HOLD_SUPERSEDE_TICKS = 20   # planner ticks another branch holds without sending before the goal is superseded
 ARRIVE_R = 1.5        # tiles: an ExploreToward whose place is scanned is done within this of its point
 REST_S = 30.0         # the scripted source's rest
 STOCK_WANTS = ("water", "food", "bandage", "weapon")   # LootBuilding's order of uses
@@ -100,6 +109,7 @@ EXAMPLES = {"ExploreToward": {"x": 120, "y": 205}, "LootBuilding": {"building": 
 
 __all__ = ["Goal", "ExploreToward", "LootBuilding", "Shelter", "Stock", "Rest", "GoalSource", "ScriptedSource",
            "GoalRunner", "Kit", "validate", "open_uses", "int_id", "goal_key", "GOAL_MAX_S", "GOAL_COOL_S",
+           "GOAL_HOLD_SUPERSEDE_TICKS",
            "ARRIVE_R", "REST_S", "STOCK_WANTS",
            "STOCK_KINDS", "RUN_FIELDS", "STATES", "SCHEMA_PATH", "EXAMPLES"]
 
@@ -138,7 +148,8 @@ def open_uses(world, loot, key, waiting=None):
 # ---------------------------------------------------------------- the shared machines
 class Kit:
     """The machines a session's goals share: one `Explore` (its scanned places), one `LootHouse` (its pending loots,
-    capped squares) and `shunned` {building: gameMin}, the Shelter goals' shuns (`Night.shunned` when given, M6)."""
+    capped squares) and `shunned` {building: world minutes}, the Shelter goals' shuns (`Night.shunned` when given,
+    M6)."""
 
     def __init__(self, world=None, actions=None, clock=time.time, shunned=None):
         self.explore = Explore(world, actions, clock)
@@ -156,8 +167,9 @@ class Kit:
         self.loot.observe()
         self.explore.observe()
 
-    def shunned_now(self, game_min):
-        now = game_min or 0.0
+    def shunned_now(self, world):
+        """The buildings shunned within SHUN_MIN game minutes of `world.world_minutes()` (I-1)."""
+        now = world.world_minutes()
         return {b for b, at in self.shunned.items() if now - at < SHUN_MIN}
 
 
@@ -342,11 +354,11 @@ class Shelter(Goal):
         self.plan = shelter_plan(world, self.building)
         if self.plan is None:
             self.why = {"building": self.building, "plan": None}
-            self.kit.shunned[self.building] = world.game_min or 0.0   # I3: never re-proposed every tick
+            self.kit.shunned[self.building] = world.world_minutes()   # I3: never re-proposed every tick
             self.end("failed", "no plan")
 
     def _shun(self, world):
-        self.kit.shunned[self.building] = world.game_min or 0.0
+        self.kit.shunned[self.building] = world.world_minutes()
         self.end("failed", "shun")
 
     def ended(self, world, action):
@@ -475,7 +487,8 @@ def validate(obj):
 class GoalSource(Protocol):
     NAME: str
 
-    def propose(self, view: dict) -> Goal:
+    def propose(self, view: dict) -> Optional[Goal]:
+        """A goal, or None while the source is pending (P23-AC)."""
         ...
 
 
@@ -530,6 +543,8 @@ class GoalRunner:
         self.cooled = {}       # goal_key -> wall until a goal that failed having sent nothing is refused
         self.why = {}
         self.actions = None
+        self.pending = False   # the source answered None (P23-AC) on the last ask and no goal runs
+        self.hold_ticks = 0    # planner ticks in a row another branch held without sending, the goal running (M-7)
         self._ended_now = None
         self._observed = False
 
@@ -544,7 +559,7 @@ class GoalRunner:
         self.history.append(dict(g.row(), startS=self._s(g.started_wall), endS=self._s(now), source=self._name()))
         if g.state == "failed" and g.sent_n == 0:
             self.cooled[goal_key(g.TYPE, g.args())] = now + GOAL_COOL_S
-        self._ended_now, self.current = g, None
+        self._ended_now, self.current, self.hold_ticks = g, None, 0
 
     def cooling(self):
         """The goals cooled now, as `[{type, args}]` sorted (the view's `cooled`)."""
@@ -563,6 +578,8 @@ class GoalRunner:
         top = actions.history[-1] if actions.history else None
         if top is not (g.last if g.last is not None else g.mark):
             g.end("superseded", top.type)
+        elif self.hold_ticks >= GOAL_HOLD_SUPERSEDE_TICKS:
+            g.end("superseded", "hold")
         elif self.clock() - g.started_wall > g.budget():
             g.end("failed", "goal budget")
         if not g.running:
@@ -583,15 +600,16 @@ class GoalRunner:
                 ended = self.history[-1]
         if self.current is None:
             g = self.source.propose(view() if callable(view) else (view if view is not None else {}))
+            self.pending = g is None
             if g is not None and self.cooled.get(goal_key(g.TYPE, g.args()), 0.0) > self.clock():
                 refused, g = {"type": g.TYPE, "args": g.args()}, None
             if g is None:
-                self.why = {"proposed": None, "refused": refused, "ended": ended}
+                self.why = {"proposed": None, "refused": refused, "ended": ended, "pending": self.pending}
                 return None
             proposed = g.TYPE
-            g.started_wall, g.kit = self.clock(), self.kit
+            g.started_wall, g.kit = self.clock(), self.kit   # the budget starts here, never while pending
             g.mark = actions.history[-1] if actions.history else None
-            self.current = g
+            self.current, self.hold_ticks = g, 0
         cmd = g.step(world, actions, self.clock)
         if not g.running:
             self._close(g)
@@ -599,6 +617,11 @@ class GoalRunner:
         self.why = dict(g.why, goal=g.TYPE, args=g.args(), state=g.state, reason=g.reason, proposed=proposed,
                         ended=ended)
         return cmd
+
+    def held(self, by_other):
+        """Survive's report at the end of each tick: `by_other` when a branch other than the goal answered with no
+        command (a hold that sends nothing). Counts the ticks in a row while a goal runs (M-7)."""
+        self.hold_ticks = self.hold_ticks + 1 if by_other and self.current is not None else 0
 
     def send(self, cmd):
         action = self.actions.send(cmd)
@@ -617,5 +640,5 @@ class GoalRunner:
     def line(self):
         g = self.current or self._ended_now
         if g is None:
-            return None
+            return {"pending": self._name()} if self.pending else None
         return {"type": g.TYPE, "args": g.args(), "state": g.state, "source": self._name()}

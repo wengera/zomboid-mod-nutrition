@@ -39,19 +39,28 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   stays blocked after the Fight's one reposition (or has no clear square to reposition to), is skipped for
   UNREACHABLE_S (`policies.Fight`); Survive keeps that memory in `unreachable` across its Fights, and when every held
   threat is skipped the branch flees (reason `unreachable`), never attacking it again until its time runs out.
+- Held inside (fix wave P, M-6): when the character is `inside()` (the night's read: a room square) and every held
+  threat's line reads blocked (`policies.line_to` False: both end squares mapped, a wall, closed door or intact window
+  between), the branch holds with no command (logged `flee: held_inside`) instead of fighting or fleeing out of its
+  shelter; the hold ends when a threat's line clears or reads unknown, or the character is not inside.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
-  reads the drink's effect must not let a lower branch supersede it); else thirst > THIRST_T consumes the held item
-  of least id whose use is `water` (`world.by_use()`: the dataset's drinkable, non-poisonous fluid containers, an id
-  marked empty left out), else marks `water`; then hunger > HUNGER_T consumes the held `food` item of least id (the
-  dataset's food), else marks `food`; nothing held, the branch passes (to the goal). Each mark is also kept in
+  reads the drink's effect must not let a lower branch supersede it); while the night's `Sleep` is current (sent,
+  accepted or in progress) the branch sends nothing and passes, logged `holding_sleep` (ruling P23-AB: the night's own
+  hold then answers the tick, and the needs are answered at the wake; the threat above still pre-empts the sleep);
+  else thirst > THIRST_T consumes the held item of least id whose use is `water` (`world.by_use()`: the dataset's
+  drinkable, non-poisonous fluid containers, an id marked empty left out), else marks `water`; then hunger >
+  HUNGER_T consumes the held `food` item of least `items.days_fresh` (the most perishable first, the spec's "smallest
+  spoil risk"; a food with none last; ties by least id: fix wave P, I-4), a sealed can (`cant_eat`) never being food
+  and a refused id left out, else marks `food`; nothing held, the branch passes (to the goal). Each mark is also kept in
   `need_marks` {use: wall of its last mark} (both uses, where `need_mark` logs the first), which the view reads as
   `needs_wanted` for `view.NEED_MEMORY_S`; a held item of the use found clears its mark.
 - The empties (P23-D): a `Consume` whose action ended `failed "not valid"` on an id `by_use()` reads `water` marks it
-  empty (`world.mark_empty`), so the next tick takes the next bottle and `spare()` may drop it; any other id refused
-  so (a food, which is eaten whole or refused for another reason, or a bottle no longer held when the end was read)
-  is never marked, only logged as inputs.consume_refused on the tick that read the end (else None).
+  empty (`world.mark_empty`), so the next tick takes the next bottle and `spare()` may drop it; on an id it reads
+  `food` marks it refused (`world.mark_refused`, fix wave P I-4: `by_use` then reads it `other`, so the need never
+  retries it and takes the next food), logged as inputs.consume_refused on the tick that read the end (else None), as
+  is any other id refused so (one no longer held when the end was read), which is never marked.
 - `goal` (Plan 23 Task 13, P23-10; ruling P23-F): `goals.GoalRunner` over the goal source (`source`, default
   `goals.ScriptedSource()`; Task 14's LLM source shares the seam), whose module docstring is the design record: one
   goal at a time, proposed from `view.view(world, self)` (built only on a tick that proposes) when none runs,
@@ -70,7 +79,7 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
 - `load` (Plan 23 Task 12, split out of `LootHouse`): at load level `policies.DROP_AT` (3) or above it sends one
   `Drop` of `policies.spare(world)` a decision (logged `level`, `drop`), holding while that drop is current, until the
   frame's level reads `DROP_TO` (2); with nothing spare, or under DROP_AT, it passes. It runs before `night`, so a
-  heavy load is dropped before the sleep.
+  heavy load is dropped before the sleep; while the night's `Sleep` is current it passes as the need does (P23-AB).
 - `night` (Plan 23 Task 12, P23-9): `night.Night` (its docstring is the design record). Its own running action holds
   first, before the want is read (a sleep is never superseded by its fatigue falling under the want); not wanting, it
   passes (logged `{"wants": false}`); wanting (counted in `night.wants_n`), it shelters in a known interior and
@@ -79,17 +88,21 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   `why` carries `step`, `building`, `shunned` and the sent action's `aid`.
 - `last_branch` (Plan 23 Task 16c) is the branch of the last decision line (None when no branch answered), so a
   driver's action rows name the branch that sent each action without re-reading the log.
+- Each tick ends by telling the goal runner whether a branch other than the goal answered without sending
+  (`GoalRunner.held`), so a goal an instinct holds without a send is superseded `hold` (fix wave P, M-7).
 - The log's inputs carry `mode` (the running threat policy at the tick's start, else None), `threats` (the DANGER_R
   count), `held` (the count within the hold radius), `fight_s` (the running fight's stall clock read before this
   tick restarts it, else None), and the frame's `fatigue` and `hour` (the night's inputs).
 """
 import json
+import math
 import time
 
+from agent.base.items import days_fresh
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Fight,
-                                         Flee, blocked, item_id_ok, spare, target_id_ok, zdist)
+                                         Flee, blocked, item_id_ok, line_to, spare, target_id_ok, zdist)
 from agent.base.planner.view import view
 from agent.base.pza1 import Consume, Drop
 
@@ -132,7 +145,7 @@ class Survive:
         self.load_last = None     # the last load Drop sent
         self.need_mark = None     # "water" or "food" when need found nothing held this tick (logged)
         self.need_marks = {}      # use -> wall of its last mark: the view's needs_wanted
-        self.consume_refused = None   # a non-water id whose consume ended failed "not valid" this tick (logged only)
+        self.consume_refused = None   # a non-water id whose consume ended failed "not valid" this tick (logged)
         self.ticks = 0
         self.last_failed = None   # (type, args json, tick first seen failed) of the last command that failed
         self._watch = []          # actions sent and not yet seen terminal
@@ -163,9 +176,27 @@ class Survive:
         return self.world.weapon is not None
 
     def _held_use(self, use):
-        """The least usable id among the held items of `use` (`world.by_use()`), else None."""
+        """The id to consume among the held items of `use` (`world.by_use()`), else None: a food the least
+        `days_fresh` first (None last), any use then the least id."""
         ids = [i for i in self.world.by_use()[use] if item_id_ok(i)]
-        return min(ids) if ids else None
+        if not ids:
+            return None
+        if use != "food":
+            return min(ids)
+
+        def spoil(i):
+            d = days_fresh((self.world.inventory.get(i) or {}).get("fullType"))
+            return (math.inf if d is None else d), i
+        return min(ids, key=spoil)
+
+    def _sleeping(self):
+        """The night's Sleep while it is the current action (sent, accepted or in progress), else None (P23-AB)."""
+        a = self.night.last
+        return a if a is not None and a.type == "sleep" and self.actions.current is a else None
+
+    def _held_inside(self, held):
+        """Every held threat line-blocked (`line_to` False) and the character inside (M-6)."""
+        return bool(held) and self.night.inside() and all(line_to(self.world, z) is False for z in held)
 
     def _reachable_held(self):
         """The held threats a Fight can target and not marked unreachable (a nil-id zombie is a danger, never a
@@ -215,6 +246,9 @@ class Survive:
         if not held:
             self.mode, self.fight, self.flee, self.stall_flee, self.flee_dropped = None, None, None, False, False
             return None
+        if self._held_inside(held):
+            self.why = {"flee": "held_inside", "held": len(held)}
+            return None, None
         reason = self._flee_reason(held, len(self._within(DANGER_R)))
         want = "fight" if reason is None else "flee"
         if want != self.mode:
@@ -250,6 +284,10 @@ class Survive:
         if self.need_last is not None and self.actions.current is self.need_last:
             self.why = {"holding": self.need_last.aid}   # hold first: a frame past the drink must not supersede it
             return None, None
+        sleep = self._sleeping()
+        if sleep is not None:
+            self.why = {"holding_sleep": sleep.aid}       # P23-AB: answered at the wake; the night holds the tick
+            return None
         st = self.world.stats or {}
         pick = None
         for use, stat, t in (("water", "thirst", THIRST_T), ("food", "hunger", HUNGER_T)):
@@ -272,6 +310,10 @@ class Survive:
         if self.load_last is not None and self.actions.current is self.load_last:
             self.why = {"holding": self.load_last.aid}
             return None, None
+        sleep = self._sleeping()
+        if sleep is not None:
+            self.why = {"holding_sleep": sleep.aid}       # P23-AB, as the need
+            return None
         level = (self.world.load or {}).get("level") or 0
         if level < DROP_AT:
             self.why = {"level": level}
@@ -302,12 +344,12 @@ class Survive:
 
     def _goal(self):
         """The goal runner's command (owner: the runner, which hands the sent Action to its goal); with none, a
-        running goal holds the branch and no goal passes."""
+        running goal or a pending source (P23-AC) holds the branch, and otherwise the branch passes."""
         cmd = self.goals.tick(self.world, self.actions, lambda: view(self.world, self))
         self.why = dict(self.goals.why)
         if cmd is not None:
             return self.goals, cmd
-        return (self.goals, None) if self.goals.current is not None else None
+        return (self.goals, None) if self.goals.current is not None or self.goals.pending else None
 
     # ---------------------------------------------------------------- the tick
     def _note_failures(self):
@@ -323,13 +365,15 @@ class Survive:
         self._watch = still
 
     def _refused(self, iid):
-        """A consume refused `not valid`: an id `by_use()` reads `water` is empty (P23-D), marked so it reads
-        `other`; any other id (a food, eaten whole or refused for another reason, or a bottle no longer held) is only
-        logged."""
-        if iid in self.world.by_use()["water"]:
+        """A consume refused `not valid`: an id `by_use()` reads `water` is empty (P23-D), one it reads `food` is
+        refused (I-4), each marked so it reads `other`; a food and any other id (no longer held) are logged."""
+        uses = self.world.by_use()
+        if iid in uses["water"]:
             self.world.mark_empty(iid)
-        else:
-            self.consume_refused = iid
+            return
+        if iid in uses["food"]:
+            self.world.mark_refused(iid)
+        self.consume_refused = iid
 
     def _cooling(self, cmd):
         f = self.last_failed
@@ -383,6 +427,7 @@ class Survive:
             elif owner is None and branch == "load":
                 self.load_last = action
             self._watch.append(action)
+        self.goals.held(branch not in (None, "goal") and cmd is None)
         self.last_branch = branch
         line = {"wall": self.clock(), "gameMin": self.world.game_min, "branch": branch, "inputs": inputs,
                 "action": {"type": cmd.TYPE, "args": cmd.args()} if cmd is not None else None,

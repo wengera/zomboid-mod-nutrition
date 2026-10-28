@@ -200,6 +200,20 @@ def spare(world):
     return best[1] if best else None
 
 
+def line_to(world, z):
+    """The line from the player to zombie record `z` (`world.line_clear`), None when the frame has no position or the
+    map lacks either end square on the player's floor: an unscanned end is never read as a wall. The Fight's line
+    check and Survive's inside hold (fix wave P, M-6) share it."""
+    me = world.me or {}
+    a, b = (me.get("x"), me.get("y")), (z.get("x"), z.get("y"))
+    if a[0] is None or a[1] is None or b[0] is None or b[1] is None:
+        return None
+    floor = me_floor(world)
+    if any((int(math.floor(q[0])), int(math.floor(q[1])), floor) not in world.map for q in (a, b)):
+        return None
+    return world.line_clear(a, b)
+
+
 def blocked(unreachable, now):
     """The ids of `unreachable` (id -> wall until) still skipped at `now`."""
     return {zid for zid, until in unreachable.items() if until > now}
@@ -279,16 +293,8 @@ class Fight(Policy):
         return t
 
     def _line(self, z):
-        """The line from the player to `z` (`world.line_clear`), None when the map lacks either end square: an
-        unscanned end is never read as a wall, the swing then left to the no-progress stall."""
-        me = self.world.me or {}
-        a, b = (me.get("x"), me.get("y")), (z["x"], z["y"])
-        if a[0] is None or a[1] is None:
-            return None
-        floor = me_floor(self.world)
-        if any((int(math.floor(p[0])), int(math.floor(p[1])), floor) not in self.world.map for p in (a, b)):
-            return None
-        return self.world.line_clear(a, b)
+        """`line_to` the target: None over an unscanned end, the swing then left to the no-progress stall."""
+        return line_to(self.world, z)
 
     def _reposition(self, z):
         """The square to reposition to: of `world.reachable_adjacent` of the target's square (nearest the player

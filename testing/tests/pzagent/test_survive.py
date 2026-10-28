@@ -682,6 +682,8 @@ def test_a_water_consume_failed_otherwise_is_not_marked_empty(tmp_path, reason):
 
 
 def test_a_food_consume_failed_not_valid_is_refused_never_marked_empty(tmp_path):
+    """Fix wave P (I-4): a refused food is remembered in `World.refused_ids` (never `empty_ids`), so `by_use` drops
+    it from `food` and the need never retries it; with no other food held the need marks `food`."""
     r, sv = make(tmp_path)
     held(r, (701, "Base.Apple"))
     r.frame(hunger=0.3)
@@ -691,12 +693,12 @@ def test_a_food_consume_failed_not_valid_is_refused_never_marked_empty(tmp_path)
     r.frame(hunger=0.3)
     tick(r, sv)
     d = last(tmp_path)
-    assert r.world.empty_ids == set() and r.world.by_use()["food"] == [701]
-    assert d["inputs"]["consume_refused"] == 701 and d["inputs"]["cooled"] == {"type": "consume",
-                                                                               "args": {"itemId": 701}}
+    assert r.world.empty_ids == set() and r.world.refused_ids == {701} and r.world.by_use()["food"] == []
+    assert d["inputs"]["consume_refused"] == 701 and d["inputs"]["need"] == "food" and d["inputs"]["cooled"] is None
     r.frame(hunger=0.3)
     tick(r, sv)
     assert last(tmp_path)["inputs"]["consume_refused"] is None   # logged on the tick that read the end only
+    assert [a.type for a in r.acts.history].count("consume") == 1
 
 
 @pytest.mark.parametrize("load_max, cap", [(8.0, 8.0), (None, 0.0)])
@@ -794,3 +796,112 @@ def test_a_counter_looted_for_water_is_looted_again_for_food(tmp_path):
     tick(r, sv)
     assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "food", "maxWeight": 8.0})
     assert [h["args"] for h in sv.goals.history] == [{"kind": "water"}] and sv.goals.current.args() == {"kind": "food"}
+
+
+# ================================================================ fix wave P
+def test_a_refused_food_is_passed_for_the_next_food_held(tmp_path):
+    r, sv = make(tmp_path)
+    held(r, (701, "Base.Apple"), (702, "Base.Apple"))
+    r.frame(hunger=0.3)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 701})
+    r.answer({"state": "failed", "reason": "not valid"})
+    r.frame(hunger=0.3)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 702}) and last(tmp_path)["branch"] == "need"
+
+
+def test_a_sealed_can_is_never_eaten_and_the_need_marks_food(tmp_path):
+    """I-4: `Base.TinnedBeans` is `CantEat` in the dataset, so `other`: hungry, holding only it, the need marks food."""
+    r, sv = make(tmp_path)
+    held(r, (701, "Base.TinnedBeans"))
+    r.frame(hunger=0.3)
+    tick(r, sv)
+    assert "consume" not in [a.type for a in r.acts.history] and last(tmp_path)["inputs"]["need"] == "food"
+
+
+def test_the_need_eats_the_most_perishable_food_first(tmp_path):
+    """I-4, the spec's "smallest spoil risk": the least `days_fresh` (Bread 3 before Apple 5), ties by least id, a
+    food with no `days_fresh` (Crisps) last."""
+    r, sv = make(tmp_path)
+    held(r, (701, "Base.Crisps"), (702, "Base.Apple"), (703, "Base.Bread"), (704, "Base.Bread"))
+    order = []
+    for _ in range(4):
+        r.frame(hunger=0.3)
+        tick(r, sv)
+        iid = r.cmd()[1]["itemId"]
+        order.append(iid)
+        r.answer({"state": "done", "result": {"itemId": iid}})
+        r.event("item_removed", itemId=iid)
+    assert order == [703, 704, 702, 701]
+
+
+def test_a_thirst_crossing_during_a_running_sleep_sends_nothing(tmp_path):
+    """P23-AB: while the night's sleep is current the need and load branches send nothing (logged holding_sleep);
+    the night's own hold answers the tick, and the needs are answered at the wake."""
+    from .test_night import house
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110))
+    held(r, (701, "Base.WaterBottle"), (702, "Base.Apple"), (601, "Base.Plank"))
+    r.frame(x=111.5, y=201.5, fatigue=0.65, thirst=0.1)
+    tick(r, sv)
+    assert r.cmd() == ("sleep", {})
+    r.fake.answer({"sleep": ["accepted"]})
+    r.pump()
+    sleep = r.acts.history[-1]
+    for i in range(5):
+        r.advance(0.5)
+        r.frame(x=111.5, y=201.5, fatigue=0.5, thirst=0.3, hunger=0.4, level=3)
+        assert tick(r, sv) is None, i
+        d = last(tmp_path)
+        assert d["sent"] is False and d["branch"] == "night", i
+        assert d["inputs"]["branches"]["need"] == {"holding_sleep": sleep.aid}, i
+        assert d["inputs"]["branches"]["load"] == {"holding_sleep": sleep.aid}, i
+    assert [a.type for a in r.acts.history] == ["sleep"]
+    r.answer({"state": "done", "result": {"sleptH": 8.0, "fatigueBefore": 0.65, "fatigueAfter": 0.05}})
+    r.frame(x=111.5, y=201.5, fatigue=0.05, thirst=0.3)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 701})              # the wake: the need answers
+
+
+def test_a_threat_still_pre_empts_a_running_sleep(tmp_path):
+    from .test_night import house
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110))
+    r.frame(x=111.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    r.fake.answer({"sleep": ["accepted"]})
+    r.pump()
+    r.frame(x=111.5, y=201.5, fatigue=0.65, zombies=[zombie(1, 112.5, 202.5)])
+    assert tick(r, sv) is not None and last(tmp_path)["branch"] == "threat"
+
+
+def test_inside_with_every_held_threat_behind_a_wall_the_threat_branch_holds(tmp_path):
+    """M-6: a zombie within DANGER_R whose line is blocked, the character inside: no flee out of the shelter."""
+    from .test_night import house
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110))
+    r.frame(x=111.5, y=201.5, zombies=[zombie(1, 108.5, 201.5)])
+    assert tick(r, sv) is None
+    d = last(tmp_path)
+    assert d["branch"] == "threat" and d["sent"] is False and threat_why(tmp_path)["flee"] == "held_inside"
+    assert r.acts.history == []
+    r.frame(x=111.5, y=201.5, zombies=[zombie(1, 108.5, 201.5), zombie(2, 112.5, 202.5)])   # one inside: clear
+    assert tick(r, sv) is not None and threat_why(tmp_path).get("flee") != "held_inside"
+
+
+def test_outside_a_line_blocked_threat_is_not_held(tmp_path):
+    from .test_night import house
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110))
+    r.frame(x=108.5, y=201.5, zombies=[zombie(1, 111.5, 201.5)])
+    tick(r, sv)
+    assert threat_why(tmp_path).get("flee") != "held_inside"
+
+
+def test_an_unmapped_threat_square_is_never_read_blocked(tmp_path):
+    from .test_night import house
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110))
+    r.frame(x=111.5, y=201.5, zombies=[zombie(1, 115.5, 201.5)])   # east of the house: no square mapped there
+    assert tick(r, sv) is not None and threat_why(tmp_path).get("flee") != "held_inside"

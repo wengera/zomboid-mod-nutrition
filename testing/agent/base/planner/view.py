@@ -62,7 +62,7 @@ def _buildings(world, night, kit):
         keys.setdefault((world.map.get(k[:3]) or {}).get("building"), []).append(k)
     shunned = set(night.shunned_now()) if night is not None else set()
     if kit is not None:
-        shunned |= kit.shunned_now(world.game_min)
+        shunned |= kit.shunned_now(world)
     visited = night.visited if night is not None else set()
     out = []
     for b, rooms in world.interiors().items():

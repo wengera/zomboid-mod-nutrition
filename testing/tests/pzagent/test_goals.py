@@ -508,3 +508,111 @@ def test_survive_takes_the_source_given_and_defaults_to_the_scripted_one(tmp_pat
 
 def test_the_schema_path_is_the_tracked_file():
     assert os.path.normpath(G.SCHEMA_PATH).endswith(os.path.join("agent", "base", "schema", "goals.json"))
+
+
+# ================================================================ fix wave P
+class Pending:
+    """A source pending (None) for its first `n` asks, then answering `goal` once, then Rest(120)."""
+    NAME = "slow"
+
+    def __init__(self, n, goal):
+        self.n, self.goal, self.views = n, goal, []
+
+    def propose(self, view):
+        self.views.append(view)
+        if len(self.views) <= self.n:
+            return None
+        g, self.goal = self.goal, None
+        return g if g is not None else Rest(120.0)
+
+
+def test_a_pending_source_holds_the_runner_and_is_asked_again_each_tick_with_a_fresh_view(tmp_path):
+    """P23-AC: None from propose is `pending`: no goal this tick, the log's goal reads {"pending": NAME}, and the next
+    tick asks again with a view built then."""
+    r = Rig(tmp_path)
+    src = Pending(2, Rest(30.0))
+    sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=src)
+    for i in range(2):
+        r.frame(x=100.0 + i)
+        assert sv.tick(r.world, r.acts) is None
+        d = json.loads((tmp_path / "decision.log").read_text(encoding="utf-8").splitlines()[-1])
+        assert d["goal"] == {"pending": "slow"} and d["branch"] == "goal" and d["sent"] is False, i
+        assert sv.goals.current is None and sv.goals.history == [] and sv.goals.why["pending"] is True
+    assert [v["pos"]["x"] for v in src.views] == [100.0, 101.0]          # a fresh view each ask
+    r.frame(x=102.0)
+    sv.tick(r.world, r.acts)
+    assert sv.goals.current.TYPE == "Rest" and src.views[-1]["pos"]["x"] == 102.0
+    assert sv.goals.line() == {"type": "Rest", "args": {"seconds": 30.0}, "state": "running", "source": "slow"}
+
+
+def test_the_goal_budget_starts_when_the_goal_is_taken_not_while_pending(tmp_path):
+    r = Rig(tmp_path)
+    r.frame()
+    g = ExploreToward(130, 200)
+    runner = GoalRunner(Pending(3, g), r.clock)
+    runner.kit.bind(r.world, r.acts)
+    runner.kit.explore.scanned.add(runner.kit.explore.place())
+    for _ in range(3):
+        assert runner.tick(r.world, r.acts) is None
+        r.advance(60.0)                                                  # 180 s pending
+    runner.send(runner.tick(r.world, r.acts))
+    assert r.cmd()[0] == "walkTo" and g.started_wall == 1180.0
+    r.advance(G.GOAL_MAX_S)
+    runner.tick(r.world, r.acts)
+    assert runner.history == [] and g.state == "running"
+
+
+def test_a_goal_an_instinct_holds_without_sending_is_superseded_hold_after_the_hold_ticks(tmp_path):
+    """M-7: a hold that sends nothing never moves the history, so the mark never reads it; GOAL_HOLD_SUPERSEDE_TICKS
+    planner ticks of another branch answering with no send close the goal `superseded` (reason `hold`), never
+    `failed "goal budget"`. The hold here is the threat's inside a closed building (M-6)."""
+    assert G.GOAL_HOLD_SUPERSEDE_TICKS == 20
+    r = Rig(tmp_path)
+    r.scan(house(1, 110))
+    sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(Rest(120.0)))
+    r.frame(x=111.5, y=201.5)
+    sv.tick(r.world, r.acts)
+    g = sv.goals.current
+    assert g.TYPE == "Rest"
+    for i in range(G.GOAL_HOLD_SUPERSEDE_TICKS):
+        r.advance(0.5)
+        r.frame(x=111.5, y=201.5, zombies=[zombie(1, 108.5, 201.5)])   # behind the west wall, 3 tiles
+        sv.tick(r.world, r.acts)
+        assert sv.last_branch == "threat" and g.state == "running", i
+    r.advance(0.5)
+    r.frame(x=111.5, y=201.5, zombies=[zombie(1, 108.5, 201.5)])
+    sv.tick(r.world, r.acts)
+    assert (g.state, g.reason) == ("superseded", "hold") and sv.goals.history[0]["reason"] == "hold"
+    assert r.acts.history == []
+
+
+def test_a_hold_broken_by_the_goals_own_tick_restarts_the_count(tmp_path):
+    r = Rig(tmp_path)
+    r.scan(house(1, 110))
+    sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(Rest(120.0)))
+    r.frame(x=111.5, y=201.5)
+    sv.tick(r.world, r.acts)
+    g = sv.goals.current
+    for i in range(3 * G.GOAL_HOLD_SUPERSEDE_TICKS):
+        r.advance(0.5)
+        if i % G.GOAL_HOLD_SUPERSEDE_TICKS != 0:
+            r.frame(x=111.5, y=201.5, zombies=[zombie(1, 108.5, 201.5)])
+        else:                                                            # one tick clear: the goal branch answers
+            r.event("zombie_dead", id=1)
+            r.frame(x=111.5, y=201.5)
+        sv.tick(r.world, r.acts)
+    assert g.state == "running" and sv.goals.history == []
+
+
+def test_a_shelter_goals_shun_reads_the_monotonic_clock_across_midnight(tmp_path):
+    """I-1: the Kit's shuns key on World.world_minutes()."""
+    r = Rig(tmp_path)
+    r.scan([s for s in house(1, 110) if s["door"] is None])
+    r.frame(game_min=1430.0, world_age=1430.0 / 60.0)
+    runner = GoalRunner(Src(Shelter(1)), r.clock)
+    runner.tick(r.world, r.acts)
+    assert runner.kit.shunned == {1: 1430.0}
+    r.frame(game_min=10.0, world_age=1450.0 / 60.0)
+    assert runner.kit.shunned_now(r.world) == {1}
+    r.frame(game_min=110.0, world_age=1550.0 / 60.0)
+    assert runner.kit.shunned_now(r.world) == set()
