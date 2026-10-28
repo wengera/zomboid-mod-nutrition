@@ -289,6 +289,41 @@ def test_need_consumes_a_held_water_bottle_by_id_when_thirsty_then_food(tmp_path
     all_sends_valid(r)
 
 
+def test_last_branch_is_the_branch_of_the_last_decision_line(tmp_path):
+    r, sv = make(tmp_path)
+    assert sv.last_branch is None
+    r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
+    r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
+    r.frame(thirst=0.6, level=3)
+    tick(r, sv)
+    assert sv.last_branch == "need" == last(tmp_path)["branch"]
+    r.answer({"state": "done", "result": {"itemId": 701}})
+    r.event("item_removed", itemId=701, fullType="Base.WaterBottle")
+    r.frame(thirst=0.05, level=3)
+    tick(r, sv)
+    assert sv.last_branch == "load" == last(tmp_path)["branch"]
+
+
+def test_a_shelter_goal_failing_no_plan_shuns_the_building_in_the_nights_store(tmp_path):
+    class Once:
+        NAME = "once"
+
+        def __init__(self):
+            self.n = 0
+
+        def propose(self, view):
+            self.n += 1
+            return G.Shelter(7) if self.n == 1 else None
+    r = Rig(tmp_path)
+    sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Once())
+    assert sv.goals.kit.shunned is sv.night.shunned
+    r.frame(game_min=500.0)
+    tick(r, sv)
+    assert sv.goals.history[-1]["type"] == "Shelter" and sv.goals.history[-1]["state"] == "failed"
+    assert sv.goals.history[-1]["reason"] == "no plan"
+    assert sv.night.shunned == {7: 500.0} and 7 in sv.night.shunned_now()
+
+
 def test_need_holds_its_running_consume_before_reading_the_thresholds(tmp_path):
     r, sv = make(tmp_path)
     r.scan([inside(101, 200, containers=[CRATE])])

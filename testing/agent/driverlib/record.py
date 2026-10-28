@@ -1,6 +1,7 @@
 """The session's record: what `Session.save` writes under out["loop"] and a death under out["loop"]["death"].
 
-loop_summary(session) -> {wallS, ticks, decisions, last_decisions, needs, needs_fields, needs_pairs, fights, actions,
+loop_summary(session) -> {wallS, ticks, decisions, last_decisions, needs, needs_fields, needs_pairs, fights, actions
+(action_rows with Session.sent_meta: each row's `branch`, a consume row's `use`),
 lua_errors_per_min, cost {n, p50, p99, max, tickMaxMs, over5}, server_polls, server_fails, players_error, memory,
 damage {polls, fails, since, merged, lost, dropped, counts, totals {tag: {n, amount}}}, first_game_min, game_min,
 last_frames, poll_errors}: `last_frames` the last LAST_FRAMES frames (the chain's lineage reads the last one),
@@ -19,12 +20,22 @@ from agent.base import gates as GT
 from agent.driverlib.session import NEEDS_FIELDS, _num, in_window
 
 
-def action_rows(sent, t0):
-    """Every sent Action as {aid, type, args, state, reason, sentS, endedS}, its times in seconds since t0."""
+def action_rows(sent, t0, meta=None):
+    """Every sent Action as {aid, type, args, state, reason, sentS, endedS}, its times in seconds since t0; with
+    `meta` (Session.sent_meta, aid -> {branch, use}) every row also carries `branch` and a consume row `use` (None
+    when the aid has none)."""
     t0 = t0 or 0.0
-    return [{"aid": a.aid, "type": a.type, "args": dict(a.args), "state": a.state, "reason": a.reason,
-             "sentS": a.sent_wall - t0, "endedS": a.ended_wall - t0 if a.ended_wall is not None else None}
-            for a in sent]
+    rows = []
+    for a in sent:
+        row = {"aid": a.aid, "type": a.type, "args": dict(a.args), "state": a.state, "reason": a.reason,
+               "sentS": a.sent_wall - t0, "endedS": a.ended_wall - t0 if a.ended_wall is not None else None}
+        if meta is not None:
+            m = meta.get(a.aid) or {}
+            row["branch"] = m.get("branch")
+            if a.type == "consume":
+                row["use"] = m.get("use")
+        rows.append(row)
+    return rows
 
 
 def loop_summary(session):
@@ -34,7 +45,7 @@ def loop_summary(session):
         "wallS": s.loop_s(), "ticks": s.ticks, "decisions": len(s.sent),
         "last_decisions": s.tail.last(), "needs": list(s.needs), "needs_fields": list(NEEDS_FIELDS),
         "needs_pairs": list(s.needs_pairs), "fights": [dict(f) for f in s.fights.rows],
-        "actions": action_rows(s.sent, s.t_loop0), "lua_errors_per_min": dict(s.err_per_min),
+        "actions": action_rows(s.sent, s.t_loop0, s.sent_meta), "lua_errors_per_min": dict(s.err_per_min),
         "cost": {"n": len(ts), "p50": GT.pct(ts, 50), "p99": GT.pct(ts, 99), "max": max(ts) if ts else None,
                  "tickMaxMs": s.tick_max, "over5": s.over5},
         "server_polls": s.server_polls, "server_fails": s.server_fails,

@@ -77,6 +77,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   sleeps, holds NOT_SAFE_S after a sleep refused `not safe` and NOT_VALID_S after `not valid`, stops wanting for the
   session after `not allowed` (ruling P23-U), and with no shelter known sets `night.want_shelter` and passes. Its
   `why` carries `step`, `building`, `shunned` and the sent action's `aid`.
+- `last_branch` (Plan 23 Task 16c) is the branch of the last decision line (None when no branch answered), so a
+  driver's action rows name the branch that sent each action without re-reading the log.
 - The log's inputs carry `mode` (the running threat policy at the tick's start, else None), `threats` (the DANGER_R
   count), `held` (the count within the hold radius), `fight_s` (the running fight's stall clock read before this
   tick restarts it, else None), and the frame's `fatigue` and `hour` (the night's inputs).
@@ -123,7 +125,8 @@ class Survive:
         self.flee_dropped = False  # the running flee episode sent its one load drop
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
         self.night = Night(world, actions, clock)
-        self.goals = GoalRunner(ScriptedSource() if source is None else source, clock)
+        # one shun store: the goals' Shelter shuns into the night's (Task 13 fix 1, M6), so neither re-tries the other's
+        self.goals = GoalRunner(ScriptedSource() if source is None else source, clock, shunned=self.night.shunned)
         self.goals.kit.bind(world, actions)
         self.need_last = None     # the last Consume sent
         self.load_last = None     # the last load Drop sent
@@ -134,6 +137,7 @@ class Survive:
         self.last_failed = None   # (type, args json, tick first seen failed) of the last command that failed
         self._watch = []          # actions sent and not yet seen terminal
         self.why = {}
+        self.last_branch = None   # the branch of the last decision line (a driver's action rows read it at the send)
 
     # ---------------------------------------------------------------- reading the world
     def _policies(self):
@@ -379,6 +383,7 @@ class Survive:
             elif owner is None and branch == "load":
                 self.load_last = action
             self._watch.append(action)
+        self.last_branch = branch
         line = {"wall": self.clock(), "gameMin": self.world.game_min, "branch": branch, "inputs": inputs,
                 "action": {"type": cmd.TYPE, "args": cmd.args()} if cmd is not None else None,
                 "sent": action is not None, "goal": self.goals.line()}

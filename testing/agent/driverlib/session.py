@@ -18,7 +18,8 @@ out["readings"][phase]):
   loop         every poll_s of the clock: pump the transport (each line into World, then Actions; a frame's
                body.health <= STOP_HEALTH, the lua_error events and the link's silence are read here); at
                PLANNER_HZ the planner's tick (its decision log read incrementally, the fights built off its threat
-               branch); the server reads (below); every MEM_POLL_S a host free-memory read; every PERSIST_S out["loop"]
+               branch; each sent action's branch and a consume's use kept beside it, Session.send_meta); the
+               server reads (below); every MEM_POLL_S a host free-memory read; every PERSIST_S out["loop"]
                rebuilt (record.loop_summary and the driver's extra_record()) and persisted.
 THE SERVER READS: synchronously, as the first Plan 22 acceptance driver read them, every SERVER_POLL_S (the first at
 the loop's start) stats.all merged into the World, a pump, one needs row [gameMin, hunger, thirst, fatigue, health,
@@ -441,6 +442,7 @@ class Session:
         self.ready = False
         self.ticks = 0
         self.sent = []                # every Action the planner sent
+        self.sent_meta = {}           # aid -> {branch, use (consume only)} read at the send (send_meta)
         self.needs, self.needs_pairs = [], []
         self.server_polls = self.server_fails = self.fails_in_row = 0
         self.players_error = None
@@ -864,6 +866,17 @@ class Session:
         self.tail.read()
         if a is not None:
             self.sent.append(a)
+            self.sent_meta[a.aid] = self.send_meta(a)
+
+    def send_meta(self, a):
+        """What the action rows carry beyond the Action, read at its send: `branch`, the planner's `last_branch` (the
+        decision line that sent it; None for a planner without one), and on a consume `use`, its item's use off
+        `world.by_use()` (None when the id is not held)."""
+        meta = {"branch": getattr(self.planner, "last_branch", None)}
+        if a.type == "consume":
+            iid = (a.args or {}).get("itemId")
+            meta["use"] = next((u for u, ids in self.world.by_use().items() if iid in ids), None)
+        return meta
 
     # -- the record ----------------------------------------------------------------------------------------------
     def save(self):

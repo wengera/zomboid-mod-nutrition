@@ -466,7 +466,9 @@ def test_a_clean_day_runs_every_phase_and_stops_at_the_day_cap(tmp_path, monkeyp
     assert sent[0] == {"type": "scan", "args": {"r": 10}}
     planner_cmds = [c for c in r.mod.cmds if c["type"] != "equip"]
     assert [{"type": c["type"], "args": c["args"]} for c in planner_cmds] == sent
-    assert all(set(a) == {"aid", "type", "args", "state", "reason", "sentS", "endedS"} for a in loop["actions"])
+    assert all(set(a) == {"aid", "type", "args", "state", "reason", "sentS", "endedS", "branch"}
+               | ({"use"} if a["type"] == "consume" else set()) for a in loop["actions"])
+    assert [a["branch"] for a in loop["actions"]] == [d["branch"] for d in log if d["sent"]]
     assert loop["actions"][0]["state"] == "done" and loop["actions"][0]["endedS"] >= loop["actions"][0]["sentS"]
     assert loop["cost"]["n"] > 0 and loop["cost"]["p50"] == pytest.approx(0.2) and loop["cost"]["over5"] == 0
     assert loop["first_game_min"] is not None and loop["game_min"] > loop["first_game_min"]
@@ -832,3 +834,54 @@ def test_action_rows_and_the_loop_summary_read_the_session(tmp_path, monkeypatch
               "damage", "first_game_min", "game_min", "last_frames"):
         assert k in summ, k
     assert summ["ticks"] == r.out["loop"]["ticks"]
+
+
+def test_action_rows_carry_each_sends_branch_and_a_consumes_use(tmp_path):
+    """Plan 23 Task 16c: Session.planner_tick keeps, per sent aid, the planner's `last_branch` (None for a planner
+    without one) and, for a consume, the item's use off `world.by_use()` at the send (None when the id is not held);
+    record.action_rows lays them on the rows (`branch` on every row, `use` on consume rows only)."""
+    sends = []
+
+    class Stub:
+        def __init__(self, world, actions, log_path, clock):
+            self.last_branch = None
+
+        def tick(self, world, actions):
+            if not sends:
+                return None
+            branch, a = sends.pop(0)
+            self.last_branch = branch
+            return a
+
+    out = S.new_out()
+    xs = X.Xs(out, node=lambda side: side, ask=lambda *a, **k: None, budget_s=1e9, user="admin")
+    xs.path = str(tmp_path / "s.json")
+    s = S.Session(xs, FileTransport(str(tmp_path / "sd"), clock=time.time), planner_factory=Stub)
+    s.world.inventory[701] = {"fullType": "Base.WaterBottle", "weight": 1.0, "use": "water"}
+    s.world.inventory[702] = {"fullType": "Base.Apple", "weight": 0.2}
+    def mk(aid, typ, args):
+        return types.SimpleNamespace(aid=aid, type=typ, args=args, state="sent", reason="", sent_wall=11.0,
+                                     ended_wall=None)
+    sends.extend([("need", mk("a1", "consume", {"itemId": 701})), ("need", mk("a2", "consume", {"itemId": 702})),
+                  ("load", mk("a3", "drop", {"itemId": 702})), ("need", mk("a4", "consume", {"itemId": 999}))])
+    for _ in range(5):
+        s.planner_tick()
+    assert s.sent_meta == {"a1": {"branch": "need", "use": "water"}, "a2": {"branch": "need", "use": "food"},
+                           "a3": {"branch": "load"}, "a4": {"branch": "need", "use": None}}
+    rows = R.action_rows(s.sent, 10.0, s.sent_meta)
+    assert [(r["branch"], r.get("use", "-")) for r in rows] == [("need", "water"), ("need", "food"), ("load", "-"),
+                                                                ("need", None)]
+    assert all(r["sentS"] == 1.0 for r in rows)
+    assert R.action_rows(s.sent, 10.0, {})[0]["branch"] is None and R.action_rows(s.sent, 10.0, {})[0]["use"] is None
+    assert "branch" not in R.action_rows(s.sent, 10.0)[0]                    # no meta: the plain rows
+
+    class Bare:                                                               # a planner with no last_branch
+        def __init__(self, *a):
+            pass
+
+        def tick(self, world, actions):
+            return sends.pop(0)[1] if sends else None
+    s2 = S.Session(xs, FileTransport(str(tmp_path / "sd2"), clock=time.time), planner_factory=Bare)
+    sends.append(("x", mk("b1", "scan", {"r": 10})))
+    s2.planner_tick()
+    assert s2.sent_meta == {"b1": {"branch": None}}
