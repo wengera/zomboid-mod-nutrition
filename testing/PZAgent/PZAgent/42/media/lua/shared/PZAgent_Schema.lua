@@ -63,6 +63,7 @@ PZA.schema = {
         lua_error = { "msg" },
         overflow = { "queued", "cut" },
         scan_dropped = { "scanId", "aid", "part", "parts", "reason" },
+        death = { "worldAge", "x", "y", "z", "health", "zombiesKilled", "via" },
     },
 }
 

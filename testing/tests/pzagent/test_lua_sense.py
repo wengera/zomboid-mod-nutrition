@@ -492,6 +492,89 @@ def test_event_kinds_and_fields_are_the_schemas(lua):
         assert sorted(e.keys()) == sorted(["event", "gameMin"] + list(kinds[e["event"]].values())), e["event"]
 
 
+# ---- PZA/1.3: the death event (ruling P23-AO) -------------------------------------------------------------------------
+
+def death_events(ev):
+    return [e for e in ev if e["event"] == "death"]
+
+
+def test_the_death_hook_naming_the_local_player_is_one_death_event_with_its_frames_reads(lua):
+    load(lua)
+    g = lua.globals()
+    p = make_player(x=10770.67, y=10640.48, health=19.506973266601562)
+    p.getZombieKills = lambda s: 1
+    p.isDead = lambda s: False                                   # the client's copy never reads dead or 0
+    g.getPlayer = lambda: p
+    assert len(g._deathHandlers) == 1
+    prev = frame(lua, p)
+    ev, prev = events(lua, p, prev)
+    assert death_events(ev) == []
+    g._deathHandlers[0](make_player())                           # another character's death
+    ev, prev = events(lua, p, prev)
+    assert death_events(ev) == [] and lua.eval("PZA.sense.deathRemote") == 1
+    g._deathHandlers[0](p)
+    ev, prev = events(lua, p, prev)
+    d = death_events(ev)
+    assert d == [{"event": "death", "gameMin": 450, "worldAge": 31.5, "x": 10770.67, "y": 10640.48, "z": 0,
+                  "health": 19.506973266601562, "zombiesKilled": 1, "via": "hook"}]
+    kinds = lua.eval("PZA.schema.events")
+    assert sorted(d[0].keys()) == sorted(["event", "gameMin"] + list(kinds["death"].values()))
+    for _ in range(3):                                           # once: the frames go on, no second event
+        ev, prev = events(lua, p, prev)
+        assert death_events(ev) == [] and prev is not None
+
+
+def test_is_dead_reading_true_without_the_hook_is_one_death_event_via_is_dead(lua):
+    load(lua)
+    g = lua.globals()
+    st = {"dead": False}
+    p = make_player(health=0.0)
+    p.isDead = lambda s: st["dead"]
+    p.getZombieKills = lambda s: 3
+    g.getPlayer = lambda: p
+    prev = frame(lua, p)
+    ev, prev = events(lua, p, prev)
+    assert death_events(ev) == []                                # health 0 alone is no event: the hook or isDead
+    st["dead"] = True
+    ev, prev = events(lua, p, prev)
+    assert [(e["via"], e["zombiesKilled"], e["health"]) for e in death_events(ev)] == [("isDead", 3, 0.0)]
+    g._deathHandlers[0](p)                                       # a late hook for the same player: still once
+    ev, _ = events(lua, p, prev)
+    assert death_events(ev) == []
+
+
+def test_a_new_player_object_can_die_again_and_a_raise_in_the_hook_is_counted(lua):
+    load(lua)
+    g = lua.globals()
+    p1, p2 = make_player(), make_player()
+    for q in (p1, p2):
+        q.isDead, q.getZombieKills = (lambda s: False), (lambda s: 0)
+    g.getPlayer = lambda: p1
+    prev = frame(lua, p1)
+    g._deathHandlers[0](p1)
+    ev, prev = events(lua, p1, prev)
+    assert len(death_events(ev)) == 1
+    g.getPlayer = lambda: p2
+    g._deathHandlers[0](p2)
+    ev, prev = events(lua, p2, prev)
+    assert len(death_events(ev)) == 1
+    g.getPlayer = lambda: (_ for _ in ()).throw(RuntimeError("boom"))
+    g._deathHandlers[0](p2)                                      # a raise out of the hook would fail the test here
+    assert lua.eval("PZA.sense.deathErrors") == 1
+
+
+def test_an_absent_kill_count_leaves_zombies_killed_nil_and_names_it_missing(lua):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    p.isDead = lambda s: True
+    g.getPlayer = lambda: p
+    prev = frame(lua, p)
+    ev, _ = events(lua, p, prev)
+    d = death_events(ev)
+    assert len(d) == 1 and "zombiesKilled" not in d[0] and "getZombieKills" in missing(lua)
+
+
 # ---- the zombie lookups ---------------------------------------------------------------------------------------------
 
 def test_zombie_by_id_is_the_live_zombie_object_and_nil_for_a_dead_or_unknown_id(lua):

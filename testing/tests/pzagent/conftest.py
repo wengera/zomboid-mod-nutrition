@@ -293,8 +293,12 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     # g._core.toggles), and ISDropWorldItemAction's 8-argument new
     upd_handlers, damage_handlers = [], []
     g._updHandlers, g._damageHandlers = upd_handlers, damage_handlers
+    # PZA/1.3 (P23-AO): OnPlayerDeath keeps its handlers in g._deathHandlers
+    death_handlers = []
+    g._deathHandlers = death_handlers
     g.Events = J(OnTick=J(Add=lambda f: handlers.append(f)), OnPlayerUpdate=J(Add=lambda f: upd_handlers.append(f)),
-                 OnPlayerGetDamage=J(Add=lambda f: damage_handlers.append(f)))
+                 OnPlayerGetDamage=J(Add=lambda f: damage_handlers.append(f)),
+                 OnPlayerDeath=J(Add=lambda f: death_handlers.append(f)))
     g.Vector2 = J(new=lambda x, y: J(_cls="Vector2", x=x, y=y))
     core = J(toggle=False, toggles=[])
 

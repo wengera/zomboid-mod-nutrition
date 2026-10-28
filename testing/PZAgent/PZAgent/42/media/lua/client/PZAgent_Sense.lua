@@ -398,6 +398,56 @@ local function doorEvents(ev, gameMin)
     end
 end
 
+-- the client's OnPlayerDeath (PZA/1.3, ruling P23-AO; the vanilla client hooks it the same way, its handler handed the
+-- dead IsoPlayer: ISPostDeathUI.OnPlayerDeath(playerObj), media/lua/client/ISUI/ISPostDeathUI.lua): a call naming the
+-- local player (getPlayer(), the identity recordDamage uses) sets S.deathHook to that player, read by the next
+-- S.events; another character's death is counted in S.deathRemote and carried nowhere else. Hooked once; the body under
+-- pcall, a raise counted in S.deathErrors, never propagated into the game's death path.
+S.deathRemote = S.deathRemote or 0
+S.deathErrors = S.deathErrors or 0
+S.deathHooked = S.deathHooked or false
+
+local function recordDeath(ch)
+    local me = getPlayer ~= nil and getPlayer() or nil
+    if me ~= nil and ch == me then
+        S.deathHook = ch
+    else
+        S.deathRemote = S.deathRemote + 1
+    end
+end
+
+function S.onDeath(ch)
+    local ok = pcall(recordDeath, ch)
+    if not ok then S.deathErrors = S.deathErrors + 1 end
+end
+
+if not S.deathHooked and Events ~= nil and Events.OnPlayerDeath ~= nil then
+    Events.OnPlayerDeath.Add(S.onDeath)
+    S.deathHooked = true
+end
+
+-- death{worldAge, x, y, z, health, zombiesKilled, via}: once per player object (S.deathSent), when the hook named p
+-- (via hook) or p's isDead reads true (via isDead), the hook taking precedence; the position and health are the
+-- event's own frame's (cur: the client's copy, which can freeze above 0 on a dead character in multiplayer), the kill
+-- count the game's getZombieKills. The frames go on after it.
+local function playerDeathEvents(ev, gameMin, p, cur)
+    if S.deathSent ~= nil and S.deathSent == p then return end
+    local via = nil
+    if S.deathHook ~= nil and S.deathHook == p then
+        via = "hook"
+    else
+        local okD, dead = PZA.call(p, "isDead")
+        if okD and dead == true then via = "isDead" end
+    end
+    if via == nil then return end
+    local okK, kills = PZA.call(p, "getZombieKills")
+    if not okK then PZA.missing(S.missing, "getZombieKills") end
+    local m, b = cur.me or {}, cur.body or {}
+    ev[#ev + 1] = { event = "death", gameMin = gameMin, worldAge = cur.worldAge, x = m.x, y = m.y, z = m.z,
+                    health = b.health, zombiesKilled = okK and kills or nil, via = via }
+    S.deathSent = p
+end
+
 -- one event kind's reader fn(part, ...) under pcall (S-15): its events join ev only when it ran through, so a raise
 -- costs that kind's events this call (none half-read), never the other kinds or the frame
 local function collect(ev, name, fn, ...)
@@ -419,6 +469,8 @@ end
 --   (a first call without firstSight seeds it silently);
 --   door{x, y, z, open}: a door or window whose open state changed between two map records of its square (the map's
 --   PZA.map.doorEvents: a scan part's or the watch's, the ring of WATCH_R tiles; a square first seen queues none).
+--   death{worldAge, x, y, z, health, zombiesKilled, via}: the local player's death, once per player object
+--   (playerDeathEvents).
 -- Returns ev and the new frame (cur).
 -- Each kind through collect; the damage records are drained whatever the damage reader did, so a raising record is
 -- never read twice.
@@ -433,6 +485,7 @@ function S.events(p, prev)
     collect(ev, "event:zombie_dead", deathEvents, gameMin, prev, seen, S.zobj or {})
     collect(ev, "event:item", itemEvents, gameMin, p)
     collect(ev, "event:door", doorEvents, gameMin)
+    collect(ev, "event:death", playerDeathEvents, gameMin, p, cur)
     return ev, cur
 end
 

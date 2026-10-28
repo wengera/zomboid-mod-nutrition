@@ -440,3 +440,16 @@ def test_the_fake_mods_square_helper_is_a_full_square_with_its_edges_false():
     with pytest.raises(ValueError):
         square(ghost=1)
     assert DEFAULT_FRAME["me"]["hour"] == 8.0 and tuple(DEFAULT_FRAME["me"]) == pza1.GROUPS["me"]
+
+
+# ---- PZA/1.3: the death event (ruling P23-AO) -----------------------------------------------------------------------
+
+def test_death_is_an_event_kind_with_its_fields_and_round_trips():
+    assert "death" in pza1.EVENT_KINDS
+    assert pza1.EVENT_FIELDS["death"] == ("worldAge", "x", "y", "z", "health", "zombiesKilled", "via")
+    body = {"seq": 4251, "tick": 90000, "wallMs": 1, "event": "death", "gameMin": 627.0, "worldAge": 10.45,
+            "x": 10770.67, "y": 10640.48, "z": 0, "health": 19.506973266601562, "zombiesKilled": 1, "via": "hook"}
+    assert pza1.decode(json.loads(pza1.encode("event", body))) == dict(body, kind="event")
+    props = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["event_death"]["properties"]
+    assert [props[f]["type"] for f in pza1.EVENT_FIELDS["death"]] == [
+        "number", "number", "number", "number", "number", "integer", "string"]
