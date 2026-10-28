@@ -25,7 +25,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   one held threat and health >= FLEE_HEALTH + REFIGHT_MARGIN, and a flee sent because a fight stalled is held while
   the nearest stays beyond FIGHT_REACH; a running fight turns to flee only on the flee conditions or its stall
   (`Fight.stalled`: its target beyond FIGHT_REACH for more than FIGHT_MAX_S unbroken seconds), never because a
-  threat count dropped. The flee steers from the held threats' centroid.
+  threat count dropped; the stall guard reads the distance to the Fight's target (`Fight.target_dist()`, the pinned
+  one), the zombie its stall clock follows, never the nearest held one (Task 10's review M3). The flee steers from
+  the held threats' centroid.
 - The flee's load drop (Plan 23 Task 10): run 2's last flee was pinned at load level 4. While the mode is `flee` and
   the frame's load level is at or above `policies.DROP_AT` (3), the flee episode's first free answer is one `Drop` of
   `LootHouse.spare()` (logged `flee_drop`, the item's id), sent as the Flee's own action so its steer waits on the
@@ -35,12 +37,23 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   stays blocked after the Fight's one reposition (or has no clear square to reposition to), is skipped for
   UNREACHABLE_S (`policies.Fight`); Survive keeps that memory in `unreachable` across its Fights, and when every held
   threat is skipped the branch flees (reason `unreachable`), never attacking it again until its time runs out.
-- `need`: while its own `Consume` is current it holds, before any threshold is read (a frame that already reads the
-  drink's effect must not let a lower branch supersede it); else thirst > THIRST_T consumes the held item of least id whose use is `water` (`world.by_use()`, the dataset's fluid
-  containers, an item marked empty left out), else marks `water`;
-  then hunger > HUNGER_T consumes the held `food` item of least id (the dataset's food), else marks `food`; nothing held, the branch passes and
-  `forage` loots for the mark (`all` with none) through `LootHouse`, which loots only at load level 0-1, never at 2,
-  and drops from 3 down to 2 (spec § 9 (1)). `explore` scans each new place and walks to the unexplored edge.
+- `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
+  in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
+  (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
+  reads the drink's effect must not let a lower branch supersede it); else thirst > THIRST_T consumes the held item
+  of least id whose use is `water` (`world.by_use()`: the dataset's drinkable, non-poisonous fluid containers, an id
+  marked empty left out), else marks `water`; then hunger > HUNGER_T consumes the held `food` item of least id (the
+  dataset's food), else marks `food`; nothing held, the branch passes to `forage`.
+- The empties (P23-D): a `Consume` whose action ended `failed "not valid"` on an id `by_use()` reads `water` marks it
+  empty (`world.mark_empty`), so the next tick takes the next bottle and `LootHouse.spare()` may drop it; a food
+  refused so is never marked (a food is eaten whole or refused for another reason), only logged as
+  inputs.consume_refused on the tick that read the end (else None).
+- `forage` (P23-8) loots through `LootHouse` for one use, never `all`: the need's mark when one was set, else the
+  first of STOCK_WANTS (`water`, `food`, `bandage`, `weapon`) for which `world.nearest_unlooted(use)` answers a
+  container; none, it passes. Every loot carries `maxWeight` = the frame's `load.max` times
+  `policies.LOAD_RATIO_MAX` (1.0), 0.0 (no cap) when `load.max` reads no positive number; the level guard stays the
+  backstop: a loot only at load level 0-1, never at 2, and drops from 3 down to 2 (spec § 9 (1)). `explore` scans
+  each new place and walks to the unexplored edge.
 - A command whose action ended `failed` (any reason but `superseded`, which this planner's own next send caused),
   `timeout` or `rejected` is not chosen again with the same type and args for FAILED_COOLDOWN_TICKS planner ticks:
   its branch is passed over and the next one tried (logged as inputs.cooled); the threat branch is never passed
@@ -57,8 +70,8 @@ from agent.base.planner.policies import (DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGH
 from agent.base.pza1 import Consume, Drop
 
 DANGER_R = 6.0            # a zombie this close is a threat
-THIRST_T = 0.5
-HUNGER_T = 0.5
+THIRST_T = 0.12          # the first THIRST moodle fires above 0.12 [#0509]
+HUNGER_T = 0.15          # the first HUNGRY moodle fires above 0.15 [#0508]
 FLEE_HEALTH = 40.0        # under it a threat is fled, never fought
 FLEE_HEALTH_PAIR = 60.0   # two or more threats are fled under this health
 REFIGHT_MARGIN = 20.0     # a running flee turns to fight only at health >= FLEE_HEALTH + this, one threat
@@ -66,9 +79,12 @@ MAX_FIGHT = 2             # more threats than this are fled
 BRANCHES = ("threat", "need", "forage", "explore")
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
+REFUSED = "not valid"    # the reason the Lua's consume fails an item it cannot eat or drink (an empty bottle)
+STOCK_WANTS = ("water", "food", "bandage", "weapon")   # with no need marked, forage loots the first use a container holds
 
 __all__ = ["Survive", "BRANCHES", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER_T", "FLEE_HEALTH",
-           "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS"]
+           "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS",
+           "STOCK_WANTS"]
 
 
 def _key(typ, args):
@@ -91,6 +107,7 @@ class Survive:
         self.explore = Explore(world, actions, clock)
         self.need_last = None     # the last Consume sent
         self.need_mark = None     # "water" or "food" when need found nothing held; forage loots for it
+        self.consume_refused = None   # a food id whose consume ended failed "not valid" on this tick (logged only)
         self.ticks = 0
         self.last_failed = None   # (type, args json, tick first seen failed) of the last command that failed
         self._watch = []          # actions sent and not yet seen terminal
@@ -152,8 +169,8 @@ class Survive:
             if len(held) > 1 or health < FLEE_HEALTH + REFIGHT_MARGIN:
                 return "held"
             return None
-        if self.mode == "fight" and self.fight.stalled and near > FIGHT_REACH:
-            return "stalled"
+        if self.mode == "fight" and self.fight.stalled and (self.fight.target_dist() or 0.0) > FIGHT_REACH:
+            return "stalled"   # the pinned target's distance: the one the stall clock follows (M3)
         return None
 
     # ---------------------------------------------------------------- the branches, in order
@@ -223,7 +240,11 @@ class Survive:
         return None, Consume(pick)
 
     def _forage(self):
-        self.loot.want = self.need_mark or "all"
+        """Loot for the need's mark, else for the first of STOCK_WANTS a container answers; never `all`."""
+        want = self.need_mark
+        if want is None:
+            want = next((u for u in STOCK_WANTS if self.world.nearest_unlooted(u) is not None), None)
+        self.loot.want = want
         return self._answer(self.loot)
 
     def _explore(self):
@@ -232,12 +253,23 @@ class Survive:
     # ---------------------------------------------------------------- the tick
     def _note_failures(self):
         still = []
+        self.consume_refused = None
         for a in self._watch:
             if not self.actions.done(a):
                 still.append(a)
             elif a.state in FAILED and not (a.state == "failed" and a.reason == PREEMPTED):
                 self.last_failed = _key(a.type, a.args) + (self.ticks,)
+                if a.type == "consume" and a.state == "failed" and a.reason == REFUSED:
+                    self._refused(a.args.get("itemId"))
         self._watch = still
+
+    def _refused(self, iid):
+        """A consume refused `not valid`: a water item is empty (P23-D), marked so `by_use` reads it `other`; a food
+        is eaten whole or refused for another reason, so it is only logged."""
+        if iid in self.world.by_use()["water"]:
+            self.world.mark_empty(iid)
+        else:
+            self.consume_refused = iid
 
     def _cooling(self, cmd):
         f = self.last_failed
@@ -279,6 +311,7 @@ class Survive:
             branch, (owner, cmd) = name, ans
             break
         inputs["need"] = self.need_mark
+        inputs["consume_refused"] = self.consume_refused
         inputs["cooled"] = cooled
         inputs["branches"] = tried
         action = None

@@ -20,8 +20,11 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   `Attack` of its id once the line holds. The line check (ruling P23-K) answers run 1 swinging 103 attacks at a zombie
   behind a locked door: within reach the Fight reads `world.line_clear` from the player to the target over the map's
   blocked edges (a closed door or an intact window blocks, an open doorway does not); false, it walks once at a run to
-  the square of `world.reachable_adjacent(target)` nearest the player from whose centre the line is clear
-  (`repositioned`), and a second blocked read, or no clear square, marks the target unreachable and the next is tried.
+  the square of `world.reachable_adjacent(target)` nearest the player, within REPOSITION_R (2.5 tiles) of the
+  player by its centre, from whose centre the line is clear (`repositioned`), and a second blocked read, or no such
+  square, marks the target unreachable and the next is tried. `reachable_adjacent` lists the squares open to the
+  target, not to the player, so the radius is the guard (ruling P23-Q, Task 10's review M2): a long detour round a
+  building is never a reflex; cost if wrong, a reachable zombie read unreachable for UNREACHABLE_S.
   The line is read only when the map holds both end squares on the player's floor; over an unscanned end it is None
   and the swing goes ahead, left to the no-progress stall below. `why` logs `target`, `pinned`, `dist`, `approach`,
   `line` and `reposition` (the square chosen, else None), and `marked` when this choose marked a target. Two `attack`
@@ -51,17 +54,21 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   that ends `failed` with a reason in `STUCK_REASONS` has its target marked in the World (`world.mark_stuck`), and
   `unexplored_edge` leaves it out for `STUCK_TTL_MIN` (60) game minutes, so it is never re-sent inside them (the
   whole-pass review's I4: run 1 re-sent a walk that failed `stuck` to the same edge 20 times).
-- `LootHouse`: at load level `LOOT_MAX_LEVEL` (1) or below an `Interact(x, y, "loot", want)` at
-  `world.nearest_unlooted(want)` (any container for `want="all"`), every container on that square marked looted when
-  the interact ends, done, failed, rejected or timed out, except a `failed "superseded"`, which a newer send replaced
-  before it ran (Plan 21 lost such a square for the session: `docs/reference/research-notes.md`, "A pre-empted loot's
-  square is marked looted"). Spec § 9 (1), "a policy stops looting before level 3": a loot with filter `all` takes a
-  whole container, so one interact at level 2 lifted runs 1 and 2 to level 3 and 4; the guard is the level, since a
-  container's weight is not readable per item. At level 2 it sends nothing; at `DROP_AT` (3) or above it sends `Drop`
-  of `spare()`, the heaviest held item that is neither the wielded weapon's type, nor of use `weapon`, `food` or
-  `water` by `world.by_use()` (a bottle the planner marked empty reads `other`, so it is dropped), one a decision,
-  until the frame's level reads `DROP_TO` (2); with nothing to drop, no command. No loot is sent again until the level
-  is back under 2. Survive's flee sends one `spare()` drop of its own at `DROP_AT` (`survive.py`).
+- `LootHouse` (Plan 23 Task 11, P23-7, P23-8): at load level `LOOT_MAX_LEVEL` (1) or below an
+  `Interact(x, y, "loot", want, maxWeight=cap)` at `world.nearest_unlooted(want)`, `want` one of `LOOT_WANTS`
+  (`food`, `water`, `weapon`, `bandage`), set by the caller (Survive's `forage`), and never `all`: Plan 22's loot of
+  `all` took whole containers, one interact at level 2 lifting runs 1 and 2 to level 3 and 4. Any other want (None
+  included) loots nothing. `cap` is the frame's `load.max` times `LOAD_RATIO_MAX` (1.0), the Lua's loot stopping
+  before the carried weight would pass it; 0.0 (no cap) when `load.max` reads no positive number; logged as
+  `why["cap"]`. Every container on the looted square is marked looted when the interact ends, done, failed, rejected
+  or timed out, except a `failed "superseded"`, which a newer send replaced before it ran (Plan 21 lost such a square
+  for the session: `docs/reference/research-notes.md`, "A pre-empted loot's square is marked looted"). The level
+  guard stays the backstop, spec § 9 (1), "a policy stops looting before level 3": at level 2 it sends nothing; at
+  `DROP_AT` (3) or above it sends `Drop` of `spare()`, the heaviest held item that is neither the wielded weapon's
+  type, nor of use `weapon`, `food` or `water` by `world.by_use()` (a bottle the planner marked empty reads `other`,
+  so it is dropped), one a decision, until the frame's level reads `DROP_TO` (2); with nothing to drop, no command.
+  No loot is sent again until the level is back under 2. Survive's flee sends one `spare()` drop of its own at
+  `DROP_AT` (`survive.py`).
 
 HEURISTIC: an item's use is `agent.base.items.use_of`: food and water off `data/food-items.json` (the dataset's food and
 fluid containers), a weapon by `items.WEAPON_RX`'s fullType names, which is no game data (the dataset names no weapon).
@@ -74,6 +81,7 @@ from agent.base.pza1 import Attack, Drop, Interact, Scan, Steer, WalkTo
 FIGHT_REACH = 2.0     # tiles: a nearest zombie beyond this is walked to, within it attacked
 FIGHT_MAX_S = 20.0    # wall seconds the target may stay beyond FIGHT_REACH before the fight reads stalled
 DISENGAGE_R = 10.0    # tiles: a pinned target beyond this is dropped (and Survive's hold radius while a threat runs)
+REPOSITION_R = 2.5    # tiles: a reposition square farther than this from the player is never walked to (P23-Q)
 MISSES_TO_APPROACH = 2   # attack results in a row with attackStarted false before one approach walk
 STALL_SWINGS = 3      # started swings in a row on one target that took no health before it reads unreachable
 UNREACHABLE_S = 20.0  # wall seconds a no-progress target is skipped
@@ -81,6 +89,8 @@ FLEE_S = 3.0          # seconds a flee's steer runs before it is re-aimed
 SPRINT_R = 2.0        # tiles: a nearest zombie within this is fled at a sprint
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
+LOAD_RATIO_MAX = 1.0  # a loot fills to this times the frame's load.max (level 1 holds up to 1.25 of it, #3926)
+LOOT_WANTS = ("food", "water", "weapon", "bandage")   # a loot's want and filter: one use, never `all` (P23-8)
 DROP_AT = 3           # at this load level or above the policy drops (the heavy-load drain falls at level 3) ...
 DROP_TO = 2           # ... down to this level, and between the two sends nothing
 KEPT_USES = ("weapon", "food", "water")   # the uses a drop never takes
@@ -247,10 +257,16 @@ class Fight(Policy):
 
     def _reposition(self, z):
         """The square to reposition to: of `world.reachable_adjacent` of the target's square (nearest the player
-        first), the first from whose centre the line to the target is clear; None when none is."""
+        first), the first within REPOSITION_R of the player (by its centre) from whose centre the line to the target
+        is clear; None when none is. `reachable_adjacent` reads the squares open to the target, not to the player:
+        the radius keeps a detour round a building out of the reflex (ruling P23-Q)."""
         floor = me_floor(self.world)
+        mx, my = me_xy(self.world)
         for sq in self.world.reachable_adjacent((z["x"], z["y"]), floor):
-            if self.world.line_clear((sq[0] + 0.5, sq[1] + 0.5), (z["x"], z["y"])):
+            c = (sq[0] + 0.5, sq[1] + 0.5)
+            if math.hypot(c[0] - mx, c[1] - my) > REPOSITION_R:
+                break   # nearest the player first: every later square is as far or farther
+            if self.world.line_clear(c, (z["x"], z["y"])):
                 return sq
         return None
 
@@ -280,6 +296,12 @@ class Fight(Policy):
     def fight_s(self):
         """Seconds the target has been out of reach (the stall clock)."""
         return self.clock() - self.out_of_reach_since
+
+    def target_dist(self):
+        """Tiles to the target the stall clock follows (the pinned one while it holds, else the nearest reachable),
+        None with no target: Survive's stall guard reads the same zombie as the clock."""
+        t = self._target(pin=False)
+        return None if t is None else t[2]
 
     @property
     def stalled(self):
@@ -397,14 +419,21 @@ class Explore(Policy):
 
 
 class LootHouse(Policy):
-    def __init__(self, world, actions, clock=time.time, want="all"):
+    def __init__(self, world, actions, clock=time.time, want=None):
         super().__init__(world, actions, clock)
-        self.want = want        # "food", "water" or "all": the container's want and the loot's filter
+        self.want = want        # one of LOOT_WANTS, set by the caller: the container's want and the loot's filter
         self.pending = []       # (x, y, z, Action) of each loot sent and not yet seen ended
         self._key = None        # the container the last choose picked
 
     def level(self):
         return (self.world.load or {}).get("level") or 0
+
+    def cap(self):
+        """The loot's maxWeight: the frame's load.max times LOAD_RATIO_MAX, 0.0 (no cap) when it reads no positive
+        number."""
+        m = (self.world.load or {}).get("max")
+        ok = isinstance(m, (int, float)) and not isinstance(m, bool) and m > 0
+        return float(m) * LOAD_RATIO_MAX if ok else 0.0
 
     def observe(self):
         still = []
@@ -442,12 +471,13 @@ class LootHouse(Policy):
         if level > LOOT_MAX_LEVEL:
             self.why = {"level": level, "hold": True}
             return None
-        key = self.world.nearest_unlooted(None if self.want == "all" else self.want)
+        key = self.world.nearest_unlooted(self.want) if self.want in LOOT_WANTS else None
+        cap = self.cap()
         self._key = key
-        self.why = {"level": level, "want": self.want, "container": list(key) if key else None}
+        self.why = {"level": level, "want": self.want, "container": list(key) if key else None, "cap": cap}
         if key is None:
             return None
-        return Interact(int(key[0]), int(key[1]), "loot", self.want)
+        return Interact(int(key[0]), int(key[1]), "loot", self.want, maxWeight=cap)
 
     def sent(self, cmd, action):
         if cmd.TYPE == "interact":

@@ -11,7 +11,7 @@ from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner.survive import Survive
 
-from .test_policies import BAT, CRATE, FRIDGE, Rig, all_sends_valid, behind_wall_n, square, swing, zombie
+from .test_policies import BAT, CRATE, FRIDGE, SHELF, Rig, all_sends_valid, behind_wall_n, grid, square, swing, zombie
 
 
 def make(tmp_path):
@@ -38,9 +38,10 @@ def threat_why(tmp_path):
 
 
 # ================================================================ the list and its constants
-def test_branch_order_and_thresholds_are_plan_21s_without_sleep():
+def test_branch_order_is_plan_21s_without_sleep_and_the_needs_fire_at_the_first_moodle():
     assert S.BRANCHES == ("threat", "need", "forage", "explore")
-    assert (S.DANGER_R, S.DISENGAGE_R, S.THIRST_T, S.HUNGER_T) == (6.0, 10.0, 0.5, 0.5)
+    assert (S.DANGER_R, S.DISENGAGE_R, S.THIRST_T, S.HUNGER_T) == (6.0, 10.0, 0.12, 0.15)   # [#0509], [#0508]
+    assert S.STOCK_WANTS == ("water", "food", "bandage", "weapon") and set(S.STOCK_WANTS) == set(P.LOOT_WANTS)
     assert (S.FLEE_HEALTH, S.FLEE_HEALTH_PAIR, S.REFIGHT_MARGIN, S.MAX_FIGHT) == (40.0, 60.0, 20.0, 2)
     assert S.FAILED_COOLDOWN_TICKS == 10
 
@@ -85,7 +86,7 @@ def test_a_threat_engaged_at_six_tiles_holds_beyond_six_within_ten(tmp_path, eng
     r.frame(zombies=[zombie(1, 111.0, 200.0)])               # 11 tiles: disengaged
     tick(r, sv)
     assert last(tmp_path)["branch"] == "forage" and r.cmd() == ("interact", {"x": 101, "y": 200, "kind": "loot",
-                                                                             "filter": "all", "maxWeight": 0.0})
+                                                                             "filter": "bandage", "maxWeight": 8.0})
 
 
 def test_with_no_threat_running_a_zombie_at_seven_tiles_is_no_threat(tmp_path):
@@ -291,7 +292,7 @@ def test_need_holds_its_running_consume_before_reading_the_thresholds(tmp_path):
     assert d["branch"] == "need" and d["sent"] is False and d["action"] is None
     assert [a.type for a in r.acts.history] == ["consume"]
     r.answer({"state": "done", "result": {"itemId": 701}})
-    r.frame(thirst=0.4)
+    r.frame(thirst=0.1)
     tick(r, sv)
     assert r.cmd()[0] == "interact" and last(tmp_path)["branch"] == "forage"
 
@@ -309,7 +310,7 @@ def test_need_marks_food_and_falls_through_to_forage_for_it(tmp_path):
     r.scan([square(101, 200, containers=[CRATE]), square(103, 200, containers=[FRIDGE])])
     r.frame(hunger=0.6)
     tick(r, sv)
-    assert r.cmd() == ("interact", {"x": 103, "y": 200, "kind": "loot", "filter": "food", "maxWeight": 0.0})
+    assert r.cmd() == ("interact", {"x": 103, "y": 200, "kind": "loot", "filter": "food", "maxWeight": 8.0})
     d = last(tmp_path)
     assert d["branch"] == "forage" and d["inputs"]["need"] == "food"
 
@@ -331,7 +332,7 @@ def test_a_failed_action_cools_its_branch_for_ten_planner_ticks(tmp_path):
     r.frame(thirst=0.6)
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 701})
-    r.answer({"state": "failed", "reason": "not valid"})
+    r.answer({"state": "failed", "reason": "interrupted"})   # not "not valid", which marks a water bottle empty
     for i in range(S.FAILED_COOLDOWN_TICKS):
         r.frame(thirst=0.6)
         a = tick(r, sv)
@@ -351,7 +352,7 @@ def test_a_cooled_action_passes_over_to_the_next_branch(tmp_path):
     r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
     r.frame(thirst=0.6)
     tick(r, sv)
-    r.answer({"state": "failed", "reason": "not valid"})
+    r.answer({"state": "failed", "reason": "interrupted"})
     r.frame(thirst=0.6)
     tick(r, sv)
     assert r.cmd()[0] == "interact" and last(tmp_path)["branch"] == "forage"
@@ -500,11 +501,16 @@ def test_a_flee_drop_waits_on_its_drop_and_a_new_flee_drops_again(tmp_path):
     assert tick(r, sv) is None                               # the drop is current: the flee holds on it
     r.answer()
     r.event("item_removed", itemId=602, fullType="Base.Plank")
-    r.frame(level=4)                                         # the threat gone: the flee episode ends
+    r.event("zombie_dead", id=1)
+    r.frame(level=2, weapon=None)                            # the threat gone: the flee episode ends at no threat
     tick(r, sv)
-    r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None, level=4)
+    assert sv.mode is None and sv.flee is None and sv.flee_dropped is False
+    assert last(tmp_path)["branch"] != "threat"
+    r.frame(zombies=[zombie(2, 103.0, 200.0)], weapon=None, level=4)
     tick(r, sv)
     assert r.cmd() == ("drop", {"itemId": 603})              # a new flee episode: one drop again
+    between = [a.type for a in r.acts.history][1:-1]
+    assert not {"steer", "walkTo", "attack"} & set(between), between   # no threat command between the two drops
 
 
 def test_a_flee_under_drop_at_never_drops(tmp_path):
@@ -513,3 +519,149 @@ def test_a_flee_under_drop_at_never_drops(tmp_path):
     r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None, level=2)
     tick(r, sv)
     assert r.cmd()[0] == "steer" and "flee_drop" not in threat_why(tmp_path)
+
+
+# ================================================================ Plan 23 Task 11: the first moodle, the empties, the loot's want and cap
+WATER = {"type": "counter", "n": 1, "items": ["Base.WaterBottle"]}
+TOOLS = {"type": "crate", "n": 1, "items": ["Base.BaseballBat"]}
+
+
+def held(r, *items):
+    for iid, ft in items:
+        r.event("item_added", itemId=iid, fullType=ft, weight=0.5)
+
+
+@pytest.mark.parametrize("thirst, hunger, want", [(0.13, 0.1, 703), (0.11, 0.1, None), (0.1, 0.16, 701),
+                                                  (0.1, 0.14, None), (0.13, 0.16, 703)])
+def test_the_needs_fire_at_the_first_moodle_on_the_least_id_of_the_use(tmp_path, thirst, hunger, want):
+    r, sv = make(tmp_path)
+    held(r, (704, "Base.Apple"), (705, "Base.WaterBottle"), (701, "Base.Apple"), (703, "Base.WaterBottle"))
+    r.frame(thirst=thirst, hunger=hunger)
+    tick(r, sv)
+    if want is None:
+        assert last(tmp_path)["branch"] != "need" and "consume" not in [a.type for a in r.acts.history]
+    else:
+        assert r.cmd() == ("consume", {"itemId": want}) and last(tmp_path)["branch"] == "need"
+
+
+def test_a_water_consume_failed_not_valid_marks_it_empty_and_the_next_tick_takes_the_other(tmp_path):
+    r, sv = make(tmp_path)
+    held(r, (705, "Base.WaterBottle"), (703, "Base.WaterBottle"))
+    r.frame(thirst=0.3)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 703})
+    r.answer({"state": "failed", "reason": "not valid"})
+    r.frame(thirst=0.3)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 705}) and r.world.empty_ids == {703}
+    assert r.world.by_use()["water"] == [705] and 703 in r.world.by_use()["other"]
+    assert last(tmp_path)["inputs"]["consume_refused"] is None
+
+
+@pytest.mark.parametrize("reason", ["interrupted", "superseded", "no target"])
+def test_a_water_consume_failed_otherwise_is_not_marked_empty(tmp_path, reason):
+    r, sv = make(tmp_path)
+    held(r, (703, "Base.WaterBottle"))
+    r.frame(thirst=0.3)
+    tick(r, sv)
+    r.answer({"state": "failed", "reason": reason})
+    r.frame(thirst=0.3)
+    tick(r, sv)
+    assert r.world.empty_ids == set()
+
+
+def test_a_food_consume_failed_not_valid_is_refused_never_marked_empty(tmp_path):
+    r, sv = make(tmp_path)
+    held(r, (701, "Base.Apple"))
+    r.frame(hunger=0.3)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 701})
+    r.answer({"state": "failed", "reason": "not valid"})
+    r.frame(hunger=0.3)
+    tick(r, sv)
+    d = last(tmp_path)
+    assert r.world.empty_ids == set() and r.world.by_use()["food"] == [701]
+    assert d["inputs"]["consume_refused"] == 701 and d["inputs"]["cooled"] == {"type": "consume",
+                                                                               "args": {"itemId": 701}}
+    r.frame(hunger=0.3)
+    tick(r, sv)
+    assert last(tmp_path)["inputs"]["consume_refused"] is None   # logged on the tick that read the end only
+
+
+@pytest.mark.parametrize("load_max, cap", [(8.0, 8.0), (None, 0.0)])
+def test_the_forage_loot_carries_the_cap_and_logs_it(tmp_path, load_max, cap):
+    r, sv = make(tmp_path)
+    r.scan([square(103, 200, containers=[FRIDGE])])
+    r.frame(hunger=0.3, load_max=load_max)
+    tick(r, sv)
+    assert r.cmd() == ("interact", {"x": 103, "y": 200, "kind": "loot", "filter": "food", "maxWeight": cap})
+    assert last(tmp_path)["inputs"]["branches"]["forage"]["cap"] == cap
+
+
+def test_with_no_need_forage_takes_the_stocks_wants_in_order_water_food_bandage_weapon(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan([square(101, 200, containers=[TOOLS]), square(102, 200, containers=[CRATE]),
+            square(103, 200, containers=[FRIDGE]), square(106, 200, containers=[WATER])])
+    filters = []
+    for _ in range(4):
+        r.frame()
+        tick(r, sv)
+        filters.append((r.cmd()[1]["filter"], r.cmd()[1]["x"]))
+        r.answer()
+    assert filters == [("water", 106), ("food", 103), ("bandage", 102), ("weapon", 101)]
+    r.frame()
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "explore"
+
+
+def test_with_no_need_an_other_only_container_is_never_looted(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan([square(101, 200, containers=[SHELF])])
+    r.frame()
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "explore" and "interact" not in [a.type for a in r.acts.history]
+    assert last(tmp_path)["inputs"]["branches"]["forage"]["want"] is None
+
+
+def test_a_need_mark_loots_its_use_even_when_another_use_is_nearer(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan([square(101, 200, containers=[CRATE]), square(106, 200, containers=[WATER])])
+    r.frame(thirst=0.3)
+    tick(r, sv)
+    assert r.cmd() == ("interact", {"x": 106, "y": 200, "kind": "loot", "filter": "water", "maxWeight": 8.0})
+
+
+def test_twenty_ticks_of_a_looting_world_never_send_all(tmp_path):
+    r, sv = make(tmp_path)
+    at = {(101, 200): {"containers": [SHELF]}, (102, 200): {"containers": [CRATE]},
+          (103, 201): {"containers": [FRIDGE, SHELF]}, (104, 199): {"containers": [WATER]},
+          (105, 200): {"containers": [TOOLS]}, (98, 202): {"containers": [dict(FRIDGE, type="counter")]},
+          (97, 198): {"containers": [dict(WATER, type="sink")]}}
+    r.scan(grid(95, 106, 196, 204, at))
+    for i in range(20):
+        r.frame(thirst=0.3 if i % 3 == 0 else 0.1, hunger=0.3 if i % 3 == 1 else 0.1, game_min=480.0 + i)
+        if tick(r, sv) is not None:
+            r.answer()
+    loots = [a.args for a in r.acts.history if a.type == "interact"]
+    assert len(loots) >= 5
+    assert all(a["filter"] in ("food", "water", "weapon", "bandage") for a in loots), loots
+    assert all(a["maxWeight"] == 8.0 for a in loots)
+    for d in decisions(tmp_path):
+        assert d["inputs"]["branches"].get("forage", {}).get("want") != "all"
+    all_sends_valid(r)
+
+
+# Task 10's review (M3): the Fight's stall clock follows the pinned target, so the stall guard reads its distance.
+def test_the_stall_reads_the_pinned_targets_distance_not_the_nearest_zombies(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zombie(1, 105.0, 200.0)])
+    tick(r, sv)
+    assert sv.fight.target == 1 and r.cmd() == ("walkTo", {"x": 105, "y": 200, "gait": "run"})
+    both = lambda: [zombie(1, 105.0, 200.0), zombie(2, 101.5, 200.0)]   # an unpinned zombie within reach
+    r.frame(zombies=both())
+    assert tick(r, sv) is None and sv.fight.target == 1
+    assert sv.fight.target_dist() == 5.0
+    r.advance(21.0)
+    r.frame(zombies=both())
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "stalled"

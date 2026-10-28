@@ -59,11 +59,11 @@ class Rig:
         self.acts.pump(lines)
 
     def frame(self, x=100.0, y=200.0, zombies=(), weapon=BAT, health=100.0, hunger=0.1, thirst=0.1, level=0,
-              game_min=480.0, wounds=None):
+              game_min=480.0, wounds=None, load_max=8.0):
         me = dict(DEFAULT_FRAME["me"], x=x, y=y)
         stats = dict(DEFAULT_FRAME["stats"], hunger=hunger, thirst=thirst)
         body = dict(DEFAULT_FRAME["body"], health=health, **(wounds or {}))
-        load = dict(DEFAULT_FRAME["load"], level=level)
+        load = dict(DEFAULT_FRAME["load"], level=level, max=load_max)
         self.fake.frame(me=me, stats=stats, body=body, load=load, weapon=weapon, zombies=list(zombies),
                         gameMin=game_min)
         self.pump()
@@ -476,22 +476,23 @@ def test_explore_with_no_edge_sends_nothing(tmp_path):
 
 
 # ================================================================ LootHouse
-CRATE = {"type": "crate", "n": 1, "items": ["Base.Nails"]}
+CRATE = {"type": "crate", "n": 1, "items": ["Base.Bandage"]}   # a `bandage` container (`items.use_of`)
 FRIDGE = {"type": "fridge", "n": 1, "items": ["Base.Apple"]}
+SHELF = {"type": "shelf", "n": 1, "items": ["Base.Nails"]}       # an `other` container: never a loot's want
 
 
 def test_loothouse_loots_the_nearest_unlooted_and_marks_it_when_the_loot_ends(tmp_path):
     r = Rig(tmp_path)
-    r.scan([square(102, 200, containers=[CRATE]), square(106, 200, containers=[FRIDGE])])
+    r.scan([square(102, 200, containers=[CRATE]), square(106, 200, containers=[dict(CRATE, type="cupboard")])])
     r.frame()
-    lh = LootHouse(r.world, r.acts, r.clock)
+    lh = LootHouse(r.world, r.acts, r.clock, want="bandage")
     lh.step()
-    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "all", "maxWeight": 0.0})
+    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "bandage", "maxWeight": 8.0})
     assert lh.step() is None
     r.answer({"state": "failed", "reason": "not adjacent"})
     lh.step()
     assert r.world.containers[(102, 200, 0, 0)]["looted"] is True
-    assert r.cmd() == ("interact", {"x": 106, "y": 200, "kind": "loot", "filter": "all", "maxWeight": 0.0})
+    assert r.cmd() == ("interact", {"x": 106, "y": 200, "kind": "loot", "filter": "bandage", "maxWeight": 8.0})
     all_sends_valid(r)
 
 
@@ -501,14 +502,48 @@ def test_loothouse_takes_its_want_as_the_filter(tmp_path):
     r.frame()
     lh = LootHouse(r.world, r.acts, r.clock, want="food")
     lh.step()
-    assert r.cmd() == ("interact", {"x": 106, "y": 200, "kind": "loot", "filter": "food", "maxWeight": 0.0})
+    assert r.cmd() == ("interact", {"x": 106, "y": 200, "kind": "loot", "filter": "food", "maxWeight": 8.0})
+
+
+# Plan 23 Task 11 (P23-7, P23-8): every loot is capped at the carry ratio and filtered by one use, never `all`.
+def test_the_loot_ratio_constant_and_wants():
+    assert P.LOAD_RATIO_MAX == 1.0 and P.LOOT_WANTS == ("food", "water", "weapon", "bandage")
+
+
+@pytest.mark.parametrize("load_max, cap", [(8.0, 8.0), (12.5, 12.5), (None, 0.0), (0.0, 0.0)])
+def test_the_loot_carries_the_cap_off_the_frames_max_weight(tmp_path, load_max, cap):
+    r = Rig(tmp_path)
+    r.scan([square(102, 200, containers=[FRIDGE])])
+    r.frame(load_max=load_max)
+    lh = LootHouse(r.world, r.acts, r.clock, want="food")
+    lh.step()
+    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "food", "maxWeight": cap})
+    assert lh.why["cap"] == cap
+    all_sends_valid(r)
+
+
+@pytest.mark.parametrize("want", [None, "all", "other"])
+def test_a_loot_without_one_of_the_four_wants_is_never_sent(tmp_path, want):
+    r = Rig(tmp_path)
+    r.scan([square(102, 200, containers=[CRATE, FRIDGE, SHELF])])
+    r.frame()
+    lh = LootHouse(r.world, r.acts, r.clock, want=want)
+    assert lh.step() is None and r.acts.history == []
+    assert lh.why["want"] == want and lh.why["container"] is None
+
+
+def test_a_loot_wanting_a_use_no_container_holds_sends_nothing(tmp_path):
+    r = Rig(tmp_path)
+    r.scan([square(102, 200, containers=[SHELF])])
+    r.frame()
+    assert LootHouse(r.world, r.acts, r.clock, want="water").step() is None and r.acts.history == []
 
 
 def test_a_superseded_loot_keeps_its_container(tmp_path):
     r = Rig(tmp_path)
     r.scan([square(102, 200, containers=[CRATE])])
     r.frame()
-    lh = LootHouse(r.world, r.acts, r.clock)
+    lh = LootHouse(r.world, r.acts, r.clock, want="bandage")
     lh.step()
     r.answer({"state": "failed", "reason": "superseded"})
     lh.step()
@@ -523,7 +558,7 @@ def test_loothouse_never_loots_at_level_three_and_drops_the_heaviest_other_item_
                         (604, "Base.TinnedSoup", 5.0), (605, "Base.Crowbar", 4.0), (606, "Base.WaterBottle", 6.0)]:
         r.event("item_added", itemId=iid, fullType=ft, weight=wt)
     r.frame(level=3)
-    lh = LootHouse(r.world, r.acts, r.clock)
+    lh = LootHouse(r.world, r.acts, r.clock, want="bandage")
     lh.step()
     assert r.cmd() == ("drop", {"itemId": 602})               # not the bat, the crowbar, the soup or the water
     r.answer()
@@ -557,7 +592,7 @@ def test_loothouse_loots_only_at_level_0_or_1_and_drops_at_3_or_above(tmp_path, 
     r.scan([square(102, 200, containers=[CRATE])])
     r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
     r.frame(level=level)
-    a = LootHouse(r.world, r.acts, r.clock).step()
+    a = LootHouse(r.world, r.acts, r.clock, want="bandage").step()
     assert (a.type if a is not None else None) == want
     if want is None:
         assert r.acts.history == []
@@ -569,7 +604,7 @@ def test_drops_bring_the_level_to_two_and_then_nothing_is_sent_until_it_is_under
     for iid, wt in [(602, 3.0), (603, 2.0), (604, 1.0)]:
         r.event("item_added", itemId=iid, fullType="Base.Plank", weight=wt)
     r.frame(level=3)
-    lh = LootHouse(r.world, r.acts, r.clock)
+    lh = LootHouse(r.world, r.acts, r.clock, want="bandage")
     lh.step()
     assert r.cmd() == ("drop", {"itemId": 602})
     r.answer()
@@ -581,7 +616,7 @@ def test_drops_bring_the_level_to_two_and_then_nothing_is_sent_until_it_is_under
     assert [a.type for a in r.acts.history] == ["drop"]
     r.frame(level=1)
     lh.step()
-    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "all", "maxWeight": 0.0})
+    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "bandage", "maxWeight": 8.0})
 
 
 # ================================================================ every policy's sends
@@ -591,7 +626,8 @@ def test_every_send_of_every_policy_is_valid_against_action_args(tmp_path):
             for y in range(199, 202)])
     r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
     zs = [zombie(1, 103.3, 200.7), zombie(2, 101.2, 200.1)]
-    for policy in (Fight, Flee, Explore, LootHouse):
+    loot = lambda w, a, c: LootHouse(w, a, c, want="bandage")
+    for policy in (Fight, Flee, Explore, loot):
         for level in (0, 3):
             r.frame(zombies=zs, level=level)
             p = policy(r.world, r.acts, r.clock)
@@ -733,6 +769,35 @@ def test_a_target_with_no_clear_neighbour_is_marked_unreachable(tmp_path):
     assert f.step() is None
     assert f.unreachable == {7: r.clock() + UNREACHABLE_S} and r.acts.history == []
     assert f.why["line"] is False and f.why["reposition"] is None
+
+
+def walled_south():
+    """Zombie 7's square (100, 199) closed on every side but the north: its only open neighbour is (100, 198), on the
+    far side of the target from a player south of it, the line from (100, 201) crossing the solid (100, 200)."""
+    solid = {(x, y): {"solid": True} for x in (99, 100, 101) for y in (199, 200) if (x, y) != (100, 199)}
+    return grid(96, 104, 196, 204, solid)
+
+
+# Task 10's review (M2), ruling P23-Q: `reachable_adjacent` lists the squares open to the target, not to the player; a
+# reposition square farther than REPOSITION_R from the player (a detour round a building) is never a reflex.
+def test_the_reposition_radius_constant():
+    assert P.REPOSITION_R == 2.5
+
+
+@pytest.mark.parametrize("py, walks", [(201.0, True), (201.4, False)])   # (100, 198)'s centre at 2.5 and 2.9 tiles
+def test_a_reposition_square_beyond_reposition_r_of_the_player_is_never_walked_to(tmp_path, py, walks):
+    r = Rig(tmp_path)
+    r.scan(walled_south())
+    r.frame(x=100.5, y=py, zombies=[zombie(7, 100.5, 199.5, me=(100.5, py))])
+    f = Fight(r.world, r.acts, r.clock)
+    a = f.step()
+    assert f.why["line"] is False
+    if walks:
+        assert a is not None and r.cmd() == ("walkTo", {"x": 100, "y": 198, "gait": "run"})
+        assert f.why["reposition"] == [100, 198, 0]
+    else:
+        assert a is None and r.acts.history == [] and f.unreachable == {7: r.clock() + UNREACHABLE_S}
+        assert f.why["reposition"] is None and f.why["marked"] == 7
 
 
 def test_a_line_over_an_unmapped_end_is_not_read(tmp_path):
