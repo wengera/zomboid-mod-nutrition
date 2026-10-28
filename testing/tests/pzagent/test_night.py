@@ -575,3 +575,14 @@ def test_a_sleep_done_still_tired_re_arms(tmp_path):
     r.frame(x=111.5, y=201.5, fatigue=0.7)
     tick(r, sv)
     assert sv.night.rested is False and r.cmd() == ("sleep", {}) and last(tmp_path)["branch"] == "night"
+
+
+# ================================================================ survival 1 fix round 1 (M2): the flee reuses these
+def test_shunned_now_reads_a_store_and_shelter_plan_keeps_one_door(tmp_path):
+    assert N.shunned_now({1: 100.0, 2: 0.0}, 200.0) == {1}                  # 100 minutes: within SHUN_MIN 120
+    r = Rig(tmp_path)
+    r.scan(house(1, 110))
+    r.frame(x=100.0, y=201.5)
+    p = N.shelter_plan(r.world, 1, door=(110, 201, 0))
+    assert p["doors"] == [(110, 201, 0)] and p["inside"] == (110, 200, 0)
+    assert N.shelter_plan(r.world, 1, door=(111, 201, 0)) is None          # not an exterior door

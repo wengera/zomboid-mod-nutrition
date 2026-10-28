@@ -27,7 +27,8 @@ and `explore`). The shelter steps are module functions (`shelter_plan`, `shelter
   character has stood in), then by the distance from the player to its nearest interior square on the player's
   floor, ties by the id. None answers: `want_shelter` True (the goal layer's `Shelter`, Task 13, reads it off
   `survive.night`), no command; False otherwise.
-- The shelter machine (`shelter_plan(world, building)`, a dict; `shelter_step(world, plan)`; `shelter_ended(plan,
+- The shelter machine (`shelter_plan(world, building, door=None)`, a dict, kept to one exterior door when `door` is
+  given (the flee's, `policies.Flee`, P23-AG); `shelter_step(world, plan)`; `shelter_ended(plan,
   action)`):
   - Its doors are the building's exterior doors on the player's floor: a door square of `world.doors_of(b)` with at
     least one mapped, non-solid orthogonal neighbour whose `room` is None. An interior door between two rooms is never
@@ -55,7 +56,8 @@ and `explore`). The shelter steps are module functions (`shelter_plan`, `shelter
     next door answers `shun`; any other end (`timeout`, `rejected`, another failure) is retried (`retry`), at most
     STEP_RETRIES 3 times per building, then `shun`. Night shuns the building for SHUN_MIN 120 game minutes (`shunned
     {building: world minutes}`, `World.world_minutes()`, monotonic across midnight: fix wave P, I-1) and drops the
-    plan, so the next choose tries the next building.
+    plan, so the next choose tries the next building. `shunned_now(store, now)` reads the store; the flee shuns into
+    the same one.
 - A sleep's end (`observe()`): `not safe` (a zombie visible, chasing or very close; one beyond DANGER_R is no threat
   but blocks the sleep) holds the branch NOT_SAFE_S 30 wall seconds and `not valid` (pain, panic, a vehicle) NOT_VALID_S
   60 (ruling P23-U), each from the refusal's `ended_wall`, `rejected` or `failed` alike (`hold_until`: Survive answers
@@ -93,7 +95,7 @@ SHELTER_STEPS = ("approach", "open", "enter", "close")
 
 __all__ = ["Night", "TIRED_T", "LATE_HOUR", "DAWN_HOUR", "LATE_FATIGUE", "SHUN_MIN", "NOT_SAFE_S", "NOT_VALID_S",
            "STEP_RETRIES", "SHUN_REASONS", "SHELTER_STEPS", "shelter_plan", "shelter_step", "shelter_ended",
-           "exterior_doors"]
+           "exterior_doors", "approach_square", "shunned_now", "player_square"]
 
 
 def _num(v):
@@ -156,12 +158,21 @@ def _inside_for(rooms, door):
     return min(deeper, key=lambda sq: (math.hypot(sq[0] - door[0], sq[1] - door[1]), sq))
 
 
-def shelter_plan(world, building):
+def shunned_now(store, now):
+    """The buildings of a shun store (building -> world minutes shunned at) still shunned at world minute `now`
+    (SHUN_MIN): the night's and the flee's one rule over the one store."""
+    return {b for b, at in store.items() if now - at < SHUN_MIN}
+
+
+def shelter_plan(world, building, door=None):
     """A shelter plan for `building` on the player's floor: `{building, doors, door_i, rooms, inside, step, retries,
-    near}`, `near` the distance from the player to its nearest room square; None with no exterior door or no room."""
+    near}`, `near` the distance from the player to its nearest room square; None with no exterior door or no room.
+    With `door`, the plan is kept to that one exterior door (the flee's, P23-AG), None when it is not one."""
     z = me_floor(world)
     rooms = [sq for sq in world.interiors().get(building, ()) if sq[2] == z]
     doors = exterior_doors(world, building, z)
+    if door is not None:
+        doors = [door] if door in doors else []
     if not rooms or not doors:
         return None
     return {"building": building, "doors": doors, "door_i": 0, "rooms": rooms, "inside": _inside_for(rooms, doors[0]),
@@ -283,8 +294,7 @@ class Night(Policy):
         return s is not None and s.get("room") is not None
 
     def shunned_now(self):
-        now = self.world.world_minutes()
-        return {b for b, at in self.shunned.items() if now - at < SHUN_MIN}
+        return shunned_now(self.shunned, self.world.world_minutes())
 
     def holding(self):
         """Wall seconds the branch still holds after a refused sleep, else 0.0."""
