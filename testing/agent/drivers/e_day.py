@@ -33,8 +33,9 @@ task-15-amendments.md:
               sleeps [{aid, state, reason, result, startS, endS, fatigueBefore, fatigueAfter, sleptH, bedType}]};
   lineage     with --prev, chain.lineage_diff(the previous artifact, this session's first frame): its last kept frame
               (loop.last_frames[-1]) against the first frame, each quantity {prev, now, delta, tol, ok}, ok within
-              LINEAGE_TOL (ruling P23-Y: gameMin 3.0, each stat 0.005, position 0.5, health 0.01, the inventory
-              count equal); None for a chain's first session;
+              LINEAGE_TOL (ruling P23-Y, amended: worldAge 0 to 3 game minutes on, one-sided; each stat 0.005,
+              position 0.5, health 0.01, the inventory count equal; gameMin reported, never banded); None for a
+              chain's first session;
   t_loop0_ms  the loop's start in epoch ms on this host's clock, the frames' wallMs base (gates_e.frame_times).
 out["chain"] {session, fixture_arg (the fixture booted), profile_fixture (the profile's own `fixture`, reported
 beside it), prev (the path), commit (the tree's)}; out["preboot"]["chain_checks"] (day.chain_checks: {fixture,
@@ -53,8 +54,9 @@ after each session the controller snapshots its run into the next session's fixt
 <run dir> --name <next> --parent <this fixture> --session <n>` (chain.snapshot_cmd; the summary prints it), then
 boots `e_day.py --session <n+1> --fixture <next> --prev <this artifact>`. The pre-boot checks refuse a dirty agent
 Lua, agent base, driver library or driver, a committed artifact of this key, a fixture with no record or cache (or
-an unreadable one) and a --prev that does not read as an artifact carrying loop.last_frames; a --session that does
-not follow the fixture's or the prev's session is reported (session_consistent), never refused. Nothing is imported
+an unreadable one), a --prev that does not read as an artifact carrying loop.last_frames and a --session that does
+not follow the fixture's or the prev's session (session_consistent False, ruling P23-Z). out["teardown_started_wall"]
+is this host's epoch seconds as the teardown begins (day.boot_and_run). Nothing is imported
 from a frozen driver but `xlib` (and `_dlib` through the library).
 """
 import os
@@ -115,7 +117,9 @@ def make_session(xs, transport, prev=None, clock=time.time, sleep=time.sleep, fr
 
 
 def run_session(xs, transport, prev, pre):
-    make_session(xs, transport, prev).run()
+    sess = make_session(xs, transport, prev)
+    sess.run()
+    return sess
 
 
 def grade(out):

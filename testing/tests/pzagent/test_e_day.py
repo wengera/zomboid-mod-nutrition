@@ -240,7 +240,9 @@ class DayMod(FakeMod):
         for ev in self.pending:
             self.event("item_added", **ev)
         self.pending = []
-        self.frame(gameMin=480.0 + self.s() * 16.0 / 60.0, body=dict(DEFAULT_FRAME["body"], health=self.health),
+        gmin = 480.0 + self.s() * 16.0 / 60.0
+        self.frame(gameMin=gmin, worldAge=8.0 + (gmin - 480.0) / 60.0,
+                   body=dict(DEFAULT_FRAME["body"], health=self.health),
                    weapon=self.weapon, zombies=[], stats=dict(self.stats),
                    load=dict(DEFAULT_FRAME["load"], level=self.level))
 
@@ -366,10 +368,16 @@ def test_a_second_session_with_prev_records_the_lineage_diff(tmp_path, monkeypat
     assert first["seq"] == 2 and first["gameMin"] == 480.0                     # the hello is seq 1
     assert lin == CH.lineage_diff(prev, first)
     gm = a.out["loop"]["last_frames"][-1]["gameMin"]
-    assert lin["game_min"] == {"prev": gm, "now": 480.0, "delta": 480.0 - gm, "tol": 3.0, "ok": False}
-    assert lin["ok"] is False and gm - 480.0 > 3.0                         # the fake's clock began a new day
+    wa = a.out["loop"]["last_frames"][-1]["worldAge"]
+    assert lin["game_min"] == {"prev": gm, "now": 480.0}
+    # the fake's clock began again at 8 h: a clock that ran backwards, the stale save the lineage catches
+    # (P23-Y amended)
+    assert lin["world_age"]["prev"] == wa and lin["world_age"]["now"] == 8.0
+    assert lin["world_age"]["delta_min"] == pytest.approx((8.0 - wa) * 60.0) and lin["world_age"]["delta_min"] < 0
+    assert lin["world_age"]["ok"] is False and lin["ok"] is False
     assert b.out["grade_e1"]["lineage"] == lin
-    same = {"loop": {"last_frames": [{"seq": 9, "gameMin": 480.0, "me": {"x": 100.0, "y": 200.0},
+    same = {"loop": {"last_frames": [{"seq": 9, "gameMin": 480.0, "worldAge": 8.0,
+                                      "me": {"x": 100.0, "y": 200.0},
                                       "body": {"health": 100.0}, "stats": {"hunger": 0.1, "thirst": 0.1,
                                                                            "fatigue": 0.05},
                                       "load": {"n": 12}}]}}

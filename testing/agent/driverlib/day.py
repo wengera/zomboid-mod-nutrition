@@ -9,27 +9,33 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
   `chain_record(args, profile_fixture, commit)` (out["chain"]), `chain_checks(args)` (the dict a driver's pre-boot
   stores as "chain_checks"): the fixture's record and cache through `fx.load` (a missing, unreadable or corrupt
   record refuses the boot, never a traceback), --prev read as an artifact carrying `loop.last_frames` (the lineage's
-  previous frame; a prev without them refuses), and `session_consistent`, reported and never refusing: `--session n`
-  against the fixture record's `session` and the prev artifact's `chain.session`, each expected n-1 where present
-  (None when neither is).
+  previous frame; a prev without them refuses), and `session_consistent`: `--session n` against the fixture
+  record's `session` and the prev artifact's `chain.session`, each expected n-1 where present (None when neither
+  is); False refuses the boot (ruling P23-Z: the chain is run by hand, and a wrong --session would freeze a
+  mislabelled artifact), `session_line(checks)` the line the refusal prints.
 - `Chain(DS.Session)`: the Session with the chain's two hooks. `on_frame` keeps the session's first frame (a frame
   row, read in the hello phase); `extra_record` returns `goals` (`GoalRunner.rows()`: the ended goals, then the
   running one), `night` ({wants, steps, sleeps}, copies), `lineage` (`chain.lineage_diff(prev, first frame)` with a
   prev, else None) and `t_loop0_ms` (equal to loop.startPyMs by construction: both are the loop's start), then lays
-  `extra(session)` over them when the driver passes one (f_goals: `llm`). `copied` names run-dir files the artifact
+  `extra(session)` over them when the driver passes one (f_goals: `llm`; its keys must not be the contract's,
+  CONTRACT_KEYS, asserted at every save). `copied` names run-dir files the artifact
   copy takes beside the decision log (f_goals: `goals.log`). The planner is the driver's `planner_factory`.
 - `grade(out, key, fn)`: out[key] = fn(out), else out[key + "_error"] (the controller re-grades the artifact).
 - `boot_and_run(args, ...)`: a day driver's whole boot (Plan 22's d_survive.py boot, generalised): the pre-boot
   checks (a failure prints them and exits 1 before anything starts), the profile and the fixture `--fixture` names,
   the run dir (`new_run_dir(key)`), Xs and the out header (run_id, preboot, constants, out["chain"], the fixture's
   record, driver_commit), the memory gate, `_dlib.boot` with the stale pzagent/ folder cleared, the verify rows
-  (a failed one aborts), `run_session(xs, transport, prev, pre)`, then the teardown, the park count, the driver's
-  grade, `finished`, the persist and the artifact copy; the summary printed names the grade's report lines and the
-  `pzt snapshot` argv for the chain's next fixture.
+  (a failed one aborts), `ran = run_session(xs, transport, prev, pre)`, then out["teardown_started_wall"] (this
+  host's epoch seconds as the teardown begins: the gap from the last kept frame to the server's save, which the next
+  session's lineage reads), the teardown, the park count, `after_teardown(out, ran)` when the driver passes one
+  (f_goals: the LLM worker joined, so no join widens that gap; a fault lands in out["after_teardown_error"]), the
+  driver's grade, `finished`, the persist and the artifact copy; the summary printed names the grade's report lines
+  and the `pzt snapshot` argv for the chain's next fixture.
 """
 import json
 import os
 import sys
+import time
 
 from agent.driverlib import chain as CH
 from agent.driverlib import session as DS
@@ -38,6 +44,7 @@ from pzt import fixture as fx
 DL, X = DS.DL, DS.X
 ALLOWED = ("--session", "--fixture", "--prev")
 DEFAULT_FIXTURE = "agent"
+CONTRACT_KEYS = ("goals", "night", "lineage", "t_loop0_ms")     # Chain.extra_record's own keys (task-15-amendments)
 
 
 # ================================================================ arguments
@@ -107,7 +114,17 @@ def chain_checks(args):
             cc["prev_session"] = DS._d(art.get("chain")).get("session")
     seen = [s for s in (cc["fixture_session"], cc["prev_session"]) if s is not None]
     cc["session_consistent"] = all(s == n - 1 for s in seen) if seen else None
-    return cc, bool(cc["fixture_ok"] and cc["prev_ok"] is not False and cc["prev_frames"] is not False)
+    return cc, bool(cc["fixture_ok"] and cc["prev_ok"] is not False and cc["prev_frames"] is not False
+                    and cc["session_consistent"] is not False)
+
+
+def session_line(cc):
+    """The refusal's line when --session does not follow the chain (session_consistent False), else None."""
+    if cc.get("session_consistent") is not False:
+        return None
+    return ("refused (P23-Z): --session %s does not follow the chain: the fixture's session %s, the prev's %s "
+            "(each expected %s)" % (cc.get("session"), cc.get("fixture_session"), cc.get("prev_session"),
+                                    cc["session"] - 1 if isinstance(cc.get("session"), int) else "n-1"))
 
 
 # ================================================================ the session
@@ -137,8 +154,21 @@ class Chain(DS.Session):
                # loop.startPyMs's value: both are the loop's start on this host's clock
                "t_loop0_ms": self.t_loop0 * 1000.0 if self.t_loop0 is not None else None}
         if self.extra is not None:
-            rec.update(self.extra(self))
+            ex = self.extra(self)
+            clash = sorted(set(ex) & set(CONTRACT_KEYS))
+            assert not clash, "extra overwrites the record's contract keys: %s" % clash
+            rec.update(ex)
         return rec
+
+
+def run_after_teardown(fn, out, ran):
+    """fn(out, ran) when given; a fault lands in out["after_teardown_error"], never raised (the finally goes on)."""
+    if fn is None:
+        return
+    try:
+        fn(out, ran)
+    except Exception as e:                               # noqa: BLE001 - the grade and the copy still run
+        out["after_teardown_error"] = "%s: %s" % (type(e).__name__, e)
 
 
 def grade(out, key, fn):
@@ -151,9 +181,10 @@ def grade(out, key, fn):
 
 # ================================================================ the boot
 def boot_and_run(args, preboot, run_session, grade_fn, *, key, driver, artifact, profile, constants, grade_key, user,
-                 budget_s, min_free_gb, repo=DS.REPO):
+                 budget_s, min_free_gb, after_teardown=None, repo=DS.REPO, wall=time.time):
     """A day driver's boot (the module docstring): `preboot()` -> (pre, ok); `run_session(xs, transport, prev, pre)`
-    builds and runs the driver's Chain; `grade_fn(out)` writes out[grade_key]. Returns out."""
+    builds and runs the driver's Chain (its return is passed to `after_teardown(out, ran)`); `grade_fn(out)` writes
+    out[grade_key]. Returns out."""
     from _common import ask, hard_kill                       # noqa: E402
     import x49b_lib as B                                     # noqa: E402
     from pzt import profile as pzt_profile, session          # noqa: E402
@@ -164,6 +195,9 @@ def boot_and_run(args, preboot, run_session, grade_fn, *, key, driver, artifact,
     pre, ok = preboot()
     if not ok:
         print(json.dumps({"preboot": pre}, indent=1, default=str)[:20000])
+        line = session_line(pre.get("chain_checks") or {})
+        if line:
+            print(line)
         print("a pre-boot check failed; the session was not started")
         sys.exit(1)
     prof = pzt_profile.load(os.path.join(repo, profile))
@@ -173,6 +207,7 @@ def boot_and_run(args, preboot, run_session, grade_fn, *, key, driver, artifact,
     tl = session.Timeline()
     clients, started = {}, []
     holder = {"server": None}
+    ran = None
     out = DS.new_out()
     out["world_changes"]["restored"] = "fixture %s restored into the run dir" % args["fixture"]
     xs = X.Xs(out, node=lambda side: resolve_side(side, holder["server"], clients), tl=tl, clients=clients,
@@ -198,7 +233,7 @@ def boot_and_run(args, preboot, run_session, grade_fn, *, key, driver, artifact,
             tl.mark("error", detail=out["abort"])
         else:
             out["state_dir"] = DL.state_dir(clients[user])
-            run_session(xs, FileTransport(DL.state_dir(clients[user])), prev, pre)
+            ran = run_session(xs, FileTransport(DL.state_dir(clients[user])), prev, pre)
     except Exception as e:                                   # noqa: BLE001
         import traceback
         out["error"], out["traceback"] = "%s: %s" % (type(e).__name__, e), traceback.format_exc()[-3000:]
@@ -211,8 +246,10 @@ def boot_and_run(args, preboot, run_session, grade_fn, *, key, driver, artifact,
             out["logs"] = {"patterns": {"park": DS.DEFAULTS["PARK_RX"]}, "clients": found}
             out["frames"]["parks"] = n_parks
 
+        out["teardown_started_wall"] = wall()
         xs.finish(B.bounded_teardown, hard_kill, every, read_logs=read_logs)
         xs.mem("after")
+        run_after_teardown(after_teardown, out, ran)
         grade_fn(out)
         out["finished"] = True
         xs.persist()

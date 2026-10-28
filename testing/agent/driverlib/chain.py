@@ -4,7 +4,10 @@
 sessions. `lineage_diff(prev_artifact, first_frame)` checks the new session picked up where the last one ended: the
 last session's last kept frame (`out["loop"]["last_frames"][-1]`) against the new session's first frame, each quantity
 {prev, now, delta, tol, ok}, `ok` only when every `now` lies within LINEAGE_TOL of its `prev` (ruling P23-Y: the
-clock and the stats move a little between the last kept frame and the server's save at teardown).
+clock and the stats move a little between the last kept frame and the server's save at teardown). The clock is banded
+one-sided on the frame's monotonic `worldAge` (hours; P23-Y amended): the restored clock lies 0 to 3 game minutes
+after the last kept frame, and a clock that ran backwards is the stale save the lineage exists to catch. `gameMin`
+(the minute of the day, wrapping at midnight) is reported beside it, never banded.
 """
 import math
 import os
@@ -16,8 +19,9 @@ TESTING = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file
 PZT = os.path.join(TESTING, "pzt")
 
 # Ruling P23-Y: the server saves the world at teardown, a few game minutes after the last kept frame, so the restored
-# clock and stats move a little past it; position, health and the inventory count do not move with time alone
-LINEAGE_TOL = {"position": 0.5, "health": 0.01, "stat": 0.005, "inventory_n": 0, "game_min": 3.0}
+# clock and stats move a little past it; position, health and the inventory count do not move with time alone.
+# world_min (P23-Y amended) is one-sided: (now - prev) worldAge in game minutes within [0, world_min]
+LINEAGE_TOL = {"position": 0.5, "health": 0.01, "stat": 0.005, "inventory_n": 0, "world_min": 3.0}
 STATS = ("hunger", "thirst", "fatigue")
 
 
@@ -33,10 +37,19 @@ def _pair(prev, now, tol):
             "ok": delta is not None and abs(delta) <= tol + 1e-12}
 
 
+def _clock(prev_wa, now_wa, hi):
+    """{prev, now (worldAge, hours), delta_min ((now - prev) * 60, None unless both are numbers), lo 0.0, hi, ok
+    (delta_min within [0, hi])}."""
+    delta = (now_wa - prev_wa) * 60.0 if _num(prev_wa) is not None and _num(now_wa) is not None else None
+    return {"prev": prev_wa, "now": now_wa, "delta_min": delta, "lo": 0.0, "hi": hi,
+            "ok": delta is not None and -1e-6 <= delta <= hi + 1e-9}
+
+
 def lineage_diff(prev_artifact, first_frame):
-    """{position {prev, now, d, tol, ok}, health, stats {hunger, thirst, fatigue}, inventory_n, game_min (each
-    {prev, now, delta, tol, ok}), ok}: each quantity's delta beside its LINEAGE_TOL tolerance. Position is [x, y] and
-    d the planar distance in tiles; inventory_n is the frame's load.n; ok only when every quantity is."""
+    """{position {prev, now, d, tol, ok}, health, stats {hunger, thirst, fatigue}, inventory_n (each {prev, now,
+    delta, tol, ok}), world_age {prev, now, delta_min, lo, hi, ok}, game_min {prev, now} (reported, never banded),
+    ok}: each quantity's delta beside its LINEAGE_TOL tolerance. Position is [x, y] and d the planar distance in tiles;
+    inventory_n is the frame's load.n; ok only when every banded quantity is."""
     a, b = _last_frame(prev_artifact), _d(first_frame)
     am, bm = _d(a.get("me")), _d(b.get("me"))
     pa = [am.get("x"), am.get("y")] if am else None
@@ -50,9 +63,10 @@ def lineage_diff(prev_artifact, first_frame):
            "health": _pair(_d(a.get("body")).get("health"), _d(b.get("body")).get("health"), tol["health"]),
            "stats": {k: _pair(_d(a.get("stats")).get(k), _d(b.get("stats")).get(k), tol["stat"]) for k in STATS},
            "inventory_n": _pair(_d(a.get("load")).get("n"), _d(b.get("load")).get("n"), tol["inventory_n"]),
-           "game_min": _pair(a.get("gameMin"), b.get("gameMin"), tol["game_min"])}
+           "world_age": _clock(a.get("worldAge"), b.get("worldAge"), tol["world_min"]),
+           "game_min": {"prev": a.get("gameMin"), "now": b.get("gameMin")}}
     out["ok"] = bool(out["position"]["ok"] and out["health"]["ok"] and all(v["ok"] for v in out["stats"].values())
-                     and out["inventory_n"]["ok"] and out["game_min"]["ok"])
+                     and out["inventory_n"]["ok"] and out["world_age"]["ok"])
     return out
 
 

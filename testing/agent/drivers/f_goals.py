@@ -10,7 +10,8 @@ is written at its end.
 The driver is thin: its constants, its pre-boot checks (`claude_available` beside the day's), its planner and its
 `llm` record. The day's arguments, chain inputs, `Chain` (the library's `Session` with the two hooks) and the boot
 (`day.boot_and_run`) are `driverlib/day.py`'s, shared with e_day.py; the rest is the library's (`driverlib/session.py`'s
-docstring). After the session the LLMSource's worker is joined (out["llm_joined"]).
+docstring). The LLMSource's worker is joined after the teardown (out["llm_joined"]; `after_teardown`), so no join
+widens the gap between the last kept frame and the server's save, the gap the next session's lineage reads.
 
 PHASES (driverlib.session): hello, damage_hook, kit, loop, as e_day.py's; `on_frame` keeps the session's first frame
 for the lineage.
@@ -33,9 +34,9 @@ live session at a time; free memory gated at MIN_FREE_GB before the boot; never 
 and polled through the persisted artifact; the chain's snapshot between sessions is e_day.py's (`pzt snapshot
 --from-run`, chain.snapshot_cmd). The pre-boot checks refuse a dirty agent Lua, agent base, driver library or driver,
 a committed artifact of this key, a fixture with no record or cache (or an unreadable one), a --prev that does not
-read as an artifact carrying loop.last_frames and a
-`claude` CLI that is not on PATH or does not answer `claude --version` (an F session without a model is not the
-reading). The model runs under Angus's own login. Nothing is imported from a frozen driver but `xlib` (and `_dlib`
+read as an artifact carrying loop.last_frames, a --session that does not follow the fixture's or the prev's session
+(session_consistent False, ruling P23-Z) and a `claude` CLI that is not on PATH or does not answer
+`claude --version` (an F session without a model is not the reading). The model runs under Angus's own login. Nothing is imported from a frozen driver but `xlib` (and `_dlib`
 through the library).
 """
 import os
@@ -149,18 +150,28 @@ def grade(out):
 
 
 # ================================================================ the boot
+LLM_JOIN_S = LLM_TIMEOUT_S + 5.0     # the worker's join after the teardown: the CLI's own timeout ends a call in flight
+
+
 def run_session(xs, transport, prev, pre):
-    """The session, then the LLMSource's worker joined: a call still in flight ends by its subprocess timeout and its
-    answer is never collected (out["llm_joined"])."""
+    """The session with the pre-boot's CLI version; returns it for after_teardown."""
     sess = make_session(xs, transport, prev, cli_version=pre.get("claude_version"))
     sess.run()
-    xs.out["llm_joined"] = sess.planner.goals.source.join(LLM_TIMEOUT_S + 5.0)
+    return sess
+
+
+def after_teardown(out, sess):
+    """The LLMSource's worker joined after the teardown (out["llm_joined"]): a call still in flight ends by its
+    subprocess timeout and its answer is never collected; None when no session ran."""
+    if sess is None:
+        return
+    out["llm_joined"] = sess.planner.goals.source.join(LLM_JOIN_S)
 
 
 def main(args, budget_s=BUDGET_S):
     return DY.boot_and_run(args, lambda: preboot(_ME, args), run_session, grade, key=KEY, driver=DRIVER,
                            artifact=ARTIFACT, profile=PROFILE, constants=CONSTANTS, grade_key="grade_f1", user=USER,
-                           budget_s=budget_s, min_free_gb=MIN_FREE_GB)
+                           budget_s=budget_s, min_free_gb=MIN_FREE_GB, after_teardown=after_teardown)
 
 
 if __name__ == "__main__":

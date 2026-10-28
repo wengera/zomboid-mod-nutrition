@@ -253,6 +253,30 @@ def test_the_llm_record_reads_a_missing_cli_version_as_none(tmp_path, monkeypatc
     assert r.out["loop"]["llm"]["cli_version"] is None and r.out["loop"]["llm"]["model"] == "sonnet"
 
 
+def test_run_session_returns_the_session_and_the_llm_worker_is_joined_after_the_teardown(monkeypatch):
+    joins = []
+    source = types.SimpleNamespace(join=lambda t: joins.append(t) or True)
+    sess = types.SimpleNamespace(ran=False, planner=types.SimpleNamespace(goals=types.SimpleNamespace(source=source)))
+    sess.run = lambda: setattr(sess, "ran", True)
+    made = []
+
+    def make(xs, transport, prev, cli_version=None):
+        made.append((xs, transport, prev, cli_version))
+        return sess
+
+    monkeypatch.setattr(F, "make_session", make)
+    xs = types.SimpleNamespace(out={})
+    assert F.run_session(xs, "tr", "prev", {"claude_version": "2.1.310"}) is sess
+    assert sess.ran is True and made == [(xs, "tr", "prev", "2.1.310")] and joins == []    # no join in the session
+    out = {}
+    F.after_teardown(out, sess)
+    assert out == {"llm_joined": True} and joins == [25.0] and F.LLM_JOIN_S == 25.0
+    F.after_teardown(out, None)                                               # no session ran: nothing joined
+    assert joins == [25.0]
+    src = open(F.__file__, encoding="utf-8").read()
+    assert "after_teardown=after_teardown)" in src
+
+
 def test_grade_records_a_grade_failure_rather_than_raising(monkeypatch):
     out = {"loop": {}}
     monkeypatch.setattr(F.GF, "grade_f1", lambda o: (_ for _ in ()).throw(ValueError("boom")))

@@ -164,14 +164,14 @@ def test_each_read_runs_at_most_every_every_s_on_the_given_clock():
 
 
 # ================================================================ chain
-def _frame(x=100.0, y=200.0, health=100.0, hunger=0.1, n=12, gmin=480.0):
-    return {"seq": 5, "wallMs": 1, "gameMin": gmin, "me": {"x": x, "y": y, "z": 0},
+def _frame(x=100.0, y=200.0, health=100.0, hunger=0.1, n=12, gmin=480.0, wa=8.0):
+    return {"seq": 5, "wallMs": 1, "gameMin": gmin, "worldAge": wa, "me": {"x": x, "y": y, "z": 0},
             "body": {"health": health}, "stats": {"hunger": hunger, "thirst": 0.1, "fatigue": 0.05},
             "load": {"weight": 4.5, "max": 8.0, "level": 0, "n": n}}
 
 
 def test_lineage_diff_is_ok_only_within_the_tolerances():
-    assert CH.LINEAGE_TOL == {"position": 0.5, "health": 0.01, "stat": 0.005, "inventory_n": 0, "game_min": 3.0}
+    assert CH.LINEAGE_TOL == {"position": 0.5, "health": 0.01, "stat": 0.005, "inventory_n": 0, "world_min": 3.0}
     prev = {"loop": {"last_frames": [_frame(x=0.0), _frame()]}}
     d = CH.lineage_diff(prev, _frame())
     assert d["ok"] is True
@@ -179,24 +179,34 @@ def test_lineage_diff_is_ok_only_within_the_tolerances():
     assert d["health"] == {"prev": 100.0, "now": 100.0, "delta": 0.0, "tol": 0.01, "ok": True}
     assert d["inventory_n"] == {"prev": 12, "now": 12, "delta": 0, "tol": 0, "ok": True}
     assert d["stats"]["hunger"] == {"prev": 0.1, "now": 0.1, "delta": 0.0, "tol": 0.005, "ok": True}
-    assert d["game_min"] == {"prev": 480.0, "now": 480.0, "delta": 0.0, "tol": 3.0, "ok": True}
+    assert d["world_age"] == {"prev": 8.0, "now": 8.0, "delta_min": 0.0, "lo": 0.0, "hi": 3.0, "ok": True}
+    assert d["game_min"] == {"prev": 480.0, "now": 480.0}                    # reported, never banded
     d = CH.lineage_diff(prev, _frame(x=101.0))
     assert d["ok"] is False and d["position"]["d"] == pytest.approx(1.0) and d["position"]["ok"] is False
     assert CH.lineage_diff(prev, _frame(x=100.4))["ok"] is True
-    # P23-Y: the teardown save a few game minutes on, the stats moved with it
-    late = CH.lineage_diff(prev, _frame(gmin=483.0, hunger=0.104))
-    assert late["ok"] is True and late["game_min"]["delta"] == 3.0
+    # P23-Y amended: the teardown save 2 game minutes on, the stats moved with it
+    late = CH.lineage_diff(prev, _frame(gmin=482.0, wa=8.0 + 2.0 / 60.0, hunger=0.104))
+    assert late["ok"] is True and late["world_age"]["delta_min"] == pytest.approx(2.0)
     assert late["stats"]["hunger"]["delta"] == pytest.approx(0.004)
-    for bad, key in ((_frame(health=99.98), "health"), (_frame(n=13), "inventory_n"), (_frame(gmin=483.5), "game_min"),
-                     (_frame(gmin=476.0), "game_min")):
+    assert CH.lineage_diff(prev, _frame(wa=8.05))["ok"] is True                # 3.0 game minutes: the band's edge
+    # a midnight crossing: gameMin wraps, worldAge does not
+    night = {"loop": {"last_frames": [_frame(gmin=1439.0, wa=23.0 + 59.0 / 60.0)]}}
+    mid = CH.lineage_diff(night, _frame(gmin=1.0, wa=24.0 + 1.0 / 60.0))
+    assert mid["ok"] is True and mid["world_age"]["delta_min"] == pytest.approx(2.0)
+    assert mid["game_min"] == {"prev": 1439.0, "now": 1.0}
+    # a clock that ran backwards (a stale save) and one too far on are BROKEN
+    for bad, key in ((_frame(health=99.98), "health"), (_frame(n=13), "inventory_n"),
+                     (_frame(wa=8.0 - 1.0 / 60.0), "world_age"), (_frame(wa=8.0 + 3.5 / 60.0), "world_age")):
         r = CH.lineage_diff(prev, bad)
         assert r["ok"] is False and r[key]["ok"] is False, key
+    back = CH.lineage_diff(prev, _frame(wa=8.0 - 1.0 / 60.0))
+    assert back["world_age"]["delta_min"] == pytest.approx(-1.0)
     r = CH.lineage_diff(prev, _frame(hunger=0.106))
     assert r["ok"] is False and r["stats"]["hunger"]["ok"] is False
     assert r["stats"]["hunger"]["delta"] == pytest.approx(0.006)
     assert CH.lineage_diff({}, _frame())["ok"] is False and CH.lineage_diff(None, None)["ok"] is False
-    assert CH.lineage_diff({}, _frame())["game_min"] == {"prev": None, "now": 480.0, "delta": None, "tol": 3.0,
-                                                        "ok": False}
+    assert CH.lineage_diff({}, _frame())["world_age"] == {"prev": None, "now": 8.0, "delta_min": None, "lo": 0.0,
+                                                         "hi": 3.0, "ok": False}
 
 
 # ================================================================ day (Task 16d: the day drivers' shared session)
@@ -237,14 +247,19 @@ def test_chain_checks_refuse_a_bad_fixture_or_prev_and_report_the_sessions_order
     (tmp_path / "other.json").write_text(json.dumps({"stop": None}), encoding="utf-8")
     cc, ok = DY.chain_checks(DY.flags(["--prev", str(tmp_path / "other.json")]))
     assert not ok and cc["prev_frames"] is False
-    # the session's order is reported, never refused
+    assert DY.session_line(cc) is None
+    # P23-Z: a --session that does not follow the chain refuses the boot, its line naming the sessions
     cc, ok = DY.chain_checks(DY.flags(["--session", "3", "--fixture", "chain-1", "--prev", good]))
-    assert ok and cc["session_consistent"] is False
+    assert not ok and cc["session_consistent"] is False
+    assert DY.session_line(cc) == ("refused (P23-Z): --session 3 does not follow the chain: the fixture's session 1, "
+                                   "the prev's 1 (each expected 2)")
     later = _artifact(tmp_path / "b.json", session=2)
     cc, ok = DY.chain_checks(DY.flags(["--session", "2", "--fixture", "chain-1", "--prev", later]))
-    assert ok and cc["session_consistent"] is False
+    assert not ok and cc["session_consistent"] is False and "the prev's 2" in DY.session_line(cc)
     cc, ok = DY.chain_checks(DY.flags(["--session", "2", "--prev", _artifact(tmp_path / "c.json")]))
-    assert ok and cc["session_consistent"] is None                              # nothing to compare
+    assert ok and cc["session_consistent"] is None and DY.session_line(cc) is None    # nothing to compare
+    cc, ok = DY.chain_checks(DY.flags(["--session", "1", "--fixture", "chain-1"]))
+    assert not ok and cc["session_consistent"] is False                         # a fresh chain on a later fixture
 
 
 def test_boot_and_run_keeps_the_boots_order():
@@ -255,8 +270,10 @@ def test_boot_and_run_keeps_the_boots_order():
              "DL.boot(xs, prof, rec_fx, run_dir, [user], started, clients, holder,",
              "make_client=DS.clearing_make_client(session.make_client)",
              "if not all(v.get(\"ok\") for v in out[\"verify\"])",
-             "run_session(xs, FileTransport(DL.state_dir(clients[user])), prev, pre)", "finally:",
-             "xs.finish(B.bounded_teardown, hard_kill, every, read_logs=read_logs)", "grade_fn(out)",
+             "ran = run_session(xs, FileTransport(DL.state_dir(clients[user])), prev, pre)", "finally:",
+             "out[\"teardown_started_wall\"] = wall()",
+             "xs.finish(B.bounded_teardown, hard_kill, every, read_logs=read_logs)",
+             "run_after_teardown(after_teardown, out, ran)", "grade_fn(out)",
              "out[\"finished\"] = True", "xs.copy_artifacts(repo, run_id, run_dir, artifact)",
              "CH.snapshot_cmd(run_dir, \"%s-after-%d\" % (key, n), args[\"fixture\"], n)"]
     at = [body.index(s) for s in order]
@@ -265,15 +282,30 @@ def test_boot_and_run_keeps_the_boots_order():
 
 def test_the_day_chain_lays_the_drivers_extra_and_copied_over_its_record(tmp_path):
     xs = types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=str(tmp_path / "a.json"))
-    c = DY.Chain(xs, None, extra=lambda s: {"llm": {"n": 1}, "lineage": "x"}, copied=("goals.log",),
+    c = DY.Chain(xs, None, extra=lambda s: {"llm": {"n": 1}}, copied=("goals.log",),
                  planner_factory=Survive, clock=lambda: 5.0)
     assert xs.copied == ["goals.log", "decision.log"]
     rec = c.extra_record()
-    assert rec["llm"] == {"n": 1} and rec["lineage"] == "x" and rec["goals"] == [] and rec["t_loop0_ms"] is None
+    assert rec["llm"] == {"n": 1} and rec["lineage"] is None and rec["goals"] == [] and rec["t_loop0_ms"] is None
+    assert DY.CONTRACT_KEYS == ("goals", "night", "lineage", "t_loop0_ms")
+    clash = DY.Chain(types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=None), None,
+                     extra=lambda s: {"llm": 1, "lineage": "x"}, planner_factory=Survive, clock=lambda: 5.0)
+    with pytest.raises(AssertionError, match="lineage"):
+        clash.extra_record()
     assert rec["night"] == {"wants": 0, "steps": [], "sleeps": []}
     plain = DY.Chain(types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=None), None,
                      planner_factory=Survive, clock=lambda: 5.0)
     assert set(plain.extra_record()) == {"goals", "night", "lineage", "t_loop0_ms"}
+
+
+def test_after_teardown_runs_with_the_sessions_return_and_never_raises():
+    seen = []
+    out = {}
+    DY.run_after_teardown(None, out, "s")
+    DY.run_after_teardown(lambda o, ran: seen.append(ran), out, "s")
+    assert seen == ["s"] and out == {}
+    DY.run_after_teardown(lambda o, ran: 1 / 0, out, None)
+    assert out["after_teardown_error"].startswith("ZeroDivisionError")
 
 
 def test_day_grade_records_a_failure_rather_than_raising():
