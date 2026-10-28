@@ -116,13 +116,23 @@ local function nearestOf(p)
     return PZA.sense.nearestZombie(p)
 end
 
+-- the last frame's overall health (Sense's S.last), else, before the first frame or without Sense, the player's own
+local function lastHealthOf(p)
+    local f = PZA.sense ~= nil and PZA.sense.last or nil
+    if f ~= nil and f.body ~= nil then return f.body.health end
+    return healthOf(p)
+end
+
 -- the player's state for an act line: me {x, y, z, health} (each absent when unreadable) and the nearest zombie
 -- {id, dist} through Sense when it is loaded and provides one, else nil (the line omits it, which the reader takes as
--- null). Each read runs under pcall (S-15): a raise leaves its field absent and is counted in K.errors, so the snapshot
+-- null). The position is read now; the health and the nearest are the last frame's (X4 fix pass 2.5, review I8: a
+-- command's accept tick reads no body, inventory or cell for its line; as old as the frame, at most one frame window).
+-- Each read runs under pcall (S-15): a raise leaves its field absent and is counted in K.errors, so the snapshot
 -- never raises (Main's scan and rate take it too).
 function K.snapshot(p)
     local x, y = safely(posOf, p)
-    return { me = { x = x, y = y, z = safely(zOf, p), health = safely(healthOf, p) }, nearest = safely(nearestOf, p) }
+    local me = { x = x, y = y, z = safely(zOf, p), health = safely(lastHealthOf, p) }
+    return { me = me, nearest = safely(nearestOf, p) }
 end
 
 -- one act line; snapshot only on rejected, failed and done

@@ -686,3 +686,28 @@ def test_an_events_call_walks_the_cell_list_once_and_zombie_dead_reuses_the_walk
     assert calls == {"list": 1, "size": 1, "get": 50, "dead": 51}
     assert [e["id"] for e in ev if e["event"] == "zombie_dead"] == [103]
     assert (cur["me"]["zombiesSeen"], cur["me"]["zombiesListed"]) == (50, 49)
+
+
+# ---- X4 fix pass 2.5: the act line's snapshot off the last frame (review I8) -------------------------------------------
+
+def test_a_snapshot_after_a_frame_reads_the_frames_health_and_nearest_and_only_the_players_position(lua):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(zombies=[make_zombie(7, 12.0, 20.0)])
+    p = make_player(health=80.0)
+    frame(lua, p)
+    reads = []
+    for name in ("getBodyDamage", "getStats", "getInventory", "getPrimaryHandItem", "getMoodles"):
+        real = getattr(p, name)
+        setattr(p, name, lambda s, real=real, name=name: reads.append(name) or real(s))
+    g._cell = J(getZombieList=lambda s: reads.append("getZombieList"), getGridSquare=lambda s, x, y, z: None)
+    snap = lua.eval("PZA.skills.snapshot(...)", p)
+    assert dict(snap["me"]) == {"x": 10.0, "y": 20.0, "z": 0, "health": 80.0}
+    assert dict(snap["nearest"]) == {"id": 7, "dist": 2.0}
+    assert reads == []
+
+
+def test_a_snapshot_before_any_frame_reads_the_players_health(lua):
+    load(lua)
+    p = make_player(health=64.0)
+    assert lua.eval("PZA.skills.snapshot(...)", p)["me"]["health"] == 64.0
