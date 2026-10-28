@@ -169,7 +169,7 @@ def test_the_index_line_and_the_file_it_names(tmp_path):
     assert (row["seq"], row["wallMs"], row["gameMin"], row["health"]) == (31, 1.79e12 + 3100.0, 560, 88.0)
     assert (row["branch"], row["flee"], row["fight"], row["goal"], row["decision_line"]) == ("threat", "pair", 2, None,
                                                                                             17)
-    assert row["window"] == {"found": True, "rect": list(RECT)} and calls == [RECT]
+    assert row["window"] == {"found": True, "rect": list(RECT), "rect_source": None} and calls == [RECT]
     assert row["pyMs"] == 1000.0 * 1000 and row["grab_ms"] >= 0
     data = (tmp_path / "shots" / row["file"]).read_bytes()
     assert row["bytes"] == len(data) and row["sha256"] == hashlib.sha256(data).hexdigest()
@@ -183,7 +183,7 @@ def test_no_window_grabs_the_primary_screen_and_says_so(tmp_path):
     t = taker(tmp_path, c, find=lambda pid: None, grab=fake_grab(calls, size=(2560, 1440)))
     step(t, c, 0)
     (row,) = index(tmp_path)
-    assert calls == [None] and row["window"] == {"found": False, "rect": None}
+    assert calls == [None] and row["window"] == {"found": False, "rect": None, "rect_source": None}
     assert Image.open(tmp_path / "shots" / row["file"]).size == (1280, 720)
 
 
@@ -403,3 +403,42 @@ def test_an_artifact_copy_that_raises_still_leaves_the_index(tmp_path):
     src = open(DY.__file__, encoding="utf-8").read()
     body = src[src.index("def boot_and_run("):]
     assert "copy_run(xs, repo, run_id, run_dir, artifact)" in body and "xs.copy_artifacts(" not in body
+
+
+# ================================================================ fix 2: the DWM frame bounds (the first live shots)
+GWR = (630, 430, 1952, 1226)          # GetWindowRect: the visible frame plus the invisible resize borders and shadow
+DWM = (640, 440, 1922, 1193)          # the extended frame bounds: the visible frame only
+SCREEN = (0, 0, 2560, 1600)
+
+
+def test_the_dwm_bounds_are_used_over_get_window_rect():
+    assert SH.DWMWA_EXTENDED_FRAME_BOUNDS == 9
+    assert SH.window_rect(7, dwm=lambda h: DWM, gwr=lambda h: GWR, screen=lambda: SCREEN) == (DWM, "dwm")
+
+
+@pytest.mark.parametrize("dwm", [lambda h: None, lambda h: (5, 5, 5, 5), "raise"])
+def test_a_failing_dwm_falls_back_to_get_window_rect(dwm):
+    if dwm == "raise":
+        def dwm(h):
+            raise OSError("no dwmapi")
+    assert SH.window_rect(7, dwm=dwm, gwr=lambda h: GWR, screen=lambda: SCREEN) == (GWR, "gwr")
+
+
+def test_the_rect_is_clipped_to_the_virtual_screen_and_a_minimised_window_is_none():
+    got = SH.window_rect(7, dwm=lambda h: (-8, -8, 2568, 1560), gwr=lambda h: GWR, screen=lambda: SCREEN)
+    assert got == ((0, 0, 2560, 1560), "dwm")
+    assert SH.window_rect(7, dwm=lambda h: None, gwr=lambda h: (-32000, -32000, -31840, -31972),
+                          screen=lambda: SCREEN) is None
+    assert SH.window_rect(7, dwm=lambda h: None, gwr=lambda h: None, screen=lambda: SCREEN) is None
+    assert SH.window_rect(7, dwm=lambda h: DWM, gwr=lambda h: GWR, screen=lambda: None) == (DWM, "dwm")
+    assert SH.clip((3000, 10, 3100, 20), SCREEN) is None
+
+
+@pytest.mark.parametrize("src", ["dwm", "gwr"])
+def test_the_index_line_names_the_rect_source(tmp_path, src):
+    c = Clock()
+    calls = []
+    t = taker(tmp_path, c, find=lambda pid: {"rect": DWM, "source": src}, grab=fake_grab(calls))
+    step(t, c, 0)
+    (row,) = index(tmp_path)
+    assert row["window"] == {"found": True, "rect": list(DWM), "rect_source": src} and calls == [DWM]

@@ -23,15 +23,18 @@ THE TRIGGERS, decided in `mark` on the loop's thread (comparisons only) and take
 An event trigger waits out SHOT_MIN_GAP_S after the last shot, then fires with the latest moment (one event slot: the
 first event wins until it fires; a final mark clears it, its own shot being that moment's). Past SHOT_MAX shots
 only the finals fire (cap_hit). The first mark sets the comparison state and fires no event (the cadence shoots it).
-THE SHOT (`take`, on the worker): the window finder `find(pid)` -> the client's top-level window rect (pixels:
-the process is made DPI-aware first) or None; `grab(bbox)` (PIL.ImageGrab.grab) over it, or over the primary screen
-(bbox None, window.found false) when none is found; downscaled to SHOT_WIDTH wide (aspect kept, never upscaled), JPEG
-quality SHOT_QUALITY, written to <run dir>/shots/shot-<n:04d>-<seq>.jpg, and one line appended to shots/shots.jsonl:
-{n, file, bytes, sha256, wallMs, pyMs (the taker's clock at the grab, ms), seq, gameMin, health, branch, flee, fight,
-goal, decision_line, trigger, window {found, rect}, grab_ms (the grab, the scale and the write, ms)}. A write-up
-matches `seq` against state.log and `decision_line` against decision.log. A finder or grab that raises is counted
-(`failures`, the last message kept), the try still resets the cadence, and nothing reaches the loop; a fault in
-the worker's pass itself (`due`) is counted too ("worker: ...") and the worker goes on, so the finals still land.
+THE SHOT (`take`, on the worker): the window finder `find(pid)` -> {rect, source} of the client's top-level window
+(pixels: the process is made DPI-aware first; `window_rect`: the DWM extended frame bounds, source "dwm", else
+GetWindowRect, "gwr", whose rect on Windows 10/11 carries invisible resize borders and a shadow, so the first live
+shots took a strip of the host desktop; clipped to the virtual screen) or None; `grab(bbox)` (PIL.ImageGrab.grab)
+over it, or over the primary screen (bbox None, window.found false) when none is found; downscaled to SHOT_WIDTH
+wide (aspect kept, never upscaled), JPEG quality SHOT_QUALITY, written to <run dir>/shots/shot-<n:04d>-<seq>.jpg,
+and one line appended to shots/shots.jsonl: {n, file, bytes, sha256, wallMs, pyMs (the taker's clock at the grab,
+ms), seq, gameMin, health, branch, flee, fight, goal, decision_line, trigger, window {found, rect, rect_source},
+grab_ms (the grab, the scale and the write, ms)}. A write-up matches `seq` against state.log and `decision_line`
+against decision.log. A finder or grab that raises is counted (`failures`, the last message kept), the try still
+resets the cadence, and nothing reaches the loop; a fault in the worker's pass itself (`due`) is counted too
+("worker: ...") and the worker goes on, so the finals still land.
 ImageGrab reads the screen's pixels: a window behind another shows the one in front, so the client is left uncovered.
 """
 import ctypes
@@ -54,6 +57,7 @@ INDEX = "shots.jsonl"
 TRIGGERS = ("cadence", "threat", "goal", "health", "death", "stop")
 FINAL = ("death", "stop")
 MOMENT_KEYS = ("seq", "wallMs", "gameMin", "health", "branch", "flee", "fight", "goal", "decision_line")
+DWMWA_EXTENDED_FRAME_BOUNDS = 9    # dwmapi: the visible frame, without GetWindowRect's invisible borders and shadow
 CLIENT_TITLE = "Project Zomboid"     # pzt.win32.find_windows' title: preferred among the process's windows
 
 
@@ -79,9 +83,71 @@ def dpi_aware():
             pass
 
 
+def _rect_ok(r):
+    """True for a (left, top, right, bottom) of numbers with an area, not a minimised window's (-32000)."""
+    return (isinstance(r, (tuple, list)) and len(r) == 4 and all(_num(v) is not None for v in r)
+            and r[2] > r[0] and r[3] > r[1] and r[0] > -32000)
+
+
+def clip(rect, screen):
+    """rect clipped to screen (both left, top, right, bottom); None when nothing is left."""
+    l, t, r, b = max(rect[0], screen[0]), max(rect[1], screen[1]), min(rect[2], screen[2]), min(rect[3], screen[3])
+    return (l, t, r, b) if r > l and b > t else None
+
+
+def dwm_rect(hwnd):
+    """DwmGetWindowAttribute(DWMWA_EXTENDED_FRAME_BOUNDS): the visible frame in pixels, or None when it fails."""
+    import ctypes.wintypes as w
+    r = w.RECT()
+    hr = ctypes.windll.dwmapi.DwmGetWindowAttribute(w.HWND(hwnd), ctypes.c_uint(DWMWA_EXTENDED_FRAME_BOUNDS),
+                                                    ctypes.byref(r), ctypes.sizeof(r))
+    return (r.left, r.top, r.right, r.bottom) if hr == 0 else None
+
+
+def gwr_rect(hwnd):
+    """GetWindowRect: the frame plus the invisible resize borders and shadow (Windows 10/11), or None."""
+    import ctypes.wintypes as w
+    r = w.RECT()
+    if not ctypes.windll.user32.GetWindowRect(w.HWND(hwnd), ctypes.byref(r)):
+        return None
+    return (r.left, r.top, r.right, r.bottom)
+
+
+def virtual_screen():
+    """The virtual desktop (every monitor) as (left, top, right, bottom) in pixels, or None."""
+    m = ctypes.windll.user32.GetSystemMetrics
+    x, y, cx, cy = m(76), m(77), m(78), m(79)     # SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, SM_CXVIRTUALSCREEN, ...
+    return (x, y, x + cx, y + cy) if cx > 0 and cy > 0 else None
+
+
+def window_rect(hwnd, dwm=dwm_rect, gwr=gwr_rect, screen=virtual_screen):
+    """(rect, source) of a window: the DWM extended frame bounds ("dwm"), else GetWindowRect ("gwr") when the DWM
+    call fails or gives no area; clipped to the virtual screen when it reads; None for no area or a minimised
+    window."""
+    rect, src = None, "dwm"
+    try:
+        rect = dwm(hwnd)
+    except Exception:                                    # noqa: BLE001 - no dwmapi: GetWindowRect
+        rect = None
+    if not _rect_ok(rect):
+        rect, src = gwr(hwnd), "gwr"
+    if not _rect_ok(rect):
+        return None
+    rect = tuple(int(v) for v in rect)
+    try:
+        scr = screen()
+    except Exception:                                    # noqa: BLE001
+        scr = None
+    if scr is not None:
+        rect = clip(rect, scr)
+        if rect is None:
+            return None
+    return rect, src
+
+
 def find_window(pid):
-    """The rect (left, top, right, bottom) in pixels of `pid`'s visible top-level window (CLIENT_TITLE's first, else
-    the largest), or None: no pid, not Windows, no such window, or it is minimised."""
+    """{rect, source} of `pid`'s visible top-level window (CLIENT_TITLE's first, else the largest; window_rect), or
+    None: no pid, not Windows, no such window, or it is minimised."""
     if pid is None or os.name != "nt":
         return None
     import ctypes.wintypes as w
@@ -97,16 +163,14 @@ def find_window(pid):
         user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
         if owner.value != pid:
             return True
-        r = w.RECT()
-        if not user32.GetWindowRect(hwnd, ctypes.byref(r)):
+        got = window_rect(hwnd)
+        if got is None:
             return True
-        if r.right - r.left <= 0 or r.bottom - r.top <= 0 or r.left <= -32000:      # empty, or minimised
-            return True
+        (l, t, r, b), src = got
         n = user32.GetWindowTextLengthW(hwnd)
         buf = ctypes.create_unicode_buffer(n + 1)
         user32.GetWindowTextW(hwnd, buf, n + 1)
-        found.append((buf.value == CLIENT_TITLE, (r.right - r.left) * (r.bottom - r.top),
-                      (r.left, r.top, r.right, r.bottom)))
+        found.append((buf.value == CLIENT_TITLE, (r - l) * (b - t), {"rect": (l, t, r, b), "source": src}))
         return True
     user32.EnumWindows(cb, 0)
     if not found:
@@ -213,7 +277,8 @@ class ShotTaker:
         with self._lock:
             self._last_t = now
         try:
-            rect = self.find(self.pid)
+            win = self.find(self.pid)
+            rect, src = (win.get("rect"), win.get("source")) if isinstance(win, dict) else (win, None)
             bbox = tuple(int(v) for v in rect) if rect is not None else None
             img = self.grab(bbox)
             if img.mode != "RGB":
@@ -233,7 +298,8 @@ class ShotTaker:
                    "wallMs": m.get("wallMs"), "pyMs": now * 1000.0, "seq": seq, "gameMin": m.get("gameMin"),
                    "health": m.get("health"), "branch": m.get("branch"), "flee": m.get("flee"),
                    "fight": m.get("fight"), "goal": m.get("goal"), "decision_line": m.get("decision_line"),
-                   "trigger": trigger, "window": {"found": bbox is not None, "rect": list(bbox) if bbox else None},
+                   "trigger": trigger, "window": {"found": bbox is not None, "rect": list(bbox) if bbox else None,
+                                                     "rect_source": src if bbox else None},
                    "grab_ms": (time.perf_counter() - t0) * 1000.0}
             with open(os.path.join(self.dir, INDEX), "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(row, default=str) + "\n")
