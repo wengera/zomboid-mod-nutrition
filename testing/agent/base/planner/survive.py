@@ -31,13 +31,17 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   threat count dropped; the stall guard reads the distance to the Fight's target (`Fight.target_dist()`, the pinned
   one), the zombie its stall clock follows, never the nearest held one (Task 10's review M3). The flee steers from
   the held threats (`policies.Flee`: its first leg away from each by 1/distance, then from their centroid).
-- The flee to shelter (ruling P23-AG 1): each flee episode's `Flee` takes the night's shun store and, at its first
-  choose, a known building's exterior door within `policies.SHELTER_FLEE_R` whose approach square is no nearer the
-  held threats than the character; it then runs the night's shelter steps at a run, a failed step falling back to the
-  steer and shunning the building (`policies.Flee`). While those steps run (the close not yet ended) the inside hold
-  below waits, since the character stands inside with the door still open; once the close ended inside
-  (`sheltered`, kept while the character is inside and a threat is held) the inside hold applies, and an armed
-  character fights, instead of fleeing out, a threat whose line clears (the door opened): logged `sheltered`.
+- The flee to shelter (ruling P23-AG 1, fix round 1): each flee episode's `Flee` takes the night's shun store and, at
+  its first choose, a known building's exterior door within `policies.SHELTER_FLEE_R` with no zombie in its corridor
+  and none inside the building; it then runs the night's shelter steps at a run, a failed step falling back to the
+  steer (`policies.Flee`). While those steps run (the close not yet ended) the inside hold below waits, since the
+  character stands inside with the door still open. Once the close ended inside (`sheltered`: the Flee's plan done
+  and the character inside) the inside hold applies; when it does not (a line clears), an armed character fights only
+  the reachable held threats standing in the building's doorway or inside it (`policies.in_building`; the Fight's
+  `only`), whatever the flee reason (`many` and `health` included: a doorway kill beats running out into the group),
+  and with none there the Flee answers (reason `sheltered` when no other holds): it holds while every threat reads
+  line-blocked, re-closes an open door, else falls back to the steer. The sheltered Flee is kept across the door
+  fight, so after the doorway kill it re-sends the close; both log `sheltered`.
 - The flee's load drop (Plan 23 Task 10): run 2's last flee was pinned at load level 4. While the mode is `flee` and
   the frame's load level is at or above `policies.DROP_AT` (3), the flee episode's first free answer is one `Drop` of
   `LootHouse.spare()` (logged `flee_drop`, the item's id), sent as the Flee's own action so its steer waits on the
@@ -111,7 +115,8 @@ from agent.base.items import days_fresh
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Fight,
-                                         Flee, blocked, item_id_ok, line_to, spare, target_id_ok, zdist)
+                                         Flee, blocked, in_building, item_id_ok, line_to, spare, target_id_ok,
+                                         zdist)
 from agent.base.planner.view import view
 from agent.base.pza1 import Consume, Drop
 
@@ -258,26 +263,27 @@ class Survive:
             self.mode, self.fight, self.flee, self.stall_flee, self.flee_dropped = None, None, None, False, False
             self.sheltered = False
             return None
-        inside = self.night.inside()
         if self.flee is not None:
             self.flee.observe()   # a shelter step's end read before the hold (the close may just have ended)
-            self.sheltered = self.sheltered or self.flee.sheltered
-        self.sheltered = self.sheltered and inside
+        self.sheltered = self.flee is not None and self.flee.sheltered and self.night.inside()
         running = self.flee is not None and self.mode == "flee" and self.flee.running_shelter()
         if not running and self._held_inside(held):
             self.why = {"flee": "held_inside", "held": len(held)}
             return None, None
         reason = self._flee_reason(held, len(self._within(DANGER_R)))
-        door_fight = self.sheltered and reason is not None and reason != "unreachable" and self._armed()
-        if door_fight:
-            reason = None   # sheltered: the threat whose line cleared (the door opened) is fought at the door
+        door = self._door_targets() if self.sheltered else None
+        if door is not None:   # sheltered: fight only in the doorway or inside, else the Flee holds or re-closes (I3)
+            reason = (reason or "sheltered") if not door else None
         want = "fight" if reason is None else "flee"
         if want != self.mode:
             if want == "fight":
                 self.fight = Fight(self.world, self.actions, self.clock, unreachable=self.unreachable)
-                self.flee, self.stall_flee, self.flee_dropped = None, False, False
+                if door is None:
+                    self.flee = None   # a door fight keeps the sheltered Flee for the re-close
+                self.stall_flee, self.flee_dropped = False, False
             else:
-                self.flee = Flee(self.world, self.actions, self.clock, shunned=self.night.shunned)
+                if self.flee is None:
+                    self.flee = Flee(self.world, self.actions, self.clock, shunned=self.night.shunned)
                 self.fight = None
                 self.stall_flee = reason == "stalled"
             self.mode = want
@@ -286,11 +292,24 @@ class Survive:
             policy.threats = held
             ans = self._flee_drop() or self._answer(policy)
         else:
+            policy.only = None if door is None else {zid for zid, _ in door}
             ans = self._answer(policy)
         self.why.update({"fight": True} if reason is None else {"flee": reason})
-        if door_fight:
+        if door is not None:
             self.why["sheltered"] = True
         return ans if ans is not None else (policy, None)
+
+    def _door_targets(self):
+        """(id, zombie) of each reachable held threat standing in the sheltered building's doorway or inside it
+        (`policies.in_building`), when the character is armed; else [] (I3: the door fight never walks out)."""
+        if not self._armed():
+            return []
+        b = self.flee.plan["building"]
+        skip = blocked(self.unreachable, self.clock())
+        r = self._hold_r()
+        return [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in skip
+                and z.get("x") is not None and z.get("y") is not None and zdist(self.world, z) <= r
+                and in_building(self.world, z, b)]
 
     def _flee_drop(self):
         """At load level DROP_AT or above, a flee episode's first answer is one `Drop` of `LootHouse.spare()`, sent

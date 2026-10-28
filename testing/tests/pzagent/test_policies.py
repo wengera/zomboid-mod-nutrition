@@ -108,7 +108,7 @@ def test_fight_walks_at_a_run_to_the_zombie_square_beyond_reach_then_attacks_wit
     r.frame(zombies=[zombie(7, 105.6, 200.2)])
     f = Fight(r.world, r.acts, r.clock)
     a = f.step()
-    assert a is not None and r.cmd() == ("walkTo", {"x": 105, "y": 200, "gait": "run"})
+    assert a is not None and r.cmd() == ("walkTo", {"x": 105.5, "y": 200.5, "gait": "run"})
     r.frame(zombies=[zombie(7, 104.0, 200.0)])
     assert f.step() is None                                  # its walk is current: nothing sent
     r.answer()
@@ -141,7 +141,7 @@ def test_two_swings_not_started_in_a_row_force_one_approach_walk(tmp_path):
     assert r.cmd()[0] == "attack"                            # a start in between: the count began again
     r.answer({"state": "done", "result": swing(False)})
     f.step()
-    assert r.cmd() == ("walkTo", {"x": 101, "y": 200, "gait": "run"})   # two in a row: re-approach
+    assert r.cmd() == ("walkTo", {"x": 101.5, "y": 200.5, "gait": "run"})   # two in a row: re-approach
     r.answer()
     f.step()
     assert r.cmd() == ("attack", {"targetId": 7})
@@ -283,7 +283,7 @@ def test_a_nil_id_zombie_is_never_a_target(tmp_path):
     assert f.step() is None and r.acts.history == []
     r.frame(zombies=[dict(zombie(7, 101.0, 200.0), id=None), zombie(8, 103.0, 200.0)])
     f.step()
-    assert r.cmd() == ("walkTo", {"x": 103, "y": 200, "gait": "run"})
+    assert r.cmd() == ("walkTo", {"x": 103.5, "y": 200.5, "gait": "run"})
 
 
 def test_fight_with_no_zombie_sends_nothing(tmp_path):
@@ -293,7 +293,7 @@ def test_fight_with_no_zombie_sends_nothing(tmp_path):
 
 
 # ================================================================ Flee
-def test_flee_steers_its_first_leg_weighted_then_from_the_centroid_through_the_player_at_a_run(tmp_path):
+def test_flee_steers_every_leg_along_the_weighted_sum_at_a_run(tmp_path):
     r = Rig(tmp_path)
     zs = [zombie(1, 103.0, 200.0), zombie(2, 103.0, 202.0)]
     r.frame(zombies=zs)
@@ -316,9 +316,9 @@ def test_flee_steers_its_first_leg_weighted_then_from_the_centroid_through_the_p
     all_sends_valid(r)
 
 
-def test_the_first_leg_points_away_from_the_nearer_threat_where_the_centroid_would_not(tmp_path):
-    """P23-AG ruling 3: threats at (-3, 0) and (+1, +1) from the player; the centroid's leg (+1, -0.5) runs toward the
-    nearer one, the weighted sum of the unit vectors (each times 1/distance) away from it."""
+def test_a_leg_points_away_from_the_nearer_threat_where_the_centroid_would_not(tmp_path):
+    """P23-AG ruling 3 (every leg, fix round 1): threats at (-3, 0) and (+1, +1) from the player; the centroid's leg
+    (+1, -0.5) runs toward the nearer one, the weighted sum of the unit vectors (each times 1/distance) away from it."""
     r = Rig(tmp_path)
     r.frame(zombies=[zombie(1, 97.0, 200.0), zombie(2, 101.0, 201.0)])
     f = Flee(r.world, r.acts, r.clock)
@@ -329,7 +329,13 @@ def test_the_first_leg_points_away_from_the_nearer_threat_where_the_centroid_wou
     assert args["vx"] == pytest.approx(wx / n) and args["vy"] == pytest.approx(wy / n)
     assert args["vx"] * 1.0 + args["vy"] * 1.0 < 0.0             # away from the nearer threat at (+1, +1)
     assert (1.0 * 1.0 + -0.5 * 1.0) > 0.0                        # the centroid's leg would have closed on it
-    assert args["gait"] == "sprint" and f.why["weighted"] is True
+    assert args["gait"] == "sprint" and f.why["turn"] is None    # unmapped ground: the heading is kept
+    r.answer()
+    r.frame(x=100.0, y=199.0, zombies=[zombie(1, 97.0, 199.0, me=(100.0, 199.0)), zombie(2, 101.0, 200.0,
+                                                                                         me=(100.0, 199.0))])
+    f.step()                                                     # the second leg is weighted too
+    _, args = r.cmd()
+    assert args["vx"] == pytest.approx(wx / n) and args["vy"] == pytest.approx(wy / n)
 
 
 def test_flee_sprints_when_the_nearest_is_within_sprint_r(tmp_path):
@@ -361,7 +367,7 @@ def test_explore_scans_once_at_a_place_then_walks_to_the_unexplored_edge(tmp_pat
     r.scan([square(x, y) for x in range(99, 102) for y in range(199, 202)])
     r.frame()
     e.step()
-    assert r.cmd() == ("walkTo", {"x": 99, "y": 200, "gait": "walk"})
+    assert r.cmd() == ("walkTo", {"x": 99.5, "y": 200.5, "gait": "walk"})
     assert e.step() is None                                  # walking
     r.answer()
     r.frame(x=99.0)
@@ -446,7 +452,7 @@ def test_a_stuck_edge_is_not_chosen_again_until_its_ttl_passes(tmp_path, reason)
     r.frame(game_min=480.0)
     e.step()
     first = r.cmd()
-    assert first == ("walkTo", {"x": 99, "y": 200, "gait": "walk"})
+    assert first == ("walkTo", {"x": 99.5, "y": 200.5, "gait": "walk"})
     r.answer({"state": "failed", "reason": reason})
     r.frame(game_min=481.0)
     e.step()
@@ -475,7 +481,7 @@ def test_a_walk_that_ends_done_or_fails_otherwise_is_not_remembered(tmp_path):
     r.answer({"state": "failed", "reason": "interrupted"})
     r.frame()
     e.step()
-    assert r.cmd() == ("walkTo", {"x": 99, "y": 200, "gait": "walk"}) and r.world.stuck == {}
+    assert r.cmd() == ("walkTo", {"x": 99.5, "y": 200.5, "gait": "walk"}) and r.world.stuck == {}
 
 
 @pytest.mark.parametrize("x, place", [(105.0, 110), (115.0, 120), (104.9, 100), (114.9, 110)])
@@ -769,7 +775,7 @@ def test_a_pinned_target_beyond_disengage_r_is_dropped(tmp_path):
     r.answer({"state": "done", "result": swing(True)})
     r.frame(zombies=[zombie(7, 111.0, 200.0), zombie(8, 103.0, 200.0)])   # 7 at 11 tiles: beyond DISENGAGE_R
     f.step()
-    assert P.DISENGAGE_R == 10.0 and f.target == 8 and r.cmd() == ("walkTo", {"x": 103, "y": 200, "gait": "run"})
+    assert P.DISENGAGE_R == 10.0 and f.target == 8 and r.cmd() == ("walkTo", {"x": 103.5, "y": 200.5, "gait": "run"})
 
 
 def test_the_target_keyword_pins_from_the_start(tmp_path):
@@ -777,7 +783,7 @@ def test_the_target_keyword_pins_from_the_start(tmp_path):
     r.frame(zombies=[zombie(7, 101.0, 200.0), zombie(9, 104.0, 200.0)])
     f = Fight(r.world, r.acts, r.clock, target=9)
     f.step()
-    assert r.cmd() == ("walkTo", {"x": 104, "y": 200, "gait": "run"}) and f.why["target"] == 9
+    assert r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"}) and f.why["target"] == 9
     assert f.why["pinned"] is True
 
 
@@ -793,7 +799,7 @@ def test_a_target_behind_a_wall_gets_one_reposition_walk_to_the_clear_neighbour_
     r.frame(zombies=[zombie(7, 100.5, 199.5)])
     f = Fight(r.world, r.acts, r.clock)
     f.step()
-    assert r.cmd() == ("walkTo", {"x": 99, "y": 199, "gait": "run"})
+    assert r.cmd() == ("walkTo", {"x": 99.5, "y": 199.5, "gait": "run"})
     assert f.why["line"] is False and f.why["reposition"] == [99, 199, 0] and f.repositioned is True
     r.answer()
     r.frame(x=99.5, y=199.5, zombies=[zombie(7, 100.5, 199.5)])
@@ -853,7 +859,7 @@ def test_a_reposition_square_is_walked_to_within_reposition_r_crow_fly_and_never
     a = f.step()
     assert f.why["line"] is False
     if walks:
-        assert a is not None and r.cmd() == ("walkTo", {"x": 100, "y": 198, "gait": "run"})
+        assert a is not None and r.cmd() == ("walkTo", {"x": 100.5, "y": 198.5, "gait": "run"})
         assert f.why["reposition"] == [100, 198, 0]
     else:
         assert a is None and r.acts.history == [] and f.unreachable == {7: r.clock() + UNREACHABLE_S}
@@ -877,3 +883,62 @@ def test_spare_drops_an_empty_marked_bottle(tmp_path):
     assert P.spare(r.world) == 602
     r.world.mark_empty(606)
     assert P.spare(r.world) == 606
+
+
+# ================================================================ survival 1 fix round 1: the steer reads the map (I4)
+def fence_west():
+    """An open grid round the player at (100.5, 201.5) with a fence between x 98 and 99 for y 196..206 (`blockW`)."""
+    return grid(90, 110, 190, 212, {(99, y): {"blockW": True} for y in range(196, 207)})
+
+
+def test_a_fence_ahead_turns_the_heading_to_the_nearest_clear_one(tmp_path):
+    r = Rig(tmp_path)
+    r.scan(fence_west())
+    me = (100.5, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 103.5, 201.5, me=me)])
+    f = Flee(r.world, r.acts, r.clock)
+    f.step()
+    _, args = r.cmd()
+    assert not r.world.line_clear(me, (me[0] - 3.0, me[1]))       # straight away: into the fence
+    v = (-math.cos(math.radians(60)), -math.sin(math.radians(60)))   # 30 and -30 still cross it; 60 clears
+    assert f.why["turn"] == 60
+    assert (args["vx"], args["vy"]) == (pytest.approx(v[0]), pytest.approx(v[1]))
+    assert r.world.line_clear(me, (me[0] + 3 * v[0], me[1] + 3 * v[1]))
+    assert (P.STEER_PROBE, P.STEER_TURNS, P.STUCK_MOVE) == (3.0, (0, 30, -30, 60, -60, 90, -90), 0.5)
+
+
+def test_a_leg_that_did_not_move_turns_the_next_from_its_heading(tmp_path):
+    r = Rig(tmp_path)
+    r.scan(grid(90, 110, 190, 212))
+    me = (100.5, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 103.5, 201.5, me=me)])
+    f = Flee(r.world, r.acts, r.clock)
+    f.step()
+    assert r.cmd()[1]["vx"] == pytest.approx(-1.0) and f.why["stuck"] is False and f.why["turn"] == 0
+    r.answer()
+    r.frame(x=me[0] - 0.4, y=me[1], zombies=[zombie(1, 103.5, 201.5, me=me)])   # 0.4 tiles: stuck
+    f.step()
+    _, args = r.cmd()
+    assert f.why["stuck"] is True and f.why["turn"] == 30
+    assert (args["vx"], args["vy"]) == (pytest.approx(-math.cos(math.radians(30))), pytest.approx(-0.5))
+    r.answer()
+    r.frame(x=me[0] - 2.0, y=me[1] - 1.0, zombies=[zombie(1, 103.5, 201.5, me=me)])   # it moved: no turn
+    f.step()
+    assert f.why["stuck"] is False and f.why["turn"] == 0
+
+
+def test_a_reposition_walk_targets_the_squares_centre_and_moves_the_character(tmp_path):
+    """The X5-2 addendum (T18.4): the reposition named the square's corner, within the Lua walk's DONE_R (1.0) of the
+    player on a square touching its own, and ended done without a step. The target (100, 201) behind the player's
+    south wall; (99, 201) solid; the reposition is the diagonal (101, 201), its corner 0.71 tiles from the player."""
+    r = Rig(tmp_path)
+    r.scan(grid(96, 104, 196, 204, {(100, 201): {"blockN": True}, (99, 201): {"solid": True}}))
+    me = (100.5, 200.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(7, 100.5, 201.5, me=me)])
+    f = Fight(r.world, r.acts, r.clock)
+    f.step()
+    assert f.why["reposition"] == [101, 201, 0]
+    assert r.cmd() == ("walkTo", {"x": 101.5, "y": 201.5, "gait": "run"})
+    lua_done_r = 1.0                                             # PZAgent_Skills.lua K.DONE_R
+    assert math.hypot(101.5 - me[0], 201.5 - me[1]) > lua_done_r >= math.hypot(101 - me[0], 201 - me[1])
+    assert P.centre((101, 201)) == (101.5, 201.5) and P.centre((101.9, 201.2)) == (101.5, 201.5)

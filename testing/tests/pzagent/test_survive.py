@@ -65,10 +65,10 @@ def test_threat_fights_when_armed_and_at_most_two_within_danger_r(tmp_path):
     r, sv = make(tmp_path)
     r.frame(zombies=[zombie(1, 104.0, 200.0), zombie(2, 100.0, 205.0)])
     a = tick(r, sv)
-    assert a is not None and r.cmd() == ("walkTo", {"x": 104, "y": 200, "gait": "run"})
+    assert a is not None and r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"})
     d = last(tmp_path)
     assert d["branch"] == "threat" and d["inputs"]["threats"] == 2 and d["inputs"]["armed"] is True
-    assert d["action"] == {"type": "walkTo", "args": {"x": 104, "y": 200, "gait": "run"}} and d["sent"] is True
+    assert d["action"] == {"type": "walkTo", "args": {"x": 104.5, "y": 200.5, "gait": "run"}} and d["sent"] is True
 
 
 def test_threat_ignores_a_zombie_beyond_danger_r(tmp_path):
@@ -90,7 +90,7 @@ def test_a_threat_engaged_at_six_tiles_holds_beyond_six_within_ten(tmp_path, eng
     tick(r, sv)
     d = last(tmp_path)
     assert d["branch"] == "threat" and d["inputs"]["mode"] == "fight" and d["inputs"]["held"] == 1
-    assert d["inputs"]["threats"] == 0 and r.cmd() == ("walkTo", {"x": 107, "y": 200, "gait": "run"})
+    assert d["inputs"]["threats"] == 0 and r.cmd() == ("walkTo", {"x": 107.5, "y": 200.5, "gait": "run"})
     r.answer()
     r.frame(zombies=[zombie(1, 111.0, 200.0)])               # 11 tiles: disengaged
     tick(r, sv)
@@ -175,7 +175,7 @@ def test_a_running_flee_turns_to_fight_only_with_one_threat_and_a_health_margin(
     r.answer()
     r.frame(zombies=three[:1], health=74.0)
     tick(r, sv)
-    assert r.cmd() == ("walkTo", {"x": 103, "y": 200, "gait": "run"})
+    assert r.cmd() == ("walkTo", {"x": 103.5, "y": 200.5, "gait": "run"})
     assert threat_why(tmp_path) == {"fight": True, "target": 1, "pinned": True, "dist": 3.0, "approach": False,
                                     "line": None, "reposition": None}
 
@@ -784,7 +784,7 @@ def test_the_stall_reads_the_pinned_targets_distance_not_the_nearest_zombies(tmp
     r, sv = make(tmp_path)
     r.frame(zombies=[zombie(1, 105.0, 200.0)])
     tick(r, sv)
-    assert sv.fight.target == 1 and r.cmd() == ("walkTo", {"x": 105, "y": 200, "gait": "run"})
+    assert sv.fight.target == 1 and r.cmd() == ("walkTo", {"x": 105.5, "y": 200.5, "gait": "run"})
     both = lambda: [zombie(1, 105.0, 200.0), zombie(2, 101.5, 200.0)]   # an unpinned zombie within reach
     r.frame(zombies=both())
     assert tick(r, sv) is None and sv.fight.target == 1
@@ -943,7 +943,8 @@ def test_a_refused_food_is_eaten_again_after_refused_ttl_min(tmp_path):
 
 
 # ================================================================ the flee to shelter (ruling P23-AG)
-# E1 (e_day-20261028-110422) died at game minute 606 after a 45 s open-ground flee from four zombies. A flee with a
+# E1 (e_day-20261028-110422) died at game minute 606, pinned 15 s against a fence the World held while fleeing four
+# zombies (the review of survival 1 traced it). A flee with a
 # known building whose door's approach square lies away from the threats runs the shelter steps at a run.
 GROUP = [(1, 97.0, 201.5), (2, 98.0, 204.0), (3, 98.0, 199.0)]   # three within DANGER_R, west of the player
 
@@ -1058,3 +1059,157 @@ def test_a_door_the_map_reads_locked_is_never_run_to(tmp_path):
     r.frame(x=100.0, y=201.5, zombies=group())
     tick(r, sv)
     assert r.cmd()[0] == "steer" and sv.night.shunned == {}
+
+
+# ================================================================ survival 1 fix round 1 (the review's I1-I4, M1-M5)
+def sheltered(r, sv, weapon=BAT):
+    """Run the shelter steps of the first test to the closed door and the inside hold; the player at (112.5, 200.5)."""
+    from .test_night import CLOSED, OPEN
+    shelter_world(r, CLOSED)
+    r.frame(x=100.0, y=201.5, zombies=group(), weapon=weapon)
+    tick(r, sv)
+    me = (111.5, 201.5)
+    for door, at in ((CLOSED, me), (OPEN, me), (OPEN, (112.5, 200.5))):
+        r.answer()
+        if door is OPEN:
+            shelter_world(r, OPEN)
+        me = at
+        r.frame(x=me[0], y=me[1], zombies=group(8.0, me), weapon=weapon)
+        tick(r, sv)
+    assert r.cmd()[1]["kind"] == "close"
+    r.answer()
+    shelter_world(r, CLOSED)
+    r.frame(x=me[0], y=me[1], zombies=group(8.0, me), weapon=weapon)
+    assert tick(r, sv) is None and threat_why(r.dir)["flee"] == "held_inside"
+    return me
+
+
+@pytest.mark.parametrize("far", [False, True])
+def test_a_zombie_in_the_corridor_to_the_door_refuses_it(tmp_path, far):
+    """I1 and M3: a zombie 4 tiles along the line to a door 11.5 tiles away (and one 0.5 behind) passed the nearest-
+    against-nearest test; a known zombie on the line beyond the hold radius refuses it too."""
+    from .test_night import CLOSED
+    r, sv = make(tmp_path)
+    shelter_world(r, CLOSED)
+    me = (100.0, 201.5)
+    on_line = zombie(2, 111.0 if far else 104.0, 201.6, me=me)   # far: 11 tiles, not held
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.5, 201.5, me=me), on_line], weapon=None)
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["shelter"] is None
+    assert P.CORRIDOR_R == 2.0
+
+
+def test_a_zombie_beside_the_corridor_beyond_corridor_r_does_not_refuse_it(tmp_path):
+    from .test_night import CLOSED
+    r, sv = make(tmp_path)
+    shelter_world(r, CLOSED)
+    me = (100.0, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.5, 201.5, me=me), zombie(2, 104.0, 204.0, me=me)], weapon=None)
+    tick(r, sv)                                              # 2.5 tiles off the line
+    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 201.5, "gait": "run"})
+
+
+def test_a_known_zombie_inside_the_building_refuses_it(tmp_path):
+    """M4."""
+    from .test_night import CLOSED
+    r, sv = make(tmp_path)
+    shelter_world(r, CLOSED)
+    me = (100.0, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.5, 201.5, me=me), zombie(2, 113.5, 202.5, me=me)], weapon=None)
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["shelter"] is None
+
+
+def test_unarmed_and_sheltered_with_a_zombie_in_the_open_door_re_closes_then_steers(tmp_path):
+    """I2: never hold with a line clear; one re-close of the open door, and when it fails the steer."""
+    from .test_night import OPEN
+    r, sv = make(tmp_path)
+    me = sheltered(r, sv, weapon=None)
+    shelter_world(r, OPEN)
+    zs = [zombie(1, 112.5, 201.5, me=me)] + group(8.0, me)[1:]
+    r.frame(x=me[0], y=me[1], zombies=zs, weapon=None)
+    assert tick(r, sv) is not None
+    assert r.cmd() == ("interact", {"x": 112, "y": 201, "kind": "close", "filter": "all", "maxWeight": 0.0})
+    assert threat_why(tmp_path)["step"] == "reclose"
+    r.answer({"state": "failed", "reason": "blocked"})
+    r.frame(x=me[0], y=me[1], zombies=zs, weapon=None)
+    assert tick(r, sv) is not None and r.cmd()[0] == "steer"
+
+
+def test_the_door_fight_kills_in_the_doorway_then_re_closes_never_walks_out(tmp_path):
+    """I3: after the doorway kill, two zombies 5 tiles outside, line-clear through the open door: a close, no walk."""
+    from .test_night import CLOSED, OPEN
+    r, sv = make(tmp_path)
+    sheltered(r, sv)
+    me = (113.5, 201.5)                                      # inside, in the door's row: the open door is in line
+    shelter_world(r, OPEN)
+    outside = [zombie(2, 108.5, 201.2, me=me), zombie(3, 109.5, 201.7, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 112.5, 201.5, me=me)] + outside)
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 1}) and threat_why(tmp_path)["sheltered"] is True
+    assert sv.fight.only == {1} and sv.fight.unreachable is sv.unreachable
+    r.answer({"state": "done", "result": swing(True)})
+    r.event("zombie_dead", id=1)
+    r.frame(x=me[0], y=me[1], zombies=outside)
+    tick(r, sv)
+    assert r.cmd() == ("interact", {"x": 112, "y": 201, "kind": "close", "filter": "all", "maxWeight": 0.0})
+    assert threat_why(tmp_path)["sheltered"] is True and threat_why(tmp_path)["step"] == "reclose"
+    r.answer()
+    shelter_world(r, CLOSED)
+    r.frame(x=me[0], y=me[1], zombies=outside)
+    assert tick(r, sv) is None and threat_why(tmp_path)["flee"] == "held_inside"
+    assert "walkTo" not in [a.type for a in r.acts.history[-3:]]
+
+
+def test_a_shelter_step_failed_for_no_shun_reason_falls_back_without_a_shun(tmp_path):
+    """M1: only night.SHUN_REASONS shun; any failure falls back to the steer."""
+    from .test_night import CLOSED
+    r, sv = make(tmp_path)
+    shelter_world(r, CLOSED)
+    r.frame(x=100.0, y=201.5, zombies=group())
+    tick(r, sv)
+    r.answer({"state": "failed", "reason": "interrupted"})
+    r.frame(x=100.0, y=201.5, zombies=group())
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and sv.night.shunned == {}
+
+
+def test_a_wounded_fight_with_zombies_at_five_and_eight_still_fights(tmp_path):
+    """M5: `pair` counts DANGER_R while a fight holds DISENGAGE_R (the surviving half of the Plan 21b fix)."""
+    r, sv = make(tmp_path)
+    cut = {"scratched": 1}
+    r.frame(zombies=[zombie(1, 105.0, 200.0)], wounds=cut)
+    tick(r, sv)
+    r.frame(zombies=[zombie(1, 105.0, 200.0), zombie(2, 108.0, 200.0)], wounds=cut)
+    tick(r, sv)
+    assert last(tmp_path)["inputs"]["mode"] == "fight" and "flee" not in threat_why(tmp_path)
+    assert [a.type for a in r.acts.history] == ["walkTo"]
+
+
+def test_every_fight_survive_makes_shares_its_unreachable_memory(tmp_path):
+    """The X5-2 addendum: the driver built its Fights without the marks; Survive gives every Fight the one memory."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zombie(1, 103.0, 200.0)])
+    tick(r, sv)
+    first = sv.fight
+    r.answer()
+    r.frame(zombies=[zombie(1, 103.0, 200.0)], health=30.0)    # a flee in between
+    tick(r, sv)
+    assert sv.mode == "flee"
+    r.answer()
+    r.frame(zombies=[zombie(1, 103.0, 200.0)], health=100.0)
+    tick(r, sv)
+    assert sv.mode == "fight" and sv.fight is not first
+    assert first.unreachable is sv.unreachable and sv.fight.unreachable is sv.unreachable
+
+
+def test_a_running_flee_counts_many_within_danger_r_and_holds_the_rest(tmp_path):
+    """Ruling 2: the hold radius widens `many` only while a fight runs; a flee with three held, one within 6, reads
+    `held`."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None)
+    tick(r, sv)
+    r.answer()
+    r.frame(zombies=[zombie(1, 103.0, 200.0), zombie(2, 108.0, 200.0), zombie(3, 100.0, 209.0)])
+    tick(r, sv)
+    assert last(tmp_path)["inputs"]["mode"] == "flee" and threat_why(tmp_path)["flee"] == "held"
