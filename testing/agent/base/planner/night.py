@@ -5,18 +5,24 @@
 and `explore`). The shelter steps are module functions (`shelter_plan`, `shelter_step`, `shelter_ended`) so Task 13's
 `Shelter(building)` goal runs the same machine.
 
-- The want (`wants()`): the frame's `stats.fatigue` above TIRED_T 0.6 (the first TIRED moodle), or the frame's
-  `me.hour` at LATE_HOUR 22.0 or later with fatigue above LATE_FATIGUE 0.3. A frame with no `hour` (a log older than
-  PZA/1.2) reads as daytime. A sleep that ended `done` with its `fatigueAfter` under TIRED_T clears the want
-  (`rested`), so a character woken at 23:00 with fatigue above LATE_FATIGUE does not lie down again at once; the
-  clearance ends at the first frame at TIRED_T or above, or at the first frame whose hour reads under LATE_HOUR (a
-  new day: the late rule fires again the next night). A sleep refused `not allowed` (the server's SleepAllowed off,
-  which does not change within a session) ends the want for the session (`allowed` False, ruling P23-U), logged once
-  as `why.barred` on the tick that read it.
+- The want (`wants()`): the frame's `stats.fatigue` above TIRED_T 0.6 (the first TIRED moodle), or a late hour
+  with fatigue above LATE_FATIGUE 0.3, late being the frame's `me.hour` at LATE_HOUR 22.0 or later or under DAWN_HOUR
+  6.0 (fix wave P, M-3: the night runs through midnight to dawn). A frame with no `hour` (a log older than PZA/1.2)
+  reads as daytime. A sleep that ended `done` with its `fatigueAfter` under TIRED_T clears the want (`rested`), so a
+  character woken at 23:00 with fatigue above LATE_FATIGUE does not lie down again at once, nor after midnight; the
+  clearance ends at the first frame at TIRED_T or above, or at the first daytime frame (an hour from DAWN_HOUR to under
+  LATE_HOUR: a new day, the late rule fires again the next night). A sleep ended any other way sets no clearance: one
+  a threat superseded (P23-AB; the Lua wakes the character) or one `done` still above TIRED_T leaves the want
+  standing, so the night sleeps again once nothing pre-empts it. A sleep refused `not allowed` (the server's
+  SleepAllowed off, which does not change within a session) ends the want for the session (`allowed` False, ruling
+  P23-U), logged once as `why.barred` on the tick that read it.
 - Inside (`inside()`): the player's square `(floor(x), floor(y), floor(z))` is in `world.map` with a `room` that is
   not None. Every frame inside adds the square's building to `visited`.
 - The choice (`choose()`), with a zombie within DANGER_R sending nothing (the threat branch owns it): inside, `Sleep()`
-  at once (no walk), except while a plan's `close` step is due. Outside, a plan: of `world.interiors()`, the buildings
+  at once (no walk), except while a plan's `close` step is due. A plan that reads `done` while the character is not
+  `inside()` (pushed out of the doorway after the close) never sleeps there (fix wave P, the deferred T12 minor): the
+  plan goes back to its `enter` step, logged `ended: "outside"` and counted as a retry (STEP_RETRIES, then the
+  building is shunned). Outside, a plan: of `world.interiors()`, the buildings
   (an id that is not None, not shunned) for which `shelter_plan` answers, ranked visited first (a building the
   character has stood in), then by the distance from the player to its nearest interior square on the player's
   floor, ties by the id. None answers: `want_shelter` True (the goal layer's `Shelter`, Task 13, reads it off
@@ -48,7 +54,8 @@ and `explore`). The shelter steps are module functions (`shelter_plan`, `shelter
     `policies.STUCK_REASONS`) moves to the building's next exterior door at its approach (`next door`), and with no
     next door answers `shun`; any other end (`timeout`, `rejected`, another failure) is retried (`retry`), at most
     STEP_RETRIES 3 times per building, then `shun`. Night shuns the building for SHUN_MIN 120 game minutes (`shunned
-    {building: gameMin}`) and drops the plan, so the next choose tries the next building.
+    {building: world minutes}`, `World.world_minutes()`, monotonic across midnight: fix wave P, I-1) and drops the
+    plan, so the next choose tries the next building.
 - A sleep's end (`observe()`): `not safe` (a zombie visible, chasing or very close; one beyond DANGER_R is no threat
   but blocks the sleep) holds the branch NOT_SAFE_S 30 wall seconds and `not valid` (pain, panic, a vehicle) NOT_VALID_S
   60 (ruling P23-U), each from the refusal's `ended_wall`, `rejected` or `failed` alike (`hold_until`: Survive answers
@@ -73,6 +80,7 @@ from agent.base.pza1 import Interact, Sleep, WalkTo
 
 TIRED_T = 0.6         # the first TIRED moodle fires above 0.6 [#2279]
 LATE_HOUR = 22.0      # from this hour of day ...
+DAWN_HOUR = 6.0       # ... to this one (through midnight) ...
 LATE_FATIGUE = 0.3    # ... the branch wants at a fatigue above this
 SHUN_MIN = 120        # game minutes a building whose shelter failed is passed over
 NOT_SAFE_S = 30.0     # wall seconds the branch holds after a sleep refused `not safe`
@@ -83,8 +91,9 @@ HOLD_S = {"not safe": NOT_SAFE_S, "not valid": NOT_VALID_S}
 NOT_ALLOWED = "not allowed"
 SHELTER_STEPS = ("approach", "open", "enter", "close")
 
-__all__ = ["Night", "TIRED_T", "LATE_HOUR", "LATE_FATIGUE", "SHUN_MIN", "NOT_SAFE_S", "NOT_VALID_S", "STEP_RETRIES",
-           "SHUN_REASONS", "SHELTER_STEPS", "shelter_plan", "shelter_step", "shelter_ended", "exterior_doors"]
+__all__ = ["Night", "TIRED_T", "LATE_HOUR", "DAWN_HOUR", "LATE_FATIGUE", "SHUN_MIN", "NOT_SAFE_S", "NOT_VALID_S",
+           "STEP_RETRIES", "SHUN_REASONS", "SHELTER_STEPS", "shelter_plan", "shelter_step", "shelter_ended",
+           "exterior_doors"]
 
 
 def _num(v):
@@ -118,14 +127,17 @@ def _outdoor(world, sq):
 # ---------------------------------------------------------------- the shelter machine
 def exterior_doors(world, building, z):
     """The building's exterior door squares on floor `z` (a mapped, non-solid, room-less orthogonal neighbour), ranked
-    open first, then neither locked nor barricaded, then any, each nearest the player."""
+    open first, then neither locked nor barricaded, then any, each nearest the player. The candidates are read once
+    per map version (`World.memo`, M-4); only the ranking, which reads the player, runs each call."""
     def rank(sq):
         d = world.map[sq].get("door") or {}
         state = 0 if d.get("open") else (2 if d.get("locked") or d.get("barricaded") else 1)
         return state, _dist(world, sq), sq
-    doors = [sq for sq in world.doors_of(building) if sq[2] == z
-             and any(_outdoor(world, (sq[0] + dx, sq[1] + dy, z)) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))]
-    return sorted(doors, key=rank)
+
+    def candidates():
+        return [sq for sq in world.doors_of(building) if sq[2] == z
+                and any(_outdoor(world, (sq[0] + dx, sq[1] + dy, z)) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))]
+    return sorted(world.memo(("exterior_doors", building, z), candidates), key=rank)
 
 
 def approach_square(world, door):
@@ -228,7 +240,7 @@ class Night(Policy):
         self.t0 = clock()
         self.want_shelter = False
         self.allowed = True     # False once a sleep was refused `not allowed`: no want for the session
-        self.shunned = {}       # building -> the gameMin it was shunned at
+        self.shunned = {}       # building -> the world minutes it was shunned at (World.world_minutes)
         self.visited = set()    # the buildings whose interior the character has stood in
         self.last_sleep = None  # {gameMin, sleptH, fatigueBefore, fatigueAfter, bedType} of the last sleep done
         self.rested = False     # the last sleep ended under TIRED_T (the module docstring's clearance)
@@ -250,6 +262,11 @@ class Night(Policy):
         h = (self.world.me or {}).get("hour")
         return h if _num(h) else None
 
+    def late(self):
+        """The frame's hour is the night's: LATE_HOUR or later, or under DAWN_HOUR (M-3); no hour reads daytime."""
+        h = self.hour()
+        return h is not None and (h >= LATE_HOUR or h < DAWN_HOUR)
+
     def wants(self):
         if not self.allowed:
             return False
@@ -258,8 +275,7 @@ class Night(Policy):
             return False
         if f > TIRED_T:
             return True
-        h = self.hour()
-        return h is not None and h >= LATE_HOUR and f > LATE_FATIGUE
+        return self.late() and f > LATE_FATIGUE
 
     def inside(self):
         sq = player_square(self.world)
@@ -267,7 +283,7 @@ class Night(Policy):
         return s is not None and s.get("room") is not None
 
     def shunned_now(self):
-        now = self.world.game_min or 0.0
+        now = self.world.world_minutes()
         return {b for b, at in self.shunned.items() if now - at < SHUN_MIN}
 
     def holding(self):
@@ -296,9 +312,8 @@ class Night(Policy):
         s = self.world.map.get(sq) if sq is not None else None
         if s is not None and s.get("room") is not None and s.get("building") is not None:
             self.visited.add(s["building"])
-        h = self.hour()
-        if self.rested and (self.fatigue() >= TIRED_T or (h is not None and h < LATE_HOUR)):
-            self.rested = False
+        if self.rested and (self.fatigue() >= TIRED_T or (self.hour() is not None and not self.late())):
+            self.rested = False   # tired again, or a daytime frame: the new day
         a = self.last
         if a is None or a is self._read or not self.actions.done(a):
             return
@@ -313,8 +328,7 @@ class Night(Policy):
         out = shelter_ended(self.plan, a)
         self._note = {"ended": out}
         if out == "shun":
-            self.shunned[building] = self.world.game_min or 0.0
-            self.plan = None
+            self._shun(building)
 
     def _sleep_ended(self, a):
         res = a.result if isinstance(a.result, dict) else {}
@@ -344,6 +358,19 @@ class Night(Policy):
     def sent(self, cmd, action):
         self.why["aid"] = action.aid
 
+    def _shun(self, building):
+        self.shunned[building] = self.world.world_minutes()
+        self.plan = None
+
+    def _outside_done(self, p):
+        """A plan done with the character not inside: back to its enter step as a retry (the module docstring)."""
+        self._note = dict(self._note, ended="outside")
+        p["retries"] += 1
+        if p["retries"] >= STEP_RETRIES:
+            self._shun(p["building"])
+        else:
+            p["step"] = "enter"
+
     def _new_plan(self):
         skip = self.shunned_now()
         plans = [shelter_plan(self.world, b) for b in self.world.interiors() if b is not None and b not in skip]
@@ -366,9 +393,9 @@ class Night(Policy):
         p = self.plan
         if p is not None and p["step"] == "close":
             return shelter_step(self.world, p)
-        if self.inside() or (p is not None and p["step"] == "done"):
+        if self.inside():
             sq = player_square(self.world)
-            self.why.update(inside=self.inside(), building=(self.world.map.get(sq) or {}).get("building"))
+            self.why.update(inside=True, building=(self.world.map.get(sq) or {}).get("building"))
             return Sleep(), "sleep"
         while True:
             if self.plan is None:
@@ -379,9 +406,9 @@ class Night(Policy):
                 return None, None
             cmd, step = shelter_step(self.world, self.plan)
             if step == "shun":
-                self.shunned[self.plan["building"]] = self.world.game_min or 0.0
-                self.plan = None
+                self._shun(self.plan["building"])
                 continue
-            if step == "done":
-                return Sleep(), "sleep"
+            if step == "done":            # not inside (checked above): never a sleep outdoors
+                self._outside_done(self.plan)
+                continue
             return cmd, step

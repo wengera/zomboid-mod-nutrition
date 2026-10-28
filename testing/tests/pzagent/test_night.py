@@ -452,3 +452,126 @@ def test_the_shelter_machine_runs_without_night(tmp_path):
     cmd, step = N.shelter_step(r.world, plan)
     assert step == "approach" and cmd.TYPE == "walkTo"
     assert N.shelter_plan(r.world, 2) is None
+
+
+# ================================================================ fix wave P
+def at_minute(day_min):
+    """(game_min, world_age) of `day_min` minutes from the session's first midnight: gameMin wraps, worldAge not."""
+    return {"game_min": float(day_min % 1440), "world_age": day_min / 60.0}
+
+
+def test_a_building_shunned_before_midnight_is_tried_again_shun_min_after_it(tmp_path):
+    """I-1: the shun clock is the monotonic worldAge, never the wrapping gameMin."""
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110) + house(2, 120))
+    r.frame(x=109.5, y=201.5, fatigue=0.65, hour=23.8, **at_minute(1430))
+    tick(r, sv)
+    assert r.cmd()[1]["kind"] == "open"
+    r.answer({"state": "failed", "reason": "locked"})
+    r.frame(x=109.5, y=201.5, fatigue=0.65, hour=23.8, **at_minute(1430))
+    tick(r, sv)
+    assert sv.night.shunned_now() == {1}
+    r.frame(x=109.5, y=201.5, fatigue=0.65, hour=0.2, **at_minute(1450))       # 00:10: 20 game minutes on
+    assert sv.night.shunned_now() == {1}
+    r.frame(x=109.5, y=201.5, fatigue=0.65, hour=1.8, **at_minute(1549))       # 119 minutes on
+    assert sv.night.shunned_now() == {1}
+    r.frame(x=109.5, y=201.5, fatigue=0.65, hour=1.8, **at_minute(1550))       # SHUN_MIN on, past midnight
+    assert sv.night.shunned_now() == set()
+
+
+@pytest.mark.parametrize("hour, fatigue, wants", [
+    (0.0, 0.35, True), (2.0, 0.31, True), (5.99, 0.35, True),   # M-3: after midnight and before dawn is late too
+    (6.0, 0.35, False), (2.0, 0.3, False), (12.0, 0.35, False),
+])
+def test_the_late_rule_runs_from_late_hour_through_midnight_to_dawn(tmp_path, hour, fatigue, wants):
+    assert N.DAWN_HOUR == 6.0
+    r = Rig(tmp_path)
+    r.frame(hour=hour, fatigue=fatigue)
+    assert Night(r.world, r.acts, r.clock).wants() is wants
+
+
+def test_the_rested_latch_holds_past_midnight_until_dawn(tmp_path):
+    """M-3's consequence: a character woken rested at 23:00 does not lie down again at 00:30; the latch clears at the
+    first daytime frame (DAWN_HOUR to LATE_HOUR), the new day."""
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110) + [square(x, y) for x in range(99, 102) for y in range(199, 202)])
+    r.frame(x=111.5, y=201.5, fatigue=0.65, hour=23.0)
+    tick(r, sv)
+    r.answer(DONE_SLEEP)
+    r.frame(x=111.5, y=201.5, fatigue=0.35, hour=0.5)
+    tick(r, sv)
+    assert sv.night.rested is True and sv.night.wants() is False
+    r.frame(x=111.5, y=201.5, fatigue=0.35, hour=5.5)
+    tick(r, sv)
+    assert sv.night.rested is True
+    r.frame(x=111.5, y=201.5, fatigue=0.1, hour=6.0)
+    tick(r, sv)
+    assert sv.night.rested is False
+
+
+def test_a_done_plan_with_the_character_outside_walks_in_again_never_sleeps_outdoors(tmp_path):
+    """The deferred minor (T12): the plan reads done but the frame's square has no room: the plan goes back to its
+    enter step (a retry), and STEP_RETRIES of them shun the building."""
+    r = Rig(tmp_path)
+    r.scan(house(1, 110))
+    r.frame(x=109.5, y=201.5, fatigue=0.65)
+    n = Night(r.world, r.acts, r.clock)
+    n.step()
+    assert r.cmd()[1]["kind"] == "open"
+    r.answer()
+    r.frame(x=109.5, y=201.5, fatigue=0.65)
+    n.step()
+    assert r.cmd()[0] == "walkTo"                               # enter
+    r.answer()
+    r.frame(x=110.5, y=200.5, fatigue=0.65)
+    n.step()
+    assert r.cmd()[1]["kind"] == "close"
+    r.answer()
+    for i in range(N.STEP_RETRIES - 1):
+        r.frame(x=108.5, y=201.5, fatigue=0.65)                 # knocked back out of the doorway: outdoors
+        assert n.step() is not None, i
+        assert r.cmd() == ("walkTo", {"x": 110.5, "y": 200.5, "gait": "walk"}), i
+        assert n.why["ended"] == "outside" and n.plan["retries"] == i + 1, i
+        r.answer()
+        r.frame(x=110.5, y=200.5, fatigue=0.65)
+        n.step()
+        assert r.cmd()[1]["kind"] == "close", i
+        r.answer()
+    r.frame(x=108.5, y=201.5, fatigue=0.65)
+    n.step()
+    assert "sleep" not in [a.type for a in r.acts.history]
+    assert n.shunned == {1: 480.0} and n.plan is None
+
+
+def test_a_sleep_superseded_leaves_the_want_and_the_night_sleeps_again(tmp_path):
+    """P23-AB: a threat's send supersedes the sleep; no rested latch, so once the threat is gone the night re-arms."""
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110) + [square(x, y) for x in range(99, 102) for y in range(199, 202)])
+    r.frame(x=111.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    r.fake.answer({"sleep": ["accepted"]})
+    r.pump()
+    sleep = r.acts.history[-1]
+    r.frame(x=111.5, y=201.5, fatigue=0.62, zombies=[zombie(1, 113.5, 201.5)])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] in ("attack", "walkTo", "steer")
+    r.fake.act(sleep.aid, "failed", "sleep", reason="superseded")   # the Lua ends the sleep (and wakes it: Lane L)
+    r.answer()
+    r.event("zombie_dead", id=1)
+    r.frame(x=111.5, y=201.5, fatigue=0.62)                     # the zombie gone
+    tick(r, sv)
+    assert sleep.state == "failed" and sv.night.sleeps[-1]["reason"] == "superseded"
+    assert sv.night.rested is False and r.cmd() == ("sleep", {}) and last(tmp_path)["branch"] == "night"
+    assert [a.type for a in r.acts.history].count("sleep") == 2
+
+
+def test_a_sleep_done_still_tired_re_arms(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110) + [square(x, y) for x in range(99, 102) for y in range(199, 202)])
+    r.frame(x=111.5, y=201.5, fatigue=0.9)
+    tick(r, sv)
+    r.answer({"state": "done", "result": {"sleptH": 1.0, "fatigueBefore": 0.9, "fatigueAfter": 0.7,
+                                          "bedType": "floor"}})
+    r.frame(x=111.5, y=201.5, fatigue=0.7)
+    tick(r, sv)
+    assert sv.night.rested is False and r.cmd() == ("sleep", {}) and last(tmp_path)["branch"] == "night"
