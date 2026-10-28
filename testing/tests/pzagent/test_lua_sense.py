@@ -78,7 +78,7 @@ def test_the_frames_groups_have_exactly_the_schemas_keys(lua):
         if grp == "cost":
             continue
         ref = "act_now" if grp == "act" else grp
-        want = [k for k in d[ref]["x-order"] if not (grp == "me" and k == "hour")]   # me.hour: Plan 23 Task 7 fills it
+        want = list(d[ref]["x-order"])
         assert sorted(f[grp].keys()) == sorted(want), grp
     assert sorted(f["body"]["parts"][1].keys()) == sorted(d["part"]["x-order"])
     assert sorted(f["zombies"][1].keys()) == sorted(d["zombie"]["x-order"])
@@ -712,3 +712,8 @@ def test_a_snapshot_before_any_frame_reads_the_players_health(lua):
     load(lua)
     p = make_player(health=64.0)
     assert lua.eval("PZA.skills.snapshot(...)", p)["me"]["health"] == 64.0
+
+
+def test_the_frame_carries_the_hour(lua):
+    load(lua)
+    assert frame(lua, make_player())["me"]["hour"] == 8.0

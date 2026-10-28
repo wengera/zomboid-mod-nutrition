@@ -102,6 +102,8 @@ local function me(p)
     get(m, "x", p, "getX"); get(m, "y", p, "getY"); get(m, "z", p, "getZ")
     get(m, "dir", p, "getDir"); if m.dir ~= nil then m.dir = tostring(m.dir) end
     get(m, "moving", p, "isPlayerMoving"); get(m, "autoWalk", p, "isAutoWalk")
+    local gt = getGameTime ~= nil and getGameTime() or nil
+    get(m, "hour", gt, "getTimeOfDay")
     local mo = PZA.motor
     if mo ~= nil then
         m.running, m.sprinting = mo.updRunning, mo.updSprinting

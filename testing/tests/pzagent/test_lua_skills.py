@@ -776,7 +776,7 @@ def test_interact_loot_food_moves_the_matching_items_and_reports_moved(lua, fs):
     p.held.append(bread)
     tick(lua, p)
     a = acts(lua, fs)
-    assert states(a)[-1] == ("a1", "done", "") and a[-1]["result"] == {"moved": 1}
+    assert states(a)[-1] == ("a1", "done", "") and a[-1]["result"] == {"moved": 1, "skipped": 0}
 
 
 def test_interact_loot_filters(lua, fs):
@@ -848,7 +848,7 @@ def test_interact_loot_interrupted_at_its_budget_with_nothing_moved_else_moved(l
     tick(lua, p)
     a = acts(lua, fs)
     assert [s for s in states(a) if s[1] != "accepted"] == [("i", "failed", "interrupted"), ("m", "done", "")]
-    assert a[-1]["result"] == {"moved": 1}
+    assert a[-1]["result"] == {"moved": 1, "skipped": 0}
 
 
 # ---- equip -----------------------------------------------------------------------------------------------------------
@@ -1505,3 +1505,39 @@ def test_an_end_line_whose_emit_raises_still_clears_the_latches_and_the_runner(l
     assert ok is False or (isinstance(ok, tuple) and ok[0] is False)
     assert lua.eval("PZA.motor.wantRun") is False and lua.eval("PZA.motor.wantSprint") is False
     assert list(p.sets[n0:n0 + 3]) == OFF and lua.eval("PZA.skills.cur") is None
+
+
+def witem(ft, w=1.0):
+    return J(_cls=None, getFullType=lambda s: ft, getFluidContainer=lambda s: None, getWeight=lambda s: w)
+
+
+def test_interact_loot_stops_before_the_weight_cap_and_reports_skipped(lua, fs):
+    load(lua)
+    g = lua.globals()
+    items = [witem("Base.A"), witem("Base.B"), witem("Base.C")]
+    box_world(lua, items)
+    p = make_player(weight=7.0)
+    start(lua, p, "interact", x=11, y=20, kind="loot", maxWeight=8.5)
+    tick(lua, p)
+    assert len(g._queue.adds) == 1
+    p.held.append(items[0])
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "") and a[-1]["result"] == {"moved": 1, "skipped": 2}
+
+
+def test_a_max_weight_of_zero_loots_everything(lua, fs):
+    load(lua)
+    g = lua.globals()
+    box_world(lua, [witem("Base.A"), witem("Base.B"), witem("Base.C")])
+    p = make_player(weight=70.0)
+    start(lua, p, "interact", x=11, y=20, kind="loot", maxWeight=0)
+    tick(lua, p)
+    assert len(g._queue.adds) == 3
+
+
+def test_a_negative_max_weight_is_bad_args(lua, fs):
+    load(lua)
+    box_world(lua, [witem("Base.A")])
+    start(lua, make_player(), "interact", aid="neg", x=11, y=20, kind="loot", maxWeight=-1)
+    assert states(acts(lua, fs))[-1] == ("neg", "rejected", "bad args")

@@ -334,9 +334,19 @@ local function openTick(p, st)
     return nil
 end
 
--- every item of st.boxes passing st.filter, as {item, container}; and how many items and unloaded boxes were seen
-local function lootPicks(st)
+-- every item of st.boxes passing st.filter, as {item, container}; and how many items and unloaded boxes were seen.
+-- With st.maxWeight > 0 a pick is taken only while the inventory's getCapacityWeight (read once, plus each taken pick's
+-- getWeight) stays within it; a pick left for the cap counts in st.skippedWeight. An unreadable inventory weight
+-- applies no cap; an unreadable item weight counts 0.
+local function lootPicks(st, p)
     local picks, seen, unloaded = {}, 0, 0
+    local cap, weight = st.maxWeight or 0, 0
+    if cap > 0 then
+        local _, inv = PZA.call(p, "getInventory")
+        local okW, cw = PZA.call(inv, "getCapacityWeight")
+        if okW and type(cw) == "number" then weight = cw else cap = 0 end
+    end
+    st.skippedWeight = 0
     local keep = FILTERS[st.filter]
     for _, c in ipairs(st.boxes) do
         local okG, items = PZA.call(c, "getItems")
@@ -346,7 +356,16 @@ local function lootPicks(st)
                 local _, it = PZA.call(items, "get", i)
                 if it ~= nil then
                     seen = seen + 1
-                    if keep(it) then picks[#picks + 1] = { it, c } end
+                    if keep(it) then
+                        local take = true
+                        if cap > 0 then
+                            local okI, iw = PZA.call(it, "getWeight")
+                            iw = (okI and type(iw) == "number") and iw or 0
+                            take = weight + iw <= cap
+                            if take then weight = weight + iw else st.skippedWeight = st.skippedWeight + 1 end
+                        end
+                        if take then picks[#picks + 1] = { it, c } end
+                    end
                 end
             end
         else
@@ -367,10 +386,10 @@ local function lootTick(p, st)
         local at = approach(p, st)
         if at == "fail" then return "failed", "not adjacent" end
         if at == "walk" then return nil end
-        local picks, seen, unloaded = lootPicks(st)
+        local picks, seen, unloaded = lootPicks(st, p)
         if unloaded == #st.boxes then return "failed", "not loaded" end
         if seen == 0 then return "failed", "empty" end
-        if #picks == 0 then return "failed", "no match" end
+        if #picks == 0 then return "failed", "no match" end   -- also when the cap left every match
         -- the vanilla transfer class, its new and the queue's add index-checked once before the loop: a missing
         -- one is the vanilla class not loaded, not "no match", so the skill fails not loaded
         local T = ISInventoryTransferAction
@@ -386,7 +405,7 @@ local function lootTick(p, st)
     end
     local moved = math.max(0, (invCount(p)) - st.before)
     local late = PZA.now() - st.queuedAt > K.LOOT_MS + K.LOOT_ITEM_MS * st.want
-    if moved >= st.want or (late and moved > 0) then return "done", { moved = moved } end
+    if moved >= st.want or (late and moved > 0) then return "done", { moved = moved, skipped = st.skippedWeight or 0 } end
     if late then return "failed", "interrupted" end
     return nil
 end
@@ -401,7 +420,10 @@ K.types.interact = {
             if filter == nil then filter = "all" end
             if type(filter) ~= "string" or FILTERS[filter] == nil then return false, "bad args" end
         end
-        return true, "", { x = math.floor(x), y = math.floor(y), kind = kind, filter = filter, sub = nil }
+        local maxWeight = args.maxWeight
+        if maxWeight == nil then maxWeight = 0 end
+        if type(maxWeight) ~= "number" or maxWeight < 0 then return false, "bad args" end
+        return true, "", { x = math.floor(x), y = math.floor(y), kind = kind, filter = filter, maxWeight = maxWeight, sub = nil }
     end,
     tick = function(p, st)
         if isDead(p) then return "failed", "dead" end

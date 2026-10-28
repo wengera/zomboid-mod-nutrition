@@ -556,7 +556,8 @@
       "type": "object",
       "properties": {
         "moved": {"description": "The number of items looted.", "type": "integer"},
-        "open": {"description": "Whether the door or window is now open.", "type": "boolean"}
+        "open": {"description": "Whether the door or window is now open.", "type": "boolean"},
+        "skipped": {"description": "Items left for the weight cap.", "type": "integer"}
       }
     },
     "result_equip": {

@@ -229,7 +229,8 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g.CharacterStat = J(**{n: n for n in STAT_NAMES})
     g.MoodleType = J(**{n: n for n in MOODLE_NAMES})
     g.instanceof = lambda o, cls: getattr(o, "_cls", None) == cls
-    g.getGameTime = lambda: J(getHour=lambda s: 7, getMinutes=lambda s: 30, getWorldAgeHours=lambda s: 31.5)
+    g.getGameTime = lambda: J(getHour=lambda s: 7, getMinutes=lambda s: 30, getWorldAgeHours=lambda s: 31.5,
+                                getTimeOfDay=lambda s: 8.0)
     q = make_queue()
     g._queue = q
     g.ISTimedActionQueue = J(add=lambda a: q.add(a), getTimedActionQueue=lambda p: q.getTimedActionQueue(p),
