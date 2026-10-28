@@ -12,9 +12,10 @@ orders and enums, `encode`, `decode`, `merge_delta` and the command dataclasses)
 
 `load()` refuses a schema whose parts disagree (an x-order that is not its properties, an enum without its per-kind
 definitions, a property without a description), so no field, kind or enum reaches a target unchecked. A group's fields
-are only ever appended at the end of its x-order; its `x-prior` names its arity before the last append (the X4 fix
-pass's `me` and `cost`), and `decode` reads a line of that arity with the appended fields absent, so a log written
-before the append still replays; any other arity is refused. `--check`
+are only ever appended at the end of its x-order (PZA/1.1: PZAgent 1.1's `me` and `cost`); its `x-prior` names the
+oldest arity a writer used (before the first append), and `decode` reads a group array of any arity from it up to the
+full order with the trailing fields None, so a log written before an append still replays; a shorter or a longer
+array is refused. `--check`
 compares with CRLF read as LF on both sides; `--write` writes LF, UTF-8. Stdlib only.
 """
 import argparse
@@ -527,7 +528,7 @@ def _dec(owner, a, top=False):
     if a is None:
         return None
     order = _POS[owner]
-    if not isinstance(a, list) or (len(a) != len(order) and len(a) != PRIOR.get(owner)):
+    if not isinstance(a, list) or not (len(a) == len(order) or PRIOR.get(owner, len(order)) <= len(a) < len(order)):
         raise ValueError("PZA/1 %s: want %s fields, got %r" % (owner, len(order), a))
     shapes = SHAPES.get(owner, {})
     d = {}
@@ -547,6 +548,8 @@ def _dec(owner, a, top=False):
             d[f] = [_dec(s[1], e) for e in x]
         else:
             d[f] = list(x)
+    for f in order[len(a):]:
+        d[f] = None
     return d
 
 
@@ -613,7 +616,8 @@ def render_py(sch=None):
     P.extend(_pdict("ORDER", {k: sch["order"][k] for k in sch["kinds"]}, "each kind's top-level fields in order"))
     P.extend(_pdict("GROUPS", {g: d["order"] for g, d in sch["groups"].items()}, "a frame's groups, elidable in a delta"))
     P.extend(_pdict("PRIOR", {g: d["prior"] for g, d in sch["groups"].items() if d.get("prior") is not None},
-                    "a group's arity before its last appended fields: a line of it decodes with those fields absent"))
+                    "a group's oldest arity (before its appended fields): a shorter array of it, down to this, decodes "
+                    "with the trailing fields None"))
     P.extend(_pdict("RECORDS", {r: d["order"] for r, d in sch["records"].items()}, "the positional records"))
     P.extend(_pdict("SHAPES", {o: {f: list(s) for f, s in sh.items()} for o, sh in sch["shapes"].items() if sh},
                     'each positional field that is not a plain value: ("group" | "rec" | "list" | "vlist", its name)'))

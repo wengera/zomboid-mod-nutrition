@@ -29,11 +29,14 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")
 ART = os.path.join(ROOT, "testing", "artifacts")
 
 LIVE = {
-    # run id: (frames the guide states, sha256 of the final World's to_json())
-    "x4_link-20261027-171916": (7533, "ee3d9864bb28083a6b6bcc66b951eac72f465279058b809ec2cfcb36d6061dad"),
-    "x5_combat-20261027-173248": (993, "d571a53af244452c6e6faff90ffe729ca30f7b981c2d0cc9264fdeee3a3a33cc"),
-    "d_survive-20261027-173724": (5033, "0a335564ebf40d58656c095d9172687ee12949c4a2f147291d11d17f3bc248d8"),
-    "d_survive-20261027-175917": (2568, "3286e0e61acc2646a4292480cee97127660d5f45c2497a5fa9f8725990997a0a"),
+    # run id: (frames the guide states, sha256 of the final World's to_json()). All four re-recorded under the PZA/1.1
+    # field additions of 1d2e2d24 (Plan 22 X4 fix pass 1: me's zombiesSeen and zombiesListed, cost's pollMs .. maxStartMs),
+    # which the X4 fix pass 1b decoder reads as None in these logs written before them: the final World carries the ten
+    # keys as null, and with them removed each JSON hashed to its previous golden (checked before re-recording).
+    "x4_link-20261027-171916": (7533, "d000a505f694068c66227b384fec61629c4a1283f6b1793cff26507a14e2dc0a"),
+    "x5_combat-20261027-173248": (993, "bc4a9295264516031a3a3672a72f7e719a57bf736240b905eb15205c511dc19d"),
+    "d_survive-20261027-173724": (5033, "8503532354f48785af2524b508adb1b08b803ff2152a90b71f23450bd760b8a4"),
+    "d_survive-20261027-175917": (2568, "68d84488a1c7da8b94c1ef142d9c3d0c0ec1aa7cd54e6b592da0e9e5f3de0a99"),
 }
 
 

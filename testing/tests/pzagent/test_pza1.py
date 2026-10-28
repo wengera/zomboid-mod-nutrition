@@ -128,7 +128,7 @@ def test_decode_refuses_a_wrong_arity_and_an_unknown_kind():
         pza1.decode(arr + [0])
     bad = list(arr)
     me = pza1.ORDER["frame"].index("me")
-    bad[me] = bad[me][:-1]
+    bad[me] = bad[me][:pza1.PRIOR["me"] - 1]                  # shorter than any writer wrote (PZA/1.1)
     with pytest.raises(ValueError):
         pza1.decode(bad)
     m = json.loads(pza1.encode("map", dict(rand_map(rng), squares=[rand_square(rng)])))
@@ -373,15 +373,24 @@ def test_me_and_cost_append_their_new_fields_after_the_prior_prefix():
     assert pza1.PRIOR == {"me": 11, "cost": 8}
 
 
-def test_a_frame_written_before_the_append_decodes_with_the_new_fields_absent_and_no_other_arity_does():
+def test_a_frame_written_before_the_append_decodes_with_the_new_fields_none_and_no_shorter_or_longer_one_does():
+    """X4 fix pass 1b (PZA/1.1): a group array from its x-prior arity up to its order decodes, the trailing fields
+    None; below x-prior or past the order it is refused."""
     rng = random.Random(29)
     arr = json.loads(pza1.encode("frame", rand_frame(rng)))
     me, cost = pza1.ORDER["frame"].index("me"), pza1.ORDER["frame"].index("cost")
     old = list(arr)
     old[me], old[cost] = arr[me][:11], arr[cost][:8]
     d = pza1.decode(old)
-    assert list(d["me"]) == list(pza1.GROUPS["me"][:11]) and list(d["cost"]) == list(pza1.GROUPS["cost"][:8])
-    for g, n in (("me", 12), ("me", 10), ("cost", 9), ("cost", 15)):
+    assert list(d["me"]) == list(pza1.GROUPS["me"]) and list(d["cost"]) == list(pza1.GROUPS["cost"])
+    assert d["me"]["zombiesSeen"] is None and d["me"]["zombiesListed"] is None and d["me"]["x"] == arr[me][0]
+    assert all(d["cost"][k] is None for k in pza1.GROUPS["cost"][8:]) and d["cost"]["tickMs"] == arr[cost][0]
+    for g, n in (("me", 12), ("cost", 9), ("cost", 15)):
+        ok = list(arr)
+        i = pza1.ORDER["frame"].index(g)
+        ok[i] = arr[i][:n]
+        assert pza1.decode(ok)[g][pza1.GROUPS[g][n]] is None
+    for g, n in (("me", 10), ("me", 14), ("cost", 7), ("cost", 17)):
         bad = list(arr)
         i = pza1.ORDER["frame"].index(g)
         bad[i] = (arr[i] + [0] * n)[:n]

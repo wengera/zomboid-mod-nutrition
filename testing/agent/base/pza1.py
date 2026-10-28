@@ -35,7 +35,7 @@ GROUPS = {
     "act": ("aid", "state"),
     "cost": ("tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs"),
 }
-# a group's arity before its last appended fields: a line of it decodes with those fields absent
+# a group's oldest arity (before its appended fields): a shorter array of it, down to this, decodes with the trailing fields None
 PRIOR = {
     "me": 11,
     "cost": 8,
@@ -195,7 +195,7 @@ def _dec(owner, a, top=False):
     if a is None:
         return None
     order = _POS[owner]
-    if not isinstance(a, list) or (len(a) != len(order) and len(a) != PRIOR.get(owner)):
+    if not isinstance(a, list) or not (len(a) == len(order) or PRIOR.get(owner, len(order)) <= len(a) < len(order)):
         raise ValueError("PZA/1 %s: want %s fields, got %r" % (owner, len(order), a))
     shapes = SHAPES.get(owner, {})
     d = {}
@@ -215,6 +215,8 @@ def _dec(owner, a, top=False):
             d[f] = [_dec(s[1], e) for e in x]
         else:
             d[f] = list(x)
+    for f in order[len(a):]:
+        d[f] = None
     return d
 
 
