@@ -59,13 +59,15 @@ class Rig:
         self.acts.pump(lines)
 
     def frame(self, x=100.0, y=200.0, zombies=(), weapon=BAT, health=100.0, hunger=0.1, thirst=0.1, level=0,
-              game_min=480.0, wounds=None, load_max=8.0, fatigue=0.05, hour=8.0, z=0, weight=4.5):
+              game_min=480.0, wounds=None, load_max=8.0, fatigue=0.05, hour=8.0, z=0, weight=4.5, world_age=None):
+        """`world_age` (hours) defaults to `game_min / 60`, the day-one clock, so a test that steps `game_min` steps
+        the monotonic clock the planner's timers read (fix wave P, I-1); a midnight test passes both."""
         me = dict(DEFAULT_FRAME["me"], x=x, y=y, z=z, hour=hour)
         stats = dict(DEFAULT_FRAME["stats"], hunger=hunger, thirst=thirst, fatigue=fatigue)
         body = dict(DEFAULT_FRAME["body"], health=health, **(wounds or {}))
         load = dict(DEFAULT_FRAME["load"], level=level, max=load_max, weight=weight)
         self.fake.frame(me=me, stats=stats, body=body, load=load, weapon=weapon, zombies=list(zombies),
-                        gameMin=game_min)
+                        gameMin=game_min, worldAge=game_min / 60.0 if world_age is None else world_age)
         self.pump()
 
     def event(self, kind, **k):
@@ -606,10 +608,10 @@ def test_spare_is_the_heaviest_held_item_of_no_kept_use_and_loothouse_never_drop
     r = Rig(tmp_path)
     r.scan([square(102, 200, containers=[CRATE])])
     for iid, ft, wt in [(601, "Base.BaseballBat", 9.0), (602, "Base.Plank", 3.0), (603, "Base.Nails", 0.5),
-                        (604, "Base.TinnedSoup", 5.0), (605, "Base.Crowbar", 4.0), (606, "Base.WaterBottle", 6.0)]:
+                        (604, "Base.Bread", 5.0), (605, "Base.Crowbar", 4.0), (606, "Base.WaterBottle", 6.0)]:
         r.event("item_added", itemId=iid, fullType=ft, weight=wt)
     r.frame(level=3)
-    assert P.spare(r.world) == 602                           # not the bat, the crowbar, the soup or the water
+    assert P.spare(r.world) == 602                           # not the bat, the crowbar, the bread or the water
     r.event("item_removed", itemId=602, fullType="Base.Plank")
     assert P.spare(r.world) == 603
     r.event("item_removed", itemId=603, fullType="Base.Nails")

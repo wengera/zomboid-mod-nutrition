@@ -7,7 +7,9 @@ map names by full type only.
 `data/food-items.json` (the 42.21.0 scan, `tools/food_scan.py`) lists its `items` with an `id` (the full type) and a
 `kind`: `food`, `drainable` or `fluid_container`. `use_of(full_type)` answers, in this order:
 
-- `food`: the dataset's `kind == "food"` (`FOOD_IDS`);
+- `food`: the dataset's `kind == "food"` (`FOOD_IDS`), except a food the dataset marks `cant_eat` (a sealed can,
+  `CantEat = true`: vanilla's menu never offers its eat, though `ISEatFoodAction:isValid` would run it), which reads
+  `other` (Plan 23 fix wave P, I-4);
 - `water`: a `kind == "fluid_container"` item the dataset marks `drinkable`, unless every fluid it names
   (`fluid_ids`, non-empty) is one whose `fluids` record carries `poison` (Bleach, HairDye, TaintedWater, ...)
   (`DRINK_IDS`). A container named `...Empty` (`Base.PopEmpty`, `Base.BeerEmpty`) is a drinkable container in the
@@ -18,6 +20,9 @@ map names by full type only.
   fluid containers), so the weapon rule stays this name guess until a weapon dataset exists;
 - `other`: everything else, a name the dataset does not carry and a non-drinkable or poison container included
   (`Base.PetrolCan`, the buckets).
+
+`days_fresh(full_type)` is the dataset's `days_fresh` (None for a food that never spoils, or a name it does not carry):
+the need's pick among foods, the most perishable first (fix wave P, I-4).
 
 The dataset is read once (`functools.lru_cache` on the loader), from the repository root resolved off this file.
 """
@@ -51,7 +56,7 @@ def _drinkable(item, fluids):
 
 
 _ITEMS, _FLUIDS = dataset()
-FOOD_IDS = frozenset(i for i, it in _ITEMS.items() if it.get("kind") == "food")
+FOOD_IDS = frozenset(i for i, it in _ITEMS.items() if it.get("kind") == "food" and not it.get("cant_eat"))
 DRINK_IDS = frozenset(i for i, it in _ITEMS.items() if _drinkable(it, _FLUIDS))
 
 
@@ -67,3 +72,9 @@ def use_of(full_type):
     if WEAPON_RX.search(ft):
         return "weapon"
     return "other"
+
+
+def days_fresh(full_type):
+    """The dataset's `days_fresh` of a full type, else None."""
+    v = (_ITEMS.get(full_type or "") or {}).get("days_fresh")
+    return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None

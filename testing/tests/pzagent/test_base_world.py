@@ -610,9 +610,12 @@ def test_interiors_group_the_room_squares_by_building_and_doors_of_names_the_doo
 
 
 def _use(name):
-    """What the dataset says an item is for (food; a fluid container, water), None when it says nothing."""
-    kind = (DATA.get(name) or {}).get("kind")
-    return {"food": "food", "fluid_container": "water"}.get(kind)
+    """What the dataset says an item is for (food, unless it is `cant_eat`, a sealed can: fix wave P I-4; a fluid
+    container, water), None when it says nothing."""
+    it = DATA.get(name) or {}
+    if it.get("cant_eat"):
+        return "other"
+    return {"food": "food", "fluid_container": "water"}.get(it.get("kind"))
 
 
 def test_by_use_sorts_the_inventory_by_the_datasets_use():
@@ -671,3 +674,67 @@ def test_by_use_prefers_the_events_use_and_falls_back_to_the_dataset():
     w.apply(event("item_added", itemId=4, fullType="Base.Bowl", weight=0.1, use="water"))
     w.mark_empty(4)
     assert 4 in w.by_use()["other"]
+
+
+# -- fix wave P: the monotonic game clock (I-1), the map-version cache (M-4), the refused foods (I-4) -----------------
+
+def test_world_minutes_reads_world_age_and_never_wraps_at_midnight():
+    w = World()
+    assert w.world_minutes() == 0.0
+    w.apply(frame(0, gameMin=1439.0, worldAge=23.0 + 59.0 / 60.0))
+    assert w.world_minutes() == pytest.approx(1439.0)
+    w.apply(frame(0, gameMin=1.0, worldAge=24.0 + 1.0 / 60.0))   # 00:01 the next day: gameMin wrapped
+    assert w.game_min == 1.0 and w.world_minutes() == pytest.approx(1441.0)
+    w.apply(frame(0, gameMin=5.0, worldAge=None))                # a frame with no worldAge: gameMin stands in
+    assert w.world_minutes() == 5.0
+
+
+def test_a_stuck_mark_made_before_midnight_expires_after_it():
+    w = World()
+    w.apply(frame(0, me=me_at(1.0, 1.0), gameMin=1430.0, worldAge=1430.0 / 60.0))
+    w.apply(mapline([_sq(x, y) for x in range(3) for y in range(3)]))
+    edge = w.unexplored_edge()
+    w.mark_stuck(*edge)
+    assert w.unexplored_edge() != edge
+    w.apply(frame(0, me=me_at(1.0, 1.0), gameMin=10.0, worldAge=(1440.0 + 10.0) / 60.0))   # 20 game minutes on
+    assert w.unexplored_edge() != edge
+    w.apply(frame(0, me=me_at(1.0, 1.0), gameMin=50.0, worldAge=(1440.0 + 50.0) / 60.0))   # STUCK_TTL_MIN on
+    assert w.unexplored_edge() == edge
+
+
+def test_interiors_and_doors_are_cached_per_map_version():
+    w = _world([_sq(1, 1, room="kitchen", building=7, door=DOOR), _sq(2, 1, room="kitchen", building=7)])
+    v0 = w.map_version
+    a = w.interiors()
+    assert w.interiors() is a and w.map_version == v0           # no square applied: the same object
+    walks = []
+    real = World._index
+
+    def counting(self):
+        walks.append(1)
+        return real(self)
+    World._index = counting
+    try:
+        w.interiors(), w.doors_of(7), w.doors_of(8), w.interiors()
+        assert walks == []                                      # every read off the cached index
+        w.apply(mapline([_sq(9, 9, room="shed", building=8, door=DOOR)], scan_id=2))
+        assert w.map_version > v0
+        assert w.interiors() == {7: [(1, 1, 0), (2, 1, 0)], 8: [(9, 9, 0)]} and w.doors_of(8) == [(9, 9, 0)]
+        w.doors_of(7)
+        assert walks == [1]                                     # one walk per map version
+    finally:
+        World._index = real
+
+
+def test_mark_refused_drops_a_food_from_by_use_and_to_json_carries_it_only_when_non_empty():
+    w = World()
+    golden = w.to_json()
+    w.apply(event("item_added", itemId=8, fullType="Base.Apple", weight=0.2))
+    w.apply(event("item_added", itemId=3, fullType="Base.Apple", weight=0.2))
+    assert "refusedIds" not in json.loads(w.to_json())
+    w.mark_refused(8)
+    assert w.by_use()["food"] == [3] and 8 in w.by_use()["other"]
+    assert json.loads(w.to_json())["refusedIds"] == [8]
+    w.apply(event("item_removed", itemId=8))
+    assert w.refused_ids == set() and "refusedIds" not in json.loads(w.to_json())
+    assert "refusedIds" not in golden

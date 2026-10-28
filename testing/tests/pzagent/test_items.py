@@ -31,7 +31,8 @@ def _water(it):
 
 
 def test_the_index_is_the_datasets_food_and_fluid_containers():
-    assert items.FOOD_IDS == frozenset(i for i, it in DATA.items() if it["kind"] == "food")
+    assert items.FOOD_IDS == frozenset(i for i, it in DATA.items()
+                                       if it["kind"] == "food" and not it.get("cant_eat"))   # fix wave P, I-4
     assert items.DRINK_IDS == frozenset(i for i, it in DATA.items() if _water(it))
     assert items.FOOD_IDS and items.DRINK_IDS and not items.FOOD_IDS & items.DRINK_IDS
 
@@ -42,14 +43,15 @@ def test_carrots_are_food():
 
 
 def test_the_plan_22_misses_are_food_where_the_dataset_has_them():
-    """The four names the survival runs' held-food regex missed: each the dataset carries is food; a name it does not
-    carry (on 42.21, `Base.PowerBar`) reads `other` and is reported, never forced."""
+    """The four names the survival runs' held-food regex missed: each the dataset carries is food, unless it is a
+    sealed can (`cant_eat`, fix wave P I-4: `TinnedSoup`, `Macandcheese` on 42.21), which reads `other`; a name it does
+    not carry (on 42.21, `Base.PowerBar`) reads `other` and is reported, never forced."""
     names = ("Base.CannedMilk", "Base.TinnedSoup", "Base.Macandcheese", "Base.PowerBar")
     present = [n for n in names if n in DATA]
     assert len(present) >= 3, present
     for n in present:
         assert DATA[n]["kind"] == "food", n
-        assert items.use_of(n) == "food", n
+        assert items.use_of(n) == ("other" if DATA[n].get("cant_eat") else "food"), n
     for n in set(names) - set(present):
         assert items.use_of(n) == "other", n
 
@@ -123,3 +125,22 @@ def test_the_uses_are_the_five_names():
 def test_pants_and_panties_are_not_weapons_by_the_rx():
     assert items.use_of("Base.Pants") == "other"
     assert items.use_of("Base.Pan") == "weapon"
+
+
+# ================================================================ fix wave P (I-4)
+def test_a_food_the_dataset_marks_cant_eat_is_other_never_food():
+    """A sealed can (`CantEat = true`): vanilla's menu never offers its eat, so the planner never reads it food."""
+    sealed = sorted(i for i, it in DATA.items() if it["kind"] == "food" and it.get("cant_eat"))
+    assert "Base.TinnedBeans" in sealed and len(sealed) > 10, sealed
+    for i in sealed:
+        assert items.use_of(i) == "other", i
+    assert items.FOOD_IDS == frozenset(i for i, it in DATA.items() if it["kind"] == "food" and not it.get("cant_eat"))
+    assert items.use_of("Base.Apple") == "food" and not DATA["Base.Apple"].get("cant_eat")
+
+
+def test_days_fresh_reads_the_dataset_and_none_for_a_name_it_does_not_carry():
+    fresh = sorted(i for i, it in DATA.items() if it["kind"] == "food" and it.get("days_fresh") is not None)
+    assert fresh
+    for i in fresh[:20]:
+        assert items.days_fresh(i) == DATA[i]["days_fresh"], i
+    assert items.days_fresh("Base.NoSuchThing") is None and items.days_fresh(None) is None

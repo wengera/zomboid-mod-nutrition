@@ -4,7 +4,8 @@ It reads what the transport gives: keyed full dicts, every delta frame already m
 `apply(line)` dispatches on `line["kind"]`; an unknown kind counts in `unknown_kinds` and never raises.
 
 - `frame`: each group (`me`, `stats`, `body`, `load`, `weapon`, `action`, `act`, `cost`) kept as the dict the frame
-  carries, None when the frame's group is null; `game_min`, `frame_wall_ms`; zombies keyed by id with
+  carries, None when the frame's group is null; `game_min`, `world_age` (the frame's `worldAge`, hours; not in
+  `to_json`, so the goldens keep their bytes), `frame_wall_ms`; zombies keyed by id with
   `seenWallMs = wallMs`, a zombie unseen for more than `ZOMBIE_TTL_S` aged out at the next frame. No clock is read.
 - `map`: each square applied at once (no whole-scan hold): `map[(x, y, z)]` the square dict as decoded, its
   containers at `containers[(x, y, z, i)] = {type, n, items, looted}`, `looted` the set of uses a loot took there
@@ -24,8 +25,14 @@ It reads what the transport gives: keyed full dicts, every delta frame already m
   newest scanId seen and `damage_seen_i` (else a relaunched client's scans would all be dropped as older).
   `reply`: `last_reply`.
 
+The planner's game clock (Plan 23 fix wave P, I-1): `world_minutes()` is `worldAge * 60`, the game minutes since the
+world began, monotonic across midnight (the frame's `gameMin` is the minute of the day, `h * 60 + m`, and wraps); a
+frame with no number for `worldAge` falls back to `gameMin`. Every game-minute timer of the planner reads it (the
+stuck marks here, the night's and the Shelter goal's shuns); `game_min` stays for the logs.
+
 `stuck` is the planner's memory, not the lines': `mark_stuck(x, y)` records a walk target that ended stuck at the
-current gameMin and `unexplored_edge` leaves it out for STUCK_TTL_MIN game minutes; `to_json` does not carry it.
+current `world_minutes()` and `unexplored_edge` leaves it out for STUCK_TTL_MIN game minutes; `to_json` does not
+carry it.
 
 The server's side comes in through `merge_server(stats, wall_ms)` and `merge_damage(reply, wall_ms)`, a
 `damage.watch` reply whose `last` records not yet seen (by `i`) land in `damage` tagged `server` (spec § 9).
@@ -41,10 +48,17 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   any blocked edge a step crosses (`blocked`) or any solid or unknown square strictly between the ends. It reads the
   blocked edges, never `edgeN`/`edgeW` (any wall, window or door edge whatever its state), which the square record
   keeps for the view and a later sight reading (ruling P23-K).
-- `reachable_adjacent(target_xy, z)`, `interiors()`, `doors_of(building)`.
+- `reachable_adjacent(target_xy, z)`, `interiors()`, `doors_of(building)`. The map walk behind the last two is cached
+  per map version (fix wave P, M-4): `map_version` rises on every square applied, and `_index()` (one walk: the room
+  squares and the door squares by building) is rebuilt lazily on the first read after it moved; `memo(key, fn)`
+  keeps any other read of the map (the night's exterior doors) for the same version. A cached answer is shared, so a
+  caller only reads it.
 - `by_use()`: the inventory's ids by the item's own `use` (the engine's answer, Plan 23 Task 9b), else `agent.base.items.use_of` (the dataset), an id the
-  planner marked empty (`mark_empty`, kept in `empty_ids` and dropped with its item) moved from `water` to `other`;
-  `nearest_unlooted(want)` keys on the same use. `to_json` carries `emptyIds` sorted, and only while it is non-empty,
+  planner marked empty (`mark_empty`, kept in `empty_ids` and dropped with its item) moved from `water` to `other`,
+  and an id the planner found refused (`mark_refused`, fix wave P I-4: a food whose consume ended `failed "not
+  valid"`, kept in `refused_ids` and dropped with its item) moved from `food` to `other`;
+  `nearest_unlooted(want)` keys on the same use. `to_json` carries `emptyIds` and `refusedIds` sorted, each only while
+  it is non-empty,
   so a World that never marked one serialises as before (the replay goldens keep their bytes). For the same reason a
   container's `looted` set serialises as its uses sorted, or `false` while it is empty.
 """
@@ -78,6 +92,7 @@ class World:
         for g in GROUPS:
             setattr(self, g, None)
         self.game_min = None
+        self.world_age = None        # the frame's worldAge (hours), the clock world_minutes() reads
         self.frame_wall_ms = None
         self.zombies = {}            # id -> {x, y, dist, hasTarget, crawler, health, seenWallMs}
         self.map = {}                # (x, y, z) -> the square dict
@@ -85,6 +100,7 @@ class World:
         self.buildings = set()
         self.inventory = {}          # itemId -> {fullType, weight}
         self.empty_ids = set()       # the held ids the planner found empty (mark_empty), never a line's
+        self.refused_ids = set()     # the held food ids whose consume the Lua refused (mark_refused), never a line's
         self.damage = deque(maxlen=DEQUE_N)
         self.damage_seen_i = set()   # the damage.watch record numbers already merged
         self.damage_counts_server = None
@@ -99,7 +115,10 @@ class World:
         self.dropped_scans = 0
         self.scans_dropped = set()   # the aids of the scans whose job the Lua dropped (scan_dropped, S-32)
         self.map_lines = 0
-        self.stuck = {}              # (x, y) -> gameMin: a walk target that ended stuck, set by the planner
+        self.stuck = {}              # (x, y) -> world_minutes(): a walk target that ended stuck, set by the planner
+        self.map_version = 0         # rises on every square applied: the key of the map's cached reads
+        self._memo = {}              # key -> (map_version, value): the cache of memo()
+        self._indexed = None         # (map_version, {building: [room squares]}, {building: [door squares]})
         self._newest_scan = None
         self._handlers = {"hello": self._hello, "frame": self._frame, "map": self._map, "event": self._event,
                           "act": self._act, "reply": self._reply}
@@ -128,6 +147,7 @@ class World:
         for g in GROUPS:
             setattr(self, g, line.get(g))
         self.game_min = line.get("gameMin")
+        self.world_age = line.get("worldAge")
         self.frame_wall_ms = wall
         for z in line.get("zombies") or ():
             self.zombies[z.get("id")] = dict({k: v for k, v in z.items() if k != "id"}, seenWallMs=wall)
@@ -154,6 +174,7 @@ class World:
             return
         x, y, z = s["x"], s["y"], s.get("z") or 0
         self.map[(x, y, z)] = s
+        self.map_version += 1
         if s.get("building") is not None:
             self.buildings.add(s["building"])
         cs = s.get("containers") or []
@@ -177,6 +198,7 @@ class World:
             if self.inventory.pop(line.get("itemId"), None) is None:
                 self.missing_items += 1
             self.empty_ids.discard(line.get("itemId"))
+            self.refused_ids.discard(line.get("itemId"))
         elif kind == "damage":
             self.damage.append({"tag": line.get("tag"), "amount": line.get("amount"), "side": line.get("side"),
                                 "wallMs": line.get("wallMs")})
@@ -233,12 +255,21 @@ class World:
                 best = rank
         return best[1] if best else None
 
+    def world_minutes(self):
+        """Game minutes since the world began, `worldAge * 60` (monotonic across midnight) rounded to 1e-6 minute (so a
+        whole minute carried in hours reads whole, and a TTL boundary falls on it), else the frame's gameMin (an older
+        frame without worldAge), else 0.0: the clock of every planner timer in game minutes."""
+        wa = self.world_age
+        if isinstance(wa, (int, float)) and not isinstance(wa, bool):
+            return round(wa * 60.0, 6)
+        return self.game_min or 0.0
+
     def mark_stuck(self, x, y):
-        """Remember the walk target (x, y) as stuck at the current gameMin (the planner's, never a line's)."""
-        self.stuck[(x, y)] = self.game_min or 0.0
+        """Remember the walk target (x, y) as stuck at the current world_minutes() (the planner's, never a line's)."""
+        self.stuck[(x, y)] = self.world_minutes()
 
     def _stuck_now(self):
-        now = self.game_min or 0.0
+        now = self.world_minutes()
         return {k for k, at in self.stuck.items() if now - at < STUCK_TTL_MIN}
 
     def unexplored_edge(self):
@@ -364,30 +395,57 @@ class World:
                 out.append((math.hypot(n[0] + 0.5 - mx, n[1] + 0.5 - my), n[0], n[1], n))
         return [r[3] for r in sorted(out)]
 
-    def interiors(self):
-        """{building: [(x, y, z) sorted]}: the mapped squares with a room, grouped by their building."""
-        out = {}
+    def memo(self, key, fn):
+        """`fn()`, computed once per map version for `key` (a read of the map only; the answer is shared)."""
+        hit = self._memo.get(key)
+        if hit is not None and hit[0] == self.map_version:
+            return hit[1]
+        value = fn()
+        self._memo[key] = (self.map_version, value)
+        return value
+
+    def _index(self):
+        """One walk of the map: ({building: [room squares sorted]}, {building: [door squares sorted]})."""
+        rooms, doors = {}, {}
         for sq, s in self.map.items():
             if s.get("room") is not None:
-                out.setdefault(s.get("building"), []).append(sq)
-        return {b: sorted(v) for b, v in out.items()}
+                rooms.setdefault(s.get("building"), []).append(sq)
+            if s.get("door") is not None:
+                doors.setdefault(s.get("building"), []).append(sq)
+        return {b: sorted(v) for b, v in rooms.items()}, {b: sorted(v) for b, v in doors.items()}
+
+    def _indexes(self):
+        if self._indexed is None or self._indexed[0] != self.map_version:
+            self._indexed = (self.map_version,) + self._index()
+        return self._indexed
+
+    def interiors(self):
+        """{building: [(x, y, z) sorted]}: the mapped squares with a room, grouped by their building (cached per map
+        version: read it, never change it)."""
+        return self._indexes()[1]
 
     def doors_of(self, building):
-        """The mapped squares of `building` with a door, sorted."""
-        return sorted(sq for sq, s in self.map.items() if s.get("building") == building and s.get("door") is not None)
+        """The mapped squares of `building` with a door, sorted (cached per map version: read it, never change it)."""
+        return self._indexes()[2].get(building, [])
 
     # -- the inventory by use and the empties (Plan 23 Task 9, P23-D) -----------------------------------------------
     def mark_empty(self, item_id):
         """Remember a held item as empty (the planner's, never a line's): `by_use` moves it from `water` to `other`."""
         self.empty_ids.add(item_id)
 
+    def mark_refused(self, item_id):
+        """Remember a held food the Lua refused to consume (the planner's, never a line's): `by_use` moves it from
+        `food` to `other`, so the need never picks it again."""
+        self.refused_ids.add(item_id)
+
     def by_use(self):
-        """{use: [ids sorted]} for every use in USES: the inventory's ids by the item's `use` (else `items.use_of` of its fullType), an id
-        in `empty_ids` read as `other` rather than `water`."""
+        """{use: [ids sorted]} for every use in USES: the inventory's ids by the item's `use` (else `items.use_of` of
+        its fullType), an id in `empty_ids` read as `other` rather than `water`, one in `refused_ids` as `other` rather
+        than `food`."""
         out = {u: [] for u in USES}
         for iid, it in self.inventory.items():
             use = it.get("use") or use_of(it.get("fullType"))
-            if use == "water" and iid in self.empty_ids:
+            if (use == "water" and iid in self.empty_ids) or (use == "food" and iid in self.refused_ids):
                 use = "other"
             out[use].append(iid)
         return {u: sorted(v, key=_num_first) for u, v in out.items()}
@@ -421,4 +479,6 @@ class World:
         })
         if self.empty_ids:
             d["emptyIds"] = sorted(self.empty_ids, key=_num_first)
+        if self.refused_ids:
+            d["refusedIds"] = sorted(self.refused_ids, key=_num_first)
         return json.dumps(d, sort_keys=True, indent=1, ensure_ascii=False)
