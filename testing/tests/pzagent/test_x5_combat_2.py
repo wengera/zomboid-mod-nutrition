@@ -123,19 +123,20 @@ class CombatMod(FakeMod):
     as the server may reuse a dead zombie's id), `bus_dead_at` (the zombie.near of that encounter and every ping
     stall: a dead bus). Plan 23 Task 16b: `ambient_dist` (the still zombie's tiles), `list_after` (a spawned zombie is
     listed only once its age passes that many ticks), `unlisted` (encounter numbers whose spawn the server holds and no
-    frame ever lists: S-22); `me` carries zombiesSeen (the live zombies, listed or not) and zombiesListed."""
+    frame ever lists: S-22), `flee_after` (a spawned zombie stands 20 tiles off once its age passes that many
+    ticks, still listed); `me` carries zombiesSeen (the live zombies, listed or not) and zombiesListed."""
     SWING_TICKS = 3       # ticks from an attack's accept to its end
     REACH = 2.0           # tiles: a walkTo ends when the zombie is this close
 
     def __init__(self, d, clock, start_dist=4.0, body_drop=5.0, near_fail=(), dead_player=False, close=0.5,
                  bus_s=0.05, ambient=False, vanish_ticks=None, reuse_ids=False, bus_dead_at=None, ambient_dist=9.0,
-                 list_after=0, unlisted=()):
+                 list_after=0, unlisted=(), flee_after=None):
         super().__init__(d, clock=clock.now)
         self.clk = clock
         self.hz, self.x, self.y = 10, 100.5, 200.5
         self.start_dist, self.body_drop, self.near_fail = start_dist, body_drop, set(near_fail)
         self.dead_player, self.close, self.bus_s = dead_player, close, bus_s
-        self.list_after, self.unlisted = list_after, set(unlisted)
+        self.list_after, self.unlisted, self.flee_after = list_after, set(unlisted), flee_after
         self.health, self.weapon, self.has_kit = 100.0, None, False
         self.zombies = {}            # id -> {dist, health, dead, gone, swings, age, still}
         if ambient:
@@ -225,6 +226,8 @@ class CombatMod(FakeMod):
             z["age"] += 1
             if self.vanish_ticks is not None and not z["still"] and z["age"] > self.vanish_ticks:
                 z["gone"] = True
+            elif self.flee_after is not None and not z["still"] and z["age"] > self.flee_after:
+                z["dist"] = 20.0                    # beyond DISENGAGE_R, still listed: the Fight drops its pin
             elif not z["still"]:
                 z["dist"] = max(1.0, z["dist"] - self.close)
         live = self._live()
@@ -770,9 +773,14 @@ def test_a_spawn_no_frame_lists_is_recorded_and_its_encounter_skipped(tmp_path, 
     assert GT.measure_x5(out)["encounters"] == {"n": 3, "voided": 1}
 
 
+def _first_sent_after(readings, fw):
+    return next((x for x in readings if x["epoch_ms_before"] > fw), None)
+
+
 def test_the_swing_reads_come_from_the_poll_threads_latest(tmp_path, monkeypatch):
     """No zombie.get inside the fight's loop: each swing's server_before is the newest poll result at its send, its
-    server_after the first read after its end frame (P23-S), with poll_pair's wall difference."""
+    server_after the first read SENT after its end frame (P23-S fix 2): a read in flight across the frame is refused
+    (the fake's 0.3-s bus ticks frames inside a read, so some reads straddle an end frame)."""
     monkeypatch.setattr(D, "ENCOUNTERS", 2)
     SyncPolls.made.clear()
     out, mod, asked, x5 = run_x5(tmp_path, bus_s=0.3)
@@ -782,8 +790,9 @@ def test_the_swing_reads_come_from_the_poll_threads_latest(tmp_path, monkeypatch
     assert len(polls) == 2 and all(p.started == 1 and p.stopped >= 1 for p in polls)
     assert polls[0].timeout_s == D.POLL_JOIN_S
     frames = {l["seq"]: l for l in x5.lines if l.get("kind") == "frame"}
+    refused = 0
     for r, p in zip(out["readings"]["encounters"]["rows"], polls):
-        assert r["polls_joined"] is True and r["poll_errors"] == []
+        assert r["polls_joined"] is True and r["poll_errors"] == [] and r["off_target_swings"] == []
         readings = [res[0] for res in p.results]
         walls = [res[1] * 1000.0 for res in p.results]
         assert r["swings"]
@@ -792,27 +801,35 @@ def test_the_swing_reads_come_from_the_poll_threads_latest(tmp_path, monkeypatch
             assert s["server_before"] is None or any(s["server_before"] is x for x in readings)
             pp = s["poll_pair"]
             assert pp["frameSeq"] == min(q for q in frames if q > s["ended_seq"])     # the first frame after the end
-            assert pp["frameWallMs"] == frames[pp["frameSeq"]]["wallMs"]
-            assert pp["dtMs"] == pp["readWallMs"] - pp["frameWallMs"]
-            k = walls.index(pp["readWallMs"])
-            assert s["server_after"] is readings[k] and s["server_after"]["id"] == r["zid"]
-            assert pp["readWallMs"] == min(w for w in walls if w > pp["frameWallMs"])
-            assert pp["void"] is False and 0 < pp["dtMs"] <= D.PAIR_AFTER_MAX_S * 1000
-            assert s["pair_void"] is False
+            fw = frames[pp["frameSeq"]]["wallMs"]
+            assert pp["frameWallMs"] == fw
+            straddle = [x for x in readings if x["epoch_ms_before"] < fw < x["epoch_ms_after"]]
+            refused += len(straddle)
+            want = _first_sent_after(readings, fw)
+            if pp["void"] is False:
+                assert s["server_after"] is want and s["server_after"]["id"] == r["zid"]
+                assert all(s["server_after"] is not x for x in straddle)
+                assert pp["sentMs"] == want["epoch_ms_before"] > fw
+                assert pp["readWallMs"] == walls[readings.index(want)]
+                assert pp["dtMs"] == want["epoch_ms_after"] - fw and 0 < pp["dtMs"] <= D.PAIR_AFTER_MAX_S * 1000
+                assert s["pair_void"] is False
+            else:
+                assert s["server_after"] is None and (want is None or want["epoch_ms_after"] - fw > 2000)
+    assert refused >= 1                                  # a read in flight across an end frame was refused
 
 
-def test_poll_after_takes_the_first_read_after_the_frame():
-    reads = [{"reading": {"n": 1}, "readWallMs": 1000.0}, {"reading": {"n": 2}, "readWallMs": 1500.0},
-             {"reading": {"n": 3}, "readWallMs": 2000.0}]
-    assert D.poll_after(reads, 1500)["reading"]["n"] == 3      # at the frame's wall is not after it
-    assert D.poll_after(reads, 1499)["reading"]["n"] == 2
-    assert D.poll_after(reads, 500)["reading"]["n"] == 1
-    assert D.poll_after(reads, 2500) is None and D.poll_after([], 0) is None
+def test_a_read_in_flight_across_the_end_frame_is_refused_and_the_next_taken():
+    reads = [{"reading": {"n": 1, "epoch_ms_before": 900, "epoch_ms_after": 1300}, "readWallMs": 1300.0},
+             {"reading": {"n": 2, "epoch_ms_before": 1310, "epoch_ms_after": 1700}, "readWallMs": 1700.0}]
+    assert D.poll_after(reads, 1000)["reading"]["n"] == 2       # n 1 finished after the frame but left before it
+    assert D.poll_after(reads, 1310) is None
+    assert D.poll_after(reads, 899)["reading"]["n"] == 1
+    assert D.poll_after([{"reading": {"n": 3}, "readWallMs": 5.0}], 0) is None    # no send time: never taken
 
 
-def test_a_read_arriving_after_the_cap_voids_the_swing(tmp_path, monkeypatch):
-    """P23-S: the swing waits (pumping) for the first poll read after its end frame; a read later than
-    PAIR_AFTER_MAX_S after that frame voids it (server_after None, never paired), as the old timeout voided."""
+def test_a_read_done_after_the_cap_voids_the_swing(tmp_path, monkeypatch):
+    """P23-S: the swing waits (pumping) for the first poll read sent after its end frame, until the frame's wall plus
+    PAIR_AFTER_MAX_S; one not done within that (its epoch_ms_after) voids it (server_after None, never paired)."""
     monkeypatch.setattr(D, "PAIR_AFTER_MAX_S", 0.5)
     monkeypatch.setattr(D, "ZOMBIE_POLL_S", 0.8)
     SyncPolls.made.clear()
@@ -820,19 +837,19 @@ def test_a_read_arriving_after_the_cap_voids_the_swing(tmp_path, monkeypatch):
     frames = {l["seq"]: l for l in x5.lines if l.get("kind") == "frame"}
     kinds = set()
     for r, p in zip(out["readings"]["encounters"]["rows"], SyncPolls.made):
-        walls = [res[1] * 1000.0 for res in p.results]
+        readings = [res[0] for res in p.results]
         for s in r["swings"]:
             pp = s["poll_pair"]
             fw = frames[min(q for q in frames if q > s["ended_seq"])]["wallMs"]
-            first = min((w for w in walls if w > fw), default=None)
-            late = first is None or first - fw > 500
+            first = _first_sent_after(readings, fw)
+            late = first is None or first["epoch_ms_after"] - fw > 500
             kinds.add(late)
             assert pp["void"] is late and s["pair_void"] is (late or s["pair_after"]["void"])
             if late:
                 assert s["server_after"] is None and "PAIR_AFTER_MAX_S" in pp["why"]
                 assert s["pair_after"]["void"] is True and s["pair_after"]["why"] == "no server read"
             else:
-                assert 0 < pp["dtMs"] <= 500 and s["server_after"] is not None
+                assert 0 < pp["dtMs"] <= 500 and s["server_after"] is first
     assert kinds == {True, False}                        # both sides of the cap read on this fake
     assert GT.measure_x5(out)["client_server_agreement"]["voided"] >= 1
 
@@ -856,3 +873,101 @@ def test_the_default_polls_are_a_poll_thread(tmp_path):
     x5 = D.X5(xs, FileTransport(str(tmp_path), clock=clock.now), clock=clock.now)
     p = x5.make_polls()
     assert type(p) is D.PollThread and p.clock == clock.now
+
+
+# ================================================================ Plan 23 Task 16b fix 2
+def test_an_unpinned_fight_ends_the_encounter_and_its_off_target_swing_is_kept_apart(tmp_path, monkeypatch):
+    """The spawn steps beyond DISENGAGE_R after its first swing; the Fight drops its pin and pins the still zombie
+    nearer the player: the encounter ends `unpinned` at once, and any swing at that zombie leaves `swings`."""
+    monkeypatch.setattr(D, "ENCOUNTERS", 1)
+    out, mod, asked, x5 = run_x5(tmp_path, ambient=True, ambient_dist=1.5, list_after=10, close=0.2, flee_after=14)
+    r = out["readings"]["encounters"]["rows"][0]
+    assert r["end"]["reason"] == "unpinned" and r["killed"] is False
+    assert r["swings"] and all(s["targetId"] == r["zid"] for s in r["swings"])
+    assert all(s["targetId"] == 6000 for s in r["off_target_swings"]) and len(r["off_target_swings"]) == 1
+    sent = [a for a in r["actions"] if a["type"] == "attack"]
+    assert len(sent) == len(r["swings"]) + len(r["off_target_swings"])
+    assert mod.zombies[6000]["swings"] == 0             # the stop superseded it before it landed, if one was sent
+    m = GT.measure_x5(out)
+    assert m["attack_started_share"]["n"] == len(r["swings"])
+
+
+def test_an_unpinned_end_falsifier_on_the_old_driver(tmp_path, monkeypatch):
+    """x5_combat.py on the same fake goes on fighting the still zombie."""
+    from agent.drivers import x5_combat as D1
+    monkeypatch.setattr(D1, "ENCOUNTERS", 1)
+    monkeypatch.setattr(D1, "ENCOUNTER_S", 8.0)
+    clock = Clock()
+    sd = str(tmp_path / "sd")
+    mod = CombatMod(sd, clock, ambient=True, ambient_dist=1.5, list_after=10, close=0.2, flee_after=14)
+    out = D1.new_out()
+    xs = X.Xs(out, node=lambda side: side, server=FakeServer(mod), ask=make_ask(mod, clock, []), clock=clock.now,
+              sleep=mod.sleep, budget_s=1e9, user="admin")
+    D1.X5(xs, FileTransport(sd, clock=clock.now), clock=clock.now, sleep=mod.sleep).run()
+    r = out["readings"]["encounters"]["rows"][0]
+    assert any(s["targetId"] == 6000 for s in r["swings"])
+
+
+class UnjoinedPolls(SyncPolls):
+    def stop(self, timeout_s=5.0):
+        super().stop(timeout_s)
+        return False
+
+
+def test_a_failed_join_ends_the_encounters_before_between_and_the_next_worker(tmp_path, monkeypatch):
+    clock = Clock()
+    sd = str(tmp_path / "clients" / "admin" / "Lua" / "pzagent" / "admin")
+    mod = CombatMod(sd, clock)
+    out = D.new_out()
+    xs = X.Xs(out, node=lambda side: side, server=FakeServer(mod), ask=make_ask(mod, clock, []), clock=clock.now,
+              sleep=mod.sleep, budget_s=1e9, user="admin")
+    made = []
+    x5 = D.X5(xs, FileTransport(sd, clock=clock.now), clock=clock.now, sleep=mod.sleep,
+              make_polls=lambda: made.append(UnjoinedPolls(clock.now)) or made[-1])
+    x5.run()
+    rows = out["readings"]["encounters"]["rows"]
+    assert len(rows) == 1 and len(made) == 1 and rows[0]["polls_joined"] is False
+    assert rows[0]["stop_reason"] == "poll worker not joined" and rows[0]["server_end"] is None
+    assert out["stop"]["reason"] == "poll_join" and out["stop"]["encounter"] == 1
+    assert "damage" not in rows[0] and "players" not in rows[0]
+    names = [st["step"] for st in out["steps"]]
+    assert "damage_watch_since" not in names and "players" not in names and "zget_end" not in names
+
+
+def test_the_real_poll_thread_leaves_one_bus_caller_at_a_time(tmp_path):
+    """A thread-safe fake bus counting overlapping callers, the real PollThread reading through the copy's step, the
+    join before zget_end taken with a read in flight: never two callers at once."""
+    import threading
+    import time as _t
+    lock, state = threading.Lock(), {"now": 0, "max": 0, "calls": []}
+    release = threading.Event()
+
+    def ask(node, cmd, args, timeout=30):
+        with lock:
+            state["now"] += 1
+            state["max"] = max(state["max"], state["now"])
+            state["calls"].append((threading.current_thread().name, cmd))
+        if threading.current_thread().name == "PollThread":
+            release.wait(2.0)                            # the read held in flight until the main thread joins
+        else:
+            _t.sleep(0.01)
+        with lock:
+            state["now"] -= 1
+        return {"ok": True, "side": "server", "id": 7001, "found": True, "health": 1.0, "dead": False}
+    xs = X.Xs(D.new_out(), node=lambda side: side, ask=ask, budget_s=1e9, user="admin")
+    x5 = D.X5(xs, FileTransport(str(tmp_path)))
+    x5.polls, x5.poll_zid = x5.make_polls(), 7001
+    assert type(x5.polls) is D.PollThread
+    x5.polls.schedule("zombie", 0.01, x5.poll_zombie)
+    x5.polls.start()
+    t0 = _t.time()
+    while not x5.polls.pending("zombie") and _t.time() - t0 < 2.0:
+        _t.sleep(0.005)
+    assert x5.polls.pending("zombie")                   # a read is in flight
+    threading.Timer(0.1, release.set).start()
+    row = {}
+    assert x5.stop_polls(row) is True and row["polls_joined"] is True and not x5.polls.alive()
+    end = x5.zget(7001, "zget_end")
+    assert end["found"] is True and state["max"] == 1
+    assert state["calls"][-1] == (threading.current_thread().name, "zombie.get")
+    assert any(n == "PollThread" for n, _ in state["calls"])
