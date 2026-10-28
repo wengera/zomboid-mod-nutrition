@@ -3,10 +3,16 @@
 -- Two writers, one at a time (Main steps the scan job while one runs, else the watch):
 --   the scan job (moved from Sense): scan{r} walks the (2r+1)^2 grid SCAN_SQUARES_PER_TICK squares a tick, each part
 --   queued as a map line in mode "full" { scanId, part, parts, squares, missing };
---   the watch, a dirty set: each tick the next WATCH_PER_TICK squares of the (2 WATCH_R + 1)^2 ring round the player
---   (by index, cycling) are read, and a square whose dirty key differs from the last one emitted (MP.seen; a key
---   never seen counts as changed) is queued as a one-square map line in mode "delta"
---   { scanId = 0, part = 1, parts = 1 }, at most once every DELTA_MIN_TICKS ticks a square (MP.lastDelta).
+--   the watch, a dirty set: on every WATCH_EVERY-th tick (MP.watchDue: the 10 Hz frame tick whatever S.RATE, so at
+--   60 Hz its cost a tick falls by the rate ratio; X4 fix pass, review I7) the next WATCH_PER_FRAME squares of the
+--   (2 WATCH_R + 1)^2 ring round the player (by index, cycling) are fingerprinted (MP.fingerprint: the solid flags,
+--   each portal's kind and states, each container's item count, the object and floor counts), and only a square whose
+--   fingerprint differs from the one stored for it (MP.fp; none stored counts as changed) is read whole (MP.square);
+--   one whose dirty key differs from the last one emitted (MP.seen; a key never seen counts as changed) is queued as a
+--   one-square map line in mode "delta" { scanId = 0, part = 1, parts = 1 }, at most once every DELTA_MIN_TICKS ticks
+--   a square (MP.lastDelta). The fingerprint is stored once the whole read agrees with MP.seen or its delta is
+--   queued, so a held change is read again on a later cycle. A change the fingerprint cannot see (an item swapped for
+--   another in a container or on the floor, the count unchanged; a room or building change) waits for the next scan.
 -- The dirty key is the square's encoding without light (ruling S-14, MP.watchKey): the dirty set means a world change
 -- (walls, doors, windows, containers, floor), and an unrounded light level would dirty most of the ring at every
 -- lighting drift and fill the budget with deltas; an emitted line still carries the real light.
@@ -15,11 +21,13 @@
 -- through PZA.call (index-first); a member a square lacks is named in the part's missing list, never nil-called.
 PZA.map = PZA.map or {}
 local MP = PZA.map
-MP.WATCH_R = 6              -- tiles: the watch's ring is (2 * 6 + 1)^2 = 169 squares, a cycle of 22 ticks
-MP.WATCH_PER_TICK = 8
+MP.WATCH_R = 6              -- tiles: the watch's ring is (2 * 6 + 1)^2 = 169 squares, a cycle of 22 steps (132 ticks)
+MP.WATCH_PER_FRAME = 8      -- squares a watch step
+MP.WATCH_EVERY = 6          -- ticks between watch steps: the 10 Hz frame tick
 MP.DELTA_MIN_TICKS = 30
 MP.seen = {}
 MP.lastDelta = {}
+MP.fp = {}                  -- the fingerprint each watched square was last settled with, by its grid key
 MP.watchIdx = 0
 MP.missing = {}             -- the members the watch's squares lacked (a delta line carries an empty list)
 MP.errors = 0               -- raises in the map phase, caught by Main's own pcall round it (S-15; raise:map in missing)
@@ -77,6 +85,39 @@ function MP.square(sq, missing)
         if ft ~= nil then q.floor[#q.floor + 1] = ft end
     end
     return q
+end
+
+-- the square's fingerprint (X4 fix pass, review I7): its solid flags, the object count, each portal's kind and
+-- open/locked/barricaded in object order, each container's item count, and the floor's world-object count, as one
+-- string; light, types and names are left out, so a fingerprint is a few reads and no item walk. The objects are read
+-- into one scratch table (W.objectsOn's out)
+local fpScratch = {}
+function MP.fingerprint(sq)
+    local out = {}
+    local _, solid = PZA.call(sq, "isSolid")
+    local _, solidTrans = PZA.call(sq, "isSolidTrans")
+    local objs, n = W.objectsOn(sq, fpScratch)
+    out[1] = tostring(solid == true) .. tostring(solidTrans == true) .. tostring(n)
+    for i = 1, n do
+        local o = objs[i]
+        local kind = W.kindOf(o)
+        if kind ~= nil then
+            local _, open = PZA.call(o, "IsOpen")
+            local _, locked = PZA.call(o, "isLocked")
+            local _, barr = PZA.call(o, "isBarricaded")
+            out[#out + 1] = kind .. tostring(open == true) .. tostring(locked == true) .. tostring(barr == true)
+        end
+        local cs = W.containersOf(o)
+        for k = 1, #cs do
+            local _, items = PZA.call(cs[k], "getItems")
+            local _, cn = PZA.call(items, "size")
+            out[#out + 1] = "c" .. tostring(cn)
+        end
+    end
+    local _, wl = PZA.call(sq, "getWorldObjects")
+    local _, wn = PZA.call(wl, "size")
+    out[#out + 1] = "f" .. tostring(wn)
+    return table.concat(out, ",")
 end
 
 -- the dirty key of a square record: its PZA.enc.square encoding with light left out (ruling S-14); q is left as it was
@@ -199,11 +240,18 @@ function MP.scan(p, r)
     return out
 end
 
--- the watch: the next WATCH_PER_TICK squares of the ring round the player's square (MP.watchIdx cycling over its
--- (2 WATCH_R + 1)^2 indexes, row by row, the ring re-centred each tick), each read and queued as a delta when its
--- dirty key (MP.watchKey: the encoding without light) is not MP.seen's and its last delta is DELTA_MIN_TICKS ticks
--- old or more (a held change is read again on a later cycle). An absent square still takes its index. Answers the
--- deltas queued.
+-- true on the ticks the watch steps (every WATCH_EVERY-th: Main calls MP.watchStep only then, and never while a scan
+-- job runs)
+function MP.watchDue(tick)
+    return tick % MP.WATCH_EVERY == 0
+end
+
+-- the watch: the next WATCH_PER_FRAME squares of the ring round the player's square (MP.watchIdx cycling over its
+-- (2 WATCH_R + 1)^2 indexes, row by row, the ring re-centred each step), each fingerprinted; a square whose
+-- fingerprint is not MP.fp's is read whole and queued as a delta when its dirty key (MP.watchKey: the encoding without
+-- light) is not MP.seen's and its last delta is DELTA_MIN_TICKS ticks old or more (a held change keeps its old
+-- fingerprint, so it is read again on a later cycle). An absent square still takes its index. Answers the deltas
+-- queued.
 function MP.watchStep(p)
     local x, y, z = posOf(p)
     if x == nil then return 0 end
@@ -213,23 +261,31 @@ function MP.watchStep(p)
     local n = side * side
     local px, py = math.floor(x), math.floor(y)
     local tick = PZA.tick or 0
-    local seen, last, watchKey = MP.seen, MP.lastDelta, MP.watchKey
+    local seen, last, fps, watchKey = MP.seen, MP.lastDelta, MP.fp, MP.watchKey
     local queued = 0
-    for _ = 1, MP.WATCH_PER_TICK do
+    for _ = 1, MP.WATCH_PER_FRAME do
         local i = MP.watchIdx % n
         MP.watchIdx = (i + 1) % n
-        local _, sq = PZA.call(cell, "getGridSquare", px + i % side - r, py + math.floor(i / side) - r, z)
+        local gx, gy = px + i % side - r, py + math.floor(i / side) - r
+        local _, sq = PZA.call(cell, "getGridSquare", gx, gy, z)
         if sq ~= nil then
-            local q = MP.square(sq, MP.missing)
-            if q.x ~= nil and q.y ~= nil and q.z ~= nil then
-                local key = MP.key(q.x, q.y, q.z)
-                local e = watchKey(q)
-                local at = last[key]
-                if e ~= seen[key] and (at == nil or tick - at >= MP.DELTA_MIN_TICKS) then
-                    seen[key] = e
-                    last[key] = tick
-                    PZA.link.queueMap({ mode = "delta", scanId = 0, part = 1, parts = 1, squares = { q }, missing = {} })
-                    queued = queued + 1
+            local gk = MP.key(gx, gy, z)
+            local f = MP.fingerprint(sq)
+            if f ~= fps[gk] then
+                local q = MP.square(sq, MP.missing)
+                if q.x ~= nil and q.y ~= nil and q.z ~= nil then
+                    local key = MP.key(q.x, q.y, q.z)
+                    local e = watchKey(q)
+                    local at = last[key]
+                    if e == seen[key] then
+                        fps[gk] = f
+                    elseif at == nil or tick - at >= MP.DELTA_MIN_TICKS then
+                        fps[gk] = f
+                        seen[key] = e
+                        last[key] = tick
+                        PZA.link.queueMap({ mode = "delta", scanId = 0, part = 1, parts = 1, squares = { q }, missing = {} })
+                        queued = queued + 1
+                    end
                 end
             end
         end

@@ -5,7 +5,7 @@
 -- Every later tick: the poll (scan{r} and rate{hz} answered here by one act line, ruling P22-5; every
 -- other command to the runner, K.start), the running skill's tick (K.tick), every max(1, floor(60 / S.RATE)) ticks
 -- the events and the frame read (S.events, or S.frame on the first), the map (the scan job's next part while a job
--- runs, else the watch's next squares), an overflow event when the Link cut its backlog, the frame emitted with its
+-- runs, else, on the watch's ticks (MP.watchDue: every 6th whatever the rate), its next squares), an overflow event when the Link cut its backlog, the frame emitted with its
 -- cost group, and one L.flush, called once every tick (it writes nothing when both queues are empty).
 -- The first frame comes from S.frame, later ones carry S.events, so the first window's door states are recorded without
 -- an event (S.events' door rule: one first seen is recorded silently).
@@ -130,10 +130,14 @@ local function mainCommand(cmd, p)
     return true
 end
 
--- the map phase: the scan job's next part while a job runs, else the watch's next squares
+-- the map phase: the scan job's next part while a job runs, else the watch's next squares on the watch's ticks
 local function mapStep(p)
     local MP = PZA.map
-    if MP.job ~= nil then MP.scanStep(p) else MP.watchStep(p) end
+    if MP.job ~= nil then
+        MP.scanStep(p)
+    elseif MP.watchDue(PZA.tick) then
+        MP.watchStep(p)
+    end
 end
 
 -- a raise in the map phase (S-15): counted and named on the map, the job dropped, reported as Main reports any raise

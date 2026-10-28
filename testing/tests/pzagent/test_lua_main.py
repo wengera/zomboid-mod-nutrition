@@ -158,9 +158,9 @@ def test_each_cost_field_is_measured_at_its_own_phase(lua, fs):
     assert (c2["actMs"], c2["senseMs"], c2["mapMs"]) == (2, 4, 4)
     assert c1["linkMs"] == 0                                    # tick 5 flushed nothing
     assert c2["linkMs"] == 7                                    # tick 11's flush
-    assert c2["tickMs"] == 2 + 4 + 7                            # tick 11's whole body: act, map, its flush
-    # tick 6's body: act 2, sense 3, map 4 and the frame's own flush 7, the worst of ticks 6-11
-    assert c2["tickMaxMs"] == 2 + 3 + 4 + 7 and c2["over5"] == 6
+    assert c2["tickMs"] == 2 + 7                                # tick 11's whole body: act, its flush (no watch: not due)
+    # tick 6's body: act 2, sense 3, map 4 and the frame's own flush 7, the worst of ticks 6-11; ticks 7-10 read 2 each
+    assert c2["tickMaxMs"] == 2 + 3 + 4 + 7 and c2["over5"] == 2
 
 
 def test_frame_link_ms_is_the_previous_ticks_flush(lua, fs):
@@ -288,10 +288,36 @@ def test_one_flush_a_tick_over_100_ticks_with_a_scan_running(lua, fs):
 def test_the_watch_runs_when_no_scan_job_does(lua, fs):
     g, p = setup(lua, fs)
     scan_world(lua, 10, 20, 6)
-    run(g)                                                      # tick 2: the watch's first 8 squares, never seen
+    run(g, 4)                                                   # ticks 2-5: the watch is not due
+    assert [l for l in lines(fs) if l["kind"] == "map"] == [] and lua.eval("PZA.map.watchIdx") == 0
+    run(g)                                                      # tick 6: the watch's first 8 squares, never seen
     deltas = [l for l in lines(fs) if l["kind"] == "map"]
     assert [(m["mode"], m["scanId"], len(m["squares"])) for m in deltas] == [("delta", 0, 1)] * 8
     assert lua.eval("PZA.map.watchIdx") == 8
+
+
+def test_at_rate_60_the_watch_reads_its_8_squares_on_every_6th_tick_only(lua, fs):
+    """X4 fix pass 2.1 (review I7): the watch is paced at the 10 Hz frame tick, so at 60 Hz its square reads a tick
+    fall by the rate ratio (8 every 6 ticks, never 8 every tick)."""
+    g, p = setup(lua, fs)
+    scan_world(lua, 10, 20, 6)
+    cmd(fs, 1, "rate", hz=60)
+    run(g)                                                      # tick 2: rate 60
+    reads = {"n": 0}
+    cell = g._cell
+    grid = cell.getGridSquare
+    cell.getGridSquare = lambda s, x, y, z: reads.__setitem__("n", reads["n"] + 1) or grid(s, x, y, z)
+    g._reads = lambda: reads["n"]
+    lua.execute("_wr = 0; local w0 = PZA.map.watchStep; PZA.map.watchStep = function(p) local r0 = _reads(); "
+                "local q = w0(p); _wr = _wr + _reads() - r0; return q end")
+    per_tick = []
+    for _ in range(60):                                         # ticks 3-62
+        lua.execute("_wr = 0")
+        run(g)
+        per_tick.append((lua.eval("PZA.tick"), lua.eval("_wr")))
+    assert per_tick == [(t, 8 if t % 6 == 0 else 0) for t in range(3, 63)]     # the watch's square reads, by tick
+    frames = [l for l in lines(fs) if l["kind"] == "frame"]
+    assert [f["tick"] for f in frames][-60:] == list(range(3, 63))
 
 
 # ---- overflow and lua_error --------------------------------------------------------------------------------------

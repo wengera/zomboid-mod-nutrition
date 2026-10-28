@@ -350,7 +350,9 @@ def watch(lua, p, tick):
 
 def test_the_watch_constants(lua):
     load(lua)
-    assert (lua.eval("PZA.map.WATCH_R"), lua.eval("PZA.map.WATCH_PER_TICK"), lua.eval("PZA.map.DELTA_MIN_TICKS")) == (6, 8, 30)
+    assert (lua.eval("PZA.map.WATCH_R"), lua.eval("PZA.map.WATCH_PER_FRAME"), lua.eval("PZA.map.DELTA_MIN_TICKS")) == (6, 8, 30)
+    assert lua.eval("PZA.map.WATCH_EVERY") == 6                 # the 10 Hz frame tick, whatever S.RATE
+    assert [t for t in range(1, 25) if lua.eval("PZA.map.watchDue(...)", t)] == [6, 12, 18, 24]
 
 
 def test_a_watch_step_reads_8_squares_and_queues_nothing_while_nothing_changed(lua):
@@ -525,3 +527,45 @@ def test_world_containers_on_reads_indexed_containers_else_the_one(lua):
     objs = [multi, single, J()]
     sq = J(getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]))
     assert [x.c for x in lua.eval("PZA.world.containersOn(...)", sq).values()] == ["a", "b", "c"]
+
+
+# ---- X4 fix pass 2.1: the watch's fingerprint (review I7) -------------------------------------------------------------
+
+def count_full_reads(lua):
+    """Wraps MP.square so _G._full counts the whole-square reads."""
+    lua.execute("_full = 0; local sq0 = PZA.map.square; PZA.map.square = function(...) _full = _full + 1; return sq0(...) end")
+
+
+def test_an_unchanged_square_is_fingerprinted_and_never_read_whole_again(lua):
+    load(lua)
+    st, calls = watch_world(lua)
+    p = make_player()
+    seed_ring(lua, p)
+    count_full_reads(lua)
+    for t in range(1, 23):                                      # the first cycle after the scan: each square read whole
+        watch(lua, p, t)                                        # once, its fingerprint stored (no delta: unchanged)
+    assert backlog(lua) == [] and lua.eval("_full") == 169
+    lua.execute("_full = 0")
+    for t in range(23, 45):                                     # the second cycle: fingerprints only
+        watch(lua, p, t)
+    assert lua.eval("_full") == 0 and backlog(lua) == []
+    st["open"] = True
+    for t in range(45, 67):                                     # a door toggled: one whole read, one delta
+        watch(lua, p, t)
+    assert lua.eval("_full") == 1
+    (d,) = backlog(lua)
+    assert d["squares"][1]["door"]["open"] is True and (d["squares"][1]["x"], d["squares"][1]["y"]) == (12, 21)
+
+
+def test_a_fingerprint_names_the_portals_the_containers_and_the_floor_and_never_the_light(lua):
+    load(lua)
+    st = {"open": False, "light": 0.5}
+    sq = full_square(3, 4, door=True, box=True, floor=True, state=st)
+    f0 = lua.eval("PZA.map.fingerprint(...)", sq)
+    st["light"] = 0.9
+    assert lua.eval("PZA.map.fingerprint(...)", sq) == f0
+    st["open"] = True
+    assert lua.eval("PZA.map.fingerprint(...)", sq) != f0
+    plain = lua.eval("PZA.map.fingerprint(...)", full_square(3, 4))
+    for kw in ({"window": True}, {"box": True}, {"floor": True}):
+        assert lua.eval("PZA.map.fingerprint(...)", full_square(3, 4, **kw)) != plain, kw

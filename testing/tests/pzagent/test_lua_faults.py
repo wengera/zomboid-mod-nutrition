@@ -320,8 +320,8 @@ def test_main_tick_on_each_fault_never_propagates_and_reports_at_most_one_lua_er
 # ---- the map phase under its own pcall (fix wave I9: S-15 extended to Map) -------------------------------------------
 
 def raising_square_host():
-    """Main loaded in the game's order, the init tick run with a full player at (10, 20) and the rate at 60 (a frame every
-    tick); every square round the player answers its position and solidity but raises on getObjects (a modded object)."""
+    """Main loaded in the game's order, the init tick run with a full player at (10, 20), the rate at 60 (a frame every
+    tick) and the watch due every tick; every square round the player answers its position and solidity but raises on getObjects (a modded object)."""
     fs = FakeFS()
     lua = make_lua(fs)
     load(lua, MAIN_FILES)
@@ -339,6 +339,7 @@ def raising_square_host():
     g.getPlayer = lambda: p
     g._handlers[0]()                                          # the init tick
     lua.execute("PZA.sense.RATE = 60")
+    lua.execute("PZA.map.WATCH_EVERY = 1")                    # the watch due every tick (X4 fix pass 2.1 paces it at 6)
     return lua, fs, g
 
 
