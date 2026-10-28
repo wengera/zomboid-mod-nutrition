@@ -1,0 +1,73 @@
+survived (stop day_cap), 227 game min (loop.first_world_age)
+drink: sent 0, done 0, stat fell None
+eat: sent 0, done 0, stat fell None
+unknown consumes (no valid use): 0; frame time base t_loop0_ms
+sleep: sent 0, done 0, slept 0.0 h, fatigue fell None
+fights: 3 (ended 2, fled 3, stand-offs 1)
+fights_resolved: unresolved 0
+load: max ratio 0.000, guard drops 0, flee drops 0
+cost p50 0.000 ms, p99 1.000 ms, max 3.000 ms, over5 240
+{
+ "cost": {
+  "max": 3,
+  "over5": 240,
+  "p50": 0,
+  "p99": 1
+ },
+ "death": null,
+ "fights": {
+  "ended": 2,
+  "fled": 3,
+  "n": 3,
+  "stand_offs": 1
+ },
+ "fights_unresolved": 0,
+ "game_minutes": 227.0258331298828,
+ "grade": "grade_e1",
+ "lineage": null,
+ "lineage_source": null,
+ "load": {
+  "flee_drops": 0,
+  "guard_drops": 0,
+  "max_ratio": 0.0
+ },
+ "minutes_source": "loop.first_world_age",
+ "needs": {
+  "drink": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "eat": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "sleep": {
+   "done": 0,
+   "fatigue_fell": null,
+   "sent": 0,
+   "sleptH": 0
+  },
+  "time_base": "t_loop0_ms",
+  "unknown": 0
+ },
+ "report_lines": [
+  "survived (stop day_cap), 227 game min (loop.first_world_age)",
+  "drink: sent 0, done 0, stat fell None",
+  "eat: sent 0, done 0, stat fell None",
+  "unknown consumes (no valid use): 0; frame time base t_loop0_ms",
+  "sleep: sent 0, done 0, slept 0.0 h, fatigue fell None",
+  "fights: 3 (ended 2, fled 3, stand-offs 1)",
+  "fights_resolved: unresolved 0",
+  "load: max ratio 0.000, guard drops 0, flee drops 0",
+  "cost p50 0.000 ms, p99 1.000 ms, max 3.000 ms, over5 240"
+ ],
+ "run_id": "e_day_4-20261028-173649",
+ "session_key": "e_day_4",
+ "stop": {
+  "detail": "the loop reached 840s of wall time",
+  "reason": "day_cap"
+ },
+ "survived": true
+}
