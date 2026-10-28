@@ -586,3 +586,16 @@ def test_shunned_now_reads_a_store_and_shelter_plan_keeps_one_door(tmp_path):
     p = N.shelter_plan(r.world, 1, door=(110, 201, 0))
     assert p["doors"] == [(110, 201, 0)] and p["inside"] == (110, 200, 0)
     assert N.shelter_plan(r.world, 1, door=(111, 201, 0)) is None          # not an exterior door
+
+
+def test_exits_are_the_openings_then_each_closed_unbarricaded_exterior_door_at_its_approach(tmp_path):
+    """Survival 2 (ruling P23-AJ 3 as amended): an open exterior door is an opening (nothing to open); a closed one
+    is a way out the exit opens first; a barricaded one is none."""
+    r = Rig(tmp_path)
+    r.scan(house(1, 110, door=OPEN))
+    r.frame(x=111.5, y=201.5)
+    assert N.exits(r.world, 1, 0) == [{"inner": (110, 201, 0), "outer": (109, 201, 0), "door": None}]
+    r.scan(house(1, 110, door=CLOSED))
+    assert N.exits(r.world, 1, 0) == [{"inner": (110, 201, 0), "outer": (109, 201, 0), "door": (110, 201, 0)}]
+    r.scan(house(1, 110, door=dict(CLOSED, barricaded=True)))
+    assert N.exits(r.world, 1, 0) == []

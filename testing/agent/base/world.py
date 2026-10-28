@@ -58,6 +58,11 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   squares and the door squares by building) is rebuilt lazily on the first read after it moved; `memo(key, fn)`
   keeps any other read of the map (the night's exterior doors) for the same version. A cached answer is shared, so a
   caller only reads it.
+- `openings(building)` (Plan 23 survival 2, ruling P23-AJ 3 as amended: the chain's E2 died in building 3, whose
+  doors were all broken, door debris on the floor, so `exterior_doors` was empty while its doorways stood open): each
+  `(room square, outside square)` pair of the building, sorted, whose orthogonal step from a room square of it to a
+  mapped, non-solid square with no room reads not blocked (`blocked`: the kept `blockN`/`blockW` false, a null read
+  blocked) — a doorway whose door is open or gone, an open window or a missing wall; memoised per map version.
 - `by_use()`: the inventory's ids by the item's own `use` (the engine's answer, Plan 23 Task 9b), else
   `agent.base.items.use_of` (the
   dataset; a `food` the dataset marks `cant_eat` reads `other`), an id the planner marked empty (`mark_empty`, kept in
@@ -459,6 +464,22 @@ class World:
     def doors_of(self, building):
         """The mapped squares of `building` with a door, sorted (cached per map version: read it, never change it)."""
         return self._indexes()[2].get(building, [])
+
+    def openings(self, building):
+        """The building's openings (the module docstring): `(room square, outside square)` pairs, sorted, each step
+        between the two read not blocked; memoised per map version (read it, never change it)."""
+        def walk():
+            out = []
+            for sq in self.interiors().get(building, ()):
+                for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                    n = (sq[0] + dx, sq[1] + dy, sq[2])
+                    s = self.map.get(n)
+                    if s is None or s.get("solid") or s.get("room") is not None:
+                        continue
+                    if not self._orth_blocked(sq, n):
+                        out.append((sq, n))
+            return sorted(out)
+        return self.memo(("openings", building), walk)
 
     # -- the inventory by use and the empties (Plan 23 Task 9, P23-D) -----------------------------------------------
     def mark_empty(self, item_id):

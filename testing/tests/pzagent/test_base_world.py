@@ -791,3 +791,33 @@ def test_unknown_open_reads_an_unmapped_diagonal_corner_open_and_the_default_ref
     w = _world([s for s in _grid(-1, -1, 2, 2, over={(1, 0): {"blockW": True}}) if (s["x"], s["y"]) != (0, 1)],
                me=(0.5, 0.5))                                   # the known corner's edge still blocks
     assert w.blocked(a, b, unknown_open=True)
+
+
+def test_openings_name_the_open_doorway_of_a_room_whose_doors_are_broken():
+    """Survival 2 (ruling P23-AJ 3 as amended, the chain's E2): building 3's bathroom, its doors broken (door debris
+    on the floor, no door record anywhere), walled on every side but one doorway on the west edge of (2, 2): the
+    openings are that one step out; a shut edge, a null edge and an unmapped neighbour are none."""
+    debris = ["Base.UnusableWood", "Base.Doorknob", "Base.Hinge"]
+    over = {}
+    for x in (2, 3):
+        for y in (1, 2, 3):
+            over[(x, y)] = {"room": "bathroom", "building": 3, "blockW": x == 2 and y != 2, "blockN": y == 1}
+    over[(2, 2)]["floor"] = debris
+    for y in (1, 2, 3):
+        over[(4, y)] = {"blockW": True}
+    for x in (2, 3):
+        over[(x, 4)] = {"blockN": True}
+    w = _world(_grid(0, 0, 5, 5, over=over), me=(2.5, 2.5))
+    assert w.doors_of(3) == []
+    assert w.openings(3) == [((2, 2, 0), (1, 2, 0))]
+    over[(2, 2)].update(blockW=True, door=DOOR)                    # the doorway shut: a closed door's edge
+    w = _world(_grid(0, 0, 5, 5, over=over), me=(2.5, 2.5))
+    assert w.openings(3) == []
+    over[(3, 1)]["blockN"] = None                                  # a null edge reads blocked
+    w = _world(_grid(0, 0, 5, 5, over=over), me=(2.5, 2.5))
+    assert w.openings(3) == []
+    over[(3, 1)]["blockN"] = False                                 # open, its neighbour unmapped: none
+    w = _world([s for s in _grid(0, 0, 5, 5, over=over) if (s["x"], s["y"]) != (3, 0)], me=(2.5, 2.5))
+    assert w.openings(3) == []
+    w = _world(_grid(0, 0, 5, 5, over=over), me=(2.5, 2.5))       # mapped: the step out reads open
+    assert w.openings(3) == [((3, 1, 0), (3, 0, 0))]

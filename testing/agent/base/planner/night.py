@@ -41,6 +41,9 @@ and `explore`). The shelter steps are module functions (`shelter_plan`, `shelter
     skipped when the player already stands within one square (Chebyshev) of the door; (b) `open`, `Interact(dx, dy,
     "open")`, skipped when the door read open at its last record; (c) `enter`, a `WalkTo` at a walk to the interior
     square's centre; (d) `close`, `Interact(dx, dy, "close")`. Then the plan reads `done` and Night sends `Sleep()`.
+  - `exits(world, building, z)` (ruling P23-AJ 3 as amended, the flee's way out of the building it stands in):
+    the building's openings (`world.openings`), then each exterior door read closed and not barricaded at its
+    approach square, the door to open first.
   - The approach step is kept beside the Lua interact's own walk to the door (`approach` in `PZAgent_SkillsWorld.lua`)
     so a walk that cannot reach the door fails under the walk's own reason (`stuck`, `no path`), which the shun reads,
     rather than inside the open as `not adjacent`.
@@ -95,7 +98,7 @@ SHELTER_STEPS = ("approach", "open", "enter", "close")
 
 __all__ = ["Night", "TIRED_T", "LATE_HOUR", "DAWN_HOUR", "LATE_FATIGUE", "SHUN_MIN", "NOT_SAFE_S", "NOT_VALID_S",
            "STEP_RETRIES", "SHUN_REASONS", "SHELTER_STEPS", "shelter_plan", "shelter_step", "shelter_ended",
-           "exterior_doors", "approach_square", "shunned_now", "player_square"]
+           "exterior_doors", "approach_square", "exits", "shunned_now", "player_square"]
 
 
 def _num(v):
@@ -153,6 +156,20 @@ def approach_square(world, door):
     return min(out)[1] if out else None
 
 
+def exits(world, building, z):
+    """The ways out of `building` on floor `z` (ruling P23-AJ 3 as amended): `[{inner, outer, door}]`, each opening
+    of `world.openings` (`door` None: the step from `inner` to `outer` reads open) on that floor, then each exterior
+    door the map reads closed and not barricaded with its `approach_square` as `outer` (`door` the square to open
+    first; a locked one included, since the Lua's open unlocks a door that opens from inside), sorted by `outer`."""
+    out = [{"inner": a, "outer": b, "door": None} for a, b in world.openings(building) if a[2] == z]
+    for d in exterior_doors(world, building, z):
+        rec = world.map[d].get("door") or {}
+        sq = None if rec.get("open") or rec.get("barricaded") else approach_square(world, d)
+        if sq is not None:
+            out.append({"inner": d, "outer": sq, "door": d})
+    return sorted(out, key=lambda e: (e["outer"], e["inner"]))
+
+
 def _inside_for(rooms, door):
     deeper = [sq for sq in rooms if sq != door] or rooms
     return min(deeper, key=lambda sq: (math.hypot(sq[0] - door[0], sq[1] - door[1]), sq))
@@ -168,7 +185,7 @@ def shelter_plan(world, building, door=None, step="approach"):
     """A shelter plan for `building` on the player's floor: `{building, doors, door_i, rooms, inside, step, retries,
     near}`, `near` the distance from the player to its nearest room square; None with no exterior door or no room.
     With `door`, the plan is kept to that one exterior door (the flee's, P23-AG), None when it is not one; `step`
-    the step it starts at (the flee adopts the building it stands in at `done`)."""
+    the step it starts at (`done`: a plan read as already closed)."""
     z = me_floor(world)
     rooms = [sq for sq in world.interiors().get(building, ()) if sq[2] == z]
     doors = exterior_doors(world, building, z)
