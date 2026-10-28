@@ -7,7 +7,9 @@
 -- and L.overflow set for Main to emit once). In: cmd.txt as one JSON line read by
 -- seq through PZA.decode; ack.txt holds {"seq":N}, the last accepted seq, so a Lua reset never replays a command.
 -- The Lua writer is rooted at the cachedir's Lua folder and allows ini/cfg/txt/log/json only [#1866]. No writer is
--- held across ticks: every write opens, writes and closes.
+-- held across ticks: every write opens, writes and closes. One open-write-close a tick holds for state.log (the flush);
+-- on a command tick the ack.txt write is a second one (review M10), made only when L.poll accepts a new seq, never on
+-- a tick that polls an old or malformed command or none.
 PZA.link = PZA.link or {}
 local L = PZA.link
 L.ROTATE_BYTES = 8 * 1024 * 1024
