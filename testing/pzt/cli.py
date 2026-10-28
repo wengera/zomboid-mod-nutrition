@@ -9,7 +9,7 @@ from . import fixture as fx
 from . import harness
 from . import scenario
 from . import spikes
-from .paths import ADMIN_PW, ADMIN_USER, HARNESS_MODS, PZ_DIR, new_run_dir
+from .paths import ADMIN_PW, ADMIN_USER, HARNESS_MODS, PZ_DIR, RUNS, new_run_dir
 from .profile import DEFAULTS as PROFILE_DEFAULTS, lint_sources
 from .server import Server
 from .session import (Timeline, attach_clients, check_mods_loaded, fault_reasons, hold, make_client,
@@ -91,6 +91,13 @@ def cmd_provision(a):
                            "clients": {u: c.events for u, c in clients.items()}})
     say(f"\nFIXTURE '{a.name}' built: {record['size_mb']} MB, build {server.build}, "
         f"{len(server.errors)} server error lines")
+    return 0
+
+
+def cmd_snapshot(a):
+    run_dir = a.from_run if os.path.isdir(a.from_run) else os.path.join(RUNS, a.from_run)
+    rec = fx.snapshot_from_run(a.name, run_dir, a.parent, a.session)
+    say(f"\nFIXTURE '{a.name}' snapshotted from {run_dir}: {rec['size_mb']} MB, parent {a.parent}, session {a.session}")
     return 0
 
 
@@ -264,6 +271,13 @@ def main(argv=None):
     common_server(p)
     common_client(p)
     p.set_defaults(fn=cmd_provision, port=27261, rcon_port=27015)
+
+    p = sub.add_parser("snapshot", help="snapshot a finished run's world as a new fixture (the chain's next session boots it)")
+    p.add_argument("--from-run", required=True, help="a run dir, or a run id under testing/runs/")
+    p.add_argument("--name", required=True)
+    p.add_argument("--parent", required=True, help="the fixture the run booted (its record and lineage carry over)")
+    p.add_argument("--session", type=int, default=1)
+    p.set_defaults(fn=cmd_snapshot)
 
     p = sub.add_parser("boot", help="restore a fixture's server and start it")
     p.add_argument("--fixture", default="default")

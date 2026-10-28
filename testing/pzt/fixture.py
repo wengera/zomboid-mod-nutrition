@@ -84,3 +84,24 @@ def restore_client(name, user, run_dir):
         return dst, True
     os.makedirs(dst, exist_ok=True)
     return dst, False
+
+
+def snapshot_from_run(name, run_dir, parent, session, run_id=None):
+    """A fixture from a finished run's caches (Plan 23 spec § 4, P23-1): the world the server saved at the session's
+    stop, under the parent fixture's record with its lineage. The run's `server/` and each parent client's
+    `clients/<user>/` are snapshotted with the provision's skip lists."""
+    import datetime
+    rec = load(parent)
+    server_cache = os.path.join(run_dir, "server")
+    if not os.path.isdir(server_cache):
+        raise SystemExit(f"no server cache at {server_cache}: the run did not boot a server")
+    client_caches = {}
+    for user in rec.get("clients") or {}:
+        c = os.path.join(run_dir, "clients", user)
+        if not os.path.isdir(c):
+            raise SystemExit(f"no client cache for {user} at {c}: the run did not attach every client of {parent}")
+        client_caches[user] = c
+    record = dict(rec, created=datetime.datetime.now().isoformat(timespec="seconds"), parent=rec["name"],
+                  run=run_id or os.path.basename(os.path.normpath(run_dir)), session=int(session),
+                  lineage=list(rec.get("lineage") or []) + [rec["name"]])
+    return snapshot(name, server_cache, client_caches, record)

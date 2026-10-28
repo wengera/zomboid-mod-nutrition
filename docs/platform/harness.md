@@ -35,6 +35,7 @@ The orchestrator ships seven commands — provision, boot, attach, run, scenario
 | Command | What it does | Cost |
 |---|---|---|
 | `provision --name default` | Fresh server (`Zombies=6` = none; `--sandbox K=V` overrides), the `admin` client creates the world and its character and quits; snapshot → `testing/fixtures/default/` | ~2.5 min, once per game/mod-set version |
+| `snapshot --from-run <run> --name <fixture> --parent <fixture> [--session N]` | the run's server and client caches snapshotted as a fixture whose record names its parent, run, session and lineage, so the next session boots the world the last one left (Plan 23) | seconds |
 | `boot --fixture default [--hold N]` | Restore the fixture's server world into a fresh run dir and start it | ~14 s |
 | `attach --fixture default --server 127.0.0.1:27261 --user admin` | Restore that user's client cache, launch, wait until in-world (no creation screens), ping | ~35 s |
 | `run --fixture default [--profile <name>] [--hold N] [--clients a,b]` | boot + attach every client + hold (the test slot) + teardown + `report.json`; `--profile` adds a mod set, sandbox overrides and `[[verify]]` probes. The missing-mod fail-fast runs on the plain path too, right after `server_started`, and names the mod in the RESULT line | ~1 min + hold |
