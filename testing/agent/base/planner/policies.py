@@ -23,8 +23,11 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   the square of `world.reachable_adjacent(target)` nearest the player, within REPOSITION_R (2.5 tiles) of the
   player by its centre, from whose centre the line is clear (`repositioned`), and a second blocked read, or no such
   square, marks the target unreachable and the next is tried. `reachable_adjacent` lists the squares open to the
-  target, not to the player, so the radius is the guard (ruling P23-Q, Task 10's review M2): a long detour round a
-  building is never a reflex; cost if wrong, a reachable zombie read unreachable for UNREACHABLE_S.
+  target, not to the player, and the radius is crow-fly, so it bounds the detour without excluding it: a square
+  within 2.5 tiles may still lie across the wall the line crosses (`test_policies.walled_south`'s case at 2.5 tiles
+  walks round a solid block). Ruling P23-R keeps the radius alone this plan: the base has no path search, and a
+  walk that cannot reach the square fails or ends short, and the next choose's blocked read (the second, as
+  `repositioned` holds) marks the target; cost if wrong, a short detour walked before the target is dropped.
   The line is read only when the map holds both end squares on the player's floor; over an unscanned end it is None
   and the swing goes ahead, left to the no-progress stall below. `why` logs `target`, `pinned`, `dist`, `approach`,
   `line` and `reposition` (the square chosen, else None), and `marked` when this choose marked a target. Two `attack`
@@ -60,9 +63,15 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   `all` took whole containers, one interact at level 2 lifting runs 1 and 2 to level 3 and 4. Any other want (None
   included) loots nothing. `cap` is the frame's `load.max` times `LOAD_RATIO_MAX` (1.0), the Lua's loot stopping
   before the carried weight would pass it; 0.0 (no cap) when `load.max` reads no positive number; logged as
-  `why["cap"]`. Every container on the looted square is marked looted when the interact ends, done, failed, rejected
-  or timed out, except a `failed "superseded"`, which a newer send replaced before it ran (Plan 21 lost such a square
-  for the session: `docs/reference/research-notes.md`, "A pre-empted loot's square is marked looted"). The level
+  `why["cap"]`. The looted mark is per use (Task 11 fix 1): when the interact ends, done, failed, rejected or timed
+  out, every container on its square holding an item of the loot's filter is marked looted for that use only
+  (`world.mark_looted(key, use)`), so a counter looted for water is still looted for food later; except a `failed
+  "superseded"`, which a newer send replaced before it ran (Plan 21 lost such a square for the session:
+  `docs/reference/research-notes.md`, "A pre-empted loot's square is marked looted"), and a loot whose result carries
+  `skipped > 0` (the cap left items), which marks nothing: its square waits in `capped` for that use until the
+  frame's `load.weight` falls below its reading at that loot's end (a drop or a meal), so the bot never re-sends a
+  loot that cannot fit, and `target(want)` (the container a loot would go to, which Survive's `forage` reads too)
+  leaves it out meanwhile; an unreadable weight keeps it waiting. The level
   guard stays the backstop, spec § 9 (1), "a policy stops looting before level 3": above LOOT_MAX_LEVEL it sends
   nothing (`why["hold"]`), and no loot is sent again until the level is back under 2. It never drops (Plan 23 Task 12):
   the drop is Survive's `load` branch, which at `DROP_AT` (3) or above sends `Drop` of `spare(world)`, the heaviest
@@ -76,6 +85,7 @@ fluid containers), a weapon by `items.WEAPON_RX`'s fullType names, which is no g
 import math
 import time
 
+from agent.base.items import use_of
 from agent.base.pza1 import Attack, Interact, Scan, Steer, WalkTo
 
 DANGER_R = 6.0        # tiles: a zombie this close is a threat (Survive's threat branch; the night sends nothing)
@@ -441,6 +451,7 @@ class LootHouse(Policy):
         super().__init__(world, actions, clock)
         self.want = want        # one of LOOT_WANTS, set by the caller: the container's want and the loot's filter
         self.pending = []       # (x, y, z, Action) of each loot sent and not yet seen ended
+        self.capped = {}        # (x, y, z, use) -> the carried weight when a loot there skipped items for the cap
         self._key = None        # the container the last choose picked
 
     def level(self):
@@ -453,6 +464,10 @@ class LootHouse(Policy):
         ok = isinstance(m, (int, float)) and not isinstance(m, bool) and m > 0
         return float(m) * LOAD_RATIO_MAX if ok else 0.0
 
+    def weight(self):
+        w = (self.world.load or {}).get("weight")
+        return w if isinstance(w, (int, float)) and not isinstance(w, bool) else None
+
     def observe(self):
         still = []
         for x, y, z, a in self.pending:
@@ -461,16 +476,37 @@ class LootHouse(Policy):
                 continue
             if a.state == "failed" and a.reason == PREEMPTED:
                 continue
-            for key in [k for k in self.world.containers if k[:3] == (x, y, z)]:
-                self.world.mark_looted(key)
+            use = a.args.get("filter")
+            skipped = a.result.get("skipped") if isinstance(a.result, dict) else None
+            if isinstance(skipped, (int, float)) and not isinstance(skipped, bool) and skipped > 0:
+                self.capped[(x, y, z, use)] = self.weight()   # the items left may fit once the load falls
+                continue
+            self.capped.pop((x, y, z, use), None)
+            for key, c in self.world.containers.items():
+                if key[:3] == (x, y, z) and any(use_of(i) == use for i in c["items"]):
+                    self.world.mark_looted(key, use)
         self.pending = still
+
+    def _waiting(self, want):
+        """The container keys on a square whose loot for `want` skipped items for the cap, while the carried weight
+        has not fallen below its reading at that loot's end (an unreadable weight on either side keeps waiting)."""
+        now = self.weight()
+        squares = {k[:3] for k, w in self.capped.items() if k[3] == want and (now is None or w is None or now >= w)}
+        return {k for k in self.world.containers if k[:3] in squares}
+
+    def target(self, want):
+        """The container a loot for `want` would go to: `world.nearest_unlooted(want)` less the squares waiting on
+        the cap; None for a want outside LOOT_WANTS."""
+        if want not in LOOT_WANTS:
+            return None
+        return self.world.nearest_unlooted(want, exclude=self._waiting(want))
 
     def choose(self):
         level = self.level()
         if level > LOOT_MAX_LEVEL:
             self.why = {"level": level, "hold": True}
             return None
-        key = self.world.nearest_unlooted(self.want) if self.want in LOOT_WANTS else None
+        key = self.target(self.want)
         cap = self.cap()
         self._key = key
         self.why = {"level": level, "want": self.want, "container": list(key) if key else None, "cap": cap}

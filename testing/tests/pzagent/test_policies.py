@@ -59,11 +59,11 @@ class Rig:
         self.acts.pump(lines)
 
     def frame(self, x=100.0, y=200.0, zombies=(), weapon=BAT, health=100.0, hunger=0.1, thirst=0.1, level=0,
-              game_min=480.0, wounds=None, load_max=8.0, fatigue=0.05, hour=8.0, z=0):
+              game_min=480.0, wounds=None, load_max=8.0, fatigue=0.05, hour=8.0, z=0, weight=4.5):
         me = dict(DEFAULT_FRAME["me"], x=x, y=y, z=z, hour=hour)
         stats = dict(DEFAULT_FRAME["stats"], hunger=hunger, thirst=thirst, fatigue=fatigue)
         body = dict(DEFAULT_FRAME["body"], health=health, **(wounds or {}))
-        load = dict(DEFAULT_FRAME["load"], level=level, max=load_max)
+        load = dict(DEFAULT_FRAME["load"], level=level, max=load_max, weight=weight)
         self.fake.frame(me=me, stats=stats, body=body, load=load, weapon=weapon, zombies=list(zombies),
                         gameMin=game_min)
         self.pump()
@@ -491,7 +491,7 @@ def test_loothouse_loots_the_nearest_unlooted_and_marks_it_when_the_loot_ends(tm
     assert lh.step() is None
     r.answer({"state": "failed", "reason": "not adjacent"})
     lh.step()
-    assert r.world.containers[(102, 200, 0, 0)]["looted"] is True
+    assert r.world.containers[(102, 200, 0, 0)]["looted"] == {"bandage"}
     assert r.cmd() == ("interact", {"x": 106, "y": 200, "kind": "loot", "filter": "bandage", "maxWeight": 8.0})
     all_sends_valid(r)
 
@@ -539,6 +539,57 @@ def test_a_loot_wanting_a_use_no_container_holds_sends_nothing(tmp_path):
     assert LootHouse(r.world, r.acts, r.clock, want="water").step() is None and r.acts.history == []
 
 
+# Task 11 fix 1 (review-t11 I1): the looted mark is per use, on the containers holding that use only, and a loot the
+# cap stopped short marks nothing, its square waiting until the carried weight falls.
+COUNTER = {"type": "counter", "n": 2, "items": ["Base.WaterBottle", "Base.Apple"]}
+
+
+def test_a_container_looted_for_water_is_still_looted_for_food(tmp_path):
+    r = Rig(tmp_path)
+    r.scan([square(102, 200, containers=[COUNTER, CRATE])])
+    r.frame()
+    lh = LootHouse(r.world, r.acts, r.clock, want="water")
+    lh.step()
+    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "water", "maxWeight": 8.0})
+    r.answer({"state": "done", "result": {"moved": 1, "skipped": 0}})
+    lh.observe()
+    assert r.world.containers[(102, 200, 0, 0)]["looted"] == {"water"}
+    assert r.world.containers[(102, 200, 0, 1)]["looted"] == set()      # the crate holds no water: not marked
+    lh.want = "food"
+    lh.step()
+    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "food", "maxWeight": 8.0})
+    lh.want = "bandage"
+    r.answer({"state": "done", "result": {"moved": 2, "skipped": 0}})
+    lh.step()
+    assert r.world.containers[(102, 200, 0, 0)]["looted"] == {"water", "food"}
+    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "bandage", "maxWeight": 8.0})
+
+
+@pytest.mark.parametrize("result", [{"moved": 1, "skipped": 2}, {"moved": 0, "skipped": 1}])
+def test_a_loot_the_cap_stopped_short_marks_nothing_and_waits_for_the_load_to_fall(tmp_path, result):
+    r = Rig(tmp_path)
+    r.scan([square(102, 200, containers=[FRIDGE]), square(106, 200, containers=[dict(FRIDGE, type="counter")])])
+    r.frame(weight=7.5)
+    lh = LootHouse(r.world, r.acts, r.clock, want="food")
+    lh.step()
+    assert r.cmd()[1]["x"] == 102
+    r.answer({"state": "done", "result": result})
+    r.frame(weight=7.5)
+    lh.step()
+    assert r.world.containers[(102, 200, 0, 0)]["looted"] == set()       # its items may fit later
+    assert lh.capped == {(102, 200, 0, "food"): 7.5} and lh.target("food") == (106, 200, 0, 0)
+    assert r.cmd()[1]["x"] == 106                                        # not re-sent while the load is the same
+    r.answer({"state": "done", "result": {"moved": 1, "skipped": 0}})
+    r.frame(weight=7.5)
+    assert lh.step() is None and lh.why["container"] is None              # 102 still waits, 106 looted
+    r.frame(weight=6.0)                                                  # a drop or a meal: the load fell
+    lh.step()
+    assert r.cmd()[1]["x"] == 102 and lh.target("food") == (102, 200, 0, 0)
+    r.answer({"state": "done", "result": {"moved": 1, "skipped": 0}})
+    lh.observe()
+    assert lh.capped == {} and r.world.containers[(102, 200, 0, 0)]["looted"] == {"food"}
+
+
 def test_a_superseded_loot_keeps_its_container(tmp_path):
     r = Rig(tmp_path)
     r.scan([square(102, 200, containers=[CRATE])])
@@ -547,7 +598,7 @@ def test_a_superseded_loot_keeps_its_container(tmp_path):
     lh.step()
     r.answer({"state": "failed", "reason": "superseded"})
     lh.step()
-    assert r.world.containers[(102, 200, 0, 0)]["looted"] is False
+    assert r.world.containers[(102, 200, 0, 0)]["looted"] == set()
     assert r.cmd()[0] == "interact" and len(r.acts.history) == 2
 
 
@@ -761,7 +812,9 @@ def test_a_target_with_no_clear_neighbour_is_marked_unreachable(tmp_path):
 
 def walled_south():
     """Zombie 7's square (100, 199) closed on every side but the north: its only open neighbour is (100, 198), on the
-    far side of the target from a player south of it, the line from (100, 201) crossing the solid (100, 200)."""
+    far side of the target from a player south of it, the line from (100, 201) crossing the solid (100, 200). The
+    walk there at 2.5 tiles crow-fly is a detour round the solid block, accepted under ruling P23-R (the radius
+    alone; no path search in the base)."""
     solid = {(x, y): {"solid": True} for x in (99, 100, 101) for y in (199, 200) if (x, y) != (100, 199)}
     return grid(96, 104, 196, 204, solid)
 
@@ -773,7 +826,7 @@ def test_the_reposition_radius_constant():
 
 
 @pytest.mark.parametrize("py, walks", [(201.0, True), (201.4, False)])   # (100, 198)'s centre at 2.5 and 2.9 tiles
-def test_a_reposition_square_beyond_reposition_r_of_the_player_is_never_walked_to(tmp_path, py, walks):
+def test_a_reposition_square_is_walked_to_within_reposition_r_crow_fly_and_never_beyond(tmp_path, py, walks):
     r = Rig(tmp_path)
     r.scan(walled_south())
     r.frame(x=100.5, y=py, zombies=[zombie(7, 100.5, 199.5, me=(100.5, py))])

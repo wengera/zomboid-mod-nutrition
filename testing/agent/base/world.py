@@ -7,8 +7,10 @@ It reads what the transport gives: keyed full dicts, every delta frame already m
   carries, None when the frame's group is null; `game_min`, `frame_wall_ms`; zombies keyed by id with
   `seenWallMs = wallMs`, a zombie unseen for more than `ZOMBIE_TTL_S` aged out at the next frame. No clock is read.
 - `map`: each square applied at once (no whole-scan hold): `map[(x, y, z)]` the square dict as decoded, its
-  containers at `containers[(x, y, z, i)] = {type, n, items, looted}`, a looted mark kept across a re-scan of the same
-  square and type (Plan 21's rule), a container index the new square no longer has dropped; `buildings` the set of
+  containers at `containers[(x, y, z, i)] = {type, n, items, looted}`, `looted` the set of uses a loot took there
+  (Plan 23 Task 11 fix 1: a loot filters one use, so a container looted for water is still unlooted for food), the
+  marks kept across a re-scan of the same square and type (Plan 21's rule), a container index the new square no
+  longer has dropped; `buildings` the set of
   building names seen. A `full` part whose `scanId` is below the newest seen is dropped and counted in
   `dropped_scans`; a delta is never dropped. `map_lines` counts every map line, `missing` is the union of every map
   line's missing names in first-seen order.
@@ -43,7 +45,8 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
 - `by_use()`: the inventory's ids by the item's own `use` (the engine's answer, Plan 23 Task 9b), else `agent.base.items.use_of` (the dataset), an id the
   planner marked empty (`mark_empty`, kept in `empty_ids` and dropped with its item) moved from `water` to `other`;
   `nearest_unlooted(want)` keys on the same use. `to_json` carries `emptyIds` sorted, and only while it is non-empty,
-  so a World that never marked one serialises as before (the replay goldens keep their bytes).
+  so a World that never marked one serialises as before (the replay goldens keep their bytes). For the same reason a
+  container's `looted` set serialises as its uses sorted, or `false` while it is empty.
 """
 import json
 import math
@@ -156,7 +159,7 @@ class World:
         cs = s.get("containers") or []
         for i, c in enumerate(cs):
             old = self.containers.get((x, y, z, i))
-            looted = bool(old and old["looted"] and old["type"] == c.get("type"))
+            looted = set(old["looted"]) if old and old["type"] == c.get("type") else set()
             self.containers[(x, y, z, i)] = {"type": c.get("type"), "n": c.get("n") or 0,
                                              "items": list(c.get("items") or ()), "looted": looted}
         for k in [k for k in self.containers if k[:3] == (x, y, z) and k[3] >= len(cs)]:
@@ -201,22 +204,29 @@ class World:
             self.damage_counts_server = reply["counts"]
 
     # -- the planner's questions (Plan 21's heuristics) -----------------------------------------------------------
-    def mark_looted(self, key):
+    def mark_looted(self, key, use=None):
+        """Mark the container at `key` looted for `use` (one of USES), or for every use when `use` is None (a loot
+        that took the whole container); an unknown key is ignored."""
         if key in self.containers:
-            self.containers[key]["looted"] = True
+            self.containers[key]["looted"] |= set(USES) if use is None else {use}
 
     def _me_xy(self):
         me = self.me or {}
         return me.get("x") or 0.0, me.get("y") or 0.0
 
-    def nearest_unlooted(self, want=None):
-        """The key of the nearest unlooted, non-empty container, ties by key; with `want` (one of USES) only a
-        container holding an item of that use. A map line names full types only, so this keeps the dataset's
-        `items.use_of` on a container's items."""
+    def nearest_unlooted(self, want=None, exclude=()):
+        """The key of the nearest non-empty container not looted for `want`, ties by key; with `want` (one of USES)
+        only a container holding an item of that use and not yet looted for it, with None one marked for no use. A
+        map line names full types only, so this keeps the dataset's `items.use_of` on a container's items. A key in
+        `exclude` is never nearest."""
         mx, my = self._me_xy()
         best = None
         for key, c in self.containers.items():
-            if c["looted"] or not c["n"] or not c["items"] or (want and not any(use_of(i) == want for i in c["items"])):
+            if not c["n"] or not c["items"] or key in exclude:
+                continue
+            if (want in c["looted"]) if want else c["looted"]:
+                continue
+            if want and not any(use_of(i) == want for i in c["items"]):
                 continue
             rank = (math.hypot(key[0] - mx, key[1] - my), key)
             if best is None or rank < best:
@@ -391,7 +401,8 @@ class World:
             "frameWallMs": self.frame_wall_ms,
             "zombies": {str(k): v for k, v in self.zombies.items()},
             "map": {_key(k): v for k, v in self.map.items()},
-            "containers": {_key(k): v for k, v in self.containers.items()},
+            "containers": {_key(k): dict(v, looted=sorted(v["looted"]) or False)
+                           for k, v in self.containers.items()},
             "buildings": sorted(self.buildings, key=lambda b: json.dumps(b, sort_keys=True)),
             "inventory": {str(k): v for k, v in self.inventory.items()},
             "damage": list(self.damage),

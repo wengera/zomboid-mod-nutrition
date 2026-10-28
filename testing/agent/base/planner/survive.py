@@ -46,12 +46,12 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   marked empty left out), else marks `water`; then hunger > HUNGER_T consumes the held `food` item of least id (the
   dataset's food), else marks `food`; nothing held, the branch passes to `forage`.
 - The empties (P23-D): a `Consume` whose action ended `failed "not valid"` on an id `by_use()` reads `water` marks it
-  empty (`world.mark_empty`), so the next tick takes the next bottle and `LootHouse.spare()` may drop it; a food
-  refused so is never marked (a food is eaten whole or refused for another reason), only logged as
-  inputs.consume_refused on the tick that read the end (else None).
+  empty (`world.mark_empty`), so the next tick takes the next bottle and `spare()` may drop it; any other id refused
+  so (a food, which is eaten whole or refused for another reason, or a bottle no longer held when the end was read)
+  is never marked, only logged as inputs.consume_refused on the tick that read the end (else None).
 - `forage` (P23-8) loots through `LootHouse` for one use, never `all`: the need's mark when one was set, else the
-  first of STOCK_WANTS (`water`, `food`, `bandage`, `weapon`) for which `world.nearest_unlooted(use)` answers a
-  container; none, it passes. Every loot carries `maxWeight` = the frame's `load.max` times
+  first of STOCK_WANTS (`water`, `food`, `bandage`, `weapon`) for which `LootHouse.target(use)` answers a
+  container (a container not looted for that use, nor waiting on the cap); none, it passes. Every loot carries `maxWeight` = the frame's `load.max` times
   `policies.LOAD_RATIO_MAX` (1.0), 0.0 (no cap) when `load.max` reads no positive number; the level guard stays the
   backstop: a loot only at load level 0-1, never at 2 or above (spec § 9 (1)). `explore` scans
   each new place and walks to the unexplored edge.
@@ -119,7 +119,7 @@ class Survive:
         self.need_last = None     # the last Consume sent
         self.load_last = None     # the last load Drop sent
         self.need_mark = None     # "water" or "food" when need found nothing held; forage loots for it
-        self.consume_refused = None   # a food id whose consume ended failed "not valid" on this tick (logged only)
+        self.consume_refused = None   # a non-water id whose consume ended failed "not valid" this tick (logged only)
         self.ticks = 0
         self.last_failed = None   # (type, args json, tick first seen failed) of the last command that failed
         self._watch = []          # actions sent and not yet seen terminal
@@ -287,7 +287,7 @@ class Survive:
         """Loot for the need's mark, else for the first of STOCK_WANTS a container answers; never `all`."""
         want = self.need_mark
         if want is None:
-            want = next((u for u in STOCK_WANTS if self.world.nearest_unlooted(u) is not None), None)
+            want = next((u for u in STOCK_WANTS if self.loot.target(u) is not None), None)
         self.loot.want = want
         return self._answer(self.loot)
 
@@ -308,8 +308,9 @@ class Survive:
         self._watch = still
 
     def _refused(self, iid):
-        """A consume refused `not valid`: a water item is empty (P23-D), marked so `by_use` reads it `other`; a food
-        is eaten whole or refused for another reason, so it is only logged."""
+        """A consume refused `not valid`: an id `by_use()` reads `water` is empty (P23-D), marked so it reads
+        `other`; any other id (a food, eaten whole or refused for another reason, or a bottle no longer held) is only
+        logged."""
         if iid in self.world.by_use()["water"]:
             self.world.mark_empty(iid)
         else:

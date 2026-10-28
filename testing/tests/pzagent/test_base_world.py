@@ -242,7 +242,7 @@ def test_a_map_full_part_applies_its_squares_and_containers_at_once():
     assert set(w.map) == {(100, 200, 0), (101, 200, 0)}            # no whole-scan hold
     assert w.map[(100, 200, 0)]["door"] == DOOR
     assert w.containers == {(100, 200, 0, 0): {"type": "fridge", "n": 1, "items": ["Base.CannedMilk"],
-                                               "looted": False}}
+                                               "looted": set()}}
     assert w.buildings == {7}
     w.apply(mapline(SCAN_PARTS[1], part=2, parts=3, missing=["getModData"]))
     w.apply(mapline(SCAN_PARTS[2], part=3, parts=3, missing=["getModData", "isSolid"]))
@@ -258,9 +258,35 @@ def test_a_looted_mark_survives_a_rescan_of_the_same_type_only():
     w.mark_looted((1, 1, 0, 0))
     w.mark_looted((9, 9, 9, 9))                                   # unknown: ignored
     w.apply(mapline(box("fridge"), scan_id=2))
-    assert w.containers[(1, 1, 0, 0)]["looted"] is True
+    assert w.containers[(1, 1, 0, 0)]["looted"] == set(items.USES)   # no use: looted for every use
     w.apply(mapline(box("crate"), scan_id=3))
-    assert w.containers[(1, 1, 0, 0)]["looted"] is False
+    assert w.containers[(1, 1, 0, 0)]["looted"] == set()
+
+
+# Plan 23 Task 11 fix 1 (review-t11 I1): a loot filters one use, so the looted mark is per use.
+def test_a_container_looted_for_one_use_is_still_unlooted_for_another():
+    w = World()
+    w.apply(frame(0, me=me_at(0.0, 0.0)))
+    w.apply(mapline([_sq(1, 0, containers=[{"type": "counter", "n": 2, "items": [WATER_ID, "Base.Apple"]}])]))
+    w.mark_looted((1, 0, 0, 0), "water")
+    assert w.containers[(1, 0, 0, 0)]["looted"] == {"water"}
+    assert w.nearest_unlooted("water") is None and w.nearest_unlooted("food") == (1, 0, 0, 0)
+    assert w.nearest_unlooted() is None                          # no want: any mark reads looted
+    w.apply(mapline([_sq(1, 0, containers=[{"type": "counter", "n": 2, "items": [WATER_ID, "Base.Apple"]}])],
+                    scan_id=2))
+    assert w.containers[(1, 0, 0, 0)]["looted"] == {"water"}     # kept across a re-scan of the same type
+    w.mark_looted((1, 0, 0, 0), "food")
+    assert w.nearest_unlooted("food") is None
+    assert json.loads(w.to_json())["containers"]["1,0,0,0"]["looted"] == ["food", "water"]
+
+
+def test_an_unmarked_container_serialises_looted_false_and_exclude_skips_a_key():
+    w = World()
+    w.apply(frame(0, me=me_at(0.0, 0.0)))
+    w.apply(mapline([_sq(1, 0, containers=[{"type": "fridge", "n": 1, "items": ["Base.Apple"]}]),
+                     _sq(4, 0, containers=[{"type": "fridge", "n": 1, "items": ["Base.Apple"]}])]))
+    assert json.loads(w.to_json())["containers"]["1,0,0,0"]["looted"] is False   # the goldens' bytes
+    assert w.nearest_unlooted("food", exclude={(1, 0, 0, 0)}) == (4, 0, 0, 0)
 
 
 def test_a_square_rescanned_with_fewer_containers_drops_the_stale_ones():

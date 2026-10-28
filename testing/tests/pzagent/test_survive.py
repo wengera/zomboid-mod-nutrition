@@ -727,3 +727,16 @@ def test_the_stall_reads_the_pinned_targets_distance_not_the_nearest_zombies(tmp
     r.frame(zombies=both())
     tick(r, sv)
     assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "stalled"
+
+
+# Task 11 fix 1 (review-t11 I1): a counter looted for water on a thirst is looted again for food on a hunger.
+def test_a_counter_looted_for_water_is_looted_again_for_food(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan([square(102, 200, containers=[{"type": "counter", "n": 2, "items": ["Base.WaterBottle", "Base.Apple"]}])])
+    r.frame(thirst=0.3)
+    tick(r, sv)
+    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "water", "maxWeight": 8.0})
+    r.answer({"state": "done", "result": {"moved": 1, "skipped": 0}})
+    r.frame(hunger=0.3)
+    tick(r, sv)
+    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "food", "maxWeight": 8.0})
