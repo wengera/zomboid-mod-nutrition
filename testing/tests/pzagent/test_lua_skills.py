@@ -1763,3 +1763,65 @@ def test_interact_loot_weapon_takes_a_saucepan_and_water_does_not(lua, fs):
         start(lua, make_player(), "interact", aid=filt, x=11, y=20, kind="loot", filter=filt)
         tick(lua, make_player())
         assert len(g._queue.adds) - before == n, filt
+
+
+# ---- sleep, fix round 1: the exercise variables, isAsleep unreadable, the vehicle, the tablet gate ---------------------
+
+def test_a_never_exercised_player_sleeps_with_the_exercise_variables_set_as_vanillas_callers_set_them(lua, fs):
+    load(lua)
+    p = make_player()
+    assert p.getVariableBoolean(p, "ExerciseEnded") is False      # the fake's unset read, the jar's default
+    start(lua, p, "sleep")
+    assert states(acts(lua, fs))[-1] == ("a1", "accepted", "")
+    tick(lua, p)
+    assert p.variables == {"ExerciseStarted": False, "ExerciseEnded": True}
+    assert ("setAsleep", True) in p.sleep and not ended(lua)
+
+
+def test_sleep_without_set_variable_still_sleeps(lua, fs):
+    load(lua)
+    p = make_player()
+    p.setVariable = None
+    start(lua, p, "sleep")
+    tick(lua, p)
+    assert ("setAsleep", True) in p.sleep and not ended(lua) and lua.eval("PZA.skills.errors") == 0
+
+
+def test_an_unreadable_is_asleep_after_the_sleep_fails_not_loaded_never_done(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "sleep")
+    tick(lua, p)
+    p.isAsleep = None
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "not loaded") and ended(lua)
+
+
+def test_sleep_in_a_vehicle_is_not_valid(lua, fs):
+    load(lua)
+    p = make_player()
+    p.getVehicle = lambda s: J(_cls="BaseVehicle")
+    start(lua, p, "sleep")
+    assert states(acts(lua, fs))[-1] == ("a1", "rejected", "not valid") and p.sleep == []
+
+
+@pytest.mark.parametrize("levels", [{"PAIN": 2}, {"PANIC": 1}])
+def test_a_sleeping_tablet_effect_of_2000_skips_the_pain_and_panic_refusals(lua, fs, levels):
+    load(lua)
+    p = make_player(moodle_levels=levels)
+    p.getSleepingTabletEffect = lambda s: 2000
+    start(lua, p, "sleep", aid="tab")
+    q = make_player(moodle_levels=levels)
+    q.getSleepingTabletEffect = lambda s: 1999
+    start(lua, q, "sleep", aid="low")
+    out = states(acts(lua, fs))
+    assert ("tab", "accepted", "") in out and ("low", "rejected", "not valid") in out
+
+
+def test_sleep_without_a_square_skips_get_bed_quality_and_sleeps_on_the_floor(lua, fs):
+    load(lua)
+    lua.execute("_bq = 0; ISWorldObjectContextMenu.getBedQuality = function(p, bed) _bq = _bq + 1; return 'goodBed' end")
+    p = make_player(square=None)
+    start(lua, p, "sleep")
+    tick(lua, p)
+    assert dict(p.sleep)["setBedType"] == "floor" and lua.eval("_bq") == 0

@@ -554,23 +554,33 @@ K.types.drop = {
 -- ---- sleep {} -------------------------------------------------------------------------------------------------------
 -- Sleep where the player stands, as vanilla's own sleep does it: ISWorldObjectContextMenu.onSleepWalkToComplete
 -- (the 42.21 install's media/lua/client/ISUI/ISWorldObjectContextMenu.lua L1034-L1098; P23-E) copied step by step, each
--- Java member through PZA.call and each vanilla global index-checked first. check: any of the Stats' three zombie counts
--- (getNumVisibleZombies, getNumChasingZombies, getNumVeryCloseZombies) above 0 is rejected not safe (L1036); unless
--- getSleepingTabletEffect reads 2000 or more, the PAIN moodle at 2 or more with FATIGUE at 0.85 or less, or the PANIC
--- moodle at 1 or more, is not valid (L1041-L1050), as is getVariableBoolean("ExerciseEnded") reading false (L1052); on a
--- client whose server options read SleepAllowed false, not allowed (the server's fast-forward and its FATIGUE reset key
--- on it). An unreadable count or moodle counts as 0. The first tick clears the vanilla queue and computes the hours as
--- the handler does (L1057-L1082): ZombRand(f * 10, f * 13) + 1 for FATIGUE f (ZombRand absent: the midpoint f * 11.5),
--- the bed type from ISWorldObjectContextMenu.getBedQuality(p, nil) ("floor" when absent, raising or not a string) with
--- its -1, +1 and x 0.7, the INSOMNIAC, NEEDS_LESS_SLEEP and NEEDS_MORE_SLEEP factors (a missing CharacterTrait constant
--- applies none), clamped to 3..16, and the wake hour that plus getTimeOfDay wrapped at 24; then setBed(nil),
--- setBedType, setForceWakeUpTime, setAsleepTime(0) and setAsleep(true) (L1084-L1088). The wake hour is set every time:
--- every wake leaves it at -1, and a sleep without its own has no clock wake (docs/superpowers/specs/
--- 2026-10-28-plan-23-jar-reads.md § 3). The fade, UIManager.setFadeBeforeUI and FadeOut (L1095-L1096), is index-checked
--- and under pcall, skipped where absent (a -debug client). The client's asleep flag reaches the server through the player
--- packet (the jar note's § 3), so the frame keeps flowing while asleep. Later ticks: isAsleep reading anything but true
--- is done {sleptH (world hours since the check, through PZA.sense.clock), fatigueBefore, fatigueAfter, bedType}; still
--- asleep after SLEEP_MS of wall is interrupted. A player without setAsleep fails not loaded on the first tick.
+-- Java member through PZA.call and each vanilla global index-checked first. The skill is for a client of a dedicated
+-- server: the handler's single-player path (getSleepingEvent():setPlayerFallAsleep and the game speed, L1103-L1109) is
+-- not copied. It sleeps on the floor or a bed, never in a vehicle: a player whose getVehicle answers non-nil is refused
+-- not valid (the handler's vehicle sound and onVehicleSleep command, L1090-L1092 and L1097-L1099, are not copied).
+-- check: any of the Stats' three zombie counts (getNumVisibleZombies, getNumChasingZombies, getNumVeryCloseZombies)
+-- above 0 is rejected not safe (L1036); unless getSleepingTabletEffect reads 2000 or more, the PAIN moodle at 2 or more
+-- with FATIGUE at 0.85 or less, or the PANIC moodle at 1 or more, is not valid (L1041-L1050); on a client whose server
+-- options read SleepAllowed false, not allowed (the server's fast-forward and its FATIGUE reset key on it). An
+-- unreadable count or moodle counts as 0. The first tick sets the variables ExerciseStarted false and ExerciseEnded true
+-- as every vanilla caller of the handler does before it (onConfirmSleep L991-L992, ISSleepDialog, ISVehicleMenu), which
+-- the handler's ExerciseEnded gate (L1052) then always passes, so the gate is not copied (a missing setVariable is
+-- skipped); clears the vanilla queue; and computes the hours as the handler does (L1057-L1082): ZombRand(f * 10,
+-- f * 13) + 1 for FATIGUE f (ZombRand absent: the midpoint f * 11.5), the bed type from
+-- ISWorldObjectContextMenu.getBedQuality(p, nil) ("floor" when absent, raising or not a string, and without the call
+-- when getCurrentSquare answers nil, where it would raise) with its -1, +1 and x 0.7, the INSOMNIAC, NEEDS_LESS_SLEEP
+-- and NEEDS_MORE_SLEEP factors (a missing CharacterTrait constant applies none), clamped to 3..16, and the wake hour
+-- that plus getTimeOfDay wrapped at 24 (a wake hour of exactly 24 wraps to 0, which IsoPlayer.processWakingUp maps to
+-- 9:00, as vanilla's does); then setBed(nil), setBedType, setForceWakeUpTime, setAsleepTime(0) and setAsleep(true)
+-- (L1084-L1088). The wake hour is set every time: every wake leaves it at -1, and a sleep without its own has no clock
+-- wake (docs/superpowers/specs/2026-10-28-plan-23-jar-reads.md § 3). The fade, UIManager.setFadeBeforeUI and FadeOut
+-- (L1095-L1096), is index-checked and under pcall, skipped where absent (a -debug client). The client's asleep flag
+-- reaches the server through the player packet (the jar note's § 3), so the frame keeps flowing while asleep. Later
+-- ticks: isAsleep reading false is done {sleptH (world hours since the check, through PZA.sense.clock),
+-- fatigueBefore, fatigueAfter, bedType}; an unreadable isAsleep is not loaded; still asleep after SLEEP_MS of wall is
+-- interrupted. A player without setAsleep fails not loaded on the first tick. An end before the wake (interrupted, or a
+-- command superseding the sleep) leaves the character asleep until the engine wakes it: neither the runner's end nor the
+-- planner's stop wakes it, and a forced wake is out of this skill's scope.
 K.SLEEP_MS = 3600000      -- an hour of wall: a sleep still running this long is interrupted
 
 -- the world age in hours through Sense's clock (its second answer), 0 while Sense is not loaded
@@ -621,8 +631,8 @@ local function sleepRefusal(p)
         if moodleLevel(p, "PAIN") >= 2 and (statOf(p, "FATIGUE") or 0) <= 0.85 then return "not valid" end
         if moodleLevel(p, "PANIC") >= 1 then return "not valid" end
     end
-    local _, exerciseEnded = PZA.call(p, "getVariableBoolean", "ExerciseEnded")
-    if exerciseEnded == false then return "not valid" end
+    local _, vehicle = PZA.call(p, "getVehicle")
+    if vehicle ~= nil then return "not valid" end
     if isClient ~= nil and isClient() == true and getServerOptions ~= nil then
         local _, allowed = PZA.call(getServerOptions(), "getBoolean", "SleepAllowed")
         if allowed == false then return "not allowed" end
@@ -630,10 +640,14 @@ local function sleepRefusal(p)
     return nil
 end
 
--- the bed type vanilla's getBedQuality answers with no bed, "floor" when it is absent, raises or answers no string
+-- the bed type vanilla's getBedQuality answers with no bed, "floor" when it is absent, raises or answers no string, and
+-- without the call when the player has no square (getBedQuality reads getSquare():getWorldObjects() unguarded, and a
+-- caught raise still parks a -debug client)
 local function bedQuality(p)
     local M = ISWorldObjectContextMenu
     if M == nil or M.getBedQuality == nil then return "floor" end
+    local _, sq = PZA.call(p, "getCurrentSquare")
+    if sq == nil then return "floor" end
     local ok, bed = pcall(M.getBedQuality, p, nil)
     if ok and type(bed) == "string" then return bed end
     return "floor"
@@ -658,9 +672,11 @@ local function sleepHoursFor(p, f, bedType)
     return math.max(3, math.min(16, h))
 end
 
--- the first tick: the queue cleared, the hours and the wake hour, the five setters in the handler's order, the fade;
--- false when the player has no setAsleep
+-- the first tick: the exercise variables as vanilla's callers set them, the queue cleared, the hours and the wake hour,
+-- the five setters in the handler's order, the fade; false when the player has no setAsleep
 local function fallAsleep(p, st)
+    PZA.call(p, "setVariable", "ExerciseStarted", false)
+    PZA.call(p, "setVariable", "ExerciseEnded", true)
     clearQueue(p)
     local bedType = bedQuality(p)
     local hours = sleepHoursFor(p, st.fatigue0 or 0, bedType)
@@ -694,8 +710,9 @@ K.types.sleep = {
             if not fallAsleep(p, st) then return "failed", "not loaded" end
             return nil
         end
-        local _, asleep = PZA.call(p, "isAsleep")
-        if asleep ~= true then
+        local okA, asleep = PZA.call(p, "isAsleep")
+        if not okA or type(asleep) ~= "boolean" then return "failed", "not loaded" end
+        if asleep == false then
             return "done", { sleptH = worldAge() - st.worldAge0, fatigueBefore = st.fatigue0,
                              fatigueAfter = statOf(p, "FATIGUE"), bedType = st.bedType }
         end

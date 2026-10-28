@@ -186,6 +186,12 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
         return f
     for name in ("setBed", "setBedType", "setForceWakeUpTime", "setAsleepTime", "setAsleep"):
         setattr(p, name, sleep_setter(name))
+    # Task 8 fix 1: the animation variables, setVariable(name, value) recording into p.variables, and
+    # getVariableBoolean(name) answering false for a name never set (the jar's IAnimationVariableSource default)
+    variables = {}
+    p.variables = variables
+    p.setVariable = lambda s, k, v: variables.__setitem__(k, v)
+    p.getVariableBoolean = lambda s, k: variables.get(k, False) is True
     return p
 
 
