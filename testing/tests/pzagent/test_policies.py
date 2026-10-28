@@ -515,7 +515,7 @@ def test_loothouse_never_loots_at_level_three_and_drops_the_heaviest_other_item_
     r = Rig(tmp_path)
     r.scan([square(102, 200, containers=[CRATE])])
     for iid, ft, wt in [(601, "Base.BaseballBat", 9.0), (602, "Base.Plank", 3.0), (603, "Base.Nails", 0.5),
-                        (604, "Base.TinnedSoup", 5.0), (605, "Base.Crowbar", 4.0), (606, "Base.WaterBottleFull", 6.0)]:
+                        (604, "Base.TinnedSoup", 5.0), (605, "Base.Crowbar", 4.0), (606, "Base.WaterBottle", 6.0)]:
         r.event("item_added", itemId=iid, fullType=ft, weight=wt)
     r.frame(level=3)
     lh = LootHouse(r.world, r.acts, r.clock)

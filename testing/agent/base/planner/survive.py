@@ -27,8 +27,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   UNREACHABLE_S (`policies.Fight`); Survive keeps that memory in `unreachable` across its Fights, and when every held
   threat is skipped the branch flees (reason `unreachable`), never attacking it again until its time runs out.
 - `need`: while its own `Consume` is current it holds, before any threshold is read (a frame that already reads the
-  drink's effect must not let a lower branch supersede it); else thirst > THIRST_T consumes the held item of least id whose fullType matches WATER_RX, else marks `water`;
-  then hunger > HUNGER_T consumes a held FOOD_RX item, else marks `food`; nothing held, the branch passes and
+  drink's effect must not let a lower branch supersede it); else thirst > THIRST_T consumes the held item of least id whose use is `water` (`world.by_use()`, the dataset's fluid
+  containers, an item marked empty left out), else marks `water`;
+  then hunger > HUNGER_T consumes the held `food` item of least id (the dataset's food), else marks `food`; nothing held, the branch passes and
   `forage` loots for the mark (`all` with none) through `LootHouse`, which loots only at load level 0-1, never at 2,
   and drops from 3 down to 2 (spec § 9 (1)). `explore` scans each new place and walks to the unexplored edge.
 - A command whose action ended `failed` (any reason but `superseded`, which this planner's own next send caused),
@@ -45,7 +46,6 @@ import time
 from agent.base.planner.policies import (FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Explore, Fight, Flee, LootHouse,
                                          blocked, item_id_ok, target_id_ok, zdist)
 from agent.base.pza1 import Consume
-from agent.base.world import FOOD_RX, WATER_RX
 
 DANGER_R = 6.0            # a zombie this close is a threat
 DISENGAGE_R = 10.0        # while a fight or flee runs, a zombie this close is still held
@@ -105,9 +105,9 @@ class Survive:
     def _armed(self):
         return self.world.weapon is not None
 
-    def _held_item(self, rx):
-        ids = [i for i, it in self.world.inventory.items()
-               if item_id_ok(i) and rx.search(it.get("fullType") or "")]
+    def _held_use(self, use):
+        """The least usable id among the held items of `use` (`world.by_use()`), else None."""
+        ids = [i for i in self.world.by_use()[use] if item_id_ok(i)]
         return min(ids) if ids else None
 
     def _reachable_held(self):
@@ -182,11 +182,11 @@ class Survive:
         st = self.world.stats or {}
         pick = None
         if (st.get("thirst") or 0.0) > THIRST_T:
-            pick = self._held_item(WATER_RX)
+            pick = self._held_use("water")
             if pick is None:
                 self.need_mark = "water"
         if pick is None and (st.get("hunger") or 0.0) > HUNGER_T:
-            pick = self._held_item(FOOD_RX)
+            pick = self._held_use("food")
             if pick is None:
                 self.need_mark = self.need_mark or "food"
         self.why = {"item": pick, "mark": self.need_mark}

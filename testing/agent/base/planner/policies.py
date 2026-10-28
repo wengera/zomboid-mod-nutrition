@@ -47,19 +47,18 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   square is marked looted"). Spec § 9 (1), "a policy stops looting before level 3": a loot with filter `all` takes a
   whole container, so one interact at level 2 lifted runs 1 and 2 to level 3 and 4; the guard is the level, since a
   container's weight is not readable per item. At level 2 it sends nothing; at `DROP_AT` (3) or above it sends `Drop`
-  of the heaviest held item that is neither the wielded weapon's type, nor a `WEAPON_RX` name, nor food or water by
-  `FOOD_RX`/`WATER_RX`, one a decision, until the frame's level reads `DROP_TO` (2); with nothing to drop, no command.
+  of the heaviest held item that is neither the wielded weapon's type, nor of use `weapon`, `food` or `water` by
+  `agent.base.items.use_of`, one a decision, until the frame's level reads `DROP_TO` (2); with nothing to drop, no command.
   No loot is sent again until the level is back under 2.
 
-HEURISTIC: WEAPON_RX names the weapons a survivor keeps by fullType, as FOOD_RX and WATER_RX guess food and drink
-(`agent.base.world`); none is game data.
+HEURISTIC: an item's use is `agent.base.items.use_of`: food and water off `data/food-items.json` (the dataset's food and
+fluid containers), a weapon by `items.WEAPON_RX`'s fullType names, which is no game data (the dataset names no weapon).
 """
 import math
-import re
 import time
 
+from agent.base.items import use_of
 from agent.base.pza1 import Attack, Drop, Interact, Scan, Steer, WalkTo
-from agent.base.world import FOOD_RX, WATER_RX
 
 FIGHT_REACH = 2.0     # tiles: a nearest zombie beyond this is walked to, within it attacked
 FIGHT_MAX_S = 20.0    # wall seconds the nearest may stay beyond FIGHT_REACH before the fight reads stalled
@@ -74,7 +73,6 @@ DROP_AT = 3           # at this load level or above the policy drops (the heavy-
 DROP_TO = 2           # ... down to this level, and between the two sends nothing
 PREEMPTED = "superseded"   # the reason the Lua fails an action a newer send replaced
 STUCK_REASONS = ("stuck", "no path", "no square")   # a walkTo failed for one of these: its target is remembered
-WEAPON_RX = re.compile(r"\.(BaseballBat|Hammer|Axe|Crowbar|Knife|Pan|Pistol|Shotgun|Rifle)")
 
 
 def me_xy(world):
@@ -333,14 +331,15 @@ class LootHouse(Policy):
         self.pending = still
 
     def spare(self):
-        """The id of the heaviest held item that is neither a weapon nor food or water, else None."""
+        """The id of the heaviest held item that is neither the wielded weapon's type nor of use weapon, food or water
+        (`items.use_of`), else None."""
         wielded = (self.world.weapon or {}).get("type")
         best = None
         for iid, it in self.world.inventory.items():
             ft = it.get("fullType") or ""
             if not item_id_ok(iid):
                 continue
-            if ft == wielded or WEAPON_RX.search(ft) or FOOD_RX.search(ft) or WATER_RX.search(ft):
+            if ft == wielded or use_of(ft) in ("weapon", "food", "water"):
                 continue
             rank = (-(it.get("weight") or 0.0), iid)
             if best is None or rank < best:

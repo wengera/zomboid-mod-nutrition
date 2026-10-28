@@ -28,21 +28,28 @@ current gameMin and `unexplored_edge` leaves it out for STUCK_TTL_MIN game minut
 The server's side comes in through `merge_server(stats, wall_ms)` and `merge_damage(reply, wall_ms)`, a
 `damage.watch` reply whose `last` records not yet seen (by `i`) land in `damage` tagged `server` (spec § 9).
 
-HEURISTIC: FOOD_RX and WATER_RX guess from an item's fullType whether a container holds food or drink (Plan 21's,
-widened): the prefix words `Canned` and `Tinned` take any suffix, so `Base.CannedMilk` and `Base.TinnedSoup` match,
-`Macandcheese` and `PowerBar` are named, every other name keeps its trailing word boundary (`Base.Hammer` is not
-`Ham`), and water names `WaterBottle` and `WaterBottleFull`, never `WaterBottleEmpty`. They are guesses, not game
-data (`docs/reference/research-notes.md`: matching against `data/food-items.json` would replace them).
+Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the inventory:
+- `blocked(a, b)`: the edge between two adjacent squares, read as the jar reads `IsoGridSquare.isBlockedTo`
+  (`docs/superpowers/specs/2026-10-28-plan-23-jar-reads.md` § 1): a square stores only its own north and west edges
+  (`blockN`, `blockW`, movement-blocking: a wall, a closed or barricaded door, an intact closed window), so the north
+  neighbour reads `a`'s `blockN`, the south `b`'s, the west `a`'s `blockW`, the east `b`'s; a diagonal is blocked when
+  any of the four edges meeting at the shared corner is, or either corner square is solid. Unlike the jar (which reads
+  an unloaded neighbour's edge open), an unknown square or a null edge counts blocked: the planner never assumes a way.
+- `line_clear(a, b)`: Bresenham over the squares from `a` to `b` (positions floored, on the player's floor), false at
+  any blocked edge a step crosses (`blocked`) or any solid or unknown square strictly between the ends. It reads the
+  blocked edges, never `edgeN`/`edgeW` (any wall, window or door edge whatever its state), which the square record
+  keeps for the view and a later sight reading (ruling P23-K).
+- `reachable_adjacent(target_xy, z)`, `interiors()`, `doors_of(building)`.
+- `by_use()`: the inventory's ids by `agent.base.items.use_of` (the dataset's food and fluid containers), an id the
+  planner marked empty (`mark_empty`, kept in `empty_ids` and dropped with its item) moved from `water` to `other`;
+  `nearest_unlooted(want)` keys on the same use. `to_json` carries `emptyIds` sorted, and only while it is non-empty,
+  so a World that never marked one serialises as before (the replay goldens keep their bytes).
 """
 import json
 import math
-import re
 from collections import deque
 
-FOOD_RX = re.compile(r"\.(?:(?:Canned|Tinned)\w*|Macandcheese|PowerBar|Apple|Bread|Milk|Water|Pop|Chips|Cereal|"
-                     r"Cabbage|Carrots|Tomato|Egg|Steak|Chicken|Ham|Tuna|Peanut|Candy|Chocolate|Juice|Soda|Beer|Wine|"
-                     r"Whiskey|Orange|Banana|Lettuce|Potato)\b")
-WATER_RX = re.compile(r"\.(?:WaterBottle(?:Full)?|Pop|Juice|Milk|Soda|Bowl|Pot|Kettle|Bucket)\b")
+from agent.base.items import USES, use_of
 
 ZOMBIE_TTL_S = 10
 STUCK_TTL_MIN = 60   # game minutes an edge whose walk ended stuck is left out of unexplored_edge
@@ -74,6 +81,7 @@ class World:
         self.containers = {}         # (x, y, z, i) -> {type, n, items, looted}
         self.buildings = set()
         self.inventory = {}          # itemId -> {fullType, weight}
+        self.empty_ids = set()       # the held ids the planner found empty (mark_empty), never a line's
         self.damage = deque(maxlen=DEQUE_N)
         self.damage_seen_i = set()   # the damage.watch record numbers already merged
         self.damage_counts_server = None
@@ -162,6 +170,7 @@ class World:
         elif kind == "item_removed":
             if self.inventory.pop(line.get("itemId"), None) is None:
                 self.missing_items += 1
+            self.empty_ids.discard(line.get("itemId"))
         elif kind == "damage":
             self.damage.append({"tag": line.get("tag"), "amount": line.get("amount"), "side": line.get("side"),
                                 "wallMs": line.get("wallMs")})
@@ -198,11 +207,12 @@ class World:
         return me.get("x") or 0.0, me.get("y") or 0.0
 
     def nearest_unlooted(self, want=None):
-        rx = {"food": FOOD_RX, "water": WATER_RX}.get(want)
+        """The key of the nearest unlooted, non-empty container, ties by key; with `want` (one of USES) only a
+        container holding an item of that use (`items.use_of`)."""
         mx, my = self._me_xy()
         best = None
         for key, c in self.containers.items():
-            if c["looted"] or not c["n"] or not c["items"] or (rx and not any(rx.search(i) for i in c["items"])):
+            if c["looted"] or not c["n"] or not c["items"] or (want and not any(use_of(i) == want for i in c["items"])):
                 continue
             rank = (math.hypot(key[0] - mx, key[1] - my), key)
             if best is None or rank < best:
@@ -250,6 +260,124 @@ class World:
                 best = rank
         return (best[1], self.zombies[best[1]]) if best else None
 
+    # -- the square's edges, the line, interiors (Plan 23 Task 9, P23-K) -------------------------------------------
+    def _edge(self, sq, field):
+        """The edge `field` of the square at `sq`, True (blocked) when the square is unknown or the edge null."""
+        s = self.map.get(sq)
+        v = None if s is None else s.get(field)
+        return True if v is None else bool(v)
+
+    def _solid(self, sq):
+        """A square unknown to the map counts solid."""
+        s = self.map.get(sq)
+        return s is None or bool(s.get("solid"))
+
+    def _orth_blocked(self, a, b):
+        """The edge between two orthogonally adjacent squares: a square stores its own north and west edges."""
+        if b[1] == a[1] - 1:
+            return self._edge(a, "blockN")
+        if b[1] == a[1] + 1:
+            return self._edge(b, "blockN")
+        if b[0] == a[0] - 1:
+            return self._edge(a, "blockW")
+        return self._edge(b, "blockW")
+
+    def blocked(self, a, b):
+        """Whether the step between two adjacent squares `(x, y, z)` is blocked (the module docstring's rule); a
+        pair that is not adjacent on one floor raises ValueError, the same square is never blocked, and a step to or
+        from a square the map does not hold always is."""
+        a, b = tuple(a), tuple(b)
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        if a[2] != b[2] or abs(dx) > 1 or abs(dy) > 1:
+            raise ValueError("blocked: not adjacent: %r %r" % (a, b))
+        if dx == 0 and dy == 0:
+            return False
+        if a not in self.map or b not in self.map:
+            return True
+        if dx == 0 or dy == 0:
+            return self._orth_blocked(a, b)
+        c1, c2 = (b[0], a[1], a[2]), (a[0], b[1], a[2])
+        if self._solid(c1) or self._solid(c2):
+            return True
+        return (self._orth_blocked(a, c1) or self._orth_blocked(a, c2) or self._orth_blocked(c1, b)
+                or self._orth_blocked(c2, b))
+
+    def _floor(self):
+        z = (self.me or {}).get("z")
+        return int(math.floor(z)) if isinstance(z, (int, float)) and not isinstance(z, bool) else 0
+
+    @staticmethod
+    def _bresenham(x0, y0, x1, y1):
+        """The squares of the integer line from (x0, y0) to (x1, y1), both ends included, 8-connected."""
+        dx, dy = abs(x1 - x0), -abs(y1 - y0)
+        sx, sy = (1 if x1 > x0 else -1), (1 if y1 > y0 else -1)
+        err = dx + dy
+        out = [(x0, y0)]
+        while (x0, y0) != (x1, y1):
+            e2 = 2 * err
+            if e2 >= dy:
+                err += dy
+                x0 += sx
+            if e2 <= dx:
+                err += dx
+                y0 += sy
+            out.append((x0, y0))
+        return out
+
+    def line_clear(self, a, b):
+        """Whether the line from position `a` to `b` ((x, y) floats, on the player's floor) crosses no blocked edge
+        and no solid or unknown square strictly between its end squares."""
+        z = self._floor()
+        cells = self._bresenham(int(math.floor(a[0])), int(math.floor(a[1])), int(math.floor(b[0])),
+                                int(math.floor(b[1])))
+        sqs = [(x, y, z) for x, y in cells]
+        if any(self._solid(sq) for sq in sqs[1:-1]):
+            return False
+        return not any(self.blocked(p, q) for p, q in zip(sqs, sqs[1:]))
+
+    def reachable_adjacent(self, target_xy, z):
+        """The target square's 8 neighbours that are mapped, not solid, and whose step to the target is not blocked,
+        nearest the player first (by the neighbour's centre, ties by x, y)."""
+        tx, ty = int(math.floor(target_xy[0])), int(math.floor(target_xy[1]))
+        t = (tx, ty, z)
+        mx, my = self._me_xy()
+        out = []
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                n = (tx + dx, ty + dy, z)
+                if n == t or self._solid(n) or self.blocked(n, t):
+                    continue
+                out.append((math.hypot(n[0] + 0.5 - mx, n[1] + 0.5 - my), n[0], n[1], n))
+        return [r[3] for r in sorted(out)]
+
+    def interiors(self):
+        """{building: [(x, y, z) sorted]}: the mapped squares with a room, grouped by their building."""
+        out = {}
+        for sq, s in self.map.items():
+            if s.get("room") is not None:
+                out.setdefault(s.get("building"), []).append(sq)
+        return {b: sorted(v) for b, v in out.items()}
+
+    def doors_of(self, building):
+        """The mapped squares of `building` with a door, sorted."""
+        return sorted(sq for sq, s in self.map.items() if s.get("building") == building and s.get("door") is not None)
+
+    # -- the inventory by use and the empties (Plan 23 Task 9, P23-D) -----------------------------------------------
+    def mark_empty(self, item_id):
+        """Remember a held item as empty (the planner's, never a line's): `by_use` moves it from `water` to `other`."""
+        self.empty_ids.add(item_id)
+
+    def by_use(self):
+        """{use: [ids sorted]} for every use in USES: the inventory's ids by `items.use_of` of their fullType, an id
+        in `empty_ids` read as `other` rather than `water`."""
+        out = {u: [] for u in USES}
+        for iid, it in self.inventory.items():
+            use = use_of(it.get("fullType"))
+            if use == "water" and iid in self.empty_ids:
+                use = "other"
+            out[use].append(iid)
+        return {u: sorted(v, key=_num_first) for u, v in out.items()}
+
     # -- serialisation --------------------------------------------------------------------------------------------
     def to_json(self):
         """Byte-stable: sorted keys, indent 1, tuple keys as "x,y,z", sets sorted, deques as lists."""
@@ -276,4 +404,6 @@ class World:
             "droppedScans": self.dropped_scans,
             "mapLines": self.map_lines,
         })
+        if self.empty_ids:
+            d["emptyIds"] = sorted(self.empty_ids, key=_num_first)
         return json.dumps(d, sort_keys=True, indent=1, ensure_ascii=False)

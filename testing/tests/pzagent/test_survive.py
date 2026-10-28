@@ -264,12 +264,12 @@ def test_a_running_action_is_not_re_sent_and_a_higher_branch_pre_empts_it(tmp_pa
 def test_need_consumes_a_held_water_bottle_by_id_when_thirsty_then_food(tmp_path):
     r, sv = make(tmp_path)
     r.event("item_added", itemId=702, fullType="Base.Apple", weight=0.2)
-    r.event("item_added", itemId=701, fullType="Base.WaterBottleFull", weight=1.0)
+    r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
     r.frame(thirst=0.6, hunger=0.6)
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 701}) and last(tmp_path)["branch"] == "need"
     r.answer({"state": "done", "result": {"itemId": 701}})
-    r.event("item_removed", itemId=701, fullType="Base.WaterBottleFull")
+    r.event("item_removed", itemId=701, fullType="Base.WaterBottle")
     r.frame(thirst=0.2, hunger=0.6)
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 702})
@@ -279,7 +279,7 @@ def test_need_consumes_a_held_water_bottle_by_id_when_thirsty_then_food(tmp_path
 def test_need_holds_its_running_consume_before_reading_the_thresholds(tmp_path):
     r, sv = make(tmp_path)
     r.scan([square(101, 200, containers=[CRATE])])
-    r.event("item_added", itemId=701, fullType="Base.WaterBottleFull", weight=1.0)
+    r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
     r.frame(thirst=0.6)
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 701})
@@ -325,7 +325,7 @@ def test_forage_never_loots_at_load_level_three(tmp_path):
 # ================================================================ the cooldown
 def test_a_failed_action_cools_its_branch_for_ten_planner_ticks(tmp_path):
     r, sv = make(tmp_path)
-    r.event("item_added", itemId=701, fullType="Base.WaterBottleFull", weight=1.0)
+    r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
     r.frame(thirst=0.6)
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 701})
@@ -346,7 +346,7 @@ def test_a_failed_action_cools_its_branch_for_ten_planner_ticks(tmp_path):
 def test_a_cooled_action_passes_over_to_the_next_branch(tmp_path):
     r, sv = make(tmp_path)
     r.scan([square(102, 200, containers=[CRATE])])
-    r.event("item_added", itemId=701, fullType="Base.WaterBottleFull", weight=1.0)
+    r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
     r.frame(thirst=0.6)
     tick(r, sv)
     r.answer({"state": "failed", "reason": "not valid"})
@@ -357,7 +357,7 @@ def test_a_cooled_action_passes_over_to_the_next_branch(tmp_path):
 
 def test_a_superseded_action_is_not_a_failure(tmp_path):
     r, sv = make(tmp_path)
-    r.event("item_added", itemId=701, fullType="Base.WaterBottleFull", weight=1.0)
+    r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
     r.frame(thirst=0.6)
     tick(r, sv)
     r.answer({"state": "failed", "reason": "superseded"})
@@ -383,7 +383,7 @@ def scenario(tmp_path):
     """A short session through every branch on the injected clock; returns the decision log's bytes."""
     tmp_path.mkdir()
     r, sv = make(tmp_path)
-    r.event("item_added", itemId=701, fullType="Base.WaterBottleFull", weight=1.0)
+    r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
 
     def step(i, **k):
         r.advance(0.25)

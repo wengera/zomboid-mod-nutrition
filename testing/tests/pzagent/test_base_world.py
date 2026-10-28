@@ -1,7 +1,8 @@
 """World from PZA/1 lines (Plan 22 Task 9a): the frame's groups, zombies aged by wallMs, the map by square with its
 containers and looted marks, the inventory by item id, damage from the client's events and the server's damage.watch
 replies, the act lines, a byte-stable to_json and a replay of a state.log through FileTransport (delta frames merged
-as live). The heuristics are Plan 21's (`testing/agent/world.py`, frozen) with FOOD_RX and WATER_RX widened.
+as live). The heuristics are Plan 21's (`testing/agent/world.py`, frozen), the regexes replaced by the dataset's use
+(`agent.base.items`, Plan 23 Task 9); the square's edges, the line check, interiors and the empties are Task 9's.
 
 The committed fixtures `fixtures/pza1-synthetic-1.log` and `.world.json` are written by `_write_synthetic` below, run
 once by hand from the repository root:
@@ -16,8 +17,9 @@ import os
 
 import pytest
 
+from agent.base import items
 from agent.base.replay import replay as replay_summary
-from agent.base.world import FOOD_RX, WATER_RX, ZOMBIE_TTL_S, World
+from agent.base.world import ZOMBIE_TTL_S, World
 
 from .fakemod import DEFAULT_FRAME, FakeMod
 
@@ -27,6 +29,17 @@ GOLDEN = os.path.join(FIX, "pza1-synthetic-1.world.json")
 
 DOOR = {"open": False, "locked": False, "barricaded": False}
 WINDOW = {"open": False, "locked": True, "barricaded": False}
+
+
+def _dataset():
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    with open(os.path.join(root, "data", "food-items.json"), encoding="utf-8") as f:
+        return {it["id"]: it for it in json.load(f)["items"]}
+
+
+DATA = _dataset()
+assert DATA["Base.WaterBottle"]["kind"] == "fluid_container"     # the B42 bottle: a fluid container, never a Full name
+WATER_ID = "Base.WaterBottle"
 
 
 def replay(path):
@@ -333,23 +346,13 @@ def test_act_lines_keep_the_last_per_aid_and_hello_and_reply():
 
 # -- the heuristics ---------------------------------------------------------------------------------------------------
 
-def test_the_widened_patterns():
-    for name in ("Base.CannedMilk", "Base.TinnedSoup", "Base.Macandcheese", "Base.PowerBar", "Base.Apple",
-                 "Base.Ham", "Base.CannedCorn"):
-        assert FOOD_RX.search(name), name
-    for name in ("Base.Hammer", "Base.Nails", "Base.WaterBottleEmpty", "Base.Axe"):
-        assert not FOOD_RX.search(name), name
-    assert WATER_RX.search("Base.WaterBottleFull") and WATER_RX.search("Base.WaterBottle")
-    assert not WATER_RX.search("Base.WaterBottleEmpty") and not WATER_RX.search("Base.CannedMilk")
-
-
 def test_nearest_unlooted_filters_and_skips_the_looted_and_the_empty():
     w = World()
     w.apply(frame(0, me=me_at(0.0, 0.0)))
     w.apply(mapline([_sq(1, 0, containers=[{"type": "crate", "n": 1, "items": ["Base.Nails"]}]),
                      _sq(2, 0, containers=[{"type": "crate", "n": 0, "items": []}], floor=["Base.Apple"]),
                      _sq(5, 0, containers=[{"type": "fridge", "n": 1, "items": ["Base.CannedMilk"]}]),
-                     _sq(9, 0, containers=[{"type": "shelf", "n": 1, "items": ["Base.WaterBottleFull"]}])]))
+                     _sq(9, 0, containers=[{"type": "shelf", "n": 1, "items": [WATER_ID]}])]))
     assert w.nearest_unlooted() == (1, 0, 0, 0)
     assert w.nearest_unlooted("food") == (5, 0, 0, 0)
     assert w.nearest_unlooted("water") == (9, 0, 0, 0)
@@ -468,3 +471,163 @@ def test_a_scan_dropped_event_records_its_scans_aid_and_never_touches_the_act():
     w.apply(event("scan_dropped", scanId=1, aid="a1", part=2, parts=3, reason="java raised"))
     assert w.scans_dropped == {"a1"} and w.acts["a1"] is act
     assert "scansDropped" not in json.loads(w.to_json())     # the planner's memory, like stuck: the goldens unchanged
+
+
+# -- Plan 23 Task 9: the edges, the line, interiors, the inventory by use, the empties --------------------------------
+
+def _grid(x0, y0, x1, y1, z=0, **over):
+    """An open grid of squares (x0..x1, y0..y1) on floor z; `over` maps (x, y) to the fields laid over that square."""
+    over = over.get("over", {})
+    return [_sq(x, y, z, **over.get((x, y), {})) for x in range(x0, x1 + 1) for y in range(y0, y1 + 1)]
+
+
+def _world(squares, me=(0.0, 0.0)):
+    w = World()
+    w.apply(frame(0, me=me_at(*me)))
+    w.apply(mapline(squares))
+    return w
+
+
+def test_blocked_reads_the_north_and_west_edge_both_ways():
+    w = _world(_grid(0, 0, 2, 2, over={(1, 1): {"blockN": True}, (2, 1): {"blockW": True}}))
+    assert w.blocked((1, 0, 0), (1, 1, 0)) and w.blocked((1, 1, 0), (1, 0, 0))    # (1,1)'s north edge
+    assert w.blocked((1, 1, 0), (2, 1, 0)) and w.blocked((2, 1, 0), (1, 1, 0))    # (2,1)'s west edge
+    assert not w.blocked((0, 1, 0), (1, 1, 0)) and not w.blocked((1, 1, 0), (1, 2, 0))
+    assert not w.blocked((0, 0, 0), (0, 1, 0))
+
+
+def test_blocked_counts_an_unknown_square_or_a_null_edge_blocked():
+    w = _world(_grid(0, 0, 1, 0, over={(1, 0): {"blockW": None}}))
+    assert w.blocked((0, 0, 0), (1, 0, 0))                     # a null edge
+    assert w.blocked((0, 0, 0), (0, 1, 0))                     # (0,1) is not in the map
+    assert w.blocked((0, 0, 0), (-1, 0, 0))
+    with pytest.raises(ValueError):
+        w.blocked((0, 0, 0), (2, 0, 0))                        # not adjacent
+
+
+@pytest.mark.parametrize("over", [
+    {(1, 0): {"blockW": True}},      # the edge between a and the corner square (1,0)
+    {(0, 1): {"blockN": True}},      # the edge between a and the corner square (0,1)
+    {(1, 1): {"blockN": True}},      # the edge between (1,0) and b
+    {(1, 1): {"blockW": True}},      # the edge between (0,1) and b
+    {(1, 0): {"solid": True}},       # a solid corner square
+    {(0, 1): {"solid": True}},
+])
+def test_a_diagonal_is_blocked_by_any_edge_meeting_at_the_corner_or_a_solid_corner(over):
+    a, b = (0, 0, 0), (1, 1, 0)
+    assert not _world(_grid(-1, -1, 2, 2)).blocked(a, b)
+    w = _world(_grid(-1, -1, 2, 2, over=over))
+    assert w.blocked(a, b) and w.blocked(b, a)
+
+
+def test_a_diagonal_ignores_an_edge_away_from_its_corner():
+    w = _world(_grid(-1, -1, 2, 2, over={(0, 0): {"blockN": True, "blockW": True}, (2, 1): {"blockW": True}}))
+    assert not w.blocked((0, 0, 0), (1, 1, 0))
+    assert w.blocked((0, 0, 0), (-1, -1, 0))                   # the north-west corner meets both of (0,0)'s edges
+
+
+def test_line_clear_stops_at_a_blocked_edge_entered_from_either_side():
+    w = _world(_grid(0, 0, 4, 0, over={(2, 0): {"blockW": True}}), me=(0.5, 0.5))
+    assert not w.line_clear((0.5, 0.5), (4.5, 0.5)) and not w.line_clear((4.5, 0.5), (0.5, 0.5))
+    assert w.line_clear((0.5, 0.5), (1.9, 0.2))                # stops short of the edge
+    assert w.line_clear((2.1, 0.5), (4.5, 0.5))                # starts past it
+
+
+def test_line_clear_passes_an_open_edge_and_a_seen_but_unblocked_edge():
+    w = _world(_grid(0, 0, 4, 0, over={(2, 0): {"edgeW": True}}), me=(0.5, 0.5))   # an open doorway: an edge, unblocked
+    assert w.line_clear((0.5, 0.5), (4.5, 0.5))
+    w = _world(_grid(0, 0, 0, 4, over={(0, 3): {"blockN": True}}), me=(0.5, 0.5))
+    assert not w.line_clear((0.5, 0.5), (0.5, 4.5))            # the north edge, crossed going south
+
+
+def test_line_clear_stops_at_a_solid_or_unknown_square_between_but_not_at_the_ends():
+    w = _world(_grid(0, 0, 4, 0, over={(2, 0): {"solid": True}, (4, 0): {"solid": True}}), me=(0.5, 0.5))
+    assert not w.line_clear((0.5, 0.5), (4.5, 0.5))
+    assert w.line_clear((2.5, 0.5), (3.5, 0.5)) and w.line_clear((3.5, 0.5), (4.5, 0.5))
+    w = _world([s for s in _grid(0, 0, 4, 0) if (s["x"], s["y"]) != (2, 0)], me=(0.5, 0.5))
+    assert not w.line_clear((0.5, 0.5), (4.5, 0.5))
+    assert w.line_clear((1.5, 0.5), (1.2, 0.7))                # one square: nothing crossed
+
+
+def test_line_clear_walks_a_diagonal_through_its_corners():
+    w = _world(_grid(0, 0, 3, 3), me=(0.5, 0.5))
+    assert w.line_clear((0.5, 0.5), (3.5, 3.5))
+    w = _world(_grid(0, 0, 3, 3, over={(2, 2): {"blockN": True}}), me=(0.5, 0.5))
+    assert not w.line_clear((0.5, 0.5), (3.5, 3.5))            # the (1,1)->(2,2) step's corner edge
+
+
+def test_line_clear_reads_the_players_floor():
+    w = _world(_grid(0, 0, 4, 0, z=1), me=(0.5, 0.5))
+    assert not w.line_clear((0.5, 0.5), (4.5, 0.5))            # the player is on z 0, the squares are on z 1
+    w.apply(frame(1, me=dict(me_at(0.5, 0.5), z=1)))
+    assert w.line_clear((0.5, 0.5), (4.5, 0.5))
+
+
+def test_reachable_adjacent_leaves_out_the_blocked_side_of_a_door_square():
+    door = {"blockN": True, "door": DOOR}                     # a closed door on (5,5)'s north edge
+    w = _world(_grid(3, 3, 7, 7, over={(5, 5): door, (6, 6): {"solid": True}}), me=(5.5, 7.5))
+    got = w.reachable_adjacent((5.5, 5.5), 0)
+    assert got == [(5, 6, 0), (4, 6, 0), (4, 5, 0), (6, 5, 0)]
+    assert (5, 4, 0) not in got and (4, 4, 0) not in got and (6, 4, 0) not in got   # the door's far side
+    w2 = _world([s for s in _grid(3, 3, 7, 7) if (s["x"], s["y"]) != (4, 5)], me=(5.5, 7.5))
+    assert (4, 5, 0) not in w2.reachable_adjacent((5.5, 5.5), 0)                  # an unmapped neighbour
+
+
+def test_interiors_group_the_room_squares_by_building_and_doors_of_names_the_door_squares():
+    sq = [_sq(1, 1, room="kitchen", building=7, door=DOOR), _sq(2, 1, room="kitchen", building=7),
+          _sq(1, 2, room="hall", building=7), _sq(9, 9, room="shed", building=8, door=DOOR),
+          _sq(5, 5), _sq(6, 5, building=7, door=DOOR)]
+    w = _world(sq)
+    assert w.interiors() == {7: [(1, 1, 0), (1, 2, 0), (2, 1, 0)], 8: [(9, 9, 0)]}
+    assert w.doors_of(7) == [(1, 1, 0), (6, 5, 0)] and w.doors_of(8) == [(9, 9, 0)] and w.doors_of(3) == []
+    assert w.buildings == {7, 8}
+
+
+def _use(name):
+    """What the dataset says an item is for (food; a fluid container, water), None when it says nothing."""
+    kind = (DATA.get(name) or {}).get("kind")
+    return {"food": "food", "fluid_container": "water"}.get(kind)
+
+
+def test_by_use_sorts_the_inventory_by_the_datasets_use():
+    w = World()
+    names = {1: WATER_ID, 2: "Base.CannedBeans", 3: "Base.TinnedBeans", 4: "Base.Bowl", 5: "Base.Hammer",
+             6: "Base.Bandage", 7: "Base.Nails"}
+    for iid, ft in names.items():
+        w.apply(event("item_added", itemId=iid, fullType=ft, weight=1.0))
+    got = w.by_use()
+    assert set(got) == set(items.USES)
+    for iid, ft in names.items():
+        want = _use(ft) or items.use_of(ft)
+        assert iid in got[want], (ft, want, got)
+        assert sum(iid in v for v in got.values()) == 1
+    assert 1 in got["water"] and 5 in got["weapon"] and 6 in got["bandage"] and 7 in got["other"]
+    assert got["food"] == sorted(got["food"])
+
+
+def test_mark_empty_moves_an_id_out_of_water_and_to_json_carries_it_sorted():
+    w = World()
+    assert "emptyIds" not in json.loads(w.to_json())           # absent while empty (the goldens keep their bytes)
+    w.apply(event("item_added", itemId=9, fullType=WATER_ID, weight=0.2))
+    w.apply(event("item_added", itemId=4, fullType=WATER_ID, weight=0.2))
+    assert w.by_use()["water"] == [4, 9]
+    w.mark_empty(9)
+    w.mark_empty(4)
+    assert w.by_use()["water"] == [] and w.by_use()["other"] == [4, 9]
+    assert json.loads(w.to_json())["emptyIds"] == [4, 9]
+    assert w.to_json() == w.to_json()
+    w.apply(event("item_removed", itemId=9))
+    assert w.empty_ids == {4}
+
+
+def test_nearest_unlooted_keys_on_the_datasets_use():
+    w = World()
+    w.apply(frame(0, me=me_at(0.0, 0.0)))
+    w.apply(mapline([_sq(1, 0, containers=[{"type": "crate", "n": 1, "items": ["Base.Hammer"]}]),
+                     _sq(3, 0, containers=[{"type": "shelf", "n": 1, "items": ["Base.Carrots"]}]),
+                     _sq(6, 0, containers=[{"type": "shelf", "n": 1, "items": ["Base.DrinkingGlass"]}])]))
+    assert DATA["Base.Carrots"]["kind"] == "food" and DATA["Base.DrinkingGlass"]["kind"] == "fluid_container"
+    assert w.nearest_unlooted("food") == (3, 0, 0, 0)
+    assert w.nearest_unlooted("water") == (6, 0, 0, 0)          # a glass the Plan 22 WATER_RX missed
+    assert w.nearest_unlooted("weapon") == (1, 0, 0, 0)
+    assert w.nearest_unlooted() == (1, 0, 0, 0)
