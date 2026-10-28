@@ -687,6 +687,7 @@ def test_a_clean_day_runs_every_phase_and_stops_at_the_day_cap(tmp_path, monkeyp
     assert loop["actions"][0]["state"] == "done" and loop["actions"][0]["endedS"] >= loop["actions"][0]["sentS"]
     assert loop["cost"]["n"] > 0 and loop["cost"]["p50"] == pytest.approx(0.2) and loop["cost"]["over5"] == 0
     assert loop["first_game_min"] is not None and loop["game_min"] > loop["first_game_min"]
+    assert loop["first_world_age"] == loop["last_frames"][0]["worldAge"] is not None   # every frame kept: the first is [0]
     assert len(loop["last_frames"]) == fr_n(out) < S.DEFAULTS["LAST_FRAMES"]   # every frame: 40 s is under the cap
     assert S.DECISION_LOG in r.xs.copied
     fr = out["frames"]
@@ -1046,7 +1047,7 @@ def test_action_rows_and_the_loop_summary_read_the_session(tmp_path, monkeypatch
     summ = R.loop_summary(r.day)
     for k in ("wallS", "ticks", "decisions", "last_decisions", "needs", "needs_fields", "needs_pairs", "fights",
               "actions", "lua_errors_per_min", "cost", "server_polls", "server_fails", "players_error", "memory",
-              "damage", "first_game_min", "game_min", "last_frames"):
+              "damage", "first_game_min", "first_world_age", "game_min", "last_frames"):
         assert k in summ, k
     assert summ["ticks"] == r.out["loop"]["ticks"]
 

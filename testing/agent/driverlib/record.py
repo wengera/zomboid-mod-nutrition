@@ -3,7 +3,7 @@
 loop_summary(session) -> {wallS, ticks, decisions, last_decisions, needs, needs_fields, needs_pairs, fights, actions
 (action_rows with Session.sent_meta: each row's `branch`, a consume row's `use`),
 lua_errors_per_min, cost {n, p50, p99, max, tickMaxMs, over5}, server_polls, server_fails, players_error, memory,
-damage {polls, fails, since, merged, lost, dropped, counts, totals {tag: {n, amount}}}, first_game_min, game_min,
+damage {polls, fails, since, merged, lost, dropped, counts, totals {tag: {n, amount}}}, first_game_min, first_world_age, game_min,
 last_frames, poll_errors, stopped, last_frame_after_stop}: `last_frames` the last LAST_FRAMES frames (the whole death
 window; the chain's lineage reads the last one), `poll_errors` the PollThread's errors when the session runs one,
 `stopped` the loop's closing Stop and `last_frame_after_stop` whether the last kept frame follows its act line
@@ -54,7 +54,7 @@ def loop_summary(session):
         "server_polls": rd.server_polls, "server_fails": rd.server_fails,
         "players_error": rd.players_error, "memory": list(s.mem_rows),
         "damage": dict(rd.damage, totals={k: dict(v) for k, v in rd.damage["totals"].items()}),
-        "first_game_min": s.first_game_min, "game_min": s.world.game_min,
+        "first_game_min": s.first_game_min, "first_world_age": s.first_world_age, "game_min": s.world.game_min,
         "last_frames": list(s.frames),
         "poll_errors": list(s.polls.errors) if s.polls is not None else None,
         "stopped": dict(s.stopped) if s.stopped is not None else None,

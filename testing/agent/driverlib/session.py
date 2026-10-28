@@ -452,6 +452,7 @@ class Session:
         self.keep_lines = True
         self.frames = deque(maxlen=self.lim["LAST_FRAMES"])
         self.first_game_min = None
+        self.first_world_age = None   # the first frame's worldAge: the grades' minute clock (gates_e.e_minutes)
         self.n_frames = 0
         self.client_now = None        # the latest line's client clock (s)
         self.err_times = deque()      # the client clock (s) of each lua_error inside the storm window
@@ -507,6 +508,8 @@ class Session:
             self.frames.append(frame_row(l))
             if self.first_game_min is None:
                 self.first_game_min = l.get("gameMin")
+            if self.first_world_age is None:
+                self.first_world_age = l.get("worldAge")
             c = _d(l.get("cost"))
             if _num(c.get("tickMs")) is not None:
                 self.ticks_ms.append(c["tickMs"])
