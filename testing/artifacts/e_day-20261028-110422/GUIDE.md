@@ -1,0 +1,3 @@
+# e_day-20261028-110422 — Plan 23's chain, session 1 (the character died at game minute 606)
+
+The run's files are byte-identical copies from `testing/runs/e_day-20261028-110422/`: `e_day.json` (the artifact; `grade_e1` inside it), `state.log` (the client's PZA/1 stream), `decision.log` (the planner's line a tick), `e_grade.txt` (`python testing/agent/drivers/e_grade.py e_day.json`). The driver `testing/agent/drivers/e_day.py` at `da3aa03a`; the library at `5d46b926`; the Lua at `e3e68793`; the tree at the launch `dcd74415`. Booted 2026-10-28 15:04Z on `agent` (Zombies 5). The reading guide is written by the Plan 23 Task 19 write-up; until then this file names the files only.
