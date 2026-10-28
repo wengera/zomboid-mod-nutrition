@@ -38,6 +38,9 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
   --fixture agent-s<n> --prev <this artifact>`), for an E session and for an F session on the chain's last fixture
   (P23-Z refuses any other --session).
 - `grade(out, key, fn)`: out[key] = fn(out), else out[key + "_error"] (the controller re-grades the artifact).
+  `grade_day(out)` is a new day session's grade: `grade(out, GRADE_KEY, gates_e.grade_e2)`, GRADE_KEY "grade_e2"
+  (PZA/1.3's death signal, ruling P23-AO), so the record names the grade it carries; a driver passes GRADE_KEY as its
+  boot's grade_key. The drivers frozen before it (e_day.py to e_day_4.py) keep their own grade_e1 call.
 - `boot_and_run(args, ...)`: a day driver's whole boot (Plan 22's d_survive.py boot, generalised): the pre-boot
   checks (a failure prints them and exits 1 before anything starts), the profile and the fixture `--fixture` names,
   the run dir (`new_run_dir(key)`), Xs and the out header (run_id, preboot, constants, out["chain"], the fixture's
@@ -56,6 +59,7 @@ import shutil
 import sys
 import time
 
+from agent.base import gates_e as GE
 from agent.driverlib import chain as CH
 from agent.driverlib import session as DS
 from agent.driverlib import shots as SH
@@ -264,12 +268,20 @@ def run_after_teardown(fn, out, ran):
         out["after_teardown_error"] = "%s: %s" % (type(e).__name__, e)
 
 
+GRADE_KEY = "grade_e2"           # the key a new day session's record carries its grade under (grade_day)
+
+
 def grade(out, key, fn):
     """out[key] = fn(out), else out[key + "_error"] (the controller re-grades the artifact)."""
     try:
         out[key] = fn(out)
     except Exception as e:                               # noqa: BLE001 - the controller re-grades the artifact
         out[key + "_error"] = "%s: %s" % (type(e).__name__, e)
+
+
+def grade_day(out):
+    """A new day session's grade: out["grade_e2"] = gates_e.grade_e2(out), else out["grade_e2_error"]."""
+    grade(out, GRADE_KEY, GE.grade_e2)
 
 
 # ================================================================ the boot

@@ -260,10 +260,14 @@ def test_the_script_prints_lines_then_strict_json(tmp_path):
     r = _run([a])
     assert r.returncode == 0
     body = r.stdout[r.stdout.index("\n{\n"):]
-    assert json.loads(body)["grade"] == "grade_e1" and r.stdout.startswith("survived")
+    assert json.loads(body)["grade"] == "grade_e2" and r.stdout.startswith("survived")    # grade_e2 by default
+    r = _run(["--grade", "e1", a])
+    assert r.returncode == 0 and json.loads(r.stdout[r.stdout.index("\n{\n"):])["grade"] == "grade_e1"
     r = _run([_write(tmp_path, "c.json", art()), _write(tmp_path, "d.json", art())])
     assert r.returncode == 0 and json.loads(r.stdout[r.stdout.index("\n{\n"):])["lineage"]["ok"] is True
     r = _run(["--chain", a, b])
+    assert r.returncode == 0 and r.stdout.startswith("gate_e2")
+    r = _run(["--grade", "e1", "--chain", a, b])
     assert r.returncode == 0 and r.stdout.startswith("gate_e1")
     assert json.loads(r.stdout[r.stdout.index("\n{\n"):])["verdict"] in ("GO", "NO-GO")
 
@@ -273,6 +277,7 @@ def test_the_script_exits_two_on_a_bad_call(tmp_path):
     assert _run([str(tmp_path / "nope.json")]).returncode == 2
     assert _run(["--chain"]).returncode == 2
     assert _run(["a", "b", "c"]).returncode == 2
+    assert _run(["--grade", "e3", "a"]).returncode == 2 and _run(["--grade"]).returncode == 2
     assert EG.finite(float("inf")) is None and EG.finite({"a": [float("nan"), 1]}) == {"a": [None, 1]}
 
 
@@ -412,25 +417,89 @@ def test_gate_names_each_artifacts_lineage_source():
     assert r["lineage_sources"] == [None, "loop", "rebuilt"]
 
 
-# ---------------------------------------------------------------- PZA/1.3: the death event (ruling P23-AO)
-def test_the_death_check_names_the_signal_that_ended_the_session():
-    for via, signal in (("frame", "frame_health"), ("players", "players"), ("event", "event"), (None, None)):
-        a = _death_art(300, wound_at=100, health_from=105)
-        if via is not None:
-            a["loop"]["death"]["via"] = via
-        assert E.grade_e1(a)["death"]["check"]["signal"] == signal, via
+# ---------------------------------------------------------------- PZA/1.3: grade_e2, the death signal (ruling P23-AO)
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
+FROZEN_AT = "a029dfab"                    # grade_e1's last commit before PZA/1.3 (CLAUDE.md § 5 freezing)
+E3 = os.path.join(REPO, "testing", "artifacts", "e_day_3-20261028-153631")
 
 
-def test_an_event_death_ends_the_window_at_the_events_frame():
-    """The fourth chain's shape: the health fell to 19.5 and froze; the event's frame (frameSeq) ends the window, so
-    the frozen frames after it, read until the stop settled, are no part of it."""
+def _event_death_art():
+    """The fourth chain's shape: the health fell and froze at seq 290; the event's frame (frameSeq) is 290."""
     a = _death_art(300, wound_at=100, health_from=280)        # 100 down to 5 over seq 281..300
     fr = a["loop"]["last_frames"]
     for f in fr[290:]:
         f["body"]["health"] = fr[289]["body"]["health"]      # frozen from seq 290 on
     a["loop"]["death"].update(via="event", frame={"signal": "event", "seq": 289, "health": 50.0, "frameSeq": 290})
-    d = E.grade_e1(a)["death"]
+    return a
+
+
+def test_the_death_check_names_the_signal_that_ended_the_session():
+    for via, signal in (("frame", "frame_health"), ("players", "players"), ("event", "event"), (None, None)):
+        a = _death_art(300, wound_at=100, health_from=105)
+        if via is not None:
+            a["loop"]["death"]["via"] = via
+        g = E.grade_e2(a)
+        assert g["grade"] == "grade_e2" and g["death"]["check"]["signal"] == signal, via
+        assert any(l.startswith("death (signal %s) explained" % signal) for l in g["report_lines"]), via
+    assert E.grade_e2(art())["death"] is None
+
+
+def test_an_event_death_ends_the_window_at_the_events_frame():
+    """grade_e2: the frozen frames after the event's frame, read until the stop settled, are no part of the window."""
+    a = _event_death_art()
+    fr = a["loop"]["last_frames"]
+    d = E.grade_e2(a)["death"]
     assert d["check"]["signal"] == "event" and d["first_wound_seq"] == 101
     assert d["window_frames_n"] == 191 and d["check"]["frames_window_ms"]["to"] == fr[289]["wallMs"]
+    assert E.grade_e1(a)["death"]["window_frames_n"] == 201 and "signal" not in E.grade_e1(a)["death"]["check"]
     a["loop"]["death"]["frame"]["frameSeq"] = None            # the event's frame never read: every kept frame
-    assert E.grade_e1(a)["death"]["window_frames_n"] == 201
+    assert E.grade_e2(a)["death"]["window_frames_n"] == 201
+
+
+def test_grade_e2_is_grade_e1_but_for_its_name_the_death_and_the_report():
+    for a in (good(), _death_art(300, wound_at=100, health_from=105), _event_death_art()):
+        e1, e2 = E.grade_e1(a), E.grade_e2(a)
+        assert {k: v for k, v in e1.items() if k not in ("grade", "death", "report_lines")} == \
+            {k: v for k, v in e2.items() if k not in ("grade", "death", "report_lines")}
+
+
+def test_gate_e2_is_gate_e1_over_grade_e2():
+    d = _event_death_art()
+    assert E.gate_e2([good(), d])["gates"]["death_explained"]["value"] == E.grade_e2(d)["death"]["explained"]
+    for outs in ([good(700.0), good(740.0)], [good(1439.0)], [good(), _death_art(300, wound_at=100, health_from=105)],
+                 [], None):
+        assert E.gate_e2(outs) == E.gate_e1(outs)
+    lines = E.report_lines_e2(dict(E.grade_e2(good()), gate=E.gate_e2([good(100.0)])))
+    assert lines[0].startswith("gate_e2 NO-GO: alive_through 100.0 >= 1440.0 FAIL")
+
+
+def _frozen_gates_e(tmp_path):
+    """gates_e.py as committed at FROZEN_AT, imported from a scratch file."""
+    import importlib.util
+    src = subprocess.run(["git", "show", "%s:testing/agent/base/gates_e.py" % FROZEN_AT], cwd=REPO,
+                         capture_output=True, check=True).stdout
+    path = tmp_path / "gates_e_frozen.py"
+    path.write_bytes(src)
+    spec = importlib.util.spec_from_file_location("gates_e_frozen", str(path))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_grade_e1_and_gate_e1_answer_byte_for_byte_as_at_their_freeze(tmp_path):
+    F = _frozen_gates_e(tmp_path)
+    arts = [good(), art(), art(stop="budget"), _death_art(300, wound_at=100, health_from=105), _event_death_art(),
+            _death_art(300, wound_at=999, health_from=100)]
+    for a in arts:
+        assert json.dumps(E.grade_e1(a), sort_keys=True) == json.dumps(F.grade_e1(a), sort_keys=True)
+    assert json.dumps(E.gate_e1(arts)) == json.dumps(F.gate_e1(arts))
+
+
+@pytest.mark.skipif(not os.path.isfile(os.path.join(E3, "e_grade.txt")), reason="the E3 artifact is not checked out")
+def test_e_grade_e1_reproduces_the_third_chains_committed_report_byte_for_byte():
+    r = subprocess.run([sys.executable, os.path.join(REPO, "testing", "agent", "drivers", "e_grade.py"), "--grade", "e1",
+                        os.path.join(E3, "e_day_3.json")], capture_output=True, cwd=REPO)
+    assert r.returncode == 0
+    with open(os.path.join(E3, "e_grade.txt"), "rb") as fh:
+        want = fh.read()
+    assert r.stdout == want                                   # CRLF both: the artifact was printed on this host

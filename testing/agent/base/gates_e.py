@@ -4,8 +4,7 @@
 Reads (every key tolerated missing; a non-dict reads as empty, nothing raises):
   out.stop {reason, wallS}; out.loop.{first_game_min, game_min, wallS, last_frames [{seq, wallMs, gameMin, body, load,
   stats, me}], actions [{type, state, sentS, endedS, use, branch}], night.sleeps [{state, sleptH, fatigueBefore,
-  fatigueAfter}], fights [{fight_ticks, flee {..}, end}], first_world_age, cost, lineage, death {via, frame {signal,
-  seq, frameSeq}, last_frames, server_damage}}.
+  fatigueAfter}], fights [{fight_ticks, flee {..}, end}], first_world_age, cost, lineage, death {last_frames, server_damage}}.
 A consume action `use` is "drink"/"water" or "eat"/"food" (anything else counts under needs.unknown); a drop action
 `branch` is "load" (a guard drop) or "threat" (a flee drop).
 
@@ -19,8 +18,6 @@ from agent.base import gates as GT
 from agent.driverlib import chain as CH
 
 SURVIVED = GT.SURVIVED
-# loop.death.via -> the signal that ended the session (e_death's check.signal; PZA/1.3 added "event", ruling P23-AO)
-SIGNALS = {"event": "event", "frame": "frame_health", "players": "players"}
 ALIVE_MINUTES = 1440.0               # the chain day: 24 game hours summed over its sessions
 STAND_OFF_TICKS = 20
 _USE = {"drink": "drink", "water": "drink", "eat": "eat", "food": "eat"}
@@ -176,10 +173,7 @@ def e_death(out):
     scratched + bitten rose over the row before it (so the wound arm sees the rise), runs to the end of every kept
     frame, and gates.death_check grades the death record restricted to it. window_truncated: the first wound is the
     first row the frames can show (a rise at the second frame, or a wound already on at the first), so its onset may
-    lie before them. When the death frame is the Lua's death event's (PZA/1.3, ruling P23-AO: death.frame.signal
-    "event") and its frameSeq is known, the frames end at the event's own frame (the frames after it, read until the
-    stop settled, are the dead character's). check.signal names what ended the session (SIGNALS: death.via "event",
-    "frame" or "players" as "event", "frame_health" or "players"; None for a record without via)."""
+    lie before them."""
     out = _d(out)
     loop = _d(out.get("loop"))
     if _d(out.get("stop")).get("reason") != "death":
@@ -187,14 +181,9 @@ def e_death(out):
     death = _d(loop.get("death"))
     frames = [f for f in _l(loop.get("last_frames")) if isinstance(f, dict)] or \
         [f for f in _l(death.get("last_frames")) if isinstance(f, dict)]
-    dframe = _d(death.get("frame"))
-    end = _n(dframe.get("frameSeq")) if dframe.get("signal") == "event" else None
-    if end is not None:
-        frames = [f for f in frames if (_n(f.get("seq")) or 0) <= end]
     k = next((i for i in range(1, len(frames)) if GT._wound(frames[i - 1], frames[i])), None)
     window = frames[k - 1:] if k is not None else frames
     check = GT.death_check(dict(death, last_frames=window))
-    check["signal"] = SIGNALS.get(death.get("via"))
     on = bool(frames) and any((_n(_d(frames[0].get("body")).get(w)) or 0) > 0 for w in GT.WOUND_KEYS)
     return {"first_wound_seq": frames[k].get("seq") if k is not None else None, "window_frames": len(window),
             "window_frames_n": len(window), "window_truncated": k == 1 or on,
@@ -281,6 +270,85 @@ def gate_e1(outs):
     grades, prev = [], None
     for o in outs:
         grades.append(grade_e1(o, prev))
+        prev = o
+    n = len(outs)
+    minutes = sum(g["game_minutes"] or 0 for g in grades)
+    dead = any(g["death"] is not None for g in grades)
+    done = {k: sum(_d(g["needs"].get(k)).get("done", 0) for g in grades) for k in ("drink", "eat", "sleep")}
+    gates = {"alive_through": {"ok": minutes >= ALIVE_MINUTES and not dead, "value": minutes,
+                               "threshold": ALIVE_MINUTES, "n": n}}
+    unresolved = sum(g["fights_unresolved"] for g in grades)
+    gates["fights_resolved"] = {"ok": unresolved == 0, "value": unresolved, "threshold": 0, "n": n}
+    for k in ("drink", "eat", "sleep"):
+        gates["%s_done" % k] = {"ok": done[k] >= 1, "value": done[k], "threshold": 1, "n": n}
+    first = next((g["death"] for g in grades if g["death"] is not None), None)
+    if first is not None:
+        gates["death_explained"] = {"ok": first["explained"] is True, "value": first["explained"],
+                                    "threshold": True, "n": n}
+    ok = bool(grades) and all(v["ok"] for v in gates.values())
+    return {"verdict": "GO" if ok else "NO-GO", "gates": gates, "lineage_sources": [g["lineage_source"] for g in grades]}
+
+
+# ---------------------------------------------------------------- pass 2: PZA/1.3's death signal (ruling P23-AO)
+# grade_e2 / gate_e2 / report_lines_e2 (PZA/1.3, ruling P23-AO; grade_e1 and gate_e1 frozen as at a029dfab, CLAUDE.md
+# section 5): grade_e1's output but for `grade` ("grade_e2"), `death` (e_death_2) and `report_lines` (report_lines_e2).
+# e_death_2 is e_death with check.signal, the signal that ended the session (SIGNALS: loop.death.via "event", "frame" or
+# "players" as "event", "frame_health" or "players"; None for a record without via), and, when the death frame is the
+# Lua's death event's (death.frame.signal "event") with its frameSeq known, the kept frames cut at the event's own frame
+# (the frames after it, read until the stop settled, are the dead character's). gate_e2 is gate_e1 over grade_e2.
+# loop.death.via -> the signal that ended the session (e_death_2's check.signal)
+SIGNALS = {"event": "event", "frame": "frame_health", "players": "players"}
+
+
+def e_death_2(out):
+    """e_death, with check.signal and, for an event death whose frameSeq is known, the kept frames (loop.last_frames
+    and death.last_frames) cut at the event's frame (the pass 2 comment above)."""
+    out = _d(out)
+    loop = _d(out.get("loop"))
+    death = _d(loop.get("death"))
+    dframe = _d(death.get("frame"))
+    end = _n(dframe.get("frameSeq")) if dframe.get("signal") == "event" else None
+    if end is not None:
+        def cut(frames):
+            return [f for f in _l(frames) if isinstance(f, dict) and (_n(f.get("seq")) or 0) <= end]
+        loop = dict(loop, last_frames=cut(loop.get("last_frames")),
+                    death=dict(death, last_frames=cut(death.get("last_frames"))))
+        out = dict(out, loop=loop)
+    d = e_death(out)
+    if d is not None:
+        d["check"]["signal"] = SIGNALS.get(death.get("via"))
+    return d
+
+
+def grade_e2(out, prev=None):
+    """grade_e1(out, prev) but for grade "grade_e2", death (e_death_2) and report_lines (report_lines_e2)."""
+    g = grade_e1(out, prev)
+    g["grade"] = "grade_e2"
+    g["death"] = e_death_2(out)
+    g["report_lines"] = report_lines_e2(g)
+    return g
+
+
+def report_lines_e2(g):
+    """report_lines_e's lines, the gate line naming gate_e2 and the death line its signal."""
+    g = _d(g)
+    lines = report_lines_e(g)
+    if isinstance(g.get("gate"), dict) and lines and lines[0].startswith("gate_e1 "):
+        lines[0] = "gate_e2 " + lines[0][len("gate_e1 "):]
+    de = g.get("death")
+    if isinstance(de, dict):
+        for i, line in enumerate(lines):
+            if line.startswith("death "):
+                lines[i] = "death (signal %s) %s" % (_d(de.get("check")).get("signal"), line[len("death "):])
+    return lines
+
+
+def gate_e2(outs):
+    """gate_e1's gates over grade_e2 (its death the event-cut window): {verdict, gates, lineage_sources}."""
+    outs = [_d(o) for o in _l(outs)]
+    grades, prev = [], None
+    for o in outs:
+        grades.append(grade_e2(o, prev))
         prev = o
     n = len(outs)
     minutes = sum(g["game_minutes"] or 0 for g in grades)

@@ -1288,3 +1288,17 @@ def test_only_the_first_death_event_is_kept_and_another_kind_is_no_death(tmp_pat
     with pytest.raises(S.Stop) as e:
         sess.check_lines.__func__(types.SimpleNamespace(death_frame=sess.death_frame), 0.0)
     assert e.value.reason == "death" and e.value.detail == "event death seq 7 via isDead body.health 19.5"
+
+
+def test_a_new_day_sessions_grade_is_grade_e2_under_its_own_key(monkeypatch):
+    """CLAUDE.md section 5 freezing (P23-AO fix 1): a new session's record carries grade_e2 under the key grade_e2."""
+    from agent.base import gates_e as GE
+    assert DY.GRADE_KEY == "grade_e2"
+    out = S.new_out()
+    out.update(stop={"reason": "day_cap", "detail": "x", "wallS": 1.0})
+    DY.grade_day(out)
+    assert out["grade_e2"]["grade"] == "grade_e2" and "grade_e1" not in out
+    monkeypatch.setattr(GE, "grade_e2", lambda o: 1 / 0)
+    bad = {}
+    DY.grade_day(bad)
+    assert bad["grade_e2_error"].startswith("ZeroDivisionError") and "grade_e2" not in bad
