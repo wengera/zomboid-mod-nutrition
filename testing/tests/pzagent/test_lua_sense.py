@@ -647,3 +647,42 @@ def test_me_carries_the_cell_lists_size_and_the_zombies_listed(lua):
     lua.globals()._cell = make_cell()
     f = frame(lua, make_player())
     assert (f["me"]["zombiesSeen"], f["me"]["zombiesListed"]) == (0, 0)
+
+
+# ---- X4 fix pass 2.4: one cell walk a frame, shared with zombie_dead (review I7) ---------------------------------------
+
+def test_an_events_call_walks_the_cell_list_once_and_zombie_dead_reuses_the_walk(lua):
+    load(lua)
+    g = lua.globals()
+    zs = [live_zombie(100 + i, 10.0 + 0.2 * (i + 1), 20.0) for i in range(50)]
+    calls = {"list": 0, "size": 0, "get": 0, "dead": 0}
+    for z in zs:
+        def dead(s, z=z):
+            calls["dead"] += 1
+            return z.st["dead"]
+        z.isDead = dead
+
+    def get(s, i):
+        calls["get"] += 1
+        return zs[i]
+
+    def size(s):
+        calls["size"] += 1
+        return len(zs)
+    zl = J(size=size, get=get)
+
+    def zombie_list(s):
+        calls["list"] += 1
+        return zl
+    g._cell = J(getZombieList=zombie_list, getGridSquare=lambda s, x, y, z: None)
+    p = make_player()
+    prev = frame(lua, p)
+    zs[3].st["dead"] = True
+    for k in calls:
+        calls[k] = 0
+    ev, cur = events(lua, p, prev)
+    # the walk asks each of the 50 once; zombie_dead asks only the last frame's zombies this frame did not list alive
+    # (103), never the 49 the walk just found alive
+    assert calls == {"list": 1, "size": 1, "get": 50, "dead": 51}
+    assert [e["id"] for e in ev if e["event"] == "zombie_dead"] == [103]
+    assert (cur["me"]["zombiesSeen"], cur["me"]["zombiesListed"]) == (50, 49)

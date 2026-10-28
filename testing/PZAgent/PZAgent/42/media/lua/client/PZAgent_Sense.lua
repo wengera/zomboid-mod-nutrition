@@ -61,16 +61,21 @@ end
 
 local function byDist(a, b) return a.dist < b.dist end
 
--- the live zombies within ZOMBIE_RADIUS, nearest first, as the schema's zombie records; S.zobj maps each record's id
--- to its object, so the next events call can ask a zombie seen in this frame whether it died; the third answer is the
--- cell list's size (me.zombiesSeen, review M15), nil when the list cannot be read
+-- the frame's one walk of the cell's zombie list (X4 fix pass 2.4: by size/get, no copy of the list): the live zombies
+-- within ZOMBIE_RADIUS, nearest first, as the schema's zombie records; S.zobj maps each record's id to its object, so
+-- the next events call can ask a zombie seen in this frame whether it died, and zombie_dead reads this walk's S.zobj
+-- for the zombies it found alive; the third answer is the cell list's size (me.zombiesSeen, review M15), nil when the
+-- list cannot be read
 local function zombies(px, py)
     local out, objs = {}, {}
-    local list = zombieList()
-    if list == nil then PZA.missing(S.missing, "getZombieList"); return out, objs, nil end
-    if px == nil or py == nil then return out, objs, #list end
-    for _, z in ipairs(list) do
-        if not isDead(z) then
+    local cell = getCell ~= nil and getCell() or nil
+    local _, list = PZA.call(cell, "getZombieList")
+    local okN, n = PZA.call(list, "size")
+    if not okN or type(n) ~= "number" then PZA.missing(S.missing, "getZombieList"); return out, objs, nil end
+    if px == nil or py == nil then return out, objs, n end
+    for i = 0, n - 1 do
+        local _, z = PZA.call(list, "get", i)
+        if z ~= nil and not isDead(z) then
             local d, zx, zy = distOf(z, px, py)
             if d ~= nil and d <= S.ZOMBIE_RADIUS then
                 local rec = { x = zx, y = zy, dist = d }
@@ -85,7 +90,7 @@ local function zombies(px, py)
         end
     end
     table.sort(out, byDist)
-    return out, objs, #list
+    return out, objs, n
 end
 
 -- me: the position, facing and moving reads, the pace measured from the previous frame (S.prev: x, y, wallMs; nil on
@@ -349,10 +354,14 @@ local function swingEvents(ev, gameMin, p)
     end
 end
 
-local function deathEvents(ev, gameMin, prev, seen)
+-- prev's zombies whose object now answers isDead; one this frame's walk listed alive (alive, this frame's S.zobj) is
+-- not asked again, so a frame asks each zombie once (X4 fix pass 2.4)
+local function deathEvents(ev, gameMin, prev, seen, alive)
     for _, z in ipairs(prev ~= nil and prev.zombies or {}) do
         local obj = z.id ~= nil and seen[z.id] or nil
-        if obj ~= nil and isDead(obj) then ev[#ev + 1] = { event = "zombie_dead", gameMin = gameMin, id = z.id } end
+        if obj ~= nil and alive[z.id] == nil and isDead(obj) then
+            ev[#ev + 1] = { event = "zombie_dead", gameMin = gameMin, id = z.id }
+        end
     end
 end
 
@@ -418,7 +427,7 @@ function S.events(p, prev)
     collect(ev, "event:damage", damageEvents, gameMin)
     S.damage = {}
     collect(ev, "event:swing", swingEvents, gameMin, p)
-    collect(ev, "event:zombie_dead", deathEvents, gameMin, prev, seen)
+    collect(ev, "event:zombie_dead", deathEvents, gameMin, prev, seen, S.zobj or {})
     collect(ev, "event:item", itemEvents, gameMin, p)
     collect(ev, "event:door", doorEvents, gameMin)
     return ev, cur
