@@ -1,14 +1,15 @@
 """The scripted survivor (Plan 22 Task 10, spec § 3): a priority list over the World, ticked by its driver.
 
-`Survive(world, actions, log_path, clock).tick(world, actions)` tries the branches in order (threat, need, load,
-night, forage, explore; Plan 23 Task 12 adds `load` and `night`, Task 13 replaces `forage` and `explore` with the
+`Survive(world, actions, log_path, clock, source=None).tick(world, actions)` tries the branches in order (threat,
+need, load, night, goal; Plan 23 Task 12 added `load` and `night`, Task 13 replaced `forage` and `explore` with the
 goal), takes the first that answers, and returns the `Action` it sent or None. A branch
 answers with a command to send or, while its own action is still current, with none (it holds: nothing is sent and
 no lower branch runs). A branch whose answer differs from the current action's sender sends at once, so a higher
 branch pre-empts a lower one's action (the Lua fails the old one `superseded`). The branches run the policies of
 `policies.py`; `need` is one `Consume`. Every tick appends one JSON line to `log_path` (decision.log): `{wall,
-gameMin, branch, inputs, action, sent}`, sorted keys, `wall` from the injected clock, `action` the command's `type`
-and `args` or null, so a replayed session reproduces its decisions byte for byte.
+gameMin, branch, inputs, action, sent, goal}`, sorted keys, `wall` from the injected clock, `action` the command's
+`type` and `args` or null, `goal` the goal runner's `{type, args, state, source}` (the running goal, or the one that
+ended this tick; null when none), so a replayed session reproduces its decisions byte for byte.
 
 The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.py`'s docstring, frozen; ported):
 - A zombie is a threat within DANGER_R; while a threat policy runs (the "mode", `fight` or `flee`, kept while the
@@ -44,17 +45,24 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   reads the drink's effect must not let a lower branch supersede it); else thirst > THIRST_T consumes the held item
   of least id whose use is `water` (`world.by_use()`: the dataset's drinkable, non-poisonous fluid containers, an id
   marked empty left out), else marks `water`; then hunger > HUNGER_T consumes the held `food` item of least id (the
-  dataset's food), else marks `food`; nothing held, the branch passes to `forage`.
+  dataset's food), else marks `food`; nothing held, the branch passes (to the goal). Each mark is also kept in
+  `need_marks` {use: wall of its last mark} (both uses, where `need_mark` logs the first), which the view reads as
+  `needs_wanted` for `view.NEED_MEMORY_S`; a held item of the use found clears its mark.
 - The empties (P23-D): a `Consume` whose action ended `failed "not valid"` on an id `by_use()` reads `water` marks it
   empty (`world.mark_empty`), so the next tick takes the next bottle and `spare()` may drop it; any other id refused
   so (a food, which is eaten whole or refused for another reason, or a bottle no longer held when the end was read)
   is never marked, only logged as inputs.consume_refused on the tick that read the end (else None).
-- `forage` (P23-8) loots through `LootHouse` for one use, never `all`: the need's mark when one was set, else the
-  first of STOCK_WANTS (`water`, `food`, `bandage`, `weapon`) for which `LootHouse.target(use)` answers a
-  container (a container not looted for that use, nor waiting on the cap); none, it passes. Every loot carries `maxWeight` = the frame's `load.max` times
-  `policies.LOAD_RATIO_MAX` (1.0), 0.0 (no cap) when `load.max` reads no positive number; the level guard stays the
-  backstop: a loot only at load level 0-1, never at 2 or above (spec § 9 (1)). `explore` scans
-  each new place and walks to the unexplored edge.
+- `goal` (Plan 23 Task 13, P23-10; ruling P23-F): `goals.GoalRunner` over the goal source (`source`, default
+  `goals.ScriptedSource()`; Task 14's LLM source shares the seam), whose module docstring is the design record: one
+  goal at a time, proposed from `view.view(world, self)` (built only on a tick that proposes) when none runs,
+  `superseded` when an instinct sent since its own last action, failed at `goals.GOAL_MAX_S`. The old `forage`
+  (P23-8: a loot for one use, never `all`, with `maxWeight` = the frame's `load.max` times
+  `policies.LOAD_RATIO_MAX`, the level guard the backstop, spec § 9 (1)) and `explore` (scan each new place, walk to
+  the unexplored edge) are now the `Stock`, `LootBuilding` and `ExploreToward` goals' steps over the same
+  `LootHouse` and `Explore` (`policies.py`). A running goal holds the branch (no command while its action runs, or
+  while it rests); with no goal running it passes. Its `why` is the goal's own plus `goal`, `args`, `state`,
+  `reason`, `proposed` (the type proposed this tick, else None) and `ended` (the record row of a goal that ended
+  before the proposal, else None).
 - A command whose action ended `failed` (any reason but `superseded`, which this planner's own next send caused),
   `timeout` or `rejected` is not chosen again with the same type and args for FAILED_COOLDOWN_TICKS planner ticks:
   its branch is passed over and the next one tried (logged as inputs.cooled); the threat branch is never passed
@@ -76,9 +84,11 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
 import json
 import time
 
+from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
-from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Explore,
-                                         Fight, Flee, LootHouse, blocked, item_id_ok, spare, target_id_ok, zdist)
+from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Fight,
+                                         Flee, blocked, item_id_ok, spare, target_id_ok, zdist)
+from agent.base.planner.view import view
 from agent.base.pza1 import Consume, Drop
 
 THIRST_T = 0.12          # the first THIRST moodle fires above 0.12 [#0509]
@@ -87,15 +97,13 @@ FLEE_HEALTH = 40.0        # under it a threat is fled, never fought
 FLEE_HEALTH_PAIR = 60.0   # two or more threats are fled under this health
 REFIGHT_MARGIN = 20.0     # a running flee turns to fight only at health >= FLEE_HEALTH + this, one threat
 MAX_FIGHT = 2             # more threats than this are fled
-BRANCHES = ("threat", "need", "load", "night", "forage", "explore")
+BRANCHES = ("threat", "need", "load", "night", "goal")
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
 REFUSED = "not valid"    # the reason the Lua's consume fails an item it cannot eat or drink (an empty bottle)
-STOCK_WANTS = ("water", "food", "bandage", "weapon")   # with no need marked, forage loots the first use a container holds
 
 __all__ = ["Survive", "BRANCHES", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER_T", "FLEE_HEALTH",
-           "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS",
-           "STOCK_WANTS"]
+           "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS"]
 
 
 def _key(typ, args):
@@ -103,7 +111,7 @@ def _key(typ, args):
 
 
 class Survive:
-    def __init__(self, world, actions, log_path, clock=time.time):
+    def __init__(self, world, actions, log_path, clock=time.time, source=None):
         self.world = world
         self.actions = actions
         self.log_path = log_path
@@ -114,12 +122,13 @@ class Survive:
         self.stall_flee = False   # the running flee was chosen because a fight stalled
         self.flee_dropped = False  # the running flee episode sent its one load drop
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
-        self.loot = LootHouse(world, actions, clock)
-        self.explore = Explore(world, actions, clock)
         self.night = Night(world, actions, clock)
+        self.goals = GoalRunner(ScriptedSource() if source is None else source, clock)
+        self.goals.kit.bind(world, actions)
         self.need_last = None     # the last Consume sent
         self.load_last = None     # the last load Drop sent
-        self.need_mark = None     # "water" or "food" when need found nothing held; forage loots for it
+        self.need_mark = None     # "water" or "food" when need found nothing held this tick (logged)
+        self.need_marks = {}      # use -> wall of its last mark: the view's needs_wanted
         self.consume_refused = None   # a non-water id whose consume ended failed "not valid" this tick (logged only)
         self.ticks = 0
         self.last_failed = None   # (type, args json, tick first seen failed) of the last command that failed
@@ -128,7 +137,7 @@ class Survive:
 
     # ---------------------------------------------------------------- reading the world
     def _policies(self):
-        return [p for p in (self.loot, self.explore, self.night, self.fight, self.flee) if p is not None]
+        return [p for p in (self.night, self.fight, self.flee) if p is not None]
 
     def _within(self, r):
         return [z for z in self.world.zombies.values()
@@ -239,14 +248,15 @@ class Survive:
             return None, None
         st = self.world.stats or {}
         pick = None
-        if (st.get("thirst") or 0.0) > THIRST_T:
-            pick = self._held_use("water")
+        for use, stat, t in (("water", "thirst", THIRST_T), ("food", "hunger", HUNGER_T)):
+            if pick is not None or (st.get(stat) or 0.0) <= t:
+                continue
+            pick = self._held_use(use)
             if pick is None:
-                self.need_mark = "water"
-        if pick is None and (st.get("hunger") or 0.0) > HUNGER_T:
-            pick = self._held_use("food")
-            if pick is None:
-                self.need_mark = self.need_mark or "food"
+                self.need_mark = self.need_mark or use
+                self.need_marks[use] = self.clock()
+            else:
+                self.need_marks.pop(use, None)
         self.why = {"item": pick, "mark": self.need_mark}
         if pick is None:
             return None
@@ -286,16 +296,14 @@ class Survive:
             return (n, None) if n.why.get("hold") else None
         return n, cmd
 
-    def _forage(self):
-        """Loot for the need's mark, else for the first of STOCK_WANTS a container answers; never `all`."""
-        want = self.need_mark
-        if want is None:
-            want = next((u for u in STOCK_WANTS if self.loot.target(u) is not None), None)
-        self.loot.want = want
-        return self._answer(self.loot)
-
-    def _explore(self):
-        return self._answer(self.explore)
+    def _goal(self):
+        """The goal runner's command (owner: the runner, which hands the sent Action to its goal); with none, a
+        running goal holds the branch and no goal passes."""
+        cmd = self.goals.tick(self.world, self.actions, lambda: view(self.world, self))
+        self.why = dict(self.goals.why)
+        if cmd is not None:
+            return self.goals, cmd
+        return (self.goals, None) if self.goals.current is not None else None
 
     # ---------------------------------------------------------------- the tick
     def _note_failures(self):
@@ -342,7 +350,7 @@ class Survive:
             p.world, p.actions = world, actions
         self.ticks += 1
         self._note_failures()
-        self.loot.observe()
+        self.goals.observe(world, actions)
         inputs = self._inputs()
         if self.fight is not None:
             self.fight.observe()
@@ -373,7 +381,7 @@ class Survive:
             self._watch.append(action)
         line = {"wall": self.clock(), "gameMin": self.world.game_min, "branch": branch, "inputs": inputs,
                 "action": {"type": cmd.TYPE, "args": cmd.args()} if cmd is not None else None,
-                "sent": action is not None}
+                "sent": action is not None, "goal": self.goals.line()}
         with open(self.log_path, "a", encoding="utf-8", newline="\n") as f:
             f.write(json.dumps(line, sort_keys=True) + "\n")
         return action

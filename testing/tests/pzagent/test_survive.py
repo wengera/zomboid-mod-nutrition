@@ -1,12 +1,14 @@
-"""The survival priority list (Plan 22 Task 10): threat -> need -> forage -> explore over the policies, with Plan 21b's
+"""The survival priority list (Plan 22 Task 10): threat -> need -> load -> night -> goal over the policies, with Plan 21b's
 hysteresis (`testing/agent/policy.py`'s docstring, frozen) and the hold-radius fix, `need` consuming a held item by id,
 the failed-action cooldown and the decision log; Plan 21's `test_policy.py` cases ported to the typed actions, end to
-end on the fake mod."""
+end on the fake mod. Plan 23 Task 13 (ruling P23-F): the forage and explore tests are rewritten in place as
+goal tests (`planner/goals.py`'s scripted source: Stock for a need, LootBuilding for a building, ExploreToward)."""
 import json
 
 import pytest
 
 from agent.base.planner import Planner
+from agent.base.planner import goals as G
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner.survive import Survive
@@ -37,12 +39,18 @@ def threat_why(tmp_path):
     return last(tmp_path)["inputs"]["branches"]["threat"]
 
 
+def inside(x, y, bid=1, **k):
+    """A room square of building `bid` (a LootBuilding goal's container square)."""
+    return square(x, y, room="kitchen", building=bid, **k)
+
+
 # ================================================================ the list and its constants
-def test_branch_order_puts_the_load_and_the_night_after_the_need_and_the_needs_fire_at_the_first_moodle():
-    assert S.BRANCHES == ("threat", "need", "load", "night", "forage", "explore")   # Task 13 replaces the last two
+def test_branch_order_puts_the_load_and_the_night_after_the_need_and_the_goal_last():
+    assert S.BRANCHES == ("threat", "need", "load", "night", "goal")   # Task 13: the goal replaced forage, explore
     assert S.DANGER_R is P.DANGER_R
     assert (S.DANGER_R, S.DISENGAGE_R, S.THIRST_T, S.HUNGER_T) == (6.0, 10.0, 0.12, 0.15)   # [#0509], [#0508]
-    assert S.STOCK_WANTS == ("water", "food", "bandage", "weapon") and set(S.STOCK_WANTS) == set(P.LOOT_WANTS)
+    assert G.STOCK_WANTS == ("water", "food", "bandage", "weapon") and set(G.STOCK_WANTS) == set(P.LOOT_WANTS)
+    assert not hasattr(S, "STOCK_WANTS") and not hasattr(Survive, "_forage") and not hasattr(Survive, "_explore")
     assert (S.FLEE_HEALTH, S.FLEE_HEALTH_PAIR, S.REFIGHT_MARGIN, S.MAX_FIGHT) == (40.0, 60.0, 20.0, 2)
     assert S.FAILED_COOLDOWN_TICKS == 10
 
@@ -73,7 +81,7 @@ def test_threat_ignores_a_zombie_beyond_danger_r(tmp_path):
 @pytest.mark.parametrize("engage", [5.5, 6.0])           # 6.0: the `<= DANGER_R` boundary
 def test_a_threat_engaged_at_six_tiles_holds_beyond_six_within_ten(tmp_path, engage):
     r, sv = make(tmp_path)
-    r.scan([square(101, 200, containers=[CRATE])])
+    r.scan([inside(101, 200, containers=[CRATE])])
     r.frame(zombies=[zombie(1, 100.0 + engage, 200.0)])
     tick(r, sv)
     assert r.cmd()[0] == "walkTo" and last(tmp_path)["branch"] == "threat"
@@ -86,7 +94,7 @@ def test_a_threat_engaged_at_six_tiles_holds_beyond_six_within_ten(tmp_path, eng
     r.answer()
     r.frame(zombies=[zombie(1, 111.0, 200.0)])               # 11 tiles: disengaged
     tick(r, sv)
-    assert last(tmp_path)["branch"] == "forage" and r.cmd() == ("interact", {"x": 101, "y": 200, "kind": "loot",
+    assert last(tmp_path)["branch"] == "goal" and r.cmd() == ("interact", {"x": 101, "y": 200, "kind": "loot",
                                                                              "filter": "bandage", "maxWeight": 8.0})
 
 
@@ -251,14 +259,15 @@ def test_the_log_line_carries_mode_and_fight_s(tmp_path):
 # ================================================================ one action at a time
 def test_a_running_action_is_not_re_sent_and_a_higher_branch_pre_empts_it(tmp_path):
     r, sv = make(tmp_path)
-    r.scan([square(101, 200, containers=[CRATE])])
+    r.scan([inside(101, 200, containers=[CRATE])])
     r.frame()
     tick(r, sv)
     assert r.cmd()[0] == "interact"
     r.frame()
-    assert tick(r, sv) is None                               # the loot is current: held, nothing sent
+    assert tick(r, sv) is None                               # the goal's loot is current: held, nothing sent
     d = last(tmp_path)
-    assert d["branch"] == "forage" and d["sent"] is False and d["action"] is None
+    assert d["branch"] == "goal" and d["sent"] is False and d["action"] is None
+    assert d["goal"] == {"type": "LootBuilding", "args": {"building": 1}, "state": "running", "source": "scripted"}
     r.frame(zombies=[zombie(1, 101.5, 200.0)])
     assert tick(r, sv) is not None and r.cmd() == ("attack", {"targetId": 1})   # the threat pre-empts the loot
     assert len(r.acts.history) == 2
@@ -282,7 +291,7 @@ def test_need_consumes_a_held_water_bottle_by_id_when_thirsty_then_food(tmp_path
 
 def test_need_holds_its_running_consume_before_reading_the_thresholds(tmp_path):
     r, sv = make(tmp_path)
-    r.scan([square(101, 200, containers=[CRATE])])
+    r.scan([inside(101, 200, containers=[CRATE])])
     r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
     r.frame(thirst=0.6)
     tick(r, sv)
@@ -295,7 +304,7 @@ def test_need_holds_its_running_consume_before_reading_the_thresholds(tmp_path):
     r.answer({"state": "done", "result": {"itemId": 701}})
     r.frame(thirst=0.1)
     tick(r, sv)
-    assert r.cmd()[0] == "interact" and last(tmp_path)["branch"] == "forage"
+    assert r.cmd()[0] == "interact" and last(tmp_path)["branch"] == "goal"
 
 
 def test_the_threat_inputs_reach_the_log(tmp_path):
@@ -306,17 +315,18 @@ def test_the_threat_inputs_reach_the_log(tmp_path):
     assert why["flee"] == "unarmed" and why["centroid"] == [103.0, 201.0] and why["nearest"] == 3.0
 
 
-def test_need_marks_food_and_falls_through_to_forage_for_it(tmp_path):
+def test_need_marks_food_and_the_goal_stocks_it(tmp_path):
     r, sv = make(tmp_path)
     r.scan([square(101, 200, containers=[CRATE]), square(103, 200, containers=[FRIDGE])])
     r.frame(hunger=0.6)
     tick(r, sv)
     assert r.cmd() == ("interact", {"x": 103, "y": 200, "kind": "loot", "filter": "food", "maxWeight": 8.0})
     d = last(tmp_path)
-    assert d["branch"] == "forage" and d["inputs"]["need"] == "food"
+    assert d["branch"] == "goal" and d["inputs"]["need"] == "food" and d["goal"]["type"] == "Stock"
+    assert d["goal"]["args"] == {"kind": "food"} and sv.need_marks == {"food": 1000.0}
 
 
-def test_forage_never_loots_at_load_level_three(tmp_path):
+def test_the_goal_never_loots_at_load_level_three(tmp_path):
     r, sv = make(tmp_path)
     r.scan([square(101, 200, containers=[CRATE])])
     r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
@@ -341,7 +351,7 @@ def test_the_load_branch_drops_one_spare_item_at_drop_at_or_above(tmp_path, leve
 
 def test_the_load_branch_holds_on_its_drop_then_drops_the_next_and_passes_with_nothing_spare(tmp_path):
     r, sv = make(tmp_path)
-    r.scan([square(101, 200, containers=[CRATE])])
+    r.scan([inside(101, 200, containers=[CRATE])])
     r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
     r.event("item_added", itemId=603, fullType="Base.Nails", weight=0.5)
     r.frame(level=3)
@@ -357,10 +367,11 @@ def test_the_load_branch_holds_on_its_drop_then_drops_the_next_and_passes_with_n
     r.answer()
     r.event("item_removed", itemId=603, fullType="Base.Nails")
     r.frame(level=3)
-    tick(r, sv)                                              # nothing spare: load passes, forage holds no loot at 3
+    tick(r, sv)                                              # nothing spare: load passes, no loot goal at 3
     d = last(tmp_path)
-    assert d["branch"] == "explore" and d["inputs"]["branches"]["load"] == {"level": 3, "drop": None}
-    assert d["inputs"]["branches"]["forage"]["hold"] is True
+    assert d["branch"] == "goal" and d["inputs"]["branches"]["load"] == {"level": 3, "drop": None}
+    assert d["goal"]["type"] == "ExploreToward" and r.cmd()[0] == "scan"
+    assert "interact" not in [a.type for a in r.acts.history]
 
 
 def test_the_load_branch_drops_before_the_night_sleeps(tmp_path):
@@ -401,7 +412,7 @@ def test_a_failed_action_cools_its_branch_for_ten_planner_ticks(tmp_path):
         d = last(tmp_path)
         assert d["branch"] != "need" and d["inputs"]["cooled"] == {"type": "consume", "args": {"itemId": 701}}, i
         if a is not None:
-            r.answer()                                       # explore's scan
+            r.answer()                                       # the ExploreToward goal's scan
     r.frame(thirst=0.6)
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 701}) and last(tmp_path)["inputs"]["cooled"] is None
@@ -410,14 +421,14 @@ def test_a_failed_action_cools_its_branch_for_ten_planner_ticks(tmp_path):
 
 def test_a_cooled_action_passes_over_to_the_next_branch(tmp_path):
     r, sv = make(tmp_path)
-    r.scan([square(102, 200, containers=[CRATE])])
+    r.scan([inside(102, 200, containers=[CRATE])])
     r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
     r.frame(thirst=0.6)
     tick(r, sv)
     r.answer({"state": "failed", "reason": "interrupted"})
     r.frame(thirst=0.6)
     tick(r, sv)
-    assert r.cmd()[0] == "interact" and last(tmp_path)["branch"] == "forage"
+    assert r.cmd()[0] == "interact" and last(tmp_path)["branch"] == "goal"
 
 
 def test_a_superseded_action_is_not_a_failure(tmp_path):
@@ -456,16 +467,16 @@ def scenario(tmp_path):
         if tick(r, sv) is not None:
             r.answer({"state": "done", "result": swing(True)} if r.cmd()[0] == "attack" else "done")
 
-    step(0)                                                  # explore: scan
-    r.scan([square(x, y, containers=[CRATE] if (x, y) == (101, 201) else []) for x in range(99, 102)
+    step(0)                                                  # goal ExploreToward: scan the place
+    r.scan([inside(x, y, containers=[CRATE] if (x, y) == (101, 201) else []) for x in range(99, 102)
             for y in range(199, 202)])
-    step(1)                                                  # forage: loot the crate
+    step(1)                                                  # goal LootBuilding: loot the crate
     step(2, thirst=0.6)                                      # need: drink the bottle
     step(3, zombies=[zombie(1, 103.0, 200.0)])               # threat: walk to it
     step(4, zombies=[zombie(1, 101.0, 200.0)])               # threat: attack
     step(5, zombies=[zombie(1, 101.0, 200.0)], health=30.0)  # threat: flee
     r.event("zombie_dead", id=1)
-    step(6, level=3)                                         # nothing to drop, no loot: explore walks
+    step(6, level=3)                                         # nothing to drop, the loot ended: a goal
     step(7)
     all_sends_valid(r)
     return (tmp_path / "decision.log").read_bytes()
@@ -480,10 +491,13 @@ def test_the_decision_log_is_byte_stable_under_an_injected_clock(tmp_path):
     for i, ln in enumerate(lines):
         d = json.loads(ln)
         assert ln == json.dumps(d, sort_keys=True)
-        assert set(d) == {"wall", "gameMin", "branch", "inputs", "action", "sent"}
+        assert set(d) == {"wall", "gameMin", "branch", "inputs", "action", "sent", "goal"}
         assert d["wall"] == 1000.0 + 0.25 * (i + 1) and d["gameMin"] == 480.0 + i
     branches = [json.loads(ln)["branch"] for ln in lines]
-    assert {"threat", "need", "forage", "explore"} <= set(branches)
+    assert {"threat", "need", "goal"} <= set(branches)
+    goals = [json.loads(ln)["goal"] for ln in lines]
+    assert [g["type"] for g in goals[:2]] == ["ExploreToward", "LootBuilding"]
+    assert all(g is None or set(g) == {"type", "args", "state", "source"} for g in goals)
 
 
 # P9 (the wave's Minor 8): a zombie whose id read nil is a danger but never a fight target.
@@ -651,19 +665,19 @@ def test_a_food_consume_failed_not_valid_is_refused_never_marked_empty(tmp_path)
 
 
 @pytest.mark.parametrize("load_max, cap", [(8.0, 8.0), (None, 0.0)])
-def test_the_forage_loot_carries_the_cap_and_logs_it(tmp_path, load_max, cap):
+def test_the_goals_loot_carries_the_cap_and_logs_it(tmp_path, load_max, cap):
     r, sv = make(tmp_path)
     r.scan([square(103, 200, containers=[FRIDGE])])
     r.frame(hunger=0.3, load_max=load_max)
     tick(r, sv)
     assert r.cmd() == ("interact", {"x": 103, "y": 200, "kind": "loot", "filter": "food", "maxWeight": cap})
-    assert last(tmp_path)["inputs"]["branches"]["forage"]["cap"] == cap
+    assert last(tmp_path)["inputs"]["branches"]["goal"]["cap"] == cap
 
 
-def test_with_no_need_forage_takes_the_stocks_wants_in_order_water_food_bandage_weapon(tmp_path):
+def test_with_no_need_loot_building_takes_the_stocks_wants_in_order_water_food_bandage_weapon(tmp_path):
     r, sv = make(tmp_path)
-    r.scan([square(101, 200, containers=[TOOLS]), square(102, 200, containers=[CRATE]),
-            square(103, 200, containers=[FRIDGE]), square(106, 200, containers=[WATER])])
+    r.scan([inside(101, 200, containers=[TOOLS]), inside(102, 200, containers=[CRATE]),
+            inside(103, 200, containers=[FRIDGE]), inside(106, 200, containers=[WATER])])
     filters = []
     for _ in range(4):
         r.frame()
@@ -672,22 +686,25 @@ def test_with_no_need_forage_takes_the_stocks_wants_in_order_water_food_bandage_
         r.answer()
     assert filters == [("water", 106), ("food", 103), ("bandage", 102), ("weapon", 101)]
     r.frame()
+    tick(r, sv)                                              # the building is looted: the goal ends done
+    assert sv.goals.history[-1]["type"] == "LootBuilding" and sv.goals.history[-1]["state"] == "done"
+    r.frame()
     tick(r, sv)
-    assert last(tmp_path)["branch"] == "explore"
+    assert last(tmp_path)["goal"]["type"] == "ExploreToward" and r.cmd()[0] == "scan"
 
 
 def test_with_no_need_an_other_only_container_is_never_looted(tmp_path):
     r, sv = make(tmp_path)
-    r.scan([square(101, 200, containers=[SHELF])])
+    r.scan([inside(101, 200, containers=[SHELF])])
     r.frame()
     tick(r, sv)
-    assert last(tmp_path)["branch"] == "explore" and "interact" not in [a.type for a in r.acts.history]
-    assert last(tmp_path)["inputs"]["branches"]["forage"]["want"] is None
+    assert last(tmp_path)["goal"]["type"] == "ExploreToward" and "interact" not in [a.type for a in r.acts.history]
+    assert last(tmp_path)["inputs"]["branches"]["goal"]["proposed"] == "ExploreToward"
 
 
-def test_a_need_mark_loots_its_use_even_when_another_use_is_nearer(tmp_path):
+def test_a_need_mark_stocks_its_use_even_when_another_use_is_nearer(tmp_path):
     r, sv = make(tmp_path)
-    r.scan([square(101, 200, containers=[CRATE]), square(106, 200, containers=[WATER])])
+    r.scan([inside(101, 200, containers=[CRATE]), square(106, 200, containers=[WATER])])
     r.frame(thirst=0.3)
     tick(r, sv)
     assert r.cmd() == ("interact", {"x": 106, "y": 200, "kind": "loot", "filter": "water", "maxWeight": 8.0})
@@ -699,7 +716,7 @@ def test_twenty_ticks_of_a_looting_world_never_send_all(tmp_path):
           (103, 201): {"containers": [FRIDGE, SHELF]}, (104, 199): {"containers": [WATER]},
           (105, 200): {"containers": [TOOLS]}, (98, 202): {"containers": [dict(FRIDGE, type="counter")]},
           (97, 198): {"containers": [dict(WATER, type="sink")]}}
-    r.scan(grid(95, 106, 196, 204, at))
+    r.scan([dict(s, room="kitchen", building=1) for s in grid(95, 106, 196, 204, at)])
     for i in range(20):
         r.frame(thirst=0.3 if i % 3 == 0 else 0.1, hunger=0.3 if i % 3 == 1 else 0.1, game_min=480.0 + i)
         if tick(r, sv) is not None:
@@ -709,7 +726,7 @@ def test_twenty_ticks_of_a_looting_world_never_send_all(tmp_path):
     assert all(a["filter"] in ("food", "water", "weapon", "bandage") for a in loots), loots
     assert all(a["maxWeight"] == 8.0 for a in loots)
     for d in decisions(tmp_path):
-        assert d["inputs"]["branches"].get("forage", {}).get("want") != "all"
+        assert d["inputs"]["branches"].get("goal", {}).get("want") != "all"
     all_sends_valid(r)
 
 
@@ -737,6 +754,8 @@ def test_a_counter_looted_for_water_is_looted_again_for_food(tmp_path):
     tick(r, sv)
     assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "water", "maxWeight": 8.0})
     r.answer({"state": "done", "result": {"moved": 1, "skipped": 0}})
+    r.event("item_added", itemId=801, fullType="Base.WaterBottle", weight=1.0)   # the Stock(water) ends stocked
     r.frame(hunger=0.3)
     tick(r, sv)
     assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "food", "maxWeight": 8.0})
+    assert [h["args"] for h in sv.goals.history] == [{"kind": "water"}] and sv.goals.current.args() == {"kind": "food"}

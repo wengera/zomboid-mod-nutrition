@@ -59,7 +59,7 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   whole-pass review's I4: run 1 re-sent a walk that failed `stuck` to the same edge 20 times).
 - `LootHouse` (Plan 23 Task 11, P23-7, P23-8): at load level `LOOT_MAX_LEVEL` (1) or below an
   `Interact(x, y, "loot", want, maxWeight=cap)` at `world.nearest_unlooted(want)`, `want` one of `LOOT_WANTS`
-  (`food`, `water`, `weapon`, `bandage`), set by the caller (Survive's `forage`), and never `all`: Plan 22's loot of
+  (`food`, `water`, `weapon`, `bandage`), set by the caller (the `Stock` and `LootBuilding` goals), and never `all`: Plan 22's loot of
   `all` took whole containers, one interact at level 2 lifting runs 1 and 2 to level 3 and 4. Any other want (None
   included) loots nothing. `cap` is the frame's `load.max` times `LOAD_RATIO_MAX` (1.0), the Lua's loot stopping
   before the carried weight would pass it; 0.0 (no cap) when `load.max` reads no positive number; logged as
@@ -70,8 +70,9 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   `docs/reference/research-notes.md`, "A pre-empted loot's square is marked looted"), and a loot whose result carries
   `skipped > 0` (the cap left items), which marks nothing: its square waits in `capped` for that use until the
   frame's `load.weight` falls below its reading at that loot's end (a drop or a meal), so the bot never re-sends a
-  loot that cannot fit, and `target(want)` (the container a loot would go to, which Survive's `forage` reads too)
-  leaves it out meanwhile; an unreadable weight keeps it waiting. The level
+  loot that cannot fit, and `target(want)` (the container a loot would go to, which the goal layer's view reads too)
+  leaves it out meanwhile; an unreadable weight keeps it waiting. `within` (Plan 23 Task 13), a set of container
+  keys or None, keeps `target` to those keys: the `LootBuilding` goal sets it to its building's. The level
   guard stays the backstop, spec § 9 (1), "a policy stops looting before level 3": above LOOT_MAX_LEVEL it sends
   nothing (`why["hold"]`), and no loot is sent again until the level is back under 2. It never drops (Plan 23 Task 12):
   the drop is Survive's `load` branch, which at `DROP_AT` (3) or above sends `Drop` of `spare(world)`, the heaviest
@@ -452,6 +453,7 @@ class LootHouse(Policy):
         self.want = want        # one of LOOT_WANTS, set by the caller: the container's want and the loot's filter
         self.pending = []       # (x, y, z, Action) of each loot sent and not yet seen ended
         self.capped = {}        # (x, y, z, use) -> the carried weight when a loot there skipped items for the cap
+        self.within = None      # a set of container keys a target is kept to (a LootBuilding goal's), None for any
         self._key = None        # the container the last choose picked
 
     def level(self):
@@ -496,10 +498,13 @@ class LootHouse(Policy):
 
     def target(self, want):
         """The container a loot for `want` would go to: `world.nearest_unlooted(want)` less the squares waiting on
-        the cap; None for a want outside LOOT_WANTS."""
+        the cap, and kept to `within` when it is set; None for a want outside LOOT_WANTS."""
         if want not in LOOT_WANTS:
             return None
-        return self.world.nearest_unlooted(want, exclude=self._waiting(want))
+        exclude = self._waiting(want)
+        if self.within is not None:
+            exclude = exclude | {k for k in self.world.containers if k not in self.within}
+        return self.world.nearest_unlooted(want, exclude=exclude)
 
     def choose(self):
         level = self.level()

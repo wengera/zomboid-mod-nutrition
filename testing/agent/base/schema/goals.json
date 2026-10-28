@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "goals.json",
+  "title": "Goals",
+  "description": "The goal layer's typed goals (Plan 23 Task 13, spec section 8, P23-10): a goal source proposes one of these, the runner validates it (planner/goals.validate) and runs it under the instincts; each object's properties other than type are its dataclass's fields in planner/goals.py (P23-B).",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "Scan each new place, then walk to the square (x, y); done on arrival.",
+      "properties": {
+        "type": {"const": "ExploreToward", "description": "The goal's type."},
+        "x": {"type": "integer", "description": "The target square's world x in tiles."},
+        "y": {"type": "integer", "description": "The target square's world y in tiles."}
+      },
+      "required": ["type", "x", "y"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "Loot the building's containers one use at a time (water, food, bandage, weapon) until none is left.",
+      "properties": {
+        "type": {"const": "LootBuilding", "description": "The goal's type."},
+        "building": {"type": "integer", "description": "The building's id, as the view lists it."}
+      },
+      "required": ["type", "building"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "Walk to the building's exterior door, open it, step in and close it behind.",
+      "properties": {
+        "type": {"const": "Shelter", "description": "The goal's type."},
+        "building": {"type": "integer", "description": "The building's id, as the view lists it."}
+      },
+      "required": ["type", "building"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "Loot the nearest containers holding the kind until one more item of it is held.",
+      "properties": {
+        "type": {"const": "Stock", "description": "The goal's type."},
+        "kind": {"type": "string", "enum": ["water", "food"], "description": "The use to stock."}
+      },
+      "required": ["type", "kind"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "description": "Send nothing for the seconds given, then end.",
+      "properties": {
+        "type": {"const": "Rest", "description": "The goal's type."},
+        "seconds": {"type": "number", "minimum": 0, "maximum": 120, "description": "The wall seconds to rest, at most 120."}
+      },
+      "required": ["type", "seconds"],
+      "additionalProperties": false
+    }
+  ]
+}
