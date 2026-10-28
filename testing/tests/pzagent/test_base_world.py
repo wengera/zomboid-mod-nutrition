@@ -21,6 +21,7 @@ from agent.base import items
 from agent.base.replay import replay as replay_summary
 from agent.base.world import ZOMBIE_TTL_S, World
 
+from . import fakemod
 from .fakemod import DEFAULT_FRAME, FakeMod
 
 FIX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures")
@@ -50,11 +51,7 @@ def replay(path):
 # -- the synthetic log ------------------------------------------------------------------------------------------------
 
 def _sq(x, y, z=0, **k):
-    d = {"x": x, "y": y, "z": z, "solid": False, "solidTrans": False, "light": 0.75, "room": None, "building": None,
-         "door": None, "window": None, "containers": [], "floor": [], "blockN": False, "blockW": False,
-         "edgeN": False, "edgeW": False}
-    d.update(k)
-    return d
+    return fakemod.square(**dict({"x": x, "y": y, "z": z, "light": 0.75}, **k))
 
 
 SCAN_PARTS = [
@@ -676,6 +673,26 @@ def test_by_use_prefers_the_events_use_and_falls_back_to_the_dataset():
     assert 4 in w.by_use()["other"]
 
 
+def test_by_use_reads_a_sealed_can_other_whatever_the_engines_use_and_a_stray_use_falls_back():
+    w = World()
+    w.apply(event("item_added", itemId=1, fullType="Base.TinnedBeans", weight=0.8, use="food"))   # N-3
+    w.apply(event("item_added", itemId=2, fullType="Base.Apple", weight=0.1, use="zzz"))
+    assert items.cant_eat("Base.TinnedBeans") and not items.cant_eat("Base.Apple")
+    got = w.by_use()
+    assert 1 in got["other"] and got["food"] == [2]
+
+
+def test_world_minutes_without_a_world_age_counts_from_the_first_game_min_and_wraps_at_a_day():
+    w = World()
+    assert w.world_minutes() == 0.0
+    w.game_min = 1430.0
+    assert w.world_minutes() == 0.0
+    w.game_min = 1439.0
+    assert w.world_minutes() == 9.0
+    w.game_min = 10.0                                   # past midnight: (10 - 1430) % 1440
+    assert w.world_minutes() == 20.0
+
+
 # -- fix wave P: the monotonic game clock (I-1), the map-version cache (M-4), the refused foods (I-4) -----------------
 
 def test_world_minutes_reads_world_age_and_never_wraps_at_midnight():
@@ -685,8 +702,10 @@ def test_world_minutes_reads_world_age_and_never_wraps_at_midnight():
     assert w.world_minutes() == pytest.approx(1439.0)
     w.apply(frame(0, gameMin=1.0, worldAge=24.0 + 1.0 / 60.0))   # 00:01 the next day: gameMin wrapped
     assert w.game_min == 1.0 and w.world_minutes() == pytest.approx(1441.0)
-    w.apply(frame(0, gameMin=5.0, worldAge=None))                # a frame with no worldAge: gameMin stands in
-    assert w.world_minutes() == 5.0
+    w.apply(frame(0, gameMin=5.0, worldAge=None))                # a frame with no worldAge: gameMin since its first read (D-7)
+    assert w.world_minutes() == 0.0
+    w.apply(frame(0, gameMin=9.0, worldAge=None))
+    assert w.world_minutes() == 4.0
 
 
 def test_a_stuck_mark_made_before_midnight_expires_after_it():

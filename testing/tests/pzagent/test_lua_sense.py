@@ -455,6 +455,14 @@ def test_first_sight_is_one_item_added_per_held_item(lua):
     assert [e for e in ev if e["event"] == "item_added"] == []
 
 
+def test_every_first_sight_item_added_carries_a_use_of_the_five(lua):
+    load(lua)
+    p = make_player(items=("Base.Apple", "Base.WaterBottle", "Base.Axe", "Base.RippedSheets", "Base.Plank"))
+    ev = [dict(e) for e in lua.eval("PZA.sense.firstSight(...)", p).values() if e["event"] == "item_added"]
+    assert len(ev) == 5
+    assert all(e["use"] in ("food", "water", "weapon", "bandage", "other") for e in ev)
+
+
 def test_event_kinds_and_fields_are_the_schemas(lua):
     load(lua)
     kinds = lua.eval("PZA.schema.events")

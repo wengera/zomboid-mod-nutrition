@@ -229,6 +229,7 @@ def test_a_missing_cli_reads_spawn_and_falls_back():
 @pytest.mark.parametrize("answer, error", [
     ("I would loot the nearest house.", "malformed"),
     ('{"type": "LootBuilding", "building": 3', "malformed"),
+    ('{"type": "LootBuilding", "building": {"id": 3}', "malformed"),   # triage #16: never the nested object
     ("[1, 2]", "malformed"),
 ])
 def test_a_malformed_answer_falls_back_and_logs_malformed(answer, error):

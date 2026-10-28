@@ -1749,6 +1749,10 @@ def test_the_loot_fills_to_max_weight_greedily_and_an_exact_fit_is_taken(lua, fs
     start(lua, p, "interact", x=11, y=20, kind="loot", maxWeight=8.0)
     tick(lua, p)
     assert [a.item for a in g._queue.adds] == [half, quarter]
+    p.held.extend([half, quarter])
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert a[-1]["result"] == {"moved": 2, "skipped": 2}
 
 
 def test_interact_loot_weapon_takes_a_saucepan_and_water_does_not(lua, fs):
