@@ -152,10 +152,11 @@ def test_the_cli_runs_in_a_clean_environment_without_claudecode(monkeypatch):
 
 # ---------------------------------------------------------------- the threading
 def test_a_good_goal_is_applied_on_the_next_propose_once():
+    """P23-AC: the first ask starts the call and answers None (pending), never the fallback's goal."""
     src, runner, _ = make()
     v = a_view()
-    g = src.propose(v)
-    assert isinstance(g, Rest) and src.NAME == "scripted"            # the fallback stands in while pending
+    assert src.propose(v) is None and src.NAME == "llm"             # pending: nothing stands in
+    assert src.fallback.views == []
     settle(src)
     g = src.propose(v)
     assert isinstance(g, LootBuilding) and g.building == 3 and src.NAME == "llm"
@@ -164,8 +165,9 @@ def test_a_good_goal_is_applied_on_the_next_propose_once():
     assert row["goal"] == {"type": "LootBuilding", "building": 3} and row["latency_s"] == 1.0
     assert row["wall"] == 1000.0
     assert len(runner.calls) == 1                                    # applying the goal starts no call
-    g = src.propose(v)
-    assert isinstance(g, Rest) and len(runner.calls) == 2           # applied once; the next call starts
+    assert src.propose(v) is None                                    # applied once; the next ask starts a call
+    settle(src)
+    assert len(runner.calls) == 2 and src.fallback.views == []
 
 
 def test_one_call_in_flight_at_most():
@@ -173,7 +175,7 @@ def test_one_call_in_flight_at_most():
     src, runner, clock = make(gate=gate)
     v = a_view()
     for _ in range(5):
-        assert isinstance(src.propose(v), Rest)
+        assert src.propose(v) is None                                # pending within timeout_s
         clock.t += 1.0
     gate.set()
     settle(src)
@@ -185,18 +187,18 @@ def test_a_call_past_timeout_s_is_abandoned_logged_timeout_and_its_late_answer_i
     gate = threading.Event()
     src, runner, clock = make(gate=gate, cost=0.0)
     v = a_view()
-    src.propose(v)
+    assert src.propose(v) is None
     clock.t += 20.0
-    assert isinstance(src.propose(v), Rest) and src.calls == []      # at timeout_s: still pending
+    assert src.propose(v) is None and src.calls == []                # at timeout_s: still pending
     clock.t += 0.5
-    assert isinstance(src.propose(v), Rest)
+    assert isinstance(src.propose(v), Rest) and src.NAME == "scripted"   # past it: the fallback stands in
     assert src.calls[0]["error"] == "timeout" and src.calls[0]["ok"] is False and src.calls[0]["goal"] is None
     assert src.calls[0]["latency_s"] == 20.5
     assert isinstance(src.propose(v), Rest) and len(runner.calls) == 1   # no second call while it still runs
     gate.set()
     settle(src)
-    g = src.propose(v)
-    assert isinstance(g, Rest) and len(src.calls) == 1               # the late answer never applied
+    assert src.propose(v) is None and len(src.calls) == 1            # the late answer never applied
+    settle(src)
     assert len(runner.calls) == 2                                    # the abandoned call ended: the next starts
 
 
@@ -295,11 +297,18 @@ def test_a_building_the_view_does_not_list_is_an_unknown_place(answer):
     assert isinstance(g, Rest) and src.calls[0]["error"] == "invalid: unknown place"
 
 
-def test_the_place_is_read_against_the_view_the_call_was_given():
+def test_the_place_is_read_against_the_current_view():
+    """P23-AC: the answer is applied on a later tick, so its place is checked against the view of the ask that
+    collects it: a building gone from the view is invalid, one that appeared since the call is valid."""
     src, _, _ = make()
-    src.propose(a_view(buildings=[]))
+    src.propose(a_view())
     settle(src)
-    assert isinstance(src.propose(a_view()), Rest) and src.calls[0]["error"] == "invalid: unknown place"
+    assert isinstance(src.propose(a_view(buildings=[])), Rest) and src.calls[0]["error"] == "invalid: unknown place"
+    src2, _, _ = make()
+    src2.propose(a_view(buildings=[]))
+    settle(src2)
+    g = src2.propose(a_view())
+    assert isinstance(g, LootBuilding) and src2.calls[0]["error"] is None
 
 
 @pytest.mark.parametrize("answer, ok", [
@@ -323,9 +332,10 @@ def test_an_explore_farther_than_explore_max_tiles_from_pos_is_an_unknown_place(
 
 def test_an_explore_with_no_pos_in_the_view_is_an_unknown_place():
     src, _, _ = make(answer='{"type": "ExploreToward", "x": 100, "y": 200}')
-    src.propose(a_view(pos={"x": None, "y": None, "z": None}))
+    src.propose(a_view())
     settle(src)
-    assert isinstance(src.propose(a_view()), Rest) and src.calls[0]["error"] == "invalid: unknown place"
+    assert isinstance(src.propose(a_view(pos={"x": None, "y": None, "z": None})), Rest)
+    assert src.calls[0]["error"] == "invalid: unknown place"
 
 
 # ---------------------------------------------------------------- the record
@@ -333,7 +343,7 @@ def test_each_call_is_one_sorted_json_line_in_goals_log(tmp_path):
     src, _, _ = make(tmp_path)
     v = a_view()
     for _ in range(2):
-        src.propose(v)                                               # starts a call; the fallback answers
+        assert src.propose(v) is None                                # starts a call: pending
         settle(src)
         assert isinstance(src.propose(v), LootBuilding)              # collects it
     lines = (tmp_path / "goals.log").read_text(encoding="utf-8").splitlines()
@@ -366,12 +376,18 @@ def test_the_runners_history_attributes_each_goal_to_its_chooser(tmp_path):
     src = LLMSource(ScriptedSource(), clock=clock, runner=runner)
     gr = GoalRunner(src, clock=clock)
     gr.tick(r.world, r.acts, view=a_view(buildings=[]))
-    assert gr.current.TYPE == "Rest" and gr.current.seconds == 30.0      # the scripted source's rest
+    assert gr.current is None and gr.line() == {"pending": "llm"}       # P23-AC: pending, no stand-in
     settle(src)
-    clock.t += 31.0
     gr.tick(r.world, r.acts, view=a_view(buildings=[]))
-    assert gr.history[-1]["source"] == "scripted"
     assert gr.current.seconds == 1 and gr.line()["source"] == "llm"
+    runner.returncode = 1                                                # the next call fails
+    clock.t += 2.0
+    gr.tick(r.world, r.acts, view=a_view(buildings=[]))                  # the rest ends; the next call starts
+    assert gr.history[-1]["source"] == "llm" and gr.current is None
+    settle(src)
+    gr.tick(r.world, r.acts, view=a_view(buildings=[]))
+    assert gr.current.TYPE == "Rest" and gr.current.seconds == 30.0      # the scripted source's rest stands in
+    assert gr.line()["source"] == "scripted" and src.calls[-1]["error"] == "exit 1"
 
 
 def test_the_default_runner_runs_the_resolved_cli_in_an_empty_directory_of_its_own(monkeypatch):
@@ -387,3 +403,30 @@ def test_the_default_runner_runs_the_resolved_cli_in_an_empty_directory_of_its_o
     assert seen["argv"] == ["/bin/claude", "-p"] and seen["input"] == "text" and seen["timeout"] == 20.0
     assert seen["env"] == {"A": "1"} and seen["capture_output"] is True and seen["encoding"] == "utf-8"
     assert L.os.path.isdir(seen["cwd"]) and L.os.listdir(seen["cwd"]) == [] and seen["cwd"] == L._cwd()
+
+
+# ---------------------------------------------------------------- fix wave P (P23-AC, the goals.log guard)
+def test_only_a_real_failure_is_a_fallback_row():
+    """Every stand-in follows a call row that failed: a run of good calls records no failure and never asks the
+    fallback."""
+    src, _, _ = make()
+    v = a_view()
+    goals = []
+    for _ in range(6):
+        goals.append(src.propose(v))
+        settle(src)
+    assert [g is None for g in goals] == [True, False, True, False, True, False]
+    assert all(isinstance(g, LootBuilding) for g in goals[1::2])
+    assert [c["ok"] for c in src.calls] == [True, True, True] and src.fallback.views == []
+
+
+def test_a_goals_log_write_error_is_counted_never_raised(tmp_path):
+    """The deferred must-fix (T14): an OSError writing goals.log never reaches propose (the planner's tick)."""
+    clock = Clock()
+    runner = Runner(clock, stdout=envelope('{"type": "LootBuilding", "building": 3}'))
+    src = LLMSource(Fallback(), log_path=str(tmp_path), clock=clock, runner=runner)   # a directory: open() fails
+    assert src.log_errors == 0
+    src.propose(a_view())
+    settle(src)
+    g = src.propose(a_view())
+    assert isinstance(g, LootBuilding) and src.log_errors == 1 and len(src.calls) == 1

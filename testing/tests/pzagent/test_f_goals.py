@@ -215,9 +215,11 @@ def run_goals(tmp_path, monkeypatch, day_cap_s, runner=None, cli_version="2.1.31
 
 
 def test_the_llm_session_records_its_calls_its_goals_and_goals_log(tmp_path, monkeypatch):
-    # deterministic on the fake clock: a scripted ExploreToward (call 1 started), the model's Rest 5 (call 1
-    # collected), a scripted Rest 30 at 8.3 s (call 2 started, timing out), the next at 38.8 s (call 2 collected, call
-    # 3 started and pending): two rows from 38.8 s until 69.3 s
+    # deterministic on the fake clock, under P23-AC (fix wave P: a pending call holds the runner, the scripted source
+    # stands in only on a recorded failure): call 1 started at 2.9 s (pending), the model's Rest 5 taken at 3.3 s;
+    # it ends at 8.35 s, call 2 starts and times out at once, so a scripted ExploreToward stands in at 8.85 s; it
+    # arrives at 9.35 s, call 3 times out, a scripted Rest 30 stands in at 9.85 s; it ends at 40.35 s, call 4 times
+    # out and is collected at 40.85 s: four rows, one ok, three fallbacks
     r = run_goals(tmp_path, monkeypatch, day_cap_s=40)
     out, loop, s = r.out, r.out["loop"], r.day
     assert out["phase_errors"] == {} and out["stop"]["reason"] == "day_cap"
@@ -229,9 +231,10 @@ def test_the_llm_session_records_its_calls_its_goals_and_goals_log(tmp_path, mon
     llm = loop["llm"]
     assert llm["model"] == "sonnet" and llm["cli_version"] == "2.1.310 (Claude Code)"
     calls = llm["calls"]
-    assert len(calls) == 2, calls
+    assert len(calls) == 4, calls
     assert calls[0]["ok"] is True and calls[0]["error"] is None and calls[0]["goal"] == {"type": "Rest", "seconds": 5}
-    assert calls[1]["ok"] is False and calls[1]["error"] == "timeout" and calls[1]["goal"] is None
+    for c in calls[1:]:
+        assert c["ok"] is False and c["error"] == "timeout" and c["goal"] is None
     assert calls == src.calls and calls[0] is not src.calls[0]                 # copies, never the source's own rows
     sources = [g["source"] for g in loop["goals"]]
     assert "llm" in sources and "scripted" in sources
@@ -239,7 +242,7 @@ def test_the_llm_session_records_its_calls_its_goals_and_goals_log(tmp_path, mon
     assert llm_goals[0]["type"] == "Rest" and llm_goals[0]["args"] == {"seconds": 5}
     log = (tmp_path / "goals.log").read_text(encoding="utf-8").splitlines()
     rows = [json.loads(l) for l in log]
-    assert [x["ok"] for x in rows] == [True, False] and rows[1]["error"] == "timeout"
+    assert [x["ok"] for x in rows] == [True, False, False, False] and rows[1]["error"] == "timeout"
     assert rows[0]["answer"] == '{"type": "Rest", "seconds": 5}' and rows[0]["prompt"] == r.runner.calls[0]["input"]
     assert "goals.log" in r.xs.copied and "decision.log" in r.xs.copied
     assert set(loop) >= {"goals", "night", "lineage", "t_loop0_ms", "llm", "actions"}
@@ -247,7 +250,7 @@ def test_the_llm_session_records_its_calls_its_goals_and_goals_log(tmp_path, mon
     assert persisted["loop"]["llm"] == json.loads(json.dumps(llm))
     g = out["grade_f1"]
     assert g["grade"] == "grade_f1" and g["survived"] is True
-    assert g["llm"]["calls"] == 2 and g["llm"]["ok"] == 1 and g["llm"]["fallbacks"] == 1
+    assert g["llm"]["calls"] == 4 and g["llm"]["ok"] == 1 and g["llm"]["fallbacks"] == 3
     assert g["llm"]["goals_by_type"].get("Rest", 0) >= 1
     json.dumps(out, allow_nan=False)
 

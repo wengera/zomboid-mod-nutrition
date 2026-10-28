@@ -12,9 +12,11 @@ The contract:
   planner internals beyond the view's own keys.
 - What it may answer: one JSON object, one of the five goals of `goals.json`. Parsing: the CLI's stdout is its JSON
   envelope (`{"type": "result", "is_error": …, "result": "<text>", …}`); the `result` text's first balanced `{...}`
-  that decodes as JSON (`first_object`) is the goal, checked by `goals.validate`, then against the view the call was
-  given: a LootBuilding or Shelter naming a building the view does not list, or an ExploreToward whose square's centre
-  lies farther than EXPLORE_MAX_TILES (60) from the view's `pos` (or with no `pos`), is `invalid: unknown place`.
+  that decodes as JSON (`first_object`) is the goal, checked by `goals.validate` on the worker, then, when the answer
+  is collected, against the view of the ask that collects it (the current view, ruling P23-AC: a place that vanished
+  since the call is refused): a LootBuilding or Shelter naming a building that view does not list, or an
+  ExploreToward whose square's centre lies farther than EXPLORE_MAX_TILES (60) from its `pos` (or with no `pos`), is
+  `invalid: unknown place`.
 - What happens on every failure: the fallback's goal is returned, and the call's row records why. `error` is None on
   success, else "timeout" (no answer within `timeout_s` on the injected clock, or `subprocess.TimeoutExpired`),
   "exit <code>" (a non-zero exit), "malformed" (stdout not an envelope, or no object in its text), "invalid: <reason>"
@@ -22,12 +24,16 @@ The contract:
   envelope with `is_error` true and exit 0: a refusal, a rate limit) and "spawn: <Type>: <reason>" (the CLI could not
   be run at all, e.g. not on PATH, or the runner raised).
 
-The threading: `propose(view)` never waits. With no call pending (and no abandoned call still running) it starts one
-daemon worker thread running the CLI with `timeout_s`, and returns the fallback's goal on this call. A later `propose`
-collects the finished worker: a valid goal is returned (once) and no new call starts on that propose; a failure is
-recorded and a new call starts. A worker still running past `timeout_s` is abandoned and recorded "timeout"; its
-answer is ignored when it lands, and no new call starts until its thread has ended (the subprocess's own timeout
-ends it), so at most one CLI call is ever in flight. `join(timeout)` waits for the pending and any abandoned worker.
+The threading (ruling P23-AC): `propose(view)` never waits, and returns None (pending: the goal runner holds and asks
+again next tick with a fresh view) while the model has not answered. With no call pending it starts one daemon
+worker thread running the CLI with `timeout_s` and returns None. A later `propose` returns None while the call runs
+within `timeout_s`, then collects it: a valid goal (checked against this ask's view) is returned, once, and no new call
+starts on that propose; a failure (an error, or an answer landing past `timeout_s`) is recorded and the fallback's
+goal returned, so the scripted source stands in only on a recorded failure, and the next ask starts a new call. A
+worker still running past `timeout_s` is abandoned, recorded "timeout" and the fallback answers; its answer is ignored
+when it lands, and no new call starts until its thread has ended (the subprocess's own timeout ends it): meanwhile
+the fallback answers, the stand-in for the timeout already recorded. So at most one CLI call is ever in flight.
+`join(timeout)` waits for the pending and any abandoned worker.
 
 The record: `calls`, one row per collected call, `{wall, latency_s, ok, goal, error, prompt_bytes, model}` (`wall` the
 call's start, `latency_s` to its answer or its abandonment, `goal` the validated goal as `{"type", **args}` else None,
@@ -35,12 +41,13 @@ call's start, `latency_s` to its answer or its abandonment, `goal` the validated
 the argv's `--model`); each row is appended to `log_path` (the driver's `goals.log` beside `decision.log`) as one JSON
 line with sorted keys, carrying also the `prompt` sent on stdin and the `answer` text (P23-11: the prompt and every
 answer are logged; the system prompt is the constant `SYSTEM`). Rows are recorded on the planner's thread when a call
-is collected.
+is collected. A write of `goals.log` that raises `OSError` is counted in `log_errors` and never raised into
+`propose` (the planner's tick); the row stays in `calls`.
 
 The per-call attribution: the class attribute `LLMSource.NAME` is "llm"; each `propose` sets the instance's `NAME` to
-"llm" for the model's goal and to the fallback's `NAME` ("scripted") for a stand-in, so `GoalRunner`'s history rows
-and its `line()` (which read the source's NAME, and a goal is proposed only when none runs) attribute each goal to
-its chooser.
+"llm" for the model's goal and while pending, and to the fallback's `NAME` ("scripted") for a stand-in, so
+`GoalRunner`'s history rows and its `line()` (which read the source's NAME, and a goal is proposed only when none
+runs) attribute each goal to its chooser.
 
 The CLI (Claude Code 2.1.310 on this host, `claude --version`; every flag of `DEFAULT_CLI` read off `claude --help`
 at that version, P23-V): `-p` with the view on stdin, `--output-format json`, `--model sonnet`, `--system-prompt
@@ -72,7 +79,7 @@ LLM_TIMEOUT_S = 20.0          # P23-11: a call answering later than this is a fa
 EXPLORE_MAX_TILES = 60.0      # P23-V: a model's ExploreToward farther than this from the view's pos is refused
 PLACE_GOALS = ("LootBuilding", "Shelter")   # goals naming a building the view must list
 
-__all__ = ["LLMSource", "SYSTEM", "DEFAULT_CLI", "prompt", "first_object", "model_of", "LLM_TIMEOUT_S",
+__all__ = ["LLMSource", "SYSTEM", "DEFAULT_CLI", "prompt", "first_object", "model_of", "place_error", "LLM_TIMEOUT_S",
            "EXPLORE_MAX_TILES"]
 
 
@@ -160,8 +167,8 @@ def model_of(cli, flag="--model"):
     return None
 
 
-def _parse(stdout, view):
-    """(goal, answer text, error) from the CLI's stdout (the module docstring)."""
+def _parse(stdout):
+    """(goal, answer text, error) from the CLI's stdout (the module docstring), before the place check."""
     try:
         env = json.loads(stdout)
     except (ValueError, TypeError):
@@ -180,16 +187,21 @@ def _parse(stdout, view):
         goal = validate(obj)
     except ValueError as e:
         return None, text, "invalid: %s" % e
+    return goal, text, None
+
+
+def place_error(goal, view):
+    """"invalid: unknown place" when `goal` names a place `view` does not hold (the module docstring), else None."""
     if goal.TYPE == "ExploreToward":
         pos = view.get("pos") or {}
         px, py = pos.get("x"), pos.get("y")
         if not _num(px) or not _num(py) or math.hypot(goal.x + 0.5 - px, goal.y + 0.5 - py) > EXPLORE_MAX_TILES:
-            return None, text, "invalid: unknown place"
+            return "invalid: unknown place"
     if goal.TYPE in PLACE_GOALS:
         ids = {b.get("id") for b in (view.get("buildings") or ()) if isinstance(b, dict)}
         if goal.building not in ids:
-            return None, text, "invalid: unknown place"
-    return goal, text, None
+            return "invalid: unknown place"
+    return None
 
 
 _CWD = []
@@ -222,17 +234,29 @@ class LLMSource:
         self.runner = runner if runner is not None else _run
         self.model = model_of(self.cli)
         self.calls = []            # one row per collected call (the module docstring)
-        self._pending = None       # the call in flight: {thread, wall, view, prompt, done, end, goal, answer, error}
+        self.log_errors = 0        # goals.log writes that raised OSError (never raised into propose)
+        self._pending = None       # the call in flight: {thread, wall, prompt, done, end, goal, answer, error}
         self._abandoned = None     # the thread of a call abandoned past timeout_s, until it ends
 
     # -- the seam -----------------------------------------------------------------------------------------------
     def propose(self, view):
-        goal = self._collect()
-        if goal is not None:
+        """The model's goal, None while its call is pending, or the fallback's on a recorded failure (P23-AC)."""
+        if self._pending is None:
+            if self._busy():               # a timed-out call still running: its recorded timeout stands in
+                return self._stand_in(view)
+            self._start(view)
+            self.NAME = LLMSource.NAME
+            return None
+        state, goal = self._collect(view)
+        if state == "pending":
+            self.NAME = LLMSource.NAME
+            return None
+        if state == "ok":
             self.NAME = LLMSource.NAME
             return goal
-        if self._pending is None and not self._busy():
-            self._start(view)
+        return self._stand_in(view)
+
+    def _stand_in(self, view):
         self.NAME = getattr(self.fallback, "NAME", None)
         return self.fallback.propose(view)
 
@@ -255,8 +279,8 @@ class LLMSource:
 
     def _start(self, view):
         text = prompt(view)
-        p = {"wall": self.clock(), "view": view, "prompt": text, "done": threading.Event(), "end": None,
-             "goal": None, "answer": None, "error": None}
+        p = {"wall": self.clock(), "prompt": text, "done": threading.Event(), "end": None, "goal": None,
+             "answer": None, "error": None}
         p["thread"] = threading.Thread(target=self._work, args=(p,), name="llm-goal", daemon=True)
         self._pending = p
         p["thread"].start()
@@ -270,7 +294,7 @@ class LLMSource:
             if proc.returncode != 0:
                 p["error"] = "exit %s" % proc.returncode
             else:
-                p["goal"], p["answer"], p["error"] = _parse(proc.stdout, p["view"])
+                p["goal"], p["answer"], p["error"] = _parse(proc.stdout)
         except subprocess.TimeoutExpired:
             p["error"] = "timeout"
         except Exception as e:             # the CLI missing, a runner fault: the fallback stands in
@@ -278,25 +302,28 @@ class LLMSource:
         p["end"] = self.clock()
         p["done"].set()
 
-    def _collect(self):
-        """The pending call's goal when it answered in time (recording its row), else None."""
+    def _collect(self, view):
+        """("pending", None) while the call runs within timeout_s; else the call is recorded and ("ok", goal) when it
+        answered a valid goal in time whose place `view` holds, ("failed", None) otherwise."""
         p = self._pending
-        if p is None:
-            return None
         if not p["done"].is_set():
             now = self.clock()
             if now - p["wall"] <= self.timeout_s:
-                return None
+                return "pending", None
             self._abandoned, self._pending = p["thread"], None
             self._record(p, now - p["wall"], None, "timeout")
-            return None
+            return "failed", None
         self._pending = None
         latency = p["end"] - p["wall"]
         if latency > self.timeout_s:
             self._record(p, latency, None, "timeout")
-            return None
-        self._record(p, latency, p["goal"], p["error"])
-        return p["goal"]
+            return "failed", None
+        goal, error = p["goal"], p["error"]
+        if goal is not None and error is None:
+            error = place_error(goal, view)
+            goal = None if error is not None else goal
+        self._record(p, latency, goal, error)
+        return ("ok", goal) if goal is not None else ("failed", None)
 
     def _record(self, p, latency, goal, error):
         row = {"wall": p["wall"], "latency_s": latency, "ok": goal is not None and error is None,
@@ -305,5 +332,8 @@ class LLMSource:
         self.calls.append(row)
         if self.log_path:
             line = dict(row, prompt=p["prompt"], answer=p["answer"])
-            with open(self.log_path, "a", encoding="utf-8", newline="\n") as f:
-                f.write(json.dumps(line, sort_keys=True) + "\n")
+            try:
+                with open(self.log_path, "a", encoding="utf-8", newline="\n") as f:
+                    f.write(json.dumps(line, sort_keys=True) + "\n")
+            except OSError:
+                self.log_errors += 1
