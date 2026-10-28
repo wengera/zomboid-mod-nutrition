@@ -59,11 +59,13 @@ class Rig:
         self.acts.pump(lines)
 
     def frame(self, x=100.0, y=200.0, zombies=(), weapon=BAT, health=100.0, hunger=0.1, thirst=0.1, level=0,
-              game_min=480.0, wounds=None, load_max=8.0, fatigue=0.05, hour=8.0, z=0, weight=4.5, world_age=None):
+              game_min=480.0, wounds=None, load_max=8.0, fatigue=0.05, hour=8.0, z=0, weight=4.5, world_age=None,
+              endurance=1.0):
         """`world_age` (hours) defaults to `game_min / 60`, the day-one clock, so a test that steps `game_min` steps
-        the monotonic clock the planner's timers read (fix wave P, I-1); a midnight test passes both."""
+        the monotonic clock the planner's timers read (fix wave P, I-1); a midnight test passes both. `endurance` is
+        the stats group's (DEFAULT_FRAME's 1.0; survival 3's group sprint reads it)."""
         me = dict(DEFAULT_FRAME["me"], x=x, y=y, z=z, hour=hour)
-        stats = dict(DEFAULT_FRAME["stats"], hunger=hunger, thirst=thirst, fatigue=fatigue)
+        stats = dict(DEFAULT_FRAME["stats"], hunger=hunger, thirst=thirst, fatigue=fatigue, endurance=endurance)
         body = dict(DEFAULT_FRAME["body"], health=health, **(wounds or {}))
         load = dict(DEFAULT_FRAME["load"], level=level, max=load_max, weight=weight)
         self.fake.frame(me=me, stats=stats, body=body, load=load, weapon=weapon, zombies=list(zombies),

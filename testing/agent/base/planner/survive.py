@@ -81,6 +81,22 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      on a room square it never steers. No window's edge is a way out; a walk out that stops moving for 1 s is
      dropped, and the corner pre-empts a running walk at melee range. While a walk out runs the inside hold waits,
      as for the shelter steps. The door fight stays for a sheltered building, ahead of the corner.
+- Survival 3 (ruling P23-AM, the chain's E3: it died at game minute 600 after a fight and a `many` shelter flee
+  superseded each other four times in 8 s, then the shelter's enter walk stood while a group of six closed):
+  1. A flee started under a group stays a flee (`flee_many`, the episode's reason once `many`; `_many`): while it
+     runs, `many` reads the hold radius's count over MAX_FIGHT or the nearest held threat within DANGER_R, so the
+     fight resumes only with at most MAX_FIGHT held, the nearest beyond DANGER_R, and the `held` and refight rules
+     above passed. A flee the hysteresis would end is kept (`_kept_flee`) while a `many` episode's shelter steps or
+     way out run (`steps`: their end is the flee's), and while the Flee's own walk or steer leg sent under FLIP_MIN_S
+     (5 s) ago runs and the Fight would walk (`flip`); a flee is never held back for a fight's walk (the retreat wins
+     the tie).
+  2. A shelter step's walk that stands STEP_STALL_S with a held threat within DANGER_R is dropped (`policies.Flee`,
+     `ended` `stalled`): the plan for the episode, the steer at once.
+  3. A `many` flee beyond SPRINT_R steers and walks its shelter steps at a sprint while the frame's endurance reads
+     above SPRINT_END (`Flee.many`, `policies.Flee._group_sprint`).
+  4. GROUP_R_N (3) or more held within CORNERED_R after a steer leg that moved are steered from, not cornered
+     (`group_steer`, `Flee.steer_now`, on a room square too); after a stuck leg, or against one or two, the corner
+     stands.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -156,6 +172,8 @@ HOLD_BREAK_R = 3.0        # tiles: a held threat this near breaks every hold wha
 CLOSING_TICKS = 3         # ... as does the nearest held threat closing on this many ticks in a row within DANGER_R
 CORNERED_R = 1.5          # tiles: the nearest this near with no way to move is fought whatever the count (P23-AJ 2)
 CORNER_FREE_R = DISENGAGE_R / 2   # tiles: a cornered Fight ends once the nearest held threat is beyond this
+FLIP_MIN_S = 5.0          # wall seconds a flee walk runs before a fight's walk may supersede it (P23-AM 1)
+GROUP_R_N = 3             # held threats within CORNERED_R that make a group: steered from, not cornered (P23-AM 4)
 BRANCHES = ("threat", "need", "load", "night", "goal")
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -163,7 +181,7 @@ REFUSED = "not valid"    # the reason the Lua's consume fails an item it cannot 
 
 __all__ = ["Survive", "BRANCHES", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER_T", "FLEE_HEALTH",
            "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS",
-           "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R"]
+           "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N"]
 
 
 def _key(typ, args):
@@ -181,6 +199,8 @@ class Survive:
         self.flee = None
         self.stall_flee = False   # the running flee was chosen because a fight stalled
         self.flee_dropped = False  # the running flee episode sent its one load drop
+        self.flee_many = False    # the running flee episode's reason was `many` (P23-AM 1: it stays a flee)
+        self.group_steer = False  # this tick: a group within CORNERED_R after a leg that moved, steered (P23-AM 4)
         self.sheltered = False    # a flee's shelter plan ended inside: a threat whose line clears is fought (P23-AG)
         self.door = None          # the door fight's targets this tick (`_door_targets`) while sheltered, else None
         self.broken = None        # the breach that broke a due hold this tick (P23-AJ 1), else None
@@ -258,13 +278,22 @@ class Survive:
         return [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in skip
                 and z.get("x") is not None and z.get("y") is not None and zdist(self.world, z) <= r]
 
+    def _many(self, held, n):
+        """The `many` rule: the hold radius's count over MAX_FIGHT while a fight runs (P23-AG ruling 2), the DANGER_R
+        count `n` over it while none does; and while a flee episode whose reason was `many` runs (P23-AM 1: E3's flee
+        under a group ended the tick its count fell back to DANGER_R's, four times in 8 s), the hold radius's count
+        over MAX_FIGHT or the nearest held threat within DANGER_R."""
+        if self.mode == "flee" and self.flee_many:
+            return len(held) > MAX_FIGHT or min(zdist(self.world, z) for z in held) <= DANGER_R
+        return (len(held) if self.mode == "fight" else n) > MAX_FIGHT
+
     def _flee_reason(self, held, n):
         """Why the threat branch flees, by the hysteresis in the module docstring; None when it fights. `n` is the
-        DANGER_R count (the `pair` rule's); `many` counts the hold radius while a fight runs (P23-AG ruling 2)."""
+        DANGER_R count (the `pair` rule's); `many` is `_many`."""
         health = self._health()
         if not self._armed():
             return "unarmed"
-        if (len(held) if self.mode == "fight" else n) > MAX_FIGHT:
+        if self._many(held, n):
             return "many"
         if health < FLEE_HEALTH:
             return "health"
@@ -346,6 +375,10 @@ class Survive:
         stuck = self.mode == "flee" and self.flee is not None and self.flee.stuck()
         if not (stuck or inside):
             return None
+        group = sum(1 for z in held if zdist(self.world, z) <= CORNERED_R) >= GROUP_R_N
+        if group and self.mode == "flee" and self.flee is not None and self.flee.moved():
+            self.group_steer = True   # P23-AM 4: against a group the leg that moved is run again, never stood
+            return None
         self.corner_free = CORNER_FREE_R if stuck else CORNERED_R
         self.cornered = min(reach, key=lambda p: (zdist(self.world, p[1]), repr(p[0])))[0]
         return self.cornered
@@ -374,12 +407,14 @@ class Survive:
         re-closing."""
         inside = self.night.inside()
         self.sheltered = self.flee is not None and self.flee.sheltered and inside
-        self.broken = None
+        self.broken, self.group_steer = None, False
         self.door = self._door_targets() if self.sheltered else None
         if self.door:
             return "door", None
         if self._cornered(held, inside) is not None:
             return "cornered", None
+        if self.group_steer:
+            return "flee", self._flee_reason(held, len(self._within(DANGER_R))) or "many"
         steps = self.mode == "flee" and self.flee is not None and (self.flee.running_shelter()
                                                                    or self.flee.running_exit())
         held_inside = not steps and self._held_inside(held)
@@ -396,8 +431,27 @@ class Survive:
         if self.sheltered:
             return "flee", reason or "sheltered"
         if reason is None:
-            return "fight", None
+            reason = self._kept_flee()
+            if reason is None:
+                return "fight", None
         return self._trapped_fight(held, inside) or ("flee", reason)
+
+    def _kept_flee(self):
+        """Why a running flee the hysteresis would end is kept (ruling P23-AM 1), else None: `steps` while a `many`
+        episode's shelter plan or way out runs (its end, sheltered inside or walked out, is the flee's end), and
+        `flip` while the Flee's own walk or steer leg sent under FLIP_MIN_S ago runs and the Fight would walk (the
+        nearest reachable held threat beyond FIGHT_REACH): a fight's walk never supersedes it sooner. The other way
+        the flee wins: a flee is never held back for a fight's walk (it is the retreat)."""
+        f = self.flee
+        if self.mode != "flee" or f is None:
+            return None
+        if self.flee_many and (f.running_shelter() or f.running_exit()):
+            return "steps"
+        a = f.last
+        if a is None or a.type not in ("walkTo", "steer") or not f.busy() or self.clock() - a.sent_wall >= FLIP_MIN_S:
+            return None
+        reach = self._reachable_held()
+        return "flip" if reach and min(zdist(self.world, z) for _, z in reach) > FIGHT_REACH else None
 
     def _trapped_fight(self, held, inside):
         """Fix round 1, the review's G3: a flee on a room square with no way out (`_exit_known`) and no adoption left
@@ -411,10 +465,15 @@ class Survive:
             return None
         return "fight", None
 
+    def _end_flee_episode(self):
+        """A flee episode's own flags cleared: its stall origin, its one load drop and its `many` (P23-AM 1)."""
+        self.stall_flee, self.flee_dropped, self.flee_many = False, False, False
+
     def _threat(self):
         held = self._within(self._hold_r())
         if not held:
-            self.mode, self.fight, self.flee, self.stall_flee, self.flee_dropped = None, None, None, False, False
+            self.mode, self.fight, self.flee = None, None, None
+            self._end_flee_episode()
             self.sheltered, self.cornered, self.closing = False, None, (0, None)
             return None
         if self.flee is not None:
@@ -431,14 +490,15 @@ class Survive:
                 self.fight = self._corner_fight = Fight(self.world, self.actions, self.clock,
                                                         unreachable=self.unreachable, target=self.cornered)
                 self.fight.point_blank, self.fight.mark_free_r = True, CORNERED_R
-                self.flee, self.stall_flee, self.flee_dropped = None, False, False
+                self.flee = None
+                self._end_flee_episode()
             self.mode = "fight"
         elif want != self.mode:
             if want == "fight":
                 self.fight = Fight(self.world, self.actions, self.clock, unreachable=self.unreachable)
                 if door is None:
                     self.flee = None   # a door fight keeps the sheltered Flee for the re-close
-                self.stall_flee, self.flee_dropped = False, False
+                self._end_flee_episode()
             else:
                 if self.flee is None or not self.sheltered:   # only a sheltered Flee outlives a door fight
                     self.flee = Flee(self.world, self.actions, self.clock, shunned=self.night.shunned)
@@ -449,8 +509,10 @@ class Survive:
             self.flee = None   # a door fight that left the room: the stale shelter plan goes (the next flee re-picks)
         policy = self.fight if want == "fight" else self.flee
         if want == "flee":
+            self.flee_many = self.flee_many or reason == "many"
             policy.threats = held
             policy.hold_ok = breach is None
+            policy.many, policy.steer_now = self.flee_many, self.group_steer
             ans = self._flee_drop() or self._answer(policy)
         else:
             policy.only = None if door is None else {zid for zid, _ in door}
