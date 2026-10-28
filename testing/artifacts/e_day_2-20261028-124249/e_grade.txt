@@ -1,0 +1,124 @@
+not survived (stop death), 33 game min (loop.first_world_age)
+drink: sent 0, done 0, stat fell None
+eat: sent 0, done 0, stat fell None
+unknown consumes (no valid use): 0; frame time base t_loop0_ms
+sleep: sent 0, done 0, slept 0.0 h, fatigue fell None
+fights: 2 (ended 1, fled 2, stand-offs 1)
+fights_resolved: unresolved 1
+load: max ratio 0.801, guard drops 0, flee drops 0
+cost p50 0.000 ms, p99 1.000 ms, max 2.000 ms, over5 32
+death explained by the frames: first wound seq 1772, window 262 frames: None
+{
+ "cost": {
+  "max": 2,
+  "over5": 32,
+  "p50": 0,
+  "p99": 1
+ },
+ "death": {
+  "check": {
+   "diff": 57.084960447624326,
+   "explained": true,
+   "explained_by": "wound",
+   "frames_n": 262,
+   "frames_window_ms": {
+    "from": 1793205919350,
+    "to": 1793205945446
+   },
+   "health_fall": 100.0,
+   "server_amount": 42.915039552375674,
+   "server_n": 781,
+   "server_tags": {
+    "BLEEDING": 42.915039552375674
+   },
+   "server_window_ms": {
+    "from": 1793205919350,
+    "rule": "from < wall <= to",
+    "to": 1793205945446
+   },
+   "tagged": {
+    "explained": false,
+    "why": "the fall 100.0 and the server's 42.915039552375674 differ by more than 0.1 of it"
+   },
+   "tol": 0.1,
+   "why": null,
+   "wound": {
+    "danger_r": 6.0,
+    "explained": true,
+    "fall_seq": 1772,
+    "frame_seq": 1772,
+    "gameMin": 585,
+    "wallMs": 1793205919455,
+    "what": "bleeding 0 -> 1",
+    "why": null,
+    "wound_health": 57.084960447624326,
+    "zombie": {
+     "dist": 0.481841321032957,
+     "id": 12839,
+     "seq": 1772
+    }
+   }
+  },
+  "explained": true,
+  "first_wound_seq": 1772,
+  "window_frames": 262,
+  "window_frames_n": 262,
+  "window_truncated": false
+ },
+ "fights": {
+  "ended": 1,
+  "fled": 2,
+  "n": 2,
+  "stand_offs": 1
+ },
+ "fights_unresolved": 1,
+ "game_minutes": 33.30127716064453,
+ "grade": "grade_e1",
+ "lineage": null,
+ "lineage_source": null,
+ "load": {
+  "flee_drops": 0,
+  "guard_drops": 0,
+  "max_ratio": 0.8006249666213989
+ },
+ "minutes_source": "loop.first_world_age",
+ "needs": {
+  "drink": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "eat": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "sleep": {
+   "done": 0,
+   "fatigue_fell": null,
+   "sent": 0,
+   "sleptH": 0
+  },
+  "time_base": "t_loop0_ms",
+  "unknown": 0
+ },
+ "report_lines": [
+  "not survived (stop death), 33 game min (loop.first_world_age)",
+  "drink: sent 0, done 0, stat fell None",
+  "eat: sent 0, done 0, stat fell None",
+  "unknown consumes (no valid use): 0; frame time base t_loop0_ms",
+  "sleep: sent 0, done 0, slept 0.0 h, fatigue fell None",
+  "fights: 2 (ended 1, fled 2, stand-offs 1)",
+  "fights_resolved: unresolved 1",
+  "load: max ratio 0.801, guard drops 0, flee drops 0",
+  "cost p50 0.000 ms, p99 1.000 ms, max 2.000 ms, over5 32",
+  "death explained by the frames: first wound seq 1772, window 262 frames: None"
+ ],
+ "run_id": "e_day_2-20261028-124249",
+ "session_key": "e_day_2",
+ "stop": {
+  "detail": "frame seq 2069 body.health 0",
+  "reason": "death"
+ },
+ "survived": false
+}
