@@ -251,3 +251,7 @@ All 20 legs moved and ended `done` with an empty `reason`; none lacks a first mo
 | `readings.server.stats.ack.mult` | 4.805104732513428 | getMultiplier, not the true multiplier (#3762). |
 | every `reason` and error text | empty | Empty in this run; a text is the driver's or the Lua's message, not a reading. |
 | `constants`, `preboot`, `profile`, `fixture`, `argv`, `memory`, `memory_wait`, `world_changes`, `steps`, `verify` | the driver's tables | Written before or around the run, or the server reading's raw steps; not readings. |
+
+## Corrections
+
+- 2026-10-27, the controller after the write-up's review (review-x4fix-writeup.md Minor 1): the "rest of the base" 0.4044321329639888 ms (§ 1 and § 4) is the 1805-frame mean minus the poll's and flush's 1805-frame means, two populations: the named parts 0.3113573407202216 plus the unattributed 0.09257206208425721 sum to 0.4039, and the tick-by-tick poll + flush 0.8575388026607539 plus 0.4044 gives 1.2620, not the 1.2614958448753462 mean; read the rest as about 0.40 ms. No register row carries the number.
