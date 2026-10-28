@@ -293,16 +293,17 @@ def test_fight_with_no_zombie_sends_nothing(tmp_path):
 
 
 # ================================================================ Flee
-def test_flee_steers_from_the_centroid_through_the_player_at_a_run(tmp_path):
+def test_flee_steers_its_first_leg_weighted_then_from_the_centroid_through_the_player_at_a_run(tmp_path):
     r = Rig(tmp_path)
     zs = [zombie(1, 103.0, 200.0), zombie(2, 103.0, 202.0)]
     r.frame(zombies=zs)
     f = Flee(r.world, r.acts, r.clock)
     f.step()
     typ, args = r.cmd()
-    n = math.hypot(-3.0, -1.0)
+    wx, wy = -1.0 / 3.0 - 3.0 / 13.0, -2.0 / 13.0          # the unit vectors from each threat, weighted 1/distance
+    n = math.hypot(wx, wy)
     assert typ == "steer" and args["gait"] == "run" and args["seconds"] == P.FLEE_S == 3.0
-    assert args["vx"] == pytest.approx(-3.0 / n) and args["vy"] == pytest.approx(-1.0 / n)
+    assert args["vx"] == pytest.approx(wx / n) and args["vy"] == pytest.approx(wy / n)
     assert math.hypot(args["vx"], args["vy"]) == pytest.approx(1.0)
     assert f.step() is None                                  # the steer is current
     r.answer()
@@ -313,6 +314,22 @@ def test_flee_steers_from_the_centroid_through_the_player_at_a_run(tmp_path):
     n = math.hypot(-3.0, -3.0)
     assert args["vx"] == pytest.approx(-3.0 / n) and args["vy"] == pytest.approx(-3.0 / n)
     all_sends_valid(r)
+
+
+def test_the_first_leg_points_away_from_the_nearer_threat_where_the_centroid_would_not(tmp_path):
+    """P23-AG ruling 3: threats at (-3, 0) and (+1, +1) from the player; the centroid's leg (+1, -0.5) runs toward the
+    nearer one, the weighted sum of the unit vectors (each times 1/distance) away from it."""
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(1, 97.0, 200.0), zombie(2, 101.0, 201.0)])
+    f = Flee(r.world, r.acts, r.clock)
+    f.step()
+    _, args = r.cmd()
+    wx, wy = 1.0 / 3.0 - 0.5, -0.5
+    n = math.hypot(wx, wy)
+    assert args["vx"] == pytest.approx(wx / n) and args["vy"] == pytest.approx(wy / n)
+    assert args["vx"] * 1.0 + args["vy"] * 1.0 < 0.0             # away from the nearer threat at (+1, +1)
+    assert (1.0 * 1.0 + -0.5 * 1.0) > 0.0                        # the centroid's leg would have closed on it
+    assert args["gait"] == "sprint" and f.why["weighted"] is True
 
 
 def test_flee_sprints_when_the_nearest_is_within_sprint_r(tmp_path):

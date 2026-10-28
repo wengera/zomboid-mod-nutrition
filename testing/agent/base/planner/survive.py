@@ -17,10 +17,11 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   branch until it is beyond 10 or dead, so the bot never turns its back to loot. DISENGAGE_R is also the radius at
   which the Fight drops its pinned target (`policies.Fight`, Plan 23 Task 10), so it lives in `policies.py`.
 - The hold-radius fix (`docs/reference/research-notes.md`, "The hold radius widens the 'too many' count"; the Plan
-  21b ledger's ruling): the rules that turn to a flee (`many`, `pair`) count the zombies within DANGER_R only, so a
-  fight engaged at 5 tiles with two more zombies at 8 and 9 is no "too many"; the rules that keep a flee running
-  (`held`) read the held list, being the hold itself.
-- Fight or flee: flee when unarmed (`world.weapon` is None), when the DANGER_R count > MAX_FIGHT, when health <
+  21b ledger's ruling): `pair` counts the zombies within DANGER_R only; `held`, which keeps a flee running, reads the
+  held list, being the hold itself. `many` (ruling P23-AG 2, the chain's E1: a fight engaged with one zombie fled only
+  once four were within 6, and died) counts the held list while a fight runs and the DANGER_R count otherwise, so a
+  fight engaged at 5 tiles with two more zombies closing from 8 and 9 turns to a flee before they are within 6.
+- Fight or flee: flee when unarmed (`world.weapon` is None), when the `many` count > MAX_FIGHT, when health <
   FLEE_HEALTH, or when that count >= 2 and either health < FLEE_HEALTH_PAIR or the body carries a wound (the frame's
   `body.bleeding + scratched + bitten` > 0, a missing count read 0; Plan 23 Task 10: a wounded player does not take
   on a pair at any health), the reason `pair`. A running flee turns back to fight only with
@@ -29,7 +30,14 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   (`Fight.stalled`: its target beyond FIGHT_REACH for more than FIGHT_MAX_S unbroken seconds), never because a
   threat count dropped; the stall guard reads the distance to the Fight's target (`Fight.target_dist()`, the pinned
   one), the zombie its stall clock follows, never the nearest held one (Task 10's review M3). The flee steers from
-  the held threats' centroid.
+  the held threats (`policies.Flee`: its first leg away from each by 1/distance, then from their centroid).
+- The flee to shelter (ruling P23-AG 1): each flee episode's `Flee` takes the night's shun store and, at its first
+  choose, a known building's exterior door within `policies.SHELTER_FLEE_R` whose approach square is no nearer the
+  held threats than the character; it then runs the night's shelter steps at a run, a failed step falling back to the
+  steer and shunning the building (`policies.Flee`). While those steps run (the close not yet ended) the inside hold
+  below waits, since the character stands inside with the door still open; once the close ended inside
+  (`sheltered`, kept while the character is inside and a threat is held) the inside hold applies, and an armed
+  character fights, instead of fleeing out, a threat whose line clears (the door opened): logged `sheltered`.
 - The flee's load drop (Plan 23 Task 10): run 2's last flee was pinned at load level 4. While the mode is `flee` and
   the frame's load level is at or above `policies.DROP_AT` (3), the flee episode's first free answer is one `Drop` of
   `LootHouse.spare()` (logged `flee_drop`, the item's id), sent as the Flee's own action so its steer waits on the
@@ -137,6 +145,7 @@ class Survive:
         self.flee = None
         self.stall_flee = False   # the running flee was chosen because a fight stalled
         self.flee_dropped = False  # the running flee episode sent its one load drop
+        self.sheltered = False    # a flee's shelter plan ended inside: a threat whose line clears is fought (P23-AG)
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
         self.night = Night(world, actions, clock)
         # one shun store: the goals' Shelter shuns into the night's (Task 13 fix 1, M6), so neither re-tries the other's
@@ -208,11 +217,12 @@ class Survive:
                 and z.get("x") is not None and z.get("y") is not None and zdist(self.world, z) <= r]
 
     def _flee_reason(self, held, n):
-        """Why the threat branch flees, by the hysteresis in the module docstring; None when it fights."""
+        """Why the threat branch flees, by the hysteresis in the module docstring; None when it fights. `n` is the
+        DANGER_R count (the `pair` rule's); `many` counts the hold radius while a fight runs (P23-AG ruling 2)."""
         health = self._health()
         if not self._armed():
             return "unarmed"
-        if n > MAX_FIGHT:
+        if (len(held) if self.mode == "fight" else n) > MAX_FIGHT:
             return "many"
         if health < FLEE_HEALTH:
             return "health"
@@ -246,18 +256,29 @@ class Survive:
         held = self._within(self._hold_r())
         if not held:
             self.mode, self.fight, self.flee, self.stall_flee, self.flee_dropped = None, None, None, False, False
+            self.sheltered = False
             return None
-        if self._held_inside(held):
+        inside = self.night.inside()
+        if self.flee is not None:
+            self.flee.observe()   # a shelter step's end read before the hold (the close may just have ended)
+            self.sheltered = self.sheltered or self.flee.sheltered
+        self.sheltered = self.sheltered and inside
+        running = self.flee is not None and self.mode == "flee" and self.flee.running_shelter()
+        if not running and self._held_inside(held):
             self.why = {"flee": "held_inside", "held": len(held)}
             return None, None
         reason = self._flee_reason(held, len(self._within(DANGER_R)))
+        door_fight = self.sheltered and reason is not None and reason != "unreachable" and self._armed()
+        if door_fight:
+            reason = None   # sheltered: the threat whose line cleared (the door opened) is fought at the door
         want = "fight" if reason is None else "flee"
         if want != self.mode:
             if want == "fight":
                 self.fight = Fight(self.world, self.actions, self.clock, unreachable=self.unreachable)
                 self.flee, self.stall_flee, self.flee_dropped = None, False, False
             else:
-                self.flee, self.fight = Flee(self.world, self.actions, self.clock), None
+                self.flee = Flee(self.world, self.actions, self.clock, shunned=self.night.shunned)
+                self.fight = None
                 self.stall_flee = reason == "stalled"
             self.mode = want
         policy = self.fight if want == "fight" else self.flee
@@ -267,6 +288,8 @@ class Survive:
         else:
             ans = self._answer(policy)
         self.why.update({"fight": True} if reason is None else {"flee": reason})
+        if door_fight:
+            self.why["sheltered"] = True
         return ans if ans is not None else (policy, None)
 
     def _flee_drop(self):

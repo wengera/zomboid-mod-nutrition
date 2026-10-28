@@ -46,9 +46,21 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   nor resets the streak; a fall, a new target or a target no frame lists restarts it. `unreachable` (id -> wall until)
   is passed in so a later Fight of the same planner keeps it. An attack ending `failed` for a walk reason
   (`STUCK_REASONS`) marks its target the same way.
-- `Flee`: a `Steer` of `FLEE_S` seconds along the unit vector from the threats' centroid through the player (the
-  `threats` list its caller passes, else every zombie the World holds), at a sprint when the nearest is within
-  `SPRINT_R`, else a run; re-aimed on every end of its steer. A player standing on the centroid steers along +x.
+- `Flee` (one per flee episode): a `Steer` of `FLEE_S` seconds away from the threats (the `threats` list its caller
+  passes, else every zombie the World holds), at a sprint when the nearest is within `SPRINT_R`, else a run; re-aimed
+  on every end of its steer. The episode's first leg runs along the sum of the unit vectors from each threat to the
+  player, each weighted by 1/distance (ruling P23-AG 3: away from the centroid and from the nearest, so a group spread
+  round the player is not fled into); each later leg along the unit vector from their centroid through the player. A
+  zero vector steers along +x. The shelter (ruling P23-AG 1; the chain's E1 died after a 45 s open-ground flee from
+  four zombies): at its first choose the episode picks once, of the buildings not in `shunned` (Night's store,
+  building -> world minutes, for `night.SHUN_MIN`) for which `night.shelter_plan` answers, the exterior door the
+  map reads neither locked nor barricaded whose `night.approach_square` lies within SHELTER_FLEE_R (25 tiles) of the
+  player and is no nearer the nearest threat than the player is (the flee never runs through them), the nearest such
+  square first; the plan is kept to that door, and its steps (`night.shelter_step`: approach, open, enter, close) go
+  out with their walks at FLEE_GAIT, a run. A step's end is read by `night.shelter_ended`: `advance`, `resend` and
+  `passed` keep the plan; any other end shuns the building and the episode steers on. Once the close ended with the
+  player inside (`sheltered`), choose holds with no command; a plan done with the player outside is dropped for the
+  steer. `night` imports this module at its top, so the Flee imports `night` at the call (`_night()`).
 - `Explore`: it scans per 10-tile place, spec § 6's "once at a new building or on request" read as the place
   grid: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
   `scanned` from its send and dropped again when the scan ends other than `done`, so a pre-empted, timed-out or
@@ -103,6 +115,8 @@ STALL_SWINGS = 3      # started swings in a row on one target that took no healt
 UNREACHABLE_S = 20.0  # wall seconds a no-progress target is skipped
 FLEE_S = 3.0          # seconds a flee's steer runs before it is re-aimed
 SPRINT_R = 2.0        # tiles: a nearest zombie within this is fled at a sprint
+SHELTER_FLEE_R = 25.0  # tiles: a flee runs to a known door whose approach square is this near (ruling P23-AG)
+FLEE_GAIT = "run"     # the gait of a flee's shelter walks (ruling P23-AG)
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
 LOAD_RATIO_MAX = 1.0  # a loot fills to this times the frame's load.max (level 1 holds up to 1.25 of it, #3926)
@@ -378,28 +392,149 @@ class Fight(Policy):
             self._streak_id, self._streak_h, self.no_progress = cmd.targetId, self._target_health(cmd.targetId), 0
 
 
+def _night():
+    """`planner.night`, imported at the call: night imports this module at its top, so a top-level import here would
+    be circular. The flee's shelter runs night's own steps (`shelter_plan`, `shelter_step`, `shelter_ended`)."""
+    from agent.base.planner import night
+    return night
+
+
 class Flee(Policy):
-    def __init__(self, world, actions, clock=time.time, threats=None):
+    def __init__(self, world, actions, clock=time.time, threats=None, shunned=None):
         super().__init__(world, actions, clock)
         self.threats = threats   # the zombies to flee; None: every zombie the World holds
+        self.shunned = {} if shunned is None else shunned   # building -> world minutes shunned at (Night's store)
+        self.plan = None         # the shelter plan this episode runs (night.shelter_plan, kept to one door), else None
+        self.picked = False      # the episode's one shelter pick was made (a fallback never picks again)
+        self.legs = 0            # steer legs sent this episode: the first is the weighted one
+        self.ended = None        # the outcome of the last shelter step end read (night.shelter_ended)
+        self._chosen = None      # the shelter step the last choose returned, until it is sent
+        self._step = None        # the last shelter step's Action
+        self._read = None        # the last shelter step whose end observe() read
+
+    @property
+    def sheltered(self):
+        """The episode's shelter plan read done: its close step ended."""
+        return self.plan is not None and self.plan["step"] == "done"
+
+    def running_shelter(self):
+        """A shelter plan is running and its close has not ended (Survive's inside hold waits for it)."""
+        return self.plan is not None and self.plan["step"] != "done"
+
+    def _threats(self):
+        ts = self.threats if self.threats is not None else list(self.world.zombies.values())
+        return [z for z in ts if z.get("x") is not None and z.get("y") is not None]
+
+    def _shun(self):
+        self.shunned[self.plan["building"]] = self.world.world_minutes()
+        self.plan = None
+
+    def observe(self):
+        a = self._step
+        if a is None or a is self._read or not self.actions.done(a) or self.plan is None:
+            return
+        self._read = a
+        self.ended = _night().shelter_ended(self.plan, a)
+        if self.ended not in ("advance", "resend", "passed"):
+            self._shun()   # a failed step: the steer for the rest of the episode, the building shunned
+
+    def _pick(self, ts):
+        """The shelter plan to run (ruling P23-AG), kept to its one door, else None: of the buildings not shunned for
+        which `night.shelter_plan` answers, each exterior door the map reads neither locked nor barricaded whose
+        approach square lies within SHELTER_FLEE_R of the player and no nearer the nearest threat than the player is;
+        the nearest such square first, ties by the building, then the door."""
+        N = _night()
+        mx, my = me_xy(self.world)
+        near = min(math.hypot(z["x"] - mx, z["y"] - my) for z in ts)
+        now = self.world.world_minutes()
+        best = None
+        for b in self.world.interiors():
+            at = self.shunned.get(b)
+            if b is None or (at is not None and now - at < N.SHUN_MIN):
+                continue
+            plan = N.shelter_plan(self.world, b)
+            for door in plan["doors"] if plan is not None else ():
+                rec = self.world.map[door].get("door") or {}
+                sq = None if rec.get("locked") or rec.get("barricaded") else N.approach_square(self.world, door)
+                if sq is None:
+                    continue
+                cx, cy = sq[0] + 0.5, sq[1] + 0.5
+                d = math.hypot(cx - mx, cy - my)
+                if d > SHELTER_FLEE_R or min(math.hypot(z["x"] - cx, z["y"] - cy) for z in ts) < near:
+                    continue
+                rank = (d, repr(b), door)
+                if best is None or rank < best[0]:
+                    best = (rank, plan, door)
+        if best is None:
+            return None
+        _, plan, door = best
+        plan.update(doors=[door], door_i=0, inside=N._inside_for(plan["rooms"], door))
+        return plan
+
+    def _shelter(self):
+        """The plan's next step at a run, None to hold once sheltered; drops the plan (the steer follows) when no step
+        is left outside, or when it reads `shun`."""
+        N = _night()
+        cmd, step = N.shelter_step(self.world, self.plan)
+        b = self.plan["building"]
+        if step == "done":
+            sq = N.player_square(self.world)
+            if (self.world.map.get(sq) or {}).get("room") is not None:
+                self.why = {"shelter": b, "step": "done"}
+                return None
+            self.plan = None   # pushed out after the close: no shelter this episode
+            return None
+        if step == "shun":
+            self._shun()
+            return None
+        self._chosen = step
+        self.why = {"shelter": b, "step": step, "ended": self.ended}
+        return WalkTo(cmd.x, cmd.y, FLEE_GAIT) if cmd.TYPE == "walkTo" else cmd
 
     def choose(self):
-        ts = self.threats if self.threats is not None else list(self.world.zombies.values())
-        ts = [z for z in ts if z.get("x") is not None and z.get("y") is not None]
+        self._chosen = None
+        ts = self._threats()
         if not ts:
-            self.why = {"centroid": None}
+            self.why = {"centroid": None, "shelter": None}
             return None
+        if not self.picked:
+            self.picked = True
+            self.plan = self._pick(ts)
+        if self.plan is not None:
+            cmd = self._shelter()
+            if cmd is not None or self.plan is not None:
+                return cmd
+        return self._steer(ts)
+
+    def _steer(self, ts):
+        """The first leg of an episode along the sum of the unit vectors from each threat to the player, each weighted
+        by 1/distance (ruling P23-AG: away from the centroid and from the nearest); each later leg from the centroid
+        through the player; along +x when the sum is zero."""
         mx, my = me_xy(self.world)
         cx = sum(z["x"] for z in ts) / len(ts)
         cy = sum(z["y"] for z in ts) / len(ts)
         vx, vy = mx - cx, my - cy
+        weighted = self.legs == 0
+        if weighted:
+            vx = vy = 0.0
+            for z in ts:
+                dx, dy = mx - z["x"], my - z["y"]
+                d2 = dx * dx + dy * dy
+                if d2 > 0.0:
+                    vx, vy = vx + dx / d2, vy + dy / d2   # (unit vector) / distance
         n = math.hypot(vx, vy)
         if n == 0.0:
             vx, vy, n = 1.0, 0.0, 1.0
         near = min(zdist(self.world, z) for z in ts)
         gait = "sprint" if near <= SPRINT_R else "run"
-        self.why = {"centroid": [cx, cy], "nearest": near}
+        self.why = {"centroid": [cx, cy], "nearest": near, "weighted": weighted, "shelter": None, "ended": self.ended}
         return Steer(vx / n, vy / n, FLEE_S, gait)
+
+    def sent(self, cmd, action):
+        if self._chosen is not None:
+            self._step, self._chosen = action, None
+        elif cmd.TYPE == "steer":
+            self.legs += 1
 
 
 class Explore(Policy):
