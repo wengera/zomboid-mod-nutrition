@@ -9,8 +9,8 @@
 -- runs, else, on the watch's ticks (MP.watchDue: every 6th whatever the rate), its next squares), an overflow event
 -- when the Link cut its backlog, the frame emitted with its cost group, and one L.flush, called once every tick (it
 -- writes nothing when both queues are empty).
--- The first frame comes from S.frame, later ones carry S.events, so the first window's door states are recorded without
--- an event (S.events' door rule: one first seen is recorded silently).
+-- The first frame comes from S.frame, later ones carry S.events; a door event comes from the map's records (a square's
+-- first record holds its door states without an event), drained by the next S.events.
 -- The frame is read in the sense phase and emitted after the map so its cost carries this tick's map ms; its cost on
 -- the 1 ms clock (PZA.now, getTimestampMs: ruling P22-4): tickMs the previous tick's whole body, actMs this tick's
 -- K.tick, senseMs this tick's events and frame read, mapMs this tick's scan or watch step, linkMs the previous tick's

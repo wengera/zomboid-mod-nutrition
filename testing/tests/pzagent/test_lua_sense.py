@@ -342,37 +342,59 @@ def test_an_item_added_and_removed_by_id(lua):
     assert [e for e in ev if e["event"] in ("item_added", "item_removed")] == []
 
 
-def door_square(st, cls="IsoDoor"):
-    door = J(_cls=cls, IsOpen=lambda s: st["open"])
-    return J(getObjects=lambda s: J(size=lambda s2: 1, get=lambda s2, i: door))
+def door_square(st, x, y, cls="IsoDoor"):
+    """A square at (x, y, 0) holding one portal of class cls whose IsOpen reads st["open"]."""
+    door = J(_cls=cls, IsOpen=lambda s: st["open"], isLocked=lambda s: False, isBarricaded=lambda s: False)
+    return J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: 0,
+             getObjects=lambda s: J(size=lambda s2: 1, get=lambda s2, i: door))
 
 
-def test_a_door_toggled_within_four_tiles_is_a_door_event(lua):
+def load_map(lua):
+    """Map beside Sense: the door events come from its records (X4 fix pass 2.3)."""
+    lua.execute(open(lua_file("client/PZAgent_Map.lua"), encoding="utf-8").read())
+
+
+def watch_cycle(lua, p):
+    """One whole watch cycle (22 steps of 8 squares cover the 169-square ring), the tick advancing 6 a step."""
+    g = lua.globals()
+    for _ in range(22):
+        g.PZA.tick = (g.PZA.tick or 0) + 6
+        lua.eval("PZA.map.watchStep(...)", p)
+
+
+def test_a_door_or_window_toggled_on_the_watchs_ring_is_a_door_event(lua):
     load(lua)
+    load_map(lua)
     near, far, win = {"open": False}, {"open": False}, {"open": True}
-    lua.globals()._cell = make_cell(squares={(13, 22, 0): door_square(near), (15, 20, 0): door_square(far),
-                                             (6, 16, 0): door_square(win, "IsoWindow")})
+    lua.globals()._cell = make_cell(squares={(13, 22, 0): door_square(near, 13, 22),
+                                             (17, 20, 0): door_square(far, 17, 20),
+                                             (6, 16, 0): door_square(win, 6, 16, "IsoWindow")})
     p = make_player()
     prev = frame(lua, p)
-    ev, prev = events(lua, p, prev)                              # first sight of each door records it, no event
+    watch_cycle(lua, p)
+    ev, prev = events(lua, p, prev)                              # first sight of each square records it, no event
     assert [e for e in ev if e["event"] == "door"] == []
     near["open"], far["open"], win["open"] = True, True, False
+    watch_cycle(lua, p)
     ev, prev = events(lua, p, prev)
     doors = sorted((e["x"], e["y"], e["z"], e["open"]) for e in ev if e["event"] == "door")
-    assert doors == [(6, 16, 0, False), (13, 22, 0, True)]
-    assert lua.eval("PZA.sense.DOOR_R") == 4
+    assert doors == [(6, 16, 0, False), (13, 22, 0, True)]      # (17, 20) is 7 tiles out: off the ring
+    assert lua.eval("PZA.sense.DOOR_R") is None
     ev, _ = events(lua, p, prev)
     assert [e for e in ev if e["event"] == "door"] == []
 
 
-def test_a_stair_z_is_floored_in_the_door_event(lua):
+def test_the_door_events_z_is_the_squares_on_a_stair(lua):
     load(lua)
+    load_map(lua)
     st = {"open": False}
-    lua.globals()._cell = make_cell(squares={(12, 20, 0): door_square(st)})
+    lua.globals()._cell = make_cell(squares={(12, 20, 0): door_square(st, 12, 20)})
     p = make_player(z=0.5)
     prev = frame(lua, p)
+    watch_cycle(lua, p)
     _, prev = events(lua, p, prev)
     st["open"] = True
+    watch_cycle(lua, p)
     ev, _ = events(lua, p, prev)
     doors = [e for e in ev if e["event"] == "door"]
     assert [(e["x"], e["y"], e["z"], e["open"]) for e in doors] == [(12, 20, 0, True)]
@@ -381,23 +403,42 @@ def test_a_stair_z_is_floored_in_the_door_event(lua):
 
 def test_an_object_inserted_before_two_portals_never_shifts_their_states(lua):
     load(lua)
+    load_map(lua)
     a, b = {"open": False}, {"open": True}
-    da = J(_cls="IsoDoor", IsOpen=lambda s: a["open"])
-    wb = J(_cls="IsoWindow", IsOpen=lambda s: b["open"])
+    da = J(_cls="IsoDoor", IsOpen=lambda s: a["open"], isLocked=lambda s: False, isBarricaded=lambda s: False)
+    wb = J(_cls="IsoWindow", IsOpen=lambda s: b["open"], isLocked=lambda s: False, isBarricaded=lambda s: False)
     objs = [da, wb]
-    sq = J(getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]))
+    sq = J(getX=lambda s: 11, getY=lambda s: 20, getZ=lambda s: 0,
+           getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]))
     lua.globals()._cell = make_cell(squares={(11, 20, 0): sq})
     p = make_player()
     prev = frame(lua, p)
+    watch_cycle(lua, p)
     _, prev = events(lua, p, prev)
     objs.insert(0, J(_cls="IsoWorldInventoryObject"))             # a dropped item lands before both portals
+    watch_cycle(lua, p)
     ev, prev = events(lua, p, prev)
     assert [e for e in ev if e["event"] == "door"] == []
     a["open"] = True
-    ev, _ = events(lua, p, prev)
+    watch_cycle(lua, p)
+    ev, prev = events(lua, p, prev)
     assert [(e["x"], e["y"], e["open"]) for e in ev if e["event"] == "door"] == [(11, 20, True)]
     ev, _ = events(lua, p, prev)
     assert [e for e in ev if e["event"] == "door"] == []
+
+
+def test_sense_reads_no_square_for_its_door_events(lua):
+    """X4 fix pass 2.3: Sense's per-frame door walk is gone; an events call reads no grid square."""
+    load(lua)
+    load_map(lua)
+    calls = []
+    lua.globals()._cell = J(getZombieList=lambda s: J(size=lambda s2: 0),
+                            getGridSquare=lambda s, x, y, z: calls.append((x, y)))
+    p = make_player()
+    prev = frame(lua, p)
+    for _ in range(3):
+        _, prev = events(lua, p, prev)
+    assert calls == []
 
 
 def test_first_sight_is_one_item_added_per_held_item(lua):
@@ -421,15 +462,18 @@ def test_event_kinds_and_fields_are_the_schemas(lua):
     g.getPlayer = lambda: p
     z = live_zombie(5, 12.0, 20.0)
     st = {"open": False}
-    g._cell = make_cell(zombies=[z], squares={(11, 20, 0): door_square(st)})
+    g._cell = make_cell(zombies=[z], squares={(11, 20, 0): door_square(st, 11, 20)})
+    load_map(lua)
     lua.eval("PZA.sense.firstSight(...)", p)
     prev = frame(lua, p)
+    watch_cycle(lua, p)
     _, prev = events(lua, p, prev)
     from .conftest import make_item
     g._damageHandlers[0](p, "FALLDOWN", 1.0)
     p.attack["started"] = True
     z.st["dead"] = True
     st["open"] = True
+    watch_cycle(lua, p)
     p.held.append(make_item("Base.Plank", 1500))
     del p.held[0]
     ev, _ = events(lua, p, prev)

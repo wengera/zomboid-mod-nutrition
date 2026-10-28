@@ -350,12 +350,13 @@ def test_a_raise_in_the_body_counts_and_emits_lua_error_once_a_second(lua, fs):
     assert lua.eval("PZA.errors") == 32 and "frame" in kinds(fs)
 
 
-def test_mains_header_says_the_first_frames_door_states_are_recorded_without_an_event():
-    """Fix wave N4: the first frame comes from S.frame, later ones from S.events, so a reader need not trace it."""
+def test_mains_header_says_where_a_door_event_comes_from():
+    """Fix wave N4, rewritten by the X4 fix pass 2.3: the first frame comes from S.frame, later ones from S.events, and a
+    door event from the map's records (a square's first record holds its doors silently), so a reader need not trace
+    it."""
     src = open(lua_file("client/PZAgent_Main.lua"), encoding="utf-8").read()
-    header = src[:src.index("PZA.main = ")]
-    assert "the first window's door states are recorded without an event" in " ".join(
-        l.lstrip("- ").strip() for l in header.splitlines())
+    header = " ".join(l.lstrip("- ").strip() for l in src[:src.index("PZA.main = ")].splitlines())
+    assert "a door event comes from the map's records (a square's first record holds its door states without an event)" in header
 
 
 def test_main_is_lf_and_names_no_removed_api():
@@ -457,6 +458,53 @@ def test_max_link_ms_is_the_worst_flush_since_the_last_frame(lua, fs):
     f1, f2 = [l["cost"] for l in lines(fs) if l["kind"] == "frame"]
     assert f1["maxLinkMs"] == 5 and f1["linkMs"] == 0           # tick 4's flush; tick 5 flushed nothing
     assert f2["maxLinkMs"] == 2 and f2["linkMs"] == 0           # tick 6's frame flush, after the first frame's emit
+
+
+# ---- X4 fix pass 2.3: door events from the watch's deltas (review I7) --------------------------------------------------
+
+def test_once_the_ring_is_settled_a_frame_window_reads_square_objects_only_in_the_watchs_fingerprints(lua, fs):
+    """Sense reads no square: over a 6-tick frame window at 10 Hz the cell's square objects are read 8 times (the
+    watch's 8 fingerprints), where Sense's door walk alone read 81 a frame."""
+    g, p = setup(lua, fs)
+    objs = {"n": 0}
+    squares = {}
+    for x in range(0, 21):
+        for y in range(10, 31):
+            def get_objects(s):
+                objs["n"] += 1
+                return J(size=lambda s2: 0)
+            squares[(x, y, 0)] = J(getX=lambda s, x=x: x, getY=lambda s, y=y: y, getZ=lambda s: 0,
+                                   isSolid=lambda s: False, isSolidTrans=lambda s: False, getObjects=get_objects,
+                                   getWorldObjects=lambda s: J(size=lambda s2: 0), getLightLevel=lambda s, i: 0.5)
+    g._cell = make_cell(squares=squares)
+    run(g, 22 * 6 * 2)                                          # two whole watch cycles: every ring square settled
+    per_window = []
+    for _ in range(4):
+        n0 = objs["n"]
+        run(g, 6)
+        per_window.append(objs["n"] - n0)
+    assert per_window == [8, 8, 8, 8]
+
+
+def test_a_door_toggled_on_a_ring_square_is_one_door_event_from_the_watchs_delta(lua, fs):
+    g, p = setup(lua, fs)
+    st = {"open": False}
+    door = J(_cls="IsoDoor", IsOpen=lambda s: st["open"], isLocked=lambda s: False, isBarricaded=lambda s: False)
+    squares = {(x, y, 0): sq(x, y) for x in range(0, 21) for y in range(10, 31)}
+    d = sq(13, 22)
+    d.getObjects = lambda s: J(size=lambda s2: 1, get=lambda s2, i: door)
+    squares[(13, 22, 0)] = d
+    g._cell = make_cell(squares=squares)
+    run(g, 22 * 6)                                              # one watch cycle: the door's square first seen, silent
+    assert [l for l in lines(fs) if l["kind"] == "event" and l["event"] == "door"] == []
+    st["open"] = True
+    run(g, 22 * 6 + 6)                                          # the next cycle reads the change; a frame drains it
+    doors = [l for l in lines(fs) if l["kind"] == "event" and l["event"] == "door"]
+    assert [(e["x"], e["y"], e["z"], e["open"]) for e in doors] == [(13, 22, 0, True)]
+    deltas = [m for m in lines(fs) if m["kind"] == "map" and (m["squares"][0]["x"], m["squares"][0]["y"]) == (13, 22)]
+    assert len(deltas) == 2 and deltas[-1]["squares"][0]["door"]["open"] is True
+    run(g, 22 * 6)
+    assert len([l for l in lines(fs) if l["kind"] == "event" and l["event"] == "door"]) == 1
 
 
 # ---- X4 fix pass 2.2: the init burst spread under the Link's budget (review I7) --------------------------------------

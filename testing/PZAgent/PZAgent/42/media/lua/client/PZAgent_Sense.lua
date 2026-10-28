@@ -8,7 +8,6 @@ PZA.sense = PZA.sense or {}
 local S = PZA.sense
 S.RATE = 10
 S.ZOMBIE_RADIUS = 12
-S.DOOR_R = 4              -- tiles (Chebyshev, the player's floor): the door and window watch's reach
 S.missing = {}
 
 local W = PZA.world
@@ -328,34 +327,6 @@ function S.firstSight(p)
     return ev
 end
 
--- every door and window (PZA.world.kindOf: by type first, an IsoThumpable by isDoor/isWindow) within DOOR_R of
--- (px, py) on floor pz, by "x,y,z,k" (k the portal's ordinal among its square's portals, so another object added to or
--- dropped on the square never shifts one portal's key onto another), each its IsOpen read; the squares' objects are read
--- into one scratch table (W.objectsOn's out), so the walk allocates none per square
-local scratch = {}
-local function doorsAround(px, py, pz)
-    local out = {}
-    local cell = getCell ~= nil and getCell() or nil
-    if cell == nil then return out end
-    local r = S.DOOR_R
-    for y = py - r, py + r do
-        for x = px - r, px + r do
-            local _, sq = PZA.call(cell, "getGridSquare", x, y, pz)
-            local k = 0
-            local objs, n = W.objectsOn(sq, scratch)
-            for i = 1, n do
-                local o = objs[i]
-                if W.kindOf(o) ~= nil then
-                    k = k + 1
-                    local okO, open = PZA.call(o, "IsOpen")
-                    if okO then out[x .. "," .. y .. "," .. pz .. "," .. k] = { x = x, y = y, z = pz, open = open == true } end
-                end
-            end
-        end
-    end
-    return out
-end
-
 -- the readers of S.events, one per event kind, each appending its events to the list it is given
 local function damageEvents(ev, gameMin)
     for _, d in ipairs(S.damage) do
@@ -403,20 +374,16 @@ local function itemEvents(ev, gameMin, p)
     S.lastInv = now
 end
 
-local function doorEvents(ev, gameMin, m)
-    if type(m.x) ~= "number" or type(m.y) ~= "number" or type(m.z) ~= "number" then return end
-    local doors = doorsAround(math.floor(m.x), math.floor(m.y), math.floor(m.z))
-    local was = S.lastDoors
-    if was ~= nil then
-        local keys = sortedIds(doors)
-        for _, key in ipairs(keys) do
-            local dnow, dwas = doors[key], was[key]
-            if dwas ~= nil and dwas.open ~= dnow.open then
-                ev[#ev + 1] = { event = "door", gameMin = gameMin, x = dnow.x, y = dnow.y, z = dnow.z, open = dnow.open }
-            end
-        end
+-- the map's door events since the last call (PZA.map.doorEvents, drained first so a raise never reads one twice):
+-- Map sets each record it emits against the last one for its square (X4 fix pass 2.3), so no square is read here
+local function doorEvents(ev, gameMin)
+    local MP = PZA.map
+    if MP == nil or MP.doorEvents == nil then return end
+    local list = MP.doorEvents
+    MP.doorEvents = {}
+    for _, d in ipairs(list) do
+        ev[#ev + 1] = { event = "door", gameMin = gameMin, x = d.x, y = d.y, z = d.z, open = d.open }
     end
-    S.lastDoors = doors
 end
 
 -- one event kind's reader fn(part, ...) under pcall (S-15): its events join ev only when it ran through, so a raise
@@ -438,8 +405,8 @@ end
 --   zombie_dead{id}: a zombie in prev's frame whose object now answers isDead;
 --   item_added{itemId, fullType, weight} / item_removed{itemId, fullType}: the inventory's ids against S.lastInv
 --   (a first call without firstSight seeds it silently);
---   door{x, y, z, open}: a door or window within DOOR_R whose IsOpen changed since the last call (one first seen is
---   recorded without an event).
+--   door{x, y, z, open}: a door or window whose open state changed between two map records of its square (the map's
+--   PZA.map.doorEvents: a scan part's or the watch's, the ring of WATCH_R tiles; a square first seen queues none).
 -- Returns ev and the new frame (cur).
 -- Each kind through collect; the damage records are drained whatever the damage reader did, so a raising record is
 -- never read twice.
@@ -453,7 +420,7 @@ function S.events(p, prev)
     collect(ev, "event:swing", swingEvents, gameMin, p)
     collect(ev, "event:zombie_dead", deathEvents, gameMin, prev, seen)
     collect(ev, "event:item", itemEvents, gameMin, p)
-    collect(ev, "event:door", doorEvents, gameMin, cur.me)
+    collect(ev, "event:door", doorEvents, gameMin)
     return ev, cur
 end
 

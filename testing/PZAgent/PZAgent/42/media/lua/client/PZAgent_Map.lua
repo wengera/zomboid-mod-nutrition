@@ -17,7 +17,12 @@
 -- (walls, doors, windows, containers, floor), and an unrounded light level would dirty most of the ring at every
 -- lighting drift and fill the budget with deltas; an emitted line still carries the real light.
 -- MP.seen holds the dirty key of every square ever emitted (full or delta) and MP.lastDelta the tick of every delta, both
--- unbounded: a session sees a few thousand squares, about 100 bytes of string each. Every Java member is reached
+-- unbounded: a session sees a few thousand squares, about 100 bytes of string each.
+-- The door events come from here (X4 fix pass 2.3, review I7: Sense's own 81-square door walk a frame is gone): every
+-- record the map emits (a scan part's square or a watch delta) is set against the door and window open states of the
+-- last record emitted for its square (MP.portals), and each portal whose open state changed is queued in
+-- MP.doorEvents as { x, y, z, open } for Sense's next events call to drain; a square first seen records its portals
+-- silently. So a door is read once per dirty square, and its event is as late as the watch's cycle (132 ticks at most). Every Java member is reached
 -- through PZA.call (index-first); a member a square lacks is named in the part's missing list, never nil-called.
 PZA.map = PZA.map or {}
 local MP = PZA.map
@@ -28,6 +33,10 @@ MP.DELTA_MIN_TICKS = 30
 MP.seen = {}
 MP.lastDelta = {}
 MP.fp = {}                  -- the fingerprint each watched square was last settled with, by its grid key
+MP.portals = {}             -- the door and window open states of the last record emitted, by square key
+MP.doorEvents = {}          -- the door events since Sense last drained them, at most DOOR_EVENTS_MAX
+MP.DOOR_EVENTS_MAX = 100
+MP.doorDropped = 0          -- door events past DOOR_EVENTS_MAX, dropped
 MP.watchIdx = 0
 MP.missing = {}             -- the members the watch's squares lacked (a delta line carries an empty list)
 MP.errors = 0               -- raises in the map phase, caught by Main's own pcall round it (S-15; raise:map in missing)
@@ -129,11 +138,40 @@ function MP.watchKey(q)
     return e
 end
 
--- the dirty key a square was last emitted with, by its key (a square without a readable position is never keyed)
+-- a portal record's open state, nil when the square has no such portal
+local function openOf(pt)
+    if pt == nil then return nil end
+    return pt.open == true
+end
+
+local PORTAL_KINDS = { "door", "window" }
+
+-- the record q about to be emitted for key, set against MP.portals[key]: each door or window whose open state changed
+-- queues a door event (a square first seen queues none); MP.portals[key] becomes q's
+local function notePortals(key, q)
+    local was = MP.portals[key]
+    local now = { door = openOf(q.door), window = openOf(q.window) }
+    if was ~= nil then
+        for _, k in ipairs(PORTAL_KINDS) do
+            if was[k] ~= nil and now[k] ~= nil and was[k] ~= now[k] then
+                if #MP.doorEvents >= MP.DOOR_EVENTS_MAX then
+                    MP.doorDropped = MP.doorDropped + 1
+                else
+                    MP.doorEvents[#MP.doorEvents + 1] = { x = q.x, y = q.y, z = q.z, open = now[k] }
+                end
+            end
+        end
+    end
+    MP.portals[key] = now
+end
+
+-- the dirty key a square was last emitted with, by its key (a square without a readable position is never keyed), and
+-- its portals against the last record's
 local function remember(q)
     if q.x == nil or q.y == nil or q.z == nil then return nil end
     local key = MP.key(q.x, q.y, q.z)
     MP.seen[key] = MP.watchKey(q)
+    notePortals(key, q)
     return key
 end
 
@@ -283,6 +321,7 @@ function MP.watchStep(p)
                         fps[gk] = f
                         seen[key] = e
                         last[key] = tick
+                        notePortals(key, q)
                         PZA.link.queueMap({ mode = "delta", scanId = 0, part = 1, parts = 1, squares = { q }, missing = {} })
                         queued = queued + 1
                     end
