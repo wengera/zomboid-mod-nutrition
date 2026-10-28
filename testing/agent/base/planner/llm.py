@@ -140,18 +140,40 @@ def prompt(view):
 
 # ---------------------------------------------------------------- the parsing
 def first_object(text):
-    """The first balanced `{...}` in `text` that decodes as a JSON object, else None."""
+    """The first balanced `{...}` in `text` that decodes as a JSON object, else None. A `{` that does not close (a
+    truncated answer) ends the search: the object nested inside it is never returned for it (whole-pass triage #16)."""
     dec = json.JSONDecoder()
     i = text.find("{")
     while i >= 0:
         try:
-            obj, _ = dec.raw_decode(text, i)
+            obj, end = dec.raw_decode(text, i)
         except ValueError:
-            obj = None
+            if _closes(text, i):
+                i = text.find("{", i + 1)          # prose braces (`{not json}`): balanced, so look on past them
+                continue
+            return None
         if isinstance(obj, dict):
             return obj
-        i = text.find("{", i + 1)
+        i = text.find("{", end)
     return None
+
+
+def _closes(text, i):
+    """Whether the `{` at `i` has a matching `}` (strings honoured) later in `text`."""
+    depth, quoted, esc = 0, False, False
+    for ch in text[i:]:
+        if quoted:
+            esc, quoted = (not esc and ch == "\\"), not (ch == '"' and not esc)
+            continue
+        if ch == '"':
+            quoted = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return True
+    return False
 
 
 def _num(v):

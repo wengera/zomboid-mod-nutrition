@@ -60,6 +60,12 @@ FOOD_IDS = frozenset(i for i, it in _ITEMS.items() if it.get("kind") == "food" a
 DRINK_IDS = frozenset(i for i, it in _ITEMS.items() if _drinkable(it, _FLUIDS))
 
 
+def cant_eat(full_type):
+    """Whether the dataset marks the full type `cant_eat` (a sealed can): the engine's `IsFood` is true of it, the menu
+    never offers its eat."""
+    return bool((_ITEMS.get(full_type or "") or {}).get("cant_eat"))
+
+
 def use_of(full_type):
     """The use of an item by its full type: one of USES."""
     ft = full_type or ""

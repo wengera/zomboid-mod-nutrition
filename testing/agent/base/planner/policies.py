@@ -53,13 +53,16 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   grid: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
   `scanned` from its send and dropped again when the scan ends other than `done`, so a pre-empted, timed-out or
   rejected scan is retried, and dropped when the World names the last scan's aid in `scans_dropped`, a job the Lua
-  dropped after its `done` line (ruling S-32), so that place is scanned again), then a `WalkTo` at a walk to `world.unexplored_edge()`; no edge, no command. A walk
-  that ends `failed` with a reason in `STUCK_REASONS` has its target marked in the World (`world.mark_stuck`), and
+  dropped after its `done` line (ruling S-32), so that place is scanned again), then a `WalkTo` at a walk to
+  `world.unexplored_edge()`; no edge, no
+  command. A walk that ends `failed` with a reason in `STUCK_REASONS` has its target marked in the World
+  (`world.mark_stuck`), and
   `unexplored_edge` leaves it out for `STUCK_TTL_MIN` (60) game minutes, so it is never re-sent inside them (the
   whole-pass review's I4: run 1 re-sent a walk that failed `stuck` to the same edge 20 times).
 - `LootHouse` (Plan 23 Task 11, P23-7, P23-8): at load level `LOOT_MAX_LEVEL` (1) or below an
   `Interact(x, y, "loot", want, maxWeight=cap)` at `world.nearest_unlooted(want)`, `want` one of `LOOT_WANTS`
-  (`food`, `water`, `weapon`, `bandage`), set by the caller (the `Stock` and `LootBuilding` goals), and never `all`: Plan 22's loot of
+  (`food`, `water`, `weapon`, `bandage`), set by the caller (the `Stock` and `LootBuilding` goals), and never `all`:
+  Plan 22's loot of
   `all` took whole containers, one interact at level 2 lifting runs 1 and 2 to level 3 and 4. Any other want (None
   included) loots nothing. `cap` is the frame's `load.max` times `LOAD_RATIO_MAX` (1.0), the Lua's loot stopping
   before the carried weight would pass it; 0.0 (no cap) when `load.max` reads no positive number; logged as
@@ -88,6 +91,7 @@ import time
 
 from agent.base.items import use_of
 from agent.base.pza1 import Attack, Interact, Scan, Steer, WalkTo
+from agent.base.world import me_floor, me_xy
 
 DANGER_R = 6.0        # tiles: a zombie this close is a threat (Survive's threat branch; the night sends nothing)
 FIGHT_REACH = 2.0     # tiles: a nearest zombie beyond this is walked to, within it attacked
@@ -108,18 +112,6 @@ DROP_TO = 2           # ... down to this level, and between the two neither drop
 KEPT_USES = ("weapon", "food", "water")   # the uses a drop never takes
 PREEMPTED = "superseded"   # the reason the Lua fails an action a newer send replaced
 STUCK_REASONS = ("stuck", "no path", "no square")   # a walkTo failed for one of these: its target is remembered
-
-
-def me_xy(world):
-    me = world.me or {}
-    return me.get("x") or 0.0, me.get("y") or 0.0
-
-
-def me_floor(world):
-    """The player's floor, the frame's `me.z` floored (0 when it reads no number); a zombie record carries no floor,
-    so a zombie is read on the player's."""
-    z = (world.me or {}).get("z")
-    return int(math.floor(z)) if isinstance(z, (int, float)) and not isinstance(z, bool) else 0
 
 
 def place_of(world):

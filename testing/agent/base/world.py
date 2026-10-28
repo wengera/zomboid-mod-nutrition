@@ -16,8 +16,10 @@ It reads what the transport gives: keyed full dicts, every delta frame already m
   `dropped_scans`; a delta is never dropped. `map_lines` counts every map line, `missing` is the union of every map
   line's missing names in first-seen order.
 - `event`: every event line in `events` (deque 500); `item_added`/`item_removed` build `inventory[itemId] =
-  {fullType, weight[, use]}` (ruling P22-2; `use` only when the line carried it), an unknown id's removal counted in `missing_items`; a client `damage` event
-  appends `{tag, amount, side, wallMs}` to `damage` (deque 500); `zombie_dead` drops the zombie; `scan_dropped`
+  {fullType, weight[, use]}` (ruling P22-2; `use` only when the line carried it), an unknown id's removal counted in
+  `missing_items`; a client
+  `damage` event appends `{tag, amount, side, wallMs}` to `damage` (deque 500); `zombie_dead` drops the zombie;
+  `scan_dropped`
   (ruling S-32: a scan job the Lua dropped after its one act line, done) adds the scan's aid to `scans_dropped`, which
   `to_json` does not carry (the planner reads it; the line itself is in `events`).
 - `act`: `acts[str(aid)]` the last act line for the aid. `hello`: the last hello line, and a new session: the Lua
@@ -53,8 +55,10 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   squares and the door squares by building) is rebuilt lazily on the first read after it moved; `memo(key, fn)`
   keeps any other read of the map (the night's exterior doors) for the same version. A cached answer is shared, so a
   caller only reads it.
-- `by_use()`: the inventory's ids by the item's own `use` (the engine's answer, Plan 23 Task 9b), else `agent.base.items.use_of` (the dataset), an id the
-  planner marked empty (`mark_empty`, kept in `empty_ids` and dropped with its item) moved from `water` to `other`,
+- `by_use()`: the inventory's ids by the item's own `use` (the engine's answer, Plan 23 Task 9b), else
+  `agent.base.items.use_of` (the
+  dataset; a `food` the dataset marks `cant_eat` reads `other`), an id the planner marked empty (`mark_empty`, kept in
+  `empty_ids` and dropped with its item) moved from `water` to `other`,
   and an id the planner found refused (`mark_refused`, fix wave P I-4: a food whose consume ended `failed "not
   valid"`, kept in `refused` {id: the world minute of its refusal} and dropped with its item) moved from `food` to
   `other` for REFUSED_TTL_MIN (120) world minutes from the refusal only (ruling P23-AD: a refusal may be passing, the
@@ -69,13 +73,27 @@ import json
 import math
 from collections import deque
 
-from agent.base.items import USES, use_of
+from agent.base.items import USES, cant_eat, use_of
 
 ZOMBIE_TTL_S = 10
 STUCK_TTL_MIN = 60   # game minutes an edge whose walk ended stuck is left out of unexplored_edge
 REFUSED_TTL_MIN = 120   # world minutes a food whose consume was refused `not valid` reads `other` (P23-AD)
 GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 DEQUE_N = 500
+
+
+def me_xy(world):
+    """The player's (x, y) from the frame's `me`, 0.0 for a coordinate it reads no number for (the one reader of the
+    World's and the planner's)."""
+    me = world.me or {}
+    return me.get("x") or 0.0, me.get("y") or 0.0
+
+
+def me_floor(world):
+    """The player's floor, the frame's `me.z` floored (0 when it reads no number); a zombie record carries no floor,
+    so a zombie is read on the player's."""
+    z = (world.me or {}).get("z")
+    return int(math.floor(z)) if isinstance(z, (int, float)) and not isinstance(z, bool) else 0
 
 
 def _num_first(v):
@@ -96,6 +114,7 @@ class World:
         for g in GROUPS:
             setattr(self, g, None)
         self.game_min = None
+        self._gm0 = None             # the first gameMin read without a worldAge (world_minutes' fallback origin)
         self.world_age = None        # the frame's worldAge (hours), the clock world_minutes() reads
         self.frame_wall_ms = None
         self.zombies = {}            # id -> {x, y, dist, hasTarget, crawler, health, seenWallMs}
@@ -236,16 +255,12 @@ class World:
         if key in self.containers:
             self.containers[key]["looted"] |= set(USES) if use is None else {use}
 
-    def _me_xy(self):
-        me = self.me or {}
-        return me.get("x") or 0.0, me.get("y") or 0.0
-
     def nearest_unlooted(self, want=None, exclude=()):
         """The key of the nearest non-empty container not looted for `want`, ties by key; with `want` (one of USES)
         only a container holding an item of that use and not yet looted for it, with None one marked for no use. A
         map line names full types only, so this keeps the dataset's `items.use_of` on a container's items. A key in
         `exclude` is never nearest."""
-        mx, my = self._me_xy()
+        mx, my = me_xy(self)
         best = None
         for key, c in self.containers.items():
             if not c["n"] or not c["items"] or key in exclude:
@@ -261,12 +276,19 @@ class World:
 
     def world_minutes(self):
         """Game minutes since the world began, `worldAge * 60` (monotonic across midnight) rounded to 1e-6 minute (so a
-        whole minute carried in hours reads whole, and a TTL boundary falls on it), else the frame's gameMin (an older
-        frame without worldAge), else 0.0: the clock of every planner timer in game minutes."""
+        whole minute carried in hours reads whole, and a TTL boundary falls on it), else (an older frame without
+        worldAge) the frame's gameMin since the first one read, wrapped at 1440 (`(gameMin - first) % 1440`: D-7, the
+        simpler of the two fixes, so no TTL site handles a None; the clock then falls back at each day's end, so a
+        timer outlives at most the part of a day), else 0.0: the clock of every planner timer in game minutes."""
         wa = self.world_age
         if isinstance(wa, (int, float)) and not isinstance(wa, bool):
             return round(wa * 60.0, 6)
-        return self.game_min or 0.0
+        gm = self.game_min
+        if gm is None:
+            return 0.0
+        if self._gm0 is None:
+            self._gm0 = gm
+        return (gm - self._gm0) % 1440.0
 
     def mark_stuck(self, x, y):
         """Remember the walk target (x, y) as stuck at the current world_minutes() (the planner's, never a line's)."""
@@ -279,7 +301,7 @@ class World:
     def unexplored_edge(self):
         """The nearest open square with an unmapped neighbour, ties by (x, y); a square marked stuck within the last
         STUCK_TTL_MIN game minutes is left out."""
-        mx, my = self._me_xy()
+        mx, my = me_xy(self)
         skip = self._stuck_now() if self.stuck else ()
         best = None
         for (x, y, z), s in self.map.items():
@@ -297,7 +319,7 @@ class World:
         ZOMBIE_TTL_S after it left the frames is ranked from where the player is now, never by its stored frame
         `dist` (the whole-pass review's M7); a zombie whose id is not an int (a nil read keys it None), without a
         position, or in `exclude` is never nearest."""
-        mx, my = self._me_xy()
+        mx, my = me_xy(self)
         best = None
         for zid, z in self.zombies.items():
             if not isinstance(zid, int) or isinstance(zid, bool) or zid in exclude:
@@ -351,10 +373,6 @@ class World:
         return (self._orth_blocked(a, c1) or self._orth_blocked(a, c2) or self._orth_blocked(c1, b)
                 or self._orth_blocked(c2, b))
 
-    def _floor(self):
-        z = (self.me or {}).get("z")
-        return int(math.floor(z)) if isinstance(z, (int, float)) and not isinstance(z, bool) else 0
-
     @staticmethod
     def _bresenham(x0, y0, x1, y1):
         """The squares of the integer line from (x0, y0) to (x1, y1), both ends included, 8-connected."""
@@ -375,8 +393,9 @@ class World:
 
     def line_clear(self, a, b):
         """Whether the line from position `a` to `b` ((x, y) floats, on the player's floor) crosses no blocked edge
-        and no solid or unknown square strictly between its end squares."""
-        z = self._floor()
+        and no solid or unknown square strictly between its end squares. The walk is Bresenham's on the floored ends
+        (integer squares), not the float line between the two positions."""
+        z = me_floor(self)
         cells = self._bresenham(int(math.floor(a[0])), int(math.floor(a[1])), int(math.floor(b[0])),
                                 int(math.floor(b[1])))
         sqs = [(x, y, z) for x, y in cells]
@@ -389,7 +408,7 @@ class World:
         nearest the player first (by the neighbour's centre, ties by x, y)."""
         tx, ty = int(math.floor(target_xy[0])), int(math.floor(target_xy[1]))
         t = (tx, ty, z)
-        mx, my = self._me_xy()
+        mx, my = me_xy(self)
         out = []
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
@@ -450,12 +469,17 @@ class World:
 
     def by_use(self):
         """{use: [ids sorted]} for every use in USES: the inventory's ids by the item's `use` (else `items.use_of` of
-        its fullType), an id in `empty_ids` read as `other` rather than `water`, one refused within REFUSED_TTL_MIN
-        (`refused_now`) as `other` rather than `food`."""
+        its fullType; a `food` the dataset marks `cant_eat` reads `other`, a stray `use` falls back to the dataset), an
+        id in `empty_ids` read as `other` rather than `water`, one refused within REFUSED_TTL_MIN (`refused_now`) as
+        `other` rather than `food`."""
         out = {u: [] for u in USES}
         refused = self.refused_now() if self.refused else ()
         for iid, it in self.inventory.items():
-            use = it.get("use") or use_of(it.get("fullType"))
+            use = it.get("use")
+            if use not in USES:                       # no use, or a stray value: the dataset's answer, never a raise
+                use = use_of(it.get("fullType"))
+            elif use == "food" and cant_eat(it.get("fullType")):
+                use = "other"                         # N-3: the dataset overrides the engine's IsFood for a sealed can
             if (use == "water" and iid in self.empty_ids) or (use == "food" and iid in refused):
                 use = "other"
             out[use].append(iid)

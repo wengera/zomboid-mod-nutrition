@@ -204,8 +204,8 @@ class Survive:
         target)."""
         skip = blocked(self.unreachable, self.clock())
         r = self._hold_r()
-        return [z for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in skip and z.get("x") is not None
-                and z.get("y") is not None and zdist(self.world, z) <= r]
+        return [z for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in skip
+                and z.get("x") is not None and z.get("y") is not None and zdist(self.world, z) <= r]
 
     def _flee_reason(self, held, n):
         """Why the threat branch flees, by the hysteresis in the module docstring; None when it fights."""
