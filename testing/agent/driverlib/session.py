@@ -67,6 +67,12 @@ STOP CONDITIONS, the first that holds ends the loop, named in out["stop"] {reaso
   budget           xs.check's wall budget;
   error            anything else the loop raised.
 A death writes out["loop"]["death"] (record.death_record). A stop before the loop ran leaves loop.started absent.
+THE SHOTS (ruling P23-AL; `shots`, a shots.ShotTaker, or None for none): the worker starts beside the server reads at
+the loop's start; each planner tick marks `shot_moment()` (the latest frame's seq, wallMs, gameMin and health, the
+latest decision line's branch, flee and goal, the open fight's index, the decision log's line count), the death frame
+marks a final `death` and THE STOP a final `stop` after its settle; after the poll worker's join the taker ends
+(its finals taken, its worker joined within shots.SHOT_JOIN_S, loop.shots_joined). Its summary is loop.shots
+(record.loop_summary; None without a taker). A shot never blocks the loop or raises into it (shots.py's docstring).
 
 Two hooks a driver may override: `on_frame(line)` (every frame line, after the World has it) and `extra_record()`
 (a dict merged into out["loop"] at every save).
@@ -343,6 +349,7 @@ class DecisionTail:
     def __init__(self, path, n=DEFAULTS["LAST_DECISIONS"], on_line=None):
         self.path = path
         self.pos = 0
+        self.n = 0                    # the lines read so far: a shot's decision_line
         self.lines = deque(maxlen=n)
         self.on_line = on_line
 
@@ -364,6 +371,7 @@ class DecisionTail:
                 except ValueError:
                     line = {"unparsed": raw.decode("utf-8", "replace")}
                 self.lines.append(line)
+                self.n += 1
                 if self.on_line is not None:
                     self.on_line(line)
 
@@ -421,11 +429,12 @@ class Stop(Exception):
 class Session:
     """The hello, damage-hook, kit and loop phases over one FileTransport (the module docstring). `planner_factory
     (world, actions, log_path, clock)` makes the planner once; clock, sleep, players (the players read), free (the
-    memory read), limits (laid over DEFAULTS), poll_s (default POLL_S), polls (a PollThread) and polls_join_s (the
-    worker's join at the loop's end; default the longest read) are injectable."""
+    memory read), limits (laid over DEFAULTS), poll_s (default POLL_S), polls (a PollThread), polls_join_s (the
+    worker's join at the loop's end; default the longest read) and shots (a shots.ShotTaker) are injectable."""
 
     def __init__(self, xs, transport, planner_factory=Survive, clock=time.time, sleep=time.sleep,
-                 players=read_players, free=X.free_gb, limits=None, poll_s=None, polls=None, polls_join_s=None):
+                 players=read_players, free=X.free_gb, limits=None, poll_s=None, polls=None, polls_join_s=None,
+                 shots=None):
         self.xs, self.tr, self.clock, self.sleep = xs, transport, clock, sleep
         self.user = xs.user
         self.out = xs.out
@@ -469,6 +478,7 @@ class Session:
         self.mem_rows, self.mem_low_in_row = [], 0
         self.stopped = None           # the loop's closing Stop (stop_character)
         self.reads = RD.ServerReads(self, polls)
+        self.shots = shots            # a shots.ShotTaker, or None (THE SHOTS)
 
     # -- the hooks -----------------------------------------------------------------------------------------------
     def on_frame(self, line):
@@ -520,6 +530,7 @@ class Session:
             if h is not None and h <= self.lim["STOP_HEALTH"] and self.death_frame is None:
                 self.death_frame = {"health": h, "seq": l.get("seq"), "wallMs": l.get("wallMs"),
                                     "gameMin": l.get("gameMin")}
+                self.mark_shot("death")
             self.on_frame(l)
         elif k == "event" and l.get("event") == "lua_error":
             fr["lua_errors"] += 1
@@ -684,6 +695,8 @@ class Session:
         next_tick = now
         next_persist, next_mem = now + lim["PERSIST_S"], now + lim["MEM_POLL_S"]
         self.reads.start()
+        if self.shots is not None:
+            self.shots.start()
         stop = None
         try:
             while True:
@@ -716,6 +729,7 @@ class Session:
             at = self.stop_point()                   # out["stop"] is read at the stop, before the settle
             self.stop_character()
             self.reads.end()                         # joined before the stop's own bus read (the death record)
+            self.end_shots()
             if stop is not None:
                 self.set_stop(*stop, at=at)
             self.save()
@@ -751,6 +765,7 @@ class Session:
         except Exception as e:                       # noqa: BLE001 - a dead link must not mask the stop's record
             rec["error"] = "%s: %s" % (type(e).__name__, e)
         rec["settleS"] = self.clock() - t0
+        self.mark_shot("stop")
 
     def last_frame_after_stop(self):
         """True when the last kept frame (the chain's lineage reads it) came after the closing Stop's act line; None
@@ -800,6 +815,41 @@ class Session:
         if a is not None:
             self.sent.append(a)
             self.sent_meta[a.aid] = self.send_meta(a)
+        self.mark_shot()
+
+    # -- the shots -----------------------------------------------------------------------------------------------
+    def shot_moment(self):
+        """The moment a shot indexes (THE SHOTS): {seq, wallMs, gameMin, health} off the latest frame, {branch, flee,
+        goal} off the latest decision line, fight (the open Fights row's index, else None), decision_line."""
+        f = self.frames[-1] if self.frames else {}
+        d = self.tail.lines[-1] if self.tail.lines else {}
+        why = _d(_d(_d(d.get("inputs")).get("branches")).get("threat"))
+        return {"seq": f.get("seq"), "wallMs": f.get("wallMs"), "gameMin": f.get("gameMin"), "health": body_health(f),
+                "branch": d.get("branch"), "flee": why.get("flee"), "goal": _d(d.get("goal")).get("type"),
+                "fight": len(self.fights.rows) - 1 if self.fights.open is not None else None,
+                "decision_line": self.tail.n}
+
+    def mark_shot(self, final=None):
+        """shots.mark(shot_moment()) when the session has a taker; `final` "death" or "stop". Never raises."""
+        if self.shots is None:
+            return
+        try:
+            self.shots.mark(self.shot_moment(), final=final)
+        except Exception as e:                       # noqa: BLE001 - a shot never ends the loop
+            self.xs.note("shots: mark: %s: %s" % (type(e).__name__, e))
+
+    def end_shots(self):
+        """The taker ended at the loop's end (its finals taken, its worker joined): loop.shots_joined."""
+        if self.shots is None or "shots_joined" in self.loop:
+            return
+        try:
+            joined = self.shots.end()
+        except Exception as e:                       # noqa: BLE001
+            joined = False
+            self.xs.note("shots: end: %s: %s" % (type(e).__name__, e))
+        self.loop["shots_joined"] = joined
+        if not joined:
+            self.xs.note("the shot worker did not end within its join: a grab still in flight")
 
     def send_meta(self, a):
         """What the action rows carry beyond the Action, read at its send: `branch`, the planner's `last_branch` (the

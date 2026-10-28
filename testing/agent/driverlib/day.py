@@ -23,8 +23,15 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
   `extra(session)` over them when the driver passes one (f_goals: `llm`; its keys must not be the contract's,
   CONTRACT_KEYS, asserted at every save). `copied` names run-dir files the artifact
   copy takes beside the decision log (f_goals: `goals.log`). The planner is the driver's `planner_factory`.
-- `make_day_session(xs, transport, planner_factory, extra=None, copied=(), prev=None, ...)`: the one builder of a
-  day's Chain: LIMITS with the caller's `limits` laid over them and a PollThread on the session's clock (P23-13).
+- `make_day_session(xs, transport, planner_factory, extra=None, copied=(), prev=None, ..., shots=None)`: the one
+  builder of a day's Chain: LIMITS with the caller's `limits` laid over them, a PollThread on the session's clock
+  (P23-13) and the session's screenshots (ruling P23-AL): `shots`, else `day_shots(xs, clock)`, a shots.ShotTaker
+  over the run dir aimed at the user's client process (`xs.clients[user].proc.pid`), None when no client process is
+  known (the offline tests' fake clients), so every day driver gains the shots without a driver edit.
+- THE ARTIFACT'S FILES (testing/artifacts/<run_id>/, byte-identical, `xs.copy_artifacts` then `copy_shots_index`):
+  the driver's artifact JSON, decision.log, the driver's `copied` files (f_goals: goals.log), and
+  shots/shots.jsonl, the screenshots' index (`copy_shots_index`; shots.py's docstring). The images stay in the run
+  dir (testing/runs/, gitignored): a write-up copies the ones it cites byte-identical into the artifact's shots/.
 - `next_fixture(n)` (the chain's fixtures are agent-s1, agent-s2, ..., spec section 4) and `next_steps(args, run_dir,
   artifact)`: the `pzt snapshot` argv into the next fixture and the next session's arguments (`--session n+1
   --fixture agent-s<n> --prev <this artifact>`), for an E session and for an F session on the chain's last fixture
@@ -38,16 +45,19 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
   host's epoch seconds as the teardown begins: the gap from the last kept frame to the server's save, which the next
   session's lineage reads), the teardown, the park count, `after_teardown(out, ran)` when the driver passes one
   (f_goals: the LLM worker joined, so no join widens that gap; a fault lands in out["after_teardown_error"]), the
-  driver's grade, `finished`, the persist and the artifact copy; the summary printed names the grade's report lines
-  and `next` (next_steps: the `pzt snapshot` argv for the chain's next fixture and the next session's arguments).
+  driver's grade, `finished`, the persist and the artifact copy (the shots' index beside it); the summary printed
+  names the grade's report lines and `next` (next_steps: the `pzt snapshot` argv for the chain's next fixture and
+  the next session's arguments).
 """
 import json
 import os
+import shutil
 import sys
 import time
 
 from agent.driverlib import chain as CH
 from agent.driverlib import session as DS
+from agent.driverlib import shots as SH
 from agent.driverlib.polls import PollThread
 from pzt import fixture as fx
 
@@ -179,13 +189,40 @@ class Chain(DS.Session):
         return rec
 
 
+def day_shots(xs, clock=time.time):
+    """A shots.ShotTaker over the run dir (xs.path's) aimed at the user's client process, on `clock`; None when the
+    client has no process (a fake client) or the run has no path."""
+    client = (getattr(xs, "clients", None) or {}).get(getattr(xs, "user", None))
+    pid = getattr(getattr(client, "proc", None), "pid", None)
+    if pid is None or not getattr(xs, "path", None):
+        return None
+    return SH.ShotTaker(os.path.dirname(xs.path), pid=pid, clock=clock)
+
+
 def make_day_session(xs, transport, planner_factory, extra=None, copied=(), prev=None, clock=time.time,
-                     sleep=time.sleep, free=X.free_gb, polls=None, limits=None):
-    """The day's Chain: the driver's planner, extra record and copied files, LIMITS (with `limits` laid over them) and
-    a PollThread on `clock` unless `polls` is given."""
+                     sleep=time.sleep, free=X.free_gb, polls=None, limits=None, shots=None):
+    """The day's Chain: the driver's planner, extra record and copied files, LIMITS (with `limits` laid over them),
+    a PollThread on `clock` unless `polls` is given, and `shots` (else day_shots(xs, clock))."""
     return Chain(xs, transport, prev=prev, extra=extra, copied=copied, planner_factory=planner_factory, clock=clock,
                  sleep=sleep, free=free, limits=dict(LIMITS, **(limits or {})),
-                 polls=polls if polls is not None else PollThread(clock))
+                 polls=polls if polls is not None else PollThread(clock),
+                 shots=shots if shots is not None else day_shots(xs, clock))
+
+
+def copy_shots_index(repo, run_id, run_dir):
+    """The run dir's shots/shots.jsonl copied byte-identical to testing/artifacts/<run_id>/shots/; its path, or None
+    when there is none or the copy failed (never raises: the artifact copy is already made)."""
+    src = os.path.join(run_dir, SH.SHOTS_DIR, SH.INDEX)
+    if not os.path.isfile(src):
+        return None
+    dest = os.path.join(repo, "testing", "artifacts", run_id, SH.SHOTS_DIR, SH.INDEX)
+    try:
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        shutil.copyfile(src, dest)
+        return dest
+    except OSError as e:
+        print("could not copy the shots' index to %s: %s: %s" % (dest, type(e).__name__, e))
+        return None
 
 
 def next_fixture(n):
@@ -297,6 +334,7 @@ def boot_and_run(args, preboot, run_session, grade_fn, *, key, driver, artifact,
         out["finished"] = True
         xs.persist()
         xs.copy_artifacts(repo, run_id, run_dir, artifact)
+        copy_shots_index(repo, run_id, run_dir)
     print(json.dumps({"run_id": run_id, "run_dir": run_dir, "error": out.get("error"), "abort": out.get("abort"),
                       "phase_errors": {k: v.get("error") for k, v in out.get("phase_errors", {}).items()},
                       "budget_stop": out.get("budget_stop"), "stop": out.get("stop"), "chain": out.get("chain"),

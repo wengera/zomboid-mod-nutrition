@@ -4,10 +4,12 @@ loop_summary(session) -> {wallS, ticks, decisions, last_decisions, needs, needs_
 (action_rows with Session.sent_meta: each row's `branch`, a consume row's `use`),
 lua_errors_per_min, cost {n, p50, p99, max, tickMaxMs, over5}, server_polls, server_fails, players_error, memory,
 damage {polls, fails, since, merged, lost, dropped, counts, totals {tag: {n, amount}}}, first_game_min, first_world_age, game_min,
-last_frames, poll_errors, stopped, last_frame_after_stop}: `last_frames` the last LAST_FRAMES frames (the whole death
-window; the chain's lineage reads the last one), `poll_errors` the PollThread's errors when the session runs one,
+last_frames, poll_errors, stopped, last_frame_after_stop, shots}: `last_frames` the last LAST_FRAMES frames (the
+whole death window; the chain's lineage reads the last one), `poll_errors` the PollThread's errors when the session runs one,
 `stopped` the loop's closing Stop and `last_frame_after_stop` whether the last kept frame follows its act line
-(session.py, THE STOP). The server reads' counts are the session's ServerReads'.
+(session.py, THE STOP), `shots` the ShotTaker's summary {n, failures, last_error, dir ("shots"), every_s, cap_hit}
+when the session runs one, else None (session.py, THE SHOTS; the index is <run dir>/shots/shots.jsonl, one line a
+shot). The server reads' counts are the session's ServerReads'.
 
 death_record(session, via, detail) -> {via ("frame" | "players"), detail, wallS, gameMin, frame (the death frame or
 None), last_decisions, last_frames, server_damage (the server's records, with their i and server wall, whose wall (else
@@ -58,7 +60,8 @@ def loop_summary(session):
         "last_frames": list(s.frames),
         "poll_errors": list(s.polls.errors) if s.polls is not None else None,
         "stopped": dict(s.stopped) if s.stopped is not None else None,
-        "last_frame_after_stop": s.last_frame_after_stop()}
+        "last_frame_after_stop": s.last_frame_after_stop(),
+        "shots": s.shots.summary() if getattr(s, "shots", None) is not None else None}
 
 
 def death_record(session, via, detail):
