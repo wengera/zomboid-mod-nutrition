@@ -12,6 +12,7 @@ from agent.base.planner.policies import UNREACHABLE_S, Explore, Fight, Flee, Loo
 from agent.base.transport.files import FileTransport
 from agent.base.world import World
 
+from . import fakemod
 from .fakemod import DEFAULT_FRAME, FakeMod, bad_args
 
 BAT = {"type": "Base.BaseballBat", "cond": 0.9, "reach": 1.2, "ammo": None}
@@ -23,10 +24,14 @@ def zombie(zid, x, y, me=(100.0, 200.0)):
 
 
 def square(x, y, **k):
-    d = {"x": x, "y": y, "z": 0, "solid": False, "solidTrans": False, "light": 0.75, "room": None, "building": None,
-         "door": None, "window": None, "containers": [], "floor": []}
-    d.update(k)
-    return d
+    """A PZA/1.2 square at (x, y): fakemod's open outdoor square (its four edges False), light 0.75, `k` laid over."""
+    return fakemod.square(**dict({"x": x, "y": y, "light": 0.75}, **k))
+
+
+def grid(x0, x1, y0, y1, at=None):
+    """Every square of x0..x1 by y0..y1, open; `at[(x, y)]` a dict of fields laid over that square."""
+    at = at or {}
+    return [square(x, y, **at.get((x, y), {})) for x in range(x0, x1 + 1) for y in range(y0, y1 + 1)]
 
 
 def swing(started):
@@ -54,10 +59,10 @@ class Rig:
         self.acts.pump(lines)
 
     def frame(self, x=100.0, y=200.0, zombies=(), weapon=BAT, health=100.0, hunger=0.1, thirst=0.1, level=0,
-              game_min=480.0):
+              game_min=480.0, wounds=None):
         me = dict(DEFAULT_FRAME["me"], x=x, y=y)
         stats = dict(DEFAULT_FRAME["stats"], hunger=hunger, thirst=thirst)
-        body = dict(DEFAULT_FRAME["body"], health=health)
+        body = dict(DEFAULT_FRAME["body"], health=health, **(wounds or {}))
         load = dict(DEFAULT_FRAME["load"], level=level)
         self.fake.frame(me=me, stats=stats, body=body, load=load, weapon=weapon, zombies=list(zombies),
                         gameMin=game_min)
@@ -631,3 +636,120 @@ def test_an_attack_failed_otherwise_does_not_mark_the_target(tmp_path):
     r.frame(zombies=[zombie(7, 101.0, 200.0)])
     assert f.step() is not None and r.cmd() == ("attack", {"targetId": 7})
     assert f.unreachable == {}
+
+
+# ================================================================ Plan 23 Task 10: the pinned target, the line, the reposition
+# Plan 22 run 1 swung 103 attacks at zombie 32404 behind a locked door: the Fight now pins one target, reads the line
+# to it off the map's blocked edges, repositions once to a clear neighbour, and marks the target unreachable on a
+# second blocked read.
+def test_fight_keeps_its_pinned_target_when_a_nearer_zombie_appears(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(7, 101.5, 200.0)])
+    f = Fight(r.world, r.acts, r.clock)
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 7}) and f.target == 7 and f.why["pinned"] is True
+    r.answer({"state": "done", "result": swing(True)})
+    r.frame(zombies=[zombie(7, 101.5, 200.0), zombie(8, 100.8, 200.0)])   # 8 is nearer
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 7}) and f.why["target"] == 7
+
+
+def test_a_dead_pinned_target_is_dropped_and_the_fight_re_pins_the_nearest(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(7, 101.5, 200.0), zombie(8, 101.8, 200.0)])
+    f = Fight(r.world, r.acts, r.clock)
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 7})
+    r.answer({"state": "done", "result": swing(True)})
+    r.event("zombie_dead", id=7)
+    r.frame(zombies=[zombie(8, 101.8, 200.0)])
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 8}) and f.target == 8
+
+
+def test_a_pinned_target_beyond_disengage_r_is_dropped(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(7, 101.5, 200.0), zombie(8, 103.0, 200.0)])
+    f = Fight(r.world, r.acts, r.clock)
+    f.step()
+    r.answer({"state": "done", "result": swing(True)})
+    r.frame(zombies=[zombie(7, 111.0, 200.0), zombie(8, 103.0, 200.0)])   # 7 at 11 tiles: beyond DISENGAGE_R
+    f.step()
+    assert P.DISENGAGE_R == 10.0 and f.target == 8 and r.cmd() == ("walkTo", {"x": 103, "y": 200, "gait": "run"})
+
+
+def test_the_target_keyword_pins_from_the_start(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(7, 101.0, 200.0), zombie(9, 104.0, 200.0)])
+    f = Fight(r.world, r.acts, r.clock, target=9)
+    f.step()
+    assert r.cmd() == ("walkTo", {"x": 104, "y": 200, "gait": "run"}) and f.why["target"] == 9
+    assert f.why["pinned"] is True
+
+
+def behind_wall_n(at=None):
+    """An open grid around the player's square (100, 200), whose north edge is a wall: zombie 7 stands just north of
+    it at (100.5, 199.5), within FIGHT_REACH, the line to it crossing the wall."""
+    return grid(96, 104, 196, 204, {(100, 200): {"blockN": True}, **(at or {})})
+
+
+def test_a_target_behind_a_wall_gets_one_reposition_walk_to_the_clear_neighbour_then_an_attack(tmp_path):
+    r = Rig(tmp_path)
+    r.scan(behind_wall_n())
+    r.frame(zombies=[zombie(7, 100.5, 199.5)])
+    f = Fight(r.world, r.acts, r.clock)
+    f.step()
+    assert r.cmd() == ("walkTo", {"x": 99, "y": 199, "gait": "run"})
+    assert f.why["line"] is False and f.why["reposition"] == [99, 199, 0] and f.repositioned is True
+    r.answer()
+    r.frame(x=99.5, y=199.5, zombies=[zombie(7, 100.5, 199.5)])
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 7}) and f.why["line"] is True and f.why["reposition"] is None
+    assert [a.type for a in r.acts.history] == ["walkTo", "attack"]
+    all_sends_valid(r)
+
+
+def test_a_second_blocked_read_after_the_reposition_marks_the_target_unreachable(tmp_path):
+    r = Rig(tmp_path)
+    r.scan(behind_wall_n())
+    r.frame(zombies=[zombie(7, 100.5, 199.5)])
+    f = Fight(r.world, r.acts, r.clock)
+    f.step()
+    assert r.cmd()[0] == "walkTo"
+    r.answer()
+    r.frame(zombies=[zombie(7, 100.5, 199.5)])               # the walk ended, the player still behind the wall
+    assert f.step() is None
+    assert f.unreachable == {7: r.clock() + UNREACHABLE_S} and f.target is None
+    assert [a.type for a in r.acts.history] == ["walkTo"]
+
+
+def test_a_target_with_no_clear_neighbour_is_marked_unreachable(tmp_path):
+    r = Rig(tmp_path)
+    walls = {(x, y): {"solid": True} for x in (99, 100, 101) for y in (198, 199, 200) if (x, y) not in
+             ((100, 199), (100, 200))}
+    r.scan(behind_wall_n(walls))
+    r.frame(zombies=[zombie(7, 100.5, 199.5)])
+    f = Fight(r.world, r.acts, r.clock)
+    assert f.step() is None
+    assert f.unreachable == {7: r.clock() + UNREACHABLE_S} and r.acts.history == []
+    assert f.why["line"] is False and f.why["reposition"] is None
+
+
+def test_a_line_over_an_unmapped_end_is_not_read(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(7, 101.0, 200.0)])               # no scan: the map holds neither end
+    f = Fight(r.world, r.acts, r.clock)
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 7}) and f.why["line"] is None
+
+
+# Task 9's review (Minor): an item marked empty reads `other` through `world.by_use()`, so an empty bottle is spare.
+def test_spare_drops_an_empty_marked_bottle(tmp_path):
+    r = Rig(tmp_path)
+    for iid, ft, wt in [(601, "Base.BaseballBat", 9.0), (602, "Base.Nails", 0.5), (606, "Base.WaterBottle", 6.0)]:
+        r.event("item_added", itemId=iid, fullType=ft, weight=wt)
+    r.frame(level=3)
+    lh = LootHouse(r.world, r.acts, r.clock)
+    assert lh.spare() == 602
+    r.world.mark_empty(606)
+    assert lh.spare() == 606

@@ -13,22 +13,33 @@ never reads `cmd.txt` or the state lines: its driver pumps the transport's lines
 Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last sighting), so a zombie kept within
 `ZOMBIE_TTL_S` but missing from the latest frame is measured from where the player is now.
 
-- `Fight`: the nearest zombie by `world.nearest_zombie()`; beyond `FIGHT_REACH` a `WalkTo` of its square at a run
-  (the Lua's `walkTo` paths there), within it an `Attack` of its id. Two `attack` results in a row whose
-  `attackStarted` is False force one approach walk before the next attack (a result that is not a dict, as a
-  failed attack's null, neither counts nor resets). The stall clock is Plan 21's `out_of_reach_since`: started when
-  the Fight is made and restarted by every `observe()` that reads no zombie or the nearest within `FIGHT_REACH`;
-  `stalled` reads true once the nearest has been beyond `FIGHT_REACH` for more than `FIGHT_MAX_S` unbroken wall
-  seconds (a knock-back for one tick restarts nothing old; the clock counts the unbroken time out of reach only).
-  Within reach that clock is not the stall: run 1 (the whole-pass review's I2) swung 103 attacks, every one `done`
-  with `attackStarted` true, at zombie 32404 behind a locked door, its health 1.167 on all 1530 frames listing it, and
-  the out-of-reach clock restarted on every tick. The no-progress stall: `STALL_SWINGS` consecutive `done` attacks
-  on one target with `attackStarted` true, read off `Actions`' ended records, whose target's health (the frame's
-  `zombies[*].health` for its id) did not fall below the health at the streak's start, make that target unreachable
-  for `UNREACHABLE_S` wall seconds: `nearest_zombie` skips it, so the Fight takes another target or, with none, sends
-  nothing (Survive then flees, reason `unreachable`). A swing not started neither counts nor resets the streak; a
-  fall, a new target or a target no frame lists restarts it. `unreachable` (id -> wall until) is passed in so a
-  later Fight of the same planner keeps it. An attack ending `failed` for a walk reason (`STUCK_REASONS`) marks its target the same way.
+- `Fight`: one pinned target (Plan 23 Task 10): the zombie id given as `target=`, else the nearest by
+  `world.nearest_zombie()` at the first `choose`, kept until it is dead or gone from the World, unreachable, or beyond
+  `DISENGAGE_R` (10 tiles), and never swapped for a nearer one otherwise; dropped, the next `choose` pins again. Beyond
+  `FIGHT_REACH` a `WalkTo` of its square at a run (the Lua's `walkTo` paths there, around walls), within it an
+  `Attack` of its id once the line holds. The line check (ruling P23-K) answers run 1 swinging 103 attacks at a zombie
+  behind a locked door: within reach the Fight reads `world.line_clear` from the player to the target over the map's
+  blocked edges (a closed door or an intact window blocks, an open doorway does not); false, it walks once at a run to
+  the square of `world.reachable_adjacent(target)` nearest the player from whose centre the line is clear
+  (`repositioned`), and a second blocked read, or no clear square, marks the target unreachable and the next is tried.
+  The line is read only when the map holds both end squares on the player's floor; over an unscanned end it is None
+  and the swing goes ahead, left to the no-progress stall below. `why` logs `target`, `pinned`, `dist`, `approach`,
+  `line` and `reposition` (the square chosen, else None), and `marked` when this choose marked a target. Two `attack`
+  results in a row whose `attackStarted` is False force one approach walk before the next attack (a result that is
+  not a dict, as a failed attack's null, neither counts nor resets). The stall clock is Plan 21's
+  `out_of_reach_since`: started when the Fight is made and restarted by every `observe()` that reads no target or the
+  target within `FIGHT_REACH`; `stalled` reads true once the target has been beyond `FIGHT_REACH` for more than
+  `FIGHT_MAX_S` unbroken wall seconds (a knock-back for one tick restarts nothing old; the clock counts the unbroken
+  time out of reach only). Within reach that clock is not the stall: run 1 (the whole-pass review's I2) swung 103
+  attacks, every one `done` with `attackStarted` true, at zombie 32404 behind a locked door, its health 1.167 on all
+  1530 frames listing it, and the out-of-reach clock restarted on every tick. The no-progress stall: `STALL_SWINGS`
+  consecutive `done` attacks on one target with `attackStarted` true, read off `Actions`' ended records, whose
+  target's health (the frame's `zombies[*].health` for its id) did not fall below the health at the streak's start,
+  make that target unreachable for `UNREACHABLE_S` wall seconds: `nearest_zombie` skips it, so the Fight takes another
+  target or, with none, sends nothing (Survive then flees, reason `unreachable`). A swing not started neither counts
+  nor resets the streak; a fall, a new target or a target no frame lists restarts it. `unreachable` (id -> wall until)
+  is passed in so a later Fight of the same planner keeps it. An attack ending `failed` for a walk reason
+  (`STUCK_REASONS`) marks its target the same way.
 - `Flee`: a `Steer` of `FLEE_S` seconds along the unit vector from the threats' centroid through the player (the
   `threats` list its caller passes, else every zombie the World holds), at a sprint when the nearest is within
   `SPRINT_R`, else a run; re-aimed on every end of its steer. A player standing on the centroid steers along +x.
@@ -47,9 +58,10 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   square is marked looted"). Spec § 9 (1), "a policy stops looting before level 3": a loot with filter `all` takes a
   whole container, so one interact at level 2 lifted runs 1 and 2 to level 3 and 4; the guard is the level, since a
   container's weight is not readable per item. At level 2 it sends nothing; at `DROP_AT` (3) or above it sends `Drop`
-  of the heaviest held item that is neither the wielded weapon's type, nor of use `weapon`, `food` or `water` by
-  `agent.base.items.use_of`, one a decision, until the frame's level reads `DROP_TO` (2); with nothing to drop, no command.
-  No loot is sent again until the level is back under 2.
+  of `spare()`, the heaviest held item that is neither the wielded weapon's type, nor of use `weapon`, `food` or
+  `water` by `world.by_use()` (a bottle the planner marked empty reads `other`, so it is dropped), one a decision,
+  until the frame's level reads `DROP_TO` (2); with nothing to drop, no command. No loot is sent again until the level
+  is back under 2. Survive's flee sends one `spare()` drop of its own at `DROP_AT` (`survive.py`).
 
 HEURISTIC: an item's use is `agent.base.items.use_of`: food and water off `data/food-items.json` (the dataset's food and
 fluid containers), a weapon by `items.WEAPON_RX`'s fullType names, which is no game data (the dataset names no weapon).
@@ -57,11 +69,11 @@ fluid containers), a weapon by `items.WEAPON_RX`'s fullType names, which is no g
 import math
 import time
 
-from agent.base.items import use_of
 from agent.base.pza1 import Attack, Drop, Interact, Scan, Steer, WalkTo
 
 FIGHT_REACH = 2.0     # tiles: a nearest zombie beyond this is walked to, within it attacked
-FIGHT_MAX_S = 20.0    # wall seconds the nearest may stay beyond FIGHT_REACH before the fight reads stalled
+FIGHT_MAX_S = 20.0    # wall seconds the target may stay beyond FIGHT_REACH before the fight reads stalled
+DISENGAGE_R = 10.0    # tiles: a pinned target beyond this is dropped (and Survive's hold radius while a threat runs)
 MISSES_TO_APPROACH = 2   # attack results in a row with attackStarted false before one approach walk
 STALL_SWINGS = 3      # started swings in a row on one target that took no health before it reads unreachable
 UNREACHABLE_S = 20.0  # wall seconds a no-progress target is skipped
@@ -71,6 +83,7 @@ SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded 
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
 DROP_AT = 3           # at this load level or above the policy drops (the heavy-load drain falls at level 3) ...
 DROP_TO = 2           # ... down to this level, and between the two sends nothing
+KEPT_USES = ("weapon", "food", "water")   # the uses a drop never takes
 PREEMPTED = "superseded"   # the reason the Lua fails an action a newer send replaced
 STUCK_REASONS = ("stuck", "no path", "no square")   # a walkTo failed for one of these: its target is remembered
 
@@ -78,6 +91,13 @@ STUCK_REASONS = ("stuck", "no path", "no square")   # a walkTo failed for one of
 def me_xy(world):
     me = world.me or {}
     return me.get("x") or 0.0, me.get("y") or 0.0
+
+
+def me_floor(world):
+    """The player's floor, the frame's `me.z` floored (0 when it reads no number); a zombie record carries no floor,
+    so a zombie is read on the player's."""
+    z = (world.me or {}).get("z")
+    return int(math.floor(z)) if isinstance(z, (int, float)) and not isinstance(z, bool) else 0
 
 
 def item_id_ok(iid):
@@ -141,12 +161,14 @@ def blocked(unreachable, now):
 
 
 class Fight(Policy):
-    def __init__(self, world, actions, clock=time.time, unreachable=None):
+    def __init__(self, world, actions, clock=time.time, unreachable=None, target=None):
         super().__init__(world, actions, clock)
-        self.out_of_reach_since = clock()   # the stall clock: since when the nearest has been out of reach
+        self.out_of_reach_since = clock()   # the stall clock: since when the target has been out of reach
         self.misses = 0                     # attack results in a row with attackStarted false
         self.approach = False               # the next command is an approach walk
         self.unreachable = {} if unreachable is None else unreachable   # target id -> wall until it is skipped
+        self.target = target                # the pinned zombie id, None until the first choose pins one
+        self.repositioned = False           # the one reposition walk on the pinned target was sent
         self.no_progress = 0                # started swings in a row on `_streak_id` that took no health
         self._streak_id = None
         self._streak_h = None               # the target's health at the streak's start
@@ -158,6 +180,14 @@ class Fight(Policy):
     def _target_health(self, zid):
         z = self.world.zombies.get(zid)
         return None if z is None else z.get("health")
+
+    def _mark_unreachable(self, zid):
+        self.unreachable[zid] = self.clock() + UNREACHABLE_S
+        if zid == self.target:
+            self._unpin()
+
+    def _unpin(self):
+        self.target, self.repositioned = None, False
 
     def _swing_landed_nothing(self, zid):
         """Count one started swing on `zid` against its health at the streak's start; mark the target unreachable
@@ -171,8 +201,23 @@ class Fight(Policy):
             return
         self.no_progress += 1
         if self.no_progress >= STALL_SWINGS:
-            self.unreachable[zid] = self.clock() + UNREACHABLE_S
+            self._mark_unreachable(zid)
             self._streak_id, self._streak_h, self.no_progress = None, None, 0
+
+    def _pinned(self):
+        """(id, zombie, dist) of the pinned target while it holds: it is dropped once dead or gone from the World,
+        positionless, unreachable, or beyond DISENGAGE_R."""
+        if self.target is None:
+            return None
+        z = self.world.zombies.get(self.target)
+        if z is None or z.get("x") is None or z.get("y") is None or self.target in self.blocked():
+            self._unpin()
+            return None
+        d = zdist(self.world, z)
+        if d > DISENGAGE_R:
+            self._unpin()
+            return None
+        return self.target, z, d
 
     def _nearest(self):
         nz = self.world.nearest_zombie(exclude=self.blocked())
@@ -181,16 +226,44 @@ class Fight(Policy):
         zid, z = nz
         return zid, z, zdist(self.world, z)
 
+    def _target(self, pin):
+        """The Fight's target: the pinned one while it holds, else the nearest reachable zombie, pinned when `pin`."""
+        t = self._pinned() or self._nearest()
+        if pin and t is not None and self.target != t[0]:
+            self.target, self.repositioned = t[0], False
+        return t
+
+    def _line(self, z):
+        """The line from the player to `z` (`world.line_clear`), None when the map lacks either end square: an
+        unscanned end is never read as a wall, the swing then left to the no-progress stall."""
+        me = self.world.me or {}
+        a, b = (me.get("x"), me.get("y")), (z["x"], z["y"])
+        if a[0] is None or a[1] is None:
+            return None
+        floor = me_floor(self.world)
+        if any((int(math.floor(p[0])), int(math.floor(p[1])), floor) not in self.world.map for p in (a, b)):
+            return None
+        return self.world.line_clear(a, b)
+
+    def _reposition(self, z):
+        """The square to reposition to: of `world.reachable_adjacent` of the target's square (nearest the player
+        first), the first from whose centre the line to the target is clear; None when none is."""
+        floor = me_floor(self.world)
+        for sq in self.world.reachable_adjacent((z["x"], z["y"]), floor):
+            if self.world.line_clear((sq[0] + 0.5, sq[1] + 0.5), (z["x"], z["y"])):
+                return sq
+        return None
+
     def observe(self):
-        near = self._nearest()
-        if near is None or near[2] <= FIGHT_REACH:
+        t = self._target(pin=False)
+        if t is None or t[2] <= FIGHT_REACH:
             self.out_of_reach_since = self.clock()
         a = self.last
         if a is None or a.type != "attack" or not self.actions.done(a) or a is self._counted:
             return
         self._counted = a
         if a.state == "failed" and a.reason in STUCK_REASONS:   # the approach walk could not queue (Minor 3)
-            self.unreachable[a.args.get("targetId")] = self.clock() + UNREACHABLE_S
+            self._mark_unreachable(a.args.get("targetId"))
             return
         if not isinstance(a.result, dict):
             return
@@ -205,7 +278,7 @@ class Fight(Policy):
                 self._swing_landed_nothing(a.args.get("targetId"))
 
     def fight_s(self):
-        """Seconds the nearest has been out of reach (the stall clock)."""
+        """Seconds the target has been out of reach (the stall clock)."""
         return self.clock() - self.out_of_reach_since
 
     @property
@@ -213,17 +286,32 @@ class Fight(Policy):
         return self.fight_s() > FIGHT_MAX_S
 
     def choose(self):
-        near = self._nearest()
+        cmd = self._choose()
         skipped = sorted(self.blocked(), key=str)
-        if near is None:
-            self.why = {"target": None}
-            if skipped:
-                self.why["unreachable"] = skipped
-            return None
-        zid, z, d = near
-        self.why = {"target": zid, "dist": d, "approach": self.approach}
         if skipped:
             self.why["unreachable"] = skipped
+        return cmd
+
+    def _choose(self):
+        t = self._target(pin=True)
+        if t is None:
+            self.why = {"target": None, "pinned": False}
+            return None
+        zid, z, d = t
+        line = self._line(z) if d <= FIGHT_REACH else None
+        self.why = {"target": zid, "pinned": True, "dist": d, "approach": self.approach, "line": line,
+                    "reposition": None}
+        if line is False:
+            sq = None if self.repositioned else self._reposition(z)
+            if sq is None:   # a second blocked read, or no clear square: the target is unreachable, the next tried
+                self._mark_unreachable(zid)
+                read = self.why
+                cmd = self._choose()
+                self.why = dict(read if self.why["target"] is None else self.why, marked=zid)
+                return cmd
+            self.repositioned = True
+            self.why["reposition"] = list(sq)
+            return WalkTo(sq[0], sq[1], "run")
         if self.approach or d > FIGHT_REACH:
             return WalkTo(int(z["x"]), int(z["y"]), "run")
         return Attack(zid)   # nearest_zombie yields int ids only (M7)
@@ -332,14 +420,13 @@ class LootHouse(Policy):
 
     def spare(self):
         """The id of the heaviest held item that is neither the wielded weapon's type nor of use weapon, food or water
-        (`items.use_of`), else None."""
+        by `world.by_use()` (so a bottle marked empty is `other`, and spare), else None."""
         wielded = (self.world.weapon or {}).get("type")
+        by_use = self.world.by_use()
+        kept = {iid for use in KEPT_USES for iid in by_use[use]}
         best = None
         for iid, it in self.world.inventory.items():
-            ft = it.get("fullType") or ""
-            if not item_id_ok(iid):
-                continue
-            if ft == wielded or use_of(ft) in ("weapon", "food", "water"):
+            if not item_id_ok(iid) or iid in kept or (it.get("fullType") or "") == wielded:
                 continue
             rank = (-(it.get("weight") or 0.0), iid)
             if best is None or rank < best:

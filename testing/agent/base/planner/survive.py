@@ -12,18 +12,27 @@ and `args` or null, so a replayed session reproduces its decisions byte for byte
 The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.py`'s docstring, frozen; ported):
 - A zombie is a threat within DANGER_R; while a threat policy runs (the "mode", `fight` or `flee`, kept while the
   threat branch answers), the branch holds every zombie within DISENGAGE_R: a threat engaged at 6 tiles holds the
-  branch until it is beyond 10 or dead, so the bot never turns its back to loot.
+  branch until it is beyond 10 or dead, so the bot never turns its back to loot. DISENGAGE_R is also the radius at
+  which the Fight drops its pinned target (`policies.Fight`, Plan 23 Task 10), so it lives in `policies.py`.
 - The hold-radius fix (`docs/reference/research-notes.md`, "The hold radius widens the 'too many' count"; the Plan
   21b ledger's ruling): the rules that turn to a flee (`many`, `pair`) count the zombies within DANGER_R only, so a
   fight engaged at 5 tiles with two more zombies at 8 and 9 is no "too many"; the rules that keep a flee running
   (`held`) read the held list, being the hold itself.
 - Fight or flee: flee when unarmed (`world.weapon` is None), when the DANGER_R count > MAX_FIGHT, when health <
-  FLEE_HEALTH, or when that count >= 2 and health < FLEE_HEALTH_PAIR. A running flee turns back to fight only with
+  FLEE_HEALTH, or when that count >= 2 and either health < FLEE_HEALTH_PAIR or the body carries a wound (the frame's
+  `body.bleeding + scratched + bitten` > 0, a missing count read 0; Plan 23 Task 10: a wounded player does not take
+  on a pair at any health), the reason `pair`. A running flee turns back to fight only with
   one held threat and health >= FLEE_HEALTH + REFIGHT_MARGIN, and a flee sent because a fight stalled is held while
   the nearest stays beyond FIGHT_REACH; a running fight turns to flee only on the flee conditions or its stall
-  (`Fight.stalled`: the nearest beyond FIGHT_REACH for more than FIGHT_MAX_S unbroken seconds), never because a
+  (`Fight.stalled`: its target beyond FIGHT_REACH for more than FIGHT_MAX_S unbroken seconds), never because a
   threat count dropped. The flee steers from the held threats' centroid.
-- Unreachable (the whole-pass review's I2): a target whose STALL_SWINGS started swings took no health is skipped for
+- The flee's load drop (Plan 23 Task 10): run 2's last flee was pinned at load level 4. While the mode is `flee` and
+  the frame's load level is at or above `policies.DROP_AT` (3), the flee episode's first free answer is one `Drop` of
+  `LootHouse.spare()` (logged `flee_drop`, the item's id), sent as the Flee's own action so its steer waits on the
+  drop (the drop skill is quick) and follows on the next tick; at most one drop per episode (`flee_dropped`, reset when
+  the mode leaves `flee`), none when nothing is spare.
+- Unreachable (the whole-pass review's I2): a target whose STALL_SWINGS started swings took no health, or whose line
+  stays blocked after the Fight's one reposition (or has no clear square to reposition to), is skipped for
   UNREACHABLE_S (`policies.Fight`); Survive keeps that memory in `unreachable` across its Fights, and when every held
   threat is skipped the branch flees (reason `unreachable`), never attacking it again until its time runs out.
 - `need`: while its own `Consume` is current it holds, before any threshold is read (a frame that already reads the
@@ -43,12 +52,11 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
 import json
 import time
 
-from agent.base.planner.policies import (FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Explore, Fight, Flee, LootHouse,
-                                         blocked, item_id_ok, target_id_ok, zdist)
-from agent.base.pza1 import Consume
+from agent.base.planner.policies import (DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Explore, Fight,
+                                         Flee, LootHouse, blocked, item_id_ok, target_id_ok, zdist)
+from agent.base.pza1 import Consume, Drop
 
 DANGER_R = 6.0            # a zombie this close is a threat
-DISENGAGE_R = 10.0        # while a fight or flee runs, a zombie this close is still held
 THIRST_T = 0.5
 HUNGER_T = 0.5
 FLEE_HEALTH = 40.0        # under it a threat is fled, never fought
@@ -77,6 +85,7 @@ class Survive:
         self.fight = None
         self.flee = None
         self.stall_flee = False   # the running flee was chosen because a fight stalled
+        self.flee_dropped = False  # the running flee episode sent its one load drop
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
         self.loot = LootHouse(world, actions, clock)
         self.explore = Explore(world, actions, clock)
@@ -101,6 +110,11 @@ class Survive:
     def _health(self):
         h = (self.world.body or {}).get("health")
         return 100.0 if h is None else h
+
+    def _wounds(self):
+        """The body's bleeding, scratched and bitten counts summed (a missing count reads 0)."""
+        body = self.world.body or {}
+        return sum(body.get(k) or 0 for k in ("bleeding", "scratched", "bitten"))
 
     def _armed(self):
         return self.world.weapon is not None
@@ -127,7 +141,7 @@ class Survive:
             return "many"
         if health < FLEE_HEALTH:
             return "health"
-        if n >= 2 and health < FLEE_HEALTH_PAIR:
+        if n >= 2 and (health < FLEE_HEALTH_PAIR or self._wounds() > 0):
             return "pair"
         if not self._reachable_held():
             return "unreachable"
@@ -156,14 +170,14 @@ class Survive:
     def _threat(self):
         held = self._within(self._hold_r())
         if not held:
-            self.mode, self.fight, self.flee, self.stall_flee = None, None, None, False
+            self.mode, self.fight, self.flee, self.stall_flee, self.flee_dropped = None, None, None, False, False
             return None
         reason = self._flee_reason(held, len(self._within(DANGER_R)))
         want = "fight" if reason is None else "flee"
         if want != self.mode:
             if want == "fight":
                 self.fight = Fight(self.world, self.actions, self.clock, unreachable=self.unreachable)
-                self.flee, self.stall_flee = None, False
+                self.flee, self.stall_flee, self.flee_dropped = None, False, False
             else:
                 self.flee, self.fight = Flee(self.world, self.actions, self.clock), None
                 self.stall_flee = reason == "stalled"
@@ -171,9 +185,23 @@ class Survive:
         policy = self.fight if want == "fight" else self.flee
         if want == "flee":
             policy.threats = held
-        ans = self._answer(policy)
+            ans = self._flee_drop() or self._answer(policy)
+        else:
+            ans = self._answer(policy)
         self.why.update({"fight": True} if reason is None else {"flee": reason})
         return ans if ans is not None else (policy, None)
+
+    def _flee_drop(self):
+        """At load level DROP_AT or above, a flee episode's first answer is one `Drop` of `LootHouse.spare()`, sent
+        as the Flee's own action so the steer waits on it (the drop skill is quick); None otherwise."""
+        if self.flee_dropped or self.flee.busy() or ((self.world.load or {}).get("level") or 0) < DROP_AT:
+            return None
+        iid = self.loot.spare()
+        if iid is None:
+            return None
+        self.flee_dropped = True
+        self.why = {"flee_drop": iid}
+        return self.flee, Drop(iid)
 
     def _need(self):
         if self.need_last is not None and self.actions.current is self.need_last:

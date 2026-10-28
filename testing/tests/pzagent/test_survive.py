@@ -7,10 +7,11 @@ import json
 import pytest
 
 from agent.base.planner import Planner
+from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner.survive import Survive
 
-from .test_policies import BAT, CRATE, FRIDGE, Rig, all_sends_valid, square, swing, zombie
+from .test_policies import BAT, CRATE, FRIDGE, Rig, all_sends_valid, behind_wall_n, square, swing, zombie
 
 
 def make(tmp_path):
@@ -153,7 +154,8 @@ def test_a_running_flee_turns_to_fight_only_with_one_threat_and_a_health_margin(
     r.frame(zombies=three[:1], health=74.0)
     tick(r, sv)
     assert r.cmd() == ("walkTo", {"x": 103, "y": 200, "gait": "run"})
-    assert threat_why(tmp_path) == {"fight": True, "target": 1, "dist": 3.0, "approach": False}
+    assert threat_why(tmp_path) == {"fight": True, "target": 1, "pinned": True, "dist": 3.0, "approach": False,
+                                    "line": None, "reposition": None}
 
 
 def test_a_running_fight_turns_to_flee_only_on_the_flee_conditions(tmp_path):
@@ -435,3 +437,79 @@ def test_a_nil_id_zombie_beside_an_int_id_one_leaves_the_int_id_the_target(tmp_p
     r.frame(zombies=[zombie(None, 101.0, 200.0), zombie(5, 101.5, 200.0)])
     tick(r, sv)
     assert r.cmd() == ("attack", {"targetId": 5}) and threat_why(tmp_path)["fight"] is True
+
+
+# ================================================================ Plan 23 Task 10: the line, the pair rule on wounds, the flee's drop
+def test_a_target_with_no_clear_neighbour_is_fled_unreachable(tmp_path):
+    r, sv = make(tmp_path)
+    walls = {(x, y): {"solid": True} for x in (99, 100, 101) for y in (198, 199, 200) if (x, y) not in
+             ((100, 199), (100, 200))}
+    r.scan(behind_wall_n(walls))
+    r.frame(zombies=[zombie(7, 100.5, 199.5)])
+    assert tick(r, sv) is None                               # the Fight reads the line, finds no square, marks 7
+    assert threat_why(tmp_path)["line"] is False and sv.unreachable == {7: r.clock() + P.UNREACHABLE_S}
+    r.frame(zombies=[zombie(7, 100.5, 199.5)])
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "unreachable"
+    assert [a.type for a in r.acts.history] == ["steer"]
+
+
+@pytest.mark.parametrize("wound", ["bleeding", "scratched", "bitten"])
+def test_two_threats_with_a_wound_are_fled_pair_above_flee_health_pair(tmp_path, wound):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zombie(1, 103.0, 200.0), zombie(2, 103.0, 201.0)], health=90.0, wounds={wound: 1})
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "pair"
+
+
+def test_one_threat_with_a_wound_is_still_fought(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zombie(1, 103.0, 200.0)], health=90.0, wounds={"bleeding": 1})
+    tick(r, sv)
+    assert r.cmd()[0] == "walkTo" and threat_why(tmp_path)["fight"] is True
+
+
+# Plan 22 run 2's last flee was pinned at load level 4: a flee at DROP_AT or above drops the spare item first.
+def test_a_flee_at_load_level_three_drops_one_spare_item_first_then_steers(tmp_path):
+    r, sv = make(tmp_path)
+    r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
+    r.event("item_added", itemId=603, fullType="Base.Nails", weight=0.5)
+    r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None, level=3)
+    tick(r, sv)
+    assert r.cmd() == ("drop", {"itemId": 602}) and last(tmp_path)["branch"] == "threat"
+    assert threat_why(tmp_path)["flee"] == "unarmed" and threat_why(tmp_path)["flee_drop"] == 602
+    r.answer()
+    r.event("item_removed", itemId=602, fullType="Base.Plank")
+    r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None, level=3)
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and "flee_drop" not in threat_why(tmp_path)
+    r.answer()
+    r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None, level=3)
+    tick(r, sv)
+    assert [a.type for a in r.acts.history] == ["drop", "steer", "steer"]   # one drop per flee episode
+
+
+def test_a_flee_drop_waits_on_its_drop_and_a_new_flee_drops_again(tmp_path):
+    r, sv = make(tmp_path)
+    r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
+    r.event("item_added", itemId=603, fullType="Base.Nails", weight=0.5)
+    r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None, level=4)
+    tick(r, sv)
+    assert r.cmd() == ("drop", {"itemId": 602})
+    r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None, level=4)
+    assert tick(r, sv) is None                               # the drop is current: the flee holds on it
+    r.answer()
+    r.event("item_removed", itemId=602, fullType="Base.Plank")
+    r.frame(level=4)                                         # the threat gone: the flee episode ends
+    tick(r, sv)
+    r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None, level=4)
+    tick(r, sv)
+    assert r.cmd() == ("drop", {"itemId": 603})              # a new flee episode: one drop again
+
+
+def test_a_flee_under_drop_at_never_drops(tmp_path):
+    r, sv = make(tmp_path)
+    r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
+    r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None, level=2)
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and "flee_drop" not in threat_why(tmp_path)
