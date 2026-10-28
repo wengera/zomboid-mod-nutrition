@@ -440,6 +440,10 @@ def citem(ft, cls=None):
     return J(_cls=cls, getFullType=lambda s: ft, getFluidContainer=lambda s: None)
 
 
+def witem(ft, w=1.0):
+    return J(_cls=None, getFullType=lambda s: ft, getFluidContainer=lambda s: None, getWeight=lambda s: w)
+
+
 def make_box(items, loaded=True):
     c = J(getType=lambda s: "crate")
     if loaded:
@@ -1518,10 +1522,6 @@ def test_an_end_line_whose_emit_raises_still_clears_the_latches_and_the_runner(l
     assert list(p.sets[n0:n0 + 3]) == OFF and lua.eval("PZA.skills.cur") is None
 
 
-def witem(ft, w=1.0):
-    return J(_cls=None, getFullType=lambda s: ft, getFluidContainer=lambda s: None, getWeight=lambda s: w)
-
-
 def test_interact_loot_stops_before_the_weight_cap_and_reports_skipped(lua, fs):
     load(lua)
     g = lua.globals()
@@ -1698,3 +1698,54 @@ def test_sleep_fades_through_ui_manager_when_it_is_loaded(lua, fs):
     start(lua, p, "sleep")
     tick(lua, p)
     assert fades == [("before", 0, True), ("out", 0, 1)]
+
+
+def test_a_loot_whose_every_match_the_cap_skips_is_done_with_moved_0(lua, fs):
+    load(lua)
+    g = lua.globals()
+    box_world(lua, [witem("Base.A", 3.0), witem("Base.B", 3.0), witem("Base.C", 3.0)])
+    p = make_player(weight=7.0)
+    start(lua, p, "interact", x=11, y=20, kind="loot", maxWeight=8.5)
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert len(g._queue.adds) == 0
+    assert states(a)[-1] == ("a1", "done", "") and a[-1]["result"] == {"moved": 0, "skipped": 3}
+
+
+def test_a_loot_with_an_unreadable_item_weight_skips_that_item(lua, fs):
+    load(lua)
+    g = lua.globals()
+    bad = J(_cls=None, getFullType=lambda s: "Base.X", getFluidContainer=lambda s: None)
+    items = [bad, witem("Base.B", 0.5)]
+    box_world(lua, items)
+    start(lua, make_player(weight=1.0), "interact", x=11, y=20, kind="loot", maxWeight=8.0)
+    tick(lua, make_player(weight=1.0))
+    assert [a.item for a in g._queue.adds] == [items[1]]
+
+
+def test_a_loot_with_an_unreadable_inventory_weight_skips_every_pick_when_capped(lua, fs):
+    load(lua)
+    g = lua.globals()
+    box_world(lua, [witem("Base.A", 0.5), witem("Base.B", 0.5)])
+    p = make_player()
+    p.getInventory(p).getCapacityWeight = None
+    start(lua, p, "interact", x=11, y=20, kind="loot", maxWeight=8.0)
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert len(g._queue.adds) == 0 and a[-1]["result"] == {"moved": 0, "skipped": 2}
+    box_world(lua, [witem("Base.A", 0.5), witem("Base.B", 0.5)])
+    start(lua, p, "interact", aid="nocap", x=11, y=20, kind="loot", maxWeight=0)
+    tick(lua, p)
+    assert len(g._queue.adds) == 2
+
+
+def test_the_loot_fills_to_max_weight_greedily_and_an_exact_fit_is_taken(lua, fs):
+    load(lua)
+    g = lua.globals()
+    big = witem("Base.Big", 5.0)
+    half, quarter, over = witem("Base.H", 0.5), witem("Base.Q", 0.25), witem("Base.O", 0.26)
+    box_world(lua, [half, big, quarter, over])
+    p = make_player(weight=7.25)
+    start(lua, p, "interact", x=11, y=20, kind="loot", maxWeight=8.0)
+    tick(lua, p)
+    assert [a.item for a in g._queue.adds] == [half, quarter]

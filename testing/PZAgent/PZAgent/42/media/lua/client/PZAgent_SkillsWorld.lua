@@ -336,15 +336,17 @@ end
 
 -- every item of st.boxes passing st.filter, as {item, container}; and how many items and unloaded boxes were seen.
 -- With st.maxWeight > 0 a pick is taken only while the inventory's getCapacityWeight (read once, plus each taken pick's
--- getWeight) stays within it; a pick left for the cap counts in st.skippedWeight. An unreadable inventory weight
--- applies no cap; an unreadable item weight counts 0.
+-- getWeight) stays within it (cap == weight + w is taken). The fill is greedy: it keeps scanning after a skip, so a
+-- lighter later item that fits is still taken. A pick left for the cap counts in st.skippedWeight. A weight that cannot
+-- be read is "cannot say": an unreadable inventory weight skips every pick and an unreadable item weight skips that
+-- item, both counted, never taken past the cap. With no cap (maxWeight 0) neither read is made.
 local function lootPicks(st, p)
     local picks, seen, unloaded = {}, 0, 0
-    local cap, weight = st.maxWeight or 0, 0
+    local cap, weight = st.maxWeight or 0, nil
     if cap > 0 then
         local _, inv = PZA.call(p, "getInventory")
         local okW, cw = PZA.call(inv, "getCapacityWeight")
-        if okW and type(cw) == "number" then weight = cw else cap = 0 end
+        if okW and type(cw) == "number" then weight = cw end
     end
     st.skippedWeight = 0
     local keep = FILTERS[st.filter]
@@ -360,8 +362,7 @@ local function lootPicks(st, p)
                         local take = true
                         if cap > 0 then
                             local okI, iw = PZA.call(it, "getWeight")
-                            iw = (okI and type(iw) == "number") and iw or 0
-                            take = weight + iw <= cap
+                            take = weight ~= nil and okI and type(iw) == "number" and weight + iw <= cap
                             if take then weight = weight + iw else st.skippedWeight = st.skippedWeight + 1 end
                         end
                         if take then picks[#picks + 1] = { it, c } end
@@ -389,7 +390,8 @@ local function lootTick(p, st)
         local picks, seen, unloaded = lootPicks(st, p)
         if unloaded == #st.boxes then return "failed", "not loaded" end
         if seen == 0 then return "failed", "empty" end
-        if #picks == 0 then return "failed", "no match" end   -- also when the cap left every match
+        if #picks == 0 and st.skippedWeight > 0 then return "done", { moved = 0, skipped = st.skippedWeight } end
+        if #picks == 0 then return "failed", "no match" end
         -- the vanilla transfer class, its new and the queue's add index-checked once before the loop: a missing
         -- one is the vanilla class not loaded, not "no match", so the skill fails not loaded
         local T = ISInventoryTransferAction
