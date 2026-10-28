@@ -122,6 +122,12 @@ def me_floor(world):
     return int(math.floor(z)) if isinstance(z, (int, float)) and not isinstance(z, bool) else 0
 
 
+def place_of(world):
+    """The player's square on a uniform SCAN_R grid (half up, never Python's half-even round): Explore's place."""
+    mx, my = me_xy(world)
+    return int(math.floor(mx / SCAN_R + 0.5)) * SCAN_R, int(math.floor(my / SCAN_R + 0.5)) * SCAN_R
+
+
 def item_id_ok(iid):
     """An inventory key usable as a command's itemId: an int, not a bool."""
     return isinstance(iid, int) and not isinstance(iid, bool)
@@ -407,9 +413,7 @@ class Explore(Policy):
         self._last = None      # (aid, place) of the last scan sent: its job may still be dropped after its done line
 
     def place(self):
-        """The player's square on a uniform SCAN_R grid (half up, never Python's half-even round)."""
-        mx, my = me_xy(self.world)
-        return int(math.floor(mx / SCAN_R + 0.5)) * SCAN_R, int(math.floor(my / SCAN_R + 0.5)) * SCAN_R
+        return place_of(self.world)
 
     def observe(self):
         if self._walk is not None and self.actions.done(self._walk[1]):
@@ -489,7 +493,7 @@ class LootHouse(Policy):
                     self.world.mark_looted(key, use)
         self.pending = still
 
-    def _waiting(self, want):
+    def waiting(self, want):
         """The container keys on a square whose loot for `want` skipped items for the cap, while the carried weight
         has not fallen below its reading at that loot's end (an unreadable weight on either side keeps waiting)."""
         now = self.weight()
@@ -501,7 +505,7 @@ class LootHouse(Policy):
         the cap, and kept to `within` when it is set; None for a want outside LOOT_WANTS."""
         if want not in LOOT_WANTS:
             return None
-        exclude = self._waiting(want)
+        exclude = self.waiting(want)
         if self.within is not None:
             exclude = exclude | {k for k in self.world.containers if k not in self.within}
         return self.world.nearest_unlooted(want, exclude=exclude)

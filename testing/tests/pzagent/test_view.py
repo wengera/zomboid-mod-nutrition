@@ -62,12 +62,40 @@ def test_the_buildings_carry_containers_looted_doors_visited_and_distance(tmp_pa
     b = view(r.world, sv)["buildings"]
     assert [x["id"] for x in b] == [1, 2]                                # nearest first
     assert b[0] == {"id": 1, "dist": 10.5, "containers": 2, "looted": 0, "doors": 1, "visited": False,
-                    "shunned": False}
+                    "shunned": False, "shelter": True}
     assert b[1]["containers"] == 1 and b[1]["looted"] == 1 and b[1]["dist"] == 20.5
     sv.night.visited.add(2)
     sv.night.shunned[1] = 480.0
     b = view(r.world, sv)["buildings"]
     assert b[0]["shunned"] is True and b[1]["visited"] is True
+
+
+def test_a_building_with_no_room_on_the_players_floor_is_no_shelter(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan([dict(s, z=1) if s["room"] is not None else s for s in house(1, 110)])   # its rooms one floor up
+    r.frame(x=100.0, y=201.5)
+    b = view(r.world, sv)["buildings"]
+    assert b[0]["id"] == 1 and b[0]["shelter"] is False
+
+
+def test_the_view_only_reads_the_kit(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame()
+    other = Rig(tmp_path / "other")
+    sv.goals.kit.bind(other.world, other.acts)
+    view(r.world, sv)
+    assert sv.goals.kit.loot.world is other.world and sv.goals.kit.explore.world is other.world
+
+
+def test_render_stays_under_the_bound_on_oversized_strings(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame()
+    v = view(r.world, sv)
+    v["events"] = ["x" * 900, "y" * 900, "z" * 900]
+    v["last_goal"] = {"type": "Rest", "args": {"seconds": 1.0}, "state": "failed", "reason": "r" * 900}
+    text = render(v)
+    assert len(text.encode("utf-8")) < V.RENDER_MAX
+    assert [ln.split(":", 1)[0] for ln in text.splitlines()] == list(V.KEYS)
 
 
 def test_zombies_near_counts_within_six_twelve_and_twenty_five_tiles(tmp_path):

@@ -18,13 +18,15 @@ a class attribute equal to the entry's `const`:
 - `Shelter(building)`: Night's shelter machine for a named building (`night.shelter_plan`, `shelter_step`,
   `shelter_ended`, never re-implemented): approach the exterior door, open it, step in, close it; `done "inside"`
   once the plan reads done, `failed "no plan"` with no exterior door or room on the player's floor, `failed "shun"`
-  when the machine shuns the building (kept in the kit's `shunned` for `night.SHUN_MIN` game minutes, which the view
-  reads).
+  when the machine shuns the building; both shun the building in the kit's `shunned` for `night.SHUN_MIN` game
+  minutes (fix 1, I3), the store `Night.shunned` is when the runner is given it (`GoalRunner(..., shunned=)`, M6), so
+  the night and the goal pass over the same buildings; the view reads it.
 - `Stock(kind)`: `LootHouse` with `want = kind` (water or food) over the nearest containers holding that use;
   `done "stocked"` once `world.by_use()[kind]` holds more ids than at the goal's start, `failed "none found"` when no
   container answers, `failed "load"` above `LOOT_MAX_LEVEL`.
 - `Rest(seconds)`: nothing sent (the frame keeps coming) until its seconds pass on the injected clock, then
-  `done "rested"`.
+  `done "rested"`. Its budget is `max(GOAL_MAX_S, seconds)` (ruling P23-W: a rest is the one goal whose length is its
+  content, so a schema-valid Rest up to 120 s ends rested, never on the budget); every other goal's is GOAL_MAX_S.
 
 A goal's `step(world, actions, clock)` is `observe` (the end of its own last action, its own done test) then, while
 it runs and its own action is not still running, `choose` (the next command, or None); it returns that command or
@@ -34,25 +36,37 @@ scanned, a container looted or capped and a pending loot superseded by an instin
 as the old `forage`/`explore` branches' long-lived machines did), else builds its own (a goal run alone).
 
 `validate(obj) -> Goal` checks a dict against `goals.json` with a stdlib walk (the `type` const, `required`,
-`additionalProperties`, each field's `type`, `enum`, `minimum`, `maximum`; a bool is never a number) and raises
+`additionalProperties`, each field's `type`, `enum`, `minimum`, `maximum`; a bool is never a number, a non-finite
+number is refused) and raises
 `ValueError` with a one-line reason; it returns the dataclass. `EXAMPLES` holds one valid argument dict per type.
 
 `ScriptedSource` (`NAME = "scripted"`) is the old forage and explore reshaped, its order: `Stock(kind)` when the
 view's `needs_wanted` names water or food (water first) and `stock_uses` says a container answers it; `Shelter`
-the nearest known building with an exterior door that is not shunned, when `want_shelter`; `LootBuilding` the nearest
+the nearest known building for which the view's `shelter` reads true (`night.shelter_plan` answers: rooms and an
+exterior door on the player's floor) and that is not shunned, when `want_shelter`; `LootBuilding` the nearest
 building with a container not yet looted (`containers > looted`); `ExploreToward` the view's `edge`, else the
 player's own square while `scanned_here` is false (a fresh session's first scan, before the map holds an edge);
 else `Rest(REST_S)`. A loot goal (`Stock`, `LootBuilding`) is proposed only at the view's load level
-`LOOT_MAX_LEVEL` or below, so a heavy load never proposes a goal that fails on its first step.
+`LOOT_MAX_LEVEL` or below, so a heavy load never proposes a goal that fails on its first step. A candidate the view's
+`cooled` lists is passed over for the next.
 
-`GoalRunner(source, clock)`: `current` (the running goal or None), `history` (the record rows, `loop.goals` of
-task-15-amendments.md: `{type, args, state, reason, startS, endS, source}`, `startS`/`endS` seconds on the injected
-clock from the runner's creation, `source` the source's `NAME`), `kit`, `why`. `tick(world, actions, view=None)`:
-the kit observes; a running goal that has sent an action is `superseded` (reason: the type of the action that
-replaced it) when the last action sent is not its own (an instinct sent since), `failed "goal budget"` past
-GOAL_MAX_S (90) wall seconds from its proposal, else it observes its own end; with no goal running the source is
-asked once (`view` is the dict, or a callable building it only then), so at most one proposal a tick, and the new
-goal steps at once. A superseded goal is gone; the source may propose the same goal again. `send(cmd)` sends the
+`GoalRunner(source, clock, shunned=None)`: `current` (the running goal or None), `history` (the record rows,
+`loop.goals` of task-15-amendments.md: `{type, args, state, reason, startS, endS, source}`, `startS`/`endS` seconds
+on the injected clock from the runner's creation, `source` the source's `NAME`), `kit`, `cooled`, `why`.
+`observe(world, actions)`, which Survive calls every tick before its branches whether or not the goal branch runs
+(fix 1, I1): the kit's bookkeeping, then the running goal is closed `superseded` (reason: the type of the action
+that replaced it) when the last action sent is not its own, its own being its last sent action, else its `mark` (the
+last action sent when the runner took it, so a goal that has sent nothing, a Rest or one whose first command was
+cooled, is superseded too: fix 1, the spec gap), or closed `failed "goal budget"` past its budget in wall seconds
+from its proposal; so the row's `endS` and the log's `goal` read the pre-emption on the tick after the instinct's
+send, not when the goal branch next runs. `tick(world, actions, view=None)` observes first unless `observe` ran since
+the last tick (a runner ticked alone), lets the running goal read its own end, and with no goal running asks the
+source once (`view` is the dict, or a callable building it only then), so at most one proposal a tick; the new goal
+steps at once. A superseded goal is gone; the source may propose the same goal again. A goal that ends `failed`
+having sent nothing (a first-step failure: an unknown building, no plan) is cooled per `(type, args)` for
+GOAL_COOL_S (30) wall seconds (fix 1, I4): the view lists the cooled goals (`cooled`), the scripted source passes
+them over, and a cooled goal a source still proposes is refused for that tick (`why.refused`), no row written.
+`send(cmd)` sends the
 goal's command and hands the `Action` to the goal (Survive sends through it, as the owner). `line()` is the
 decision log's `goal` field: `{type, args, state, source}` of the running goal, or of the one that ended this tick,
 else None.
@@ -66,10 +80,12 @@ from typing import ClassVar, Optional, Protocol, runtime_checkable
 
 from agent.base.items import use_of
 from agent.base.planner.night import SHUN_MIN, shelter_ended, shelter_plan, shelter_step
-from agent.base.planner.policies import (LOOT_MAX_LEVEL, LOOT_WANTS, PREEMPTED, SCAN_R, Explore, LootHouse, me_xy)
+from agent.base.planner.policies import (LOOT_MAX_LEVEL, LOOT_WANTS, PREEMPTED, SCAN_R, Explore, LootHouse, me_xy,
+                                         place_of)
 from agent.base.pza1 import Scan, WalkTo
 
-GOAL_MAX_S = 90.0     # wall seconds a goal may run before it is failed "goal budget" and replaced
+GOAL_MAX_S = 90.0     # wall seconds a goal may run before it is failed "goal budget" and replaced (a Rest: P23-W)
+GOAL_COOL_S = 30.0    # wall seconds a goal that failed having sent nothing is not taken again (fix 1, I4)
 ARRIVE_R = 1.5        # tiles: an ExploreToward whose place is scanned is done within this of its point
 REST_S = 30.0         # the scripted source's rest
 STOCK_WANTS = ("water", "food", "bandage", "weapon")   # LootBuilding's order of uses
@@ -81,7 +97,8 @@ EXAMPLES = {"ExploreToward": {"x": 120, "y": 205}, "LootBuilding": {"building": 
             "Stock": {"kind": "water"}, "Rest": {"seconds": 30.0}}
 
 __all__ = ["Goal", "ExploreToward", "LootBuilding", "Shelter", "Stock", "Rest", "GoalSource", "ScriptedSource",
-           "GoalRunner", "Kit", "validate", "open_uses", "GOAL_MAX_S", "ARRIVE_R", "REST_S", "STOCK_WANTS",
+           "GoalRunner", "Kit", "validate", "open_uses", "int_id", "goal_key", "GOAL_MAX_S", "GOAL_COOL_S",
+           "ARRIVE_R", "REST_S", "STOCK_WANTS",
            "STOCK_KINDS", "RUN_FIELDS", "STATES", "SCHEMA_PATH", "EXAMPLES"]
 
 
@@ -89,13 +106,19 @@ def _num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-def _int(v):
+def int_id(v):
+    """An int that is not a bool (a building id the schema's integer admits)."""
     return isinstance(v, int) and not isinstance(v, bool)
+
+
+def goal_key(typ, args):
+    """The cooling key of a goal: its type and its args as sorted JSON."""
+    return typ, json.dumps(args, sort_keys=True)
 
 
 def open_uses(world, loot, key, waiting=None):
     """The uses of LOOT_WANTS a loot could still take at container `key`: the container holds an item of the use, is
-    not marked looted for it, and is not waiting on the cap (`LootHouse._waiting`, read off `loot` unless `waiting`
+    not marked looted for it, and is not waiting on the cap (`LootHouse.waiting`, read off `loot` unless `waiting`
     {use: keys} is given). The view counts a container with none as looted."""
     c = world.containers.get(key)
     if c is None or not c["n"] or not c["items"]:
@@ -104,7 +127,7 @@ def open_uses(world, loot, key, waiting=None):
     for u in LOOT_WANTS:
         if u in c["looted"] or not any(use_of(i) == u for i in c["items"]):
             continue
-        skip = waiting[u] if waiting is not None else (loot._waiting(u) if loot is not None else ())
+        skip = waiting[u] if waiting is not None else (loot.waiting(u) if loot is not None else ())
         if key not in skip:
             out.append(u)
     return out
@@ -113,12 +136,12 @@ def open_uses(world, loot, key, waiting=None):
 # ---------------------------------------------------------------- the shared machines
 class Kit:
     """The machines a session's goals share: one `Explore` (its scanned places), one `LootHouse` (its pending loots,
-    capped squares) and `shunned` {building: gameMin} of the Shelter goals."""
+    capped squares) and `shunned` {building: gameMin}, the Shelter goals' shuns (`Night.shunned` when given, M6)."""
 
-    def __init__(self, world=None, actions=None, clock=time.time):
+    def __init__(self, world=None, actions=None, clock=time.time, shunned=None):
         self.explore = Explore(world, actions, clock)
         self.loot = LootHouse(world, actions, clock)
-        self.shunned = {}
+        self.shunned = {} if shunned is None else shunned
 
     def bind(self, world, actions):
         for m in (self.explore, self.loot):
@@ -148,6 +171,7 @@ class Goal:
     def __post_init__(self):
         self.kit = None        # the runner's Kit, else built on the first step
         self.last = None       # the last Action this goal sent
+        self.mark = None       # the last action sent (by anyone) when the runner took this goal
         self.why = {}          # the goal's inputs to its last choice, logged under the goal branch
         self.sent_n = 0        # commands this goal sent
         self._read = None      # the last action whose end observe() has read
@@ -167,6 +191,10 @@ class Goal:
     def end(self, state, reason):
         if self.running:
             self.state, self.reason = state, reason
+
+    def budget(self):
+        """Wall seconds this goal may run from its proposal."""
+        return GOAL_MAX_S
 
     # -- the step -----------------------------------------------------------------------------------------------
     def begin(self, world, actions, clock):
@@ -239,13 +267,12 @@ class ExploreToward(Goal):
             self.end("failed", action.reason or action.state)
 
     def check(self, world, clock):
-        ex = self.kit.explore
-        if ex.place() in ex.scanned and self._dist(world) <= ARRIVE_R:
+        if place_of(world) in self.kit.explore.scanned and self._dist(world) <= ARRIVE_R:
             self.end("done", "arrived")
 
     def choose(self, world, actions, clock):
         ex = self.kit.explore
-        place = ex.place()
+        place = place_of(world)
         if place not in ex.scanned:
             self.why = {"scanAt": list(place), "toward": [self.x, self.y]}
             return Scan(SCAN_R)
@@ -254,7 +281,6 @@ class ExploreToward(Goal):
 
     def sent(self, cmd, action):
         super().sent(cmd, action)
-        self.kit.explore.last = action
         self.kit.explore.sent(cmd, action)
 
 
@@ -263,7 +289,6 @@ class _Looting:
 
     def sent(self, cmd, action):
         super().sent(cmd, action)
-        self.kit.loot.last = action
         self.kit.loot.sent(cmd, action)
 
     def _guard(self):
@@ -299,7 +324,10 @@ class LootBuilding(_Looting, Goal):
         finally:
             loot.within = None
         self.why = {"building": self.building, "want": None}
-        self.end("done", "looted") if self.sent_n else self.end("failed", "nothing to loot")
+        if self.sent_n:
+            self.end("done", "looted")
+        else:
+            self.end("failed", "nothing to loot")
         return None
 
 
@@ -312,6 +340,7 @@ class Shelter(Goal):
         self.plan = shelter_plan(world, self.building)
         if self.plan is None:
             self.why = {"building": self.building, "plan": None}
+            self.kit.shunned[self.building] = world.game_min or 0.0   # I3: never re-proposed every tick
             self.end("failed", "no plan")
 
     def _shun(self, world):
@@ -373,6 +402,9 @@ class Rest(Goal):
     TYPE: ClassVar[str] = "Rest"
     seconds: float
 
+    def budget(self):
+        return max(GOAL_MAX_S, self.seconds)   # ruling P23-W
+
     def check(self, world, clock):
         if clock() - self.started_wall >= self.seconds - 1e-9:
             self.end("done", "rested")
@@ -397,13 +429,15 @@ def _entries():
     return _SCHEMA
 
 
-_JSON_TYPES = {"integer": _int, "number": _num, "string": lambda v: isinstance(v, str)}
+_JSON_TYPES = {"integer": int_id, "number": _num, "string": lambda v: isinstance(v, str)}
 
 
 def _field(t, name, spec, v):
     kind = spec.get("type")
     if kind is not None and not _JSON_TYPES[kind](v):
         raise ValueError("%s.%s: %r is not of type %s" % (t, name, v, kind))
+    if _num(v) and not math.isfinite(v):
+        raise ValueError("%s.%s: %r is not finite" % (t, name, v))
     if "enum" in spec and v not in spec["enum"]:
         raise ValueError("%s.%s: %r not in %s" % (t, name, v, spec["enum"]))
     if "maximum" in spec and v > spec["maximum"]:
@@ -444,7 +478,7 @@ class GoalSource(Protocol):
 
 
 def _nearest_first(buildings):
-    return sorted((b for b in buildings if _int(b.get("id"))),
+    return sorted((b for b in buildings if int_id(b.get("id"))),
                   key=lambda b: (b["dist"] if _num(b.get("dist")) else math.inf, b["id"]))
 
 
@@ -453,43 +487,49 @@ class ScriptedSource:
     NAME = "scripted"
 
     def propose(self, view):
+        cooled = {goal_key(c.get("type"), c.get("args")) for c in view.get("cooled") or () if isinstance(c, dict)}
+        return next((g for g in self.candidates(view) if goal_key(g.TYPE, g.args()) not in cooled), Rest(REST_S))
+
+    def candidates(self, view):
+        """The goals in the scripted order (the module docstring), each one the view admits."""
         level = (view.get("load") or {}).get("level")
         loot_ok = not _num(level) or level <= LOOT_MAX_LEVEL
         wanted, ready = view.get("needs_wanted") or (), view.get("stock_uses") or ()
         if loot_ok:
-            kind = next((k for k in STOCK_KINDS if k in wanted and k in ready), None)
-            if kind is not None:
-                return Stock(kind)
+            for kind in STOCK_KINDS:
+                if kind in wanted and kind in ready:
+                    yield Stock(kind)
         bs = _nearest_first(view.get("buildings") or ())
         if view.get("want_shelter"):
-            b = next((b for b in bs if (b.get("doors") or 0) > 0 and not b.get("shunned")), None)
-            if b is not None:
-                return Shelter(b["id"])
+            for b in bs:
+                if b.get("shelter") and not b.get("shunned"):
+                    yield Shelter(b["id"])
         if loot_ok:
-            b = next((b for b in bs if (b.get("containers") or 0) > (b.get("looted") or 0)), None)
-            if b is not None:
-                return LootBuilding(b["id"])
+            for b in bs:
+                if (b.get("containers") or 0) > (b.get("looted") or 0):
+                    yield LootBuilding(b["id"])
         edge = view.get("edge")
         if edge:
-            return ExploreToward(int(edge[0]), int(edge[1]))
+            yield ExploreToward(int(edge[0]), int(edge[1]))
         pos = view.get("pos") or {}
         if not view.get("scanned_here") and _num(pos.get("x")) and _num(pos.get("y")):
-            return ExploreToward(int(math.floor(pos["x"])), int(math.floor(pos["y"])))
-        return Rest(REST_S)
+            yield ExploreToward(int(math.floor(pos["x"])), int(math.floor(pos["y"])))
 
 
 # ---------------------------------------------------------------- the runner
 class GoalRunner:
-    def __init__(self, source, clock=time.time):
+    def __init__(self, source, clock=time.time, shunned=None):
         self.source = source
         self.clock = clock
         self.t0 = clock()
-        self.kit = Kit(clock=clock)
+        self.kit = Kit(clock=clock, shunned=shunned)
         self.current = None
         self.history = []      # loop.goals: {type, args, state, reason, startS, endS, source} per goal run
+        self.cooled = {}       # goal_key -> wall until a goal that failed having sent nothing is refused
         self.why = {}
         self.actions = None
         self._ended_now = None
+        self._observed = False
 
     def _name(self):
         return getattr(self.source, "NAME", None)
@@ -498,40 +538,57 @@ class GoalRunner:
         return wall - self.t0 if _num(wall) else None
 
     def _close(self, g):
-        self.history.append(dict(g.row(), startS=self._s(g.started_wall), endS=self._s(self.clock()),
-                                 source=self._name()))
+        now = self.clock()
+        self.history.append(dict(g.row(), startS=self._s(g.started_wall), endS=self._s(now), source=self._name()))
+        if g.state == "failed" and g.sent_n == 0:
+            self.cooled[goal_key(g.TYPE, g.args())] = now + GOAL_COOL_S
         self._ended_now, self.current = g, None
 
+    def cooling(self):
+        """The goals cooled now, as `[{type, args}]` sorted (the view's `cooled`)."""
+        now = self.clock()
+        return [{"type": k[0], "args": json.loads(k[1])} for k, until in sorted(self.cooled.items()) if until > now]
+
     def observe(self, world, actions):
-        """The kit's bookkeeping; Survive calls it every tick, the goal branch run or not (a goal that ended on an
-        earlier tick is no longer the log's `goal`)."""
-        self._ended_now = None
+        """The kit's bookkeeping and the running goal's pre-emption and budget (the module docstring); Survive calls
+        it every tick before its branches."""
+        self.actions = actions
+        self._ended_now, self._observed = None, True
         self.kit.observe(world, actions)
+        g = self.current
+        if g is None:
+            return
+        top = actions.history[-1] if actions.history else None
+        if top is not (g.last if g.last is not None else g.mark):
+            g.end("superseded", top.type)
+        elif self.clock() - g.started_wall > g.budget():
+            g.end("failed", "goal budget")
+        if not g.running:
+            self._close(g)
 
     def tick(self, world, actions, view=None):
         """The goal's command this tick, or None (the module docstring)."""
-        self.actions = actions
-        self.kit.observe(world, actions)
-        self._ended_now, proposed, ended = None, None, None
+        if not self._observed:
+            self.observe(world, actions)
+        self._observed = False
+        ended = self.history[-1] if self._ended_now is not None else None
+        proposed, refused = None, None
         g = self.current
         if g is not None:
-            top = actions.history[-1] if actions.history else None
-            if g.last is not None and top is not g.last:
-                g.end("superseded", top.type)
-            elif self.clock() - g.started_wall > GOAL_MAX_S:
-                g.end("failed", "goal budget")
-            else:
-                g.observe(world, actions, self.clock)
+            g.observe(world, actions, self.clock)
             if not g.running:
                 self._close(g)
                 ended = self.history[-1]
         if self.current is None:
             g = self.source.propose(view() if callable(view) else (view if view is not None else {}))
+            if g is not None and self.cooled.get(goal_key(g.TYPE, g.args()), 0.0) > self.clock():
+                refused, g = {"type": g.TYPE, "args": g.args()}, None
             if g is None:
-                self.why = {"proposed": None, "ended": ended}
+                self.why = {"proposed": None, "refused": refused, "ended": ended}
                 return None
             proposed = g.TYPE
             g.started_wall, g.kit = self.clock(), self.kit
+            g.mark = actions.history[-1] if actions.history else None
             self.current = g
         cmd = g.step(world, actions, self.clock)
         if not g.running:

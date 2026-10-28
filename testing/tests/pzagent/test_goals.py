@@ -124,9 +124,9 @@ def view(**k):
     return v
 
 
-def bld(bid, dist, containers=2, looted=0, doors=1, shunned=False):
+def bld(bid, dist, containers=2, looted=0, doors=1, shunned=False, shelter=None):
     return {"id": bid, "dist": dist, "containers": containers, "looted": looted, "doors": doors, "visited": False,
-            "shunned": shunned}
+            "shunned": shunned, "shelter": doors > 0 if shelter is None else shelter}
 
 
 @pytest.mark.parametrize("v, want", [
@@ -139,6 +139,10 @@ def bld(bid, dist, containers=2, looted=0, doors=1, shunned=False):
     (view(buildings=[bld(1, 3.0, looted=2), bld(2, 9.0), bld(3, 5.0, containers=0)], edge=[110, 200]),
      LootBuilding(2)),                                                    # the nearest with an unlooted container
     (view(want_shelter=True, buildings=[bld(1, 3.0, doors=0)], edge=[110, 200]), LootBuilding(1)),
+    (view(want_shelter=True, buildings=[bld(1, 3.0, shelter=False)], edge=[110, 200]), LootBuilding(1)),   # I3
+    (view(buildings=[bld(1, 3.0), bld(2, 9.0)], cooled=[{"type": "LootBuilding", "args": {"building": 1}}]),
+     LootBuilding(2)),                                                    # I4: a cooled goal is passed over
+    (view(cooled=[{"type": "Rest", "args": {"seconds": 30.0}}]), Rest(30.0)),   # the last resort stays
     (view(buildings=[bld(1, 3.0, looted=2)], edge=[110, 200]), ExploreToward(110, 200)),
     (view(scanned_here=False), ExploreToward(100, 200)),                  # no edge: scan the place first
     (view(needs_wanted=["water"], load={"weight": 9.0, "max": 8.0, "level": 2}, buildings=[bld(1, 3.0)],
@@ -316,9 +320,13 @@ def test_the_runners_record_rows_carry_the_contract_keys(tmp_path):
 def test_a_goal_past_goal_max_s_is_failed_and_replaced(tmp_path):
     r = Rig(tmp_path)
     r.frame()
-    src = Src(Rest(120.0), Rest(1.0))
+    g = ExploreToward(130, 200)                                          # its walk never ends: no frame pumps it
+    src = Src(g, Rest(1.0))
     runner = GoalRunner(src, r.clock)
-    runner.tick(r.world, r.acts)
+    runner.kit.bind(r.world, r.acts)
+    runner.kit.explore.scanned.add(runner.kit.explore.place())
+    runner.send(runner.tick(r.world, r.acts))
+    assert r.cmd()[0] == "walkTo"
     r.advance(G.GOAL_MAX_S)
     runner.tick(r.world, r.acts)
     assert runner.history == []                                          # at GOAL_MAX_S exactly: still running
@@ -327,16 +335,113 @@ def test_a_goal_past_goal_max_s_is_failed_and_replaced(tmp_path):
     assert runner.history[0]["state"] == "failed" and runner.history[0]["reason"] == "goal budget"
     assert runner.history[0]["endS"] == G.GOAL_MAX_S + 0.5 and runner.current.args() == {"seconds": 1.0}
     assert G.GOAL_MAX_S == 90.0
+    assert runner.cooled == {}                                           # it had sent: no cool-down
 
 
-def test_the_runner_proposes_at_most_once_a_tick(tmp_path):
+def test_a_rest_is_budgeted_at_its_seconds_and_ends_rested_p23_w(tmp_path):
     r = Rig(tmp_path)
     r.frame()
-    src = Src(Stock("food"), Stock("food"), Stock("food"))               # each fails at its first step
+    runner = GoalRunner(Src(Rest(120.0)), r.clock)
+    runner.tick(r.world, r.acts)
+    assert runner.current.budget() == 120.0 and Rest(30.0).budget() == G.GOAL_MAX_S
+    r.advance(100.0)
+    runner.tick(r.world, r.acts)
+    assert runner.history == []                                          # past GOAL_MAX_S: a rest runs on
+    r.advance(20.0)
+    runner.tick(r.world, r.acts)
+    assert runner.history[0]["state"] == "done" and runner.history[0]["reason"] == "rested"
+
+
+def test_the_runner_proposes_at_most_once_a_tick_and_cools_a_first_step_failure(tmp_path):
+    r = Rig(tmp_path)
+    r.frame()
+    src = Src(Stock("food"), Stock("food"), Rest(1.0), Stock("food"))   # Stock(food) fails at its first step
     runner = GoalRunner(src, r.clock)
     for _ in range(3):
         assert runner.tick(r.world, r.acts) is None
-    assert len(src.views) == 3 and [h["reason"] for h in runner.history] == ["none found"] * 3
+    assert len(src.views) == 3 and [h["reason"] for h in runner.history] == ["none found"]
+    assert runner.cooled == {("Stock", '{"kind": "food"}'): 1000.0 + G.GOAL_COOL_S} and G.GOAL_COOL_S == 30.0
+    assert runner.cooling() == [{"type": "Stock", "args": {"kind": "food"}}]
+    assert runner.current.TYPE == "Rest"                                 # the refused tick wrote no row
+    r.advance(G.GOAL_COOL_S)
+    runner.tick(r.world, r.acts)                                         # the Rest ends; the cool-down passed: taken again
+    assert [h["reason"] for h in runner.history] == ["none found", "rested", "none found"]
+
+
+def test_a_refused_goal_is_named_in_why(tmp_path):
+    r = Rig(tmp_path)
+    r.frame()
+    runner = GoalRunner(Src(Stock("food"), Stock("food")), r.clock)
+    runner.tick(r.world, r.acts)
+    runner.tick(r.world, r.acts)
+    assert runner.why["refused"] == {"type": "Stock", "args": {"kind": "food"}} and runner.current is None
+
+
+@pytest.mark.parametrize("instinct", ["fight", "need"])
+def test_a_rest_pre_empted_by_an_instinct_is_superseded_not_rested(tmp_path, instinct):
+    """The spec gap: a goal that has sent nothing is superseded off its mark; closed in observe (I1), so the log reads
+    it superseded on the tick after the instinct's send, its endS there."""
+    r = Rig(tmp_path)
+    sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(Rest(30.0)))
+    r.frame()
+    sv.tick(r.world, r.acts)
+    assert sv.goals.current.TYPE == "Rest" and sv.goals.current.mark is None
+    r.advance(1.0)
+    if instinct == "fight":
+        frame = lambda: r.frame(zombies=[zombie(1, 103.0, 200.0)])
+    else:
+        r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
+        frame = lambda: r.frame(thirst=0.6)
+    frame()
+    sv.tick(r.world, r.acts)                                             # the instinct sends
+    sent = r.acts.history[-1].type
+    r.advance(1.0)
+    frame()
+    sv.tick(r.world, r.acts)                                             # the instinct holds: observe closes the rest
+    lines = [json.loads(ln) for ln in (tmp_path / "decision.log").read_text(encoding="utf-8").splitlines()]
+    assert lines[1]["goal"]["state"] == "running" and lines[2]["goal"]["state"] == "superseded"
+    assert lines[2]["branch"] != "goal"
+    row = sv.goals.history[0]
+    assert (row["state"], row["reason"], row["endS"]) == ("superseded", sent, 2.0)
+    r.advance(40.0)
+    frame()
+    sv.tick(r.world, r.acts)
+    assert [h["state"] for h in sv.goals.history] == ["superseded"]      # never closed rested past its seconds
+
+
+def test_a_goal_taken_after_an_instinct_reads_its_mark_and_is_not_superseded_by_it(tmp_path):
+    r = Rig(tmp_path)
+    r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
+    sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(Rest(30.0)))
+    r.frame(thirst=0.6)
+    sv.tick(r.world, r.acts)
+    r.answer()
+    r.event("item_removed", itemId=701, fullType="Base.WaterBottle")
+    r.frame()
+    sv.tick(r.world, r.acts)
+    g = sv.goals.current
+    assert g.TYPE == "Rest" and g.mark is r.acts.history[-1]
+    r.advance(1.0)
+    r.frame()
+    sv.tick(r.world, r.acts)
+    assert sv.goals.current is g and g.state == "running"
+
+
+def test_a_shelter_with_no_plan_is_shunned_in_the_shared_store(tmp_path):
+    r = Rig(tmp_path)
+    r.scan([s for s in house(1, 110) if s["door"] is None])
+    r.frame(game_min=500.0)
+    store = {}
+    runner = GoalRunner(Src(Shelter(1)), r.clock, shunned=store)
+    runner.tick(r.world, r.acts)
+    assert runner.history[0]["reason"] == "no plan" and store == {1: 500.0} and runner.kit.shunned is store
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_validate_refuses_a_non_finite_number(bad):
+    with pytest.raises(ValueError) as e:
+        validate({"type": "Rest", "seconds": bad})
+    assert "not finite" in str(e.value)
 
 
 def test_a_view_is_built_only_when_a_goal_is_proposed(tmp_path):

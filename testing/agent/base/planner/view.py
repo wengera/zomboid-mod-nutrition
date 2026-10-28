@@ -12,28 +12,34 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   `containers` (the containers on its squares), `looted` (those a loot could take nothing more from:
   `goals.open_uses` empty, so a container holding only `other` items, or waiting on the cap, counts looted), `doors`
   (its exterior doors on the player's floor, `night.exterior_doors`), `visited` (in `night.visited`), `shunned` (by
-  the night or a Shelter goal, within `night.SHUN_MIN`).
+  the night or a Shelter goal, within `night.SHUN_MIN`), `shelter` (`night.shelter_plan` answers for it: rooms and
+  an exterior door on the player's floor; the scripted Shelter requires it, fix 1 I3).
 - `zombies_near {"6", "12", "25"}`: the zombies the World holds (seen within its ZOMBIE_TTL_S) within 6, 12 and 25
   tiles, each count cumulative.
 - `last_goal {type, args, state, reason}`: the runner's last record row, else None. `events`: the kinds of the last
   three event lines. `want_shelter`: `night.want_shelter` (the night wants and knows no shelter).
 - Beyond the brief's keys, the scripted source's reads: `edge` (`world.unexplored_edge()` as [x, y], else None),
-  `scanned_here` (the player's place is in the goal kit's `Explore.scanned`), `stock_uses` (the uses of
-  `goals.STOCK_WANTS` for which the kit's `LootHouse.target` answers a container now).
+  `scanned_here` (the player's place, `policies.place_of`, is in the goal kit's `Explore.scanned`), `stock_uses` (the
+  uses of `goals.STOCK_WANTS` for which the kit's `LootHouse.target` answers a container now), `cooled` (the goals
+  the runner refuses for now, `GoalRunner.cooling()`: `[{type, args}]`, fix 1 I4).
+
+The view only reads: the kit is bound by its runner's `observe`, never here (fix 1 M5).
 
 `render(view) -> str`: one `key: value` line per key in `KEYS` order, values as compact sorted JSON except
 `buildings`, capped at the BUILDINGS_SHOWN (10) nearest, each `id dist c/l/d v` (`v` visited, `s` shunned, `-`
-neither), joined by "; "; the whole stays under RENDER_MAX (2048) bytes: the buildings are cut from the farthest
-until it fits (a test asserts the bound on a World of 20 buildings and 50 containers).
+neither), joined by "; "; the whole stays under RENDER_MAX (2048) bytes, asserted at return: the buildings are cut
+from the farthest until it fits, then the longest line is halved (its tail replaced by "...") until it does, so a
+long string off the game (an event kind, a goal's reason) cannot pass the bound (a test asserts the bound on a World
+of 20 buildings and 50 containers, and on a view of oversized strings).
 """
 import json
 import math
 import time
 
 from agent.base.items import USES
-from agent.base.planner.goals import STOCK_WANTS, open_uses
-from agent.base.planner.night import exterior_doors
-from agent.base.planner.policies import me_floor, me_xy
+from agent.base.planner.goals import STOCK_WANTS, int_id, open_uses
+from agent.base.planner.night import exterior_doors, shelter_plan
+from agent.base.planner.policies import LOOT_WANTS, me_floor, me_xy, place_of
 
 NEED_MEMORY_S = 120.0
 ZOMBIE_BANDS = (6, 12, 25)
@@ -41,20 +47,16 @@ BUILDINGS_SHOWN = 10
 RENDER_MAX = 2048
 EVENTS_N = 3
 KEYS = ("pos", "hour", "health", "needs", "needs_wanted", "load", "weapon", "inventory_by_use", "buildings",
-        "zombies_near", "last_goal", "events", "want_shelter", "edge", "scanned_here", "stock_uses")
+        "zombies_near", "last_goal", "events", "want_shelter", "edge", "scanned_here", "stock_uses", "cooled")
 
 __all__ = ["view", "render", "KEYS", "NEED_MEMORY_S", "ZOMBIE_BANDS", "BUILDINGS_SHOWN", "RENDER_MAX"]
-
-
-def _int(v):
-    return isinstance(v, int) and not isinstance(v, bool)
 
 
 def _buildings(world, night, kit):
     z = me_floor(world)
     mx, my = me_xy(world)
     loot = kit.loot if kit is not None else None
-    waiting = {u: (loot._waiting(u) if loot is not None else set()) for u in STOCK_WANTS}
+    waiting = {u: (loot.waiting(u) if loot is not None else set()) for u in LOOT_WANTS}
     keys = {}
     for k in world.containers:
         keys.setdefault((world.map.get(k[:3]) or {}).get("building"), []).append(k)
@@ -64,14 +66,15 @@ def _buildings(world, night, kit):
     visited = night.visited if night is not None else set()
     out = []
     for b, rooms in world.interiors().items():
-        if not _int(b):
+        if not int_id(b):
             continue
         near = [sq for sq in rooms if sq[2] == z] or rooms
         dist = min(math.hypot(sq[0] + 0.5 - mx, sq[1] + 0.5 - my) for sq in near)
         cs = keys.get(b, [])
         out.append({"id": b, "dist": round(dist, 1), "containers": len(cs),
                     "looted": sum(1 for k in cs if not open_uses(world, loot, k, waiting)),
-                    "doors": len(exterior_doors(world, b, z)), "visited": b in visited, "shunned": b in shunned})
+                    "doors": len(exterior_doors(world, b, z)), "visited": b in visited, "shunned": b in shunned,
+                    "shelter": shelter_plan(world, b) is not None})
     return sorted(out, key=lambda r: (r["dist"], r["id"]))
 
 
@@ -88,8 +91,6 @@ def view(world, survive):
     mx, my = me_xy(world)
     zs = [math.hypot(z["x"] - mx, z["y"] - my) for z in world.zombies.values()
           if z.get("x") is not None and z.get("y") is not None]
-    if kit is not None:
-        kit.bind(world, getattr(survive, "actions", None))
     edge = world.unexplored_edge()
     last = runner.history[-1] if runner is not None and runner.history else None
     return {
@@ -107,8 +108,9 @@ def view(world, survive):
         "events": [e.get("event") for e in list(world.events)[-EVENTS_N:]],
         "want_shelter": bool(getattr(night, "want_shelter", False)),
         "edge": list(edge) if edge else None,
-        "scanned_here": kit is not None and kit.explore.place() in kit.explore.scanned,
+        "scanned_here": kit is not None and place_of(world) in kit.explore.scanned,
         "stock_uses": [u for u in STOCK_WANTS if kit is not None and kit.loot.target(u) is not None],
+        "cooled": runner.cooling() if runner is not None else [],
     }
 
 
@@ -119,7 +121,7 @@ def _building(b):
                                   mark or "-")
 
 
-def _text(v, shown):
+def _lines(v, shown):
     lines = []
     for k in KEYS:
         if k == "buildings":
@@ -127,14 +129,24 @@ def _text(v, shown):
         else:
             text = json.dumps(v.get(k), sort_keys=True, separators=(",", ":"))
         lines.append("%s: %s" % (k, text))
-    return "\n".join(lines)
+    return lines
+
+
+def _size(lines):
+    return len("\n".join(lines).encode("utf-8"))
 
 
 def render(v):
-    """The view as text (the module docstring), under RENDER_MAX bytes."""
+    """The view as text (the module docstring), under RENDER_MAX bytes, asserted."""
     shown = BUILDINGS_SHOWN
-    text = _text(v, shown)
-    while len(text.encode("utf-8")) >= RENDER_MAX and shown > 0:
+    lines = _lines(v, shown)
+    while _size(lines) >= RENDER_MAX and shown > 0:
         shown -= 1
-        text = _text(v, shown)
+        lines = _lines(v, shown)
+    while _size(lines) >= RENDER_MAX:
+        i = max(range(len(lines)), key=lambda j: len(lines[j].encode("utf-8")))
+        keep = max(len(lines[i]) // 2, len(KEYS[i]) + 2)
+        lines[i] = lines[i][:keep] + "..."
+    text = "\n".join(lines)
+    assert len(text.encode("utf-8")) < RENDER_MAX
     return text
