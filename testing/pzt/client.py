@@ -101,11 +101,11 @@ class Client:
             fh.write(f"username={self.username}\npassword={self.password}\n"
                      f"ip={self.ip}\nport={self.port}\nserverPassword={self.server_password}\n")
         self._upsert_serverlist()
-        upsert_options(os.path.join(self.cache, "options.ini"), HELPER_OPTIONS)   # helper dialogs off (end of file)
+        uncover_scene(self.cache)   # helper dialogs off, the character-info window closed (P23-AN; end of file)
         if self.debug:
             # GameWindow.initShared skips TISLogoState only for -debug clients with this set.
             with open(os.path.join(self.cache, "debug-options.ini"), "w") as fh:
-                fh.write("UI.DisableLogoState=true\nUI.DisableWelcomeMessage=true\n")
+                fh.write(DEBUG_OPTIONS)   # the debug console started hidden too (P23-AN; end of file)
 
     def _upsert_serverlist(self):
         os.makedirs(os.path.join(self.cache, "db"), exist_ok=True)
@@ -259,6 +259,49 @@ class Client:
 
 HELPER_OPTIONS = {"showSurvivalGuide": "false", "showFirstTimeSearchTutorial": "false",
                   "showFirstAnimalZoneInfo": "false"}   # the game's helper dialogs, off on every client
+
+
+HIDDEN_WINDOWS = ("charinfowindow", "charinfowindow.info", "charinfowindow.skills", "charinfowindow.health",
+                  "charinfowindow.clothingIns", "charinfowindow.protection")
+# the layout.ini names of the character-info window and its floated tabs, which cover the scene (P23-AN)
+
+# A -debug client's debug-options.ini, rewritten whole at every prepare. UIManager.init shows the debug
+# console only when Core.debug and UI.DebugConsole.StartVisible (default true) both hold, so the
+# console is started hidden (P23-AN): the session screenshots showed it over the character.
+DEBUG_OPTIONS = "UI.DisableLogoState=true\nUI.DisableWelcomeMessage=true\nUI.DebugConsole.StartVisible=false\n"
+
+
+def uncover_scene(cache):
+    """Every client prepare, every profile (P23-AN): the game's helper dialogs off in options.ini
+    and the saved character-info window closed in Lua/layout.ini, both in the per-run client copy."""
+    upsert_options(os.path.join(cache, "options.ini"), HELPER_OPTIONS)
+    hide_layout_windows(os.path.join(cache, "Lua", "layout.ini"), HIDDEN_WINDOWS)
+
+
+def hide_layout_windows(path, names):
+    """Write visible=false on every layout.ini line naming one of `names` (in each resolution
+    section), keeping every other line, token and line ending byte for byte. ISLayoutManager
+    restores a window's visibility from its line; a missing file or line is left alone (the
+    character-info window then opens hidden: its visibleOnStartup defaults false)."""
+    if not os.path.exists(path):
+        return
+    text = open(path, encoding="utf-8", newline="").read()
+    out = []
+    for line in text.splitlines(keepends=True):
+        body = line.rstrip("\r\n")
+        tokens = body.split(" ")
+        if tokens[0] in names:
+            at = next((i for i, t in enumerate(tokens) if t.startswith("visible=")), None)
+            if at is None:
+                tokens.append("visible=false")
+            else:
+                tokens[at] = "visible=false"
+            line = " ".join(tokens) + line[len(body):]
+        out.append(line)
+    new = "".join(out)
+    if new != text:
+        with open(path, "w", encoding="utf-8", newline="") as fh:
+            fh.write(new)
 
 
 def upsert_options(path, values):

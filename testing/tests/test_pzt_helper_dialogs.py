@@ -1,5 +1,7 @@
 """Harness: no helper dialogs over the test clients. Client.prepare() sets three options.ini keys
-false in place (every other byte kept, CRLF kept); Server.seed() blanks ServerWelcomeMessage."""
+false in place (every other byte kept, CRLF kept); Server.seed() blanks ServerWelcomeMessage.
+P23-AN: prepare() also closes the saved character-info window in the per-run Lua/layout.ini and
+starts a -debug client's debug console hidden (UI.DebugConsole.StartVisible=false)."""
 import os, sys, tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import pytest
@@ -73,10 +75,84 @@ def test_twice_changes_nothing(tmp_path, monkeypatch):
     assert os.stat(_opts(tmp_path)).st_mtime_ns == mtime
 
 
-def test_debug_console_and_debugger_not_touched(tmp_path, monkeypatch):
+def test_debug_console_closed_debugger_not_touched(tmp_path, monkeypatch):
+    # P23-AN: the debug console starts hidden (UIManager.init reads UI.DebugConsole.StartVisible)
     _prepare(_client(tmp_path, debug=True), monkeypatch)
-    dbg = open(os.path.join(str(tmp_path), "debug-options.ini")).read()
-    assert "DebugConsole" not in dbg and "Debugger" not in dbg
+    dbg = open(os.path.join(str(tmp_path), "debug-options.ini")).read().splitlines()
+    assert "UI.DebugConsole.StartVisible=false" in dbg
+    assert "UI.DisableLogoState=true" in dbg and "UI.DisableWelcomeMessage=true" in dbg
+    assert not any("Debugger" in line for line in dbg)
+
+
+def test_release_client_writes_no_debug_options(tmp_path, monkeypatch):
+    _prepare(_client(tmp_path, debug=False), monkeypatch)
+    assert not os.path.exists(os.path.join(str(tmp_path), "debug-options.ini"))
+
+
+# ---- P23-AN: the saved character-info window closed in the per-run layout.ini -------------
+
+def _layout(tmp):
+    return os.path.join(str(tmp), "Lua", "layout.ini")
+
+
+LAYOUT = (b"[1280x720]\r\n"
+          b"ISSearchWindow x=120 y=300 width=420 height=192 visible=false pin=true\r\n"
+          b"charinfowindow x=300 y=100 visible=true pin=true tabs=info,skills,health,clothingIns,protection current=info\r\n"
+          b"inventory0 x=213 y=0 width=427 height=240 visible=true pin=false column2=253 sortBy=nameInc\r\n"
+          b"charinfowindow.health x=5 y=6 width=300 height=400 visible=true pin=true\r\n"
+          b"chat x=15 y=320 width=500 height=200 visible=true locked=false\r\n"
+          b"[1920x1080]\r\n"
+          b"charinfowindow x=1 y=2 pin=false\r\n")
+
+
+@pytest.mark.parametrize("debug", [False, True])
+def test_layout_charinfo_closed_other_bytes_kept(tmp_path, monkeypatch, debug):
+    os.makedirs(os.path.dirname(_layout(tmp_path)))
+    open(_layout(tmp_path), "wb").write(LAYOUT)
+    _prepare(_client(tmp_path, debug), monkeypatch)
+    after = open(_layout(tmp_path), "rb").read()
+    assert after == LAYOUT.replace(
+        b"charinfowindow x=300 y=100 visible=true pin", b"charinfowindow x=300 y=100 visible=false pin").replace(
+        b"charinfowindow.health x=5 y=6 width=300 height=400 visible=true",
+        b"charinfowindow.health x=5 y=6 width=300 height=400 visible=false").replace(
+        b"charinfowindow x=1 y=2 pin=false\r\n", b"charinfowindow x=1 y=2 pin=false visible=false\r\n")
+    assert b"inventory0 x=213 y=0 width=427 height=240 visible=true" in after   # other windows as saved
+    assert b"chat x=15 y=320 width=500 height=200 visible=true" in after
+
+
+def test_layout_missing_file_left_missing(tmp_path, monkeypatch):
+    _prepare(_client(tmp_path, debug=True), monkeypatch)
+    assert not os.path.exists(_layout(tmp_path))
+
+
+def test_layout_without_charinfo_untouched(tmp_path, monkeypatch):
+    os.makedirs(os.path.dirname(_layout(tmp_path)))
+    body = b"[1280x720]\nchat x=15 y=320 visible=true locked=false\ncharinfowindowX x=1 y=1 visible=true\n"
+    open(_layout(tmp_path), "wb").write(body)
+    mtime = os.stat(_layout(tmp_path)).st_mtime_ns
+    _prepare(_client(tmp_path), monkeypatch)
+    assert open(_layout(tmp_path), "rb").read() == body
+    assert os.stat(_layout(tmp_path)).st_mtime_ns == mtime
+
+
+def test_layout_twice_changes_nothing(tmp_path, monkeypatch):
+    os.makedirs(os.path.dirname(_layout(tmp_path)))
+    open(_layout(tmp_path), "wb").write(LAYOUT)
+    c = _client(tmp_path, debug=True)
+    _prepare(c, monkeypatch)
+    first = open(_layout(tmp_path), "rb").read()
+    mtime = os.stat(_layout(tmp_path)).st_mtime_ns
+    _prepare(c, monkeypatch)
+    assert open(_layout(tmp_path), "rb").read() == first
+    assert os.stat(_layout(tmp_path)).st_mtime_ns == mtime
+
+
+def test_layout_falsifier_a_prepare_that_skips_the_layout_fails(tmp_path, monkeypatch):
+    os.makedirs(os.path.dirname(_layout(tmp_path)))
+    open(_layout(tmp_path), "wb").write(LAYOUT)
+    monkeypatch.setattr(cl, "hide_layout_windows", lambda *a, **k: None)
+    _prepare(_client(tmp_path), monkeypatch)
+    assert b"charinfowindow x=300 y=100 visible=true" in open(_layout(tmp_path), "rb").read()
 
 
 def test_server_seed_blanks_welcome_message(tmp_path, monkeypatch):
