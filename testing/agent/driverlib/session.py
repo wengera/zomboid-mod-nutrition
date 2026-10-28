@@ -11,12 +11,15 @@ out["readings"][phase]):
                wait_ms}. A failed hello skips the rest (stop `error`, or `bus_dead` for a park).
   damage_hook  the server's damage listener installed before the kit (`damage.watch USER` once), its records merged as
                the loop merges them; {ok, hooked, n, counts, last_i, ack}.
-  kit          a weapon already held (the inventory's `weapon` ids off world.by_use(), read after the hello and the
-               first sight's item_added lines; KIT's own id first) is kept: no spawn (a chain's later session holds
+  kit          the first sight is awaited first: pump until the World's inventory count reaches the first frame's
+               `load.n` (the inventory's item_added events drain behind the first frame through the Link's backlog),
+               KIT_TIMEOUT_S at most, recorded as kit.first_sight {items, loadN, waitMs, complete}. A weapon already
+               held (the inventory's `weapon` ids off world.by_use(); KIT's own id first) is kept: no spawn (a chain's later session holds
                the last one's bat, and a spawn each session would build the load itself, C-1), source "held", and
                Equip(itemId) only when the frame's weapon is null. Else KIT x1 through xs.spawn (RCON additem
-               confirmed by item.get); pump until an `item_added` of KIT (KIT_TIMEOUT_S; else the first KIT the
-               inventory holds, source "inventory"). Equip awaited to a terminal state (ACT_TIMEOUT_S); pump until a
+               confirmed by item.get); pump until an `item_added` of KIT whose id is the spawn's confirmed one, else
+               not among the ids held before the spawn (KIT_TIMEOUT_S; else the first such KIT the inventory holds,
+               source "inventory"). Equip awaited to a terminal state (ACT_TIMEOUT_S); pump until a
                frame's weapon.type is the item's (EQUIP_TIMEOUT_S). {spawn (None when held), item {itemId, source,
                fullType, seq, wallMs}, equip (None when no Equip was sent), weapon_frame, armed, ok}. An unconfirmed
                spawn or equip is recorded and the session goes on.
@@ -39,8 +42,10 @@ THE STOP: at every stop reason, before the poll worker's join and the stop's own
 the transport pumped (no planner tick) until the stop's act line and a later frame are read, or STOP_SETTLE_S: a walk,
 a steer or a loot left running would carry the character on through the teardown, and the next session's lineage
 would read that drift as a broken save (I-6). loop.stopped {sent, aid, state, acked, ack_seq, wallS (the loop's
-seconds at the send), settleS}; loop.last_frame_after_stop: the last kept frame (the lineage's previous frame) is one
-after the stop's act line. A sleep is not woken by a stop; its lineage reading is the guide's. out["stop"]'s wallS,
+seconds at the send), woke, settleS}; loop.last_frame_after_stop: the last kept frame (the lineage's previous frame) is one
+after the stop's act line. The stop WAKES a sleeping character, by design (ruling P23-AE): the Lua's sleep stop hook fires on the supersede
+(the sleep ends `failed superseded`), which ends the sleep's fast-forward before the server saves; `woke` is true when
+the current action at the stop was a `sleep`. out["stop"]'s wallS,
 gameMin and worldAge are read at the stop, before the settle.
 THE WORKER AND THE MAIN THREAD: the worker's reads run through xs.step, which appends rows to out["steps"] and, on a
 stall, adds a ping row and (xs.mark_dead) out["abort"], a note and a timeline mark, all while the loop's xs.persist may
@@ -579,10 +584,26 @@ class Session:
         ids.sort(key=lambda i: self.world.inventory.get(i, {}).get("fullType") != kit)
         return ids[0] if ids else None
 
+    def first_sight(self):
+        """Pump until the inventory holds the first frame's `load.n` items (KIT_TIMEOUT_S at most); {items, loadN,
+        waitMs, complete}. The events behind the first frame arrive after it, so a read before them sees no weapon."""
+        t0 = self.clock()
+        f = next((l for l in self.lines if l.get("kind") == "frame"), None)
+        n = _num(_d((f or {}).get("load")).get("n"))
+        load_n = int(n) if n is not None else 0
+        done = self.wait(lambda: len(self.world.inventory) >= load_n, self.lim["KIT_TIMEOUT_S"])
+        fs = {"items": len(self.world.inventory), "loadN": load_n, "waitMs": (self.clock() - t0) * 1000.0,
+              "complete": done}
+        if not done:
+            self.xs.note("kit: first sight incomplete: %d of %d items after %s s" % (fs["items"], load_n,
+                                                                                    self.lim["KIT_TIMEOUT_S"]))
+        return fs
+
     def phase_kit(self):
         kit = self.lim["KIT"]
         r = {"spawn": None, "item": None, "equip": None, "weapon_frame": None, "armed": False, "ok": False}
         self.rd["kit"] = r
+        r["first_sight"] = self.first_sight()
         held = self.held_weapon(kit)
         if held is not None:
             full = self.world.inventory.get(held, {}).get("fullType")
@@ -596,14 +617,21 @@ class Session:
             r["ok"] = self.equip(held, full, r)
             return
         i0 = len(self.lines)
+        before = set(self.world.inventory)
         r["spawn"] = self.xs.spawn(kit, 1, "kit")
-        self.wait(lambda: item_added(self.lines[i0:], kit) is not None, self.lim["KIT_TIMEOUT_S"])
-        ev = item_added(self.lines[i0:], kit)
+        new_id = _d((r["spawn"] or {}).get("after")).get("id")      # the server's confirmed id, when it read one
+
+        def fresh():
+            return item_added([l for l in self.lines[i0:] if l.get("itemId") not in before
+                               and (new_id is None or str(l.get("itemId")) == str(new_id))], kit)
+        self.wait(lambda: fresh() is not None, self.lim["KIT_TIMEOUT_S"])
+        ev = fresh()
         if ev is not None:
             r["item"] = {"itemId": ev.get("itemId"), "source": "item_added", "fullType": kit, "seq": ev.get("seq"),
                          "wallMs": ev.get("wallMs")}
         else:
-            ids = sorted(i for i, it in self.world.inventory.items() if it.get("fullType") == kit and item_id_ok(i))
+            ids = sorted(i for i, it in self.world.inventory.items()
+                         if it.get("fullType") == kit and item_id_ok(i) and i not in before)
             if ids:
                 r["item"] = {"itemId": ids[0], "source": "inventory", "fullType": kit, "seq": None, "wallMs": None}
             self.xs.note("kit: no item_added of %s within %s s%s" % (kit, self.lim["KIT_TIMEOUT_S"],
@@ -699,9 +727,11 @@ class Session:
         line and a later frame are read, or STOP_SETTLE_S; self.stopped records it. Never raises: the stop's record
         and the teardown follow whatever the link does."""
         rec = {"sent": False, "aid": None, "state": None, "acked": False, "ack_seq": None, "wallS": self.loop_s(),
-               "settleS": None}
+               "woke": False, "settleS": None}
         self.stopped = rec
         t0 = self.clock()
+        cur = self.actions.current
+        rec["woke"] = cur is not None and cur.type == "sleep"
         try:
             a = self.actions.stop()
             rec.update(sent=True, aid=a.aid)

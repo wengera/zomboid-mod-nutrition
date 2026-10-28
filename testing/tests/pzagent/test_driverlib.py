@@ -21,6 +21,7 @@ import types
 import pytest
 
 from agent.base import gates as GT
+from agent.base import pza1
 from agent.base.planner.survive import Survive
 from agent.base.transport.files import FileTransport
 from agent.driverlib import chain as CH
@@ -378,6 +379,7 @@ class Clock:
 
 
 KIT_ID = 5001
+OLD_ID = 4999
 ZID = 77
 
 
@@ -388,13 +390,16 @@ class DayMod(FakeMod):
     damage event at the drain's start), `zombie_at` (zombie ZID at 1.5 tiles from then until an attack kills it),
     `lua_err_from` / `lua_err_every`, `silent_from` (no line written from then), `hello_mode`, `no_hello` (no hello
     line), `zombie_far_s` and `zombie_dist`, `bite_at` (body.bitten 0 -> 1 and a hurt part from then), `held` (the bat
-    in the inventory at the first sight, a chain's later session) and `wielded` (the bat in the hand from the start).
+    in the inventory at the first sight, a chain's later session) and `wielded` (the bat in the hand from the start),
+    `first_sight_ticks` (the held bat's item_added arrives that many ticks after the first frame, whose load.n
+    already counts it) and `late_old` (an older bat, id OLD_ID, item_added on the tick after the spawn's tick, before
+    the new bat's). A `sleep` stays accepted until the next command, which ends it `failed superseded`.
     Every other command, stop included, is accepted and done."""
 
     def __init__(self, d, clock, die_from=None, drain=5.0, amount=None, floor=0.0, server_damage=True,
                  client_damage=False, zombie_at=None, lua_err_from=None, lua_err_every=1.0, silent_from=None,
                  hello_mode="append", no_hello=False, zombie_far_s=0.0, zombie_dist=1.5, bite_at=None, held=False,
-                 wielded=False):
+                 wielded=False, first_sight_ticks=0, late_old=False):
         super().__init__(d, clock=clock.now)
         self.clk, self.t0 = clock, clock.t
         self.hz = 10
@@ -406,10 +411,12 @@ class DayMod(FakeMod):
         self.zombie_far_s, self.zombie_dist, self.bite_at = zombie_far_s, zombie_dist, bite_at
         self.health, self.weapon, self.has_kit = 100.0, None, False
         self.pending, self.cmd_seen, self.cmds = [], 0, []
+        self.late, self.late_old, self.sleeping, self.load_n = [], late_old, None, 1 if held else 0
         self.server_records = []
         if held:                                                              # a chain's later session: the bat kept
             self.has_kit = True
-            self.pending.append({"itemId": KIT_ID, "fullType": KIT, "weight": 1.5, "use": "weapon"})
+            ev = {"itemId": KIT_ID, "fullType": KIT, "weight": 1.5, "use": "weapon"}
+            (self.late.append([first_sight_ticks, ev]) if first_sight_ticks else self.pending.append(ev))
         if wielded:
             self.weapon = {"type": KIT, "cond": 1.0, "reach": 1.125, "ammo": None}
         if not no_hello:
@@ -431,6 +438,9 @@ class DayMod(FakeMod):
 
     def additem(self):
         self.has_kit = True
+        self.load_n += 1
+        if self.late_old:                                    # an older bat's event lands first, on the same tick
+            self.pending.append({"itemId": OLD_ID, "fullType": KIT, "weight": 1.5})
         self.pending.append({"itemId": KIT_ID, "fullType": KIT, "weight": 1.5})
 
     def _zombie_live(self):
@@ -450,7 +460,13 @@ class DayMod(FakeMod):
         if t == "attack" and not (args["targetId"] == ZID and self._zombie_live()):
             self.act(aid, "rejected", t, reason="no target")
             return
+        if self.sleeping is not None:
+            self.act(self.sleeping, "failed", "sleep", reason="superseded")
+            self.sleeping = None
         self.act(aid, "accepted", t)
+        if t == "sleep":
+            self.sleeping = aid
+            return
         if t == "equip":
             self.weapon = {"type": KIT, "cond": 1.0, "reach": 1.125, "ammo": None}
         if t == "attack":
@@ -468,6 +484,11 @@ class DayMod(FakeMod):
         for ev in self.pending:
             self.event("item_added", **ev)
         self.pending = []
+        for d in self.late:
+            d[0] -= 1
+            if d[0] <= 0:
+                self.event("item_added", **d[1])
+        self.late = [d for d in self.late if d[0] > 0]
         wall = int(round(self.clk.t * 1000))
         if self.die_from is not None and self.s() >= self.die_from - 1e-9 and self.health > self.floor:
             if self.client_damage and self.health == 100.0:
@@ -486,7 +507,8 @@ class DayMod(FakeMod):
         body = dict(DEFAULT_FRAME["body"], health=self.health)
         if self.bite_at is not None and self.s() >= self.bite_at - 1e-9:
             body.update(bitten=1, parts=[{"i": 5, "h": 80.0}])
-        self.frame(gameMin=480.0 + self.s() * 16.0 / 60.0, body=body, weapon=self.weapon, zombies=zs)
+        self.frame(gameMin=480.0 + self.s() * 16.0 / 60.0, body=body, weapon=self.weapon, zombies=zs,
+                   load=dict(DEFAULT_FRAME["load"], n=self.load_n))
 
 
 class FakeServer:
@@ -1165,3 +1187,49 @@ def test_server_reads_are_one_helper_behind_due_and_latest(tmp_path, monkeypatch
     p = run_session(tmp_path / "p", monkeypatch, "polls", limits={"DAY_CAP_S": 3})
     assert p.day.reads.polls is p.day.polls
     assert p.out["loop"]["server_polls"] == r.out["loop"]["server_polls"] == 1
+
+
+# ================================================================ residual D: the stop wakes a sleeper, the kit's first sight
+def _quiet(sess):
+    sess.planner_tick = lambda: None                  # the planner sends nothing: the test's own actions only
+
+
+def test_the_closing_stop_wakes_a_sleeper_and_records_it(tmp_path, monkeypatch):
+    """P23-AE: the loop's Stop ends a running sleep (`failed superseded`); loop.stopped.woke says so."""
+    def setup(sess):
+        _quiet(sess)
+        loop = sess.phase_loop
+
+        def sleep_first():
+            sess.actions.send(pza1.Sleep())
+            return loop()
+        sess.phase_loop = sleep_first
+    r = run_session(tmp_path, monkeypatch, limits={"DAY_CAP_S": 3}, setup=setup)
+    sl = next(a for a in r.day.actions.history if a.type == "sleep")
+    assert sl.state == "failed" and sl.reason == "superseded"
+    assert r.out["loop"]["stopped"]["woke"] is True and r.out["loop"]["stopped"]["acked"] is True
+    q = run_session(tmp_path / "q", monkeypatch, limits={"DAY_CAP_S": 3}, setup=_quiet)
+    assert q.out["loop"]["stopped"]["woke"] is False
+
+
+def test_the_kit_waits_for_a_late_first_sight_and_keeps_the_bat(tmp_path, monkeypatch):
+    """N-2: the held bat's item_added arrives two ticks behind the first frame (load.n 1): no spawn, the bat equipped."""
+    r = run_session(tmp_path, monkeypatch, limits={"DAY_CAP_S": 5}, held=True, first_sight_ticks=2)
+    kit = r.out["readings"]["kit"]
+    fs = kit["first_sight"]
+    assert fs["loadN"] == 1 and fs["items"] == 1 and fs["complete"] is True and fs["waitMs"] > 0
+    assert r.xs.server.rcons == [] and kit["spawn"] is None
+    assert kit["item"]["source"] == "held" and kit["item"]["itemId"] == KIT_ID
+    assert kit["armed"] is True and kit["ok"] is True
+    assert [c["args"] for c in r.mod.cmds if c["type"] == "equip"] == [{"itemId": KIT_ID}]
+
+
+def test_the_kit_matches_its_spawn_by_a_new_id_not_a_late_older_bat(tmp_path, monkeypatch):
+    """N-2: no bat at the first sight (load.n 0, complete at once): a spawn; an older bat's event lands before the
+    spawn's own on the same tick, and the spawn is matched by its id, so the older one is never equipped."""
+    r = run_session(tmp_path, monkeypatch, limits={"DAY_CAP_S": 5}, late_old=True)
+    kit = r.out["readings"]["kit"]
+    assert kit["first_sight"]["loadN"] == 0 and kit["first_sight"]["complete"] is True
+    assert len(r.xs.server.rcons) == 1 and kit["item"]["source"] == "item_added"
+    assert kit["item"]["itemId"] == KIT_ID
+    assert [c["args"] for c in r.mod.cmds if c["type"] == "equip"] == [{"itemId": KIT_ID}]
