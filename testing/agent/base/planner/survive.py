@@ -141,8 +141,8 @@ from agent.base.items import days_fresh
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Fight,
-                                         Flee, adoptable, blocked, exit_plan, in_building, item_id_ok, line_to,
-                                         spare, target_id_ok, zdist)
+                                         Flee, adoptable, blocked, exit_plan, in_building, in_reach, item_id_ok,
+                                         line_to, spare, target_id_ok, zdist)
 from agent.base.planner.view import view
 from agent.base.pza1 import Consume, Drop
 
@@ -320,8 +320,9 @@ class Survive:
         when the nearest held threat is within CORNERED_R and either the flee's last steer leg ended stuck
         (`Flee.stuck`: moved under STUCK_MOVE) or the character stands on a room square (fix round 1: at melee range
         the branch fights before any walk out, which also covers a walk out that failed and a room with no way out),
-        on the nearest reachable held threat; it stays cornered on that id until the zombie is dead, gone or marked
-        unreachable (the Fight ended) or the nearest held threat is beyond `corner_free`: CORNER_FREE_R for a stuck
+        on the nearest held threat `in_reach` (fix round 2, G4: within POINT_BLANK_R, or within CORNERED_R with its
+        line not read blocked; its unreachable mark aside); it stays cornered on that id until the zombie is dead,
+        gone, or marked unreachable and out of reach (the Fight ended), or the nearest held threat is beyond `corner_free`: CORNER_FREE_R for a stuck
         leg's corner, CORNERED_R for one taken on a room square (it walks out, adopts or holds once the nearest is
         beyond melee range; a way out is never known at melee range, every exit's line starting within EXIT_CLEAR_R).
         The cornered Fight swings at a target within POINT_BLANK_R whatever its line reads (`Fight.point_blank`). A
@@ -333,13 +334,13 @@ class Survive:
         if self.cornered is not None:
             z = self.world.zombies.get(self.cornered)
             if (z is not None and z.get("x") is not None and z.get("y") is not None and nearest <= self.corner_free
-                    and (zdist(self.world, z) <= CORNERED_R
+                    and (in_reach(self.world, z, CORNERED_R)
                          or self.cornered not in blocked(self.unreachable, self.clock()))):
                 return self.cornered
             self.cornered, self._corner_fight = None, None
             return None
-        reach = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and z.get("x") is not None
-                 and z.get("y") is not None and zdist(self.world, z) <= CORNERED_R]   # I3: marks aside in reach
+        reach = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid)
+                 and in_reach(self.world, z, CORNERED_R)]   # I3, G4: marks aside, within 1.0 or a line not blocked
         if nearest > CORNERED_R or not reach:
             return None
         stuck = self.mode == "flee" and self.flee is not None and self.flee.stuck()

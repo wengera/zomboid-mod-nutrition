@@ -1746,3 +1746,84 @@ def test_a_dropped_exit_walk_with_nothing_left_unarmed_stops_and_holds(tmp_path)
         r.frame(x=me[0], y=me[1], zombies=east, weapon=None)
         tick(r, sv)
     assert r.cmd() == ("stop", {}) and threat_why(tmp_path)["trapped"] == 1
+
+
+# ================================================================ survival 2 fix round 2 (the re-review's G4)
+def wall_thumper(boxed):
+    """`closed_room` with the player at (102.5, 200.4) inside its north wall and zombie 1 outside it at (102.5, 199.1),
+    1.3 tiles off, its line blocked by the wall; `boxed`, the zombie's open neighbours solid (no reposition square)."""
+    sqs = closed_room()
+    if boxed:
+        sqs += [square(x, y, solid=True) for x, y in ((101, 198), (102, 198), (103, 198), (101, 199), (103, 199))]
+    return sqs
+
+
+def test_a_zombie_at_1_3_tiles_behind_a_blocked_line_is_no_corner_and_the_tick_ends(tmp_path):
+    """G4, the recursion probe: e42a7efb cornered on it, freed its mark and re-pinned it after every mark until a
+    RecursionError (the driver loop's catch-all would end the session). It is no corner's target (not `in_reach`);
+    the broken hold's Fight marks it unreachable once and sends nothing at it."""
+    r, sv = make(tmp_path)
+    r.scan(wall_thumper(boxed=True))
+    me = (102.5, 200.4)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 102.5, 199.1, me=me)])
+    assert P.line_to(r.world, r.world.zombies[1]) is False and not P.in_reach(r.world, r.world.zombies[1], 1.5)
+    tick(r, sv)
+    assert "cornered" not in threat_why(tmp_path) and sv.cornered is None
+    assert all(a.type != "attack" for a in r.acts.history) and 1 in sv.unreachable
+
+
+def test_a_point_blank_fight_never_re_pins_a_zombie_it_marked_behind_a_blocked_line(tmp_path):
+    """G4, the recursion and the walk probes on the Fight itself (`mark_free_r` 1.5, `point_blank`): boxed, the mark
+    ends the choose with no command; open, the one reposition walk goes, and after its second blocked read the mark
+    holds: no walk re-sent each tick."""
+    for boxed in (True, False):
+        d = tmp_path / str(boxed)
+        d.mkdir()
+        r = Rig(d)
+        r.scan(wall_thumper(boxed))
+        me = (102.5, 200.4)
+        r.frame(x=me[0], y=me[1], zombies=[zombie(1, 102.5, 199.1, me=me)])
+        f = P.Fight(r.world, r.acts, r.clock, target=1)
+        f.point_blank, f.mark_free_r = True, 1.5
+        if boxed:
+            assert f.step() is None and 1 in f.unreachable and r.acts.history == []
+            continue
+        f.step()
+        assert r.cmd()[0] == "walkTo" and f.repositioned
+        r.answer()
+        r.frame(x=me[0], y=me[1], zombies=[zombie(1, 102.5, 199.1, me=me)])
+        for _ in range(3):
+            assert f.step() is None
+            r.frame(x=me[0], y=me[1], zombies=[zombie(1, 102.5, 199.1, me=me)])
+        assert [a.type for a in r.acts.history] == ["walkTo"] and 1 in f.unreachable
+
+
+def test_an_id_marked_in_a_choose_is_never_freed_within_it(tmp_path):
+    """G4: the recursion's guard: an id marked during the running choose stays skipped whatever `mark_free_r` frees;
+    the next choose starts clean."""
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(7, 100.8, 200.0)])
+    f = P.Fight(r.world, r.acts, r.clock)
+    f.mark_free_r = 1.5
+    f.unreachable[7] = r.clock() + 20.0
+    assert f.blocked() == set()                                   # in reach at 0.8: freed
+    f._mark_unreachable(7)
+    assert f.blocked() == {7}
+    f.choose()
+    assert f._marked_now == set()
+
+
+def test_e2_at_line_164_with_a_third_zombie_held_the_trapped_fight_answers(tmp_path):
+    """The re-review's minor: line 164's own test passes with `_trapped_fight` off (the broken hold's one-or-two
+    fallback fights there). With a third held zombie behind the bathroom's walls in the hall, that fallback is out
+    (`many`); no way out and nothing to adopt: the trapped fight (G3) takes the nearest, 12839."""
+    w = e2_world(164)
+    w.zombies[99999] = dict(zombie(99999, 10744.5, 10633.5), seenWallMs=w.frame_wall_ms)
+    held = [z for z in w.zombies.values() if z.get("x") is not None and P.zdist(w, z) <= P.DISENGAGE_R]
+    assert len(held) == 3 and all(P.line_to(w, z) is False for z in held)
+    r = Rig(tmp_path)
+    sv = Survive(w, r.acts, str(tmp_path / "decision.log"), r.clock)
+    sv.mode, sv.flee = "flee", P.Flee(w, r.acts, r.clock)
+    sv.closing = (2, 5.626)
+    sv.tick(w, r.acts)
+    assert sv.mode == "fight" and sv.fight.target == 12839 and threat_why(tmp_path)["fight"] is True

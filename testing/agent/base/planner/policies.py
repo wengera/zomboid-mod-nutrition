@@ -280,6 +280,16 @@ def line_to(world, z):
     return world.line_clear(a, b)
 
 
+def in_reach(world, z, r):
+    """Zombie `z` is in a cornered Fight's reach (fix round 2, G4): within POINT_BLANK_R, or within `r` with its line
+    not read blocked (`line_to` True or None). A zombie at 1.0-1.5 tiles behind a blocked line is no corner's target:
+    it is hitting the wall from outside."""
+    if z.get("x") is None or z.get("y") is None:
+        return False
+    d = zdist(world, z)
+    return d <= POINT_BLANK_R or (d <= r and line_to(world, z) is not False)
+
+
 def blocked(unreachable, now):
     """The ids of `unreachable` (id -> wall until) still skipped at `now`."""
     return {zid for zid, until in unreachable.items() if until > now}
@@ -295,7 +305,8 @@ class Fight(Policy):
         self.target = target                # the pinned zombie id, None until the first choose pins one
         self.only = None                    # a set of zombie ids the Fight may target (Survive's door fight), or None
         self.point_blank = False            # a cornered Fight: a target within POINT_BLANK_R skips the line check
-        self.mark_free_r = 0.0              # a cornered Fight: no zombie this near is skipped for its mark (I3)
+        self.mark_free_r = 0.0              # a cornered Fight: no zombie `in_reach` this near is skipped for its mark
+        self._marked_now = set()            # the ids marked during the running choose (G4), skipped by the recursion
         self.repositioned = False           # the one reposition walk on the pinned target was sent
         self.no_progress = 0                # started swings in a row on `_streak_id` that took no health
         self._streak_id = None
@@ -303,21 +314,22 @@ class Fight(Policy):
         self._counted = None                # the last attack whose result was counted
 
     def blocked(self):
-        """The ids skipped now; a cornered Fight (`mark_free_r`, fix round 1 I3) never skips a zombie within that
-        radius, whatever its mark: it is in reach and biting."""
+        """The ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1 I3), a marked
+        zombie `in_reach` within that radius (fix round 2, G4: within POINT_BLANK_R, or with a line not read blocked;
+        one behind a blocked line at 1.0-1.5 stays marked); and always every id marked during this choose (G4: the
+        mark's recursion never re-pins the id it just marked)."""
         out = blocked(self.unreachable, self.clock())
         if self.mark_free_r > 0.0:
             zs = self.world.zombies
-            out = {zid for zid in out if not (zid in zs and zs[zid].get("x") is not None
-                                                and zs[zid].get("y") is not None
-                                                and zdist(self.world, zs[zid]) <= self.mark_free_r)}
-        return out
+            out = {zid for zid in out if not (zid in zs and in_reach(self.world, zs[zid], self.mark_free_r))}
+        return out | self._marked_now
 
     def _target_health(self, zid):
         z = self.world.zombies.get(zid)
         return None if z is None else z.get("health")
 
     def _mark_unreachable(self, zid):
+        self._marked_now.add(zid)
         self.unreachable[zid] = self.clock() + UNREACHABLE_S
         if zid == self.target:
             self._unpin()
@@ -435,7 +447,9 @@ class Fight(Policy):
         return self.fight_s() > FIGHT_MAX_S
 
     def choose(self):
+        self._marked_now = set()
         cmd = self._choose()
+        self._marked_now = set()
         skipped = sorted(self.blocked(), key=str)
         if skipped:
             self.why["unreachable"] = skipped
