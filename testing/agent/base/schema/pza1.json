@@ -499,10 +499,10 @@
         "y": {"description": "The player's y as the event's frame read it.", "type": "number"},
         "z": {"description": "The player's floor level as the event's frame read it.", "type": "number"},
         "health": {"description": "The overall body health as the client last read it (the event's frame), not necessarily 0.", "type": "number"},
-        "zombiesKilled": {"description": "The game's own kill count, getZombieKills.", "type": "integer"},
-        "via": {"description": "Which signal raised it: hook (OnPlayerDeath named this player) or isDead (the player's isDead read true first).", "type": "string"}
+        "via": {"description": "Which signal raised it: hook (OnPlayerDeath named this player) or isDead (the player's isDead read true first).", "type": "string"},
+        "zombiesKilled": {"description": "The game's own kill count, getZombieKills; absent when that read failed (its name then in the frame reader's missing list).", "type": "integer"}
       },
-      "required": ["worldAge", "x", "y", "z", "health", "zombiesKilled", "via"]
+      "required": ["worldAge", "x", "y", "z", "health", "via"]
     },
 
     "act": {

@@ -563,6 +563,14 @@ def test_a_new_player_object_can_die_again_and_a_raise_in_the_hook_is_counted(lu
     assert lua.eval("PZA.sense.deathErrors") == 1
 
 
+def test_the_death_block_sits_at_the_end_of_sense():
+    """CLAUDE.md section 5 (review M1): a harness Lua edit appends its new sites at the end of its file."""
+    with open(lua_file("client/PZAgent_Sense.lua"), encoding="utf-8") as f:
+        src = f.read()
+    assert src.index("Events.OnPlayerDeath.Add") > src.index("function S.nearestZombie")
+    assert src.index("function S.playerDeathEvents") > src.index("function S.nearestZombie")
+
+
 def test_an_absent_kill_count_leaves_zombies_killed_nil_and_names_it_missing(lua):
     load(lua)
     g = lua.globals()

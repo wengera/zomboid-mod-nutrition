@@ -446,10 +446,14 @@ def test_the_fake_mods_square_helper_is_a_full_square_with_its_edges_false():
 
 def test_death_is_an_event_kind_with_its_fields_and_round_trips():
     assert "death" in pza1.EVENT_KINDS
-    assert pza1.EVENT_FIELDS["death"] == ("worldAge", "x", "y", "z", "health", "zombiesKilled", "via")
+    assert pza1.EVENT_FIELDS["death"] == ("worldAge", "x", "y", "z", "health", "via", "zombiesKilled")   # optional last
     body = {"seq": 4251, "tick": 90000, "wallMs": 1, "event": "death", "gameMin": 627.0, "worldAge": 10.45,
             "x": 10770.67, "y": 10640.48, "z": 0, "health": 19.506973266601562, "zombiesKilled": 1, "via": "hook"}
     assert pza1.decode(json.loads(pza1.encode("event", body))) == dict(body, kind="event")
     props = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["event_death"]["properties"]
     assert [props[f]["type"] for f in pza1.EVENT_FIELDS["death"]] == [
-        "number", "number", "number", "number", "number", "integer", "string"]
+        "number", "number", "number", "number", "number", "string", "integer"]
+    req = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["event_death"]["required"]
+    assert "zombiesKilled" not in req and set(req) == set(pza1.EVENT_FIELDS["death"]) - {"zombiesKilled"}  # review M2
+    body.pop("zombiesKilled")                                    # an unread kill count: the key absent
+    assert pza1.decode(json.loads(pza1.encode("event", body))) == dict(body, kind="event")
