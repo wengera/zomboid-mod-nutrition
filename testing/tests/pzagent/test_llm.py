@@ -10,7 +10,7 @@ import pytest
 from agent.base.planner import llm as L
 from agent.base.planner import view as V
 from agent.base.planner.goals import EXAMPLES, GoalRunner, GoalSource, LootBuilding, Rest, ScriptedSource, Shelter
-from agent.base.planner.llm import SYSTEM, LLMSource
+from agent.base.planner.llm import DEFAULT_CLI, SYSTEM, LLMSource
 from agent.base.planner.survive import Survive
 from agent.base.planner.view import render, view
 
@@ -89,9 +89,19 @@ def settle(src):
 def test_the_source_is_a_goal_source_named_llm_with_the_specs_defaults():
     src = LLMSource(Fallback())
     assert isinstance(src, GoalSource) and LLMSource.NAME == "llm"
-    assert src.cli == ("claude", "-p", "--output-format", "json", "--model", "sonnet")
+    assert src.cli == DEFAULT_CLI and src.model == "sonnet"
     assert src.timeout_s == 20.0 and L.LLM_TIMEOUT_S == 20.0 and src.log_path is None and src.calls == []
-    assert not any(a.startswith("--dangerously") for a in src.cli)
+    assert not any(a.startswith("--dangerously") for a in src.cli) and "--bare" not in src.cli
+
+
+def test_the_default_cli_strips_claude_codes_context_by_its_own_flags():
+    cli = list(DEFAULT_CLI)
+    assert cli[:6] == ["claude", "-p", "--output-format", "json", "--model", "sonnet"]
+    after = {f: cli[cli.index(f) + 1] for f in ("--system-prompt", "--tools", "--setting-sources")}
+    assert after == {"--system-prompt": SYSTEM, "--tools": "", "--setting-sources": ""}
+    for flag in ("--strict-mcp-config", "--disable-slash-commands", "--no-session-persistence"):
+        assert flag in cli
+    assert L.model_of(cli, "--system-prompt") == SYSTEM
 
 
 def test_system_names_every_goal_type_its_fields_and_the_contract():
@@ -102,29 +112,20 @@ def test_system_names_every_goal_type_its_fields_and_the_contract():
     assert "Project Zomboid" in SYSTEM
     assert "Answer with one JSON object and nothing else" in SYSTEM
     assert "water|food" in SYSTEM and "0 to 120" in SYSTEM
-    assert SYSTEM.endswith("The view:\n")
+    assert SYSTEM.endswith("The user message is the view: one `key: value` line per key.\n")
+    assert "within 60 tiles of pos" in SYSTEM
 
 
-def test_the_prompt_bytes_are_system_plus_render_of_the_view_on_stdin(tmp_path):
+def test_the_model_reads_system_by_the_argv_and_the_rendered_view_on_stdin(tmp_path):
     src, runner, _ = make()
     v = a_view()
     src.propose(v)
     settle(src)
     c = runner.calls[0]
-    assert c["input"] == SYSTEM + render(v)
-    assert c["argv"] == list(src.cli) and c["timeout"] == 20.0
+    assert c["input"] == render(v) == L.prompt(v)
+    assert c["argv"] == list(DEFAULT_CLI) and c["timeout"] == 20.0
     src.propose(v)
     assert src.calls[0]["prompt_bytes"] == len((SYSTEM + render(v)).encode("utf-8"))
-
-
-def test_a_short_prompt_goes_on_argv_with_nothing_on_stdin(monkeypatch):
-    monkeypatch.setattr(L, "ARGV_PROMPT_MAX", 100000)
-    src, runner, _ = make()
-    v = a_view()
-    src.propose(v)
-    settle(src)
-    c = runner.calls[0]
-    assert c["argv"] == list(src.cli) + [SYSTEM + render(v)] and c["input"] is None
 
 
 def test_the_prompts_view_section_carries_only_the_views_keys(tmp_path):
@@ -133,9 +134,8 @@ def test_the_prompts_view_section_carries_only_the_views_keys(tmp_path):
     r.frame(x=100.0, y=201.5)
     sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
     v = view(r.world, sv)
-    prompt = L.prompt(v)
-    assert prompt == SYSTEM + render(v)
-    section = prompt[len(SYSTEM):]
+    section = L.prompt(v)
+    assert section == render(v)
     keys = [ln.split(": ", 1)[0] for ln in section.splitlines()]
     assert keys == list(V.KEYS) and set(keys) == set(v)
 
@@ -302,6 +302,32 @@ def test_the_place_is_read_against_the_view_the_call_was_given():
     assert isinstance(src.propose(a_view()), Rest) and src.calls[0]["error"] == "invalid: unknown place"
 
 
+@pytest.mark.parametrize("answer, ok", [
+    ('{"type": "ExploreToward", "x": 160, "y": 200}', True),      # centre 160.5: 60.0 tiles from pos
+    ('{"type": "ExploreToward", "x": 161, "y": 200}', False),     # 61.0
+    ('{"type": "ExploreToward", "x": 142, "y": 242}', True),      # hypot(42, 42) = 59.4
+    ('{"type": "ExploreToward", "x": 143, "y": 243}', False),     # hypot(43, 43) = 60.8
+    ('{"type": "ExploreToward", "x": 40, "y": 200}', True),       # 60.0 the other way
+])
+def test_an_explore_farther_than_explore_max_tiles_from_pos_is_an_unknown_place(answer, ok):
+    assert L.EXPLORE_MAX_TILES == 60.0
+    src, _, _ = make(answer=answer)
+    src.propose(a_view())
+    settle(src)
+    g = src.propose(a_view())
+    if ok:
+        assert g.TYPE == "ExploreToward" and src.calls[0]["error"] is None
+    else:
+        assert isinstance(g, Rest) and src.calls[0]["error"] == "invalid: unknown place"
+
+
+def test_an_explore_with_no_pos_in_the_view_is_an_unknown_place():
+    src, _, _ = make(answer='{"type": "ExploreToward", "x": 100, "y": 200}')
+    src.propose(a_view(pos={"x": None, "y": None, "z": None}))
+    settle(src)
+    assert isinstance(src.propose(a_view()), Rest) and src.calls[0]["error"] == "invalid: unknown place"
+
+
 # ---------------------------------------------------------------- the record
 def test_each_call_is_one_sorted_json_line_in_goals_log(tmp_path):
     src, _, _ = make(tmp_path)
@@ -317,7 +343,7 @@ def test_each_call_is_one_sorted_json_line_in_goals_log(tmp_path):
         assert list(obj) == sorted(obj)
         assert set(row) == {"wall", "latency_s", "ok", "goal", "error", "prompt_bytes", "model"}
         assert {k: obj[k] for k in row} == row
-        assert obj["prompt"] == SYSTEM + render(v) and obj["answer"] == '{"type": "LootBuilding", "building": 3}'
+        assert obj["prompt"] == render(v) and obj["answer"] == '{"type": "LootBuilding", "building": 3}'
 
 
 def test_the_model_is_read_off_the_argv():

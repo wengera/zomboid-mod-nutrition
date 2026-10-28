@@ -1,53 +1,63 @@
-"""The LLM goal source (Plan 23 Task 14, spec § 8, P23-11): a model chooses the survivor's next goal through the
-`claude` CLI, behind the goal layer's one seam (`GoalSource.propose(view) -> Goal`, `planner/goals.py`). The model is
-a goal source and nothing more: the instincts above the goal branch still pre-empt whatever it chooses, and the
+"""The LLM goal source (Plan 23 Task 14, spec § 8, P23-11, P23-V): a model chooses the survivor's next goal through
+the `claude` CLI, behind the goal layer's one seam (`GoalSource.propose(view) -> Goal`, `planner/goals.py`). The model
+is a goal source and nothing more: the instincts above the goal branch still pre-empt whatever it chooses, and the
 scripted source (`fallback`) stands in whenever the model is late, malformed or unsafe.
 
 The contract:
-- What the model sees: `prompt(view) = SYSTEM + render(view)`. `SYSTEM` is rendered once at import from
+- What the model sees: the system prompt `SYSTEM`, passed by `--system-prompt` and replacing Claude Code's own, and
+  the user prompt `prompt(view) = render(view)` on stdin, nothing else. `SYSTEM` is rendered once at import from
   `schema/goals.json` (the game, the contract, one line per goal type with its fields, their types, enums and bounds,
-  how the view's building line reads, then "The view:"); `render(view)` (`planner/view.py`) is the view's text, game
-  state only (principle 8): no path, credential, log or planner internals beyond the view's own keys.
+  how the view's building line reads and the places a goal may name, then that the user message is the view);
+  `render(view)` (`planner/view.py`) is the view's text, game state only (principle 8): no path, credential, log or
+  planner internals beyond the view's own keys.
 - What it may answer: one JSON object, one of the five goals of `goals.json`. Parsing: the CLI's stdout is its JSON
   envelope (`{"type": "result", "is_error": …, "result": "<text>", …}`); the `result` text's first balanced `{...}`
-  that decodes as JSON (`first_object`) is the goal, checked by `goals.validate`; a LootBuilding or Shelter naming a
-  building the view the call was given does not list is refused (`invalid: unknown place`). An ExploreToward square
-  is not place-checked: the view lists no squares beyond `pos` and `edge`, and exploring past them is its purpose.
+  that decodes as JSON (`first_object`) is the goal, checked by `goals.validate`, then against the view the call was
+  given: a LootBuilding or Shelter naming a building the view does not list, or an ExploreToward whose square's centre
+  lies farther than EXPLORE_MAX_TILES (60) from the view's `pos` (or with no `pos`), is `invalid: unknown place`.
 - What happens on every failure: the fallback's goal is returned, and the call's row records why. `error` is None on
   success, else "timeout" (no answer within `timeout_s` on the injected clock, or `subprocess.TimeoutExpired`),
-  "exit <code>" (a non-zero exit), "cli error" (an envelope with `is_error` true: a refusal, a rate limit),
-  "malformed" (stdout not an envelope, or no object in its text), "invalid: <reason>" (`validate`'s one-line reason,
-  or "unknown place"), "spawn: <reason>" (the CLI could not be run at all, e.g. not on PATH).
+  "exit <code>" (a non-zero exit), "malformed" (stdout not an envelope, or no object in its text), "invalid: <reason>"
+  (`validate`'s one-line reason, or "unknown place"), and two values beyond the amendments' list: "cli error" (an
+  envelope with `is_error` true and exit 0: a refusal, a rate limit) and "spawn: <Type>: <reason>" (the CLI could not
+  be run at all, e.g. not on PATH, or the runner raised).
 
 The threading: `propose(view)` never waits. With no call pending (and no abandoned call still running) it starts one
 daemon worker thread running the CLI with `timeout_s`, and returns the fallback's goal on this call. A later `propose`
 collects the finished worker: a valid goal is returned (once) and no new call starts on that propose; a failure is
 recorded and a new call starts. A worker still running past `timeout_s` is abandoned and recorded "timeout"; its
 answer is ignored when it lands, and no new call starts until its thread has ended (the subprocess's own timeout
-ends it), so at most one CLI call is ever in flight. `join(timeout)` waits for the pending worker (tests, shutdown).
+ends it), so at most one CLI call is ever in flight. `join(timeout)` waits for the pending and any abandoned worker.
 
 The record: `calls`, one row per collected call, `{wall, latency_s, ok, goal, error, prompt_bytes, model}` (`wall` the
 call's start, `latency_s` to its answer or its abandonment, `goal` the validated goal as `{"type", **args}` else None,
-`model` read off the argv's `--model`); each row is appended to `log_path` (the driver's `goals.log` beside
-`decision.log`) as one JSON line with sorted keys, carrying also the `prompt` sent and the `answer` text (P23-11: the
-prompt and every answer are logged). Rows are recorded on the planner's thread when a call is collected.
+`prompt_bytes` the bytes the model reads, the argv's system prompt and the stdin prompt together, `model` read off
+the argv's `--model`); each row is appended to `log_path` (the driver's `goals.log` beside `decision.log`) as one JSON
+line with sorted keys, carrying also the `prompt` sent on stdin and the `answer` text (P23-11: the prompt and every
+answer are logged; the system prompt is the constant `SYSTEM`). Rows are recorded on the planner's thread when a call
+is collected.
 
-The goal's attribution: `LLMSource.NAME` is "llm"; each `propose` sets the instance's `NAME` to "llm" for the model's
-goal and to the fallback's `NAME` ("scripted") for a stand-in, so `GoalRunner`'s history rows (which read the
-source's NAME when a goal closes) attribute each goal to its chooser.
+The per-call attribution: the class attribute `LLMSource.NAME` is "llm"; each `propose` sets the instance's `NAME` to
+"llm" for the model's goal and to the fallback's `NAME` ("scripted") for a stand-in, so `GoalRunner`'s history rows
+and its `line()` (which read the source's NAME, and a goal is proposed only when none runs) attribute each goal to
+its chooser.
 
-The CLI (Claude Code 2.1.310 on this host, `claude --version`, the shape read against it): `claude -p --output-format
-json --model <model>` with the prompt on stdin (a prompt of at most ARGV_PROMPT_MAX bytes goes on the argv instead,
-after the flags), printing one JSON object to stdout. It runs under Angus's own login: no API key is set or read, no
-`--dangerously-*` flag is passed. The subprocess gets a copy of the environment with `CLAUDECODE` removed, so a CLI
-started from inside a Claude Code session does not refuse to run nested. `runner(argv, input, timeout, env)` returns
-an object with `returncode` and `stdout` (default: `subprocess.run`, the executable resolved by `shutil.which` so a
-`.cmd` shim on Windows resolves, text mode UTF-8, run in an empty temporary directory of its own (`_cwd`) so the
-CLI loads no repository's CLAUDE.md or git status into the model's context: the hand probe of 2026-10-28, run from
-the repository, answered with the repository's state, 33486 tokens of context created for a two-byte prompt); tests
-inject a fake.
+The CLI (Claude Code 2.1.310 on this host, `claude --version`; every flag of `DEFAULT_CLI` read off `claude --help`
+at that version, P23-V): `-p` with the view on stdin, `--output-format json`, `--model sonnet`, `--system-prompt
+SYSTEM`, `--tools ""` (no tools: one turn by construction; `--max-turns` is not a flag at 2.1.310), `--setting-sources
+""`, `--strict-mcp-config`, `--disable-slash-commands`, `--no-session-persistence`. `--bare` is not used: under it
+auth is an API key only (OAuth and the keychain are never read), and no key is set or read here. No `--dangerously-*`
+flag is passed. It runs under Angus's own login. The subprocess gets a copy of the environment with `CLAUDECODE`
+removed, so a CLI started from inside a Claude Code session does not refuse to run nested. `runner(argv, input,
+timeout, env)` returns an object with `returncode` and `stdout` (default `_run`: `subprocess.run`, the executable
+resolved by `shutil.which`, text mode UTF-8, in an empty temporary directory of its own, `_cwd`); tests inject a fake.
+The probes (2026-10-28, `.superpowers/sdd/2026-10-28-plan-23-survivor/t14-cli-probe*.txt`): the bare `claude -p
+--output-format json --model sonnet` from the repository answered "hi" with the repository's state, 33486 tokens of
+context created, $0.137 and 7360 ms; `DEFAULT_CLI` on a one-building view answered `{"type":"LootBuilding",
+"building":3}` with 1320 tokens of context, $0.005464, `duration_ms` 1208 (2.67 s wall with the process start).
 """
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -59,11 +69,11 @@ from agent.base.planner.goals import SCHEMA_PATH, validate
 from agent.base.planner.view import render
 
 LLM_TIMEOUT_S = 20.0          # P23-11: a call answering later than this is a fallback
-ARGV_PROMPT_MAX = 1024        # bytes: a longer prompt goes on stdin
-CLI = ("claude", "-p", "--output-format", "json", "--model", "sonnet")
+EXPLORE_MAX_TILES = 60.0      # P23-V: a model's ExploreToward farther than this from the view's pos is refused
 PLACE_GOALS = ("LootBuilding", "Shelter")   # goals naming a building the view must list
 
-__all__ = ["LLMSource", "SYSTEM", "prompt", "first_object", "model_of", "LLM_TIMEOUT_S", "ARGV_PROMPT_MAX", "CLI"]
+__all__ = ["LLMSource", "SYSTEM", "DEFAULT_CLI", "prompt", "first_object", "model_of", "LLM_TIMEOUT_S",
+           "EXPLORE_MAX_TILES"]
 
 
 # ---------------------------------------------------------------- the system prompt
@@ -83,7 +93,7 @@ def _system():
     lines = [
         "You play Project Zomboid: a survivor in a zombie apocalypse, driven by a program. The program's instincts "
         "answer threats, hunger, thirst, the load and the night on their own; you choose the survivor's next goal "
-        "from the view below. Answer with one JSON object and nothing else: {\"type\": <one of %s>, ...that type's "
+        "from the view. Answer with one JSON object and nothing else: {\"type\": <one of %s>, ...that type's "
         "fields}." % ", ".join(names),
         "The goal types:",
     ]
@@ -92,17 +102,33 @@ def _system():
         fields = "; ".join(_field_text(k, v) for k, v in e["properties"].items() if k != "type")
         lines.append("- %s: %s Fields: %s" % (t, e.get("description", ""), fields))
     lines.append("In the view, each building reads `id dist containers/looted/doors flags` (dist in tiles; flags v "
-                 "visited, s shunned, - neither); name a building only by an id the view lists.")
-    lines.append("The view:")
+                 "visited, s shunned, - neither); name a building only by an id the view lists, and an "
+                 "ExploreToward square within %g tiles of pos." % EXPLORE_MAX_TILES)
+    lines.append("The user message is the view: one `key: value` line per key.")
     return "\n".join(lines) + "\n"
 
 
 SYSTEM = _system()
 
+# The CLI call (P23-V): the goal contract as the whole system prompt, nothing else of Claude Code's context. Read
+# against `claude --help` at 2.1.310; the prompt (the rendered view) goes on stdin.
+DEFAULT_CLI = (
+    "claude",
+    "-p",                                   # print mode: one answer, then exit (no interactive session, no trust dialog)
+    "--output-format", "json",              # one JSON envelope on stdout (its `result` is the text)
+    "--model", "sonnet",                    # P23-11's model
+    "--system-prompt", SYSTEM,              # replaces Claude Code's default system prompt (its tools' prose, env, git)
+    "--tools", "",                          # no built-in tools: the model can only answer, so one turn by construction
+    "--setting-sources", "",                # no user, project or local settings: no hooks, no CLAUDE.md, no memory
+    "--strict-mcp-config",                  # no MCP servers (none passed by --mcp-config)
+    "--disable-slash-commands",             # no skills or commands
+    "--no-session-persistence",             # no session saved to disk
+)
+
 
 def prompt(view):
-    """The bytes the model reads (the module docstring)."""
-    return SYSTEM + render(view)
+    """The user prompt, on stdin: the rendered view alone (`SYSTEM` goes by `--system-prompt`)."""
+    return render(view)
 
 
 # ---------------------------------------------------------------- the parsing
@@ -121,11 +147,15 @@ def first_object(text):
     return None
 
 
-def model_of(cli):
-    """The argv's `--model` value, else None."""
+def _num(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def model_of(cli, flag="--model"):
+    """The argv's `--model` value (or `flag`'s), else None."""
     cli = list(cli)
     for i, a in enumerate(cli[:-1]):
-        if a == "--model":
+        if a == flag:
             return cli[i + 1]
     return None
 
@@ -150,6 +180,11 @@ def _parse(stdout, view):
         goal = validate(obj)
     except ValueError as e:
         return None, text, "invalid: %s" % e
+    if goal.TYPE == "ExploreToward":
+        pos = view.get("pos") or {}
+        px, py = pos.get("x"), pos.get("y")
+        if not _num(px) or not _num(py) or math.hypot(goal.x + 0.5 - px, goal.y + 0.5 - py) > EXPLORE_MAX_TILES:
+            return None, text, "invalid: unknown place"
     if goal.TYPE in PLACE_GOALS:
         ids = {b.get("id") for b in (view.get("buildings") or ()) if isinstance(b, dict)}
         if goal.building not in ids:
@@ -178,7 +213,7 @@ class LLMSource:
     """The model's goal source (the module docstring)."""
     NAME = "llm"
 
-    def __init__(self, fallback, cli=CLI, timeout_s=LLM_TIMEOUT_S, log_path=None, clock=time.time, runner=None):
+    def __init__(self, fallback, cli=DEFAULT_CLI, timeout_s=LLM_TIMEOUT_S, log_path=None, clock=time.time, runner=None):
         self.fallback = fallback
         self.cli = tuple(cli)
         self.timeout_s = timeout_s
@@ -208,6 +243,10 @@ class LLMSource:
             t.join(timeout)
         return not any(t.is_alive() for t in threads)
 
+    def _system(self):
+        """The argv's `--system-prompt` text, else ''."""
+        return model_of(self.cli, "--system-prompt") or ""
+
     # -- the call -----------------------------------------------------------------------------------------------
     def _busy(self):
         if self._abandoned is not None and not self._abandoned.is_alive():
@@ -224,15 +263,10 @@ class LLMSource:
 
     def _work(self, p):
         """The worker: one CLI call, its answer parsed; never raises."""
-        text = p["prompt"]
-        if len(text.encode("utf-8")) <= ARGV_PROMPT_MAX:
-            argv, stdin = list(self.cli) + [text], None
-        else:
-            argv, stdin = list(self.cli), text
         env = dict(os.environ)
         env.pop("CLAUDECODE", None)
         try:
-            proc = self.runner(argv, stdin, self.timeout_s, env)
+            proc = self.runner(list(self.cli), p["prompt"], self.timeout_s, env)
             if proc.returncode != 0:
                 p["error"] = "exit %s" % proc.returncode
             else:
@@ -267,7 +301,7 @@ class LLMSource:
     def _record(self, p, latency, goal, error):
         row = {"wall": p["wall"], "latency_s": latency, "ok": goal is not None and error is None,
                "goal": dict({"type": goal.TYPE}, **goal.args()) if goal is not None else None, "error": error,
-               "prompt_bytes": len(p["prompt"].encode("utf-8")), "model": self.model}
+               "prompt_bytes": len((self._system() + p["prompt"]).encode("utf-8")), "model": self.model}
         self.calls.append(row)
         if self.log_path:
             line = dict(row, prompt=p["prompt"], answer=p["answer"])
