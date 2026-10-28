@@ -43,7 +43,7 @@ def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
     want = {"BUDGET_S": 780.0, "USER": "admin", "MIN_FREE_GB": 12.0, "KIT": "Base.BaseballBat", "ENCOUNTERS": 5,
             "ENCOUNTER_S": 90.0, "STOP_HEALTH": 50.0, "PAIR_SLACK_S": 1.0, "KIT_TIMEOUT_S": 30.0,
             "EQUIP_TIMEOUT_S": 30.0, "FIGHT_HZ": 5, "GONE_S": 2.0, "HELLO_TIMEOUT_S": 60.0,
-            "SPAWN_LIST_TIMEOUT_S": 15.0, "ZOMBIE_POLL_S": 0.5}        # Plan 23 Task 16b
+            "SPAWN_LIST_TIMEOUT_S": 15.0, "ZOMBIE_POLL_S": 0.5, "PAIR_AFTER_MAX_S": 2.0}   # Plan 23 Task 16b
     assert not hasattr(D, "SIGHT_TIMEOUT_S")            # renamed SPAWN_LIST_TIMEOUT_S
     for k, v in want.items():
         assert getattr(D, k) == v, k
@@ -387,8 +387,8 @@ def test_a_clean_fake_run_reads_every_phase(clean_run):
         assert s1["client_health_before"] == 1.0 and s1["client_health_after"] == 0.5
         assert s2["client_health_before"] == 0.5 and s2["client_health_after"] == 0.0
         assert s1["server_before"]["health"] == 1.0 and s2["server_before"]["health"] == 0.5
-        # Plan 23 Task 16b: server_after is the poll's read at or before the end frame, so the kill's may predate it
-        assert s1["server_after"]["health"] == 0.5 and s2["server_after"]["health"] in (0.5, 0.0)
+        # Plan 23 Task 16b fix 1 (P23-S): server_after is the poll's first read after the end frame: post-hit
+        assert s1["server_after"]["health"] == 0.5 and s2["server_after"]["dead"] is True
         for s in (s1, s2):
             assert s["pair_void"] is False and s["pair_after"]["dt_ms"] <= 1000.0
             assert s["pair_before"]["void"] is False
@@ -772,7 +772,7 @@ def test_a_spawn_no_frame_lists_is_recorded_and_its_encounter_skipped(tmp_path, 
 
 def test_the_swing_reads_come_from_the_poll_threads_latest(tmp_path, monkeypatch):
     """No zombie.get inside the fight's loop: each swing's server_before is the newest poll result at its send, its
-    server_after the newest at or before its end frame (else the next after), with poll_pair's wall difference."""
+    server_after the first read after its end frame (P23-S), with poll_pair's wall difference."""
     monkeypatch.setattr(D, "ENCOUNTERS", 2)
     SyncPolls.made.clear()
     out, mod, asked, x5 = run_x5(tmp_path, bus_s=0.3)
@@ -796,18 +796,45 @@ def test_the_swing_reads_come_from_the_poll_threads_latest(tmp_path, monkeypatch
             assert pp["dtMs"] == pp["readWallMs"] - pp["frameWallMs"]
             k = walls.index(pp["readWallMs"])
             assert s["server_after"] is readings[k] and s["server_after"]["id"] == r["zid"]
-            before = [w for w in walls if w <= pp["frameWallMs"]]
-            assert pp["readWallMs"] == (max(before) if before else min(w for w in walls if w > pp["frameWallMs"]))
+            assert pp["readWallMs"] == min(w for w in walls if w > pp["frameWallMs"])
+            assert pp["void"] is False and 0 < pp["dtMs"] <= D.PAIR_AFTER_MAX_S * 1000
+            assert s["pair_void"] is False
 
 
-def test_poll_pick_takes_the_newest_at_or_before_else_the_next_after():
+def test_poll_after_takes_the_first_read_after_the_frame():
     reads = [{"reading": {"n": 1}, "readWallMs": 1000.0}, {"reading": {"n": 2}, "readWallMs": 1500.0},
              {"reading": {"n": 3}, "readWallMs": 2000.0}]
-    assert D.poll_pick(reads, 1500)["reading"]["n"] == 2
-    assert D.poll_pick(reads, 1999)["reading"]["n"] == 2
-    assert D.poll_pick(reads, 500)["reading"]["n"] == 1        # none at or before: the next after
-    assert D.poll_pick(reads, 2500)["reading"]["n"] == 3
-    assert D.poll_pick([], 2500) is None
+    assert D.poll_after(reads, 1500)["reading"]["n"] == 3      # at the frame's wall is not after it
+    assert D.poll_after(reads, 1499)["reading"]["n"] == 2
+    assert D.poll_after(reads, 500)["reading"]["n"] == 1
+    assert D.poll_after(reads, 2500) is None and D.poll_after([], 0) is None
+
+
+def test_a_read_arriving_after_the_cap_voids_the_swing(tmp_path, monkeypatch):
+    """P23-S: the swing waits (pumping) for the first poll read after its end frame; a read later than
+    PAIR_AFTER_MAX_S after that frame voids it (server_after None, never paired), as the old timeout voided."""
+    monkeypatch.setattr(D, "PAIR_AFTER_MAX_S", 0.5)
+    monkeypatch.setattr(D, "ZOMBIE_POLL_S", 0.8)
+    SyncPolls.made.clear()
+    out, mod, asked, x5 = run_x5(tmp_path)
+    frames = {l["seq"]: l for l in x5.lines if l.get("kind") == "frame"}
+    kinds = set()
+    for r, p in zip(out["readings"]["encounters"]["rows"], SyncPolls.made):
+        walls = [res[1] * 1000.0 for res in p.results]
+        for s in r["swings"]:
+            pp = s["poll_pair"]
+            fw = frames[min(q for q in frames if q > s["ended_seq"])]["wallMs"]
+            first = min((w for w in walls if w > fw), default=None)
+            late = first is None or first - fw > 500
+            kinds.add(late)
+            assert pp["void"] is late and s["pair_void"] is (late or s["pair_after"]["void"])
+            if late:
+                assert s["server_after"] is None and "PAIR_AFTER_MAX_S" in pp["why"]
+                assert s["pair_after"]["void"] is True and s["pair_after"]["why"] == "no server read"
+            else:
+                assert 0 < pp["dtMs"] <= 500 and s["server_after"] is not None
+    assert kinds == {True, False}                        # both sides of the cap read on this fake
+    assert GT.measure_x5(out)["client_server_agreement"]["voided"] >= 1
 
 
 def test_listing_reading_alone():

@@ -8,13 +8,15 @@ spawn never listed voids its encounter and is never fought against another zombi
 the `zombie.get` reads that paced x5_combat's swings (its GUIDE § 3) run on a `driverlib.polls.PollThread`, started
 at the spawn's confirmation, the encounter's zombie scheduled every ZOMBIE_POLL_S once listed, and stopped (joined
 within POLL_JOIN_S) before the encounter's closing `zget_end`; a swing's server_before is the newest poll result at
-its send, its server_after the newest whose wall is at or before its end frame (the first frame after its end act),
-else the next one after, recorded as `poll_pair {frameSeq, frameWallMs, readWallMs, dtMs}` (dtMs = readWallMs -
-frameWallMs, signed); pre_read_ms is 0 (no read inside the loop, so loop_ms_net reads loop_ms); the encounter records
-`polls_joined` and `poll_errors`; where a paragraph below says a zombie.get is taken right before a send or right after
-an end, read the poll's; the damage.watch and players reads stay synchronous, between encounters, where they pace no
-swing; (3) the S-22 listing diagnostic: per encounter, `listing {firstListedSeq, waitMs, ackMs, frames [{seq, wallMs,
-zombiesSeen, zombiesListed}]}`, the frames from the spawn step's start to the first frame listing the new id (or the
+its send, its server_after the first poll read whose wall is after its end frame (the first frame after its end
+act; ruling P23-S, fix 1), waited for by pumping frames up to PAIR_AFTER_MAX_S after the end act as the old
+synchronous read waited on the bus, and a swing with no read within PAIR_AFTER_MAX_S of the frame voided (server_after
+None, never paired), recorded as `poll_pair {frameSeq, frameWallMs, readWallMs, dtMs, void, why}` (dtMs = readWallMs -
+frameWallMs, signed, positive on a pair); pre_read_ms is 0 (no read before a send, so loop_ms_net reads loop_ms); the
+encounter records `polls_joined` and `poll_errors`; where a paragraph below says a zombie.get is taken right before a
+send or right after an end, read the poll's; the damage.watch and players reads stay synchronous, between
+encounters, where they pace no swing; (3) the S-22 listing diagnostic: per encounter, `listing {firstListedSeq,
+waitMs, ackMs, frames [{seq, wallMs, zombiesSeen, zombiesListed}]}`, the frames from the spawn step's start to the first frame listing the new id (or the
 timeout), waitMs the driver's wait after the zombie.near reply, ackMs that reply's epoch_ms_after. One boot of `agent`
 (fixture `agent`, Zombies = 5, one admin -debug client, PZTestKit + PZAgent); the agent equips a bat and fights
 ENCOUNTERS zombies the server spawns beside it, one at a time, under the `Fight` policy, while the driver measures each
@@ -139,6 +141,7 @@ HELLO_TIMEOUT_S = 60.0
 SPAWN_LIST_TIMEOUT_S = 15.0  # a spawned zombie not in a frame by then voids its encounter  # Plan 23 Task 16b
 ZOMBIE_POLL_S = 0.5        # the poll thread's zombie.get cadence  # Plan 23 Task 16b
 POLL_JOIN_S = 16.0         # a read in flight: SERVER_TIMEOUT_S, xlib's 5-s ping, 1 s  # Plan 23 Task 16b
+PAIR_AFTER_MAX_S = 2.0     # a swing's poll read after its end frame, else voided  # Plan 23 Task 16b (P23-S)
 SERVER_TIMEOUT_S = 10.0    # each encounter-phase server step's bus timeout
 ACT_TIMEOUT_S = 10.0       # Equip's deadline, and the closing Stop's wait
 POLL_S = 0.05              # the pump's 20 Hz
@@ -155,7 +158,7 @@ CONSTANTS = {k: globals()[k] for k in (
     "BUDGET_S", "MIN_FREE_GB", "KIT", "ENCOUNTERS", "ENCOUNTER_S", "STOP_HEALTH", "PAIR_SLACK_S", "KIT_TIMEOUT_S",
     "EQUIP_TIMEOUT_S", "FIGHT_HZ", "GONE_S", "HELLO_TIMEOUT_S", "SPAWN_LIST_TIMEOUT_S", "SERVER_TIMEOUT_S",
     "ACT_TIMEOUT_S", "POLL_S", "RESERVE_S", "PERSIST_S", "PARK_RX",
-    "ZOMBIE_POLL_S", "POLL_JOIN_S")}                  # Plan 23 Task 16b
+    "ZOMBIE_POLL_S", "POLL_JOIN_S", "PAIR_AFTER_MAX_S")}  # Plan 23 Task 16b
 PHASES = ("hello", "kit", "damage_hook", "encounters")
 
 
@@ -490,12 +493,9 @@ def listing_reading(lines, sight, wait_ms, ack_ms=None):
     return {"firstListedSeq": last, "waitMs": wait_ms, "ackMs": ack_ms, "frames": frames}
 
 
-def poll_pick(reads, frame_wall_ms):
-    """Of `reads` ([{reading, readWallMs}] in arrival order), the newest whose readWallMs is at or before
-    frame_wall_ms, else the first after it, else None."""
-    before = [r for r in reads if r["readWallMs"] <= frame_wall_ms]
-    if before:
-        return before[-1]
+def poll_after(reads, frame_wall_ms):
+    """Of `reads` ([{reading, readWallMs}] in arrival order), the first whose readWallMs is after frame_wall_ms (the
+    server's state after the swing, P23-S), else None."""
     return next((r for r in reads if r["readWallMs"] > frame_wall_ms), None)
 
 
@@ -777,7 +777,7 @@ class X5:
             s = self.actions.stop()
             row["stopped_aid"] = s.aid
             self.wait(lambda: all(self.actions.done(a) for a in self.actions.history[h0:]), ACT_TIMEOUT_S)
-        self.posts(entries, final=True)             # Plan 23 Task 16b: what the poll read by now
+        self.posts(entries)                         # Plan 23 Task 16b: the last swings' reads, waited for
         # Plan 23 Task 16b: the poll joined before the closing read, never two bus steps at once
         joined = self.stop_polls(row)
         row["server_end"] = self.zget(zid, "zget_end") if joined else None
@@ -838,31 +838,42 @@ class X5:
         a = fight.send(cmd)
         entries.append({"a": a, "pre": pre, "post": None, "posted": False, "poll_pair": None})
 
-    def posts(self, entries, final=False):
-        """Plan 23 Task 16b: each ended attack's server_after off the poll, once: of the reads kept, the newest at or
-        before its end frame (the first frame after its end act), else the next after; deferred while the end frame
-        or a read is missing, and on the `final` pass taken as it stands (the newest read, or None)."""
+    def posts(self, entries):
+        """Plan 23 Task 16b fix 1 (P23-S): each ended attack's server_after off the poll, once: the first read whose
+        wall is after its end frame (the first frame after its end act), waited for (pumping) up to PAIR_AFTER_MAX_S
+        after the end act, as the old synchronous read waited on the bus; none within the cap voids it."""
         for e in entries:
             a = e["a"]
             if a.type != "attack" or e["posted"] or not self.actions.done(a):
                 continue
-            if a.args.get("targetId") != self.poll_zid:
-                e["posted"] = True                  # the poll reads the encounter's zombie only
-                continue
-            lines = self.lines[self.enc_i0:]
-            end = act_line(lines, a.aid, ("done", "failed", "rejected"))
-            fr = next((l for l in _frames(lines) if end is not None and l["seq"] > end["seq"]), None)
-            pick = poll_pick(self.zreads, fr["wallMs"]) if fr is not None and _num(fr.get("wallMs")) is not None \
-                else None
-            if pick is None and not final:
-                continue
-            if pick is None:
-                pick = self.zreads[-1] if self.zreads else None
             e["posted"] = True
-            e["post"] = pick["reading"] if pick else None
-            if pick is not None and fr is not None and _num(fr.get("wallMs")) is not None:
-                e["poll_pair"] = {"frameSeq": fr["seq"], "frameWallMs": fr["wallMs"],
-                                  "readWallMs": pick["readWallMs"], "dtMs": pick["readWallMs"] - fr["wallMs"]}
+            if a.args.get("targetId") != self.poll_zid:
+                continue                            # the poll reads the encounter's zombie only
+            e["post"], e["poll_pair"] = self.post_read(a)
+
+    def post_read(self, a):
+        """(server_after, poll_pair) of an ended attack (P23-S): poll_pair {frameSeq, frameWallMs, readWallMs, dtMs,
+        void, why}, dtMs = readWallMs - frameWallMs; server_after None when voided."""
+        cap_ms = PAIR_AFTER_MAX_S * 1000.0
+        end = act_line(self.lines[self.enc_i0:], a.aid, ("done", "failed", "rejected"))
+        if end is None or _num(end.get("wallMs")) is None:
+            return None, {"frameSeq": None, "frameWallMs": None, "readWallMs": None, "dtMs": None, "void": True,
+                          "why": "no end act"}
+
+        def found():
+            fr = next((l for l in _frames(self.lines[self.enc_i0:]) if l["seq"] > end["seq"]
+                       and _num(l.get("wallMs")) is not None), None)
+            return fr, (poll_after(self.zreads, fr["wallMs"]) if fr is not None else None)
+        self.wait(lambda: found()[1] is not None, max(0.0, (end["wallMs"] + cap_ms) / 1000.0 - self.clock()))
+        fr, rd = found()
+        pp = {"frameSeq": fr["seq"] if fr else None, "frameWallMs": fr["wallMs"] if fr else None,
+              "readWallMs": rd["readWallMs"] if rd else None,
+              "dtMs": rd["readWallMs"] - fr["wallMs"] if rd else None, "void": False, "why": None}
+        if fr is None:
+            pp.update(void=True, why="no frame after the end act within PAIR_AFTER_MAX_S")
+        elif rd is None or pp["dtMs"] > cap_ms:
+            pp.update(void=True, why="no poll read within PAIR_AFTER_MAX_S %s s of the end frame" % PAIR_AFTER_MAX_S)
+        return (None if pp["void"] else rd["reading"]), pp
 
     def run(self):
         self.xs.run_phase("hello", self.hello)
