@@ -1485,3 +1485,23 @@ def test_the_runner_ends_through_mo_off_and_keeps_no_setter_list_of_its_own(lua)
     src = open(lua_file("client/PZAgent_Skills.lua"), encoding="utf-8").read()
     assert "offSafely" not in src and "OFF_SETTERS" not in src and "MO.off(p)" in src
     assert lua.eval("PZA.skills.OFF_SETTERS") is None
+
+
+# ---- X4 fix pass 2.7 (fix-wave review Minor 4, ruling S-30): the latches off before the end line -------------------
+
+def test_an_end_line_whose_emit_raises_still_clears_the_latches_and_the_runner(lua, fs):
+    load(lua)
+    g = lua.globals()
+    g._cell = make_cell(squares={(12, 20, 0): J(getX=lambda s: 12, getY=lambda s: 20, getZ=lambda s: 0)})
+    p = make_player()
+    start(lua, p, "walkTo", x=12, y=20, gait="run")
+    tick(lua, p)                                                # the walk's first tick wants the run
+    assert lua.eval("PZA.motor.wantRun") is True and lua.eval("PZA.skills.cur") is not None
+    n0 = len(p.sets)
+    lua.execute("PZA.emit = function(kind, body) error('emit raised') end")
+    g._p = p
+    g._cmd = lua.table_from({"seq": 2, "aid": "s", "type": "stop", "args": {}}, recursive=True)
+    ok = lua.eval("pcall(PZA.skills.start, _cmd, _p)")          # the walk's superseded line raises in its emit
+    assert ok is False or (isinstance(ok, tuple) and ok[0] is False)
+    assert lua.eval("PZA.motor.wantRun") is False and lua.eval("PZA.motor.wantSprint") is False
+    assert list(p.sets[n0:n0 + 3]) == OFF and lua.eval("PZA.skills.cur") is None
