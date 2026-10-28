@@ -30,7 +30,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the instrument eve
 <a id="pzt"></a>
 ### `pzt`, the orchestrator
 
-The orchestrator ships seven commands — provision, boot, attach, run, scenario, spike and doctor — from a roughly two-and-a-half-minute fixture provision through a fourteen-second warm boot to a one-minute run plus its hold, the costs being the harness as it stood on one machine [#1701].
+The orchestrator ships eight commands — provision, snapshot, boot, attach, run, scenario, spike and doctor — from a roughly two-and-a-half-minute fixture provision through a fourteen-second warm boot to a one-minute run plus its hold, the costs being the harness as it stood on one machine [#1701].
 
 | Command | What it does | Cost |
 |---|---|---|
