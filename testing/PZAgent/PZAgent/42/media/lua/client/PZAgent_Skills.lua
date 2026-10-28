@@ -3,6 +3,9 @@
 -- planner owns every decision between skills. Each skill is K.types[type] = { check, tick }:
 --   check(args, p) -> ok, reason, st   validates and converts the decoded args; st is the skill's private state
 --   tick(p, st) -> nil | "done", result | "failed", reason   one tick of the running skill; a skill never emits
+--   stop(p, st, reason)   optional: the runner calls it at a skill's end in any state but done (failed with its reason,
+--                         superseded included), after MO.off and before the act line, under pcall (a raise counted in
+--                         K.errors, never propagated); sleep's wakes the character (ruling P23-AB)
 -- The runner owns every act line (PZA.emit("act", {aid, type, state, reason, result, snapshot}), the schema's act
 -- shape): accepted and progress carry result {} and no snapshot; rejected, failed and done carry K.snapshot(p);
 -- reason is "" unless rejected or failed; result is {} unless done. At every end (done, failed, superseded) the runner
@@ -147,7 +150,8 @@ end
 -- the latches go off before the line (X4 fix pass 2.7, fix-wave review Minor 4: a raise in PZA.emit can no longer
 -- leave the Motor re-asserting a run with no skill); every read and setter is guarded (S-15: K.snapshot's reads here,
 -- each setter in MO.off), so a raise at a skill's end never leaves K.cur set or a latch untried; MO.off's caught
--- raises are counted in K.errors.
+-- raises are counted in K.errors. A skill's stop hook runs at every end but done, after MO.off and before the line,
+-- under the same guard (ruling P23-AB: the sleep's wake).
 local function finish(p, cur, state, reason, result)
     K.cur = nil
     if state == "failed" then
@@ -158,6 +162,11 @@ local function finish(p, cur, state, reason, result)
     if n > 0 then
         K.errors = K.errors + n
         K.lastError = err
+    end
+    local stop = cur.def.stop
+    if state ~= "done" and stop ~= nil then
+        local ran, why = pcall(stop, p, cur.st, reason)
+        if not ran then caught(why) end
     end
     emitAct(p, cur.aid, cur.type, state, reason, result)
 end

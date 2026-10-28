@@ -1825,3 +1825,106 @@ def test_sleep_without_a_square_skips_get_bed_quality_and_sleeps_on_the_floor(lu
     start(lua, p, "sleep")
     tick(lua, p)
     assert dict(p.sleep)["setBedType"] == "floor" and lua.eval("_bq") == 0
+
+
+# ---- sleep, fix wave L (P23-AB): a sleep that ends any way but done wakes the character --------------------------------
+
+def asleep_now(lua, p):
+    """A sleep started and its first tick run: the character put to sleep (setAsleep true in p.sleep)."""
+    start(lua, p, "sleep", aid="s")
+    tick(lua, p)
+    assert ("setAsleep", True) in p.sleep and not ended(lua)
+
+
+def test_a_sleep_superseded_by_a_walk_wakes_the_character(lua, fs):
+    load(lua)
+    p = make_player()
+    asleep_now(lua, p)
+    start(lua, p, "walkTo", aid="w", x=12, y=20)
+    out = states(acts(lua, fs))
+    assert ("s", "failed", "superseded") in out and out[-1] == ("w", "accepted", "")
+    assert p.sleep[-1] == ("setAsleep", False) and p.asleep["v"] is False
+    assert "setForceWakeUpTime" not in [n for n, _ in p.sleep[5:]]   # the force-wake hour is left as vanilla leaves it
+
+
+def test_a_sleep_done_never_wakes_the_character_itself(lua, fs):
+    load(lua)
+    p = make_player()
+    asleep_now(lua, p)
+    p.asleep["v"] = False                                       # the engine woke it
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("s", "done", "")
+    assert ("setAsleep", False) not in p.sleep
+
+
+def test_a_sleep_interrupted_at_its_wall_budget_wakes_the_character(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    asleep_now(lua, p)
+    g._clock["ms"] += lua.eval("PZA.skills.SLEEP_MS") + 1
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("s", "failed", "interrupted") and ended(lua)
+    assert p.sleep[-1] == ("setAsleep", False)
+
+
+def test_a_sleep_ending_dead_never_wakes_the_body(lua, fs):
+    load(lua)
+    p = make_player()
+    asleep_now(lua, p)
+    p.getBodyDamage = lambda s: J(getOverallBodyHealth=lambda s2: 0.0)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("s", "failed", "dead")
+    start(lua, p, "sleep", aid="s2")                            # rejected dead: nothing more to end
+    assert ("setAsleep", False) not in p.sleep
+
+
+def test_a_stop_superseding_the_sleep_of_a_dead_body_never_wakes_it(lua, fs):
+    load(lua)
+    p = make_player()
+    asleep_now(lua, p)
+    p.getBodyDamage = lambda s: J(getOverallBodyHealth=lambda s2: 0.0)
+    start(lua, p, "stop", aid="x")                              # stop is accepted for a dead body: it ends the sleep
+    assert ("s", "failed", "superseded") in states(acts(lua, fs))
+    assert ("setAsleep", False) not in p.sleep
+
+
+def test_a_sleep_superseded_before_its_first_tick_never_calls_set_asleep(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "sleep", aid="s")
+    start(lua, p, "walkTo", aid="w", x=12, y=20)
+    assert ("s", "failed", "superseded") in states(acts(lua, fs)) and p.sleep == []
+
+
+def test_a_raising_wake_is_counted_and_the_act_line_still_lands(lua, fs):
+    load(lua)
+    p = make_player()
+    asleep_now(lua, p)
+
+    def boom(s, v):
+        raise RuntimeError("setAsleep raised")
+    p.setAsleep = boom
+    start(lua, p, "walkTo", aid="w", x=12, y=20)
+    out = states(acts(lua, fs))
+    assert ("s", "failed", "superseded") in out and out[-1] == ("w", "accepted", "")
+    assert lua.eval("PZA.skills.errors") == 1 and "setAsleep raised" in lua.eval("PZA.skills.lastError")
+    assert lua.eval("PZA.skills.cur.aid") == "w"
+
+
+def test_the_runner_calls_a_skills_stop_hook_at_every_end_but_done(lua, fs):
+    load(lua)
+    lua.execute("_stops = {}; PZA.skills.types.probe = { check = function(a, p) return true, '', { n = 0 } end,"
+                " tick = function(p, st) st.n = st.n + 1; if st.n == 1 then return 'done', {} end;"
+                " if st.n == 2 then return 'failed', 'stuck' end; return nil end,"
+                " stop = function(p, st, reason) _stops[#_stops + 1] = reason end }")
+    p = make_player()
+    start(lua, p, "probe", aid="d")
+    tick(lua, p)                                               # done: no stop
+    lua.execute("PZA.skills.types.probe.check = function(a, p) return true, '', { n = 1 } end")
+    start(lua, p, "probe", aid="f")
+    tick(lua, p)                                               # failed stuck
+    lua.execute("PZA.skills.types.probe.check = function(a, p) return true, '', { n = 5 } end")
+    start(lua, p, "probe", aid="s")
+    start(lua, p, "walkTo", aid="w", x=12, y=20)               # superseded
+    assert list(lua.eval("_stops").values()) == ["stuck", "superseded"]

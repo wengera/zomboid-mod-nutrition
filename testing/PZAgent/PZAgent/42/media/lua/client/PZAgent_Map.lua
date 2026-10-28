@@ -135,7 +135,8 @@ end
 -- string; light, types and names are left out, so a fingerprint is a few reads and no item walk. The objects are read
 -- into one scratch table (W.objectsOn's out). Its last element is the four edges (Plan 23 Task 6), "e" then blockN,
 -- blockW, edgeN, edgeW as "t", "f" or "n" (nil: the neighbour unloaded, the member absent), so a door closing on an
--- edge or a neighbour loading changes it.
+-- edge or a neighbour loading changes it. x, y, z are the square's grid coordinates as the caller holds them (the
+-- watch's gx, gy and floor), so the fingerprint reads none of the square's own (fix wave L, M-1).
 local fpScratch = {}
 
 -- an edge read as one character: "t", "f", or "n" when the read answered nothing
@@ -145,13 +146,10 @@ local function edgeChar(ok, v)
     return "f"
 end
 
--- the four edges' characters against the square's neighbours off cell
-local function edgeMark(sq, cell)
-    local okX, x = PZA.call(sq, "getX")
-    local okY, y = PZA.call(sq, "getY")
-    local okZ, z = PZA.call(sq, "getZ")
-    local nsq, wsq = nil, nil
-    if okX and okY and okZ then nsq, wsq = neighboursOf(cell, x, y, z) end
+-- the four edges' characters against the square's neighbours off cell, at the coordinates the caller already holds
+-- (Plan 23 fix wave L, M-1: the square's own getX/getY/getZ are never re-read; nil coordinates read every edge "n")
+local function edgeMark(sq, cell, x, y, z)
+    local nsq, wsq = neighboursOf(cell, x, y, z)
     local bn, en, bw, ew = "n", "n", "n", "n"
     if nsq ~= nil then
         bn = edgeChar(PZA.call(sq, "isBlockedTo", nsq))
@@ -164,7 +162,7 @@ local function edgeMark(sq, cell)
     return "e" .. bn .. bw .. en .. ew
 end
 
-function MP.fingerprint(sq, cell)
+function MP.fingerprint(sq, cell, x, y, z)
     local out = {}
     local _, solid = PZA.call(sq, "isSolid")
     local _, solidTrans = PZA.call(sq, "isSolidTrans")
@@ -189,7 +187,7 @@ function MP.fingerprint(sq, cell)
     local _, wl = PZA.call(sq, "getWorldObjects")
     local _, wn = PZA.call(wl, "size")
     out[#out + 1] = "f" .. tostring(wn)
-    out[#out + 1] = edgeMark(sq, cell)
+    out[#out + 1] = edgeMark(sq, cell, x, y, z)
     return table.concat(out, ",")
 end
 
@@ -373,7 +371,7 @@ function MP.watchStep(p)
         local _, sq = PZA.call(cell, "getGridSquare", gx, gy, z)
         if sq ~= nil then
             local gk = MP.key(gx, gy, fz)
-            local f = MP.fingerprint(sq, cell)
+            local f = MP.fingerprint(sq, cell, gx, gy, fz)
             if f ~= fps[gk] then
                 local q = MP.square(sq, MP.missing, cell)
                 if q.x ~= nil and q.y ~= nil and q.z ~= nil then

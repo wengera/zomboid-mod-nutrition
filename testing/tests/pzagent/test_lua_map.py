@@ -381,8 +381,8 @@ def test_a_watch_step_reads_8_squares_and_queues_nothing_while_nothing_changed(l
     st, calls = watch_world(lua)
     p = make_player()
     seed_ring(lua, p)
-    lua.execute("_fp = {}; local f0 = PZA.map.fingerprint; PZA.map.fingerprint = function(sq, cell) "
-                "_fp[#_fp + 1] = sq; return f0(sq, cell) end")
+    lua.execute("_fp = {}; local f0 = PZA.map.fingerprint; PZA.map.fingerprint = function(sq, cell, x, y, z) "
+                "_fp[#_fp + 1] = sq; return f0(sq, cell, x, y, z) end")
     for t in range(1, 23):                                      # 169 squares at 8 a tick: one whole cycle and more
         n0 = lua.eval("#_fp")
         watch(lua, p, t)
@@ -590,14 +590,14 @@ def test_a_fingerprint_names_the_portals_the_containers_and_the_floor_and_never_
     load(lua)
     st = {"open": False, "light": 0.5}
     sq = full_square(3, 4, door=True, box=True, floor=True, state=st)
-    f0 = lua.eval("PZA.map.fingerprint(...)", sq)
+    f0 = lua.eval("PZA.map.fingerprint(...)", sq, None, 3, 4, 0)
     st["light"] = 0.9
-    assert lua.eval("PZA.map.fingerprint(...)", sq) == f0
+    assert lua.eval("PZA.map.fingerprint(...)", sq, None, 3, 4, 0) == f0
     st["open"] = True
-    assert lua.eval("PZA.map.fingerprint(...)", sq) != f0
-    plain = lua.eval("PZA.map.fingerprint(...)", full_square(3, 4))
+    assert lua.eval("PZA.map.fingerprint(...)", sq, None, 3, 4, 0) != f0
+    plain = lua.eval("PZA.map.fingerprint(...)", full_square(3, 4), None, 3, 4, 0)
     for kw in ({"window": True}, {"box": True}, {"floor": True}):
-        assert lua.eval("PZA.map.fingerprint(...)", full_square(3, 4, **kw)) != plain, kw
+        assert lua.eval("PZA.map.fingerprint(...)", full_square(3, 4, **kw), None, 3, 4, 0) != plain, kw
 
 
 # ---- X4 fix pass fix 1 (review M-2): the fingerprint keyed on the player's floor --------------------------------------
@@ -677,16 +677,16 @@ def test_the_fingerprint_reads_the_edges_and_an_unloaded_neighbour_as_n(lua):
     sq = full_square(11, 20, state=st)
     squares = {(11, 20, 0): sq, (10, 20, 0): full_square(10, 20)}
     cell = make_cell_of(squares)
-    f0 = lua.eval("PZA.map.fingerprint(...)", sq, cell)
+    f0 = lua.eval("PZA.map.fingerprint(...)", sq, cell, 11, 20, 0)
     # "e" then blockN, blockW, edgeN, edgeW, each t, f or n (nil)
     assert f0.endswith(",enfnf")                                          # north unloaded, west read false twice
     squares[(11, 19, 0)] = full_square(11, 19)                           # the north neighbour loads: it changes
-    f1 = lua.eval("PZA.map.fingerprint(...)", sq, cell)
+    f1 = lua.eval("PZA.map.fingerprint(...)", sq, cell, 11, 20, 0)
     assert f1 != f0 and f1.endswith(",effff")
     st["blockN"] = True
-    assert lua.eval("PZA.map.fingerprint(...)", sq, cell).endswith(",etfff")
+    assert lua.eval("PZA.map.fingerprint(...)", sq, cell, 11, 20, 0).endswith(",etfff")
     st["edgeW"] = True
-    assert lua.eval("PZA.map.fingerprint(...)", sq, cell).endswith(",etfft")
+    assert lua.eval("PZA.map.fingerprint(...)", sq, cell, 11, 20, 0).endswith(",etfft")
 
 
 def test_a_door_closing_changes_the_fingerprint_through_its_edge(lua):
@@ -712,3 +712,42 @@ def test_a_door_closing_changes_the_fingerprint_through_its_edge(lua):
     q = d["squares"][1]
     assert (q["x"], q["y"], q["blockN"], q["blockW"], q["edgeN"], q["edgeW"]) == (12, 21, True, False, False, False)
     assert q["door"] is None
+
+
+# ---- Plan 23 fix wave L (M-1): the fingerprint takes the watch's coordinates ------------------------------------------
+
+def counted(sq):
+    """sq's members wrapped so sq.reads[name] counts each call."""
+    reads = {}
+    for name, fn in list(sq.__dict__.items()):
+        if callable(fn):
+            def wrap(*a, _n=name, _f=fn):
+                reads[_n] = reads.get(_n, 0) + 1
+                return _f(*a)
+            setattr(sq, name, wrap)
+    sq.reads = reads
+    return sq
+
+
+def test_the_fingerprint_reads_no_coordinate_of_its_square(lua):
+    load(lua)
+    sq = counted(full_square(11, 20, door=True, box=True, floor=True))
+    cell = make_cell_of({(11, 20, 0): sq, (11, 19, 0): full_square(11, 19), (10, 20, 0): full_square(10, 20)})
+    f = lua.eval("PZA.map.fingerprint(...)", sq, cell, 11, 20, 0)
+    assert f.endswith(",effff")                                 # both neighbours found off the passed coordinates
+    assert [sq.reads.get(k, 0) for k in ("getX", "getY", "getZ")] == [0, 0, 0]
+    # its reads per square: the two solid flags, the objects (getObjects), the floor list, two edges per neighbour
+    assert sum(sq.reads.values()) == 2 + 1 + 1 + 4
+
+
+def test_the_watch_passes_each_squares_grid_coordinates_to_the_fingerprint(lua):
+    load(lua)
+    watch_world(lua)
+    p = make_player()
+    seed_ring(lua, p)
+    lua.execute("_fpc = {}; local f0 = PZA.map.fingerprint; PZA.map.fingerprint = function(sq, cell, x, y, z) "
+                "_fpc[#_fpc + 1] = { sq:getX(), sq:getY(), sq:getZ(), x, y, z }; return f0(sq, cell, x, y, z) end")
+    for t in range(1, 23):
+        watch(lua, p, t)
+    rows = [tuple(r.values()) for r in lua.eval("_fpc").values()]
+    assert len(rows) == 176 and all(r[:3] == r[3:] for r in rows)

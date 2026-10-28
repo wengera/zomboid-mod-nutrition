@@ -578,9 +578,11 @@ K.types.drop = {
 -- reaches the server through the player packet (the jar note's § 3), so the frame keeps flowing while asleep. Later
 -- ticks: isAsleep reading false is done {sleptH (world hours since the check, through PZA.sense.clock),
 -- fatigueBefore, fatigueAfter, bedType}; an unreadable isAsleep is not loaded; still asleep after SLEEP_MS of wall is
--- interrupted. A player without setAsleep fails not loaded on the first tick. An end before the wake (interrupted, or a
--- command superseding the sleep) leaves the character asleep until the engine wakes it: neither the runner's end nor the
--- planner's stop wakes it, and a forced wake is out of this skill's scope.
+-- interrupted. A player without setAsleep fails not loaded on the first tick. An end before the engine's wake (any end
+-- but done: a command superseding the sleep, interrupted at SLEEP_MS, not loaded) wakes the character through the
+-- skill's stop hook (ruling P23-AB): setAsleep(false) through PZA.call, which the player packet carries to the server
+-- (the jar note's § 3), only once the first tick put it to sleep (st.queuedAt set) and never for a dead body (failed
+-- dead, or a stop superseding the sleep of one); setForceWakeUpTime is left as vanilla leaves it.
 K.SLEEP_MS = 3600000      -- an hour of wall: a sleep still running this long is interrupted
 
 -- the world age in hours through Sense's clock (its second answer), 0 while Sense is not loaded
@@ -718,5 +720,9 @@ K.types.sleep = {
         end
         if PZA.now() - st.queuedAt > K.SLEEP_MS then return "failed", "interrupted" end
         return nil
+    end,
+    stop = function(p, st, reason)
+        if st.queuedAt == nil or reason == "dead" or isDead(p) then return end
+        PZA.call(p, "setAsleep", false)
     end,
 }
