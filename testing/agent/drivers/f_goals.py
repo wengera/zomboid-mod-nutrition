@@ -7,9 +7,10 @@ worker thread with LLM_TIMEOUT_S, the scripted source standing in for every late
 instincts above the goal branch pre-empt whatever goal runs. Each session's `grade_f1` (gates_f: grade_e1 plus `llm`)
 is written at its end.
 
-The driver is thin: its constants, its pre-boot checks (`claude_available` beside the day's), its planner and its
-`llm` record. The day's arguments, chain inputs, `Chain` (the library's `Session` with the two hooks) and the boot
-(`day.boot_and_run`) are `driverlib/day.py`'s, shared with e_day.py; the rest is the library's (`driverlib/session.py`'s
+The driver is thin: its key, artifact and profile, its LLM constants, its pre-boot checks (`claude_available` beside
+the day's), its planner and its `llm` record. The day's constants, arguments, chain inputs, `Chain` (the library's
+`Session` with the two hooks), its builder (`day.make_day_session`) and the boot (`day.boot_and_run`) are
+`driverlib/day.py`'s, shared with e_day.py; the rest is the library's (`driverlib/session.py`'s
 docstring). The LLMSource's worker is joined after the teardown (out["llm_joined"]; `after_teardown`), so no join
 widens the gap between the last kept frame and the server's save, the gap the next session's lineage reads.
 
@@ -32,18 +33,20 @@ RULES: never edited after its run (the next pass is a new file); takes only `--s
 `--fixture NAME` (default agent) and `--prev PATH` (the previous session's artifact JSON, optional), each once; one
 live session at a time; free memory gated at MIN_FREE_GB before the boot; never -safemode; launched by the controller
 and polled through the persisted artifact; the chain's snapshot between sessions is e_day.py's (`pzt snapshot
---from-run`, chain.snapshot_cmd). The pre-boot checks refuse a dirty agent Lua, agent base, driver library or driver,
-a committed artifact of this key, a fixture with no record or cache (or an unreadable one), a --prev that does not
-read as an artifact carrying loop.last_frames, a --session that does not follow the fixture's or the prev's session
+--from-run`, day.next_steps). An F session on the chain's last fixture (agent-s<n>, snapshotted off session n) is
+given `--session <n+1>` and `--prev <the last chain artifact>` (session n's), or the pre-boot refuses it (P23-Z:
+the fixture's record says session n); the day summary prints that line as `next.f_session`. The pre-boot checks
+refuse a dirty agent Lua, agent base, driver library or driver, a committed artifact of this key, a fixture with no
+record or cache (or an unreadable one), a --prev that does not read as an artifact carrying loop.last_frames, a
+--session that does not follow the fixture's or the prev's session
 (session_consistent False, ruling P23-Z) and a `claude` CLI that is not on PATH or does not answer
-`claude --version` (an F session without a model is not the reading). The model runs under Angus's own login. Nothing is imported from a frozen driver but `xlib` (and `_dlib`
-through the library).
+`claude --version` (an F session without a model is not the reading). The model runs under Angus's own login.
+Nothing is imported from a frozen driver but `xlib` (and `_dlib` through the library).
 """
 import os
 import shutil
 import subprocess
 import sys
-import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TESTING = os.path.dirname(os.path.dirname(HERE))
@@ -51,32 +54,25 @@ for _p in (HERE, os.path.join(TESTING, "experiments"), TESTING):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-import xlib as X                                      # noqa: E402
+import xlib as X                                      # noqa: E402,F401 - the provenance the RULES name
 from agent.base import gates_f as GF                  # noqa: E402
 from agent.base.planner import llm as L               # noqa: E402
 from agent.base.planner.goals import ScriptedSource   # noqa: E402
 from agent.base.planner.survive import Survive        # noqa: E402
 from agent.driverlib import day as DY                 # noqa: E402
 from agent.driverlib import session as DS             # noqa: E402
-from agent.driverlib.day import flags, parse_argv     # noqa: E402
-from agent.driverlib.polls import PollThread          # noqa: E402
+from agent.driverlib.day import (BUDGET_S, DAMAGE_POLL_S, DAY_CAP_S, LIMITS, MIN_FREE_GB,  # noqa: E402,F401
+                                 PLANNER_HZ, USER, flags, parse_argv)
 
 KEY = "f_goals"
 DRIVER = "f_goals.py"
 ARTIFACT = "f_goals.json"
 PROFILE = "testing/profiles/agent.toml"
-USER = "admin"
-BUDGET_S = 1200.0                    # the wall budget from the end of the memory gate, the boot included
-DAY_CAP_S = 840                      # the loop's own wall time
-PLANNER_HZ = 2
-DAMAGE_POLL_S = 5
 LLM_TIMEOUT_S = 20.0                 # P23-11: a call answering later than this is a fallback
 GOALS_LOG = "goals.log"              # the LLMSource's log, beside decision.log
 MODEL = L.model_of(L.DEFAULT_CLI)    # "sonnet"
 CLAUDE_VERSION_TIMEOUT_S = 30
-MIN_FREE_GB = DS.DEFAULTS["MIN_FREE_GB"]
-LIMITS = {"DAY_CAP_S": DAY_CAP_S, "PLANNER_HZ": PLANNER_HZ, "DAMAGE_POLL_S": DAMAGE_POLL_S}
-CONSTANTS = dict(DS.DEFAULTS, **LIMITS, BUDGET_S=BUDGET_S, LLM_TIMEOUT_S=LLM_TIMEOUT_S)
+CONSTANTS = dict(DY.CONSTANTS, LLM_TIMEOUT_S=LLM_TIMEOUT_S)
 REPO = DS.REPO
 _ME = os.path.basename(os.path.abspath(__file__))
 
@@ -135,13 +131,11 @@ def llm_extra(cli_version):
     return extra
 
 
-def make_session(xs, transport, prev=None, cli_version=None, runner=None, clock=time.time, sleep=time.sleep,
-                 free=X.free_gb, polls=None, limits=None):
-    """The library's Chain: the LLM planner, the `llm` record, goals.log copied, LIMITS (with `limits` laid over
-    them) and a PollThread on `clock`."""
-    return DY.Chain(xs, transport, prev=prev, extra=llm_extra(cli_version), copied=(GOALS_LOG,),
-                    planner_factory=planner_factory(runner), clock=clock, sleep=sleep, free=free,
-                    limits=dict(LIMITS, **(limits or {})), polls=polls if polls is not None else PollThread(clock))
+def make_session(xs, transport, prev=None, cli_version=None, runner=None, **kw):
+    """The day's Chain (day.make_day_session): the LLM planner, the `llm` record and goals.log copied; `kw` its clock,
+    sleep, free, polls and limits."""
+    return DY.make_day_session(xs, transport, planner_factory(runner), extra=llm_extra(cli_version),
+                               copied=(GOALS_LOG,), prev=prev, **kw)
 
 
 def grade(out):

@@ -11,24 +11,37 @@ out["readings"][phase]):
                wait_ms}. A failed hello skips the rest (stop `error`, or `bus_dead` for a park).
   damage_hook  the server's damage listener installed before the kit (`damage.watch USER` once), its records merged as
                the loop merges them; {ok, hooked, n, counts, last_i, ack}.
-  kit          KIT x1 through xs.spawn (RCON additem confirmed by item.get); pump until an `item_added` of KIT
-               (KIT_TIMEOUT_S; else the first KIT the inventory holds, source "inventory"); Equip(itemId) awaited to a
-               terminal state (ACT_TIMEOUT_S); pump until a frame's weapon.type is KIT (EQUIP_TIMEOUT_S). {spawn, item,
-               equip, weapon_frame, armed, ok}. An unconfirmed spawn or equip is recorded and the session goes on.
+  kit          a weapon already held (the inventory's `weapon` ids off world.by_use(), read after the hello and the
+               first sight's item_added lines; KIT's own id first) is kept: no spawn (a chain's later session holds
+               the last one's bat, and a spawn each session would build the load itself, C-1), source "held", and
+               Equip(itemId) only when the frame's weapon is null. Else KIT x1 through xs.spawn (RCON additem
+               confirmed by item.get); pump until an `item_added` of KIT (KIT_TIMEOUT_S; else the first KIT the
+               inventory holds, source "inventory"). Equip awaited to a terminal state (ACT_TIMEOUT_S); pump until a
+               frame's weapon.type is the item's (EQUIP_TIMEOUT_S). {spawn (None when held), item {itemId, source,
+               fullType, seq, wallMs}, equip (None when no Equip was sent), weapon_frame, armed, ok}. An unconfirmed
+               spawn or equip is recorded and the session goes on.
   loop         every poll_s of the clock: pump the transport (each line into World, then Actions; a frame's
                body.health <= STOP_HEALTH, the lua_error events and the link's silence are read here); at
                PLANNER_HZ the planner's tick (its decision log read incrementally, the fights built off its threat
                branch; each sent action's branch and a consume's use kept beside it, Session.send_meta); the
                server reads (below); every MEM_POLL_S a host free-memory read; every PERSIST_S out["loop"]
-               rebuilt (record.loop_summary and the driver's extra_record()) and persisted.
-THE SERVER READS: synchronously, as the first Plan 22 acceptance driver read them, every SERVER_POLL_S (the first at
-the loop's start) stats.all merged into the World, a pump, one needs row [gameMin, hunger, thirst, fatigue, health,
-serverHunger] off the frame nearest the read's wallMs with its pair row {frameSeq, frameWallMs, serverWallMs, dtMs,
-paired (within PAIR_S)}, then the `players` list; every DAMAGE_POLL_S `damage.watch USER since <i>`, its new records
-merged, kept (the last SERVER_RECORDS_KEPT) and summed by tag. With `polls` (a polls.PollThread) the same three reads
-are scheduled at the loop's start on the worker and the loop merges, at every pass, each result newer than the last it
-merged (so a slow bus never holds the loop): a stats result and a players result make one server poll; a read that
-raised on the worker counts as that half failed.
+               rebuilt (record.loop_summary and the driver's extra_record()) and persisted. Whatever stopped it,
+               the loop ends by stopping the character (THE STOP, below).
+THE SERVER READS are `reads.ServerReads` (stats.all and players every SERVER_POLL_S, damage.watch since every
+DAMAGE_POLL_S; its docstring): the loop calls `reads.due(now)` (the synchronous path, `polls` None, runs the due reads
+on the loop's thread) and `reads.merge(reads.latest(), now)` (every result newer than the last merged, from either
+path, then the death, dead-bus and failed-poll checks); with `polls` (a polls.PollThread) the worker runs them, so a
+slow bus never holds the loop.
+THE KEPT FRAMES: the last LAST_FRAMES frame rows (loop.last_frames, and the death record's), DEATH_WINDOW_S at the
+frames' FRAME_HZ: a death's window opens at its first wound, up to DEATH_WINDOW_S before the stop, so the frames
+must reach that far back or the wound that opened it is cut off (I-5). The chain's lineage reads the last one.
+THE STOP: at every stop reason, before the poll worker's join and the stop's own record, `actions.stop()` is sent and
+the transport pumped (no planner tick) until the stop's act line and a later frame are read, or STOP_SETTLE_S: a walk,
+a steer or a loot left running would carry the character on through the teardown, and the next session's lineage
+would read that drift as a broken save (I-6). loop.stopped {sent, aid, state, acked, ack_seq, wallS (the loop's
+seconds at the send), settleS}; loop.last_frame_after_stop: the last kept frame (the lineage's previous frame) is one
+after the stop's act line. A sleep is not woken by a stop; its lineage reading is the guide's. out["stop"]'s wallS,
+gameMin and worldAge are read at the stop, before the settle.
 THE WORKER AND THE MAIN THREAD: the worker's reads run through xs.step, which appends rows to out["steps"] and, on a
 stall, adds a ping row and (xs.mark_dead) out["abort"], a note and a timeline mark, all while the loop's xs.persist may
 be serialising out. A list append mid-dump is harmless; a key added mid-dump (the stall and dead-bus path only) makes
@@ -36,8 +49,8 @@ that one persist raise "dictionary changed size", which Xs.persist catches, its 
 artifact whole: at most one PERSIST_S of staleness, never a corrupt file. A later change that adds worker-side writes
 keeps to that rule or moves the write to the merge. The bus itself (pzt's CommandBus: one seq, one command file) takes
 one caller at a time, so the loop's end joins the worker with a timeout covering the longest read (the step's 30 s
-bus timeout plus the liveness ping: Session.polls_join_s), records loop.polls_joined, and skips the death record's
-final damage read while the worker is still in a read (damage.final_error names it).
+bus timeout plus the liveness ping: Session.polls_join_s; ServerReads.end), records loop.polls_joined, and skips the
+death record's final damage read while the worker is still in a read (damage.final_error names it).
 STOP CONDITIONS, the first that holds ends the loop, named in out["stop"] {reason, detail, wallS, gameMin, worldAge}:
   death            a frame's body.health <= STOP_HEALTH, or a `players` reply (a list, or {} for nobody) without the
                    user (an error reply is no death: a failed read, the last kept as loop.players_error);
@@ -76,6 +89,9 @@ from agent.base.planner.survive import Survive        # noqa: E402
 from agent.base.world import World                    # noqa: E402
 
 REPO = DL.REPO
+FRAME_HZ = 10                     # the Lua's frame rate
+DEATH_WINDOW_S = 300              # the damage records and frames a death record reaches back over
+STOP_SETTLE_S = 2.0               # the loop's closing Stop: how long the pump waits for its act line and a later frame
 DEFAULTS = {
     "BUDGET_S": 1200.0,           # the wall budget from the end of the memory gate, the boot included
     "MIN_FREE_GB": 12.0,          # the pre-boot memory floor (CLAUDE.md § 5)
@@ -101,8 +117,9 @@ DEFAULTS = {
     "EQUIP_TIMEOUT_S": 30.0,
     "ACT_TIMEOUT_S": 10.0,        # Equip's deadline
     "SERVER_TIMEOUT_S": 10.0,     # the damage.watch step's bus timeout
-    "LAST_FRAMES": 300,           # 30 s at 10 Hz: a wound's onset
-    "DEATH_WINDOW_S": 300,        # the damage records a death record keeps
+    # the whole death window at FRAME_HZ, so the first wound in it is kept (I-5; the module docstring)
+    "LAST_FRAMES": DEATH_WINDOW_S * FRAME_HZ,
+    "DEATH_WINDOW_S": DEATH_WINDOW_S,
     "PAIR_S": 1.0,                # a needs row's frame and server read share a wall second (CLAUDE.md § 5)
     "SERVER_RECORDS_KEPT": 5000,
     # a Lua error line in the client console, the -debug park
@@ -443,17 +460,9 @@ class Session:
         self.ticks = 0
         self.sent = []                # every Action the planner sent
         self.sent_meta = {}           # aid -> {branch, use (consume only)} read at the send (send_meta)
-        self.needs, self.needs_pairs = [], []
-        self.server_polls = self.server_fails = self.fails_in_row = 0
-        self.players_error = None
         self.mem_rows, self.mem_low_in_row = [], 0
-        self.since_i = 0              # the largest damage record index merged; the poll worker reads it at each call
-        self.server_records = deque(maxlen=self.lim["SERVER_RECORDS_KEPT"])
-        self.damage = {"polls": 0, "fails": 0, "since": 0, "merged": 0, "lost": 0, "dropped": None, "counts": None,
-                       "totals": {}}
-        self._seen = {}               # polls: the (result, wall) tuple last merged, by read name
-        self._round = {}              # polls: the current server poll's halves, {"stats"|"players": ok}
-        self._err_i = 0               # polls: the errors already counted
+        self.stopped = None           # the loop's closing Stop (stop_character)
+        self.reads = RD.ServerReads(self, polls)
 
     # -- the hooks -----------------------------------------------------------------------------------------------
     def on_frame(self, line):
@@ -558,33 +567,56 @@ class Session:
     def phase_damage_hook(self):
         """The server's damage listener installed before the kit (`damage.watch USER` once), its records merged as the
         loop merges them; {ok, hooked, n, counts, last_i, ack}."""
-        ack = self.damage_poll(args=self.user)
+        ack = self.reads.damage_poll(args=self.user)
         a = ack if isinstance(ack, dict) else {}
         self.rd["damage_hook"] = {"ok": a.get("ok"), "hooked": a.get("hooked"), "n": a.get("n"),
-                                  "counts": a.get("counts"), "last_i": self.since_i, "ack": ack}
+                                  "counts": a.get("counts"), "last_i": self.reads.since_i, "ack": ack}
 
     # -- phase: kit ----------------------------------------------------------------------------------------------
+    def held_weapon(self, kit):
+        """The id of a weapon the inventory already holds (world.by_use()'s `weapon` ids, KIT's own first), or None."""
+        ids = [i for i in self.world.by_use().get("weapon", ()) if item_id_ok(i)]
+        ids.sort(key=lambda i: self.world.inventory.get(i, {}).get("fullType") != kit)
+        return ids[0] if ids else None
+
     def phase_kit(self):
         kit = self.lim["KIT"]
         r = {"spawn": None, "item": None, "equip": None, "weapon_frame": None, "armed": False, "ok": False}
         self.rd["kit"] = r
+        held = self.held_weapon(kit)
+        if held is not None:
+            full = self.world.inventory.get(held, {}).get("fullType")
+            r["item"] = {"itemId": held, "source": "held", "fullType": full, "seq": None, "wallMs": None}
+            w = self.world.weapon
+            if isinstance(w, dict) and w.get("type") is not None:
+                last = self.frames[-1] if self.frames else {}
+                r["weapon_frame"] = {"seq": last.get("seq"), "wallMs": last.get("wallMs"), "type": w.get("type")}
+                r["armed"] = r["ok"] = True
+                return
+            r["ok"] = self.equip(held, full, r)
+            return
         i0 = len(self.lines)
         r["spawn"] = self.xs.spawn(kit, 1, "kit")
         self.wait(lambda: item_added(self.lines[i0:], kit) is not None, self.lim["KIT_TIMEOUT_S"])
         ev = item_added(self.lines[i0:], kit)
         if ev is not None:
-            r["item"] = {"itemId": ev.get("itemId"), "source": "item_added", "seq": ev.get("seq"),
+            r["item"] = {"itemId": ev.get("itemId"), "source": "item_added", "fullType": kit, "seq": ev.get("seq"),
                          "wallMs": ev.get("wallMs")}
         else:
-            held = sorted(i for i, it in self.world.inventory.items() if it.get("fullType") == kit and item_id_ok(i))
-            if held:
-                r["item"] = {"itemId": held[0], "source": "inventory", "seq": None, "wallMs": None}
+            ids = sorted(i for i, it in self.world.inventory.items() if it.get("fullType") == kit and item_id_ok(i))
+            if ids:
+                r["item"] = {"itemId": ids[0], "source": "inventory", "fullType": kit, "seq": None, "wallMs": None}
             self.xs.note("kit: no item_added of %s within %s s%s" % (kit, self.lim["KIT_TIMEOUT_S"],
-                                                                    "; the inventory's kept" if held else ""))
+                                                                    "; the inventory's kept" if ids else ""))
         iid = (r["item"] or {}).get("itemId")
         if not item_id_ok(iid):
             self.xs.note("kit: no %s item id to equip; the planner flees every threat unarmed" % kit)
             return
+        r["ok"] = self.equip(iid, kit, r) and bool((r["spawn"] or {}).get("confirmed"))
+
+    def equip(self, iid, full_type, r):
+        """Equip(iid) awaited to a terminal state (ACT_TIMEOUT_S), then a frame wielding `full_type`
+        (EQUIP_TIMEOUT_S); r's equip, weapon_frame and armed written. True when both held."""
         i1 = len(self.lines)
         act_s = self.lim["ACT_TIMEOUT_S"]
         a = self.actions.send(pza1.Equip(iid), deadline_s=act_s)
@@ -594,14 +626,15 @@ class Session:
 
         def wield():
             return next((f for f in self.lines[i1:] if f.get("kind") == "frame"
-                         and (f.get("weapon") or {}).get("type") == kit), None)
+                         and (f.get("weapon") or {}).get("type") == full_type), None)
         self.wait(lambda: wield() is not None, self.lim["EQUIP_TIMEOUT_S"])
         f = wield()
-        r["weapon_frame"] = {"seq": f["seq"], "wallMs": f.get("wallMs"), "type": kit} if f else None
+        r["weapon_frame"] = {"seq": f["seq"], "wallMs": f.get("wallMs"), "type": full_type} if f else None
         r["armed"] = f is not None
-        r["ok"] = bool((r["spawn"] or {}).get("confirmed")) and a.state == "done" and f is not None
         if f is None:
-            self.xs.note("kit: no frame shows %s in the primary hand after %s s" % (kit, self.lim["EQUIP_TIMEOUT_S"]))
+            self.xs.note("kit: no frame shows %s in the primary hand after %s s" % (full_type,
+                                                                                   self.lim["EQUIP_TIMEOUT_S"]))
+        return a.state == "done" and f is not None
 
     # -- phase: loop ---------------------------------------------------------------------------------------------
     def phase_loop(self):
@@ -617,25 +650,17 @@ class Session:
         self.last_line_t = now
         lim = self.lim
         tick_dt = 1.0 / lim["PLANNER_HZ"]
-        next_tick, next_server, next_damage = now, now, now
+        next_tick = now
         next_persist, next_mem = now + lim["PERSIST_S"], now + lim["MEM_POLL_S"]
-        if self.polls is not None:
-            self.start_polls()
+        self.reads.start()
         stop = None
         try:
             while True:
                 now = self.clock()
                 self.pump()
                 self.check_lines(now)
-                if self.polls is not None:
-                    self.merge_polls(now)
-                else:
-                    if now >= next_server:
-                        next_server = now + lim["SERVER_POLL_S"]
-                        self.server_poll(now)
-                    if now >= next_damage:
-                        next_damage = now + lim["DAMAGE_POLL_S"]
-                        self.damage_poll()
+                self.reads.due(now)
+                self.reads.merge(self.reads.latest(), now)
                 if now >= next_mem:
                     next_mem = now + lim["MEM_POLL_S"]
                     self.memory_read(now)
@@ -657,10 +682,50 @@ class Session:
             stop = ("error", "%s: %s" % (type(e).__name__, e))
             raise
         finally:
-            self.end_polls()                         # joined before the stop's own bus read (the death record)
+            at = self.stop_point()                   # out["stop"] is read at the stop, before the settle
+            self.stop_character()
+            self.reads.end()                         # joined before the stop's own bus read (the death record)
             if stop is not None:
-                self.set_stop(*stop)
+                self.set_stop(*stop, at=at)
             self.save()
+
+    def stop_point(self):
+        """{wallS, gameMin, worldAge} now: where out["stop"] places the stop."""
+        return {"wallS": self.loop_s(), "gameMin": self.world.game_min,
+                "worldAge": (self.frames[-1] if self.frames else {}).get("worldAge")}
+
+    def stop_character(self):
+        """The loop's closing Stop (THE STOP in the module docstring): sent, then the transport pumped until its act
+        line and a later frame are read, or STOP_SETTLE_S; self.stopped records it. Never raises: the stop's record
+        and the teardown follow whatever the link does."""
+        rec = {"sent": False, "aid": None, "state": None, "acked": False, "ack_seq": None, "wallS": self.loop_s(),
+               "settleS": None}
+        self.stopped = rec
+        t0 = self.clock()
+        try:
+            a = self.actions.stop()
+            rec.update(sent=True, aid=a.aid)
+            while True:
+                for l in self.pump():
+                    if l.get("kind") == "act" and l.get("aid") == a.aid and rec["ack_seq"] is None:
+                        rec["ack_seq"] = l.get("seq")
+                after = rec["ack_seq"] is not None and self.frames and (
+                    self.frames[-1].get("seq") or 0) > rec["ack_seq"]
+                if after or self.clock() - t0 >= STOP_SETTLE_S:
+                    break
+                self.sleep(self.poll_s)
+            rec.update(state=a.state, acked=rec["ack_seq"] is not None)
+        except Exception as e:                       # noqa: BLE001 - a dead link must not mask the stop's record
+            rec["error"] = "%s: %s" % (type(e).__name__, e)
+        rec["settleS"] = self.clock() - t0
+
+    def last_frame_after_stop(self):
+        """True when the last kept frame (the chain's lineage reads it) came after the closing Stop's act line; None
+        before the loop stopped."""
+        st = self.stopped
+        if st is None:
+            return None
+        return bool(st["ack_seq"] is not None and self.frames and (self.frames[-1].get("seq") or 0) > st["ack_seq"])
 
     def check_budget(self):
         try:
@@ -680,171 +745,6 @@ class Session:
                                                                                self.lim["STORM_WINDOW_S"]))
         if now - self.last_line_t >= self.lim["BUS_DEAD_S"]:
             raise Stop("bus_dead", "no link line for %ss (the client parked or gone)" % self.lim["BUS_DEAD_S"])
-
-    # -- the server reads: synchronous -----------------------------------------------------------------------------
-    def server_poll(self, now):
-        """stats.all merged into the World, a pump, one needs row paired by wall time, the players list; a death or a
-        dead bus raises Stop."""
-        if self.xs.bus_dead:
-            raise Stop("bus_dead", "server bus dead after %s" % self.xs.bus_dead)
-        self.server_polls += 1
-        stats_ok = self.merge_stats(DL.bus_stats(self.xs, self.user) or {})
-        reply = self.players(self.xs)
-        names = self.read_names(reply, now)
-        self.count_poll(stats_ok or names is not None)
-        self.check_players(names)
-
-    def merge_stats(self, r):
-        """One stats.all read ({ack, wallMs}) merged: the World's server map, a pump, the needs row and its pair row.
-        True when it carried a stats map."""
-        stats = server_stats(_d(r).get("ack"))
-        if stats is not None:
-            self.world.merge_server(stats, r.get("wallMs"))
-        self.pump()
-        f, pair = pair_frame(list(self.frames), _d(r).get("wallMs"), self.lim["PAIR_S"])
-        self.needs.append(needs_row(f, stats))
-        self.needs_pairs.append(pair)
-        return stats is not None
-
-    def read_names(self, reply, now):
-        names = players_list(reply)
-        if names is None:
-            self.players_error = {"wallS": now - self.t_loop0, "reply": str(reply)[:300]}
-        return names
-
-    def count_poll(self, ok):
-        if ok:
-            self.fails_in_row = 0
-        else:
-            self.server_fails += 1
-            self.fails_in_row += 1
-
-    def check_players(self, names):
-        self.check_death(names)
-        self.check_fails()
-
-    def check_death(self, names):
-        if names is not None and self.user not in names:
-            raise Stop("death", "players reply without %s: %s" % (self.user, names))
-
-    def check_fails(self):
-        if self.fails_in_row >= self.lim["BUS_DEAD_POLLS"]:
-            raise Stop("bus_dead", "%d consecutive failed server polls, %ss apart" % (
-                self.fails_in_row, self.lim["SERVER_POLL_S"]))
-
-    def damage_poll(self, args=None):
-        """damage.watch USER since <i> read and merged (damage_read, damage_merge); the ack."""
-        self.damage["polls"] += 1
-        return self.damage_merge(self.damage_read(args))
-
-    def damage_read(self, args=None):
-        """The damage.watch step's ack; `since` is the largest index merged when the call is made."""
-        args = args or "%s since %d" % (self.user, self.since_i)
-        return self.xs.step("damage_watch", X.SRV, "damage.watch", args, timeout=self.lim["SERVER_TIMEOUT_S"],
-                            log=False).get("ack")
-
-    def damage_merge(self, ack):
-        """The new records merged into the World, kept with their i and server wall, and summed by tag; a gap in the
-        indices (records aged out of the server's list) counts in `lost`. A record merged twice is skipped."""
-        dm = self.damage
-        if not (isinstance(ack, dict) and ack.get("ok") is True):
-            dm["fails"] += 1
-            dm["last_error"] = str(ack)[:300]
-            return ack
-        merge_ms = self.clock() * 1000.0
-        seen = set(self.world.damage_seen_i)
-        new = [r for r in damage_last(ack) if r["i"] not in seen]
-        self.world.merge_damage(ack, merge_ms)
-        for r in new:
-            if r["i"] > self.since_i + 1:
-                dm["lost"] += int(r["i"] - self.since_i - 1)
-            self.since_i = max(self.since_i, r["i"])
-            tag = str(r.get("tag"))
-            self.server_records.append({"i": r["i"], "tag": tag, "amount": r.get("amount"), "wall": r.get("wall"),
-                                        "wallMs": merge_ms})
-            t = dm["totals"].setdefault(tag, {"n": 0, "amount": 0.0})
-            t["n"] += 1
-            t["amount"] += _num(r.get("amount")) or 0.0
-        dm["merged"] += len(new)
-        dm["since"], dm["dropped"], dm["counts"] = self.since_i, ack.get("dropped"), ack.get("counts")
-        return ack
-
-    # -- the server reads: through the PollThread ------------------------------------------------------------------
-    def start_polls(self):
-        """The three reads scheduled on the worker: stats and players every SERVER_POLL_S, damage every DAMAGE_POLL_S
-        (its `since` read off self.since_i at each call)."""
-        p = self.polls
-        p.schedule("stats", self.lim["SERVER_POLL_S"], lambda: DL.bus_stats(self.xs, self.user) or {})
-        p.schedule("players", self.lim["SERVER_POLL_S"], lambda: self.players(self.xs))
-        p.schedule("damage", self.lim["DAMAGE_POLL_S"], lambda: self.damage_read())
-        p.start()
-
-    def end_polls(self):
-        """The worker stopped and joined (polls_join_s); loop.polls_joined records whether it ended, and a worker
-        still in a read is noted (the death record's final read is then skipped)."""
-        if self.polls is None or "polls_joined" in self.loop:
-            return
-        joined = self.polls.stop(self.polls_join_s)
-        self.loop["polls_joined"] = joined
-        if not joined:
-            self.xs.note("the poll worker did not end within %ss: a read still in flight" % self.polls_join_s)
-
-    def polls_busy(self):
-        return self.polls is not None and self.polls.alive()
-
-    def _new(self, name):
-        got = self.polls.latest(name)
-        if got[1] is None or got is self._seen.get(name):
-            return None
-        self._seen[name] = got
-        return got
-
-    def _half(self, name, ok):
-        """One half of a server poll arrived; a poll is closed when both have, or when a half arrives twice (the other
-        then counts failed)."""
-        if name in self._round:
-            self._close_round()
-        self._round[name] = ok
-        if len(self._round) == 2:
-            self._close_round()
-
-    def _close_round(self):
-        rd, self._round = self._round, {}
-        self.server_polls += 1
-        self.count_poll(any(rd.values()))
-
-    def merge_polls(self, now):
-        """Each result newer than the last merged, and each read that raised on the worker (a failed half); the
-        players check and the dead-bus check as the synchronous poll makes them, after the merge (a death reply that
-        landed with the worker's mark_dead is a death). Never waits on the bus."""
-        names = None
-        st, pl, dg = self._new("stats"), self._new("players"), self._new("damage")
-        errs = self.polls.errors[self._err_i:]
-        self._err_i += len(errs)
-        for e in errs:
-            if e["name"] == "damage":
-                self.damage["polls"] += 1
-                self.damage["fails"] += 1
-                self.damage["last_error"] = str(e["error"])[:300]
-            elif e["name"] in ("stats", "players"):
-                if e["name"] == "players":
-                    self.players_error = {"wallS": now - self.t_loop0, "reply": str(e["error"])[:300]}
-                self._half(e["name"], False)
-        if st is not None:
-            self._half("stats", self.merge_stats(st[0] or {}))
-        if pl is not None:
-            names = self.read_names(pl[0], now)
-            self._half("players", names is not None)
-        if dg is not None:
-            self.damage["polls"] += 1
-            self.damage_merge(dg[0])
-        self.check_death(names)
-        if self.xs.bus_dead:
-            raise Stop("bus_dead", "server bus dead after %s" % self.xs.bus_dead)
-        self.check_fails()
-        t = getattr(self.polls, "_thread", None)
-        if t is not None and not t.is_alive():
-            raise Stop("error", "the poll worker ended outside a read")
 
     # -- memory, the planner -------------------------------------------------------------------------------------
     def memory_read(self, now):
@@ -889,22 +789,22 @@ class Session:
     def death_record(self, via, detail):
         """A last damage.watch read (skipped while the poll worker is still in a read: one bus caller at a time;
         guarded: a dead bus keeps what was merged), then record.death_record."""
-        if self.polls_busy():
-            self.damage["final_error"] = "poll worker still in a read"
+        if self.reads.busy():
+            self.reads.damage["final_error"] = "poll worker still in a read"
         else:
             try:
-                self.damage_poll()
+                self.reads.damage_poll()
             except Exception as e:                   # noqa: BLE001 - the record is written whatever the bus does
-                self.damage["final_error"] = "%s: %s" % (type(e).__name__, e)
+                self.reads.damage["final_error"] = "%s: %s" % (type(e).__name__, e)
         self.tail.read()
         return record.death_record(self, via, detail)
 
-    def set_stop(self, reason, detail):
-        """The session's first stop, named in out["stop"]; a death also writes out["loop"]["death"]."""
+    def set_stop(self, reason, detail, at=None):
+        """The session's first stop, named in out["stop"] at `at` (stop_point(), else now); a death also writes
+        out["loop"]["death"]."""
         if self.out.get("stop") is not None:
             return
-        self.out["stop"] = {"reason": reason, "detail": detail, "wallS": self.loop_s(), "gameMin": self.world.game_min,
-                            "worldAge": (self.frames[-1] if self.frames else {}).get("worldAge")}
+        self.out["stop"] = dict({"reason": reason, "detail": detail}, **(at or self.stop_point()))
         if reason == "death":
             self.loop["death"] = self.death_record("frame" if self.death_frame is not None else "players", detail)
         self.xs.note("stop %s: %s" % (reason, detail))
@@ -930,5 +830,6 @@ class Session:
         self.xs.persist()
 
 
-# record reads this module's helpers; imported last so either module may be imported first
+# record and reads use this module's helpers; imported last so any of the three may be imported first
+from agent.driverlib import reads as RD               # noqa: E402
 from agent.driverlib import record                    # noqa: E402

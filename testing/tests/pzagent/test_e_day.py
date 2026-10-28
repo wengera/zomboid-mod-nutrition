@@ -64,6 +64,8 @@ def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
     assert E.CONSTANTS == dict(S.DEFAULTS, **E.LIMITS, BUDGET_S=1200.0)
     assert E.ALLOWED == ("--session", "--fixture", "--prev") and E.DEFAULT_FIXTURE == "agent" and E.USER == "admin"
     assert E.MIN_FREE_GB == S.DEFAULTS["MIN_FREE_GB"] == 12.0
+    # M-8: the day's constants are day.py's, imported (one copy for e_day and f_goals)
+    assert E.LIMITS is CH_DAY.LIMITS and E.CONSTANTS is CH_DAY.CONSTANTS and E.USER is CH_DAY.USER
 
 
 def test_nothing_is_imported_from_a_frozen_driver():
@@ -74,12 +76,12 @@ def test_nothing_is_imported_from_a_frozen_driver():
                                                      "agent.policy")]
     assert frozen == [], frozen
     for need in ("import xlib as X", "from agent.driverlib import session as DS",
-                 "from agent.driverlib import day as DY", "from agent.driverlib.polls import PollThread",
-                 "from agent.base import gates_e as GE", "from agent.base.planner.survive import Survive",
+                 "from agent.driverlib import day as DY", "from agent.base import gates_e as GE",
+                 "from agent.base.planner.survive import Survive",
                  "from agent.base.planner.goals import ScriptedSource"):
         assert need in imports, need
     assert "Survive(world, actions, log_path, clock, source=ScriptedSource())" in src
-    assert "else PollThread(clock)" in src
+    assert "return DY.make_day_session(xs, transport, planner, prev=prev, **kw)" in src     # M-8: one builder
     # the boot is the library's (Task 16d): driverlib/day.boot_and_run, its order tested in test_driverlib.py
     assert "DY.boot_and_run(args, lambda: preboot(_ME, args), run_session, grade, key=KEY, driver=DRIVER," in src
     assert 'grade_key="grade_e1"' in src and 'DY.grade(out, "grade_e1", GE.grade_e1)' in src
@@ -375,6 +377,9 @@ def test_a_second_session_with_prev_records_the_lineage_diff(tmp_path, monkeypat
     assert lin["world_age"]["prev"] == wa and lin["world_age"]["now"] == 8.0
     assert lin["world_age"]["delta_min"] == pytest.approx((8.0 - wa) * 60.0) and lin["world_age"]["delta_min"] < 0
     assert lin["world_age"]["ok"] is False and lin["ok"] is False
+    # I-6: the previous frame is the first kept after the loop stopped the character
+    assert a.out["loop"]["last_frame_after_stop"] is True and a.out["loop"]["stopped"]["acked"] is True
+    assert prev["loop"]["last_frames"][-1]["seq"] > prev["loop"]["stopped"]["ack_seq"]
     assert b.out["grade_e1"]["lineage"] == lin
     same = {"loop": {"last_frames": [{"seq": 9, "gameMin": 480.0, "worldAge": 8.0,
                                       "me": {"x": 100.0, "y": 200.0},
@@ -427,3 +432,12 @@ def test_grade_records_a_grade_failure_rather_than_raising(monkeypatch):
     monkeypatch.setattr(E.GE, "grade_e1", lambda o: (_ for _ in ()).throw(ValueError("boom")))
     E.grade(out)
     assert out["grade_e1_error"] == "ValueError: boom" and "grade_e1" not in out
+
+
+def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch):
+    """C-1: the bat a session ends with is in the next session's first sight; no second one is spawned."""
+    bat = {"itemId": KIT_ID, "fullType": KIT, "weight": 1.5, "use": "weapon"}
+    r = run_chain(tmp_path, monkeypatch, day_cap_s=5, items=[bat])
+    kit = r.out["readings"]["kit"]
+    assert kit["spawn"] is None and kit["item"]["source"] == "held" and kit["item"]["itemId"] == KIT_ID
+    assert kit["armed"] is True and kit["ok"] is True and not r.mod.has_kit                 # no RCON additem

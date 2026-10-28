@@ -42,9 +42,12 @@ def test_the_defaults_are_the_briefs():
             "MEM_LOW_READS": 2, "BUS_DEAD_S": 60, "BUS_DEAD_POLLS": 2, "STORM_N": 10, "STORM_WINDOW_S": 60,
             "HELLO_TIMEOUT_S": 60.0, "FRAME_TIMEOUT_S": 10.0, "KIT": "Base.BaseballBat", "POLL_S": 0.1,
             "LAST_DECISIONS": 10, "KIT_TIMEOUT_S": 30.0, "EQUIP_TIMEOUT_S": 30.0, "ACT_TIMEOUT_S": 10.0,
-            "SERVER_TIMEOUT_S": 10.0, "LAST_FRAMES": 300, "DEATH_WINDOW_S": 300, "PAIR_S": 1.0,
+            "SERVER_TIMEOUT_S": 10.0, "LAST_FRAMES": 3000, "DEATH_WINDOW_S": 300, "PAIR_S": 1.0,
             "SERVER_RECORDS_KEPT": 5000, "PARK_RX": r"LuaError|STACK TRACE|attempted index|tried to call nil"}
     assert S.DEFAULTS == want
+    # I-5: the kept frames span the death window at the frames' 10 Hz, so a wound that opens it is never cut off
+    assert S.DEFAULTS["LAST_FRAMES"] == S.DEFAULTS["DEATH_WINDOW_S"] * S.FRAME_HZ == 3000 and S.FRAME_HZ == 10
+    assert S.STOP_SETTLE_S == 2.0
 
 
 def test_the_library_imports_no_driver_but_dlib():
@@ -275,7 +278,7 @@ def test_boot_and_run_keeps_the_boots_order():
              "xs.finish(B.bounded_teardown, hard_kill, every, read_logs=read_logs)",
              "run_after_teardown(after_teardown, out, ran)", "grade_fn(out)",
              "out[\"finished\"] = True", "xs.copy_artifacts(repo, run_id, run_dir, artifact)",
-             "CH.snapshot_cmd(run_dir, \"%s-after-%d\" % (key, n), args[\"fixture\"], n)"]
+             "next_steps(args, run_dir, xs.path)"]
     at = [body.index(s) for s in order]
     assert at == sorted(at), order
 
@@ -316,6 +319,48 @@ def test_day_grade_records_a_failure_rather_than_raising():
     assert out["grade_y_error"].startswith("ZeroDivisionError") and "grade_y" not in out
 
 
+def test_the_summary_names_the_chains_next_fixture_and_the_next_sessions_argv():
+    """I-7: the chain's fixtures are agent-s1, agent-s2, ... (spec section 4); M-10: the next session, E or F, is
+    given --session n+1 and --prev of this artifact (P23-Z refuses it otherwise)."""
+    assert DY.next_fixture(1) == "agent-s1" and DY.next_fixture(3) == "agent-s3"
+    args = {"session": 2, "fixture": "agent-s1", "prev": "testing/runs/e_day-1/e_day.json"}
+    nx = DY.next_steps(args, "testing/runs/e_day-2", "testing/runs/e_day-2/e_day.json")
+    assert nx["snapshot_cmd"][-9:] == ["snapshot", "--from-run", "testing/runs/e_day-2", "--name", "agent-s2",
+                                       "--parent", "agent-s1", "--session", "2"]
+    assert nx["next_session"] == "--session 3 --fixture agent-s2 --prev testing/runs/e_day-2/e_day.json"
+    assert nx["f_session"] == ("an F session on the chain's last fixture: f_goals.py --session 3 --fixture agent-s2 "
+                               "--prev testing/runs/e_day-2/e_day.json (P23-Z: any other --session is refused)")
+    first = DY.next_steps({"session": 1, "fixture": "agent", "prev": None}, "r1", "r1/e_day.json")
+    assert first["snapshot_cmd"][-5:] == ["agent-s1", "--parent", "agent", "--session", "1"]
+    src = open(DY.__file__, encoding="utf-8").read()
+    assert "-after-" not in src and '"next": next_steps(args, run_dir, xs.path)' in src
+
+
+def test_make_day_session_is_the_one_chain_builder(tmp_path):
+    """M-8: the day's shared constants and its one session builder live in day.py; a driver's make_session only
+    names its planner, its extra record and its copied files."""
+    assert DY.LIMITS == {"DAY_CAP_S": 840, "PLANNER_HZ": 2, "DAMAGE_POLL_S": 5}
+    assert DY.CONSTANTS == dict(S.DEFAULTS, **DY.LIMITS, BUDGET_S=1200.0)
+    assert (DY.USER, DY.BUDGET_S, DY.MIN_FREE_GB) == ("admin", 1200.0, 12.0)
+    xs = types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=str(tmp_path / "a.json"))
+    made = []
+
+    def factory(world, actions, log_path, clock):
+        made.append(log_path)
+        return Survive(world, actions, log_path, clock)
+    c = DY.make_day_session(xs, None, factory, extra=lambda s: {"x": 1}, copied=("goals.log",), prev={"loop": {}},
+                            clock=lambda: 5.0, limits={"DAY_CAP_S": 9})
+    assert isinstance(c, DY.Chain) and isinstance(c.polls, P.PollThread) and c.prev == {"loop": {}}
+    assert c.lim["DAY_CAP_S"] == 9 and c.lim["PLANNER_HZ"] == 2 and c.lim["DAMAGE_POLL_S"] == 5
+    assert xs.copied == ["goals.log", "decision.log"] and made and c.extra_record()["x"] == 1
+    for drv in ("e_day.py", "f_goals.py"):
+        src = open(os.path.join(os.path.dirname(LIB), "drivers", drv), encoding="utf-8").read()
+        assert "DY.make_day_session(" in src, drv
+        for own in ("LIMITS = ", "DAY_CAP_S = ", "PLANNER_HZ = ", "DAMAGE_POLL_S = ", "BUDGET_S = ", "USER = ",
+                    "PollThread(clock)"):
+            assert own not in src, (drv, own)
+
+
 def test_snapshot_cmd_is_the_pzt_snapshot_argv():
     argv = CH.snapshot_cmd("testing/runs/e_day-1", "chain-2", "agent", 2)
     assert argv[-9:] == ["snapshot", "--from-run", "testing/runs/e_day-1", "--name", "chain-2", "--parent", "agent",
@@ -342,11 +387,14 @@ class DayMod(FakeMod):
     drop is a server HEAVYLOAD record of `amount` (default `drain`) when `server_damage`), `client_damage` (one client
     damage event at the drain's start), `zombie_at` (zombie ZID at 1.5 tiles from then until an attack kills it),
     `lua_err_from` / `lua_err_every`, `silent_from` (no line written from then), `hello_mode`, `no_hello` (no hello
-    line), `zombie_far_s` and `zombie_dist`, and `bite_at` (body.bitten 0 -> 1 and a hurt part from then)."""
+    line), `zombie_far_s` and `zombie_dist`, `bite_at` (body.bitten 0 -> 1 and a hurt part from then), `held` (the bat
+    in the inventory at the first sight, a chain's later session) and `wielded` (the bat in the hand from the start).
+    Every other command, stop included, is accepted and done."""
 
     def __init__(self, d, clock, die_from=None, drain=5.0, amount=None, floor=0.0, server_damage=True,
                  client_damage=False, zombie_at=None, lua_err_from=None, lua_err_every=1.0, silent_from=None,
-                 hello_mode="append", no_hello=False, zombie_far_s=0.0, zombie_dist=1.5, bite_at=None):
+                 hello_mode="append", no_hello=False, zombie_far_s=0.0, zombie_dist=1.5, bite_at=None, held=False,
+                 wielded=False):
         super().__init__(d, clock=clock.now)
         self.clk, self.t0 = clock, clock.t
         self.hz = 10
@@ -359,6 +407,11 @@ class DayMod(FakeMod):
         self.health, self.weapon, self.has_kit = 100.0, None, False
         self.pending, self.cmd_seen, self.cmds = [], 0, []
         self.server_records = []
+        if held:                                                              # a chain's later session: the bat kept
+            self.has_kit = True
+            self.pending.append({"itemId": KIT_ID, "fullType": KIT, "weight": 1.5, "use": "weapon"})
+        if wielded:
+            self.weapon = {"type": KIT, "cond": 1.0, "reach": 1.125, "ammo": None}
         if not no_hello:
             self.hello(mode=hello_mode)
         self.next_t = clock.t
@@ -438,9 +491,10 @@ class DayMod(FakeMod):
 
 class FakeServer:
     def __init__(self, mod):
-        self.mod, self.errors = mod, []
+        self.mod, self.errors, self.rcons = mod, [], []
 
     def rcon(self, cmd):
+        self.rcons.append(cmd)
         self.mod.additem()
         return True, "Item %s Added in admin's inventory." % KIT
 
@@ -567,6 +621,11 @@ def run_session(tmp_path, monkeypatch, mode="sync", limits=None, budget_s=1e9, f
     return types.SimpleNamespace(out=out, mod=mod, bus=fb, day=sess, xs=xs, clock=clock)
 
 
+def fr_n(out):
+    """Every frame the session kept: a session under DEATH_WINDOW_S of frames keeps them all."""
+    return out["frames"]["n"]
+
+
 def decisions(tmp_path):
     with open(tmp_path / S.DECISION_LOG, encoding="utf-8") as f:
         return [json.loads(ln) for ln in f]
@@ -583,7 +642,7 @@ def test_a_clean_day_runs_every_phase_and_stops_at_the_day_cap(tmp_path, monkeyp
     assert h["ok"] and h["proto"] == "PZA/1" and h["mode"] == "append" and h["first_frame"]["seq"] >= 1
     kit = out["readings"]["kit"]
     assert kit["spawn"]["confirmed"] is True and kit["item"] == {"itemId": KIT_ID, "source": "item_added",
-                                                                 "seq": kit["item"]["seq"],
+                                                                 "fullType": KIT, "seq": kit["item"]["seq"],
                                                                  "wallMs": kit["item"]["wallMs"]}
     assert kit["equip"]["state"] == "done" and kit["weapon_frame"]["type"] == KIT
     assert kit["armed"] is True and kit["ok"] is True
@@ -598,14 +657,15 @@ def test_a_clean_day_runs_every_phase_and_stops_at_the_day_cap(tmp_path, monkeyp
     assert loop["decisions"] == len(sent) == len(loop["actions"]) > 0
     assert sent[0] == {"type": "scan", "args": {"r": 10}}
     planner_cmds = [c for c in r.mod.cmds if c["type"] != "equip"]
-    assert [{"type": c["type"], "args": c["args"]} for c in planner_cmds] == sent
+    assert planner_cmds[-1]["type"] == "stop"                                  # I-6: the loop's own, after the cap
+    assert [{"type": c["type"], "args": c["args"]} for c in planner_cmds[:-1]] == sent
     assert all(set(a) == {"aid", "type", "args", "state", "reason", "sentS", "endedS", "branch"}
                | ({"use"} if a["type"] == "consume" else set()) for a in loop["actions"])
     assert [a["branch"] for a in loop["actions"]] == [d["branch"] for d in log if d["sent"]]
     assert loop["actions"][0]["state"] == "done" and loop["actions"][0]["endedS"] >= loop["actions"][0]["sentS"]
     assert loop["cost"]["n"] > 0 and loop["cost"]["p50"] == pytest.approx(0.2) and loop["cost"]["over5"] == 0
     assert loop["first_game_min"] is not None and loop["game_min"] > loop["first_game_min"]
-    assert len(loop["last_frames"]) == S.DEFAULTS["LAST_FRAMES"]               # the chain's lineage reads its last
+    assert len(loop["last_frames"]) == fr_n(out) < S.DEFAULTS["LAST_FRAMES"]   # every frame: 40 s is under the cap
     assert S.DECISION_LOG in r.xs.copied
     fr = out["frames"]
     assert fr["lua_errors"] == 0 and fr["gaps"] == 0 and fr["bad"] == 0 and fr["n"] > 300
@@ -670,7 +730,7 @@ def test_a_heavyload_death_keeps_its_record_and_the_frames_explain_it(tmp_path, 
     assert death["via"] == "frame" and death["frame"]["health"] == 0.0
     assert death["last_decisions"] == decisions(tmp_path)[-10:] and len(death["last_decisions"]) == 10
     lf = death["last_frames"]
-    assert len(lf) == S.DEFAULTS["LAST_FRAMES"] and lf[-1]["body"]["health"] == 0.0 and lf[0]["body"]["health"] == 100.0
+    assert len(lf) == fr_n(r.out) and lf[-1]["body"]["health"] == 0.0 and lf[0]["body"]["health"] == 100.0
     assert all(set(f) >= {"seq", "wallMs", "me", "body", "load", "zombies"} for f in lf)
     assert [f["seq"] for f in lf] == sorted(f["seq"] for f in lf)
     assert len(death["server_damage"]) == 20 == len(r.mod.server_records)
@@ -682,7 +742,7 @@ def test_a_heavyload_death_keeps_its_record_and_the_frames_explain_it(tmp_path, 
     assert g["death_explained_by"] == "tagged"
     c = g["death_check"]
     assert c["health_fall"] == pytest.approx(100.0) and c["server_amount"] == pytest.approx(100.0)
-    assert c["server_n"] == 20 and c["frames_n"] == 300 and c["why"] is None and c["tagged"]["explained"] is True
+    assert c["server_n"] == 20 and c["frames_n"] == len(lf) and c["why"] is None and c["tagged"]["explained"] is True
     assert c["wound"]["explained"] is False and c["wound"]["why"] == "no wound in the window's frames"
     assert c["frames_window_ms"] == {"from": lf[0]["wallMs"], "to": lf[-1]["wallMs"]}
     assert c["server_window_ms"]["from"] == lf[0]["wallMs"] and c["server_tags"] == {"HEAVYLOAD": 100.0}
@@ -732,7 +792,7 @@ def test_a_players_reply_without_the_user_is_a_death_with_its_record(tmp_path, m
     st = r.out["stop"]
     assert st["reason"] == "death" and "players reply without admin" in st["detail"]
     death = r.out["loop"]["death"]
-    assert death["via"] == "players" and death["frame"] is None and len(death["last_frames"]) == 300
+    assert death["via"] == "players" and death["frame"] is None and len(death["last_frames"]) == fr_n(r.out)
     g = GT.grade_d(r.out)
     assert g["death_explained"] is False and g["death_explained_by"] is None and g["deaths"][0]["via"] == "players"
 
@@ -1018,3 +1078,90 @@ def test_action_rows_carry_each_sends_branch_and_a_consumes_use(tmp_path):
     sends.append(("x", mk("b1", "scan", {"r": 10})))
     s2.planner_tick()
     assert s2.sent_meta == {"b1": {"branch": None}}
+
+
+# ================================================================ fix wave D: the kit, the frames, the stop, the reads
+def test_a_chain_session_holding_the_bat_spawns_nothing_and_equips_it(tmp_path, monkeypatch):
+    """C-1: a later session of the chain holds the last session's bat; it spawns none (the chain never builds its own
+    load) and equips the held one."""
+    r = run_session(tmp_path, monkeypatch, limits={"DAY_CAP_S": 5}, held=True)
+    kit = r.out["readings"]["kit"]
+    assert r.xs.server.rcons == [] and kit["spawn"] is None
+    assert kit["item"] == {"itemId": KIT_ID, "source": "held", "fullType": KIT, "seq": None, "wallMs": None}
+    assert kit["equip"]["state"] == "done" and kit["weapon_frame"]["type"] == KIT
+    assert kit["armed"] is True and kit["ok"] is True
+    equips = [c for c in r.mod.cmds if c["type"] == "equip"]
+    assert len(equips) == 1 and equips[0]["args"] == {"itemId": KIT_ID}
+    # held and already in the hand: nothing sent at all
+    w = run_session(tmp_path / "w", monkeypatch, limits={"DAY_CAP_S": 5}, held=True, wielded=True)
+    kit = w.out["readings"]["kit"]
+    assert w.xs.server.rcons == [] and kit["spawn"] is None and kit["equip"] is None
+    assert kit["item"]["source"] == "held" and kit["armed"] is True and kit["ok"] is True
+    assert kit["weapon_frame"]["type"] == KIT and [c for c in w.mod.cmds if c["type"] == "equip"] == []
+    # a first session holds no weapon: the spawn as before
+    f = run_session(tmp_path / "f", monkeypatch, limits={"DAY_CAP_S": 5})
+    assert len(f.xs.server.rcons) == 1 and f.out["readings"]["kit"]["item"]["source"] == "item_added"
+
+
+def test_a_wound_400_frames_before_the_death_is_kept(tmp_path, monkeypatch):
+    """I-5 (session half): LAST_FRAMES covers DEATH_WINDOW_S, so the wound that opens the window is in the record."""
+    r = run_session(tmp_path, monkeypatch, bite_at=5.0, die_from=48.0, drain=5.0)
+    assert r.out["stop"]["reason"] == "death"
+    for lf in (r.out["loop"]["last_frames"], r.out["loop"]["death"]["last_frames"]):
+        bitten = [f for f in lf if f["body"].get("bitten")]
+        wound = bitten[0]
+        dead = next(f for f in lf if f["body"]["health"] == 0.0)
+        assert dead["seq"] - wound["seq"] >= 400
+        before = [f for f in lf if f["seq"] < wound["seq"]]
+        assert before and not before[-1]["body"].get("bitten")                 # the rise itself is kept
+        assert GT._wound(before[-1], wound) == "bitten 0 -> 1"
+
+
+@pytest.mark.parametrize("mode", MODES)
+def test_the_loop_ends_by_stopping_the_character(tmp_path, monkeypatch, mode):
+    """I-6: at every stop the loop sends Stop and pumps until its act line and a later frame, before the poll join;
+    the lineage's previous frame is then a frame after the stop."""
+    r = run_session(tmp_path, monkeypatch, mode, limits={"DAY_CAP_S": 10})
+    loop = r.out["loop"]
+    st = loop["stopped"]
+    assert r.out["stop"]["reason"] == "day_cap" and r.out["stop"]["wallS"] == pytest.approx(10, abs=0.2)
+    assert st["sent"] is True and st["acked"] is True and st["state"] == "done"
+    assert 0 < st["settleS"] <= S.STOP_SETTLE_S and st["wallS"] == pytest.approx(10, abs=0.2)
+    assert r.mod.cmds[-1]["type"] == "stop" and r.mod.cmds[-1]["aid"] == st["aid"]
+    assert loop["last_frame_after_stop"] is True and loop["last_frames"][-1]["seq"] > st["ack_seq"]
+    persisted = json.loads((tmp_path / "session.json").read_text(encoding="utf-8"))
+    assert persisted["loop"]["stopped"] == st and persisted["loop"]["last_frame_after_stop"] is True
+    if mode == "polls":
+        assert loop["polls_joined"] is True
+
+
+def test_a_stop_never_acked_settles_at_its_cap(tmp_path, monkeypatch):
+    r = run_session(tmp_path, monkeypatch, silent_from=10.0)
+    st = r.out["loop"]["stopped"]
+    assert r.out["stop"]["reason"] == "bus_dead"
+    assert st["sent"] is True and st["acked"] is False and st["ack_seq"] is None
+    assert st["settleS"] == pytest.approx(S.STOP_SETTLE_S, abs=0.15)
+    assert r.out["loop"]["last_frame_after_stop"] is False
+
+
+def test_server_reads_are_one_helper_behind_due_and_latest(tmp_path, monkeypatch):
+    """M-9: the synchronous path and the PollThread path behind ServerReads (reads.py): due(now) runs the sync
+    path's due reads, latest() returns each new result once; Session keeps no read of its own."""
+    from agent.driverlib import reads as RD
+    for gone in ("server_poll", "merge_polls", "merge_stats", "damage_merge", "damage_read", "start_polls",
+                 "end_polls", "_half", "check_fails"):
+        assert not hasattr(S.Session, gone), gone
+    r = run_session(tmp_path, monkeypatch, limits={"DAY_CAP_S": 3})
+    rd = r.day.reads
+    assert isinstance(rd, RD.ServerReads) and rd.polls is None and r.day.polls is None
+    assert rd.latest() == []                                                   # all merged
+    now = r.clock.now() + 100.0
+    rd.due(now)
+    got = rd.latest()
+    assert [g[0] for g in got] == ["stats", "players", "damage"] and all(g[2] is None for g in got)
+    assert rd.latest() == []
+    rd.due(now + 1.0)
+    assert rd.latest() == []                                                   # none due a second later
+    p = run_session(tmp_path / "p", monkeypatch, "polls", limits={"DAY_CAP_S": 3})
+    assert p.day.reads.polls is p.day.polls
+    assert p.out["loop"]["server_polls"] == r.out["loop"]["server_polls"] == 1

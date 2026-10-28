@@ -59,6 +59,7 @@ def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
     assert F.LLM_TIMEOUT_S == 20.0 == L.LLM_TIMEOUT_S
     assert F.MODEL == "sonnet" == L.model_of(L.DEFAULT_CLI)
     assert F.GOALS_LOG == "goals.log" and F.USER == "admin" and F.MIN_FREE_GB == S.DEFAULTS["MIN_FREE_GB"]
+    assert F.LIMITS is DY.LIMITS and F.CONSTANTS == dict(DY.CONSTANTS, LLM_TIMEOUT_S=20.0)       # M-8
 
 
 def test_nothing_is_imported_from_a_frozen_driver():
@@ -69,13 +70,13 @@ def test_nothing_is_imported_from_a_frozen_driver():
                                                      "agent.policy")]
     assert frozen == [], frozen
     for need in ("import xlib as X", "from agent.driverlib import session as DS",
-                 "from agent.driverlib import day as DY", "from agent.driverlib.polls import PollThread",
-                 "from agent.base import gates_f as GF", "from agent.base.planner import llm as L",
+                 "from agent.driverlib import day as DY", "from agent.base import gates_f as GF",
+                 "from agent.base.planner import llm as L",
                  "from agent.base.planner.survive import Survive",
                  "from agent.base.planner.goals import ScriptedSource"):
         assert need in imports, need
     assert "source=L.LLMSource(ScriptedSource()," in src and "timeout_s=LLM_TIMEOUT_S" in src
-    assert "else PollThread(clock)" in src and "copied=(GOALS_LOG,)" in src
+    assert "DY.make_day_session(xs, transport, planner_factory(runner)" in src and "copied=(GOALS_LOG,)" in src
     # the boot is the library's: driverlib/day.boot_and_run (its order tested in test_driverlib.py)
     assert "DY.boot_and_run(args, lambda: preboot(_ME, args), run_session, grade, key=KEY, driver=DRIVER," in src
     assert 'grade_key="grade_f1"' in src and 'DY.grade(out, "grade_f1", GF.grade_f1)' in src
@@ -84,6 +85,9 @@ def test_nothing_is_imported_from_a_frozen_driver():
     for word in ("RULES", "--session", "--fixture", "--prev", "never edited after its run", "goals.log", "llm",
                  "claude --version", "grade_f1", "LLMSource", "ScriptedSource", "day_cap"):
         assert word in doc, word
+    # M-10: an F session on the chain's last fixture follows the chain's numbering (P23-Z)
+    rules = doc[doc.index("RULES"):]
+    assert "--session <n+1>" in rules and "--prev <the last chain artifact>" in rules and "P23-Z" in rules
 
 
 def test_the_e_day_driver_shares_the_day_session_through_the_library():

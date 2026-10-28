@@ -2,6 +2,9 @@
 so `e_day.py` (the scripted survivor) and `f_goals.py` (the LLM goal source) import one copy and neither imports the
 other (a driver is frozen at its boot; this library is not, and each driver's pre-boot records its commit).
 
+- The constants both day drivers share (M-8): `USER`, `BUDGET_S`, `DAY_CAP_S`, `PLANNER_HZ`, `DAMAGE_POLL_S`,
+  `MIN_FREE_GB`, `LIMITS` (laid over the library's DEFAULTS) and `CONSTANTS` (the record's); a driver keeps only its
+  KEY, DRIVER, ARTIFACT and PROFILE, its planner, its extra record and its pre-boot additions.
 - The arguments: `ALLOWED` (`--session N`, `--fixture NAME`, `--prev PATH`, each once with one value),
   `parse_argv(argv, driver_file)` (the library's refusal plus a `--session` that is not an int >= 1, named by the
   driver's own file), `flags(argv)` ({session, fixture, prev}, defaults 1, DEFAULT_FIXTURE, None).
@@ -20,6 +23,12 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
   `extra(session)` over them when the driver passes one (f_goals: `llm`; its keys must not be the contract's,
   CONTRACT_KEYS, asserted at every save). `copied` names run-dir files the artifact
   copy takes beside the decision log (f_goals: `goals.log`). The planner is the driver's `planner_factory`.
+- `make_day_session(xs, transport, planner_factory, extra=None, copied=(), prev=None, ...)`: the one builder of a
+  day's Chain: LIMITS with the caller's `limits` laid over them and a PollThread on the session's clock (P23-13).
+- `next_fixture(n)` (the chain's fixtures are agent-s1, agent-s2, ..., spec section 4) and `next_steps(args, run_dir,
+  artifact)`: the `pzt snapshot` argv into the next fixture and the next session's arguments (`--session n+1
+  --fixture agent-s<n> --prev <this artifact>`), for an E session and for an F session on the chain's last fixture
+  (P23-Z refuses any other --session).
 - `grade(out, key, fn)`: out[key] = fn(out), else out[key + "_error"] (the controller re-grades the artifact).
 - `boot_and_run(args, ...)`: a day driver's whole boot (Plan 22's d_survive.py boot, generalised): the pre-boot
   checks (a failure prints them and exits 1 before anything starts), the profile and the fixture `--fixture` names,
@@ -30,7 +39,7 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
   session's lineage reads), the teardown, the park count, `after_teardown(out, ran)` when the driver passes one
   (f_goals: the LLM worker joined, so no join widens that gap; a fault lands in out["after_teardown_error"]), the
   driver's grade, `finished`, the persist and the artifact copy; the summary printed names the grade's report lines
-  and the `pzt snapshot` argv for the chain's next fixture.
+  and `next` (next_steps: the `pzt snapshot` argv for the chain's next fixture and the next session's arguments).
 """
 import json
 import os
@@ -39,11 +48,20 @@ import time
 
 from agent.driverlib import chain as CH
 from agent.driverlib import session as DS
+from agent.driverlib.polls import PollThread
 from pzt import fixture as fx
 
 DL, X = DS.DL, DS.X
 ALLOWED = ("--session", "--fixture", "--prev")
 DEFAULT_FIXTURE = "agent"
+USER = "admin"
+BUDGET_S = 1200.0                    # the wall budget from the end of the memory gate, the boot included
+DAY_CAP_S = 840                      # the loop's own wall time
+PLANNER_HZ = 2
+DAMAGE_POLL_S = 5
+MIN_FREE_GB = DS.DEFAULTS["MIN_FREE_GB"]
+LIMITS = {"DAY_CAP_S": DAY_CAP_S, "PLANNER_HZ": PLANNER_HZ, "DAMAGE_POLL_S": DAMAGE_POLL_S}
+CONSTANTS = dict(DS.DEFAULTS, **LIMITS, BUDGET_S=BUDGET_S)
 CONTRACT_KEYS = ("goals", "night", "lineage", "t_loop0_ms")     # Chain.extra_record's own keys (task-15-amendments)
 
 
@@ -161,6 +179,31 @@ class Chain(DS.Session):
         return rec
 
 
+def make_day_session(xs, transport, planner_factory, extra=None, copied=(), prev=None, clock=time.time,
+                     sleep=time.sleep, free=X.free_gb, polls=None, limits=None):
+    """The day's Chain: the driver's planner, extra record and copied files, LIMITS (with `limits` laid over them) and
+    a PollThread on `clock` unless `polls` is given."""
+    return Chain(xs, transport, prev=prev, extra=extra, copied=copied, planner_factory=planner_factory, clock=clock,
+                 sleep=sleep, free=free, limits=dict(LIMITS, **(limits or {})),
+                 polls=polls if polls is not None else PollThread(clock))
+
+
+def next_fixture(n):
+    """The fixture snapshotted off session n's run: agent-s<n> (spec section 4)."""
+    return "%s-s%d" % (DEFAULT_FIXTURE, n)
+
+
+def next_steps(args, run_dir, artifact):
+    """{snapshot_cmd, next_session, f_session}: the `pzt snapshot` argv off this run into next_fixture(n), and the
+    next session's arguments (--session n+1, that fixture, --prev this artifact), the F session's line naming P23-Z."""
+    n = args["session"]
+    nxt = next_fixture(n)
+    boot = "--session %d --fixture %s --prev %s" % (n + 1, nxt, artifact)
+    return {"snapshot_cmd": CH.snapshot_cmd(run_dir, nxt, args["fixture"], n), "next_session": boot,
+            "f_session": "an F session on the chain's last fixture: f_goals.py %s (P23-Z: any other --session is "
+                         "refused)" % boot}
+
+
 def run_after_teardown(fn, out, ran):
     """fn(out, ran) when given; a fault lands in out["after_teardown_error"], never raised (the finally goes on)."""
     if fn is None:
@@ -254,11 +297,10 @@ def boot_and_run(args, preboot, run_session, grade_fn, *, key, driver, artifact,
         out["finished"] = True
         xs.persist()
         xs.copy_artifacts(repo, run_id, run_dir, artifact)
-    n = args["session"]
     print(json.dumps({"run_id": run_id, "run_dir": run_dir, "error": out.get("error"), "abort": out.get("abort"),
                       "phase_errors": {k: v.get("error") for k, v in out.get("phase_errors", {}).items()},
                       "budget_stop": out.get("budget_stop"), "stop": out.get("stop"), "chain": out.get("chain"),
                       "report": (out.get(grade_key) or {}).get("report_lines"),
-                      "snapshot_cmd": CH.snapshot_cmd(run_dir, "%s-after-%d" % (key, n), args["fixture"], n),
+                      "next": next_steps(args, run_dir, xs.path),
                       "wall_seconds": out.get("wall_seconds")}, indent=1, default=str))
     return out

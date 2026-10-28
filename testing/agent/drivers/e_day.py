@@ -5,18 +5,21 @@ controller snapshotted off the last one's run), the scripted survivor `Survive(s
 file channel, the server's reads off a `PollThread` (P23-13: no server read stalls the planner). A chain of these
 sessions is graded by `gates_e.gate_e1` over its artifacts in order; each session's `grade_e1` is written at its end.
 
-The driver is thin: its constants, its pre-boot checks and its planner. The day's arguments, chain inputs, `Chain`
-(the library's `Session` with the two hooks) and the boot (`day.boot_and_run`) are `driverlib/day.py`'s (moved there
-by Task 16d, shared with f_goals.py); the rest is the library's, documented in `driverlib/session.py`'s docstring.
+The driver is thin: its key, artifact and profile, its pre-boot checks and its planner. The day's constants,
+arguments, chain inputs, `Chain` (the library's `Session` with the two hooks), its builder (`day.make_day_session`) and
+the boot (`day.boot_and_run`) are `driverlib/day.py`'s, shared with f_goals.py; the rest is the library's, documented
+in `driverlib/session.py`'s docstring.
 
 PHASES (driverlib.session, each through xs.run_phase; a phase's fault lands under out["phase_errors"][name]; each
 reading at out["readings"][phase]):
   hello        the hello line (proto PZA/1, mode append) and a first frame; a failed hello skips the rest.
   damage_hook  `damage.watch USER` once, before the kit.
-  kit          KIT through xs.spawn, Equip awaited, a frame wielding it.
+  kit          a weapon already held is kept and equipped (a chain's later session: no spawn); else KIT through
+               xs.spawn; Equip awaited, a frame wielding it.
   loop         every POLL_S: the transport pumped into World and Actions; at PLANNER_HZ the planner's tick; the server's
                stats.all and players every SERVER_POLL_S and damage.watch since every DAMAGE_POLL_S, each run on the
-               PollThread and merged by the loop when newer; every PERSIST_S out["loop"] rebuilt and persisted.
+               PollThread and merged by the loop when newer; every PERSIST_S out["loop"] rebuilt and persisted;
+               at every stop the character stopped (a Stop pumped to its act line) before the teardown.
   `on_frame` keeps the session's first frame (a frame row, read in the hello phase) for the lineage.
 STOPS (out["stop"] {reason, detail, wallS, gameMin, worldAge}, the first that holds): death, bus_dead,
 lua_error_storm, memory, day_cap (the loop's wall time reaches DAY_CAP_S), budget (BUDGET_S from the end of the memory
@@ -51,8 +54,9 @@ RULES: never edited after its run (the next pass is a new file); takes only `--s
 previous session's artifact JSON, optional), each once; one live session at a time; free memory gated at MIN_FREE_GB
 before the boot; never -safemode; launched by the controller and polled through the persisted artifact. The chain:
 after each session the controller snapshots its run into the next session's fixture with `pzt snapshot --from-run
-<run dir> --name <next> --parent <this fixture> --session <n>` (chain.snapshot_cmd; the summary prints it), then
-boots `e_day.py --session <n+1> --fixture <next> --prev <this artifact>`. The pre-boot checks refuse a dirty agent
+<run dir> --name agent-s<n> --parent <this fixture> --session <n>` (day.next_steps; the summary prints it, and
+`pzt snapshot` refuses an existing fixture or the parent), then boots `e_day.py --session <n+1> --fixture agent-s<n>
+--prev <this artifact>`. The pre-boot checks refuse a dirty agent
 Lua, agent base, driver library or driver, a committed artifact of this key, a fixture with no record or cache (or
 an unreadable one), a --prev that does not read as an artifact carrying loop.last_frames and a --session that does
 not follow the fixture's or the prev's session (session_consistent False, ruling P23-Z). out["teardown_started_wall"]
@@ -61,7 +65,6 @@ from a frozen driver but `xlib` (and `_dlib` through the library).
 """
 import os
 import sys
-import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TESTING = os.path.dirname(os.path.dirname(HERE))
@@ -69,27 +72,19 @@ for _p in (HERE, os.path.join(TESTING, "experiments"), TESTING):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-import xlib as X                                      # noqa: E402
+import xlib as X                                      # noqa: E402,F401 - the provenance the RULES name
 from agent.base import gates_e as GE                  # noqa: E402
 from agent.base.planner.goals import ScriptedSource   # noqa: E402
 from agent.base.planner.survive import Survive        # noqa: E402
 from agent.driverlib import day as DY                 # noqa: E402
 from agent.driverlib import session as DS             # noqa: E402
-from agent.driverlib.day import ALLOWED, DEFAULT_FIXTURE, Chain, flags, parse_argv   # noqa: E402,F401
-from agent.driverlib.polls import PollThread          # noqa: E402
+from agent.driverlib.day import (ALLOWED, BUDGET_S, CONSTANTS, DAMAGE_POLL_S, DAY_CAP_S,  # noqa: E402,F401
+                                 DEFAULT_FIXTURE, LIMITS, MIN_FREE_GB, PLANNER_HZ, USER, Chain, flags, parse_argv)
 
 KEY = "e_day"
 DRIVER = "e_day.py"
 ARTIFACT = "e_day.json"
 PROFILE = "testing/profiles/agent.toml"
-USER = "admin"
-BUDGET_S = 1200.0                    # the wall budget from the end of the memory gate, the boot included
-DAY_CAP_S = 840                      # the loop's own wall time
-PLANNER_HZ = 2
-DAMAGE_POLL_S = 5
-MIN_FREE_GB = DS.DEFAULTS["MIN_FREE_GB"]
-LIMITS = {"DAY_CAP_S": DAY_CAP_S, "PLANNER_HZ": PLANNER_HZ, "DAMAGE_POLL_S": DAMAGE_POLL_S}
-CONSTANTS = dict(DS.DEFAULTS, **LIMITS, BUDGET_S=BUDGET_S)
 REPO = DS.REPO
 _ME = os.path.basename(os.path.abspath(__file__))
 
@@ -108,12 +103,10 @@ def planner(world, actions, log_path, clock):
     return Survive(world, actions, log_path, clock, source=ScriptedSource())
 
 
-def make_session(xs, transport, prev=None, clock=time.time, sleep=time.sleep, free=X.free_gb, polls=None,
-                 limits=None):
-    """The library's Chain with the driver's planner, LIMITS (with `limits` laid over them) and a PollThread on
-    `clock`."""
-    return Chain(xs, transport, prev=prev, planner_factory=planner, clock=clock, sleep=sleep, free=free,
-                 limits=dict(LIMITS, **(limits or {})), polls=polls if polls is not None else PollThread(clock))
+def make_session(xs, transport, prev=None, **kw):
+    """The day's Chain (day.make_day_session) with the driver's planner; `kw` its clock, sleep, free, polls and
+    limits."""
+    return DY.make_day_session(xs, transport, planner, prev=prev, **kw)
 
 
 def run_session(xs, transport, prev, pre):
