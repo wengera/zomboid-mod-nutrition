@@ -6,13 +6,20 @@
 --   the watch, a dirty set: on every WATCH_EVERY-th tick (MP.watchDue: the 10 Hz frame tick whatever S.RATE, so at
 --   60 Hz its cost a tick falls by the rate ratio; X4 fix pass, review I7) the next WATCH_PER_FRAME squares of the
 --   (2 WATCH_R + 1)^2 ring round the player (by index, cycling) are fingerprinted (MP.fingerprint: the solid flags,
---   each portal's kind and states, each container's item count, the object and floor counts), and only a square whose
+--   each portal's kind and states, each container's item count, the object and floor counts, the four edges), and only a square whose
 --   fingerprint differs from the one stored for it (MP.fp; none stored counts as changed) is read whole (MP.square);
 --   one whose dirty key differs from the last one emitted (MP.seen; a key never seen counts as changed) is queued as a
 --   one-square map line in mode "delta" { scanId = 0, part = 1, parts = 1 }, at most once every DELTA_MIN_TICKS ticks
 --   a square (MP.lastDelta). The fingerprint is stored once the whole read agrees with MP.seen or its delta is
 --   queued, so a held change is read again on a later cycle. A change the fingerprint cannot see (an item swapped for
 --   another in a container or on the floor, the count unchanged; a room or building change) waits for the next scan.
+-- The square record's four edges (PZA/1.2, Plan 23 Task 6, ruling P23-K) are blockN and blockW, the square's
+-- isBlockedTo its north (x, y - 1) and west (x - 1, y) neighbour off the cell, and edgeN and edgeW, its isSomethingTo
+-- the same neighbours; an unloaded neighbour leaves its side's two nil and names neighbourN or neighbourW in missing,
+-- and the fingerprint carries all four, so a door closing on an edge dirties its square.
+-- The jar read (docs/superpowers/specs/2026-10-28-plan-23-jar-reads.md § 1) found a square stores only its own north
+-- and west edges, which both predicates read for those neighbours: a wall, a closed or barricaded door, an intact
+-- closed window or a stair edge blocks, an open door does not.
 -- The dirty key is the square's encoding without light (ruling S-14, MP.watchKey): the dirty set means a world change
 -- (walls, doors, windows, containers, floor), and an unrounded light level would dirty most of the ring at every
 -- lighting drift and fill the budget with deltas; an emitted line still carries the real light.
@@ -66,12 +73,39 @@ local function containersOf(o, missing)
     return out
 end
 
+-- the square's north (x, y - 1) and west (x - 1, y) neighbours off the cell at its own read position, each nil when
+-- the cell holds no square there (unloaded, or the map's edge); both nil when any of x, y, z is nil
+local function neighboursOf(cell, x, y, z)
+    if x == nil or y == nil or z == nil then return nil, nil end
+    local _, nsq = PZA.call(cell, "getGridSquare", x, y - 1, z)
+    local _, wsq = PZA.call(cell, "getGridSquare", x - 1, y, z)
+    return nsq, wsq
+end
+
+-- the square's edges to one neighbour into q[blockKey] (isBlockedTo: a wall, a closed or barricaded door, an intact
+-- closed window, a stair edge) and q[edgeKey] (isSomethingTo: anything standing on that edge); an absent neighbour
+-- leaves both nil and names missName
+local function edgesTo(missing, q, sq, other, blockKey, edgeKey, missName)
+    if other == nil then
+        PZA.missing(missing, missName)
+        return
+    end
+    getm(missing, q, blockKey, sq, "isBlockedTo", other)
+    getm(missing, q, edgeKey, sq, "isSomethingTo", other)
+end
+
 -- one square as the schema's square record: x, y, z, solid, solidTrans, light, room, building, door and window (a
--- portal { open, locked, barricaded } or nil), containers ({ type, n, items } each, items full types) and floor (the
--- full types of its world items); a member the square lacks leaves its field nil and its name in missing
-function MP.square(sq, missing)
+-- portal { open, locked, barricaded } or nil), containers ({ type, n, items } each, items full types), floor (the
+-- full types of its world items) and its four edges blockN, blockW, edgeN, edgeW (edgesTo, read against the north and
+-- west neighbours off cell); a member the square lacks leaves its field nil and its name in missing
+function MP.square(sq, missing, cell)
     local q = { containers = {}, floor = {} }
     getm(missing, q, "x", sq, "getX"); getm(missing, q, "y", sq, "getY"); getm(missing, q, "z", sq, "getZ")
+    if q.x ~= nil and q.y ~= nil and q.z ~= nil then
+        local nsq, wsq = neighboursOf(cell, q.x, q.y, q.z)
+        edgesTo(missing, q, sq, nsq, "blockN", "edgeN", "neighbourN")
+        edgesTo(missing, q, sq, wsq, "blockW", "edgeW", "neighbourW")
+    end
     getm(missing, q, "solid", sq, "isSolid"); getm(missing, q, "solidTrans", sq, "isSolidTrans"); getm(missing, q, "light", sq, "getLightLevel", 0)
     local okR, room = PZA.call(sq, "getRoom"); if okR and room ~= nil then local _, nm = PZA.call(room, "getName"); q.room = nm end
     local okB, b = PZA.call(sq, "getBuilding"); if okB and b ~= nil then local _, id = PZA.call(b, "getID"); q.building = id end
@@ -99,9 +133,38 @@ end
 -- the square's fingerprint (X4 fix pass, review I7): its solid flags, the object count, each portal's kind and
 -- open/locked/barricaded in object order, each container's item count, and the floor's world-object count, as one
 -- string; light, types and names are left out, so a fingerprint is a few reads and no item walk. The objects are read
--- into one scratch table (W.objectsOn's out)
+-- into one scratch table (W.objectsOn's out). Its last element is the four edges (Plan 23 Task 6), "e" then blockN,
+-- blockW, edgeN, edgeW as "t", "f" or "n" (nil: the neighbour unloaded, the member absent), so a door closing on an
+-- edge or a neighbour loading changes it.
 local fpScratch = {}
-function MP.fingerprint(sq)
+
+-- an edge read as one character: "t", "f", or "n" when the read answered nothing
+local function edgeChar(ok, v)
+    if not ok or v == nil then return "n" end
+    if v == true then return "t" end
+    return "f"
+end
+
+-- the four edges' characters against the square's neighbours off cell
+local function edgeMark(sq, cell)
+    local okX, x = PZA.call(sq, "getX")
+    local okY, y = PZA.call(sq, "getY")
+    local okZ, z = PZA.call(sq, "getZ")
+    local nsq, wsq = nil, nil
+    if okX and okY and okZ then nsq, wsq = neighboursOf(cell, x, y, z) end
+    local bn, en, bw, ew = "n", "n", "n", "n"
+    if nsq ~= nil then
+        bn = edgeChar(PZA.call(sq, "isBlockedTo", nsq))
+        en = edgeChar(PZA.call(sq, "isSomethingTo", nsq))
+    end
+    if wsq ~= nil then
+        bw = edgeChar(PZA.call(sq, "isBlockedTo", wsq))
+        ew = edgeChar(PZA.call(sq, "isSomethingTo", wsq))
+    end
+    return "e" .. bn .. bw .. en .. ew
+end
+
+function MP.fingerprint(sq, cell)
     local out = {}
     local _, solid = PZA.call(sq, "isSolid")
     local _, solidTrans = PZA.call(sq, "isSolidTrans")
@@ -126,6 +189,7 @@ function MP.fingerprint(sq)
     local _, wl = PZA.call(sq, "getWorldObjects")
     local _, wn = PZA.call(wl, "size")
     out[#out + 1] = "f" .. tostring(wn)
+    out[#out + 1] = edgeMark(sq, cell)
     return table.concat(out, ",")
 end
 
@@ -222,7 +286,7 @@ local function stepJob(job)
         local dy = math.floor(i / job.side) - job.r
         local dx = i % job.side - job.r
         local _, sq = PZA.call(cell, "getGridSquare", job.px + dx, job.py + dy, job.pz)
-        if sq ~= nil then part.squares[#part.squares + 1] = MP.square(sq, part.missing) end
+        if sq ~= nil then part.squares[#part.squares + 1] = MP.square(sq, part.missing, cell) end
         job.i = i + 1
     end
     local dt = PZA.now() - t0
@@ -309,9 +373,9 @@ function MP.watchStep(p)
         local _, sq = PZA.call(cell, "getGridSquare", gx, gy, z)
         if sq ~= nil then
             local gk = MP.key(gx, gy, fz)
-            local f = MP.fingerprint(sq)
+            local f = MP.fingerprint(sq, cell)
             if f ~= fps[gk] then
-                local q = MP.square(sq, MP.missing)
+                local q = MP.square(sq, MP.missing, cell)
                 if q.x ~= nil and q.y ~= nil and q.z ~= nil then
                     local key = MP.key(q.x, q.y, q.z)
                     local e = watchKey(q)

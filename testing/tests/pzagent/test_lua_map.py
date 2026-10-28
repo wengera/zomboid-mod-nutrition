@@ -104,18 +104,19 @@ def test_two_containers_on_one_object_and_per_scan_missing(lua):
 # ---- the chunked scan, queued in parts ---------------------------------------------------------------------------
 
 def clocked_cell(lua, cx, cy, r):
-    """Every square of the (2r+1)^2 grid around (cx, cy); each getGridSquare call costs 1 ms of the fixture clock
-    and is recorded."""
+    """Every square of the (2r+1)^2 grid around (cx, cy); each square read whole (its getX, which MP.square reads
+    once) costs 1 ms of the fixture clock and is recorded, so the north and west neighbour lookups of its edges
+    (Plan 23 Task 6) neither cost nor count."""
     clock = lua.globals()._clock
-    squares = {(x, y, 0): J(getX=lambda s, x=x: x, getY=lambda s, y=y: y, getZ=lambda s: 0)
-               for x in range(cx - r, cx + r + 1) for y in range(cy - r, cy + r + 1)}
     calls = []
 
-    def grid(s, x, y, z):
+    def getx(s, x, y):
         clock["ms"] += 1
-        calls.append((int(x), int(y)))
-        return squares.get((int(x), int(y), int(z)))
-    lua.globals()._cell = J(getGridSquare=grid)
+        calls.append((x, y))
+        return x
+    squares = {(x, y, 0): J(getX=lambda s, x=x, y=y: getx(s, x, y), getY=lambda s, y=y: y, getZ=lambda s: 0)
+               for x in range(cx - r, cx + r + 1) for y in range(cy - r, cy + r + 1)}
+    lua.globals()._cell = J(getGridSquare=lambda s, x, y, z: squares.get((int(x), int(y), int(z))))
     return calls
 
 
@@ -208,16 +209,19 @@ def test_a_parts_missing_lists_what_its_own_squares_lacked_and_the_whole_unions_
     load(lua)
     plain = lambda x, y: J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: 0, isSolid=lambda s: False,
                            isSolidTrans=lambda s: False, getLightLevel=lambda s, i: 0.5,
-                           getObjects=lambda s: J(size=lambda s2: 0), getWorldObjects=lambda s: J(size=lambda s2: 0))
+                           getObjects=lambda s: J(size=lambda s2: 0), getWorldObjects=lambda s: J(size=lambda s2: 0),
+                           isBlockedTo=lambda s, o: False, isSomethingTo=lambda s, o: False)
     bare = lambda x, y: J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: 0)
-    squares = {(x, y, 0): (bare(x, y) if (x, y) == (10, 20) else plain(x, y)) for x in range(9, 12) for y in range(19, 22)}
+    # the 3x3 grid and its north and west neighbours (x 8, y 18), so only the bare square lacks anything
+    squares = {(x, y, 0): (bare(x, y) if (x, y) == (10, 20) else plain(x, y)) for x in range(8, 12) for y in range(18, 22)}
     lua.globals()._cell = J(getGridSquare=lambda s, x, y, z: squares.get((int(x), int(y), int(z))))
     lua.execute("PZA.map.SCAN_SQUARES_PER_TICK = 4")             # 9 squares: parts of 4, 4, 1; (10, 20) is the 5th
     p = make_player()
     lua.eval("PZA.map.scanStart(...)", p, 1)
     parts = step_parts(lua, p)
     assert [q["parts"] for q in parts] == [3, 3, 3] and [len(q["squares"]) for q in parts] == [4, 4, 1]
-    assert parts[0]["missing"] == [] and "isSolid" in parts[1]["missing"] and parts[2]["missing"] == []
+    assert parts[0]["missing"] == [] and parts[2]["missing"] == []
+    assert {"isSolid", "isBlockedTo", "isSomethingTo"} <= set(parts[1]["missing"])
     whole = lua.eval("PZA.map.scan(...)", p, 1)
     assert sorted(whole["missing"].values()) == sorted(parts[1]["missing"])
 
@@ -258,9 +262,12 @@ def test_each_part_is_queued_as_a_positional_full_map_line(lua, fs):
 
 def test_a_scan_part_line_decodes_to_the_squares_it_walked(lua, fs):
     load(lua, init=True)
-    lua.globals()._cell = make_cell_of({(11, 20, 0): full_square(11, 20, door=True)})
-    p = make_player()
-    lua.eval("PZA.map.scanStart(...)", p, 1)
+    # the scanned square and its north and west neighbours, which its edges are read against
+    cell =make_cell_of({(11, 20, 0): full_square(11, 20, door=True), (11, 19, 0): full_square(11, 19),
+                         (10, 20, 0): full_square(10, 20)})
+    lua.globals()._cell = cell
+    p = make_player(x=11.0)
+    lua.eval("PZA.map.scanStart(...)", p, 0)                     # r=0: the player's own square only
     step_parts(lua, p)
     lua.execute("PZA.link.flush()")
     (m,) = map_lines(fs)
@@ -269,17 +276,20 @@ def test_a_scan_part_line_decodes_to_the_squares_it_walked(lua, fs):
                              "room": "kitchen", "building": 7, "door": {"open": False, "locked": False,
                                                                         "barricaded": False},
                              "window": None, "containers": [], "floor": [],
-                             "blockN": None, "blockW": None, "edgeN": None, "edgeW": None}]   # Task 6 fills the edges
-    assert lua.eval("PZA.map.seen['11,20,0']") == lua.eval("PZA.map.watchKey(PZA.map.square(...))", full_square(11, 20, door=True), lua.table())
+                             "blockN": False, "blockW": False, "edgeN": False, "edgeW": False}]
+    assert lua.eval("PZA.map.seen['11,20,0']") == lua.eval("PZA.map.watchKey(PZA.map.square(...))",
+                                                           full_square(11, 20, door=True), lua.table(), cell)
 
 
 def test_map_square_has_exactly_the_schemas_square_keys(lua):
     load(lua)
-    t = lua.eval("PZA.map.square(...)", full_square(3, 4, door=True, window=True, box=True, floor=True), lua.table())
+    cell = make_cell_of({(3, 3, 0): full_square(3, 3), (2, 4, 0): full_square(2, 4)})
+    t = lua.eval("PZA.map.square(...)", full_square(3, 4, door=True, window=True, box=True, floor=True), lua.table(),
+                 cell)
     keys = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["square"]["x-order"]
-    edges = ["blockN", "blockW", "edgeN", "edgeW"]                  # PZA/1.2's edges: Plan 23 Task 6 fills them
-    assert keys[12:] == edges
-    assert sorted(t.keys()) == sorted(keys[:12])
+    assert keys[12:] == ["blockN", "blockW", "edgeN", "edgeW"]     # PZA/1.2's edges, filled since Plan 23 Task 6
+    assert sorted(t.keys()) == sorted(keys)
+    assert (t["blockN"], t["blockW"], t["edgeN"], t["edgeW"]) == (False, False, False, False)
     assert sorted(lua.eval("PZA.schema.records.square").values()) == sorted(keys)
     assert sorted(t["door"].keys()) == ["barricaded", "locked", "open"]
     assert sorted(t["containers"][1].keys()) == ["items", "n", "type"]
@@ -297,7 +307,8 @@ def test_map_reads_every_java_member_through_pza_call():
 
 def full_square(x, y, door=False, window=False, box=False, floor=False, state=None):
     """A square with every member, its light state["light"] (0.5 by default); with door, an IsoDoor whose IsOpen reads
-    state["open"]."""
+    state["open"]; isBlockedTo and isSomethingTo answer state["blockN"] and state["edgeN"] for a neighbour north of it
+    (a smaller y) and state["blockW"] and state["edgeW"] for one west of it, each False by default."""
     st = state if state is not None else {"open": False}
     objs = []
     if door:
@@ -310,11 +321,18 @@ def full_square(x, y, door=False, window=False, box=False, floor=False, state=No
                  getItems=lambda s: J(size=lambda s2: 1, get=lambda s2, i: J(getFullType=lambda s3: "Base.Milk")))
         objs.append(J(getContainer=lambda s: cont))
     wos = [J(getItem=lambda s: J(getFullType=lambda s2: "Base.Plank"))] if floor else []
+
+    def edge(prefix):
+        def read(s, other):
+            side = "N" if other.getY(other) < y else "W"
+            return st.get(prefix + side, False)
+        return read
     return J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: 0, isSolid=lambda s: False,
              isSolidTrans=lambda s: False, getLightLevel=lambda s, i: st.get("light", 0.5),
              getRoom=lambda s: J(getName=lambda s2: "kitchen"), getBuilding=lambda s: J(getID=lambda s2: 7),
              getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]),
-             getWorldObjects=lambda s: J(size=lambda s2: len(wos), get=lambda s2, i: wos[i]))
+             getWorldObjects=lambda s: J(size=lambda s2: len(wos), get=lambda s2, i: wos[i]),
+             isBlockedTo=edge("block"), isSomethingTo=edge("edge"))
 
 
 def watch_world(lua, door_at=(12, 21)):
@@ -363,13 +381,21 @@ def test_a_watch_step_reads_8_squares_and_queues_nothing_while_nothing_changed(l
     st, calls = watch_world(lua)
     p = make_player()
     seed_ring(lua, p)
+    lua.execute("_fp = {}; local f0 = PZA.map.fingerprint; PZA.map.fingerprint = function(sq, cell) "
+                "_fp[#_fp + 1] = sq; return f0(sq, cell) end")
     for t in range(1, 23):                                      # 169 squares at 8 a tick: one whole cycle and more
-        n0 = len(calls)
+        n0 = lua.eval("#_fp")
         watch(lua, p, t)
-        assert len(calls) - n0 == 8
+        assert lua.eval("#_fp") - n0 == 8
     assert backlog(lua) == []
     # the cycle is the ring's (2*6+1)^2 squares by index: the 22 ticks read 176 = 169 + 7 squares
-    assert len(set(calls[-176:])) == 169 and set(calls[-176:]) == {(x, y) for x in range(4, 17) for y in range(14, 27)}
+    fp = [(q.getX(q), q.getY(q)) for q in lua.eval("_fp").values()]
+    assert len(fp) == 176 and set(fp) == {(x, y) for x in range(4, 17) for y in range(14, 27)}
+    for t in range(23, 45):                                     # settled: a step's grid reads are its 8 squares and each
+        n0 = len(calls)                                         # one's north and west neighbour (the fingerprint's edges)
+        watch(lua, p, t)
+        assert len(calls) - n0 == 24
+    assert backlog(lua) == []
 
 
 def test_a_door_toggled_on_a_seen_square_queues_one_delta_and_seen_updates(lua, fs):
@@ -593,3 +619,96 @@ def test_the_watchs_fingerprint_is_keyed_on_the_floor_so_a_player_at_z_0_4_and_0
     assert lua.eval("_full") == 0
     keys = list(lua.eval("PZA.map.fp").keys())
     assert len(keys) == 169 and all(k.endswith(",0") for k in keys)
+
+
+# ---- Plan 23 Task 6 (P23-K): the square's four edges ------------------------------------------------------------------
+
+def edge_square(x, y, north=None, west=None):
+    """A square at (x, y, 0) whose isBlockedTo answers True only for `north` and isSomethingTo True only for `west`,
+    each recording the squares it was asked about into sq.asked."""
+    asked = []
+
+    def blocked(s, other):
+        asked.append(("isBlockedTo", other))
+        return north is not None and other is north
+
+    def something(s, other):
+        asked.append(("isSomethingTo", other))
+        return west is not None and other is west
+    sq = full_square(x, y)
+    sq.isBlockedTo, sq.isSomethingTo, sq.asked = blocked, something, asked
+    return sq
+
+
+def test_square_reads_its_north_and_west_edges_off_the_neighbour_squares(lua):
+    load(lua)
+    n, w = full_square(11, 19), full_square(10, 20)
+    sq = edge_square(11, 20, north=n, west=w)
+    cell = make_cell_of({(11, 20, 0): sq, (11, 19, 0): n, (10, 20, 0): w})
+    missing = lua.table()
+    t = lua.eval("PZA.map.square(...)", sq, missing, cell)
+    assert (t["blockN"], t["blockW"], t["edgeN"], t["edgeW"]) == (True, False, False, True)
+    assert list(missing.values()) == []
+    assert sorted((m, (o.getX(o), o.getY(o))) for m, o in sq.asked) == [
+        ("isBlockedTo", (10, 20)), ("isBlockedTo", (11, 19)), ("isSomethingTo", (10, 20)), ("isSomethingTo", (11, 19))]
+
+
+def test_an_absent_neighbour_leaves_the_edge_nil_and_names_it_missing(lua):
+    load(lua)
+    w = full_square(10, 20)
+    sq = edge_square(11, 20, west=w)
+    missing = lua.table()
+    t = lua.eval("PZA.map.square(...)", sq, missing, make_cell_of({(11, 20, 0): sq, (10, 20, 0): w}))
+    assert (t["blockN"], t["edgeN"]) == (None, None) and (t["blockW"], t["edgeW"]) == (False, True)
+    assert list(missing.values()) == ["neighbourN"]
+    missing = lua.table()
+    t = lua.eval("PZA.map.square(...)", sq, missing, make_cell_of({}))     # neither neighbour loaded
+    assert [t[k] for k in ("blockN", "blockW", "edgeN", "edgeW")] == [None] * 4
+    assert list(missing.values()) == ["neighbourN", "neighbourW"]
+    no_pos = J(isSolid=lambda s: False)                                   # no position: no neighbour read at all
+    missing = lua.table()
+    t = lua.eval("PZA.map.square(...)", no_pos, missing, make_cell_of({}))
+    assert t["blockN"] is None and "neighbourN" not in list(missing.values())
+
+
+def test_the_fingerprint_reads_the_edges_and_an_unloaded_neighbour_as_n(lua):
+    load(lua)
+    st = {}
+    sq = full_square(11, 20, state=st)
+    squares = {(11, 20, 0): sq, (10, 20, 0): full_square(10, 20)}
+    cell = make_cell_of(squares)
+    f0 = lua.eval("PZA.map.fingerprint(...)", sq, cell)
+    # "e" then blockN, blockW, edgeN, edgeW, each t, f or n (nil)
+    assert f0.endswith(",enfnf")                                          # north unloaded, west read false twice
+    squares[(11, 19, 0)] = full_square(11, 19)                           # the north neighbour loads: it changes
+    f1 = lua.eval("PZA.map.fingerprint(...)", sq, cell)
+    assert f1 != f0 and f1.endswith(",effff")
+    st["blockN"] = True
+    assert lua.eval("PZA.map.fingerprint(...)", sq, cell).endswith(",etfff")
+    st["edgeW"] = True
+    assert lua.eval("PZA.map.fingerprint(...)", sq, cell).endswith(",etfft")
+
+
+def test_a_door_closing_changes_the_fingerprint_through_its_edge(lua):
+    load(lua)
+    st, calls = watch_world(lua)
+    edge_st = {}
+    world = lua.globals()._cell
+    grid = world.getGridSquare
+    edged = full_square(12, 21, state=edge_st)                           # a door on its north edge, open: unblocked
+    lua.globals()._cell = J(getGridSquare=lambda s, x, y, z: edged if (int(x), int(y)) == (12, 21) else grid(s, x, y, z))
+    p = make_player()
+    seed_ring(lua, p)
+    count_full_reads(lua)
+    for t in range(1, 45):                                      # two cycles: the fingerprints settle, nothing queued
+        watch(lua, p, t)
+    assert backlog(lua) == []
+    lua.execute("_full = 0")
+    edge_st["blockN"] = True                                    # the door closes: the north edge blocks
+    for t in range(45, 67):
+        watch(lua, p, t)
+    assert lua.eval("_full") == 1
+    (d,) = backlog(lua)
+    q = d["squares"][1]
+    assert (q["x"], q["y"], q["blockN"], q["blockW"], q["edgeN"], q["edgeW"]) == (12, 21, True, False, False, False)
+    assert q["door"] is None

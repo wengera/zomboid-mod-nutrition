@@ -327,7 +327,9 @@ def test_at_rate_60_the_watch_reads_its_8_squares_on_every_6th_tick_only(lua, fs
         lua.execute("_wr = 0")
         run(g)
         per_tick.append((lua.eval("PZA.tick"), lua.eval("_wr")))
-    assert per_tick == [(t, 8 if t % 6 == 0 else 0) for t in range(3, 63)]     # the watch's square reads, by tick
+    # the watch's grid reads, by tick: its 8 squares, each unseen here, so each read with its north and west neighbours
+    # by its fingerprint and again by its whole read (Plan 23 Task 6's edges): 8 * (1 + 2 + 2)
+    assert per_tick == [(t, 40 if t % 6 == 0 else 0) for t in range(3, 63)]
     frames = [l for l in lines(fs) if l["kind"] == "frame"]
     assert [f["tick"] for f in frames][-60:] == list(range(3, 63))
 
