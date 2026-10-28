@@ -1,0 +1,74 @@
+{
+ "emit_frames": 837,
+ "emit_mean_ms": 1.0298685782556751,
+ "emit_worst_ms": 2,
+ "gate": "gate_x4",
+ "gates": {
+  "cmd_move_p90": {
+   "n": 20,
+   "ok": true,
+   "threshold": "p90 < 500.0 ms over >= 20 legs",
+   "value": 196
+  },
+  "gaps": {
+   "n": 1,
+   "ok": true,
+   "threshold": "== 0",
+   "value": 0
+  },
+  "lua_errors": {
+   "n": 1,
+   "ok": true,
+   "threshold": "== 0",
+   "value": 0
+  },
+  "map_kept": {
+   "n": 43,
+   "ok": true,
+   "threshold": "each of walls/doors/windows/containers ratio >= 0.99",
+   "value": {
+    "containers": 1.0,
+    "doors": 1.0,
+    "walls": 1.0,
+    "windows": 1.0
+   }
+  },
+  "parks": {
+   "n": 1,
+   "ok": true,
+   "threshold": "== 0",
+   "value": 0
+  },
+  "tick_mean_at60": {
+   "n": 1806,
+   "ok": false,
+   "threshold": "mean < 1.0 ms over >= 1620 frames",
+   "value": 1.0121816168327795
+  },
+  "worst_tick": {
+   "n": 7506,
+   "ok": false,
+   "threshold": "max tickMaxMs <= 3.0 ms and 0 over5, over >= 600.0 s",
+   "value": {
+    "over5": 25,
+    "span_s": 600.089,
+    "tickMaxMs": 21
+   }
+  }
+ },
+ "pass": {
+  "cmd_move_p90": true,
+  "gaps": true,
+  "lua_errors": true,
+  "map_kept": true,
+  "parks": true,
+  "tick_mean_at60": false,
+  "worst_tick": false
+ },
+ "sidecar_thresholds": {
+  "mean_ms": 1.0,
+  "worst_ms": 3.0
+ },
+ "sidecar_trigger": "fired",
+ "verdict": "NO-GO"
+}

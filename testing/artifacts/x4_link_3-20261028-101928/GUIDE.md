@@ -1,0 +1,3 @@
+# x4_link_3-20261028-101928 — Plan 23's X4 session (the paced poll and the edges under gate_x4)
+
+The run's files are byte-identical copies from `testing/runs/x4_link_3-20261028-101928/`: `x4_link_3.json` (the artifact), `state.log` (the client's PZA/1 stream), `x4_grade.txt` (`python testing/agent/drivers/x4_grade.py x4_link_3.json`). The driver `testing/agent/drivers/x4_link_3.py` at `468da796`; the Lua at `e3e68793`; the tree at the launch `278ee76d`. Booted 2026-10-28 14:46Z after two launches refused at the 12 GB memory gate (not runs). The reading guide is written by the Plan 23 Task 17 write-up; until then this file names the files only.
