@@ -1147,7 +1147,7 @@ def two_door_house(north=None, south=None):
         at[(113, y)] = {"blockW": True, "edgeW": True}
     for x in range(110, 113):
         at[(x, 203)] = {"blockN": True, "edgeN": True}
-    at[(111, 203)] = {"building": 1, "door": south, "blockN": not south["open"], "edgeN": True}
+    at[(111, 203)] = {"door": south, "blockN": not south["open"], "edgeN": True}   # the live shape: no building
     return grid(105, 117, 194, 208, at)
 
 
@@ -1236,3 +1236,15 @@ def test_an_exit_whose_square_beyond_is_not_open_is_skipped(tmp_path):
     r.frame(x=me[0], y=me[1], zombies=[zombie(1, 117.5, 202.5, me=me)])
     e = P.exit_plan(r.world, [r.world.zombies[1]])
     assert e["outer"] == (111, 199, 0) and e["target"] == (111, 198, 0)
+
+
+def test_in_building_reads_a_door_kept_on_the_outdoor_square_as_the_building_s(tmp_path):
+    """Survival 3 fix round 1, R2: the scan gives a south-wall door's outdoor square no building; a zombie standing
+    in that doorway, (111, 203) of `two_door_house`, is in building 1 (the door fight reads it); one on the yard
+    square below is not."""
+    r = Rig(tmp_path)
+    r.scan(two_door_house())
+    r.frame(x=111.5, y=201.5)
+    assert r.world.map[(111, 203, 0)].get("building") is None
+    assert P.in_building(r.world, zombie(1, 111.5, 203.4), 1)
+    assert not P.in_building(r.world, zombie(2, 111.5, 204.4), 1)

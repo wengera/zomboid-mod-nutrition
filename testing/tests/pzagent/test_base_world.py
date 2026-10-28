@@ -831,7 +831,8 @@ def test_openings_name_the_open_doorway_of_a_room_whose_doors_are_broken():
 def test_door_way_reads_the_door_s_own_edge():
     """Survival 3, the coordinator's amendment 5 to ruling P23-AM (E2's and E3's bedroom door): a 2 x 2 building 5 at
     x 2..3, y 2..3 in an open yard. A closed door on the north edge of (2, 2) leads out to (2, 1); a door kept on the
-    outdoor square (3, 4) below the room on its north edge (a south-wall door) leads out from (3, 3) to (3, 4); an
+    outdoor square (3, 4) below the room on its north edge (a south-wall door; the scan reads no building there, fix
+    round 1's R2: it is building 5's by its room) leads out from (3, 3) to (3, 4); an
     open door on the west edge of (3, 2), between the two room squares, with the wall to the north (blockN true) leads
     in; the same door closed is ambiguous (one edge out, one in) and is none; a door whose only edge leads to an
     unmapped or solid square, or that stands on no flagged edge, is none."""
@@ -846,11 +847,12 @@ def test_door_way_reads_the_door_s_own_edge():
         over[(4, y)] = {"blockW": True, "edgeW": True}
     over[(2, 2)].update(door=shut, edgeW=False, blockW=False)                     # its west edge open floor here
     over[(1, 2)] = {"solid": True}
-    over[(3, 4)] = {"building": 5, "door": shut, "blockN": True, "edgeN": True}  # the south-wall door, held outside
+    over[(3, 4)] = {"door": shut, "blockN": True, "edgeN": True}   # the south-wall door, held outside, no building
     over[(3, 2)].update(door=opened, edgeW=True, blockW=False)                    # the room-to-room door, open
     w = _world(_grid(0, 0, 5, 5, over=over), me=(0.5, 0.5))
     assert w.door_way((2, 2, 0)) == ((2, 2, 0), (2, 1, 0))
     assert w.door_way((3, 4, 0)) == ((3, 3, 0), (3, 4, 0))
+    assert w.door_building((3, 4, 0)) == 5 and (3, 4, 0) in w.doors_of(5) and (3, 4, 0) not in w.doors_of(None)
     assert w.door_way((3, 2, 0)) is None                                          # leads in: the bedroom's west
     over[(3, 2)].update(door=shut, blockW=True)
     w = _world(_grid(0, 0, 5, 5, over=over), me=(0.5, 0.5))
@@ -868,12 +870,12 @@ def test_door_way_reads_the_door_s_own_edge():
     assert w.door_way((2, 2, 0)) is None                                          # no flagged edge
 
 
-def test_door_way_an_open_door_s_own_edge_leads_out_past_its_wall_and_a_door_of_another_building_is_none():
-    """Amendment 5's two finer readings: a room's corner square (2, 3) of building 5 with an open door on its west
-    edge to the yard (blockW false) and its north edge a wall (blockN true) to the room square (2, 2): the door leads
-    out west, the wall's room ignored (read without the open door's own edge it would be one edge out, one in). A
-    door kept on an outdoor square below a room of another building leads nowhere for its own. A south-wall door held
-    outside is an exit whose inner square is the room's (`night.exits`)."""
+def test_door_way_an_open_door_s_own_edge_leads_out_past_its_wall_and_a_south_wall_door_is_an_exit():
+    """Amendment 5's finer reading: a room's corner square (2, 3) of building 5 with an open door on its west edge to
+    the yard (blockW false) and its north edge a wall (blockN true) to the room square (2, 2): the door leads out
+    west, the wall's room ignored (read without the open door's own edge it would be one edge out, one in). A
+    south-wall door held outside (no building on its square, the live shape) is building 5's exit whose inner square
+    is the room's (`night.exits`); with the room above it building 6's, it is building 6's door."""
     from agent.base.planner import night as N
     shut = {"open": False, "locked": False, "barricaded": False}
     opened = {"open": True, "locked": False, "barricaded": False}
@@ -883,10 +885,10 @@ def test_door_way_an_open_door_s_own_edge_leads_out_past_its_wall_and_a_door_of_
             over[(x, y)] = {"room": "bedroom", "building": 5, "blockN": y == 2, "edgeN": y == 2,
                             "blockW": x == 2, "edgeW": x == 2}
     over[(2, 3)].update(door=opened, blockW=False, blockN=True, edgeN=True)
-    over[(3, 4)] = {"building": 5, "door": shut, "blockN": True, "edgeN": True}
+    over[(3, 4)] = {"door": shut, "blockN": True, "edgeN": True}
     w = _world(_grid(0, 0, 5, 5, over=over), me=(0.5, 0.5))
     assert w.door_way((2, 3, 0)) == ((2, 3, 0), (1, 3, 0))
     assert {"inner": (3, 3, 0), "outer": (3, 4, 0), "door": (3, 4, 0)} in N.exits(w, 5, 0)
-    over[(3, 4)]["building"] = 6
+    over[(3, 3)]["building"] = 6
     w = _world(_grid(0, 0, 5, 5, over=over), me=(0.5, 0.5))
-    assert w.door_way((3, 4, 0)) is None
+    assert (3, 4, 0) in w.doors_of(6) and (3, 4, 0) not in w.doors_of(5) and N.exterior_doors(w, 6, 0) == [(3, 4, 0)]

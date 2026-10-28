@@ -180,6 +180,7 @@ EXIT_STALL_S = 1.0    # wall seconds an exit walk may leave the player within ST
 STEP_STALL_S = 1.0    # ... and a shelter step's walk, while a held threat is within DANGER_R (P23-AM 2)
 SPRINT_END = 0.5      # a `many` flee sprints beyond SPRINT_R while the frame's endurance reads above this (P23-AM 3)
 SPRINT_MAX_S = 20.0   # ... and, with no endurance read, for at most this many wall seconds an episode
+CORNERED_R = 1.5      # tiles: Survive's corner (P23-AJ 2); a running leg unmoved with a held threat this near is stuck
 POINT_BLANK_R = 1.0   # tiles: a cornered Fight's target this near is swung at whatever its line reads (P23-AJ fix 1)
 STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
@@ -518,10 +519,15 @@ def _square_of(world, z):
 
 
 def in_building(world, z, building):
-    """Zombie `z` stands on a square of `building` (a room square or its door square): Survive's door fight reads it."""
+    """Zombie `z` stands on a square of `building` (a room square or its door square, a door kept on an outdoor
+    square read by `World.door_building`: survival 3 fix round 1, R2): Survive's door fight reads it."""
     s = _square_of(world, z)
-    return s is not None and building is not None and s.get("building") == building and (
-        s.get("room") is not None or s.get("door") is not None)
+    if s is None or building is None:
+        return False
+    if s.get("room") is not None:
+        return s.get("building") == building
+    sq = (int(math.floor(z["x"])), int(math.floor(z["y"])), me_floor(world))
+    return s.get("door") is not None and world.door_building(sq) == building
 
 
 def in_corridor(me, end, z):
@@ -638,6 +644,8 @@ class Flee(Policy):
         self._exit_anchor = None  # (wall, (x, y)) of the exit step's send or its walk's last STUCK_MOVE (G2)
         self._dropped = None     # an exit or shelter walk dropped while still current (G2, P23-AM 2): not waited on
         self._leg = None         # (Action, (x, y) at its send, heading) of the last steer leg
+        self._leg_anchor = None  # (wall, (x, y)) of the running leg's send or its last STUCK_MOVE (fix round 1, R1)
+        self._leg_still = 0.0    # wall seconds the running leg has left the player within STUCK_MOVE of that anchor
 
     @property
     def sheltered(self):
@@ -671,6 +679,8 @@ class Flee(Policy):
 
     def observe(self):
         self._observe_exit()
+        if self._leg is not None and self.actions.current is self._leg[0]:
+            self._leg_anchor, self._leg_still = self._still_for(self._leg_anchor)
         a = self._step
         if a is None or a is self._read or self.plan is None:
             return
@@ -934,9 +944,15 @@ class Flee(Policy):
         return math.hypot(mx - self._leg[1][0], my - self._leg[1][1])
 
     def stuck(self):
-        """The last steer leg ended and moved the player under STUCK_MOVE tiles."""
+        """The last steer leg ended and moved the player under STUCK_MOVE tiles; or (survival 3 fix round 1, R1: E3's
+        a40 stood 3 s, five zombies within 1.555 tiles, health 93.7 to 68.3) it still runs, has left the player
+        within STUCK_MOVE for STEP_STALL_S (`observe`), and a held threat is within CORNERED_R."""
         d = self._leg_moved()
-        return d is not None and d < STUCK_MOVE
+        if d is not None:
+            return d < STUCK_MOVE
+        if self._leg is None or self.actions.current is not self._leg[0] or self._leg_still < STEP_STALL_S:
+            return False
+        return any(zdist(self.world, z) <= CORNERED_R for z in self._threats())
 
     def _group_sprint(self, near):
         """Ruling P23-AM 3 (a sprint outpaces a walking group): the episode's reason is `many`, the nearest held
@@ -1022,6 +1038,7 @@ class Flee(Policy):
         elif cmd.TYPE == "steer":
             mx, my = me_xy(self.world)
             self._leg = (action, (mx, my), (cmd.vx, cmd.vy))
+            self._leg_anchor, self._leg_still = (self.clock(), (mx, my)), 0.0
         self._chosen = None
 
 

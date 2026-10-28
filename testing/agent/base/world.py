@@ -452,7 +452,7 @@ class World:
             if s.get("room") is not None:
                 rooms.setdefault(s.get("building"), []).append(sq)
             if s.get("door") is not None:
-                doors.setdefault(s.get("building"), []).append(sq)
+                doors.setdefault(self.door_building(sq), []).append(sq)
         return {b: sorted(v) for b, v in rooms.items()}, {b: sorted(v) for b, v in doors.items()}
 
     def _indexes(self):
@@ -466,8 +466,25 @@ class World:
         return self._indexes()[1]
 
     def doors_of(self, building):
-        """The mapped squares of `building` with a door, sorted (cached per map version: read it, never change it)."""
+        """The mapped squares of `building` with a door (`door_building`), sorted (cached per map version: read it,
+        never change it)."""
         return self._indexes()[2].get(building, [])
+
+    def door_building(self, sq):
+        """The building a door square belongs to: its own `building`, else (survival 3 fix round 1, the review's R2)
+        the building of the room square across its first flagged edge, north then west. A door stands on its square's
+        north or west edge, so a door on a room's south or east wall is kept on the outdoor square below or right of
+        it, and the scan gives a square with no room no building (`IsoGridSquare.getBuilding` nil: E3's kitchen door
+        (10721, 10638), open, `building` None, its room square (10721, 10637) north of it); None when neither reads
+        one."""
+        s = self.map.get(sq) or {}
+        if s.get("building") is not None:
+            return s.get("building")
+        for edge, n in (("edgeN", (sq[0], sq[1] - 1, sq[2])), ("edgeW", (sq[0] - 1, sq[1], sq[2]))):
+            o = self.map.get(n) or {}
+            if s.get(edge) and o.get("room") is not None:
+                return o.get("building")
+        return None
 
     def _window_edge(self, a, b):
         """The edge between two orthogonally adjacent squares is a window's: the square holding it (a square keeps its
@@ -487,8 +504,9 @@ class World:
         door stands on one of `sq`'s own edges (a square keeps its north and west edges), one whose `edgeN`/`edgeW`
         reads true; with the door read open, only an edge that reads not blocked (`blockN`/`blockW` False: an open
         door's edge is, a wall's never). Each such edge is read across, as `openings` reads a step: it leads out when
-        one side is a room square of the door's building and the other a mapped, non-solid square with no room (a door
-        on a room's south or east wall is kept on the outdoor square, `sq` then the outside one); it leads in when both
+        one side is a room square (the door's building, `door_building`) and the other a mapped, non-solid square
+        with no room (a door on a room's south or east wall is kept on the outdoor square, whose own `building` the
+        scan reads None, `sq` then the outside one); it leads in when both
         sides are room squares. The door is exterior when an edge leads out and none leads in (a closed door on a room's
         corner square, a wall on its other edge, reads one of each and is not one); the first of north, west."""
         s = self.map.get(sq)
@@ -506,7 +524,7 @@ class World:
             rooms = [q for q, r in ((sq, s), (n, o)) if r.get("room") is not None]
             if len(rooms) == 2:
                 inward = True
-            elif len(rooms) == 1 and (self.map[rooms[0]].get("building") == s.get("building")):
+            elif len(rooms) == 1:   # the door's building is the room's (`door_building`)
                 out.append((rooms[0], n if rooms[0] == sq else sq))
         return out[0] if out and not inward else None
 
