@@ -317,3 +317,20 @@ def test_the_first_death_in_the_chain_is_graded():
         f["zombies"] = []
     d["loop"]["death"]["last_frames"] = d["loop"]["last_frames"]
     assert E.gate_e1([d, good()])["gates"]["death_explained"]["ok"] is False
+
+
+# ---------------------------------------------------------------- fix round 2 (P23-X)
+def test_the_drivers_loop_lineage_wins_over_a_rebuild():
+    prev = art()
+    a = art(lineage={"ok": True, "position": {"d": 0.0}})
+    a["loop"]["last_frames"][0]["me"]["x"] = 999.0              # the kept first frame would disagree
+    g = E.grade_e1(a, prev)
+    assert g["lineage_source"] == "loop" and g["lineage"]["ok"] is True
+    assert E.gate_e1([prev, a])["verdict"] == "NO-GO"           # reads without raising
+    b = art()
+    b["loop"]["last_frames"][0]["me"]["x"] = 999.0
+    g = E.grade_e1(b, prev)
+    assert g["lineage_source"] == "rebuilt" and g["lineage"]["ok"] is False
+    g = E.grade_e1(art())
+    assert g["lineage_source"] is None and g["lineage"] is None
+    assert E.grade_e1(art(lineage=None), prev)["lineage_source"] == "rebuilt"

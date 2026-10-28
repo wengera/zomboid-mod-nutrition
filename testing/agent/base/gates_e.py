@@ -148,20 +148,25 @@ def e_death(out):
 
 def grade_e1(out, prev=None):
     """The chain session report (Plan 23 Task 15): survived (stop in SURVIVED), game_minutes (loop.game_min less
-    loop.first_game_min), needs, fights, load, lineage (chain.lineage_diff(prev, first kept frame) given prev, else
-    loop.lineage), cost {p50, p99, max, over5}, death (e_death), report_lines."""
+    loop.first_game_min), needs, fights, load, lineage (loop.lineage when a dict, else chain.lineage_diff(prev, first kept frame) given prev;
+    lineage_source loop | rebuilt | None), cost {p50, p99, max, over5}, death (e_death), report_lines."""
     out = _d(out)
     loop = _d(out.get("loop"))
     stop = _d(out.get("stop"))
     g0, g1 = _n(loop.get("first_game_min")), _n(loop.get("game_min"))
     frames = [f for f in _l(loop.get("last_frames")) if isinstance(f, dict)]
-    lineage = CH.lineage_diff(prev, frames[0] if frames else {}) if prev is not None else loop.get("lineage")
+    if isinstance(loop.get("lineage"), dict):          # the driver record is the truth (P23-X)
+        lineage, source = loop["lineage"], "loop"
+    elif prev is not None:                              # the kept frames may no longer hold the first frame
+        lineage, source = CH.lineage_diff(prev, frames[0] if frames else {}), "rebuilt"
+    else:
+        lineage, source = None, None
     cost = _d(loop.get("cost"))
     g = {"grade": "grade_e1", "session_key": out.get("session_key"), "run_id": out.get("run_id"),
          "stop": {"reason": stop.get("reason"), "detail": stop.get("detail")} if stop else None,
          "survived": stop.get("reason") in SURVIVED,
          "game_minutes": g1 - g0 if g0 is not None and g1 is not None else None,
-         "needs": e_needs(out), "fights": e_fights(loop.get("fights")), "load": e_load(loop), "lineage": lineage,
+         "needs": e_needs(out), "fights": e_fights(loop.get("fights")), "load": e_load(loop), "lineage": lineage, "lineage_source": source,
          "cost": {k: cost.get(k) for k in ("p50", "p99", "max", "over5")}, "death": e_death(out)}
     g["report_lines"] = report_lines_e(g)
     return g
