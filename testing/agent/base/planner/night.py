@@ -30,10 +30,12 @@ and `explore`). The shelter steps are module functions (`shelter_plan`, `shelter
 - The shelter machine (`shelter_plan(world, building, door=None)`, a dict, kept to one exterior door when `door` is
   given (the flee's, `policies.Flee`, P23-AG); `shelter_step(world, plan)`; `shelter_ended(plan,
   action)`):
-  - Its doors are the building's exterior doors on the player's floor: a door square of `world.doors_of(b)` with at
-    least one mapped, non-solid orthogonal neighbour whose `room` is None. An interior door between two rooms is never
-    a candidate (the review's I1). They are ranked: read open first, then neither locked nor barricaded, then any,
-    each nearest the player. No exterior door: no plan.
+  - Its doors are the building's exterior doors on the player's floor: a door square of `world.doors_of(b)` whose
+    own door edge joins a room square of it to a mapped, non-solid square with no room (`World.door_way`; Plan 23
+    survival 3, the coordinator's amendment 5 to ruling P23-AM: until then any door square with such a neighbour
+    across any edge, so building 2's bedroom door (10725, 10629) in E2 and E3 counted through the bedroom's north
+    wall). An interior door between two rooms is never a candidate (the review's I1). They are ranked: read open
+    first, then neither locked nor barricaded, then any, each nearest the player. No exterior door: no plan.
   - For the door in use, the interior square is the building's room square on that floor nearest the door, the door
     square itself only when it is the only one (the close is then one step away and the character is not in the
     doorway).
@@ -47,11 +49,10 @@ and `explore`). The shelter steps are module functions (`shelter_plan`, `shelter
   - The approach step is kept beside the Lua interact's own walk to the door (`approach` in `PZAgent_SkillsWorld.lua`)
     so a walk that cannot reach the door fails under the walk's own reason (`stuck`, `no path`), which the shun reads,
     rather than inside the open as `not adjacent`.
-  - The approach square (ruling, Task 12): the first of `world.reachable_adjacent(door, z)` (nearest the player first)
-    with no room, the outside square; when none has (a closed door blocks its own edge, so the square across it is
-    never listed as reachable, and every diagonal through the door's corner reads blocked), the nearest mapped,
-    non-solid neighbour with no room, the Lua interact's own approach rule (it reads no edge). Cost if wrong: an
-    approach to the wrong side of a wall, which the open then fails `not adjacent`, moving to the next door.
+  - The approach square (amendment 5, replacing Task 12's ruling, which took the nearest reachable or mapped
+    neighbour with no room whatever edge lay between): the outside square across the door's own edge
+    (`World.door_way`), the door square itself for a door kept on the outdoor square of a room's south or east wall.
+    The exits read the same `(room square, outside square)`.
   - A step's end (`shelter_ended`): `done` advances; a `superseded` step is sent again (`resend`); a `close` that ends
     any other way is passed over (`passed`: the character is inside and never shuns the building it shelters in, the
     review's M2); `failed` for a reason in SHUN_REASONS (`locked`, `not adjacent`, `no door`, and the walk reasons
@@ -124,36 +125,28 @@ def player_square(world):
     return int(math.floor(x)), int(math.floor(y)), me_floor(world)
 
 
-def _outdoor(world, sq):
-    s = world.map.get(sq)
-    return s is not None and not s.get("solid") and s.get("room") is None
-
-
 # ---------------------------------------------------------------- the shelter machine
 def exterior_doors(world, building, z):
-    """The building's exterior door squares on floor `z` (a mapped, non-solid, room-less orthogonal neighbour), ranked
-    open first, then neither locked nor barricaded, then any, each nearest the player. The candidates are read once
-    per map version (`World.memo`, M-4); only the ranking, which reads the player, runs each call."""
+    """The building's exterior door squares on floor `z` (`World.door_way`: the door's own edge joins a room square to
+    a mapped, non-solid square with no room; survival 3's amendment 5, once any door square with such a neighbour
+    across any edge), ranked open first, then neither locked nor barricaded, then any, each nearest the player. The
+    candidates are read once per map version (`World.memo`, M-4); only the ranking, which reads the player, runs each
+    call."""
     def rank(sq):
         d = world.map[sq].get("door") or {}
         state = 0 if d.get("open") else (2 if d.get("locked") or d.get("barricaded") else 1)
         return state, _dist(world, sq), sq
 
     def candidates():
-        return [sq for sq in world.doors_of(building) if sq[2] == z
-                and any(_outdoor(world, (sq[0] + dx, sq[1] + dy, z)) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))]
+        return [sq for sq in world.doors_of(building) if sq[2] == z and world.door_way(sq) is not None]
     return sorted(world.memo(("exterior_doors", building, z), candidates), key=rank)
 
 
 def approach_square(world, door):
-    """The square the approach walks to (the module docstring's ruling), None when the door has no free neighbour
-    outside."""
-    for sq in world.reachable_adjacent((door[0], door[1]), door[2]):
-        if world.map[sq].get("room") is None:
-            return sq
-    out = [(_dist(world, sq), sq) for sq in ((door[0] + dx, door[1] + dy, door[2]) for dx in (-1, 0, 1)
-                                             for dy in (-1, 0, 1)) if sq != door and _outdoor(world, sq)]
-    return min(out)[1] if out else None
+    """The square the approach walks to: the outside square across the door's own edge (`World.door_way`; survival
+    3's amendment 5, the shelter pick and the exit reading the same test), None when the door is no exterior one."""
+    way = world.door_way(door)
+    return None if way is None else way[1]
 
 
 def exits(world, building, z):
@@ -164,9 +157,9 @@ def exits(world, building, z):
     out = [{"inner": a, "outer": b, "door": None} for a, b in world.openings(building) if a[2] == z]
     for d in exterior_doors(world, building, z):
         rec = world.map[d].get("door") or {}
-        sq = None if rec.get("open") or rec.get("barricaded") else approach_square(world, d)
-        if sq is not None:
-            out.append({"inner": d, "outer": sq, "door": d})
+        if not (rec.get("open") or rec.get("barricaded")):
+            inner, outer = world.door_way(d)
+            out.append({"inner": inner, "outer": outer, "door": d})
     return sorted(out, key=lambda e: (e["outer"], e["inner"]))
 
 

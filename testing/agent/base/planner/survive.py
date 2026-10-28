@@ -97,6 +97,12 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   4. GROUP_R_N (3) or more held within CORNERED_R after a steer leg that moved are steered from, not cornered
      (`group_steer`, `Flee.steer_now`, on a room square too); after a stuck leg, or against one or two, the corner
      stands.
+  The coordinator's amendments (E3's write-up): 5, an exterior door is one whose own edge joins a room square to an
+  outside square (`World.door_way`, `night.exterior_doors`), the approach square that outside square; 6, the corner
+  is judged on every threat tick whatever runs (`_cornered`'s `walk` corner: a line not read blocked, no mark; a
+  running fight keeps its pin), so a shelter or exit walk at melee range is superseded by the corner's attack, or,
+  with three or more within CORNERED_R and no stuck leg, by rule 4's steer (`Flee.give_way` drops the walk); rule 4
+  then reads "not stuck" for "a leg that moved", a walk having no leg.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -207,6 +213,7 @@ class Survive:
         self.closing = (0, None)  # (ticks the nearest held threat has closed within DANGER_R, its last distance)
         self.cornered = None      # the zombie id a cornered Fight runs on (P23-AJ 2), else None
         self.corner_free = CORNER_FREE_R   # tiles: the nearest beyond this ends the corner (fix round 1)
+        self.corner_kind = None   # "stuck", "inside" or "walk" (amendment 6: taken on any walk), the running corner's
         self._corner_fight = None   # the Fight made for the corner
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
         self.night = Night(world, actions, clock)
@@ -345,40 +352,54 @@ class Survive:
         return exit_plan(self.world, held, f.refused if f is not None else ()) is not None
 
     def _cornered(self, held, inside):
-        """The zombie id a cornered Fight runs on (ruling P23-AJ 2 and its fix round 1), else None. Armed, it corners
-        when the nearest held threat is within CORNERED_R and either the flee's last steer leg ended stuck
-        (`Flee.stuck`: moved under STUCK_MOVE) or the character stands on a room square (fix round 1: at melee range
-        the branch fights before any walk out, which also covers a walk out that failed and a room with no way out),
-        on the nearest held threat `in_reach` (fix round 2, G4: within POINT_BLANK_R, or within CORNERED_R with its
-        line not read blocked; its unreachable mark aside); it stays cornered on that id until the zombie is dead,
-        gone, or marked unreachable and out of reach (the Fight ended), or the nearest held threat is beyond `corner_free`: CORNER_FREE_R for a stuck
-        leg's corner, CORNERED_R for one taken on a room square (it walks out, adopts or holds once the nearest is
-        beyond melee range; a way out is never known at melee range, every exit's line starting within EXIT_CLEAR_R).
-        The cornered Fight swings at a target within POINT_BLANK_R whatever its line reads (`Fight.point_blank`). A
-        new corner makes a new Fight; the next flee's Flee is a new one too, whose first leg is not stuck."""
+        """The zombie id a cornered Fight runs on (ruling P23-AJ 2, its fix rounds, and the coordinator's amendment 6
+        to P23-AM), else None. Armed, with the nearest held threat within CORNERED_R, it corners (`corner_kind`):
+        - `stuck`: the flee's last steer leg ended stuck (`Flee.stuck`: moved under STUCK_MOVE), or `inside`: the
+          character stands on a room square (fix round 1: at melee range the branch fights before any walk out);
+          on the nearest zombie `in_reach` (fix round 2, G4: within POINT_BLANK_R, or within CORNERED_R with its line
+          not read blocked; its unreachable mark aside, I3);
+        - `walk` (amendment 6, E3: lines 260-275 passed with a zombie within 1.5 tiles while the enter walk ran): on
+          any other threat tick whatever runs (a shelter or exit walk, a steer leg, a goal walk the threat superseded),
+          except while a fight runs (it keeps its own pin, Task 10), on the nearest zombie within CORNERED_R whose
+          line is not read blocked and that is not marked unreachable (run 1's 103 swings at a zombie behind a locked
+          door: these corners respect the marks, their Fight's `mark_free_r` 0).
+        Rule 4 (P23-AM 4, as amendment 6 widens the corner): with GROUP_R_N or more held within CORNERED_R and the
+        last leg not stuck, no corner: `group_steer`, the flee steers (sprints) until a leg ends stuck. It stays
+        cornered on that id until the zombie is dead, gone, or marked unreachable and out of reach (a `walk` corner:
+        marked at all), or the nearest held threat is beyond `corner_free`: CORNER_FREE_R for a stuck leg's corner,
+        CORNERED_R for the others (a way out is never known at melee range, every exit's line starting within
+        EXIT_CLEAR_R). The cornered Fight swings at a target within POINT_BLANK_R whatever its line reads
+        (`Fight.point_blank`). A new corner makes a new Fight, superseding whatever ran; the next flee's Flee is a new
+        one too, whose first leg is not stuck."""
         nearest = min(zdist(self.world, z) for z in held)
         if not self._armed():
             self.cornered = None
             return None
+        skip = blocked(self.unreachable, self.clock())
         if self.cornered is not None:
             z = self.world.zombies.get(self.cornered)
             if (z is not None and z.get("x") is not None and z.get("y") is not None and nearest <= self.corner_free
-                    and (in_reach(self.world, z, CORNERED_R)
-                         or self.cornered not in blocked(self.unreachable, self.clock()))):
+                    and (self.cornered not in skip
+                         or (self.corner_kind != "walk" and in_reach(self.world, z, CORNERED_R)))):
                 return self.cornered
             self.cornered, self._corner_fight = None, None
             return None
-        reach = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid)
-                 and in_reach(self.world, z, CORNERED_R)]   # I3, G4: marks aside, within 1.0 or a line not blocked
+        stuck = self.mode == "flee" and self.flee is not None and self.flee.stuck()
+        if stuck or inside:   # I3, G4: marks aside, within 1.0 or a line not blocked
+            reach = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid)
+                     and in_reach(self.world, z, CORNERED_R)]
+        elif self.mode == "fight":
+            return None   # a running fight keeps its own pin (Task 10): the corner pre-empts walks, not swings
+        else:   # amendment 6, on any walk: a line not read blocked and no mark (run 1's 103 swings at a locked door)
+            reach = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in skip
+                     and z.get("x") is not None and z.get("y") is not None and zdist(self.world, z) <= CORNERED_R
+                     and line_to(self.world, z) is not False]
         if nearest > CORNERED_R or not reach:
             return None
-        stuck = self.mode == "flee" and self.flee is not None and self.flee.stuck()
-        if not (stuck or inside):
+        if sum(1 for z in held if zdist(self.world, z) <= CORNERED_R) >= GROUP_R_N and not stuck:
+            self.group_steer = True   # P23-AM 4: against a group the branch steers (sprints) until a leg ends stuck
             return None
-        group = sum(1 for z in held if zdist(self.world, z) <= CORNERED_R) >= GROUP_R_N
-        if group and self.mode == "flee" and self.flee is not None and self.flee.moved():
-            self.group_steer = True   # P23-AM 4: against a group the leg that moved is run again, never stood
-            return None
+        self.corner_kind = "stuck" if stuck else ("inside" if inside else "walk")
         self.corner_free = CORNER_FREE_R if stuck else CORNERED_R
         self.cornered = min(reach, key=lambda p: (zdist(self.world, p[1]), repr(p[0])))[0]
         return self.cornered
@@ -489,7 +510,8 @@ class Survive:
             if self.fight is None or self.fight is not self._corner_fight:
                 self.fight = self._corner_fight = Fight(self.world, self.actions, self.clock,
                                                         unreachable=self.unreachable, target=self.cornered)
-                self.fight.point_blank, self.fight.mark_free_r = True, CORNERED_R
+                self.fight.point_blank = True
+                self.fight.mark_free_r = 0.0 if self.corner_kind == "walk" else CORNERED_R
                 self.flee = None
                 self._end_flee_episode()
             self.mode = "fight"
@@ -513,6 +535,8 @@ class Survive:
             policy.threats = held
             policy.hold_ok = breach is None
             policy.many, policy.steer_now = self.flee_many, self.group_steer
+            if self.group_steer:
+                policy.give_way()   # amendment 6: the group pre-empts a running walk, as the corner does
             ans = self._flee_drop() or self._answer(policy)
         else:
             policy.only = None if door is None else {zid for zid, _ in door}

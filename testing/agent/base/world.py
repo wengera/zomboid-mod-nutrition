@@ -480,6 +480,36 @@ class World:
         s = self.map.get(holder) or {}
         return s.get("window") is not None and bool(s.get(field))
 
+    def door_way(self, sq):
+        """The way an exterior door at `sq` leads (Plan 23 survival 3, the coordinator's amendment 5 to ruling P23-AM:
+        E2's and E3's shelter door (10725, 10629) of building 2 was a bedroom's door to the corridor, counted exterior
+        through the outdoor square across the bedroom's north wall): `(room square, outside square)`, else None. The
+        door stands on one of `sq`'s own edges (a square keeps its north and west edges), one whose `edgeN`/`edgeW`
+        reads true; with the door read open, only an edge that reads not blocked (`blockN`/`blockW` False: an open
+        door's edge is, a wall's never). Each such edge is read across, as `openings` reads a step: it leads out when
+        one side is a room square of the door's building and the other a mapped, non-solid square with no room (a door
+        on a room's south or east wall is kept on the outdoor square, `sq` then the outside one); it leads in when both
+        sides are room squares. The door is exterior when an edge leads out and none leads in (a closed door on a room's
+        corner square, a wall on its other edge, reads one of each and is not one); the first of north, west."""
+        s = self.map.get(sq)
+        if s is None or s.get("door") is None:
+            return None
+        is_open = bool(s["door"].get("open"))
+        out, inward = [], False
+        for edge, block, n in (("edgeN", "blockN", (sq[0], sq[1] - 1, sq[2])),
+                               ("edgeW", "blockW", (sq[0] - 1, sq[1], sq[2]))):
+            if not s.get(edge) or (is_open and s.get(block) is not False):
+                continue
+            o = self.map.get(n)
+            if o is None or o.get("solid") or s.get("solid"):
+                continue
+            rooms = [q for q, r in ((sq, s), (n, o)) if r.get("room") is not None]
+            if len(rooms) == 2:
+                inward = True
+            elif len(rooms) == 1 and (self.map[rooms[0]].get("building") == s.get("building")):
+                out.append((rooms[0], n if rooms[0] == sq else sq))
+        return out[0] if out and not inward else None
+
     def openings(self, building):
         """The building's openings (the module docstring): `(room square, outside square)` pairs, sorted, each step
         between the two read not blocked and not a window's edge (`_window_edge`); memoised per map version (read it,

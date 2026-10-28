@@ -109,7 +109,7 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   With `many` (Survive's: the episode's reason was `many`) and the nearest held threat beyond SPRINT_R, the steer
   and the shelter walks go at a sprint (FLEE_GAIT a run otherwise) while the frame's `stats.endurance` reads above
   SPRINT_END (0.5), or, with none read, for SPRINT_MAX_S (20) wall seconds from the episode's first such sprint.
-  With `steer_now` (Survive's group at melee range after a leg that `moved()`), the choose steers first.
+  With `steer_now` (Survive's group at melee range, its last leg not stuck), the choose steers first.
 - `Explore`: it scans per 10-tile place, spec § 6's "once at a new building or on request" read as the place
   grid: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
   `scanned` from its send and dropped again when the scan ends other than `done`, so a pre-empted, timed-out or
@@ -626,7 +626,7 @@ class Flee(Policy):
         self.hold_ok = True      # Survive clears it while a held threat breaks the hold (P23-AJ 1)
         self.adopted = False     # the building stood in was adopted this episode (fix round 1: once)
         self.many = False        # Survive sets it: the episode's reason is `many` (P23-AM 3: the group sprint)
-        self.steer_now = False   # Survive sets it: a group at melee range after a leg that moved (P23-AM 4)
+        self.steer_now = False   # Survive sets it: a group at melee range, the last leg not stuck (P23-AM 4)
         self._sprint_from = None  # wall of the episode's first sprint chosen with no endurance read (SPRINT_MAX_S)
         self._chosen = None      # "step", "close" or "exit": what the last choose returned, until it is sent
         self._step = None        # the last shelter step's Action
@@ -712,6 +712,20 @@ class Flee(Policy):
         """As `Policy.busy`, except for an exit or shelter walk dropped while still current (G2, P23-AM 2): the next
         choose answers."""
         return super().busy() and self.last is not self._dropped
+
+    def give_way(self):
+        """P23-AM 4 with the coordinator's amendment 6 (E3: the enter walk ran on with three zombies at half a tile):
+        Survive's group steer drops a running shelter or exit step (`_dropped`; the plan for the episode, `ended`
+        `pre-empted`; the exit refused), so the steer goes at once; a running steer leg, or anything else, is kept."""
+        if not self.busy() or self.last.type not in ("walkTo", "interact"):
+            return
+        self._dropped = self.last
+        if self.last is self._step and self.plan is not None:
+            self._read, self.ended = self._step, "pre-empted"
+            self._drop(False)
+        elif self.last is self._exit_a and self.exit is not None:
+            self._exit_read = self._exit_a
+            self._refuse_exit()
 
     def _observe_exit(self):
         """An exit step's end, and a running walk's progress (fix round 1, the review's G2): a walk that has left the
@@ -874,7 +888,7 @@ class Flee(Policy):
         from a room square); else, on a room square, a new exit (`exit_plan`, P23-AJ 3), else, once an episode, the
         building adopted (`_adopt`, fix round 1), else the trapped hold (no command, `why.trapped`: on a room square
         the flee never steers, fix round 1: steering inside killed E2); else the steer. With `steer_now` (P23-AM 4: a
-        group of three or more within CORNERED_R after a steer leg that moved) the steer goes first, on a room square
+        group of three or more within CORNERED_R, the last leg not stuck) the steer goes first, on a room square
         too: the next leg that ends stuck is Survive's corner."""
         self._chosen = None
         ts = self._threats()
@@ -923,12 +937,6 @@ class Flee(Policy):
         """The last steer leg ended and moved the player under STUCK_MOVE tiles."""
         d = self._leg_moved()
         return d is not None and d < STUCK_MOVE
-
-    def moved(self):
-        """The last steer leg ended and moved the player STUCK_MOVE tiles or more (P23-AM 4: Survive steers again
-        before it corners against a group)."""
-        d = self._leg_moved()
-        return d is not None and d >= STUCK_MOVE
 
     def _group_sprint(self, near):
         """Ruling P23-AM 3 (a sprint outpaces a walking group): the episode's reason is `many`, the nearest held
