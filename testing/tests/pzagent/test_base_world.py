@@ -38,7 +38,8 @@ def replay(path):
 
 def _sq(x, y, z=0, **k):
     d = {"x": x, "y": y, "z": z, "solid": False, "solidTrans": False, "light": 0.75, "room": None, "building": None,
-         "door": None, "window": None, "containers": [], "floor": []}
+         "door": None, "window": None, "containers": [], "floor": [], "blockN": False, "blockW": False,
+         "edgeN": False, "edgeW": False}
     d.update(k)
     return d
 

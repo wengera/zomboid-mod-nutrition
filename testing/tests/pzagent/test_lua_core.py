@@ -55,7 +55,7 @@ def test_missing_records_a_member_name_once(lua):
                  "PZA.missing(m, 'getY'); return m end)()")
     assert py(m) == ["getX", "getY"]
     assert lua.eval("PZA.readKV") is None                  # ruling S-5: the key=value reader left Core
-    assert lua.eval("PZA.VERSION") == "1.1"
+    assert lua.eval("PZA.VERSION") == "1.2"
 
 
 # ---- PZA.decode: one JSON value, nil on anything malformed -------------------------------------------------------

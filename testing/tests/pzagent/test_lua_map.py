@@ -268,7 +268,8 @@ def test_a_scan_part_line_decodes_to_the_squares_it_walked(lua, fs):
     assert m["squares"] == [{"x": 11, "y": 20, "z": 0, "solid": False, "solidTrans": False, "light": 0.5,
                              "room": "kitchen", "building": 7, "door": {"open": False, "locked": False,
                                                                         "barricaded": False},
-                             "window": None, "containers": [], "floor": []}]
+                             "window": None, "containers": [], "floor": [],
+                             "blockN": None, "blockW": None, "edgeN": None, "edgeW": None}]   # Task 6 fills the edges
     assert lua.eval("PZA.map.seen['11,20,0']") == lua.eval("PZA.map.watchKey(PZA.map.square(...))", full_square(11, 20, door=True), lua.table())
 
 
@@ -276,7 +277,9 @@ def test_map_square_has_exactly_the_schemas_square_keys(lua):
     load(lua)
     t = lua.eval("PZA.map.square(...)", full_square(3, 4, door=True, window=True, box=True, floor=True), lua.table())
     keys = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["square"]["x-order"]
-    assert sorted(t.keys()) == sorted(keys)
+    edges = ["blockN", "blockW", "edgeN", "edgeW"]                  # PZA/1.2's edges: Plan 23 Task 6 fills them
+    assert keys[12:] == edges
+    assert sorted(t.keys()) == sorted(keys[:12])
     assert sorted(lua.eval("PZA.schema.records.square").values()) == sorted(keys)
     assert sorted(t["door"].keys()) == ["barricaded", "locked", "open"]
     assert sorted(t["containers"][1].keys()) == ["items", "n", "type"]

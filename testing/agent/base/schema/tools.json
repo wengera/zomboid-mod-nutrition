@@ -119,6 +119,11 @@
           ],
           "description": "Which items a loot takes.",
           "default": "all"
+        },
+        "maxWeight": {
+          "type": "number",
+          "description": "A loot stops before the carried weight would pass this; 0 for no cap.",
+          "default": 0
         }
       },
       "required": [
@@ -221,6 +226,16 @@
       "required": [
         "hz"
       ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "sleep",
+    "description": "Sleep where the player stands until the engine wakes them.",
+    "input_schema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
       "additionalProperties": false
     }
   }

@@ -481,12 +481,12 @@ def test_loothouse_loots_the_nearest_unlooted_and_marks_it_when_the_loot_ends(tm
     r.frame()
     lh = LootHouse(r.world, r.acts, r.clock)
     lh.step()
-    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "all"})
+    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "all", "maxWeight": 0.0})
     assert lh.step() is None
     r.answer({"state": "failed", "reason": "not adjacent"})
     lh.step()
     assert r.world.containers[(102, 200, 0, 0)]["looted"] is True
-    assert r.cmd() == ("interact", {"x": 106, "y": 200, "kind": "loot", "filter": "all"})
+    assert r.cmd() == ("interact", {"x": 106, "y": 200, "kind": "loot", "filter": "all", "maxWeight": 0.0})
     all_sends_valid(r)
 
 
@@ -496,7 +496,7 @@ def test_loothouse_takes_its_want_as_the_filter(tmp_path):
     r.frame()
     lh = LootHouse(r.world, r.acts, r.clock, want="food")
     lh.step()
-    assert r.cmd() == ("interact", {"x": 106, "y": 200, "kind": "loot", "filter": "food"})
+    assert r.cmd() == ("interact", {"x": 106, "y": 200, "kind": "loot", "filter": "food", "maxWeight": 0.0})
 
 
 def test_a_superseded_loot_keeps_its_container(tmp_path):
@@ -576,7 +576,7 @@ def test_drops_bring_the_level_to_two_and_then_nothing_is_sent_until_it_is_under
     assert [a.type for a in r.acts.history] == ["drop"]
     r.frame(level=1)
     lh.step()
-    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "all"})
+    assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "all", "maxWeight": 0.0})
 
 
 # ================================================================ every policy's sends

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "pza1.json",
   "title": "PZA/1",
-  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost), so a reader tolerates appended fields: a group array from its x-prior arity up to its x-order decodes with the trailing fields null.",
+  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
   "x-proto": "PZA/1",
   "x-kinds": ["hello", "frame", "map", "event", "act", "reply"],
   "oneOf": [
@@ -32,7 +32,7 @@
     "actionType": {
       "description": "A skill type a cmd line names.",
       "type": "string",
-      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate"]
+      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep"]
     },
     "actState": {
       "description": "A skill's lifecycle state.",
@@ -42,7 +42,7 @@
     "reason": {
       "description": "The closed set of reasons a skill is rejected or fails with.",
       "type": "string",
-      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted"]
+      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed"]
     },
     "eventKind": {
       "description": "The kind of an engine event line.",
@@ -117,7 +117,7 @@
       "x-group": "me",
       "x-encoding": "positional",
       "x-prior": 11,
-      "x-order": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed"],
+      "x-order": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour"],
       "type": "object",
       "properties": {
         "x": {"description": "The world x in tiles.", "type": "number"},
@@ -132,9 +132,10 @@
         "forceSprint": {"description": "The force-sprint flag read after the frame.", "type": "boolean"},
         "autoWalk": {"description": "Whether auto-walk is on.", "type": "boolean"},
         "zombiesSeen": {"description": "The cell's zombie list size, the frame's one walk.", "type": "integer"},
-        "zombiesListed": {"description": "The zombies the frame lists, those alive within the sense radius.", "type": "integer"}
+        "zombiesListed": {"description": "The zombies the frame lists, those alive within the sense radius.", "type": "integer"},
+        "hour": {"description": "The game's hour of day, 0 to 24, as a number.", "type": "number"}
       },
-      "required": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed"]
+      "required": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour"]
     },
     "stats": {
       "description": "The player's character stats.",
@@ -310,7 +311,8 @@
       "description": "One grid square.",
       "x-role": "record",
       "x-encoding": "positional",
-      "x-order": ["x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor"],
+      "x-prior": 12,
+      "x-order": ["x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW"],
       "type": "object",
       "properties": {
         "x": {"description": "The square's x.", "type": "integer"},
@@ -324,9 +326,13 @@
         "door": {"description": "The square's door, null when none.", "anyOf": [{"$ref": "#/$defs/portal"}, {"type": "null"}]},
         "window": {"description": "The square's window, null when none.", "anyOf": [{"$ref": "#/$defs/portal"}, {"type": "null"}]},
         "containers": {"description": "The square's containers.", "type": "array", "items": {"$ref": "#/$defs/container"}},
-        "floor": {"description": "The full types of the items on the floor.", "type": "array", "items": {"type": "string"}}
+        "floor": {"description": "The full types of the items on the floor.", "type": "array", "items": {"type": "string"}},
+        "blockN": {"description": "Whether a step from this square to its north neighbour is blocked: a collide flag with no window, a closed or barricaded door, an intact closed or barricaded window, or a stair top (isBlockedTo).", "type": "boolean"},
+        "blockW": {"description": "Whether a step from this square to its west neighbour is blocked: a collide flag with no window, a closed or barricaded door, an intact closed or barricaded window, or a stair top (isBlockedTo).", "type": "boolean"},
+        "edgeN": {"description": "Whether a wall, door or window stands on the north edge, open or closed (isSomethingTo).", "type": "boolean"},
+        "edgeW": {"description": "Whether a wall, door or window stands on the west edge, open or closed (isSomethingTo).", "type": "boolean"}
       },
-      "required": ["x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor"]
+      "required": ["x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW"]
     },
     "portal": {
       "description": "A door or a window.",
@@ -495,7 +501,7 @@
           {"$ref": "#/$defs/result_walkTo"}, {"$ref": "#/$defs/result_steer"}, {"$ref": "#/$defs/result_attack"},
           {"$ref": "#/$defs/result_interact"}, {"$ref": "#/$defs/result_equip"}, {"$ref": "#/$defs/result_consume"},
           {"$ref": "#/$defs/result_drop"}, {"$ref": "#/$defs/result_stop"}, {"$ref": "#/$defs/result_scan"},
-          {"$ref": "#/$defs/result_rate"}]},
+          {"$ref": "#/$defs/result_rate"}, {"$ref": "#/$defs/result_sleep"}]},
         "snapshot": {"description": "The player's state when the line was written.", "$ref": "#/$defs/snapshot"}
       },
       "required": ["kind", "seq", "tick", "wallMs", "aid", "type", "state", "reason", "result", "snapshot"]
@@ -595,6 +601,18 @@
       "type": "object",
       "properties": {"hz": {"description": "The frame rate now in force.", "type": "integer"}}
     },
+    "result_sleep": {
+      "description": "A sleep's result.",
+      "x-role": "result",
+      "x-type": "sleep",
+      "type": "object",
+      "properties": {
+        "sleptH": {"description": "The game hours slept.", "type": "number"},
+        "fatigueBefore": {"description": "The fatigue stat when the sleep began.", "type": "number"},
+        "fatigueAfter": {"description": "The fatigue stat when the sleep ended.", "type": "number"},
+        "bedType": {"description": "The engine's bed type the player slept on.", "type": "string"}
+      }
+    },
 
     "reply": {
       "description": "The answer to a query command.",
@@ -623,7 +641,7 @@
           {"$ref": "#/$defs/args_walkTo"}, {"$ref": "#/$defs/args_steer"}, {"$ref": "#/$defs/args_attack"},
           {"$ref": "#/$defs/args_interact"}, {"$ref": "#/$defs/args_equip"}, {"$ref": "#/$defs/args_consume"},
           {"$ref": "#/$defs/args_drop"}, {"$ref": "#/$defs/args_stop"}, {"$ref": "#/$defs/args_scan"},
-          {"$ref": "#/$defs/args_rate"}]}
+          {"$ref": "#/$defs/args_rate"}, {"$ref": "#/$defs/args_sleep"}]}
       },
       "required": ["seq", "aid", "type", "args"]
     },
@@ -674,7 +692,8 @@
         "x": {"description": "The square's x.", "type": "integer"},
         "y": {"description": "The square's y.", "type": "integer"},
         "kind": {"description": "What to do.", "$ref": "#/$defs/ikind"},
-        "filter": {"description": "Which items a loot takes.", "$ref": "#/$defs/filter", "default": "all"}
+        "filter": {"description": "Which items a loot takes.", "$ref": "#/$defs/filter", "default": "all"},
+        "maxWeight": {"description": "A loot stops before the carried weight would pass this; 0 for no cap.", "type": "number", "default": 0}
       },
       "required": ["x", "y", "kind"],
       "additionalProperties": false
@@ -740,6 +759,14 @@
         "hz": {"description": "The frame rate in frames a second.", "type": "integer"}
       },
       "required": ["hz"],
+      "additionalProperties": false
+    },
+    "args_sleep": {
+      "description": "Sleep where the player stands until the engine wakes them.",
+      "x-role": "args",
+      "x-type": "sleep",
+      "type": "object",
+      "properties": {},
       "additionalProperties": false
     }
   }

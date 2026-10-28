@@ -36,7 +36,7 @@ def rand_frame(rng, seq=1):
         "me": {"x": lua_float(rng), "y": lua_float(rng), "z": rng.randrange(0, 3), "dir": rng.choice(["N", "SE", "W"]),
                "pace": lua_float(rng, 0, 6), "moving": b(), "running": b(), "sprinting": b(), "forceRun": b(),
                "forceSprint": b(), "autoWalk": maybe(rng, b()), "zombiesSeen": rng.randrange(0, 200),
-               "zombiesListed": rng.randrange(0, 6)},
+               "zombiesListed": rng.randrange(0, 6), "hour": maybe(rng, lua_float(rng, 0, 24))},
         "stats": {k: lua_float(rng, 0, 1) for k in pza1.GROUPS["stats"]},
         "body": {"health": lua_float(rng, 0, 100), "bleeding": rng.randrange(0, 3), "scratched": rng.randrange(0, 3),
                  "bitten": 0, "parts": parts},
@@ -67,7 +67,8 @@ def rand_square(rng):
             "window": maybe(rng, portal(), 0.7),
             "containers": [{"type": rng.choice(["fridge", "counter"]), "n": 2, "items": ["Base.Apple", "Base.Water"]}
                            for _ in range(rng.choice([0, 0, 1, 2]))],
-            "floor": rng.choice([[], ["Base.Plank"], ["Base.Axe", "Base.Nails"]])}
+            "floor": rng.choice([[], ["Base.Plank"], ["Base.Axe", "Base.Nails"]]),
+            "blockN": b(), "blockW": b(), "edgeN": b(), "edgeW": b()}
 
 
 def rand_map(rng, seq=1):
@@ -189,8 +190,10 @@ def test_the_constants():
     assert set(pza1.GROUPS) == {"me", "stats", "body", "load", "weapon", "action", "act", "cost"}
     assert set(pza1.RECORDS) == {"zombie", "part", "square", "container", "portal"}
     assert pza1.GAITS == ("walk", "run", "sprint")
-    assert pza1.ACTION_TYPES == ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate")
+    assert pza1.ACTION_TYPES == ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate",
+                                 "sleep")
     assert pza1.ACTION_ARGS["interact"]["filter"] == "filter"
+    assert pza1.ACTION_ARGS["interact"]["maxWeight"] == "float" and pza1.ACTION_ARGS["sleep"] == {}
     assert pza1.ACTION_ARGS["interact"]["kind"] == "ikind"
     assert pza1.ACTION_ARGS["walkTo"] == {"x": "float", "y": "float", "gait": "gait"}
     assert pza1.ACTION_ARGS["scan"] == {"r": "int"} and pza1.ACTION_ARGS["stop"] == {}
@@ -200,18 +203,24 @@ def test_the_constants():
 def test_every_reason_is_a_string_in_the_schemas_enum():
     enum = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["reason"]["enum"]
     assert isinstance(pza1.REASONS, frozenset) and pza1.REASONS == frozenset(enum)
-    assert all(isinstance(r, str) for r in pza1.REASONS) and len(enum) == 20
+    assert all(isinstance(r, str) for r in pza1.REASONS) and len(enum) == 22
+    assert "not safe" in pza1.REASONS and "not allowed" in pza1.REASONS
 
 
 def test_the_command_dataclasses():
     assert pza1.WalkTo(1, 2).args() == {"x": 1, "y": 2, "gait": "walk"}
     assert pza1.WalkTo.TYPE == "walkTo"
     assert pza1.Steer(1.0, 0.0, 2.5, "run").args() == {"vx": 1.0, "vy": 0.0, "seconds": 2.5, "gait": "run"}
-    assert pza1.Interact(3, 4, "loot").args() == {"x": 3, "y": 4, "kind": "loot", "filter": "all"}
+    assert pza1.Interact(3, 4, "loot").args() == {"x": 3, "y": 4, "kind": "loot", "filter": "all", "maxWeight": 0.0}
+    assert pza1.Interact(1, 2, "loot", "food").args() == {"x": 1, "y": 2, "kind": "loot", "filter": "food",
+                                                         "maxWeight": 0.0}
+    assert pza1.Interact(1, 2, "loot", "food", 12.5).args()["maxWeight"] == 12.5
+    assert type(pza1.Interact(1, 2, "loot").maxWeight) is float
     assert pza1.Stop().args() == {} and pza1.Stop.TYPE == "stop"
+    assert pza1.Sleep().args() == {} and pza1.Sleep.TYPE == "sleep"
     assert pza1.Rate(5).args() == {"hz": 5} and pza1.Scan(8).TYPE == "scan"
     classes = (pza1.WalkTo, pza1.Steer, pza1.Attack, pza1.Interact, pza1.Equip, pza1.Consume, pza1.Drop, pza1.Stop,
-               pza1.Scan, pza1.Rate)
+               pza1.Scan, pza1.Rate, pza1.Sleep)
     assert tuple(c.TYPE for c in classes) == pza1.ACTION_TYPES
     for c in classes:
         assert tuple(f.name for f in dataclasses.fields(c)) == tuple(pza1.ACTION_ARGS[c.TYPE])
@@ -287,9 +296,11 @@ def test_the_lua_map_encoder_writes_what_python_encodes(lua_schema):
          "squares": [
              {"x": 100, "y": 200, "z": 0, "solid": False, "solidTrans": False, "light": 0.8, "room": "kitchen",
               "building": 12, "door": {"open": False, "locked": True, "barricaded": False}, "window": None,
-              "containers": [{"type": "fridge", "n": 2, "items": ["Base.Apple", "Base.WaterBottle"]}], "floor": []},
+              "containers": [{"type": "fridge", "n": 2, "items": ["Base.Apple", "Base.WaterBottle"]}], "floor": [],
+              "blockN": True, "blockW": False, "edgeN": True, "edgeW": False},
              {"x": 101, "y": 200, "z": 0, "solid": True, "solidTrans": False, "light": 0.25, "room": None,
-              "building": None, "door": None, "window": None, "containers": [], "floor": ["Base.Plank"]}]}
+              "building": None, "door": None, "window": None, "containers": [], "floor": ["Base.Plank"],
+              "blockN": False, "blockW": True, "edgeN": False, "edgeW": True}]}
     L = lua_schema
     L.execute("_body = " + lua_lit(m))
     out = L.eval("PZA.enc.map(_body)")
@@ -367,10 +378,10 @@ def test_the_attack_description_is_one_swing_in_the_schema_the_tools_and_the_mod
 # ---- X4 fix pass 1: the fields appended to me and cost, and a line written before them -------------------------------
 
 def test_me_and_cost_append_their_new_fields_after_the_prior_prefix():
-    assert pza1.GROUPS["me"][11:] == ("zombiesSeen", "zombiesListed")
+    assert pza1.GROUPS["me"][11:] == ("zombiesSeen", "zombiesListed", "hour")
     assert pza1.GROUPS["cost"][8:] == ("pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs",
                                        "maxPollMs", "maxStartMs")
-    assert pza1.PRIOR == {"me": 11, "cost": 8}
+    assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12}
 
 
 def test_a_frame_written_before_the_append_decodes_with_the_new_fields_none_and_no_shorter_or_longer_one_does():
@@ -385,12 +396,12 @@ def test_a_frame_written_before_the_append_decodes_with_the_new_fields_none_and_
     assert list(d["me"]) == list(pza1.GROUPS["me"]) and list(d["cost"]) == list(pza1.GROUPS["cost"])
     assert d["me"]["zombiesSeen"] is None and d["me"]["zombiesListed"] is None and d["me"]["x"] == arr[me][0]
     assert all(d["cost"][k] is None for k in pza1.GROUPS["cost"][8:]) and d["cost"]["tickMs"] == arr[cost][0]
-    for g, n in (("me", 12), ("cost", 9), ("cost", 15)):
+    for g, n in (("me", 12), ("me", 13), ("cost", 9), ("cost", 15)):
         ok = list(arr)
         i = pza1.ORDER["frame"].index(g)
         ok[i] = arr[i][:n]
         assert pza1.decode(ok)[g][pza1.GROUPS[g][n]] is None
-    for g, n in (("me", 10), ("me", 14), ("cost", 7), ("cost", 17)):
+    for g, n in (("me", 10), ("me", 15), ("cost", 7), ("cost", 17)):
         bad = list(arr)
         i = pza1.ORDER["frame"].index(g)
         bad[i] = (arr[i] + [0] * n)[:n]
@@ -414,3 +425,18 @@ def test_scan_dropped_is_an_event_kind_with_its_fields_and_round_trips():
 def test_the_door_event_names_the_watchs_ring_and_its_lag():
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["event_door"]["description"]
     assert "6-tile ring" in d and "2.3 s" in d and "10 Hz" in d
+
+
+# ---- Plan 23 Task 4: PZA/1.2 --------------------------------------------------------------------------------------
+
+def test_the_fake_mods_square_helper_is_a_full_square_with_its_edges_false():
+    from .fakemod import DEFAULT_FRAME, square
+    sq = square(x=3, blockN=True)
+    assert tuple(sq) == pza1.RECORDS["square"] and sq["x"] == 3 and sq["blockN"] is True
+    assert (sq["blockW"], sq["edgeN"], sq["edgeW"]) == (False, False, False)
+    m = {"kind": "map", "seq": 1, "tick": 0, "wallMs": 0, "mode": "full", "scanId": 1, "part": 1, "parts": 1,
+         "squares": [sq], "missing": []}
+    assert pza1.decode(json.loads(pza1.encode("map", m))) == m
+    with pytest.raises(ValueError):
+        square(ghost=1)
+    assert DEFAULT_FRAME["me"]["hour"] == 8.0 and tuple(DEFAULT_FRAME["me"]) == pza1.GROUPS["me"]

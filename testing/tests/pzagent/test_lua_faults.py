@@ -37,6 +37,7 @@ VANILLA = ("ISTimedActionQueue", "ISWalkToTimedAction", "ISOpenCloseDoor", "ISOp
            "ISInventoryTransferAction", "ISEatFoodAction", "ISDrinkFluidAction", "ISDropWorldItemAction",
            "ISEquipWeaponAction", "Vector2")
 MAIN_TYPES = ("scan", "rate")          # answered by Main, never the runner (ruling P22-5)
+PENDING_TYPES = ("sleep",)             # in the schema since PZA/1.2 (Plan 23 Task 4); its skill lands in Task 8
 
 # valid args for every action type of the schema; a case name maps to its type (interact and consume take two)
 VALID = {
@@ -155,8 +156,8 @@ def test_the_cases_cover_every_action_type_of_the_schema():
     load(lua, SKILL_FILES)
     schema = set(lua.eval("PZA.schema.actions").keys())
     skills = set(lua.eval("PZA.skills.types").keys())
-    assert schema == set(pza1.ACTION_TYPES) == {t for t, _ in VALID.values()}
-    assert skills | set(MAIN_TYPES) == schema and not skills & set(MAIN_TYPES)
+    assert schema == set(pza1.ACTION_TYPES) == {t for t, _ in VALID.values()} | set(PENDING_TYPES)
+    assert skills | set(MAIN_TYPES) | set(PENDING_TYPES) == schema and not skills & set(MAIN_TYPES)
 
 
 def test_the_pcall_counter_counts_a_caught_raise():

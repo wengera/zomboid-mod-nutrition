@@ -166,7 +166,7 @@ def test_a_schema_inconsistency_is_refused(tmp_path):
         PS.load(str(bad))
 
 
-@pytest.mark.parametrize("prior", [0, 13, 14, "11", 11.0, True])
+@pytest.mark.parametrize("prior", [0, 14, 15, "11", 11.0, True])
 def test_an_x_prior_that_is_not_an_arity_below_the_groups_is_refused(tmp_path, prior):
     """X4 fix pass: a group's x-prior is an int in 1 .. len(x-order) - 1 (the arity before its last append)."""
     raw = json.load(open(PS.SCHEMA, encoding="utf-8"))
@@ -180,4 +180,74 @@ def test_an_x_prior_that_is_not_an_arity_below_the_groups_is_refused(tmp_path, p
 def test_the_prior_arities_reach_the_python_module():
     sch = PS.load()
     assert {g: d["prior"] for g, d in sch["groups"].items() if d["prior"] is not None} == {"me": 11, "cost": 8}
-    assert 'PRIOR = {\n    "me": 11,\n    "cost": 8,\n}' in PS.render_py(sch)
+    assert {r: d["prior"] for r, d in sch["records"].items() if d["prior"] is not None} == {"square": 12}
+    assert 'PRIOR = {\n    "me": 11,\n    "cost": 8,\n    "square": 12,\n}' in PS.render_py(sch)
+
+
+# ---- Plan 23 Task 4: PZA/1.2 (the square's edges, me.hour, the sleep action, interact's maxWeight) -------------------
+
+def test_a_square_array_at_the_prior_arity_decodes_with_the_edges_none():
+    """A record's x-prior works as a group's: a square array of 12 fields (a PZA/1.1 log) decodes with the four edges
+    None; 11 or 17 fields are refused."""
+    mod = load_py_module()
+    assert mod.PRIOR["square"] == 12 and mod.RECORDS["square"][12:] == ("blockN", "blockW", "edgeN", "edgeW")
+    sq = {"x": 3, "y": 4, "z": 0, "solid": False, "solidTrans": False, "light": 0.5, "room": None, "building": None,
+          "door": None, "window": None, "containers": [], "floor": [], "blockN": True, "blockW": False, "edgeN": True,
+          "edgeW": False}
+    m = {"kind": "map", "seq": 1, "tick": 2, "wallMs": 3, "mode": "full", "scanId": 1, "part": 1, "parts": 1,
+         "squares": [sq], "missing": []}
+    arr = json.loads(mod.encode("map", m))
+    at = mod.ORDER["map"].index("squares")
+    assert mod.decode(arr) == m
+    old = json.loads(json.dumps(arr))
+    old[at][0] = arr[at][0][:12]
+    d = mod.decode(old)["squares"][0]
+    assert list(d) == list(mod.RECORDS["square"])
+    assert d["blockN"] is None and d["blockW"] is None and d["edgeN"] is None and d["edgeW"] is None
+    assert {k: d[k] for k in mod.RECORDS["square"][:12]} == {k: sq[k] for k in mod.RECORDS["square"][:12]}
+    for n in (11, 17):
+        bad = json.loads(json.dumps(arr))
+        bad[at][0] = (arr[at][0] + [False])[:n]
+        with pytest.raises(ValueError):
+            mod.decode(bad)
+
+
+@pytest.mark.parametrize("prior", [0, 16, 17, "12", 12.0, True])
+def test_an_x_prior_on_a_record_that_is_not_an_arity_below_its_order_is_refused(tmp_path, prior):
+    raw = json.load(open(PS.SCHEMA, encoding="utf-8"))
+    raw["$defs"]["square"]["x-prior"] = prior
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps(raw), encoding="utf-8")
+    with pytest.raises(ValueError):
+        PS.load(str(bad))
+
+
+def test_sleep_and_max_weight_reach_tools_json():
+    tools = {t["name"]: t for t in json.loads(PS.render_tools())}
+    assert tools["sleep"]["input_schema"] == {"type": "object", "properties": {}, "required": [],
+                                              "additionalProperties": False}
+    mw = tools["interact"]["input_schema"]["properties"]["maxWeight"]
+    assert mw == {"type": "number", "default": 0,
+                  "description": "A loot stops before the carried weight would pass this; 0 for no cap."}
+    assert tools["interact"]["input_schema"]["required"] == ["x", "y", "kind"]
+    lua = PS.render_lua()
+    assert 'sleep = {},' in lua and 'interact = { "x", "y", "kind", "filter", "maxWeight" },' in lua
+    assert '["not safe"] = true' in lua and '["not allowed"] = true' in lua
+    assert '"blockN", "blockW", "edgeN", "edgeW" },' in lua and '"zombiesListed", "hour" },' in lua
+
+
+def test_me_hour_and_the_square_edges_are_appended_with_their_descriptions():
+    d = json.load(open(PS.SCHEMA, encoding="utf-8"))["$defs"]
+    assert d["me"]["x-order"][-1] == "hour" and d["me"]["x-prior"] == 11
+    assert d["me"]["properties"]["hour"] == {"description": "The game's hour of day, 0 to 24, as a number.",
+                                             "type": "number"}
+    assert d["square"]["x-order"][12:] == ["blockN", "blockW", "edgeN", "edgeW"]
+    props = d["square"]["properties"]
+    assert all(props[k]["type"] == "boolean" for k in ("blockN", "blockW", "edgeN", "edgeW"))
+    assert "(isBlockedTo)" in props["blockN"]["description"] and "north" in props["blockN"]["description"]
+    assert "(isBlockedTo)" in props["blockW"]["description"] and "west" in props["blockW"]["description"]
+    assert "(isSomethingTo)" in props["edgeN"]["description"] and "north" in props["edgeN"]["description"]
+    assert "(isSomethingTo)" in props["edgeW"]["description"] and "west" in props["edgeW"]["description"]
+    r = d["result_sleep"]["properties"]
+    assert {k: v["type"] for k, v in r.items()} == {"sleptH": "number", "fatigueBefore": "number",
+                                                     "fatigueAfter": "number", "bedType": "string"}

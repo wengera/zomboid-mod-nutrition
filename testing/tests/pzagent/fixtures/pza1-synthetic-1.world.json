@@ -161,7 +161,8 @@
    "drop",
    "stop",
    "scan",
-   "rate"
+   "rate",
+   "sleep"
   ],
   "kind": "hello",
   "mod": "fake",
@@ -192,6 +193,8 @@
  },
  "map": {
   "100,200,0": {
+   "blockN": false,
+   "blockW": false,
    "building": 7,
    "containers": [
     {
@@ -207,6 +210,8 @@
     "locked": false,
     "open": true
    },
+   "edgeN": false,
+   "edgeW": false,
    "floor": [],
    "light": 0.75,
    "room": "kitchen",
@@ -218,9 +223,13 @@
    "z": 0
   },
   "100,201,0": {
+   "blockN": false,
+   "blockW": false,
    "building": 7,
    "containers": [],
    "door": null,
+   "edgeN": false,
+   "edgeW": false,
    "floor": [],
    "light": 0.75,
    "room": "kitchen",
@@ -236,9 +245,13 @@
    "z": 0
   },
   "101,200,0": {
+   "blockN": false,
+   "blockW": false,
    "building": 7,
    "containers": [],
    "door": null,
+   "edgeN": false,
+   "edgeW": false,
    "floor": [],
    "light": 0.75,
    "room": "kitchen",
@@ -250,6 +263,8 @@
    "z": 0
   },
   "101,201,0": {
+   "blockN": false,
+   "blockW": false,
    "building": 7,
    "containers": [
     {
@@ -261,6 +276,8 @@
     }
    ],
    "door": null,
+   "edgeN": false,
+   "edgeW": false,
    "floor": [
     "Base.Axe"
    ],
@@ -274,9 +291,13 @@
    "z": 0
   },
   "102,200,0": {
+   "blockN": false,
+   "blockW": false,
    "building": null,
    "containers": [],
    "door": null,
+   "edgeN": false,
+   "edgeW": false,
    "floor": [],
    "light": 0.75,
    "room": null,
@@ -288,9 +309,13 @@
    "z": 0
   },
   "102,201,0": {
+   "blockN": false,
+   "blockW": false,
    "building": null,
    "containers": [],
    "door": null,
+   "edgeN": false,
+   "edgeW": false,
    "floor": [],
    "light": 0.75,
    "room": null,
@@ -308,6 +333,7 @@
   "dir": "S",
   "forceRun": false,
   "forceSprint": false,
+  "hour": 8,
   "moving": true,
   "pace": 0,
   "running": false,

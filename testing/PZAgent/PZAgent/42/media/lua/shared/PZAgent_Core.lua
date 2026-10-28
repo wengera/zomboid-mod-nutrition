@@ -2,7 +2,7 @@
 -- Every Java member is reached through PZA.call / PZA.field: an unguarded nil call on a -debug client
 -- parks the process in the Lua debugger (platform/lua-platform.md#debug-break), and pcall names nothing.
 PZA = PZA or {}
-PZA.VERSION = "1.1"         -- 1.1: PZA/1.1, the fields the X4 fix pass appended to me and cost (pza1.json x-prior)
+PZA.VERSION = "1.2"         -- 1.2: PZA/1.2, me.hour, the square's edges, sleep and interact's maxWeight (pza1.json x-prior)
 
 function PZA.log(msg) print("[PZAgent] " .. tostring(msg)) end
 function PZA.now() return getTimestampMs and getTimestampMs() or 0 end

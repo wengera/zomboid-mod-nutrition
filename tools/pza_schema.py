@@ -11,12 +11,12 @@ orders and enums, `encode`, `decode`, `merge_delta` and the command dataclasses)
 `testing/agent/base/schema/tools.json` (one Anthropic tool per action type). A generated file is never edited by hand.
 
 `load()` refuses a schema whose parts disagree (an x-order that is not its properties, an enum without its per-kind
-definitions, a property without a description), so no field, kind or enum reaches a target unchecked. A group's fields
-are only ever appended at the end of its x-order (PZA/1.1: PZAgent 1.1's `me` and `cost`); its `x-prior` names the
-oldest arity a writer used (before the first append), and `decode` reads a group array of any arity from it up to the
-full order with the trailing fields None, so a log written before an append still replays; a shorter or a longer
-array is refused. `--check`
-compares with CRLF read as LF on both sides; `--write` writes LF, UTF-8. Stdlib only.
+definitions, a property without a description), so no field, kind or enum reaches a target unchecked. A group's or a
+record's fields are only ever appended at the end of its x-order (PZA/1.1: PZAgent 1.1's `me` and `cost`; PZA/1.2:
+`me`'s hour and the `square` record's edges); its `x-prior` names the oldest arity a writer used (before the first
+append), and `decode` reads a group or record array of any arity from it up to the full order with the trailing fields
+None, so a log written before an append still replays; a shorter or a longer array is refused. `--check` compares with
+CRLF read as LF on both sides; `--write` writes LF, UTF-8. Stdlib only.
 """
 import argparse
 import json
@@ -130,15 +130,19 @@ def load(path=SCHEMA):
                 sh[f] = s
         shapes[owner] = sh
 
+    def prior_of(defname, order_d):
+        """A group's or record's x-prior: None, or an int arity in 1 .. len(x-order) - 1."""
+        prior = defs[defname].get("x-prior")
+        _need(prior is None or (type(prior) is int and 0 < prior < len(order_d)),
+              "%s: x-prior is not an arity below its x-order's" % defname)
+        return prior
+
     def visit_group(gname, defname):
         if gname in groups:
             _need(groups[gname]["def"] == defname, "group %s names two definitions" % gname)
             return
         order_g = order_of(defname)
-        prior = defs[defname].get("x-prior")
-        _need(prior is None or (type(prior) is int and 0 < prior < len(order_g)),
-              "%s: x-prior is not an arity below its x-order's" % defname)
-        groups[gname] = {"def": defname, "order": order_g, "prior": prior}
+        groups[gname] = {"def": defname, "order": order_g, "prior": prior_of(defname, order_g)}
         fill(gname, defname, False)
 
     def visit_record(rname):
@@ -148,7 +152,8 @@ def load(path=SCHEMA):
         _need(rname not in groups, "%s is a group and a record" % rname)
         fill(rname, rname, False)
         del records[rname]
-        records[rname] = {"def": rname, "order": order_of(rname)}   # children first: the Lua definition order
+        order_r = order_of(rname)
+        records[rname] = {"def": rname, "order": order_r, "prior": prior_of(rname, order_r)}  # children first: Lua order
 
     for k in positional:
         fill(k, k, True)
@@ -615,9 +620,10 @@ def render_py(sch=None):
     P.append("ENVELOPE = %s" % _pl(ENVELOPE))
     P.extend(_pdict("ORDER", {k: sch["order"][k] for k in sch["kinds"]}, "each kind's top-level fields in order"))
     P.extend(_pdict("GROUPS", {g: d["order"] for g, d in sch["groups"].items()}, "a frame's groups, elidable in a delta"))
-    P.extend(_pdict("PRIOR", {g: d["prior"] for g, d in sch["groups"].items() if d.get("prior") is not None},
-                    "a group's oldest arity (before its appended fields): a shorter array of it, down to this, decodes "
-                    "with the trailing fields None"))
+    priors = {o: d["prior"] for o, d in list(sch["groups"].items()) + list(sch["records"].items())
+              if d.get("prior") is not None}
+    P.extend(_pdict("PRIOR", priors, "a group's or record's oldest arity (before its appended fields): a shorter array "
+                                     "of it, down to this, decodes with the trailing fields None"))
     P.extend(_pdict("RECORDS", {r: d["order"] for r, d in sch["records"].items()}, "the positional records"))
     P.extend(_pdict("SHAPES", {o: {f: list(s) for f, s in sh.items()} for o, sh in sch["shapes"].items() if sh},
                     'each positional field that is not a plain value: ("group" | "rec" | "list" | "vlist", its name)'))
@@ -645,7 +651,8 @@ def render_py(sch=None):
         for arg in a["args"]:
             line = "    %s: %s" % (arg["name"], PY_TYPES[arg["kind"]])
             if arg["has_default"]:
-                line += " = %s" % _pl(arg["default"])
+                default = arg["default"]
+                line += " = %s" % _pl(float(default) if arg["kind"] == "float" else default)   # a number field's 0 is 0.0
             P.append(line + "  # " + arg["prop"]["description"])
     return "\n".join(P) + "\n"
 

@@ -26,7 +26,7 @@ ORDER = {
 }
 # a frame's groups, elidable in a delta
 GROUPS = {
-    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed"),
+    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour"),
     "stats": ("hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature"),
     "body": ("health", "bleeding", "scratched", "bitten", "parts"),
     "load": ("weight", "max", "level", "n"),
@@ -35,10 +35,11 @@ GROUPS = {
     "act": ("aid", "state"),
     "cost": ("tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs"),
 }
-# a group's oldest arity (before its appended fields): a shorter array of it, down to this, decodes with the trailing fields None
+# a group's or record's oldest arity (before its appended fields): a shorter array of it, down to this, decodes with the trailing fields None
 PRIOR = {
     "me": 11,
     "cost": 8,
+    "square": 12,
 }
 # the positional records
 RECORDS = {
@@ -46,7 +47,7 @@ RECORDS = {
     "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health"),
     "portal": ("open", "locked", "barricaded"),
     "container": ("type", "n", "items"),
-    "square": ("x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor"),
+    "square": ("x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW"),
 }
 # each positional field that is not a plain value: ("group" | "rec" | "list" | "vlist", its name)
 SHAPES = {
@@ -56,20 +57,21 @@ SHAPES = {
     "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None)},
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
-REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted"))
-ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate")
+REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed"))
+ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
     "walkTo": {"x": "float", "y": "float", "gait": "gait"},
     "steer": {"vx": "float", "vy": "float", "seconds": "float", "gait": "gait"},
     "attack": {"targetId": "int"},
-    "interact": {"x": "int", "y": "int", "kind": "ikind", "filter": "filter"},
+    "interact": {"x": "int", "y": "int", "kind": "ikind", "filter": "filter", "maxWeight": "float"},
     "equip": {"itemId": "int"},
     "consume": {"itemId": "int"},
     "drop": {"itemId": "int"},
     "stop": {},
     "scan": {"r": "int"},
     "rate": {"hz": "int"},
+    "sleep": {},
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
@@ -301,6 +303,7 @@ class Interact(_Cmd):
     y: int  # The square's y.
     kind: str  # What to do.
     filter: str = "all"  # Which items a loot takes.
+    maxWeight: float = 0.0  # A loot stops before the carried weight would pass this; 0 for no cap.
 
 
 @dataclasses.dataclass(frozen=True)
@@ -342,3 +345,9 @@ class Rate(_Cmd):
     """Set the frame rate."""
     TYPE: ClassVar[str] = "rate"
     hz: int  # The frame rate in frames a second.
+
+
+@dataclasses.dataclass(frozen=True)
+class Sleep(_Cmd):
+    """Sleep where the player stands until the engine wakes them."""
+    TYPE: ClassVar[str] = "sleep"

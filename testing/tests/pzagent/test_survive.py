@@ -84,7 +84,7 @@ def test_a_threat_engaged_at_six_tiles_holds_beyond_six_within_ten(tmp_path, eng
     r.frame(zombies=[zombie(1, 111.0, 200.0)])               # 11 tiles: disengaged
     tick(r, sv)
     assert last(tmp_path)["branch"] == "forage" and r.cmd() == ("interact", {"x": 101, "y": 200, "kind": "loot",
-                                                                             "filter": "all"})
+                                                                             "filter": "all", "maxWeight": 0.0})
 
 
 def test_with_no_threat_running_a_zombie_at_seven_tiles_is_no_threat(tmp_path):
@@ -307,7 +307,7 @@ def test_need_marks_food_and_falls_through_to_forage_for_it(tmp_path):
     r.scan([square(101, 200, containers=[CRATE]), square(103, 200, containers=[FRIDGE])])
     r.frame(hunger=0.6)
     tick(r, sv)
-    assert r.cmd() == ("interact", {"x": 103, "y": 200, "kind": "loot", "filter": "food"})
+    assert r.cmd() == ("interact", {"x": 103, "y": 200, "kind": "loot", "filter": "food", "maxWeight": 0.0})
     d = last(tmp_path)
     assert d["branch"] == "forage" and d["inputs"]["need"] == "food"
 

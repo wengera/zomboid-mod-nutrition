@@ -13,7 +13,8 @@ from .fakemod import DEFAULT_FRAME, FakeMod
 
 SQUARE = {"x": 100, "y": 200, "z": 0, "solid": False, "solidTrans": False, "light": 0.8, "room": "kitchen",
           "building": 7, "door": {"open": False, "locked": True, "barricaded": False}, "window": None,
-          "containers": [{"type": "fridge", "n": 2, "items": ["Base.Milk", "Base.Cheese"]}], "floor": ["Base.Axe"]}
+          "containers": [{"type": "fridge", "n": 2, "items": ["Base.Milk", "Base.Cheese"]}], "floor": ["Base.Axe"],
+          "blockN": False, "blockW": True, "edgeN": False, "edgeW": True}
 
 
 def pair(tmp_path, **kw):
