@@ -786,7 +786,7 @@ def test_interact_loot_food_moves_the_matching_items_and_reports_moved(lua, fs):
 def test_interact_loot_filters(lua, fs):
     load(lua)
     stuff = [citem("Base.Bread", "Food"), citem("Base.Axe", "HandWeapon"),
-             J(getFullType=lambda s: "Base.WaterBottle", getFluidContainer=lambda s: J()),
+             J(getFullType=lambda s: "Base.WaterBottle", getFluidContainer=lambda s: J(isEmpty=lambda s2: False, isPoisonous=lambda s2: False)),
              citem("Base.Bandage"), citem("Base.RippedSheets"), citem("Base.RagDirty")]
     expect = {"food": 1, "weapon": 1, "water": 1, "bandage": 2, "all": 6, None: 6}
     g = lua.globals()
@@ -1749,3 +1749,17 @@ def test_the_loot_fills_to_max_weight_greedily_and_an_exact_fit_is_taken(lua, fs
     start(lua, p, "interact", x=11, y=20, kind="loot", maxWeight=8.0)
     tick(lua, p)
     assert [a.item for a in g._queue.adds] == [half, quarter]
+
+
+def test_interact_loot_weapon_takes_a_saucepan_and_water_does_not(lua, fs):
+    load(lua)
+    from .conftest import make_fluid
+    pan = J(_cls="HandWeapon", getFullType=lambda s: "Base.Saucepan", getFluidContainer=lambda s: make_fluid())
+    bottle = J(_cls=None, getFullType=lambda s: "Base.WaterBottle", getFluidContainer=lambda s: make_fluid())
+    g = lua.globals()
+    for filt, n in {"weapon": 1, "water": 1}.items():
+        box_world(lua, [pan, bottle])
+        before = len(g._queue.adds)
+        start(lua, make_player(), "interact", aid=filt, x=11, y=20, kind="loot", filter=filt)
+        tick(lua, make_player())
+        assert len(g._queue.adds) - before == n, filt

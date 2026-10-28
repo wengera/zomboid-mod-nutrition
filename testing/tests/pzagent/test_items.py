@@ -118,3 +118,8 @@ def test_bandages_by_the_lua_loots_name_rule_and_the_rest_other():
 
 def test_the_uses_are_the_five_names():
     assert items.USES == ("food", "water", "weapon", "bandage", "other")
+
+
+def test_pants_and_panties_are_not_weapons_by_the_rx():
+    assert items.use_of("Base.Pants") == "other"
+    assert items.use_of("Base.Pan") == "weapon"

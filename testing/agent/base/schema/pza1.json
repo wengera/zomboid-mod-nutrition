@@ -29,6 +29,11 @@
       "type": "string",
       "enum": ["food", "water", "weapon", "bandage", "all"]
     },
+    "itemUse": {
+      "description": "An item's use as the engine answers it.",
+      "type": "string",
+      "enum": ["food", "water", "weapon", "bandage", "other"]
+    },
     "actionType": {
       "description": "A skill type a cmd line names.",
       "type": "string",
@@ -424,7 +429,8 @@
         "event": {"description": "The event's kind.", "const": "item_added"},
         "itemId": {"description": "The item's id.", "type": "integer"},
         "fullType": {"description": "The item's full type.", "type": "string"},
-        "weight": {"description": "The item's weight.", "type": "number"}
+        "weight": {"description": "The item's weight.", "type": "number"},
+        "use": {"description": "The item's use as the engine answers it: food (isA Food), water (a drinkable fluid container), weapon (isA HandWeapon), bandage (a Bandage or Rag by full type), else other. Absent in logs written before Plan 23 Task 9b.", "$ref": "#/$defs/itemUse"}
       },
       "required": ["itemId", "fullType", "weight"]
     },

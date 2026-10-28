@@ -631,3 +631,17 @@ def test_nearest_unlooted_keys_on_the_datasets_use():
     assert w.nearest_unlooted("water") == (6, 0, 0, 0)          # a glass the Plan 22 WATER_RX missed
     assert w.nearest_unlooted("weapon") == (1, 0, 0, 0)
     assert w.nearest_unlooted() == (1, 0, 0, 0)
+
+
+def test_by_use_prefers_the_events_use_and_falls_back_to_the_dataset():
+    w = World()
+    w.apply(event("item_added", itemId=1, fullType="Base.PowerBar", weight=0.1, use="food"))
+    w.apply(event("item_added", itemId=2, fullType="Base.Apple", weight=0.1, use="other"))
+    w.apply(event("item_added", itemId=3, fullType="Base.Hammer", weight=1.0))
+    got = w.by_use()
+    assert got["food"] == [1] and 2 in got["other"] and got["weapon"] == [3]
+    assert w.inventory[1]["use"] == "food" and "use" not in w.inventory[3]
+    w.mark_empty(1)
+    w.apply(event("item_added", itemId=4, fullType="Base.Bowl", weight=0.1, use="water"))
+    w.mark_empty(4)
+    assert 4 in w.by_use()["other"]

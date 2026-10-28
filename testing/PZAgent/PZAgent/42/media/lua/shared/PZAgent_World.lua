@@ -106,3 +106,30 @@ function W.containersOn(sq)
     end
     return out
 end
+
+-- an item's full type holds a or b as plain text (the loot's bandage rule and consume's bleach and petrol rule)
+function W.fullTypeHas(it, a, b)
+    local _, ft = PZA.call(it, "getFullType")
+    ft = tostring(ft or "")
+    return string.find(ft, a, 1, true) ~= nil or string.find(ft, b, 1, true) ~= nil
+end
+
+-- bleach or petrol is never drunk (Act's firstDrink rule): a full type naming Bleach or Petrol, an empty container, or one
+-- whose isPoisonous is not read false (fails closed: a container whose isPoisonous is absent is never drunk)
+function W.undrinkable(it, fc)
+    if W.fullTypeHas(it, "Bleach", "Petrol") then return true end
+    local _, empty = PZA.call(fc, "isEmpty")
+    local okP, poison = PZA.call(fc, "isPoisonous")
+    return empty == true or not okP or poison ~= false
+end
+
+-- the item's use as the engine answers it (item_added.use, the loot's filters): food, else weapon (before water: a
+-- saucepan is both), else water (a drinkable fluid container), else bandage (a Bandage or Rag by full type), else other
+function W.useOf(it)
+    if W.isA(it, "Food") then return "food" end
+    if W.isA(it, "HandWeapon") then return "weapon" end
+    local _, fc = PZA.call(it, "getFluidContainer")
+    if fc ~= nil and not W.undrinkable(it, fc) then return "water" end
+    if W.fullTypeHas(it, "Bandage", "Rag") then return "bandage" end
+    return "other"
+end

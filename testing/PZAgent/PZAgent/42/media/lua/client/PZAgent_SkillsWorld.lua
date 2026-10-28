@@ -270,18 +270,14 @@ K.OPEN_MS = 5000          -- a queued open that leaves the door shut this long r
 K.LOOT_MS = 10000         -- a loot's wall budget: this, plus LOOT_ITEM_MS per queued transfer
 K.LOOT_ITEM_MS = 3000
 
-local function fullTypeHas(it, a, b)
-    local _, ft = PZA.call(it, "getFullType")
-    ft = tostring(ft or "")
-    return string.find(ft, a, 1, true) ~= nil or string.find(ft, b, 1, true) ~= nil
-end
+local function useIs(use) return function(it) return W.useOf(it) == use end end
 
 local FILTERS = {
     all = function(it) return true end,
-    food = function(it) return isA(it, "Food") end,
-    weapon = function(it) return isA(it, "HandWeapon") end,
-    water = function(it) local _, fc = PZA.call(it, "getFluidContainer"); return fc ~= nil end,
-    bandage = function(it) return fullTypeHas(it, "Bandage", "Rag") end,
+    food = useIs("food"),
+    weapon = useIs("weapon"),
+    water = useIs("water"),
+    bandage = useIs("bandage"),
 }
 
 -- walks next to (st.x, st.y): "here" once within one square, "walk" while the sub-walk runs, "fail" when
@@ -475,15 +471,6 @@ K.types.equip = {
 -- CONSUME_MS.
 K.CONSUME_MS = 20000      -- an eat or drink not seen landing within this wall time is interrupted
 
--- bleach or petrol is never drunk (Act's firstDrink rule): a full type naming Bleach or Petrol, an empty container, or one
--- whose isPoisonous is not read false (fails closed: a container whose isPoisonous is absent is never drunk)
-local function undrinkable(it, fc)
-    if fullTypeHas(it, "Bleach", "Petrol") then return true end
-    local _, empty = PZA.call(fc, "isEmpty")
-    local okP, poison = PZA.call(fc, "isPoisonous")
-    return empty == true or not okP or poison ~= false
-end
-
 -- the built action's isValidStart, index-checked before the call and under pcall: nil when it answers true, else not valid
 local function validStart(action)
     if action.isValidStart == nil then return "not valid" end
@@ -523,7 +510,7 @@ K.types.consume = {
                 st.hunger = h
             else
                 local _, fc = PZA.call(st.item, "getFluidContainer")
-                if fc == nil or undrinkable(st.item, fc) then return "failed", "not valid" end
+                if fc == nil or W.undrinkable(st.item, fc) then return "failed", "not valid" end
                 local _, amount = PZA.call(fc, "getAmount")
                 ctor, st.fc, st.amount = ISDrinkFluidAction, fc, amount
             end

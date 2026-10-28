@@ -76,6 +76,7 @@ ACTION_ARGS = {
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
 FILTERS = ("food", "water", "weapon", "bandage", "all")
+ITEM_USES = ("food", "water", "weapon", "bandage", "other")
 ACT_STATES = ("accepted", "rejected", "progress", "done", "failed")
 MAP_MODES = ("full", "delta")
 EVENT_KINDS = ("damage", "swing", "zombie_dead", "item_added", "item_removed", "door", "lua_error", "overflow", "scan_dropped")
@@ -84,7 +85,7 @@ EVENT_FIELDS = {
     "damage": ("tag", "amount", "side"),
     "swing": ("attackStarted", "meleeDelay"),
     "zombie_dead": ("id",),
-    "item_added": ("itemId", "fullType", "weight"),
+    "item_added": ("itemId", "fullType", "weight", "use"),
     "item_removed": ("itemId", "fullType"),
     "door": ("x", "y", "z", "open"),
     "lua_error": ("msg",),

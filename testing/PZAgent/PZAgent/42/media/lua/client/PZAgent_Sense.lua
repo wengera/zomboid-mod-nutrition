@@ -284,8 +284,8 @@ if not S.damageHooked and Events ~= nil and Events.OnPlayerGetDamage ~= nil then
     S.damageHooked = true
 end
 
--- the inventory by item id: { [id] = { fullType, weight } }, walked by getItems' size/get; an id already in known
--- reuses its entry (its full type and weight are read once, at its first sight). nil when the inventory or its list
+-- the inventory by item id: { [id] = { fullType, weight, use } }, walked by getItems' size/get; an id already in known
+-- reuses its entry (its full type, weight and use are read once, at its first sight). nil when the inventory or its list
 -- cannot be read, so a failed read never reads as every item removed.
 function S.invIds(p, known)
     local _, inv = PZA.call(p, "getInventory")
@@ -303,6 +303,7 @@ function S.invIds(p, known)
                 k = {}
                 getm(S.missing, k, "fullType", it, "getFullType")
                 getm(S.missing, k, "weight", it, "getWeight")
+                k.use = W.useOf(it)
             end
             out[id] = k
         end
@@ -318,7 +319,7 @@ local function sortedIds(m)
 end
 
 local function itemAdded(id, k, gameMin)
-    return { event = "item_added", gameMin = gameMin, itemId = id, fullType = k.fullType, weight = k.weight }
+    return { event = "item_added", gameMin = gameMin, itemId = id, fullType = k.fullType, weight = k.weight, use = k.use }
 end
 
 -- the inventory's first sight (ruling P22-2): one item_added per held item, ids ascending; seeds the diff S.events
@@ -414,7 +415,7 @@ end
 --   damage{tag, amount, side = "client"}: the damage hook's records of the local player, drained;
 --   swing{attackStarted, meleeDelay}: isAttackStarted reads true where the last events call read it not true;
 --   zombie_dead{id}: a zombie in prev's frame whose object now answers isDead;
---   item_added{itemId, fullType, weight} / item_removed{itemId, fullType}: the inventory's ids against S.lastInv
+--   item_added{itemId, fullType, weight, use} / item_removed{itemId, fullType}: the inventory's ids against S.lastInv
 --   (a first call without firstSight seeds it silently);
 --   door{x, y, z, open}: a door or window whose open state changed between two map records of its square (the map's
 --   PZA.map.doorEvents: a scan part's or the watch's, the ring of WATCH_R tiles; a square first seen queues none).

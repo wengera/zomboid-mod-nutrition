@@ -1,5 +1,9 @@
 """Items by use (Plan 23 Task 9, P23-D): what an item a planner holds or sees is for, read off the food dataset.
 
+This is the fallback: a live `item_added` carries the engine's own `use` (`W.useOf` in `PZAgent_World.lua`), which the
+World prefers; the dataset answers for logs written before `item_added.use` and for a container's contents, which the
+map names by full type only.
+
 `data/food-items.json` (the 42.21.0 scan, `tools/food_scan.py`) lists its `items` with an `id` (the full type) and a
 `kind`: `food`, `drainable` or `fluid_container`. `use_of(full_type)` answers, in this order:
 
@@ -24,7 +28,7 @@ import re
 
 USES = ("food", "water", "weapon", "bandage", "other")
 DATASET = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "food-items.json"))
-WEAPON_RX = re.compile(r"\.(BaseballBat|Hammer|Axe|Crowbar|Knife|Pan|Pistol|Shotgun|Rifle)")
+WEAPON_RX = re.compile(r"\.(BaseballBat|Hammer|Axe|Crowbar|Knife|Pan|Pistol|Shotgun|Rifle)\b")
 BANDAGE_WORDS = ("Bandage", "Rag")
 
 

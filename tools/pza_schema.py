@@ -210,7 +210,8 @@ def load(path=SCHEMA):
         d = defs["event_" + k]
         _need(d["properties"]["event"].get("const") == k, "event_%s.event is not const %s" % (k, k))
         fields = [f for f in d["properties"] if f != "event"]
-        _need(set(d.get("required", ())) == set(fields), "event_%s: required is not its fields" % k)
+        _need(set(d.get("required", ())) <= set(fields), "event_%s: required names a field it lacks" % k)
+        _need(all(f in d.get("required", ()) for f in fields[:len(d.get("required", ()))]), "event_%s: required is not its leading fields" % k)
         _need(not set(fields) & set(order["event"]), "event_%s shadows an event field" % k)
         events[k] = fields
     _need(_ref(defs["hello"]["properties"]["caps"]["items"]) == "actionType", "hello.caps is not action types")
@@ -220,7 +221,7 @@ def load(path=SCHEMA):
         "raw": raw, "proto": raw["x-proto"], "kinds": kinds, "positional": positional, "order": order,
         "groups": groups, "records": records, "shapes": shapes,
         "reasons": enum("reason"), "action_types": action_types, "actions": actions, "gaits": enum("gait"),
-        "ikinds": enum("ikind"), "filters": enum("filter"), "act_states": enum("actState"),
+        "ikinds": enum("ikind"), "filters": enum("filter"), "item_uses": enum("itemUse"), "act_states": enum("actState"),
         "event_kinds": event_kinds, "events": events, "map_modes": enum("mapMode"),
     }
 
@@ -634,6 +635,7 @@ def render_py(sch=None):
     P.append("GAITS = %s" % _pl(sch["gaits"]))
     P.append("IKINDS = %s" % _pl(sch["ikinds"]))
     P.append("FILTERS = %s" % _pl(sch["filters"]))
+    P.append("ITEM_USES = %s" % _pl(sch["item_uses"]))
     P.append("ACT_STATES = %s" % _pl(sch["act_states"]))
     P.append("MAP_MODES = %s" % _pl(sch["map_modes"]))
     P.append("EVENT_KINDS = %s" % _pl(sch["event_kinds"]))

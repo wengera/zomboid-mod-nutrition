@@ -717,3 +717,25 @@ def test_a_snapshot_before_any_frame_reads_the_players_health(lua):
 def test_the_frame_carries_the_hour(lua):
     load(lua)
     assert frame(lua, make_player())["me"]["hour"] == 8.0
+
+
+def test_first_sight_carries_the_engines_use_of_each_item(lua):
+    load(lua)
+    from .conftest import make_item, make_fluid
+    apple = make_item("Base.Apple", 1)
+    apple._cls = "Food"
+    bat = make_item("Base.BaseballBat", 2)
+    bat._cls = "HandWeapon"
+    bottle = make_item("Base.WaterBottle", 3)
+    pan = make_item("Base.Saucepan", 4)
+    pan._cls = "HandWeapon"
+    pan.getFluidContainer = lambda s: make_fluid()
+    rag = make_item("Base.RippedSheets", 5)
+    rag2 = make_item("Base.RagDirty", 6)
+    plank = make_item("Base.Plank", 7)
+    bleach = make_item("Base.Bleach", 8)
+    p = make_player()
+    p.held.extend([apple, bat, bottle, pan, rag, rag2, plank, bleach])
+    ev = [dict(e) for e in lua.eval("PZA.sense.firstSight(...)", p).values()]
+    got = {e["itemId"]: e["use"] for e in ev if e["itemId"] >= 1 and e["itemId"] <= 8}
+    assert got == {1: "food", 2: "weapon", 3: "water", 4: "weapon", 5: "other", 6: "bandage", 7: "other", 8: "other"}

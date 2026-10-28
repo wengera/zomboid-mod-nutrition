@@ -13,7 +13,7 @@ It reads what the transport gives: keyed full dicts, every delta frame already m
   `dropped_scans`; a delta is never dropped. `map_lines` counts every map line, `missing` is the union of every map
   line's missing names in first-seen order.
 - `event`: every event line in `events` (deque 500); `item_added`/`item_removed` build `inventory[itemId] =
-  {fullType, weight}` (ruling P22-2), an unknown id's removal counted in `missing_items`; a client `damage` event
+  {fullType, weight[, use]}` (ruling P22-2; `use` only when the line carried it), an unknown id's removal counted in `missing_items`; a client `damage` event
   appends `{tag, amount, side, wallMs}` to `damage` (deque 500); `zombie_dead` drops the zombie; `scan_dropped`
   (ruling S-32: a scan job the Lua dropped after its one act line, done) adds the scan's aid to `scans_dropped`, which
   `to_json` does not carry (the planner reads it; the line itself is in `events`).
@@ -40,7 +40,7 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   blocked edges, never `edgeN`/`edgeW` (any wall, window or door edge whatever its state), which the square record
   keeps for the view and a later sight reading (ruling P23-K).
 - `reachable_adjacent(target_xy, z)`, `interiors()`, `doors_of(building)`.
-- `by_use()`: the inventory's ids by `agent.base.items.use_of` (the dataset's food and fluid containers), an id the
+- `by_use()`: the inventory's ids by the item's own `use` (the engine's answer, Plan 23 Task 9b), else `agent.base.items.use_of` (the dataset), an id the
   planner marked empty (`mark_empty`, kept in `empty_ids` and dropped with its item) moved from `water` to `other`;
   `nearest_unlooted(want)` keys on the same use. `to_json` carries `emptyIds` sorted, and only while it is non-empty,
   so a World that never marked one serialises as before (the replay goldens keep their bytes).
@@ -166,7 +166,10 @@ class World:
         self.events.append(line)
         kind = line.get("event")
         if kind == "item_added":
-            self.inventory[line.get("itemId")] = {"fullType": line.get("fullType"), "weight": line.get("weight")}
+            it = {"fullType": line.get("fullType"), "weight": line.get("weight")}
+            if line.get("use") is not None:
+                it["use"] = line["use"]
+            self.inventory[line.get("itemId")] = it
         elif kind == "item_removed":
             if self.inventory.pop(line.get("itemId"), None) is None:
                 self.missing_items += 1
@@ -208,7 +211,8 @@ class World:
 
     def nearest_unlooted(self, want=None):
         """The key of the nearest unlooted, non-empty container, ties by key; with `want` (one of USES) only a
-        container holding an item of that use (`items.use_of`)."""
+        container holding an item of that use. A map line names full types only, so this keeps the dataset's
+        `items.use_of` on a container's items."""
         mx, my = self._me_xy()
         best = None
         for key, c in self.containers.items():
@@ -368,11 +372,11 @@ class World:
         self.empty_ids.add(item_id)
 
     def by_use(self):
-        """{use: [ids sorted]} for every use in USES: the inventory's ids by `items.use_of` of their fullType, an id
+        """{use: [ids sorted]} for every use in USES: the inventory's ids by the item's `use` (else `items.use_of` of its fullType), an id
         in `empty_ids` read as `other` rather than `water`."""
         out = {u: [] for u in USES}
         for iid, it in self.inventory.items():
-            use = use_of(it.get("fullType"))
+            use = it.get("use") or use_of(it.get("fullType"))
             if use == "water" and iid in self.empty_ids:
                 use = "other"
             out[use].append(iid)
