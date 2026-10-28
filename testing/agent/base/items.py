@@ -4,12 +4,16 @@
 `kind`: `food`, `drainable` or `fluid_container`. `use_of(full_type)` answers, in this order:
 
 - `food`: the dataset's `kind == "food"` (`FOOD_IDS`);
-- `water`: the dataset's `kind == "fluid_container"` (`DRINK_IDS`): any fluid container the character can drink from,
-  whatever its name or its fill (the Lua refuses an undrinkable or empty one; the World's `mark_empty` remembers that);
-- `bandage`: a full type holding `Bandage` or `Rag`, the Lua loot's own rule (`PZAgent_SkillsWorld.lua`, `bandage`);
+- `water`: a `kind == "fluid_container"` item the dataset marks `drinkable`, unless every fluid it names
+  (`fluid_ids`, non-empty) is one whose `fluids` record carries `poison` (Bleach, HairDye, TaintedWater, ...)
+  (`DRINK_IDS`). A container named `...Empty` (`Base.PopEmpty`, `Base.BeerEmpty`) is a drinkable container in the
+  dataset and reads water whatever its fill: the Lua refuses an empty one and the World's `mark_empty` remembers it;
+- `bandage`: a full type holding `Bandage` or `Rag`, the Lua loot's own rule (`PZAgent_SkillsWorld.lua`, `bandage`),
+  so `Base.RagFilter` reads bandage as the Lua reads it;
 - `weapon`: a full type `WEAPON_RX` matches. The dataset names no weapon (its two `base:weapon` items are saucepans,
   fluid containers), so the weapon rule stays this name guess until a weapon dataset exists;
-- `other`: everything else, a name the dataset does not carry included.
+- `other`: everything else, a name the dataset does not carry and a non-drinkable or poison container included
+  (`Base.PetrolCan`, the buckets).
 
 The dataset is read once (`functools.lru_cache` on the loader), from the repository root resolved off this file.
 """
@@ -25,14 +29,26 @@ BANDAGE_WORDS = ("Bandage", "Rag")
 
 
 @functools.lru_cache(maxsize=None)
-def kinds():
-    """{full type: kind} for every item of the dataset, read once."""
+def dataset():
+    """The dataset's `(items, fluids)`, each keyed by id, read once."""
     with open(DATASET, encoding="utf-8") as f:
-        return {it["id"]: it.get("kind") for it in json.load(f)["items"]}
+        d = json.load(f)
+    return ({it["id"]: it for it in d["items"]}, {fl["id"]: fl for fl in d.get("fluids") or ()})
 
 
-FOOD_IDS = frozenset(i for i, k in kinds().items() if k == "food")
-DRINK_IDS = frozenset(i for i, k in kinds().items() if k == "fluid_container")
+def _poison_only(item, fluids):
+    """Whether every fluid the item names is a poison (an item naming none is not)."""
+    ids = item.get("fluid_ids") or ()
+    return bool(ids) and all((fluids.get(f) or {}).get("poison") for f in ids)
+
+
+def _drinkable(item, fluids):
+    return item.get("kind") == "fluid_container" and bool(item.get("drinkable")) and not _poison_only(item, fluids)
+
+
+_ITEMS, _FLUIDS = dataset()
+FOOD_IDS = frozenset(i for i, it in _ITEMS.items() if it.get("kind") == "food")
+DRINK_IDS = frozenset(i for i, it in _ITEMS.items() if _drinkable(it, _FLUIDS))
 
 
 def use_of(full_type):
