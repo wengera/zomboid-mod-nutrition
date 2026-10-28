@@ -49,6 +49,15 @@ The scratch scripts were session-scoped and are not kept; each reading they made
 `getSouth @0–@20 L954` is the square at `(x, y+1, z)` and `getEast @0–@20 L946` the one at `(x+1, y, z)`, so a square stores only its own north and west edges and an east or south edge is the neighbour's west or north.
 For the north neighbour, `isSouthOf` holds, and both tests land on this square's north edge (`this` NORTH, and `other.getSouth()`, which is this square, at its N facing); for the west neighbour, `isEastOf` holds, and both tests land on this square's west edge.
 For the south or east neighbour the read is that neighbour's north or west edge.
+A neighbour the `GetSquare` returns as null (an unloaded square) reads that edge as unblocked: the SOUTH and EAST branches return false on a null square (`isEdgeElement @83–@106 L3583`, `@117–@140 L3587`):
+
+```
+     78         invokevirtual    zombie/iso/IsoGridSquare.getSouth
+     81         astore           4
+     83  L3583  aload            4
+     85         ifnull           106
+    106         iconst_0
+```
 
 **The wall predicate.** `isWall(GridSquareEdgeFacingDirection) @0–@82 L1002–L1005` (switch map NORTH_SOUTH 1 → @46, EAST_WEST 2 → @59, `IsoGridSquare$1.<clinit> @301–@336 L962`):
 
@@ -89,6 +98,8 @@ IsoWindow.isBlocked() @0–@26 L1273
      18         ifeq             25          (open or smashed, not barricaded -> false)
 ```
 
+The search is for `IsoWindow` objects only: the class literal `hasBlockedWindow @1 ldc_w zombie/iso/objects/IsoWindow` and its predicate's bootstrap target `IsoWindow.isBlocked(GridSquareEdgeFacingDirection)`. A player-built window, an `IsoThumpable`, is not read by `isWindowBlockedTo`, and blocks through `isBlockedTo` only if its sprite carries a collide flag, which is not read.
+
 **Stairs.** `isStairBlockedTo @0–@47 L2570–L2580` reads true when this square is east of the other and `HasStairTopWest`, or south of it and `HasStairTopNorth`.
 
 **`isSomethingTo`.** `isSomethingTo(IsoGridSquare,GetSquare) @0–@32 L874` is `isWallTo` or `isWindowTo` or `isDoorTo`, the last two presence tests whatever the state (`isDoor(GridSquareEdgeFacingDirection) @46–@63 L1040–L1042` reads the `doorN`/`doorW` flag), so it reads true across an open door or an open window, where `isBlockedTo` reads false.
@@ -98,7 +109,7 @@ IsoWindow.isBlocked() @0–@26 L1273
 
 Not read: which tile sprites carry `collideN`/`collideW` beside a door (`isWall` excludes only window edges, so a door frame that also carries the collide flag would read a wall when open); whether a low fence or a hoppable carries the collide flag; the window-frame-without-window case.
 
-**Finding:** `isBlockedTo(n)` reads this square's own north edge for the north neighbour and its own west edge for the west neighbour (the south and east neighbours' north and west edges otherwise), as a `collideN`/`collideW` flag not on a window edge, a closed or barricaded door (an open one not), an intact closed or barricaded window (an open or smashed one not), or a stair top; a diagonal reads blocked when any of the four edges meeting at the shared corner does; `isSomethingTo` reads any wall, window or door edge whatever its state.
+**Finding:** `isBlockedTo(n)` reads this square's own north edge for the north neighbour and its own west edge for the west neighbour (the south and east neighbours' north and west edges otherwise), as a `collideN`/`collideW` flag not on a window edge, a closed or barricaded door (an open one not), an intact closed or barricaded `IsoWindow` (an open or smashed one not; a player-built `IsoThumpable` window is not read), or a stair top, and a null (unloaded) south or east neighbour reads its edge unblocked; a diagonal reads blocked when any of the four edges meeting at the shared corner does; `isSomethingTo` reads any wall, window or door edge whatever its state.
 
 Read with:
 
@@ -143,9 +154,19 @@ cd /c/Users/Angus/pz-b42
     962         invokevirtual    zombie/GameTime.advanceOneDay
 ```
 
+The step is skipped while the game is paused (`update @463–@466 L524`: `isGamePaused` then `ifne 804`, past the advance) and zeroed under the debug option `freezeTimeOfDay` (`@513–@526 L530–L531`).
+A client's clock is also set from the server's: `SyncClockPacket.processClient @21–@26 L56` writes the packet's `timeOfDay` with `setTimeOfDay` (and `@4–@8 L54` sets `GameClient.fastForward` from it); the server sends it from `GameTime.update @804–@834 L575` every 10 s of wall time or on every update while fast-forwarding, when the clock crosses 7.0 and at the day rollover (`@836–@872 L576–L579`, `@965–@971 L601–L602`), the send itself at `@1261–@1266 L655–L656` (`syncClock`), and on each `setFastForward` change. So "on a client alike" covers the advance and the wrap; between syncs the client's clock runs on its own multiplier.
+
+```
+SyncClockPacket.processClient
+     21    L56  aload_2
+     23         getfield         zombie/network/packets/service/SyncClockPacket.timeOfDay
+     26         invokevirtual    zombie/GameTime.setTimeOfDay
+```
+
 `getHour() @0–@22 L936–L937` is `floor(floor(timeOfDay × 3600) / 3600)`, the whole hour; `getMinutes() @0–@16 L466` is `(int)((timeOfDay − (int)timeOfDay) × 60)`, the minute within the hour.
 
-**Finding:** `getTimeOfDay()` is the clock as a float hour in [0, 24), its whole part `getHour()` and its fraction times 60 truncated `getMinutes()`, wrapped by subtracting 24 at the update that reaches 24.
+**Finding:** `getTimeOfDay()` is the clock as a float hour in [0, 24), its whole part `getHour()` and its fraction times 60 truncated `getMinutes()`, wrapped by subtracting 24 at the update that reaches 24; it does not advance while the game is paused, and a client's clock is also reset to the server's at each clock sync.
 
 Read with:
 
@@ -156,6 +177,7 @@ Read with:
 ./pz.sh dump zombie.GameTime getHour
 ./pz.sh dump zombie.GameTime getMinutes
 ./pz.sh dump zombie.GameTime update
+./pz.sh dump zombie.network.packets.service.SyncClockPacket processClient
 ```
 
 ## 3. Sleep on a dedicated server
@@ -166,7 +188,16 @@ So in multiplayer the sleep is the client's own `asleep` flag and force-wake-up 
 **The writers of `asleep`.** Within the eleven classes a jar-wide grep for `setAsleep` names (the interface `ILuaGameCharacter` holds no code), the field `asleep` is written only by `IsoGameCharacter.setAsleep(Z) @0–@2 L2991`, `load @86` and `loadChange @321` (a per-class scan for a `putfield` of that name; a jar-wide grep for the bare field name, which would hit every `isAsleep`, was not narrowed, so a direct field write elsewhere is not excluded).
 `setAsleep` is called from ten sites in eight of those classes: `SleepingEvent.wakeUp(IsoGameCharacter,boolean) @131`, `IsoPlayer.OnDeath @35`, `NetworkPlayerVariables.setBooleanVariables(IsoPlayer,ShortFlags) @40`, `SafeHouse.checkTrespass @56`, `SafeHouse.kickUserFromSafehouse @94`, `TeleportPacket.processServer @50`, `WakeUpPlayerPacket.processServer @5`, `ModalDialog.Clicked @95` and `AttackVehicleState.animEvent @197, @609`.
 The two that carry a connected player's sleep to the server are the player packet and the wake packet.
-The client's `asleep` reaches the server's copy through the player packet's flag word: `PlayerPacket.processServer @47–@50 L170` calls `NetworkPlayerAI.parse(PlayerPacket)`, which at `@216–@224 L574` calls `NetworkPlayerVariables.setBooleanVariables`, which sets it from the `isAsleep` flag (`@32–@40 L74`):
+The client's `asleep` reaches the server's copy through the player packet's flag word. On the sending side `NetworkPlayerVariables.getBooleanVariables(IsoPlayer) @26–@34 L46` sets the `isAsleep` flag from `isAsleep()` (`NetworkPlayerAI.set(PlayerPacket) @256` calls it):
+
+```
+     26    L46  aload_1
+     27         getstatic        zombie/characters/NetworkPlayerVariables$Flags.isAsleep
+     31         invokevirtual    zombie/characters/IsoPlayer.isAsleep
+     34         invokevirtual    zombie/util/flags/ShortFlags.set
+```
+
+On the receiving side `PlayerPacket.processServer @47–@50 L170` calls `NetworkPlayerAI.parse(PlayerPacket)`, which at `@216–@224 L574` calls `NetworkPlayerVariables.setBooleanVariables`, which sets it from the `isAsleep` flag (`@32–@40 L74`):
 
 ```
      34         getstatic        zombie/characters/NetworkPlayerVariables$Flags.isAsleep
@@ -177,7 +208,27 @@ The client's `asleep` reaches the server's copy through the player packet's flag
 The wake is the other writer: `WakeUpPlayerPacket.processServer @0–@21 L26–L28` sets `setAsleep(false)` and `setAsleepTime(0)` on the server's copy and relays the packet to the clients.
 
 **`allPlayersAsleep` and `isOnlyPlayerAsleep`.** `IsoPlayer.allPlayersAsleep() @0–@77 L1056–L1065` counts the living entries of the process's local `IsoPlayer.players` array (`numPlayers`) and the asleep ones among them and returns true when there is at least one and all are asleep — the split-screen array, not the server's connected players (as #2788 read on 42.20.4).
-Its jar callers are the single-player branches of `GameTime.getMultiplier @18`, `getServerMultiplier @46` and `getUnmoddedMultiplier @18`, each guarded by `!GameServer.server && !GameClient.client` (`getMultiplier @0–@35 L982–L983`, the ×`200 × 30 / lockFPS` sleep speed), `IngameState.UpdateStuff @65–@80 L601–L602` (guarded by `!GameServer.server`), `SleepingEvent.wakeUp(IsoGameCharacter,boolean) @90–@99 L502` (guarded by `!GameClient.client`), `IsoPlayer.updateStats_Sleeping @2 L3299`, `ThumpState.execute @230` and `ThumpState.getFastForwardDamageMultiplier @70 L398`, which reaches it only after its server and client branches return (`@4–@69 L392–L396`).
+Its jar callers are of two kinds: six are behind a side guard, two are not.
+The guarded ones are the single-player branches of `GameTime.getMultiplier @18`, `getServerMultiplier @46` and `getUnmoddedMultiplier @18`, each guarded by `!GameServer.server && !GameClient.client` (`getMultiplier @0–@35 L982–L983`, the ×`200 × 30 / lockFPS` sleep speed), `IngameState.UpdateStuff @65–@80 L601–L602` (guarded by `!GameServer.server`), `SleepingEvent.wakeUp(IsoGameCharacter,boolean) @90–@99 L502` (guarded by `!GameClient.client`), and `ThumpState.getFastForwardDamageMultiplier @70 L398`, which reaches it only after its server and client branches return (`@4–@69 L392–L396`).
+The two with no server or client guard are `IsoPlayer.updateStats_Sleeping @2–@16 L3299–L3300`, which multiplies the sleeping recovery factor (2, applied to ENDURANCE and then FATIGUE) by `getDeltaMinutesPerDay()` when it is true, and `ThumpState.execute @225–@236 L123`, which skips its thump branch when it is true:
+
+```
+IsoPlayer.updateStats_Sleeping
+      0  L3298  fconst_2
+      2  L3299  invokestatic     zombie/characters/IsoPlayer.allPlayersAsleep
+      5         ifeq             17
+      8  L3300  fload_1
+     12         invokevirtual    zombie/GameTime.getDeltaMinutesPerDay
+     15         fmul
+ThumpState.execute
+    225   L123  iload            7
+    227         ifeq             791
+    230         invokestatic     zombie/characters/IsoPlayer.allPlayersAsleep
+    233         ifeq             239
+    236         goto             791
+```
+
+On a multiplayer client whose one local player is asleep `allPlayersAsleep()` reads true, so both run there; on the dedicated server what they read depends on the unread content of the server's own `IsoPlayer.players`.
 `isOnlyPlayerAsleep() @0–@66 L7064–L7072` returns false unless this player is asleep and false if any other living local player is asleep; a jar-wide grep finds the name only in `IsoPlayer` itself, with no caller there, and the vanilla Lua has none, so nothing gates on it.
 
 **The server's fast-forward.** The server's main loop counts, over `GameServer.Players`, the living players and the asleep ones among them, and sets fast-forward when sleep is allowed and every living player is asleep (`GameServer.main @3910–@4055 L1052–L1069`):
@@ -204,7 +255,7 @@ While it is set, `GameTime.getMultiplier() @38–@65 L988–L989` replaces its b
      64         fdiv
 ```
 
-`getDeltaMinutesPerDay() @0–@7 L446` is `30 / minutesPerDay`, `minutesPerDay` is `SandboxOptions.getDayLengthMinutes()` (`@8–@66 L556–L561`: DayLength 1, 2, 3, 4 give 15, 30, 60, 90 minutes), and the ini's `FastForwardMultiplier` is a double option of minimum 1, maximum 100 and default 40 (`ServerOptions.<init> @1524–@1542`).
+`getDeltaMinutesPerDay() @0–@7 L446` is `30 / minutesPerDay`, `minutesPerDay` is set to `SandboxOptions.getDayLengthMinutes()` by `SandboxOptions.applySettings @50–@58 L594` through `GameTime.setMinutesPerDay` (`ConnectedPacket` also references `setMinutesPerDay`, unread), and `getDayLengthMinutes` (`@8–@66 L556–L561`) maps DayLength 1, 2, 3, 4 to 15, 30, 60, 90 minutes, and the ini's `FastForwardMultiplier` is a double option of minimum 1, maximum 100 and default 40 (`ServerOptions.<init> @1524–@1542`).
 So the clock's rate is multiplied by `FastForwardMultiplier × minutesPerDay / 30`: 120 at the default 40 and the 90-minute day, 20 at DayLength 1 — the factor run x151s-20261005-165844 measured as "about 20 times" at DayLength 1 on 42.20.4 (#2956), whose bound left the mechanism an inference; that the factor matches the jar here is a reading, not a re-measurement. Since the time-of-day step divides by `minutesPerDay` (§ 2), the fast-forwarded game day takes about `30 / FastForwardMultiplier` real minutes whatever the day length (inference from the two formulas, the shared factors taken as unchanged).
 `GameServer.fastForward` also suspends `AntiCheat.update` (#2861) and scales thump damage (`ThumpState.getFastForwardDamageMultiplier @10–@31 L393`); `SyncClockPacket` carries it to the clients, which set `GameClient.fastForward` from it.
 
@@ -213,13 +264,36 @@ So the clock's rate is multiplied by `FastForwardMultiplier × minutesPerDay / 3
 On a client, `ISWorldObjectContextMenuLogic.doSleepOption @208–@231 L3300` turns on the menu's gates only when `SleepNeeded` is true (or in single player): the sleep option is marked `notAvailable` at FATIGUE 0.3 or under (`@233–@258 L3301–L3302`, `IGUI_Sleep_NotTiredEnough`), with any zombie counted (`@282–@353 L3306–L3309`, `IGUI_Sleep_NotSafe`), or within one hour of the last sleep (`@358–@377 L3312–L3314`, `ContextMenu_NoSleepTooEarly`).
 `doBedMenu @280–@311 L1467–L1471` offers the option on a client only when `SleepAllowed` is true.
 
-**What wakes the player.** `IsoGameCharacter.updateInternal @1555–@1580 L9263–L9264` calls `IsoPlayer.processWakingUp` for an asleep player after `calculateStats`. `processWakingUp @0–@204 L3374–L3408` sets an unset (0) force-wake-up hour to 9.0, wakes when the clock passes that hour between the last update and this one (the 24-hour wrap handled), when `getAsleepTime()` is above 16, on a local player in multiplayer at any aim or movement input, or on the `forceWakeUp` flag; it then calls `SleepingEvent.wakeUp`, sets the hour to -1 and, on a client, `GameClient.sendPlayer` (as #3029 read on 42.20.4).
+**What wakes the player.** `IsoGameCharacter.updateInternal @1555–@1580 L9263–L9264` calls `IsoPlayer.processWakingUp` for an asleep player after `calculateStats`. `processWakingUp @0–@204 L3374–L3408` maps a force-wake-up hour of exactly 0 to 9.0 (`@0–@13 L3374–L3375`), wakes when the clock passes that hour between the last update and this one (the 24-hour wrap handled), when `getAsleepTime()` is above 16, on a local player in multiplayer at any aim or movement input, or on the `forceWakeUp` flag; it then calls `SleepingEvent.wakeUp`, sets the hour to -1 and, on a client, `GameClient.sendPlayer` (as #3029 read on 42.20.4).
+The hour is left at -1 by every wake (`processWakingUp @184–@188 L3406`, `SleepingEvent.wakeUp @122–@126 L509`), and at -1 the clock test never holds: it wakes when `now >= hour` and `last < hour` (`@60–@83 L3388`), and `last` is at least 0, or at the day wrap the previous hour less 24, which is above -1 unless one update steps the clock by more than an hour:
+
+```
+      0  L3374  getfield         zombie/characters/IsoPlayer.forceWakeUpTime
+      4         fconst_0
+      5         fcmpl
+      6         ifne             16
+     10  L3375  ldc_w            9.0
+     13         putfield         zombie/characters/IsoPlayer.forceWakeUpTime
+     60  L3388  fload_1          (now)
+     62         getfield         zombie/characters/IsoPlayer.forceWakeUpTime
+     65         fcmpl
+     66         iflt             82
+     69         fload_2          (last)
+     71         getfield         zombie/characters/IsoPlayer.forceWakeUpTime
+     74         fcmpg
+     75         ifge             82
+     78         iconst_1
+    185  L3406  ldc_w            -1.0
+    188         putfield         zombie/characters/IsoPlayer.forceWakeUpTime
+```
+
+So a sleep started after an earlier wake without its own `setForceWakeUpTime` has no clock wake; only the 16-hour, input, force-flag and very-close-zombie wakes remain.
 `SleepingEvent.wakeUp(IsoGameCharacter,boolean) @5–@26 L492–L493` sends `WakeUpPlayer` from a client for a non-remote character, which the server answers by `setAsleep(false)` as above; it then sets the force-wake-up hour to -1 and `setAsleep(false)` (`@122–@131 L509–L511`), and adjusts FATIGUE and the neck by bed type (#2278).
 `getAsleepTime` advances in `GameTime.update @736–@795 L563–L570`, which also runs `SleepingEvent.update` for each asleep entry of the local `IsoPlayer.players` array; `SleepingEvent.update @10–@97 L300–L306` wakes the player at any very close zombie (with PANIC +70 and STRESS +0.5).
 
 Not read: whether the dedicated server's own `IsoPlayer.players` array holds connected players (which decides whether the server runs `SleepingEvent.update` and advances `asleepTime` for them), whether the server's copy of a connected player runs `processWakingUp`, and whether the client's force-wake-up hour reaches the server's copy; the clients' clock under `GameClient.fastForward` was not traced past `getMultiplier @69–@102 L990–L991`.
 
-**Finding:** on a dedicated server with `SleepAllowed`, a client's `setAsleep(true)` reaches the server's copy through the player packet's `isAsleep` flag, and when every living connected player reads asleep the server sets `fastForward`, which multiplies the clock's rate by `FastForwardMultiplier × minutesPerDay / 30` (120 at the default 40 and the 90-minute day); `allPlayersAsleep` and `isOnlyPlayerAsleep` gate only the single-player speed-up and nothing on the server; `SleepNeeded` adds the server's fatigue (no reset) and, on the client's menu, the tired, safe and too-early gates; the client wakes itself when the clock passes its force-wake-up hour, after 16 hours asleep or at input, and tells the server by `WakeUpPlayer`.
+**Finding:** on a dedicated server with `SleepAllowed`, a client's `setAsleep(true)` reaches the server's copy through the player packet's `isAsleep` flag, and when every living connected player reads asleep the server sets `fastForward`, which multiplies the clock's rate by `FastForwardMultiplier × minutesPerDay / 30` (120 at the default 40 and the 90-minute day); `allPlayersAsleep` reads the process's local players array and gates the single-player speed-up and, unguarded, `updateStats_Sleeping`'s recovery scale and `ThumpState.execute`, and `isOnlyPlayerAsleep` gates nothing; `SleepNeeded` adds the server's fatigue (no reset) and, on the client's menu, the tired, safe and too-early gates; the client wakes itself when the clock passes its force-wake-up hour (9.0 when it is 0; at -1, the value every wake leaves, never by the clock), after 16 hours asleep or at input, and tells the server by `WakeUpPlayer`.
 
 Read with:
 
@@ -245,6 +319,9 @@ Read with:
 ./pz.sh dump zombie.GameTime getUnmoddedMultiplier
 ./pz.sh dump zombie.GameTime getDeltaMinutesPerDay
 ./pz.sh dump zombie.SandboxOptions getDayLengthMinutes
+./pz.sh dump zombie.SandboxOptions applySettings --from 40 --to 62
+./pz.sh dump zombie.characters.NetworkPlayerVariables getBooleanVariables --from 0 --to 40
+./pz.sh dump zombie.ai.states.ThumpState execute --from 220 --to 240
 ./pz.sh dump zombie.network.ServerOptions '<init>'
 ./pz.sh dump zombie.gameStates.IngameState UpdateStuff --from 40 --to 130
 ./pz.sh dump zombie.ai.states.ThumpState getFastForwardDamageMultiplier
@@ -273,7 +350,19 @@ The handler then multiplies the hours by 0.7 for `floor` or a `floorPillow` type
 In multiplayer the sleeping-event data is never set up by the vanilla handler (§ 3), so what that sleeping time reads there is not read.
 
 **The counts.** `Stats.getNumVisibleZombies() @0–@4 L137` returns `numVisibleZombies`, `getNumChasingZombies() @0–@4 L141` returns `lastNumChasingZombies` and `getNumVeryCloseZombies() @0–@4 L149` returns `lastVeryCloseZombies`.
-`IsoPlayer.updateLOS` writes all three, and `IsoPlayer.updateInternal1 @59–@67 L2211–L2212` calls it only for a player whose `remote` is false. It zeroes `numVisibleZombies`, copies `numChasingZombies` into `lastNumChasingZombies` through `setLastNumberChasingZombies` and zeroes `numChasingZombies` (`@7–@34 L6200–L6202`), then for each moving object of the cell seen by this player (`TestIfSeen` on the server, the client's `isVisibleToPlayer[playerIndex]` otherwise, `@600–@627 L6302–L6303`) that is a zombie:
+`IsoPlayer.updateLOS` writes all three, and `IsoPlayer.updateInternal1 @50–@67 L2208–L2212` calls it only when `updateInternal2()` returned true and the player's `remote` is false:
+
+```
+     51         invokevirtual    zombie/characters/IsoPlayer.updateInternal2
+     54         istore_1
+     55  L2210  iload_1
+     56         ifeq             74
+     60  L2211  getfield         zombie/characters/IsoPlayer.remote
+     63         ifne             70
+     67  L2212  invokevirtual    zombie/characters/IsoPlayer.updateLOS
+```
+
+`updateLOS` itself returns, after zeroing the counts, when the player's current square is null (`@82–@89 L6210–L6211`). It zeroes `numVisibleZombies`, copies `numChasingZombies` into `lastNumChasingZombies` through `setLastNumberChasingZombies` and zeroes `numChasingZombies` (`@7–@34 L6200–L6202`), then for each moving object of the cell seen by this player (`TestIfSeen` on the server, the client's `isVisibleToPlayer[playerIndex]` otherwise, `@600–@627 L6302–L6303`) that is a zombie:
 
 ```
     658  L6312  fload 13 (zombie z) >= fload 6 (player z) - 1
@@ -287,10 +376,10 @@ In multiplayer the sleeping-event data is never set up by the vanilla handler (�
 
 A seen zombie on the player's own floor and not in `lastSpotted` adds 2 more within 4 tiles (7 when more than four are already counted) (`@935–@1065 L6351–L6366`), and the very-close local is stored to `lastVeryCloseZombies` at the end (`@1428–@1434 L6415`).
 `numChasingZombies` is incremented by each zombie whose `target` is that player, in `IsoZombie.postUpdateInternal @0–@27 L3012–L3013`, so `getNumChasingZombies` is the previous pass's count of zombies targeting the player.
-So the visible count is seen zombies within 7 tiles in the player's room (or both outside, rooms null) no lower than one floor below the player's, plus the newly-spotted bonus, the very-close count seen zombies within 3 tiles at any floor and room, and the chasing count zombies targeting the player whether seen or not.
+So the visible count is seen zombies within 7 tiles in the player's room (or both outside, rooms null) no lower than one floor below the player's (with no upper floor bound), excluding ghost and fake-dead zombies, plus the newly-spotted bonus, the very-close count seen zombies within 3 tiles at any floor and room, and the chasing count zombies targeting the player whether seen or not.
 Not read: whether the server's copy of a connected player has `remote` false (which decides whether the server's counts are live), and whether a client runs `postUpdateInternal` for the zombies it does not own.
 
-**Finding:** with `bed` nil and no vehicle `getBedQuality` returns `floor`, or `floorPillow` with a pillow in hand or on the player's square, which shortens the sleep to 0.7 and costs fatigue and a chance of a neck injury at the wake; `getNumVisibleZombies` counts seen zombies within 7 tiles in the player's room and floor band, `getNumVeryCloseZombies` seen zombies within 3 tiles, and `getNumChasingZombies` the zombies targeting the player on the last pass, all written in `IsoPlayer.updateLOS` on a non-remote player.
+**Finding:** with `bed` nil and no vehicle `getBedQuality` returns `floor`, or `floorPillow` with a pillow in hand or on the player's square, which shortens the sleep to 0.7 and costs fatigue and a chance of a neck injury at the wake; `getNumVisibleZombies` counts seen zombies within 7 tiles in the player's room and floor band, ghost and fake-dead ones excluded, `getNumVeryCloseZombies` seen zombies within 3 tiles, and `getNumChasingZombies` the zombies targeting the player on the last pass, all written in `IsoPlayer.updateLOS`, which runs only for a non-remote player whose `updateInternal2` returned true and whose current square is not null.
 
 Read with:
 
