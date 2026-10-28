@@ -240,7 +240,7 @@ def test_report_lines_put_the_gate_verdict_first():
     assert not g["report_lines"][0].startswith("gate_e1")
     g["gate"] = E.gate_e1([good(100.0)])
     lines = E.report_lines_e(g)
-    assert lines[0].startswith("gate_e1 NO-GO: alive_through FAIL") and any(l.startswith("sleep:") for l in lines)
+    assert lines[0].startswith("gate_e1 NO-GO: alive_through 100.0 >= 1440.0 FAIL") and any(l.startswith("sleep:") for l in lines)
 
 
 def _write(tmp_path, name, obj):
@@ -274,3 +274,46 @@ def test_the_script_exits_two_on_a_bad_call(tmp_path):
     assert _run(["--chain"]).returncode == 2
     assert _run(["a", "b", "c"]).returncode == 2
     assert EG.finite(float("inf")) is None and EG.finite({"a": [float("nan"), 1]}) == {"a": [None, 1]}
+
+
+# ---------------------------------------------------------------- fix round 1
+def test_t_loop0_ms_pairs_an_eat_the_anchor_mispairs():
+    a = good()
+    a["loop"]["wallS"] = 104.0                                   # the stop came 5 s after the last frame (99 s)
+    a["stop"]["wallS"] = 104.0
+    n = E.grade_e1(a)["needs"]
+    assert n["time_base"] == "anchor" and n["eat"]["stat_fell"] is False          # frames placed 5 s late
+    a["loop"]["t_loop0_ms"] = 1_000_000
+    n = E.grade_e1(a)["needs"]
+    assert n["time_base"] == "t_loop0_ms" and n["eat"]["stat_fell"] is True
+    assert E.grade_e1(art([]))["needs"]["time_base"] is None
+
+
+def test_report_prints_unknown_consumes_and_each_gate_value():
+    a = good(1510.0)
+    a["loop"]["actions"].append(act("consume", 50, 52))
+    g = E.grade_e1(a)
+    assert g["needs"]["unknown"] == 1
+    g["gate"] = E.gate_e1([a])
+    lines = E.report_lines_e(g)
+    assert "alive_through 1510.0 >= 1440.0 ok" in lines[0] and "drink_done 1 >= 1 ok" in lines[0]
+    assert any(l.startswith("unknown consumes (no valid use): 1") for l in lines)
+
+
+def test_the_death_window_opens_on_the_wound_arms_own_rise():
+    a = _death_art(300, wound_at=100, health_from=105)
+    for f in a["loop"]["last_frames"][100:]:
+        f["body"]["bleeding"] = 2                                # 1 -> 2: no rise the wound arm reads
+    a["loop"]["last_frames"][50]["body"]["parts"] = [{"i": 1, "h": 90.0}]       # a parts-only wound, earlier
+    d = E.grade_e1(a)["death"]
+    assert d["first_wound_seq"] == 51 and d["window_frames_n"] == 251
+
+
+def test_the_first_death_in_the_chain_is_graded():
+    d = _death_art(300, wound_at=100, health_from=105)
+    r = E.gate_e1([d, good()])
+    assert r["gates"]["death_explained"]["ok"] is True
+    for f in d["loop"]["last_frames"]:
+        f["zombies"] = []
+    d["loop"]["death"]["last_frames"] = d["loop"]["last_frames"]
+    assert E.gate_e1([d, good()])["gates"]["death_explained"]["ok"] is False

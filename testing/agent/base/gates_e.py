@@ -40,22 +40,22 @@ def _f(v, f="%.2f"):
     return GT._fmt(v, f)
 
 
-def _wounds(f):
-    b = _d(_d(f).get("body"))
-    return sum(_n(b.get(k)) or 0 for k in GT.WOUND_KEYS)
-
-
 def frame_times(out):
-    """[(loop second, frame)] over loop.last_frames (the last frame at the loop end), or [] without an anchor."""
+    """([(loop second, frame)], time_base) over loop.last_frames. With loop.t_loop0_ms (the loop start in epoch ms on
+    the frames clock) a frame sits at (wallMs - t_loop0_ms) / 1000, time_base "t_loop0_ms"; without it the last kept
+    frame is anchored at loop.wallS (else stop.wallS), time_base "anchor"; ([], None) without either."""
     out = _d(out)
     loop = _d(out.get("loop"))
-    frames = [f for f in _l(loop.get("last_frames")) if isinstance(f, dict)]
+    frames = [f for f in _l(loop.get("last_frames")) if isinstance(f, dict) and _n(f.get("wallMs")) is not None]
+    t0 = _n(loop.get("t_loop0_ms"))
+    if t0 is not None:
+        return [((f["wallMs"] - t0) / 1000.0, f) for f in frames], "t_loop0_ms"
     end = _n(loop.get("wallS"))
     end = end if end is not None else _n(_d(out.get("stop")).get("wallS"))
-    last = _n(frames[-1].get("wallMs")) if frames else None
-    if end is None or last is None:
-        return []
-    return [(end - (last - f["wallMs"]) / 1000.0, f) for f in frames if _n(f.get("wallMs")) is not None]
+    if end is None or not frames:
+        return [], None
+    last = frames[-1]["wallMs"]
+    return [(end - (last - f["wallMs"]) / 1000.0, f) for f in frames], "anchor"
 
 
 def _stat_fell(times, a, stat):
@@ -74,8 +74,8 @@ def e_needs(out):
     """{drink, eat: {sent, done, stat_fell}, unknown, sleep: {sent, done, sleptH, fatigue_fell}}; stat_fell is true when
     any done action's stat fell, false when every bracketed one did not, None when none was bracketed."""
     loop = _d(_d(out).get("loop"))
-    times = frame_times(out)
-    res = {"drink": {"sent": 0, "done": 0, "stat_fell": None}, "eat": {"sent": 0, "done": 0, "stat_fell": None},
+    times, base = frame_times(out)
+    res = {"time_base": base, "drink": {"sent": 0, "done": 0, "stat_fell": None}, "eat": {"sent": 0, "done": 0, "stat_fell": None},
            "unknown": 0}
     falls = {"drink": [], "eat": []}
     for a in _l(loop.get("actions")):
@@ -107,8 +107,8 @@ def e_fights(rows):
     """{n, ended, fled, stand_offs}: ended = a fight with an end record, fled = a flee tick seen, a stand-off a fight
     of more than STAND_OFF_TICKS fight ticks whose flee dict has `unreachable` or `stalled`."""
     rows = [f for f in _l(rows) if isinstance(f, dict)]
-    return {"n": len(rows), "ended": sum(1 for f in rows if f.get("end") is not None),
-            "fled": sum(1 for f in rows if _d(f.get("flee"))),
+    d = GT.d_fights(rows)
+    return {"n": d["count"], "ended": d["count"] - d["open"], "fled": d["fled"],
             "stand_offs": sum(1 for f in rows if (_n(f.get("fight_ticks")) or 0) > STAND_OFF_TICKS
                               and ("unreachable" in _d(f.get("flee")) or "stalled" in _d(f.get("flee"))))}
 
@@ -139,7 +139,7 @@ def e_death(out):
     death = _d(loop.get("death"))
     frames = [f for f in _l(loop.get("last_frames")) if isinstance(f, dict)] or \
         [f for f in _l(death.get("last_frames")) if isinstance(f, dict)]
-    k = next((i for i in range(1, len(frames)) if _wounds(frames[i]) > _wounds(frames[i - 1])), None)
+    k = next((i for i in range(1, len(frames)) if GT._wound(frames[i - 1], frames[i])), None)
     window = frames[k - 1:] if k is not None else frames
     check = GT.death_check(dict(death, last_frames=window))
     return {"first_wound_seq": frames[k].get("seq") if k is not None else None, "window_frames_n": len(window),
@@ -174,7 +174,9 @@ def report_lines_e(g):
     gate = g.get("gate")
     if isinstance(gate, dict):
         lines.append("gate_e1 %s: %s" % (gate.get("verdict"), ", ".join(
-            "%s %s" % (k, "ok" if _d(v).get("ok") else "FAIL") for k, v in _d(gate.get("gates")).items())))
+            "%s %s >= %s %s" % (k, _d(v).get("value"), _d(v).get("threshold"), "ok" if _d(v).get("ok") else "FAIL")
+            if k != "death_explained" else "%s %s" % (k, "ok" if _d(v).get("ok") else "FAIL")
+            for k, v in _d(gate.get("gates")).items())))
     st = _d(g.get("stop"))
     lines.append("%s (stop %s), %s game min" % ("survived" if g.get("survived") else "not survived", st.get("reason"),
                                                _f(g.get("game_minutes"), "%.0f")))
@@ -182,6 +184,7 @@ def report_lines_e(g):
     for k in ("drink", "eat"):
         v = _d(nd.get(k))
         lines.append("%s: sent %s, done %s, stat fell %s" % (k, v.get("sent"), v.get("done"), v.get("stat_fell")))
+    lines.append("unknown consumes (no valid use): %s; frame time base %s" % (nd.get("unknown"), nd.get("time_base")))
     sl = _d(nd.get("sleep"))
     lines.append("sleep: sent %s, done %s, slept %s h, fatigue fell %s" % (
         sl.get("sent"), sl.get("done"), _f(sl.get("sleptH"), "%.1f"), sl.get("fatigue_fell")))
@@ -207,8 +210,9 @@ def report_lines_e(g):
 
 def gate_e1(outs):
     """{verdict, gates} over a chain artifacts in order: alive_through (the summed game_minutes >= 1440 and no
-    death), drink_done, eat_done, sleep_done (each >= 1 summed done), and death_explained when the last artifact
-    died. Each gate {ok, value, threshold, n} (n the artifacts read); verdict GO when every gate is ok, else NO-GO."""
+    death), drink_done, eat_done, sleep_done (each >= 1 summed done), and death_explained when an artifact died (the
+    first death in the chain). Each gate {ok, value, threshold, n} (n the artifacts read); verdict GO when every gate
+    is ok, else NO-GO."""
     outs = [_d(o) for o in _l(outs)]
     grades, prev = [], None
     for o in outs:
@@ -222,8 +226,9 @@ def gate_e1(outs):
                                "threshold": ALIVE_MINUTES, "n": n}}
     for k in ("drink", "eat", "sleep"):
         gates["%s_done" % k] = {"ok": done[k] >= 1, "value": done[k], "threshold": 1, "n": n}
-    if grades and grades[-1]["death"] is not None:
-        gates["death_explained"] = {"ok": grades[-1]["death"]["explained"] is True,
-                                    "value": grades[-1]["death"]["explained"], "threshold": True, "n": n}
+    first = next((g["death"] for g in grades if g["death"] is not None), None)
+    if first is not None:
+        gates["death_explained"] = {"ok": first["explained"] is True, "value": first["explained"],
+                                    "threshold": True, "n": n}
     ok = bool(grades) and all(v["ok"] for v in gates.values())
     return {"verdict": "GO" if ok else "NO-GO", "gates": gates}
