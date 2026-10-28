@@ -682,7 +682,7 @@ def test_a_water_consume_failed_otherwise_is_not_marked_empty(tmp_path, reason):
 
 
 def test_a_food_consume_failed_not_valid_is_refused_never_marked_empty(tmp_path):
-    """Fix wave P (I-4): a refused food is remembered in `World.refused_ids` (never `empty_ids`), so `by_use` drops
+    """Fix wave P (I-4, P23-AD): a refused food is remembered in `World.refused` (never `empty_ids`), so `by_use` drops
     it from `food` and the need never retries it; with no other food held the need marks `food`."""
     r, sv = make(tmp_path)
     held(r, (701, "Base.Apple"))
@@ -693,7 +693,7 @@ def test_a_food_consume_failed_not_valid_is_refused_never_marked_empty(tmp_path)
     r.frame(hunger=0.3)
     tick(r, sv)
     d = last(tmp_path)
-    assert r.world.empty_ids == set() and r.world.refused_ids == {701} and r.world.by_use()["food"] == []
+    assert r.world.empty_ids == set() and r.world.refused == {701: 480.0} and r.world.by_use()["food"] == []
     assert d["inputs"]["consume_refused"] == 701 and d["inputs"]["need"] == "food" and d["inputs"]["cooled"] is None
     r.frame(hunger=0.3)
     tick(r, sv)
@@ -905,3 +905,26 @@ def test_an_unmapped_threat_square_is_never_read_blocked(tmp_path):
     r.scan(house(1, 110))
     r.frame(x=111.5, y=201.5, zombies=[zombie(1, 115.5, 201.5)])   # east of the house: no square mapped there
     assert tick(r, sv) is not None and threat_why(tmp_path).get("flee") != "held_inside"
+
+
+def test_a_refused_food_is_eaten_again_after_refused_ttl_min(tmp_path):
+    """P23-AD: the refusal lasts 120 world minutes, not the session."""
+    r, sv = make(tmp_path)
+    held(r, (701, "Base.Apple"))
+    r.frame(hunger=0.3)
+    tick(r, sv)
+    r.answer({"state": "failed", "reason": "not valid"})
+    r.frame(hunger=0.3)                                                # the refusal read at 480
+    tick(r, sv)
+    assert r.world.refused == {701: 480.0}
+    for _ in range(S.FAILED_COOLDOWN_TICKS):                           # +60, past the command cool-down: still refused
+        if r.acts.current is not None:
+            r.answer()
+        r.frame(hunger=0.3, game_min=540.0)
+        tick(r, sv)
+    assert [a.type for a in r.acts.history].count("consume") == 1
+    if r.acts.current is not None:
+        r.answer()
+    r.frame(hunger=0.3, game_min=601.0)                                # +121: food again
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 701})

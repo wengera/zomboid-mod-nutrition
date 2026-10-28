@@ -58,9 +58,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   `needs_wanted` for `view.NEED_MEMORY_S`; a held item of the use found clears its mark.
 - The empties (P23-D): a `Consume` whose action ended `failed "not valid"` on an id `by_use()` reads `water` marks it
   empty (`world.mark_empty`), so the next tick takes the next bottle and `spare()` may drop it; on an id it reads
-  `food` marks it refused (`world.mark_refused`, fix wave P I-4: `by_use` then reads it `other`, so the need never
-  retries it and takes the next food), logged as inputs.consume_refused on the tick that read the end (else None), as
-  is any other id refused so (one no longer held when the end was read), which is never marked.
+  `food` marks it refused (`world.mark_refused`, fix wave P I-4, P23-AD: `by_use` then reads it `other` for
+  `world.REFUSED_TTL_MIN` world minutes, so the need does not retry it meanwhile and takes the next food), logged as
+  inputs.consume_refused on the tick that read the end (else None), as is any other id refused so (one no longer
+  held when the end was read), which is never marked.
 - `goal` (Plan 23 Task 13, P23-10; ruling P23-F): `goals.GoalRunner` over the goal source (`source`, default
   `goals.ScriptedSource()`; Task 14's LLM source shares the seam), whose module docstring is the design record: one
   goal at a time, proposed from `view.view(world, self)` (built only on a tick that proposes) when none runs,

@@ -736,5 +736,25 @@ def test_mark_refused_drops_a_food_from_by_use_and_to_json_carries_it_only_when_
     assert w.by_use()["food"] == [3] and 8 in w.by_use()["other"]
     assert json.loads(w.to_json())["refusedIds"] == [8]
     w.apply(event("item_removed", itemId=8))
-    assert w.refused_ids == set() and "refusedIds" not in json.loads(w.to_json())
+    assert w.refused == {} and "refusedIds" not in json.loads(w.to_json())
     assert "refusedIds" not in golden
+
+
+def test_a_refusal_excludes_the_food_for_refused_ttl_min_world_minutes_only():
+    """P23-AD: a refused food reads `other` for REFUSED_TTL_MIN (120) world minutes from its refusal, then food again;
+    `refusedIds` names the ids excluded now, and is absent once none is."""
+    from agent.base.world import REFUSED_TTL_MIN
+    assert REFUSED_TTL_MIN == 120
+    w, twin = World(), World()                                         # the twin never refuses
+    for x in (w, twin):
+        x.apply(frame(0, gameMin=1400.0, worldAge=1400.0 / 60.0))
+        x.apply(event("item_added", itemId=8, fullType="Base.Apple", weight=0.2))
+    w.mark_refused(8)
+    assert w.refused == {8: 1400.0}
+    w.apply(frame(0, gameMin=20.0, worldAge=1460.0 / 60.0))           # +60, past midnight
+    assert w.by_use()["food"] == [] and 8 in w.by_use()["other"]
+    assert json.loads(w.to_json())["refusedIds"] == [8]
+    for x in (w, twin):
+        x.apply(frame(0, gameMin=81.0, worldAge=1521.0 / 60.0))       # +121
+    assert w.by_use()["food"] == [8] and "refusedIds" not in json.loads(w.to_json())
+    assert w.to_json() == twin.to_json()                               # nothing refused now: the same bytes

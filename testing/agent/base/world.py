@@ -56,9 +56,12 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
 - `by_use()`: the inventory's ids by the item's own `use` (the engine's answer, Plan 23 Task 9b), else `agent.base.items.use_of` (the dataset), an id the
   planner marked empty (`mark_empty`, kept in `empty_ids` and dropped with its item) moved from `water` to `other`,
   and an id the planner found refused (`mark_refused`, fix wave P I-4: a food whose consume ended `failed "not
-  valid"`, kept in `refused_ids` and dropped with its item) moved from `food` to `other`;
-  `nearest_unlooted(want)` keys on the same use. `to_json` carries `emptyIds` and `refusedIds` sorted, each only while
-  it is non-empty,
+  valid"`, kept in `refused` {id: the world minute of its refusal} and dropped with its item) moved from `food` to
+  `other` for REFUSED_TTL_MIN (120) world minutes from the refusal only (ruling P23-AD: a refusal may be passing, the
+  vanilla eat refusing a character that ate too much lately), so `spare()` may drop a refused food only inside that
+  window;
+  `nearest_unlooted(want)` keys on the same use. `to_json` carries `emptyIds` and `refusedIds` (the ids excluded now)
+  sorted, each only while it is non-empty,
   so a World that never marked one serialises as before (the replay goldens keep their bytes). For the same reason a
   container's `looted` set serialises as its uses sorted, or `false` while it is empty.
 """
@@ -70,6 +73,7 @@ from agent.base.items import USES, use_of
 
 ZOMBIE_TTL_S = 10
 STUCK_TTL_MIN = 60   # game minutes an edge whose walk ended stuck is left out of unexplored_edge
+REFUSED_TTL_MIN = 120   # world minutes a food whose consume was refused `not valid` reads `other` (P23-AD)
 GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 DEQUE_N = 500
 
@@ -100,7 +104,7 @@ class World:
         self.buildings = set()
         self.inventory = {}          # itemId -> {fullType, weight}
         self.empty_ids = set()       # the held ids the planner found empty (mark_empty), never a line's
-        self.refused_ids = set()     # the held food ids whose consume the Lua refused (mark_refused), never a line's
+        self.refused = {}            # held food id -> world minute the Lua refused its consume (mark_refused)
         self.damage = deque(maxlen=DEQUE_N)
         self.damage_seen_i = set()   # the damage.watch record numbers already merged
         self.damage_counts_server = None
@@ -198,7 +202,7 @@ class World:
             if self.inventory.pop(line.get("itemId"), None) is None:
                 self.missing_items += 1
             self.empty_ids.discard(line.get("itemId"))
-            self.refused_ids.discard(line.get("itemId"))
+            self.refused.pop(line.get("itemId"), None)
         elif kind == "damage":
             self.damage.append({"tag": line.get("tag"), "amount": line.get("amount"), "side": line.get("side"),
                                 "wallMs": line.get("wallMs")})
@@ -434,18 +438,25 @@ class World:
         self.empty_ids.add(item_id)
 
     def mark_refused(self, item_id):
-        """Remember a held food the Lua refused to consume (the planner's, never a line's): `by_use` moves it from
-        `food` to `other`, so the need never picks it again."""
-        self.refused_ids.add(item_id)
+        """Remember a held food the Lua refused to consume, at the current world minute (the planner's, never a
+        line's): `by_use` reads it `other` for REFUSED_TTL_MIN world minutes, so the need does not pick it again
+        meanwhile (and `spare()` may drop it only then); afterwards it is food again."""
+        self.refused[item_id] = self.world_minutes()
+
+    def refused_now(self):
+        """The ids whose refusal is younger than REFUSED_TTL_MIN world minutes."""
+        now = self.world_minutes()
+        return {i for i, at in self.refused.items() if now - at < REFUSED_TTL_MIN}
 
     def by_use(self):
         """{use: [ids sorted]} for every use in USES: the inventory's ids by the item's `use` (else `items.use_of` of
-        its fullType), an id in `empty_ids` read as `other` rather than `water`, one in `refused_ids` as `other` rather
-        than `food`."""
+        its fullType), an id in `empty_ids` read as `other` rather than `water`, one refused within REFUSED_TTL_MIN
+        (`refused_now`) as `other` rather than `food`."""
         out = {u: [] for u in USES}
+        refused = self.refused_now() if self.refused else ()
         for iid, it in self.inventory.items():
             use = it.get("use") or use_of(it.get("fullType"))
-            if (use == "water" and iid in self.empty_ids) or (use == "food" and iid in self.refused_ids):
+            if (use == "water" and iid in self.empty_ids) or (use == "food" and iid in refused):
                 use = "other"
             out[use].append(iid)
         return {u: sorted(v, key=_num_first) for u, v in out.items()}
@@ -479,6 +490,7 @@ class World:
         })
         if self.empty_ids:
             d["emptyIds"] = sorted(self.empty_ids, key=_num_first)
-        if self.refused_ids:
-            d["refusedIds"] = sorted(self.refused_ids, key=_num_first)
+        refused = self.refused_now() if self.refused else ()
+        if refused:
+            d["refusedIds"] = sorted(refused, key=_num_first)
         return json.dumps(d, sort_keys=True, indent=1, ensure_ascii=False)
