@@ -35,7 +35,8 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
 - `Explore`: it scans per 10-tile place, spec § 6's "once at a new building or on request" read as the place
   grid: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
   `scanned` from its send and dropped again when the scan ends other than `done`, so a pre-empted, timed-out or
-  rejected scan is retried), then a `WalkTo` at a walk to `world.unexplored_edge()`; no edge, no command. A walk
+  rejected scan is retried, and dropped when the World names the last scan's aid in `scans_dropped`, a job the Lua
+  dropped after its `done` line (ruling S-32), so that place is scanned again), then a `WalkTo` at a walk to `world.unexplored_edge()`; no edge, no command. A walk
   that ends `failed` with a reason in `STUCK_REASONS` has its target marked in the World (`world.mark_stuck`), and
   `unexplored_edge` leaves it out for `STUCK_TTL_MIN` (60) game minutes, so it is never re-sent inside them (the
   whole-pass review's I4: run 1 re-sent a walk that failed `stuck` to the same edge 20 times).
@@ -266,6 +267,7 @@ class Explore(Policy):
         self.scanned = set()   # the places scanned from, or with a scan still running
         self._scan = None      # (place, Action) of the last scan sent, until it ends
         self._walk = None      # ((x, y), Action) of the last walk sent, until it ends
+        self._last = None      # (aid, place) of the last scan sent: its job may still be dropped after its done line
 
     def place(self):
         """The player's square on a uniform SCAN_R grid (half up, never Python's half-even round)."""
@@ -278,6 +280,9 @@ class Explore(Policy):
             self._walk = None
             if a.state == "failed" and a.reason in STUCK_REASONS:
                 self.world.mark_stuck(x, y)
+        if self._last is not None and self._last[0] in self.world.scans_dropped:
+            self.scanned.discard(self._last[1])   # S-32: the job stopped short of its parts, the scan stays done
+            self._last = None
         if self._scan is None or not self.actions.done(self._scan[1]):
             return
         place, a = self._scan
@@ -300,6 +305,7 @@ class Explore(Policy):
         if cmd.TYPE == "scan":
             self.scanned.add(self.place())
             self._scan = (self.place(), action)
+            self._last = (action.aid, self.place())
         elif cmd.TYPE == "walkTo":
             self._walk = ((cmd.x, cmd.y), action)
 

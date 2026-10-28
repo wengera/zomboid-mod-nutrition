@@ -26,8 +26,9 @@
 -- lua_error event once a second (its flush under its own pcall, so the handler never raises). The map phase runs under
 -- its own pcall besides (ruling S-15 extended to the map): a raise there counts in PZA.errors and PZA.map.errors, is
 -- named raise:map in PZA.map.missing and reports as a lua_error under the same once-a-second limit, a running scan job is
--- dropped (its walk would retry the raising square every tick) and its scan's aid ends failed interrupted, and the tick
--- goes on to emit its frame and flush; a scan start that raises is answered failed interrupted the same way.
+-- dropped (its walk would retry the raising square every tick) and named by one scan_dropped event (ruling S-32: its scan
+-- keeps its one act line, done), and the tick goes on to emit its frame and flush; a scan start that raises is answered
+-- failed interrupted, its one act line.
 PZA.main = PZA.main or {}
 local M = PZA.main
 PZA.tick = 0
@@ -120,7 +121,7 @@ end
 -- { hz }, or rejected bad args (an empty aid, a bad argument) or not loaded (the player's position unreadable), or
 -- failed interrupted when PZA.map.scanStart raised (X4 fix pass 2.8, fix-wave review Minor 6: under its own pcall, a
 -- map raise counted, so the scan is never left without its line; a running job is kept). A started job carries the
--- scan's aid (the map phase ends it failed if it drops the job). Neither touches the runner's skill. Answers true
+-- scan's aid (a job the map phase drops is named by a scan_dropped event, never a second act line: ruling S-32). Neither touches the runner's skill. Answers true
 -- when cmd was one of the two.
 local function mainCommand(cmd, p)
     local typ = cmd.type
@@ -162,16 +163,17 @@ local function mapStep(p)
 end
 
 -- a raise in the map phase (S-15): counted and named on the map and reported, the job dropped; a dropped job's scan
--- (answered done at its start) gets a second act line, failed interrupted (X4 fix pass 2.8, fix-wave review Minor 5),
--- so a planner reading the aid's last line never takes a part-walked scan for a whole one
-local function mapRaised(err, p)
+-- (answered done at its start, its one act line: P22-5) is named by one scan_dropped event { scanId, aid, part (the
+-- part being walked), parts, reason (the raise's message, as lua_error's msg) } (ruling S-32), never a second act line,
+-- so the planner scans that place again
+local function mapRaised(err)
     local MP = PZA.map
     local job = MP.job
     MP.job = nil
     countMapRaise(err)
     if job ~= nil and job.aid ~= nil then
-        PZA.emit("act", { aid = job.aid, type = "scan", state = "failed", reason = "interrupted", result = {},
-                          snapshot = PZA.skills.snapshot(p) })
+        PZA.emit("event", { event = "scan_dropped", gameMin = gameMin(), scanId = job.id, aid = job.aid,
+                            part = job.ticks + 1, parts = job.parts, reason = tostring(err) })
     end
 end
 
@@ -200,7 +202,7 @@ local function body()
     end
     local t2 = PZA.now()
     local okMap, errMap = pcall(mapStep, p)
-    if not okMap then mapRaised(errMap, p) end
+    if not okMap then mapRaised(errMap) end
     local t3 = PZA.now()
     local pollMs, startMs, actMs, senseMs, mapMs = t0 - tp, ts - t0, t1 - ts, t2 - t1, t3 - t2
     noteMax("poll", pollMs); noteMax("start", startMs); noteMax("act", actMs)

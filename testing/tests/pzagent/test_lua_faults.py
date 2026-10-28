@@ -383,8 +383,10 @@ def test_a_raising_scan_step_drops_the_job_and_the_watch_takes_over():
     g._handlers[0]()
     out = live_lines(lua, fs)
     s1 = [l for l in out if l["kind"] == "act" and l["aid"] == "s1"]
-    assert [(l["state"], l["reason"]) for l in s1] == [("done", ""), ("failed", "interrupted")]   # 2.8: never waited on
-    assert s1[1]["type"] == "scan" and s1[1]["snapshot"] is not None
+    assert [(l["state"], l["reason"]) for l in s1] == [("done", "")]   # S-32: one act line, never a second terminal one
+    (drop,) = [l for l in out if l["kind"] == "event" and l["event"] == "scan_dropped"]
+    assert (drop["scanId"], drop["aid"], drop["part"], drop["parts"]) == (1, "s1", 1, 3)
+    assert "getObjects" in drop["reason"]
     assert len([l for l in out if l["kind"] == "frame"]) == 2
     assert len([l for l in out if l["kind"] == "map"]) == 0 and lua.eval("PZA.map.errors") == 2
 
@@ -419,5 +421,27 @@ def test_a_job_dropped_by_the_map_phase_names_its_scans_aid_once():
         g._handlers[0]()                                      # the job drops on the first; the watch raises after
     out = live_lines(lua, fs)
     s1 = [l for l in out if l["kind"] == "act" and l["aid"] == "s1"]
-    assert [l["state"] for l in s1] == ["done", "failed"]
+    assert [l["state"] for l in s1] == ["done"]               # S-32: the scan's one act line stays its only one
     assert [l for l in out if l["kind"] == "act" and l["aid"] != "s1"] == []
+    drops = [l for l in out if l["kind"] == "event" and l["event"] == "scan_dropped"]
+    assert [(d["aid"], d["scanId"]) for d in drops] == [("s1", 1)]   # once: the watch's later raises drop no job
+
+
+# ---- X4 fix pass fix 1 (ruling S-32): a dropped job is one scan_dropped event, never a second act line ---------------
+
+def test_a_scan_dropped_after_its_first_part_names_the_part_it_was_walking():
+    lua, fs, g = raising_square_host()
+    lua.execute("PZA.map.WATCH_EVERY = 6")                    # the watch off these ticks: only the job's step runs
+    lua.execute("PZA.map.square = function(sq, missing) return { x = 0, y = 0, z = 0 } end")
+    lua.execute("_steps = 0; local st0 = PZA.map.scanStep; PZA.map.scanStep = function(p) _steps = _steps + 1;"
+                " if _steps == 2 then error('java raised: part two') end; return st0(p) end")
+    fs.files[CMD] = json.dumps({"seq": 1, "aid": "s2", "type": "scan", "args": {"r": 3}}) + "\n"
+    for _ in range(3):
+        g._clock["ms"] += 1000
+        g._handlers[0]()
+    out = live_lines(lua, fs)
+    assert [l["state"] for l in out if l["kind"] == "act" and l["aid"] == "s2"] == ["done"]
+    (drop,) = [l for l in out if l["kind"] == "event" and l["event"] == "scan_dropped"]
+    assert (drop["scanId"], drop["aid"], drop["part"], drop["parts"]) == (1, "s2", 2, 3)
+    assert "part two" in drop["reason"] and drop["gameMin"] is not None
+    assert lua.eval("PZA.map.job") is None and len([l for l in out if l["kind"] == "map"]) == 1

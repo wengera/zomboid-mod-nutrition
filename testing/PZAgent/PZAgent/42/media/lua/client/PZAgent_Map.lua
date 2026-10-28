@@ -285,7 +285,8 @@ function MP.watchDue(tick)
 end
 
 -- the watch: the next WATCH_PER_FRAME squares of the ring round the player's square (MP.watchIdx cycling over its
--- (2 WATCH_R + 1)^2 indexes, row by row, the ring re-centred each step), each fingerprinted; a square whose
+-- (2 WATCH_R + 1)^2 indexes, row by row, the ring re-centred each step), each fingerprinted; MP.fp is keyed on the
+-- player's floor (math.floor(z): a fractional z on a stair keeps its keys; X4 fix pass fix 1, review M-2); a square whose
 -- fingerprint is not MP.fp's is read whole and queued as a delta when its dirty key (MP.watchKey: the encoding without
 -- light) is not MP.seen's and its last delta is DELTA_MIN_TICKS ticks old or more (a held change keeps its old
 -- fingerprint, so it is read again on a later cycle). An absent square still takes its index. Answers the deltas
@@ -297,7 +298,7 @@ function MP.watchStep(p)
     local r = MP.WATCH_R
     local side = 2 * r + 1
     local n = side * side
-    local px, py = math.floor(x), math.floor(y)
+    local px, py, fz = math.floor(x), math.floor(y), math.floor(z)
     local tick = PZA.tick or 0
     local seen, last, fps, watchKey = MP.seen, MP.lastDelta, MP.fp, MP.watchKey
     local queued = 0
@@ -307,7 +308,7 @@ function MP.watchStep(p)
         local gx, gy = px + i % side - r, py + math.floor(i / side) - r
         local _, sq = PZA.call(cell, "getGridSquare", gx, gy, z)
         if sq ~= nil then
-            local gk = MP.key(gx, gy, z)
+            local gk = MP.key(gx, gy, fz)
             local f = MP.fingerprint(sq)
             if f ~= fps[gk] then
                 local q = MP.square(sq, MP.missing)

@@ -61,6 +61,7 @@ PZA.schema = {
         door = { "x", "y", "z", "open" },
         lua_error = { "msg" },
         overflow = { "queued", "cut" },
+        scan_dropped = { "scanId", "aid", "part", "parts", "reason" },
     },
 }
 

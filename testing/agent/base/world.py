@@ -14,7 +14,9 @@ It reads what the transport gives: keyed full dicts, every delta frame already m
   line's missing names in first-seen order.
 - `event`: every event line in `events` (deque 500); `item_added`/`item_removed` build `inventory[itemId] =
   {fullType, weight}` (ruling P22-2), an unknown id's removal counted in `missing_items`; a client `damage` event
-  appends `{tag, amount, side, wallMs}` to `damage` (deque 500); `zombie_dead` drops the zombie.
+  appends `{tag, amount, side, wallMs}` to `damage` (deque 500); `zombie_dead` drops the zombie; `scan_dropped`
+  (ruling S-32: a scan job the Lua dropped after its one act line, done) adds the scan's aid to `scans_dropped`, which
+  `to_json` does not carry (the planner reads it; the line itself is in `events`).
 - `act`: `acts[str(aid)]` the last act line for the aid. `hello`: the last hello line, and a new session: the Lua
   restarts its `scanId` and the server's `damage.watch` record numbers restart with the server, so a hello resets the
   newest scanId seen and `damage_seen_i` (else a relaunched client's scans would all be dropped as older).
@@ -84,6 +86,7 @@ class World:
         self.unknown_kinds = 0
         self.missing_items = 0
         self.dropped_scans = 0
+        self.scans_dropped = set()   # the aids of the scans whose job the Lua dropped (scan_dropped, S-32)
         self.map_lines = 0
         self.stuck = {}              # (x, y) -> gameMin: a walk target that ended stuck, set by the planner
         self._newest_scan = None
@@ -164,6 +167,8 @@ class World:
                                 "wallMs": line.get("wallMs")})
         elif kind == "zombie_dead":
             self.zombies.pop(line.get("id"), None)
+        elif kind == "scan_dropped":
+            self.scans_dropped.add(str(line.get("aid")))
 
     # -- the server's side ----------------------------------------------------------------------------------------
     def merge_server(self, stats, wall_ms):

@@ -396,3 +396,21 @@ def test_a_frame_written_before_the_append_decodes_with_the_new_fields_none_and_
         bad[i] = (arr[i] + [0] * n)[:n]
         with pytest.raises(ValueError):
             pza1.decode(bad)
+
+
+# ---- X4 fix pass fix 1 (ruling S-32, review M-1): the scan_dropped event and the door event's reach ------------------
+
+def test_scan_dropped_is_an_event_kind_with_its_fields_and_round_trips():
+    assert "scan_dropped" in pza1.EVENT_KINDS
+    assert pza1.EVENT_FIELDS["scan_dropped"] == ("scanId", "aid", "part", "parts", "reason")
+    body = {"seq": 4, "tick": 9, "wallMs": 1, "event": "scan_dropped", "gameMin": 480.0, "scanId": 2, "aid": "a3",
+            "part": 2, "parts": 3, "reason": "java raised"}
+    assert pza1.decode(json.loads(pza1.encode("event", body))) == dict(body, kind="event")
+    props = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["event_scan_dropped"]["properties"]
+    assert [props[f]["type"] for f in ("scanId", "aid", "part", "parts", "reason")] == [
+        "integer", "string", "integer", "integer", "string"]
+
+
+def test_the_door_event_names_the_watchs_ring_and_its_lag():
+    d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["event_door"]["description"]
+    assert "6-tile ring" in d and "2.3 s" in d and "10 Hz" in d

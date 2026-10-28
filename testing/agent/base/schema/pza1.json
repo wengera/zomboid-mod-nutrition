@@ -47,7 +47,7 @@
     "eventKind": {
       "description": "The kind of an engine event line.",
       "type": "string",
-      "enum": ["damage", "swing", "zombie_dead", "item_added", "item_removed", "door", "lua_error", "overflow"]
+      "enum": ["damage", "swing", "zombie_dead", "item_added", "item_removed", "door", "lua_error", "overflow", "scan_dropped"]
     },
     "mapMode": {
       "description": "Whether a map scan sends every square in range or only the changed ones.",
@@ -377,7 +377,8 @@
         {"$ref": "#/$defs/event_item_removed"},
         {"$ref": "#/$defs/event_door"},
         {"$ref": "#/$defs/event_lua_error"},
-        {"$ref": "#/$defs/event_overflow"}
+        {"$ref": "#/$defs/event_overflow"},
+        {"$ref": "#/$defs/event_scan_dropped"}
       ]
     },
     "event_damage": {
@@ -432,7 +433,7 @@
       "required": ["itemId", "fullType"]
     },
     "event_door": {
-      "description": "A door changed state.",
+      "description": "A door changed state, read off the map's records: a scanned square, or the watch's 6-tile ring round the player on the player's floor. The watch steps at 10 Hz over the ring, so the event can lag up to about 2.3 s standing still, one watch cycle (132 ticks) and the next frame's drain; longer while moving (the ring re-centres every step) or when the square's last delta is under 30 ticks old (held one more cycle).",
       "x-role": "event",
       "properties": {
         "event": {"description": "The event's kind.", "const": "door"},
@@ -461,6 +462,19 @@
         "cut": {"description": "The number of lines cut.", "type": "integer"}
       },
       "required": ["queued", "cut"]
+    },
+    "event_scan_dropped": {
+      "description": "A scan job the map phase dropped on a Lua raise before its last part (ruling S-32): the scan's one act line, done at its start, stays its only one, and this event says its parts stopped, so the planner scans that place again.",
+      "x-role": "event",
+      "properties": {
+        "event": {"description": "The event's kind.", "const": "scan_dropped"},
+        "scanId": {"description": "The dropped job's scanId.", "type": "integer"},
+        "aid": {"description": "The scan command's aid.", "type": "string"},
+        "part": {"description": "The part being walked when the raise came (the parts before it were sent).", "type": "integer"},
+        "parts": {"description": "The job's parts, as its done line's queued.", "type": "integer"},
+        "reason": {"description": "The raise's message, as a lua_error event's msg.", "type": "string"}
+      },
+      "required": ["scanId", "aid", "part", "parts", "reason"]
     },
 
     "act": {

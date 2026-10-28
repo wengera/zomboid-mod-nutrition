@@ -569,3 +569,24 @@ def test_a_fingerprint_names_the_portals_the_containers_and_the_floor_and_never_
     plain = lua.eval("PZA.map.fingerprint(...)", full_square(3, 4))
     for kw in ({"window": True}, {"box": True}, {"floor": True}):
         assert lua.eval("PZA.map.fingerprint(...)", full_square(3, 4, **kw)) != plain, kw
+
+
+# ---- X4 fix pass fix 1 (review M-2): the fingerprint keyed on the player's floor --------------------------------------
+
+def test_the_watchs_fingerprint_is_keyed_on_the_floor_so_a_player_at_z_0_4_and_0_6_shares_it(lua):
+    load(lua)
+    watch_world(lua)
+    pos = {"z": 0.4}
+    p = make_player(); p.getZ = lambda s: pos["z"]
+    seed_ring(lua, p)
+    count_full_reads(lua)
+    for t in range(1, 23):                                      # a whole cycle at z 0.4: each square read once
+        watch(lua, p, t)
+    assert lua.eval("_full") == 169
+    lua.execute("_full = 0")
+    pos["z"] = 0.6                                              # climbing a stair: the same floor
+    for t in range(23, 45):
+        watch(lua, p, t)
+    assert lua.eval("_full") == 0
+    keys = list(lua.eval("PZA.map.fp").keys())
+    assert len(keys) == 169 and all(k.endswith(",0") for k in keys)

@@ -372,6 +372,28 @@ def test_a_scan_that_ends_other_than_done_is_retried(tmp_path, end):
     assert [a.type for a in r.acts.history] == ["scan", "scan"]   # done: the place is scanned, no edge yet
 
 
+def test_a_scan_dropped_after_its_done_line_is_scanned_again(tmp_path):
+    r = Rig(tmp_path)
+    r.frame()
+    e = Explore(r.world, r.acts, r.clock)
+    e.step()
+    r.answer()                                               # done {queued}: the place is scanned
+    aid = r.acts.history[-1].aid
+    r.scan([square(100, 200)])
+    r.frame()
+    e.step()
+    assert r.cmd()[0] == "walkTo"
+    r.answer()
+    r.event("scan_dropped", scanId=1, aid=aid, part=2, parts=3, reason="java raised")   # S-32: the job cut short
+    assert r.acts.history[0].state == "done"                 # a finished action stays finished
+    e.step()
+    assert r.cmd() == ("scan", {"r": 10}) and [a.type for a in r.acts.history] == ["scan", "walkTo", "scan"]
+    r.answer()
+    r.event("scan_dropped", scanId=1, aid=aid, part=2, parts=3, reason="java raised")   # the old aid again: no effect
+    e.step()
+    assert [a.type for a in r.acts.history].count("scan") == 2
+
+
 def test_a_scan_that_times_out_is_retried(tmp_path):
     r = Rig(tmp_path)
     r.frame()

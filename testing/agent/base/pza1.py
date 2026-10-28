@@ -76,7 +76,7 @@ IKINDS = ("open", "close", "loot")
 FILTERS = ("food", "water", "weapon", "bandage", "all")
 ACT_STATES = ("accepted", "rejected", "progress", "done", "failed")
 MAP_MODES = ("full", "delta")
-EVENT_KINDS = ("damage", "swing", "zombie_dead", "item_added", "item_removed", "door", "lua_error", "overflow")
+EVENT_KINDS = ("damage", "swing", "zombie_dead", "item_added", "item_removed", "door", "lua_error", "overflow", "scan_dropped")
 # each event kind's own fields, flat beside event and gameMin
 EVENT_FIELDS = {
     "damage": ("tag", "amount", "side"),
@@ -87,6 +87,7 @@ EVENT_FIELDS = {
     "door": ("x", "y", "z", "open"),
     "lua_error": ("msg",),
     "overflow": ("queued", "cut"),
+    "scan_dropped": ("scanId", "aid", "part", "parts", "reason"),
 }
 
 

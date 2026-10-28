@@ -455,3 +455,15 @@ def test_the_plan_21_reasons_module_imports_unchanged_and_names_no_deleted_file(
         "21d3b07c8562024ff8aa32c1d35e889327e61256dd1f2a871efc96e6c2063a96")
     assert "PZAgent_Act" not in reasons.__doc__ and "pza1.REASONS" in reasons.__doc__
     assert reasons.REASONS != pza1.REASONS
+
+
+# ---- X4 fix pass fix 1 (ruling S-32): a dropped scan's aid kept for the planner ----------------------------------------
+
+def test_a_scan_dropped_event_records_its_scans_aid_and_never_touches_the_act():
+    w = World()
+    act = {"kind": "act", "seq": 2, "tick": 2, "wallMs": 0, "aid": "a1", "type": "scan", "state": "done", "reason": "",
+           "result": {"queued": 3}, "snapshot": None}
+    w.apply(act)
+    w.apply(event("scan_dropped", scanId=1, aid="a1", part=2, parts=3, reason="java raised"))
+    assert w.scans_dropped == {"a1"} and w.acts["a1"] is act
+    assert "scansDropped" not in json.loads(w.to_json())     # the planner's memory, like stuck: the goldens unchanged
