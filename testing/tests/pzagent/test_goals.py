@@ -565,7 +565,8 @@ def test_the_goal_budget_starts_when_the_goal_is_taken_not_while_pending(tmp_pat
 def test_a_goal_an_instinct_holds_without_sending_is_superseded_hold_after_the_hold_ticks(tmp_path):
     """M-7: a hold that sends nothing never moves the history, so the mark never reads it; GOAL_HOLD_SUPERSEDE_TICKS
     planner ticks of another branch answering with no send close the goal `superseded` (reason `hold`), never
-    `failed "goal budget"`. The hold here is the threat's inside a closed building (M-6)."""
+    `failed "goal budget"`. The hold here is the threat's inside a closed building (M-6). (Survival 2, P23-AJ 1: the
+    zombie moved from 3 to 4 tiles behind the wall, outside HOLD_BREAK_R, which breaks the hold at 3.0.)"""
     assert G.GOAL_HOLD_SUPERSEDE_TICKS == 20
     r = Rig(tmp_path)
     r.scan(house(1, 110))
@@ -576,11 +577,11 @@ def test_a_goal_an_instinct_holds_without_sending_is_superseded_hold_after_the_h
     assert g.TYPE == "Rest"
     for i in range(G.GOAL_HOLD_SUPERSEDE_TICKS):
         r.advance(0.5)
-        r.frame(x=111.5, y=201.5, zombies=[zombie(1, 108.5, 201.5)])   # behind the west wall, 3 tiles
+        r.frame(x=111.5, y=201.5, zombies=[zombie(1, 107.5, 201.5)])   # behind the west wall, 4 tiles
         sv.tick(r.world, r.acts)
         assert sv.last_branch == "threat" and g.state == "running", i
     r.advance(0.5)
-    r.frame(x=111.5, y=201.5, zombies=[zombie(1, 108.5, 201.5)])
+    r.frame(x=111.5, y=201.5, zombies=[zombie(1, 107.5, 201.5)])
     sv.tick(r.world, r.acts)
     assert (g.state, g.reason) == ("superseded", "hold") and sv.goals.history[0]["reason"] == "hold"
     assert r.acts.history == []
@@ -596,7 +597,7 @@ def test_a_hold_broken_by_the_goals_own_tick_restarts_the_count(tmp_path):
     for i in range(3 * G.GOAL_HOLD_SUPERSEDE_TICKS):
         r.advance(0.5)
         if i % G.GOAL_HOLD_SUPERSEDE_TICKS != 0:
-            r.frame(x=111.5, y=201.5, zombies=[zombie(1, 108.5, 201.5)])
+            r.frame(x=111.5, y=201.5, zombies=[zombie(1, 107.5, 201.5)])
         else:                                                            # one tick clear: the goal branch answers
             r.event("zombie_dead", id=1)
             r.frame(x=111.5, y=201.5)
