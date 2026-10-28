@@ -278,7 +278,7 @@ def test_boot_and_run_keeps_the_boots_order():
              "out[\"teardown_started_wall\"] = wall()",
              "xs.finish(B.bounded_teardown, hard_kill, every, read_logs=read_logs)",
              "run_after_teardown(after_teardown, out, ran)", "grade_fn(out)",
-             "out[\"finished\"] = True", "xs.copy_artifacts(repo, run_id, run_dir, artifact)",
+             "out[\"finished\"] = True", "copy_run(xs, repo, run_id, run_dir, artifact)",
              "next_steps(args, run_dir, xs.path)"]
     at = [body.index(s) for s in order]
     assert at == sorted(at), order

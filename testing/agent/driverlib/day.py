@@ -28,7 +28,8 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
   (P23-13) and the session's screenshots (ruling P23-AL): `shots`, else `day_shots(xs, clock)`, a shots.ShotTaker
   over the run dir aimed at the user's client process (`xs.clients[user].proc.pid`), None when no client process is
   known (the offline tests' fake clients), so every day driver gains the shots without a driver edit.
-- THE ARTIFACT'S FILES (testing/artifacts/<run_id>/, byte-identical, `xs.copy_artifacts` then `copy_shots_index`):
+- THE ARTIFACT'S FILES (testing/artifacts/<run_id>/, byte-identical, `copy_run`: `copy_shots_index` first, then
+  `xs.copy_artifacts`, whose raise is printed and never skips the index):
   the driver's artifact JSON, decision.log, the driver's `copied` files (f_goals: goals.log), and
   shots/shots.jsonl, the screenshots' index (`copy_shots_index`; shots.py's docstring). The images stay in the run
   dir (testing/runs/, gitignored): a write-up copies the ones it cites byte-identical into the artifact's shots/.
@@ -45,7 +46,7 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
   host's epoch seconds as the teardown begins: the gap from the last kept frame to the server's save, which the next
   session's lineage reads), the teardown, the park count, `after_teardown(out, ran)` when the driver passes one
   (f_goals: the LLM worker joined, so no join widens that gap; a fault lands in out["after_teardown_error"]), the
-  driver's grade, `finished`, the persist and the artifact copy (the shots' index beside it); the summary printed
+  driver's grade, `finished`, the persist and the artifact copy (copy_run: the shots' index first); the summary printed
   names the grade's report lines and `next` (next_steps: the `pzt snapshot` argv for the chain's next fixture and
   the next session's arguments).
 """
@@ -241,6 +242,18 @@ def next_steps(args, run_dir, artifact):
                          "refused)" % boot}
 
 
+def copy_run(xs, repo, run_id, run_dir, artifact):
+    """The run's files into testing/artifacts/<run_id>/: the shots' index first (copy_shots_index), then
+    xs.copy_artifacts (the artifact, the decision log, the copied files); its destination, or None when it raised
+    (printed, never raised: the index is already copied)."""
+    copy_shots_index(repo, run_id, run_dir)
+    try:
+        return xs.copy_artifacts(repo, run_id, run_dir, artifact)
+    except Exception as e:                               # noqa: BLE001 - the summary still prints
+        print("the artifact copy raised: %s: %s" % (type(e).__name__, e))
+        return None
+
+
 def run_after_teardown(fn, out, ran):
     """fn(out, ran) when given; a fault lands in out["after_teardown_error"], never raised (the finally goes on)."""
     if fn is None:
@@ -333,8 +346,7 @@ def boot_and_run(args, preboot, run_session, grade_fn, *, key, driver, artifact,
         grade_fn(out)
         out["finished"] = True
         xs.persist()
-        xs.copy_artifacts(repo, run_id, run_dir, artifact)
-        copy_shots_index(repo, run_id, run_dir)
+        copy_run(xs, repo, run_id, run_dir, artifact)
     print(json.dumps({"run_id": run_id, "run_dir": run_dir, "error": out.get("error"), "abort": out.get("abort"),
                       "phase_errors": {k: v.get("error") for k, v in out.get("phase_errors", {}).items()},
                       "budget_stop": out.get("budget_stop"), "stop": out.get("stop"), "chain": out.get("chain"),

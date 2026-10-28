@@ -30,7 +30,8 @@ quality SHOT_QUALITY, written to <run dir>/shots/shot-<n:04d>-<seq>.jpg, and one
 {n, file, bytes, sha256, wallMs, pyMs (the taker's clock at the grab, ms), seq, gameMin, health, branch, flee, fight,
 goal, decision_line, trigger, window {found, rect}, grab_ms (the grab, the scale and the write, ms)}. A write-up
 matches `seq` against state.log and `decision_line` against decision.log. A finder or grab that raises is counted
-(`failures`, the last message kept), the try still resets the cadence, and nothing reaches the loop.
+(`failures`, the last message kept), the try still resets the cadence, and nothing reaches the loop; a fault in
+the worker's pass itself (`due`) is counted too ("worker: ...") and the worker goes on, so the finals still land.
 ImageGrab reads the screen's pixels: a window behind another shows the one in front, so the client is left uncovered.
 """
 import ctypes
@@ -249,7 +250,13 @@ class ShotTaker:
 
     def _run(self):
         while not self._halt.is_set():
-            took = self.run_due()
+            try:
+                took = self.run_due()
+            except Exception as e:                       # noqa: BLE001 - the worker outlives a fault
+                took = 0
+                with self._lock:
+                    self.failures += 1
+                    self.last_error = "worker: %s: %s" % (type(e).__name__, e)
             with self._lock:
                 done = self._closing and not self._final
             if done:

@@ -363,3 +363,43 @@ def test_the_drivers_are_not_edited():
     for drv in ("e_day_2.py", "f_goals.py"):
         src = open(os.path.join(drivers, drv), encoding="utf-8").read()
         assert "ShotTaker" not in src and "shots=" not in src and "driverlib.shots" not in src, drv
+
+
+# ================================================================ fix 1 (the shots review's residuals)
+def test_a_due_that_raises_once_keeps_the_worker_and_its_final_shots(tmp_path):
+    c = Clock()
+    t = SH.ShotTaker(str(tmp_path), grab=fake_grab(), find=lambda pid: RECT, clock=c.now, idle_s=0.005)
+    real, calls = t.due, {"n": 0}
+
+    def due():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("due broke")
+        return real()
+    t.due = due
+    t.mark(moment(seq=1))
+    t.start()
+    t0 = time.time()
+    while t.summary()["n"] < 1 and time.time() - t0 < 5:
+        time.sleep(0.005)
+    t.mark(moment(seq=2, health=0.0), final="stop")
+    assert t.end(timeout_s=5.0) is True
+    assert [r["trigger"] for r in index(tmp_path)] == ["cadence", "stop"]
+    s = t.summary()
+    assert s["failures"] == 1 and s["last_error"] == "worker: RuntimeError: due broke"
+
+
+def test_an_artifact_copy_that_raises_still_leaves_the_index(tmp_path):
+    run_dir, repo = tmp_path / "run", tmp_path / "repo"
+    (run_dir / "shots").mkdir(parents=True)
+    (run_dir / "shots" / "shots.jsonl").write_bytes(b'{"n": 1}\n')
+
+    def boom(*a):
+        raise OSError("disk full")
+    xs = types.SimpleNamespace(copy_artifacts=boom)
+    assert DY.copy_run(xs, str(repo), "r-1", str(run_dir), "a.json") is None
+    dest = repo / "testing" / "artifacts" / "r-1" / "shots" / "shots.jsonl"
+    assert dest.read_bytes() == b'{"n": 1}\n'
+    src = open(DY.__file__, encoding="utf-8").read()
+    body = src[src.index("def boot_and_run("):]
+    assert "copy_run(xs, repo, run_id, run_dir, artifact)" in body and "xs.copy_artifacts(" not in body
