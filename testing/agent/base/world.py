@@ -49,7 +49,9 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
 - `line_clear(a, b)`: Bresenham over the squares from `a` to `b` (positions floored, on the player's floor), false at
   any blocked edge a step crosses (`blocked`) or any solid or unknown square strictly between the ends. It reads the
   blocked edges, never `edgeN`/`edgeW` (any wall, window or door edge whatever its state), which the square record
-  keeps for the view and a later sight reading (ruling P23-K).
+  keeps for the view and a later sight reading (ruling P23-K). With `unknown_open=True` (the flee's steer probe, Plan
+  23 survival 1 fix round 2) an unknown square is open ground: only a known solid square, or a blocked edge between
+  two known squares, refuses the line.
 - `reachable_adjacent(target_xy, z)`, `interiors()`, `doors_of(building)`. The map walk behind the last two is cached
   per map version (fix wave P, M-4): `map_version` rises on every square applied, and `_index()` (one walk: the room
   squares and the door squares by building) is rebuilt lazily on the first read after it moved; `memo(key, fn)`
@@ -391,14 +393,19 @@ class World:
             out.append((x0, y0))
         return out
 
-    def line_clear(self, a, b):
+    def line_clear(self, a, b, unknown_open=False):
         """Whether the line from position `a` to `b` ((x, y) floats, on the player's floor) crosses no blocked edge
         and no solid or unknown square strictly between its end squares. The walk is Bresenham's on the floored ends
-        (integer squares), not the float line between the two positions."""
+        (integer squares), not the float line between the two positions. `unknown_open`: an unknown square is
+        neither solid nor bounded by a blocked edge (the module docstring)."""
         z = me_floor(self)
         cells = self._bresenham(int(math.floor(a[0])), int(math.floor(a[1])), int(math.floor(b[0])),
                                 int(math.floor(b[1])))
         sqs = [(x, y, z) for x, y in cells]
+        if unknown_open:
+            if any(sq in self.map and self._solid(sq) for sq in sqs[1:-1]):
+                return False
+            return not any(p in self.map and q in self.map and self.blocked(p, q) for p, q in zip(sqs, sqs[1:]))
         if any(self._solid(sq) for sq in sqs[1:-1]):
             return False
         return not any(self.blocked(p, q) for p, q in zip(sqs, sqs[1:]))

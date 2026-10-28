@@ -30,7 +30,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   (`Fight.stalled`: its target beyond FIGHT_REACH for more than FIGHT_MAX_S unbroken seconds), never because a
   threat count dropped; the stall guard reads the distance to the Fight's target (`Fight.target_dist()`, the pinned
   one), the zombie its stall clock follows, never the nearest held one (Task 10's review M3). The flee steers from
-  the held threats (`policies.Flee`: its first leg away from each by 1/distance, then from their centroid).
+  the held threats (`policies.Flee`: every leg away from each by 1/distance, turned off a known edge and off a
+  held group ahead).
 - The flee to shelter (ruling P23-AG 1, fix round 1): each flee episode's `Flee` takes the night's shun store and, at
   its first choose, a known building's exterior door within `policies.SHELTER_FLEE_R` with no zombie in its corridor
   and none inside the building; it then runs the night's shelter steps at a run, a failed step falling back to the
@@ -282,11 +283,13 @@ class Survive:
                     self.flee = None   # a door fight keeps the sheltered Flee for the re-close
                 self.stall_flee, self.flee_dropped = False, False
             else:
-                if self.flee is None:
+                if self.flee is None or not self.sheltered:   # only a sheltered Flee outlives a door fight
                     self.flee = Flee(self.world, self.actions, self.clock, shunned=self.night.shunned)
                 self.fight = None
                 self.stall_flee = reason == "stalled"
             self.mode = want
+        if want == "fight" and door is None:
+            self.flee = None   # a door fight that left the room: the stale shelter plan goes (the next flee re-picks)
         policy = self.fight if want == "fight" else self.flee
         if want == "flee":
             policy.threats = held

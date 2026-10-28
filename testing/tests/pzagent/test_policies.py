@@ -329,7 +329,7 @@ def test_a_leg_points_away_from_the_nearer_threat_where_the_centroid_would_not(t
     assert args["vx"] == pytest.approx(wx / n) and args["vy"] == pytest.approx(wy / n)
     assert args["vx"] * 1.0 + args["vy"] * 1.0 < 0.0             # away from the nearer threat at (+1, +1)
     assert (1.0 * 1.0 + -0.5 * 1.0) > 0.0                        # the centroid's leg would have closed on it
-    assert args["gait"] == "sprint" and f.why["turn"] is None    # unmapped ground: the heading is kept
+    assert args["gait"] == "sprint" and f.why["turn"] == 0       # unmapped ground is open to the steer (fix 2)
     r.answer()
     r.frame(x=100.0, y=199.0, zombies=[zombie(1, 97.0, 199.0, me=(100.0, 199.0)), zombie(2, 101.0, 200.0,
                                                                                          me=(100.0, 199.0))])
@@ -907,7 +907,7 @@ def test_a_fence_ahead_turns_the_heading_to_the_nearest_clear_one(tmp_path):
     assert (P.STEER_PROBE, P.STEER_TURNS, P.STUCK_MOVE) == (3.0, (0, 30, -30, 60, -60, 90, -90), 0.5)
 
 
-def test_a_leg_that_did_not_move_turns_the_next_from_its_heading(tmp_path):
+def test_a_leg_that_did_not_move_turns_the_next_from_the_new_away_vector(tmp_path):
     r = Rig(tmp_path)
     r.scan(grid(90, 110, 190, 212))
     me = (100.5, 201.5)
@@ -916,13 +916,13 @@ def test_a_leg_that_did_not_move_turns_the_next_from_its_heading(tmp_path):
     f.step()
     assert r.cmd()[1]["vx"] == pytest.approx(-1.0) and f.why["stuck"] is False and f.why["turn"] == 0
     r.answer()
-    r.frame(x=me[0] - 0.4, y=me[1], zombies=[zombie(1, 103.5, 201.5, me=me)])   # 0.4 tiles: stuck
+    r.frame(x=me[0] - 0.4, y=me[1], zombies=[zombie(1, 100.1, 204.5, me=me)])   # 0.4 tiles: stuck; it came south
     f.step()
-    _, args = r.cmd()
+    _, args = r.cmd()                                         # away (0, -1), turned 30: never the stuck heading's 0
     assert f.why["stuck"] is True and f.why["turn"] == 30
-    assert (args["vx"], args["vy"]) == (pytest.approx(-math.cos(math.radians(30))), pytest.approx(-0.5))
+    assert (args["vx"], args["vy"]) == (pytest.approx(0.5), pytest.approx(-math.cos(math.radians(30))))
     r.answer()
-    r.frame(x=me[0] - 2.0, y=me[1] - 1.0, zombies=[zombie(1, 103.5, 201.5, me=me)])   # it moved: no turn
+    r.frame(x=me[0] - 2.0, y=me[1] - 1.0, zombies=[zombie(1, 101.5, 200.5, me=me)])   # it moved: no turn
     f.step()
     assert f.why["stuck"] is False and f.why["turn"] == 0
 
@@ -942,3 +942,48 @@ def test_a_reposition_walk_targets_the_squares_centre_and_moves_the_character(tm
     lua_done_r = 1.0                                             # PZAgent_Skills.lua K.DONE_R
     assert math.hypot(101.5 - me[0], 201.5 - me[1]) > lua_done_r >= math.hypot(101 - me[0], 201 - me[1])
     assert P.centre((101, 201)) == (101.5, 201.5) and P.centre((101.9, 201.2)) == (101.5, 201.5)
+
+
+# ================================================================ survival 1 fix round 2
+def test_a_heading_through_a_held_group_turns_to_the_nearest_clear_one(tmp_path):
+    """T2 (E1's fight 2 at wall 31.4): the melee target 0.18 tiles behind dominates the 1/d sum, whose away vector
+    runs at the far pair 9.5 tiles ahead; the heading turns off the group."""
+    r = Rig(tmp_path)
+    me = (100.5, 201.5)
+    zs = [zombie(1, 100.32, 201.5, me=me), zombie(2, 110.0, 201.3, me=me), zombie(3, 110.0, 201.7, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    f = Flee(r.world, r.acts, r.clock)
+    f.step()
+    _, args = r.cmd()
+    assert f.why["turn"] == 30 and f.why["ahead"] == [2, 3]
+    assert (args["vx"], args["vy"]) == (pytest.approx(math.cos(math.radians(30))), pytest.approx(0.5))
+    assert (P.AHEAD_R, P.AHEAD_CONE) == (9.0, 20.0)
+
+
+def test_a_threat_within_sprint_r_never_refuses_a_heading(tmp_path):
+    r = Rig(tmp_path)
+    me = (100.5, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.0, 201.5, me=me), zombie(2, 102.0, 201.4, me=me),
+                                       zombie(3, 102.0, 201.6, me=me)])
+    f = Flee(r.world, r.acts, r.clock)
+    f.step()                                                     # the sum points -x; 1.5 tiles: no refusal
+    assert f.why["ahead"] == [] and f.why["turn"] == 0
+
+
+def test_the_steer_probe_reads_unscanned_ground_as_open(tmp_path):
+    """Concern 1: at the scanned ground's edge the away vector into unscanned ground keeps its heading (an unknown
+    square is no wall for the steer; the Fight's line keeps the solid-unknown rule)."""
+    r = Rig(tmp_path)
+    r.scan(grid(100, 110, 190, 212))                             # nothing mapped west of x 100
+    me = (100.5, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 103.5, 201.5, me=me)])
+    f = Flee(r.world, r.acts, r.clock)
+    f.step()
+    _, args = r.cmd()
+    assert f.why["turn"] == 0 and args["vx"] == pytest.approx(-1.0)
+    assert not r.world.line_clear(me, (97.5, 201.5)) and r.world.line_clear(me, (97.5, 201.5), unknown_open=True)
+    r.scan(grid(96, 99, 190, 212, {(99, y): {"solid": True} for y in range(190, 213)}))   # a known wall still turns
+    r.answer()
+    r.frame(x=101.5, y=201.5, zombies=[zombie(1, 104.5, 201.5, me=(101.5, 201.5))])
+    f.step()
+    assert f.why["turn"] not in (0, None)

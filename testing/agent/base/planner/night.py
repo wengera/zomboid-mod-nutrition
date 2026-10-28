@@ -164,10 +164,11 @@ def shunned_now(store, now):
     return {b for b, at in store.items() if now - at < SHUN_MIN}
 
 
-def shelter_plan(world, building, door=None):
+def shelter_plan(world, building, door=None, step="approach"):
     """A shelter plan for `building` on the player's floor: `{building, doors, door_i, rooms, inside, step, retries,
     near}`, `near` the distance from the player to its nearest room square; None with no exterior door or no room.
-    With `door`, the plan is kept to that one exterior door (the flee's, P23-AG), None when it is not one."""
+    With `door`, the plan is kept to that one exterior door (the flee's, P23-AG), None when it is not one; `step`
+    the step it starts at (the flee adopts the building it stands in at `done`)."""
     z = me_floor(world)
     rooms = [sq for sq in world.interiors().get(building, ()) if sq[2] == z]
     doors = exterior_doors(world, building, z)
@@ -176,7 +177,7 @@ def shelter_plan(world, building, door=None):
     if not rooms or not doors:
         return None
     return {"building": building, "doors": doors, "door_i": 0, "rooms": rooms, "inside": _inside_for(rooms, doors[0]),
-            "step": "approach", "retries": 0, "near": min(_dist(world, sq) for sq in rooms)}
+            "step": step, "retries": 0, "near": min(_dist(world, sq) for sq in rooms)}
 
 
 def _door(plan):
