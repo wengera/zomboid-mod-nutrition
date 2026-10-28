@@ -3,7 +3,11 @@ hysteresis (`testing/agent/policy.py`'s docstring, frozen) and the hold-radius f
 the failed-action cooldown and the decision log; Plan 21's `test_policy.py` cases ported to the typed actions, end to
 end on the fake mod. Plan 23 Task 13 (ruling P23-F): the forage and explore tests are rewritten in place as
 goal tests (`planner/goals.py`'s scripted source: Stock for a need, LootBuilding for a building, ExploreToward)."""
+import functools
 import json
+import os
+import shutil
+import tempfile
 
 import pytest
 
@@ -243,10 +247,11 @@ def test_an_unreachable_only_threat_is_fled_never_attacked_again(tmp_path):
         r.frame(zombies=z())
     tick(r, sv)
     assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "unreachable"
-    for _ in range(3):
-        r.answer()
+    for i in range(3):                                       # each leg moves (survival 2 fix round 1, I3: a leg that
+        r.answer()                                           # did not move would corner the marked zombie at 1.0)
         r.advance(1.0)
-        r.frame(zombies=z())
+        x = 100.0 - (i + 1)
+        r.frame(x=x, zombies=[dict(zombie(1, x + 1.0, 200.0, me=(x, 200.0)), health=1.167)])
         tick(r, sv)
         assert r.cmd()[0] == "steer"
     assert [a.type for a in r.acts.history].count("attack") == 3
@@ -1121,8 +1126,9 @@ def test_a_known_zombie_inside_the_building_refuses_it(tmp_path):
     assert r.cmd()[0] == "steer" and threat_why(tmp_path)["shelter"] is None
 
 
-def test_unarmed_and_sheltered_with_a_zombie_in_line_re_closes_once_then_steers(tmp_path):
-    """I2: never hold with a line clear; one re-close of the open door, and when it fails the steer."""
+def test_unarmed_and_sheltered_with_a_zombie_in_line_re_closes_once_then_holds_trapped(tmp_path):
+    """I2: never hold with a line clear; one re-close of the open door, and when it fails no second close.
+    (Survival 2 fix round 1: on a room square the flee never steers; it holds, `trapped`.)"""
     from .test_night import OPEN
     r, sv = make(tmp_path)
     sheltered(r, sv, weapon=None)
@@ -1135,18 +1141,20 @@ def test_unarmed_and_sheltered_with_a_zombie_in_line_re_closes_once_then_steers(
     assert threat_why(tmp_path)["step"] == "reclose"
     r.answer({"state": "failed", "reason": "blocked"})
     r.frame(x=me[0], y=me[1], zombies=zs, weapon=None)
-    assert tick(r, sv) is not None and r.cmd()[0] == "steer"
+    assert tick(r, sv) is None and threat_why(tmp_path)["trapped"] == 1
+    assert [a.type for a in r.acts.history].count("interact") == 3   # the open, the close and the one re-close
 
 
 def test_unarmed_with_a_zombie_in_the_doorway_never_re_closes(tmp_path):
-    """Concern 4: a known zombie within 1.5 tiles of the door: the steer at once, no close tried beside it."""
+    """Concern 4: a known zombie within 1.5 tiles of the door: no close tried beside it. (Survival 2 fix round 1: on
+    a room square the flee never steers; unarmed, it holds, `trapped`.)"""
     from .test_night import OPEN
     r, sv = make(tmp_path)
     me = sheltered(r, sv, weapon=None)
     shelter_world(r, OPEN)
     zs = [zombie(1, 112.5, 201.5, me=me)] + group(8.0, me)[1:]
     r.frame(x=me[0], y=me[1], zombies=zs, weapon=None)
-    assert tick(r, sv) is not None and r.cmd()[0] == "steer"
+    assert tick(r, sv) is None and threat_why(tmp_path)["trapped"] == 1
     assert [a.type for a in r.acts.history].count("interact") == 2   # the open and the close of the steps only
 
 
@@ -1247,21 +1255,26 @@ def test_a_door_refused_at_the_first_re_aim_is_taken_at_the_next(tmp_path):
     assert r.cmd() == ("walkTo", {"x": 111.5, "y": 201.5, "gait": "run"}) and threat_why(tmp_path)["shelter"] == 1
 
 
-def test_a_flee_that_starts_inside_never_walks_out_of_its_only_door_toward_the_group(tmp_path):
-    """Concern 3's case under ruling P23-AJ 3 (survival 2: the adoption of iteration 1's fix round 2 is gone; a flee
-    that did not choose its shelter walks out of it): the character inside after a loot, a group in line through the
-    open west door, the only way out: its outside square is nearer each zombie than the character is, so no exit is
-    walked at the group and the flee steers (no corner: the nearest is 5 tiles off)."""
-    from .test_night import OPEN
+def test_a_flee_that_starts_inside_with_its_only_door_toward_the_group_adopts_the_building(tmp_path):
+    """Concern 3's case under ruling P23-AJ 3 and its fix round 1 (the adoption is back as the fallback): the
+    character inside after a loot, a group in line through the open west door, the only way out: its outside square
+    is nearer each zombie than the character is, so no exit is walked at the group; the building is adopted, the
+    door re-closed, then the inside hold."""
+    from .test_night import CLOSED, OPEN
     r, sv = make(tmp_path)
     shelter_world(r, OPEN)
     me = (113.5, 201.5)
     zs = [zombie(1, 108.5, 201.2, me=me), zombie(2, 109.5, 201.7, me=me), zombie(3, 107.6, 201.5, me=me)]
     r.frame(x=me[0], y=me[1], zombies=zs)
     tick(r, sv)
-    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "many"
-    assert sv.flee.exit is None and sv.flee.plan is None and not sv.flee.sheltered
-    assert [a.type for a in r.acts.history] == ["steer"]
+    assert r.cmd() == ("interact", {"x": 112, "y": 201, "kind": "close", "filter": "all", "maxWeight": 0.0})
+    assert threat_why(tmp_path)["flee"] == "many" and threat_why(tmp_path)["step"] == "reclose"
+    assert sv.flee.exit is None and sv.flee.sheltered is True and sv.flee.adopted is True
+    r.answer()
+    shelter_world(r, CLOSED)
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    assert tick(r, sv) is None and threat_why(tmp_path)["flee"] == "held_inside"
+    assert [a.type for a in r.acts.history] == ["interact"]
 
 
 def test_the_sheltered_hold_survives_a_threat_on_an_unmapped_square(tmp_path):
@@ -1316,7 +1329,7 @@ def test_inside_a_flee_walks_out_of_the_open_door_away_from_the_group_not_the_ne
     north_door = square(113, 200, room="kitchen", building=1, door=OPEN, blockN=False, edgeN=True)
     r.scan(grid(95, 108, 196, 207) + house(1, 112, door=CLOSED) + north + [north_door])
     me = (113.5, 201.5)
-    zs = [zombie(1, 108.5, 201.5, me=me), zombie(2, 109.0, 201.5, me=me), zombie(3, 112.5, 202.5, me=me)]
+    zs = [zombie(1, 108.5, 201.5, me=me), zombie(2, 109.0, 201.5, me=me), zombie(3, 112.2, 202.6, me=me)]
     r.frame(x=me[0], y=me[1], zombies=zs)
     tick(r, sv)
     assert r.cmd() == ("walkTo", {"x": 113.5, "y": 198.5, "gait": "run"})   # the square beyond the doorway
@@ -1432,30 +1445,37 @@ def closed_room(bid=2):
 @pytest.mark.parametrize("nx, cornered", [(103.7, True), (104.5, False)])   # the nearest at 1.2 and 2.0 tiles
 def test_on_a_room_square_with_no_way_out_the_nearest_within_cornered_r_is_fought(tmp_path, nx, cornered):
     """Rule 2: three zombies came in (`many`), no exterior door or opening known: the nearest at 1.2 is fought on the
-    first tick (no stuck leg needed); at 2.0 the flee steers."""
+    first tick as `cornered`; at 2.0 too, as the trapped fight (fix round 1, the review's G3: inside with no way out
+    and nothing to adopt, armed, the flee is the Fight, never a steer)."""
     r, sv = make(tmp_path)
     r.scan(closed_room())
     me = (102.5, 202.5)
     zs = [zombie(1, nx, 202.5, me=me), zombie(2, 100.5, 200.5, me=me), zombie(3, 104.5, 204.5, me=me)]
     r.frame(x=me[0], y=me[1], zombies=zs)
-    assert P.exit_plan(r.world, list(r.world.zombies.values())) is None
+    assert P.exit_plan(r.world, list(r.world.zombies.values())) is None and not P.adoptable(r.world)
     tick(r, sv)
     w = threat_why(tmp_path)
-    if cornered:
-        assert r.cmd() == ("attack", {"targetId": 1}) and w["cornered"] == 1
-    else:
-        assert r.cmd()[0] == "steer" and w["flee"] == "many" and "cornered" not in w
+    assert r.cmd() == ("attack", {"targetId": 1}) and w["fight"] is True
+    assert (w.get("cornered") == 1) is cornered
 
 
-def test_a_flee_on_a_room_square_with_no_way_out_and_the_nearest_at_three_tiles_steers(tmp_path):
+@pytest.mark.parametrize("weapon", [BAT, None])
+def test_a_flee_on_a_room_square_with_no_way_out_and_the_nearest_at_three_tiles_fights_armed_else_holds(tmp_path,
+                                                                                                       weapon):
+    """Survival 2's "no door known, the nearest at 3 tiles: the steer", turned by fix round 1 (G3, M4): armed, the
+    Fight on the nearest; unarmed, the trapped hold (no command): never a steer into the room's walls."""
     r, sv = make(tmp_path)
     r.scan(closed_room())
     me = (100.5, 204.5)
     zs = [zombie(1, 100.5, 201.5, me=me), zombie(2, 101.5, 201.5, me=me), zombie(3, 102.5, 201.6, me=me)]
-    r.frame(x=me[0], y=me[1], zombies=zs)
+    r.frame(x=me[0], y=me[1], zombies=zs, weapon=weapon)
     tick(r, sv)
     w = threat_why(tmp_path)
-    assert r.cmd()[0] == "steer" and w["flee"] == "many" and "exit" not in w and "cornered" not in w
+    if weapon is None:
+        assert r.acts.history == [] and w["flee"] == "unarmed" and w["trapped"] == 2 and "exit" not in w
+    else:
+        assert r.cmd() == ("walkTo", {"x": 100.5, "y": 201.5, "gait": "run"}) and w["fight"] is True
+        assert sv.fight.target == 1
 
 
 def test_a_flee_starting_inside_walks_out_of_the_door_away_from_the_threats_then_steers_outside(tmp_path):
@@ -1488,9 +1508,13 @@ def test_a_flee_starting_inside_walks_out_of_the_door_away_from_the_threats_then
     all_sends_valid(r)
 
 
-def test_an_exit_through_a_closed_door_opens_it_then_walks_and_a_walk_ending_inside_refuses_it(tmp_path):
-    """Rule 3: threats south, the north door closed: open it, then the walk out at a run; a walk that ended done with
-    the frame still inside refuses that way out, and with none left the flee steers."""
+def test_an_exit_through_a_closed_door_walks_first_opens_after_a_failed_walk_and_a_walk_ending_inside_refuses_it(
+        tmp_path):
+    """Rule 3 with fix round 1 (I2): threats south, the north door closed: the run walk through it first (the jar's
+    path follower opens a door on a player's path); that walk failed, the open, then the walk again; a walk that ended
+    done with the frame still inside refuses that way out; with none left the building is adopted (the south door
+    open toward the group, its re-close guarded) and dropped, the flee holds `trapped` that tick, and the next tick
+    is the trapped fight (G3)."""
     from .test_night import CLOSED, OPEN
     from .test_policies import two_door_house
     r, sv = make(tmp_path)
@@ -1500,8 +1524,12 @@ def test_an_exit_through_a_closed_door_opens_it_then_walks_and_a_walk_ending_ins
                         zombie(3, 112.5, 205.5, me=me)]
     r.frame(x=me[0], y=me[1], zombies=south(me))
     tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 198.5, "gait": "run"})
+    assert threat_why(tmp_path)["step"] == "walk" and threat_why(tmp_path)["door"] == [111, 200, 0]
+    r.answer({"state": "failed", "reason": "no path"})
+    r.frame(x=me[0], y=me[1], zombies=south(me))
+    tick(r, sv)
     assert r.cmd() == ("interact", {"x": 111, "y": 200, "kind": "open", "filter": "all", "maxWeight": 0.0})
-    assert threat_why(tmp_path)["step"] == "open" and threat_why(tmp_path)["door"] == [111, 200, 0]
     r.answer()
     r.scan(two_door_house(north=OPEN))
     r.frame(x=me[0], y=me[1], zombies=south(me))
@@ -1509,45 +1537,212 @@ def test_an_exit_through_a_closed_door_opens_it_then_walks_and_a_walk_ending_ins
     assert r.cmd() == ("walkTo", {"x": 111.5, "y": 198.5, "gait": "run"})
     r.answer()
     r.frame(x=me[0], y=me[1], zombies=south(me))            # done, still inside: refused
+    assert tick(r, sv) is None
+    assert sv.flee.refused == {(111, 199, 0)} and threat_why(tmp_path)["trapped"] == 1 and sv.flee.adopted
+    r.frame(x=me[0], y=me[1], zombies=south(me))
     tick(r, sv)
-    assert sv.flee.refused == {(111, 199, 0)} and r.cmd()[0] == "steer"
+    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 205.5, "gait": "run"}) and threat_why(tmp_path)["fight"] is True
+    assert [a.type for a in r.acts.history] == ["walkTo", "interact", "walkTo", "walkTo"]
     all_sends_valid(r)
+
+
+def test_an_exit_walk_that_stops_moving_for_exit_stall_s_is_dropped_and_the_next_way_out_taken(tmp_path):
+    """Fix round 1 (G2): the walk out of the south doorway leaves the player in place for 1.0 s while still running:
+    dropped (the Flee no longer waits on it), that way refused, and the north doorway walked."""
+    from .test_policies import two_door_house
+    r, sv = make(tmp_path)
+    r.scan([q for q in two_door_house() if q["x"] < 115])     # the group east on unscanned ground: no hold
+    me = (111.5, 201.5)
+    east = lambda me: [zombie(1, 116.0, 201.2, me=me), zombie(2, 115.8, 201.9, me=me), zombie(3, 115.5, 201.5, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=east(me))
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 198.5, "gait": "run"})
+    r.fake.answer({"walkTo": ["accepted"]})
+    r.pump()
+    for dt, moved in ((0.5, 0.0), (0.5, 0.2)):              # 0.2 tiles in 1.0 s: under STUCK_MOVE
+        r.advance(dt)
+        r.frame(x=me[0], y=me[1] - moved, zombies=east(me))
+        tick(r, sv)
+    assert sv.flee.refused == {(111, 199, 0)}
+    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 204.5, "gait": "run"})
+    assert P.EXIT_STALL_S == 1.0
+
+
+def test_a_running_exit_walk_is_pre_empted_by_the_corner(tmp_path):
+    """Fix round 1 (G2): mid-walk a zombie comes within CORNERED_R: the attack goes, superseding the walk."""
+    from .test_policies import two_door_house
+    r, sv = make(tmp_path)
+    r.scan([q for q in two_door_house() if q["x"] < 115])     # the group east on unscanned ground: no hold
+    me = (111.5, 201.5)
+    east = [zombie(1, 116.0, 201.2, me=me), zombie(2, 115.8, 201.9, me=me), zombie(3, 115.5, 201.5, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=east)
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 198.5, "gait": "run"}) and threat_why(tmp_path)["flee"] == "many"
+    r.fake.answer({"walkTo": ["accepted"]})
+    r.pump()
+    r.frame(x=me[0], y=me[1], zombies=east + [zombie(4, 112.5, 201.8, me=me)])
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 4}) and threat_why(tmp_path)["cornered"] == 4
 
 
 def test_a_held_threat_within_hold_break_r_breaks_the_sheltered_hold_too(tmp_path):
     """Rule 1 on the chosen shelter (iteration 1's sheltered hold): the door closed, zombie 1 at 2.7 tiles outside
-    the west wall, its line blocked; the only way out runs at it and four are held, so the plan is dropped and the
-    flee steers (never the hold that let E2's zombie close)."""
+    the west wall, its line blocked; the only way out runs at it and four are held, so the plan is dropped (never
+    the hold that let E2's zombie close); fix round 1: the adoption re-reads the same closed door, drops, and the flee
+    holds, `trapped`, with no command, for the corner to fight at melee range."""
     r, sv = make(tmp_path)
     me = sheltered(r, sv)
     zs = [zombie(1, 109.8, 200.5, me=me)] + group(8.0, me)[1:]
     r.frame(x=me[0], y=me[1], zombies=zs)
     assert P.line_to(r.world, r.world.zombies[1]) is False
-    assert tick(r, sv) is not None and r.cmd()[0] == "steer"
+    n = len(r.acts.history)
+    assert tick(r, sv) is None and len(r.acts.history) == n
     w = threat_why(tmp_path)
-    assert w["breach"] == "near" and w["flee"] == "held" and sv.flee.plan is None
+    assert w["breach"] == "near" and w["flee"] == "held" and w["trapped"] == 1 and sv.flee.plan is None
 
 
-def test_a_walk_out_that_fails_with_the_nearest_within_cornered_r_fights_it(tmp_path):
-    """Rule 3 into rule 2 ("a walk that fails falls to rule 2 when cornered"): at health 30 (`health`) a zombie in the
-    room 1.2 tiles off; the walk out of the north doorway fails `stuck`; the south doorway is still a way out, but
-    with the zombie within CORNERED_R the failed walk corners: the Fight takes it, no next exit tried. With the
-    zombie at 1.58 the next exit (south) is walked."""
+def test_inside_at_melee_range_the_corner_fights_before_any_walk_out_then_walks_once_beyond_cornered_r(tmp_path):
+    """Fix round 1 (rule 2 before rule 3): at health 30 (`health`), a zombie in the room 1.2 tiles off with the
+    north doorway a way out: the Fight first; knocked back to 1.8 tiles the corner ends (CORNERED_R, a way out known)
+    and the flee walks out of the north doorway."""
     from .test_policies import two_door_house
-    for zx, cornered in ((110.6, True), (110.2, False)):
-        d = tmp_path / str(zx)
-        d.mkdir()
-        r, sv = make(d)
-        r.scan(two_door_house())
-        me = (111.5, 201.5)
-        zs = [zombie(1, zx, 202.3 if cornered else 202.4, me=me)]
-        r.frame(x=me[0], y=me[1], zombies=zs, health=30.0)
+    r, sv = make(tmp_path)
+    r.scan(two_door_house())
+    me = (111.5, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 110.6, 202.3, me=me)], health=30.0)
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 1}) and threat_why(tmp_path)["cornered"] == 1
+    assert sv.fight.point_blank is True and sv.corner_free == S.CORNERED_R
+    r.answer({"state": "done", "result": swing(True)})
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 110.0, 202.5, me=me)], health=30.0)
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 198.5, "gait": "run"}) and sv.cornered is None
+
+
+# ================================================================ survival 2 fix round 1: E2's own geometry
+E2 = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "artifacts", "e_day_2-20261028-124249")
+
+
+@functools.lru_cache(maxsize=1)
+def _e2_lines():
+    """E2's state.log through FileTransport (the delta frames merged as live) and its decision walls by log line."""
+    from agent.base.transport.files import FileTransport
+    with tempfile.TemporaryDirectory() as d:
+        shutil.copy(os.path.join(E2, "state.log"), os.path.join(d, "state.log"))
+        lines = list(FileTransport(d).lines())
+    with open(os.path.join(E2, "decision.log"), encoding="utf-8") as f:
+        walls = [json.loads(ln)["wall"] for ln in f]
+    return lines, walls
+
+
+def e2_world(decision_line):
+    """A World of E2's state.log up to the first frame at or after the wall of `decision.log` line `decision_line`."""
+    from agent.base.world import World
+    lines, walls = _e2_lines()
+    w = World()
+    for ln in lines:
+        w.apply(ln)
+        if ln["kind"] == "frame" and ln["wallMs"] / 1000.0 >= walls[decision_line - 1]:
+            return w
+    raise AssertionError("no frame at line %d" % decision_line)
+
+
+def test_e2_building_3_has_two_openings_and_neither_is_a_window():
+    """Fix round 1 (the review's G1): of the seven steps out of building 3 the first build read, five are smashed
+    windows (the bathroom's west, the kitchen's north, the hall's (10741, 10635), the living room's two); the two
+    doorways, their doors broken to debris, remain."""
+    w = e2_world(227)
+    assert w.openings(3) == [((10740, 10634, 0), (10740, 10635, 0)), ((10743, 10630, 0), (10743, 10629, 0))]
+    assert (w.map[(10738, 10632, 0)].get("window") is not None and w.map[(10738, 10632, 0)]["edgeW"]
+            and not w.map[(10738, 10632, 0)]["blockW"])
+
+
+@pytest.mark.parametrize("line", [159, 162])
+def test_e2_at_game_minutes_582_to_583_no_way_out_is_walked_past_the_hall(line):
+    """Fix round 1: E2 in building 3's bathroom, two zombies held in the hall: both doorways lie past them (each
+    outside square nearer a zombie than the player is), so no exit; the bathroom's west window (the first build's
+    pick) is none."""
+    w = e2_world(line)
+    held = [z for z in w.zombies.values() if z.get("x") is not None and P.zdist(w, z) <= P.DISENGAGE_R]
+    assert len(held) == 2 and P.on_room(w)
+    assert P.exit_plan(w, held) is None and not P.adoptable(w)
+
+
+def test_e2_at_line_164_the_broken_hold_fights_zombie_12839(tmp_path):
+    """Fix round 1 (the review's G3): line 164 (game minute 583), the hold broken by `closing` (5.948, 5.626, 5.462
+    tiles on lines 162-164): no way out, nothing to adopt, armed: the Fight on 12839, never the walk at the window."""
+    w = e2_world(164)
+    r = Rig(tmp_path)
+    sv = Survive(w, r.acts, str(tmp_path / "decision.log"), r.clock)
+    sv.mode, sv.flee = "flee", P.Flee(w, r.acts, r.clock)
+    sv.closing = (2, 5.626)
+    sv.tick(w, r.acts)
+    why = threat_why(tmp_path)
+    assert sv.mode == "fight" and sv.fight.target == 12839 and why["fight"] is True and why["breach"] == "closing"
+    assert r.cmd()[0] == "walkTo"
+
+
+def test_e2_at_game_minute_585_the_zombie_in_the_bathroom_doorway_is_fought_not_walked_past(tmp_path):
+    """Fix round 1 (concern 3): decision.log line 177, zombie 12839 at 0.48 tiles in the bathroom's doorway: the
+    survival 2 build chose the far east window (10749, 10629) past it; now no way out is taken and the corner fights
+    it."""
+    w = e2_world(177)
+    held = [z for z in w.zombies.values() if z.get("x") is not None and P.zdist(w, z) <= P.DISENGAGE_R]
+    near_id, near = min(((zid, z) for zid, z in w.zombies.items() if z in held), key=lambda p: P.zdist(w, p[1]))
+    assert P.zdist(w, near) < 0.5 and P.exit_plan(w, held) is None
+    r = Rig(tmp_path)
+    sv = Survive(w, r.acts, str(tmp_path / "decision.log"), r.clock)
+    sv.tick(w, r.acts)
+    assert r.cmd() == ("attack", {"targetId": near_id})
+    assert threat_why(tmp_path)["cornered"] == near_id
+
+
+def test_a_marked_zombie_within_cornered_r_still_corners_and_is_swung_at(tmp_path):
+    """Fix round 1 (the review's I3): zombie 1 marked unreachable (its line once read blocked) bites at 1.2 tiles in a
+    room with no way out: the corner ignores the mark and its Fight swings at it."""
+    r, sv = make(tmp_path)
+    r.scan(closed_room())
+    me = (102.5, 202.5)
+    zs = [zombie(1, 103.7, 202.5, me=me), zombie(2, 100.5, 200.5, me=me), zombie(3, 104.5, 204.5, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    sv.unreachable[1] = r.clock() + 20.0
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 1}) and threat_why(tmp_path)["cornered"] == 1
+
+
+def test_a_broken_hold_at_a_chosen_shelter_fights_only_in_its_doorway_or_inside(tmp_path):
+    """Fix round 1 (the review's I4): sheltered behind the closed west door, one zombie at 2.7 tiles outside it: the
+    hold breaks (`near`), no way out, one held: the Fight, kept to the building's doorway and inside (`only` empty
+    here), so nothing is sent: no walk out through the door to it."""
+    r, sv = make(tmp_path)
+    me = sheltered(r, sv)
+    for i in (2, 3):
+        r.event("zombie_dead", id=i)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 109.8, 200.5, me=me)])
+    n = len(r.acts.history)
+    assert tick(r, sv) is None and len(r.acts.history) == n
+    assert sv.mode == "fight" and sv.fight.only == set() and threat_why(tmp_path)["breach"] == "near"
+
+
+def test_a_dropped_exit_walk_with_nothing_left_unarmed_stops_and_holds(tmp_path):
+    """Fix round 1 (G2, M4): the doorways' doors broken (no door record, so nothing to adopt), the south one with a
+    solid square past it (skipped, I1): the north walk stalls 1.0 s and is dropped; unarmed with no way out, the flee
+    sends one `Stop` for the still-running walk and then holds, `trapped`."""
+    from .test_policies import two_door_house
+    r, sv = make(tmp_path)
+    sqs = [q for q in two_door_house() if q["x"] < 115] + [square(111, 204, solid=True)]
+    for q in sqs:
+        q["door"] = None
+    r.scan(sqs)
+    me = (111.5, 201.5)
+    east = [zombie(1, 116.0, 201.2, me=me), zombie(2, 115.8, 201.9, me=me), zombie(3, 115.5, 201.5, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=east, weapon=None)
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 198.5, "gait": "run"})
+    r.fake.answer({"walkTo": ["accepted"]})
+    r.pump()
+    for _ in range(2):
+        r.advance(0.5)
+        r.frame(x=me[0], y=me[1], zombies=east, weapon=None)
         tick(r, sv)
-        assert r.cmd() == ("walkTo", {"x": 111.5, "y": 198.5, "gait": "run"})
-        r.answer({"state": "failed", "reason": "stuck"})
-        r.frame(x=me[0], y=me[1], zombies=zs, health=30.0)
-        tick(r, sv)
-        if cornered:
-            assert r.cmd() == ("attack", {"targetId": 1}) and threat_why(d)["cornered"] == 1
-        else:
-            assert r.cmd() == ("walkTo", {"x": 111.5, "y": 204.5, "gait": "run"}) and "cornered" not in threat_why(d)
+    assert r.cmd() == ("stop", {}) and threat_why(tmp_path)["trapped"] == 1

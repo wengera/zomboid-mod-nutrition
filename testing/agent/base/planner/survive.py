@@ -68,14 +68,19 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      known (`policies.exit_plan`: the Flee walks out, rule 3), else fights with one or two held and one reachable,
      else flees.
   2. Cornered (`_cornered`, logged `cornered`: the zombie id): armed, the nearest held threat within CORNERED_R (1.5)
-     and either the flee's last steer leg ended stuck, its walk out failed, or the character on a room square with no
-     way out, the Fight runs on the nearest reachable held threat whatever the count (MAX_FIGHT aside) or the flee
-     reason, keeping its pin, line check and stall; it ends when that zombie is dead, gone or marked unreachable, or
-     the nearest held threat is beyond CORNER_FREE_R (5.0), and the next flee is a fresh Flee whose first leg is not
-     stuck.
-  3. Inside a building the flee walks out before it steers (`policies.Flee`'s way out, `night.exits`: the building's
-     openings and its closed exterior doors); while that walk runs the inside hold waits, as for the shelter steps.
-     The door fight of iteration 1 stays for a chosen shelter, ahead of the corner.
+     and either the flee's last steer leg ended stuck or the character on a room square (fix round 1: at melee range
+     inside, the fight comes before any walk out), the Fight runs on the nearest reachable held threat whatever the
+     count (MAX_FIGHT aside) or the flee reason, keeping its pin and stall and its line check beyond POINT_BLANK_R
+     (1.0; within it the swing goes whatever the map's line says); it ends when that zombie is dead, gone or marked
+     unreachable, or the nearest held threat is beyond CORNERED_R (a corner taken on a room square) or CORNER_FREE_R
+     (5.0, a stuck leg's), and the next flee is a fresh Flee whose first leg is not stuck.
+  3. Inside a building the flee walks out (`policies.Flee`'s way out, `night.exits`: the building's openings and its
+     closed exterior doors; fix round 1: the nearest whose straight line passes no held threat within 1.5 tiles);
+     with none it adopts the building (the sheltered hold, the re-close, the door fight), else, armed, fights the
+     nearest (`_trapped_fight`), else holds (an unarmed character inside with no way out stands: the review's M4):
+     on a room square it never steers. No window's edge is a way out; a walk out that stops moving for 1 s is
+     dropped, and the corner pre-empts a running walk at melee range. While a walk out runs the inside hold waits,
+     as for the shelter steps. The door fight stays for a sheltered building, ahead of the corner.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -136,8 +141,8 @@ from agent.base.items import days_fresh
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH, PREEMPTED, Fight,
-                                         Flee, blocked, exit_plan, in_building, item_id_ok, line_to, spare,
-                                         target_id_ok, zdist)
+                                         Flee, adoptable, blocked, exit_plan, in_building, item_id_ok, line_to,
+                                         spare, target_id_ok, zdist)
 from agent.base.planner.view import view
 from agent.base.pza1 import Consume, Drop
 
@@ -181,6 +186,7 @@ class Survive:
         self.broken = None        # the breach that broke a due hold this tick (P23-AJ 1), else None
         self.closing = (0, None)  # (ticks the nearest held threat has closed within DANGER_R, its last distance)
         self.cornered = None      # the zombie id a cornered Fight runs on (P23-AJ 2), else None
+        self.corner_free = CORNER_FREE_R   # tiles: the nearest beyond this ends the corner (fix round 1)
         self._corner_fight = None   # the Fight made for the corner
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
         self.night = Night(world, actions, clock)
@@ -310,38 +316,46 @@ class Survive:
         return exit_plan(self.world, held, f.refused if f is not None else ()) is not None
 
     def _cornered(self, held, inside):
-        """The zombie id a cornered Fight runs on (ruling P23-AJ 2), else None. Armed, it corners when the nearest
-        held threat is within CORNERED_R and either the flee's last steer leg ended stuck (`Flee.stuck`: moved under
-        STUCK_MOVE), or its walk out failed this tick (`Flee.exit_failed`: rule 3, a walk that fails falls to rule 2
-        when cornered), or the character stands on a room square with no way out (`_exit_known`), on the nearest
-        reachable held threat; it stays cornered on that id until the zombie is dead, gone or marked unreachable (the
-        Fight ended) or the nearest held threat is beyond CORNER_FREE_R. A new corner makes a new Fight; the next
-        flee's Flee is a new one too, whose first leg is not stuck: only a new stuck leg or failed exit corners
-        again."""
+        """The zombie id a cornered Fight runs on (ruling P23-AJ 2 and its fix round 1), else None. Armed, it corners
+        when the nearest held threat is within CORNERED_R and either the flee's last steer leg ended stuck
+        (`Flee.stuck`: moved under STUCK_MOVE) or the character stands on a room square (fix round 1: at melee range
+        the branch fights before any walk out, which also covers a walk out that failed and a room with no way out),
+        on the nearest reachable held threat; it stays cornered on that id until the zombie is dead, gone or marked
+        unreachable (the Fight ended) or the nearest held threat is beyond `corner_free`: CORNER_FREE_R for a stuck
+        leg's corner, CORNERED_R for one taken on a room square (it walks out, adopts or holds once the nearest is
+        beyond melee range; a way out is never known at melee range, every exit's line starting within EXIT_CLEAR_R).
+        The cornered Fight swings at a target within POINT_BLANK_R whatever its line reads (`Fight.point_blank`). A
+        new corner makes a new Fight; the next flee's Flee is a new one too, whose first leg is not stuck."""
         nearest = min(zdist(self.world, z) for z in held)
         if not self._armed():
             self.cornered = None
             return None
         if self.cornered is not None:
             z = self.world.zombies.get(self.cornered)
-            if (z is not None and z.get("x") is not None and z.get("y") is not None
-                    and self.cornered not in blocked(self.unreachable, self.clock()) and nearest <= CORNER_FREE_R):
+            if (z is not None and z.get("x") is not None and z.get("y") is not None and nearest <= self.corner_free
+                    and (zdist(self.world, z) <= CORNERED_R
+                         or self.cornered not in blocked(self.unreachable, self.clock()))):
                 return self.cornered
             self.cornered, self._corner_fight = None, None
             return None
-        reach = self._reachable_held()
+        reach = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and z.get("x") is not None
+                 and z.get("y") is not None and zdist(self.world, z) <= CORNERED_R]   # I3: marks aside in reach
         if nearest > CORNERED_R or not reach:
             return None
-        stuck = self.mode == "flee" and self.flee is not None and (self.flee.stuck() or self.flee.exit_failed)
-        if not (stuck or (inside and not self._exit_known(held))):
+        stuck = self.mode == "flee" and self.flee is not None and self.flee.stuck()
+        if not (stuck or inside):
             return None
+        self.corner_free = CORNER_FREE_R if stuck else CORNERED_R
         self.cornered = min(reach, key=lambda p: (zdist(self.world, p[1]), repr(p[0])))[0]
         return self.cornered
 
     def _threat_plan(self, held, breach):
         """The threat branch's one decision (ruling P23-AJ), `(kind, reason)`, the machines only executing it:
         - `door`: sheltered (a chosen shelter's plan done, the character inside) with a reachable held threat in its
-          doorway or inside it: the door fight (I3), which iteration 1's chosen shelter keeps before the corner.
+          doorway or inside it: the door fight (I3). It goes first, before the corner and before the inside hold
+          (a decision-order change from 21e3716b, which held first; ruled at fix round 1, the review's M1: a threat
+          that opened the door or stands inside is the nearest danger, and its line may read blocked from another
+          room).
         - `cornered`: `_cornered` names a zombie: a Fight on it whatever the held count or the flee reason (rule 2).
         - `hold`: the character inside, every held threat line-blocked (M-6, `held_inside`), no shelter or exit step
           running, and no breach (rule 1).
@@ -350,7 +364,13 @@ class Survive:
           `reason` the flee reason, else `broken`.
         - Sheltered with nobody in the doorway: `flee` (the sheltered Flee holds, re-closes or drops), reason
           `sheltered` when no other holds.
-        - Otherwise Plan 21b's hysteresis (`_flee_reason`): `fight` when it reads None, else `flee`."""
+        - Otherwise Plan 21b's hysteresis (`_flee_reason`): `fight` when it reads None, else `flee`.
+        - Fix round 1: a broken hold at a chosen shelter fights only in its doorway or inside (`door`, the review's
+          I4); a `flee` on a room square with no way out and no adoption left is the Fight when armed
+          (`_trapped_fight`, G3).
+        Not a pure function: it sets `sheltered`, `door`, `broken` and `cornered` (`_breach` before it set `closing`),
+        and a corner inside a chosen shelter drops the sheltered Flee, so the next flee walks out rather than
+        re-closing."""
         inside = self.night.inside()
         self.sheltered = self.flee is not None and self.flee.sheltered and inside
         self.broken = None
@@ -370,11 +390,25 @@ class Survive:
             if self._exit_known(held):
                 return "flee", reason or "broken"
             if self._armed() and len(held) <= MAX_FIGHT and self._reachable_held():
-                return "fight", None
-            return "flee", reason or "broken"
+                return ("door", None) if self.sheltered else ("fight", None)   # I4: a shelter's fight stays inside
+            return self._trapped_fight(held, inside) or ("flee", reason or "broken")
         if self.sheltered:
             return "flee", reason or "sheltered"
-        return ("fight", None) if reason is None else ("flee", reason)
+        if reason is None:
+            return "fight", None
+        return self._trapped_fight(held, inside) or ("flee", reason)
+
+    def _trapped_fight(self, held, inside):
+        """Fix round 1, the review's G3: a flee on a room square with no way out (`_exit_known`) and no adoption left
+        (`policies.adoptable`: no exterior door on this floor, or this episode's adoption already dropped) never
+        steers: armed with a reachable held threat, `("fight", None)`; else None (the Flee's trapped hold: M4, an
+        unarmed character inside with no way out stands)."""
+        if not (inside and self._armed() and self._reachable_held()) or self._exit_known(held):
+            return None
+        f = self.flee
+        if adoptable(self.world) and (f is None or not f.adopted or f.plan is not None):
+            return None
+        return "fight", None
 
     def _threat(self):
         held = self._within(self._hold_r())
@@ -395,6 +429,7 @@ class Survive:
             if self.fight is None or self.fight is not self._corner_fight:
                 self.fight = self._corner_fight = Fight(self.world, self.actions, self.clock,
                                                         unreachable=self.unreachable, target=self.cornered)
+                self.fight.point_blank, self.fight.mark_free_r = True, CORNERED_R
                 self.flee, self.stall_flee, self.flee_dropped = None, False, False
             self.mode = "fight"
         elif want != self.mode:

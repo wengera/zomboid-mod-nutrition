@@ -1054,7 +1054,8 @@ def long_house(door_open=True):
 @pytest.mark.parametrize("inside, closes", [(118.5, False), (114.5, True)])
 def test_the_re_close_goes_only_from_nearer_the_door_than_every_zombie(tmp_path, inside, closes):
     """F2: sheltered 6 tiles inside, a zombie 3 tiles outside the open door with a clear line: the interact would walk
-    the character to it, so the steer instead; 2 tiles inside, the close. (Survival 2, P23-AJ 3: the adoption that
+    the character to it, so no close (fix round 1: and on a room square no steer: the trapped hold); 2 tiles inside,
+    the close. (Survival 2, P23-AJ 3: the adoption that
     made the plan is gone, so the test gives the Flee a chosen shelter's done plan; its only way out runs at the
     zombie, so the drop steers.)"""
     from agent.base.planner import night as N
@@ -1071,7 +1072,7 @@ def test_the_re_close_goes_only_from_nearer_the_door_than_every_zombie(tmp_path,
     if closes:
         assert r.cmd() == ("interact", {"x": 112, "y": 201, "kind": "close", "filter": "all", "maxWeight": 0.0})
     else:
-        assert r.cmd()[0] == "steer" and [a.type for a in r.acts.history] == ["steer"]
+        assert r.acts.history == [] and f.why["trapped"] == 1
 
 
 # ================================================================ survival 2 (ruling P23-AJ)
@@ -1148,7 +1149,7 @@ def two_door_house(north=None, south=None):
     return grid(105, 117, 194, 208, at)
 
 
-def test_exit_plan_takes_the_opening_farthest_from_the_threats_and_never_one_nearer_them(tmp_path):
+def test_exit_plan_takes_the_nearest_opening_and_never_one_nearer_the_threats(tmp_path):
     from .test_night import CLOSED
     r = Rig(tmp_path)
     r.scan(two_door_house())
@@ -1157,25 +1158,79 @@ def test_exit_plan_takes_the_opening_farthest_from_the_threats_and_never_one_nea
     r.frame(x=me[0], y=me[1], zombies=north)
     ts = list(r.world.zombies.values())
     e = P.exit_plan(r.world, ts)
-    assert (e["building"], e["outer"], e["door"], e["step"]) == (1, (111, 203, 0), None, "walk")
+    assert (e["building"], e["outer"], e["door"], e["step"], e["opened"]) == (1, (111, 203, 0), None, "walk", False)
     assert e["inner"] == (111, 202, 0) and e["target"] == (111, 204, 0)   # one square on: beyond the walk's DONE_R
     assert P.exit_plan(r.world, ts, refused={(111, 203, 0)}) is None   # the north doorway runs at them
     r.scan(two_door_house(north=CLOSED))
     r.frame(x=me[0], y=me[1], zombies=[zombie(4, 111.5, 205.5, me=me)])
     e = P.exit_plan(r.world, [r.world.zombies[4]])
-    assert (e["outer"], e["door"], e["step"], e["target"]) == ((111, 199, 0), (111, 200, 0), "open", (111, 198, 0))
+    assert (e["outer"], e["door"], e["step"], e["target"]) == ((111, 199, 0), (111, 200, 0), "walk", (111, 198, 0))
     r.frame(x=108.5, y=201.5, zombies=[zombie(4, 111.5, 205.5, me=me)])   # outside: no exit
     assert P.exit_plan(r.world, [r.world.zombies[4]]) is None
     r.scan(two_door_house())
-    r.frame(x=me[0], y=me[1], zombies=[zombie(5, 105.5, 200.9, me=me)])   # far west, a little north: both pass
-    e = P.exit_plan(r.world, [r.world.zombies[5]])                         # the guard; the farther one goes
-    assert e["outer"] == (111, 203, 0)
+    me = (111.5, 202.5)                                            # a zombie far east: both pass; the nearer goes
+    r.frame(x=me[0], y=me[1], zombies=[zombie(5, 117.5, 202.5, me=me)])
+    assert P.exit_plan(r.world, [r.world.zombies[5]])["outer"] == (111, 203, 0)
 
 
-def test_the_exit_walks_to_the_outside_square_itself_when_the_square_beyond_is_not_open(tmp_path):
+def test_exit_plan_refuses_an_opening_whose_line_passes_a_threat_within_exit_clear_r(tmp_path):
+    """Fix round 1: the north doorway's line from (111.5, 202.4) passes 1.4 tiles from the zombie, though its
+    outside square is no nearer the zombie than the player is (the old guard passes it)."""
+    assert P.EXIT_CLEAR_R == 1.5
+    r = Rig(tmp_path)
+    r.scan(two_door_house())
+    me = (111.5, 202.4)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 112.9, 201.0, me=me)])
+    z = r.world.zombies[1]
+    assert math.hypot(z["x"] - 111.5, z["y"] - 199.5) >= P.zdist(r.world, z)
+    assert P.exit_plan(r.world, [z], refused={(111, 203, 0)}) is None
+
+
+def test_a_cornered_fight_never_skips_a_marked_zombie_within_mark_free_r(tmp_path):
+    """Fix round 1 (the review's I3): zombie 7 marked unreachable at 1.0 tiles: a plain Fight skips it, a cornered
+    one (`mark_free_r` 1.5) swings at it; beyond the radius the mark holds."""
+    for free, want in ((0.0, None), (1.5, ("attack", {"targetId": 7}))):
+        d = tmp_path / str(free)
+        d.mkdir()
+        r = Rig(d)
+        r.frame(zombies=[zombie(7, 101.0, 200.0)])
+        f = Fight(r.world, r.acts, r.clock, unreachable={7: r.clock() + 20.0})
+        f.mark_free_r = free
+        a = f.step()
+        assert (r.cmd() if a is not None else None) == want
+    r.frame(zombies=[zombie(7, 102.0, 200.0)])                    # 2.0 tiles: the mark holds
+    f = Fight(r.world, r.acts, r.clock, unreachable={7: r.clock() + 20.0})
+    f.mark_free_r = 1.5
+    assert f.blocked() == {7}
+
+
+def test_a_cornered_fight_swings_at_a_target_within_point_blank_r_whatever_its_line_reads(tmp_path):
+    """Fix round 1 (concern 4): a zombie at 0.5 tiles behind the player's north edge (blocked): a plain Fight
+    repositions; the cornered Fight (`point_blank`) attacks and marks nothing."""
+    assert P.POINT_BLANK_R == 1.0
+    for blank in (False, True):
+        d = tmp_path / str(blank)
+        d.mkdir()
+        r = Rig(d)
+        r.scan(behind_wall_n())
+        me = (100.5, 200.1)
+        r.frame(x=me[0], y=me[1], zombies=[zombie(7, 100.5, 199.6, me=me)])
+        assert P.line_to(r.world, r.world.zombies[7]) is False
+        f = Fight(r.world, r.acts, r.clock)
+        f.point_blank = blank
+        f.step()
+        if blank:
+            assert r.cmd() == ("attack", {"targetId": 7}) and f.why["line"] is None and f.unreachable == {}
+        else:
+            assert r.cmd()[0] == "walkTo" and f.why["line"] is False
+
+
+def test_an_exit_whose_square_beyond_is_not_open_is_skipped(tmp_path):
+    """Fix round 1 (the review's I1): a walk to the outside square itself ends `done` on the room square, a sure
+    refusal; the south doorway with a solid square past it is no way out, the north one goes."""
     r = Rig(tmp_path)
     r.scan(two_door_house() + [square(111, 204, solid=True)])
-    me = (111.5, 201.5)
-    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 111.5, 197.0, me=me)])
+    me = (111.5, 202.4)                                            # the south doorway the nearer, 1.1 tiles off
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 117.5, 202.5, me=me)])
     e = P.exit_plan(r.world, [r.world.zombies[1]])
-    assert e["outer"] == (111, 203, 0) and e["target"] == (111, 203, 0)
+    assert e["outer"] == (111, 199, 0) and e["target"] == (111, 198, 0)

@@ -73,12 +73,16 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   open), then a `WalkTo` at FLEE_GAIT of the centre of the square one on beyond the outside square (`_beyond`, when
   the map holds it open: a walk ends `done` within the Lua's DONE_R, so the outside square's own centre may end it on
   the room square); a superseded step is sent again, any other failed end, or a walk that ended done with the frame
-  still inside, refuses that exit for the episode (`refused`, `exit_failed`) and the next choose takes the next, else
-  the steer (Survive's corner, rule 2, takes a failed exit or a stuck leg with a zombie within reach); the frame
+  still inside, refuses that exit for the episode (`refused`) and the next choose takes the next. Fix round 1: no
+  window's edge is an opening (`world.openings`, the review's G1); an exit with no open square beyond is skipped
+  (I1); the walk goes first even at a closed door, the open only after it fails there (I2); a walk that leaves the
+  player within STUCK_MOVE for EXIT_STALL_S is dropped and read as failed (G2); the
+  exit is the nearest acceptable one, its straight line passing no held threat within EXIT_CLEAR_R; with none, the
+  building is adopted once an episode (`_adopt`, iteration 1's fix round 2 brought back as the fallback: the
+  sheltered hold, the re-close guard, the door fight), and with that dropped or no exterior door the Flee holds with
+  no command (`trapped`): on a room square it never steers (Survive's corner fights at melee range); the frame
   reading
-  outside ends the exit, the building is `left` (never the episode's shelter) and the steer follows. Fix round 2's
-  adoption of the building the flee starts in (concern 3, F1) is gone: the hold and the door fight below are a chosen
-  shelter's only.
+  outside ends the exit, the building is `left` (never the episode's shelter) and the steer follows.
   The shelter (ruling P23-AG 1): at each re-aim until a plan is chosen (fix round 2, T1: a melee zombie's corridor
   refusal is retried once it has moved), the episode picks, never from a room square: of the buildings not shunned
   (`night.shunned_now` over `shunned`, Night's store) nor left this episode with
@@ -138,7 +142,7 @@ import math
 import time
 
 from agent.base.items import use_of
-from agent.base.pza1 import Attack, Interact, Scan, Steer, WalkTo
+from agent.base.pza1 import Attack, Interact, Scan, Steer, Stop, WalkTo
 from agent.base.world import me_floor, me_xy
 
 DANGER_R = 6.0        # tiles: a zombie this close is a threat (Survive's threat branch; the night sends nothing)
@@ -161,6 +165,9 @@ STUCK_MOVE = 0.5      # tiles: a steer leg that moved less is stuck, and the nex
 AHEAD_R = 9.0         # tiles: a 3 s leg at about 3 tiles/s (E1's flee): a held threat this far ahead refuses a heading
 AHEAD_CONE = 20.0     # degrees: ... within this cone of it (or in its CORRIDOR_R tube), beyond SPRINT_R (fix 2, T2)
 DOOR_CLEAR_R = 1.5    # tiles: no re-close is tried with a known zombie this near the door square's centre (fix 2)
+EXIT_CLEAR_R = 1.5    # tiles: no exit is walked whose straight line passes a held threat this near (P23-AJ fix 1)
+EXIT_STALL_S = 1.0    # wall seconds an exit walk may leave the player within STUCK_MOVE before it is dropped (G2)
+POINT_BLANK_R = 1.0   # tiles: a cornered Fight's target this near is swung at whatever its line reads (P23-AJ fix 1)
 STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
@@ -287,6 +294,8 @@ class Fight(Policy):
         self.unreachable = {} if unreachable is None else unreachable   # target id -> wall until it is skipped
         self.target = target                # the pinned zombie id, None until the first choose pins one
         self.only = None                    # a set of zombie ids the Fight may target (Survive's door fight), or None
+        self.point_blank = False            # a cornered Fight: a target within POINT_BLANK_R skips the line check
+        self.mark_free_r = 0.0              # a cornered Fight: no zombie this near is skipped for its mark (I3)
         self.repositioned = False           # the one reposition walk on the pinned target was sent
         self.no_progress = 0                # started swings in a row on `_streak_id` that took no health
         self._streak_id = None
@@ -294,7 +303,15 @@ class Fight(Policy):
         self._counted = None                # the last attack whose result was counted
 
     def blocked(self):
-        return blocked(self.unreachable, self.clock())
+        """The ids skipped now; a cornered Fight (`mark_free_r`, fix round 1 I3) never skips a zombie within that
+        radius, whatever its mark: it is in reach and biting."""
+        out = blocked(self.unreachable, self.clock())
+        if self.mark_free_r > 0.0:
+            zs = self.world.zombies
+            out = {zid for zid in out if not (zid in zs and zs[zid].get("x") is not None
+                                                and zs[zid].get("y") is not None
+                                                and zdist(self.world, zs[zid]) <= self.mark_free_r)}
+        return out
 
     def _target_health(self, zid):
         z = self.world.zombies.get(zid)
@@ -430,7 +447,8 @@ class Fight(Policy):
             self.why = {"target": None, "pinned": False}
             return None
         zid, z, d = t
-        line = self._line(z) if d <= FIGHT_REACH else None
+        blank = self.point_blank and d <= POINT_BLANK_R   # P23-AJ fix 1: in reach whatever the map's line says
+        line = self._line(z) if d <= FIGHT_REACH and not blank else None
         self.why = {"target": zid, "pinned": True, "dist": d, "approach": self.approach, "line": line,
                     "reposition": None}
         if line is False:
@@ -502,48 +520,69 @@ def on_room(world):
 
 
 def exit_plan(world, threats, refused=()):
-    """The way out of the building the player stands in (ruling P23-AJ 3 as amended), else None: standing on a room
-    square of a building, of its `night.exits` on the player's floor (an opening, or a closed exterior door to open
-    first) whose outside square is not in `refused` and whose outside square's centre is no nearer any threat than the
-    player is to it (the walk out never runs at one: the shelter pick's rule), the one whose outside square lies
-    farthest from the threats' centroid, ties by that square; `{building, inner, outer, door, target, step}`,
-    `target` the square the walk goes to (`_beyond`), `step` "open" when `door` names a closed door, else "walk"."""
+    """The way out of the building the player stands in (ruling P23-AJ 3 as amended, and its fix round 1), else
+    None: standing on a room square of a building, of its `night.exits` on the player's floor (an opening, or a
+    closed exterior door to open first) whose outside square is not in `refused`, whose outside square's centre is no
+    nearer any threat than the player is to it (the shelter pick's rule), and whose straight line from the player to
+    that centre passes no threat within EXIT_CLEAR_R (fix round 1: E2's offline check at gameMin 585 chose an opening
+    across the building past the zombie at 0.48 tiles), and whose square beyond is open (`_beyond`; the review's I1:
+    a walk to the outside square itself ends `done` on the room square and is refused), the nearest to the player,
+    ties by that square; `{building, inner, outer, door, target, step, opened}`, `target` the square the walk goes to,
+    `step` "walk" (the review's I2: the jar's path follower opens a closed door on a player's path,
+    `PathFindBehavior2.checkDoorHoppableWindow`, a review reading; the open is the fallback), `opened` False."""
     N = _night()
     s = world.map.get(N.player_square(world)) or {}
     b = s.get("building")
     if s.get("room") is None or b is None:
         return None
     ts = [z for z in threats if z.get("x") is not None and z.get("y") is not None]
-    mx, my = me_xy(world)
-    cx = sum(z["x"] for z in ts) / len(ts) if ts else mx
-    cy = sum(z["y"] for z in ts) / len(ts) if ts else my
+    me = me_xy(world)
     best = None
     for e in N.exits(world, b, me_floor(world)):
         if e["outer"] in refused:
             continue
         c = centre(e["outer"])
-        if any(math.hypot(z["x"] - c[0], z["y"] - c[1]) < zdist(world, z) for z in ts):
+        if any(math.hypot(z["x"] - c[0], z["y"] - c[1]) < zdist(world, z)
+               or _seg_dist(me, c, (z["x"], z["y"])) < EXIT_CLEAR_R for z in ts):
             continue
-        rank = (-math.hypot(c[0] - cx, c[1] - cy), e["outer"], e["inner"])
+        if _beyond(world, e["inner"], e["outer"]) is None:
+            continue
+        rank = (math.hypot(c[0] - me[0], c[1] - me[1]), e["outer"], e["inner"])
         if best is None or rank < best[0]:
             best = (rank, e)
     if best is None:
         return None
     e = best[1]
-    return dict(e, building=b, target=_beyond(world, e["inner"], e["outer"]),
-                step="open" if e["door"] is not None else "walk")
+    return dict(e, building=b, target=_beyond(world, e["inner"], e["outer"]), step="walk", opened=False)
+
+
+def _seg_dist(a, b, p):
+    """Tiles from point `p` to the segment from `a` to `b`."""
+    ux, uy = b[0] - a[0], b[1] - a[1]
+    n2 = ux * ux + uy * uy
+    t = 0.0 if n2 == 0.0 else max(0.0, min(1.0, ((p[0] - a[0]) * ux + (p[1] - a[1]) * uy) / n2))
+    return math.hypot(p[0] - a[0] - t * ux, p[1] - a[1] - t * uy)
 
 
 def _beyond(world, inner, outer):
     """The square the exit walks to: one more square on from `outer` away from `inner` when the map holds it open (not
-    solid, no room, the step to it not blocked), else `outer` itself. A walk ends `done` within the Lua's DONE_R (1.0)
-    of its target, so a walk to the outside square's own centre may end on the room square beside it (rule 5's lesson);
-    from the square beyond it ends at least a tile from the room square's centre."""
+    solid, no room, the step to it not blocked), else None (the exit is skipped: fix round 1, the review's I1). A walk
+    ends `done` within the Lua's DONE_R (1.0) of its target, so a walk to the outside square's own centre may end on
+    the room square beside it (rule 5's lesson); from the square beyond it ends at least a tile from the room
+    square's centre."""
     sq = (2 * outer[0] - inner[0], 2 * outer[1] - inner[1], outer[2])
     s = world.map.get(sq)
     if s is None or s.get("solid") or s.get("room") is not None or world.blocked(outer, sq):
-        return outer
+        return None
     return sq
+
+
+def adoptable(world):
+    """The building the player stands in has an exterior door on the player's floor (`Flee._adopt` can adopt it)."""
+    N = _night()
+    s = world.map.get(N.player_square(world)) or {}
+    b = s.get("building")
+    return s.get("room") is not None and b is not None and bool(N.exterior_doors(world, b, me_floor(world)))
 
 
 class Flee(Policy):
@@ -558,13 +597,15 @@ class Flee(Policy):
         self.refused = set()     # the outside squares of exits that failed this episode
         self.left = set()        # the buildings this episode walked out of (never its shelter)
         self.hold_ok = True      # Survive clears it while a held threat breaks the hold (P23-AJ 1)
-        self.exit_failed = False   # the last exit ended refused, until the next command is sent (Survive's corner)
+        self.adopted = False     # the building stood in was adopted this episode (fix round 1: once)
         self._chosen = None      # "step", "close" or "exit": what the last choose returned, until it is sent
         self._step = None        # the last shelter step's Action
         self._read = None        # the last shelter step whose end observe() read
         self._close = None       # the last re-sent close's Action (the sheltered re-close)
         self._exit_a = None      # the last exit step's Action
         self._exit_read = None   # the last exit step whose end observe() read
+        self._exit_anchor = None  # (wall, (x, y)) of the exit step's send or its walk's last STUCK_MOVE (G2)
+        self._dropped = None     # an exit walk dropped while still current (G2): no longer this Flee's to wait on
         self._leg = None         # (Action, (x, y) at its send, heading) of the last steer leg
 
     @property
@@ -607,26 +648,50 @@ class Flee(Policy):
         if self.ended not in ("advance", "resend", "passed"):
             self._drop(a.state == "failed" and a.reason in _night().SHUN_REASONS)
 
+    def busy(self):
+        """As `Policy.busy`, except for an exit walk dropped while still current (G2): the next choose answers."""
+        return super().busy() and self.last is not self._dropped
+
     def _observe_exit(self):
-        """An exit step's end: an open `done` goes to the walk; a superseded step is sent again; a walk `done` with the
-        frame reading outside waits for the choose to read it out (`_exit_step`); any other end, or a walk `done` with
-        the frame still inside, refuses that exit for the episode and sets `exit_failed` (P23-AJ 3: Survive's corner
-        reads it before the next choose takes the next way out, else the steer)."""
+        """An exit step's end, and a running walk's progress (fix round 1, the review's G2): a walk that has left the
+        player within STUCK_MOVE of where it last moved for EXIT_STALL_S wall seconds is dropped while still current
+        (`_dropped`) and read as failed. An open `done` goes back to the walk (`opened`); a superseded step is sent
+        again; a walk `done` with the frame reading outside waits for the choose to read it out (`_exit_step`); a
+        walk that failed, stalled or ended `done` with the frame still inside goes to the open when its way out is a
+        closed door not yet opened (I2), else refuses that exit for the episode, as does a failed open (P23-AJ 3: the
+        next choose takes the next way out, else the adoption or the trapped hold)."""
         a = self._exit_a
-        if a is None or a is self._exit_read or not self.actions.done(a) or self.exit is None:
+        if a is None or a is self._exit_read or self.exit is None:
             return
+        if not self.actions.done(a):
+            if self.exit["step"] != "walk" or self.actions.current is not a:
+                return
+            now, pos = self.clock(), me_xy(self.world)
+            anchor = self._exit_anchor
+            if math.hypot(pos[0] - anchor[1][0], pos[1] - anchor[1][1]) >= STUCK_MOVE:
+                self._exit_anchor = (now, pos)
+                return
+            if now - anchor[0] < EXIT_STALL_S:
+                return
+            self._dropped = a
         self._exit_read = a
         if a.state == "failed" and a.reason == PREEMPTED:
             return
-        if a.state == "done" and self.exit["step"] == "open":
-            self.exit["step"] = "walk"
-        elif a.state != "done" or on_room(self.world):   # failed, or the walk ended with the frame still inside
-            self._refuse_exit()
+        e = self.exit
+        if e["step"] == "open":
+            if a.state == "done":
+                e["step"], e["opened"] = "walk", True
+            else:
+                self._refuse_exit()
+        elif a is self._dropped or a.state != "done" or on_room(self.world):
+            if e["door"] is not None and not e["opened"]:
+                e["step"] = "open"
+            else:
+                self._refuse_exit()
 
     def _refuse_exit(self):
         self.refused.add(self.exit["outer"])
         self.exit = None
-        self.exit_failed = True
 
     def _pick(self, ts):
         """The shelter plan to run (ruling P23-AG and its fix rounds), else None: never from a room square (P23-AJ
@@ -712,15 +777,15 @@ class Flee(Policy):
 
     def _exit_step(self):
         """The running exit's next command (P23-AJ 3), else None with the exit ended: outside (the frame reads no
-        room square) the building is left and the steer follows; a closed door is opened first (`Interact` open, the
-        Lua walking to it), then the walk to the centre of the exit's `target` (`_beyond`) at FLEE_GAIT."""
+        room square) the building is left and the steer follows; else the walk to the centre of the exit's `target`
+        (`_beyond`) at FLEE_GAIT, or, after that walk failed at a closed door, its open (`Interact`, fix round 1 I2)."""
         e = self.exit
         if not on_room(self.world):
             self.left.add(e["building"])
             self.exit = None
             return None
         if e["step"] == "open" and ((self.world.map.get(e["door"]) or {}).get("door") or {}).get("open"):
-            e["step"] = "walk"
+            e["step"], e["opened"] = "walk", True
         self._chosen = "exit"
         self.why = {"exit": e["building"], "outer": list(e["outer"]), "door": list(e["door"]) if e["door"] else None,
                     "step": e["step"], "shelter": None, "refused": sorted(map(list, self.refused))}
@@ -728,10 +793,27 @@ class Flee(Policy):
             return Interact(e["door"][0], e["door"][1], "open")
         return WalkTo(*centre(e["target"]), FLEE_GAIT)
 
+    def _adopt(self, ts):
+        """Fix round 1 (concern 1): the building stood in, every way out refused, adopted as sheltered: its plan kept
+        to its open exterior door nearest the threats, else its exterior door nearest them (iteration 1's F1), read
+        done, so the sheltered hold, the re-close guard and Survive's door fight apply; None with no exterior door on
+        this floor (E2's building 3: its doors all broken)."""
+        N = _night()
+        b = (self.world.map.get(N.player_square(self.world)) or {}).get("building")
+        doors = N.exterior_doors(self.world, b, me_floor(self.world)) if b is not None else []
+        if not doors:
+            return None
+
+        def rank(d):
+            is_open = bool(((self.world.map.get(d) or {}).get("door") or {}).get("open"))
+            return not is_open, min(math.hypot(z["x"] - d[0] - 0.5, z["y"] - d[1] - 0.5) for z in ts), d
+        return N.shelter_plan(self.world, b, door=min(doors, key=rank), step="done")
+
     def choose(self):
         """The running exit; else the shelter (picked at each re-aim until one is chosen: fix round 2, T1, and never
-        from a room square); else, on a room square, a new exit (`exit_plan`, P23-AJ 3: inside a building the flee
-        never steers while a way out is known); else the steer."""
+        from a room square); else, on a room square, a new exit (`exit_plan`, P23-AJ 3), else, once an episode, the
+        building adopted (`_adopt`, fix round 1), else the trapped hold (no command, `why.trapped`: on a room square
+        the flee never steers, fix round 1: steering inside killed E2); else the steer."""
         self._chosen = None
         ts = self._threats()
         if not ts:
@@ -752,6 +834,18 @@ class Flee(Policy):
             self.exit = exit_plan(self.world, ts, self.refused)
             if self.exit is not None:
                 return self._exit_step()
+            if not self.adopted:
+                self.adopted = True
+                self.plan = self._adopt(ts)
+                if self.plan is not None:
+                    cmd = self._shelter(ts)
+                    if cmd is not None or self.plan is not None:
+                        return cmd
+            self.why = {"trapped": (self.world.map.get(_night().player_square(self.world)) or {}).get("building"),
+                        "shelter": None, "refused": sorted(map(list, self.refused))}
+            if self._dropped is not None and self.actions.current is self._dropped:
+                return Stop()   # the dropped walk is still running: stand (G2)
+            return None
         return self._steer(ts)
 
     def stuck(self):
@@ -823,13 +917,12 @@ class Flee(Policy):
         return Steer(heading[0], heading[1], FLEE_S, gait)
 
     def sent(self, cmd, action):
-        self.exit_failed = False
         if self._chosen == "step":
             self._step = action
         elif self._chosen == "close":
             self._close = action
         elif self._chosen == "exit":
-            self._exit_a = action
+            self._exit_a, self._exit_anchor = action, (self.clock(), me_xy(self.world))
         elif cmd.TYPE == "steer":
             mx, my = me_xy(self.world)
             self._leg = (action, (mx, my), (cmd.vx, cmd.vy))
