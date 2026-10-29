@@ -116,6 +116,23 @@ def test_the_smash_path_with_smash_true_smashes_climbs_and_reports_the_cut(lua, 
     assert a[-1]["result"] == {"smashed": True, "opened": False, "cut": True, "wounds": 1}
 
 
+def test_a_scratch_before_the_climb_is_queued_is_not_the_climbs_cut(lua, fs):
+    w = window(locked=True, perma=True)
+    p, pos, g = host(lua, w, y=19.5)
+    n = wounds(p)
+    start(lua, p, "window", x=11, y=20, smash=True)
+    tick(lua, p)
+    n["v"] = 1                                                   # the weaponless smash scratches the smasher (ISSmashWindow:55)
+    leave(g)
+    w.st["smashed"] = True
+    tick(lua, p)
+    assert types(g)[-1] == "ISClimbThroughWindow"
+    pos["y"] = 20.5
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert a[-1]["result"] == {"smashed": True, "opened": False, "cut": False, "wounds": 0}
+
+
 def test_a_perma_locked_window_without_smash_is_refused_locked(lua, fs):
     p, _, g = host(lua, window(locked=True, perma=True))
     start(lua, p, "window", x=11, y=20)

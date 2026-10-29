@@ -151,7 +151,10 @@ end
 -- and IsoDoor.checkKeyId @138-@162 L2297-L2298 marks a locked door of a building (a key id) locked by key, which
 -- ToggleDoorActual @304-@393 L1514-L1527 refuses to a player outside holding no key; a player inside unlocks it
 -- (canBeOpenFromInside, @279-@294 L1509-L1511). A locked window from outside struggles and may lock for good
--- (OpenWindowState.onAttemptFinished @61-@142 L190-L199); a perma-locked one never opens.
+-- (OpenWindowState.onAttemptFinished @61-@142 L190-L199); a perma-locked one never opens. So locked true means may
+-- refuse, never will refuse: a door locked but not by key also refuses a player from one side with the 'Locked' sound
+-- (ToggleDoorActual @582-@619 L1545-L1548), and a player holding the key opens a door locked by key (@394 L1529, the
+-- 'Unlock' sound); a player inside unlocks it.
 MP.LOCKS = { door = { "isLocked", "isLockedByKey", "isLockedByPadlock" }, window = { "isLocked", "isPermaLocked" } }
 
 function MP.lockedOf(o, kind, missing)

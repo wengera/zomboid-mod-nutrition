@@ -42,7 +42,8 @@ def rand_frame(rng, seq=1):
                "attackers": maybe(rng, rng.randrange(0, 4)), "hitReaction": rng.choice(["", "HitReactionFront", "Bite"]),
                "dragDown": maybe(rng, b()), "aiming": maybe(rng, b()), "forceAim": maybe(rng, b()),
                "worn": maybe(rng, [{"loc": rng.choice(["base:tshirt", "base:jacket"]), "bite": lua_float(rng, 0, 100),
-                                    "scratch": lua_float(rng, 0, 100)} for _ in range(rng.choice([0, 1, 2]))], 0.7)},
+                                    "scratch": lua_float(rng, 0, 100), "holes": rng.randrange(0, 4),
+                                    "cond": lua_float(rng, 0, 10)} for _ in range(rng.choice([0, 1, 2]))], 0.7)},
         "stats": {k: lua_float(rng, 0, 1) for k in pza1.GROUPS["stats"]},
         "body": {"health": lua_float(rng, 0, 100), "bleeding": rng.randrange(0, 3), "scratched": rng.randrange(0, 3),
                  "bitten": 0, "parts": parts},
@@ -390,7 +391,7 @@ def test_me_and_cost_append_their_new_fields_after_the_prior_prefix():
     assert pza1.GROUPS["me"][11:14] == ("zombiesSeen", "zombiesListed", "hour")
     assert pza1.GROUPS["cost"][8:] == ("pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs",
                                        "maxPollMs", "maxStartMs")
-    assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12, "part": 2}
+    assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12, "part": 2, "wornLoc": 3}
 
 
 def test_a_frame_written_before_the_append_decodes_with_the_new_fields_none_and_no_shorter_or_longer_one_does():
@@ -473,7 +474,7 @@ def test_death_is_an_event_kind_with_its_fields_and_round_trips():
 def test_me_and_square_append_the_1_4_fields_after_their_1_3_orders():
     assert pza1.GROUPS["me"][14:17] == ("attackers", "hitReaction", "dragDown")
     assert pza1.RECORDS["square"][16:18] == ("hopN", "hopW")
-    assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12, "part": 2}       # the oldest arity a writer used is unchanged
+    assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12, "part": 2, "wornLoc": 3}       # the oldest arity a writer used is unchanged
     assert "busy" in pza1.REASONS
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
     assert [d["me"]["properties"][f]["type"] for f in ("attackers", "hitReaction", "dragDown")] == [
@@ -745,11 +746,11 @@ def test_keep_moving_description_states_the_leg_part_rule_and_the_open_line_obli
 
 def test_me_appends_worn_a_list_of_worn_loc_records_and_a_1_5_6_frame_decodes_with_it_none():
     assert pza1.GROUPS["me"][19:] == ("worn",) and tuple(pza1.SHAPES["me"]["worn"]) == ("list", "wornLoc")
-    assert pza1.RECORDS["wornLoc"] == ("loc", "bite", "scratch") and pza1.PRIOR["me"] == 11
+    assert pza1.RECORDS["wornLoc"] == ("loc", "bite", "scratch", "holes", "cond") and pza1.PRIOR["me"] == 11 and pza1.PRIOR["wornLoc"] == 3
     rng = random.Random(56)
     f = rand_frame(rng)
-    f["me"]["worn"] = [{"loc": "base:tshirt", "bite": 0, "scratch": 10.5}, {"loc": "base:jacket", "bite": 15,
-                                                                           "scratch": 30}]
+    f["me"]["worn"] = [{"loc": "base:tshirt", "bite": 0, "scratch": 10.5, "holes": 0, "cond": 8},
+                      {"loc": "base:jacket", "bite": 15, "scratch": 30, "holes": 2, "cond": 3}]
     assert pza1.decode(json.loads(pza1.encode("frame", f))) == f
     f["me"]["worn"] = []
     assert pza1.decode(json.loads(pza1.encode("frame", f)))["me"]["worn"] == []
@@ -757,6 +758,11 @@ def test_me_appends_worn_a_list_of_worn_loc_records_and_a_1_5_6_frame_decodes_wi
     me = pza1.ORDER["frame"].index("me")
     arr[me] = arr[me][:19]                                       # a PZA/1.5.6 me
     assert pza1.decode(arr)["me"]["worn"] is None
+    f["me"]["worn"] = [{"loc": "base:jacket", "bite": 15, "scratch": 30, "holes": 2, "cond": 3}]
+    arr = json.loads(pza1.encode("frame", f))
+    arr[me][19] = [r[:3] for r in arr[me][19]]                   # a PZA/1.6 entry, before holes and cond
+    assert pza1.decode(arr)["me"]["worn"] == [{"loc": "base:jacket", "bite": 15, "scratch": 30, "holes": None,
+                                               "cond": None}]
 
 
 def test_clothing_is_a_use_and_a_filter_and_the_item_events_carry_its_record():

@@ -7,7 +7,7 @@ are docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md section 10."""
 import json
 
 from agent.base import pza1
-from .conftest import J, make_cell, make_player
+from .conftest import J, make_cell, make_player, make_zombie
 from .test_lua_item_changed import changed, seen
 from .test_lua_sense import events, frame, load, load_map, missing, watch_cycle
 from .test_lua_skills import acts, box_world, citem, start, states, tick
@@ -127,8 +127,8 @@ def test_the_clothing_filter_with_no_garment_is_no_match(lua, fs):
 def worn_player():
     shirt = garment(70, loc="base:tshirt", bite=0.0, scratch=10.0, worn=True)
     jacket = garment(71, loc="base:jacket", bite=15.0, scratch=30.0, worn=True)
-    ring = garment(72, loc="base:right_ringfinger", bite=0.0, scratch=0.0, worn=True)
-    ring2 = garment(73, loc="base:right_ringfinger", bite=1.0, scratch=2.0, worn=True)
+    ring = garment(72, loc="base:right_ringfinger", bite=1.0, scratch=1.0, worn=True)
+    ring2 = garment(73, loc="base:right_ringfinger", bite=1.0, scratch=2.0, worn=True, cond=3)
     bag = J(_cls="InventoryContainer", getFullType=lambda s: "Base.Bag_Schoolbag")
     return make_player(worn=[("base:tshirt", shirt), ("base:back", bag), ("base:jacket", jacket),
                              ("base:right_ringfinger", ring), ("base:right_ringfinger", ring2)]), jacket
@@ -142,9 +142,10 @@ def worn_of(f):
 def test_the_first_frame_carries_the_worn_locations_summed_a_bag_left_out(lua):
     load(lua)
     p, _ = worn_player()
-    assert worn_of(frame(lua, p)) == [{"loc": "base:tshirt", "bite": 0, "scratch": 10},
-                                      {"loc": "base:jacket", "bite": 15, "scratch": 30},
-                                      {"loc": "base:right_ringfinger", "bite": 1, "scratch": 2}]
+    # the ring location sums its two items' defences (1/1 and 1/2 give 2/3), holes and the lowest condition too
+    assert worn_of(frame(lua, p)) == [{"loc": "base:tshirt", "bite": 0, "scratch": 10, "holes": 0, "cond": 8},
+                                      {"loc": "base:jacket", "bite": 15, "scratch": 30, "holes": 0, "cond": 8},
+                                      {"loc": "base:right_ringfinger", "bite": 2, "scratch": 3, "holes": 0, "cond": 3}]
 
 
 def test_me_worn_is_elided_while_unchanged_and_sent_again_when_it_changes(lua):
@@ -156,7 +157,46 @@ def test_me_worn_is_elided_while_unchanged_and_sent_again_when_it_changes(lua):
     jacket.st["cond"] = 0                                        # a garment at condition 0 defends nothing
     sent = [worn_of(frame(lua, p)) for _ in range(10)]           # read again within one WORN_EVERY
     got = [w for w in sent if w is not None]
-    assert len(got) == 1 and got[0][1] == {"loc": "base:jacket", "bite": 0, "scratch": 0}
+    assert len(got) == 1 and got[0][1] == {"loc": "base:jacket", "bite": 0, "scratch": 0, "holes": 0, "cond": 0}
+
+
+def test_a_holed_worn_garment_reads_its_holes_and_the_lowest_condition(lua):
+    load(lua)
+    p, jacket = worn_player()
+    assert worn_of(frame(lua, p))[2]["cond"] == 3                # the ring location: the lowest of 8 and 3
+    jacket.st["holes"] = 2                                       # holes leave bite and scratch as they were
+    for _ in range(10):
+        got = worn_of(frame(lua, p))
+        if got is not None:
+            break
+    assert got[1] == {"loc": "base:jacket", "bite": 15, "scratch": 30, "holes": 2, "cond": 8}
+
+
+def test_a_hit_reaction_reads_the_worn_list_again_on_that_frame_with_no_damage_event(lua):
+    load(lua)
+    p, jacket = worn_player()
+    assert worn_of(frame(lua, p)) is not None
+    assert worn_of(frame(lua, p)) is None
+    jacket.st["holes"] = 1                                       # a turned attack: a hole, no wound, no damage event
+    p.combat["hitReaction"] = "HitReaction"
+    got = worn_of(frame(lua, p))                                 # the very next frame reads it
+    assert got is not None and got[1]["holes"] == 1
+    assert worn_of(frame(lua, p)) is None                        # the reaction holds: no read
+    jacket.st["holes"] = 2                                       # a second turned hit inside the same reaction
+    p.combat["hitReaction"] = ""                                 # the reaction ending reads again
+    got = worn_of(frame(lua, p))
+    assert got is not None and got[1]["holes"] == 2
+
+
+def test_attackers_rising_from_zero_reads_the_worn_list(lua):
+    load(lua)
+    lua.globals()._cell = make_cell(zombies=[make_zombie(1, 11.0, 20.0)])   # one tile off: the count is asked
+    p, jacket = worn_player()
+    assert worn_of(frame(lua, p)) is not None
+    jacket.st["holes"] = 3
+    p.combat["attackers"] = 1
+    got = worn_of(frame(lua, p))
+    assert got is not None and got[1]["holes"] == 3
 
 
 def test_an_item_or_damage_event_reads_the_worn_list_on_the_next_frame(lua):
@@ -195,7 +235,7 @@ def test_the_worn_list_encodes_through_the_link_and_decodes_through_pza1(lua, fs
     lua.execute("PZA.link.flush()")
     line = [l for l in fs.files["pzagent/admin/state.log"].split("\n") if l.startswith('["frame"')][0]
     d = pza1.decode(json.loads(line))
-    assert d["me"]["worn"][1] == {"loc": "base:jacket", "bite": 15, "scratch": 30}
+    assert d["me"]["worn"][1] == {"loc": "base:jacket", "bite": 15, "scratch": 30, "holes": 0, "cond": 8}
 
 
 # ---- the portal's locked, fail-closed, and the door event's locked ---------------------------------------------------
@@ -292,7 +332,7 @@ def test_wear_marks_the_garment_and_the_replaced_one_for_an_item_changed(lua, fs
     p.worn[0] = ("base:jacket", new)
     tick(lua, p)
     ev, prev = events(lua, p, prev)
-    assert worn_of(prev) == [{"loc": "base:jacket", "bite": 15, "scratch": 30}]   # the wear's end prompted the read
+    assert worn_of(prev) == [{"loc": "base:jacket", "bite": 15, "scratch": 30, "holes": 0, "cond": 8}]   # the wear's end prompted the read
     ch = {e["itemId"]: e for e in changed(ev)}
     assert set(ch) == {90, 91}
     assert ch[90]["worn"] is True and dict(ch[90]["clothing"])["worn"] is True and ch[90]["use"] == "clothing"

@@ -149,7 +149,7 @@
         "dragDown": {"description": "Whether the drag-down death is marked on the player, isDeathDragDown() (PZA/1.4, P24-C).", "type": "boolean"},
         "aiming": {"description": "Whether the player is aiming, isAiming() (PZA/1.5, P24-G): the combat stance an aim holds, or a swing's own while its animation plays; a hit reaction clears it for the reaction's length, a run or a sprint for good.", "type": "boolean"},
         "forceAim": {"description": "The force-aim flag read after the frame, isForceAim() (PZA/1.5.4, P24-T): re-asserted every frame while the stance is held (the game clears it every frame while its toggle-to-aim option is off), so true when the flag survived the frame (not cleared by a run key or a release), while aiming shows whether the update used it; null in logs written before PZA/1.5.4.", "type": "boolean"},
-        "worn": {"description": "PZA/1.6 (Plan 24 Task 9 fix 9, review-t18 ruling 5): the body locations the worn clothing covers, each with the bite and scratch defence of the Clothing items worn there summed (getWornItems(), a bag left out), in the order the game lists them; null on every frame whose list equals the last one carried, so a reader keeps the last list it saw (the first frame carries it, [] when nothing is worn), and in logs written before PZA/1.6. Read after an item or damage event and every tenth frame otherwise. A zombie's scratch rolls under the scratch defence summed over the worn items covering the hit part, a bite under the bite defence (capped at 100): compare a garment's item record with the entry at its loc.", "type": "array", "items": {"$ref": "#/$defs/wornLoc"}}
+        "worn": {"description": "PZA/1.6 (Plan 24 Task 9 fix 9, review-t18 ruling 5): the body locations the worn clothing covers, each with the bite and scratch defence of the Clothing items worn there summed (getWornItems(), a bag left out), in the order the game lists them; null on every frame whose list equals the last one carried, so a reader keeps the last list it saw (the first frame carries it, [] when nothing is worn), and in logs written before PZA/1.6. Read after an item or damage event, on the frame after the hit reaction rises, changes or ends or the attackers count rises from 0 (a zombie attack turned by the clothing makes a hole and no damage event, PZA/1.6.1), and every tenth frame otherwise. A zombie's scratch rolls under the scratch defence summed over the worn items covering the hit part, a bite under the bite defence (capped at 100): compare a garment's item record with the entry at its loc, an entry with holes above 0 counted as less than its bite and scratch.", "type": "array", "items": {"$ref": "#/$defs/wornLoc"}}
       },
       "required": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn"]
     },
@@ -314,14 +314,17 @@
       "description": "One body location the worn clothing covers (PZA/1.6, me.worn).",
       "x-role": "record",
       "x-encoding": "positional",
-      "x-order": ["loc", "bite", "scratch"],
+      "x-prior": 3,
+      "x-order": ["loc", "bite", "scratch", "holes", "cond"],
       "type": "object",
       "properties": {
         "loc": {"description": "The body location's registry name, the WornItem's getLocation() (base:tshirt, base:jacket, base:pants); an item record's clothing.loc names the same slot.", "type": "string"},
         "bite": {"description": "The summed getBiteDefense() of the Clothing worn there (0 at condition 0).", "type": "number"},
-        "scratch": {"description": "The summed getScratchDefense() of the Clothing worn there (0 at condition 0).", "type": "number"}
+        "scratch": {"description": "The summed getScratchDefense() of the Clothing worn there (0 at condition 0).", "type": "number"},
+        "holes": {"description": "PZA/1.6.1 (Task 9 fix 10): the summed getHolesNumber() of the Clothing worn there. The engine drops a garment from a body part wherever it has a hole there, and bite and scratch ignore holes, so an entry with holes above 0 defends less than its bite and scratch say (jar-reads-2 section 10); null in logs written before PZA/1.6.1.", "type": "integer"},
+        "cond": {"description": "PZA/1.6.1 (Task 9 fix 10): the lowest getCondition() among the Clothing worn there (a garment at 0 defends nothing); null when unreadable and in logs written before PZA/1.6.1.", "type": ["number", "null"]}
       },
-      "required": ["loc", "bite", "scratch"]
+      "required": ["loc", "bite", "scratch", "holes", "cond"]
     },
 
     "map": {
@@ -395,7 +398,7 @@
       "type": "object",
       "properties": {
         "open": {"description": "Whether it is open.", "type": "boolean"},
-        "locked": {"description": "Whether it is locked (PZA/1.6, fail-closed): any of isLocked(), isLockedByKey() or a thumpable's isLockedByPadlock() for a door, isLocked() or isPermaLocked() for a window, reading true, and true when none of them can be read. A locked door of a building refuses a player outside who holds no key and opens for one inside (it unlocks); a locked window struggles from outside and may lock for good, a perma-locked one never opens. Before PZA/1.6 isLocked() alone, false when unreadable.", "type": "boolean"},
+        "locked": {"description": "Whether it is locked (PZA/1.6, fail-closed): any of isLocked(), isLockedByKey() or a thumpable's isLockedByPadlock() for a door, isLocked() or isPermaLocked() for a window, reading true, and true when none of them can be read. True means may refuse, never will refuse: a locked door of a building refuses a player outside who holds no key (a door locked but not by key also refuses from one side), a player holding the key opens one locked by key, and a player inside unlocks it; a locked window struggles from outside and may lock for good, a perma-locked one never opens. Before PZA/1.6 isLocked() alone, false when unreadable.", "type": "boolean"},
         "barricaded": {"description": "Whether it is barricaded.", "type": "boolean"}
       },
       "required": ["open", "locked", "barricaded"]
@@ -797,7 +800,7 @@
       "properties": {
         "smashed": {"description": "Whether the skill smashed the window before the climb (smash true; a smash with no weapon in hand scratches the smasher).", "type": "boolean"},
         "opened": {"description": "Whether the skill opened the window before the climb.", "type": "boolean"},
-        "cut": {"description": "Whether the climb wounded the player (wounds above 0): climbing through a smashed window whose glass was not removed cuts a hand or forearm 1 time in 2 (jar-reads-2 section 10; the engine's call returns at once on a client, so a cut in multiplayer is the server's to make, unread).", "type": "boolean"},
+        "cut": {"description": "Whether the wounds rose between the climb's queue and the edge crossing (wounds above 0), a zombie's included; the glass cut itself, 1 time in 2 through a smashed window whose glass was not removed (jar-reads-2 section 10), is unread in multiplayer (the engine's call returns at once on a client, so a server-side cut may reach the client after the crossing): cut false does not mean uncut, take the damage events as the truth.", "type": "boolean"},
         "wounds": {"description": "The rise in the player's scratched and bleeding part counts from the climb's queue to its end.", "type": "integer"}
       }
     },

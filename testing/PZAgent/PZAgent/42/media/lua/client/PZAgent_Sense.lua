@@ -737,11 +737,20 @@ end
 -- one carried, so a reader keeps the last list it saw; the first frame carries it ([] when nothing is worn). The list is
 -- read on a frame after an item, item_changed or damage event (S.wornDirty, a hit can hole a garment or lower its
 -- condition) and on every WORN_EVERY-th frame otherwise. An unreadable getWornItems leaves me.worn nil and is named in
--- missing; a raise among these reads costs me.worn alone (raise:me:worn). Cost: two calls a list, five a worn item.
+-- missing; a raise among these reads costs me.worn alone (raise:me:worn). Cost: two calls a list, seven a worn item.
+-- PZA/1.6.1 (Task 9 fix 10): each entry also carries holes (the sum of the items' getHolesNumber) and cond (the lowest
+-- getCondition among them): the engine drops a garment from a body part wherever it has a hole there
+-- (IsoGameCharacter.getBodyPartClothingDefense @0-@230 L13615-L13655, Clothing.getDefForPart @0-@139 L957-L989), and
+-- getBiteDefense and getScratchDefense ignore holes, so an entry with holes above 0 defends less than its bite and
+-- scratch say. A zombie's attack turned by the clothing makes a hole and returns with no wound (AddRandomDamageFromZombie
+-- L1542-L1544), so no damage event follows it: the list is also read on the frame after the hit reaction rises (a landed
+-- or a turned attack sets it, S.hitSeen; read again when it changes or ends) or the attackers count rises from 0.
 S.WORN_EVERY = 10         -- frames between two reads of the worn list with no event to prompt one
 S.wornFrames = 0
 S.wornDirty = true
 S.wornKey = nil
+S.hitSeen = ""            -- the last frame's hitReaction, and S.attSeen its attackers: a rise reads the worn list again
+S.attSeen = 0
 
 function S.wornOf(p)
     local okW, wi = PZA.call(p, "getWornItems")
@@ -759,7 +768,7 @@ function S.wornOf(p)
             local name = tostring(loc)
             local r = byLoc[name]
             if r == nil then
-                r = { loc = name, bite = 0, scratch = 0 }
+                r = { loc = name, bite = 0, scratch = 0, holes = 0 }
                 byLoc[name] = r
                 out[#out + 1] = r
             end
@@ -767,6 +776,10 @@ function S.wornOf(p)
             local _, sc = PZA.call(it, "getScratchDefense")
             if type(b) == "number" then r.bite = r.bite + b end
             if type(sc) == "number" then r.scratch = r.scratch + sc end
+            local _, h = PZA.call(it, "getHolesNumber")
+            local _, c = PZA.call(it, "getCondition")
+            if type(h) == "number" then r.holes = r.holes + h end
+            if type(c) == "number" and (r.cond == nil or c < r.cond) then r.cond = c end
         end
     end
     return out
@@ -774,6 +787,11 @@ end
 
 local function meWorn(p, f)
     S.wornFrames = S.wornFrames + 1
+    local hr, att = f.me.hitReaction, f.me.attackers
+    if type(hr) == "string" and hr ~= S.hitSeen then S.wornDirty = true end   -- rises, changes or ends
+    if type(att) == "number" and att > 0 and S.attSeen == 0 then S.wornDirty = true end
+    if type(hr) == "string" then S.hitSeen = hr end
+    if type(att) == "number" then S.attSeen = att end
     if not S.wornDirty and S.wornFrames % S.WORN_EVERY ~= 1 then return end
     S.wornDirty = false
     local list = S.wornOf(p)

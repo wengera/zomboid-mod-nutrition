@@ -39,12 +39,13 @@ GROUPS = {
 PRIOR = {
     "me": 11,
     "cost": 8,
+    "wornLoc": 3,
     "part": 2,
     "square": 12,
 }
 # the positional records
 RECORDS = {
-    "wornLoc": ("loc", "bite", "scratch"),
+    "wornLoc": ("loc", "bite", "scratch", "holes", "cond"),
     "part": ("i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected"),
     "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health"),
     "portal": ("open", "locked", "barricaded"),

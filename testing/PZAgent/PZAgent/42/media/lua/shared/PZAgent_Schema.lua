@@ -28,7 +28,7 @@ PZA.schema = {
         cost = { "tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs" },
     },
     records = {
-        wornLoc = { "loc", "bite", "scratch" },
+        wornLoc = { "loc", "bite", "scratch", "holes", "cond" },
         part = { "i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected" },
         zombie = { "id", "x", "y", "dist", "hasTarget", "crawler", "health" },
         portal = { "open", "locked", "barricaded" },
@@ -112,9 +112,11 @@ end
 --   loc: The body location's registry name, the WornItem's getLocation() (base:tshirt, base:jacket, base:pants); an item record's clothing.loc names the same slot.
 --   bite: The summed getBiteDefense() of the Clothing worn there (0 at condition 0).
 --   scratch: The summed getScratchDefense() of the Clothing worn there (0 at condition 0).
+--   holes: PZA/1.6.1 (Task 9 fix 10): the summed getHolesNumber() of the Clothing worn there. The engine drops a garment from a body part wherever it has a hole there, and bite and scratch ignore holes, so an entry with holes above 0 defends less than its bite and scratch say (jar-reads-2 section 10); null in logs written before PZA/1.6.1.
+--   cond: PZA/1.6.1 (Task 9 fix 10): the lowest getCondition() among the Clothing worn there (a garment at 0 defends nothing); null when unreadable and in logs written before PZA/1.6.1.
 local function enc_wornLoc(t)
     if t == nil then return "null" end
-    return "[" .. v(t.loc) .. "," .. v(t.bite) .. "," .. v(t.scratch) .. "]"
+    return "[" .. v(t.loc) .. "," .. v(t.bite) .. "," .. v(t.scratch) .. "," .. v(t.holes) .. "," .. v(t.cond) .. "]"
 end
 PZA.enc.wornLoc = enc_wornLoc
 
@@ -150,7 +152,7 @@ PZA.enc.zombie = enc_zombie
 
 -- record portal: A door or a window.
 --   open: Whether it is open.
---   locked: Whether it is locked (PZA/1.6, fail-closed): any of isLocked(), isLockedByKey() or a thumpable's isLockedByPadlock() for a door, isLocked() or isPermaLocked() for a window, reading true, and true when none of them can be read. A locked door of a building refuses a player outside who holds no key and opens for one inside (it unlocks); a locked window struggles from outside and may lock for good, a perma-locked one never opens. Before PZA/1.6 isLocked() alone, false when unreadable.
+--   locked: Whether it is locked (PZA/1.6, fail-closed): any of isLocked(), isLockedByKey() or a thumpable's isLockedByPadlock() for a door, isLocked() or isPermaLocked() for a window, reading true, and true when none of them can be read. True means may refuse, never will refuse: a locked door of a building refuses a player outside who holds no key (a door locked but not by key also refuses from one side), a player holding the key opens one locked by key, and a player inside unlocks it; a locked window struggles from outside and may lock for good, a perma-locked one never opens. Before PZA/1.6 isLocked() alone, false when unreadable.
 --   barricaded: Whether it is barricaded.
 local function enc_portal(t)
     if t == nil then return "null" end
@@ -224,7 +226,7 @@ PZA.enc.square = enc_square
 --   dragDown: Whether the drag-down death is marked on the player, isDeathDragDown() (PZA/1.4, P24-C).
 --   aiming: Whether the player is aiming, isAiming() (PZA/1.5, P24-G): the combat stance an aim holds, or a swing's own while its animation plays; a hit reaction clears it for the reaction's length, a run or a sprint for good.
 --   forceAim: The force-aim flag read after the frame, isForceAim() (PZA/1.5.4, P24-T): re-asserted every frame while the stance is held (the game clears it every frame while its toggle-to-aim option is off), so true when the flag survived the frame (not cleared by a run key or a release), while aiming shows whether the update used it; null in logs written before PZA/1.5.4.
---   worn: PZA/1.6 (Plan 24 Task 9 fix 9, review-t18 ruling 5): the body locations the worn clothing covers, each with the bite and scratch defence of the Clothing items worn there summed (getWornItems(), a bag left out), in the order the game lists them; null on every frame whose list equals the last one carried, so a reader keeps the last list it saw (the first frame carries it, [] when nothing is worn), and in logs written before PZA/1.6. Read after an item or damage event and every tenth frame otherwise. A zombie's scratch rolls under the scratch defence summed over the worn items covering the hit part, a bite under the bite defence (capped at 100): compare a garment's item record with the entry at its loc.
+--   worn: PZA/1.6 (Plan 24 Task 9 fix 9, review-t18 ruling 5): the body locations the worn clothing covers, each with the bite and scratch defence of the Clothing items worn there summed (getWornItems(), a bag left out), in the order the game lists them; null on every frame whose list equals the last one carried, so a reader keeps the last list it saw (the first frame carries it, [] when nothing is worn), and in logs written before PZA/1.6. Read after an item or damage event, on the frame after the hit reaction rises, changes or ends or the attackers count rises from 0 (a zombie attack turned by the clothing makes a hole and no damage event, PZA/1.6.1), and every tenth frame otherwise. A zombie's scratch rolls under the scratch defence summed over the worn items covering the hit part, a bite under the bite defence (capped at 100): compare a garment's item record with the entry at its loc, an entry with holes above 0 counted as less than its bite and scratch.
 local function enc_me(t)
     if t == nil then return "null" end
     return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "," .. v(t.forceAim) .. "," .. list(t.worn, enc_wornLoc) .. "]"

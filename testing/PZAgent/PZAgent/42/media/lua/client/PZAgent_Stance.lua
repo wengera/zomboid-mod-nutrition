@@ -391,7 +391,10 @@ K.types.climb = {
 -- open or destroyed (health 0 or the destroyed flag; isSmashed and isDestroyed both read that flag, @0-@4 L1211, L404);
 -- a locked window opens from inside, and from an exterior square each try may break its lock (1 in 10, 1 in 20 for a
 -- Burglar: perma-locked, never to open) or force it by Strength (OpenWindowState.onAttemptFinished @46-@292
--- L185-L222); climbing through a destroyed window whose glass was not removed cuts a hand or forearm 1 time in 2
+-- L185-L222: a failed roll falls through to the next band's, so a try forces the window with 20 in 100 at Strength
+-- over 7, then 10 at over 5, 6 at over 3, 4 at over 1 and 2 in 100 for everyone, each band's roll made only at that
+-- Strength and the first success forcing it: the compound about 36 % over 7, 20 % over 5, 12 % over 3, 6 % over 1, 2 %
+-- otherwise; @143-@280 L201-L216); climbing through a destroyed window whose glass was not removed cuts a hand or forearm 1 time in 2
 -- (ClimbThroughWindowState.getClimbThroughWindowPositioningParams @36-@65 L624-L625, then setScratchedWindow in execute
 -- @775-@815 L217-L221, which does nothing on a client: BodyDamage.setScratchedWindow @0-@7 L1944-L1945); a smash with
 -- no weapon in either hand scratches the smasher (ISSmashWindow:complete, lua:shared/TimedActions/ISSmashWindow.lua:46-
@@ -413,7 +416,13 @@ K.types.climb = {
 -- fallback or fallfront, or the floor changing, marks a fall; the player across the edge within one square of the far
 -- square ends it, failed fell after a fall, else done {smashed, opened, cut (the climb's wounds above 0), wounds (the
 -- rise in getNumPartsScratched + getNumPartsBleeding since the climb was queued)}; its action gone from the queue
--- WINDOW_SETTLE_MS with the player on the near side, failed. WINDOW_MS after the first tick, interrupted.
+-- WINDOW_SETTLE_MS with the player on the near side, failed. cut is any rise of the wounds between the climb's queue
+-- and the edge crossing, a zombie's included, and the glass cut itself is unread in multiplayer (setScratchedWindow
+-- returns at once on a client, so a server-side cut may reach the client after the crossing): cut false does not mean
+-- uncut, the damage events are the truth. Unread: whether the smash queued after a struggle (OpenWindowState is a
+-- character state the queue clear does not obviously end) starts at once (jar-reads-2 section 10, Not read).
+-- The climb is refused (canClimbThrough, see above) also while another character's close succeeds
+-- (getFirstCharacterClosing, CloseWindowOutcome success, @50-@73 L1392-L1394) and on a null square (L1379). WINDOW_MS after the first tick, interrupted.
 -- Appended here (the file's climb helpers are its locals); the stance is released by K.start's wrapper above.
 K.WINDOW_OPEN_MS = 15000    -- an open still shut this long after its action left the queue ends the open
 K.WINDOW_SMASH_MS = 6000    -- a smash whose window still reads whole this long after its action left the queue fails
