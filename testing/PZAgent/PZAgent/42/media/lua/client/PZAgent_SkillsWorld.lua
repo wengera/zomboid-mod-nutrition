@@ -726,3 +726,27 @@ K.types.sleep = {
         PZA.call(p, "setAsleep", false)
     end,
 }
+
+-- ---- attack's busy refusal (PZA/1.4, ruling P24-C) ------------------------------------------------------------------
+-- The jar (docs/superpowers/specs/2026-10-29-plan-24-jar-reads.md section 3, #4292, #4293): a DoAttack starts no swing
+-- while isAttackStarted() already reads true or the player is in PlayerHitReactionState, which every zombie attack
+-- reaching the damage roll sets (a defended one included) until the state exits and clears getHitReaction to "".
+-- So an attack sent then would press a swing the engine drops and read as one made: K.attackBusy(p) reads
+-- hasHitReaction() (getHitReaction non-empty, the animation's own hashitreaction) or isAttackStarted() true, and the
+-- check, wrapped here, rejects an otherwise valid attack with reason busy (its own reasons, bad args, no target and
+-- no weapon, first); the planner re-sends it on a later frame. An absent member reads not busy. Checked when the
+-- attack is sent only: a reaction that starts during its approach is the engine's to drop. This block sits at the end
+-- of the file (CLAUDE.md section 5: the repo: pointers into this file keep their lines).
+function K.attackBusy(p)
+    local _, hit = PZA.call(p, "hasHitReaction")
+    if hit == true then return true end
+    local _, started = PZA.call(p, "isAttackStarted")
+    return started == true
+end
+
+local attackCheck = K.types.attack.check
+K.types.attack.check = function(args, p)
+    local ok, reason, st = attackCheck(args, p)
+    if ok and K.attackBusy(p) then return false, "busy" end
+    return ok, reason, st
+end

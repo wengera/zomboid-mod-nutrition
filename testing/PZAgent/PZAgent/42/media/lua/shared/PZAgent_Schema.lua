@@ -18,7 +18,7 @@ PZA.schema = {
         reply = { "kind", "seq", "tick", "wallMs", "to", "body" },
     },
     groups = {
-        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour" },
+        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown" },
         stats = { "hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature" },
         body = { "health", "bleeding", "scratched", "bitten", "parts" },
         load = { "weight", "max", "level", "n" },
@@ -32,9 +32,9 @@ PZA.schema = {
         zombie = { "id", "x", "y", "dist", "hasTarget", "crawler", "health" },
         portal = { "open", "locked", "barricaded" },
         container = { "type", "n", "items" },
-        square = { "x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW" },
+        square = { "x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW" },
     },
-    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true },
+    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true },
     actions = {
         walkTo = { "x", "y", "gait" },
         steer = { "vx", "vy", "seconds", "gait" },
@@ -157,9 +157,11 @@ PZA.enc.container = enc_container
 --   blockW: Whether a step from this square to its west neighbour is blocked: a collide flag with no window, a closed or barricaded door, an intact closed or barricaded window, or a stair top (isBlockedTo).
 --   edgeN: Whether a wall, door or window stands on the north edge, open or closed (isSomethingTo).
 --   edgeW: Whether a wall, door or window stands on the west edge, open or closed (isSomethingTo).
+--   hopN: Whether the square's own north edge is hoppable, has(IsoFlagType.HoppableN) (PZA/1.4, P24-C): a low fence the path follower climbs at a walk though isBlockedTo reads the edge blocked; false beside a solid wall on the same edge.
+--   hopW: Whether the square's own west edge is hoppable, has(IsoFlagType.HoppableW) (PZA/1.4, P24-C): a low fence the path follower climbs at a walk though isBlockedTo reads the edge blocked; false beside a solid wall on the same edge.
 local function enc_square(t)
     if t == nil then return "null" end
-    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.solid) .. "," .. v(t.solidTrans) .. "," .. v(t.light) .. "," .. v(t.room) .. "," .. v(t.building) .. "," .. enc_portal(t.door) .. "," .. enc_portal(t.window) .. "," .. list(t.containers, enc_container) .. "," .. list(t.floor, v) .. "," .. v(t.blockN) .. "," .. v(t.blockW) .. "," .. v(t.edgeN) .. "," .. v(t.edgeW) .. "]"
+    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.solid) .. "," .. v(t.solidTrans) .. "," .. v(t.light) .. "," .. v(t.room) .. "," .. v(t.building) .. "," .. enc_portal(t.door) .. "," .. enc_portal(t.window) .. "," .. list(t.containers, enc_container) .. "," .. list(t.floor, v) .. "," .. v(t.blockN) .. "," .. v(t.blockW) .. "," .. v(t.edgeN) .. "," .. v(t.edgeW) .. "," .. v(t.hopN) .. "," .. v(t.hopW) .. "]"
 end
 PZA.enc.square = enc_square
 
@@ -178,9 +180,12 @@ PZA.enc.square = enc_square
 --   zombiesSeen: The cell's zombie list size, the frame's one walk.
 --   zombiesListed: The zombies the frame lists, those alive within the sense radius.
 --   hour: The game's hour of day, 0 to 24, as a number.
+--   attackers: The zombies attacking the player as the drag-down counts them (PZA/1.4, P24-C): getSurroundingAttackingZombies(), the standing zombies on the player's square and its eight neighbours that target the player within 0.9 tiles in an attack or lunge state; the drag-down kills at three (two at sandbox Strength 1).
+--   hitReaction: The player's hit reaction, getHitReaction(), '' when none (PZA/1.4, P24-C): set by every zombie attack that reaches the damage roll, a defended one included; no swing starts while it is set.
+--   dragDown: Whether the drag-down death is marked on the player, isDeathDragDown() (PZA/1.4, P24-C).
 local function enc_me(t)
     if t == nil then return "null" end
-    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "]"
+    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "]"
 end
 PZA.enc.me = enc_me
 

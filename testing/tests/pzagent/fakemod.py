@@ -19,7 +19,8 @@ DEFAULT_FRAME = {
     "worldAge": 8.0,
     "me": {"x": 100.0, "y": 200.0, "z": 0, "dir": "S", "pace": 0.0, "moving": False, "running": False,
            "sprinting": False, "forceRun": False, "forceSprint": False, "autoWalk": False,
-           "zombiesSeen": 0, "zombiesListed": 0, "hour": 8.0},
+           "zombiesSeen": 0, "zombiesListed": 0, "hour": 8.0, "attackers": 0, "hitReaction": "",
+           "dragDown": False},
     "stats": {"hunger": 0.1, "thirst": 0.1, "fatigue": 0.05, "endurance": 1.0, "panic": 0.0, "pain": 0.0,
               "sickness": 0.0, "wetness": 0.0, "temperature": 37.0},
     "body": {"health": 100.0, "bleeding": 0, "scratched": 0, "bitten": 0, "parts": []},
@@ -35,12 +36,12 @@ DEFAULT_FRAME = {
 
 DEFAULT_SQUARE = {"x": 100, "y": 200, "z": 0, "solid": False, "solidTrans": False, "light": 1.0, "room": None,
                   "building": None, "door": None, "window": None, "containers": [], "floor": [], "blockN": False,
-                  "blockW": False, "edgeN": False, "edgeW": False}
+                  "blockW": False, "edgeN": False, "edgeW": False, "hopN": False, "hopW": False}
 
 
 def square(**fields):
-    """A full PZA/1.2 square record: DEFAULT_SQUARE (an open outdoor square, its four edges False) with `fields` laid
-    over it; an unknown field raises."""
+    """A full PZA/1.4 square record: DEFAULT_SQUARE (an open outdoor square, its four edges and its two hop flags
+    False) with `fields` laid over it; an unknown field raises."""
     extra = set(fields) - set(pza1.RECORDS["square"])
     if extra:
         raise ValueError("square: unknown fields %s" % sorted(extra))

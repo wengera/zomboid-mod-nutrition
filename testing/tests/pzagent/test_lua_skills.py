@@ -1932,3 +1932,46 @@ def test_the_runner_calls_a_skills_stop_hook_at_every_end_but_done(lua, fs):
     start(lua, p, "probe", aid="s")
     start(lua, p, "walkTo", aid="w", x=12, y=20)               # superseded
     assert list(lua.eval("_stops").values()) == ["stuck", "superseded"]
+
+
+# ---- PZA/1.4 (ruling P24-C): the attack refused busy in a hit reaction or a started attack --------------------------------
+
+def test_attack_during_a_hit_reaction_is_rejected_busy_and_presses_nothing(lua, fs):
+    load(lua)
+    _, p = attack_world(lua)
+    p.combat["hitReaction"] = "HitReactionFront"
+    start(lua, p, "attack", targetId=7)
+    tick(lua, p, 3)
+    assert states(acts(lua, fs)) == [("a1", "rejected", "busy")] and list(p.attacks) == [] and list(p.faced) == []
+    p.combat["hitReaction"] = ""                                 # the reaction's state exits: the re-sent one swings
+    start(lua, p, "attack", aid="a2", targetId=7)
+    tick(lua, p)
+    assert ("a2", "accepted", "") in states(acts(lua, fs)) and list(p.attacks) == [0]
+
+
+def test_attack_while_an_attack_is_already_started_is_rejected_busy(lua, fs):
+    load(lua)
+    _, p = attack_world(lua)
+    p.attack["started"] = True
+    start(lua, p, "attack", targetId=7)
+    assert states(acts(lua, fs)) == [("a1", "rejected", "busy")] and list(p.attacks) == []
+
+
+def test_busy_comes_after_the_checks_reasons_and_an_absent_member_is_not_busy(lua, fs):
+    load(lua)
+    _, p = attack_world(lua, weapon=False)
+    p.combat["hitReaction"] = "Bite"
+    start(lua, p, "attack", aid="w", targetId=7)
+    start(lua, p, "attack", aid="t", targetId=99)
+    assert states(acts(lua, fs)) == [("w", "rejected", "no weapon"), ("t", "rejected", "no target")]
+    _, q = attack_world(lua)
+    q.hasHitReaction, q.isAttackStarted = None, None
+    start(lua, q, "attack", aid="n", targetId=7)
+    assert ("n", "accepted", "") in states(acts(lua, fs))
+
+
+def test_the_busy_block_sits_at_the_end_of_skills_world():
+    """CLAUDE.md section 5: appended, so the repo: pointers into PZAgent_SkillsWorld.lua keep their lines."""
+    with open(lua_file("client/PZAgent_SkillsWorld.lua"), encoding="utf-8") as f:
+        src = f.read()
+    assert src.index("hasHitReaction") > src.index("K.types.sleep = {")

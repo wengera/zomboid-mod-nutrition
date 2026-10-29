@@ -20,6 +20,13 @@
 -- The jar read (docs/superpowers/specs/2026-10-28-plan-23-jar-reads.md § 1) found a square stores only its own north
 -- and west edges, which both predicates read for those neighbours: a wall, a closed or barricaded door, an intact
 -- closed window or a stair edge blocks, an open door does not.
+-- The record's hopN and hopW (PZA/1.4, ruling P24-C; docs/superpowers/specs/2026-10-29-plan-24-jar-reads.md § 1) are
+-- the square's own merged flags sq:has(IsoFlagType.HoppableN) and has(IsoFlagType.HoppableW), as vanilla's
+-- ISClimbOverFence.lua:48 reads them: a low fence loads with its edge's collide flag, so blockN/blockW read it blocked,
+-- while the path follower climbs any edge carrying the flag at a walk (a solid wall on the same edge unsets it). They
+-- need no neighbour, so a square without one still reads them; an absent IsoFlagType constant is named in missing. They
+-- ride the scan and the delta (the dirty key is the record's encoding) and are left out of the fingerprint, whose
+-- edges already change when a fence lands (its collide flag blocks the edge), so the watch reads no more per square.
 -- The dirty key is the square's encoding without light (ruling S-14, MP.watchKey): the dirty set means a world change
 -- (walls, doors, windows, containers, floor), and an unrounded light level would dirty most of the ring at every
 -- lighting drift and fill the budget with deltas; an emitted line still carries the real light.
@@ -94,10 +101,27 @@ local function edgesTo(missing, q, sq, other, blockKey, edgeKey, missName)
     getm(missing, q, edgeKey, sq, "isSomethingTo", other)
 end
 
+-- the square's own hoppable north and west edges into q.hopN and q.hopW (PZA/1.4): sq:has(IsoFlagType.HoppableN) and
+-- has(IsoFlagType.HoppableW), each nil when the constant is absent (named IsoFlagType.<name> in missing) or the square
+-- lacks has (named has)
+local HOPS = { { "hopN", "HoppableN" }, { "hopW", "HoppableW" } }
+
+local function hopsOf(missing, q, sq)
+    for _, h in ipairs(HOPS) do
+        local flag = IsoFlagType ~= nil and IsoFlagType[h[2]] or nil
+        if flag == nil then
+            PZA.missing(missing, "IsoFlagType." .. h[2])
+        else
+            getm(missing, q, h[1], sq, "has", flag)
+        end
+    end
+end
+
 -- one square as the schema's square record: x, y, z, solid, solidTrans, light, room, building, door and window (a
 -- portal { open, locked, barricaded } or nil), containers ({ type, n, items } each, items full types), floor (the
--- full types of its world items) and its four edges blockN, blockW, edgeN, edgeW (edgesTo, read against the north and
--- west neighbours off cell); a member the square lacks leaves its field nil and its name in missing
+-- full types of its world items), its four edges blockN, blockW, edgeN, edgeW (edgesTo, read against the north and
+-- west neighbours off cell) and its own hop flags hopN, hopW (hopsOf); a member the square lacks leaves its field nil
+-- and its name in missing
 function MP.square(sq, missing, cell)
     local q = { containers = {}, floor = {} }
     getm(missing, q, "x", sq, "getX"); getm(missing, q, "y", sq, "getY"); getm(missing, q, "z", sq, "getZ")
@@ -106,6 +130,7 @@ function MP.square(sq, missing, cell)
         edgesTo(missing, q, sq, nsq, "blockN", "edgeN", "neighbourN")
         edgesTo(missing, q, sq, wsq, "blockW", "edgeW", "neighbourW")
     end
+    hopsOf(missing, q, sq)
     getm(missing, q, "solid", sq, "isSolid"); getm(missing, q, "solidTrans", sq, "isSolidTrans"); getm(missing, q, "light", sq, "getLightLevel", 0)
     local okR, room = PZA.call(sq, "getRoom"); if okR and room ~= nil then local _, nm = PZA.call(room, "getName"); q.room = nm end
     local okB, b = PZA.call(sq, "getBuilding"); if okB and b ~= nil then local _, id = PZA.call(b, "getID"); q.building = id end

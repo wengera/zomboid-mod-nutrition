@@ -26,7 +26,7 @@ ORDER = {
 }
 # a frame's groups, elidable in a delta
 GROUPS = {
-    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour"),
+    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown"),
     "stats": ("hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature"),
     "body": ("health", "bleeding", "scratched", "bitten", "parts"),
     "load": ("weight", "max", "level", "n"),
@@ -47,7 +47,7 @@ RECORDS = {
     "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health"),
     "portal": ("open", "locked", "barricaded"),
     "container": ("type", "n", "items"),
-    "square": ("x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW"),
+    "square": ("x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW"),
 }
 # each positional field that is not a plain value: ("group" | "rec" | "list" | "vlist", its name)
 SHAPES = {
@@ -57,7 +57,7 @@ SHAPES = {
     "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None)},
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
-REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed"))
+REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy"))
 ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep")
 # each action type's arguments and their kinds
 ACTION_ARGS = {

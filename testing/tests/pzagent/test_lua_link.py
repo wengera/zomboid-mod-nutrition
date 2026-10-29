@@ -32,7 +32,7 @@ def frame_body(x=10.5, stats_hunger=0.25, **over):
     b = {"gameMin": 4321.25, "worldAge": 31.5,
          "me": {"x": x, "y": -20.125, "z": 0, "dir": "N", "pace": 3.5, "moving": True, "running": False,
                 "sprinting": False, "forceRun": False, "forceSprint": False, "autoWalk": False, "zombiesSeen": 0,
-                "zombiesListed": 0, "hour": 13.5},
+                "zombiesListed": 0, "hour": 13.5, "attackers": 1, "hitReaction": "", "dragDown": False},
          "stats": {"hunger": stats_hunger, "thirst": 0.5, "fatigue": 0.125, "endurance": 0.75, "panic": 0, "pain": 0,
                    "sickness": 0, "wetness": 5, "temperature": 37},
          "body": {"health": 100, "bleeding": 0, "scratched": 0, "bitten": 0, "parts": []},
@@ -442,11 +442,12 @@ def test_a_map_line_decodes_through_pza1(lua, fs):
     m = map_body(scan=4, part=1, parts=2, missing=["getWindow"], squares=[
         {"x": 100, "y": 200, "z": 0, "solid": False, "solidTrans": False, "light": 0.75, "room": "kitchen",
          "building": 12, "door": {"open": False, "locked": True, "barricaded": False}, "window": None,
-         "containers": [], "floor": [], "blockN": True, "blockW": False, "edgeN": True, "edgeW": False},
+         "containers": [], "floor": [], "blockN": True, "blockW": False, "edgeN": True, "edgeW": False, "hopN": True,
+         "hopW": False},
         {"x": 101, "y": 200, "z": 0, "solid": False, "solidTrans": False, "light": 0.5, "room": "kitchen",
          "building": 12, "door": None, "window": None,
          "containers": [{"type": "fridge", "n": 2, "items": ["Base.Apple", "Base.WaterBottle"]}], "floor": ["Base.Plank"],
-         "blockN": False, "blockW": True, "edgeN": False, "edgeW": True}])
+         "blockN": False, "blockW": True, "edgeN": False, "edgeW": True, "hopN": False, "hopW": True}])
     queue_map(lua, m)
     lua.execute("PZA.link.flush()")
     out = raw(fs)

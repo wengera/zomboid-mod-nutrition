@@ -838,3 +838,53 @@ def test_first_sight_carries_the_engines_use_of_each_item(lua):
     ev = [dict(e) for e in lua.eval("PZA.sense.firstSight(...)", p).values()]
     got = {e["itemId"]: e["use"] for e in ev if e["itemId"] >= 1 and e["itemId"] <= 8}
     assert got == {1: "food", 2: "weapon", 3: "water", 4: "weapon", 5: "other", 6: "bandage", 7: "other", 8: "other"}
+
+
+# ---- PZA/1.4 (ruling P24-C): me's attackers, hitReaction and dragDown --------------------------------------------------
+
+def test_the_frames_me_carries_the_attackers_the_hit_reaction_and_the_drag_down(lua):
+    load(lua)
+    p = make_player()
+    f = frame(lua, p)
+    assert (f["me"]["attackers"], f["me"]["hitReaction"], f["me"]["dragDown"]) == (0, "", False)
+    p.combat.update(attackers=2, hitReaction="HitReactionFront", dragDown=True)
+    f = frame(lua, p)
+    assert (f["me"]["attackers"], f["me"]["hitReaction"], f["me"]["dragDown"]) == (2, "HitReactionFront", True)
+    assert f["me"]["x"] == 10.0 and f["me"]["hour"] == 8.0 and missing(lua) == []
+    assert lua.eval("PZA.sense.last.me.attackers") == 2          # the frame S.last keeps is the one carrying them
+    order = lua.eval("PZA.schema.groups.me")
+    assert [order[i] for i in range(15, 18)] == ["attackers", "hitReaction", "dragDown"]
+    enc = json.loads(lua.eval("PZA.enc.me(...)", f["me"]))
+    assert enc[14:] == [2, "HitReactionFront", True]
+
+
+def test_a_nil_hit_reaction_reads_empty_and_an_absent_member_is_nil_and_named_missing(lua):
+    load(lua)
+    p = make_player()
+    p.combat["hitReaction"] = None
+    assert frame(lua, p)["me"]["hitReaction"] == ""
+    q = make_player()
+    q.getSurroundingAttackingZombies, q.getHitReaction, q.isDeathDragDown = None, None, None
+    f = frame(lua, q)
+    assert (f["me"]["attackers"], f["me"]["hitReaction"], f["me"]["dragDown"]) == (None, None, None)
+    assert {"getSurroundingAttackingZombies", "getHitReaction", "isDeathDragDown"} <= set(missing(lua))
+    assert f["me"]["x"] == 10.0
+
+
+def test_a_raising_combat_read_costs_only_the_three_fields(lua):
+    load(lua)
+    p = make_player()
+    p.getHitReaction = boom
+    f = frame(lua, p)
+    assert f["me"]["attackers"] == 0 and f["me"]["hitReaction"] is None and f["me"]["dragDown"] is None
+    assert f["me"]["x"] == 10.0 and "raise:me:combat" in missing(lua) and lua.eval("PZA.sense.frameErrors") == 1
+    ev, cur = events(lua, p, f)                                  # the events path reads the same frame
+    assert cur["me"]["x"] == 10.0 and lua.eval("PZA.sense.frameErrors") == 2
+
+
+def test_the_combat_block_sits_at_the_end_of_sense():
+    """CLAUDE.md section 5: the 1.4 reads are appended after the death block, so no repo: pointer into Sense moves."""
+    with open(lua_file("client/PZAgent_Sense.lua"), encoding="utf-8") as f:
+        src = f.read()
+    assert src.index("getSurroundingAttackingZombies") > src.index("function S.playerDeathEvents")
+    assert src.index("isDeathDragDown") > src.index("function S.playerDeathEvents")

@@ -36,7 +36,9 @@ def rand_frame(rng, seq=1):
         "me": {"x": lua_float(rng), "y": lua_float(rng), "z": rng.randrange(0, 3), "dir": rng.choice(["N", "SE", "W"]),
                "pace": lua_float(rng, 0, 6), "moving": b(), "running": b(), "sprinting": b(), "forceRun": b(),
                "forceSprint": b(), "autoWalk": maybe(rng, b()), "zombiesSeen": rng.randrange(0, 200),
-               "zombiesListed": rng.randrange(0, 6), "hour": maybe(rng, lua_float(rng, 0, 24))},
+               "zombiesListed": rng.randrange(0, 6), "hour": maybe(rng, lua_float(rng, 0, 24)),
+               "attackers": maybe(rng, rng.randrange(0, 4)), "hitReaction": rng.choice(["", "HitReactionFront", "Bite"]),
+               "dragDown": maybe(rng, b())},
         "stats": {k: lua_float(rng, 0, 1) for k in pza1.GROUPS["stats"]},
         "body": {"health": lua_float(rng, 0, 100), "bleeding": rng.randrange(0, 3), "scratched": rng.randrange(0, 3),
                  "bitten": 0, "parts": parts},
@@ -68,7 +70,7 @@ def rand_square(rng):
             "containers": [{"type": rng.choice(["fridge", "counter"]), "n": 2, "items": ["Base.Apple", "Base.Water"]}
                            for _ in range(rng.choice([0, 0, 1, 2]))],
             "floor": rng.choice([[], ["Base.Plank"], ["Base.Axe", "Base.Nails"]]),
-            "blockN": b(), "blockW": b(), "edgeN": b(), "edgeW": b()}
+            "blockN": b(), "blockW": b(), "edgeN": b(), "edgeW": b(), "hopN": maybe(rng, b()), "hopW": b()}
 
 
 def rand_map(rng, seq=1):
@@ -203,7 +205,7 @@ def test_the_constants():
 def test_every_reason_is_a_string_in_the_schemas_enum():
     enum = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["reason"]["enum"]
     assert isinstance(pza1.REASONS, frozenset) and pza1.REASONS == frozenset(enum)
-    assert all(isinstance(r, str) for r in pza1.REASONS) and len(enum) == 22
+    assert all(isinstance(r, str) for r in pza1.REASONS) and len(enum) == 23      # PZA/1.4's busy (P24-C)
     assert "not safe" in pza1.REASONS and "not allowed" in pza1.REASONS
 
 
@@ -297,10 +299,10 @@ def test_the_lua_map_encoder_writes_what_python_encodes(lua_schema):
              {"x": 100, "y": 200, "z": 0, "solid": False, "solidTrans": False, "light": 0.8, "room": "kitchen",
               "building": 12, "door": {"open": False, "locked": True, "barricaded": False}, "window": None,
               "containers": [{"type": "fridge", "n": 2, "items": ["Base.Apple", "Base.WaterBottle"]}], "floor": [],
-              "blockN": True, "blockW": False, "edgeN": True, "edgeW": False},
+              "blockN": True, "blockW": False, "edgeN": True, "edgeW": False, "hopN": True, "hopW": False},
              {"x": 101, "y": 200, "z": 0, "solid": True, "solidTrans": False, "light": 0.25, "room": None,
               "building": None, "door": None, "window": None, "containers": [], "floor": ["Base.Plank"],
-              "blockN": False, "blockW": True, "edgeN": False, "edgeW": True}]}
+              "blockN": False, "blockW": True, "edgeN": False, "edgeW": True, "hopN": False, "hopW": None}]}
     L = lua_schema
     L.execute("_body = " + lua_lit(m))
     out = L.eval("PZA.enc.map(_body)")
@@ -378,7 +380,7 @@ def test_the_attack_description_is_one_swing_in_the_schema_the_tools_and_the_mod
 # ---- X4 fix pass 1: the fields appended to me and cost, and a line written before them -------------------------------
 
 def test_me_and_cost_append_their_new_fields_after_the_prior_prefix():
-    assert pza1.GROUPS["me"][11:] == ("zombiesSeen", "zombiesListed", "hour")
+    assert pza1.GROUPS["me"][11:14] == ("zombiesSeen", "zombiesListed", "hour")
     assert pza1.GROUPS["cost"][8:] == ("pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs",
                                        "maxPollMs", "maxStartMs")
     assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12}
@@ -396,12 +398,12 @@ def test_a_frame_written_before_the_append_decodes_with_the_new_fields_none_and_
     assert list(d["me"]) == list(pza1.GROUPS["me"]) and list(d["cost"]) == list(pza1.GROUPS["cost"])
     assert d["me"]["zombiesSeen"] is None and d["me"]["zombiesListed"] is None and d["me"]["x"] == arr[me][0]
     assert all(d["cost"][k] is None for k in pza1.GROUPS["cost"][8:]) and d["cost"]["tickMs"] == arr[cost][0]
-    for g, n in (("me", 12), ("me", 13), ("cost", 9), ("cost", 15)):
+    for g, n in (("me", 12), ("me", 13), ("me", 14), ("me", 16), ("cost", 9), ("cost", 15)):
         ok = list(arr)
         i = pza1.ORDER["frame"].index(g)
         ok[i] = arr[i][:n]
         assert pza1.decode(ok)[g][pza1.GROUPS[g][n]] is None
-    for g, n in (("me", 10), ("me", 15), ("cost", 7), ("cost", 17)):
+    for g, n in (("me", 10), ("me", 18), ("cost", 7), ("cost", 17)):       # me's order is 17 since PZA/1.4
         bad = list(arr)
         i = pza1.ORDER["frame"].index(g)
         bad[i] = (arr[i] + [0] * n)[:n]
@@ -457,3 +459,55 @@ def test_death_is_an_event_kind_with_its_fields_and_round_trips():
     assert "zombiesKilled" not in req and set(req) == set(pza1.EVENT_FIELDS["death"]) - {"zombiesKilled"}  # review M2
     body.pop("zombiesKilled")                                    # an unread kill count: the key absent
     assert pza1.decode(json.loads(pza1.encode("event", body))) == dict(body, kind="event")
+
+
+# ---- PZA/1.4 (ruling P24-C): me's attackers, hitReaction and dragDown; the square's hopN and hopW; busy -------------
+
+def test_me_and_square_append_the_1_4_fields_after_their_1_3_orders():
+    assert pza1.GROUPS["me"][14:] == ("attackers", "hitReaction", "dragDown")
+    assert pza1.RECORDS["square"][16:] == ("hopN", "hopW")
+    assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12}       # the oldest arity a writer used is unchanged
+    assert "busy" in pza1.REASONS
+    d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
+    assert [d["me"]["properties"][f]["type"] for f in ("attackers", "hitReaction", "dragDown")] == [
+        "integer", "string", "boolean"]
+    assert [d["square"]["properties"][f]["type"] for f in ("hopN", "hopW")] == ["boolean", "boolean"]
+
+
+def test_a_1_4_frame_and_map_round_trip_and_a_1_3_one_decodes_with_the_new_fields_none():
+    rng = random.Random(41)
+    f = rand_frame(rng)
+    f["me"].update(attackers=2, hitReaction="HitReactionFront", dragDown=False)
+    assert pza1.decode(json.loads(pza1.encode("frame", f))) == f
+    sq = dict(rand_square(rng), hopN=True, hopW=False)
+    m = {"kind": "map", "seq": 2, "tick": 1, "wallMs": 0, "mode": "delta", "scanId": 0, "part": 1, "parts": 1,
+         "squares": [sq], "missing": []}
+    assert pza1.decode(json.loads(pza1.encode("map", m))) == m
+    arr = json.loads(pza1.encode("frame", f))
+    me = pza1.ORDER["frame"].index("me")
+    arr[me] = arr[me][:14]                                       # a PZA/1.3 me
+    d = pza1.decode(arr)
+    assert (d["me"]["attackers"], d["me"]["hitReaction"], d["me"]["dragDown"]) == (None, None, None)
+    assert d["me"]["hour"] == f["me"]["hour"]
+    marr = json.loads(pza1.encode("map", m))
+    sqs = pza1.ORDER["map"].index("squares")
+    marr[sqs] = [s[:16] for s in marr[sqs]]                      # a PZA/1.3 square
+    q = pza1.decode(marr)["squares"][0]
+    assert (q["hopN"], q["hopW"]) == (None, None) and q["edgeW"] == sq["edgeW"]
+
+
+def test_a_pza_1_3_session_log_decodes_through_the_file_transport_with_no_bad_line(tmp_path):
+    """The fifth chain's state.log (PZA/1.3, testing/artifacts/e_day_5-20261028-201255/), copied: every line decodes
+    after the 1.4 append, its frames' me and its squares without the new fields, which read None."""
+    import shutil
+    from agent.base.transport.files import FileTransport
+    log = os.path.join(ROOT, "testing", "artifacts", "e_day_5-20261028-201255", "state.log")
+    shutil.copyfile(log, str(tmp_path / "state.log"))
+    t = FileTransport(str(tmp_path))
+    lines = t.lines()
+    frames = [l for l in lines if l["kind"] == "frame"]
+    squares = [q for l in lines if l["kind"] == "map" for q in l["squares"]]
+    assert t.bad == 0 and len(lines) > 1000 and frames and squares
+    assert all(f["me"]["attackers"] is None and f["me"]["hitReaction"] is None and f["me"]["dragDown"] is None
+               for f in frames)
+    assert all(q["hopN"] is None and q["hopW"] is None for q in squares)

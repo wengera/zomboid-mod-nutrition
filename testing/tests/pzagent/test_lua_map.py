@@ -210,7 +210,7 @@ def test_a_parts_missing_lists_what_its_own_squares_lacked_and_the_whole_unions_
     plain = lambda x, y: J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: 0, isSolid=lambda s: False,
                            isSolidTrans=lambda s: False, getLightLevel=lambda s, i: 0.5,
                            getObjects=lambda s: J(size=lambda s2: 0), getWorldObjects=lambda s: J(size=lambda s2: 0),
-                           isBlockedTo=lambda s, o: False, isSomethingTo=lambda s, o: False)
+                           isBlockedTo=lambda s, o: False, isSomethingTo=lambda s, o: False, has=lambda s, f: False)
     bare = lambda x, y: J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: 0)
     # the 3x3 grid and its north and west neighbours (x 8, y 18), so only the bare square lacks anything
     squares = {(x, y, 0): (bare(x, y) if (x, y) == (10, 20) else plain(x, y)) for x in range(8, 12) for y in range(18, 22)}
@@ -221,7 +221,7 @@ def test_a_parts_missing_lists_what_its_own_squares_lacked_and_the_whole_unions_
     parts = step_parts(lua, p)
     assert [q["parts"] for q in parts] == [3, 3, 3] and [len(q["squares"]) for q in parts] == [4, 4, 1]
     assert parts[0]["missing"] == [] and parts[2]["missing"] == []
-    assert {"isSolid", "isBlockedTo", "isSomethingTo"} <= set(parts[1]["missing"])
+    assert {"isSolid", "isBlockedTo", "isSomethingTo", "has"} <= set(parts[1]["missing"])
     whole = lua.eval("PZA.map.scan(...)", p, 1)
     assert sorted(whole["missing"].values()) == sorted(parts[1]["missing"])
 
@@ -276,7 +276,8 @@ def test_a_scan_part_line_decodes_to_the_squares_it_walked(lua, fs):
                              "room": "kitchen", "building": 7, "door": {"open": False, "locked": False,
                                                                         "barricaded": False},
                              "window": None, "containers": [], "floor": [],
-                             "blockN": False, "blockW": False, "edgeN": False, "edgeW": False}]
+                             "blockN": False, "blockW": False, "edgeN": False, "edgeW": False, "hopN": False,
+                             "hopW": False}]
     assert lua.eval("PZA.map.seen['11,20,0']") == lua.eval("PZA.map.watchKey(PZA.map.square(...))",
                                                            full_square(11, 20, door=True), lua.table(), cell)
 
@@ -287,7 +288,8 @@ def test_map_square_has_exactly_the_schemas_square_keys(lua):
     t = lua.eval("PZA.map.square(...)", full_square(3, 4, door=True, window=True, box=True, floor=True), lua.table(),
                  cell)
     keys = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["square"]["x-order"]
-    assert keys[12:] == ["blockN", "blockW", "edgeN", "edgeW"]     # PZA/1.2's edges, filled since Plan 23 Task 6
+    assert keys[12:16] == ["blockN", "blockW", "edgeN", "edgeW"]   # PZA/1.2's edges, filled since Plan 23 Task 6
+    assert keys[16:] == ["hopN", "hopW"]                           # PZA/1.4's hoppable edges (P24-C)
     assert sorted(t.keys()) == sorted(keys)
     assert (t["blockN"], t["blockW"], t["edgeN"], t["edgeW"]) == (False, False, False, False)
     assert sorted(lua.eval("PZA.schema.records.square").values()) == sorted(keys)
@@ -308,7 +310,8 @@ def test_map_reads_every_java_member_through_pza_call():
 def full_square(x, y, door=False, window=False, box=False, floor=False, state=None):
     """A square with every member, its light state["light"] (0.5 by default); with door, an IsoDoor whose IsOpen reads
     state["open"]; isBlockedTo and isSomethingTo answer state["blockN"] and state["edgeN"] for a neighbour north of it
-    (a smaller y) and state["blockW"] and state["edgeW"] for one west of it, each False by default."""
+    (a smaller y) and state["blockW"] and state["edgeW"] for one west of it, each False by default; has(HoppableN) and
+    has(HoppableW) answer state["hopN"] and state["hopW"] (PZA/1.4), False by default."""
     st = state if state is not None else {"open": False}
     objs = []
     if door:
@@ -332,7 +335,8 @@ def full_square(x, y, door=False, window=False, box=False, floor=False, state=No
              getRoom=lambda s: J(getName=lambda s2: "kitchen"), getBuilding=lambda s: J(getID=lambda s2: 7),
              getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]),
              getWorldObjects=lambda s: J(size=lambda s2: len(wos), get=lambda s2, i: wos[i]),
-             isBlockedTo=edge("block"), isSomethingTo=edge("edge"))
+             isBlockedTo=edge("block"), isSomethingTo=edge("edge"),
+             has=lambda s, flag: st.get("hop" + flag[-1], False))
 
 
 def watch_world(lua, door_at=(12, 21)):
@@ -751,3 +755,54 @@ def test_the_watch_passes_each_squares_grid_coordinates_to_the_fingerprint(lua):
         watch(lua, p, t)
     rows = [tuple(r.values()) for r in lua.eval("_fpc").values()]
     assert len(rows) == 176 and all(r[:3] == r[3:] for r in rows)
+
+
+# ---- PZA/1.4 (ruling P24-C): the square's own hoppable edges ------------------------------------------------------------
+
+def test_square_reads_its_own_hoppable_north_and_west_edges(lua):
+    load(lua)
+    asked = []
+    sq = full_square(11, 20)
+
+    def has(s, flag):
+        asked.append(flag)
+        return flag == "HoppableN"
+    sq.has = has
+    cell = make_cell_of({(11, 20, 0): sq, (11, 19, 0): full_square(11, 19), (10, 20, 0): full_square(10, 20)})
+    missing = lua.table()
+    t = lua.eval("PZA.map.square(...)", sq, missing, cell)
+    assert (t["hopN"], t["hopW"]) == (True, False) and sorted(asked) == ["HoppableN", "HoppableW"]
+    assert list(missing.values()) == []
+    t = lua.eval("PZA.map.square(...)", sq, lua.table(), make_cell_of({}))   # no neighbour: the own flags still read
+    assert (t["hopN"], t["hopW"]) == (True, False)
+    assert json.loads(lua.eval("PZA.enc.square(...)", t))[16:] == [True, False]
+
+
+def test_an_absent_has_or_flag_constant_leaves_hop_nil_and_names_it_missing(lua):
+    load(lua)
+    sq = full_square(11, 20)
+    sq.has = None
+    missing = lua.table()
+    t = lua.eval("PZA.map.square(...)", sq, missing, make_cell_of({}))
+    assert (t["hopN"], t["hopW"]) == (None, None) and "has" in list(missing.values())
+    lua.globals().IsoFlagType = None
+    sq.has = lambda s, f: True
+    missing = lua.table()
+    t = lua.eval("PZA.map.square(...)", sq, missing, make_cell_of({}))
+    assert (t["hopN"], t["hopW"]) == (None, None)
+    assert {"IsoFlagType.HoppableN", "IsoFlagType.HoppableW"} <= set(missing.values())
+
+
+def test_a_hop_flag_change_is_a_new_dirty_key_but_never_read_by_the_fingerprint(lua):
+    """The flags ride the scan and the delta (the watch key is the record's encoding), never the fingerprint: a fence
+    also sets its edge's collide flag, so blockN already dirties a square a fence lands on."""
+    load(lua)
+    st = {}
+    sq = full_square(11, 20, state=st)
+    sq.has = lambda s, f: st.get("hop", False) and f == "HoppableN"
+    cell = make_cell_of({(11, 20, 0): sq, (11, 19, 0): full_square(11, 19), (10, 20, 0): full_square(10, 20)})
+    f0 = lua.eval("PZA.map.fingerprint(...)", sq, cell, 11, 20, 0)
+    k0 = lua.eval("PZA.map.watchKey(PZA.map.square(...))", sq, lua.table(), cell)
+    st["hop"] = True
+    assert lua.eval("PZA.map.fingerprint(...)", sq, cell, 11, 20, 0) == f0
+    assert lua.eval("PZA.map.watchKey(PZA.map.square(...))", sq, lua.table(), cell) != k0

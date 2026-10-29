@@ -522,3 +522,33 @@ function S.playerDeathEvents(ev, gameMin, p, cur)
                     health = b.health, zombiesKilled = okK and kills or nil, via = via }
     S.deathSent = p
 end
+
+-- me's combat reads (PZA/1.4, ruling P24-C; the jar reads docs/superpowers/specs/2026-10-29-plan-24-jar-reads.md
+-- section 2, #4290-#4293): attackers is getSurroundingAttackingZombies(), the drag-down's own count in its no-argument
+-- form (crawlers left out: the moving objects on the player's square and its eight neighbours that are zombies
+-- targeting the player within 0.9 tiles in an attack or lunge state; the drag-down kills at three, two at sandbox
+-- Strength 1); hitReaction is getHitReaction() ("" when it answers no string: every zombie attack that reaches the
+-- damage roll sets it, a defended one included, and no swing starts while the player is in that state); dragDown is
+-- isDeathDragDown(). Each is one PZA.call read (an absent member nil and named in missing). This block sits at the end
+-- of the file (CLAUDE.md section 5: the repo: pointers into Sense keep their lines), so S.frame is wrapped here: the
+-- base reader runs, then the three reads land in its me under their own guard, so a raise among them costs these
+-- three fields (raise:me:combat), never the rest of me or the frame. S.events and Main call S.frame through the table,
+-- so both read the wrapped one; a reload redefines S.frame above and wraps it again once.
+-- Cost: three Java calls a frame at 10 Hz on the client; getSurroundingAttackingZombies copies the moving objects of
+-- nine squares into a static list and walks it (a type test, a target compare and a distance each), a walk of the
+-- movers next to the player, not of the cell.
+local function meCombat(p, m)
+    get(m, "attackers", p, "getSurroundingAttackingZombies")
+    local okH, hr = get(m, "hitReaction", p, "getHitReaction")
+    if okH then
+        if type(hr) == "string" then m.hitReaction = hr else m.hitReaction = "" end
+    end
+    get(m, "dragDown", p, "isDeathDragDown")
+end
+
+local frameBase = S.frame
+function S.frame(p)
+    local f = frameBase(p)
+    guarded("me:combat", meCombat, p, f.me)
+    return f
+end

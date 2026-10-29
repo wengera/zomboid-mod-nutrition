@@ -192,6 +192,15 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
     p.variables = variables
     p.setVariable = lambda s, k, v: variables.__setitem__(k, v)
     p.getVariableBoolean = lambda s, k: variables.get(k, False) is True
+    # Plan 24 PZA/1.4 (ruling P24-C): the combat reads answer p.combat, which a test sets: getSurroundingAttackingZombies
+    # its "attackers", getHitReaction its "hitReaction" ("" when none, as the jar's field reads), hasHitReaction whether
+    # that is non-empty (the jar's hasHitReaction), isDeathDragDown its "dragDown"
+    combat = {"attackers": 0, "hitReaction": "", "dragDown": False}
+    p.combat = combat
+    p.getSurroundingAttackingZombies = lambda s: combat["attackers"]
+    p.getHitReaction = lambda s: combat["hitReaction"]
+    p.hasHitReaction = lambda s: combat["hitReaction"] not in ("", None)
+    p.isDeathDragDown = lambda s: combat["dragDown"]
     return p
 
 
@@ -257,6 +266,7 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g._cell = make_cell()
     g.CharacterStat = J(**{n: n for n in STAT_NAMES})
     g.MoodleType = J(**{n: n for n in MOODLE_NAMES})
+    g.IsoFlagType = J(HoppableN="HoppableN", HoppableW="HoppableW")   # PZA/1.4: the square's has(flag) reads
     g.instanceof = lambda o, cls: getattr(o, "_cls", None) == cls
     g.getGameTime = lambda: J(getHour=lambda s: 7, getMinutes=lambda s: 30, getWorldAgeHours=lambda s: 31.5,
                                 getTimeOfDay=lambda s: 8.0)
