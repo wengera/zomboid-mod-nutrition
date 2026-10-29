@@ -249,8 +249,9 @@ def _write(tmp_path, name, obj):
     return str(p)
 
 
-def _run(args):
-    return subprocess.run([sys.executable, os.path.join(os.path.dirname(E.__file__), "..", "drivers", "e_grade.py")]
+def _run(args, script="e_grade_2.py"):
+    """The pass-2 script by default (e_grade.py is frozen with grade_e1: review I1)."""
+    return subprocess.run([sys.executable, os.path.join(os.path.dirname(E.__file__), "..", "drivers", script)]
                           + args, capture_output=True, text=True, cwd=os.path.dirname(os.path.dirname(HERE)))
 
 
@@ -260,15 +261,11 @@ def test_the_script_prints_lines_then_strict_json(tmp_path):
     r = _run([a])
     assert r.returncode == 0
     body = r.stdout[r.stdout.index("\n{\n"):]
-    assert json.loads(body)["grade"] == "grade_e2" and r.stdout.startswith("survived")    # grade_e2 by default
-    r = _run(["--grade", "e1", a])
-    assert r.returncode == 0 and json.loads(r.stdout[r.stdout.index("\n{\n"):])["grade"] == "grade_e1"
+    assert json.loads(body)["grade"] == "grade_e2" and r.stdout.startswith("survived")
     r = _run([_write(tmp_path, "c.json", art()), _write(tmp_path, "d.json", art())])
     assert r.returncode == 0 and json.loads(r.stdout[r.stdout.index("\n{\n"):])["lineage"]["ok"] is True
     r = _run(["--chain", a, b])
     assert r.returncode == 0 and r.stdout.startswith("gate_e2")
-    r = _run(["--grade", "e1", "--chain", a, b])
-    assert r.returncode == 0 and r.stdout.startswith("gate_e1")
     assert json.loads(r.stdout[r.stdout.index("\n{\n"):])["verdict"] in ("GO", "NO-GO")
 
 
@@ -277,7 +274,6 @@ def test_the_script_exits_two_on_a_bad_call(tmp_path):
     assert _run([str(tmp_path / "nope.json")]).returncode == 2
     assert _run(["--chain"]).returncode == 2
     assert _run(["a", "b", "c"]).returncode == 2
-    assert _run(["--grade", "e3", "a"]).returncode == 2 and _run(["--grade"]).returncode == 2
     assert EG.finite(float("inf")) is None and EG.finite({"a": [float("nan"), 1]}) == {"a": [None, 1]}
 
 
@@ -420,7 +416,6 @@ def test_gate_names_each_artifacts_lineage_source():
 # ---------------------------------------------------------------- PZA/1.3: grade_e2, the death signal (ruling P23-AO)
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 FROZEN_AT = "a029dfab"                    # grade_e1's last commit before PZA/1.3 (CLAUDE.md § 5 freezing)
-E3 = os.path.join(REPO, "testing", "artifacts", "e_day_3-20261028-153631")
 
 
 def _event_death_art():
@@ -474,10 +469,20 @@ def test_gate_e2_is_gate_e1_over_grade_e2():
 
 
 def _frozen_gates_e(tmp_path):
-    """gates_e.py as committed at FROZEN_AT, imported from a scratch file."""
+    """gates_e.py as committed at FROZEN_AT, imported from a scratch file; the git read runs in the scrubbed
+    environment (tools/tests/gitenv.scrubbed_env), and the test skips when the object is unavailable (review M3)."""
     import importlib.util
-    src = subprocess.run(["git", "show", "%s:testing/agent/base/gates_e.py" % FROZEN_AT], cwd=REPO,
-                         capture_output=True, check=True).stdout
+    spec = importlib.util.spec_from_file_location("gitenv", os.path.join(REPO, "tools", "tests", "gitenv.py"))
+    gitenv = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gitenv)
+    try:
+        r = subprocess.run(["git", "show", "%s:testing/agent/base/gates_e.py" % FROZEN_AT], cwd=REPO,
+                           capture_output=True, env=gitenv.scrubbed_env())
+    except OSError as e:
+        pytest.skip("git is not runnable here: %s" % e)
+    if r.returncode != 0 or not r.stdout:
+        pytest.skip("%s:testing/agent/base/gates_e.py is unavailable in this checkout" % FROZEN_AT)
+    src = r.stdout
     path = tmp_path / "gates_e_frozen.py"
     path.write_bytes(src)
     spec = importlib.util.spec_from_file_location("gates_e_frozen", str(path))
@@ -495,11 +500,19 @@ def test_grade_e1_and_gate_e1_answer_byte_for_byte_as_at_their_freeze(tmp_path):
     assert json.dumps(E.gate_e1(arts)) == json.dumps(F.gate_e1(arts))
 
 
-@pytest.mark.skipif(not os.path.isfile(os.path.join(E3, "e_grade.txt")), reason="the E3 artifact is not checked out")
-def test_e_grade_e1_reproduces_the_third_chains_committed_report_byte_for_byte():
-    r = subprocess.run([sys.executable, os.path.join(REPO, "testing", "agent", "drivers", "e_grade.py"), "--grade", "e1",
-                        os.path.join(E3, "e_day_3.json")], capture_output=True, cwd=REPO)
+E_ARTIFACTS = (("e_day-20261028-110422", "e_day"), ("e_day_2-20261028-124249", "e_day_2"),
+               ("e_day_3-20261028-153631", "e_day_3"), ("e_day_4-20261028-173649", "e_day_4"))
+
+
+@pytest.mark.parametrize("run_id,key", E_ARTIFACTS)
+def test_the_frozen_e_grade_reproduces_each_e_artifacts_committed_report_byte_for_byte(run_id, key):
+    """e_grade.py run bare, as each guide's command line documents it (review I1)."""
+    d = os.path.join(REPO, "testing", "artifacts", run_id)
+    if not os.path.isfile(os.path.join(d, "e_grade.txt")):
+        pytest.skip("%s is not checked out" % run_id)
+    r = subprocess.run([sys.executable, os.path.join(REPO, "testing", "agent", "drivers", "e_grade.py"),
+                        os.path.join(d, key + ".json")], capture_output=True, cwd=REPO)
     assert r.returncode == 0
-    with open(os.path.join(E3, "e_grade.txt"), "rb") as fh:
+    with open(os.path.join(d, "e_grade.txt"), "rb") as fh:
         want = fh.read()
-    assert r.stdout == want                                   # CRLF both: the artifact was printed on this host
+    assert r.stdout == want                                   # CRLF both: the artifacts were printed on this host
