@@ -41,16 +41,19 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   (the LLM source's refusal of its own last answer, laid over the view it sends: `llm.py`); `failed` (any other
   failure: the goal budget, the load, no plan, a shun, none found). None before any goal ended. `events`: the kinds of
   the last three event lines. `want_shelter`: `night.want_shelter` (the night wants and knows no shelter).
-- Beyond the brief's keys, the scripted source's reads: `edge` (`world.unexplored_edge(goals.WOODS_R)` as [x, y],
-  else None: with a building known never a square in the woods, none within WOODS_R, ruling P24-Y; after two unmoved
+- Beyond the brief's keys, the scripted source's reads: `woods_r` (the goal kit's woods radius, `goals.Kit.woods_r`:
+  WOODS_R, widened after REST_N rests in a row, Task 18 fix 1's ruling 3; WOODS_R with no kit), `edge`
+  (`world.unexplored_edge(woods_r)` as [x, y], else None: with a building known never a square in the woods, none
+  within `woods_r`, ruling P24-Y; after two unmoved
   stuck walks from the player's square only a square in the open, P23-AP 1), `toward` (P24-Y: `{for, building,
   door, square, dist}` of the building a walk heads to when none is to be looted near: `for` "unlooted", the nearest
   building with a container known and not looted beyond `goals.BUILDING_R` when none such is within it, else
-  "cluster", the nearest known building when the player stands beyond WOODS_R of every one; `door` its first exterior
+  "cluster", the nearest known building when the player stands beyond `woods_r` of every one; `door` its first exterior
   door [x, y] else None, `square` its nearest room square; else None),
   `scanned_here` (the player's place, `policies.place_of`, is in the goal kit's `Explore.scanned`), `stock_uses` (the
-  uses of `goals.STOCK_WANTS` for which the kit's `LootHouse.target` answers a container now: `container`, a known
-  empty vessel, the water chain's want, among them since P24-Y made it a loot's want), `cooled` (the goals
+  uses of `goals.wanted_uses` for which the kit's `LootHouse.target` answers a container now: `container`, a known
+  empty vessel, the water chain's want, among them since P24-Y made it a loot's want, while fewer than
+  `goals.CONTAINERS_HELD_N` vessels are held, Task 18 fix 1's major 5), `cooled` (the goals
   the runner refuses for now, `GoalRunner.cooling()`: `[{type, args}]`, fix 1 I4).
 
 The view only reads: the kit is bound by its runner's `observe`, never here (fix 1 M5).
@@ -72,7 +75,7 @@ import time
 
 from agent.base.items import USES
 from agent.base.items import use_of
-from agent.base.planner.goals import BUILDING_R, STOCK_WANTS, WOODS_R, int_id, open_uses
+from agent.base.planner.goals import BUILDING_R, WOODS_R, int_id, open_uses, wanted_uses
 from agent.base.planner.night import door_blocked, exterior_doors, shelter_plan
 from agent.base.planner.policies import LOOT_WANTS, STUCK_REASONS, me_floor, me_xy, place_of
 from agent.base.world import MET_VIEW_R, compass
@@ -85,8 +88,8 @@ BUILDINGS_SHOWN = 6
 RENDER_MAX = 2048
 EVENTS_N = 3
 KEYS = ("pos", "hour", "health", "kills", "needs", "needs_wanted", "load", "weapon", "inventory_by_use", "buildings",
-        "zombies_near", "met", "attackers", "hit_reaction", "last_goal", "events", "want_shelter", "edge", "toward",
-        "scanned_here", "stock_uses", "cooled")
+        "zombies_near", "met", "attackers", "hit_reaction", "last_goal", "events", "want_shelter", "woods_r", "edge",
+        "toward", "scanned_here", "stock_uses", "cooled")
 WHYS = ("done", "stuck", "superseded by the threat", "superseded by an instinct", "looted already", "refused",
         "out of range", "in the woods", "failed")
 THREAT_SENDS = ("attack", "steer", "walkTo", "stop", "hold")   # a superseding send read as the threat's (why_of)
@@ -139,14 +142,14 @@ def _holds(world, keys):
     return dict(sorted(out.items()))
 
 
-def _toward(world, buildings):
+def _toward(world, buildings, woods_r=WOODS_R):
     """P24-Y's walk toward a building (the module docstring's `toward`), else None."""
     near = [b for b in buildings if b["looted"] is False and b["containers"] > 0 and not b["shunned"]
             and not b["blocked"]]
     target, why = None, None
     if near and not any(b["dist"] <= BUILDING_R for b in near):
         target, why = near[0], "unlooted"
-    elif buildings and not world.building_near(*me_xy(world), WOODS_R):
+    elif buildings and not world.building_near(*me_xy(world), woods_r):
         target, why = min(buildings, key=lambda b: (world.building_dist(*me_xy(world), b["id"]), b["id"])), "cluster"
     if target is None:
         return None
@@ -190,7 +193,8 @@ def view(world, survive):
     mx, my = me_xy(world)
     zs = [math.hypot(z["x"] - mx, z["y"] - my) for z in world.zombies.values()
           if z.get("x") is not None and z.get("y") is not None]
-    edge = world.unexplored_edge(WOODS_R)
+    woods_r = kit.woods_r if kit is not None else WOODS_R
+    edge = world.unexplored_edge(woods_r)
     last = runner.history[-1] if runner is not None and runner.history else None
     buildings = _buildings(world, night, kit)
     return {
@@ -212,10 +216,11 @@ def view(world, survive):
                       if last is not None else None),
         "events": [e.get("event") for e in list(world.events)[-EVENTS_N:]],
         "want_shelter": bool(getattr(night, "want_shelter", False)),
+        "woods_r": woods_r,
         "edge": list(edge) if edge else None,
-        "toward": _toward(world, buildings),
+        "toward": _toward(world, buildings, woods_r),
         "scanned_here": kit is not None and place_of(world) in kit.explore.scanned,
-        "stock_uses": [u for u in STOCK_WANTS if kit is not None and kit.loot.target(u) is not None],
+        "stock_uses": [u for u in wanted_uses(world) if kit is not None and kit.loot.target(u) is not None],
         "cooled": runner.cooling() if runner is not None else [],
     }
 

@@ -26,7 +26,9 @@ a class attribute equal to the entry's `const`:
 - `LootBuilding(building)`: `LootHouse` kept to the containers on the building's squares (`LootHouse.within`), one
   loot at a time for the first of STOCK_WANTS (ruling P24-Y, Plan 24 Task 18: water and container, clothing, food,
   bandage, weapon; `clothing` is wanted by name, and `LootHouse.target` answers nothing for it until the Lua's loot
-  filter and the item record carry clothing and its protection) that `LootHouse.target` answers there;
+  filter and the item record carry clothing and its protection) that `LootHouse.target` answers there, `container`
+  only while fewer than CONTAINERS_HELD_N (2) vessels are held (`wanted_uses`: Task 18 fix 1, the review's major 5,
+  E7's map knew 14 empty vessels in building 5 and 8 in building 2, each loot filling to the cap before the food);
   `done "looted"` when none answers after at least one loot, `failed "nothing to loot"` when none answered at all,
   `failed "load"` above `LOOT_MAX_LEVEL` (the level guard, spec § 9 (1)). The route (ruling P24-Z, Plan 24 Task 18;
   E7's eight loots failed `not adjacent` from outside building 5's locked back door, 55.6 s): a loot that failed `not
@@ -76,7 +78,11 @@ view's `edge` (which leaves out the bearing of a met group, `World.unexplored_ed
 building known, any square with no building within WOODS_R (40): the woods); the view's `toward` when it names the
 nearest building with the player beyond WOODS_R of every one (the step back to the known cluster); else the player's
 own square while `scanned_here` is false (a fresh session's first scan, before the map holds an edge; with no
-building known at all the edge is the plain one, the first building still to find); else `Rest(REST_S)`. A
+building known at all the edge is the plain one, the first building still to find); else `Rest(REST_S)`. The woods
+radius is the kit's (`Kit.woods_r`, the view's `woods_r`; Task 18 fix 1, the review's major 6 and ruling 3, E7's
+sparse spawn mapped its 40-tile ring and the source then rested): after REST_N (3) Rests in a row ended rested
+(another goal's end restarts the run) it widens by WOODS_STEP (20) up to WOODS_MAX_R (80), so the edge grows outward
+from the known cluster in rings; a building newly read (`GoalRunner.observe`) resets it to WOODS_R. A
 building the view reads `blocked` (every exterior door marked stuck, P24-Z) is never looted nor walked toward. A walk's
 target is so always a building or a square within WOODS_R of one, once one is known.
 The edge leaves a stuck area (ruling P23-AP 1, E4's twelve walks from one square north of a locked gate): after two
@@ -135,8 +141,14 @@ GOAL_HOLD_SUPERSEDE_TICKS = 20   # planner ticks another branch holds without se
 ARRIVE_R = 1.5        # tiles: an ExploreToward whose place is scanned is done within this of its point
 REST_S = 30.0         # the scripted source's rest
 STOCK_WANTS = ("water", "container", "clothing", "food", "bandage", "weapon")   # LootBuilding's order of uses (P24-Y)
+CONTAINERS_HELD_N = 2   # vessels held (`water` and `container`) at which `container` is no longer wanted (Task 18 fix
+                        # 1, the review's major 5, its number: one or two held, so the cap goes to the food)
 BUILDING_R = 60.0     # tiles: an unlooted building this near is looted; farther, it is walked toward first (P24-Y)
 WOODS_R = 40.0        # tiles: a square with no building known this near is the woods, never a walk's target (P24-Y)
+REST_N = 3            # Rests in a row, no building newly read, before the woods radius widens (Task 18 fix 1, ruling
+                      # 3, a judgment: 90 s of rest)
+WOODS_STEP = 20.0     # tiles the woods radius widens by at each REST_N rests (ruling 3)
+WOODS_MAX_R = 80.0    # tiles: the widest woods radius (ruling 3: walks reach up to 60, then 80 tiles from the cluster)
 STOCK_KINDS = ("water", "food")                        # Stock's kinds, the scripted source's order
 RUN_FIELDS = ("state", "reason", "started_wall")
 STATES = ("running", "done", "failed", "superseded")
@@ -147,7 +159,8 @@ EXAMPLES = {"ExploreToward": {"x": 120, "y": 205}, "LootBuilding": {"building": 
 __all__ = ["Goal", "ExploreToward", "LootBuilding", "Shelter", "Stock", "Rest", "GoalSource", "ScriptedSource",
            "GoalRunner", "Kit", "validate", "open_uses", "int_id", "goal_key", "GOAL_MAX_S", "GOAL_COOL_S",
            "GOAL_HOLD_SUPERSEDE_TICKS",
-           "ARRIVE_R", "REST_S", "STOCK_WANTS", "BUILDING_R", "WOODS_R",
+           "ARRIVE_R", "REST_S", "STOCK_WANTS", "BUILDING_R", "WOODS_R", "CONTAINERS_HELD_N", "REST_N", "WOODS_STEP",
+           "WOODS_MAX_R", "wanted_uses",
            "STOCK_KINDS", "RUN_FIELDS", "STATES", "SCHEMA_PATH", "EXAMPLES"]
 
 
@@ -182,16 +195,43 @@ def open_uses(world, loot, key, waiting=None):
     return out
 
 
+def wanted_uses(world):
+    """STOCK_WANTS in order, `container` left out once CONTAINERS_HELD_N or more vessels are held (`by_use()`'s
+    `water` and `container`: Task 18 fix 1, the review's major 5)."""
+    uses = world.by_use()
+    held = len(uses.get("water", ())) + len(uses.get("container", ()))
+    return tuple(u for u in STOCK_WANTS if u != "container" or held < CONTAINERS_HELD_N)
+
+
 # ---------------------------------------------------------------- the shared machines
 class Kit:
     """The machines a session's goals share: one `Explore` (its scanned places), one `LootHouse` (its pending loots,
-    capped squares) and `shunned` {building: world minutes}, the Shelter goals' shuns (`Night.shunned` when given,
-    M6)."""
+    capped squares), `shunned` {building: world minutes}, the Shelter goals' shuns (`Night.shunned` when given, M6),
+    and the woods radius (`woods_r`, `rests` the Rests in a row ended rested, `known` the buildings known when it was
+    last reset: Task 18 fix 1, ruling 3)."""
 
     def __init__(self, world=None, actions=None, clock=time.time, shunned=None):
         self.explore = Explore(world, actions, clock)
         self.loot = LootHouse(world, actions, clock)
         self.shunned = {} if shunned is None else shunned
+        self.woods_r, self.rests, self.known = WOODS_R, 0, 0
+
+    def rested(self, goal):
+        """A goal ended: a Rest ended rested counts one, REST_N in a row widening the woods radius by WOODS_STEP up
+        to WOODS_MAX_R; any other goal's end restarts the count (a superseded Rest neither counts nor restarts it)."""
+        if goal.TYPE != "Rest":
+            self.rests = 0
+        elif goal.state == "done":
+            self.rests += 1
+            if self.rests >= REST_N:
+                self.woods_r, self.rests = min(self.woods_r + WOODS_STEP, WOODS_MAX_R), 0
+
+    def read_buildings(self, world):
+        """A building newly read (`World.building_boxes` grew) resets the woods radius to WOODS_R."""
+        n = len(world.building_boxes())
+        if n > self.known:
+            self.woods_r, self.rests = WOODS_R, 0
+        self.known = n
 
     def bind(self, world, actions):
         for m in (self.explore, self.loot):
@@ -464,7 +504,7 @@ class LootBuilding(_Looting, Goal):
         loot = self.kit.loot
         loot.within = self.keys(world)
         try:
-            want = next((u for u in STOCK_WANTS if loot.target(u) is not None), None)
+            want = next((u for u in wanted_uses(world) if loot.target(u) is not None), None)
             if want is not None:
                 loot.want = want
                 cmd = loot.choose()
@@ -716,6 +756,7 @@ class GoalRunner:
         self.history.append(dict(g.row(), startS=self._s(g.started_wall), endS=self._s(now), source=self._name()))
         if g.state == "failed" and g.sent_n == 0:
             self.cooled[goal_key(g.TYPE, g.args())] = now + GOAL_COOL_S
+        self.kit.rested(g)
         self._ended_now, self.current, self.hold_ticks = g, None, 0
 
     def cooling(self):
@@ -729,6 +770,7 @@ class GoalRunner:
         self.actions = actions
         self._ended_now, self._observed = None, True
         self.kit.observe(world, actions)
+        self.kit.read_buildings(world)
         g = self.current
         if g is None:
             return

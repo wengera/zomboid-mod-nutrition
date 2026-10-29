@@ -457,7 +457,7 @@ def test_the_llm_view_lists_what_each_building_holds_and_the_prompt_constrains_t
     v = view(r.world, sv)
     text = render(v)
     assert "1 @110,201 door 110,201 10.5 c2 - h:bandage1,food1" in text and "\ntoward: null" in text
-    assert "Your loop" in L.SYSTEM and "%g tiles of one" % G.WOODS_R in L.SYSTEM and "woods" in L.SYSTEM
+    assert "Your loop" in L.SYSTEM and "woods_r, %g at the start" % G.WOODS_R in L.SYSTEM and "woods" in L.SYSTEM
     woods = G.ExploreToward(100, 150)
     assert L.place_error(woods, v) == "invalid: in the woods"
     assert L.place_error(G.ExploreToward(100, 170), v) is None               # 31 tiles from the house's box
@@ -580,7 +580,7 @@ def test_a_door_failing_twice_is_marked_for_door_retry_min(tmp_path):
     assert w.note_door_fail(door, "locked") is False and w.marked_doors() == set()
     r.frame(game_min=485.0)
     assert w.note_door_fail(door, "not adjacent") is True and w.marked_doors() == {door}
-    assert w.door_marks[door] == (485.0 * 1.0, "not adjacent")
+    assert w.door_marks[door] == (485.0 * 1.0, "not adjacent", "out")       # Task 18 fix 1: its side kept
     r.frame(game_min=514.9)
     assert w.marked_doors() == {door}
     r.frame(game_min=515.0)
@@ -648,7 +648,8 @@ def test_a_loot_stood_against_a_locked_door_routes_in_by_the_next_door_and_marks
     r.frame(x=a["x"], y=a["y"])
     tick(r, sv)
     t, a = r.cmd()
-    assert (t, a["kind"], a["x"], a["y"]) == ("interact", "loot", 112, 200) and sv.goals.current.TYPE == "LootBuilding"
+    # Task 18 fix 1 (major 3): the loot failed `not adjacent` from outside kept its container, so it resumes there
+    assert (t, a["kind"], a["x"], a["y"]) == ("interact", "loot", 112, 202) and sv.goals.current.TYPE == "LootBuilding"
     assert N.exterior_doors(r.world, 1, 0) == [(110, 202, 0)]
     r.frame(x=111.5, y=202.5, game_min=480.0 + W.DOOR_RETRY_MIN)
     assert sorted(N.exterior_doors(r.world, 1, 0)) == [(110, 201, 0), (110, 202, 0)]
@@ -1047,3 +1048,188 @@ def test_the_spawn_engage_in_every_golden_is_neither_engaged_nor_sought(key):
     assert got["eng"] is False and got["choke"] is True
     assert rows[0]["branch"] != "threat"
     assert bool(rows[0]["inputs"]["branches"]["threat"].get("unsought")) is (key == "f1-caps15")
+
+
+# ================================================================ Task 18 fix 1: majors 3 to 6 (the review's numbering)
+from .test_policies import square   # noqa: E402
+from .test_survive_g import hold   # noqa: E402
+
+
+@pytest.mark.parametrize("end, marked", [({"state": "failed", "reason": "not adjacent"}, False),
+                                         ({"state": "failed", "reason": "stuck"}, False),
+                                         ({"state": "failed", "reason": "no match"}, True),
+                                         ("done", True)])
+def test_a_failed_loot_keeps_its_container_until_it_fails_twice(tmp_path, end, marked):
+    """The review's major 3 (E7's a55 to a62: eight loots failed `not adjacent` from outside building 5, each
+    container marked looted, the building read looted with 28 containers known): a loot marks its containers looted
+    for its use only when it ended done or failed `no match` (nothing of the use there); any other end counts one
+    failure on each, and the second (LOOT_FAILS_TO_PASS, as the doors) passes it."""
+    assert P.LOOT_FAILS_TO_PASS == 2
+    r = Rig(tmp_path)
+    r.scan([square(110, 200, containers=[FRIDGE])])
+    r.frame(x=109.5, y=200.5)
+    lh = P.LootHouse(r.world, r.acts, r.clock, want="food")
+    for n in (1, 2):
+        lh.send(lh.choose())
+        r.answer(end)
+        lh.observe()
+        key = next(iter(r.world.containers))
+        assert ("food" in r.world.containers[key]["looted"]) is (marked or n == 2), n
+        if marked:
+            break
+    assert lh.choose() is None
+
+
+def _e7_loots(upto, fixed=True):
+    """E7 replayed with P24-X off (the record's loots replayed, as `test_e7_s_loots_at_the_locked_back_door_...`),
+    each recorded loot handed to the goal kit's LootHouse (`pending`) and its end observed every tick: the World's
+    containers, {(x, y, filter): end state and reason} of the loots."""
+    from agent.base import replay_decisions as R
+    got = {"ends": {}}
+
+    def m(sv):
+        sv.ENGAGE = False
+        loot = sv.goals.kit.loot
+        real_send, real_tick = sv.goals.send, sv.tick
+
+        def send(cmd):
+            a = real_send(cmd)
+            if cmd.TYPE == "interact" and cmd.kind == "loot":
+                loot.pending.append((cmd.x, cmd.y, 0, a))
+                got["ends"][(cmd.x, cmd.y, cmd.filter)] = a
+            return a
+
+        def tick_(world, actions):
+            loot.world, loot.actions = world, actions
+            loot.observe()
+            got["w"] = world
+            return real_tick(world, actions)
+        sv.goals.send, sv.tick = send, tick_
+    R.replay(R.ARTIFACTS + "/" + E7, upto=upto, mutate=m)
+    return got["w"], {k: (a.state, a.reason) for k, a in got["ends"].items()}
+
+
+def test_e7_s_eight_loots_failed_not_adjacent_keep_their_containers():
+    """Major 3 on E7's record (lines 1-357): the eight loots a55 to a62 (lines 241 to 333) failed `not adjacent` from
+    the back door's square; each container they targeted stays lootable for its use (one failure each: before this
+    fix every one was marked looted, and the LootBuilding ended `looted`), while the loots that ended done (a54 at
+    line 236, food at (10769, 10635), and the spawn house's) mark theirs."""
+    w, ends = _e7_loots(357)
+    failed = [k for k, e in ends.items() if e == ("failed", "not adjacent")]
+    assert len(failed) == 8 and ends[(10766, 10633, "food")] == ("failed", "not adjacent")
+    for x, y, use in failed:
+        for key, c in w.containers.items():
+            if key[:2] == (x, y) and any(P.use_of(i) == use for i in c["items"]):
+                assert use not in c["looted"], (x, y, use)
+    done = [k for k, e in ends.items() if e[0] == "done"]
+    assert done and all(any(key[:2] == k[:2] and k[2] in c["looted"] for key, c in w.containers.items())
+                        for k in done)
+
+
+def test_a_door_marked_from_outside_stays_a_way_out_from_inside_and_the_adoption_keeps_it(tmp_path):
+    """The review's major 4 (the marks dropped the way out): a door marked from outside (`side` "out": E7's locked
+    back door) is left out of every approach from outside (the shelter plans, the loot's route, the view's `door`
+    and `blocked`), and stays a way out from inside (`night.exits`, `exit_plan`: the flee walks out through it) and
+    the adoption's door (`adoptable`, `Flee._adopt`), ranked after the doors not marked."""
+    r = Rig(tmp_path)
+    r.scan(house(1, 110))
+    r.frame(x=108.5, y=201.5)
+    w, door = r.world, (110, 201, 0)
+    for _ in range(2):
+        w.note_door_fail(door, "locked")                                       # outside: side "out"
+    assert w.door_marks[door][2] == "out" and w.marked_doors("out") == {door} and w.marked_doors("in") == set()
+    assert N.exterior_doors(w, 1, 0) == [] and N.door_blocked(w, 1, 0) and N.shelter_plan(w, 1) is None
+    r.frame(x=111.5, y=201.5)                                                  # inside
+    assert [e["door"] for e in N.exits(w, 1, 0)] == [door] and P.adoptable(w)
+    plan = P.exit_plan(w, [])
+    assert plan is not None and plan["door"] == door
+    f = P.Flee(r.world, r.acts, r.clock, threats=[zd(1, 112.5, 202.5, me=(111.5, 201.5))])
+    cmd = f.choose()
+    assert cmd.TYPE == "walkTo" and f.why["exit"] == 1 and f.why["door"] == list(door)
+    f.adopted = False
+    assert f._adopt(f._threats())["doors"] == [door]
+
+
+def test_a_door_failed_from_inside_is_marked_from_inside_and_ranked_last_for_the_ways_out(tmp_path):
+    """The mark keeps its side: a door whose open failed twice from inside (`_door_failed` reads the player's room
+    square) is `side` "in": the approaches from outside keep it, the ways out rank it after an unmarked one."""
+    from .test_survive import make as smake
+    r, sv = smake(tmp_path)
+    r.scan(two_door_house(exterior2=CLOSED))
+    r.frame(x=111.5, y=201.5)
+    for _ in range(2):
+        sv._door_failed(type("A", (), {"type": "interact", "state": "failed", "reason": "locked",
+                                       "args": {"x": 110, "y": 201, "kind": "open"}})())
+    w = r.world
+    assert w.door_marks[(110, 201, 0)][2] == "in" and (110, 201, 0) in N.exterior_doors(w, 1, 0)
+    assert N.exterior_doors(w, 1, 0, marked=True)[-1] == (110, 201, 0)
+    plan = P.exit_plan(w, [])
+    assert plan["door"] == (110, 202, 0)
+
+
+def test_the_container_want_is_capped_at_two_vessels_held(tmp_path):
+    """The review's major 5 (E7's replayed map: 14 empty vessels known in building 5, 8 in building 2, each loot
+    filling to the cap before the food): `container` is wanted only while fewer than CONTAINERS_HELD_N (2) vessels
+    (`water` and `container` held) are held; with two held the loot goes to the food."""
+    assert G.CONTAINERS_HELD_N == 2
+    from .test_survive import make as smake
+    r, sv = smake(tmp_path)
+    sqs = house(1, 110)
+    for s in sqs:
+        if (s["x"], s["y"]) == (111, 201):
+            s["containers"] = [{"type": "counter", "n": 2, "items": ["Base.Apple", "Base.PopEmpty"]}]
+    r.scan(sqs)
+    r.frame(x=109.5, y=201.5)
+    hold(r, 5, "Base.PopEmpty", use="container")
+    assert G.wanted_uses(r.world) == G.STOCK_WANTS
+    hold(r, 6, "Base.WaterBottle", use="water")
+    assert "container" not in G.wanted_uses(r.world)
+    g = G.LootBuilding(1)
+    g.kit = G.Kit(r.world, r.acts, r.clock)
+    cmd = g.step(r.world, r.acts, r.clock)
+    assert cmd.TYPE == "interact" and cmd.filter == "food"
+    assert "container" not in view(r.world, sv)["stock_uses"]
+
+
+def test_after_rest_n_rests_the_woods_radius_widens_by_woods_step_up_to_its_cap_and_a_new_building_resets_it(
+        tmp_path):
+    """The review's major 6 and ruling 3 (E7's sparse spawn: four buildings known, the 40-tile ring mapped, the
+    scripted source then resting): after REST_N (3) Rests in a row ended rested with no building newly read, the woods
+    radius widens by WOODS_STEP (20) up to WOODS_MAX_R (80); the next proposal is the edge within the widened ring of
+    the known cluster; another goal's end restarts the run; a building newly read resets the radius to WOODS_R. The
+    fixture: one house, the ground round it mapped to a solid ring with one gap 49.5 tiles west of the house's box."""
+    assert (G.REST_N, G.WOODS_STEP, G.WOODS_MAX_R) == (3, 20.0, 80.0)
+    from .test_survive import make as smake
+    r, sv = smake(tmp_path)
+    ring = {(x, y): {"solid": True} for x in range(60, 117) for y in (196, 206)}
+    ring.update({(x, y): {"solid": True} for x in (60, 116) for y in range(196, 207)})
+    del ring[(60, 201)]
+    hs = {(s_["x"], s_["y"]) for s_ in house(1, 110)}
+    r.scan([q for q in grid(60, 116, 196, 206, ring) if (q["x"], q["y"]) not in hs] + house(1, 110))
+    r.frame(x=100.5, y=201.5)
+    runner, kit = sv.goals, sv.goals.kit
+    runner.observe(r.world, r.acts)
+    kit.explore.scanned.add(P.place_of(r.world))                                # the place scanned
+    v = view(r.world, sv)
+    assert kit.woods_r == G.WOODS_R and v["woods_r"] == G.WOODS_R and v["edge"] is None
+    assert G.ScriptedSource().propose(v).TYPE == "Rest"
+    for n in range(1, 3 * G.REST_N + 1):
+        g = G.Rest(1.0)
+        g.state = "done"
+        runner._close(g)
+        assert kit.woods_r == min(G.WOODS_R + G.WOODS_STEP * (n // G.REST_N), G.WOODS_MAX_R), n
+        if n == G.REST_N:
+            v = view(r.world, sv)
+            assert v["woods_r"] == 60.0 and v["edge"] == [60, 201]
+            g = G.ScriptedSource().propose(v)
+            assert g.TYPE == "ExploreToward" and (g.x, g.y) == (60, 201)
+            assert L.place_error(g, v) is None and L.place_error(g, dict(v, woods_r=G.WOODS_R)) is not None
+    assert kit.woods_r == G.WOODS_MAX_R
+    other = G.ExploreToward(1, 1)
+    other.state = "done"
+    kit.woods_r, kit.rests = G.WOODS_R + G.WOODS_STEP, 2
+    runner._close(other)
+    assert kit.rests == 0 and kit.woods_r == G.WOODS_R + G.WOODS_STEP           # another goal: the run restarts
+    r.scan(house(2, 140))
+    runner.observe(r.world, r.acts)
+    assert kit.woods_r == G.WOODS_R and kit.rests == 0                          # a building newly read

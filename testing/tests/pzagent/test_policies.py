@@ -525,6 +525,8 @@ SHELF = {"type": "shelf", "n": 1, "items": ["Base.Nails"]}       # an `other` co
 
 
 def test_loothouse_loots_the_nearest_unlooted_and_marks_it_when_the_loot_ends(tmp_path):
+    """Named change, Task 18 fix 1 (the review's major 3): the end that marks is a `no match` (nothing of the use
+    there); a `not adjacent` no longer marks at once (`test_survive_h`'s LOOT_FAILS_TO_PASS case)."""
     r = Rig(tmp_path)
     r.scan([square(102, 200, containers=[CRATE]), square(106, 200, containers=[dict(CRATE, type="cupboard")])])
     r.frame()
@@ -532,7 +534,7 @@ def test_loothouse_loots_the_nearest_unlooted_and_marks_it_when_the_loot_ends(tm
     lh.step()
     assert r.cmd() == ("interact", {"x": 102, "y": 200, "kind": "loot", "filter": "bandage", "maxWeight": 8.0})
     assert lh.step() is None
-    r.answer({"state": "failed", "reason": "not adjacent"})
+    r.answer({"state": "failed", "reason": "no match"})
     lh.step()
     assert r.world.containers[(102, 200, 0, 0)]["looted"] == {"bandage"}
     assert r.cmd() == ("interact", {"x": 106, "y": 200, "kind": "loot", "filter": "bandage", "maxWeight": 8.0})

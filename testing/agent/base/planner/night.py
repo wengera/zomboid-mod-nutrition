@@ -131,22 +131,26 @@ def exterior_doors(world, building, z, marked=False):
     a mapped, non-solid square with no room; survival 3's amendment 5, once any door square with such a neighbour
     across any edge), ranked open first, then neither locked nor barricaded, then any, each nearest the player. The
     candidates are read once per map version (`World.memo`, M-4); only the ranking, which reads the player, runs each
-    call. A door the World has marked stuck (`World.marked_doors`, ruling P24-Z) is left out, unless `marked`: so
-    the shelter plans (the Night's, the Shelter goal's, the flee's), the ways out and a loot's route never try it
-    again within DOOR_RETRY_MIN."""
+    call. A door the World has marked stuck from outside (`World.marked_doors("out")`, ruling P24-Z; Task 18 fix 1,
+    the review's major 4: the mark is one-sided) is left out, so the approaches from outside (the shelter plans, the
+    Night's, the Shelter goal's and the flee's, and a loot's route) never try it again within DOOR_RETRY_MIN; with
+    `marked` (the ways out, `exits`, and the adoption, read from inside) every door is kept, a door marked from either
+    side ranked after the others."""
     def rank(sq):
         d = world.map[sq].get("door") or {}
         state = 0 if d.get("open") else (2 if d.get("locked") or d.get("barricaded") else 1)
-        return state, _dist(world, sq), sq
+        return sq in stuck, state, _dist(world, sq), sq
 
     def candidates():
         return [sq for sq in world.doors_of(building) if sq[2] == z and world.door_way(sq) is not None]
-    stuck = () if marked else world.marked_doors()
-    return sorted((sq for sq in world.memo(("exterior_doors", building, z), candidates) if sq not in stuck), key=rank)
+    stuck = world.marked_doors() if marked else world.marked_doors("out")
+    return sorted((sq for sq in world.memo(("exterior_doors", building, z), candidates) if marked or sq not in stuck),
+                  key=rank)
 
 
 def door_blocked(world, building, z):
-    """Every exterior door of `building` on floor `z` is marked stuck (P24-Z): no route in; False with none known."""
+    """Every exterior door of `building` on floor `z` is marked stuck from outside (P24-Z; Task 18 fix 1, major 4): no
+    route in; False with none known."""
     every = exterior_doors(world, building, z, marked=True)
     return bool(every) and not exterior_doors(world, building, z)
 
@@ -162,9 +166,10 @@ def exits(world, building, z):
     """The ways out of `building` on floor `z` (ruling P23-AJ 3 as amended): `[{inner, outer, door}]`, each opening
     of `world.openings` (`door` None: the step from `inner` to `outer` reads open) on that floor, then each exterior
     door the map reads closed and not barricaded with its `approach_square` as `outer` (`door` the square to open
-    first; a locked one included, since the Lua's open unlocks a door that opens from inside), sorted by `outer`."""
+    first; a locked one included, since the Lua's open unlocks a door that opens from inside; one marked stuck kept,
+    the way out being read from inside: Task 18 fix 1, the review's major 4), sorted by `outer`."""
     out = [{"inner": a, "outer": b, "door": None} for a, b in world.openings(building) if a[2] == z]
-    for d in exterior_doors(world, building, z):
+    for d in exterior_doors(world, building, z, marked=True):
         rec = world.map[d].get("door") or {}
         if not (rec.get("open") or rec.get("barricaded")):
             inner, outer = world.door_way(d)
@@ -183,14 +188,15 @@ def shunned_now(store, now):
     return {b for b, at in store.items() if now - at < SHUN_MIN}
 
 
-def shelter_plan(world, building, door=None, step="approach"):
+def shelter_plan(world, building, door=None, step="approach", marked=False):
     """A shelter plan for `building` on the player's floor: `{building, doors, door_i, rooms, inside, step, retries,
     near}`, `near` the distance from the player to its nearest room square; None with no exterior door or no room.
     With `door`, the plan is kept to that one exterior door (the flee's, P23-AG), None when it is not one; `step`
-    the step it starts at (`done`: a plan read as already closed)."""
+    the step it starts at (`done`: a plan read as already closed); `marked`, `exterior_doors`' (the adoption, read
+    from inside: Task 18 fix 1, the review's major 4)."""
     z = me_floor(world)
     rooms = [sq for sq in world.interiors().get(building, ()) if sq[2] == z]
-    doors = exterior_doors(world, building, z)
+    doors = exterior_doors(world, building, z, marked=marked)
     if door is not None:
         doors = [door] if door in doors else []
     if not rooms or not doors:

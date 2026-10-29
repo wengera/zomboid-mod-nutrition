@@ -176,9 +176,12 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   `all` took whole containers, one interact at level 2 lifting runs 1 and 2 to level 3 and 4. Any other want (None
   included) loots nothing. `cap` is the frame's `load.max` times `LOAD_RATIO_MAX` (1.0), the Lua's loot stopping
   before the carried weight would pass it; 0.0 (no cap) when `load.max` reads no positive number; logged as
-  `why["cap"]`. The looted mark is per use (Task 11 fix 1): when the interact ends, done, failed, rejected or timed
-  out, every container on its square holding an item of the loot's filter is marked looted for that use only
-  (`world.mark_looted(key, use)`), so a counter looted for water is still looted for food later; except a `failed
+  `why["cap"]`. The looted mark is per use (Task 11 fix 1): when the interact ends done, or failed `no match`
+  (`LOOT_MARKS`: nothing of the use there), every container on its square holding an item of the loot's filter is
+  marked looted for that use only (`world.mark_looted(key, use)`), so a counter looted for water is still looted for
+  food later; any other end (failed, rejected, timed out: Task 18 fix 1, the review's major 3, E7's eight loots failed
+  `not adjacent` from outside a locked door) counts one failure on each such container (`fails`), the
+  LOOT_FAILS_TO_PASS-th (2) marking it, so a container that really cannot be reached is tried twice; except a `failed
   "superseded"`, which a newer send replaced before it ran (Plan 21 lost such a square for the session:
   `docs/reference/research-notes.md`, "A pre-empted loot's square is marked looted"), and a loot whose result carries
   `skipped > 0` (the cap left items), which marks nothing: its square waits in `capped` for that use until the
@@ -266,6 +269,9 @@ STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its he
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
 LOAD_RATIO_MAX = 1.0  # a loot fills to this times the frame's load.max (level 1 holds up to 1.25 of it, #3926)
+LOOT_FAILS_TO_PASS = 2   # failed loots of one container for one use before it is passed (Task 18 fix 1, the review's
+                         # major 3: as a door's DOOR_FAILS_TO_MARK; a failure is not an empty container)
+LOOT_MARKS = ("no match",)   # the failed loot's reasons that mark at once: nothing of the use there
 LOOT_WANTS = ("food", "water", "weapon", "bandage", "container")   # a loot's want and filter: one use, never
                       # `all` (P23-8); `container` (an empty vessel, the Lua's filter since PZA/1.5.1) by P24-Y
 DROP_AT = 3           # at this load level or above Survive's load branch drops (the heavy-load drain falls at 3) ...
@@ -1069,6 +1075,7 @@ def exit_plan(world, threats, refused=()):
         return None
     ts = [z for z in threats if z.get("x") is not None and z.get("y") is not None]
     me = me_xy(world)
+    marked = world.marked_doors()   # Task 18 fix 1, major 4: a marked door stays a way out, ranked after the others
     best = None
     for e in N.exits(world, b, me_floor(world)):
         if e["outer"] in refused:
@@ -1079,7 +1086,7 @@ def exit_plan(world, threats, refused=()):
             continue
         if _beyond(world, e["inner"], e["outer"]) is None:
             continue
-        rank = (math.hypot(c[0] - me[0], c[1] - me[1]), e["outer"], e["inner"])
+        rank = (e["door"] in marked, math.hypot(c[0] - me[0], c[1] - me[1]), e["outer"], e["inner"])
         if best is None or rank < best[0]:
             best = (rank, e)
     if best is None:
@@ -1122,11 +1129,13 @@ def _beyond(world, inner, outer):
 
 
 def adoptable(world):
-    """The building the player stands in has an exterior door on the player's floor (`Flee._adopt` can adopt it)."""
+    """The building the player stands in has an exterior door on the player's floor (`Flee._adopt` can adopt it), a
+    marked one included (read from inside: Task 18 fix 1, the review's major 4)."""
     N = _night()
     s = world.map.get(N.player_square(world)) or {}
     b = s.get("building")
-    return s.get("room") is not None and b is not None and bool(N.exterior_doors(world, b, me_floor(world)))
+    return (s.get("room") is not None and b is not None
+            and bool(N.exterior_doors(world, b, me_floor(world), marked=True)))
 
 
 class Flee(Policy):
@@ -1422,14 +1431,15 @@ class Flee(Policy):
         this floor (E2's building 3: its doors all broken)."""
         N = _night()
         b = (self.world.map.get(N.player_square(self.world)) or {}).get("building")
-        doors = N.exterior_doors(self.world, b, me_floor(self.world)) if b is not None else []
+        doors = N.exterior_doors(self.world, b, me_floor(self.world), marked=True) if b is not None else []
         if not doors:
             return None
+        marked = self.world.marked_doors()   # Task 18 fix 1, major 4: kept from inside, ranked after the others
 
         def rank(d):
             is_open = bool(((self.world.map.get(d) or {}).get("door") or {}).get("open"))
-            return not is_open, min(math.hypot(z["x"] - d[0] - 0.5, z["y"] - d[1] - 0.5) for z in ts), d
-        return N.shelter_plan(self.world, b, door=min(doors, key=rank), step="done")
+            return d in marked, not is_open, min(math.hypot(z["x"] - d[0] - 0.5, z["y"] - d[1] - 0.5) for z in ts), d
+        return N.shelter_plan(self.world, b, door=min(doors, key=rank), step="done", marked=True)
 
     def choose(self):
         """The running exit; else the shelter (picked at each re-aim until one is chosen: fix round 2, T1, and never
@@ -1654,6 +1664,7 @@ class LootHouse(Policy):
         self.capped = {}        # (x, y, z, use) -> the carried weight when a loot there skipped items for the cap
         self.within = None      # a set of container keys a target is kept to (a LootBuilding goal's), None for any
         self._key = None        # the container the last choose picked
+        self.fails = {}         # (container key, use) -> failed loots there (Task 18 fix 1, major 3)
 
     def level(self):
         return (self.world.load or {}).get("level") or 0
@@ -1683,9 +1694,16 @@ class LootHouse(Policy):
                 self.capped[(x, y, z, use)] = self.weight()   # the items left may fit once the load falls
                 continue
             self.capped.pop((x, y, z, use), None)
+            mark = a.state == "done" or (a.state == "failed" and a.reason in LOOT_MARKS)
             for key, c in self.world.containers.items():
-                if key[:3] == (x, y, z) and any(use_of(i) == use for i in c["items"]):
+                if key[:3] != (x, y, z) or not any(use_of(i) == use for i in c["items"]):
+                    continue
+                n = 0 if mark else self.fails.get((key, use), 0) + 1
+                if mark or n >= LOOT_FAILS_TO_PASS:
+                    self.fails.pop((key, use), None)
                     self.world.mark_looted(key, use)
+                else:
+                    self.fails[(key, use)] = n
         self.pending = still
 
     def waiting(self, want):

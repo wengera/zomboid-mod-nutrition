@@ -1445,17 +1445,20 @@ class Survive:
         failure noted in the World (`World.note_door_fail`, the second marking it): an `interact` open or close that
         failed for a DOOR_FAILS reason, on its own square; a loot that failed `not adjacent` (its route stood against a
         door), on the door square nearest the player within DOOR_NEAR_R, if any. Whichever branch sent it: the night's
-        shelter, the Shelter and LootBuilding goals, the flee's shelter and way out."""
+        shelter, the Shelter and LootBuilding goals, the flee's shelter and way out. The side it failed from (the
+        character on a room square, `Night.inside`, "in", else "out": Task 18 fix 1, the review's major 4) is kept, so a
+        door marked from outside stays a way out from inside."""
         if a.type != "interact" or a.state != "failed":
             return
         floor = me_floor(self.world)
         kind = a.args.get("kind")
+        side = "in" if self.night.inside() else "out"   # Task 18 fix 1, major 4: the mark is one-sided
         if kind in ("open", "close") and a.reason in DOOR_FAILS:
-            self.world.note_door_fail((a.args.get("x"), a.args.get("y"), floor), a.reason)
+            self.world.note_door_fail((a.args.get("x"), a.args.get("y"), floor), a.reason, side)
         elif kind == "loot" and a.reason == "not adjacent":
             door = self.world.door_near(me_xy(self.world), floor, DOOR_NEAR_R)
             if door is not None:
-                self.world.note_door_fail(door, a.reason)
+                self.world.note_door_fail(door, a.reason, side)
 
     def _refused(self, iid):
         """A consume refused `not valid`: a tainted one (`World.tainted_ids`: the Lua's `W.drinkable` refuses tainted

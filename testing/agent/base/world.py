@@ -121,9 +121,11 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   keeps any other read of the map (the night's exterior doors) for the same version. A cached answer is shared, so a
   caller only reads it.
 - The stuck doors (ruling P24-Z, Plan 24 Task 18; E7 stood 55.6 s at building 5's locked back door while eight
-  loots failed `not adjacent`): `note_door_fail(sq, reason)` counts a door's failures, the DOOR_FAILS_TO_MARK-th
-  (2) within DOOR_RETRY_MIN (30) game minutes marking it (`door_marks`, the reason kept); `marked_doors()` the marks
-  standing now; `door_near(xy, z, r)` the door square nearest a point. The planner's, never in `to_json`.
+  loots failed `not adjacent`): `note_door_fail(sq, reason, side)` counts a door's failures, the DOOR_FAILS_TO_MARK-th
+  (2) within DOOR_RETRY_MIN (30) game minutes marking it (`door_marks`, the reason and the side kept: Task 18 fix 1,
+  the review's major 4, the mark is one-sided, "out" when it failed from outside the building, "in" from a room
+  square); `marked_doors(side=None)` the marks standing now (of that side only, when given); `door_near(xy, z, r)`
+  the door square nearest a point. The planner's, never in `to_json`.
 - `building_boxes()` (ruling P24-Y, Plan 24 Task 18: every walk has a building as its destination): each known
   building's room squares' bounding box, memoised per map version; `building_dist(x, y, b)` the tiles from a point
   to a box (0.0 inside), `nearest_building(x, y)` and `building_near(x, y, r)`, the woods test (no building within
@@ -275,7 +277,7 @@ class World:
         self.tainted_sources = set() # water squares (x, y, z) a fill found tainted (the planner's, never a line's)
         self.dry = {}                # water square (x, y, z) -> world minute a wash or fill failed there (`mark_dry`)
         self.door_fails = {}         # door square (x, y, z) -> [(world minute, reason)] of its failures (P24-Z)
-        self.door_marks = {}         # door square (x, y, z) -> (world minute, reason): marked stuck (P24-Z)
+        self.door_marks = {}         # door square (x, y, z) -> (world minute, reason, side): marked stuck (P24-Z)
         self.frame_n = 0             # the frames applied (a frame-newer test's counter, never serialised)
         self.killed = set()          # the zombie ids a Fight read dead off its own attack or aim (P24-Q: `kills`)
         self.first_sight = set()     # the ids the inventory's first sight named (between a hello and the next frame)
@@ -854,24 +856,27 @@ class World:
         """Leave the water square `sq` (x, y, z) out of `water_sources` for SOURCE_RETRY_MIN game minutes."""
         self.dry[sq] = self.world_minutes()
 
-    def note_door_fail(self, sq, reason):
+    def note_door_fail(self, sq, reason, side="out"):
         """A door at square `sq` (x, y, z) failed `reason` (ruling P24-Z: an open locked, a close interrupted, its
-        approach not adjacent, a loot's route stood against it): the second failure within DOOR_RETRY_MIN marks it
-        (`door_marks`, with the reason) and clears its count. True when this one marked it. The planner's, never a
-        line's; not in `to_json`."""
+        approach not adjacent, a loot's route stood against it) from `side` ("out", outside the building; "in", from a
+        room square): the second failure within DOOR_RETRY_MIN marks it (`door_marks`, with the reason and the side of
+        the marking failure: Task 18 fix 1, major 4) and clears its count. True when this one marked it. The
+        planner's, never a line's; not in `to_json`."""
         now = self.world_minutes()
         fails = [f for f in self.door_fails.get(sq, []) if now - f[0] < DOOR_RETRY_MIN] + [(now, reason)]
         if len(fails) < DOOR_FAILS_TO_MARK:
             self.door_fails[sq] = fails
             return False
         self.door_fails.pop(sq, None)
-        self.door_marks[sq] = (now, reason)
+        self.door_marks[sq] = (now, reason, side)
         return True
 
-    def marked_doors(self):
-        """The door squares marked within DOOR_RETRY_MIN game minutes (P24-Z): never tried again meanwhile."""
+    def marked_doors(self, side=None):
+        """The door squares marked within DOOR_RETRY_MIN game minutes (P24-Z): never tried again meanwhile from that
+        side; with `side`, the ones marked from it only (Task 18 fix 1, major 4)."""
         now = self.world_minutes()
-        return {sq for sq, (at, _) in self.door_marks.items() if now - at < DOOR_RETRY_MIN}
+        return {sq for sq, (at, _, s) in self.door_marks.items() if now - at < DOOR_RETRY_MIN
+                and (side is None or s == side)}
 
     def door_near(self, xy, z, r):
         """The mapped door square on floor `z` whose centre lies nearest the point `xy` within `r` tiles, read open

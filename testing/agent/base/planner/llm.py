@@ -20,8 +20,9 @@ The contract:
   `invalid: looted already`; an ExploreToward whose square's centre lies farther than EXPLORE_MAX_TILES (60) from its
   `pos` (or with no `pos`) is `invalid: out of range` (all three were `invalid: unknown place` before P24-B); and
   (ruling P24-Y, Plan 24 Task 18: every walk has a building as its destination) an ExploreToward whose square's
-  centre lies farther than `goals.WOODS_R` (40) from every building the view lists (its `box`, else its listed
-  squares), while it lists one, is `invalid: in the woods`; a LootBuilding or Shelter of a building the view reads
+  centre lies farther than the view's `woods_r` (`goals.WOODS_R`, 40, widened after REST_N rests in a row: Task 18
+  fix 1, ruling 3) from every building the view lists (its `box`, else its listed squares), while it lists one, is
+  `invalid: in the woods`; a LootBuilding or Shelter of a building the view reads
   `blocked` (every exterior door marked stuck, ruling P24-Z) is `invalid: refused`.
 - The refusal's meaning reaches the model (P24-B 3, F1's write-up: the one refused answer named a square past the
   bound and the model never learned why, #4277, #4279): a goal refused by that rule is kept as `refusal`
@@ -126,8 +127,8 @@ def _system():
                  "(- none), dist in tiles, N its containers, flags L looted (nothing left to take), v visited, "
                  "s shunned, x blocked (every door stuck: never named), - none.")
     lines.append("The refusal rule: name a building only by an id the view lists; an ExploreToward square within "
-                 "%g tiles of pos and, once the view lists a building, within %g tiles of one (farther is the "
-                 "woods); a LootBuilding only a building listed without the L flag. An answer breaking it is refused "
+                 "%g tiles of pos and, once the view lists a building, within woods_r tiles of one (the view's "
+                 "woods_r, %g at the start; farther is the woods); a LootBuilding only a building listed without the L flag. An answer breaking it is refused "
                  "and the program chooses instead." % (EXPLORE_MAX_TILES, WOODS_R))
     lines.append("Your loop, every goal a building: the program clears the zombies near you itself; you loot the "
                  "nearest building listed without L within %g tiles (LootBuilding), then the next nearest, wanting "
@@ -251,7 +252,8 @@ def place_error(goal, view):
         if not _num(px) or not _num(py) or math.hypot(goal.x + 0.5 - px, goal.y + 0.5 - py) > EXPLORE_MAX_TILES:
             return "invalid: out of range"
         listed = [b for b in view.get("buildings") or () if isinstance(b, dict)]
-        if listed and not any(_near(b, goal.x + 0.5, goal.y + 0.5) for b in listed):
+        r = view.get("woods_r") if _num(view.get("woods_r")) else WOODS_R
+        if listed and not any(_near(b, goal.x + 0.5, goal.y + 0.5, r) for b in listed):
             return "invalid: in the woods"
     if goal.TYPE in PLACE_GOALS:
         if goal.building not in shown_ids(view):
@@ -264,16 +266,16 @@ def place_error(goal, view):
     return None
 
 
-def _near(b, x, y):
-    """The point (x, y) lies within WOODS_R of the listed building `b`: its `box` (P24-Y) when the view carries one,
-    else its listed room square or door."""
+def _near(b, x, y, r=WOODS_R):
+    """The point (x, y) lies within `r` (the view's `woods_r`, else WOODS_R: Task 18 fix 1, ruling 3) of the listed
+    building `b`: its `box` (P24-Y) when the view carries one, else its listed room square or door."""
     box = b.get("box")
     if isinstance(box, (list, tuple)) and len(box) == 4 and all(_num(v) for v in box):
         dx = max(box[0] - x, 0.0, x - (box[2] + 1))
         dy = max(box[1] - y, 0.0, y - (box[3] + 1))
-        return math.hypot(dx, dy) <= WOODS_R
+        return math.hypot(dx, dy) <= r
     pts = [(b.get("x"), b.get("y"))] + ([tuple(b["door"][:2])] if b.get("door") else [])
-    return any(_num(p[0]) and _num(p[1]) and math.hypot(p[0] + 0.5 - x, p[1] + 0.5 - y) <= WOODS_R for p in pts)
+    return any(_num(p[0]) and _num(p[1]) and math.hypot(p[0] + 0.5 - x, p[1] + 0.5 - y) <= r for p in pts)
 
 
 _CWD = []
