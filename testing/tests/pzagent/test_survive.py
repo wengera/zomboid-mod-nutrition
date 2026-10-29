@@ -24,10 +24,29 @@ from .test_policies import BAT, CAPS_14, CRATE, FRIDGE, SHELF, Rig, all_sends_va
 def make(tmp_path, caps=None):
     """A Survive on a fresh Rig. `caps=CAPS_14` (ruling P24-G 1, a named change: on a PZA/1.5 build the standing
     fight replaces the approach walk beyond FIGHT_REACH) pins a case on a PZA/1.4 build, where the approach and
-    swing stays the fight, as after a stand-off (`Fight.standoff`)."""
+    swing is the fight from its start. On a PZA/1.5 build the same rules run only after a stand-off
+    (`Fight.standoff`): `make_build(..., "standoff")` pins that path (Task 10 fix 1, the review's minor 10)."""
     r = Rig(tmp_path, caps=caps)
     sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
     return r, sv
+
+
+BUILDS = ("1.4", "standoff")   # the two paths to the approach and swing (`make_build`)
+
+
+def make_build(tmp_path, monkeypatch, build):
+    """`build` "1.4": `make(caps=CAPS_14)`, a PZA/1.4 build; "standoff": a full-caps (PZA/1.5) build whose every Fight
+    has already fallen back (`standoff`, as at STAND_MAX_S), so the approach, the stall, the flip and the look behind
+    run as they do after a stand-off."""
+    if build == "1.4":
+        return make(tmp_path, caps=CAPS_14)
+
+    class FellBack(P.Fight):
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            self.standoff, self.standoff_why = True, "stand_max_s"
+    monkeypatch.setattr(S, "Fight", FellBack)
+    return make(tmp_path)
 
 
 def tick(r, sv):
@@ -216,9 +235,10 @@ def test_a_running_fight_turns_to_flee_only_on_the_flee_conditions(tmp_path):
     assert [a.type for a in r.acts.history] == ["walkTo"]
 
 
+@pytest.mark.parametrize("build", BUILDS)
 @pytest.mark.parametrize("dist, flees", [(5.0, True), (2.74, True), (1.5, False)])   # 2.74: run 1's standoff
-def test_a_fight_that_does_not_close_in_fight_max_s_flees(tmp_path, dist, flees):
-    r, sv = make(tmp_path, caps=CAPS_14)
+def test_a_fight_that_does_not_close_in_fight_max_s_flees(tmp_path, monkeypatch, build, dist, flees):
+    r, sv = make_build(tmp_path, monkeypatch, build)
     r.frame(zombies=[zombie(1, 100.0 + dist, 200.0)])
     tick(r, sv)
     r.advance(20.0)
@@ -233,8 +253,9 @@ def test_a_fight_that_does_not_close_in_fight_max_s_flees(tmp_path, dist, flees)
         assert threat_why(tmp_path)["flee"] == "stalled" and d["inputs"]["fight_s"] == 21.0
 
 
-def test_a_stalled_fights_flee_is_held_until_the_zombie_closes(tmp_path):
-    r, sv = make(tmp_path, caps=CAPS_14)
+@pytest.mark.parametrize("build", BUILDS)
+def test_a_stalled_fights_flee_is_held_until_the_zombie_closes(tmp_path, monkeypatch, build):
+    r, sv = make_build(tmp_path, monkeypatch, build)
     r.frame(zombies=[zombie(1, 105.0, 200.0)])
     tick(r, sv)
     r.advance(21.0)
@@ -805,8 +826,9 @@ def test_twenty_ticks_of_a_looting_world_never_send_all(tmp_path):
 
 
 # Task 10's review (M3): the Fight's stall clock follows the pinned target, so the stall guard reads its distance.
-def test_the_stall_reads_the_pinned_targets_distance_not_the_nearest_zombies(tmp_path):
-    r, sv = make(tmp_path, caps=CAPS_14)
+@pytest.mark.parametrize("build", BUILDS)
+def test_the_stall_reads_the_pinned_targets_distance_not_the_nearest_zombies(tmp_path, monkeypatch, build):
+    r, sv = make_build(tmp_path, monkeypatch, build)
     r.frame(zombies=[zombie(1, 105.0, 200.0)])
     tick(r, sv)
     assert sv.fight.target == 1 and r.cmd() == ("walkTo", {"x": 105.5, "y": 200.5, "gait": "run"})
@@ -2163,11 +2185,12 @@ def test_a_many_flee_whose_count_falls_to_one_within_danger_r_stays_a_flee_until
     assert r.cmd() == ("walkTo", {"x": 93.5, "y": 201.5, "gait": "run"}) and threat_why(tmp_path)["fight"] is True
 
 
-def test_a_fight_walk_never_supersedes_a_flee_leg_sent_under_flip_min_s_ago(tmp_path):
+@pytest.mark.parametrize("build", BUILDS)
+def test_a_fight_walk_never_supersedes_a_flee_leg_sent_under_flip_min_s_ago(tmp_path, monkeypatch, build):
     """Ruling P23-AM 1, FLIP_MIN_S: the `many` steer runs; one second in, two have died and the last stands 7 tiles
     off: the hysteresis would fight, but the leg is held (`flip`, nothing sent); once the leg ended the fight's walk
     goes."""
-    r, sv = make(tmp_path, caps=CAPS_14)
+    r, sv = make_build(tmp_path, monkeypatch, build)
     many_yard(r)
     tick(r, sv)
     leg = r.acts.history[-1]

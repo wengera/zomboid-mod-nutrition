@@ -8,7 +8,6 @@ import pytest
 
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
-from agent.base.planner.care import water_sources
 
 from .test_policies import CAPS_14, all_sends_valid, square, zombie
 from .test_survive import last, make, threat_why, tick
@@ -27,27 +26,33 @@ def stance_args(r):
 
 # ================================================================ the constants
 def test_the_stance_constants():
-    assert (P.AIM_LEG_S, P.STAND_MAX_S, P.CLOSE_MIN) == (2.0, 20.0, 0.1)
+    assert (P.AIM_LEG_S, P.STAND_MAX_S, P.CLOSE_MIN, P.BACKPEDAL_BAND) == (2.0, 20.0, 0.1, 1.0)
     assert S.BRANCHES[0] == "threat"
 
 
 # ================================================================ the stance against one
-def test_one_zombie_closing_at_four_tiles_is_met_in_the_stance_backpedalling_then_swung_at_within_reach(tmp_path):
-    """P24-G 1: one held at 4 tiles, armed, full health: `aim` facing it for AIM_LEG_S with the away vector (west,
-    the zombie east of the player) as the backpedal; the leg holds while the zombie closes beyond FIGHT_REACH, and
-    gives way to the `attack` from the stance once it is within reach."""
+def test_one_zombie_closing_at_four_tiles_is_met_standing_then_backpedalled_within_the_band_then_swung_at(tmp_path):
+    """P24-G 1 as P24-M bands it (named change, Task 10 fix 1, minor 15): one held at 4 tiles, armed, full health,
+    closing: `aim` facing it for AIM_LEG_S, standing (beyond FIGHT_REACH + BACKPEDAL_BAND it steps into reach); the
+    leg holds while it closes beyond FIGHT_REACH; the next leg, the zombie closing at 2.8 tiles, backpedals along the
+    away vector (west, the zombie east of the player); within reach the `attack` goes from the stance."""
     r, sv = make(tmp_path)
     r.frame(zombies=[zd(1, 104.0, 200.0)])
     tick(r, sv)
     a = stance_args(r)
-    assert a == {"vx": -1.0, "vy": 0.0, "seconds": 2.0, "targetId": 1, "bearing": -1.0}
+    assert a == {"vx": 0.0, "vy": 0.0, "seconds": 2.0, "targetId": 1, "bearing": -1.0}
     w = threat_why(tmp_path)
-    assert w["fight"] is True and w["stance"] is True and w["closing"] is True and w["back"] == [-1.0, 0.0]
+    assert w["fight"] is True and w["stance"] is True and w["closing"] is True and w["back"] is None
     sends = len(r.acts.history)
     r.advance(0.5)
     r.frame(zombies=[zd(1, 103.0, 200.0)])
     assert tick(r, sv) is None and len(r.acts.history) == sends            # the leg holds beyond reach
     assert threat_why(tmp_path)["holding"] == r.acts.history[-1].aid
+    r.answer()
+    r.advance(1.5)
+    r.frame(zombies=[zd(1, 102.8, 200.0)])
+    tick(r, sv)
+    assert stance_args(r)["vx"] == -1.0 and threat_why(tmp_path)["back"] == [-1.0, 0.0]
     r.advance(0.5)
     r.frame(zombies=[zd(1, 101.6, 200.0)])
     tick(r, sv)
@@ -55,20 +60,32 @@ def test_one_zombie_closing_at_four_tiles_is_met_in_the_stance_backpedalling_the
     all_sends_valid(r)
 
 
+@pytest.mark.parametrize("x, back", [(103.0, True), (103.05, False)])
+def test_the_backpedal_runs_only_within_fight_reach_plus_the_band(tmp_path, x, back):
+    """Ruling P24-M: a closing target backpedalled from at FIGHT_REACH + BACKPEDAL_BAND (3.0 tiles) and nearer, stood
+    facing at 3.05."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, x, 200.0)])
+    tick(r, sv)
+    a = stance_args(r)
+    assert ((a["vx"], a["vy"]) == (-1.0, 0.0)) is back and threat_why(tmp_path)["closing"] is True
+    assert (threat_why(tmp_path)["back"] is not None) is back
+
+
 def test_a_stance_leg_ended_re_aims_and_reads_closing_off_the_zombies_own_move(tmp_path):
     """Each AIM_LEG_S the stance re-aims; the backpedal goes while the target moved CLOSE_MIN or more toward the player
     since the last leg's send (its own move, never the distance the backpedal kept), else it stands (0, 0)."""
     r, sv = make(tmp_path)
-    r.frame(zombies=[zd(1, 104.0, 200.0)])
+    r.frame(zombies=[zd(1, 103.0, 200.0)])                                  # named change (P24-M): within the band
     tick(r, sv)
     r.answer()
     r.advance(2.0)
-    r.frame(x=99.0, zombies=[zd(1, 103.0, 200.0)])                          # 4.0 tiles still: it closed by 1.0
+    r.frame(x=99.0, zombies=[zd(1, 102.0, 200.0)])                          # 3.0 tiles still: it closed by 1.0
     tick(r, sv)
     assert stance_args(r)["vx"] == -1.0 and threat_why(tmp_path)["closing"] is True
     r.answer()
     r.advance(2.0)
-    r.frame(x=99.0, zombies=[zd(1, 103.05, 200.0)])                         # it stood: no backpedal
+    r.frame(x=99.0, zombies=[zd(1, 102.05, 200.0)])                         # it stood: no backpedal
     tick(r, sv)
     a = stance_args(r)
     assert (a["vx"], a["vy"]) == (0.0, 0.0) and threat_why(tmp_path)["closing"] is False
@@ -91,7 +108,7 @@ def test_the_backpedal_never_steps_into_a_wall_or_over_a_fence(tmp_path):
     sqs = [square(x, y) for x in range(95, 106) for y in range(195, 206)]
     sqs = [dict(s, blockW=True, hopW=True) if (s["x"], s["y"]) == (100, 200) else s for s in sqs]
     r.scan(sqs)
-    r.frame(x=100.5, y=200.5, zombies=[zd(1, 104.5, 200.5)])
+    r.frame(x=100.5, y=200.5, zombies=[zd(1, 103.0, 200.5)])                # named change (P24-M): within the band
     tick(r, sv)
     a = stance_args(r)
     turns = [P._rotate((-1.0, 0.0), t) for t in P.STEER_TURNS]
@@ -100,8 +117,9 @@ def test_the_backpedal_never_steps_into_a_wall_or_over_a_fence(tmp_path):
 
 
 def test_two_zombies_at_full_health_are_met_in_the_stance_backing_from_both(tmp_path):
+    """Named change (P24-M): both at 2.5 tiles, within the band."""
     r, sv = make(tmp_path)
-    r.frame(zombies=[zd(1, 104.0, 200.0), zd(2, 100.0, 204.0)])
+    r.frame(zombies=[zd(1, 102.5, 200.0), zd(2, 100.0, 202.5)])
     tick(r, sv)
     a = stance_args(r)
     assert a["targetId"] in (1, 2) and abs(a["vx"] + math.sqrt(0.5)) < 1e-9 and abs(a["vy"] + math.sqrt(0.5)) < 1e-9
@@ -689,7 +707,7 @@ def test_a_fill_refused_for_its_water_leaves_the_source_out(tmp_path):
     thirsty(r)
     tick(r, sv)
     # named change, Task 10 fix 1 (minor 5): a failure for its source frees the vessel for the next source at once
-    assert r.cmd() == ("fill", {"itemId": 5, "x": 110, "y": 200}) and sv.care.dry_now() == {(105, 200, 0)}
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 110, "y": 200}) and r.world.dry_now() == {(105, 200, 0)}
 
 
 @pytest.mark.parametrize("end", [{"state": "failed", "reason": "not adjacent"}, {"state": "failed", "reason": "stuck"},
@@ -714,7 +732,7 @@ def test_a_fill_whose_walk_failed_leaves_its_source_out_and_takes_the_next(tmp_p
         r.answer(end)
     thirsty(r)
     tick(r, sv)
-    assert r.cmd() == ("fill", {"itemId": 5, "x": 110, "y": 200}) and sv.care.dry_now() == {(105, 200, 0)}
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 110, "y": 200}) and r.world.dry_now() == {(105, 200, 0)}
 
 
 def test_a_vessel_whose_fill_failed_otherwise_waits_fill_retry_min_from_the_end_and_no_container_is_wanted(tmp_path):
@@ -737,7 +755,7 @@ def test_a_vessel_whose_fill_failed_otherwise_waits_fill_retry_min_from_the_end_
     assert need_why(tmp_path)["fill"] == {"held_out": [5]} and set(sv.need_marks) == {"water"}
     thirsty(r, game_min=483.4)                       # 1.9 minutes from the end (3.4 from the send): still out
     tick(r, sv)
-    assert sum(a.type == "fill" for a in r.acts.history) == 1 and not sv.care.dry_now()
+    assert need_why(tmp_path)["fill"] == {"held_out": [5]} and not r.world.dry_now()
     for _ in range(S.FAILED_COOLDOWN_TICKS):         # the same command's failure cooldown, past the hold-out
         thirsty(r, game_min=483.5)
         tick(r, sv)
@@ -826,11 +844,13 @@ def test_a_walk_stuck_at_a_hoppable_edge_climbs_it_then_walks_on(tmp_path):
     g = ExploreToward(110, 200)
     runner, cmd = walk_stuck(r, g)
     assert g.state == "running" and (cmd.TYPE, cmd.args()) == ("climb", {"x": 102, "y": 200})
+    assert (110, 200) in r.world.stuck                                           # Explore marked the stuck walk's target
     runner.send(cmd)
     r.answer()
     r.frame(x=102.5, y=200.5)
     cmd = runner.tick(r.world, r.acts)
     assert (cmd.TYPE, cmd.args()) == ("walkTo", {"x": 110, "y": 200, "gait": "walk"})
+    assert (110, 200) not in r.world.stuck                                       # minor 9: the climb crossed it
     all_sends_valid(r)
 
 
@@ -1015,7 +1035,7 @@ def test_a_tainted_fill_marks_its_source_square_tainted_and_the_next_fill_takes_
     thirsty(r)
     tick(r, sv)
     assert r.world.tainted_sources == {(110, 200, 0)} and r.world.tainted_ids() == {5}
-    assert [(s[1], s[2].get("tainted")) for s in water_sources(r.world, math.inf)] == [((110, 200, 0), True),
+    assert [(s[1], s[2].get("tainted")) for s in r.world.water_sources(math.inf)] == [((110, 200, 0), True),
                                                                                        ((120, 200, 0), False)]
     thirsty(r)
     tick(r, sv)
@@ -1073,7 +1093,7 @@ def test_a_wash_refused_in_bag_is_retried_and_leaves_its_source(tmp_path):
     r.answer({"state": "failed", "reason": "in bag"})
     care_frame(r, [], game_min=480.5)
     tick(r, sv)
-    assert not sv.care.dry and 12 not in r.world.marks and last(tmp_path)["branch"] != "care"
+    assert not r.world.dry and 12 not in r.world.marks and last(tmp_path)["branch"] != "care"
     r.advance(10.0)
     care_frame(r, [], game_min=482.5)
     for _ in range(10):
@@ -1098,5 +1118,160 @@ def test_the_ripped_sheets_read_bandage_a_sealed_can_other_and_the_choice_order_
         r.event("item_removed", itemId=iid)
         r.answer("done")
         care_frame(r, [part(5, bleeding=True, bleedingTime=20.0)])
-        tick(r, sv)
+        tick(r, sv)                                                      # named change, Task 10 fix 1 (minor 6):
+        care_frame(r, [part(5, bleeding=True, bleedingTime=20.0)])       # the part waits one frame newer than the
+        tick(r, sv)                                                      # one read with its bandage's done
         assert r.cmd()[1]["itemId"] == {3: 1, 1: 4, 4: 2}[iid]
+
+
+# ================================================================ Task 10 fix 1: the review's minors
+def test_a_stance_leg_superseded_re_aims_but_one_that_fails_ends_the_stand_at_once(tmp_path):
+    """Minor 11: a stance leg that ends failed (here `not loaded`: a build that cannot take the stance) or times out
+    sets `standoff` at once, so the next choose is the approach walk rather than STAND_MAX_S of re-sent legs; a
+    superseded leg (this planner's own next send) re-aims; the 20 s fallback names itself `stand_max_s`."""
+    for k, end in enumerate(({"state": "failed", "reason": "not loaded"}, "timeout")):
+        (tmp_path / str(k)).mkdir()
+        r, sv = make(tmp_path / str(k))
+        r.frame(zombies=[zd(1, 104.0, 200.0)])
+        tick(r, sv)
+        assert r.cmd()[0] == "aim"
+        if end == "timeout":
+            r.fake.answer({"aim": ["accepted"]})
+            r.pump()
+            r.advance(31.0)
+            r.pump()
+        else:
+            r.answer(end)
+        r.frame(zombies=[zd(1, 104.0, 200.0)])
+        tick(r, sv)
+        assert r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"}) and sv.fight.standoff
+        assert sv.fight.standoff_why == ("failed not loaded" if k == 0 else "timeout")
+    (tmp_path / "s").mkdir()
+    r, sv = make(tmp_path / "s")
+    r.frame(zombies=[zd(1, 104.0, 200.0)])
+    tick(r, sv)
+    r.answer({"state": "failed", "reason": "superseded"})
+    r.frame(zombies=[zd(1, 104.0, 200.0)])
+    tick(r, sv)
+    assert r.cmd()[0] == "aim" and not sv.fight.standoff and sv.fight.standoff_why is None
+    stand_legs(r, sv, 10)
+    assert sv.fight.standoff and sv.fight.standoff_why == "stand_max_s"
+
+
+def test_a_bandaged_part_waits_one_frame_newer_than_its_done_before_it_is_bandaged_again(tmp_path):
+    """Minor 6: the bandage's done read before a frame reads it on (the stale frame still lists part 5 bleeding and
+    unbandaged) puts no second item on the wound; a newer frame that reads it bandaged ends the wait, and one that
+    still reads it bleeding (the bandage did not take) is bandaged again."""
+    r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage"), (11, "Base.Bandage")])
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 10, "part": 5})
+    r.event("item_removed", itemId=10)
+    r.answer("done")
+    tick(r, sv)                                                                  # the stale frame: part 5 waits
+    assert sum(a.type == "bandage" for a in r.acts.history) == 1 and sv.care.fresh == {5: r.world.frame_n}
+    care_frame(r, [part(5, bandaged=True, bandageLife=1.0)])
+    tick(r, sv)
+    assert sum(a.type == "bandage" for a in r.acts.history) == 1 and not sv.care.fresh
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)])
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 11, "part": 5})
+
+
+def test_care_is_a_policy_and_reads_quiet_from_survive(tmp_path):
+    """Minor 13: `Care(Policy)`: the house's busy and send, its own `sent` recording each item's action; Survive sets
+    `quiet` each tick (no zombie within DISENGAGE_R) before `choose()`."""
+    assert issubclass(C.Care, P.Policy)
+    assert C.Care.busy is P.Policy.busy and C.Care.send is P.Policy.send and C.Care.sent is not P.Policy.sent
+    r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage")])
+    tick(r, sv)
+    assert sv.care.quiet is True and sv.care.sends[10] is sv.care.last and sv.care.busy()
+
+
+def test_the_water_squares_are_memoised_on_the_map_version_and_the_dry_store_is_the_worlds(tmp_path):
+    """Minors 4 and 14: the World holds the water squares (one map walk per map version, never per tick) and the dry
+    store the wash and the fill share (`mark_dry`, SOURCE_RETRY_MIN game minutes)."""
+    from agent.base import world as W
+    r = Rig(tmp_path)
+    r.scan([source(105, 200), square(106, 200)])
+    r.frame()
+    w = r.world
+    first = w.water_squares()
+    assert first is w.water_squares() and [sq for sq, _ in first] == [(105, 200, 0)]
+    r.fake.map_full([source(110, 200)], scan_id=2)
+    r.pump()
+    assert w.water_squares() is not first and [sq for sq, _ in w.water_squares()] == [(105, 200, 0), (110, 200, 0)]
+    w.mark_dry((105, 200, 0))
+    assert [s[1] for s in w.water_sources()] == [(110, 200, 0)] and w.dry_now() == {(105, 200, 0)}
+    r.frame(game_min=480.0 + W.SOURCE_RETRY_MIN)
+    assert [s[1] for s in w.water_sources()] == [(105, 200, 0), (110, 200, 0)] and w.dry_now() == set()
+    assert [s[1] for s in w.water_sources(6.0)] == [(105, 200, 0)]
+
+
+def test_by_use_is_read_once_a_tick(tmp_path):
+    """Minor 14: the need's pick, its retry window and the fill read one `by_use()` a tick."""
+    r, sv = make(tmp_path)
+    r.scan([source(110, 200)])
+    r.frame()
+    hold(r, 5, "Base.PopEmpty", use="container")
+    hold(r, 6, "Base.Apple", use="food")
+    calls = []
+    real = r.world.by_use
+    r.world.by_use = lambda: calls.append(1) or real()
+    thirsty(r, hunger=0.5)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 110, "y": 200}) and len(calls) == 1
+
+
+def shelter_yard(fence_hop=True):
+    """test_night's house 1 at x 110 (its door on the west edge of (110, 201), the approach square (109, 201)) with
+    open ground x 104..109 by y 199..203 in front, a fence on the west edges of the squares x 108 (blocked, hoppable
+    unless `fence_hop` is False)."""
+    from .test_night import house
+    sqs = [s for s in house(1, 110) if s["x"] >= 110]
+    return sqs + [square(x, y, blockW=(x == 108), hopW=(x == 108 and fence_hop))
+                  for x in range(104, 110) for y in range(199, 204)]
+
+
+def test_the_shelter_walk_climbs_a_fence_on_its_route_and_walks_on(tmp_path):
+    """Minor 9: the Shelter goal's approach walk failed `stuck` at a hoppable edge on its line's first step climbs it
+    (`Kit.hop_after`, the step kept at `approach`) and walks the approach again once the climb ends done; a climb that
+    fails is read as that walk's stuck end (one door: the machine shuns the building)."""
+    from agent.base.planner.goals import Shelter
+    for k, climb_end in enumerate(("done", {"state": "failed", "reason": "fell"})):
+        (tmp_path / str(k)).mkdir()
+        r = Rig(tmp_path / str(k))
+        r.scan(shelter_yard())
+        r.frame(x=107.5, y=201.5)
+        g = Shelter(1)
+        runner = GoalRunner(Src(g), r.clock)
+        runner.send(runner.tick(r.world, r.acts))
+        assert r.cmd() == ("walkTo", {"x": 109.5, "y": 201.5, "gait": "walk"})
+        r.answer({"state": "failed", "reason": "stuck"})
+        r.frame(x=107.5, y=201.5)
+        cmd = runner.tick(r.world, r.acts)
+        assert (cmd.TYPE, cmd.args()) == ("climb", {"x": 108, "y": 201}) and g.plan["step"] == "approach"
+        assert g.why["step"] == "climb" and g.state == "running"
+        runner.send(cmd)
+        r.answer(climb_end)
+        r.frame(x=108.5, y=201.5)
+        cmd = runner.tick(r.world, r.acts)
+        if k == 0:
+            assert (cmd.TYPE, cmd.args()) == ("walkTo", {"x": 109.5, "y": 201.5, "gait": "walk"})
+            assert g.why["step"] == "approach"
+            all_sends_valid(r)
+        else:
+            assert cmd is None and (g.state, g.reason) == ("failed", "shun") and 1 in runner.kit.shunned
+
+
+def test_the_shelter_walk_stuck_at_a_wall_shuns_as_before(tmp_path):
+    from agent.base.planner.goals import Shelter
+    r = Rig(tmp_path)
+    r.scan(shelter_yard(fence_hop=False))
+    r.frame(x=107.5, y=201.5)
+    g = Shelter(1)
+    runner = GoalRunner(Src(g), r.clock)
+    runner.send(runner.tick(r.world, r.acts))
+    r.answer({"state": "failed", "reason": "stuck"})
+    r.frame(x=107.5, y=201.5)
+    assert runner.tick(r.world, r.acts) is None and (g.state, g.reason) == ("failed", "shun")
+    assert not any(a.type == "climb" for a in r.acts.history)

@@ -9,21 +9,30 @@ Its choose, the first that answers (`why` names the `reason`, the `part`, the `i
    `bleedingTime`, then the least index), bandaged (`Bandage(itemId, part)`) with the best held item by `care_kind`:
    a clean bandage, then a clean rag, then a dirty one only when the part's `bleedingTime` exceeds DIRTY_RAG_MIN (a
    dirty rag stops the bleeding but doubles the infection odds against none, #4299; the bleeding drain scales with
-   the bleeding time, #4298). With no rag of any kind held, one held cotton garment is ripped for it (`no_rag`:
-   `rippable` names it, never one of the inventory's first sight, `World.first_sight`, the clothes the character
-   stands in, which the Lua refuses `worn`, nor one marked `unrippable`, a rip refused `worn`, `not cotton` or `needs
-   tool`, `World.mark`: `Rip(itemId)`); a dirty rag held under the time rule falls through to the wash.
+   the bleeding time, #4298; the threshold is in the engine's raw wound-time units, `BodyPart.getBleedingTime()`,
+   never game minutes: a plain scratch reads about 2 to 9 by `generateBleeding`, 0.3 to 0.6 of a scratch time of 7 to
+   15, the Task 10 review's jar read, and a cut, a deep wound, glass or a bullet adds to it, so a plain scratch never
+   takes a dirty rag and a cut or a deep wound usually does: Task 10 fix 1, minor 12). With no rag of any kind held,
+   one held cotton garment is ripped for it (`no_rag`: `rippable` names it, never one of the inventory's first sight,
+   `World.first_sight`, the clothes the character stands in, which the Lua refuses `worn`, nor one marked
+   `unrippable`, a rip refused `worn`, `not cotton` or `needs tool`, `World.mark`: `Rip(itemId)`); a dirty rag held
+   under the time rule falls through to the wash.
 2. `replace`: a bandaged part whose `bandageLife` reached 0 or that reads `bandageDirty`, with a clean bandage or rag
    held: bandaged again with it (the Lua takes the old one off first).
-3. `wash`: a dirty rag held, no zombie within DISENGAGE_R (Survive passes `quiet`), and a known water source (the map's
-   square `water` record with water in it, on the player's floor, not refused lately) within WASH_R: `Wash(itemId, x,
-   y)`, the Lua walking next to it (a wash does not test the water's taint, #4301).
+3. `wash`: a dirty rag held, no zombie within DISENGAGE_R (Survive sets `quiet` each tick), and a known water source
+   (`World.water_sources`: the map's square `water` record with water in it, on the player's floor, not refused
+   lately) within WASH_R: `Wash(itemId, x, y)`, the Lua walking next to it (a wash does not test the water's taint,
+   #4301).
 A garment is ripped only for a bleeding part (Task 10 fix 1, the review's major 2: ruling P24-G 2's rip is the
 wound's; a rip for stock destroyed looted clothing and, from above the need branch, superseded a running drink).
 An item whose care action ended failed (never `superseded`), timed out or was rejected is left out for
-CARE_RETRY_MIN game minutes (`World.world_minutes`); a wash refused `no source` or `no water` leaves its source out for
-SOURCE_RETRY_MIN. Each step needs its skill in the hello's caps (`World.can`); a PZA/1.4 frame's parts carry no
-`bleeding` (decoded None), so the branch reads no wound there and no decision golden moves.
+CARE_RETRY_MIN game minutes (`World.world_minutes`); a wash refused `no source` or `no water` leaves its source out
+(`World.mark_dry`, `world.SOURCE_RETRY_MIN`). A part a bandage ended `done` on is left out until a frame newer than
+the one read with that end (`World.frame_n`; Task 10 fix 1, minor 6: the frame that reads the bandage on may follow
+the done, and a stale one would put the next item on the same wound). Each step needs its skill in the hello's caps
+(`World.can`); a PZA/1.4 frame's parts carry no `bleeding` (decoded None), so the branch reads no wound there and no
+decision golden moves. `Care` is a `Policy` (Task 10 fix 1, minor 13): Survive sends through it as the owner, and its
+`sent` records each item's action.
 
 The item reads are names (`care_kind`, `rippable`): what `ISApplyBandage` reads, `Dirty` in the type (#4299); the
 `RipClothing` recipe's cotton tag is in no dataset the repository carries, so `rippable` is a guess the Lua's refusal
@@ -35,13 +44,12 @@ import time
 
 from agent.base.planner.policies import Policy, PREEMPTED, item_id_ok
 from agent.base.pza1 import Bandage, Rip, Wash
-from agent.base.world import me_floor, me_xy
+from agent.base.world import me_floor
 
 CARE_RETRY_MIN = 2.0      # game minutes an item whose care action was refused is left out (P24-G 2)
-DIRTY_RAG_MIN = 10.0      # a dirty rag goes on a part only when its bleedingTime exceeds this (P24-G 2; the engine's
-                          # own bleeding-time scale, the ruling's "10 game minutes")
+DIRTY_RAG_MIN = 10.0      # a dirty rag goes on a part only when its bleedingTime exceeds this (P24-G 2): the engine's
+                          # raw wound-time units, #4298 (a plain scratch about 2-9, generateBleeding), never minutes
 WASH_R = 15.0             # tiles: a dirty rag is washed at a known water source this near (P24-G 2)
-SOURCE_RETRY_MIN = 10.0   # game minutes a source a wash or a fill found dry or gone is left out (a judgment)
 KINDS = ("bandage", "rag", "dirty")              # care_kind's order of choice
 CLEAN_BANDAGES = ("Bandage", "AlcoholBandage", "Bandaid")
 CLEAN_RAGS = ("RippedSheets", "AlcoholRippedSheets", "DenimStrips", "LeatherStrips")
@@ -51,8 +59,7 @@ RIP_REFUSALS = ("worn", "not cotton", "needs tool")   # a rip refused so never s
 DRY_REASONS = ("no source", "no water")          # a wash or fill refused so leaves its source out a while
 FAILED = ("failed", "timeout", "rejected")
 
-__all__ = ["Care", "care_kind", "rippable", "water_sources", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R",
-           "SOURCE_RETRY_MIN", "KINDS"]
+__all__ = ["Care", "care_kind", "rippable", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "KINDS", "DRY_REASONS"]
 
 
 def care_kind(full_type):
@@ -75,74 +82,44 @@ def rippable(full_type):
     return bool(COTTON_RX.search(ft)) and not any(w in ft for w in TOOL_WORDS)
 
 
-def water_sources(world, r, skip=()):
-    """[(dist, (x, y, z), water record)] of the map's squares on the player's floor whose `water` record has water
-    (`infinite`, or an `amount` above 0) within `r` tiles of the player by the square's centre, nearest first (ties by
-    the square), `skip` left out."""
-    floor = me_floor(world)
-    mx, my = me_xy(world)
-    out = []
-    for sq, rec in world.map.items():
-        w = rec.get("water")
-        if sq[2] != floor or not isinstance(w, dict) or sq in skip:
-            continue
-        if sq in world.tainted_sources:
-            w = dict(w, tainted=True)          # a fill found it tainted (Task 9 fix 2)
-        if not (w.get("infinite") is True or (isinstance(w.get("amount"), (int, float)) and w["amount"] > 0)):
-            continue
-        d = math.hypot(sq[0] + 0.5 - mx, sq[1] + 0.5 - my)
-        if d <= r:
-            out.append((d, sq, w))
-    return sorted(out, key=lambda t: (t[0], t[1]))
-
-
 def _num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-class Care:
-    """The care branch's policy (the module docstring): `observe()` every tick, `choose(quiet)` when not busy."""
+class Care(Policy):
+    """The care branch's policy (the module docstring): `observe()` every tick, `choose()` when not busy, `quiet` set
+    by Survive each tick (no zombie within DISENGAGE_R: the wash's condition)."""
 
     def __init__(self, world, actions, clock=time.time):
-        self.world = world
-        self.actions = actions
-        self.clock = clock
-        self.last = None
-        self.why = {}
-        self.sends = {}    # item id -> its last care Action
+        super().__init__(world, actions, clock)
+        self.quiet = False
+        self.sends = {}      # item id -> its last care Action
         self.held_out = {}   # item id -> world minute its care action was refused (CARE_RETRY_MIN)
-        self.dry = {}      # source square -> world minute a wash or fill there was refused for its water
+        self.fresh = {}      # part index -> `World.frame_n` when its bandage's done was read (minor 6)
         self._read = set()   # the aids whose end observe() has read
 
-    # -- the policy seam (Survive sends through it, as the owner) -------------------------------------------------
-    def busy(self):
-        return self.last is not None and self.actions.current is self.last
-
-    def send(self, cmd):
-        action = self.actions.send(cmd)
-        self.last = action
+    def sent(self, cmd, action):
         self.sends[cmd.itemId] = action
-        return action
 
     def observe(self):
-        """Each care action's end, once: a refusal holds its item out for CARE_RETRY_MIN; a rip refused for good marks
-        it `unrippable`; a wash refused for its water leaves its source out for SOURCE_RETRY_MIN."""
-        now = self.world.world_minutes()
+        """Each care action's end, once: a bandage done leaves its part out until a newer frame (`fresh`); a refusal
+        holds its item out for CARE_RETRY_MIN; a rip refused for good marks it `unrippable`; a wash refused for its
+        water leaves its source out (`World.mark_dry`). A part's `fresh` entry goes once a newer frame came."""
+        n = self.world.frame_n
+        self.fresh = {i: at for i, at in self.fresh.items() if at >= n}
         for iid, a in list(self.sends.items()):
             if a.aid in self._read or not self.actions.done(a):
                 continue
             self._read.add(a.aid)
+            if a.type == "bandage" and a.state == "done":
+                self.fresh[a.args.get("part")] = n
             if a.state not in FAILED or (a.state == "failed" and a.reason == PREEMPTED):
                 continue
-            self.held_out[iid] = now
+            self.held_out[iid] = self.world.world_minutes()
             if a.type == "rip" and a.reason in RIP_REFUSALS and iid in self.world.inventory:
                 self.world.mark(iid, "unrippable")
             if a.type == "wash" and a.reason in DRY_REASONS:
-                self.dry[(a.args.get("x"), a.args.get("y"), me_floor(self.world))] = now
-
-    def dry_now(self):
-        now = self.world.world_minutes()
-        return {sq for sq, at in self.dry.items() if now - at < SOURCE_RETRY_MIN}
+                self.world.mark_dry((a.args.get("x"), a.args.get("y"), me_floor(self.world)))
 
     # -- the reads ------------------------------------------------------------------------------------------------
     def _items(self):
@@ -157,7 +134,9 @@ class Care:
         return {k: sorted(v) for k, v in out.items()}
 
     def _parts(self):
-        return [p for p in ((self.world.body or {}).get("parts") or ()) if isinstance(p, dict) and _num(p.get("i"))]
+        """The frame's part records, a part whose bandage ended done on this very frame left out (`fresh`)."""
+        return [p for p in ((self.world.body or {}).get("parts") or ())
+                if isinstance(p, dict) and _num(p.get("i")) and p["i"] not in self.fresh]
 
     def _bleeding(self):
         """The bleeding unbandaged parts, worst first: deep, then the longest bleeding time, then the least index."""
@@ -179,8 +158,8 @@ class Care:
         return min(ids) if ids else None
 
     # -- the choice -----------------------------------------------------------------------------------------------
-    def choose(self, quiet):
-        """The next care command, or None (the module docstring's order); `quiet`: no zombie within DISENGAGE_R."""
+    def choose(self):
+        """The next care command, or None (the module docstring's order)."""
         w = self.world
         items = self._items()
         any_rag = any(items[k] for k in KINDS)
@@ -207,8 +186,8 @@ class Care:
                         "kind": "bandage" if items["bandage"] else "rag", "life": p.get("bandageLife"),
                         "dirty": p.get("bandageDirty")}
             return Bandage(clean[0], part=p["i"])
-        if items["dirty"] and quiet and w.can("wash"):
-            src = water_sources(w, WASH_R, self.dry_now())
+        if items["dirty"] and self.quiet and w.can("wash"):
+            src = w.water_sources(WASH_R)
             if src:
                 d, sq, rec = src[0]
                 self.why = {"reason": "dirty_rag", "item": items["dirty"][0], "source": [sq[0], sq[1]], "dist": d,

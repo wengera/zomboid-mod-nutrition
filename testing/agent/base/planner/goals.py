@@ -13,21 +13,25 @@ a class attribute equal to the entry's `const`:
   and the player stands within ARRIVE_R (1.5 tiles) of (x, y); a walk or scan that ends any other way but
   `superseded` fails the goal under the action's reason (a walk failed for a `STUCK_REASONS` reason is marked stuck by
   `Explore.observe`, so the scripted source's next edge leaves it out). The climb in routes (Plan 24 Task 10, ruling
-  P24-G 4; #4296: a short fence climbed at a walk never trips): a walk the path follower could not finish, ended
-  `failed "stuck"` where the straight line from the player toward (x, y) first crosses a hoppable edge
-  (`World.hop_ahead`: blocked, its square's `hopN`/`hopW` true, at the player's own square), sends `Climb(x, y)` of
-  that fence's square (the build announcing `climb`, `World.can`) and walks again once the climb ends done; a climb
-  that ends any other way (`fell`, a tall fence's `failed`) fails the goal under its reason, and a second stuck walk at
-  a fence it already climbed fails it `stuck`. A walk whose path crosses a hoppable edge the follower climbs itself
-  needs nothing; nothing here ever runs or sprints over a fence (no vault).
+  P24-G 4; #4296: a short fence climbed at a walk never trips; `_Climbing` and the kit's `hop_after`, shared with
+  `Shelter` since Task 10 fix 1, minor 9): a walk the path follower could not finish, ended `failed "stuck"` where the
+  straight line from the player toward the walk's target first crosses a hoppable edge (`World.hop_ahead`: blocked,
+  its square's `hopN`/`hopW` true, at the player's own square), sends `Climb(x, y)` of that fence's square (the build
+  announcing `climb`, `World.can`) and walks again once the climb ends done, the climbed walk target's stuck mark
+  dropped (`Kit.climbed`: `Explore.observe` marked it at the stuck end, which would leave the edge out of
+  `unexplored_edge` for STUCK_TTL_MIN after a climb that crossed it); a climb that ends any other way (`fell`, a tall
+  fence's `failed`) fails the goal under its reason, and a second stuck walk at a fence it already climbed fails it
+  `stuck`. A walk whose path crosses a hoppable edge the follower climbs itself needs nothing; nothing here ever runs or
+  sprints over a fence (no vault).
 - `LootBuilding(building)`: `LootHouse` kept to the containers on the building's squares (`LootHouse.within`), one
   loot at a time for the first of STOCK_WANTS (water, food, bandage, weapon) that `LootHouse.target` answers there;
   `done "looted"` when none answers after at least one loot, `failed "nothing to loot"` when none answered at all,
   `failed "load"` above `LOOT_MAX_LEVEL` (the level guard, spec § 9 (1)).
 - `Shelter(building)`: Night's shelter machine for a named building (`night.shelter_plan`, `shelter_step`,
-  `shelter_ended`, never re-implemented): approach the exterior door, open it, step in, close it; `done "inside"`
-  once the plan reads done, `failed "no plan"` with no exterior door or room on the player's floor, `failed "shun"`
-  when the machine shuns the building; both shun the building in the kit's `shunned` for `night.SHUN_MIN` game
+  `shelter_ended`, never re-implemented): approach the exterior door, open it, step in, close it (a step's walk failed
+  `stuck` at a hoppable edge climbs it first, as `ExploreToward` does, and walks again; a climb that fails is read as
+  that walk's stuck end, the machine's next door or shun); `done "inside"` once the plan reads done, `failed "no
+  plan"` with no exterior door or room on the player's floor, `failed "shun"` when the machine shuns the building; both shun the building in the kit's `shunned` for `night.SHUN_MIN` game
   minutes (fix 1, I3) on `World.world_minutes()` (monotonic across midnight: fix wave P, I-1), the store
   `Night.shunned` is when the runner is given it (`GoalRunner(..., shunned=)`, M6), so the night and the goal pass
   over the same buildings; the view reads it.
@@ -179,6 +183,20 @@ class Kit:
         self.loot.observe()
         self.explore.observe()
 
+    def hop_after(self, world, action, climbed=()):
+        """The route climb's read (ruling P24-G 4): the fence square (x, y) to climb after `action`, a `walkTo` that
+        ended `failed "stuck"` on a build announcing `climb`, where the straight line from the player toward its target
+        first crosses a hoppable edge (`World.hop_ahead`) not in `climbed`; else None."""
+        if not (action.type == "walkTo" and action.state == "failed" and action.reason == "stuck"
+                and world.can("climb")):
+            return None
+        hop = world.hop_ahead(me_xy(world), (action.args.get("x"), action.args.get("y")))
+        return None if hop is None or hop in climbed else hop
+
+    def climbed(self, world, walk):
+        """A climb after `walk` ended done: the walk target's stuck mark (`Explore`'s, at the stuck end) is dropped."""
+        world.unmark_stuck(int(math.floor(walk.args.get("x"))), int(math.floor(walk.args.get("y"))))
+
     def shunned_now(self, world):
         """The buildings shunned within SHUN_MIN game minutes of `world.world_minutes()` (I-1)."""
         now = world.world_minutes()
@@ -273,8 +291,41 @@ class Goal:
         self.sent_n += 1
 
 
+class _Climbing:
+    """The route climb's goal side (ruling P24-G 4; lifted out of `ExploreToward` at Task 10 fix 1, minor 9, for the
+    `Shelter` walks too): `_climbs()` once at the start; `_stuck(world, walk)` after a walk's end, True when a climb is
+    due (`Kit.hop_after`); `_climb_ended(world, action)` after the climb's, True when it ended done (the fence kept in
+    `climbed`, the walk target's stuck mark dropped: `Kit.climbed`); `_climb_cmd()` the due `Climb`, else None."""
+
+    def _climbs(self):
+        self.climb = None        # the fence square (x, y) the next choose climbs, else None
+        self.climbed = set()     # the fence squares this goal climbed
+        self.stuck_walk = None   # the walk whose stuck end the due or running climb answers
+
+    def _stuck(self, world, walk):
+        hop = self.kit.hop_after(world, walk, self.climbed)
+        if hop is None:
+            return False
+        self.climb, self.stuck_walk = hop, walk
+        return True
+
+    def _climb_ended(self, world, action):
+        if action.state != "done":
+            return False
+        self.climbed.add((action.args.get("x"), action.args.get("y")))
+        self.kit.climbed(world, self.stuck_walk)
+        return True
+
+    def _climb_cmd(self):
+        if self.climb is None:
+            return None
+        x, y = self.climb
+        self.climb = None
+        return Climb(x, y)
+
+
 @dataclass
-class ExploreToward(Goal):
+class ExploreToward(_Climbing, Goal):
     TYPE: ClassVar[str] = "ExploreToward"
     x: int
     y: int
@@ -284,24 +335,16 @@ class ExploreToward(Goal):
         return math.hypot(self.x - mx, self.y - my)
 
     def start(self, world):
-        self.climb = None        # the fence square (x, y) the next choose climbs (P24-G 4), else None
-        self.climbed = set()     # the fence squares this goal climbed
+        self._climbs()
 
     def ended(self, world, action):
         if action.type == "walkTo":
             if action.state == "done":
                 self.end("done", "arrived")
-                return
-            hop = (world.hop_ahead(me_xy(world), (self.x, self.y))
-                   if action.state == "failed" and action.reason == "stuck" and world.can("climb") else None)
-            if hop is not None and hop not in self.climbed:
-                self.climb = hop
-            else:
+            elif not self._stuck(world, action):
                 self.end("failed", action.reason or action.state)
         elif action.type == "climb":
-            if action.state == "done":
-                self.climbed.add((action.args.get("x"), action.args.get("y")))
-            else:
+            if not self._climb_ended(world, action):
                 self.end("failed", action.reason or action.state)
         elif action.type == "scan" and action.state != "done":
             self.end("failed", action.reason or action.state)
@@ -316,11 +359,10 @@ class ExploreToward(Goal):
         if place not in ex.scanned:
             self.why = {"scanAt": list(place), "toward": [self.x, self.y]}
             return Scan(SCAN_R)
-        if self.climb is not None:
-            x, y = self.climb
-            self.climb = None
-            self.why = {"toward": [self.x, self.y], "climb": [x, y]}
-            return Climb(x, y)
+        climb = self._climb_cmd()
+        if climb is not None:
+            self.why = {"toward": [self.x, self.y], "climb": [climb.x, climb.y]}
+            return climb
         self.why = {"toward": [self.x, self.y], "dist": self._dist(world)}
         return WalkTo(self.x, self.y, "walk")
 
@@ -377,11 +419,12 @@ class LootBuilding(_Looting, Goal):
 
 
 @dataclass
-class Shelter(Goal):
+class Shelter(_Climbing, Goal):
     TYPE: ClassVar[str] = "Shelter"
     building: int
 
     def start(self, world):
+        self._climbs()
         self.plan = shelter_plan(world, self.building)
         if self.plan is None:
             self.why = {"building": self.building, "plan": None}
@@ -393,6 +436,16 @@ class Shelter(Goal):
         self.end("failed", "shun")
 
     def ended(self, world, action):
+        """A step's end into the plan (`shelter_ended`); a walk stuck at a hoppable edge climbs first (the plan's step
+        kept), and a climb that did not end done is read as that walk's own stuck end."""
+        if action.type == "climb":
+            if self._climb_ended(world, action):
+                self.why = dict(self.why, ended="climbed")
+                return
+            action = self.stuck_walk
+        elif self._stuck(world, action):
+            self.why = dict(self.why, ended="climb")
+            return
         out = shelter_ended(self.plan, action)
         self.why = dict(self.why, ended=out)
         if out == "shun":
@@ -404,6 +457,10 @@ class Shelter(Goal):
             self.end("done", "inside")
 
     def choose(self, world, actions, clock):
+        climb = self._climb_cmd()
+        if climb is not None:
+            self.why = {"step": "climb", "building": self.building, "climb": [climb.x, climb.y]}
+            return climb
         cmd, step = shelter_step(world, self.plan)
         self.why = {"step": step, "building": self.building, "door": list(self.plan["doors"][self.plan["door_i"]])}
         if step == "shun":

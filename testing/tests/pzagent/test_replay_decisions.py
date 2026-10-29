@@ -501,3 +501,26 @@ def test_the_replay_ends_an_unbound_aim_at_its_seconds(monkeypatch):
     assert six[111]["action"]["type"] == "aim" and six[110]["why"]["holding"] == "a12"
     monkeypatch.setattr(R, "LEG_TYPES", ("steer",))
     assert moved_from_sixth(run_sixth())[0] == 111
+
+
+def test_the_backpedal_band_and_the_stand_off_fallback_on_the_sixth_golden(monkeypatch):
+    """Ruling P24-M (Task 10 fix 1, re-recorded under it): of the ten stance legs on F1's frames only 111's (2.46
+    tiles) is within FIGHT_REACH + BACKPEDAL_BAND and backpedals; the other nine (4.80 to 16.96 tiles) stand facing
+    the target. The mutation pass: the band switched off moves the golden first at 106; STAND_MAX_S switched off
+    (infinite) moves nothing, since no stand on F1's frames reaches 20 s (the longest stand clock is 6.57 s, line
+    373), and shortened to 5 s it moves line 373 alone: the fallback runs on a real sequence, but this golden cannot
+    pin its 20 s (the fake-mod cases do)."""
+    six = gold(SIXTH)
+    legs = {k: d for k, d in six.items() if d["action"] and d["action"]["type"] == "aim"}
+    assert sorted(legs) == [106, 111, 192, 216, 288, 360, 373, 435, 517, 557]
+    assert [k for k, d in legs.items() if (d["action"]["args"]["vx"], d["action"]["args"]["vy"]) != (0.0, 0.0)] == [111]
+    assert legs[111]["why"]["dist"] <= P.FIGHT_REACH + P.BACKPEDAL_BAND < min(
+        d["why"]["dist"] for k, d in legs.items() if k != 111)
+    assert max(d["why"].get("stand_s") or 0.0 for d in six.values()) < P.STAND_MAX_S
+    monkeypatch.setattr(P, "STAND_MAX_S", math.inf)
+    assert moved_from_sixth(run_sixth()) == []
+    monkeypatch.setattr(P, "STAND_MAX_S", 5.0)
+    assert moved_from_sixth(run_sixth()) == [373]
+    monkeypatch.setattr(P, "STAND_MAX_S", 20.0)
+    monkeypatch.setattr(P, "BACKPEDAL_BAND", math.inf)
+    assert moved_from_sixth(run_sixth())[0] == 106

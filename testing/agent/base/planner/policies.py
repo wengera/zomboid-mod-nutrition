@@ -52,11 +52,16 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   The standing fight (ruling P24-G 1, survive.py's docstring): with `stance` set (Survive's `_stance_ok`) and
   neither `point_blank` nor `only`, a target beyond FIGHT_REACH is met with `Aim(vx, vy, AIM_LEG_S, targetId)`, the
   stance facing it, (vx, vy) the backpedal while it closes (`_closing`: it moved CLOSE_MIN toward the player since the
-  last leg's send, or at a first leg its record reads `hasTarget`): `away_vector` of `threats` turned by STEER_TURNS
-  to the first heading `clear_heading` passes (never into a wall or over a hoppable fence), else (0, 0); a running
-  leg gives way (`busy`) once the target is within reach, re-pinned, or the stand ends. The stand clock (`_stand`)
-  restarts on a new target or a fall of its health; at STAND_MAX_S it sets `standoff` and the approach and swing
-  above run for the rest of the Fight, the out-of-reach stall clock (which a stand keeps at zero) starting then.
+  last leg's send, or at a first leg its record reads `hasTarget`) within FIGHT_REACH + BACKPEDAL_BAND (ruling P24-M,
+  Task 10 fix 1: farther off the character stands facing it, so a shambler steps into reach rather than chasing a
+  strafing player to the stand-off): `away_vector` of `threats` turned by STEER_TURNS to the first heading
+  `clear_heading` passes (never into a wall or over a hoppable fence), else (0, 0); a running leg gives way (`busy`)
+  once the target is within reach, re-pinned, or the stand ends. The stand clock (`_stand`) restarts on a new target
+  or a fall of its health; at STAND_MAX_S it sets `standoff` and the approach and swing above run for the rest of the
+  Fight, the out-of-reach stall clock (which a stand keeps at zero) starting then; a stance leg that ends failed,
+  timed out or rejected (never superseded) sets `standoff` at once (Task 10 fix 1, minor 11: a build that cannot hold
+  the stance never re-sends it for STAND_MAX_S). `standoff_why` names which (`stand_max_s`, or the leg's state and
+  reason).
 - `Flee` (one per flee episode): a `Steer` of `FLEE_S` seconds away from the threats (the `threats` list its caller
   passes, else every zombie the World holds), at a sprint when the nearest is within `SPRINT_R`, else a run; re-aimed on
   every end of its steer. Every leg runs along the sum of the unit vectors from each threat to the player, each weighted
@@ -224,6 +229,8 @@ STAND_MAX_S = 20.0    # wall seconds a standing fight may go without its target'
                       # after a kill) before it falls back to the approach and swing (ruling P24-G 1: no stand-off)
 CLOSE_MIN = 0.1       # tiles: the target moved at least this much toward the player since the last stance leg's
                       # send (or, at a first leg, its record reads hasTarget) reads closing, the backpedal's trigger
+BACKPEDAL_BAND = 1.0  # tiles beyond FIGHT_REACH within which a closing target is backpedalled from; farther, the
+                      # stance stands facing it (ruling P24-M: at strafe speed, #4295, the gap might never close)
 STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
@@ -425,6 +432,8 @@ class Fight(Policy):
         self.stance = False                 # Survive sets it each tick: the standing fight applies (P24-G 1)
         self.threats = None                 # Survive sets it: the held threats the backpedal steps away from
         self.standoff = False               # the stand went STAND_MAX_S without progress: approach and swing
+        self.standoff_why = None            # why it fell back: "stand_max_s", or "<state> <reason>" of a failed leg
+        self._leg_read = None               # the last stance leg whose end observe() has read
         self._stand = None                  # (target id, wall of the stand clock's start, its health then)
         self._leg_from = None               # (target id, its (x, y)) at the last stance leg's send
 
@@ -546,8 +555,23 @@ class Fight(Policy):
         elif h is not None and self._stand[2] is not None and h < self._stand[2]:
             self._stand = (t[0], now, h)
         elif now - self._stand[1] >= STAND_MAX_S:
-            self.standoff, self._stand = True, None
-            self.out_of_reach_since = now
+            self._fall_back("stand_max_s")
+
+    def _fall_back(self, why):
+        """The stand ends for good (`standoff`): the approach and swing from now, its stall clock starting now."""
+        self.standoff, self.standoff_why, self._stand = True, why, None
+        self.out_of_reach_since = self.clock()
+
+    def _observe_leg(self):
+        """Minor 11 (Task 10 fix 1): the first stance leg that ends failed, timed out or rejected (a superseded one is
+        this planner's own next send) ends the stand."""
+        a = self.last
+        if a is None or a.type != "aim" or not self.actions.done(a) or a is self._leg_read:
+            return
+        self._leg_read = a
+        if a.state in ("failed", "timeout", "rejected") and not (a.state == "failed" and a.reason == PREEMPTED):
+            if not self.standoff:
+                self._fall_back(("%s %s" % (a.state, a.reason)).strip())
 
     def stand_s(self):
         """Wall seconds the running stand has gone without progress, else None."""
@@ -565,6 +589,7 @@ class Fight(Policy):
                 and self.standing())
 
     def observe(self):
+        self._observe_leg()
         t = self._target(pin=False)
         self._observe_stand(t)
         if t is None or t[2] <= FIGHT_REACH or self.standing():
@@ -697,12 +722,13 @@ class Fight(Policy):
 
     def _aim(self, zid, z, d):
         """One stance leg (ruling P24-G 1): `aim` facing the target for AIM_LEG_S, walking the backpedal while it
-        closes (`_closing`): `away_vector` of the held threats (`threats`, else the target) turned by STEER_TURNS to
-        the first heading whose STEER_PROBE line is clear (`clear_heading`: never into a wall or over a fence), else
-        standing; standing still while it does not close. The stance walks only (it never runs)."""
+        closes (`_closing`) within FIGHT_REACH + BACKPEDAL_BAND (ruling P24-M): `away_vector` of the held threats
+        (`threats`, else the target) turned by STEER_TURNS to the first heading whose STEER_PROBE line is clear
+        (`clear_heading`: never into a wall or over a fence), else standing; standing still while it does not close
+        or stands farther off. The stance walks only (it never runs)."""
         closing = self._closing(zid, z)
         back = None
-        if closing:
+        if closing and d <= FIGHT_REACH + BACKPEDAL_BAND:   # P24-M: farther off it stands facing the target
             ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
             v = away_vector(self.world, [(q["x"], q["y"]) for q in ts])
             if v is not None:

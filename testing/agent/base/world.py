@@ -45,7 +45,19 @@ edge square whose straight line from the player is clear
 from the player reaches (`flood`, `reachable`: REACH_LIMIT 400 squares over the kept map, each step `blocked`-read),
 and none when no such square is known (the goal source then loots or scans: never a third walk from that square).
 After STUCK_WALK_CAP (3) more unmoved stuck walks in a row (those in the open failing too: fix round 1, R2) it answers
-none. Neither is in `to_json`.
+none. Neither is in `to_json`. `unmark_stuck(x, y)` drops a walk target's mark (a route climb over its fence ended
+done: Task 10 fix 1, minor 9, `goals.Kit.climbed`).
+
+The water sources (Plan 24 Task 10, ruling P24-G 3; moved here at Task 10 fix 1, the review's minors 4 and 14, from
+the care branch, which the wash and the fill both read): `water_squares()` is the map's squares carrying a `water`
+record, memoised per map version (`memo`: one walk of the map per scan, never per tick); `water_sources(r)` reads
+them each call: the squares on the player's floor with water in them (`infinite`, or an `amount` above 0) within `r`
+tiles of the player (by the square's centre), nearest first (ties by the square), a square in `tainted_sources` (a
+fill found it tainted, Task 9 fix 2) read tainted, and a square in the dry store left out: `mark_dry(sq)` records a
+source a wash or a fill failed at for its water or its walk, at the current world minute, and `dry_now()` is the
+squares marked within SOURCE_RETRY_MIN game minutes (a judgment: a map's `water.amount` is refreshed only by a scan,
+so the retry is the only way a refilled source comes back). The planner's, never a line's; not in `to_json`.
+`frame_n` counts the frames applied (the care branch's one-frame wait after a bandage, Task 10 fix 1, minor 6).
 
 The met memory (Plan 24 survival 5, ruling P24-A (a): E5's horde was listed at the 12-tile edge while the threat
 branch counted within 6, #4268): `met` keeps, for each zombie id a frame listed with a position, where it was last
@@ -151,6 +163,7 @@ STUCK_AREA_N = 2     # unmoved stuck walks in a row from one square before its e
 REACH_LIMIT = 400    # squares a reachability flood visits at most (P23-AP 1)
 STUCK_WALK_CAP = 3   # unmoved stuck walks in a row past STUCK_AREA_N before no edge is answered (P23-AP fix 1, R2)
 REFUSED_TTL_MIN = 120   # world minutes a food whose consume was refused `not valid` reads `other` (P23-AD)
+SOURCE_RETRY_MIN = 10.0   # game minutes a source a wash or a fill failed at is left out (`mark_dry`; a judgment)
 MARK_REASONS = ("empty", "refused", "no_effect", "unrippable", "filled", "tainted", "undrinkable")   # the planner's
                      # item marks (P24-I), one an item; the last three the water chain's (P24-G 3)
 VESSEL_MARKS = ("empty", "filled", "tainted")   # the marks an item_changed line drops (the engine's read wins)
@@ -235,6 +248,8 @@ class World:
         self.marks = {}              # held id -> (reason, world minute): the planner's marks (`mark`), never a line's
         self.changes = {}            # held id -> item_changed lines read for it (the planner's settle wait, never serialised)
         self.tainted_sources = set() # water squares (x, y, z) a fill found tainted (the planner's, never a line's)
+        self.dry = {}                # water square (x, y, z) -> world minute a wash or fill failed there (`mark_dry`)
+        self.frame_n = 0             # the frames applied (a frame-newer test's counter, never serialised)
         self.first_sight = set()     # the ids the inventory's first sight named (between a hello and the next frame)
         self._sighting = False       # a hello came and no frame yet: item_added is the first sight
         self.damage = deque(maxlen=DEQUE_N)
@@ -287,6 +302,7 @@ class World:
     def _frame(self, line):
         wall = line.get("wallMs", 0)
         self._sighting = False
+        self.frame_n += 1
         for g in GROUPS:
             setattr(self, g, line.get(g))
         self.game_min = line.get("gameMin")
@@ -454,6 +470,10 @@ class World:
     def mark_stuck(self, x, y):
         """Remember the walk target (x, y) as stuck at the current world_minutes() (the planner's, never a line's)."""
         self.stuck[(x, y)] = self.world_minutes()
+
+    def unmark_stuck(self, x, y):
+        """Drop the walk target (x, y)'s stuck mark (a climb over the route's fence ended done)."""
+        self.stuck.pop((x, y), None)
 
     def _stuck_now(self):
         now = self.world_minutes()
@@ -751,6 +771,43 @@ class World:
         value = fn()
         self._memo[key] = (self.map_version, value)
         return value
+
+    def water_squares(self):
+        """[((x, y, z), water record)] of the map's squares carrying a `water` record, sorted by square; memoised per
+        map version (read it, never change it)."""
+        return self.memo(("water",), lambda: sorted(((sq, rec["water"]) for sq, rec in self.map.items()
+                                                     if isinstance(rec.get("water"), dict)), key=lambda t: t[0]))
+
+    def water_sources(self, r=math.inf):
+        """[(dist, (x, y, z), water record)] of the known water sources (the module docstring): on the player's floor,
+        water in them, within `r` tiles by the square's centre, a dry one left out (`dry_now`), one in
+        `tainted_sources` read tainted; nearest first, ties by the square."""
+        floor = me_floor(self)
+        mx, my = me_xy(self)
+        dry = self.dry_now()
+        out = []
+        for sq, w in self.water_squares():
+            if sq[2] != floor or sq in dry:
+                continue
+            if sq in self.tainted_sources:
+                w = dict(w, tainted=True)
+            if not (w.get("infinite") is True or (isinstance(w.get("amount"), (int, float)) and w["amount"] > 0)):
+                continue
+            d = math.hypot(sq[0] + 0.5 - mx, sq[1] + 0.5 - my)
+            if d <= r:
+                out.append((d, sq, w))
+        return sorted(out, key=lambda t: (t[0], t[1]))
+
+    def mark_dry(self, sq):
+        """Leave the water square `sq` (x, y, z) out of `water_sources` for SOURCE_RETRY_MIN game minutes."""
+        self.dry[sq] = self.world_minutes()
+
+    def dry_now(self):
+        """The squares `mark_dry` marked within SOURCE_RETRY_MIN game minutes."""
+        if not self.dry:
+            return set()
+        now = self.world_minutes()
+        return {sq for sq, at in self.dry.items() if now - at < SOURCE_RETRY_MIN}
 
     def _index(self):
         """One walk of the map: ({building: [room squares sorted]}, {building: [door squares sorted]})."""

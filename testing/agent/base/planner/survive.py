@@ -141,16 +141,18 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
       nothing (logged `hitReaction`) and attacks on the first frame after it clears; a running attack holds anyway.
   A PZA/1.3 frame carries neither `attackers` nor `hitReaction`: (h) and (i) read them absent and change nothing.
 - Survival 6 (ruling P24-G, Angus's direction of 2026-10-29 after F2's shots; the jar reads #4294-#4304), each sent
-  only to a build whose hello's caps carry the skill (`World.can`; every decision golden's artifact announces none,
-  so no golden moves):
+  only to a build whose hello's caps carry the skill (`World.can`; the five live artifacts' hellos announce none, so
+  their goldens do not move; the sixth golden, `f1-caps15`, replays F1's frames with them announced: Task 10 fix 1):
   1. The standing fight (`_stance_ok`, `policies.Fight.standing`): a `fight` from the hysteresis (or a broken hold's)
      with one held at health >= FLEE_HEALTH or two at >= FLEE_HEALTH_PAIR, armed, not trapped on a room square,
      meets a target beyond FIGHT_REACH in the stance (`aim` facing it for `policies.AIM_LEG_S`, backpedalling along
-     `policies.away_vector` of the held threats while it closes, else standing), swings from the stance within reach
+     `policies.away_vector` of the held threats while it closes within FIGHT_REACH + `policies.BACKPEDAL_BAND`, else
+     standing facing it so it steps into reach: ruling P24-M, Task 10 fix 1), swings from the stance within reach
      (the stance leg gives way at once: `Fight.busy`), and after `policies.STAND_MAX_S` with no fall of its target's
-     health (a kill restarts it on the next) falls back to the approach and swing (`Fight.standoff`), whose stall
-     clock starts then; the flee rules, the corner (`point_blank`) and the door fight (`only`) are as before, and the
-     look past a fight's walk target (P24-A (b)) reads no walk while the Fight stands.
+     health (a kill restarts it on the next), or at the first stance leg that ends failed, timed out or rejected
+     (Task 10 fix 1, minor 11), falls back to the approach and swing (`Fight.standoff`), whose stall clock starts
+     then; the flee rules, the corner (`point_blank`) and the door fight (`only`) are as before, and the look past a
+     fight's walk target (P24-A (b)) reads no walk while the Fight stands.
   2. The care branch (`_care`, `planner/care.py`'s docstring the record), between `threat` and `need`: with no
      threat held, the worst bleeding part bandaged with the best held item (a bandage, a clean rag, a dirty rag only
      past `care.DIRTY_RAG_MIN`), with no rag of any kind held a cotton garment ripped for it (never one of the
@@ -160,19 +162,21 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      `care.CARE_RETRY_MIN` game minutes.
   3. The water chain (`_need`, `_fill_plan`, `_check_fills`): thirst over THIRST_T drinks a held `water` item, a
      clean one first (`World.tainted_ids` only with none clean); with none, a held `container` is filled (`fill`) at
-     the nearest known clean source (`care.water_sources`; ruling P24-L, Task 10 fix 1: never a tainted one, which
+     the nearest known clean source (`World.water_sources`; ruling P24-L, Task 10 fix 1: never a tainted one, which
      the Lua's consume refuses, `W.drinkable`, so a tainted fill lost the vessel for the session), its done marking
      the vessel `filled` or `tainted` (`World.mark`; `by_use` then reads it water, so the next tick drinks it). A
      source refused for its water, or whose walk failed (`not adjacent`, a STUCK_REASONS reason, or the fill timed
-     out: SOURCE_FAILS), is left out for `care.SOURCE_RETRY_MIN` and the vessel goes to the next source; a vessel
-     whose fill failed any other way (never superseded) is left out FILL_RETRY_MIN game minutes from the minute its
-     end was read. The wants (`need_marks`, the view's `needs_wanted`): `water` whenever nothing is drunk or filled;
+     out: SOURCE_FAILS), is left out for `world.SOURCE_RETRY_MIN` (`World.mark_dry`, the store the wash shares; Task
+     10 fix 1, minor 4) and the vessel goes to the next source; a vessel whose fill failed any other way (never
+     superseded) is left out FILL_RETRY_MIN game minutes from the minute its end was read. `world.by_use()` is read
+     once a tick (`_by_use`, minor 14). The wants (`need_marks`, the view's `needs_wanted`): `water` whenever nothing is drunk or filled;
      `container` beside it only with no vessel held at all; `water_source` beside it with a vessel held and no clean
      source known (P24-L: the vessel is kept, and the goal layer may seek a building). A tainted drink refused `not
      valid` is marked `undrinkable` (`_refused`). The World applies PZA/1.5.1's `item_changed` (the engine's own
      re-read of a vessel's use and fluid). The no-effect mark (P24-F) is unchanged.
-  4. The climb in routes is the goal's (`goals.ExploreToward`, `World.hop_ahead`): a walk failed `stuck` at a
-     hoppable edge on its line's first step climbs it (`climb`) and walks on; the flood and the path follower's own
+  4. The climb in routes is the goals' (`goals.Kit.hop_after`, `World.hop_ahead`, in `ExploreToward` and, since Task
+     10 fix 1, minor 9, the `Shelter` goal's walks): a walk failed `stuck` at a hoppable edge on its line's first
+     step climbs it (`climb`) and walks on; the flood and the path follower's own
      climbs need nothing; no steer or backpedal ever crosses a hoppable edge (`policies.clear_heading`), so nothing
      vaults. 5: no look-around (jar reads 2 § 6: the frames list every zombie whatever the facing).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
@@ -247,7 +251,7 @@ import math
 import time
 
 from agent.base.items import days_fresh
-from agent.base.planner.care import DRY_REASONS, Care, water_sources
+from agent.base.planner.care import DRY_REASONS, Care
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH,
@@ -360,6 +364,7 @@ class Survive:
         self._watch = []          # actions sent and not yet seen terminal
         self.why = {}
         self.last_branch = None   # the branch of the last decision line (a driver's action rows read it at the send)
+        self._uses = None         # this tick's `world.by_use()` (`_by_use`)
 
     # ---------------------------------------------------------------- reading the world
     def _policies(self):
@@ -385,11 +390,11 @@ class Survive:
         return self.world.weapon is not None
 
     def _held_use(self, use):
-        """The id to consume among the held items of `use` (`world.by_use()`), else None: a food the least
+        """The id to consume among the held items of `use` (`_by_use()`), else None: a food the least
         `days_fresh` first (None last); water a clean one (not in `world.tainted_ids()`) first, the least id, a
         tainted one only with no clean one held (ruling P24-G 3); an id inside its retry window left out."""
         recent = self._retrying()
-        ids = self.world.by_use()[use]
+        ids = self._by_use()[use]
         tainted = self.world.tainted_ids() if use == "water" else set()
         ids = [i for i in set(ids) | (tainted & set(self.world.inventory)) if item_id_ok(i) and i not in recent]
         if not ids:
@@ -403,6 +408,13 @@ class Survive:
             d = days_fresh((self.world.inventory.get(i) or {}).get("fullType"))
             return (math.inf if d is None else d), i
         return min(ids, key=spoil)
+
+    def _by_use(self):
+        """`world.by_use()`, read once a tick (Task 10 fix 1, minor 14: the need, its pick and the fill read it); the
+        tick resets it after the ends are read (`_note_failures`, `_check_fills` mark items)."""
+        if self._uses is None:
+            self._uses = self.world.by_use()
+        return self._uses
 
     def _retrying(self):
         """The ids a consume that ended (done or failed, never one superseded) was sent on within CONSUME_RETRY_MIN
@@ -448,7 +460,7 @@ class Survive:
     def _check_fills(self):
         """Each fill's end, once: done marks its vessel `filled` (or `tainted`, the act's result or its fluid saying
         so), so `by_use` reads it water and the next tick drinks it; a failure for its source (SOURCE_FAILS, or a
-        timeout: the walk there) leaves the source out (the care branch's `dry` store, `care.SOURCE_RETRY_MIN`) and
+        timeout: the walk there) leaves the source out (`World.mark_dry`, `world.SOURCE_RETRY_MIN`) and
         frees the vessel for the next source; any other end but a supersede leaves the vessel out of the fill for
         FILL_RETRY_MIN game minutes from the minute its end was read (`_fill_plan`; Task 10 fix 1, minor 5: never from
         the send, a 30 s walk then coming back at once)."""
@@ -481,7 +493,7 @@ class Survive:
                 del self.fills[iid]
                 continue
             if a.state == "timeout" or a.reason in SOURCE_FAILS:
-                self.care.dry[(a.args.get("x"), a.args.get("y"), me_floor(self.world))] = now
+                self.world.mark_dry((a.args.get("x"), a.args.get("y"), me_floor(self.world)))
                 del self.fills[iid]
                 continue
             f["read"], f["at"] = True, now
@@ -489,13 +501,13 @@ class Survive:
     def _fill_plan(self):
         """The water chain's second step (ruling P24-G 3, as P24-L narrowed it): a held `container` (`by_use`, the
         least id; one whose fill is running, settling or failed within FILL_RETRY_MIN left out) and the nearest known
-        clean water source on the player's floor (`care.water_sources`, the dry and the tainted ones left out):
+        clean water source on the player's floor (`World.water_sources`, the dry and the tainted ones left out):
         `Fill(vessel, x, y)`, the Lua walking next to it. None without the `fill` skill, a free vessel or a clean
         source; `fill_why` says which: `want` "container" with no vessel held at all (the third step), `held_out`
         with every held vessel left out, `want` "water_source" with a vessel and no clean source known (P24-L)."""
         if not self.world.can("fill"):
             return None
-        held = [i for i in self.world.by_use()["container"] if item_id_ok(i)]
+        held = [i for i in self._by_use()["container"] if item_id_ok(i)]
         if not held:
             self.fill_why = {"want": "container"}
             return None
@@ -503,8 +515,7 @@ class Survive:
         if not vessels:
             self.fill_why = {"held_out": held}
             return None
-        clean = [s for s in water_sources(self.world, math.inf, self.care.dry_now())
-                 if s[2].get("tainted") is not True]
+        clean = [s for s in self.world.water_sources() if s[2].get("tainted") is not True]
         if not clean:
             self.fill_why = {"vessel": min(vessels), "source": None, "want": "water_source"}
             return None
@@ -1002,7 +1013,7 @@ class Survive:
         Sleep is current it passes as the need does (P23-AB); else `Care.choose`, `quiet` with no zombie within
         DISENGAGE_R (the wash's condition)."""
         c = self.care
-        c.observe()
+        self._observe(c)
         if c.busy():
             self.why = dict(c.why, holding=c.last.aid)
             return c, None
@@ -1010,7 +1021,8 @@ class Survive:
         if sleep is not None:
             self.why = {"holding_sleep": sleep.aid}
             return None
-        cmd = c.choose(quiet=not self._within(DISENGAGE_R))
+        c.quiet = not self._within(DISENGAGE_R)
+        cmd = c.choose()
         self.why = dict(c.why)
         return None if cmd is None else (c, cmd)
 
@@ -1033,7 +1045,7 @@ class Survive:
         for use, stat, t in (("water", "thirst", THIRST_T), ("food", "hunger", HUNGER_T)):
             if pick is not None or fill is not None or (st.get(stat) or 0.0) <= t:
                 continue
-            inside |= self._retrying() & set(self.world.by_use()[use])
+            inside |= self._retrying() & set(self._by_use()[use])
             pick = self._held_use(use)
             if pick is None and use == "water":
                 fill = self._fill_plan()   # P24-G 3: no water held, a vessel filled at a known source
@@ -1168,6 +1180,7 @@ class Survive:
         self._note_failures()
         self._check_consumes()
         self._check_fills()
+        self._uses = None
         self.goals.observe(world, actions)
         inputs = self._inputs()
         if self.fight is not None:
