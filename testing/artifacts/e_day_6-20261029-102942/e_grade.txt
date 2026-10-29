@@ -1,0 +1,278 @@
+not survived (stop death), 46 game min (loop.first_world_age)
+drink: sent 0, done 0, stat fell None
+eat: sent 0, done 0, stat fell None
+unknown consumes (no valid use): 0; frame time base t_loop0_ms
+sleep: sent 0, done 0, slept 0.0 h, fatigue fell None
+fights: 3 (ended 2, fled 2, stand-offs 0)
+fights_resolved: unresolved 1
+load: max ratio 0.376, guard drops 0, flee drops 0
+cost p50 0.000 ms, p99 2.000 ms, max 3.000 ms, over5 117
+death (signal event) explained by the frames: first wound seq 1910, window 806 frames: None
+wounds: 170 real over 1716 kept frames (the old reading counted 170), first seq 1910
+care: bandage sent 1 done 1 (parts {'2': 1}, dirty 0), rip done 0 (0 rags), wash done 0 (0 water)
+fill: sent 0 done 0, tainted 0, fills []
+stance: aim sent 11 done 7 failed 4 (held 0, released 7, target dead 0), 60 of 1716 kept frames aiming; standing fights 2 {'kill': 1, 'flee': 1, 'fallback': 0, 'stagger': 0, 'none': 0}
+climb: sent 0 done 0 fell 0 failed 0 wounds 0; need chain: drinks 0 (stat fell None), fills 0, containers looted 0
+{
+ "care": {
+  "bandage": {
+   "by_part": {
+    "2": 1
+   },
+   "dirty": 0,
+   "done": 1,
+   "failed": 0,
+   "sent": 1
+  },
+  "climb": {
+   "done": 0,
+   "failed": 0,
+   "fell": 0,
+   "sent": 0,
+   "tall": 0,
+   "wounds": 0
+  },
+  "fill": {
+   "done": 0,
+   "fills": [],
+   "sent": 0,
+   "tainted": 0
+  },
+  "loot": {
+   "containers": 0,
+   "containers_moved": 0,
+   "done": 3,
+   "sent": 4
+  },
+  "need_chain": {
+   "containers_looted": 0,
+   "drink_done": 0,
+   "drink_stat_fell": null,
+   "fills_done": 0
+  },
+  "rip": {
+   "dirty_rags": 0,
+   "done": 0,
+   "rags": 0,
+   "sent": 0
+  },
+  "stance": {
+   "aim_done": 7,
+   "aim_failed": 4,
+   "aim_sent": 11,
+   "frames": 1716,
+   "frames_aiming": 60,
+   "held_at_end": 0,
+   "moved": 3.6587274887899657,
+   "released": 7,
+   "target_dead": 0
+  },
+  "standing": {
+   "n": 2,
+   "outcomes": {
+    "fallback": 0,
+    "flee": 1,
+    "kill": 1,
+    "none": 0,
+    "stagger": 0
+   },
+   "rows": [
+    {
+     "actions": [
+      "aim",
+      "attack",
+      "attack",
+      "scan"
+     ],
+     "aim_states": [
+      "failed"
+     ],
+     "fight": 0,
+     "outcome": "kill"
+    },
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "attack",
+      "attack",
+      "attack",
+      "steer",
+      "steer",
+      "attack",
+      "attack",
+      "steer",
+      "attack",
+      "steer",
+      "attack",
+      "steer",
+      "steer",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "steer",
+      "steer",
+      "steer",
+      "aim",
+      "aim",
+      "walkTo",
+      "steer",
+      "attack",
+      "attack",
+      "steer",
+      "walkTo",
+      "steer",
+      "steer",
+      "steer",
+      "steer",
+      "steer",
+      "steer",
+      "bandage"
+     ],
+     "aim_states": [
+      "done",
+      "failed",
+      "done",
+      "done",
+      "done",
+      "failed",
+      "done",
+      "failed"
+     ],
+     "fight": 1,
+     "outcome": "flee"
+    }
+   ]
+  },
+  "wash": {
+   "done": 0,
+   "sent": 0,
+   "water": 0
+  }
+ },
+ "cost": {
+  "max": 3,
+  "over5": 117,
+  "p50": 0,
+  "p99": 2
+ },
+ "death": {
+  "check": {
+   "diff": 79.21002871671226,
+   "explained": true,
+   "explained_by": "wound",
+   "frames_n": 806,
+   "frames_window_ms": {
+    "from": 1793284337970,
+    "to": 1793284418471
+   },
+   "health_fall": 100.0,
+   "server_amount": 20.78997128328774,
+   "server_n": 2071,
+   "server_tags": {
+    "BLEEDING": 20.78997128328774
+   },
+   "server_window_ms": {
+    "from": 1793284337970,
+    "rule": "from < wall <= to",
+    "to": 1793284418471
+   },
+   "signal": "event",
+   "tagged": {
+    "explained": false,
+    "why": "the fall 100.0 and the server's 20.78997128328774 differ by more than 0.1 of it"
+   },
+   "tol": 0.1,
+   "why": null,
+   "wound": {
+    "danger_r": 6.0,
+    "explained": true,
+    "fall_seq": 1910,
+    "frame_seq": 1910,
+    "gameMin": 584,
+    "wallMs": 1793284338066,
+    "what": "bleeding 0 -> 1",
+    "why": null,
+    "wound_health": 79.21002871671226,
+    "zombie": {
+     "dist": 0.5028993467789779,
+     "id": 9338,
+     "seq": 1910
+    }
+   }
+  },
+  "explained": true,
+  "first_wound_seq": 1910,
+  "window_frames": 806,
+  "window_frames_n": 806,
+  "window_truncated": false
+ },
+ "fights": {
+  "ended": 2,
+  "fled": 2,
+  "n": 3,
+  "stand_offs": 0
+ },
+ "fights_unresolved": 1,
+ "game_minutes": 45.92742919921875,
+ "grade": "grade_e3",
+ "lineage": null,
+ "lineage_source": null,
+ "load": {
+  "flee_drops": 0,
+  "guard_drops": 0,
+  "max_ratio": 0.37562501430511475
+ },
+ "minutes_source": "loop.first_world_age",
+ "needs": {
+  "drink": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "eat": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "sleep": {
+   "done": 0,
+   "fatigue_fell": null,
+   "sent": 0,
+   "sleptH": 0
+  },
+  "time_base": "t_loop0_ms",
+  "unknown": 0
+ },
+ "report_lines": [
+  "not survived (stop death), 46 game min (loop.first_world_age)",
+  "drink: sent 0, done 0, stat fell None",
+  "eat: sent 0, done 0, stat fell None",
+  "unknown consumes (no valid use): 0; frame time base t_loop0_ms",
+  "sleep: sent 0, done 0, slept 0.0 h, fatigue fell None",
+  "fights: 3 (ended 2, fled 2, stand-offs 0)",
+  "fights_resolved: unresolved 1",
+  "load: max ratio 0.376, guard drops 0, flee drops 0",
+  "cost p50 0.000 ms, p99 2.000 ms, max 3.000 ms, over5 117",
+  "death (signal event) explained by the frames: first wound seq 1910, window 806 frames: None",
+  "wounds: 170 real over 1716 kept frames (the old reading counted 170), first seq 1910",
+  "care: bandage sent 1 done 1 (parts {'2': 1}, dirty 0), rip done 0 (0 rags), wash done 0 (0 water)",
+  "fill: sent 0 done 0, tainted 0, fills []",
+  "stance: aim sent 11 done 7 failed 4 (held 0, released 7, target dead 0), 60 of 1716 kept frames aiming; standing fights 2 {'kill': 1, 'flee': 1, 'fallback': 0, 'stagger': 0, 'none': 0}",
+  "climb: sent 0 done 0 fell 0 failed 0 wounds 0; need chain: drinks 0 (stat fell None), fills 0, containers looted 0"
+ ],
+ "run_id": "e_day_6-20261029-102942",
+ "session_key": "e_day_6",
+ "stop": {
+  "detail": "event death seq 3267 via isDead body.health 0",
+  "reason": "death"
+ },
+ "survived": false,
+ "wounds": {
+  "first_seq": 1910,
+  "frames": 1716,
+  "listed": 170,
+  "real": 170
+ }
+}
