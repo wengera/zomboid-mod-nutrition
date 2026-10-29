@@ -1048,3 +1048,40 @@ def test_the_flood_and_reachable_cross_a_hoppable_fence_and_the_line_never_does(
     assert not w.line_clear((2.5, 0.5), (2.5, 4.5))
     walled = _world(fence_row(hop=False), me=(2.5, 0.5))
     assert not walled.reachable((2, 0, 0), (2, 4, 0)) and not any(sq[1] >= 2 for sq in walled.flood((2, 0, 0)))
+
+
+# -- Plan 24 survival 5 (ruling P24-A (a)): the met memory ------------------------------------------------------------
+
+def test_the_met_memory_keeps_each_listed_zombie_for_met_ttl_min_and_drops_the_dead():
+    from agent.base import world as W
+    assert (W.MET_TTL_MIN, W.MET_R) == (10, 10.0)
+    w = World()
+    w.apply(frame(0, zombies=[zed(1, 3.0, 103.0, 200.0), zed(2, 5.0, 105.0, 200.0), zed(None, 2.0, 102.0, 200.0)],
+                  worldAge=8.0))
+    assert w.met == {1: (103.0, 200.0, 480.0), 2: (105.0, 200.0, 480.0)}   # an id-less zombie is never met
+    w.apply(frame(60000, zombies=[zed(1, 3.0, 104.0, 200.0)], worldAge=8.0 + 5 / 60.0))
+    assert w.met[1] == (104.0, 200.0, 485.0) and w.met[2] == (105.0, 200.0, 480.0)   # unlisted, still met
+    assert 2 not in w.zombies                    # the World's own TTL is wall seconds, the memory's game minutes
+    w.apply(frame(70000, worldAge=8.0 + 10 / 60.0))
+    assert set(w.met) == {1, 2}                                # 10 minutes on: not older than MET_TTL_MIN
+    w.apply(frame(80000, worldAge=8.0 + 10.5 / 60.0))
+    assert set(w.met) == {1}
+    w.apply({"kind": "event", "event": "zombie_dead", "id": 1, "seq": 2, "tick": 2, "wallMs": 80001})
+    assert w.met == {}
+    old = frame(90000, zombies=[zed(3, 1.0, 101.0, 200.0)])
+    del old["worldAge"]
+    w.apply(old)
+    assert w.met == {} and w._gm0 is None                     # no worldAge: nothing met, the fallback untouched
+    assert "met" not in json.loads(w.to_json())
+
+
+def test_met_density_counts_the_distinct_zombies_met_within_r_and_the_window_is_the_densest():
+    w = World()
+    east = [zed(i, 0.0, 110.0 + 0.5 * i, 200.0) for i in range(1, 6)]           # five at 110.5..112.5
+    w.apply(frame(0, zombies=east + [zed(9, 0.0, 100.0, 185.0)]))                 # one 15 tiles south
+    w.apply(frame(1000, zombies=[zed(1, 0.0, 111.0, 200.0)]))                      # 1 moved: one id, one entry
+    assert w.met_density(111.5, 200.0) == 5 and w.met_density(100.0, 185.0, r=1.0) == 1
+    assert w.met_density(100.0, 200.0, r=5.0) == 0
+    cx, cy, n = w.met_window()
+    assert n == 5 and cx == pytest.approx((111.0 + 111.0 + 111.5 + 112.0 + 112.5) / 5) and cy == 200.0
+    assert World().met_window() is None

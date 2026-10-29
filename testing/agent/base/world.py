@@ -47,6 +47,16 @@ and none when no such square is known (the goal source then loots or scans: neve
 After STUCK_WALK_CAP (3) more unmoved stuck walks in a row (those in the open failing too: fix round 1, R2) it answers
 none. Neither is in `to_json`.
 
+The met memory (Plan 24 survival 5, ruling P24-A (a): E5's horde was listed at the 12-tile edge while the threat
+branch counted within 6, #4268): `met` keeps, for each zombie id a frame listed with a position, where it was last
+listed and the world minute of that frame (`{id: (x, y, minute)}`), for MET_TTL_MIN (10) game minutes off
+`worldAge` (a frame with no number for `worldAge` adds nothing: the memory never moves the gameMin fallback's
+origin); `zombie_dead` drops its id. `met_density(x, y, r=MET_R)` counts the distinct zombies met within `r` tiles of
+(x, y); `met_window(r=MET_R)` is the densest window: of the met positions taken as centres, the one with the most met
+zombies within `r` (ties: nearest the player, then by position), answered as `(cx, cy, n)`, the centroid of those `n`
+zombies, else None. The flee's first leg is pushed off the window's centre (`policies.Flee`); the goal sources read
+it (Task 3). Not in `to_json`.
+
 The server's side comes in through `merge_server(stats, wall_ms)` and `merge_damage(reply, wall_ms)`, a
 `damage.watch` reply whose `last` records not yet seen (by `i`) land in `damage` tagged `server` (spec § 9).
 
@@ -110,6 +120,10 @@ STUCK_AREA_N = 2     # unmoved stuck walks in a row from one square before its e
 REACH_LIMIT = 400    # squares a reachability flood visits at most (P23-AP 1)
 STUCK_WALK_CAP = 3   # unmoved stuck walks in a row past STUCK_AREA_N before no edge is answered (P23-AP fix 1, R2)
 REFUSED_TTL_MIN = 120   # world minutes a food whose consume was refused `not valid` reads `other` (P23-AD)
+MET_TTL_MIN = 10     # game minutes a zombie listed stays in the met memory (ruling P24-A (a), a judgment: a group
+                     # met within the last ten minutes is still about; E5's was first listed at gameMin 590 and at
+                     # melee range by 593)
+MET_R = 10.0         # tiles: the met window's radius (ruling P24-A (a), the spec's "densest 10-tile window")
 GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 DEQUE_N = 500
 
@@ -173,6 +187,7 @@ class World:
         self.stuck = {}              # (x, y) -> world_minutes(): a walk target that ended stuck, set by the planner
         self.stuck_run = None        # {"from": (x, y), "to": [(x, y)...], "at": world_minutes()}: the unmoved stuck
                                      # walks in a row from one square (P23-AP 1), set by the planner
+        self.met = {}                # zombie id -> (x, y, world minute) where a frame last listed it (P24-A (a))
         self.map_version = 0         # rises on every square applied: the key of the map's cached reads
         self._memo = {}              # key -> (map_version, value): the cache of memo()
         self._indexed = None         # (map_version, {building: [room squares]}, {building: [door squares]})
@@ -211,6 +226,20 @@ class World:
         ttl = ZOMBIE_TTL_S * 1000
         for zid in [i for i, z in self.zombies.items() if wall - z["seenWallMs"] > ttl]:
             del self.zombies[zid]
+        self._meet(line.get("zombies") or ())
+
+    def _meet(self, zombies):
+        """The met memory's frame update (the module docstring): each listed zombie with an id and a position at this
+        frame's world minute, and every entry older than MET_TTL_MIN dropped; nothing without a `worldAge`."""
+        wa = self.world_age
+        if not isinstance(wa, (int, float)) or isinstance(wa, bool):
+            return
+        now = self.world_minutes()
+        for z in zombies:
+            if z.get("id") is not None and z.get("x") is not None and z.get("y") is not None:
+                self.met[z["id"]] = (z["x"], z["y"], now)
+        for zid in [i for i, m in self.met.items() if now - m[2] > MET_TTL_MIN]:
+            del self.met[zid]
 
     def _map(self, line):
         self.map_lines += 1
@@ -261,6 +290,7 @@ class World:
                                 "wallMs": line.get("wallMs")})
         elif kind == "zombie_dead":
             self.zombies.pop(line.get("id"), None)
+            self.met.pop(line.get("id"), None)
         elif kind == "scan_dropped":
             self.scans_dropped.add(str(line.get("aid")))
 
@@ -406,6 +436,25 @@ class World:
     def reachable(self, frm, to, limit=REACH_LIMIT):
         """`to` (x, y, z) lies within `flood(frm, limit)`: a way over the kept map's open steps (P23-AP 1)."""
         return tuple(to) in self.flood(frm, limit)
+
+    def met_density(self, x, y, r=MET_R):
+        """The distinct zombies of the met memory within `r` tiles of (x, y) (P24-A (a))."""
+        return sum(1 for mx, my, _ in self.met.values() if math.hypot(mx - x, my - y) <= r)
+
+    def met_window(self, r=MET_R):
+        """The densest met window (the module docstring): `(cx, cy, n)`, else None with nothing met."""
+        if not self.met:
+            return None
+        px, py = me_xy(self)
+        pts = sorted((m[0], m[1]) for m in self.met.values())
+        best = None
+        for c in pts:
+            inn = [p for p in pts if math.hypot(p[0] - c[0], p[1] - c[1]) <= r]
+            rank = (-len(inn), math.hypot(c[0] - px, c[1] - py), c)
+            if best is None or rank < best[0]:
+                best = (rank, inn)
+        inn = best[1]
+        return sum(p[0] for p in inn) / len(inn), sum(p[1] for p in inn) / len(inn), len(inn)
 
     def nearest_zombie(self, exclude=()):
         """(id, zombie) nearest the current `me` by its last seen `x, y`, ties by id; None if none. A zombie kept up to
