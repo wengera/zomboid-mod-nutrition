@@ -1,6 +1,6 @@
 """`agent.base.items` (Plan 23 Task 9, P23-D): an item's use read off `data/food-items.json` (food by `kind == "food"`,
-water by a drinking vessel spawning holding only quenching fluids, a container by one spawning empty: PZA/1.4.1, 1.5), a bandage by the Lua loot's own name rule, a
-weapon by `WEAPON_RX`, else other. Every expectation is checked against the dataset read here, never a literal count
+water by a drinking vessel spawning holding only quenching fluids and unsealed, a container by one spawning empty:
+PZA/1.4.1, 1.5, 1.5.1), a bandage by the scripts' CanBandage (PZA/1.5.1), a weapon by `WEAPON_RX`, else other. Every expectation is checked against the dataset read here, never a literal count
 or a remembered membership.
 """
 import json
@@ -45,8 +45,10 @@ def _vessel(it):
 
 
 def _water(it):
-    """A vessel spawning holding only fluids that quench (PZA/1.4.1's water, PZA/1.5's beverages)."""
-    return _vessel(it) and bool(it.get("fluid_ids")) and all(f in WATERS or _quenches(f) for f in it["fluid_ids"])
+    """A vessel spawning holding only fluids that quench (PZA/1.4.1's water, PZA/1.5's beverages), not sealed (PZA/1.5.1:
+    a can tagged base:sealedbeveragecan spawns canPlayerEmpty false)."""
+    return (_vessel(it) and bool(it.get("fluid_ids")) and all(f in WATERS or _quenches(f) for f in it["fluid_ids"])
+            and "base:sealedbeveragecan" not in (it.get("tags") or ()))
 
 
 def _container(it):
@@ -107,7 +109,7 @@ def test_a_disinfectant_a_bleach_a_beer_and_tainted_water_are_not_water():
 def test_a_pop_a_juice_and_a_milk_are_water():
     """PZA/1.5 (the Task 9 amendment): a drinkable beverage that lowers thirst and harms nothing is water; the
     dataset's fluids carry the categories and the thirst change (Cola Beverage -30, CowMilk Beverage -50)."""
-    for i in ("Base.Pop", "Base.Pop2", "Base.JuiceBox", "Base.Milk", "Base.PopBottle"):
+    for i in ("Base.JuiceBox", "Base.Milk", "Base.PopBottle"):
         assert items.use_of(i) == "water", i
     assert {"Cola", "CowMilk", "JuiceGrape"} <= items.DRINK_FLUIDS and "Beer" not in items.DRINK_FLUIDS
     assert "TaintedWater" not in items.DRINK_FLUIDS and "Bleach" not in items.DRINK_FLUIDS
@@ -163,13 +165,21 @@ def test_a_drainable_is_not_food_or_water():
         assert items.use_of(i) not in ("food", "water"), i
 
 
-def test_bandages_by_the_lua_loots_name_rule_and_the_rest_other():
-    assert items.use_of("Base.Bandage") == "bandage"
-    assert items.use_of("Base.RippedSheets") == "other"           # the Lua rule is Bandage or Rag in the name
-    assert items.use_of("Base.Rag") == "bandage"
-    if "Base.RagFilter" in DATA and not _water(DATA["Base.RagFilter"]):
-        assert items.use_of("Base.RagFilter") == "bandage"        # the Lua's name rule reads it a bandage too
-    assert items.use_of("Base.Nails") == "other"
+def test_a_sealed_pop_can_is_not_water():
+    """PZA/1.5.1 (Task 9 review minor 2): `Base.Pop` and `Base.Pop2` spawn sealed (tagged base:sealedbeveragecan,
+    canPlayerEmpty false), which vanilla's drink menu refuses: other, never water, though their Cola quenches."""
+    for i in ("Base.Pop", "Base.Pop2"):
+        assert "base:sealedbeveragecan" in DATA[i]["tags"] and set(DATA[i]["fluid_ids"]) <= items.DRINK_FLUIDS, i
+        assert items.use_of(i) == "other" and i not in items.DRINK_IDS, i
+
+
+def test_bandages_by_the_scripts_can_bandage_and_the_rest_other():
+    """PZA/1.5.1 (Task 9 review minor 5): bandage is isCanBandage(), the script's CanBandage, as the Lua's W.useOf
+    reads it: the rags rip makes and wash cleans (RippedSheets, RippedSheetsDirty) are bandages, a Rag is not."""
+    for i in ("Base.Bandage", "Base.BandageDirty", "Base.RippedSheets", "Base.RippedSheetsDirty", "Base.DenimStrips"):
+        assert items.use_of(i) == "bandage", i
+    for i in ("Base.Rag", "Base.BandageBox", "Base.Nails"):
+        assert items.use_of(i) == "other", i
     assert items.use_of(None) == "other" and items.use_of("") == "other"
 
 

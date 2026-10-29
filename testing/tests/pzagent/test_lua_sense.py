@@ -840,7 +840,9 @@ def test_first_sight_carries_the_engines_use_of_each_item(lua):
     p.held.extend([apple, bat, bottle, pan, rag, rag2, plank, bleach])
     ev = [dict(e) for e in lua.eval("PZA.sense.firstSight(...)", p).values()]
     got = {e["itemId"]: e["use"] for e in ev if e["itemId"] >= 1 and e["itemId"] <= 8}
-    assert got == {1: "food", 2: "weapon", 3: "water", 4: "weapon", 5: "other", 6: "bandage", 7: "other", 8: "other"}
+    # PZA/1.5.1 (Task 9 review minor 5): bandage is isCanBandage(), so the rip's RippedSheets reads bandage and a
+    # RagDirty (no CanBandage in its script) other
+    assert got == {1: "food", 2: "weapon", 3: "water", 4: "weapon", 5: "bandage", 6: "other", 7: "other", 8: "other"}
 
 
 # ---- PZA/1.4.1 (ruling P24-F): the use table reads only drinkable water and edible food ---------------------------------
@@ -1093,3 +1095,47 @@ def test_an_absent_part_member_leaves_its_field_nil_and_is_named(lua):
     r = dict(frame(lua, p)["body"]["parts"][1])
     assert r["i"] == 0 and "bandaged" not in r and "infected" not in r and r["deep"] is False
     assert {"bandaged", "isInfectedWound"} <= set(missing(lua))
+
+
+# ---- PZA/1.5.1 (Task 9 fix 1): a sealed can, the bandage use, the absent bleeding() named ------------------------------
+
+def test_a_sealed_pop_can_reads_other_and_its_opened_twin_water(lua):
+    """Review minor 2: vanilla's drink menu refuses a container whose canPlayerEmpty() is false (a pop can spawned
+    sealed, tagged base:sealedbeveragecan); an absent canPlayerEmpty reads sealed (fails closed)."""
+    load(lua)
+    from .conftest import make_item, make_fluid
+    cola = dict(water=False, cats={"Beverage"}, thirst=-30.0, fluid="Cola", capacity=0.3)
+    sealed = make_item("Base.Pop2", 1)
+    sealed.getFluidContainer = lambda s, fc=make_fluid(sealed=True, **cola): fc
+    opened = make_item("Base.Pop2", 2)
+    opened.getFluidContainer = lambda s, fc=make_fluid(**cola): fc
+    unread = make_item("Base.WaterBottle", 3)
+    unread.getFluidContainer = lambda s, fc=make_fluid(sealed=None): fc
+    assert _uses(lua, sealed, opened, unread) == {1: "other", 2: "water", 3: "other"}
+    assert lua.eval("PZA.world.drinkable(...)", sealed, sealed.getFluidContainer(sealed)) is False
+
+
+def test_the_bandage_use_is_is_can_bandage_and_never_the_name(lua):
+    """Review minor 5: the rags rip makes and wash cleans (RippedSheets, RippedSheetsDirty) read bandage by the script's
+    CanBandage; a Rag (no CanBandage) and an item without the member read other."""
+    load(lua)
+    from .conftest import J
+    def it(ft, iid, can):
+        o = J(getFullType=lambda s: ft, getID=lambda s: iid, getWeight=lambda s: 0.1, getFluidContainer=lambda s: None)
+        if can is not None:
+            o.isCanBandage = lambda s: can
+        return o
+    assert _uses(lua, it("Base.RippedSheetsDirty", 1, True), it("Base.Rag", 2, False),
+                 it("Base.Bandage", 3, None), it("Base.DenimStrips", 4, True)) == {
+        1: "bandage", 2: "other", 3: "other", 4: "bandage"}
+
+
+def test_an_absent_bleeding_member_is_named_in_missing(lua):
+    """Review minor 6: a part without bleeding() leaves its field nil and is named, as its docstring says."""
+    load(lua)
+    p = make_player()
+    part = _part(h=40.0)
+    part.bleeding = None
+    _with_parts(p, [part], bleeding=1)
+    r = dict(frame(lua, p)["body"]["parts"][1])
+    assert "bleeding" not in r and "bleeding" in missing(lua)

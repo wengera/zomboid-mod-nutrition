@@ -438,8 +438,10 @@ def make_door(opened=False, cls="IsoDoor", barricaded=False):
 
 
 def citem(ft, cls=None):
-    """A container's item; a Food answers getHungerChange -0.1 (PZA/1.4.1: food is a hunger change below 0)."""
-    it = J(_cls=cls, getFullType=lambda s: ft, getFluidContainer=lambda s: None)
+    """A container's item; a Food answers getHungerChange -0.1 (PZA/1.4.1: food is a hunger change below 0);
+    isCanBandage true for a Bandage or RippedSheets name (PZA/1.5.1: the bandage use is the script's CanBandage)."""
+    it = J(_cls=cls, getFullType=lambda s: ft, getFluidContainer=lambda s: None,
+           isCanBandage=lambda s: "Bandage" in ft or "RippedSheets" in ft)
     if cls == "Food":
         it.getHungerChange = lambda s: -0.1
     return it
@@ -1999,3 +2001,17 @@ def test_the_busy_block_sits_at_the_end_of_skills_world():
     with open(lua_file("client/PZAgent_SkillsWorld.lua"), encoding="utf-8") as f:
         src = f.read()
     assert src.index("hasHitReaction") > src.index("K.types.sleep = {")
+
+
+# ---- PZA/1.5.1 (Task 9 fix 1, review minor 7): the shared helpers ------------------------------------------------
+
+def test_the_shared_helpers_drop_their_dead_exports_and_queue_action_answers_its_action(lua, fs):
+    """Review minor 7: the exports no later file reads are gone; queueAction answers the queued action third."""
+    load(lua)
+    for name in ("cheb", "adjacentTo", "subWalk", "tickSub", "invCount"):
+        assert lua.eval("PZA.skills." + name) is None, name
+    for name in ("squareAt", "queueAction", "approach", "floorOf", "numOf"):
+        assert lua.eval("PZA.skills." + name) is not None, name
+    ok, why, action = lua.eval("PZA.skills.queueAction(ISClimbOverFence, 'not valid', nil, 1, 2, 'S')")
+    assert ok is True and why is None and action.Type == "ISClimbOverFence"
+    assert lua.globals()._queue.adds[-1] is action

@@ -82,14 +82,14 @@ FOODS = ("Base.Bread", "Base.Apple", "Base.CannedBeans", "Base.Crisps")
 
 
 def make_fluid(amount=0.5, poison=False, clean=True, water=True, tainted=False, capacity=1.0, can_add=True, cats=None,
-               thirst=None, fluid="Water"):
+               thirst=None, fluid="Water", sealed=False):
     """A fluid container whose amount is fc.st["amount"] (a drink lowers it). Plan 24 PZA/1.4.1 (P24-F): `water` is
     whether its primary fluid is water, so isWaterSource answers it while the container is not empty (the jar's
     FluidContainer.isWaterSource); isTainted answers `tainted`, getCapacity `capacity` and canAddFluid(fluid)
     `can_add` (each None makes the member absent). PZA/1.5: `cats` (a set of FluidCategory names, None for no
     isCategory member) answers isCategory while the container is not empty, `thirst` (None for no getProperties)
     getProperties():getThirstChange(), getFreeCapacity the capacity less the amount, and getPrimaryFluid a fluid
-    whose getFluidTypeString is `fluid`."""
+    whose getFluidTypeString is `fluid`. PZA/1.5.1: canPlayerEmpty answers not `sealed` (None makes it absent)."""
     st = {"amount": amount}
     fc = J(getAmount=lambda s: st["amount"], isEmpty=lambda s: st["amount"] <= 0, isPoisonous=lambda s: poison,
            isFilledWithCleanWater=lambda s: clean)
@@ -108,6 +108,8 @@ def make_fluid(amount=0.5, poison=False, clean=True, water=True, tainted=False, 
     if capacity is not None:
         fc.getFreeCapacity = lambda s: max(0.0, capacity - st["amount"])
     fc.getPrimaryFluid = lambda s: J(getFluidTypeString=lambda s2: fluid) if st["amount"] > 0 else None
+    if sealed is not None:
+        fc.canPlayerEmpty = lambda s: not sealed
     fc.st = st
     return fc
 
@@ -167,6 +169,8 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
     inv = J(getItems=lambda s: J(size=lambda s2: len(held), get=lambda s2, i: held[i]),
             getCapacityWeight=lambda s: weight,
             getItemById=lambda s, iid: next((it for it in held if it.getID(it) == iid), None))
+    for it in held:                                     # PZA/1.5.1: the main inventory is each item's container
+        it.getContainer = lambda s: inv
     faced, attacks, asleep = [], [], {"v": False}
     p = J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: z, getDir=lambda s: "N",
           isPlayerMoving=lambda s: False, IsRunning=lambda s: False, isSprinting=lambda s: False,
@@ -280,6 +284,7 @@ def make_queue():
     q.isPlayerDoingAction = lambda p=None: len(q.queue) > 0
     q.hasActionType = lambda p, t: any(getattr(a, "Type", None) == t for a in q.queue)
     q.getTimedActionQueue = lambda p=None: J(queue=q.queue)
+    q.hasAction = lambda a: any(x is a for x in q.queue)      # PZA/1.5.1: vanilla's hasAction(action), the climb's
     return q
 
 
@@ -330,7 +335,7 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g._queue = q
     g.ISTimedActionQueue = J(add=lambda a: q.add(a), getTimedActionQueue=lambda p: q.getTimedActionQueue(p),
                              isPlayerDoingAction=lambda p: q.isPlayerDoingAction(p), clear=lambda p: q.clear(p),
-                             hasActionType=lambda p, t: q.hasActionType(p, t))
+                             hasActionType=lambda p, t: q.hasActionType(p, t), hasAction=lambda a: q.hasAction(a))
     g.ISWalkToTimedAction = J(new=lambda cls, p, sq: J(Type="ISWalkToTimedAction", sq=sq))
     # the four vanilla constructors Act's open/loot/eat/drink queue; each captures its arguments, and
     # g._valid["start"] is what an eat or drink action's isValidStart answers

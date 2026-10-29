@@ -159,9 +159,14 @@ local function quenches(fc)
     return type(thirst) == "number" and thirst < 0
 end
 
--- the item holds a fluid a character can drink (fc, its fluid container): the use table's water and consume's drink
+-- the item holds a fluid a character can drink (fc, its fluid container): the use table's water and consume's drink.
+-- A sealed container is never drinkable (PZA/1.5.1, Task 9 review minor 2): vanilla's drink menu disables one whose
+-- canPlayerEmpty() is false (ISInventoryPaneContextMenu.lua:2308, Tooltip_item_sealed; FluidContainer.canPlayerEmpty
+-- @0-@19 L214: not a multi-tile moveable and the canPlayerEmpty field, which FluidContainer.unseal sets true @44 L1474),
+-- as a pop can tagged base:sealedbeveragecan spawns; an absent member reads sealed (fails closed)
 function W.drinkable(it, fc)
     if fc == nil or not drinkVessel(it, fc) then return false end
+    if not reads(fc, "canPlayerEmpty", true) then return false end
     if not (reads(fc, "isTainted", false) and reads(fc, "isPoisonous", false)) then return false end
     if reads(fc, "isWaterSource", true) then return true end
     return quenches(fc)
@@ -182,16 +187,18 @@ function W.edible(it)
     return type(h) == "number" and h < 0
 end
 
--- the item's use as the engine answers it (item_added.use, the loot's filters): food (edible), else weapon (before
--- water: a saucepan is both), else water (drinkable), else container (an empty water vessel), else bandage (a Bandage
--- or Rag by full type), else other
+-- the item's use as the engine answers it (item_added.use, item_changed.use, the loot's filters): food (edible), else
+-- weapon (before water: a saucepan is both), else water (drinkable), else container (an empty water vessel), else
+-- bandage (isCanBandage() true, PZA/1.5.1, Task 9 review minor 5: the script's CanBandage, which Bandage, BandageDirty,
+-- Bandaid, RippedSheets, RippedSheetsDirty, the denim and leather strips and the alcohol-soaked ones carry, and a Rag
+-- or a BandageBox does not; an absent member reads no), else other
 function W.useOf(it)
     if W.edible(it) then return "food" end
     if W.isA(it, "HandWeapon") then return "weapon" end
     local _, fc = PZA.call(it, "getFluidContainer")
     if W.drinkable(it, fc) then return "water" end
     if W.waterVessel(it, fc) then return "container" end
-    if W.fullTypeHas(it, "Bandage", "Rag") then return "bandage" end
+    if reads(it, "isCanBandage", true) then return "bandage" end
     return "other"
 end
 

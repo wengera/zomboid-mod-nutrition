@@ -16,12 +16,16 @@ map names by full type only.
   `Hazardous` nor `Alcoholic`, without a poison block, whose `thirst_change` is below 0: a pop, a juice, a milk, a
   coffee) (`DRINK_IDS`), as the Lua's `W.drinkable` reads the engine's `isWaterSource` or a quenching beverage
   (TaintedWater left out: Hazardous, a poison). A Disinfectant (RubbingAlcohol), a bleach, a beer or a spirit is not
-  water: F2 drank a Disinfectant 68 times with no thirst fall;
+  water: F2 drank a Disinfectant 68 times with no thirst fall. A sealed can (tagged `SEALED_TAG`, `Base.Pop`,
+  `Base.Pop2`) is not water either (PZA/1.5.1, Task 9 review minor 2): it spawns sealed, its `canPlayerEmpty()`
+  false, which vanilla's drink menu refuses and the Lua's `W.drinkable` reads, so it reads `other`;
 - `container` (PZA/1.4.1): a drinking vessel that spawns empty (no `fluid_ids`: `Base.PopEmpty`, `Base.Mugl`,
   `Base.Bowl`, `Base.GlassTumbler`), as the Lua's `W.waterVessel` reads an empty one that may hold water; checked
   after `weapon`, as the Lua's own order reads a saucepan;
-- `bandage`: a full type holding `Bandage` or `Rag`, the Lua loot's own rule (`PZAgent_SkillsWorld.lua`, `bandage`),
-  so `Base.RagFilter` reads bandage as the Lua reads it;
+- `bandage` (PZA/1.5.1, Task 9 review minor 5): a full type in `BANDAGE_IDS`, the items whose script sets
+  `CanBandage = true` (the 42.21 install's `media/scripts/generated/items/normal.txt`), as the Lua's `W.useOf` reads
+  `isCanBandage()`: the rags `rip` makes (`Base.RippedSheets`) and `wash` cleans read bandage, a `Base.Rag`, a
+  `Base.RagFilter` or a `Base.BandageBox` does not;
 - `weapon`: a full type `WEAPON_RX` matches. The dataset names no weapon (its two `base:weapon` items are saucepans,
   fluid containers), so the weapon rule stays this name guess until a weapon dataset exists;
 - `other`: everything else, a name the dataset does not carry and a non-drinkable or poison container included
@@ -42,7 +46,12 @@ WATER_FLUIDS = frozenset({"Water", "CarbonatedWater"})   # the jar's isWaterSour
 DRINK_CAP_L = 3.0      # litres: vanilla's drink menu refuses a larger container (the Lua's W.DRINK_CAP_L)
 DATASET = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "food-items.json"))
 WEAPON_RX = re.compile(r"\.(BaseballBat|Hammer|Axe|Crowbar|Knife|Pan|Pistol|Shotgun|Rifle)\b")
-BANDAGE_WORDS = ("Bandage", "Rag")
+SEALED_TAG = "base:sealedbeveragecan"   # the sealed pop cans' tag: spawned canPlayerEmpty false, never drunk
+# every item whose script sets CanBandage = true (the 42.21 install, media/scripts/generated/items/normal.txt L8046-
+# L10691), as the engine's isCanBandage() reads it
+BANDAGE_IDS = frozenset("Base." + n for n in (
+    "AlcoholBandage", "AlcoholRippedSheets", "Bandage", "BandageDirty", "Bandaid", "DenimStrips", "DenimStripsDirty",
+    "LeatherStrips", "LeatherStripsDirty", "RippedSheets", "RippedSheetsDirty"))
 
 
 @functools.lru_cache(maxsize=None)
@@ -71,7 +80,8 @@ def _quenches(fluid):
 
 def _water(item):
     ids = item.get("fluid_ids") or ()
-    return _vessel(item) and bool(ids) and all(f in DRINK_FLUIDS for f in ids)
+    return (_vessel(item) and bool(ids) and all(f in DRINK_FLUIDS for f in ids)
+            and SEALED_TAG not in (item.get("tags") or ()))
 
 
 _ITEMS, _FLUIDS = dataset()
@@ -94,7 +104,7 @@ def use_of(full_type):
         return "food"
     if ft in DRINK_IDS:
         return "water"
-    if any(w in ft for w in BANDAGE_WORDS):
+    if ft in BANDAGE_IDS:
         return "bandage"
     if WEAPON_RX.search(ft):
         return "weapon"

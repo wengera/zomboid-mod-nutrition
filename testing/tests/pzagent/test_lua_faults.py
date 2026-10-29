@@ -192,14 +192,14 @@ def test_the_pcall_counter_counts_a_caught_raise():
 # loaded); attack holds nothing; open reads the shut door as not opening (locked, at OPEN_MS); loot queues its transfers
 # but cannot read the inventory grow, so its budget runs out (interrupted); the item skills find no inventory (none
 # held); stop's interface is done; sleep finds no setter to put the player to sleep with (not loaded); aim finds no
-# setForceAim (not loaded); climb queues its climb from the near square it stands on, never crosses, and once the
-# action is out of the queue (the fake's queue is no Lua table) its settle time runs out (failed); the care skills find
-# no inventory (none held)
+# setForceAim (not loaded); climb queues its climb from the near square it stands on and never crosses, its action
+# still in the fake's queue by vanilla's hasAction (PZA/1.5.1), so its budget runs out (interrupted); the care skills
+# find no inventory (none held)
 BARE = {"walkTo": ("failed", "stuck"), "steer": ("failed", "not loaded"), "attack": ("rejected", "no weapon"),
         "open": ("failed", "locked"), "loot": ("failed", "interrupted"), "equip": ("rejected", "none held"),
         "eat": ("rejected", "none held"), "drink": ("rejected", "none held"), "drop": ("rejected", "none held"),
         "stop": ("done", ""), "sleep": ("failed", "not loaded"), "aim": ("failed", "not loaded"),
-        "climb": ("failed", "failed"), "bandage": ("rejected", "none held"), "rip": ("rejected", "none held"),
+        "climb": ("failed", "interrupted"), "bandage": ("rejected", "none held"), "rip": ("rejected", "none held"),
         "wash": ("rejected", "none held"), "fill": ("rejected", "none held")}
 
 

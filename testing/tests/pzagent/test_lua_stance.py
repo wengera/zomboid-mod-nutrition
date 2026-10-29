@@ -307,7 +307,9 @@ def lua_queue(lua):
     lua.execute("_LQ = { queue = {} }"
                 " ISTimedActionQueue = { add = function(a) table.insert(_LQ.queue, a) end,"
                 " clear = function(p) _LQ.queue = {} end,"
-                " getTimedActionQueue = function(p) return _LQ end }")
+                " getTimedActionQueue = function(p) return _LQ end,"
+                " hasAction = function(a) for _, x in ipairs(_LQ.queue) do if x == a then return true end end"
+                " return false end }")
 
 
 def queued_types(lua):
@@ -381,7 +383,7 @@ def test_climb_north_fence_walks_to_the_near_square_first_and_faces_south(lua, f
     tick(lua, p)
     assert queued_types(lua) == ["ISWalkToTimedAction", "ISClimbOverFence"]
     assert lua.eval("_LQ.queue[1].sq._cls") == "near" and lua.globals()._climbs[0][2] == "S"
-    at["y"] = 20.2
+    at["x"], at["y"] = 11.5, 20.2                                     # over the fence, on its far square
     tick(lua, p)
     assert states(acts(lua, fs))[-1] == ("a1", "done", "")
 
@@ -505,3 +507,83 @@ def test_a_climb_after_an_aim_releases_the_stance_first(lua, fs):
     assert calls(p) == ["setForceAim", "nullifyAiming"]
     tick(lua, p)
     assert queued_types(lua) == ["ISClimbOverFence"]
+
+
+# ---- PZA/1.5.1 (Task 9 fix 1): the kept stance, the climb's done and its corner edge -----------------------------------
+
+def test_a_rejected_attack_during_the_idle_hold_keeps_the_kept_stance(lua, fs):
+    """Review minor 4 (the stance): with the stance kept after an attack and no skill running, an attack rejected busy
+    during a hit reaction released it; a rejected command now changes nothing, and the hold still ends it."""
+    load(lua)
+    aim_world(lua, zx=11.0)
+    p = make_player(weapon=make_weapon())
+    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
+    tick(lua, p)
+    start(lua, p, "attack", aid="atk", targetId=7)
+    tick(lua, p)
+    g = lua.globals()
+    g._clock["ms"] += 1500
+    tick(lua, p)
+    assert ended(lua) and lua.eval("PZA.skills.stance.held") is True
+    p.combat["hitReaction"] = "HitReaction"
+    start(lua, p, "attack", aid="busy", targetId=7)
+    start(lua, p, "walkTo", aid="bad", x="no", y=1)
+    assert states(acts(lua, fs))[-2:] == [("busy", "rejected", "busy"), ("bad", "rejected", "bad args")]
+    assert "nullifyAiming" not in calls(p) and p.aim["force"] is True
+    g._clock["ms"] += 2000
+    tick(lua, p)
+    assert calls(p)[-1] == "nullifyAiming"
+
+
+def test_a_walk_crossing_the_edges_line_away_from_the_fence_is_not_a_climb(lua, fs):
+    """Review minor 4 (the climb): the far side alone was a half-plane; done needs the player within one square of the
+    fence's far square."""
+    load(lua)
+    climb_world(lua)
+    p = make_player()
+    at = pos(p, 10.5, 20.5)
+    start(lua, p, "climb", x=11, y=20)
+    tick(lua, p)
+    at["x"], at["y"] = 11.5, 25.5                                     # east of x 11, five squares down the line
+    tick(lua, p)
+    assert not ended(lua)
+    at["x"], at["y"] = 12.5, 21.5                                     # one square off the far square (11, 20)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "done", "")
+
+
+def corner_world(lua, x=11, y=20):
+    flags = {"HoppableN", "HoppableW"}
+    objs = [J(isHoppable=lambda s: True, isTallHoppable=lambda s: False)]
+    sq = J(getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]), has=lambda s, f: f in flags)
+    lua.globals()._cell = make_cell(squares={(x, y, 0): sq})
+    lua_queue(lua)
+
+
+def test_a_corner_square_climbs_the_edge_whose_near_square_the_player_stands_nearer(lua, fs):
+    """Review minor 4 (the corner): a square with both a north and a west hop flag was always climbed north."""
+    load(lua)
+    corner_world(lua)
+    p = make_player()
+    at = pos(p, 10.5, 20.5)                                           # on the west edge's near square
+    start(lua, p, "climb", aid="w", x=11, y=20)
+    tick(lua, p)
+    at["x"], at["y"] = 11.5, 19.5                                     # on the north edge's near square
+    start(lua, p, "climb", aid="n", x=11, y=20)
+    tick(lua, p)
+    assert [c[2] for c in lua.globals()._climbs] == ["E", "S"]
+
+
+def test_a_climb_reads_its_action_through_vanillas_has_action(lua, fs):
+    """Review minor 7: inQueue is vanilla's ISTimedActionQueue.hasAction(action); absent, the action reads gone."""
+    load(lua)
+    climb_world(lua)
+    lua.execute("ISTimedActionQueue.hasAction = nil")
+    p = make_player()
+    pos(p, 10.5, 20.5)
+    start(lua, p, "climb", x=11, y=20)
+    tick(lua, p)
+    tick(lua, p)
+    lua.globals()._clock["ms"] += 4000
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "failed")

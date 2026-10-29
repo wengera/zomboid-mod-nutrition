@@ -1,9 +1,9 @@
 -- PZAgent_Stance.lua — the stance and the climb (PZA/1.5, ruling P24-G; Plan 24 spec section 6): the skills aim and
 -- climb, registered into PZA.skills.types like PZAgent_SkillsWorld.lua's, whose runner (K.start, K.tick) owns every act
 -- line, the S-12 and S-15 guards and MO.off at every end. Loads after PZAgent_SkillsWorld.lua (client files load by
--- name, "Sk" before "St") and reaches its helpers through K (K.squareAt, K.zombieById, K.zombieDead, K.zombieDist,
--- K.floorOf; K.queueWalk, K.clearQueue, K.inputVector from PZAgent_Skills.lua). Every Java member through PZA.call
--- (index-first), every vanilla class and member index-checked before a call under pcall.
+-- name, "Sk" before "St") and reaches its helpers through K (K.squareAt, K.queueAction, K.zombieById, K.zombieDead,
+-- K.zombieDist, K.floorOf; K.queueWalk, K.clearQueue, K.inputVector from PZAgent_Skills.lua). Every Java member
+-- through PZA.call (index-first), every vanilla class and member index-checked before a call under pcall.
 -- The jar reads are docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md (Task 6b, rows T6b.1-T6b.4).
 local K = PZA.skills
 local MO = PZA.motor
@@ -157,17 +157,18 @@ K.types.aim = {
 }
 
 -- the runner's start, wrapped: K.starting names the type being started while the base start runs (the aim's stop hook
--- reads it), and a held stance is released unless the skill running after the start is an aim or an attack (a rejected
--- command leaves the running skill, and its stance, as they were). Main and the tests call K.start through the table.
+-- reads it), and a held stance is released when the start began a skill (K.cur changed) that is not an aim or an
+-- attack. A rejected command changes nothing, so it leaves the running skill, and a stance kept with none running (the
+-- AIM_HOLD_MS after an attack), as they were (PZA/1.5.1, Task 9 review minor 4: an attack rejected busy during a hit
+-- reaction dropped the kept stance). Main and the tests call K.start through the table.
 local startBase = K.start
 function K.start(cmd, p)
     K.starting = type(cmd) == "table" and cmd.type or nil
+    local before = K.cur
     startBase(cmd, p)
     K.starting = nil
-    if ST.held then
-        local cur = K.cur
-        if cur == nil or (cur.type ~= "aim" and cur.type ~= "attack") then release(p) end
-    end
+    local cur = K.cur
+    if ST.held and cur ~= before and cur ~= nil and cur.type ~= "aim" and cur.type ~= "attack" then release(p) end
 end
 
 -- the runner's tick, wrapped: a stance kept with no skill running is released AIM_HOLD_MS after the runner went idle
@@ -204,14 +205,17 @@ end
 -- perform calls climbOverWall) costs runningEnduranceReduce x 1200 and fails 1 time in s (getClimbingFailChanceInt).
 -- check: x, y numbers (floored to the square); the square on the player's floor (no square), and on it the first object
 -- whose isHoppable() or isTallHoppable() reads true, else not hoppable. The edge is north when the square has
--- IsoFlagType HoppableN or TallHoppableN (vanilla's ISClimbOverFence:getFacingDirection reads the square's HoppableN),
--- else west. The first tick: the vanilla queue cleared, the run latches wanted off and written false (a climb begun at a
+-- IsoFlagType HoppableN or TallHoppableN (vanilla's ISClimbOverFence:getFacingDirection reads the square's HoppableN)
+-- and no west flag (HoppableW, TallHoppableW), west when it has only a west flag or none; a corner square carrying both
+-- takes the edge whose near square (on the player's side) the player stands nearer (PZA/1.5.1, Task 9 review minor 4;
+-- north when the position cannot be read). The first tick: the vanilla queue cleared, the run latches wanted off and written false (a climb begun at a
 -- run would vault), the player's side of the edge recorded (north of a north edge: floor(y) < y; west of a west edge:
 -- floor(x) < x), a vanilla walk to the near square when the player stands elsewhere (no square, no path), then
 -- ISClimbOverFence:new(p, fence, dir) with dir the IsoDirections constant facing across (S or N, E or W, nil when
 -- IsoDirections is absent) queued behind it (not loaded, not valid). Later ticks: getVariableString("ClimbFenceOutcome")
--- reading fall or falling, or the floor changing, marks a fall; the player on the far side ends it, failed fell after a
--- fall, else done {tall, wounds (the rise in getNumPartsScratched + getNumPartsBleeding since the queue)}; the climb
+-- reading fall or falling, or the floor changing, marks a fall; the player on the far side of the edge and within one
+-- square (Chebyshev) of the fence's far square ends it (a walk crossing the edge's line elsewhere is not a climb:
+-- PZA/1.5.1, Task 9 review minor 4), failed fell after a fall, else done {tall, wounds (the rise in getNumPartsScratched + getNumPartsBleeding since the queue)}; the climb
 -- action gone from the vanilla queue CLIMB_SETTLE_MS with the player still on the near side is failed (a tall fence's
 -- failed climb, or the walk before it failed); CLIMB_MS after the queue, interrupted.
 K.CLIMB_MS = 20000        -- a climb not over within this wall time of its queue is interrupted
@@ -242,25 +246,6 @@ local function sideOf(st, px, py)
     return math.floor(px) < st.x
 end
 
-local function woundCount(p)
-    local _, bd = PZA.call(p, "getBodyDamage")
-    local _, s = PZA.call(bd, "getNumPartsScratched")
-    local _, b = PZA.call(bd, "getNumPartsBleeding")
-    return (type(s) == "number" and s or 0) + (type(b) == "number" and b or 0)
-end
-
--- whether action still sits in the player's vanilla queue (a Lua table read: the queue is vanilla Lua)
-local function inQueue(p, action)
-    if ISTimedActionQueue == nil or ISTimedActionQueue.getTimedActionQueue == nil then return false end
-    local ok, tq = pcall(ISTimedActionQueue.getTimedActionQueue, p)
-    local q = ok and type(tq) == "table" and tq.queue or nil
-    if type(q) ~= "table" then return false end
-    for i = 1, #q do
-        if q[i] == action then return true end
-    end
-    return false
-end
-
 -- the near square (on the player's side of the edge) and the direction that faces across from it
 local function nearOf(st, side)
     if st.north then
@@ -269,6 +254,49 @@ local function nearOf(st, side)
     end
     if side then return st.x - 1, st.y, "E" end
     return st.x, st.y, "W"
+end
+
+-- the climb is over: the player on the other side of the edge from side0, within one square of the far square (the
+-- near square of the other side)
+local function across(st, px, py)
+    local side = sideOf(st, px, py)
+    if side == st.side0 then return false end
+    local fx, fy = nearOf(st, side)
+    return math.max(math.abs(math.floor(px) - fx), math.abs(math.floor(py) - fy)) <= 1
+end
+
+-- the squared distance from (px, py) to the centre of the near square of square (x, y)'s north or west edge
+local function nearGap(north, x, y, px, py)
+    local e = { north = north, x = x, y = y }
+    local nx, ny = nearOf(e, sideOf(e, px, py))
+    local dx, dy = px - (nx + 0.5), py - (ny + 0.5)
+    return dx * dx + dy * dy
+end
+
+-- the edge of square (x, y) to climb: north for a north flag alone, west for a west flag alone or none; on a corner
+-- with both, the edge whose near square the player at (px, py) stands nearer (north when unread or level)
+local function northEdge(sq, x, y, px, py)
+    local n = hasFlag(sq, "HoppableN") or hasFlag(sq, "TallHoppableN")
+    local w = hasFlag(sq, "HoppableW") or hasFlag(sq, "TallHoppableW")
+    if not (n and w) then return n end
+    if px == nil or py == nil then return true end
+    return nearGap(true, x, y, px, py) <= nearGap(false, x, y, px, py)
+end
+
+local function woundCount(p)
+    local _, bd = PZA.call(p, "getBodyDamage")
+    local _, s = PZA.call(bd, "getNumPartsScratched")
+    local _, b = PZA.call(bd, "getNumPartsBleeding")
+    return (type(s) == "number" and s or 0) + (type(b) == "number" and b or 0)
+end
+
+-- whether action still sits in the player's vanilla queue: vanilla's own ISTimedActionQueue.hasAction(action)
+-- (lua:client/TimedActions/ISTimedActionQueue.lua:245), index-checked and under pcall; absent or raising, not queued
+local function inQueue(action)
+    local Q = ISTimedActionQueue
+    if Q == nil or Q.hasAction == nil then return false end
+    local ok, has = pcall(Q.hasAction, action)
+    return ok and has == true
 end
 
 -- the first tick: the walk to the near square (when needed) and the climb queued behind it; nil, or the failure reason
@@ -286,12 +314,9 @@ local function climbQueue(p, st)
         if nsq == nil then return "no square" end
         if not K.queueWalk(p, nsq) then return "no path" end
     end
-    local C = ISClimbOverFence
-    if C == nil or C.new == nil or not K.queueLoaded() then return "not loaded" end
     local dir = IsoDirections ~= nil and IsoDirections[dirName] or nil
-    local made, action = pcall(C.new, C, p, st.fence, dir)
-    if not made or action == nil then return "not valid" end
-    if not pcall(ISTimedActionQueue.add, action) then return "not valid" end
+    local ok, why, action = K.queueAction(ISClimbOverFence, "not valid", nil, p, st.fence, dir)
+    if not ok then return why end
     st.action, st.wounds0, st.queuedAt = action, woundCount(p), PZA.now()
     return nil
 end
@@ -306,7 +331,8 @@ K.types.climb = {
         if sq == nil then return false, "no square" end
         local fence, tall = fenceOn(sq)
         if fence == nil then return false, "not hoppable" end
-        local north = hasFlag(sq, "HoppableN") or hasFlag(sq, "TallHoppableN")
+        local px, py = posOf(p)
+        local north = northEdge(sq, x, y, px, py)
         return true, "", { x = x, y = y, z = z, fence = fence, tall = tall, north = north, queuedAt = nil,
                            fell = false, leftAt = nil }
     end,
@@ -321,12 +347,12 @@ K.types.climb = {
         if oc == "fall" or oc == "falling" then st.fell = true end
         local px, py, pz = posOf(p, true)
         if pz ~= nil and st.z0 ~= nil and pz ~= st.z0 then st.fell = true end
-        if px ~= nil and py ~= nil and sideOf(st, px, py) ~= st.side0 then
+        if px ~= nil and py ~= nil and across(st, px, py) then
             if st.fell then return "failed", "fell" end
             return "done", { tall = st.tall, wounds = math.max(0, woundCount(p) - st.wounds0) }
         end
         local now = PZA.now()
-        if st.leftAt == nil and not inQueue(p, st.action) then st.leftAt = now end
+        if st.leftAt == nil and not inQueue(st.action) then st.leftAt = now end
         if st.leftAt ~= nil and now - st.leftAt >= K.CLIMB_SETTLE_MS then
             if st.fell then return "failed", "fell" end
             return "failed", "failed"

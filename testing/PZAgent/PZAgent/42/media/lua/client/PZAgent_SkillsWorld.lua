@@ -56,7 +56,7 @@ end
 -- and the queue's add are index-checked before any call (not loaded: a missing one is the skill's own failure, never a
 -- raise under pcall); new and add each run under pcall for a raise inside vanilla Lua, a raise or a nil action failing
 -- with bad (the caller's reason). vet, when given, is asked of the built action before the add and answers nil to pass
--- or the reason it refuses with (queueConsume's isValidStart).
+-- or the reason it refuses with (queueConsume's isValidStart). Queued, it answers the action too.
 local function queueAction(cls, bad, vet, ...)
     if cls == nil or cls.new == nil or not queueLoaded() then return false, "not loaded" end
     local made, action = pcall(cls.new, cls, ...)
@@ -66,7 +66,7 @@ local function queueAction(cls, bad, vet, ...)
         if why ~= nil then return false, why end
     end
     if not pcall(ISTimedActionQueue.add, action) then return false, bad end
-    return true, nil
+    return true, nil, action  -- the queued action third (PZA/1.5.1: the climb finds it in the queue)
 end
 
 -- A sub-walk: walkTo's own state, built by its check and aimed at (x, y) at gait, run by a skill's approach as a sub-state
@@ -754,7 +754,5 @@ end
 -- ---- the helpers the later skill files share (PZA/1.5) --------------------------------------------------------------
 -- The skill files that load after this one (client files load by name: PZAgent_Stance.lua's aim and climb,
 -- PZAgent_Tend.lua's bandage, rip, wash and fill) reach these locals through K; appended here (CLAUDE.md section 5: the repo: pointers into this file keep their lines).
-K.squareAt, K.cheb, K.adjacentTo, K.queueAction, K.subWalk, K.tickSub = squareAt, cheb, adjacentTo, queueAction, subWalk,
-    tickSub
-K.approach, K.floorOf, K.invCount, K.numOf = approach, floorOf, invCount, numOf
+K.squareAt, K.queueAction, K.approach, K.floorOf, K.numOf = squareAt, queueAction, approach, floorOf, numOf
 K.zombieById, K.zombieDead, K.zombieDist = zombieById, zombieDead, zombieDist
