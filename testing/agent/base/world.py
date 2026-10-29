@@ -581,11 +581,12 @@ class World:
                 return x, y
         return None
 
-    def flood(self, start, limit=REACH_LIMIT):
+    def flood(self, start, limit=REACH_LIMIT, r=None):
         """The squares a breadth-first flood from `start` (x, y, z) reaches over the kept map (P23-AP 1): each step to
         one of the 8 neighbours on its floor, mapped, not solid, the step not `blocked` with `climb=True` (a closed or
         locked door's edge is; a hoppable fence's is not, P24-C); `start` itself always, at most `limit` squares in
-        all."""
+        all; with `r`, only squares within `r` tiles of `start` (Task 18 fix 1: the engage's reach, bounded round the
+        player)."""
         start = tuple(start)
         seen, queue, i = {start}, [start], 0
         while i < len(queue):
@@ -594,7 +595,9 @@ class World:
             for dx in (-1, 0, 1):
                 for dy in (-1, 0, 1):
                     b = (a[0] + dx, a[1] + dy, a[2])
-                    if b in seen or self._solid(b) or self.blocked(a, b, climb=True):
+                    if b in seen or (r is not None and math.hypot(b[0] - start[0], b[1] - start[1]) > r):
+                        continue
+                    if self._solid(b) or self.blocked(a, b, climb=True):
                         continue
                     seen.add(b)
                     queue.append(b)
@@ -1091,6 +1094,26 @@ class World:
             if second is not None and not self.blocked(a, c):
                 return second
         return None
+
+    def fence_on_line(self, a, b):
+        """The straight line from position `a` to `b` ((x, y) floats, on the player's floor; Bresenham's on the floored
+        ends) crosses a known hoppable edge (`_hop`: blocked, climbable): an orthogonal step over one, or a diagonal
+        step with one on either leg (Task 18 fix 1, the review's ruling 2: a chasing zombie across a fence is not
+        sought; the fence is the chokepoint). An unmapped square is never a fence."""
+        z = me_floor(self)
+        sqs = [(x, y, z) for x, y in self._bresenham(int(math.floor(a[0])), int(math.floor(a[1])),
+                                                     int(math.floor(b[0])), int(math.floor(b[1])))]
+        for p, q in zip(sqs, sqs[1:]):
+            if p not in self.map or q not in self.map:
+                continue
+            if p[0] == q[0] or p[1] == q[1]:
+                if self._hop(p, q) is not None:
+                    return True
+                continue
+            for c in ((q[0], p[1], z), (p[0], q[1], z)):
+                if c in self.map and (self._hop(p, c) is not None or self._hop(c, q) is not None):
+                    return True
+        return False
 
     def _hop(self, a, b):
         """The fence square of the orthogonal step a -> b when it is blocked but climbable, else None."""

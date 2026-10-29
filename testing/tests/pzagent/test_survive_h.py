@@ -708,3 +708,342 @@ def test_e7_s_loots_at_the_locked_back_door_mark_it_and_the_route_takes_the_nort
     assert N.exterior_doors(w, 5, 0) == [(10768, 10628, 0)]
     cmd, step = N.shelter_step(w, N.shelter_plan(w, 5))
     assert step == "approach" and (cmd.x, cmd.y) == (10768.5, 10627.5)
+
+
+# ================================================================ Task 18 fix 1: the blocker, major 2, ruling 2
+ME = (100.5, 200.5)
+
+
+def walled(at=None, wall_x=102, y0=197, y1=203, hop=False):
+    """The open grid 90..120 by 190..212 with a wall on the west edge of x == `wall_x` from y0 to y1 (a way round
+    north and south of it; `hop` a hoppable fence)."""
+    at = dict(at or {})
+    for y in range(y0, y1 + 1):
+        at[(wall_x, y)] = dict(at.get((wall_x, y), {}), blockW=True, hopW=hop)
+    return grid(90, 120, 190, 212, at)
+
+
+def zm(zid, x, y, has_target=True):
+    return zd(zid, x, y, has_target=has_target, me=ME)
+
+
+def stance_fight(r, sought=()):
+    """A Fight as Survive's engage makes it: the stance, the seek, the held threats; `sought` already sought."""
+    f = P.Fight(r.world, r.acts, r.clock)
+    f.stance, f.seek, f.threats = True, True, list(r.world.zombies.values())
+    f.sought |= set(sought)
+    return f
+
+
+def sent(r, f, cmd):
+    f.send(cmd)
+    r.fake.answer({cmd.TYPE: ["accepted"]})
+    r.pump()
+
+
+def seek_walk(tmp_path):
+    """The blocker's case: target 1 chasing 8 tiles east behind a wall: the seek's walk round it, at a walk."""
+    r = Rig(tmp_path)
+    r.scan(walled())
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.5, 200.5)])
+    f = stance_fight(r)
+    cmd = f.choose()
+    assert (cmd.TYPE, cmd.gait) == ("walkTo", "walk") and f.why["seek"] is True and f.why["leg"] == "walk"
+    sent(r, f, cmd)
+    assert f._stance_walk[2] == "seek" and f.busy()
+    return r, f
+
+
+def test_the_seek_walk_round_a_wall_gives_way_to_a_zombie_closing_nearer_and_the_seek_takes_it(tmp_path):
+    """The review's blocker (E7's a12 held 21 ticks while 564 closed to 2.84 tiles): another zombie SEEK_SWITCH_R
+    nearer than the walk's target ends the walk, and the next choose re-pins the seek to it (`seek_switch`), its line
+    clear: an aim toward it. One under the margin nearer keeps the walk."""
+    r, f = seek_walk(tmp_path)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.5, 200.5), zm(2, 100.5, 193.5)])
+    assert f.busy() is False
+    cmd = f.choose()
+    assert cmd.TYPE == "aim" and cmd.targetId == 2 and f.why["seek_switch"] is True and f.why["leg"] == "seek"
+    (tmp_path / "b").mkdir()
+    r2, f2 = seek_walk(tmp_path / "b")
+    r2.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.5, 200.5), zm(2, 100.5, 192.8)])   # 7.7 tiles: under the margin
+    assert f2.busy() is True
+
+
+@pytest.mark.parametrize("pos, why", [((102.9, 200.5), "inside KEEP_R: the backpedal"),
+                                      ((101.9, 200.5), "in reach: the enter leg"),
+                                      ((111.0, 200.5), "beyond DISENGAGE_R")])
+def test_the_seek_walk_gives_way_inside_keep_r_in_reach_and_beyond_disengage_r(tmp_path, pos, why):
+    r, f = seek_walk(tmp_path)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, *pos)])
+    assert f.busy() is False, why
+
+
+def test_the_seek_walk_gives_way_when_the_line_clears_and_holds_while_it_does_not(tmp_path):
+    r, f = seek_walk(tmp_path)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 107.5, 200.5)])
+    assert f.busy() is True                                               # nearer, still behind the wall
+    r.scan(grid(90, 120, 190, 212))
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 107.5, 200.5)])
+    assert f.busy() is False and f.choose().TYPE == "aim" and f.why["leg"] == "seek"
+
+
+def test_the_advance_walk_round_a_wall_holds_until_reach_never_for_another_zombie(tmp_path):
+    """The advance (a target already sought, STAND_MAX_S gone) closes on its pin: its walk round the wall gives way
+    only on its own target's reads (in reach, a re-pin, the line clear), never for a nearer zombie (the stance's pin
+    holds once a target is sought)."""
+    r = Rig(tmp_path)
+    r.scan(walled())
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 106.5, 200.5)])
+    f = stance_fight(r, sought={1})
+    f._stand, f.advance = (1, r.clock(), 1.0), True
+    cmd = f.choose()
+    assert cmd.TYPE == "walkTo" and f.why["advance"] is True
+    sent(r, f, cmd)
+    assert f._stance_walk[2] == "advance" and f.busy()
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 106.5, 200.5), zm(2, 100.5, 196.5)])
+    assert f.busy() is True
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 102.3, 200.5), zm(2, 100.5, 196.5)])
+    assert f.busy() is False
+
+
+def test_the_seek_walk_beyond_aim_r_gives_way_once_the_target_is_within_aim_r(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 113.0, 200.5)])
+    f = stance_fight(r)
+    cmd = f.choose()
+    assert (cmd.TYPE, cmd.gait) == ("walkTo", "walk")
+    sent(r, f, cmd)
+    assert f._stance_walk[2] == "far" and f.busy()
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 112.6, 200.5)])
+    assert f.busy() is True
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 110.5, 200.5)])
+    assert f.busy() is False
+
+
+def test_a_seek_aim_leg_gives_way_to_a_nearer_zombie(tmp_path):
+    """E7's lines 61-66 (the seek on 534 held its leg while 564 came from 10.2 to 4.3 tiles): a running seek leg ends
+    once another zombie is SEEK_SWITCH_R nearer, and the seek takes it."""
+    r = Rig(tmp_path)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.5, 200.5)])
+    f = stance_fight(r)
+    cmd = f.choose()
+    assert cmd.TYPE == "aim" and f.why["leg"] == "seek"
+    sent(r, f, cmd)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.0, 200.5), zm(2, 100.5, 193.5)])
+    assert f.busy() is False and f.choose().targetId == 2
+
+
+E7 = "e_day_7-20261029-140813"
+
+
+def _e7_lines(upto, engage_any=False, no_give=False):
+    """E7 replayed to `upto`: the rows, and per tick {walk: the running stance walk's target id else None, zs:
+    {zombie id: tiles}}. `engage_any`: the engage as built at 9c477f80 (every zombie within ENGAGE_R engageable), so
+    the review's walk at line 52 is reproduced; `no_give`: the blocker's mutant (the walk never gives way)."""
+    from agent.base import replay_decisions as R
+    out = {}
+
+    def m(sv):
+        if engage_any:
+            sv._engageable = lambda zid, z: True
+        real = sv.tick
+
+        def tick_(world, actions):
+            res = real(world, actions)
+            f, cur = sv.fight, actions.current
+            walk = (f._stance_walk[1] if f is not None and f._stance_walk is not None and cur is not None
+                    and f._stance_walk[0] is cur else None)
+            zs = {zid: P.zdist(world, z) for zid, z in world.zombies.items() if z.get("x") is not None}
+            out[len(out) + 1] = {"walk": walk, "zs": zs}
+            return res
+        sv.tick = tick_
+    orig = P.Fight._walk_gives_way
+    if no_give:
+        P.Fight._walk_gives_way = lambda self: False
+    try:
+        rows = R.replay(R.ARTIFACTS + "/" + E7, upto=upto, mutate=m)
+    finally:
+        P.Fight._walk_gives_way = orig
+    return rows, out
+
+
+def _walk_held_wrongly(out, a, b):
+    """The lines in a..b on which a stance walk ran on with its target beyond DISENGAGE_R or gone, or another zombie
+    SEEK_SWITCH_R nearer than it (the blocker's rule)."""
+    bad = []
+    for k in range(a, b + 1):
+        o = out[k]
+        if o["walk"] is None:
+            continue
+        d = o["zs"].get(o["walk"])
+        if d is None or d > P.DISENGAGE_R or any(v <= d - P.SEEK_SWITCH_R for z, v in o["zs"].items()
+                                                  if z != o["walk"]):
+            bad.append(k)
+    return bad
+
+
+def test_e7_lines_52_to_73_the_seek_walk_round_the_wall_gives_way_and_never_runs_past_a_closer_zombie():
+    """The review's blocker on E7's record: with the engage as built at 9c477f80 (`engage_any`), the seek walk round
+    the wall on 533 is sent at line 52 (8.17 tiles) and, before this fix, ran to line 73 while 533 receded past
+    DISENGAGE_R and 564 and 534 closed to 2.84 and 3.10 tiles (the mutant `no_give` reproduces it); now it gives way
+    at line 56 (its line toward 533 clear) and no stance walk runs on any tick of 52-73 past its target's leaving or a
+    nearer zombie. Under HEAD's whole rules 533, idle behind the wall, is not engaged until it chases (line 54), the
+    walk round the wall then gives way at 56, and the seek on 534 switches to 564 at line 64 (6.22 tiles against
+    7.12), across a fence and chasing: a standing leg, not a walk."""
+    rows, out = _e7_lines(73, engage_any=True)
+    assert rows[51]["action"] == {"type": "walkTo", "args": {"gait": "walk", "x": 10740.5, "y": 10647.5}}
+    assert out[52]["walk"] == 533 and out[55]["walk"] == 533 and out[56]["walk"] is None
+    assert rows[55]["action"]["type"] == "aim"
+    assert _walk_held_wrongly(out, 52, 73) == []
+    _, mut = _e7_lines(73, engage_any=True, no_give=True)
+    assert all(mut[k]["walk"] == 533 for k in range(52, 74)) and _walk_held_wrongly(mut, 52, 73) != []
+    rows, out = _e7_lines(73)
+    assert all(rows[k - 1]["branch"] != "threat" for k in range(47, 54))
+    assert rows[53]["action"]["type"] == "walkTo" and out[55]["walk"] == 533 and out[56]["walk"] is None
+    w = rows[63]["inputs"]["branches"]["threat"]
+    assert rows[63]["action"]["args"]["targetId"] == 564 and w["leg"] == "stand" and w["seek_switch"] is True
+    assert _walk_held_wrongly(out, 47, 73) == []
+
+
+def test_a_seek_walk_that_fails_marks_its_target_for_seek_skip_s(tmp_path):
+    """Major 2 (E4's gate zombie sought every UNREACHABLE_S): a seek walk failed for a walk reason skips its target
+    SEEK_SKIP_S (60 s, three UNREACHABLE_S), longer than a swing's mark."""
+    assert P.SEEK_SKIP_S == 60.0 and P.SEEK_SKIP_S > P.UNREACHABLE_S
+    r, f = seek_walk(tmp_path)
+    r.fake.answer({"walkTo": [{"state": "failed", "reason": "no path"}]})
+    r.pump()
+    f.observe()
+    assert f.unreachable[1] == r.clock() + P.SEEK_SKIP_S and f.target is None
+
+
+def enclosed(zx=108, zy=200, has_path=False):
+    """The open grid with square (zx, zy) walled on its four edges (no way to a square beside it), or with `has_path`
+    a wall segment west of it only (a way round)."""
+    if has_path:
+        return walled(wall_x=zx - 2)
+    at = {(zx, zy): {"blockW": True, "blockN": True}, (zx + 1, zy): {"blockW": True}, (zx, zy + 1): {"blockN": True}}
+    return grid(90, 120, 190, 212, at)
+
+
+def test_an_idle_zombie_with_no_way_to_it_is_not_engaged_and_the_goal_runs(tmp_path):
+    """Major 2 and ruling 2: an idle zombie (`hasTarget` false) 8 tiles off, its square walled in (no clear line, no
+    square beside it the bounded flood reaches): not engaged, marked `unsought` for UNREACHABLE_S (no flood re-read
+    meanwhile), logged; the goal runs. Once it chases it is engaged at once."""
+    r, sv = make(tmp_path)
+    r.scan(enclosed())
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.5, 200.5, has_target=False)])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] != "threat" and sv.mode is None
+    assert threat_why(tmp_path) == {"unsought": [1]} and sv.unsought[1] == r.clock() + P.UNREACHABLE_S
+    calls = []
+    real = r.world.flood
+    r.world.flood = lambda *a, **k: calls.append(1) or real(*a, **k)
+    r.frame(x=ME[0] + 0.6, y=ME[1], zombies=[zm(1, 108.5, 200.5, has_target=False)])
+    tick(r, sv)
+    assert calls == [] and sv.mode is None                                  # the mark answers, no flood
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.5, 200.5)])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "threat" and sv.mode == "fight"
+
+
+@pytest.mark.parametrize("sqs, engaged", [("path", True), ("clear", True), ("unscanned", False)])
+def test_an_idle_zombie_is_engaged_with_a_clear_line_or_a_way_to_it(tmp_path, sqs, engaged):
+    """Ruling 2's non-chasing target: engaged with its line clear, or a square beside it in the player's bounded
+    flood (a wall with a way round); one on ground the map does not hold (the spawn's: no line read, no flood) is
+    not."""
+    r, sv = make(tmp_path)
+    r.scan({"path": enclosed(has_path=True), "clear": grid(90, 120, 190, 212),
+            "unscanned": grid(95, 104, 196, 205)}[sqs])
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.5, 200.5, has_target=False)])
+    tick(r, sv)
+    assert (sv.mode == "fight") is engaged
+
+
+@pytest.mark.parametrize("inside", [False, True])
+def test_a_chasing_zombie_across_a_building_s_walls_is_not_engaged(tmp_path, inside):
+    """Major 2: a zombie inside a building the character is outside of (a locked or unentered one), or outside the
+    building the character shelters in (the night's shelter, the converse), is not engaged, chasing or not."""
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110, door=LOCKED) + grid(98, 106, 196, 206))
+    me, z = ((111.5, 201.5), (104.5, 201.5)) if inside else ((104.5, 201.5), (111.5, 201.5))
+    r.frame(x=me[0], y=me[1], zombies=[zd(1, z[0], z[1], me=me)])
+    tick(r, sv)
+    assert sv.mode is None and last(tmp_path)["branch"] != "threat"
+    assert threat_why(tmp_path) == {"unsought": [1]}
+
+
+def test_a_running_fight_with_only_an_unreachable_idle_zombie_left_ends_and_the_goal_runs(tmp_path):
+    """Major 2: the fight engaged on a chasing zombie, an idle one walled in beside it (`unsought` in the fight's why,
+    never pinned anew beyond DANGER_R: the Fight's `avoid`); once the chaser is gone the fight ends (`_released`) and
+    the goal runs."""
+    r, sv = make(tmp_path)
+    r.scan(enclosed())
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 107.5, 203.5), zm(2, 108.5, 200.5, has_target=False)])
+    tick(r, sv)
+    assert sv.mode == "fight" and threat_why(tmp_path)["unsought"] == [2] and sv.fight.target == 1
+    assert sv.fight.avoid == {2}
+    r.answer()
+    r.advance(W.ZOMBIE_TTL_S + 1)                                           # the chaser gone from the World
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(2, 108.5, 200.5, has_target=False)])
+    tick(r, sv)
+    assert 1 not in r.world.zombies and sv.mode is None and last(tmp_path)["branch"] != "threat"
+
+
+def test_ruling_2_no_seek_on_a_room_or_door_square_nor_at_a_chaser_across_a_fence(tmp_path):
+    """The review's ruling 2: a chasing zombie at 8 tiles is fought standing, never sought, (a) with the character
+    on a room square of the building the zombie is in too, (b) on a door square, (c) across a known fence (the
+    fence is the chokepoint); an idle zombie across the fence (the flood climbs a hoppable edge to it) is sought."""
+    room = {(x, y): {"room": "hall", "building": 1} for x in range(90, 113) for y in range(190, 213)}
+    cases = {"room": grid(90, 120, 190, 212, room),                          # its east side open: a way out
+             "door": grid(90, 120, 190, 212, {(100, 200): {"door": dict(CLOSED)}}),
+             "fence": walled(wall_x=104, y0=190, y1=212, hop=True)}
+    for name, sqs in cases.items():
+        (tmp_path / name).mkdir()
+        r, sv = make(tmp_path / name)
+        r.scan(sqs)
+        r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.5, 200.5)])
+        tick(r, sv)
+        w = threat_why(tmp_path / name)
+        assert sv.mode == "fight" and w["leg"] == "stand" and "seek" not in w, name
+    (tmp_path / "idle").mkdir()
+    r, sv = make(tmp_path / "idle")
+    r.scan(cases["fence"])
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.5, 200.5, has_target=False)])
+    tick(r, sv)
+    assert sv.mode == "fight" and threat_why(tmp_path / "idle")["leg"] == "seek"
+    assert P.seek_allowed(r.world, (1, r.world.zombies[1], 8.0), True) is False
+    (tmp_path / "trapped").mkdir()                                          # held ground with no stance: no engage
+    r, sv = make(tmp_path / "trapped")
+    r.scan(grid(90, 120, 190, 212, {(x, y): {"room": "hall", "building": 1} for x in range(90, 121)
+                                    for y in range(190, 213)}))
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.5, 200.5)])
+    tick(r, sv)
+    assert sv.mode is None and last(tmp_path / "trapped")["branch"] != "threat"
+
+
+@pytest.mark.parametrize("key", ["e2", "e3", "e4", "e5", "f1", "f1-caps15"])
+def test_the_spawn_engage_in_every_golden_is_neither_engaged_nor_sought(key):
+    """Task 18's every golden engaged the zombie listed 7.0 tiles from the fixture's spawn at line 1 (the sixth's a
+    seek walk round a wall: the blocker's live first act): it stands idle on ground the first frame's map does not
+    hold (no line read, no flood), so it is not engaged (major 2: `unsought`, logged on the sixth), and the spawn is a
+    room square (`_chokepoint`), so even engaged it would not be sought (ruling 2), and on the five PZA/1.4 builds
+    (no stance) held ground engages nothing."""
+    from agent.base import replay_decisions as R
+    got = {}
+
+    def m(sv):
+        real = sv.tick
+
+        def tick_(world, actions):
+            if not got:
+                zid, z = next((i, z) for i, z in world.zombies.items() if z.get("x") is not None)
+                got.update(z=z, d=P.zdist(world, z), choke=sv._chokepoint(), eng=sv._engageable(zid, z),
+                           line=P.line_to(world, z))
+                sv.unsought.clear()
+            return real(world, actions)
+        sv.tick = tick_
+    rows = R.replay(R.ARTIFACTS + "/" + R.RUNS[key], caps=R.HELLO_CAPS.get(key), upto=2, mutate=m)
+    assert got["d"] == 7.0 and got["z"].get("hasTarget") is False and got["line"] is None
+    assert got["eng"] is False and got["choke"] is True
+    assert rows[0]["branch"] != "threat"
+    assert bool(rows[0]["inputs"]["branches"]["threat"].get("unsought")) is (key == "f1-caps15")

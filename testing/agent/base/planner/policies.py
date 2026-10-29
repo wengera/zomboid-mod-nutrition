@@ -78,8 +78,12 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   set (Survive's engaged fights) closes on a target not yet `sought`: beyond KEEP_R its stance leg is `seek`, the
   `toward` leg's vector (the walk at a walk round a blocked STEER_PROBE line), giving way the tick the target comes
   within KEEP_R, which marks it `sought` (iteration 7's stance from then on, never a second seek of it); beyond AIM_R
-  the seek walks at a walk; a seek walk that fails for a STUCK_REASONS reason marks its target unreachable, as an
-  attack's walk does (`_observe_seek`).
+  the seek walks at a walk; a seek walk that fails for a STUCK_REASONS reason marks its target unreachable for
+  SEEK_SKIP_S (`_observe_seek`). Task 18 fix 1: no seek on a room or door square (`hold_ground`) nor at a chasing
+  target across a known fence (`seek_allowed`); the seek re-pins to a zombie SEEK_SWITCH_R nearer than its target
+  (`_seek_switch`), its leg giving way for it; the stance's own walk (a seek's or the advance's round a wall, a
+  seek's beyond AIM_R) gives way as a leg does (`_walk_gives_way`, the review's blocker); a zombie in `avoid` (no
+  engage reaches it) is never pinned anew beyond DANGER_R.
 - `Flee` (one per flee episode): a `Steer` of `FLEE_S` seconds away from the threats (the `threats` list its caller
   passes, else every zombie the World holds), at a run (ruling P24-O, Task 12: the planner never sprints; E6 sprinted
   13 steers and Angus saw the character trip, and a fence climb begun at a sprint rolls a trip, #4296); re-aimed on
@@ -210,6 +214,12 @@ REPOSITION_MIN = 1.2  # tiles: ... nor one whose centre is nearer than this, ins
 MISSES_TO_APPROACH = 2   # attack results in a row with attackStarted false before one approach walk
 STALL_SWINGS = 3      # started swings in a row on one target that took no health before it reads unreachable
 UNREACHABLE_S = 20.0  # wall seconds a no-progress target is skipped
+SEEK_SWITCH_R = 0.5   # tiles: a seek re-pins to another zombie at least this much nearer than its target (Task 18 fix
+                      # 1, the review's blocker: E7's 564 closed to 2.84 tiles while the seek was on 534 at 5.3; a
+                      # judgment, the margin keeping two zombies at about one distance from flapping the pin)
+SEEK_SKIP_S = 60.0    # wall seconds a target whose seek walk failed for a walk reason is skipped (Task 18 fix 1, the
+                      # review's major 2, a judgment: three UNREACHABLE_S, so a zombie behind a gate is not walked at
+                      # again every 20 s while the goal loots)
 FLEE_S = 3.0          # seconds a flee's steer runs before it is re-aimed
 NEAR_R = 2.0          # tiles: a held threat this near is never `ahead` of a heading (the cone and tube reads look
                       # beyond it: fix 2, T2); named SPRINT_R while the steer sprinted within it (P24-O renamed it)
@@ -447,6 +457,25 @@ def stance_leg_kind(d, advance, seek=False):
     return "back" if d <= KEEP_R else "stand"
 
 
+def chasing(z):
+    """Zombie record `z` reads a target (`hasTarget` true): it is coming."""
+    return z.get("hasTarget") is True
+
+
+def seek_allowed(world, t, hold_ground):
+    """Ruling P24-X as Task 18 fix 1 narrows it (the review's ruling 2): target `t` (id, zombie, dist) may be sought:
+    beyond KEEP_R, the character not holding ground (`hold_ground`: on a room or door square, Survive's
+    `_chokepoint`: inside a building, the broken hold's and the trapped fight's included, or in a doorway, the stance
+    stands and lets it come), and not a chasing target whose straight line to the character crosses a known fence
+    (`World.fence_on_line`: the fence is the chokepoint)."""
+    if t[2] <= KEEP_R or hold_ground:
+        return False
+    if not chasing(t[1]):
+        return True
+    mx, my = me_xy(world)
+    return not world.fence_on_line((mx, my), (t[1]["x"], t[1]["y"]))
+
+
 def rides_on(actions, a):
     """Leg `a` (a walkTo or a steer, not yet terminal) is kept running by the Lua under the bandages sent after it,
     every one of them with `keepMoving` (PZA/1.5.3, ruling P24-R: a riding bandage leaves the leg its slot; a new leg
@@ -506,6 +535,11 @@ class Fight(Policy):
         self._seek_walk = None              # (walk, target id) of the last seek walk sent, until its end is read
         self._seek_send = False             # the walk the running choose returns is a seek's (P24-X)
         self.sought = set()                 # the target ids whose seek reached KEEP_R (then iteration 7's stance)
+        self.hold_ground = False            # Survive sets it each tick: on a room or door square, no seek (fix 1)
+        self.avoid = set()                  # Survive sets it each tick: ids never pinned anew beyond DANGER_R (fix 1,
+                                            # major 2: a zombie no engage reaches)
+        self._walk_kind = None              # the stance walk the running choose returns: "round" or "far" (fix 1)
+        self._stance_walk = None            # (walk, target id, kind) of the stance's running walk (the blocker)
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -527,9 +561,9 @@ class Fight(Policy):
         z = self.world.zombies.get(zid)
         return None if z is None else z.get("health")
 
-    def _mark_unreachable(self, zid):
+    def _mark_unreachable(self, zid, seconds=UNREACHABLE_S):
         self._marked_now.add(zid)
-        self.unreachable[zid] = self.clock() + UNREACHABLE_S
+        self.unreachable[zid] = self.clock() + seconds
         if zid == self.target:
             self._unpin()
 
@@ -571,6 +605,10 @@ class Fight(Policy):
         skip = self.blocked()
         if self.only is not None:
             skip = skip | {zid for zid in self.world.zombies if zid not in self.only}
+        if self.avoid:   # fix 1, major 2: never pinned anew beyond DANGER_R (within it the old rules: the line check)
+            zs = self.world.zombies
+            skip = skip | {zid for zid in self.avoid if zid in zs and zs[zid].get("x") is not None
+                           and zs[zid].get("y") is not None and zdist(self.world, zs[zid]) > DANGER_R}
         nz = self.world.nearest_zombie(exclude=skip)
         if nz is None or nz[1].get("x") is None or nz[1].get("y") is None:
             return None
@@ -656,13 +694,16 @@ class Fight(Policy):
 
     def seeking(self, t):
         """Ruling P24-X: the Fight is sought (`seek`) and target `t` (id, zombie, dist) has not yet come within KEEP_R
-        (`sought`): its legs close on it (`seek`), a walk at a walk beyond AIM_R."""
-        return self.seek and t is not None and t[0] not in self.sought and t[2] > KEEP_R
+        (`sought`) and may be sought (`seek_allowed`: Task 18 fix 1's ruling 2, never from a room or door square, nor
+        across a known fence at a chasing target): its legs close on it (`seek`), a walk at a walk beyond AIM_R."""
+        return (self.seek and t is not None and t[0] not in self.sought
+                and seek_allowed(self.world, t, self.hold_ground))
 
     def _observe_seek(self, t):
         """A sought target within KEEP_R has been sought: the stance fight of iteration 7 from then on (P24-X); a seek
-        walk (round a wall, or beyond AIM_R) that failed for a walk reason marks the target unreachable, as an attack's
-        walk does."""
+        walk (round a wall, or beyond AIM_R) that failed for a walk reason marks the target unreachable for SEEK_SKIP_S
+        (Task 18 fix 1, the review's major 2: longer than a swing's mark, so the goal is not superseded every
+        UNREACHABLE_S by a zombie behind a gate)."""
         if self.seek and t is not None and t[2] <= KEEP_R:
             self.sought.add(t[0])
         if self._seek_walk is None or not self.actions.done(self._seek_walk[0]):
@@ -670,7 +711,44 @@ class Fight(Policy):
         a, zid = self._seek_walk
         self._seek_walk = None
         if a.state == "failed" and a.reason in STUCK_REASONS:
-            self._mark_unreachable(zid)
+            self._mark_unreachable(zid, SEEK_SKIP_S)
+
+    def _seek_switch(self, t):
+        """The zombie (id, zombie, dist) a seek re-pins to (Task 18 fix 1, the review's blocker), else None: while
+        target `t` is being sought (`seeking`), the nearest zombie the Fight may pin (`_nearest`: not marked, not dead,
+        not avoided beyond DANGER_R) when it is another and SEEK_SWITCH_R or more nearer. The seek closes on the
+        nearest; once a target is `sought` the pin holds as iteration 7's stance rules."""
+        if not self.seeking(t):
+            return None
+        n = self._nearest()
+        return n if n is not None and n[0] != t[0] and n[2] <= t[2] - SEEK_SWITCH_R else None
+
+    def _walk_gives_way(self):
+        """The blocker of Task 18's review (E7 replayed: the seek walk a12 round a wall, sent at line 52 on 533 at 8.17
+        tiles, held through line 73 while 533 receded past DISENGAGE_R and 564 and 534 closed to 2.84 and 3.10 tiles
+        out of the stance): the stance's running walk (`_stance_walk`: a seek's or the advance's walk round a wall,
+        `seek` or `advance`, or a seek's walk beyond AIM_R, `far`) gives way, so the stance leg resumes, once
+        - its target is no longer the Fight's (dead, re-pinned, unpinned), or (a walk sent within AIM_R) beyond
+          DISENGAGE_R;
+        - a seek's walk: another zombie is SEEK_SWITCH_R nearer than its target (`_seek_switch`: the next choose
+          re-pins to it, so a zombie closing inside KEEP_R is the stance's target);
+        - the walk beyond AIM_R: the target is within AIM_R (the stance takes it from there);
+        - the walk round a wall: the leg the target's distance calls for (`stance_leg_kind`) is no walk's (inside
+          KEEP_R, in reach, or no longer sought: a standing leg), or the straight line toward the target now passes
+          over STEER_PROBE (the aim)."""
+        a, zid, kind = self._stance_walk
+        t = self._target(pin=False)
+        if t is None or t[0] != zid:
+            return True
+        if kind != "advance" and self._seek_switch(t) is not None:
+            return True
+        if kind == "far":
+            return t[2] <= AIM_R
+        if t[2] > DISENGAGE_R or not self.stance_at(t[2]) or stance_leg_kind(t[2], self.advance, self.seeking(t)) not in ("toward", "seek"):
+            return True
+        mx, my = me_xy(self.world)
+        u = ((t[1]["x"] - mx) / t[2], (t[1]["y"] - my) / t[2])
+        return clear_heading(self.world, u, min(STEER_PROBE, t[2]))
 
     def stand_s(self):
         """Wall seconds the running stand has gone without progress, else None."""
@@ -683,9 +761,13 @@ class Fight(Policy):
         opening the gap the swing needs closed) once the leg the target's distance calls for (`stance_leg_kind`)
         differs from the running one: a standing leg inside KEEP_R or in the advance, a backpedal past KEEP_R +
         KEEP_MARGIN (the margin keeps the two from flapping at the line) or in the advance, an `enter` leg whose
-        target was knocked out of reach. A `toward` leg (the advance) holds until reach."""
+        target was knocked out of reach. A `toward` leg (the advance) holds until reach. The stance's own walk (a seek's
+        or the advance's) gives way as a leg does (`_walk_gives_way`, Task 18 fix 1, the review's blocker); any other
+        walk (the approach and swing's, a reposition) holds until it ends."""
         if not super().busy():
             return False
+        if self.last.type == "walkTo" and self._stance_walk is not None and self._stance_walk[0] is self.last:
+            return not self._walk_gives_way()
         if self.last.type != "aim":
             return True
         t = self._target(pin=False)
@@ -694,6 +776,8 @@ class Fight(Policy):
         if self._leg == "toward":
             return True
         want = stance_leg_kind(t[2], self.advance, self.seeking(t))
+        if want == "seek" and self._leg == "seek" and self._seek_switch(t) is not None:
+            return False   # Task 18 fix 1, the blocker: a nearer zombie; the next choose re-pins to it
         if self._leg == "back" and want == "stand":
             return t[2] <= KEEP_R + KEEP_MARGIN
         return want == self._leg
@@ -813,8 +897,11 @@ class Fight(Policy):
         self.target, self.repositioned = nz[0], False
 
     def _choose(self):
-        self._seek_send = False
+        self._seek_send, self._walk_kind = False, None
         self._repin_point_blank()
+        switch = self._seek_switch(self._pinned()) if self.seek and self.target is not None else None
+        if switch is not None:   # Task 18 fix 1, the blocker: the seek closes on the nearest
+            self.target, self.repositioned = switch[0], False
         t = self._target(pin=True)
         if t is None:
             self.why = {"target": None, "pinned": False}
@@ -829,6 +916,8 @@ class Fight(Policy):
         line = self._line(z) if d <= FIGHT_REACH and not blank else None
         self.why = {"target": zid, "pinned": True, "dist": d, "approach": self.approach, "line": line,
                     "reposition": None}
+        if switch is not None and zid == switch[0]:
+            self.why["seek_switch"] = True
         if line is False:
             sq = None if self.repositioned else self._reposition(z)
             if sq is None:   # a second blocked read, or no clear square: the target is unreachable, the next tried
@@ -849,6 +938,7 @@ class Fight(Policy):
             self._seek_send = self.seeking(t) and not self.approach   # P24-X: its failure marks the target
             if self._seek_send and d > AIM_R:           # beyond the aim's range the seek walks, never runs
                 self.why.update({"seek": True, "leg": "walk"})
+                self._walk_kind = "far" if self.standing() else None   # fix 1: it gives way within AIM_R
                 return WalkTo(*centre((z["x"], z["y"])), "walk")
             return WalkTo(*centre((z["x"], z["y"])), "run")
         hit = hit_reaction(self.world)
@@ -880,7 +970,7 @@ class Fight(Policy):
             if not clear_heading(self.world, u, min(STEER_PROBE, d)):
                 self.why.update({"stance": True, "leg": "walk", "stand_s": self.stand_s()})
                 self.why["advance" if kind == "toward" else "seek"] = True
-                self._seek_send = kind == "seek"
+                self._seek_send, self._walk_kind = kind == "seek", "seek" if kind == "seek" else "advance"   # fix 1
                 return WalkTo(*centre((z["x"], z["y"])), "walk")
             v = u
         elif kind == "back":
@@ -903,6 +993,7 @@ class Fight(Policy):
         elif cmd.TYPE == "walkTo":
             self.approach = False
             self._seek_walk = (action, self.target) if self._seek_send else None
+            self._stance_walk = (action, self.target, self._walk_kind) if self._walk_kind else None
         elif cmd.TYPE == "attack":
             self._attack_held = self._held_before
             if cmd.targetId != self._streak_id:   # a new target: its streak starts here

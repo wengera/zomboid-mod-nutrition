@@ -72,7 +72,11 @@ with every moved decision attributed in that task's report; never to make a fail
 Task 18 re-recorded all six under ruling P24-X (the fight sought within ENGAGE_R), each first moved at its line 1
 (the engage of the zombie listed 7 tiles from the fixture's spawn, where the record looted); `Survive.ENGAGE` off
 reproduces the files of 24987f2a byte for byte (`test_replay_decisions.PRE_X`), so the tests pinning an earlier
-ruling's line read it there (`pre_x`).
+ruling's line read it there (`pre_x`). Task 18 fix 1 re-recorded all six under the review's major 2 (the engage
+only of a zombie it reaches: the spawn's idle zombie on unscanned ground no longer engaged, each golden moving first
+at its first reachable engage, `test_replay_decisions.FIRST_ENGAGE`), ruling 2 (no seek from held ground nor at a
+chaser across a fence: E2 and E3, three lines) and the blocker (the stance's walk giving way: the sixth from line
+111); `ENGAGE` off still reproduces 24987f2a's.
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

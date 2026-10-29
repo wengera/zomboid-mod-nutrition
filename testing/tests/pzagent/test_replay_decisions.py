@@ -755,22 +755,31 @@ def test_with_engage_off_the_goldens_are_iteration_7_s(key):
     assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
 
 
+# the first line P24-X (as Task 18 fix 1 narrowed it) moves on each golden, and the zombie it engages there
+FIRST_ENGAGE = {"e2": (67, 12787), "e3": (68, 14910), "e4": (247, 19001), "e5": (68, 19223), "f1": (100, 15885),
+                SIXTH: (100, 15885)}
+
+
 @pytest.mark.parametrize("key", sorted(PRE_X))
-def test_p24_x_moves_every_golden_first_at_line_1_the_engage_where_the_record_looted(key):
-    """Every artifact starts at the fixture's spawn with one zombie listed 7.0 tiles off (none within DANGER_R): the
-    record's goal looted there (F1's held); with P24-X the threat branch engages it on line 1, the first moved line
-    of every golden (the faithful one; the episode after it is open loop). On the five PZA/1.4-caps goldens the fight
-    walks to it at a run (no stance); on the sixth the seek finds the toward line blocked over STEER_PROBE and walks
-    round the wall at a walk."""
+def test_p24_x_moves_every_golden_first_at_its_first_engage_where_the_record_s_goal_ran(key):
+    """Named change, Task 18 fix 1 (the review's major 2 and ruling 2): Task 18 moved every golden first at line 1,
+    the engage of the zombie listed 7.0 tiles from the fixture's spawn; that zombie stands idle on ground the first
+    frame's map does not hold, and the spawn is a room square, so it is no longer engaged
+    (`test_survive_h.test_the_spawn_engage_in_every_golden_is_neither_engaged_nor_sought`). Each golden now moves
+    first where the record's goal ran with a zombie within ENGAGE_R the engage reaches (the faithful line; the episode
+    after it is open loop): a fight on it, the approach at a run on the five PZA/1.4 builds, the seek's walk round a
+    wall at a walk on the sixth."""
     g, pre = gold(key), pre_gold(key)
     first = min(k for k in set(g) | set(pre) if g.get(k) != pre.get(k))
-    assert first == 1 and 1 not in pre
-    w = g[1]["why"]
-    assert g[1]["branch"] == "threat" and w["fight"] is True and w["dist"] == 7.0
+    line, zid = FIRST_ENGAGE[key]
+    assert first == line and line not in pre and 1 not in g
+    w = g[line]["why"]
+    assert g[line]["branch"] == "threat" and w["fight"] is True and w["target"] == zid
+    assert w["dist"] > P.DANGER_R and w["dist"] <= P.ENGAGE_R
     if key == SIXTH:
-        assert g[1]["action"]["args"]["gait"] == "walk" and w["seek"] is True and w["leg"] == "walk"
+        assert g[line]["action"]["args"]["gait"] == "walk" and w["seek"] is True and w["leg"] == "walk"
     else:
-        assert g[1]["action"]["type"] == "walkTo" and g[1]["action"]["args"]["gait"] == "run" and "seek" not in w
+        assert g[line]["action"]["type"] == "walkTo" and g[line]["action"]["args"]["gait"] == "run" and "seek" not in w
 
 
 @pytest.mark.parametrize("key", sorted(PRE_X))
@@ -802,3 +811,18 @@ def test_on_every_golden_no_goal_runs_while_a_fight_is_sought(key):
         sv._goal = goal
     R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=watch_pre)
     assert any(x is not None for x in pre)   # before P24-X the goal ran with a fight to seek
+
+
+def test_the_sixth_golden_s_seek_walk_round_the_wall_gives_way_at_the_first_tick_inside_keep_r(monkeypatch):
+    """Task 18 fix 1, the review's blocker on the sixth golden: the seek's walk round the wall on 15885 (line 100,
+    9.48 tiles) holds while its target stays beyond KEEP_R and gives way at line 111, the first tick inside it (2.46
+    tiles): the backpedal, iteration 7's stance. The mutant (the walk never gives way) moves the golden first there."""
+    g = gold(SIXTH)
+    assert g[100]["action"]["type"] == "walkTo" and g[100]["why"]["seek"] is True
+    held = [k for k in range(101, 111) if g[k]["why"].get("holding") == "a12"]
+    assert held == list(range(101, 111))
+    assert g[111]["why"]["leg"] == "back" and g[111]["why"]["dist"] <= P.KEEP_R
+    monkeypatch.setattr(P.Fight, "_walk_gives_way", lambda self: False)
+    moved = {d["line"]: d for d in R.run(run_dir(SIXTH), caps=R.HELLO_CAPS[SIXTH])}
+    diff = [k for k in sorted(set(g) | set(moved)) if g.get(k) != moved.get(k)]
+    assert diff[0] == 111 and moved[111]["why"]["holding"] == "a12"

@@ -204,6 +204,15 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   (`flee_health`) keeps the refight margin, and a `many` episode stays `many` while its nearest is within DANGER_R
   (P23-AM 1, read as P24-X's "no `many` live"). The goal branch never runs while such a fight is to be sought.
   `ENGAGE` and `SEEK` are class switches, the replay tests' seams onto the rules before P24-X.
+  Task 18 fix 1 (the review's blocker, major 2 and ruling 2): only a zombie the engage reaches is engaged
+  (`_engageable`: on the character's side of a building's walls, and chasing, or its line clear, or a square beside
+  it in the player's bounded flood, `_reach`; one that is not is marked `unsought` for UNREACHABLE_S and logged, and
+  the goal runs: E4's gate zombie, the spawn's idle zombie on unscanned ground); a running fight with nothing left
+  within DANGER_R that it may engage ends (`_released`), and never pins anew beyond DANGER_R a zombie no engage
+  reaches (`avoid`); a character holding ground (`_chokepoint`: on a room or door square) never seeks, the stance
+  standing there, and with no stance (a PZA/1.4 build, trapped) engages nothing; a chasing target across a known
+  fence is not sought (`policies.seek_allowed`). The Fight's seek closes on the nearest zombie and its walks give way
+  as its legs do (`policies.Fight._walk_gives_way`, `_seek_switch`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -280,10 +289,10 @@ from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, DRY_R
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, ENGAGE_R, FIGHT_MAX_S,
-                                         FIGHT_REACH, KEEP_R, LISTED_R, POINT_BLANK_R, PREEMPTED, STUCK_REASONS, Fight, Flee, adoptable,
-                                         blocked,
-                                         exit_plan, in_building, in_reach, item_id_ok, line_to, others_behind, spare,
-                                         target_id_ok, zdist)
+                                         FIGHT_REACH, LISTED_R, POINT_BLANK_R, PREEMPTED, STUCK_REASONS,
+                                         UNREACHABLE_S, Fight, Flee, adoptable, blocked, chasing, exit_plan,
+                                         in_building, in_reach, item_id_ok, line_to, others_behind, seek_allowed,
+                                         spare, target_id_ok, zdist)
 from agent.base.planner.view import view
 from agent.base.pza1 import Consume, Drop, Fill
 from agent.base.world import me_floor, me_xy
@@ -383,6 +392,9 @@ class Survive:
                                   # care yield's closing read (Task 12 fix 1), CARE_STILL_TICKS + 1 of them
         self._observed = []       # the policies observed this tick (each once: P24-A (g))
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
+        self.unsought = {}        # zombie id -> wall until no engage re-reads its reach (`_engageable`, Task 18 fix 1)
+        self.avoid = set()        # this tick: the ids within the hold no engage reaches (`_engageable`), else empty
+        self._flood = None        # (map version, player square, squares): the engage's bounded flood (`_reach`)
         self.dead = {}            # zombie id -> wall until it is skipped, read dead (policies.Fight, Task 12 fix 1)
         self.night = Night(world, actions, clock)
         # one shun store: the goals' Shelter shuns into the night's (Task 13 fix 1, M6), so neither re-tries the other's
@@ -674,11 +686,63 @@ class Survive:
         near = self._within(ENGAGE_R)
         if not near or not self._takes_on(len(near)) or self._many_read(near, len(self._within(DANGER_R)))[0]:
             return None
+        if self._chokepoint() and not self._stance_ok(near, self.night.inside()):
+            return None   # Task 18 fix 1, ruling 2: held ground with no stance (a PZA/1.4 build, trapped) never walks
         skip = self._skipped()
-        if not any(target_id_ok(zid) and zid not in skip and any(z is h for h in near)
-                   for zid, z in self.world.zombies.items()):
+        held = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in skip
+                and any(z is h for h in near)]
+        self.avoid = {zid for zid, z in held if not self._engageable(zid, z)}
+        if all(zid in self.avoid for zid, _ in held):
             return None
         return near
+
+    def _side(self, z):
+        """The building whose room square position-record `z` ((x, y) keys) stands on, else None (outside, a door
+        square or unmapped)."""
+        s = self.world.map.get((int(math.floor(z["x"])), int(math.floor(z["y"])), me_floor(self.world))) or {}
+        return s.get("building") if s.get("room") is not None else None
+
+    def _chokepoint(self):
+        """The character holds ground (Task 18 fix 1, the review's ruling 2): it stands on a room square or a door
+        square, where the stance stands and lets a zombie come (no seek: `policies.seek_allowed`)."""
+        mx, my = me_xy(self.world)
+        sq = self.world.map.get((int(math.floor(mx)), int(math.floor(my)), me_floor(self.world))) or {}
+        return sq.get("room") is not None or sq.get("door") is not None
+
+    def _reach(self):
+        """The squares the player's bounded flood reaches (`World.flood` within ENGAGE_R + 2 tiles: the open steps, a
+        closed or locked door shut, a hoppable fence open), read once per map version and player square."""
+        mx, my = me_xy(self.world)
+        sq = (int(math.floor(mx)), int(math.floor(my)), me_floor(self.world))
+        key = (self.world.map_version, sq)
+        if self._flood is None or self._flood[0] != key:
+            r = ENGAGE_R + 2.0
+            self._flood = (key, self.world.flood(sq, limit=int(4 * (r + 1) ** 2), r=r))
+        return self._flood[1]
+
+    def _engageable(self, zid, z):
+        """Task 18 fix 1 (the review's major 2 and ruling 2; E4's gate zombie 19001 sought every UNREACHABLE_S behind a
+        locked gate, 152 `stalled` lines): zombie `z` (id `zid`) may be engaged within ENGAGE_R: on the character's
+        side of a building's walls (`_side`: neither inside a building the character is outside of, a locked or
+        unentered one, nor outside one the character shelters in, at night or not), and chasing, or with its line
+        clear (`line_to` True), or a square beside it (or its own) in the player's bounded flood (`_reach`). One that
+        is not is marked in `unsought` for UNREACHABLE_S (no flood re-read meanwhile; a chase or a clear line still
+        engages it at once), so the goal it would supersede runs on."""
+        mx, my = me_xy(self.world)
+        if self._side(z) != self._side({"x": mx, "y": my}):
+            return False
+        if chasing(z) or line_to(self.world, z) is True:
+            return True
+        now = self.clock()
+        if self.unsought.get(zid, 0.0) > now:
+            return False
+        floor = me_floor(self.world)
+        own = (int(math.floor(z["x"])), int(math.floor(z["y"])), floor)
+        reach = self._reach()
+        if own in reach or any(sq in reach for sq in self.world.reachable_adjacent((z["x"], z["y"]), floor)):
+            return True
+        self.unsought[zid] = now + UNREACHABLE_S
+        return False
 
     def _stance_ok(self, held, inside):
         """Ruling P24-G 1, the standing fight: the build announces `aim` (`World.can`), a weapon in hand, one held
@@ -704,7 +768,7 @@ class Survive:
         else:
             nz = self.world.nearest_zombie(exclude=self._skipped())
             t = None if nz is None else (nz[0], nz[1], zdist(self.world, nz[1]))
-            seek = self._seeks() and t is not None and t[2] > KEEP_R   # P24-X: every new Fight is sought
+            seek = self._seeks() and t is not None and seek_allowed(self.world, t, self._chokepoint())   # P24-X
             stand = self._stance_ok(self._within(self._hold_r()), self.night.inside())
         if t is None:
             return []
@@ -1093,16 +1157,20 @@ class Survive:
         """The tick's bookkeeping, once (ruling P24-A (g)): the held list, the Flee's observe and the breach's closing
         count; then the yield to the care (`_care_yields`, P24-P), else the decision (`_decide`), which a corner's
         retarget may re-plan without them."""
-        self.care_yield, self.care.ride_now, self.engaging = None, False, False
+        self.care_yield, self.care.ride_now, self.engaging, self.avoid = None, False, False, set()
         held = self._within(self._hold_r())
         sought = self._sought() if self.ENGAGE else None
         if sought:   # P24-X: one or two within ENGAGE_R, the fight sought
             held, self.engaging = sought, True
+        elif held and self._released(held):   # Task 18 fix 1, major 2: nothing left the fight may reach
+            held = []
         if not held:
             self.mode, self.fight, self.flee = None, None, None
             self._end_flee_episode()
             self.sheltered, self.cornered, self.closing = False, None, (0, None)
             self.stuck_heading, self._nearest_seen = None, []
+            if self.avoid:   # Task 18 fix 1: the zombies within ENGAGE_R no engage reaches, logged as the goal runs
+                self.why = {"unsought": sorted(self.avoid, key=repr)}
             return None
         self._nearest_seen = (self._nearest_seen + [self._nearest_listed()])[-(CARE_STILL_TICKS + 1):]
         if self.flee is not None:   # a shelter or exit step's end read before the hold (the close may have ended),
@@ -1166,6 +1234,8 @@ class Survive:
         else:
             policy.only = None if door is None else {zid for zid, _ in door}
             policy.stance = self._stance_ok(held, self.night.inside())   # P24-G 1 (no corner or door Fight stands)
+            policy.hold_ground = self._chokepoint()   # Task 18 fix 1, ruling 2: no seek from a room or door square
+            policy.avoid = self.avoid                 # ... nor at a zombie no engage reaches (major 2)
             policy.ride = self.care.riding()   # P24-U: the stance legs held off while a bandage rides
             policy.threats = held
             ans = self._answer(policy)
@@ -1186,6 +1256,8 @@ class Survive:
             self.why["cornered"], self.why["corner_kind"] = self.cornered, self.corner_kind   # P24-A (g), M2
         if self.group_steer is not None:
             self.why["group"] = self.group_steer
+        if self.avoid and want == "fight":
+            self.why["unsought"] = sorted(self.avoid, key=repr)
         for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed)):
             if v is not None:
                 self.why[key] = v
@@ -1195,6 +1267,24 @@ class Survive:
         if ride is not None:
             self.why["ride"] = ride.aid   # P24-U: a bandage rides the leg this answer holds or re-aims
         return ans if ans is not None else (policy, None)
+
+    def _released(self, held):
+        """Task 18 fix 1 (the review's major 2: E4's fight on gate zombie 19001 held the goal off behind a locked
+        gate): a running fight (neither a corner's nor a door fight) with no held threat within DANGER_R and none of
+        the held ones it may engage (`_engageable`; one marked unreachable or read dead counted out) ends, and the goal
+        runs: the release of P24-X's engage, as it was entered. Sets `avoid`, the held ids beyond DANGER_R no engage
+        reaches (the Fight never pins one anew: `Fight.avoid`). Only with `ENGAGE` on."""
+        f = self.fight
+        if not self.ENGAGE or self.mode != "fight" or f is None or f.point_blank or f.only is not None:
+            return False
+        ids = {id(z): zid for zid, z in self.world.zombies.items()}
+        pairs = [(ids.get(id(z)), z) for z in held]
+        self.avoid = {zid for zid, z in pairs if target_id_ok(zid) and zdist(self.world, z) > DANGER_R
+                      and not self._engageable(zid, z)}
+        if any(zdist(self.world, z) <= DANGER_R for z in held):
+            return False
+        skip = self._skipped() | self.avoid
+        return all(not target_id_ok(zid) or zid in skip for zid, _ in pairs)
 
     def _door_targets(self):
         """(id, zombie) of each reachable held threat standing in the sheltered building's doorway or inside it
