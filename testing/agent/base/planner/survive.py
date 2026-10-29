@@ -189,6 +189,21 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      step climbs it (`climb`) and walks on; the flood and the path follower's own
      climbs need nothing; no steer or backpedal ever crosses a hoppable edge (`policies.clear_heading`), so nothing
      vaults. 5: no look-around (jar reads 2 § 6: the frames list every zombie whatever the facing).
+- Survival 8, the fight sought (ruling P24-X, Plan 24 Task 18; E7, `e_day_7-20261029-140813`, killed nothing in 227
+  game minutes: its three fights fled a group listed within 12 tiles, and of the 1420 lines the replay aligns the
+  goal ran on 160 with one or two zombies listed within 10 tiles and none within 6, on 47 of them one chasing;
+  Angus: "he completely forgets zombies are nearby"): with no threat policy running, one or two zombies listed
+  within `policies.ENGAGE_R` (10), a weapon in hand, health at or above `_fight_line` (FLEE_HEALTH for one, FLEE_HEALTH_PAIR for two, a pair only
+  unwounded: `_takes_on`), no `many` reason (`_many_read`) and one of them a target (`_sought`; never while the
+  night's Sleep is current), the threat branch holds them all (`engaging`, the hold radius ENGAGE_R that tick) and
+  fights: every Fight it makes but the door fight's is sought (`Fight.seek`: a `seek` stance leg toward the target
+  until it comes within KEEP_R, then iteration 7's stance; a walk at a walk beyond AIM_R), and the look behind
+  (P24-A (b)) reads the seek as a walk but never the one or two it was sought against. A flee turns to fight one or
+  two held at the fight's line (`_hysteresis`'s `held` rule is `_takes_on`; before, any second held zombie, or one
+  under FLEE_HEALTH + REFIGHT_MARGIN, kept it), once its own running leg ends (`flip`); a `health` episode
+  (`flee_health`) keeps the refight margin, and a `many` episode stays `many` while its nearest is within DANGER_R
+  (P23-AM 1, read as P24-X's "no `many` live"). The goal branch never runs while such a fight is to be sought.
+  `ENGAGE` and `SEEK` are class switches, the replay tests' seams onto the rules before P24-X.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -264,8 +279,8 @@ from agent.base.items import days_fresh
 from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, DRY_REASONS, RIDE_FREE, RIDE_R, Care
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
-from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH,
-                                         LISTED_R, POINT_BLANK_R, PREEMPTED, STUCK_REASONS, Fight, Flee, adoptable,
+from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, ENGAGE_R, FIGHT_MAX_S,
+                                         FIGHT_REACH, KEEP_R, LISTED_R, POINT_BLANK_R, PREEMPTED, STUCK_REASONS, Fight, Flee, adoptable,
                                          blocked,
                                          exit_plan, in_building, in_reach, item_id_ok, line_to, others_behind, spare,
                                          target_id_ok, zdist)
@@ -325,6 +340,10 @@ def _key(typ, args):
 
 
 class Survive:
+    ENGAGE = True   # ruling P24-X: one or two within ENGAGE_R are sought, a flee turns to fight at the fight's line
+    SEEK = True     # ruling P24-X: every fight it engages (the door fight aside) is sought to KEEP_R; both switches
+                    # are the replay tests' seams onto the rules before P24-X (`test_replay_decisions.pre_x`)
+
     def __init__(self, world, actions, log_path, clock=time.time, source=None):
         self.world = world
         self.actions = actions
@@ -336,6 +355,9 @@ class Survive:
         self.stall_flee = False   # the running flee was chosen because a fight stalled
         self.flee_dropped = False  # the running flee episode sent its one load drop
         self.flee_many = False    # the running flee episode's reason was `many` (P23-AM 1: it stays a flee)
+        self.flee_health = False  # the running flee episode's reason was `health` (P24-X: the health flee stays)
+        self.engaging = False     # this tick: the threat branch was entered by the sought fight (P24-X), no zombie
+                                  # within DANGER_R
         self.group_steer = None   # this tick: why a group at melee range is steered from, not cornered (`_group`:
                                   # "near" or "hold", P23-AM 4 and AP 2; "retry", a stuck corner's leg), else None
         self.sheltered = False    # a flee's shelter plan ended inside: a threat whose line clears is fought (P23-AG)
@@ -393,7 +415,11 @@ class Survive:
                 and z.get("x") is not None and z.get("y") is not None and zdist(self.world, z) <= r]
 
     def _hold_r(self):
-        return DISENGAGE_R if self.mode is not None else DANGER_R
+        """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
+        branch (P24-X), else DANGER_R."""
+        if self.mode is not None:
+            return DISENGAGE_R
+        return ENGAGE_R if self.engaging else DANGER_R
 
     def _health(self):
         h = (self.world.body or {}).get("health")
@@ -581,15 +607,25 @@ class Survive:
         reason was `many` runs (P23-AM 1: E3's flee under a group ended the tick its count fell back to DANGER_R's,
         four times in 8 s), the hold radius's count over MAX_FIGHT or the nearest held threat within DANGER_R.
         Whatever those read, MANY_LISTED_N or more listed within LISTED_R (ruling P24-A (a)) is `many`, `listed` that
-        count when it alone made it (else None)."""
+        count when it alone made it (else None); since P24-X only when more than MAX_FIGHT of them press
+        (`_pressing`: within ENGAGE_R or chasing), so one or two fought while the rest stand off is no group."""
         if self.mode == "flee" and self.flee_many:
             near = len(held) > MAX_FIGHT or min(zdist(self.world, z) for z in held) <= DANGER_R
         else:
             near = (len(held) if self.mode == "fight" else n) > MAX_FIGHT
         if near:
             return True, None
-        listed = len(self._within(LISTED_R))
-        return (True, listed) if listed >= MANY_LISTED_N else (False, None)
+        listed = self._within(LISTED_R)
+        if len(listed) < MANY_LISTED_N or (self.ENGAGE and self._pressing(listed) <= MAX_FIGHT):
+            return False, None
+        return True, len(listed)
+
+    def _pressing(self, zs):
+        """Of `zs`, the zombies within ENGAGE_R or chasing (`hasTarget`): P24-X's reading of the listing (the E7
+        write-up, Task 18: each of E7's fights fled four or more listed within LISTED_R, two of them standing off at
+        11.6 and 11.8 tiles, not chasing, while the pair the fight was on came; E5's horde at line 220 had three of
+        five pressing, 4.9 tiles off and two chasing at 10.4 and 11.3)."""
+        return sum(1 for z in zs if zdist(self.world, z) <= ENGAGE_R or z.get("hasTarget") is True)
 
     def _many(self, held, n):
         """`_many_read`'s `many`, its `listed` kept for the decision's why (logged `listed`)."""
@@ -607,13 +643,46 @@ class Survive:
             return "held"
         return reason
 
+    def _seeks(self):
+        """A new Fight is sought (P24-X): both switches on."""
+        return self.ENGAGE and self.SEEK
+
+    def _fight_line(self, k):
+        """The least health at which `k` held threats are fought: FLEE_HEALTH_PAIR for two, else FLEE_HEALTH."""
+        return FLEE_HEALTH_PAIR if k == 2 else FLEE_HEALTH
+
+    def _takes_on(self, k):
+        """Ruling P24-X's one predicate (the engage and a flee's turn to fight read it): armed, one or two held
+        (`MAX_FIGHT`), health at or above `_fight_line`, and a pair only with no wound (Plan 23 Task 10)."""
+        return (self._armed() and 1 <= k <= MAX_FIGHT and self._health() >= self._fight_line(k)
+                and not (k >= 2 and self._wounds() > 0))
+
+    def _sought(self):
+        """Ruling P24-X (E7: zero kills, the goal running on 160 of its 1420 replayed lines with one or two zombies
+        listed within 10 tiles): the zombies listed within ENGAGE_R when, with no threat policy running, the fight is
+        sought: one or two of them (`_takes_on`), no `many` reason (`_many_read`: the DANGER_R count, MANY_LISTED_N
+        listed within LISTED_R), one of them a target (neither marked unreachable nor read dead), and no night's Sleep
+        current (a sleeper is woken only within DANGER_R, as before); else None. The branch then holds all of them
+        (`engaging`: the hold radius ENGAGE_R this tick), so the second of a pair within ENGAGE_R is the fight's, not a
+        group behind it."""
+        if self.mode is not None or self._sleeping() is not None:
+            return None
+        near = self._within(ENGAGE_R)
+        if not near or not self._takes_on(len(near)) or self._many_read(near, len(self._within(DANGER_R)))[0]:
+            return None
+        skip = self._skipped()
+        if not any(target_id_ok(zid) and zid not in skip and any(z is h for h in near)
+                   for zid, z in self.world.zombies.items()):
+            return None
+        return near
+
     def _stance_ok(self, held, inside):
         """Ruling P24-G 1, the standing fight: the build announces `aim` (`World.can`), a weapon in hand, one held
         threat with health at or above FLEE_HEALTH or two with it at or above FLEE_HEALTH_PAIR, and the character
         not trapped on a room square (`_trapped`: the corner rules stay for a stuck or trapped character)."""
         if not (self.world.can("aim") and self._armed() and 1 <= len(held) <= MAX_FIGHT):
             return False
-        if self._health() < (FLEE_HEALTH_PAIR if len(held) == 2 else FLEE_HEALTH):
+        if self._health() < self._fight_line(len(held)):
             return False
         return not self._trapped(held, inside)
 
@@ -626,18 +695,25 @@ class Survive:
         f = self.fight if self.mode == "fight" else None
         if f is not None:
             t = f._target(pin=False)
+            seek = f.seeking(t)
             stand = f.standing() and not f.advance   # P24-N: the advance closes on the target, a walk toward it
         else:
             nz = self.world.nearest_zombie(exclude=self._skipped())
             t = None if nz is None else (nz[0], nz[1], zdist(self.world, nz[1]))
+            seek = self._seeks() and t is not None and t[2] > KEEP_R   # P24-X: every new Fight is sought
             stand = self._stance_ok(self._within(self._hold_r()), self.night.inside())
         if t is None:
             return []
         zid, z, d = t
-        stand = stand and d <= AIM_R   # Task 10 fix 2: beyond the aim's range the Fight walks toward it
+        stand = stand and d <= AIM_R and not seek   # Task 10 fix 2: beyond the aim's range the Fight walks toward
+                                                    # it; P24-X: the seek closes on it, a walk toward it
         walk = not (stand and d > FIGHT_REACH) and (   # P24-G 1: a standing fight never walks beyond reach
             d > FIGHT_REACH or (f is not None and f.approach and d > POINT_BLANK_R) or line_to(self.world, z) is False)
         ids = others_behind(self.world, zid, z) if walk else []
+        if seek:   # P24-X: the one or two the fight was sought against are the fight, not a group behind it, and
+            held = self._within(self._hold_r())   # one standing off beyond them (not chasing) is no group either
+            ids = [i for i in ids if not any(self.world.zombies.get(i) is h for h in held)
+                   and self.world.zombies.get(i, {}).get("hasTarget") is True]
         if ids:
             self.behind = ids
         return ids
@@ -660,7 +736,11 @@ class Survive:
         if self.mode == "flee":
             if self.stall_flee and near > FIGHT_REACH:
                 return "stalled"
-            if len(held) > 1 or health < FLEE_HEALTH + REFIGHT_MARGIN:
+            if not self.ENGAGE:   # before P24-X: one held, at the refight margin
+                return "held" if len(held) > 1 or health < FLEE_HEALTH + REFIGHT_MARGIN else None
+            if not self._takes_on(len(held)):   # P24-X: the flee turns to fight one or two at the fight's line
+                return "held"
+            if self.flee_health and health < FLEE_HEALTH + REFIGHT_MARGIN:   # the health flee stays, its margin kept
                 return "held"
             return None
         if self.mode == "fight" and self.fight.stalled and (self.fight.target_dist() or 0.0) > FIGHT_REACH:
@@ -928,8 +1008,9 @@ class Survive:
         return "fight", None
 
     def _end_flee_episode(self):
-        """A flee episode's own flags cleared: its stall origin, its one load drop and its `many` (P23-AM 1)."""
-        self.stall_flee, self.flee_dropped, self.flee_many = False, False, False
+        """A flee episode's own flags cleared: its stall origin, its one load drop, its `many` (P23-AM 1) and its
+        `health` (P24-X)."""
+        self.stall_flee, self.flee_dropped, self.flee_many, self.flee_health = False, False, False, False
 
     def _nearest_listed(self):
         """(id, tiles) of the nearest listed zombie with a position (ties by the listing's order), one read dead left
@@ -1008,8 +1089,11 @@ class Survive:
         """The tick's bookkeeping, once (ruling P24-A (g)): the held list, the Flee's observe and the breach's closing
         count; then the yield to the care (`_care_yields`, P24-P), else the decision (`_decide`), which a corner's
         retarget may re-plan without them."""
-        self.care_yield, self.care.ride_now = None, False
+        self.care_yield, self.care.ride_now, self.engaging = None, False, False
         held = self._within(self._hold_r())
+        sought = self._sought() if self.ENGAGE else None
+        if sought:   # P24-X: one or two within ENGAGE_R, the fight sought
+            held, self.engaging = sought, True
         if not held:
             self.mode, self.fight, self.flee = None, None, None
             self._end_flee_episode()
@@ -1050,6 +1134,7 @@ class Survive:
         elif want != self.mode:
             if want == "fight":
                 self.fight = Fight(self.world, self.actions, self.clock, unreachable=self.unreachable, dead=self.dead)
+                self.fight.seek = self._seeks() and door is None   # P24-X: every fight but the door's is sought
                 if door is None:
                     self.flee = None   # a door fight keeps the sheltered Flee for the re-close
                 self._end_flee_episode()
@@ -1065,6 +1150,7 @@ class Survive:
         policy = self.fight if want == "fight" else self.flee
         if want == "flee":
             self.flee_many = self.flee_many or reason == "many"
+            self.flee_health = self.flee_health or reason == "health"
             policy.threats = held
             policy.hold_ok = breach is None
             policy.steer_now = self.group_steer is not None
@@ -1304,6 +1390,7 @@ class Survive:
         self._check_fills()
         self._uses = None
         self.goals.observe(world, actions)
+        self.engaging = False   # P24-X: set again by this tick's threat branch
         inputs = self._inputs()
         kill = None
         if self.fight is not None:

@@ -68,7 +68,11 @@ target and health sequences, and that no rule raises on a real record. The care 
 exercised there (F1's parts decode `bleeding` None and its squares carry no `water`). The re-record
 rule (CLAUDE.md § 6, golden trace): a golden is re-recorded only under a named behaviour change of the planner, in the
 commit of the task whose change reaches it (`python -m agent.base.replay_decisions --write <key>` from `testing/`),
-with every moved decision attributed in that task's report; never to make a failing test pass otherwise.
+with every moved decision attributed in that task's report; never to make a failing test pass otherwise. Plan 24
+Task 18 re-recorded all six under ruling P24-X (the fight sought within ENGAGE_R), each first moved at its line 1
+(the engage of the zombie listed 7 tiles from the fixture's spawn, where the record looted); `Survive.ENGAGE` off
+reproduces the files of 24987f2a byte for byte (`test_replay_decisions.PRE_X`), so the tests pinning an earlier
+ruling's line read it there (`pre_x`).
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

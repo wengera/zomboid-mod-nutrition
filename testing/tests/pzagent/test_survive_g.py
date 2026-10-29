@@ -24,6 +24,15 @@ def stance_args(r):
     return a
 
 
+@pytest.fixture
+def unsought(monkeypatch):
+    """Named change, ruling P24-X (Plan 24 Task 18): every Fight Survive engages is sought to KEEP_R
+    (`test_survive_h`), its first legs `seek` legs toward the target; the cases of iteration 7's stance beyond KEEP_R
+    (the stand, its clock, the advance, the look behind) pin it on a Fight whose seek is off, as after a seek that
+    reached KEEP_R (`Fight.sought`)."""
+    monkeypatch.setattr(S.Survive, "SEEK", False)
+
+
 # ================================================================ the constants
 def test_the_stance_constants():
     """Named change (ruling P24-N, Task 12): KEEP_R replaces P24-M's BACKPEDAL_BAND and the closing read's
@@ -37,16 +46,17 @@ def test_the_stance_constants():
 # ================================================================ the stance against one (P24-N)
 def test_one_zombie_at_four_tiles_is_met_standing_then_backpedalled_inside_keep_r_then_swung_at(tmp_path):
     """P24-N (named change of the P24-M case): one held at 4 tiles, armed, full health: `aim` facing it for
-    AIM_LEG_S, standing (beyond KEEP_R it is let come); the standing leg holds while the target stays beyond KEEP_R
-    and gives way the tick it comes inside (2.2 tiles): the next leg backpedals along the away vector (west, the zombie
-    east of the player); within reach the `attack` goes from the stance (the running leg gives way)."""
+    AIM_LEG_S; the leg holds while the target stays beyond KEEP_R and gives way the tick it comes inside (2.2 tiles):
+    the next leg backpedals along the away vector (west, the zombie east of the player); within reach the `attack`
+    goes from the stance (the running leg gives way). Named change, ruling P24-X: the first leg is the seek, (1, 0)
+    toward it (it stood, (0, 0), letting it come), `leg` "seek"; the rest is iteration 7's."""
     r, sv = make(tmp_path)
     r.frame(zombies=[zd(1, 104.0, 200.0)])
     tick(r, sv)
     a = stance_args(r)
-    assert a == {"vx": 0.0, "vy": 0.0, "seconds": 2.0, "targetId": 1, "bearing": -1.0}
+    assert a == {"vx": 1.0, "vy": 0.0, "seconds": 2.0, "targetId": 1, "bearing": -1.0}
     w = threat_why(tmp_path)
-    assert w["fight"] is True and w["stance"] is True and w["leg"] == "stand" and w["back"] is None
+    assert w["fight"] is True and w["stance"] is True and w["leg"] == "seek" and w["back"] is None
     sends = len(r.acts.history)
     r.advance(0.5)
     r.frame(zombies=[zd(1, 102.6, 200.0)])
@@ -67,7 +77,7 @@ def test_one_zombie_at_four_tiles_is_met_standing_then_backpedalled_inside_keep_
 
 @pytest.mark.parametrize("x, kind", [(106.0, "stand"), (102.55, "stand"), (102.5, "back"), (102.2, "back"),
                                      (102.01, "back")])
-def test_a_pinned_target_beyond_keep_r_is_stood_facing_and_inside_it_backpedalled_from(tmp_path, x, kind):
+def test_a_pinned_target_beyond_keep_r_is_stood_facing_and_inside_it_backpedalled_from(tmp_path, x, kind, unsought):
     """Ruling P24-N 2: beyond KEEP_R (6 and 2.55 tiles) the leg stands facing the target, (0, 0); inside it and
     beyond FIGHT_REACH (2.5, 2.2, 2.01) the leg backpedals along the away vector whatever the target's own move (a
     zombie that does not come is backed from as one that does: no closing read)."""
@@ -150,7 +160,7 @@ def test_a_stance_leg_ended_re_aims_and_backpedals_inside_keep_r_whatever_the_ta
     assert stance_args(r)["vx"] == -1.0 and threat_why(tmp_path)["back"] == [-1.0, 0.0]
 
 
-def test_a_first_leg_on_a_zombie_with_no_target_beyond_keep_r_stands(tmp_path):
+def test_a_first_leg_on_a_zombie_with_no_target_beyond_keep_r_stands(tmp_path, unsought):
     r, sv = make(tmp_path)
     r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False)])
     tick(r, sv)
@@ -253,7 +263,7 @@ def stand_legs(r, sv, n, x=104.0, health=1.0, dt=2.0):
         tick(r, sv)
 
 
-def test_a_stand_with_no_progress_in_stand_max_s_closes_in_the_stance_never_a_walk_at_a_run(tmp_path):
+def test_a_stand_with_no_progress_in_stand_max_s_closes_in_the_stance_never_a_walk_at_a_run(tmp_path, unsought):
     """Ruling P24-N 1 (named change of the P24-G fallback to the approach and swing): a stand-off (the zombie standing
     6 tiles off, never coming) after STAND_MAX_S without its health falling is closed on in the stance: an `aim` with
     the unit vector toward it (`advance`), never a `walkTo` at a run; the stall clock (FIGHT_MAX_S, the stalled flee)
@@ -302,7 +312,7 @@ def test_the_advance_with_its_line_blocked_walks_round_the_wall_at_a_walk(tmp_pa
     assert threat_why(tmp_path)["leg"] == "walk"
 
 
-def test_a_falling_target_health_restarts_the_stand_clock_and_ends_the_advance(tmp_path):
+def test_a_falling_target_health_restarts_the_stand_clock_and_ends_the_advance(tmp_path, unsought):
     """Named change (P24-N): the clock restarts on a hit; at STAND_MAX_S without one the advance (an aim toward,
     never a walk); a hit then ends the advance and the stand begins again."""
     r, sv = make(tmp_path)
@@ -377,7 +387,7 @@ def test_trapped_on_a_room_square_the_fight_keeps_the_approach_never_the_stance(
     assert r.cmd()[0] == "walkTo" and sv._trapped(sv._within(S.DANGER_R), True)
 
 
-def test_a_standing_fight_reads_no_walk_so_the_look_behind_its_target_does_not_flee(tmp_path):
+def test_a_standing_fight_reads_no_walk_so_the_look_behind_its_target_does_not_flee(tmp_path, unsought):
     """P24-A (b) reads the fight's walk: the stance does not walk beyond reach, so zombie 2 listed behind zombie 1
     (the E5 case of `test_survive`'s P24-A (b) test, there pinned on a PZA/1.4 build) does not turn it to a flee; after
     the stand-off fallback the Fight walks, and the look behind reads again."""
@@ -394,7 +404,7 @@ def test_a_standing_fight_reads_no_walk_so_the_look_behind_its_target_does_not_f
     assert r.cmd()[0] == "steer" and w["flee"] == "held" and w["behind"] == [2]
 
 
-def test_the_advance_reads_as_a_walk_so_the_look_behind_its_target_flees(tmp_path):
+def test_the_advance_reads_as_a_walk_so_the_look_behind_its_target_flees(tmp_path, unsought):
     """P24-N: the advance closes on the target (an aim toward it), so P24-A (b)'s look behind reads it as the walk
     it is: zombie 2 listed behind zombie 1 turns it to the `held` flee, as the approach walk did."""
     r, sv = make(tmp_path)
