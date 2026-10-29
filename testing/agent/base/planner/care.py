@@ -24,6 +24,9 @@ Its choose, the first that answers (`why` names the `reason`, the `part`, the `i
    (`World.water_sources`: the map's square `water` record with water in it, on the player's floor, not refused
    lately) within WASH_R: `Wash(itemId, x, y)`, the Lua walking next to it (a wash does not test the water's taint,
    #4301).
+Ruling P24-P (Plan 24 Task 12, E6: the health fell from 100 to 17.6 while a zombie was held, the one bandage sent on
+the first tick with none): the bleeding step also runs with a threat held, whenever the nearest listed zombie is
+beyond CARE_R (`tends_wound`, Survive's threat branch yielding to it; `wound_only` keeps the other steps out then).
 A garment is ripped only for a bleeding part (Task 10 fix 1, the review's major 2: ruling P24-G 2's rip is the
 wound's; a rip for stock destroyed looted clothing and, from above the need branch, superseded a running drink).
 An item whose care action ended failed (never `superseded`), timed out or was rejected is left out for
@@ -51,6 +54,8 @@ CARE_RETRY_MIN = 2.0      # game minutes an item whose care action was refused i
 DIRTY_RAG_MIN = 10.0      # a dirty rag goes on a part only when its bleedingTime exceeds this (P24-G 2): the engine's
                           # raw wound-time units, #4298 (a plain scratch about 2-9, generateBleeding), never minutes
 WASH_R = 15.0             # tiles: a dirty rag is washed at a known water source this near (P24-G 2)
+CARE_R = 4.0              # tiles: a bleeding part is tended with a threat held while the nearest zombie is beyond this
+                          # (ruling P24-P, Plan 24 Task 12: E6 bled from 100 to 17.6 health before its one bandage)
 KINDS = ("bandage", "rag", "dirty")              # care_kind's order of choice
 CLEAN_BANDAGES = ("Bandage", "AlcoholBandage", "Bandaid")
 CLEAN_RAGS = ("RippedSheets", "AlcoholRippedSheets", "DenimStrips", "LeatherStrips")
@@ -60,7 +65,8 @@ RIP_REFUSALS = ("worn", "not cotton", "needs tool")   # a rip refused so never s
 DRY_REASONS = ("no source", "no water")          # a wash or fill refused so leaves its source out a while
 FAILED = ("failed", "timeout", "rejected")
 
-__all__ = ["Care", "care_kind", "rippable", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "KINDS", "DRY_REASONS"]
+__all__ = ["Care", "care_kind", "rippable", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "KINDS",
+           "DRY_REASONS"]
 
 
 def care_kind(full_type):
@@ -94,6 +100,7 @@ class Care(Policy):
     def __init__(self, world, actions, clock=time.time):
         super().__init__(world, actions, clock)
         self.quiet = False
+        self.wound_only = False   # Survive sets it while a threat is held (P24-P): only the bleeding step answers
         self.sends = {}      # item id -> its last care Action
         self.held_out = {}   # item id -> world minute its care action was refused (CARE_RETRY_MIN)
         self.fresh = {}      # part index -> `World.frame_n` when its bandage's done was read (minor 6)
@@ -168,26 +175,43 @@ class Care(Policy):
         return min(ids) if ids else None
 
     # -- the choice -----------------------------------------------------------------------------------------------
+    def _wound(self, items, bleeding):
+        """The bleeding step, `(command, why)` or (None, None): the worst bleeding part's bandage with the best held
+        item, else with no rag of any kind held a garment's rip for it."""
+        w = self.world
+        if not bleeding or not w.can("bandage"):
+            return None, None
+        p = bleeding[0]
+        bt = p.get("bleedingTime") or 0.0
+        kinds = ("bandage", "rag", "dirty") if bt > DIRTY_RAG_MIN else ("bandage", "rag")
+        k = next((k for k in kinds if items[k]), None)
+        if k is not None:
+            return Bandage(items[k][0], part=p["i"]), {"reason": "bleeding", "part": p["i"], "item": items[k][0],
+                                                        "kind": k, "bleedingTime": bt, "deep": p.get("deep") is True}
+        if not any(items[k] for k in KINDS) and w.can("rip"):
+            rip = self._rip_item()
+            if rip is not None:
+                return Rip(rip), {"reason": "no_rag", "part": p["i"], "item": rip}
+        return None, None
+
+    def tends_wound(self):
+        """The bleeding step would send now (ruling P24-P: Survive's threat branch yields to it beyond CARE_R)."""
+        return self._wound(self._items(), self._bleeding())[0] is not None
+
     def choose(self):
-        """The next care command, or None (the module docstring's order)."""
+        """The next care command, or None (the module docstring's order); with `wound_only` (a threat held, P24-P)
+        the bleeding step alone."""
         w = self.world
         items = self._items()
         any_rag = any(items[k] for k in KINDS)
         bleeding = self._bleeding()
-        if bleeding and w.can("bandage"):
-            p = bleeding[0]
-            bt = p.get("bleedingTime") or 0.0
-            kinds = ("bandage", "rag", "dirty") if bt > DIRTY_RAG_MIN else ("bandage", "rag")
-            k = next((k for k in kinds if items[k]), None)
-            if k is not None:
-                self.why = {"reason": "bleeding", "part": p["i"], "item": items[k][0], "kind": k, "bleedingTime": bt,
-                            "deep": p.get("deep") is True}
-                return Bandage(items[k][0], part=p["i"])
-            if not any_rag and w.can("rip"):
-                rip = self._rip_item()
-                if rip is not None:
-                    self.why = {"reason": "no_rag", "part": p["i"], "item": rip}
-                    return Rip(rip)
+        cmd, why = self._wound(items, bleeding)
+        if cmd is not None:
+            self.why = why
+            return cmd
+        if self.wound_only:
+            self.why = {"bleeding": [p["i"] for p in bleeding], "wound_only": True}
+            return None
         clean = items["bandage"] + items["rag"]
         spent = self._spent()
         if spent and clean and w.can("bandage"):

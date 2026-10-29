@@ -1,4 +1,4 @@
-{"artifact": "f_goals-20261028-202437", "base": "8d73d87f", "decisions": [
+{"artifact": "f_goals-20261028-202437", "base": "8d579ba5", "decisions": [
 {"action": null, "branch": null, "gameMin": 570, "line": 61, "why": {}},
 {"action": {"args": {"gait": "run", "x": 10737.5, "y": 10645.5}, "type": "walkTo"}, "branch": "threat", "gameMin": 576, "line": 106, "why": {"approach": false, "dist": 5.903742343656125, "fight": true, "line": null, "pinned": true, "reposition": null, "target": 15885}},
 {"action": null, "branch": "threat", "gameMin": 576, "line": 107, "why": {"approach": false, "dist": 5.903742343656125, "fight": true, "holding": "a12", "line": null, "pinned": true, "reposition": null, "target": 15885}},
@@ -103,7 +103,7 @@
 {"action": {"args": {"targetId": 15911}, "type": "attack"}, "branch": "threat", "gameMin": 595, "line": 251, "why": {"approach": false, "dist": 1.2647464670017692, "fight": true, "line": true, "pinned": true, "reposition": null, "target": 15911, "unreachable": [15885]}},
 {"action": null, "branch": "threat", "gameMin": 595, "line": 252, "why": {"approach": false, "dist": 1.2647464670017692, "fight": true, "holding": "a24", "line": true, "pinned": true, "reposition": null, "target": 15911, "unreachable": [15885]}},
 {"action": {"args": {"targetId": 15911}, "type": "attack"}, "branch": "threat", "gameMin": 595, "line": 253, "why": {"approach": false, "dist": 0.9863619656942192, "fight": true, "line": true, "pinned": true, "reposition": null, "target": 15911, "unreachable": [15885]}},
-{"action": {"args": {"targetId": 15911}, "type": "attack"}, "branch": "threat", "gameMin": 595, "line": 254, "why": {"approach": false, "dist": 0.9725979094263004, "fight": true, "line": true, "pinned": true, "reposition": null, "target": 15911, "unreachable": [15885]}},
+{"action": {"args": {"targetId": 15911}, "type": "attack"}, "branch": "threat", "gameMin": 595, "line": 254, "why": {"approach": false, "dist": 0.9725979094263004, "fight": true, "kill": 15911, "line": true, "pinned": true, "reposition": null, "target": 15911, "unreachable": [15885]}},
 {"action": {"args": {"gait": "run", "x": 10721.5, "y": 10638.5}, "type": "walkTo"}, "branch": "threat", "gameMin": 596, "line": 255, "why": {"ended": null, "flee": "unreachable", "shelter": 2, "step": "approach"}},
 {"action": null, "branch": "threat", "gameMin": 596, "line": 256, "why": {"ended": null, "flee": "unreachable", "holding": "a27", "shelter": 2, "step": "approach"}},
 {"action": null, "branch": "threat", "gameMin": 596, "line": 257, "why": {"ended": null, "flee": "unreachable", "holding": "a27", "shelter": 2, "step": "approach"}},
@@ -157,7 +157,7 @@
 {"action": {"args": {"targetId": 15937}, "type": "attack"}, "branch": "threat", "gameMin": 606, "line": 330, "why": {"approach": false, "dist": 1.058484286458791, "fight": true, "line": true, "pinned": true, "reposition": null, "target": 15937, "unreachable": [15885]}},
 {"action": null, "branch": "threat", "gameMin": 606, "line": 331, "why": {"approach": false, "dist": 1.058484286458791, "fight": true, "holding": "a35", "line": true, "pinned": true, "reposition": null, "target": 15937, "unreachable": [15885]}},
 {"action": {"args": {"targetId": 15937}, "type": "attack"}, "branch": "threat", "gameMin": 606, "line": 332, "why": {"approach": false, "dist": 1.1462872155324615, "fight": true, "line": true, "pinned": true, "reposition": null, "target": 15937, "unreachable": [15885]}},
-{"action": {"args": {"targetId": 15937}, "type": "attack"}, "branch": "threat", "gameMin": 606, "line": 333, "why": {"approach": false, "dist": 1.0453165325092715, "fight": true, "line": true, "pinned": true, "reposition": null, "target": 15937, "unreachable": [15885]}},
+{"action": {"args": {"targetId": 15937}, "type": "attack"}, "branch": "threat", "gameMin": 606, "line": 333, "why": {"approach": false, "dist": 1.0453165325092715, "fight": true, "kill": 15937, "line": true, "pinned": true, "reposition": null, "target": 15937, "unreachable": [15885]}},
 {"action": null, "branch": null, "gameMin": 608, "line": 344, "why": {}},
 {"action": {"args": {"gait": "run", "x": 10732.5, "y": 10642.5}, "type": "walkTo"}, "branch": "threat", "gameMin": 610, "line": 360, "why": {"approach": false, "dist": 5.782115809586801, "fight": true, "line": null, "pinned": true, "reposition": null, "target": 15885}},
 {"action": null, "branch": "threat", "gameMin": 610, "line": 361, "why": {"approach": false, "dist": 5.782115809586801, "fight": true, "holding": "a40", "line": null, "pinned": true, "reposition": null, "target": 15885}},
@@ -197,7 +197,7 @@
 {"action": {"args": {"targetId": 15885}, "type": "attack"}, "branch": "threat", "gameMin": 622, "line": 451, "why": {"approach": false, "dist": 0.5450907346456937, "fight": true, "line": true, "pinned": true, "reposition": null, "target": 15885}},
 {"action": null, "branch": "threat", "gameMin": 622, "line": 452, "why": {"approach": false, "dist": 0.5450907346456937, "fight": true, "holding": "a53", "line": true, "pinned": true, "reposition": null, "target": 15885}},
 {"action": {"args": {"targetId": 15885}, "type": "attack"}, "branch": "threat", "gameMin": 622, "line": 453, "why": {"approach": false, "dist": 0.5450907346456937, "fight": true, "line": true, "pinned": true, "reposition": null, "target": 15885}},
-{"action": {"args": {"gait": "run", "x": 10728.5, "y": 10641.5}, "type": "walkTo"}, "branch": "threat", "gameMin": 622, "line": 454, "why": {"approach": false, "dist": 3.8036973984836067, "fight": true, "line": null, "pinned": true, "reposition": null, "target": 15910}},
+{"action": {"args": {"gait": "run", "x": 10728.5, "y": 10641.5}, "type": "walkTo"}, "branch": "threat", "gameMin": 622, "line": 454, "why": {"approach": false, "dist": 3.8036973984836067, "fight": true, "kill": 15885, "line": null, "pinned": true, "reposition": null, "target": 15910}},
 {"action": null, "branch": "threat", "gameMin": 622, "line": 455, "why": {"approach": false, "dist": 3.8036973984836067, "fight": true, "holding": "a55", "line": null, "pinned": true, "reposition": null, "target": 15910}},
 {"action": null, "branch": "threat", "gameMin": 622, "line": 456, "why": {"approach": false, "dist": 3.8036973984836067, "fight": true, "holding": "a55", "line": null, "pinned": true, "reposition": null, "target": 15910}},
 {"action": null, "branch": "threat", "gameMin": 623, "line": 457, "why": {"approach": false, "dist": 3.8036973984836067, "fight": true, "holding": "a55", "line": null, "pinned": true, "reposition": null, "target": 15910}},

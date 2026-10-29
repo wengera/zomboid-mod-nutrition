@@ -573,3 +573,13 @@ def test_agreement_reads_a_recorded_sprint_as_the_run_p24_o_sends():
     assert R.as_run(walk) is walk and R.as_run({"type": "attack", "args": {"targetId": 1}})["args"] == {"targetId": 1}
     got = R.agreement(run_dir("f1"), replay_rows("f1"))
     assert got["gait_only"] == 2
+
+
+def test_f1_reads_three_kills_off_its_recorded_attack_results():
+    """Ruling P24-Q (Task 12): F1's bound attacks carry the record's results; three read `targetDead` (15911 at 254,
+    15937 at 333, 15885 at 454), each logged once as the threat why's `kill`; the other goldens read none (no bound
+    result of theirs reads `targetDead` true), and the sixth's replayed attacks are unbound (open loop) so read none."""
+    kills = {k: d["why"]["kill"] for k, d in gold("f1").items() if "kill" in d["why"]}
+    assert kills == {254: 15911, 333: 15937, 454: 15885}
+    for key in ("e2", "e3", "e4", "e5", SIXTH):
+        assert not any("kill" in d["why"] for d in gold(key).values()), key

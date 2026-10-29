@@ -155,7 +155,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      as before, and the look past a fight's walk target (P24-A (b)) reads no walk while the Fight stands, and reads
      the advance as one.
   2. The care branch (`_care`, `planner/care.py`'s docstring the record), between `threat` and `need`: with no
-     threat held, the worst bleeding part bandaged with the best held item (a bandage, a clean rag, a dirty rag only
+     threat held (or, ruling P24-P, Task 12, with one held while the nearest listed zombie is beyond `care.CARE_R`
+     and no `many` reason live: the threat branch yields, `_care_yields`, logged `care`, and the care sends the
+     bleeding step alone; a zombie inside CARE_R takes the tick back and its send supersedes the bandage), the worst bleeding part bandaged with the best held item (a bandage, a clean rag, a dirty rag only
      past `care.DIRTY_RAG_MIN`), with no rag of any kind held a cotton garment ripped for it (never one of the
      inventory's first sight; never with no wound: Task 10 fix 1, the review's major 2), a spent bandage replaced
      with a clean one, a dirty rag washed at a known water source within `care.WASH_R` with no zombie within
@@ -252,7 +254,7 @@ import math
 import time
 
 from agent.base.items import days_fresh
-from agent.base.planner.care import DRY_REASONS, Care
+from agent.base.planner.care import CARE_R, DRY_REASONS, Care
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH,
@@ -343,6 +345,7 @@ class Survive:
         self.corner_yield = None  # this tick: why a `walk` corner yielded, "health" or "many" (P24-A (c)), else None
         self.behind = None        # this tick: the ids listed behind the fight's walk target (P24-A (b)), else None
         self.listed = None        # this tick: the listed count when it alone made `many` (P24-A (a)), else None
+        self.care_yield = None    # this tick: the nearest zombie's tiles when the threat yielded to the care (P24-P)
         self._observed = []       # the policies observed this tick (each once: P24-A (g))
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
         self.night = Night(world, actions, clock)
@@ -903,9 +906,33 @@ class Survive:
         """A flee episode's own flags cleared: its stall origin, its one load drop and its `many` (P23-AM 1)."""
         self.stall_flee, self.flee_dropped, self.flee_many = False, False, False
 
+    def _care_yields(self, held):
+        """Ruling P24-P (Plan 24 Task 12; E6's health fell from 100 to 17.6 under a held zombie before its one
+        bandage): the nearest listed zombie's tiles when the threat branch yields this tick to the care branch's
+        bleeding step, else None. It yields while that zombie is beyond CARE_R, no `many` reason is live (a group:
+        the running `many` episode or the `many` count; every other reason, the health flee's included, is about one
+        or two held, whose distance this reads), and the care's bandage or rip runs or `Care.tends_wound` would send
+        one. A zombie inside CARE_R ends the yield: the threat answers, and its send supersedes the bandage."""
+        if not self.world.can("bandage") or self.flee_many:
+            return None
+        near = min((zdist(self.world, z) for z in self.world.zombies.values()
+                    if z.get("x") is not None and z.get("y") is not None), default=None)
+        if near is None or near <= CARE_R:
+            return None
+        many = self._many(held, len(self._within(DANGER_R)))
+        self.listed = None
+        if many:
+            return None
+        c = self.care
+        self._observe(c)
+        running = c.busy() and c.last.type in ("bandage", "rip")
+        return near if running or c.tends_wound() else None
+
     def _threat(self):
         """The tick's bookkeeping, once (ruling P24-A (g)): the held list, the Flee's observe and the breach's closing
-        count; then the decision (`_decide`), which a corner's retarget may re-plan without them."""
+        count; then the yield to the care (`_care_yields`, P24-P), else the decision (`_decide`), which a corner's
+        retarget may re-plan without them."""
+        self.care_yield = None
         held = self._within(self._hold_r())
         if not held:
             self.mode, self.fight, self.flee = None, None, None
@@ -916,7 +943,12 @@ class Survive:
         if self.flee is not None:   # a shelter or exit step's end read before the hold (the close may have ended),
             self.flee.threats = held   # over this tick's held records (the stall's and the stuck leg's DANGER_R and
             self._observe(self.flee)   # STUCK_NEAR_R reads: before P24-A (g) the first read saw the last tick's)
-        return self._decide(held, self._breach(held))
+        breach = self._breach(held)
+        self.care_yield = self._care_yields(held)
+        if self.care_yield is not None:
+            self.why = {"care": True, "nearest": self.care_yield, "held": len(held)}
+            return None
+        return self._decide(held, breach)
 
     def _decide(self, held, breach, replanned=False):
         """`_threat_plan`'s decision executed by the Fight or the Flee, logged in `why`."""
@@ -1024,6 +1056,7 @@ class Survive:
             self.why = {"holding_sleep": sleep.aid}
             return None
         c.quiet = not self._within(DISENGAGE_R)
+        c.wound_only = self.care_yield is not None   # P24-P: under a held threat the bleeding step alone
         cmd = c.choose()
         self.why = dict(c.why)
         return None if cmd is None else (c, cmd)
@@ -1185,8 +1218,10 @@ class Survive:
         self._uses = None
         self.goals.observe(world, actions)
         inputs = self._inputs()
+        kill = None
         if self.fight is not None:
             self._observe(self.fight)
+            kill = self.fight.kill   # P24-Q: read before any branch may replace the Fight
         self.need_mark = None
         branch, owner, cmd, cooled, tried = None, None, None, None, {}
         for name in BRANCHES:
@@ -1203,6 +1238,8 @@ class Survive:
         inputs["need"] = self.need_mark
         inputs["consume_refused"] = self.consume_refused
         inputs["cooled"] = cooled
+        if kill is not None:   # P24-Q: the kill read this tick, on the threat branch's why whatever answered
+            tried["threat"] = dict(tried.get("threat") or {}, kill=kill)
         inputs["branches"] = tried
         action = None
         if cmd is not None:

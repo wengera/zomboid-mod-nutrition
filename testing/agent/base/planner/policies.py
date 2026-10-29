@@ -441,6 +441,8 @@ class Fight(Policy):
         self._leg = None                    # the kind of the last stance leg sent: enter, stand, back or toward
         self._attack_held = False           # the last attack was sent from the held stance (Task 9's hand-over)
         self._held_before = False           # the stance read held at the choose that chose the attack
+        self.kill = None                    # this observe's kill: the target id its attack or aim read dead (P24-Q)
+        self._kill_read = None              # the last attack or aim whose result the kill read has seen
 
     def blocked(self):
         """The ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1 I3), a marked
@@ -614,7 +616,22 @@ class Fight(Policy):
             return False
         return not self.actions.done(a) or (a.ended_wall is not None and self.clock() - a.ended_wall < AIM_HOLD_S)
 
+    def _observe_kill(self):
+        """Ruling P24-Q (zombies killed, the iteration's metric): the Fight's last attack or aim that ended with
+        `targetDead` true in its result is a kill, read once: `kill` names its target for this observe (Survive logs
+        it as the decision line's `kill`) and the World counts it (`World.note_kill`, `kills`)."""
+        self.kill = None
+        a = self.last
+        if a is None or a.type not in ("attack", "aim") or not self.actions.done(a) or a is self._kill_read:
+            return
+        self._kill_read = a
+        if isinstance(a.result, dict) and a.result.get("targetDead") is True:
+            zid = a.args.get("targetId")
+            if self.world.note_kill(zid):
+                self.kill = zid
+
     def observe(self):
+        self._observe_kill()
         self._observe_leg()
         t = self._target(pin=False)
         self._observe_stand(t)

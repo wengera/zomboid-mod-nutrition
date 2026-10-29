@@ -58,6 +58,8 @@ source a wash or a fill failed at for its water or its walk, at the current worl
 squares marked within SOURCE_RETRY_MIN game minutes (a judgment: a map's `water.amount` is refreshed only by a scan,
 so the retry is the only way a refilled source comes back). The planner's, never a line's; not in `to_json`.
 `frame_n` counts the frames applied (the care branch's one-frame wait after a bandage, Task 10 fix 1, minor 6).
+`killed` (Plan 24 Task 12, ruling P24-Q: zombies killed is the iteration's metric) holds the zombie ids a Fight read
+`targetDead` on (`note_kill`); `kills`, its count, goes into `to_json` once non-zero and into the goal layer's view.
 
 The met memory (Plan 24 survival 5, ruling P24-A (a): E5's horde was listed at the 12-tile edge while the threat
 branch counted within 6, #4268): `met` keeps, for each zombie id a frame listed with a position, where it was last
@@ -252,6 +254,7 @@ class World:
         self.tainted_sources = set() # water squares (x, y, z) a fill found tainted (the planner's, never a line's)
         self.dry = {}                # water square (x, y, z) -> world minute a wash or fill failed there (`mark_dry`)
         self.frame_n = 0             # the frames applied (a frame-newer test's counter, never serialised)
+        self.killed = set()          # the zombie ids a Fight read dead off its own attack or aim (P24-Q: `kills`)
         self.first_sight = set()     # the ids the inventory's first sight named (between a hello and the next frame)
         self._sighting = False       # a hello came and no frame yet: item_added is the first sight
         self.damage = deque(maxlen=DEQUE_N)
@@ -1015,6 +1018,20 @@ class World:
         meanwhile (and `spare()` may drop it only then); afterwards it is food again."""
         self.mark(item_id, "refused")
 
+    def note_kill(self, zid):
+        """Count zombie `zid` killed (the planner's, never a line's: ruling P24-Q, Plan 24 Task 12, the iteration's
+        metric): a Fight read `targetDead` on its attack's or aim's result. True when it is a new kill, so a zombie
+        read dead by two results counts once."""
+        if zid is None or zid in self.killed:
+            return False
+        self.killed.add(zid)
+        return True
+
+    @property
+    def kills(self):
+        """The session's kills so far (`note_kill`): the view tells the goal source, `to_json` carries it."""
+        return len(self.killed)
+
     def mark_no_effect(self, item_id):
         """Remember a held item whose consume ended `done` and moved no stat (the planner's, never a line's, P24-F):
         `by_use` reads it `other` while it is held, so the need moves to the next item of its use."""
@@ -1089,4 +1106,6 @@ class World:
             d["refusedIds"] = sorted(refused, key=_num_first)
         if self.no_effect_ids:
             d["noEffectIds"] = sorted(self.no_effect_ids, key=_num_first)
+        if self.killed:
+            d["kills"] = self.kills   # P24-Q: only once a kill is read, so a line replay's bytes keep theirs
         return json.dumps(d, sort_keys=True, indent=1, ensure_ascii=False)

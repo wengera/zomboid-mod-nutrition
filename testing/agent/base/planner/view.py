@@ -2,7 +2,8 @@
 
 `view(world, survive) -> dict`, built by `Survive`'s goal branch on a tick that proposes (`survive` supplies the
 planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads empty). Its keys, in `KEYS` order:
-- `pos {x, y, z}` (the frame's `me`), `hour`, `health` (`body.health`), `needs {hunger, thirst, fatigue}` (`stats`),
+- `pos {x, y, z}` (the frame's `me`), `hour`, `health` (`body.health`), `kills` (`World.kills`: the zombies the
+  fights killed this session, ruling P24-Q, Plan 24 Task 12: the iteration's metric, told to the model), `needs {hunger, thirst, fatigue}` (`stats`),
   `load {weight, max, level}`, `weapon` (the wielded type, else None), `inventory_by_use` ({use: count} over
   `items.USES`, by `world.by_use()`).
 - `needs_wanted`: the uses (water, then food, then container, then water_source: NEED_USES) the need branch marked
@@ -73,7 +74,7 @@ ZOMBIE_BANDS = (6, 12, 25)
 BUILDINGS_SHOWN = 6
 RENDER_MAX = 2048
 EVENTS_N = 3
-KEYS = ("pos", "hour", "health", "needs", "needs_wanted", "load", "weapon", "inventory_by_use", "buildings",
+KEYS = ("pos", "hour", "health", "kills", "needs", "needs_wanted", "load", "weapon", "inventory_by_use", "buildings",
         "zombies_near", "met", "attackers", "hit_reaction", "last_goal", "events", "want_shelter", "edge",
         "scanned_here", "stock_uses", "cooled")
 WHYS = ("done", "stuck", "superseded by the threat", "superseded by an instinct", "looted already", "refused",
@@ -154,6 +155,7 @@ def view(world, survive):
         "pos": {"x": me.get("x"), "y": me.get("y"), "z": me.get("z")},
         "hour": me.get("hour"),
         "health": (world.body or {}).get("health"),
+        "kills": world.kills,
         "needs": {k: st.get(k) for k in ("hunger", "thirst", "fatigue")},
         "needs_wanted": [u for u in NEED_USES if u in marks and now - marks[u] <= NEED_MEMORY_S],
         "load": {k: load.get(k) for k in ("weight", "max", "level")},

@@ -578,7 +578,7 @@ def test_a_spent_bandage_is_replaced_with_a_clean_rag(tmp_path):
 
 def test_the_care_branch_yields_to_a_threat_within_danger_r(tmp_path):
     """The threat branch runs first: a zombie within DANGER_R answers it (the stance) and the running bandage is
-    superseded by that send."""
+    superseded by that send. Since ruling P24-P (Task 12) that holds for a zombie at CARE_R (4.0 tiles) or nearer."""
     r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage")])
     tick(r, sv)
     assert r.cmd()[0] == "bandage"
@@ -1680,3 +1680,141 @@ def test_the_flees_every_leg_and_walk_runs(tmp_path):
     tick(r2, sv2)
     assert threat_why(tmp_path / "m")["flee"] == "many" and r2.cmd()[1]["gait"] == "run"
     assert all(a.args.get("gait") != "sprint" for a in r.acts.history + r2.acts.history)
+
+
+# ================================================================ Task 12: the bandage under a far threat (P24-P)
+def test_care_r_is_four_tiles_inside_danger_r():
+    assert C.CARE_R == 4.0 and P.FIGHT_REACH < C.CARE_R < P.DANGER_R
+
+
+@pytest.mark.parametrize("x, care", [(105.0, True), (104.01, True), (104.0, False), (103.0, False)])
+def test_a_bleeding_part_is_bandaged_with_a_zombie_held_beyond_care_r_and_not_inside_it(tmp_path, x, care):
+    """Ruling P24-P: a fight running on one zombie (held), a part bleeding, a bandage held: with the zombie at 5 or
+    4.01 tiles the threat branch yields (`care` on its why) and the care branch bandages; at 4 or 3 tiles the threat
+    answers (the stance)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 106.0, 200.0)])
+    tick(r, sv)
+    assert sv.mode == "fight" and r.cmd()[0] == "aim"
+    hold(r, 10, "Base.Bandage")
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, x, 200.0)])
+    tick(r, sv)
+    if care:
+        assert last(tmp_path)["branch"] == "care" and r.cmd() == ("bandage", {"itemId": 10, "part": 5})
+        assert threat_why(tmp_path)["care"] is True and threat_why(tmp_path)["nearest"] == pytest.approx(x - 100.0)
+        assert sv.mode == "fight" and last(tmp_path)["inputs"]["held"] == 1
+    else:
+        assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] in ("aim", "attack")
+
+
+def test_the_bandage_runs_under_a_health_flee_and_is_superseded_when_a_zombie_comes_inside_care_r(tmp_path):
+    """E6's case (lines 285-306: the `health` flee held one or two at 4 to 9.6 tiles, bleeding, no bandage): the
+    flee yields to the bandage while the nearest is beyond CARE_R, the bandage holds the tick while it runs, and a
+    zombie at 3 tiles takes the tick back: the flee's steer supersedes it."""
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 103.0, 200.0)], health=30.0)
+    tick(r, sv)
+    assert sv.mode == "flee" and threat_why(tmp_path)["flee"] == "health" and r.cmd()[0] == "steer"
+    r.answer()
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 107.0, 200.0)], health=30.0)
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "care" and r.cmd()[0] == "bandage"
+    bandage = r.acts.history[-1]
+    r.fake.answer({"bandage": ["accepted"]})
+    r.pump()
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 106.0, 200.0)], health=30.0)
+    assert tick(r, sv) is None and last(tmp_path)["branch"] == "care"
+    assert care_why(tmp_path)["holding"] == bandage.aid
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 103.0, 200.0)], health=30.0)
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] == "steer" and r.acts.current is not bandage
+    all_sends_valid(r)
+
+
+def test_no_yield_to_the_care_under_a_group_or_with_nothing_to_tend(tmp_path):
+    """The `many` reason (four listed within LISTED_R, the nearest at 6) keeps the threat's tick; so does a bleeding
+    part with no bandage, rag or rippable garment held (the threat never stands down for nothing), and a PZA/1.4
+    build."""
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    zs = [zd(1, 106.0, 200.0), zd(2, 100.0, 207.0), zd(3, 93.0, 200.0), zd(4, 100.0, 193.0)]
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=zs)
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "threat" and threat_why(tmp_path)["flee"] == "many"
+    (tmp_path / "n").mkdir()
+    r2, sv2 = make(tmp_path / "n")
+    r2.frame(zombies=[zd(1, 106.0, 200.0)])
+    tick(r2, sv2)
+    care_frame(r2, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 106.0, 200.0)])
+    tick(r2, sv2)
+    assert last(tmp_path / "n")["branch"] == "threat" and "care" not in threat_why(tmp_path / "n")
+    (tmp_path / "o").mkdir()
+    r3, sv3 = make(tmp_path / "o", caps=CAPS_14)
+    hold(r3, 10, "Base.Bandage")
+    care_frame(r3, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 106.0, 200.0)])
+    tick(r3, sv3)
+    assert last(tmp_path / "o")["branch"] == "threat"
+
+
+def test_under_a_held_threat_only_the_bleeding_step_answers(tmp_path):
+    """`wound_only`: with a threat held beyond CARE_R a spent bandage is not replaced (the threat keeps its tick: no
+    bleeding step to yield to); with no threat it is."""
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    spent = [part(5, bandaged=True, bandageLife=0.0)]
+    care_frame(r, spent, zombies=[zd(1, 106.0, 200.0)])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "threat" and "care" not in threat_why(tmp_path)
+    sv.care.wound_only = True
+    assert sv.care.choose() is None and sv.care.why["wound_only"] is True
+    (tmp_path / "q").mkdir()
+    r2, sv2 = make(tmp_path / "q")
+    hold(r2, 10, "Base.Bandage")
+    care_frame(r2, spent)
+    tick(r2, sv2)
+    assert r2.cmd() == ("bandage", {"itemId": 10, "part": 5}) and care_why(tmp_path / "q")["reason"] == "spent"
+
+
+# ================================================================ Task 12: kills as the metric (P24-Q)
+def test_a_kill_read_off_an_attack_is_logged_and_counted_once(tmp_path):
+    """Ruling P24-Q: the Fight reads `targetDead` on its attack's result: the next decision line's threat why carries
+    `kill` (the zombie id), `World.kills` counts it, `to_json` carries it; a second result on the same id counts
+    nothing more, and the view tells the model the kills so far."""
+    import json as _json
+    r, sv = make(tmp_path, caps=CAPS_14)
+    r.frame(zombies=[zd(1, 101.6, 200.0)])
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 1}) and r.world.kills == 0
+    assert "kills" not in _json.loads(r.world.to_json())
+    r.fake.answer({"attack": ["accepted", {"state": "done", "result": {"swings": 1, "attackStarted": True,
+                                                                        "targetDead": True}}]})
+    r.pump()
+    r.frame(zombies=[zd(1, 101.6, 200.0), zd(2, 104.0, 200.0)])
+    tick(r, sv)
+    assert threat_why(tmp_path)["kill"] == 1 and r.world.kills == 1 and r.world.killed == {1}
+    assert _json.loads(r.world.to_json())["kills"] == 1
+    r.frame(zombies=[zd(2, 104.0, 200.0)])
+    tick(r, sv)
+    assert "kill" not in threat_why(tmp_path) and r.world.kills == 1
+    assert r.world.note_kill(1) is False and r.world.kills == 1
+    v = V.view(r.world, sv)
+    assert v["kills"] == 1 and "kills: 1" in V.render(v).splitlines()
+
+
+def test_a_kill_read_off_an_aim_counts_and_a_live_target_does_not(tmp_path):
+    """An aim that ends done with `targetDead` (the Lua ends it at once) is a kill too; `targetDead` false is none."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0)])
+    tick(r, sv)
+    assert r.cmd()[0] == "aim"
+    r.fake.answer({"aim": ["accepted", {"state": "done", "result": {"d": 0.0, "held": True, "targetDead": False}}]})
+    r.pump()
+    r.frame(zombies=[zd(1, 104.0, 200.0)])
+    tick(r, sv)
+    assert r.world.kills == 0 and "kill" not in threat_why(tmp_path) and r.cmd()[0] == "aim"
+    r.fake.answer({"aim": ["accepted", {"state": "done", "result": {"d": 0.0, "held": True, "targetDead": True}}]})
+    r.pump()
+    r.frame(zombies=[])
+    tick(r, sv)
+    assert r.world.kills == 1 and threat_why(tmp_path)["kill"] == 1
