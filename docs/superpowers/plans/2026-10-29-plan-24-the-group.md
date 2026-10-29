@@ -64,3 +64,6 @@
 ### Task 12: Survival iteration 7 — the stance opens the fight, the backpedal inside KEEP_R, no sprint, the bandage under a far threat (P24-N/O/P)
 - [ ] The planner rules, tests, mutants; the goldens re-recorded under the named causes; then the E6 write-up and the seventh chain.
 
+### Task 18: Survival iteration 8 — the fight sought, every walk a destination, the stuck door (P24-X/Y/Z)
+- [ ] The planner rules, tests, mutants, goldens; then the E7 and probe write-ups and the eighth chain.
+
