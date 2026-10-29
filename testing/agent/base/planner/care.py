@@ -83,9 +83,11 @@ LEG_FIRST = 11            # the first leg part (UpperLeg_L; 11-16 the thighs, sh
 RIDE_R = 6.0              # tiles: a bandage rides a running flee leg only with the nearest zombie beyond this, or with
                           # no zombie chasing (ruling P24-U, Task 12 fix 1: the ride holds the leg to a walk)
 RIDE_FREE = ("stopped",)  # a ride failed so was stopped by the engine (a run, an aim, a hit): its item is not held out
+RIDE_RETRY_S = 3.0        # seconds after a stopped ride before the care rides again (Task 12 fix 2, the re-review's major
+                          # 2: the same ride re-chosen at once was cooled and the tick fell through to a drink)
 
 __all__ = ["Care", "care_kind", "rippable", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
-           "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R"]
+           "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R", "RIDE_RETRY_S"]
 
 
 def care_kind(full_type):
@@ -124,6 +126,7 @@ class Care(Policy):
         self.fresh = {}      # part index -> `World.frame_n` when its bandage's done was read (minor 6)
         self._read = set()   # the aids whose end observe() has read
         self.ride = None     # the last bandage sent with keepMoving (P24-U), tracked by its own act lines
+        self.ride_stopped_at = -math.inf   # the wall of the last ride the engine stopped (RIDE_RETRY_S)
         self.ride_now = False   # Survive sets it on a tick the threat yields to a ride: the bleeding step rides
 
     def sent(self, cmd, action):
@@ -154,6 +157,7 @@ class Care(Policy):
             if a.state not in FAILED or (a.state == "failed" and a.reason == PREEMPTED):
                 continue
             if a.state == "failed" and a.reason in RIDE_FREE and a.args.get("keepMoving") is True:
+                self.ride_stopped_at = self.clock()
                 continue   # P24-U: the engine stopped the ride; the item is good
             self.held_out[iid] = self.world.world_minutes()
             if a.reason == "in bag" and iid in self.world.inventory:
@@ -237,7 +241,10 @@ class Care(Policy):
         return self._wound(self._items(), self._bleeding())[0] is not None
 
     def rides_wound(self):
-        """The bleeding step would ride now (P24-U): a part above the legs bleeds and a bandage item is held."""
+        """The bleeding step would ride now (P24-U): a part above the legs bleeds and a bandage item is held, and no
+        ride was stopped by the engine within RIDE_RETRY_S (Task 12 fix 2)."""
+        if self.clock() - self.ride_stopped_at < RIDE_RETRY_S:
+            return False
         return self._wound(self._items(), self._bleeding(), ride=True)[0] is not None
 
     def choose(self):

@@ -2189,3 +2189,120 @@ def test_a_corpse_still_listed_alone_is_no_threat(tmp_path):
     tick(r, sv)
     assert last(tmp_path)["branch"] != "threat" and sv.mode is None and threat_why(tmp_path) == {"kill": 1}
     assert sum(a.type == "attack" for a in r.acts.history) == 1
+
+
+# ================================================================ Task 12 fix 2: the re-review's two majors and minors
+def test_the_chaser_rule_is_keyed_on_the_flee_episode_not_the_leg_running(tmp_path):
+    """The re-review's major 1 (probe A): a `health` flee from a chaser held at a flat 5.5 tiles, a thigh bleeding.
+    Each time the steer leg ends (answered `done`) the Flee re-steers on that tick; the gap between two legs is the
+    same flight and starts no standing bandage."""
+    thigh = [part(11, bleeding=True, bleedingTime=5.0)]
+    r, sv = flee_leg_rig(tmp_path, thigh, 5.5)
+    assert sv.mode == "flee" and r.cmd()[0] == "steer" or threat_why(tmp_path)["holding"]
+    for _ in range(C.CARE_STILL_TICKS + 3):
+        leg = r.acts.current
+        r.fake.act(leg.aid, "done", "steer", result={})
+        r.pump()
+        care_frame(r, thigh, zombies=[zd(1, 105.5, 200.0)], health=30.0)
+        tick(r, sv)
+        assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] == "steer" and "care" not in threat_why(tmp_path)
+        r.answer("progress")
+    assert not any(a.type == "bandage" for a in r.acts.history)
+
+
+def stopped_ride_rig(tmp_path):
+    """Probe B: the chaser at 7, a torso bleeding, a water item held, thirst 0.5 (`need` would drink), the ride sent
+    and answered `failed stopped`; returns (rig, survive, the flee leg, the ride, the torso)."""
+    torso = [part(6, bleeding=True, bleedingTime=5.0)]
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    hold(r, 20, "Base.WaterBottle", use="water")
+    care_frame(r, torso, zombies=[zd(1, 105.5, 200.0)], health=30.0, thirst=0.5)
+    tick(r, sv)
+    r.answer("progress")
+    care_frame(r, torso, zombies=[zd(1, 107.0, 200.0)], health=30.0, thirst=0.5)
+    tick(r, sv)
+    leg, ride = r.acts.history[0], r.acts.history[-1]
+    assert leg.type == "steer" and ride.type == "bandage" and ride.args["keepMoving"] is True
+    r.fake.act(ride.aid, "failed", "bandage", reason="stopped")
+    r.pump()
+    return r, sv, leg, ride, torso
+
+
+def test_a_stopped_ride_hands_the_tick_to_the_flee_not_to_a_drink_nor_a_standing_bandage(tmp_path):
+    """The re-review's major 2 (probe B): the ride the engine stopped is no failure to cool (the item stays free) and
+    the care rides again only after RIDE_RETRY_S; the tick after it returns to the threat (the leg held), never the
+    need's `consume` (which would supersede the flee leg) nor, the tick after, a standing bandage under the chaser."""
+    r, sv, leg, ride, torso = stopped_ride_rig(tmp_path)
+    assert C.RIDE_RETRY_S == 3.0
+    for _ in range(2):
+        care_frame(r, torso, zombies=[zd(1, 107.0, 200.0)], health=30.0, thirst=0.5)
+        assert tick(r, sv) is None
+        row = last(tmp_path)
+        assert row["branch"] == "threat" and row["inputs"]["cooled"] is None and "care" not in threat_why(tmp_path)
+        assert threat_why(tmp_path)["holding"] == leg.aid
+    assert [a.type for a in r.acts.history] == ["steer", "bandage"]
+    assert sv.care.held_out == {} and sv.last_failed is None
+    r.advance(C.RIDE_RETRY_S + 0.1)                                          # the retry: the ride goes again
+    care_frame(r, torso, zombies=[zd(1, 107.0, 200.0)], health=30.0, thirst=0.5)
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 10, "part": 6, "keepMoving": True})
+    all_sends_valid(r)
+
+
+def test_a_stance_less_fights_approach_walk_is_never_ridden(tmp_path, monkeypatch):
+    """The re-review's minor 3 (mutant 3h): with `_stance_ok` false a Fight sends the approach `walkTo` at a run; a
+    bleeding torso gets no keepMoving bandage beside it (a ride toward the zombie), only a flee's leg is ridden."""
+    monkeypatch.setattr(S.Survive, "_stance_ok", lambda self, held, inside: False)
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    r.scan([square(x, y) for x in range(95, 112) for y in range(195, 206)])   # an open map: the walk's line reads clear
+    torso = [part(6, bleeding=True, bleedingTime=5.0)]
+    for _ in range(4):
+        care_frame(r, torso, zombies=[zd(1, 105.5, 200.0, has_target=False)])
+        tick(r, sv)
+        if r.acts.current is not None and r.acts.current.state == "sent":
+            r.answer("progress")
+    assert sv.mode == "fight" and any(a.type == "walkTo" for a in r.acts.history)
+    assert not any(a.type == "bandage" and a.args.get("keepMoving") for a in r.acts.history)
+
+
+@pytest.mark.parametrize("chases, ride", [(True, False), (False, True)])
+def test_a_many_flee_with_a_chaser_held_blocks_the_ride(tmp_path, chases, ride):
+    """The re-review's minor 4 (ruling on concern 3): `flee_many` with any held chaser blocks the ride (the nearest at
+    7 is beyond RIDE_R, but several chasers converge); with no chaser the group is not closing and the ride goes."""
+    torso = [part(6, bleeding=True, bleedingTime=5.0)]
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    care_frame(r, torso, zombies=[zd(1, 105.5, 200.0, has_target=chases)], health=30.0)
+    tick(r, sv)
+    r.answer("progress")
+    sv.flee_many = True
+    care_frame(r, torso, zombies=[zd(1, 107.0, 200.0, has_target=chases)], health=30.0)
+    tick(r, sv)
+    assert any(a.type == "bandage" for a in r.acts.history) is ride
+
+
+def test_the_dead_entry_drops_once_the_world_no_longer_lists_the_id(tmp_path):
+    """The re-review's minor 5: after the kill the id stays skipped while listed (the corpse on its kill tick); a
+    `zombie_dead` for it drops the entry on the next tick, so the same id listed at 1.5 tiles afterwards is a new
+    zombie and the threat answers it."""
+    r, sv = make(tmp_path, caps=CAPS_14)
+    r.frame(zombies=[zd(1, 101.6, 200.0)])
+    tick(r, sv)
+    r.fake.answer({"attack": ["accepted", {"state": "done", "result": {"swings": 1, "attackStarted": True,
+                                                                        "targetDead": True}}]})
+    r.pump()
+    r.frame(zombies=[zd(1, 101.6, 200.0)])
+    tick(r, sv)
+    assert 1 in sv.dead and last(tmp_path)["branch"] != "threat"
+    r.frame(zombies=[zd(1, 101.6, 200.0)])
+    tick(r, sv)
+    assert 1 in sv.dead
+    r.event("zombie_dead", id=1)
+    r.frame()
+    tick(r, sv)
+    assert 1 not in sv.dead
+    r.frame(zombies=[zd(1, 101.5, 200.0)])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "threat" and r.cmd() == ("attack", {"targetId": 1})

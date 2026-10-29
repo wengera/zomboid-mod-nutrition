@@ -261,7 +261,7 @@ import math
 import time
 
 from agent.base.items import days_fresh
-from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, DRY_REASONS, RIDE_R, Care
+from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, DRY_REASONS, RIDE_FREE, RIDE_R, Care
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH,
@@ -976,7 +976,7 @@ class Survive:
         count; every other reason, the health flee's included, is about one or two held, whose distance this reads),
         and `Care.tends_wound` must answer (its part reads bleeding while the bandage runs; once no part bleeds the
         yield ends, and the threat's send supersedes the bandage). A bandage starts only with the nearest beyond
-        CARE_R, not closing (`_closing`), and no flee leg running (`_flee_leg`) from a chaser (a held zombie whose
+        CARE_R, not closing (`_closing`), and no flee episode (`mode` flee, fix 2: the gap between two legs is the same flight) from a chaser (a held zombie whose
         `hasTarget` is set: a run holds the distance while the zombie chases, so the closing read cannot see it, and
         a standing bandage would stop the run the health flee exists to make). A running one (the care's own
         bandage, current) holds the yield while the nearest stays beyond CARE_HOLD_R. The ride (ruling P24-U) comes
@@ -987,7 +987,7 @@ class Survive:
             return None
         near = self._nearest_seen[-1][1]
         chased = any(z.get("hasTarget") is True for z in held)
-        if (near > RIDE_R or not chased) and self._ride_leg() is not None:
+        if (near > RIDE_R or not chased) and not (self.flee_many and chased) and self._ride_leg() is not None:
             self._observe(self.care)
             if self.care.rides_wound():
                 self.care.ride_now = True
@@ -997,7 +997,7 @@ class Survive:
         running = self.care.busy() and self.care.last.type == "bandage"
         if near <= (CARE_HOLD_R if running else CARE_R):
             return None
-        if not running and (self._closing() or (self._flee_leg() is not None and chased)):
+        if not running and (self._closing() or (self.mode == "flee" and chased)):
             return None
         if self._many_read(held, len(self._within(DANGER_R)))[0]:
             return None
@@ -1251,6 +1251,8 @@ class Survive:
             if not self.actions.done(a):
                 still.append(a)
             elif a.state in FAILED and not (a.state == "failed" and a.reason == PREEMPTED):
+                if a.type == "bandage" and a.state == "failed" and a.reason in RIDE_FREE and a.args.get("keepMoving") is True:
+                    continue   # Task 12 fix 2: the engine's stop of a ride is no failure to cool (Care waits RIDE_RETRY_S)
                 self.last_failed = _key(a.type, a.args) + (self.ticks,)
                 if a.type == "consume" and a.state == "failed" and a.reason == REFUSED:
                     self._refused(a.args.get("itemId"))
@@ -1296,6 +1298,8 @@ class Survive:
         self.ticks += 1
         self._observed = []
         self._note_failures()
+        for zid in [i for i in self.dead if i not in world.zombies]:
+            del self.dead[zid]   # Task 12 fix 2: the World no longer lists it, so a later listing is a new zombie
         self._check_consumes()
         self._check_fills()
         self._uses = None
