@@ -51,7 +51,10 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   with none, sends nothing (Survive then flees, reason `unreachable`). A swing not started neither counts nor resets the
   streak; a fall, a new target or a target no frame lists restarts it. `unreachable` (id -> wall until) is passed in so
   a later Fight of the same planner keeps it. An attack ending `failed` for a walk reason (`STUCK_REASONS`) marks its
-  target the same way.
+  target the same way. A target read dead (Task 12 fix 1, the controller's ruling on concern 6: F1's line 254 swung
+  at 15911 on the tick its kill was read, the zombie still listed) is unpinned and skipped for UNREACHABLE_S in `dead`
+  (id -> wall until, passed in as `unreachable` is), logged `dead`, never `unreachable`: a time-bounded skip, so a
+  recycled id (unverified) is not skipped for the session as the permanent `World.killed` would.
   The standing fight (rulings P24-G 1 and P24-N, survive.py's docstring; P24-N supersedes P24-M's backpedal band
   after E6, `e_day_6-20261029-102942`: 8 of its 11 stance legs stood, the fights went to the approach and swing):
   with `stance` set (Survive's `_stance_ok`), neither `point_blank` nor `only`, and the target within AIM_R
@@ -66,7 +69,8 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   whose target was knocked out of reach; the advance's `toward` leg holds until reach. The stand
   clock (`_stand`) restarts on a new target or a fall of its health, ending any advance; at STAND_MAX_S the Fight
   closes in the stance (`advance`: `toward` legs, the unit vector to the target, or with its line blocked over
-  STEER_PROBE the approach walk at a run round the wall), the out-of-reach stall clock (which a stand keeps at zero)
+  STEER_PROBE the approach walk at a walk round the wall, never a run: Task 12 fix 1, the review's minor 3), the
+  out-of-reach stall clock (which a stand keeps at zero)
   starting then. A stance leg that ends failed, timed out or rejected (never superseded, nor refused `no target`:
   Task 10 fix 2, the zombie is gone) sets `standoff` at once (Task 10 fix 1, minor 11: a build that cannot hold the
   stance never re-sends it), and the approach and swing above run for the rest of the Fight; `standoff_why` names
@@ -454,8 +458,9 @@ def blocked(unreachable, now):
 
 
 class Fight(Policy):
-    def __init__(self, world, actions, clock=time.time, unreachable=None, target=None):
+    def __init__(self, world, actions, clock=time.time, unreachable=None, target=None, dead=None):
         super().__init__(world, actions, clock)
+        self.dead = {} if dead is None else dead   # zombie id -> wall until it is skipped: read dead (Task 12 fix 1)
         self.out_of_reach_since = clock()   # the stall clock: since when the target has been out of reach
         self.misses = 0                     # attack results in a row with attackStarted false
         self.approach = False               # the next command is an approach walk
@@ -484,16 +489,21 @@ class Fight(Policy):
         self.ride = None                    # Survive sets it each tick: the riding bandage while one runs (P24-U)
         self._kill_read = None              # the last attack or aim whose result the kill read has seen
 
-    def blocked(self):
-        """The ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1 I3), a marked
-        zombie `in_reach` within that radius (fix round 2, G4: within POINT_BLANK_R, or with a line not read blocked;
-        one behind a blocked line at 1.0-1.5 stays marked); and always every id marked during this choose (G4: the
-        mark's recursion never re-pins the id it just marked)."""
+    def marked(self):
+        """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
+        I3), a marked zombie `in_reach` within that radius (fix round 2, G4: within POINT_BLANK_R, or with a line not
+        read blocked; one behind a blocked line at 1.0-1.5 stays marked); and always every id marked during this
+        choose (G4: the mark's recursion never re-pins the id it just marked)."""
         out = blocked(self.unreachable, self.clock())
         if self.mark_free_r > 0.0:
             zs = self.world.zombies
             out = {zid for zid in out if not (zid in zs and in_reach(self.world, zs[zid], self.mark_free_r))}
         return out | self._marked_now
+
+    def blocked(self):
+        """The ids skipped now: the `marked` ones and those read dead within UNREACHABLE_S (`dead`, whatever the
+        corner's reach: a dead zombie is never swung at)."""
+        return self.marked() | blocked(self.dead, self.clock())
 
     def _target_health(self, zid):
         z = self.world.zombies.get(zid)
@@ -678,6 +688,9 @@ class Fight(Policy):
             zid = a.args.get("targetId")
             if self.world.note_kill(zid):
                 self.kill = zid
+            self.dead[zid] = self.clock() + UNREACHABLE_S   # the controller's ruling on concern 6 (Task 12 fix 1)
+            if zid == self.target:
+                self._unpin()
 
     def observe(self):
         self._observe_kill()
@@ -723,9 +736,9 @@ class Fight(Policy):
         self._marked_now = set()
         cmd = self._choose()
         self._marked_now = set()
-        skipped = sorted(self.blocked(), key=str)
-        if skipped:
-            self.why["unreachable"] = skipped
+        for key, ids in (("unreachable", self.marked()), ("dead", blocked(self.dead, self.clock()))):
+            if ids:
+                self.why[key] = sorted(ids, key=str)
         return cmd
 
     def _repin_point_blank(self):
@@ -811,8 +824,9 @@ class Fight(Policy):
         - `enter` (0, 0): the target within FIGHT_REACH with the stance not held (`in_stance`): the stance is taken
           before the swing, which the next choose sends from it;
         - `toward`: the advance (`advance`, after STAND_MAX_S without progress), the unit vector to the target while
-          its STEER_PROBE line (to the target at most) is clear; with that line blocked the approach walk at a run
-          closes on it instead (the path follower walks round the wall), the one walk of a standing fight;
+          its STEER_PROBE line (to the target at most) is clear; with that line blocked the approach walk closes on
+          it instead (the path follower walks round the wall), the one walk of a standing fight, at a walk (Task 12
+          fix 1, the review's minor 3: ruling P24-N 1 closes "in the stance ... not to a run");
         - `back`: the target inside KEEP_R: `away_vector` of the held threats (`threats`, else the target) turned
           by STEER_TURNS to the first heading `clear_heading` passes (never into a wall or over a fence), else
           standing: a wall behind is never stepped into;
@@ -823,7 +837,7 @@ class Fight(Policy):
             u = ((z["x"] - mx) / d, (z["y"] - my) / d)
             if not clear_heading(self.world, u, min(STEER_PROBE, d)):
                 self.why.update({"stance": True, "advance": True, "leg": "walk", "stand_s": self.stand_s()})
-                return WalkTo(*centre((z["x"], z["y"])), "run")
+                return WalkTo(*centre((z["x"], z["y"])), "walk")
             v = u
         elif kind == "back":
             ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]

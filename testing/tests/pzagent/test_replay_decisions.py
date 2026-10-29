@@ -33,6 +33,17 @@ def golden(key):
         return f.read()
 
 
+def divergences(key, rep):
+    """Every line `R.agreement` would name a divergence at, in order (its comparison, each line)."""
+    _, rows = R.read_record(run_dir(key))
+    return [k for k, (rec, got) in enumerate(zip(rows, rep), 1) if (rec["branch"] == "threat" or got["branch"] ==
+            "threat") and (got["branch"], got["action"]) != (rec["branch"], R.as_run(rec["action"]))]
+
+
+DEAD_LINES = [254, 255, 333]   # F1's lines the dead target moved (Task 12 fix 1): the swings at 15911 and 15937 read
+                               # dead (254, 333) and the `unreachable` flee's walk held at 255
+
+
 KEYS = ["e5", "f1", "e2", "e3", "e4"]
 
 
@@ -71,11 +82,10 @@ def test_a_smaller_cornered_r_moves_the_f1_golden_first_at_line_484(monkeypatch)
 
 def test_without_the_trailing_read_rule_f1_moves_at_line_498(monkeypatch):
     """The act model's own falsifier: a60's `done` (written 2 ms before line 498's wall) taken at 498 sends the next
-    steer a tick early, where the record still ran a60. Named change, Task 12 (ruling P24-O): the replay's flee legs
-    run where the record's sprinted, so they no longer bind to the record's aids and a60's act lines are dropped; the
-    falsifier is read with the flee gait set back to the record's sprint (FLEE_GAIT), against the same replay with
-    the rule on."""
-    monkeypatch.setattr(P, "FLEE_GAIT", "sprint")
+    steer a tick early, where the record still ran a60. Named change, Task 12 fix 1 (the review's minor 5): the
+    binder reads a recorded sprint as the run the replay sends (`as_run`), so the flee legs bind to the record's aids
+    again and the falsifier is read on the golden's own replay, as before Task 12 (which read it with FLEE_GAIT set
+    back to the sprint)."""
     base = {d["line"]: d for d in R.run(run_dir("f1"))}
     monkeypatch.setattr(R._Acts, "ends_current", lambda self, got: False)
     moved = {d["line"]: d for d in R.run(run_dir("f1"))}
@@ -132,18 +142,20 @@ def test_with_survival_5_s_a_b_c_off_the_records_diverge_first_at_the_point_blan
     assert e5["first_divergence"]["replay"]["why"]["group"] == "retry"
     rep = R.replay(run_dir("f1"))
     f1 = R.agreement(run_dir("f1"), rep)
-    assert (f1["compared"], f1["agree"], f1["first_divergence"]["line"]) == (331, 311, 491)   # named change, below
-    assert f1["first_divergence"]["record"]["action"] is None and f1["first_divergence"]["replay"]["action"]["type"] == "steer"
+    assert (f1["compared"], f1["agree"], f1["first_divergence"]["line"]) == (331, 312, 254)   # named change, below
+    assert f1["first_divergence"]["record"]["action"] == {"type": "attack", "args": {"targetId": 15911}}
+    assert f1["first_divergence"]["replay"]["why"]["flee"] == "unreachable"
+    assert divergences("f1", rep)[:4] == DEAD_LINES + [573]
     _, rec = R.read_record(run_dir("f1"))
     assert rec[572]["action"] == {"type": "attack", "args": {"targetId": 15921}}
     assert rep[572]["action"] == {"type": "attack", "args": {"targetId": 15917}}
-    # Named change, Task 12 (ruling P24-O): F1 now diverges first at 491, the re-aim of the flee leg sent at 485: the
-    # record sprinted it (bound to its aid, ended by its own done line at 492), the replay runs it (unbound, ended at
-    # its 3.0 s on the replay clock, 784.41 against 491's wall 784.44), a tick before the record; 573 still diverges
-    # as before.
+    # Named change, Task 12 (ruling P24-O): F1 diverged first at 491, its unbound run legs ending a tick before the
+    # record's sprint legs; Task 12 fix 1 binds them through `as_run` (minor 5), so 491 agrees again, and the dead
+    # target (the controller's ruling on concern 6) moves 254, 255 and 333 ahead of it: the first divergence past
+    # them is 573 again, as before Task 12.
 
 
-@pytest.mark.parametrize("key,compared,agree,first", [("e5", 116, 109, 219), ("f1", 331, 294, 483)])
+@pytest.mark.parametrize("key,compared,agree,first", [("e5", 116, 109, 219), ("f1", 331, 295, 254)])
 def test_the_replay_diverges_from_the_record_first_where_survival_5_moved_it(key, compared, agree, first):
     """The reading at Plan 24 Task 2's recording (an offline oracle's): E5 first at line 219, the fight's walk at
     19275 refused with 19249 and 19278 listed behind it (P24-A (b)); F1 first at 163, the `many` flee on four listed
@@ -153,16 +165,29 @@ def test_the_replay_diverges_from_the_record_first_where_survival_5_moved_it(key
     (ruling P24-O): a recorded sprint reads as the run the replay sends (`R.as_run`); F1 294, its unbound run legs
     ending at their seconds a tick before the record's at 491 (open loop), and its first divergence moves to 483: at
     163 the replay's `many` shelter walk (once a sprint) is now the record's own `held` walk at a run, the same
-    action (the why differs, `listed` 4), and 483 is the `many` flee's steer (four listed) where the record held."""
-    got = R.agreement(run_dir(key), replay_rows(key))
+    action (the why differs, `listed` 4), and 483 is the `many` flee's steer (four listed) where the record held.
+    Task 12 fix 1: F1 295 (the binder reads `as_run`: minor 5), and the dead target (the ruling on concern 6) moves
+    F1's first divergence to 254, its swing at 15911 read dead the tick before (the `unreachable` flee from 15885
+    instead), with 255 and 333 (the swing at 15937's corpse, the branch passing) after it; 483 is the first past
+    them. The review's minor 6: at 163 the action agrees under `as_run` while the reason differs, pinned here."""
+    rep = replay_rows(key)
+    got = R.agreement(run_dir(key), rep)
     assert (got["compared"], got["agree"], got["skipped_world"]) == (compared, agree, 0)
     d = got["first_divergence"]
     assert d["line"] == first
     if key == "e5":
         assert d["record"]["why"]["target"] == 19275 and d["replay"]["why"]["behind"] == [19249, 19278]
-    else:
-        assert d["record"]["action"] is None and d["replay"]["why"]["listed"] == 4
-        assert d["replay"]["action"]["type"] == "steer" and d["replay"]["why"]["flee"] == "many"
+        return
+    assert d["record"]["action"] == {"type": "attack", "args": {"targetId": 15911}} and d["replay"]["why"]["kill"] == 15911
+    assert d["replay"]["why"]["flee"] == "unreachable" and d["replay"]["action"]["type"] == "walkTo"
+    divs = divergences(key, rep)
+    assert divs[:4] == DEAD_LINES + [483]
+    rec = R.read_record(run_dir(key))[1]
+    assert rec[482]["action"] is None and rep[482]["inputs"]["branches"]["threat"]["listed"] == 4
+    assert rep[482]["action"]["type"] == "steer" and rep[482]["inputs"]["branches"]["threat"]["flee"] == "many"
+    r163, p163 = rec[162]["inputs"]["branches"]["threat"], rep[162]["inputs"]["branches"]["threat"]
+    assert r163["flee"] == "held" and p163["flee"] == "many" and p163["listed"] == 4 and 163 not in divs
+    assert rep[162]["action"] == R.as_run(rec[162]["action"]) and rep[162]["branch"] == rec[162]["branch"] == "threat"
 
 
 def test_agreement_names_the_first_divergence():
@@ -195,14 +220,15 @@ def test_the_recorded_aids_follow_the_session_s_pre_loop_equip():
 
 # ================================================================ Task 1 fix 1: E2, E3 and E4 (older rules)
 @pytest.mark.parametrize("key,compared,agree,first", [("e2", 119, 96, 94), ("e3", 131, 108, 137),
-                                                      ("e4", 1341, 1089, 302)])
+                                                      ("e4", 1341, 1113, 302)])
 def test_the_older_records_diverge_where_the_rules_changed_since(key, compared, agree, first):
     """The reading at fix 1's recording: HEAD's decisions over inputs recorded under older rules (E2 at 42e7f49b, E3
     at 145868e2, E4 at 259a58bc); each first divergence is named in the module docstring with its rule. Plan 24
     Task 2 (P24-A) re-read: E2 96 of 119 (97 before), E4 1119 of 1341 (1134), E3 unmoved; the first divergences
     unmoved (the survival 5 rules move these runs only after them). Fix 1 (1)'s retries: E3 108 (113), E4 1113.
     Task 12 (ruling P24-O, a recorded sprint read as a run): E4 1089, its unbound run legs ending at their seconds
-    from 524 on (open loop), the first divergence unmoved."""
+    from 524 on (open loop), the first divergence unmoved. Task 12 fix 1 (minor 5: the binder reads `as_run`): E4
+    1113 again, its run legs bound to the record's sprinted aids."""
     got = R.agreement(run_dir(key), replay_rows(key))
     assert (got["compared"], got["agree"], got["skipped_world"]) == (compared, agree, 0)
     assert got["first_divergence"]["line"] == first
@@ -584,7 +610,23 @@ def test_agreement_reads_a_recorded_sprint_as_the_run_p24_o_sends():
     walk = {"type": "walkTo", "args": {"x": 1, "y": 2, "gait": "walk"}}
     assert R.as_run(walk) is walk and R.as_run({"type": "attack", "args": {"targetId": 1}})["args"] == {"targetId": 1}
     got = R.agreement(run_dir("f1"), replay_rows("f1"))
-    assert got["gait_only"] == 2
+    assert got["gait_only"] == 4   # Task 12 fix 1: the legs bound through `as_run` agree at 491 and 498 too
+
+
+def test_the_binder_reads_a_recorded_sprint_as_the_run_the_planner_sends():
+    """The review's minor 5: a replayed leg equal to the record's under `as_run` binds to the record's aid, so its
+    record's act lines end it (E4's tail from 524 and F1's 491-502 were unbound and open loop at Task 12); a walk at
+    another gait or a run against a recorded walk does not."""
+    acts = R._Acts(None, {3: "a9"})
+    from agent.base.actions import Action
+    leg = Action(aid="a5", type="steer", args={"vx": 1.0, "vy": 0.0, "seconds": 3.0, "gait": "run"}, deadline_s=30.0,
+                 sent_wall=1.0)
+    row = {"sent": True, "action": {"type": "steer", "args": dict(leg.args, gait="sprint")}}
+    acts.sent(3, row, leg, [], 1.0)
+    assert acts.bound == {"a9": leg} and acts.unbound == []
+    walk = Action(aid="a6", type="walkTo", args={"x": 1.5, "y": 2.5, "gait": "run"}, deadline_s=30.0, sent_wall=2.0)
+    acts.sent(3, {"sent": True, "action": {"type": "walkTo", "args": dict(walk.args, gait="walk")}}, walk, [], 2.0)
+    assert acts.unbound == [walk]
 
 
 def test_f1_reads_three_kills_off_its_recorded_attack_results():

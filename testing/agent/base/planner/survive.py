@@ -357,6 +357,7 @@ class Survive:
                                   # care yield's closing read (Task 12 fix 1), CARE_STILL_TICKS + 1 of them
         self._observed = []       # the policies observed this tick (each once: P24-A (g))
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
+        self.dead = {}            # zombie id -> wall until it is skipped, read dead (policies.Fight, Task 12 fix 1)
         self.night = Night(world, actions, clock)
         # one shun store: the goals' Shelter shuns into the night's (Task 13 fix 1, M6), so neither re-tries the other's
         self.goals = GoalRunner(ScriptedSource() if source is None else source, clock, shunned=self.night.shunned)
@@ -383,9 +384,13 @@ class Survive:
     def _policies(self):
         return [p for p in (self.night, self.care, self.fight, self.flee) if p is not None]
 
-    def _within(self, r):
-        return [z for z in self.world.zombies.values()
-                if z.get("x") is not None and z.get("y") is not None and zdist(self.world, z) <= r]
+    def _within(self, r, raw=False):
+        """The listed zombies within `r` tiles, less those read dead within UNREACHABLE_S (`dead`, Task 12 fix 1: a
+        zombie still listed on its kill tick is no threat; F1's line 333 fled 15937's corpse, `unreachable`); `raw`
+        keeps them (the decision line's `threats` and `held`, the record's own readings of the frame)."""
+        dead = () if raw else blocked(self.dead, self.clock())
+        return [z for zid, z in self.world.zombies.items() if zid not in dead
+                and z.get("x") is not None and z.get("y") is not None and zdist(self.world, z) <= r]
 
     def _hold_r(self):
         return DISENGAGE_R if self.mode is not None else DANGER_R
@@ -557,10 +562,15 @@ class Survive:
         """Every held threat line-blocked (`line_to` False) and the character inside (M-6)."""
         return bool(held) and self.night.inside() and all(line_to(self.world, z) is False for z in held)
 
+    def _skipped(self):
+        """The ids no Fight targets now: marked unreachable, or read dead (`dead`, Task 12 fix 1)."""
+        now = self.clock()
+        return blocked(self.unreachable, now) | blocked(self.dead, now)
+
     def _reachable_held(self):
-        """(id, zombie) of each held threat a Fight can target and not marked unreachable (a nil-id zombie is a
-        danger, never a target)."""
-        skip = blocked(self.unreachable, self.clock())
+        """(id, zombie) of each held threat a Fight can target and neither marked unreachable nor read dead (a nil-id
+        zombie is a danger, never a target)."""
+        skip = self._skipped()
         r = self._hold_r()
         return [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in skip
                 and z.get("x") is not None and z.get("y") is not None and zdist(self.world, z) <= r]
@@ -618,7 +628,7 @@ class Survive:
             t = f._target(pin=False)
             stand = f.standing() and not f.advance   # P24-N: the advance closes on the target, a walk toward it
         else:
-            nz = self.world.nearest_zombie(exclude=blocked(self.unreachable, self.clock()))
+            nz = self.world.nearest_zombie(exclude=self._skipped())
             t = None if nz is None else (nz[0], nz[1], zdist(self.world, nz[1]))
             stand = self._stance_ok(self._within(self._hold_r()), self.night.inside())
         if t is None:
@@ -728,7 +738,8 @@ class Survive:
         if not self._armed():
             self.cornered = None
             return None
-        skip = blocked(self.unreachable, self.clock())
+        skip = self._skipped()
+        dead = blocked(self.dead, self.clock())   # Task 12 fix 1: never cornered on, marks aside or not
         group = self._group(held)
         if group and self._trapped(held, inside):
             group = None   # fix round 1, R3: on a room square with no way out no leg can move: the corner stands
@@ -752,14 +763,14 @@ class Survive:
                 return None
             z = self.world.zombies.get(self.cornered)
             if (z is not None and z.get("x") is not None and z.get("y") is not None and nearest <= self.corner_free
-                    and (self.cornered not in skip
+                    and self.cornered not in dead and (self.cornered not in skip
                          or (self.corner_kind != "walk" and in_reach(self.world, z, CORNERED_R)))):
                 return self.cornered
             self.cornered, self._corner_fight = None, None
             return None
         stuck = self.mode == "flee" and self.flee is not None and self.flee.stuck()
         if stuck or inside:   # I3, G4: marks aside, within 1.0 or a line not blocked
-            reach = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid)
+            reach = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in dead
                      and in_reach(self.world, z, CORNERED_R)]
         elif self.mode == "fight":
             return None   # a running fight keeps its own pin (Task 10): the corner pre-empts walks, not swings
@@ -921,10 +932,11 @@ class Survive:
         self.stall_flee, self.flee_dropped, self.flee_many = False, False, False
 
     def _nearest_listed(self):
-        """(id, tiles) of the nearest listed zombie with a position (ties by the listing's order), else None."""
-        best = None
+        """(id, tiles) of the nearest listed zombie with a position (ties by the listing's order), one read dead left
+        out, else None."""
+        best, dead = None, blocked(self.dead, self.clock())
         for zid, z in self.world.zombies.items():
-            if z.get("x") is None or z.get("y") is None:
+            if zid in dead or z.get("x") is None or z.get("y") is None:
                 continue
             d = zdist(self.world, z)
             if best is None or d < best[1]:
@@ -1028,7 +1040,8 @@ class Survive:
         if kind == "cornered":
             if self.fight is None or self.fight is not self._corner_fight:
                 self.fight = self._corner_fight = Fight(self.world, self.actions, self.clock,
-                                                        unreachable=self.unreachable, target=self.cornered)
+                                                        unreachable=self.unreachable, target=self.cornered,
+                                                        dead=self.dead)
                 self.fight.point_blank = True
                 self.fight.mark_free_r = 0.0 if self.corner_kind == "walk" else CORNERED_R
                 self.flee = None
@@ -1036,7 +1049,7 @@ class Survive:
             self.mode = "fight"
         elif want != self.mode:
             if want == "fight":
-                self.fight = Fight(self.world, self.actions, self.clock, unreachable=self.unreachable)
+                self.fight = Fight(self.world, self.actions, self.clock, unreachable=self.unreachable, dead=self.dead)
                 if door is None:
                     self.flee = None   # a door fight keeps the sheltered Flee for the re-close
                 self._end_flee_episode()
@@ -1266,12 +1279,12 @@ class Survive:
     def _inputs(self):
         me = self.world.me or {}
         st = self.world.stats or {}
-        held = self._within(self._hold_r())
+        held = self._within(self._hold_r(), raw=True)
         cur = self.actions.current
         return {"x": me.get("x"), "y": me.get("y"), "health": self._health(), "hunger": st.get("hunger"),
                 "thirst": st.get("thirst"), "fatigue": st.get("fatigue"), "hour": me.get("hour"),
                 "armed": self._armed(), "load": (self.world.load or {}).get("level"),
-                "threats": len(self._within(DANGER_R)), "held": len(held),
+                "threats": len(self._within(DANGER_R, raw=True)), "held": len(held),
                 "nearest": min((zdist(self.world, z) for z in held), default=None),
                 "running": cur.type if cur is not None else None, "mode": self.mode,
                 "fight_s": self.fight.fight_s() if self.mode == "fight" else None}
@@ -1291,7 +1304,7 @@ class Survive:
         kill = None
         if self.fight is not None:
             self._observe(self.fight)
-            kill = self.fight.kill   # P24-Q: read before any branch may replace the Fight
+            kill = self.fight.kill   # P24-Q: read before any branch may replace the Fight (a lower bound: world.py)
         self.need_mark = None
         branch, owner, cmd, cooled, tried = None, None, None, None, {}
         for name in BRANCHES:

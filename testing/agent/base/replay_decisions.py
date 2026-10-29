@@ -31,7 +31,9 @@ THE METHOD (no wall clock is read; a run twice gives identical output):
 - The acts. The record's aids are read off the act lines (the k-th sent decision line's action is the record's
   aid `a<k + offset>`, the offset the session's pre-loop sends, checked by the act lines' `type`; the replay's own
   aids are numbered from the same offset, so a `holding` aid in a why reads as the record's). A replayed send
-  that equals the record's send on the same line (type and args) is bound to that aid, and the record's act lines of
+  that equals the record's send on the same line (type and args, each read through `as_run`: Task 12 fix 1, the
+  review's minor 5, so a leg the record sprinted binds to the run the planner sends since P24-O, a steer ending at its
+  seconds whatever its gait) is bound to that aid, and the record's act lines of
   that aid drive it through `Actions.pump` as live (accepted, progress, done, failed, superseded). A replayed send
   the record did not make is unbound: it fails every action still open before it `superseded` at its send (the Lua's
   supersede); a bound one fails only the older unbound ones (the record's own act lines supersede the bound ones);
@@ -71,8 +73,8 @@ with every moved decision attributed in that task's report; never to make a fail
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat
 branch: the branch and the action, a recorded `sprint` gait read as `run` (`as_run`, ruling P24-O, Plan 24 Task 12:
-the planner never sprints; the goldens were re-recorded under it where a sprint became a run, and a leg the record
-sprinted is now unbound, ending at its seconds on the replay clock). It is an offline oracle's reading; a divergence is a finding about the planner or
+the planner never sprints; the goldens were re-recorded under it where a sprint became a run; the binder reads the
+same, Task 12 fix 1). It is an offline oracle's reading; a divergence is a finding about the planner or
 the replay's act model, named in the task report, not a failure. At the goldens' recording (Plan 24 Task 1): E5 116
 of 116 threat lines agree, F1 331 of 331, none skipped, and every threat why equals the record's; at fix 1's
 recording E2 97 of 119, E3 113 of 131, E4 1134 of 1341, none skipped.
@@ -251,7 +253,7 @@ class _Acts:
 
     def sent(self, k, row, a, open_before, now):
         rec = row["action"] if row["sent"] else None
-        is_bound = rec is not None and rec["type"] == a.type and rec["args"] == a.args
+        is_bound = rec is not None and as_run(rec) == as_run({"type": a.type, "args": a.args})
         if is_bound:
             self.bound[self.rec_aids[k]] = a
         else:

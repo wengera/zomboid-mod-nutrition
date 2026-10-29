@@ -283,9 +283,10 @@ def test_a_stand_with_no_progress_in_stand_max_s_closes_in_the_stance_never_a_wa
     assert last(tmp_path)["inputs"]["fight_s"] == 2.0 and sv.fight.fight_s() == 2.0   # unbroken, toward the stall
 
 
-def test_the_advance_with_its_line_blocked_walks_round_the_wall_at_a_run(tmp_path):
+def test_the_advance_with_its_line_blocked_walks_round_the_wall_at_a_walk(tmp_path):
     """The advance's one walk: the line to the stand-off target blocked over STEER_PROBE (a wall between), the
-    approach walk at a run (the path follower walks round it); with the line clear, the aim toward it."""
+    approach walk (the path follower walks round it); with the line clear, the aim toward it. Named change (Task 12
+    fix 1, the review's minor 3): at a walk, never a run (ruling P24-N 1: "in the stance ... not to a run")."""
     r, sv = make(tmp_path)
     sqs = [square(x, y) for x in range(95, 110) for y in range(195, 206)]
     sqs = [dict(s, blockW=True) if (s["x"], s["y"]) == (102, 200) else s for s in sqs]
@@ -297,7 +298,7 @@ def test_the_advance_with_its_line_blocked_walks_round_the_wall_at_a_run(tmp_pat
         r.advance(2.0)
         r.frame(x=100.5, y=200.5, zombies=[zd(1, 106.5, 200.5, has_target=False)])
         tick(r, sv)
-    assert r.cmd() == ("walkTo", {"x": 106.5, "y": 200.5, "gait": "run"}) and sv.fight.advance
+    assert r.cmd() == ("walkTo", {"x": 106.5, "y": 200.5, "gait": "walk"}) and sv.fight.advance
     assert threat_why(tmp_path)["leg"] == "walk"
 
 
@@ -2140,3 +2141,48 @@ def test_a_ride_takes_a_walk_only_on_an_open_line(tmp_path):
     assert sv._ride_leg() is None
     walk2 = sv.flee.send(P.WalkTo(100.5, 203.5, "run"))
     assert sv._ride_leg() is walk2 and walk is not walk2
+
+
+# ================================================================ Task 12 fix 1: the dead target (concern 6, ruled)
+def test_a_target_read_dead_is_unpinned_and_skipped_for_unreachable_s_logged_dead(tmp_path):
+    """The controller's ruling on concern 6 (F1's line 254 swung at 15911 on its kill tick, the zombie still
+    listed): an attack ends done with `targetDead` on zombie 1 at 1.6 tiles, and the next frame still lists 1 at 1.6
+    and 2 at 4.0: the next command is no `attack 1` but a stance leg on 2; the why logs `dead` [1], never
+    `unreachable`; the skip is time-bounded (UNREACHABLE_S), the World's `killed` the only permanent record."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 101.6, 200.0)])
+    tick(r, sv)
+    assert threat_why(tmp_path)["leg"] == "enter"
+    r.answer("progress")
+    r.frame(zombies=[zd(1, 101.6, 200.0)])
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 1})
+    r.fake.answer({"attack": ["accepted", {"state": "done", "result": {"swings": 1, "attackStarted": True,
+                                                                        "targetDead": True}}]})
+    r.pump()
+    r.frame(zombies=[zd(1, 101.6, 200.0), zd(2, 104.0, 200.0)])
+    tick(r, sv)
+    a = stance_args(r)
+    assert a["targetId"] == 2 and r.cmd() != ("attack", {"targetId": 1})
+    w = threat_why(tmp_path)
+    assert w["kill"] == 1 and w["target"] == 2 and w["dead"] == [1] and "unreachable" not in w
+    assert sv.fight.target == 2 and 1 in sv.fight.blocked() and sv.dead == sv.fight.dead
+    assert last(tmp_path)["inputs"]["held"] == 2                            # the record's own reading of the frame
+    r.advance(P.UNREACHABLE_S)
+    assert 1 not in sv.fight.blocked() and r.world.killed == {1}
+
+
+def test_a_corpse_still_listed_alone_is_no_threat(tmp_path):
+    """F1's line 333 (the swing at 15937 on its kill tick, the only zombie listed): the dead zombie is left out of
+    the held list (`_within`), so the threat branch passes instead of fleeing it `unreachable`."""
+    r, sv = make(tmp_path, caps=CAPS_14)
+    r.frame(zombies=[zd(1, 101.6, 200.0)])
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 1})
+    r.fake.answer({"attack": ["accepted", {"state": "done", "result": {"swings": 1, "attackStarted": True,
+                                                                        "targetDead": True}}]})
+    r.pump()
+    r.frame(zombies=[zd(1, 101.6, 200.0)])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] != "threat" and sv.mode is None and threat_why(tmp_path) == {"kill": 1}
+    assert sum(a.type == "attack" for a in r.acts.history) == 1

@@ -60,6 +60,10 @@ so the retry is the only way a refilled source comes back). The planner's, never
 `frame_n` counts the frames applied (the care branch's one-frame wait after a bandage, Task 10 fix 1, minor 6).
 `killed` (Plan 24 Task 12, ruling P24-Q: zombies killed is the iteration's metric) holds the zombie ids a Fight read
 `targetDead` on (`note_kill`); `kills`, its count, goes into `to_json` once non-zero and into the goal layer's view.
+It is the planner's lower bound, never the metric (Task 12 fix 1, the review's minor 8): only the running
+`Survive.fight`'s own attack or aim result is read, so a Fight replaced before its result was read loses that kill and
+a kill by any other means is not read; the drivers grade kills off the death event's own count (#4321) and read
+`kills` as a cross-check.
 
 The met memory (Plan 24 survival 5, ruling P24-A (a): E5's horde was listed at the 12-tile edge while the threat
 branch counted within 6, #4268): `met` keeps, for each zombie id a frame listed with a position, where it was last
