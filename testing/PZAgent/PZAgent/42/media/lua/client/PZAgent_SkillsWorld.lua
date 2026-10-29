@@ -463,7 +463,7 @@ K.types.equip = {
 
 -- ---- consume {itemId} -----------------------------------------------------------------------------------------------
 -- The held item by id (none held): ISEatFoodAction:new(p, item, 1) when it answers IsFood true, ISDrinkFluidAction:new(
--- p, item, 1) when it answers a fluid container (getFluidContainer non-nil) that is drinkable, else not valid. A non-food
+-- p, item, 1) when it holds drinkable water (W.drinkable, PZA/1.4.1: the use table's water), else not valid. A non-food
 -- item is refused before ISEatFoodAction:new, whose getDuration calls the Food-only getBaseHunger (a caught raise still
 -- parks a -debug client); ISEatFoodAction:isValid on an MP client checks the main inventory's containsID, which
 -- isValidStart reads before the queue. Done {itemId} once the eat or drink is seen landing (the item gone from the
@@ -510,7 +510,7 @@ K.types.consume = {
                 st.hunger = h
             else
                 local _, fc = PZA.call(st.item, "getFluidContainer")
-                if fc == nil or W.undrinkable(st.item, fc) then return "failed", "not valid" end
+                if not W.drinkable(st.item, fc) then return "failed", "not valid" end
                 local _, amount = PZA.call(fc, "getAmount")
                 ctor, st.fc, st.amount = ISDrinkFluidAction, fc, amount
             end

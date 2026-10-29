@@ -81,11 +81,22 @@ MOODLE_NAMES = ("HUNGRY", "THIRST", "TIRED", "ENDURANCE", "PANIC", "PAIN", "INJU
 FOODS = ("Base.Bread", "Base.Apple", "Base.CannedBeans", "Base.Crisps")
 
 
-def make_fluid(amount=0.5, poison=False, clean=True):
-    """A fluid container whose amount is fc.st["amount"] (a drink lowers it)."""
+def make_fluid(amount=0.5, poison=False, clean=True, water=True, tainted=False, capacity=1.0, can_add=True):
+    """A fluid container whose amount is fc.st["amount"] (a drink lowers it). Plan 24 PZA/1.4.1 (P24-F): `water` is
+    whether its primary fluid is water, so isWaterSource answers it while the container is not empty (the jar's
+    FluidContainer.isWaterSource); isTainted answers `tainted`, getCapacity `capacity` and canAddFluid(fluid)
+    `can_add` (each None makes the member absent)."""
     st = {"amount": amount}
     fc = J(getAmount=lambda s: st["amount"], isEmpty=lambda s: st["amount"] <= 0, isPoisonous=lambda s: poison,
            isFilledWithCleanWater=lambda s: clean)
+    if water is not None:
+        fc.isWaterSource = lambda s: water and st["amount"] > 0
+    if tainted is not None:
+        fc.isTainted = lambda s: tainted
+    if capacity is not None:
+        fc.getCapacity = lambda s: capacity
+    if can_add is not None:
+        fc.canAddFluid = lambda s, fluid: can_add and fluid == "Water"
     fc.st = st
     return fc
 
@@ -94,7 +105,7 @@ def make_item(ft, iid, food=()):
     """An inventory item of full type ft and id iid: IsFood true for a name in FOODS or `food`, a fluid container for a
     name holding Bottle (clean water) or Bleach (poisonous), never a two-hand weapon, weight 1.0."""
     is_food = ft in FOODS or ft in food
-    fc = make_fluid() if "Bottle" in ft else make_fluid(poison=True, clean=False) if "Bleach" in ft else None
+    fc = make_fluid() if "Bottle" in ft else make_fluid(poison=True, clean=False, water=False) if "Bleach" in ft else None
     return J(getFullType=lambda s: ft, getID=lambda s: iid, getWeight=lambda s: 1.0, IsFood=lambda s: is_food,
              getFluidContainer=lambda s: fc, isTwoHandWeapon=lambda s: False,
              getHungerChange=lambda s: -0.1 if is_food else 0.0)
@@ -267,6 +278,7 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g.CharacterStat = J(**{n: n for n in STAT_NAMES})
     g.MoodleType = J(**{n: n for n in MOODLE_NAMES})
     g.IsoFlagType = J(HoppableN="HoppableN", HoppableW="HoppableW")   # PZA/1.4: the square's has(flag) reads
+    g.Fluid = J(Water="Water")                                       # PZA/1.4.1: canAddFluid(Fluid.Water)
     g.instanceof = lambda o, cls: getattr(o, "_cls", None) == cls
     g.getGameTime = lambda: J(getHour=lambda s: 7, getMinutes=lambda s: 30, getWorldAgeHours=lambda s: 31.5,
                                 getTimeOfDay=lambda s: 8.0)

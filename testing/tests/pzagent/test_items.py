@@ -1,5 +1,5 @@
 """`agent.base.items` (Plan 23 Task 9, P23-D): an item's use read off `data/food-items.json` (food by `kind == "food"`,
-water by a drinkable `fluid_container` whose fluids are not all poisons), a bandage by the Lua loot's own name rule, a
+water by a drinking vessel spawning holding water only, a container by one spawning empty: PZA/1.4.1), a bandage by the Lua loot's own name rule, a
 weapon by `WEAPON_RX`, else other. Every expectation is checked against the dataset read here, never a literal count
 or a remembered membership.
 """
@@ -25,9 +25,23 @@ def _poison_only(it):
     return bool(it.get("fluid_ids")) and set(it["fluid_ids"]) <= POISONS
 
 
+WATERS = ("Water", "CarbonatedWater")   # PZA/1.4.1 (P24-F): the jar's isWaterSource fluids less TaintedWater
+
+
+def _vessel(it):
+    """The dataset's own columns: a drinkable fluid container of at most 3 litres (vanilla's drink menu's cap)."""
+    return (it["kind"] == "fluid_container" and bool(it.get("drinkable"))
+            and (it.get("fluid_capacity") or 99.0) <= 3.0)
+
+
 def _water(it):
-    """The dataset's own columns: a drinkable fluid container whose named fluids are not all poisons."""
-    return it["kind"] == "fluid_container" and bool(it.get("drinkable")) and not _poison_only(it)
+    """A vessel spawning holding water only (PZA/1.4.1)."""
+    return _vessel(it) and bool(it.get("fluid_ids")) and all(f in WATERS for f in it["fluid_ids"])
+
+
+def _container(it):
+    """A vessel spawning empty (PZA/1.4.1)."""
+    return _vessel(it) and not it.get("fluid_ids")
 
 
 def test_the_index_is_the_datasets_food_and_fluid_containers():
@@ -62,12 +76,33 @@ def test_a_hammer_is_not_food_and_is_a_weapon_by_the_rx():
     assert items.use_of("Base.Hammer") == "weapon"
 
 
-def test_a_drinkable_fluid_container_is_water_whatever_its_name():
+def test_a_vessel_holding_water_is_water_whatever_its_name():
     fc = sorted(i for i, it in DATA.items() if _water(it))
     assert fc
     for i in fc:
         assert items.use_of(i) == "water", i
     assert DATA["Base.WaterBottle"]["drinkable"] and items.use_of("Base.WaterBottle") == "water"
+
+
+def test_a_disinfectant_a_pop_and_a_bleach_are_not_water():
+    """PZA/1.4.1 (P24-F): F2's Disinfectant (RubbingAlcohol, drinkable in the dataset, no poison) read water and was
+    drunk 68 times with no thirst fall; a pop or a juice is a drink but not water."""
+    for i in ("Base.Disinfectant", "Base.Bleach", "Base.Pop"):
+        assert DATA[i]["drinkable"] and DATA[i]["fluid_ids"], i
+        assert items.use_of(i) == "other", i
+    assert "Base.Disinfectant" not in items.DRINK_IDS
+
+
+def test_an_empty_vessel_is_a_container():
+    """PZA/1.4.1: a drinking vessel spawning empty reads `container` (a saucepan too: the dataset's fallback has no
+    weapon rule for it), never water; one over 3 litres (a bucket) is not one."""
+    vessels = sorted(i for i, it in DATA.items() if _container(it))
+    for i in ("Base.PopEmpty", "Base.Mugl", "Base.Bowl", "Base.GlassTumbler"):
+        assert i in vessels and items.use_of(i) == "container", i
+    for i in vessels:
+        assert items.use_of(i) in ("container", "weapon", "bandage"), i
+    assert items.VESSEL_IDS == frozenset(vessels) and not items.VESSEL_IDS & items.DRINK_IDS
+    assert items.use_of("Base.BucketEmpty") == "other"
 
 
 def test_a_non_drinkable_fluid_container_is_not_water():
@@ -82,23 +117,23 @@ def test_a_non_drinkable_fluid_container_is_not_water():
         assert items.use_of(i) == "other", i
 
 
-def test_a_drinkable_container_of_only_poisons_is_not_water():
+def test_a_drinkable_container_of_only_poisons_is_neither_water_nor_a_container():
     """Bleach, hair dye: drinkable containers in the dataset whose every fluid carries `poison` in `fluids`."""
     poison = sorted(i for i, it in DATA.items()
                     if it["kind"] == "fluid_container" and it.get("drinkable") and _poison_only(it))
     assert "Base.Bleach" in poison and any("HairDye" in i for i in poison), poison
     for i in poison:
-        assert items.use_of(i) != "water", i
+        assert items.use_of(i) not in ("water", "container"), i
 
 
-def test_an_empty_named_container_reads_as_the_dataset_says():
-    """A deliberate change from Plan 22's regex (which never read `...Empty` as water): an `Empty`-named container
-    reads water when the dataset calls it a drinkable, non-poison fluid container, else not; its fill is the Lua's and
-    `World.mark_empty`'s to judge."""
+def test_an_empty_named_container_is_never_water():
+    """PZA/1.4.1 (P24-F): an `Empty`-named container spawns empty, so it is a `container` when it is a drinking vessel,
+    never water (Plan 23 read a drinkable one water whatever its fill)."""
     empties = sorted(i for i, it in DATA.items() if it["kind"] == "fluid_container" and i.endswith("Empty"))
-    assert any(_water(DATA[i]) for i in empties) and any(not _water(DATA[i]) for i in empties), empties
+    assert any(_container(DATA[i]) for i in empties), empties
     for i in empties:
-        assert (items.use_of(i) == "water") == _water(DATA[i]), i
+        assert items.use_of(i) != "water", i
+        assert (items.use_of(i) == "container") == _container(DATA[i]), i
 
 
 def test_a_drainable_is_not_food_or_water():
@@ -118,8 +153,9 @@ def test_bandages_by_the_lua_loots_name_rule_and_the_rest_other():
     assert items.use_of(None) == "other" and items.use_of("") == "other"
 
 
-def test_the_uses_are_the_five_names():
-    assert items.USES == ("food", "water", "weapon", "bandage", "other")
+def test_the_uses_are_the_six_names_the_schema_names():
+    from agent.base import pza1
+    assert items.USES == ("food", "water", "weapon", "bandage", "other", "container") == pza1.ITEM_USES
 
 
 def test_pants_and_panties_are_not_weapons_by_the_rx():

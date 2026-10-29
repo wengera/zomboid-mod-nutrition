@@ -437,7 +437,11 @@ def make_door(opened=False, cls="IsoDoor", barricaded=False):
 
 
 def citem(ft, cls=None):
-    return J(_cls=cls, getFullType=lambda s: ft, getFluidContainer=lambda s: None)
+    """A container's item; a Food answers getHungerChange -0.1 (PZA/1.4.1: food is a hunger change below 0)."""
+    it = J(_cls=cls, getFullType=lambda s: ft, getFluidContainer=lambda s: None)
+    if cls == "Food":
+        it.getHungerChange = lambda s: -0.1
+    return it
 
 
 def witem(ft, w=1.0):
@@ -785,8 +789,9 @@ def test_interact_loot_food_moves_the_matching_items_and_reports_moved(lua, fs):
 
 def test_interact_loot_filters(lua, fs):
     load(lua)
+    from .conftest import make_fluid
     stuff = [citem("Base.Bread", "Food"), citem("Base.Axe", "HandWeapon"),
-             J(getFullType=lambda s: "Base.WaterBottle", getFluidContainer=lambda s: J(isEmpty=lambda s2: False, isPoisonous=lambda s2: False)),
+             J(getFullType=lambda s: "Base.WaterBottle", getFluidContainer=lambda s: make_fluid()),
              citem("Base.Bandage"), citem("Base.RippedSheets"), citem("Base.RagDirty")]
     expect = {"food": 1, "weapon": 1, "water": 1, "bandage": 2, "all": 6, None: 6}
     g = lua.globals()
@@ -966,6 +971,23 @@ def test_consume_of_a_hammer_or_bleach_is_not_valid_and_queues_nothing(lua, fs):
     tick(lua, p)
     assert [s for s in states(acts(lua, fs)) if s[1] != "accepted"] == [
         ("h", "failed", "not valid"), ("b", "failed", "not valid")]
+    assert g._queue.adds == []
+
+
+def test_consume_of_a_disinfectant_or_an_empty_bottle_is_not_valid_and_queues_nothing(lua, fs):
+    """PZA/1.4.1 (P24-F): the drink takes only what `use` reads `water`; F2 drank a Disinfectant 68 times."""
+    load(lua)
+    g = lua.globals()
+    from .conftest import make_fluid
+    p = make_player(items=("Base.Disinfectant", "Base.WaterBottle"))
+    p.held[0].getFluidContainer = lambda s, fc=make_fluid(water=False): fc
+    p.held[1].getFluidContainer(p.held[1]).st["amount"] = 0.0
+    start(lua, p, "consume", aid="d", itemId=1000)
+    tick(lua, p)
+    start(lua, p, "consume", aid="e", itemId=1001)
+    tick(lua, p)
+    assert [s for s in states(acts(lua, fs)) if s[1] != "accepted"] == [
+        ("d", "failed", "not valid"), ("e", "failed", "not valid")]
     assert g._queue.adds == []
 
 

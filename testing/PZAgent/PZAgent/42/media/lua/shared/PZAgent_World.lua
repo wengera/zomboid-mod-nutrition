@@ -114,22 +114,57 @@ function W.fullTypeHas(it, a, b)
     return string.find(ft, a, 1, true) ~= nil or string.find(ft, b, 1, true) ~= nil
 end
 
--- bleach or petrol is never drunk (Act's firstDrink rule): a full type naming Bleach or Petrol, an empty container, or one
--- whose isPoisonous is not read false (fails closed: a container whose isPoisonous is absent is never drunk)
-function W.undrinkable(it, fc)
-    if W.fullTypeHas(it, "Bleach", "Petrol") then return true end
-    local _, empty = PZA.call(fc, "isEmpty")
-    local okP, poison = PZA.call(fc, "isPoisonous")
-    return empty == true or not okP or poison ~= false
+-- The use table (PZA/1.4.1, ruling P24-F; F2 drank a Base.Disinfectant, RubbingAlcohol, 68 times with no thirst fall).
+-- Water is what vanilla's thirst drink reads as water, the item's FluidContainer.isWaterSource() (the 42.21 jar:
+-- isEmpty false and the primary fluid Water, TaintedWater or CarbonatedWater, FluidContainer.isWaterSource @0 L875;
+-- InventoryItem.isWaterSource @0 L2889 wraps it, the test ISInventoryPaneContextMenu makes for its waterContainer),
+-- read here on the container so a fake answers it. A container vanilla's drink menu refuses (getCapacity over
+-- DRINK_CAP_L, its Tooltip_CantDrinkFrom in doDrinkFluidMenu), a tainted one (isTainted) or a poisonous one is not
+-- drinkable, nor a full type naming Bleach or Petrol (Act's firstDrink rule). Fails closed: a read absent reads no.
+W.DRINK_CAP_L = 3.0       -- litres: ISInventoryPaneContextMenu.doDrinkFluidMenu refuses a drink from a larger container
+
+local function reads(obj, member, want, ...)
+    local ok, v = PZA.call(obj, member, ...)
+    return ok and v == want
 end
 
--- the item's use as the engine answers it (item_added.use, the loot's filters): food, else weapon (before water: a
--- saucepan is both), else water (a drinkable fluid container), else bandage (a Bandage or Rag by full type), else other
+-- the container is one a character drinks from: not over DRINK_CAP_L litres, and no Bleach or Petrol by full type
+local function drinkVessel(it, fc)
+    if W.fullTypeHas(it, "Bleach", "Petrol") then return false end
+    local _, cap = PZA.call(fc, "getCapacity")
+    return type(cap) == "number" and cap <= W.DRINK_CAP_L
+end
+
+-- the item holds water a character can drink (fc, its fluid container): the use table's water and consume's drink
+function W.drinkable(it, fc)
+    if fc == nil or not drinkVessel(it, fc) then return false end
+    return reads(fc, "isWaterSource", true) and reads(fc, "isTainted", false) and reads(fc, "isPoisonous", false)
+end
+
+-- the item is an empty drinking vessel that may hold water, FluidContainer.canAddFluid(Fluid.Water) (@0 L950: not
+-- input-locked, canPlayerEmpty, its fluids blend with water and its whitelist and blacklist allow it): the use
+-- table's container, which Task 9's fill takes to a sink or a toilet
+function W.waterVessel(it, fc)
+    if fc == nil or Fluid == nil or not drinkVessel(it, fc) then return false end
+    return reads(fc, "isEmpty", true) and reads(fc, "canAddFluid", true, Fluid.Water)
+end
+
+-- the item is food a character can eat: isA Food with getHungerChange below 0 (a spice or a hunger-free food is not)
+function W.edible(it)
+    if not W.isA(it, "Food") then return false end
+    local _, h = PZA.call(it, "getHungerChange")
+    return type(h) == "number" and h < 0
+end
+
+-- the item's use as the engine answers it (item_added.use, the loot's filters): food (edible), else weapon (before
+-- water: a saucepan is both), else water (drinkable), else container (an empty water vessel), else bandage (a Bandage
+-- or Rag by full type), else other
 function W.useOf(it)
-    if W.isA(it, "Food") then return "food" end
+    if W.edible(it) then return "food" end
     if W.isA(it, "HandWeapon") then return "weapon" end
     local _, fc = PZA.call(it, "getFluidContainer")
-    if fc ~= nil and not W.undrinkable(it, fc) then return "water" end
+    if W.drinkable(it, fc) then return "water" end
+    if W.waterVessel(it, fc) then return "container" end
     if W.fullTypeHas(it, "Bandage", "Rag") then return "bandage" end
     return "other"
 end

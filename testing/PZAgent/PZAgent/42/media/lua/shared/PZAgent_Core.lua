@@ -2,7 +2,7 @@
 -- Every Java member is reached through PZA.call / PZA.field: an unguarded nil call on a -debug client
 -- parks the process in the Lua debugger (platform/lua-platform.md#debug-break), and pcall names nothing.
 PZA = PZA or {}
-PZA.VERSION = "1.4"         -- 1.4: PZA/1.4, me's attackers, hitReaction and dragDown, the square's hopN and hopW, attack busy (P24-C); 1.3: PZA/1.3, the death event (P23-AO); 1.2: me.hour, the square's edges, sleep and interact's maxWeight (pza1.json x-prior)
+PZA.VERSION = "1.4.1"       -- 1.4.1: the use table reads only drinkable water and edible food, the use container (P24-F); 1.4: PZA/1.4, me's attackers, hitReaction and dragDown, the square's hopN and hopW, attack busy (P24-C); 1.3: PZA/1.3, the death event (P23-AO); 1.2: me.hour, the square's edges, sleep and interact's maxWeight (pza1.json x-prior)
 
 function PZA.log(msg) print("[PZAgent] " .. tostring(msg)) end
 function PZA.now() return getTimestampMs and getTimestampMs() or 0 end

@@ -607,12 +607,13 @@ def test_interiors_group_the_room_squares_by_building_and_doors_of_names_the_doo
 
 
 def _use(name):
-    """What the dataset says an item is for (food, unless it is `cant_eat`, a sealed can: fix wave P I-4; a fluid
-    container, water), None when it says nothing."""
+    """What the dataset says an item is for (food, unless it is `cant_eat`, a sealed can: fix wave P I-4), None when it
+    says nothing; a fluid container is `items.use_of`'s (PZA/1.4.1: water only holding water, an empty vessel a
+    container)."""
     it = DATA.get(name) or {}
     if it.get("cant_eat"):
         return "other"
-    return {"food": "food", "fluid_container": "water"}.get(it.get("kind"))
+    return {"food": "food"}.get(it.get("kind"))
 
 
 def test_by_use_sorts_the_inventory_by_the_datasets_use():
@@ -628,6 +629,7 @@ def test_by_use_sorts_the_inventory_by_the_datasets_use():
         assert iid in got[want], (ft, want, got)
         assert sum(iid in v for v in got.values()) == 1
     assert 1 in got["water"] and 5 in got["weapon"] and 6 in got["bandage"] and 7 in got["other"]
+    assert 4 in got["container"]                               # PZA/1.4.1: an empty bowl is a vessel, never water
     assert got["food"] == sorted(got["food"])
 
 
@@ -654,7 +656,8 @@ def test_nearest_unlooted_keys_on_the_datasets_use():
                      _sq(6, 0, containers=[{"type": "shelf", "n": 1, "items": ["Base.DrinkingGlass"]}])]))
     assert DATA["Base.Carrots"]["kind"] == "food" and DATA["Base.DrinkingGlass"]["kind"] == "fluid_container"
     assert w.nearest_unlooted("food") == (3, 0, 0, 0)
-    assert w.nearest_unlooted("water") == (6, 0, 0, 0)          # a glass the Plan 22 WATER_RX missed
+    assert w.nearest_unlooted("water") is None                  # PZA/1.4.1: an empty glass is not water
+    assert w.nearest_unlooted("container") == (6, 0, 0, 0)      # it is a vessel (the Plan 22 WATER_RX missed it)
     assert w.nearest_unlooted("weapon") == (1, 0, 0, 0)
     assert w.nearest_unlooted() == (1, 0, 0, 0)
 

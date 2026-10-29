@@ -460,7 +460,7 @@ def test_every_first_sight_item_added_carries_a_use_of_the_five(lua):
     p = make_player(items=("Base.Apple", "Base.WaterBottle", "Base.Axe", "Base.RippedSheets", "Base.Plank"))
     ev = [dict(e) for e in lua.eval("PZA.sense.firstSight(...)", p).values() if e["event"] == "item_added"]
     assert len(ev) == 5
-    assert all(e["use"] in ("food", "water", "weapon", "bandage", "other") for e in ev)
+    assert all(e["use"] in ("food", "water", "weapon", "bandage", "other", "container") for e in ev)
 
 
 def test_event_kinds_and_fields_are_the_schemas(lua):
@@ -838,6 +838,74 @@ def test_first_sight_carries_the_engines_use_of_each_item(lua):
     ev = [dict(e) for e in lua.eval("PZA.sense.firstSight(...)", p).values()]
     got = {e["itemId"]: e["use"] for e in ev if e["itemId"] >= 1 and e["itemId"] <= 8}
     assert got == {1: "food", 2: "weapon", 3: "water", 4: "weapon", 5: "other", 6: "bandage", 7: "other", 8: "other"}
+
+
+# ---- PZA/1.4.1 (ruling P24-F): the use table reads only drinkable water and edible food ---------------------------------
+
+def _uses(lua, *items):
+    p = make_player()
+    p.held.extend(items)
+    ev = [dict(e) for e in lua.eval("PZA.sense.firstSight(...)", p).values()]
+    return {e["itemId"]: e["use"] for e in ev if 1 <= e["itemId"] <= len(items)}
+
+
+def test_a_disinfectant_reads_other_a_water_bottle_water_and_a_bleach_bottle_other(lua):
+    """F2's Disinfectant (RubbingAlcohol: a fluid container, not poisonous, not water) read `water` and was drunk 68
+    times with no thirst fall; isWaterSource is the jar's water test (FluidContainer.isWaterSource @0 L875)."""
+    load(lua)
+    from .conftest import make_item, make_fluid
+    disinfectant = make_item("Base.Disinfectant", 1)
+    disinfectant.getFluidContainer = lambda s, fc=make_fluid(water=False): fc
+    bottle = make_item("Base.WaterBottle", 2)
+    bleach = make_item("Base.Bleach", 3)
+    assert _uses(lua, disinfectant, bottle, bleach) == {1: "other", 2: "water", 3: "other"}
+
+
+def test_an_empty_drinkable_container_reads_container_and_never_water(lua):
+    load(lua)
+    from .conftest import make_item, make_fluid
+    empty = make_item("Base.WaterBottle", 1)
+    empty.getFluidContainer = lambda s, fc=make_fluid(amount=0.0): fc
+    mug = make_item("Base.Mugl", 2)
+    mug.getFluidContainer = lambda s, fc=make_fluid(amount=0.0, capacity=0.2): fc
+    locked = make_item("Base.PopEmpty", 3)                      # canAddFluid(Water) false: never a container
+    locked.getFluidContainer = lambda s, fc=make_fluid(amount=0.0, can_add=False): fc
+    bucket = make_item("Base.BucketEmpty", 4)                   # over the drink menu's 3 litres: not drinkable from
+    bucket.getFluidContainer = lambda s, fc=make_fluid(amount=0.0, capacity=10.0): fc
+    unread = make_item("Base.Bowl", 5)                          # canAddFluid absent: fails closed
+    unread.getFluidContainer = lambda s, fc=make_fluid(amount=0.0, can_add=None): fc
+    bleach = make_item("Base.Bleach", 6)                        # an empty bleach bottle is never a water container
+    bleach.getFluidContainer = lambda s, fc=make_fluid(amount=0.0, water=False): fc
+    assert _uses(lua, empty, mug, locked, bucket, unread, bleach) == {
+        1: "container", 2: "container", 3: "other", 4: "other", 5: "other", 6: "other"}
+
+
+def test_water_needs_every_drinkability_read(lua):
+    """Tainted, poisonous, over 3 litres or with a read absent (isWaterSource, isTainted, getCapacity), a container
+    holding water reads `other`; a half-full water bottle is still `water`."""
+    load(lua)
+    from .conftest import make_item, make_fluid
+    cases = [make_fluid(amount=0.25), make_fluid(tainted=True), make_fluid(poison=True),
+             make_fluid(capacity=10.0), make_fluid(water=None), make_fluid(tainted=None), make_fluid(capacity=None)]
+    items = []
+    for i, fc in enumerate(cases, 1):
+        it = make_item("Base.WaterBottle", i)
+        it.getFluidContainer = lambda s, fc=fc: fc
+        items.append(it)
+    assert _uses(lua, *items) == {1: "water", 2: "other", 3: "other", 4: "other", 5: "other", 6: "other", 7: "other"}
+
+
+def test_food_needs_a_hunger_change_below_zero(lua):
+    load(lua)
+    from .conftest import make_item
+    apple = make_item("Base.Apple", 1)
+    apple._cls = "Food"
+    salt = make_item("Base.Salt", 2)
+    salt._cls = "Food"                                          # IsFood, hunger change 0: not food
+    unread = make_item("Base.Apple", 3)
+    unread._cls = "Food"
+    unread.getHungerChange = None                               # absent: fails closed
+    assert _uses(lua, apple, salt, unread) == {1: "food", 2: "other", 3: "other"}
 
 
 # ---- PZA/1.4 (ruling P24-C): me's attackers, hitReaction and dragDown --------------------------------------------------
