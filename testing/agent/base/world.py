@@ -54,8 +54,17 @@ listed and the world minute of that frame (`{id: (x, y, minute)}`), for MET_TTL_
 origin); `zombie_dead` drops its id. `met_density(x, y, r=MET_R)` counts the distinct zombies met within `r` tiles of
 (x, y); `met_window(r=MET_R)` is the densest window: of the met positions taken as centres, the one with the most met
 zombies within `r` (ties: nearest the player, then by position), answered as `(cx, cy, n)`, the centroid of those `n`
-zombies, else None. The flee's first leg is pushed off the window's centre (`policies.Flee`); the goal sources read
-it (Task 3). Not in `to_json`.
+zombies, else None. The flee's first leg is pushed off the window's centre (`policies.Flee`). Not in `to_json`.
+
+The goal sources' met ground (Plan 24 Task 3, ruling P24-B; F1's goals kept walking toward the one gate zombie,
+#4278): `met_near(r=MET_VIEW_R)` is `met_window`'s rule over the centres within `r` (25) tiles of the player (every
+met zombie counted in a window), `(cx, cy, n)` else None; the view reads it as `met`. `avoid_cone()` is its bearing
+(`bearing_deg`: degrees clockwise from north, -y) while `n` >= MET_AVOID_N (3), else None, and `in_cone(x, y)` whether
+the square's centre lies within MET_AVOID_DEG (45, inclusive) of that bearing from the player (the player's own
+square, no bearing, never does). `unexplored_edge` leaves every square `in_cone` out, under both its rules, so the
+edge walk never heads at a met group; when every edge lies in the cone it answers None (the source then loots, scans
+or rests: never a walk at them). Under MET_AVOID_N the choice is the plain one. `compass(dx, dy)` names a bearing's
+eighth (N, NE, ... NW), None for no offset.
 
 The server's side comes in through `merge_server(stats, wall_ms)` and `merge_damage(reply, wall_ms)`, a
 `damage.watch` reply whose `last` records not yet seen (by `i`) land in `damage` tagged `server` (spec § 9).
@@ -124,6 +133,11 @@ MET_TTL_MIN = 10     # game minutes a zombie listed stays in the met memory (rul
                      # met within the last ten minutes is still about; E5's was first listed at gameMin 590 and at
                      # melee range by 593)
 MET_R = 10.0         # tiles: the met window's radius (ruling P24-A (a), the spec's "densest 10-tile window")
+MET_VIEW_R = 25.0    # tiles: a met window counts for the goal sources only with its centre this near (ruling P24-B 1,
+                     # the view's widest zombie band)
+MET_AVOID_N = 3      # met zombies in the window before the edge choice leaves its bearing out (ruling P24-B 2)
+MET_AVOID_DEG = 45.0  # degrees either side of the window's bearing the edge choice leaves out (ruling P24-B 2)
+COMPASS = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
 GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 DEQUE_N = 500
 
@@ -140,6 +154,19 @@ def me_floor(world):
     so a zombie is read on the player's."""
     z = (world.me or {}).get("z")
     return int(math.floor(z)) if isinstance(z, (int, float)) and not isinstance(z, bool) else 0
+
+
+def bearing_deg(dx, dy):
+    """The bearing of the offset (dx, dy), degrees clockwise from north (-y), in [0, 360); None for no offset."""
+    if abs(dx) < 1e-9 and abs(dy) < 1e-9:
+        return None
+    return math.degrees(math.atan2(dx, -dy)) % 360.0
+
+
+def compass(dx, dy):
+    """The eighth of the compass (N, NE, ... NW) the offset (dx, dy) points into, None for no offset."""
+    b = bearing_deg(dx, dy)
+    return None if b is None else COMPASS[int((b + 22.5) // 45.0) % 8]
 
 
 def _num_first(v):
@@ -386,14 +413,17 @@ class World:
 
     def unexplored_edge(self):
         """The nearest open square with an unmapped neighbour, ties by (x, y); a square marked stuck within the last
-        STUCK_TTL_MIN game minutes is left out. While `stuck_here` (P23-AP 1), only a square on the player's floor
-        that the player's `flood` reaches and whose straight line from the player is clear (`line_clear` to its
-        centre, `unknown_open=False`), else None."""
+        STUCK_TTL_MIN game minutes is left out, and so is a square `in_cone` of a met group (P24-B 2). While
+        `stuck_here` (P23-AP 1), only a square on the player's floor that the player's `flood` reaches and whose
+        straight line from the player is clear (`line_clear` to its centre, `unknown_open=False`), else None."""
         mx, my = me_xy(self)
         skip = self._stuck_now() if self.stuck else ()
+        cone = self.avoid_cone()
         cands = []
         for (x, y, z), s in self.map.items():
             if s.get("solid") or (x, y) in skip:
+                continue
+            if cone is not None and self.in_cone(x, y, cone):
                 continue
             if all((x + dx, y + dy, z) in self.map for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
                 continue
@@ -436,6 +466,47 @@ class World:
     def reachable(self, frm, to, limit=REACH_LIMIT):
         """`to` (x, y, z) lies within `flood(frm, limit)`: a way over the kept map's open steps (P23-AP 1)."""
         return tuple(to) in self.flood(frm, limit)
+
+    def met_near(self, r=MET_VIEW_R):
+        """The densest met window centred within `r` tiles of the player (the module docstring): `(cx, cy, n)`, else
+        None."""
+        px, py = me_xy(self)
+        pts = sorted((m[0], m[1]) for m in self.met.values())
+        best = None
+        for c in pts:
+            d = math.hypot(c[0] - px, c[1] - py)
+            if d > r:
+                continue
+            inn = [p for p in pts if math.hypot(p[0] - c[0], p[1] - c[1]) <= MET_R]
+            rank = (-len(inn), d, c)
+            if best is None or rank < best[0]:
+                best = (rank, inn)
+        if best is None:
+            return None
+        inn = best[1]
+        return sum(p[0] for p in inn) / len(inn), sum(p[1] for p in inn) / len(inn), len(inn)
+
+    def avoid_cone(self):
+        """The bearing (degrees) of `met_near`'s window from the player while it holds MET_AVOID_N or more, else
+        None (P24-B 2)."""
+        m = self.met_near()
+        if m is None or m[2] < MET_AVOID_N:
+            return None
+        px, py = me_xy(self)
+        return bearing_deg(m[0] - px, m[1] - py)
+
+    def in_cone(self, x, y, cone=None):
+        """Whether square (x, y)'s centre lies within MET_AVOID_DEG of the avoid cone's bearing from the player (the
+        module docstring); `cone` the bearing when read already."""
+        cone = self.avoid_cone() if cone is None else cone
+        if cone is None:
+            return False
+        px, py = me_xy(self)
+        b = bearing_deg(x + 0.5 - px, y + 0.5 - py)
+        if b is None:
+            return False
+        off = abs(b - cone) % 360.0
+        return min(off, 360.0 - off) <= MET_AVOID_DEG + 1e-9
 
     def met_density(self, x, y, r=MET_R):
         """The distinct zombies of the met memory within `r` tiles of (x, y) (P24-A (a))."""

@@ -14,13 +14,19 @@ The contract:
   envelope (`{"type": "result", "is_error": …, "result": "<text>", …}`); the `result` text's first balanced `{...}`
   that decodes as JSON (`first_object`) is the goal, checked by `goals.validate` on the worker, then, when the answer
   is collected, against the view of the ask that collects it (the current view, ruling P23-AC: a place that vanished
-  since the call is refused): a LootBuilding or Shelter naming a building that view does not list, or an
-  ExploreToward whose square's centre lies farther than EXPLORE_MAX_TILES (60) from its `pos` (or with no `pos`), is
-  `invalid: unknown place`.
+  since the call is refused): the refusal rule (P24-B 3, stated in `SYSTEM`), its error `invalid: <why>` with `why`
+  one of `view.WHYS`: a LootBuilding or Shelter naming a building that view's render does not show (`view.shown_ids`,
+  the BUILDINGS_SHOWN nearest) is `invalid: refused`; a LootBuilding of a shown building whose `looted` reads true is
+  `invalid: looted already`; an ExploreToward whose square's centre lies farther than EXPLORE_MAX_TILES (60) from its
+  `pos` (or with no `pos`) is `invalid: out of range` (all three were `invalid: unknown place` before P24-B).
+- The refusal's meaning reaches the model (P24-B 3, F1's write-up: the one refused answer named a square past the
+  bound and the model never learned why, #4277, #4279): a goal refused by that rule is kept as `refusal`
+  `{type, args, end: "refused", why}` and laid over the `last_goal` of the next call's view (once; then cleared), so
+  the model reads its own last answer's end rather than the stand-in's; a valid answer clears it.
 - What happens on every failure: the fallback's goal is returned, and the call's row records why. `error` is None on
   success, else "timeout" (no answer within `timeout_s` on the injected clock, or `subprocess.TimeoutExpired`),
   "exit <code>" (a non-zero exit), "malformed" (stdout not an envelope, or no object in its text), "invalid: <reason>"
-  (`validate`'s one-line reason, or "unknown place"), and two values beyond the amendments' list: "cli error" (an
+  (`validate`'s one-line reason, or the refusal rule's why), and two values beyond the amendments' list: "cli error" (an
   envelope with `is_error` true and exit 0: a refusal, a rate limit) and "spawn: <Type>: <reason>" (the CLI could not
   be run at all, e.g. not on PATH, or the runner raised).
 
@@ -35,14 +41,17 @@ when it lands, and no new call starts until its thread has ended (the subprocess
 the fallback answers, the stand-in for the timeout already recorded. So at most one CLI call is ever in flight.
 `join(timeout)` waits for the pending and any abandoned worker.
 
-The record: `calls`, one row per collected call, `{wall, latency_s, ok, goal, error, prompt_bytes, model}` (`wall` the
-call's start, `latency_s` to its answer or its abandonment, `goal` the validated goal as `{"type", **args}` else None,
-`prompt_bytes` the bytes the model reads, the argv's system prompt and the stdin prompt together, `model` read off
-the argv's `--model`); each row is appended to `log_path` (the driver's `goals.log` beside `decision.log`) as one JSON
-line with sorted keys, carrying also the `prompt` sent on stdin and the `answer` text (P23-11: the prompt and every
-answer are logged; the system prompt is the constant `SYSTEM`). Rows are recorded on the planner's thread when a call
-is collected. A write of `goals.log` that raises `OSError` is counted in `log_errors` and never raised into
-`propose` (the planner's tick); the row stays in `calls`.
+The record: `calls`, one row per collected call, `{wall, latency_s, ok, goal, error, prompt_bytes, answer_bytes,
+model}` (`wall` the call's start, `latency_s` to its answer or its abandonment, `goal` the validated goal as
+`{"type", **args}` else None, `prompt_bytes` the bytes the model reads, the argv's system prompt and the stdin prompt
+together, `answer_bytes` the bytes of the answer's `result` text, 0 with none (P24-B 4), `model` read off the argv's
+`--model`); `totals()` is the record's `llm` summary's byte keys, `{prompt_bytes_total, answer_bytes_total}` over
+`calls` (the session's bytes, never a price: the cost estimate stays out of the record, P24-B 4); each row is
+appended to `log_path` (the driver's `goals.log` beside `decision.log`) as one JSON line with sorted keys, carrying
+also the `prompt` sent on stdin and the `answer` text (P23-11: the prompt and every answer are logged; the system
+prompt is the constant `SYSTEM`). Rows are recorded on the planner's thread when a call is collected. A write of
+`goals.log` that raises `OSError` is counted in `log_errors` and never raised into `propose` (the planner's tick); the
+row stays in `calls`.
 
 The per-call attribution: the class attribute `LLMSource.NAME` is "llm"; each `propose` sets the instance's `NAME` to
 "llm" for the model's goal and while pending, and to the fallback's `NAME` ("scripted") for a stand-in, so
@@ -73,14 +82,14 @@ import threading
 import time
 
 from agent.base.planner.goals import SCHEMA_PATH, validate
-from agent.base.planner.view import render
+from agent.base.planner.view import WHYS, render, shown_ids
 
 LLM_TIMEOUT_S = 20.0          # P23-11: a call answering later than this is a fallback
 EXPLORE_MAX_TILES = 60.0      # P23-V: a model's ExploreToward farther than this from the view's pos is refused
 PLACE_GOALS = ("LootBuilding", "Shelter")   # goals naming a building the view must list
 
 __all__ = ["LLMSource", "SYSTEM", "DEFAULT_CLI", "prompt", "first_object", "model_of", "place_error", "LLM_TIMEOUT_S",
-           "EXPLORE_MAX_TILES"]
+           "EXPLORE_MAX_TILES", "PLACE_GOALS"]
 
 
 # ---------------------------------------------------------------- the system prompt
@@ -108,9 +117,18 @@ def _system():
         t = e["properties"]["type"]["const"]
         fields = "; ".join(_field_text(k, v) for k, v in e["properties"].items() if k != "type")
         lines.append("- %s: %s Fields: %s" % (t, e.get("description", ""), fields))
-    lines.append("In the view, each building reads `id dist containers/looted/doors flags` (dist in tiles; flags v "
-                 "visited, s shunned, - neither); name a building only by an id the view lists, and an "
-                 "ExploreToward square within %g tiles of pos." % EXPLORE_MAX_TILES)
+    lines.append("Squares are x, y tiles; north is -y. pos is your position. In the view, each building reads "
+                 "`id @x,y door x,y dist cN flags`: @x,y its nearest room square, door its exterior door square "
+                 "(- none), dist in tiles, N its containers, flags L looted (nothing left to take), v visited, "
+                 "s shunned, - none.")
+    lines.append("The refusal rule: name a building only by an id the view lists; an ExploreToward square within "
+                 "%g tiles of pos; a LootBuilding only a building listed without the L flag. An answer breaking "
+                 "it is refused and the program chooses instead." % EXPLORE_MAX_TILES)
+    lines.append("met is the ground where zombies were met in the last minutes: dense the centre of the densest "
+                 "group, n how many, bearing and dist from pos. Zombies there are still about: prefer ground away "
+                 "from met.dense, and never explore toward its bearing.")
+    lines.append("last_goal is how the last goal ended: end done, failed, superseded or refused, and why, one of: "
+                 "%s." % ", ".join(WHYS))
     lines.append("The user message is the view: one `key: value` line per key.")
     return "\n".join(lines) + "\n"
 
@@ -213,16 +231,18 @@ def _parse(stdout):
 
 
 def place_error(goal, view):
-    """"invalid: unknown place" when `goal` names a place `view` does not hold (the module docstring), else None."""
+    """`invalid: <why>` when `goal` breaks the refusal rule against `view` (the module docstring), else None."""
     if goal.TYPE == "ExploreToward":
         pos = view.get("pos") or {}
         px, py = pos.get("x"), pos.get("y")
         if not _num(px) or not _num(py) or math.hypot(goal.x + 0.5 - px, goal.y + 0.5 - py) > EXPLORE_MAX_TILES:
-            return "invalid: unknown place"
+            return "invalid: out of range"
     if goal.TYPE in PLACE_GOALS:
-        ids = {b.get("id") for b in (view.get("buildings") or ()) if isinstance(b, dict)}
-        if goal.building not in ids:
-            return "invalid: unknown place"
+        if goal.building not in shown_ids(view):
+            return "invalid: refused"
+        b = next(b for b in view["buildings"] if isinstance(b, dict) and b.get("id") == goal.building)
+        if goal.TYPE == "LootBuilding" and b.get("looted") is True:
+            return "invalid: looted already"
     return None
 
 
@@ -259,6 +279,7 @@ class LLMSource:
         self.log_errors = 0        # goals.log writes that raised OSError (never raised into propose)
         self._pending = None       # the call in flight: {thread, wall, prompt, done, end, goal, answer, error}
         self._abandoned = None     # the thread of a call abandoned past timeout_s, until it ends
+        self.refusal = None        # the model's last answer refused by the rule, for the next prompt's last_goal
 
     # -- the seam -----------------------------------------------------------------------------------------------
     def propose(self, view):
@@ -299,7 +320,14 @@ class LLMSource:
             self._abandoned = None
         return self._abandoned is not None
 
+    def totals(self):
+        """The record's `llm` summary's byte keys over `calls` (P24-B 4)."""
+        return {"prompt_bytes_total": sum(c["prompt_bytes"] for c in self.calls),
+                "answer_bytes_total": sum(c["answer_bytes"] for c in self.calls)}
+
     def _start(self, view):
+        if self.refusal is not None:       # the model reads its own last answer's end, once (P24-B 3)
+            view, self.refusal = dict(view, last_goal=self.refusal), None
         text = prompt(view)
         p = {"wall": self.clock(), "prompt": text, "done": threading.Event(), "end": None, "goal": None,
              "answer": None, "error": None}
@@ -343,14 +371,21 @@ class LLMSource:
         goal, error = p["goal"], p["error"]
         if goal is not None and error is None:
             error = place_error(goal, view)
-            goal = None if error is not None else goal
+            if error is not None:
+                self.refusal = {"type": goal.TYPE, "args": goal.args(), "end": "refused",
+                                "why": error[len("invalid: "):]}
+                goal = None
+            else:
+                self.refusal = None
         self._record(p, latency, goal, error)
         return ("ok", goal) if goal is not None else ("failed", None)
 
     def _record(self, p, latency, goal, error):
         row = {"wall": p["wall"], "latency_s": latency, "ok": goal is not None and error is None,
                "goal": dict({"type": goal.TYPE}, **goal.args()) if goal is not None else None, "error": error,
-               "prompt_bytes": len((self._system() + p["prompt"]).encode("utf-8")), "model": self.model}
+               "prompt_bytes": len((self._system() + p["prompt"]).encode("utf-8")),
+               "answer_bytes": len(p["answer"].encode("utf-8")) if isinstance(p["answer"], str) else 0,
+               "model": self.model}
         self.calls.append(row)
         if self.log_path:
             line = dict(row, prompt=p["prompt"], answer=p["answer"])

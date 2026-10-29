@@ -47,7 +47,8 @@ number is refused) and raises
 view's `needs_wanted` names water or food (water first) and `stock_uses` says a container answers it; `Shelter`
 the nearest known building for which the view's `shelter` reads true (`night.shelter_plan` answers: rooms and an
 exterior door on the player's floor) and that is not shunned, when `want_shelter`; `LootBuilding` the nearest
-building with a container not yet looted (`containers > looted`); `ExploreToward` the view's `edge`, else the
+building with a container not yet looted (the view's `looted` false, P24-B 3); `ExploreToward` the view's `edge`
+(which leaves out the bearing of a met group, `World.unexplored_edge`, ruling P24-B 2), else the
 player's own square while `scanned_here` is false (a fresh session's first scan, before the map holds an edge);
 else `Rest(REST_S)`. The edge leaves a stuck area (ruling P23-AP 1, E4's twelve walks from one square north of a
 locked gate): after two walks from the player's square failed `stuck` unmoved, `world.unexplored_edge` answers only a
@@ -525,7 +526,7 @@ class ScriptedSource:
                     yield Shelter(b["id"])
         if loot_ok:
             for b in bs:
-                if (b.get("containers") or 0) > (b.get("looted") or 0):
+                if b.get("looted") is False:
                     yield LootBuilding(b["id"])
         edge = view.get("edge")
         if edge:

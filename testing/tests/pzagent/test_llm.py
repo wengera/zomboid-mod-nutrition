@@ -66,8 +66,8 @@ def a_view(**k):
     v.update(pos={"x": 100.5, "y": 200.5, "z": 0}, hour=9.0, health=100.0,
              needs={"hunger": 0.1, "thirst": 0.1, "fatigue": 0.1}, needs_wanted=[],
              load={"weight": 4.0, "max": 8.0, "level": 0}, inventory_by_use={"food": 0, "water": 0},
-             buildings=[{"id": 3, "dist": 12.5, "containers": 4, "looted": 1, "doors": 1, "visited": False,
-                         "shunned": False}],
+             buildings=[{"id": 3, "x": 112, "y": 200, "door": [112, 201], "dist": 12.5, "containers": 4,
+                         "looted": False, "doors": 1, "visited": False, "shunned": False}],
              zombies_near={"6": 0, "12": 1, "25": 2}, events=[], want_shelter=False, scanned_here=True, stock_uses=[])
     v.update(k)
     return v
@@ -290,12 +290,13 @@ def test_a_goal_outside_the_schema_is_invalid_with_its_reason():
 
 
 @pytest.mark.parametrize("answer", ['{"type": "LootBuilding", "building": 99}', '{"type": "Shelter", "building": 4}'])
-def test_a_building_the_view_does_not_list_is_an_unknown_place(answer):
+def test_a_building_the_view_does_not_list_is_refused(answer):
+    """P24-B 3: a building the view does not list reads `invalid: refused` (was `invalid: unknown place`)."""
     src, _, _ = make(answer=answer)
     src.propose(a_view())
     settle(src)
     g = src.propose(a_view())
-    assert isinstance(g, Rest) and src.calls[0]["error"] == "invalid: unknown place"
+    assert isinstance(g, Rest) and src.calls[0]["error"] == "invalid: refused"
 
 
 def test_the_place_is_read_against_the_current_view():
@@ -304,7 +305,7 @@ def test_the_place_is_read_against_the_current_view():
     src, _, _ = make()
     src.propose(a_view())
     settle(src)
-    assert isinstance(src.propose(a_view(buildings=[])), Rest) and src.calls[0]["error"] == "invalid: unknown place"
+    assert isinstance(src.propose(a_view(buildings=[])), Rest) and src.calls[0]["error"] == "invalid: refused"
     src2, _, _ = make()
     src2.propose(a_view(buildings=[]))
     settle(src2)
@@ -319,7 +320,8 @@ def test_the_place_is_read_against_the_current_view():
     ('{"type": "ExploreToward", "x": 143, "y": 243}', False),     # hypot(43, 43) = 60.8
     ('{"type": "ExploreToward", "x": 40, "y": 200}', True),       # 60.0 the other way
 ])
-def test_an_explore_farther_than_explore_max_tiles_from_pos_is_an_unknown_place(answer, ok):
+def test_an_explore_farther_than_explore_max_tiles_from_pos_is_out_of_range(answer, ok):
+    """P24-B 3: `invalid: out of range` (was `invalid: unknown place`)."""
     assert L.EXPLORE_MAX_TILES == 60.0
     src, _, _ = make(answer=answer)
     src.propose(a_view())
@@ -328,15 +330,15 @@ def test_an_explore_farther_than_explore_max_tiles_from_pos_is_an_unknown_place(
     if ok:
         assert g.TYPE == "ExploreToward" and src.calls[0]["error"] is None
     else:
-        assert isinstance(g, Rest) and src.calls[0]["error"] == "invalid: unknown place"
+        assert isinstance(g, Rest) and src.calls[0]["error"] == "invalid: out of range"
 
 
-def test_an_explore_with_no_pos_in_the_view_is_an_unknown_place():
+def test_an_explore_with_no_pos_in_the_view_is_out_of_range():
     src, _, _ = make(answer='{"type": "ExploreToward", "x": 100, "y": 200}')
     src.propose(a_view())
     settle(src)
     assert isinstance(src.propose(a_view(pos={"x": None, "y": None, "z": None})), Rest)
-    assert src.calls[0]["error"] == "invalid: unknown place"
+    assert src.calls[0]["error"] == "invalid: out of range"
 
 
 # ---------------------------------------------------------------- the record
@@ -352,7 +354,7 @@ def test_each_call_is_one_sorted_json_line_in_goals_log(tmp_path):
     for ln, row in zip(lines, src.calls):
         obj = json.loads(ln)
         assert list(obj) == sorted(obj)
-        assert set(row) == {"wall", "latency_s", "ok", "goal", "error", "prompt_bytes", "model"}
+        assert set(row) == {"wall", "latency_s", "ok", "goal", "error", "prompt_bytes", "answer_bytes", "model"}
         assert {k: obj[k] for k in row} == row
         assert obj["prompt"] == render(v) and obj["answer"] == '{"type": "LootBuilding", "building": 3}'
 
@@ -431,3 +433,79 @@ def test_a_goals_log_write_error_is_counted_never_raised(tmp_path):
     settle(src)
     g = src.propose(a_view())
     assert isinstance(g, LootBuilding) and src.log_errors == 1 and len(src.calls) == 1
+
+
+# ---------------------------------------------------------------- P24-B: the refusal meanings, the rules, the bytes
+def test_system_carries_the_refusal_rule_the_met_ground_and_the_meanings():
+    assert "within 60 tiles of pos" in SYSTEM
+    assert "LootBuilding only a building listed without the L flag" in SYSTEM
+    assert "met.dense" in SYSTEM and "prefer ground away from met.dense" in SYSTEM
+    for why in V.WHYS:
+        assert why in SYSTEM, why
+    assert "@x,y" in SYSTEM and "door" in SYSTEM
+
+
+@pytest.mark.parametrize("answer, buildings, why", [
+    ('{"type": "LootBuilding", "building": 99}', None, "refused"),
+    ('{"type": "Shelter", "building": 4}', None, "refused"),
+    ('{"type": "ExploreToward", "x": 170, "y": 200}', None, "out of range"),
+    ('{"type": "LootBuilding", "building": 3}',
+     [{"id": 3, "x": 112, "y": 200, "door": None, "dist": 12.5, "containers": 4, "looted": True, "doors": 0,
+       "visited": True, "shunned": False}], "looted already"),
+])
+def test_a_refused_answer_is_the_next_prompts_last_goal_with_its_meaning(answer, buildings, why):
+    k = {} if buildings is None else {"buildings": buildings}
+    src, runner, _ = make(answer=answer)
+    src.propose(a_view(**k))
+    settle(src)
+    assert isinstance(src.propose(a_view(**k)), Rest)                # the stand-in
+    assert src.calls[0]["error"] == "invalid: " + why and src.calls[0]["ok"] is False
+    obj = json.loads(answer)
+    assert src.refusal == {"type": obj.pop("type"), "args": obj, "end": "refused", "why": why}
+    src.propose(a_view(**k))                                         # the next call: the refusal in its prompt
+    settle(src)
+    line = next(ln for ln in runner.calls[1]["input"].splitlines() if ln.startswith("last_goal:"))
+    assert json.loads(line.split(": ", 1)[1]) == {"type": json.loads(answer)["type"], "args": obj, "end": "refused",
+                                                  "why": why}
+    assert src.refusal is None                                       # shown once
+
+
+def test_a_building_beyond_the_shown_six_is_refused():
+    bs = [{"id": i, "x": 110 + i, "y": 200, "door": None, "dist": float(i), "containers": 1, "looted": False,
+           "doors": 0, "visited": False, "shunned": False} for i in range(1, 9)]
+    src, _, _ = make(answer='{"type": "LootBuilding", "building": 7}')
+    src.propose(a_view(buildings=bs))
+    settle(src)
+    assert isinstance(src.propose(a_view(buildings=bs)), Rest) and src.calls[0]["error"] == "invalid: refused"
+    src, _, _ = make(answer='{"type": "LootBuilding", "building": 6}')
+    src.propose(a_view(buildings=bs))
+    settle(src)
+    assert isinstance(src.propose(a_view(buildings=bs)), LootBuilding)
+
+
+def test_a_good_answer_clears_a_held_refusal_and_the_runners_row_shows():
+    src, runner, _ = make()
+    src.refusal = {"type": "LootBuilding", "args": {"building": 9}, "end": "refused", "why": "refused"}
+    src.propose(a_view())
+    settle(src)
+    assert '"why":"refused"' in runner.calls[0]["input"]
+    assert isinstance(src.propose(a_view()), LootBuilding) and src.refusal is None
+
+
+def test_each_row_records_its_answer_bytes_and_the_totals_sum_them():
+    answer = '{"type": "LootBuilding", "building": 3}'
+    src, _, _ = make(answer=answer)
+    v = a_view()
+    for _ in range(2):
+        src.propose(v)
+        settle(src)
+        src.propose(v)
+    assert [c["answer_bytes"] for c in src.calls] == [len(answer.encode("utf-8"))] * 2
+    assert src.totals() == {"prompt_bytes_total": sum(c["prompt_bytes"] for c in src.calls),
+                            "answer_bytes_total": 2 * len(answer.encode("utf-8"))}
+    src2, _, _ = make(returncode=1)
+    src2.propose(v)
+    settle(src2)
+    src2.propose(v)
+    assert src2.calls[0]["answer_bytes"] == 0 and src2.totals()["answer_bytes_total"] == 0
+    assert LLMSource(Fallback()).totals() == {"prompt_bytes_total": 0, "answer_bytes_total": 0}

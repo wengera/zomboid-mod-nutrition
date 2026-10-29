@@ -125,8 +125,10 @@ def view(**k):
 
 
 def bld(bid, dist, containers=2, looted=0, doors=1, shunned=False, shelter=None):
-    return {"id": bid, "dist": dist, "containers": containers, "looted": looted, "doors": doors, "visited": False,
-            "shunned": shunned, "shelter": doors > 0 if shelter is None else shelter}
+    """A view building; `looted` is the count of its containers a loot could take nothing more from, and the view's
+    `looted` is the bool every one of them is (P24-B ruling 3: the view's `looted` became a bool)."""
+    return {"id": bid, "dist": dist, "containers": containers, "looted": looted >= containers, "doors": doors,
+            "visited": False, "shunned": shunned, "shelter": doors > 0 if shelter is None else shelter}
 
 
 @pytest.mark.parametrize("v, want", [
@@ -617,3 +619,63 @@ def test_a_shelter_goals_shun_reads_the_monotonic_clock_across_midnight(tmp_path
     assert runner.kit.shunned_now(r.world) == {1}
     r.frame(game_min=110.0, world_age=1550.0 / 60.0)
     assert runner.kit.shunned_now(r.world) == set()
+
+
+# ================================================================ the edge away from met ground (P24-B, ruling 2)
+def open_grid(r):
+    """An open 11 x 11 grid round the player at (100, 200): its border squares are the edges, the four nearest (5
+    tiles off, W, N, S, E) tying broken by (x, y), so the West edge (95, 200) is the plain choice."""
+    r.scan([square(x, y) for x in range(95, 106) for y in range(195, 206)])
+
+
+def met_west(r, n):
+    r.frame(zombies=[zombie(i + 1, 88.0 + 0.5 * i, 200.0 + 0.5 * i) for i in range(n)])
+    r.frame()                                                            # the met memory outlives the listing
+
+
+@pytest.mark.parametrize("n, want", [(0, (95, 200)), (2, (95, 200)), (3, (100, 195)), (5, (100, 195))])
+def test_the_scripted_edge_excludes_the_dense_bearing_at_met_avoid_n(tmp_path, n, want):
+    from agent.base import world as W
+    r = Rig(tmp_path)
+    open_grid(r)
+    met_west(r, n)
+    assert W.MET_AVOID_N == 3 and W.MET_AVOID_DEG == 45.0
+    assert r.world.unexplored_edge() == want
+    sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
+    from agent.base.planner.view import view as build
+    v = build(r.world, sv)
+    assert v["edge"] == list(want)
+    g = ScriptedSource().propose(dict(v, buildings=[]))
+    assert (g.TYPE, g.args()) == ("ExploreToward", {"x": want[0], "y": want[1]})
+
+
+def test_the_dense_window_beyond_the_view_radius_is_not_avoided(tmp_path):
+    from agent.base import world as W
+    r = Rig(tmp_path)
+    open_grid(r)
+    r.frame(zombies=[zombie(i + 1, 70.0, 200.0 + 0.5 * i) for i in range(4)])   # 30 tiles West
+    assert W.MET_VIEW_R == 25.0 and r.world.met_near() is None
+    assert r.world.unexplored_edge() == (95, 200)
+
+
+def test_the_cone_holds_45_degrees_either_side_of_the_dense_bearing(tmp_path):
+    """Met West: the NW corner (95, 195), 45 degrees off, is in the cone; the N edge, 90 off, is not; the player's own
+    square has no bearing and is never in it."""
+    r = Rig(tmp_path)
+    open_grid(r)
+    met_west(r, 3)
+    r.frame(x=100.5, y=200.5)                                            # the window's centroid (88.5, 200.5): due W
+    w = r.world
+    assert abs(w.avoid_cone() - 270.0) < 1e-9
+    assert w.in_cone(95, 195) and w.in_cone(95, 200) and w.in_cone(95, 205)
+    assert not w.in_cone(100, 195) and not w.in_cone(105, 200) and not w.in_cone(100, 200)
+    met_west(r, 0)
+    assert w.avoid_cone() is not None                                     # the memory holds the three for MET_TTL_MIN
+
+
+@pytest.mark.parametrize("dx, dy, want", [(0, -1, "N"), (1, -1, "NE"), (1, 0, "E"), (1, 1, "SE"), (0, 1, "S"),
+                                          (-1, 1, "SW"), (-1, 0, "W"), (-1, -1, "NW"), (0.2, -5, "N"),
+                                          (0, 0, None)])
+def test_compass_reads_north_as_minus_y(dx, dy, want):
+    from agent.base.world import compass
+    assert compass(dx, dy) == want
