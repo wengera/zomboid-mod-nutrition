@@ -36,6 +36,14 @@ against decision.log. A finder or grab that raises is counted (`failures`, the l
 resets the cadence, and nothing reaches the loop; a fault in the worker's pass itself (`due`) is counted too
 ("worker: ...") and the worker goes on, so the finals still land.
 ImageGrab reads the screen's pixels: a window behind another shows the one in front, so the client is left uncovered.
+THE GUARD (ruling P24-S; `guard(hwnd, rect, pid)` -> None to grab, else (reason, class_name)): immediately before the
+grab the foreground window must be the client's (`find` gives `hwnd`), else the index line is written with
+`skipped: "not foreground"`; and no window of another process may lie over the rect by more than OCCLUDED_FRAC of its
+area (the Z-order walked above the client), else `skipped: "occluded"`. The skipped line carries the usual fields minus
+file, bytes and sha256, plus `skipped` and `other_class` (the other window's class name only, never its title, which
+may carry personal text); it takes the next n, and the record's `skipped` counts them (n counts the written shots).
+A guard that raises is a failure and no grab. `cited_ok(index_path, numbers)` refuses a cited shot that was skipped or
+whose window was not found: the controller's copy script runs it before copying any image.
 """
 import ctypes
 import hashlib
@@ -59,6 +67,8 @@ FINAL = ("death", "stop")
 MOMENT_KEYS = ("seq", "wallMs", "gameMin", "health", "branch", "flee", "fight", "goal", "decision_line")
 DWMWA_EXTENDED_FRAME_BOUNDS = 9    # dwmapi: the visible frame, without GetWindowRect's invisible borders and shadow
 CLIENT_TITLE = "Project Zomboid"     # pzt.win32.find_windows' title: preferred among the process's windows
+OCCLUDED_FRAC = 0.1          # another process's window over more than this fraction of the rect: no grab (P24-S)
+GW_HWNDPREV = 3              # GetWindow: the window above in the Z-order
 
 
 def _num(v):
@@ -170,7 +180,8 @@ def find_window(pid):
         n = user32.GetWindowTextLengthW(hwnd)
         buf = ctypes.create_unicode_buffer(n + 1)
         user32.GetWindowTextW(hwnd, buf, n + 1)
-        found.append((buf.value == CLIENT_TITLE, (r - l) * (b - t), {"rect": (l, t, r, b), "source": src}))
+        found.append((buf.value == CLIENT_TITLE, (r - l) * (b - t),
+                      {"rect": (l, t, r, b), "source": src, "hwnd": hwnd}))
         return True
     user32.EnumWindows(cb, 0)
     if not found:
@@ -188,19 +199,100 @@ def grab_screen(bbox):
     return ImageGrab.grab(bbox=bbox, all_screens=True)
 
 
+class _User32:
+    """The user32 calls the guard needs, as plain methods (the tests' fake replaces the whole object)."""
+
+    def __init__(self):
+        import ctypes.wintypes as w
+        self.w, self.u = w, ctypes.windll.user32
+        self.u.GetForegroundWindow.restype = w.HWND
+        self.u.GetWindow.restype = w.HWND
+        self.u.GetWindow.argtypes = [w.HWND, ctypes.c_uint]
+        self.u.IsWindowVisible.argtypes = [w.HWND]
+
+    def foreground(self):
+        return self.u.GetForegroundWindow()
+
+    def above(self, hwnd):
+        return self.u.GetWindow(self.w.HWND(hwnd), GW_HWNDPREV)
+
+    def visible(self, hwnd):
+        return bool(self.u.IsWindowVisible(self.w.HWND(hwnd)))
+
+    def rect(self, hwnd):
+        return gwr_rect(hwnd)
+
+    def owner_pid(self, hwnd):
+        o = self.w.DWORD()
+        self.u.GetWindowThreadProcessId(self.w.HWND(hwnd), ctypes.byref(o))
+        return o.value
+
+    def class_name(self, hwnd):
+        buf = ctypes.create_unicode_buffer(256)
+        self.u.GetClassNameW(self.w.HWND(hwnd), buf, 256)
+        return buf.value
+
+
+def screen_guard(hwnd, rect, pid, user32=None):
+    """None when the client window `hwnd` (rect, owned by `pid`) is the foreground window and no other process
+    window overlaps rect by more than OCCLUDED_FRAC of its area; else (reason, the other window class name)."""
+    u = user32 if user32 is not None else _User32()
+    fg = u.foreground()
+    if fg != hwnd:
+        return "not foreground", (u.class_name(fg) if fg else "")
+    area = max(1, (rect[2] - rect[0]) * (rect[3] - rect[1]))
+    h, steps = u.above(hwnd), 0
+    while h and steps < 4096:
+        steps += 1
+        if u.visible(h):
+            r = u.rect(h)
+            if r is not None and u.owner_pid(h) != pid:
+                w_ = min(r[2], rect[2]) - max(r[0], rect[0])
+                h_ = min(r[3], rect[3]) - max(r[1], rect[1])
+                if w_ > 0 and h_ > 0 and w_ * h_ > OCCLUDED_FRAC * area:
+                    return "occluded", u.class_name(h)
+        h = u.above(h)
+    return None
+
+
+def cited_ok(index_path, numbers):
+    """The numbers a write-up may cite: raises ValueError naming each number with no index line, a skipped line, or a
+    window that was not found (the grab then took the whole primary screen); else the sorted numbers."""
+    rows = {}
+    with open(index_path, encoding="utf-8") as fh:
+        for line in fh:
+            if line.strip():
+                r = json.loads(line)
+                rows[r.get("n")] = r
+    bad = []
+    for n in numbers:
+        r = rows.get(n)
+        if r is None:
+            bad.append("%s: no index line" % n)
+        elif r.get("skipped"):
+            bad.append("%s: skipped (%s)" % (n, r["skipped"]))
+        elif not (r.get("window") or {}).get("found"):
+            bad.append("%s: window not found" % n)
+    if bad:
+        raise ValueError("shots not citable: " + "; ".join(bad))
+    return sorted(numbers)
+
+
 # ================================================================ the taker
 class ShotTaker:
     """The module docstring. `grab(bbox)` and `find(pid)` are injectable (the tests' fakes); `clock` is the
     session's."""
 
     def __init__(self, run_dir, pid=None, grab=grab_screen, find=find_window, clock=time.time, every_s=SHOT_EVERY_S,
+                 guard=screen_guard,
                  min_gap_s=SHOT_MIN_GAP_S, cap=SHOT_MAX, width=SHOT_WIDTH, quality=SHOT_QUALITY, idle_s=0.05):
         self.run_dir, self.pid = run_dir, pid
-        self.grab, self.find, self.clock = grab, find, clock
+        self.grab, self.find, self.clock, self.guard = grab, find, clock, guard
         self.every_s, self.min_gap_s, self.cap = float(every_s), float(min_gap_s), cap
         self.width, self.quality, self.idle_s = width, quality, idle_s
         self.dir = os.path.join(run_dir, SHOTS_DIR)
-        self.n = 0
+        self.n = 0                    # index lines written (shots and skipped)
+        self.skipped = 0
         self.failures = 0
         self.last_error = None
         self.cap_hit = False
@@ -250,7 +342,7 @@ class ShotTaker:
             if self._closing or self._latest is None:
                 return None
             last = self._last_t
-            if self.n >= self.cap:
+            if self.n - self.skipped >= self.cap:
                 if self._event is not None or last is None or now - last >= self.every_s:
                     self.cap_hit = True
                     self._event = None
@@ -280,6 +372,11 @@ class ShotTaker:
             win = self.find(self.pid)
             rect, src = (win.get("rect"), win.get("source")) if isinstance(win, dict) else (win, None)
             bbox = tuple(int(v) for v in rect) if rect is not None else None
+            hwnd = win.get("hwnd") if isinstance(win, dict) else None
+            if bbox is not None and hwnd is not None and self.guard is not None:
+                verdict = self.guard(hwnd, bbox, self.pid)
+                if verdict is not None:
+                    return self._skip(trigger, m, now, verdict, bbox, src)
             img = self.grab(bbox)
             if img.mode != "RGB":
                 img = img.convert("RGB")
@@ -294,15 +391,10 @@ class ShotTaker:
             os.makedirs(self.dir, exist_ok=True)
             with open(os.path.join(self.dir, name), "wb") as fh:
                 fh.write(data)
-            row = {"n": n, "file": name, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest(),
-                   "wallMs": m.get("wallMs"), "pyMs": now * 1000.0, "seq": seq, "gameMin": m.get("gameMin"),
-                   "health": m.get("health"), "branch": m.get("branch"), "flee": m.get("flee"),
-                   "fight": m.get("fight"), "goal": m.get("goal"), "decision_line": m.get("decision_line"),
-                   "trigger": trigger, "window": {"found": bbox is not None, "rect": list(bbox) if bbox else None,
-                                                     "rect_source": src if bbox else None},
-                   "grab_ms": (time.perf_counter() - t0) * 1000.0}
-            with open(os.path.join(self.dir, INDEX), "a", encoding="utf-8") as fh:
-                fh.write(json.dumps(row, default=str) + "\n")
+            row = {"n": n, "file": name, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+            row.update(self._fields(m, now, trigger, bbox, src))
+            row["grab_ms"] = (time.perf_counter() - t0) * 1000.0
+            self._append(row)
             with self._lock:
                 self.n = n
                 if _num(m.get("health")) is not None:
@@ -313,6 +405,31 @@ class ShotTaker:
                 self.failures += 1
                 self.last_error = "%s: %s" % (type(e).__name__, e)
             return False
+
+    @staticmethod
+    def _fields(m, now, trigger, bbox, src):
+        return {"wallMs": m.get("wallMs"), "pyMs": now * 1000.0, "seq": m.get("seq"), "gameMin": m.get("gameMin"),
+                "health": m.get("health"), "branch": m.get("branch"), "flee": m.get("flee"),
+                "fight": m.get("fight"), "goal": m.get("goal"), "decision_line": m.get("decision_line"),
+                "trigger": trigger, "window": {"found": bbox is not None, "rect": list(bbox) if bbox else None,
+                                               "rect_source": src if bbox else None}}
+
+    def _append(self, row):
+        os.makedirs(self.dir, exist_ok=True)
+        with open(os.path.join(self.dir, INDEX), "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row, default=str) + "\n")
+
+    def _skip(self, trigger, m, now, verdict, bbox, src):
+        """The index line of a shot the guard refused (no file); False, as `take` returns."""
+        reason, other = verdict
+        row = {"n": self.n + 1}
+        row.update(self._fields(m, now, trigger, bbox, src))
+        row["skipped"], row["other_class"] = reason, other
+        self._append(row)
+        with self._lock:
+            self.n += 1
+            self.skipped += 1
+        return False
 
     def _run(self):
         while not self._halt.is_set():
@@ -352,5 +469,6 @@ class ShotTaker:
     def summary(self):
         """loop.shots."""
         with self._lock:
-            return {"n": self.n, "failures": self.failures, "last_error": self.last_error, "dir": SHOTS_DIR,
+            return {"n": self.n - self.skipped, "skipped": self.skipped, "failures": self.failures,
+                    "last_error": self.last_error, "dir": SHOTS_DIR,
                     "every_s": self.every_s, "cap_hit": self.cap_hit}

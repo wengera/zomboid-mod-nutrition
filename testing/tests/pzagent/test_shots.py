@@ -232,7 +232,7 @@ def test_a_bad_moment_never_raises_into_the_loop(tmp_path):
 def test_the_summary_is_the_records_shape(tmp_path):
     c = Clock()
     t = taker(tmp_path, c)
-    assert t.summary() == {"n": 0, "failures": 0, "last_error": None, "dir": "shots", "every_s": 10.0,
+    assert t.summary() == {"n": 0, "skipped": 0, "failures": 0, "last_error": None, "dir": "shots", "every_s": 10.0,
                            "cap_hit": False}
 
 
@@ -442,3 +442,140 @@ def test_the_index_line_names_the_rect_source(tmp_path, src):
     step(t, c, 0)
     (row,) = index(tmp_path)
     assert row["window"] == {"found": True, "rect": list(DWM), "rect_source": src} and calls == [DWM]
+
+
+# ================================================================ the foreground and occlusion guard (P24-S)
+CLIENT_HWND, CLIENT_PID = 111, 4242
+
+
+class FakeUser32:
+    """The guard's user32 calls: `fg` the foreground handle, `stack` the windows above the client, top last-to-first
+    (a list of (hwnd, rect, pid, visible)), `classes` the class names."""
+
+    def __init__(self, fg=CLIENT_HWND, above=()):
+        self.fg, self.classes = fg, {999: "Chrome_WidgetWin_1", 998: "ConsoleWindowClass"}
+        self.win = {h: (r, p, v) for h, r, p, v in above}
+        self.chain = [CLIENT_HWND] + [h for h, _, _, _ in above]
+
+    def foreground(self):
+        return self.fg
+
+    def above(self, hwnd):
+        i = self.chain.index(hwnd) + 1
+        return self.chain[i] if i < len(self.chain) else 0
+
+    def visible(self, hwnd):
+        return self.win[hwnd][2]
+
+    def rect(self, hwnd):
+        return self.win[hwnd][0]
+
+    def owner_pid(self, hwnd):
+        return self.win[hwnd][1]
+
+    def class_name(self, hwnd):
+        return self.classes.get(hwnd, "Cls%s" % hwnd)
+
+
+def guarded(tmp_path, u, calls, clock=None):
+    import functools
+    guard = functools.partial(SH.screen_guard, user32=u)
+    find = lambda pid: {"rect": RECT, "source": "dwm", "hwnd": CLIENT_HWND}
+    return taker(tmp_path, clock or Clock(), find=find, grab=fake_grab(calls), guard=guard)
+
+
+def one(t, tmp_path):
+    t.mark(moment(seq=7))
+    return t.run_due(), index(tmp_path)
+
+
+def over(frac, pid=7777, visible=True, hwnd=999):
+    l, t, r, b = RECT
+    w = int((r - l) * frac)                    # a full-height strip: frac of the rect's area
+    return [(hwnd, (l, t, l + w, b), pid, visible)]
+
+
+def test_another_foreground_window_skips_the_grab_and_names_its_class_only(tmp_path):
+    calls = []
+    t = guarded(tmp_path, FakeUser32(fg=999, above=over(1.0)), calls)
+    took, rows = one(t, tmp_path)
+    assert took == 0 and calls == []
+    (row,) = rows
+    assert row["skipped"] == "not foreground" and row["other_class"] == "Chrome_WidgetWin_1"
+    assert not {"file", "bytes", "sha256"} & set(row) and row["n"] == 1 and row["window"]["found"] is True
+    assert list((tmp_path / SH.SHOTS_DIR).glob("*.jpg")) == []
+    assert "title" not in json.dumps(row).lower()
+    assert t.summary()["skipped"] == 1 and t.summary()["n"] == 0
+
+
+def test_the_client_in_the_foreground_is_grabbed(tmp_path):
+    calls = []
+    t = guarded(tmp_path, FakeUser32(), calls)
+    took, rows = one(t, tmp_path)
+    assert took == 1 and calls == [RECT] and "skipped" not in rows[0] and rows[0]["file"]
+    assert t.summary()["skipped"] == 0
+
+
+def test_a_window_of_another_process_over_0_2_of_the_rect_is_occluded(tmp_path):
+    calls = []
+    t = guarded(tmp_path, FakeUser32(above=over(0.2)), calls)
+    took, rows = one(t, tmp_path)
+    assert took == 0 and calls == []
+    assert rows[0]["skipped"] == "occluded" and rows[0]["other_class"] == "Chrome_WidgetWin_1"
+
+
+def test_a_window_over_0_05_of_the_rect_is_grabbed(tmp_path):
+    calls = []
+    t = guarded(tmp_path, FakeUser32(above=over(0.05)), calls)
+    took, _ = one(t, tmp_path)
+    assert took == 1 and calls == [RECT]
+
+
+def test_an_invisible_window_or_one_of_the_clients_own_process_never_occludes(tmp_path):
+    for above in (over(0.5, visible=False), over(0.5, pid=CLIENT_PID, hwnd=998)):
+        calls = []
+        t = guarded(tmp_path, FakeUser32(above=above), calls)
+        took, _ = one(t, tmp_path)
+        assert took == 1 and calls == [RECT]
+        t = None
+        for f in (tmp_path / SH.SHOTS_DIR).glob("*"):
+            f.unlink()
+
+
+def test_a_guard_that_raises_is_a_failure_and_never_a_grab(tmp_path):
+    calls = []
+
+    def boom(hwnd, rect, pid):
+        raise OSError("user32 gone")
+    t = taker(tmp_path, Clock(), find=lambda pid: {"rect": RECT, "source": "dwm", "hwnd": 1}, grab=fake_grab(calls),
+              guard=boom)
+    took, rows = one(t, tmp_path)
+    assert took == 0 and calls == [] and rows == [] and t.summary()["failures"] == 1
+    assert "user32 gone" in t.summary()["last_error"]
+
+
+def test_skipped_shots_do_not_count_against_the_cap(tmp_path):
+    c = Clock()
+    u = FakeUser32(fg=999, above=over(1.0))
+    t = guarded(tmp_path, u, [], clock=c)
+    t.cap = 1
+    for at in (0, 10):
+        step(t, c, at)
+    assert t.skipped == 2 and not t.cap_hit
+    u.fg, u.chain = CLIENT_HWND, [CLIENT_HWND]
+    assert step(t, c, 20) == 1 and t.summary()["n"] == 1 and t.summary()["skipped"] == 2
+
+
+def test_cited_ok_refuses_skipped_unfound_and_missing_shots(tmp_path):
+    p = tmp_path / "shots.jsonl"
+    rows = [{"n": 1, "file": "a.jpg", "window": {"found": True}},
+            {"n": 2, "skipped": "not foreground", "window": {"found": True}},
+            {"n": 3, "file": "c.jpg", "window": {"found": False}},
+            {"n": 4, "file": "d.jpg", "window": {"found": True}}]
+    p.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    assert SH.cited_ok(str(p), [4, 1]) == [1, 4]
+    with pytest.raises(ValueError) as e:
+        SH.cited_ok(str(p), [1, 2, 3, 9])
+    msg = str(e.value)
+    assert "2: skipped (not foreground)" in msg and "3: window not found" in msg and "9: no index line" in msg
+    assert "1:" not in msg.replace("no index line", "")
