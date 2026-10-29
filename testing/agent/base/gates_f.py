@@ -59,3 +59,18 @@ def grade_f2(out):
     g["llm"] = f_llm(out)
     g["report_lines"] = report_lines_f2(g)
     return g
+
+
+def report_lines_f3(g):
+    """report_lines_e3's lines (gate_e3, the real wounds, the care) and the llm line."""
+    return _llm_line(g, E.report_lines_e3(g))
+
+
+def grade_f3(out):
+    """grade_f2's readings over grade_e3 (Plan 24 Task 11: the real wounds, the care, stance, climb and water-chain
+    readings, the need chain's steps in care.need_chain) plus the same `llm` arm. grade_f2 stays as it was."""
+    g = E.grade_e3(out)
+    g["grade"] = "grade_f3"
+    g["llm"] = f_llm(out)
+    g["report_lines"] = report_lines_f3(g)
+    return g

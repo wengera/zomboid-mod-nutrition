@@ -95,3 +95,40 @@ def test_the_script(tmp_path):
         assert subprocess.run([sys.executable, script] + args, capture_output=True, text=True,
                               cwd=cwd).returncode == 2
     assert FG.finite(float("-inf")) is None
+
+
+# ================================================================ pass 3 (Plan 24 Task 11)
+def test_grade_f3_is_grade_e3_plus_the_llm_arm_and_leaves_grade_f2_as_it_was():
+    from .test_gates_e import care_art
+    a = care_art()
+    a["loop"]["goals"] = [goal("eat", "done"), goal("sleep", "failed")]
+    a["loop"]["llm"] = {"calls": [call(1.0), call(9.0, ok=False)], "model": "m", "cli_version": "1"}
+    g, g2, e = F.grade_f3(a), F.grade_f2(a), E.grade_e3(a)
+    assert g["grade"] == "grade_f3" and g["llm"] == g2["llm"] and g["care"] == e["care"] and g["wounds"] == e["wounds"]
+    assert g["care"]["fill"]["done"] == 2 and g["care"]["need_chain"]["fills_done"] == 2
+    assert g["report_lines"][:-1] == E.grade_e3(a)["report_lines"] and g["report_lines"][-1] == g2["report_lines"][-1]
+    assert g2["grade"] == "grade_f2" and "care" not in g2 and "wounds" not in g2
+    for bad in ({}, None, "x", {"loop": {"llm": None, "goals": 5}}):
+        assert F.grade_f3(bad)["llm"] == F.grade_f2(bad)["llm"]
+
+
+def test_grade_f3_does_not_count_a_bandage_on_a_full_health_part_as_a_wound():
+    from .test_gates_e import BANDAGED, _bandage_art
+    a = _bandage_art(BANDAGED, stop="death")
+    a["loop"]["death"] = {"last_frames": a["loop"]["last_frames"], "server_damage": []}
+    assert F.grade_f3(a)["death"]["first_wound_seq"] is None and F.grade_f2(a)["death"]["first_wound_seq"] == 101
+    assert F.grade_f3(a)["wounds"]["real"] == 0 and F.grade_f3(a)["wounds"]["listed"] == 1
+
+
+def test_the_f3_script(tmp_path):
+    from .test_gates_e import care_art
+    p = tmp_path / "f.json"
+    p.write_text(json.dumps(care_art()), encoding="utf-8")
+    script = os.path.join(os.path.dirname(F.__file__), "..", "drivers", "f_grade_3.py")
+    cwd = os.path.dirname(os.path.dirname(HERE))
+    r = subprocess.run([sys.executable, script, str(p)], capture_output=True, text=True, cwd=cwd)
+    assert r.returncode == 0 and json.loads(r.stdout[r.stdout.index("\n{\n"):])["grade"] == "grade_f3"
+    assert any(l.startswith("llm:") for l in r.stdout.splitlines()) and "\ncare: bandage sent 3" in r.stdout
+    for args in ([], ["a", "b"], [str(tmp_path / "nope.json")]):
+        assert subprocess.run([sys.executable, script] + args, capture_output=True, text=True,
+                              cwd=cwd).returncode == 2
