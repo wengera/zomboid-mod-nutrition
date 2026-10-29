@@ -3,6 +3,7 @@
 Each golden is reproduced byte for byte from its artifact; a re-record is only under a named behaviour change
 (`replay_decisions`' docstring, CLAUDE.md § 6 golden trace)."""
 import functools
+import math
 import json
 import os
 
@@ -130,13 +131,13 @@ def test_with_survival_5_s_a_b_c_off_the_records_diverge_first_at_the_point_blan
     assert f1["first_divergence"]["replay"]["action"] == {"type": "attack", "args": {"targetId": 15917}}
 
 
-@pytest.mark.parametrize("key,compared,agree,first", [("e5", 116, 109, 219), ("f1", 331, 301, 163)])
+@pytest.mark.parametrize("key,compared,agree,first", [("e5", 116, 109, 219), ("f1", 331, 297, 163)])
 def test_the_replay_diverges_from_the_record_first_where_survival_5_moved_it(key, compared, agree, first):
     """The reading at Plan 24 Task 2's recording (an offline oracle's): E5 first at line 219, the fight's walk at
     19275 refused with 19249 and 19278 listed behind it (P24-A (b)); F1 first at 163, the `many` flee on four listed
     within 12 tiles (P24-A (a)), its shelter walk at a sprint where the record's `held` flee ran. Fix 1 re-read:
     E5 109 (112 before; the `stuck` corner's retries, fix 1 (1)), F1 301 (299; its retry at 540 agrees with the
-    record's group steer there)."""
+    record's group steer there). Fix 2: F1 297 (G3's health retries at 603-614 where the record swung)."""
     got = R.agreement(run_dir(key), replay_rows(key))
     assert (got["compared"], got["agree"], got["skipped_world"]) == (compared, agree, 0)
     d = got["first_divergence"]
@@ -395,3 +396,33 @@ def test_the_pza1_3_records_carry_no_attackers_or_hit_reaction(key):
     lines, _ = R.read_record(run_dir(key))
     frames = [ln for ln in lines if ln["kind"] == "frame"]
     assert frames and all(f["me"].get("attackers") is None and f["me"].get("hitReaction") is None for f in frames)
+
+
+# ================================================================ Plan 24 Task 2 fix 2 on the goldens (the review's G1-G3)
+def test_f1_line_540_the_stuck_corner_under_four_sends_the_retry_steer():
+    """G1 (fix 1 (1) with the nearest within POINT_BLANK_R): at F1 line 540, four held, the nearest at 0.44 tiles and
+    the stuck read of 537 1.52 s old, the `stuck` corner sends its retry leg, as the record steered there."""
+    g = gold("f1")
+    assert g[537]["why"]["corner_kind"] == "stuck"
+    assert g[540]["action"]["type"] == "steer" and g[540]["why"]["group"] == "retry"
+
+
+def test_e4_line_455_the_retry_leg_turns_off_the_stuck_heading_of_449():
+    """G2: the retry's Flee is new, so before fix 2 its first leg forgot the stuck leg (aimed 1.2 degrees from it on
+    f6fa1d3b's golden); now the stuck heading is carried (`skip`) and the leg turns at least STUCK_SKIP_DEG off it."""
+    g = gold("e4")
+    stuck = g[449]["action"]["args"]
+    leg = g[455]
+    assert leg["why"]["group"] == "retry" and leg["why"]["skip"] == [stuck["vx"], stuck["vy"]]
+    cos = leg["action"]["args"]["vx"] * stuck["vx"] + leg["action"]["args"]["vy"] * stuck["vy"]
+    assert cos < math.cos(math.radians(P.STUCK_SKIP_DEG))
+
+
+def test_f1_s_second_stuck_corner_no_longer_holds_to_the_end_under_flee_health():
+    """G3 (ruling P24-E) on F1's 572-615: the `stuck` corner of 572 held through health 33.8 (607) to 0.9 (615);
+    under FLEE_HEALTH_PAIR with two held it now tries a leg each STUCK_RETRY_GROUP_S (603, 608, 614, `yield`
+    "health"). Open loop: the record's frames do not move with those legs."""
+    g = gold("f1")
+    retries = [k for k in range(572, 616) if g[k]["why"].get("group") == "retry"]
+    assert retries == [603, 608, 614] and all(g[k]["why"]["yield"] == "health" for k in retries)
+    assert all(g[k]["action"]["type"] == "steer" for k in retries)

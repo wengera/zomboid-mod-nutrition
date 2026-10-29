@@ -267,6 +267,8 @@ class Survive:
         self.corner_free = CORNER_FREE_R   # tiles: the nearest beyond this ends the corner (fix round 1)
         self.corner_kind = None   # "stuck", "inside" or "walk" (amendment 6: taken on any walk), the running corner's
         self.stuck_wall = None    # wall of the stuck read a `stuck` corner was taken on (P23-AP 2: STUCK_RETRY_S)
+        self.stuck_heading = None  # the stuck leg's heading a `stuck` corner was taken on, handed to the next Flee's
+                                   # first leg (P24-A fix 2, G2: its turn skips it, as F4's after a stuck leg)
         self._corner_fight = None   # the Fight made for the corner
         self.corner_yield = None  # this tick: why a `walk` corner yielded, "health" or "many" (P24-A (c)), else None
         self.behind = None        # this tick: the ids listed behind the fight's walk target (P24-A (b)), else None
@@ -500,6 +502,12 @@ class Survive:
                     or (self._melee_group(held) and self.clock() - self.stuck_wall >= STUCK_RETRY_GROUP_S)):
                 self.cornered, self._corner_fight, self.group_steer = None, None, "retry"
                 return None
+            if (self.corner_kind == "stuck" and self.stuck_wall is not None and self._stuck_health(held)
+                    and not self._trapped(held, inside)
+                    and self.clock() - self.stuck_wall >= STUCK_RETRY_GROUP_S):   # P24-A fix 2, G3 (ruling P24-E)
+                self.cornered, self._corner_fight, self.group_steer = None, None, "retry"
+                self.corner_yield = "health"
+                return None
             if self.corner_kind == "walk" and self._walk_yields():   # P24-A (c): a leg can move, the flee reads first
                 self.cornered, self._corner_fight, self.corner_yield = None, None, self._walk_yields()
                 return None
@@ -531,8 +539,16 @@ class Survive:
         self.corner_kind = "stuck" if stuck else ("inside" if inside else "walk")
         self.corner_free = CORNER_FREE_R if stuck else CORNERED_R
         self.stuck_wall = self.clock() if stuck else None
+        if stuck:
+            self.stuck_heading = self.flee.leg_heading()   # P24-A fix 2, G2: the next Flee's first leg skips it
         self.cornered = min(reach, key=lambda p: (zdist(self.world, p[1]), repr(p[0])))[0]
         return self.cornered
+
+    def _stuck_health(self, held):
+        """Ruling P24-E (fix 2, G3): a `stuck` corner is a blocked heading, not a pinned player: under FLEE_HEALTH, or
+        under FLEE_HEALTH_PAIR with two or more held, it tries a leg every STUCK_RETRY_GROUP_S as under a group."""
+        h = self._health()
+        return h < FLEE_HEALTH or (len(held) >= 2 and h < FLEE_HEALTH_PAIR)
 
     def _melee_group(self, held):
         """P24-A fix 1 (1): GROUP_R_N or more held within CORNERED_R, or GROUP_HOLD_N held: a `stuck` corner then tries
@@ -673,6 +689,7 @@ class Survive:
             self.mode, self.fight, self.flee = None, None, None
             self._end_flee_episode()
             self.sheltered, self.cornered, self.closing = False, None, (0, None)
+            self.stuck_heading = None
             return None
         if self.flee is not None:   # a shelter or exit step's end read before the hold (the close may have ended),
             self.flee.threats = held   # over this tick's held records (the stall's and the stuck leg's DANGER_R and
@@ -705,6 +722,7 @@ class Survive:
             else:
                 if self.flee is None or not self.sheltered:   # only a sheltered Flee outlives a door fight
                     self.flee = Flee(self.world, self.actions, self.clock, shunned=self.night.shunned)
+                    self.flee.skip_heading, self.stuck_heading = self.stuck_heading, None   # fix 2, G2
                 self.fight = None
                 self.stall_flee = reason == "stalled"
             self.mode = want
@@ -718,6 +736,8 @@ class Survive:
             policy.many, policy.steer_now = self.flee_many, self.group_steer is not None
             if self.group_steer:
                 policy.give_way()   # amendment 6: the group pre-empts a running walk, as the corner does
+            if self.group_steer == "drag":
+                policy.drop_stuck_leg()   # P24-A fix 2, I1: never a stalled leg held its FLEE_S under the guard
             ans = self._flee_drop() or self._answer(policy)
         else:
             policy.only = None if door is None else {zid for zid, _ in door}
@@ -727,11 +747,14 @@ class Survive:
             self.why["sheltered"] = True
         if kind == "cornered" and self.fight.target not in (None, self.cornered):
             t = self.world.zombies.get(self.fight.target)
-            if t is not None and zdist(self.world, t) <= POINT_BLANK_R:
-                self.cornered = self.fight.target   # fix round 1, R4: the corner follows its Fight's point-blank re-pin
+            if t is not None and in_reach(self.world, t, CORNERED_R):
+                self.cornered = self.fight.target   # R4, P24-A fix 2 I2a: the corner follows its Fight's re-pin in reach
             elif not replanned:   # fix round 2, N1: any other retarget (a mark's recursion) ends the corner, re-planned
                 self.cornered, self._corner_fight = None, None
                 return self._decide(held, breach, replanned=True)
+        if kind == "cornered" and self.fight.why.get("out_of_reach") and not replanned:
+            self.cornered, self._corner_fight = None, None   # P24-A fix 2, I2a: no corner walks to a drifted pin
+            return self._decide(held, breach, replanned=True)
         if kind == "cornered":
             self.why["cornered"], self.why["corner_kind"] = self.cornered, self.corner_kind   # P24-A (g), M2
         if self.group_steer is not None:

@@ -2798,7 +2798,9 @@ def test_a_threat_already_ahead_at_the_aim_never_cuts_the_leg(tmp_path):
 
 
 def test_a_stuck_corner_on_one_zombie_never_retries(tmp_path):
-    """The retry is the group's (P23-AP 2): a `stuck` corner on one zombie, 2.5 s on with it at 1.2 tiles, swings on."""
+    """The retry is the group's (P23-AP 2): a `stuck` corner on one zombie, 2.5 s on with it at 1.2 tiles, swings on.
+    Named change, ruling P24-E (fix 2, G3): zombie 2, unlisted, was still held (ZOMBIE_TTL_S), two held under
+    FLEE_HEALTH_PAIR now retry; it dies here, so one is held at health 50 (the health retry's own case is below)."""
     r, sv = make(tmp_path)
     r.scan(open_yard())
     me = (100.5, 201.5)
@@ -2813,6 +2815,7 @@ def test_a_stuck_corner_on_one_zombie_never_retries(tmp_path):
     attack = r.acts.history[-1]
     r.fake.answer({"attack": ["accepted"]})
     r.pump()
+    r.event("zombie_dead", id=2)
     r.advance(2.5)
     r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.4, 201.5, me=me)], health=50.0)
     assert tick(r, sv) is None and threat_why(tmp_path)["holding"] == attack.aid
@@ -2931,7 +2934,9 @@ def test_a_corner_whose_pin_is_marked_ends_rather_than_following_a_retarget_beyo
     """Fix round 2 (N1, the re-review's probe): the `stuck` corner on 2; 2 steps to 1.7 tiles into a pocket walled on
     all four edges (its line blocked, no reposition square), so the Fight marks it and its recursion re-pins zombie 4
     at 3.5 tiles in the open. The corner follows a re-pin only within POINT_BLANK_R: it ends, the tick is planned
-    again and the `many` flee steers; no walk toward 4 (4a86c05c followed and walked at 4 until the retry)."""
+    again and the `many` flee steers; no walk toward 4 (4a86c05c followed and walked at 4 until the retry). Named
+    change, P24-A fix 2 (I2a): the pin at 1.7 tiles is beyond CORNERED_R with none in reach, so the cornered Fight
+    reads it `out_of_reach` before its line (no mark now) and the corner ends, re-planned: the same steer."""
     r, sv = make(tmp_path)
     me = stuck_corner(r, sv)
     at = {(98, 201): {"blockN": True, "blockW": True}, (99, 201): {"blockW": True}, (98, 202): {"blockN": True}}
@@ -2945,7 +2950,7 @@ def test_a_corner_whose_pin_is_marked_ends_rather_than_following_a_retarget_beyo
     assert P.line_to(r.world, r.world.zombies[2]) is False
     a = tick(r, sv)
     w = threat_why(tmp_path)
-    assert a.type == "steer" and sv.cornered is None and sv.mode == "flee" and 2 in sv.unreachable
+    assert a.type == "steer" and sv.cornered is None and sv.mode == "flee" and 2 not in sv.unreachable
     assert "cornered" not in w and w["flee"] == "many"
     assert all(x.type != "walkTo" for x in r.acts.history)
 
@@ -3290,7 +3295,10 @@ def test_f1_s_recorded_re_pin_lines_switch_three_times_under_the_margin_not_five
     each line the record sent an attack or walk (the chooses), on the frames those ticks read. The record switched at
     568, 573, 590, 599 and 615; with the margin (the pin beyond CORNERED_R, or the new one REPIN_MARGIN nearer) 573
     (0.18 nearer) and 590 (already on 15917) go: three switches, 568 (0.44 nearer), 599 (0.81) and 615 (0.71). The
-    margin halves the alternation; it does not end it (each of the three is a zombie well nearer than the pin)."""
+    margin halves the alternation; it does not end it (each of the three is a zombie well nearer than the pin).
+    Named change, P24-A fix 2 (I2a): the held pin 15917 drifts to 1.75 tiles at 575, beyond CORNERED_R, so it gives
+    way to 15921 in reach at 1.17 (the margin alone kept it to 2.89 tiles and walked at it at 578), and 590's 15917
+    at 0.49 against 15921 at 1.03 then re-pins: five switches again, none of them a walk."""
     from agent.base import replay_decisions as R
     from agent.base.actions import Actions
     from agent.base.world import World
@@ -3312,7 +3320,7 @@ def test_f1_s_recorded_re_pin_lines_switch_three_times_under_the_margin_not_five
             fight._repin_point_blank()
             pins.append((line, fight.target))
     switches = [line for (line, t), (_, prev) in zip(pins[1:], pins) if t != prev]
-    assert switches == [568, 599, 615]
+    assert switches == [568, 575, 590, 599, 615]
 
 
 def test_f1_s_corner_read_stuck_at_537_tries_a_leg_within_one_second():
@@ -3326,3 +3334,104 @@ def test_f1_s_corner_read_stuck_at_537_tries_a_leg_within_one_second():
     retry = next(k for k in range(538, 546) if g[k]["why"].get("group") == "retry")
     assert g[retry]["action"]["type"] == "steer" and retry <= 540
     assert rows[retry]["wall"] - rows[537]["wall"] < S.STUCK_RETRY_S
+
+
+# ================================================================ Plan 24 survival 5 fix 2 (the review's G1-G3, I1, I2a)
+def one_zombie_stuck_corner(r, sv, health):
+    """`test_a_stuck_corner_on_one_zombie_never_retries`' geometry at `health`: the `stuck` corner on zombie 1 at
+    1.1 tiles, zombie 2 dead, the attack accepted; returns the player's position and the stuck leg's heading."""
+    r.scan(open_yard())
+    me = (100.5, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 97.5, 201.5, me=me), zombie(2, 100.5, 205.0, me=me)],
+            health=health)
+    tick(r, sv)
+    leg = r.acts.history[-1]
+    r.answer()
+    me = (100.6, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.5, 201.5, me=me)], health=health)
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 1}) and sv.corner_kind == "stuck"
+    r.fake.answer({"attack": ["accepted"]})
+    r.pump()
+    r.event("zombie_dead", id=2)
+    return me, (leg.args["vx"], leg.args["vy"])
+
+
+def test_a_stuck_corner_under_flee_health_tries_a_leg_each_second_off_the_stuck_heading(tmp_path):
+    """P24-A fix 2, G3 (ruling P24-E: a stuck read is a blocked heading, not a pinned player) and G2: a `stuck` corner
+    on one zombie at health 35 holds at 0.9 s and tries a leg at STUCK_RETRY_GROUP_S (1.0 s; `group` "retry",
+    `yield` "health"); that leg's turn skips the stuck leg's heading (F4's STUCK_SKIP_DEG), carried into the new
+    Flee (`skip`)."""
+    r, sv = make(tmp_path)
+    me, stuck = one_zombie_stuck_corner(r, sv, 35.0)
+    attack = r.acts.history[-1]
+    r.advance(0.9)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.4, 201.5, me=me)], health=35.0)
+    assert tick(r, sv) is None and threat_why(tmp_path)["holding"] == attack.aid
+    r.advance(0.1)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.4, 201.5, me=me)], health=35.0)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and w["group"] == "retry" and w["yield"] == "health" and sv.cornered is None
+    assert w["skip"] == [stuck[0], stuck[1]] and w["stuck"] is False
+    cos = a.args["vx"] * stuck[0] + a.args["vy"] * stuck[1]
+    assert cos < math.cos(math.radians(P.STUCK_SKIP_DEG))
+
+
+def test_a_stuck_corner_under_flee_health_pair_with_two_held_retries_and_with_one_does_not(tmp_path):
+    """G3's pair half: health 50 (under FLEE_HEALTH_PAIR, over FLEE_HEALTH) with two held retries at 1.0 s; with
+    one held it swings on (`test_a_stuck_corner_on_one_zombie_never_retries`)."""
+    r, sv = make(tmp_path)
+    me, _ = one_zombie_stuck_corner(r, sv, 50.0)
+    r.advance(1.0)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.4, 201.5, me=me), zombie(3, 100.6, 205.5, me=me)], health=50.0)
+    a = tick(r, sv)
+    assert a.type == "steer" and threat_why(tmp_path)["yield"] == "health"
+
+
+def test_under_the_drag_down_guard_a_stalled_leg_is_dropped_and_re_aimed_at_once(tmp_path):
+    """P24-A fix 2, I1: the guard's sprint leg stands WALK_STALL_S with a zombie within STUCK_NEAR_R (it reads
+    stuck): it is dropped and a new leg aimed off its heading at once, never held its FLEE_S."""
+    r, sv = make(tmp_path)
+    me = stuck_corner(r, sv)
+    r.advance(0.2)
+    r.frame(x=me[0], y=me[1], zombies=group_at_melee(me), attackers=2)
+    leg = tick(r, sv)
+    assert leg.type == "steer" and threat_why(tmp_path)["group"] == "drag"
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    r.advance(0.5)
+    r.frame(x=me[0], y=me[1], zombies=group_at_melee(me), attackers=2)
+    assert tick(r, sv) is None                                     # 0.5 s unmoved: not yet stuck
+    r.advance(0.5)
+    r.frame(x=me[0], y=me[1], zombies=group_at_melee(me), attackers=2)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a is not None and a.type == "steer" and a is not leg and w["group"] == "drag" and w["stuck"] is True
+    assert a.args["vx"] * leg.args["vx"] + a.args["vy"] * leg.args["vy"] < math.cos(math.radians(P.STUCK_SKIP_DEG))
+
+
+@pytest.mark.parametrize("other", [1.2, None])
+def test_a_cornered_fight_whose_pin_drifts_beyond_cornered_r_re_pins_in_reach_or_ends_never_walks(tmp_path, other):
+    """P24-A fix 2, I2a (F1's 578: the held pin at 2.73 tiles walked at while 15921 hit from 1.19): the `stuck`
+    corner's pin 2 steps back to 1.8 tiles; with zombie 1 at 1.2 the Fight re-pins to it and the corner follows
+    (the attack on 1); with none in reach the corner ends and the tick is planned again. No walk either way."""
+    r, sv = make(tmp_path)
+    me = stuck_corner(r, sv)
+    r.fake.answer({"attack": [{"state": "done", "result": swing(True)}]})
+    r.pump()
+    r.advance(0.5)
+    zs = [zombie(2, me[0], me[1] + 1.8, me=me)]
+    if other is not None:
+        zs.append(zombie(1, me[0] - other, me[1], me=me))
+    r.event("zombie_dead", id=3)
+    if other is None:
+        r.event("zombie_dead", id=1)
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert all(x.type != "walkTo" for x in r.acts.history)
+    if other is not None:
+        assert a.type == "attack" and a.args == {"targetId": 1} and sv.cornered == 1 and w["cornered"] == 1
+    else:
+        assert sv.cornered is None and "cornered" not in w

@@ -1,4 +1,4 @@
-{"artifact": "e_day_2-20261028-124249", "base": "f6fa1d3b", "decisions": [
+{"artifact": "e_day_2-20261028-124249", "base": "fd74ad62", "decisions": [
 {"action": null, "branch": null, "gameMin": 569, "line": 52, "why": {}},
 {"action": {"args": {"gait": "run", "x": 10736.5, "y": 10642.5}, "type": "walkTo"}, "branch": "threat", "gameMin": 571, "line": 70, "why": {"approach": false, "dist": 4.757375111386473, "fight": true, "line": null, "pinned": true, "reposition": null, "target": 12787}},
 {"action": null, "branch": "threat", "gameMin": 571, "line": 71, "why": {"approach": false, "dist": 4.757375111386473, "fight": true, "holding": "a12", "line": null, "pinned": true, "reposition": null, "target": 12787}},

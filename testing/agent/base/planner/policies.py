@@ -535,23 +535,31 @@ class Fight(Policy):
         review's I2: F1's pin alternated 15921, 15917, 15921 about eight times between gameMin 637 and 644, both at
         0.49 to 1.03 tiles, each new id restarting the no-progress streak), as margined at fix 1 (2) (every one of
         F1's re-pins came with the pin at 1.03 to 1.30 tiles): only when the pin reads no position, stands beyond
-        CORNERED_R, or stands at least REPIN_MARGIN farther than the new zombie."""
+        CORNERED_R, or stands at least REPIN_MARGIN farther than the new zombie. Fix 2, I2a (F1's 578: the held pin
+        drifted to 2.73 tiles and the Fight walked at it while 15921 hit from 1.19): a pin beyond CORNERED_R (or with
+        no position) gives way to the nearest zombie `in_reach` within CORNERED_R; with none, `_choose` sends no walk
+        (`out_of_reach`, and Survive ends the corner)."""
         if not self.point_blank:
             return
         skip = self.blocked()
         if self.only is not None:
             skip = skip | {zid for zid in self.world.zombies if zid not in self.only}
+        pin = self.world.zombies.get(self.target) if self.target is not None else None
+        if pin is None or pin.get("x") is None or pin.get("y") is None or zdist(self.world, pin) > CORNERED_R:
+            reach = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in skip
+                     and zid != self.target and in_reach(self.world, z, CORNERED_R)]
+            if reach:   # P24-A fix 2, I2a: a drifted pin gives way to the nearest in reach
+                self.target = min(reach, key=lambda p: (zdist(self.world, p[1]), p[0]))[0]
+                self.repositioned = False
+            return
         nz = self.world.nearest_zombie(exclude=skip)
         if nz is None or nz[0] == self.target:
             return
         d = zdist(self.world, nz[1])
         if d > POINT_BLANK_R:
             return
-        pin = self.world.zombies.get(self.target) if self.target is not None else None
-        if pin is not None and pin.get("x") is not None and pin.get("y") is not None:
-            dp = zdist(self.world, pin)
-            if dp <= CORNERED_R and d > dp - REPIN_MARGIN:
-                return
+        if d > zdist(self.world, pin) - REPIN_MARGIN:   # the pin within CORNERED_R: re-pinned only past the margin
+            return
         self.target, self.repositioned = nz[0], False
 
     def _choose(self):
@@ -561,6 +569,9 @@ class Fight(Policy):
             self.why = {"target": None, "pinned": False}
             return None
         zid, z, d = t
+        if self.point_blank and d > CORNERED_R:   # P24-A fix 2, I2a: a cornered Fight never walks to a drifted pin
+            self.why = {"target": zid, "pinned": True, "dist": d, "out_of_reach": True}
+            return None
         if d <= POINT_BLANK_R:
             self.approach = False   # P24-A (e), the close review's I3 (F1's walkTo at 0.49 tiles): never at point blank
         blank = self.point_blank and d <= POINT_BLANK_R   # P23-AJ fix 1: in reach whatever the map's line says
@@ -752,6 +763,8 @@ class Flee(Policy):
         self._cut = None         # the ids newly ahead that cut the running leg (P23-AP 3), till a steer logs them
         self._leg_anchor = None  # (wall, (x, y)) of the running leg's send or its last STUCK_MOVE (fix round 1, R1)
         self._leg_still = 0.0    # wall seconds the running leg has left the player within STUCK_MOVE of that anchor
+        self.skip_heading = None  # Survive sets it: a stuck heading from before this Flee (a `stuck` corner's leg),
+                                  # skipped by the first leg's turn as F4 skips a stuck leg's (P24-A fix 2, G2)
 
     @property
     def sheltered(self):
@@ -1093,6 +1106,18 @@ class Flee(Policy):
             return False
         return any(zdist(self.world, z) <= STUCK_NEAR_R for z in self._threats())
 
+    def leg_heading(self):
+        """The last steer leg's heading (vx, vy), else None."""
+        return None if self._leg is None else self._leg[2]
+
+    def drop_stuck_leg(self):
+        """P24-A fix 2, I1: a running steer leg that reads stuck (`stuck`) is dropped (`_dropped`), so the choose
+        re-aims at once with F4's skip; anything else is kept."""
+        if self.busy() and self._leg is not None and self.last is self._leg[0] and self.stuck():
+            self._dropped = self.last
+            return True
+        return False
+
     def _group_sprint(self, near):
         """Ruling P23-AM 3 (a sprint outpaces a walking group): the episode's reason is `many`, the nearest held
         threat beyond SPRINT_R (within it the steer sprints anyway), and the frame's `stats.endurance` above
@@ -1153,9 +1178,9 @@ class Flee(Policy):
         n = math.hypot(vx, vy)
         v = (1.0, 0.0) if n == 0.0 else (vx / n, vy / n)
         stuck = self.stuck()
-        turns = STEER_TURNS[1:] if stuck else STEER_TURNS
-        if stuck:
-            h0 = self._leg[2]
+        h0 = self._leg[2] if stuck else (self.skip_heading if self._leg is None else None)
+        turns = STEER_TURNS[1:] if h0 is not None else STEER_TURNS
+        if h0 is not None:
             cos_skip = math.cos(math.radians(STUCK_SKIP_DEG))
             turns = tuple(t for t in turns if _rotate(v, t)[0] * h0[0] + _rotate(v, t)[1] * h0[1] < cos_skip)
         far = [z for z in ts if zdist(self.world, z) > SPRINT_R]
@@ -1166,7 +1191,7 @@ class Flee(Policy):
             if turn is not None:
                 probe = reaches[0]
                 break
-        heading = _rotate(v, turn) if turn is not None else (_rotate(v, STEER_TURNS[1]) if stuck else v)
+        heading = _rotate(v, turn) if turn is not None else (_rotate(v, STEER_TURNS[1]) if h0 is not None else v)
         near = min(zdist(self.world, z) for z in ts)
         gait = "sprint" if near <= SPRINT_R or self._group_sprint(near) else "run"
         self._aimed = frozenset(self._ids(self._ahead(heading, far)))
@@ -1174,6 +1199,8 @@ class Flee(Policy):
                     "ahead": self._ids(self._ahead(v, far)), "shelter": None, "ended": self.ended}
         if met is not None:
             self.why["met"] = [met[0], met[1], met[2]]
+        if h0 is not None and not stuck:
+            self.why["skip"] = [h0[0], h0[1]]   # fix 2, G2: the carried stuck heading
         if self._cut is not None:
             self.why["cut"], self._cut = self._cut, None
         return Steer(heading[0], heading[1], FLEE_S, gait)
