@@ -1895,7 +1895,8 @@ def test_an_enter_leg_whose_target_is_knocked_out_of_reach_gives_way_to_the_back
 
 
 def test_the_advance_s_toward_leg_holds_until_reach(tmp_path):
-    """Only the advance's `toward` leg is held whatever the distance reads, until its target is within reach."""
+    """Only the advance's `toward` leg is held whatever the distance reads, until its target is within reach: even
+    once the advance ended (a hit restarts the stand) and the distance calls for a backpedal."""
     r = Rig(tmp_path)
     r.frame(zombies=[zd(1, 106.0, 200.0, has_target=False)])
     f = stance_fight(r)
@@ -1908,6 +1909,7 @@ def test_the_advance_s_toward_leg_holds_until_reach(tmp_path):
         r.frame(zombies=[zd(1, x, 200.0, has_target=False)])
         f.observe()
         assert f.busy(), x
+        f.advance = False                                                   # the advance ended: still held
     r.frame(zombies=[zd(1, 101.9, 200.0, has_target=False)])
     f.observe()
     assert not f.busy()
@@ -2056,6 +2058,7 @@ def test_a_torso_wound_rides_the_running_flee_leg_with_the_chaser_at_7(tmp_path)
     care_frame(r, torso, zombies=[zd(1, 107.0, 200.0)], health=30.0)
     tick(r, sv)
     assert r.cmd()[0] == "steer" and sv.care.riding() is ride and threat_why(tmp_path)["ride"] == ride.aid
+    assert r.acts.current is not ride and sv.care.busy()                    # busy on the ride's own act lines
     r.answer("progress")
     r.fake.act(ride.aid, "done", "bandage", result={"part": 6, "walking": True})
     r.pump()
