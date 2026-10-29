@@ -67,11 +67,16 @@ def bad_args(cmd):
     if want is None:
         return "unknown type"
     args = cmd["args"]
-    if not isinstance(args, dict) or set(args) != set(want):
+    optional = {n for n, k in want.items() if k == "bool"}     # PZA/1.5.3: a bool arg absent reads false (the Lua's)
+    if not isinstance(args, dict) or not set(want) - optional <= set(args) <= set(want):
         return "bad args"
     for name, kind in want.items():
+        if name not in args:
+            continue
         v = args[name]
-        if kind == "int":
+        if kind == "bool":
+            ok = isinstance(v, bool)
+        elif kind == "int":
             ok = isinstance(v, int) and not isinstance(v, bool)
         elif kind == "float":
             ok = isinstance(v, (int, float)) and not isinstance(v, bool)

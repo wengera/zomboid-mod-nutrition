@@ -31,7 +31,7 @@ LUA_REL = "testing/PZAgent/PZAgent/42/media/lua/shared/PZAgent_Schema.lua"
 PY_REL = "testing/agent/base/pza1.py"
 TOOLS_REL = "testing/agent/base/schema/tools.json"
 ENVELOPE = ("kind", "seq", "tick", "wallMs")
-ARG_TYPES = {"integer": "int", "number": "float", "string": "str"}
+ARG_TYPES = {"integer": "int", "number": "float", "string": "str", "boolean": "bool"}   # bool: PZA/1.5.3
 ARG_ENUMS = ("gait", "ikind", "filter")
 LUA_KEYWORDS = frozenset("and break do else elseif end false for function if in local nil not or repeat return then "
                          "true until while".split())
@@ -602,10 +602,13 @@ class _Cmd:
                 raise ValueError("PZA/1 %s.%s: %r not in %s" % (self.TYPE, f.name, getattr(self, f.name), allowed))
 
     def args(self):
-        return {f.name: getattr(self, f.name) for f in dataclasses.fields(self)}
+        """The wire args: every field, but a bool field left at False (PZA/1.5.3: absent reads false in the Lua, so a
+        command sent before the bool existed and one leaving it off are the same line)."""
+        return {f.name: getattr(self, f.name) for f in dataclasses.fields(self)
+                if not (ACTION_ARGS[self.TYPE][f.name] == "bool" and getattr(self, f.name) is False)}
 '''
 
-PY_TYPES = {"int": "int", "float": "float", "str": "str", "gait": "str", "ikind": "str", "filter": "str"}
+PY_TYPES = {"int": "int", "float": "float", "str": "str", "bool": "bool", "gait": "str", "ikind": "str", "filter": "str"}
 
 
 def _class_name(t):
@@ -661,7 +664,7 @@ def render_py(sch=None):
 
 # ---- the tool descriptions ------------------------------------------------------------------------------------
 
-JSON_TYPES = {"int": "integer", "float": "number", "str": "string"}
+JSON_TYPES = {"int": "integer", "float": "number", "str": "string", "bool": "boolean"}
 
 
 def render_tools(sch=None):

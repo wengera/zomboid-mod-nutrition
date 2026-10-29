@@ -101,7 +101,14 @@ end
 -- then the item applied (doIt true): not loaded, not valid. Done once the item is gone from the inventory by id and the
 -- part reads bandaged(), {part (its index), dirty (the item's full type names Dirty), life (getBandageLife()), moved
 -- (true when it was moved out of a bag first, else absent)}; interrupted after BANDAGE_MS.
+-- PZA/1.5.3 (Task 9 fix 5, ruling P24-R): keepMoving (a boolean, absent: false; else bad args) asks for the bandage to
+-- ride beside the moving leg (the ride, at the file's end). ISApplyBandage:new sets stopOnWalk to bodyPart:getIndex() >
+-- BodyPartType.ToIndex(BodyPartType.Groin) (lua:shared/TimedActions/ISApplyBandage.lua:181), Groin's ordinal 10
+-- (jar-reads-2 section 8), so a part from UpperLeg_L (11) to Foot_R (16) stops on a walk: with keepMoving such a part
+-- is refused leg part, and the worst (-1) is sought among the parts above the legs only (leg part when only a leg part
+-- qualifies). A part's index is its getIndex(), else its index in getBodyParts(). Without keepMoving, as before.
 K.BANDAGE_MS = 20000
+K.LEG_FIRST = 11          -- BodyPartType.UpperLeg_L's ordinal: the first part whose bandage stops on a walk
 
 -- the player's body parts as the Java list and its size (nil, 0 when unreadable)
 local function bodyParts(p)
@@ -135,14 +142,21 @@ local function rankOf(part)
     return 0
 end
 
+-- whether the part at list index i is a leg part (its bandage stops on a walk): getIndex(), else i, from LEG_FIRST
+local function isLegPart(part, i)
+    local ok, idx = PZA.call(part, "getIndex")
+    if not ok or type(idx) ~= "number" then idx = i end
+    return idx >= K.LEG_FIRST
+end
+
 -- the worst part and its index: the highest rank, then the longest bleeding time, then the lowest index; nil when no
--- part ranks above 0
-local function worstPart(p)
+-- part ranks above 0; aboveLegs (PZA/1.5.3) skips the leg parts
+local function worstPart(p, aboveLegs)
     local list, n = bodyParts(p)
     local best, bi, br, bt = nil, nil, 0, 0
     for i = 0, n - 1 do
         local _, part = PZA.call(list, "get", i)
-        if part ~= nil then
+        if part ~= nil and not (aboveLegs and isLegPart(part, i)) then
             local r = rankOf(part)
             if r > 0 then
                 local t = num(part, "getBleedingTime")
@@ -158,28 +172,34 @@ K.types.bandage = {
         local it, why, bag = mainItem(args, p)
         if it == nil then return false, why end
         if not flag(it, "isCanBandage") then return false, "not valid" end
-        local want = args.part
+        local want, keep = args.part, args.keepMoving
         if want == nil then want = -1 end
         if type(want) ~= "number" then return false, "bad args" end
+        if keep ~= nil and type(keep) ~= "boolean" then return false, "bad args" end
+        keep = keep == true
         local part, idx
         if want < 0 then
-            part, idx = worstPart(p)
-            if part == nil then return false, "no wound" end
+            part, idx = worstPart(p, keep)
+            if part == nil then
+                if keep and worstPart(p, false) ~= nil then return false, "leg part" end
+                return false, "no wound"
+            end
         else
             local list, n = bodyParts(p)
             want = math.floor(want)
             if want >= n then return false, "bad args" end
             local _, got = PZA.call(list, "get", want)
             if got == nil then return false, "bad args" end
+            if keep and isLegPart(got, want) then return false, "leg part" end
             part, idx = got, want
         end
         return true, "", { id = args.itemId, item = it, bag = bag, part = part, index = idx, queuedAt = nil,
-                           dirty = W.fullTypeHas(it, "Dirty", "Dirty") }
+                           dirty = W.fullTypeHas(it, "Dirty", "Dirty"), keep = keep, ride = false, goneAt = nil }
     end,
     tick = function(p, st)
         if isDead(p) then return "failed", "dead" end
         if st.queuedAt == nil then
-            clearQueue(p)
+            if st.ride then K.rideBegin(p) else clearQueue(p) end
             local whyMove = moveOut(p, st)
             if whyMove ~= nil then return "failed", whyMove end
             if flag(st.part, "bandaged") then
@@ -192,8 +212,11 @@ K.types.bandage = {
             return nil
         end
         if K.itemById(p, st.id) == nil and flag(st.part, "bandaged") then
-            return "done", withMoved({ part = st.index, dirty = st.dirty, life = num(st.part, "getBandageLife") }, st)
+            local out = withMoved({ part = st.index, dirty = st.dirty, life = num(st.part, "getBandageLife") }, st)
+            if st.ride then out.walking = true end
+            return "done", out
         end
+        if st.ride and K.rideLost(p, st) then return "failed", "stopped" end
         if PZA.now() - st.queuedAt > K.BANDAGE_MS then return "failed", "interrupted" end
         return nil
     end,
@@ -449,3 +472,225 @@ function K.markOnEnd(name)
 end
 
 for _, name in ipairs({ "fill", "consume", "wash", "rip" }) do K.markOnEnd(name) end
+
+-- ---- the ride (PZA/1.5.3, Task 9 fix 5, ruling P24-R) ----------------------------------------------------------------
+-- A bandage on a part above the legs runs beside a moving leg. The read (jar-reads-2 section 8): ISApplyBandage's
+-- stopOnWalk is false above the groin and its stopOnRun always true (lua:shared/TimedActions/ISApplyBandage.lua:181-
+-- 182), its stopOnAim ISBaseTimedAction's true (lua:shared/TimedActions/ISBaseTimedAction.lua:180), and it blocks no
+-- movement; a moving player stops the queue's front action only when that action's flag is set
+-- (IsoPlayer.updateInternal2 @3289-@3362 L2853-L2865, IsoGameCharacter.StopAllActionQueueWalking @0-@104 L5515-L5536:
+-- the action stops, the walk goes on), and an aiming one stops it on stopOnAim (@1746-@1754 L2586-L2587). The vanilla
+-- queue runs one action at a time (lua:client/TimedActions/ISTimedActionQueue.lua:9-19), so a bandage queued behind
+-- walkTo's ISWalkToTimedAction would wait for the walk's end.
+-- The design: a second slot, K.side, beside the runner's K.cur, because the runner's one slot is the leg and the act
+-- protocol already keys every line by aid (the slot is a record of K.cur's shape, ticked by the K.tick wrapper below,
+-- its lines emitted through the runner's own K.emitAct). The frame's act group stays the leg's (K.status): the
+-- bandage's accepted, progress, done and failed lines carry its aid, which the planner tracks, so me gains nothing.
+--   K.start, wrapped: a bandage with keepMoving true while K.cur is a walkTo or a steer is checked as the runner checks
+--     a command (dead, the check's own refusals, a raise bad args) and rides: it becomes K.side (a side already riding
+--     ends failed superseded first) and K.cur keeps driving. While K.cur is an aim it is rejected aiming (the stance
+--     stops the bandage). With no leg running it starts as before, standing. Any other command that replaces the leg
+--     ends the side failed superseded (the runner's finish leaves the queue to it while a side rides:
+--     PZAgent_Skills.lua); a new walkTo or steer takes the side along.
+--   K.tick, wrapped: the side ticks first (its first tick: K.rideBegin clears a queued ISWalkToTimedAction, then the
+--     bandage's own first tick queues it), then the leg; while a side rides the leg's gait is held at a walk (MO.want
+--     and both latches written false: stopOnRun), and the leg's own gait is wanted back at the side's end. A leg that
+--     ends done hands the side over to K.cur, where it finishes standing (its aid, its lines); a leg that fails ends
+--     the side failed with the leg's dead, else interrupted.
+--   walkTo, wrapped: while a side rides, the leg walks straight at its target on the auto-walk (setAutoWalk,
+--     setAutoWalkDirection, the direction re-aimed every RIDE_AIM_MS) instead of the queued path walk, with no stuck
+--     count; done within DONE_R without clearing the queue; after the ride it re-queues its path walk. steer's first
+--     tick leaves the queue alone while a side rides (PZAgent_Skills.lua).
+--   The bandage ends done with walking true; failed stopped when neither its ISApplyBandage nor its transfer has been
+--     in the vanilla queue for RIDE_SETTLE_MS without the done reading (the engine stopped it: a run, an aim), the
+--     settle covering the server's sync after vanilla's perform; interrupted after BANDAGE_MS.
+-- rip, wash and fill never ride: the handcraft stops on a walk unless its recipe reads CanWalk (lua:shared/Entity/
+-- TimedActions/ISHandcraftAction.lua:405; RipClothing names no CanWalk key), ISWashClothing and ISTakeWaterAction keep
+-- ISBaseTimedAction's stopOnWalk true, and both need the source adjacent.
+K.side = nil
+K.RIDES = { walkTo = true, steer = true }
+K.RIDE_SETTLE_MS = 3000
+K.RIDE_AIM_MS = 250
+
+-- whether a vanilla action of type t is in the player's queue (nil when the queue cannot say)
+local function queued(p, t)
+    local Q = ISTimedActionQueue
+    if Q == nil or Q.hasActionType == nil then return nil end
+    local ok, has = pcall(Q.hasActionType, p, t)
+    if not ok then return nil end
+    return has == true
+end
+
+-- the leg's gait held at a walk while a side rides (stopOnRun): the wants dropped, both latches written false once
+local function holdWalk(p)
+    local MO = PZA.motor
+    if not MO.wantRun and not MO.wantSprint then return end
+    MO.want("walk")
+    PZA.call(p, "setForceRun", false)
+    PZA.call(p, "setForceSprint", false)
+end
+
+-- the side's first tick: a walkTo's queued path walk cleared (the bandage would queue behind it), the gait held
+function K.rideBegin(p)
+    local cur = K.cur
+    if cur ~= nil and cur.type == "walkTo" and queued(p, "ISWalkToTimedAction") then clearQueue(p) end
+    holdWalk(p)
+end
+
+-- whether the riding bandage has been out of the vanilla queue for RIDE_SETTLE_MS (the engine stopped it); false when
+-- the queue cannot say
+function K.rideLost(p, st)
+    local inQ = queued(p, "ISApplyBandage")
+    if inQ == nil then return false end
+    if inQ or (st.moved and queued(p, "ISInventoryTransferAction")) then
+        st.goneAt = nil
+        return false
+    end
+    local now = PZA.now()
+    if st.goneAt == nil then st.goneAt = now end
+    return now - st.goneAt >= K.RIDE_SETTLE_MS
+end
+
+-- the side's end: the slot cleared, a failure clearing the vanilla queue (as the runner's does), the leg's own gait
+-- wanted back, then the act line
+local function sideEnd(p, state, reason, result)
+    local side = K.side
+    K.side = nil
+    if state == "failed" then
+        clearQueue(p)
+        if reason == nil or reason == "" then reason = "interrupted" end
+    end
+    local cur = K.cur
+    if cur ~= nil and K.RIDES[cur.type] and cur.st.gait ~= nil then PZA.motor.want(cur.st.gait) end
+    K.emitAct(p, side.aid, side.type, state, reason, result)
+end
+
+-- one tick of the side, as the runner ticks K.cur: a raise caught (failed interrupted), done, failed, else a progress
+-- line at most every PROGRESS_MS
+local function sideTick(p, side)
+    local ran, state, out = pcall(side.def.tick, p, side.st)
+    if not ran then
+        K.caught(state)
+        sideEnd(p, "failed", "interrupted")
+        return
+    end
+    if state == "done" then
+        sideEnd(p, "done", "", out or {})
+        return
+    end
+    if state == "failed" then
+        sideEnd(p, "failed", out)
+        return
+    end
+    local now = PZA.now()
+    if now - side.lastProgress >= K.PROGRESS_MS then
+        side.lastProgress = now
+        side.state = "progress"
+        K.emitAct(p, side.aid, side.type, "progress")
+    end
+end
+
+-- a rejected ride: the act line, a caught raise counted
+local function rideReject(p, aid, reason, err)
+    if err ~= nil then K.caught(err) end
+    K.emitAct(p, aid, "bandage", "rejected", reason)
+end
+
+-- a bandage with keepMoving while K.cur is a leg (or an aim): checked as the runner checks a command, then K.side
+local function startRide(cmd, p, leg)
+    local aid = cmd.aid
+    local readable, dead = pcall(isDead, p)
+    if not readable then return rideReject(p, aid, "interrupted", dead) end
+    if dead then return rideReject(p, aid, "dead") end
+    local def = K.types.bandage
+    local ran, ok, reason, st = pcall(def.check, cmd.args, p)
+    if not ran then return rideReject(p, aid, "bad args", ok) end
+    if not ok then return rideReject(p, aid, reason or "bad args") end
+    if leg.type == "aim" then return rideReject(p, aid, "aiming") end
+    if K.side ~= nil then sideEnd(p, "failed", "superseded") end
+    st.ride = true
+    K.side = { aid = aid, type = "bandage", def = def, st = st, state = "accepted", lastProgress = PZA.now() }
+    K.emitAct(p, aid, "bandage", "accepted")
+end
+
+-- a well-formed bandage command asking keepMoving true (an empty aid or a bad keepMoving goes to the runner)
+local function rideAsked(cmd)
+    return type(cmd) == "table" and cmd.type == "bandage" and type(cmd.aid) == "string" and cmd.aid ~= ""
+        and type(cmd.args) == "table" and cmd.args.keepMoving == true
+end
+
+local startTend = K.start
+function K.start(cmd, p)
+    local leg = K.cur
+    if rideAsked(cmd) and leg ~= nil and (K.RIDES[leg.type] or leg.type == "aim") then
+        startRide(cmd, p, leg)
+        return
+    end
+    startTend(cmd, p)
+    local cur = K.cur
+    if K.side == nil or cur == leg then return end
+    if cur ~= nil and K.RIDES[cur.type] then return end
+    sideEnd(p, "failed", "superseded")
+end
+
+local tickTend = K.tick
+function K.tick(p)
+    if K.side ~= nil then sideTick(p, K.side) end
+    local leg = K.cur
+    tickTend(p)
+    local side = K.side
+    if side == nil then return end
+    if K.cur ~= nil and K.cur == leg then
+        holdWalk(p)
+        return
+    end
+    if leg ~= nil and leg.st.ended == "done" and K.cur == nil then
+        K.side = nil
+        K.cur = side
+        return
+    end
+    local why = "interrupted"
+    if leg ~= nil and leg.st.endReason == "dead" then why = "dead" end
+    sideEnd(p, "failed", why)
+end
+
+-- the leg's end recorded on its state (st.ended, st.endReason), which the K.tick wrapper reads once the runner has
+-- finished it
+local function recordEnd(st, state, out)
+    if state == "done" or state == "failed" then st.ended, st.endReason = state, out end
+    return state, out
+end
+
+-- walkTo while a side rides: straight at the target on the auto-walk, no stuck count, done without a queue clear
+local function rideWalk(p, st)
+    if isDead(p) then return "failed", "dead" end
+    st.rode, st.still, st.lastX, st.lastY = true, 0, nil, nil
+    local d = K.dist(p, st.x, st.y)
+    if d ~= nil and d <= K.DONE_R then return "done", { d = d } end
+    local px, py = W.posOf(p)
+    if d == nil or d <= 0 or px == nil or py == nil then return nil end
+    local now = PZA.now()
+    if st.aimedAt ~= nil and now - st.aimedAt < K.RIDE_AIM_MS then return nil end
+    if Vector2 == nil or Vector2.new == nil then return "failed", "not loaded" end
+    st.aimedAt = now
+    local ix, iy = K.inputVector((st.x - px) / d, (st.y - py) / d)
+    PZA.call(p, "setAutoWalk", true)
+    PZA.call(p, "setAutoWalkDirection", Vector2.new(ix, iy))
+    return nil
+end
+
+local walkTick = K.types.walkTo.tick
+K.types.walkTo.tick = function(p, st)
+    local cur = K.cur
+    if K.side ~= nil and cur ~= nil and cur.st == st then return recordEnd(st, rideWalk(p, st)) end
+    if st.rode then
+        st.rode, st.sq, st.aimedAt = nil, nil, nil       -- the ride over: the path walk re-queued by walkTo's own tick
+        PZA.call(p, "setAutoWalk", false)
+    end
+    return recordEnd(st, walkTick(p, st))
+end
+
+local steerTick = K.types.steer.tick
+K.types.steer.tick = function(p, st)
+    return recordEnd(st, steerTick(p, st))
+end

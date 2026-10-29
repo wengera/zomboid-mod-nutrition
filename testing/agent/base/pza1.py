@@ -59,7 +59,7 @@ SHAPES = {
     "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None), "water": ("rec", "water")},
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
-REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag"))
+REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming"))
 ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
@@ -76,7 +76,7 @@ ACTION_ARGS = {
     "sleep": {},
     "aim": {"vx": "float", "vy": "float", "seconds": "float", "targetId": "int", "bearing": "float"},
     "climb": {"x": "int", "y": "int"},
-    "bandage": {"itemId": "int", "part": "int"},
+    "bandage": {"itemId": "int", "part": "int", "keepMoving": "bool"},
     "rip": {"itemId": "int"},
     "wash": {"itemId": "int", "x": "int", "y": "int"},
     "fill": {"itemId": "int", "x": "int", "y": "int"},
@@ -277,7 +277,10 @@ class _Cmd:
                 raise ValueError("PZA/1 %s.%s: %r not in %s" % (self.TYPE, f.name, getattr(self, f.name), allowed))
 
     def args(self):
-        return {f.name: getattr(self, f.name) for f in dataclasses.fields(self)}
+        """The wire args: every field, but a bool field left at False (PZA/1.5.3: absent reads false in the Lua, so a
+        command sent before the bool existed and one leaving it off are the same line)."""
+        return {f.name: getattr(self, f.name) for f in dataclasses.fields(self)
+                if not (ACTION_ARGS[self.TYPE][f.name] == "bool" and getattr(self, f.name) is False)}
 
 
 @dataclasses.dataclass(frozen=True)
@@ -389,6 +392,7 @@ class Bandage(_Cmd):
     TYPE: ClassVar[str] = "bandage"
     itemId: int  # The bandage item's id.
     part: int = -1  # The body part index; -1 for the worst: a bleeding unbandaged part (a deep wound first, then the longest bleeding time), else a wound under a dirty bandage, else an unbandaged wound.
+    keepMoving: bool = False  # PZA/1.5.3 (ruling P24-R): true to bandage while the running walkTo or steer keeps moving (vanilla's ISApplyBandage stops on a walk only for a leg part, index 11 UpperLeg_L to 16 Foot_R, and on a run for every part): the leg keeps driving at a walk (a run or a sprint is held to a walk for the bandage's length, the leg's gait wanted back after; a walkTo walks straight at its target meanwhile), the bandage reports its own act lines, done with walking true or failed stopped when the engine stopped it; rejected leg part for a leg part (-1 then seeks the worst above the legs) and aiming while an aim runs; with no walkTo or steer running it bandages standing, as false does.
 
 
 @dataclasses.dataclass(frozen=True)

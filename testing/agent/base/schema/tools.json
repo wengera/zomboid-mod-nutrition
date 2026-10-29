@@ -313,6 +313,11 @@
           "type": "integer",
           "description": "The body part index; -1 for the worst: a bleeding unbandaged part (a deep wound first, then the longest bleeding time), else a wound under a dirty bandage, else an unbandaged wound.",
           "default": -1
+        },
+        "keepMoving": {
+          "type": "boolean",
+          "description": "PZA/1.5.3 (ruling P24-R): true to bandage while the running walkTo or steer keeps moving (vanilla's ISApplyBandage stops on a walk only for a leg part, index 11 UpperLeg_L to 16 Foot_R, and on a run for every part): the leg keeps driving at a walk (a run or a sprint is held to a walk for the bandage's length, the leg's gait wanted back after; a walkTo walks straight at its target meanwhile), the bandage reports its own act lines, done with walking true or failed stopped when the engine stopped it; rejected leg part for a leg part (-1 then seeks the worst above the legs) and aiming while an aim runs; with no walkTo or steer running it bandages standing, as false does.",
+          "default": false
         }
       },
       "required": [

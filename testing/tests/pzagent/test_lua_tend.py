@@ -4,7 +4,7 @@ water source), each skill's accept, progress, done and every refusal on the lupa
 import pytest
 
 from .conftest import J, make_cell, make_player
-from .test_lua_skills import OFF, acts, load, start, states, tick
+from .test_lua_skills import OFF, R2, acts, load, mover, start, states, tick, walk_world
 
 
 def ended(lua):
@@ -605,3 +605,245 @@ def test_a_transfer_whose_constructor_raises_fails_the_bandage_in_bag(lua, fs):
     tick(lua, p)
     assert states(acts(lua, fs))[-1] == ("a1", "failed", "in bag")
     assert g._bandages == []
+
+
+# ---- PZA/1.5.3 (Task 9 fix 5, ruling P24-R): the bandage rides beside a moving leg -----------------------------------
+
+TORSO, THIGH = 6, 12          # BodyPartType ordinals: Torso_Upper above the groin (10), UpperLeg_R a leg part
+
+
+def body17(p, wounds=None):
+    """17 parts by BodyPartType ordinal (getIndex i), the `wounds` dict {index: make_part kwargs} wounding some."""
+    w = wounds or {}
+    return with_parts(p, [make_part(i, **w.get(i, {})) for i in range(17)])
+
+
+def walking(lua, p, x=30, y=20, gait="walk", aid="w"):
+    """A walkTo running from (10, 20) toward (x, y): started and ticked once (its path walk queued)."""
+    walk_world(lua, x, y)
+    pos = mover(p, 10.0, 20.0)
+    start(lua, p, "walkTo", aid=aid, x=x, y=y, gait=gait)
+    tick(lua, p)
+    assert lua.eval("PZA.skills.cur.type") == "walkTo"
+    return pos
+
+
+def queue_types(g):
+    return [a.Type for a in g._queue.queue]
+
+
+def dirs(p):
+    return [v for n, v in p.sets if n == "setAutoWalkDirection"]
+
+
+def test_a_torso_bandage_with_keep_moving_rides_beside_a_running_walk_and_ends_done_walking(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    parts = body17(p, {TORSO: {"bleeding": True, "bleeding_time": 5.0}})
+    rag = tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    pos = walking(lua, p, gait="run")
+    assert queue_types(g) == ["ISWalkToTimedAction"] and lua.eval("PZA.motor.wantRun") is True
+    start(lua, p, "bandage", aid="b1", itemId=50, part=TORSO, keepMoving=True)
+    assert lua.eval("PZA.skills.cur.type") == "walkTo" and lua.eval("PZA.skills.side.aid") == "b1"
+    tick(lua, p)
+    # the path walk cleared, the bandage queued alone, the leg on the auto-walk at a walk (stopOnRun)
+    assert queue_types(g) == ["ISApplyBandage"] and g._bandages[-1][2:] == (rag, parts[TORSO], True)
+    assert ("setAutoWalk", True) in p.sets and len(dirs(p)) == 1
+    assert lua.eval("PZA.motor.wantRun") is False and ("setForceRun", False) in p.sets
+    # the leg keeps its per-tick drive through the bandage: the direction re-aimed every RIDE_AIM_MS
+    for k in range(4):
+        pos["x"] += 0.5
+        g._clock["ms"] += 300
+        tick(lua, p)
+    assert len(dirs(p)) == 5 and lua.eval("PZA.skills.cur.type") == "walkTo"
+    assert all(abs(v.x - R2) < 1e-9 and abs(v.y - R2) < 1e-9 for v in dirs(p))    # east, K.inputVector(1, 0)
+    apply_bandage(lua, p, parts[TORSO], rag)
+    g._queue.queue[:] = []                                             # vanilla's perform took it off the queue
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states([l for l in a if l["aid"] == "b1"]) == [("b1", "accepted", ""), ("b1", "progress", ""),
+                                                           ("b1", "done", "")]
+    assert a[-1]["result"] == {"part": TORSO, "dirty": False, "life": 3.5, "walking": True}
+    assert lua.eval("PZA.skills.side") is None and lua.eval("PZA.skills.cur.type") == "walkTo"
+    assert lua.eval("PZA.motor.wantRun") is True                       # the leg's own gait wanted back
+    assert queue_types(g) == ["ISWalkToTimedAction"]                   # the ride over: the path walk again
+    assert [v for n, v in p.sets if n == "setAutoWalk"][-1] is False
+    assert [l["state"] for l in acts(lua, fs) if l["aid"] == "w"] == ["accepted", "progress"]   # the leg never ended
+
+
+def test_a_leg_part_with_keep_moving_is_rejected_leg_part_and_the_worst_is_sought_above_the_legs(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    parts = body17(p, {THIGH: {"bleeding": True, "bleeding_time": 9.0, "deep": True},
+                       TORSO: {"scratched": True}})
+    tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    walking(lua, p)
+    start(lua, p, "bandage", aid="leg", itemId=50, part=THIGH, keepMoving=True)
+    start(lua, p, "bandage", aid="worst", itemId=50, keepMoving=True)
+    tick(lua, p)
+    assert states([l for l in acts(lua, fs) if l["aid"] == "leg"]) == [("leg", "rejected", "leg part")]
+    assert g._bandages[-1][3] is parts[TORSO]                          # the scratch above the legs, not the thigh
+    p2 = make_player()
+    body17(p2, {THIGH: {"bleeding": True, "bleeding_time": 9.0}})
+    tend_item(p2, "Base.Bandage", 51, isCanBandage=True)
+    start(lua, p2, "bandage", aid="only", itemId=51, keepMoving=True)
+    start(lua, p2, "bandage", aid="bad", itemId=51, keepMoving="yes")
+    a = acts(lua, fs)
+    assert states([l for l in a if l["aid"] in ("only", "bad")]) == [("only", "rejected", "leg part"),
+                                                                      ("bad", "rejected", "bad args")]
+    assert lua.eval("PZA.skills.cur.type") == "walkTo"
+
+
+def test_a_bandage_without_keep_moving_supersedes_the_walk_as_before(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    parts = body17(p, {TORSO: {"bleeding": True, "bleeding_time": 5.0}})
+    rag = tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    walking(lua, p)
+    start(lua, p, "bandage", aid="b1", itemId=50, part=TORSO)
+    assert lua.eval("PZA.skills.cur.type") == "bandage" and lua.eval("PZA.skills.side") is None
+    tick(lua, p)
+    assert queue_types(g) == ["ISApplyBandage"]
+    apply_bandage(lua, p, parts[TORSO], rag)
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert ("w", "failed", "superseded") in states(a)
+    assert a[-1]["result"] == {"part": TORSO, "dirty": False, "life": 3.5}             # no walking
+
+
+def test_keep_moving_with_no_leg_running_bandages_standing(lua, fs):
+    load(lua)
+    p = make_player()
+    parts = body17(p, {TORSO: {"bleeding": True, "bleeding_time": 5.0}})
+    rag = tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    start(lua, p, "bandage", aid="b1", itemId=50, keepMoving=True)
+    assert lua.eval("PZA.skills.cur.type") == "bandage" and lua.eval("PZA.skills.side") is None
+    tick(lua, p)
+    apply_bandage(lua, p, parts[TORSO], rag)
+    tick(lua, p)
+    assert acts(lua, fs)[-1]["result"] == {"part": TORSO, "dirty": False, "life": 3.5}
+
+
+def test_keep_moving_under_an_aim_is_rejected_aiming(lua, fs):
+    load(lua)
+    p = make_player()
+    body17(p, {TORSO: {"bleeding": True, "bleeding_time": 5.0}})
+    tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    start(lua, p, "aim", aid="s", vx=0.0, vy=-1.0, seconds=5.0)
+    tick(lua, p)
+    start(lua, p, "bandage", aid="b1", itemId=50, part=TORSO, keepMoving=True)
+    assert states(acts(lua, fs))[-1] == ("b1", "rejected", "aiming")
+    assert lua.eval("PZA.skills.cur.type") == "aim" and lua.eval("PZA.skills.side") is None
+
+
+def test_the_side_rides_a_steer_and_a_new_steer_without_clearing_its_bandage(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    parts = body17(p, {TORSO: {"bleeding": True, "bleeding_time": 5.0}})
+    rag = tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    start(lua, p, "steer", aid="s1", vx=1.0, vy=0.0, seconds=5.0, gait="sprint")
+    tick(lua, p)
+    start(lua, p, "bandage", aid="b1", itemId=50, part=TORSO, keepMoving=True)
+    tick(lua, p)
+    assert queue_types(g) == ["ISApplyBandage"] and lua.eval("PZA.motor.wantSprint") is False
+    cleared = g._queue.cleared
+    start(lua, p, "steer", aid="s2", vx=0.0, vy=1.0, seconds=5.0, gait="run")
+    tick(lua, p)
+    assert g._queue.cleared == cleared and queue_types(g) == ["ISApplyBandage"]     # the new steer kept it
+    assert lua.eval("PZA.skills.side.aid") == "b1" and lua.eval("PZA.skills.cur.aid") == "s2"
+    assert lua.eval("PZA.motor.wantRun") is False                     # the new leg's run held to a walk
+    apply_bandage(lua, p, parts[TORSO], rag)
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert ("s1", "failed", "superseded") in states(a) and states(a)[-1] == ("b1", "done", "")
+    assert a[-1]["result"]["walking"] is True and lua.eval("PZA.motor.wantRun") is True
+
+
+def test_the_side_clears_on_a_superseding_command_and_on_a_failed_leg(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    body17(p, {TORSO: {"bleeding": True, "bleeding_time": 5.0}})
+    tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    walking(lua, p)
+    start(lua, p, "bandage", aid="b1", itemId=50, part=TORSO, keepMoving=True)
+    tick(lua, p)
+    assert lua.eval("PZA.skills.side.aid") == "b1" and queue_types(g) == ["ISApplyBandage"]
+    start(lua, p, "stop", aid="x")
+    assert lua.eval("PZA.skills.side") is None and queue_types(g) == []
+    assert ("b1", "failed", "superseded") in states(acts(lua, fs))
+    # a leg that fails (dead) ends its side dead
+    p2 = make_player()
+    body17(p2, {TORSO: {"bleeding": True, "bleeding_time": 5.0}})
+    tend_item(p2, "Base.Bandage", 51, isCanBandage=True)
+    walking(lua, p2, aid="w2")
+    start(lua, p2, "bandage", aid="b2", itemId=51, part=TORSO, keepMoving=True)
+    tick(lua, p2)
+    assert lua.eval("PZA.skills.side.aid") == "b2"
+    p2.getBodyDamage(p2).getOverallBodyHealth = lambda s: 0.0
+    tick(lua, p2)
+    a = states(acts(lua, fs))
+    assert ("b2", "failed", "dead") in a and lua.eval("PZA.skills.side") is None and lua.eval("PZA.skills.cur") is None
+
+
+def test_a_walk_that_arrives_hands_its_side_to_the_runner_which_finishes_it_standing(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    parts = body17(p, {TORSO: {"bleeding": True, "bleeding_time": 5.0}})
+    rag = tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    pos = walking(lua, p, x=13)
+    start(lua, p, "bandage", aid="b1", itemId=50, part=TORSO, keepMoving=True)
+    tick(lua, p)
+    pos["x"] = 12.5
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("w", "done", "") and queue_types(g) == ["ISApplyBandage"]   # the walk left it queued
+    assert lua.eval("PZA.skills.side") is None and lua.eval("PZA.skills.cur.aid") == "b1"
+    assert lua.eval("PZA.skills.status().aid") == "b1"
+    apply_bandage(lua, p, parts[TORSO], rag)
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("b1", "done", "") and a[-1]["result"]["walking"] is True
+    assert lua.eval("PZA.skills.cur") is None
+
+
+def test_a_riding_bandage_the_engine_stopped_fails_stopped_after_the_settle(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    body17(p, {TORSO: {"bleeding": True, "bleeding_time": 5.0}})
+    tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    walking(lua, p)
+    start(lua, p, "bandage", aid="b1", itemId=50, part=TORSO, keepMoving=True)
+    tick(lua, p)
+    g._queue.queue[:] = []                       # StopAllActionQueueRunning: the action stopped, the queue reset
+    tick(lua, p)
+    g._clock["ms"] += 2999
+    tick(lua, p)
+    assert lua.eval("PZA.skills.side.aid") == "b1"
+    g._clock["ms"] += 1
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("b1", "failed", "stopped")
+    assert lua.eval("PZA.skills.side") is None and lua.eval("PZA.skills.cur.type") == "walkTo"
+
+
+def test_a_second_ride_supersedes_the_first_side(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    parts = body17(p, {TORSO: {"bleeding": True, "bleeding_time": 5.0}, 0: {"scratched": True}})
+    tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    tend_item(p, "Base.RippedSheets", 52, isCanBandage=True)
+    walking(lua, p)
+    start(lua, p, "bandage", aid="b1", itemId=50, part=TORSO, keepMoving=True)
+    tick(lua, p)
+    start(lua, p, "bandage", aid="b2", itemId=52, part=0, keepMoving=True)
+    tick(lua, p)
+    assert ("b1", "failed", "superseded") in states(acts(lua, fs))
+    assert lua.eval("PZA.skills.side.aid") == "b2" and g._bandages[-1][3] is parts[0]
+    assert queue_types(g) == ["ISApplyBandage"]

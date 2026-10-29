@@ -477,3 +477,55 @@ def test_a_scan_dropped_after_its_first_part_names_the_part_it_was_walking():
     assert (drop["scanId"], drop["aid"], drop["part"], drop["parts"]) == (1, "s2", 2, 3)
     assert "part two" in drop["reason"] and drop["gameMin"] is not None
     assert lua.eval("PZA.map.job") is None and len([l for l in out if l["kind"] == "map"]) == 1
+
+
+# ---- PZA/1.5.3 (Task 9 fix 5, ruling P24-R): the ride's new shape, a bandage beside a running leg ---------------------
+
+def ride(lua, g, p, ticks=20):
+    """A walkTo started and ticked once, then a bandage with keepMoving on part 0 (a hand, above the legs), ticked."""
+    for aid, typ, args in (("w", "walkTo", {"x": 12, "y": 20, "gait": "run"}),
+                           ("a1", "bandage", {"itemId": 1003, "part": 0, "keepMoving": True})):
+        lua.eval("PZA.skills.start")(lua.table_from({"seq": 1, "aid": aid, "type": typ, "args": args},
+                                                    recursive=True), p)
+        lua.eval("PZA.skills.tick")(p)
+    for i in range(ticks):
+        if i == 5:
+            g._clock["ms"] += 30000
+        lua.eval("PZA.skills.tick")(p)
+
+
+def test_a_ride_on_a_bare_player_is_rejected_none_held_with_no_raise():
+    lua, fs, g = skills_host()
+    lua.execute(PCALL_COUNTER)
+    ride(lua, g, bare_player())
+    assert (ended(act_lines(lua, fs))["state"], ended(act_lines(lua, fs))["reason"]) == ("rejected", "none held")
+    assert lua.eval("PZA.skills.side") is None
+    assert lua.eval("PZA.skills.errors") == 0 and g.pcallFails == 0
+
+
+def test_a_ride_on_a_raising_player_never_propagates_and_is_counted():
+    lua, fs, g = skills_host()
+    ride(lua, g, Raising(), ticks=5)
+    assert_failed_in_enum(ended(act_lines(lua, fs)))
+    assert lua.eval("PZA.skills.side") is None and lua.eval("PZA.skills.errors") >= 1
+
+
+def test_a_ride_with_every_vanilla_class_absent_fails_not_loaded_and_its_leg_walks_on_with_no_raise():
+    lua, fs, g = skills_host()
+    p = full_player()
+    lua.execute(PCALL_COUNTER)
+    lua.eval("PZA.skills.start")(lua.table_from({"seq": 1, "aid": "w", "type": "walkTo",
+                                                 "args": {"x": 12, "y": 20, "gait": "run"}}, recursive=True), p)
+    lua.eval("PZA.skills.tick")(p)
+    clear_vanilla(g)
+    lua.eval("PZA.skills.start")(lua.table_from({"seq": 2, "aid": "a1", "type": "bandage",
+                                                 "args": {"itemId": 1003, "part": 0, "keepMoving": True}},
+                                                recursive=True), p)
+    for _ in range(5):
+        lua.eval("PZA.skills.tick")(p)
+    lines = act_lines(lua, fs)
+    end = ended(lines)
+    assert (end["state"], end["reason"]) == ("failed", "not loaded")
+    assert all(l["state"] in ("accepted", "progress") for l in lines if l["aid"] == "w")   # the leg walks on
+    assert lua.eval("PZA.skills.side") is None and lua.eval("PZA.skills.cur.type") == "walkTo"
+    assert lua.eval("PZA.skills.errors") == 0 and g.pcallFails == 0

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "pza1.json",
   "title": "PZA/1",
-  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges; PZA/1.3, PZAgent 1.3: the death event; PZA/1.4, PZAgent 1.4: me's attackers, hitReaction and dragDown and the square record's hopN and hopW, ruling P24-C; PZAgent 1.4.1: the item use container, appended to its enum, and water read only for drinkable water, ruling P24-F; PZA/1.5, PZAgent 1.5: the actions aim, climb, bandage, rip, wash and fill, the square record's water, me's aiming and the part record's bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep and infected, ruling P24-G; PZA/1.5.1, PZAgent 1.5.1: the item_changed event and the reason in bag, appended to their enums, Plan 24 Task 9 fix 1), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
+  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges; PZA/1.3, PZAgent 1.3: the death event; PZA/1.4, PZAgent 1.4: me's attackers, hitReaction and dragDown and the square record's hopN and hopW, ruling P24-C; PZAgent 1.4.1: the item use container, appended to its enum, and water read only for drinkable water, ruling P24-F; PZA/1.5, PZAgent 1.5: the actions aim, climb, bandage, rip, wash and fill, the square record's water, me's aiming and the part record's bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep and infected, ruling P24-G; PZA/1.5.1, PZAgent 1.5.1: the item_changed event and the reason in bag, appended to their enums, Plan 24 Task 9 fix 1; PZA/1.5.3, PZAgent 1.5.3: bandage's keepMoving, its result's walking and the reasons leg part, stopped and aiming, appended to their enum, Plan 24 Task 9 fix 5, ruling P24-R), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
   "x-proto": "PZA/1",
   "x-kinds": ["hello", "frame", "map", "event", "act", "reply"],
   "oneOf": [
@@ -52,7 +52,7 @@
     "reason": {
       "description": "The closed set of reasons a skill is rejected or fails with.",
       "type": "string",
-      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag"]
+      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming"]
     },
     "eventKind": {
       "description": "The kind of an engine event line.",
@@ -718,7 +718,8 @@
         "part": {"description": "The index of the part bandaged.", "type": "integer"},
         "dirty": {"description": "Whether the item was a dirty one (its full type names Dirty: life 0, the infection odds doubled).", "type": "boolean"},
         "life": {"description": "The bandage's life once applied, getBandageLife().", "type": "number"},
-        "moved": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): true when the item sat in a bag and the skill queued vanilla's ISInventoryTransferAction to the main inventory before its own action, as the context menu does (transferIfNeeded); absent otherwise, and in logs written before PZA/1.5.2.", "type": "boolean"}
+        "moved": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): true when the item sat in a bag and the skill queued vanilla's ISInventoryTransferAction to the main inventory before its own action, as the context menu does (transferIfNeeded); absent otherwise, and in logs written before PZA/1.5.2.", "type": "boolean"},
+        "walking": {"description": "PZA/1.5.3 (Plan 24 Task 9 fix 5, ruling P24-R): true when the bandage rode beside a moving walkTo or steer (keepMoving), including one that finished standing after its leg ended done; absent otherwise, and in logs written before PZA/1.5.3.", "type": "boolean"}
       }
     },
     "result_rip": {
@@ -945,7 +946,8 @@
       "type": "object",
       "properties": {
         "itemId": {"description": "The bandage item's id.", "type": "integer"},
-        "part": {"description": "The body part index; -1 for the worst: a bleeding unbandaged part (a deep wound first, then the longest bleeding time), else a wound under a dirty bandage, else an unbandaged wound.", "type": "integer", "default": -1}
+        "part": {"description": "The body part index; -1 for the worst: a bleeding unbandaged part (a deep wound first, then the longest bleeding time), else a wound under a dirty bandage, else an unbandaged wound.", "type": "integer", "default": -1},
+        "keepMoving": {"description": "PZA/1.5.3 (ruling P24-R): true to bandage while the running walkTo or steer keeps moving (vanilla's ISApplyBandage stops on a walk only for a leg part, index 11 UpperLeg_L to 16 Foot_R, and on a run for every part): the leg keeps driving at a walk (a run or a sprint is held to a walk for the bandage's length, the leg's gait wanted back after; a walkTo walks straight at its target meanwhile), the bandage reports its own act lines, done with walking true or failed stopped when the engine stopped it; rejected leg part for a leg part (-1 then seeks the worst above the legs) and aiming while an aim runs; with no walkTo or steer running it bandages standing, as false does.", "type": "boolean", "default": false}
       },
       "required": ["itemId"],
       "additionalProperties": false

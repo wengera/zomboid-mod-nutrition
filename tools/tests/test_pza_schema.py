@@ -261,3 +261,23 @@ def test_me_hour_and_the_square_edges_are_appended_with_their_descriptions():
     r = d["result_sleep"]["properties"]
     assert {k: v["type"] for k, v in r.items()} == {"sleptH": "number", "fatigueBefore": "number",
                                                      "fatigueAfter": "number", "bedType": "string"}
+
+
+def test_a_boolean_arg_reaches_every_target_and_an_unknown_arg_type_is_still_refused(tmp_path):
+    """PZA/1.5.3 (Plan 24 Task 9 fix 5, ruling P24-R): bandage's keepMoving, the first boolean argument: kind bool in
+    ACTION_ARGS, a bool field defaulting False in the dataclass, a boolean with default false in tools.json; an argument
+    of a type the generator does not map (an array) is still refused."""
+    assert PS.ARG_TYPES["boolean"] == "bool"
+    py = PS.render_py()
+    assert '"bandage": {"itemId": "int", "part": "int", "keepMoving": "bool"}' in py
+    assert "    keepMoving: bool = False  # " in py
+    tools = {t["name"]: t for t in json.loads(PS.render_tools())}
+    km = tools["bandage"]["input_schema"]["properties"]["keepMoving"]
+    assert km["type"] == "boolean" and km["default"] is False
+    assert 'bandage = { "itemId", "part", "keepMoving" },' in PS.render_lua()
+    raw = json.load(open(PS.SCHEMA, encoding="utf-8"))
+    raw["$defs"]["args_bandage"]["properties"]["keepMoving"]["type"] = "array"
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps(raw), encoding="utf-8")
+    with pytest.raises(ValueError):
+        PS.load(str(bad))

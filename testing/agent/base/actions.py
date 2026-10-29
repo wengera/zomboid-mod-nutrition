@@ -43,6 +43,8 @@ def _ok(kind, v):
         return isinstance(v, int) or math.isfinite(v)   # an int of any size; a float only when finite
     if kind == "str":
         return isinstance(v, str)
+    if kind == "bool":                                  # PZA/1.5.3: bandage's keepMoving
+        return isinstance(v, bool)
     return isinstance(v, str) and v in _ENUMS[kind]
 
 
@@ -52,13 +54,13 @@ def check(cmd):
     if not dataclasses.is_dataclass(cmd) or typ not in pza1.ACTION_ARGS:
         raise TypeError("PZA/1: not a command: %r" % (cmd,))
     want = pza1.ACTION_ARGS[typ]
-    args = cmd.args()
-    if set(args) != set(want):
-        raise TypeError("PZA/1 %s: fields %s, the schema wants %s" % (typ, sorted(args), sorted(want)))
+    fields = {f.name: getattr(cmd, f.name) for f in dataclasses.fields(cmd)}
+    if set(fields) != set(want):
+        raise TypeError("PZA/1 %s: fields %s, the schema wants %s" % (typ, sorted(fields), sorted(want)))
     for name, kind in want.items():
-        if not _ok(kind, args[name]):
-            raise TypeError("PZA/1 %s.%s: %r is not a %s" % (typ, name, args[name], kind))
-    return args
+        if not _ok(kind, fields[name]):
+            raise TypeError("PZA/1 %s.%s: %r is not a %s" % (typ, name, fields[name], kind))
+    return cmd.args()      # PZA/1.5.3: a bool field at False is left off the wire (pza1's args)
 
 
 class Actions:

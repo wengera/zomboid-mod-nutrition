@@ -155,7 +155,7 @@ end
 local function finish(p, cur, state, reason, result)
     K.cur = nil
     if state == "failed" then
-        clearQueue(p)
+        if K.side == nil or reason ~= "superseded" then clearQueue(p) end   -- PZA/1.5.3: K.side, PZAgent_Tend.lua's ride
         if reason == nil or reason == "" then reason = "interrupted" end
     end
     local n, err = MO.off(p)
@@ -331,7 +331,7 @@ K.types.steer = {
             if not PZA.field(p, "setAutoWalk") or not PZA.field(p, "setAutoWalkDirection") then
                 return "failed", "not loaded"
             end
-            clearQueue(p)
+            if K.side == nil then clearQueue(p) end   -- PZA/1.5.3: a riding bandage keeps its action (PZAgent_Tend.lua)
             st.x0, st.y0 = posOf(p)
             st.startMs = PZA.now()
             MO.want(st.gait)
@@ -357,3 +357,7 @@ K.types.stop = {
         return "done", {}
     end,
 }
+
+-- PZA/1.5.3 (Task 9 fix 5, ruling P24-R): the act line and the caught-raise count, for PZAgent_Tend.lua's side slot
+-- (K.side: a bandage riding beside a moving leg emits its own act lines, as the runner does for K.cur)
+K.emitAct, K.caught = emitAct, caught

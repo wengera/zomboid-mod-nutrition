@@ -574,13 +574,13 @@ def test_the_e5_and_f2_logs_decode_through_the_file_transport_with_the_1_5_field
 
 def test_bandage_rip_and_wash_are_actions_with_their_args_results_and_reasons():
     assert pza1.ACTION_TYPES[13:16] == ("bandage", "rip", "wash")
-    assert pza1.ACTION_ARGS["bandage"] == {"itemId": "int", "part": "int"}
+    assert pza1.ACTION_ARGS["bandage"] == {"itemId": "int", "part": "int", "keepMoving": "bool"}   # 1.5.3
     assert pza1.ACTION_ARGS["rip"] == {"itemId": "int"}
     assert pza1.ACTION_ARGS["wash"] == {"itemId": "int", "x": "int", "y": "int"}
     assert pza1.Bandage(50).args() == {"itemId": 50, "part": -1} and pza1.Wash(80, 11, 20).TYPE == "wash"
     assert {"no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water"} <= pza1.REASONS
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
-    assert set(d["result_bandage"]["properties"]) == {"part", "dirty", "life", "moved"}      # moved: PZA/1.5.2
+    assert set(d["result_bandage"]["properties"]) == {"part", "dirty", "life", "moved", "walking"}   # moved 1.5.2, walking 1.5.3
     assert set(d["result_rip"]["properties"]) == {"rags", "dirty"}
     assert set(d["result_wash"]["properties"]) == {"water", "moved"}
 
@@ -636,3 +636,52 @@ def test_the_e5_and_f2_squares_decode_with_water_none(tmp_path):
         parts = [p for l in lines if l["kind"] == "frame" and isinstance(l["body"], dict) for p in l["body"]["parts"]]
         assert t.bad == 0 and squares and all(q["water"] is None for q in squares), run
         assert all(p["bleeding"] is None and p["infected"] is None for p in parts), run
+
+
+# ---- PZA/1.5.3 (Plan 24 Task 9 fix 5, ruling P24-R): bandage's keepMoving, its result's walking -------------------------
+
+def test_bandage_takes_keep_moving_a_bool_defaulting_false_and_the_ride_reasons_are_appended():
+    from agent.base import actions
+    assert pza1.ACTION_ARGS["bandage"]["keepMoving"] == "bool"
+    assert pza1.Bandage(50, 6, True).args() == {"itemId": 50, "part": 6, "keepMoving": True}
+    assert actions.check(pza1.Bandage(50, keepMoving=True)) == {"itemId": 50, "part": -1, "keepMoving": True}
+    assert actions.check(pza1.Bandage(50)) == {"itemId": 50, "part": -1}       # False left off the wire
+    from .fakemod import bad_args
+    for args, want in (({"itemId": 5, "part": -1}, ""), ({"itemId": 5, "part": -1, "keepMoving": True}, ""),
+                       ({"itemId": 5, "part": -1, "keepMoving": 1}, "bad args"), ({"itemId": 5}, "bad args")):
+        assert bad_args({"seq": 1, "aid": "a1", "type": "bandage", "args": args}) == want, args
+    for bad in (1, 0, "true", None):
+        with pytest.raises(TypeError):
+            actions.check(pza1.Bandage(50, keepMoving=bad))
+    d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
+    assert d["reason"]["enum"][-3:] == ["leg part", "stopped", "aiming"]
+    assert {"leg part", "stopped", "aiming"} <= pza1.REASONS
+    tools = {t["name"]: t for t in json.load(open(os.path.join(ROOT, "testing", "agent", "base", "schema", "tools.json"),
+                                                   encoding="utf-8"))}
+    km = tools["bandage"]["input_schema"]["properties"]["keepMoving"]
+    assert km["type"] == "boolean" and km["default"] is False
+    assert "keepMoving" not in tools["bandage"]["input_schema"]["required"]
+
+
+def test_a_bandage_done_walking_round_trips_and_a_1_5_2_result_reads_walking_none():
+    body = {"kind": "act", "seq": 3, "tick": 1, "wallMs": 2, "aid": "a4", "type": "bandage", "state": "done",
+            "reason": "", "result": {"part": 6, "dirty": False, "life": 3.5, "walking": True},
+            "snapshot": {"me": {"x": 1.0, "y": 2.0, "z": 0, "health": 90.0}, "nearest": None}}
+    assert pza1.decode(json.loads(pza1.encode("act", body))) == body
+    old = dict(body, result={"part": 6, "dirty": False, "life": 3.5})
+    assert pza1.decode(json.loads(pza1.encode("act", old)))["result"].get("walking") is None
+    for why in ("leg part", "stopped", "aiming"):
+        line = dict(body, state="failed" if why == "stopped" else "rejected", reason=why, result={})
+        assert pza1.decode(json.loads(pza1.encode("act", line))) == line
+
+
+def test_the_e6_log_written_on_1_5_2_decodes_through_the_file_transport_with_no_bad_line(tmp_path):
+    import shutil
+    from agent.base.transport.files import FileTransport
+    shutil.copyfile(os.path.join(ROOT, "testing", "artifacts", "e_day_6-20261029-102942", "state.log"),
+                    str(tmp_path / "state.log"))
+    t = FileTransport(str(tmp_path))
+    lines = t.lines()
+    bandages = [l for l in lines if l["kind"] == "act" and l["type"] == "bandage" and l["state"] == "done"]
+    assert t.bad == 0 and len(lines) > 1000 and bandages
+    assert all(l["result"].get("walking") is None for l in bandages)
