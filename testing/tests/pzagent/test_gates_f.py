@@ -132,3 +132,34 @@ def test_the_f3_script(tmp_path):
     for args in ([], ["a", "b"], [str(tmp_path / "nope.json")]):
         assert subprocess.run([sys.executable, script] + args, capture_output=True, text=True,
                               cwd=cwd).returncode == 2
+
+
+# ================================================================ pass 4 (Plan 24 Task 17)
+def test_grade_f4_is_grade_e4_plus_the_llm_arm_and_leaves_grade_f3_as_it_was():
+    from .test_gates_e import _kill_art
+    a = _kill_art(engine=2)
+    a["loop"]["goals"] = [goal("eat", "done"), goal("sleep", "failed")]
+    a["loop"]["llm"] = {"calls": [call(1.0), call(9.0, ok=False)], "model": "m", "cli_version": "1"}
+    g, g3, e = F.grade_f4(a), F.grade_f3(a), E.grade_e4(a)
+    assert g["grade"] == "grade_f4" and g["llm"] == g3["llm"] and g3["grade"] == "grade_f3" and "kills" not in g3
+    for k in ("kills", "stance_held", "ride", "yields", "glides", "care", "wounds"):
+        assert g[k] == e[k]
+    assert g["report_lines"][0].startswith("kills 2 (engine 2, planner 1); died at 605")
+    assert g["report_lines"][-1].startswith("llm:") and g["report_lines"][:-1] == e["report_lines"]
+    for bad in ({}, None, "x", {"loop": {"llm": None, "goals": 5}}):
+        assert F.grade_f4(bad)["llm"] == F.grade_f3(bad)["llm"]
+
+
+def test_the_f4_script(tmp_path):
+    from .test_gates_e import _kill_art
+    p = tmp_path / "f.json"
+    p.write_text(json.dumps(_kill_art(engine=2)), encoding="utf-8")
+    script = os.path.join(os.path.dirname(F.__file__), "..", "drivers", "f_grade_4.py")
+    cwd = os.path.dirname(os.path.dirname(HERE))
+    r = subprocess.run([sys.executable, script, str(p)], capture_output=True, text=True, cwd=cwd)
+    assert r.returncode == 0 and r.stdout.startswith("kills 2 (engine 2, planner 1)")
+    assert json.loads(r.stdout[r.stdout.index("\n{\n"):])["grade"] == "grade_f4"
+    assert any(l.startswith("llm:") for l in r.stdout.splitlines())
+    for args in ([], ["a", "b"], [str(tmp_path / "nope.json")]):
+        assert subprocess.run([sys.executable, script] + args, capture_output=True, text=True,
+                              cwd=cwd).returncode == 2

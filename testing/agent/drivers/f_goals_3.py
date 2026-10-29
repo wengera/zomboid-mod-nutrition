@@ -1,4 +1,4 @@
-"""f_goals_3 -- the third LLM session's driver: `f_goals_2.py` copied under its own key (Plan 24 Task 11); the base at `6159dbc4` carries PZA/1.5.2 (the combat stance held while backpedalling, the fence climb at a walk, the bandage, the rag rip and wash, the water fill, the parts' care fields, the squares' water sources, the item re-read after a fill or a drink) and survival iteration 6 (the stance fight against one or two with the backpedal band and the 20 s fallback, the care branch between threat and need, the water chain drinking clean water then filling a held vessel at a clean source, the climb after a stuck walk, the no-effect mark; rulings P24-A to P24-M). Its grade is `grade_f3` (gates_f: grade_e3, the real wounds and the care, stance, climb and water-chain readings, plus `llm`).
+"""f_goals_3 -- the third LLM session's driver: `f_goals_2.py` copied under its own key (Plan 24 Task 11), re-based (Plan 24 Task 17, before its first run): the base at `24987f2a` carries PZA/1.5.6 (the combat stance held from the per-player update every frame with `forceAim` and `heldFrames` on the wire, the bandage riding a moving leg for a part above the legs, the fence climb at a walk, the rag rip and wash, the water fill, the item re-read after a fill or a drink, `worn` and the rip class on the record) and survival iteration 7 (the stance opens every fight and backpedals inside `KEEP_R` 2.5, giving way by distance; no sprint anywhere; the care yield under a far, still zombie with hysteresis; the riding bandage beyond `RIDE_R` 6 under a flee leg; the dead target unpinned; kills counted; rulings P24-N to P24-V). Its grade is `grade_f4` (gates_f: grade_e4, kills the headline, the stance held, the riding bandages, the care yield and the glides, plus `llm`); `grade_f3` stays beside it, unrun.
 
 The rest of this docstring is f_goals.py's, unchanged: f_goals -- Plan 23 Task 16d, the LLM session driver: e_day.py's session (one session of a chained survival day on
 the driver library) with the survivor's goals chosen by a model. One boot of the profile `agent` (PZTestKit + PZAgent,
@@ -6,7 +6,7 @@ one admin -debug client) on the fixture `--fixture` names (default `agent`), the
 `Survive(source=LLMSource(ScriptedSource()))` over the PZA/1 file channel, the server's reads off a `PollThread`
 (P23-13). The LLMSource (`planner/llm.py`, P23-11, P23-V) runs the `claude` CLI (`DEFAULT_CLI`, model sonnet) on a
 worker thread with LLM_TIMEOUT_S, the scripted source standing in for every late, malformed or unsafe answer; the
-instincts above the goal branch pre-empt whatever goal runs. Each session's `grade_f3` (gates_f: grade_e3 plus `llm`)
+instincts above the goal branch pre-empt whatever goal runs. Each session's `grade_f4` (gates_f: grade_e4 plus `llm`)
 is written at its end.
 
 The driver is thin: its key, artifact and profile, its LLM constants, its pre-boot checks (`claude_available` beside
@@ -29,7 +29,7 @@ for the model's goal and "scripted" for a stand-in), `night`, `lineage`, `t_loop
               in the pre-boot, out["preboot"]["claude_version"]; None when the CLI is absent)}.
 `goals.log` (every call's row with its prompt and answer, one JSON line each, beside decision.log) is copied with the
 artifact. out["chain"], out["preboot"]["chain_checks"] as e_day.py's; out["preboot"]["claude_available"] {found, path,
-version, error, ok}; out["grade_f3"] is gates_f.grade_f3(out), else out["grade_f3_error"]; out["finished"] last.
+version, error, ok}; out["grade_f4"] is gates_f.grade_f4(out), else out["grade_f4_error"]; out["finished"] last.
 
 RULES: never edited after its run (the next pass is a new file); takes only `--session N` (an int >= 1, default 1),
 `--fixture NAME` (default agent) and `--prev PATH` (the previous session's artifact JSON, optional), each once; one
@@ -141,8 +141,8 @@ def make_session(xs, transport, prev=None, cli_version=None, runner=None, **kw):
 
 
 def grade(out):
-    """out["grade_f3"] (gates_f.grade_f3 over the record), else out["grade_f3_error"]."""
-    DY.grade(out, "grade_f3", GF.grade_f3)
+    """out["grade_f4"] (gates_f.grade_f4 over the record), else out["grade_f4_error"]."""
+    DY.grade(out, "grade_f4", GF.grade_f4)
 
 
 # ================================================================ the boot
@@ -166,7 +166,7 @@ def after_teardown(out, sess):
 
 def main(args, budget_s=BUDGET_S):
     return DY.boot_and_run(args, lambda: preboot(_ME, args), run_session, grade, key=KEY, driver=DRIVER,
-                           artifact=ARTIFACT, profile=PROFILE, constants=CONSTANTS, grade_key="grade_f3", user=USER,
+                           artifact=ARTIFACT, profile=PROFILE, constants=CONSTANTS, grade_key="grade_f4", user=USER,
                            budget_s=budget_s, min_free_gb=MIN_FREE_GB, after_teardown=after_teardown)
 
 

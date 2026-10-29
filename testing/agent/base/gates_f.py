@@ -74,3 +74,17 @@ def grade_f3(out):
     g["llm"] = f_llm(out)
     g["report_lines"] = report_lines_f3(g)
     return g
+
+
+def report_lines_f4(g):
+    """report_lines_e4's lines (the kills headline first, gate_e4, the stance held, the ride, the glides) and the llm line."""
+    return _llm_line(g, E.report_lines_e4(g))
+
+
+def grade_f4(out, prev=None, decision_lines=None):
+    """grade_e4's readings (kills the headline, Plan 24 Task 17) plus the same `llm` arm. grade_f3 stays as it was."""
+    g = E.grade_e4(out, prev, decision_lines)
+    g["grade"] = "grade_f4"
+    g["llm"] = f_llm(out)
+    g["report_lines"] = report_lines_f4(g)
+    return g

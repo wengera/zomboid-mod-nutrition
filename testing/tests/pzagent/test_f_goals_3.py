@@ -80,12 +80,12 @@ def test_nothing_is_imported_from_a_frozen_driver():
     assert "DY.make_day_session(xs, transport, planner_factory(runner)" in src and "copied=(GOALS_LOG,)" in src
     # the boot is the library's: driverlib/day.boot_and_run (its order tested in test_driverlib.py)
     assert "DY.boot_and_run(args, lambda: preboot(_ME, args), run_session, grade, key=KEY, driver=DRIVER," in src
-    assert 'grade_key="grade_f3"' in src and 'DY.grade(out, "grade_f3", GF.grade_f3)' in src
+    assert 'grade_key="grade_f4"' in src and 'DY.grade(out, "grade_f4", GF.grade_f4)' in src
     assert "grade_f1" not in src and "grade_f2" not in src
     assert 'cli_version=pre.get("claude_version")' in src
     doc = F.__doc__
     for word in ("RULES", "--session", "--fixture", "--prev", "never edited after its run", "goals.log", "llm",
-                 "claude --version", "grade_f3", "LLMSource", "ScriptedSource", "day_cap"):
+                 "claude --version", "grade_f4", "LLMSource", "ScriptedSource", "day_cap"):
         assert word in doc, word
     # M-10: an F session on the chain's last fixture follows the chain's numbering (P23-Z)
     rules = doc[doc.index("RULES"):]
@@ -250,9 +250,9 @@ def test_the_llm_session_records_its_calls_its_goals_and_goals_log(tmp_path, mon
     assert set(loop) >= {"goals", "night", "lineage", "t_loop0_ms", "llm", "actions"}
     persisted = json.loads((tmp_path / "f_goals_3.json").read_text(encoding="utf-8"))
     assert persisted["loop"]["llm"] == json.loads(json.dumps(llm))
-    g = out["grade_f3"]
+    g = out["grade_f4"]
     assert "grade_f2" not in out and "grade_f2_error" not in out
-    assert g["grade"] == "grade_f3" and g["survived"] is True
+    assert g["grade"] == "grade_f4" and g["survived"] is True
     assert g["llm"]["calls"] == 4 and g["llm"]["ok"] == 1 and g["llm"]["fallbacks"] == 3
     assert g["llm"]["goals_by_type"].get("Rest", 0) >= 1
     json.dumps(out, allow_nan=False)
@@ -289,9 +289,9 @@ def test_run_session_returns_the_session_and_the_llm_worker_is_joined_after_the_
 
 def test_grade_records_a_grade_failure_rather_than_raising(monkeypatch):
     out = {"loop": {}}
-    monkeypatch.setattr(F.GF, "grade_f3", lambda o: (_ for _ in ()).throw(ValueError("boom")))
+    monkeypatch.setattr(F.GF, "grade_f4", lambda o: (_ for _ in ()).throw(ValueError("boom")))
     F.grade(out)
-    assert out["grade_f3_error"] == "ValueError: boom" and "grade_f3" not in out and "grade_f2" not in out
+    assert out["grade_f4_error"] == "ValueError: boom" and "grade_f4" not in out and "grade_f2" not in out
 
 
 # ================================================================ the copy of f_goals.py and the totals
@@ -305,12 +305,13 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
 
 
 BASE_SENTENCE = (
-    "the base at `6159dbc4` carries PZA/1.5.2 (the combat stance held while backpedalling, the fence climb at a walk, "
-    "the bandage, the rag rip and wash, the water fill, the parts' care fields, the squares' water sources, the item "
-    "re-read after a fill or a drink) and survival iteration 6 (the stance fight against one or two with the backpedal "
-    "band and the 20 s fallback, the care branch between threat and need, the water chain drinking clean water then "
-    "filling a held vessel at a clean source, the climb after a stuck walk, the no-effect mark; rulings P24-A to "
-    "P24-M)")
+    "the base at `24987f2a` carries PZA/1.5.6 (the combat stance held from the per-player update every frame with "
+    "`forceAim` and `heldFrames` on the wire, the bandage riding a moving leg for a part above the legs, the fence "
+    "climb at a walk, the rag rip and wash, the water fill, the item re-read after a fill or a drink, `worn` and the "
+    "rip class on the record) and survival iteration 7 (the stance opens every fight and backpedals inside `KEEP_R` "
+    "2.5, giving way by distance; no sprint anywhere; the care yield under a far, still zombie with hysteresis; the "
+    "riding bandage beyond `RIDE_R` 6 under a flee leg; the dead target unpinned; kills counted; rulings P24-N to "
+    "P24-V)")
 
 
 def test_the_driver_is_f_goals_2_py_copied_under_its_own_key():
@@ -328,10 +329,10 @@ def test_the_driver_is_f_goals_2_py_copied_under_its_own_key():
     # the first docstring paragraph, the two docstring lines that name the grade, the grade function's two lines and
     # the boot's grade_key; nothing else
     assert rest[0].startswith('"""f_goals_3 -- the third LLM session')
-    assert sum(1 for l in rest if "grade_f3" in l) >= 5 and not any("grade_f2" in l for l in rest)
-    assert '    DY.grade(out, "grade_f3", GF.grade_f3)' in rest
-    assert any('grade_key="grade_f3"' in l for l in rest)
+    assert sum(1 for l in rest if "grade_f4" in l) >= 5 and not any("grade_f2" in l for l in rest)
+    assert '    DY.grade(out, "grade_f4", GF.grade_f4)' in rest
+    assert any('grade_key="grade_f4"' in l for l in rest)
     doc = F.__doc__
     assert doc.splitlines()[1] == "" and doc.splitlines()[2].startswith("The rest of this docstring is f_goals.py")
-    assert BASE_SENTENCE in doc and "PZA/1.5.2" in doc and "Task 11" in doc
-    assert "grade_f3 (gates_f: grade_e3" in doc.replace("`", "") or "`grade_f3` (gates_f: grade_e3" in doc
+    assert BASE_SENTENCE in doc and "PZA/1.5.6" in doc and "Task 11" in doc and "Task 17" in doc
+    assert "grade_f4 (gates_f: grade_e4" in doc.replace("`", "")
