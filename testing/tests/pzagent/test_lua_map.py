@@ -16,7 +16,7 @@ LIVE = "pzagent/admin/state.log"
 def load(lua, init=False):
     for f in ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Motor.lua",
               "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
-              "client/PZAgent_Stance.lua", "client/PZAgent_Sense.lua",
+              "client/PZAgent_Stance.lua", "client/PZAgent_Tend.lua", "client/PZAgent_Sense.lua",
               "client/PZAgent_Map.lua"):
         lua.execute(open(lua_file(f), encoding="utf-8").read())
     lua.globals().PZA.tick = 0

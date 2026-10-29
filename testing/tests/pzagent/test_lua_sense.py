@@ -15,7 +15,7 @@ GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 def load(lua):
     for f in ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Motor.lua",
               "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
-              "client/PZAgent_Stance.lua", "client/PZAgent_Sense.lua"):
+              "client/PZAgent_Stance.lua", "client/PZAgent_Tend.lua", "client/PZAgent_Sense.lua"):
         lua.execute(open(lua_file(f), encoding="utf-8").read())
 
 
@@ -81,7 +81,8 @@ def test_the_frames_groups_have_exactly_the_schemas_keys(lua):
         ref = "act_now" if grp == "act" else grp
         want = list(d[ref]["x-order"])
         assert sorted(f[grp].keys()) == sorted(want), grp
-    assert sorted(f["body"]["parts"][1].keys()) == sorted(d["part"]["x-order"])
+    unbandaged = {"bandageLife", "bandageDirty"}                 # PZA/1.5: nil on an unbandaged part
+    assert sorted(f["body"]["parts"][1].keys()) == sorted(set(d["part"]["x-order"]) - unbandaged)
     assert sorted(f["zombies"][1].keys()) == sorted(d["zombie"]["x-order"])
     assert lua.eval("PZA.sense.RATE") == 10 and lua.eval("PZA.sense.ZOMBIE_RADIUS") == 12
 
@@ -106,7 +107,8 @@ def test_clock_stats_and_body(lua):
     b = f["body"]
     assert (b["health"], b["bleeding"], b["scratched"], b["bitten"]) == (88.0, 1, 2, 0)
     assert [(e["i"], e["h"]) for e in b["parts"].values()] == [(3, 62.5), (11, 99.0)]
-    assert lua.eval("PZA.enc.body(...)", b) == "[88,1,2,0,[[3,62.5],[11,99]]]"
+    assert lua.eval("PZA.enc.body(...)", b) == ("[88,1,2,0,[[3,62.5,false,0,false,null,null,false,false],"
+                                                "[11,99,false,0,false,null,null,false,false]]]")   # PZA/1.5's fields
     unhurt = frame(lua, make_player())["body"]
     assert lua.eval("PZA.enc.body(...)", unhurt) == "[100,0,0,0,[]]"
 
@@ -1031,3 +1033,63 @@ def test_without_fluid_category_only_a_water_source_reads_water(lua):
     pop.getFluidContainer = lambda s, fc=make_fluid(water=False, cats={"Beverage"}, thirst=-0.3): fc
     bottle = make_item("Base.WaterBottle", 2)
     assert _uses(lua, pop, bottle) == {1: "other", 2: "water"}
+
+
+# ---- PZA/1.5 (ruling P24-G): body.parts' bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep, infected --
+
+def _part(h=100.0, bleeding=False, time=0.0, bandaged=False, life=0.0, deep=False, infected=False, calls=None):
+    def rec(name, v):
+        def f(s):
+            if calls is not None:
+                calls.append(name)
+            return v
+        return f
+    return J(getHealth=rec("getHealth", h), bleeding=rec("bleeding", bleeding), getBleedingTime=rec("time", time),
+             bandaged=rec("bandaged", bandaged), getBandageLife=rec("life", life),
+             isBandageDirty=rec("dirty", life <= 0), deepWounded=rec("deep", deep),
+             isInfectedWound=rec("infected", infected))
+
+
+def _with_parts(p, parts, bleeding):
+    bd = p.getBodyDamage(p)
+    bd.getBodyParts = lambda s: J(size=lambda s2: len(parts), get=lambda s2, i: parts[i])
+    bd.getNumPartsBleeding = lambda s: bleeding
+
+
+def test_a_part_is_listed_hurt_bandaged_or_bleeding_with_its_care_fields(lua):
+    load(lua)
+    p = make_player()
+    _with_parts(p, [_part(), _part(h=60.0, deep=True, infected=True), _part(bandaged=True, life=0.0, time=4.5),
+                    _part(bleeding=True, time=9.0), _part(h=80.0, bandaged=True, life=3.25, time=1.0)], bleeding=1)
+    parts = [dict(x) for x in frame(lua, p)["body"]["parts"].values()]
+    assert parts == [
+        {"i": 1, "h": 60.0, "bleeding": False, "bleedingTime": 0.0, "bandaged": False, "deep": True, "infected": True},
+        {"i": 2, "h": 100.0, "bleeding": False, "bleedingTime": 4.5, "bandaged": True, "bandageLife": 0.0,
+         "bandageDirty": True, "deep": False, "infected": False},
+        {"i": 3, "h": 100.0, "bleeding": True, "bleedingTime": 9.0, "bandaged": False, "deep": False, "infected": False},
+        {"i": 4, "h": 80.0, "bleeding": False, "bleedingTime": 1.0, "bandaged": True, "bandageLife": 3.25,
+         "bandageDirty": False, "deep": False, "infected": False}]
+    assert missing(lua) == []
+
+
+def test_no_part_reads_bleeding_while_the_body_counts_none_bleeding(lua):
+    load(lua)
+    calls = []
+    p = make_player()
+    _with_parts(p, [_part(calls=calls), _part(h=50.0, calls=calls)], bleeding=0)
+    f = frame(lua, p)
+    assert "bleeding" not in calls and calls.count("bandaged") == 2
+    assert [dict(x)["bleeding"] for x in f["body"]["parts"].values()] == [False]
+    enc = json.loads(lua.eval("PZA.enc.body(...)", f["body"]))
+    assert enc[4] == [[1, 50, False, 0, False, None, None, False, False]]
+
+
+def test_an_absent_part_member_leaves_its_field_nil_and_is_named(lua):
+    load(lua)
+    p = make_player()
+    part = _part(h=40.0)
+    part.bandaged, part.isInfectedWound = None, None
+    _with_parts(p, [part], bleeding=1)
+    r = dict(frame(lua, p)["body"]["parts"][1])
+    assert r["i"] == 0 and "bandaged" not in r and "infected" not in r and r["deep"] is False
+    assert {"bandaged", "isInfectedWound"} <= set(missing(lua))

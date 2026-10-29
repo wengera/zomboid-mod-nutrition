@@ -114,12 +114,18 @@ def make_fluid(amount=0.5, poison=False, clean=True, water=True, tainted=False, 
 
 def make_item(ft, iid, food=()):
     """An inventory item of full type ft and id iid: IsFood true for a name in FOODS or `food`, a fluid container for a
-    name holding Bottle (clean water) or Bleach (poisonous), never a two-hand weapon, weight 1.0."""
+    name holding Bottle (clean water) or Bleach (poisonous), never a two-hand weapon, weight 1.0. PZA/1.5's care reads:
+    isCanBandage for a Bandage or RippedSheets name, getItemAfterCleaning the name without Dirty for a Dirty one, blood
+    0, never worn, the cotton rip tag on a Tshirt name."""
     is_food = ft in FOODS or ft in food
     fc = make_fluid() if "Bottle" in ft else make_fluid(poison=True, clean=False, water=False) if "Bleach" in ft else None
     return J(getFullType=lambda s: ft, getID=lambda s: iid, getWeight=lambda s: 1.0, IsFood=lambda s: is_food,
              getFluidContainer=lambda s: fc, isTwoHandWeapon=lambda s: False,
-             getHungerChange=lambda s: -0.1 if is_food else 0.0)
+             getHungerChange=lambda s: -0.1 if is_food else 0.0,
+             isCanBandage=lambda s: "Bandage" in ft or "RippedSheets" in ft,
+             getItemAfterCleaning=lambda s: ft.replace("Dirty", "") if "Dirty" in ft else None,
+             getBloodLevel=lambda s: 0.0, isWorn=lambda s: False,
+             hasTag=lambda s, t: t == "RIP_CLOTHING_COTTON" and "Tshirt" in ft)
 
 
 def make_weapon(max_range=1.25, range_mod=1.0, cond=10, wid=900, two_hands=False):
@@ -143,12 +149,16 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
     setSprinting) record (name, value) into p.sets and the latest value into p.motor, which isForceRun, isForceSprint and
     isAutoWalk read; getMaxWeight answers max_weight, the inventory's getCapacityWeight weight, getCurrentSquare square;
     the body damage's getNumPartsBleeding/Scratched/Bitten answer wounds, HasInjury any(wounds), and getBodyParts lists
-    one part per part_health entry (17 parts at 100 by default)."""
+    one part per part_health entry (17 parts at 100 by default; PZA/1.5: each unwounded, unbandaged, not bleeding,
+    its bandage life 0 and so isBandageDirty true, as the jar's BodyPart reads an unbandaged part)."""
     vals = {"HUNGER": hunger, "THIRST": 0.2, "FATIGUE": 0.1, "ENDURANCE": 0.9, "PANIC": 0.0, "PAIN": 0.0,
             "FOOD_SICKNESS": 0.0, "WETNESS": 5.0, "TEMPERATURE": 37.0}
     stats = J(get=lambda s, stat: vals[stat])
     levels = moodle_levels or {}
-    parts = [J(getHealth=lambda s, h=h: h) for h in (part_health if part_health is not None else [100.0] * 17)]
+    parts = [J(getHealth=lambda s, h=h: h, bandaged=lambda s: False, bleeding=lambda s: False,
+               getBleedingTime=lambda s: 0.0, getBandageLife=lambda s: 0.0, isBandageDirty=lambda s: True,
+               deepWounded=lambda s: False, isInfectedWound=lambda s: False)
+             for h in (part_health if part_health is not None else [100.0] * 17)]
     bd = J(getOverallBodyHealth=lambda s: health, getHealth=lambda s: health,
            getNumPartsBleeding=lambda s: wounds[0], getNumPartsScratched=lambda s: wounds[1],
            getNumPartsBitten=lambda s: wounds[2], HasInjury=lambda s: any(wounds),
@@ -268,6 +278,7 @@ def make_queue():
         q.cleared += 1
     q.add, q.clear = add, clear
     q.isPlayerDoingAction = lambda p=None: len(q.queue) > 0
+    q.hasActionType = lambda p, t: any(getattr(a, "Type", None) == t for a in q.queue)
     q.getTimedActionQueue = lambda p=None: J(queue=q.queue)
     return q
 
@@ -318,7 +329,8 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     q = make_queue()
     g._queue = q
     g.ISTimedActionQueue = J(add=lambda a: q.add(a), getTimedActionQueue=lambda p: q.getTimedActionQueue(p),
-                             isPlayerDoingAction=lambda p: q.isPlayerDoingAction(p), clear=lambda p: q.clear(p))
+                             isPlayerDoingAction=lambda p: q.isPlayerDoingAction(p), clear=lambda p: q.clear(p),
+                             hasActionType=lambda p, t: q.hasActionType(p, t))
     g.ISWalkToTimedAction = J(new=lambda cls, p, sq: J(Type="ISWalkToTimedAction", sq=sq))
     # the four vanilla constructors Act's open/loot/eat/drink queue; each captures its arguments, and
     # g._valid["start"] is what an eat or drink action's isValidStart answers
@@ -372,6 +384,26 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g._climbs = climbs
     g.ISClimbOverFence = J(new=lambda cls, p, fence, d: climbs.append((p, fence, d)) or J(
         Type="ISClimbOverFence", character=p, item=fence, direction=d))
+    # PZA/1.5's care skills: ISApplyBandage:new(character, otherPlayer, item, bodyPart, doIt) records into
+    # g._bandages; ISWashClothing:new(character, sink, item, blood, dirt, noSoap) into g._washes;
+    # ISInventoryPaneContextMenu.OnNewCraft(item, recipe, playerNum, all) into g._crafts, queueing an ISHandcraftAction
+    # while g._craft["queue"] (vanilla's canPerformCurrentRecipe passed); getScriptManager():getCraftRecipe(name) answers
+    # a recipe J whose name is name; ItemTag carries the three rip tags
+    bandages, washes, crafts, craft = [], [], [], {"queue": True}
+    g._bandages, g._washes, g._crafts, g._craft = bandages, washes, crafts, craft
+    g.ISApplyBandage = J(new=lambda cls, p, other, item, part, doit: bandages.append((p, other, item, part, doit)) or J(
+        Type="ISApplyBandage", item=item, part=part, doIt=doit))
+    g.ISWashClothing = J(new=lambda cls, p, src, item, blood, dirt, nosoap: washes.append(
+        (p, src, item, blood, dirt, nosoap)) or J(Type="ISWashClothing", item=item))
+
+    def on_new_craft(item, recipe, num, all_):
+        crafts.append((item, recipe, num, all_))
+        if craft["queue"]:
+            q.add(J(Type="ISHandcraftAction", item=item))
+    g.ISInventoryPaneContextMenu = J(OnNewCraft=on_new_craft)
+    g.getScriptManager = lambda: J(getCraftRecipe=lambda s, n: J(name=n))
+    g.ItemTag = J(RIP_CLOTHING_COTTON="RIP_CLOTHING_COTTON", RIP_CLOTHING_DENIM="RIP_CLOTHING_DENIM",
+                  RIP_CLOTHING_LEATHER="RIP_CLOTHING_LEATHER")
     equips = []
     g._equips = equips
     g.ISEquipWeaponAction = J(new=lambda cls, p, item, t, primary, two: equips.append((p, item, t, primary, two)) or J(

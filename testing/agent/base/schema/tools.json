@@ -297,5 +297,71 @@
       ],
       "additionalProperties": false
     }
+  },
+  {
+    "name": "bandage",
+    "description": "Bandage a body part with a held bandage, ripped sheet or rag (vanilla's ISApplyBandage; a bandage already on the part is taken off first). A dirty rag stops the bleeding but doubles the infection odds.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer",
+          "description": "The bandage item's id."
+        },
+        "part": {
+          "type": "integer",
+          "description": "The body part index; -1 for the worst: a bleeding unbandaged part (a deep wound first, then the longest bleeding time), else a wound under a dirty bandage, else an unbandaged wound.",
+          "default": -1
+        }
+      },
+      "required": [
+        "itemId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "rip",
+    "description": "Rip a held, unworn cotton garment into rags with no tool (vanilla's RipClothing craft): refused worn, needs tool (denim, leather) or not cotton.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer",
+          "description": "The garment's id."
+        }
+      },
+      "required": [
+        "itemId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "wash",
+    "description": "Wash a held dirty rag or bandage clean at the water source on a square (a walk next to it, then vanilla's ISWashClothing; soap optional, the water's taint untested).",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer",
+          "description": "The dirty item's id."
+        },
+        "x": {
+          "type": "integer",
+          "description": "The water source's square x."
+        },
+        "y": {
+          "type": "integer",
+          "description": "The water source's square y."
+        }
+      },
+      "required": [
+        "itemId",
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    }
   }
 ]

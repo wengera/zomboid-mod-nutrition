@@ -30,14 +30,15 @@ LIVE = "pzagent/admin/state.log"
 CMD = "pzagent/admin/cmd.txt"
 SKILL_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Motor.lua",
                "client/PZAgent_Sense.lua", "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
-               "client/PZAgent_Stance.lua")
+               "client/PZAgent_Stance.lua", "client/PZAgent_Tend.lua")
 MAIN_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Main.lua",
               "client/PZAgent_Map.lua", "client/PZAgent_Motor.lua", "client/PZAgent_Sense.lua",
               "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
-              "client/PZAgent_Stance.lua")
+              "client/PZAgent_Stance.lua", "client/PZAgent_Tend.lua")
 VANILLA = ("ISTimedActionQueue", "ISWalkToTimedAction", "ISOpenCloseDoor", "ISOpenCloseWindow",
            "ISInventoryTransferAction", "ISEatFoodAction", "ISDrinkFluidAction", "ISDropWorldItemAction",
-           "ISEquipWeaponAction", "Vector2", "ISWorldObjectContextMenu", "UIManager", "ISClimbOverFence")
+           "ISEquipWeaponAction", "Vector2", "ISWorldObjectContextMenu", "UIManager", "ISClimbOverFence",
+           "ISApplyBandage", "ISWashClothing", "ISInventoryPaneContextMenu")
 MAIN_TYPES = ("scan", "rate")          # answered by Main, never the runner (ruling P22-5)
 PENDING_TYPES = ()                     # sleep, in the schema since PZA/1.2 (Plan 23 Task 4), got its skill in Task 8
 
@@ -56,6 +57,9 @@ VALID = {
     "sleep": ("sleep", {}),
     "aim": ("aim", {"vx": 0.0, "vy": -1.0, "seconds": 1.0, "targetId": -1, "bearing": 90.0}),
     "climb": ("climb", {"x": 11, "y": 20}),
+    "bandage": ("bandage", {"itemId": 1003, "part": 0}),
+    "rip": ("rip", {"itemId": 1004}),
+    "wash": ("wash", {"itemId": 1003, "x": 11, "y": 20}),
     "scan": ("scan", {"r": 3}),
     "rate": ("rate", {"hz": 5}),
 }
@@ -80,17 +84,21 @@ def bare_player():
 
 
 def full_player():
-    """A player holding Bread (1000, food), Hammer (1001) and WaterBottle (1002, clean water), a bat in hand."""
-    return make_player(items=("Base.Bread", "Base.Hammer", "Base.WaterBottle"), weapon=make_weapon())
+    """A player holding Bread (1000, food), Hammer (1001), WaterBottle (1002, clean water), RippedSheetsDirty (1003, a
+    dirty rag) and Tshirt_DefaultTEXTURE (1004, cotton), a bat in hand."""
+    return make_player(items=("Base.Bread", "Base.Hammer", "Base.WaterBottle", "Base.RippedSheetsDirty",
+                              "Base.Tshirt_DefaultTEXTURE"), weapon=make_weapon())
 
 
 def world(g, zombie_x=11.0):
     """A cell of open squares round (10, 20), each holding a shut door, a container of one apple and a low fence on its
-    west edge (PZA/1.5's climb), zombie 5 at (zombie_x, 20)."""
+    west edge (PZA/1.5's climb) and a sink (its wash), zombie 5 at (zombie_x, 20)."""
     door = J(_cls="IsoDoor", IsOpen=lambda s: False, isBarricaded=lambda s: False)
     box = J(getItems=lambda s: J(size=lambda s2: 1, get=lambda s2, i: J(getFullType=lambda s3: "Base.Apple")))
     fence = J(isHoppable=lambda s: True, isTallHoppable=lambda s: False)
-    objs = [door, J(getContainer=lambda s: box), fence]
+    sink = J(hasWater=lambda s: True, getFluidAmount=lambda s: 10000.0, isTaintedWater=lambda s: False,
+             isWaterInfinite=lambda s: True, hasFluid=lambda s: True)
+    objs = [door, J(getContainer=lambda s: box), fence, sink]
     sq = J(getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]),
            isSolid=lambda s: False, isSolidTrans=lambda s: False, getX=lambda s: 0, getY=lambda s: 0,
            getZ=lambda s: 0)
@@ -184,12 +192,14 @@ def test_the_pcall_counter_counts_a_caught_raise():
 # but cannot read the inventory grow, so its budget runs out (interrupted); the item skills find no inventory (none
 # held); stop's interface is done; sleep finds no setter to put the player to sleep with (not loaded); aim finds no
 # setForceAim (not loaded); climb queues its climb from the near square it stands on, never crosses, and once the
-# action is out of the queue (the fake's queue is no Lua table) its settle time runs out (failed)
+# action is out of the queue (the fake's queue is no Lua table) its settle time runs out (failed); the care skills find
+# no inventory (none held)
 BARE = {"walkTo": ("failed", "stuck"), "steer": ("failed", "not loaded"), "attack": ("rejected", "no weapon"),
         "open": ("failed", "locked"), "loot": ("failed", "interrupted"), "equip": ("rejected", "none held"),
         "eat": ("rejected", "none held"), "drink": ("rejected", "none held"), "drop": ("rejected", "none held"),
         "stop": ("done", ""), "sleep": ("failed", "not loaded"), "aim": ("failed", "not loaded"),
-        "climb": ("failed", "failed")}
+        "climb": ("failed", "failed"), "bandage": ("rejected", "none held"), "rip": ("rejected", "none held"),
+        "wash": ("rejected", "none held")}
 
 
 def test_the_bare_table_covers_every_skill_case():
@@ -260,11 +270,13 @@ def test_s_frame_on_a_raising_player_returns_a_frame_and_names_the_missing():
 # the reason each skill's interface gives with its vanilla class absent; attack needs none in reach (it swings), and out
 # of reach its approach walk cannot queue, so it fails at once with the walk's reason (fix wave M5); sleep needs none (the
 # floor bed, ZombRand's midpoint, no fade) and the player stays asleep until its hour of wall runs out (interrupted);
-# aim walks its vector through the auto-walk, which needs Vector2 (not loaded); climb needs ISClimbOverFence
+# aim walks its vector through the auto-walk, which needs Vector2 (not loaded); climb needs ISClimbOverFence; the care
+# skills need ISApplyBandage, OnNewCraft and ISWashClothing
 ABSENT = {"walkTo": ("failed", "no path"), "steer": ("failed", "not loaded"), "open": ("failed", "not loaded"),
           "loot": ("failed", "not loaded"), "equip": ("failed", "not loaded"), "eat": ("failed", "not loaded"),
           "drink": ("failed", "not loaded"), "drop": ("failed", "not loaded"), "stop": ("done", ""),
-          "sleep": ("failed", "interrupted"), "aim": ("failed", "not loaded"), "climb": ("failed", "not loaded")}
+          "sleep": ("failed", "interrupted"), "aim": ("failed", "not loaded"), "climb": ("failed", "not loaded"),
+          "bandage": ("failed", "not loaded"), "rip": ("failed", "not loaded"), "wash": ("failed", "not loaded")}
 
 
 @pytest.mark.parametrize("case", SKILL_CASES)

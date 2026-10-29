@@ -28,13 +28,13 @@ PZA.schema = {
         cost = { "tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs" },
     },
     records = {
-        part = { "i", "h" },
+        part = { "i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected" },
         zombie = { "id", "x", "y", "dist", "hasTarget", "crawler", "health" },
         portal = { "open", "locked", "barricaded" },
         container = { "type", "n", "items" },
         square = { "x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW" },
     },
-    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true },
+    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true },
     actions = {
         walkTo = { "x", "y", "gait" },
         steer = { "vx", "vy", "seconds", "gait" },
@@ -49,6 +49,9 @@ PZA.schema = {
         sleep = {},
         aim = { "vx", "vy", "seconds", "targetId", "bearing" },
         climb = { "x", "y" },
+        bandage = { "itemId", "part" },
+        rip = { "itemId" },
+        wash = { "itemId", "x", "y" },
     },
     gaits = { walk = true, run = true, sprint = true },
     ikinds = { open = true, close = true, loot = true },
@@ -99,12 +102,19 @@ local function list(a, f)
     return "[" .. concat(out, ",") .. "]"
 end
 
--- record part: One body part below full health.
+-- record part: One body part below full health, bandaged or bleeding.
 --   i: The body part index.
 --   h: The body part's health.
+--   bleeding: Whether the part bleeds, bleeding() (PZA/1.5, P24-G); a bandage clears the flag.
+--   bleedingTime: The part's bleeding time, getBleedingTime(): kept under a bandage, which wears it ten times faster (jar-reads-2 T6b.5).
+--   bandaged: Whether the part is bandaged, bandaged().
+--   bandageLife: The bandage's life, getBandageLife(); null on an unbandaged part. A dirty rag's is 0 from the start.
+--   bandageDirty: Whether the bandage is dirty, isBandageDirty() (its life at 0 or less: doubles the infection odds, T6b.6); null on an unbandaged part.
+--   deep: Whether the part carries a deep wound, deepWounded(); a bandage clears the flag.
+--   infected: Whether the wound is infected, isInfectedWound().
 local function enc_part(t)
     if t == nil then return "null" end
-    return "[" .. v(t.i) .. "," .. v(t.h) .. "]"
+    return "[" .. v(t.i) .. "," .. v(t.h) .. "," .. v(t.bleeding) .. "," .. v(t.bleedingTime) .. "," .. v(t.bandaged) .. "," .. v(t.bandageLife) .. "," .. v(t.bandageDirty) .. "," .. v(t.deep) .. "," .. v(t.infected) .. "]"
 end
 PZA.enc.part = enc_part
 
@@ -213,7 +223,7 @@ PZA.enc.stats = enc_stats
 --   bleeding: The number of bleeding parts.
 --   scratched: The number of scratched parts.
 --   bitten: The number of bitten parts.
---   parts: The body parts below full health.
+--   parts: The body parts below full health, and (PZA/1.5) any part bandaged or bleeding.
 local function enc_body(t)
     if t == nil then return "null" end
     return "[" .. v(t.health) .. "," .. v(t.bleeding) .. "," .. v(t.scratched) .. "," .. v(t.bitten) .. "," .. list(t.parts, enc_part) .. "]"

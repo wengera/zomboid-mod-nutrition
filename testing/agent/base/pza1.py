@@ -39,11 +39,12 @@ GROUPS = {
 PRIOR = {
     "me": 11,
     "cost": 8,
+    "part": 2,
     "square": 12,
 }
 # the positional records
 RECORDS = {
-    "part": ("i", "h"),
+    "part": ("i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected"),
     "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health"),
     "portal": ("open", "locked", "barricaded"),
     "container": ("type", "n", "items"),
@@ -57,8 +58,8 @@ SHAPES = {
     "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None)},
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
-REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed"))
-ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb")
+REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water"))
+ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
     "walkTo": {"x": "float", "y": "float", "gait": "gait"},
@@ -74,6 +75,9 @@ ACTION_ARGS = {
     "sleep": {},
     "aim": {"vx": "float", "vy": "float", "seconds": "float", "targetId": "int", "bearing": "float"},
     "climb": {"x": "int", "y": "int"},
+    "bandage": {"itemId": "int", "part": "int"},
+    "rip": {"itemId": "int"},
+    "wash": {"itemId": "int", "x": "int", "y": "int"},
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
@@ -374,3 +378,27 @@ class Climb(_Cmd):
     TYPE: ClassVar[str] = "climb"
     x: int  # The fence square's x (the square whose hopN or hopW reads true).
     y: int  # The fence square's y.
+
+
+@dataclasses.dataclass(frozen=True)
+class Bandage(_Cmd):
+    """Bandage a body part with a held bandage, ripped sheet or rag (vanilla's ISApplyBandage; a bandage already on the part is taken off first). A dirty rag stops the bleeding but doubles the infection odds."""
+    TYPE: ClassVar[str] = "bandage"
+    itemId: int  # The bandage item's id.
+    part: int = -1  # The body part index; -1 for the worst: a bleeding unbandaged part (a deep wound first, then the longest bleeding time), else a wound under a dirty bandage, else an unbandaged wound.
+
+
+@dataclasses.dataclass(frozen=True)
+class Rip(_Cmd):
+    """Rip a held, unworn cotton garment into rags with no tool (vanilla's RipClothing craft): refused worn, needs tool (denim, leather) or not cotton."""
+    TYPE: ClassVar[str] = "rip"
+    itemId: int  # The garment's id.
+
+
+@dataclasses.dataclass(frozen=True)
+class Wash(_Cmd):
+    """Wash a held dirty rag or bandage clean at the water source on a square (a walk next to it, then vanilla's ISWashClothing; soap optional, the water's taint untested)."""
+    TYPE: ClassVar[str] = "wash"
+    itemId: int  # The dirty item's id.
+    x: int  # The water source's square x.
+    y: int  # The water source's square y.

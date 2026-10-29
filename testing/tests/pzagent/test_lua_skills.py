@@ -20,7 +20,7 @@ R2 = 1 / math.sqrt(2)
 def load(lua):
     for f in ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Motor.lua",
               "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
-              "client/PZAgent_Stance.lua"):
+              "client/PZAgent_Stance.lua", "client/PZAgent_Tend.lua"):
         lua.execute(open(lua_file(f), encoding="utf-8").read())
     lua.globals().PZA.tick = 0
     lua.execute("PZA.link.init('admin')")
@@ -1217,7 +1217,7 @@ def test_every_reason_literal_in_the_skills_file_is_in_the_schema():
         reasons = set(json.load(fh)["$defs"]["reason"]["enum"])
     src = "".join(open(lua_file(f), encoding="utf-8").read()
                   for f in ("client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
-                  "client/PZAgent_Stance.lua"))
+                  "client/PZAgent_Stance.lua", "client/PZAgent_Tend.lua"))
     found = set(re.findall(r'"(?:failed|rejected)",\s*"([^"]+)"', src))
     found |= set(re.findall(r'return false,\s*"([^"]+)"', src))
     body = src[src.index("local function queueConsume"):]

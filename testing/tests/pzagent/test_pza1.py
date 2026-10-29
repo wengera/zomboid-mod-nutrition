@@ -29,7 +29,9 @@ def rand_frame(rng, seq=1):
     zombies = [{"id": rng.randrange(1, 9999), "x": lua_float(rng), "y": lua_float(rng), "dist": lua_float(rng, 0, 30),
                 "hasTarget": b(), "crawler": b(), "health": maybe(rng, lua_float(rng, 0, 2))}
                for _ in range(rng.choice([0, 0, 1, 2, 5]))]
-    parts = [{"i": i, "h": lua_float(rng, 0, 100)} for i in rng.sample(range(17), rng.choice([0, 1, 3]))]
+    parts = [{"i": i, "h": lua_float(rng, 0, 100), "bleeding": b(), "bleedingTime": lua_float(rng, 0, 20),
+              "bandaged": b(), "bandageLife": maybe(rng, lua_float(rng, 0, 5)), "bandageDirty": maybe(rng, b()),
+              "deep": b(), "infected": b()} for i in rng.sample(range(17), rng.choice([0, 1, 3]))]
     return {
         "kind": "frame", "seq": seq, "tick": rng.randrange(0, 10 ** 6), "wallMs": rng.randrange(10 ** 12, 2 * 10 ** 12),
         "gameMin": lua_float(rng, 0, 10 ** 5), "worldAge": maybe(rng, lua_float(rng, 0, 1000)),
@@ -383,7 +385,7 @@ def test_me_and_cost_append_their_new_fields_after_the_prior_prefix():
     assert pza1.GROUPS["me"][11:14] == ("zombiesSeen", "zombiesListed", "hour")
     assert pza1.GROUPS["cost"][8:] == ("pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs",
                                        "maxPollMs", "maxStartMs")
-    assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12}
+    assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12, "part": 2}
 
 
 def test_a_frame_written_before_the_append_decodes_with_the_new_fields_none_and_no_shorter_or_longer_one_does():
@@ -466,7 +468,7 @@ def test_death_is_an_event_kind_with_its_fields_and_round_trips():
 def test_me_and_square_append_the_1_4_fields_after_their_1_3_orders():
     assert pza1.GROUPS["me"][14:17] == ("attackers", "hitReaction", "dragDown")
     assert pza1.RECORDS["square"][16:18] == ("hopN", "hopW")
-    assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12}       # the oldest arity a writer used is unchanged
+    assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12, "part": 2}       # the oldest arity a writer used is unchanged
     assert "busy" in pza1.REASONS
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
     assert [d["me"]["properties"][f]["type"] for f in ("attackers", "hitReaction", "dragDown")] == [
@@ -563,3 +565,35 @@ def test_the_e5_and_f2_logs_decode_through_the_file_transport_with_the_1_5_field
     assert t.bad == 0 and len(lines) > 1000 and frames
     assert all(f["me"]["aiming"] is None for f in frames)
 
+
+
+# ---- PZA/1.5 (ruling P24-G): bandage, rip and wash; the part record's care fields -----------------------------------
+
+def test_bandage_rip_and_wash_are_actions_with_their_args_results_and_reasons():
+    assert pza1.ACTION_TYPES[13:16] == ("bandage", "rip", "wash")
+    assert pza1.ACTION_ARGS["bandage"] == {"itemId": "int", "part": "int"}
+    assert pza1.ACTION_ARGS["rip"] == {"itemId": "int"}
+    assert pza1.ACTION_ARGS["wash"] == {"itemId": "int", "x": "int", "y": "int"}
+    assert pza1.Bandage(50).args() == {"itemId": 50, "part": -1} and pza1.Wash(80, 11, 20).TYPE == "wash"
+    assert {"no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water"} <= pza1.REASONS
+    d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
+    assert set(d["result_bandage"]["properties"]) == {"part", "dirty", "life"}
+    assert set(d["result_rip"]["properties"]) == {"rags", "dirty"} and set(d["result_wash"]["properties"]) == {"water"}
+
+
+def test_the_part_record_appends_its_care_fields_and_a_two_field_part_decodes_with_them_none():
+    assert pza1.RECORDS["part"] == ("i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty",
+                                    "deep", "infected")
+    assert pza1.PRIOR["part"] == 2
+    f = rand_frame(random.Random(61))
+    f["body"]["parts"] = [{"i": 3, "h": 62.5, "bleeding": True, "bleedingTime": 9.5, "bandaged": True,
+                           "bandageLife": 0.0, "bandageDirty": True, "deep": False, "infected": False}]
+    assert pza1.decode(json.loads(pza1.encode("frame", f))) == f
+    arr = json.loads(pza1.encode("frame", f))
+    body = pza1.ORDER["frame"].index("body")
+    arr[body][4] = [[3, 62.5]]                                   # a PZA/1.4 part
+    p = pza1.decode(arr)["body"]["parts"][0]
+    assert (p["i"], p["h"]) == (3, 62.5) and all(p[k] is None for k in pza1.RECORDS["part"][2:])
+    arr[body][4] = [[3]]
+    with pytest.raises(ValueError):
+        pza1.decode(arr)

@@ -194,3 +194,15 @@ function W.useOf(it)
     if W.fullTypeHas(it, "Bandage", "Rag") then return "bandage" end
     return "other"
 end
+
+-- the square's first object whose hasWater() holds (IsoObject.hasWater @0-@177 L3108-L3145, jar-reads-2 section 7: an
+-- infinite source, a fluid container whose contents are all water, an unmoved piped source with reserve water, a sprite
+-- flagged taintedWater, a solid floor with puddles over 0.09), or nil: the source of the wash and the fill (PZA/1.5)
+function W.waterOn(sq)
+    local objs, n = W.objectsOn(sq)
+    for i = 1, n do
+        local _, w = PZA.call(objs[i], "hasWater")
+        if w == true then return objs[i] end
+    end
+    return nil
+end

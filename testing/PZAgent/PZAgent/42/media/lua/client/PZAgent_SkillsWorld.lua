@@ -752,8 +752,8 @@ K.types.attack.check = function(args, p)
 end
 
 -- ---- the helpers the later skill files share (PZA/1.5) --------------------------------------------------------------
--- The skill files that load after this one (client files load by name: PZAgent_Stance.lua's aim and climb) reach these
--- locals through K; appended here (CLAUDE.md section 5: the repo: pointers into this file keep their lines).
+-- The skill files that load after this one (client files load by name: PZAgent_Stance.lua's aim and climb,
+-- PZAgent_Tend.lua's bandage, rip and wash) reach these locals through K; appended here (CLAUDE.md section 5: the repo: pointers into this file keep their lines).
 K.squareAt, K.cheb, K.adjacentTo, K.queueAction, K.subWalk, K.tickSub = squareAt, cheb, adjacentTo, queueAction, subWalk,
     tickSub
 K.approach, K.floorOf, K.invCount, K.numOf = approach, floorOf, invCount, numOf

@@ -164,7 +164,10 @@
    "rate",
    "sleep",
    "aim",
-   "climb"
+   "climb",
+   "bandage",
+   "rip",
+   "wash"
   ],
   "kind": "hello",
   "mod": "fake",

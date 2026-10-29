@@ -1088,3 +1088,12 @@ def test_met_density_counts_the_distinct_zombies_met_within_r_and_the_window_is_
     cx, cy, n = w.met_window()
     assert n == 5 and cx == pytest.approx((111.0 + 111.0 + 111.5 + 112.0 + 112.5) / 5) and cy == 200.0
     assert World().met_window() is None
+
+
+def test_apply_keeps_the_parts_care_fields_on_the_body_group():
+    """PZA/1.5 (P24-G): the frame's body group is kept whole, so each part's care fields reach the planner."""
+    part = {"i": 2, "h": 90.0, "bleeding": True, "bleedingTime": 7.5, "bandaged": False, "bandageLife": None,
+            "bandageDirty": None, "deep": True, "infected": False}
+    w = World()
+    w.apply(frame(0, body=dict(DEFAULT_FRAME["body"], bleeding=1, parts=[part])))
+    assert w.body["parts"] == [part] and json.loads(w.to_json())["body"]["parts"] == [part]

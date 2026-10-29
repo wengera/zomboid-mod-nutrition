@@ -130,8 +130,8 @@ local function stats(p)
     return s
 end
 
--- body: the overall health, the wound counts and every part whose health reads under 100 as the schema's part record
--- { i, h } (i 0-based, the getBodyParts order); parts is always an array, empty when none is hurt
+-- body: the overall health, the wound counts and every part S.notePart lists (hurt, bandaged or bleeding: PZA/1.5, at
+-- the end of this file) as the schema's part record (i 0-based, the getBodyParts order); parts empty when none is
 local function body(p)
     local b = { parts = {} }
     local okB, bd = PZA.call(p, "getBodyDamage")
@@ -145,7 +145,7 @@ local function body(p)
     for i = 0, (okN and n or 0) - 1 do
         local _, part = PZA.call(list, "get", i)
         local okH, h = PZA.call(part, "getHealth")
-        if okH and type(h) == "number" and h < 100 then b.parts[#b.parts + 1] = { i = i, h = h } end
+        if okH and type(h) == "number" then S.notePart(b, i, part, h) end
     end
     return b
 end
@@ -571,4 +571,35 @@ function S.frame(p)
     local f = frameBase(p)
     guarded("me:combat", meCombat, p, f)
     return f
+end
+
+-- body.parts' records (PZA/1.5, ruling P24-G; docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md section 3, rows
+-- T6b.5 and T6b.6): body's walk of getBodyParts calls S.notePart(b, i, part, h) for every part whose health reads (that
+-- one line edited in place, so no repo: pointer into Sense moves). It lists a part whose health is under 100, which
+-- reads bandaged(), or which reads bleeding() (asked only while body's getNumPartsBleeding is above 0 or unread), as
+-- the record { i, h, bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep, infected }: bleeding() (false
+-- without the call when no part bleeds), getBleedingTime() (kept under a bandage, which clears the flag but not the
+-- time), bandaged(), getBandageLife() and isBandageDirty() (its life at 0 or less; both nil on an unbandaged part,
+-- whose life reads 0 and so dirty), deepWounded() and isInfectedWound(). An absent member leaves its field nil and is
+-- named in missing. Cost a frame: bandaged() on each of the 17 parts beside getHealth (bleeding() too while a part
+-- bleeds), then five or six reads per listed part; the body group is elided from a delta frame while it is unchanged.
+function S.notePart(b, i, part, h)
+    local okB, band = PZA.call(part, "bandaged")
+    if not okB then PZA.missing(S.missing, "bandaged") end
+    local bleed = false
+    if b.bleeding == nil or (type(b.bleeding) == "number" and b.bleeding > 0) then
+        local okL, bl = PZA.call(part, "bleeding")
+        if okL then bleed = bl == true else bleed = nil end
+    end
+    if h >= 100 and band ~= true and bleed ~= true then return end
+    local r = { i = i, h = h, bleeding = bleed }
+    if okB then r.bandaged = band == true end
+    get(r, "bleedingTime", part, "getBleedingTime")
+    if band == true then
+        get(r, "bandageLife", part, "getBandageLife")
+        get(r, "bandageDirty", part, "isBandageDirty")
+    end
+    get(r, "deep", part, "deepWounded")
+    get(r, "infected", part, "isInfectedWound")
+    b.parts[#b.parts + 1] = r
 end
