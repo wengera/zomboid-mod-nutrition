@@ -1,10 +1,11 @@
 """e_day_6 -- Plan 24, the sixth chain's session driver: `e_day_5.py` copied under its own key after the fifth chain's
-death at game minute 595 (`e_day_5-20261028-201255`, the horde within seconds); the base at 407f739c carries PZA/1.4
-(the attackers, the hit reaction, the drag-down, the hoppable edges) and survival iteration 5 (the threat read over the
-whole listing and the met ground, the look behind, the corner yielding to the health flee, the retries under a group
-and under the health flee, the drag-down guard, no attack in a hit reaction) and the goal sources off met ground
-(rulings P24-A to P24-E). Every other line is e_day_5.py's: the thin driver imports the library's `day` module, so the
-behaviour is the library's at the boot.
+death at game minute 595 (`e_day_5-20261028-201255`, the horde within seconds); the base at ff8865f0 carries PZA/1.4
+(the attackers, the hit reaction, the drag-down, the hoppable edges) and survival iteration 5 (the threat read over
+the whole listing and the met ground, the look behind, the corner yielding to the health flee, the retries under a
+group and under the health flee, the drag-down guard, no attack in a hit reaction) and the goal sources off met
+ground, the use table reading only drinkable water and a consume with no effect marked (rulings P24-A to P24-F). Every
+other line is e_day_5.py's: the thin driver imports the library's `day` module, so the behaviour is the library's at
+the boot.
 
 The driver is thin: its key, artifact and profile, its pre-boot checks and its planner. The day's constants,
 arguments, chain inputs, `Chain` (the library's `Session` with the two hooks), its builder (`day.make_day_session`) and

@@ -459,7 +459,7 @@ def test_the_copy_differs_from_e_day_5_only_in_the_expected_lines():
         norm = norm.replace(mine, theirs)
     assert norm == a[a.index(mark):]
     head = b[:b.index(mark)]
-    for c in ("407f739c", "e_day_5-20261028-201255", "595", "fifth"):
+    for c in ("ff8865f0", "e_day_5-20261028-201255", "595", "fifth"):
         assert c in head, c
     assert E.CONSTANTS == E1.CONSTANTS and E.PROFILE == E1.PROFILE
 
