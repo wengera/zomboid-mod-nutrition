@@ -60,11 +60,12 @@ class Rig:
 
     def frame(self, x=100.0, y=200.0, zombies=(), weapon=BAT, health=100.0, hunger=0.1, thirst=0.1, level=0,
               game_min=480.0, wounds=None, load_max=8.0, fatigue=0.05, hour=8.0, z=0, weight=4.5, world_age=None,
-              endurance=1.0):
+              endurance=1.0, attackers=0, hit_reaction=""):
         """`world_age` (hours) defaults to `game_min / 60`, the day-one clock, so a test that steps `game_min` steps
         the monotonic clock the planner's timers read (fix wave P, I-1); a midnight test passes both. `endurance` is
-        the stats group's (DEFAULT_FRAME's 1.0; survival 3's group sprint reads it)."""
-        me = dict(DEFAULT_FRAME["me"], x=x, y=y, z=z, hour=hour)
+        the stats group's (DEFAULT_FRAME's 1.0; survival 3's group sprint reads it). `attackers` and `hit_reaction`
+        are PZA/1.4's `me.attackers` and `me.hitReaction` (DEFAULT_FRAME's 0 and "", P24-A (h) and (i))."""
+        me = dict(DEFAULT_FRAME["me"], x=x, y=y, z=z, hour=hour, attackers=attackers, hitReaction=hit_reaction)
         stats = dict(DEFAULT_FRAME["stats"], hunger=hunger, thirst=thirst, fatigue=fatigue, endurance=endurance)
         body = dict(DEFAULT_FRAME["body"], health=health, **(wounds or {}))
         load = dict(DEFAULT_FRAME["load"], level=level, max=load_max, weight=weight)
@@ -128,8 +129,10 @@ def test_fight_picks_the_nearest_zombie(tmp_path):
 
 
 def test_two_swings_not_started_in_a_row_force_one_approach_walk(tmp_path):
+    """Named change, ruling P24-A (e): the zombie stood at 1.0 tiles, within POINT_BLANK_R, where no approach walk
+    goes now; it stands at 1.5."""
     r = Rig(tmp_path)
-    r.frame(zombies=[zombie(7, 101.0, 200.0)])
+    r.frame(zombies=[zombie(7, 101.5, 200.0)])
     f = Fight(r.world, r.acts, r.clock)
     f.step()
     assert r.cmd()[0] == "attack"
@@ -144,6 +147,7 @@ def test_two_swings_not_started_in_a_row_force_one_approach_walk(tmp_path):
     r.answer({"state": "done", "result": swing(False)})
     f.step()
     assert r.cmd() == ("walkTo", {"x": 101.5, "y": 200.5, "gait": "run"})   # two in a row: re-approach
+    assert f.why["approach"] is True
     r.answer()
     f.step()
     assert r.cmd() == ("attack", {"targetId": 7})
@@ -296,6 +300,8 @@ def test_fight_with_no_zombie_sends_nothing(tmp_path):
 
 # ================================================================ Flee
 def test_flee_steers_every_leg_along_the_weighted_sum_at_a_run(tmp_path):
+    """Named change, ruling P24-A (a): the first leg also runs from the densest met window's centre (both zombies
+    met, their centroid (103, 201): (-3, -1) / 10), the re-aimed leg from the threats alone."""
     r = Rig(tmp_path)
     zs = [zombie(1, 103.0, 200.0), zombie(2, 103.0, 202.0)]
     r.frame(zombies=zs)
@@ -303,6 +309,8 @@ def test_flee_steers_every_leg_along_the_weighted_sum_at_a_run(tmp_path):
     f.step()
     typ, args = r.cmd()
     wx, wy = -1.0 / 3.0 - 3.0 / 13.0, -2.0 / 13.0          # the unit vectors from each threat, weighted 1/distance
+    wx, wy = wx - 3.0 / 10.0, wy - 1.0 / 10.0               # ... and the met window's centre's (P24-A (a))
+    assert f.why["met"] == [103.0, 201.0, 2]
     n = math.hypot(wx, wy)
     assert typ == "steer" and args["gait"] == "run" and args["seconds"] == P.FLEE_S == 3.0
     assert args["vx"] == pytest.approx(wx / n) and args["vy"] == pytest.approx(wy / n)
@@ -327,8 +335,11 @@ def test_a_leg_points_away_from_the_nearer_threat_where_the_centroid_would_not(t
     f.step()
     _, args = r.cmd()
     wx, wy = 1.0 / 3.0 - 0.5, -0.5
-    n = math.hypot(wx, wy)
-    assert args["vx"] == pytest.approx(wx / n) and args["vy"] == pytest.approx(wy / n)
+    n0 = math.hypot(wx, wy)
+    mx, my = wx + 1.0 / 1.25, wy - 0.5 / 1.25                  # named change, P24-A (a): the first leg runs from the
+    n = math.hypot(mx, my)                                       # met window's centre (99, 200.5) too, at 1/distance
+    assert args["vx"] == pytest.approx(mx / n) and args["vy"] == pytest.approx(my / n)
+    n = n0
     assert args["vx"] * 1.0 + args["vy"] * 1.0 < 0.0             # away from the nearer threat at (+1, +1)
     assert (1.0 * 1.0 + -0.5 * 1.0) > 0.0                        # the centroid's leg would have closed on it
     assert args["gait"] == "sprint" and f.why["turn"] == 0       # unmapped ground is open to the steer (fix 2)
@@ -1323,3 +1334,97 @@ def test_the_place_is_rescanned_again_at_the_stuck_walk_cap(tmp_path):
         dropped.append(e.place() not in e.scanned)
     assert dropped == [k + 1 in (W.STUCK_AREA_N, W.STUCK_AREA_N + W.STUCK_WALK_CAP)
                        for k in range(W.STUCK_AREA_N + W.STUCK_WALK_CAP)]
+
+
+# ================================================================ Plan 24 survival 5 (ruling P24-A)
+def test_others_behind_reads_the_listing_beyond_the_target_within_ahead_cone(tmp_path):
+    """P24-A (b): beyond the target, within AHEAD_CONE of its bearing and within LISTED_R of the player."""
+    assert P.LISTED_R == 12.0 and P.AHEAD_CONE == 20.0
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(1, 103.0, 200.0), zombie(2, 108.0, 202.0), zombie(3, 100.0, 207.0),
+                     zombie(4, 102.0, 200.2), zombie(5, 113.0, 200.0), zombie(6, 111.0, 203.0)])
+    t = r.world.zombies[1]
+    # 2 at 8.2 tiles, 14 degrees off: behind; 3 north: no; 4 nearer than the target: no; 5 at 13: unlisted;
+    # 6 at 11.4 tiles, 15.3 degrees off: behind
+    assert P.others_behind(r.world, 1, t) == [2, 6]
+    assert P.others_behind(r.world, 3, r.world.zombies[3]) == []
+
+
+def test_a_fight_sends_no_approach_walk_at_point_blank(tmp_path):
+    """P24-A (e), the close review's I3 (F1's walkTo at 0.49 tiles, lines 599 and 608): two swings not started in a
+    row set the approach; with the target within POINT_BLANK_R the flag is cleared and the attack goes."""
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(7, 100.5, 200.0)])
+    f = Fight(r.world, r.acts, r.clock)
+    for _ in range(2):
+        f.step()
+        assert r.cmd() == ("attack", {"targetId": 7})
+        r.answer({"state": "done", "result": swing(False)})
+    f.observe()
+    assert f.approach is True
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 7}) and f.approach is False and f.why["approach"] is False
+
+
+def test_no_attack_is_sent_in_a_hit_reaction_and_one_goes_on_the_frame_after_it_clears(tmp_path):
+    """P24-A (i), the jar reads #4292 and #4293: a DoAttack starts no swing while the player is in a hit reaction,
+    which every zombie attack reaching the damage roll sets; the Lua refuses it `busy`. While the frame's
+    `me.hitReaction` names one the Fight sends nothing (`why.hitReaction`); the frame after it clears, the attack.
+    A PZA/1.3 frame has no such field: read as none."""
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(7, 101.0, 200.0)], hit_reaction="HitReaction")
+    f = Fight(r.world, r.acts, r.clock)
+    assert f.step() is None and f.why["hitReaction"] == "HitReaction" and not r.acts.history
+    r.frame(zombies=[zombie(7, 101.0, 200.0)], hit_reaction="")
+    f.step()
+    assert r.cmd() == ("attack", {"targetId": 7}) and "hitReaction" not in f.why
+    r.world.me.pop("hitReaction")
+    assert P.hit_reaction(r.world) is None
+
+
+def test_the_first_leg_runs_from_the_densest_met_window_and_the_next_does_not(tmp_path):
+    """P24-A (a): five zombies met 11 tiles east a minute ago, out of the listing now; one zombie 3 tiles north. The
+    first leg runs from the north one and from the met window's centre: south-west, where the threat alone steers
+    due south; the re-aimed leg from the threat alone."""
+    r = Rig(tmp_path)
+    east = [zombie(10 + i, 111.0, 199.0 + 0.5 * i) for i in range(5)]
+    r.frame(zombies=east, game_min=479.0)
+    r.advance(30.0)                                          # past the World's ZOMBIE_TTL_S: unlisted, still met
+    r.frame(zombies=[zombie(1, 100.0, 197.0)], game_min=480.0)
+    assert set(r.world.zombies) == {1} and len(r.world.met) == 6
+    f = Flee(r.world, r.acts, r.clock)
+    f.step()
+    _, args = r.cmd()
+    cx, cy = 111.0, 200.0
+    wx, wy = (100.0 - cx) / ((100.0 - cx) ** 2 + (200.0 - cy) ** 2), 1.0 / 3.0
+    n = math.hypot(wx, wy)
+    assert args["vx"] == pytest.approx(wx / n) and args["vy"] == pytest.approx(wy / n) and args["vx"] < 0.0
+    assert f.why["met"][2] == 5
+    r.answer()
+    r.frame(y=202.0, zombies=[zombie(1, 100.0, 197.0, me=(100.0, 202.0))], game_min=480.1)   # the leg moved 2 tiles
+    f.step()
+    _, args = r.cmd()
+    assert (args["vx"], args["vy"]) == (pytest.approx(0.0, abs=1e-12), pytest.approx(1.0)) and "met" not in f.why
+
+
+def test_steer_now_on_a_room_square_walks_the_exit_at_a_sprint_never_a_steer(tmp_path):
+    """P24-A (f), the close review's I4: Survive's group steer (`steer_now`) on a room square with a way out takes the
+    exit walk at a sprint; off the room square it steers first, as before."""
+    r = Rig(tmp_path)
+    r.scan(two_door_house())
+    me = (111.5, 201.5)
+    north = [zombie(1, 110.5, 197.5, me=me), zombie(2, 111.5, 197.0, me=me), zombie(3, 112.5, 197.5, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=north)
+    f = Flee(r.world, r.acts, r.clock)
+    f.steer_now = True
+    f.step()
+    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 204.5, "gait": "sprint"}) and f.exit is not None
+    (tmp_path / "b").mkdir()
+    r2 = Rig(tmp_path / "b")
+    r2.scan(two_door_house())
+    me = (107.5, 201.5)
+    r2.frame(x=me[0], y=me[1], zombies=[zombie(1, 107.5, 198.5, me=me)])
+    f2 = Flee(r2.world, r2.acts, r2.clock)
+    f2.steer_now = True
+    f2.step()
+    assert r2.cmd()[0] == "steer"

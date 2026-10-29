@@ -23,8 +23,9 @@ THE METHOD (no wall clock is read; a run twice gives identical output):
   `sent_wall` is its recorded send's wall. The log's `wall` is read at the tick's end, so a clock read inside the
   tick (a Fight's stall clock started there) is late by the tick's own run: the logged `inputs.fight_s` differs from
   the record's by at most 0.0033 s on F1. A clock difference read against a threshold is late by as much: the nearest
-  such read on E5 and F1 is Flee's `_leg_still` against STEP_STALL_S (1.0 s, through `Flee.stuck()`, the `stuck`
-  corner) at E5 line 228, 0.993975 s, 6.0 ms under it (Task 1's review, M2: STEP_STALL_S 0.99 moves E5 there). The
+  such read on E5 and F1 is Flee's `_leg_still` against WALK_STALL_S (1.0 s, then STEP_STALL_S, through
+  `Flee.stuck()`, the `stuck` corner) at E5 line 228, 0.993975 s, 6.0 ms under it (Task 1's review, M2: 0.99 moves
+  E5 there). The
   replay agrees there because its clock error is under that margin; a slower tick in a later artifact could read a
   false divergence at such a line. The stall clock `fight_s` stays far from FIGHT_MAX_S (20 s).
 - The acts. The record's aids are read off the act lines (the k-th sent decision line's action is the record's

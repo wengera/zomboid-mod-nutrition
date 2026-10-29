@@ -51,17 +51,20 @@ def test_two_runs_give_identical_output(key):
     assert R.golden_text(a, "x", "y", "z") == R.golden_text(b, "x", "y", "z")
 
 
-def test_a_smaller_cornered_r_moves_the_f1_golden_first_at_line_537(monkeypatch):
-    """The mutation pass: CORNERED_R 1.5 -> 1.0 (survive's and policies' copies). At F1's line 537 the golden's corner
-    attack on 15921 goes; the replay with the mutant sends nothing there."""
+def test_a_smaller_cornered_r_moves_the_f1_golden_first_at_line_484(monkeypatch):
+    """The mutation pass: CORNERED_R 1.5 -> 1.0 (survive's and policies' copies). Named change, Plan 24 survival 5
+    (P24-A (c)): F1's golden moves first at line 484, where 15921 at 1.03-1.5 tiles read a `walk` corner the running
+    `many` episode refused (`yield` "many"); with the mutant no corner is read there. (At Task 1's recording it moved
+    first at 537, the corner attack on 15921, a `stuck` corner now, still moved.)"""
     base = {d["line"]: d for d in json.loads(golden("f1").decode("utf-8"))["decisions"]}
+    assert base[484]["why"]["yield"] == "many"
     assert base[537]["action"] == {"type": "attack", "args": {"targetId": 15921}}
+    assert base[537]["why"]["corner_kind"] == "stuck"
     monkeypatch.setattr(S, "CORNERED_R", 1.0)
     monkeypatch.setattr(P, "CORNERED_R", 1.0)
     moved = {d["line"]: d for d in R.run(run_dir("f1"))}
     diff = [k for k in sorted(set(base) | set(moved)) if base.get(k) != moved.get(k)]
-    assert diff and diff[0] == 537
-    assert moved[537]["action"] is None
+    assert diff and diff[0] == 484 and "yield" not in moved[484]["why"] and 537 in diff
 
 
 def test_without_the_trailing_read_rule_f1_moves_at_line_498(monkeypatch):
@@ -104,22 +107,49 @@ def test_a_source_other_than_scripted_is_refused():
         R.replay(run_dir("e5"), source="llm")
 
 
-@pytest.mark.parametrize("key,compared", [("e5", 116), ("f1", 331)])
-def test_the_replay_agrees_with_the_record_at_every_threat_line(key, compared):
-    """The reading at the goldens' recording (an offline oracle's; a later divergence is a finding to name)."""
-    rows = replay_rows(key)
-    got = R.agreement(run_dir(key), rows)
-    assert got == {"compared": compared, "agree": compared, "skipped_world": 0, "first_divergence": None}
-    _, rec = R.read_record(run_dir(key))
-    assert [r["inputs"]["branches"].get("threat") for r in rows] == [r["inputs"]["branches"].get("threat") for r in rec]
+def test_with_survival_5_s_a_b_c_off_the_records_diverge_first_at_the_point_blank_and_the_stuck_reads(monkeypatch):
+    """Task 1 read every threat line of E5 and F1 agreeing. With P24-A's listing and met window (a), look behind (b)
+    and corner yield (c) held off, the first divergences are the other rules': E5 at 241, the attack on 19249 at
+    0.50 tiles where the record walked its approach (e); F1 at 540, the corner taken at 537 now `stuck` (the steer leg
+    a65 had stood over WALK_STALL_S with 15921 at 1.25 tiles on this tick's record, 1.86 on the last tick's, which the
+    stuck read used before (g)), so the group of four no longer ends it there."""
+    from agent.base.world import World
+    monkeypatch.setattr(S, "MANY_LISTED_N", 10 ** 9)
+    monkeypatch.setattr(World, "met_window", lambda self, r=None: None)
+    monkeypatch.setattr(S.Survive, "_behind_walk", lambda self: [])
+    monkeypatch.setattr(S.Survive, "_walk_yields", lambda self: None)
+    e5 = R.agreement(run_dir("e5"), R.replay(run_dir("e5")))
+    assert (e5["compared"], e5["agree"], e5["first_divergence"]["line"]) == (116, 114, 241)
+    assert e5["first_divergence"]["record"]["action"]["type"] == "walkTo"
+    assert e5["first_divergence"]["replay"]["action"] == {"type": "attack", "args": {"targetId": 19249}}
+    f1 = R.agreement(run_dir("f1"), R.replay(run_dir("f1")))
+    assert (f1["compared"], f1["agree"], f1["first_divergence"]["line"]) == (331, 322, 540)
+    assert f1["first_divergence"]["record"]["why"]["group"] == "hold"
+    assert f1["first_divergence"]["replay"]["why"]["corner_kind"] == "stuck"
+
+
+@pytest.mark.parametrize("key,compared,agree,first", [("e5", 116, 112, 219), ("f1", 331, 299, 163)])
+def test_the_replay_diverges_from_the_record_first_where_survival_5_moved_it(key, compared, agree, first):
+    """The reading at Plan 24 Task 2's recording (an offline oracle's): E5 first at line 219, the fight's walk at
+    19275 refused with 19249 and 19278 listed behind it (P24-A (b)); F1 first at 163, the `many` flee on four listed
+    within 12 tiles (P24-A (a)), its shelter walk at a sprint where the record's `held` flee ran."""
+    got = R.agreement(run_dir(key), replay_rows(key))
+    assert (got["compared"], got["agree"], got["skipped_world"]) == (compared, agree, 0)
+    d = got["first_divergence"]
+    assert d["line"] == first
+    if key == "e5":
+        assert d["record"]["why"]["target"] == 19275 and d["replay"]["why"]["behind"] == [19249, 19278]
+    else:
+        assert d["record"]["why"]["flee"] == "held" and d["replay"]["why"]["listed"] == 4
 
 
 def test_agreement_names_the_first_divergence():
     rows = replay_rows("e5")
+    base = R.agreement(run_dir("e5"), rows)["agree"]
     k = next(i for i, r in enumerate(rows) if r["branch"] == "threat" and r["sent"])
     rows[k] = dict(rows[k], action=None, sent=False)
     got = R.agreement(run_dir("e5"), rows)
-    assert got["agree"] == got["compared"] - 1 and got["first_divergence"]["line"] == k + 1
+    assert got["agree"] == base - 1 and got["first_divergence"]["line"] == k + 1
     rows[k] = dict(rows[k], inputs=dict(rows[k]["inputs"], x=0.0))
     assert R.agreement(run_dir("e5"), rows)["skipped_world"] == 1
 
@@ -142,11 +172,13 @@ def test_the_recorded_aids_follow_the_session_s_pre_loop_equip():
 
 
 # ================================================================ Task 1 fix 1: E2, E3 and E4 (older rules)
-@pytest.mark.parametrize("key,compared,agree,first", [("e2", 119, 97, 94), ("e3", 131, 113, 137),
-                                                      ("e4", 1341, 1134, 302)])
+@pytest.mark.parametrize("key,compared,agree,first", [("e2", 119, 96, 94), ("e3", 131, 113, 137),
+                                                      ("e4", 1341, 1119, 302)])
 def test_the_older_records_diverge_where_the_rules_changed_since(key, compared, agree, first):
     """The reading at fix 1's recording: HEAD's decisions over inputs recorded under older rules (E2 at 42e7f49b, E3
-    at 145868e2, E4 at 259a58bc); each first divergence is named in the module docstring with its rule."""
+    at 145868e2, E4 at 259a58bc); each first divergence is named in the module docstring with its rule. Plan 24
+    Task 2 (P24-A) re-read: E2 96 of 119 (97 before), E4 1119 of 1341 (1134), E3 unmoved; the first divergences
+    unmoved (the survival 5 rules move these runs only after them)."""
     got = R.agreement(run_dir(key), replay_rows(key))
     assert (got["compared"], got["agree"], got["skipped_world"]) == (compared, agree, 0)
     assert got["first_divergence"]["line"] == first
@@ -174,17 +206,44 @@ def test_e3_line_137_walks_to_the_kitchen_door_not_the_bedroom_door():
 def test_e4_line_302_is_the_cut_leg(monkeypatch):
     """E4 (259a58bc) held its steer a29 when a second zombie was held at 302; HEAD cuts the leg on the new threat
     ahead (P23-AP 3, e07a52cb) and the re-choose walks to building 2's approach. With the cut off the replay agrees
-    at 302 and first diverges at 450."""
+    at 302 and first diverges at 450. Named change, Plan 24 Task 2: with the cut off it now first diverges at 388,
+    the met window's turn of a first leg (P24-A (a)); with that off too, at 411, the fight's walk at 19030 refused
+    for 19029 and 19031 behind it (P24-A (b)) and the `many` flee on four listed (P24-A (a)); with both off, at 447,
+    the `walk` corner on 19032 refused in the running `many` episode (P24-A (c)); with that off, at 452: the R4
+    re-pin to 19035 that went at 450, held two lines by P24-A (d) while the pin 19032 stood within POINT_BLANK_R."""
+    from agent.base.world import World
+
+    def first():
+        return R.agreement(run_dir("e4"), R.replay(run_dir("e4")))["first_divergence"]
     d = R.agreement(run_dir("e4"), replay_rows("e4"))["first_divergence"]
     assert d["record"]["why"]["holding"] == "a29" and d["replay"]["why"]["step"] == "approach"
     monkeypatch.setattr(P.Flee, "_cut_leg", lambda self: None)
-    assert R.agreement(run_dir("e4"), R.replay(run_dir("e4")))["first_divergence"]["line"] == 450
+    assert first()["line"] == 388
+    monkeypatch.setattr(World, "met_window", lambda self, r=None: None)
+    d = first()
+    assert d["line"] == 411 and d["replay"]["why"]["flee"] == "many" and d["record"]["why"]["target"] == 19030
+    monkeypatch.setattr(S, "MANY_LISTED_N", 10 ** 9)
+    d = first()
+    assert d["line"] == 411 and d["replay"]["why"]["behind"] == [19029, 19031]
+    monkeypatch.setattr(S.Survive, "_behind_walk", lambda self: [])
+    d = first()
+    assert d["line"] == 447 and d["replay"]["why"]["yield"] == "many"
+    monkeypatch.setattr(S.Survive, "_walk_yields", lambda self: None)
+    d = first()
+    assert d["line"] == 452 and d["replay"]["action"] == {"type": "attack", "args": {"targetId": 19035}}
 
 
 def test_the_older_goldens_reach_the_hold_breach_door_exit_shelter_stall_and_stuck_paths():
+    """Named change, Plan 24 Task 2 (P24-A (a)): E2's five `pair` and `health` lines (186, 192, 208, 209, 211) read
+    `many` now (four or five listed within 12 tiles); `pair` stays reached on E5 and F1, `health` on no golden (its
+    flee is `test_survive`'s), the corner's `yield` and the `listed`, `behind` and `met` keys on these."""
     why = [d["why"] for k in ("e2", "e3", "e4") for d in json.loads(golden(k).decode("utf-8"))["decisions"]]
     flee = {w.get("flee") for w in why}
-    assert {"held_inside", "many", "held", "pair", "health", "unreachable", "steps", "unarmed"} <= flee
+    assert {"held_inside", "many", "held", "unreachable", "steps", "unarmed"} <= flee
+    assert not {"pair", "health"} & flee
+    why5 = [d["why"] for k in ("e5", "f1") for d in json.loads(golden(k).decode("utf-8"))["decisions"]]
+    assert "pair" in {w.get("flee") for w in why5}
+    assert {"yield", "listed", "behind", "met", "corner_kind"} <= set().union(*why, *why5)
     keys = set().union(*why)
     assert {"breach", "door", "exit", "shelter", "step", "stuck", "cut", "group", "cornered"} <= keys
     assert "stalled" in {w.get("ended") for w in why}
@@ -197,3 +256,122 @@ def test_closing_ticks_now_moves_the_e2_golden_at_line_164(monkeypatch):
     moved = {d["line"]: d for d in R.run(run_dir("e2"))}
     diff = [k for k in sorted(set(base) | set(moved)) if base.get(k) != moved.get(k)]
     assert diff and diff[0] == 164
+
+
+# ================================================================ Plan 24 Task 2: survival 5 on the goldens (P24-A)
+def gold(key):
+    return {d["line"]: d for d in json.loads(golden(key).decode("utf-8"))["decisions"]}
+
+
+def test_e5_lines_219_to_231_many_fires_on_the_listing_at_220_not_on_the_six_tile_count():
+    """P24-A (a) on E5: at 219 three zombies are listed within LISTED_R (19277 at 12.16 tiles just past it), one within
+    DANGER_R: no `many` (219's flee is (b)'s); at 220 five are listed, still one within DANGER_R: `many` on the listing
+    (`listed` 5), where the record still fought (its `many` came at 222 on the hold radius's count); `many` holds to
+    231. The met window (a) turns the first leg at 222 (`met`, seven met)."""
+    g, rows = gold("e5"), replay_rows("e5")
+    assert "listed" not in g[219]["why"] and rows[218]["inputs"]["threats"] == 1
+    assert g[220]["why"]["flee"] == "many" and g[220]["why"]["listed"] == 5 and rows[219]["inputs"]["threats"] == 1
+    assert all(g[line]["why"]["flee"] == "many" for line in range(220, 232))
+    assert g[222]["action"]["type"] == "steer" and g[222]["why"]["met"][2] == 7
+
+
+def test_e5_line_219_the_fight_s_walk_at_19275_is_refused_for_the_two_listed_behind_it():
+    """P24-A (b) on E5's line 219: the record walked at 19275 (5.99 tiles); 19278 (11.04 tiles, 3 degrees off its
+    bearing) and 19249 (11.78, 13 degrees) are listed behind it: the flee `held`, the shelter approach walk."""
+    w = gold("e5")[219]
+    assert w["why"]["flee"] == "held" and w["why"]["behind"] == [19249, 19278] and "fight" not in w["why"]
+    assert w["action"] == {"type": "walkTo", "args": {"gait": "run", "x": 10721.5, "y": 10638.5}}
+
+
+def test_e5_line_241_the_point_blank_attack_goes_where_the_record_walked(monkeypatch):
+    """P24-A (e) on E5's line 241: the cornered Fight's approach was due (two swings not started) with 19249 at 0.50
+    tiles: the record walked to its square's centre; the attack goes, its swing running to the record's end (243)."""
+    g = gold("e5")
+    assert g[241]["action"] == {"type": "attack", "args": {"targetId": 19249}} and g[241]["why"]["approach"] is False
+    assert g[242]["why"]["holding"] == g[243]["why"]["holding"]
+
+
+def point_blank_walk(monkeypatch):
+    """P24-A (e) switched off: the approach flag kept at point blank, the walk sent as before."""
+    real_choose = P.Fight._choose
+
+    def choose(self):
+        approach = self.approach
+        cmd = real_choose(self)
+        if approach and cmd is not None and cmd.TYPE == "attack":
+            t = self.world.zombies[cmd.targetId]
+            self.approach = False
+            self.why["approach"] = True
+            return P.WalkTo(*P.centre((t["x"], t["y"])), "run")
+        return cmd
+    monkeypatch.setattr(P.Fight, "_choose", choose)
+
+
+def repin_any(monkeypatch):
+    """P24-A (d) switched off: the pin's own distance unread, a pin within POINT_BLANK_R re-pinned as before."""
+    real = P.Fight._repin_point_blank
+
+    def repin(self):
+        pin = self.target
+        self.target = None
+        real(self)
+        if self.target is None:
+            self.target = pin
+        elif self.target != pin:
+            self.repositioned = False
+    monkeypatch.setattr(P.Fight, "_repin_point_blank", repin)
+
+
+def test_e5_line_242_with_the_approach_walk_the_pin_within_point_blank_holds(monkeypatch):
+    """P24-A (d) on E5, where the golden cannot show it ((e)'s attack at 241 still swings at 242 and the record ends
+    at 243): with (e) off the approach walk goes at 241 as recorded, and at 242 19248 stands at 0.51 tiles, nearer
+    than the pin 19249 at 0.54, itself within POINT_BLANK_R: the pin holds; with (d) off too, the re-pin to 19248."""
+    point_blank_walk(monkeypatch)
+    held = {d["line"]: d for d in R.run(run_dir("e5"))}
+    assert held[241]["action"]["type"] == "walkTo" and held[242]["why"]["target"] == 19249
+    repin_any(monkeypatch)
+    moved = {d["line"]: d for d in R.run(run_dir("e5"))}
+    diff = [k for k in sorted(set(held) | set(moved)) if held.get(k) != moved.get(k)]
+    assert diff[0] == 242 and moved[242]["why"]["target"] == 19248
+
+
+@pytest.mark.parametrize("key,mutant,first", [
+    ("e5", "listing", 220), ("e5", "met", 189), ("e5", "behind", 219), ("f1", "yield", 484),
+    ("e5", "point_blank", 241), ("e5", "corner_kind", 233)])
+def test_each_survival_5_rule_switched_off_moves_its_golden_first_at_its_line(monkeypatch, key, mutant, first):
+    """The mutation pass on the goldens: each P24-A rule E5 and F1 reach, switched off, moves its golden first at
+    the line its own test names ((a) listing 220, met 189; (b) 219; (c) F1 484; (e) 241; (g)'s `corner_kind` 233;
+    (d)'s is the test above, behind (e)). (f), (h) and (i) are reached on no golden (no room-square group; PZA/1.3
+    frames carry no `attackers` or `hitReaction`): their mutants fail `test_survive`'s and `test_policies`' cases."""
+    from agent.base.world import World
+    base = gold(key)
+    if mutant == "listing":
+        monkeypatch.setattr(S, "MANY_LISTED_N", 10 ** 9)
+    elif mutant == "met":
+        monkeypatch.setattr(World, "met_window", lambda self, r=None: None)
+    elif mutant == "behind":
+        monkeypatch.setattr(S.Survive, "_behind_walk", lambda self: [])
+    elif mutant == "yield":
+        monkeypatch.setattr(S.Survive, "_walk_yields", lambda self: None)
+    elif mutant == "point_blank":
+        point_blank_walk(monkeypatch)
+    elif mutant == "corner_kind":
+        real_decide = S.Survive._decide
+
+        def decide(self, held, breach, replanned=False):
+            out = real_decide(self, held, breach, replanned)
+            self.why.pop("corner_kind", None)
+            return out
+        monkeypatch.setattr(S.Survive, "_decide", decide)
+    moved = {d["line"]: d for d in R.run(run_dir(key))}
+    diff = [k for k in sorted(set(base) | set(moved)) if base.get(k) != moved.get(k)]
+    assert diff and diff[0] == first
+
+
+@pytest.mark.parametrize("key", ["e5", "f1"])
+def test_the_pza1_3_records_carry_no_attackers_or_hit_reaction(key):
+    """P24-A (h) and (i) read PZA/1.4's `me.attackers` and `me.hitReaction`; E5's and F1's frames (PZA/1.3) decode
+    them None, so neither rule moves these goldens."""
+    lines, _ = R.read_record(run_dir(key))
+    frames = [ln for ln in lines if ln["kind"] == "frame"]
+    assert frames and all(f["me"].get("attackers") is None and f["me"].get("hitReaction") is None for f in frames)

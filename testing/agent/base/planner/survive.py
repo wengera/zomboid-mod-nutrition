@@ -90,7 +90,7 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      way out run (`steps`: their end is the flee's), and while the Flee's own walk or steer leg sent under FLIP_MIN_S
      (5 s) ago runs and the Fight would walk (`flip`); a flee is never held back for a fight's walk (the retreat wins
      the tie).
-  2. A shelter step's walk that stands STEP_STALL_S with a held threat within DANGER_R is dropped (`policies.Flee`,
+  2. A shelter step's walk that stands WALK_STALL_S with a held threat within DANGER_R is dropped (`policies.Flee`,
      `ended` `stalled`): the plan for the episode, the steer at once.
   3. A `many` flee beyond SPRINT_R steers and walks its shelter steps at a sprint while the frame's endurance reads
      above SPRINT_END (`Flee.many`, `policies.Flee._group_sprint`).
@@ -101,7 +101,7 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   outside square (`World.door_way`, `night.exterior_doors`), the approach square that outside square; 6, the corner
   is judged on every threat tick whatever runs (`_cornered`'s `walk` corner: a line not read blocked, no mark; a
   running fight keeps its pin), so a shelter or exit walk at melee range is superseded by the corner's attack, or,
-  with three or more within CORNERED_R and no stuck leg, by rule 4's steer (`Flee.give_way` drops the walk); rule 4
+  with a group (`_group`) and no stuck leg, by rule 4's steer (`Flee.give_way` drops the walk); rule 4
   then reads "not stuck" for "a leg that moved", a walk having no leg.
 - Survival 4 (ruling P23-AP, the chain's E4: it died at game minute 627 after a `walk` corner on one or two zombies
   held 35 ticks while the group formed outside 1.5 tiles, and a steer leg aimed before two zombies ahead were listed
@@ -113,6 +113,33 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      (the group steer, logged `group`); a `stuck` corner keeps swinging, but with the nearest beyond POINT_BLANK_R
      and its stuck read STUCK_RETRY_S (2 s) old one steer leg is tried (`group` "retry").
   3. A running steer leg is cut and re-aimed when a held threat comes ahead of it (`policies.Flee._cut_leg`).
+- Survival 5 (ruling P24-A, Plan 23's close: four of six deaths came with a group gathering while a fight or a
+  corner held the character, #4237, #4251, #4262, #4268; the close review's I1-I4 and M1-M2), the rows of the decision
+  each named in `why`:
+  (a) The `many` reason also fires on MANY_LISTED_N (4) or more zombies listed within `policies.LISTED_R` (12 tiles),
+      whatever the DANGER_R or hold count (`_many`, logged `listed` when it alone made `many`); the World keeps a
+      memory of met ground (`World.met`, MET_TTL_MIN game minutes) whose densest window repulses the flee's first leg
+      (`policies.Flee._steer`, logged `met`). The branch is still entered by a held threat only.
+  (b) A fight that would walk toward its target (beyond FIGHT_REACH, an approach due beyond POINT_BLANK_R, or the
+      reposition of a blocked line) with another zombie listed within LISTED_R beyond it and within AHEAD_CONE of its
+      bearing (`policies.others_behind`) flees `held` instead (`_behind_walk`, logged `behind`), `many` read first.
+  (c) A `walk` corner yields (`_walk_yields`, logged `yield`) to the `health` reason and to a running `many` flee
+      episode: a running one ends, a new one is not taken; `unarmed` never corners; the `stuck` and `inside`
+      corners keep the override.
+  (d) The cornered Fight's point-blank re-pin goes only while its pin stands beyond POINT_BLANK_R
+      (`Fight._repin_point_blank`).
+  (e) No approach walk at point blank: within POINT_BLANK_R the Fight clears the flag and attacks.
+  (f) On a room square the group's flee never steers: the running exit (re-sent at a sprint), else a new one at a
+      sprint, else the adoption, else the trapped hold, the next tick's corner (`Flee.choose`, `Flee.give_way`).
+  (g) `corner_kind` is logged beside `cornered`; each policy's `observe` runs once a tick (`_observe`), the Flee's
+      over this tick's held records, and the breach once (`_threat` is the bookkeeping, `_decide` the decision a
+      corner's retarget re-plans); WALK_STALL_S and STUCK_NEAR_R (`policies`) name the merged and the split constants.
+  (h) The drag-down guard (#4290, #4291; `_drag`): with the frame's `me.attackers` at DRAG_DOWN_N - 1 (2) or more,
+      first of every row, the fight or corner of any kind ends for the group sprint (`group` "drag"; inside, the exit
+      by (f)), except on a room square with no way out and nothing to adopt, where no leg exists and the corner swings.
+  (i) No attack in a hit reaction (#4292, #4293): while the frame's `me.hitReaction` names one the Fight sends
+      nothing (logged `hitReaction`) and attacks on the first frame after it clears; a running attack holds anyway.
+  A PZA/1.3 frame carries neither `attackers` nor `hitReaction`: (h) and (i) read them absent and change nothing.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -173,8 +200,9 @@ from agent.base.items import days_fresh
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH,
-                                         POINT_BLANK_R, PREEMPTED, Fight, Flee, adoptable, blocked, exit_plan,
-                                         in_building, in_reach, item_id_ok, line_to, spare, target_id_ok, zdist)
+                                         LISTED_R, POINT_BLANK_R, PREEMPTED, Fight, Flee, adoptable, blocked,
+                                         exit_plan, in_building, in_reach, item_id_ok, line_to, others_behind, spare,
+                                         target_id_ok, zdist)
 from agent.base.planner.view import view
 from agent.base.pza1 import Consume, Drop
 
@@ -185,8 +213,16 @@ FLEE_HEALTH_PAIR = 60.0   # two or more threats are fled under this health
 REFIGHT_MARGIN = 20.0     # a running flee turns to fight only at health >= FLEE_HEALTH + this, one threat
 MAX_FIGHT = 2             # more threats than this are fled
 HOLD_BREAK_R = 3.0        # tiles: a held threat this near breaks every hold whatever its line reads (P23-AJ 1)
-CLOSING_TICKS = 3         # ... as does the nearest held threat closing on this many ticks in a row within DANGER_R
-CORNER_FREE_R = DISENGAGE_R / 2   # tiles: a cornered Fight ends once the nearest held threat is beyond this
+CLOSING_TICKS = 3         # ticks in a row the nearest held threat reads nearer within DANGER_R that break every hold
+                          # (P23-AJ 1, a judgment: E2's hold stood while a zombie closed from 5.78 to 3.05 tiles;
+                          # three readings in a row rule out one knock-back's or one frame's jitter)
+CORNER_FREE_R = DISENGAGE_R / 2   # tiles: a stuck leg's corner ends once the nearest held threat is beyond this
+                          # (P23-AJ 2 fix round 1, a judgment: half the hold radius, room for the next leg to move;
+                          # the other corners end beyond CORNERED_R)
+MANY_LISTED_N = 4         # zombies listed within LISTED_R that make `many` whatever the DANGER_R count (P24-A (a):
+                          # E5's group of five to seven was listed at 12 tiles while the branch counted within 6, #4268)
+DRAG_DOWN_N = 3           # attackers the drag-down kills at (#4290, #4291: the fixture's sandbox Strength 2; two at
+                          # Strength 1): at DRAG_DOWN_N - 1 the branch leaves any fight for the group sprint (P24-A (h))
 FLIP_MIN_S = 5.0          # wall seconds a flee walk runs before a fight's walk may supersede it (P23-AM 1)
 GROUP_R_N = 3             # zombies within GROUP_NEAR_R that make a group: steered from, not cornered (P23-AM 4, AP 2)
 GROUP_NEAR_R = 3.0        # tiles: ... (P23-AP 2: a third zombie this near; P23-AM 4 read 1.5, CORNERED_R)
@@ -200,7 +236,7 @@ REFUSED = "not valid"    # the reason the Lua's consume fails an item it cannot 
 __all__ = ["Survive", "BRANCHES", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER_T", "FLEE_HEALTH",
            "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS",
            "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
-           "GROUP_HOLD_N", "STUCK_RETRY_S"]
+           "GROUP_HOLD_N", "STUCK_RETRY_S", "MANY_LISTED_N", "DRAG_DOWN_N"]
 
 
 def _key(typ, args):
@@ -230,6 +266,10 @@ class Survive:
         self.corner_kind = None   # "stuck", "inside" or "walk" (amendment 6: taken on any walk), the running corner's
         self.stuck_wall = None    # wall of the stuck read a `stuck` corner was taken on (P23-AP 2: STUCK_RETRY_S)
         self._corner_fight = None   # the Fight made for the corner
+        self.corner_yield = None  # this tick: why a `walk` corner yielded, "health" or "many" (P24-A (c)), else None
+        self.behind = None        # this tick: the ids listed behind the fight's walk target (P24-A (b)), else None
+        self.listed = None        # this tick: the listed count when it alone made `many` (P24-A (a)), else None
+        self._observed = []       # the policies observed this tick (each once: P24-A (g))
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
         self.night = Night(world, actions, clock)
         # one shun store: the goals' Shelter shuns into the night's (Task 13 fix 1, M6), so neither re-tries the other's
@@ -304,14 +344,54 @@ class Survive:
         """The `many` rule: the hold radius's count over MAX_FIGHT while a fight runs (P23-AG ruling 2), the DANGER_R
         count `n` over it while none does; and while a flee episode whose reason was `many` runs (P23-AM 1: E3's flee
         under a group ended the tick its count fell back to DANGER_R's, four times in 8 s), the hold radius's count
-        over MAX_FIGHT or the nearest held threat within DANGER_R."""
+        over MAX_FIGHT or the nearest held threat within DANGER_R. Whatever those read, MANY_LISTED_N or more listed
+        within LISTED_R (ruling P24-A (a)) is `many`, logged `listed` when it alone made it."""
         if self.mode == "flee" and self.flee_many:
-            return len(held) > MAX_FIGHT or min(zdist(self.world, z) for z in held) <= DANGER_R
-        return (len(held) if self.mode == "fight" else n) > MAX_FIGHT
+            near = len(held) > MAX_FIGHT or min(zdist(self.world, z) for z in held) <= DANGER_R
+        else:
+            near = (len(held) if self.mode == "fight" else n) > MAX_FIGHT
+        if near:
+            return True
+        listed = len(self._within(LISTED_R))
+        if listed >= MANY_LISTED_N:
+            self.listed = listed
+            return True
+        return False
 
     def _flee_reason(self, held, n):
-        """Why the threat branch flees, by the hysteresis in the module docstring; None when it fights. `n` is the
-        DANGER_R count (the `pair` rule's); `many` is `_many`."""
+        """Why the threat branch flees, by the hysteresis in the module docstring (`_hysteresis`); None when it fights.
+        A fight that would walk toward its target with another zombie listed behind it (`_behind_walk`, ruling P24-A
+        (b)) flees `held` instead (`many` having been read first)."""
+        reason = self._hysteresis(held, n)
+        if reason is None and self._behind_walk():
+            return "held"
+        return reason
+
+    def _behind_walk(self):
+        """Ruling P24-A (b): the ids listed behind the target the Fight would walk toward (`policies.others_behind`),
+        kept in `behind`, else []: the running fight's target (its pin, else the nearest reachable), or with none
+        running the nearest zombie not marked (a new Fight's first pin); the Fight walks when the target is beyond
+        FIGHT_REACH, when its approach is due beyond POINT_BLANK_R (P24-A (e)), or when the line to it reads blocked
+        (the reposition)."""
+        f = self.fight if self.mode == "fight" else None
+        if f is not None:
+            t = f._target(pin=False)
+        else:
+            nz = self.world.nearest_zombie(exclude=blocked(self.unreachable, self.clock()))
+            t = None if nz is None else (nz[0], nz[1], zdist(self.world, nz[1]))
+        if t is None:
+            return []
+        zid, z, d = t
+        walk = (d > FIGHT_REACH or (f is not None and f.approach and d > POINT_BLANK_R)
+                or line_to(self.world, z) is False)
+        ids = others_behind(self.world, zid, z) if walk else []
+        if ids:
+            self.behind = ids
+        return ids
+
+    def _hysteresis(self, held, n):
+        """Plan 21b's hysteresis (the module docstring): the flee reason, else None. `n` is the DANGER_R count (the
+        `pair` rule's); `many` is `_many`."""
         health = self._health()
         if not self._armed():
             return "unarmed"
@@ -336,8 +416,14 @@ class Survive:
 
     # ---------------------------------------------------------------- the branches, in order
     # Each returns None (pass) or (policy or None, command or None): a None command holds the branch's running action.
+    def _observe(self, policy):
+        """`policy.observe()` once a tick (ruling P24-A (g), the close review's M1: a re-planned tick re-entered it)."""
+        if not any(p is policy for p in self._observed):
+            self._observed.append(policy)
+            policy.observe()
+
     def _answer(self, policy):
-        policy.observe()
+        self._observe(policy)
         if policy.busy():
             self.why = dict(policy.why, holding=policy.last.aid)
             return policy, None
@@ -411,6 +497,9 @@ class Survive:
                     and self.clock() - self.stuck_wall >= STUCK_RETRY_S):   # P23-AP 2: a moved leg's chance
                 self.cornered, self._corner_fight, self.group_steer = None, None, "retry"
                 return None
+            if self.corner_kind == "walk" and self._walk_yields():   # P24-A (c): a leg can move, the flee reads first
+                self.cornered, self._corner_fight, self.corner_yield = None, None, self._walk_yields()
+                return None
             z = self.world.zombies.get(self.cornered)
             if (z is not None and z.get("x") is not None and z.get("y") is not None and nearest <= self.corner_free
                     and (self.cornered not in skip
@@ -433,11 +522,34 @@ class Survive:
         if group and not stuck:
             self.group_steer = group   # P23-AM 4: against a group the branch steers (sprints) until a leg ends stuck
             return None
+        if not (stuck or inside) and self._walk_yields():   # P24-A (c): no `walk` corner under the health or many flee
+            self.corner_yield = self._walk_yields()
+            return None
         self.corner_kind = "stuck" if stuck else ("inside" if inside else "walk")
         self.corner_free = CORNER_FREE_R if stuck else CORNERED_R
         self.stuck_wall = self.clock() if stuck else None
         self.cornered = min(reach, key=lambda p: (zdist(self.world, p[1]), repr(p[0])))[0]
         return self.cornered
+
+    def _walk_yields(self):
+        """Ruling P24-A (c) (the close review's I1: F1's `walk` corner on 15921, taken off a `many` shelter walk at
+        0.65 tiles, held from health 99.4 to 0.9, the corner tested before the flee reasons and never reading health):
+        why a `walk` corner yields, else None: `health` under FLEE_HEALTH, `many` while a flee episode whose reason was
+        `many` runs (the corner is then not taken; a running corner ended that episode). `unarmed` never corners
+        (`_cornered`); the `stuck` and `inside` corners keep the override, no leg moving there."""
+        if self._health() < FLEE_HEALTH:
+            return "health"
+        return "many" if self.mode == "flee" and self.flee_many else None
+
+    def _drag(self, held, inside):
+        """Ruling P24-A (h) (#4290, #4291: DRAG_DOWN_N zombies attacking from within 0.9 tiles turn the next hit into
+        the drag-down, health to 0 in one call): the frame's `me.attackers` (PZA/1.4; absent on an older frame, never
+        read) at DRAG_DOWN_N - 1 or more, except on a room square with no way out (`_trapped`: no leg and no exit to
+        take there, so its corner keeps swinging)."""
+        n = (self.world.me or {}).get("attackers")
+        if not isinstance(n, int) or isinstance(n, bool) or n < DRAG_DOWN_N - 1:
+            return False
+        return not self._trapped(held, inside)
 
     def _group(self, held):
         """Why the held threats are a group the branch steers from rather than corners (P23-AM 4, ruling P23-AP 2),
@@ -449,6 +561,8 @@ class Survive:
 
     def _threat_plan(self, held, breach):
         """The threat branch's one decision (ruling P23-AJ), `(kind, reason)`, the machines only executing it:
+        - The drag-down guard (ruling P24-A (h), `_drag`): `flee` with the group steer (`group` "drag"), ahead of
+          every other row; the Flee sprints, or inside walks the exit (P24-A (f)).
         - `door`: sheltered (a chosen shelter's plan done, the character inside) with a reachable held threat in its
           doorway or inside it: the door fight (I3). It goes first, before the corner and before the inside hold
           (a decision-order change from 21e3716b, which held first; ruled at fix round 1, the review's M1: a threat
@@ -466,12 +580,16 @@ class Survive:
         - Fix round 1: a broken hold at a chosen shelter fights only in its doorway or inside (`door`, the review's
           I4); a `flee` on a room square with no way out and no adoption left is the Fight when armed
           (`_trapped_fight`, G3).
-        Not a pure function: it sets `sheltered`, `door`, `broken` and `cornered` (`_breach` before it set `closing`),
+        Not a pure function: it sets `sheltered`, `door`, `broken`, `cornered`, `corner_yield`, `behind` and `listed`
+        (`_breach` before it set `closing`),
         and a corner inside a chosen shelter drops the sheltered Flee, so the next flee walks out rather than
         re-closing."""
         inside = self.night.inside()
         self.sheltered = self.flee is not None and self.flee.sheltered and inside
-        self.broken, self.group_steer = None, None
+        self.broken, self.group_steer, self.corner_yield, self.behind, self.listed = None, None, None, None, None
+        if self._drag(held, inside):   # P24-A (h): first, whatever the fight or the corner
+            self.cornered, self._corner_fight, self.group_steer, self.door = None, None, "drag", None
+            return "flee", self._flee_reason(held, len(self._within(DANGER_R))) or "many"
         self.door = self._door_targets() if self.sheltered else None
         if self.door:
             return "door", None
@@ -537,16 +655,22 @@ class Survive:
         """A flee episode's own flags cleared: its stall origin, its one load drop and its `many` (P23-AM 1)."""
         self.stall_flee, self.flee_dropped, self.flee_many = False, False, False
 
-    def _threat(self, replanned=False):
+    def _threat(self):
+        """The tick's bookkeeping, once (ruling P24-A (g)): the held list, the Flee's observe and the breach's closing
+        count; then the decision (`_decide`), which a corner's retarget may re-plan without them."""
         held = self._within(self._hold_r())
         if not held:
             self.mode, self.fight, self.flee = None, None, None
             self._end_flee_episode()
             self.sheltered, self.cornered, self.closing = False, None, (0, None)
             return None
-        if self.flee is not None:
-            self.flee.observe()   # a shelter or exit step's end read before the hold (the close may just have ended)
-        breach = self._breach(held)
+        if self.flee is not None:   # a shelter or exit step's end read before the hold (the close may have ended),
+            self.flee.threats = held   # over this tick's held records (the stall's and the stuck leg's DANGER_R and
+            self._observe(self.flee)   # STUCK_NEAR_R reads: before P24-A (g) the first read saw the last tick's)
+        return self._decide(held, self._breach(held))
+
+    def _decide(self, held, breach, replanned=False):
+        """`_threat_plan`'s decision executed by the Fight or the Flee, logged in `why`."""
         kind, reason = self._threat_plan(held, breach)
         if kind == "hold":
             self.why = {"flee": "held_inside", "held": len(held)}
@@ -597,11 +721,14 @@ class Survive:
                 self.cornered = self.fight.target   # fix round 1, R4: the corner follows its Fight's point-blank re-pin
             elif not replanned:   # fix round 2, N1: any other retarget (a mark's recursion) ends the corner, re-planned
                 self.cornered, self._corner_fight = None, None
-                return self._threat(replanned=True)
+                return self._decide(held, breach, replanned=True)
         if kind == "cornered":
-            self.why["cornered"] = self.cornered
+            self.why["cornered"], self.why["corner_kind"] = self.cornered, self.corner_kind   # P24-A (g), M2
         if self.group_steer is not None:
             self.why["group"] = self.group_steer
+        for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed)):
+            if v is not None:
+                self.why[key] = v
         if self.broken is not None:
             self.why["breach"] = self.broken
         return ans if ans is not None else (policy, None)
@@ -743,11 +870,12 @@ class Survive:
         for p in self._policies():
             p.world, p.actions = world, actions
         self.ticks += 1
+        self._observed = []
         self._note_failures()
         self.goals.observe(world, actions)
         inputs = self._inputs()
         if self.fight is not None:
-            self.fight.observe()
+            self._observe(self.fight)
         self.need_mark = None
         branch, owner, cmd, cooled, tried = None, None, None, None, {}
         for name in BRANCHES:
