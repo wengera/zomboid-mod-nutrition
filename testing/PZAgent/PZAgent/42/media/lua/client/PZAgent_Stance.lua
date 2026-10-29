@@ -50,7 +50,7 @@ function K.releaseStance(p)
 end
 local release = K.releaseStance
 
--- whether the stance still holds: isForceAim (the flag a run clears) when the player exposes it, else isAiming
+-- whether the stance still holds: isForceAim (the flag the frame step clears) when the player exposes it, else isAiming
 local function stanceHeld(p)
     local ok, v = PZA.call(p, "isForceAim")
     if ok then return v == true end
@@ -64,7 +64,7 @@ end
 -- else no target; a bearing of 0 or more (degrees, 0 east, 90 south: world x and y) is faced when there is no target,
 -- -1 keeps the facing. The first tick: setForceAim and nullifyAiming index-checked (not loaded), and with a non-zero
 -- vector Vector2 and the auto-walk members too (not loaded); the vanilla queue cleared, the run latches wanted off
--- (MO.want walk) and written false (a run clears the force-aim), setForceAim(true), the facing, and with a non-zero
+-- (MO.want walk) and written false (the latches only keep the gait a walk), setForceAim(true), the facing, and with a non-zero
 -- vector the steer skill's own auto-walk along it in input space (K.inputVector), at the stance's walk. Every tick:
 -- the facing again (faceThisObject(z), or setForwardDirection(cos b, sin b)); a target that reads dead ends it done at
 -- once. Done at seconds with {d (tiles from its start), held (stanceHeld at the end), targetDead, heldFrames, ticks};

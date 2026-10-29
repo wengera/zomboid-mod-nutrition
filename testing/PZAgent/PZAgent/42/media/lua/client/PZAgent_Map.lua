@@ -126,7 +126,7 @@ end
 -- the water record of a water object (PZA/1.5): { amount, tainted, infinite }, a member it lacks nil and named.
 -- infinite (PZA/1.5.4, Plan 24 Task 9 fix 6; jar-reads-2 section 9): IsoObject.isWaterInfinite is private on 42.21
 -- (access 0x2), so Kahlua never exposes it and E6 named it missing on every water square; the public getFluidCapacity()
--- answers 10000 exactly when it holds (IsoObject.getFluidCapacity @16-@26 L2746-L2747, @44-@53 L2756-L2757), else an
+-- answers 10000 when it holds (IsoObject.getFluidCapacity @16-@26 L2746-L2747, @44-@53 L2756-L2757), else an
 -- external source's, the container's or the piped reserve's capacity (20 for a sink after the shut-off, L2765-L2766).
 -- A capacity of WATER_INFINITE or more reads infinite; a non-number answer leaves it nil, an absent member names it.
 MP.WATER_INFINITE = 10000

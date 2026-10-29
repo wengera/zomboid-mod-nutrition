@@ -711,3 +711,26 @@ def test_a_target_dying_reports_held_frames_too(lua, fs):
     engine_frame(lua, p)
     r = acts(lua, fs)[-1]["result"]
     assert r["targetDead"] is True and r["heldFrames"] == 1 and r["ticks"] == 1
+
+
+# ---- PZA/1.5.6 (Plan 24 Task 9 fix 8): the K.start wrapper's release pinned -------------------------------------------
+
+def test_a_flee_started_from_a_kept_stance_releases_it_before_the_first_frame(lua, fs):
+    """Mutant M10: the stance kept after an attack (no skill running) is released by the K.start wrapper's release(p)
+    when a skill other than an aim or an attack starts; without it the flee would walk strafing under the force-aim."""
+    load(lua)
+    aim_world(lua, zx=11.0)
+    p = make_player(weapon=make_weapon())
+    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
+    engine_frame(lua, p)
+    start(lua, p, "attack", aid="atk", targetId=7)
+    engine_frame(lua, p)
+    lua.globals()._clock["ms"] += 1500
+    engine_frame(lua, p)
+    assert ended(lua) and lua.eval("PZA.motor.wantAim") is True       # done, the stance kept
+    start(lua, p, "steer", aid="flee", vx=1, vy=0, seconds=1, gait="run")
+    assert lua.eval("PZA.motor.wantAim") is False                     # released by the wrapper, not by a tick
+    n = len(p.sets)
+    engine_frame(lua, p)                                              # the flee's first tick wants the run (OnTick)
+    engine_frame(lua, p)                                              # the next frame's Motor writes the latch
+    assert ("setForceRun", True) in p.sets[n:] and p.isAiming(p) is False

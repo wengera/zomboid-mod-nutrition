@@ -532,7 +532,7 @@ end
 -- isDeathDragDown(); aiming (PZA/1.5, ruling P24-G) is isAiming(), the stance an aim holds (PZAgent_Stance.lua), or a
 -- swing's own (IsoGameCharacter.isAiming L14779-L14780: true while a hostile animation plays); forceAim (PZA/1.5.4,
 -- ruling P24-T) is isForceAim(), the input component's flag the Motor re-asserts every frame while the stance is held,
--- read here after the frame's update: true only when that update's UpdateInputState kept it (a run key clears it).
+-- read here after the frame's update: true when the flag survived the frame (not cleared by a run key or a release); aiming shows whether the update used it.
 -- Each is one PZA.call read (an absent member nil and named in missing). This block sits at the end
 -- of the file (CLAUDE.md section 5: the repo: pointers into Sense keep their lines), so S.frame is wrapped here: the
 -- base reader runs, then the five reads land in its me under their own guard, so a raise among them costs these
