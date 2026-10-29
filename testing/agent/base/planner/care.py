@@ -26,7 +26,10 @@ Its choose, the first that answers (`why` names the `reason`, the `part`, the `i
    #4301).
 Ruling P24-P (Plan 24 Task 12, E6: the health fell from 100 to 17.6 while a zombie was held, the one bandage sent on
 the first tick with none): the bleeding step also runs with a threat held, whenever the nearest listed zombie is
-beyond CARE_R and `tends_wound` answers (Survive's threat branch yields to it only then, so no other step sends).
+beyond CARE_R and `tends_wound` answers (Survive's threat branch yields to it only then, so no other step sends);
+Task 12 fix 1 gives the yield its hysteresis (`survive.Survive._care_yields`): a bandage starts beyond CARE_R only
+with the nearest not closing over CARE_STILL_TICKS ticks and no flee leg running from a chaser, and a running one is
+superseded only inside CARE_HOLD_R.
 A garment is ripped only for a bleeding part (Task 10 fix 1, the review's major 2: ruling P24-G 2's rip is the
 wound's; a rip for stock destroyed looted clothing and, from above the need branch, superseded a running drink).
 An item whose care action ended failed (never `superseded`), timed out or was rejected is left out for
@@ -56,6 +59,11 @@ DIRTY_RAG_MIN = 10.0      # a dirty rag goes on a part only when its bleedingTim
 WASH_R = 15.0             # tiles: a dirty rag is washed at a known water source this near (P24-G 2)
 CARE_R = 4.0              # tiles: a bleeding part is tended with a threat held while the nearest zombie is beyond this
                           # (ruling P24-P, Plan 24 Task 12: E6 bled from 100 to 17.6 health before its one bandage)
+CARE_HOLD_R = CARE_R - 1.0   # tiles: a running bandage is superseded only with the nearest zombie inside this (Task
+                          # 12 fix 1, the review's ruling: CARE_R the start line, this the supersede line; at CARE_R
+                          # alone a chaser at about 4 tiles alternated the bandage and the steer every tick)
+CARE_STILL_TICKS = 2      # threat ticks over which the nearest zombie's distance must not have fallen before a bandage
+                          # starts under a held threat (Task 12 fix 1: the yield's start reads it not closing)
 KINDS = ("bandage", "rag", "dirty")              # care_kind's order of choice
 CLEAN_BANDAGES = ("Bandage", "AlcoholBandage", "Bandaid")
 CLEAN_RAGS = ("RippedSheets", "AlcoholRippedSheets", "DenimStrips", "LeatherStrips")
@@ -65,8 +73,8 @@ RIP_REFUSALS = ("worn", "not cotton", "needs tool")   # a rip refused so never s
 DRY_REASONS = ("no source", "no water")          # a wash or fill refused so leaves its source out a while
 FAILED = ("failed", "timeout", "rejected")
 
-__all__ = ["Care", "care_kind", "rippable", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "KINDS",
-           "DRY_REASONS"]
+__all__ = ["Care", "care_kind", "rippable", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
+           "CARE_STILL_TICKS", "KINDS", "DRY_REASONS"]
 
 
 def care_kind(full_type):

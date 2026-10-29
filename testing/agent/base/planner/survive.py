@@ -157,7 +157,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   2. The care branch (`_care`, `planner/care.py`'s docstring the record), between `threat` and `need`: with no
      threat held (or, ruling P24-P, Task 12, with one held while the nearest listed zombie is beyond `care.CARE_R`
      and no `many` reason live: the threat branch yields, `_care_yields`, logged `care`, only when the bleeding step
-     would send or runs; a zombie inside CARE_R takes the tick back and its send supersedes the bandage), the worst bleeding part bandaged with the best held item (a bandage, a clean rag, a dirty rag only
+     would send or runs; Task 12 fix 1's hysteresis: it starts only with the nearest not closing over
+     `care.CARE_STILL_TICKS` ticks and no flee leg running from a chaser, a held zombie whose `hasTarget` is set,
+     and a running bandage is superseded only once the nearest is inside `care.CARE_HOLD_R`, or no part bleeds any
+     more), the worst bleeding part bandaged with the best held item (a bandage, a clean rag, a dirty rag only
      past `care.DIRTY_RAG_MIN`), with no rag of any kind held a cotton garment ripped for it (never one of the
      inventory's first sight; never with no wound: Task 10 fix 1, the review's major 2), a spent bandage replaced
      with a clean one, a dirty rag washed at a known water source within `care.WASH_R` with no zombie within
@@ -254,7 +257,7 @@ import math
 import time
 
 from agent.base.items import days_fresh
-from agent.base.planner.care import CARE_R, DRY_REASONS, Care
+from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, DRY_REASONS, Care
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH,
@@ -346,6 +349,8 @@ class Survive:
         self.behind = None        # this tick: the ids listed behind the fight's walk target (P24-A (b)), else None
         self.listed = None        # this tick: the listed count when it alone made `many` (P24-A (a)), else None
         self.care_yield = None    # this tick: the nearest zombie's tiles when the threat yielded to the care (P24-P)
+        self._nearest_seen = []   # (id, tiles) of the nearest listed zombie on the last threat ticks, newest last: the
+                                  # care yield's closing read (Task 12 fix 1), CARE_STILL_TICKS + 1 of them
         self._observed = []       # the policies observed this tick (each once: P24-A (g))
         self.unreachable = {}     # zombie id -> wall until it is skipped (policies.Fight), kept across Fights
         self.night = Night(world, actions, clock)
@@ -556,23 +561,28 @@ class Survive:
         return [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in skip
                 and z.get("x") is not None and z.get("y") is not None and zdist(self.world, z) <= r]
 
-    def _many(self, held, n):
-        """The `many` rule: the hold radius's count over MAX_FIGHT while a fight runs (P23-AG ruling 2), the DANGER_R
-        count `n` over it while none does; and while a flee episode whose reason was `many` runs (P23-AM 1: E3's flee
-        under a group ended the tick its count fell back to DANGER_R's, four times in 8 s), the hold radius's count
-        over MAX_FIGHT or the nearest held threat within DANGER_R. Whatever those read, MANY_LISTED_N or more listed
-        within LISTED_R (ruling P24-A (a)) is `many`, logged `listed` when it alone made it."""
+    def _many_read(self, held, n):
+        """`(many, listed)`, read without side effects: the `many` rule, the hold radius's count over MAX_FIGHT while
+        a fight runs (P23-AG ruling 2), the DANGER_R count `n` over it while none does; and while a flee episode whose
+        reason was `many` runs (P23-AM 1: E3's flee under a group ended the tick its count fell back to DANGER_R's,
+        four times in 8 s), the hold radius's count over MAX_FIGHT or the nearest held threat within DANGER_R.
+        Whatever those read, MANY_LISTED_N or more listed within LISTED_R (ruling P24-A (a)) is `many`, `listed` that
+        count when it alone made it (else None)."""
         if self.mode == "flee" and self.flee_many:
             near = len(held) > MAX_FIGHT or min(zdist(self.world, z) for z in held) <= DANGER_R
         else:
             near = (len(held) if self.mode == "fight" else n) > MAX_FIGHT
         if near:
-            return True
+            return True, None
         listed = len(self._within(LISTED_R))
-        if listed >= MANY_LISTED_N:
+        return (True, listed) if listed >= MANY_LISTED_N else (False, None)
+
+    def _many(self, held, n):
+        """`_many_read`'s `many`, its `listed` kept for the decision's why (logged `listed`)."""
+        many, listed = self._many_read(held, n)
+        if listed is not None:
             self.listed = listed
-            return True
-        return False
+        return many
 
     def _flee_reason(self, held, n):
         """Why the threat branch flees, by the hysteresis in the module docstring (`_hysteresis`); None when it fights.
@@ -906,25 +916,58 @@ class Survive:
         """A flee episode's own flags cleared: its stall origin, its one load drop and its `many` (P23-AM 1)."""
         self.stall_flee, self.flee_dropped, self.flee_many = False, False, False
 
+    def _nearest_listed(self):
+        """(id, tiles) of the nearest listed zombie with a position (ties by the listing's order), else None."""
+        best = None
+        for zid, z in self.world.zombies.items():
+            if z.get("x") is None or z.get("y") is None:
+                continue
+            d = zdist(self.world, z)
+            if best is None or d < best[1]:
+                best = (zid, d)
+        return best
+
+    def _closing(self):
+        """The nearest listed zombie may be closing (Task 12 fix 1): fewer than CARE_STILL_TICKS earlier reads of the
+        same zombie as the nearest in a row, or its distance now under its read CARE_STILL_TICKS ticks ago."""
+        h = self._nearest_seen
+        if len(h) <= CARE_STILL_TICKS or any(e[0] != h[-1][0] for e in h):
+            return True
+        return h[-1][1] < h[0][1]
+
+    def _flee_leg(self):
+        """The running flee's own walk or steer leg (`Flee.busy`), else None."""
+        f = self.flee if self.mode == "flee" else None
+        if f is None or not f.busy() or f.last.type not in ("steer", "walkTo"):
+            return None
+        return f.last
+
     def _care_yields(self, held):
         """Ruling P24-P (Plan 24 Task 12; E6's health fell from 100 to 17.6 under a held zombie before its one
-        bandage): the nearest listed zombie's tiles when the threat branch yields this tick to the care branch's
-        bleeding step, else None. It yields while that zombie is beyond CARE_R, no `many` reason is live (a group:
-        the running `many` episode or the `many` count; every other reason, the health flee's included, is about one
-        or two held, whose distance this reads), and `Care.tends_wound` would send one (its part reads bleeding while
-        the bandage runs, so a running one holds the tick through the care branch's own busy). A zombie inside CARE_R ends the yield: the threat answers, and its send supersedes the bandage."""
-        if not self.world.can("bandage") or self.flee_many:
+        bandage), with Task 12 fix 1's hysteresis (the review's major 2: with one start and supersede line at CARE_R a
+        chaser hovering at it alternated the bandage and the steer every tick, four bandages started and none
+        finished): the nearest listed zombie's tiles when the threat branch yields this tick to the care branch's
+        bleeding step, else None. No `many` reason may be live (a group: the running `many` episode or the `many`
+        count; every other reason, the health flee's included, is about one or two held, whose distance this reads),
+        and `Care.tends_wound` must answer (its part reads bleeding while the bandage runs; once no part bleeds the
+        yield ends, and the threat's send supersedes the bandage). A bandage starts only with the nearest beyond
+        CARE_R, not closing (`_closing`), and no flee leg running (`_flee_leg`) from a chaser (a held zombie whose
+        `hasTarget` is set: a run holds the distance while the zombie chases, so the closing read cannot see it, and
+        a standing bandage would stop the run the health flee exists to make). A running one (the care's own
+        bandage, current) holds the yield while the nearest stays beyond CARE_HOLD_R."""
+        if not self.world.can("bandage") or self.flee_many or not self._nearest_seen:
             return None
-        near = min((zdist(self.world, z) for z in self.world.zombies.values()
-                    if z.get("x") is not None and z.get("y") is not None), default=None)
-        if near is None or near <= CARE_R:
+        near = self._nearest_seen[-1][1]
+        running = self.care.busy() and self.care.last.type == "bandage"
+        if near <= (CARE_HOLD_R if running else CARE_R):
             return None
-        many = self._many(held, len(self._within(DANGER_R)))
-        self.listed = None
-        if many:
+        if not running and (self._closing() or (self._flee_leg() is not None
+                                                and any(z.get("hasTarget") is True for z in held))):
+            return None
+        if self._many_read(held, len(self._within(DANGER_R)))[0]:
             return None
         self._observe(self.care)
-        return near if self.care.tends_wound() else None   # a running bandage's part still reads bleeding: held
+        return near if self.care.tends_wound() else None
 
     def _threat(self):
         """The tick's bookkeeping, once (ruling P24-A (g)): the held list, the Flee's observe and the breach's closing
@@ -936,8 +979,9 @@ class Survive:
             self.mode, self.fight, self.flee = None, None, None
             self._end_flee_episode()
             self.sheltered, self.cornered, self.closing = False, None, (0, None)
-            self.stuck_heading = None
+            self.stuck_heading, self._nearest_seen = None, []
             return None
+        self._nearest_seen = (self._nearest_seen + [self._nearest_listed()])[-(CARE_STILL_TICKS + 1):]
         if self.flee is not None:   # a shelter or exit step's end read before the hold (the close may have ended),
             self.flee.threats = held   # over this tick's held records (the stall's and the stuck leg's DANGER_R and
             self._observe(self.flee)   # STUCK_NEAR_R reads: before P24-A (g) the first read saw the last tick's)

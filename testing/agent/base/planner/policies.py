@@ -58,7 +58,9 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   the swing following from it; inside KEEP_R the backpedal (`away_vector` of `threats` turned by STEER_TURNS to the
   first heading `clear_heading` passes, never into a wall or over a hoppable fence, else (0, 0)); beyond it standing
   (0, 0), the target faced while it comes. A running leg gives way (`busy`) once the target is within reach,
-  re-pinned, or the stand ends, and a standing one once the target is inside KEEP_R or the advance begins. The stand
+  re-pinned, or the stand ends, and (Task 12 fix 1) once the leg its distance calls for (`stance_leg_kind`) is
+  another: a standing leg inside KEEP_R or in the advance, a backpedal past KEEP_R + KEEP_MARGIN, an `enter` leg
+  whose target was knocked out of reach; the advance's `toward` leg holds until reach. The stand
   clock (`_stand`) restarts on a new target or a fall of its health, ending any advance; at STAND_MAX_S the Fight
   closes in the stance (`advance`: `toward` legs, the unit vector to the target, or with its line blocked over
   STEER_PROBE the approach walk at a run round the wall), the out-of-reach stall clock (which a stand keeps at zero)
@@ -229,6 +231,8 @@ STAND_MAX_S = 20.0    # wall seconds a standing fight may go without its target'
                       # stand-off, and no run)
 KEEP_R = 2.5          # tiles: a target inside this and beyond FIGHT_REACH is backpedalled from; farther, the stance
                       # stands facing it and lets it come (ruling P24-N, superseding P24-M's band of FIGHT_REACH + 1)
+KEEP_MARGIN = 0.25    # tiles: a running backpedal holds until its target is this far past KEEP_R, so the back and
+                      # stand legs do not flap at the line (Task 12 fix 1, the review's major 1)
 AIM_HOLD_S = 2.0      # seconds the Lua keeps a stance an attack swung from once nothing runs (K.AIM_HOLD_MS 2000,
                       # PZAgent_Stance.lua): an attack ended longer ago left the character out of the stance
 STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
@@ -407,6 +411,17 @@ def clear_heading(world, v, reach=STEER_PROBE):
     4)."""
     mx, my = me_xy(world)
     return world.line_clear((mx, my), (mx + reach * v[0], my + reach * v[1]), unknown_open=True)
+
+
+def stance_leg_kind(d, advance):
+    """The stance leg a standing fight's target `d` tiles off calls for (rulings P24-G 1 and P24-N): `enter` within
+    FIGHT_REACH, `toward` in the advance, `back` inside KEEP_R, else `stand`. `Fight._stance_leg` sends it and
+    `Fight.busy` gives a running leg way when it changes (Task 12 fix 1)."""
+    if d <= FIGHT_REACH:
+        return "enter"
+    if advance:
+        return "toward"
+    return "back" if d <= KEEP_R else "stand"
 
 
 def blocked(unreachable, now):
@@ -592,8 +607,12 @@ class Fight(Policy):
 
     def busy(self):
         """The Policy's rule, except that a running stance leg gives way at once (P24-G 1) when the target is within
-        FIGHT_REACH (the swing from the stance), another target is pinned, or the stand no longer applies; and a
-        standing leg (P24-N) once the target is inside KEEP_R (the backpedal) or the advance began."""
+        FIGHT_REACH (the swing from the stance), another target is pinned, or the stand no longer applies; and (Task 12
+        fix 1, the review's major 1: a backpedal held its whole AIM_LEG_S while its target fell back past KEEP_R,
+        opening the gap the swing needs closed) once the leg the target's distance calls for (`stance_leg_kind`)
+        differs from the running one: a standing leg inside KEEP_R or in the advance, a backpedal past KEEP_R +
+        KEEP_MARGIN (the margin keeps the two from flapping at the line) or in the advance, an `enter` leg whose
+        target was knocked out of reach. A `toward` leg (the advance) holds until reach."""
         if not super().busy():
             return False
         if self.last.type != "aim":
@@ -601,7 +620,12 @@ class Fight(Policy):
         t = self._target(pin=False)
         if t is None or t[0] != self.last.args.get("targetId") or t[2] <= FIGHT_REACH or not self.stance_at(t[2]):
             return False
-        return not (self._leg == "stand" and (t[2] <= KEEP_R or self.advance))
+        if self._leg == "toward":
+            return True
+        want = stance_leg_kind(t[2], self.advance)
+        if self._leg == "back" and want == "stand":
+            return t[2] <= KEEP_R + KEEP_MARGIN
+        return want == self._leg
 
     def in_stance(self):
         """The Lua holds the stance now (Task 9's hand-over, PZAgent_Stance.lua): the last action sent by anyone is
@@ -765,18 +789,15 @@ class Fight(Policy):
           by STEER_TURNS to the first heading `clear_heading` passes (never into a wall or over a fence), else
           standing: a wall behind is never stepped into;
         - `stand` (0, 0): the target beyond KEEP_R, faced while it comes."""
-        v, kind = None, "stand"
-        if d <= FIGHT_REACH:
-            kind = "enter"
-        elif self.advance:
+        v, kind = None, stance_leg_kind(d, self.advance)
+        if kind == "toward":
             mx, my = me_xy(self.world)
             u = ((z["x"] - mx) / d, (z["y"] - my) / d)
             if not clear_heading(self.world, u, min(STEER_PROBE, d)):
                 self.why.update({"stance": True, "advance": True, "leg": "walk", "stand_s": self.stand_s()})
                 return WalkTo(*centre((z["x"], z["y"])), "run")
-            v, kind = u, "toward"
-        elif d <= KEEP_R:
-            kind = "back"
+            v = u
+        elif kind == "back":
             ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
             a = away_vector(self.world, [(q["x"], q["y"]) for q in ts])
             if a is not None:

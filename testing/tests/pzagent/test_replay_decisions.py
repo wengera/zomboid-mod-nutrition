@@ -525,20 +525,24 @@ def test_the_replay_ends_an_unbound_aim_at_its_seconds(monkeypatch):
 
 
 def test_keep_r_and_the_advance_on_the_sixth_golden(monkeypatch):
-    """Ruling P24-N (Task 12, re-recorded under it): of the ten stance legs on F1's frames the two whose target is
-    inside KEEP_R backpedal, 111 (2.46 tiles) and 362 (2.05: the standing leg sent at 360, 5.78 tiles off, gives way
-    the tick its target comes inside KEEP_R, the one decision P24-N moved; P24-M's band held that leg); the other
-    eight (4.80 to 6.00 tiles) stand facing the target. Line 373's target, 16.96 tiles off, is beyond the Lua's aim
-    range (AIM_R 12), so the Fight walks at a run as the approach does. The mutation pass: KEEP_R at FIGHT_REACH (no
+    """Ruling P24-N (Task 12, re-recorded under it): of the stance legs on F1's frames the ones whose target is
+    inside KEEP_R backpedal, 111 (2.46 tiles), 114 and 362 (2.05: the standing leg sent at 360, 5.78 tiles off, gives
+    way the tick its target comes inside KEEP_R, the one decision P24-N moved; P24-M's band held that leg); the others
+    (2.78 to 6.00 tiles) stand facing the target. Named change (Task 12 fix 1, the review's major 1): the backpedal of
+    111 gives way at 112, its target 2.78 tiles off (past KEEP_R + KEEP_MARGIN), to a standing leg, which gives way
+    at 114 (2.18 tiles) to the next backpedal. Line 373's target, 16.96 tiles off, is beyond the Lua's aim range
+    (AIM_R 12), so the Fight walks at a run as the approach does. The mutation pass: KEEP_R at FIGHT_REACH (no
     backpedal) or at 2.4 moves the golden first at 111; a standing leg that never gives way inside KEEP_R moves it
-    first at 362; STAND_MAX_S switched off (infinite) or at 5 s moves nothing, since no stand on F1's frames reaches
-    it (the longest stand clock is 2.53 s, line 114), and at 2 s (the advance at 111) it moves the golden first at
-    111: the advance runs on a real sequence, but this golden cannot pin its 20 s (the fake-mod cases do)."""
+    first at 114; a backpedal that never gives way on distance (Task 12's rule) first at 112; STAND_MAX_S switched
+    off (infinite) or at 5 s moves nothing, since no stand on F1's frames reaches it (the longest stand clock is 2.53
+    s, line 114), and at 2 s (the advance at 111) it moves the golden first at 111: the advance runs on a real
+    sequence, but this golden cannot pin its 20 s (the fake-mod cases do)."""
     six = gold(SIXTH)
     legs = {k: d for k, d in six.items() if d["action"] and d["action"]["type"] == "aim"}
-    assert sorted(legs) == [106, 111, 192, 216, 288, 360, 362, 435, 517, 557]
+    assert sorted(legs) == [106, 111, 112, 114, 192, 216, 288, 360, 362, 435, 517, 557]
     back = [k for k, d in legs.items() if (d["action"]["args"]["vx"], d["action"]["args"]["vy"]) != (0.0, 0.0)]
-    assert back == [111, 362] and all(legs[k]["why"]["leg"] == "back" for k in back)
+    assert back == [111, 114, 362] and all(legs[k]["why"]["leg"] == "back" for k in back)
+    assert legs[112]["why"]["leg"] == "stand" and legs[112]["why"]["dist"] > P.KEEP_R + P.KEEP_MARGIN
     assert max(legs[k]["why"]["dist"] for k in back) <= P.KEEP_R < min(
         d["why"]["dist"] for k, d in legs.items() if k not in back)
     assert all(d["why"]["leg"] == "stand" for k, d in legs.items() if k not in back)
@@ -561,7 +565,15 @@ def test_keep_r_and_the_advance_on_the_sixth_golden(monkeypatch):
             return t is not None and t[0] == self.last.args.get("targetId") and t[2] > P.FIGHT_REACH
         return busy(self)
     monkeypatch.setattr(P.Fight, "busy", stand_holds)
-    assert moved_from_sixth(run_sixth())[0] == 362
+    assert moved_from_sixth(run_sixth())[0] == 114
+
+    def back_holds(self):   # Task 12 fix 1's give-way of a backpedal past KEEP_R + KEEP_MARGIN removed
+        if P.Policy.busy(self) and self.last.type == "aim" and self._leg == "back":
+            t = self._target(pin=False)
+            return t is not None and t[0] == self.last.args.get("targetId") and t[2] > P.FIGHT_REACH
+        return busy(self)
+    monkeypatch.setattr(P.Fight, "busy", back_holds)
+    assert moved_from_sixth(run_sixth())[0] == 112
 
 
 def test_agreement_reads_a_recorded_sprint_as_the_run_p24_o_sends():

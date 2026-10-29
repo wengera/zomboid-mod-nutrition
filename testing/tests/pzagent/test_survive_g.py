@@ -587,12 +587,16 @@ def test_a_spent_bandage_is_replaced_with_a_clean_rag(tmp_path):
 
 def test_the_care_branch_yields_to_a_threat_within_danger_r(tmp_path):
     """The threat branch runs first: a zombie within DANGER_R answers it (the stance) and the running bandage is
-    superseded by that send. Since ruling P24-P (Task 12) that holds for a zombie at CARE_R (4.0 tiles) or nearer."""
+    superseded by that send. Since ruling P24-P (Task 12) that holds for a zombie at CARE_R (4.0 tiles) or nearer;
+    named change (Task 12 fix 1, the review's major 2): a running bandage is superseded only inside CARE_HOLD_R (3.0
+    tiles), so a zombie arriving at 4.0 holds it and one at 3.0 takes the tick."""
     r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage")])
     tick(r, sv)
     assert r.cmd()[0] == "bandage"
     bandage = r.acts.history[-1]
     care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 104.0, 200.0)])
+    assert tick(r, sv) is None and last(tmp_path)["branch"] == "care" and r.acts.current is bandage
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 103.0, 200.0)])
     tick(r, sv)
     assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] == "aim" and r.acts.current is not bandage
 
@@ -1700,12 +1704,17 @@ def test_care_r_is_four_tiles_inside_danger_r():
 def test_a_bleeding_part_is_bandaged_with_a_zombie_held_beyond_care_r_and_not_inside_it(tmp_path, x, care):
     """Ruling P24-P: a fight running on one zombie (held), a part bleeding, a bandage held: with the zombie at 5 or
     4.01 tiles the threat branch yields (`care` on its why) and the care branch bandages; at 4 or 3 tiles the threat
-    answers (the stance)."""
+    answers (the stance). Named change (Task 12 fix 1, the review's major 2): the zombie stands at `x` for
+    CARE_STILL_TICKS ticks before the yield's start reads it not closing (it came from 6 tiles before)."""
     r, sv = make(tmp_path)
     r.frame(zombies=[zd(1, 106.0, 200.0)])
     tick(r, sv)
     assert sv.mode == "fight" and r.cmd()[0] == "aim"
     hold(r, 10, "Base.Bandage")
+    for _ in range(C.CARE_STILL_TICKS):
+        care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, x, 200.0)])
+        tick(r, sv)
+        assert last(tmp_path)["branch"] == "threat" and "care" not in threat_why(tmp_path)
     care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, x, 200.0)])
     tick(r, sv)
     if care:
@@ -1716,26 +1725,37 @@ def test_a_bleeding_part_is_bandaged_with_a_zombie_held_beyond_care_r_and_not_in
         assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] in ("aim", "attack")
 
 
-def test_the_bandage_runs_under_a_health_flee_and_is_superseded_when_a_zombie_comes_inside_care_r(tmp_path):
+def test_the_bandage_runs_under_a_health_flee_and_is_superseded_when_a_zombie_comes_inside_care_hold_r(tmp_path):
     """E6's case (lines 285-306: the `health` flee held one or two at 4 to 9.6 tiles, bleeding, no bandage): the
     flee yields to the bandage while the nearest is beyond CARE_R, the bandage holds the tick while it runs, and a
-    zombie at 3 tiles takes the tick back: the flee's steer supersedes it."""
+    zombie at 3 tiles takes the tick back: the flee's steer supersedes it. Named change (Task 12 fix 1, the review's
+    major 2): the zombie (no chaser: `hasTarget` false) reads 3 tiles, then 7 on CARE_STILL_TICKS ticks, the yield
+    starting on the last (no fall since the read two ticks before), each flee leg ended before the next tick, and a
+    running bandage holds at 3.5 tiles (inside CARE_R,
+    beyond CARE_HOLD_R); the supersede line is CARE_HOLD_R (3.0)."""
     r, sv = make(tmp_path)
     hold(r, 10, "Base.Bandage")
-    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 103.0, 200.0)], health=30.0)
+    bleed = [part(5, bleeding=True, bleedingTime=5.0)]
+    care_frame(r, bleed, zombies=[zd(1, 103.0, 200.0, has_target=False)], health=30.0)
     tick(r, sv)
     assert sv.mode == "flee" and threat_why(tmp_path)["flee"] == "health" and r.cmd()[0] == "steer"
+    for _ in range(C.CARE_STILL_TICKS - 1):
+        r.answer()
+        care_frame(r, bleed, zombies=[zd(1, 107.0, 200.0, has_target=False)], health=30.0)
+        tick(r, sv)
+        assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] == "steer"
     r.answer()
-    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 107.0, 200.0)], health=30.0)
+    care_frame(r, bleed, zombies=[zd(1, 107.0, 200.0, has_target=False)], health=30.0)
     tick(r, sv)
     assert last(tmp_path)["branch"] == "care" and r.cmd()[0] == "bandage"
     bandage = r.acts.history[-1]
     r.fake.answer({"bandage": ["accepted"]})
     r.pump()
-    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 106.0, 200.0)], health=30.0)
-    assert tick(r, sv) is None and last(tmp_path)["branch"] == "care"
-    assert care_why(tmp_path)["holding"] == bandage.aid
-    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 103.0, 200.0)], health=30.0)
+    for x in (106.0, 103.5):
+        care_frame(r, bleed, zombies=[zd(1, x, 200.0, has_target=False)], health=30.0)
+        assert tick(r, sv) is None and last(tmp_path)["branch"] == "care"
+        assert care_why(tmp_path)["holding"] == bandage.aid and threat_why(tmp_path)["care"] is True
+    care_frame(r, bleed, zombies=[zd(1, 103.0, 200.0, has_target=False)], health=30.0)
     tick(r, sv)
     assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] == "steer" and r.acts.current is not bandage
     all_sends_valid(r)
@@ -1826,3 +1846,149 @@ def test_a_kill_read_off_an_aim_counts_and_a_live_target_does_not(tmp_path):
     r.frame(zombies=[])
     tick(r, sv)
     assert r.world.kills == 1 and threat_why(tmp_path)["kill"] == 1
+
+
+# ================================================================ Task 12 fix 1: the stance leg gives way on distance
+def test_the_keep_margin_constant():
+    assert P.KEEP_MARGIN == 0.25 and P.KEEP_R + P.KEEP_MARGIN < P.DANGER_R
+    assert [P.stance_leg_kind(d, False) for d in (2.0, 2.01, 2.5, 2.51)] == ["enter", "back", "back", "stand"]
+    assert [P.stance_leg_kind(d, True) for d in (2.0, 2.01, 6.0)] == ["enter", "toward", "toward"]
+
+
+def test_a_backpedal_gives_way_to_a_standing_leg_once_the_target_is_past_keep_r_and_its_margin(tmp_path):
+    """The review's major 1 (a backpedal held its whole AIM_LEG_S while its target fell back past KEEP_R; #4324's
+    full leg moved the character 3.0 tiles while the target's distance rose from 2.48 to 3.48): a back leg sent at 2.3
+    tiles holds at 2.7 (inside KEEP_R + KEEP_MARGIN) and gives way at 2.9 to a standing leg, (0, 0)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 102.3, 200.0)])
+    tick(r, sv)
+    assert stance_args(r)["vx"] == -1.0 and threat_why(tmp_path)["leg"] == "back"
+    back = r.acts.history[-1]
+    r.answer("progress")
+    r.advance(0.5)
+    r.frame(zombies=[zd(1, 102.7, 200.0)])
+    assert tick(r, sv) is None and threat_why(tmp_path)["holding"] == back.aid
+    r.advance(0.5)
+    r.frame(zombies=[zd(1, 102.9, 200.0)])
+    tick(r, sv)
+    a = stance_args(r)
+    assert (a["vx"], a["vy"]) == (0.0, 0.0) and threat_why(tmp_path)["leg"] == "stand"
+    assert r.acts.history[-2] is back and len(r.acts.history) == 2
+    all_sends_valid(r)
+
+
+def test_an_enter_leg_whose_target_is_knocked_out_of_reach_gives_way_to_the_backpedal(tmp_path):
+    """The review's major 1, the `enter` leg: sent with its target in reach (1.8 tiles, the stance not held), the
+    target knocked back to 2.3 tiles: the leg gives way to a `back` leg (it stood its 2 s before)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 101.8, 200.0)])
+    tick(r, sv)
+    assert threat_why(tmp_path)["leg"] == "enter"
+    enter = r.acts.history[-1]
+    r.answer("progress")
+    r.advance(0.3)
+    r.frame(zombies=[zd(1, 102.3, 200.0)])
+    tick(r, sv)
+    assert stance_args(r)["vx"] == -1.0 and threat_why(tmp_path)["leg"] == "back" and r.acts.history[-2] is enter
+
+
+def test_the_advance_s_toward_leg_holds_until_reach(tmp_path):
+    """Only the advance's `toward` leg is held whatever the distance reads, until its target is within reach."""
+    r = Rig(tmp_path)
+    r.frame(zombies=[zd(1, 106.0, 200.0, has_target=False)])
+    f = stance_fight(r)
+    f.observe()
+    f.advance = True
+    leg = f.step()
+    assert leg.type == "aim" and f.why["leg"] == "toward"
+    r.answer("progress")
+    for x in (103.0, 102.4, 102.1):
+        r.frame(zombies=[zd(1, x, 200.0, has_target=False)])
+        f.observe()
+        assert f.busy(), x
+    r.frame(zombies=[zd(1, 101.9, 200.0, has_target=False)])
+    f.observe()
+    assert not f.busy()
+
+
+# ================================================================ Task 12 fix 1: the care yield's hysteresis
+def test_the_care_hold_line_and_the_still_ticks():
+    assert (C.CARE_HOLD_R, C.CARE_STILL_TICKS) == (3.0, 2) and P.FIGHT_REACH < C.CARE_HOLD_R < C.CARE_R
+
+
+def test_a_chaser_closing_half_a_tile_a_tick_from_4_6_starts_no_bandage(tmp_path):
+    """The review's major 2, its first test: a zombie closing 0.5 tiles a tick (5.6, 5.1, 4.6, 4.1, then 3.6) under
+    a running fight starts no bandage: each read beyond CARE_R is a fall since the read two ticks before."""
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    for x in (105.6, 105.1, 104.6, 104.1, 103.6):
+        care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, x, 200.0)])
+        tick(r, sv)
+        assert last(tmp_path)["branch"] == "threat" and "care" not in threat_why(tmp_path), x
+        r.answer()
+    assert not any(a.type == "bandage" for a in r.acts.history)
+
+
+def test_a_still_zombie_at_4_5_is_bandaged_held_at_3_5_and_superseded_at_2_9(tmp_path):
+    """The review's major 2, its second test: a zombie standing at 4.5 tiles reads not closing on the third tick and
+    the bandage starts; once it runs, the zombie at 3.5 (inside CARE_R) holds it, and at 2.9 (inside CARE_HOLD_R) the
+    threat takes the tick back: the stance leg supersedes the bandage."""
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    bleed = [part(5, bleeding=True, bleedingTime=5.0)]
+    for _ in range(C.CARE_STILL_TICKS):
+        care_frame(r, bleed, zombies=[zd(1, 104.5, 200.0)])
+        tick(r, sv)
+        assert last(tmp_path)["branch"] == "threat"
+    care_frame(r, bleed, zombies=[zd(1, 104.5, 200.0)])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "care" and r.cmd() == ("bandage", {"itemId": 10, "part": 5})
+    bandage = r.acts.history[-1]
+    r.fake.answer({"bandage": ["accepted"]})
+    r.pump()
+    care_frame(r, bleed, zombies=[zd(1, 103.5, 200.0)])
+    assert tick(r, sv) is None and last(tmp_path)["branch"] == "care"
+    assert threat_why(tmp_path) == {"care": True, "nearest": pytest.approx(3.5), "held": 1}
+    care_frame(r, bleed, zombies=[zd(1, 102.9, 200.0)])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] == "aim" and r.acts.current is not bandage
+    all_sends_valid(r)
+
+
+@pytest.mark.parametrize("chases, care", [(True, False), (False, True)])
+def test_no_standing_bandage_starts_while_a_flee_leg_runs_from_a_chaser(tmp_path, chases, care):
+    """The review's ruling on concern 2: a `health` flee does not block the yield against a zombie that is not
+    closing; against a chaser (`hasTarget`) during a running flee leg the standing bandage waits (it would stop the
+    run). Here the leg (a thigh's wound: no ride) runs while the zombie reads 5.5 tiles, then 7 (never closing)."""
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    thigh = [part(11, bleeding=True, bleedingTime=5.0)]
+    for x in (105.5,) + (107.0,) * C.CARE_STILL_TICKS:
+        care_frame(r, thigh, zombies=[zd(1, x, 200.0, has_target=chases)], health=30.0)
+        tick(r, sv)
+        if r.acts.current is not None and r.acts.current.state == "sent":
+            r.answer("progress")
+    assert sv.mode == "flee" and r.acts.history[0].type == "steer"
+    assert (last(tmp_path)["branch"] == "care") is care and threat_why(tmp_path).get("care", False) is care
+    assert care or (threat_why(tmp_path)["flee"] == "health" and threat_why(tmp_path)["holding"])
+    assert any(a.type == "bandage" for a in r.acts.history) is care
+
+
+def test_a_running_bandage_whose_part_stops_bleeding_is_superseded_by_the_threat(tmp_path):
+    """The review's minor 7 (Task 12's commit 4 removed the `running` clause, read as equivalent; it is not): once no
+    part bleeds, `tends_wound` reads false, the yield ends and the threat's send supersedes the running bandage, the
+    zombie still at 4.5 tiles. Kept: once nothing bleeds the threat matters more."""
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    for _ in range(C.CARE_STILL_TICKS + 1):
+        care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 104.5, 200.0)])
+        tick(r, sv)
+    bandage = r.acts.history[-1]
+    assert bandage.type == "bandage"
+    r.fake.answer({"bandage": ["accepted"]})
+    r.pump()
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 104.5, 200.0)])
+    assert tick(r, sv) is None and last(tmp_path)["branch"] == "care"
+    care_frame(r, [part(5)], zombies=[zd(1, 104.5, 200.0)])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] == "aim" and r.acts.current is not bandage
