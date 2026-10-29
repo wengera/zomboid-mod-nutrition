@@ -21,7 +21,8 @@ The contract:
   `pos` (or with no `pos`) is `invalid: out of range` (all three were `invalid: unknown place` before P24-B); and
   (ruling P24-Y, Plan 24 Task 18: every walk has a building as its destination) an ExploreToward whose square's
   centre lies farther than `goals.WOODS_R` (40) from every building the view lists (its `box`, else its listed
-  squares), while it lists one, is `invalid: in the woods`.
+  squares), while it lists one, is `invalid: in the woods`; a LootBuilding or Shelter of a building the view reads
+  `blocked` (every exterior door marked stuck, ruling P24-Z) is `invalid: refused`.
 - The refusal's meaning reaches the model (P24-B 3, F1's write-up: the one refused answer named a square past the
   bound and the model never learned why, #4277, #4279): a goal refused by that rule is kept as `refusal`
   `{type, args, end: "refused", why}` and laid over the `last_goal` of the next call's view (once; then cleared), so
@@ -123,7 +124,7 @@ def _system():
     lines.append("Squares are x, y tiles; north is -y. pos is your position. In the view, each building reads "
                  "`id @x,y door x,y dist cN flags`: @x,y its nearest room square, door its exterior door square "
                  "(- none), dist in tiles, N its containers, flags L looted (nothing left to take), v visited, "
-                 "s shunned, - none.")
+                 "s shunned, x blocked (every door stuck: never named), - none.")
     lines.append("The refusal rule: name a building only by an id the view lists; an ExploreToward square within "
                  "%g tiles of pos and, once the view lists a building, within %g tiles of one (farther is the "
                  "woods); a LootBuilding only a building listed without the L flag. An answer breaking it is refused "
@@ -256,6 +257,8 @@ def place_error(goal, view):
         if goal.building not in shown_ids(view):
             return "invalid: refused"
         b = next(b for b in view["buildings"] if isinstance(b, dict) and b.get("id") == goal.building)
+        if b.get("blocked") is True:
+            return "invalid: refused"
         if goal.TYPE == "LootBuilding" and b.get("looted") is True:
             return "invalid: looted already"
     return None

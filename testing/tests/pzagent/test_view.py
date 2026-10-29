@@ -66,7 +66,8 @@ def test_the_buildings_carry_containers_looted_doors_visited_and_distance(tmp_pa
     assert [x["id"] for x in b] == [1, 2]                                # nearest first
     assert b[0] == {"id": 1, "x": 110, "y": 201, "door": [110, 201], "dist": 10.5, "containers": 2, "looted": False,
                     "doors": 1, "visited": False, "shunned": False, "shelter": True,   # P24-B 3: x, y, door
-                    "holds": {"bandage": 1, "food": 1}, "box": [110, 200, 112, 202]}   # P24-Y (Task 18)
+                    "holds": {"bandage": 1, "food": 1}, "box": [110, 200, 112, 202],   # P24-Y (Task 18)
+                    "blocked": False}                                                     # P24-Z
     assert b[1]["containers"] == 1 and b[1]["looted"] is True and b[1]["dist"] == 20.5
     sv.night.visited.add(2)
     sv.night.shunned[1] = 480.0

@@ -22,7 +22,9 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   Shelter goal, within `night.SHUN_MIN`), `shelter` (`night.shelter_plan` answers for it: rooms and an exterior door
   on the player's floor; the scripted Shelter requires it, fix 1 I3), and (ruling P24-Y, Plan 24 Task 18) `holds`
   ({use: items} over its containers of each use of `policies.LOOT_WANTS` a loot has not yet taken there: what it is
-  known to hold) and `box` (`World.building_boxes`' [minx, miny, maxx, maxy], the woods test's, unrendered).
+  known to hold) and `box` (`World.building_boxes`' [minx, miny, maxx, maxy], the woods test's, unrendered);
+  `blocked` (ruling P24-Z: every exterior door on the player's floor marked stuck, `night.door_blocked`; `door` is
+  then None, the marked doors left out of `doors` too).
 - `zombies_near {"6", "12", "25"}`: the zombies the World holds (seen within its ZOMBIE_TTL_S) within 6, 12 and 25
   tiles, each count cumulative.
 - `met {dense, n, bearing, dist}` (P24-B 1): the World's met ground, `world.met_near()` (the densest MET_R window
@@ -55,7 +57,7 @@ The view only reads: the kit is bound by its runner's `observe`, never here (fix
 
 `render(view) -> str`: one `key: value` line per key in `KEYS` order, values as compact sorted JSON except
 `buildings`, capped at the BUILDINGS_SHOWN (6, P24-B 3) nearest, each `id @x,y door x,y dist cN flags h:holds`
-(`door -` with none; flags `L` looted, `v` visited, `s` shunned, `-` none; `holds` its `use count` pairs, sorted, as
+(`door -` with none; flags `L` looted, `v` visited, `s` shunned, `x` blocked (P24-Z), `-` none; `holds` its `use count` pairs, sorted, as
 `food3,water1`, `-` with none: P24-Y), joined by "; "; the whole stays under RENDER_MAX
 (2048) bytes, asserted at return. On overflow the lowest-value line goes first: `events` (the last event kinds, which
 no rule reads) is emptied to `[]`; then the buildings are cut from the farthest; then the longest line is halved (its
@@ -71,7 +73,7 @@ import time
 from agent.base.items import USES
 from agent.base.items import use_of
 from agent.base.planner.goals import BUILDING_R, STOCK_WANTS, WOODS_R, int_id, open_uses
-from agent.base.planner.night import exterior_doors, shelter_plan
+from agent.base.planner.night import door_blocked, exterior_doors, shelter_plan
 from agent.base.planner.policies import LOOT_WANTS, STUCK_REASONS, me_floor, me_xy, place_of
 from agent.base.world import MET_VIEW_R, compass
 
@@ -119,6 +121,7 @@ def _buildings(world, night, kit):
                     "looted": bool(cs) and not any(open_uses(world, loot, k, waiting) for k in cs),
                     "doors": len(doors), "visited": b in visited, "shunned": b in shunned,
                     "shelter": shelter_plan(world, b) is not None, "holds": _holds(world, cs),
+                    "blocked": door_blocked(world, b, z),
                     "box": list(boxes[b]) if b in boxes else None})
     return sorted(out, key=lambda r: (r["dist"], r["id"]))
 
@@ -138,7 +141,8 @@ def _holds(world, keys):
 
 def _toward(world, buildings):
     """P24-Y's walk toward a building (the module docstring's `toward`), else None."""
-    near = [b for b in buildings if b["looted"] is False and b["containers"] > 0 and not b["shunned"]]
+    near = [b for b in buildings if b["looted"] is False and b["containers"] > 0 and not b["shunned"]
+            and not b["blocked"]]
     target, why = None, None
     if near and not any(b["dist"] <= BUILDING_R for b in near):
         target, why = near[0], "unlooted"
@@ -226,6 +230,7 @@ def _building(b):
     mark = "L" if b.get("looted") else ""
     mark += "v" if b.get("visited") else ""
     mark += "s" if b.get("shunned") else ""
+    mark += "x" if b.get("blocked") else ""
     door = b.get("door")
     door = "%s,%s" % (door[0], door[1]) if door else "-"
     holds = ",".join("%s%s" % (u, n) for u, n in sorted((b.get("holds") or {}).items())) or "-"

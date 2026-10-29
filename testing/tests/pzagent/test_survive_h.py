@@ -561,3 +561,150 @@ def test_no_scripted_walk_targets_the_woods_on_the_synthetic_fixture(tmp_path):
         if ln["kind"] == "frame":
             _woods_sweep(w, sv, out)
     assert out["n"] > 0 and out["woods"] == []
+
+
+# ================================================================ P24-Z: the stuck door
+from agent.base.planner import night as N   # noqa: E402
+from agent.base import world as W   # noqa: E402
+
+from .test_night import CLOSED, LOCKED, two_door_house   # noqa: E402
+
+
+def test_a_door_failing_twice_is_marked_for_door_retry_min(tmp_path):
+    """P24-Z: one failure counts, the second within DOOR_RETRY_MIN (30) game minutes marks the door with its reason;
+    the mark stands 30 game minutes; a failure older than 30 minutes no longer counts toward the next mark."""
+    r = Rig(tmp_path)
+    r.frame(game_min=480.0)
+    w, door = r.world, (110, 201, 0)
+    assert W.DOOR_RETRY_MIN == 30.0
+    assert w.note_door_fail(door, "locked") is False and w.marked_doors() == set()
+    r.frame(game_min=485.0)
+    assert w.note_door_fail(door, "not adjacent") is True and w.marked_doors() == {door}
+    assert w.door_marks[door] == (485.0 * 1.0, "not adjacent")
+    r.frame(game_min=514.9)
+    assert w.marked_doors() == {door}
+    r.frame(game_min=515.0)
+    assert w.marked_doors() == set()
+    w.note_door_fail(door, "locked")
+    r.frame(game_min=546.0)
+    assert w.note_door_fail(door, "locked") is False                       # the first is 31 minutes old
+
+
+def test_a_marked_door_is_left_out_of_the_routes_and_the_shelter_goal_reads_the_marks(tmp_path):
+    """The marks reach every plan through `night.exterior_doors`: the Shelter goal's plan takes the other door;
+    with every door marked the building is `door_blocked` and no plan answers."""
+    r = Rig(tmp_path)
+    r.scan(two_door_house(exterior2=CLOSED))
+    r.frame(x=100.0, y=201.5)
+    w = r.world
+    assert N.exterior_doors(w, 1, 0) == [(110, 201, 0), (110, 202, 0)] and not N.door_blocked(w, 1, 0)
+    for _ in range(2):
+        w.note_door_fail((110, 201, 0), "locked")
+    assert N.exterior_doors(w, 1, 0) == [(110, 202, 0)] and N.shelter_plan(w, 1)["doors"] == [(110, 202, 0)]
+    g = G.Shelter(1)
+    cmd = g.step(w, r.acts, r.clock)
+    assert (cmd.TYPE, cmd.x, cmd.y) == ("walkTo", 109.5, 202.5)            # the approach of the other door
+    for _ in range(2):
+        w.note_door_fail((110, 202, 0), "interrupted")
+    assert N.door_blocked(w, 1, 0) and N.shelter_plan(w, 1) is None
+    assert N.exterior_doors(w, 1, 0, marked=True) == [(110, 201, 0), (110, 202, 0)]
+
+
+def test_a_loot_stood_against_a_locked_door_routes_in_by_the_next_door_and_marks_the_first(tmp_path):
+    """P24-Z end to end (E7's case): the loot from outside fails `not adjacent` (the player on door 1's approach:
+    its first failure); the route opens door 1, which fails `locked` (its second: marked); the plan's next door (2)
+    is opened, the player steps in, and the loot resumes from inside on the next container; door 1 is left out of
+    every plan for DOOR_RETRY_MIN."""
+    from .test_survive import make as smake
+    r, sv = smake(tmp_path)
+    sqs = two_door_house(exterior2=CLOSED)
+    for s in sqs:
+        if (s["x"], s["y"]) == (112, 202):
+            s["containers"] = [FRIDGE]
+        if (s["x"], s["y"]) == (112, 200):
+            s["containers"] = [CRATE]
+    r.scan(sqs)
+    r.frame(x=109.5, y=201.5)
+    tick(r, sv)
+    t, a = r.cmd()
+    assert t == "interact" and a["kind"] == "loot" and sv.goals.current.TYPE == "LootBuilding"
+    r.answer({"state": "failed", "reason": "not adjacent"})
+    r.frame(x=109.5, y=201.5)
+    tick(r, sv)
+    assert r.world.door_fails[(110, 201, 0)][0][1] == "not adjacent"
+    assert r.cmd() == ("interact", {"x": 110, "y": 201, "kind": "open", "filter": "all", "maxWeight": 0.0})
+    assert last(tmp_path)["inputs"]["branches"]["goal"]["route"] == "open"
+    r.answer({"state": "failed", "reason": "locked"})
+    r.frame(x=109.5, y=201.5)
+    tick(r, sv)
+    assert r.world.marked_doors() == {(110, 201, 0)} and r.world.door_marks[(110, 201, 0)][1] == "locked"
+    assert r.cmd() == ("interact", {"x": 110, "y": 202, "kind": "open", "filter": "all", "maxWeight": 0.0})
+    r.answer()
+    r.frame(x=109.5, y=201.5)
+    tick(r, sv)
+    t, a = r.cmd()
+    assert t == "walkTo" and last(tmp_path)["inputs"]["branches"]["goal"]["route"] == "enter"
+    r.answer()
+    r.frame(x=a["x"], y=a["y"])
+    tick(r, sv)
+    t, a = r.cmd()
+    assert (t, a["kind"], a["x"], a["y"]) == ("interact", "loot", 112, 200) and sv.goals.current.TYPE == "LootBuilding"
+    assert N.exterior_doors(r.world, 1, 0) == [(110, 202, 0)]
+    r.frame(x=111.5, y=202.5, game_min=480.0 + W.DOOR_RETRY_MIN)
+    assert sorted(N.exterior_doors(r.world, 1, 0)) == [(110, 201, 0), (110, 202, 0)]
+
+
+def test_a_building_with_every_door_marked_is_blocked_and_passed_over_for_the_next(tmp_path):
+    """P24-Z: the only door marked, the view reads the building `blocked` (`x`, its `door` None) and the scripted
+    source loots the next building; a LootBuilding whose route finds no door left fails `no door`; the LLM source
+    refuses the blocked building."""
+    from .test_survive import make as smake
+    r, sv = smake(tmp_path)
+    one = house(1, 110)
+    two = house(2, 130)
+    for s in one + two:
+        if (s["x"], s["y"]) in ((111, 201), (131, 201)):
+            s["containers"] = [FRIDGE]
+    r.scan(one + two)
+    r.frame(x=109.5, y=201.5)
+    for _ in range(2):
+        r.world.note_door_fail((110, 201, 0), "locked")
+    v = view(r.world, sv)
+    b1 = next(b for b in v["buildings"] if b["id"] == 1)
+    assert b1["blocked"] is True and b1["door"] is None and " x h:" in V._building(b1)
+    assert G.ScriptedSource().propose(v).args() == {"building": 2}
+    assert L.place_error(G.LootBuilding(1), v) == "invalid: refused"
+    g = G.LootBuilding(1)
+    g.kit = G.Kit(r.world, r.acts, r.clock)
+    g.begin(r.world, r.acts, r.clock)
+    g.route_due = True
+    assert g.choose(r.world, r.acts, r.clock) is None and (g.state, g.reason) == ("failed", "no door")
+
+
+def test_e7_s_loots_at_the_locked_back_door_mark_it_and_the_route_takes_the_north_door():
+    """P24-Z on E7's record (lines 236-282 replayed: the recorded loots, bound to the record's aids): the character
+    stood at (10770.45, 10633.45) on the locked back door's square (10770, 10633) of building 5 while its loots failed
+    `not adjacent` (257 a55, 269 a56); the replayed Survive counts them on that door and marks it at the second, so
+    building 5's exterior doors read only the north door (10768, 10628), and a route's first step walks to its
+    approach square (10768, 10627). Read with P24-X off (`Survive.ENGAGE`): with it on, the zombie listed at 9.4
+    tiles from line 243 is sought and the record's loots are not replayed."""
+    from agent.base import replay_decisions as R
+    got = {}
+
+    def grab(sv):
+        sv.ENGAGE = False
+        real = sv.tick
+
+        def tick_(world, actions):
+            out = real(world, actions)
+            got["w"] = world
+            return out
+        sv.tick = tick_
+    R.replay(R.ARTIFACTS + "/e_day_7-20261029-140813", upto=282, mutate=grab)
+    w = got["w"]
+    door = (10770, 10633, 0)
+    assert w.door_near((10770.4521484375, 10633.451171875), 0, S.DOOR_NEAR_R) == door
+    assert w.marked_doors() == {door} and w.door_marks[door][1] == "not adjacent"
+    assert N.exterior_doors(w, 5, 0) == [(10768, 10628, 0)]
+    cmd, step = N.shelter_step(w, N.shelter_plan(w, 5))
+    assert step == "approach" and (cmd.x, cmd.y) == (10768.5, 10627.5)

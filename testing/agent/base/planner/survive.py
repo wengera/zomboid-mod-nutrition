@@ -324,6 +324,10 @@ CONSUME_RETRY_MIN = 5.0  # game minutes a consume that ended done leaves its ite
 FILL_SETTLE_S = 2.0      # wall seconds a done fill waits for its vessel's item_changed before it is read as filled (9 fix 2)
 FILL_RETRY_MIN = 2.0     # game minutes from its end a vessel whose fill failed is left out (as care.CARE_RETRY_MIN)
 FILL_WANTS = ("container", "water_source")   # the water chain's wants beside `water` (P24-G 3, P24-L)
+DOOR_FAILS = ("locked", "interrupted", "not adjacent") + STUCK_REASONS   # a door interact failed so is a door's
+                         # failure, two of which mark it (ruling P24-Z); a loot's `not adjacent` counts on the door the
+                         # player stands against (DOOR_NEAR_R)
+DOOR_NEAR_R = 1.5        # tiles: a loot failed `not adjacent` counts on a door square this near the player (P24-Z)
 SOURCE_FAILS = DRY_REASONS + ("not adjacent",) + STUCK_REASONS   # a fill failed so leaves its source out (Task 10
                          # fix 1, minor 5: a walk to it that failed, as one refused for its water), as a timeout does
 
@@ -332,7 +336,7 @@ __all__ = ["Survive", "BRANCHES", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER
            "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
            "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "NEED_STATS",
            "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
-           "SOURCE_FAILS"]
+           "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R"]
 
 
 def _key(typ, args):
@@ -1342,7 +1346,26 @@ class Survive:
                 self.last_failed = _key(a.type, a.args) + (self.ticks,)
                 if a.type == "consume" and a.state == "failed" and a.reason == REFUSED:
                     self._refused(a.args.get("itemId"))
+                self._door_failed(a)
         self._watch = still
+
+    def _door_failed(self, a):
+        """Ruling P24-Z (Plan 24 Task 18; E7: eight loots failed `not adjacent` while the character stood 55.6 s at
+        building 5's locked back door, and 6.0 s at a locked gate; Angus: "stuck trying to open doors"): a door's
+        failure noted in the World (`World.note_door_fail`, the second marking it): an `interact` open or close that
+        failed for a DOOR_FAILS reason, on its own square; a loot that failed `not adjacent` (its route stood against a
+        door), on the door square nearest the player within DOOR_NEAR_R, if any. Whichever branch sent it: the night's
+        shelter, the Shelter and LootBuilding goals, the flee's shelter and way out."""
+        if a.type != "interact" or a.state != "failed":
+            return
+        floor = me_floor(self.world)
+        kind = a.args.get("kind")
+        if kind in ("open", "close") and a.reason in DOOR_FAILS:
+            self.world.note_door_fail((a.args.get("x"), a.args.get("y"), floor), a.reason)
+        elif kind == "loot" and a.reason == "not adjacent":
+            door = self.world.door_near(me_xy(self.world), floor, DOOR_NEAR_R)
+            if door is not None:
+                self.world.note_door_fail(door, a.reason)
 
     def _refused(self, iid):
         """A consume refused `not valid`: a tainted one (`World.tainted_ids`: the Lua's `W.drinkable` refuses tainted

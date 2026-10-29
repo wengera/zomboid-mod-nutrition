@@ -28,7 +28,14 @@ a class attribute equal to the entry's `const`:
   bandage, weapon; `clothing` is wanted by name, and `LootHouse.target` answers nothing for it until the Lua's loot
   filter and the item record carry clothing and its protection) that `LootHouse.target` answers there;
   `done "looted"` when none answers after at least one loot, `failed "nothing to loot"` when none answered at all,
-  `failed "load"` above `LOOT_MAX_LEVEL` (the level guard, spec § 9 (1)).
+  `failed "load"` above `LOOT_MAX_LEVEL` (the level guard, spec § 9 (1)). The route (ruling P24-Z, Plan 24 Task 18;
+  E7's eight loots failed `not adjacent` from outside building 5's locked back door, 55.6 s): a loot that failed `not
+  adjacent` is a route that stood against a door (Survive counts it on that door, `World.note_door_fail`, the second
+  marking it); while the player is not on a room square of the building, the next steps are the shelter machine's
+  approach, open and enter by the building's best exterior door the World has not marked (`night.shelter_plan`,
+  `night.exterior_doors`), a step's end read by `night.shelter_ended` (its next door on a door's failure), and the loot
+  resumes from inside; with no door left, `failed "no door"` (the view then reads the building `blocked` once all
+  its doors are marked, and the source passes it over for the next).
 - `Shelter(building)`: Night's shelter machine for a named building (`night.shelter_plan`, `shelter_step`,
   `shelter_ended`, never re-implemented): approach the exterior door, open it, step in, close it (a step's walk failed
   `stuck` at a hoppable edge climbs it first, as `ExploreToward` does, and walks again; a climb that fails is read as
@@ -69,7 +76,8 @@ view's `edge` (which leaves out the bearing of a met group, `World.unexplored_ed
 building known, any square with no building within WOODS_R (40): the woods); the view's `toward` when it names the
 nearest building with the player beyond WOODS_R of every one (the step back to the known cluster); else the player's
 own square while `scanned_here` is false (a fresh session's first scan, before the map holds an edge; with no
-building known at all the edge is the plain one, the first building still to find); else `Rest(REST_S)`. A walk's
+building known at all the edge is the plain one, the first building still to find); else `Rest(REST_S)`. A
+building the view reads `blocked` (every exterior door marked stuck, P24-Z) is never looted nor walked toward. A walk's
 target is so always a building or a square within WOODS_R of one, once one is known.
 The edge leaves a stuck area (ruling P23-AP 1, E4's twelve walks from one square north of a locked gate): after two
 walks from the player's square failed `stuck` unmoved, `world.unexplored_edge` answers only a square a bounded flood
@@ -115,7 +123,8 @@ from dataclasses import dataclass, field, fields
 from typing import ClassVar, Optional, Protocol, runtime_checkable
 
 from agent.base.items import use_of
-from agent.base.planner.night import SHUN_MIN, hop_after, shelter_ended, shelter_plan, shelter_step
+from agent.base.planner.night import (SHUN_MIN, hop_after, player_square, shelter_ended, shelter_plan,
+                                      shelter_step)
 from agent.base.planner.policies import (LOOT_MAX_LEVEL, LOOT_WANTS, PREEMPTED, SCAN_R, Explore, LootHouse, me_xy,
                                          place_of)
 from agent.base.pza1 import Climb, Scan, WalkTo
@@ -378,11 +387,13 @@ class ExploreToward(_Climbing, Goal):
 
 
 class _Looting:
-    """The loot goals' shared send: the kit's LootHouse records its pending loot."""
+    """The loot goals' shared send: the kit's LootHouse records its pending loot (a loot's own interact only, never a
+    route step's open)."""
 
     def sent(self, cmd, action):
         super().sent(cmd, action)
-        self.kit.loot.sent(cmd, action)
+        if cmd.TYPE == "interact" and cmd.args().get("kind") == "loot":
+            self.kit.loot.sent(cmd, action)
 
     def _guard(self):
         level = self.kit.loot.level()
@@ -398,13 +409,58 @@ class LootBuilding(_Looting, Goal):
     TYPE: ClassVar[str] = "LootBuilding"
     building: int
 
+    def start(self, world):
+        self.route = None        # the entry plan (night.shelter_plan) while the route is due (P24-Z), else None
+        self.route_due = False   # a loot failed `not adjacent`: in by a door the World has not marked first
+
     def keys(self, world):
         """The container keys on the building's squares."""
         return {k for k in world.containers if (world.map.get(k[:3]) or {}).get("building") == self.building}
 
+    def _inside(self, world):
+        sq = player_square(world)
+        s = world.map.get(sq) if sq is not None else None
+        return s is not None and s.get("room") is not None and s.get("building") == self.building
+
+    def ended(self, world, action):
+        """A loot failed `not adjacent` makes the route due (P24-Z); a route step's end is read into its plan
+        (`night.shelter_ended`), `shun` (no door left) failing the goal `no door`."""
+        if action.type == "interact" and action.args.get("kind") == "loot":
+            if action.state == "failed" and action.reason == "not adjacent":
+                self.route_due = True
+            return
+        if self.route is not None:
+            out = shelter_ended(self.route, action)
+            self.why = dict(self.why, ended=out)
+            if out == "shun":
+                self.end("failed", "no door")
+
+    def _route(self, world):
+        """The route's next step while it is due and the player is not inside the building, else None (the route
+        done or not due); ends the goal `failed "no door"` when no unmarked exterior door is left."""
+        if not self.route_due or self._inside(world):
+            self.route_due, self.route = False, None
+            return None
+        if self.route is None:
+            self.route = shelter_plan(world, self.building)
+        cmd, step = (None, "shun") if self.route is None else shelter_step(world, self.route)
+        if step == "shun":
+            self.why = {"building": self.building, "route": None}
+            self.end("failed", "no door")
+            return None
+        if step in ("close", "done"):   # in: the loot resumes from inside
+            self.route_due, self.route = False, None
+            return None
+        door = self.route["doors"][self.route["door_i"]]
+        self.why = {"building": self.building, "route": step, "door": [door[0], door[1]]}
+        return cmd
+
     def choose(self, world, actions, clock):
         if self._guard():
             return None
+        cmd = self._route(world)
+        if cmd is not None or not self.running:
+            return cmd
         loot = self.kit.loot
         loot.within = self.keys(world)
         try:
@@ -616,7 +672,7 @@ class ScriptedSource:
         if loot_ok:
             for b in bs:
                 if (b.get("looted") is False and (b.get("containers") or 0) > 0 and _num(b.get("dist"))
-                        and b["dist"] <= BUILDING_R):
+                        and b["dist"] <= BUILDING_R and not b.get("blocked")):   # P24-Z: every door stuck
                     yield LootBuilding(b["id"])
         toward = view.get("toward") or {}
         to = toward.get("door") or toward.get("square")

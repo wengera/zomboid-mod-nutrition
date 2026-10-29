@@ -99,7 +99,7 @@ SHELTER_STEPS = ("approach", "open", "enter", "close")
 
 __all__ = ["Night", "TIRED_T", "LATE_HOUR", "DAWN_HOUR", "LATE_FATIGUE", "SHUN_MIN", "NOT_SAFE_S", "NOT_VALID_S",
            "STEP_RETRIES", "SHUN_REASONS", "SHELTER_STEPS", "shelter_plan", "shelter_step", "shelter_ended",
-           "exterior_doors", "approach_square", "exits", "shunned_now", "player_square"]
+           "exterior_doors", "approach_square", "exits", "shunned_now", "player_square", "door_blocked"]
 
 
 def _num(v):
@@ -126,12 +126,14 @@ def player_square(world):
 
 
 # ---------------------------------------------------------------- the shelter machine
-def exterior_doors(world, building, z):
+def exterior_doors(world, building, z, marked=False):
     """The building's exterior door squares on floor `z` (`World.door_way`: the door's own edge joins a room square to
     a mapped, non-solid square with no room; survival 3's amendment 5, once any door square with such a neighbour
     across any edge), ranked open first, then neither locked nor barricaded, then any, each nearest the player. The
     candidates are read once per map version (`World.memo`, M-4); only the ranking, which reads the player, runs each
-    call."""
+    call. A door the World has marked stuck (`World.marked_doors`, ruling P24-Z) is left out, unless `marked`: so
+    the shelter plans (the Night's, the Shelter goal's, the flee's), the ways out and a loot's route never try it
+    again within DOOR_RETRY_MIN."""
     def rank(sq):
         d = world.map[sq].get("door") or {}
         state = 0 if d.get("open") else (2 if d.get("locked") or d.get("barricaded") else 1)
@@ -139,7 +141,14 @@ def exterior_doors(world, building, z):
 
     def candidates():
         return [sq for sq in world.doors_of(building) if sq[2] == z and world.door_way(sq) is not None]
-    return sorted(world.memo(("exterior_doors", building, z), candidates), key=rank)
+    stuck = () if marked else world.marked_doors()
+    return sorted((sq for sq in world.memo(("exterior_doors", building, z), candidates) if sq not in stuck), key=rank)
+
+
+def door_blocked(world, building, z):
+    """Every exterior door of `building` on floor `z` is marked stuck (P24-Z): no route in; False with none known."""
+    every = exterior_doors(world, building, z, marked=True)
+    return bool(every) and not exterior_doors(world, building, z)
 
 
 def approach_square(world, door):
