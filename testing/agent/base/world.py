@@ -56,15 +56,23 @@ origin); `zombie_dead` drops its id. `met_density(x, y, r=MET_R)` counts the dis
 zombies within `r` (ties: nearest the player, then by position), answered as `(cx, cy, n)`, the centroid of those `n`
 zombies, else None. The flee's first leg is pushed off the window's centre (`policies.Flee`). Not in `to_json`.
 
-The goal sources' met ground (Plan 24 Task 3, ruling P24-B; F1's goals kept walking toward the one gate zombie,
-#4278): `met_near(r=MET_VIEW_R)` is `met_window`'s rule over the centres within `r` (25) tiles of the player (every
-met zombie counted in a window), `(cx, cy, n)` else None; the view reads it as `met`. `avoid_cone()` is its bearing
-(`bearing_deg`: degrees clockwise from north, -y) while `n` >= MET_AVOID_N (3), else None, and `in_cone(x, y)` whether
-the square's centre lies within MET_AVOID_DEG (45, inclusive) of that bearing from the player (the player's own
-square, no bearing, never does). `unexplored_edge` leaves every square `in_cone` out, under both its rules, so the
-edge walk never heads at a met group; when every edge lies in the cone it answers None (the source then loots, scans
-or rests: never a walk at them). Under MET_AVOID_N the choice is the plain one. `compass(dx, dy)` names a bearing's
-eighth (N, NE, ... NW), None for no offset.
+The goal sources' met ground (Plan 24 Task 3, ruling P24-B; F1's goals kept walking toward the one gate zombie, #4278):
+`met_near(r=MET_VIEW_R)` is the densest MET_R window centred within `r` (25) tiles of the player, `(cx, cy, n)` (the
+centroid of the `n` met zombies within MET_R of the centre) else None; the view reads it as `met`. Its search is
+bucketed (Task 3 fix 1, review I1: `met_window`'s every-met-centre search is quadratic, 9.6 ms at 400 met; the bounded
+search with its cache reads about 2 ms a tick there): only the met within `r + MET_R` of the player are read, bucketed
+into MET_R cells; the candidate centres are each occupied cell's centroid and each 2 x 2 block of cells' centroid, each
+then shifted to its window's centroid up to MET_SHIFTS (3) times (a mean shift, so a group straddling the cells' lines
+is found whole), each window counted over the 3 x 3 cells round its centre, so the search is linear in the met for a
+bounded area; the rank is `met_window`'s (most met, then nearest the player, then position). Its answer is cached on
+(`met_version`, the player's position, `r`): `met_version` rises on every change of the memory (a frame that listed or
+expired a zombie, a `zombie_dead` that dropped one), so the tick's several reads (the view, `avoid_cone`,
+`policies.Explore`) cost one search. `avoid_cone()` is its bearing (`bearing_deg`: degrees clockwise from north, -y)
+while `n` >= MET_AVOID_N (3), else None, and `in_cone(x, y)` whether the square's centre lies within MET_AVOID_DEG (45,
+inclusive) of that bearing from the player (the player's own square, no bearing, never does). `unexplored_edge` leaves
+every square `in_cone` out, under both its rules, so the edge walk never heads at a met group; when every edge lies in
+the cone it answers None (the source then loots, scans or rests: never a walk at them). Under MET_AVOID_N the choice is
+the plain one. `compass(dx, dy)` names a bearing's eighth (N, NE, ... NW), None for no offset.
 
 The server's side comes in through `merge_server(stats, wall_ms)` and `merge_damage(reply, wall_ms)`, a
 `damage.watch` reply whose `last` records not yet seen (by `i`) land in `damage` tagged `server` (spec § 9).
@@ -137,6 +145,8 @@ MET_VIEW_R = 25.0    # tiles: a met window counts for the goal sources only with
                      # the view's widest zombie band)
 MET_AVOID_N = 3      # met zombies in the window before the edge choice leaves its bearing out (ruling P24-B 2)
 MET_AVOID_DEG = 45.0  # degrees either side of the window's bearing the edge choice leaves out (ruling P24-B 2)
+MET_SHIFTS = 3       # met_near's shifts of a cell's centre to its window's centroid (Task 3 fix 1, I1: a group
+                     # straddling the cells' lines is found whole)
 COMPASS = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
 GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 DEQUE_N = 500
@@ -167,6 +177,16 @@ def compass(dx, dy):
     """The eighth of the compass (N, NE, ... NW) the offset (dx, dy) points into, None for no offset."""
     b = bearing_deg(dx, dy)
     return None if b is None else COMPASS[int((b + 22.5) // 45.0) % 8]
+
+
+def _cell(x, y):
+    """The MET_R cell of position (x, y): met_near's bucket."""
+    return math.floor(x / MET_R), math.floor(y / MET_R)
+
+
+def _mean(ps):
+    """The centroid of the points `ps` (x, y)."""
+    return sum(p[0] for p in ps) / len(ps), sum(p[1] for p in ps) / len(ps)
 
 
 def _num_first(v):
@@ -215,6 +235,8 @@ class World:
         self.stuck_run = None        # {"from": (x, y), "to": [(x, y)...], "at": world_minutes()}: the unmoved stuck
                                      # walks in a row from one square (P23-AP 1), set by the planner
         self.met = {}                # zombie id -> (x, y, world minute) where a frame last listed it (P24-A (a))
+        self.met_version = 0         # rises on every change of `met`: the key of met_near's cache (Task 3 fix 1)
+        self._met_near = None        # ((met_version, px, py, r), answer): met_near's cache
         self.map_version = 0         # rises on every square applied: the key of the map's cached reads
         self._memo = {}              # key -> (map_version, value): the cache of memo()
         self._indexed = None         # (map_version, {building: [room squares]}, {building: [door squares]})
@@ -262,11 +284,16 @@ class World:
         if not isinstance(wa, (int, float)) or isinstance(wa, bool):
             return
         now = self.world_minutes()
+        changed = False
         for z in zombies:
             if z.get("id") is not None and z.get("x") is not None and z.get("y") is not None:
                 self.met[z["id"]] = (z["x"], z["y"], now)
+                changed = True
         for zid in [i for i, m in self.met.items() if now - m[2] > MET_TTL_MIN]:
             del self.met[zid]
+            changed = True
+        if changed:
+            self.met_version += 1
 
     def _map(self, line):
         self.map_lines += 1
@@ -317,7 +344,8 @@ class World:
                                 "wallMs": line.get("wallMs")})
         elif kind == "zombie_dead":
             self.zombies.pop(line.get("id"), None)
-            self.met.pop(line.get("id"), None)
+            if self.met.pop(line.get("id"), None) is not None:
+                self.met_version += 1
         elif kind == "scan_dropped":
             self.scans_dropped.add(str(line.get("aid")))
 
@@ -469,22 +497,51 @@ class World:
 
     def met_near(self, r=MET_VIEW_R):
         """The densest met window centred within `r` tiles of the player (the module docstring): `(cx, cy, n)`, else
-        None."""
+        None; cached on (`met_version`, the player's position, `r`)."""
         px, py = me_xy(self)
-        pts = sorted((m[0], m[1]) for m in self.met.values())
+        key = (self.met_version, px, py, r)
+        if self._met_near is None or self._met_near[0] != key:
+            self._met_near = (key, self._met_search(px, py, r))
+        return self._met_near[1]
+
+    def _met_search(self, px, py, r):
+        """`met_near`'s bucketed search (the module docstring)."""
+        reach = r + MET_R
+        cells = {}
+        for m in self.met.values():
+            if math.hypot(m[0] - px, m[1] - py) <= reach:
+                cells.setdefault(_cell(m[0], m[1]), []).append((m[0], m[1]))
+
+        def around(c):
+            i, j = _cell(c[0], c[1])
+            return [p for di in (-1, 0, 1) for dj in (-1, 0, 1) for p in cells.get((i + di, j + dj), ())]
+
+        starts = [own for _, own in sorted(cells.items())]
+        for bi, bj in sorted({(i + di, j + dj) for i, j in cells for di in (-1, 0) for dj in (-1, 0)}):
+            own = [p for di in (0, 1) for dj in (0, 1) for p in cells.get((bi + di, bj + dj), ())]
+            if len(own) > len(cells.get((bi, bj), ())):    # a block adding to its corner cell: a group across a line
+                starts.append(own)
+        ranked = sorted(((len(around(_mean(own))), k, _mean(own)) for k, own in enumerate(starts)),
+                        key=lambda t: (-t[0], t[1]))
         best = None
-        for c in pts:
-            d = math.hypot(c[0] - px, c[1] - py)
-            if d > r:
-                continue
-            inn = [p for p in pts if math.hypot(p[0] - c[0], p[1] - c[1]) <= MET_R]
-            rank = (-len(inn), d, c)
-            if best is None or rank < best[0]:
-                best = (rank, inn)
+        for bound, _, c in ranked:
+            if best is not None and bound < -best[0][0]:
+                break                                # no window round this start can hold more than the best
+            n = 0
+            for _ in range(MET_SHIFTS + 1):          # the start, then shifted to its window's centroid
+                d = math.hypot(c[0] - px, c[1] - py)
+                inn = [p for p in around(c) if math.hypot(p[0] - c[0], p[1] - c[1]) <= MET_R] if d <= r else []
+                if len(inn) <= n:
+                    break
+                n = len(inn)
+                rank = (-n, d, c)
+                if best is None or rank < best[0]:
+                    best = (rank, inn)
+                c = _mean(inn)
         if best is None:
             return None
         inn = best[1]
-        return sum(p[0] for p in inn) / len(inn), sum(p[1] for p in inn) / len(inn), len(inn)
+        return _mean(inn) + (len(inn),)
 
     def avoid_cone(self):
         """The bearing (degrees) of `met_near`'s window from the player while it holds MET_AVOID_N or more, else

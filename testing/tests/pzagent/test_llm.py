@@ -509,3 +509,21 @@ def test_each_row_records_its_answer_bytes_and_the_totals_sum_them():
     src2.propose(v)
     assert src2.calls[0]["answer_bytes"] == 0 and src2.totals()["answer_bytes_total"] == 0
     assert LLMSource(Fallback()).totals() == {"prompt_bytes_total": 0, "answer_bytes_total": 0}
+
+
+
+# ---------------------------------------------------------------- Task 3 fix 1: a looted shelter, the prompt's reads
+def test_a_shelter_of_a_shown_looted_building_is_accepted():
+    looted = [{"id": 3, "x": 112, "y": 200, "door": [112, 201], "dist": 12.5, "containers": 4, "looted": True,
+               "doors": 1, "visited": True, "shunned": False}]
+    src, _, _ = make(answer='{"type": "Shelter", "building": 3}')
+    src.propose(a_view(buildings=looted))
+    settle(src)
+    g = src.propose(a_view(buildings=looted))
+    assert isinstance(g, Shelter) and g.building == 3 and src.calls[0]["error"] is None and src.refusal is None
+
+
+def test_system_explains_attackers_hit_reaction_and_the_met_rules_threshold():
+    assert "attackers is how many zombies are attacking you now" in SYSTEM
+    assert "hit_reaction names the hit you are reeling from" in SYSTEM
+    assert "never explore toward its bearing while met.n is 3 or more" in SYSTEM

@@ -11,8 +11,9 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   (its nearest room square on the player's floor, else on any floor: P24-B 3, the model's positions), `door` (its
   first exterior door square on the player's floor, `night.exterior_doors`'s ranking, as [x, y], else None), `dist`
   (tiles from the player to that square's centre, to 0.1), `containers` (the containers on its squares), `looted`
-  (a bool, P24-B 3: no container on it a loot could take anything more from, `goals.open_uses` empty for each, so a
-  container holding only `other` items or waiting on the cap counts looted, and a building with none reads true),
+  (a bool, P24-B 3: a container known on it and none a loot could take anything more from, `goals.open_uses` empty
+  for each, so a container holding only `other` items or waiting on the cap counts looted; a building with no
+  container known reads false, unsearched ground being lootable: Task 3 fix 1, M1),
   `doors` (its exterior doors on the player's floor), `visited` (in `night.visited`), `shunned` (by the night or a
   Shelter goal, within `night.SHUN_MIN`), `shelter` (`night.shelter_plan` answers for it: rooms and an exterior door
   on the player's floor; the scripted Shelter requires it, fix 1 I3).
@@ -98,7 +99,7 @@ def _buildings(world, night, kit):
         doors = exterior_doors(world, b, z)
         out.append({"id": b, "x": sq[0], "y": sq[1], "door": [doors[0][0], doors[0][1]] if doors else None,
                     "dist": round(dist, 1), "containers": len(cs),
-                    "looted": not any(open_uses(world, loot, k, waiting) for k in cs),
+                    "looted": bool(cs) and not any(open_uses(world, loot, k, waiting) for k in cs),
                     "doors": len(doors), "visited": b in visited, "shunned": b in shunned,
                     "shelter": shelter_plan(world, b) is not None})
     return sorted(out, key=lambda r: (r["dist"], r["id"]))

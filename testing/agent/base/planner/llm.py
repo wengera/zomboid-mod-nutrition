@@ -126,7 +126,9 @@ def _system():
                  "it is refused and the program chooses instead." % EXPLORE_MAX_TILES)
     lines.append("met is the ground where zombies were met in the last minutes: dense the centre of the densest "
                  "group, n how many, bearing and dist from pos. Zombies there are still about: prefer ground away "
-                 "from met.dense, and never explore toward its bearing.")
+                 "from met.dense, and never explore toward its bearing while met.n is 3 or more.")
+    lines.append("attackers is how many zombies are attacking you now (the instincts answer them; a goal cannot).")
+    lines.append("hit_reaction names the hit you are reeling from now, null when none.")
     lines.append("last_goal is how the last goal ended: end done, failed, superseded or refused, and why, one of: "
                  "%s." % ", ".join(WHYS))
     lines.append("The user message is the view: one `key: value` line per key.")

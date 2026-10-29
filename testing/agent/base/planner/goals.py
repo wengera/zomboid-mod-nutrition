@@ -43,20 +43,20 @@ as the old `forage`/`explore` branches' long-lived machines did), else builds it
 number is refused) and raises
 `ValueError` with a one-line reason; it returns the dataclass. `EXAMPLES` holds one valid argument dict per type.
 
-`ScriptedSource` (`NAME = "scripted"`) is the old forage and explore reshaped, its order: `Stock(kind)` when the
-view's `needs_wanted` names water or food (water first) and `stock_uses` says a container answers it; `Shelter`
-the nearest known building for which the view's `shelter` reads true (`night.shelter_plan` answers: rooms and an
-exterior door on the player's floor) and that is not shunned, when `want_shelter`; `LootBuilding` the nearest
-building with a container not yet looted (the view's `looted` false, P24-B 3); `ExploreToward` the view's `edge`
-(which leaves out the bearing of a met group, `World.unexplored_edge`, ruling P24-B 2), else the
-player's own square while `scanned_here` is false (a fresh session's first scan, before the map holds an edge);
-else `Rest(REST_S)`. The edge leaves a stuck area (ruling P23-AP 1, E4's twelve walks from one square north of a
-locked gate): after two walks from the player's square failed `stuck` unmoved, `world.unexplored_edge` answers only a
-square a bounded flood from the player reaches and whose straight line from it crosses no known blocking edge, else
-none, and the kit's `Explore` has dropped the place from `scanned`; so the source proposes a loot, else the scan of
-the player's own square, never a third walk from that square. A loot goal (`Stock`, `LootBuilding`) is proposed only
-at the view's load level `LOOT_MAX_LEVEL` or below, so a heavy load never proposes a goal that fails on its first
-step. A candidate the view's `cooled` lists is passed over for the next.
+`ScriptedSource` (`NAME = "scripted"`) is the old forage and explore reshaped, its order: `Stock(kind)` when the view's
+`needs_wanted` names water or food (water first) and `stock_uses` says a container answers it; `Shelter` the nearest
+known building for which the view's `shelter` reads true (`night.shelter_plan` answers: rooms and an exterior door on
+the player's floor) and that is not shunned, when `want_shelter`; `LootBuilding` the nearest building with a container
+known and not yet looted (the view's `looted` false and `containers` above 0, P24-B 3); `ExploreToward` the view's
+`edge` (which leaves out the bearing of a met group, `World.unexplored_edge`, ruling P24-B 2), else the player's own
+square while `scanned_here` is false (a fresh session's first scan, before the map holds an edge); else `Rest(REST_S)`.
+The edge leaves a stuck area (ruling P23-AP 1, E4's twelve walks from one square north of a locked gate): after two
+walks from the player's square failed `stuck` unmoved, `world.unexplored_edge` answers only a square a bounded flood
+from the player reaches and whose straight line from it crosses no known blocking edge, else none, and the kit's
+`Explore` has dropped the place from `scanned`; so the source proposes a loot, else the scan of the player's own
+square, never a third walk from that square. A loot goal (`Stock`, `LootBuilding`) is proposed only at the view's load
+level `LOOT_MAX_LEVEL` or below, so a heavy load never proposes a goal that fails on its first step. A candidate the
+view's `cooled` lists is passed over for the next.
 
 `GoalRunner(source, clock, shunned=None)`: `current` (the running goal or None), `history` (the record rows,
 `loop.goals` of task-15-amendments.md: `{type, args, state, reason, startS, endS, source}`, `startS`/`endS` seconds
@@ -526,7 +526,7 @@ class ScriptedSource:
                     yield Shelter(b["id"])
         if loot_ok:
             for b in bs:
-                if b.get("looted") is False:
+                if b.get("looted") is False and (b.get("containers") or 0) > 0:
                     yield LootBuilding(b["id"])
         edge = view.get("edge")
         if edge:

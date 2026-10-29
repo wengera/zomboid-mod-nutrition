@@ -246,3 +246,54 @@ def test_a_building_renders_its_square_door_distance_and_flags():
     assert V._building(b) == "3 @110,201 door 110,201 10.5 c2 v"
     b.update(door=None, looted=True, visited=False, shunned=True)
     assert V._building(b) == "3 @110,201 door - 10.5 c2 Ls"
+
+
+# ======================================== Task 3 fix 1: the render drop order (I2), an unsearched building (M1)
+def overflow(v, extra):
+    """`v` with three 400-byte events and `cooled` padded so its render without the events is RENDER_MAX - 1 + `extra`
+    bytes (negative: under the cap; the events alone then push it over)."""
+    v = dict(v, events=["e" * 400, "f" * 400, "g" * 400])
+
+    def padded(n):
+        w = dict(v, cooled=[{"type": "Rest", "args": {"pad": "p" * n}}] + list(v["cooled"]))
+        return w, len(chr(10).join(V._lines(w, V.BUILDINGS_SHOWN, events=False)).encode("utf-8"))
+    s0 = padded(0)[1]
+    w, size = padded(V.RENDER_MAX - 1 + extra - s0)
+    assert size == V.RENDER_MAX - 1 + extra
+    return w
+
+
+def test_the_events_go_first_when_they_alone_overflow(tmp_path):
+    r, sv = full_world(tmp_path)
+    v = overflow(view(r.world, sv), -50)
+    text = render(v)
+    lines = text.splitlines()
+    assert "events: []" in lines
+    bl = next(ln for ln in lines if ln.startswith("buildings:"))
+    assert bl.count(";") == V.BUILDINGS_SHOWN - 1                        # all six kept
+    assert not any(ln.endswith("...") for ln in lines)
+
+
+def test_the_farthest_buildings_go_next_then_the_longest_line_is_halved(tmp_path):
+    r, sv = full_world(tmp_path)
+    v = overflow(view(r.world, sv), 60)                                  # the events out, still 60 over
+    lines = render(v).splitlines()
+    bl = next(ln for ln in lines if ln.startswith("buildings:"))
+    shown = bl.count(";") + 1
+    assert "events: []" in lines and 0 < shown < V.BUILDINGS_SHOWN
+    assert bl.startswith("buildings: %s " % v["buildings"][0]["id"])    # the nearest kept, the farthest cut
+    assert not any(ln.endswith("...") for ln in lines)
+    v = overflow(view(r.world, sv), 600)                                 # beyond every building: a line halved
+    lines = render(v).splitlines()
+    assert "events: []" in lines and "buildings: " in lines
+    assert next(ln for ln in lines if ln.startswith("cooled:")).endswith("...")
+    assert [ln.split(":", 1)[0] for ln in lines] == list(V.KEYS)
+
+
+def test_a_building_with_no_container_known_is_not_looted(tmp_path):
+    """M1: unknown reads lootable: `looted` is true only with a container known and every one looted."""
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110))
+    r.frame(x=100.0, y=201.5)
+    b = view(r.world, sv)["buildings"][0]
+    assert b["containers"] == 0 and b["looted"] is False and "L" not in V._building(b).split()[-1]

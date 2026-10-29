@@ -126,9 +126,11 @@ def view(**k):
 
 def bld(bid, dist, containers=2, looted=0, doors=1, shunned=False, shelter=None):
     """A view building; `looted` is the count of its containers a loot could take nothing more from, and the view's
-    `looted` is the bool every one of them is (P24-B ruling 3: the view's `looted` became a bool)."""
-    return {"id": bid, "dist": dist, "containers": containers, "looted": looted >= containers, "doors": doors,
-            "visited": False, "shunned": shunned, "shelter": doors > 0 if shelter is None else shelter}
+    `looted` is the bool every one of them is, with one known (P24-B ruling 3: the view's `looted` became a bool;
+    Task 3 fix 1, M1: a building with no container known reads not looted)."""
+    return {"id": bid, "dist": dist, "containers": containers, "looted": containers > 0 and looted >= containers,
+            "doors": doors, "visited": False,
+            "shunned": shunned, "shelter": doors > 0 if shelter is None else shelter}
 
 
 @pytest.mark.parametrize("v, want", [
@@ -679,3 +681,109 @@ def test_the_cone_holds_45_degrees_either_side_of_the_dense_bearing(tmp_path):
 def test_compass_reads_north_as_minus_y(dx, dy, want):
     from agent.base.world import compass
     assert compass(dx, dy) == want
+
+
+# ======================================== Task 3 fix 1: met_near cached and bounded (I1), the all-in-cone None (I2)
+def test_met_near_is_searched_once_per_memory_version_and_position(tmp_path, monkeypatch):
+    r = Rig(tmp_path)
+    met_west(r, 3)
+    w = r.world
+    calls = []
+    real = w._met_search
+    monkeypatch.setattr(w, "_met_search", lambda *a: calls.append(a) or real(*a))
+    v0 = w.met_version
+    first = w.met_near()
+    assert w.met_near() is first and w.avoid_cone() is not None and len(calls) == 1   # the tick's reads: one search
+    r.frame(x=101.0)                                                     # the player moved: searched again
+    w.met_near()
+    assert len(calls) == 2 and w.met_version == v0                       # a frame listing none changed no memory
+    r.frame(x=101.0, zombies=[zombie(9, 89.0, 195.0)])                  # a listing: the memory's version rises
+    assert w.met_version == v0 + 1 and w.met_near()[2] == 4 and len(calls) == 3
+    r.event("zombie_dead", id=9)
+    assert w.met_version == v0 + 2 and w.met_near()[2] == 3 and len(calls) == 4
+    r.event("zombie_dead", id=9)                                         # nothing dropped: no new version
+    assert w.met_version == v0 + 2
+    r.frame(x=101.0, game_min=480.0 + 11.0)                              # past MET_TTL_MIN: expiry is a change
+    assert w.met_version == v0 + 3 and w.met_near() is None and len(calls) == 5
+
+
+def test_met_near_counts_a_met_beyond_r_but_within_r_plus_met_r(tmp_path):
+    """The bound reads the met within r + MET_R of the player (a met zombie farther can be in no window centred
+    within r): one 34 tiles off is counted in the window centred 25 off."""
+    from agent.base import world as W
+    r = Rig(tmp_path)
+    r.frame()
+    w = r.world
+    w.met = {1: (100.0, 225.0, 480.0), 2: (100.0, 234.0, 480.0)}
+    w.met_version += 1
+    m = w.met_near()
+    assert W.MET_VIEW_R + W.MET_R == 35.0 and m[2] == 2 and abs(m[1] - 229.5) < 1e-9
+    w.met = {1: (100.0, 226.0, 480.0), 2: (100.0, 234.0, 480.0)}        # no centre within 25: none
+    w.met_version += 1
+    assert w.met_near() is None
+
+
+@pytest.mark.parametrize("xs, n", [
+    ([91.0] * 5 + [99.0] + [107.0] * 5, 11),     # across the line x 100: only a block's centre holds all eleven
+    ([106.5, 117.9, 120.4, 123.1], 4),           # no start's window holds all four: the shift to its centroid does
+])
+def test_met_near_finds_a_group_across_the_cells_lines(tmp_path, xs, n):
+    r = Rig(tmp_path)
+    r.frame()
+    w = r.world
+    w.met = {i: (x, 205.0, 480.0) for i, x in enumerate(xs)}
+    w.met_version += 1
+    assert w.met_near()[2] == n
+
+
+def test_a_horde_of_400_is_one_window_and_a_tick_costs_one_search(tmp_path):
+    import random
+    import time
+    r = Rig(tmp_path)
+    r.frame()
+    w = r.world
+    rnd = random.Random(7)
+    w.met = {i: (110.0 + rnd.uniform(-3, 3), 200.0 + rnd.uniform(-3, 3), 480.0) for i in range(400)}
+    w.met_version += 1
+    t = time.perf_counter()
+    m = w.met_near()
+    for _ in range(50):
+        w.met_near()
+        w.avoid_cone()
+    assert m[2] == 400 and time.perf_counter() - t < 0.5
+
+
+def corridor(r):
+    """Every square solid round the player at (100, 200) but a corridor running West to (90, 200), whose West end
+    borders the unmapped: the corridor's end is the only edge, due West."""
+    sqs = []
+    for x in range(90, 104):
+        for y in range(197, 204):
+            open_sq = y == 200 and x <= 101
+            sqs.append(square(x, y) if open_sq else square(x, y, solid=True))
+    r.scan(sqs)
+
+
+def test_every_edge_in_the_cone_answers_none_and_the_source_scans_loots_or_rests(tmp_path):
+    r = Rig(tmp_path)
+    corridor(r)
+    assert r.world.unexplored_edge() == (90, 200)                       # nothing met: the corridor's end
+    met_west(r, 3)
+    r.frame(x=100.5, y=200.5)
+    assert r.world.avoid_cone() is not None and r.world.unexplored_edge() is None
+    sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
+    from agent.base.planner.view import view as build
+    v = build(r.world, sv)
+    assert v["edge"] is None and v["scanned_here"] is False
+    g = ScriptedSource().propose(dict(v, buildings=[]))
+    assert (g.TYPE, g.args()) == ("ExploreToward", {"x": 100, "y": 200})   # the scan of the player's own square
+    g = ScriptedSource().propose(dict(v, buildings=[bld(4, 6.0)]))
+    assert (g.TYPE, g.args()) == ("LootBuilding", {"building": 4})
+    g = ScriptedSource().propose(dict(v, buildings=[], scanned_here=True))
+    assert g.TYPE == "Rest"                                              # never a walk into the cone
+
+
+def test_a_building_with_no_container_known_is_never_a_scripted_loot():
+    """M1: the view reads it not looted (unsearched), and the scripted source still passes it over."""
+    g = ScriptedSource().propose(view(buildings=[bld(3, 5.0, containers=0), bld(2, 9.0)], edge=[110, 200]))
+    assert (g.TYPE, g.args()) == ("LootBuilding", {"building": 2})
