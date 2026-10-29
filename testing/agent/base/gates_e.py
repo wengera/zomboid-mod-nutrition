@@ -16,9 +16,11 @@ Every function here is versioned per pass: once an artifact carries its output i
 grade_e2 / gate_e2. The death check is gates.death_check, the frozen function, reused."""
 import os
 import re
+from types import SimpleNamespace
 
 from agent.base import gates as GT
 from agent.base.planner.goals import WOODS_R
+from agent.base.planner.night import Night
 from agent.base.planner.survive import DANGER_R, DOOR_FAILS, DOOR_NEAR_R
 from agent.base.transport.files import FileTransport
 from agent.base.world import World, me_floor, me_xy
@@ -942,8 +944,10 @@ def e_engage(decision_lines):
     line is (the module comment's inference). `seek_legs` the actions the seek lines sent, by type and the walkTo's
     gait; `seek_walk_share` the walks at a walk of the seek walks; `flee_turns` the fight lines the planner read
     while its mode was flee (inputs.mode, the mode before the tick); `flees` the lines answering with a flee, by
-    reason; `many_listed_*` the lines whose `many` the listed count alone made (why.listed). {read: False} when no
-    decision log was given."""
+    reason; `many_listed_*` the lines whose `many` the listed count alone made (why.listed). `seek_lines` and
+    `seek_legs` are lower bounds (a seek walk that gives way to the stance logs a stance leg, Task 18 fix 1) and
+    `fights_sought` an inference (nearest beyond DANGER_R, or why.seek); the write-up reads both. {read: False} when
+    no decision log was given."""
     if decision_lines is None:
         return {"read": False}
     fights = sought_fights = sought_lines = seek_lines = turns = fight_lines = listed_lines = 0
@@ -1015,7 +1019,9 @@ def _replay(out, lines):
     buildings known when it was sent (loop second sentS at t_loop0_ms + 1000 sentS on the frames clock), a failed
     door interact (the planner's `_door_failed` rule: an open or close failed for a DOOR_FAILS reason on its own
     square, a loot failed `not adjacent` on the door nearest the player within DOOR_NEAR_R) noted into the World's
-    own `note_door_fail` as it ended, and a door interact sent at a square the World had marked counted."""
+    own `note_door_fail` as it ended with the side it failed from (Night.inside, "in" on a room square, else "out":
+    the mark is one-sided, Task 18 fix 1), and a door interact sent at a square the World had marked from the side
+    the character stands on counted (a way out from inside a door marked from outside is no retry)."""
     loop = _d(_d(out).get("loop"))
     t0 = _n(loop.get("t_loop0_ms"))
     if not lines or t0 is None:
@@ -1047,8 +1053,11 @@ def _replay(out, lines):
                           "kind": kind, "tiles": tiles, "building": b})
             return
         floor = me_floor(w)
+        # Task 18 fix 1, major 4: the mark is one-sided; the side is the planner's own test (Night.inside: the player's
+        # square has a room), called on a stand-in carrying the replay's World
+        side = "in" if Night.inside(SimpleNamespace(world=w)) else "out"
         if what == "send":
-            if (args.get("x"), args.get("y"), floor) in w.marked_doors():
+            if (args.get("x"), args.get("y"), floor) in w.marked_doors(side):
                 tried += 1
             return
         sq, reason = None, a.get("reason")
@@ -1056,7 +1065,7 @@ def _replay(out, lines):
             sq = (args.get("x"), args.get("y"), floor)
         elif args.get("kind") == "loot" and reason == "not adjacent":
             sq = w.door_near(me_xy(w), floor, DOOR_NEAR_R)
-        if sq is not None and w.note_door_fail(sq, reason):
+        if sq is not None and w.note_door_fail(sq, reason, side):
             marks.append({"door": list(sq), "reason": reason, "atMs": at, "atS": (at - t0) / 1000.0,
                           "building": w.door_building(sq)})
 
@@ -1076,15 +1085,19 @@ def e_destinations(rep):
     the walks sent off the threat branch (a seek or a flee leg is no destination) by what stood at the target when
     they were sent (DEST_BUILDING_R, WOODS_R: ruling P24-Y, every walk a building), `farthest` the greatest distance
     from a known building (None when a walk had none known), `ok` no walk of kind other. {read: False} without a
-    replay."""
+    replay. `by_branch` {branch: {kind: n}} splits the same walks (a care or need walk to an outdoor source reads
+    kind other; `ok` is unchanged and reads every branch)."""
     if rep is None:
         return {"read": False}
     walks = [r for r in rep["walks"] if r["branch"] != "threat"]
     by = {"building": 0, "cluster": 0, "other": 0}
+    by_branch = {}
     for r in walks:
         by[r["kind"]] += 1
+        row = by_branch.setdefault(str(r["branch"]), {"building": 0, "cluster": 0, "other": 0})
+        row[r["kind"]] += 1
     d = [r["tiles"] for r in walks if r["tiles"] is not None]
-    return {"read": True, "walks": len(walks), "by_kind": by, "farthest": max(d) if d else None,
+    return {"read": True, "walks": len(walks), "by_kind": by, "by_branch": by_branch, "farthest": max(d) if d else None,
             "off_building": [r for r in walks if r["kind"] == "other"][:10], "ok": by["other"] == 0}
 
 
@@ -1146,7 +1159,10 @@ def grade_e5(out, prev=None, decision_lines=None, state_dir=None, lines=None):
     window, the load ratio) read over every frame of the state files in `state_dir` (or of `lines`, the decoded
     lines) when there are any, else over loop.last_frames; `frames_source` ("state_logs" | "last_frames"),
     `frames_files` and `frames_n` say which. Beside them: `engage` (e_engage, with decision_lines), `destinations`
-    and `doors` (off a replay of the lines into a World), `loot` and report_lines (report_lines_e5)."""
+    and `doors` (off a replay of the lines into a World), `loot` and report_lines (report_lines_e5).
+    The boot's own call (day.grade_state) passes no decision_lines, so the artifact's record carries
+    `engage: {read: False}` and `doors.routes_around: []`; only a regrade with the run's decision.log
+    (`e_grade_5.py`) fills them: the run's GUIDE says so."""
     files = []
     if lines is None:
         lines, files = session_lines(state_dir) if state_dir is not None else ([], [])

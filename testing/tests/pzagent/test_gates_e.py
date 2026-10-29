@@ -980,6 +980,21 @@ def test_the_second_failure_at_a_door_marks_it_and_a_try_while_marked_fails_the_
     assert any(l.startswith("doors: 1 marked stuck") for l in around["report_lines"])
 
 
+def test_a_door_marked_from_outside_is_no_retry_from_inside_but_is_from_outside_again(tmp_path):
+    """Task 20 fix 1, the review's major: the planner's mark is one-sided (Task 18 fix 1); the replay notes the side
+    the character stood on (Night.inside) and counts a try only from the marking side."""
+    sq = [_room(100 + i, 200 + j) for i in range(4) for j in range(4)]
+    d = _state(tmp_path / "s", [_mline(1, W0, sq), _fline(2, W0 + 100, x=50.5, y=50.5),
+                               _fline(3, W0 + 3000, x=101.5, y=201.5), _fline(4, W0 + 5000, x=50.5, y=50.5)])
+    marked = [_open("o1", 1.0, 101, 200), _open("o2", 2.0, 101, 200)]
+    inside = marked + [_open("o3", 4.0, 101, 200, state="done", reason="")]
+    g = E.grade_e5(art(actions=inside, t_loop0_ms=W0), state_dir=d)["doors"]
+    assert len(g["marks"]) == 1 and g["tried_marked"] == 0 and g["ok"] is True
+    again = inside + [_open("o4", 6.0, 101, 200)]
+    g = E.grade_e5(art(actions=again, t_loop0_ms=W0), state_dir=d)["doors"]
+    assert g["tried_marked"] == 1 and g["ok"] is False
+
+
 def _tline(branch="threat", fight=None, flee=None, near=None, mode=None, action=None, **why):
     w = dict(why)
     if fight is not None:
