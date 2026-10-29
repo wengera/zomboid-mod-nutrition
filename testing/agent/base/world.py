@@ -122,7 +122,13 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   window; and an id the planner found to have no effect (`mark_no_effect`, ruling P24-F: a consume that ended `done`
   with no fall in its stat, F2's Disinfectant drunk 68 times; kept in `no_effect_ids` for the session and dropped
   with its item) moved from any use to `other`. `container` (PZA/1.4.1) is a use as the line carries it.
-  `nearest_unlooted(want)` keys on the same use. `to_json` carries `emptyIds`, `refusedIds` (the ids excluded now)
+  `nearest_unlooted(want)` keys on the same use. The three are one store since Plan 24 Task 10 (ruling P24-I, the
+  Task 4b review's minor 6): `marks` {held id: (reason, world minute)}, one reason an item (the latest mark wins:
+  `MARK_REASONS`), dropped with its item; `empty_ids`, `refused` and `no_effect_ids` are its read views, and the care
+  branch's `unrippable` (a rip the Lua refused `worn`, `not cotton` or `needs tool`: never asked again) lives there
+  too. `first_sight` (Task 10) is the set of ids an `item_added` named between a hello and the first frame after it:
+  the inventory's first sight (ruling P22-2), the clothes the character stands in, which the care branch never rips.
+  `to_json` carries `emptyIds`, `refusedIds` (the ids excluded now)
   and `noEffectIds` sorted, each only while it is non-empty,
   so a World that never marked one serialises as before (the replay goldens keep their bytes). For the same reason a
   container's `looted` set serialises as its uses sorted, or `false` while it is empty.
@@ -139,6 +145,7 @@ STUCK_AREA_N = 2     # unmoved stuck walks in a row from one square before its e
 REACH_LIMIT = 400    # squares a reachability flood visits at most (P23-AP 1)
 STUCK_WALK_CAP = 3   # unmoved stuck walks in a row past STUCK_AREA_N before no edge is answered (P23-AP fix 1, R2)
 REFUSED_TTL_MIN = 120   # world minutes a food whose consume was refused `not valid` reads `other` (P23-AD)
+MARK_REASONS = ("empty", "refused", "no_effect", "unrippable")   # the planner's item marks (P24-I), one an item
 MET_TTL_MIN = 10     # game minutes a zombie listed stays in the met memory (ruling P24-A (a), a judgment: a group
                      # met within the last ten minutes is still about; E5's was first listed at gameMin 590 and at
                      # melee range by 593)
@@ -217,9 +224,9 @@ class World:
         self.containers = {}         # (x, y, z, i) -> {type, n, items, looted}
         self.buildings = set()
         self.inventory = {}          # itemId -> {fullType, weight}
-        self.empty_ids = set()       # the held ids the planner found empty (mark_empty), never a line's
-        self.refused = {}            # held food id -> world minute the Lua refused its consume (mark_refused)
-        self.no_effect_ids = set()   # the held ids whose consume moved no stat (mark_no_effect, P24-F), never a line's
+        self.marks = {}              # held id -> (reason, world minute): the planner's marks (`mark`), never a line's
+        self.first_sight = set()     # the ids the inventory's first sight named (between a hello and the next frame)
+        self._sighting = False       # a hello came and no frame yet: item_added is the first sight
         self.damage = deque(maxlen=DEQUE_N)
         self.damage_seen_i = set()   # the damage.watch record numbers already merged
         self.damage_counts_server = None
@@ -257,6 +264,7 @@ class World:
 
     def _hello(self, line):
         self.hello = line
+        self._sighting, self.first_sight = True, set()
         self._newest_scan = None
         self.damage_seen_i = set()
 
@@ -268,6 +276,7 @@ class World:
 
     def _frame(self, line):
         wall = line.get("wallMs", 0)
+        self._sighting = False
         for g in GROUPS:
             setattr(self, g, line.get(g))
         self.game_min = line.get("gameMin")
@@ -337,12 +346,12 @@ class World:
             if line.get("use") is not None:
                 it["use"] = line["use"]
             self.inventory[line.get("itemId")] = it
+            if self._sighting:
+                self.first_sight.add(line.get("itemId"))
         elif kind == "item_removed":
             if self.inventory.pop(line.get("itemId"), None) is None:
                 self.missing_items += 1
-            self.empty_ids.discard(line.get("itemId"))
-            self.refused.pop(line.get("itemId"), None)
-            self.no_effect_ids.discard(line.get("itemId"))
+            self.marks.pop(line.get("itemId"), None)
         elif kind == "damage":
             self.damage.append({"tag": line.get("tag"), "amount": line.get("amount"), "side": line.get("side"),
                                 "wallMs": line.get("wallMs")})
@@ -820,25 +829,65 @@ class World:
         return self.memo(("openings", building), walk)
 
     # -- the inventory by use and the empties (Plan 23 Task 9, P23-D) -----------------------------------------------
+    def mark(self, item_id, reason):
+        """Mark a held item with `reason` (one of MARK_REASONS), replacing its mark, at the current world minute: read
+        by `world_minutes` for `refused` (its TTL's clock, as before the fold), else without fixing the gameMin
+        fallback's origin (`_peek_minutes`: a mark never moves a timer's clock)."""
+        if reason not in MARK_REASONS:
+            raise ValueError("World.mark: %r not in %s" % (reason, MARK_REASONS))
+        self.marks[item_id] = (reason, self.world_minutes() if reason == "refused" else self._peek_minutes())
+
+    def _peek_minutes(self):
+        """`world_minutes` without its first-read side effect: None while the gameMin fallback has no origin."""
+        wa = self.world_age
+        if isinstance(wa, (int, float)) and not isinstance(wa, bool):
+            return round(wa * 60.0, 6)
+        if self.game_min is None or self._gm0 is None:
+            return None
+        return (self.game_min - self._gm0) % 1440.0
+
+    def marked(self, reason):
+        """{id: world minute} of the items marked `reason`."""
+        return {i: at for i, (r, at) in self.marks.items() if r == reason}
+
+    @property
+    def empty_ids(self):
+        """The held ids the planner found empty (`mark_empty`)."""
+        return set(self.marked("empty"))
+
+    @property
+    def refused(self):
+        """{held food id: world minute the Lua refused its consume} (`mark_refused`)."""
+        return self.marked("refused")
+
+    @property
+    def no_effect_ids(self):
+        """The held ids whose consume moved no stat (`mark_no_effect`, P24-F)."""
+        return set(self.marked("no_effect"))
+
     def mark_empty(self, item_id):
         """Remember a held item as empty (the planner's, never a line's): `by_use` moves it from `water` to `other`."""
-        self.empty_ids.add(item_id)
+        self.mark(item_id, "empty")
 
     def mark_refused(self, item_id):
         """Remember a held food the Lua refused to consume, at the current world minute (the planner's, never a
         line's): `by_use` reads it `other` for REFUSED_TTL_MIN world minutes, so the need does not pick it again
         meanwhile (and `spare()` may drop it only then); afterwards it is food again."""
-        self.refused[item_id] = self.world_minutes()
+        self.mark(item_id, "refused")
 
     def mark_no_effect(self, item_id):
         """Remember a held item whose consume ended `done` and moved no stat (the planner's, never a line's, P24-F):
         `by_use` reads it `other` while it is held, so the need moves to the next item of its use."""
-        self.no_effect_ids.add(item_id)
+        self.mark(item_id, "no_effect")
 
     def refused_now(self):
-        """The ids whose refusal is younger than REFUSED_TTL_MIN world minutes."""
+        """The ids whose refusal is younger than REFUSED_TTL_MIN world minutes (the clock read only when one is
+        marked: `world_minutes` fixes its gameMin fallback's origin at its first read)."""
+        refused = self.refused
+        if not refused:
+            return set()
         now = self.world_minutes()
-        return {i for i, at in self.refused.items() if now - at < REFUSED_TTL_MIN}
+        return {i for i, at in refused.items() if now - at < REFUSED_TTL_MIN}
 
     def by_use(self):
         """{use: [ids sorted]} for every use in USES: the inventory's ids by the item's `use` (else `items.use_of` of
@@ -846,15 +895,15 @@ class World:
         id in `empty_ids` read as `other` rather than `water`, one refused within REFUSED_TTL_MIN (`refused_now`) as
         `other` rather than `food`, one in `no_effect_ids` as `other` whatever its use."""
         out = {u: [] for u in USES}
-        refused = self.refused_now() if self.refused else ()
+        refused = self.refused_now()
+        empty, no_effect = (self.empty_ids, self.no_effect_ids) if self.marks else ((), ())
         for iid, it in self.inventory.items():
             use = it.get("use")
             if use not in USES:                       # no use, or a stray value: the dataset's answer, never a raise
                 use = use_of(it.get("fullType"))
             elif use == "food" and cant_eat(it.get("fullType")):
                 use = "other"                         # N-3: the dataset overrides the engine's IsFood for a sealed can
-            if (use == "water" and iid in self.empty_ids) or (use == "food" and iid in refused) or (
-                    iid in self.no_effect_ids):
+            if (use == "water" and iid in empty) or (use == "food" and iid in refused) or iid in no_effect:
                 use = "other"
             out[use].append(iid)
         return {u: sorted(v, key=_num_first) for u, v in out.items()}
@@ -888,7 +937,7 @@ class World:
         })
         if self.empty_ids:
             d["emptyIds"] = sorted(self.empty_ids, key=_num_first)
-        refused = self.refused_now() if self.refused else ()
+        refused = self.refused_now()
         if refused:
             d["refusedIds"] = sorted(refused, key=_num_first)
         if self.no_effect_ids:

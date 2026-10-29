@@ -54,7 +54,8 @@ def inside(x, y, bid=1, **k):
 
 # ================================================================ the list and its constants
 def test_branch_order_puts_the_load_and_the_night_after_the_need_and_the_goal_last():
-    assert S.BRANCHES == ("threat", "need", "load", "night", "goal")   # Task 13: the goal replaced forage, explore
+    assert S.BRANCHES == ("threat", "care", "need", "load", "night", "goal")   # Task 13: the goal replaced forage,
+    # explore; named change, Plan 24 Task 10 (ruling P24-G 2): the care branch between the threat and the need
     assert S.DANGER_R is P.DANGER_R
     assert (S.DANGER_R, S.DISENGAGE_R, S.THIRST_T, S.HUNGER_T) == (6.0, 10.0, 0.12, 0.15)   # [#0509], [#0508]
     assert G.STOCK_WANTS == ("water", "food", "bandage", "weapon") and set(G.STOCK_WANTS) == set(P.LOOT_WANTS)

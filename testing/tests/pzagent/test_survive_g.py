@@ -268,3 +268,291 @@ def test_a_standing_fight_reads_no_walk_so_the_look_behind_its_target_does_not_f
     tick(r, sv)
     w = threat_why(tmp_path)
     assert r.cmd()[0] == "steer" and w["flee"] == "held" and w["behind"] == [2]
+
+
+# ================================================================ the care branch (P24-G 2)
+from agent.base.planner import care as C   # noqa: E402  (the care tests' module, beside the stance's)
+
+
+def part(i, **k):
+    """A PZA/1.5 part record: index `i`, health 80, no bleeding, unbandaged (bandageLife and bandageDirty None as the
+    Lua leaves them on an unbandaged part), `k` laid over."""
+    return dict({"i": i, "h": 80.0, "bleeding": False, "bleedingTime": 0.0, "bandaged": False, "bandageLife": None,
+                 "bandageDirty": None, "deep": False, "infected": False}, **k)
+
+
+def hold(r, iid, full_type, use="bandage", weight=0.1):
+    r.event("item_added", itemId=iid, fullType=full_type, weight=weight, use=use)
+
+
+def care_frame(r, parts, **k):
+    r.frame(wounds={"parts": parts, "bleeding": sum(1 for p in parts if p.get("bleeding"))}, **k)
+
+
+def care_why(tmp_path):
+    return last(tmp_path)["inputs"]["branches"]["care"]
+
+
+def test_the_care_constants_and_the_item_kinds():
+    assert (C.CARE_RETRY_MIN, C.DIRTY_RAG_MIN, C.WASH_R) == (2.0, 10.0, 15.0)
+    kinds = {t: C.care_kind(t) for t in ("Base.Bandage", "Base.AlcoholBandage", "Base.Bandaid", "Base.RippedSheets",
+                                         "Base.AlcoholRippedSheets", "Base.DenimStrips", "Base.RippedSheetsDirty",
+                                         "Base.BandageDirty", "Base.DenimStripsDirty", "Base.RagFilter",
+                                         "Base.BandageBox", "Base.Tshirt_WhiteTINT")}
+    assert kinds == {"Base.Bandage": "bandage", "Base.AlcoholBandage": "bandage", "Base.Bandaid": "bandage",
+                     "Base.RippedSheets": "rag", "Base.AlcoholRippedSheets": "rag", "Base.DenimStrips": "rag",
+                     "Base.RippedSheetsDirty": "dirty", "Base.BandageDirty": "dirty", "Base.DenimStripsDirty": "dirty",
+                     "Base.RagFilter": None, "Base.BandageBox": None, "Base.Tshirt_WhiteTINT": None}
+    assert [C.rippable(t) for t in ("Base.Tshirt_WhiteLongSleeveTINT", "Base.Shirt_FormalWhite", "Base.Socks_Long",
+                                    "Base.Shirt_Denim", "Base.Shorts_LongDenim", "Base.Hat_BucketHat",
+                                    "Base.Jacket_Leather")] == [True, True, True, False, False, False, False]
+
+
+def test_the_care_branch_runs_between_the_threat_and_the_need():
+    assert S.BRANCHES == ("threat", "care", "need", "load", "night", "goal")
+
+
+def bleeding_rig(tmp_path, items, bleeding_time=5.0, deep=False, caps=None):
+    r, sv = make(tmp_path, caps=caps)
+    r.frame()
+    for iid, ft in items:
+        hold(r, iid, ft)
+    care_frame(r, [part(5, bleeding=True, bleedingTime=bleeding_time, deep=deep)], thirst=0.5)
+    return r, sv
+
+
+def test_a_bleeding_part_takes_a_bandage_before_a_clean_rag_before_a_dirty_one(tmp_path):
+    """P24-G 2: the best held item: a bandage, then a clean rag; the bandage goes on the part by index; the need
+    (thirst 0.5) waits behind the care branch."""
+    r, sv = bleeding_rig(tmp_path, [(12, "Base.RippedSheetsDirty"), (11, "Base.RippedSheets"), (10, "Base.Bandage")])
+    hold(r, 30, "Base.WaterBottle", use="water")                                  # the need would drink it
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 10, "part": 5}) and last(tmp_path)["branch"] == "care"
+    assert care_why(tmp_path) == {"reason": "bleeding", "part": 5, "item": 10, "kind": "bandage", "bleedingTime": 5.0,
+                                  "deep": False}
+    (tmp_path / "b").mkdir()
+    r2, sv2 = bleeding_rig(tmp_path / "b", [(12, "Base.RippedSheetsDirty"), (11, "Base.RippedSheets")])
+    tick(r2, sv2)
+    assert r2.cmd() == ("bandage", {"itemId": 11, "part": 5})
+    all_sends_valid(r2)
+
+
+def test_a_dirty_rag_goes_on_only_past_dirty_rag_min_of_bleeding_time(tmp_path):
+    r, sv = bleeding_rig(tmp_path, [(12, "Base.RippedSheetsDirty")], bleeding_time=10.0)
+    tick(r, sv)
+    assert last(tmp_path)["branch"] != "care"                                    # 10.0: not past the rule
+    (tmp_path / "b").mkdir()
+    r2, sv2 = bleeding_rig(tmp_path / "b", [(12, "Base.RippedSheetsDirty")], bleeding_time=10.5)
+    tick(r2, sv2)
+    assert r2.cmd() == ("bandage", {"itemId": 12, "part": 5}) and care_why(tmp_path / "b")["kind"] == "dirty"
+
+
+def test_the_deep_wound_is_bandaged_first_then_the_longest_bleeding(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame()
+    hold(r, 10, "Base.Bandage")
+    hold(r, 11, "Base.Bandage")
+    care_frame(r, [part(3, bleeding=True, bleedingTime=20.0), part(7, bleeding=True, bleedingTime=5.0, deep=True),
+                   part(9, bleeding=True, bleedingTime=30.0)])
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 10, "part": 7})
+    r.answer()
+    r.event("item_removed", itemId=10, fullType="Base.Bandage")
+    care_frame(r, [part(3, bleeding=True, bleedingTime=20.0),
+                   part(7, bandaged=True, bandageLife=3.0, bandageDirty=False),
+                   part(9, bleeding=True, bleedingTime=30.0)])
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 11, "part": 9})
+
+
+def test_with_no_rag_an_unworn_cotton_garment_is_ripped_never_one_of_the_first_sight(tmp_path):
+    """P24-G 2: no bandage item of any kind held, the bleeding part waits on a rip of a cotton garment; the T-shirt
+    the character stood in (the inventory's first sight, between the hello and the first frame) is never asked."""
+    r, sv = make(tmp_path)
+    hold(r, 20, "Base.Tshirt_WhiteLongSleeveTINT", use="other")                   # the first sight: worn
+    r.frame()
+    assert r.world.first_sight == {20}
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] != "care"
+    hold(r, 21, "Base.Shirt_FormalWhite", use="other")                            # a looted shirt
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)])
+    tick(r, sv)
+    assert r.cmd() == ("rip", {"itemId": 21}) and care_why(tmp_path) == {"reason": "no_rag", "part": 5, "item": 21}
+    all_sends_valid(r)
+
+
+def test_a_rip_refused_worn_marks_the_item_and_it_is_never_asked_again(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame()
+    hold(r, 21, "Base.Shirt_FormalWhite", use="other")
+    care_frame(r, [])
+    tick(r, sv)
+    assert r.cmd() == ("rip", {"itemId": 21})                                    # no rag held: one rip for rags
+    r.answer({"state": "failed", "reason": "worn"})
+    for _ in range(3):
+        r.advance(1.0)
+        care_frame(r, [], game_min=485.0)
+        tick(r, sv)
+    assert r.world.marked("unrippable") == {21: 485.0} and sum(a.type == "rip" for a in r.acts.history) == 1
+
+
+def test_a_dirty_rag_is_washed_at_a_known_source_within_wash_r_with_no_zombie_near(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan([square(105, 200, water={"amount": 20.0, "tainted": False, "infinite": True}),
+            square(130, 200, water={"amount": 20.0, "tainted": False, "infinite": True})])
+    r.frame()
+    hold(r, 12, "Base.RippedSheetsDirty")
+    care_frame(r, [])
+    tick(r, sv)
+    assert r.cmd() == ("wash", {"itemId": 12, "x": 105, "y": 200})
+    w = care_why(tmp_path)
+    assert w["reason"] == "dirty_rag" and w["item"] == 12 and w["source"] == [105, 200]
+    all_sends_valid(r)
+
+
+def test_no_wash_with_a_zombie_within_disengage_r_or_no_source_within_wash_r(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan([square(105, 200, water={"amount": 20.0, "tainted": False, "infinite": True})])
+    r.frame()
+    hold(r, 12, "Base.RippedSheetsDirty")
+    care_frame(r, [], zombies=[zd(1, 108.0, 200.0, has_target=False)])            # 8 tiles: no threat, not quiet
+    tick(r, sv)
+    assert last(tmp_path)["branch"] != "care"
+    (tmp_path / "b").mkdir()
+    r2, sv2 = make(tmp_path / "b")
+    r2.scan([square(116, 200, water={"amount": 20.0, "tainted": False, "infinite": True})])   # 16 tiles
+    r2.frame()
+    hold(r2, 12, "Base.RippedSheetsDirty")
+    care_frame(r2, [])
+    tick(r2, sv2)
+    assert last(tmp_path / "b")["branch"] != "care"
+
+
+def test_a_spent_bandage_is_replaced_with_a_clean_rag(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame()
+    hold(r, 11, "Base.RippedSheets")
+    care_frame(r, [part(4, bandaged=True, bandageLife=0.0, bandageDirty=True)])
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 11, "part": 4}) and care_why(tmp_path)["reason"] == "spent"
+    (tmp_path / "b").mkdir()
+    r2, sv2 = make(tmp_path / "b")
+    r2.frame()
+    hold(r2, 12, "Base.RippedSheetsDirty")                                         # no clean one: kept on
+    care_frame(r2, [part(4, bandaged=True, bandageLife=0.0, bandageDirty=True)])
+    tick(r2, sv2)
+    assert last(tmp_path / "b")["branch"] != "care"
+
+
+def test_the_care_branch_yields_to_a_threat_within_danger_r(tmp_path):
+    """The threat branch runs first: a zombie within DANGER_R answers it (the stance) and the running bandage is
+    superseded by that send."""
+    r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage")])
+    tick(r, sv)
+    assert r.cmd()[0] == "bandage"
+    bandage = r.acts.history[-1]
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 104.0, 200.0)])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] == "aim" and r.acts.current is not bandage
+
+
+def test_a_refused_bandage_item_waits_care_retry_min(tmp_path):
+    r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage"), (11, "Base.RippedSheets")])
+    tick(r, sv)
+    r.answer({"state": "failed", "reason": "not valid"})
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], game_min=480.5)
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 11, "part": 5})                      # 10 held out
+    r.answer({"state": "failed", "reason": "not valid"})
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], game_min=481.0)
+    tick(r, sv)
+    assert last(tmp_path)["branch"] != "care"                                     # both held out
+    r.advance(10.0)
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], game_min=482.5)    # 2 minutes after 10's refusal
+    for _ in range(10):                                                           # the failed-command cooldown's ticks
+        tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 10, "part": 5})
+
+
+def test_a_pza_1_4_build_is_sent_no_care(tmp_path):
+    r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage")], caps=CAPS_14)
+    tick(r, sv)
+    assert last(tmp_path)["branch"] != "care"
+
+
+def test_a_part_record_without_the_care_fields_reads_no_wound(tmp_path):
+    """A PZA/1.4 part (`i`, `h` only: the decoded care fields None) is no bleeding part."""
+    r, sv = make(tmp_path)
+    r.frame()
+    hold(r, 10, "Base.Bandage")
+    care_frame(r, [{"i": 5, "h": 60.0}])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] != "care"
+
+
+# ================================================================ the one mark store (ruling P24-I)
+def test_the_world_keeps_one_mark_an_item_with_its_reason_and_the_old_views_read_it(tmp_path):
+    """P24-I (the Task 4b review's minor 6): `World.marks` {id: (reason, world minute)} replaces the three stores;
+    `empty_ids`, `refused` and `no_effect_ids` are its views, the latest mark wins, an item's removal drops its mark,
+    and `to_json` keeps its three fields (a World that never marked one serialises as before)."""
+    import json
+    from agent.base.world import MARK_REASONS, World
+    w = World()
+    w.apply({"kind": "frame", "gameMin": 480, "worldAge": 8.0, "wallMs": 0})
+    for iid, ft in ((1, "Base.WaterBottle"), (2, "Base.Apple"), (3, "Base.Disinfectant"), (4, "Base.Shirt_FormalWhite")):
+        w.apply({"kind": "event", "event": "item_added", "itemId": iid, "fullType": ft, "weight": 0.1})
+    base = json.loads(w.to_json())
+    assert "emptyIds" not in base and "refusedIds" not in base and "noEffectIds" not in base
+    w.mark_empty(1)
+    w.mark_refused(2)
+    w.mark_no_effect(3)
+    w.mark(4, "unrippable")
+    assert w.marks == {1: ("empty", 480.0), 2: ("refused", 480.0), 3: ("no_effect", 480.0), 4: ("unrippable", 480.0)}
+    assert (w.empty_ids, w.refused, w.no_effect_ids) == ({1}, {2: 480.0}, {3})
+    d = json.loads(w.to_json())
+    assert (d["emptyIds"], d["refusedIds"], d["noEffectIds"]) == ([1], [2], [3]) and "unrippable" not in w.to_json()
+    w.mark_no_effect(1)
+    assert w.empty_ids == set() and w.no_effect_ids == {1, 3}
+    w.apply({"kind": "event", "event": "item_removed", "itemId": 3, "fullType": "Base.Disinfectant"})
+    assert 3 not in w.marks and w.no_effect_ids == {1}
+    assert MARK_REASONS[:4] == ("empty", "refused", "no_effect", "unrippable")
+    try:
+        w.mark(2, "lost")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("an unknown reason is refused")
+
+
+def test_a_mark_never_fixes_the_gamemin_fallbacks_origin():
+    """A mark other than `refused` reads the minute without `world_minutes`' first-read side effect (a frame with
+    no worldAge: the fallback's origin is fixed by the first timer that reads it, never by a mark)."""
+    from agent.base.world import World
+    w = World()
+    w.apply({"kind": "frame", "gameMin": 600, "wallMs": 0})
+    w.apply({"kind": "event", "event": "item_added", "itemId": 1, "fullType": "Base.WaterBottle", "weight": 0.1})
+    w.mark_empty(1)
+    assert w.marks[1] == ("empty", None) and w._gm0 is None
+
+
+def test_the_first_sight_is_the_inventory_between_a_hello_and_the_first_frame():
+    from agent.base.world import World
+    w = World()
+    w.apply({"kind": "hello", "caps": []})
+    w.apply({"kind": "event", "event": "item_added", "itemId": 1, "fullType": "Base.Socks_Long", "weight": 0.1})
+    w.apply({"kind": "frame", "gameMin": 480, "wallMs": 0})
+    w.apply({"kind": "event", "event": "item_added", "itemId": 2, "fullType": "Base.Socks_Long", "weight": 0.1})
+    assert w.first_sight == {1}
+    w.apply({"kind": "hello", "caps": []})
+    assert w.first_sight == set()
+
+
+def test_no_garment_is_ripped_while_a_rag_is_held(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame()
+    hold(r, 21, "Base.Shirt_FormalWhite", use="other")
+    hold(r, 11, "Base.RippedSheets")
+    care_frame(r, [])
+    tick(r, sv)
+    assert last(tmp_path)["branch"] != "care" and not any(a.type == "rip" for a in r.acts.history)

@@ -1,8 +1,8 @@
 """The scripted survivor (Plan 22 Task 10, spec § 3): a priority list over the World, ticked by its driver.
 
 `Survive(world, actions, log_path, clock, source=None).tick(world, actions)` tries the branches in order (threat,
-need, load, night, goal; Plan 23 Task 12 added `load` and `night`, Task 13 replaced `forage` and `explore` with the
-goal), takes the first that answers, and returns the `Action` it sent or None. A branch
+care, need, load, night, goal; Plan 23 Task 12 added `load` and `night`, Task 13 replaced `forage` and `explore` with
+the goal, Plan 24 Task 10 `care`), takes the first that answers, and returns the `Action` it sent or None. A branch
 answers with a command to send or, while its own action is still current, with none (it holds: nothing is sent and
 no lower branch runs). A branch whose answer differs from the current action's sender sends at once, so a higher
 branch pre-empts a lower one's action (the Lua fails the old one `superseded`). The branches run the policies of
@@ -151,6 +151,12 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      health (a kill restarts it on the next) falls back to the approach and swing (`Fight.standoff`), whose stall
      clock starts then; the flee rules, the corner (`point_blank`) and the door fight (`only`) are as before, and the
      look past a fight's walk target (P24-A (b)) reads no walk while the Fight stands.
+  2. The care branch (`_care`, `planner/care.py`'s docstring the record), between `threat` and `need`: with no
+     threat held, the worst bleeding part bandaged with the best held item (a bandage, a clean rag, a dirty rag only
+     past `care.DIRTY_RAG_MIN`), a spent bandage replaced with a clean one, a dirty rag washed at a known water source
+     within `care.WASH_R` with no zombie within DISENGAGE_R, a cotton garment ripped when no rag is held (never one of
+     the inventory's first sight); its own action holds the branch, the Sleep passes it, and a refused item waits
+     `care.CARE_RETRY_MIN` game minutes.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -222,6 +228,7 @@ import math
 import time
 
 from agent.base.items import days_fresh
+from agent.base.planner.care import Care
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH,
@@ -255,7 +262,7 @@ GROUP_HOLD_N = 4          # held threats (within the hold radius) that make a gr
 STUCK_RETRY_S = 2.0       # wall seconds after a stuck read before a stuck corner against a group tries a leg (P23-AP 2)
 STUCK_RETRY_GROUP_S = 1.0  # ... with GROUP_R_N within CORNERED_R or GROUP_HOLD_N held, whatever the nearest reads
                           # (P24-A fix 1 (1), a ruling: F1's corner read stuck at 537 held on against four)
-BRANCHES = ("threat", "need", "load", "night", "goal")
+BRANCHES = ("threat", "care", "need", "load", "night", "goal")
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
 REFUSED = "not valid"    # the reason the Lua's consume fails an item it cannot eat or drink (an empty bottle)
@@ -310,6 +317,7 @@ class Survive:
         # one shun store: the goals' Shelter shuns into the night's (Task 13 fix 1, M6), so neither re-tries the other's
         self.goals = GoalRunner(ScriptedSource() if source is None else source, clock, shunned=self.night.shunned)
         self.goals.kit.bind(world, actions)
+        self.care = Care(world, actions, clock)   # the care branch's policy (P24-G 2)
         self.need_last = None     # the last Consume sent
         self.load_last = None     # the last load Drop sent
         self.need_mark = None     # "water" or "food" when need found nothing held this tick (logged)
@@ -326,7 +334,7 @@ class Survive:
 
     # ---------------------------------------------------------------- reading the world
     def _policies(self):
-        return [p for p in (self.night, self.fight, self.flee) if p is not None]
+        return [p for p in (self.night, self.care, self.fight, self.flee) if p is not None]
 
     def _within(self, r):
         return [z for z in self.world.zombies.values()
@@ -882,6 +890,23 @@ class Survive:
         self.flee_dropped = True
         self.why = {"flee_drop": iid}
         return self.flee, Drop(iid)
+
+    def _care(self):
+        """The care branch (`planner/care.py`, ruling P24-G 2): its own running action holds first; while the night's
+        Sleep is current it passes as the need does (P23-AB); else `Care.choose`, `quiet` with no zombie within
+        DISENGAGE_R (the wash's condition)."""
+        c = self.care
+        c.observe()
+        if c.busy():
+            self.why = dict(c.why, holding=c.last.aid)
+            return c, None
+        sleep = self._sleeping()
+        if sleep is not None:
+            self.why = {"holding_sleep": sleep.aid}
+            return None
+        cmd = c.choose(quiet=not self._within(DISENGAGE_R))
+        self.why = dict(c.why)
+        return None if cmd is None else (c, cmd)
 
     def _need(self):
         if self.need_last is not None and self.actions.current is self.need_last:
