@@ -2015,3 +2015,19 @@ def test_the_shared_helpers_drop_their_dead_exports_and_queue_action_answers_its
     ok, why, action = lua.eval("PZA.skills.queueAction(ISClimbOverFence, 'not valid', nil, 1, 2, 'S')")
     assert ok is True and why is None and action.Type == "ISClimbOverFence"
     assert lua.globals()._queue.adds[-1] is action
+
+
+def test_interact_loot_container_takes_an_empty_bottle_and_not_a_filled_one_or_a_pop_can(lua, fs):
+    """PZA/1.5.1 (9 fix 3): the loot filter container matches W.useOf == container, an empty drinkable vessel."""
+    load(lua)
+    from .conftest import make_fluid
+    empty = J(_cls=None, getFullType=lambda s: "Base.WaterBottle", getFluidContainer=lambda s: make_fluid(amount=0.0))
+    full = J(_cls=None, getFullType=lambda s: "Base.WaterBottle", getFluidContainer=lambda s: make_fluid())
+    can = J(_cls=None, getFullType=lambda s: "Base.PopEmpty",
+            getFluidContainer=lambda s: make_fluid(amount=0.0, can_add=False))
+    g = lua.globals()
+    box_world(lua, [empty, full, can])
+    before = len(g._queue.adds)
+    start(lua, make_player(), "interact", aid="cont", x=11, y=20, kind="loot", filter="container")
+    tick(lua, make_player())
+    assert len(g._queue.adds) - before == 1

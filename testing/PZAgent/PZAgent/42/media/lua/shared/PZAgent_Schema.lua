@@ -57,7 +57,7 @@ PZA.schema = {
     },
     gaits = { walk = true, run = true, sprint = true },
     ikinds = { open = true, close = true, loot = true },
-    filters = { food = true, water = true, weapon = true, bandage = true, all = true },
+    filters = { food = true, water = true, weapon = true, bandage = true, container = true, all = true },
     states = { accepted = true, rejected = true, progress = true, done = true, failed = true },
     mapModes = { full = true, delta = true },
     events = {

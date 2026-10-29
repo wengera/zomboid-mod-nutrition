@@ -115,6 +115,7 @@
             "water",
             "weapon",
             "bandage",
+            "container",
             "all"
           ],
           "description": "Which items a loot takes.",

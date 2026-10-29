@@ -27,7 +27,7 @@
     "filter": {
       "description": "Which items a loot takes.",
       "type": "string",
-      "enum": ["food", "water", "weapon", "bandage", "all"]
+      "enum": ["food", "water", "weapon", "bandage", "container", "all"]
     },
     "itemUse": {
       "description": "An item's use as the engine answers it.",

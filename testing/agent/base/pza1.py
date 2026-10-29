@@ -83,7 +83,7 @@ ACTION_ARGS = {
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
-FILTERS = ("food", "water", "weapon", "bandage", "all")
+FILTERS = ("food", "water", "weapon", "bandage", "container", "all")
 ITEM_USES = ("food", "water", "weapon", "bandage", "other", "container")
 ACT_STATES = ("accepted", "rejected", "progress", "done", "failed")
 MAP_MODES = ("full", "delta")

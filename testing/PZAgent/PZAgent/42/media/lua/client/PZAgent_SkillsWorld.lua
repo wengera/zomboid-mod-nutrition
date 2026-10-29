@@ -278,6 +278,7 @@ local FILTERS = {
     weapon = useIs("weapon"),
     water = useIs("water"),
     bandage = useIs("bandage"),
+    container = useIs("container"),    -- PZA/1.5.1 (9 fix 3): an empty drinkable vessel, W.waterVessel
 }
 
 -- walks next to (st.x, st.y): "here" once within one square, "walk" while the sub-walk runs, "fail" when
