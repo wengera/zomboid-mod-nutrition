@@ -19,8 +19,11 @@ def zd(zid, x, y, has_target=True, health=1.0, me=(100.0, 200.0)):
 
 # ================================================================ P24-X: the fight sought
 def test_the_engage_constants():
-    assert P.ENGAGE_R == 10.0 and P.ENGAGE_R == P.DISENGAGE_R and P.ENGAGE_R < P.AIM_R
-    assert P.stance_leg_kind(5.0, False, seek=True) == "seek" and P.stance_leg_kind(2.4, False, seek=True) == "back"
+    """Named changes, Task 18 fix 1: ENGAGE_R 9 inside DISENGAGE_R 10 (the review's minor 8, a band); the KEEP_R guard
+    is `seek_allowed`'s alone (minor 13): `stance_leg_kind` takes the caller's seek as read."""
+    assert P.ENGAGE_R == 9.0 and P.DISENGAGE_R == 10.0 and P.ENGAGE_R < P.DISENGAGE_R < P.AIM_R
+    assert P.stance_leg_kind(5.0, False, seek=True) == "seek" and P.stance_leg_kind(2.4, False, seek=False) == "back"
+    assert P.stance_leg_kind(2.4, False, seek=True) == "seek"
     assert P.stance_leg_kind(2.0, False, seek=True) == "enter" and P.stance_leg_kind(5.0, True, seek=True) == "toward"
     assert S.Survive.ENGAGE is True and S.Survive.SEEK is True
 
@@ -64,9 +67,10 @@ def test_one_zombie_at_eight_tiles_with_the_goal_walking_is_sought_with_a_toward
 
 
 def test_two_zombies_at_nine_tiles_are_sought(tmp_path):
-    """P24-X: two within ENGAGE_R at 9 tiles (health 100, over FLEE_HEALTH_PAIR): engaged, the nearer the target."""
+    """P24-X: two within ENGAGE_R at 8.5 and 8.8 tiles (health 100, over FLEE_HEALTH_PAIR): engaged, the nearer the
+    target (fix 1, minor 8: ENGAGE_R 9, the pair drawn in from 9.0 and 9.2)."""
     r, sv = make(tmp_path)
-    r.frame(zombies=[zd(1, 109.0, 200.0), zd(2, 100.0, 209.2)])
+    r.frame(zombies=[zd(1, 108.5, 200.0), zd(2, 100.0, 208.8)])
     tick(r, sv)
     assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] == "aim" and r.cmd()[1]["targetId"] == 1
     assert threat_why(tmp_path)["leg"] == "seek"
@@ -75,7 +79,7 @@ def test_two_zombies_at_nine_tiles_are_sought(tmp_path):
 @pytest.mark.parametrize("health, sought", [(59.0, False), (60.0, True)])
 def test_two_are_sought_only_at_flee_health_pair(tmp_path, health, sought):
     r, sv = make(tmp_path)
-    r.frame(zombies=[zd(1, 109.0, 200.0), zd(2, 100.0, 209.2)], health=health)
+    r.frame(zombies=[zd(1, 108.5, 200.0), zd(2, 100.0, 208.8)], health=health)
     tick(r, sv)
     assert (last(tmp_path)["branch"] == "threat") is sought
 
@@ -254,7 +258,7 @@ def test_two_sought_are_the_fight_not_a_group_behind_it_but_a_third_listed_beyon
     `behind`); a zombie listed beyond ENGAGE_R behind the target and chasing turns the seek to the `held` flee, as
     before; one standing off there (not chasing: the E7 write-up's reading) does not."""
     r, sv = make(tmp_path)
-    r.frame(zombies=[zd(1, 105.0, 200.0), zd(2, 109.0, 200.5)])
+    r.frame(zombies=[zd(1, 105.0, 200.0), zd(2, 108.5, 200.5)])                # fix 1: within ENGAGE_R 9
     tick(r, sv)
     assert r.cmd()[0] == "aim" and "behind" not in threat_why(tmp_path)
     (tmp_path / "b").mkdir()
@@ -885,19 +889,19 @@ def _walk_held_wrongly(out, a, b):
 
 def test_e7_lines_52_to_73_the_seek_walk_round_the_wall_gives_way_and_never_runs_past_a_closer_zombie():
     """The review's blocker on E7's record: with the engage as built at 9c477f80 (`engage_any`), the seek walk round
-    the wall on 533 is sent at line 52 (8.17 tiles) and, before this fix, ran to line 73 while 533 receded past
-    DISENGAGE_R and 564 and 534 closed to 2.84 and 3.10 tiles (the mutant `no_give` reproduces it); now it gives way
-    at line 56 (its line toward 533 clear) and no stance walk runs on any tick of 52-73 past its target's leaving or a
-    nearer zombie. Under HEAD's whole rules 533, idle behind the wall, is not engaged until it chases (line 54), the
+    the wall on 533 was sent at line 52 (8.17 tiles; at line 49, 8.07 tiles, since ENGAGE_R is 9, fix 1's minor 8)
+    and, before this fix, ran to line 73 while 533 receded past DISENGAGE_R and 564 and 534 closed to 2.84 and 3.10
+    tiles (the mutant `no_give` reproduces it); now it gives way at line 56 (its line toward 533 clear) and no stance
+    walk runs on any tick of 49-73 past its target's leaving or a nearer zombie. Under HEAD's whole rules 533, idle behind the wall, is not engaged until it chases (line 54), the
     walk round the wall then gives way at 56, and the seek on 534 switches to 564 at line 64 (6.22 tiles against
     7.12), across a fence and chasing: a standing leg, not a walk."""
     rows, out = _e7_lines(73, engage_any=True)
-    assert rows[51]["action"] == {"type": "walkTo", "args": {"gait": "walk", "x": 10740.5, "y": 10647.5}}
-    assert out[52]["walk"] == 533 and out[55]["walk"] == 533 and out[56]["walk"] is None
+    assert rows[48]["action"] == {"type": "walkTo", "args": {"gait": "walk", "x": 10740.5, "y": 10647.5}}
+    assert out[49]["walk"] == 533 and out[55]["walk"] == 533 and out[56]["walk"] is None
     assert rows[55]["action"]["type"] == "aim"
-    assert _walk_held_wrongly(out, 52, 73) == []
+    assert _walk_held_wrongly(out, 49, 73) == []
     _, mut = _e7_lines(73, engage_any=True, no_give=True)
-    assert all(mut[k]["walk"] == 533 for k in range(52, 74)) and _walk_held_wrongly(mut, 52, 73) != []
+    assert all(mut[k]["walk"] == 533 for k in range(49, 74)) and _walk_held_wrongly(mut, 49, 73) != []
     rows, out = _e7_lines(73)
     assert all(rows[k - 1]["branch"] != "threat" for k in range(47, 54))
     assert rows[53]["action"]["type"] == "walkTo" and out[55]["walk"] == 533 and out[56]["walk"] is None
@@ -1233,3 +1237,96 @@ def test_after_rest_n_rests_the_woods_radius_widens_by_woods_step_up_to_its_cap_
     r.scan(house(2, 140))
     runner.observe(r.world, r.acts)
     assert kit.woods_r == G.WOODS_R and kit.rests == 0                          # a building newly read
+
+
+# ================================================================ Task 18 fix 1: the review's minors
+def test_the_woods_filter_is_memoised_per_map_version_and_reads_as_the_box_test(tmp_path):
+    """The review's minor 7 (the woods test ran every box against every square on every proposal, 136.6 ms on E7's
+    map with 44 boxes): `World.near_buildings(r)`, bucketed on an r-tile grid and memoised per map version, is the
+    brute box test's set, and `unexplored_edge(woods_r)` reads it (one build per map version)."""
+    r = Rig(tmp_path)
+    r.scan(grid(40, 160, 180, 220) + house(1, 110) + house(2, 150) + house(3, 60, 215))
+    r.frame(x=100.5, y=201.5)
+    w = r.world
+    for rad in (G.WOODS_R, 60.0, 7.5):
+        brute = {(x, y) for (x, y, _) in w.map
+                 if any(W._box_dist(b, x + 0.5, y + 0.5) <= rad for b in w.building_boxes().values())}
+        assert w.near_buildings(rad) == brute, rad
+    built = []
+    real = w.memo
+    w.memo = lambda key, fn: real(key, lambda: built.append(key) or fn())
+    w._memo.pop(("near_buildings", G.WOODS_R), None)
+    w.unexplored_edge(G.WOODS_R)
+    w.unexplored_edge(G.WOODS_R)
+    assert built.count(("near_buildings", G.WOODS_R)) == 1
+    r.scan([square(200, 200)])                                                   # a new map version: rebuilt
+    w.unexplored_edge(G.WOODS_R)
+    assert built.count(("near_buildings", G.WOODS_R)) == 2
+
+
+def test_engage_r_is_a_tile_inside_disengage_r_so_a_zombie_idling_at_ten_tiles_does_not_flap(tmp_path):
+    """The review's minor 8: ENGAGE_R 9, DISENGAGE_R 10. A zombie at 9.5 tiles is not engaged (the goal runs); one
+    engaged at 8.5 that steps back to 9.6 is still held (the fight goes on); beyond DISENGAGE_R the fight ends."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 109.5, 200.0)])
+    tick(r, sv)
+    assert sv.mode is None and last(tmp_path)["branch"] != "threat"
+    r.frame(zombies=[zd(1, 108.5, 200.0)])
+    tick(r, sv)
+    assert sv.mode == "fight"
+    r.answer()
+    r.frame(zombies=[zd(1, 109.6, 200.0)])
+    tick(r, sv)
+    assert sv.mode == "fight" and last(tmp_path)["branch"] == "threat"
+    r.frame(zombies=[zd(1, 110.4, 200.0)])
+    tick(r, sv)
+    assert sv.mode is None
+
+
+def test_the_wide_turns_read_the_group_ahead_before_the_group_blind_tier(tmp_path):
+    """The review's minor 9: boxed in a fence corner (every turn within 90 degrees blocked), the first wide turn clear
+    of the map (-120) runs at the far group (three zombies 6 tiles off at 250 degrees, one at 1.6 tiles west setting
+    the away vector); the group-aware wide tier comes first, so the leg takes 150, clear and with no held threat
+    ahead."""
+    import math as m
+    at = {(103, y): {"blockW": True} for y in range(190, 211)}
+    at.update({(x, 201): dict(at.get((x, 201), {}), blockN=True) for x in range(90, 103)})
+    r = Rig(tmp_path)
+    r.scan(grid(90, 106, 190, 210, at))
+    me = (102.5, 200.5)
+
+    def pt(a, d):
+        return me[0] + d * m.cos(m.radians(a)), me[1] + d * m.sin(m.radians(a))
+    zs = [zombie(1, *pt(180, 1.6), me=me)] + [zombie(i, *pt(250 + 3 * (i - 3), 6.0 + 0.3 * i), me=me)
+                                              for i in (2, 3, 4)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    f = P.Flee(r.world, r.acts, r.clock, threats=list(r.world.zombies.values()))
+    ts = f._threats()
+    cmd = f._steer(ts)
+    far = [z for z in ts if P.zdist(r.world, z) > P.NEAR_R]
+    v = P.away_vector(r.world, [(z["x"], z["y"]) for z in ts])
+    blind = next(t for t in P.WIDE_TURNS if f._clear(P._rotate(v, t)))
+    assert all(not f._clear(P._rotate(v, t)) for t in P.STEER_TURNS)
+    assert blind == -120 and f._ahead(P._rotate(v, blind), far)
+    assert f.why["turn"] == 150 and f.why["probe"] == P.AHEAD_R and not f._ahead((cmd.vx, cmd.vy), far)
+
+
+@pytest.mark.parametrize("chases, leg", [(False, "toward"), (True, "back")])
+def test_an_idle_target_sought_to_keep_r_is_advanced_on_at_once(tmp_path, chases, leg):
+    """The review's minor 10 (a non-chasing target sought to 2.5 tiles: back, then stand, until STAND_MAX_S from the
+    seek's start runs the advance, a 10 to 20 s dither in front of an idle zombie): a sought target inside KEEP_R
+    that reads no target of its own takes the advance at once (`toward` to reach); a chasing one is backpedalled
+    from, iteration 7's stance."""
+    r = Rig(tmp_path)
+    r.scan(grid(90, 120, 190, 212))
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 105.5, 200.5, has_target=chases)])
+    f = stance_fight(r)
+    f.observe()
+    cmd = f.choose()
+    assert cmd.TYPE == "aim" and f.why["leg"] == "seek"
+    sent(r, f, cmd)
+    r.advance(0.5)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 102.9, 200.5, has_target=chases)])
+    f.observe()
+    assert 1 in f.sought and f.advance is (not chases) and f.busy() is False
+    assert f.choose().TYPE == "aim" and f.why["leg"] == leg

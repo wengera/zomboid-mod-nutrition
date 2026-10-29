@@ -557,14 +557,14 @@ class World:
         mx, my = me_xy(self)
         skip = self._stuck_now() if self.stuck else ()
         cone = self.avoid_cone()
-        boxes = list(self.building_boxes().values()) if woods_r is not None else []
+        near = self.near_buildings(woods_r) if woods_r is not None and self.building_boxes() else None
         cands = []
         for (x, y, z), s in self.map.items():
             if s.get("solid") or (x, y) in skip:
                 continue
             if cone is not None and self.in_cone(x, y, cone):
                 continue
-            if boxes and not any(_box_dist(b, x + 0.5, y + 0.5) <= woods_r for b in boxes):
+            if near is not None and (x, y) not in near:
                 continue
             if all((x + dx, y + dy, z) in self.map for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
                 continue
@@ -582,6 +582,26 @@ class World:
             if self.line_clear((mx, my), (x + 0.5, y + 0.5)):
                 return x, y
         return None
+
+    def near_buildings(self, r):
+        """The map's squares (x, y) whose centre lies within `r` tiles of a known building's box (`building_boxes`):
+        the woods test's complement, memoised per map version and `r` (Task 18 fix 1, the review's minor 7: the test
+        ran every box against every square on every proposal, 136.6 ms on E7's map with 44 boxes). The boxes are
+        bucketed on an `r`-tile grid, so a square reads only the boxes of its own cell."""
+        def build():
+            cell = max(float(r), 1.0)
+            buckets = {}
+            for b in self.building_boxes().values():
+                for i in range(int(math.floor((b[0] - r) / cell)), int(math.floor((b[2] + 1 + r) / cell)) + 1):
+                    for j in range(int(math.floor((b[1] - r) / cell)), int(math.floor((b[3] + 1 + r) / cell)) + 1):
+                        buckets.setdefault((i, j), []).append(b)
+            out = set()
+            for (x, y, _) in self.map:
+                c = (int(math.floor((x + 0.5) / cell)), int(math.floor((y + 0.5) / cell)))
+                if any(_box_dist(b, x + 0.5, y + 0.5) <= r for b in buckets.get(c, ())):
+                    out.add((x, y))
+            return frozenset(out)
+        return self.memo(("near_buildings", r), build)
 
     def flood(self, start, limit=REACH_LIMIT, r=None):
         """The squares a breadth-first flood from `start` (x, y, z) reaches over the kept map (P23-AP 1): each step to

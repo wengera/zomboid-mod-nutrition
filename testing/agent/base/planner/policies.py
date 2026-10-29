@@ -79,7 +79,9 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   `toward` leg's vector (the walk at a walk round a blocked STEER_PROBE line), giving way the tick the target comes
   within KEEP_R, which marks it `sought` (iteration 7's stance from then on, never a second seek of it); beyond AIM_R
   the seek walks at a walk; a seek walk that fails for a STUCK_REASONS reason marks its target unreachable for
-  SEEK_SKIP_S (`_observe_seek`). Task 18 fix 1: no seek on a room or door square (`hold_ground`) nor at a chasing
+  SEEK_SKIP_S (`_observe_seek`). Task 18 fix 1: a sought target inside KEEP_R that reads no target of its own
+  (`chasing` false) is advanced on at once (`advance`, the review's minor 10: the back and stand legs dithered until
+  STAND_MAX_S in front of an idle zombie); no seek on a room or door square (`hold_ground`) nor at a chasing
   target across a known fence (`seek_allowed`); the seek re-pins to a zombie SEEK_SWITCH_R nearer than its target
   (`_seek_switch`), its leg giving way for it; the stance's own walk (a seek's or the advance's round a wall, a
   seek's beyond AIM_R) gives way as a leg does (`_walk_gives_way`, the review's blocker); a zombie in `avoid` (no
@@ -210,8 +212,10 @@ DANGER_R = 6.0        # tiles: a zombie this close is a threat (Survive's threat
 FIGHT_REACH = 2.0     # tiles: a nearest zombie beyond this is walked to, within it attacked
 FIGHT_MAX_S = 20.0    # wall seconds the target may stay beyond FIGHT_REACH before the fight reads stalled
 DISENGAGE_R = 10.0    # tiles: a pinned target beyond this is dropped (and Survive's hold radius while a threat runs)
-ENGAGE_R = 10.0       # tiles: one or two zombies listed this near are sought (ruling P24-X, Plan 24 Task 18: E7 killed
-                      # nothing in 227 game minutes, its goal walking on with a lone zombie listed at 7 to 10 tiles)
+ENGAGE_R = 9.0        # tiles: one or two zombies listed this near are sought (ruling P24-X, Plan 24 Task 18: E7 killed
+                      # nothing in 227 game minutes, its goal walking on with a lone zombie listed at 7 to 10 tiles);
+                      # Task 18 fix 1, the review's minor 8: a tile inside DISENGAGE_R, the band in which a fight holds
+                      # but none is engaged, so a zombie idling at 10 tiles does not flap goal, fight, goal
 REPOSITION_R = 2.5    # tiles: a reposition square farther than this from the player is never walked to (P23-Q)
 REPOSITION_MIN = 1.2  # tiles: ... nor one whose centre is nearer than this, inside the Lua walk's DONE_R 1.0 (P23-AJ 5)
 MISSES_TO_APPROACH = 2   # attack results in a row with attackStarted false before one approach walk
@@ -451,14 +455,15 @@ def clear_heading(world, v, reach=STEER_PROBE):
 
 def stance_leg_kind(d, advance, seek=False):
     """The stance leg a standing fight's target `d` tiles off calls for (rulings P24-G 1, P24-N and P24-X): `enter`
-    within FIGHT_REACH, `toward` in the advance, `seek` while the fight is sought and the target is beyond KEEP_R (a
-    `toward` leg that gives way at KEEP_R), `back` inside KEEP_R, else `stand`. `Fight._stance_leg` sends it and
-    `Fight.busy` gives a running leg way when it changes (Task 12 fix 1)."""
+    within FIGHT_REACH, `toward` in the advance, `seek` while the fight seeks it (`seek`: the caller's
+    `Fight.seeking`, whose `seek_allowed` holds the one KEEP_R guard: Task 18 fix 1, the review's minor 13), `back`
+    inside KEEP_R, else `stand`. `Fight._stance_leg` sends it and `Fight.busy` gives a running leg way when it changes
+    (Task 12 fix 1)."""
     if d <= FIGHT_REACH:
         return "enter"
     if advance:
         return "toward"
-    if seek and d > KEEP_R:
+    if seek:
         return "seek"
     return "back" if d <= KEEP_R else "stand"
 
@@ -712,6 +717,8 @@ class Fight(Policy):
         UNREACHABLE_S by a zombie behind a gate)."""
         if self.seek and t is not None and t[2] <= KEEP_R:
             self.sought.add(t[0])
+            if not chasing(t[1]) and self.standing() and not self.advance:   # fix 1, minor 10: no stand-off at an
+                self.advance, self.out_of_reach_since = True, self.clock()   # idle one; the advance's stall clock
         if self._seek_walk is None or not self.actions.done(self._seek_walk[0]):
             return
         a, zid = self._seek_walk
@@ -1542,8 +1549,10 @@ class Flee(Policy):
         far) and along which no held threat beyond NEAR_R lies ahead (`_ahead`, T2); else the first such heading
         clear over STEER_PROBE (I4; an unknown square open throughout); else the first clear over STEER_PROBE; else
         (Task 18, the E7 write-up's T19.5: four legs a71-a74 ran into a known fence corner, every turn within 90
-        degrees blocked) the first of the rest of the circle (WIDE_TURNS) clear over STEER_PROBE, else the first of all
-        whose first STEP_PROBE tile crosses no known blocked edge; else the away vector kept. After a leg that moved under STUCK_MOVE the turn skips the away vector's own 0 and every
+        degrees blocked) the first of the rest of the circle (WIDE_TURNS) clear over AHEAD_R and STEER_PROBE with no
+        held threat ahead (Task 18 fix 1, the review's minor 9: a 150 or 180 degree turn into the fled group is read
+        first), else the first of them clear over STEER_PROBE, else the first of all whose first STEP_PROBE tile
+        crosses no known blocked edge; else the away vector kept. After a leg that moved under STUCK_MOVE the turn skips the away vector's own 0 and every
         heading within STUCK_SKIP_DEG of the stuck leg's (F4), turning +30 when nothing is left."""
         mx, my = me_xy(self.world)
         cx = sum(z["x"] for z in ts) / len(ts)
@@ -1562,8 +1571,8 @@ class Flee(Policy):
                      < math.cos(math.radians(STUCK_SKIP_DEG)))
         turn, probe = None, None
         for reaches, group, among in (((AHEAD_R, STEER_PROBE), True, turns), ((STEER_PROBE,), True, turns),
-                                      ((STEER_PROBE,), False, turns), ((STEER_PROBE,), False, wide),
-                                      ((STEP_PROBE,), False, turns + wide)):
+                                      ((STEER_PROBE,), False, turns), ((AHEAD_R, STEER_PROBE), True, wide),
+                                      ((STEER_PROBE,), False, wide), ((STEP_PROBE,), False, turns + wide)):
             turn = next((t for t in among if all(self._clear(_rotate(v, t), reach) for reach in reaches)
                          and not (group and self._ahead(_rotate(v, t), far))), None)
             if turn is not None:

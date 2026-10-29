@@ -193,7 +193,7 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   game minutes: its three fights fled a group listed within 12 tiles, and of the 1420 lines the replay aligns the
   goal ran on 160 with one or two zombies listed within 10 tiles and none within 6, on 47 of them one chasing;
   Angus: "he completely forgets zombies are nearby"): with no threat policy running, one or two zombies listed
-  within `policies.ENGAGE_R` (10), a weapon in hand, health at or above `_fight_line` (FLEE_HEALTH for one, FLEE_HEALTH_PAIR for two, a pair only
+  within `policies.ENGAGE_R` (10; 9 since Task 18 fix 1's minor 8), a weapon in hand, health at or above `_fight_line` (FLEE_HEALTH for one, FLEE_HEALTH_PAIR for two, a pair only
   unwounded: `_takes_on`), no `many` reason (`_many_read`) and one of them a target (`_sought`; never while the
   night's Sleep is current), the threat branch holds them all (`engaging`, the hold radius ENGAGE_R that tick) and
   fights: every Fight it makes but the door fight's is sought (`Fight.seek`: a `seek` stance leg toward the target
@@ -355,7 +355,9 @@ def _key(typ, args):
 class Survive:
     ENGAGE = True   # ruling P24-X: one or two within ENGAGE_R are sought, a flee turns to fight at the fight's line
     SEEK = True     # ruling P24-X: every fight it engages (the door fight aside) is sought to KEEP_R; both switches
-                    # are the replay tests' seams onto the rules before P24-X (`test_replay_decisions.pre_x`)
+                    # are the replay tests' seams onto the rules before P24-X (`test_replay_decisions.pre_x`). Not
+                    # behind them: Task 18's WIDE_TURNS and STEP_PROBE (the flee's wide tiers), which PRE_X proves move
+                    # no golden (Task 18 fix 1, the review's minor 13)
 
     def __init__(self, world, actions, log_path, clock=time.time, source=None):
         self.world = world
@@ -624,7 +626,7 @@ class Survive:
         four times in 8 s), the hold radius's count over MAX_FIGHT or the nearest held threat within DANGER_R.
         Whatever those read, MANY_LISTED_N or more listed within LISTED_R (ruling P24-A (a)) is `many`, `listed` that
         count when it alone made it (else None); since P24-X only when more than MAX_FIGHT of them press
-        (`_pressing`: within ENGAGE_R or chasing), so one or two fought while the rest stand off is no group."""
+        (`_pressing`: within DISENGAGE_R or chasing), so one or two fought while the rest stand off is no group."""
         if self.mode == "flee" and self.flee_many:
             near = len(held) > MAX_FIGHT or min(zdist(self.world, z) for z in held) <= DANGER_R
         else:
@@ -637,11 +639,12 @@ class Survive:
         return True, len(listed)
 
     def _pressing(self, zs):
-        """Of `zs`, the zombies within ENGAGE_R or chasing (`hasTarget`): P24-X's reading of the listing (the E7
+        """Of `zs`, the zombies within DISENGAGE_R (10: ENGAGE_R's value at P24-X, kept when Task 18 fix 1's minor 8
+        drew the engage in to 9) or chasing (`hasTarget`): P24-X's reading of the listing (the E7
         write-up, Task 18: each of E7's fights fled four or more listed within LISTED_R, two of them standing off at
         11.6 and 11.8 tiles, not chasing, while the pair the fight was on came; E5's horde at line 220 had three of
         five pressing, 4.9 tiles off and two chasing at 10.4 and 11.3)."""
-        return sum(1 for z in zs if zdist(self.world, z) <= ENGAGE_R or z.get("hasTarget") is True)
+        return sum(1 for z in zs if zdist(self.world, z) <= DISENGAGE_R or z.get("hasTarget") is True)
 
     def _many(self, held, n):
         """`_many_read`'s `many`, its `listed` kept for the decision's why (logged `listed`)."""

@@ -36,7 +36,8 @@ def pre_x(sv):
     `24987f2a` are reproduced line for line (`test_with_engage_off_the_goldens_are_iteration_7_s`). The tests below
     that pin a line of an earlier ruling (P23-AJ to P24-N) read it there, since P24-X re-records every golden from
     its line 1 (the engage of a zombie at 7 tiles where the record looted) and every later line of those episodes is
-    open loop."""
+    open loop. Not behind the switch: Task 18's WIDE_TURNS and STEP_PROBE (and fix 1's group-aware wide tier), which
+    the PRE_X pins prove move no golden (Task 18 fix 1, the review's minor 13)."""
     sv.ENGAGE = False
 
 
@@ -756,8 +757,8 @@ def test_with_engage_off_the_goldens_are_iteration_7_s(key):
 
 
 # the first line P24-X (as Task 18 fix 1 narrowed it) moves on each golden, and the zombie it engages there
-FIRST_ENGAGE = {"e2": (67, 12787), "e3": (68, 14910), "e4": (247, 19001), "e5": (68, 19223), "f1": (100, 15885),
-                SIXTH: (100, 15885)}
+FIRST_ENGAGE = {"e2": (68, 12787), "e3": (69, 14910), "e4": (247, 19001), "e5": (69, 19223), "f1": (102, 15885),
+                SIXTH: (102, 15885)}   # fix 1's minor 8 (ENGAGE_R 9): e2 67, e3 68, e5 68, f1 100 at ENGAGE_R 10
 
 
 @pytest.mark.parametrize("key", sorted(PRE_X))
@@ -814,13 +815,14 @@ def test_on_every_golden_no_goal_runs_while_a_fight_is_sought(key):
 
 
 def test_the_sixth_golden_s_seek_walk_round_the_wall_gives_way_at_the_first_tick_inside_keep_r(monkeypatch):
-    """Task 18 fix 1, the review's blocker on the sixth golden: the seek's walk round the wall on 15885 (line 100,
-    9.48 tiles) holds while its target stays beyond KEEP_R and gives way at line 111, the first tick inside it (2.46
-    tiles): the backpedal, iteration 7's stance. The mutant (the walk never gives way) moves the golden first there."""
+    """Task 18 fix 1, the review's blocker on the sixth golden: the seek's walk round the wall on 15885 (line 102,
+    8.25 tiles; line 100 at 9.48 before minor 8's ENGAGE_R 9) holds while its target stays beyond KEEP_R and gives way
+    at line 111, the first tick inside it (2.46 tiles): the backpedal, iteration 7's stance. The mutant (the walk never
+    gives way) moves the golden first there."""
     g = gold(SIXTH)
-    assert g[100]["action"]["type"] == "walkTo" and g[100]["why"]["seek"] is True
-    held = [k for k in range(101, 111) if g[k]["why"].get("holding") == "a12"]
-    assert held == list(range(101, 111))
+    assert g[102]["action"]["type"] == "walkTo" and g[102]["why"]["seek"] is True
+    held = [k for k in range(103, 111) if g[k]["why"].get("holding") == "a12"]
+    assert held == list(range(103, 111))
     assert g[111]["why"]["leg"] == "back" and g[111]["why"]["dist"] <= P.KEEP_R
     monkeypatch.setattr(P.Fight, "_walk_gives_way", lambda self: False)
     moved = {d["line"]: d for d in R.run(run_dir(SIXTH), caps=R.HELLO_CAPS[SIXTH])}

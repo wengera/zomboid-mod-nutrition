@@ -76,7 +76,9 @@ ruling's line read it there (`pre_x`). Task 18 fix 1 re-recorded all six under t
 only of a zombie it reaches: the spawn's idle zombie on unscanned ground no longer engaged, each golden moving first
 at its first reachable engage, `test_replay_decisions.FIRST_ENGAGE`), ruling 2 (no seek from held ground nor at a
 chaser across a fence: E2 and E3, three lines) and the blocker (the stance's walk giving way: the sixth from line
-111); `ENGAGE` off still reproduces 24987f2a's.
+111), then again under the review's minor 8 (ENGAGE_R 9 inside DISENGAGE_R 10: each first engage a line or two
+later, e2 68, e3 69, e5 69, f1 and the sixth 102; e4's at 247 kept, moved first at 333); `ENGAGE` off still
+reproduces 24987f2a's.
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat
