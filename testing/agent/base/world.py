@@ -126,7 +126,13 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   Task 4b review's minor 6): `marks` {held id: (reason, world minute)}, one reason an item (the latest mark wins:
   `MARK_REASONS`), dropped with its item; `empty_ids`, `refused` and `no_effect_ids` are its read views, and the care
   branch's `unrippable` (a rip the Lua refused `worn`, `not cotton` or `needs tool`: never asked again) lives there
-  too. `first_sight` (Task 10) is the set of ids an `item_added` named between a hello and the first frame after it:
+  too, and the water chain's `filled`, `tainted` and `undrinkable` (a vessel the need's `fill` filled from a clean
+  source, which `by_use` reads `water` whatever its line's use; one filled from a tainted source, which `tainted_ids`
+  lists with any held item whose record names `TaintedWater`; one whose drink the Lua refused, read `other`).
+  `item_changed` (PZA/1.5.1, Task 9 fix 1: an item's use or fluid read again after a fill, a consume, a wash or a
+  rip) sets the held item's `use` ("a reader takes the event's use as the item's use from then on"), its `fluid`
+  and `amount` (each dropped when the line leaves it out), and drops a vessel-state mark (`empty`, `filled`,
+  `tainted`: the engine's read supersedes the planner's). `first_sight` (Task 10) is the set of ids an `item_added` named between a hello and the first frame after it:
   the inventory's first sight (ruling P22-2), the clothes the character stands in, which the care branch never rips.
   `to_json` carries `emptyIds`, `refusedIds` (the ids excluded now)
   and `noEffectIds` sorted, each only while it is non-empty,
@@ -145,7 +151,9 @@ STUCK_AREA_N = 2     # unmoved stuck walks in a row from one square before its e
 REACH_LIMIT = 400    # squares a reachability flood visits at most (P23-AP 1)
 STUCK_WALK_CAP = 3   # unmoved stuck walks in a row past STUCK_AREA_N before no edge is answered (P23-AP fix 1, R2)
 REFUSED_TTL_MIN = 120   # world minutes a food whose consume was refused `not valid` reads `other` (P23-AD)
-MARK_REASONS = ("empty", "refused", "no_effect", "unrippable")   # the planner's item marks (P24-I), one an item
+MARK_REASONS = ("empty", "refused", "no_effect", "unrippable", "filled", "tainted", "undrinkable")   # the planner's
+                     # item marks (P24-I), one an item; the last three the water chain's (P24-G 3)
+VESSEL_MARKS = ("empty", "filled", "tainted")   # the marks an item_changed line drops (the engine's read wins)
 MET_TTL_MIN = 10     # game minutes a zombie listed stays in the met memory (ruling P24-A (a), a judgment: a group
                      # met within the last ten minutes is still about; E5's was first listed at gameMin 590 and at
                      # melee range by 593)
@@ -352,6 +360,18 @@ class World:
             if self.inventory.pop(line.get("itemId"), None) is None:
                 self.missing_items += 1
             self.marks.pop(line.get("itemId"), None)
+        elif kind == "item_changed":
+            it = self.inventory.get(line.get("itemId"))
+            if it is not None:
+                if line.get("use") is not None:
+                    it["use"] = line["use"]
+                for k in ("fluid", "amount"):
+                    if line.get(k) is None:
+                        it.pop(k, None)
+                    else:
+                        it[k] = line[k]
+                if (self.marks.get(line.get("itemId")) or ("",))[0] in VESSEL_MARKS:
+                    del self.marks[line.get("itemId")]
         elif kind == "damage":
             self.damage.append({"tag": line.get("tag"), "amount": line.get("amount"), "side": line.get("side"),
                                 "wallMs": line.get("wallMs")})
@@ -860,6 +880,46 @@ class World:
         """{held food id: world minute the Lua refused its consume} (`mark_refused`)."""
         return self.marked("refused")
 
+    def tainted_ids(self):
+        """The held ids the need's fill filled from a tainted source (`tainted`), and any held item whose record
+        names `TaintedWater` as its fluid (an `item_changed` line's), less the ones marked `undrinkable`."""
+        out = set(self.marked("tainted")) | {i for i, it in self.inventory.items() if it.get("fluid") == "TaintedWater"}
+        return out - set(self.marked("undrinkable"))
+
+    def hop_ahead(self, frm, to):
+        """The fence square (x, y) of the hoppable edge the straight line from position `frm` toward `to` crosses at
+        its first step out of `frm`'s square, else None (Plan 24 Task 10, ruling P24-G 4: a route's next edge): the
+        step blocked (`blocked`) and crossable with `climb=True` (its square's `hopN`/`hopW` true), the fence's square
+        the edge's holder (the square storing that north or west edge); a diagonal first step is read through either
+        corner square, open and unblocked on its other leg. The line is Bresenham's on the floored ends, on the
+        player's floor."""
+        z = me_floor(self)
+        cells = self._bresenham(int(math.floor(frm[0])), int(math.floor(frm[1])), int(math.floor(to[0])),
+                                int(math.floor(to[1])))
+        if len(cells) < 2:
+            return None
+        a, b = (cells[0][0], cells[0][1], z), (cells[1][0], cells[1][1], z)
+        if a not in self.map or b not in self.map:
+            return None
+        if a[0] == b[0] or a[1] == b[1]:
+            return self._hop(a, b)
+        for c in ((b[0], a[1], z), (a[0], b[1], z)):
+            if c not in self.map or self._solid(c):
+                continue
+            first, second = self._hop(a, c), self._hop(c, b)
+            if first is not None and not self.blocked(c, b):
+                return first
+            if second is not None and not self.blocked(a, c):
+                return second
+        return None
+
+    def _hop(self, a, b):
+        """The fence square of the orthogonal step a -> b when it is blocked but climbable, else None."""
+        if not self.blocked(a, b) or self.blocked(a, b, climb=True):
+            return None
+        holder = a if (b[1] == a[1] - 1 or b[0] == a[0] - 1) else b
+        return holder[0], holder[1]
+
     @property
     def no_effect_ids(self):
         """The held ids whose consume moved no stat (`mark_no_effect`, P24-F)."""
@@ -897,14 +957,19 @@ class World:
         out = {u: [] for u in USES}
         refused = self.refused_now()
         empty, no_effect = (self.empty_ids, self.no_effect_ids) if self.marks else ((), ())
+        filled = set(self.marked("filled")) if self.marks else ()
+        undrinkable = set(self.marked("undrinkable")) if self.marks else ()
         for iid, it in self.inventory.items():
             use = it.get("use")
             if use not in USES:                       # no use, or a stray value: the dataset's answer, never a raise
                 use = use_of(it.get("fullType"))
             elif use == "food" and cant_eat(it.get("fullType")):
                 use = "other"                         # N-3: the dataset overrides the engine's IsFood for a sealed can
-            if (use == "water" and iid in empty) or (use == "food" and iid in refused) or iid in no_effect:
+            if ((use == "water" and iid in empty) or (use == "food" and iid in refused) or iid in no_effect
+                    or iid in undrinkable):
                 use = "other"
+            elif iid in filled:
+                use = "water"
             out[use].append(iid)
         return {u: sorted(v, key=_num_first) for u, v in out.items()}
 

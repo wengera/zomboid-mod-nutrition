@@ -5,8 +5,9 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
 - `pos {x, y, z}` (the frame's `me`), `hour`, `health` (`body.health`), `needs {hunger, thirst, fatigue}` (`stats`),
   `load {weight, max, level}`, `weapon` (the wielded type, else None), `inventory_by_use` ({use: count} over
   `items.USES`, by `world.by_use()`).
-- `needs_wanted`: the uses (water, then food) the need branch marked (nothing of the use held) within the last
-  NEED_MEMORY_S (120) seconds on Survive's clock (`survive.need_marks`).
+- `needs_wanted`: the uses (water, then food, then container: NEED_USES) the need branch marked (nothing of the use
+  held; a container when no water and no empty vessel is held, the water chain's third step, Plan 24 Task 10, ruling
+  P24-G 3) within the last NEED_MEMORY_S (120) seconds on Survive's clock (`survive.need_marks`).
 - `buildings`: each known building with an integer id (`world.interiors()`), nearest first then by id: `id`, `x`, `y`
   (its nearest room square on the player's floor, else on any floor: P24-B 3, the model's positions), `door` (its
   first exterior door square on the player's floor, `night.exterior_doors`'s ranking, as [x, y], else None), `dist`
@@ -36,7 +37,9 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
 - Beyond the brief's keys, the scripted source's reads: `edge` (`world.unexplored_edge()` as [x, y], else None; after
   two unmoved stuck walks from the player's square only a square in the open, P23-AP 1),
   `scanned_here` (the player's place, `policies.place_of`, is in the goal kit's `Explore.scanned`), `stock_uses` (the
-  uses of `goals.STOCK_WANTS` for which the kit's `LootHouse.target` answers a container now), `cooled` (the goals
+  uses of `goals.STOCK_WANTS` for which the kit's `LootHouse.target` answers a container now, then `container` when
+  `world.nearest_unlooted("container")` answers one: a known empty vessel, the water chain's want; the Lua's loot
+  filters take no `container`, so no goal loots it yet), `cooled` (the goals
   the runner refuses for now, `GoalRunner.cooling()`: `[{type, args}]`, fix 1 I4).
 
 The view only reads: the kit is bound by its runner's `observe`, never here (fix 1 M5).
@@ -62,6 +65,7 @@ from agent.base.planner.policies import LOOT_WANTS, STUCK_REASONS, me_floor, me_
 from agent.base.world import MET_VIEW_R, compass
 
 NEED_MEMORY_S = 120.0
+NEED_USES = ("water", "food", "container")   # the need marks the view lists, in order (P24-G 3: the container)
 ZOMBIE_BANDS = (6, 12, 25)
 BUILDINGS_SHOWN = 6
 RENDER_MAX = 2048
@@ -148,7 +152,7 @@ def view(world, survive):
         "hour": me.get("hour"),
         "health": (world.body or {}).get("health"),
         "needs": {k: st.get(k) for k in ("hunger", "thirst", "fatigue")},
-        "needs_wanted": [u for u in ("water", "food") if u in marks and now - marks[u] <= NEED_MEMORY_S],
+        "needs_wanted": [u for u in NEED_USES if u in marks and now - marks[u] <= NEED_MEMORY_S],
         "load": {k: load.get(k) for k in ("weight", "max", "level")},
         "weapon": (world.weapon or {}).get("type"),
         "inventory_by_use": {u: len(by_use[u]) for u in USES},
@@ -163,7 +167,8 @@ def view(world, survive):
         "want_shelter": bool(getattr(night, "want_shelter", False)),
         "edge": list(edge) if edge else None,
         "scanned_here": kit is not None and place_of(world) in kit.explore.scanned,
-        "stock_uses": [u for u in STOCK_WANTS if kit is not None and kit.loot.target(u) is not None],
+        "stock_uses": [u for u in STOCK_WANTS if kit is not None and kit.loot.target(u) is not None]
+        + (["container"] if world.nearest_unlooted("container") is not None else []),
         "cooled": runner.cooling() if runner is not None else [],
     }
 

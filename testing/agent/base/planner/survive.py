@@ -157,6 +157,20 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      within `care.WASH_R` with no zombie within DISENGAGE_R, a cotton garment ripped when no rag is held (never one of
      the inventory's first sight); its own action holds the branch, the Sleep passes it, and a refused item waits
      `care.CARE_RETRY_MIN` game minutes.
+  3. The water chain (`_need`, `_fill_plan`, `_check_fills`): thirst over THIRST_T drinks a held `water` item, a
+     clean one first (`World.tainted_ids` only with none clean); with none, a held `container` is filled (`fill`) at
+     the nearest known source (`care.water_sources`: a clean one within FILL_R, else the nearest of any), its done
+     marking the vessel `filled` or `tainted` (`World.mark`; `by_use` then reads it water, so the next tick drinks
+     it), a source refused for its water left out (`care.SOURCE_RETRY_MIN`) and a vessel whose fill failed left out
+     FILL_RETRY_MIN; with no vessel held the want is marked `container` beside `water` (`need_marks`, the view's
+     `needs_wanted`). The Lua's consume refuses tainted water (`W.drinkable`): a tainted drink refused `not valid` is
+     marked `undrinkable` and no tainted source is filled from again this session (`_refused`). The World applies
+     PZA/1.5.1's `item_changed` (the engine's own re-read of a vessel's use and fluid). The no-effect mark (P24-F) is
+     unchanged.
+  4. The climb in routes is the goal's (`goals.ExploreToward`, `World.hop_ahead`): a walk failed `stuck` at a
+     hoppable edge on its line's first step climbs it (`climb`) and walks on; the flood and the path follower's own
+     climbs need nothing; no steer or backpedal ever crosses a hoppable edge (`policies.clear_heading`), so nothing
+     vaults. 5: no look-around (jar reads 2 § 6: the frames list every zombie whatever the facing).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -189,7 +203,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   whatever branch's line the tick that marked writes; the need's `why` carries `no_effect` {itemId, use, stat, fell}
   on that tick when the need ran, and `retry` (the ids left out by the window) only when a need was wanted and
   its held item is inside the window, each only then, beside `item` and `mark`. The branch never consumes a `container`
-  (PZA/1.4.1, an empty vessel: Task 9's fill takes it to a sink); with no `water` held it marks the want.
+  (PZA/1.4.1, an empty vessel): Task 10's water chain fills it (survival 6, 3); with no `water` held and nothing to
+  fill it marks the want.
 - `goal` (Plan 23 Task 13, P23-10; ruling P23-F): `goals.GoalRunner` over the goal source (`source`, default
   `goals.ScriptedSource()`; Task 14's LLM source shares the seam), whose module docstring is the design record: one
   goal at a time, proposed from `view.view(world, self)` (built only on a tick that proposes) when none runs,
@@ -228,7 +243,7 @@ import math
 import time
 
 from agent.base.items import days_fresh
-from agent.base.planner.care import Care
+from agent.base.planner.care import Care, water_sources
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH,
@@ -236,7 +251,8 @@ from agent.base.planner.policies import (CORNERED_R, DANGER_R, DISENGAGE_R, DROP
                                          exit_plan, in_building, in_reach, item_id_ok, line_to, others_behind, spare,
                                          target_id_ok, zdist)
 from agent.base.planner.view import view
-from agent.base.pza1 import Consume, Drop
+from agent.base.pza1 import Consume, Drop, Fill
+from agent.base.world import me_floor
 
 THIRST_T = 0.12          # the first THIRST moodle fires above 0.12 [#0509]
 HUNGER_T = 0.15          # the first HUNGRY moodle fires above 0.15 [#0508]
@@ -271,12 +287,14 @@ CONSUME_CHECK_MIN = 1.0  # game minutes after a consume's done is first read bef
 STAT_FALL_MIN = 0.01     # the least fall of that stat since the send that counts as an effect (P24-F, a judgment:
                          # a drink or a meal moves its stat by tenths, F2's thirst rose 0.013 in 14 minutes)
 CONSUME_RETRY_MIN = 5.0  # game minutes a consume that ended done leaves its item out of the pick (P24-F)
+FILL_R = 25.0            # tiles: a tainted source is filled from only with no clean one known this near (P24-G 3)
+FILL_RETRY_MIN = 2.0     # game minutes a vessel whose fill failed is left out of the fill (as care.CARE_RETRY_MIN)
 
 __all__ = ["Survive", "BRANCHES", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER_T", "FLEE_HEALTH",
            "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS",
            "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
            "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "NEED_STATS",
-           "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN"]
+           "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_R", "FILL_RETRY_MIN"]
 
 
 def _key(typ, args):
@@ -324,6 +342,9 @@ class Survive:
         self.need_marks = {}      # use -> wall of its last mark: the view's needs_wanted
         self.consume_refused = None   # a non-water id whose consume ended failed "not valid" this tick (logged)
         self.consumes = {}        # item id -> {action, use, stat, before, at, checked}: the need's sends (P24-F)
+        self.fills = {}           # vessel id -> {action, read, at, tainted}: the need's fills (P24-G 3)
+        self.fill_why = None      # this tick: the water chain's fill or want, logged in the need's why
+        self.tainted_refused = False   # a tainted drink was refused: the fill takes clean sources only (P24-G 3)
         self.need_use = None      # the use of the item the need picked this tick
         self.no_effect = None     # this tick: {itemId, use, stat, fell} of an item marked no-effect, else None
         self.ticks = 0
@@ -357,11 +378,16 @@ class Survive:
 
     def _held_use(self, use):
         """The id to consume among the held items of `use` (`world.by_use()`), else None: a food the least
-        `days_fresh` first (None last), any use then the least id; an id inside its retry window left out."""
+        `days_fresh` first (None last); water a clean one (not in `world.tainted_ids()`) first, the least id, a
+        tainted one only with no clean one held (ruling P24-G 3); an id inside its retry window left out."""
         recent = self._retrying()
-        ids = [i for i in self.world.by_use()[use] if item_id_ok(i) and i not in recent]
+        ids = self.world.by_use()[use]
+        tainted = self.world.tainted_ids() if use == "water" else set()
+        ids = [i for i in set(ids) | (tainted & set(self.world.inventory)) if item_id_ok(i) and i not in recent]
         if not ids:
             return None
+        if use == "water":
+            return min(ids, key=lambda i: (i in tainted, i))
         if use != "food":
             return min(ids)
 
@@ -410,6 +436,58 @@ class Survive:
             if fell < STAT_FALL_MIN:
                 self.world.mark_no_effect(iid)
                 self.no_effect = {"itemId": iid, "use": c["use"], "stat": c["stat"], "fell": round(fell, 6)}
+
+    def _check_fills(self):
+        """Each fill's end, once: done marks its vessel `filled` (or `tainted`, the act's result or the source's
+        record saying so), so `by_use` reads it water and the next tick drinks it; refused `no source` or `no water`
+        leaves the source out (the care branch's `dry` store, `care.SOURCE_RETRY_MIN`); any other end but a supersede
+        leaves the vessel out of the fill for FILL_RETRY_MIN game minutes of its send (`_fill_plan`)."""
+        now = self.world.world_minutes()
+        for iid, f in list(self.fills.items()):
+            a = f["action"]
+            if f["read"]:
+                if now - f["at"] >= FILL_RETRY_MIN:
+                    del self.fills[iid]
+                continue
+            if not self.actions.done(a):
+                continue
+            if a.state == "done" or (a.state == "failed" and a.reason == PREEMPTED):
+                if a.state == "done" and iid in self.world.inventory:
+                    res = a.result if isinstance(a.result, dict) else {}
+                    self.world.mark(iid, "tainted" if (res.get("tainted") is True or f["tainted"]) else "filled")
+                del self.fills[iid]
+                continue
+            f["read"] = True
+            if a.reason in ("no source", "no water"):
+                self.care.dry[(a.args.get("x"), a.args.get("y"), me_floor(self.world))] = now
+
+    def _fill_plan(self):
+        """The water chain's second step (ruling P24-G 3): a held `container` (`by_use`, the least id, one whose fill
+        failed within FILL_RETRY_MIN left out) and the nearest known water source on the player's floor
+        (`care.water_sources`, the dry ones left out): a clean one within FILL_R, else the nearest of any; `Fill(vessel,
+        x, y)`, the Lua walking next to it. None without the `fill` skill, a vessel or a source; `fill_why` says
+        which (`want` "container" with no vessel held: the third step)."""
+        if not self.world.can("fill"):
+            return None
+        vessels = [i for i in self.world.by_use()["container"] if item_id_ok(i) and i not in self.fills]
+        if not vessels:
+            self.fill_why = {"want": "container"}
+            return None
+        known = [s for s in water_sources(self.world, math.inf, self.care.dry_now())
+                 if not (self.tainted_refused and s[2].get("tainted") is True)]
+        clean = [s for s in known if s[0] <= FILL_R and s[2].get("tainted") is not True]
+        src = (clean or known or [None])[0]
+        if src is None:
+            self.fill_why = {"vessel": min(vessels), "source": None}
+            return None
+        d, sq, rec = src
+        self.fill_why = {"vessel": min(vessels), "source": [sq[0], sq[1]], "dist": d,
+                         "tainted": rec.get("tainted") is True}
+        return Fill(min(vessels), sq[0], sq[1])
+
+    def _sent_fill(self, action):
+        self.fills[action.args.get("itemId")] = {"action": action, "read": False, "at": self.world.world_minutes(),
+                                                 "tainted": bool((self.fill_why or {}).get("tainted"))}
 
     def _sent_consume(self, action):
         """Remember the need's consume (P24-F): its use, its stat, the stat now and the world minute."""
@@ -917,20 +995,31 @@ class Survive:
             self.why = {"holding_sleep": sleep.aid}       # P23-AB: answered at the wake; the night holds the tick
             return None
         st = self.world.stats or {}
-        pick = None
+        pick, fill = None, None
         inside = set()     # the held ids of a wanted use that its retry window leaves out (logged as `retry`)
+        self.fill_why = None
         for use, stat, t in (("water", "thirst", THIRST_T), ("food", "hunger", HUNGER_T)):
-            if pick is not None or (st.get(stat) or 0.0) <= t:
+            if pick is not None or fill is not None or (st.get(stat) or 0.0) <= t:
                 continue
             inside |= self._retrying() & set(self.world.by_use()[use])
             pick = self._held_use(use)
-            if pick is None:
+            if pick is None and use == "water":
+                fill = self._fill_plan()   # P24-G 3: no water held, a vessel filled at a known source
+            if pick is None and fill is None:
                 self.need_mark = self.need_mark or use
                 self.need_marks[use] = self.clock()
-            else:
+                if use == "water" and (self.fill_why or {}).get("want") == "container":
+                    self.need_marks["container"] = self.clock()   # the third step: the goal layer's want
+            elif pick is not None:
                 self.need_marks.pop(use, None)
+                if use == "water":
+                    self.need_marks.pop("container", None)
                 self.need_use = use
         self.why = {"item": pick, "mark": self.need_mark}
+        if self.fill_why is not None:
+            self.why["fill"] = self.fill_why
+        if fill is not None:
+            return None, fill
         if self.no_effect is not None:
             self.why["no_effect"] = self.no_effect
         if inside:
@@ -1000,8 +1089,15 @@ class Survive:
         self._watch = still
 
     def _refused(self, iid):
-        """A consume refused `not valid`: an id `by_use()` reads `water` is empty (P23-D), one it reads `food` is
-        refused (I-4), each marked so it reads `other`; a food and any other id (no longer held) are logged."""
+        """A consume refused `not valid`: a tainted one (`World.tainted_ids`: the Lua's `W.drinkable` refuses tainted
+        water) is marked `undrinkable` and the fill takes no tainted source again (`tainted_refused`, P24-G 3: one
+        wasted fill, never a fill-and-refuse loop); an id `by_use()` reads `water` is empty (P23-D), one it reads
+        `food` is refused (I-4), each marked so it reads `other`; a food and any other id (no longer held) are
+        logged."""
+        if iid in self.world.tainted_ids():
+            self.world.mark(iid, "undrinkable")
+            self.tainted_refused = True
+            return
         uses = self.world.by_use()
         if iid in uses["water"]:
             self.world.mark_empty(iid)
@@ -1035,6 +1131,7 @@ class Survive:
         self._observed = []
         self._note_failures()
         self._check_consumes()
+        self._check_fills()
         self.goals.observe(world, actions)
         inputs = self._inputs()
         if self.fight is not None:
@@ -1061,7 +1158,7 @@ class Survive:
             action = owner.send(cmd) if owner is not None else self.actions.send(cmd)
             if owner is None and branch == "need":
                 self.need_last = action
-                self._sent_consume(action)
+                (self._sent_consume if cmd.TYPE == "consume" else self._sent_fill)(action)
             elif owner is None and branch == "load":
                 self.load_last = action
             self._watch.append(action)

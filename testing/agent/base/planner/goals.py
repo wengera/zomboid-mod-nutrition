@@ -12,7 +12,14 @@ a class attribute equal to the entry's `const`:
   unscanned, then a `WalkTo(x, y)` at a walk; `done "arrived"` when its walk ends done, or when the place is scanned
   and the player stands within ARRIVE_R (1.5 tiles) of (x, y); a walk or scan that ends any other way but
   `superseded` fails the goal under the action's reason (a walk failed for a `STUCK_REASONS` reason is marked stuck by
-  `Explore.observe`, so the scripted source's next edge leaves it out).
+  `Explore.observe`, so the scripted source's next edge leaves it out). The climb in routes (Plan 24 Task 10, ruling
+  P24-G 4; #4296: a short fence climbed at a walk never trips): a walk the path follower could not finish, ended
+  `failed "stuck"` where the straight line from the player toward (x, y) first crosses a hoppable edge
+  (`World.hop_ahead`: blocked, its square's `hopN`/`hopW` true, at the player's own square), sends `Climb(x, y)` of
+  that fence's square (the build announcing `climb`, `World.can`) and walks again once the climb ends done; a climb
+  that ends any other way (`fell`, a tall fence's `failed`) fails the goal under its reason, and a second stuck walk at
+  a fence it already climbed fails it `stuck`. A walk whose path crosses a hoppable edge the follower climbs itself
+  needs nothing; nothing here ever runs or sprints over a fence (no vault).
 - `LootBuilding(building)`: `LootHouse` kept to the containers on the building's squares (`LootHouse.within`), one
   loot at a time for the first of STOCK_WANTS (water, food, bandage, weapon) that `LootHouse.target` answers there;
   `done "looted"` when none answers after at least one loot, `failed "nothing to loot"` when none answered at all,
@@ -97,7 +104,7 @@ from agent.base.items import use_of
 from agent.base.planner.night import SHUN_MIN, shelter_ended, shelter_plan, shelter_step
 from agent.base.planner.policies import (LOOT_MAX_LEVEL, LOOT_WANTS, PREEMPTED, SCAN_R, Explore, LootHouse, me_xy,
                                          place_of)
-from agent.base.pza1 import Scan, WalkTo
+from agent.base.pza1 import Climb, Scan, WalkTo
 
 GOAL_MAX_S = 90.0     # wall seconds a goal may run before it is failed "goal budget" and replaced (a Rest: P23-W)
 GOAL_COOL_S = 30.0    # wall seconds a goal that failed having sent nothing is not taken again (fix 1, I4)
@@ -276,10 +283,24 @@ class ExploreToward(Goal):
         mx, my = me_xy(world)
         return math.hypot(self.x - mx, self.y - my)
 
+    def start(self, world):
+        self.climb = None        # the fence square (x, y) the next choose climbs (P24-G 4), else None
+        self.climbed = set()     # the fence squares this goal climbed
+
     def ended(self, world, action):
         if action.type == "walkTo":
             if action.state == "done":
                 self.end("done", "arrived")
+                return
+            hop = (world.hop_ahead(me_xy(world), (self.x, self.y))
+                   if action.state == "failed" and action.reason == "stuck" and world.can("climb") else None)
+            if hop is not None and hop not in self.climbed:
+                self.climb = hop
+            else:
+                self.end("failed", action.reason or action.state)
+        elif action.type == "climb":
+            if action.state == "done":
+                self.climbed.add((action.args.get("x"), action.args.get("y")))
             else:
                 self.end("failed", action.reason or action.state)
         elif action.type == "scan" and action.state != "done":
@@ -295,6 +316,11 @@ class ExploreToward(Goal):
         if place not in ex.scanned:
             self.why = {"scanAt": list(place), "toward": [self.x, self.y]}
             return Scan(SCAN_R)
+        if self.climb is not None:
+            x, y = self.climb
+            self.climb = None
+            self.why = {"toward": [self.x, self.y], "climb": [x, y]}
+            return Climb(x, y)
         self.why = {"toward": [self.x, self.y], "dist": self._dist(world)}
         return WalkTo(self.x, self.y, "walk")
 

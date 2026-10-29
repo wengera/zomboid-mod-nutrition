@@ -42,10 +42,11 @@ def test_needs_wanted_lists_the_uses_marked_within_need_memory_s_water_first(tmp
     r, sv = make(tmp_path)
     r.frame(thirst=0.3, hunger=0.3)
     sv.tick(r.world, r.acts)
-    assert view(r.world, sv)["needs_wanted"] == ["water", "food"]
+    # named change, Plan 24 Task 10 (ruling P24-G 3): no water and no vessel held marks the container want too
+    assert view(r.world, sv)["needs_wanted"] == ["water", "food", "container"] and V.NEED_USES[2] == "container"
     r.advance(V.NEED_MEMORY_S)
     r.frame()
-    assert view(r.world, sv)["needs_wanted"] == ["water", "food"]       # at NEED_MEMORY_S: still wanted
+    assert view(r.world, sv)["needs_wanted"] == ["water", "food", "container"]   # at NEED_MEMORY_S: still wanted
     r.advance(0.5)
     assert view(r.world, sv)["needs_wanted"] == [] and V.NEED_MEMORY_S == 120.0
 

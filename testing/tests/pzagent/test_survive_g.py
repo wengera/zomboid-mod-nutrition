@@ -556,3 +556,280 @@ def test_no_garment_is_ripped_while_a_rag_is_held(tmp_path):
     care_frame(r, [])
     tick(r, sv)
     assert last(tmp_path)["branch"] != "care" and not any(a.type == "rip" for a in r.acts.history)
+
+
+# ================================================================ the water chain (P24-G 3)
+from agent.base.planner import view as V   # noqa: E402
+from agent.base.planner.goals import ExploreToward, GoalRunner   # noqa: E402
+from .test_policies import Rig   # noqa: E402
+
+
+def need_why(tmp_path):
+    return last(tmp_path)["inputs"]["branches"]["need"]
+
+
+def source(x, y, tainted=False, amount=20.0, infinite=False):
+    return square(x, y, water={"amount": amount, "tainted": tainted, "infinite": infinite})
+
+
+def thirsty(r, **k):
+    r.frame(thirst=0.2, **k)
+
+
+def test_the_water_chain_constants():
+    assert (S.FILL_R, S.FILL_RETRY_MIN, S.THIRST_T) == (25.0, 2.0, 0.12)
+
+
+def test_a_clean_water_item_is_drunk_before_a_tainted_one_and_a_tainted_one_without(tmp_path):
+    """Step 1: the need drinks a held `water` item, a clean one first (one the World knows tainted, `tainted_ids`,
+    only with no clean one held), whatever their ids."""
+    r, sv = make(tmp_path)
+    r.frame()
+    hold(r, 1, "Base.WaterBottle", use="water")
+    hold(r, 2, "Base.WaterBottle", use="water")
+    r.world.mark(1, "tainted")
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 2})
+    (tmp_path / "b").mkdir()
+    r2, sv2 = make(tmp_path / "b")
+    r2.frame()
+    hold(r2, 1, "Base.WaterBottle", use="water")
+    r2.world.mark(1, "tainted")
+    thirsty(r2)
+    tick(r2, sv2)
+    assert r2.cmd() == ("consume", {"itemId": 1})
+
+
+def test_no_water_held_a_vessel_is_filled_at_the_nearest_clean_source_then_drunk(tmp_path):
+    """Step 2: no `water` item, a `container` held: `fill` at the nearest known source (the Lua walks there); its
+    done marks the vessel `filled`, which `by_use` reads water, and the next tick drinks it."""
+    r, sv = make(tmp_path)
+    r.scan([source(110, 200), source(104, 200, amount=0.0), source(120, 200)])     # the dry one is no source
+    r.frame()
+    hold(r, 5, "Base.PopEmpty", use="container")
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 110, "y": 200}) and last(tmp_path)["branch"] == "need"
+    w = need_why(tmp_path)
+    assert w["item"] is None and w["mark"] is None and w["fill"]["vessel"] == 5 and w["fill"]["tainted"] is False
+    all_sends_valid(r)
+    assert tick(r, sv) is None                                                   # its fill is current: held
+    r.answer({"state": "done", "result": {"amount": 0.5, "added": 0.5, "fluid": "Water", "tainted": False}})
+    thirsty(r)
+    tick(r, sv)
+    assert r.world.marks[5][0] == "filled" and r.world.by_use()["water"] == [5]
+    assert r.cmd() == ("consume", {"itemId": 5})
+
+
+def test_a_tainted_source_is_filled_from_only_with_no_clean_one_within_fill_r(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan([source(105, 200, tainted=True, infinite=True), source(124, 200)])     # clean at 24.5 tiles
+    r.frame()
+    hold(r, 5, "Base.PopEmpty", use="container")
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 124, "y": 200})
+    (tmp_path / "b").mkdir()
+    r2, sv2 = make(tmp_path / "b")
+    r2.scan([source(105, 200, tainted=True, infinite=True), source(130, 200)])    # clean at 30.5: beyond FILL_R
+    r2.frame()
+    hold(r2, 5, "Base.PopEmpty", use="container")
+    thirsty(r2)
+    tick(r2, sv2)
+    assert r2.cmd() == ("fill", {"itemId": 5, "x": 105, "y": 200}) and need_why(tmp_path / "b")["fill"]["tainted"]
+    r2.answer({"state": "done", "result": {"amount": 0.5, "added": 0.5, "fluid": "TaintedWater", "tainted": True}})
+    thirsty(r2)
+    tick(r2, sv2)
+    assert r2.world.marks[5][0] == "tainted" and r2.world.tainted_ids() == {5} and r2.cmd() == ("consume", {"itemId": 5})
+
+
+def test_a_fill_refused_for_its_water_leaves_the_source_out(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan([source(105, 200), source(110, 200)])
+    r.frame()
+    hold(r, 5, "Base.PopEmpty", use="container")
+    hold(r, 6, "Base.PopEmpty", use="container")
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 105, "y": 200})
+    r.answer({"state": "failed", "reason": "no water"})
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 6, "x": 110, "y": 200})
+
+
+def test_no_vessel_held_the_container_want_is_marked_for_the_goal_layer(tmp_path):
+    """Step 3: no water and no vessel held: the water want and the container want are marked (`need_marks`), the
+    view lists both in `needs_wanted`, and a known empty vessel in a container is named in `stock_uses`."""
+    r, sv = make(tmp_path)
+    r.scan([source(105, 200), square(102, 200, containers=[{"type": "counter", "n": 1, "items": ["Base.PopEmpty"]}])])
+    thirsty(r)
+    tick(r, sv)
+    w = need_why(tmp_path)
+    assert w["mark"] == "water" and w["fill"] == {"want": "container"} and set(sv.need_marks) == {"water", "container"}
+    v = V.view(r.world, sv)
+    assert v["needs_wanted"] == ["water", "container"] and "container" in v["stock_uses"]
+    hold(r, 7, "Base.WaterBottle", use="water")
+    thirsty(r)
+    tick(r, sv)
+    assert "container" not in sv.need_marks and "water" not in sv.need_marks
+
+
+def test_a_vessel_with_no_source_known_marks_the_water_want_only(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame()
+    hold(r, 5, "Base.PopEmpty", use="container")
+    thirsty(r)
+    tick(r, sv)
+    assert need_why(tmp_path)["fill"] == {"vessel": 5, "source": None} and set(sv.need_marks) == {"water"}
+
+
+def test_a_pza_1_4_build_is_sent_no_fill(tmp_path):
+    r, sv = make(tmp_path, caps=CAPS_14)
+    r.scan([source(105, 200)])
+    r.frame()
+    hold(r, 5, "Base.PopEmpty", use="container")
+    thirsty(r)
+    tick(r, sv)
+    assert not any(a.type == "fill" for a in r.acts.history) and "fill" not in need_why(tmp_path)
+
+
+# ================================================================ the climb in routes (P24-G 4)
+class Src:
+    NAME = "test"
+
+    def __init__(self, goal):
+        self.goal = goal
+
+    def propose(self, view):
+        g, self.goal = self.goal, None
+        return g
+
+
+def fenced(hop=True):
+    """A yard x 98..112, y 196..204, a fence on the west edge of the squares x 102 (blocked, hoppable unless `hop`
+    is False: a wall)."""
+    return [square(x, y, blockW=(x == 102), hopW=(x == 102 and hop)) for x in range(98, 113) for y in range(196, 205)]
+
+
+def walk_stuck(r, g, me=(101.5, 200.5)):
+    r.frame(x=me[0], y=me[1])
+    runner = GoalRunner(Src(g), r.clock)
+    runner.kit.bind(r.world, r.acts)
+    runner.kit.explore.scanned.add(runner.kit.explore.place())   # the place is scanned already
+    runner.send(runner.tick(r.world, r.acts))
+    assert r.cmd()[0] == "walkTo"
+    r.answer({"state": "failed", "reason": "stuck"})
+    r.frame(x=me[0], y=me[1])
+    return runner, runner.tick(r.world, r.acts)
+
+
+def test_a_walk_stuck_at_a_hoppable_edge_climbs_it_then_walks_on(tmp_path):
+    """P24-G 4: the explicit climb only where the walk failed `stuck` and the route's next edge (the line's first
+    step from the player's square) is hoppable: `climb` of the fence's square (the edge's holder, x 102), then the
+    walk again once the climb ends done."""
+    r = Rig(tmp_path)
+    r.scan(fenced())
+    g = ExploreToward(110, 200)
+    runner, cmd = walk_stuck(r, g)
+    assert g.state == "running" and (cmd.TYPE, cmd.args()) == ("climb", {"x": 102, "y": 200})
+    runner.send(cmd)
+    r.answer()
+    r.frame(x=102.5, y=200.5)
+    cmd = runner.tick(r.world, r.acts)
+    assert (cmd.TYPE, cmd.args()) == ("walkTo", {"x": 110, "y": 200, "gait": "walk"})
+    all_sends_valid(r)
+
+
+def test_a_walk_stuck_at_a_wall_or_far_from_the_fence_never_climbs(tmp_path):
+    r = Rig(tmp_path)
+    r.scan(fenced(hop=False))
+    g = ExploreToward(110, 200)
+    _, cmd = walk_stuck(r, g)
+    assert cmd is None and (g.state, g.reason) == ("failed", "stuck")
+    (tmp_path / "b").mkdir()
+    r2 = Rig(tmp_path / "b")
+    r2.scan(fenced())
+    g2 = ExploreToward(110, 200)
+    _, cmd = walk_stuck(r2, g2, me=(99.5, 200.5))                                # the fence two squares on
+    assert cmd is None and (g2.state, g2.reason) == ("failed", "stuck")
+
+
+def test_a_failed_climb_fails_the_goal_and_a_pza_1_4_build_never_climbs(tmp_path):
+    r = Rig(tmp_path)
+    r.scan(fenced())
+    g = ExploreToward(110, 200)
+    runner, cmd = walk_stuck(r, g)
+    runner.send(cmd)
+    r.answer({"state": "failed", "reason": "fell"})
+    r.frame(x=101.5, y=200.5)
+    runner.tick(r.world, r.acts)
+    assert (g.state, g.reason) == ("failed", "fell")
+    (tmp_path / "b").mkdir()
+    r2 = Rig(tmp_path / "b", caps=CAPS_14)
+    r2.scan(fenced())
+    g2 = ExploreToward(110, 200)
+    _, cmd = walk_stuck(r2, g2)
+    assert cmd is None and (g2.state, g2.reason) == ("failed", "stuck")
+
+
+def test_hop_ahead_reads_the_first_step_its_holder_and_a_diagonal_through_an_open_corner(tmp_path):
+    r = Rig(tmp_path)
+    r.scan(fenced() + [square(101, 195, blockN=True, hopN=True)])
+    r.frame(x=101.5, y=200.5)
+    w = r.world
+    assert w.hop_ahead((101.5, 200.5), (110.5, 200.5)) == (102, 200)               # east: the holder is the far square
+    assert w.hop_ahead((102.5, 200.5), (95.5, 200.5)) == (102, 200)                # west: the holder is its own square
+    assert w.hop_ahead((101.5, 200.5), (110.5, 209.5)) == (102, 200)               # a diagonal through (101, 201)
+    assert w.hop_ahead((100.5, 200.5), (110.5, 200.5)) is None                     # the fence one square on
+    assert w.hop_ahead((103.5, 200.5), (110.5, 200.5)) is None                     # no fence on the line
+
+
+def test_no_route_ever_vaults_the_steer_probe_reads_a_hoppable_edge_blocked(tmp_path):
+    """The sprint's legs and the stance's backpedal read `clear_heading` (`line_clear`, which never climbs): a
+    heading over a hoppable fence is blocked, so a flee leg turns off it (Task 1b's rule, kept)."""
+    r = Rig(tmp_path)
+    r.scan(fenced())
+    r.frame(x=101.5, y=200.5)
+    assert not P.clear_heading(r.world, (1.0, 0.0)) and P.clear_heading(r.world, (-1.0, 0.0))
+    assert r.world.reachable((101, 200, 0), (104, 200, 0))                        # a walk's flood climbs it
+
+
+def test_the_world_applies_item_changed_and_drops_a_vessel_mark(tmp_path):
+    """PZA/1.5.1's `item_changed` (Task 9 fix 1): the held item's use, fluid and amount from then on; a vessel-state
+    mark (`filled`, `tainted`, `empty`) gives way to the engine's read, the others stay."""
+    r, sv = make(tmp_path)
+    r.frame()
+    hold(r, 5, "Base.PopEmpty", use="container")
+    hold(r, 6, "Base.Disinfectant", use="other")
+    r.world.mark(5, "filled")
+    r.world.mark_no_effect(6)
+    r.event("item_changed", itemId=5, use="other", fluid="TaintedWater", amount=0.5)
+    r.event("item_changed", itemId=6, use="other", amount=0.2)
+    assert r.world.inventory[5]["use"] == "other" and r.world.inventory[5]["fluid"] == "TaintedWater"
+    assert 5 not in r.world.marks and r.world.marks[6][0] == "no_effect" and r.world.tainted_ids() == {5}
+    r.event("item_changed", itemId=5, use="container", amount=0.0)
+    assert "fluid" not in r.world.inventory[5] and r.world.by_use()["container"] == [5]
+
+
+def test_a_tainted_drink_refused_marks_it_undrinkable_and_no_tainted_source_is_filled_again(tmp_path):
+    """The Lua refuses tainted water (`W.drinkable`): one fill from the tainted source, one refused drink, then the
+    vessel reads `other` and the chain marks the want rather than loop fill-and-refuse."""
+    r, sv = make(tmp_path)
+    r.scan([source(105, 200, tainted=True, infinite=True)])
+    r.frame()
+    hold(r, 5, "Base.PopEmpty", use="container")
+    hold(r, 6, "Base.PopEmpty", use="container")
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 105, "y": 200})
+    r.answer({"state": "done", "result": {"amount": 0.5, "added": 0.5, "fluid": "TaintedWater", "tainted": True}})
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 5})
+    r.answer({"state": "failed", "reason": "not valid"})
+    thirsty(r)
+    tick(r, sv)
+    assert r.world.marks[5][0] == "undrinkable" and sv.tainted_refused and 5 not in r.world.by_use()["container"]
+    assert sum(a.type == "fill" for a in r.acts.history) == 1 and need_why(tmp_path)["fill"]["source"] is None
