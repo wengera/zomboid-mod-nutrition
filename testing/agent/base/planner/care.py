@@ -29,7 +29,13 @@ the first tick with none): the bleeding step also runs with a threat held, whene
 beyond CARE_R and `tends_wound` answers (Survive's threat branch yields to it only then, so no other step sends);
 Task 12 fix 1 gives the yield its hysteresis (`survive.Survive._care_yields`): a bandage starts beyond CARE_R only
 with the nearest not closing over CARE_STILL_TICKS ticks and no flee leg running from a chaser, and a running one is
-superseded only inside CARE_HOLD_R.
+superseded only inside CARE_HOLD_R. The ride (ruling P24-U, Task 12 fix 1; PZA/1.5.3's `keepMoving`, ruling P24-R):
+under a running flee leg (a steer, or a walk on an open line) with the nearest zombie beyond RIDE_R or no zombie
+chasing, Survive sets `ride_now` and the bleeding step bandages the worst bleeding part above the legs (index under
+LEG_FIRST; a leg part takes the standing bandage only, under the hysteresis) with `Bandage(itemId, part,
+keepMoving=True)`, no rip; the ride is tracked by its own act lines (`ride`, `riding`): the Care is busy while it runs
+whatever was sent since (the flee's re-aims are new legs that keep it), and a ride the engine stopped (`failed
+stopped`) holds no item out.
 A garment is ripped only for a bleeding part (Task 10 fix 1, the review's major 2: ruling P24-G 2's rip is the
 wound's; a rip for stock destroyed looted clothing and, from above the need branch, superseded a running drink).
 An item whose care action ended failed (never `superseded`), timed out or was rejected is left out for
@@ -72,9 +78,14 @@ TOOL_WORDS = ("Denim", "Leather")                # RipDenimClothing's fabrics: s
 RIP_REFUSALS = ("worn", "not cotton", "needs tool")   # a rip refused so never succeeds on that item
 DRY_REASONS = ("no source", "no water")          # a wash or fill refused so leaves its source out a while
 FAILED = ("failed", "timeout", "rejected")
+LEG_FIRST = 11            # the first leg part (UpperLeg_L; 11-16 the thighs, shins and feet): a bandage on one stops on
+                          # a walk, so the Lua rejects it `leg part` with keepMoving (PZA/1.5.3, ruling P24-R)
+RIDE_R = 6.0              # tiles: a bandage rides a running flee leg only with the nearest zombie beyond this, or with
+                          # no zombie chasing (ruling P24-U, Task 12 fix 1: the ride holds the leg to a walk)
+RIDE_FREE = ("stopped",)  # a ride failed so was stopped by the engine (a run, an aim, a hit): its item is not held out
 
 __all__ = ["Care", "care_kind", "rippable", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
-           "CARE_STILL_TICKS", "KINDS", "DRY_REASONS"]
+           "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R"]
 
 
 def care_kind(full_type):
@@ -112,9 +123,21 @@ class Care(Policy):
         self.held_out = {}   # item id -> world minute its care action was refused (CARE_RETRY_MIN)
         self.fresh = {}      # part index -> `World.frame_n` when its bandage's done was read (minor 6)
         self._read = set()   # the aids whose end observe() has read
+        self.ride = None     # the last bandage sent with keepMoving (P24-U), tracked by its own act lines
+        self.ride_now = False   # Survive sets it on a tick the threat yields to a ride: the bleeding step rides
 
     def sent(self, cmd, action):
         self.sends[cmd.itemId] = action
+        if cmd.TYPE == "bandage" and cmd.keepMoving:
+            self.ride = action
+
+    def riding(self):
+        """The riding bandage while it runs (not yet terminal), else None: the flee's leg sent since keeps it."""
+        return self.ride if self.ride is not None and not self.actions.done(self.ride) else None
+
+    def busy(self):
+        """The Policy's rule, or a ride running (its leg, or a re-aimed one, is the current action meanwhile)."""
+        return super().busy() or self.riding() is not None
 
     def observe(self):
         """Each care action's end, once: a bandage done leaves its part out until a newer frame (`fresh`); a refusal
@@ -130,6 +153,8 @@ class Care(Policy):
                 self.fresh[a.args.get("part")] = n
             if a.state not in FAILED or (a.state == "failed" and a.reason == PREEMPTED):
                 continue
+            if a.state == "failed" and a.reason in RIDE_FREE and a.args.get("keepMoving") is True:
+                continue   # P24-U: the engine stopped the ride; the item is good
             self.held_out[iid] = self.world.world_minutes()
             if a.reason == "in bag" and iid in self.world.inventory:
                 self.world.mark(iid, "in_bag")   # Task 10 fix 2: the move could not be queued, a hard refusal
@@ -182,10 +207,13 @@ class Care(Policy):
         return min(ids) if ids else None
 
     # -- the choice -----------------------------------------------------------------------------------------------
-    def _wound(self, items, bleeding):
+    def _wound(self, items, bleeding, ride=False):
         """The bleeding step, `(command, why)` or (None, None): the worst bleeding part's bandage with the best held
-        item, else with no rag of any kind held a garment's rip for it."""
+        item, else with no rag of any kind held a garment's rip for it. With `ride` (P24-U) the worst bleeding part
+        above the legs (index under LEG_FIRST) is bandaged with keepMoving, never a rip (a rip stops the leg)."""
         w = self.world
+        if ride:
+            bleeding = [p for p in bleeding if p["i"] < LEG_FIRST]
         if not bleeding or not w.can("bandage"):
             return None, None
         p = bleeding[0]
@@ -193,9 +221,12 @@ class Care(Policy):
         kinds = ("bandage", "rag", "dirty") if bt > DIRTY_RAG_MIN else ("bandage", "rag")
         k = next((k for k in kinds if items[k]), None)
         if k is not None:
-            return Bandage(items[k][0], part=p["i"]), {"reason": "bleeding", "part": p["i"], "item": items[k][0],
-                                                        "kind": k, "bleedingTime": bt, "deep": p.get("deep") is True}
-        if not any(items[k] for k in KINDS) and w.can("rip"):
+            why = {"reason": "bleeding", "part": p["i"], "item": items[k][0], "kind": k, "bleedingTime": bt,
+                   "deep": p.get("deep") is True}
+            if ride:
+                why["ride"] = True
+            return Bandage(items[k][0], part=p["i"], keepMoving=ride), why
+        if not ride and not any(items[k] for k in KINDS) and w.can("rip"):
             rip = self._rip_item()
             if rip is not None:
                 return Rip(rip), {"reason": "no_rag", "part": p["i"], "item": rip}
@@ -205,6 +236,10 @@ class Care(Policy):
         """The bleeding step would send now (ruling P24-P: Survive's threat branch yields to it beyond CARE_R)."""
         return self._wound(self._items(), self._bleeding())[0] is not None
 
+    def rides_wound(self):
+        """The bleeding step would ride now (P24-U): a part above the legs bleeds and a bandage item is held."""
+        return self._wound(self._items(), self._bleeding(), ride=True)[0] is not None
+
     def choose(self):
         """The next care command, or None (the module docstring's order). Under a held threat (P24-P) Survive runs
         the branch only when `tends_wound` answers, so the bleeding step is the one that sends there."""
@@ -212,9 +247,9 @@ class Care(Policy):
         items = self._items()
         any_rag = any(items[k] for k in KINDS)
         bleeding = self._bleeding()
-        cmd, why = self._wound(items, bleeding)
-        if cmd is not None:
-            self.why = why
+        cmd, why = self._wound(items, bleeding, ride=self.ride_now)
+        if cmd is not None or self.ride_now:
+            self.why = why or {}
             return cmd
         clean = items["bandage"] + items["rag"]
         spent = self._spent()

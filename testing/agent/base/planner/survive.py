@@ -160,7 +160,11 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      would send or runs; Task 12 fix 1's hysteresis: it starts only with the nearest not closing over
      `care.CARE_STILL_TICKS` ticks and no flee leg running from a chaser, a held zombie whose `hasTarget` is set,
      and a running bandage is superseded only once the nearest is inside `care.CARE_HOLD_R`, or no part bleeds any
-     more), the worst bleeding part bandaged with the best held item (a bandage, a clean rag, a dirty rag only
+     more; the ride, ruling P24-U: under a running flee leg, a steer or a walk on an open line, with the nearest
+     beyond `care.RIDE_R` or no zombie chasing, a part above the legs is bandaged with keepMoving, the leg kept
+     running at a walk, whatever the `many` reason; the Flee's re-aims during it are new legs that keep it, any other
+     send ends it, so no ride starts in a fight and the Fight's stance legs are held off while one runs, logged
+     `ride`), the worst bleeding part bandaged with the best held item (a bandage, a clean rag, a dirty rag only
      past `care.DIRTY_RAG_MIN`), with no rag of any kind held a cotton garment ripped for it (never one of the
      inventory's first sight; never with no wound: Task 10 fix 1, the review's major 2), a spent bandage replaced
      with a clean one, a dirty rag washed at a known water source within `care.WASH_R` with no zombie within
@@ -257,7 +261,7 @@ import math
 import time
 
 from agent.base.items import days_fresh
-from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, DRY_REASONS, Care
+from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, DRY_REASONS, RIDE_R, Care
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH,
@@ -267,7 +271,7 @@ from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_
                                          target_id_ok, zdist)
 from agent.base.planner.view import view
 from agent.base.pza1 import Consume, Drop, Fill
-from agent.base.world import me_floor
+from agent.base.world import me_floor, me_xy
 
 THIRST_T = 0.12          # the first THIRST moodle fires above 0.12 [#0509]
 HUNGER_T = 0.15          # the first HUNGRY moodle fires above 0.15 [#0508]
@@ -942,6 +946,15 @@ class Survive:
             return None
         return f.last
 
+    def _ride_leg(self):
+        """The running flee leg a bandage may ride (P24-U, PZA/1.5.3's obligation: the ride has no pathing): a steer,
+        or a walk whose straight line to its target reads clear on the map; else None."""
+        leg = self._flee_leg()
+        if leg is None or leg.type == "steer":
+            return leg
+        a = leg.args
+        return leg if self.world.line_clear(me_xy(self.world), (a.get("x"), a.get("y"))) else None
+
     def _care_yields(self, held):
         """Ruling P24-P (Plan 24 Task 12; E6's health fell from 100 to 17.6 under a held zombie before its one
         bandage), with Task 12 fix 1's hysteresis (the review's major 2: with one start and supersede line at CARE_R a
@@ -954,15 +967,25 @@ class Survive:
         CARE_R, not closing (`_closing`), and no flee leg running (`_flee_leg`) from a chaser (a held zombie whose
         `hasTarget` is set: a run holds the distance while the zombie chases, so the closing read cannot see it, and
         a standing bandage would stop the run the health flee exists to make). A running one (the care's own
-        bandage, current) holds the yield while the nearest stays beyond CARE_HOLD_R."""
-        if not self.world.can("bandage") or self.flee_many or not self._nearest_seen:
+        bandage, current) holds the yield while the nearest stays beyond CARE_HOLD_R. The ride (ruling P24-U) comes
+        first: under a flee leg it may ride (`_ride_leg`) with the nearest beyond RIDE_R or no chaser, a part above the
+        legs bleeding (`Care.rides_wound`), the care's `ride_now` set; a ride running yields nothing (the threat
+        answers, the Flee's leg held by the ride: `policies.running`)."""
+        if not self.world.can("bandage") or not self._nearest_seen or self.care.riding() is not None:
             return None
         near = self._nearest_seen[-1][1]
+        chased = any(z.get("hasTarget") is True for z in held)
+        if (near > RIDE_R or not chased) and self._ride_leg() is not None:
+            self._observe(self.care)
+            if self.care.rides_wound():
+                self.care.ride_now = True
+                return near
+        if self.flee_many:
+            return None
         running = self.care.busy() and self.care.last.type == "bandage"
         if near <= (CARE_HOLD_R if running else CARE_R):
             return None
-        if not running and (self._closing() or (self._flee_leg() is not None
-                                                and any(z.get("hasTarget") is True for z in held))):
+        if not running and (self._closing() or (self._flee_leg() is not None and chased)):
             return None
         if self._many_read(held, len(self._within(DANGER_R)))[0]:
             return None
@@ -973,7 +996,7 @@ class Survive:
         """The tick's bookkeeping, once (ruling P24-A (g)): the held list, the Flee's observe and the breach's closing
         count; then the yield to the care (`_care_yields`, P24-P), else the decision (`_decide`), which a corner's
         retarget may re-plan without them."""
-        self.care_yield = None
+        self.care_yield, self.care.ride_now = None, False
         held = self._within(self._hold_r())
         if not held:
             self.mode, self.fight, self.flee = None, None, None
@@ -989,6 +1012,8 @@ class Survive:
         self.care_yield = self._care_yields(held)
         if self.care_yield is not None:
             self.why = {"care": True, "nearest": self.care_yield, "held": len(held)}
+            if self.care.ride_now:
+                self.why["ride"] = True
             return None
         return self._decide(held, breach)
 
@@ -1038,6 +1063,7 @@ class Survive:
         else:
             policy.only = None if door is None else {zid for zid, _ in door}
             policy.stance = self._stance_ok(held, self.night.inside())   # P24-G 1 (no corner or door Fight stands)
+            policy.ride = self.care.riding()   # P24-U: the stance legs held off while a bandage rides
             policy.threats = held
             ans = self._answer(policy)
         self.why.update({"fight": True} if reason is None else {"flee": reason})
@@ -1062,6 +1088,9 @@ class Survive:
                 self.why[key] = v
         if self.broken is not None:
             self.why["breach"] = self.broken
+        ride = self.care.riding()
+        if ride is not None:
+            self.why["ride"] = ride.aid   # P24-U: a bandage rides the leg this answer holds or re-aims
         return ans if ans is not None else (policy, None)
 
     def _door_targets(self):

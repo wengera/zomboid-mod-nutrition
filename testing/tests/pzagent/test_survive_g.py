@@ -1303,9 +1303,10 @@ def test_a_bandaged_part_waits_one_frame_newer_than_its_done_before_it_is_bandag
 
 def test_care_is_a_policy_and_reads_quiet_from_survive(tmp_path):
     """Minor 13: `Care(Policy)`: the house's busy and send, its own `sent` recording each item's action; Survive sets
-    `quiet` each tick (no zombie within DISENGAGE_R) before `choose()`."""
+    `quiet` each tick (no zombie within DISENGAGE_R) before `choose()`. Named change (Task 12 fix 1, P24-U): the
+    Care's own `busy` adds a running ride to the house's rule (`test_a_torso_wound_rides_...`)."""
     assert issubclass(C.Care, P.Policy)
-    assert C.Care.busy is P.Policy.busy and C.Care.send is P.Policy.send and C.Care.sent is not P.Policy.sent
+    assert C.Care.send is P.Policy.send and C.Care.sent is not P.Policy.sent and C.Care.busy is not P.Policy.busy
     r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage")])
     tick(r, sv)
     assert sv.care.quiet is True and sv.care.sends[10] is sv.care.last and sv.care.busy()
@@ -1992,3 +1993,150 @@ def test_a_running_bandage_whose_part_stops_bleeding_is_superseded_by_the_threat
     care_frame(r, [part(5)], zombies=[zd(1, 104.5, 200.0)])
     tick(r, sv)
     assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] == "aim" and r.acts.current is not bandage
+
+
+# ================================================================ Task 12 fix 1: the riding bandage (ruling P24-U)
+def test_the_ride_constants():
+    assert (C.RIDE_R, C.LEG_FIRST, C.RIDE_FREE) == (6.0, 11, ("stopped",)) and C.CARE_R < C.RIDE_R <= P.DANGER_R
+    assert P.RIDE_TYPES == ("walkTo", "steer")
+
+
+def test_a_leg_stays_running_under_the_riding_bandages_sent_after_it_and_nothing_else(tmp_path):
+    """PZA/1.5.3 (ruling P24-R): a keepMoving bandage leaves the leg its slot, so the leg's policy stays busy while
+    it runs (`policies.running`); a standing bandage, or any other send, replaces it; an aim is never ridden."""
+    from agent.base import pza1
+    r = Rig(tmp_path)
+    r.frame()
+    leg = r.acts.send(P.Steer(1.0, 0.0, 3.0, "run"))
+    ride = r.acts.send(pza1.Bandage(10, part=6, keepMoving=True))
+    assert r.acts.current is ride and P.running(r.acts, leg) and P.rides_on(r.acts, leg)
+    r.acts.send(pza1.Bandage(11, part=6, keepMoving=True))   # a second ride supersedes the first, the leg still runs
+    assert P.running(r.acts, leg)
+    r.acts.send(pza1.Bandage(12, part=6))
+    assert not P.running(r.acts, leg)
+    aim = r.acts.send(P.Aim(0.0, 0.0, 2.0, targetId=1))
+    r.acts.send(pza1.Bandage(10, part=6, keepMoving=True))
+    assert not P.rides_on(r.acts, aim) and not P.running(r.acts, aim)
+
+
+def flee_leg_rig(tmp_path, parts, x, chases=True):
+    """A `health` flee (health 30) from one zombie (`hasTarget` `chases`), its steer leg sent at 5.5 tiles and
+    running (progress); then the frame with `parts` bleeding and the zombie at `x` tiles, ticked."""
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    care_frame(r, parts, zombies=[zd(1, 105.5, 200.0, has_target=chases)], health=30.0)
+    tick(r, sv)
+    assert sv.mode == "flee" and r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "health"
+    r.answer("progress")
+    care_frame(r, parts, zombies=[zd(1, 100.0 + x, 200.0, has_target=chases)], health=30.0)
+    tick(r, sv)
+    return r, sv
+
+
+def test_a_torso_wound_rides_the_running_flee_leg_with_the_chaser_at_7(tmp_path):
+    """Ruling P24-U, the review's first ride test: under the running steer, the chaser at 7 tiles (beyond RIDE_R),
+    the upper torso bleeding: the care sends `bandage` with keepMoving on part 6; the Flee's leg is held (it still
+    runs: `running`), its end re-aims with a new steer that keeps the ride (the Care busy on the ride's own act lines),
+    and the ride's done frees the Care."""
+    torso = [part(6, bleeding=True, bleedingTime=5.0)]
+    r, sv = flee_leg_rig(tmp_path, torso, 7.0)
+    assert last(tmp_path)["branch"] == "care" and r.cmd() == ("bandage", {"itemId": 10, "part": 6, "keepMoving": True})
+    assert threat_why(tmp_path) == {"care": True, "ride": True, "nearest": 7.0, "held": 1}
+    assert care_why(tmp_path)["ride"] is True
+    leg, ride = r.acts.history[0], r.acts.history[-1]
+    r.fake.act(ride.aid, "accepted", "bandage")
+    r.pump()
+    care_frame(r, torso, zombies=[zd(1, 107.0, 200.0)], health=30.0)
+    assert tick(r, sv) is None and last(tmp_path)["branch"] == "threat"
+    w = threat_why(tmp_path)
+    assert w["holding"] == leg.aid and w["ride"] == ride.aid and sv.flee.busy() and sv.care.busy()
+    r.fake.act(leg.aid, "done", "steer", result={})
+    r.pump()
+    care_frame(r, torso, zombies=[zd(1, 107.0, 200.0)], health=30.0)
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and sv.care.riding() is ride and threat_why(tmp_path)["ride"] == ride.aid
+    r.answer("progress")
+    r.fake.act(ride.aid, "done", "bandage", result={"part": 6, "walking": True})
+    r.pump()
+    care_frame(r, [part(6, bandaged=True)], zombies=[zd(1, 107.0, 200.0)], health=30.0)
+    tick(r, sv)
+    assert sv.care.riding() is None and not sv.care.busy() and "ride" not in threat_why(tmp_path)
+    assert sum(a.type == "bandage" for a in r.acts.history) == 1
+    all_sends_valid(r)
+
+
+@pytest.mark.parametrize("x, parts", [(5.0, [part(6, bleeding=True, bleedingTime=5.0)]),
+                                      (7.0, [part(11, bleeding=True, bleedingTime=5.0)])])
+def test_no_ride_with_the_chaser_at_5_nor_for_a_thigh(tmp_path, x, parts):
+    """The review's second and third ride tests: the chaser at 5 tiles (inside RIDE_R), or a thigh bleeding (part
+    11: the Lua refuses a leg part `leg part`): no ride, and no standing bandage either while the flee leg runs from
+    a chaser (item 2); the Flee's leg holds the tick."""
+    r, sv = flee_leg_rig(tmp_path, parts, x)
+    assert last(tmp_path)["branch"] == "threat" and "care" not in threat_why(tmp_path)
+    assert threat_why(tmp_path)["holding"] == r.acts.history[0].aid
+    assert not any(a.type == "bandage" for a in r.acts.history)
+
+
+def test_a_flee_leg_with_no_chaser_rides_whatever_the_distance(tmp_path):
+    """No zombie chasing (`hasTarget` false) at 5 tiles: the ride goes beside the running leg."""
+    r, sv = flee_leg_rig(tmp_path, [part(6, bleeding=True, bleedingTime=5.0)], 5.0, chases=False)
+    assert r.cmd() == ("bandage", {"itemId": 10, "part": 6, "keepMoving": True})
+
+
+def test_the_worst_part_above_the_legs_rides_past_a_worse_thigh(tmp_path):
+    """A deep thigh wound and a forearm scratch: the ride takes the forearm (part 3), never the thigh."""
+    r, sv = flee_leg_rig(tmp_path, [part(11, bleeding=True, bleedingTime=9.0, deep=True),
+                                    part(3, bleeding=True, bleedingTime=2.0)], 7.0)
+    assert r.cmd() == ("bandage", {"itemId": 10, "part": 3, "keepMoving": True})
+
+
+def test_no_ride_starts_in_a_stance_fight_and_its_legs_are_held_off_while_one_runs(tmp_path):
+    """No ride under an aim (the Lua rejects it `aiming`): a fight's yield is the standing bandage. A ride running
+    when the flee turns to a fight (the health back over the refight line) holds the Fight's stance leg off (its aim
+    would end the ride) until the ride ends; then the stance leg goes."""
+    torso = [part(6, bleeding=True, bleedingTime=5.0)]
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    for _ in range(C.CARE_STILL_TICKS + 1):
+        care_frame(r, torso, zombies=[zd(1, 105.0, 200.0)])
+        tick(r, sv)
+    assert sv.mode == "fight" and r.cmd() == ("bandage", {"itemId": 10, "part": 6})
+    (tmp_path / "f").mkdir()
+    r2, sv2 = flee_leg_rig(tmp_path / "f", torso, 7.0)
+    ride = r2.acts.history[-1]
+    assert ride.args.get("keepMoving") is True
+    r2.fake.act(ride.aid, "accepted", "bandage")
+    r2.pump()
+    r2.advance(S.FLIP_MIN_S)                                     # past the flip: the refight is not held back
+    care_frame(r2, torso, zombies=[zd(1, 107.0, 200.0)], health=100.0)
+    assert tick(r2, sv2) is None and sv2.mode == "fight"
+    assert threat_why(tmp_path / "f")["ride"] == ride.aid and r2.acts.history[-1] is ride
+    r2.fake.act(ride.aid, "done", "bandage", result={"part": 6, "walking": True})
+    r2.pump()
+    care_frame(r2, [part(6, bandaged=True)], zombies=[zd(1, 107.0, 200.0)], health=100.0)
+    tick(r2, sv2)
+    assert r2.cmd()[0] == "aim" and "ride" not in threat_why(tmp_path / "f")
+
+
+def test_a_ride_the_engine_stopped_holds_no_item_out(tmp_path):
+    """A ride ended `failed stopped` (a run, an aim, a hit stopped it) leaves its item usable; a standing bandage's
+    failure holds it out CARE_RETRY_MIN as before."""
+    r, sv = flee_leg_rig(tmp_path, [part(6, bleeding=True, bleedingTime=5.0)], 7.0)
+    ride = r.acts.history[-1]
+    r.fake.act(ride.aid, "failed", "bandage", reason="stopped")
+    r.pump()
+    sv.care.observe()
+    assert sv.care.held_out == {} and sv.care.riding() is None
+
+
+def test_a_ride_takes_a_walk_only_on_an_open_line(tmp_path):
+    """PZA/1.5.3's obligation (the ride walks straight, no pathing): a flee walk is ridden only while its straight
+    line to its target reads clear on the map; a steer always."""
+    r, sv = flee_leg_rig(tmp_path, [part(6, bleeding=True, bleedingTime=5.0)], 5.0)
+    sqs = [square(x, y) for x in range(95, 112) for y in range(195, 206)]
+    r.scan([dict(s, blockW=True) if (s["x"], s["y"]) == (103, 200) else s for s in sqs])
+    assert sv._ride_leg() is r.acts.history[0]
+    walk = sv.flee.send(P.WalkTo(105.5, 200.5, "run"))
+    assert sv._ride_leg() is None
+    walk2 = sv.flee.send(P.WalkTo(100.5, 203.5, "run"))
+    assert sv._ride_leg() is walk2 and walk is not walk2

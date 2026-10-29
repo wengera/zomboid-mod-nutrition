@@ -5,7 +5,10 @@ One action at a time. A policy's `step()` returns the `Action` it sent, or None:
 action is `actions.current` (sent, accepted or in progress), and decides again once that action reads a terminal
 state (`done`, `failed`, `rejected`, `timeout`) or another sender's action replaced it. `step()` is `observe()` (the
 policy's bookkeeping from the World and its last action's end), then `choose()` (the next command, or None) and
-`send(cmd)`; `survive.Survive` calls the three apart so its cooldown can pass a choice over before it is sent. Every
+`send(cmd)`; `survive.Survive` calls the three apart so its cooldown can pass a choice over before it is sent. A
+walk or steer leg stays running under a bandage sent with `keepMoving` after it (PZA/1.5.3, ruling P24-R: the Lua
+keeps the leg and rides the bandage beside it; ruling P24-U, Task 12 fix 1): `running` reads it so, and `busy` and the
+Flee's leg reads go through it. Every
 command is validated by `Actions.send` against the schema's `ACTION_ARGS` (a TypeError is a policy bug). A policy
 never reads `cmd.txt` or the state lines: its driver pumps the transport's lines into the World and Actions first.
 `why` is the policy's own inputs to its last choice, logged by Survive.
@@ -246,6 +249,7 @@ KEPT_USES = ("weapon", "food", "water")   # the uses a drop never takes
 AIM_R = 12.0   # tiles: the Lua's K.AIM_R (PZAgent_Stance.lua), the farthest target an aim takes: beyond it the aim is refused `no target`
 NO_TARGET = "no target"   # the Lua's refusal of an aim whose target is gone (Task 10 fix 2: not a stand-off)
 PREEMPTED = "superseded"   # the reason the Lua fails an action a newer send replaced
+RIDE_TYPES = ("walkTo", "steer")   # the legs a keepMoving bandage rides (PZA/1.5.3, ruling P24-R)
 STUCK_REASONS = ("stuck", "no path", "no square")   # a walkTo failed for one of these: its target is remembered
 
 
@@ -291,8 +295,9 @@ class Policy:
         self.why = {}
 
     def busy(self):
-        """True while this policy's last action is the current one and not yet terminal."""
-        return self.last is not None and self.actions.current is self.last
+        """True while this policy's last action runs (`running`: the current one and not yet terminal, or a leg a
+        riding bandage left running)."""
+        return running(self.actions, self.last)
 
     def observe(self):
         """Bookkeeping from the World and the last action's end; called every tick, idempotent."""
@@ -424,6 +429,25 @@ def stance_leg_kind(d, advance):
     return "back" if d <= KEEP_R else "stand"
 
 
+def rides_on(actions, a):
+    """Leg `a` (a walkTo or a steer, not yet terminal) is kept running by the Lua under the bandages sent after it,
+    every one of them with `keepMoving` (PZA/1.5.3, ruling P24-R: a riding bandage leaves the leg its slot; a new leg
+    takes the ride along, any other send ends both): Task 12 fix 1, P24-U."""
+    if a.type not in RIDE_TYPES or actions.done(a):
+        return False
+    for b in reversed(actions.history):
+        if b is a:
+            return True
+        if b.type != "bandage" or b.args.get("keepMoving") is not True:
+            return False
+    return False
+
+
+def running(actions, a):
+    """Action `a` runs: the current action, or a leg a riding bandage sent since has left running (`rides_on`)."""
+    return a is not None and (actions.current is a or rides_on(actions, a))
+
+
 def blocked(unreachable, now):
     """The ids of `unreachable` (id -> wall until) still skipped at `now`."""
     return {zid for zid, until in unreachable.items() if until > now}
@@ -457,6 +481,7 @@ class Fight(Policy):
         self._attack_held = False           # the last attack was sent from the held stance (Task 9's hand-over)
         self._held_before = False           # the stance read held at the choose that chose the attack
         self.kill = None                    # this observe's kill: the target id its attack or aim read dead (P24-Q)
+        self.ride = None                    # Survive sets it each tick: the riding bandage while one runs (P24-U)
         self._kill_read = None              # the last attack or aim whose result the kill read has seen
 
     def blocked(self):
@@ -765,6 +790,9 @@ class Fight(Policy):
             self.why["reposition"] = list(sq)
             return WalkTo(*centre(sq), "run")
         if self.stance_at(d) and (d > FIGHT_REACH or not self.in_stance()) and not (self.approach and d <= FIGHT_REACH):
+            if self.ride is not None and d > FIGHT_REACH:   # P24-U: an aim would end the riding bandage; held off
+                self.why["ride"] = self.ride.aid           # until it ends, a target within reach excepted
+                return None
             return self._stance_leg(zid, z, d)   # P24-N: every leg of a standing fight is an aim, the first one too
         if self.approach or d > FIGHT_REACH:
             return WalkTo(*centre((z["x"], z["y"])), "run")
@@ -1012,7 +1040,7 @@ class Flee(Policy):
 
     def observe(self):
         self._observe_exit()
-        if self._leg is not None and self.actions.current is self._leg[0]:
+        if self._leg is not None and running(self.actions, self._leg[0]):
             self._leg_anchor, self._leg_still = self._still_for(self._leg_anchor)
             self._cut_leg()
         a = self._step
@@ -1065,7 +1093,7 @@ class Flee(Policy):
         held threat is within DANGER_R. An `open` or `close` walks only while the player stands more than one square
         (Chebyshev) from the door (the Lua's interact `approach`); at the door its anchor follows the player, the
         door's own action being no walk. With no held threat within DANGER_R the step waits the Lua's stuck time."""
-        if self.actions.current is not a:
+        if not running(self.actions, a):
             return False
         if a.type == "interact":
             sq, door = _night().player_square(self.world), self.door()
@@ -1110,7 +1138,7 @@ class Flee(Policy):
         if a is None or a is self._exit_read or self.exit is None:
             return
         if not self.actions.done(a):
-            if self.exit["step"] != "walk" or self.actions.current is not a:
+            if self.exit["step"] != "walk" or not running(self.actions, a):
                 return
             self._exit_anchor, still = self._still_for(self._exit_anchor)
             if still < WALK_STALL_S:
@@ -1310,7 +1338,7 @@ class Flee(Policy):
         d = self._leg_moved()
         if d is not None:
             return d < STUCK_MOVE
-        if self._leg is None or self.actions.current is not self._leg[0] or self._leg_still < WALK_STALL_S:
+        if self._leg is None or not running(self.actions, self._leg[0]) or self._leg_still < WALK_STALL_S:
             return False
         return any(zdist(self.world, z) <= STUCK_NEAR_R for z in self._threats())
 
