@@ -465,23 +465,25 @@ def test_the_log_inputs_carry_the_hour_and_fatigue(tmp_path):
 
 
 # ================================================================ the cooldown
-def test_a_failed_action_cools_its_branch_for_ten_planner_ticks(tmp_path):
+def test_a_failed_consume_is_left_out_by_the_retry_window_for_five_game_minutes(tmp_path):
+    """4b fix 1: the need's failed consume opens CONSUME_RETRY_MIN for its item, so the cooldown (ten ticks) never
+    needs to fire for it: the need passes with no pick, then takes the item again a window later."""
     r, sv = make(tmp_path)
     r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0)
-    r.frame(thirst=0.6)
+    r.frame(thirst=0.6, game_min=600.0)
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 701})
     r.answer({"state": "failed", "reason": "interrupted"})   # not "not valid", which marks a water bottle empty
     for i in range(S.FAILED_COOLDOWN_TICKS):
-        r.frame(thirst=0.6)
+        r.frame(thirst=0.6, game_min=600.0)
         a = tick(r, sv)
         d = last(tmp_path)
-        assert d["branch"] != "need" and d["inputs"]["cooled"] == {"type": "consume", "args": {"itemId": 701}}, i
+        assert d["branch"] != "need" and d["inputs"]["branches"]["need"]["retry"] == [701], i
         if a is not None:
             r.answer()                                       # the ExploreToward goal's scan
-    r.frame(thirst=0.6)
+    r.frame(thirst=0.6, game_min=600.0 + S.CONSUME_RETRY_MIN)
     tick(r, sv)
-    assert r.cmd() == ("consume", {"itemId": 701}) and last(tmp_path)["inputs"]["cooled"] is None
+    assert r.cmd() == ("consume", {"itemId": 701})
     assert [a.type for a in r.acts.history].count("consume") == 2
 
 
@@ -3500,23 +3502,82 @@ def test_a_fall_just_under_stat_fall_min_marks_and_one_at_it_does_not(tmp_path):
         tick(r, sv)
         assert r.cmd() == ("consume", {"itemId": 701})
         r.answer({"state": "done", "result": {"itemId": 701}})
+        r.frame(hunger=0.4, game_min=600.0)                        # the done is read here: the check is a minute on
+        tick(r, sv)
         r.frame(hunger=0.4 - fall, game_min=600.0 + S.CONSUME_CHECK_MIN)
         tick(r, sv)
         assert (701 in r.world.no_effect_ids) is marked, fall
 
 
-def test_the_check_waits_for_the_minute_and_for_done(tmp_path):
+def test_the_check_waits_for_the_minute_after_done_and_for_done(tmp_path):
     r, sv = make(tmp_path)
     held(r, (703, "Base.WaterBottle"))
     r.frame(thirst=0.3, game_min=600.0)
     tick(r, sv)
-    r.frame(thirst=0.3, game_min=601.0)                            # still current: the hold, no check
+    r.frame(thirst=0.3, game_min=602.0)                            # still current: the hold, no check, no done
     tick(r, sv)
     assert r.world.no_effect_ids == set() and sv.consumes[703]["checked"] is False
     r.answer({"state": "done", "result": {"itemId": 703}})
-    r.frame(thirst=0.3, game_min=601.0)
+    r.frame(thirst=0.3, game_min=602.0)                            # done read here: a minute from the send is not enough
+    tick(r, sv)
+    assert r.world.no_effect_ids == set() and sv.consumes[703]["ended"] == 602.0
+    r.frame(thirst=0.3, game_min=602.0 + S.CONSUME_CHECK_MIN)
     tick(r, sv)
     assert r.world.no_effect_ids == {703}
+
+
+def test_a_done_read_late_with_a_slow_first_fall_is_not_marked(tmp_path):
+    """A consume sent at 100 whose done is read at 101.2 (thirst fallen 0.004), checked at 102.2 (fallen 0.03)."""
+    r, sv = make(tmp_path)
+    held(r, (703, "Base.WaterBottle"))
+    r.frame(thirst=0.3, game_min=100.0)
+    tick(r, sv)
+    r.answer({"state": "done", "result": {"itemId": 703}})
+    r.frame(thirst=0.296, game_min=101.2)
+    tick(r, sv)
+    assert r.world.no_effect_ids == set()
+    r.frame(thirst=0.27, game_min=102.2)
+    tick(r, sv)
+    assert r.world.no_effect_ids == set() and sv.consumes[703]["checked"] is True
+
+
+def test_a_mark_is_logged_on_a_threat_tick_too(tmp_path):
+    r, sv = make(tmp_path)
+    held(r, (703, "Base.WaterBottle"))
+    r.frame(thirst=0.3, game_min=600.0)
+    tick(r, sv)
+    r.answer({"state": "done", "result": {"itemId": 703}})
+    r.frame(thirst=0.3, game_min=600.0)
+    tick(r, sv)
+    assert "marks" not in last(tmp_path)
+    r.frame(thirst=0.3, game_min=601.0, zombies=[zombie(1, 101.0, 200.0)])
+    tick(r, sv)
+    line = last(tmp_path)
+    assert line["branch"] == "threat" and line["marks"] == {"itemId": 703, "reason": "no_effect"}
+    assert r.world.no_effect_ids == {703}
+
+
+def test_three_failed_consumes_of_one_item_within_a_minute_send_once(tmp_path):
+    r, sv = make(tmp_path)
+    held(r, (703, "Base.WaterBottle"))
+    for m in (600.0, 600.3, 600.6):
+        r.frame(thirst=0.3, game_min=m)
+        tick(r, sv)
+        if r.acts.current is not None:
+            r.answer({"state": "failed", "reason": "interrupted"})
+    assert len(consume_sends(r, 703)) == 1
+    assert last(tmp_path)["inputs"]["branches"]["need"]["retry"] == [703]
+
+
+def test_an_idle_need_tick_logs_no_retry(tmp_path):
+    r, sv = make(tmp_path)
+    held(r, (703, "Base.WaterBottle"))
+    r.frame(thirst=0.3, game_min=600.0)
+    tick(r, sv)
+    r.answer({"state": "done", "result": {"itemId": 703}})
+    r.frame(thirst=0.01, game_min=600.5)                           # not thirsty: no need wanted, the item inside its window
+    tick(r, sv)
+    assert "retry" not in last(tmp_path)["inputs"]["branches"]["need"]
 
 
 def test_the_retry_window_leaves_the_item_out_for_five_minutes_then_takes_it_again(tmp_path):
@@ -3544,11 +3605,13 @@ def test_the_retry_window_leaves_the_item_out_for_five_minutes_then_takes_it_aga
 def test_a_marked_item_gives_way_to_the_next_of_its_use(tmp_path):
     r, sv = make(tmp_path)
     r.event("item_added", itemId=701, fullType="Base.Disinfectant", weight=0.2, use="water")   # a pre-1.4.1 line
-    held(r, (705, "Base.WaterBottle"))
     r.frame(thirst=0.3, game_min=600.0)
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 701})
     r.answer({"state": "done", "result": {"itemId": 701}})
+    r.frame(thirst=0.3, game_min=600.0)
+    tick(r, sv)                                                    # the done read; no other water yet
+    held(r, (705, "Base.WaterBottle"))
     r.frame(thirst=0.301, game_min=601.0)
     tick(r, sv)
     assert r.world.no_effect_ids == {701} and r.cmd() == ("consume", {"itemId": 705})

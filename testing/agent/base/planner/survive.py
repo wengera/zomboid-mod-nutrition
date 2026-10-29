@@ -163,13 +163,15 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   minutes, every consume `done`, thirst 0.12 to 0.133, the character parked on one square): each `Consume` the need
   sends is remembered with its use, its stat (`NEED_STATS`: thirst for water, hunger for food), the stat at the send
   and the world minute (`world.world_minutes()`). Once it has ended `done` and CONSUME_CHECK_MIN (1) game minute has
-  passed since the send, the stat is checked once: fallen by less than STAT_FALL_MIN (0.01), the item still held is
+  passed since the minute its done was first read (never since the send: the Lua reports done at the first fall of
+  the fluid), the stat is checked once: fallen by less than STAT_FALL_MIN (0.01), the item still held is
   marked no-effect for the session (`world.mark_no_effect`: `by_use` reads it `other`), so the branch moves to the
   next item of the use, or marks the want and passes to the goal's loot when none is left. An item whose consume
-  ended `done` is never consumed again within CONSUME_RETRY_MIN (5) game minutes of that send (left out of the pick;
-  a failed consume is forgotten, the cooldown and the empties above answer it). The need's `why` carries
-  `no_effect` {itemId, use, stat, fell} on the tick that marked, and `retry` (the ids left out by the window) while
-  the window leaves one out, each only then, beside `item` and `mark`. The branch never consumes a `container`
+  ended, done or failed (never one superseded, forgotten), is not consumed again within CONSUME_RETRY_MIN (5) game
+  minutes of that send (left out of the pick). The decision line carries `marks` {itemId, reason "no_effect"} on
+  whatever branch's line the tick that marked writes; the need's `why` carries `no_effect` {itemId, use, stat, fell}
+  on that tick when the need ran, and `retry` (the ids left out by the window) only when a need was wanted and
+  its held item is inside the window, each only then, beside `item` and `mark`. The branch never consumes a `container`
   (PZA/1.4.1, an empty vessel: Task 9's fill takes it to a sink); with no `water` held it marks the want.
 - `goal` (Plan 23 Task 13, P23-10; ruling P23-F): `goals.GoalRunner` over the goal source (`source`, default
   `goals.ScriptedSource()`; Task 14's LLM source shares the seam), whose module docstring is the design record: one
@@ -247,7 +249,7 @@ FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen agai
 FAILED = ("failed", "timeout", "rejected")
 REFUSED = "not valid"    # the reason the Lua's consume fails an item it cannot eat or drink (an empty bottle)
 NEED_STATS = {"water": "thirst", "food": "hunger"}   # the stat a consume of each use must lower (P24-F)
-CONSUME_CHECK_MIN = 1.0  # game minutes after a consume's send before its stat is checked, once it ended done (P24-F)
+CONSUME_CHECK_MIN = 1.0  # game minutes after a consume's done is first read before its stat is checked (P24-F, fix 1)
 STAT_FALL_MIN = 0.01     # the least fall of that stat since the send that counts as an effect (P24-F, a judgment:
                          # a drink or a meal moves its stat by tenths, F2's thirst rose 0.013 in 14 minutes)
 CONSUME_RETRY_MIN = 5.0  # game minutes a consume that ended done leaves its item out of the pick (P24-F)
@@ -350,28 +352,36 @@ class Survive:
         return min(ids, key=spoil)
 
     def _retrying(self):
-        """The ids a consume that ended done was sent on within CONSUME_RETRY_MIN game minutes (P24-F)."""
+        """The ids a consume that ended (done or failed, never one superseded) was sent on within CONSUME_RETRY_MIN
+        game minutes (P24-F; fix 1: a consume that always ends failed is not re-sent every few seconds)."""
         now = self.world.world_minutes()
         return {i for i, c in self.consumes.items()
-                if c["action"].state == "done" and now - c["at"] < CONSUME_RETRY_MIN}
+                if self.actions.done(c["action"]) and c["action"].reason != "superseded"
+                and now - c["at"] < CONSUME_RETRY_MIN}
 
     def _check_consumes(self):
-        """Each remembered consume: a failed one forgotten; one that ended done checked once CONSUME_CHECK_MIN game
-        minutes after its send, its item marked no-effect when its stat fell by less than STAT_FALL_MIN and it is
-        still held; a checked one forgotten once its retry window has passed (P24-F)."""
+        """Each remembered consume: one superseded forgotten; one that ended done checked once CONSUME_CHECK_MIN game
+        minutes after the minute its done was first read (never from the send: the Lua reports done at the first fall
+        of the fluid, which can come a minute after the send), its item marked no-effect when its stat fell by less
+        than STAT_FALL_MIN and it is still held; a failed one is never checked; an ended one is forgotten once its
+        retry window has passed (P24-F)."""
         self.no_effect = None
         now = self.world.world_minutes()
         st = self.world.stats or {}
         for iid, c in list(self.consumes.items()):
             a = c["action"]
-            if self.actions.done(a) and a.state != "done":
+            if self.actions.done(a) and a.reason == "superseded" and a.state != "done":
                 del self.consumes[iid]
                 continue
+            if self.actions.done(a) and a.state != "done":
+                c["checked"] = True                       # failed: no check, the retry window answers it
+            if a.state == "done" and c["ended"] is None:
+                c["ended"] = now
             if c["checked"]:
                 if now - c["at"] >= CONSUME_RETRY_MIN:
                     del self.consumes[iid]
                 continue
-            if a.state != "done" or now - c["at"] < CONSUME_CHECK_MIN:
+            if c["ended"] is None or now - c["ended"] < CONSUME_CHECK_MIN:
                 continue
             c["checked"] = True
             cur, before = st.get(c["stat"]), c["before"]
@@ -387,7 +397,7 @@ class Survive:
         stat = NEED_STATS[self.need_use]
         self.consumes[action.args.get("itemId")] = {
             "action": action, "use": self.need_use, "stat": stat, "before": (self.world.stats or {}).get(stat),
-            "at": self.world.world_minutes(), "checked": False}
+            "at": self.world.world_minutes(), "ended": None, "checked": False}
 
     def _sleeping(self):
         """The night's Sleep while it is the current action (sent, accepted or in progress), else None (P23-AB)."""
@@ -858,9 +868,11 @@ class Survive:
             return None
         st = self.world.stats or {}
         pick = None
+        inside = set()     # the held ids of a wanted use that its retry window leaves out (logged as `retry`)
         for use, stat, t in (("water", "thirst", THIRST_T), ("food", "hunger", HUNGER_T)):
             if pick is not None or (st.get(stat) or 0.0) <= t:
                 continue
+            inside |= self._retrying() & set(self.world.by_use()[use])
             pick = self._held_use(use)
             if pick is None:
                 self.need_mark = self.need_mark or use
@@ -871,9 +883,8 @@ class Survive:
         self.why = {"item": pick, "mark": self.need_mark}
         if self.no_effect is not None:
             self.why["no_effect"] = self.no_effect
-        retry = self._retrying()
-        if retry:
-            self.why["retry"] = sorted(retry, key=str)
+        if inside:
+            self.why["retry"] = sorted(inside, key=str)
         if pick is None:
             return None
         return None, Consume(pick)
@@ -1009,6 +1020,8 @@ class Survive:
         line = {"wall": self.clock(), "gameMin": self.world.game_min, "branch": branch, "inputs": inputs,
                 "action": {"type": cmd.TYPE, "args": cmd.args()} if cmd is not None else None,
                 "sent": action is not None, "goal": self.goals.line()}
+        if self.no_effect is not None:
+            line["marks"] = {"itemId": self.no_effect["itemId"], "reason": "no_effect"}
         with open(self.log_path, "a", encoding="utf-8", newline="\n") as f:
             f.write(json.dumps(line, sort_keys=True) + "\n")
         return action
