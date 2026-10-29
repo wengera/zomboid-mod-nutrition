@@ -729,3 +729,11 @@ def test_the_e6_log_decodes_with_force_aim_and_held_frames_none(tmp_path):
     assert t.bad == 0 and frames and aims
     assert all(f["me"]["forceAim"] is None for f in frames)
     assert all(a["result"].get("heldFrames") is None and a["result"]["held"] is False for a in aims)
+
+
+# ---- PZA/1.5.5 (Plan 24 Task 9 fix 7): the keepMoving description states the planner obligations ---------------------
+
+def test_keep_moving_description_states_the_leg_part_rule_and_the_open_line_obligation():
+    d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["args_bandage"]["properties"]["keepMoving"]["description"]
+    assert "whether or not a leg runs" in d
+    assert "no pathing and no stuck count: ride a walkTo only on an open line, else ride a steer" in d

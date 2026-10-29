@@ -106,7 +106,7 @@ end
 -- BodyPartType.ToIndex(BodyPartType.Groin) (lua:shared/TimedActions/ISApplyBandage.lua:181), Groin's ordinal 10
 -- (jar-reads-2 section 8), so a part from UpperLeg_L (11) to Foot_R (16) stops on a walk: with keepMoving such a part
 -- is refused leg part, and the worst (-1) is sought among the parts above the legs only (leg part when only a leg part
--- qualifies). A part's index is its getIndex(), else its index in getBodyParts(). Without keepMoving, as before.
+-- qualifies); both apply whenever keepMoving is true, whether or not a leg runs (PZA/1.5.5). A part's index is its getIndex(), else its index in getBodyParts(). Without keepMoving, as before.
 K.BANDAGE_MS = 20000
 K.LEG_FIRST = 11          -- BodyPartType.UpperLeg_L's ordinal: the first part whose bandage stops on a walk
 
@@ -489,12 +489,13 @@ for _, name in ipairs({ "fill", "consume", "wash", "rip" }) do K.markOnEnd(name)
 --   K.start, wrapped: a bandage with keepMoving true while K.cur is a walkTo or a steer is checked as the runner checks
 --     a command (dead, the check's own refusals, a raise bad args) and rides: it becomes K.side (a side already riding
 --     ends failed superseded first) and K.cur keeps driving. While K.cur is an aim it is rejected aiming (the stance
---     stops the bandage). With no leg running it starts as before, standing. Any other command that replaces the leg
+--     stops the bandage). With no leg running it starts as before, standing (the leg-part refusal still applies). Any other command that replaces the leg
 --     ends the side failed superseded (the runner's finish leaves the queue to it while a side rides:
 --     PZAgent_Skills.lua); a new walkTo or steer takes the side along.
 --   K.tick, wrapped: the side ticks first (its first tick: K.rideBegin clears a queued ISWalkToTimedAction, then the
 --     bandage's own first tick queues it), then the leg; while a side rides the leg's gait is held at a walk (MO.want
---     and both latches written false: stopOnRun), and the leg's own gait is wanted back at the side's end. A leg that
+--     and both latches written false: stopOnRun), and the leg's own gait is wanted back at once when the bandage leaves the vanilla queue (stopped, or performed and
+--     awaiting the server's reading), else at the side's end. A leg that
 --     ends done hands the side over to K.cur, where it finishes standing (its aid, its lines); a leg that fails ends
 --     the side failed with the leg's dead, else interrupted.
 --   walkTo, wrapped: while a side rides, the leg walks straight at its target on the auto-walk (setAutoWalk,
@@ -641,7 +642,13 @@ function K.tick(p)
     local side = K.side
     if side == nil then return end
     if K.cur ~= nil and K.cur == leg then
-        holdWalk(p)
+        -- the bandage out of the vanilla queue (the engine stopped it, or it performed and awaits the server's reading,
+        -- st.goneAt set by K.rideLost): the leg's gait back at once, the settle only delays the act line (PZA/1.5.5)
+        if side.st.goneAt ~= nil then
+            if leg.st.gait ~= nil then PZA.motor.want(leg.st.gait) end
+        else
+            holdWalk(p)
+        end
         return
     end
     if leg ~= nil and leg.st.ended == "done" and K.cur == nil then

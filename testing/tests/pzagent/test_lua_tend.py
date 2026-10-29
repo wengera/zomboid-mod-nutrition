@@ -847,3 +847,75 @@ def test_a_second_ride_supersedes_the_first_side(lua, fs):
     assert ("b1", "failed", "superseded") in states(acts(lua, fs))
     assert lua.eval("PZA.skills.side.aid") == "b2" and g._bandages[-1][3] is parts[0]
     assert queue_types(g) == ["ISApplyBandage"]
+
+
+# ---- PZA/1.5.5 (Task 9 fix 7): the gait given back at once, the leg-part boundary ------------------------------------
+
+GROIN, UPPER_LEG_L = 10, 11   # K.LEG_FIRST's two sides: the groin rides, UpperLeg_L is a leg part
+
+
+def test_a_stopped_or_completed_ride_gives_the_legs_gait_back_on_the_next_tick_not_after_the_settle(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    body17(p, {TORSO: {"bleeding": True, "bleeding_time": 5.0}})
+    tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    walking(lua, p, gait="run")
+    start(lua, p, "bandage", aid="b1", itemId=50, part=TORSO, keepMoving=True)
+    tick(lua, p)
+    assert lua.eval("PZA.motor.wantRun") is False                     # held to a walk while the bandage is queued
+    g._queue.queue[:] = []                                            # the engine stopped it (or it performed)
+    tick(lua, p)
+    assert lua.eval("PZA.skills.side.aid") == "b1"                    # the side still awaits its reading
+    assert lua.eval("PZA.motor.wantRun") is True                      # the flee runs again at once
+    g._clock["ms"] += 1500
+    tick(lua, p)
+    assert lua.eval("PZA.motor.wantRun") is True and lua.eval("PZA.skills.side.aid") == "b1"
+    g._clock["ms"] += 1500
+    tick(lua, p)
+    assert [x for x in states(acts(lua, fs)) if x[0] == "b1"][-1] == ("b1", "failed", "stopped")
+    assert lua.eval("PZA.motor.wantRun") is True and lua.eval("PZA.skills.side") is None
+
+
+def test_a_ride_back_in_the_queue_holds_the_walk_again(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    body17(p, {TORSO: {"bleeding": True, "bleeding_time": 5.0}})
+    tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    walking(lua, p, gait="run")
+    start(lua, p, "bandage", aid="b1", itemId=50, part=TORSO, keepMoving=True)
+    tick(lua, p)
+    kept = list(g._queue.queue)
+    g._queue.queue[:] = []
+    tick(lua, p)
+    assert lua.eval("PZA.motor.wantRun") is True
+    g._queue.queue[:] = kept                                          # the queue answered again within the settle
+    tick(lua, p)
+    assert lua.eval("PZA.motor.wantRun") is False
+
+
+def test_the_leg_part_boundary_is_the_groin_riding_and_upper_leg_l_refused(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    parts = body17(p, {GROIN: {"bleeding": True, "bleeding_time": 5.0},
+                       UPPER_LEG_L: {"bleeding": True, "bleeding_time": 5.0}})
+    tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    walking(lua, p)
+    start(lua, p, "bandage", aid="g", itemId=50, part=GROIN, keepMoving=True)
+    assert lua.eval("PZA.skills.side.aid") == "g"
+    start(lua, p, "bandage", aid="u", itemId=50, part=UPPER_LEG_L, keepMoving=True)
+    assert states(acts(lua, fs))[-1] == ("u", "rejected", "leg part")
+    assert lua.eval("PZA.skills.side.aid") == "g"
+    tick(lua, p)
+    assert g._bandages[-1][3] is parts[GROIN]
+
+
+def test_keep_moving_refuses_a_leg_part_even_when_no_leg_runs(lua, fs):
+    load(lua)
+    p = make_player()
+    body17(p, {UPPER_LEG_L: {"bleeding": True, "bleeding_time": 5.0}})
+    tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    start(lua, p, "bandage", aid="s", itemId=50, part=UPPER_LEG_L, keepMoving=True)
+    assert states(acts(lua, fs))[-1] == ("s", "rejected", "leg part")
