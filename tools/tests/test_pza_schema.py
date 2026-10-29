@@ -14,6 +14,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import kahlua_lint  # noqa: E402
 import pza_schema as PS  # noqa: E402
 
+# the current orders' lengths, read off pza1.json, so a later append (PZA/1.4's me and square tails, Plan 24 Task 1b
+# fix 1) moves no expectation here: a prior at or past an order's length is refused, and the decoder's refused arities
+# sit just below the prior and just past the order
+_DEFS = json.load(open(PS.SCHEMA, encoding="utf-8"))["$defs"]
+ME_N = len(_DEFS["me"]["x-order"])
+SQ_N = len(_DEFS["square"]["x-order"])
+
 
 def run(argv, root):
     with redirect_stdout(io.StringIO()) as out:
@@ -166,7 +173,7 @@ def test_a_schema_inconsistency_is_refused(tmp_path):
         PS.load(str(bad))
 
 
-@pytest.mark.parametrize("prior", [0, 14, 15, "11", 11.0, True])
+@pytest.mark.parametrize("prior", [0, ME_N, ME_N + 1, "11", 11.0, True])
 def test_an_x_prior_that_is_not_an_arity_below_the_groups_is_refused(tmp_path, prior):
     """X4 fix pass: a group's x-prior is an int in 1 .. len(x-order) - 1 (the arity before its last append)."""
     raw = json.load(open(PS.SCHEMA, encoding="utf-8"))
@@ -188,12 +195,13 @@ def test_the_prior_arities_reach_the_python_module():
 
 def test_a_square_array_at_the_prior_arity_decodes_with_the_edges_none():
     """A record's x-prior works as a group's: a square array of 12 fields (a PZA/1.1 log) decodes with the four edges
-    None; 11 or 17 fields are refused."""
+    and every later field None; 11 fields, or one past the order, are refused."""
     mod = load_py_module()
-    assert mod.PRIOR["square"] == 12 and mod.RECORDS["square"][12:] == ("blockN", "blockW", "edgeN", "edgeW")
+    assert mod.PRIOR["square"] == 12 and mod.RECORDS["square"][12:16] == ("blockN", "blockW", "edgeN", "edgeW")
     sq = {"x": 3, "y": 4, "z": 0, "solid": False, "solidTrans": False, "light": 0.5, "room": None, "building": None,
           "door": None, "window": None, "containers": [], "floor": [], "blockN": True, "blockW": False, "edgeN": True,
           "edgeW": False}
+    sq.update({k: True for k in mod.RECORDS["square"][16:]})      # the fields appended after the edges (PZA/1.4 on)
     m = {"kind": "map", "seq": 1, "tick": 2, "wallMs": 3, "mode": "full", "scanId": 1, "part": 1, "parts": 1,
          "squares": [sq], "missing": []}
     arr = json.loads(mod.encode("map", m))
@@ -203,16 +211,16 @@ def test_a_square_array_at_the_prior_arity_decodes_with_the_edges_none():
     old[at][0] = arr[at][0][:12]
     d = mod.decode(old)["squares"][0]
     assert list(d) == list(mod.RECORDS["square"])
-    assert d["blockN"] is None and d["blockW"] is None and d["edgeN"] is None and d["edgeW"] is None
+    assert all(d[k] is None for k in mod.RECORDS["square"][12:])
     assert {k: d[k] for k in mod.RECORDS["square"][:12]} == {k: sq[k] for k in mod.RECORDS["square"][:12]}
-    for n in (11, 17):
+    for n in (11, SQ_N + 1):
         bad = json.loads(json.dumps(arr))
         bad[at][0] = (arr[at][0] + [False])[:n]
         with pytest.raises(ValueError):
             mod.decode(bad)
 
 
-@pytest.mark.parametrize("prior", [0, 16, 17, "12", 12.0, True])
+@pytest.mark.parametrize("prior", [0, SQ_N, SQ_N + 1, "12", 12.0, True])
 def test_an_x_prior_on_a_record_that_is_not_an_arity_below_its_order_is_refused(tmp_path, prior):
     raw = json.load(open(PS.SCHEMA, encoding="utf-8"))
     raw["$defs"]["square"]["x-prior"] = prior
@@ -233,15 +241,17 @@ def test_sleep_and_max_weight_reach_tools_json():
     lua = PS.render_lua()
     assert 'sleep = {},' in lua and 'interact = { "x", "y", "kind", "filter", "maxWeight" },' in lua
     assert '["not safe"] = true' in lua and '["not allowed"] = true' in lua
-    assert '"blockN", "blockW", "edgeN", "edgeW" },' in lua and '"zombiesListed", "hour" },' in lua
+    for name, order in (("square", _DEFS["square"]["x-order"]), ("me", _DEFS["me"]["x-order"])):
+        assert "%s = { %s }," % (name, ", ".join('"%s"' % k for k in order)) in lua
+    assert '"blockN", "blockW", "edgeN", "edgeW"' in lua and '"zombiesListed", "hour"' in lua
 
 
 def test_me_hour_and_the_square_edges_are_appended_with_their_descriptions():
     d = json.load(open(PS.SCHEMA, encoding="utf-8"))["$defs"]
-    assert d["me"]["x-order"][-1] == "hour" and d["me"]["x-prior"] == 11
+    assert d["me"]["x-order"][13] == "hour" and d["me"]["x-prior"] == 11
     assert d["me"]["properties"]["hour"] == {"description": "The game's hour of day, 0 to 24, as a number.",
                                              "type": "number"}
-    assert d["square"]["x-order"][12:] == ["blockN", "blockW", "edgeN", "edgeW"]
+    assert d["square"]["x-order"][12:16] == ["blockN", "blockW", "edgeN", "edgeW"]
     props = d["square"]["properties"]
     assert all(props[k]["type"] == "boolean" for k in ("blockN", "blockW", "edgeN", "edgeW"))
     assert "(isBlockedTo)" in props["blockN"]["description"] and "north" in props["blockN"]["description"]

@@ -844,6 +844,7 @@ def test_first_sight_carries_the_engines_use_of_each_item(lua):
 
 def test_the_frames_me_carries_the_attackers_the_hit_reaction_and_the_drag_down(lua):
     load(lua)
+    lua.globals()._cell = make_cell(zombies=[make_zombie(1, 11.0, 20.0)])   # one tile off: the count is asked
     p = make_player()
     f = frame(lua, p)
     assert (f["me"]["attackers"], f["me"]["hitReaction"], f["me"]["dragDown"]) == (0, "", False)
@@ -863,6 +864,7 @@ def test_a_nil_hit_reaction_reads_empty_and_an_absent_member_is_nil_and_named_mi
     p = make_player()
     p.combat["hitReaction"] = None
     assert frame(lua, p)["me"]["hitReaction"] == ""
+    lua.globals()._cell = make_cell(zombies=[make_zombie(1, 11.0, 20.0)])
     q = make_player()
     q.getSurroundingAttackingZombies, q.getHitReaction, q.isDeathDragDown = None, None, None
     f = frame(lua, q)
@@ -888,3 +890,23 @@ def test_the_combat_block_sits_at_the_end_of_sense():
         src = f.read()
     assert src.index("getSurroundingAttackingZombies") > src.index("function S.playerDeathEvents")
     assert src.index("isDeathDragDown") > src.index("function S.playerDeathEvents")
+
+
+def test_the_attackers_read_runs_only_with_a_listed_zombie_within_2_tiles(lua):
+    """Fix 1 (review M1): the frame runs every tick at rate 60, so getSurroundingAttackingZombies (whose count is of
+    zombies within 0.9 tiles) is called only when the frame's nearest listed zombie is under NEAR_R (2) tiles or the
+    zombie walk could not be read; otherwise attackers reads 0 without the call."""
+    load(lua)
+    g = lua.globals()
+    calls = []
+    p = make_player()
+    p.getSurroundingAttackingZombies = lambda s: calls.append(1) or 3
+    assert lua.eval("PZA.sense.NEAR_R") == 2
+    assert frame(lua, p)["me"]["attackers"] == 0 and calls == []          # nobody listed
+    g._cell = make_cell(zombies=[make_zombie(1, 12.5, 20.0)])            # 2.5 tiles off
+    assert frame(lua, p)["me"]["attackers"] == 0 and calls == []
+    g._cell = make_cell(zombies=[make_zombie(1, 12.5, 20.0), make_zombie(2, 11.5, 20.0)])   # 1.5 tiles off
+    assert frame(lua, p)["me"]["attackers"] == 3 and calls == [1]
+    g._cell = J(getZombieList=lambda s: None)                            # the walk unread: the call is made
+    f = frame(lua, p)
+    assert f["me"]["zombiesSeen"] is None and f["me"]["attackers"] == 3 and calls == [1, 1]

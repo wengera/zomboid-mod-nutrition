@@ -534,11 +534,29 @@ end
 -- base reader runs, then the three reads land in its me under their own guard, so a raise among them costs these
 -- three fields (raise:me:combat), never the rest of me or the frame. S.events and Main call S.frame through the table,
 -- so both read the wrapped one; a reload redefines S.frame above and wraps it again once.
--- Cost: three Java calls a frame at 10 Hz on the client; getSurroundingAttackingZombies copies the moving objects of
--- nine squares into a static list and walks it (a type test, a target compare and a distance each), a walk of the
--- movers next to the player, not of the cell.
-local function meCombat(p, m)
-    get(m, "attackers", p, "getSurroundingAttackingZombies")
+-- Cost: the frame runs every max(1, floor(60 / S.RATE)) ticks (Main), every tick at rate 60, so these reads run at
+-- that rate. getHitReaction and isDeathDragDown are field reads. getSurroundingAttackingZombies copies the moving
+-- objects of nine squares into a static list and walks it (a type test, a target compare and a distance each), and
+-- counts only zombies within 0.9 tiles (squared distance under 0.81, the jar's @257), so it is called only when the
+-- frame's nearest listed zombie (the list is sorted nearest first, within ZOMBIE_RADIUS) is under NEAR_R tiles, or
+-- when the zombie walk could not be read (me.zombiesSeen nil); otherwise attackers is 0 without the call (Task 1b fix
+-- 1, review M1).
+S.NEAR_R = 2
+
+-- whether the attackers count must be asked: the walk unread, or its nearest listed zombie under NEAR_R tiles
+local function attackersNear(f)
+    if f.me.zombiesSeen == nil then return true end
+    local z = f.zombies ~= nil and f.zombies[1] or nil
+    return z ~= nil and type(z.dist) == "number" and z.dist < S.NEAR_R
+end
+
+local function meCombat(p, f)
+    local m = f.me
+    if attackersNear(f) then
+        get(m, "attackers", p, "getSurroundingAttackingZombies")
+    else
+        m.attackers = 0
+    end
     local okH, hr = get(m, "hitReaction", p, "getHitReaction")
     if okH then
         if type(hr) == "string" then m.hitReaction = hr else m.hitReaction = "" end
@@ -549,6 +567,6 @@ end
 local frameBase = S.frame
 function S.frame(p)
     local f = frameBase(p)
-    guarded("me:combat", meCombat, p, f.me)
+    guarded("me:combat", meCombat, p, f)
     return f
 end
