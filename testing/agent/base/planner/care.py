@@ -26,7 +26,7 @@ Its choose, the first that answers (`why` names the `reason`, the `part`, the `i
    #4301).
 Ruling P24-P (Plan 24 Task 12, E6: the health fell from 100 to 17.6 while a zombie was held, the one bandage sent on
 the first tick with none): the bleeding step also runs with a threat held, whenever the nearest listed zombie is
-beyond CARE_R (`tends_wound`, Survive's threat branch yielding to it; `wound_only` keeps the other steps out then).
+beyond CARE_R and `tends_wound` answers (Survive's threat branch yields to it only then, so no other step sends).
 A garment is ripped only for a bleeding part (Task 10 fix 1, the review's major 2: ruling P24-G 2's rip is the
 wound's; a rip for stock destroyed looted clothing and, from above the need branch, superseded a running drink).
 An item whose care action ended failed (never `superseded`), timed out or was rejected is left out for
@@ -100,7 +100,6 @@ class Care(Policy):
     def __init__(self, world, actions, clock=time.time):
         super().__init__(world, actions, clock)
         self.quiet = False
-        self.wound_only = False   # Survive sets it while a threat is held (P24-P): only the bleeding step answers
         self.sends = {}      # item id -> its last care Action
         self.held_out = {}   # item id -> world minute its care action was refused (CARE_RETRY_MIN)
         self.fresh = {}      # part index -> `World.frame_n` when its bandage's done was read (minor 6)
@@ -199,8 +198,8 @@ class Care(Policy):
         return self._wound(self._items(), self._bleeding())[0] is not None
 
     def choose(self):
-        """The next care command, or None (the module docstring's order); with `wound_only` (a threat held, P24-P)
-        the bleeding step alone."""
+        """The next care command, or None (the module docstring's order). Under a held threat (P24-P) Survive runs
+        the branch only when `tends_wound` answers, so the bleeding step is the one that sends there."""
         w = self.world
         items = self._items()
         any_rag = any(items[k] for k in KINDS)
@@ -209,9 +208,6 @@ class Care(Policy):
         if cmd is not None:
             self.why = why
             return cmd
-        if self.wound_only:
-            self.why = {"bleeding": [p["i"] for p in bleeding], "wound_only": True}
-            return None
         clean = items["bandage"] + items["rag"]
         spent = self._spent()
         if spent and clean and w.can("bandage"):

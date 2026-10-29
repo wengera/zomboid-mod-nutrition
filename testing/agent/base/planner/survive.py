@@ -156,8 +156,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      the advance as one.
   2. The care branch (`_care`, `planner/care.py`'s docstring the record), between `threat` and `need`: with no
      threat held (or, ruling P24-P, Task 12, with one held while the nearest listed zombie is beyond `care.CARE_R`
-     and no `many` reason live: the threat branch yields, `_care_yields`, logged `care`, and the care sends the
-     bleeding step alone; a zombie inside CARE_R takes the tick back and its send supersedes the bandage), the worst bleeding part bandaged with the best held item (a bandage, a clean rag, a dirty rag only
+     and no `many` reason live: the threat branch yields, `_care_yields`, logged `care`, only when the bleeding step
+     would send or runs; a zombie inside CARE_R takes the tick back and its send supersedes the bandage), the worst bleeding part bandaged with the best held item (a bandage, a clean rag, a dirty rag only
      past `care.DIRTY_RAG_MIN`), with no rag of any kind held a cotton garment ripped for it (never one of the
      inventory's first sight; never with no wound: Task 10 fix 1, the review's major 2), a spent bandage replaced
      with a clean one, a dirty rag washed at a known water source within `care.WASH_R` with no zombie within
@@ -911,8 +911,8 @@ class Survive:
         bandage): the nearest listed zombie's tiles when the threat branch yields this tick to the care branch's
         bleeding step, else None. It yields while that zombie is beyond CARE_R, no `many` reason is live (a group:
         the running `many` episode or the `many` count; every other reason, the health flee's included, is about one
-        or two held, whose distance this reads), and the care's bandage or rip runs or `Care.tends_wound` would send
-        one. A zombie inside CARE_R ends the yield: the threat answers, and its send supersedes the bandage."""
+        or two held, whose distance this reads), and `Care.tends_wound` would send one (its part reads bleeding while
+        the bandage runs, so a running one holds the tick through the care branch's own busy). A zombie inside CARE_R ends the yield: the threat answers, and its send supersedes the bandage."""
         if not self.world.can("bandage") or self.flee_many:
             return None
         near = min((zdist(self.world, z) for z in self.world.zombies.values()
@@ -923,10 +923,8 @@ class Survive:
         self.listed = None
         if many:
             return None
-        c = self.care
-        self._observe(c)
-        running = c.busy() and c.last.type in ("bandage", "rip")
-        return near if running or c.tends_wound() else None
+        self._observe(self.care)
+        return near if self.care.tends_wound() else None   # a running bandage's part still reads bleeding: held
 
     def _threat(self):
         """The tick's bookkeeping, once (ruling P24-A (g)): the held list, the Flee's observe and the breach's closing
@@ -1056,7 +1054,6 @@ class Survive:
             self.why = {"holding_sleep": sleep.aid}
             return None
         c.quiet = not self._within(DISENGAGE_R)
-        c.wound_only = self.care_yield is not None   # P24-P: under a held threat the bleeding step alone
         cmd = c.choose()
         self.why = dict(c.why)
         return None if cmd is None else (c, cmd)

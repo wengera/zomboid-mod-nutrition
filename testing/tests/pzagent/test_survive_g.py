@@ -125,6 +125,10 @@ def test_after_a_walk_released_the_stance_a_target_in_reach_is_aimed_at_before_t
     assert a.state == "done" and f.in_stance()                             # the Lua's hold after the swing
     r.advance(P.AIM_HOLD_S)
     assert not f.in_stance() and f.choose().TYPE == "aim"
+    f.send(f.choose())
+    assert f.in_stance()
+    r.acts.send(P.Stop())                                                  # another sender: the stance released
+    assert not f.in_stance()
 
 
 def test_a_stance_leg_ended_re_aims_and_backpedals_inside_keep_r_whatever_the_target_does(tmp_path):
@@ -272,6 +276,11 @@ def test_a_stand_with_no_progress_in_stand_max_s_closes_in_the_stance_never_a_wa
     tick(r, sv)
     assert last(tmp_path)["inputs"]["fight_s"] == 1.0                       # the advance's stall clock runs
     assert stance_args(r)["vx"] == 1.0
+    r.answer()
+    r.advance(1.0)
+    r.frame(zombies=[zd(1, 106.0, 200.0, has_target=False)])
+    tick(r, sv)
+    assert last(tmp_path)["inputs"]["fight_s"] == 2.0 and sv.fight.fight_s() == 2.0   # unbroken, toward the stall
 
 
 def test_the_advance_with_its_line_blocked_walks_round_the_wall_at_a_run(tmp_path):
@@ -1758,16 +1767,15 @@ def test_no_yield_to_the_care_under_a_group_or_with_nothing_to_tend(tmp_path):
 
 
 def test_under_a_held_threat_only_the_bleeding_step_answers(tmp_path):
-    """`wound_only`: with a threat held beyond CARE_R a spent bandage is not replaced (the threat keeps its tick: no
-    bleeding step to yield to); with no threat it is."""
+    """With a threat held beyond CARE_R a spent bandage is not replaced (the threat keeps its tick: no bleeding step
+    to yield to, `tends_wound` False); with no threat it is."""
     r, sv = make(tmp_path)
     hold(r, 10, "Base.Bandage")
     spent = [part(5, bandaged=True, bandageLife=0.0)]
     care_frame(r, spent, zombies=[zd(1, 106.0, 200.0)])
     tick(r, sv)
     assert last(tmp_path)["branch"] == "threat" and "care" not in threat_why(tmp_path)
-    sv.care.wound_only = True
-    assert sv.care.choose() is None and sv.care.why["wound_only"] is True
+    assert not sv.care.tends_wound()
     (tmp_path / "q").mkdir()
     r2, sv2 = make(tmp_path / "q")
     hold(r2, 10, "Base.Bandage")
