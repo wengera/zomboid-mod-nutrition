@@ -2869,3 +2869,26 @@ def test_a_corner_re_pins_to_the_nearest_zombie_within_point_blank_at_each_attac
     a = tick(r, sv)
     assert a.type == "attack" and a.args == {"targetId": want} and sv.cornered == want
     assert threat_why(tmp_path)["cornered"] == want
+
+
+def test_a_corner_whose_pin_is_marked_ends_rather_than_following_a_retarget_beyond_point_blank(tmp_path):
+    """Fix round 2 (N1, the re-review's probe): the `stuck` corner on 2; 2 steps to 1.7 tiles into a pocket walled on
+    all four edges (its line blocked, no reposition square), so the Fight marks it and its recursion re-pins zombie 4
+    at 3.5 tiles in the open. The corner follows a re-pin only within POINT_BLANK_R: it ends, the tick is planned
+    again and the `many` flee steers; no walk toward 4 (4a86c05c followed and walked at 4 until the retry)."""
+    r, sv = make(tmp_path)
+    me = stuck_corner(r, sv)
+    at = {(98, 201): {"blockN": True, "blockW": True}, (99, 201): {"blockW": True}, (98, 202): {"blockN": True}}
+    r.scan(grid(90, 112, 192, 212, at))
+    r.fake.answer({"attack": [{"state": "done", "result": swing(True)}]})
+    r.pump()
+    r.advance(0.5)
+    zs = [zombie(1, me[0] - 4.5, me[1] - 2.0, me=me), zombie(2, 98.9, 201.5, me=me),
+          zombie(3, me[0] + 4.5, me[1] - 2.0, me=me), zombie(4, me[0], me[1] + 3.5, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    assert P.line_to(r.world, r.world.zombies[2]) is False
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and sv.cornered is None and sv.mode == "flee" and 2 in sv.unreachable
+    assert "cornered" not in w and w["flee"] == "many"
+    assert all(x.type != "walkTo" for x in r.acts.history)

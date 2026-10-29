@@ -387,7 +387,8 @@ class Survive:
         and its stuck read STUCK_RETRY_S old, it ends for one steer leg (`group_steer` "retry"; that leg read stuck in
         turn is a new `stuck` corner). Fix round 1: on a room square with no way out (`_trapped`, R3) no group is read:
         no leg can move there, so the corner stands at once; and the corner follows its Fight's re-pin to the nearest
-        zombie within POINT_BLANK_R (R4, `policies.Fight`). It stays
+        zombie within POINT_BLANK_R (R4, `policies.Fight`), while any other retarget of its Fight (a mark's recursion
+        to a zombie farther off) ends the corner and the tick is planned again (fix round 2, N1). It stays
         cornered on that id until the zombie is dead, gone, or marked unreachable and out of reach (a `walk` corner:
         marked at all), or the nearest held threat is beyond `corner_free`: CORNER_FREE_R for a stuck leg's corner,
         CORNERED_R for the others (a way out is never known at melee range, every exit's line starting within
@@ -536,7 +537,7 @@ class Survive:
         """A flee episode's own flags cleared: its stall origin, its one load drop and its `many` (P23-AM 1)."""
         self.stall_flee, self.flee_dropped, self.flee_many = False, False, False
 
-    def _threat(self):
+    def _threat(self, replanned=False):
         held = self._within(self._hold_r())
         if not held:
             self.mode, self.fight, self.flee = None, None, None
@@ -590,9 +591,14 @@ class Survive:
         self.why.update({"fight": True} if reason is None else {"flee": reason})
         if self.sheltered:
             self.why["sheltered"] = True
-        if kind == "cornered":
-            if self.fight.target is not None:
+        if kind == "cornered" and self.fight.target not in (None, self.cornered):
+            t = self.world.zombies.get(self.fight.target)
+            if t is not None and zdist(self.world, t) <= POINT_BLANK_R:
                 self.cornered = self.fight.target   # fix round 1, R4: the corner follows its Fight's point-blank re-pin
+            elif not replanned:   # fix round 2, N1: any other retarget (a mark's recursion) ends the corner, re-planned
+                self.cornered, self._corner_fight = None, None
+                return self._threat(replanned=True)
+        if kind == "cornered":
             self.why["cornered"] = self.cornered
         if self.group_steer is not None:
             self.why["group"] = self.group_steer
