@@ -3435,3 +3435,143 @@ def test_a_cornered_fight_whose_pin_drifts_beyond_cornered_r_re_pins_in_reach_or
         assert a.type == "attack" and a.args == {"targetId": 1} and sv.cornered == 1 and w["cornered"] == 1
     else:
         assert sv.cornered is None and "cornered" not in w
+
+
+# ================================================================ ruling P24-F: the no-effect mark and the retry window
+F2_LOOP = os.path.join(os.path.dirname(__file__), "fixtures", "f_goals_2-need-loop.json")
+
+
+def consume_sends(r, iid=None):
+    return [a for a in r.acts.history if a.type == "consume" and (iid is None or a.args == {"itemId": iid})]
+
+
+def test_the_f2_need_loop_replayed_sends_one_consume_and_marks_the_disinfectant_at_the_check(tmp_path):
+    """F2's decision lines 955-1063 (the fixture, off the run's decision.log): its Lua read the Disinfectant `water`
+    and the need sent 51 consumes of it in those lines, each `done` while thirst rose 0.1202 to 0.1328. Replayed with
+    each line's gameMin and thirst (the zombies of its threat lines left out, so the need answers every line), the
+    second consume is never sent, and the check at the first minute past the send marks the item no-effect."""
+    with open(F2_LOOP, encoding="utf-8") as f:
+        loop = json.load(f)
+    rows, item = loop["rows"], loop["item"]
+    assert len(rows) == 109 and sum(1 for row in rows if row[5] == "consume") == 51   # the recorded loop
+    r, sv = make(tmp_path)
+    r.event("item_added", **item)
+    iid = item["itemId"]
+    marked_at = None
+    for n, game_min, thirst, hunger, _branch, _typ in rows:
+        r.frame(thirst=thirst, hunger=hunger, game_min=float(game_min))
+        a = tick(r, sv)
+        if a is not None and a.type == "consume":
+            r.answer({"state": "done", "result": {"itemId": iid}})   # every F2 consume ended done
+        elif a is not None:
+            r.answer()
+        why = last(tmp_path)["inputs"]["branches"]["need"]
+        if marked_at is None and iid in r.world.no_effect_ids:
+            marked_at = (n, game_min)
+            assert why["no_effect"] == {"itemId": iid, "use": "water", "stat": "thirst",
+                                        "fell": round(rows[0][2] - thirst, 6)}
+            assert why["item"] is None and why["mark"] == "water"
+    assert len(consume_sends(r, iid)) == 1
+    assert marked_at == (961, 690)                                   # the first line at 690, one minute past 689
+    assert r.world.by_use()["water"] == [] and iid in r.world.by_use()["other"]
+    assert json.loads(r.world.to_json())["noEffectIds"] == [iid]
+
+
+def test_a_consume_that_lowers_its_stat_is_not_marked(tmp_path):
+    r, sv = make(tmp_path)
+    held(r, (703, "Base.WaterBottle"))
+    r.frame(thirst=0.3, game_min=600.0)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 703})
+    r.answer({"state": "done", "result": {"itemId": 703}})
+    r.frame(thirst=0.1, game_min=601.0)                            # a half-drunk bottle, still held
+    tick(r, sv)
+    assert r.world.no_effect_ids == set() and "no_effect" not in last(tmp_path)["inputs"]["branches"]["need"]
+    assert r.world.by_use()["water"] == [703]
+
+
+def test_a_fall_just_under_stat_fall_min_marks_and_one_at_it_does_not(tmp_path):
+    for fall, marked in ((S.STAT_FALL_MIN * 0.9, True), (S.STAT_FALL_MIN * 1.1, False)):
+        d = tmp_path / str(marked)
+        d.mkdir()
+        r, sv = make(d)
+        held(r, (701, "Base.Apple"))
+        r.frame(hunger=0.4, game_min=600.0)
+        tick(r, sv)
+        assert r.cmd() == ("consume", {"itemId": 701})
+        r.answer({"state": "done", "result": {"itemId": 701}})
+        r.frame(hunger=0.4 - fall, game_min=600.0 + S.CONSUME_CHECK_MIN)
+        tick(r, sv)
+        assert (701 in r.world.no_effect_ids) is marked, fall
+
+
+def test_the_check_waits_for_the_minute_and_for_done(tmp_path):
+    r, sv = make(tmp_path)
+    held(r, (703, "Base.WaterBottle"))
+    r.frame(thirst=0.3, game_min=600.0)
+    tick(r, sv)
+    r.frame(thirst=0.3, game_min=601.0)                            # still current: the hold, no check
+    tick(r, sv)
+    assert r.world.no_effect_ids == set() and sv.consumes[703]["checked"] is False
+    r.answer({"state": "done", "result": {"itemId": 703}})
+    r.frame(thirst=0.3, game_min=601.0)
+    tick(r, sv)
+    assert r.world.no_effect_ids == {703}
+
+
+def test_the_retry_window_leaves_the_item_out_for_five_minutes_then_takes_it_again(tmp_path):
+    r, sv = make(tmp_path)
+    held(r, (703, "Base.WaterBottle"))
+    r.frame(thirst=0.5, game_min=600.0)
+    tick(r, sv)
+    r.answer({"state": "done", "result": {"itemId": 703}})
+    r.frame(thirst=0.3, game_min=600.0)                            # fell 0.2: an effect, and still thirsty
+    tick(r, sv)
+    why = last(tmp_path)["inputs"]["branches"]["need"]
+    assert why["item"] is None and why["mark"] == "water" and why["retry"] == [703]
+    for m in (601.0, 604.0):
+        r.frame(thirst=0.3, game_min=m)
+        tick(r, sv)
+        if r.acts.current is not None and r.acts.current.type != "consume":
+            r.answer()
+    assert len(consume_sends(r, 703)) == 1 and r.world.no_effect_ids == set()
+    r.frame(thirst=0.3, game_min=600.0 + S.CONSUME_RETRY_MIN)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 703}) and len(consume_sends(r, 703)) == 2
+    assert "retry" not in last(tmp_path)["inputs"]["branches"]["need"]
+
+
+def test_a_marked_item_gives_way_to_the_next_of_its_use(tmp_path):
+    r, sv = make(tmp_path)
+    r.event("item_added", itemId=701, fullType="Base.Disinfectant", weight=0.2, use="water")   # a pre-1.4.1 line
+    held(r, (705, "Base.WaterBottle"))
+    r.frame(thirst=0.3, game_min=600.0)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 701})
+    r.answer({"state": "done", "result": {"itemId": 701}})
+    r.frame(thirst=0.301, game_min=601.0)
+    tick(r, sv)
+    assert r.world.no_effect_ids == {701} and r.cmd() == ("consume", {"itemId": 705})
+    assert last(tmp_path)["inputs"]["branches"]["need"]["no_effect"]["itemId"] == 701
+
+
+def test_a_failed_consume_opens_no_retry_window_and_is_forgotten(tmp_path):
+    r, sv = make(tmp_path)
+    held(r, (703, "Base.WaterBottle"))
+    r.frame(thirst=0.3, game_min=600.0)
+    tick(r, sv)
+    r.answer({"state": "failed", "reason": "superseded"})
+    r.frame(thirst=0.3, game_min=600.0)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 703}) and len(consume_sends(r, 703)) == 2
+
+
+def test_the_need_never_consumes_a_container_and_marks_water(tmp_path):
+    """PZA/1.4.1: an empty vessel (`container`) is never drunk; with no water held the need marks the want."""
+    r, sv = make(tmp_path)
+    r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=0.1, use="container")
+    held(r, (702, "Base.PopEmpty"))
+    r.frame(thirst=0.3)
+    tick(r, sv)
+    assert consume_sends(r) == [] and last(tmp_path)["inputs"]["need"] == "water"
+    assert r.world.by_use()["container"] == [701, 702]

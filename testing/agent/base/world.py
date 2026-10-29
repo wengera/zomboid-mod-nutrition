@@ -119,9 +119,11 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   valid"`, kept in `refused` {id: the world minute of its refusal} and dropped with its item) moved from `food` to
   `other` for REFUSED_TTL_MIN (120) world minutes from the refusal only (ruling P23-AD: a refusal may be passing, the
   vanilla eat refusing a character that ate too much lately), so `spare()` may drop a refused food only inside that
-  window;
-  `nearest_unlooted(want)` keys on the same use. `to_json` carries `emptyIds` and `refusedIds` (the ids excluded now)
-  sorted, each only while it is non-empty,
+  window; and an id the planner found to have no effect (`mark_no_effect`, ruling P24-F: a consume that ended `done`
+  with no fall in its stat, F2's Disinfectant drunk 68 times; kept in `no_effect_ids` for the session and dropped
+  with its item) moved from any use to `other`. `container` (PZA/1.4.1) is a use as the line carries it.
+  `nearest_unlooted(want)` keys on the same use. `to_json` carries `emptyIds`, `refusedIds` (the ids excluded now)
+  and `noEffectIds` sorted, each only while it is non-empty,
   so a World that never marked one serialises as before (the replay goldens keep their bytes). For the same reason a
   container's `looted` set serialises as its uses sorted, or `false` while it is empty.
 """
@@ -217,6 +219,7 @@ class World:
         self.inventory = {}          # itemId -> {fullType, weight}
         self.empty_ids = set()       # the held ids the planner found empty (mark_empty), never a line's
         self.refused = {}            # held food id -> world minute the Lua refused its consume (mark_refused)
+        self.no_effect_ids = set()   # the held ids whose consume moved no stat (mark_no_effect, P24-F), never a line's
         self.damage = deque(maxlen=DEQUE_N)
         self.damage_seen_i = set()   # the damage.watch record numbers already merged
         self.damage_counts_server = None
@@ -339,6 +342,7 @@ class World:
                 self.missing_items += 1
             self.empty_ids.discard(line.get("itemId"))
             self.refused.pop(line.get("itemId"), None)
+            self.no_effect_ids.discard(line.get("itemId"))
         elif kind == "damage":
             self.damage.append({"tag": line.get("tag"), "amount": line.get("amount"), "side": line.get("side"),
                                 "wallMs": line.get("wallMs")})
@@ -821,6 +825,11 @@ class World:
         meanwhile (and `spare()` may drop it only then); afterwards it is food again."""
         self.refused[item_id] = self.world_minutes()
 
+    def mark_no_effect(self, item_id):
+        """Remember a held item whose consume ended `done` and moved no stat (the planner's, never a line's, P24-F):
+        `by_use` reads it `other` while it is held, so the need moves to the next item of its use."""
+        self.no_effect_ids.add(item_id)
+
     def refused_now(self):
         """The ids whose refusal is younger than REFUSED_TTL_MIN world minutes."""
         now = self.world_minutes()
@@ -830,7 +839,7 @@ class World:
         """{use: [ids sorted]} for every use in USES: the inventory's ids by the item's `use` (else `items.use_of` of
         its fullType; a `food` the dataset marks `cant_eat` reads `other`, a stray `use` falls back to the dataset), an
         id in `empty_ids` read as `other` rather than `water`, one refused within REFUSED_TTL_MIN (`refused_now`) as
-        `other` rather than `food`."""
+        `other` rather than `food`, one in `no_effect_ids` as `other` whatever its use."""
         out = {u: [] for u in USES}
         refused = self.refused_now() if self.refused else ()
         for iid, it in self.inventory.items():
@@ -839,7 +848,8 @@ class World:
                 use = use_of(it.get("fullType"))
             elif use == "food" and cant_eat(it.get("fullType")):
                 use = "other"                         # N-3: the dataset overrides the engine's IsFood for a sealed can
-            if (use == "water" and iid in self.empty_ids) or (use == "food" and iid in refused):
+            if (use == "water" and iid in self.empty_ids) or (use == "food" and iid in refused) or (
+                    iid in self.no_effect_ids):
                 use = "other"
             out[use].append(iid)
         return {u: sorted(v, key=_num_first) for u, v in out.items()}
@@ -876,4 +886,6 @@ class World:
         refused = self.refused_now() if self.refused else ()
         if refused:
             d["refusedIds"] = sorted(refused, key=_num_first)
+        if self.no_effect_ids:
+            d["noEffectIds"] = sorted(self.no_effect_ids, key=_num_first)
         return json.dumps(d, sort_keys=True, indent=1, ensure_ascii=False)

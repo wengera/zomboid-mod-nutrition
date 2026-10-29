@@ -159,6 +159,18 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   `world.REFUSED_TTL_MIN` world minutes, so the need does not retry it meanwhile and takes the next food), logged as
   inputs.consume_refused on the tick that read the end (else None), as is any other id refused so (one no longer
   held when the end was read), which is never marked.
+- The no-effect mark (ruling P24-F; F2 drank a `Base.Disinfectant` its Lua read `water` 68 times in 14 game
+  minutes, every consume `done`, thirst 0.12 to 0.133, the character parked on one square): each `Consume` the need
+  sends is remembered with its use, its stat (`NEED_STATS`: thirst for water, hunger for food), the stat at the send
+  and the world minute (`world.world_minutes()`). Once it has ended `done` and CONSUME_CHECK_MIN (1) game minute has
+  passed since the send, the stat is checked once: fallen by less than STAT_FALL_MIN (0.01), the item still held is
+  marked no-effect for the session (`world.mark_no_effect`: `by_use` reads it `other`), so the branch moves to the
+  next item of the use, or marks the want and passes to the goal's loot when none is left. An item whose consume
+  ended `done` is never consumed again within CONSUME_RETRY_MIN (5) game minutes of that send (left out of the pick;
+  a failed consume is forgotten, the cooldown and the empties above answer it). The need's `why` carries
+  `no_effect` {itemId, use, stat, fell} on the tick that marked, and `retry` (the ids left out by the window) while
+  the window leaves one out, each only then, beside `item` and `mark`. The branch never consumes a `container`
+  (PZA/1.4.1, an empty vessel: Task 9's fill takes it to a sink); with no `water` held it marks the want.
 - `goal` (Plan 23 Task 13, P23-10; ruling P23-F): `goals.GoalRunner` over the goal source (`source`, default
   `goals.ScriptedSource()`; Task 14's LLM source shares the seam), whose module docstring is the design record: one
   goal at a time, proposed from `view.view(world, self)` (built only on a tick that proposes) when none runs,
@@ -234,11 +246,17 @@ BRANCHES = ("threat", "need", "load", "night", "goal")
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
 REFUSED = "not valid"    # the reason the Lua's consume fails an item it cannot eat or drink (an empty bottle)
+NEED_STATS = {"water": "thirst", "food": "hunger"}   # the stat a consume of each use must lower (P24-F)
+CONSUME_CHECK_MIN = 1.0  # game minutes after a consume's send before its stat is checked, once it ended done (P24-F)
+STAT_FALL_MIN = 0.01     # the least fall of that stat since the send that counts as an effect (P24-F, a judgment:
+                         # a drink or a meal moves its stat by tenths, F2's thirst rose 0.013 in 14 minutes)
+CONSUME_RETRY_MIN = 5.0  # game minutes a consume that ended done leaves its item out of the pick (P24-F)
 
 __all__ = ["Survive", "BRANCHES", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER_T", "FLEE_HEALTH",
            "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS",
            "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
-           "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N"]
+           "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "NEED_STATS",
+           "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN"]
 
 
 def _key(typ, args):
@@ -284,6 +302,9 @@ class Survive:
         self.need_mark = None     # "water" or "food" when need found nothing held this tick (logged)
         self.need_marks = {}      # use -> wall of its last mark: the view's needs_wanted
         self.consume_refused = None   # a non-water id whose consume ended failed "not valid" this tick (logged)
+        self.consumes = {}        # item id -> {action, use, stat, before, at, checked}: the need's sends (P24-F)
+        self.need_use = None      # the use of the item the need picked this tick
+        self.no_effect = None     # this tick: {itemId, use, stat, fell} of an item marked no-effect, else None
         self.ticks = 0
         self.last_failed = None   # (type, args json, tick first seen failed) of the last command that failed
         self._watch = []          # actions sent and not yet seen terminal
@@ -315,8 +336,9 @@ class Survive:
 
     def _held_use(self, use):
         """The id to consume among the held items of `use` (`world.by_use()`), else None: a food the least
-        `days_fresh` first (None last), any use then the least id."""
-        ids = [i for i in self.world.by_use()[use] if item_id_ok(i)]
+        `days_fresh` first (None last), any use then the least id; an id inside its retry window left out."""
+        recent = self._retrying()
+        ids = [i for i in self.world.by_use()[use] if item_id_ok(i) and i not in recent]
         if not ids:
             return None
         if use != "food":
@@ -326,6 +348,46 @@ class Survive:
             d = days_fresh((self.world.inventory.get(i) or {}).get("fullType"))
             return (math.inf if d is None else d), i
         return min(ids, key=spoil)
+
+    def _retrying(self):
+        """The ids a consume that ended done was sent on within CONSUME_RETRY_MIN game minutes (P24-F)."""
+        now = self.world.world_minutes()
+        return {i for i, c in self.consumes.items()
+                if c["action"].state == "done" and now - c["at"] < CONSUME_RETRY_MIN}
+
+    def _check_consumes(self):
+        """Each remembered consume: a failed one forgotten; one that ended done checked once CONSUME_CHECK_MIN game
+        minutes after its send, its item marked no-effect when its stat fell by less than STAT_FALL_MIN and it is
+        still held; a checked one forgotten once its retry window has passed (P24-F)."""
+        self.no_effect = None
+        now = self.world.world_minutes()
+        st = self.world.stats or {}
+        for iid, c in list(self.consumes.items()):
+            a = c["action"]
+            if self.actions.done(a) and a.state != "done":
+                del self.consumes[iid]
+                continue
+            if c["checked"]:
+                if now - c["at"] >= CONSUME_RETRY_MIN:
+                    del self.consumes[iid]
+                continue
+            if a.state != "done" or now - c["at"] < CONSUME_CHECK_MIN:
+                continue
+            c["checked"] = True
+            cur, before = st.get(c["stat"]), c["before"]
+            if cur is None or before is None or iid not in self.world.inventory:
+                continue
+            fell = before - cur
+            if fell < STAT_FALL_MIN:
+                self.world.mark_no_effect(iid)
+                self.no_effect = {"itemId": iid, "use": c["use"], "stat": c["stat"], "fell": round(fell, 6)}
+
+    def _sent_consume(self, action):
+        """Remember the need's consume (P24-F): its use, its stat, the stat now and the world minute."""
+        stat = NEED_STATS[self.need_use]
+        self.consumes[action.args.get("itemId")] = {
+            "action": action, "use": self.need_use, "stat": stat, "before": (self.world.stats or {}).get(stat),
+            "at": self.world.world_minutes(), "checked": False}
 
     def _sleeping(self):
         """The night's Sleep while it is the current action (sent, accepted or in progress), else None (P23-AB)."""
@@ -805,7 +867,13 @@ class Survive:
                 self.need_marks[use] = self.clock()
             else:
                 self.need_marks.pop(use, None)
+                self.need_use = use
         self.why = {"item": pick, "mark": self.need_mark}
+        if self.no_effect is not None:
+            self.why["no_effect"] = self.no_effect
+        retry = self._retrying()
+        if retry:
+            self.why["retry"] = sorted(retry, key=str)
         if pick is None:
             return None
         return None, Consume(pick)
@@ -905,6 +973,7 @@ class Survive:
         self.ticks += 1
         self._observed = []
         self._note_failures()
+        self._check_consumes()
         self.goals.observe(world, actions)
         inputs = self._inputs()
         if self.fight is not None:
@@ -931,6 +1000,7 @@ class Survive:
             action = owner.send(cmd) if owner is not None else self.actions.send(cmd)
             if owner is None and branch == "need":
                 self.need_last = action
+                self._sent_consume(action)
             elif owner is None and branch == "load":
                 self.load_last = action
             self._watch.append(action)
