@@ -122,3 +122,14 @@ About 20 tasks: the library and the snapshot command with the round trip (2); th
 ## 13. Open after this spec
 
 The fast-forward rate a lone sleeper's night runs at on 42.21 and the client's clock under it (§ 7, read off the jar, measured by the first night); which tiles carry the collide flag beside doors, low fences and empty window frames (§ 6); the poll's cost split between the open and the read (§ 5); a `fill` skill and the water sources' reach; the LLM's prompt and model choice past F1's reading; the sidecar, dormant unless a later session's flush rises.
+
+## 14. Amendments at the close (2026-10-29)
+
+The plan's live phase ruled four survival iterations from the chains' deaths (P23-AG, P23-AJ/AK, P23-AM, P23-AP in the ledger and the close report's § 8); the close review (`.superpowers/sdd/2026-10-28-plan-23-survivor/review-close.md`, item 7) names where the code now diverges from § 7's text. The rule record is `testing/agent/base/planner/survive.py`'s module docstring, not this section:
+
+1. § 7 "before an attack it requires `line_clear`": a cornered Fight swings at a target within `POINT_BLANK_R` 1.0 whatever the line reads (P23-AJ fix 1), and a `stuck` or `inside` corner takes a target within 1.5 tiles whose line is not read blocked (`in_reach`).
+2. § 7 "it never swaps to a nearer one mid-swing": the corner's re-pin to the nearest zombie within point blank (P23-AP R4) swaps whenever the nearest is not the pin; in F1 it alternated between two zombies about eight times. Plan 24 adds the hysteresis (re-pin only when the pin itself is beyond point blank); until then the rule reads as the code does.
+3. § 7's flee rules (three within 6, the pair rule, health) are overridden by the corner (any count, any health), the door fight and the trapped fight (P23-AJ, P23-AK), and the `many` episode's keeps (P23-AM rule 1); § 7 does not describe the shelter flee, the exit walk, the hold's breach, the group steer or the leg's cut (P23-AG to P23-AP). The corner's override of the `health` flee on a `walk` corner is the close review's I1, for Plan 24 to rule.
+4. § 7 "out of `DANGER_R`": the Fight drops its pin at `DISENGAGE_R` 10 tiles (Task 10), not `DANGER_R` 6.
+5. § 7 Need, "the held container with the most fluid": the need branch drinks the water item of least id (fix wave P), a Plan 24 item or an amendment of the rule.
+
