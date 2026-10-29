@@ -580,8 +580,9 @@ def test_bandage_rip_and_wash_are_actions_with_their_args_results_and_reasons():
     assert pza1.Bandage(50).args() == {"itemId": 50, "part": -1} and pza1.Wash(80, 11, 20).TYPE == "wash"
     assert {"no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water"} <= pza1.REASONS
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
-    assert set(d["result_bandage"]["properties"]) == {"part", "dirty", "life"}
-    assert set(d["result_rip"]["properties"]) == {"rags", "dirty"} and set(d["result_wash"]["properties"]) == {"water"}
+    assert set(d["result_bandage"]["properties"]) == {"part", "dirty", "life", "moved"}      # moved: PZA/1.5.2
+    assert set(d["result_rip"]["properties"]) == {"rags", "dirty"}
+    assert set(d["result_wash"]["properties"]) == {"water", "moved"}
 
 
 def test_the_part_record_appends_its_care_fields_and_a_two_field_part_decodes_with_them_none():
