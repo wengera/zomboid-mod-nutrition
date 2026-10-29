@@ -61,3 +61,6 @@
 ### Task 11: F3 and the E6 chain on the new base
 - [ ] The driver copies; the boots; the write-ups; the rows.
 
+### Task 12: Survival iteration 7 — the stance opens the fight, the backpedal inside KEEP_R, no sprint, the bandage under a far threat (P24-N/O/P)
+- [ ] The planner rules, tests, mutants; the goldens re-recorded under the named causes; then the E6 write-up and the seventh chain.
+
