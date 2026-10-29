@@ -37,8 +37,10 @@ def pre_x(sv):
     that pin a line of an earlier ruling (P23-AJ to P24-N) read it there, since P24-X re-records every golden from
     its line 1 (the engage of a zombie at 7 tiles where the record looted) and every later line of those episodes is
     open loop. Not behind the switch: Task 18's WIDE_TURNS and STEP_PROBE (and fix 1's group-aware wide tier), which
-    the PRE_X pins prove move no golden (Task 18 fix 1, the review's minor 13)."""
+    the PRE_X pins prove move no golden (Task 18 fix 1, the review's minor 13). Plan 24 Task 21: ruling P24-AD's
+    switch (`Survive.IDLE`) is off with it, the idle zombie counted toward `many` as before."""
     sv.ENGAGE = False
+    sv.IDLE = False
 
 
 @functools.lru_cache(maxsize=6)
@@ -64,6 +66,24 @@ def pre_run(key):
 def pre_gold(key):
     """{line: decision} of the replay with P24-X off: the golden as recorded at `24987f2a`."""
     return {d["line"]: d for d in R.decisions(pre_rows(key))}
+
+
+def pre_ad(sv):
+    """The replay's mutate seam onto the rules before ruling P24-AD (Plan 24 Task 21: `Survive.IDLE` off, every
+    zombie counted toward `many`), P24-X kept: it reproduces the six goldens as they stood before Task 21's re-record
+    byte for byte (Task 21's report). A test that pins a line of an earlier ruling which P24-AD moved downstream (open
+    loop) reads it there."""
+    sv.IDLE = False
+
+
+@functools.lru_cache(maxsize=6)
+def _pre_ad_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_ad), sort_keys=True)
+
+
+def pre_ad_gold(key):
+    """{line: decision} of the replay with P24-AD off: the golden before Task 21's re-record."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_ad_replayed(key)))}
 
 
 def golden(key):
@@ -106,14 +126,15 @@ def test_a_smaller_cornered_r_moves_the_f1_golden_first_at_line_484(monkeypatch)
     """The mutation pass: CORNERED_R 1.5 -> 1.0 (survive's and policies' copies). Named change, Plan 24 survival 5
     (P24-A (c)): F1's golden moves first at line 484, where 15921 at 1.03-1.5 tiles read a `walk` corner the running
     `many` episode refused (`yield` "many"); with the mutant no corner is read there. (At Task 1's recording it moved
-    first at 537, the corner attack on 15921, a `stuck` corner now, still moved.)"""
-    base = {d["line"]: d for d in json.loads(golden("f1").decode("utf-8"))["decisions"]}
+    first at 537, the corner attack on 15921, a `stuck` corner now, still moved.) Read with P24-AD off (`pre_ad`):
+    Task 21's re-record moved F1 from line 163, these lines downstream of it."""
+    base = pre_ad_gold("f1")
     assert base[484]["why"]["yield"] == "many"
     assert base[537]["action"] == {"type": "attack", "args": {"targetId": 15921}}
     assert base[537]["why"]["corner_kind"] == "stuck"
     monkeypatch.setattr(S, "CORNERED_R", 1.0)
     monkeypatch.setattr(P, "CORNERED_R", 1.0)
-    moved = {d["line"]: d for d in R.run(run_dir("f1"))}
+    moved = {d["line"]: d for d in R.run(run_dir("f1"), mutate=pre_ad)}
     diff = [k for k in sorted(set(base) | set(moved)) if base.get(k) != moved.get(k)]
     assert diff and diff[0] == 484 and "yield" not in moved[484]["why"] and 537 in diff
 
@@ -538,8 +559,8 @@ def test_e4_line_455_the_retry_leg_turns_off_the_stuck_heading_of_449():
 def test_f1_s_second_stuck_corner_no_longer_holds_to_the_end_under_flee_health():
     """G3 (ruling P24-E) on F1's 572-615: the `stuck` corner of 572 held through health 33.8 (607) to 0.9 (615);
     under FLEE_HEALTH_PAIR with two held it now tries a leg each STUCK_RETRY_GROUP_S (603, 608, 614, `yield`
-    "health"). Open loop: the record's frames do not move with those legs."""
-    g = gold("f1")
+    "health"). Open loop: the record's frames do not move with those legs. Read with P24-AD off (`pre_ad`, Task 21)."""
+    g = pre_ad_gold("f1")
     retries = [k for k in range(572, 616) if g[k]["why"].get("group") == "retry"]
     assert retries == [603, 608, 614] and all(g[k]["why"]["yield"] == "health" for k in retries)
     assert all(g[k]["action"]["type"] == "steer" for k in retries)
@@ -754,6 +775,36 @@ def test_with_engage_off_the_goldens_are_iteration_7_s(key):
     text = R.golden_text(R.decisions(pre_rows(key)), base, R.RUNS[key], "2026-10-29", R.SPANS.get(key),
                          R.HELLO_CAPS.get(key))
     assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+
+
+# Plan 24 Task 21: the six goldens as they stood before P24-AD's re-record (base 14f9c6a8), their sha256
+PRE_AD = {"e2": "f52a02afdff62493dc9e0a537504005660bfd30c99cab0d694e42daf89aebbc6",
+          "e3": "c84f227a6d1d4535324da3ad99fd1dfaaa78e5bd86cfaacd3d3deb90e3214ee4",
+          "e4": "74e0c3137d408b95591145e4784e399064b487fb21bede4c36e80f6326b8d0c9",
+          "e5": "ad7eb5a78de21c86b2c99e2205a528edecb67114eb1ca775b9d2f0292ecd7f29",
+          "f1": "ab1a30cb814d55bdeb113245f3b237434bc25ed1fabc4164845af395f5e943b0",
+          SIXTH: "c7264689202e5ce4b9b7d683622e296762f6dfc138e411654ba263c62d474e76"}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_AD))
+def test_with_idle_off_the_goldens_are_iteration_8_s(key):
+    """P24-AD is one switch (`Survive.IDLE`): with it off every golden is the file Task 21 re-recorded byte for byte
+    (its sha256 pinned), so every line P24-AD moved is P24-AD's (refactor A, P24-AB and P24-AC moved none)."""
+    text = R.golden_text(R.decisions(json.loads(_pre_ad_replayed(key))), "14f9c6a8", R.RUNS[key], "2026-10-29",
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == PRE_AD[key]
+
+
+# the first line P24-AD moves on each golden: the tick its `many` read first differs, the old read's count
+FIRST_IDLE = {"e2": 146, "e3": 214, "e4": 381, "e5": 215, "f1": 163, SIXTH: 163}
+
+
+@pytest.mark.parametrize("key", sorted(FIRST_IDLE))
+def test_p24_ad_moves_each_golden_first_at_its_line(key):
+    """Task 21's attribution: each golden moves first at FIRST_IDLE's line against the rules before P24-AD."""
+    base, got = pre_ad_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    assert diff and diff[0] == FIRST_IDLE[key]
 
 
 # the first line P24-X (as Task 18 fix 1 narrowed it) moves on each golden, and the zombie it engages there

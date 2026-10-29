@@ -316,3 +316,92 @@ def test_a_loot_building_container_beyond_leg_max_is_walked_to_in_a_leg_first(tm
     r.frame(x=cmd.x, y=cmd.y)
     cmd = step(r, runner)
     assert cmd.TYPE == "interact" and cmd.args()["kind"] == "loot" and cmd.args()["x"] == 145
+
+
+# ================================================================ P24-AD: idle zombies and `many`
+from agent.base import replay_decisions as R   # noqa: E402
+from agent.base.planner import policies as P   # noqa: E402
+
+from .test_survive import threat_why   # noqa: E402
+
+E8 = R.os.path.join(R.ARTIFACTS, "e_day_8-20261029-174023")
+
+
+def zi(zid, x, y, chasing=True):
+    return dict(zombie(zid, x, y), hasTarget=chasing)
+
+
+def fight_on(tmp_path):
+    """A fight engaged on one chasing zombie at 5 tiles (the stance's first leg)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zi(1, 105.0, 200.0)])
+    tick(r, sv)
+    assert sv.mode == "fight" and threat_why(tmp_path)["fight"] is True
+    return r, sv
+
+
+def test_three_held_with_two_idle_beyond_danger_r_is_no_many_the_fight_stands(tmp_path):
+    """P24-AD (E8's fight 1): one chasing at 5 tiles, two idle at 8 and 9.5 (all within the hold radius): no `many`,
+    the fight stands; the two waking (chasing) is `many` on that tick."""
+    r, sv = fight_on(tmp_path)
+    r.frame(zombies=[zi(1, 105.0, 200.0), zi(2, 100.0, 208.0, chasing=False), zi(3, 90.5, 200.0, chasing=False)])
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w.get("fight") is True and "flee" not in w and sv.mode == "fight"
+    r.frame(zombies=[zi(1, 105.0, 200.0), zi(2, 100.0, 208.0), zi(3, 90.5, 200.0)])
+    tick(r, sv)
+    assert threat_why(tmp_path)["flee"] == "many" and r.cmd()[0] == "steer"
+
+
+def test_three_chasing_held_is_many(tmp_path):
+    r, sv = fight_on(tmp_path)
+    r.frame(zombies=[zi(1, 105.0, 200.0), zi(2, 100.0, 208.0), zi(3, 90.5, 200.0)])
+    tick(r, sv)
+    assert threat_why(tmp_path)["flee"] == "many"
+
+
+def test_an_idle_zombie_inside_danger_r_still_counts(tmp_path):
+    """P24-AD: an idle zombie within DANGER_R counts as before: one chasing at 5 and two idle at 4 and 5.5 is `many`."""
+    r, sv = fight_on(tmp_path)
+    r.frame(zombies=[zi(1, 105.0, 200.0), zi(2, 100.0, 204.0, chasing=False), zi(3, 94.5, 200.0, chasing=False)])
+    tick(r, sv)
+    assert threat_why(tmp_path)["flee"] == "many"
+
+
+def test_the_listing_counts_an_idle_zombie_only_inside_danger_r(tmp_path):
+    """P24-AD on the listing (MANY_LISTED_N within LISTED_R): one chasing at 5, one chasing at 9, two idle at 10 and 11
+    are no `many` (two counted); with the two chasing, four listed and four pressing: `many` `listed`."""
+    r, sv = fight_on(tmp_path)
+    far = [zi(3, 110.0, 200.0, chasing=False), zi(4, 100.0, 211.0, chasing=False)]
+    r.frame(zombies=[zi(1, 105.0, 200.0), zi(2, 91.0, 200.0)] + far)
+    sv.mode = None   # the listing's own read: no running fight's held count
+    many, listed = sv._many_read([z for z in r.world.zombies.values() if P.zdist(r.world, z) <= 6.0], 1)
+    assert (many, listed) == (False, None)
+    r.frame(zombies=[zi(1, 105.0, 200.0), zi(2, 91.0, 200.0), zi(3, 110.0, 200.0), zi(4, 100.0, 211.0)])
+    many, listed = sv._many_read([z for z in r.world.zombies.values() if P.zdist(r.world, z) <= 6.0], 1)
+    assert (many, listed) == (True, 4)
+
+
+def test_a_frame_with_no_has_target_counts_every_zombie_as_before(tmp_path):
+    """P24-AD reads `hasTarget` false only: a frame that does not carry it (PZA/1.3's records) counts as before."""
+    r, sv = fight_on(tmp_path)
+    zs = [zi(1, 105.0, 200.0), zi(2, 100.0, 208.0), zi(3, 90.5, 200.0)]
+    for z in zs[1:]:
+        del z["hasTarget"]
+    r.frame(zombies=zs)
+    tick(r, sv)
+    assert threat_why(tmp_path)["flee"] == "many"
+
+
+def test_e8_line_170_s_many_flee_is_now_the_fight(monkeypatch):
+    """P24-AD on E8's record (replayed to line 170, the fight 1 `many` flee: 16318 chasing at 7.497342719768519,
+    16316 and 16317 idle at 9.45 and 9.95): the replay fights on; with every zombie counted (the rule before) it flees
+    `many` as the record did."""
+    rep = R.replay(E8, upto=170)
+    w = rep[169]["inputs"]["branches"]["threat"]
+    assert rep[169]["branch"] == "threat" and w.get("fight") is True and "flee" not in w
+
+    def old_rule(sv):
+        sv._counts_many = lambda z: True
+    rep = R.replay(E8, upto=170, mutate=old_rule)
+    assert rep[169]["inputs"]["branches"]["threat"]["flee"] == "many" and rep[169]["action"]["type"] == "steer"

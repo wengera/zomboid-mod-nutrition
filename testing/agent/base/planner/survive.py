@@ -119,7 +119,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   corner held the character, #4237, #4251, #4262, #4268; the close review's I1-I4 and M1-M2), the rows of the decision
   each named in `why`:
   (a) The `many` reason also fires on MANY_LISTED_N (4) or more zombies listed within `policies.LISTED_R` (12 tiles),
-      whatever the DANGER_R or hold count (`_many`, logged `listed` when it alone made `many`); the World keeps a
+      whatever the DANGER_R or hold count (`_many`, logged `listed` when it alone made `many`; since ruling P24-AD,
+      Plan 24 Task 21, an idle zombie, `hasTarget` false, counts in both only within DANGER_R); the World keeps a
       memory of met ground (`World.met`, MET_TTL_MIN game minutes) whose densest window repulses the flee's first leg
       (`policies.Flee._steer`, logged `met`). The branch is still entered by a held threat only.
   (b) A fight that would walk toward its target (beyond FIGHT_REACH, an approach due beyond POINT_BLANK_R, or the
@@ -212,6 +213,13 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   standing there, and with no stance (a PZA/1.4 build, trapped) engages nothing; a chasing target across a known
   fence is not sought (`policies.seek_allowed`). The Fight's seek closes on the nearest zombie and its walks give way
   as its legs do (`policies.Fight._walk_gives_way`, `_seek_switch`).
+- Survival 9 (Plan 24 Task 21, spec § 6 item 19; E8, `e_day_8-20261029-174023`: four kills, then a bite bled 73 game
+  minutes to the death with no dressing held, every goal walk from game minute 618 failed `no square`, and fight 1
+  fled `many` from one chaser and two idle zombies): P24-AB, the rag stock (`care.Care.stock`, `_care_stock`: on an
+  idle tick, behind the need, the load and the night, an unworn cotton garment ripped while fewer than
+  `care.RAG_STOCK` clean dressings are held; a bleeding part with nothing to dress it marks the want `bandage`,
+  `_dressing_want`, the goal layer's loot taking it first); P24-AC, legged far walks (`goals._Legs`); P24-AD, an idle
+  zombie (`hasTarget` false) counts toward `many` only within DANGER_R (`_counts_many`, the `IDLE` switch).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -367,6 +375,8 @@ class Survive:
                     # are the replay tests' seams onto the rules before P24-X (`test_replay_decisions.pre_x`). Not
                     # behind them: Task 18's WIDE_TURNS and STEP_PROBE (the flee's wide tiers), which PRE_X proves move
                     # no golden (Task 18 fix 1, the review's minor 13)
+    IDLE = True     # ruling P24-AD: an idle zombie counts toward `many` only within DANGER_R; off, every zombie counts
+                    # (the replay tests' seam onto the rules before it, `test_replay_decisions.pre_x` with the above)
 
     def __init__(self, world, actions, log_path, clock=time.time, source=None):
         self.world = world
@@ -568,17 +578,28 @@ class Survive:
         four times in 8 s), the hold radius's count over MAX_FIGHT or the nearest held threat within DANGER_R.
         Whatever those read, MANY_LISTED_N or more listed within LISTED_R (ruling P24-A (a)) is `many`, `listed` that
         count when it alone made it (else None); since P24-X only when more than MAX_FIGHT of them press
-        (`_pressing`: within DISENGAGE_R or chasing), so one or two fought while the rest stand off is no group."""
+        (`_pressing`: within DISENGAGE_R or chasing), so one or two fought while the rest stand off is no group.
+        Ruling P24-AD (Plan 24 Task 21; E8's fight 1, line 170: `many` fired on three held, one chasing at 7.50 tiles
+        and two reading `hasTarget` false at 9.45 and 9.95 on every frame of the fight): a zombie reading `hasTarget`
+        false counts toward `many` only within DANGER_R (`_counts_many`), in the held count and the listing alike; a
+        chasing one, or one whose frame carries no `hasTarget`, counts as before. The read is per tick, so an idle
+        zombie that wakes counts on the next."""
+        counted = [z for z in held if self._counts_many(z)]
         if self.mode == "flee" and self.flee_many:
-            near = len(held) > MAX_FIGHT or min(zdist(self.world, z) for z in held) <= DANGER_R
+            near = len(counted) > MAX_FIGHT or min(zdist(self.world, z) for z in held) <= DANGER_R
         else:
-            near = (len(held) if self.mode == "fight" else n) > MAX_FIGHT
+            near = (len(counted) if self.mode == "fight" else n) > MAX_FIGHT
         if near:
             return True, None
-        listed = self._within(LISTED_R)
+        listed = [z for z in self._within(LISTED_R) if self._counts_many(z)]
         if len(listed) < MANY_LISTED_N or (self.ENGAGE and self._pressing(listed) <= MAX_FIGHT):
             return False, None
         return True, len(listed)
+
+    def _counts_many(self, z):
+        """Ruling P24-AD: zombie `z` counts toward `many`: within DANGER_R, or not idle (`hasTarget` not read false: a
+        chaser, or a frame that does not carry the field); with `IDLE` off every zombie counts."""
+        return not self.IDLE or z.get("hasTarget") is not False or zdist(self.world, z) <= DANGER_R
 
     def _pressing(self, zs):
         """Of `zs`, the zombies within DISENGAGE_R (10: ENGAGE_R's value at P24-X, kept when Task 18 fix 1's minor 8

@@ -79,7 +79,11 @@ chaser across a fence: E2 and E3, three lines) and the blocker (the stance's wal
 111), then again under the review's minor 8 (ENGAGE_R 9 inside DISENGAGE_R 10: each first engage a line or two
 later, e2 68, e3 69, e5 69, f1 and the sixth 102; e4's at 247 kept, moved first at 333); `ENGAGE` off still
 reproduces 24987f2a's. Plan 24 Task 21's refactor A (`Survive.assess`, the water chain in `planner/water.py`)
-moved no golden: its commit leaves all six byte-identical, the rules of survival 9 re-recording them after it.
+moved no golden: its commit leaves all six byte-identical, as do P24-AB's (the rag stock: no replayed tick reaches it)
+and P24-AC's (legs: the goal is not replayed). Ruling P24-AD (an idle zombie, `hasTarget` false, counts toward `many`
+only within DANGER_R) re-recorded all six: `Survive.IDLE` off reproduces the files before it byte for byte
+(`test_replay_decisions.PRE_AD`, `pre_ad`), each moving first where its `many` read first differs
+(`FIRST_IDLE`: e2 146, e3 214, e4 381, e5 215, f1 and the sixth 163), every later moved line downstream of it.
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

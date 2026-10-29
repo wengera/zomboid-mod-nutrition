@@ -2018,12 +2018,20 @@ def test_e3_building_2s_bedroom_door_is_no_exterior_door_and_its_kitchen_and_fro
     assert [e["door"] for e in N.exits(w, 2, 0) if e["door"] is not None] == [(10722, 10627, 0)]
 
 
-@functools.lru_cache(maxsize=1)
-def _e3_sequential():
-    """E3's lines 230-284 through one Survive (`e3_replay`), shared by the sequential tests."""
+def idle_off(r, sv, w):
+    """`run_replay`'s setup onto the rules before ruling P24-AD (Plan 24 Task 21: `Survive.IDLE` off, an idle zombie
+    beyond DANGER_R counted toward `many` as before): a test pinning an earlier ruling on a line P24-AD moved reads it
+    there."""
+    sv.IDLE = False
+
+
+@functools.lru_cache(maxsize=2)
+def _e3_sequential(idle=True):
+    """E3's lines 230-284 through one Survive (`e3_replay`), shared by the sequential tests; `idle` False reads them
+    with P24-AD off (`idle_off`)."""
     d = tempfile.mkdtemp()
     import pathlib
-    r, sv, out = e3_replay(pathlib.Path(d), 230, 284)
+    r, sv, out = e3_replay(pathlib.Path(d), 230, 284, setup=None if idle else idle_off)
     return [a for a in r.acts.history], {ln: (row, a) for ln, (row, a) in out.items()}
 
 
@@ -2036,8 +2044,10 @@ def test_e3_after_the_first_many_flee_no_fight_walk_supersedes_it_while_the_grou
     within DANGER_R the reason stays `many`, two held beyond DANGER_R read `held`, and one held beyond DANGER_R is
     kept by the running shelter step (`steps`). One walk, never superseded until rule 2 drops it at 254. Named change,
     ruling P24-A (a): at line 230 four zombies are listed within LISTED_R (one held within DANGER_R), so the `many`
-    flee and its approach walk go there (`listed` 4), with no fight walk first."""
-    sent, out = _e3_sequential()
+    flee and its approach walk go there (`listed` 4), with no fight walk first. Named change, ruling P24-AD (Task 21):
+    read with P24-AD off (`idle_off`): an idle zombie of that listing stands beyond DANGER_R, so with P24-AD on line
+    230's flee reads `held`, not `many`."""
+    sent, out = _e3_sequential(idle=False)
     why230 = out[230][0]["inputs"]["branches"]["threat"]
     assert why230["flee"] == "many" and why230["listed"] == 4 and "fight" not in why230
     assert out[230][1].args == {"x": 10721.5, "y": 10638.5, "gait": "run"}
@@ -2660,10 +2670,16 @@ def test_e4_lines_438_to_442_the_leg_is_cut_where_19032_is_first_listed(tmp_path
     heading (turn 90, (-0.893, -0.451)); at 442, the first frame listing 19032 (9.3 tiles, in the tube just past the
     leg's AHEAD_R end), the leg is cut and a new sprint leg sent, turned away (`cut` [19032]). Named change, ruling
     P24-A (a): the fresh Flee's leg at 438 is its episode's first, which the met window now turns (the record's was
-    not a first leg): the window is read as none here, so the cut rule is read alone."""
+    not a first leg): the window is read as none here, so the cut rule is read alone. Named change, ruling P24-AD
+    (Task 21): read with P24-AD off (`idle_off`): with it on, idle zombies beyond DANGER_R leave the episode's count
+    and line 438 sends a walk, not the leg."""
     from agent.base.world import World
     monkeypatch.setattr(World, "met_window", lambda self, r=None: None)
-    r, sv, out = run_replay(E4, tmp_path, 438, 442, setup=e4_flee)
+
+    def setup(r, sv, w):
+        e4_flee(r, sv, w)
+        idle_off(r, sv, w)
+    r, sv, out = run_replay(E4, tmp_path, 438, 442, setup=setup)
     d, leg = out[438]
     assert leg.type == "steer" and (round(leg.args["vx"], 3), round(leg.args["vy"], 3)) == (-0.893, -0.451)
     assert all(out[ln][1] is None for ln in (439, 440, 441))
@@ -3159,8 +3175,13 @@ def test_f1_s_last_fight_the_walk_corner_yields_to_health_at_the_first_line_unde
     the corner holds while health reads 69.5 to 44.3; at 607, the first line under FLEE_HEALTH (33.8), it yields
     (`yield` "health") and the flee goes, its reason `many` (four listed within LISTED_R, (a), read before
     `health`): the shelter approach walk to building 2 (the episode's shelter pick), which stands and is dropped
-    at 610 (`stalled`) for a sprint steer. The record swung on to health 0.9."""
-    r, sv, out = run_replay(F1, tmp_path, 600, 612, setup=f1_walk_corner)
+    at 610 (`stalled`) for a sprint steer. The record swung on to health 0.9. Named change, ruling P24-AD (Task 21):
+    read with P24-AD off (`idle_off`); with it on, the listing of four holds idle zombies beyond DANGER_R, so 607's
+    flee reads `health`, a walk sent there too."""
+    def setup(r, sv, w):
+        f1_walk_corner(r, sv, w)
+        idle_off(r, sv, w)
+    r, sv, out = run_replay(F1, tmp_path, 600, 612, setup=setup)
     for line in range(600, 607):
         d = out[line][0]
         why = d["inputs"]["branches"]["threat"]

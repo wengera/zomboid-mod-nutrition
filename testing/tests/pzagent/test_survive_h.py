@@ -119,7 +119,9 @@ def test_e7_s_first_fight_is_fought_and_e5_s_horde_is_still_fled(tmp_path):
     """The listing's two cases off the records (the E7 write-up, Task 18): E7's line 68 (the pair at 3.1 and 6.2
     tiles chasing, two more listed at 11.6 and 11.8 standing): the fight stays on (before P24-X the `many` flee,
     `listed` 4); E5's line 220 (4.9 chasing, 10.4 and 11.3 chasing, 11.7 and 11.9 standing): three press, the
-    `many` flee on the listing as before."""
+    `many` flee on the listing as before. Named change, ruling P24-AD (Task 21): the two standing at 11.7 and 11.9
+    (idle, beyond DANGER_R) leave the listing's count, three counted under MANY_LISTED_N: E5's line 220 is fought
+    (read so with `IDLE` on), the `many` flee as before with `IDLE` off, and with all five chasing."""
     r, sv = make(tmp_path, caps=CAPS_14)
     e7 = [zd(1, 103.1, 200.0), zd(2, 100.0, 206.2), zd(3, 88.4, 200.0, has_target=False),
           zd(4, 100.0, 188.2, has_target=False)]
@@ -134,7 +136,15 @@ def test_e7_s_first_fight_is_fought_and_e5_s_horde_is_still_fled(tmp_path):
     r2.frame(zombies=e5)
     tick(r2, sv2)
     w = threat_why(tmp_path / "b")
-    assert w["flee"] == "many" and w["listed"] == 5
+    assert w.get("fight") is True and "flee" not in w   # P24-AD: three counted
+    for sub, idle, zs in (("c", False, e5), ("d", True, [dict(z, hasTarget=True) for z in e5])):
+        (tmp_path / sub).mkdir()
+        r3, sv3 = make(tmp_path / sub, caps=CAPS_14)
+        sv3.IDLE = idle
+        r3.frame(zombies=zs)
+        tick(r3, sv3)
+        w = threat_why(tmp_path / sub)
+        assert w["flee"] == "many" and w["listed"] == 5, sub
 
 
 @pytest.mark.parametrize("weapon_off, health", [(True, 100.0), (False, 39.0)])
