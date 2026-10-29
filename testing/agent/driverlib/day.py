@@ -32,20 +32,25 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
   known (the offline tests' fake clients), so every day driver gains the shots without a driver edit.
 - THE ARTIFACT'S FILES (testing/artifacts/<run_id>/, byte-identical, `copy_run`: `copy_shots_index` first, then
   `xs.copy_artifacts`, whose raise is printed and never skips the index):
-  the driver's artifact JSON, decision.log, the driver's `copied` files (f_goals: goals.log), and
-  shots/shots.jsonl, the screenshots' index (`copy_shots_index`; shots.py's docstring). The images stay in the run
+  the driver's artifact JSON, decision.log, the driver's `copied` files (f_goals: goals.log), every state file of
+  the client's state dir (`copy_state_logs`: state.log and each rotation state.<n>.log the Lua made on a long session,
+  Plan 24 Task 20: E7's state.1.log was not copied), and shots/shots.jsonl, the screenshots' index
+  (`copy_shots_index`; shots.py's docstring). The images stay in the run
   dir (testing/runs/, gitignored): a write-up copies the ones it cites byte-identical into the artifact's shots/.
 - `next_fixture(n)` (the chain's fixtures are agent-s1, agent-s2, ..., spec section 4) and `next_steps(args, run_dir,
   artifact)`: the `pzt snapshot` argv into the next fixture and the next session's arguments (`--session n+1
   --fixture agent-s<n> --prev <this artifact>`), for an E session and for an F session on the chain's last fixture
   (P23-Z refuses any other --session).
 - `grade(out, key, fn)`: out[key] = fn(out), else out[key + "_error"] (the controller re-grades the artifact).
-  `grade_day(out)` is a new day session's grade: `grade(out, GRADE_KEY, gates_e.grade_e4)`, GRADE_KEY "grade_e4"
-  (Plan 24 Task 17: kills the headline, the stance held, the ride, the glides; it was "grade_e3", the real wounds and
+  `grade_day(out)` is a new day session's grade: `grade(out, GRADE_KEY, grade_state)`, GRADE_KEY "grade_e5" (Plan 24
+  Task 20: gates_e.grade_e5 over `out["state_dir"]`, the frame fields read over every frame of the session's state
+  logs and the destination, door and loot readings off their replay; it was "grade_e4", kills the headline, the stance
+  held, the ride and the glides over the last kept frames, until e_day_7.py's run, and "grade_e3", the real wounds and
   the care readings, until e_day_6.py's run, and "grade_e2", PZA/1.3's death signal, ruling P23-AO, until e_day_5.py's
   run), so the record names the grade it carries; a driver passes GRADE_KEY as its boot's grade_key. The drivers frozen
   before it (e_day.py to e_day_4.py) keep their own grade_e1 call; e_day_5.py ran with grade_e2 (graded by
-  e_grade_2.py) and e_day_6.py with grade_e3 (graded by e_grade_3.py).
+  e_grade_2.py), e_day_6.py with grade_e3 (graded by e_grade_3.py) and e_day_7.py with grade_e4 (graded by
+  e_grade_4.py).
 - `boot_and_run(args, ...)`: a day driver's whole boot (Plan 22's d_survive.py boot, generalised): the pre-boot
   checks (a failure prints them and exits 1 before anything starts), the profile and the fixture `--fixture` names,
   the run dir (`new_run_dir(key)`), Xs and the out header (run_id, preboot, constants, out["chain"], the fixture's
@@ -255,11 +260,30 @@ def next_steps(args, run_dir, artifact):
                          "refused)" % boot}
 
 
+def copy_state_logs(repo, run_id, state_dir):
+    """Every state file of `state_dir` (state.log, then each rotation state.<n>.log) copied byte-identical to
+    testing/artifacts/<run_id>/; the destination paths (never raises: a failed copy is printed and left out)."""
+    done = []
+    for src in GE.state_files(state_dir):
+        dest = os.path.join(repo, "testing", "artifacts", run_id, os.path.basename(src))
+        try:
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            shutil.copyfile(src, dest)
+            done.append(dest)
+        except OSError as e:
+            print("could not copy %s to %s: %s: %s" % (src, dest, type(e).__name__, e))
+    return done
+
+
 def copy_run(xs, repo, run_id, run_dir, artifact):
-    """The run's files into testing/artifacts/<run_id>/: the shots' index first (copy_shots_index), then
+    """The run's files into testing/artifacts/<run_id>/: the shots' index first (copy_shots_index), the state files
+    (copy_state_logs: the state dir out["state_dir"], else the user's under the run dir, every rotation), then
     xs.copy_artifacts (the artifact, the decision log, the copied files); its destination, or None when it raised
-    (printed, never raised: the index is already copied)."""
+    (printed, never raised: the index and the state files are already copied)."""
     copy_shots_index(repo, run_id, run_dir)
+    user = str(getattr(xs, "user", ""))
+    copy_state_logs(repo, run_id, (getattr(xs, "out", None) or {}).get("state_dir")
+                    or os.path.join(run_dir, "clients", user, "Lua", "pzagent", user))
     try:
         return xs.copy_artifacts(repo, run_id, run_dir, artifact)
     except Exception as e:                               # noqa: BLE001 - the summary still prints
@@ -277,7 +301,7 @@ def run_after_teardown(fn, out, ran):
         out["after_teardown_error"] = "%s: %s" % (type(e).__name__, e)
 
 
-GRADE_KEY = "grade_e4"           # the key a new day session's record carries its grade under (grade_day)
+GRADE_KEY = "grade_e5"           # the key a new day session's record carries its grade under (grade_day)
 
 
 def grade(out, key, fn):
@@ -288,9 +312,16 @@ def grade(out, key, fn):
         out[key + "_error"] = "%s: %s" % (type(e).__name__, e)
 
 
+def grade_state(out):
+    """gates_e.grade_e5 over the record and the state files in out["state_dir"] (every frame of the session, the
+    rotations included; the kept frames when there are none)."""
+    return GE.grade_e5(out, state_dir=out.get("state_dir"))
+
+
 def grade_day(out):
-    """A new day session's grade: out["grade_e4"] = gates_e.grade_e4(out), else out["grade_e4_error"]."""
-    grade(out, GRADE_KEY, GE.grade_e4)
+    """A new day session's grade: out["grade_e5"] = gates_e.grade_e5(out, state_dir=out["state_dir"]), else
+    out["grade_e5_error"]."""
+    grade(out, GRADE_KEY, grade_state)
 
 
 # ================================================================ the boot

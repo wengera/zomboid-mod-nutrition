@@ -858,3 +858,186 @@ def test_the_pass_4_script_prints_the_kills_line_first_then_strict_json_and_read
     for args in ([], ["a", "b", "c"], [str(tmp_path / "nope.json")]):
         assert subprocess.run([sys.executable, script] + args, capture_output=True, text=True,
                               cwd=cwd).returncode == 2
+
+
+# ================================================================ pass 5: the whole session's frames, the engage and destination readings (Plan 24 Task 20)
+from agent.base import pza1                                                    # noqa: E402
+from .fakemod import square                                                    # noqa: E402
+
+W0 = 1_700_000_000_000                                                         # the loop start on the frames clock (epoch ms)
+
+
+def _line(kind, seq, wall, **body):
+    return pza1.encode(kind, dict(body, seq=seq, tick=seq, wallMs=wall)) + "\n"
+
+
+def _fline(seq, wall, aiming=False, world_age=8.0, **me):
+    f = copy.deepcopy(DEFAULT_FRAME)
+    f["me"].update(aiming=aiming, **me)
+    f["worldAge"] = world_age
+    return _line("frame", seq, wall, **f)
+
+
+def _mline(seq, wall, squares):
+    return _line("map", seq, wall, mode="full", scanId=1, part=1, parts=1, squares=squares, missing=[])
+
+
+def _state(root, *files):
+    """A fresh directory under `root` holding state.log, state.1.log ... from lists of lines (strings)."""
+    root.mkdir(parents=True, exist_ok=True)
+    for i, lines in enumerate(files):
+        (root / ("state.log" if i == 0 else "state.%d.log" % i)).write_text("".join(lines), encoding="utf-8",
+                                                                              newline="")
+    return str(root)
+
+
+def _room(x, y, building=1):
+    return square(x=x, y=y, room="kitchen", building=building)
+
+
+def test_the_frames_are_read_from_every_state_log_when_they_sit_beside_the_record(tmp_path):
+    d = _state(tmp_path / "two", [_fline(1, W0, aiming=True), _fline(2, W0 + 100, aiming=True)],
+               [_fline(3, W0 + 200, aiming=True), _fline(4, W0 + 300, aiming=True)])
+    kept = [frame(4, 0.3, **{"me": dict(DEFAULT_FRAME["me"], aiming=False)})]
+    a = art(kept, t_loop0_ms=W0)
+    g = E.grade_e5(a, state_dir=d)
+    assert g["grade"] == "grade_e5" and g["frames_source"] == "state_logs" and g["frames_n"] == 4
+    assert g["frames_files"] == ["state.log", "state.1.log"] and g["stance_held"]["frames"] == 4
+    assert g["stance_held"]["frames_aiming"] == 4                       # grade_e4 over the kept frame reads 0 of 1
+    assert E.grade_e4(a)["stance_held"]["frames"] == 1 and E.grade_e4(a)["stance_held"]["frames_aiming"] == 0
+    assert any(l.startswith("frames: state_logs (4 frames, files ['state.log', 'state.1.log'])")
+               for l in g["report_lines"])
+    only = E.grade_e5(a, state_dir=_state(tmp_path / "one", [_fline(1, W0, aiming=True)]))
+    assert only["frames_n"] == 1 and only["frames_files"] == ["state.log"]
+
+
+def test_a_record_with_no_state_logs_reads_the_kept_frames_and_says_so(tmp_path):
+    kept = [frame(i + 1, i / 10.0, **{"me": dict(DEFAULT_FRAME["me"], aiming=True)}) for i in range(5)]
+    a = art(kept, t_loop0_ms=W0)
+    for g in (E.grade_e5(a), E.grade_e5(a, state_dir=str(tmp_path)), E.grade_e5(a, state_dir=str(tmp_path / "no"))):
+        assert g["frames_source"] == "last_frames" and g["frames_files"] == [] and g["frames_n"] == 5
+        assert g["stance_held"]["frames_aiming"] == 5
+        assert any(l.startswith("frames: last_frames (5 frames)") for l in g["report_lines"])
+        assert g["destinations"] == {"read": False} and g["doors"] == {"read": False}
+
+
+def test_grade_e5_is_grade_e4_but_for_its_name_the_frames_and_the_pass_5_readings():
+    for a in (good(), _death_art(300, wound_at=100, health_from=105), care_art()):
+        e4, e5 = E.grade_e4(a), E.grade_e5(a)
+        drop = ("grade", "report_lines", "frames_source", "frames_files", "frames_n", "engage", "destinations", "doors",
+                "loot")
+        assert {k: v for k, v in e4.items() if k not in ("grade", "report_lines")} == \
+            {k: v for k, v in e5.items() if k not in drop}
+        assert e5["grade"] == "grade_e5" and E.gate_e5([a, a]) == E.gate_e4([a, a])
+
+
+def _walk(aid, sent, x, y, branch="goal"):
+    return aact(aid, "walkTo", sent, sent + 1, args={"x": x, "y": y, "gait": "walk"}, branch=branch)
+
+
+def test_a_walk_off_every_building_fails_the_destinations_field(tmp_path):
+    sq = [_room(100 + i, 200 + j) for i in range(4) for j in range(4)]
+    d = _state(tmp_path / "m", [_mline(1, W0, sq), _fline(2, W0 + 5000)])
+    acts = [_walk("w1", 1.0, 101, 201), _walk("w2", 2.0, 130, 201), _walk("w3", 3.0, 300, 200),
+            _walk("w4", 4.0, 120, 200, branch="threat")]                     # a seek or a flee leg is no destination
+    g = E.grade_e5(art(actions=acts, t_loop0_ms=W0), state_dir=d)
+    ds = g["destinations"]
+    assert ds["read"] is True and ds["walks"] == 3 and ds["by_kind"] == {"building": 1, "cluster": 1, "other": 1}
+    assert ds["ok"] is False and ds["off_building"][0]["aid"] == "w3" and abs(ds["farthest"] - 196.0) < 1e-9
+    assert any("OFF A BUILDING" in l for l in g["report_lines"])
+    good_acts = [_walk("w1", 1.0, 101, 201), _walk("w2", 2.0, 130, 201)]
+    ok = E.grade_e5(art(actions=good_acts, t_loop0_ms=W0), state_dir=d)["destinations"]
+    assert ok["ok"] is True and ok["by_kind"] == {"building": 1, "cluster": 1, "other": 0}
+    # a walk is read against the buildings known when it was sent: before the map line there is none known
+    early = _state(tmp_path / "e", [_fline(1, W0), _mline(2, W0 + 5000, sq)])
+    first = E.grade_e5(art(actions=[_walk("w1", 1.0, 101, 201)], t_loop0_ms=W0), state_dir=early)["destinations"]
+    assert first["by_kind"]["other"] == 1 and first["farthest"] is None
+
+
+def _open(aid, sent, x, y, state="failed", reason="locked"):
+    return aact(aid, "interact", sent, sent + 0.5, state=state, reason=reason, args={"kind": "open", "x": x, "y": y},
+                branch="goal")
+
+
+def test_the_second_failure_at_a_door_marks_it_and_a_try_while_marked_fails_the_field(tmp_path):
+    sq = [_room(100 + i, 200 + j) for i in range(4) for j in range(4)]
+    d = _state(tmp_path / "d", [_mline(1, W0, sq), _fline(2, W0 + 100), _fline(3, W0 + 9000)])
+    one = E.grade_e5(art(actions=[_open("o1", 1.0, 101, 200)], t_loop0_ms=W0), state_dir=d)["doors"]
+    assert one["read"] is True and one["marks"] == [] and one["ok"] is True
+    acts = [_open("o1", 1.0, 101, 200), _open("o2", 2.0, 101, 200)]
+    two = E.grade_e5(art(actions=acts, t_loop0_ms=W0), state_dir=d)["doors"]
+    assert len(two["marks"]) == 1 and two["marks"][0]["door"] == [101, 200, 0] and two["marks"][0]["reason"] == "locked"
+    assert two["tried_marked"] == 0 and two["ok"] is True
+    retry = E.grade_e5(art(actions=acts + [_open("o3", 4.0, 101, 200)], t_loop0_ms=W0), state_dir=d)
+    assert retry["doors"]["tried_marked"] == 1 and retry["doors"]["ok"] is False
+    elsewhere = acts + [_open("o3", 4.0, 102, 200, state="done", reason="")]
+    assert E.grade_e5(art(actions=elsewhere, t_loop0_ms=W0), state_dir=d)["doors"]["tried_marked"] == 0
+    log = [{"wall": W0 / 1000.0 + 5, "goal": {"type": "LootBuilding", "args": {"building": 2}}},
+           {"wall": W0 / 1000.0 + 6, "goal": {"type": "LootBuilding", "args": {"building": 1}}},
+           {"wall": W0 / 1000.0 - 5, "goal": {"type": "LootBuilding", "args": {"building": 3}}}]
+    around = E.grade_e5(art(actions=acts, t_loop0_ms=W0), decision_lines=log, state_dir=d)
+    assert around["doors"]["routes_around"] == [2]           # after the mark, not the stuck building 1, not before it
+    assert any(l.startswith("doors: 1 marked stuck") for l in around["report_lines"])
+
+
+def _tline(branch="threat", fight=None, flee=None, near=None, mode=None, action=None, **why):
+    w = dict(why)
+    if fight is not None:
+        w["fight"] = fight
+    if flee is not None:
+        w["flee"] = flee
+    return {"branch": branch, "action": action, "inputs": {"nearest": near, "mode": mode,
+                                                           "branches": {"threat": w}}}
+
+
+def test_a_sought_fight_is_counted_with_its_seek_legs_and_a_flee_turn():
+    walk = {"type": "walkTo", "args": {"gait": "walk", "x": 1, "y": 2}}
+    log = [_tline(fight=True, seek=True, near=9.0, action=walk),              # a sought fight: held at 9 tiles
+           _tline(fight=True, seek=True, near=8.0, action={"type": "aim", "args": {}}),
+           _tline(fight=True, near=2.0),
+           _tline(branch="goal"),
+           _tline(fight=True, near=3.0, mode="flee"),                          # a fight the flee turned to: not sought
+           _tline(flee="many", near=3.0), _tline(flee="many", near=4.0, listed=5), _tline(flee="health"),
+           {"unparsed": "x"}]
+    en = E.e_engage(log)
+    assert en["read"] is True and en["fights"] == 2 and en["fights_sought"] == 1 and en["sought_lines"] == 2
+    assert en["seek_lines"] == 2 and en["seek_legs"] == {"walkTo": {"walk": 1}, "aim": 1, "other": 0}
+    assert en["seek_walk_share"] == 1.0 and en["flee_turns"] == 1 and en["fight_lines"] == 4
+    assert en["flees"] == {"many": 2, "health": 1} and en["many_listed_lines"] == 1 and en["many_listed_max"] == 5
+    none = E.e_engage([_tline(flee="many", near=5.0), _tline(fight=True, near=3.0)])
+    assert none["fights"] == 1 and none["fights_sought"] == 0 and none["seek_lines"] == 0       # E7: nothing sought
+    assert E.e_engage(None) == {"read": False} and E.e_engage([])["fights"] == 0
+    g = E.grade_e5(art(), decision_lines=log)
+    assert g["engage"] == en and any(l.startswith("engage: 2 fights, 1 sought (2 sought lines); 2 seek lines")
+                                     for l in g["report_lines"])
+    assert any("engage: no decision log read" in l for l in E.grade_e5(art())["report_lines"])
+
+
+def test_the_loot_is_counted_by_kind_with_the_failure_reasons():
+    def loot(aid, filt, state, reason=""):
+        return aact(aid, "interact", 1, 2, state=state, reason=reason, args={"kind": "loot", "filter": filt})
+    acts = [loot("l1", "food", "done"), loot("l2", "food", "failed", "not adjacent"),
+            loot("l3", "water", "failed", "no match"), aact("o1", "interact", 1, 2, args={"kind": "open"})]
+    lt = E.grade_e5(art(actions=acts))["loot"]
+    assert lt == {"sent": 3, "done": 1, "failed": 2, "by_kind": {"food": {"done": 1, "failed": 1},
+                                                                "water": {"done": 0, "failed": 1}},
+                  "failed_reasons": {"not adjacent": 1, "no match": 1}}
+
+
+def test_the_pass_5_script_reads_the_state_logs_and_the_decision_log_beside_the_artifact(tmp_path):
+    kept = [frame(1, 0.0, **{"me": dict(DEFAULT_FRAME["me"], aiming=False)})]
+    (tmp_path / "a.json").write_text(json.dumps(art(kept, t_loop0_ms=W0)), encoding="utf-8")
+    _state(tmp_path, [_fline(1, W0, aiming=True)], [_fline(2, W0 + 100, aiming=True)])
+    (tmp_path / "decision.log").write_text(json.dumps(_tline(fight=True, seek=True, near=9.0)) + "\n", encoding="utf-8")
+    script = os.path.join(HERE, "..", "..", "agent", "drivers", "e_grade_5.py")
+    cwd = os.path.dirname(os.path.dirname(HERE))
+    r = subprocess.run([sys.executable, script, str(tmp_path / "a.json")], capture_output=True, text=True, cwd=cwd)
+    assert r.returncode == 0 and r.stdout.startswith("kills ") and "frames: state_logs (2 frames" in r.stdout
+    assert "engage: 1 fights, 1 sought" in r.stdout
+    assert json.loads(r.stdout[r.stdout.index("\n{\n"):])["grade"] == "grade_e5"
+    c = subprocess.run([sys.executable, script, "--chain", str(tmp_path / "a.json"), str(tmp_path / "a.json")],
+                       capture_output=True, text=True, cwd=cwd)
+    assert c.returncode == 0 and "\ngate_e5 " in c.stdout and "\ngate_e4 " not in c.stdout
+    for args in ([], ["a", "b", "c"], [str(tmp_path / "nope.json")]):
+        assert subprocess.run([sys.executable, script] + args, capture_output=True, text=True,
+                              cwd=cwd).returncode == 2

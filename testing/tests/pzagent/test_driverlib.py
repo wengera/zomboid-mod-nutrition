@@ -1291,19 +1291,19 @@ def test_only_the_first_death_event_is_kept_and_another_kind_is_no_death(tmp_pat
     assert e.value.reason == "death" and e.value.detail == "event death seq 7 via isDead body.health 19.5"
 
 
-def test_a_new_day_sessions_grade_is_grade_e4_under_its_own_key(monkeypatch):
-    """CLAUDE.md section 5 freezing (Plan 24 Task 11): a new session's record carries grade_e4 under the key grade_e4
-    (grade_e2 was the key until the E5 session; e_grade_2.py grades that artifact)."""
+def test_a_new_day_sessions_grade_is_grade_e5_under_its_own_key(monkeypatch):
+    """CLAUDE.md section 5 freezing (Plan 24 Task 20): a new session's record carries grade_e5 under the key grade_e5
+    (grade_e4 was the key until the E7 session; e_grade_4.py grades that artifact)."""
     from agent.base import gates_e as GE
-    assert DY.GRADE_KEY == "grade_e4"
+    assert DY.GRADE_KEY == "grade_e5"
     out = S.new_out()
     out.update(stop={"reason": "day_cap", "detail": "x", "wallS": 1.0})
     DY.grade_day(out)
-    assert out["grade_e4"]["grade"] == "grade_e4" and "grade_e1" not in out and "grade_e2" not in out
-    monkeypatch.setattr(GE, "grade_e4", lambda o: 1 / 0)
+    assert out["grade_e5"]["grade"] == "grade_e5" and "grade_e1" not in out and "grade_e2" not in out
+    monkeypatch.setattr(GE, "grade_e5", lambda o, **kw: 1 / 0)
     bad = {}
     DY.grade_day(bad)
-    assert bad["grade_e4_error"].startswith("ZeroDivisionError") and "grade_e4" not in bad
+    assert bad["grade_e5_error"].startswith("ZeroDivisionError") and "grade_e5" not in bad
 
 
 def test_the_record_carries_the_results_of_the_sent_actions_of_the_care_types():
@@ -1320,3 +1320,31 @@ def test_the_record_carries_the_results_of_the_sent_actions_of_the_care_types():
                                            {"aid": "a4", "type": "fill", "state": "done",
                                             "result": {"fluid": "Water"}}]
     assert "consume" not in DY.RESULT_TYPES
+
+
+def test_the_run_copy_carries_every_state_log_rotation(tmp_path):
+    """Plan 24 Task 20: E7's state.1.log (the Lua rotates state.log on a long session) was not in the controller's copy;
+    copy_run takes state.log and every state.<n>.log of the state dir byte-identical, and nothing else."""
+    state = tmp_path / "run" / "clients" / "admin" / "Lua" / "pzagent" / "admin"
+    state.mkdir(parents=True)
+    for name, data in (("state.log", b"aa"), ("state.1.log", b"bb"), ("state.2.log", b"cc"),
+                       ("cmd.txt", b"x"), ("ack.txt", b"y"), ("state.bak", b"z")):
+        (state / name).write_bytes(data)
+    repo = tmp_path / "repo"
+    got = DY.copy_state_logs(str(repo), "r-1", str(state))
+    dest = repo / "testing" / "artifacts" / "r-1"
+    assert sorted(os.path.basename(p) for p in got) == ["state.1.log", "state.2.log", "state.log"]
+    assert sorted(os.listdir(dest)) == ["state.1.log", "state.2.log", "state.log"]
+    assert (dest / "state.1.log").read_bytes() == b"bb" and (dest / "state.log").read_bytes() == b"aa"
+    assert DY.copy_state_logs(str(repo), "r-2", str(tmp_path / "none")) == []
+    # through copy_run: the user's state dir under the run dir, found without out["state_dir"], and with it
+    artifact = tmp_path / "run" / "a.json"
+    artifact.write_text("{}", encoding="utf-8")
+    for out in ({}, {"state_dir": str(state)}):
+        copied = []
+        xs = types.SimpleNamespace(user="admin", out=out, copy_artifacts=lambda *a: copied.append(a) or "d")
+        r = "r-3" if not out else "r-4"
+        assert DY.copy_run(xs, str(repo), r, str(tmp_path / "run"), "a.json") == "d" and len(copied) == 1
+        assert sorted(os.listdir(repo / "testing" / "artifacts" / r)) == ["state.1.log", "state.2.log", "state.log"]
+    src = open(DY.__file__, encoding="utf-8").read()
+    assert src.index("copy_state_logs(repo, run_id") < src.index("xs.copy_artifacts(repo, run_id")

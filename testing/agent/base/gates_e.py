@@ -14,7 +14,14 @@ with the first frame after its endedS, and is None when the kept frames do not b
 
 Every function here is versioned per pass: once an artifact carries its output it is never edited, a later pass is
 grade_e2 / gate_e2. The death check is gates.death_check, the frozen function, reused."""
+import os
+import re
+
 from agent.base import gates as GT
+from agent.base.planner.goals import WOODS_R
+from agent.base.planner.survive import DANGER_R, DOOR_FAILS, DOOR_NEAR_R
+from agent.base.transport.files import FileTransport
+from agent.base.world import World, me_floor, me_xy
 from agent.driverlib import chain as CH
 
 SURVIVED = GT.SURVIVED
@@ -864,3 +871,305 @@ def gate_e4(outs):
     eng = [g["kills"]["engine"] for g in grades if g["kills"]["engine"] is not None]
     res["kills"] = {"engine": sum(eng) if eng else None, "planner": sum(g["kills"]["planner"] for g in grades)}
     return res
+
+
+# ---------------------------------------------------------------- pass 5: the whole session's frames, the engage and destination readings (Plan 24 Task 20)
+# grade_e5 / gate_e5 / report_lines_e5 (PZA/1.5.6, survival iteration 8; grade_e4, gate_e4 and the passes before them
+# frozen, CLAUDE.md section 5). Two gaps of the E7 write-up close here. (1) grade_e4's frame fields (`stance_held`'s
+# frames, `wounds`, `glides`, the death window) read loop.last_frames, the driver's last LAST_FRAMES (3000) frames, of a
+# session of 8534: grade_e5 reads them over every frame of the artifact's `state*.log` files when they sit beside the
+# record (state.log, then the Lua's rotations state.1.log, state.2.log ..., decoded through FileTransport and pza1.py:
+# the frame groups merged, the lines in seq order), falling back to the kept frames and saying so (`frames_source`).
+# (2) The readings iteration 8 asks for, off the decision log (`e_engage`: the sought fights, the seek legs and their
+# pace, the flees' turns to fight, the flees by reason, `many` by the listed count) and off a replay of the state logs
+# into a World (`_replay`: each walk's destination against the buildings known at the moment it was sent, each failed
+# door interact through the planner's own mark rule), and the loot by kind off the actions.
+# The decision log does not name a sought fight (Survive.engaging is not logged): a sought line is a threat-branch line
+# whose fight why reads `seek` or whose nearest held zombie is beyond DANGER_R (6; the hold radius reaches ENGAGE_R
+# only for a sought fight), an inference named so.
+STATE_RX = re.compile(r"state(?:\.(\d+))?\.log")
+DEST_BUILDING_R = 3.0               # tiles: a walk ending this near a known building's box is a building walk (its door
+                                    # or room square lies on or just outside the box); an inference, ruling P24-Y
+
+
+def state_files(directory):
+    """The state files of `directory` in read order: state.log, then state.1.log, state.2.log ... (the Lua rotates
+    state.log to state.<n>.log, so the live file holds the session's start). [] when there are none or the
+    directory cannot be listed."""
+    try:
+        names = os.listdir(directory)
+    except (OSError, TypeError):
+        return []
+    found = [(int(m.group(1) or 0), n) for n in names for m in [STATE_RX.fullmatch(n)] if m]
+    return [os.path.join(directory, n) for _, n in sorted(found)]
+
+
+def session_lines(directory):
+    """([line], [file name]): every decoded line of the directory's state files in seq order, the frame groups merged
+    (FileTransport); ([], []) when there are no state files or they cannot be read."""
+    files = state_files(directory)
+    if not files:
+        return [], []
+    try:
+        lines = FileTransport(directory).lines()
+    except (OSError, ValueError):
+        return [], []
+    return lines, [os.path.basename(p) for p in files]
+
+
+def _frame_row(f):
+    """session.frame_row's row (the record's kept form), without importing the driver library's session."""
+    return {"seq": f.get("seq"), "wallMs": f.get("wallMs"), "gameMin": f.get("gameMin"), "worldAge": f.get("worldAge"),
+            "me": f.get("me"), "body": f.get("body"), "load": f.get("load"), "stats": f.get("stats"),
+            "zombies": [{"id": z.get("id"), "dist": z.get("dist")} for z in f.get("zombies") or ()
+                        if isinstance(z, dict)]}
+
+
+def session_frames(lines):
+    """The frame rows of `lines`, in order."""
+    return [_frame_row(l) for l in _l(lines) if isinstance(l, dict) and l.get("kind") == "frame"]
+
+
+def _threat_why(ln):
+    return _d(_d(_d(_d(ln).get("inputs")).get("branches")).get("threat"))
+
+
+def e_engage(decision_lines):
+    """The engage readings of ruling P24-X off decision.log lines (dicts, `unparsed` ones skipped), the threat
+    branch's lines only (`branch` threat): {read, lines, fight_lines, fights, fights_sought, sought_lines, seek_lines,
+    seek_legs {walkTo {gait: n}, aim, other}, seek_walk_share, flee_turns, flees {reason: lines}, many_listed_lines,
+    many_listed_max}. A fight is a run of adjacent log lines each a threat-branch fight line; sought when its first
+    line is (the module comment's inference). `seek_legs` the actions the seek lines sent, by type and the walkTo's
+    gait; `seek_walk_share` the walks at a walk of the seek walks; `flee_turns` the fight lines the planner read
+    while its mode was flee (inputs.mode, the mode before the tick); `flees` the lines answering with a flee, by
+    reason; `many_listed_*` the lines whose `many` the listed count alone made (why.listed). {read: False} when no
+    decision log was given."""
+    if decision_lines is None:
+        return {"read": False}
+    fights = sought_fights = sought_lines = seek_lines = turns = fight_lines = listed_lines = 0
+    legs = {"walkTo": {}, "aim": 0, "other": 0}
+    flees, listed_max, prev_fight = {}, None, False
+    for ln in (_d(x) for x in _l(decision_lines)):
+        if "unparsed" in ln:
+            continue
+        why = _threat_why(ln)
+        is_fight = ln.get("branch") == "threat" and why.get("fight") is True
+        if is_fight:
+            fight_lines += 1
+            near = _n(_d(ln.get("inputs")).get("nearest"))
+            sought = why.get("seek") is True or (near is not None and near > DANGER_R)
+            if sought:
+                sought_lines += 1
+            if not prev_fight:
+                fights += 1
+                sought_fights += 1 if sought else 0
+            if _d(ln.get("inputs")).get("mode") == "flee":
+                turns += 1
+            if why.get("seek") is True:
+                seek_lines += 1
+                a = _d(ln.get("action"))
+                if a.get("type") == "walkTo":
+                    g = str(_d(a.get("args")).get("gait"))
+                    legs["walkTo"][g] = legs["walkTo"].get(g, 0) + 1
+                elif a.get("type") == "aim":
+                    legs["aim"] += 1
+                elif a:
+                    legs["other"] += 1
+        elif ln.get("branch") == "threat" and isinstance(why.get("flee"), str):
+            flees[why["flee"]] = flees.get(why["flee"], 0) + 1
+        if ln.get("branch") == "threat" and _n(why.get("listed")) is not None:
+            listed_lines += 1
+            listed_max = why["listed"] if listed_max is None else max(listed_max, why["listed"])
+        prev_fight = is_fight
+    walks = sum(legs["walkTo"].values())
+    return {"read": True, "lines": len(_l(decision_lines)), "fight_lines": fight_lines, "fights": fights,
+            "fights_sought": sought_fights, "sought_lines": sought_lines, "seek_lines": seek_lines,
+            "seek_legs": legs, "seek_walk_share": legs["walkTo"].get("walk", 0) / walks if walks else None,
+            "flee_turns": turns, "flees": flees, "many_listed_lines": listed_lines, "many_listed_max": listed_max}
+
+
+def e_loot(out):
+    """{sent, done, failed, by_kind {filter: {done, failed}}, failed_reasons {reason: n}}: the loot interacts of
+    loop.actions by their filter (the kind of thing wanted)."""
+    loop = _d(_d(out).get("loop"))
+    by, reasons, sent, done, failed = {}, {}, 0, 0, 0
+    for a in (_d(x) for x in _l(loop.get("actions"))):
+        args = _d(a.get("args"))
+        if a.get("type") != "interact" or args.get("kind") != "loot":
+            continue
+        sent += 1
+        row = by.setdefault(str(args.get("filter")), {"done": 0, "failed": 0})
+        if a.get("state") == "done":
+            done += 1
+            row["done"] += 1
+        elif a.get("state") in ("failed", "rejected"):
+            failed += 1
+            row["failed"] += 1
+            reasons[str(a.get("reason"))] = reasons.get(str(a.get("reason")), 0) + 1
+    return {"sent": sent, "done": done, "failed": failed, "by_kind": by, "failed_reasons": reasons}
+
+
+def _replay(out, lines):
+    """{walks [{aid, branch, x, y, kind, tiles, building}], marks [{door, reason, atS, building}], tried_marked}, or
+    None without lines or a loop start: the state lines applied to a World in order, a walkTo evaluated against the
+    buildings known when it was sent (loop second sentS at t_loop0_ms + 1000 sentS on the frames clock), a failed
+    door interact (the planner's `_door_failed` rule: an open or close failed for a DOOR_FAILS reason on its own
+    square, a loot failed `not adjacent` on the door nearest the player within DOOR_NEAR_R) noted into the World's
+    own `note_door_fail` as it ended, and a door interact sent at a square the World had marked counted."""
+    loop = _d(_d(out).get("loop"))
+    t0 = _n(loop.get("t_loop0_ms"))
+    if not lines or t0 is None:
+        return None
+    events = []
+    for a in (_d(x) for x in _l(loop.get("actions"))):
+        s, e = _n(a.get("sentS")), _n(a.get("endedS"))
+        args = _d(a.get("args"))
+        if a.get("type") == "walkTo" and s is not None and _n(args.get("x")) is not None:
+            events.append((t0 + s * 1000.0, 0, "walk", a))
+        if a.get("type") == "interact" and args.get("kind") in ("open", "close") and s is not None:
+            events.append((t0 + s * 1000.0, 1, "send", a))
+        if a.get("type") == "interact" and a.get("state") == "failed" and e is not None:
+            events.append((t0 + e * 1000.0, 2, "fail", a))
+    events.sort(key=lambda ev: (ev[0], ev[1]))
+    w = World()
+    walks, marks, tried, i = [], [], 0, 0
+
+    def handle(ev):
+        nonlocal tried
+        at, _, what, a = ev
+        args = _d(a.get("args"))
+        if what == "walk":
+            nb = w.nearest_building(args["x"], args["y"])
+            tiles, b = (None, None) if nb is None else nb
+            kind = ("other" if tiles is None else "building" if tiles <= DEST_BUILDING_R
+                    else "cluster" if tiles <= WOODS_R else "other")
+            walks.append({"aid": a.get("aid"), "branch": a.get("branch"), "x": args["x"], "y": args["y"],
+                          "kind": kind, "tiles": tiles, "building": b})
+            return
+        floor = me_floor(w)
+        if what == "send":
+            if (args.get("x"), args.get("y"), floor) in w.marked_doors():
+                tried += 1
+            return
+        sq, reason = None, a.get("reason")
+        if args.get("kind") in ("open", "close") and reason in DOOR_FAILS:
+            sq = (args.get("x"), args.get("y"), floor)
+        elif args.get("kind") == "loot" and reason == "not adjacent":
+            sq = w.door_near(me_xy(w), floor, DOOR_NEAR_R)
+        if sq is not None and w.note_door_fail(sq, reason):
+            marks.append({"door": list(sq), "reason": reason, "atMs": at, "atS": (at - t0) / 1000.0,
+                          "building": w.door_building(sq)})
+
+    for line in lines:
+        ms = _n(_d(line).get("wallMs"))
+        while i < len(events) and ms is not None and events[i][0] <= ms:
+            handle(events[i])
+            i += 1
+        w.apply(line)
+    for ev in events[i:]:
+        handle(ev)
+    return {"walks": walks, "marks": marks, "tried_marked": tried}
+
+
+def e_destinations(rep):
+    """{read, walks, by_kind {building, cluster, other}, farthest, off_building [first 10 rows of kind other], ok}:
+    the walks sent off the threat branch (a seek or a flee leg is no destination) by what stood at the target when
+    they were sent (DEST_BUILDING_R, WOODS_R: ruling P24-Y, every walk a building), `farthest` the greatest distance
+    from a known building (None when a walk had none known), `ok` no walk of kind other. {read: False} without a
+    replay."""
+    if rep is None:
+        return {"read": False}
+    walks = [r for r in rep["walks"] if r["branch"] != "threat"]
+    by = {"building": 0, "cluster": 0, "other": 0}
+    for r in walks:
+        by[r["kind"]] += 1
+    d = [r["tiles"] for r in walks if r["tiles"] is not None]
+    return {"read": True, "walks": len(walks), "by_kind": by, "farthest": max(d) if d else None,
+            "off_building": [r for r in walks if r["kind"] == "other"][:10], "ok": by["other"] == 0}
+
+
+def e_doors(rep, decision_lines=None):
+    """{read, marks [{door, reason, atS, building}], tried_marked, routes_around [building], ok}: the doors the
+    planner's own rule marks stuck in the replay (P24-Z), the open or close interacts sent at a door the World had
+    marked (`tried_marked`: it is to be routed around), and, with the decision log, the buildings a LootBuilding goal
+    was set on after the first mark other than the marked ones. `ok` no door tried while marked. {read: False}
+    without a replay."""
+    if rep is None:
+        return {"read": False}
+    marks = rep["marks"]
+    around = []
+    if marks and decision_lines is not None:
+        first = min(m["atMs"] for m in marks) / 1000.0
+        stuck = {m["building"] for m in marks}
+        for ln in (_d(x) for x in _l(decision_lines)):
+            g = _d(ln.get("goal"))
+            b = _d(g.get("args")).get("building")
+            if g.get("type") == "LootBuilding" and (_n(ln.get("wall")) or 0) >= first and b not in stuck \
+                    and b not in around:
+                around.append(b)
+    return {"read": True, "marks": [{k: m[k] for k in ("door", "reason", "atS", "building")} for m in marks],
+            "tried_marked": rep["tried_marked"], "routes_around": around, "ok": rep["tried_marked"] == 0}
+
+
+def report_lines_e5(g):
+    """report_lines_e4's lines (the gate line naming gate_e5), then the pass 5 lines."""
+    g = _d(g)
+    lines = [("gate_e5 " + l[len("gate_e4 "):]) if l.startswith("gate_e4 ") else l for l in report_lines_e4(g)]
+    lines.append("frames: %s (%s frames%s)" % (g.get("frames_source"), g.get("frames_n"),
+                                              ", files %s" % g.get("frames_files") if g.get("frames_files") else ""))
+    en, ds, dr, lt = (_d(g.get(x)) for x in ("engage", "destinations", "doors", "loot"))
+    if en.get("read"):
+        lines.append("engage: %s fights, %s sought (%s sought lines); %s seek lines (legs %s, %s walk share); %s "
+                     "flee turns to fight; flees %s; many by listed count %s lines (max %s)" % (
+                         en.get("fights"), en.get("fights_sought"), en.get("sought_lines"), en.get("seek_lines"),
+                         en.get("seek_legs"), _f(en.get("seek_walk_share")), en.get("flee_turns"), en.get("flees"),
+                         en.get("many_listed_lines"), en.get("many_listed_max")))
+    else:
+        lines.append("engage: no decision log read")
+    if ds.get("read"):
+        lines.append("destinations: %s walks, by kind %s, farthest %s tiles from a known building; %s" % (
+            ds.get("walks"), ds.get("by_kind"), _f(ds.get("farthest")), "ok" if ds.get("ok") else "OFF A BUILDING"))
+    else:
+        lines.append("destinations: no state logs read")
+    if dr.get("read"):
+        lines.append("doors: %s marked stuck %s, %s tried while marked, loots routed around to buildings %s" % (
+            len(dr.get("marks")), [(m["door"], m["reason"]) for m in dr.get("marks")], dr.get("tried_marked"),
+            dr.get("routes_around")))
+    if lt:
+        lines.append("loot: %s sent, %s done, %s failed; by kind %s; failures %s" % (
+            lt.get("sent"), lt.get("done"), lt.get("failed"), lt.get("by_kind"), lt.get("failed_reasons")))
+    return lines
+
+
+def grade_e5(out, prev=None, decision_lines=None, state_dir=None, lines=None):
+    """grade_e4 but for grade "grade_e5": its frame fields (`stance_held`'s frames, `wounds`, `glides`, the death
+    window, the load ratio) read over every frame of the state files in `state_dir` (or of `lines`, the decoded
+    lines) when there are any, else over loop.last_frames; `frames_source` ("state_logs" | "last_frames"),
+    `frames_files` and `frames_n` say which. Beside them: `engage` (e_engage, with decision_lines), `destinations`
+    and `doors` (off a replay of the lines into a World), `loot` and report_lines (report_lines_e5)."""
+    files = []
+    if lines is None:
+        lines, files = session_lines(state_dir) if state_dir is not None else ([], [])
+    frames = session_frames(lines)
+    out = _d(out)
+    base = out
+    if frames:
+        base = dict(out, loop=dict(_d(out.get("loop")), last_frames=frames))
+    g = grade_e4(base, prev, decision_lines)
+    g["grade"] = "grade_e5"
+    g["frames_source"] = "state_logs" if frames else "last_frames"
+    g["frames_files"] = files if frames else []
+    g["frames_n"] = len(frames) if frames else len(_l(_d(out.get("loop")).get("last_frames")))
+    g["engage"] = e_engage(decision_lines)
+    rep = _replay(out, lines)
+    g["destinations"] = e_destinations(rep)
+    g["doors"] = e_doors(rep, decision_lines)
+    g["loot"] = e_loot(out)
+    g["report_lines"] = report_lines_e5(g)
+    return g
+
+
+def gate_e5(outs):
+    """gate_e4's gates and kills (grade_e5 changes none of what they read), named gate_e5:
+    {verdict, gates, lineage_sources, kills}."""
+    return gate_e4(outs)
