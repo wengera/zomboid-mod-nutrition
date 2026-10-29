@@ -82,7 +82,7 @@ import math
 import time
 
 from agent.base.planner.policies import DANGER_R, PREEMPTED, STUCK_REASONS, Policy, me_floor, me_xy, zdist
-from agent.base.pza1 import Interact, Sleep, WalkTo
+from agent.base.pza1 import Climb, Interact, Sleep, WalkTo
 
 TIRED_T = 0.6         # the first TIRED moodle fires above 0.6 [#2279]
 LATE_HOUR = 22.0      # from this hour of day ...
@@ -256,6 +256,17 @@ def shelter_ended(plan, action):
 
 
 # ---------------------------------------------------------------- the policy
+def hop_after(world, action, climbed=()):
+    """The route climb's read (ruling P24-G 4; lifted out of the goal layer's `Kit` at Task 10 fix 2 for `Night`'s own
+    shelter walk): the fence square (x, y) to climb after `action`, a `walkTo` that ended `failed "stuck"` on a build
+    announcing `climb`, where the straight line from the player toward its target first crosses a hoppable edge
+    (`World.hop_ahead`) not in `climbed`; else None."""
+    if not (action.type == "walkTo" and action.state == "failed" and action.reason == "stuck" and world.can("climb")):
+        return None
+    hop = world.hop_ahead(me_xy(world), (action.args.get("x"), action.args.get("y")))
+    return None if hop is None or hop in climbed else hop
+
+
 class Night(Policy):
     def __init__(self, world, actions, clock=time.time):
         super().__init__(world, actions, clock)
@@ -272,6 +283,9 @@ class Night(Policy):
         self.steps = []         # each shelter step ended, for loop.night
         self.sleeps = []        # each sleep ended, for loop.night
         self._read = None       # the last action whose end observe() has read
+        self.climb = None       # the fence square (x, y) the next choose climbs (Task 10 fix 2), else None
+        self.climbed = set()    # the fence squares climbed
+        self.stuck_walk = None  # the shelter walk whose stuck end the due or running climb answers
         self._sent = None       # (step, building) of the last command chosen
         self._note = {}         # what observe read this tick, merged into why
 
@@ -346,6 +360,20 @@ class Night(Policy):
         self.steps.append(dict(self._row(a), step=step, building=building))
         if self.plan is None or self.plan["building"] != building:
             return
+        if a.type == "climb":
+            if a.state == "done":   # the plan's step kept: the walk is sent again from the far side
+                self.climbed.add((a.args.get("x"), a.args.get("y")))
+                w = self.stuck_walk.args
+                self.world.unmark_stuck(int(math.floor(w.get("x"))), int(math.floor(w.get("y"))))
+                self._note = {"ended": "climbed"}
+                return
+            a = self.stuck_walk   # a climb that did not end done is that walk's own stuck end
+        else:
+            hop = hop_after(self.world, a, self.climbed)
+            if hop is not None:
+                self.climb, self.stuck_walk = hop, a
+                self._note = {"ended": "climb"}
+                return
         out = shelter_ended(self.plan, a)
         self._note = {"ended": out}
         if out == "shun":
@@ -412,6 +440,11 @@ class Night(Policy):
             return None, None
         self.hold_until = None
         p = self.plan
+        if self.climb is not None and p is not None:
+            x, y = self.climb
+            self.climb = None
+            self.why["climb"] = [x, y]
+            return Climb(x, y), "climb"
         if p is not None and p["step"] == "close":
             return shelter_step(self.world, p)
         if self.inside():

@@ -1066,23 +1066,25 @@ def test_the_event_after_a_drink_leaves_the_no_effect_mark_of_the_consume_check(
     assert r.world.marks[7][0] == "no_effect" and r.world.by_use()["other"] == [7]
 
 
-def test_a_bandage_refused_in_bag_is_retried_after_care_retry_min(tmp_path):
-    """Item 4: the item stays usable once moved out of the bag; the planner has no move action, so it only retries."""
+def test_a_bandage_refused_in_bag_is_marked_and_never_retried(tmp_path):
+    """Named change, Task 10 fix 2 (item 3): the Lua moves a bag item itself now (PZA/1.5.2), so in bag means the
+    move could not be queued: a hard refusal, the item marked in_bag for good."""
     r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage")])
     tick(r, sv)
     assert r.cmd() == ("bandage", {"itemId": 10, "part": 5})
     r.answer({"state": "failed", "reason": "in bag"})
     care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], game_min=480.5)
     tick(r, sv)
-    assert last(tmp_path)["branch"] != "care" and 10 not in r.world.marks
+    assert last(tmp_path)["branch"] != "care" and r.world.marks[10][0] == "in_bag"
     r.advance(10.0)
     care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], game_min=482.5)
     for _ in range(10):
         tick(r, sv)
-    assert r.cmd() == ("bandage", {"itemId": 10, "part": 5})
+    assert sum(a.type == "bandage" for a in r.acts.history) == 1
 
 
-def test_a_wash_refused_in_bag_is_retried_and_leaves_its_source(tmp_path):
+def test_a_wash_refused_in_bag_is_marked_never_retried_and_leaves_its_source(tmp_path):
+    """Named change, Task 10 fix 2 (item 3): in bag is final for a wash too."""
     r, sv = make(tmp_path)
     r.scan([square(105, 200, water={"amount": 20.0, "tainted": False, "infinite": True})])
     r.frame()
@@ -1093,12 +1095,12 @@ def test_a_wash_refused_in_bag_is_retried_and_leaves_its_source(tmp_path):
     r.answer({"state": "failed", "reason": "in bag"})
     care_frame(r, [], game_min=480.5)
     tick(r, sv)
-    assert not r.world.dry and 12 not in r.world.marks and last(tmp_path)["branch"] != "care"
+    assert not r.world.dry and r.world.marks[12][0] == "in_bag" and last(tmp_path)["branch"] != "care"
     r.advance(10.0)
     care_frame(r, [], game_min=482.5)
     for _ in range(10):
         tick(r, sv)
-    assert r.cmd() == ("wash", {"itemId": 12, "x": 105, "y": 200})
+    assert sum(a.type == "wash" for a in r.acts.history) == 1
 
 
 def test_the_ripped_sheets_read_bandage_a_sealed_can_other_and_the_choice_order_holds(tmp_path):
@@ -1275,3 +1277,253 @@ def test_the_shelter_walk_stuck_at_a_wall_shuns_as_before(tmp_path):
     r.frame(x=107.5, y=201.5)
     assert runner.tick(r.world, r.acts) is None and (g.state, g.reason) == ("failed", "shun")
     assert not any(a.type == "climb" for a in r.acts.history)
+
+
+# ================================================================ Task 10 fix 2: worn, rip and moved (PZA/1.5.2)
+def hello152(r):
+    """A PZA/1.5.2 hello (the fake's default mod is "fake": an unparsable version, so the pre-1.5.2 guess)."""
+    r.fake.hello(mod="1.5.2")
+    r.pump()
+
+
+def garment(r, iid, ft="Base.Shirt_FormalWhite", **k):
+    r.event("item_added", itemId=iid, fullType=ft, weight=0.1, use="other", **k)
+
+
+def test_item_fields_read_the_hellos_mod_version(tmp_path):
+    from agent.base.world import World
+    r, _ = make(tmp_path)
+    assert r.world.item_fields() is False                                         # "fake": the guess stays
+    for mod, want in (("1.5.1", False), ("1.5.2", True), ("1.6.0", True), ("2.0.0", True), ("", False)):
+        w = World()
+        w.apply({"kind": "hello", "mod": mod, "caps": []})
+        assert w.item_fields() is want, mod
+    assert World().item_fields() is False
+
+
+def test_a_worn_garment_on_a_1_5_2_log_is_never_asked_and_an_unworn_one_after_the_hello_is(tmp_path):
+    """Task 10 fix 2, item 1: the record worn replaces the first-sight guess; a garment first seen after the
+    hello with worn absent is a candidate, even one inside the old first-sight window."""
+    r, sv = make(tmp_path)
+    hello152(r)
+    garment(r, 20, rip="cotton", worn=True)                                       # in the window, worn
+    garment(r, 22, rip="cotton")                                                  # in the window, not worn
+    r.frame()
+    assert r.world.first_sight == {20, 22} and r.world.inventory[20]["worn"] is True
+    assert "worn" not in r.world.inventory[22]
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)])
+    tick(r, sv)
+    assert r.cmd() == ("rip", {"itemId": 22}) and care_why(tmp_path)["item"] == 22   # 20 is lower and never asked
+    all_sends_valid(r)
+    (tmp_path / "b").mkdir()
+    r2, sv2 = make(tmp_path / "b")
+    hello152(r2)
+    r2.frame()
+    garment(r2, 20, rip="cotton", worn=True)
+    care_frame(r2, [part(5, bleeding=True, bleedingTime=5.0)])
+    tick(r2, sv2)
+    assert last(tmp_path / "b")["branch"] != "care" and not any(a.type == "rip" for a in r2.acts.history)
+
+
+def test_item_changed_states_worn_again_and_a_garment_taken_off_becomes_a_candidate(tmp_path):
+    r, sv = make(tmp_path)
+    hello152(r)
+    r.frame()
+    garment(r, 21, rip="cotton", worn=True)
+    r.event("item_changed", itemId=21, use="other", rip="cotton")                 # taken off: worn absent
+    assert "worn" not in r.world.inventory[21] and r.world.inventory[21]["rip"] == "cotton"
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)])
+    tick(r, sv)
+    assert r.cmd() == ("rip", {"itemId": 21})
+
+
+@pytest.mark.parametrize("rip, asked", [("cotton", True), ("denim", False), ("leather", False), (None, False)])
+def test_only_a_cotton_rip_class_is_asked_on_a_1_5_2_log_whatever_the_name(tmp_path, rip, asked):
+    """Task 10 fix 2, item 2: cotton can run; denim and leather need a tool the planner has no action for; absent
+    is no class. The name decides nothing: a shirt named so with no class is never asked, a pair of jeans classed
+    cotton is."""
+    r, sv = make(tmp_path)
+    hello152(r)
+    r.frame()
+    ft = "Base.Trousers_Denim" if rip == "cotton" else "Base.Shirt_FormalWhite"
+    garment(r, 21, ft=ft, **({"rip": rip} if rip else {}))
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)])
+    tick(r, sv)
+    if asked:
+        assert r.cmd() == ("rip", {"itemId": 21})
+    else:
+        assert not any(a.type == "rip" for a in r.acts.history)
+
+
+def test_a_pre_1_5_2_log_keeps_the_name_guess_and_the_first_sight(tmp_path):
+    """The guess stays for older logs: a hello naming 1.5.1 reads the name regex, the inventory first sight is left
+    out, and a rip class on a record is ignored there."""
+    r, sv = make(tmp_path)
+    r.fake.hello(mod="1.5.1")
+    r.pump()
+    garment(r, 20)
+    r.frame()
+    garment(r, 21, ft="Base.Trousers_Denim")
+    garment(r, 22, ft="Base.Shirt_FormalWhite", rip="denim")
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)])
+    tick(r, sv)
+    assert r.cmd() == ("rip", {"itemId": 22})                                     # 20 first sight, 21 named denim
+
+
+@pytest.mark.parametrize("kind", ["bandage", "rip"])
+def test_an_in_bag_refusal_is_final_the_item_is_marked_and_never_asked_again(tmp_path, kind):
+    """Task 10 fix 2, item 3: in bag means the move could not be queued: marked in_bag, not retried each
+    CARE_RETRY_MIN; the next item of the kind goes instead, and a removal drops the mark."""
+    r, sv = make(tmp_path)
+    hello152(r)
+    r.frame()
+    if kind == "bandage":
+        hold(r, 10, "Base.Bandage")
+        hold(r, 11, "Base.Bandage")
+    else:
+        garment(r, 10, rip="cotton")
+        garment(r, 11, rip="cotton")
+    bleeds = [part(5, bleeding=True, bleedingTime=5.0)]
+    care_frame(r, bleeds)
+    tick(r, sv)
+    assert r.cmd()[0] == kind and r.cmd()[1]["itemId"] == 10
+    r.answer({"state": "failed", "reason": "in bag"})
+    care_frame(r, bleeds, game_min=481.0)
+    tick(r, sv)
+    assert r.world.marked("in_bag").keys() == {10} and r.cmd()[1]["itemId"] == 11   # 10 is not asked again
+    r.answer({"state": "failed", "reason": "in bag"})
+    for m in (483.0, 490.0, 600.0):                                                # far past CARE_RETRY_MIN
+        care_frame(r, bleeds, game_min=m)
+        tick(r, sv)
+    assert sum(a.type == kind and a.args["itemId"] == 10 for a in r.acts.history) == 1
+    assert sum(a.type == kind and a.args["itemId"] == 11 for a in r.acts.history) == 1
+    r.event("item_removed", itemId=10, fullType="Base.Bandage")
+    assert 10 not in r.world.marks
+
+
+def test_a_bandage_that_moved_a_bag_item_is_done_and_the_moved_items_first_appearance_is_no_pickup(tmp_path):
+    """Task 10 fix 2, item 3: the Lua moves the item to the main inventory first (its item_added arrives before the
+    bandage item_removed) and reports moved true; the planner reads an ordinary done. The planner never saw bag
+    items and nothing in it counts an item_added as a pickup (loot results come from the interact act moved, the
+    view lists raw event names): the sequence leaves no residue in the inventory, the containers or the
+    missing-items count."""
+    r, sv = make(tmp_path)
+    hello152(r)
+    r.frame()
+    bleeds = [part(5, bleeding=True, bleedingTime=5.0)]
+    care_frame(r, bleeds)
+    tick(r, sv)                                                                   # nothing held: no care command
+    assert not any(a.type in ("bandage", "rip") for a in r.acts.history)
+    hold(r, 40, "Base.Bandage")                                                   # it came out of a bag
+    care_frame(r, bleeds, game_min=481.0)
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 40, "part": 5})
+    r.answer({"state": "done", "result": {"part": 5, "dirty": False, "life": 3.5, "moved": True}})
+    r.event("item_removed", itemId=40, fullType="Base.Bandage")
+    care_frame(r, [part(5, bandaged=True, bandageLife=3.5, bandageDirty=False)], game_min=482.0)
+    tick(r, sv)
+    assert 40 not in r.world.inventory and r.world.missing_items == 0 and not r.world.marks
+    assert sum(a.type == "bandage" for a in r.acts.history) == 1 and last(tmp_path)["branch"] != "care"
+    assert not any(isinstance(v, dict) and v.get("looted") for v in r.world.containers.values())
+    assert r.world.first_sight == set()                                           # a moved item is never first sight
+
+
+def test_an_aim_refused_no_target_is_not_a_stand_off(tmp_path):
+    """Task 10 fix 2, item 5: the Lua refuses an aim whose target is gone no target; the build holds the stance all
+    the same, so standoff is not set (any other failed leg still sets it)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0)])
+    tick(r, sv)
+    assert r.cmd()[0] == "aim"
+    r.answer({"state": "failed", "reason": "no target"})
+    r.frame(zombies=[zd(1, 104.0, 200.0)])
+    tick(r, sv)
+    assert sv.fight.standoff is False and sv.fight.standoff_why is None
+    (tmp_path / "b").mkdir()
+    r2, sv2 = make(tmp_path / "b")
+    r2.frame(zombies=[zd(1, 104.0, 200.0)])
+    tick(r2, sv2)
+    r2.answer({"state": "failed", "reason": "not allowed"})
+    r2.frame(zombies=[zd(1, 104.0, 200.0)])
+    tick(r2, sv2)
+    assert sv2.fight.standoff is True and sv2.fight.standoff_why == "failed not allowed"
+
+
+def night_rig(tmp_path, fence_hop=True, caps=None):
+    r, sv = make(tmp_path, caps=caps)
+    r.scan(shelter_yard(fence_hop))
+    r.frame(x=107.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 109.5, "y": 201.5, "gait": "walk"})
+    r.answer({"state": "failed", "reason": "stuck"})
+    r.frame(x=107.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    return r, sv
+
+
+def test_the_nights_own_shelter_walk_climbs_a_fence_on_its_route_and_walks_on(tmp_path):
+    """Task 10 fix 2, item 6 (10 fix 1, concern 8): Night's approach walk failed stuck at a hoppable edge climbs it
+    (night.hop_after, the plan step kept at approach) and walks the approach again once the climb ends done; a climb
+    that does not end done is read as that walk's stuck end (one door: the building is shunned)."""
+    r, sv = night_rig(tmp_path)
+    assert r.cmd() == ("climb", {"x": 108, "y": 201}) and sv.night.plan["step"] == "approach"
+    assert last(tmp_path)["inputs"]["branches"]["night"]["step"] == "climb"
+    r.world.stuck[(109, 201)] = r.world.world_minutes()
+    r.answer()
+    r.frame(x=108.5, y=201.5, fatigue=0.65)
+    for _ in range(S.FAILED_COOLDOWN_TICKS):   # the stuck walk's same-args cooldown (a climb outlasts it live)
+        tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 109.5, "y": 201.5, "gait": "walk"}) and sv.night.plan["step"] == "approach"
+    assert sv.night.climbed == {(108, 201)} and (109, 201) not in r.world.stuck
+    assert [s["step"] for s in sv.night.steps] == ["approach", "climb"]
+    all_sends_valid(r)
+    (tmp_path / "b").mkdir()
+    r2, sv2 = night_rig(tmp_path / "b")
+    assert r2.cmd()[0] == "climb"
+    r2.answer({"state": "failed", "reason": "fell"})
+    r2.frame(x=107.5, y=201.5, fatigue=0.65)
+    tick(r2, sv2)
+    assert 1 in sv2.night.shunned
+    assert sum(a.type == "climb" for a in r2.acts.history) == 1
+
+
+def test_the_nights_shelter_walk_stuck_at_a_wall_or_on_a_1_4_build_never_climbs(tmp_path):
+    r, sv = night_rig(tmp_path, fence_hop=False)
+    assert not any(a.type == "climb" for a in r.acts.history) and 1 in sv.night.shunned
+    (tmp_path / "b").mkdir()
+    r2, sv2 = night_rig(tmp_path / "b", caps=CAPS_14)
+    assert not any(a.type == "climb" for a in r2.acts.history)
+
+
+def stance_fight(r):
+    f = P.Fight(r.world, r.acts, r.clock)
+    f.stance = True   # Survive sets it each tick
+    return f
+
+
+def test_the_stance_is_never_aimed_at_a_target_beyond_the_luas_aim_r_it_is_walked_toward_first(tmp_path):
+    """Task 10 fix 2 (the re-review of 10 fix 1, minor 2): the Lua refuses an aim at a target beyond K.AIM_R (12
+    tiles) as no target, which would set standoff; the Fight walks toward a farther target as the approach and swing
+    does, keeps no stand clock while it does, and takes the stance once the target is inside AIM_R."""
+    assert P.AIM_R == 12.0
+    r = Rig(tmp_path)
+    r.frame(zombies=[zd(1, 113.0, 200.0)])                                      # 13 tiles
+    f = stance_fight(r)
+    f.observe()
+    assert f.step() is not None and r.cmd()[0] == "walkTo" and f.standoff is False and f._stand is None
+    r.answer()
+    r.frame(zombies=[zd(1, 112.0, 200.0)])                                      # 12 tiles: inside
+    f.observe()
+    assert f.step() is not None and stance_args(r)["targetId"] == 1
+    assert f._stand is not None and f.standoff is False
+    all_sends_valid(r)
+
+
+def test_a_far_target_holds_no_stand_clock_so_no_stand_off_falls_before_it_is_in_range(tmp_path):
+    r = Rig(tmp_path)
+    f = stance_fight(r)
+    for k in range(3):
+        r.advance(P.STAND_MAX_S)                                                # far longer than a stand would last
+        r.frame(zombies=[zd(1, 114.0 + k * 0.01, 200.0)])
+        f.observe()
+    assert f.standoff is False and f._stand is None

@@ -504,15 +504,17 @@ def test_the_replay_ends_an_unbound_aim_at_its_seconds(monkeypatch):
 
 
 def test_the_backpedal_band_and_the_stand_off_fallback_on_the_sixth_golden(monkeypatch):
-    """Ruling P24-M (Task 10 fix 1, re-recorded under it): of the ten stance legs on F1's frames only 111's (2.46
-    tiles) is within FIGHT_REACH + BACKPEDAL_BAND and backpedals; the other nine (4.80 to 16.96 tiles) stand facing
-    the target. The mutation pass: the band switched off moves the golden first at 106; STAND_MAX_S switched off
-    (infinite) moves nothing, since no stand on F1's frames reaches 20 s (the longest stand clock is 6.57 s, line
-    373), and shortened to 5 s it moves line 373 alone: the fallback runs on a real sequence, but this golden cannot
-    pin its 20 s (the fake-mod cases do)."""
+    """Ruling P24-M (Task 10 fix 1, re-recorded under it; line 373 re-recorded at Task 10 fix 2 under the aim's range):
+    of the nine stance legs on F1's frames only 111's (2.46 tiles) is within FIGHT_REACH + BACKPEDAL_BAND and
+    backpedals; the other eight (4.80 to 5.99 tiles) stand facing the target. Line 373's target, 16.96 tiles off, is
+    beyond the Lua's aim range (AIM_R 12), so the Fight walks at a run as the approach does. The mutation pass: the
+    band switched off moves the golden first at 106; STAND_MAX_S switched off (infinite) or at 5 s moves nothing,
+    since no stand on F1's frames reaches it (the longest stand clock is 2.53 s, line 114), and at 2 s it moves the
+    golden first at 111: the fallback runs on a real sequence, but this golden cannot pin its 20 s (the fake-mod
+    cases do)."""
     six = gold(SIXTH)
     legs = {k: d for k, d in six.items() if d["action"] and d["action"]["type"] == "aim"}
-    assert sorted(legs) == [106, 111, 192, 216, 288, 360, 373, 435, 517, 557]
+    assert sorted(legs) == [106, 111, 192, 216, 288, 360, 435, 517, 557]
     assert [k for k, d in legs.items() if (d["action"]["args"]["vx"], d["action"]["args"]["vy"]) != (0.0, 0.0)] == [111]
     assert legs[111]["why"]["dist"] <= P.FIGHT_REACH + P.BACKPEDAL_BAND < min(
         d["why"]["dist"] for k, d in legs.items() if k != 111)
@@ -520,7 +522,11 @@ def test_the_backpedal_band_and_the_stand_off_fallback_on_the_sixth_golden(monke
     monkeypatch.setattr(P, "STAND_MAX_S", math.inf)
     assert moved_from_sixth(run_sixth()) == []
     monkeypatch.setattr(P, "STAND_MAX_S", 5.0)
-    assert moved_from_sixth(run_sixth()) == [373]
+    assert moved_from_sixth(run_sixth()) == []
+    monkeypatch.setattr(P, "STAND_MAX_S", 2.0)
+    assert moved_from_sixth(run_sixth())[0] == 111
+    assert six[373]["action"] == {"type": "walkTo", "args": {"gait": "run", "x": 10734.5, "y": 10625.5}}
+    assert six[373]["why"]["dist"] > P.AIM_R
     monkeypatch.setattr(P, "STAND_MAX_S", 20.0)
     monkeypatch.setattr(P, "BACKPEDAL_BAND", math.inf)
     assert moved_from_sixth(run_sixth())[0] == 106

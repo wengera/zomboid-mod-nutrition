@@ -59,7 +59,7 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   once the target is within reach, re-pinned, or the stand ends. The stand clock (`_stand`) restarts on a new target
   or a fall of its health; at STAND_MAX_S it sets `standoff` and the approach and swing above run for the rest of the
   Fight, the out-of-reach stall clock (which a stand keeps at zero) starting then; a stance leg that ends failed,
-  timed out or rejected (never superseded) sets `standoff` at once (Task 10 fix 1, minor 11: a build that cannot hold
+  timed out or rejected (never superseded, nor refused `no target`: Task 10 fix 2, the zombie is gone) sets `standoff` at once (Task 10 fix 1, minor 11: a build that cannot hold
   the stance never re-sends it for STAND_MAX_S). `standoff_why` names which (`stand_max_s`, or the leg's state and
   reason).
 - `Flee` (one per flee episode): a `Steer` of `FLEE_S` seconds away from the threats (the `threats` list its caller
@@ -239,6 +239,8 @@ LOOT_WANTS = ("food", "water", "weapon", "bandage")   # a loot's want and filter
 DROP_AT = 3           # at this load level or above Survive's load branch drops (the heavy-load drain falls at 3) ...
 DROP_TO = 2           # ... down to this level, and between the two neither drops nor loots
 KEPT_USES = ("weapon", "food", "water")   # the uses a drop never takes
+AIM_R = 12.0   # tiles: the Lua's K.AIM_R (PZAgent_Stance.lua), the farthest target an aim takes: beyond it the aim is refused `no target`
+NO_TARGET = "no target"   # the Lua's refusal of an aim whose target is gone (Task 10 fix 2: not a stand-off)
 PREEMPTED = "superseded"   # the reason the Lua fails an action a newer send replaced
 STUCK_REASONS = ("stuck", "no path", "no square")   # a walkTo failed for one of these: its target is remembered
 
@@ -538,6 +540,12 @@ class Fight(Policy):
         cornered Fight (`point_blank`, the corner rules) nor a door fight (`only`)."""
         return self.stance and not self.standoff and not self.point_blank and self.only is None
 
+    def stance_at(self, d):
+        """The stance applies to a target `d` tiles off: `standing` and within AIM_R (Task 10 fix 2: farther, the Lua
+        refuses the aim `no target`, so the Fight walks toward it as the approach and swing does and takes the stance
+        once inside)."""
+        return self.standing() and d <= AIM_R
+
     def _observe_stand(self, t):
         """The stand clock (ruling P24-G 1): restarted by a new target (a kill or a re-pin) and by a fall of the
         target's health; once it reads STAND_MAX_S the Fight falls back to the approach and swing for good
@@ -547,6 +555,9 @@ class Fight(Policy):
             return
         now = self.clock()
         if t is None:
+            self._stand = None
+            return
+        if t[2] > AIM_R:   # walking toward a target the aim cannot take: no stand to time
             self._stand = None
             return
         h = self._target_health(t[0])
@@ -569,7 +580,8 @@ class Fight(Policy):
         if a is None or a.type != "aim" or not self.actions.done(a) or a is self._leg_read:
             return
         self._leg_read = a
-        if a.state in ("failed", "timeout", "rejected") and not (a.state == "failed" and a.reason == PREEMPTED):
+        if (a.state in ("failed", "timeout", "rejected") and not (a.state == "failed" and a.reason == PREEMPTED)
+                and a.reason != NO_TARGET):   # Task 10 fix 2: the target is gone, not a build that cannot hold the stance
             if not self.standoff:
                 self._fall_back(("%s %s" % (a.state, a.reason)).strip())
 
@@ -586,13 +598,13 @@ class Fight(Policy):
             return True
         t = self._target(pin=False)
         return (t is not None and t[0] == self.last.args.get("targetId") and t[2] > FIGHT_REACH
-                and self.standing())
+                and self.stance_at(t[2]))
 
     def observe(self):
         self._observe_leg()
         t = self._target(pin=False)
         self._observe_stand(t)
-        if t is None or t[2] <= FIGHT_REACH or self.standing():
+        if t is None or t[2] <= FIGHT_REACH or self.stance_at(t[2]):
             self.out_of_reach_since = self.clock()   # P24-G 1: a stand's own clock is STAND_MAX_S
         a = self.last
         if a is None or a.type != "attack" or not self.actions.done(a) or a is self._counted:
@@ -697,7 +709,7 @@ class Fight(Policy):
             self.repositioned = True
             self.why["reposition"] = list(sq)
             return WalkTo(*centre(sq), "run")
-        if d > FIGHT_REACH and self.standing():
+        if d > FIGHT_REACH and self.stance_at(d):
             return self._aim(zid, z, d)
         if self.approach or d > FIGHT_REACH:
             return WalkTo(*centre((z["x"], z["y"])), "run")

@@ -254,7 +254,7 @@ from agent.base.items import days_fresh
 from agent.base.planner.care import DRY_REASONS, Care
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
-from agent.base.planner.policies import (CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH,
+from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH,
                                          LISTED_R, POINT_BLANK_R, PREEMPTED, STUCK_REASONS, Fight, Flee, adoptable,
                                          blocked,
                                          exit_plan, in_building, in_reach, item_id_ok, line_to, others_behind, spare,
@@ -606,6 +606,7 @@ class Survive:
         if t is None:
             return []
         zid, z, d = t
+        stand = stand and d <= AIM_R   # Task 10 fix 2: beyond the aim's range the Fight walks toward it
         walk = not (stand and d > FIGHT_REACH) and (   # P24-G 1: a standing fight never walks beyond reach
             d > FIGHT_REACH or (f is not None and f.approach and d > POINT_BLANK_R) or line_to(self.world, z) is False)
         ids = others_behind(self.world, zid, z) if walk else []

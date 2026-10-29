@@ -14,7 +14,8 @@ Its choose, the first that answers (`why` names the `reason`, the `part`, the `i
    15, the Task 10 review's jar read, and a cut, a deep wound, glass or a bullet adds to it, so a plain scratch never
    takes a dirty rag and a cut or a deep wound usually does: Task 10 fix 1, minor 12). With no rag of any kind held,
    one held cotton garment is ripped for it (`no_rag`: `rippable` names it, never one of the inventory's first sight,
-   `World.first_sight`, the clothes the character stands in, which the Lua refuses `worn`, nor one marked
+   `World.first_sight`, the clothes the character stands in, which the Lua refuses `worn`; on a PZA/1.5.2 log the item
+   record's `worn` and `rip` say instead, Task 10 fix 2: only a `cotton` unworn one; nor one marked
    `unrippable`, a rip refused `worn`, `not cotton` or `needs tool`, `World.mark`: `Rip(itemId)`); a dirty rag held
    under the time rule falls through to the wash.
 2. `replace`: a bandaged part whose `bandageLife` reached 0 or that reads `bandageDirty`, with a clean bandage or rag
@@ -116,7 +117,9 @@ class Care(Policy):
             if a.state not in FAILED or (a.state == "failed" and a.reason == PREEMPTED):
                 continue
             self.held_out[iid] = self.world.world_minutes()
-            if a.type == "rip" and a.reason in RIP_REFUSALS and iid in self.world.inventory:
+            if a.reason == "in bag" and iid in self.world.inventory:
+                self.world.mark(iid, "in_bag")   # Task 10 fix 2: the move could not be queued, a hard refusal
+            elif a.type == "rip" and a.reason in RIP_REFUSALS and iid in self.world.inventory:
                 self.world.mark(iid, "unrippable")
             if a.type == "wash" and a.reason in DRY_REASONS:
                 self.world.mark_dry((a.args.get("x"), a.args.get("y"), me_floor(self.world)))
@@ -126,9 +129,11 @@ class Care(Policy):
         """{kind: [held ids]} by `care_kind`, an id held out by a refusal left out, ids ascending."""
         now = self.world.world_minutes()
         out = {k: [] for k in KINDS}
+        barred = self.world.marked("in_bag")
         for iid, it in self.world.inventory.items():
             k = care_kind(it.get("fullType"))
-            if k is None or not item_id_ok(iid) or now - self.held_out.get(iid, -math.inf) < CARE_RETRY_MIN:
+            if (k is None or not item_id_ok(iid) or iid in barred
+                    or now - self.held_out.get(iid, -math.inf) < CARE_RETRY_MIN):
                 continue
             out[k].append(iid)
         return {k: sorted(v) for k, v in out.items()}
@@ -149,11 +154,16 @@ class Care(Policy):
                 and ((_num(p.get("bandageLife")) and p["bandageLife"] <= 0) or p.get("bandageDirty") is True)]
 
     def _rip_item(self):
-        """The least held id `rippable` names, never of the first sight, marked `unrippable` or held out."""
+        """The least held id that can be ripped, never one marked `unrippable` or `in_bag`, or held out. On a PZA/1.5.2
+        hello's log (`World.item_fields`) the item record says: `rip` cotton and not `worn` (denim and leather need a
+        tool the planner has no action for; absent is no class). On an older log the name guess `rippable` stands and
+        the inventory's first sight (the clothes worn) is left out."""
         now = self.world.world_minutes()
-        marked = self.world.marked("unrippable")
-        ids = [iid for iid, it in self.world.inventory.items() if item_id_ok(iid) and rippable(it.get("fullType"))
-               and iid not in self.world.first_sight and iid not in marked
+        marked = self.world.marked("unrippable") | self.world.marked("in_bag")
+        fields = self.world.item_fields()
+        ids = [iid for iid, it in self.world.inventory.items() if item_id_ok(iid) and iid not in marked
+               and (it.get("rip") == "cotton" and it.get("worn") is not True if fields
+                    else rippable(it.get("fullType")) and iid not in self.world.first_sight)
                and now - self.held_out.get(iid, -math.inf) >= CARE_RETRY_MIN]
         return min(ids) if ids else None
 

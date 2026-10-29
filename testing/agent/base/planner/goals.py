@@ -105,7 +105,7 @@ from dataclasses import dataclass, field, fields
 from typing import ClassVar, Optional, Protocol, runtime_checkable
 
 from agent.base.items import use_of
-from agent.base.planner.night import SHUN_MIN, shelter_ended, shelter_plan, shelter_step
+from agent.base.planner.night import SHUN_MIN, hop_after, shelter_ended, shelter_plan, shelter_step
 from agent.base.planner.policies import (LOOT_MAX_LEVEL, LOOT_WANTS, PREEMPTED, SCAN_R, Explore, LootHouse, me_xy,
                                          place_of)
 from agent.base.pza1 import Climb, Scan, WalkTo
@@ -184,14 +184,8 @@ class Kit:
         self.explore.observe()
 
     def hop_after(self, world, action, climbed=()):
-        """The route climb's read (ruling P24-G 4): the fence square (x, y) to climb after `action`, a `walkTo` that
-        ended `failed "stuck"` on a build announcing `climb`, where the straight line from the player toward its target
-        first crosses a hoppable edge (`World.hop_ahead`) not in `climbed`; else None."""
-        if not (action.type == "walkTo" and action.state == "failed" and action.reason == "stuck"
-                and world.can("climb")):
-            return None
-        hop = world.hop_ahead(me_xy(world), (action.args.get("x"), action.args.get("y")))
-        return None if hop is None or hop in climbed else hop
+        """The route climb's read (ruling P24-G 4): `night.hop_after`, shared with `Night`'s own shelter walk."""
+        return hop_after(world, action, climbed)
 
     def climbed(self, world, walk):
         """A climb after `walk` ended done: the walk target's stuck mark (`Explore`'s, at the stuck end) is dropped."""

@@ -153,6 +153,7 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
 """
 import json
 import math
+import re
 from collections import deque
 
 from agent.base.items import USES, cant_eat, use_of
@@ -164,8 +165,9 @@ REACH_LIMIT = 400    # squares a reachability flood visits at most (P23-AP 1)
 STUCK_WALK_CAP = 3   # unmoved stuck walks in a row past STUCK_AREA_N before no edge is answered (P23-AP fix 1, R2)
 REFUSED_TTL_MIN = 120   # world minutes a food whose consume was refused `not valid` reads `other` (P23-AD)
 SOURCE_RETRY_MIN = 10.0   # game minutes a source a wash or a fill failed at is left out (`mark_dry`; a judgment)
-MARK_REASONS = ("empty", "refused", "no_effect", "unrippable", "filled", "tainted", "undrinkable")   # the planner's
-                     # item marks (P24-I), one an item; the last three the water chain's (P24-G 3)
+MARK_REASONS = ("empty", "refused", "no_effect", "unrippable", "filled", "tainted", "undrinkable", "in_bag")   # the planner's
+                     # item marks (P24-I), one an item; `undrinkable` and the two before it the water chain's (P24-G 3), `in_bag` a care action the Lua refused
+                     # `in bag` for good (Task 10 fix 2)
 VESSEL_MARKS = ("empty", "filled", "tainted")   # the marks an item_changed line drops (the engine's read wins)
 MET_TTL_MIN = 10     # game minutes a zombie listed stays in the met memory (ruling P24-A (a), a judgment: a group
                      # met within the last ten minutes is still about; E5's was first listed at gameMin 590 and at
@@ -371,6 +373,10 @@ class World:
             it = {"fullType": line.get("fullType"), "weight": line.get("weight")}
             if line.get("use") is not None:
                 it["use"] = line["use"]
+            if line.get("worn") is True:
+                it["worn"] = True       # PZA/1.5.2: absent means not worn
+            if line.get("rip") is not None:
+                it["rip"] = line["rip"]   # PZA/1.5.2: cotton, denim or leather; absent means none
             self.inventory[line.get("itemId")] = it
             if self._sighting:
                 self.first_sight.add(line.get("itemId"))
@@ -385,6 +391,12 @@ class World:
                 self.changes[line.get("itemId")] = self.changes.get(line.get("itemId"), 0) + 1
                 if line.get("use") is not None:
                     it["use"] = line["use"]
+                if self.item_fields():   # a 1.5.2 line states both: absent is not worn, no class
+                    for k, v in (("worn", line.get("worn") is True or None), ("rip", line.get("rip"))):
+                        if v is None:
+                            it.pop(k, None)
+                        else:
+                            it[k] = v
                 for k in ("fluid", "amount"):
                     if line.get(k) is None:
                         it.pop(k, None)
@@ -401,6 +413,12 @@ class World:
                 self.met_version += 1
         elif kind == "scan_dropped":
             self.scans_dropped.add(str(line.get("aid")))
+
+    def item_fields(self):
+        """Whether the last hello's mod version is 1.5.2 or later: its `item_added` and `item_changed` lines carry `worn`
+        and `rip` (absent meaning not worn, no class: Task 10 fix 2). An older or unparsable version reads False."""
+        m = re.match(r"(\d+)\.(\d+)\.(\d+)", str((self.hello or {}).get("mod") or ""))
+        return m is not None and tuple(int(g) for g in m.groups()) >= (1, 5, 2)
 
     def can(self, action_type):
         """Whether the last hello's `caps` announce `action_type`: the planner sends a PZA/1.5 skill (aim, climb,
