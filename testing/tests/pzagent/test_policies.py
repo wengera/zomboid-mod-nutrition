@@ -1428,3 +1428,38 @@ def test_steer_now_on_a_room_square_walks_the_exit_at_a_sprint_never_a_steer(tmp
     f2.steer_now = True
     f2.step()
     assert r2.cmd()[0] == "steer"
+
+
+# ================================================================ Plan 24 survival 5 fix 1 (rulings on the concerns)
+@pytest.mark.parametrize("farther, behind", [(0.16, False), (0.6, True)])
+def test_behind_means_in_the_cone_and_at_least_behind_margin_farther(tmp_path, farther, behind):
+    """P24-A fix 1 (5): zombie 2 beside the target in the 20 degree cone, 0.16 tiles farther, is not behind it;
+    0.6 tiles farther (BEHIND_MARGIN 0.5), it is."""
+    assert P.BEHIND_MARGIN == 0.5
+    r = Rig(tmp_path)
+    d = 3.0 + farther
+    r.frame(zombies=[zombie(1, 103.0, 200.0), zombie(2, 100.0 + d * math.cos(math.radians(18.0)),
+                                                      200.0 + d * math.sin(math.radians(18.0)))])
+    assert P.others_behind(r.world, 1, r.world.zombies[1]) == ([2] if behind else [])
+
+
+def test_an_exit_is_refused_only_for_a_zombie_on_its_square_or_ahead_on_its_line_never_at_the_back(tmp_path):
+    """P24-A fix 1 (3): EXIT_CLEAR_R reads the tube of P23-AP 3's cut: within 1.5 tiles of the exit's outside square,
+    or ahead of the player within 1.5 of the straight line to it. A zombie 0.6 tiles behind the player (north, the
+    exit south) refuses nothing; one 0.6 tiles ahead on the line does; so does one beside the outside square."""
+    r = Rig(tmp_path)
+    r.scan(two_door_house())
+    me = (111.5, 201.5)
+    for zs, refused in (([zombie(1, 111.5, 200.9, me=me)], False), ([zombie(1, 111.5, 202.1, me=me)], True),
+                        ([zombie(1, 112.6, 203.6, me=me)], True)):
+        r.event("zombie_dead", id=1)
+        r.frame(x=me[0], y=me[1], zombies=zs)
+        e = P.exit_plan(r.world, list(r.world.zombies.values()), refused={(111, 199, 0)})
+        assert (e is None) is refused, zs
+        if e is not None:
+            assert e["outer"] == (111, 203, 0)
+    assert P._in_tube((0.0, 0.0), (0.0, 5.0), (0.0, -0.6), 1.5) is False
+    assert P._in_tube((0.0, 0.0), (0.0, 5.0), (1.0, 0.1), 1.5) is True
+    assert P._in_tube((0.0, 0.0), (0.0, 5.0), (1.2, 5.6), 1.5) is True    # past the end, near the exit's square
+    assert P._in_tube((0.0, 0.0), (0.0, 5.0), (1.6, 2.0), 1.5) is False
+    assert P._in_tube((0.0, 0.0), (0.0, 1.0), (0.0, -0.4), 1.5) is True   # an exit square 1 tile off: its own 1.5

@@ -2523,7 +2523,7 @@ def test_e4_in_the_many_episode_no_walk_corner_is_taken_and_the_stuck_corners_an
     d, a = out[450]
     why = d["inputs"]["branches"]["threat"]
     assert a.type == "attack" and why["cornered"] == 19035 and why["corner_kind"] == "stuck"
-    for line in (455, 462):
+    for line in (453, 460):   # P24-A fix 1 (1): STUCK_RETRY_GROUP_S under the group (455 and 462 before)
         d, retry = out[line]
         assert retry.type == "steer" and d["inputs"]["branches"]["threat"]["group"] == "retry", line
     d, a = out[457]
@@ -2552,10 +2552,10 @@ def test_e4_the_walk_corner_ends_when_the_held_count_reaches_four_and_the_group_
     assert all(out[ln][1] is None for ln in range(454, 457))
     d, a = out[457]
     assert a.type == "attack" and d["inputs"]["branches"]["threat"]["cornered"] == 19032
-    d, retry = out[462]
+    d, retry = out[460]   # P24-A fix 1 (1): four held, the leg at STUCK_RETRY_GROUP_S, point blank no bar (462 before)
     why = d["inputs"]["branches"]["threat"]
-    assert retry.type == "steer" and why["group"] == "retry" and d["inputs"]["nearest"] > P.POINT_BLANK_R
-    assert d["wall"] - out[457][0]["wall"] >= S.STUCK_RETRY_S
+    assert retry.type == "steer" and why["group"] == "retry" and d["inputs"]["nearest"] <= P.POINT_BLANK_R
+    assert S.STUCK_RETRY_GROUP_S <= d["wall"] - out[457][0]["wall"] < S.STUCK_RETRY_S
 
 
 def test_e4_line_440s_leg_is_cut_at_seq_3950_and_re_aimed(tmp_path):
@@ -2678,12 +2678,15 @@ def back_off(me, d):
             zombie(3, me[0] + d, me[1] + 0.6, me=me)]
 
 
-@pytest.mark.parametrize("d, wait, retry", [(1.2, 2.0, True), (1.2, 1.5, False), (0.9, 2.5, False)])
+@pytest.mark.parametrize("d, wait, retry", [(1.8, 2.0, True), (1.8, 1.5, False), (1.2, 1.0, True),
+                                            (0.9, 1.0, True), (1.2, 0.9, False)])
 def test_a_stuck_corner_against_a_group_tries_one_leg_once_the_nearest_is_beyond_point_blank(tmp_path, d, wait,
                                                                                              retry):
     """Ruling P23-AP 2: a `stuck` corner keeps swinging against the group, re-tested every tick: with the nearest
-    beyond POINT_BLANK_R (1.2 tiles) and the stuck read STUCK_RETRY_S old, the corner ends for one sprint steer leg
-    (`group` "retry"); at 1.5 s, or with the nearest at 0.9, it keeps swinging."""
+    beyond POINT_BLANK_R (1.8 tiles, the three within GROUP_NEAR_R) and the stuck read STUCK_RETRY_S old, the corner
+    ends for one sprint steer leg (`group` "retry"); at 1.5 s it keeps swinging. Named change, ruling P24-A fix 1
+    (1): with the three within CORNERED_R (1.2 or 0.9 tiles: point blank no bar) the leg goes at STUCK_RETRY_GROUP_S
+    (1.0 s; it kept swinging at 1.5 s and at 0.9 tiles before), not at 0.9 s."""
     r, sv = make(tmp_path)
     me = stuck_corner(r, sv)
     attack = r.acts.history[-1]
@@ -2700,7 +2703,8 @@ def test_a_stuck_corner_against_a_group_tries_one_leg_once_the_nearest_is_beyond
 
 def test_a_retried_leg_read_stuck_is_a_new_stuck_corner_with_its_own_retry_clock(tmp_path):
     """The retry's leg stands WALK_STALL_S with the group in reach (R1): a new `stuck` corner, its stuck read now, so
-    no second retry before STUCK_RETRY_S more."""
+    no second retry before its own clock runs. Named change, ruling P24-A fix 1 (1): the three within CORNERED_R,
+    that clock is STUCK_RETRY_GROUP_S (1.0 s), not STUCK_RETRY_S: held at 0.9 s, the next leg at 1.0 s."""
     r, sv = make(tmp_path)
     me = stuck_corner(r, sv)
     r.advance(2.0)
@@ -2717,9 +2721,13 @@ def test_a_retried_leg_read_stuck_is_a_new_stuck_corner_with_its_own_retry_clock
     attack = r.acts.history[-1]
     r.fake.answer({"attack": ["accepted"]})
     r.pump()
-    r.advance(1.5)
+    r.advance(0.9)
     r.frame(x=me[0], y=me[1], zombies=back_off(me, 1.2))
     assert tick(r, sv) is None and threat_why(tmp_path)["holding"] == attack.aid
+    r.advance(0.1)
+    r.frame(x=me[0], y=me[1], zombies=back_off(me, 1.2))
+    a = tick(r, sv)
+    assert a.type == "steer" and threat_why(tmp_path)["group"] == "retry"
 
 
 def test_a_running_leg_is_cut_and_re_aimed_when_a_zombie_comes_into_its_cone(tmp_path):
@@ -2899,12 +2907,13 @@ def test_e2_bathroom_with_four_held_behind_the_walls_corners_at_once(tmp_path):
     assert r.cmd() == ("attack", {"targetId": 12839}) and why["cornered"] == 12839 and "group" not in why
 
 
-@pytest.mark.parametrize("d2, d3, want", [(1.2, 0.5, 3), (0.9, 0.5, 2), (1.3, 1.1, 2)])
+@pytest.mark.parametrize("d2, d3, want", [(1.2, 0.5, 3), (0.9, 0.5, 3), (0.9, 0.7, 2), (1.6, 0.95, 3), (1.3, 1.1, 2)])
 def test_a_corner_re_pins_to_the_nearest_zombie_within_point_blank_at_each_attack(tmp_path, d2, d3, want):
     """R4 (E4: the corner swung at 19032 while 19035 at 0.48 tiles bit): the `stuck` corner on 2 (1.1 tiles); its
     attack ends, 2 at 1.2 and 3 at 0.5: the next attack is on 3, the corner's id with it; with 2 at 1.3 and 3 at
-    1.1, nearer but beyond POINT_BLANK_R, the pin on 2 holds. Named change, ruling P24-A (d): with 2 at 0.9, itself
-    within POINT_BLANK_R, the pin holds on 2 (it re-pinned to 3 before)."""
+    1.1, nearer but beyond POINT_BLANK_R, the pin on 2 holds. Named change, ruling P24-A fix 1 (2) (P24-A (d)'s
+    hysteresis margined): with 2 at 0.9 and 3 at 0.5 (0.4 nearer, REPIN_MARGIN 0.3) the re-pin goes; with 3 at 0.7
+    (0.2 nearer) the pin holds; with the pin wandered to 1.6, beyond CORNERED_R, the re-pin goes."""
     r, sv = make(tmp_path)
     me = stuck_corner(r, sv)
     r.fake.answer({"attack": [{"state": "done", "result": swing(True)}]})
@@ -3102,19 +3111,28 @@ def test_f1_line_599_sends_the_attack_not_the_approach_walk_at_point_blank(tmp_p
     assert d["inputs"]["branches"]["threat"]["dist"] <= P.POINT_BLANK_R
 
 
-def test_on_a_room_square_the_group_is_left_by_the_adoption_or_the_trapped_fight_never_the_steer(tmp_path):
-    """P24-A (f), the close review's I4: three zombies at melee range on building 1's room square (no exit walk: every
-    exit's line passes one within EXIT_CLEAR_R): the group's flee adopts the building (its open doors: the re-close
-    is guarded, the plan drops) and holds, no steer; the next tick the room square is trapped, so the corner swings."""
+@pytest.mark.parametrize("south", [False, True])
+def test_on_a_room_square_the_group_is_left_by_the_exit_or_the_trapped_fight_never_the_steer(tmp_path, south):
+    """P24-A (f), the close review's I4: three zombies at melee range north of the player on building 1's room
+    square. Named change, ruling P24-A fix 1 (3): EXIT_CLEAR_R reads the exit's own square and the line ahead to it,
+    never the player's back, so the south doorway's exit walk goes at once, at a sprint (the flee adopted the
+    building and the next tick's trapped corner swung before). With a fourth zombie in the south exit's tube (and so
+    no exit), the group's flee adopts the building (its open doors: the re-close is guarded, the plan drops) and holds,
+    no steer; the next tick the room square is trapped, so the corner swings."""
     from .test_policies import two_door_house
     r, sv = make(tmp_path)
     r.scan(two_door_house())
     me = (111.5, 201.5)
     zs = [zombie(1, 110.6, 200.6, me=me), zombie(2, 111.5, 200.4, me=me), zombie(3, 112.4, 200.7, me=me)]
+    if south:
+        zs.append(zombie(4, 111.6, 202.6, me=me))
     r.frame(x=me[0], y=me[1], zombies=zs)
     tick(r, sv)
     w = threat_why(tmp_path)
-    assert w["group"] == "near" and not any(a.type == "steer" for a in r.acts.history)
+    assert w["group"] in ("near", "hold") and not any(a.type == "steer" for a in r.acts.history)
+    if not south:
+        assert r.cmd() == ("walkTo", {"x": 111.5, "y": 204.5, "gait": "sprint"}) and w["exit"] == 1
+        return
     r.advance(0.5)
     r.frame(x=me[0], y=me[1], zombies=zs)
     tick(r, sv)
@@ -3260,3 +3278,51 @@ def test_f1_s_recorded_re_pins_each_came_with_the_pin_beyond_point_blank():
         if line in repins:
             pin, new = w.zombies[targets[line - 1]], w.zombies[targets[line]]
             assert P.zdist(w, pin) > P.POINT_BLANK_R and P.zdist(w, new) <= P.POINT_BLANK_R, line
+
+
+# ================================================================ Plan 24 survival 5 fix 1 (rulings on the concerns)
+def test_the_survival_5_fix_1_constants():
+    assert (S.STUCK_RETRY_GROUP_S, S.STUCK_RETRY_S, P.REPIN_MARGIN, P.BEHIND_MARGIN) == (1.0, 2.0, 0.3, 0.5)
+
+
+def test_f1_s_recorded_re_pin_lines_switch_three_times_under_the_margin_not_five():
+    """P24-A fix 1 (2) on F1's last fight: a cornered Fight pinned to 15921 at line 561, its point-blank re-pin read at
+    each line the record sent an attack or walk (the chooses), on the frames those ticks read. The record switched at
+    568, 573, 590, 599 and 615; with the margin (the pin beyond CORNERED_R, or the new one REPIN_MARGIN nearer) 573
+    (0.18 nearer) and 590 (already on 15917) go: three switches, 568 (0.44 nearer), 599 (0.81) and 615 (0.71). The
+    margin halves the alternation; it does not end it (each of the three is a zombie well nearer than the pin)."""
+    from agent.base import replay_decisions as R
+    from agent.base.actions import Actions
+    from agent.base.world import World
+    with open(os.path.join(F1, "decision.log"), encoding="utf-8") as f:
+        rows = [json.loads(ln) for ln in f]
+    sends = [k for k in range(561, 616) if rows[k - 1]["sent"] and rows[k - 1]["action"]["type"] in ("attack", "walkTo")]
+    lines, recorded = R.read_record(F1)
+    w, i = World(), 0
+    fight = None
+    pins = []
+    for line, (frame_end, _) in enumerate(R.align(lines, recorded), 1):
+        for ln in lines[i:frame_end]:
+            w.apply(ln)
+        i = frame_end
+        if line == 561:
+            fight = P.Fight(w, Actions(None, clock=lambda: 0.0), clock=lambda: 0.0, target=15921)
+            fight.point_blank = True
+        if line in sends:
+            fight._repin_point_blank()
+            pins.append((line, fight.target))
+    switches = [line for (line, t), (_, prev) in zip(pins[1:], pins) if t != prev]
+    assert switches == [568, 599, 615]
+
+
+def test_f1_s_corner_read_stuck_at_537_tries_a_leg_within_one_second():
+    """P24-A fix 1 (1) on the F1 golden: the corner taken at 537 reads `stuck` (the leg stood with 15921 at 1.25
+    tiles); with four held (GROUP_HOLD_N) its retry leg goes within STUCK_RETRY_GROUP_S of the stuck read, where
+    survival 5 held the corner on (the record's group steer went at 540)."""
+    from agent.base import replay_decisions as R
+    g = {d["line"]: d for d in json.load(open(R.golden_path("f1"), encoding="utf-8"))["decisions"]}
+    rows = {k: r for k, r in enumerate(R.replay(F1), 1)}
+    assert g[537]["why"]["corner_kind"] == "stuck"
+    retry = next(k for k in range(538, 546) if g[k]["why"].get("group") == "retry")
+    assert g[retry]["action"]["type"] == "steer" and retry <= 540
+    assert rows[retry]["wall"] - rows[537]["wall"] < S.STUCK_RETRY_S

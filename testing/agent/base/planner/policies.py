@@ -190,7 +190,9 @@ STUCK_MOVE = 0.5      # tiles: a steer leg that moved less is stuck, and the nex
 AHEAD_R = 9.0         # tiles: a 3 s leg at about 3 tiles/s (E1's flee): a held threat this far ahead refuses a heading
 AHEAD_CONE = 20.0     # degrees: ... within this cone of it (or in its CORRIDOR_R tube), beyond SPRINT_R (fix 2, T2)
 DOOR_CLEAR_R = 1.5    # tiles: no re-close is tried with a known zombie this near the door square's centre (fix 2)
-EXIT_CLEAR_R = 1.5    # tiles: no exit is walked whose straight line passes a held threat this near (P23-AJ fix 1)
+EXIT_CLEAR_R = 1.5    # tiles: no exit is walked with a held threat this near its outside square or ahead on its
+                      # straight line (the tube, `_in_tube`): P23-AJ fix 1, narrowed at P24-A fix 1 (3), never one at
+                      # the player's back
 WALK_STALL_S = 1.0    # wall seconds a flee walk may leave the player within STUCK_MOVE before it is dropped: the exit
                       # walk (P23-AJ fix 1, G2), a shelter step's walk while a held threat is within DANGER_R (P23-AM 2)
                       # and a running steer leg's stuck read (P23-AM fix 1, R1); one quantity (P24-A (g), the close
@@ -205,6 +207,10 @@ STUCK_NEAR_R = 1.5    # tiles: a running leg unmoved WALK_STALL_S with a held th
 LISTED_R = 12.0       # tiles: the listing's edge, the frame's zombie list (#4268: E5's horde listed at 12 tiles):
                       # the `many` count (Survive) and a fight's look behind its target (P24-A (a), (b))
 POINT_BLANK_R = 1.0   # tiles: a cornered Fight's target this near is swung at whatever its line reads (P23-AJ fix 1)
+REPIN_MARGIN = 0.3    # tiles: the point-blank re-pin goes when the new zombie is at least this much nearer than the pin
+                      # (or the pin beyond CORNERED_R): P24-A fix 1 (2), a ruling (F1's pin alternated at 0.18 apart)
+BEHIND_MARGIN = 0.5   # tiles: a zombie is behind a fight's target only this much farther or more (P24-A fix 1 (5), a
+                      # ruling: one beside the target, 0.16 tiles farther, is not behind it)
 STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
@@ -330,7 +336,8 @@ def in_reach(world, z, r):
 def others_behind(world, zid, z):
     """Ruling P24-A (b) (E5 line 219: the fight walked at 19275, 5.99 tiles off, with 19278 and 19249 listed 11 tiles
     out within 13 degrees of its bearing; the group arrived round it): the ids, sorted, of the other zombies listed
-    within LISTED_R of the player that lie beyond the target `z` (id `zid`) and within AHEAD_CONE of its bearing. A
+    within LISTED_R of the player that lie BEHIND_MARGIN or more beyond the target `z` (id `zid`; P24-A fix 1 (5))
+    and within AHEAD_CONE of its bearing. A
     zombie with no position, or the target at the player's own position, is none."""
     mx, my = me_xy(world)
     tx, ty = z["x"] - mx, z["y"] - my
@@ -344,7 +351,7 @@ def others_behind(world, zid, z):
             continue
         dx, dy = o["x"] - mx, o["y"] - my
         d = math.hypot(dx, dy)
-        if td < d <= LISTED_R and (dx * tx + dy * ty) >= d * td * cos_cone:
+        if td + BEHIND_MARGIN <= d <= LISTED_R and (dx * tx + dy * ty) >= d * td * cos_cone:
             out.append(oid)
     return sorted(out, key=repr)
 
@@ -526,20 +533,26 @@ class Fight(Policy):
         wound and was never swung at): a cornered Fight (`point_blank`) re-pins, at each choose, to the nearest zombie
         within POINT_BLANK_R that it may target, when that is not its pin. Its hysteresis (ruling P24-A (d), the close
         review's I2: F1's pin alternated 15921, 15917, 15921 about eight times between gameMin 637 and 644, both at
-        0.49 to 1.03 tiles, each new id restarting the no-progress streak): only while the pin itself stands beyond
-        POINT_BLANK_R (or reads no position); a pin within it holds."""
+        0.49 to 1.03 tiles, each new id restarting the no-progress streak), as margined at fix 1 (2) (every one of
+        F1's re-pins came with the pin at 1.03 to 1.30 tiles): only when the pin reads no position, stands beyond
+        CORNERED_R, or stands at least REPIN_MARGIN farther than the new zombie."""
         if not self.point_blank:
-            return
-        pin = self.world.zombies.get(self.target) if self.target is not None else None
-        if (pin is not None and pin.get("x") is not None and pin.get("y") is not None
-                and zdist(self.world, pin) <= POINT_BLANK_R):
             return
         skip = self.blocked()
         if self.only is not None:
             skip = skip | {zid for zid in self.world.zombies if zid not in self.only}
         nz = self.world.nearest_zombie(exclude=skip)
-        if nz is not None and nz[0] != self.target and zdist(self.world, nz[1]) <= POINT_BLANK_R:
-            self.target, self.repositioned = nz[0], False
+        if nz is None or nz[0] == self.target:
+            return
+        d = zdist(self.world, nz[1])
+        if d > POINT_BLANK_R:
+            return
+        pin = self.world.zombies.get(self.target) if self.target is not None else None
+        if pin is not None and pin.get("x") is not None and pin.get("y") is not None:
+            dp = zdist(self.world, pin)
+            if dp <= CORNERED_R and d > dp - REPIN_MARGIN:
+                return
+        self.target, self.repositioned = nz[0], False
 
     def _choose(self):
         self._repin_point_blank()
@@ -655,7 +668,7 @@ def exit_plan(world, threats, refused=()):
             continue
         c = centre(e["outer"])
         if any(math.hypot(z["x"] - c[0], z["y"] - c[1]) < zdist(world, z)
-               or _seg_dist(me, c, (z["x"], z["y"])) < EXIT_CLEAR_R for z in ts):
+               or _in_tube(me, c, (z["x"], z["y"]), EXIT_CLEAR_R) for z in ts):
             continue
         if _beyond(world, e["inner"], e["outer"]) is None:
             continue
@@ -666,6 +679,18 @@ def exit_plan(world, threats, refused=()):
         return None
     e = best[1]
     return dict(e, building=b, target=_beyond(world, e["inner"], e["outer"]), step="walk", opened=False)
+
+
+def _in_tube(a, b, p, r):
+    """Point `p` lies within `r` of the end `b`, or ahead of `a` (its projection on the segment from `a` to `b` past
+    `a`) within `r` of the segment: the exit's own square and its straight line, never the player's back (P24-A fix 1
+    (3), the tube of P23-AP 3's cut)."""
+    if math.hypot(p[0] - b[0], p[1] - b[1]) < r:
+        return True
+    ux, uy = b[0] - a[0], b[1] - a[1]
+    if (p[0] - a[0]) * ux + (p[1] - a[1]) * uy <= 0.0:
+        return False
+    return _seg_dist(a, b, p) < r
 
 
 def _seg_dist(a, b, p):

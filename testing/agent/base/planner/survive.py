@@ -228,6 +228,8 @@ GROUP_R_N = 3             # zombies within GROUP_NEAR_R that make a group: steer
 GROUP_NEAR_R = 3.0        # tiles: ... (P23-AP 2: a third zombie this near; P23-AM 4 read 1.5, CORNERED_R)
 GROUP_HOLD_N = 4          # held threats (within the hold radius) that make a group too (P23-AP 2)
 STUCK_RETRY_S = 2.0       # wall seconds after a stuck read before a stuck corner against a group tries a leg (P23-AP 2)
+STUCK_RETRY_GROUP_S = 1.0  # ... with GROUP_R_N within CORNERED_R or GROUP_HOLD_N held, whatever the nearest reads
+                          # (P24-A fix 1 (1), a ruling: F1's corner read stuck at 537 held on against four)
 BRANCHES = ("threat", "need", "load", "night", "goal")
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -236,7 +238,7 @@ REFUSED = "not valid"    # the reason the Lua's consume fails an item it cannot 
 __all__ = ["Survive", "BRANCHES", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER_T", "FLEE_HEALTH",
            "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS",
            "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
-           "GROUP_HOLD_N", "STUCK_RETRY_S", "MANY_LISTED_N", "DRAG_DOWN_N"]
+           "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N"]
 
 
 def _key(typ, args):
@@ -493,8 +495,9 @@ class Survive:
             if group and self.corner_kind != "stuck":   # fix round 1, G1: a group gathering on a corner is steered from
                 self.cornered, self._corner_fight, self.group_steer = None, None, group
                 return None
-            if (group and nearest > POINT_BLANK_R and self.stuck_wall is not None
-                    and self.clock() - self.stuck_wall >= STUCK_RETRY_S):   # P23-AP 2: a moved leg's chance
+            if group and self.stuck_wall is not None and (   # P23-AP 2: a moved leg's chance; P24-A fix 1 (1)
+                    (nearest > POINT_BLANK_R and self.clock() - self.stuck_wall >= STUCK_RETRY_S)
+                    or (self._melee_group(held) and self.clock() - self.stuck_wall >= STUCK_RETRY_GROUP_S)):
                 self.cornered, self._corner_fight, self.group_steer = None, None, "retry"
                 return None
             if self.corner_kind == "walk" and self._walk_yields():   # P24-A (c): a leg can move, the flee reads first
@@ -531,6 +534,12 @@ class Survive:
         self.cornered = min(reach, key=lambda p: (zdist(self.world, p[1]), repr(p[0])))[0]
         return self.cornered
 
+    def _melee_group(self, held):
+        """P24-A fix 1 (1): GROUP_R_N or more held within CORNERED_R, or GROUP_HOLD_N held: a `stuck` corner then tries
+        a leg every STUCK_RETRY_GROUP_S, whatever the nearest reads."""
+        return (len(held) >= GROUP_HOLD_N
+                or sum(1 for z in held if zdist(self.world, z) <= CORNERED_R) >= GROUP_R_N)
+
     def _walk_yields(self):
         """Ruling P24-A (c) (the close review's I1: F1's `walk` corner on 15921, taken off a `many` shelter walk at
         0.65 tiles, held from health 99.4 to 0.9, the corner tested before the flee reasons and never reading health):
@@ -544,8 +553,9 @@ class Survive:
     def _drag(self, held, inside):
         """Ruling P24-A (h) (#4290, #4291: DRAG_DOWN_N zombies attacking from within 0.9 tiles turn the next hit into
         the drag-down, health to 0 in one call): the frame's `me.attackers` (PZA/1.4; absent on an older frame, never
-        read) at DRAG_DOWN_N - 1 or more, except on a room square with no way out (`_trapped`: no leg and no exit to
-        take there, so its corner keeps swinging)."""
+        read) at DRAG_DOWN_N - 1 or more, any corner (a `stuck` one too) left for the leg at once; except on a room
+        square with no way out and nothing to adopt (`_trapped`): the guard has no leg or exit to take there, so the
+        corner keeps swinging (P24-A fix 1 (4), confirmed)."""
         n = (self.world.me or {}).get("attackers")
         if not isinstance(n, int) or isinstance(n, bool) or n < DRAG_DOWN_N - 1:
             return False
