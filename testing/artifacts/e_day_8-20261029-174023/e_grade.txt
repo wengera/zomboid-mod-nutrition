@@ -1,0 +1,560 @@
+kills 4 (engine 4, planner 4); died at 691; 133.1 game minutes
+not survived (stop death), 133 game min (loop.first_world_age)
+drink: sent 0, done 0, stat fell None
+eat: sent 0, done 0, stat fell None
+unknown consumes (no valid use): 0; frame time base t_loop0_ms
+sleep: sent 0, done 0, slept 0.0 h, fatigue fell None
+fights: 19 (ended 19, fled 17, stand-offs 0)
+fights_resolved: unresolved 0
+load: max ratio 0.356, guard drops 0, flee drops 0
+cost p50 0.000 ms, p99 2.000 ms, max 3.000 ms, over5 423
+death (signal event) explained by the frames: first wound seq 4272, window 2916 frames: None
+wounds: 586 real over 5003 kept frames (the old reading counted 586), first seq 4272
+care: bandage sent 1 done 1 (parts {'9': 1}, dirty 0), rip done 0 (0 rags), wash done 0 (0 water)
+fill: sent 0 done 0, tainted 0, fills []
+stance: aim sent 31 done 17 failed 14 (held 17, released 0, target dead 0), 658 of 5003 kept frames aiming; standing fights 3 {'kill': 2, 'flee': 1, 'fallback': 0, 'none': 0, 'stagger_inferred': 0}
+climb: sent 0 done 0 fell 0 failed 0 wounds 0; need chain: drinks 0 (stat fell None), fills 0, containers looted 2
+kills: per fight [1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; standing fights 3 with 4 kills (1.33 per fight); planner ids [16288, 16324, 16320, 16322]
+stance held: 2055 of 2057 ticks over 17 aim legs (17 with the field), ratio 1.00; kept frames: 658 aiming, 498 forceAim of 5003
+bandages: riding sent 0 done 0 (walking 0) failed 0 (stopped 0) rejected 0, parts {}; standing sent 1 done 1 failed 0
+care yield: 1 care actions, 1 fights ended by the care; decision log: 0 yields (0 riding), 6 dead skips of 2 ids
+glides (an inference, never a trip): 0 over 0.00 tiles in the kept frames: []
+frames: state_logs (5003 frames, files ['state.log'])
+engage: 10 fights, 8 sought (108 sought lines); 65 seek lines (legs {'walkTo': {'walk': 1}, 'aim': 17, 'other': 0}, 1.00 walk share); 6 flee turns to fight; flees {'many': 49, 'flip': 12, 'held': 3, 'health': 116}; many by listed count 3 lines (max 4)
+destinations: 294 walks, by kind {'building': 43, 'cluster': 251, 'other': 0}, farthest 39.22 tiles from a known building; ok
+doors: 0 marked stuck [], 0 tried while marked, loots routed around to buildings []
+loot: 7 sent, 4 done, 3 failed; by kind {'container': {'done': 2, 'failed': 2}, 'food': {'done': 1, 'failed': 1}, 'bandage': {'done': 1, 'failed': 0}}; failures {'not adjacent': 2, 'no match': 1}
+{
+ "care": {
+  "bandage": {
+   "by_part": {
+    "9": 1
+   },
+   "dirty": 0,
+   "done": 1,
+   "failed": 0,
+   "sent": 1
+  },
+  "climb": {
+   "done": 0,
+   "failed": 0,
+   "fell": 0,
+   "sent": 0,
+   "tall": 0,
+   "wounds": 0
+  },
+  "fill": {
+   "done": 0,
+   "fills": [],
+   "sent": 0,
+   "tainted": 0
+  },
+  "loot": {
+   "containers": 2,
+   "containers_moved": 5,
+   "done": 4,
+   "sent": 7
+  },
+  "need_chain": {
+   "containers_looted": 2,
+   "drink_done": 0,
+   "drink_stat_fell": null,
+   "fills_done": 0
+  },
+  "rip": {
+   "dirty_rags": 0,
+   "done": 0,
+   "rags": 0,
+   "sent": 0
+  },
+  "stance": {
+   "aim_done": 17,
+   "aim_failed": 14,
+   "aim_sent": 31,
+   "frames": 5003,
+   "frames_aiming": 658,
+   "held_at_end": 17,
+   "moved": 19.095543585281103,
+   "released": 0,
+   "target_dead": 0
+  },
+  "standing": {
+   "n": 3,
+   "outcomes": {
+    "fallback": 0,
+    "flee": 1,
+    "kill": 2,
+    "none": 0,
+    "stagger_inferred": 0
+   },
+   "rows": [
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "attack",
+      "attack",
+      "attack",
+      "scan"
+     ],
+     "aim_states": [
+      "done",
+      "failed"
+     ],
+     "fight": 0,
+     "outcome": "kill"
+    },
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "steer",
+      "scan"
+     ],
+     "aim_states": [
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "failed"
+     ],
+     "fight": 1,
+     "outcome": "flee"
+    },
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "attack",
+      "attack",
+      "attack",
+      "attack",
+      "attack",
+      "aim",
+      "attack",
+      "attack",
+      "attack",
+      "attack",
+      "attack",
+      "aim",
+      "aim",
+      "aim",
+      "attack",
+      "attack",
+      "attack",
+      "scan"
+     ],
+     "aim_states": [
+      "failed",
+      "failed",
+      "failed",
+      "done",
+      "done",
+      "failed"
+     ],
+     "fight": 2,
+     "outcome": "kill"
+    }
+   ]
+  },
+  "wash": {
+   "done": 0,
+   "sent": 0,
+   "water": 0
+  }
+ },
+ "cost": {
+  "max": 3,
+  "over5": 423,
+  "p50": 0,
+  "p99": 2
+ },
+ "death": {
+  "check": {
+   "diff": 68.51971152983606,
+   "explained": true,
+   "explained_by": "wound",
+   "frames_n": 2916,
+   "frames_window_ms": {
+    "from": 1793310290452,
+    "to": 1793310581951
+   },
+   "health_fall": 100.0,
+   "server_amount": 31.48028847016394,
+   "server_n": 3229,
+   "server_tags": {
+    "BLEEDING": 31.48028847016394
+   },
+   "server_window_ms": {
+    "from": 1793310290452,
+    "rule": "from < wall <= to",
+    "to": 1793310581951
+   },
+   "signal": "event",
+   "tagged": {
+    "explained": false,
+    "why": "the fall 100.0 and the server's 31.48028847016394 differ by more than 0.1 of it"
+   },
+   "tol": 0.1,
+   "why": null,
+   "wound": {
+    "danger_r": 6.0,
+    "explained": true,
+    "fall_seq": 4272,
+    "frame_seq": 4272,
+    "gameMin": 613,
+    "wallMs": 1793310290557,
+    "what": "bleeding 0 -> 1",
+    "why": null,
+    "wound_health": 68.51971152983606,
+    "zombie": {
+     "dist": 0.5036951850241412,
+     "id": 16326,
+     "seq": 4272
+    }
+   }
+  },
+  "explained": true,
+  "first_wound_seq": 4272,
+  "window_frames": 2916,
+  "window_frames_n": 2916,
+  "window_truncated": false
+ },
+ "destinations": {
+  "by_branch": {
+   "goal": {
+    "building": 43,
+    "cluster": 251,
+    "other": 0
+   }
+  },
+  "by_kind": {
+   "building": 43,
+   "cluster": 251,
+   "other": 0
+  },
+  "farthest": 39.21734310225516,
+  "off_building": [],
+  "ok": true,
+  "read": true,
+  "walks": 294
+ },
+ "doors": {
+  "marks": [],
+  "ok": true,
+  "read": true,
+  "routes_around": [],
+  "tried_marked": 0
+ },
+ "engage": {
+  "fight_lines": 186,
+  "fights": 10,
+  "fights_sought": 8,
+  "flee_turns": 6,
+  "flees": {
+   "flip": 12,
+   "health": 116,
+   "held": 3,
+   "many": 49
+  },
+  "lines": 969,
+  "many_listed_lines": 3,
+  "many_listed_max": 4,
+  "read": true,
+  "seek_legs": {
+   "aim": 17,
+   "other": 0,
+   "walkTo": {
+    "walk": 1
+   }
+  },
+  "seek_lines": 65,
+  "seek_walk_share": 1.0,
+  "sought_lines": 108
+ },
+ "fights": {
+  "ended": 19,
+  "fled": 17,
+  "n": 19,
+  "stand_offs": 0
+ },
+ "fights_unresolved": 0,
+ "frames_files": [
+  "state.log"
+ ],
+ "frames_n": 5003,
+ "frames_source": "state_logs",
+ "game_minutes": 133.0609130859375,
+ "glides": {
+  "base": "t_loop0_ms",
+  "rows": [],
+  "runs": 0,
+  "tiles": 0
+ },
+ "grade": "grade_e5",
+ "kills": {
+  "died": true,
+  "died_at": 691,
+  "engine": 4,
+  "per_fight": [
+   1,
+   0,
+   3,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "per_standing_fight": 1.3333333333333333,
+  "planner": 4,
+  "planner_ids": [
+   16288,
+   16324,
+   16320,
+   16322
+  ],
+  "standing_fights": 3,
+  "standing_kills": 4
+ },
+ "lineage": null,
+ "lineage_source": null,
+ "load": {
+  "flee_drops": 0,
+  "guard_drops": 0,
+  "max_ratio": 0.3561110496520996
+ },
+ "loot": {
+  "by_kind": {
+   "bandage": {
+    "done": 1,
+    "failed": 0
+   },
+   "container": {
+    "done": 2,
+    "failed": 2
+   },
+   "food": {
+    "done": 1,
+    "failed": 1
+   }
+  },
+  "done": 4,
+  "failed": 3,
+  "failed_reasons": {
+   "no match": 1,
+   "not adjacent": 2
+  },
+  "sent": 7
+ },
+ "minutes_source": "loop.first_world_age",
+ "needs": {
+  "drink": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "eat": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "sleep": {
+   "done": 0,
+   "fatigue_fell": null,
+   "sent": 0,
+   "sleptH": 0
+  },
+  "time_base": "t_loop0_ms",
+  "unknown": 0
+ },
+ "report_lines": [
+  "kills 4 (engine 4, planner 4); died at 691; 133.1 game minutes",
+  "not survived (stop death), 133 game min (loop.first_world_age)",
+  "drink: sent 0, done 0, stat fell None",
+  "eat: sent 0, done 0, stat fell None",
+  "unknown consumes (no valid use): 0; frame time base t_loop0_ms",
+  "sleep: sent 0, done 0, slept 0.0 h, fatigue fell None",
+  "fights: 19 (ended 19, fled 17, stand-offs 0)",
+  "fights_resolved: unresolved 0",
+  "load: max ratio 0.356, guard drops 0, flee drops 0",
+  "cost p50 0.000 ms, p99 2.000 ms, max 3.000 ms, over5 423",
+  "death (signal event) explained by the frames: first wound seq 4272, window 2916 frames: None",
+  "wounds: 586 real over 5003 kept frames (the old reading counted 586), first seq 4272",
+  "care: bandage sent 1 done 1 (parts {'9': 1}, dirty 0), rip done 0 (0 rags), wash done 0 (0 water)",
+  "fill: sent 0 done 0, tainted 0, fills []",
+  "stance: aim sent 31 done 17 failed 14 (held 17, released 0, target dead 0), 658 of 5003 kept frames aiming; standing fights 3 {'kill': 2, 'flee': 1, 'fallback': 0, 'none': 0, 'stagger_inferred': 0}",
+  "climb: sent 0 done 0 fell 0 failed 0 wounds 0; need chain: drinks 0 (stat fell None), fills 0, containers looted 2",
+  "kills: per fight [1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; standing fights 3 with 4 kills (1.33 per fight); planner ids [16288, 16324, 16320, 16322]",
+  "stance held: 2055 of 2057 ticks over 17 aim legs (17 with the field), ratio 1.00; kept frames: 658 aiming, 498 forceAim of 5003",
+  "bandages: riding sent 0 done 0 (walking 0) failed 0 (stopped 0) rejected 0, parts {}; standing sent 1 done 1 failed 0",
+  "care yield: 1 care actions, 1 fights ended by the care; decision log: 0 yields (0 riding), 6 dead skips of 2 ids",
+  "glides (an inference, never a trip): 0 over 0.00 tiles in the kept frames: []",
+  "frames: state_logs (5003 frames, files ['state.log'])",
+  "engage: 10 fights, 8 sought (108 sought lines); 65 seek lines (legs {'walkTo': {'walk': 1}, 'aim': 17, 'other': 0}, 1.00 walk share); 6 flee turns to fight; flees {'many': 49, 'flip': 12, 'held': 3, 'health': 116}; many by listed count 3 lines (max 4)",
+  "destinations: 294 walks, by kind {'building': 43, 'cluster': 251, 'other': 0}, farthest 39.22 tiles from a known building; ok",
+  "doors: 0 marked stuck [], 0 tried while marked, loots routed around to buildings []",
+  "loot: 7 sent, 4 done, 3 failed; by kind {'container': {'done': 2, 'failed': 2}, 'food': {'done': 1, 'failed': 1}, 'bandage': {'done': 1, 'failed': 0}}; failures {'not adjacent': 2, 'no match': 1}"
+ ],
+ "ride": {
+  "riding": {
+   "by_part": {},
+   "done": 0,
+   "failed": 0,
+   "rejected": 0,
+   "sent": 0,
+   "stopped": 0,
+   "walking": 0
+  },
+  "standing": {
+   "done": 1,
+   "failed": 0,
+   "sent": 1
+  }
+ },
+ "run_id": "e_day_8-20261029-174023",
+ "session_key": "e_day_8",
+ "stance_held": {
+  "frames": 5003,
+  "frames_aiming": 658,
+  "frames_force_aim": 498,
+  "held_frames": 2055,
+  "legs": 17,
+  "per_leg": [
+   {
+    "aid": "a19",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a26",
+    "heldFrames": 120,
+    "ticks": 121
+   },
+   {
+    "aid": "a27",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a28",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a29",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a30",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a31",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a32",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a33",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a44",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a58",
+    "heldFrames": 120,
+    "ticks": 121
+   },
+   {
+    "aid": "a59",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a76",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a85",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a88",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a93",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a99",
+    "heldFrames": 121,
+    "ticks": 121
+   }
+  ],
+  "ratio": 0.9990277102576568,
+  "ticks": 2057,
+  "with_field": 17
+ },
+ "stop": {
+  "detail": "event death seq 9061 via isDead body.health 0",
+  "reason": "death"
+ },
+ "survived": false,
+ "wounds": {
+  "first_seq": 4272,
+  "frames": 5003,
+  "listed": 586,
+  "real": 586
+ },
+ "yields": {
+  "care_actions": 1,
+  "fights_ended_by_care": 1,
+  "log": {
+   "care_rides": 0,
+   "care_yields": 0,
+   "dead_ids": [
+    16324,
+    16320
+   ],
+   "dead_skips": 6,
+   "kill_lines": 4,
+   "lines": 969
+  }
+ }
+}
