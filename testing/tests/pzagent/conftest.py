@@ -424,6 +424,14 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g._wears = wears
     g.ISWearClothing = J(new=lambda cls, p, item, t=None: wears.append((p, item, t)) or J(
         Type="ISWearClothing", item=item))
+    # PZA/1.6's window: ISClimbThroughWindow:new(character, item, time) and ISSmashWindow:new(character, window)
+    # record into g._windows as ("climb", p, item, time) and ("smash", p, window)
+    windows = []
+    g._windows = windows
+    g.ISClimbThroughWindow = J(new=lambda cls, p, item, t=None: windows.append(("climb", p, item, t)) or J(
+        Type="ISClimbThroughWindow", item=item))
+    g.ISSmashWindow = J(new=lambda cls, p, w, part=None: windows.append(("smash", p, w)) or J(
+        Type="ISSmashWindow", window=w))
     g.ItemTag = J(RIP_CLOTHING_COTTON="RIP_CLOTHING_COTTON", RIP_CLOTHING_DENIM="RIP_CLOTHING_DENIM",
                   RIP_CLOTHING_LEATHER="RIP_CLOTHING_LEATHER")
     equips = []

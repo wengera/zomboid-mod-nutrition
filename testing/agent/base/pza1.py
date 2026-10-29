@@ -61,8 +61,8 @@ SHAPES = {
     "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None), "water": ("rec", "water")},
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
-REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming"))
-ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear")
+REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window"))
+ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
     "walkTo": {"x": "float", "y": "float", "gait": "gait"},
@@ -83,6 +83,7 @@ ACTION_ARGS = {
     "wash": {"itemId": "int", "x": "int", "y": "int"},
     "fill": {"itemId": "int", "x": "int", "y": "int"},
     "wear": {"itemId": "int"},
+    "window": {"x": "int", "y": "int", "smash": "bool"},
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
@@ -428,3 +429,12 @@ class Wear(_Cmd):
     """Put on a held garment (an item whose use is clothing) at its body location, as vanilla's Wear does (ISWearClothing, 50 ticks; a garment in a bag is moved out first): it replaces the item worn there. Refused worn when it is worn already, busy in a hit reaction or a swing, not valid for an item that is not Clothing or has no body location."""
     TYPE: ClassVar[str] = "wear"
     itemId: int  # The garment's id.
+
+
+@dataclasses.dataclass(frozen=True)
+class Window(_Cmd):
+    """Climb through the window on a square (vanilla's ISClimbThroughWindow after a walk to the near side): an open or smashed one at once, a shut one opened first (ISOpenCloseWindow: a locked one opens from inside, struggles from outside and may lock for good, then fails locked) or, with smash true, smashed when it will not open (ISSmashWindow). Rejected not a window, locked (barricaded, or perma-locked without smash) or not valid (open but the far side cannot be stood on); failed fell on a fall, failed when the climb ended on the near side."""
+    TYPE: ClassVar[str] = "window"
+    x: int  # The window square's x (the square whose window record the map reads; the window sits on its north or west edge).
+    y: int  # The window square's y.
+    smash: bool = False  # True to smash the window when it will not open (perma-locked, or still shut after the open's struggle): noise, and a cut 1 time in 2 climbing through the glass; false fails locked instead.

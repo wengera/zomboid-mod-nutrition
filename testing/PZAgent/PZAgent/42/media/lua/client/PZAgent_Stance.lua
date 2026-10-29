@@ -380,3 +380,216 @@ K.types.climb = {
         return nil
     end,
 }
+
+-- ---- window {x, y, smash} (PZA/1.6, Task 9 fix 9; jar-reads-2 section 10) ---------------------------------------------
+-- The window on square (x, y), climbed through as vanilla's context menu does it (ISWorldObjectContextMenu.
+-- onClimbThroughWindow: a walk next to the window, then ISTimedActionQueue.add(ISClimbThroughWindow:new(playerObj,
+-- window, 0)), lua:client/ISUI/ISWorldObjectContextMenu.lua:2355-2365), opened first (onOpenCloseWindow, :2279-2287,
+-- ISOpenCloseWindow:new(playerObj, window)) or smashed first (onSmashWindow, :2367-2372, ISSmashWindow:new(playerObj,
+-- window)) when it is shut. The jar: IsoWindow.canClimbThrough @0-@94 L1379-L1399 is false while it is invincible or
+-- barricaded or the far square cannot be stood on (canClimbThroughHelper: solid, water, no floor), else true when it is
+-- open or destroyed (health 0 or the destroyed flag; isSmashed and isDestroyed both read that flag, @0-@4 L1211, L404);
+-- a locked window opens from inside, and from an exterior square each try may break its lock (1 in 10, 1 in 20 for a
+-- Burglar: perma-locked, never to open) or force it by Strength (OpenWindowState.onAttemptFinished @46-@292
+-- L185-L222); climbing through a destroyed window whose glass was not removed cuts a hand or forearm 1 time in 2
+-- (ClimbThroughWindowState.getClimbThroughWindowPositioningParams @36-@65 L624-L625, then setScratchedWindow in execute
+-- @775-@815 L217-L221, which does nothing on a client: BodyDamage.setScratchedWindow @0-@7 L1944-L1945); a smash with
+-- no weapon in either hand scratches the smasher (ISSmashWindow:complete, lua:shared/TimedActions/ISSmashWindow.lua:46-
+-- 58, server side).
+-- check: x, y numbers (floored), smash absent or a boolean (else bad args); the square on the player's floor (no
+-- square); on it an IsoWindow, else a thumpable window (IsoThumpable reading isWindow) or an IsoWindowFrame (not a
+-- window); a barricaded one, a perma-locked shut one without smash, or a non-IsoWindow that canClimbThrough(p) refuses,
+-- is rejected locked, and an IsoWindow open or smashed that it refuses (the far side) not valid. The edge is the window's: north when getNorth() reads true (the window sits on its square's north
+-- edge, else its west edge), the climb's sideOf, nearOf and across. The first tick: the vanilla queue cleared, the run
+-- latches off, the player's side recorded, a vanilla walk to the near square when it stands elsewhere (no square, no
+-- path), then the first step queued behind it: the climb when canClimbThrough(p) reads true, else (an IsoWindow) the
+-- open unless it reads perma-locked, else the smash when smash is true, else failed locked. Each step is timed from
+-- the tick its action leaves the vanilla queue (a walk before it runs first), and an open or a smash whose action left
+-- the queue with the player more than one square from the near square fails not adjacent. The open: canClimbThrough(p)
+-- reading true queues the climb (opened); an open that reads true while the far side refuses fails not valid;
+-- perma-locked, or WINDOW_OPEN_MS without opening (a locked window's struggle), queues the smash when smash is true (the
+-- queue cleared first), else fails locked. The smash: isSmashed() reading true queues the climb (smashed),
+-- WINDOW_SMASH_MS without it fails interrupted. The climb: getVariableString("ClimbWindowOutcome") reading fall,
+-- fallback or fallfront, or the floor changing, marks a fall; the player across the edge within one square of the far
+-- square ends it, failed fell after a fall, else done {smashed, opened, cut (the climb's wounds above 0), wounds (the
+-- rise in getNumPartsScratched + getNumPartsBleeding since the climb was queued)}; its action gone from the queue
+-- WINDOW_SETTLE_MS with the player on the near side, failed. WINDOW_MS after the first tick, interrupted.
+-- Appended here (the file's climb helpers are its locals); the stance is released by K.start's wrapper above.
+K.WINDOW_OPEN_MS = 15000    -- an open still shut this long after its action left the queue ends the open
+K.WINDOW_SMASH_MS = 6000    -- a smash whose window still reads whole this long after its action left the queue fails
+K.WINDOW_SETTLE_MS = 4000   -- the climb's state plays on after its action leaves the queue; past this, a near side fails
+K.WINDOW_MS = 60000         -- a window not climbed within this wall time of the first tick is interrupted
+local FALLS = { fall = true, fallback = true, fallfront = true }
+
+-- the square's window: its IsoWindow, else a thumpable window or an IsoWindowFrame, and which ("window" or "other")
+local function windowOn(sq)
+    local other = nil
+    local objs = W.objectsOn(sq)
+    for _, o in ipairs(objs) do
+        if W.isA(o, "IsoWindow") then return o, "window" end
+        if other == nil and (W.isA(o, "IsoWindowFrame") or W.kindOf(o) == "window") then other = o end
+    end
+    if other ~= nil then return other, "other" end
+    return nil, nil
+end
+
+local function reads(o, member, ...)
+    local _, v = PZA.call(o, member, ...)
+    return v == true
+end
+
+local function climbable(st, p) return reads(st.win, "canClimbThrough", p) end
+
+-- the edge the window sits on: north when getNorth() (else isNorth()) reads true
+local function windowNorth(win)
+    local ok, n = PZA.call(win, "getNorth")
+    if not ok then
+        local _, m = PZA.call(win, "isNorth")
+        n = m
+    end
+    return n == true
+end
+
+-- the next step after the window read shut: the open, the smash, or nil when none is left
+local function shutStep(st)
+    if st.kind == "window" and not st.triedOpen and not reads(st.win, "isPermaLocked") then return "open" end
+    if st.kind == "window" and st.smash and not st.triedSmash then return "smash" end
+    return nil
+end
+
+-- queues one step's action behind whatever the queue holds: nil, or the failure reason
+local function queueStep(p, st, step)
+    local ok, why, action
+    if step == "climb" then
+        ok, why, action = K.queueAction(ISClimbThroughWindow, "not valid", nil, p, st.win, 0)
+        if ok then st.wounds0 = woundCount(p) end
+    elseif step == "open" then
+        ok, why, action = K.queueAction(ISOpenCloseWindow, "not valid", nil, p, st.win)
+        st.triedOpen = true
+    else
+        ok, why, action = K.queueAction(ISSmashWindow, "not valid", nil, p, st.win)
+        st.triedSmash = true
+    end
+    if not ok then return why end
+    st.step, st.action, st.leftAt = step, action, nil
+    return nil
+end
+
+-- the first tick: the walk to the near square (when needed) and the first step queued behind it; nil, or the reason
+local function windowFirst(p, st)
+    local px, py, pz = posOf(p, true)
+    if px == nil or py == nil then return "not loaded" end
+    clearQueue(p)
+    MO.want("walk")
+    PZA.call(p, "setForceRun", false)
+    PZA.call(p, "setForceSprint", false)
+    st.side0, st.z0, st.startAt = sideOf(st, px, py), pz, PZA.now()
+    local nx, ny = nearOf(st, st.side0)
+    st.nx, st.ny = nx, ny
+    if math.floor(px) ~= nx or math.floor(py) ~= ny then
+        local nsq = K.squareAt(nx, ny, st.z)
+        if nsq == nil then return "no square" end
+        if not K.queueWalk(p, nsq) then return "no path" end
+    end
+    if climbable(st, p) then return queueStep(p, st, "climb") end
+    local step = shutStep(st)
+    if step == nil then return "locked" end
+    return queueStep(p, st, step)
+end
+
+-- the player stands within one square of the near square
+local function atNear(st, px, py)
+    if px == nil or py == nil then return false end
+    return math.max(math.abs(math.floor(px) - st.nx), math.abs(math.floor(py) - st.ny)) <= 1
+end
+
+-- the next step queued after an open or a smash: nil, or the skill's end
+local function thenStep(p, st, step)
+    local why = queueStep(p, st, step)
+    if why ~= nil then return "failed", why end
+    return nil
+end
+
+-- an open or a smash step after its action left the queue: nil while it waits, else the skill's end
+local function shutTick(p, st, now)
+    if st.step == "smash" then
+        if reads(st.win, "isSmashed") then
+            st.smashed = true
+            return thenStep(p, st, "climb")
+        end
+        if now - st.leftAt >= K.WINDOW_SMASH_MS then return "failed", "interrupted" end
+        return nil
+    end
+    if climbable(st, p) then
+        st.opened = true
+        return thenStep(p, st, "climb")
+    end
+    if reads(st.win, "IsOpen") then return "failed", "not valid" end
+    if reads(st.win, "isPermaLocked") or now - st.leftAt >= K.WINDOW_OPEN_MS then
+        local step = shutStep(st)
+        if step == nil then return "failed", "locked" end
+        clearQueue(p)
+        return thenStep(p, st, step)
+    end
+    return nil
+end
+
+-- the climb step: nil while it runs, else the skill's end
+local function climbTick(p, st, now)
+    local _, oc = PZA.call(p, "getVariableString", "ClimbWindowOutcome")
+    if oc ~= nil and FALLS[oc] then st.fell = true end
+    local px, py, pz = posOf(p, true)
+    if pz ~= nil and st.z0 ~= nil and pz ~= st.z0 then st.fell = true end
+    if px ~= nil and py ~= nil and across(st, px, py) then
+        if st.fell then return "failed", "fell" end
+        local wounds = math.max(0, woundCount(p) - (st.wounds0 or 0))
+        return "done", { smashed = st.smashed, opened = st.opened, cut = wounds > 0, wounds = wounds }
+    end
+    if st.leftAt ~= nil and now - st.leftAt >= K.WINDOW_SETTLE_MS then
+        if st.fell then return "failed", "fell" end
+        return "failed", "failed"
+    end
+    return nil
+end
+
+K.types.window = {
+    check = function(args, p)
+        local x, y, smash = args.x, args.y, args.smash
+        if type(x) ~= "number" or type(y) ~= "number" then return false, "bad args" end
+        if smash == nil then smash = false end
+        if type(smash) ~= "boolean" then return false, "bad args" end
+        x, y = math.floor(x), math.floor(y)
+        local z = K.floorOf(p)
+        local sq = K.squareAt(x, y, z)
+        if sq == nil then return false, "no square" end
+        local win, kind = windowOn(sq)
+        if win == nil then return false, "not a window" end
+        if reads(win, "isBarricaded") then return false, "locked" end
+        local st = { x = x, y = y, z = z, win = win, kind = kind, north = windowNorth(win), smash = smash,
+                     startAt = nil, smashed = false, opened = false, fell = false }
+        if not climbable(st, p) then
+            if kind ~= "window" then return false, "locked" end
+            if reads(win, "IsOpen") or reads(win, "isSmashed") then return false, "not valid" end
+            if not smash and reads(win, "isPermaLocked") then return false, "locked" end
+        end
+        return true, "", st
+    end,
+    tick = function(p, st)
+        if isDead(p) then return "failed", "dead" end
+        if st.startAt == nil then
+            local why = windowFirst(p, st)
+            if why ~= nil then return "failed", why end
+            return nil
+        end
+        local now = PZA.now()
+        if now - st.startAt >= K.WINDOW_MS then return "failed", "interrupted" end
+        if st.leftAt == nil and not inQueue(st.action) then
+            st.leftAt = now
+            local px, py = posOf(p)
+            if st.step ~= "climb" and not atNear(st, px, py) then return "failed", "not adjacent" end
+        end
+        if st.step == "climb" then return climbTick(p, st, now) end
+        if st.leftAt == nil then return nil end
+        return shutTick(p, st, now)
+    end,
+}

@@ -38,7 +38,8 @@ MAIN_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZA
 VANILLA = ("ISTimedActionQueue", "ISWalkToTimedAction", "ISOpenCloseDoor", "ISOpenCloseWindow",
            "ISInventoryTransferAction", "ISEatFoodAction", "ISDrinkFluidAction", "ISDropWorldItemAction",
            "ISEquipWeaponAction", "Vector2", "ISWorldObjectContextMenu", "UIManager", "ISClimbOverFence",
-           "ISApplyBandage", "ISWashClothing", "ISInventoryPaneContextMenu", "ISTakeWaterAction", "ISWearClothing")
+           "ISApplyBandage", "ISWashClothing", "ISInventoryPaneContextMenu", "ISTakeWaterAction", "ISWearClothing",
+           "ISClimbThroughWindow", "ISSmashWindow")
 MAIN_TYPES = ("scan", "rate")          # answered by Main, never the runner (ruling P22-5)
 PENDING_TYPES = ()                     # sleep, in the schema since PZA/1.2 (Plan 23 Task 4), got its skill in Task 8
 
@@ -62,6 +63,7 @@ VALID = {
     "wash": ("wash", {"itemId": 1003, "x": 11, "y": 20}),
     "fill": ("fill", {"itemId": 1002, "x": 11, "y": 20}),
     "wear": ("wear", {"itemId": 1005}),                 # PZA/1.6 (Task 9 fix 9)
+    "window": ("window", {"x": 11, "y": 20}),            # PZA/1.6: the shut window on the world's west edge
     "scan": ("scan", {"r": 3}),
     "rate": ("rate", {"hz": 5}),
 }
@@ -103,7 +105,10 @@ def world(g, zombie_x=11.0):
     fence = J(isHoppable=lambda s: True, isTallHoppable=lambda s: False)
     sink = J(hasWater=lambda s: True, getFluidAmount=lambda s: 10000.0, isTaintedWater=lambda s: False,
              isWaterInfinite=lambda s: True, hasFluid=lambda s: True)
-    objs = [door, J(getContainer=lambda s: box), fence, sink]
+    window = J(_cls="IsoWindow", getNorth=lambda s: False, IsOpen=lambda s: False, isSmashed=lambda s: False,
+               isLocked=lambda s: False, isPermaLocked=lambda s: False, isBarricaded=lambda s: False,
+               canClimbThrough=lambda s, p: False)               # PZA/1.6's window: shut, opens unlocked
+    objs = [door, J(getContainer=lambda s: box), fence, sink, window]
     sq = J(getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]),
            isSolid=lambda s: False, isSolidTrans=lambda s: False, getX=lambda s: 0, getY=lambda s: 0,
            getZ=lambda s: 0)
@@ -144,7 +149,7 @@ def act_lines(lua, fs):
     return out
 
 
-JUMP_MS = {"sleep": 3600001}         # sleep's budget is K.SLEEP_MS, an hour of wall
+JUMP_MS = {"sleep": 3600001, "window": 60001}   # sleep's budget is K.SLEEP_MS, an hour of wall; window's WINDOW_MS
 
 
 def drive(lua, g, p, case, ticks=400, jump_at=5):
@@ -198,13 +203,15 @@ def test_the_pcall_counter_counts_a_caught_raise():
 # held); stop's interface is done; sleep finds no setter to put the player to sleep with (not loaded); aim finds no
 # setForceAim (not loaded); climb queues its climb from the near square it stands on and never crosses, its action
 # still in the fake's queue by vanilla's hasAction (PZA/1.5.1), so its budget runs out (interrupted); the care skills
-# find no inventory (none held), wear (PZA/1.6) too
+# find no inventory (none held), wear (PZA/1.6) too; window (PZA/1.6) queues its open, which the fake queue never
+# runs, so its WINDOW_MS runs out (interrupted)
 BARE = {"walkTo": ("failed", "stuck"), "steer": ("failed", "not loaded"), "attack": ("rejected", "no weapon"),
         "open": ("failed", "locked"), "loot": ("failed", "interrupted"), "equip": ("rejected", "none held"),
         "eat": ("rejected", "none held"), "drink": ("rejected", "none held"), "drop": ("rejected", "none held"),
         "stop": ("done", ""), "sleep": ("failed", "not loaded"), "aim": ("failed", "not loaded"),
         "climb": ("failed", "interrupted"), "bandage": ("rejected", "none held"), "rip": ("rejected", "none held"),
-        "wash": ("rejected", "none held"), "fill": ("rejected", "none held"), "wear": ("rejected", "none held")}
+        "wash": ("rejected", "none held"), "fill": ("rejected", "none held"), "wear": ("rejected", "none held"),
+        "window": ("failed", "interrupted")}
 
 
 def test_the_bare_table_covers_every_skill_case():
@@ -276,13 +283,13 @@ def test_s_frame_on_a_raising_player_returns_a_frame_and_names_the_missing():
 # of reach its approach walk cannot queue, so it fails at once with the walk's reason (fix wave M5); sleep needs none (the
 # floor bed, ZombRand's midpoint, no fade) and the player stays asleep until its hour of wall runs out (interrupted);
 # aim walks its vector through the auto-walk, which needs Vector2 (not loaded); climb needs ISClimbOverFence; the care
-# skills need ISApplyBandage, OnNewCraft, ISWashClothing and ISTakeWaterAction, and wear ISWearClothing (PZA/1.6)
+# skills need ISApplyBandage, OnNewCraft, ISWashClothing and ISTakeWaterAction, and wear ISWearClothing; window's open needs ISOpenCloseWindow (PZA/1.6)
 ABSENT = {"walkTo": ("failed", "no path"), "steer": ("failed", "not loaded"), "open": ("failed", "not loaded"),
           "loot": ("failed", "not loaded"), "equip": ("failed", "not loaded"), "eat": ("failed", "not loaded"),
           "drink": ("failed", "not loaded"), "drop": ("failed", "not loaded"), "stop": ("done", ""),
           "sleep": ("failed", "interrupted"), "aim": ("failed", "not loaded"), "climb": ("failed", "not loaded"),
           "bandage": ("failed", "not loaded"), "rip": ("failed", "not loaded"), "wash": ("failed", "not loaded"),
-          "fill": ("failed", "not loaded"), "wear": ("failed", "not loaded")}
+          "fill": ("failed", "not loaded"), "wear": ("failed", "not loaded"), "window": ("failed", "not loaded")}
 
 
 @pytest.mark.parametrize("case", SKILL_CASES)

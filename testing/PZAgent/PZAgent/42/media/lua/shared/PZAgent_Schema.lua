@@ -36,7 +36,7 @@ PZA.schema = {
         water = { "amount", "tainted", "infinite" },
         square = { "x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW", "water" },
     },
-    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true, ["not a container"] = true, full = true, ["in bag"] = true, ["leg part"] = true, stopped = true, aiming = true },
+    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true, ["not a container"] = true, full = true, ["in bag"] = true, ["leg part"] = true, stopped = true, aiming = true, ["not a window"] = true },
     actions = {
         walkTo = { "x", "y", "gait" },
         steer = { "vx", "vy", "seconds", "gait" },
@@ -56,6 +56,7 @@ PZA.schema = {
         wash = { "itemId", "x", "y" },
         fill = { "itemId", "x", "y" },
         wear = { "itemId" },
+        window = { "x", "y", "smash" },
     },
     gaits = { walk = true, run = true, sprint = true },
     ikinds = { open = true, close = true, loot = true },

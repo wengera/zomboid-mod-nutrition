@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "pza1.json",
   "title": "PZA/1",
-  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges; PZA/1.3, PZAgent 1.3: the death event; PZA/1.4, PZAgent 1.4: me's attackers, hitReaction and dragDown and the square record's hopN and hopW, ruling P24-C; PZAgent 1.4.1: the item use container, appended to its enum, and water read only for drinkable water, ruling P24-F; PZA/1.5, PZAgent 1.5: the actions aim, climb, bandage, rip, wash and fill, the square record's water, me's aiming and the part record's bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep and infected, ruling P24-G; PZA/1.5.1, PZAgent 1.5.1: the item_changed event and the reason in bag, appended to their enums, Plan 24 Task 9 fix 1; PZA/1.5.3, PZAgent 1.5.3: bandage's keepMoving, its result's walking and the reasons leg part, stopped and aiming, appended to their enum, Plan 24 Task 9 fix 5, ruling P24-R; PZA/1.5.4, PZAgent 1.5.4: me's forceAim and the aim result's heldFrames and ticks, Plan 24 Task 9 fix 6, ruling P24-T; PZAgent 1.5.5: bandage's keepMoving description only, Plan 24 Task 9 fix 7; PZAgent 1.5.6: the me.forceAim and water.infinite descriptions only, Plan 24 Task 9 fix 8; PZA/1.6, PZAgent 1.6: the item use clothing and the loot filter clothing, appended to their enums, item_added's and item_changed's clothing record, me's worn, the door event's locked, the portal's locked read fail-closed, and the action wear, Plan 24 Task 9 fix 9, review-t18 ruling 5), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
+  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges; PZA/1.3, PZAgent 1.3: the death event; PZA/1.4, PZAgent 1.4: me's attackers, hitReaction and dragDown and the square record's hopN and hopW, ruling P24-C; PZAgent 1.4.1: the item use container, appended to its enum, and water read only for drinkable water, ruling P24-F; PZA/1.5, PZAgent 1.5: the actions aim, climb, bandage, rip, wash and fill, the square record's water, me's aiming and the part record's bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep and infected, ruling P24-G; PZA/1.5.1, PZAgent 1.5.1: the item_changed event and the reason in bag, appended to their enums, Plan 24 Task 9 fix 1; PZA/1.5.3, PZAgent 1.5.3: bandage's keepMoving, its result's walking and the reasons leg part, stopped and aiming, appended to their enum, Plan 24 Task 9 fix 5, ruling P24-R; PZA/1.5.4, PZAgent 1.5.4: me's forceAim and the aim result's heldFrames and ticks, Plan 24 Task 9 fix 6, ruling P24-T; PZAgent 1.5.5: bandage's keepMoving description only, Plan 24 Task 9 fix 7; PZAgent 1.5.6: the me.forceAim and water.infinite descriptions only, Plan 24 Task 9 fix 8; PZA/1.6, PZAgent 1.6: the item use clothing and the loot filter clothing, appended to their enums, item_added's and item_changed's clothing record, me's worn, the door event's locked, the portal's locked read fail-closed, and the actions wear and window with the reason not a window, Plan 24 Task 9 fix 9, review-t18 ruling 5), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
   "x-proto": "PZA/1",
   "x-kinds": ["hello", "frame", "map", "event", "act", "reply"],
   "oneOf": [
@@ -42,7 +42,7 @@
     "actionType": {
       "description": "A skill type a cmd line names. There is no look action (PZA/1.5, Plan 24 Task 6b, docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md section 6): the frames list every zombie the client's cell holds within the sense radius whatever the facing, and turning changes only what the client draws and spots.",
       "type": "string",
-      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear"]
+      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window"]
     },
     "actState": {
       "description": "A skill's lifecycle state.",
@@ -52,7 +52,7 @@
     "reason": {
       "description": "The closed set of reasons a skill is rejected or fails with.",
       "type": "string",
-      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming"]
+      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window"]
     },
     "eventKind": {
       "description": "The kind of an engine event line.",
@@ -607,7 +607,8 @@
           {"$ref": "#/$defs/result_drop"}, {"$ref": "#/$defs/result_stop"}, {"$ref": "#/$defs/result_scan"},
           {"$ref": "#/$defs/result_rate"}, {"$ref": "#/$defs/result_sleep"}, {"$ref": "#/$defs/result_aim"},
           {"$ref": "#/$defs/result_climb"}, {"$ref": "#/$defs/result_bandage"}, {"$ref": "#/$defs/result_rip"},
-          {"$ref": "#/$defs/result_wash"}, {"$ref": "#/$defs/result_fill"}, {"$ref": "#/$defs/result_wear"}]},
+          {"$ref": "#/$defs/result_wash"}, {"$ref": "#/$defs/result_fill"}, {"$ref": "#/$defs/result_wear"},
+          {"$ref": "#/$defs/result_window"}]},
         "snapshot": {"description": "The player's state when the line was written.", "$ref": "#/$defs/snapshot"}
       },
       "required": ["kind", "seq", "tick", "wallMs", "aid", "type", "state", "reason", "result", "snapshot"]
@@ -786,6 +787,18 @@
         "loc": {"description": "The body location it is worn at, its clothing record's loc.", "type": "string"},
         "replaced": {"description": "The id of the item worn at that location before, which the wear took off (now unworn in the inventory); absent when none was.", "type": "integer"},
         "moved": {"description": "True when the garment sat in a bag and the skill moved it to the main inventory first, as the context menu does; absent otherwise.", "type": "boolean"}
+      }
+    },
+    "result_window": {
+      "description": "A window's result (PZA/1.6).",
+      "x-role": "result",
+      "x-type": "window",
+      "type": "object",
+      "properties": {
+        "smashed": {"description": "Whether the skill smashed the window before the climb (smash true; a smash with no weapon in hand scratches the smasher).", "type": "boolean"},
+        "opened": {"description": "Whether the skill opened the window before the climb.", "type": "boolean"},
+        "cut": {"description": "Whether the climb wounded the player (wounds above 0): climbing through a smashed window whose glass was not removed cuts a hand or forearm 1 time in 2 (jar-reads-2 section 10; the engine's call returns at once on a client, so a cut in multiplayer is the server's to make, unread).", "type": "boolean"},
+        "wounds": {"description": "The rise in the player's scratched and bleeding part counts from the climb's queue to its end.", "type": "integer"}
       }
     },
     "result_fill": {
@@ -1044,6 +1057,19 @@
         "itemId": {"description": "The garment's id.", "type": "integer"}
       },
       "required": ["itemId"],
+      "additionalProperties": false
+    },
+    "args_window": {
+      "description": "Climb through the window on a square (vanilla's ISClimbThroughWindow after a walk to the near side): an open or smashed one at once, a shut one opened first (ISOpenCloseWindow: a locked one opens from inside, struggles from outside and may lock for good, then fails locked) or, with smash true, smashed when it will not open (ISSmashWindow). Rejected not a window, locked (barricaded, or perma-locked without smash) or not valid (open but the far side cannot be stood on); failed fell on a fall, failed when the climb ended on the near side.",
+      "x-role": "args",
+      "x-type": "window",
+      "type": "object",
+      "properties": {
+        "x": {"description": "The window square's x (the square whose window record the map reads; the window sits on its north or west edge).", "type": "integer"},
+        "y": {"description": "The window square's y.", "type": "integer"},
+        "smash": {"description": "True to smash the window when it will not open (perma-locked, or still shut after the open's struggle): noise, and a cut 1 time in 2 climbing through the glass; false fails locked instead.", "type": "boolean", "default": false}
+      },
+      "required": ["x", "y"],
       "additionalProperties": false
     }
   }

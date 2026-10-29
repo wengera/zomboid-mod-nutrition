@@ -414,5 +414,32 @@
       ],
       "additionalProperties": false
     }
+  },
+  {
+    "name": "window",
+    "description": "Climb through the window on a square (vanilla's ISClimbThroughWindow after a walk to the near side): an open or smashed one at once, a shut one opened first (ISOpenCloseWindow: a locked one opens from inside, struggles from outside and may lock for good, then fails locked) or, with smash true, smashed when it will not open (ISSmashWindow). Rejected not a window, locked (barricaded, or perma-locked without smash) or not valid (open but the far side cannot be stood on); failed fell on a fall, failed when the climb ended on the near side.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "integer",
+          "description": "The window square's x (the square whose window record the map reads; the window sits on its north or west edge)."
+        },
+        "y": {
+          "type": "integer",
+          "description": "The window square's y."
+        },
+        "smash": {
+          "type": "boolean",
+          "description": "True to smash the window when it will not open (perma-locked, or still shut after the open's struggle): noise, and a cut 1 time in 2 climbing through the glass; false fails locked instead.",
+          "default": false
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    }
   }
 ]
