@@ -36,8 +36,19 @@ LEG_FIRST; a leg part takes the standing bandage only, under the hysteresis) wit
 keepMoving=True)`, no rip; the ride is tracked by its own act lines (`ride`, `riding`): the Care is busy while it runs
 whatever was sent since (the flee's re-aims are new legs that keep it), and a ride the engine stopped (`failed
 stopped`) holds no item out.
-A garment is ripped only for a bleeding part (Task 10 fix 1, the review's major 2: ruling P24-G 2's rip is the
-wound's; a rip for stock destroyed looted clothing and, from above the need branch, superseded a running drink).
+A garment is ripped from the choose only for a bleeding part (Task 10 fix 1, the review's major 2: ruling P24-G 2's
+rip is the wound's; a rip for stock destroyed looted clothing and, from above the need branch, superseded a running
+drink). The rag stock (ruling P24-AB, Plan 24 Task 21; E8, `e_day_8-20261029-174023`: the second bite bled 73 game
+minutes to the death with no dressing held, its last 31 standing still with the only zombie idle 8.3 tiles off; Angus:
+"he will need a couple clean rags, which he can get from ripping clothes and washing the resulting rags as
+necessary"): `stock()` answers `Rip(itemId)` of the held unworn cotton garment (`_rip_item`) while fewer than
+RAG_STOCK clean dressings (`bandage` and `rag` items) are held, the build announces `rip` and no zombie is within
+DISENGAGE_R (`quiet`); Survive tries it only on an idle tick, behind the need, the load and the night and before the
+goal, with no action running (so it never supersedes a drink, a fill or a goal's walk or loot: Task 10's objection),
+its line the care branch's (`why` `stock`). `wants_dressing()`: a part bleeds, no item the bleeding step may put on
+it is held (nor a dirty rag to wash) and no garment can be ripped: Survive then marks the want `bandage`, which the
+view lists and the goal layer's loot takes first (`goals.wanted_uses`). The worn garment's unwear and rip waits for
+the Lua's unwear (PZA/1.6 has `wear` only).
 An item whose care action ended failed (never `superseded`), timed out or was rejected is left out for
 CARE_RETRY_MIN game minutes (`World.world_minutes`); a wash refused `no source` or `no water` leaves its source out
 (`World.mark_dry`, `world.SOURCE_RETRY_MIN`). A part a bandage ended `done` on is left out until a frame newer than
@@ -85,9 +96,11 @@ RIDE_R = 6.0              # tiles: a bandage rides a running flee leg only with 
 RIDE_FREE = ("stopped",)  # a ride failed so was stopped by the engine (a run, an aim, a hit): its item is not held out
 RIDE_RETRY_S = 3.0        # seconds after a stopped ride before the care rides again (Task 12 fix 2, the re-review's major
                           # 2: the same ride re-chosen at once was cooled and the tick fell through to a drink)
+RAG_STOCK = 2             # clean dressings (bandages and clean rags) the care keeps, ripping one unworn cotton garment
+                          # on an idle tick while fewer are held (ruling P24-AB; Angus: "a couple clean rags")
 
 __all__ = ["Care", "care_kind", "rippable", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
-           "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R", "RIDE_RETRY_S"]
+           "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R", "RIDE_RETRY_S", "RAG_STOCK"]
 
 
 def care_kind(full_type):
@@ -235,6 +248,33 @@ class Care(Policy):
             if rip is not None:
                 return Rip(rip), {"reason": "no_rag", "part": p["i"], "item": rip}
         return None, None
+
+    def stock(self):
+        """The rag stock's rip (ruling P24-AB, the module docstring), `(command, why)` or (None, None): fewer than
+        RAG_STOCK clean dressings held, an unworn cotton garment held, `rip` announced, `quiet`. Survive calls it only
+        on an idle tick."""
+        if not (self.quiet and self.world.can("rip")):
+            return None, None
+        items = self._items()
+        held = len(items["bandage"]) + len(items["rag"])
+        if held >= RAG_STOCK:
+            return None, None
+        rip = self._rip_item()
+        if rip is None:
+            return None, None
+        return Rip(rip), {"reason": "stock", "item": rip, "dressings": held, "stock": RAG_STOCK}
+
+    def wants_dressing(self):
+        """A part bleeds (unbandaged), `bandage` announced, and the bleeding step has nothing to put on it: no clean
+        bandage or rag, no dirty rag the time rule allows, no dirty rag to wash, no garment to rip (P24-AB: the want
+        `bandage`)."""
+        if not self.world.can("bandage"):
+            return False
+        bleeding = self._bleeding()
+        if not bleeding:
+            return False
+        items = self._items()
+        return self._wound(items, bleeding)[0] is None and not items["dirty"]
 
     def tends_wound(self):
         """The bleeding step would send now (ruling P24-P: Survive's threat branch yields to it beyond CARE_R)."""

@@ -66,7 +66,10 @@ number is refused) and raises
 `ValueError` with a one-line reason; it returns the dataclass. `EXAMPLES` holds one valid argument dict per type.
 
 `ScriptedSource` (`NAME = "scripted"`) is the old forage and explore reshaped, its order: `Stock(kind)` when the view's
-`needs_wanted` names water or food (water first) and `stock_uses` says a container answers it; `Shelter` the nearest
+`needs_wanted` names water or food (water first) and `stock_uses` says a container answers it; with `needs_wanted`
+naming `bandage` (ruling P24-AB, Plan 24 Task 21: a bleeding part with nothing to dress it), `LootBuilding` the
+nearest building within BUILDING_R whose `holds` names a bandage, not blocked (its loot takes the kit's `wants`
+first: `wanted_uses`); `Shelter` the nearest
 known building for which the view's `shelter` reads true (`night.shelter_plan` answers: rooms and an exterior door on
 the player's floor) and that is not shunned, when `want_shelter`; then ruling P24-Y's loop (Plan 24 Task 18; E7 walked
 on into the woods from game minute 622 to its cap at 786, 545 tiles from the nearest building it knew by 746; Angus:
@@ -195,12 +198,14 @@ def open_uses(world, loot, key, waiting=None):
     return out
 
 
-def wanted_uses(world):
+def wanted_uses(world, wants=()):
     """STOCK_WANTS in order, `container` left out once CONTAINERS_HELD_N or more vessels are held (`by_use()`'s
-    `water` and `container`: Task 18 fix 1, the review's major 5)."""
+    `water` and `container`: Task 18 fix 1, the review's major 5); the uses of `wants` (the kit's: the care's
+    `bandage`, ruling P24-AB) first, in their order."""
     uses = world.by_use()
     held = len(uses.get("water", ())) + len(uses.get("container", ()))
-    return tuple(u for u in STOCK_WANTS if u != "container" or held < CONTAINERS_HELD_N)
+    order = tuple(wants) + tuple(u for u in STOCK_WANTS if u not in wants)
+    return tuple(u for u in order if u != "container" or held < CONTAINERS_HELD_N)
 
 
 # ---------------------------------------------------------------- the shared machines
@@ -208,13 +213,14 @@ class Kit:
     """The machines a session's goals share: one `Explore` (its scanned places), one `LootHouse` (its pending loots,
     capped squares), `shunned` {building: world minutes}, the Shelter goals' shuns (`Night.shunned` when given, M6),
     and the woods radius (`woods_r`, `rests` the Rests in a row ended rested, `known` the buildings known when it was
-    last reset: Task 18 fix 1, ruling 3)."""
+    last reset: Task 18 fix 1, ruling 3), and `wants` (the uses a loot takes first: the care's `bandage`, P24-AB)."""
 
     def __init__(self, world=None, actions=None, clock=time.time, shunned=None):
         self.explore = Explore(world, actions, clock)
         self.loot = LootHouse(world, actions, clock)
         self.shunned = {} if shunned is None else shunned
         self.woods_r, self.rests, self.known = WOODS_R, 0, 0
+        self.wants = ()   # the uses a loot takes first (Survive's need marks, `survive.KIT_WANTS`: P24-AB)
 
     def rested(self, goal):
         """A goal ended: a Rest ended rested counts one, REST_N in a row widening the woods radius by WOODS_STEP up
@@ -504,7 +510,7 @@ class LootBuilding(_Looting, Goal):
         loot = self.kit.loot
         loot.within = self.keys(world)
         try:
-            want = next((u for u in wanted_uses(world) if loot.target(u) is not None), None)
+            want = next((u for u in wanted_uses(world, self.kit.wants) if loot.target(u) is not None), None)
             if want is not None:
                 loot.want = want
                 cmd = loot.choose()
@@ -705,6 +711,11 @@ class ScriptedSource:
                 if kind in wanted and kind in ready:
                     yield Stock(kind)
         bs = _nearest_first(view.get("buildings") or ())
+        if loot_ok and "bandage" in wanted:   # P24-AB: a wound with nothing to dress it loots a known bandage first
+            for b in bs:
+                if ((b.get("holds") or {}).get("bandage") and _num(b.get("dist")) and b["dist"] <= BUILDING_R
+                        and not b.get("blocked")):
+                    yield LootBuilding(b["id"])
         if view.get("want_shelter"):
             for b in bs:
                 if b.get("shelter") and not b.get("shunned"):

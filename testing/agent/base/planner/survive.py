@@ -294,7 +294,7 @@ from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_
                                          UNREACHABLE_S, Fight, Flee, adoptable, blocked, chasing, exit_plan,
                                          in_building, in_reach, item_id_ok, line_to, others_behind, seek_allowed,
                                          spare, target_id_ok, zdist)
-from agent.base.planner.view import view
+from agent.base.planner.view import NEED_MEMORY_S, view
 from agent.base.planner.water import FILL_RETRY_MIN, FILL_SETTLE_S, FILL_WANTS, SOURCE_FAILS, Water
 from agent.base.pza1 import Consume, Drop
 from agent.base.world import me_floor, me_xy
@@ -324,6 +324,7 @@ STUCK_RETRY_S = 2.0       # wall seconds after a stuck read before a stuck corne
 STUCK_RETRY_GROUP_S = 1.0  # ... with GROUP_R_N within CORNERED_R or GROUP_HOLD_N held, whatever the nearest reads
                           # (P24-A fix 1 (1), a ruling: F1's corner read stuck at 537 held on against four)
 BRANCHES = ("threat", "care", "need", "load", "night", "goal")
+KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
 REFUSED = "not valid"    # the reason the Lua's consume fails an item it cannot eat or drink (an empty bottle)
@@ -342,7 +343,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "DANGER_R", "DISENGAGE_R", "THIRST
            "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
            "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "NEED_STATS",
            "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
-           "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R"]
+           "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS"]
 
 
 @dataclass
@@ -1272,7 +1273,34 @@ class Survive:
         c.quiet = not self._within(DISENGAGE_R)
         cmd = c.choose()
         self.why = dict(c.why)
+        self._dressing_want(cmd is None and c.wants_dressing())
         return None if cmd is None else (c, cmd)
+
+    def _dressing_want(self, want):
+        """Ruling P24-AB: a bleeding part with nothing to dress it and no garment to rip marks the want `bandage`
+        (`need_marks`, the view's `needs_wanted`; logged `want` on the care's why), which the goal layer's loot takes
+        first (`goals.Kit.wants`); a tick of the care branch with no such want drops it."""
+        if want:
+            self.need_marks["bandage"] = self.clock()
+            self.why["want"] = "bandage"
+        else:
+            self.need_marks.pop("bandage", None)
+
+    def _care_stock(self):
+        """Ruling P24-AB, the rag stock (`Care.stock`), tried behind the need, the load and the night and before the
+        goal: only on an idle tick, no threat policy running and no action running (a drink, a fill, a goal's walk or
+        loot is never superseded: Task 10's objection), no zombie within DISENGAGE_R; its line is the care branch's,
+        the stock's why under the care's `stock`. Else None."""
+        cur = self.actions.current
+        if self.mode is not None or cur is not None:
+            return None
+        c = self.care
+        c.quiet = not self._within(DISENGAGE_R)
+        cmd, why = c.stock()
+        if cmd is None:
+            return None
+        self.why = why
+        return c, cmd
 
     def _need(self):
         if self.need_last is not None and self.actions.current is self.need_last:
@@ -1359,7 +1387,10 @@ class Survive:
 
     def _goal(self):
         """The goal runner's command (owner: the runner, which hands the sent Action to its goal); with none, a
-        running goal or a pending source (P23-AC) holds the branch, and otherwise the branch passes."""
+        running goal or a pending source (P23-AC) holds the branch, and otherwise the branch passes. The care's want
+        (`bandage`, P24-AB) within NEED_MEMORY_S is handed to the goals' kit first (`Kit.wants`: the loot's order)."""
+        now = self.clock()
+        self.goals.kit.wants = tuple(u for u in KIT_WANTS if now - self.need_marks.get(u, -math.inf) <= NEED_MEMORY_S)
         cmd = self.goals.tick(self.world, self.actions, lambda: view(self.world, self))
         self.why = dict(self.goals.why)
         if cmd is not None:
@@ -1476,6 +1507,13 @@ class Survive:
         self.need_mark = None
         branch, owner, cmd, cooled, tried = None, None, None, None, {}
         for name in BRANCHES:
+            if name == "goal":   # P24-AB: the care's rag stock on an idle tick, behind the need, before the goal
+                self.why = {}
+                ans = self._care_stock()
+                if ans is not None and not self._cooling(ans[1]):
+                    tried["care"] = dict(tried.get("care") or {}, stock=self.why)
+                    branch, (owner, cmd) = "care", ans
+                    break
             self.why = {}
             ans = getattr(self, "_" + name)()
             tried[name] = self.why

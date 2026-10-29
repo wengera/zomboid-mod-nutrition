@@ -6,7 +6,8 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   fights killed this session, ruling P24-Q, Plan 24 Task 12: the iteration's metric, told to the model), `needs {hunger, thirst, fatigue}` (`stats`),
   `load {weight, max, level}`, `weapon` (the wielded type, else None), `inventory_by_use` ({use: count} over
   `items.USES`, by `world.by_use()`).
-- `needs_wanted`: the uses (water, then food, then container, then water_source: NEED_USES) the need branch marked
+- `needs_wanted`: the uses (water, then food, then container, then water_source, then bandage: NEED_USES) the need
+  branch marked (`bandage` the care branch's, ruling P24-AB: a bleeding part with nothing to dress it)
   (nothing of the use held; `container` when no water and no vessel at all is held, the water chain's third step,
   Plan 24 Task 10, ruling P24-G 3; `water_source` when a vessel is held and no clean water source is known, ruling
   P24-L: a building's sink is the goal layer's to find) within the last NEED_MEMORY_S (120) seconds on Survive's clock
@@ -81,8 +82,8 @@ from agent.base.planner.policies import LOOT_WANTS, STUCK_REASONS, me_floor, me_
 from agent.base.world import MET_VIEW_R, compass
 
 NEED_MEMORY_S = 120.0
-NEED_USES = ("water", "food", "container", "water_source")   # the need marks the view lists, in order (P24-G 3,
-                                                              # P24-L)
+NEED_USES = ("water", "food", "container", "water_source", "bandage")   # the need marks the view lists, in order
+                                                                         # (P24-G 3, P24-L; the care's, P24-AB)
 ZOMBIE_BANDS = (6, 12, 25)
 BUILDINGS_SHOWN = 6
 RENDER_MAX = 2048
@@ -220,7 +221,8 @@ def view(world, survive):
         "edge": list(edge) if edge else None,
         "toward": _toward(world, buildings, woods_r),
         "scanned_here": kit is not None and place_of(world) in kit.explore.scanned,
-        "stock_uses": [u for u in wanted_uses(world) if kit is not None and kit.loot.target(u) is not None],
+        "stock_uses": [u for u in wanted_uses(world, kit.wants if kit is not None else ())
+                       if kit is not None and kit.loot.target(u) is not None],
         "cooled": runner.cooling() if runner is not None else [],
     }
 
