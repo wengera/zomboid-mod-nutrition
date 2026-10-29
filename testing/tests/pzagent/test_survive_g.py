@@ -1636,3 +1636,47 @@ def test_a_far_target_holds_no_stand_clock_so_no_stand_off_falls_before_it_is_in
         r.frame(zombies=[zd(1, 114.0 + k * 0.01, 200.0)])
         f.observe()
     assert f.standoff is False and f._stand is None
+
+
+# ================================================================ Task 12: no sprint anywhere (ruling P24-O)
+def test_no_policy_of_the_planner_can_emit_a_sprint():
+    """Ruling P24-O (E6: 13 sprint steers, the character tripped; a fence climb begun at a sprint rolls a trip,
+    #4296): the planner's gaits are walk and run. Every planner module is swept for the literal "sprint" as a value
+    (its docstrings and comments name the history), and the schema's gait enum keeps it (the Lua still accepts it)."""
+    import ast
+    import os
+    from agent.base import pza1
+    from agent.base.planner import goals, llm, night, view
+    assert "sprint" in pza1.GAITS
+    for mod in (P, S, C, goals, night, view, llm):
+        with open(mod.__file__, encoding="utf-8") as f:
+            tree = ast.parse(f.read())
+        hits = [n.lineno for n in ast.walk(tree) if isinstance(n, ast.Constant) and n.value == "sprint"]
+        assert hits == [], (os.path.basename(mod.__file__), hits)
+    assert P.FLEE_GAIT == "run" and not hasattr(P.Flee, "_group_sprint")
+
+
+def test_no_decision_golden_sends_a_sprint():
+    """The sweep over the six decision goldens' replays (re-recorded under P24-O where a sprint became a run)."""
+    import json
+    from agent.base import replay_decisions as R
+    for key in sorted(R.RUNS):
+        with open(R.golden_path(key), encoding="utf-8") as f:
+            gaits = {(d["action"] or {}).get("args", {}).get("gait") for d in json.load(f)["decisions"]}
+        assert "sprint" not in gaits and "run" in gaits, key
+
+
+def test_the_flees_every_leg_and_walk_runs(tmp_path):
+    """A melee zombie at 0.5 tiles (once a sprint within SPRINT_R), a `many` group at full endurance (once the group
+    sprint) and the group's exit on a room square (once at a sprint): every one at a run."""
+    from .test_survive import many_yard
+    r = Rig(tmp_path)
+    r.frame(zombies=[zombie(1, 100.5, 200.0), zombie(2, 105.0, 200.0)])
+    P.Flee(r.world, r.acts, r.clock).step()
+    assert r.cmd()[0] == "steer" and r.cmd()[1]["gait"] == "run"
+    (tmp_path / "m").mkdir()
+    r2, sv2 = make(tmp_path / "m")
+    many_yard(r2, endurance=1.0)
+    tick(r2, sv2)
+    assert threat_why(tmp_path / "m")["flee"] == "many" and r2.cmd()[1]["gait"] == "run"
+    assert all(a.args.get("gait") != "sprint" for a in r.acts.history + r2.acts.history)

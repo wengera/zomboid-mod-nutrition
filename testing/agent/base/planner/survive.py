@@ -92,8 +92,7 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      the tie).
   2. A shelter step's walk that stands WALK_STALL_S with a held threat within DANGER_R is dropped (`policies.Flee`,
      `ended` `stalled`): the plan for the episode, the steer at once.
-  3. A `many` flee beyond SPRINT_R steers and walks its shelter steps at a sprint while the frame's endurance reads
-     above SPRINT_END (`Flee.many`, `policies.Flee._group_sprint`).
+  3. (A `many` flee sprinted while the endurance allowed; ruling P24-O removed it with every sprint: the flee runs.)
   4. GROUP_R_N (3) or more held within CORNERED_R after a steer leg that moved are steered from, not cornered
      (`group_steer`, `Flee.steer_now`, on a room square too); after a stuck leg, or against one or two, the corner
      stands.
@@ -129,13 +128,13 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   (d) The cornered Fight's point-blank re-pin goes only while its pin stands beyond POINT_BLANK_R
       (`Fight._repin_point_blank`).
   (e) No approach walk at point blank: within POINT_BLANK_R the Fight clears the flag and attacks.
-  (f) On a room square the group's flee never steers: the running exit (re-sent at a sprint), else a new one at a
-      sprint, else the adoption, else the trapped hold, the next tick's corner (`Flee.choose`, `Flee.give_way`).
+  (f) On a room square the group's flee never steers: the running exit, else a new one, else the adoption, else
+      the trapped hold, the next tick's corner (`Flee.choose`, `Flee.give_way`); P24-O runs the exit, never sprints.
   (g) `corner_kind` is logged beside `cornered`; each policy's `observe` runs once a tick (`_observe`), the Flee's
       over this tick's held records, and the breach once (`_threat` is the bookkeeping, `_decide` the decision a
       corner's retarget re-plans); WALK_STALL_S and STUCK_NEAR_R (`policies`) name the merged and the split constants.
   (h) The drag-down guard (#4290, #4291; `_drag`): with the frame's `me.attackers` at DRAG_DOWN_N - 1 (2) or more,
-      first of every row, the fight or corner of any kind ends for the group sprint (`group` "drag"; inside, the exit
+      first of every row, the fight or corner of any kind ends for the group's flee (`group` "drag"; inside, the exit
       by (f)), except on a room square with no way out and nothing to adopt, where no leg exists and the corner swings.
   (i) No attack in a hit reaction (#4292, #4293): while the frame's `me.hitReaction` names one the Fight sends
       nothing (logged `hitReaction`) and attacks on the first frame after it clears; a running attack holds anyway.
@@ -281,7 +280,7 @@ CORNER_FREE_R = DISENGAGE_R / 2   # tiles: a stuck leg's corner ends once the ne
 MANY_LISTED_N = 4         # zombies listed within LISTED_R that make `many` whatever the DANGER_R count (P24-A (a):
                           # E5's group of five to seven was listed at 12 tiles while the branch counted within 6, #4268)
 DRAG_DOWN_N = 3           # attackers the drag-down kills at (#4290, #4291: the fixture's sandbox Strength 2; two at
-                          # Strength 1): at DRAG_DOWN_N - 1 the branch leaves any fight for the group sprint (P24-A (h))
+                          # Strength 1): at DRAG_DOWN_N - 1 the branch leaves any fight for the group's flee (P24-A (h))
 FLIP_MIN_S = 5.0          # wall seconds a flee walk runs before a fight's walk may supersede it (P23-AM 1)
 GROUP_R_N = 3             # zombies within GROUP_NEAR_R that make a group: steered from, not cornered (P23-AM 4, AP 2)
 GROUP_NEAR_R = 3.0        # tiles: ... (P23-AP 2: a third zombie this near; P23-AM 4 read 1.5, CORNERED_R)
@@ -695,7 +694,7 @@ class Survive:
         one or two zombies held 35 ticks while the group formed outside 1.5 tiles, the held count rising from three to
         six): with a group (`_group`: GROUP_HOLD_N held, or GROUP_R_N within GROUP_NEAR_R) and the last leg not stuck,
         no corner, and a running corner not taken `stuck` ends (fix round 1, G1: E3's group came one at a time onto a
-        `walk` corner): `group_steer`, the flee steers (sprints) while a leg can move, until one ends stuck. A
+        `walk` corner): `group_steer`, the flee steers (runs, P24-O) while a leg can move, until one ends stuck. A
         `stuck` corner keeps swinging against the group, re-tested every tick: with the nearest beyond POINT_BLANK_R
         and its stuck read STUCK_RETRY_S old, it ends for one steer leg (`group_steer` "retry"; that leg read stuck in
         turn is a new `stuck` corner). Fix round 1: on a room square with no way out (`_trapped`, R3) no group is read:
@@ -754,7 +753,7 @@ class Survive:
         if nearest > CORNERED_R or not reach:
             return None
         if group and not stuck:
-            self.group_steer = group   # P23-AM 4: against a group the branch steers (sprints) until a leg ends stuck
+            self.group_steer = group   # P23-AM 4: against a group the branch steers (runs) until a leg ends stuck
             return None
         if not (stuck or inside) and self._walk_yields():   # P24-A (c): no `walk` corner under the health or many flee
             self.corner_yield = self._walk_yields()
@@ -811,7 +810,7 @@ class Survive:
     def _threat_plan(self, held, breach):
         """The threat branch's one decision (ruling P23-AJ), `(kind, reason)`, the machines only executing it:
         - The drag-down guard (ruling P24-A (h), `_drag`): `flee` with the group steer (`group` "drag"), ahead of
-          every other row; the Flee sprints, or inside walks the exit (P24-A (f)).
+          every other row; the Flee steers at a run, or inside walks the exit (P24-A (f), P24-O).
         - `door`: sheltered (a chosen shelter's plan done, the character inside) with a reachable held threat in its
           doorway or inside it: the door fight (I3). It goes first, before the corner and before the inside hold
           (a decision-order change from 21e3716b, which held first; ruled at fix round 1, the review's M1: a threat
@@ -956,7 +955,7 @@ class Survive:
             self.flee_many = self.flee_many or reason == "many"
             policy.threats = held
             policy.hold_ok = breach is None
-            policy.many, policy.steer_now = self.flee_many, self.group_steer is not None
+            policy.steer_now = self.group_steer is not None
             if self.group_steer:
                 policy.give_way()   # amendment 6: the group pre-empts a running walk, as the corner does
             if self.group_steer == "drag":

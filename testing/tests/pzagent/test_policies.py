@@ -346,7 +346,7 @@ def test_a_leg_points_away_from_the_nearer_threat_where_the_centroid_would_not(t
     n = n0
     assert args["vx"] * 1.0 + args["vy"] * 1.0 < 0.0             # away from the nearer threat at (+1, +1)
     assert (1.0 * 1.0 + -0.5 * 1.0) > 0.0                        # the centroid's leg would have closed on it
-    assert args["gait"] == "sprint" and f.why["turn"] == 0       # unmapped ground is open to the steer (fix 2)
+    assert args["gait"] == "run" and f.why["turn"] == 0       # unmapped ground is open to the steer (fix 2)
     r.answer()
     r.frame(x=100.0, y=199.0, zombies=[zombie(1, 97.0, 199.0, me=(100.0, 199.0)), zombie(2, 101.0, 200.0,
                                                                                          me=(100.0, 199.0))])
@@ -355,12 +355,13 @@ def test_a_leg_points_away_from_the_nearer_threat_where_the_centroid_would_not(t
     assert args["vx"] == pytest.approx(wx / n) and args["vy"] == pytest.approx(wy / n)
 
 
-def test_flee_sprints_when_the_nearest_is_within_sprint_r(tmp_path):
+def test_flee_runs_even_with_the_nearest_within_near_r(tmp_path):
+    """Named change, ruling P24-O (Task 12): the leg once sprinted with the nearest within SPRINT_R; it runs."""
     r = Rig(tmp_path)
     r.frame(zombies=[zombie(1, 101.5, 200.0), zombie(2, 105.0, 200.0)])
     Flee(r.world, r.acts, r.clock).step()
     typ, args = r.cmd()
-    assert args["gait"] == "sprint" and args["vx"] == pytest.approx(-1.0) and args["vy"] == pytest.approx(0.0)
+    assert args["gait"] == "run" and args["vx"] == pytest.approx(-1.0) and args["vy"] == pytest.approx(0.0)
 
 
 def test_flee_reads_the_threat_list_it_is_given(tmp_path):
@@ -986,7 +987,7 @@ def test_a_heading_through_a_held_group_turns_to_the_nearest_clear_one(tmp_path)
     assert (P.AHEAD_R, P.AHEAD_CONE) == (9.0, 20.0)
 
 
-def test_a_threat_within_sprint_r_never_refuses_a_heading(tmp_path):
+def test_a_threat_within_near_r_never_refuses_a_heading(tmp_path):
     r = Rig(tmp_path)
     me = (100.5, 201.5)
     r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.0, 201.5, me=me), zombie(2, 102.0, 201.4, me=me),
@@ -1411,9 +1412,9 @@ def test_the_first_leg_runs_from_the_densest_met_window_and_the_next_does_not(tm
     assert (args["vx"], args["vy"]) == (pytest.approx(0.0, abs=1e-12), pytest.approx(1.0)) and "met" not in f.why
 
 
-def test_steer_now_on_a_room_square_walks_the_exit_at_a_sprint_never_a_steer(tmp_path):
+def test_steer_now_on_a_room_square_walks_the_exit_never_a_steer(tmp_path):
     """P24-A (f), the close review's I4: Survive's group steer (`steer_now`) on a room square with a way out takes the
-    exit walk at a sprint; off the room square it steers first, as before."""
+    exit walk (at a run: named change, ruling P24-O, once a sprint); off the room square it steers first, as before."""
     r = Rig(tmp_path)
     r.scan(two_door_house())
     me = (111.5, 201.5)
@@ -1422,7 +1423,7 @@ def test_steer_now_on_a_room_square_walks_the_exit_at_a_sprint_never_a_steer(tmp
     f = Flee(r.world, r.acts, r.clock)
     f.steer_now = True
     f.step()
-    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 204.5, "gait": "sprint"}) and f.exit is not None
+    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 204.5, "gait": "run"}) and f.exit is not None
     (tmp_path / "b").mkdir()
     r2 = Rig(tmp_path / "b")
     r2.scan(two_door_house())

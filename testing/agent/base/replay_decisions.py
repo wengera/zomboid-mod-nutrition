@@ -70,7 +70,9 @@ with every moved decision attributed in that task's report; never to make a fail
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat
-branch: the branch and the action. It is an offline oracle's reading; a divergence is a finding about the planner or
+branch: the branch and the action, a recorded `sprint` gait read as `run` (`as_run`, ruling P24-O, Plan 24 Task 12:
+the planner never sprints; the goldens were re-recorded under it where a sprint became a run, and a leg the record
+sprinted is now unbound, ending at its seconds on the replay clock). It is an offline oracle's reading; a divergence is a finding about the planner or
 the replay's act model, named in the task report, not a failure. At the goldens' recording (Plan 24 Task 1): E5 116
 of 116 threat lines agree, F1 331 of 331, none skipped, and every threat why equals the record's; at fix 1's
 recording E2 97 of 119, E3 113 of 131, E4 1134 of 1341, none skipped.
@@ -327,12 +329,22 @@ def run(artifact_dir, source="scripted", mutate=None, caps=None):
     return decisions(replay(artifact_dir, source, mutate, caps))
 
 
+def as_run(action):
+    """The action with a recorded `sprint` gait read as `run` (ruling P24-O, Plan 24 Task 12: the planner never
+    sprints, so a record's sprint and the replay's run of the same leg are one decision); others unchanged."""
+    if not action or (action.get("args") or {}).get("gait") != "sprint":
+        return action
+    return dict(action, args=dict(action["args"], gait="run"))
+
+
 def agreement(artifact_dir, replayed):
-    """{compared, agree, skipped_world, first_divergence}: the replayed log against the record's own decision.log at
-    every line where either answered from the threat branch and the replayed World held the recorded world inputs
-    (`WORLD_INPUTS` equal; the lines where it did not are counted in `skipped_world`): the branch and the action."""
+    """{compared, agree, skipped_world, first_divergence, gait_only}: the replayed log against the record's own
+    decision.log at every line where either answered from the threat branch and the replayed World held the recorded
+    world inputs (`WORLD_INPUTS` equal; the lines where it did not are counted in `skipped_world`): the branch and
+    the action, a recorded sprint read as the run P24-O sends (`as_run`; `gait_only` counts the agreeing lines that
+    differ only so)."""
     _, rows = read_record(artifact_dir)
-    compared, agree, skipped, first = 0, 0, 0, None
+    compared, agree, skipped, first, gait_only = 0, 0, 0, None, 0
     for k, (rec, rep) in enumerate(zip(rows, replayed), 1):
         if rec["branch"] != "threat" and rep["branch"] != "threat":
             continue
@@ -340,15 +352,17 @@ def agreement(artifact_dir, replayed):
             skipped += 1
             continue
         compared += 1
-        if (rep["branch"], rep["action"]) == (rec["branch"], rec["action"]):
+        if (rep["branch"], rep["action"]) == (rec["branch"], as_run(rec["action"])):
             agree += 1
+            gait_only += rep["action"] != rec["action"]
         elif first is None:
             first = {"line": k, "gameMin": rec["gameMin"],
                      "record": {"branch": rec["branch"], "action": rec["action"], "sent": rec["sent"],
                                 "why": rec["inputs"]["branches"].get("threat")},
                      "replay": {"branch": rep["branch"], "action": rep["action"], "sent": rep["sent"],
                                 "why": rep["inputs"]["branches"].get("threat")}}
-    return {"compared": compared, "agree": agree, "skipped_world": skipped, "first_divergence": first}
+    return {"compared": compared, "agree": agree, "skipped_world": skipped, "first_divergence": first,
+            "gait_only": gait_only}
 
 
 def golden_text(decisions_, base, artifact, recorded, span=None, caps=None):

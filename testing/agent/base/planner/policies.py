@@ -67,7 +67,8 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   stance never re-sends it), and the approach and swing above run for the rest of the Fight; `standoff_why` names
   the leg's state and reason.
 - `Flee` (one per flee episode): a `Steer` of `FLEE_S` seconds away from the threats (the `threats` list its caller
-  passes, else every zombie the World holds), at a sprint when the nearest is within `SPRINT_R`, else a run; re-aimed on
+  passes, else every zombie the World holds), at a run (ruling P24-O, Task 12: the planner never sprints; E6 sprinted
+  13 steers and Angus saw the character trip, and a fence climb begun at a sprint rolls a trip, #4296); re-aimed on
   every end of its steer. Every leg runs along the sum of the unit vectors from each threat to the player, each weighted
   by 1/distance (ruling P23-AG 3, amended at fix round 1 to every leg: away from the centroid and from the nearest, so a
   group spread round the player is not fled into); a zero sum steers along +x. The steer reads the map (fix round 1, I4:
@@ -77,7 +78,7 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   (a): the two rasterised lines cross different squares, so a 9-tile clear alone may graze a wall the 3-tile line
   meets), else over STEER_PROBE (3) tiles, an unknown square read
   open (`unknown_open`, its unknown diagonal corner open too: F5) (fix round 2, concern 1: unscanned ground is no wall,
-  so the flee does not bend along the scanned area's edge), and along which no held threat beyond SPRINT_R lies within
+  so the flee does not bend along the scanned area's edge), and along which no held threat beyond NEAR_R lies within
   AHEAD_R (9 tiles, a 3 s leg at E1's 3 tiles/s) inside AHEAD_CONE (20 degrees) or in the CORRIDOR_R tube (fix round 2,
   T2: E1's first leg, set by a melee zombie at 0.18 tiles, ran at the far pair); with none such, the first clear on the
   map, else the away vector kept. A leg that ended having moved under STUCK_MOVE (0.5) tiles is stuck, and the next
@@ -108,7 +109,7 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   the player is to it, and has no known zombie ahead within CORRIDOR_R (2 tiles) of the straight line to it
   (`in_corridor`), the nearest such square first; the plan (`night.shelter_plan(..., door=)`) is kept to that door, and
   its steps (`night.shelter_step`: approach, open, enter, close) go out with their walks at FLEE_GAIT, a run (never a
-  sprint: it drains the endurance the night needs). A step's end is read by `night.shelter_ended`: `advance`, `resend`
+  sprint: P24-O). A step's end is read by `night.shelter_ended`: `advance`, `resend`
   and `passed` keep the plan; any other end drops it for the steer (the episode never picks again), shunning the
   building only for a reason in `night.SHUN_REASONS`. Once the close ended with the player inside (`sheltered`), choose
   holds with no command while every threat reads line-blocked (`line_to` False), or while the door reads closed and no
@@ -123,21 +124,19 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   player within STUCK_MOVE for WALK_STALL_S (1.0) wall seconds while a held threat is within DANGER_R is dropped
   (`ended` `stalled`, `_dropped` as the exit's walk) with its plan for the episode (never shunned in the night's
   store), and the steer follows at once; with no held threat within DANGER_R the step waits the Lua's stuck time.
-  With `many` (Survive's: the episode's reason was `many`) and the nearest held threat beyond SPRINT_R, the steer
-  and the shelter walks go at a sprint (FLEE_GAIT a run otherwise) while the frame's `stats.endurance` reads above
-  SPRINT_END (0.5), or, with none read, for SPRINT_MAX_S (20) wall seconds from the episode's first such sprint.
-  With `steer_now` (Survive's group at melee range, its last leg not stuck), the choose steers first.
+  P23-AM 3's group sprint (a `many` flee sprinting while the endurance allowed) is gone with every other sprint
+  (ruling P24-O). With `steer_now` (Survive's group at melee range, its last leg not stuck), the choose steers first.
   Survival 4 (ruling P23-AP 3, E4's line 440: a leg aimed west before two zombies there were listed ran 8.92 tiles
   into them): on every threat tick the running steer leg's heading is re-read against the held threats (`_cut_leg`:
-  `_ahead`, AHEAD_R, AHEAD_CONE and the CORRIDOR_R tube, beyond SPRINT_R); a threat ahead that was not ahead when the
+  `_ahead`, AHEAD_R, AHEAD_CONE and the CORRIDOR_R tube, beyond NEAR_R); a threat ahead that was not ahead when the
   leg was aimed cuts it, and the next choose re-aims by the turn rules (its why's `cut` the ids), the new leg
   superseding it. Fix round 1: the cut reads the World's current records by id (G1), and a cornered Fight
   (`point_blank`) re-pins at each choose to the nearest zombie within POINT_BLANK_R (R4).
   Survival 5 (ruling P24-A; survive.py's docstring is the record): the re-pin only while the pin stands beyond
   POINT_BLANK_R (d); no approach walk at point blank (e); no attack while the frame's `me.hitReaction` names one
   (`hit_reaction`, i); `others_behind` (b), Survive's look past a fight's walk target; the episode's first leg
-  repulsed from `World.met_window`'s centre too (a); on a room square `steer_now` never steers: the exit at a sprint,
-  else the adoption or the trapped hold, and `give_way` keeps a running exit, re-sent at a sprint (f).
+  repulsed from `World.met_window`'s centre too (a); on a room square `steer_now` never steers: the exit (at a run
+  since P24-O), else the adoption or the trapped hold, and `give_way` keeps a running exit (f).
 - `Explore`: it scans per 10-tile place, spec § 6's "once at a new building or on request" read as the place
   grid: a `Scan(SCAN_R)` once per place (the player's square rounded half up to a `SCAN_R`-tile grid, kept in
   `scanned` from its send and dropped again when the scan ends other than `done`, so a pre-empted, timed-out or
@@ -196,16 +195,16 @@ MISSES_TO_APPROACH = 2   # attack results in a row with attackStarted false befo
 STALL_SWINGS = 3      # started swings in a row on one target that took no health before it reads unreachable
 UNREACHABLE_S = 20.0  # wall seconds a no-progress target is skipped
 FLEE_S = 3.0          # seconds a flee's steer runs before it is re-aimed
-SPRINT_R = 2.0        # tiles: a nearest zombie within this is fled at a sprint
+NEAR_R = 2.0          # tiles: a held threat this near is never `ahead` of a heading (the cone and tube reads look
+                      # beyond it: fix 2, T2); named SPRINT_R while the steer sprinted within it (P24-O renamed it)
 SHELTER_FLEE_R = 25.0  # tiles: a flee runs to a known door whose approach square is this near (ruling P23-AG)
-FLEE_GAIT = "run"     # the shelter walks' gait (P23-AG; a sprint drains the endurance the night needs: N1's ruling)
-                      # (a `many` flee sprints them while endurance allows: P23-AM 3, `Flee._group_sprint`)
+FLEE_GAIT = "run"     # every flee leg and walk's gait (P23-AG; ruling P24-O: the planner never sprints, #4296)
 CORRIDOR_R = 2.0      # tiles: a zombie this near the line to a door's approach square, ahead, refuses it (fix 1, I1)
 STEER_PROBE = 3.0     # tiles: a steer heading is clear when the map's line this far along it is (fix 1, I4)
 STEER_TURNS = (0, 30, -30, 60, -60, 90, -90)   # degrees a blocked heading turns, nearest first
 STUCK_MOVE = 0.5      # tiles: a steer leg that moved less is stuck, and the next turns off the away vector
 AHEAD_R = 9.0         # tiles: a 3 s leg at about 3 tiles/s (E1's flee): a held threat this far ahead refuses a heading
-AHEAD_CONE = 20.0     # degrees: ... within this cone of it (or in its CORRIDOR_R tube), beyond SPRINT_R (fix 2, T2)
+AHEAD_CONE = 20.0     # degrees: ... within this cone of it (or in its CORRIDOR_R tube), beyond NEAR_R (fix 2, T2)
 DOOR_CLEAR_R = 1.5    # tiles: no re-close is tried with a known zombie this near the door square's centre (fix 2)
 EXIT_CLEAR_R = 1.5    # tiles: no exit is walked with a held threat this near its outside square or ahead on its
                       # straight line (the tube, `_in_tube`): P23-AJ fix 1, narrowed at P24-A fix 1 (3), never one at
@@ -214,10 +213,6 @@ WALK_STALL_S = 1.0    # wall seconds a flee walk may leave the player within STU
                       # walk (P23-AJ fix 1, G2), a shelter step's walk while a held threat is within DANGER_R (P23-AM 2)
                       # and a running steer leg's stuck read (P23-AM fix 1, R1); one quantity (P24-A (g), the close
                       # review's M3: the old EXIT_STALL_S and STEP_STALL_S merged)
-SPRINT_END = 0.5      # a `many` flee sprints beyond SPRINT_R while the frame's endurance reads above this (P23-AM 3)
-SPRINT_MAX_S = 20.0   # wall seconds a `many` flee sprints with no endurance read, an episode (P23-AM 3, a judgment:
-                      # about a full endurance bar's sprint; the frames have read endurance since PZA/1.0, so a
-                      # backstop for a frame without it)
 CORNERED_R = 1.5      # tiles: Survive's corner's trigger radius (P23-AJ 2)
 STUCK_NEAR_R = 1.5    # tiles: a running leg unmoved WALK_STALL_S with a held threat this near is stuck (P23-AM fix 1,
                       # R1; split from CORNERED_R, P24-A (g), the close review's M4)
@@ -929,9 +924,7 @@ class Flee(Policy):
         self.left = set()        # the buildings this episode walked out of (never its shelter)
         self.hold_ok = True      # Survive clears it while a held threat breaks the hold (P23-AJ 1)
         self.adopted = False     # the building stood in was adopted this episode (fix round 1: once)
-        self.many = False        # Survive sets it: the episode's reason is `many` (P23-AM 3: the group sprint)
         self.steer_now = False   # Survive sets it: a group at melee range, the last leg not stuck (P23-AM 4)
-        self._sprint_from = None  # wall of the episode's first sprint chosen with no endurance read (SPRINT_MAX_S)
         self._chosen = None      # "step", "close" or "exit": what the last choose returned, until it is sent
         self._step = None        # the last shelter step's Action
         self._step_anchor = None  # (wall, (x, y)) of the shelter step's send or its walk's last STUCK_MOVE (P23-AM 2)
@@ -1004,17 +997,17 @@ class Flee(Policy):
 
     def _cut_leg(self):
         """Ruling P23-AP 3 (E4's line 440: a leg aimed west before 19032 and 19035 were listed ran 8.92 tiles into
-        them): the running steer leg's heading re-read against this tick's held threats beyond SPRINT_R (`_ahead`: the
+        them): the running steer leg's heading re-read against this tick's held threats beyond NEAR_R (`_ahead`: the
         cone and the tube the aim refuses); one ahead that was not ahead at its aim cuts it (`_dropped`, so the next
         choose re-aims by the turn rules and the new leg supersedes it), logged as the next steer's `cut`. Fix round 1
-        (the review's G1): the World's current records by id, the held ones (within DISENGAGE_R) beyond SPRINT_R, never
+        (the review's G1): the World's current records by id, the held ones (within DISENGAGE_R) beyond NEAR_R, never
         the caller's list, which may be the last tick's records, every one replaced since by its frame (an id read None
         is never new: e07a52cb cut a fallback leg on every tick, so R1's stuck read never came)."""
         leg = self._leg
         if leg[0] is self._dropped:
             return
         far = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and z.get("x") is not None
-               and z.get("y") is not None and SPRINT_R < zdist(self.world, z) <= DISENGAGE_R]
+               and z.get("y") is not None and NEAR_R < zdist(self.world, z) <= DISENGAGE_R]
         ahead = {id(z) for z in self._ahead(leg[2], [z for _, z in far])}
         new = sorted((zid for zid, z in far if id(z) in ahead and zid not in leg[3]), key=repr)
         if new:
@@ -1053,14 +1046,11 @@ class Flee(Policy):
         """P23-AM 4 with the coordinator's amendment 6 (E3: the enter walk ran on with three zombies at half a tile):
         Survive's group steer drops a running shelter or exit step (`_dropped`; the plan for the episode, `ended`
         `pre-empted`; the exit refused), so the steer goes at once; a running steer leg, or anything else, is kept. On
-        a room square a running exit walk is not refused (ruling P24-A (f): inside, the group's answer is the exit):
-        one at a sprint is kept, one at another gait dropped unread (its superseded end never refuses it), so the
-        choose re-sends it at a sprint."""
+        a room square a running exit step is kept (ruling P24-A (f): inside, the group's answer is the exit; its walk
+        is no longer re-sent at a sprint, P24-O)."""
         if not self.busy() or self.last.type not in ("walkTo", "interact"):
             return
         if self.last is self._exit_a and self.exit is not None and on_room(self.world):
-            if self.last.type == "walkTo" and self.last.args.get("gait") != "sprint":
-                self._dropped = self._exit_read = self.last
             return
         self._dropped = self.last
         if self.last is self._step and self.plan is not None:
@@ -1159,10 +1149,7 @@ class Flee(Policy):
         if step != "done":
             self._chosen = "step"
             self.why = {"shelter": b, "step": step, "ended": self.ended}
-            if cmd.TYPE != "walkTo":
-                return cmd
-            near = min(zdist(self.world, z) for z in ts)
-            return WalkTo(cmd.x, cmd.y, "sprint" if self._group_sprint(near) else FLEE_GAIT)
+            return cmd if cmd.TYPE != "walkTo" else WalkTo(cmd.x, cmd.y, FLEE_GAIT)
         if not on_room(self.world):
             self._drop(False)   # pushed out after the close: no shelter this episode
             return None
@@ -1208,7 +1195,7 @@ class Flee(Policy):
                     "step": e["step"], "shelter": None, "refused": sorted(map(list, self.refused))}
         if e["step"] == "open":
             return Interact(e["door"][0], e["door"][1], "open")
-        return WalkTo(*centre(e["target"]), "sprint" if self.steer_now else FLEE_GAIT)   # P24-A (f): a group, a sprint
+        return WalkTo(*centre(e["target"]), FLEE_GAIT)   # P24-A (f)'s group exit, at a run since P24-O
 
     def _adopt(self, ts):
         """Fix round 1 (concern 1): the building stood in, every way out refused, adopted as sheltered: its plan kept
@@ -1234,7 +1221,7 @@ class Flee(Policy):
         AP 2: Survive's group, `_group`, the last leg not stuck) the steer goes first off a room square (the next leg
         that ends stuck is Survive's corner); on a room square (ruling P24-A (f), the close review's I4: the group
         steer ran inside a room with a way out, E2's death mode) the steer is never sent: the running exit, else a new
-        one, walked at a sprint, else the adoption, else the trapped hold."""
+        one, walked at a run (P24-O), else the adoption, else the trapped hold."""
         self._chosen = None
         ts = self._threats()
         if not ts:
@@ -1301,19 +1288,6 @@ class Flee(Policy):
             return True
         return False
 
-    def _group_sprint(self, near):
-        """Ruling P23-AM 3 (a sprint outpaces a walking group): the episode's reason is `many`, the nearest held
-        threat beyond SPRINT_R (within it the steer sprints anyway), and the frame's `stats.endurance` above
-        SPRINT_END; with no endurance read, for SPRINT_MAX_S wall seconds from the episode's first such sprint."""
-        if not self.many or near <= SPRINT_R:
-            return False
-        e = (self.world.stats or {}).get("endurance")
-        if isinstance(e, (int, float)) and not isinstance(e, bool):
-            return e > SPRINT_END
-        if self._sprint_from is None:
-            self._sprint_from = self.clock()
-        return self.clock() - self._sprint_from < SPRINT_MAX_S
-
     def _clear(self, v, reach=STEER_PROBE):
         return clear_heading(self.world, v, reach)
 
@@ -1337,7 +1311,7 @@ class Flee(Policy):
         met window's centre (`World.met_window`, ruling P24-A (a)) weighted so too, logged `met` [cx, cy, n]; +x when
         the sum is zero (the away vector); turned by STEER_TURNS,
         nearest first, to the first heading clear of the map over AHEAD_R (fix round 3, F3: the leg runs about that
-        far) and along which no held threat beyond SPRINT_R lies ahead (`_ahead`, T2); else the first such heading
+        far) and along which no held threat beyond NEAR_R lies ahead (`_ahead`, T2); else the first such heading
         clear over STEER_PROBE (I4; an unknown square open throughout); else the first clear over STEER_PROBE, else
         the away vector kept. After a leg that moved under STUCK_MOVE the turn skips the away vector's own 0 and every
         heading within STUCK_SKIP_DEG of the stuck leg's (F4), turning +30 when nothing is left."""
@@ -1353,7 +1327,7 @@ class Flee(Policy):
         if h0 is not None:
             cos_skip = math.cos(math.radians(STUCK_SKIP_DEG))
             turns = tuple(t for t in turns if _rotate(v, t)[0] * h0[0] + _rotate(v, t)[1] * h0[1] < cos_skip)
-        far = [z for z in ts if zdist(self.world, z) > SPRINT_R]
+        far = [z for z in ts if zdist(self.world, z) > NEAR_R]
         turn, probe = None, None
         for reaches, group in (((AHEAD_R, STEER_PROBE), True), ((STEER_PROBE,), True), ((STEER_PROBE,), False)):
             turn = next((t for t in turns if all(self._clear(_rotate(v, t), reach) for reach in reaches)
@@ -1363,7 +1337,6 @@ class Flee(Policy):
                 break
         heading = _rotate(v, turn) if turn is not None else (_rotate(v, STEER_TURNS[1]) if h0 is not None else v)
         near = min(zdist(self.world, z) for z in ts)
-        gait = "sprint" if near <= SPRINT_R or self._group_sprint(near) else "run"
         self._aimed = frozenset(self._ids(self._ahead(heading, far)))
         self.why = {"centroid": [cx, cy], "nearest": near, "turn": turn, "probe": probe, "stuck": stuck,
                     "ahead": self._ids(self._ahead(v, far)), "shelter": None, "ended": self.ended}
@@ -1373,7 +1346,7 @@ class Flee(Policy):
             self.why["skip"] = [h0[0], h0[1]]   # fix 2, G2: the carried stuck heading
         if self._cut is not None:
             self.why["cut"], self._cut = self._cut, None
-        return Steer(heading[0], heading[1], FLEE_S, gait)
+        return Steer(heading[0], heading[1], FLEE_S, FLEE_GAIT)   # P24-O: a run, never a sprint
 
     def sent(self, cmd, action):
         if self._chosen == "step":
