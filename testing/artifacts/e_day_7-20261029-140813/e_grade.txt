@@ -1,0 +1,235 @@
+kills 0 (engine n/a, planner 0); survived; 226.8 game minutes
+survived (stop day_cap), 227 game min (loop.first_world_age)
+drink: sent 0, done 0, stat fell None
+eat: sent 0, done 0, stat fell None
+unknown consumes (no valid use): 0; frame time base t_loop0_ms
+sleep: sent 0, done 0, slept 0.0 h, fatigue fell None
+fights: 3 (ended 3, fled 3, stand-offs 0)
+fights_resolved: unresolved 0
+load: max ratio 0.238, guard drops 0, flee drops 0
+cost p50 0.000 ms, p99 2.000 ms, max 6.000 ms, over5 473
+wounds: 0 real over 3000 kept frames (the old reading counted 0), first seq None
+care: bandage sent 0 done 0 (parts {}, dirty 0), rip done 0 (0 rags), wash done 0 (0 water)
+fill: sent 0 done 0, tainted 0, fills []
+stance: aim sent 4 done 1 failed 3 (held 1, released 0, target dead 0), 0 of 3000 kept frames aiming; standing fights 0 {'kill': 0, 'flee': 0, 'fallback': 0, 'none': 0, 'stagger_inferred': 0}
+climb: sent 0 done 0 fell 0 failed 0 wounds 0; need chain: drinks 0 (stat fell None), fills 0, containers looted 0
+kills: per fight [0, 0, 0]; standing fights 0 with 0 kills (n/a per fight); planner ids []
+stance held: 121 of 121 ticks over 1 aim legs (1 with the field), ratio 1.00; kept frames: 0 aiming, 0 forceAim of 3000
+bandages: riding sent 0 done 0 (walking 0) failed 0 (stopped 0) rejected 0, parts {}; standing sent 0 done 0 failed 0
+care yield: 0 care actions, 0 fights ended by the care; decision log: 0 yields (0 riding), 0 dead skips of 0 ids
+glides (an inference, never a trip): 0 over 0.00 tiles in the kept frames: []
+{
+ "care": {
+  "bandage": {
+   "by_part": {},
+   "dirty": 0,
+   "done": 0,
+   "failed": 0,
+   "sent": 0
+  },
+  "climb": {
+   "done": 0,
+   "failed": 0,
+   "fell": 0,
+   "sent": 0,
+   "tall": 0,
+   "wounds": 0
+  },
+  "fill": {
+   "done": 0,
+   "fills": [],
+   "sent": 0,
+   "tainted": 0
+  },
+  "loot": {
+   "containers": 0,
+   "containers_moved": 0,
+   "done": 3,
+   "sent": 12
+  },
+  "need_chain": {
+   "containers_looted": 0,
+   "drink_done": 0,
+   "drink_stat_fell": null,
+   "fills_done": 0
+  },
+  "rip": {
+   "dirty_rags": 0,
+   "done": 0,
+   "rags": 0,
+   "sent": 0
+  },
+  "stance": {
+   "aim_done": 1,
+   "aim_failed": 3,
+   "aim_sent": 4,
+   "frames": 3000,
+   "frames_aiming": 0,
+   "held_at_end": 1,
+   "moved": 0.13515427428107968,
+   "released": 0,
+   "target_dead": 0
+  },
+  "standing": {
+   "n": 0,
+   "outcomes": {
+    "fallback": 0,
+    "flee": 0,
+    "kill": 0,
+    "none": 0,
+    "stagger_inferred": 0
+   },
+   "rows": []
+  },
+  "wash": {
+   "done": 0,
+   "sent": 0,
+   "water": 0
+  }
+ },
+ "cost": {
+  "max": 6,
+  "over5": 473,
+  "p50": 0,
+  "p99": 2
+ },
+ "death": null,
+ "fights": {
+  "ended": 3,
+  "fled": 3,
+  "n": 3,
+  "stand_offs": 0
+ },
+ "fights_unresolved": 0,
+ "game_minutes": 226.77154541015625,
+ "glides": {
+  "base": "t_loop0_ms",
+  "rows": [],
+  "runs": 0,
+  "tiles": 0
+ },
+ "grade": "grade_e4",
+ "kills": {
+  "died": false,
+  "died_at": null,
+  "engine": null,
+  "per_fight": [
+   0,
+   0,
+   0
+  ],
+  "per_standing_fight": null,
+  "planner": 0,
+  "planner_ids": [],
+  "standing_fights": 0,
+  "standing_kills": 0
+ },
+ "lineage": null,
+ "lineage_source": null,
+ "load": {
+  "flee_drops": 0,
+  "guard_drops": 0,
+  "max_ratio": 0.23791664838790894
+ },
+ "minutes_source": "loop.first_world_age",
+ "needs": {
+  "drink": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "eat": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "sleep": {
+   "done": 0,
+   "fatigue_fell": null,
+   "sent": 0,
+   "sleptH": 0
+  },
+  "time_base": "t_loop0_ms",
+  "unknown": 0
+ },
+ "report_lines": [
+  "kills 0 (engine n/a, planner 0); survived; 226.8 game minutes",
+  "survived (stop day_cap), 227 game min (loop.first_world_age)",
+  "drink: sent 0, done 0, stat fell None",
+  "eat: sent 0, done 0, stat fell None",
+  "unknown consumes (no valid use): 0; frame time base t_loop0_ms",
+  "sleep: sent 0, done 0, slept 0.0 h, fatigue fell None",
+  "fights: 3 (ended 3, fled 3, stand-offs 0)",
+  "fights_resolved: unresolved 0",
+  "load: max ratio 0.238, guard drops 0, flee drops 0",
+  "cost p50 0.000 ms, p99 2.000 ms, max 6.000 ms, over5 473",
+  "wounds: 0 real over 3000 kept frames (the old reading counted 0), first seq None",
+  "care: bandage sent 0 done 0 (parts {}, dirty 0), rip done 0 (0 rags), wash done 0 (0 water)",
+  "fill: sent 0 done 0, tainted 0, fills []",
+  "stance: aim sent 4 done 1 failed 3 (held 1, released 0, target dead 0), 0 of 3000 kept frames aiming; standing fights 0 {'kill': 0, 'flee': 0, 'fallback': 0, 'none': 0, 'stagger_inferred': 0}",
+  "climb: sent 0 done 0 fell 0 failed 0 wounds 0; need chain: drinks 0 (stat fell None), fills 0, containers looted 0",
+  "kills: per fight [0, 0, 0]; standing fights 0 with 0 kills (n/a per fight); planner ids []",
+  "stance held: 121 of 121 ticks over 1 aim legs (1 with the field), ratio 1.00; kept frames: 0 aiming, 0 forceAim of 3000",
+  "bandages: riding sent 0 done 0 (walking 0) failed 0 (stopped 0) rejected 0, parts {}; standing sent 0 done 0 failed 0",
+  "care yield: 0 care actions, 0 fights ended by the care; decision log: 0 yields (0 riding), 0 dead skips of 0 ids",
+  "glides (an inference, never a trip): 0 over 0.00 tiles in the kept frames: []"
+ ],
+ "ride": {
+  "riding": {
+   "by_part": {},
+   "done": 0,
+   "failed": 0,
+   "rejected": 0,
+   "sent": 0,
+   "stopped": 0,
+   "walking": 0
+  },
+  "standing": {
+   "done": 0,
+   "failed": 0,
+   "sent": 0
+  }
+ },
+ "run_id": "e_day_7-20261029-140813",
+ "session_key": "e_day_7",
+ "stance_held": {
+  "frames": 3000,
+  "frames_aiming": 0,
+  "frames_force_aim": 0,
+  "held_frames": 121,
+  "legs": 1,
+  "per_leg": [
+   {
+    "aid": "a78",
+    "heldFrames": 121,
+    "ticks": 121
+   }
+  ],
+  "ratio": 1.0,
+  "ticks": 121,
+  "with_field": 1
+ },
+ "stop": {
+  "detail": "the loop reached 840s of wall time",
+  "reason": "day_cap"
+ },
+ "survived": true,
+ "wounds": {
+  "first_seq": null,
+  "frames": 3000,
+  "listed": 0,
+  "real": 0
+ },
+ "yields": {
+  "care_actions": 0,
+  "fights_ended_by_care": 0,
+  "log": {
+   "care_rides": 0,
+   "care_yields": 0,
+   "dead_ids": [],
+   "dead_skips": 0,
+   "kill_lines": 0,
+   "lines": 1680
+  }
+ }
+}

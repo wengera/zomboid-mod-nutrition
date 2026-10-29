@@ -1,0 +1,8 @@
+{"wall": 1793297093.432198, "branch": "script", "goal": {"type": "idle"}, "sent": false, "inputs": {"step": "idle", "args": {"seconds": 5.0}, "note": null}}
+{"wall": 1793297098.5262694, "branch": "script", "goal": {"type": "aim_stand"}, "sent": true, "inputs": {"step": "aim_stand", "args": {"vx": 0.0, "vy": 0.0, "seconds": 5.0, "targetId": -1, "bearing": 0.0}, "note": null}}
+{"wall": 1793297103.6217124, "branch": "script", "goal": {"type": "aim_strafe"}, "sent": true, "inputs": {"step": "aim_strafe", "args": {"vx": -1.0, "vy": 0.0, "seconds": 5.0, "targetId": -1, "bearing": 0.0}, "note": null}}
+{"wall": 1793297108.6851778, "branch": "script", "goal": {"type": "aim_target"}, "sent": false, "inputs": {"step": "aim_target", "args": null, "note": "no zombie listed within the weapon's reach (1.125 tiles): the target legs are skipped"}}
+{"wall": 1793297108.68587, "branch": "script", "goal": {"type": "attack"}, "sent": false, "inputs": {"step": "attack", "args": null, "note": "skipped with the target legs"}}
+{"wall": 1793297108.6861172, "branch": "script", "goal": {"type": "post_attack"}, "sent": false, "inputs": {"step": "post_attack", "args": null, "note": "skipped with the target legs"}}
+{"wall": 1793297108.687763, "branch": "script", "goal": {"type": "walk"}, "sent": true, "inputs": {"step": "walk", "args": {"x": 10723.48828125, "y": 10630.5, "gait": "walk"}, "note": null}}
+{"wall": 1793297110.0939028, "branch": "script", "goal": {"type": "settle"}, "sent": false, "inputs": {"step": "settle", "args": {"seconds": 1.5}, "note": null}}
