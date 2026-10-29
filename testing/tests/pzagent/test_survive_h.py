@@ -312,3 +312,252 @@ def test_a_flee_leg_boxed_in_a_fence_corner_takes_the_rest_of_the_circle_never_a
     v = (a["vx"], a["vy"])
     assert P.clear_heading(r.world, v, P.STEER_PROBE)
     assert threat_why(tmp_path)["turn"] in P.WIDE_TURNS + P.STEER_TURNS and threat_why(tmp_path)["probe"] is not None
+
+
+# ================================================================ P24-Y: every walk a building
+from agent.base.planner import goals as G   # noqa: E402  (the P24-Y section's modules)
+from agent.base.planner import llm as L   # noqa: E402
+from agent.base.planner import view as V   # noqa: E402
+from agent.base.planner.view import render, view   # noqa: E402
+
+from .test_night import house   # noqa: E402
+from .test_policies import CRATE, FRIDGE, grid   # noqa: E402
+
+
+def test_the_destination_constants_and_the_loot_wants():
+    """P24-Y: BUILDING_R 60, WOODS_R 40; the loot's wants in order, water and container, clothing (wanted by name:
+    the Lua's loot filter and the item record carry no clothing yet, so no loot answers it), food, bandage, weapon."""
+    assert (G.BUILDING_R, G.WOODS_R) == (60.0, 40.0)
+    assert G.STOCK_WANTS == ("water", "container", "clothing", "food", "bandage", "weapon")
+    assert "container" in P.LOOT_WANTS and "clothing" not in P.LOOT_WANTS
+
+
+def test_the_building_boxes_and_the_woods_test(tmp_path):
+    r = Rig(tmp_path)
+    r.scan(house(1, 110) + house(2, 150))
+    w = r.world
+    assert w.building_boxes() == {1: (110, 200, 112, 202), 2: (150, 200, 152, 202)}
+    assert w.building_dist(100.0, 201.0, 1) == 10.0 and w.building_dist(111.0, 201.0, 1) == 0.0
+    assert w.building_dist(100.0, 201.0, 9) is None
+    assert w.nearest_building(100.0, 201.0) == (10.0, 1) and w.nearest_building(160.0, 201.0)[1] == 2
+    assert w.building_near(100.0, 201.0, 10.0) and not w.building_near(100.0, 160.0, G.WOODS_R)
+
+
+def test_an_edge_in_the_woods_is_never_the_edge_once_a_building_is_known(tmp_path):
+    """`World.unexplored_edge(WOODS_R)`: with no building known, the plain nearest edge (the first house still to
+    find); with one known, a square farther than WOODS_R from every building is left out (E7's walk east from game
+    minute 622 took the plain nearest edge each time, 545 tiles from the nearest building it knew by 746)."""
+    r = Rig(tmp_path)
+    r.scan(grid(60, 100, 199, 203))
+    r.frame(x=62.0, y=201.0)
+    w = r.world
+    assert w.unexplored_edge(G.WOODS_R) == w.unexplored_edge() and w.unexplored_edge()[0] == 60
+    r.scan(house(1, 110))
+    r.frame(x=62.0, y=201.0)
+    plain, edge = w.unexplored_edge(), w.unexplored_edge(G.WOODS_R)
+    assert not w.building_near(plain[0] + 0.5, plain[1] + 0.5, G.WOODS_R)
+    assert edge is not None and w.building_near(edge[0] + 0.5, edge[1] + 0.5, G.WOODS_R) and edge[0] >= 69
+
+
+def bview(**k):
+    v = {key: None for key in V.KEYS}
+    v.update(pos={"x": 100.5, "y": 200.5, "z": 0}, load={"level": 0}, scanned_here=True, buildings=[], cooled=[],
+             needs_wanted=[], stock_uses=[])
+    v.update(k)
+    return v
+
+
+def bld(bid, dist, looted=False, containers=2, door=(120, 200)):
+    return {"id": bid, "x": door[0] + 1, "y": door[1], "door": list(door), "dist": dist, "containers": containers,
+            "looted": looted, "doors": 1, "visited": False, "shunned": False, "shelter": True, "holds": {},
+            "box": [door[0] + 1, door[1] - 1, door[0] + 3, door[1] + 1]}
+
+
+def picks(v):
+    return [(g.TYPE, g.args()) for g in G.ScriptedSource().candidates(v)]
+
+
+def test_the_scripted_loop_loots_the_nearest_unlooted_building_then_the_next_and_walks_only_to_buildings():
+    """P24-Y's loop on the view: the nearest unlooted building within BUILDING_R, then the next; none within it, the
+    walk to the nearest unlooted one beyond (its door) before any edge; all looted, the edge (the view's, never in
+    the woods); in the woods with no edge, the walk back to the nearest building (`toward` "cluster"); else the
+    rest."""
+    v = bview(buildings=[bld(1, 20.0, looted=True), bld(2, 30.0), bld(3, 45.0), bld(4, 61.0)], edge=[90, 90])
+    assert picks(v)[:3] == [("LootBuilding", {"building": 2}), ("LootBuilding", {"building": 3}),
+                            ("ExploreToward", {"x": 90, "y": 90})]
+    far = {"for": "unlooted", "building": 4, "door": [170, 200], "square": [171, 200], "dist": 70.0}
+    v = bview(buildings=[bld(1, 20.0, looted=True), bld(4, 70.0, door=(170, 200))], edge=[90, 90], toward=far)
+    assert picks(v)[:2] == [("ExploreToward", {"x": 170, "y": 200}), ("ExploreToward", {"x": 90, "y": 90})]
+    v = bview(buildings=[bld(1, 20.0, looted=True)], edge=[90, 90])
+    assert G.ScriptedSource().propose(v).args() == {"x": 90, "y": 90}
+    home = {"for": "cluster", "building": 1, "door": [150, 200], "square": [151, 200], "dist": 50.0}
+    v = bview(buildings=[bld(1, 50.0, looted=True, door=(150, 200))], edge=None, toward=home)
+    assert picks(v) == [("ExploreToward", {"x": 150, "y": 200})]
+    v = bview(buildings=[bld(1, 20.0, looted=True)], edge=None, toward=None)
+    assert G.ScriptedSource().propose(v).TYPE == "Rest"
+
+
+def test_the_view_names_the_walk_toward_an_unlooted_building_beyond_building_r_or_back_to_the_cluster(tmp_path):
+    from .test_survive import make as smake
+    r, sv = smake(tmp_path)
+    far = house(2, 180)
+    for s in far:
+        if (s["x"], s["y"]) == (181, 201):
+            s["containers"] = [FRIDGE]
+    r.scan(house(1, 110) + far)
+    r.frame(x=100.0, y=201.5)
+    t = view(r.world, sv)["toward"]
+    assert t == {"for": "unlooted", "building": 2, "door": [180, 201], "square": [180, 201], "dist": 80.5}
+    r.world.mark_looted((181, 201, 0, 0), "food")
+    assert view(r.world, sv)["toward"] is None                              # all looted, the player by building 1
+    r.frame(x=100.0, y=140.0)
+    t = view(r.world, sv)["toward"]
+    assert t["for"] == "cluster" and t["building"] == 1 and t["door"] == [110, 201]
+
+
+def test_loot_building_takes_water_then_the_container_then_food(tmp_path):
+    """P24-Y's want order in one building: water, then an empty vessel (`container`), then food; `clothing` is
+    passed over (no loot answers it)."""
+    from .test_survive import make as smake
+    r, sv = smake(tmp_path)
+    sqs = house(1, 110)
+    for s in sqs:
+        if (s["x"], s["y"]) == (111, 201):
+            s["containers"] = [{"type": "counter", "n": 3, "items": ["Base.Apple", "Base.PopEmpty",
+                                                                     "Base.WaterBottle"]}]
+    r.scan(sqs)
+    r.frame(x=109.5, y=201.5)
+    g = G.LootBuilding(1)
+    k = G.Kit(r.world, r.acts, r.clock)
+    g.kit = k
+    wants = []
+    for _ in range(3):
+        cmd = g.step(r.world, r.acts, r.clock)
+        assert cmd is not None and cmd.TYPE == "interact"
+        wants.append(cmd.filter)
+        k.loot.sent(cmd, r.acts.send(cmd))
+        g.sent(cmd, r.acts.history[-1])
+        r.answer()
+        k.observe(r.world, r.acts)
+    assert wants == ["water", "container", "food"]
+
+
+def test_the_llm_view_lists_what_each_building_holds_and_the_prompt_constrains_the_walks(tmp_path):
+    """P24-Y on the LLM source: the rendered buildings carry `h:` (what each is known to hold), the view's `toward`
+    is rendered, `SYSTEM` states the loop and the woods rule, and an ExploreToward farther than WOODS_R from every
+    listed building is refused `invalid: in the woods` (one within it, and any with no building listed, pass)."""
+    from .test_survive import make as smake
+    r, sv = smake(tmp_path)
+    sqs = house(1, 110)
+    for s in sqs:
+        if (s["x"], s["y"]) == (111, 201):
+            s["containers"] = [FRIDGE, CRATE]
+    r.scan(sqs)
+    r.frame(x=100.0, y=201.5)
+    v = view(r.world, sv)
+    text = render(v)
+    assert "1 @110,201 door 110,201 10.5 c2 - h:bandage1,food1" in text and "\ntoward: null" in text
+    assert "Your loop" in L.SYSTEM and "%g tiles of one" % G.WOODS_R in L.SYSTEM and "woods" in L.SYSTEM
+    woods = G.ExploreToward(100, 150)
+    assert L.place_error(woods, v) == "invalid: in the woods"
+    assert L.place_error(G.ExploreToward(100, 170), v) is None               # 31 tiles from the house's box
+    assert L.place_error(woods, dict(v, buildings=[])) is None
+    assert "in the woods" in V.WHYS
+
+
+def test_e7_line_541_in_the_woods_proposes_the_walk_back_never_the_edge_further_out():
+    """E7's line 541 (game minute 634, 71.8 tiles from the nearest building it knew, the goal walking the plain
+    edge east to (10857, 10637)): the scripted source on the replayed world proposes a destination within WOODS_R
+    of a known building."""
+    from types import SimpleNamespace
+    from agent.base import replay_decisions as R
+    got = {}
+
+    def grab(sv):
+        real = sv.tick
+
+        def tick_(world, actions):
+            out = real(world, actions)
+            got["w"], got["sv"] = world, sv
+            return out
+        sv.tick = tick_
+    rows = R.replay(R.ARTIFACTS + "/e_day_7-20261029-140813", upto=541, mutate=grab)
+    assert rows[-1]["goal"]["args"] == {"x": 10857, "y": 10637}
+    w, sv = got["w"], got["sv"]
+    surv = SimpleNamespace(night=sv.night, goals=SimpleNamespace(kit=sv.goals.kit, history=[], cooling=lambda: []),
+                           clock=sv.clock, need_marks={})
+    v = view(w, surv)
+    g = G.ScriptedSource().propose(v)
+    mx, my = P.me_xy(w)
+    assert w.nearest_building(mx, my)[0] > G.WOODS_R
+    assert g.TYPE == "ExploreToward" and w.building_near(g.x + 0.5, g.y + 0.5, G.WOODS_R), g
+
+
+def _woods_sweep(world, sv, out):
+    """The scripted source's proposal on the view of this tick, as the world reads and again with every container
+    read looted (the replay's recorded goals mark none: a looted town is where the walks go): an ExploreToward with a
+    building known whose square has none within WOODS_R is a walk into the woods (P24-Y), kept in `out`."""
+    from types import SimpleNamespace
+    surv = SimpleNamespace(night=sv.night, goals=SimpleNamespace(kit=sv.goals.kit, history=[], cooling=lambda: []),
+                           clock=sv.clock, need_marks={})
+    kept = {k: set(c["looted"]) for k, c in world.containers.items()}
+    for looted in (False, True):
+        if looted:
+            for c in world.containers.values():
+                c["looted"] = set(P.LOOT_WANTS)
+        g = G.ScriptedSource().propose(view(world, surv))
+        out["n"] += 1
+        if g.TYPE == "ExploreToward" and world.building_boxes():
+            out["explore"] += 1
+            if not world.building_near(g.x + 0.5, g.y + 0.5, G.WOODS_R):
+                out["woods"].append((world.game_min, g.x, g.y))
+    for k, v in kept.items():
+        world.containers[k]["looted"] = v
+
+
+SWEEP_RUNS = {"e2": None, "e3": None, "e4": None, "e5": None, "f1": None, "e7": 1420}
+
+
+@pytest.mark.parametrize("key", sorted(SWEEP_RUNS))
+def test_no_scripted_walk_targets_the_woods_on_the_records(key):
+    """P24-Y's sweep over the goldens' records and E7 (to line 1420, its `state.log`'s last aligned line): on every
+    fifth replayed tick the scripted source's ExploreToward, once a building is known, targets a square with a
+    building within WOODS_R."""
+    from agent.base import replay_decisions as R
+    out = {"n": 0, "explore": 0, "woods": []}
+
+    def sweep(sv):
+        real = sv.tick
+        k = {"i": 0}
+
+        def tick_(world, actions):
+            k["i"] += 1
+            if k["i"] % 5 == 0:
+                _woods_sweep(world, sv, out)
+            return real(world, actions)
+        sv.tick = tick_
+    run = "e_day_7-20261029-140813" if key == "e7" else R.RUNS[key]
+    R.replay(R.ARTIFACTS + "/" + run, upto=SWEEP_RUNS[key], mutate=sweep)
+    assert out["n"] > 10 and out["woods"] == [], out["woods"][:5]
+    assert out["explore"] > 10
+
+
+def test_no_scripted_walk_targets_the_woods_on_the_synthetic_fixture(tmp_path):
+    """The same sweep on every frame of the synthetic PZA/1 fixture (`fixtures/pza1-synthetic-1.log`)."""
+    import os
+    import shutil
+    from agent.base.transport.files import FileTransport
+    from agent.base.world import World
+    src = os.path.join(os.path.dirname(__file__), "fixtures", "pza1-synthetic-1.log")
+    shutil.copy(src, str(tmp_path / "state.log"))
+    w = World()
+    from agent.base.actions import Actions
+    from agent.base.planner.survive import Survive
+    acts = Actions(FileTransport(str(tmp_path)), clock=lambda: 0.0)
+    sv = Survive(w, acts, str(tmp_path / "decision.log"), lambda: 0.0)
+    out = {"n": 0, "explore": 0, "woods": []}
+    for ln in FileTransport(str(tmp_path)).lines():
+        w.apply(ln)
+        if ln["kind"] == "frame":
+            _woods_sweep(w, sv, out)
+    assert out["n"] > 0 and out["woods"] == []

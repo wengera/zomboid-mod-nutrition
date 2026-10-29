@@ -279,13 +279,16 @@ def with_caps(line, caps):
     return dict(line, caps=own + [c for c in caps if c not in own])
 
 
-def replay(artifact_dir, source="scripted", mutate=None, caps=None):
+def replay(artifact_dir, source="scripted", mutate=None, caps=None, upto=None):
     """Every replayed decision line, the goal branch's included, as the replayed Survive logged it (the module
     docstring). `mutate(survive)`, when given, runs once on the fresh Survive before the first tick (the tests'
-    mutation seam); `caps`, when given, are added to every hello's (`HELLO_CAPS`)."""
+    mutation seam); `caps`, when given, are added to every hello's (`HELLO_CAPS`); `upto`, when given, replays the
+    decision lines 1 to `upto` only (Plan 24 Task 18: E7's `state.log` rotated at game minute 752, its frames after
+    in a rotation file the reader does not take, so its lines align only so far)."""
     if source not in SOURCES:
         raise ValueError("source %r: one of %s" % (source, sorted(SOURCES)))
     lines, rows = read_record(artifact_dir)
+    rows = rows if upto is None else rows[:upto]
     ends = align(lines, rows)
     rec_aids, offset = recorded_aids(lines, rows)
     lines = [with_caps(ln, caps) for ln in lines]

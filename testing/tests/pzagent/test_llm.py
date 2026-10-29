@@ -321,12 +321,13 @@ def test_the_place_is_read_against_the_current_view():
     ('{"type": "ExploreToward", "x": 40, "y": 200}', True),       # 60.0 the other way
 ])
 def test_an_explore_farther_than_explore_max_tiles_from_pos_is_out_of_range(answer, ok):
-    """P24-B 3: `invalid: out of range` (was `invalid: unknown place`)."""
+    """P24-B 3: `invalid: out of range` (was `invalid: unknown place`). Named change, ruling P24-Y (Task 18): read on
+    a view listing no building (with one listed, a square 40 tiles past it is `in the woods`, below)."""
     assert L.EXPLORE_MAX_TILES == 60.0
     src, _, _ = make(answer=answer)
-    src.propose(a_view())
+    src.propose(a_view(buildings=[]))
     settle(src)
-    g = src.propose(a_view())
+    g = src.propose(a_view(buildings=[]))
     if ok:
         assert g.TYPE == "ExploreToward" and src.calls[0]["error"] is None
     else:

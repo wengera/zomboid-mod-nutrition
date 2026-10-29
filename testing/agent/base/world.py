@@ -120,6 +120,10 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   squares and the door squares by building) is rebuilt lazily on the first read after it moved; `memo(key, fn)`
   keeps any other read of the map (the night's exterior doors) for the same version. A cached answer is shared, so a
   caller only reads it.
+- `building_boxes()` (ruling P24-Y, Plan 24 Task 18: every walk has a building as its destination): each known
+  building's room squares' bounding box, memoised per map version; `building_dist(x, y, b)` the tiles from a point
+  to a box (0.0 inside), `nearest_building(x, y)` and `building_near(x, y, r)`, the woods test (no building within
+  `goals.WOODS_R` of a square); `unexplored_edge(woods_r)` leaves the woods out once a building is known.
 - `openings(building)` (Plan 23 survival 2, ruling P23-AJ 3 as amended: the chain's E2 died in building 3, whose
   doors were all broken, door debris on the floor, so `exterior_doors` was empty while its doorways stood open): each
   `(room square, outside square)` pair of the building, sorted, whose orthogonal step from a room square of it to a
@@ -232,6 +236,13 @@ def _num_first(v):
     if isinstance(v, (int, float)) and not isinstance(v, bool):
         return (0, v, "")
     return (1, 0, json.dumps(v, sort_keys=True))
+
+
+def _box_dist(box, x, y):
+    """Tiles from the point (x, y) to a building box (minx, miny, maxx, maxy) of squares, 0.0 inside it."""
+    dx = max(box[0] - x, 0.0, x - (box[2] + 1))
+    dy = max(box[1] - y, 0.0, y - (box[3] + 1))
+    return math.hypot(dx, dy)
 
 
 def _key(k):
@@ -526,19 +537,24 @@ class World:
         mx, my = me_xy(self)
         return math.hypot(mx - run["from"][0] - 0.5, my - run["from"][1] - 0.5) <= 1.0
 
-    def unexplored_edge(self):
+    def unexplored_edge(self, woods_r=None):
         """The nearest open square with an unmapped neighbour, ties by (x, y); a square marked stuck within the last
-        STUCK_TTL_MIN game minutes is left out, and so is a square `in_cone` of a met group (P24-B 2). While
-        `stuck_here` (P23-AP 1), only a square on the player's floor that the player's `flood` reaches and whose
-        straight line from the player is clear (`line_clear` to its centre, `unknown_open=False`), else None."""
+        STUCK_TTL_MIN game minutes is left out, and so is a square `in_cone` of a met group (P24-B 2), and, with
+        `woods_r` and a building known, a square with no building within `woods_r` tiles of its centre (`building_near`:
+        the woods, ruling P24-Y). While `stuck_here` (P23-AP 1), only a square on the player's floor that the player's
+        `flood` reaches and whose straight line from the player is clear (`line_clear` to its centre,
+        `unknown_open=False`), else None."""
         mx, my = me_xy(self)
         skip = self._stuck_now() if self.stuck else ()
         cone = self.avoid_cone()
+        boxes = list(self.building_boxes().values()) if woods_r is not None else []
         cands = []
         for (x, y, z), s in self.map.items():
             if s.get("solid") or (x, y) in skip:
                 continue
             if cone is not None and self.in_cone(x, y, cone):
+                continue
+            if boxes and not any(_box_dist(b, x + 0.5, y + 0.5) <= woods_r for b in boxes):
                 continue
             if all((x + dx, y + dy, z) in self.map for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
                 continue
@@ -858,6 +874,44 @@ class World:
         """The mapped squares of `building` with a door (`door_building`), sorted (cached per map version: read it,
         never change it)."""
         return self._indexes()[2].get(building, [])
+
+    def building_boxes(self):
+        """{building: (minx, miny, maxx, maxy)}: the bounding box of each known building's room squares (any floor; a
+        building id None, the rooms the scan gave no building, left out), cached per map version (`memo`): the goal
+        layer's building destinations (ruling P24-Y, Plan 24 Task 18)."""
+        def boxes():
+            out = {}
+            for b, rooms in self.interiors().items():
+                if b is None:
+                    continue
+                xs, ys = [sq[0] for sq in rooms], [sq[1] for sq in rooms]
+                out[b] = (min(xs), min(ys), max(xs), max(ys))
+            return out
+        return self.memo(("building_boxes",), boxes)
+
+    def building_dist(self, x, y, b):
+        """Tiles from the point (x, y) to building `b`'s box (`building_boxes`, its squares' full extent), 0.0 inside
+        it, None for a building the map does not hold."""
+        box = self.building_boxes().get(b)
+        return None if box is None else _box_dist(box, x, y)
+
+    def nearest_building(self, x, y, exclude=()):
+        """(tiles, building) of the known building whose box is nearest the point (x, y), ties by the building's
+        JSON; a building in `exclude` left out; None with none known."""
+        best = None
+        for b in self.building_boxes():
+            if b in exclude:
+                continue
+            rank = (self.building_dist(x, y, b), json.dumps(b, sort_keys=True), b)
+            if best is None or rank[:2] < best[:2]:
+                best = rank
+        return None if best is None else (best[0], best[2])
+
+    def building_near(self, x, y, r):
+        """A known building's box lies within `r` tiles of the point (x, y) (the woods test of ruling P24-Y: a square
+        with none within WOODS_R is the woods)."""
+        nb = self.nearest_building(x, y)
+        return nb is not None and nb[0] <= r
 
     def door_building(self, sq):
         """The building a door square belongs to: its own `building`, else (survival 3 fix round 1, the review's R2)

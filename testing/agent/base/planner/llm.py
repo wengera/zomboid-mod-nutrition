@@ -18,7 +18,10 @@ The contract:
   one of `view.WHYS`: a LootBuilding or Shelter naming a building that view's render does not show (`view.shown_ids`,
   the BUILDINGS_SHOWN nearest) is `invalid: refused`; a LootBuilding of a shown building whose `looted` reads true is
   `invalid: looted already`; an ExploreToward whose square's centre lies farther than EXPLORE_MAX_TILES (60) from its
-  `pos` (or with no `pos`) is `invalid: out of range` (all three were `invalid: unknown place` before P24-B).
+  `pos` (or with no `pos`) is `invalid: out of range` (all three were `invalid: unknown place` before P24-B); and
+  (ruling P24-Y, Plan 24 Task 18: every walk has a building as its destination) an ExploreToward whose square's
+  centre lies farther than `goals.WOODS_R` (40) from every building the view lists (its `box`, else its listed
+  squares), while it lists one, is `invalid: in the woods`.
 - The refusal's meaning reaches the model (P24-B 3, F1's write-up: the one refused answer named a square past the
   bound and the model never learned why, #4277, #4279): a goal refused by that rule is kept as `refusal`
   `{type, args, end: "refused", why}` and laid over the `last_goal` of the next call's view (once; then cleared), so
@@ -81,7 +84,7 @@ import tempfile
 import threading
 import time
 
-from agent.base.planner.goals import SCHEMA_PATH, validate
+from agent.base.planner.goals import BUILDING_R, SCHEMA_PATH, WOODS_R, validate
 from agent.base.planner.view import WHYS, render, shown_ids
 
 LLM_TIMEOUT_S = 20.0          # P23-11: a call answering later than this is a fallback
@@ -122,8 +125,15 @@ def _system():
                  "(- none), dist in tiles, N its containers, flags L looted (nothing left to take), v visited, "
                  "s shunned, - none.")
     lines.append("The refusal rule: name a building only by an id the view lists; an ExploreToward square within "
-                 "%g tiles of pos; a LootBuilding only a building listed without the L flag. An answer breaking "
-                 "it is refused and the program chooses instead." % EXPLORE_MAX_TILES)
+                 "%g tiles of pos and, once the view lists a building, within %g tiles of one (farther is the "
+                 "woods); a LootBuilding only a building listed without the L flag. An answer breaking it is refused "
+                 "and the program chooses instead." % (EXPLORE_MAX_TILES, WOODS_R))
+    lines.append("Your loop, every goal a building: the program clears the zombies near you itself; you loot the "
+                 "nearest building listed without L within %g tiles (LootBuilding), then the next nearest, wanting "
+                 "water and water containers first, then clothing, food, bandages and weapons (h: lists what each "
+                 "building is known to hold); walk only toward buildings: toward names the next building to walk "
+                 "to when none is near (its door), and an ExploreToward finds the next house at the edge of the "
+                 "known buildings, never out into open ground." % BUILDING_R)
     lines.append("met is the ground where zombies were met in the last minutes: dense the centre of the densest "
                  "group, n how many, bearing and dist from pos. Zombies there are still about: prefer ground away "
                  "from met.dense, and never explore toward its bearing while met.n is 3 or more.")
@@ -239,6 +249,9 @@ def place_error(goal, view):
         px, py = pos.get("x"), pos.get("y")
         if not _num(px) or not _num(py) or math.hypot(goal.x + 0.5 - px, goal.y + 0.5 - py) > EXPLORE_MAX_TILES:
             return "invalid: out of range"
+        listed = [b for b in view.get("buildings") or () if isinstance(b, dict)]
+        if listed and not any(_near(b, goal.x + 0.5, goal.y + 0.5) for b in listed):
+            return "invalid: in the woods"
     if goal.TYPE in PLACE_GOALS:
         if goal.building not in shown_ids(view):
             return "invalid: refused"
@@ -246,6 +259,18 @@ def place_error(goal, view):
         if goal.TYPE == "LootBuilding" and b.get("looted") is True:
             return "invalid: looted already"
     return None
+
+
+def _near(b, x, y):
+    """The point (x, y) lies within WOODS_R of the listed building `b`: its `box` (P24-Y) when the view carries one,
+    else its listed room square or door."""
+    box = b.get("box")
+    if isinstance(box, (list, tuple)) and len(box) == 4 and all(_num(v) for v in box):
+        dx = max(box[0] - x, 0.0, x - (box[2] + 1))
+        dy = max(box[1] - y, 0.0, y - (box[3] + 1))
+        return math.hypot(dx, dy) <= WOODS_R
+    pts = [(b.get("x"), b.get("y"))] + ([tuple(b["door"][:2])] if b.get("door") else [])
+    return any(_num(p[0]) and _num(p[1]) and math.hypot(p[0] + 0.5 - x, p[1] + 0.5 - y) <= WOODS_R for p in pts)
 
 
 _CWD = []

@@ -20,7 +20,9 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   container known reads false, unsearched ground being lootable: Task 3 fix 1, M1),
   `doors` (its exterior doors on the player's floor), `visited` (in `night.visited`), `shunned` (by the night or a
   Shelter goal, within `night.SHUN_MIN`), `shelter` (`night.shelter_plan` answers for it: rooms and an exterior door
-  on the player's floor; the scripted Shelter requires it, fix 1 I3).
+  on the player's floor; the scripted Shelter requires it, fix 1 I3), and (ruling P24-Y, Plan 24 Task 18) `holds`
+  ({use: items} over its containers of each use of `policies.LOOT_WANTS` a loot has not yet taken there: what it is
+  known to hold) and `box` (`World.building_boxes`' [minx, miny, maxx, maxy], the woods test's, unrendered).
 - `zombies_near {"6", "12", "25"}`: the zombies the World holds (seen within its ZOMBIE_TTL_S) within 6, 12 and 25
   tiles, each count cumulative.
 - `met {dense, n, bearing, dist}` (P24-B 1): the World's met ground, `world.met_near()` (the densest MET_R window
@@ -37,19 +39,24 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   (the LLM source's refusal of its own last answer, laid over the view it sends: `llm.py`); `failed` (any other
   failure: the goal budget, the load, no plan, a shun, none found). None before any goal ended. `events`: the kinds of
   the last three event lines. `want_shelter`: `night.want_shelter` (the night wants and knows no shelter).
-- Beyond the brief's keys, the scripted source's reads: `edge` (`world.unexplored_edge()` as [x, y], else None; after
-  two unmoved stuck walks from the player's square only a square in the open, P23-AP 1),
+- Beyond the brief's keys, the scripted source's reads: `edge` (`world.unexplored_edge(goals.WOODS_R)` as [x, y],
+  else None: with a building known never a square in the woods, none within WOODS_R, ruling P24-Y; after two unmoved
+  stuck walks from the player's square only a square in the open, P23-AP 1), `toward` (P24-Y: `{for, building,
+  door, square, dist}` of the building a walk heads to when none is to be looted near: `for` "unlooted", the nearest
+  building with a container known and not looted beyond `goals.BUILDING_R` when none such is within it, else
+  "cluster", the nearest known building when the player stands beyond WOODS_R of every one; `door` its first exterior
+  door [x, y] else None, `square` its nearest room square; else None),
   `scanned_here` (the player's place, `policies.place_of`, is in the goal kit's `Explore.scanned`), `stock_uses` (the
-  uses of `goals.STOCK_WANTS` for which the kit's `LootHouse.target` answers a container now, then `container` when
-  `world.nearest_unlooted("container")` answers one: a known empty vessel, the water chain's want; the Lua's loot
-  filters take no `container`, so no goal loots it yet), `cooled` (the goals
+  uses of `goals.STOCK_WANTS` for which the kit's `LootHouse.target` answers a container now: `container`, a known
+  empty vessel, the water chain's want, among them since P24-Y made it a loot's want), `cooled` (the goals
   the runner refuses for now, `GoalRunner.cooling()`: `[{type, args}]`, fix 1 I4).
 
 The view only reads: the kit is bound by its runner's `observe`, never here (fix 1 M5).
 
 `render(view) -> str`: one `key: value` line per key in `KEYS` order, values as compact sorted JSON except
-`buildings`, capped at the BUILDINGS_SHOWN (6, P24-B 3) nearest, each `id @x,y door x,y dist cN flags` (`door -`
-with none; flags `L` looted, `v` visited, `s` shunned, `-` none), joined by "; "; the whole stays under RENDER_MAX
+`buildings`, capped at the BUILDINGS_SHOWN (6, P24-B 3) nearest, each `id @x,y door x,y dist cN flags h:holds`
+(`door -` with none; flags `L` looted, `v` visited, `s` shunned, `-` none; `holds` its `use count` pairs, sorted, as
+`food3,water1`, `-` with none: P24-Y), joined by "; "; the whole stays under RENDER_MAX
 (2048) bytes, asserted at return. On overflow the lowest-value line goes first: `events` (the last event kinds, which
 no rule reads) is emptied to `[]`; then the buildings are cut from the farthest; then the longest line is halved (its
 tail replaced by "...") until it fits, so a long string off the game (an event kind, a goal's reason) cannot pass the
@@ -62,7 +69,8 @@ import math
 import time
 
 from agent.base.items import USES
-from agent.base.planner.goals import STOCK_WANTS, int_id, open_uses
+from agent.base.items import use_of
+from agent.base.planner.goals import BUILDING_R, STOCK_WANTS, WOODS_R, int_id, open_uses
 from agent.base.planner.night import exterior_doors, shelter_plan
 from agent.base.planner.policies import LOOT_WANTS, STUCK_REASONS, me_floor, me_xy, place_of
 from agent.base.world import MET_VIEW_R, compass
@@ -75,10 +83,10 @@ BUILDINGS_SHOWN = 6
 RENDER_MAX = 2048
 EVENTS_N = 3
 KEYS = ("pos", "hour", "health", "kills", "needs", "needs_wanted", "load", "weapon", "inventory_by_use", "buildings",
-        "zombies_near", "met", "attackers", "hit_reaction", "last_goal", "events", "want_shelter", "edge",
+        "zombies_near", "met", "attackers", "hit_reaction", "last_goal", "events", "want_shelter", "edge", "toward",
         "scanned_here", "stock_uses", "cooled")
 WHYS = ("done", "stuck", "superseded by the threat", "superseded by an instinct", "looted already", "refused",
-        "out of range", "failed")
+        "out of range", "in the woods", "failed")
 THREAT_SENDS = ("attack", "steer", "walkTo", "stop", "hold")   # a superseding send read as the threat's (why_of)
 
 __all__ = ["view", "render", "why_of", "shown_ids", "KEYS", "WHYS", "NEED_MEMORY_S", "ZOMBIE_BANDS",
@@ -97,6 +105,7 @@ def _buildings(world, night, kit):
     if kit is not None:
         shunned |= kit.shunned_now(world)
     visited = night.visited if night is not None else set()
+    boxes = world.building_boxes()
     out = []
     for b, rooms in world.interiors().items():
         if not int_id(b):
@@ -109,8 +118,36 @@ def _buildings(world, night, kit):
                     "dist": round(dist, 1), "containers": len(cs),
                     "looted": bool(cs) and not any(open_uses(world, loot, k, waiting) for k in cs),
                     "doors": len(doors), "visited": b in visited, "shunned": b in shunned,
-                    "shelter": shelter_plan(world, b) is not None})
+                    "shelter": shelter_plan(world, b) is not None, "holds": _holds(world, cs),
+                    "box": list(boxes[b]) if b in boxes else None})
     return sorted(out, key=lambda r: (r["dist"], r["id"]))
+
+
+def _holds(world, keys):
+    """{use: items} over the containers `keys`: each item of a LOOT_WANTS use a loot has not taken there yet (P24-Y:
+    what the building is known to hold)."""
+    out = {}
+    for k in keys:
+        c = world.containers.get(k) or {}
+        for item in c.get("items") or ():
+            u = use_of(item)
+            if u in LOOT_WANTS and u not in c.get("looted", ()):
+                out[u] = out.get(u, 0) + 1
+    return dict(sorted(out.items()))
+
+
+def _toward(world, buildings):
+    """P24-Y's walk toward a building (the module docstring's `toward`), else None."""
+    near = [b for b in buildings if b["looted"] is False and b["containers"] > 0 and not b["shunned"]]
+    target, why = None, None
+    if near and not any(b["dist"] <= BUILDING_R for b in near):
+        target, why = near[0], "unlooted"
+    elif buildings and not world.building_near(*me_xy(world), WOODS_R):
+        target, why = min(buildings, key=lambda b: (world.building_dist(*me_xy(world), b["id"]), b["id"])), "cluster"
+    if target is None:
+        return None
+    return {"for": why, "building": target["id"], "door": target["door"], "square": [target["x"], target["y"]],
+            "dist": target["dist"]}
 
 
 def _met(world):
@@ -149,8 +186,9 @@ def view(world, survive):
     mx, my = me_xy(world)
     zs = [math.hypot(z["x"] - mx, z["y"] - my) for z in world.zombies.values()
           if z.get("x") is not None and z.get("y") is not None]
-    edge = world.unexplored_edge()
+    edge = world.unexplored_edge(WOODS_R)
     last = runner.history[-1] if runner is not None and runner.history else None
+    buildings = _buildings(world, night, kit)
     return {
         "pos": {"x": me.get("x"), "y": me.get("y"), "z": me.get("z")},
         "hour": me.get("hour"),
@@ -161,7 +199,7 @@ def view(world, survive):
         "load": {k: load.get(k) for k in ("weight", "max", "level")},
         "weapon": (world.weapon or {}).get("type"),
         "inventory_by_use": {u: len(by_use[u]) for u in USES},
-        "buildings": _buildings(world, night, kit),
+        "buildings": buildings,
         "zombies_near": {str(r): sum(1 for d in zs if d <= r) for r in ZOMBIE_BANDS},
         "met": _met(world),
         "attackers": me.get("attackers"),
@@ -171,9 +209,9 @@ def view(world, survive):
         "events": [e.get("event") for e in list(world.events)[-EVENTS_N:]],
         "want_shelter": bool(getattr(night, "want_shelter", False)),
         "edge": list(edge) if edge else None,
+        "toward": _toward(world, buildings),
         "scanned_here": kit is not None and place_of(world) in kit.explore.scanned,
-        "stock_uses": [u for u in STOCK_WANTS if kit is not None and kit.loot.target(u) is not None]
-        + (["container"] if world.nearest_unlooted("container") is not None else []),
+        "stock_uses": [u for u in STOCK_WANTS if kit is not None and kit.loot.target(u) is not None],
         "cooled": runner.cooling() if runner is not None else [],
     }
 
@@ -190,8 +228,9 @@ def _building(b):
     mark += "s" if b.get("shunned") else ""
     door = b.get("door")
     door = "%s,%s" % (door[0], door[1]) if door else "-"
-    return "%s @%s,%s door %s %s c%s %s" % (b.get("id"), b.get("x"), b.get("y"), door, b.get("dist"),
-                                            b.get("containers"), mark or "-")
+    holds = ",".join("%s%s" % (u, n) for u, n in sorted((b.get("holds") or {}).items())) or "-"
+    return "%s @%s,%s door %s %s c%s %s h:%s" % (b.get("id"), b.get("x"), b.get("y"), door, b.get("dist"),
+                                                 b.get("containers"), mark or "-", holds)
 
 
 def _lines(v, shown, events=True):

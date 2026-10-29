@@ -65,7 +65,8 @@ def test_the_buildings_carry_containers_looted_doors_visited_and_distance(tmp_pa
     b = view(r.world, sv)["buildings"]
     assert [x["id"] for x in b] == [1, 2]                                # nearest first
     assert b[0] == {"id": 1, "x": 110, "y": 201, "door": [110, 201], "dist": 10.5, "containers": 2, "looted": False,
-                    "doors": 1, "visited": False, "shunned": False, "shelter": True}   # P24-B 3: x, y, door
+                    "doors": 1, "visited": False, "shunned": False, "shelter": True,   # P24-B 3: x, y, door
+                    "holds": {"bandage": 1, "food": 1}, "box": [110, 200, 112, 202]}   # P24-Y (Task 18)
     assert b[1]["containers"] == 1 and b[1]["looted"] is True and b[1]["dist"] == 20.5
     sv.night.visited.add(2)
     sv.night.shunned[1] = 480.0
@@ -209,8 +210,10 @@ def test_last_goal_reads_the_end_and_its_meaning(row, why):
 
 
 def test_the_closed_set_of_meanings():
+    """Named change, ruling P24-Y (Task 18): `in the woods`, the LLM source's refusal of an ExploreToward with no
+    listed building within WOODS_R."""
     assert V.WHYS == ("done", "stuck", "superseded by the threat", "superseded by an instinct", "looted already",
-                      "refused", "out of range", "failed")
+                      "refused", "out of range", "in the woods", "failed")
 
 
 def full_world(tmp_path):
@@ -228,7 +231,7 @@ def test_render_carries_every_key_under_2048_bytes_on_the_full_fixture(tmp_path)
     r, sv = full_world(tmp_path)
     v = view(r.world, sv)
     for k in V.KEYS:
-        assert v[k] is not None and v[k] != [] or k in ("weapon", "edge", "events", "stock_uses"), k
+        assert v[k] is not None and v[k] != [] or k in ("weapon", "edge", "events", "stock_uses", "toward"), k
     assert v["met"]["n"] >= 3 and v["attackers"] == 2 and v["last_goal"]["why"] == "superseded by the threat"
     text = render(v)
     n = len(text.encode("utf-8"))
@@ -242,11 +245,12 @@ def test_render_carries_every_key_under_2048_bytes_on_the_full_fixture(tmp_path)
 
 
 def test_a_building_renders_its_square_door_distance_and_flags():
+    """Named change, ruling P24-Y (Task 18): each building's line ends `h:` with what it is known to hold."""
     b = {"id": 3, "x": 110, "y": 201, "door": [110, 201], "dist": 10.5, "containers": 2, "looted": False,
-         "doors": 1, "visited": True, "shunned": False}
-    assert V._building(b) == "3 @110,201 door 110,201 10.5 c2 v"
-    b.update(door=None, looted=True, visited=False, shunned=True)
-    assert V._building(b) == "3 @110,201 door - 10.5 c2 Ls"
+         "doors": 1, "visited": True, "shunned": False, "holds": {"water": 1, "food": 3}}
+    assert V._building(b) == "3 @110,201 door 110,201 10.5 c2 v h:food3,water1"
+    b.update(door=None, looted=True, visited=False, shunned=True, holds={})
+    assert V._building(b) == "3 @110,201 door - 10.5 c2 Ls h:-"
 
 
 # ======================================== Task 3 fix 1: the render drop order (I2), an unsearched building (M1)

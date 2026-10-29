@@ -256,7 +256,8 @@ STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its he
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
 LOAD_RATIO_MAX = 1.0  # a loot fills to this times the frame's load.max (level 1 holds up to 1.25 of it, #3926)
-LOOT_WANTS = ("food", "water", "weapon", "bandage")   # a loot's want and filter: one use, never `all` (P23-8)
+LOOT_WANTS = ("food", "water", "weapon", "bandage", "container")   # a loot's want and filter: one use, never
+                      # `all` (P23-8); `container` (an empty vessel, the Lua's filter since PZA/1.5.1) by P24-Y
 DROP_AT = 3           # at this load level or above Survive's load branch drops (the heavy-load drain falls at 3) ...
 DROP_TO = 2           # ... down to this level, and between the two neither drops nor loots
 KEPT_USES = ("weapon", "food", "water")   # the uses a drop never takes

@@ -24,7 +24,9 @@ a class attribute equal to the entry's `const`:
   `stuck`. A walk whose path crosses a hoppable edge the follower climbs itself needs nothing; nothing here ever runs or
   sprints over a fence (no vault).
 - `LootBuilding(building)`: `LootHouse` kept to the containers on the building's squares (`LootHouse.within`), one
-  loot at a time for the first of STOCK_WANTS (water, food, bandage, weapon) that `LootHouse.target` answers there;
+  loot at a time for the first of STOCK_WANTS (ruling P24-Y, Plan 24 Task 18: water and container, clothing, food,
+  bandage, weapon; `clothing` is wanted by name, and `LootHouse.target` answers nothing for it until the Lua's loot
+  filter and the item record carry clothing and its protection) that `LootHouse.target` answers there;
   `done "looted"` when none answers after at least one loot, `failed "nothing to loot"` when none answered at all,
   `failed "load"` above `LOOT_MAX_LEVEL` (the level guard, spec § 9 (1)).
 - `Shelter(building)`: Night's shelter machine for a named building (`night.shelter_plan`, `shelter_step`,
@@ -57,10 +59,18 @@ number is refused) and raises
 `ScriptedSource` (`NAME = "scripted"`) is the old forage and explore reshaped, its order: `Stock(kind)` when the view's
 `needs_wanted` names water or food (water first) and `stock_uses` says a container answers it; `Shelter` the nearest
 known building for which the view's `shelter` reads true (`night.shelter_plan` answers: rooms and an exterior door on
-the player's floor) and that is not shunned, when `want_shelter`; `LootBuilding` the nearest building with a container
-known and not yet looted (the view's `looted` false and `containers` above 0, P24-B 3); `ExploreToward` the view's
-`edge` (which leaves out the bearing of a met group, `World.unexplored_edge`, ruling P24-B 2), else the player's own
-square while `scanned_here` is false (a fresh session's first scan, before the map holds an edge); else `Rest(REST_S)`.
+the player's floor) and that is not shunned, when `want_shelter`; then ruling P24-Y's loop (Plan 24 Task 18; E7 walked
+on into the woods from game minute 622 to its cap at 786, 545 tiles from the nearest building it knew by 746; Angus:
+"clear/kill zombies in the immediate vicinity, then move to the next house"): the clearing is the threat branch's
+(P24-X: no goal runs while a fight is sought); `LootBuilding` the nearest building within BUILDING_R (60) with a
+container known and not yet looted (the view's `looted` false and `containers` above 0, P24-B 3); `ExploreToward` the
+view's `toward` when it names an unlooted building beyond BUILDING_R (its door, else its nearest room square); the
+view's `edge` (which leaves out the bearing of a met group, `World.unexplored_edge`, ruling P24-B 2, and, with a
+building known, any square with no building within WOODS_R (40): the woods); the view's `toward` when it names the
+nearest building with the player beyond WOODS_R of every one (the step back to the known cluster); else the player's
+own square while `scanned_here` is false (a fresh session's first scan, before the map holds an edge; with no
+building known at all the edge is the plain one, the first building still to find); else `Rest(REST_S)`. A walk's
+target is so always a building or a square within WOODS_R of one, once one is known.
 The edge leaves a stuck area (ruling P23-AP 1, E4's twelve walks from one square north of a locked gate): after two
 walks from the player's square failed `stuck` unmoved, `world.unexplored_edge` answers only a square a bounded flood
 from the player reaches and whose straight line from it crosses no known blocking edge, else none, and the kit's
@@ -115,7 +125,9 @@ GOAL_COOL_S = 30.0    # wall seconds a goal that failed having sent nothing is n
 GOAL_HOLD_SUPERSEDE_TICKS = 20   # planner ticks another branch holds without sending before the goal is superseded
 ARRIVE_R = 1.5        # tiles: an ExploreToward whose place is scanned is done within this of its point
 REST_S = 30.0         # the scripted source's rest
-STOCK_WANTS = ("water", "food", "bandage", "weapon")   # LootBuilding's order of uses
+STOCK_WANTS = ("water", "container", "clothing", "food", "bandage", "weapon")   # LootBuilding's order of uses (P24-Y)
+BUILDING_R = 60.0     # tiles: an unlooted building this near is looted; farther, it is walked toward first (P24-Y)
+WOODS_R = 40.0        # tiles: a square with no building known this near is the woods, never a walk's target (P24-Y)
 STOCK_KINDS = ("water", "food")                        # Stock's kinds, the scripted source's order
 RUN_FIELDS = ("state", "reason", "started_wall")
 STATES = ("running", "done", "failed", "superseded")
@@ -126,7 +138,7 @@ EXAMPLES = {"ExploreToward": {"x": 120, "y": 205}, "LootBuilding": {"building": 
 __all__ = ["Goal", "ExploreToward", "LootBuilding", "Shelter", "Stock", "Rest", "GoalSource", "ScriptedSource",
            "GoalRunner", "Kit", "validate", "open_uses", "int_id", "goal_key", "GOAL_MAX_S", "GOAL_COOL_S",
            "GOAL_HOLD_SUPERSEDE_TICKS",
-           "ARRIVE_R", "REST_S", "STOCK_WANTS",
+           "ARRIVE_R", "REST_S", "STOCK_WANTS", "BUILDING_R", "WOODS_R",
            "STOCK_KINDS", "RUN_FIELDS", "STATES", "SCHEMA_PATH", "EXAMPLES"]
 
 
@@ -603,11 +615,18 @@ class ScriptedSource:
                     yield Shelter(b["id"])
         if loot_ok:
             for b in bs:
-                if b.get("looted") is False and (b.get("containers") or 0) > 0:
+                if (b.get("looted") is False and (b.get("containers") or 0) > 0 and _num(b.get("dist"))
+                        and b["dist"] <= BUILDING_R):
                     yield LootBuilding(b["id"])
+        toward = view.get("toward") or {}
+        to = toward.get("door") or toward.get("square")
+        if toward.get("for") == "unlooted" and to:
+            yield ExploreToward(int(to[0]), int(to[1]))
         edge = view.get("edge")
         if edge:
             yield ExploreToward(int(edge[0]), int(edge[1]))
+        if toward.get("for") == "cluster" and to:
+            yield ExploreToward(int(to[0]), int(to[1]))
         pos = view.get("pos") or {}
         if not view.get("scanned_here") and _num(pos.get("x")) and _num(pos.get("y")):
             yield ExploreToward(int(math.floor(pos["x"])), int(math.floor(pos["y"])))
