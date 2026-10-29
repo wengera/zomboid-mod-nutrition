@@ -1664,21 +1664,24 @@ class Explore(Policy):
             return None
         return WalkTo(*centre(edge), "walk")
 
-    def sent(self, cmd, action):
+    def sent(self, cmd, action, leg=False):
+        """`leg`: the walk is a goal's leg toward a farther point (ruling P24-AC, `goals._Legs`): its `no square` marks
+        nothing."""
         if cmd.TYPE == "scan":
             self.scanned.add(self.place())
             self._scan = (self.place(), action)
             self._last = (action.aid, self.place())
         elif cmd.TYPE == "walkTo":   # the target square, for mark_stuck; the player's position, for the stuck pair
-            self._walk = ((int(math.floor(cmd.x)), int(math.floor(cmd.y))), action, me_xy(self.world))
+            self._walk = ((int(math.floor(cmd.x)), int(math.floor(cmd.y))), action, me_xy(self.world), leg)
 
-    def _walk_ended(self, to, a, start):
-        """A walk's end: a target failed for a STUCK_REASONS reason is marked stuck; one failed `stuck` with the
+    def _walk_ended(self, to, a, start, leg=False):
+        """A walk's end: a target failed for a STUCK_REASONS reason is marked stuck (a leg's `no square` never: the
+        client's unloaded ground is no stuck square, P24-AC); one failed `stuck` with the
         player moved under STUCK_MOVE from its start is a stuck pair from the start's square (P23-AP 1), and the
         rescan of the player's place once STUCK_AREA_N stand in a row there (the goal source's scan, never a third
         walk); a walk that moved the player or ended done ends the run."""
         moved = math.hypot(me_xy(self.world)[0] - start[0], me_xy(self.world)[1] - start[1])
-        if a.state == "failed" and a.reason in STUCK_REASONS:
+        if a.state == "failed" and a.reason in STUCK_REASONS and not (leg and a.reason == "no square"):
             self.world.mark_stuck(*to)
         if a.state == "failed" and a.reason == "stuck" and moved < STUCK_MOVE:
             self.world.mark_stuck_pair((int(math.floor(start[0])), int(math.floor(start[1]))), to)

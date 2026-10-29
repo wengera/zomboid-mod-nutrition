@@ -185,3 +185,134 @@ def test_with_no_want_the_loot_order_is_unchanged():
     assert G.STOCK_WANTS == ("water", "container", "clothing", "food", "bandage", "weapon")
     assert list(G.ScriptedSource().candidates({"needs_wanted": [], "buildings": [
         {"id": 7, "dist": 30.0, "holds": {"bandage": 1}, "looted": False, "containers": 1}]}))[:1] == [G.LootBuilding(7)]
+
+
+# ================================================================ P24-AC: legged far walks
+import math   # noqa: E402
+
+from .test_goals import FRIDGE, Src, inside   # noqa: E402
+from .test_policies import Rig   # noqa: E402
+
+
+def far_runner(r, goal):
+    """A runner on `goal` with the player's place scanned already (its first command the walk)."""
+    runner = G.GoalRunner(Src(goal), r.clock)
+    runner.kit.bind(r.world, r.acts)
+    runner.kit.explore.scanned.add(runner.kit.explore.place())
+    return runner
+
+
+def step(r, runner):
+    """A tick of the runner (its observe first, as Survive's), the scans answered done; the walk it sent, or None."""
+    while True:
+        runner.observe(r.world, r.acts)
+        cmd = runner.tick(r.world, r.acts)
+        if cmd is None:
+            return None
+        runner.send(cmd)
+        if cmd.TYPE != "scan":
+            return cmd
+        r.answer()
+        r.frame(x=r.world.me["x"], y=r.world.me["y"])
+
+
+def test_the_leg_constants():
+    """Ruling P24-AC: legs of at most 30 tiles (inside E8's bracket: 9.4 tiles got a square, 62.7 did not), halved
+    down to 10."""
+    assert (G.LEG_MAX, G.LEG_MIN) == (30.0, 10.0)
+
+
+def test_a_100_tile_destination_is_walked_in_30_tile_legs_then_directly(tmp_path):
+    """P24-AC: ExploreToward(200, 200) from (100.5, 200.5): each walk a leg along the line to a square centre within
+    30 tiles (`why` `leg`, `legLen`), each leg done moving the player there; within 30 tiles the walk is the target's
+    own, and its arrival ends the goal done."""
+    r = Rig(tmp_path)
+    r.frame(x=100.5, y=200.5)
+    g = G.ExploreToward(200, 200)
+    runner = far_runner(r, g)
+    legs = []
+    while True:
+        cmd = step(r, runner)
+        me = (r.world.me["x"], r.world.me["y"])
+        d = math.hypot(cmd.x - me[0], cmd.y - me[1])
+        if (cmd.x, cmd.y) == (200, 200):
+            assert math.hypot(200 - me[0], 200 - me[1]) <= G.LEG_MAX and "leg" not in g.why
+            break
+        assert d <= G.LEG_MAX and d >= G.LEG_MAX - 1.5 and abs(cmd.y - 200.5) <= 0.5 and g.why["legLen"] == 30.0
+        assert g.why["leg"] == [cmd.x, cmd.y] and g.state == "running"
+        legs.append((cmd.x, cmd.y))
+        r.answer()
+        r.frame(x=cmd.x, y=cmd.y)
+    assert legs == [(129.5, 200.5), (158.5, 200.5), (187.5, 200.5)]   # 29.25 tiles on, each a square's centre
+    r.answer()
+    r.frame(x=200.2, y=200.3)
+    step(r, runner)
+    assert (g.state, g.reason) == ("done", "arrived")
+    all_sends_valid(r)
+
+
+def test_a_no_square_leg_halves_to_15_then_10_and_nothing_is_marked(tmp_path):
+    """P24-AC: a leg failed `no square` is re-sent at half its length, 15 then 10 tiles (LEG_MIN); at 10 the goal
+    fails `no square`; neither the far target nor any leg square is marked stuck (E8's 278 walks each marked their
+    target, the edge stepping a square at a time)."""
+    r = Rig(tmp_path)
+    r.frame(x=100.5, y=200.5, game_min=480.0)
+    g = G.ExploreToward(200, 200)
+    runner = far_runner(r, g)
+    lens = []
+    for _ in range(3):
+        cmd = step(r, runner)
+        lens.append((g.why["legLen"], math.hypot(cmd.x - 100.5, cmd.y - 200.5)))
+        assert g.state == "running"
+        r.answer({"state": "failed", "reason": "no square"})
+        r.frame(x=100.5, y=200.5, game_min=481.0)
+    step(r, runner)
+    assert lens == [(30.0, 29.0), (15.0, 14.0), (10.0, 9.0)]   # each leg's square centre within its length
+    assert (g.state, g.reason) == ("failed", "no square") and r.world.stuck == {}
+    assert runner.history[-1]["args"] == {"x": 200, "y": 200}
+
+
+def test_a_direct_walk_failed_no_square_still_marks_its_target(tmp_path):
+    """P24-AC changes legs only: a target within LEG_MAX whose walk fails `no square` is marked, as before."""
+    r = Rig(tmp_path)
+    r.frame(x=100.5, y=200.5, game_min=480.0)
+    g = G.ExploreToward(120, 200)
+    runner = far_runner(r, g)
+    cmd = step(r, runner)
+    assert (cmd.x, cmd.y) == (120, 200)
+    r.answer({"state": "failed", "reason": "no square"})
+    r.frame(x=100.5, y=200.5, game_min=481.0)
+    step(r, runner)
+    assert (g.state, g.reason) == ("failed", "no square") and (120, 200) in r.world.stuck
+
+
+def test_a_done_leg_restores_the_full_length(tmp_path):
+    """P24-AC: after a halved leg ends done the next leg is LEG_MAX again."""
+    r = Rig(tmp_path)
+    r.frame(x=100.5, y=200.5)
+    g = G.ExploreToward(200, 200)
+    runner = far_runner(r, g)
+    step(r, runner)
+    r.answer({"state": "failed", "reason": "no square"})
+    r.frame(x=100.5, y=200.5)
+    cmd = step(r, runner)
+    assert g.why["legLen"] == 15.0
+    r.answer()
+    r.frame(x=cmd.x, y=cmd.y)
+    step(r, runner)
+    assert g.why["legLen"] == 30.0
+
+
+def test_a_loot_building_container_beyond_leg_max_is_walked_to_in_a_leg_first(tmp_path):
+    """P24-AC: LootBuilding's container 45 tiles off: a leg of at most 30 tiles toward it first, then the loot."""
+    r = Rig(tmp_path)
+    r.scan([inside(145, 200, containers=[FRIDGE])])
+    r.frame(x=100.5, y=200.5)
+    g = G.LootBuilding(1)
+    runner = G.GoalRunner(Src(g), r.clock)
+    cmd = step(r, runner)
+    assert cmd.TYPE == "walkTo" and math.hypot(cmd.x - 100.5, cmd.y - 200.5) <= G.LEG_MAX and g.why["leg"]
+    r.answer()
+    r.frame(x=cmd.x, y=cmd.y)
+    cmd = step(r, runner)
+    assert cmd.TYPE == "interact" and cmd.args()["kind"] == "loot" and cmd.args()["x"] == 145

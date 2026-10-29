@@ -12,7 +12,10 @@ a class attribute equal to the entry's `const`:
   unscanned, then a `WalkTo(x, y)` at a walk; `done "arrived"` when its walk ends done, or when the place is scanned
   and the player stands within ARRIVE_R (1.5 tiles) of (x, y); a walk or scan that ends any other way but
   `superseded` fails the goal under the action's reason (a walk failed for a `STUCK_REASONS` reason is marked stuck by
-  `Explore.observe`, so the scripted source's next edge leaves it out). The climb in routes (Plan 24 Task 10, ruling
+  `Explore.observe`, so the scripted source's next edge leaves it out). A point farther than LEG_MAX (30 tiles) is
+  walked to in legs (ruling P24-AC, Plan 24 Task 21, `_Legs`: E8's 278 walks 62 to 234 tiles off all failed `no
+  square`), a leg failed `no square` halved down to LEG_MIN (10) and re-sent, never marking the target; the woods
+  radius's widening and the cluster step reach it through ExploreToward, so they walk in legs too. The climb in routes (Plan 24 Task 10, ruling
   P24-G 4; #4296: a short fence climbed at a walk never trips; `_Climbing` and the kit's `hop_after`, shared with
   `Shelter` since Task 10 fix 1, minor 9): a walk the path follower could not finish, ended `failed "stuck"` where the
   straight line from the player toward the walk's target first crosses a hoppable edge (`World.hop_ahead`: blocked,
@@ -30,7 +33,8 @@ a class attribute equal to the entry's `const`:
   only while fewer than CONTAINERS_HELD_N (2) vessels are held (`wanted_uses`: Task 18 fix 1, the review's major 5,
   E7's map knew 14 empty vessels in building 5 and 8 in building 2, each loot filling to the cap before the food);
   `done "looted"` when none answers after at least one loot, `failed "nothing to loot"` when none answered at all,
-  `failed "load"` above `LOOT_MAX_LEVEL` (the level guard, spec § 9 (1)). The route (ruling P24-Z, Plan 24 Task 18;
+  `failed "load"` above `LOOT_MAX_LEVEL` (the level guard, spec § 9 (1)). A container farther than LEG_MAX is walked
+  to in legs first (P24-AC, `_Legs`), a leg's failure other than a halved `no square` failing the goal. The route (ruling P24-Z, Plan 24 Task 18;
   E7's eight loots failed `not adjacent` from outside building 5's locked back door, 55.6 s): a loot that failed `not
   adjacent` is a route that stood against a door (Survive counts it on that door, `World.note_door_fail`, the second
   marking it); while the player is not on a room square of the building, the next steps are the shelter machine's
@@ -134,8 +138,8 @@ from typing import ClassVar, Optional, Protocol, runtime_checkable
 from agent.base.items import use_of
 from agent.base.planner.night import (SHUN_MIN, hop_after, player_square, shelter_ended, shelter_plan,
                                       shelter_step)
-from agent.base.planner.policies import (LOOT_MAX_LEVEL, LOOT_WANTS, PREEMPTED, SCAN_R, Explore, LootHouse, me_xy,
-                                         place_of)
+from agent.base.planner.policies import (LOOT_MAX_LEVEL, LOOT_WANTS, PREEMPTED, SCAN_R, Explore, LootHouse, centre,
+                                         me_xy, place_of)
 from agent.base.pza1 import Climb, Scan, WalkTo
 
 GOAL_MAX_S = 90.0     # wall seconds a goal may run before it is failed "goal budget" and replaced (a Rest: P23-W)
@@ -153,6 +157,11 @@ REST_N = 3            # Rests in a row, no building newly read, before the woods
 WOODS_STEP = 20.0     # tiles the woods radius widens by at each REST_N rests (ruling 3)
 WOODS_MAX_R = 80.0    # tiles: the widest woods radius (ruling 3: walks reach up to 60, then 80 tiles from the cluster)
 STOCK_KINDS = ("water", "food")                        # Stock's kinds, the scripted source's order
+LEG_MAX = 30.0        # tiles: a goal destination farther than this is walked to in legs of at most this (ruling P24-AC:
+                      # E8's farthest walk that got a square was 9.4 tiles off, its nearest `no square` 62.7; a margin
+                      # inside that bracket, not a measurement: a jar read of the client's loaded window replaces it)
+LEG_MIN = 10.0        # tiles: a leg failed `no square` is halved down to this (P24-AC), then the goal fails `no square`
+LEG_SQ_MARGIN = 0.75  # tiles a leg's point is drawn short of LEG_MAX so its square's centre lies within it (<= sqrt 2 / 2)
 RUN_FIELDS = ("state", "reason", "started_wall")
 STATES = ("running", "done", "failed", "superseded")
 SCHEMA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "schema", "goals.json")
@@ -163,7 +172,7 @@ __all__ = ["Goal", "ExploreToward", "LootBuilding", "Shelter", "Stock", "Rest", 
            "GoalRunner", "Kit", "validate", "open_uses", "int_id", "goal_key", "GOAL_MAX_S", "GOAL_COOL_S",
            "GOAL_HOLD_SUPERSEDE_TICKS",
            "ARRIVE_R", "REST_S", "STOCK_WANTS", "BUILDING_R", "WOODS_R", "CONTAINERS_HELD_N", "REST_N", "WOODS_STEP",
-           "WOODS_MAX_R", "wanted_uses",
+           "WOODS_MAX_R", "wanted_uses", "LEG_MAX", "LEG_MIN",
            "STOCK_KINDS", "RUN_FIELDS", "STATES", "SCHEMA_PATH", "EXAMPLES"]
 
 
@@ -385,8 +394,47 @@ class _Climbing:
         return Climb(x, y)
 
 
+class _Legs:
+    """Ruling P24-AC (Plan 24 Task 21; E8, `e_day_8-20261029-174023`: from game minute 618 every one of the goal's 278
+    walks failed `no square` within 0.53 s, its targets 62 to 234 tiles off, each failure marking the target stuck so
+    the edge stepped to the next far square): a goal destination farther than `leg_len` (LEG_MAX) is approached in
+    legs along the straight line, each a `WalkTo` at a walk to the centre of the square `leg_len` - LEG_SQ_MARGIN
+    tiles toward it (so within `leg_len`); a leg that ends done restores LEG_MAX and the next leg follows; one that
+    fails `no square` (the client holds no square there) halves `leg_len`, down to LEG_MIN, and the next leg is
+    re-sent shorter; at LEG_MIN a `no square` fails the goal. A leg's `no square` never marks a square stuck
+    (`Explore.sent`'s `leg`), so the far target stays the goal's. `_legs()` once at the start; `_leg_cmd(world, x, y)`
+    the leg toward (x, y), else None when it lies within `leg_len` (the direct walk is the goal's own); `_leg_ended(
+    action)` "next" (go on), "fail" (the leg's own failure: the goal reads it) or None (not a leg)."""
+
+    def _legs(self):
+        self.leg_len = LEG_MAX   # tiles: the next leg's length
+        self.leg = None          # (x, y) of the leg the last choose sent, else None
+
+    def _leg_cmd(self, world, x, y):
+        mx, my = me_xy(world)
+        d = math.hypot(x - mx, y - my)
+        if d <= self.leg_len:
+            self.leg = None
+            return None
+        k = (self.leg_len - LEG_SQ_MARGIN) / d
+        self.leg = centre((mx + (x - mx) * k, my + (y - my) * k))
+        return WalkTo(self.leg[0], self.leg[1], "walk")
+
+    def _leg_ended(self, action):
+        if self.leg is None or action.type != "walkTo" or (action.args.get("x"), action.args.get("y")) != self.leg:
+            return None
+        self.leg = None
+        if action.state == "done":
+            self.leg_len = LEG_MAX
+            return "next"
+        if action.reason == "no square" and self.leg_len > LEG_MIN:
+            self.leg_len = max(self.leg_len / 2.0, LEG_MIN)
+            return "next"
+        return "fail"
+
+
 @dataclass
-class ExploreToward(_Climbing, Goal):
+class ExploreToward(_Legs, _Climbing, Goal):
     TYPE: ClassVar[str] = "ExploreToward"
     x: int
     y: int
@@ -397,8 +445,12 @@ class ExploreToward(_Climbing, Goal):
 
     def start(self, world):
         self._climbs()
+        self._legs()
 
     def ended(self, world, action):
+        leg = self._leg_ended(action)
+        if leg == "next":
+            return
         if action.type == "walkTo":
             if action.state == "done":
                 self.end("done", "arrived")
@@ -425,11 +477,15 @@ class ExploreToward(_Climbing, Goal):
             self.why = {"toward": [self.x, self.y], "climb": [climb.x, climb.y]}
             return climb
         self.why = {"toward": [self.x, self.y], "dist": self._dist(world)}
+        leg = self._leg_cmd(world, self.x, self.y)   # P24-AC: a far target in legs
+        if leg is not None:
+            self.why.update(leg=[leg.x, leg.y], legLen=self.leg_len)
+            return leg
         return WalkTo(self.x, self.y, "walk")
 
     def sent(self, cmd, action):
         super().sent(cmd, action)
-        self.kit.explore.sent(cmd, action)
+        self.kit.explore.sent(cmd, action, leg=self.leg is not None and cmd.TYPE == "walkTo")
 
 
 class _Looting:
@@ -451,11 +507,12 @@ class _Looting:
 
 
 @dataclass
-class LootBuilding(_Looting, Goal):
+class LootBuilding(_Legs, _Looting, Goal):
     TYPE: ClassVar[str] = "LootBuilding"
     building: int
 
     def start(self, world):
+        self._legs()
         self.route = None        # the entry plan (night.shelter_plan) while the route is due (P24-Z), else None
         self.route_due = False   # a loot failed `not adjacent`: in by a door the World has not marked first
 
@@ -470,7 +527,13 @@ class LootBuilding(_Looting, Goal):
 
     def ended(self, world, action):
         """A loot failed `not adjacent` makes the route due (P24-Z); a route step's end is read into its plan
-        (`night.shelter_ended`), `shun` (no door left) failing the goal `no door`."""
+        (`night.shelter_ended`), `shun` (no door left) failing the goal `no door`; a leg toward a far container
+        (P24-AC) goes on, or fails the goal under its reason."""
+        leg = self._leg_ended(action)
+        if leg is not None:
+            if leg == "fail":
+                self.end("failed", action.reason or action.state)
+            return
         if action.type == "interact" and action.args.get("kind") == "loot":
             if action.state == "failed" and action.reason == "not adjacent":
                 self.route_due = True
@@ -512,6 +575,12 @@ class LootBuilding(_Looting, Goal):
         try:
             want = next((u for u in wanted_uses(world, self.kit.wants) if loot.target(u) is not None), None)
             if want is not None:
+                key = loot.target(want)
+                leg = self._leg_cmd(world, *centre(key))   # P24-AC: a container beyond LEG_MAX is walked to in legs
+                if leg is not None:
+                    self.why = {"building": self.building, "want": want, "container": list(key),
+                                "leg": [leg.x, leg.y], "legLen": self.leg_len}
+                    return leg
                 loot.want = want
                 cmd = loot.choose()
                 self.why = dict(loot.why, building=self.building)
