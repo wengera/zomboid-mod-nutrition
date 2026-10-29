@@ -1,0 +1,94 @@
+aim_stand: 50 frames (ack to end, no settle), aiming 50, forceAim 50 (seq 343-396)
+aim_strafe: 50 frames (ack to end, no settle), aiming 50, forceAim 50 (seq 400-466)
+backpedal: 1.01171875 tiles along [-1.0, 0.0] over the leg (seq 399 to 466, 4.996 s), moving on 50 of 50 frames, dirs ['E']
+movement: seq 400 to 415, 12 frame steps, 1.01171875 tiles in 1.195 s = 0.8466265690376569 tiles/s, modal step 0.09375
+then stood: 38 frames (seq 417 to 466, 3.801 s) at [(10720.48828125, 10630.5)], moving true on 38, pace 0 on 38
+grade_p1's window (ack + 1000.0 ms): 40 frames from seq 414, 0.09375 tiles (grade_p1.strafe_tiles 0.09375); opens after the movement began: True
+{
+ "backpedal": {
+  "dirs": [
+   "E"
+  ],
+  "end": {
+   "seq": 466,
+   "x": 10720.48828125,
+   "y": 10630.5
+  },
+  "grade_window": {
+   "first_seq": 414,
+   "n": 40,
+   "opens_after_run": true,
+   "tiles": 0.09375
+  },
+  "leg_s": 4.996,
+  "leg_tiles": 1.01171875,
+  "moving_true": 50,
+  "n": 50,
+  "run": {
+   "first_seq": 400,
+   "frames": 12,
+   "last_seq": 415,
+   "modal_step": 0.09375,
+   "span_s": 1.195,
+   "steps": [
+    0.006835938,
+    0.06640625,
+    0.09375,
+    0.09375,
+    0.09375,
+    0.09375,
+    0.094726562,
+    0.09375,
+    0.09375,
+    0.09375,
+    0.09375,
+    0.09375
+   ],
+   "tiles": 1.01171875,
+   "tiles_per_s": 0.8466265690376569
+  },
+  "stand": {
+   "first_seq": 417,
+   "frames": 38,
+   "last_seq": 466,
+   "moving_true": 38,
+   "pace_zero": 38,
+   "positions": [
+    [
+     10720.48828125,
+     10630.5
+    ]
+   ],
+   "span_s": 3.801
+  },
+  "start": {
+   "seq": 399,
+   "x": 10721.5,
+   "y": 10630.5
+  },
+  "vector": [
+   -1.0,
+   0.0
+  ]
+ },
+ "frames": 290,
+ "grade_p1_strafe_tiles": 0.09375,
+ "legs": {
+  "aim_stand": {
+   "aiming": 50,
+   "first_seq": 343,
+   "forceAim": 50,
+   "last_seq": 396,
+   "n": 50
+  },
+  "aim_strafe": {
+   "aiming": 50,
+   "first_seq": 400,
+   "forceAim": 50,
+   "last_seq": 466,
+   "n": 50
+  }
+ },
+ "regrade": "p_grade_2",
+ "run_id": "p_stance-20261029-135919"
+}
