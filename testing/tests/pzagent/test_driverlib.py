@@ -291,7 +291,8 @@ def test_the_day_chain_lays_the_drivers_extra_and_copied_over_its_record(tmp_pat
     assert xs.copied == ["goals.log", "decision.log"]
     rec = c.extra_record()
     assert rec["llm"] == {"n": 1} and rec["lineage"] is None and rec["goals"] == [] and rec["t_loop0_ms"] is None
-    assert DY.CONTRACT_KEYS == ("goals", "night", "lineage", "t_loop0_ms")
+    assert DY.CONTRACT_KEYS == ("goals", "night", "lineage", "t_loop0_ms", "results")
+    assert rec["results"] == []
     clash = DY.Chain(types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=None), None,
                      extra=lambda s: {"llm": 1, "lineage": "x"}, planner_factory=Survive, clock=lambda: 5.0)
     with pytest.raises(AssertionError, match="lineage"):
@@ -299,7 +300,7 @@ def test_the_day_chain_lays_the_drivers_extra_and_copied_over_its_record(tmp_pat
     assert rec["night"] == {"wants": 0, "steps": [], "sleeps": []}
     plain = DY.Chain(types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=None), None,
                      planner_factory=Survive, clock=lambda: 5.0)
-    assert set(plain.extra_record()) == {"goals", "night", "lineage", "t_loop0_ms"}
+    assert set(plain.extra_record()) == {"goals", "night", "lineage", "t_loop0_ms", "results"}
 
 
 def test_after_teardown_runs_with_the_sessions_return_and_never_raises():
@@ -1290,15 +1291,32 @@ def test_only_the_first_death_event_is_kept_and_another_kind_is_no_death(tmp_pat
     assert e.value.reason == "death" and e.value.detail == "event death seq 7 via isDead body.health 19.5"
 
 
-def test_a_new_day_sessions_grade_is_grade_e2_under_its_own_key(monkeypatch):
-    """CLAUDE.md section 5 freezing (P23-AO fix 1): a new session's record carries grade_e2 under the key grade_e2."""
+def test_a_new_day_sessions_grade_is_grade_e3_under_its_own_key(monkeypatch):
+    """CLAUDE.md section 5 freezing (Plan 24 Task 11): a new session's record carries grade_e3 under the key grade_e3
+    (grade_e2 was the key until the E5 session; e_grade_2.py grades that artifact)."""
     from agent.base import gates_e as GE
-    assert DY.GRADE_KEY == "grade_e2"
+    assert DY.GRADE_KEY == "grade_e3"
     out = S.new_out()
     out.update(stop={"reason": "day_cap", "detail": "x", "wallS": 1.0})
     DY.grade_day(out)
-    assert out["grade_e2"]["grade"] == "grade_e2" and "grade_e1" not in out
-    monkeypatch.setattr(GE, "grade_e2", lambda o: 1 / 0)
+    assert out["grade_e3"]["grade"] == "grade_e3" and "grade_e1" not in out and "grade_e2" not in out
+    monkeypatch.setattr(GE, "grade_e3", lambda o: 1 / 0)
     bad = {}
     DY.grade_day(bad)
-    assert bad["grade_e2_error"].startswith("ZeroDivisionError") and "grade_e2" not in bad
+    assert bad["grade_e3_error"].startswith("ZeroDivisionError") and "grade_e3" not in bad
+
+
+def test_the_record_carries_the_results_of_the_sent_actions_of_the_care_types():
+    from agent.base.actions import Action
+    xs = types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=None)
+    c = DY.Chain(xs, None, planner_factory=Survive, clock=lambda: 5.0)
+    rows = [("a1", "bandage", {"part": 3}), ("a2", "consume", {"itemId": 1}), ("a3", "fill", None),
+            ("a4", "fill", {"fluid": "Water"})]
+    for aid, t, res in rows:
+        a = Action(aid, t, {}, 5.0, 1.0)
+        a.state, a.result = "done", res
+        c.sent.append(a)
+    assert c.extra_record()["results"] == [{"aid": "a1", "type": "bandage", "state": "done", "result": {"part": 3}},
+                                           {"aid": "a4", "type": "fill", "state": "done",
+                                            "result": {"fluid": "Water"}}]
+    assert "consume" not in DY.RESULT_TYPES

@@ -1,9 +1,5 @@
 """e_day_6 -- Plan 24, the sixth chain's session driver: `e_day_5.py` copied under its own key after the fifth chain's
-death at game minute 595 (`e_day_5-20261028-201255`, the horde within seconds); the base at ff8865f0 carries PZA/1.4
-(the attackers, the hit reaction, the drag-down, the hoppable edges) and survival iteration 5 (the threat read over
-the whole listing and the met ground, the look behind, the corner yielding to the health flee, the retries under a
-group and under the health flee, the drag-down guard, no attack in a hit reaction) and the goal sources off met
-ground, the use table reading only drinkable water and a consume with no effect marked (rulings P24-A to P24-F). Every
+death at game minute 595 (`e_day_5-20261028-201255`, the horde within seconds); the base at `6159dbc4` carries PZA/1.5.2 (the combat stance held while backpedalling, the fence climb at a walk, the bandage, the rag rip and wash, the water fill, the parts' care fields, the squares' water sources, the item re-read after a fill or a drink) and survival iteration 6 (the stance fight against one or two with the backpedal band and the 20 s fallback, the care branch between threat and need, the water chain drinking clean water then filling a held vessel at a clean source, the climb after a stuck walk, the no-effect mark; rulings P24-A to P24-M). Every
 other line is e_day_5.py's: the thin driver imports the library's `day` module, so the behaviour is the library's at
 the boot.
 
@@ -45,8 +41,8 @@ task-15-amendments.md:
 out["chain"] {session, fixture_arg (the fixture booted), profile_fixture (the profile's own `fixture`, reported
 beside it), prev (the path), commit (the tree's)}; out["preboot"]["chain_checks"] (day.chain_checks: {fixture,
 fixture_ok, fixture_error, fixture_session, prev, prev_ok, prev_error, prev_frames, prev_session, session,
-session_consistent}); out["grade_e2"] is gates_e.grade_e2(out) (the death signal of PZA/1.3, ruling P23-AO; its lineage the record's
-loop.lineage, read off the session's first frame), else out["grade_e2_error"]; out["finished"] is set last.
+session_consistent}); out["grade_e3"] is gates_e.grade_e3(out) (the real wounds, the care and stance readings; grade_e2's death signal of PZA/1.3, ruling P23-AO; its lineage the record's
+loop.lineage, read off the session's first frame), else out["grade_e3_error"]; out["finished"] is set last.
 
 Clocks: a line's wallMs is the client's clock (ms); `*S` keys are this process's clock in seconds since the loop
 began (goals and night: since the planner's creation); the same host's epoch throughout.
@@ -117,7 +113,7 @@ def run_session(xs, transport, prev, pre):
 
 
 def grade(out):
-    """The library's day.grade_day: out["grade_e2"] (gates_e.grade_e2 over the record), else out["grade_e2_error"]."""
+    """The library's day.grade_day: out["grade_e3"] (gates_e.grade_e3 over the record), else out["grade_e3_error"]."""
     DY.grade_day(out)
 
 

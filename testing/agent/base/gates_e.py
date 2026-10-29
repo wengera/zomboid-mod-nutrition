@@ -366,3 +366,233 @@ def gate_e2(outs):
                                     "threshold": True, "n": n}
     ok = bool(grades) and all(v["ok"] for v in gates.values())
     return {"verdict": "GO" if ok else "NO-GO", "gates": gates, "lineage_sources": [g["lineage_source"] for g in grades]}
+
+
+# ---------------------------------------------------------------- pass 3: real wounds and the care readings (Plan 24 Task 11)
+# grade_e3 / gate_e3 / report_lines_e3 (PZA/1.5.2, survival iteration 6; grade_e2, gate_e2 and the passes before them
+# frozen, CLAUDE.md section 5). Since PZA/1.5 a body part enters body.parts when it is bandaged or bleeding even at full
+# health (Task 9 review, finding 4), so the old wound reading (gates._wound: a parts entry appearing counts) reads a
+# bandage as a wound. Pass 3 counts a wound as a rise in body.bleeding/scratched/bitten or a parts entry that carries
+# one: h below FULL_PART_H, bleeding, deep or infected. A bandaged part at full health is no wound. The parts entries
+# that carry none are dropped from each frame (real_frame) before gates._wound reads it, so the death window's wound
+# arm (gates.death_check) reads the same wounds. The care readings come from loop.actions, loop.results (the sent
+# actions' results by aid, driverlib/day.py Chain.extra_record), the kept frames' me.aiming and loop.fights.
+FULL_PART_H = 100.0
+APPROACH_TYPES = ("attack", "walkTo", "steer")
+
+
+def real_part(p):
+    """Whether a body.parts entry carries a wound: h below FULL_PART_H, or bleeding, deep or infected."""
+    p = _d(p)
+    h = _n(p.get("h"))
+    return (h is not None and h < FULL_PART_H) or p.get("bleeding") is True or p.get("deep") is True \
+        or p.get("infected") is True
+
+
+def real_frame(f):
+    """The frame with body.parts cut to the entries real_part holds (a copy; the frame itself is untouched)."""
+    f = _d(f)
+    b = _d(f.get("body"))
+    return dict(f, body=dict(b, parts=[p for p in _l(b.get("parts")) if real_part(p)]))
+
+
+def _real_out(out):
+    """The artifact with loop.last_frames and loop.death.last_frames passed through real_frame."""
+    out = _d(out)
+    loop = _d(out.get("loop"))
+    death = loop.get("death")
+    loop = dict(loop, last_frames=[real_frame(f) for f in _l(loop.get("last_frames")) if isinstance(f, dict)])
+    if isinstance(death, dict):
+        loop["death"] = dict(death, last_frames=[real_frame(f) for f in _l(death.get("last_frames"))
+                                                 if isinstance(f, dict)])
+    return dict(out, loop=loop)
+
+
+def e_wounds(out):
+    """{real, listed, first_seq, frames}: over the kept frames, `real` the frame pairs showing a wound by the pass 3
+    reading (gates._wound over real_frame), `listed` the pairs the old reading (gates._wound over the frames as they
+    are) counts, first_seq the first frame of a real wound, frames the kept frames read. listed - real is what the
+    old reading took for wounds: the parts listed for a bandage or a bleed at full health."""
+    frames = [f for f in _l(_d(_d(out).get("loop")).get("last_frames")) if isinstance(f, dict)]
+    real = [f for i, f in enumerate(frames[1:], 1) if GT._wound(real_frame(frames[i - 1]), real_frame(f))]
+    listed = sum(1 for i in range(1, len(frames)) if GT._wound(frames[i - 1], frames[i]))
+    return {"real": len(real), "listed": listed, "first_seq": real[0].get("seq") if real else None,
+            "frames": len(frames)}
+
+
+def e_death_3(out):
+    """e_death_2 over the frames cut to their real wounds (real_frame)."""
+    return e_death_2(_real_out(out))
+
+
+def _results(loop):
+    """{aid: result} off loop.results rows {aid, type, state, result}."""
+    return {r.get("aid"): _d(r.get("result")) for r in _l(loop.get("results")) if isinstance(r, dict)}
+
+
+def _in_fight(a, f):
+    s, e = _n(f.get("startS")), _n(_d(f.get("end")).get("endS"))
+    t = _n(a.get("sentS"))
+    return s is not None and t is not None and t >= s and (e is None or t <= e)
+
+
+def e_standing(loop, res):
+    """{n, outcomes {kill, flee, fallback, stagger, none}, rows}: a standing fight is a fight whose first action sent
+    in its window is an aim. Its outcome, first that holds: kill (an attack or an aim of the window read targetDead),
+    flee (the fight's flee dict is not empty), fallback (an aim of the window ended failed or rejected and an attack,
+    walkTo or steer was sent after it: the stance's fallback to the approach), stagger (an attack of the window
+    started, the target alive at the fight's end: the swings landed or pushed), else none."""
+    acts = sorted((_d(a) for a in _l(loop.get("actions"))), key=lambda a: _n(a.get("sentS")) or 0.0)
+    rows, out = [], {"kill": 0, "flee": 0, "fallback": 0, "stagger": 0, "none": 0}
+    for i, f in enumerate(f for f in _l(loop.get("fights")) if isinstance(f, dict)):
+        win = [a for a in acts if _in_fight(a, f)]
+        if not win or win[0].get("type") != "aim":
+            continue
+        kill = any(res.get(a.get("aid"), {}).get("targetDead") is True for a in win if a.get("type") in ("attack", "aim"))
+        bad = [a for a in win if a.get("type") == "aim" and a.get("state") in ("failed", "rejected")]
+        fallback = any(b.get("type") in APPROACH_TYPES and (_n(b.get("sentS")) or 0) > (_n(a.get("sentS")) or 0)
+                       for a in bad for b in win)
+        stagger = any(res.get(a.get("aid"), {}).get("attackStarted") is True for a in win if a.get("type") == "attack")
+        outcome = ("kill" if kill else "flee" if _d(f.get("flee")) else "fallback" if fallback
+                   else "stagger" if stagger else "none")
+        out[outcome] += 1
+        rows.append({"fight": i, "outcome": outcome, "actions": [a.get("type") for a in win],
+                     "aim_states": [a.get("state") for a in win if a.get("type") == "aim"]})
+    return {"n": len(rows), "outcomes": out, "rows": rows}
+
+
+def e_care(out):
+    """The care, stance, water-chain and climb readings of a session: {bandage {sent, done, failed, by_part, dirty},
+    rip {sent, done, rags, dirty_rags}, wash {sent, done, water}, fill {sent, done, fills [{fluid, tainted, added,
+    amount}], tainted}, stance {aim_sent, aim_done, aim_failed, held_at_end, released, target_dead, moved,
+    frames_aiming, frames}, standing (e_standing), climb {sent, done, fell, failed, wounds, tall}, loot
+    {sent, done, containers, containers_moved}, need_chain {drink_done, drink_stat_fell, fills_done,
+    containers_looted}}. A result field the record lacks is skipped by the sums, never read as a value."""
+    out = _d(out)
+    loop = _d(out.get("loop"))
+    res = _results(loop)
+    acts = [_d(a) for a in _l(loop.get("actions"))]
+
+    def of(t):
+        return [a for a in acts if a.get("type") == t]
+
+    def done(rows):
+        return [a for a in rows if a.get("state") == "done"]
+
+    def total(rows, key):
+        return sum(_n(res.get(a.get("aid"), {}).get(key)) or 0 for a in rows)
+
+    def failed(rows):
+        return sum(1 for a in rows if a.get("state") in ("failed", "rejected"))
+
+    bd = done(of("bandage"))
+    by_part = {}
+    for a in bd:
+        p = res.get(a.get("aid"), {}).get("part", _d(a.get("args")).get("part"))
+        by_part[str(p)] = by_part.get(str(p), 0) + 1
+    fl = done(of("fill"))
+    fills = []
+    for a in fl:
+        r = res.get(a.get("aid"), {})
+        fills.append({"fluid": r.get("fluid"), "tainted": r.get("tainted"), "added": r.get("added"),
+                      "amount": r.get("amount")})
+    aims = of("aim")
+    ad = done(aims)
+    frames = [f for f in _l(loop.get("last_frames")) if isinstance(f, dict)]
+    cl = of("climb")
+    lt = [a for a in of("interact") if _d(a.get("args")).get("kind") == "loot"]
+    cont = [a for a in lt if _d(a.get("args")).get("filter") == "container"]
+    needs = e_needs(out)
+    return {
+        "bandage": {"sent": len(of("bandage")), "done": len(bd), "failed": failed(of("bandage")),
+                    "by_part": by_part, "dirty": sum(1 for a in bd if res.get(a.get("aid"), {}).get("dirty") is True)},
+        "rip": {"sent": len(of("rip")), "done": len(done(of("rip"))), "rags": total(done(of("rip")), "rags"),
+                "dirty_rags": total(done(of("rip")), "dirty")},
+        "wash": {"sent": len(of("wash")), "done": len(done(of("wash"))), "water": total(done(of("wash")), "water")},
+        "fill": {"sent": len(of("fill")), "done": len(fl), "fills": fills,
+                 "tainted": sum(1 for x in fills if x["tainted"] is True)},
+        "stance": {"aim_sent": len(aims), "aim_done": len(ad), "aim_failed": failed(aims),
+                   "held_at_end": sum(1 for a in ad if res.get(a.get("aid"), {}).get("held") is True),
+                   "released": sum(1 for a in ad if res.get(a.get("aid"), {}).get("held") is False),
+                   "target_dead": sum(1 for a in ad if res.get(a.get("aid"), {}).get("targetDead") is True),
+                   "moved": total(ad, "d"),
+                   "frames_aiming": sum(1 for f in frames if _d(f.get("me")).get("aiming") is True),
+                   "frames": len(frames)},
+        "standing": e_standing(loop, res),
+        "climb": {"sent": len(cl), "done": len(done(cl)), "fell": sum(1 for a in cl if a.get("reason") == "fell"),
+                  "failed": sum(1 for a in cl if a.get("state") == "failed" and a.get("reason") != "fell"),
+                  "wounds": total(cl, "wounds"),
+                  "tall": sum(1 for a in done(cl) if res.get(a.get("aid"), {}).get("tall") is True)},
+        "loot": {"sent": len(lt), "done": len(done(lt)), "containers": len(done(cont)),
+                 "containers_moved": total(done(cont), "moved")},
+        "need_chain": {"drink_done": needs["drink"]["done"], "drink_stat_fell": needs["drink"]["stat_fell"],
+                       "fills_done": len(fl), "containers_looted": len(done(cont))}}
+
+
+def report_lines_e3(g):
+    """report_lines_e2's lines (the gate line naming gate_e3) then the wound, care, stance and climb lines."""
+    g = _d(g)
+    lines = report_lines_e2(g)
+    if lines and lines[0].startswith("gate_e2 "):
+        lines[0] = "gate_e3 " + lines[0][len("gate_e2 "):]
+    w, c = _d(g.get("wounds")), _d(g.get("care"))
+    if w:
+        lines.append("wounds: %s real over %s kept frames (the old reading counted %s), first seq %s" % (
+            w.get("real"), w.get("frames"), w.get("listed"), w.get("first_seq")))
+    if c:
+        b, r, wa, fi = _d(c.get("bandage")), _d(c.get("rip")), _d(c.get("wash")), _d(c.get("fill"))
+        lines.append("care: bandage sent %s done %s (parts %s, dirty %s), rip done %s (%s rags), wash done %s (%s water)" % (
+            b.get("sent"), b.get("done"), b.get("by_part"), b.get("dirty"), r.get("done"), r.get("rags"),
+            wa.get("done"), wa.get("water")))
+        lines.append("fill: sent %s done %s, tainted %s, fills %s" % (fi.get("sent"), fi.get("done"),
+                                                                      fi.get("tainted"), fi.get("fills")))
+        s, sf = _d(c.get("stance")), _d(c.get("standing"))
+        lines.append("stance: aim sent %s done %s failed %s (held %s, released %s, target dead %s), %s of %s kept "
+                     "frames aiming; standing fights %s %s" % (
+                         s.get("aim_sent"), s.get("aim_done"), s.get("aim_failed"), s.get("held_at_end"),
+                         s.get("released"), s.get("target_dead"), s.get("frames_aiming"), s.get("frames"),
+                         sf.get("n"), sf.get("outcomes")))
+        cl, nc = _d(c.get("climb")), _d(c.get("need_chain"))
+        lines.append("climb: sent %s done %s fell %s failed %s wounds %s; need chain: drinks %s (stat fell %s), "
+                     "fills %s, containers looted %s" % (
+                         cl.get("sent"), cl.get("done"), cl.get("fell"), cl.get("failed"), cl.get("wounds"),
+                         nc.get("drink_done"), nc.get("drink_stat_fell"), nc.get("fills_done"),
+                         nc.get("containers_looted")))
+    return lines
+
+
+def grade_e3(out, prev=None):
+    """grade_e2(out, prev) but for grade "grade_e3", death (e_death_3: the real wounds), `wounds` (e_wounds), `care`
+    (e_care) and report_lines (report_lines_e3)."""
+    g = grade_e2(out, prev)
+    g["grade"] = "grade_e3"
+    g["death"] = e_death_3(out)
+    g["wounds"] = e_wounds(out)
+    g["care"] = e_care(out)
+    g["report_lines"] = report_lines_e3(g)
+    return g
+
+
+def gate_e3(outs):
+    """gate_e2's gates over grade_e3 (its death the real-wound window): {verdict, gates, lineage_sources}."""
+    outs = [_d(o) for o in _l(outs)]
+    grades, prev = [], None
+    for o in outs:
+        grades.append(grade_e3(o, prev))
+        prev = o
+    n = len(outs)
+    minutes = sum(g["game_minutes"] or 0 for g in grades)
+    dead = any(g["death"] is not None for g in grades)
+    done = {k: sum(_d(g["needs"].get(k)).get("done", 0) for g in grades) for k in ("drink", "eat", "sleep")}
+    gates = {"alive_through": {"ok": minutes >= ALIVE_MINUTES and not dead, "value": minutes,
+                               "threshold": ALIVE_MINUTES, "n": n}}
+    unresolved = sum(g["fights_unresolved"] for g in grades)
+    gates["fights_resolved"] = {"ok": unresolved == 0, "value": unresolved, "threshold": 0, "n": n}
+    for k in ("drink", "eat", "sleep"):
+        gates["%s_done" % k] = {"ok": done[k] >= 1, "value": done[k], "threshold": 1, "n": n}
+    first = next((g["death"] for g in grades if g["death"] is not None), None)
+    if first is not None:
+        gates["death_explained"] = {"ok": first["explained"] is True, "value": first["explained"],
+                                    "threshold": True, "n": n}
+    ok = bool(grades) and all(v["ok"] for v in gates.values())
+    return {"verdict": "GO" if ok else "NO-GO", "gates": gates, "lineage_sources": [g["lineage_source"] for g in grades]}

@@ -19,7 +19,9 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
 - `Chain(DS.Session)`: the Session with the chain's two hooks. `on_frame` keeps the session's first frame (a frame
   row, read in the hello phase); `extra_record` returns `goals` (`GoalRunner.rows()`: the ended goals, then the
   running one), `night` ({wants, steps, sleeps}, copies), `lineage` (`chain.lineage_diff(prev, first frame)` with a
-  prev, else None) and `t_loop0_ms` (equal to loop.startPyMs by construction: both are the loop's start), then lays
+  prev, else None), `t_loop0_ms` (equal to loop.startPyMs by construction: both are the loop's start) and `results`
+  (Plan 24 Task 11: [{aid, type, state, result}] for each sent action of a type in RESULT_TYPES, the Lua's result
+  dict, which the action rows do not carry; gates_e.e_care reads it), then lays
   `extra(session)` over them when the driver passes one (f_goals: `llm`; its keys must not be the contract's,
   CONTRACT_KEYS, asserted at every save). `copied` names run-dir files the artifact
   copy takes beside the decision log (f_goals: `goals.log`). The planner is the driver's `planner_factory`.
@@ -38,9 +40,11 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
   --fixture agent-s<n> --prev <this artifact>`), for an E session and for an F session on the chain's last fixture
   (P23-Z refuses any other --session).
 - `grade(out, key, fn)`: out[key] = fn(out), else out[key + "_error"] (the controller re-grades the artifact).
-  `grade_day(out)` is a new day session's grade: `grade(out, GRADE_KEY, gates_e.grade_e2)`, GRADE_KEY "grade_e2"
-  (PZA/1.3's death signal, ruling P23-AO), so the record names the grade it carries; a driver passes GRADE_KEY as its
-  boot's grade_key. The drivers frozen before it (e_day.py to e_day_4.py) keep their own grade_e1 call.
+  `grade_day(out)` is a new day session's grade: `grade(out, GRADE_KEY, gates_e.grade_e3)`, GRADE_KEY "grade_e3"
+  (Plan 24 Task 11: the real wounds and the care readings; it was "grade_e2", PZA/1.3's death signal, ruling P23-AO,
+  until e_day_5.py's run), so the record names the grade it carries; a driver passes GRADE_KEY as its boot's
+  grade_key. The drivers frozen before it (e_day.py to e_day_4.py) keep their own grade_e1 call; e_day_5.py ran with
+  grade_e2 and is graded by e_grade_2.py.
 - `boot_and_run(args, ...)`: a day driver's whole boot (Plan 22's d_survive.py boot, generalised): the pre-boot
   checks (a failure prints them and exits 1 before anything starts), the profile and the fixture `--fixture` names,
   the run dir (`new_run_dir(key)`), Xs and the out header (run_id, preboot, constants, out["chain"], the fixture's
@@ -77,7 +81,9 @@ DAMAGE_POLL_S = 5
 MIN_FREE_GB = DS.DEFAULTS["MIN_FREE_GB"]
 LIMITS = {"DAY_CAP_S": DAY_CAP_S, "PLANNER_HZ": PLANNER_HZ, "DAMAGE_POLL_S": DAMAGE_POLL_S}
 CONSTANTS = dict(DS.DEFAULTS, **LIMITS, BUDGET_S=BUDGET_S)
-CONTRACT_KEYS = ("goals", "night", "lineage", "t_loop0_ms")     # Chain.extra_record's own keys (task-15-amendments)
+CONTRACT_KEYS = ("goals", "night", "lineage", "t_loop0_ms", "results")     # Chain.extra_record's own keys (task-15-amendments)
+
+RESULT_TYPES = ("attack", "aim", "climb", "bandage", "rip", "wash", "fill", "interact")   # the results gates_e.e_care reads
 
 
 # ================================================================ arguments
@@ -185,7 +191,9 @@ class Chain(DS.Session):
                          "sleeps": [dict(r) for r in n.sleeps]},
                "lineage": CH.lineage_diff(self.prev, self.first_frame) if self.prev is not None else None,
                # loop.startPyMs's value: both are the loop's start on this host's clock
-               "t_loop0_ms": self.t_loop0 * 1000.0 if self.t_loop0 is not None else None}
+               "t_loop0_ms": self.t_loop0 * 1000.0 if self.t_loop0 is not None else None,
+               "results": [{"aid": a.aid, "type": a.type, "state": a.state, "result": a.result}
+                           for a in self.sent if a.type in RESULT_TYPES and a.result is not None]}
         if self.extra is not None:
             ex = self.extra(self)
             clash = sorted(set(ex) & set(CONTRACT_KEYS))
@@ -268,7 +276,7 @@ def run_after_teardown(fn, out, ran):
         out["after_teardown_error"] = "%s: %s" % (type(e).__name__, e)
 
 
-GRADE_KEY = "grade_e2"           # the key a new day session's record carries its grade under (grade_day)
+GRADE_KEY = "grade_e3"           # the key a new day session's record carries its grade under (grade_day)
 
 
 def grade(out, key, fn):
@@ -280,8 +288,8 @@ def grade(out, key, fn):
 
 
 def grade_day(out):
-    """A new day session's grade: out["grade_e2"] = gates_e.grade_e2(out), else out["grade_e2_error"]."""
-    grade(out, GRADE_KEY, GE.grade_e2)
+    """A new day session's grade: out["grade_e3"] = gates_e.grade_e3(out), else out["grade_e3_error"]."""
+    grade(out, GRADE_KEY, GE.grade_e3)
 
 
 # ================================================================ the boot

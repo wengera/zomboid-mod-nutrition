@@ -516,3 +516,174 @@ def test_the_frozen_e_grade_reproduces_each_e_artifacts_committed_report_byte_fo
     with open(os.path.join(d, "e_grade.txt"), "rb") as fh:
         want = fh.read()
     assert r.stdout == want                                   # CRLF both: the artifacts were printed on this host
+
+
+# ================================================================ pass 3: real wounds and the care readings (Plan 24 Task 11)
+BANDAGED = {"i": 3, "h": 100.0, "bleeding": False, "bleedingTime": 0.0, "bandaged": True, "bandageLife": 40.0,
+            "bandageDirty": False, "deep": False, "infected": False}
+
+
+def _bandage_art(part, n=300, at=100, stop="day_cap"):
+    """n frames; from frame `at` on the body lists `part` and nothing else changes (no rise in bleeding, scratched or
+    bitten, health full): the shape of a bandage laid on a part at full health."""
+    fr = [frame(i + 1, i, **{"body": {"health": 100.0, "bleeding": 0, "scratched": 0, "bitten": 0,
+                                       "parts": [part] if i >= at else []}}) for i in range(n)]
+    return art(fr, stop=stop)
+
+
+def test_a_bandage_on_a_full_health_part_is_a_wound_to_the_old_reading_and_none_to_pass_3():
+    a = _bandage_art(BANDAGED)
+    w = E.e_wounds(a)
+    assert w == {"real": 0, "listed": 1, "first_seq": None, "frames": 300}
+    assert GT._wound(a["loop"]["last_frames"][99], a["loop"]["last_frames"][100]) == "part 3 appears at 100.0"
+    # the death window: a death after such a bandage opens at the bandage under pass 2, at no wound under pass 3
+    d = _bandage_art(BANDAGED, stop="death")
+    d["loop"]["death"] = {"last_frames": d["loop"]["last_frames"], "server_damage": []}
+    assert E.grade_e2(d)["death"]["first_wound_seq"] == 101 and E.grade_e2(d)["death"]["window_frames_n"] == 201
+    g3 = E.grade_e3(d)["death"]
+    assert g3["first_wound_seq"] is None and g3["window_frames_n"] == 300
+
+
+def test_pass_3_counts_a_part_that_carries_a_wound_and_a_rise_in_the_body_counts():
+    for part in (dict(BANDAGED, h=90.0), dict(BANDAGED, bleeding=True), dict(BANDAGED, deep=True),
+                 dict(BANDAGED, infected=True)):
+        w = E.e_wounds(_bandage_art(part))
+        assert w["real"] == 1 and w["listed"] == 1 and w["first_seq"] == 101, part
+    rise = art(series(100, body=lambda i: {"health": 100.0, "bleeding": 0, "scratched": 1 if i >= 30 else 0,
+                                           "bitten": 0, "parts": []}))
+    assert E.e_wounds(rise)["real"] == 1 and E.e_wounds(rise)["first_seq"] == 31
+    fall = [dict(BANDAGED, h=90.0)]
+    lower = art(series(100, body=lambda i: {"health": 100.0, "bleeding": 0, "scratched": 0, "bitten": 0,
+                                            "parts": [dict(fall[0], h=90.0 if i < 50 else 80.0)]}))
+    assert E.e_wounds(lower)["real"] == 1 and E.e_wounds(lower)["first_seq"] == 51      # h 90 -> 80 on a listed part
+    assert E.real_frame(frame(1))["body"]["parts"] == [] and frame(1)["body"]["parts"] == []
+    f = frame(1, body={"health": 100.0, "bleeding": 0, "scratched": 0, "bitten": 0, "parts": [BANDAGED]})
+    assert E.real_frame(f)["body"]["parts"] == [] and f["body"]["parts"] == [BANDAGED]       # a copy
+
+
+def test_pass_3_reads_missing_and_malformed_artifacts_as_empty():
+    for bad in ({}, None, "x", {"loop": {"last_frames": [None, 5], "actions": "x", "results": 3, "fights": [None]}}):
+        g = E.grade_e3(bad)
+        assert g["grade"] == "grade_e3" and g["wounds"]["real"] == 0
+        assert g["care"]["bandage"]["done"] == 0 and g["care"]["standing"]["n"] == 0
+
+
+def res(aid, type_, result, state="done"):
+    return {"aid": aid, "type": type_, "state": state, "result": result}
+
+
+def aact(aid, type_, sent, end, state="done", reason="", args=None, **extra):
+    return dict({"aid": aid, "type": type_, "args": args or {}, "state": state, "reason": reason, "sentS": sent,
+                 "endedS": end, "branch": "care"}, **extra)
+
+
+def care_art():
+    acts = [aact("b1", "bandage", 1, 2, args={"itemId": 9, "part": -1}),
+            aact("b2", "bandage", 3, 4, args={"itemId": 9, "part": 5}),
+            aact("b3", "bandage", 5, 6, state="failed", reason="no wound", args={"itemId": 9}),
+            aact("r1", "rip", 7, 8), aact("w1", "wash", 9, 10, args={"itemId": 8, "x": 1, "y": 2}),
+            aact("f1", "fill", 11, 12), aact("f2", "fill", 13, 14), aact("f3", "fill", 15, 16, state="failed"),
+            aact("c1", "climb", 17, 18), aact("c2", "climb", 19, 20, state="failed", reason="fell"),
+            aact("i1", "interact", 21, 22, args={"x": 1, "y": 1, "kind": "loot", "filter": "container"}),
+            aact("i2", "interact", 23, 24, args={"x": 1, "y": 1, "kind": "loot", "filter": "food"}),
+            aact("i3", "interact", 25, 26, args={"x": 1, "y": 1, "kind": "open"}),
+            aact("a1", "aim", 30, 32), aact("a2", "aim", 33, 35), aact("a3", "aim", 36, 37, state="failed")]
+    results = [res("b1", "bandage", {"part": 2, "dirty": True, "life": 0.0}),
+               res("b2", "bandage", {"part": 5, "dirty": False, "life": 40.0}),
+               res("r1", "rip", {"rags": 3, "dirty": 1}), res("w1", "wash", {"water": 7}),
+               res("f1", "fill", {"amount": 1.0, "added": 1.0, "fluid": "Water", "tainted": False}),
+               res("f2", "fill", {"amount": 2.0, "added": 1.0, "fluid": "TaintedWater", "tainted": True}),
+               res("c1", "climb", {"tall": True, "wounds": 1}), res("i1", "interact", {"moved": 4}),
+               res("i2", "interact", {"moved": 9}),
+               res("a1", "aim", {"d": 1.5, "held": True, "targetDead": False}),
+               res("a2", "aim", {"d": 2.0, "held": False, "targetDead": True})]
+    frames = series(100, me=lambda i: dict(DEFAULT_FRAME["me"], aiming=i % 4 == 0))
+    return art(frames, acts, results=results)
+
+
+def test_the_care_readings_count_the_actions_by_state_and_their_results():
+    c = E.grade_e3(care_art())["care"]
+    assert c["bandage"] == {"sent": 3, "done": 2, "failed": 1, "by_part": {"2": 1, "5": 1}, "dirty": 1}
+    assert c["rip"] == {"sent": 1, "done": 1, "rags": 3, "dirty_rags": 1}
+    assert c["wash"] == {"sent": 1, "done": 1, "water": 7}
+    assert c["fill"]["sent"] == 3 and c["fill"]["done"] == 2 and c["fill"]["tainted"] == 1
+    assert c["fill"]["fills"] == [{"fluid": "Water", "tainted": False, "added": 1.0, "amount": 1.0},
+                                  {"fluid": "TaintedWater", "tainted": True, "added": 1.0, "amount": 2.0}]
+    assert c["stance"] == {"aim_sent": 3, "aim_done": 2, "aim_failed": 1, "held_at_end": 1, "released": 1,
+                           "target_dead": 1, "moved": 3.5, "frames_aiming": 25, "frames": 100}
+    assert c["climb"] == {"sent": 2, "done": 1, "fell": 1, "failed": 0, "wounds": 1, "tall": 1}
+    assert c["loot"] == {"sent": 2, "done": 2, "containers": 1, "containers_moved": 4}
+    assert c["need_chain"] == {"drink_done": 0, "drink_stat_fell": None, "fills_done": 2, "containers_looted": 1}
+
+
+def test_the_care_without_the_results_key_counts_the_actions_and_skips_the_result_fields():
+    a = care_art()
+    del a["loop"]["results"]
+    c = E.grade_e3(a)["care"]
+    assert c["bandage"]["done"] == 2 and c["bandage"]["by_part"] == {"-1": 1, "5": 1}      # the args' part, else
+    assert c["rip"]["rags"] == 0 and c["fill"]["tainted"] == 0 and c["stance"]["held_at_end"] == 0
+
+
+def _stand(first, end=True, flee=None, start=100.0, stop=130.0):
+    return {"startS": start, "ticks": 5, "fight_ticks": 5, "flee": flee or {}, "threats_max": 1,
+            "end": {"endS": stop, "branch": "need"} if end else None}
+
+
+def test_a_standing_fight_is_one_whose_first_action_is_an_aim_and_has_one_outcome():
+    acts = [aact("a1", "aim", 101, 110), aact("t1", "attack", 111, 112),                         # 0: kill
+            aact("a2", "aim", 201, 220, state="failed", reason="interrupted"), aact("w1", "walkTo", 221, 225),  # 1: fallback
+            aact("a3", "aim", 301, 310), aact("t2", "attack", 311, 312),                         # 2: stagger
+            aact("a4", "aim", 401, 410),                                                         # 3: flee
+            aact("t3", "attack", 501, 502), aact("a5", "aim", 503, 510),                         # 4: not standing
+            aact("a6", "aim", 601, 610)]                                                         # 5: none
+    results = [res("t1", "attack", {"swings": 1, "attackStarted": True, "targetDead": True}),
+               res("t2", "attack", {"swings": 1, "attackStarted": True, "targetDead": False})]
+    fights = [_stand(0, start=100, stop=120), _stand(0, start=200, stop=230), _stand(0, start=300, stop=320),
+              _stand(0, start=400, stop=420, flee={"health": 2}), _stand(0, start=500, stop=520),
+              _stand(0, start=600, stop=620)]
+    a = art(actions=acts, fights=fights, results=results)
+    s = E.grade_e3(a)["care"]["standing"]
+    assert s["n"] == 5 and s["outcomes"] == {"kill": 1, "flee": 1, "fallback": 1, "stagger": 1, "none": 1}
+    assert [r["outcome"] for r in s["rows"]] == ["kill", "fallback", "stagger", "flee", "none"]
+    assert [r["fight"] for r in s["rows"]] == [0, 1, 2, 3, 5]
+    # an open fight (no end) takes the actions after its start
+    o = art(actions=[aact("a1", "aim", 101, 110)], fights=[_stand(0, end=False, start=100)])
+    assert E.grade_e3(o)["care"]["standing"]["n"] == 1
+
+
+def test_grade_e3_is_grade_e2_but_for_its_name_the_death_the_wounds_the_care_and_the_report():
+    for a in (good(), _death_art(300, wound_at=100, health_from=105), _event_death_art(), care_art()):
+        e2, e3 = E.grade_e2(a), E.grade_e3(a)
+        keep = lambda g: {k: v for k, v in g.items() if k not in ("grade", "death", "report_lines", "wounds", "care")}
+        assert keep(e2) == keep(e3) and e3["grade"] == "grade_e3" and "care" not in e2
+    d = _death_art(300, wound_at=100, health_from=105)           # a real rise: pass 3 reads the same window as pass 2
+    assert E.grade_e3(d)["death"] == E.grade_e2(d)["death"]
+
+
+def test_gate_e3_is_gate_e2_over_grade_e3_and_its_lines_name_it():
+    d = _event_death_art()
+    assert E.gate_e3([good(), d])["gates"]["death_explained"]["value"] == E.grade_e3(d)["death"]["explained"]
+    for outs in ([good(700.0), good(740.0)], [good(1439.0)], [good(), _death_art(300, wound_at=100, health_from=105)],
+                 [], None):
+        assert E.gate_e3(outs) == E.gate_e2(outs)
+    lines = E.report_lines_e3(dict(E.grade_e3(care_art()), gate=E.gate_e3([good(100.0)])))
+    assert lines[0].startswith("gate_e3 NO-GO: alive_through 100.0 >= 1440.0 FAIL")
+    assert any(l.startswith("wounds: 0 real over 100 kept frames (the old reading counted 0)") for l in lines)
+    assert any(l.startswith("care: bandage sent 3 done 2") for l in lines)
+    assert any(l.startswith("stance: aim sent 3 done 2 failed 1 (held 1, released 1, target dead 1), 25 of 100") for l in lines)
+    assert any(l.startswith("climb: sent 2 done 1 fell 1 failed 0 wounds 1; need chain") for l in lines)
+
+
+def test_the_pass_3_script_prints_lines_then_strict_json_and_exits_two_on_a_bad_call(tmp_path):
+    p = tmp_path / "a.json"
+    p.write_text(json.dumps(care_art()), encoding="utf-8")
+    script = os.path.join(HERE, "..", "..", "agent", "drivers", "e_grade_3.py")
+    cwd = os.path.dirname(os.path.dirname(HERE))
+    r = subprocess.run([sys.executable, script, str(p)], capture_output=True, text=True, cwd=cwd)
+    assert r.returncode == 0 and "\ncare: bandage sent 3 done 2" in r.stdout
+    assert json.loads(r.stdout[r.stdout.index("\n{\n"):])["grade"] == "grade_e3"
+    c = subprocess.run([sys.executable, script, "--chain", str(p), str(p)], capture_output=True, text=True, cwd=cwd)
+    assert c.returncode == 0 and c.stdout.startswith("gate_e3 ")
+    for args in ([], ["a", "b", "c"], [str(tmp_path / "nope.json")]):
+        assert subprocess.run([sys.executable, script] + args, capture_output=True, text=True,
+                              cwd=cwd).returncode == 2
