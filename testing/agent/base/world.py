@@ -57,6 +57,12 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   neighbour reads `a`'s `blockN`, the south `b`'s, the west `a`'s `blockW`, the east `b`'s; a diagonal is blocked when
   any of the four edges meeting at the shared corner is, or either corner square is solid. Unlike the jar (which reads
   an unloaded neighbour's edge open), an unknown square or a null edge counts blocked: the planner never assumes a way.
+  `blocked(a, b, climb=True)` (Plan 24, PZA/1.4, ruling P24-C; the jar reads in
+  `docs/superpowers/specs/2026-10-29-plan-24-jar-reads.md` § 1): a hoppable fence loads with its edge's collide flag,
+  so `blockN`/`blockW` read it blocked, while the path follower climbs any edge whose square carries `HoppableN`/
+  `HoppableW` at a walk; an orthogonal step over a blocked edge whose holder's `hopN`/`hopW` reads True is crossable.
+  `flood` and `reachable` read with it; `line_clear` (a steered walk, free movement, vaults only at a run) and every
+  other reader never do; a diagonal never climbs.
 - `line_clear(a, b)`: Bresenham over the squares from `a` to `b` (positions floored, on the player's floor), false at
   any blocked edge a step crosses (`blocked`) or any solid or unknown square strictly between the ends. It reads the
   blocked edges, never `edgeN`/`edgeW` (any wall, window or door edge whatever its state), which the square record
@@ -378,8 +384,9 @@ class World:
 
     def flood(self, start, limit=REACH_LIMIT):
         """The squares a breadth-first flood from `start` (x, y, z) reaches over the kept map (P23-AP 1): each step to
-        one of the 8 neighbours on its floor, mapped, not solid, the step not `blocked` (a closed or locked door's
-        edge is); `start` itself always, at most `limit` squares in all."""
+        one of the 8 neighbours on its floor, mapped, not solid, the step not `blocked` with `climb=True` (a closed or
+        locked door's edge is; a hoppable fence's is not, P24-C); `start` itself always, at most `limit` squares in
+        all."""
         start = tuple(start)
         seen, queue, i = {start}, [start], 0
         while i < len(queue):
@@ -388,7 +395,7 @@ class World:
             for dx in (-1, 0, 1):
                 for dy in (-1, 0, 1):
                     b = (a[0] + dx, a[1] + dy, a[2])
-                    if b in seen or self._solid(b) or self.blocked(a, b):
+                    if b in seen or self._solid(b) or self.blocked(a, b, climb=True):
                         continue
                     seen.add(b)
                     queue.append(b)
@@ -429,22 +436,29 @@ class World:
         s = self.map.get(sq)
         return s is None or bool(s.get("solid"))
 
-    def _orth_blocked(self, a, b):
-        """The edge between two orthogonally adjacent squares: a square stores its own north and west edges."""
+    def _orth_blocked(self, a, b, climb=False):
+        """The edge between two orthogonally adjacent squares: a square stores its own north and west edges. With
+        `climb` a blocked edge whose holder carries its hop flag (`hopN`/`hopW` True) is crossable."""
         if b[1] == a[1] - 1:
-            return self._edge(a, "blockN")
-        if b[1] == a[1] + 1:
-            return self._edge(b, "blockN")
-        if b[0] == a[0] - 1:
-            return self._edge(a, "blockW")
-        return self._edge(b, "blockW")
+            holder, side = a, "N"
+        elif b[1] == a[1] + 1:
+            holder, side = b, "N"
+        elif b[0] == a[0] - 1:
+            holder, side = a, "W"
+        else:
+            holder, side = b, "W"
+        if not self._edge(holder, "block" + side):
+            return False
+        return not (climb and (self.map.get(holder) or {}).get("hop" + side) is True)
 
-    def blocked(self, a, b, unknown_open=False):
+    def blocked(self, a, b, unknown_open=False, climb=False):
         """Whether the step between two adjacent squares `(x, y, z)` is blocked (the module docstring's rule); a
         pair that is not adjacent on one floor raises ValueError, the same square is never blocked, and a step to or
         from a square the map does not hold always is. `unknown_open` (the flee's steer probe): a step to or from an
         unknown square never is, and a diagonal's unknown corner square is neither solid nor bounded by a blocked
-        edge (a known corner is read as by default; survival 1 fix round 3, F5)."""
+        edge (a known corner is read as by default; survival 1 fix round 3, F5). `climb` (PZA/1.4, ruling P24-C): an
+        orthogonal step over a blocked edge whose square carries the hop flag is not blocked, the path follower
+        climbing it at a walk; a diagonal step never climbs, its corner edges read as by default."""
         a, b = tuple(a), tuple(b)
         dx, dy = b[0] - a[0], b[1] - a[1]
         if a[2] != b[2] or abs(dx) > 1 or abs(dy) > 1:
@@ -454,7 +468,7 @@ class World:
         if a not in self.map or b not in self.map:
             return not unknown_open
         if dx == 0 or dy == 0:
-            return self._orth_blocked(a, b)
+            return self._orth_blocked(a, b, climb)
         corners = [c for c in ((b[0], a[1], a[2]), (a[0], b[1], a[2])) if not unknown_open or c in self.map]
         if any(self._solid(c) for c in corners):
             return True

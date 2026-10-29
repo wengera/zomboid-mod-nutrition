@@ -1015,3 +1015,36 @@ def test_stuck_after_stuck_walk_cap_walks_in_the_open_no_edge_is_answered():
     assert w.unexplored_edge() is not None
     w.mark_stuck_pair((5, 7), (1, 0))
     assert w.unexplored_edge() is None
+
+
+# -- Plan 24 PZA/1.4 (ruling P24-C): a hoppable edge is crossable by a climb, for the flood and reachability only -------
+
+def fence_row(hop=True):
+    """A 5 x 5 yard with a fence on the north edges of y 2 (x 0..4): blocked, and hoppable when `hop`."""
+    return _grid(0, 0, 4, 4, over={(x, 2): {"blockN": True, "edgeN": True, "hopN": hop} for x in range(5)})
+
+
+def test_apply_keeps_the_hop_flags_on_the_square_record():
+    w = _world([_sq(0, 0, blockN=True, hopN=True), _sq(1, 0, blockW=True, hopW=True)])
+    assert (w.map[(0, 0, 0)]["hopN"], w.map[(0, 0, 0)]["hopW"]) == (True, False)
+    assert (w.map[(1, 0, 0)]["hopN"], w.map[(1, 0, 0)]["hopW"]) == (False, True)
+
+
+def test_blocked_with_climb_crosses_a_hoppable_edge_both_ways_and_nothing_else():
+    w = _world(_grid(0, 0, 2, 2, over={(1, 1): {"blockN": True, "hopN": True}, (2, 1): {"blockW": True, "hopW": True},
+                                       (0, 1): {"blockN": True}, (1, 2): {"blockN": True, "hopN": None}}))
+    for a, b in (((1, 0, 0), (1, 1, 0)), ((1, 1, 0), (2, 1, 0))):     # (1,1)'s north edge, (2,1)'s west edge
+        assert w.blocked(a, b) and w.blocked(b, a)                     # the default read: blocked, as isBlockedTo
+        assert not w.blocked(a, b, climb=True) and not w.blocked(b, a, climb=True)
+    assert w.blocked((0, 0, 0), (0, 1, 0), climb=True)                 # a wall: no hop flag
+    assert w.blocked((1, 1, 0), (1, 2, 0), climb=True)                 # a null hop read is no climb
+    assert w.blocked((0, 0, 0), (1, 1, 0), climb=True)                 # a diagonal never climbs: its corner edges hold
+    assert not w.blocked((0, 0, 0), (0, 0, 0), climb=True)
+
+
+def test_the_flood_and_reachable_cross_a_hoppable_fence_and_the_line_never_does():
+    w = _world(fence_row(), me=(2.5, 0.5))
+    assert w.reachable((2, 0, 0), (2, 4, 0)) and (0, 4, 0) in w.flood((2, 0, 0))
+    assert not w.line_clear((2.5, 0.5), (2.5, 4.5))
+    walled = _world(fence_row(hop=False), me=(2.5, 0.5))
+    assert not walled.reachable((2, 0, 0), (2, 4, 0)) and not any(sq[1] >= 2 for sq in walled.flood((2, 0, 0)))
