@@ -5,9 +5,11 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
 - `pos {x, y, z}` (the frame's `me`), `hour`, `health` (`body.health`), `needs {hunger, thirst, fatigue}` (`stats`),
   `load {weight, max, level}`, `weapon` (the wielded type, else None), `inventory_by_use` ({use: count} over
   `items.USES`, by `world.by_use()`).
-- `needs_wanted`: the uses (water, then food, then container: NEED_USES) the need branch marked (nothing of the use
-  held; a container when no water and no empty vessel is held, the water chain's third step, Plan 24 Task 10, ruling
-  P24-G 3) within the last NEED_MEMORY_S (120) seconds on Survive's clock (`survive.need_marks`).
+- `needs_wanted`: the uses (water, then food, then container, then water_source: NEED_USES) the need branch marked
+  (nothing of the use held; `container` when no water and no vessel at all is held, the water chain's third step,
+  Plan 24 Task 10, ruling P24-G 3; `water_source` when a vessel is held and no clean water source is known, ruling
+  P24-L: a building's sink is the goal layer's to find) within the last NEED_MEMORY_S (120) seconds on Survive's clock
+  (`survive.need_marks`).
 - `buildings`: each known building with an integer id (`world.interiors()`), nearest first then by id: `id`, `x`, `y`
   (its nearest room square on the player's floor, else on any floor: P24-B 3, the model's positions), `door` (its
   first exterior door square on the player's floor, `night.exterior_doors`'s ranking, as [x, y], else None), `dist`
@@ -65,7 +67,8 @@ from agent.base.planner.policies import LOOT_WANTS, STUCK_REASONS, me_floor, me_
 from agent.base.world import MET_VIEW_R, compass
 
 NEED_MEMORY_S = 120.0
-NEED_USES = ("water", "food", "container")   # the need marks the view lists, in order (P24-G 3: the container)
+NEED_USES = ("water", "food", "container", "water_source")   # the need marks the view lists, in order (P24-G 3,
+                                                              # P24-L)
 ZOMBIE_BANDS = (6, 12, 25)
 BUILDINGS_SHOWN = 6
 RENDER_MAX = 2048

@@ -4,6 +4,8 @@ The decision goldens (`test_replay_decisions.py`) stay unmoved: their artifacts'
 the planner sends one only to a build whose caps carry it (`World.can`)."""
 import math
 
+import pytest
+
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner.care import water_sources
@@ -384,16 +386,18 @@ def test_with_no_rag_an_unworn_cotton_garment_is_ripped_never_one_of_the_first_s
 
 
 def test_a_rip_refused_worn_marks_the_item_and_it_is_never_asked_again(tmp_path):
+    """Named change, Task 10 fix 1 (the review's major 2): the rip is the wound's, so the case bleeds."""
     r, sv = make(tmp_path)
     r.frame()
     hold(r, 21, "Base.Shirt_FormalWhite", use="other")
-    care_frame(r, [])
+    bleeds = [part(5, bleeding=True, bleedingTime=5.0)]
+    care_frame(r, bleeds)
     tick(r, sv)
-    assert r.cmd() == ("rip", {"itemId": 21})                                    # no rag held: one rip for rags
+    assert r.cmd() == ("rip", {"itemId": 21})                                    # no rag held: one rip for the wound
     r.answer({"state": "failed", "reason": "worn"})
     for _ in range(3):
         r.advance(1.0)
-        care_frame(r, [], game_min=485.0)
+        care_frame(r, bleeds, game_min=485.0)
         tick(r, sv)
     assert r.world.marked("unrippable") == {21: 485.0} and sum(a.type == "rip" for a in r.acts.history) == 1
 
@@ -550,13 +554,32 @@ def test_the_first_sight_is_the_inventory_between_a_hello_and_the_first_frame():
 
 
 def test_no_garment_is_ripped_while_a_rag_is_held(tmp_path):
+    """Named change, Task 10 fix 1: a bleeding part, a dirty rag held under DIRTY_RAG_MIN's rule (so it does not go
+    on) and no source to wash it: the garment is still not ripped while any rag is held."""
     r, sv = make(tmp_path)
     r.frame()
     hold(r, 21, "Base.Shirt_FormalWhite", use="other")
-    hold(r, 11, "Base.RippedSheets")
-    care_frame(r, [])
+    hold(r, 11, "Base.RippedSheetsDirty")
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)])
     tick(r, sv)
     assert last(tmp_path)["branch"] != "care" and not any(a.type == "rip" for a in r.acts.history)
+
+
+def test_no_garment_is_ripped_for_stock_with_no_wound(tmp_path):
+    """Task 10 fix 1, the review's major 2 (ruling P24-G 2: the rip is the wound's): no rag of any kind held, a looted
+    cotton shirt held and no part bleeding: nothing is ripped, the need's drink goes; the first bleeding part rips it."""
+    r, sv = make(tmp_path)
+    r.frame()
+    hold(r, 21, "Base.Shirt_FormalWhite", use="other")
+    hold(r, 30, "Base.WaterBottle", use="water")
+    care_frame(r, [part(5)], thirst=0.5)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 30}) and last(tmp_path)["branch"] == "need"
+    assert care_why(tmp_path) == {} and not any(a.type == "rip" for a in r.acts.history)
+    r.answer("done")
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)])
+    tick(r, sv)
+    assert r.cmd() == ("rip", {"itemId": 21}) and care_why(tmp_path) == {"reason": "no_rag", "part": 5, "item": 21}
 
 
 # ================================================================ the water chain (P24-G 3)
@@ -578,7 +601,10 @@ def thirsty(r, **k):
 
 
 def test_the_water_chain_constants():
-    assert (S.FILL_R, S.FILL_RETRY_MIN, S.THIRST_T) == (25.0, 2.0, 0.12)
+    """Named change, Task 10 fix 1 (ruling P24-L): FILL_R is gone with the tainted fallback it bounded."""
+    assert (S.FILL_RETRY_MIN, S.THIRST_T, S.FILL_WANTS) == (2.0, 0.12, ("container", "water_source"))
+    assert S.SOURCE_FAILS == ("no source", "no water", "not adjacent", "stuck", "no path", "no square")
+    assert not hasattr(S, "FILL_R")
 
 
 def test_a_clean_water_item_is_drunk_before_a_tainted_one_and_a_tainted_one_without(tmp_path):
@@ -613,7 +639,8 @@ def test_no_water_held_a_vessel_is_filled_at_the_nearest_clean_source_then_drunk
     tick(r, sv)
     assert r.cmd() == ("fill", {"itemId": 5, "x": 110, "y": 200}) and last(tmp_path)["branch"] == "need"
     w = need_why(tmp_path)
-    assert w["item"] is None and w["mark"] is None and w["fill"]["vessel"] == 5 and w["fill"]["tainted"] is False
+    assert w["item"] is None and w["mark"] is None and set(w["fill"]) == {"vessel", "source", "dist"}
+    assert w["fill"]["vessel"] == 5 and w["fill"]["source"] == [110, 200]
     all_sends_valid(r)
     assert tick(r, sv) is None                                                   # its fill is current: held
     r.answer({"state": "done", "result": {"amount": 0.5, "added": 0.5, "fluid": "Water", "tainted": False}})
@@ -624,27 +651,29 @@ def test_no_water_held_a_vessel_is_filled_at_the_nearest_clean_source_then_drunk
     assert r.cmd() == ("consume", {"itemId": 5})
 
 
-def test_a_tainted_source_is_filled_from_only_with_no_clean_one_within_fill_r(tmp_path):
+def test_a_tainted_source_is_never_filled_from_a_clean_one_at_any_distance_is(tmp_path):
+    """Ruling P24-L (Task 10 fix 1, the review's major 1; re-cut from Task 10's FILL_R fallback): the Lua refuses every
+    tainted drink, so only a clean source is filled from, at any distance; with only a tainted one known the vessel
+    is kept (still a `container`), nothing is sent, and the want names `water_source` (not `container`)."""
     r, sv = make(tmp_path)
-    r.scan([source(105, 200, tainted=True, infinite=True), source(124, 200)])     # clean at 24.5 tiles
+    r.scan([source(105, 200, tainted=True, infinite=True), source(160, 200)])     # clean at 60.5 tiles
     r.frame()
     hold(r, 5, "Base.PopEmpty", use="container")
     thirsty(r)
     tick(r, sv)
-    assert r.cmd() == ("fill", {"itemId": 5, "x": 124, "y": 200})
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 160, "y": 200})
     (tmp_path / "b").mkdir()
     r2, sv2 = make(tmp_path / "b")
-    r2.scan([source(105, 200, tainted=True, infinite=True), source(130, 200)])    # clean at 30.5: beyond FILL_R
+    r2.scan([source(105, 200, tainted=True, infinite=True)])
     r2.frame()
     hold(r2, 5, "Base.PopEmpty", use="container")
-    thirsty(r2)
-    tick(r2, sv2)
-    assert r2.cmd() == ("fill", {"itemId": 5, "x": 105, "y": 200}) and need_why(tmp_path / "b")["fill"]["tainted"]
-    r2.answer({"state": "done", "result": {"amount": 0.5, "added": 0.5, "fluid": "TaintedWater", "tainted": True}})
-    r2.advance(S.FILL_SETTLE_S)
-    thirsty(r2)
-    tick(r2, sv2)
-    assert r2.world.marks[5][0] == "tainted" and r2.world.tainted_ids() == {5} and r2.cmd() == ("consume", {"itemId": 5})
+    for _ in range(3):
+        thirsty(r2)
+        tick(r2, sv2)
+    assert not any(a.type == "fill" for a in r2.acts.history) and r2.world.by_use()["container"] == [5]
+    assert need_why(tmp_path / "b")["fill"] == {"vessel": 5, "source": None, "want": "water_source"}
+    assert set(sv2.need_marks) == {"water", "water_source"}
+    assert V.view(r2.world, sv2)["needs_wanted"] == ["water", "water_source"]
 
 
 def test_a_fill_refused_for_its_water_leaves_the_source_out(tmp_path):
@@ -659,7 +688,60 @@ def test_a_fill_refused_for_its_water_leaves_the_source_out(tmp_path):
     r.answer({"state": "failed", "reason": "no water"})
     thirsty(r)
     tick(r, sv)
-    assert r.cmd() == ("fill", {"itemId": 6, "x": 110, "y": 200})
+    # named change, Task 10 fix 1 (minor 5): a failure for its source frees the vessel for the next source at once
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 110, "y": 200}) and sv.care.dry_now() == {(105, 200, 0)}
+
+
+@pytest.mark.parametrize("end", [{"state": "failed", "reason": "not adjacent"}, {"state": "failed", "reason": "stuck"},
+                                 "timeout"])
+def test_a_fill_whose_walk_failed_leaves_its_source_out_and_takes_the_next(tmp_path, end):
+    """Task 10 fix 1, minor 5: a walk to the source that failed (`not adjacent`, a stuck reason, or the fill timed out
+    on the Actions deadline) leaves the source out as a dry one does, and the vessel goes to the next source."""
+    r, sv = make(tmp_path)
+    r.scan([source(105, 200), source(110, 200)])
+    r.frame()
+    hold(r, 5, "Base.PopEmpty", use="container")
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 105, "y": 200})
+    if end == "timeout":
+        r.fake.answer({"fill": ["accepted"]})
+        r.pump()
+        r.advance(31.0)
+        r.pump()
+        assert r.acts.history[-1].state == "timeout"
+    else:
+        r.answer(end)
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 110, "y": 200}) and sv.care.dry_now() == {(105, 200, 0)}
+
+
+def test_a_vessel_whose_fill_failed_otherwise_waits_fill_retry_min_from_the_end_and_no_container_is_wanted(tmp_path):
+    """Task 10 fix 1, minor 5: an `interrupted` fill (queued, nothing rose) holds the vessel out FILL_RETRY_MIN game
+    minutes counted from the minute its end was read (never from the send); meanwhile a vessel is held, so no
+    `container` want is marked (`fill_why` names it held out), and the source stays a source."""
+    r, sv = make(tmp_path)
+    r.scan([source(105, 200)])
+    r.frame(game_min=480.0)
+    hold(r, 5, "Base.PopEmpty", use="container")
+    thirsty(r, game_min=480.0)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 105, "y": 200})
+    r.fake.answer({"fill": ["accepted"]})
+    r.pump()
+    thirsty(r, game_min=481.5)                       # the walk and the queue: 1.5 game minutes
+    r.answer({"state": "failed", "reason": "interrupted"})
+    thirsty(r, game_min=481.5)
+    tick(r, sv)
+    assert need_why(tmp_path)["fill"] == {"held_out": [5]} and set(sv.need_marks) == {"water"}
+    thirsty(r, game_min=483.4)                       # 1.9 minutes from the end (3.4 from the send): still out
+    tick(r, sv)
+    assert sum(a.type == "fill" for a in r.acts.history) == 1 and not sv.care.dry_now()
+    for _ in range(S.FAILED_COOLDOWN_TICKS):         # the same command's failure cooldown, past the hold-out
+        thirsty(r, game_min=483.5)
+        tick(r, sv)
+    assert [a.args for a in r.acts.history if a.type == "fill"][1:] == [{"itemId": 5, "x": 105, "y": 200}]
 
 
 def test_no_vessel_held_the_container_want_is_marked_for_the_goal_layer(tmp_path):
@@ -679,13 +761,20 @@ def test_no_vessel_held_the_container_want_is_marked_for_the_goal_layer(tmp_path
     assert "container" not in sv.need_marks and "water" not in sv.need_marks
 
 
-def test_a_vessel_with_no_source_known_marks_the_water_want_only(tmp_path):
+def test_a_vessel_with_no_source_known_marks_the_water_source_want(tmp_path):
+    """Named change, Task 10 fix 1 (ruling P24-L): a vessel and no clean source known marks `water_source` beside
+    `water` (the goal layer's to find), never `container`; a vessel lost marks `container` and drops it."""
     r, sv = make(tmp_path)
     r.frame()
     hold(r, 5, "Base.PopEmpty", use="container")
     thirsty(r)
     tick(r, sv)
-    assert need_why(tmp_path)["fill"] == {"vessel": 5, "source": None} and set(sv.need_marks) == {"water"}
+    assert need_why(tmp_path)["fill"] == {"vessel": 5, "source": None, "want": "water_source"}
+    assert set(sv.need_marks) == {"water", "water_source"}
+    r.event("item_removed", itemId=5)
+    thirsty(r)
+    tick(r, sv)
+    assert set(sv.need_marks) == {"water", "container"}
 
 
 def test_a_pza_1_4_build_is_sent_no_fill(tmp_path):
@@ -816,27 +905,27 @@ def test_the_world_applies_item_changed_and_drops_a_vessel_mark(tmp_path):
     assert "fluid" not in r.world.inventory[5] and r.world.by_use()["container"] == [5]
 
 
-def test_a_tainted_drink_refused_marks_it_undrinkable_and_no_tainted_source_is_filled_again(tmp_path):
-    """The Lua refuses tainted water (`W.drinkable`): one fill from the tainted source, one refused drink, then the
-    vessel reads `other` and the chain marks the want rather than loop fill-and-refuse."""
+def test_a_tainted_drink_refused_marks_it_undrinkable_and_the_tainted_source_is_never_filled_from(tmp_path):
+    """Re-cut, Task 10 fix 1 (ruling P24-L): a held bottle of tainted water (a looted one: its record names
+    TaintedWater) is drunk only with no clean one, the Lua refuses it (`W.drinkable`), it is marked `undrinkable`
+    (read `other`), and the held vessel is never filled at the tainted source the map knows: it is kept, and the want
+    names `water_source`."""
     r, sv = make(tmp_path)
     r.scan([source(105, 200, tainted=True, infinite=True)])
     r.frame()
-    hold(r, 5, "Base.PopEmpty", use="container")
+    hold(r, 5, "Base.WaterBottle", use="water")
+    r.event("item_changed", itemId=5, use="water", fluid="TaintedWater", amount=0.5)
     hold(r, 6, "Base.PopEmpty", use="container")
-    thirsty(r)
-    tick(r, sv)
-    assert r.cmd() == ("fill", {"itemId": 5, "x": 105, "y": 200})
-    r.answer({"state": "done", "result": {"amount": 0.5, "added": 0.5, "fluid": "TaintedWater", "tainted": True}})
-    r.advance(S.FILL_SETTLE_S)
     thirsty(r)
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 5})
     r.answer({"state": "failed", "reason": "not valid"})
-    thirsty(r)
-    tick(r, sv)
-    assert r.world.marks[5][0] == "undrinkable" and sv.tainted_refused and 5 not in r.world.by_use()["container"]
-    assert sum(a.type == "fill" for a in r.acts.history) == 1 and need_why(tmp_path)["fill"]["source"] is None
+    for _ in range(3):
+        thirsty(r)
+        tick(r, sv)
+    assert r.world.marks[5][0] == "undrinkable" and r.world.by_use()["other"] == [5]
+    assert r.world.by_use()["container"] == [6] and not any(a.type == "fill" for a in r.acts.history)
+    assert need_why(tmp_path)["fill"] == {"vessel": 6, "source": None, "want": "water_source"}
 
 
 # ================================================================ Task 9 fix 2: the planner's side of item_changed

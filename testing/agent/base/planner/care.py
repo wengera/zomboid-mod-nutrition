@@ -9,16 +9,17 @@ Its choose, the first that answers (`why` names the `reason`, the `part`, the `i
    `bleedingTime`, then the least index), bandaged (`Bandage(itemId, part)`) with the best held item by `care_kind`:
    a clean bandage, then a clean rag, then a dirty one only when the part's `bleedingTime` exceeds DIRTY_RAG_MIN (a
    dirty rag stops the bleeding but doubles the infection odds against none, #4299; the bleeding drain scales with
-   the bleeding time, #4298). With no rag of any kind held, one held cotton garment is ripped (`no_rag`, step 4's
-   rule); a dirty rag held under the time rule falls through to the wash.
+   the bleeding time, #4298). With no rag of any kind held, one held cotton garment is ripped for it (`no_rag`:
+   `rippable` names it, never one of the inventory's first sight, `World.first_sight`, the clothes the character
+   stands in, which the Lua refuses `worn`, nor one marked `unrippable`, a rip refused `worn`, `not cotton` or `needs
+   tool`, `World.mark`: `Rip(itemId)`); a dirty rag held under the time rule falls through to the wash.
 2. `replace`: a bandaged part whose `bandageLife` reached 0 or that reads `bandageDirty`, with a clean bandage or rag
    held: bandaged again with it (the Lua takes the old one off first).
 3. `wash`: a dirty rag held, no zombie within DISENGAGE_R (Survive passes `quiet`), and a known water source (the map's
    square `water` record with water in it, on the player's floor, not refused lately) within WASH_R: `Wash(itemId, x,
    y)`, the Lua walking next to it (a wash does not test the water's taint, #4301).
-4. `rip`: no bandage item of any kind held and a held item `rippable` names a cotton garment, never one of the
-   inventory's first sight (`World.first_sight`: the clothes the character stands in, which the Lua refuses `worn`)
-   nor one marked `unrippable` (a rip refused `worn`, `not cotton` or `needs tool`, `World.mark`): `Rip(itemId)`.
+A garment is ripped only for a bleeding part (Task 10 fix 1, the review's major 2: ruling P24-G 2's rip is the
+wound's; a rip for stock destroyed looted clothing and, from above the need branch, superseded a running drink).
 An item whose care action ended failed (never `superseded`), timed out or was rejected is left out for
 CARE_RETRY_MIN game minutes (`World.world_minutes`); a wash refused `no source` or `no water` leaves its source out for
 SOURCE_RETRY_MIN. Each step needs its skill in the hello's caps (`World.can`); a PZA/1.4 frame's parts carry no
@@ -213,11 +214,6 @@ class Care:
                 self.why = {"reason": "dirty_rag", "item": items["dirty"][0], "source": [sq[0], sq[1]], "dist": d,
                             "tainted": rec.get("tainted")}
                 return Wash(items["dirty"][0], sq[0], sq[1])
-        if not any_rag and w.can("rip"):
-            rip = self._rip_item()
-            if rip is not None:
-                self.why = {"reason": "no_rag", "item": rip}
-                return Rip(rip)
         self.why = {"bleeding": [p["i"] for p in bleeding], "spent": [p["i"] for p in spent],
                     "held": {k: len(v) for k, v in items.items()}} if (bleeding or spent or any_rag) else {}
         return None
