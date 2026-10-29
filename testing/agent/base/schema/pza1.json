@@ -34,6 +34,11 @@
       "type": "string",
       "enum": ["food", "water", "weapon", "bandage", "other", "container"]
     },
+    "ripClass": {
+      "description": "An item's fabric class as the rip recipes read its tags (PZA/1.5.2).",
+      "type": "string",
+      "enum": ["cotton", "denim", "leather"]
+    },
     "actionType": {
       "description": "A skill type a cmd line names. There is no look action (PZA/1.5, Plan 24 Task 6b, docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md section 6): the frames list every zombie the client's cell holds within the sense radius whatever the facing, and turning changes only what the client draws and spots.",
       "type": "string",
@@ -460,7 +465,9 @@
         "itemId": {"description": "The item's id.", "type": "integer"},
         "fullType": {"description": "The item's full type.", "type": "string"},
         "weight": {"description": "The item's weight.", "type": "number"},
-        "use": {"description": "The item's use as the engine answers it: food (isA Food with getHungerChange below 0), weapon (isA HandWeapon), water (its fluid container, at most 3 litres, no Bleach or Petrol by name, not tainted, not poisonous and not sealed (canPlayerEmpty, PZA/1.5.1: a sealed pop can is other), holds a water source (isWaterSource) or, PZA/1.5, a beverage that lowers thirst and is neither hazardous nor alcoholic: a pop, a juice, a milk), container (an empty drinking vessel that may hold water, canAddFluid(Fluid.Water): PZA/1.4.1, ruling P24-F), bandage (isCanBandage(), PZA/1.5.1: a bandage, a ripped sheet, dirty or clean, or a denim or leather strip; before PZA/1.5.1 a Bandage or Rag by full type), else other. Read once at the item's first sight; an item_changed event (PZA/1.5.1) carries the use again when an action changed it. Before PZA/1.4.1 water read any non-poisonous fluid container (a Disinfectant included) and container did not exist. Absent in logs written before Plan 23 Task 9b.", "$ref": "#/$defs/itemUse"}
+        "use": {"description": "The item's use as the engine answers it: food (isA Food with getHungerChange below 0), weapon (isA HandWeapon), water (its fluid container, at most 3 litres, no Bleach or Petrol by name, not tainted, not poisonous and not sealed (canPlayerEmpty, PZA/1.5.1: a sealed pop can is other), holds a water source (isWaterSource) or, PZA/1.5, a beverage that lowers thirst and is neither hazardous nor alcoholic: a pop, a juice, a milk), container (an empty drinking vessel that may hold water, canAddFluid(Fluid.Water): PZA/1.4.1, ruling P24-F), bandage (isCanBandage(), PZA/1.5.1: a bandage, a ripped sheet, dirty or clean, or a denim or leather strip; before PZA/1.5.1 a Bandage or Rag by full type), else other. Read once at the item's first sight; an item_changed event (PZA/1.5.1) carries the use again when an action changed it. Before PZA/1.4.1 water read any non-poisonous fluid container (a Disinfectant included) and container did not exist. Absent in logs written before Plan 23 Task 9b.", "$ref": "#/$defs/itemUse"},
+        "worn": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): true when the item is worn, isWorn() (the jar's InventoryItem.isWorn: IsClothing() and Clothing.isWorn, the item's container's parent a character whose getWornItems() contains it); absent when it is not, and in logs written before PZA/1.5.2. Read with the use.", "type": "boolean"},
+        "rip": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): the fabric class the rip recipes read, by tag: cotton (hasTag(ItemTag.RIP_CLOTHING_COTTON), base:ripclothingcotton, the RipClothing recipe the rip skill runs with no tool), else denim or leather (base:ripclothingdenim, base:ripclothingleather: a recipe needing scissors or a sharp knife, which the rip skill refuses needs tool); absent for an item carrying none, and in logs written before PZA/1.5.2. Read with the use. The rip skill also refuses a worn item (worn).", "$ref": "#/$defs/ripClass"}
       },
       "required": ["itemId", "fullType", "weight"]
     },
@@ -541,7 +548,9 @@
         "itemId": {"description": "The item's id.", "type": "integer"},
         "use": {"description": "The item's use as the engine now answers it, item_added's use read again.", "$ref": "#/$defs/itemUse"},
         "fluid": {"description": "Its fluid container's primary fluid, getPrimaryFluid():getFluidTypeString() (Water, TaintedWater, a beverage); absent when it is empty or has no fluid container.", "type": "string"},
-        "amount": {"description": "Its fluid container's amount in litres, getAmount(); absent when it has no fluid container.", "type": "number"}
+        "amount": {"description": "Its fluid container's amount in litres, getAmount(); absent when it has no fluid container.", "type": "number"},
+        "worn": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): true when the item is worn, isWorn() (the jar's InventoryItem.isWorn: IsClothing() and Clothing.isWorn, the item's container's parent a character whose getWornItems() contains it); absent when it is not, and in logs written before PZA/1.5.2. Read again with the use.", "type": "boolean"},
+        "rip": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): the fabric class the rip recipes read, by tag: cotton (hasTag(ItemTag.RIP_CLOTHING_COTTON), base:ripclothingcotton, the RipClothing recipe the rip skill runs with no tool), else denim or leather (base:ripclothingdenim, base:ripclothingleather: a recipe needing scissors or a sharp knife, which the rip skill refuses needs tool); absent for an item carrying none, and in logs written before PZA/1.5.2. Read again with the use. The rip skill also refuses a worn item (worn).", "$ref": "#/$defs/ripClass"}
       },
       "required": ["itemId", "use"]
     },

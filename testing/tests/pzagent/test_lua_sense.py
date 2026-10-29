@@ -486,7 +486,9 @@ def test_event_kinds_and_fields_are_the_schemas(lua):
     z.st["dead"] = True
     st["open"] = True
     watch_cycle(lua, p)
-    p.held.append(make_item("Base.Plank", 1500))
+    shirt = make_item("Base.Tshirt_DefaultTEXTURE", 1500)      # PZA/1.5.2: worn and cotton, so worn and rip are sent
+    shirt.isWorn = lambda s: True
+    p.held.append(shirt)
     del p.held[0]
     ev, _ = events(lua, p, prev)
     assert sorted(e["event"] for e in ev) == ["damage", "door", "item_added", "item_removed", "swing", "zombie_dead"]

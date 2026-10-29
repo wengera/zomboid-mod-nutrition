@@ -64,14 +64,14 @@ PZA.schema = {
         damage = { "tag", "amount", "side" },
         swing = { "attackStarted", "meleeDelay" },
         zombie_dead = { "id" },
-        item_added = { "itemId", "fullType", "weight", "use" },
+        item_added = { "itemId", "fullType", "weight", "use", "worn", "rip" },
         item_removed = { "itemId", "fullType" },
         door = { "x", "y", "z", "open" },
         lua_error = { "msg" },
         overflow = { "queued", "cut" },
         scan_dropped = { "scanId", "aid", "part", "parts", "reason" },
         death = { "worldAge", "x", "y", "z", "health", "via", "zombiesKilled" },
-        item_changed = { "itemId", "use", "fluid", "amount" },
+        item_changed = { "itemId", "use", "fluid", "amount", "worn", "rip" },
     },
 }
 

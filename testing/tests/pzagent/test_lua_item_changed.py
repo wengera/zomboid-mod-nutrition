@@ -145,9 +145,9 @@ def test_a_marked_item_gone_is_dropped_and_its_item_removed_says_so(lua, fs):
 def test_the_item_changed_event_is_the_schemas_and_decodes_through_pza1(lua, fs):
     load(lua)
     kinds = lua.eval("PZA.schema.events")
-    assert list(kinds["item_changed"].values()) == ["itemId", "use", "fluid", "amount"]
+    assert list(kinds["item_changed"].values()) == ["itemId", "use", "fluid", "amount", "worn", "rip"]   # 1.5.2
     assert pza1.EVENT_KINDS[-1] == "item_changed" and pza1.EVENT_FIELDS["item_changed"] == ("itemId", "use", "fluid",
-                                                                                            "amount")
+                                                                                            "amount", "worn", "rip")
     lua.execute("PZA.link.init('admin')")
     lua.execute("PZA.emit('event', { event = 'item_changed', gameMin = 451, itemId = 90, use = 'water',"
                 " fluid = 'Water', amount = 1.0 })")
@@ -177,3 +177,80 @@ def test_a_bandage_consumes_its_item_so_the_diff_says_item_removed_and_no_item_c
     assert states(acts(lua, fs))[-1] == ("a1", "done", "")
     ev, _ = events(lua, p, prev)
     assert [(e["event"], e["itemId"]) for e in ev if e["event"].startswith("item_")] == [("item_removed", 50)]
+
+
+# ---- PZA/1.5.2 (Task 9 fix 4, review-t10 minor 7): the inventory record's worn and rip class ------------------------
+
+def garment(p, ft, iid, worn=False, tags=()):
+    """A garment answering isWorn `worn` and hasTag(t) for t in `tags` (the ItemTag constants' names, as the fake
+    ItemTag carries them)."""
+    return tend_item(p, ft, iid, isWorn=worn, hasTag=lambda t: t in tags)
+
+
+def test_the_first_sight_carries_worn_and_the_rip_class_and_elides_them_when_false_or_absent(lua, fs):
+    """A worn shirt reads worn and cotton, an unworn denim jacket denim and not worn, a leather one leather, a plank
+    neither; the inventory's entry carries both, as the item_added line does."""
+    load(lua)
+    p = make_player()
+    garment(p, "Base.Tshirt_DefaultTEXTURE", 70, worn=True, tags=("RIP_CLOTHING_COTTON",))
+    garment(p, "Base.Jacket_Denim", 71, tags=("RIP_CLOTHING_DENIM",))
+    garment(p, "Base.Jacket_Leather", 72, tags=("RIP_CLOTHING_LEATHER",))
+    tend_item(p, "Base.Plank", 73)
+    ev = {e["itemId"]: dict(e) for e in lua.eval("PZA.sense.firstSight(...)", p).values() if e["itemId"] >= 70}
+    assert ev[70]["worn"] is True and ev[70]["rip"] == "cotton"
+    assert "worn" not in ev[71] and ev[71]["rip"] == "denim"
+    assert "worn" not in ev[72] and ev[72]["rip"] == "leather"
+    assert "worn" not in ev[73] and "rip" not in ev[73]
+    assert lua.eval("PZA.sense.lastInv[70].worn") is True and lua.eval("PZA.sense.lastInv[70].rip") == "cotton"
+    assert lua.eval("PZA.sense.lastInv[73].rip") is None
+
+
+def test_a_later_item_added_carries_them_too_and_without_item_tag_no_rip_is_read(lua, fs):
+    load(lua)
+    p = make_player()
+    prev = seen(lua, p)
+    garment(p, "Base.Tshirt_DefaultTEXTURE", 70, tags=("RIP_CLOTHING_COTTON",))
+    ev, prev = events(lua, p, prev)
+    added = [dict(e) for e in ev if e["event"] == "item_added"]
+    assert [(e["itemId"], e.get("worn"), e.get("rip")) for e in added] == [(70, None, "cotton")]
+    lua.globals().ItemTag = None
+    garment(p, "Base.Tshirt_DefaultTEXTURE", 74, worn=True, tags=("RIP_CLOTHING_COTTON",))
+    ev, _ = events(lua, p, prev)
+    added = [dict(e) for e in ev if e["event"] == "item_added"]
+    assert [(e["itemId"], e.get("worn"), e.get("rip")) for e in added] == [(74, True, None)]
+
+
+def test_an_item_changed_carries_the_items_worn_read_again(lua, fs):
+    """A canteen worn on the belt, filled: its item_changed carries worn, read again with its use."""
+    load(lua)
+    lua.execute("PZA.link.init('admin')")
+    water_world(lua, sink())
+    p = make_player()
+    fc = make_fluid(amount=0.0, capacity=1.0)
+    tend_item(p, "Base.Canteen", 90, getFluidContainer=fc, isWorn=True)
+    prev = seen(lua, p)
+    start(lua, p, "fill", itemId=90, x=11, y=20)
+    tick(lua, p)
+    fc.st["amount"] = 1.0
+    tick(lua, p)
+    ev, _ = events(lua, p, prev)
+    assert changed(ev) == [{"event": "item_changed", "gameMin": 450, "itemId": 90, "use": "water", "fluid": "Water",
+                            "amount": 1.0, "worn": True}]
+    assert lua.eval("PZA.sense.lastInv[90].worn") is True
+
+
+def test_worn_and_rip_are_the_schemas_and_an_old_line_decodes_without_them(lua, fs):
+    load(lua)
+    assert pza1.EVENT_FIELDS["item_added"][-2:] == ("worn", "rip")
+    assert pza1.EVENT_FIELDS["item_changed"][-2:] == ("worn", "rip")
+    assert lua.eval("PZA.VERSION") == "1.5.2"
+    lua.execute("PZA.link.init('admin')")
+    lua.execute("PZA.emit('event', { event = 'item_added', gameMin = 451, itemId = 70,"
+                " fullType = 'Base.Tshirt_DefaultTEXTURE', weight = 0.1, use = 'other', worn = true, rip = 'cotton' })")
+    lua.execute("PZA.link.flush()")
+    got = [pza1.decode(json.loads(l)) for l in fs.files[LIVE].split("\n") if l.strip()]
+    got = [o for o in got if o.get("kind") == "event"]
+    assert [(o["itemId"], o["worn"], o["rip"]) for o in got] == [(70, True, "cotton")]
+    old = pza1.decode({"kind": "event", "seq": 1, "tick": 1, "wallMs": 1, "event": "item_added", "gameMin": 1,
+                       "itemId": 3, "fullType": "Base.Plank", "weight": 1.0, "use": "other"})
+    assert old.get("worn") is None and old.get("rip") is None

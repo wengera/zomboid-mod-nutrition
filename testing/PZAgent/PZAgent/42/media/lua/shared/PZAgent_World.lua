@@ -220,3 +220,31 @@ function W.fillable(it, fc)
     if fc == nil or Fluid == nil or not drinkVessel(it, fc) then return false end
     return reads(fc, "canAddFluid", true, Fluid.Water)
 end
+
+-- the item's inventory record beyond its use (PZA/1.5.2, Task 9 fix 4, review-t10 minor 7: the planner stops guessing
+-- a garment's rip class from its name and worn from the first sight):
+-- W.wornOf: true when isWorn() answers true, else nil (elided). The jar: InventoryItem.isWorn @0-@19 L4247 answers
+-- IsClothing() and the Clothing override, Clothing.isWorn @0-@43 L1296: the item's container's parent is a character
+-- whose getWornItems() contains it. An absent member reads not worn.
+function W.wornOf(it)
+    if reads(it, "isWorn", true) then return true end
+    return nil
+end
+
+-- the fabric class the rip recipes read, else nil (elided): hasTag(ItemTag.RIP_CLOTHING_COTTON) cotton (the
+-- RipClothing recipe's tags[base:ripclothingcotton], scripts/generated/recipes/recipes.txt:226, #4300), else
+-- RIP_CLOTHING_DENIM denim, else RIP_CLOTHING_LEATHER leather (the tool recipe's tags[base:ripclothingdenim;
+-- base:ripclothingleather], :243). The jar: ItemTag.<clinit> registers RipClothingCotton @3047-@3053 L350,
+-- RipClothingDenim @3056-@3062 L351 and RipClothingLeather @3065-@3071 L352; InventoryItem.hasTag(ItemTag) @0-@8
+-- L2841 asks the script item. ItemTag or a constant absent reads no class.
+W.RIP_TAGS = { { "RIP_CLOTHING_COTTON", "cotton" }, { "RIP_CLOTHING_DENIM", "denim" },
+               { "RIP_CLOTHING_LEATHER", "leather" } }
+
+function W.ripOf(it)
+    if ItemTag == nil then return nil end
+    for _, t in ipairs(W.RIP_TAGS) do
+        local tag = ItemTag[t[1]]
+        if tag ~= nil and reads(it, "hasTag", true, tag) then return t[2] end
+    end
+    return nil
+end

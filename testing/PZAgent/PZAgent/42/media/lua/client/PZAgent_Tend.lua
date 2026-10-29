@@ -186,19 +186,14 @@ K.types.bandage = {
 -- RippedSheets), dirty (those naming Dirty)}; interrupted after RIP_MS.
 K.RIP_MS = 20000
 
--- whether item it carries ItemTag[name] (false when the constant or the member is absent)
-local function tagged(it, name)
-    local t = ItemTag ~= nil and ItemTag[name] or nil
-    if t == nil then return false end
-    return flag(it, "hasTag", t)
-end
-
--- the reason the item cannot be ripped without a tool, or nil
+-- the reason the item cannot be ripped without a tool, or nil: its class the inventory record's rip (W.ripOf,
+-- PZA/1.5.2), worn its worn (W.wornOf)
 local function ripRefusal(it)
     if ItemTag == nil then return "not loaded" end
-    if flag(it, "isWorn") then return "worn" end
-    if tagged(it, "RIP_CLOTHING_COTTON") then return nil end
-    if tagged(it, "RIP_CLOTHING_DENIM") or tagged(it, "RIP_CLOTHING_LEATHER") then return "needs tool" end
+    if W.wornOf(it) then return "worn" end
+    local class = W.ripOf(it)
+    if class == "cotton" then return nil end
+    if class ~= nil then return "needs tool" end
     return "not cotton"
 end
 

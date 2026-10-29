@@ -284,8 +284,8 @@ if not S.damageHooked and Events ~= nil and Events.OnPlayerGetDamage ~= nil then
     S.damageHooked = true
 end
 
--- the inventory by item id: { [id] = { fullType, weight, use } }, walked by getItems' size/get; an id already in known
--- reuses its entry (its full type, weight and use are read once, at its first sight). nil when the inventory or its list
+-- the inventory by item id: { [id] = { fullType, weight, use, worn, rip } }, walked by getItems' size/get; an id in known
+-- reuses its entry (its full type, weight, use, worn and rip are read once, at its first sight). nil when the list
 -- cannot be read, so a failed read never reads as every item removed.
 function S.invIds(p, known)
     local _, inv = PZA.call(p, "getInventory")
@@ -303,7 +303,7 @@ function S.invIds(p, known)
                 k = {}
                 getm(S.missing, k, "fullType", it, "getFullType")
                 getm(S.missing, k, "weight", it, "getWeight")
-                k.use = W.useOf(it)
+                k.use, k.worn, k.rip = W.useOf(it), W.wornOf(it), W.ripOf(it)   -- PZA/1.5.2: S.record's worn, rip
             end
             out[id] = k
         end
@@ -319,7 +319,7 @@ local function sortedIds(m)
 end
 
 local function itemAdded(id, k, gameMin)
-    return { event = "item_added", gameMin = gameMin, itemId = id, fullType = k.fullType, weight = k.weight, use = k.use }
+    return S.record({ event = "item_added", gameMin = gameMin, itemId = id, fullType = k.fullType, weight = k.weight }, k)
 end
 
 -- the inventory's first sight (ruling P22-2): one item_added per held item, ids ascending; seeds the diff S.events
@@ -415,7 +415,7 @@ end
 --   damage{tag, amount, side = "client"}: the damage hook's records of the local player, drained;
 --   swing{attackStarted, meleeDelay}: isAttackStarted reads true where the last events call read it not true;
 --   zombie_dead{id}: a zombie in prev's frame whose object now answers isDead;
---   item_added{itemId, fullType, weight, use} / item_removed{itemId, fullType}: the inventory's ids against S.lastInv
+--   item_added{itemId, fullType, weight, use, worn, rip} / item_removed{itemId, fullType}: the ids against S.lastInv
 --   (a first call without firstSight seeds it silently);
 --   door{x, y, z, open}: a door or window whose open state changed between two map records of its square (the map's
 --   PZA.map.doorEvents: a scan part's or the watch's, the ring of WATCH_R tiles; a square first seen queues none).
@@ -604,7 +604,7 @@ function S.notePart(b, i, part, h)
     b.parts[#b.parts + 1] = r
 end
 
--- item_changed{itemId, use, fluid, amount} (PZA/1.5.1, Task 9 fix 1, review major 1): S.invIds reads an item's use once,
+-- item_changed{itemId, use, fluid, amount, worn, rip} (PZA/1.5.1, Task 9 fix 1, review major 1): S.invIds reads an item's use once,
 -- at its first sight, so a bottle a fill filled read container and one drunk empty read water for good. A skill that
 -- changes a held item's contents (fill, consume, wash, rip: PZAgent_Tend.lua's end hooks) calls S.recheck(id, amount0)
 -- when it ends, amount0 its fluid amount when it began (nil when it read none). For RECHECK_MS after that, each S.events
@@ -659,9 +659,10 @@ local function recheckOne(ev, gameMin, p, id, m, now)
     if m.first or moved then
         local use = W.useOf(it)
         if use ~= k.use or moved then
-            ev[#ev + 1] = { event = "item_changed", gameMin = gameMin, itemId = id, use = use,
-                            fluid = fc ~= nil and fluidName(fc) or nil, amount = a }
-            S.lastInv[id] = { fullType = k.fullType, weight = k.weight, use = use }
+            local rec = { fullType = k.fullType, weight = k.weight, use = use, worn = W.wornOf(it), rip = W.ripOf(it) }
+            ev[#ev + 1] = S.record({ event = "item_changed", gameMin = gameMin, itemId = id,
+                                     fluid = fc ~= nil and fluidName(fc) or nil, amount = a }, rec)
+            S.lastInv[id] = rec
             m.reported = a
         end
         if m.reported == nil then m.reported = a end
@@ -684,4 +685,14 @@ function S.events(p, prev)
     local ev, cur = eventsBase(p, prev)
     collect(ev, "event:item_changed", changedEvents, cur.gameMin, p)
     return ev, cur
+end
+
+-- the inventory record's item fields (PZA/1.5.2, Task 9 fix 4, review-t10 minor 7): ev (an item_added or item_changed
+-- event) takes the entry k's use, and its worn and rip (PZAgent_World.lua's W.wornOf and W.ripOf, read with the use:
+-- at the item's first sight, and again at an item_changed), each elided when false or absent (a nil key is no key on
+-- the wire). Appended here (CLAUDE.md section 5: the repo: pointers into Sense keep their lines); itemAdded and
+-- recheckOne call it through the table.
+function S.record(ev, k)
+    ev.use, ev.worn, ev.rip = k.use, k.worn, k.rip
+    return ev
 end
