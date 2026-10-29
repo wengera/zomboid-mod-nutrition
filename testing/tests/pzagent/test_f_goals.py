@@ -79,11 +79,12 @@ def test_nothing_is_imported_from_a_frozen_driver():
     assert "DY.make_day_session(xs, transport, planner_factory(runner)" in src and "copied=(GOALS_LOG,)" in src
     # the boot is the library's: driverlib/day.boot_and_run (its order tested in test_driverlib.py)
     assert "DY.boot_and_run(args, lambda: preboot(_ME, args), run_session, grade, key=KEY, driver=DRIVER," in src
-    assert 'grade_key="grade_f1"' in src and 'DY.grade(out, "grade_f1", GF.grade_f1)' in src
+    assert 'grade_key="grade_f2"' in src and 'DY.grade(out, "grade_f2", GF.grade_f2)' in src
+    assert "grade_f1" not in src
     assert 'cli_version=pre.get("claude_version")' in src
     doc = F.__doc__
     for word in ("RULES", "--session", "--fixture", "--prev", "never edited after its run", "goals.log", "llm",
-                 "claude --version", "grade_f1", "LLMSource", "ScriptedSource", "day_cap"):
+                 "claude --version", "grade_f2", "LLMSource", "ScriptedSource", "day_cap"):
         assert word in doc, word
     # M-10: an F session on the chain's last fixture follows the chain's numbering (P23-Z)
     rules = doc[doc.index("RULES"):]
@@ -248,8 +249,9 @@ def test_the_llm_session_records_its_calls_its_goals_and_goals_log(tmp_path, mon
     assert set(loop) >= {"goals", "night", "lineage", "t_loop0_ms", "llm", "actions"}
     persisted = json.loads((tmp_path / "f_goals.json").read_text(encoding="utf-8"))
     assert persisted["loop"]["llm"] == json.loads(json.dumps(llm))
-    g = out["grade_f1"]
-    assert g["grade"] == "grade_f1" and g["survived"] is True
+    g = out["grade_f2"]
+    assert "grade_f1" not in out and "grade_f1_error" not in out
+    assert g["grade"] == "grade_f2" and g["survived"] is True
     assert g["llm"]["calls"] == 4 and g["llm"]["ok"] == 1 and g["llm"]["fallbacks"] == 3
     assert g["llm"]["goals_by_type"].get("Rest", 0) >= 1
     json.dumps(out, allow_nan=False)
@@ -286,6 +288,6 @@ def test_run_session_returns_the_session_and_the_llm_worker_is_joined_after_the_
 
 def test_grade_records_a_grade_failure_rather_than_raising(monkeypatch):
     out = {"loop": {}}
-    monkeypatch.setattr(F.GF, "grade_f1", lambda o: (_ for _ in ()).throw(ValueError("boom")))
+    monkeypatch.setattr(F.GF, "grade_f2", lambda o: (_ for _ in ()).throw(ValueError("boom")))
     F.grade(out)
-    assert out["grade_f1_error"] == "ValueError: boom" and "grade_f1" not in out
+    assert out["grade_f2_error"] == "ValueError: boom" and "grade_f2" not in out and "grade_f1" not in out

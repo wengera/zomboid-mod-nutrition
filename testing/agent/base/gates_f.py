@@ -1,4 +1,5 @@
-"""gates_f -- the LLM session grade (Plan 23 Task 15): `grade_f1(out)` is grade_e1 output plus `llm`.
+"""gates_f -- the LLM session grade (Plan 23 Task 15): `grade_f1(out)` is grade_e1 output plus `llm`; `grade_f2(out)`
+is grade_e2 output (the death signal, P23-AO) plus the same `llm`.
 
 Reads, besides gates_e keys: out.loop.llm.calls [{latency_s, ok}] and out.loop.goals [{type, state, source}].
 llm = {calls, ok (calls with ok true), fallbacks (calls not ok: the runner fell back to the scripted goal),
@@ -26,8 +27,7 @@ def f_llm(out):
             "goal_ends": {k: sum(1 for x in goals if x.get("state") == k) for k in GOAL_ENDS}}
 
 
-def report_lines_f(g):
-    lines = E.report_lines_e(g)
+def _llm_line(g, lines):
     ll = E._d(E._d(g).get("llm"))
     lines.append("llm: %s calls (%s ok, %s fallbacks), latency p50 %s s, p99 %s s; goals %s; ends %s" % (
         ll.get("calls"), ll.get("ok"), ll.get("fallbacks"), E._f(ll.get("latency_p50")), E._f(ll.get("latency_p99")),
@@ -35,9 +35,27 @@ def report_lines_f(g):
     return lines
 
 
+def report_lines_f(g):
+    return _llm_line(g, E.report_lines_e(g))
+
+
+def report_lines_f2(g):
+    """report_lines_e2's lines (gate_e2, the death signal) and the llm line."""
+    return _llm_line(g, E.report_lines_e2(g))
+
+
 def grade_f1(out):
     g = E.grade_e1(out)
     g["grade"] = "grade_f1"
     g["llm"] = f_llm(out)
     g["report_lines"] = report_lines_f(g)
+    return g
+
+
+def grade_f2(out):
+    """grade_e2(out) (the death signal, ruling P23-AO) plus the `llm` arm of grade_f1."""
+    g = E.grade_e2(out)
+    g["grade"] = "grade_f2"
+    g["llm"] = f_llm(out)
+    g["report_lines"] = report_lines_f2(g)
     return g

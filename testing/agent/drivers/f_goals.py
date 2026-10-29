@@ -4,7 +4,7 @@ one admin -debug client) on the fixture `--fixture` names (default `agent`), the
 `Survive(source=LLMSource(ScriptedSource()))` over the PZA/1 file channel, the server's reads off a `PollThread`
 (P23-13). The LLMSource (`planner/llm.py`, P23-11, P23-V) runs the `claude` CLI (`DEFAULT_CLI`, model sonnet) on a
 worker thread with LLM_TIMEOUT_S, the scripted source standing in for every late, malformed or unsafe answer; the
-instincts above the goal branch pre-empt whatever goal runs. Each session's `grade_f1` (gates_f: grade_e1 plus `llm`)
+instincts above the goal branch pre-empt whatever goal runs. Each session's `grade_f2` (gates_f: grade_e2 plus `llm`)
 is written at its end.
 
 The driver is thin: its key, artifact and profile, its LLM constants, its pre-boot checks (`claude_available` beside
@@ -27,7 +27,7 @@ for the model's goal and "scripted" for a stand-in), `night`, `lineage`, `t_loop
               in the pre-boot, out["preboot"]["claude_version"]; None when the CLI is absent)}.
 `goals.log` (every call's row with its prompt and answer, one JSON line each, beside decision.log) is copied with the
 artifact. out["chain"], out["preboot"]["chain_checks"] as e_day.py's; out["preboot"]["claude_available"] {found, path,
-version, error, ok}; out["grade_f1"] is gates_f.grade_f1(out), else out["grade_f1_error"]; out["finished"] last.
+version, error, ok}; out["grade_f2"] is gates_f.grade_f2(out), else out["grade_f2_error"]; out["finished"] last.
 
 RULES: never edited after its run (the next pass is a new file); takes only `--session N` (an int >= 1, default 1),
 `--fixture NAME` (default agent) and `--prev PATH` (the previous session's artifact JSON, optional), each once; one
@@ -139,8 +139,8 @@ def make_session(xs, transport, prev=None, cli_version=None, runner=None, **kw):
 
 
 def grade(out):
-    """out["grade_f1"] (gates_f.grade_f1 over the record), else out["grade_f1_error"]."""
-    DY.grade(out, "grade_f1", GF.grade_f1)
+    """out["grade_f2"] (gates_f.grade_f2 over the record), else out["grade_f2_error"]."""
+    DY.grade(out, "grade_f2", GF.grade_f2)
 
 
 # ================================================================ the boot
@@ -164,7 +164,7 @@ def after_teardown(out, sess):
 
 def main(args, budget_s=BUDGET_S):
     return DY.boot_and_run(args, lambda: preboot(_ME, args), run_session, grade, key=KEY, driver=DRIVER,
-                           artifact=ARTIFACT, profile=PROFILE, constants=CONSTANTS, grade_key="grade_f1", user=USER,
+                           artifact=ARTIFACT, profile=PROFILE, constants=CONSTANTS, grade_key="grade_f2", user=USER,
                            budget_s=budget_s, min_free_gb=MIN_FREE_GB, after_teardown=after_teardown)
 
 

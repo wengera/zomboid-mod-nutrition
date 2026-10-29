@@ -7,7 +7,7 @@ import sys
 from agent.base import gates_e as E
 from agent.base import gates_f as F
 from agent.drivers import f_grade as FG
-from .test_gates_e import art, good
+from .test_gates_e import _event_death_art, art, good
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -58,6 +58,28 @@ def test_the_f_grade_carries_the_death_and_the_survival_of_the_e_grade():
     assert g["survived"] is False and g["death"]["explained"] is False
 
 
+def test_grade_f2_is_grade_e2_plus_the_llm_arm_of_grade_f1():
+    a = f_art([call(1.0), call(2.0), call(9.0, ok=False), call(3.0)],
+              [goal("eat", "done"), goal("eat", "failed"), goal("sleep", "superseded"), goal("drink", "done", "scripted")])
+    g, g1, e = F.grade_f2(a), F.grade_f1(a), E.grade_e2(a)
+    assert g["grade"] == "grade_f2" and g["llm"] == g1["llm"] and g["needs"] == e["needs"]
+    assert g["report_lines"][:-1] == E.grade_e2(a)["report_lines"] and g["report_lines"][-1] == g1["report_lines"][-1]
+    assert F.grade_f1(a)["grade"] == "grade_f1"
+    for bad in ({}, None, "x", {"loop": {"llm": None, "goals": 5}}):
+        assert F.grade_f2(bad)["llm"] == F.grade_f1(bad)["llm"]
+
+
+def test_grade_f2_carries_the_death_signal_of_an_event_death():
+    a = _event_death_art()
+    a["loop"]["goals"] = []
+    a["loop"]["llm"] = {"calls": [call(1.0)], "model": "m", "cli_version": "1"}
+    g = F.grade_f2(a)
+    assert g["survived"] is False and g["death"]["check"]["signal"] == "event"
+    assert g["death"] == E.grade_e2(a)["death"]
+    assert any(l.startswith("death (signal event)") for l in g["report_lines"])
+    assert "signal" not in (F.grade_f1(a)["death"] or {}).get("check", {})
+
+
 def test_the_script(tmp_path):
     p = tmp_path / "f.json"
     p.write_text(json.dumps(f_art([call(1.0)], [goal("eat", "done")])), encoding="utf-8")
@@ -65,6 +87,9 @@ def test_the_script(tmp_path):
     cwd = os.path.dirname(os.path.dirname(HERE))
     r = subprocess.run([sys.executable, script, str(p)], capture_output=True, text=True, cwd=cwd)
     assert r.returncode == 0 and json.loads(r.stdout[r.stdout.index("\n{\n"):])["llm"]["calls"] == 1
+    assert json.loads(r.stdout[r.stdout.index("\n{\n"):])["grade"] == "grade_f2"      # the default pass
+    r1 = subprocess.run([sys.executable, script, "--grade", "f1", str(p)], capture_output=True, text=True, cwd=cwd)
+    assert r1.returncode == 0 and json.loads(r1.stdout[r1.stdout.index("\n{\n"):])["grade"] == "grade_f1"
     assert any(l.startswith("llm:") for l in r.stdout.splitlines())
     for args in ([], ["a", "b"], [str(tmp_path / "nope.json")]):
         assert subprocess.run([sys.executable, script] + args, capture_output=True, text=True,
