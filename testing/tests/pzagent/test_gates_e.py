@@ -687,3 +687,174 @@ def test_the_pass_3_script_prints_lines_then_strict_json_and_exits_two_on_a_bad_
     for args in ([], ["a", "b", "c"], [str(tmp_path / "nope.json")]):
         assert subprocess.run([sys.executable, script] + args, capture_output=True, text=True,
                               cwd=cwd).returncode == 2
+
+
+# ================================================================ pass 4: kills the headline (Plan 24 Task 17)
+def _kill_art(engine=2, planner_ids=(11,), twice=True, dead=True):
+    """A session of two standing fights: fight 0 kills 11 (an attack and then an aim of the same id read dead when
+    `twice`), fight 1 ends with the care; a death event carrying zombiesKilled `engine` when `dead`."""
+    acts = [aact("a1", "aim", 101, 110, args={"targetId": planner_ids[0]}),
+            aact("t1", "attack", 111, 112, args={"targetId": planner_ids[0]}),
+            aact("a2", "aim", 201, 210, args={"targetId": 12})]
+    results = [res("t1", "attack", {"attackStarted": True, "targetDead": True})]
+    if twice:
+        results.append(res("a1", "aim", {"held": False, "targetDead": True, "heldFrames": 3, "ticks": 4}))
+    fights = [dict(_stand(0, start=100, stop=120)),
+              dict(_stand(0, start=200, stop=220), end={"endS": 220.0, "branch": "care"})]
+    a = art(actions=acts, fights=fights, results=results, stop="death" if dead else "day_cap")
+    if dead:
+        a["loop"]["death"] = {"via": "event", "gameMin": 605.0, "frame": {"signal": "event"},
+                              "event": {"seq": 9, "zombiesKilled": engine}, "last_frames": a["loop"]["last_frames"],
+                              "server_damage": []}
+        a["stop"]["gameMin"] = 605.0
+    return a
+
+
+def test_the_kills_read_the_engines_count_beside_the_planners_distinct_ids():
+    k = E.grade_e4(_kill_art(engine=2))["kills"]
+    assert k["engine"] == 2 and k["planner"] == 1 and k["planner_ids"] == [11]          # two results of one id count once
+    assert k["per_fight"] == [1, 0] and k["standing_fights"] == 2 and k["standing_kills"] == 1
+    assert k["per_standing_fight"] == 0.5 and k["died"] is True and k["died_at"] == 605.0
+    s = E.grade_e4(_kill_art(dead=False))["kills"]
+    assert s["engine"] is None and s["died"] is False and s["died_at"] is None and s["planner"] == 1
+    assert E.grade_e4({})["kills"]["planner"] == 0 and E.grade_e4(None)["kills"]["per_standing_fight"] is None
+
+
+def test_the_report_opens_with_the_kills_line_naming_both_counts():
+    g = E.grade_e4(_kill_art(engine=2))
+    assert g["report_lines"][0] == "kills 2 (engine 2, planner 1); died at 605; %s game minutes" % E._f(
+        g["game_minutes"], "%.1f")
+    s = E.grade_e4(_kill_art(dead=False))
+    assert s["report_lines"][0].startswith("kills 1 (engine n/a, planner 1); survived; ")
+    lines = E.report_lines_e4(dict(g, gate=E.gate_e4([_kill_art()])))
+    assert lines[0].startswith("kills 2 (") and lines[1].startswith("gate_e4 ")
+
+
+def test_gate_e4_is_gate_e3_and_sums_the_kills():
+    for outs in ([good(700.0), good(740.0)], [good(1439.0)], [], None):
+        g4 = E.gate_e4(outs)
+        assert {k: v for k, v in g4.items() if k != "kills"} == E.gate_e3(outs)
+    assert E.gate_e4([_kill_art(engine=3), _kill_art(dead=False)])["kills"] == {"engine": 3, "planner": 2}
+    assert E.gate_e4([_kill_art(dead=False)])["kills"] == {"engine": None, "planner": 1}
+
+
+def test_the_stance_held_reads_the_lua_count_per_aim_leg_beside_the_frames():
+    acts = [aact("a1", "aim", 1, 2), aact("a2", "aim", 3, 4), aact("a3", "aim", 5, 6)]
+    results = [res("a1", "aim", {"held": True, "heldFrames": 8, "ticks": 10}),
+               res("a2", "aim", {"held": True, "heldFrames": 0, "ticks": 5}), res("a3", "aim", {"held": True})]
+    frames = series(20, me=lambda i: dict(DEFAULT_FRAME["me"], aiming=i < 3, forceAim=i < 10))
+    s = E.grade_e4(art(frames, acts, results=results))["stance_held"]
+    assert s["legs"] == 3 and s["with_field"] == 2 and s["ticks"] == 15 and s["held_frames"] == 8
+    assert s["ratio"] == 8 / 15 and s["per_leg"][1] == {"aid": "a2", "heldFrames": 0, "ticks": 5}
+    assert (s["frames_aiming"], s["frames_force_aim"], s["frames"]) == (3, 10, 20)
+    assert E.grade_e4(art())["stance_held"]["ratio"] is None
+
+
+def test_a_riding_bandage_ended_stopped_counts_under_stopped_and_apart_from_the_standing_ones():
+    acts = [aact("b1", "bandage", 1, 2, args={"itemId": 9, "part": 3, "keepMoving": True}),
+            aact("b2", "bandage", 3, 4, state="failed", reason="stopped",
+                 args={"itemId": 9, "part": 4, "keepMoving": True}),
+            aact("b3", "bandage", 5, 6, state="rejected", reason="leg part",
+                 args={"itemId": 9, "part": 12, "keepMoving": True}),
+            aact("b4", "bandage", 7, 8, args={"itemId": 9, "part": 2}),
+            aact("b5", "bandage", 9, 10, state="failed", reason="no wound", args={"itemId": 9, "keepMoving": False})]
+    results = [res("b1", "bandage", {"part": 3, "walking": True}), res("b4", "bandage", {"part": 2})]
+    g = E.grade_e4(art(actions=acts, results=results))
+    assert g["ride"]["riding"] == {"sent": 3, "done": 1, "walking": 1, "failed": 1, "stopped": 1, "rejected": 1,
+                                   "by_part": {"3": 1}}
+    assert g["ride"]["standing"] == {"sent": 2, "done": 1, "failed": 1}
+    assert "bandages: riding sent 3 done 1 (walking 1) failed 1 (stopped 1) rejected 1" in "\n".join(
+        g["report_lines"])
+
+
+T0 = 1_000_000.0                      # the loop start on the frames clock: frame(i + 1, wall_s) sits at 1_000_000 + wall_s * 1000
+
+
+def _glide_frames(n, moving, x0=0.0):
+    """n frames a tenth of a second apart; me.moving per index from `moving`, x advancing 0.3 a frame."""
+    return [frame(i + 1, i / 10.0, me=dict(DEFAULT_FRAME["me"], moving=moving(i), x=x0 + 0.3 * i, y=0.0))
+            for i in range(n)]
+
+
+def test_a_glide_is_a_second_of_moving_false_inside_a_run_leg_and_never_a_trip():
+    fr = _glide_frames(40, lambda i: not 10 <= i < 21)                  # frames 10..20: 1.0 s still-reading
+
+    def leg(gait, s=0.0, e=4.0):
+        return aact("w1", "steer", s, e, args={"vx": 1, "vy": 0, "seconds": 4, "gait": gait})
+    a = art(fr, [leg("sprint")], t_loop0_ms=T0)
+    gl = E.grade_e4(a)["glides"]
+    assert gl["runs"] == 1 and gl["rows"][0]["seq"] == 11 and abs(gl["rows"][0]["s"] - 1.0) < 1e-9
+    assert abs(gl["rows"][0]["tiles"] - 3.0) < 1e-9 and gl["rows"][0]["gait"] == "sprint"
+    assert E.grade_e4(art(fr, [leg("run")], t_loop0_ms=T0))["glides"]["runs"] == 1
+    assert E.grade_e4(art(fr, [leg("walk")], t_loop0_ms=T0))["glides"]["runs"] == 0                # not a run leg
+    assert E.grade_e4(art(fr, [leg("sprint", 0.0, 1.5)], t_loop0_ms=T0))["glides"]["runs"] == 0    # the leg ended before it
+    assert E.grade_e4(art(_glide_frames(40, lambda i: not 10 <= i < 15), [leg("sprint")], t_loop0_ms=T0))["glides"]["runs"] == 0
+    assert E.grade_e4(art(fr, [], t_loop0_ms=T0))["glides"]["runs"] == 0                           # no leg at all
+    assert any(l.startswith("glides (an inference, never a trip): 1 over 3.00 tiles") for l in
+               E.grade_e4(a)["report_lines"])
+
+
+def test_a_glide_run_does_not_span_two_legs():
+    fr = _glide_frames(40, lambda i: not 10 <= i < 21)
+    legs = [aact("w1", "steer", 0.0, 1.5, args={"gait": "sprint"}),
+            aact("w2", "steer", 1.5, 4.0, args={"gait": "sprint"})]
+    assert E.grade_e4(art(fr, legs, t_loop0_ms=T0))["glides"]["runs"] == 0
+
+
+def test_the_care_yield_reads_the_artifact_and_the_decision_log():
+    fights = [_stand(0, start=10, stop=20), dict(_stand(0, start=30, stop=40), end={"endS": 40.0, "branch": "care"})]
+    a = art(actions=[aact("b1", "bandage", 41, 42)], fights=fights)
+    assert E.grade_e4(a)["yields"] == {"care_actions": 1, "fights_ended_by_care": 1}
+    log = [{"branch": "care", "inputs": {"branches": {"threat": {"care": True, "nearest": 8.0, "held": 1}}}},
+           {"branch": "care", "inputs": {"branches": {"threat": {"care": True, "ride": True}}}},
+           {"branch": "care", "inputs": {"branches": {"threat": {}}}},
+           {"branch": "threat", "inputs": {"branches": {"threat": {"fight": True, "dead": [5, 6], "kill": 5}}}},
+           {"branch": "threat", "inputs": {"branches": {"threat": {"dead": [5]}}}}, {"unparsed": "x"}]
+    r = E.decision_readings(log)
+    assert r == {"lines": 5, "care_yields": 2, "care_rides": 1, "dead_skips": 2, "dead_ids": [5, 6], "kill_lines": 1}
+    g = E.grade_e4(a, None, log)
+    assert g["yields"]["log"] == r and any("decision log: 2 yields (1 riding), 2 dead skips of 2 ids" in l
+                                           for l in g["report_lines"])
+    assert any("no decision log read" in l for l in E.grade_e4(a)["report_lines"])
+    assert E.decision_readings(None)["lines"] == 0
+
+
+def test_the_standing_stagger_is_named_as_the_inference_it_is():
+    acts = [aact("a3", "aim", 301, 310, args={"targetId": 4}), aact("t2", "attack", 311, 312, args={"targetId": 4})]
+    a = art(actions=acts, fights=[_stand(0, start=300, stop=320)],
+            results=[res("t2", "attack", {"attackStarted": True, "targetDead": False})])
+    s = E.grade_e4(a)["care"]["standing"]
+    assert s["outcomes"] == {"kill": 0, "flee": 0, "fallback": 0, "stagger_inferred": 1, "none": 0}
+    assert s["rows"][0]["outcome"] == "stagger_inferred"
+    assert E.grade_e3(a)["care"]["standing"]["outcomes"]["stagger"] == 1                # grade_e3 as it was
+
+
+def test_grade_e4_is_grade_e3_but_for_its_name_the_kills_and_the_pass_4_readings():
+    for a in (good(), _death_art(300, wound_at=100, health_from=105), _event_death_art(), care_art()):
+        e3, e4 = E.grade_e3(a), E.grade_e4(a)
+        drop = ("grade", "report_lines", "kills", "stance_held", "ride", "yields", "glides", "care")
+        keep = lambda g: {k: v for k, v in g.items() if k not in drop}
+        assert keep(e3) == keep(e4) and e4["grade"] == "grade_e4" and "kills" not in e3
+        c3, c4 = dict(e3["care"]), dict(e4["care"])
+        c3.pop("standing"), c4.pop("standing")
+        assert c3 == c4
+
+
+def test_the_pass_4_script_prints_the_kills_line_first_then_strict_json_and_reads_the_log(tmp_path):
+    p = tmp_path / "a.json"
+    p.write_text(json.dumps(_kill_art(engine=2)), encoding="utf-8")
+    script = os.path.join(HERE, "..", "..", "agent", "drivers", "e_grade_4.py")
+    cwd = os.path.dirname(os.path.dirname(HERE))
+    r = subprocess.run([sys.executable, script, str(p)], capture_output=True, text=True, cwd=cwd)
+    assert r.returncode == 0 and r.stdout.startswith("kills 2 (engine 2, planner 1); died at 605; ")
+    assert "no decision log read" in r.stdout
+    assert json.loads(r.stdout[r.stdout.index("\n{\n"):])["grade"] == "grade_e4"
+    (tmp_path / "decision.log").write_text(
+        json.dumps({"branch": "care", "inputs": {"branches": {"threat": {"care": True}}}}) + "\n", encoding="utf-8")
+    r2 = subprocess.run([sys.executable, script, str(p)], capture_output=True, text=True, cwd=cwd)
+    assert "decision log: 1 yields (0 riding)" in r2.stdout
+    c = subprocess.run([sys.executable, script, "--chain", str(p), str(p)], capture_output=True, text=True, cwd=cwd)
+    assert c.returncode == 0 and c.stdout.startswith("kills ") and "\ngate_e4 " in c.stdout
+    for args in ([], ["a", "b", "c"], [str(tmp_path / "nope.json")]):
+        assert subprocess.run([sys.executable, script] + args, capture_output=True, text=True,
+                              cwd=cwd).returncode == 2

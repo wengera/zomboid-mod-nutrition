@@ -87,7 +87,7 @@ def test_nothing_is_imported_from_a_frozen_driver():
     assert "DY.boot_and_run(args, lambda: preboot(_ME, args), run_session, grade, key=KEY, driver=DRIVER," in src
     # P23-AO: the grade is the library's grade_day, its key the library's GRADE_KEY; the driver imports no gates_e
     assert "grade_key=DY.GRADE_KEY" in src and "    DY.grade_day(out)" in src
-    assert "grade_e1" not in src and "gates_e" not in "\n".join(imports) and E.DY.GRADE_KEY == "grade_e3"
+    assert "grade_e1" not in src and "gates_e" not in "\n".join(imports) and E.DY.GRADE_KEY == "grade_e4"
     assert E.Chain is CH_DAY.Chain and E.parse_argv is CH_DAY.parse_argv and E.flags is CH_DAY.flags
     doc = E.__doc__
     for word in ("RULES", "--session", "--fixture", "--prev", "pzt snapshot --from-run", "never edited after its run",
@@ -355,8 +355,8 @@ def test_a_clean_session_stops_at_the_day_cap_with_the_chain_record(tmp_path, mo
     persisted = json.loads((tmp_path / "session.json").read_text(encoding="utf-8"))
     assert persisted["loop"]["goals"] == json.loads(json.dumps(loop["goals"]))
     assert persisted["loop"]["t_loop0_ms"] == loop["t_loop0_ms"]
-    g = out["grade_e3"]
-    assert g["grade"] == "grade_e3" and g["survived"] is True and g["game_minutes"] > 0 and g["lineage"] is None
+    g = out["grade_e4"]
+    assert g["grade"] == "grade_e4" and g["survived"] is True and g["game_minutes"] > 0 and g["lineage"] is None
     assert g["needs"]["time_base"] == "t_loop0_ms" and g["death"] is None
     json.dumps(out, allow_nan=False)
 
@@ -383,7 +383,7 @@ def test_a_second_session_with_prev_records_the_lineage_diff(tmp_path, monkeypat
     # I-6: the previous frame is the first kept after the loop stopped the character
     assert a.out["loop"]["last_frame_after_stop"] is True and a.out["loop"]["stopped"]["acked"] is True
     assert prev["loop"]["last_frames"][-1]["seq"] > prev["loop"]["stopped"]["ack_seq"]
-    assert b.out["grade_e3"]["lineage"] == lin
+    assert b.out["grade_e4"]["lineage"] == lin
     same = {"loop": {"last_frames": [{"seq": 9, "gameMin": 480.0, "worldAge": 8.0,
                                       "me": {"x": 100.0, "y": 200.0},
                                       "body": {"health": 100.0}, "stats": {"hunger": 0.1, "thirst": 0.1,
@@ -403,7 +403,7 @@ def test_a_consume_done_lands_in_the_action_rows_with_its_use_and_the_needs(tmp_
     rows = [a for a in r.out["loop"]["actions"] if a["type"] == "consume"]
     assert rows and rows[0]["args"] == {"itemId": 701} and rows[0]["state"] == "done"
     assert rows[0]["use"] == "water" and rows[0]["branch"] == "need"
-    nd = r.out["grade_e3"]["needs"]
+    nd = r.out["grade_e4"]["needs"]
     assert nd["drink"]["sent"] >= 1 and nd["drink"]["done"] >= 1 and nd["drink"]["stat_fell"] is True
     assert nd["unknown"] == 0
 
@@ -413,7 +413,7 @@ def test_a_drop_row_carries_its_branch_and_counts_as_a_guard_drop(tmp_path, monk
     rows = [a for a in r.out["loop"]["actions"] if a["type"] == "drop"]
     assert rows and rows[0]["args"] == {"itemId": 602} and rows[0]["state"] == "done"
     assert rows[0]["branch"] == "load" and "use" not in rows[0]
-    assert r.out["grade_e3"]["load"]["guard_drops"] >= 1 and r.out["grade_e3"]["load"]["flee_drops"] == 0
+    assert r.out["grade_e4"]["load"]["guard_drops"] >= 1 and r.out["grade_e4"]["load"]["flee_drops"] == 0
 
 
 def test_the_sleeps_result_lands_in_night(tmp_path, monkeypatch):
@@ -426,15 +426,15 @@ def test_the_sleeps_result_lands_in_night(tmp_path, monkeypatch):
     assert night["sleeps"] is not r.day.planner.night.sleeps                  # a copy, never the planner's own list
     rows = [a for a in r.out["loop"]["actions"] if a["type"] == "sleep"]
     assert rows and rows[0]["branch"] == "night"
-    sleep = r.out["grade_e3"]["needs"]["sleep"]
+    sleep = r.out["grade_e4"]["needs"]["sleep"]
     assert sleep == {"sent": 1, "done": 1, "sleptH": 6.0, "fatigue_fell": True}
 
 
 def test_grade_records_a_grade_failure_rather_than_raising(monkeypatch):
     out = {"loop": {}}
-    monkeypatch.setattr(E.DY.GE, "grade_e3", lambda o: (_ for _ in ()).throw(ValueError("boom")))
+    monkeypatch.setattr(E.DY.GE, "grade_e4", lambda o: (_ for _ in ()).throw(ValueError("boom")))
     E.grade(out)
-    assert out["grade_e3_error"] == "ValueError: boom" and "grade_e3" not in out and "grade_e1" not in out
+    assert out["grade_e4_error"] == "ValueError: boom" and "grade_e4" not in out and "grade_e1" not in out
 
 
 def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch):
@@ -484,14 +484,14 @@ def test_the_copy_differs_from_e_day_5_only_in_the_expected_lines():
     assert E.CONSTANTS == E1.CONSTANTS and E.PROFILE == E1.PROFILE
 
 
-def test_the_grade_key_is_the_librarys_and_a_fake_run_carries_grade_e3(tmp_path, monkeypatch):
-    assert CH_DAY.GRADE_KEY == "grade_e3" and E.DY.GRADE_KEY == CH_DAY.GRADE_KEY
+def test_the_grade_key_is_the_librarys_and_a_fake_run_carries_grade_e4(tmp_path, monkeypatch):
+    assert CH_DAY.GRADE_KEY == "grade_e4" and E.DY.GRADE_KEY == CH_DAY.GRADE_KEY
     r = run_chain(tmp_path, monkeypatch, day_cap_s=5)
     assert "grade_e1" not in r.out and "grade_e1_error" not in r.out and "grade_e2" not in r.out
-    assert r.out["grade_e3"]["grade"] == "grade_e3" and "grade_e3_error" not in r.out
-    assert set(r.out["grade_e3"]["care"]) >= {"bandage", "rip", "wash", "fill", "stance", "standing", "climb",
+    assert r.out["grade_e4"]["grade"] == "grade_e4" and "grade_e4_error" not in r.out
+    assert set(r.out["grade_e4"]["care"]) >= {"bandage", "rip", "wash", "fill", "stance", "standing", "climb",
                                               "need_chain"}
-    assert r.out["grade_e3"]["wounds"]["real"] == 0
+    assert r.out["grade_e4"]["wounds"]["real"] == 0
     assert r.out["loop"]["results"] == [{"aid": a.aid, "type": a.type, "state": a.state, "result": a.result}
                                         for a in r.day.sent if a.type in CH_DAY.RESULT_TYPES and a.result is not None]
     json.dumps(r.out, allow_nan=False)

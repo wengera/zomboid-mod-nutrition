@@ -596,3 +596,271 @@ def gate_e3(outs):
                                     "threshold": True, "n": n}
     ok = bool(grades) and all(v["ok"] for v in gates.values())
     return {"verdict": "GO" if ok else "NO-GO", "gates": gates, "lineage_sources": [g["lineage_source"] for g in grades]}
+
+
+# ---------------------------------------------------------------- pass 4: kills the headline, the stance held, the ride, the glides (Plan 24 Task 17)
+# grade_e4 / gate_e4 / report_lines_e4 (PZA/1.5.6, survival iteration 7; grade_e3, gate_e3 and the passes before them
+# frozen, CLAUDE.md section 5). The headline is kills (ruling P24-Q): the engine's count (the death event's
+# zombiesKilled, present only when the session died) beside the planner's (the distinct targetIds of the attacks and
+# aims whose result read targetDead, a lower bound: World.kills, #4321's bound). Beside gate_e3's readings: the stance's
+# own held count per aim leg (the Lua's heldFrames of ticks) beside the frames' `aiming` and `forceAim`, the riding
+# bandages (keepMoving) against the standing ones, the care branch's yield, and the glides. The care yield and the dead
+# skip live in the decision log, not in the artifact: `decision_readings(lines)` reads them off its lines (the grade
+# script passes the log beside the artifact), and the artifact alone gives `yields.fights_ended_by_care`.
+GLIDE_MIN_S = 0.95                  # a `moving` false run of a second less the frames' spacing (E6's ten frames: 0.992 to 1.002 s)
+RUN_GAITS = ("run", "sprint")
+
+
+def _kill_ids(loop, res, lo=None, hi=None):
+    """The distinct targetIds of the attacks and aims of loop.actions (sent within lo..hi seconds when given) whose
+    result read targetDead true."""
+    ids = []
+    for a in (_d(x) for x in _l(loop.get("actions"))):
+        if a.get("type") not in ("attack", "aim") or res.get(a.get("aid"), {}).get("targetDead") is not True:
+            continue
+        t = _n(a.get("sentS"))
+        if lo is not None and (t is None or t < lo or (hi is not None and t > hi)):
+            continue
+        zid = _d(a.get("args")).get("targetId")
+        if zid is not None and zid not in ids:
+            ids.append(zid)
+    return ids
+
+
+def e_kills(out):
+    """{engine, planner, planner_ids, per_fight [kills of each fight of loop.fights], standing_fights, standing_kills,
+    per_standing_fight, died, died_at}: `engine` the death event's zombiesKilled (None when the session did not die,
+    or the event carries none), `planner` the distinct kill ids off the action results, `per_fight` the same count
+    inside each fight's window, `standing_kills` the kills in the standing fights (e_standing) and
+    `per_standing_fight` their ratio (None without a standing fight)."""
+    out = _d(out)
+    loop = _d(out.get("loop"))
+    death = _d(loop.get("death"))
+    ev = _d(death.get("event")) or _d(_d(death.get("frame")).get("event"))
+    engine = _n(ev.get("zombiesKilled"))
+    res = _results(loop)
+    ids = _kill_ids(loop, res)
+    per = []
+    for f in (f for f in _l(loop.get("fights")) if isinstance(f, dict)):
+        s, e = _n(f.get("startS")), _n(_d(f.get("end")).get("endS"))
+        per.append(len(_kill_ids(loop, res, s, e)) if s is not None else 0)
+    standing = e_standing(loop, res)
+    sk = sum(per[r["fight"]] for r in standing["rows"] if r["fight"] < len(per))
+    died = loop.get("death") is not None or _d(out.get("stop")).get("reason") == "death"
+    at = _n(death.get("gameMin"))
+    at = at if at is not None else _n(_d(out.get("stop")).get("gameMin"))
+    return {"engine": engine, "planner": len(ids), "planner_ids": ids, "per_fight": per,
+            "standing_fights": standing["n"], "standing_kills": sk,
+            "per_standing_fight": sk / standing["n"] if standing["n"] else None,
+            "died": died, "died_at": at if died else None}
+
+
+def e_stance_held(out):
+    """{legs, with_field, ticks, held_frames, ratio, per_leg [{aid, heldFrames, ticks}], frames_aiming,
+    frames_force_aim, frames}: the stance's live hold. Per done aim leg the Lua's own count (the result's heldFrames of
+    ticks, PZA/1.5.4; a leg whose result lacks them is in `legs` and not in `with_field`), `ratio` the held share of
+    the ticks, beside the kept frames' me.aiming and me.forceAim (true counts; the frames are the last kept ones
+    only)."""
+    loop = _d(_d(out).get("loop"))
+    res = _results(loop)
+    legs = [a for a in (_d(x) for x in _l(loop.get("actions"))) if a.get("type") == "aim" and a.get("state") == "done"]
+    per = []
+    for a in legs:
+        r = res.get(a.get("aid"), {})
+        if _n(r.get("ticks")) is not None and _n(r.get("heldFrames")) is not None:
+            per.append({"aid": a.get("aid"), "heldFrames": r["heldFrames"], "ticks": r["ticks"]})
+    ticks = sum(p["ticks"] for p in per)
+    held = sum(p["heldFrames"] for p in per)
+    frames = [f for f in _l(loop.get("last_frames")) if isinstance(f, dict)]
+    return {"legs": len(legs), "with_field": len(per), "ticks": ticks, "held_frames": held,
+            "ratio": held / ticks if ticks else None, "per_leg": per,
+            "frames_aiming": sum(1 for f in frames if _d(f.get("me")).get("aiming") is True),
+            "frames_force_aim": sum(1 for f in frames if _d(f.get("me")).get("forceAim") is True),
+            "frames": len(frames)}
+
+
+def e_ride(out):
+    """{riding {sent, done, walking, failed, stopped, rejected, by_part}, standing {sent, done, failed}}: the
+    bandages sent with keepMoving true (riding) against the others. `walking` the done ones whose result read walking
+    true, `stopped` those ended failed with the reason stopped, `failed` every failed one, `rejected` the rejected."""
+    loop = _d(_d(out).get("loop"))
+    res = _results(loop)
+    bands = [a for a in (_d(x) for x in _l(loop.get("actions"))) if a.get("type") == "bandage"]
+    ride = [a for a in bands if _d(a.get("args")).get("keepMoving") is True]
+    stand = [a for a in bands if _d(a.get("args")).get("keepMoving") is not True]
+    by_part = {}
+    for a in ride:
+        if a.get("state") == "done":
+            p = res.get(a.get("aid"), {}).get("part", _d(a.get("args")).get("part"))
+            by_part[str(p)] = by_part.get(str(p), 0) + 1
+    return {"riding": {"sent": len(ride), "done": sum(1 for a in ride if a.get("state") == "done"),
+                       "walking": sum(1 for a in ride if a.get("state") == "done"
+                                      and res.get(a.get("aid"), {}).get("walking") is True),
+                       "failed": sum(1 for a in ride if a.get("state") == "failed"),
+                       "stopped": sum(1 for a in ride if a.get("state") == "failed" and a.get("reason") == "stopped"),
+                       "rejected": sum(1 for a in ride if a.get("state") == "rejected"), "by_part": by_part},
+            "standing": {"sent": len(stand), "done": sum(1 for a in stand if a.get("state") == "done"),
+                         "failed": sum(1 for a in stand if a.get("state") in ("failed", "rejected"))}}
+
+
+def e_yields(out):
+    """{care_actions, fights_ended_by_care}: from the artifact alone, the actions sent by the care branch and the
+    fights whose end line was a care line (the threat branch yielded to the care, P24-P). The firings themselves are
+    decision_readings'."""
+    loop = _d(_d(out).get("loop"))
+    return {"care_actions": sum(1 for a in _l(loop.get("actions")) if _d(a).get("branch") == "care"),
+            "fights_ended_by_care": sum(1 for f in _l(loop.get("fights"))
+                                        if _d(_d(f).get("end")).get("branch") == "care")}
+
+
+def decision_readings(lines):
+    """{lines, care_yields, care_rides, dead_skips, dead_ids, kill_lines} off decision.log lines (dicts, `unparsed`
+    ones skipped): `care_yields` the care lines whose threat why reads care true (the threat held, the branch
+    yielded: inputs.branches.threat {care, nearest, held}), `care_rides` those with ride true (P24-U), `dead_skips`
+    the lines whose threat why lists dead ids (the dead target skipped) and `dead_ids` the distinct ids,
+    `kill_lines` the lines whose threat why carries a kill."""
+    n = yields = rides = skips = kl = 0
+    ids = []
+    for ln in _l(lines):
+        ln = _d(ln)
+        if "unparsed" in ln:
+            continue
+        n += 1
+        why = _d(_d(_d(ln.get("inputs")).get("branches")).get("threat"))
+        if ln.get("branch") == "care" and why.get("care") is True:
+            yields += 1
+            rides += 1 if why.get("ride") is True else 0
+        if _l(why.get("dead")):
+            skips += 1
+            ids.extend(z for z in why["dead"] if z not in ids)
+        if why.get("kill") is not None:
+            kl += 1
+    return {"lines": n, "care_yields": yields, "care_rides": rides, "dead_skips": skips, "dead_ids": ids,
+            "kill_lines": kl}
+
+
+def e_glides(out):
+    """{runs, tiles, rows [{seq, startS, endS, s, tiles, gait, aid}], base}: the glides, an inference and never a
+    trip (the E6 guide's: its six were runs of ten frames, 0.992 to 1.002 s, `moving` false with the position
+    changing, none read on a walk). A glide is a run of consecutive kept frames with me.moving false, lasting at least
+    GLIDE_MIN_S (first frame to last), inside one walkTo or steer leg sent at a run or sprint gait (sentS to endedS, an
+    open leg to the end). Only the kept frames are read."""
+    out = _d(out)
+    loop = _d(out.get("loop"))
+    times, base = frame_times(out)
+    legs = [(a, _n(a.get("sentS")), _n(a.get("endedS"))) for a in (_d(x) for x in _l(loop.get("actions")))
+            if a.get("type") in ("walkTo", "steer") and _d(a.get("args")).get("gait") in RUN_GAITS]
+
+    def leg_of(t):
+        for a, s, e in legs:
+            if s is not None and t >= s and (e is None or t <= e):
+                return a
+        return None
+
+    rows, run = [], []
+
+    def close():
+        if len(run) >= 2 and run[-1][0] - run[0][0] >= GLIDE_MIN_S:
+            f0, f1 = _d(run[0][1].get("me")), _d(run[-1][1].get("me"))
+            dx = (_n(f1.get("x")) or 0.0) - (_n(f0.get("x")) or 0.0)
+            dy = (_n(f1.get("y")) or 0.0) - (_n(f0.get("y")) or 0.0)
+            a = run[0][2]
+            rows.append({"seq": run[0][1].get("seq"), "startS": run[0][0], "endS": run[-1][0],
+                         "s": run[-1][0] - run[0][0], "tiles": (dx * dx + dy * dy) ** 0.5,
+                         "gait": _d(a.get("args")).get("gait"), "aid": a.get("aid")})
+        del run[:]
+
+    for t, f in times:
+        leg = leg_of(t)
+        still = leg is not None and _d(f.get("me")).get("moving") is False
+        if still and run and run[0][2] is not leg:
+            close()
+        if still:
+            run.append((t, f, leg))
+        else:
+            close()
+    close()
+    return {"runs": len(rows), "tiles": sum(r["tiles"] for r in rows), "rows": rows, "base": base}
+
+
+def _headline(g):
+    k = _d(g.get("kills"))
+    state = "died at %s" % _f(k.get("died_at"), "%.0f") if k.get("died") is True else "survived"
+    eng = k.get("engine")
+    return "kills %s (engine %s, planner %s); %s; %s game minutes" % (
+        eng if eng is not None else k.get("planner"), eng if eng is not None else "n/a", k.get("planner"), state,
+        _f(g.get("game_minutes"), "%.1f"))
+
+
+def report_lines_e4(g):
+    """The kills headline first, then report_lines_e3's lines (the gate line naming gate_e4), then the pass 4 lines."""
+    g = _d(g)
+    lines = report_lines_e3(g)
+    if lines and lines[0].startswith("gate_e3 "):
+        lines[0] = "gate_e4 " + lines[0][len("gate_e3 "):]
+    lines.insert(0, _headline(g))
+    k, sh, rd, y, gl = (_d(g.get(x)) for x in ("kills", "stance_held", "ride", "yields", "glides"))
+    if k:
+        lines.append("kills: per fight %s; standing fights %s with %s kills (%s per fight); planner ids %s" % (
+            k.get("per_fight"), k.get("standing_fights"), k.get("standing_kills"), _f(k.get("per_standing_fight")),
+            k.get("planner_ids")))
+    if sh:
+        lines.append("stance held: %s of %s ticks over %s aim legs (%s with the field), ratio %s; kept frames: "
+                     "%s aiming, %s forceAim of %s" % (
+                         sh.get("held_frames"), sh.get("ticks"), sh.get("legs"), sh.get("with_field"),
+                         _f(sh.get("ratio")), sh.get("frames_aiming"), sh.get("frames_force_aim"), sh.get("frames")))
+    if rd:
+        r, s = _d(rd.get("riding")), _d(rd.get("standing"))
+        lines.append("bandages: riding sent %s done %s (walking %s) failed %s (stopped %s) rejected %s, parts %s; "
+                     "standing sent %s done %s failed %s" % (
+                         r.get("sent"), r.get("done"), r.get("walking"), r.get("failed"), r.get("stopped"),
+                         r.get("rejected"), r.get("by_part"), s.get("sent"), s.get("done"), s.get("failed")))
+    if y:
+        log = y.get("log")
+        tail = ("; decision log: %s yields (%s riding), %s dead skips of %s ids" % (
+            log.get("care_yields"), log.get("care_rides"), log.get("dead_skips"), len(log.get("dead_ids")))
+            if isinstance(log, dict) else "; no decision log read")
+        lines.append("care yield: %s care actions, %s fights ended by the care%s" % (
+            y.get("care_actions"), y.get("fights_ended_by_care"), tail))
+    if gl:
+        lines.append("glides (an inference, never a trip): %s over %s tiles in the kept frames: %s" % (
+            gl.get("runs"), _f(gl.get("tiles")), [(r["seq"], _f(r["s"], "%.3f")) for r in gl.get("rows", [])]))
+    return lines
+
+
+def grade_e4(out, prev=None, decision_lines=None):
+    """grade_e3(out, prev) but for grade "grade_e4": `kills` (e_kills, the headline), `stance_held`, `ride`, `yields`
+    (with `log`: decision_readings, when decision_lines is given), `glides`, the standing outcome `stagger` renamed
+    `stagger_inferred` (no engine signal: an attack started with the target alive) and report_lines (report_lines_e4)."""
+    g = grade_e3(out, prev)
+    g["grade"] = "grade_e4"
+    st = _d(_d(g.get("care")).get("standing"))
+    oc = _d(st.get("outcomes"))
+    if "stagger" in oc:
+        oc["stagger_inferred"] = oc.pop("stagger")
+    for r in _l(st.get("rows")):
+        if _d(r).get("outcome") == "stagger":
+            r["outcome"] = "stagger_inferred"
+    g["kills"] = e_kills(out)
+    g["stance_held"] = e_stance_held(out)
+    g["ride"] = e_ride(out)
+    g["yields"] = e_yields(out)
+    if decision_lines is not None:
+        g["yields"]["log"] = decision_readings(decision_lines)
+    g["glides"] = e_glides(out)
+    g["report_lines"] = report_lines_e4(g)
+    return g
+
+
+def gate_e4(outs):
+    """gate_e3's gates (grade_e4 changes none of what they read), and `kills` {engine, planner} summed over the chain
+    (the headline, no gate; engine None when no session died): {verdict, gates, lineage_sources, kills}."""
+    outs = [_d(o) for o in _l(outs)]
+    res = gate_e3(outs)
+    grades, prev = [], None
+    for o in outs:
+        grades.append(grade_e4(o, prev))
+        prev = o
+    eng = [g["kills"]["engine"] for g in grades if g["kills"]["engine"] is not None]
+    res["kills"] = {"engine": sum(eng) if eng else None, "planner": sum(g["kills"]["planner"] for g in grades)}
+    return res

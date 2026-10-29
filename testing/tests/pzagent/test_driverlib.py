@@ -1291,19 +1291,19 @@ def test_only_the_first_death_event_is_kept_and_another_kind_is_no_death(tmp_pat
     assert e.value.reason == "death" and e.value.detail == "event death seq 7 via isDead body.health 19.5"
 
 
-def test_a_new_day_sessions_grade_is_grade_e3_under_its_own_key(monkeypatch):
-    """CLAUDE.md section 5 freezing (Plan 24 Task 11): a new session's record carries grade_e3 under the key grade_e3
+def test_a_new_day_sessions_grade_is_grade_e4_under_its_own_key(monkeypatch):
+    """CLAUDE.md section 5 freezing (Plan 24 Task 11): a new session's record carries grade_e4 under the key grade_e4
     (grade_e2 was the key until the E5 session; e_grade_2.py grades that artifact)."""
     from agent.base import gates_e as GE
-    assert DY.GRADE_KEY == "grade_e3"
+    assert DY.GRADE_KEY == "grade_e4"
     out = S.new_out()
     out.update(stop={"reason": "day_cap", "detail": "x", "wallS": 1.0})
     DY.grade_day(out)
-    assert out["grade_e3"]["grade"] == "grade_e3" and "grade_e1" not in out and "grade_e2" not in out
-    monkeypatch.setattr(GE, "grade_e3", lambda o: 1 / 0)
+    assert out["grade_e4"]["grade"] == "grade_e4" and "grade_e1" not in out and "grade_e2" not in out
+    monkeypatch.setattr(GE, "grade_e4", lambda o: 1 / 0)
     bad = {}
     DY.grade_day(bad)
-    assert bad["grade_e3_error"].startswith("ZeroDivisionError") and "grade_e3" not in bad
+    assert bad["grade_e4_error"].startswith("ZeroDivisionError") and "grade_e4" not in bad
 
 
 def test_the_record_carries_the_results_of_the_sent_actions_of_the_care_types():

@@ -40,11 +40,12 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
   --fixture agent-s<n> --prev <this artifact>`), for an E session and for an F session on the chain's last fixture
   (P23-Z refuses any other --session).
 - `grade(out, key, fn)`: out[key] = fn(out), else out[key + "_error"] (the controller re-grades the artifact).
-  `grade_day(out)` is a new day session's grade: `grade(out, GRADE_KEY, gates_e.grade_e3)`, GRADE_KEY "grade_e3"
-  (Plan 24 Task 11: the real wounds and the care readings; it was "grade_e2", PZA/1.3's death signal, ruling P23-AO,
-  until e_day_5.py's run), so the record names the grade it carries; a driver passes GRADE_KEY as its boot's
-  grade_key. The drivers frozen before it (e_day.py to e_day_4.py) keep their own grade_e1 call; e_day_5.py ran with
-  grade_e2 and is graded by e_grade_2.py.
+  `grade_day(out)` is a new day session's grade: `grade(out, GRADE_KEY, gates_e.grade_e4)`, GRADE_KEY "grade_e4"
+  (Plan 24 Task 17: kills the headline, the stance held, the ride, the glides; it was "grade_e3", the real wounds and
+  the care readings, until e_day_6.py's run, and "grade_e2", PZA/1.3's death signal, ruling P23-AO, until e_day_5.py's
+  run), so the record names the grade it carries; a driver passes GRADE_KEY as its boot's grade_key. The drivers frozen
+  before it (e_day.py to e_day_4.py) keep their own grade_e1 call; e_day_5.py ran with grade_e2 (graded by
+  e_grade_2.py) and e_day_6.py with grade_e3 (graded by e_grade_3.py).
 - `boot_and_run(args, ...)`: a day driver's whole boot (Plan 22's d_survive.py boot, generalised): the pre-boot
   checks (a failure prints them and exits 1 before anything starts), the profile and the fixture `--fixture` names,
   the run dir (`new_run_dir(key)`), Xs and the out header (run_id, preboot, constants, out["chain"], the fixture's
@@ -276,7 +277,7 @@ def run_after_teardown(fn, out, ran):
         out["after_teardown_error"] = "%s: %s" % (type(e).__name__, e)
 
 
-GRADE_KEY = "grade_e3"           # the key a new day session's record carries its grade under (grade_day)
+GRADE_KEY = "grade_e4"           # the key a new day session's record carries its grade under (grade_day)
 
 
 def grade(out, key, fn):
@@ -288,8 +289,8 @@ def grade(out, key, fn):
 
 
 def grade_day(out):
-    """A new day session's grade: out["grade_e3"] = gates_e.grade_e3(out), else out["grade_e3_error"]."""
-    grade(out, GRADE_KEY, GE.grade_e3)
+    """A new day session's grade: out["grade_e4"] = gates_e.grade_e4(out), else out["grade_e4_error"]."""
+    grade(out, GRADE_KEY, GE.grade_e4)
 
 
 # ================================================================ the boot
