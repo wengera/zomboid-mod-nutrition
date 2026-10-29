@@ -820,9 +820,9 @@ def _water_sq(objs):
 def test_a_square_with_a_water_object_carries_its_water_record_and_one_without_nil(lua):
     load(lua)
     sink = J(_cls="IsoObject", hasWater=lambda s: True, getFluidAmount=lambda s: 10000.0,
-             isTaintedWater=lambda s: False, isWaterInfinite=lambda s: True)
+             isTaintedWater=lambda s: False, getFluidCapacity=lambda s: 10000.0)
     river = J(_cls="IsoObject", hasWater=lambda s: True, getFluidAmount=lambda s: 9999.0,
-              isTaintedWater=lambda s: True, isWaterInfinite=lambda s: True)
+              isTaintedWater=lambda s: True, getFluidCapacity=lambda s: 10000.0)
     dry = J(_cls="IsoObject", hasWater=lambda s: False)
     miss = lua.table()
     q = lua.eval("PZA.map.square")(_water_sq([dry, sink, river]), miss, None)
@@ -833,4 +833,31 @@ def test_a_square_with_a_water_object_carries_its_water_record_and_one_without_n
     q2 = lua.eval("PZA.map.square")(_water_sq([dry]), miss, None)
     assert q2.water is None and _json.loads(lua.eval("PZA.enc.square(...)", q2))[18] is None
     q3 = lua.eval("PZA.map.square")(_water_sq([J(_cls="IsoObject", hasWater=lambda s: True)]), miss, None)
-    assert dict(q3.water) == {} and {"getFluidAmount", "isTaintedWater", "isWaterInfinite"} <= set(miss.values())
+    assert dict(q3.water) == {} and {"getFluidAmount", "isTaintedWater", "getFluidCapacity"} <= set(miss.values())
+
+
+# ---- PZA/1.5.4 (Plan 24 Task 9 fix 6): infinite from getFluidCapacity, isWaterInfinite being private -----------------
+
+def test_a_sinks_infinite_reads_off_its_fluid_capacity_never_the_private_is_water_infinite(lua):
+    """E6 named isWaterInfinite in missing on all ten water squares: on 42.21 IsoObject.isWaterInfinite is private (access
+    0x2), so Kahlua never exposes it; the public getFluidCapacity() answers 10000 exactly when it holds (L2746-L2747,
+    L2756-L2757), else the container's capacity or the piped reserve's 20 (L2765-L2766)."""
+    load(lua)
+    seen = []
+
+    def private(s):
+        seen.append("isWaterInfinite")
+        return True
+    sink = J(_cls="IsoObject", hasWater=lambda s: True, getFluidAmount=lambda s: 10000.0,
+             isTaintedWater=lambda s: False, getFluidCapacity=lambda s: 10000.0)
+    miss = lua.table()
+    q = lua.eval("PZA.map.square")(_water_sq([sink]), miss, None)
+    assert dict(q.water) == {"amount": 10000.0, "tainted": False, "infinite": True}
+    assert "isWaterInfinite" not in set(miss.values())
+    shut = J(_cls="IsoObject", hasWater=lambda s: True, getFluidAmount=lambda s: 12.0,
+             isTaintedWater=lambda s: False, getFluidCapacity=lambda s: 20.0, isWaterInfinite=private)
+    q2 = lua.eval("PZA.map.square")(_water_sq([shut]), miss, None)
+    assert dict(q2.water) == {"amount": 12.0, "tainted": False, "infinite": False} and seen == []
+    bare = J(_cls="IsoObject", hasWater=lambda s: True, getFluidAmount=lambda s: 3.0, isTaintedWater=lambda s: True)
+    q3 = lua.eval("PZA.map.square")(_water_sq([bare]), miss, None)
+    assert dict(q3.water) == {"amount": 3.0, "tainted": True} and "getFluidCapacity" in set(miss.values())

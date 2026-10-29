@@ -18,7 +18,7 @@ PZA.schema = {
         reply = { "kind", "seq", "tick", "wallMs", "to", "body" },
     },
     groups = {
-        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming" },
+        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim" },
         stats = { "hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature" },
         body = { "health", "bleeding", "scratched", "bitten", "parts" },
         load = { "weight", "max", "level", "n" },
@@ -158,7 +158,7 @@ PZA.enc.container = enc_container
 -- record water: A water source on a square (jar-reads-2 section 7, T6b.10): a sink or a toilet in a room gives clean Water, infinite until the water shut-off and then its reserve of 20; a river or a puddle gives TaintedWater.
 --   amount: The water it holds, getFluidAmount(): 10000 for an infinite source.
 --   tainted: Whether its water is tainted, isTaintedWater() (a fill takes TaintedWater, a poison until boiled).
---   infinite: Whether it never runs dry, isWaterInfinite() (piped before the shut-off, a river).
+--   infinite: Whether it never runs dry (piped before the shut-off, a river): getFluidCapacity() at 10000, which it answers exactly when the private isWaterInfinite() holds (PZA/1.5.4; null in logs written before it, where isWaterInfinite was named missing).
 local function enc_water(t)
     if t == nil then return "null" end
     return "[" .. v(t.amount) .. "," .. v(t.tainted) .. "," .. v(t.infinite) .. "]"
@@ -209,10 +209,11 @@ PZA.enc.square = enc_square
 --   attackers: The zombies attacking the player as the drag-down counts them (PZA/1.4, P24-C): getSurroundingAttackingZombies(), the standing zombies on the player's square and its eight neighbours that target the player within 0.9 tiles in an attack or lunge state; the drag-down kills at three (two at sandbox Strength 1).
 --   hitReaction: The player's hit reaction, getHitReaction(), '' when none (PZA/1.4, P24-C): set by every zombie attack that reaches the damage roll, a defended one included; no swing starts while it is set.
 --   dragDown: Whether the drag-down death is marked on the player, isDeathDragDown() (PZA/1.4, P24-C).
---   aiming: Whether the player is aiming, isAiming() (PZA/1.5, P24-G): the combat stance an aim holds; a hit reaction clears it for the reaction's length, a run or a sprint for good.
+--   aiming: Whether the player is aiming, isAiming() (PZA/1.5, P24-G): the combat stance an aim holds, or a swing's own while its animation plays; a hit reaction clears it for the reaction's length, a run or a sprint for good.
+--   forceAim: The force-aim flag read after the frame, isForceAim() (PZA/1.5.4, P24-T): re-asserted every frame while the stance is held (the game clears it every frame while its toggle-to-aim option is off), so true only when that frame's input kept it; null in logs written before PZA/1.5.4.
 local function enc_me(t)
     if t == nil then return "null" end
-    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "]"
+    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "," .. v(t.forceAim) .. "]"
 end
 PZA.enc.me = enc_me
 

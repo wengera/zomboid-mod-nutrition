@@ -74,7 +74,7 @@ def test_aim_holds_the_stance_faces_the_target_each_tick_and_backpedals_at_a_wal
     tick(lua, p)
     a = acts(lua, fs)
     assert states(a)[-1] == ("a1", "done", "")
-    assert a[-1]["result"] == {"d": 0.0, "held": True, "targetDead": False}
+    assert a[-1]["result"] == {"d": 0.0, "held": True, "targetDead": False, "heldFrames": 4, "ticks": 4}
     assert calls(p)[-1] == "nullifyAiming" and p.aim["force"] is False
     assert list(p.sets[-3:]) == OFF
 
@@ -182,9 +182,10 @@ class Rec:
         return v
 
 
-def test_the_aim_per_tick_reads_four_java_calls_with_a_target_and_allocates_nothing(lua, fs):
+def test_the_aim_per_tick_reads_five_java_calls_with_a_target_and_allocates_nothing(lua, fs):
     """The cost the file's header claims: after the first tick, one aim tick calls getBodyDamage and
-    getOverallBodyHealth (the dead check), the target's isDead and faceThisObject, and makes no Vector2."""
+    getOverallBodyHealth (the dead check), the target's isDead, faceThisObject and isAiming (heldFrames, PZA/1.5.4),
+    and makes no Vector2."""
     load(lua)
     g = lua.globals()
     log = []
@@ -201,7 +202,7 @@ def test_the_aim_per_tick_reads_four_java_calls_with_a_target_and_allocates_noth
     log.clear()
     tick(lua, Rec(p, log, "p"))
     assert sorted(log) == sorted([("p", "getBodyDamage"), ("bd", "getOverallBodyHealth"), ("z", "isDead"),
-                                  ("p", "faceThisObject")])
+                                  ("p", "faceThisObject"), ("p", "isAiming")])
     assert made == [] and not ended(lua)
 
 
@@ -587,3 +588,126 @@ def test_a_climb_reads_its_action_through_vanillas_has_action(lua, fs):
     lua.globals()._clock["ms"] += 4000
     tick(lua, p)
     assert states(acts(lua, fs))[-1] == ("a1", "failed", "failed")
+
+
+# ---- PZA/1.5.4 (Plan 24 Task 9 fix 6, ruling P24-T): the stance held every frame ------------------------------------------
+
+def engine_frame(lua, p, run_key=False):
+    """One client frame on 42.21 as jar-reads-2 section 9 reads it, with the option toggleToAim false (the live client's
+    options.ini): MovingObjectUpdateSchedulerUpdateBucket.update runs the player's frameStep before its update (L56-L58),
+    and the input component's updateToggleToAim clears the force-aim while the toggle-aim handler is muted (L149-L151);
+    the update fires OnPlayerUpdate (IsoPlayer.updateInternal2 L2446) before UpdateInputState (L2559), which clears the
+    force-aim on a run key (L4393-L4394), sets the input's aiming from it (L4397-L4398) and copies that into the
+    character (L2580); OnTick fires after the world update (IngameState.updateInternal L1550, L1573)."""
+    p.aim["force"] = False                                            # frameStep: updateToggleToAim
+    for h in lua.globals()._updHandlers:                              # OnPlayerUpdate
+        h(p)
+    if run_key:
+        p.aim["force"] = False                                        # UpdateInputState L4394
+    p.aim["aiming"] = p.aim["force"]                                  # L4398, then setIsAiming at L2580
+    tick(lua, p)                                                      # OnTick
+
+
+def test_the_stance_set_once_never_reaches_is_aiming_but_the_per_frame_assert_holds_it(lua, fs):
+    """The E6 reading reproduced and fixed: aiming read false on every frame of every leg because the force-aim set
+    in OnTick was cleared by the next frameStep before UpdateInputState read it; the Motor's OnPlayerUpdate now
+    re-asserts it every frame while the stance is held, so isAiming reads true from the first update on."""
+    load(lua)
+    p = make_player()
+    start(lua, p, "aim", vx=0, vy=0, seconds=1, bearing=90)
+    engine_frame(lua, p)                                              # the start tick (OnTick): setForceAim once
+    for _ in range(5):
+        engine_frame(lua, p)
+        assert p.isAiming(p) is True and p.isForceAim(p) is True       # E6: false on every frame (set once only)
+    assert lua.eval("PZA.motor.wantAim") is True
+    assert [c for c in p.aim["calls"] if c[0] == "setForceAim"] == [("setForceAim", True)] * 6
+    lua.globals()._clock["ms"] += 1000
+    engine_frame(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "")
+    assert a[-1]["result"] == {"d": 0.0, "held": True, "targetDead": False, "heldFrames": 6, "ticks": 6}
+    assert lua.eval("PZA.motor.wantAim") is False and calls(p)[-1] == "nullifyAiming"
+    engine_frame(lua, p)
+    assert p.isAiming(p) is False and calls(p)[-1] == "nullifyAiming"   # released: no assert after the end
+
+
+def test_a_leg_under_the_auto_walk_keeps_the_stance_at_a_walk_every_frame(lua, fs):
+    load(lua)
+    z = aim_world(lua)
+    p = make_player()
+    lua.execute("PZA.motor.want('run')")                              # a run wanted before the leg
+    start(lua, p, "aim", vx=-1.0, vy=0.0, seconds=1, targetId=7)
+    engine_frame(lua, p)
+    assert ("setAutoWalk", True) in p.sets
+    n = len(p.sets)
+    for _ in range(4):
+        engine_frame(lua, p)
+        assert p.isAiming(p) is True
+    assert ("setForceRun", True) not in p.sets[n:] and ("setForceSprint", True) not in p.sets[n:]
+    assert p.faced == [z] * 5
+    lua.globals()._clock["ms"] += 1000
+    engine_frame(lua, p)
+    r = acts(lua, fs)[-1]["result"]
+    assert r["held"] is True and r["heldFrames"] == 5 and r["ticks"] == 5
+
+
+def test_the_motor_holds_the_stance_and_no_run_latch_while_it_is_wanted(lua, fs):
+    load(lua)
+    p = make_player()
+    lua.execute("PZA.motor.want('sprint'); PZA.motor.wantAim = true")
+    lua.globals()._updHandlers[0](p)
+    assert p.sets == [] and p.aim["calls"] == [("setForceAim", True)]
+    lua.execute("PZA.motor.wantAim = false")
+    lua.globals()._updHandlers[0](p)
+    assert p.sets == [("setForceRun", True), ("setForceSprint", True)] and len(p.aim["calls"]) == 1
+
+
+def test_held_frames_count_only_the_frames_is_aiming_read_true(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "aim", vx=0, vy=0, seconds=1)
+    engine_frame(lua, p)
+    engine_frame(lua, p)
+    engine_frame(lua, p, run_key=True)                                # a run key: that frame's aiming cleared
+    engine_frame(lua, p, run_key=True)
+    engine_frame(lua, p)                                              # re-asserted on the next frame
+    lua.globals()._clock["ms"] += 1000
+    engine_frame(lua, p)
+    r = acts(lua, fs)[-1]["result"]
+    assert r["heldFrames"] == 3 and r["ticks"] == 5 and r["held"] is True
+
+
+def test_the_kept_stance_after_an_attack_is_asserted_until_the_hold_releases_it(lua, fs):
+    load(lua)
+    aim_world(lua, zx=11.0)
+    p = make_player(weapon=make_weapon())
+    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
+    engine_frame(lua, p)
+    start(lua, p, "attack", aid="atk", targetId=7)
+    engine_frame(lua, p)
+    assert p.attacks == [0] and p.isAiming(p) is True
+    g = lua.globals()
+    g._clock["ms"] += 1500
+    engine_frame(lua, p)
+    assert ended(lua) and lua.eval("PZA.motor.wantAim") is True and p.isAiming(p) is True
+    g._clock["ms"] += 2000
+    engine_frame(lua, p)
+    assert lua.eval("PZA.motor.wantAim") is False
+    engine_frame(lua, p)
+    assert p.isAiming(p) is False
+
+
+def test_a_target_dying_reports_held_frames_too(lua, fs):
+    load(lua)
+    st = {"dead": False}
+    z = J(getOnlineID=lambda s: 7, getX=lambda s: 12.0, getY=lambda s: 20.0, isDead=lambda s: st["dead"],
+          getTarget=lambda s: None, isCrawling=lambda s: False, getHealth=lambda s: 1.0)
+    sense(lua, [z])
+    p = make_player()
+    start(lua, p, "aim", vx=0, vy=0, seconds=5, targetId=7)
+    engine_frame(lua, p)
+    engine_frame(lua, p)
+    st["dead"] = True
+    engine_frame(lua, p)
+    r = acts(lua, fs)[-1]["result"]
+    assert r["targetDead"] is True and r["heldFrames"] == 1 and r["ticks"] == 1

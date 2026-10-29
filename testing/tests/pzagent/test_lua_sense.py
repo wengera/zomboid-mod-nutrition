@@ -1141,3 +1141,23 @@ def test_an_absent_bleeding_member_is_named_in_missing(lua):
     _with_parts(p, [part], bleeding=1)
     r = dict(frame(lua, p)["body"]["parts"][1])
     assert "bleeding" not in r and "bleeding" in missing(lua)
+
+
+# ---- PZA/1.5.4 (Plan 24 Task 9 fix 6, ruling P24-T): me.forceAim beside aiming -----------------------------------------
+
+def test_the_frames_me_carries_force_aim_from_is_force_aim_appended_after_aiming(lua):
+    load(lua)
+    p = make_player()
+    p.aim["aiming"] = True                                            # the swing's own aiming, no force-aim
+    f = frame(lua, p)
+    assert f["me"]["forceAim"] is False and f["me"]["aiming"] is True
+    p.aim["force"], p.aim["aiming"] = True, None
+    f = frame(lua, p)
+    assert f["me"]["forceAim"] is True and f["me"]["aiming"] is True
+    order = lua.eval("PZA.schema.groups.me")
+    assert order[18] == "aiming" and order[19] == "forceAim"
+    assert json.loads(lua.eval("PZA.enc.me(...)", f["me"]))[18] is True
+    q = make_player()
+    q.isForceAim = None
+    f = frame(lua, q)
+    assert f["me"]["forceAim"] is None and f["me"]["aiming"] is False and "isForceAim" in missing(lua)

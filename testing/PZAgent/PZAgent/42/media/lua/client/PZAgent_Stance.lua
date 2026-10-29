@@ -12,8 +12,8 @@ local isDead, dist, clearQueue, posOf = K.isDead, K.dist, K.clearQueue, W.posOf
 
 -- ---- the stance --------------------------------------------------------------------------------------------------
 -- The stance is the force-aim (jar-reads-2 section 1, T6b.1): p:setForceAim(true), a default method of the interface
--- CharacterInputComponentEntity IsoPlayer implements, makes every update set the input's aiming until the input runs or
--- sprints, which clears it; while aiming the character walks only, strafes (isStrafing is isAiming) and keeps the facing
+-- CharacterInputComponentEntity IsoPlayer implements, makes the update that reads it set the input's aiming (a run or a
+-- sprint clears it; and the next frameStep, below); while aiming the character walks only, strafes (isStrafing is isAiming) and keeps the facing
 -- the mod gave it, so the auto-walk vector moves it while it faces its target: the backpedal. A hit reaction clears the
 -- aiming for its length, never the force-aim. Released by vanilla's own nullifyAiming() (IsoPlayer.nullifyAiming @0-@22
 -- L1153-L1157: the force-aim toggled off and aiming cleared; ISFitnessAction.lua:15). The stance costs no endurance
@@ -29,6 +29,11 @@ local isDead, dist, clearQueue, posOf = K.isDead, K.dist, K.clearQueue, W.posOf
 --   never outlives the planner's next aim.
 -- K.stance.held is the mod's own record of a stance it set; a release is one nullifyAiming under pcall (S-15: a raise
 -- counted in K.errors, never propagated out of the runner).
+-- Held every frame (PZA/1.5.4, Plan 24 Task 9 fix 6, ruling P24-T; jar-reads-2 section 9): the force-aim set once lives
+-- one frame on 42.21 (the input component's frameStep clears it while the option toggleToAim is false, before the next
+-- update reads it), so E6's aims never read isAiming true. While the stance is held, PZA.motor.wantAim is set and the
+-- Motor's OnPlayerUpdate handler re-asserts setForceAim(true) every frame, inside the update and before
+-- UpdateInputState reads it (PZAgent_Motor.lua); the release clears it.
 K.AIM_HOLD_MS = 2000      -- a stance kept past an attack with no skill running is released this long after
 K.AIM_R = 12              -- tiles: a target farther than the sense radius is no target
 K.stance = K.stance or { held = false, idleAt = nil }
@@ -36,6 +41,7 @@ local ST = K.stance
 
 function K.releaseStance(p)
     ST.held, ST.idleAt = false, nil
+    MO.wantAim = false
     local ok, err = pcall(PZA.call, p, "nullifyAiming")
     if not ok then
         K.errors = K.errors + 1
@@ -61,9 +67,12 @@ end
 -- (MO.want walk) and written false (a run clears the force-aim), setForceAim(true), the facing, and with a non-zero
 -- vector the steer skill's own auto-walk along it in input space (K.inputVector), at the stance's walk. Every tick:
 -- the facing again (faceThisObject(z), or setForwardDirection(cos b, sin b)); a target that reads dead ends it done at
--- once. Done at seconds with {d (tiles from its start), held (stanceHeld at the end), targetDead}; the stance released.
--- The cost a tick: the dead check (getBodyDamage, getOverallBodyHealth), the target's isDead, one facing call: four Java
--- calls with a target, three with a bearing, two keeping the facing; no allocation (the Vector2 is made once).
+-- once. Done at seconds with {d (tiles from its start), held (stanceHeld at the end), targetDead, heldFrames, ticks};
+-- the stance released. heldFrames counts the ticks after the first whose isAiming() read true, ticks those ticks (a
+-- target read dead ends the leg before its tick is counted): a live leg proves its own stance (PZA/1.5.4, P24-T).
+-- The cost a tick: the dead check (getBodyDamage, getOverallBodyHealth), the target's isDead, one facing call and the
+-- isAiming read: five Java calls with a target, four with a bearing, three keeping the facing; no allocation (the
+-- Vector2 is made once). The per-frame setForceAim is the Motor's, one call a frame while the stance is held.
 local function faceOf(p, st)
     if st.z ~= nil then
         PZA.call(p, "faceThisObject", st.z)
@@ -74,7 +83,14 @@ end
 
 local function aimResult(p, st, targetDead)
     local d = st.x0 ~= nil and st.y0 ~= nil and dist(p, st.x0, st.y0) or nil
-    return { d = d, held = stanceHeld(p), targetDead = targetDead }
+    return { d = d, held = stanceHeld(p), targetDead = targetDead, heldFrames = st.heldFrames, ticks = st.ticks }
+end
+
+-- one tick of the leg counted, and whether isAiming() read true on it
+local function countHeld(p, st)
+    st.ticks = st.ticks + 1
+    local _, a = PZA.call(p, "isAiming")
+    if a == true then st.heldFrames = st.heldFrames + 1 end
 end
 
 -- the first tick's members: nil when present, else not loaded
@@ -94,6 +110,7 @@ local function aimStart(p, st)
     PZA.call(p, "setForceSprint", false)
     PZA.call(p, "setForceAim", true)
     ST.held, ST.idleAt = true, nil
+    MO.wantAim = true
     faceOf(p, st)
     if st.vx ~= 0 or st.vy ~= 0 then
         local ix, iy = K.inputVector(st.vx, st.vy)
@@ -112,7 +129,8 @@ K.types.aim = {
             or type(b) ~= "number" then
             return false, "bad args"
         end
-        local st = { vx = vx, vy = vy, seconds = s, z = nil, fx = nil, fy = nil, startMs = nil, x0 = nil, y0 = nil }
+        local st = { vx = vx, vy = vy, seconds = s, z = nil, fx = nil, fy = nil, startMs = nil, x0 = nil, y0 = nil,
+                     heldFrames = 0, ticks = 0 }
         if id >= 0 then
             local z = K.zombieById(p, id)
             if z == nil or K.zombieDead(z) then return false, "no target" end
@@ -138,6 +156,7 @@ K.types.aim = {
             return nil
         end
         faceOf(p, st)
+        countHeld(p, st)
         if PZA.now() - st.startMs >= st.seconds * 1000 then
             local out = aimResult(p, st, false)
             release(p)

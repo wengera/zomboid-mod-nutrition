@@ -29,10 +29,10 @@
 -- edges already change when a fence lands (its collide flag blocks the edge), so the watch reads no more per square.
 -- The record's water (PZA/1.5, ruling P24-G; docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md section 7,
 -- T6b.10) is the square's first object whose hasWater() holds as { amount (getFluidAmount: 10000 for an infinite
--- source), tainted (isTaintedWater), infinite (isWaterInfinite) }, nil when none: a sink or a toilet in a room, a bath,
--- a well, a rain collector, a river, a puddle. It rides the scan and the delta like the door record and is left out of
--- the fingerprint (one more call per object a watch step), so a source drying or a puddle forming waits for the next
--- scan or a square's whole read for another change.
+-- source), tainted (isTaintedWater), infinite (getFluidCapacity at 10000: waterOf) }, nil when none: a sink or a
+-- toilet in a room, a bath, a well, a rain collector, a river, a puddle. It rides the scan and the delta like the door
+-- record and is left out of the fingerprint (one more call per object a watch step), so a source drying or a puddle
+-- forming waits for the next scan or a square's whole read for another change.
 -- The dirty key is the square's encoding without light (ruling S-14, MP.watchKey): the dirty set means a world change
 -- (walls, doors, windows, containers, floor), and an unrounded light level would dirty most of the ring at every
 -- lighting drift and fill the budget with deltas; an emitted line still carries the real light.
@@ -123,12 +123,24 @@ local function hopsOf(missing, q, sq)
     end
 end
 
--- the water record of a water object (PZA/1.5): { amount, tainted, infinite }, a member it lacks nil and named
+-- the water record of a water object (PZA/1.5): { amount, tainted, infinite }, a member it lacks nil and named.
+-- infinite (PZA/1.5.4, Plan 24 Task 9 fix 6; jar-reads-2 section 9): IsoObject.isWaterInfinite is private on 42.21
+-- (access 0x2), so Kahlua never exposes it and E6 named it missing on every water square; the public getFluidCapacity()
+-- answers 10000 exactly when it holds (IsoObject.getFluidCapacity @16-@26 L2746-L2747, @44-@53 L2756-L2757), else an
+-- external source's, the container's or the piped reserve's capacity (20 for a sink after the shut-off, L2765-L2766).
+-- A capacity of WATER_INFINITE or more reads infinite; a non-number answer leaves it nil, an absent member names it.
+MP.WATER_INFINITE = 10000
+
 local function waterOf(o, missing)
     local w = {}
     getm(missing, w, "amount", o, "getFluidAmount")
     getm(missing, w, "tainted", o, "isTaintedWater")
-    getm(missing, w, "infinite", o, "isWaterInfinite")
+    local ok, cap = PZA.call(o, "getFluidCapacity")
+    if not ok then
+        PZA.missing(missing, "getFluidCapacity")
+    elseif type(cap) == "number" then
+        w.infinite = cap >= MP.WATER_INFINITE
+    end
     return w
 end
 

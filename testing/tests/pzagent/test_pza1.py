@@ -40,7 +40,7 @@ def rand_frame(rng, seq=1):
                "forceSprint": b(), "autoWalk": maybe(rng, b()), "zombiesSeen": rng.randrange(0, 200),
                "zombiesListed": rng.randrange(0, 6), "hour": maybe(rng, lua_float(rng, 0, 24)),
                "attackers": maybe(rng, rng.randrange(0, 4)), "hitReaction": rng.choice(["", "HitReactionFront", "Bite"]),
-               "dragDown": maybe(rng, b()), "aiming": maybe(rng, b())},
+               "dragDown": maybe(rng, b()), "aiming": maybe(rng, b()), "forceAim": maybe(rng, b())},
         "stats": {k: lua_float(rng, 0, 1) for k in pza1.GROUPS["stats"]},
         "body": {"health": lua_float(rng, 0, 100), "bleeding": rng.randrange(0, 3), "scratched": rng.randrange(0, 3),
                  "bitten": 0, "parts": parts},
@@ -530,7 +530,7 @@ def test_aim_and_climb_are_actions_with_their_args_results_and_reasons():
     assert pza1.Climb(11, 20).args() == {"x": 11, "y": 20} and pza1.Climb.TYPE == "climb"
     assert {"not hoppable", "fell", "failed"} <= pza1.REASONS
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
-    assert set(d["result_aim"]["properties"]) == {"d", "held", "targetDead"}
+    assert set(d["result_aim"]["properties"]) == {"d", "held", "targetDead", "heldFrames", "ticks"}   # 1.5.4's two
     assert set(d["result_climb"]["properties"]) == {"tall", "wounds"}
     assert "no look action" in d["actionType"]["description"]
     for t in ("aim", "climb"):
@@ -541,7 +541,7 @@ def test_aim_and_climb_are_actions_with_their_args_results_and_reasons():
 
 
 def test_me_appends_aiming_after_the_1_4_fields_and_a_1_4_frame_decodes_with_it_none():
-    assert pza1.GROUPS["me"][14:] == ("attackers", "hitReaction", "dragDown", "aiming")
+    assert pza1.GROUPS["me"][14:18] == ("attackers", "hitReaction", "dragDown", "aiming")
     assert pza1.PRIOR["me"] == 11
     assert json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["me"]["properties"]["aiming"]["type"] == "boolean"
     rng = random.Random(51)
@@ -685,3 +685,47 @@ def test_the_e6_log_written_on_1_5_2_decodes_through_the_file_transport_with_no_
     bandages = [l for l in lines if l["kind"] == "act" and l["type"] == "bandage" and l["state"] == "done"]
     assert t.bad == 0 and len(lines) > 1000 and bandages
     assert all(l["result"].get("walking") is None for l in bandages)
+
+
+# ---- PZA/1.5.4 (Plan 24 Task 9 fix 6, ruling P24-T): me's forceAim, the aim's heldFrames and ticks ------------------------
+
+def test_me_appends_force_aim_after_aiming_and_a_1_5_3_frame_decodes_with_it_none():
+    assert pza1.GROUPS["me"][14:] == ("attackers", "hitReaction", "dragDown", "aiming", "forceAim")
+    me_def = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["me"]
+    assert me_def["properties"]["forceAim"]["type"] == "boolean" and me_def["x-prior"] == 11
+    rng = random.Random(54)
+    f = rand_frame(rng)
+    f["me"]["forceAim"] = True
+    assert pza1.decode(json.loads(pza1.encode("frame", f))) == f
+    arr = json.loads(pza1.encode("frame", f))
+    me = pza1.ORDER["frame"].index("me")
+    arr[me] = arr[me][:18]                                       # a PZA/1.5.3 me
+    d = pza1.decode(arr)
+    assert d["me"]["forceAim"] is None and d["me"]["aiming"] == f["me"]["aiming"]
+
+
+def test_an_aim_result_carries_held_frames_and_ticks_and_a_1_5_3_result_reads_them_none():
+    d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
+    assert set(d["result_aim"]["properties"]) == {"d", "held", "targetDead", "heldFrames", "ticks"}
+    assert d["result_aim"]["properties"]["heldFrames"]["type"] == "integer"
+    body = {"kind": "act", "seq": 3, "tick": 1, "wallMs": 2, "aid": "a1", "type": "aim", "state": "done", "reason": "",
+            "result": {"d": 1.5, "held": True, "targetDead": False, "heldFrames": 290, "ticks": 300},
+            "snapshot": {"me": {"x": 1.0, "y": 2.0, "z": 0, "health": 100.0}, "nearest": None}}
+    assert pza1.decode(json.loads(pza1.encode("act", body))) == body
+    old = dict(body, result={"d": 1.5, "held": False, "targetDead": False})
+    r = pza1.decode(json.loads(pza1.encode("act", old)))["result"]
+    assert r.get("heldFrames") is None and r.get("ticks") is None
+
+
+def test_the_e6_log_decodes_with_force_aim_and_held_frames_none(tmp_path):
+    import shutil
+    from agent.base.transport.files import FileTransport
+    shutil.copyfile(os.path.join(ROOT, "testing", "artifacts", "e_day_6-20261029-102942", "state.log"),
+                    str(tmp_path / "state.log"))
+    t = FileTransport(str(tmp_path))
+    lines = t.lines()
+    frames = [l for l in lines if l["kind"] == "frame"]
+    aims = [l for l in lines if l["kind"] == "act" and l["type"] == "aim" and l["state"] == "done"]
+    assert t.bad == 0 and frames and aims
+    assert all(f["me"]["forceAim"] is None for f in frames)
+    assert all(a["result"].get("heldFrames") is None and a["result"]["held"] is False for a in aims)

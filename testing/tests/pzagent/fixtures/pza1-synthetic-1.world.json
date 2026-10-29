@@ -358,6 +358,7 @@
   "autoWalk": false,
   "dir": "S",
   "dragDown": false,
+  "forceAim": false,
   "forceRun": false,
   "forceSprint": false,
   "hitReaction": "",

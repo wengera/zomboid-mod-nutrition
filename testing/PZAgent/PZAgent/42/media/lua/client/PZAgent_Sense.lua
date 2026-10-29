@@ -529,14 +529,18 @@ end
 -- targeting the player within 0.9 tiles in an attack or lunge state; the drag-down kills at three, two at sandbox
 -- Strength 1); hitReaction is getHitReaction() ("" when it answers no string: every zombie attack that reaches the
 -- damage roll sets it, a defended one included, and no swing starts while the player is in that state); dragDown is
--- isDeathDragDown(); aiming (PZA/1.5, ruling P24-G) is isAiming(), the stance an aim holds (PZAgent_Stance.lua).
+-- isDeathDragDown(); aiming (PZA/1.5, ruling P24-G) is isAiming(), the stance an aim holds (PZAgent_Stance.lua), or a
+-- swing's own (IsoGameCharacter.isAiming L14779-L14780: true while a hostile animation plays); forceAim (PZA/1.5.4,
+-- ruling P24-T) is isForceAim(), the input component's flag the Motor re-asserts every frame while the stance is held,
+-- read here after the frame's update: true only when that update's UpdateInputState kept it (a run key clears it).
 -- Each is one PZA.call read (an absent member nil and named in missing). This block sits at the end
 -- of the file (CLAUDE.md section 5: the repo: pointers into Sense keep their lines), so S.frame is wrapped here: the
--- base reader runs, then the four reads land in its me under their own guard, so a raise among them costs these
--- four fields (raise:me:combat), never the rest of me or the frame. S.events and Main call S.frame through the table,
+-- base reader runs, then the five reads land in its me under their own guard, so a raise among them costs these
+-- five fields (raise:me:combat), never the rest of me or the frame. S.events and Main call S.frame through the table,
 -- so both read the wrapped one; a reload redefines S.frame above and wraps it again once.
 -- Cost: the frame runs every max(1, floor(60 / S.RATE)) ticks (Main), every tick at rate 60, so these reads run at
--- that rate. getHitReaction, isDeathDragDown and isAiming are field reads. getSurroundingAttackingZombies copies the moving
+-- that rate. getHitReaction, isDeathDragDown and isAiming are field reads, isForceAim the input component's lookup and
+-- its field. getSurroundingAttackingZombies copies the moving
 -- objects of nine squares into a static list and walks it (a type test, a target compare and a distance each), and
 -- counts only zombies within 0.9 tiles (squared distance under 0.81, the jar's @257), so it is called only when the
 -- frame's nearest listed zombie (the list is sorted nearest first, within ZOMBIE_RADIUS) is under NEAR_R tiles, or
@@ -564,6 +568,7 @@ local function meCombat(p, f)
     end
     get(m, "dragDown", p, "isDeathDragDown")
     get(m, "aiming", p, "isAiming")
+    get(m, "forceAim", p, "isForceAim")
 end
 
 local frameBase = S.frame

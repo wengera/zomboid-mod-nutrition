@@ -20,7 +20,7 @@ DEFAULT_FRAME = {
     "me": {"x": 100.0, "y": 200.0, "z": 0, "dir": "S", "pace": 0.0, "moving": False, "running": False,
            "sprinting": False, "forceRun": False, "forceSprint": False, "autoWalk": False,
            "zombiesSeen": 0, "zombiesListed": 0, "hour": 8.0, "attackers": 0, "hitReaction": "",
-           "dragDown": False, "aiming": False},
+           "dragDown": False, "aiming": False, "forceAim": False},
     "stats": {"hunger": 0.1, "thirst": 0.1, "fatigue": 0.05, "endurance": 1.0, "panic": 0.0, "pain": 0.0,
               "sickness": 0.0, "wetness": 0.0, "temperature": 37.0},
     "body": {"health": 100.0, "bleeding": 0, "scratched": 0, "bitten": 0, "parts": []},
