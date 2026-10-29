@@ -2198,7 +2198,8 @@ def test_the_chaser_rule_is_keyed_on_the_flee_episode_not_the_leg_running(tmp_pa
     same flight and starts no standing bandage."""
     thigh = [part(11, bleeding=True, bleedingTime=5.0)]
     r, sv = flee_leg_rig(tmp_path, thigh, 5.5)
-    assert sv.mode == "flee" and r.cmd()[0] == "steer" or threat_why(tmp_path)["holding"]
+    assert sv.mode == "flee"
+    assert r.cmd()[0] == "steer" or threat_why(tmp_path)["holding"]
     for _ in range(C.CARE_STILL_TICKS + 3):
         leg = r.acts.current
         r.fake.act(leg.aid, "done", "steer", result={})
