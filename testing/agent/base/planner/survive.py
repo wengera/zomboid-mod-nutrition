@@ -730,11 +730,17 @@ class Survive:
         unentered one, nor outside one the character shelters in, at night or not), and chasing, or with its line
         clear (`line_to` True), or a square beside it (or its own) in the player's bounded flood (`_reach`). One that
         is not is marked in `unsought` for UNREACHABLE_S (no flood re-read meanwhile; a chase or a clear line still
-        engages it at once), so the goal it would supersede runs on."""
+        engages it at once), so the goal it would supersede runs on. Fix 2: while `_chokepoint` holds (a room or door
+        square) a zombie that is not chasing and stands beyond DANGER_R is not engaged: the goal runs, and a chase or
+        DANGER_R still engages it."""
         mx, my = me_xy(self.world)
         if self._side(z) != self._side({"x": mx, "y": my}):
             return False
-        if chasing(z) or line_to(self.world, z) is True:
+        if chasing(z):
+            return True
+        if self._chokepoint() and zdist(self.world, z) > DANGER_R:
+            return False   # Task 18 fix 2, the re-review's blocker 2 (E7 286-332): held ground lets an idle one lie
+        if line_to(self.world, z) is True:
             return True
         now = self.clock()
         if self.unsought.get(zid, 0.0) > now:

@@ -456,7 +456,8 @@ def clear_heading(world, v, reach=STEER_PROBE):
 def stance_leg_kind(d, advance, seek=False):
     """The stance leg a standing fight's target `d` tiles off calls for (rulings P24-G 1, P24-N and P24-X): `enter`
     within FIGHT_REACH, `toward` in the advance, `seek` while the fight seeks it (`seek`: the caller's
-    `Fight.seeking`, whose `seek_allowed` holds the one KEEP_R guard: Task 18 fix 1, the review's minor 13), `back`
+    `Fight.seeking`, whose `seek_allowed` holds the one KEEP_R guard: Task 18 fix 1, the review's minor 13; the caller
+    has already excluded a target inside KEEP_R, so `seek` here means d > KEEP_R: fix 2, minor 4), `back`
     inside KEEP_R, else `stand`. `Fight._stance_leg` sends it and `Fight.busy` gives a running leg way when it changes
     (Task 12 fix 1)."""
     if d <= FIGHT_REACH:
@@ -736,6 +737,18 @@ class Fight(Policy):
         n = self._nearest()
         return n if n is not None and n[0] != t[0] and n[2] <= t[2] - SEEK_SWITCH_R else None
 
+    def _advance_switch(self, t):
+        """The zombie (id, zombie, dist) the advance re-pins to (Task 18 fix 2, the re-review's blocker 1: the advance's
+        walk round a wall held while a chasing zombie closed to 1.2 tiles), else None: while the Fight advances on
+        target `t`, the nearest zombie the Fight may pin (`_nearest`) when it is another and inside KEEP_R, or
+        SEEK_SWITCH_R or more nearer than `t`. The advance ends with the re-pin."""
+        if not self.advance or t is None:
+            return None
+        n = self._nearest()
+        if n is None or n[0] == t[0]:
+            return None
+        return n if n[2] <= KEEP_R or n[2] <= t[2] - SEEK_SWITCH_R else None
+
     def _walk_gives_way(self):
         """The blocker of Task 18's review (E7 replayed: the seek walk a12 round a wall, sent at line 52 on 533 at 8.17
         tiles, held through line 73 while 533 receded past DISENGAGE_R and 564 and 534 closed to 2.84 and 3.10 tiles
@@ -753,8 +766,8 @@ class Fight(Policy):
         t = self._target(pin=False)
         if t is None or t[0] != zid:
             return True
-        if kind != "advance" and self._seek_switch(t) is not None:
-            return True
+        if (self._advance_switch(t) if kind == "advance" else self._seek_switch(t)) is not None:
+            return True   # fix 2: the advance's walk gives way to a closing zombie as the seek's does
         if kind == "far":
             return t[2] <= AIM_R
         if t[2] > DISENGAGE_R or not self.stance_at(t[2]) or stance_leg_kind(t[2], self.advance, self.seeking(t)) not in ("toward", "seek"):
@@ -787,7 +800,7 @@ class Fight(Policy):
         if t is None or t[0] != self.last.args.get("targetId") or t[2] <= FIGHT_REACH or not self.stance_at(t[2]):
             return False
         if self._leg == "toward":
-            return True
+            return self._advance_switch(t) is None   # fix 2: it holds until reach, or a zombie closing on the character
         want = stance_leg_kind(t[2], self.advance, self.seeking(t))
         if want == "seek" and self._leg == "seek" and self._seek_switch(t) is not None:
             return False   # Task 18 fix 1, the blocker: a nearer zombie; the next choose re-pins to it
@@ -913,6 +926,10 @@ class Fight(Policy):
         self._seek_send, self._walk_kind = False, None
         self._repin_point_blank()
         switch = self._seek_switch(self._pinned()) if self.seek and self.target is not None else None
+        if switch is None and self.advance and self.target is not None:
+            switch = self._advance_switch(self._pinned())   # Task 18 fix 2: the advance gives way to a closing zombie
+            if switch is not None:
+                self.advance = False
         if switch is not None:   # Task 18 fix 1, the blocker: the seek closes on the nearest
             self.target, self.repositioned = switch[0], False
         t = self._target(pin=True)

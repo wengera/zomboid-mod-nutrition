@@ -792,10 +792,8 @@ def test_the_seek_walk_gives_way_when_the_line_clears_and_holds_while_it_does_no
     assert f.busy() is False and f.choose().TYPE == "aim" and f.why["leg"] == "seek"
 
 
-def test_the_advance_walk_round_a_wall_holds_until_reach_never_for_another_zombie(tmp_path):
-    """The advance (a target already sought, STAND_MAX_S gone) closes on its pin: its walk round the wall gives way
-    only on its own target's reads (in reach, a re-pin, the line clear), never for a nearer zombie (the stance's pin
-    holds once a target is sought)."""
+def advance_walk(tmp_path):
+    """The advance (a target already sought, STAND_MAX_S gone) closes on its pin: its walk round the wall."""
     r = Rig(tmp_path)
     r.scan(walled())
     r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 106.5, 200.5)])
@@ -805,9 +803,40 @@ def test_the_advance_walk_round_a_wall_holds_until_reach_never_for_another_zombi
     assert cmd.TYPE == "walkTo" and f.why["advance"] is True
     sent(r, f, cmd)
     assert f._stance_walk[2] == "advance" and f.busy()
-    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 106.5, 200.5), zm(2, 100.5, 196.5)])
+    return r, f
+
+
+@pytest.mark.parametrize("y2, gives", [(201.7, True), (202.7, True), (196.5, True), (200.5 + 5.7, False)])
+def test_the_advance_walk_round_a_wall_gives_way_to_a_closing_zombie(tmp_path, y2, gives):
+    """Task 18 fix 2, the re-review's blocker 1 (E7 at 327 sent this walk): the advance's walk round a wall ends when
+    another zombie the Fight may pin closes inside KEEP_R (1.2 and 2.2 tiles) or stands SEEK_SWITCH_R or more nearer
+    than its target (4.0 against 6.0); one no nearer (5.7 against 6.0) is not a reason. The next choose re-pins to it
+    and the advance ends (the stance's, not a walk toward the old target)."""
+    r, f = advance_walk(tmp_path)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 106.5, 200.5), zm(2, 100.5, y2)])
+    assert f.busy() is (not gives)
+    if gives:
+        cmd = f.choose()
+        assert f.target == 2 and f.advance is False and cmd.TYPE == "aim" and cmd.targetId == 2
+
+
+def test_the_advance_walk_round_a_wall_holds_for_its_own_target_until_reach(tmp_path):
+    r, f = advance_walk(tmp_path)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 104.5, 200.5)])
     assert f.busy() is True
-    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 102.3, 200.5), zm(2, 100.5, 196.5)])
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 102.3, 200.5)])
+    assert f.busy() is False
+
+
+def test_the_advance_aim_leg_gives_way_to_a_zombie_inside_keep_r(tmp_path):
+    r = Rig(tmp_path)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 106.5, 200.5)])
+    f = stance_fight(r, sought={1})
+    f._stand, f.advance = (1, r.clock(), 1.0), True
+    cmd = f.choose()
+    assert cmd.TYPE == "aim" and f.why["leg"] == "toward"
+    sent(r, f, cmd)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 106.0, 200.5), zm(2, 100.5, 202.0)])
     assert f.busy() is False
 
 
@@ -1330,3 +1359,55 @@ def test_an_idle_target_sought_to_keep_r_is_advanced_on_at_once(tmp_path, chases
     f.observe()
     assert 1 in f.sought and f.advance is (not chases) and f.busy() is False
     assert f.choose().TYPE == "aim" and f.why["leg"] == leg
+
+
+# ================================================================ Task 18 fix 2: held ground engages no idle zombie
+def held_yard(tmp_path):
+    """Survive on a grid every square of which is a room of building 1: the character holds ground."""
+    r, sv = make(tmp_path)
+    r.scan(grid(90, 120, 190, 212, {(x, y): {"room": "hall", "building": 1} for x in range(90, 121)
+                                    for y in range(190, 213)}))
+    return r, sv
+
+
+@pytest.mark.parametrize("x, has_target, engageable", [(108.5, False, False), (107.0, False, False),
+                                                       (105.0, False, True), (108.5, True, True)])
+def test_engageable_on_held_ground_refuses_an_idle_zombie_beyond_danger_r(tmp_path, x, has_target, engageable):
+    """Fix 2, the re-review's blocker 2 (E7 286-332: idle 571 at 8.48 tiles superseded building 5's loot from a room
+    square, 41 `stand` lines, then the advance walk out): while `_chokepoint` holds an idle zombie beyond DANGER_R
+    (8.0 and 6.5 tiles) is not engageable; a chasing one (8.0) and an idle one within DANGER_R (4.5) are."""
+    r, sv = held_yard(tmp_path)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, x, 200.5, has_target=has_target)])
+    assert sv._chokepoint() is True
+    assert sv._engageable(1, r.world.zombies[1]) is engageable
+
+
+def test_engageable_off_held_ground_still_engages_an_idle_zombie_with_a_clear_line(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan(grid(90, 120, 190, 212))
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.5, 200.5, has_target=False)])
+    assert sv._chokepoint() is False and sv._engageable(1, r.world.zombies[1]) is True
+
+
+def _e7_threat_lines(a, b, mutant=False):
+    from agent.base import replay_decisions as R
+
+    def m(sv):
+        if mutant:   # the engage as built at 45491db3: the chokepoint does not refuse an idle zombie
+            def eng(zid, z):
+                sv._chokepoint = lambda: False
+                try:
+                    return S.Survive._engageable(sv, zid, z)
+                finally:
+                    del sv._chokepoint
+            sv._engageable = eng
+    rows = R.replay(R.ARTIFACTS + "/" + E7, upto=b, mutate=m)
+    return [k for k in range(a, b + 1) if rows[k - 1]["branch"] == "threat"]
+
+
+def test_e7_lines_286_to_332_the_loot_from_the_room_runs_on_past_an_idle_zombie():
+    """The re-review's blocker 2 on E7's record: from a room square at building 5, idle 571 (8.48 tiles, `hasTarget`
+    false) engaged at 45491db3 and stood 41 lines before the advance walk at 327; now no line of 286-332 is the threat
+    branch (the mutant, the engage without the chokepoint rule, brings it back)."""
+    assert _e7_threat_lines(286, 332) == []
+    assert _e7_threat_lines(286, 332, mutant=True) != []
