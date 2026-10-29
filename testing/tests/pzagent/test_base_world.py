@@ -641,7 +641,7 @@ def test_mark_empty_moves_an_id_out_of_water_and_to_json_carries_it_sorted():
     assert w.by_use()["water"] == [4, 9]
     w.mark_empty(9)
     w.mark_empty(4)
-    assert w.by_use()["water"] == [] and w.by_use()["other"] == [4, 9]
+    assert w.by_use()["water"] == [] and w.by_use()["container"] == [4, 9]   # named change, 9 fix 2: a vessel
     assert json.loads(w.to_json())["emptyIds"] == [4, 9]
     assert w.to_json() == w.to_json()
     w.apply(event("item_removed", itemId=9))
@@ -673,7 +673,7 @@ def test_by_use_prefers_the_events_use_and_falls_back_to_the_dataset():
     w.mark_empty(1)
     w.apply(event("item_added", itemId=4, fullType="Base.Bowl", weight=0.1, use="water"))
     w.mark_empty(4)
-    assert 4 in w.by_use()["other"]
+    assert 4 in w.by_use()["container"]   # named change, 9 fix 2
 
 
 def test_by_use_reads_a_sealed_can_other_whatever_the_engines_use_and_a_stray_use_falls_back():

@@ -288,13 +288,14 @@ STAT_FALL_MIN = 0.01     # the least fall of that stat since the send that count
                          # a drink or a meal moves its stat by tenths, F2's thirst rose 0.013 in 14 minutes)
 CONSUME_RETRY_MIN = 5.0  # game minutes a consume that ended done leaves its item out of the pick (P24-F)
 FILL_R = 25.0            # tiles: a tainted source is filled from only with no clean one known this near (P24-G 3)
+FILL_SETTLE_S = 2.0      # wall seconds a done fill waits for its vessel's item_changed before it is read as filled (9 fix 2)
 FILL_RETRY_MIN = 2.0     # game minutes a vessel whose fill failed is left out of the fill (as care.CARE_RETRY_MIN)
 
 __all__ = ["Survive", "BRANCHES", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER_T", "FLEE_HEALTH",
            "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS",
            "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
            "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "NEED_STATS",
-           "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_R", "FILL_RETRY_MIN"]
+           "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_R", "FILL_RETRY_MIN", "FILL_SETTLE_S"]
 
 
 def _key(typ, args):
@@ -451,10 +452,23 @@ class Survive:
                 continue
             if not self.actions.done(a):
                 continue
+            if a.state == "done" and iid in self.world.inventory:
+                # 9 fix 2: the engine's own read (item_changed) follows the fill by a moment; wait for it, or for
+                # FILL_SETTLE_S of wall time, before the vessel is read as filled
+                f.setdefault("done_wall", a.ended_wall if a.ended_wall is not None else self.clock())
+                res = a.result if isinstance(a.result, dict) else {}
+                it = self.world.inventory[iid]
+                event = self.world.changes.get(iid, 0) > f["base"]
+                if not event and self.clock() - f["done_wall"] < FILL_SETTLE_S:
+                    continue
+                tainted = (res.get("tainted") is True or f["tainted"] or it.get("fluid") == "TaintedWater")
+                if tainted:
+                    self.world.tainted_sources.add((a.args.get("x"), a.args.get("y"), me_floor(self.world)))
+                if not event:
+                    self.world.mark(iid, "tainted" if tainted else "filled")
+                del self.fills[iid]
+                continue
             if a.state == "done" or (a.state == "failed" and a.reason == PREEMPTED):
-                if a.state == "done" and iid in self.world.inventory:
-                    res = a.result if isinstance(a.result, dict) else {}
-                    self.world.mark(iid, "tainted" if (res.get("tainted") is True or f["tainted"]) else "filled")
                 del self.fills[iid]
                 continue
             f["read"] = True
@@ -487,7 +501,8 @@ class Survive:
 
     def _sent_fill(self, action):
         self.fills[action.args.get("itemId")] = {"action": action, "read": False, "at": self.world.world_minutes(),
-                                                 "tainted": bool((self.fill_why or {}).get("tainted"))}
+                                                 "tainted": bool((self.fill_why or {}).get("tainted")),
+                                                 "base": self.world.changes.get(action.args.get("itemId"), 0)}
 
     def _sent_consume(self, action):
         """Remember the need's consume (P24-F): its use, its stat, the stat now and the world minute."""
@@ -994,6 +1009,10 @@ class Survive:
         if sleep is not None:
             self.why = {"holding_sleep": sleep.aid}       # P23-AB: answered at the wake; the night holds the tick
             return None
+        settling = sorted((i for i, f in self.fills.items() if "done_wall" in f), key=str)
+        if settling:
+            self.why = {"settling": settling[0]}          # 9 fix 2: a done fill waits for its item_changed
+            return None, None
         st = self.world.stats or {}
         pick, fill = None, None
         inside = set()     # the held ids of a wanted use that its retry window leaves out (logged as `retry`)

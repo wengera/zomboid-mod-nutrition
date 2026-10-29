@@ -6,6 +6,7 @@ import math
 
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
+from agent.base.planner.care import water_sources
 
 from .test_policies import CAPS_14, all_sends_valid, square, zombie
 from .test_survive import last, make, threat_why, tick
@@ -616,6 +617,7 @@ def test_no_water_held_a_vessel_is_filled_at_the_nearest_clean_source_then_drunk
     all_sends_valid(r)
     assert tick(r, sv) is None                                                   # its fill is current: held
     r.answer({"state": "done", "result": {"amount": 0.5, "added": 0.5, "fluid": "Water", "tainted": False}})
+    r.advance(S.FILL_SETTLE_S)                  # 9 fix 2: no item_changed came: the settle time reads it filled
     thirsty(r)
     tick(r, sv)
     assert r.world.marks[5][0] == "filled" and r.world.by_use()["water"] == [5]
@@ -639,6 +641,7 @@ def test_a_tainted_source_is_filled_from_only_with_no_clean_one_within_fill_r(tm
     tick(r2, sv2)
     assert r2.cmd() == ("fill", {"itemId": 5, "x": 105, "y": 200}) and need_why(tmp_path / "b")["fill"]["tainted"]
     r2.answer({"state": "done", "result": {"amount": 0.5, "added": 0.5, "fluid": "TaintedWater", "tainted": True}})
+    r2.advance(S.FILL_SETTLE_S)
     thirsty(r2)
     tick(r2, sv2)
     assert r2.world.marks[5][0] == "tainted" and r2.world.tainted_ids() == {5} and r2.cmd() == ("consume", {"itemId": 5})
@@ -825,6 +828,7 @@ def test_a_tainted_drink_refused_marks_it_undrinkable_and_no_tainted_source_is_f
     tick(r, sv)
     assert r.cmd() == ("fill", {"itemId": 5, "x": 105, "y": 200})
     r.answer({"state": "done", "result": {"amount": 0.5, "added": 0.5, "fluid": "TaintedWater", "tainted": True}})
+    r.advance(S.FILL_SETTLE_S)
     thirsty(r)
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 5})
@@ -833,3 +837,177 @@ def test_a_tainted_drink_refused_marks_it_undrinkable_and_no_tainted_source_is_f
     tick(r, sv)
     assert r.world.marks[5][0] == "undrinkable" and sv.tainted_refused and 5 not in r.world.by_use()["container"]
     assert sum(a.type == "fill" for a in r.acts.history) == 1 and need_why(tmp_path)["fill"]["source"] is None
+
+
+# ================================================================ Task 9 fix 2: the planner's side of item_changed
+def test_item_changed_moves_a_vessel_between_container_and_water_and_clears_its_mark(tmp_path):
+    """Item 1: a fill's event moves a `container` to `water` (the amount and fluid kept) and clears an `empty` mark; a
+    drink to empty moves `water` back to `container`; an id not held is ignored."""
+    r, sv = make(tmp_path)
+    r.frame()
+    hold(r, 5, "Base.PopEmpty", use="container")
+    r.world.mark_empty(5)
+    r.event("item_changed", itemId=5, use="water", fluid="Water", amount=0.5)
+    assert r.world.by_use()["water"] == [5] and 5 not in r.world.marks
+    assert r.world.inventory[5]["amount"] == 0.5 and r.world.inventory[5]["fluid"] == "Water"
+    r.event("item_changed", itemId=5, use="container", amount=0.0)
+    assert r.world.by_use()["container"] == [5] and r.world.by_use()["water"] == []
+    before = dict(r.world.inventory)
+    r.event("item_changed", itemId=99, use="water", fluid="Water", amount=1.0)
+    assert r.world.inventory == before and 99 not in r.world.changes and r.world.missing_items == 0
+
+
+def test_mark_empty_moves_a_drinkable_vessel_to_container_not_other(tmp_path):
+    """Item 2: for the ticks before the event arrives (and on a log without it) an emptied bottle is a vessel."""
+    r, sv = make(tmp_path)
+    r.frame()
+    hold(r, 5, "Base.WaterBottle", use="water")
+    hold(r, 6, "Base.Disinfectant", use="other")
+    r.world.mark_empty(5)
+    r.world.mark_empty(6)
+    u = r.world.by_use()
+    assert u["container"] == [5] and u["water"] == [] and u["other"] == [6]
+
+
+def fill_rig(tmp_path, sources=(110,)):
+    r, sv = make(tmp_path)
+    r.scan([source(x, 200, infinite=True) for x in sources])
+    r.frame()
+    hold(r, 5, "Base.PopEmpty", use="container")
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd()[0] == "fill"
+    return r, sv
+
+
+def test_a_done_fill_waits_for_its_item_changed_before_the_drink(tmp_path):
+    """Item 3: done at t0: the need holds (settling), then drinks once the vessel's event reads it water."""
+    assert S.FILL_SETTLE_S == 2.0
+    r, sv = fill_rig(tmp_path)
+    r.answer({"state": "done", "result": {"amount": 0.5, "added": 0.5, "fluid": "Water", "tainted": False}})
+    thirsty(r)
+    assert tick(r, sv) is None and need_why(tmp_path) == {"settling": 5} and 5 not in r.world.marks
+    r.advance(1.0)
+    thirsty(r)
+    assert tick(r, sv) is None and need_why(tmp_path) == {"settling": 5}
+    r.event("item_changed", itemId=5, use="water", fluid="Water", amount=0.5)
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 5}) and 5 not in r.world.marks and not sv.fills
+
+
+def test_a_done_fill_with_no_event_reads_filled_after_fill_settle_s(tmp_path):
+    r, sv = fill_rig(tmp_path)
+    r.answer({"state": "done", "result": {"amount": 0.5, "added": 0.5, "fluid": "Water", "tainted": False}})
+    thirsty(r)
+    tick(r, sv)
+    r.advance(S.FILL_SETTLE_S - 0.5)
+    thirsty(r)
+    assert tick(r, sv) is None and 5 not in r.world.marks
+    r.advance(0.5)
+    thirsty(r)
+    tick(r, sv)
+    assert r.world.marks[5][0] == "filled" and r.cmd() == ("consume", {"itemId": 5})
+
+
+def test_a_tainted_fill_marks_its_source_square_tainted_and_the_next_fill_takes_another(tmp_path):
+    """Item 3: a fill that read TaintedWater (the event, use other) from a source the map read clean puts that square
+    in the World's `tainted_sources`; `water_sources` then reads it tainted and the next fill takes the clean one."""
+    r, sv = make(tmp_path)
+    r.scan([source(110, 200), source(120, 200)])
+    r.frame()
+    hold(r, 5, "Base.PopEmpty", use="container")
+    hold(r, 6, "Base.PopEmpty", use="container")
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 110, "y": 200})
+    r.answer({"state": "done", "result": {"amount": 0.5, "added": 0.5, "fluid": "TaintedWater"}})
+    r.event("item_changed", itemId=5, use="other", fluid="TaintedWater", amount=0.5)
+    thirsty(r)
+    tick(r, sv)
+    assert r.world.tainted_sources == {(110, 200, 0)} and r.world.tainted_ids() == {5}
+    assert [(s[1], s[2].get("tainted")) for s in water_sources(r.world, math.inf)] == [((110, 200, 0), True),
+                                                                                       ((120, 200, 0), False)]
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 5})
+    r.answer({"state": "failed", "reason": "not valid"})
+    thirsty(r)
+    tick(r, sv)
+    thirsty(r)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 6, "x": 120, "y": 200})
+
+
+def test_the_event_after_a_drink_leaves_the_no_effect_mark_of_the_consume_check(tmp_path):
+    """Item 3: the no-effect check is anchored on the consume's done; the drink's item_changed lands about a second
+    later and clears no `no_effect` mark."""
+    r, sv = make(tmp_path)
+    r.frame()
+    hold(r, 7, "Base.WaterBottle", use="water")
+    thirsty(r, game_min=480.0)
+    tick(r, sv)
+    assert r.cmd() == ("consume", {"itemId": 7})
+    r.answer("done")
+    thirsty(r, game_min=482.0)                      # no fall in thirst
+    tick(r, sv)
+    r.event("item_changed", itemId=7, use="water", fluid="Water", amount=0.9)
+    thirsty(r, game_min=483.0)
+    tick(r, sv)
+    assert r.world.marks[7][0] == "no_effect" and r.world.by_use()["other"] == [7]
+
+
+def test_a_bandage_refused_in_bag_is_retried_after_care_retry_min(tmp_path):
+    """Item 4: the item stays usable once moved out of the bag; the planner has no move action, so it only retries."""
+    r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage")])
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 10, "part": 5})
+    r.answer({"state": "failed", "reason": "in bag"})
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], game_min=480.5)
+    tick(r, sv)
+    assert last(tmp_path)["branch"] != "care" and 10 not in r.world.marks
+    r.advance(10.0)
+    care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], game_min=482.5)
+    for _ in range(10):
+        tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 10, "part": 5})
+
+
+def test_a_wash_refused_in_bag_is_retried_and_leaves_its_source(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan([square(105, 200, water={"amount": 20.0, "tainted": False, "infinite": True})])
+    r.frame()
+    hold(r, 12, "Base.RippedSheetsDirty")
+    care_frame(r, [])
+    tick(r, sv)
+    assert r.cmd() == ("wash", {"itemId": 12, "x": 105, "y": 200})
+    r.answer({"state": "failed", "reason": "in bag"})
+    care_frame(r, [], game_min=480.5)
+    tick(r, sv)
+    assert not sv.care.dry and 12 not in r.world.marks and last(tmp_path)["branch"] != "care"
+    r.advance(10.0)
+    care_frame(r, [], game_min=482.5)
+    for _ in range(10):
+        tick(r, sv)
+    assert r.cmd() == ("wash", {"itemId": 12, "x": 105, "y": 200})
+
+
+def test_the_ripped_sheets_read_bandage_a_sealed_can_other_and_the_choice_order_holds(tmp_path):
+    """Item 5: `RippedSheets` and the other CanBandage items count `bandage`, `Base.Pop2` (sealed) `other`; within the
+    `bandage` use the care branch still reads the name: bandage > clean rag > dirty rag."""
+    r, sv = make(tmp_path)
+    r.frame()
+    for iid, ft in ((1, "Base.RippedSheets"), (2, "Base.RippedSheetsDirty"), (3, "Base.Bandage"),
+                    (4, "Base.DenimStrips"), (5, "Base.Pop2")):
+        r.event("item_added", itemId=iid, fullType=ft, weight=0.1)       # no `use` on the line: the dataset answers
+    care_frame(r, [part(5, bleeding=True, bleedingTime=20.0)])
+    v = V.view(r.world, sv)
+    assert v["inventory_by_use"]["bandage"] == 4 and v["inventory_by_use"]["other"] == 1
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 3, "part": 5})
+    for iid in (3, 1, 4):                                                # then the clean rags, the dirty one last
+        r.event("item_removed", itemId=iid)
+        r.answer("done")
+        care_frame(r, [part(5, bleeding=True, bleedingTime=20.0)])
+        tick(r, sv)
+        assert r.cmd()[1]["itemId"] == {3: 1, 1: 4, 4: 2}[iid]

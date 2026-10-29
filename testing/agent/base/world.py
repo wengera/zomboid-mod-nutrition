@@ -114,7 +114,7 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
 - `by_use()`: the inventory's ids by the item's own `use` (the engine's answer, Plan 23 Task 9b), else
   `agent.base.items.use_of` (the
   dataset; a `food` the dataset marks `cant_eat` reads `other`), an id the planner marked empty (`mark_empty`, kept in
-  `empty_ids` and dropped with its item) moved from `water` to `other`,
+  `empty_ids` and dropped with its item) moved from `water` to `container` (Task 9 fix 2),
   and an id the planner found refused (`mark_refused`, fix wave P I-4: a food whose consume ended `failed "not
   valid"`, kept in `refused` {id: the world minute of its refusal} and dropped with its item) moved from `food` to
   `other` for REFUSED_TTL_MIN (120) world minutes from the refusal only (ruling P23-AD: a refusal may be passing, the
@@ -233,6 +233,8 @@ class World:
         self.buildings = set()
         self.inventory = {}          # itemId -> {fullType, weight}
         self.marks = {}              # held id -> (reason, world minute): the planner's marks (`mark`), never a line's
+        self.changes = {}            # held id -> item_changed lines read for it (the planner's settle wait, never serialised)
+        self.tainted_sources = set() # water squares (x, y, z) a fill found tainted (the planner's, never a line's)
         self.first_sight = set()     # the ids the inventory's first sight named (between a hello and the next frame)
         self._sighting = False       # a hello came and no frame yet: item_added is the first sight
         self.damage = deque(maxlen=DEQUE_N)
@@ -360,9 +362,11 @@ class World:
             if self.inventory.pop(line.get("itemId"), None) is None:
                 self.missing_items += 1
             self.marks.pop(line.get("itemId"), None)
+            self.changes.pop(line.get("itemId"), None)
         elif kind == "item_changed":
             it = self.inventory.get(line.get("itemId"))
             if it is not None:
+                self.changes[line.get("itemId")] = self.changes.get(line.get("itemId"), 0) + 1
                 if line.get("use") is not None:
                     it["use"] = line["use"]
                 for k in ("fluid", "amount"):
@@ -926,7 +930,8 @@ class World:
         return set(self.marked("no_effect"))
 
     def mark_empty(self, item_id):
-        """Remember a held item as empty (the planner's, never a line's): `by_use` moves it from `water` to `other`."""
+        """Remember a held item as empty (the planner's, never a line's): `by_use` moves a `water` item to `container`
+        (a drinkable vessel, empty, for the ticks before its `item_changed` arrives, and on a log without one)."""
         self.mark(item_id, "empty")
 
     def mark_refused(self, item_id):
@@ -952,7 +957,7 @@ class World:
     def by_use(self):
         """{use: [ids sorted]} for every use in USES: the inventory's ids by the item's `use` (else `items.use_of` of
         its fullType; a `food` the dataset marks `cant_eat` reads `other`, a stray `use` falls back to the dataset), an
-        id in `empty_ids` read as `other` rather than `water`, one refused within REFUSED_TTL_MIN (`refused_now`) as
+        id in `empty_ids` read as `container` rather than `water`, one refused within REFUSED_TTL_MIN (`refused_now`) as
         `other` rather than `food`, one in `no_effect_ids` as `other` whatever its use."""
         out = {u: [] for u in USES}
         refused = self.refused_now()
@@ -965,7 +970,9 @@ class World:
                 use = use_of(it.get("fullType"))
             elif use == "food" and cant_eat(it.get("fullType")):
                 use = "other"                         # N-3: the dataset overrides the engine's IsFood for a sealed can
-            if ((use == "water" and iid in empty) or (use == "food" and iid in refused) or iid in no_effect
+            if use == "water" and iid in empty and iid not in no_effect and iid not in undrinkable:
+                use = "container"                     # Task 9 fix 2: an emptied vessel is still a vessel
+            elif ((use == "water" and iid in empty) or (use == "food" and iid in refused) or iid in no_effect
                     or iid in undrinkable):
                 use = "other"
             elif iid in filled:

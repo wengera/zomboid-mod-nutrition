@@ -85,6 +85,8 @@ def water_sources(world, r, skip=()):
         w = rec.get("water")
         if sq[2] != floor or not isinstance(w, dict) or sq in skip:
             continue
+        if sq in world.tainted_sources:
+            w = dict(w, tainted=True)          # a fill found it tainted (Task 9 fix 2)
         if not (w.get("infinite") is True or (isinstance(w.get("amount"), (int, float)) and w["amount"] > 0)):
             continue
         d = math.hypot(sq[0] + 0.5 - mx, sq[1] + 0.5 - my)

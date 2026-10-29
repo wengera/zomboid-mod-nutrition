@@ -702,7 +702,7 @@ def test_a_water_consume_failed_not_valid_marks_it_empty_and_the_next_tick_takes
     r.frame(thirst=0.3)
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 705}) and r.world.empty_ids == {703}
-    assert r.world.by_use()["water"] == [705] and 703 in r.world.by_use()["other"]
+    assert r.world.by_use()["water"] == [705] and 703 in r.world.by_use()["container"]   # named change, 9 fix 2
     assert last(tmp_path)["inputs"]["consume_refused"] is None
 
 
