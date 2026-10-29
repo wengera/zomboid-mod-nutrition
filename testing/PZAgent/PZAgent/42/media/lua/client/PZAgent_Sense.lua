@@ -131,7 +131,7 @@ local function stats(p)
 end
 
 -- body: the overall health, the wound counts and every part S.notePart lists (hurt, bandaged or bleeding: PZA/1.5, at
--- the end of this file) as the schema's part record (i 0-based, the getBodyParts order); parts empty when none is
+-- the end of this file) as the schema's part record (i 0-based, the getBodyParts order); parts empty when none is listed
 local function body(p)
     local b = { parts = {} }
     local okB, bd = PZA.call(p, "getBodyDamage")
@@ -589,7 +589,7 @@ function S.notePart(b, i, part, h)
     local bleed = false
     if b.bleeding == nil or (type(b.bleeding) == "number" and b.bleeding > 0) then
         local okL, bl = PZA.call(part, "bleeding")
-        if okL then bleed = bl == true else bleed = nil end
+        if okL then bleed = bl == true else bleed = nil; PZA.missing(S.missing, "bleeding") end
     end
     if h >= 100 and band ~= true and bleed ~= true then return end
     local r = { i = i, h = h, bleeding = bleed }
@@ -602,4 +602,86 @@ function S.notePart(b, i, part, h)
     get(r, "deep", part, "deepWounded")
     get(r, "infected", part, "isInfectedWound")
     b.parts[#b.parts + 1] = r
+end
+
+-- item_changed{itemId, use, fluid, amount} (PZA/1.5.1, Task 9 fix 1, review major 1): S.invIds reads an item's use once,
+-- at its first sight, so a bottle a fill filled read container and one drunk empty read water for good. A skill that
+-- changes a held item's contents (fill, consume, wash, rip: PZAgent_Tend.lua's end hooks) calls S.recheck(id, amount0)
+-- when it ends, amount0 its fluid amount when it began (nil when it read none). For RECHECK_MS after that, each S.events
+-- call reads the item again while it is held: its fluid amount (getFluidContainer():getAmount(), three Java calls), and
+-- once the amount has held still SETTLE_MS (a drink runs on after consume's done, which lands on the first fall) and
+-- differs from the last one reported (amount0 first), or at the first read, the use through W.useOf again. An
+-- item_changed event is emitted when the use or the settled amount changed, carrying the new use, the primary fluid's
+-- getFluidTypeString() (nil when empty) and the amount; the inventory's entry (S.lastInv[id]) takes the new use, so the
+-- diff and a later first-sight read agree. The mark ends with the window, the item gone (its item_removed says so), an
+-- item without a fluid container after its one use read, or an amount settled at the one last reported. Appended here (CLAUDE.md section 5: the repo: pointers into
+-- Sense keep their lines); S.events is wrapped, and Main calls it through the table.
+S.RECHECK_MS = 30000       -- a mark lives this long after its skill's end (consume's CONSUME_MS and some)
+S.SETTLE_MS = 1000         -- an amount held still this long is settled
+S.AMOUNT_EPS = 0.0001      -- litres: a change under this is no change
+S.recheckIds = S.recheckIds or {}
+
+function S.recheck(id, amount0)
+    if id == nil then return end
+    S.recheckIds[id] = { untilMs = PZA.now() + S.RECHECK_MS, reported = amount0, last = nil, stillAt = nil,
+                         first = true }
+end
+
+local function amountOf(it)
+    local _, fc = PZA.call(it, "getFluidContainer")
+    if fc == nil then return nil, nil end
+    local ok, a = PZA.call(fc, "getAmount")
+    if ok and type(a) == "number" then return a, fc end
+    return nil, fc
+end
+
+local function fluidName(fc)
+    local _, f = PZA.call(fc, "getPrimaryFluid")
+    local _, ft = PZA.call(f, "getFluidTypeString")
+    if type(ft) == "string" then return ft end
+    return nil
+end
+
+local function differs(a, b)
+    if a == nil or b == nil then return a ~= b end
+    return math.abs(a - b) > S.AMOUNT_EPS
+end
+
+-- one mark's read: true when the mark is done with
+local function recheckOne(ev, gameMin, p, id, m, now)
+    local k = S.lastInv ~= nil and S.lastInv[id] or nil
+    local it = k ~= nil and PZA.skills ~= nil and PZA.skills.itemById(p, id) or nil
+    if it == nil then return true end
+    local a, fc = amountOf(it)
+    if differs(a, m.last) then m.last, m.stillAt = a, now end
+    local settled = m.stillAt ~= nil and (now - m.stillAt >= S.SETTLE_MS or now >= m.untilMs)
+    local moved = settled and m.reported ~= nil and differs(a, m.reported)
+    if m.first or moved then
+        local use = W.useOf(it)
+        if use ~= k.use or moved then
+            ev[#ev + 1] = { event = "item_changed", gameMin = gameMin, itemId = id, use = use,
+                            fluid = fc ~= nil and fluidName(fc) or nil, amount = a }
+            S.lastInv[id] = { fullType = k.fullType, weight = k.weight, use = use }
+            m.reported = a
+        end
+        if m.reported == nil then m.reported = a end
+        m.first = false
+        return fc == nil or now >= m.untilMs
+    end
+    return now >= m.untilMs or (settled and not differs(a, m.reported))
+end
+
+local function changedEvents(ev, gameMin, p)
+    if S.lastInv == nil then return end
+    local now = PZA.now()
+    for id, m in pairs(S.recheckIds) do
+        if recheckOne(ev, gameMin, p, id, m, now) then S.recheckIds[id] = nil end
+    end
+end
+
+local eventsBase = S.events
+function S.events(p, prev)
+    local ev, cur = eventsBase(p, prev)
+    collect(ev, "event:item_changed", changedEvents, cur.gameMin, p)
+    return ev, cur
 end

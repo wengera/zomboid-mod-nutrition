@@ -59,7 +59,7 @@ SHAPES = {
     "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None), "water": ("rec", "water")},
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
-REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full"))
+REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag"))
 ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
@@ -87,7 +87,7 @@ FILTERS = ("food", "water", "weapon", "bandage", "all")
 ITEM_USES = ("food", "water", "weapon", "bandage", "other", "container")
 ACT_STATES = ("accepted", "rejected", "progress", "done", "failed")
 MAP_MODES = ("full", "delta")
-EVENT_KINDS = ("damage", "swing", "zombie_dead", "item_added", "item_removed", "door", "lua_error", "overflow", "scan_dropped", "death")
+EVENT_KINDS = ("damage", "swing", "zombie_dead", "item_added", "item_removed", "door", "lua_error", "overflow", "scan_dropped", "death", "item_changed")
 # each event kind's own fields, flat beside event and gameMin
 EVENT_FIELDS = {
     "damage": ("tag", "amount", "side"),
@@ -100,6 +100,7 @@ EVENT_FIELDS = {
     "overflow": ("queued", "cut"),
     "scan_dropped": ("scanId", "aid", "part", "parts", "reason"),
     "death": ("worldAge", "x", "y", "z", "health", "via", "zombiesKilled"),
+    "item_changed": ("itemId", "use", "fluid", "amount"),
 }
 
 

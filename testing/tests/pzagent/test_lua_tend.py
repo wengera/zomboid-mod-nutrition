@@ -12,9 +12,11 @@ def ended(lua):
 
 
 def tend_item(p, ft, iid, **members):
-    """An inventory item of full type ft and id iid, with `members` as its Java members (each a value answered)."""
+    """An inventory item of full type ft and id iid, with `members` as its Java members (each a value answered); its
+    getContainer the player's main inventory (PZA/1.5.1: a `getContainer` member overrides it, a bag)."""
+    inv = p.getInventory(p)
     it = J(getFullType=lambda s: ft, getID=lambda s: iid, getWeight=lambda s: 0.1, IsFood=lambda s: False,
-           getFluidContainer=lambda s: None, getHungerChange=lambda s: 0.0)
+           getFluidContainer=lambda s: None, getHungerChange=lambda s: 0.0, getContainer=lambda s: inv)
     for k, v in members.items():
         setattr(it, k, (lambda val: lambda s, *a: val(*a) if callable(val) else val)(v))
     p.held.append(it)
@@ -472,3 +474,40 @@ def test_a_fill_from_afar_walks_first_and_one_that_never_rises_is_interrupted(lu
     tick(lua, p)
     assert [s for s in states(acts(lua, fs)) if s[1] == "failed"] == [
         ("far", "failed", "superseded"), ("slow", "failed", "interrupted"), ("nl", "failed", "not loaded")]
+
+
+# ---- PZA/1.5.1 (Task 9 fix 1): an item in a bag, rip's hasActionType, the shared helpers ------------------------------
+
+def test_bandage_and_wash_refuse_an_item_in_a_bag_and_fill_takes_one(lua, fs):
+    """Review minor 3: K.itemById finds an item in a bag, but the server's ISApplyBandage and ISWashClothing refuse
+    one not in the main inventory; ISTakeWaterAction:isValid asks only that the item has a container."""
+    load(lua)
+    water_world(lua, sink())
+    p = make_player()
+    with_parts(p, [make_part(0, bleeding=True, bleeding_time=3.0)])
+    bag = J(_cls="ItemContainer")
+    tend_item(p, "Base.Bandage", 50, isCanBandage=True, getContainer=bag)
+    tend_item(p, "Base.RippedSheetsDirty", 51, isCanBandage=True, getItemAfterCleaning="Base.RippedSheets",
+              getBloodLevel=0.0, getContainer=bag)
+    loose = tend_item(p, "Base.Bandage", 52, isCanBandage=True)
+    loose.getContainer = None                                   # the member absent: fails closed
+    from .conftest import make_fluid
+    tend_item(p, "Base.WaterBottle", 53, getFluidContainer=make_fluid(amount=0.0), getContainer=bag)
+    start(lua, p, "bandage", aid="b", itemId=50)
+    start(lua, p, "wash", aid="w", itemId=51, x=11, y=20)
+    start(lua, p, "bandage", aid="n", itemId=52)
+    start(lua, p, "fill", aid="f", itemId=53, x=11, y=20)
+    assert states(acts(lua, fs)) == [("b", "rejected", "in bag"), ("w", "rejected", "in bag"),
+                                     ("n", "rejected", "in bag"), ("f", "accepted", "")]
+
+
+def test_a_rip_without_has_action_type_fails_not_loaded(lua, fs):
+    """Review minor 7: the queue check failed open when hasActionType was absent."""
+    load(lua)
+    p = make_player()
+    cotton(p)
+    lua.globals().ISTimedActionQueue.hasActionType = None
+    start(lua, p, "rip", itemId=70)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "not loaded")
+

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "pza1.json",
   "title": "PZA/1",
-  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges; PZA/1.3, PZAgent 1.3: the death event; PZA/1.4, PZAgent 1.4: me's attackers, hitReaction and dragDown and the square record's hopN and hopW, ruling P24-C; PZAgent 1.4.1: the item use container, appended to its enum, and water read only for drinkable water, ruling P24-F; PZA/1.5, PZAgent 1.5: the actions aim, climb, bandage, rip, wash and fill, the square record's water, me's aiming and the part record's bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep and infected, ruling P24-G), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
+  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges; PZA/1.3, PZAgent 1.3: the death event; PZA/1.4, PZAgent 1.4: me's attackers, hitReaction and dragDown and the square record's hopN and hopW, ruling P24-C; PZAgent 1.4.1: the item use container, appended to its enum, and water read only for drinkable water, ruling P24-F; PZA/1.5, PZAgent 1.5: the actions aim, climb, bandage, rip, wash and fill, the square record's water, me's aiming and the part record's bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep and infected, ruling P24-G; PZA/1.5.1, PZAgent 1.5.1: the item_changed event and the reason in bag, appended to their enums, Plan 24 Task 9 fix 1), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
   "x-proto": "PZA/1",
   "x-kinds": ["hello", "frame", "map", "event", "act", "reply"],
   "oneOf": [
@@ -47,12 +47,12 @@
     "reason": {
       "description": "The closed set of reasons a skill is rejected or fails with.",
       "type": "string",
-      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full"]
+      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag"]
     },
     "eventKind": {
       "description": "The kind of an engine event line.",
       "type": "string",
-      "enum": ["damage", "swing", "zombie_dead", "item_added", "item_removed", "door", "lua_error", "overflow", "scan_dropped", "death"]
+      "enum": ["damage", "swing", "zombie_dead", "item_added", "item_removed", "door", "lua_error", "overflow", "scan_dropped", "death", "item_changed"]
     },
     "mapMode": {
       "description": "Whether a map scan sends every square in range or only the changed ones.",
@@ -418,7 +418,8 @@
         {"$ref": "#/$defs/event_lua_error"},
         {"$ref": "#/$defs/event_overflow"},
         {"$ref": "#/$defs/event_scan_dropped"},
-        {"$ref": "#/$defs/event_death"}
+        {"$ref": "#/$defs/event_death"},
+        {"$ref": "#/$defs/event_item_changed"}
       ]
     },
     "event_damage": {
@@ -459,7 +460,7 @@
         "itemId": {"description": "The item's id.", "type": "integer"},
         "fullType": {"description": "The item's full type.", "type": "string"},
         "weight": {"description": "The item's weight.", "type": "number"},
-        "use": {"description": "The item's use as the engine answers it: food (isA Food with getHungerChange below 0), weapon (isA HandWeapon), water (its fluid container holds drinkable water: isWaterSource, not tainted, not poisonous, at most 3 litres, no Bleach or Petrol by name), container (an empty drinking vessel that may hold water, canAddFluid(Fluid.Water): PZA/1.4.1, ruling P24-F), bandage (a Bandage or Rag by full type), else other. Before PZA/1.4.1 water read any non-poisonous fluid container (a Disinfectant included) and container did not exist. Absent in logs written before Plan 23 Task 9b.", "$ref": "#/$defs/itemUse"}
+        "use": {"description": "The item's use as the engine answers it: food (isA Food with getHungerChange below 0), weapon (isA HandWeapon), water (its fluid container, at most 3 litres, no Bleach or Petrol by name, not tainted, not poisonous and not sealed (canPlayerEmpty, PZA/1.5.1: a sealed pop can is other), holds a water source (isWaterSource) or, PZA/1.5, a beverage that lowers thirst and is neither hazardous nor alcoholic: a pop, a juice, a milk), container (an empty drinking vessel that may hold water, canAddFluid(Fluid.Water): PZA/1.4.1, ruling P24-F), bandage (isCanBandage(), PZA/1.5.1: a bandage, a ripped sheet, dirty or clean, or a denim or leather strip; before PZA/1.5.1 a Bandage or Rag by full type), else other. Read once at the item's first sight; an item_changed event (PZA/1.5.1) carries the use again when an action changed it. Before PZA/1.4.1 water read any non-poisonous fluid container (a Disinfectant included) and container did not exist. Absent in logs written before Plan 23 Task 9b.", "$ref": "#/$defs/itemUse"}
       },
       "required": ["itemId", "fullType", "weight"]
     },
@@ -531,6 +532,18 @@
         "zombiesKilled": {"description": "The game's own kill count, getZombieKills; absent when that read failed (its name then in the frame reader's missing list).", "type": "integer"}
       },
       "required": ["worldAge", "x", "y", "z", "health", "via"]
+    },
+    "event_item_changed": {
+      "description": "A held item's use or fluid amount changed under an action (PZA/1.5.1, Plan 24 Task 9 fix 1): a fill, a consume, a wash or a rip ending on an item still in the main inventory marks it, and for 30 s after the end the item is read again: an event at the first read when its use (read again as item_added's) changed, and when its fluid amount, held still 1 s, differs from the last one reported (the amount when the action began, first). An item's use is otherwise read once, at its first sight; a reader takes the event's use as the item's use from then on. Absent in logs written before PZA/1.5.1.",
+      "x-role": "event",
+      "properties": {
+        "event": {"description": "The event's kind.", "const": "item_changed"},
+        "itemId": {"description": "The item's id.", "type": "integer"},
+        "use": {"description": "The item's use as the engine now answers it, item_added's use read again.", "$ref": "#/$defs/itemUse"},
+        "fluid": {"description": "Its fluid container's primary fluid, getPrimaryFluid():getFluidTypeString() (Water, TaintedWater, a beverage); absent when it is empty or has no fluid container.", "type": "string"},
+        "amount": {"description": "Its fluid container's amount in litres, getAmount(); absent when it has no fluid container.", "type": "number"}
+      },
+      "required": ["itemId", "use"]
     },
 
     "act": {

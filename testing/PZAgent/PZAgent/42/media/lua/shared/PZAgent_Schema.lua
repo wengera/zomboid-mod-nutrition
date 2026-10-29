@@ -35,7 +35,7 @@ PZA.schema = {
         water = { "amount", "tainted", "infinite" },
         square = { "x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW", "water" },
     },
-    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true, ["not a container"] = true, full = true },
+    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true, ["not a container"] = true, full = true, ["in bag"] = true },
     actions = {
         walkTo = { "x", "y", "gait" },
         steer = { "vx", "vy", "seconds", "gait" },
@@ -71,6 +71,7 @@ PZA.schema = {
         overflow = { "queued", "cut" },
         scan_dropped = { "scanId", "aid", "part", "parts", "reason" },
         death = { "worldAge", "x", "y", "z", "health", "via", "zombiesKilled" },
+        item_changed = { "itemId", "use", "fluid", "amount" },
     },
 }
 

@@ -2,7 +2,8 @@
 -- into PZA.skills.types like PZAgent_SkillsWorld.lua's, whose runner (K.start, K.tick) owns every act line, the S-12 and
 -- S-15 guards and MO.off at every end (PZAgent_Stance.lua's K.start releases a held stance before each of them: every
 -- vanilla action here stops on aiming). Loads after PZAgent_Stance.lua (client files load by name, "St" before "T") and
--- reaches PZAgent_SkillsWorld.lua's helpers through K (K.itemById, K.squareAt, K.floorOf, K.approach, K.queueAction).
+-- reaches PZAgent_SkillsWorld.lua's helpers through K (K.itemById, K.squareAt, K.floorOf, K.approach, K.queueAction,
+-- K.numOf).
 -- Every Java member through PZA.call (index-first), every vanilla class and member index-checked before a call under
 -- pcall. The jar and install reads are docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md sections 3-5 and 7
 -- (Task 6b, rows T6b.5-T6b.8, T6b.10, T6b.11).
@@ -16,11 +17,9 @@ local function flag(o, member, ...)
     return v == true
 end
 
--- a number member read: the number, else 0
+-- a number member read: the number, else 0 (PZAgent_SkillsWorld.lua's numOf, nil read as 0)
 local function num(o, member)
-    local ok, v = PZA.call(o, member)
-    if ok and type(v) == "number" then return v end
-    return 0
+    return K.numOf(o, member) or 0
 end
 
 -- the held item a check names by itemId: the item, else nil and the reason (bad args, none held)
@@ -29,6 +28,21 @@ local function heldItem(args, p)
     if type(id) ~= "number" then return nil, "bad args" end
     local it = K.itemById(p, id)
     if it == nil then return nil, "none held" end
+    return it, nil
+end
+
+-- heldItem, and the item in the main inventory itself, not in a bag it carries (PZA/1.5.1, Task 9 review minor 3):
+-- K.itemById finds an item in a bag (ItemContainer.getItemById recurses), but the server's ISApplyBandage:isValid
+-- tests getInventory():contains(item), which does not (ItemContainer.contains @0-@8 L658), and ISWashClothing:isValid
+-- requires item:getContainer() == character:getInventory() (lua:shared/TimedActions/ISWashClothing.lua:10); vanilla
+-- moves the item to the main inventory first. An item whose getContainer() is not the player's getInventory() is
+-- refused in bag (an absent member reads in bag: fails closed)
+local function mainItem(args, p)
+    local it, why = heldItem(args, p)
+    if it == nil then return nil, why end
+    local _, inv = PZA.call(p, "getInventory")
+    local _, c = PZA.call(it, "getContainer")
+    if inv == nil or c ~= inv then return nil, "in bag" end
     return it, nil
 end
 
@@ -54,10 +68,10 @@ end
 -- doubles them. The action is vanilla's own, ISApplyBandage:new(character, otherPlayer, item, bodyPart, doIt)
 -- (lua:shared/TimedActions/ISApplyBandage.lua:173), doIt true to apply, false (with no item) to take a bandage off
 -- (ISHealthPanel.lua:1219), as the health panel queues them. check: itemId a number (bad args), the item held (none
--- held) and isCanBandage() true (a bandage, a ripped sheet, a rag, dirty or clean: else not valid); part a number
--- (absent: -1), -1 the worst part (worstPart: a bleeding unbandaged part, a deep wound first, then the longest
--- getBleedingTime; else a wound under a dirty bandage; else an unbandaged wound; none: no wound), else the index into
--- getBodyParts() (out of range: bad args). The first tick: the vanilla queue cleared; on a part already bandaged, the
+-- held; in the main inventory, else in bag) and isCanBandage() true (a bandage, a ripped sheet, dirty or clean: else
+-- not valid); part a number (absent: -1), -1 the worst part (worstPart: a bleeding unbandaged part, a deep wound first,
+-- then the longest getBleedingTime; else a wound under a dirty bandage; else an unbandaged wound; none: no wound), else
+-- the index into getBodyParts() (out of range: bad args). The first tick: the vanilla queue cleared; on a part already bandaged, the
 -- bandage taken off first (doIt false), then the item applied (doIt true): not loaded, not valid. Done once the item is
 -- gone from the inventory by id and the part reads bandaged(), {part (its index), dirty (the item's full type names
 -- Dirty), life (getBandageLife())}; interrupted after BANDAGE_MS.
@@ -115,7 +129,7 @@ end
 
 K.types.bandage = {
     check = function(args, p)
-        local it, why = heldItem(args, p)
+        local it, why = mainItem(args, p)
         if it == nil then return false, why end
         if not flag(it, "isCanBandage") then return false, "not valid" end
         local want = args.part
@@ -168,7 +182,7 @@ K.types.bandage = {
 -- (lua:client/ISUI/ISInventoryPaneContextMenu.lua:3428: a HandcraftLogic, canPerformCurrentRecipe, then
 -- ISEntityUI.HandcraftStart queues the handcraft), each piece index-checked (not loaded) and the call under pcall
 -- (not valid); a handcraft not in the queue after it (ISTimedActionQueue.hasActionType(p, "ISHandcraftAction") false,
--- the logic refused) is not valid. Done once the item is gone by id, {rags (the new items whose full type names
+-- the logic refused) is not valid, and hasActionType absent not loaded (PZA/1.5.1: fails closed). Done once the item is gone by id, {rags (the new items whose full type names
 -- RippedSheets), dirty (those naming Dirty)}; interrupted after RIP_MS.
 K.RIP_MS = 20000
 
@@ -199,10 +213,9 @@ local function ripStart(p, st)
     st.before = idSet(p)
     if not pcall(M.OnNewCraft, st.item, recipe, num0, false) then return "not valid" end
     local Q = ISTimedActionQueue
-    if Q.hasActionType ~= nil then
-        local okQ, has = pcall(Q.hasActionType, p, "ISHandcraftAction")
-        if not okQ or has ~= true then return "not valid" end
-    end
+    if Q.hasActionType == nil then return "not loaded" end
+    local okQ, has = pcall(Q.hasActionType, p, "ISHandcraftAction")
+    if not okQ or has ~= true then return "not valid" end
     st.queuedAt = PZA.now()
     return nil
 end
@@ -251,9 +264,9 @@ K.types.rip = {
 -- TimedActions/ISWashClothing.lua:76-92), uses that much, and tests neither the water's taint nor soap; its new is
 -- (character, sink, item, bloodAmount, dirtAmount, noSoap) (:230), vanilla passing the blood level for a non-clothing
 -- item after a walk next to the source (ISWorldObjectContextMenu.lua:1777-1815). check: the item held (none held, bad
--- args), getItemAfterCleaning() a non-empty string (else not dirty), x and y numbers (bad args); on square (x, y) of the
--- player's floor the first object whose hasWater() holds (W.waterOn: else no source), its getFluidAmount() at least the
--- need (else no water). The tick walks next to the source as interact does (K.approach: not adjacent), then queues
+-- args; in the main inventory, else in bag), getItemAfterCleaning() a non-empty string (else not dirty), x and y
+-- numbers (bad args); on square (x, y) of the player's floor the first object whose hasWater() holds (W.waterOn: else
+-- no source), its getFluidAmount() at least the need (else no water). The tick walks next to the source as interact does (K.approach: not adjacent), then queues
 -- ISWashClothing:new(p, source, item, blood, 0, noSoap), noSoap unless the inventory's getSoapList(nil, true) reads not
 -- empty (not loaded, not valid). Done once the item is gone by id, {water (the units the wash needs)}; interrupted after
 -- WASH_MS from the queue.
@@ -282,7 +295,7 @@ end
 
 K.types.wash = {
     check = function(args, p)
-        local it, why = heldItem(args, p)
+        local it, why = mainItem(args, p)
         if it == nil then return false, why end
         local x, y = args.x, args.y
         if type(x) ~= "number" or type(y) ~= "number" then return false, "bad args" end
@@ -381,3 +394,32 @@ K.types.fill = {
         return nil
     end,
 }
+
+-- ---- the item re-read (PZA/1.5.1, Task 9 fix 1, review major 1) ----------------------------------------------------
+-- A fill, a consume, a wash or a rip changes its item's contents, so each one's end marks its item for Sense's re-read
+-- (PZAgent_Sense.lua's S.recheck: an item_changed event when the item's use or its settled fluid amount changed), with
+-- the fluid amount the skill read when it began (fill's amount0, a drink's amount; nil otherwise). The mark is set at
+-- every end: a done through the skill's tick, any other (failed, superseded, a raise) through its stop hook, which the
+-- runner calls at every end but done. Each skill's table is edited in place, so a running skill's def (the runner's
+-- cur.def) reads the wrapped members. A bandage needs none: it consumes its item, whose item_removed the diff emits.
+local function mark(st)
+    local S = PZA.sense
+    if S == nil or S.recheck == nil or type(st) ~= "table" then return end
+    S.recheck(st.id, st.amount0 or st.amount)
+end
+
+function K.markOnEnd(name)
+    local def = K.types[name]
+    local tick, stop = def.tick, def.stop
+    def.tick = function(p, st)
+        local state, out = tick(p, st)
+        if state == "done" then mark(st) end
+        return state, out
+    end
+    def.stop = function(p, st, reason)
+        mark(st)
+        if stop ~= nil then stop(p, st, reason) end
+    end
+end
+
+for _, name in ipairs({ "fill", "consume", "wash", "rip" }) do K.markOnEnd(name) end
