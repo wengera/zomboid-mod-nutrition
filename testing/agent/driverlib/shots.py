@@ -27,7 +27,7 @@ THE SHOT (`take`, on the worker): the window finder `find(pid)` -> {rect, source
 (pixels: the process is made DPI-aware first; `window_rect`: the DWM extended frame bounds, source "dwm", else
 GetWindowRect, "gwr", whose rect on Windows 10/11 carries invisible resize borders and a shadow, so the first live
 shots took a strip of the host desktop; clipped to the virtual screen) or None; `grab(bbox)` (PIL.ImageGrab.grab)
-over it, or over the primary screen (bbox None, window.found false) when none is found; downscaled to SHOT_WIDTH
+over it (the primary screen only with guard=None, bbox None, window.found false); downscaled to SHOT_WIDTH
 wide (aspect kept, never upscaled), JPEG quality SHOT_QUALITY, written to <run dir>/shots/shot-<n:04d>-<seq>.jpg,
 and one line appended to shots/shots.jsonl: {n, file, bytes, sha256, wallMs, pyMs (the taker's clock at the grab,
 ms), seq, gameMin, health, branch, flee, fight, goal, decision_line, trigger, window {found, rect, rect_source},
@@ -42,7 +42,9 @@ grab the foreground window must be the client's (`find` gives `hwnd`), else the 
 area (the Z-order walked above the client), else `skipped: "occluded"`. The skipped line carries the usual fields minus
 file, bytes and sha256, plus `skipped` and `other_class` (the other window's class name only, never its title, which
 may carry personal text); it takes the next n, and the record's `skipped` counts them (n counts the written shots).
-A guard that raises is a failure and no grab. `cited_ok(index_path, numbers)` refuses a cited shot that was skipped or
+A found window without `hwnd`, or none found, is `skipped: "no window"` (class "") and no grab: the guard fails closed;
+only `guard=None` (the tests) grabs unguarded, the primary screen when no window is found. The first skip of each
+reason in a session is printed once to stdout. A guard that raises is a failure and no grab. `cited_ok(index_path, numbers)` refuses a cited shot that was skipped or
 whose window was not found: the controller's copy script runs it before copying any image.
 """
 import ctypes
@@ -234,14 +236,18 @@ class _User32:
 
 
 def screen_guard(hwnd, rect, pid, user32=None):
-    """None when the client window `hwnd` (rect, owned by `pid`) is the foreground window and no other process
-    window overlaps rect by more than OCCLUDED_FRAC of its area; else (reason, the other window class name)."""
+    """None when the client window `hwnd` (rect, owned by `pid`) is the foreground window and the other-process
+    windows above it overlap rect by no more than OCCLUDED_FRAC of its area in all (the overlaps are summed, so
+    several small windows count together and overlapping ones count twice: the safe direction); else (reason, the
+    class name of the window that tipped the sum). `pid` None is unknown: the foreground check alone is made, since
+    the client's own windows could not be told from another's. `rect` is the client's DWM frame and the others'
+    GetWindowRect (invisible borders, cloaked windows read as visible): both over-count, so a skip errs safe."""
     u = user32 if user32 is not None else _User32()
     fg = u.foreground()
     if fg != hwnd:
         return "not foreground", (u.class_name(fg) if fg else "")
     area = max(1, (rect[2] - rect[0]) * (rect[3] - rect[1]))
-    h, steps = u.above(hwnd), 0
+    h, steps, covered = (u.above(hwnd) if pid is not None else 0), 0, 0
     while h and steps < 4096:
         steps += 1
         if u.visible(h):
@@ -249,8 +255,10 @@ def screen_guard(hwnd, rect, pid, user32=None):
             if r is not None and u.owner_pid(h) != pid:
                 w_ = min(r[2], rect[2]) - max(r[0], rect[0])
                 h_ = min(r[3], rect[3]) - max(r[1], rect[1])
-                if w_ > 0 and h_ > 0 and w_ * h_ > OCCLUDED_FRAC * area:
-                    return "occluded", u.class_name(h)
+                if w_ > 0 and h_ > 0:
+                    covered += w_ * h_
+                    if covered > OCCLUDED_FRAC * area:
+                        return "occluded", u.class_name(h)
         h = u.above(h)
     return None
 
@@ -293,6 +301,7 @@ class ShotTaker:
         self.dir = os.path.join(run_dir, SHOTS_DIR)
         self.n = 0                    # index lines written (shots and skipped)
         self.skipped = 0
+        self._said = set()            # the skip reasons already printed once
         self.failures = 0
         self.last_error = None
         self.cap_hit = False
@@ -373,8 +382,8 @@ class ShotTaker:
             rect, src = (win.get("rect"), win.get("source")) if isinstance(win, dict) else (win, None)
             bbox = tuple(int(v) for v in rect) if rect is not None else None
             hwnd = win.get("hwnd") if isinstance(win, dict) else None
-            if bbox is not None and hwnd is not None and self.guard is not None:
-                verdict = self.guard(hwnd, bbox, self.pid)
+            if self.guard is not None:                   # fail closed: no found client window, no grab
+                verdict = ("no window", "") if bbox is None or hwnd is None else self.guard(hwnd, bbox, self.pid)
                 if verdict is not None:
                     return self._skip(trigger, m, now, verdict, bbox, src)
             img = self.grab(bbox)
@@ -429,6 +438,10 @@ class ShotTaker:
         with self._lock:
             self.n += 1
             self.skipped += 1
+            first = reason not in self._said
+            self._said.add(reason)
+        if first:
+            print("shots: skipped (%s), first of its kind this session" % reason, flush=True)
         return False
 
     def _run(self):

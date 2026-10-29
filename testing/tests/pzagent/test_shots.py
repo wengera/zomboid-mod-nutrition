@@ -7,6 +7,7 @@ test_driverlib's run_session (DayMod on a fake clock) with an inline ShotTaker a
 import hashlib
 import json
 import os
+import sys
 import threading
 import time
 import types
@@ -42,6 +43,7 @@ def fake_grab(calls=None, size=(1920, 1080)):
 
 
 def taker(tmp_path, clock, find=lambda pid: RECT, grab=None, **kw):
+    kw.setdefault("guard", None)                  # unguarded unless a test passes the guard
     return SH.ShotTaker(str(tmp_path), pid=4242, grab=grab or fake_grab(), find=find, clock=clock.now, **kw)
 
 
@@ -177,7 +179,7 @@ def test_the_index_line_and_the_file_it_names(tmp_path):
     assert img.format == "JPEG" and img.size == (1280, 720)                  # 1920x1080 kept its aspect
 
 
-def test_no_window_grabs_the_primary_screen_and_says_so(tmp_path):
+def test_unguarded_no_window_grabs_the_primary_screen_and_says_so(tmp_path):
     c = Clock()
     calls = []
     t = taker(tmp_path, c, find=lambda pid: None, grab=fake_grab(calls, size=(2560, 1440)))
@@ -239,7 +241,7 @@ def test_the_summary_is_the_records_shape(tmp_path):
 # ================================================================ the worker thread
 def test_the_worker_thread_shoots_and_joins_at_the_end(tmp_path):
     c = Clock()
-    t = SH.ShotTaker(str(tmp_path), pid=None, grab=fake_grab(), find=lambda pid: RECT, clock=c.now, idle_s=0.005)
+    t = SH.ShotTaker(str(tmp_path), pid=None, grab=fake_grab(), find=lambda pid: RECT, clock=c.now, idle_s=0.005, guard=None)
     t.start()
     t.mark(moment(seq=1))
     t0 = time.time()
@@ -258,7 +260,7 @@ def test_the_join_is_bounded(tmp_path):
     def slow(bbox):
         gate.wait(5)
         return Image.new("RGB", (64, 32))
-    t = SH.ShotTaker(str(tmp_path), grab=slow, find=lambda pid: None, clock=c.now, idle_s=0.005)
+    t = SH.ShotTaker(str(tmp_path), grab=slow, find=lambda pid: None, clock=c.now, idle_s=0.005, guard=None)
     t.start()
     t.mark(moment(seq=1))
     time.sleep(0.05)
@@ -287,7 +289,7 @@ class InlineShots(SH.ShotTaker):
 def attach(tmp_path, holder):
     def setup(sess):
         holder["t"] = InlineShots(str(tmp_path), pid=1, grab=fake_grab(size=(320, 180)), find=lambda pid: RECT,
-                                  clock=sess.clock)
+                                  clock=sess.clock, guard=None)
         sess.shots = holder["t"]
     return setup
 
@@ -340,7 +342,7 @@ def test_the_day_builds_a_taker_only_for_a_live_client(tmp_path):
     assert isinstance(t, SH.ShotTaker) and t.pid == 9876 and t.run_dir == str(tmp_path) and t.clock() == 3.0
     assert DY.day_shots(types.SimpleNamespace(user="admin", path=None, clients={})) is None
     c = DY.make_day_session(xs, None, lambda w, a, p, k: types.SimpleNamespace(), clock=lambda: 5.0,
-                            shots=InlineShots(str(tmp_path), find=lambda pid: None, grab=fake_grab()))
+                            shots=InlineShots(str(tmp_path), find=lambda pid: None, grab=fake_grab(), guard=None))
     assert isinstance(c.shots, InlineShots)
 
 
@@ -368,7 +370,7 @@ def test_the_drivers_are_not_edited():
 # ================================================================ fix 1 (the shots review's residuals)
 def test_a_due_that_raises_once_keeps_the_worker_and_its_final_shots(tmp_path):
     c = Clock()
-    t = SH.ShotTaker(str(tmp_path), grab=fake_grab(), find=lambda pid: RECT, clock=c.now, idle_s=0.005)
+    t = SH.ShotTaker(str(tmp_path), grab=fake_grab(), find=lambda pid: RECT, clock=c.now, idle_s=0.005, guard=None)
     real, calls = t.due, {"n": 0}
 
     def due():
@@ -579,3 +581,70 @@ def test_cited_ok_refuses_skipped_unfound_and_missing_shots(tmp_path):
     msg = str(e.value)
     assert "2: skipped (not foreground)" in msg and "3: window not found" in msg and "9: no index line" in msg
     assert "1:" not in msg.replace("no index line", "")
+
+
+# ---- fix 1 (task 15 review): the guard fails closed
+def test_no_window_found_skips_with_no_window_and_writes_no_image(tmp_path, capsys):
+    calls = []
+    t = taker(tmp_path, Clock(), find=lambda pid: None, grab=fake_grab(calls), guard=SH.screen_guard)
+    took, rows = one(t, tmp_path)
+    assert took == 0 and calls == [] and list((tmp_path / SH.SHOTS_DIR).glob("*.jpg")) == []
+    (row,) = rows
+    assert row["skipped"] == "no window" and row["window"]["found"] is False and "file" not in row
+    assert t.summary()["skipped"] == 1 and t.summary()["n"] == 0 and t.summary()["failures"] == 0
+    assert capsys.readouterr().out.count("no window") == 1
+
+
+def test_a_found_window_without_hwnd_skips_with_no_window(tmp_path):
+    calls = []
+    for found in ({"rect": RECT, "source": "dwm"}, RECT):
+        t = taker(tmp_path, Clock(), find=lambda pid, f=found: f, grab=fake_grab(calls), guard=SH.screen_guard)
+        took, rows = one(t, tmp_path)
+        assert took == 0 and calls == [] and rows[-1]["skipped"] == "no window"
+        for f in (tmp_path / SH.SHOTS_DIR).glob("*"):
+            f.unlink()
+
+
+def test_the_first_skip_of_each_reason_prints_once(tmp_path, capsys):
+    c = Clock()
+    t = guarded(tmp_path, FakeUser32(fg=999, above=over(1.0)), [], clock=c)
+    for at in (0, 10, 20):
+        step(t, c, at)
+    out = capsys.readouterr().out
+    assert t.skipped == 3 and out.count("not foreground") == 1
+
+
+def test_several_small_windows_summing_over_the_fraction_are_occluded(tmp_path):
+    calls = []
+    l, tp, r, b = RECT
+    w = int((r - l) * 0.06)
+    stack = [(990 + i, (l + i * w, tp, l + (i + 1) * w, b), 7000 + i, True) for i in range(2)]
+    t = guarded(tmp_path, FakeUser32(above=stack), calls)
+    took, rows = one(t, tmp_path)
+    assert took == 0 and calls == [] and rows[0]["skipped"] == "occluded"
+    assert rows[0]["other_class"] == "Cls991"                  # the window that tipped the sum
+
+
+def test_an_unknown_pid_makes_the_foreground_check_alone():
+    u = FakeUser32(above=over(1.0))
+    assert SH.screen_guard(CLIENT_HWND, RECT, None, user32=u) is None
+    assert SH.screen_guard(CLIENT_HWND, RECT, CLIENT_PID, user32=u)[0] == "occluded"
+    u.fg = 999
+    assert SH.screen_guard(CLIENT_HWND, RECT, None, user32=u)[0] == "not foreground"
+
+
+@pytest.mark.skipif(not sys.platform.startswith("win"), reason="the real user32 path is Windows only")
+def test_the_real_user32_path_runs_on_the_foreground_window():
+    u = SH._User32()
+    fg = u.foreground()
+    if not fg:
+        pytest.skip("no foreground window on this desktop")
+    assert isinstance(u.class_name(fg), str)
+    pid = u.owner_pid(fg)
+    assert isinstance(pid, int) and pid > 0
+    rect = u.rect(fg)
+    assert rect is None or len(rect) == 4
+    assert isinstance(u.above(fg), int) or u.above(fg) is None
+    if rect is not None and rect[2] > rect[0] and rect[3] > rect[1]:
+        got = SH.screen_guard(fg, rect, pid)
+        assert got is None or (isinstance(got, tuple) and len(got) == 2)
