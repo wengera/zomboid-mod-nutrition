@@ -144,7 +144,7 @@ def make_weapon(max_range=1.25, range_mod=1.0, cond=10, wid=900, two_hands=False
 
 def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_levels=None, weapon=None,
                 weight=4.5, max_weight=8, part_health=None, square="sq", wounds=(0, 0, 0), food=(),
-                zombies_near=(0, 0, 0), traits=()):
+                zombies_near=(0, 0, 0), traits=(), worn=()):
     """`weapon` is the primary hand item; faceThisObject and DoAttack record into p.faced and p.attacks, and
     isAsleep answers p.asleep["v"] (Task 11's fight and sleep).
     Plan 22 probe: the motor setters (setForceRun, setForceSprint, setAutoWalk, setAutoWalkDirection, setRunning,
@@ -256,6 +256,13 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
     p.isAiming = lambda s: aim["force"] if aim["aiming"] is None else aim["aiming"]
     p.setForwardDirection = lambda s, fx, fy: aim["faced"].append((fx, fy))
     p.getVariableString = lambda s, k: variables.get(k, "")
+    # PZA/1.6 (Task 9 fix 9): getWornItems() lists p.worn, a mutable list of (location, item) pairs (`worn`, empty by
+    # default), each as a WornItem whose getLocation() and getItem() answer them; getWornItem(loc) the item worn at loc
+    wl = list(worn)
+    p.worn = wl
+    p.getWornItems = lambda s: J(size=lambda s2: len(wl), get=lambda s2, i: J(getLocation=lambda s3: wl[i][0],
+                                                                             getItem=lambda s3: wl[i][1]))
+    p.getWornItem = lambda s, loc: next((it for l, it in wl if l == loc), None)
     return p
 
 
@@ -412,6 +419,11 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g.ISTakeWaterAction = J(new=lambda cls, p, item, src, tainted: takes.append((p, item, src, tainted)) or J(
         Type="ISTakeWaterAction", item=item))
     g.getScriptManager = lambda: J(getCraftRecipe=lambda s, n: J(name=n))
+    # PZA/1.6's wear: ISWearClothing:new(character, item, time) records into g._wears
+    wears = []
+    g._wears = wears
+    g.ISWearClothing = J(new=lambda cls, p, item, t=None: wears.append((p, item, t)) or J(
+        Type="ISWearClothing", item=item))
     g.ItemTag = J(RIP_CLOTHING_COTTON="RIP_CLOTHING_COTTON", RIP_CLOTHING_DENIM="RIP_CLOTHING_DENIM",
                   RIP_CLOTHING_LEATHER="RIP_CLOTHING_LEATHER")
     equips = []

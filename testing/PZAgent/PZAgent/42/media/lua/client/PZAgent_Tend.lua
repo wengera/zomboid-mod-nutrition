@@ -701,3 +701,71 @@ local steerTick = K.types.steer.tick
 K.types.steer.tick = function(p, st)
     return recordEnd(st, steerTick(p, st))
 end
+
+-- ---- wear {itemId} (PZA/1.6, Task 9 fix 9, review-t18 ruling 5; jar-reads-2 section 10) ------------------------------
+-- A held garment put on as vanilla's context menu does it (ISInventoryPaneContextMenu.wearItem: transferIfNeeded, then
+-- ISTimedActionQueue.add(ISWearClothing:new(playerObj, item, 50)), lua:client/ISUI/ISInventoryPaneContextMenu.lua:
+-- 2888-2895); ISWearClothing (lua:shared/TimedActions/ISWearClothing.lua) runs 50 ticks, stops on a run, and its
+-- complete (the server's) calls setWornItem(item:getBodyLocation(), item) for a Clothing item with a body location
+-- (:101-:131), which replaces the item worn at that location (WornItems.setItem @0-@33 L54-L57) and drops any
+-- exclusive one (@48-@93 L62-L65). check: the item held (mainItem: bad args, none held; in a bag, moved out first, in
+-- bag when the move cannot be queued), its class Clothing with a body location (W.locOf; else not valid), not worn
+-- already (worn), and the player neither in a hit reaction nor in a swing (K.attackBusy: busy, a garment put on under
+-- attack is time lost). The first tick: moveOut, the item worn at that location now (getWornItem(getBodyLocation()),
+-- its id the result's replaced) read, then ISWearClothing:new(p, item, 50) queued through K.queueAction (not loaded,
+-- not valid). Done {itemId, loc, replaced, moved} once the item reads isWorn() true; WEAR_MS after the queue,
+-- interrupted. At every end the garment and the one it replaced are marked for Sense's re-read (S.recheck: an
+-- item_changed with the new worn and clothing record) and me.worn is read on the next frame (S.wornDirty).
+K.WEAR_MS = 15000         -- a garment not worn within this wall time of its queue (a bag move and 50 ticks) is interrupted
+
+local function wornId(p, it)
+    local _, loc = PZA.call(it, "getBodyLocation")
+    if loc == nil then return nil end
+    local _, w = PZA.call(p, "getWornItem", loc)
+    local _, id = PZA.call(w, "getID")
+    return id
+end
+
+local function markWear(st)
+    local S = PZA.sense
+    if S == nil or type(st) ~= "table" then return end
+    if S.recheck ~= nil then
+        S.recheck(st.id, nil)
+        if st.replaced ~= nil then S.recheck(st.replaced, nil) end
+    end
+    S.wornDirty = true
+end
+
+K.types.wear = {
+    check = function(args, p)
+        local it, why, bag = mainItem(args, p)
+        if it == nil then return false, why end
+        if not W.isA(it, "Clothing") then return false, "not valid" end
+        local loc = W.locOf(it)
+        if loc == nil then return false, "not valid" end
+        if W.wornOf(it) then return false, "worn" end
+        if K.attackBusy ~= nil and K.attackBusy(p) then return false, "busy" end
+        return true, "", { id = args.itemId, item = it, bag = bag, loc = loc, queuedAt = nil }
+    end,
+    tick = function(p, st)
+        if isDead(p) then return "failed", "dead" end
+        if st.queuedAt == nil then
+            local moved = moveOut(p, st)
+            if moved ~= nil then return "failed", moved end
+            st.replaced = wornId(p, st.item)
+            local ok, why = K.queueAction(ISWearClothing, "not valid", nil, p, st.item, 50)
+            if not ok then return "failed", why end
+            st.queuedAt = PZA.now()
+            return nil
+        end
+        if W.wornOf(st.item) then
+            markWear(st)
+            return "done", withMoved({ itemId = st.id, loc = st.loc, replaced = st.replaced }, st)
+        end
+        if PZA.now() - st.queuedAt > K.WEAR_MS then return "failed", "interrupted" end
+        return nil
+    end,
+    stop = function(p, st, reason)
+        markWear(st)
+    end,
+}

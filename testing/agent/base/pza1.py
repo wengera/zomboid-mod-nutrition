@@ -26,7 +26,7 @@ ORDER = {
 }
 # a frame's groups, elidable in a delta
 GROUPS = {
-    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim"),
+    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn"),
     "stats": ("hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature"),
     "body": ("health", "bleeding", "scratched", "bitten", "parts"),
     "load": ("weight", "max", "level", "n"),
@@ -44,6 +44,7 @@ PRIOR = {
 }
 # the positional records
 RECORDS = {
+    "wornLoc": ("loc", "bite", "scratch"),
     "part": ("i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected"),
     "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health"),
     "portal": ("open", "locked", "barricaded"),
@@ -53,6 +54,7 @@ RECORDS = {
 }
 # each positional field that is not a plain value: ("group" | "rec" | "list" | "vlist", its name)
 SHAPES = {
+    "me": {"worn": ("list", "wornLoc")},
     "body": {"parts": ("list", "part")},
     "frame": {"me": ("group", "me"), "stats": ("group", "stats"), "body": ("group", "body"), "load": ("group", "load"), "weapon": ("group", "weapon"), "action": ("group", "action"), "act": ("group", "act"), "zombies": ("list", "zombie"), "cost": ("group", "cost")},
     "container": {"items": ("vlist", None)},
@@ -60,7 +62,7 @@ SHAPES = {
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
 REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming"))
-ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill")
+ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
     "walkTo": {"x": "float", "y": "float", "gait": "gait"},
@@ -80,11 +82,12 @@ ACTION_ARGS = {
     "rip": {"itemId": "int"},
     "wash": {"itemId": "int", "x": "int", "y": "int"},
     "fill": {"itemId": "int", "x": "int", "y": "int"},
+    "wear": {"itemId": "int"},
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
-FILTERS = ("food", "water", "weapon", "bandage", "container", "all")
-ITEM_USES = ("food", "water", "weapon", "bandage", "other", "container")
+FILTERS = ("food", "water", "weapon", "bandage", "container", "all", "clothing")
+ITEM_USES = ("food", "water", "weapon", "bandage", "other", "container", "clothing")
 ACT_STATES = ("accepted", "rejected", "progress", "done", "failed")
 MAP_MODES = ("full", "delta")
 EVENT_KINDS = ("damage", "swing", "zombie_dead", "item_added", "item_removed", "door", "lua_error", "overflow", "scan_dropped", "death", "item_changed")
@@ -93,14 +96,14 @@ EVENT_FIELDS = {
     "damage": ("tag", "amount", "side"),
     "swing": ("attackStarted", "meleeDelay"),
     "zombie_dead": ("id",),
-    "item_added": ("itemId", "fullType", "weight", "use", "worn", "rip"),
+    "item_added": ("itemId", "fullType", "weight", "use", "worn", "rip", "clothing"),
     "item_removed": ("itemId", "fullType"),
-    "door": ("x", "y", "z", "open"),
+    "door": ("x", "y", "z", "open", "locked"),
     "lua_error": ("msg",),
     "overflow": ("queued", "cut"),
     "scan_dropped": ("scanId", "aid", "part", "parts", "reason"),
     "death": ("worldAge", "x", "y", "z", "health", "via", "zombiesKilled"),
-    "item_changed": ("itemId", "use", "fluid", "amount", "worn", "rip"),
+    "item_changed": ("itemId", "use", "fluid", "amount", "worn", "rip", "clothing"),
 }
 
 
@@ -418,3 +421,10 @@ class Fill(_Cmd):
     itemId: int  # The container's id.
     x: int  # The water source's square x.
     y: int  # The water source's square y.
+
+
+@dataclasses.dataclass(frozen=True)
+class Wear(_Cmd):
+    """Put on a held garment (an item whose use is clothing) at its body location, as vanilla's Wear does (ISWearClothing, 50 ticks; a garment in a bag is moved out first): it replaces the item worn there. Refused worn when it is worn already, busy in a hit reaction or a swing, not valid for an item that is not Clothing or has no body location."""
+    TYPE: ClassVar[str] = "wear"
+    itemId: int  # The garment's id.

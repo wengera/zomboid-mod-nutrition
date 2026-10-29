@@ -168,7 +168,8 @@
    "bandage",
    "rip",
    "wash",
-   "fill"
+   "fill",
+   "wear"
   ],
   "kind": "hello",
   "mod": "fake",
@@ -367,6 +368,7 @@
   "pace": 0,
   "running": false,
   "sprinting": false,
+  "worn": null,
   "x": 107,
   "y": 200,
   "z": 0,

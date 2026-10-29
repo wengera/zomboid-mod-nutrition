@@ -80,6 +80,8 @@ def test_the_frames_groups_have_exactly_the_schemas_keys(lua):
             continue
         ref = "act_now" if grp == "act" else grp
         want = list(d[ref]["x-order"])
+        if grp == "me":
+            want.remove("worn")                                  # PZA/1.6: elided on a frame whose list is unchanged
         assert sorted(f[grp].keys()) == sorted(want), grp
     unbandaged = {"bandageLife", "bandageDirty"}                 # PZA/1.5: nil on an unbandaged part
     assert sorted(f["body"]["parts"][1].keys()) == sorted(set(d["part"]["x-order"]) - unbandaged)
@@ -488,6 +490,7 @@ def test_event_kinds_and_fields_are_the_schemas(lua):
     watch_cycle(lua, p)
     shirt = make_item("Base.Tshirt_DefaultTEXTURE", 1500)      # PZA/1.5.2: worn and cotton, so worn and rip are sent
     shirt.isWorn = lambda s: True
+    shirt._cls, shirt.getBodyLocation = "Clothing", lambda s: "base:tshirt"   # PZA/1.6: a Clothing, its record sent
     p.held.append(shirt)
     del p.held[0]
     ev, _ = events(lua, p, prev)

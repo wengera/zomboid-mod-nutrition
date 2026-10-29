@@ -145,9 +145,11 @@ def test_a_marked_item_gone_is_dropped_and_its_item_removed_says_so(lua, fs):
 def test_the_item_changed_event_is_the_schemas_and_decodes_through_pza1(lua, fs):
     load(lua)
     kinds = lua.eval("PZA.schema.events")
-    assert list(kinds["item_changed"].values()) == ["itemId", "use", "fluid", "amount", "worn", "rip"]   # 1.5.2
+    assert list(kinds["item_changed"].values()) == ["itemId", "use", "fluid", "amount", "worn", "rip",
+                                                    "clothing"]   # 1.5.2, 1.6
     assert pza1.EVENT_KINDS[-1] == "item_changed" and pza1.EVENT_FIELDS["item_changed"] == ("itemId", "use", "fluid",
-                                                                                            "amount", "worn", "rip")
+                                                                                            "amount", "worn", "rip",
+                                                                                            "clothing")
     lua.execute("PZA.link.init('admin')")
     lua.execute("PZA.emit('event', { event = 'item_changed', gameMin = 451, itemId = 90, use = 'water',"
                 " fluid = 'Water', amount = 1.0 })")
@@ -241,9 +243,9 @@ def test_an_item_changed_carries_the_items_worn_read_again(lua, fs):
 
 def test_worn_and_rip_are_the_schemas_and_an_old_line_decodes_without_them(lua, fs):
     load(lua)
-    assert pza1.EVENT_FIELDS["item_added"][-2:] == ("worn", "rip")
-    assert pza1.EVENT_FIELDS["item_changed"][-2:] == ("worn", "rip")
-    assert lua.eval("PZA.VERSION") == "1.5.6"
+    assert pza1.EVENT_FIELDS["item_added"][-3:] == ("worn", "rip", "clothing")      # PZA/1.6 appends clothing
+    assert pza1.EVENT_FIELDS["item_changed"][-3:] == ("worn", "rip", "clothing")
+    assert lua.eval("PZA.VERSION") == "1.6"
     lua.execute("PZA.link.init('admin')")
     lua.execute("PZA.emit('event', { event = 'item_added', gameMin = 451, itemId = 70,"
                 " fullType = 'Base.Tshirt_DefaultTEXTURE', weight = 0.1, use = 'other', worn = true, rip = 'cotton' })")

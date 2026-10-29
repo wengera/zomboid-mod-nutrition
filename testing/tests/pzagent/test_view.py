@@ -32,7 +32,8 @@ def test_the_view_carries_the_briefs_keys_and_the_sources_reads(tmp_path):
     assert v["pos"] == {"x": 100.25, "y": 200.5, "z": 0} and v["hour"] == 9.5 and v["health"] == 88.0
     assert v["needs"] == {"hunger": 0.1, "thirst": 0.05, "fatigue": 0.2}
     assert v["load"] == {"weight": 6.0, "max": 8.0, "level": 1} and v["weapon"] == BAT["type"]
-    assert v["inventory_by_use"] == {"food": 2, "water": 1, "weapon": 0, "bandage": 0, "other": 0, "container": 0}
+    assert v["inventory_by_use"] == {"food": 2, "water": 1, "weapon": 0, "bandage": 0, "other": 0, "container": 0,
+                                   "clothing": 0}   # PZA/1.6: items.USES gains clothing
     assert v["needs_wanted"] == [] and v["want_shelter"] is False and v["last_goal"] is None
     assert v["events"] == ["item_added", "item_added", "item_added"]
     json.dumps(v, allow_nan=False)

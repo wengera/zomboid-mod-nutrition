@@ -31,6 +31,10 @@ map names by full type only.
 - `other`: everything else, a name the dataset does not carry and a non-drinkable or poison container included
   (`Base.PetrolCan`, the buckets).
 
+`clothing` (PZA/1.6, Plan 24 Task 9 fix 9, review-t18 ruling 5) is a use the engine answers live only (`W.useOf`: the
+item's class is `Clothing`, with its `clothing` record of protection on `item_added` and `item_changed`); the food
+dataset carries no garment, so `use_of` never answers it and a log written before PZA/1.6 reads a garment `other`.
+
 `days_fresh(full_type)` is the dataset's `days_fresh` (None for a food that never spoils, or a name it does not carry):
 the need's pick among foods, the most perishable first (fix wave P, I-4).
 
@@ -41,7 +45,7 @@ import json
 import os
 import re
 
-USES = ("food", "water", "weapon", "bandage", "other", "container")
+USES = ("food", "water", "weapon", "bandage", "other", "container", "clothing")   # PZA/1.6: clothing, live only
 WATER_FLUIDS = frozenset({"Water", "CarbonatedWater"})   # the jar's isWaterSource fluids, TaintedWater left out
 DRINK_CAP_L = 3.0      # litres: vanilla's drink menu refuses a larger container (the Lua's W.DRINK_CAP_L)
 DATASET = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "food-items.json"))

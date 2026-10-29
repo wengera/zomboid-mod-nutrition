@@ -284,8 +284,8 @@ if not S.damageHooked and Events ~= nil and Events.OnPlayerGetDamage ~= nil then
     S.damageHooked = true
 end
 
--- the inventory by item id: { [id] = { fullType, weight, use, worn, rip } }, walked by getItems' size/get; an id in known
--- reuses its entry (its full type, weight, use, worn and rip are read once, at its first sight). nil when the list
+-- the inventory by item id: { [id] = { fullType, weight, use, worn, rip, clothing } }, walked by getItems' size/get; an id
+-- in known reuses its entry (its fields are read once, at its first sight; PZA/1.6 W.clothingOf). nil when the list
 -- cannot be read, so a failed read never reads as every item removed.
 function S.invIds(p, known)
     local _, inv = PZA.call(p, "getInventory")
@@ -303,7 +303,7 @@ function S.invIds(p, known)
                 k = {}
                 getm(S.missing, k, "fullType", it, "getFullType")
                 getm(S.missing, k, "weight", it, "getWeight")
-                k.use, k.worn, k.rip = W.useOf(it), W.wornOf(it), W.ripOf(it)   -- PZA/1.5.2: S.record's worn, rip
+                k.use, k.worn, k.rip, k.clothing = W.useOf(it), W.wornOf(it), W.ripOf(it), W.clothingOf(it)   -- 1.5.2, 1.6
             end
             out[id] = k
         end
@@ -394,7 +394,7 @@ local function doorEvents(ev, gameMin)
     local list = MP.doorEvents
     MP.doorEvents = {}
     for _, d in ipairs(list) do
-        ev[#ev + 1] = { event = "door", gameMin = gameMin, x = d.x, y = d.y, z = d.z, open = d.open }
+        ev[#ev + 1] = { event = "door", gameMin = gameMin, x = d.x, y = d.y, z = d.z, open = d.open, locked = d.locked }
     end
 end
 
@@ -415,9 +415,9 @@ end
 --   damage{tag, amount, side = "client"}: the damage hook's records of the local player, drained;
 --   swing{attackStarted, meleeDelay}: isAttackStarted reads true where the last events call read it not true;
 --   zombie_dead{id}: a zombie in prev's frame whose object now answers isDead;
---   item_added{itemId, fullType, weight, use, worn, rip} / item_removed{itemId, fullType}: the ids against S.lastInv
+--   item_added{itemId, fullType, weight, use, worn, rip, clothing} / item_removed{itemId, fullType}: against S.lastInv
 --   (a first call without firstSight seeds it silently);
---   door{x, y, z, open}: a door or window whose open state changed between two map records of its square (the map's
+--   door{x, y, z, open, locked}: a door or window whose open state changed between two map records of its square (Map's
 --   PZA.map.doorEvents: a scan part's or the watch's, the ring of WATCH_R tiles; a square first seen queues none).
 --   death{worldAge, x, y, z, health, zombiesKilled, via}: the local player's death, once per player object
 --   (S.playerDeathEvents, at the end of this file).
@@ -657,6 +657,7 @@ local function recheckOne(ev, gameMin, p, id, m, now)
     local k = S.lastInv ~= nil and S.lastInv[id] or nil
     local it = k ~= nil and PZA.skills ~= nil and PZA.skills.itemById(p, id) or nil
     if it == nil then return true end
+    if W.isA(it, "Clothing") then return S.recheckClothing(ev, gameMin, id, k, it, m, now) end
     local a, fc = amountOf(it)
     if differs(a, m.last) then m.last, m.stillAt = a, now end
     local settled = m.stillAt ~= nil and (now - m.stillAt >= S.SETTLE_MS or now >= m.untilMs)
@@ -664,7 +665,8 @@ local function recheckOne(ev, gameMin, p, id, m, now)
     if m.first or moved then
         local use = W.useOf(it)
         if use ~= k.use or moved then
-            local rec = { fullType = k.fullType, weight = k.weight, use = use, worn = W.wornOf(it), rip = W.ripOf(it) }
+            local rec = { fullType = k.fullType, weight = k.weight, use = use, worn = W.wornOf(it), rip = W.ripOf(it),
+                          clothing = W.clothingOf(it) }
             ev[#ev + 1] = S.record({ event = "item_changed", gameMin = gameMin, itemId = id,
                                      fluid = fc ~= nil and fluidName(fc) or nil, amount = a }, rec)
             S.lastInv[id] = rec
@@ -695,9 +697,107 @@ end
 -- the inventory record's item fields (PZA/1.5.2, Task 9 fix 4, review-t10 minor 7): ev (an item_added or item_changed
 -- event) takes the entry k's use, and its worn and rip (PZAgent_World.lua's W.wornOf and W.ripOf, read with the use:
 -- at the item's first sight, and again at an item_changed), each elided when false or absent (a nil key is no key on
--- the wire). Appended here (CLAUDE.md section 5: the repo: pointers into Sense keep their lines); itemAdded and
+-- the wire), and (PZA/1.6) its clothing record (W.clothingOf, nil and so elided for an item that is not Clothing). Appended here (CLAUDE.md section 5: the repo: pointers into Sense keep their lines); itemAdded and
 -- recheckOne call it through the table.
 function S.record(ev, k)
-    ev.use, ev.worn, ev.rip = k.use, k.worn, k.rip
+    ev.use, ev.worn, ev.rip, ev.clothing = k.use, k.worn, k.rip, k.clothing   -- PZA/1.6: the clothing record
     return ev
+end
+
+-- ---- the clothing (PZA/1.6, Task 9 fix 9, review-t18 ruling 5; jar-reads-2 section 10) -----------------------------
+-- S.recheckClothing: recheckOne's branch for a marked item whose class is Clothing (the wear skill marks the garment it
+-- put on and the one it replaced at its end, PZAgent_Tend.lua). The item's record is read again (its use, worn, rip and
+-- W.clothingOf) and an item_changed event (no fluid, no amount) is emitted when the use, worn or the clothing record
+-- (compared by its PZA.json encoding, keys sorted) differs from the inventory's entry, which takes the new record; the
+-- mark ends then, or at its window's end (RECHECK_MS), so a worn flag that reaches the client late is still reported.
+-- Appended here (CLAUDE.md section 5: the repo: pointers into Sense keep their lines); recheckOne calls it through S.
+local function clothingKey(c)
+    if c == nil then return "" end
+    return PZA.json(c)
+end
+
+function S.recheckClothing(ev, gameMin, id, k, it, m, now)
+    local rec = { fullType = k.fullType, weight = k.weight, use = W.useOf(it), worn = W.wornOf(it), rip = W.ripOf(it),
+                  clothing = W.clothingOf(it) }
+    if rec.use ~= k.use or rec.worn ~= k.worn or clothingKey(rec.clothing) ~= clothingKey(k.clothing) then
+        ev[#ev + 1] = S.record({ event = "item_changed", gameMin = gameMin, itemId = id }, rec)
+        S.lastInv[id] = rec
+        return true
+    end
+    return now >= m.untilMs
+end
+
+-- me.worn: the body locations the player's worn clothing covers, each { loc, bite, scratch } with the defences of the
+-- Clothing items worn there summed (one item a location but for a multi-item group), in the order getWornItems() lists
+-- them (WornItems.size/get, each WornItem's getLocation() as its registry name and getItem(); an item whose class is
+-- not Clothing, a bag on the back, is left out, and a location whose name cannot be read too). The defences are the
+-- items' own getBiteDefense and getScratchDefense (0 at condition 0), the values the engine sums per body part for a
+-- zombie's bite or scratch roll (jar-reads-2 section 10): the planner compares a candidate garment's bite and scratch
+-- with the worn ones at its loc. Elided (nil, null on the wire) on every frame but one whose list differs from the last
+-- one carried, so a reader keeps the last list it saw; the first frame carries it ([] when nothing is worn). The list is
+-- read on a frame after an item, item_changed or damage event (S.wornDirty, a hit can hole a garment or lower its
+-- condition) and on every WORN_EVERY-th frame otherwise. An unreadable getWornItems leaves me.worn nil and is named in
+-- missing; a raise among these reads costs me.worn alone (raise:me:worn). Cost: two calls a list, five a worn item.
+S.WORN_EVERY = 10         -- frames between two reads of the worn list with no event to prompt one
+S.wornFrames = 0
+S.wornDirty = true
+S.wornKey = nil
+
+function S.wornOf(p)
+    local okW, wi = PZA.call(p, "getWornItems")
+    local okN, n = PZA.call(wi, "size")
+    if not okW or not okN or type(n) ~= "number" then
+        PZA.missing(S.missing, "getWornItems")
+        return nil
+    end
+    local out, byLoc = {}, {}
+    for i = 0, n - 1 do
+        local _, w = PZA.call(wi, "get", i)
+        local _, it = PZA.call(w, "getItem")
+        local _, loc = PZA.call(w, "getLocation")
+        if it ~= nil and loc ~= nil and W.isA(it, "Clothing") then
+            local name = tostring(loc)
+            local r = byLoc[name]
+            if r == nil then
+                r = { loc = name, bite = 0, scratch = 0 }
+                byLoc[name] = r
+                out[#out + 1] = r
+            end
+            local _, b = PZA.call(it, "getBiteDefense")
+            local _, sc = PZA.call(it, "getScratchDefense")
+            if type(b) == "number" then r.bite = r.bite + b end
+            if type(sc) == "number" then r.scratch = r.scratch + sc end
+        end
+    end
+    return out
+end
+
+local function meWorn(p, f)
+    S.wornFrames = S.wornFrames + 1
+    if not S.wornDirty and S.wornFrames % S.WORN_EVERY ~= 1 then return end
+    S.wornDirty = false
+    local list = S.wornOf(p)
+    if list == nil then return end
+    local key = PZA.json(list)
+    if key ~= S.wornKey then
+        f.me.worn = list
+        S.wornKey = key
+    end
+end
+
+local frameWornBase = S.frame
+function S.frame(p)
+    local f = frameWornBase(p)
+    if f.me ~= nil then guarded("me:worn", meWorn, p, f) end
+    return f
+end
+
+local WORN_KINDS = { item_added = true, item_removed = true, item_changed = true, damage = true }
+local eventsWornBase = S.events
+function S.events(p, prev)
+    local ev, cur = eventsWornBase(p, prev)
+    for i = 1, #ev do
+        if WORN_KINDS[ev[i].event] then S.wornDirty = true end
+    end
+    return ev, cur
 end

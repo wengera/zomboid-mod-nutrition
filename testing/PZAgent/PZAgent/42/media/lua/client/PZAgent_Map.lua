@@ -144,6 +144,32 @@ local function waterOf(o, missing)
     return w
 end
 
+-- a portal's lock (PZA/1.6, Task 9 fix 9; jar-reads-2 section 10): true when any of its kind's lock members reads true
+-- (a door: isLocked, isLockedByKey, and a thumpable's isLockedByPadlock; a window: isLocked, isPermaLocked), false when
+-- one at least reads and none reads true, and true (fail-closed: never sent to an open it would refuse) when none of
+-- them can be read, isLocked then named in missing. The jar: IsoDoor.setLockedByKey @14-@21 L2006-L2007 sets locked too
+-- and IsoDoor.checkKeyId @138-@162 L2297-L2298 marks a locked door of a building (a key id) locked by key, which
+-- ToggleDoorActual @304-@393 L1514-L1527 refuses to a player outside holding no key; a player inside unlocks it
+-- (canBeOpenFromInside, @279-@294 L1509-L1511). A locked window from outside struggles and may lock for good
+-- (OpenWindowState.onAttemptFinished @61-@142 L190-L199); a perma-locked one never opens.
+MP.LOCKS = { door = { "isLocked", "isLockedByKey", "isLockedByPadlock" }, window = { "isLocked", "isPermaLocked" } }
+
+function MP.lockedOf(o, kind, missing)
+    local read = false
+    for _, m in ipairs(MP.LOCKS[kind] or MP.LOCKS.door) do
+        local ok, v = PZA.call(o, m)
+        if ok then
+            read = true
+            if v == true then return true end
+        end
+    end
+    if not read then
+        if missing ~= nil then PZA.missing(missing, "isLocked") end
+        return true
+    end
+    return false
+end
+
 -- one square as the schema's square record: x, y, z, solid, solidTrans, light, room, building, door and window (a
 -- portal { open, locked, barricaded } or nil), containers ({ type, n, items } each, items full types), floor (the
 -- full types of its world items), its four edges blockN, blockW, edgeN, edgeW (edgesTo, read against the north and
@@ -168,9 +194,8 @@ function MP.square(sq, missing, cell)
         local kind = W.kindOf(o)
         if kind ~= nil then
             local _, open = PZA.call(o, "IsOpen")
-            local _, locked = PZA.call(o, "isLocked")
             local _, barr = PZA.call(o, "isBarricaded")
-            q[kind] = { open = open == true, locked = locked == true, barricaded = barr == true }
+            q[kind] = { open = open == true, locked = MP.lockedOf(o, kind, missing), barricaded = barr == true }
         end
         if q.water == nil then
             local _, hw = PZA.call(o, "hasWater")
@@ -229,9 +254,8 @@ function MP.fingerprint(sq, cell, x, y, z)
         local kind = W.kindOf(o)
         if kind ~= nil then
             local _, open = PZA.call(o, "IsOpen")
-            local _, locked = PZA.call(o, "isLocked")
             local _, barr = PZA.call(o, "isBarricaded")
-            out[#out + 1] = kind .. tostring(open == true) .. tostring(locked == true) .. tostring(barr == true)
+            out[#out + 1] = kind .. tostring(open == true) .. tostring(MP.lockedOf(o, kind)) .. tostring(barr == true)
         end
         local cs = W.containersOf(o)
         for k = 1, #cs do
@@ -265,7 +289,7 @@ end
 local PORTAL_KINDS = { "door", "window" }
 
 -- the record q about to be emitted for key, set against MP.portals[key]: each door or window whose open state changed
--- queues a door event (a square first seen queues none); MP.portals[key] becomes q's
+-- queues a door event carrying its record's locked (PZA/1.6; a square first seen queues none); MP.portals[key] becomes q's
 local function notePortals(key, q)
     local was = MP.portals[key]
     local now = { door = openOf(q.door), window = openOf(q.window) }
@@ -275,7 +299,7 @@ local function notePortals(key, q)
                 if #MP.doorEvents >= MP.DOOR_EVENTS_MAX then
                     MP.doorDropped = MP.doorDropped + 1
                 else
-                    MP.doorEvents[#MP.doorEvents + 1] = { x = q.x, y = q.y, z = q.z, open = now[k] }
+                    MP.doorEvents[#MP.doorEvents + 1] = { x = q.x, y = q.y, z = q.z, open = now[k], locked = q[k].locked }
                 end
             end
         end

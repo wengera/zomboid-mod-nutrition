@@ -183,9 +183,10 @@ def test_bandages_by_the_scripts_can_bandage_and_the_rest_other():
     assert items.use_of(None) == "other" and items.use_of("") == "other"
 
 
-def test_the_uses_are_the_six_names_the_schema_names():
+def test_the_uses_are_the_seven_names_the_schema_names():
     from agent.base import pza1
-    assert items.USES == ("food", "water", "weapon", "bandage", "other", "container") == pza1.ITEM_USES
+    assert items.USES == ("food", "water", "weapon", "bandage", "other", "container", "clothing") == pza1.ITEM_USES
+    assert items.use_of("Base.Jacket_Padded") == "other"        # PZA/1.6: clothing is the engine's live answer only
 
 
 def test_pants_and_panties_are_not_weapons_by_the_rx():

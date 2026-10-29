@@ -191,10 +191,13 @@ end
 -- weapon (before water: a saucepan is both), else water (drinkable), else container (an empty water vessel), else
 -- bandage (isCanBandage() true, PZA/1.5.1, Task 9 review minor 5: the script's CanBandage, which Bandage, BandageDirty,
 -- Bandaid, RippedSheets, RippedSheetsDirty, the denim and leather strips and the alcohol-soaked ones carry, and a Rag
--- or a BandageBox does not; an absent member reads no), else other
+-- or a BandageBox does not; an absent member reads no), else other. PZA/1.6 (Task 9 fix 9, review-t18 ruling 5): an
+-- item whose class is Clothing reads clothing, after weapon (a Clothing is never a Food or a HandWeapon) and before
+-- water (a garment carries no drinking vessel)
 function W.useOf(it)
     if W.edible(it) then return "food" end
     if W.isA(it, "HandWeapon") then return "weapon" end
+    if W.isA(it, "Clothing") then return "clothing" end
     local _, fc = PZA.call(it, "getFluidContainer")
     if W.drinkable(it, fc) then return "water" end
     if W.waterVessel(it, fc) then return "container" end
@@ -247,4 +250,40 @@ function W.ripOf(it)
         if tag ~= nil and reads(it, "hasTag", true, tag) then return t[2] end
     end
     return nil
+end
+
+-- ---- the clothing record (PZA/1.6, Task 9 fix 9, review-t18 ruling 5) ---------------------------------------------
+-- W.clothingOf(it): nil for an item whose class is not Clothing, else { loc, bite, scratch, bullet, cond, condMax,
+-- holes, worn }, each field nil when its member is absent or answers no number (worn: a boolean). The jar (jar-reads-2
+-- section 10): loc is tostring(getBodyLocation()), the ItemBodyLocation's registry name (ItemBodyLocation.toString
+-- @0-@10 L134, as base:tshirt), the slot WornItems.setItem replaces (one item a location, but for a multi-item group);
+-- bite, scratch and bullet are Clothing.getBiteDefense @0-@13 L890-L893, getScratchDefense @0-@13 L902-L905 and
+-- getBulletDefense @0-@13 L504-L507, each 0 while getCondition() is 0 or less; cond and condMax are getCondition and
+-- getConditionMax; holes is getHolesNumber @0-@16 L946-L949 (the visual's holes, 0 without a visual); worn is
+-- isWorn() (Clothing.isWorn @0-@43 L1296). A zombie's scratch or laceration rolls Rand.Next(100) against the summed
+-- scratch defence of the worn items covering the hit part without a hole there, a bite against the bite defence, capped
+-- at 100 (IsoGameCharacter.getBodyPartClothingDefense, BodyDamage.AddRandomDamageFromZombie), so a garment's bite and
+-- scratch are what it adds to the parts its location covers.
+local function numOr(it, member)
+    local ok, v = PZA.call(it, member)
+    if ok and type(v) == "number" then return v end
+    return nil
+end
+
+function W.locOf(it)
+    local ok, loc = PZA.call(it, "getBodyLocation")
+    if not ok or loc == nil then return nil end
+    local s = tostring(loc)
+    if s == "" then return nil end
+    return s
+end
+
+function W.clothingOf(it)
+    if not W.isA(it, "Clothing") then return nil end
+    local c = { loc = W.locOf(it), bite = numOr(it, "getBiteDefense"), scratch = numOr(it, "getScratchDefense"),
+                bullet = numOr(it, "getBulletDefense"), cond = numOr(it, "getCondition"),
+                condMax = numOr(it, "getConditionMax"), holes = numOr(it, "getHolesNumber") }
+    local okW, worn = PZA.call(it, "isWorn")
+    if okW then c.worn = worn == true end
+    return c
 end

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "pza1.json",
   "title": "PZA/1",
-  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges; PZA/1.3, PZAgent 1.3: the death event; PZA/1.4, PZAgent 1.4: me's attackers, hitReaction and dragDown and the square record's hopN and hopW, ruling P24-C; PZAgent 1.4.1: the item use container, appended to its enum, and water read only for drinkable water, ruling P24-F; PZA/1.5, PZAgent 1.5: the actions aim, climb, bandage, rip, wash and fill, the square record's water, me's aiming and the part record's bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep and infected, ruling P24-G; PZA/1.5.1, PZAgent 1.5.1: the item_changed event and the reason in bag, appended to their enums, Plan 24 Task 9 fix 1; PZA/1.5.3, PZAgent 1.5.3: bandage's keepMoving, its result's walking and the reasons leg part, stopped and aiming, appended to their enum, Plan 24 Task 9 fix 5, ruling P24-R; PZA/1.5.4, PZAgent 1.5.4: me's forceAim and the aim result's heldFrames and ticks, Plan 24 Task 9 fix 6, ruling P24-T; PZAgent 1.5.5: bandage's keepMoving description only, Plan 24 Task 9 fix 7; PZAgent 1.5.6: the me.forceAim and water.infinite descriptions only, Plan 24 Task 9 fix 8), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
+  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges; PZA/1.3, PZAgent 1.3: the death event; PZA/1.4, PZAgent 1.4: me's attackers, hitReaction and dragDown and the square record's hopN and hopW, ruling P24-C; PZAgent 1.4.1: the item use container, appended to its enum, and water read only for drinkable water, ruling P24-F; PZA/1.5, PZAgent 1.5: the actions aim, climb, bandage, rip, wash and fill, the square record's water, me's aiming and the part record's bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep and infected, ruling P24-G; PZA/1.5.1, PZAgent 1.5.1: the item_changed event and the reason in bag, appended to their enums, Plan 24 Task 9 fix 1; PZA/1.5.3, PZAgent 1.5.3: bandage's keepMoving, its result's walking and the reasons leg part, stopped and aiming, appended to their enum, Plan 24 Task 9 fix 5, ruling P24-R; PZA/1.5.4, PZAgent 1.5.4: me's forceAim and the aim result's heldFrames and ticks, Plan 24 Task 9 fix 6, ruling P24-T; PZAgent 1.5.5: bandage's keepMoving description only, Plan 24 Task 9 fix 7; PZAgent 1.5.6: the me.forceAim and water.infinite descriptions only, Plan 24 Task 9 fix 8; PZA/1.6, PZAgent 1.6: the item use clothing and the loot filter clothing, appended to their enums, item_added's and item_changed's clothing record, me's worn, the door event's locked, the portal's locked read fail-closed, and the action wear, Plan 24 Task 9 fix 9, review-t18 ruling 5), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
   "x-proto": "PZA/1",
   "x-kinds": ["hello", "frame", "map", "event", "act", "reply"],
   "oneOf": [
@@ -27,12 +27,12 @@
     "filter": {
       "description": "Which items a loot takes.",
       "type": "string",
-      "enum": ["food", "water", "weapon", "bandage", "container", "all"]
+      "enum": ["food", "water", "weapon", "bandage", "container", "all", "clothing"]
     },
     "itemUse": {
       "description": "An item's use as the engine answers it.",
       "type": "string",
-      "enum": ["food", "water", "weapon", "bandage", "other", "container"]
+      "enum": ["food", "water", "weapon", "bandage", "other", "container", "clothing"]
     },
     "ripClass": {
       "description": "An item's fabric class as the rip recipes read its tags (PZA/1.5.2).",
@@ -42,7 +42,7 @@
     "actionType": {
       "description": "A skill type a cmd line names. There is no look action (PZA/1.5, Plan 24 Task 6b, docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md section 6): the frames list every zombie the client's cell holds within the sense radius whatever the facing, and turning changes only what the client draws and spots.",
       "type": "string",
-      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill"]
+      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear"]
     },
     "actState": {
       "description": "A skill's lifecycle state.",
@@ -127,7 +127,7 @@
       "x-group": "me",
       "x-encoding": "positional",
       "x-prior": 11,
-      "x-order": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim"],
+      "x-order": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn"],
       "type": "object",
       "properties": {
         "x": {"description": "The world x in tiles.", "type": "number"},
@@ -148,9 +148,10 @@
         "hitReaction": {"description": "The player's hit reaction, getHitReaction(), '' when none (PZA/1.4, P24-C): set by every zombie attack that reaches the damage roll, a defended one included; no swing starts while it is set.", "type": "string"},
         "dragDown": {"description": "Whether the drag-down death is marked on the player, isDeathDragDown() (PZA/1.4, P24-C).", "type": "boolean"},
         "aiming": {"description": "Whether the player is aiming, isAiming() (PZA/1.5, P24-G): the combat stance an aim holds, or a swing's own while its animation plays; a hit reaction clears it for the reaction's length, a run or a sprint for good.", "type": "boolean"},
-        "forceAim": {"description": "The force-aim flag read after the frame, isForceAim() (PZA/1.5.4, P24-T): re-asserted every frame while the stance is held (the game clears it every frame while its toggle-to-aim option is off), so true when the flag survived the frame (not cleared by a run key or a release), while aiming shows whether the update used it; null in logs written before PZA/1.5.4.", "type": "boolean"}
+        "forceAim": {"description": "The force-aim flag read after the frame, isForceAim() (PZA/1.5.4, P24-T): re-asserted every frame while the stance is held (the game clears it every frame while its toggle-to-aim option is off), so true when the flag survived the frame (not cleared by a run key or a release), while aiming shows whether the update used it; null in logs written before PZA/1.5.4.", "type": "boolean"},
+        "worn": {"description": "PZA/1.6 (Plan 24 Task 9 fix 9, review-t18 ruling 5): the body locations the worn clothing covers, each with the bite and scratch defence of the Clothing items worn there summed (getWornItems(), a bag left out), in the order the game lists them; null on every frame whose list equals the last one carried, so a reader keeps the last list it saw (the first frame carries it, [] when nothing is worn), and in logs written before PZA/1.6. Read after an item or damage event and every tenth frame otherwise. A zombie's scratch rolls under the scratch defence summed over the worn items covering the hit part, a bite under the bite defence (capped at 100): compare a garment's item record with the entry at its loc.", "type": "array", "items": {"$ref": "#/$defs/wornLoc"}}
       },
-      "required": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim"]
+      "required": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn"]
     },
     "stats": {
       "description": "The player's character stats.",
@@ -309,6 +310,19 @@
       },
       "required": ["id", "x", "y", "dist", "hasTarget", "crawler", "health"]
     },
+    "wornLoc": {
+      "description": "One body location the worn clothing covers (PZA/1.6, me.worn).",
+      "x-role": "record",
+      "x-encoding": "positional",
+      "x-order": ["loc", "bite", "scratch"],
+      "type": "object",
+      "properties": {
+        "loc": {"description": "The body location's registry name, the WornItem's getLocation() (base:tshirt, base:jacket, base:pants); an item record's clothing.loc names the same slot.", "type": "string"},
+        "bite": {"description": "The summed getBiteDefense() of the Clothing worn there (0 at condition 0).", "type": "number"},
+        "scratch": {"description": "The summed getScratchDefense() of the Clothing worn there (0 at condition 0).", "type": "number"}
+      },
+      "required": ["loc", "bite", "scratch"]
+    },
 
     "map": {
       "description": "One part of a map scan: the squares it carries by position.",
@@ -381,7 +395,7 @@
       "type": "object",
       "properties": {
         "open": {"description": "Whether it is open.", "type": "boolean"},
-        "locked": {"description": "Whether it is locked.", "type": "boolean"},
+        "locked": {"description": "Whether it is locked (PZA/1.6, fail-closed): any of isLocked(), isLockedByKey() or a thumpable's isLockedByPadlock() for a door, isLocked() or isPermaLocked() for a window, reading true, and true when none of them can be read. A locked door of a building refuses a player outside who holds no key and opens for one inside (it unlocks); a locked window struggles from outside and may lock for good, a perma-locked one never opens. Before PZA/1.6 isLocked() alone, false when unreadable.", "type": "boolean"},
         "barricaded": {"description": "Whether it is barricaded.", "type": "boolean"}
       },
       "required": ["open", "locked", "barricaded"]
@@ -400,6 +414,20 @@
       "required": ["type", "n", "items"]
     },
 
+    "clothing": {
+      "description": "A Clothing item's protection (PZA/1.6, Plan 24 Task 9 fix 9, review-t18 ruling 5; jar-reads-2 section 10), keyed: each field absent when its member cannot be read. A zombie's scratch or laceration rolls Rand.Next(100) under the scratch defence summed over the worn items covering the hit part without a hole there, a bite under the bite defence, capped at 100; me.worn carries the worn sums by loc.",
+      "type": "object",
+      "properties": {
+        "loc": {"description": "The body location it is worn at, getBodyLocation()'s registry name (base:tshirt): wearing it replaces the item worn there.", "type": "string"},
+        "bite": {"description": "Its bite defence, getBiteDefense(): 0 at condition 0.", "type": "number"},
+        "scratch": {"description": "Its scratch defence, getScratchDefense(), against scratches and lacerations: 0 at condition 0.", "type": "number"},
+        "bullet": {"description": "Its bullet defence, getBulletDefense(): 0 at condition 0.", "type": "number"},
+        "cond": {"description": "Its condition, getCondition().", "type": "integer"},
+        "condMax": {"description": "Its full condition, getConditionMax().", "type": "integer"},
+        "holes": {"description": "Its holes, getHolesNumber(): a part under a hole takes no defence from it.", "type": "integer"},
+        "worn": {"description": "Whether it is worn, isWorn().", "type": "boolean"}
+      }
+    },
     "event": {
       "description": "One engine event, under the seq, tick and wallMs envelope every line carries; the per-kind fields sit flat beside event and gameMin.",
       "x-role": "kind",
@@ -468,7 +496,8 @@
         "weight": {"description": "The item's weight.", "type": "number"},
         "use": {"description": "The item's use as the engine answers it: food (isA Food with getHungerChange below 0), weapon (isA HandWeapon), water (its fluid container, at most 3 litres, no Bleach or Petrol by name, not tainted, not poisonous and not sealed (canPlayerEmpty, PZA/1.5.1: a sealed pop can is other), holds a water source (isWaterSource) or, PZA/1.5, a beverage that lowers thirst and is neither hazardous nor alcoholic: a pop, a juice, a milk), container (an empty drinking vessel that may hold water, canAddFluid(Fluid.Water): PZA/1.4.1, ruling P24-F), bandage (isCanBandage(), PZA/1.5.1: a bandage, a ripped sheet, dirty or clean, or a denim or leather strip; before PZA/1.5.1 a Bandage or Rag by full type), else other. Read once at the item's first sight; an item_changed event (PZA/1.5.1) carries the use again when an action changed it. Before PZA/1.4.1 water read any non-poisonous fluid container (a Disinfectant included) and container did not exist. Absent in logs written before Plan 23 Task 9b.", "$ref": "#/$defs/itemUse"},
         "worn": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): true when the item is worn, isWorn() (the jar's InventoryItem.isWorn: IsClothing() and Clothing.isWorn, the item's container's parent a character whose getWornItems() contains it); absent when it is not, and in logs written before PZA/1.5.2. Read with the use.", "type": "boolean"},
-        "rip": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): the fabric class the rip recipes read, by tag: cotton (hasTag(ItemTag.RIP_CLOTHING_COTTON), base:ripclothingcotton, the RipClothing recipe the rip skill runs with no tool), else denim or leather (base:ripclothingdenim, base:ripclothingleather: a recipe needing scissors or a sharp knife, which the rip skill refuses needs tool); absent for an item carrying none, and in logs written before PZA/1.5.2. Read with the use. The rip skill also refuses a worn item (worn).", "$ref": "#/$defs/ripClass"}
+        "rip": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): the fabric class the rip recipes read, by tag: cotton (hasTag(ItemTag.RIP_CLOTHING_COTTON), base:ripclothingcotton, the RipClothing recipe the rip skill runs with no tool), else denim or leather (base:ripclothingdenim, base:ripclothingleather: a recipe needing scissors or a sharp knife, which the rip skill refuses needs tool); absent for an item carrying none, and in logs written before PZA/1.5.2. Read with the use. The rip skill also refuses a worn item (worn).", "$ref": "#/$defs/ripClass"},
+        "clothing": {"description": "PZA/1.6 (Plan 24 Task 9 fix 9): the item's protection when its use is clothing (its class Clothing); absent otherwise, and in logs written before PZA/1.6.", "$ref": "#/$defs/clothing"}
       },
       "required": ["itemId", "fullType", "weight"]
     },
@@ -490,7 +519,8 @@
         "x": {"description": "The door square's x.", "type": "integer"},
         "y": {"description": "The door square's y.", "type": "integer"},
         "z": {"description": "The door square's floor level.", "type": "integer"},
-        "open": {"description": "Whether the door is now open.", "type": "boolean"}
+        "open": {"description": "Whether the door is now open.", "type": "boolean"},
+        "locked": {"description": "PZA/1.6: the portal record's locked as the map read it with the open state (fail-closed); absent in logs written before PZA/1.6.", "type": "boolean"}
       },
       "required": ["x", "y", "z", "open"]
     },
@@ -542,7 +572,7 @@
       "required": ["worldAge", "x", "y", "z", "health", "via"]
     },
     "event_item_changed": {
-      "description": "A held item's use or fluid amount changed under an action (PZA/1.5.1, Plan 24 Task 9 fix 1): a fill, a consume, a wash or a rip ending on an item still in the main inventory marks it, and for 30 s after the end the item is read again: an event at the first read when its use (read again as item_added's) changed, and when its fluid amount, held still 1 s, differs from the last one reported (the amount when the action began, first). An item's use is otherwise read once, at its first sight; a reader takes the event's use as the item's use from then on. Absent in logs written before PZA/1.5.1.",
+      "description": "A held item's use or fluid amount changed under an action (PZA/1.5.1, Plan 24 Task 9 fix 1): a fill, a consume, a wash or a rip ending on an item still in the main inventory marks it (PZA/1.6: a wear marks the garment and the one it replaced, each read again while marked until its use, worn or clothing record changes), and for 30 s after the end the item is read again: an event at the first read when its use (read again as item_added's) changed, and when its fluid amount, held still 1 s, differs from the last one reported (the amount when the action began, first). An item's use is otherwise read once, at its first sight; a reader takes the event's use as the item's use from then on. Absent in logs written before PZA/1.5.1.",
       "x-role": "event",
       "properties": {
         "event": {"description": "The event's kind.", "const": "item_changed"},
@@ -551,7 +581,8 @@
         "fluid": {"description": "Its fluid container's primary fluid, getPrimaryFluid():getFluidTypeString() (Water, TaintedWater, a beverage); absent when it is empty or has no fluid container.", "type": "string"},
         "amount": {"description": "Its fluid container's amount in litres, getAmount(); absent when it has no fluid container.", "type": "number"},
         "worn": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): true when the item is worn, isWorn() (the jar's InventoryItem.isWorn: IsClothing() and Clothing.isWorn, the item's container's parent a character whose getWornItems() contains it); absent when it is not, and in logs written before PZA/1.5.2. Read again with the use.", "type": "boolean"},
-        "rip": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): the fabric class the rip recipes read, by tag: cotton (hasTag(ItemTag.RIP_CLOTHING_COTTON), base:ripclothingcotton, the RipClothing recipe the rip skill runs with no tool), else denim or leather (base:ripclothingdenim, base:ripclothingleather: a recipe needing scissors or a sharp knife, which the rip skill refuses needs tool); absent for an item carrying none, and in logs written before PZA/1.5.2. Read again with the use. The rip skill also refuses a worn item (worn).", "$ref": "#/$defs/ripClass"}
+        "rip": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): the fabric class the rip recipes read, by tag: cotton (hasTag(ItemTag.RIP_CLOTHING_COTTON), base:ripclothingcotton, the RipClothing recipe the rip skill runs with no tool), else denim or leather (base:ripclothingdenim, base:ripclothingleather: a recipe needing scissors or a sharp knife, which the rip skill refuses needs tool); absent for an item carrying none, and in logs written before PZA/1.5.2. Read again with the use. The rip skill also refuses a worn item (worn).", "$ref": "#/$defs/ripClass"},
+        "clothing": {"description": "PZA/1.6 (Plan 24 Task 9 fix 9): the item's protection read again when its use is clothing (its class Clothing); absent otherwise, and in logs written before PZA/1.6.", "$ref": "#/$defs/clothing"}
       },
       "required": ["itemId", "use"]
     },
@@ -576,7 +607,7 @@
           {"$ref": "#/$defs/result_drop"}, {"$ref": "#/$defs/result_stop"}, {"$ref": "#/$defs/result_scan"},
           {"$ref": "#/$defs/result_rate"}, {"$ref": "#/$defs/result_sleep"}, {"$ref": "#/$defs/result_aim"},
           {"$ref": "#/$defs/result_climb"}, {"$ref": "#/$defs/result_bandage"}, {"$ref": "#/$defs/result_rip"},
-          {"$ref": "#/$defs/result_wash"}, {"$ref": "#/$defs/result_fill"}]},
+          {"$ref": "#/$defs/result_wash"}, {"$ref": "#/$defs/result_fill"}, {"$ref": "#/$defs/result_wear"}]},
         "snapshot": {"description": "The player's state when the line was written.", "$ref": "#/$defs/snapshot"}
       },
       "required": ["kind", "seq", "tick", "wallMs", "aid", "type", "state", "reason", "result", "snapshot"]
@@ -743,6 +774,18 @@
       "properties": {
         "water": {"description": "The water units the wash needed of its source, ceil(4 + 3 x the blood level).", "type": "integer"},
         "moved": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): true when the item sat in a bag and the skill queued vanilla's ISInventoryTransferAction to the main inventory before its own action, as the context menu does (transferIfNeeded); absent otherwise, and in logs written before PZA/1.5.2.", "type": "boolean"}
+      }
+    },
+    "result_wear": {
+      "description": "A wear's result (PZA/1.6).",
+      "x-role": "result",
+      "x-type": "wear",
+      "type": "object",
+      "properties": {
+        "itemId": {"description": "The garment now worn.", "type": "integer"},
+        "loc": {"description": "The body location it is worn at, its clothing record's loc.", "type": "string"},
+        "replaced": {"description": "The id of the item worn at that location before, which the wear took off (now unworn in the inventory); absent when none was.", "type": "integer"},
+        "moved": {"description": "True when the garment sat in a bag and the skill moved it to the main inventory first, as the context menu does; absent otherwise.", "type": "boolean"}
       }
     },
     "result_fill": {
@@ -990,6 +1033,17 @@
         "y": {"description": "The water source's square y.", "type": "integer"}
       },
       "required": ["itemId", "x", "y"],
+      "additionalProperties": false
+    },
+    "args_wear": {
+      "description": "Put on a held garment (an item whose use is clothing) at its body location, as vanilla's Wear does (ISWearClothing, 50 ticks; a garment in a bag is moved out first): it replaces the item worn there. Refused worn when it is worn already, busy in a hit reaction or a swing, not valid for an item that is not Clothing or has no body location.",
+      "x-role": "args",
+      "x-type": "wear",
+      "type": "object",
+      "properties": {
+        "itemId": {"description": "The garment's id.", "type": "integer"}
+      },
+      "required": ["itemId"],
       "additionalProperties": false
     }
   }

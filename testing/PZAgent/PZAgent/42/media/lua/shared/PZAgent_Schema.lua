@@ -18,7 +18,7 @@ PZA.schema = {
         reply = { "kind", "seq", "tick", "wallMs", "to", "body" },
     },
     groups = {
-        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim" },
+        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn" },
         stats = { "hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature" },
         body = { "health", "bleeding", "scratched", "bitten", "parts" },
         load = { "weight", "max", "level", "n" },
@@ -28,6 +28,7 @@ PZA.schema = {
         cost = { "tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs" },
     },
     records = {
+        wornLoc = { "loc", "bite", "scratch" },
         part = { "i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected" },
         zombie = { "id", "x", "y", "dist", "hasTarget", "crawler", "health" },
         portal = { "open", "locked", "barricaded" },
@@ -54,24 +55,25 @@ PZA.schema = {
         rip = { "itemId" },
         wash = { "itemId", "x", "y" },
         fill = { "itemId", "x", "y" },
+        wear = { "itemId" },
     },
     gaits = { walk = true, run = true, sprint = true },
     ikinds = { open = true, close = true, loot = true },
-    filters = { food = true, water = true, weapon = true, bandage = true, container = true, all = true },
+    filters = { food = true, water = true, weapon = true, bandage = true, container = true, all = true, clothing = true },
     states = { accepted = true, rejected = true, progress = true, done = true, failed = true },
     mapModes = { full = true, delta = true },
     events = {
         damage = { "tag", "amount", "side" },
         swing = { "attackStarted", "meleeDelay" },
         zombie_dead = { "id" },
-        item_added = { "itemId", "fullType", "weight", "use", "worn", "rip" },
+        item_added = { "itemId", "fullType", "weight", "use", "worn", "rip", "clothing" },
         item_removed = { "itemId", "fullType" },
-        door = { "x", "y", "z", "open" },
+        door = { "x", "y", "z", "open", "locked" },
         lua_error = { "msg" },
         overflow = { "queued", "cut" },
         scan_dropped = { "scanId", "aid", "part", "parts", "reason" },
         death = { "worldAge", "x", "y", "z", "health", "via", "zombiesKilled" },
-        item_changed = { "itemId", "use", "fluid", "amount", "worn", "rip" },
+        item_changed = { "itemId", "use", "fluid", "amount", "worn", "rip", "clothing" },
     },
 }
 
@@ -105,6 +107,16 @@ local function list(a, f)
     return "[" .. concat(out, ",") .. "]"
 end
 
+-- record wornLoc: One body location the worn clothing covers (PZA/1.6, me.worn).
+--   loc: The body location's registry name, the WornItem's getLocation() (base:tshirt, base:jacket, base:pants); an item record's clothing.loc names the same slot.
+--   bite: The summed getBiteDefense() of the Clothing worn there (0 at condition 0).
+--   scratch: The summed getScratchDefense() of the Clothing worn there (0 at condition 0).
+local function enc_wornLoc(t)
+    if t == nil then return "null" end
+    return "[" .. v(t.loc) .. "," .. v(t.bite) .. "," .. v(t.scratch) .. "]"
+end
+PZA.enc.wornLoc = enc_wornLoc
+
 -- record part: One body part below full health, bandaged or bleeding.
 --   i: The body part index.
 --   h: The body part's health.
@@ -137,7 +149,7 @@ PZA.enc.zombie = enc_zombie
 
 -- record portal: A door or a window.
 --   open: Whether it is open.
---   locked: Whether it is locked.
+--   locked: Whether it is locked (PZA/1.6, fail-closed): any of isLocked(), isLockedByKey() or a thumpable's isLockedByPadlock() for a door, isLocked() or isPermaLocked() for a window, reading true, and true when none of them can be read. A locked door of a building refuses a player outside who holds no key and opens for one inside (it unlocks); a locked window struggles from outside and may lock for good, a perma-locked one never opens. Before PZA/1.6 isLocked() alone, false when unreadable.
 --   barricaded: Whether it is barricaded.
 local function enc_portal(t)
     if t == nil then return "null" end
@@ -211,9 +223,10 @@ PZA.enc.square = enc_square
 --   dragDown: Whether the drag-down death is marked on the player, isDeathDragDown() (PZA/1.4, P24-C).
 --   aiming: Whether the player is aiming, isAiming() (PZA/1.5, P24-G): the combat stance an aim holds, or a swing's own while its animation plays; a hit reaction clears it for the reaction's length, a run or a sprint for good.
 --   forceAim: The force-aim flag read after the frame, isForceAim() (PZA/1.5.4, P24-T): re-asserted every frame while the stance is held (the game clears it every frame while its toggle-to-aim option is off), so true when the flag survived the frame (not cleared by a run key or a release), while aiming shows whether the update used it; null in logs written before PZA/1.5.4.
+--   worn: PZA/1.6 (Plan 24 Task 9 fix 9, review-t18 ruling 5): the body locations the worn clothing covers, each with the bite and scratch defence of the Clothing items worn there summed (getWornItems(), a bag left out), in the order the game lists them; null on every frame whose list equals the last one carried, so a reader keeps the last list it saw (the first frame carries it, [] when nothing is worn), and in logs written before PZA/1.6. Read after an item or damage event and every tenth frame otherwise. A zombie's scratch rolls under the scratch defence summed over the worn items covering the hit part, a bite under the bite defence (capped at 100): compare a garment's item record with the entry at its loc.
 local function enc_me(t)
     if t == nil then return "null" end
-    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "," .. v(t.forceAim) .. "]"
+    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "," .. v(t.forceAim) .. "," .. list(t.worn, enc_wornLoc) .. "]"
 end
 PZA.enc.me = enc_me
 

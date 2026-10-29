@@ -116,7 +116,8 @@
             "weapon",
             "bandage",
             "container",
-            "all"
+            "all",
+            "clothing"
           ],
           "description": "Which items a loot takes.",
           "default": "all"
@@ -393,6 +394,23 @@
         "itemId",
         "x",
         "y"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "wear",
+    "description": "Put on a held garment (an item whose use is clothing) at its body location, as vanilla's Wear does (ISWearClothing, 50 ticks; a garment in a bag is moved out first): it replaces the item worn there. Refused worn when it is worn already, busy in a hit reaction or a swing, not valid for an item that is not Clothing or has no body location.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer",
+          "description": "The garment's id."
+        }
+      },
+      "required": [
+        "itemId"
       ],
       "additionalProperties": false
     }

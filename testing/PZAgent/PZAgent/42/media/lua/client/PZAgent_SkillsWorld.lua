@@ -757,3 +757,9 @@ end
 -- PZAgent_Tend.lua's bandage, rip, wash and fill) reach these locals through K; appended here (CLAUDE.md section 5: the repo: pointers into this file keep their lines).
 K.squareAt, K.queueAction, K.approach, K.floorOf, K.numOf = squareAt, queueAction, approach, floorOf, numOf
 K.zombieById, K.zombieDead, K.zombieDist = zombieById, zombieDead, zombieDist
+
+-- ---- the clothing filter (PZA/1.6, Task 9 fix 9, review-t18 ruling 5) ------------------------------------------------
+-- A loot's filter clothing takes the items W.useOf reads clothing (their class Clothing: PZAgent_World.lua); the
+-- planner compares each one's bite and scratch with me.worn's at its loc after the loot (item_added's clothing record).
+-- Appended here (CLAUDE.md section 5: the repo: pointers into this file keep their lines); FILTERS is this file's local.
+FILTERS.clothing = useIs("clothing")

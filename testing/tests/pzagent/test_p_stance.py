@@ -87,7 +87,7 @@ def test_the_schema_carries_the_fields_the_probe_reads():
     assert {"d", "held", "heldFrames", "ticks"} <= set(aim)
     assert pza1.ACTION_ARGS["aim"] == {"vx": "float", "vy": "float", "seconds": "float", "targetId": "int",
                                        "bearing": "float"}
-    assert pza1.GROUPS["me"][-2:] == ("aiming", "forceAim")
+    assert pza1.GROUPS["me"][17:19] == ("aiming", "forceAim")         # PZA/1.6 appends worn after them
     assert "aim" in pza1.ACTION_TYPES and "walkTo" in pza1.ACTION_ARGS and "attack" in pza1.ACTION_ARGS
 
 
