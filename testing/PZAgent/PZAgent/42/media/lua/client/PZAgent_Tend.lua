@@ -31,19 +31,44 @@ local function heldItem(args, p)
     return it, nil
 end
 
--- heldItem, and the item in the main inventory itself, not in a bag it carries (PZA/1.5.1, Task 9 review minor 3):
--- K.itemById finds an item in a bag (ItemContainer.getItemById recurses), but the server's ISApplyBandage:isValid
--- tests getInventory():contains(item), which does not (ItemContainer.contains @0-@8 L658), and ISWashClothing:isValid
--- requires item:getContainer() == character:getInventory() (lua:shared/TimedActions/ISWashClothing.lua:10); vanilla
--- moves the item to the main inventory first. An item whose getContainer() is not the player's getInventory() is
--- refused in bag (an absent member reads in bag: fails closed)
+-- heldItem, and where it sits: K.itemById finds an item in a bag (ItemContainer.getItemById recurses), but the
+-- server's ISApplyBandage:isValid tests getInventory():contains(item), which does not (ItemContainer.contains @0-@8
+-- L658), and ISWashClothing:isValid requires item:getContainer() == character:getInventory() (lua:shared/
+-- TimedActions/ISWashClothing.lua:10). Vanilla moves the item to the main inventory first (PZA/1.5.2, Task 9 fix 4,
+-- review-t10 minor 8): ISInventoryPaneContextMenu.applyBandage (lua:client/ISUI/ISInventoryPaneContextMenu.lua:2781-
+-- 2786) calls transferIfNeeded (:1910-1913), which, when luautils.haveToBeTransfered reads the item's getContainer()
+-- not the player's getInventory() (lua:shared/luautils.lua:444-445), queues ISInventoryTransferAction:new(player,
+-- item, item:getContainer(), player:getInventory()) before the bandage. Answers the item and its bag (nil when in the
+-- main inventory: the bag the transfer moves it from), else nil and the reason: in bag (PZA/1.5.1, Task 9 review
+-- minor 3) when the move cannot be queued, the container or the inventory unreadable (an absent member: fails closed)
+-- or ISInventoryTransferAction absent.
 local function mainItem(args, p)
     local it, why = heldItem(args, p)
     if it == nil then return nil, why end
     local _, inv = PZA.call(p, "getInventory")
     local _, c = PZA.call(it, "getContainer")
-    if inv == nil or c ~= inv then return nil, "in bag" end
-    return it, nil
+    if inv == nil or c == nil then return nil, "in bag" end
+    if c == inv then return it, nil end
+    local T = ISInventoryTransferAction
+    if T == nil or T.new == nil then return nil, "in bag" end
+    return it, nil, c
+end
+
+-- the first tick's move of a bag item (st.bag, mainItem's) to the main inventory, queued before the skill's own
+-- action: nil when queued (st.moved true) or not needed, else the reason (in bag: the class or a raise refused it)
+local function moveOut(p, st)
+    if st.bag == nil then return nil end
+    local _, inv = PZA.call(p, "getInventory")
+    local ok = K.queueAction(ISInventoryTransferAction, "in bag", nil, p, st.item, st.bag, inv)
+    if not ok then return "in bag" end
+    st.moved = true
+    return nil
+end
+
+-- a done result with moved true when the skill moved its item out of a bag first (elided otherwise)
+local function withMoved(out, st)
+    if st.moved then out.moved = true end
+    return out
 end
 
 -- the ids of every item in the player's main inventory, as a set (empty when the list cannot be read)
@@ -68,13 +93,14 @@ end
 -- doubles them. The action is vanilla's own, ISApplyBandage:new(character, otherPlayer, item, bodyPart, doIt)
 -- (lua:shared/TimedActions/ISApplyBandage.lua:173), doIt true to apply, false (with no item) to take a bandage off
 -- (ISHealthPanel.lua:1219), as the health panel queues them. check: itemId a number (bad args), the item held (none
--- held; in the main inventory, else in bag) and isCanBandage() true (a bandage, a ripped sheet, dirty or clean: else
+-- held; in a bag, moved out first, PZA/1.5.2: in bag when the move cannot be queued) and isCanBandage() true (a bandage, a ripped sheet, dirty or clean: else
 -- not valid); part a number (absent: -1), -1 the worst part (worstPart: a bleeding unbandaged part, a deep wound first,
 -- then the longest getBleedingTime; else a wound under a dirty bandage; else an unbandaged wound; none: no wound), else
--- the index into getBodyParts() (out of range: bad args). The first tick: the vanilla queue cleared; on a part already bandaged, the
--- bandage taken off first (doIt false), then the item applied (doIt true): not loaded, not valid. Done once the item is
--- gone from the inventory by id and the part reads bandaged(), {part (its index), dirty (the item's full type names
--- Dirty), life (getBandageLife())}; interrupted after BANDAGE_MS.
+-- the index into getBodyParts() (out of range: bad args). The first tick: the vanilla queue cleared; an item in a bag
+-- moved to the main inventory (moveOut: in bag); on a part already bandaged, the bandage taken off first (doIt false),
+-- then the item applied (doIt true): not loaded, not valid. Done once the item is gone from the inventory by id and the
+-- part reads bandaged(), {part (its index), dirty (the item's full type names Dirty), life (getBandageLife()), moved
+-- (true when it was moved out of a bag first, else absent)}; interrupted after BANDAGE_MS.
 K.BANDAGE_MS = 20000
 
 -- the player's body parts as the Java list and its size (nil, 0 when unreadable)
@@ -129,7 +155,7 @@ end
 
 K.types.bandage = {
     check = function(args, p)
-        local it, why = mainItem(args, p)
+        local it, why, bag = mainItem(args, p)
         if it == nil then return false, why end
         if not flag(it, "isCanBandage") then return false, "not valid" end
         local want = args.part
@@ -147,13 +173,15 @@ K.types.bandage = {
             if got == nil then return false, "bad args" end
             part, idx = got, want
         end
-        return true, "", { id = args.itemId, item = it, part = part, index = idx, queuedAt = nil,
+        return true, "", { id = args.itemId, item = it, bag = bag, part = part, index = idx, queuedAt = nil,
                            dirty = W.fullTypeHas(it, "Dirty", "Dirty") }
     end,
     tick = function(p, st)
         if isDead(p) then return "failed", "dead" end
         if st.queuedAt == nil then
             clearQueue(p)
+            local whyMove = moveOut(p, st)
+            if whyMove ~= nil then return "failed", whyMove end
             if flag(st.part, "bandaged") then
                 local off, whyOff = K.queueAction(ISApplyBandage, "not valid", nil, p, p, nil, st.part, false)
                 if not off then return "failed", whyOff end
@@ -164,7 +192,7 @@ K.types.bandage = {
             return nil
         end
         if K.itemById(p, st.id) == nil and flag(st.part, "bandaged") then
-            return "done", { part = st.index, dirty = st.dirty, life = num(st.part, "getBandageLife") }
+            return "done", withMoved({ part = st.index, dirty = st.dirty, life = num(st.part, "getBandageLife") }, st)
         end
         if PZA.now() - st.queuedAt > K.BANDAGE_MS then return "failed", "interrupted" end
         return nil
@@ -259,12 +287,13 @@ K.types.rip = {
 -- TimedActions/ISWashClothing.lua:76-92), uses that much, and tests neither the water's taint nor soap; its new is
 -- (character, sink, item, bloodAmount, dirtAmount, noSoap) (:230), vanilla passing the blood level for a non-clothing
 -- item after a walk next to the source (ISWorldObjectContextMenu.lua:1777-1815). check: the item held (none held, bad
--- args; in the main inventory, else in bag), getItemAfterCleaning() a non-empty string (else not dirty), x and y
+-- args; in a bag, moved out first, PZA/1.5.2: in bag when the move cannot be queued), getItemAfterCleaning() a non-empty string (else not dirty), x and y
 -- numbers (bad args); on square (x, y) of the player's floor the first object whose hasWater() holds (W.waterOn: else
--- no source), its getFluidAmount() at least the need (else no water). The tick walks next to the source as interact does (K.approach: not adjacent), then queues
+-- no source), its getFluidAmount() at least the need (else no water). The tick walks next to the source as interact
+-- does (K.approach: not adjacent), then moves an item in a bag to the main inventory (moveOut: in bag) and queues
 -- ISWashClothing:new(p, source, item, blood, 0, noSoap), noSoap unless the inventory's getSoapList(nil, true) reads not
--- empty (not loaded, not valid). Done once the item is gone by id, {water (the units the wash needs)}; interrupted after
--- WASH_MS from the queue.
+-- empty (not loaded, not valid). Done once the item is gone by id, {water (the units the wash needs), moved (true when
+-- it was moved out of a bag first, else absent)}; interrupted after WASH_MS from the queue.
 K.WASH_MS = 40000
 
 -- the water a wash of item it needs (ISWashClothing.GetRequiredWater's non-clothing rule) and its blood level
@@ -290,7 +319,7 @@ end
 
 K.types.wash = {
     check = function(args, p)
-        local it, why = mainItem(args, p)
+        local it, why, bag = mainItem(args, p)
         if it == nil then return false, why end
         local x, y = args.x, args.y
         if type(x) ~= "number" or type(y) ~= "number" then return false, "bad args" end
@@ -301,8 +330,8 @@ K.types.wash = {
         if src == nil then return false, "no source" end
         local need, blood = washNeed(it)
         if num(src, "getFluidAmount") < need then return false, "no water" end
-        return true, "", { id = args.itemId, item = it, x = x, y = y, src = src, need = need, blood = blood,
-                           sub = nil, queuedAt = nil }
+        return true, "", { id = args.itemId, item = it, bag = bag, x = x, y = y, src = src, need = need,
+                           blood = blood, sub = nil, queuedAt = nil }
     end,
     tick = function(p, st)
         if isDead(p) then return "failed", "dead" end
@@ -310,12 +339,14 @@ K.types.wash = {
             local at = K.approach(p, st)
             if at == "fail" then return "failed", "not adjacent" end
             if at == "walk" then return nil end
+            local whyMove = moveOut(p, st)
+            if whyMove ~= nil then return "failed", whyMove end
             local ok, why = K.queueAction(ISWashClothing, "not valid", nil, p, st.src, st.item, st.blood, 0, noSoap(p))
             if not ok then return "failed", why end
             st.queuedAt = PZA.now()
             return nil
         end
-        if K.itemById(p, st.id) == nil then return "done", { water = st.need } end
+        if K.itemById(p, st.id) == nil then return "done", withMoved({ water = st.need }, st) end
         if PZA.now() - st.queuedAt > K.WASH_MS then return "failed", "interrupted" end
         return nil
     end,

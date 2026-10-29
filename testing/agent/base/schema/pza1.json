@@ -717,7 +717,8 @@
       "properties": {
         "part": {"description": "The index of the part bandaged.", "type": "integer"},
         "dirty": {"description": "Whether the item was a dirty one (its full type names Dirty: life 0, the infection odds doubled).", "type": "boolean"},
-        "life": {"description": "The bandage's life once applied, getBandageLife().", "type": "number"}
+        "life": {"description": "The bandage's life once applied, getBandageLife().", "type": "number"},
+        "moved": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): true when the item sat in a bag and the skill queued vanilla's ISInventoryTransferAction to the main inventory before its own action, as the context menu does (transferIfNeeded); absent otherwise, and in logs written before PZA/1.5.2.", "type": "boolean"}
       }
     },
     "result_rip": {
@@ -736,7 +737,8 @@
       "x-type": "wash",
       "type": "object",
       "properties": {
-        "water": {"description": "The water units the wash needed of its source, ceil(4 + 3 x the blood level).", "type": "integer"}
+        "water": {"description": "The water units the wash needed of its source, ceil(4 + 3 x the blood level).", "type": "integer"},
+        "moved": {"description": "PZA/1.5.2 (Plan 24 Task 9 fix 4): true when the item sat in a bag and the skill queued vanilla's ISInventoryTransferAction to the main inventory before its own action, as the context menu does (transferIfNeeded); absent otherwise, and in logs written before PZA/1.5.2.", "type": "boolean"}
       }
     },
     "result_fill": {

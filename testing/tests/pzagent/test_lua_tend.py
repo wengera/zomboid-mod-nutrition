@@ -478,11 +478,14 @@ def test_a_fill_from_afar_walks_first_and_one_that_never_rises_is_interrupted(lu
 
 # ---- PZA/1.5.1 (Task 9 fix 1): an item in a bag, rip's hasActionType, the shared helpers ------------------------------
 
-def test_bandage_and_wash_refuse_an_item_in_a_bag_and_fill_takes_one(lua, fs):
-    """Review minor 3: K.itemById finds an item in a bag, but the server's ISApplyBandage and ISWashClothing refuse
-    one not in the main inventory; ISTakeWaterAction:isValid asks only that the item has a container."""
+def test_bandage_and_wash_refuse_an_item_in_a_bag_only_when_the_transfer_cannot_be_queued_and_fill_takes_one(lua, fs):
+    """Review minor 3 (9 fix 1): K.itemById finds an item in a bag, but the server's ISApplyBandage and ISWashClothing
+    refuse one not in the main inventory; ISTakeWaterAction:isValid asks only that the item has a container. PZA/1.5.2
+    (9 fix 4, review-t10 minor 8): a bag item is moved first, so in bag is left for a transfer that cannot be queued:
+    ISInventoryTransferAction absent, or the item's container unreadable."""
     load(lua)
     water_world(lua, sink())
+    lua.globals().ISInventoryTransferAction = None
     p = make_player()
     with_parts(p, [make_part(0, bleeding=True, bleeding_time=3.0)])
     bag = J(_cls="ItemContainer")
@@ -511,3 +514,94 @@ def test_a_rip_without_has_action_type_fails_not_loaded(lua, fs):
     tick(lua, p)
     assert states(acts(lua, fs))[-1] == ("a1", "failed", "not loaded")
 
+
+
+# ---- PZA/1.5.2 (Task 9 fix 4, review-t10 minor 8): a bag item moved to the main inventory first ----------------------
+
+def bagged(p, item):
+    """item in a bag the player carries: its getContainer answers the bag until moved["to"] is set (the transfer's
+    end), then the main inventory."""
+    bag = J(_cls="ItemContainer")
+    inv = p.getInventory(p)
+    moved = {"to": None}
+    item.getContainer = lambda s: moved["to"] or bag
+    return bag, inv, moved
+
+
+def test_a_bandage_in_a_bag_queues_vanillas_transfer_then_the_bandage_and_ends_done_moved(lua, fs):
+    """As vanilla's ISInventoryPaneContextMenu.applyBandage: transferIfNeeded (an ISInventoryTransferAction from the
+    item's container to the player's inventory) and then ISApplyBandage, on one queue."""
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    parts = with_parts(p, [make_part(0, bleeding=True, bleeding_time=3.0)])
+    rag = tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    bag, inv, moved = bagged(p, rag)
+    start(lua, p, "bandage", itemId=50)
+    tick(lua, p)
+    q = list(g._queue.adds)
+    assert [a.Type for a in q] == ["ISInventoryTransferAction", "ISApplyBandage"]
+    assert q[0].item is rag and q[0].src is bag and q[0].dest is inv and q[0].character is p
+    assert q[1].item is rag and q[1].doIt is True
+    moved["to"] = inv                                           # the transfer ran
+    tick(lua, p)
+    assert not ended(lua)
+    apply_bandage(lua, p, parts[0], rag)
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "") and a[-1]["result"] == {"part": 0, "dirty": False, "life": 3.5,
+                                                                       "moved": True}
+
+
+def test_a_bandage_already_in_the_main_inventory_queues_no_transfer_and_reports_no_moved(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    parts = with_parts(p, [make_part(0, bleeding=True, bleeding_time=3.0)])
+    rag = tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    start(lua, p, "bandage", itemId=50)
+    tick(lua, p)
+    assert [a.Type for a in g._queue.adds] == ["ISApplyBandage"]
+    apply_bandage(lua, p, parts[0], rag)
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "") and "moved" not in a[-1]["result"]
+
+
+def test_a_wash_in_a_bag_queues_the_transfer_then_the_wash_beside_the_source_and_ends_done_moved(lua, fs):
+    load(lua)
+    g = lua.globals()
+    src = sink()
+    water_world(lua, src)
+    p = make_player()
+    rag = dirty_rag(p)
+    bag, inv, moved = bagged(p, rag)
+    start(lua, p, "wash", itemId=80, x=11, y=20)
+    tick(lua, p)
+    q = list(g._queue.adds)
+    assert [a.Type for a in q] == ["ISInventoryTransferAction", "ISWashClothing"]
+    assert q[0].item is rag and q[0].src is bag and q[0].dest is inv
+    assert g._washes == [(p, src, rag, 0.5, 0, True)]
+    moved["to"] = inv
+    p.held.remove(rag)
+    tend_item(p, "Base.RippedSheets", 81)
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "") and a[-1]["result"] == {"water": 6, "moved": True}
+
+
+def test_a_transfer_whose_constructor_raises_fails_the_bandage_in_bag(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    with_parts(p, [make_part(0, bleeding=True, bleeding_time=3.0)])
+    rag = tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    bagged(p, rag)
+
+    def boom(*a):
+        raise RuntimeError("transfer raised")
+    g.ISInventoryTransferAction = J(new=boom)
+    start(lua, p, "bandage", itemId=50)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "in bag")
+    assert g._bandages == []
