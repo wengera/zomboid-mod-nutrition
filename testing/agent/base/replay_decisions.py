@@ -78,7 +78,8 @@ at its first reachable engage, `test_replay_decisions.FIRST_ENGAGE`), ruling 2 (
 chaser across a fence: E2 and E3, three lines) and the blocker (the stance's walk giving way: the sixth from line
 111), then again under the review's minor 8 (ENGAGE_R 9 inside DISENGAGE_R 10: each first engage a line or two
 later, e2 68, e3 69, e5 69, f1 and the sixth 102; e4's at 247 kept, moved first at 333); `ENGAGE` off still
-reproduces 24987f2a's.
+reproduces 24987f2a's. Plan 24 Task 21's refactor A (`Survive.assess`, the water chain in `planner/water.py`)
+moved no golden: its commit leaves all six byte-identical, the rules of survival 9 re-recording them after it.
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

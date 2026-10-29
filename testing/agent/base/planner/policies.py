@@ -66,7 +66,8 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   (0, 0), the target faced while it comes. A running leg gives way (`busy`) once the target is within reach,
   re-pinned, or the stand ends, and (Task 12 fix 1) once the leg its distance calls for (`stance_leg_kind`) is
   another: a standing leg inside KEEP_R or in the advance, a backpedal past KEEP_R + KEEP_MARGIN, an `enter` leg
-  whose target was knocked out of reach; the advance's `toward` leg holds until reach. The stand
+  whose target was knocked out of reach; the advance's `toward` leg holds until reach, or gives way and re-pins for
+  `_advance_switch` (Task 18 fix 2: another zombie inside KEEP_R or SEEK_SWITCH_R nearer than the target). The stand
   clock (`_stand`) restarts on a new target or a fall of its health, ending any advance; at STAND_MAX_S the Fight
   closes in the stance (`advance`: `toward` legs, the unit vector to the target, or with its line blocked over
   STEER_PROBE the approach walk at a walk round the wall, never a run: Task 12 fix 1, the review's minor 3), the
@@ -731,7 +732,9 @@ class Fight(Policy):
         """The zombie (id, zombie, dist) a seek re-pins to (Task 18 fix 1, the review's blocker), else None: while
         target `t` is being sought (`seeking`), the nearest zombie the Fight may pin (`_nearest`: not marked, not dead,
         not avoided beyond DANGER_R) when it is another and SEEK_SWITCH_R or more nearer. The seek closes on the
-        nearest; once a target is `sought` the pin holds as iteration 7's stance rules."""
+        nearest; once a target is `sought` the pin holds as iteration 7's stance rules, except in the advance, whose
+        walk and `toward` leg give way and re-pin for `_advance_switch` (a zombie inside KEEP_R or SEEK_SWITCH_R
+        nearer: Task 18 fix 2)."""
         if not self.seeking(t):
             return None
         n = self._nearest()
@@ -757,7 +760,9 @@ class Fight(Policy):
         - its target is no longer the Fight's (dead, re-pinned, unpinned), or (a walk sent within AIM_R) beyond
           DISENGAGE_R;
         - a seek's walk: another zombie is SEEK_SWITCH_R nearer than its target (`_seek_switch`: the next choose
-          re-pins to it, so a zombie closing inside KEEP_R is the stance's target);
+          re-pins to it, so a zombie closing inside KEEP_R is the stance's target); the advance's walk: another zombie
+          inside KEEP_R or SEEK_SWITCH_R nearer (`_advance_switch`, Task 18 fix 2: the next choose re-pins to it and
+          ends the advance);
         - the walk beyond AIM_R: the target is within AIM_R (the stance takes it from there);
         - the walk round a wall: the leg the target's distance calls for (`stance_leg_kind`) is no walk's (inside
           KEEP_R, in reach, or no longer sought: a standing leg), or the straight line toward the target now passes
@@ -787,7 +792,8 @@ class Fight(Policy):
         opening the gap the swing needs closed) once the leg the target's distance calls for (`stance_leg_kind`)
         differs from the running one: a standing leg inside KEEP_R or in the advance, a backpedal past KEEP_R +
         KEEP_MARGIN (the margin keeps the two from flapping at the line) or in the advance, an `enter` leg whose
-        target was knocked out of reach. A `toward` leg (the advance) holds until reach. The stance's own walk (a seek's
+        target was knocked out of reach. A `toward` leg (the advance) holds until reach, or until `_advance_switch`
+        names another zombie (inside KEEP_R or SEEK_SWITCH_R nearer: Task 18 fix 2), re-pinned. The stance's own walk (a seek's
         or the advance's) gives way as a leg does (`_walk_gives_way`, Task 18 fix 1, the review's blocker); any other
         walk (the approach and swing's, a reposition) holds until it ends."""
         if not super().busy():
