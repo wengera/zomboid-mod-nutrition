@@ -22,7 +22,11 @@ THE METHOD (no wall clock is read; a run twice gives identical output):
   recorded `wall` of the decision line being replayed; the Actions' pump runs at that clock too, so an action's
   `sent_wall` is its recorded send's wall. The log's `wall` is read at the tick's end, so a clock read inside the
   tick (a Fight's stall clock started there) is late by the tick's own run: the logged `inputs.fight_s` differs from
-  the record's by at most 0.0033 s on F1, which no decision reads near a threshold on E5 or F1.
+  the record's by at most 0.0033 s on F1. A clock difference read against a threshold is late by as much: the nearest
+  such read on E5 and F1 is Flee's `_leg_still` against STEP_STALL_S (1.0 s, through `Flee.stuck()`, the `stuck`
+  corner) at E5 line 228, 0.993975 s, 6.0 ms under it (Task 1's review, M2: STEP_STALL_S 0.99 moves E5 there). The
+  replay agrees there because its clock error is under that margin; a slower tick in a later artifact could read a
+  false divergence at such a line. The stall clock `fight_s` stays far from FIGHT_MAX_S (20 s).
 - The acts. The record's aids are read off the act lines (the k-th sent decision line's action is the record's
   aid `a<k + offset>`, the offset the session's pre-loop sends, checked by the act lines' `type`; the replay's own
   aids are numbered from the same offset, so a `holding` aid in a why reads as the record's). A replayed send
@@ -33,6 +37,9 @@ THE METHOD (no wall clock is read; a run twice gives identical output):
   an unbound `steer` ends `done` once its `seconds` have passed on the clock (the Lua ends a steer at its seconds),
   and any other unbound action ends only by a supersede or the Actions deadline. An action the replay superseded is
   unbound, its later recorded act lines dropped. A recorded aid the replay did not send has its act lines dropped.
+  The replay is open loop: the World follows the recorded frames whatever the replay sends, so after a first
+  divergence the later lines of that episode are counterfactual (an unbound attack or walk held open longer than it
+  ran live); the first moved line is faithful, and a later one is attributed "downstream of line N (open loop)".
 - The goal (excluded). The goal branch's proposals are not replayed: `RecordedGoals` stands in for the goal runner
   and answers each tick from the record: the recorded goal action when the record's line sent one from the goal
   branch (so the goal's sends supersede the threat policies' actions as they did live), else a hold while the
@@ -41,7 +48,13 @@ THE METHOD (no wall clock is read; a run twice gives identical output):
   the output; no threat decision reads the goal itself.
 
 THE GOLDENS: `testing/tests/pzagent/golden/survive-decisions-<key>.json` (`golden_text`: `{artifact, base, decisions,
-recorded}`, sorted keys, one decision a line, LF), checked byte for byte by `test_replay_decisions.py`. The re-record
+recorded, span}`, `span` only where `SPANS` names one, sorted keys, one decision a line, LF), checked byte for byte by
+`test_replay_decisions.py`. E5 and F1 ran on HEAD's rules and agree with their records; E2, E3 and E4 (Task 1 fix 1:
+the hold, breach, shelter, exit and stuck paths E5 and F1 never reach) ran on older rules, so their goldens are HEAD's
+decisions over the old inputs, regression goldens whose divergence from the record is named, not agreement-pinned
+oracles: E2 (planner at 42e7f49b) diverges first at line 94, the reposition floor (P23-AJ 5, aa130e9d); E3 (145868e2)
+at 137, the exterior door by its own edge and the room-less door (amendment 5, c41f9880; R2, 259a58bc); E4
+(259a58bc) at 302, the running leg cut on a new threat ahead (P23-AP 3, e07a52cb). The re-record
 rule (CLAUDE.md § 6, golden trace): a golden is re-recorded only under a named behaviour change of the planner, in the
 commit of the task whose change reaches it (`python -m agent.base.replay_decisions --write <key>` from `testing/`),
 with every moved decision attributed in that task's report; never to make a failing test pass otherwise.
@@ -50,7 +63,8 @@ with every moved decision attributed in that task's report; never to make a fail
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat
 branch: the branch and the action. It is an offline oracle's reading; a divergence is a finding about the planner or
 the replay's act model, named in the task report, not a failure. At the goldens' recording (Plan 24 Task 1): E5 116
-of 116 threat lines agree, F1 331 of 331, none skipped, and every threat why equals the record's.
+of 116 threat lines agree, F1 331 of 331, none skipped, and every threat why equals the record's; at fix 1's
+recording E2 97 of 119, E3 113 of 131, E4 1134 of 1341, none skipped.
 
 `source` names the goal source Survive is built with (`SOURCES`: "scripted" only); the goal runner it makes is
 replaced by `RecordedGoals` before the first tick, so the source never proposes.
@@ -74,7 +88,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 ARTIFACTS = os.path.join(REPO, "testing", "artifacts")
 GOLDEN_DIR = os.path.join(REPO, "testing", "tests", "pzagent", "golden")
-RUNS = {"e5": "e_day_5-20261028-201255", "f1": "f_goals-20261028-202437"}
+RUNS = {"e5": "e_day_5-20261028-201255", "f1": "f_goals-20261028-202437", "e2": "e_day_2-20261028-124249",
+        "e3": "e_day_3-20261028-153631", "e4": "e_day_4-20261028-173649"}
+# a golden's `span` where it needs naming (Task 1 fix 1)
+SPANS = {"e4": "the whole decision.log (1680 lines) as the planner saw it, uncut: the character died at game minute "
+               "627 (its inventory removed at seq 4236-4254) and the record read no death event, so the loop ran on "
+               "to the day cap; the lines after the death replay a dead character's frames"}
 SOURCES = {"scripted": ScriptedSource}
 WORLD_INPUTS = ("x", "y", "health", "hunger", "thirst", "fatigue", "hour", "armed", "load", "threats")
 COMMANDS = {c.TYPE: c for c in vars(pza1).values() if isinstance(c, type) and issubclass(c, pza1._Cmd)
@@ -308,11 +327,13 @@ def agreement(artifact_dir, replayed):
     return {"compared": compared, "agree": agree, "skipped_world": skipped, "first_divergence": first}
 
 
-def golden_text(decisions_, base, artifact, recorded):
-    """The golden file's bytes: `{artifact, base, decisions, recorded}`, sorted keys, one decision a line, LF."""
+def golden_text(decisions_, base, artifact, recorded, span=None):
+    """The golden file's bytes: `{artifact, base, decisions, recorded, span}` (`span` only when given), sorted keys,
+    one decision a line, LF."""
     body = ",\n".join(json.dumps(d, sort_keys=True) for d in decisions_)
-    return ('{"artifact": %s, "base": %s, "decisions": [\n%s\n], "recorded": %s}\n'
-            % (json.dumps(artifact), json.dumps(base), body, json.dumps(recorded)))
+    tail = "" if span is None else ', "span": %s' % json.dumps(span)
+    return ('{"artifact": %s, "base": %s, "decisions": [\n%s\n], "recorded": %s%s}\n'
+            % (json.dumps(artifact), json.dumps(base), body, json.dumps(recorded), tail))
 
 
 def golden_path(key):
@@ -329,7 +350,7 @@ def main(argv=None):
     for key in args.keys:
         run_dir = os.path.join(ARTIFACTS, RUNS[key])
         replayed = replay(run_dir)
-        text = golden_text(decisions(replayed), base, RUNS[key], datetime.date.today().isoformat())
+        text = golden_text(decisions(replayed), base, RUNS[key], datetime.date.today().isoformat(), SPANS.get(key))
         print(key, json.dumps(agreement(run_dir, replayed), sort_keys=True))
         if args.write:
             os.makedirs(GOLDEN_DIR, exist_ok=True)

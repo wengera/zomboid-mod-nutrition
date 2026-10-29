@@ -17,7 +17,7 @@ def run_dir(key):
     return os.path.join(R.ARTIFACTS, R.RUNS[key])
 
 
-@functools.lru_cache(maxsize=2)
+@functools.lru_cache(maxsize=5)
 def replayed(key):
     return json.dumps(R.replay(run_dir(key)), sort_keys=True)
 
@@ -31,17 +31,20 @@ def golden(key):
         return f.read()
 
 
-@pytest.mark.parametrize("key", ["e5", "f1"])
+KEYS = ["e5", "f1", "e2", "e3", "e4"]
+
+
+@pytest.mark.parametrize("key", KEYS)
 def test_the_golden_is_reproduced_byte_for_byte_from_its_artifact(key):
     raw = golden(key)
     head = json.loads(raw.decode("utf-8"))
-    assert head["artifact"] == R.RUNS[key]
-    text = R.golden_text(R.run(run_dir(key)), head["base"], head["artifact"], head["recorded"])
+    assert head["artifact"] == R.RUNS[key] and head.get("span") == R.SPANS.get(key)
+    text = R.golden_text(R.run(run_dir(key)), head["base"], head["artifact"], head["recorded"], head.get("span"))
     assert text.encode("utf-8") == raw
     assert b"\r" not in raw and raw.endswith(b"}\n")
 
 
-@pytest.mark.parametrize("key", ["e5", "f1"])
+@pytest.mark.parametrize("key", KEYS)
 def test_two_runs_give_identical_output(key):
     a, b = R.run(run_dir(key)), R.run(run_dir(key))
     assert json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
@@ -71,7 +74,7 @@ def test_without_the_trailing_read_rule_f1_moves_at_line_498(monkeypatch):
     assert diff[0] == 498 and base[498]["action"] is None and moved[498]["action"]["type"] == "steer"
 
 
-@pytest.mark.parametrize("key", ["e5", "f1"])
+@pytest.mark.parametrize("key", KEYS)
 def test_the_goal_branch_s_decisions_are_excluded(key):
     rows = replay_rows(key)
     out = R.run(run_dir(key))
@@ -121,7 +124,7 @@ def test_agreement_names_the_first_divergence():
     assert R.agreement(run_dir("e5"), rows)["skipped_world"] == 1
 
 
-@pytest.mark.parametrize("key", ["e5", "f1"])
+@pytest.mark.parametrize("key", KEYS)
 def test_every_decision_line_aligns_to_one_frame_at_or_before_its_wall(key):
     lines, rows = R.read_record(run_dir(key))
     ends = R.align(lines, rows)
@@ -136,3 +139,61 @@ def test_the_recorded_aids_follow_the_session_s_pre_loop_equip():
     lines, rows = R.read_record(run_dir("e5"))
     aids, offset = R.recorded_aids(lines, rows)
     assert offset == 1 and aids[1] == "a2"
+
+
+# ================================================================ Task 1 fix 1: E2, E3 and E4 (older rules)
+@pytest.mark.parametrize("key,compared,agree,first", [("e2", 119, 97, 94), ("e3", 131, 113, 137),
+                                                      ("e4", 1341, 1134, 302)])
+def test_the_older_records_diverge_where_the_rules_changed_since(key, compared, agree, first):
+    """The reading at fix 1's recording: HEAD's decisions over inputs recorded under older rules (E2 at 42e7f49b, E3
+    at 145868e2, E4 at 259a58bc); each first divergence is named in the module docstring with its rule."""
+    got = R.agreement(run_dir(key), replay_rows(key))
+    assert (got["compared"], got["agree"], got["skipped_world"]) == (compared, agree, 0)
+    assert got["first_divergence"]["line"] == first
+
+
+def test_e2_line_94_is_the_reposition_floor(monkeypatch):
+    """E2 (42e7f49b) repositioned to (10733, 10642), 0.99 tiles off, under REPOSITION_MIN 1.2 (P23-AJ 5, aa130e9d):
+    HEAD walks to (10731, 10642). With the floor at 0 the replay agrees at 94 and first diverges at 98."""
+    d = R.agreement(run_dir("e2"), replay_rows("e2"))["first_divergence"]
+    assert d["record"]["action"]["args"] == {"gait": "run", "x": 10733.5, "y": 10642.5}
+    assert d["replay"]["action"]["args"] == {"gait": "run", "x": 10731.5, "y": 10642.5}
+    monkeypatch.setattr(P, "REPOSITION_MIN", 0.0)
+    assert R.agreement(run_dir("e2"), R.replay(run_dir("e2")))["first_divergence"]["line"] == 98
+
+
+def test_e3_line_137_walks_to_the_kitchen_door_not_the_bedroom_door():
+    """E3 (145868e2) took the bedroom door (10725, 10629) for exterior; HEAD's exterior door by its own edge
+    (amendment 5, c41f9880) and the room-less kitchen door (R2, 259a58bc) send the approach to (10721, 10638)."""
+    d = R.agreement(run_dir("e3"), replay_rows("e3"))["first_divergence"]
+    assert d["record"]["action"]["args"] == {"gait": "run", "x": 10726.5, "y": 10628.5}
+    assert d["replay"]["action"]["args"] == {"gait": "run", "x": 10721.5, "y": 10638.5}
+    assert d["record"]["why"]["shelter"] == d["replay"]["why"]["shelter"] == 2
+
+
+def test_e4_line_302_is_the_cut_leg(monkeypatch):
+    """E4 (259a58bc) held its steer a29 when a second zombie was held at 302; HEAD cuts the leg on the new threat
+    ahead (P23-AP 3, e07a52cb) and the re-choose walks to building 2's approach. With the cut off the replay agrees
+    at 302 and first diverges at 450."""
+    d = R.agreement(run_dir("e4"), replay_rows("e4"))["first_divergence"]
+    assert d["record"]["why"]["holding"] == "a29" and d["replay"]["why"]["step"] == "approach"
+    monkeypatch.setattr(P.Flee, "_cut_leg", lambda self: None)
+    assert R.agreement(run_dir("e4"), R.replay(run_dir("e4")))["first_divergence"]["line"] == 450
+
+
+def test_the_older_goldens_reach_the_hold_breach_door_exit_shelter_stall_and_stuck_paths():
+    why = [d["why"] for k in ("e2", "e3", "e4") for d in json.loads(golden(k).decode("utf-8"))["decisions"]]
+    flee = {w.get("flee") for w in why}
+    assert {"held_inside", "many", "held", "pair", "health", "unreachable", "steps", "unarmed"} <= flee
+    keys = set().union(*why)
+    assert {"breach", "door", "exit", "shelter", "step", "stuck", "cut", "group", "cornered"} <= keys
+    assert "stalled" in {w.get("ended") for w in why}
+
+
+def test_closing_ticks_now_moves_the_e2_golden_at_line_164(monkeypatch):
+    """The review's M1: a mutant E5 and F1 never saw moves E2 (the `closing` breach)."""
+    base = {d["line"]: d for d in json.loads(golden("e2").decode("utf-8"))["decisions"]}
+    monkeypatch.setattr(S, "CLOSING_TICKS", 4)
+    moved = {d["line"]: d for d in R.run(run_dir("e2"))}
+    diff = [k for k in sorted(set(base) | set(moved)) if base.get(k) != moved.get(k)]
+    assert diff and diff[0] == 164
