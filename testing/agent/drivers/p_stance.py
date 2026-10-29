@@ -10,9 +10,10 @@ THE SCRIPT (Script, the loop's planner; every step one decision line in decision
 name, so the shot taker shoots on each step, and one row in out["probe"]["steps"]), in order:
   1 idle          5 s, nothing sent; `aiming` and `forceAim` read false.
   2 aim_stand     aim {bearing 0, vx 0, vy 0, seconds 5}, no target: the stance standing, facing east.
-  3 aim_strafe    aim {bearing 90, vx -1, vy 0, seconds 5}: face south, move west (the strafe): the position change
-                  along the vector, the gait and `running`.
-  4 aim_target    only when a zombie is listed within 3 tiles at that moment: aim {targetId, vx 0, vy 0, seconds 3},
+  3 aim_strafe    aim {bearing 0, vx -1, vy 0, seconds 5}: face east, move west (the backpedal): the position change
+                  along the vector, the heading held east, the gait and `running`.
+  4 aim_target    only when a zombie is listed within the weapon's reach (`weapon.reach` on the frame, else
+                  FIGHT_REACH) at that moment: aim {targetId, vx 0, vy 0, seconds 3},
                   then
     attack        attack {targetId} (one swing), then
     post_attack   2.5 s idle (the kept stance runs out its hold); else all three are skipped, each row saying so.
@@ -24,7 +25,8 @@ not sent: the frames come at the Lua's default rate and the grade counts the fra
 
 THE RECORD out["probe"]: {steps [{step, state, reason, aid, type, args, result, startMs, endMs, ackedMs, skipped,
 note}] (the *Ms are this host's epoch ms: the python clock, which is the client's wallMs clock on the one host),
-frames [{seq, wallMs, x, y, dir, pace, moving, running, sprinting, aiming, forceAim}] (every frame, compact),
+frames [{seq, wallMs, x, y, dir, pace, moving, running, sprinting, aiming, forceAim, hitReaction, attackers,
+zombiesSeen}] (every frame, compact),
 hello {mod, ...}}; out["grade_p1"] is `grade_p1(out)`, else out["grade_p1_error"].
 
 THE GRADE (grade_p1, in this file): a leg's frames are those from LEG_SETTLE_MS after its action was accepted to the
@@ -38,8 +40,13 @@ action's end (the first second is the stance taking hold, which the Lua counts f
     None when the target legs were skipped;
   release_ok (the walk done, `aiming` and `forceAim` false on RELEASE_MIN of the frames from the walk's ack to the
     script's end);
+  per aim leg also attacked_frames (frames with `hitReaction` non-empty or `attackers` above 0) and attacked (any):
+    a dip in held_frac under a hit is told from a failed stance;
+  dir_ok (the strafe leg's frames read the one heading STRAFE_DIR, the bearing 0 facing east);
   verdict: `STANCE HOLDS` when stand and strafe both read `aiming` true on at least HELD_MIN of their frames, else
-    `STANCE FAILS` naming the first frame it read false.
+    `STANCE FAILS` naming the first frame it read false (`(attacked)` appended when a failed leg was attacked, and
+    `dir` when the strafe heading turned); either verdict takes `; mod != 1.5.4` for a stale mod and
+    `; strafe_ok false` for a strafe that did not move.
 
 RULES: never edited after its run; takes only `--session 1` and `--fixture agent`, each once (anything else is
 refused); one live session at a time; free memory gated at MIN_FREE_GB before the boot; never -safemode; launched by
@@ -59,6 +66,7 @@ for _p in (HERE, os.path.join(TESTING, "experiments"), TESTING):
 
 import xlib as X                                      # noqa: E402,F401 - the provenance the RULES name
 from agent.base import pza1                           # noqa: E402
+from agent.base.planner import policies as POL        # noqa: E402
 from agent.base.world import me_xy                    # noqa: E402
 from agent.driverlib import day as DY                 # noqa: E402
 from agent.driverlib import session as DS             # noqa: E402
@@ -89,10 +97,11 @@ STRAFE_S = 5.0
 TARGET_S = 3.0
 POST_ATTACK_S = 2.5
 SETTLE_S = 1.5
-NEAR_TILES = 3.0                  # a zombie listed this close at the target step's start
+FIGHT_REACH = POL.FIGHT_REACH     # the reach when the frame lacks the weapon's: an attack beyond reach releases the stance
 WALK_TILES = 3.0
 STEPS = ("idle", "aim_stand", "aim_strafe", "aim_target", "attack", "post_attack", "walk", "settle")
 STRAFE_VEC = (-1.0, 0.0)
+STRAFE_DIR = "E"                  # the strafe leg faces bearing 0: east, while it moves west
 
 # ---- the grade
 LEG_SETTLE_MS = 1000.0
@@ -155,13 +164,16 @@ class Script:
         if name == "aim_stand":
             return pza1.Aim(vx=0.0, vy=0.0, seconds=STAND_S, targetId=-1, bearing=0.0), None, None
         if name == "aim_strafe":
-            return pza1.Aim(vx=STRAFE_VEC[0], vy=STRAFE_VEC[1], seconds=STRAFE_S, targetId=-1, bearing=90.0), None, None
+            return pza1.Aim(vx=STRAFE_VEC[0], vy=STRAFE_VEC[1], seconds=STRAFE_S, targetId=-1, bearing=0.0), None, None
         if name == "aim_target":
+            wp = getattr(w, "weapon", None)
+            reach = wp.get("reach") if isinstance(wp, dict) else None
+            reach = float(reach) if isinstance(reach, (int, float)) and not isinstance(reach, bool) else FIGHT_REACH
             near = sorted((z.get("dist"), zid) for zid, z in (w.zombies or {}).items()
-                          if isinstance(z.get("dist"), (int, float)) and z["dist"] <= NEAR_TILES)
+                          if isinstance(z.get("dist"), (int, float)) and z["dist"] <= reach)
             if not near:
                 self.skip_target = True
-                return None, None, "no zombie listed within %s tiles: the target legs are skipped" % NEAR_TILES
+                return None, None, "no zombie listed within the weapon's reach (%s tiles): the target legs are skipped" % reach
             self.target = near[0][1]
             return pza1.Aim(vx=0.0, vy=0.0, seconds=TARGET_S, targetId=self.target, bearing=-1.0), None, None
         if name == "attack":
@@ -242,7 +254,9 @@ class Probe(DS.Session):
         self.probe_frames.append({
             "seq": line.get("seq"), "wallMs": line.get("wallMs"), "x": me.get("x"), "y": me.get("y"),
             "dir": me.get("dir"), "pace": me.get("pace"), "moving": me.get("moving"), "running": me.get("running"),
-            "sprinting": me.get("sprinting"), "aiming": me.get("aiming"), "forceAim": me.get("forceAim")})
+            "sprinting": me.get("sprinting"), "aiming": me.get("aiming"), "forceAim": me.get("forceAim"),
+            "hitReaction": me.get("hitReaction"), "attackers": me.get("attackers"),
+            "zombiesSeen": me.get("zombiesSeen")})
 
     def extra_record(self):
         """out["probe"] rebuilt at every save (the grade reads it); the loop's own record takes nothing."""
@@ -295,14 +309,22 @@ def leg_frames(frames, row, settle_ms=LEG_SETTLE_MS):
     return [f for f in frames if _num(f.get("wallMs")) is not None and lo + settle_ms <= f["wallMs"] <= hi]
 
 
+def is_attacked(f):
+    """True when a frame reads a hit reaction or an attacker."""
+    a = f.get("attackers")
+    return bool(f.get("hitReaction")) or (isinstance(a, (int, float)) and not isinstance(a, bool) and a > 0)
+
+
 def grade_leg(frames, row):
-    """One aim leg's reading: {n, held_frac, force_frac, first_false, result, result_frac, state}."""
+    """One aim leg's reading: {n, held_frac, force_frac, first_false, attacked_frames, attacked, result, result_frac,
+    state}."""
     fr = leg_frames(frames, row)
+    att = sum(1 for f in fr if is_attacked(f))
     res = row.get("result") if isinstance(row.get("result"), dict) else {}
     first_false = next((f.get("seq") for f in fr if f.get("aiming") is not True), None)
     hf, tk = _num(res.get("heldFrames")), _num(res.get("ticks"))
     return {"n": len(fr), "held_frac": _frac(fr, "aiming"), "force_frac": _frac(fr, "forceAim"),
-            "first_false": first_false, "state": row.get("state"), "reason": row.get("reason"),
+            "first_false": first_false, "attacked_frames": att, "attacked": att > 0, "state": row.get("state"), "reason": row.get("reason"),
             "result": {k: res.get(k) for k in ("held", "heldFrames", "ticks", "d")},
             "result_frac": (hf / tk) if hf is not None and tk else None}
 
@@ -314,6 +336,7 @@ def strafe_reading(frames, row, vec=STRAFE_VEC):
     out = {"strafe_tiles": None, "strafe_tiles_per_s": None, "strafe_ok": False, "running_frac": _frac(fr, "running"),
            "moving_frac": _frac(fr, "moving"), "sprinting_frac": _frac(fr, "sprinting"),
            "dirs": sorted({str(f.get("dir")) for f in fr})}
+    out["dir_ok"] = bool(fr) and out["dirs"] == [STRAFE_DIR]
     pts = [f for f in fr if _num(f.get("x")) is not None and _num(f.get("y")) is not None]
     if len(pts) < 2:
         return out
@@ -378,14 +401,21 @@ def grade_p1(out):
     g["strafe_tiles_per_s"] = (g["strafe"] or {}).get("strafe_tiles_per_s")
     g["strafe_ok"] = bool((g["strafe"] or {}).get("strafe_ok"))
     fails = []
+    g["dir_ok"] = bool((g["strafe"] or {}).get("dir_ok"))
     for name in ("aim_stand", "aim_strafe"):
         leg = legs.get(name)
         if leg is None or leg["n"] == 0:
             fails.append("%s read no frames" % name)
         elif (leg["held_frac"] or 0.0) < HELD_MIN:
             fails.append("%s: first frame with aiming false: seq %s (held_frac %.2f)" % (
-                name, leg["first_false"], leg["held_frac"] or 0.0))
+                name, leg["first_false"], leg["held_frac"] or 0.0) + (" (attacked)" if leg["attacked"] else ""))
+    if g["strafe"] and g["strafe"]["dirs"] and not g["dir_ok"]:
+        fails.append("aim_strafe: dir turned, read %s not %s" % (g["strafe"]["dirs"], STRAFE_DIR))
     g["verdict"] = "STANCE HOLDS" if not fails else "STANCE FAILS: " + "; ".join(fails)
+    if not g["mod_ok"]:
+        g["verdict"] += "; mod != %s" % MOD_VERSION
+    if not g["strafe_ok"]:
+        g["verdict"] += "; strafe_ok false"
     g["report_lines"] = [
         g["verdict"],
         "held_frac %s force_frac %s" % (g["held_frac"], g["force_frac"]),

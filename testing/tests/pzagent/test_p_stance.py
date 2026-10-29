@@ -109,7 +109,7 @@ def test_the_scripts_actions_are_the_legs_and_pass_the_schema(tmp_path, monkeypa
         assert bad_args(c) == "", c
     stand, strafe, target, attack, walk = (c["args"] for c in cmds)
     assert stand == {"vx": 0.0, "vy": 0.0, "seconds": 5.0, "targetId": -1, "bearing": 0.0}
-    assert strafe == {"vx": -1.0, "vy": 0.0, "seconds": 5.0, "targetId": -1, "bearing": 90.0}
+    assert strafe == {"vx": -1.0, "vy": 0.0, "seconds": 5.0, "targetId": -1, "bearing": 0.0}
     assert target == {"vx": 0.0, "vy": 0.0, "seconds": 3.0, "targetId": ZID, "bearing": -1.0}
     assert attack == {"targetId": ZID}
     assert walk["gait"] == "walk" and walk["y"] == 200.0 and walk["x"] == r.mod.walk_from + P.WALK_TILES
@@ -145,19 +145,22 @@ def test_preboot_on_the_real_profile(agent_fixture, monkeypatch):
 # ================================================================ ProbeMod: the fake mod for the loop
 class ProbeMod(FakeMod):
     """One frame a tick at 10 Hz on the shared clock. `mode` "holds": aiming and forceAim true through an aim leg and for
-    HOLD_S after a swing, false otherwise; "no_stance": never; "no_strafe" holds but never moves. An aim leg moves the
+    HOLD_S after a swing, false otherwise; "no_stance": never; "no_strafe" holds but never moves; "hit" holds but drops `aiming` and
+    `forceAim` for HIT_S from HIT_AT_S with `hitReaction` and `attackers` set; "dies" holds and writes the death event
+    and a zero-health frame at DIE_AT_S; "turns" holds but reads `dir` "S" from TURN_AT_S. An aim leg moves the
     character along (vx, vy) at one tile a second; a walkTo moves it WALK_TILES in one second and drops the stance. A
     new command supersedes the open action (failed "superseded"). attack answers done {attackStarted true}, aim done
-    {d, held, heldFrames, ticks}. `zombie`: a zombie listed 2 tiles away."""
+    {d, held, heldFrames, ticks}. `zombie`: a zombie listed 1 tile away (within the weapon's reach of 1.125)."""
     HOLD_S = 2.0
+    HIT_AT_S, HIT_S, DIE_AT_S, TURN_AT_S = 2.0, 1.0, 7.0, 7.0      # seconds after the first aim
 
-    def __init__(self, d, clock, mode="holds", zombie=False, mod="1.5.4"):
+    def __init__(self, d, clock, mode="holds", zombie=False, mod="1.5.4", zombie_dist=1.0):
         super().__init__(d, clock=clock.now)
         self.clk, self.t0, self.hz = clock, clock.t, 10
-        self.mode, self.zombie = mode, zombie
+        self.mode, self.zombie, self.zombie_dist = mode, zombie, zombie_dist
         self.weapon, self.has_kit = None, False
         self.pending, self.cmd_seen, self.cmds = [], 0, []
-        self.cur, self.hold_until = None, -1.0
+        self.cur, self.hold_until, self.aim0 = None, -1.0, None
         self.x, self.y, self.walk_from = 100.0, 200.0, None
         self.hello(mode="append", mod=mod)
         self.next_t = clock.t
@@ -198,6 +201,8 @@ class ProbeMod(FakeMod):
             self.weapon = {"type": KIT, "cond": 1.0, "reach": 1.125, "ammo": None}
             self.act(aid, "done", t, result={})
         elif t == "aim":
+            if self.aim0 is None:
+                self.aim0 = self.s()
             self.cur = {"aid": aid, "type": t, "end": self.s() + args["seconds"], "vx": args["vx"], "vy": args["vy"],
                         "ticks": 0, "held": 0}
         elif t == "walkTo":
@@ -211,8 +216,11 @@ class ProbeMod(FakeMod):
         else:
             self.act(aid, "done", t, result={})
 
+    def _hit(self):
+        return self.mode == "hit" and self.aim0 is not None and self.HIT_AT_S <= self.s() - self.aim0 < self.HIT_AT_S + self.HIT_S
+
     def _stance(self):
-        if self.mode == "no_stance":
+        if self.mode == "no_stance" or self._hit():
             return False
         c = self.cur
         return (c is not None and c["type"] == "aim") or self.s() < self.hold_until
@@ -233,11 +241,21 @@ class ProbeMod(FakeMod):
             self.x = c["x0"] + (c["tx"] - c["x0"]) * min(1.0, 1.0 - (c["end"] - self.s()))
         stance = self._stance()
         moving = bool(c is not None and (c["type"] == "walkTo" or abs(c.get("vx", 0)) + abs(c.get("vy", 0)) > 0))
-        me = dict(DEFAULT_FRAME["me"], x=self.x, y=self.y, aiming=stance, forceAim=stance, moving=moving)
+        me = dict(DEFAULT_FRAME["me"], dir="E", x=self.x, y=self.y, aiming=stance, forceAim=stance, moving=moving)
+        if self._hit():
+            me.update(hitReaction="HitReaction", attackers=1)
+        if self.mode == "turns" and self.aim0 is not None and self.s() - self.aim0 >= self.TURN_AT_S:
+            me["dir"] = "S"
+        groups = {}
+        if self.mode == "dies" and self.aim0 is not None and self.s() - self.aim0 >= self.DIE_AT_S:
+            if not getattr(self, "dead", False):
+                self.dead = True
+                self.death()
+            groups["body"] = dict(DEFAULT_FRAME["body"], health=0.0)
         gmin = 480.0 + self.s() * 16.0 / 60.0
-        zs = [{"id": ZID, "x": self.x + 2.0, "y": self.y, "dist": 2.0, "hasTarget": False, "crawler": False,
+        zs = [{"id": ZID, "x": self.x + self.zombie_dist, "y": self.y, "dist": self.zombie_dist, "hasTarget": False, "crawler": False,
                "health": 1.0}] if self.zombie else []
-        self.frame(gameMin=gmin, worldAge=8.0 + (gmin - 480.0) / 60.0, me=me, weapon=self.weapon, zombies=zs)
+        self.frame(gameMin=gmin, worldAge=8.0 + (gmin - 480.0) / 60.0, me=me, weapon=self.weapon, zombies=zs, **groups)
         if c is not None and self.s() >= c["end"] - 1e-9:
             self.cur = None
             if c["type"] == "aim":
@@ -293,12 +311,20 @@ def test_a_session_that_holds_the_stance_grades_holds_and_stops_script_done(tmp_
     assert saved["probe"]["steps"] and saved["probe"]["frames"], "the probe is in the persisted artifact"
 
 
+def test_a_zombie_beyond_the_weapons_reach_skips_the_target_legs(tmp_path, monkeypatch):
+    r = run_probe(tmp_path, monkeypatch, zombie=True, zombie_dist=1.6)
+    rows = {s["step"]: s for s in r.out["probe"]["steps"]}
+    assert all(rows[n]["skipped"] and "reach" in rows[n]["note"] for n in ("aim_target",)), rows["aim_target"]
+    assert rows["attack"]["skipped"] and r.g["target_skipped"] is True and r.g["handover_ok"] is None
+    assert [c["type"] for c in r.mod.cmds if c["type"] not in ("equip", "stop")] == ["aim", "aim", "walkTo"]
+
+
 def test_with_no_zombie_the_target_legs_are_skipped_and_said_so(tmp_path, monkeypatch):
     r = run_probe(tmp_path, monkeypatch, zombie=False)
     g, rows = r.g, {s["step"]: s for s in r.out["probe"]["steps"]}
     for name in ("aim_target", "attack", "post_attack"):
         assert rows[name]["skipped"] is True and rows[name]["state"] == "skipped" and rows[name]["note"], name
-    assert "within" in rows["aim_target"]["note"]
+    assert "reach" in rows["aim_target"]["note"]
     assert g["verdict"] == "STANCE HOLDS" and g["handover_ok"] is None and g["target_skipped"] is True
     assert g["release_ok"] is True and r.out["stop"]["reason"] == "script_done"
     assert [c["type"] for c in r.mod.cmds if c["type"] not in ("equip", "stop")] == ["aim", "aim", "walkTo"]
@@ -318,7 +344,39 @@ def test_a_stance_that_never_reads_grades_fails_at_its_first_frame(tmp_path, mon
 def test_a_strafe_that_does_not_move_fails_strafe_but_not_the_stance(tmp_path, monkeypatch):
     r = run_probe(tmp_path, monkeypatch, mode="no_strafe")
     g = r.g
-    assert g["verdict"] == "STANCE HOLDS" and g["strafe_ok"] is False and abs(g["strafe_tiles"]) < 0.01
+    assert g["verdict"] == "STANCE HOLDS; strafe_ok false" and g["strafe_ok"] is False and abs(g["strafe_tiles"]) < 0.01
+
+
+def test_an_attacked_leg_is_told_from_a_failed_stance(tmp_path, monkeypatch):
+    r = run_probe(tmp_path, monkeypatch, mode="hit")
+    g = r.g
+    assert g["verdict"].startswith("STANCE FAILS") and "aim_stand" in g["verdict"], g["verdict"]
+    assert g["verdict"].count("(attacked)") == 1 and "aim_strafe" not in g["verdict"], g["verdict"]
+    assert g["legs"]["aim_stand"]["attacked"] is True and g["legs"]["aim_stand"]["attacked_frames"] >= 8
+    assert g["legs"]["aim_strafe"]["attacked"] is False and g["legs"]["aim_strafe"]["attacked_frames"] == 0
+    assert g["held_frac"]["aim_stand"] < P.HELD_MIN and r.out["stop"]["reason"] == "script_done"
+    fr = r.out["probe"]["frames"]
+    assert any(f["hitReaction"] == "HitReaction" and f["attackers"] == 1 for f in fr) and "zombiesSeen" in fr[0]
+
+
+def test_a_death_mid_leg_stops_the_loop_and_the_grade_is_still_written(tmp_path, monkeypatch):
+    r = run_probe(tmp_path, monkeypatch, mode="dies")
+    out, g = r.out, r.g
+    assert out["stop"]["reason"] == "death", out["stop"]
+    assert "grade_p1_error" not in out and g is not None and g["stop"] == "death"
+    steps = {s["step"]: s for s in out["probe"]["steps"]}
+    assert "walk" not in steps and "settle" not in steps, list(steps)
+    assert g["release_ok"] is False
+
+
+def test_the_backpedal_heading_is_graded_from_the_recorded_dirs(tmp_path, monkeypatch):
+    r = run_probe(tmp_path, monkeypatch)
+    assert r.g["strafe"]["dirs"] == [P.STRAFE_DIR] and r.g["dir_ok"] is True and r.g["verdict"] == "STANCE HOLDS"
+    r = run_probe(tmp_path, monkeypatch, name="turn.json", mode="turns")
+    g = r.g
+    assert g["dir_ok"] is False and g["strafe"]["dirs"] == [P.STRAFE_DIR, "S"]
+    assert g["verdict"].startswith("STANCE FAILS") and "dir turned" in g["verdict"], g["verdict"]
+    assert "S" in g["verdict"]
 
 
 # ================================================================ the grade's failing cases, one per field
@@ -351,7 +409,7 @@ def synth(aiming=lambda step, t: True, force=None, dx=lambda t: -(t - 10200) / 1
     for i, t in enumerate(range(0, 24001, 100)):
         st = step_at(t)
         x = 100.0 + (dx(t) if 10200 <= t <= 15200 else (dx(15200) if t > 15200 else 0.0))
-        frames.append({"seq": i + 1, "wallMs": float(t), "x": x, "y": 200.0, "dir": "S", "pace": 0.0,
+        frames.append({"seq": i + 1, "wallMs": float(t), "x": x, "y": 200.0, "dir": "E", "pace": 0.0,
                        "moving": 10200 <= t <= 15200, "running": False, "sprinting": False,
                        "aiming": aiming(st, t), "forceAim": force(st, t)})
     return {"probe": {"steps": rows, "frames": frames, "hello": {"mod": mod}}, "stop": {"reason": stop}}
@@ -427,6 +485,32 @@ def test_release_fails_when_the_stance_stays_or_the_walk_is_not_done():
     assert P.grade_p1(synth(aiming=stance_on, force=lambda step, t: stance_on(step, t) or t >= 21500))[
         "release_ok"] is False
     assert P.grade_p1(synth(aiming=stance_on, walk_state="failed"))["release_ok"] is False
+
+
+def test_the_verdict_names_a_stale_mod_and_a_strafe_that_did_not_move():
+    g = P.grade_p1(synth(aiming=stance_on, mod="1.5.3"))
+    assert g["mod_ok"] is False and g["verdict"] == "STANCE HOLDS; mod != 1.5.4" and g["report_lines"][0] == g["verdict"]
+    g = P.grade_p1(synth(aiming=stance_on, mod="1.5.3", dx=lambda t: 0.0))
+    assert g["verdict"] == "STANCE HOLDS; mod != 1.5.4; strafe_ok false"
+    g = P.grade_p1(synth(aiming=lambda step, t: False, mod="1.5.3"))
+    assert g["verdict"].startswith("STANCE FAILS") and g["verdict"].endswith("; mod != 1.5.4")
+
+
+def test_an_attacked_synthetic_leg_reads_attacked_and_an_unattacked_failure_does_not():
+    out = synth(aiming=lambda step, t: stance_on(step, t) and not 7000 <= t < 8000)
+    for f in out["probe"]["frames"]:
+        f.update(hitReaction="", attackers=0)
+        if 7000 <= f["wallMs"] < 8000:
+            f["attackers"] = 2
+    g = P.grade_p1(out)
+    assert g["verdict"].startswith("STANCE FAILS") and "(attacked)" in g["verdict"]
+    assert g["legs"]["aim_stand"]["attacked_frames"] >= 1
+    out = synth(aiming=lambda step, t: stance_on(step, t) and not 7000 <= t < 8000)
+    for f in out["probe"]["frames"]:
+        f.update(hitReaction="", attackers=0)
+    g = P.grade_p1(out)
+    assert g["verdict"].startswith("STANCE FAILS") and "attacked" not in g["verdict"]
+    assert g["legs"]["aim_stand"]["attacked"] is False
 
 
 def test_a_wrong_mod_version_and_a_missing_probe_are_reported():
