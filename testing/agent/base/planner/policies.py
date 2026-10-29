@@ -49,19 +49,23 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   streak; a fall, a new target or a target no frame lists restarts it. `unreachable` (id -> wall until) is passed in so
   a later Fight of the same planner keeps it. An attack ending `failed` for a walk reason (`STUCK_REASONS`) marks its
   target the same way.
-  The standing fight (ruling P24-G 1, survive.py's docstring): with `stance` set (Survive's `_stance_ok`) and
-  neither `point_blank` nor `only`, a target beyond FIGHT_REACH is met with `Aim(vx, vy, AIM_LEG_S, targetId)`, the
-  stance facing it, (vx, vy) the backpedal while it closes (`_closing`: it moved CLOSE_MIN toward the player since the
-  last leg's send, or at a first leg its record reads `hasTarget`) within FIGHT_REACH + BACKPEDAL_BAND (ruling P24-M,
-  Task 10 fix 1: farther off the character stands facing it, so a shambler steps into reach rather than chasing a
-  strafing player to the stand-off): `away_vector` of `threats` turned by STEER_TURNS to the first heading
-  `clear_heading` passes (never into a wall or over a hoppable fence), else (0, 0); a running leg gives way (`busy`)
-  once the target is within reach, re-pinned, or the stand ends. The stand clock (`_stand`) restarts on a new target
-  or a fall of its health; at STAND_MAX_S it sets `standoff` and the approach and swing above run for the rest of the
-  Fight, the out-of-reach stall clock (which a stand keeps at zero) starting then; a stance leg that ends failed,
-  timed out or rejected (never superseded, nor refused `no target`: Task 10 fix 2, the zombie is gone) sets `standoff` at once (Task 10 fix 1, minor 11: a build that cannot hold
-  the stance never re-sends it for STAND_MAX_S). `standoff_why` names which (`stand_max_s`, or the leg's state and
-  reason).
+  The standing fight (rulings P24-G 1 and P24-N, survive.py's docstring; P24-N supersedes P24-M's backpedal band
+  after E6, `e_day_6-20261029-102942`: 8 of its 11 stance legs stood, the fights went to the approach and swing):
+  with `stance` set (Survive's `_stance_ok`), neither `point_blank` nor `only`, and the target within AIM_R
+  (`stance_at`), every leg is `Aim(vx, vy, AIM_LEG_S, targetId)` facing the target (`_stance_leg`), the fight's first
+  action included: within FIGHT_REACH with the stance not held (`in_stance`: the last send was this Fight's running
+  aim, or its attack from the stance running or ended within AIM_HOLD_S, Task 9's hand-over) an `enter` leg (0, 0),
+  the swing following from it; inside KEEP_R the backpedal (`away_vector` of `threats` turned by STEER_TURNS to the
+  first heading `clear_heading` passes, never into a wall or over a hoppable fence, else (0, 0)); beyond it standing
+  (0, 0), the target faced while it comes. A running leg gives way (`busy`) once the target is within reach,
+  re-pinned, or the stand ends, and a standing one once the target is inside KEEP_R or the advance begins. The stand
+  clock (`_stand`) restarts on a new target or a fall of its health, ending any advance; at STAND_MAX_S the Fight
+  closes in the stance (`advance`: `toward` legs, the unit vector to the target, or with its line blocked over
+  STEER_PROBE the approach walk at a run round the wall), the out-of-reach stall clock (which a stand keeps at zero)
+  starting then. A stance leg that ends failed, timed out or rejected (never superseded, nor refused `no target`:
+  Task 10 fix 2, the zombie is gone) sets `standoff` at once (Task 10 fix 1, minor 11: a build that cannot hold the
+  stance never re-sends it), and the approach and swing above run for the rest of the Fight; `standoff_why` names
+  the leg's state and reason.
 - `Flee` (one per flee episode): a `Steer` of `FLEE_S` seconds away from the threats (the `threats` list its caller
   passes, else every zombie the World holds), at a sprint when the nearest is within `SPRINT_R`, else a run; re-aimed on
   every end of its steer. Every leg runs along the sum of the unit vectors from each threat to the player, each weighted
@@ -226,11 +230,12 @@ BEHIND_MARGIN = 0.5   # tiles: a zombie is behind a fight's target only this muc
                       # ruling: one beside the target, 0.16 tiles farther, is not behind it)
 AIM_LEG_S = 2.0       # seconds one stance leg (`aim`) holds before the stance fight re-aims (ruling P24-G 1)
 STAND_MAX_S = 20.0    # wall seconds a standing fight may go without its target's health falling (or a new target
-                      # after a kill) before it falls back to the approach and swing (ruling P24-G 1: no stand-off)
-CLOSE_MIN = 0.1       # tiles: the target moved at least this much toward the player since the last stance leg's
-                      # send (or, at a first leg, its record reads hasTarget) reads closing, the backpedal's trigger
-BACKPEDAL_BAND = 1.0  # tiles beyond FIGHT_REACH within which a closing target is backpedalled from; farther, the
-                      # stance stands facing it (ruling P24-M: at strafe speed, #4295, the gap might never close)
+                      # after a kill) before it closes on the target in the stance (`advance`; ruling P24-N: no
+                      # stand-off, and no run)
+KEEP_R = 2.5          # tiles: a target inside this and beyond FIGHT_REACH is backpedalled from; farther, the stance
+                      # stands facing it and lets it come (ruling P24-N, superseding P24-M's band of FIGHT_REACH + 1)
+AIM_HOLD_S = 2.0      # seconds the Lua keeps a stance an attack swung from once nothing runs (K.AIM_HOLD_MS 2000,
+                      # PZAgent_Stance.lua): an attack ended longer ago left the character out of the stance
 STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
@@ -434,10 +439,13 @@ class Fight(Policy):
         self.stance = False                 # Survive sets it each tick: the standing fight applies (P24-G 1)
         self.threats = None                 # Survive sets it: the held threats the backpedal steps away from
         self.standoff = False               # the stand went STAND_MAX_S without progress: approach and swing
-        self.standoff_why = None            # why it fell back: "stand_max_s", or "<state> <reason>" of a failed leg
+        self.standoff_why = None            # why it fell back: "<state> <reason>" of a stance leg that failed
+        self.advance = False                # the stand went STAND_MAX_S without progress: close in the stance (P24-N)
         self._leg_read = None               # the last stance leg whose end observe() has read
         self._stand = None                  # (target id, wall of the stand clock's start, its health then)
-        self._leg_from = None               # (target id, its (x, y)) at the last stance leg's send
+        self._leg = None                    # the kind of the last stance leg sent: enter, stand, back or toward
+        self._attack_held = False           # the last attack was sent from the held stance (Task 9's hand-over)
+        self._held_before = False           # the stance read held at the choose that chose the attack
 
     def blocked(self):
         """The ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1 I3), a marked
@@ -547,30 +555,26 @@ class Fight(Policy):
         return self.standing() and d <= AIM_R
 
     def _observe_stand(self, t):
-        """The stand clock (ruling P24-G 1): restarted by a new target (a kill or a re-pin) and by a fall of the
-        target's health; once it reads STAND_MAX_S the Fight falls back to the approach and swing for good
-        (`standoff`), its out-of-reach stall clock starting then."""
-        if not self.standing():
-            self._stand = None
+        """The stand clock (ruling P24-G 1, as P24-N rules its end): restarted by a new target (a kill or a re-pin)
+        and by a fall of the target's health, each restart ending an advance; once it reads STAND_MAX_S the Fight
+        closes on the target in the stance (`advance`: `aim` legs toward it), its out-of-reach stall clock starting
+        then (so a target it cannot reach still ends in the stalled flee, FIGHT_MAX_S later)."""
+        if not self.standing() or t is None or t[2] > AIM_R:   # beyond AIM_R the walk toward it: no stand to time
+            self._stand, self.advance = None, False
             return
         now = self.clock()
-        if t is None:
-            self._stand = None
-            return
-        if t[2] > AIM_R:   # walking toward a target the aim cannot take: no stand to time
-            self._stand = None
-            return
         h = self._target_health(t[0])
-        if self._stand is None or self._stand[0] != t[0]:
-            self._stand = (t[0], now, h)
-        elif h is not None and self._stand[2] is not None and h < self._stand[2]:
-            self._stand = (t[0], now, h)
-        elif now - self._stand[1] >= STAND_MAX_S:
-            self._fall_back("stand_max_s")
+        if (self._stand is None or self._stand[0] != t[0]
+                or (h is not None and self._stand[2] is not None and h < self._stand[2])):
+            self._stand, self.advance = (t[0], now, h), False
+        elif not self.advance and now - self._stand[1] >= STAND_MAX_S:
+            self.advance = True
+            self.out_of_reach_since = now
 
     def _fall_back(self, why):
-        """The stand ends for good (`standoff`): the approach and swing from now, its stall clock starting now."""
-        self.standoff, self.standoff_why, self._stand = True, why, None
+        """The stance cannot be held (a stance leg that failed): the approach and swing for the rest of the Fight
+        (`standoff`), its stall clock starting now."""
+        self.standoff, self.standoff_why, self._stand, self.advance = True, why, None, False
         self.out_of_reach_since = self.clock()
 
     def _observe_leg(self):
@@ -591,20 +595,35 @@ class Fight(Policy):
 
     def busy(self):
         """The Policy's rule, except that a running stance leg gives way at once (P24-G 1) when the target is within
-        FIGHT_REACH (the swing from the stance), another target is pinned, or the stand no longer applies."""
+        FIGHT_REACH (the swing from the stance), another target is pinned, or the stand no longer applies; and a
+        standing leg (P24-N) once the target is inside KEEP_R (the backpedal) or the advance began."""
         if not super().busy():
             return False
         if self.last.type != "aim":
             return True
         t = self._target(pin=False)
-        return (t is not None and t[0] == self.last.args.get("targetId") and t[2] > FIGHT_REACH
-                and self.stance_at(t[2]))
+        if t is None or t[0] != self.last.args.get("targetId") or t[2] <= FIGHT_REACH or not self.stance_at(t[2]):
+            return False
+        return not (self._leg == "stand" and (t[2] <= KEEP_R or self.advance))
+
+    def in_stance(self):
+        """The Lua holds the stance now (Task 9's hand-over, PZAgent_Stance.lua): the last action sent by anyone is
+        this Fight's aim still running, or its attack sent from the held stance and running or ended within
+        AIM_HOLD_S. Any other send (a walk, a steer, a care skill) released it."""
+        a = self.last
+        if a is None or not self.actions.history or self.actions.history[-1] is not a:
+            return False
+        if a.type == "aim":
+            return not self.actions.done(a)
+        if a.type != "attack" or not self._attack_held:
+            return False
+        return not self.actions.done(a) or (a.ended_wall is not None and self.clock() - a.ended_wall < AIM_HOLD_S)
 
     def observe(self):
         self._observe_leg()
         t = self._target(pin=False)
         self._observe_stand(t)
-        if t is None or t[2] <= FIGHT_REACH or self.stance_at(t[2]):
+        if t is None or t[2] <= FIGHT_REACH or (self.stance_at(t[2]) and not self.advance):
             self.out_of_reach_since = self.clock()   # P24-G 1: a stand's own clock is STAND_MAX_S
         a = self.last
         if a is None or a.type != "attack" or not self.actions.done(a) or a is self._counted:
@@ -709,55 +728,63 @@ class Fight(Policy):
             self.repositioned = True
             self.why["reposition"] = list(sq)
             return WalkTo(*centre(sq), "run")
-        if d > FIGHT_REACH and self.stance_at(d):
-            return self._aim(zid, z, d)
+        if self.stance_at(d) and (d > FIGHT_REACH or not self.in_stance()) and not (self.approach and d <= FIGHT_REACH):
+            return self._stance_leg(zid, z, d)   # P24-N: every leg of a standing fight is an aim, the first one too
         if self.approach or d > FIGHT_REACH:
             return WalkTo(*centre((z["x"], z["y"])), "run")
         hit = hit_reaction(self.world)
         if hit is not None:   # P24-A (i): the engine starts no swing in a hit reaction (#4292, #4293): sent on its end
             self.why["hitReaction"] = hit
             return None
+        self._held_before = self.stance_at(d) and self.in_stance()
+        if self.stance_at(d):
+            self.why["stance"] = True   # the swing from the stance (Task 9's hand-over keeps it)
         return Attack(zid)   # nearest_zombie yields int ids only (M7)
 
-    def _closing(self, zid, z):
-        """The target closes (P24-G 1): since the last stance leg's send on it, it moved CLOSE_MIN or more toward the
-        player; at a first leg, its record reads `hasTarget` true."""
-        if self._leg_from is None or self._leg_from[0] != zid:
-            return z.get("hasTarget") is True
-        mx, my = me_xy(self.world)
-        (ox, oy) = self._leg_from[1]
-        ux, uy = mx - ox, my - oy
-        n = math.hypot(ux, uy)
-        if n == 0.0:
-            return False
-        return ((z["x"] - ox) * ux + (z["y"] - oy) * uy) / n >= CLOSE_MIN
-
-    def _aim(self, zid, z, d):
-        """One stance leg (ruling P24-G 1): `aim` facing the target for AIM_LEG_S, walking the backpedal while it
-        closes (`_closing`) within FIGHT_REACH + BACKPEDAL_BAND (ruling P24-M): `away_vector` of the held threats
-        (`threats`, else the target) turned by STEER_TURNS to the first heading whose STEER_PROBE line is clear
-        (`clear_heading`: never into a wall or over a fence), else standing; standing still while it does not close
-        or stands farther off. The stance walks only (it never runs)."""
-        closing = self._closing(zid, z)
-        back = None
-        if closing and d <= FIGHT_REACH + BACKPEDAL_BAND:   # P24-M: farther off it stands facing the target
+    def _stance_leg(self, zid, z, d):
+        """One stance leg (rulings P24-G 1 and P24-N): `aim` facing the target for AIM_LEG_S, walking (the stance
+        never runs) one of
+        - `enter` (0, 0): the target within FIGHT_REACH with the stance not held (`in_stance`): the stance is taken
+          before the swing, which the next choose sends from it;
+        - `toward`: the advance (`advance`, after STAND_MAX_S without progress), the unit vector to the target while
+          its STEER_PROBE line (to the target at most) is clear; with that line blocked the approach walk at a run
+          closes on it instead (the path follower walks round the wall), the one walk of a standing fight;
+        - `back`: the target inside KEEP_R: `away_vector` of the held threats (`threats`, else the target) turned
+          by STEER_TURNS to the first heading `clear_heading` passes (never into a wall or over a fence), else
+          standing: a wall behind is never stepped into;
+        - `stand` (0, 0): the target beyond KEEP_R, faced while it comes."""
+        v, kind = None, "stand"
+        if d <= FIGHT_REACH:
+            kind = "enter"
+        elif self.advance:
+            mx, my = me_xy(self.world)
+            u = ((z["x"] - mx) / d, (z["y"] - my) / d)
+            if not clear_heading(self.world, u, min(STEER_PROBE, d)):
+                self.why.update({"stance": True, "advance": True, "leg": "walk", "stand_s": self.stand_s()})
+                return WalkTo(*centre((z["x"], z["y"])), "run")
+            v, kind = u, "toward"
+        elif d <= KEEP_R:
+            kind = "back"
             ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
-            v = away_vector(self.world, [(q["x"], q["y"]) for q in ts])
-            if v is not None:
-                back = next((_rotate(v, t) for t in STEER_TURNS if clear_heading(self.world, _rotate(v, t))), None)
-        vx, vy = back if back is not None else (0.0, 0.0)
-        self.why.update({"stance": True, "closing": closing, "back": None if back is None else [vx, vy],
+            a = away_vector(self.world, [(q["x"], q["y"]) for q in ts])
+            if a is not None:
+                v = next((_rotate(a, t) for t in STEER_TURNS if clear_heading(self.world, _rotate(a, t))), None)
+        vx, vy = v if v is not None else (0.0, 0.0)
+        self.why.update({"stance": True, "leg": kind, "back": [vx, vy] if kind == "back" and v is not None else None,
                          "stand_s": self.stand_s()})
+        if self.advance:
+            self.why["advance"] = True
         return Aim(vx, vy, AIM_LEG_S, targetId=zid)
 
     def sent(self, cmd, action):
         if cmd.TYPE == "aim":
-            z = self.world.zombies.get(cmd.targetId) or {}
-            self._leg_from = (cmd.targetId, (z.get("x"), z.get("y"))) if z.get("x") is not None else None
+            self._leg = self.why.get("leg")
         elif cmd.TYPE == "walkTo":
             self.approach = False
-        elif cmd.TYPE == "attack" and cmd.targetId != self._streak_id:   # a new target: its streak starts here
-            self._streak_id, self._streak_h, self.no_progress = cmd.targetId, self._target_health(cmd.targetId), 0
+        elif cmd.TYPE == "attack":
+            self._attack_held = self._held_before
+            if cmd.targetId != self._streak_id:   # a new target: its streak starts here
+                self._streak_id, self._streak_h, self.no_progress = cmd.targetId, self._target_health(cmd.targetId), 0
 
 
 def _night():

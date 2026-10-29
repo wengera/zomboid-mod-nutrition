@@ -145,14 +145,16 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   their goldens do not move; the sixth golden, `f1-caps15`, replays F1's frames with them announced: Task 10 fix 1):
   1. The standing fight (`_stance_ok`, `policies.Fight.standing`): a `fight` from the hysteresis (or a broken hold's)
      with one held at health >= FLEE_HEALTH or two at >= FLEE_HEALTH_PAIR, armed, not trapped on a room square,
-     meets a target beyond FIGHT_REACH in the stance (`aim` facing it for `policies.AIM_LEG_S`, backpedalling along
-     `policies.away_vector` of the held threats while it closes within FIGHT_REACH + `policies.BACKPEDAL_BAND`, else
-     standing facing it so it steps into reach: ruling P24-M, Task 10 fix 1), swings from the stance within reach
-     (the stance leg gives way at once: `Fight.busy`), and after `policies.STAND_MAX_S` with no fall of its target's
-     health (a kill restarts it on the next), or at the first stance leg that ends failed, timed out or rejected
-     (Task 10 fix 1, minor 11), falls back to the approach and swing (`Fight.standoff`), whose stall clock starts
-     then; the flee rules, the corner (`point_blank`) and the door fight (`only`) are as before, and the look past a
-     fight's walk target (P24-A (b)) reads no walk while the Fight stands.
+     opens in the stance and keeps it (ruling P24-N, superseding P24-M after E6): every leg an `aim` facing the
+     target for `policies.AIM_LEG_S` (`policies.Fight._stance_leg`), the first one too, backpedalling along
+     `policies.away_vector` of the held threats while the target is inside `policies.KEEP_R`, standing facing it
+     farther off; it swings from the stance within reach (the stance leg gives way at once: `Fight.busy`), and after
+     `policies.STAND_MAX_S` with no fall of its target's health (a kill restarts it on the next) closes on it in the
+     stance (`Fight.advance`, an aim toward it; the approach walk only round a wall), its stall clock starting then;
+     at the first stance leg that ends failed, timed out or rejected (Task 10 fix 1, minor 11) it falls back to the
+     approach and swing (`Fight.standoff`); the flee rules, the corner (`point_blank`) and the door fight (`only`) are
+     as before, and the look past a fight's walk target (P24-A (b)) reads no walk while the Fight stands, and reads
+     the advance as one.
   2. The care branch (`_care`, `planner/care.py`'s docstring the record), between `threat` and `need`: with no
      threat held, the worst bleeding part bandaged with the best held item (a bandage, a clean rag, a dirty rag only
      past `care.DIRTY_RAG_MIN`), with no rag of any kind held a cotton garment ripped for it (never one of the
@@ -598,7 +600,7 @@ class Survive:
         f = self.fight if self.mode == "fight" else None
         if f is not None:
             t = f._target(pin=False)
-            stand = f.standing()
+            stand = f.standing() and not f.advance   # P24-N: the advance closes on the target, a walk toward it
         else:
             nz = self.world.nearest_zombie(exclude=blocked(self.unreachable, self.clock()))
             t = None if nz is None else (nz[0], nz[1], zdist(self.world, nz[1]))

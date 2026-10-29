@@ -485,8 +485,10 @@ def test_with_the_stand_decision_off_the_sixth_golden_is_f1_s_own(monkeypatch):
 
 
 def test_the_replay_ends_an_unbound_aim_at_its_seconds(monkeypatch):
-    """THE ACTS (Task 10 fix 1): an unbound `aim` ends `done` at its `seconds`, as a steer does; without it the first
-    leg is held open and the sixth golden moves first at 111, the re-aim at the leg's end (2.53 s after 106)."""
+    """THE ACTS (Task 10 fix 1): an unbound `aim` ends `done` at its `seconds`, as a steer does. Named change (Task
+    12, ruling P24-N): on the sixth golden the leg held open no longer moves anything, since a standing leg gives way
+    the tick its target comes inside KEEP_R (111, 2.46 tiles, 2.53 s after 106's leg) and the backpedal it sends
+    there is the leg the ended one re-aimed; `end_legs` itself is pinned here on its own."""
     from agent.base.actions import Action
     acts = R._Acts(None, {})
     leg = Action(aid="a1", type="aim", args={"vx": 0.0, "vy": 0.0, "seconds": 2.0, "targetId": 1, "bearing": -1.0},
@@ -499,34 +501,46 @@ def test_the_replay_ends_an_unbound_aim_at_its_seconds(monkeypatch):
     assert (leg.state, leg.ended_wall, walk.state) == ("done", 102.0, "sent") and R.LEG_TYPES == ("steer", "aim")
     six = gold(SIXTH)
     assert six[111]["action"]["type"] == "aim" and six[110]["why"]["holding"] == "a12"
+    assert six[111]["why"]["leg"] == "back" and six[111]["why"]["dist"] <= P.KEEP_R
     monkeypatch.setattr(R, "LEG_TYPES", ("steer",))
-    assert moved_from_sixth(run_sixth())[0] == 111
+    assert moved_from_sixth(run_sixth()) == []
 
 
-def test_the_backpedal_band_and_the_stand_off_fallback_on_the_sixth_golden(monkeypatch):
-    """Ruling P24-M (Task 10 fix 1, re-recorded under it; line 373 re-recorded at Task 10 fix 2 under the aim's range):
-    of the nine stance legs on F1's frames only 111's (2.46 tiles) is within FIGHT_REACH + BACKPEDAL_BAND and
-    backpedals; the other eight (4.80 to 5.99 tiles) stand facing the target. Line 373's target, 16.96 tiles off, is
-    beyond the Lua's aim range (AIM_R 12), so the Fight walks at a run as the approach does. The mutation pass: the
-    band switched off moves the golden first at 106; STAND_MAX_S switched off (infinite) or at 5 s moves nothing,
-    since no stand on F1's frames reaches it (the longest stand clock is 2.53 s, line 114), and at 2 s it moves the
-    golden first at 111: the fallback runs on a real sequence, but this golden cannot pin its 20 s (the fake-mod
-    cases do)."""
+def test_keep_r_and_the_advance_on_the_sixth_golden(monkeypatch):
+    """Ruling P24-N (Task 12, re-recorded under it): of the ten stance legs on F1's frames the two whose target is
+    inside KEEP_R backpedal, 111 (2.46 tiles) and 362 (2.05: the standing leg sent at 360, 5.78 tiles off, gives way
+    the tick its target comes inside KEEP_R, the one decision P24-N moved; P24-M's band held that leg); the other
+    eight (4.80 to 6.00 tiles) stand facing the target. Line 373's target, 16.96 tiles off, is beyond the Lua's aim
+    range (AIM_R 12), so the Fight walks at a run as the approach does. The mutation pass: KEEP_R at FIGHT_REACH (no
+    backpedal) or at 2.4 moves the golden first at 111; a standing leg that never gives way inside KEEP_R moves it
+    first at 362; STAND_MAX_S switched off (infinite) or at 5 s moves nothing, since no stand on F1's frames reaches
+    it (the longest stand clock is 2.53 s, line 114), and at 2 s (the advance at 111) it moves the golden first at
+    111: the advance runs on a real sequence, but this golden cannot pin its 20 s (the fake-mod cases do)."""
     six = gold(SIXTH)
     legs = {k: d for k, d in six.items() if d["action"] and d["action"]["type"] == "aim"}
-    assert sorted(legs) == [106, 111, 192, 216, 288, 360, 435, 517, 557]
-    assert [k for k, d in legs.items() if (d["action"]["args"]["vx"], d["action"]["args"]["vy"]) != (0.0, 0.0)] == [111]
-    assert legs[111]["why"]["dist"] <= P.FIGHT_REACH + P.BACKPEDAL_BAND < min(
-        d["why"]["dist"] for k, d in legs.items() if k != 111)
+    assert sorted(legs) == [106, 111, 192, 216, 288, 360, 362, 435, 517, 557]
+    back = [k for k, d in legs.items() if (d["action"]["args"]["vx"], d["action"]["args"]["vy"]) != (0.0, 0.0)]
+    assert back == [111, 362] and all(legs[k]["why"]["leg"] == "back" for k in back)
+    assert max(legs[k]["why"]["dist"] for k in back) <= P.KEEP_R < min(
+        d["why"]["dist"] for k, d in legs.items() if k not in back)
+    assert all(d["why"]["leg"] == "stand" for k, d in legs.items() if k not in back)
     assert max(d["why"].get("stand_s") or 0.0 for d in six.values()) < P.STAND_MAX_S
-    monkeypatch.setattr(P, "STAND_MAX_S", math.inf)
-    assert moved_from_sixth(run_sixth()) == []
-    monkeypatch.setattr(P, "STAND_MAX_S", 5.0)
-    assert moved_from_sixth(run_sixth()) == []
-    monkeypatch.setattr(P, "STAND_MAX_S", 2.0)
-    assert moved_from_sixth(run_sixth())[0] == 111
+    assert not any(d["why"].get("advance") for d in six.values())
     assert six[373]["action"] == {"type": "walkTo", "args": {"gait": "run", "x": 10734.5, "y": 10625.5}}
     assert six[373]["why"]["dist"] > P.AIM_R
-    monkeypatch.setattr(P, "STAND_MAX_S", 20.0)
-    monkeypatch.setattr(P, "BACKPEDAL_BAND", math.inf)
-    assert moved_from_sixth(run_sixth())[0] == 106
+    for name, val, first in (("KEEP_R", P.FIGHT_REACH, 111), ("KEEP_R", 2.4, 111), ("STAND_MAX_S", math.inf, None),
+                             ("STAND_MAX_S", 5.0, None), ("STAND_MAX_S", 2.0, 111)):
+        old = getattr(P, name)
+        monkeypatch.setattr(P, name, val)
+        moved = moved_from_sixth(run_sixth())
+        assert (moved[0] if moved else None) == first, (name, val)
+        monkeypatch.setattr(P, name, old)
+    busy = P.Fight.busy
+
+    def stand_holds(self):   # P24-N's give-way of a standing leg inside KEEP_R removed
+        if P.Policy.busy(self) and self.last.type == "aim" and self._leg == "stand":
+            t = self._target(pin=False)
+            return t is not None and t[0] == self.last.args.get("targetId") and t[2] > P.FIGHT_REACH
+        return busy(self)
+    monkeypatch.setattr(P.Fight, "busy", stand_holds)
+    assert moved_from_sixth(run_sixth())[0] == 362

@@ -36,15 +36,15 @@ BUILDS = ("1.4", "standoff")   # the two paths to the approach and swing (`make_
 
 def make_build(tmp_path, monkeypatch, build):
     """`build` "1.4": `make(caps=CAPS_14)`, a PZA/1.4 build; "standoff": a full-caps (PZA/1.5) build whose every Fight
-    has already fallen back (`standoff`, as at STAND_MAX_S), so the approach, the stall, the flip and the look behind
-    run as they do after a stand-off."""
+    has already fallen back (`standoff`, as after a stance leg that failed: since ruling P24-N STAND_MAX_S closes in
+    the stance instead), so the approach, the stall, the flip and the look behind run as they do then."""
     if build == "1.4":
         return make(tmp_path, caps=CAPS_14)
 
     class FellBack(P.Fight):
         def __init__(self, *a, **k):
             super().__init__(*a, **k)
-            self.standoff, self.standoff_why = True, "stand_max_s"
+            self.standoff, self.standoff_why = True, "failed not loaded"
     monkeypatch.setattr(S, "Fight", FellBack)
     return make(tmp_path)
 

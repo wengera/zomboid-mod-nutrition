@@ -26,73 +26,127 @@ def stance_args(r):
 
 # ================================================================ the constants
 def test_the_stance_constants():
-    assert (P.AIM_LEG_S, P.STAND_MAX_S, P.CLOSE_MIN, P.BACKPEDAL_BAND) == (2.0, 20.0, 0.1, 1.0)
+    """Named change (ruling P24-N, Task 12): KEEP_R replaces P24-M's BACKPEDAL_BAND and the closing read's
+    CLOSE_MIN; AIM_HOLD_S mirrors the Lua's K.AIM_HOLD_MS."""
+    assert (P.AIM_LEG_S, P.STAND_MAX_S, P.KEEP_R, P.AIM_HOLD_S) == (2.0, 20.0, 2.5, 2.0)
+    assert not hasattr(P, "BACKPEDAL_BAND") and not hasattr(P, "CLOSE_MIN")
+    assert P.FIGHT_REACH < P.KEEP_R < P.DANGER_R
     assert S.BRANCHES[0] == "threat"
 
 
-# ================================================================ the stance against one
-def test_one_zombie_closing_at_four_tiles_is_met_standing_then_backpedalled_within_the_band_then_swung_at(tmp_path):
-    """P24-G 1 as P24-M bands it (named change, Task 10 fix 1, minor 15): one held at 4 tiles, armed, full health,
-    closing: `aim` facing it for AIM_LEG_S, standing (beyond FIGHT_REACH + BACKPEDAL_BAND it steps into reach); the
-    leg holds while it closes beyond FIGHT_REACH; the next leg, the zombie closing at 2.8 tiles, backpedals along the
-    away vector (west, the zombie east of the player); within reach the `attack` goes from the stance."""
+# ================================================================ the stance against one (P24-N)
+def test_one_zombie_at_four_tiles_is_met_standing_then_backpedalled_inside_keep_r_then_swung_at(tmp_path):
+    """P24-N (named change of the P24-M case): one held at 4 tiles, armed, full health: `aim` facing it for
+    AIM_LEG_S, standing (beyond KEEP_R it is let come); the standing leg holds while the target stays beyond KEEP_R
+    and gives way the tick it comes inside (2.2 tiles): the next leg backpedals along the away vector (west, the zombie
+    east of the player); within reach the `attack` goes from the stance (the running leg gives way)."""
     r, sv = make(tmp_path)
     r.frame(zombies=[zd(1, 104.0, 200.0)])
     tick(r, sv)
     a = stance_args(r)
     assert a == {"vx": 0.0, "vy": 0.0, "seconds": 2.0, "targetId": 1, "bearing": -1.0}
     w = threat_why(tmp_path)
-    assert w["fight"] is True and w["stance"] is True and w["closing"] is True and w["back"] is None
+    assert w["fight"] is True and w["stance"] is True and w["leg"] == "stand" and w["back"] is None
     sends = len(r.acts.history)
     r.advance(0.5)
-    r.frame(zombies=[zd(1, 103.0, 200.0)])
-    assert tick(r, sv) is None and len(r.acts.history) == sends            # the leg holds beyond reach
+    r.frame(zombies=[zd(1, 102.6, 200.0)])
+    assert tick(r, sv) is None and len(r.acts.history) == sends            # the leg holds beyond KEEP_R
     assert threat_why(tmp_path)["holding"] == r.acts.history[-1].aid
-    r.answer()
-    r.advance(1.5)
-    r.frame(zombies=[zd(1, 102.8, 200.0)])
+    r.advance(0.5)
+    r.frame(zombies=[zd(1, 102.2, 200.0)])                                  # inside KEEP_R: the stand gives way
     tick(r, sv)
     assert stance_args(r)["vx"] == -1.0 and threat_why(tmp_path)["back"] == [-1.0, 0.0]
+    assert threat_why(tmp_path)["leg"] == "back" and len(r.acts.history) == sends + 1
     r.advance(0.5)
-    r.frame(zombies=[zd(1, 101.6, 200.0)])
+    r.frame(zombies=[zd(1, 101.0, 200.0)])
     tick(r, sv)
-    assert r.cmd() == ("attack", {"targetId": 1})                           # the swing from the stance
+    assert r.cmd() == ("attack", {"targetId": 1}) and threat_why(tmp_path)["stance"] is True   # from the stance
+    assert sv.fight.in_stance()
     all_sends_valid(r)
 
 
-@pytest.mark.parametrize("x, back", [(103.0, True), (103.05, False)])
-def test_the_backpedal_runs_only_within_fight_reach_plus_the_band(tmp_path, x, back):
-    """Ruling P24-M: a closing target backpedalled from at FIGHT_REACH + BACKPEDAL_BAND (3.0 tiles) and nearer, stood
-    facing at 3.05."""
+@pytest.mark.parametrize("x, kind", [(106.0, "stand"), (102.55, "stand"), (102.5, "back"), (102.2, "back"),
+                                     (102.01, "back")])
+def test_a_pinned_target_beyond_keep_r_is_stood_facing_and_inside_it_backpedalled_from(tmp_path, x, kind):
+    """Ruling P24-N 2: beyond KEEP_R (6 and 2.55 tiles) the leg stands facing the target, (0, 0); inside it and
+    beyond FIGHT_REACH (2.5, 2.2, 2.01) the leg backpedals along the away vector whatever the target's own move (a
+    zombie that does not come is backed from as one that does: no closing read)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, x, 200.0, has_target=False)])
+    tick(r, sv)
+    a = stance_args(r)
+    assert (a["vx"], a["vy"]) == ((-1.0, 0.0) if kind == "back" else (0.0, 0.0))
+    assert threat_why(tmp_path)["leg"] == kind and "closing" not in threat_why(tmp_path)
+
+
+@pytest.mark.parametrize("x", [102.0, 101.6])
+def test_the_fights_first_action_is_aim_even_within_reach_then_the_swing_from_it(tmp_path, x):
+    """Ruling P24-N 1: the stance opens every fight: a target already within FIGHT_REACH (2.0, 1.6 tiles) at the
+    fight's first choose is met with an `enter` leg, (0, 0) (the stance is not held: `in_stance`), and the next tick
+    the swing goes from it (the running leg gives way within reach). Within CORNERED_R (1.5) of a character with no
+    fight running the corner rules stand (P24-G 1: a cornered Fight never stands): its swing goes at once."""
     r, sv = make(tmp_path)
     r.frame(zombies=[zd(1, x, 200.0)])
     tick(r, sv)
     a = stance_args(r)
-    assert ((a["vx"], a["vy"]) == (-1.0, 0.0)) is back and threat_why(tmp_path)["closing"] is True
-    assert (threat_why(tmp_path)["back"] is not None) is back
+    assert (a["vx"], a["vy"], a["targetId"]) == (0.0, 0.0, 1) and threat_why(tmp_path)["leg"] == "enter"
+    assert r.acts.history[0].type == "aim"
+    r.answer("progress")
+    r.frame(zombies=[zd(1, x, 200.0)])
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 1}) and sv.fight._attack_held is True
 
 
-def test_a_stance_leg_ended_re_aims_and_reads_closing_off_the_zombies_own_move(tmp_path):
-    """Each AIM_LEG_S the stance re-aims; the backpedal goes while the target moved CLOSE_MIN or more toward the player
-    since the last leg's send (its own move, never the distance the backpedal kept), else it stands (0, 0)."""
+def test_a_first_engagement_within_cornered_r_is_the_corners_swing(tmp_path):
     r, sv = make(tmp_path)
-    r.frame(zombies=[zd(1, 103.0, 200.0)])                                  # named change (P24-M): within the band
+    r.frame(zombies=[zd(1, 101.0, 200.0)])
     tick(r, sv)
-    r.answer()
-    r.advance(2.0)
-    r.frame(x=99.0, zombies=[zd(1, 102.0, 200.0)])                          # 3.0 tiles still: it closed by 1.0
-    tick(r, sv)
-    assert stance_args(r)["vx"] == -1.0 and threat_why(tmp_path)["closing"] is True
-    r.answer()
-    r.advance(2.0)
-    r.frame(x=99.0, zombies=[zd(1, 102.05, 200.0)])                         # it stood: no backpedal
-    tick(r, sv)
-    a = stance_args(r)
-    assert (a["vx"], a["vy"]) == (0.0, 0.0) and threat_why(tmp_path)["closing"] is False
-    assert threat_why(tmp_path)["back"] is None
+    assert r.cmd() == ("attack", {"targetId": 1}) and threat_why(tmp_path)["corner_kind"] == "walk"
 
 
-def test_a_first_leg_on_a_zombie_with_no_target_stands(tmp_path):
+def test_after_a_walk_released_the_stance_a_target_in_reach_is_aimed_at_before_the_swing(tmp_path):
+    """Any send other than the Fight's aim or its attack from the stance releases it (Task 9's hand-over): after a
+    walk the stance is not held, so the first choose within reach is an `enter` leg; an attack whose stance hold ran
+    out (AIM_HOLD_S after its end) needs one too."""
+    r = Rig(tmp_path)
+    r.frame(zombies=[zd(1, 101.0, 200.0)])
+    f = stance_fight(r)
+    f.send(P.WalkTo(101.5, 200.5, "run"))
+    assert not f.in_stance()
+    cmd = f.choose()
+    assert cmd.TYPE == "aim" and f.why["leg"] == "enter"
+    f.send(cmd)
+    assert f.in_stance()
+    att = f.choose()
+    assert att.TYPE == "attack"
+    a = f.send(att)
+    assert f.in_stance()
+    r.answer()
+    assert a.state == "done" and f.in_stance()                             # the Lua's hold after the swing
+    r.advance(P.AIM_HOLD_S)
+    assert not f.in_stance() and f.choose().TYPE == "aim"
+
+
+def test_a_stance_leg_ended_re_aims_and_backpedals_inside_keep_r_whatever_the_target_does(tmp_path):
+    """Named change (P24-N, the P24-M closing case): each AIM_LEG_S the stance re-aims; inside KEEP_R the leg
+    backpedals whether or not the target moved toward the player since the last leg (P24-M stood when it did not)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 102.2, 200.0)])
+    tick(r, sv)
+    assert stance_args(r)["vx"] == -1.0
+    r.answer()
+    r.advance(2.0)
+    r.frame(x=99.0, zombies=[zd(1, 101.2, 200.0)])                          # 2.2 tiles still: it followed
+    tick(r, sv)
+    assert stance_args(r)["vx"] == -1.0 and threat_why(tmp_path)["leg"] == "back"
+    r.answer()
+    r.advance(2.0)
+    r.frame(x=99.0, zombies=[zd(1, 101.2, 200.0)])                          # it stood: backpedalled all the same
+    tick(r, sv)
+    assert stance_args(r)["vx"] == -1.0 and threat_why(tmp_path)["back"] == [-1.0, 0.0]
+
+
+def test_a_first_leg_on_a_zombie_with_no_target_beyond_keep_r_stands(tmp_path):
     r, sv = make(tmp_path)
     r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False)])
     tick(r, sv)
@@ -103,21 +157,33 @@ def test_a_first_leg_on_a_zombie_with_no_target_stands(tmp_path):
 def test_the_backpedal_never_steps_into_a_wall_or_over_a_fence(tmp_path):
     """The backpedal reads the steer probe (`policies.clear_heading`: `line_clear` over STEER_PROBE, which reads a
     hoppable fence blocked, P24-G 4: the stance never vaults): a fence on the player's west edge turns the heading by
-    STEER_TURNS to the first clear one (+30 degrees)."""
+    STEER_TURNS to the first clear one (+30 degrees); walled in on every turn, the leg stands (a wall behind is never
+    stepped into)."""
     r, sv = make(tmp_path)
     sqs = [square(x, y) for x in range(95, 106) for y in range(195, 206)]
     sqs = [dict(s, blockW=True, hopW=True) if (s["x"], s["y"]) == (100, 200) else s for s in sqs]
     r.scan(sqs)
-    r.frame(x=100.5, y=200.5, zombies=[zd(1, 103.0, 200.5)])                # named change (P24-M): within the band
+    r.frame(x=100.5, y=200.5, zombies=[zd(1, 103.0, 200.5)])                # 2.5 tiles: inside KEEP_R
     tick(r, sv)
     a = stance_args(r)
     turns = [P._rotate((-1.0, 0.0), t) for t in P.STEER_TURNS]
     first = next(v for v in turns if P.clear_heading(r.world, v))
     assert not P.clear_heading(r.world, (-1.0, 0.0)) and (a["vx"], a["vy"]) == first and first != (-1.0, 0.0)
+    (tmp_path / "w").mkdir()
+    r2, sv2 = make(tmp_path / "w")
+    walls = [dict(square(x, y), solid=True) for x in range(95, 106) for y in range(195, 206)
+             if (x, y) != (100, 200) and x < 102]
+    r2.scan(walls + [square(x, y) for x in range(102, 106) for y in range(195, 206)] + [square(100, 200),
+                                                                                      square(101, 200)])
+    r2.frame(x=100.5, y=200.5, zombies=[zd(1, 102.7, 200.5)])               # 2.2 tiles, walled in behind
+    tick(r2, sv2)
+    a = stance_args(r2)
+    assert (a["vx"], a["vy"]) == (0.0, 0.0) and threat_why(tmp_path / "w")["leg"] == "back"
+    assert threat_why(tmp_path / "w")["back"] is None
 
 
 def test_two_zombies_at_full_health_are_met_in_the_stance_backing_from_both(tmp_path):
-    """Named change (P24-M): both at 2.5 tiles, within the band."""
+    """Named change (P24-M): both at 2.5 tiles, inside KEEP_R."""
     r, sv = make(tmp_path)
     r.frame(zombies=[zd(1, 102.5, 200.0), zd(2, 100.0, 202.5)])
     tick(r, sv)
@@ -183,27 +249,52 @@ def stand_legs(r, sv, n, x=104.0, health=1.0, dt=2.0):
         tick(r, sv)
 
 
-def test_a_stand_with_no_progress_in_stand_max_s_falls_back_to_the_approach_and_swing(tmp_path):
-    """P24-G 1: a fence stand-off (the zombie standing 4 tiles off, never closing) never becomes a stance stand-off:
-    after STAND_MAX_S without its health falling the Fight walks to it as before (`standoff`), and the stall clock
-    (FIGHT_MAX_S, the stalled flee) starts only then."""
+def test_a_stand_with_no_progress_in_stand_max_s_closes_in_the_stance_never_a_walk_at_a_run(tmp_path):
+    """Ruling P24-N 1 (named change of the P24-G fallback to the approach and swing): a stand-off (the zombie standing
+    6 tiles off, never coming) after STAND_MAX_S without its health falling is closed on in the stance: an `aim` with
+    the unit vector toward it (`advance`), never a `walkTo` at a run; the stall clock (FIGHT_MAX_S, the stalled flee)
+    starts only then."""
     r, sv = make(tmp_path)
-    r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False)])
+    r.frame(zombies=[zd(1, 106.0, 200.0, has_target=False)])
     tick(r, sv)
     assert r.cmd()[0] == "aim"
-    stand_legs(r, sv, 9)                                                    # 18 s
-    assert r.cmd()[0] == "aim" and last(tmp_path)["inputs"]["fight_s"] == 2.0   # one leg's clock, never accrued
-    stand_legs(r, sv, 1)                                                    # 20 s: the fallback
-    assert r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"}) and sv.fight.standoff
-    assert "stance" not in threat_why(tmp_path)
+    stand_legs(r, sv, 9, x=106.0)                                           # 18 s
+    assert stance_args(r)["vx"] == 0.0 and last(tmp_path)["inputs"]["fight_s"] == 2.0   # one leg's clock
+    stand_legs(r, sv, 1, x=106.0)                                           # 20 s: the advance
+    a = stance_args(r)
+    assert (a["vx"], a["vy"], a["targetId"]) == (1.0, 0.0, 1) and sv.fight.advance and not sv.fight.standoff
+    w = threat_why(tmp_path)
+    assert w["leg"] == "toward" and w["advance"] is True and w["stance"] is True
+    assert not any(x.type == "walkTo" for x in r.acts.history)
     r.answer()
     r.advance(1.0)
-    r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False)])
+    r.frame(zombies=[zd(1, 106.0, 200.0, has_target=False)])
     tick(r, sv)
-    assert last(tmp_path)["inputs"]["fight_s"] == 1.0                       # the approach's stall clock runs
+    assert last(tmp_path)["inputs"]["fight_s"] == 1.0                       # the advance's stall clock runs
+    assert stance_args(r)["vx"] == 1.0
 
 
-def test_a_falling_target_health_restarts_the_stand_clock(tmp_path):
+def test_the_advance_with_its_line_blocked_walks_round_the_wall_at_a_run(tmp_path):
+    """The advance's one walk: the line to the stand-off target blocked over STEER_PROBE (a wall between), the
+    approach walk at a run (the path follower walks round it); with the line clear, the aim toward it."""
+    r, sv = make(tmp_path)
+    sqs = [square(x, y) for x in range(95, 110) for y in range(195, 206)]
+    sqs = [dict(s, blockW=True) if (s["x"], s["y"]) == (102, 200) else s for s in sqs]
+    r.scan(sqs)
+    r.frame(x=100.5, y=200.5, zombies=[zd(1, 106.5, 200.5, has_target=False)])
+    tick(r, sv)
+    for _ in range(10):
+        r.answer()
+        r.advance(2.0)
+        r.frame(x=100.5, y=200.5, zombies=[zd(1, 106.5, 200.5, has_target=False)])
+        tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 106.5, "y": 200.5, "gait": "run"}) and sv.fight.advance
+    assert threat_why(tmp_path)["leg"] == "walk"
+
+
+def test_a_falling_target_health_restarts_the_stand_clock_and_ends_the_advance(tmp_path):
+    """Named change (P24-N): the clock restarts on a hit; at STAND_MAX_S without one the advance (an aim toward,
+    never a walk); a hit then ends the advance and the stand begins again."""
     r, sv = make(tmp_path)
     r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False)])
     tick(r, sv)
@@ -211,9 +302,11 @@ def test_a_falling_target_health_restarts_the_stand_clock(tmp_path):
     stand_legs(r, sv, 1, health=0.6)                                        # a hit landed: the clock restarts
     assert threat_why(tmp_path)["stand_s"] == 0.0
     stand_legs(r, sv, 9, health=0.6)                                        # 18 s more: still standing
-    assert r.cmd()[0] == "aim" and not sv.fight.standoff
+    assert r.cmd()[0] == "aim" and not sv.fight.advance and stance_args(r)["vx"] == 0.0
     stand_legs(r, sv, 1, health=0.6)
-    assert r.cmd()[0] == "walkTo" and sv.fight.standoff
+    assert stance_args(r)["vx"] == 1.0 and sv.fight.advance and not sv.fight.standoff
+    stand_legs(r, sv, 1, health=0.4)                                        # the next hit: the stand again
+    assert stance_args(r)["vx"] == 0.0 and not sv.fight.advance and threat_why(tmp_path)["stand_s"] == 0.0
 
 
 def test_a_kill_restarts_the_stand_on_the_next_target(tmp_path):
@@ -284,6 +377,21 @@ def test_a_standing_fight_reads_no_walk_so_the_look_behind_its_target_does_not_f
     w = threat_why(tmp_path)
     assert r.cmd()[0] == "aim" and w["fight"] is True and "behind" not in w
     sv.fight.standoff = True
+    r.answer()
+    r.frame(zombies=[zd(1, 105.0, 200.0), zd(2, 110.0, 201.0)])
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert r.cmd()[0] == "steer" and w["flee"] == "held" and w["behind"] == [2]
+
+
+def test_the_advance_reads_as_a_walk_so_the_look_behind_its_target_flees(tmp_path):
+    """P24-N: the advance closes on the target (an aim toward it), so P24-A (b)'s look behind reads it as the walk
+    it is: zombie 2 listed behind zombie 1 turns it to the `held` flee, as the approach walk did."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 105.0, 200.0), zd(2, 110.0, 201.0)])
+    tick(r, sv)
+    assert r.cmd()[0] == "aim"
+    sv.fight.advance = True
     r.answer()
     r.frame(zombies=[zd(1, 105.0, 200.0), zd(2, 110.0, 201.0)])
     tick(r, sv)
@@ -1130,7 +1238,8 @@ def test_the_ripped_sheets_read_bandage_a_sealed_can_other_and_the_choice_order_
 def test_a_stance_leg_superseded_re_aims_but_one_that_fails_ends_the_stand_at_once(tmp_path):
     """Minor 11: a stance leg that ends failed (here `not loaded`: a build that cannot take the stance) or times out
     sets `standoff` at once, so the next choose is the approach walk rather than STAND_MAX_S of re-sent legs; a
-    superseded leg (this planner's own next send) re-aims; the 20 s fallback names itself `stand_max_s`."""
+    superseded leg (this planner's own next send) re-aims; named change (P24-N): STAND_MAX_S is no fallback any
+    more, the stand closes in the stance (`advance`) and `standoff` stays unset."""
     for k, end in enumerate(({"state": "failed", "reason": "not loaded"}, "timeout")):
         (tmp_path / str(k)).mkdir()
         r, sv = make(tmp_path / str(k))
@@ -1157,7 +1266,7 @@ def test_a_stance_leg_superseded_re_aims_but_one_that_fails_ends_the_stand_at_on
     tick(r, sv)
     assert r.cmd()[0] == "aim" and not sv.fight.standoff and sv.fight.standoff_why is None
     stand_legs(r, sv, 10)
-    assert sv.fight.standoff and sv.fight.standoff_why == "stand_max_s"
+    assert not sv.fight.standoff and sv.fight.advance and sv.fight.standoff_why is None
 
 
 def test_a_bandaged_part_waits_one_frame_newer_than_its_done_before_it_is_bandaged_again(tmp_path):

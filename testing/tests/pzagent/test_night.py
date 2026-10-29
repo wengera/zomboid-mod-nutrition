@@ -554,7 +554,8 @@ def test_a_sleep_superseded_leaves_the_want_and_the_night_sleeps_again(tmp_path)
     sleep = r.acts.history[-1]
     r.frame(x=111.5, y=201.5, fatigue=0.62, zombies=[zombie(1, 113.5, 201.5)])
     tick(r, sv)
-    assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] in ("attack", "walkTo", "steer")
+    assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] in ("aim", "attack", "walkTo", "steer")   # named
+    # change, Task 12 (ruling P24-N): the stance opens the fight, its first leg an aim
     r.fake.act(sleep.aid, "failed", "sleep", reason="superseded")   # the Lua ends the sleep (and wakes it: Lane L)
     r.answer()
     r.event("zombie_dead", id=1)
