@@ -38,7 +38,7 @@ MAIN_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZA
 VANILLA = ("ISTimedActionQueue", "ISWalkToTimedAction", "ISOpenCloseDoor", "ISOpenCloseWindow",
            "ISInventoryTransferAction", "ISEatFoodAction", "ISDrinkFluidAction", "ISDropWorldItemAction",
            "ISEquipWeaponAction", "Vector2", "ISWorldObjectContextMenu", "UIManager", "ISClimbOverFence",
-           "ISApplyBandage", "ISWashClothing", "ISInventoryPaneContextMenu")
+           "ISApplyBandage", "ISWashClothing", "ISInventoryPaneContextMenu", "ISTakeWaterAction")
 MAIN_TYPES = ("scan", "rate")          # answered by Main, never the runner (ruling P22-5)
 PENDING_TYPES = ()                     # sleep, in the schema since PZA/1.2 (Plan 23 Task 4), got its skill in Task 8
 
@@ -60,6 +60,7 @@ VALID = {
     "bandage": ("bandage", {"itemId": 1003, "part": 0}),
     "rip": ("rip", {"itemId": 1004}),
     "wash": ("wash", {"itemId": 1003, "x": 11, "y": 20}),
+    "fill": ("fill", {"itemId": 1002, "x": 11, "y": 20}),
     "scan": ("scan", {"r": 3}),
     "rate": ("rate", {"hz": 5}),
 }
@@ -199,7 +200,7 @@ BARE = {"walkTo": ("failed", "stuck"), "steer": ("failed", "not loaded"), "attac
         "eat": ("rejected", "none held"), "drink": ("rejected", "none held"), "drop": ("rejected", "none held"),
         "stop": ("done", ""), "sleep": ("failed", "not loaded"), "aim": ("failed", "not loaded"),
         "climb": ("failed", "failed"), "bandage": ("rejected", "none held"), "rip": ("rejected", "none held"),
-        "wash": ("rejected", "none held")}
+        "wash": ("rejected", "none held"), "fill": ("rejected", "none held")}
 
 
 def test_the_bare_table_covers_every_skill_case():
@@ -271,12 +272,13 @@ def test_s_frame_on_a_raising_player_returns_a_frame_and_names_the_missing():
 # of reach its approach walk cannot queue, so it fails at once with the walk's reason (fix wave M5); sleep needs none (the
 # floor bed, ZombRand's midpoint, no fade) and the player stays asleep until its hour of wall runs out (interrupted);
 # aim walks its vector through the auto-walk, which needs Vector2 (not loaded); climb needs ISClimbOverFence; the care
-# skills need ISApplyBandage, OnNewCraft and ISWashClothing
+# skills need ISApplyBandage, OnNewCraft, ISWashClothing and ISTakeWaterAction
 ABSENT = {"walkTo": ("failed", "no path"), "steer": ("failed", "not loaded"), "open": ("failed", "not loaded"),
           "loot": ("failed", "not loaded"), "equip": ("failed", "not loaded"), "eat": ("failed", "not loaded"),
           "drink": ("failed", "not loaded"), "drop": ("failed", "not loaded"), "stop": ("done", ""),
           "sleep": ("failed", "interrupted"), "aim": ("failed", "not loaded"), "climb": ("failed", "not loaded"),
-          "bandage": ("failed", "not loaded"), "rip": ("failed", "not loaded"), "wash": ("failed", "not loaded")}
+          "bandage": ("failed", "not loaded"), "rip": ("failed", "not loaded"), "wash": ("failed", "not loaded"),
+          "fill": ("failed", "not loaded")}
 
 
 @pytest.mark.parametrize("case", SKILL_CASES)

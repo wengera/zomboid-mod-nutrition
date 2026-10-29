@@ -401,6 +401,11 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
         if craft["queue"]:
             q.add(J(Type="ISHandcraftAction", item=item))
     g.ISInventoryPaneContextMenu = J(OnNewCraft=on_new_craft)
+    # PZA/1.5's fill: ISTakeWaterAction:new(character, item, waterObject, waterTaintedCL) records into g._takes
+    takes = []
+    g._takes = takes
+    g.ISTakeWaterAction = J(new=lambda cls, p, item, src, tainted: takes.append((p, item, src, tainted)) or J(
+        Type="ISTakeWaterAction", item=item))
     g.getScriptManager = lambda: J(getCraftRecipe=lambda s, n: J(name=n))
     g.ItemTag = J(RIP_CLOTHING_COTTON="RIP_CLOTHING_COTTON", RIP_CLOTHING_DENIM="RIP_CLOTHING_DENIM",
                   RIP_CLOTHING_LEATHER="RIP_CLOTHING_LEATHER")

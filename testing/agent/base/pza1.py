@@ -48,18 +48,19 @@ RECORDS = {
     "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health"),
     "portal": ("open", "locked", "barricaded"),
     "container": ("type", "n", "items"),
-    "square": ("x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW"),
+    "water": ("amount", "tainted", "infinite"),
+    "square": ("x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW", "water"),
 }
 # each positional field that is not a plain value: ("group" | "rec" | "list" | "vlist", its name)
 SHAPES = {
     "body": {"parts": ("list", "part")},
     "frame": {"me": ("group", "me"), "stats": ("group", "stats"), "body": ("group", "body"), "load": ("group", "load"), "weapon": ("group", "weapon"), "action": ("group", "action"), "act": ("group", "act"), "zombies": ("list", "zombie"), "cost": ("group", "cost")},
     "container": {"items": ("vlist", None)},
-    "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None)},
+    "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None), "water": ("rec", "water")},
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
-REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water"))
-ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash")
+REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full"))
+ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
     "walkTo": {"x": "float", "y": "float", "gait": "gait"},
@@ -78,6 +79,7 @@ ACTION_ARGS = {
     "bandage": {"itemId": "int", "part": "int"},
     "rip": {"itemId": "int"},
     "wash": {"itemId": "int", "x": "int", "y": "int"},
+    "fill": {"itemId": "int", "x": "int", "y": "int"},
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
@@ -400,5 +402,14 @@ class Wash(_Cmd):
     """Wash a held dirty rag or bandage clean at the water source on a square (a walk next to it, then vanilla's ISWashClothing; soap optional, the water's taint untested)."""
     TYPE: ClassVar[str] = "wash"
     itemId: int  # The dirty item's id.
+    x: int  # The water source's square x.
+    y: int  # The water source's square y.
+
+
+@dataclasses.dataclass(frozen=True)
+class Fill(_Cmd):
+    """Fill a held drinking vessel, empty (use container) or part-filled water (use water), at the water source on a square: a walk next to it, then vanilla's ISTakeWaterAction (the server moves the fluid). A river or a puddle fills TaintedWater."""
+    TYPE: ClassVar[str] = "fill"
+    itemId: int  # The container's id.
     x: int  # The water source's square x.
     y: int  # The water source's square y.

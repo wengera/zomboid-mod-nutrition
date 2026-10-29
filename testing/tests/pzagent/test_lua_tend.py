@@ -375,3 +375,100 @@ def test_a_player_dying_mid_care_fails_it_dead(lua, fs, typ, args):
     p.getBodyDamage = lambda s: J(getOverallBodyHealth=lambda s2: 0.0)
     tick(lua, p)
     assert states(acts(lua, fs))[-1] == ("a1", "failed", "dead")
+
+
+# ---- fill -----------------------------------------------------------------------------------------------------------
+
+def vessel(p, iid=90, amount=0.0, capacity=1.0, can_add=True, ft="Base.WaterBottle"):
+    from .conftest import make_fluid
+    fc = make_fluid(amount=amount, capacity=capacity, can_add=can_add)
+    tend_item(p, ft, iid, getFluidContainer=fc)
+    return fc
+
+
+def test_fill_an_empty_bottle_at_a_sink_queues_vanillas_take_water_and_is_done_when_full(lua, fs):
+    load(lua)
+    g = lua.globals()
+    src = sink()
+    water_world(lua, src)
+    p = make_player()
+    fc = vessel(p)
+    start(lua, p, "fill", itemId=90, x=11, y=20)
+    tick(lua, p)
+    assert [(t[2], t[3]) for t in g._takes] == [(src, False)] and g._takes[0][0] is p
+    tick(lua, p, 2)
+    assert not ended(lua)
+    fc.st["amount"] = 1.0                                       # the server's fill, synced
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "")
+    assert a[-1]["result"] == {"amount": 1.0, "added": 1.0, "fluid": "Water", "tainted": False}
+    assert list(p.sets[-3:]) == OFF
+
+
+def test_a_part_filled_water_bottle_is_topped_up_and_done_once_the_amount_holds_still(lua, fs):
+    load(lua)
+    water_world(lua, sink())
+    p = make_player()
+    fc = vessel(p, amount=0.25)
+    start(lua, p, "fill", itemId=90, x=11, y=20)
+    tick(lua, p)
+    fc.st["amount"] = 0.6                                       # risen, not full (the inventory weight capped it)
+    tick(lua, p)
+    lua.globals()._clock["ms"] += 1499
+    tick(lua, p)
+    assert not ended(lua)
+    lua.globals()._clock["ms"] += 1
+    tick(lua, p)
+    assert acts(lua, fs)[-1]["result"]["added"] == pytest.approx(0.35)
+
+
+def test_a_tainted_source_passes_tainted_to_the_action(lua, fs):
+    load(lua)
+    water_world(lua, sink(tainted=True))
+    p = make_player()
+    vessel(p)
+    start(lua, p, "fill", itemId=90, x=11, y=20)
+    tick(lua, p)
+    assert lua.globals()._takes[-1][3] is True
+
+
+def test_fill_refusals(lua, fs):
+    load(lua)
+    water_world(lua, J(_cls="IsoObject", hasWater=lambda s: True, getFluidAmount=lambda s: 0.0))   # drained
+    p = make_player()
+    vessel(p, 90)
+    vessel(p, 91, amount=1.0)                                   # full
+    vessel(p, 92, can_add=False)                                # takes no water
+    vessel(p, 93, capacity=10.0, ft="Base.BucketEmpty")         # over the drink menu's 3 litres
+    tend_item(p, "Base.Hammer", 94)                             # no fluid container
+    for aid, kw in (("nw", {"itemId": 90, "x": 11, "y": 20}), ("full", {"itemId": 91, "x": 11, "y": 20}),
+                    ("nc", {"itemId": 92, "x": 11, "y": 20}), ("big", {"itemId": 93, "x": 11, "y": 20}),
+                    ("ham", {"itemId": 94, "x": 11, "y": 20}), ("ns", {"itemId": 90, "x": 30, "y": 20}),
+                    ("bad", {"itemId": 90, "x": "a", "y": 20}), ("nh", {"itemId": 99, "x": 11, "y": 20})):
+        start(lua, p, "fill", aid=aid, **kw)
+    assert states(acts(lua, fs)) == [("nw", "rejected", "no water"), ("full", "rejected", "full"),
+                                     ("nc", "rejected", "not a container"), ("big", "rejected", "not a container"),
+                                     ("ham", "rejected", "not a container"), ("ns", "rejected", "no source"),
+                                     ("bad", "rejected", "bad args"), ("nh", "rejected", "none held")]
+
+
+def test_a_fill_from_afar_walks_first_and_one_that_never_rises_is_interrupted(lua, fs):
+    load(lua)
+    g = lua.globals()
+    water_world(lua, sink(), x=14, y=20)
+    p = make_player()
+    vessel(p)
+    start(lua, p, "fill", aid="far", itemId=90, x=14, y=20)
+    tick(lua, p)
+    assert g._queue.adds[-1].Type == "ISWalkToTimedAction" and g._takes == []
+    water_world(lua, sink())
+    start(lua, p, "fill", aid="slow", itemId=90, x=11, y=20)
+    tick(lua, p)
+    g._clock["ms"] += 30001
+    tick(lua, p)
+    g.ISTakeWaterAction = None
+    start(lua, p, "fill", aid="nl", itemId=90, x=11, y=20)
+    tick(lua, p)
+    assert [s for s in states(acts(lua, fs)) if s[1] == "failed"] == [
+        ("far", "failed", "superseded"), ("slow", "failed", "interrupted"), ("nl", "failed", "not loaded")]

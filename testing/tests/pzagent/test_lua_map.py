@@ -278,7 +278,7 @@ def test_a_scan_part_line_decodes_to_the_squares_it_walked(lua, fs):
                                                                         "barricaded": False},
                              "window": None, "containers": [], "floor": [],
                              "blockN": False, "blockW": False, "edgeN": False, "edgeW": False, "hopN": False,
-                             "hopW": False}]
+                             "hopW": False, "water": None}]
     assert lua.eval("PZA.map.seen['11,20,0']") == lua.eval("PZA.map.watchKey(PZA.map.square(...))",
                                                            full_square(11, 20, door=True), lua.table(), cell)
 
@@ -290,8 +290,8 @@ def test_map_square_has_exactly_the_schemas_square_keys(lua):
                  cell)
     keys = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["square"]["x-order"]
     assert keys[12:16] == ["blockN", "blockW", "edgeN", "edgeW"]   # PZA/1.2's edges, filled since Plan 23 Task 6
-    assert keys[16:] == ["hopN", "hopW"]                           # PZA/1.4's hoppable edges (P24-C)
-    assert sorted(t.keys()) == sorted(keys)
+    assert keys[16:] == ["hopN", "hopW", "water"]                  # PZA/1.4's hoppable edges (P24-C), 1.5's water
+    assert sorted(t.keys()) == sorted(set(keys) - {"water"})       # no water object: water nil
     assert (t["blockN"], t["blockW"], t["edgeN"], t["edgeW"]) == (False, False, False, False)
     assert sorted(lua.eval("PZA.schema.records.square").values()) == sorted(keys)
     assert sorted(t["door"].keys()) == ["barricaded", "locked", "open"]
@@ -776,7 +776,7 @@ def test_square_reads_its_own_hoppable_north_and_west_edges(lua):
     assert list(missing.values()) == []
     t = lua.eval("PZA.map.square(...)", sq, lua.table(), make_cell_of({}))   # no neighbour: the own flags still read
     assert (t["hopN"], t["hopW"]) == (True, False)
-    assert json.loads(lua.eval("PZA.enc.square(...)", t))[16:] == [True, False]
+    assert json.loads(lua.eval("PZA.enc.square(...)", t))[16:18] == [True, False]
 
 
 def test_an_absent_has_or_flag_constant_leaves_hop_nil_and_names_it_missing(lua):
@@ -807,3 +807,30 @@ def test_a_hop_flag_change_is_a_new_dirty_key_but_never_read_by_the_fingerprint(
     st["hop"] = True
     assert lua.eval("PZA.map.fingerprint(...)", sq, cell, 11, 20, 0) == f0
     assert lua.eval("PZA.map.watchKey(PZA.map.square(...))", sq, lua.table(), cell) != k0
+
+
+# ---- PZA/1.5 (ruling P24-G): the square's water ----------------------------------------------------------------------
+
+def _water_sq(objs):
+    return J(getX=lambda s: 5, getY=lambda s: 6, getZ=lambda s: 0, isSolid=lambda s: False,
+             isSolidTrans=lambda s: False, getLightLevel=lambda s, i: 0.5,
+             getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]))
+
+
+def test_a_square_with_a_water_object_carries_its_water_record_and_one_without_nil(lua):
+    load(lua)
+    sink = J(_cls="IsoObject", hasWater=lambda s: True, getFluidAmount=lambda s: 10000.0,
+             isTaintedWater=lambda s: False, isWaterInfinite=lambda s: True)
+    river = J(_cls="IsoObject", hasWater=lambda s: True, getFluidAmount=lambda s: 9999.0,
+              isTaintedWater=lambda s: True, isWaterInfinite=lambda s: True)
+    dry = J(_cls="IsoObject", hasWater=lambda s: False)
+    miss = lua.table()
+    q = lua.eval("PZA.map.square")(_water_sq([dry, sink, river]), miss, None)
+    assert dict(q.water) == {"amount": 10000.0, "tainted": False, "infinite": True}       # the first one
+    import json as _json
+    enc = _json.loads(lua.eval("PZA.enc.square(...)", q))
+    assert enc[18] == [10000, False, True]
+    q2 = lua.eval("PZA.map.square")(_water_sq([dry]), miss, None)
+    assert q2.water is None and _json.loads(lua.eval("PZA.enc.square(...)", q2))[18] is None
+    q3 = lua.eval("PZA.map.square")(_water_sq([J(_cls="IsoObject", hasWater=lambda s: True)]), miss, None)
+    assert dict(q3.water) == {} and {"getFluidAmount", "isTaintedWater", "isWaterInfinite"} <= set(miss.values())

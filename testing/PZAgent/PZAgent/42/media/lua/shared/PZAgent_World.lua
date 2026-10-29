@@ -206,3 +206,10 @@ function W.waterOn(sq)
     end
     return nil
 end
+
+-- the item's fluid container takes water at a fill (PZA/1.5's fill): a drinking vessel (drinkVessel) whose
+-- canAddFluid(Fluid.Water) holds, empty (the use table's container) or part-filled with water (its water, topped up)
+function W.fillable(it, fc)
+    if fc == nil or Fluid == nil or not drinkVessel(it, fc) then return false end
+    return reads(fc, "canAddFluid", true, Fluid.Water)
+end

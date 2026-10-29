@@ -1,4 +1,4 @@
--- PZAgent_Tend.lua — the care skills (PZA/1.5, ruling P24-G; Plan 24 spec section 6): bandage, rip and wash, registered
+-- PZAgent_Tend.lua — the care skills (PZA/1.5, ruling P24-G; Plan 24 spec section 6): bandage, rip, wash and fill, registered
 -- into PZA.skills.types like PZAgent_SkillsWorld.lua's, whose runner (K.start, K.tick) owns every act line, the S-12 and
 -- S-15 guards and MO.off at every end (PZAgent_Stance.lua's K.start releases a held stance before each of them: every
 -- vanilla action here stops on aiming). Loads after PZAgent_Stance.lua (client files load by name, "St" before "T") and
@@ -309,6 +309,75 @@ K.types.wash = {
         end
         if K.itemById(p, st.id) == nil then return "done", { water = st.need } end
         if PZA.now() - st.queuedAt > K.WASH_MS then return "failed", "interrupted" end
+        return nil
+    end,
+}
+
+-- ---- fill {itemId, x, y} --------------------------------------------------------------------------------------------
+-- The jar and the install (jar-reads-2 section 7, T6b.10, T6b.11): a sink or a toilet in a room gives clean Water
+-- (infinite until the water shut-off, then its reserve of 20), a river or a puddle TaintedWater; the fill moves fluid
+-- only on the server (IsoObject.transferFluidTo returns unmoved on a client), so the client reads the container's
+-- amount rise once the server syncs it. Vanilla's action is ISTakeWaterAction:new(character, item, waterObject,
+-- waterTaintedCL) (lua:shared/TimedActions/ISTakeWaterAction.lua:184), valid while the source hasFluid(), queued after
+-- a walk next to the source with the source's own isTaintedWater() (ISWorldObjectContextMenu.lua:2064-2070). check:
+-- the item held (none held, bad args), x and y numbers (bad args); its fluid container a drinking vessel that may take
+-- water (W.fillable: not a container) with free capacity (getFreeCapacity above 0: else full; an empty vessel, the use
+-- table's container, or a part-filled water item, topped up); on square (x, y) of the player's floor a water object
+-- (W.waterOn: no source) whose getFluidAmount() is above 0 (no water). The tick walks next to the source (K.approach:
+-- not adjacent), then queues ISTakeWaterAction:new(p, item, source, source:isTaintedWater() == true) (not loaded,
+-- not valid). Done once the amount has risen and the container reads full (getFreeCapacity at most FULL_EPS) or has
+-- held still FILL_STILL_MS, {amount, added, fluid (getPrimaryFluid():getFluidTypeString()), tainted (isTainted())};
+-- interrupted when nothing has risen FILL_MS after the queue.
+K.FILL_MS = 30000
+K.FILL_STILL_MS = 1500
+K.FULL_EPS = 0.001        -- litres: a free capacity at or under this reads full
+
+local function fillResult(st)
+    local _, f = PZA.call(st.fc, "getPrimaryFluid")
+    local _, ft = PZA.call(f, "getFluidTypeString")
+    local _, tainted = PZA.call(st.fc, "isTainted")
+    local now = num(st.fc, "getAmount")
+    return { amount = now, added = now - st.amount0, fluid = ft, tainted = tainted == true }
+end
+
+K.types.fill = {
+    check = function(args, p)
+        local it, why = heldItem(args, p)
+        if it == nil then return false, why end
+        local x, y = args.x, args.y
+        if type(x) ~= "number" or type(y) ~= "number" then return false, "bad args" end
+        local _, fc = PZA.call(it, "getFluidContainer")
+        if not W.fillable(it, fc) then return false, "not a container" end
+        if num(fc, "getFreeCapacity") <= K.FULL_EPS then return false, "full" end
+        x, y = math.floor(x), math.floor(y)
+        local src = sourceAt(p, x, y)
+        if src == nil then return false, "no source" end
+        if num(src, "getFluidAmount") <= 0 then return false, "no water" end
+        return true, "", { id = args.itemId, item = it, fc = fc, x = x, y = y, src = src, sub = nil, queuedAt = nil,
+                           amount0 = num(fc, "getAmount"), last = nil, stillAt = nil }
+    end,
+    tick = function(p, st)
+        if isDead(p) then return "failed", "dead" end
+        local now = PZA.now()
+        if st.queuedAt == nil then
+            local at = K.approach(p, st)
+            if at == "fail" then return "failed", "not adjacent" end
+            if at == "walk" then return nil end
+            local tainted = flag(st.src, "isTaintedWater")
+            local ok, why = K.queueAction(ISTakeWaterAction, "not valid", nil, p, st.item, st.src, tainted)
+            if not ok then return "failed", why end
+            st.queuedAt, st.last, st.stillAt = now, st.amount0, now
+            return nil
+        end
+        local a = num(st.fc, "getAmount")
+        if a ~= st.last then st.last, st.stillAt = a, now end
+        if a > st.amount0 then
+            if num(st.fc, "getFreeCapacity") <= K.FULL_EPS or now - st.stillAt >= K.FILL_STILL_MS then
+                return "done", fillResult(st)
+            end
+            return nil
+        end
+        if now - st.queuedAt > K.FILL_MS then return "failed", "interrupted" end
         return nil
     end,
 }

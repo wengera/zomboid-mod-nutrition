@@ -32,9 +32,10 @@ PZA.schema = {
         zombie = { "id", "x", "y", "dist", "hasTarget", "crawler", "health" },
         portal = { "open", "locked", "barricaded" },
         container = { "type", "n", "items" },
-        square = { "x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW" },
+        water = { "amount", "tainted", "infinite" },
+        square = { "x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW", "water" },
     },
-    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true },
+    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true, ["not a container"] = true, full = true },
     actions = {
         walkTo = { "x", "y", "gait" },
         steer = { "vx", "vy", "seconds", "gait" },
@@ -52,6 +53,7 @@ PZA.schema = {
         bandage = { "itemId", "part" },
         rip = { "itemId" },
         wash = { "itemId", "x", "y" },
+        fill = { "itemId", "x", "y" },
     },
     gaits = { walk = true, run = true, sprint = true },
     ikinds = { open = true, close = true, loot = true },
@@ -152,6 +154,16 @@ local function enc_container(t)
 end
 PZA.enc.container = enc_container
 
+-- record water: A water source on a square (jar-reads-2 section 7, T6b.10): a sink or a toilet in a room gives clean Water, infinite until the water shut-off and then its reserve of 20; a river or a puddle gives TaintedWater.
+--   amount: The water it holds, getFluidAmount(): 10000 for an infinite source.
+--   tainted: Whether its water is tainted, isTaintedWater() (a fill takes TaintedWater, a poison until boiled).
+--   infinite: Whether it never runs dry, isWaterInfinite() (piped before the shut-off, a river).
+local function enc_water(t)
+    if t == nil then return "null" end
+    return "[" .. v(t.amount) .. "," .. v(t.tainted) .. "," .. v(t.infinite) .. "]"
+end
+PZA.enc.water = enc_water
+
 -- record square: One grid square.
 --   x: The square's x.
 --   y: The square's y.
@@ -171,9 +183,10 @@ PZA.enc.container = enc_container
 --   edgeW: Whether a wall, door or window stands on the west edge, open or closed (isSomethingTo).
 --   hopN: Whether the square's own north edge is hoppable, has(IsoFlagType.HoppableN) (PZA/1.4, P24-C): a low fence the path follower climbs at a walk though isBlockedTo reads the edge blocked; false beside a solid wall on the same edge.
 --   hopW: Whether the square's own west edge is hoppable, has(IsoFlagType.HoppableW) (PZA/1.4, P24-C): a low fence the path follower climbs at a walk though isBlockedTo reads the edge blocked; false beside a solid wall on the same edge.
+--   water: The square's water source, null when none (PZA/1.5, P24-G): its first object whose hasWater() holds (a sink, a toilet, a bath, a well, a rain collector, a river, a puddle).
 local function enc_square(t)
     if t == nil then return "null" end
-    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.solid) .. "," .. v(t.solidTrans) .. "," .. v(t.light) .. "," .. v(t.room) .. "," .. v(t.building) .. "," .. enc_portal(t.door) .. "," .. enc_portal(t.window) .. "," .. list(t.containers, enc_container) .. "," .. list(t.floor, v) .. "," .. v(t.blockN) .. "," .. v(t.blockW) .. "," .. v(t.edgeN) .. "," .. v(t.edgeW) .. "," .. v(t.hopN) .. "," .. v(t.hopW) .. "]"
+    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.solid) .. "," .. v(t.solidTrans) .. "," .. v(t.light) .. "," .. v(t.room) .. "," .. v(t.building) .. "," .. enc_portal(t.door) .. "," .. enc_portal(t.window) .. "," .. list(t.containers, enc_container) .. "," .. list(t.floor, v) .. "," .. v(t.blockN) .. "," .. v(t.blockW) .. "," .. v(t.edgeN) .. "," .. v(t.edgeW) .. "," .. v(t.hopN) .. "," .. v(t.hopW) .. "," .. enc_water(t.water) .. "]"
 end
 PZA.enc.square = enc_square
 

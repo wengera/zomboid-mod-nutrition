@@ -72,7 +72,8 @@ def rand_square(rng):
             "containers": [{"type": rng.choice(["fridge", "counter"]), "n": 2, "items": ["Base.Apple", "Base.Water"]}
                            for _ in range(rng.choice([0, 0, 1, 2]))],
             "floor": rng.choice([[], ["Base.Plank"], ["Base.Axe", "Base.Nails"]]),
-            "blockN": b(), "blockW": b(), "edgeN": b(), "edgeW": b(), "hopN": maybe(rng, b()), "hopW": b()}
+            "blockN": b(), "blockW": b(), "edgeN": b(), "edgeW": b(), "hopN": maybe(rng, b()), "hopW": b(),
+            "water": maybe(rng, {"amount": lua_float(rng, 0, 20), "tainted": b(), "infinite": b()}, 0.7)}
 
 
 def rand_map(rng, seq=1):
@@ -192,7 +193,7 @@ def test_the_constants():
     for k in pza1.KINDS:
         assert pza1.ORDER[k][0] == "kind"
     assert set(pza1.GROUPS) == {"me", "stats", "body", "load", "weapon", "action", "act", "cost"}
-    assert set(pza1.RECORDS) == {"zombie", "part", "square", "container", "portal"}
+    assert set(pza1.RECORDS) == {"zombie", "part", "square", "container", "portal", "water"}
     assert pza1.GAITS == ("walk", "run", "sprint")
     assert pza1.ACTION_TYPES[:11] == ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan",
                                       "rate", "sleep")                    # PZA/1.5 appends its actions after these
@@ -301,10 +302,12 @@ def test_the_lua_map_encoder_writes_what_python_encodes(lua_schema):
              {"x": 100, "y": 200, "z": 0, "solid": False, "solidTrans": False, "light": 0.8, "room": "kitchen",
               "building": 12, "door": {"open": False, "locked": True, "barricaded": False}, "window": None,
               "containers": [{"type": "fridge", "n": 2, "items": ["Base.Apple", "Base.WaterBottle"]}], "floor": [],
-              "blockN": True, "blockW": False, "edgeN": True, "edgeW": False, "hopN": True, "hopW": False},
+              "blockN": True, "blockW": False, "edgeN": True, "edgeW": False, "hopN": True, "hopW": False,
+              "water": {"amount": 10000, "tainted": False, "infinite": True}},
              {"x": 101, "y": 200, "z": 0, "solid": True, "solidTrans": False, "light": 0.25, "room": None,
               "building": None, "door": None, "window": None, "containers": [], "floor": ["Base.Plank"],
-              "blockN": False, "blockW": True, "edgeN": False, "edgeW": True, "hopN": False, "hopW": None}]}
+              "blockN": False, "blockW": True, "edgeN": False, "edgeW": True, "hopN": False, "hopW": None,
+              "water": None}]}
     L = lua_schema
     L.execute("_body = " + lua_lit(m))
     out = L.eval("PZA.enc.map(_body)")
@@ -597,3 +600,38 @@ def test_the_part_record_appends_its_care_fields_and_a_two_field_part_decodes_wi
     arr[body][4] = [[3]]
     with pytest.raises(ValueError):
         pza1.decode(arr)
+
+
+# ---- PZA/1.5 (ruling P24-G): fill; the square's water ---------------------------------------------------------------
+
+def test_fill_is_an_action_and_the_square_appends_water_a_1_4_square_decoding_with_it_none():
+    assert pza1.ACTION_TYPES[16:] == ("fill",)
+    assert pza1.ACTION_ARGS["fill"] == {"itemId": "int", "x": "int", "y": "int"}
+    assert {"not a container", "full"} <= pza1.REASONS
+    assert pza1.RECORDS["square"][18:] == ("water",) and pza1.RECORDS["water"] == ("amount", "tainted", "infinite")
+    assert pza1.PRIOR["square"] == 12
+    d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
+    assert set(d["result_fill"]["properties"]) == {"amount", "added", "fluid", "tainted"}
+    sq = dict(rand_square(random.Random(71)), water={"amount": 20.0, "tainted": False, "infinite": False})
+    m = {"kind": "map", "seq": 2, "tick": 1, "wallMs": 0, "mode": "full", "scanId": 1, "part": 1, "parts": 1,
+         "squares": [sq, dict(sq, x=sq["x"] + 1, water=None)], "missing": []}
+    assert pza1.decode(json.loads(pza1.encode("map", m))) == m
+    arr = json.loads(pza1.encode("map", m))
+    sqs = pza1.ORDER["map"].index("squares")
+    arr[sqs] = [s[:18] for s in arr[sqs]]                        # PZA/1.4 squares
+    assert all(q["water"] is None for q in pza1.decode(arr)["squares"])
+
+
+def test_the_e5_and_f2_squares_decode_with_water_none(tmp_path):
+    import shutil
+    from agent.base.transport.files import FileTransport
+    for run in ("e_day_5-20261028-201255", "f_goals_2-20261029-041705"):
+        d = tmp_path / run
+        d.mkdir()
+        shutil.copyfile(os.path.join(ROOT, "testing", "artifacts", run, "state.log"), str(d / "state.log"))
+        t = FileTransport(str(d))
+        lines = t.lines()
+        squares = [q for l in lines if l["kind"] == "map" for q in l["squares"]]
+        parts = [p for l in lines if l["kind"] == "frame" and isinstance(l["body"], dict) for p in l["body"]["parts"]]
+        assert t.bad == 0 and squares and all(q["water"] is None for q in squares), run
+        assert all(p["bleeding"] is None and p["infected"] is None for p in parts), run

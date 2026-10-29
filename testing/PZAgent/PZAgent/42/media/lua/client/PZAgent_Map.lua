@@ -27,6 +27,12 @@
 -- need no neighbour, so a square without one still reads them; an absent IsoFlagType constant is named in missing. They
 -- ride the scan and the delta (the dirty key is the record's encoding) and are left out of the fingerprint, whose
 -- edges already change when a fence lands (its collide flag blocks the edge), so the watch reads no more per square.
+-- The record's water (PZA/1.5, ruling P24-G; docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md section 7,
+-- T6b.10) is the square's first object whose hasWater() holds as { amount (getFluidAmount: 10000 for an infinite
+-- source), tainted (isTaintedWater), infinite (isWaterInfinite) }, nil when none: a sink or a toilet in a room, a bath,
+-- a well, a rain collector, a river, a puddle. It rides the scan and the delta like the door record and is left out of
+-- the fingerprint (one more call per object a watch step), so a source drying or a puddle forming waits for the next
+-- scan or a square's whole read for another change.
 -- The dirty key is the square's encoding without light (ruling S-14, MP.watchKey): the dirty set means a world change
 -- (walls, doors, windows, containers, floor), and an unrounded light level would dirty most of the ring at every
 -- lighting drift and fill the budget with deltas; an emitted line still carries the real light.
@@ -117,11 +123,20 @@ local function hopsOf(missing, q, sq)
     end
 end
 
+-- the water record of a water object (PZA/1.5): { amount, tainted, infinite }, a member it lacks nil and named
+local function waterOf(o, missing)
+    local w = {}
+    getm(missing, w, "amount", o, "getFluidAmount")
+    getm(missing, w, "tainted", o, "isTaintedWater")
+    getm(missing, w, "infinite", o, "isWaterInfinite")
+    return w
+end
+
 -- one square as the schema's square record: x, y, z, solid, solidTrans, light, room, building, door and window (a
 -- portal { open, locked, barricaded } or nil), containers ({ type, n, items } each, items full types), floor (the
 -- full types of its world items), its four edges blockN, blockW, edgeN, edgeW (edgesTo, read against the north and
--- west neighbours off cell) and its own hop flags hopN, hopW (hopsOf); a member the square lacks leaves its field nil
--- and its name in missing
+-- west neighbours off cell), its own hop flags hopN, hopW (hopsOf) and water (its first object whose hasWater() holds,
+-- waterOf; nil when none); a member the square lacks leaves its field nil and its name in missing
 function MP.square(sq, missing, cell)
     local q = { containers = {}, floor = {} }
     getm(missing, q, "x", sq, "getX"); getm(missing, q, "y", sq, "getY"); getm(missing, q, "z", sq, "getZ")
@@ -144,6 +159,10 @@ function MP.square(sq, missing, cell)
             local _, locked = PZA.call(o, "isLocked")
             local _, barr = PZA.call(o, "isBarricaded")
             q[kind] = { open = open == true, locked = locked == true, barricaded = barr == true }
+        end
+        if q.water == nil then
+            local _, hw = PZA.call(o, "hasWater")
+            if hw == true then q.water = waterOf(o, missing) end
         end
     end
     local _, wl = PZA.call(sq, "getWorldObjects")

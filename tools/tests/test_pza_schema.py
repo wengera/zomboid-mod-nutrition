@@ -201,7 +201,7 @@ def test_a_square_array_at_the_prior_arity_decodes_with_the_edges_none():
     sq = {"x": 3, "y": 4, "z": 0, "solid": False, "solidTrans": False, "light": 0.5, "room": None, "building": None,
           "door": None, "window": None, "containers": [], "floor": [], "blockN": True, "blockW": False, "edgeN": True,
           "edgeW": False}
-    sq.update({k: True for k in mod.RECORDS["square"][16:]})      # the fields appended after the edges (PZA/1.4 on)
+    sq.update({k: None if k in mod.SHAPES["square"] else True for k in mod.RECORDS["square"][16:]})   # PZA/1.4 on
     m = {"kind": "map", "seq": 1, "tick": 2, "wallMs": 3, "mode": "full", "scanId": 1, "part": 1, "parts": 1,
          "squares": [sq], "missing": []}
     arr = json.loads(mod.encode("map", m))

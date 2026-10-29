@@ -36,12 +36,13 @@ DEFAULT_FRAME = {
 
 DEFAULT_SQUARE = {"x": 100, "y": 200, "z": 0, "solid": False, "solidTrans": False, "light": 1.0, "room": None,
                   "building": None, "door": None, "window": None, "containers": [], "floor": [], "blockN": False,
-                  "blockW": False, "edgeN": False, "edgeW": False, "hopN": False, "hopW": False}
+                  "blockW": False, "edgeN": False, "edgeW": False, "hopN": False, "hopW": False,
+                  "water": None}
 
 
 def square(**fields):
-    """A full PZA/1.4 square record: DEFAULT_SQUARE (an open outdoor square, its four edges and its two hop flags
-    False) with `fields` laid over it; an unknown field raises."""
+    """A full PZA/1.5 square record: DEFAULT_SQUARE (an open outdoor square, its four edges and its two hop flags
+    False, no water) with `fields` laid over it; an unknown field raises."""
     extra = set(fields) - set(pza1.RECORDS["square"])
     if extra:
         raise ValueError("square: unknown fields %s" % sorted(extra))

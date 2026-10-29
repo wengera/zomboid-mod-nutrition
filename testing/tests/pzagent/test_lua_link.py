@@ -444,11 +444,12 @@ def test_a_map_line_decodes_through_pza1(lua, fs):
         {"x": 100, "y": 200, "z": 0, "solid": False, "solidTrans": False, "light": 0.75, "room": "kitchen",
          "building": 12, "door": {"open": False, "locked": True, "barricaded": False}, "window": None,
          "containers": [], "floor": [], "blockN": True, "blockW": False, "edgeN": True, "edgeW": False, "hopN": True,
-         "hopW": False},
+         "hopW": False, "water": None},
         {"x": 101, "y": 200, "z": 0, "solid": False, "solidTrans": False, "light": 0.5, "room": "kitchen",
          "building": 12, "door": None, "window": None,
          "containers": [{"type": "fridge", "n": 2, "items": ["Base.Apple", "Base.WaterBottle"]}], "floor": ["Base.Plank"],
-         "blockN": False, "blockW": True, "edgeN": False, "edgeW": True, "hopN": False, "hopW": True}])
+         "blockN": False, "blockW": True, "edgeN": False, "edgeW": True, "hopN": False, "hopW": True,
+         "water": {"amount": 20.0, "tainted": False, "infinite": False}}])
     queue_map(lua, m)
     lua.execute("PZA.link.flush()")
     out = raw(fs)

@@ -1097,3 +1097,10 @@ def test_apply_keeps_the_parts_care_fields_on_the_body_group():
     w = World()
     w.apply(frame(0, body=dict(DEFAULT_FRAME["body"], bleeding=1, parts=[part])))
     assert w.body["parts"] == [part] and json.loads(w.to_json())["body"]["parts"] == [part]
+
+
+def test_apply_keeps_the_water_record_on_the_square():
+    """PZA/1.5 (P24-G): the map's square record is kept whole, so its water reaches the planner."""
+    w = _world([_sq(0, 0, water={"amount": 20.0, "tainted": False, "infinite": False}), _sq(1, 0)])
+    assert w.map[(0, 0, 0)]["water"] == {"amount": 20.0, "tainted": False, "infinite": False}
+    assert w.map[(1, 0, 0)].get("water") is None

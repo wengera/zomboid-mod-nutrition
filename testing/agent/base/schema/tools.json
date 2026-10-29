@@ -363,5 +363,32 @@
       ],
       "additionalProperties": false
     }
+  },
+  {
+    "name": "fill",
+    "description": "Fill a held drinking vessel, empty (use container) or part-filled water (use water), at the water source on a square: a walk next to it, then vanilla's ISTakeWaterAction (the server moves the fluid). A river or a puddle fills TaintedWater.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer",
+          "description": "The container's id."
+        },
+        "x": {
+          "type": "integer",
+          "description": "The water source's square x."
+        },
+        "y": {
+          "type": "integer",
+          "description": "The water source's square y."
+        }
+      },
+      "required": [
+        "itemId",
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    }
   }
 ]

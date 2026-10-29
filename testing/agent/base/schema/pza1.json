@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "pza1.json",
   "title": "PZA/1",
-  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges; PZA/1.3, PZAgent 1.3: the death event; PZA/1.4, PZAgent 1.4: me's attackers, hitReaction and dragDown and the square record's hopN and hopW, ruling P24-C; PZAgent 1.4.1: the item use container, appended to its enum, and water read only for drinkable water, ruling P24-F; PZA/1.5, PZAgent 1.5: the actions aim, climb, bandage, rip and wash, me's aiming and the part record's bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep and infected, ruling P24-G), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
+  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges; PZA/1.3, PZAgent 1.3: the death event; PZA/1.4, PZAgent 1.4: me's attackers, hitReaction and dragDown and the square record's hopN and hopW, ruling P24-C; PZAgent 1.4.1: the item use container, appended to its enum, and water read only for drinkable water, ruling P24-F; PZA/1.5, PZAgent 1.5: the actions aim, climb, bandage, rip, wash and fill, the square record's water, me's aiming and the part record's bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep and infected, ruling P24-G), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
   "x-proto": "PZA/1",
   "x-kinds": ["hello", "frame", "map", "event", "act", "reply"],
   "oneOf": [
@@ -37,7 +37,7 @@
     "actionType": {
       "description": "A skill type a cmd line names. There is no look action (PZA/1.5, Plan 24 Task 6b, docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md section 6): the frames list every zombie the client's cell holds within the sense radius whatever the facing, and turning changes only what the client draws and spots.",
       "type": "string",
-      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash"]
+      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill"]
     },
     "actState": {
       "description": "A skill's lifecycle state.",
@@ -47,7 +47,7 @@
     "reason": {
       "description": "The closed set of reasons a skill is rejected or fails with.",
       "type": "string",
-      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water"]
+      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full"]
     },
     "eventKind": {
       "description": "The kind of an engine event line.",
@@ -329,7 +329,7 @@
       "x-role": "record",
       "x-encoding": "positional",
       "x-prior": 12,
-      "x-order": ["x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW"],
+      "x-order": ["x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW", "water"],
       "type": "object",
       "properties": {
         "x": {"description": "The square's x.", "type": "integer"},
@@ -349,9 +349,23 @@
         "edgeN": {"description": "Whether a wall, door or window stands on the north edge, open or closed (isSomethingTo).", "type": "boolean"},
         "edgeW": {"description": "Whether a wall, door or window stands on the west edge, open or closed (isSomethingTo).", "type": "boolean"},
         "hopN": {"description": "Whether the square's own north edge is hoppable, has(IsoFlagType.HoppableN) (PZA/1.4, P24-C): a low fence the path follower climbs at a walk though isBlockedTo reads the edge blocked; false beside a solid wall on the same edge.", "type": "boolean"},
-        "hopW": {"description": "Whether the square's own west edge is hoppable, has(IsoFlagType.HoppableW) (PZA/1.4, P24-C): a low fence the path follower climbs at a walk though isBlockedTo reads the edge blocked; false beside a solid wall on the same edge.", "type": "boolean"}
+        "hopW": {"description": "Whether the square's own west edge is hoppable, has(IsoFlagType.HoppableW) (PZA/1.4, P24-C): a low fence the path follower climbs at a walk though isBlockedTo reads the edge blocked; false beside a solid wall on the same edge.", "type": "boolean"},
+        "water": {"description": "The square's water source, null when none (PZA/1.5, P24-G): its first object whose hasWater() holds (a sink, a toilet, a bath, a well, a rain collector, a river, a puddle).", "anyOf": [{"$ref": "#/$defs/water"}, {"type": "null"}]}
       },
-      "required": ["x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW"]
+      "required": ["x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW", "water"]
+    },
+    "water": {
+      "description": "A water source on a square (jar-reads-2 section 7, T6b.10): a sink or a toilet in a room gives clean Water, infinite until the water shut-off and then its reserve of 20; a river or a puddle gives TaintedWater.",
+      "x-role": "record",
+      "x-encoding": "positional",
+      "x-order": ["amount", "tainted", "infinite"],
+      "type": "object",
+      "properties": {
+        "amount": {"description": "The water it holds, getFluidAmount(): 10000 for an infinite source.", "type": "number"},
+        "tainted": {"description": "Whether its water is tainted, isTaintedWater() (a fill takes TaintedWater, a poison until boiled).", "type": "boolean"},
+        "infinite": {"description": "Whether it never runs dry, isWaterInfinite() (piped before the shut-off, a river).", "type": "boolean"}
+      },
+      "required": ["amount", "tainted", "infinite"]
     },
     "portal": {
       "description": "A door or a window.",
@@ -539,7 +553,7 @@
           {"$ref": "#/$defs/result_drop"}, {"$ref": "#/$defs/result_stop"}, {"$ref": "#/$defs/result_scan"},
           {"$ref": "#/$defs/result_rate"}, {"$ref": "#/$defs/result_sleep"}, {"$ref": "#/$defs/result_aim"},
           {"$ref": "#/$defs/result_climb"}, {"$ref": "#/$defs/result_bandage"}, {"$ref": "#/$defs/result_rip"},
-          {"$ref": "#/$defs/result_wash"}]},
+          {"$ref": "#/$defs/result_wash"}, {"$ref": "#/$defs/result_fill"}]},
         "snapshot": {"description": "The player's state when the line was written.", "$ref": "#/$defs/snapshot"}
       },
       "required": ["kind", "seq", "tick", "wallMs", "aid", "type", "state", "reason", "result", "snapshot"]
@@ -703,6 +717,18 @@
         "water": {"description": "The water units the wash needed of its source, ceil(4 + 3 x the blood level).", "type": "integer"}
       }
     },
+    "result_fill": {
+      "description": "A fill's result.",
+      "x-role": "result",
+      "x-type": "fill",
+      "type": "object",
+      "properties": {
+        "amount": {"description": "The container's fluid amount after the fill, in litres.", "type": "number"},
+        "added": {"description": "The litres the fill added.", "type": "number"},
+        "fluid": {"description": "The container's primary fluid, getFluidTypeString() (Water, TaintedWater).", "type": "string"},
+        "tainted": {"description": "Whether the container's contents read tainted, isTainted().", "type": "boolean"}
+      }
+    },
 
     "reply": {
       "description": "The answer to a query command.",
@@ -733,7 +759,7 @@
           {"$ref": "#/$defs/args_drop"}, {"$ref": "#/$defs/args_stop"}, {"$ref": "#/$defs/args_scan"},
           {"$ref": "#/$defs/args_rate"}, {"$ref": "#/$defs/args_sleep"}, {"$ref": "#/$defs/args_aim"},
           {"$ref": "#/$defs/args_climb"}, {"$ref": "#/$defs/args_bandage"}, {"$ref": "#/$defs/args_rip"},
-          {"$ref": "#/$defs/args_wash"}]}
+          {"$ref": "#/$defs/args_wash"}, {"$ref": "#/$defs/args_fill"}]}
       },
       "required": ["seq", "aid", "type", "args"]
     },
@@ -918,6 +944,19 @@
       "type": "object",
       "properties": {
         "itemId": {"description": "The dirty item's id.", "type": "integer"},
+        "x": {"description": "The water source's square x.", "type": "integer"},
+        "y": {"description": "The water source's square y.", "type": "integer"}
+      },
+      "required": ["itemId", "x", "y"],
+      "additionalProperties": false
+    },
+    "args_fill": {
+      "description": "Fill a held drinking vessel, empty (use container) or part-filled water (use water), at the water source on a square: a walk next to it, then vanilla's ISTakeWaterAction (the server moves the fluid). A river or a puddle fills TaintedWater.",
+      "x-role": "args",
+      "x-type": "fill",
+      "type": "object",
+      "properties": {
+        "itemId": {"description": "The container's id.", "type": "integer"},
         "x": {"description": "The water source's square x.", "type": "integer"},
         "y": {"description": "The water source's square y.", "type": "integer"}
       },
