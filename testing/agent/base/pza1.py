@@ -26,7 +26,7 @@ ORDER = {
 }
 # a frame's groups, elidable in a delta
 GROUPS = {
-    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown"),
+    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming"),
     "stats": ("hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature"),
     "body": ("health", "bleeding", "scratched", "bitten", "parts"),
     "load": ("weight", "max", "level", "n"),
@@ -57,8 +57,8 @@ SHAPES = {
     "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None)},
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
-REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy"))
-ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep")
+REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed"))
+ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
     "walkTo": {"x": "float", "y": "float", "gait": "gait"},
@@ -72,6 +72,8 @@ ACTION_ARGS = {
     "scan": {"r": "int"},
     "rate": {"hz": "int"},
     "sleep": {},
+    "aim": {"vx": "float", "vy": "float", "seconds": "float", "targetId": "int", "bearing": "float"},
+    "climb": {"x": "int", "y": "int"},
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
@@ -353,3 +355,22 @@ class Rate(_Cmd):
 class Sleep(_Cmd):
     """Sleep where the player stands until the engine wakes them."""
     TYPE: ClassVar[str] = "sleep"
+
+
+@dataclasses.dataclass(frozen=True)
+class Aim(_Cmd):
+    """Hold the combat stance for a time, facing a zombie (targetId) or a bearing, while walking along a world vector (zero to stand): the backpedal. The stance walks only and never swings by itself; an attack sent while it holds swings from it. Released at its end, by any other skill (a walk or a climb cannot run in it) and when the target dies."""
+    TYPE: ClassVar[str] = "aim"
+    vx: float  # The world vector's x component (0 with vy 0 to stand).
+    vy: float  # The world vector's y component.
+    seconds: float  # How long to hold the stance in seconds.
+    targetId: int = -1  # The zombie's online id to face each tick; -1 to face the bearing instead.
+    bearing: float = -1.0  # The world bearing to face in degrees (0 east, 90 south), used when targetId is -1; -1 keeps the current facing.
+
+
+@dataclasses.dataclass(frozen=True)
+class Climb(_Cmd):
+    """Climb the hoppable fence on a square's north or west edge at a walk (never a vault): a walk to the near side, then vanilla's climb; a tall fence fails 1 time in s."""
+    TYPE: ClassVar[str] = "climb"
+    x: int  # The fence square's x (the square whose hopN or hopW reads true).
+    y: int  # The fence square's y.

@@ -17,7 +17,8 @@ def load(lua):
     Skills, SkillsWorld), so Main reaches every other module only at tick time."""
     for f in ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Main.lua",
               "client/PZAgent_Map.lua", "client/PZAgent_Motor.lua", "client/PZAgent_Sense.lua",
-              "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua"):
+              "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
+              "client/PZAgent_Stance.lua"):
         lua.execute(open(lua_file(f), encoding="utf-8").read())
 
 
@@ -86,7 +87,7 @@ def test_the_first_tick_with_a_player_writes_hello_the_first_sight_and_one_flush
     assert [l["kind"] for l in out] == ["hello", "event", "event"]
     hello = out[0]
     caps = sorted(lua.eval("PZA.schema.actions").keys())   # every action, sleep's skill included since Plan 23 Task 8
-    assert hello["proto"] == "PZA/1" and hello["mod"] == "1.4.1" and hello["user"] == "admin"
+    assert hello["proto"] == "PZA/1" and hello["mod"] == "1.5" and hello["user"] == "admin"
     assert hello["caps"] == caps and hello["rate"] == 10 and hello["mode"] == "append" and hello["build"] == ""
     assert sorted(list(lua.eval("PZA.skills.types").keys()) + ["rate", "scan"]) == caps
     assert [(e["event"], e["itemId"], e["fullType"]) for e in out[1:]] == [("item_added", 1000, "Base.Bread"),

@@ -18,7 +18,7 @@ PZA.schema = {
         reply = { "kind", "seq", "tick", "wallMs", "to", "body" },
     },
     groups = {
-        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown" },
+        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming" },
         stats = { "hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature" },
         body = { "health", "bleeding", "scratched", "bitten", "parts" },
         load = { "weight", "max", "level", "n" },
@@ -34,7 +34,7 @@ PZA.schema = {
         container = { "type", "n", "items" },
         square = { "x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW" },
     },
-    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true },
+    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true },
     actions = {
         walkTo = { "x", "y", "gait" },
         steer = { "vx", "vy", "seconds", "gait" },
@@ -47,6 +47,8 @@ PZA.schema = {
         scan = { "r" },
         rate = { "hz" },
         sleep = {},
+        aim = { "vx", "vy", "seconds", "targetId", "bearing" },
+        climb = { "x", "y" },
     },
     gaits = { walk = true, run = true, sprint = true },
     ikinds = { open = true, close = true, loot = true },
@@ -183,9 +185,10 @@ PZA.enc.square = enc_square
 --   attackers: The zombies attacking the player as the drag-down counts them (PZA/1.4, P24-C): getSurroundingAttackingZombies(), the standing zombies on the player's square and its eight neighbours that target the player within 0.9 tiles in an attack or lunge state; the drag-down kills at three (two at sandbox Strength 1).
 --   hitReaction: The player's hit reaction, getHitReaction(), '' when none (PZA/1.4, P24-C): set by every zombie attack that reaches the damage roll, a defended one included; no swing starts while it is set.
 --   dragDown: Whether the drag-down death is marked on the player, isDeathDragDown() (PZA/1.4, P24-C).
+--   aiming: Whether the player is aiming, isAiming() (PZA/1.5, P24-G): the combat stance an aim holds; a hit reaction clears it for the reaction's length, a run or a sprint for good.
 local function enc_me(t)
     if t == nil then return "null" end
-    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "]"
+    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "]"
 end
 PZA.enc.me = enc_me
 

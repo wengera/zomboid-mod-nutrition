@@ -14,7 +14,8 @@ GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 
 def load(lua):
     for f in ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Motor.lua",
-              "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua", "client/PZAgent_Sense.lua"):
+              "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
+              "client/PZAgent_Stance.lua", "client/PZAgent_Sense.lua"):
         lua.execute(open(lua_file(f), encoding="utf-8").read())
 
 
@@ -924,7 +925,7 @@ def test_the_frames_me_carries_the_attackers_the_hit_reaction_and_the_drag_down(
     order = lua.eval("PZA.schema.groups.me")
     assert [order[i] for i in range(15, 18)] == ["attackers", "hitReaction", "dragDown"]
     enc = json.loads(lua.eval("PZA.enc.me(...)", f["me"]))
-    assert enc[14:] == [2, "HitReactionFront", True]
+    assert enc[14:17] == [2, "HitReactionFront", True]
 
 
 def test_a_nil_hit_reaction_reads_empty_and_an_absent_member_is_nil_and_named_missing(lua):
@@ -978,3 +979,55 @@ def test_the_attackers_read_runs_only_with_a_listed_zombie_within_2_tiles(lua):
     g._cell = J(getZombieList=lambda s: None)                            # the walk unread: the call is made
     f = frame(lua, p)
     assert f["me"]["zombiesSeen"] is None and f["me"]["attackers"] == 3 and calls == [1, 1]
+
+
+# ---- PZA/1.5 (ruling P24-G): me.aiming; water is any quenching beverage (the Task 9 amendment) ------------------------
+
+def test_the_frames_me_carries_aiming_from_is_aiming(lua):
+    load(lua)
+    p = make_player()
+    assert frame(lua, p)["me"]["aiming"] is False
+    p.aim["force"] = True
+    f = frame(lua, p)
+    assert f["me"]["aiming"] is True
+    order = lua.eval("PZA.schema.groups.me")
+    assert order[18] == "aiming" and json.loads(lua.eval("PZA.enc.me(...)", f["me"]))[17] is True
+    q = make_player()
+    q.isAiming = None
+    assert frame(lua, q)["me"]["aiming"] is None and "isAiming" in missing(lua)
+
+
+def test_a_pop_a_juice_and_a_milk_read_water_and_a_bleach_a_beer_and_a_sealed_category_read_other(lua):
+    """The amendment: water is any drinkable fluid that lowers thirst and harms nothing; a pop (Cola: Beverage, thirst
+    -30 in scripts/generated/fluids.txt) reads water as a water bottle does, a bleach (Hazardous, poisonous) or a beer
+    (Alcoholic) never, and a container whose isCategory or getProperties is absent fails closed."""
+    load(lua)
+    from .conftest import make_item, make_fluid
+    specs = [
+        ("Base.Pop2", make_fluid(water=False, cats={"Beverage"}, thirst=-0.3, fluid="Cola")),
+        ("Base.JuiceBox", make_fluid(water=False, cats={"Beverage"}, thirst=-0.3, fluid="JuiceGrape")),
+        ("Base.Milk", make_fluid(water=False, cats={"Beverage"}, thirst=-0.5, fluid="CowMilk")),
+        ("Base.Bleach", make_fluid(water=False, poison=True, cats={"Hazardous"}, thirst=-0.2, fluid="Bleach")),
+        ("Base.BeerCan", make_fluid(water=False, cats={"Beverage", "Alcoholic"}, thirst=-0.2, fluid="Beer")),
+        ("Base.Pop3", make_fluid(water=False, cats=None, thirst=-0.3)),
+        ("Base.Pop", make_fluid(water=False, cats={"Beverage"}, thirst=None)),
+        ("Base.AnimalBlood", make_fluid(water=False, cats={"Beverage"}, thirst=0.0)),
+        ("Base.Disinfectant", make_fluid(water=False, cats={"Medical", "Alcoholic"}, thirst=0.0)),
+    ]
+    items = []
+    for i, (ft, fc) in enumerate(specs, 1):
+        it = make_item(ft, i)
+        it.getFluidContainer = lambda s, fc=fc: fc
+        items.append(it)
+    assert _uses(lua, *items) == {1: "water", 2: "water", 3: "water", 4: "other", 5: "other", 6: "other",
+                                  7: "other", 8: "other", 9: "other"}
+
+
+def test_without_fluid_category_only_a_water_source_reads_water(lua):
+    load(lua)
+    from .conftest import make_item, make_fluid
+    lua.globals().FluidCategory = None
+    pop = make_item("Base.Pop2", 1)
+    pop.getFluidContainer = lambda s, fc=make_fluid(water=False, cats={"Beverage"}, thirst=-0.3): fc
+    bottle = make_item("Base.WaterBottle", 2)
+    assert _uses(lua, pop, bottle) == {1: "other", 2: "water"}

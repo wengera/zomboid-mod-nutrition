@@ -10,11 +10,13 @@ map names by full type only.
 - `food`: the dataset's `kind == "food"` (`FOOD_IDS`), except a food the dataset marks `cant_eat` (a sealed can,
   `CantEat = true`: vanilla's menu never offers its eat, though `ISEatFoodAction:isValid` would run it), which reads
   `other` (Plan 23 fix wave P, I-4);
-- `water` (PZA/1.4.1, ruling P24-F): a drinking vessel (`kind == "fluid_container"`, `drinkable`, `fluid_capacity`
-  at most `DRINK_CAP_L`) that spawns holding water only, every fluid it names (`fluid_ids`, non-empty) one of
-  `WATER_FLUIDS` (`DRINK_IDS`), as the Lua's `W.drinkable` reads the engine's `isWaterSource` (TaintedWater left out,
-  a poison). A Disinfectant (RubbingAlcohol), a pop, a bleach or a juice is not water: F2 drank a Disinfectant 68
-  times with no thirst fall;
+- `water` (PZA/1.4.1, ruling P24-F; PZA/1.5, the Task 9 amendment): a drinking vessel (`kind == "fluid_container"`,
+  `drinkable`, `fluid_capacity` at most `DRINK_CAP_L`) that spawns holding only fluids that quench (`fluid_ids`,
+  non-empty, every one in `DRINK_FLUIDS`: `WATER_FLUIDS`, or a dataset fluid in the `Beverage` category, neither
+  `Hazardous` nor `Alcoholic`, without a poison block, whose `thirst_change` is below 0: a pop, a juice, a milk, a
+  coffee) (`DRINK_IDS`), as the Lua's `W.drinkable` reads the engine's `isWaterSource` or a quenching beverage
+  (TaintedWater left out: Hazardous, a poison). A Disinfectant (RubbingAlcohol), a bleach, a beer or a spirit is not
+  water: F2 drank a Disinfectant 68 times with no thirst fall;
 - `container` (PZA/1.4.1): a drinking vessel that spawns empty (no `fluid_ids`: `Base.PopEmpty`, `Base.Mugl`,
   `Base.Bowl`, `Base.GlassTumbler`), as the Lua's `W.waterVessel` reads an empty one that may hold water; checked
   after `weapon`, as the Lua's own order reads a saucepan;
@@ -58,12 +60,22 @@ def _vessel(item):
             and isinstance(cap, (int, float)) and cap <= DRINK_CAP_L)
 
 
+def _quenches(fluid):
+    """A dataset fluid a character drinks for thirst: a Beverage, neither Hazardous nor Alcoholic, with no poison block
+    and a thirst change below 0."""
+    cats = fluid.get("categories") or ()
+    thirst = fluid.get("thirst_change")
+    return ("Beverage" in cats and "Hazardous" not in cats and "Alcoholic" not in cats and not fluid.get("poison")
+            and isinstance(thirst, (int, float)) and thirst < 0)
+
+
 def _water(item):
     ids = item.get("fluid_ids") or ()
-    return _vessel(item) and bool(ids) and all(f in WATER_FLUIDS for f in ids)
+    return _vessel(item) and bool(ids) and all(f in DRINK_FLUIDS for f in ids)
 
 
 _ITEMS, _FLUIDS = dataset()
+DRINK_FLUIDS = WATER_FLUIDS | frozenset(i for i, f in _FLUIDS.items() if _quenches(f))
 FOOD_IDS = frozenset(i for i, it in _ITEMS.items() if it.get("kind") == "food" and not it.get("cant_eat"))
 DRINK_IDS = frozenset(i for i, it in _ITEMS.items() if _water(it))
 VESSEL_IDS = frozenset(i for i, it in _ITEMS.items() if _vessel(it) and not it.get("fluid_ids"))

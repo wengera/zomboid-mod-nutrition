@@ -1,5 +1,5 @@
 """`agent.base.items` (Plan 23 Task 9, P23-D): an item's use read off `data/food-items.json` (food by `kind == "food"`,
-water by a drinking vessel spawning holding water only, a container by one spawning empty: PZA/1.4.1), a bandage by the Lua loot's own name rule, a
+water by a drinking vessel spawning holding only quenching fluids, a container by one spawning empty: PZA/1.4.1, 1.5), a bandage by the Lua loot's own name rule, a
 weapon by `WEAPON_RX`, else other. Every expectation is checked against the dataset read here, never a literal count
 or a remembered membership.
 """
@@ -28,6 +28,16 @@ def _poison_only(it):
 WATERS = ("Water", "CarbonatedWater")   # PZA/1.4.1 (P24-F): the jar's isWaterSource fluids less TaintedWater
 
 
+def _quenches(fid):
+    """PZA/1.5 (the Task 9 amendment): a dataset fluid in the Beverage category, neither Hazardous nor Alcoholic, with
+    no poison block, whose thirst change is below 0."""
+    fl = FLUIDS.get(fid) or {}
+    cats = fl.get("categories") or ()
+    t = fl.get("thirst_change")
+    return ("Beverage" in cats and "Hazardous" not in cats and "Alcoholic" not in cats and not fl.get("poison")
+            and isinstance(t, (int, float)) and t < 0)
+
+
 def _vessel(it):
     """The dataset's own columns: a drinkable fluid container of at most 3 litres (vanilla's drink menu's cap)."""
     return (it["kind"] == "fluid_container" and bool(it.get("drinkable"))
@@ -35,8 +45,8 @@ def _vessel(it):
 
 
 def _water(it):
-    """A vessel spawning holding water only (PZA/1.4.1)."""
-    return _vessel(it) and bool(it.get("fluid_ids")) and all(f in WATERS for f in it["fluid_ids"])
+    """A vessel spawning holding only fluids that quench (PZA/1.4.1's water, PZA/1.5's beverages)."""
+    return _vessel(it) and bool(it.get("fluid_ids")) and all(f in WATERS or _quenches(f) for f in it["fluid_ids"])
 
 
 def _container(it):
@@ -84,13 +94,23 @@ def test_a_vessel_holding_water_is_water_whatever_its_name():
     assert DATA["Base.WaterBottle"]["drinkable"] and items.use_of("Base.WaterBottle") == "water"
 
 
-def test_a_disinfectant_a_pop_and_a_bleach_are_not_water():
+def test_a_disinfectant_a_bleach_a_beer_and_tainted_water_are_not_water():
     """PZA/1.4.1 (P24-F): F2's Disinfectant (RubbingAlcohol, drinkable in the dataset, no poison) read water and was
-    drunk 68 times with no thirst fall; a pop or a juice is a drink but not water."""
-    for i in ("Base.Disinfectant", "Base.Bleach", "Base.Pop"):
+    drunk 68 times with no thirst fall; a bleach (Hazardous, a poison), a beer or a spirit (Alcoholic) and a dish of
+    TaintedWater (Hazardous) are not water either (PZA/1.5)."""
+    for i in ("Base.Disinfectant", "Base.Bleach", "Base.BeerCan", "Base.Vodka", "Base.WaterDish"):
         assert DATA[i]["drinkable"] and DATA[i]["fluid_ids"], i
         assert items.use_of(i) == "other", i
     assert "Base.Disinfectant" not in items.DRINK_IDS
+
+
+def test_a_pop_a_juice_and_a_milk_are_water():
+    """PZA/1.5 (the Task 9 amendment): a drinkable beverage that lowers thirst and harms nothing is water; the
+    dataset's fluids carry the categories and the thirst change (Cola Beverage -30, CowMilk Beverage -50)."""
+    for i in ("Base.Pop", "Base.Pop2", "Base.JuiceBox", "Base.Milk", "Base.PopBottle"):
+        assert items.use_of(i) == "water", i
+    assert {"Cola", "CowMilk", "JuiceGrape"} <= items.DRINK_FLUIDS and "Beer" not in items.DRINK_FLUIDS
+    assert "TaintedWater" not in items.DRINK_FLUIDS and "Bleach" not in items.DRINK_FLUIDS
 
 
 def test_an_empty_vessel_is_a_container():

@@ -38,7 +38,7 @@ def rand_frame(rng, seq=1):
                "forceSprint": b(), "autoWalk": maybe(rng, b()), "zombiesSeen": rng.randrange(0, 200),
                "zombiesListed": rng.randrange(0, 6), "hour": maybe(rng, lua_float(rng, 0, 24)),
                "attackers": maybe(rng, rng.randrange(0, 4)), "hitReaction": rng.choice(["", "HitReactionFront", "Bite"]),
-               "dragDown": maybe(rng, b())},
+               "dragDown": maybe(rng, b()), "aiming": maybe(rng, b())},
         "stats": {k: lua_float(rng, 0, 1) for k in pza1.GROUPS["stats"]},
         "body": {"health": lua_float(rng, 0, 100), "bleeding": rng.randrange(0, 3), "scratched": rng.randrange(0, 3),
                  "bitten": 0, "parts": parts},
@@ -192,8 +192,8 @@ def test_the_constants():
     assert set(pza1.GROUPS) == {"me", "stats", "body", "load", "weapon", "action", "act", "cost"}
     assert set(pza1.RECORDS) == {"zombie", "part", "square", "container", "portal"}
     assert pza1.GAITS == ("walk", "run", "sprint")
-    assert pza1.ACTION_TYPES == ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate",
-                                 "sleep")
+    assert pza1.ACTION_TYPES[:11] == ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan",
+                                      "rate", "sleep")                    # PZA/1.5 appends its actions after these
     assert pza1.ACTION_ARGS["interact"]["filter"] == "filter"
     assert pza1.ACTION_ARGS["interact"]["maxWeight"] == "float" and pza1.ACTION_ARGS["sleep"] == {}
     assert pza1.ACTION_ARGS["interact"]["kind"] == "ikind"
@@ -205,7 +205,7 @@ def test_the_constants():
 def test_every_reason_is_a_string_in_the_schemas_enum():
     enum = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["reason"]["enum"]
     assert isinstance(pza1.REASONS, frozenset) and pza1.REASONS == frozenset(enum)
-    assert all(isinstance(r, str) for r in pza1.REASONS) and len(enum) == 23      # PZA/1.4's busy (P24-C)
+    assert all(isinstance(r, str) for r in pza1.REASONS) and len(enum) >= 23     # PZA/1.4's busy (P24-C), PZA/1.5's
     assert "not safe" in pza1.REASONS and "not allowed" in pza1.REASONS
 
 
@@ -223,7 +223,7 @@ def test_the_command_dataclasses():
     assert pza1.Rate(5).args() == {"hz": 5} and pza1.Scan(8).TYPE == "scan"
     classes = (pza1.WalkTo, pza1.Steer, pza1.Attack, pza1.Interact, pza1.Equip, pza1.Consume, pza1.Drop, pza1.Stop,
                pza1.Scan, pza1.Rate, pza1.Sleep)
-    assert tuple(c.TYPE for c in classes) == pza1.ACTION_TYPES
+    assert tuple(c.TYPE for c in classes) == pza1.ACTION_TYPES[:11]
     for c in classes:
         assert tuple(f.name for f in dataclasses.fields(c)) == tuple(pza1.ACTION_ARGS[c.TYPE])
 
@@ -403,7 +403,7 @@ def test_a_frame_written_before_the_append_decodes_with_the_new_fields_none_and_
         i = pza1.ORDER["frame"].index(g)
         ok[i] = arr[i][:n]
         assert pza1.decode(ok)[g][pza1.GROUPS[g][n]] is None
-    for g, n in (("me", 10), ("me", 18), ("cost", 7), ("cost", 17)):       # me's order is 17 since PZA/1.4
+    for g, n in (("me", 10), ("me", len(pza1.GROUPS["me"]) + 1), ("cost", 7), ("cost", 17)):   # one past the order
         bad = list(arr)
         i = pza1.ORDER["frame"].index(g)
         bad[i] = (arr[i] + [0] * n)[:n]
@@ -464,8 +464,8 @@ def test_death_is_an_event_kind_with_its_fields_and_round_trips():
 # ---- PZA/1.4 (ruling P24-C): me's attackers, hitReaction and dragDown; the square's hopN and hopW; busy -------------
 
 def test_me_and_square_append_the_1_4_fields_after_their_1_3_orders():
-    assert pza1.GROUPS["me"][14:] == ("attackers", "hitReaction", "dragDown")
-    assert pza1.RECORDS["square"][16:] == ("hopN", "hopW")
+    assert pza1.GROUPS["me"][14:17] == ("attackers", "hitReaction", "dragDown")
+    assert pza1.RECORDS["square"][16:18] == ("hopN", "hopW")
     assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12}       # the oldest arity a writer used is unchanged
     assert "busy" in pza1.REASONS
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
@@ -511,3 +511,55 @@ def test_a_pza_1_3_session_log_decodes_through_the_file_transport_with_no_bad_li
     assert all(f["me"]["attackers"] is None and f["me"]["hitReaction"] is None and f["me"]["dragDown"] is None
                for f in frames)
     assert all(q["hopN"] is None and q["hopW"] is None for q in squares)
+
+
+# ---- PZA/1.5 (ruling P24-G): aim and climb; me's aiming --------------------------------------------------------------
+
+def test_aim_and_climb_are_actions_with_their_args_results_and_reasons():
+    assert pza1.ACTION_TYPES[11:13] == ("aim", "climb")
+    assert pza1.ACTION_ARGS["aim"] == {"vx": "float", "vy": "float", "seconds": "float", "targetId": "int",
+                                       "bearing": "float"}
+    assert pza1.ACTION_ARGS["climb"] == {"x": "int", "y": "int"}
+    assert pza1.Aim(-1.0, 0.0, 2.0).args() == {"vx": -1.0, "vy": 0.0, "seconds": 2.0, "targetId": -1, "bearing": -1.0}
+    assert pza1.Aim(0.0, 0.0, 1.0, 7).args()["targetId"] == 7 and type(pza1.Aim(0, 0, 1).bearing) is float
+    assert pza1.Climb(11, 20).args() == {"x": 11, "y": 20} and pza1.Climb.TYPE == "climb"
+    assert {"not hoppable", "fell", "failed"} <= pza1.REASONS
+    d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
+    assert set(d["result_aim"]["properties"]) == {"d", "held", "targetDead"}
+    assert set(d["result_climb"]["properties"]) == {"tall", "wounds"}
+    assert "no look action" in d["actionType"]["description"]
+    for t in ("aim", "climb"):
+        body = {"kind": "act", "seq": 3, "tick": 1, "wallMs": 2, "aid": "a1", "type": t, "state": "done", "reason": "",
+                "result": {"held": True} if t == "aim" else {"tall": False, "wounds": 0},
+                "snapshot": {"me": {"x": 1.0, "y": 2.0, "z": 0, "health": 100.0}, "nearest": None}}
+        assert pza1.decode(json.loads(pza1.encode("act", body))) == body
+
+
+def test_me_appends_aiming_after_the_1_4_fields_and_a_1_4_frame_decodes_with_it_none():
+    assert pza1.GROUPS["me"][14:] == ("attackers", "hitReaction", "dragDown", "aiming")
+    assert pza1.PRIOR["me"] == 11
+    assert json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["me"]["properties"]["aiming"]["type"] == "boolean"
+    rng = random.Random(51)
+    f = rand_frame(rng)
+    f["me"]["aiming"] = True
+    assert pza1.decode(json.loads(pza1.encode("frame", f))) == f
+    arr = json.loads(pza1.encode("frame", f))
+    me = pza1.ORDER["frame"].index("me")
+    arr[me] = arr[me][:17]                                       # a PZA/1.4 me
+    d = pza1.decode(arr)
+    assert d["me"]["aiming"] is None and d["me"]["dragDown"] == f["me"]["dragDown"]
+
+
+@pytest.mark.parametrize("run", ["e_day_5-20261028-201255", "f_goals_2-20261029-041705"])
+def test_the_e5_and_f2_logs_decode_through_the_file_transport_with_the_1_5_fields_none(tmp_path, run):
+    """E5 (PZA/1.3) and F2 (PZA/1.4), copied from their artifacts: every line decodes after the PZA/1.5 appends, every
+    frame's me.aiming None."""
+    import shutil
+    from agent.base.transport.files import FileTransport
+    shutil.copyfile(os.path.join(ROOT, "testing", "artifacts", run, "state.log"), str(tmp_path / "state.log"))
+    t = FileTransport(str(tmp_path))
+    lines = t.lines()
+    frames = [l for l in lines if l["kind"] == "frame"]
+    assert t.bad == 0 and len(lines) > 1000 and frames
+    assert all(f["me"]["aiming"] is None for f in frames)
+

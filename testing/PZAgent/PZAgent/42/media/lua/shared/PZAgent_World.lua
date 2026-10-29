@@ -115,12 +115,18 @@ function W.fullTypeHas(it, a, b)
 end
 
 -- The use table (PZA/1.4.1, ruling P24-F; F2 drank a Base.Disinfectant, RubbingAlcohol, 68 times with no thirst fall).
--- Water is what vanilla's thirst drink reads as water, the item's FluidContainer.isWaterSource() (the 42.21 jar:
--- isEmpty false and the primary fluid Water, TaintedWater or CarbonatedWater, FluidContainer.isWaterSource @0 L875;
--- InventoryItem.isWaterSource @0 L2889 wraps it, the test ISInventoryPaneContextMenu makes for its waterContainer),
--- read here on the container so a fake answers it. A container vanilla's drink menu refuses (getCapacity over
--- DRINK_CAP_L, its Tooltip_CantDrinkFrom in doDrinkFluidMenu), a tainted one (isTainted) or a poisonous one is not
--- drinkable, nor a full type naming Bleach or Petrol (Act's firstDrink rule). Fails closed: a read absent reads no.
+-- Water is what vanilla's drink menu offers to drink that lowers thirst and harms nothing (PZA/1.5, the Task 9
+-- amendment: a pop, a juice or a milk is water too). Vanilla offers a drink for a container whose
+-- FluidContainer.isWaterSource() holds (the 42.21 jar: isEmpty false and the primary fluid Water, TaintedWater or
+-- CarbonatedWater, FluidContainer.isWaterSource @0 L875; InventoryItem.isWaterSource @0 L2889 wraps it) or whose primary
+-- fluid isCategory(FluidCategory.Beverage) (ISInventoryPaneContextMenu.lua L436-L443). Read here on the container so a
+-- fake answers it: a container vanilla's drink menu refuses (getCapacity over DRINK_CAP_L, its Tooltip_CantDrinkFrom in
+-- doDrinkFluidMenu), a tainted one (isTainted) or a poisonous one is never water, nor a full type naming Bleach or
+-- Petrol (Act's firstDrink rule); a water source is water; any other is water only when none of its fluids is
+-- Hazardous or Alcoholic (FluidContainer.isCategory: any fluid in it; the fluids' categories off scripts/generated/
+-- fluids.txt, data/food-items.json's fluids), one is a Beverage, and its mixed properties lower thirst
+-- (getProperties():getThirstChange() below 0, SealedFluidProperties). Fails closed: a read absent reads no (an absent
+-- FluidCategory leaves only the water sources).
 W.DRINK_CAP_L = 3.0       -- litres: ISInventoryPaneContextMenu.doDrinkFluidMenu refuses a drink from a larger container
 
 local function reads(obj, member, want, ...)
@@ -135,10 +141,30 @@ local function drinkVessel(it, fc)
     return type(cap) == "number" and cap <= W.DRINK_CAP_L
 end
 
--- the item holds water a character can drink (fc, its fluid container): the use table's water and consume's drink
+-- fc:isCategory(FluidCategory[name]): true or false, nil when the constant or the member is absent
+local function category(fc, name)
+    local c = FluidCategory ~= nil and FluidCategory[name] or nil
+    if c == nil then return nil end
+    local ok, v = PZA.call(fc, "isCategory", c)
+    if not ok then return nil end
+    return v == true
+end
+
+-- a beverage that lowers thirst and is neither hazardous nor alcoholic (the water sources aside)
+local function quenches(fc)
+    if category(fc, "Hazardous") ~= false or category(fc, "Alcoholic") ~= false then return false end
+    if category(fc, "Beverage") ~= true then return false end
+    local _, props = PZA.call(fc, "getProperties")
+    local _, thirst = PZA.call(props, "getThirstChange")
+    return type(thirst) == "number" and thirst < 0
+end
+
+-- the item holds a fluid a character can drink (fc, its fluid container): the use table's water and consume's drink
 function W.drinkable(it, fc)
     if fc == nil or not drinkVessel(it, fc) then return false end
-    return reads(fc, "isWaterSource", true) and reads(fc, "isTainted", false) and reads(fc, "isPoisonous", false)
+    if not (reads(fc, "isTainted", false) and reads(fc, "isPoisonous", false)) then return false end
+    if reads(fc, "isWaterSource", true) then return true end
+    return quenches(fc)
 end
 
 -- the item is an empty drinking vessel that may hold water, FluidContainer.canAddFluid(Fluid.Water) (@0 L950: not

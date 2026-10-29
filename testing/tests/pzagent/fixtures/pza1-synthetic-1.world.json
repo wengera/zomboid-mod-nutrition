@@ -162,7 +162,9 @@
    "stop",
    "scan",
    "rate",
-   "sleep"
+   "sleep",
+   "aim",
+   "climb"
   ],
   "kind": "hello",
   "mod": "fake",
@@ -341,6 +343,7 @@
  },
  "mapLines": 4,
  "me": {
+  "aiming": false,
   "attackers": 0,
   "autoWalk": false,
   "dir": "S",

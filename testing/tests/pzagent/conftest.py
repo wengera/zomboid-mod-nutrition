@@ -81,11 +81,15 @@ MOODLE_NAMES = ("HUNGRY", "THIRST", "TIRED", "ENDURANCE", "PANIC", "PAIN", "INJU
 FOODS = ("Base.Bread", "Base.Apple", "Base.CannedBeans", "Base.Crisps")
 
 
-def make_fluid(amount=0.5, poison=False, clean=True, water=True, tainted=False, capacity=1.0, can_add=True):
+def make_fluid(amount=0.5, poison=False, clean=True, water=True, tainted=False, capacity=1.0, can_add=True, cats=None,
+               thirst=None, fluid="Water"):
     """A fluid container whose amount is fc.st["amount"] (a drink lowers it). Plan 24 PZA/1.4.1 (P24-F): `water` is
     whether its primary fluid is water, so isWaterSource answers it while the container is not empty (the jar's
     FluidContainer.isWaterSource); isTainted answers `tainted`, getCapacity `capacity` and canAddFluid(fluid)
-    `can_add` (each None makes the member absent)."""
+    `can_add` (each None makes the member absent). PZA/1.5: `cats` (a set of FluidCategory names, None for no
+    isCategory member) answers isCategory while the container is not empty, `thirst` (None for no getProperties)
+    getProperties():getThirstChange(), getFreeCapacity the capacity less the amount, and getPrimaryFluid a fluid
+    whose getFluidTypeString is `fluid`."""
     st = {"amount": amount}
     fc = J(getAmount=lambda s: st["amount"], isEmpty=lambda s: st["amount"] <= 0, isPoisonous=lambda s: poison,
            isFilledWithCleanWater=lambda s: clean)
@@ -96,7 +100,14 @@ def make_fluid(amount=0.5, poison=False, clean=True, water=True, tainted=False, 
     if capacity is not None:
         fc.getCapacity = lambda s: capacity
     if can_add is not None:
-        fc.canAddFluid = lambda s, fluid: can_add and fluid == "Water"
+        fc.canAddFluid = lambda s, f: can_add and f == "Water"
+    if cats is not None:
+        fc.isCategory = lambda s, c: st["amount"] > 0 and c in cats
+    if thirst is not None:
+        fc.getProperties = lambda s: J(getThirstChange=lambda s2: thirst if st["amount"] > 0 else 0.0)
+    if capacity is not None:
+        fc.getFreeCapacity = lambda s: max(0.0, capacity - st["amount"])
+    fc.getPrimaryFluid = lambda s: J(getFluidTypeString=lambda s2: fluid) if st["amount"] > 0 else None
     fc.st = st
     return fc
 
@@ -212,6 +223,25 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
     p.getHitReaction = lambda s: combat["hitReaction"]
     p.hasHitReaction = lambda s: combat["hitReaction"] not in ("", None)
     p.isDeathDragDown = lambda s: combat["dragDown"]
+    # Plan 24 PZA/1.5 (ruling P24-G): the stance's members record into p.aim: setForceAim(v) sets "force" and
+    # nullifyAiming clears it (each call also appended to p.aim["calls"]); isForceAim and isAiming answer "force" (a
+    # test sets "aiming" to make isAiming differ); setForwardDirection(x, y) records into "faced"; getVariableString(k)
+    # answers p.variables[k] ("" when unset)
+    aim = {"force": False, "aiming": None, "calls": [], "faced": []}
+    p.aim = aim
+
+    def set_force(s, v):
+        aim["force"] = v
+        aim["calls"].append(("setForceAim", v))
+
+    def nullify(s):
+        aim["force"] = False
+        aim["calls"].append(("nullifyAiming", None))
+    p.setForceAim, p.nullifyAiming = set_force, nullify
+    p.isForceAim = lambda s: aim["force"]
+    p.isAiming = lambda s: aim["force"] if aim["aiming"] is None else aim["aiming"]
+    p.setForwardDirection = lambda s, fx, fy: aim["faced"].append((fx, fy))
+    p.getVariableString = lambda s, k: variables.get(k, "")
     return p
 
 
@@ -277,7 +307,10 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g._cell = make_cell()
     g.CharacterStat = J(**{n: n for n in STAT_NAMES})
     g.MoodleType = J(**{n: n for n in MOODLE_NAMES})
-    g.IsoFlagType = J(HoppableN="HoppableN", HoppableW="HoppableW")   # PZA/1.4: the square's has(flag) reads
+    g.IsoFlagType = J(HoppableN="HoppableN", HoppableW="HoppableW",   # PZA/1.4: the square's has(flag) reads
+                      TallHoppableN="TallHoppableN", TallHoppableW="TallHoppableW")
+    g.IsoDirections = J(N="N", S="S", E="E", W="W")                  # PZA/1.5: the climb's facing
+    g.FluidCategory = J(Beverage="Beverage", Hazardous="Hazardous", Alcoholic="Alcoholic")   # PZA/1.5: W.drinkable
     g.Fluid = J(Water="Water")                                       # PZA/1.4.1: canAddFluid(Fluid.Water)
     g.instanceof = lambda o, cls: getattr(o, "_cls", None) == cls
     g.getGameTime = lambda: J(getHour=lambda s: 7, getMinutes=lambda s: 30, getWorldAgeHours=lambda s: 31.5,
@@ -334,6 +367,11 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
         Type="ISDropWorldItemAction", character=p, item=item, args=(sq, xo, yo, zo, rot, multi)))
     # Plan 22 Task 4: ISEquipWeaponAction:new(character, item, time, isPrimary, twoHands) records its five arguments
     # into g._equips
+    # PZA/1.5: ISClimbOverFence:new(character, item, direction) records into g._climbs
+    climbs = []
+    g._climbs = climbs
+    g.ISClimbOverFence = J(new=lambda cls, p, fence, d: climbs.append((p, fence, d)) or J(
+        Type="ISClimbOverFence", character=p, item=fence, direction=d))
     equips = []
     g._equips = equips
     g.ISEquipWeaponAction = J(new=lambda cls, p, item, t, primary, two: equips.append((p, item, t, primary, two)) or J(

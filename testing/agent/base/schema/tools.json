@@ -238,5 +238,64 @@
       "required": [],
       "additionalProperties": false
     }
+  },
+  {
+    "name": "aim",
+    "description": "Hold the combat stance for a time, facing a zombie (targetId) or a bearing, while walking along a world vector (zero to stand): the backpedal. The stance walks only and never swings by itself; an attack sent while it holds swings from it. Released at its end, by any other skill (a walk or a climb cannot run in it) and when the target dies.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "vx": {
+          "type": "number",
+          "description": "The world vector's x component (0 with vy 0 to stand)."
+        },
+        "vy": {
+          "type": "number",
+          "description": "The world vector's y component."
+        },
+        "seconds": {
+          "type": "number",
+          "description": "How long to hold the stance in seconds."
+        },
+        "targetId": {
+          "type": "integer",
+          "description": "The zombie's online id to face each tick; -1 to face the bearing instead.",
+          "default": -1
+        },
+        "bearing": {
+          "type": "number",
+          "description": "The world bearing to face in degrees (0 east, 90 south), used when targetId is -1; -1 keeps the current facing.",
+          "default": -1
+        }
+      },
+      "required": [
+        "vx",
+        "vy",
+        "seconds"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "climb",
+    "description": "Climb the hoppable fence on a square's north or west edge at a walk (never a vault): a walk to the near side, then vanilla's climb; a tall fence fails 1 time in s.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "integer",
+          "description": "The fence square's x (the square whose hopN or hopW reads true)."
+        },
+        "y": {
+          "type": "integer",
+          "description": "The fence square's y."
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    }
   }
 ]

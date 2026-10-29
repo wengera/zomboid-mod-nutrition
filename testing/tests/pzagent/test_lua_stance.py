@@ -1,0 +1,507 @@
+"""PZAgent_Stance.lua (PZA/1.5, ruling P24-G; Plan 24 Task 9): the skills aim (the combat stance held by setForceAim,
+facing a target or a bearing while the auto-walk moves the character: the backpedal) and climb (a hoppable fence at a
+walk, vanilla's ISClimbOverFence), the stance's hand-over to an attack and its release by every other skill, on the
+lupa host under the fake player (conftest.make_player's p.aim records the stance's members)."""
+import math
+
+import pytest
+
+from .conftest import J, make_cell, make_player, make_weapon, make_zombie
+from .test_lua_skills import OFF, acts, load, sense, start, states, tick
+
+R2 = 1 / math.sqrt(2)
+
+
+def ended(lua):
+    return lua.eval("PZA.skills.cur") is None
+
+
+def calls(p):
+    return [c[0] for c in p.aim["calls"]]
+
+
+def aim_world(lua, zx=12.0, zy=20.0, zid=7):
+    z = make_zombie(zid, zx, zy)
+    sense(lua, [z])
+    lua.globals()._cell = make_cell(zombies=[z])
+    return z
+
+
+# ---- aim: the checks --------------------------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("args", [{"vx": 0, "vy": 0}, {"vx": 0, "vy": 0, "seconds": 0},
+                                  {"vx": "a", "vy": 0, "seconds": 1}, {"vx": 0, "vy": 0, "seconds": 1, "targetId": "z"},
+                                  {"vx": 0, "vy": 0, "seconds": 1, "bearing": "n"}])
+def test_aim_with_bad_args_is_rejected(lua, fs, args):
+    load(lua)
+    start(lua, make_player(), "aim", **args)
+    assert states(acts(lua, fs)) == [("a1", "rejected", "bad args")]
+
+
+def test_aim_at_an_unknown_dead_or_far_target_is_rejected_no_target(lua, fs):
+    load(lua)
+    near, dead, far = make_zombie(7, 12.0, 20.0, dead=False), make_zombie(8, 11, 20, dead=True), make_zombie(9, 30, 20)
+    sense(lua, [near, dead, far])
+    p = make_player()
+    for aid, zid in (("u", 99), ("d", 8), ("f", 9)):
+        start(lua, p, "aim", aid=aid, vx=0, vy=0, seconds=1, targetId=zid)
+    assert states(acts(lua, fs)) == [("u", "rejected", "no target"), ("d", "rejected", "no target"),
+                                     ("f", "rejected", "no target")]
+    assert p.aim["calls"] == []
+
+
+# ---- aim: the stance, the facing and the backpedal ----------------------------------------------------------------
+
+def test_aim_holds_the_stance_faces_the_target_each_tick_and_backpedals_at_a_walk(lua, fs):
+    load(lua)
+    z = aim_world(lua)
+    p = make_player()
+    start(lua, p, "aim", vx=-1.0, vy=0.0, seconds=2, targetId=7)
+    tick(lua, p)
+    g = lua.globals()
+    assert calls(p) == ["setForceAim"] and p.aim["force"] is True
+    assert ("setForceRun", False) in p.sets and ("setForceSprint", False) in p.sets
+    assert lua.eval("PZA.motor.wantRun") is False and lua.eval("PZA.motor.wantSprint") is False
+    assert ("setAutoWalk", True) in p.sets
+    vec = [v for n, v in p.sets if n == "setAutoWalkDirection"][-1]
+    assert (vec.x, vec.y) == pytest.approx((-R2, -R2))                 # world (-1, 0) in input space
+    assert g._queue.cleared >= 1 and p.faced == [z]
+    tick(lua, p, 3)
+    assert p.faced == [z] * 4                                         # the facing every tick
+    assert [n for n, _ in p.sets].count("setAutoWalkDirection") == 1   # the vector set once
+    assert not ended(lua)
+    g._clock["ms"] += 2000
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "")
+    assert a[-1]["result"] == {"d": 0.0, "held": True, "targetDead": False}
+    assert calls(p)[-1] == "nullifyAiming" and p.aim["force"] is False
+    assert list(p.sets[-3:]) == OFF
+
+
+def test_aim_at_a_bearing_faces_it_and_a_zero_vector_stands(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "aim", vx=0, vy=0, seconds=1, bearing=90)
+    tick(lua, p, 2)
+    assert p.aim["faced"] == [pytest.approx((0.0, 1.0))] * 2           # 90 degrees: world +y, south
+    assert ("setAutoWalk", True) not in p.sets and p.faced == []
+
+
+def test_aim_without_a_target_or_a_bearing_keeps_the_facing(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "aim", vx=0, vy=1, seconds=1)
+    tick(lua, p, 2)
+    assert p.aim["faced"] == [] and p.faced == [] and p.aim["force"] is True
+
+
+def test_aim_whose_target_dies_is_done_at_once_and_released(lua, fs):
+    load(lua)
+    st = {"dead": False}
+    z = J(getOnlineID=lambda s: 7, getX=lambda s: 12.0, getY=lambda s: 20.0, isDead=lambda s: st["dead"],
+          getTarget=lambda s: None, isCrawling=lambda s: False, getHealth=lambda s: 1.0)
+    sense(lua, [z])
+    p = make_player()
+    start(lua, p, "aim", vx=-1, vy=0, seconds=5, targetId=7)
+    tick(lua, p)
+    st["dead"] = True
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "") and a[-1]["result"]["targetDead"] is True
+    assert calls(p) == ["setForceAim", "nullifyAiming"]
+
+
+def test_aim_reports_the_stance_lost_when_a_run_cleared_it(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "aim", vx=0, vy=0, seconds=1)
+    tick(lua, p)
+    p.aim["force"] = False                                            # the engine cleared it (a run)
+    lua.globals()._clock["ms"] += 1000
+    tick(lua, p)
+    assert acts(lua, fs)[-1]["result"]["held"] is False
+
+
+def test_aim_held_falls_back_to_is_aiming_without_is_force_aim(lua, fs):
+    load(lua)
+    p = make_player()
+    p.isForceAim = None
+    p.aim["aiming"] = False
+    start(lua, p, "aim", vx=0, vy=0, seconds=1)
+    tick(lua, p)
+    lua.globals()._clock["ms"] += 1000
+    tick(lua, p)
+    assert acts(lua, fs)[-1]["result"]["held"] is False
+
+
+@pytest.mark.parametrize("missing", ["setForceAim", "nullifyAiming"])
+def test_aim_without_the_stance_members_fails_not_loaded(lua, fs, missing):
+    load(lua)
+    p = make_player()
+    setattr(p, missing, None)
+    start(lua, p, "aim", vx=0, vy=0, seconds=1)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "not loaded") and lua.eval("PZA.skills.errors") == 0
+
+
+def test_aim_with_a_vector_and_no_vector2_fails_not_loaded_but_a_stand_needs_none(lua, fs):
+    load(lua)
+    lua.globals().Vector2 = None
+    p = make_player()
+    start(lua, p, "aim", aid="m", vx=1, vy=0, seconds=1)
+    tick(lua, p)
+    start(lua, p, "aim", aid="s", vx=0, vy=0, seconds=1)
+    tick(lua, p)
+    assert states(acts(lua, fs)) == [("m", "accepted", ""), ("m", "failed", "not loaded"), ("s", "accepted", "")]
+    assert p.aim["force"] is True
+
+
+def test_a_dead_player_fails_the_aim_dead_and_releases_it(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "aim", vx=0, vy=0, seconds=5)
+    tick(lua, p)
+    p.getBodyDamage = lambda s: J(getOverallBodyHealth=lambda s2: 0.0)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "dead") and p.aim["force"] is False
+
+
+class Rec:
+    """Records every member the Lua reads off the object it wraps (lupa indexes a J through its __getitem__)."""
+    def __init__(self, inner, log, tag):
+        self.__dict__["_i"], self.__dict__["_log"], self.__dict__["_tag"] = inner, log, tag
+
+    def __getattr__(self, name):
+        return getattr(self._i, name)
+
+    def __getitem__(self, name):
+        v = self._i[name]
+        if v is not None:
+            self._log.append((self._tag, name))
+        return v
+
+
+def test_the_aim_per_tick_reads_four_java_calls_with_a_target_and_allocates_nothing(lua, fs):
+    """The cost the file's header claims: after the first tick, one aim tick calls getBodyDamage and
+    getOverallBodyHealth (the dead check), the target's isDead and faceThisObject, and makes no Vector2."""
+    load(lua)
+    g = lua.globals()
+    log = []
+    z = Rec(make_zombie(7, 12.0, 20.0), log, "z")
+    sense(lua, [z])
+    p = make_player()
+    start(lua, p, "aim", vx=-1, vy=0, seconds=10, targetId=7)
+    tick(lua, p)
+    made = []
+    v2 = g.Vector2
+    g.Vector2 = J(new=lambda x, y: made.append((x, y)) or v2.new(x, y))
+    bd = p.getBodyDamage(p)
+    p.getBodyDamage = lambda s: Rec(bd, log, "bd")
+    log.clear()
+    tick(lua, Rec(p, log, "p"))
+    assert sorted(log) == sorted([("p", "getBodyDamage"), ("bd", "getOverallBodyHealth"), ("z", "isDead"),
+                                  ("p", "faceThisObject")])
+    assert made == [] and not ended(lua)
+
+
+# ---- the stance's hand-over and release ---------------------------------------------------------------------------
+
+def test_a_walk_superseding_the_aim_releases_the_stance(lua, fs):
+    load(lua)
+    lua.globals()._cell = make_cell(squares={(12, 20, 0): "target"})
+    p = make_player()
+    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5)
+    tick(lua, p)
+    start(lua, p, "walkTo", aid="w", x=12, y=20)
+    assert states(acts(lua, fs))[-2:] == [("aim", "failed", "superseded"), ("w", "accepted", "")]
+    assert calls(p) == ["setForceAim", "nullifyAiming"] and lua.eval("PZA.skills.stance.held") is False
+
+
+def test_an_attack_superseding_the_aim_swings_from_the_held_stance(lua, fs):
+    load(lua)
+    aim_world(lua, zx=11.0)
+    p = make_player(weapon=make_weapon())
+    start(lua, p, "aim", aid="aim", vx=-1, vy=0, seconds=5, targetId=7)
+    tick(lua, p)
+    start(lua, p, "attack", aid="atk", targetId=7)
+    assert calls(p) == ["setForceAim"] and p.aim["force"] is True
+    tick(lua, p)
+    assert p.attacks == [0] and p.aim["force"] is True                # the swing pressed while the stance holds
+    lua.globals()._clock["ms"] += 1500
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("atk", "done", "")
+    assert p.aim["force"] is True                                     # kept past the swing for the next aim
+    lua.globals()._clock["ms"] += 1999
+    tick(lua, p)
+    assert p.aim["force"] is True
+    lua.globals()._clock["ms"] += 1
+    tick(lua, p)
+    assert calls(p)[-1] == "nullifyAiming" and lua.eval("PZA.skills.stance.held") is False
+
+
+def test_a_new_aim_after_the_kept_attack_keeps_the_stance_and_a_steer_releases_it(lua, fs):
+    load(lua)
+    aim_world(lua, zx=11.0)
+    p = make_player(weapon=make_weapon())
+    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
+    tick(lua, p)
+    start(lua, p, "attack", aid="atk", targetId=7)
+    tick(lua, p)
+    lua.globals()._clock["ms"] += 1500
+    tick(lua, p)
+    start(lua, p, "aim", aid="aim2", vx=0, vy=0, seconds=5, targetId=7)
+    tick(lua, p)
+    assert "nullifyAiming" not in calls(p) and p.aim["force"] is True
+    start(lua, p, "steer", aid="flee", vx=1, vy=0, seconds=1, gait="run")
+    assert calls(p)[-1] == "nullifyAiming" and p.aim["force"] is False
+
+
+def test_an_attack_out_of_reach_releases_the_stance_before_its_approach(lua, fs):
+    load(lua)
+    lua.globals()._cell = make_cell(zombies=[], squares={(14, 20, 0): "zsq"})
+    z = make_zombie(7, 14.0, 20.0)
+    sense(lua, [z])
+    p = make_player(weapon=make_weapon())
+    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
+    tick(lua, p)
+    start(lua, p, "attack", aid="atk", targetId=7)
+    assert p.aim["force"] is True
+    tick(lua, p)
+    assert calls(p)[-1] == "nullifyAiming" and p.attacks == []
+    assert lua.globals()._queue.adds[-1].Type == "ISWalkToTimedAction"
+
+
+def test_a_rejected_command_leaves_the_aim_and_its_stance_running(lua, fs):
+    load(lua)
+    aim_world(lua, zx=11.0)
+    p = make_player(weapon=make_weapon())
+    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
+    tick(lua, p)
+    p.combat["hitReaction"] = "HitReaction"
+    start(lua, p, "attack", aid="atk", targetId=7)
+    start(lua, p, "walkTo", aid="bad", x="no", y=1)
+    assert states(acts(lua, fs))[-2:] == [("atk", "rejected", "busy"), ("bad", "rejected", "bad args")]
+    assert lua.eval("PZA.skills.cur.type") == "aim" and p.aim["force"] is True and "nullifyAiming" not in calls(p)
+
+
+def test_a_raising_release_is_counted_and_never_propagates(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5)
+    tick(lua, p)
+
+    def boom(s):
+        raise RuntimeError("java raised")
+    p.nullifyAiming = boom
+    start(lua, p, "stop", aid="s")
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("s", "done", "")
+    assert lua.eval("PZA.skills.errors") >= 1 and lua.eval("PZA.skills.stance.held") is False
+
+
+# ---- climb ---------------------------------------------------------------------------------------------------------
+
+def lua_queue(lua):
+    """A vanilla queue as the game's is, a Lua table (the climb reads its own action in it)."""
+    lua.execute("_LQ = { queue = {} }"
+                " ISTimedActionQueue = { add = function(a) table.insert(_LQ.queue, a) end,"
+                " clear = function(p) _LQ.queue = {} end,"
+                " getTimedActionQueue = function(p) return _LQ end }")
+
+
+def queued_types(lua):
+    return [lua.eval("_LQ.queue[%d].Type" % (i + 1)) for i in range(int(lua.eval("#_LQ.queue")))]
+
+
+def fence_sq(x, y, north=False, tall=False, fence=True):
+    flags = {"TallHoppableN" if tall else "HoppableN"} if north else {"TallHoppableW" if tall else "HoppableW"}
+    objs = [J(isHoppable=lambda s: not tall, isTallHoppable=lambda s: tall)] if fence else [J(_cls="IsoObject")]
+    return J(getObjects=lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i]),
+             has=lambda s, f: f in flags, fence=objs[0])
+
+
+def climb_world(lua, x=11, y=20, north=False, tall=False, fence=True, extra=None):
+    sq = fence_sq(x, y, north, tall, fence)
+    squares = {(x, y, 0): sq}
+    squares.update(extra or {})
+    lua.globals()._cell = make_cell(squares=squares)
+    lua_queue(lua)
+    return sq
+
+
+def pos(p, x, y, z=0):
+    st = {"x": x, "y": y, "z": z}
+    p.getX, p.getY, p.getZ = (lambda s: st["x"]), (lambda s: st["y"]), (lambda s: st["z"])
+    return st
+
+
+@pytest.mark.parametrize("args", [{"x": 1}, {"x": "a", "y": 2}])
+def test_climb_with_bad_args_is_rejected(lua, fs, args):
+    load(lua)
+    start(lua, make_player(), "climb", **args)
+    assert states(acts(lua, fs)) == [("a1", "rejected", "bad args")]
+
+
+def test_climb_of_a_square_without_a_fence_is_not_hoppable_and_of_no_square_no_square(lua, fs):
+    load(lua)
+    climb_world(lua, fence=False)
+    p = make_player()
+    start(lua, p, "climb", aid="n", x=11, y=20)
+    start(lua, p, "climb", aid="q", x=40, y=20)
+    assert states(acts(lua, fs)) == [("n", "rejected", "not hoppable"), ("q", "rejected", "no square")]
+
+
+def test_climb_west_fence_from_its_near_square_queues_the_climb_facing_east_at_a_walk_and_is_done_across(lua, fs):
+    load(lua)
+    sq = climb_world(lua)
+    p = make_player()
+    at = pos(p, 10.5, 20.5)
+    start(lua, p, "climb", x=11, y=20)
+    tick(lua, p)
+    g = lua.globals()
+    assert queued_types(lua) == ["ISClimbOverFence"]
+    assert len(g._climbs) == 1 and g._climbs[0][1] is sq.fence and g._climbs[0][2] == "E"
+    assert ("setForceRun", False) in p.sets and lua.eval("PZA.motor.wantRun") is False
+    tick(lua, p, 3)
+    assert not ended(lua)
+    at["x"] = 11.4
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "") and a[-1]["result"] == {"tall": False, "wounds": 0}
+    assert list(p.sets[-3:]) == OFF
+
+
+def test_climb_north_fence_walks_to_the_near_square_first_and_faces_south(lua, fs):
+    load(lua)
+    climb_world(lua, north=True, extra={(11, 19, 0): J(_cls="near")})
+    p = make_player()
+    at = pos(p, 13.5, 17.5)
+    start(lua, p, "climb", x=11, y=20)
+    tick(lua, p)
+    assert queued_types(lua) == ["ISWalkToTimedAction", "ISClimbOverFence"]
+    assert lua.eval("_LQ.queue[1].sq._cls") == "near" and lua.globals()._climbs[0][2] == "S"
+    at["y"] = 20.2
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "done", "")
+
+
+def test_climb_from_the_far_side_of_a_north_fence_faces_north(lua, fs):
+    load(lua)
+    climb_world(lua, north=True)
+    p = make_player()
+    pos(p, 11.5, 20.5)
+    start(lua, p, "climb", x=11, y=20)
+    tick(lua, p)
+    assert queued_types(lua) == ["ISClimbOverFence"] and lua.globals()._climbs[0][2] == "N"
+
+
+def test_climb_without_the_near_square_fails_no_square_and_a_refused_walk_no_path(lua, fs):
+    load(lua)
+    climb_world(lua, north=True)
+    p = make_player()
+    pos(p, 11.5, 17.5)
+    start(lua, p, "climb", aid="c1", x=11, y=20)
+    tick(lua, p)
+    climb_world(lua, north=True, extra={(11, 19, 0): J(_cls="near")})
+    lua.globals().ISWalkToTimedAction = None
+    start(lua, p, "climb", aid="c2", x=11, y=20)
+    tick(lua, p)
+    assert [s for s in states(acts(lua, fs)) if s[1] == "failed"] == [("c1", "failed", "no square"),
+                                                                      ("c2", "failed", "no path")]
+
+
+def test_a_tall_fence_reports_tall_and_the_wounds_a_climb_gave(lua, fs):
+    load(lua)
+    climb_world(lua, tall=True)
+    p = make_player()
+    at = pos(p, 10.5, 20.5)
+    w = {"s": 0, "b": 0}
+    bd = p.getBodyDamage(p)
+    bd.getNumPartsScratched, bd.getNumPartsBleeding = (lambda s: w["s"]), (lambda s: w["b"])
+    start(lua, p, "climb", x=11, y=20)
+    tick(lua, p)
+    w["s"], w["b"] = 1, 1
+    at["x"] = 11.5
+    tick(lua, p)
+    assert acts(lua, fs)[-1]["result"] == {"tall": True, "wounds": 2}
+
+
+def test_a_fall_marked_by_the_outcome_variable_fails_fell_on_the_far_side(lua, fs):
+    load(lua)
+    climb_world(lua)
+    p = make_player()
+    at = pos(p, 10.5, 20.5)
+    start(lua, p, "climb", x=11, y=20)
+    tick(lua, p)
+    p.variables["ClimbFenceOutcome"] = "fall"
+    tick(lua, p)
+    at["x"] = 11.5
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "fell")
+
+
+def test_a_floor_change_is_a_fall(lua, fs):
+    load(lua)
+    climb_world(lua)
+    p = make_player()
+    at = pos(p, 10.5, 20.5)
+    start(lua, p, "climb", x=11, y=20)
+    tick(lua, p)
+    at["x"], at["z"] = 11.5, -1
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "fell")
+
+
+def test_a_climb_gone_from_the_queue_with_the_player_on_the_near_side_fails_after_the_settle(lua, fs):
+    load(lua)
+    climb_world(lua)
+    p = make_player()
+    pos(p, 10.5, 20.5)
+    start(lua, p, "climb", x=11, y=20)
+    tick(lua, p)
+    tick(lua, p, 3)
+    lua.execute("_LQ.queue = {}")                                     # performed: a tall climb that failed
+    tick(lua, p)
+    lua.globals()._clock["ms"] += 3999
+    tick(lua, p)
+    assert not ended(lua)
+    lua.globals()._clock["ms"] += 1
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "failed")
+
+
+def test_a_climb_still_queued_past_its_budget_is_interrupted(lua, fs):
+    load(lua)
+    climb_world(lua)
+    p = make_player()
+    pos(p, 10.5, 20.5)
+    start(lua, p, "climb", x=11, y=20)
+    tick(lua, p)
+    lua.globals()._clock["ms"] += 20000
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "interrupted")
+
+
+def test_a_climb_without_its_vanilla_action_fails_not_loaded(lua, fs):
+    load(lua)
+    climb_world(lua)
+    lua.globals().ISClimbOverFence = None
+    p = make_player()
+    pos(p, 10.5, 20.5)
+    start(lua, p, "climb", x=11, y=20)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "not loaded") and lua.eval("PZA.skills.errors") == 0
+
+
+def test_a_climb_after_an_aim_releases_the_stance_first(lua, fs):
+    load(lua)
+    climb_world(lua)
+    p = make_player()
+    pos(p, 10.5, 20.5)
+    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5)
+    tick(lua, p)
+    start(lua, p, "climb", aid="c", x=11, y=20)
+    assert calls(p) == ["setForceAim", "nullifyAiming"]
+    tick(lua, p)
+    assert queued_types(lua) == ["ISClimbOverFence"]
