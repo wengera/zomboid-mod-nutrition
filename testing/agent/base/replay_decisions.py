@@ -35,8 +35,9 @@ THE METHOD (no wall clock is read; a run twice gives identical output):
   that aid drive it through `Actions.pump` as live (accepted, progress, done, failed, superseded). A replayed send
   the record did not make is unbound: it fails every action still open before it `superseded` at its send (the Lua's
   supersede); a bound one fails only the older unbound ones (the record's own act lines supersede the bound ones);
-  an unbound `steer` ends `done` once its `seconds` have passed on the clock (the Lua ends a steer at its seconds),
-  and any other unbound action ends only by a supersede or the Actions deadline. An action the replay superseded is
+  an unbound `steer` or `aim` ends `done` once its `seconds` have passed on the clock (the Lua ends a steer and a
+  stance leg at its seconds; Task 10 fix 1, the review's major 3: an unbound aim held open would make every stand one
+  leg), and any other unbound action ends only by a supersede or the Actions deadline. An action the replay superseded is
   unbound, its later recorded act lines dropped. A recorded aid the replay did not send has its act lines dropped.
   The replay is open loop: the World follows the recorded frames whatever the replay sends, so after a first
   divergence the later lines of that episode are counterfactual (an unbound attack or walk held open longer than it
@@ -48,14 +49,21 @@ THE METHOD (no wall clock is read; a run twice gives identical output):
   its `why` the recorded `inputs.branches.goal`. The ticks the replay answers from the goal branch are left out of
   the output; no threat decision reads the goal itself.
 
-THE GOLDENS: `testing/tests/pzagent/golden/survive-decisions-<key>.json` (`golden_text`: `{artifact, base, decisions,
-recorded, span}`, `span` only where `SPANS` names one, sorted keys, one decision a line, LF), checked byte for byte by
-`test_replay_decisions.py`. E5 and F1 ran on HEAD's rules and agree with their records; E2, E3 and E4 (Task 1 fix 1:
+THE GOLDENS: `testing/tests/pzagent/golden/survive-decisions-<key>.json` (`golden_text`: `{artifact, base, caps,
+decisions, recorded, span}`, `caps` only where `HELLO_CAPS` names the key, `span` only where `SPANS` does, sorted keys,
+one decision a line, LF), checked byte for byte by `test_replay_decisions.py`. E5 and F1 ran on HEAD's rules and agree with their records; E2, E3 and E4 (Task 1 fix 1:
 the hold, breach, shelter, exit and stuck paths E5 and F1 never reach) ran on older rules, so their goldens are HEAD's
 decisions over the old inputs, regression goldens whose divergence from the record is named, not agreement-pinned
 oracles: E2 (planner at 42e7f49b) diverges first at line 94, the reposition floor (P23-AJ 5, aa130e9d); E3 (145868e2)
 at 137, the exterior door by its own edge and the room-less door (amendment 5, c41f9880; R2, 259a58bc); E4
-(259a58bc) at 302, the running leg cut on a new threat ahead (P23-AP 3, e07a52cb). The re-record
+(259a58bc) at 302, the running leg cut on a new threat ahead (P23-AP 3, e07a52cb). `f1-caps15` (Task 10 fix 1, the
+review's major 3) is F1's inputs replayed with a hello whose caps add the PZA/1.5 skills (`CAPS_15`: the record's
+own hello announced none, so the World's `can` keeps the stance, the care, the fill and the climb off every other
+golden): a regression pin of HEAD's decisions over real frame sequences, never an agreement oracle (the record ran
+the approach and swing, so its first moved line, the first stance leg, is the only faithful one and every later line
+of that episode is open loop); it pins the stand decision, the stance's legs and its stand-off fallback on real
+target and health sequences, and that no rule raises on a real record. The care branch and the fill are not
+exercised there (F1's parts decode `bleeding` None and its squares carry no `water`). The re-record
 rule (CLAUDE.md § 6, golden trace): a golden is re-recorded only under a named behaviour change of the planner, in the
 commit of the task whose change reaches it (`python -m agent.base.replay_decisions --write <key>` from `testing/`),
 with every moved decision attributed in that task's report; never to make a failing test pass otherwise.
@@ -95,6 +103,11 @@ RUNS = {"e5": "e_day_5-20261028-201255", "f1": "f_goals-20261028-202437", "e2": 
 SPANS = {"e4": "the whole decision.log (1680 lines) as the planner saw it, uncut: the character died at game minute "
                "627 (its inventory removed at seq 4236-4254) and the record read no death event, so the loop ran on "
                "to the day cap; the lines after the death replay a dead character's frames"}
+CAPS_15 = ("aim", "climb", "bandage", "rip", "wash", "fill")   # the PZA/1.5 skills (Task 9)
+# a golden replayed with its record's hello caps plus these (Task 10 fix 1, the review's major 3): key -> added caps
+HELLO_CAPS = {"f1-caps15": CAPS_15}
+RUNS["f1-caps15"] = RUNS["f1"]
+LEG_TYPES = ("steer", "aim")   # the unbound actions the replay ends `done` at their `seconds` (THE ACTS)
 SOURCES = {"scripted": ScriptedSource}
 WORLD_INPUTS = ("x", "y", "health", "hunger", "thirst", "fatigue", "hour", "armed", "load", "threats")
 COMMANDS = {c.TYPE: c for c in vars(pza1).values() if isinstance(c, type) and issubclass(c, pza1._Cmd)
@@ -228,9 +241,10 @@ class _Acts:
         cur = self.actions.current
         return cur is not None and any(ln["aid"] == cur.aid and ln["state"] in TERMINAL for ln in self.translate(got))
 
-    def end_steers(self, now):
+    def end_legs(self, now):
+        """Each unbound steer or aim (LEG_TYPES) ends `done` once its `seconds` have passed (the Lua's own end)."""
         for a in self.unbound:
-            if a.type == "steer" and a.state not in TERMINAL and now - a.sent_wall >= a.args["seconds"]:
+            if a.type in LEG_TYPES and a.state not in TERMINAL and now - a.sent_wall >= a.args["seconds"]:
                 a.state, a.ended_wall, a.result = "done", now, {}
 
     def sent(self, k, row, a, open_before, now):
@@ -249,15 +263,24 @@ class _Acts:
                     del self.bound[aid]
 
 
-def replay(artifact_dir, source="scripted", mutate=None):
+def with_caps(line, caps):
+    """A hello line with `caps` added to its own (in order, each once); any other line unchanged."""
+    if caps is None or line.get("kind") != "hello":
+        return line
+    own = list(line.get("caps") or ())
+    return dict(line, caps=own + [c for c in caps if c not in own])
+
+
+def replay(artifact_dir, source="scripted", mutate=None, caps=None):
     """Every replayed decision line, the goal branch's included, as the replayed Survive logged it (the module
     docstring). `mutate(survive)`, when given, runs once on the fresh Survive before the first tick (the tests'
-    mutation seam)."""
+    mutation seam); `caps`, when given, are added to every hello's (`HELLO_CAPS`)."""
     if source not in SOURCES:
         raise ValueError("source %r: one of %s" % (source, sorted(SOURCES)))
     lines, rows = read_record(artifact_dir)
     ends = align(lines, rows)
     rec_aids, offset = recorded_aids(lines, rows)
+    lines = [with_caps(ln, caps) for ln in lines]
     now = {"t": rows[0]["wall"] if rows else 0.0}
 
     def clock():
@@ -280,7 +303,7 @@ def replay(artifact_dir, source="scripted", mutate=None):
                     break   # lines the tick had not read: the record still ran the action they end
                 for ln in chunk:
                     world.apply(ln)
-                acts.end_steers(now["t"])
+                acts.end_legs(now["t"])
                 actions.pump(acts.translate(chunk))
                 i += len(chunk)
             sv.goals.feed(row)
@@ -299,9 +322,9 @@ def decisions(replayed):
             for k, rep in enumerate(replayed, 1) if rep["branch"] != "goal"]
 
 
-def run(artifact_dir, source="scripted", mutate=None):
+def run(artifact_dir, source="scripted", mutate=None, caps=None):
     """The replayed decisions: `decisions(replay(...))`."""
-    return decisions(replay(artifact_dir, source, mutate))
+    return decisions(replay(artifact_dir, source, mutate, caps))
 
 
 def agreement(artifact_dir, replayed):
@@ -328,13 +351,14 @@ def agreement(artifact_dir, replayed):
     return {"compared": compared, "agree": agree, "skipped_world": skipped, "first_divergence": first}
 
 
-def golden_text(decisions_, base, artifact, recorded, span=None):
-    """The golden file's bytes: `{artifact, base, decisions, recorded, span}` (`span` only when given), sorted keys,
-    one decision a line, LF."""
+def golden_text(decisions_, base, artifact, recorded, span=None, caps=None):
+    """The golden file's bytes: `{artifact, base, caps, decisions, recorded, span}` (`caps` and `span` only when
+    given), sorted keys, one decision a line, LF."""
     body = ",\n".join(json.dumps(d, sort_keys=True) for d in decisions_)
+    head = "" if caps is None else ', "caps": %s' % json.dumps(list(caps))
     tail = "" if span is None else ', "span": %s' % json.dumps(span)
-    return ('{"artifact": %s, "base": %s, "decisions": [\n%s\n], "recorded": %s%s}\n'
-            % (json.dumps(artifact), json.dumps(base), body, json.dumps(recorded), tail))
+    return ('{"artifact": %s, "base": %s%s, "decisions": [\n%s\n], "recorded": %s%s}\n'
+            % (json.dumps(artifact), json.dumps(base), head, body, json.dumps(recorded), tail))
 
 
 def golden_path(key):
@@ -350,8 +374,9 @@ def main(argv=None):
                           check=True).stdout.strip()
     for key in args.keys:
         run_dir = os.path.join(ARTIFACTS, RUNS[key])
-        replayed = replay(run_dir)
-        text = golden_text(decisions(replayed), base, RUNS[key], datetime.date.today().isoformat(), SPANS.get(key))
+        replayed = replay(run_dir, caps=HELLO_CAPS.get(key))
+        text = golden_text(decisions(replayed), base, RUNS[key], datetime.date.today().isoformat(), SPANS.get(key),
+                           HELLO_CAPS.get(key))
         print(key, json.dumps(agreement(run_dir, replayed), sort_keys=True))
         if args.write:
             os.makedirs(GOLDEN_DIR, exist_ok=True)

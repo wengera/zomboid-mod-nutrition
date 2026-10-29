@@ -1,4 +1,5 @@
-"""The Survive decision golden (Plan 24 Task 1): `agent.base.replay_decisions` over E5 and F1.
+"""The Survive decision golden (Plan 24 Task 1): `agent.base.replay_decisions` over E5 and F1 (then E2, E3 and E4,
+Task 1 fix 1; and F1 with the PZA/1.5 caps, `f1-caps15`, Task 10 fix 1).
 
 Each golden is reproduced byte for byte from its artifact; a re-record is only under a named behaviour change
 (`replay_decisions`' docstring, CLAUDE.md § 6 golden trace)."""
@@ -426,3 +427,77 @@ def test_f1_s_second_stuck_corner_no_longer_holds_to_the_end_under_flee_health()
     retries = [k for k in range(572, 616) if g[k]["why"].get("group") == "retry"]
     assert retries == [603, 608, 614] and all(g[k]["why"]["yield"] == "health" for k in retries)
     assert all(g[k]["action"]["type"] == "steer" for k in retries)
+
+
+# ================================================================ Task 10 fix 1: the sixth golden (the review's major 3)
+SIXTH = "f1-caps15"
+
+
+def run_sixth():
+    return R.run(run_dir(SIXTH), caps=R.HELLO_CAPS[SIXTH])
+
+
+def moved_from_sixth(rows):
+    base, got = gold(SIXTH), {d["line"]: d for d in rows}
+    return [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+
+
+def test_the_sixth_golden_is_f1_s_inputs_with_the_pza1_5_caps_reproduced_byte_for_byte():
+    """A regression pin of HEAD's decisions over real frames with the stance, care, fill and climb on (the record's
+    own hello announced none: `World.can`), never an agreement oracle: F1's frames, its hello's caps plus CAPS_15."""
+    raw = golden(SIXTH)
+    head = json.loads(raw.decode("utf-8"))
+    assert R.RUNS[SIXTH] == R.RUNS["f1"] == head["artifact"] and head["caps"] == list(R.CAPS_15)
+    assert R.CAPS_15 == ("aim", "climb", "bandage", "rip", "wash", "fill") and "span" not in head
+    text = R.golden_text(run_sixth(), head["base"], head["artifact"], head["recorded"], None, head["caps"])
+    assert text.encode("utf-8") == raw and b"\r" not in raw and raw.endswith(b"}\n")
+    a, b = run_sixth(), run_sixth()
+    assert json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
+    assert all(d["branch"] != "goal" for d in a)
+
+
+def test_with_caps_adds_the_skills_to_a_hello_only():
+    hello = {"kind": "hello", "caps": ["attack", "aim"]}
+    assert R.with_caps(hello, R.CAPS_15)["caps"] == ["attack", "aim", "climb", "bandage", "rip", "wash", "fill"]
+    assert R.with_caps(hello, None) is hello and hello["caps"] == ["attack", "aim"]
+    frame = {"kind": "frame", "caps": None}
+    assert R.with_caps(frame, R.CAPS_15) is frame
+
+
+def test_the_sixth_golden_moves_first_at_line_106_the_first_stance_leg_where_f1_walked():
+    """Its first moved line against F1's golden is the faithful one: at 106 the fight engaged 15885 at 5.90 tiles,
+    the record's walk at a run; with `aim` announced the Fight meets it in the stance. Every later line of the episode
+    is open loop (the record's frames follow the walk)."""
+    six, f1 = gold(SIXTH), gold("f1")
+    first = next(k for k in sorted(f1) if f1[k] != six.get(k))
+    assert first == 106 and f1[106]["action"]["type"] == "walkTo"
+    assert six[106]["action"]["type"] == "aim" and six[106]["action"]["args"]["targetId"] == 15885
+    assert six[106]["why"]["stance"] is True and six[106]["why"]["stand_s"] == 0.0
+    assert {d["action"]["type"] for d in six.values() if d["action"]} == {"aim", "walkTo", "steer", "attack"}
+
+
+def test_with_the_stand_decision_off_the_sixth_golden_is_f1_s_own(monkeypatch):
+    """The mutation pass: `_stance_ok` False gives F1's golden decisions line for line (the stance is the only rule
+    the PZA/1.5 caps reach on F1's frames: no part bleeds, no square holds water, no goal is replayed)."""
+    monkeypatch.setattr(S.Survive, "_stance_ok", lambda self, held, inside: False)
+    got = {d["line"]: d for d in run_sixth()}
+    assert got == gold("f1") and moved_from_sixth(list(got.values()))[0] == 106
+
+
+def test_the_replay_ends_an_unbound_aim_at_its_seconds(monkeypatch):
+    """THE ACTS (Task 10 fix 1): an unbound `aim` ends `done` at its `seconds`, as a steer does; without it the first
+    leg is held open and the sixth golden moves first at 111, the re-aim at the leg's end (2.53 s after 106)."""
+    from agent.base.actions import Action
+    acts = R._Acts(None, {})
+    leg = Action(aid="a1", type="aim", args={"vx": 0.0, "vy": 0.0, "seconds": 2.0, "targetId": 1, "bearing": -1.0},
+                 deadline_s=30.0, sent_wall=100.0)
+    walk = Action(aid="a2", type="walkTo", args={"x": 1, "y": 2, "gait": "run"}, deadline_s=30.0, sent_wall=100.0)
+    acts.unbound = [leg, walk]
+    acts.end_legs(101.9)
+    assert leg.state == "sent"
+    acts.end_legs(102.0)
+    assert (leg.state, leg.ended_wall, walk.state) == ("done", 102.0, "sent") and R.LEG_TYPES == ("steer", "aim")
+    six = gold(SIXTH)
+    assert six[111]["action"]["type"] == "aim" and six[110]["why"]["holding"] == "a12"
+    monkeypatch.setattr(R, "LEG_TYPES", ("steer",))
+    assert moved_from_sixth(run_sixth())[0] == 111
