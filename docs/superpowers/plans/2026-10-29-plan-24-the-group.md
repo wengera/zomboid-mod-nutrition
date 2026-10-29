@@ -48,3 +48,16 @@
 
 ### Task 8: The close
 - [ ] The report `docs/superpowers/specs/2026-10-29-plan-24-the-group-report.md`, the rows, CLAUDE.md, HISTORY, the memory files, the full pytest saved and read, the push.
+
+### Task 6b: The jar reads for the stance, the climb, the bandage, the rip, the wash and the look (research, parallel)
+- [ ] The note `docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md`; claims where a reading settles a thread; the proposed PZA/1.5 actions.
+
+### Task 9: PZA/1.5 — aim, climb, bandage, rip, wash, look (the Lua)
+- [ ] The schema, the skills, the frames' fields, the tests; the goldens re-recorded under the named change if the decoder moves them.
+
+### Task 10: The stance fight, the care branch, the look-around (P24-G)
+- [ ] The Fight's standing and backpedal rules; the `care` branch; the look-around; the climb in routes; tests and mutants; the decision goldens re-recorded with the moved decisions attributed.
+
+### Task 11: F3 and the E6 chain on the new base
+- [ ] The driver copies; the boots; the write-ups; the rows.
+
