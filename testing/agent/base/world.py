@@ -353,6 +353,11 @@ class World:
         elif kind == "scan_dropped":
             self.scans_dropped.add(str(line.get("aid")))
 
+    def can(self, action_type):
+        """Whether the last hello's `caps` announce `action_type`: the planner sends a PZA/1.5 skill (aim, climb,
+        bandage, rip, wash, fill) only to a build that takes it (ruling P24-G); no hello, no caps."""
+        return action_type in ((self.hello or {}).get("caps") or ())
+
     # -- the server's side ----------------------------------------------------------------------------------------
     def merge_server(self, stats, wall_ms):
         self.server = {"stats": stats, "wallMs": wall_ms}

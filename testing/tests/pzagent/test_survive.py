@@ -18,11 +18,14 @@ from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner.survive import Survive
 
-from .test_policies import BAT, CRATE, FRIDGE, SHELF, Rig, all_sends_valid, behind_wall_n, grid, square, swing, zombie
+from .test_policies import BAT, CAPS_14, CRATE, FRIDGE, SHELF, Rig, all_sends_valid, behind_wall_n, grid, square, swing, zombie
 
 
-def make(tmp_path):
-    r = Rig(tmp_path)
+def make(tmp_path, caps=None):
+    """A Survive on a fresh Rig. `caps=CAPS_14` (ruling P24-G 1, a named change: on a PZA/1.5 build the standing
+    fight replaces the approach walk beyond FIGHT_REACH) pins a case on a PZA/1.4 build, where the approach and
+    swing stays the fight, as after a stand-off (`Fight.standoff`)."""
+    r = Rig(tmp_path, caps=caps)
     sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
     return r, sv
 
@@ -67,7 +70,7 @@ def test_survive_is_a_planner(tmp_path):
 
 # ================================================================ threat
 def test_threat_fights_when_armed_and_at_most_two_within_danger_r(tmp_path):
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.frame(zombies=[zombie(1, 104.0, 200.0), zombie(2, 100.0, 205.0)])
     a = tick(r, sv)
     assert a is not None and r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"})
@@ -85,7 +88,7 @@ def test_threat_ignores_a_zombie_beyond_danger_r(tmp_path):
 
 @pytest.mark.parametrize("engage", [5.5, 6.0])           # 6.0: the `<= DANGER_R` boundary
 def test_a_threat_engaged_at_six_tiles_holds_beyond_six_within_ten(tmp_path, engage):
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.scan([inside(101, 200, containers=[CRATE])])
     r.frame(zombies=[zombie(1, 100.0 + engage, 200.0)])
     tick(r, sv)
@@ -113,7 +116,7 @@ def test_with_no_threat_running_a_zombie_at_seven_tiles_is_no_threat(tmp_path):
 def test_the_too_many_count_reads_the_hold_radius_during_a_fight(tmp_path):
     """P23-AG ruling 2 (E1's fight 2: engaged with one, fled only once four were within 6): a fight engaged at 5 tiles
     with two more closing from 8 and 9 turns to a flee before they are within 6."""
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.frame(zombies=[zombie(1, 105.0, 200.0)])
     tick(r, sv)                                              # fight: a walk to it, left current
     assert last(tmp_path)["inputs"]["mode"] is None and r.cmd()[0] == "walkTo"
@@ -127,12 +130,12 @@ def test_the_too_many_count_reads_the_hold_radius_during_a_fight(tmp_path):
 def test_with_no_fight_running_the_too_many_count_reads_danger_r(tmp_path):
     """Named change, ruling P24-A (b): zombie 2 stood at (108, 200), straight behind the fight's target: it moves to
     (100, 192), off the target's bearing, so the case reads the count alone (three listed within 12: no `many`)."""
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.frame(zombies=[zombie(1, 105.0, 200.0), zombie(2, 100.0, 192.0), zombie(3, 100.0, 209.0)])
     tick(r, sv)                                              # one within 6 and no fight running: a fight
     assert r.cmd()[0] == "walkTo" and threat_why(tmp_path)["fight"] is True
     (tmp_path / "b").mkdir()
-    r2, sv2 = make(tmp_path / "b")
+    r2, sv2 = make(tmp_path / "b", caps=CAPS_14)
     r2.frame(zombies=[zombie(1, 103.0, 200.0), zombie(2, 104.0, 201.0), zombie(3, 100.0, 204.5)])
     tick(r2, sv2)                                            # three within 6: too many
     assert r2.cmd()[0] == "steer" and threat_why(tmp_path / "b")["flee"] == "many"
@@ -157,7 +160,7 @@ def test_low_health_flees(tmp_path):
 def test_two_threats_under_flee_health_pair_are_fled(tmp_path, health, want):
     """Named change, ruling P24-A (b): zombie 2 stood at (103, 201), 18 degrees off zombie 1's bearing and farther:
     behind it, so the fight's walk was refused; it moves to (100, 203), the pair rule read alone."""
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.frame(zombies=[zombie(1, 103.0, 200.0), zombie(2, 100.0, 203.0)], health=health)
     tick(r, sv)
     assert r.cmd()[0] == want
@@ -169,7 +172,7 @@ def test_a_running_flee_turns_to_fight_only_with_one_threat_and_a_health_margin(
     """Survival 3 (ruling P23-AM 1) moved the hysteresis's tail beyond DANGER_R: a flee whose episode began `many`
     stays `many` while a held threat is within DANGER_R (two at 3 tiles, once `held`), so the pair retreats to 7
     tiles before the `held` rule and the refight margin are read (the refight walk 7.0 tiles, once 3.0)."""
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     three = [zombie(1, 103.0, 200.0), zombie(2, 103.0, 201.0), zombie(3, 104.0, 200.0)]
     r.frame(zombies=three, health=74.0)
     tick(r, sv)
@@ -199,7 +202,7 @@ def test_a_running_flee_turns_to_fight_only_with_one_threat_and_a_health_margin(
 
 def test_a_running_fight_turns_to_flee_only_on_the_flee_conditions(tmp_path):
     """Named change, ruling P24-A (b): zombie 2 moves from (103, 201), behind zombie 1, to (100, 203)."""
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     two = [zombie(1, 103.0, 200.0), zombie(2, 100.0, 203.0)]
     r.frame(zombies=two, health=74.0)
     tick(r, sv)
@@ -214,7 +217,7 @@ def test_a_running_fight_turns_to_flee_only_on_the_flee_conditions(tmp_path):
 
 @pytest.mark.parametrize("dist, flees", [(5.0, True), (2.74, True), (1.5, False)])   # 2.74: run 1's standoff
 def test_a_fight_that_does_not_close_in_fight_max_s_flees(tmp_path, dist, flees):
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.frame(zombies=[zombie(1, 100.0 + dist, 200.0)])
     tick(r, sv)
     r.advance(20.0)
@@ -230,7 +233,7 @@ def test_a_fight_that_does_not_close_in_fight_max_s_flees(tmp_path, dist, flees)
 
 
 def test_a_stalled_fights_flee_is_held_until_the_zombie_closes(tmp_path):
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.frame(zombies=[zombie(1, 105.0, 200.0)])
     tick(r, sv)
     r.advance(21.0)
@@ -608,7 +611,7 @@ def test_two_threats_with_a_wound_are_fled_pair_above_flee_health_pair(tmp_path,
 
 
 def test_one_threat_with_a_wound_is_still_fought(tmp_path):
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.frame(zombies=[zombie(1, 103.0, 200.0)], health=90.0, wounds={"bleeding": 1})
     tick(r, sv)
     assert r.cmd()[0] == "walkTo" and threat_why(tmp_path)["fight"] is True
@@ -802,7 +805,7 @@ def test_twenty_ticks_of_a_looting_world_never_send_all(tmp_path):
 
 # Task 10's review (M3): the Fight's stall clock follows the pinned target, so the stall guard reads its distance.
 def test_the_stall_reads_the_pinned_targets_distance_not_the_nearest_zombies(tmp_path):
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.frame(zombies=[zombie(1, 105.0, 200.0)])
     tick(r, sv)
     assert sv.fight.target == 1 and r.cmd() == ("walkTo", {"x": 105.5, "y": 200.5, "gait": "run"})
@@ -1217,7 +1220,7 @@ def test_a_shelter_step_failed_for_no_shun_reason_falls_back_without_a_shun(tmp_
 def test_a_wounded_fight_with_zombies_at_five_and_eight_still_fights(tmp_path):
     """M5: `pair` counts DANGER_R while a fight holds DISENGAGE_R (the surviving half of the Plan 21b fix). Named
     change, ruling P24-A (b): zombie 2 moves from (108, 200), straight behind the target, to (100, 208)."""
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     cut = {"scratched": 1}
     r.frame(zombies=[zombie(1, 105.0, 200.0)], wounds=cut)
     tick(r, sv)
@@ -1371,7 +1374,7 @@ def test_a_held_threat_within_hold_break_r_breaks_the_inside_hold_whatever_its_l
     """Rule 1: the west door closed, the zombie behind the west wall; at 2.9 tiles the hold breaks. The only way
     out (the closed door) runs at it, so with one held the Fight takes it (the broken hold's fallback)."""
     from .test_night import house
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.scan(house(1, 110))
     me = (111.5, 201.5)
     r.frame(x=me[0], y=me[1], zombies=[zombie(1, zx, 201.5, me=me)])
@@ -2144,7 +2147,7 @@ def test_a_many_flee_whose_count_falls_to_one_within_danger_r_stays_a_flee_until
     """Ruling P23-AM 1: two of the three die; the last at 4 tiles at full health. HEAD turned to fight it at once
     (one held, health over the margin); the `many` episode reads the hold radius and the nearest within DANGER_R, so
     it steers on; with that zombie at 7 tiles the fight resumes."""
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     zs = many_yard(r)
     tick(r, sv)
     r.answer()
@@ -2163,7 +2166,7 @@ def test_a_fight_walk_never_supersedes_a_flee_leg_sent_under_flip_min_s_ago(tmp_
     """Ruling P23-AM 1, FLIP_MIN_S: the `many` steer runs; one second in, two have died and the last stands 7 tiles
     off: the hysteresis would fight, but the leg is held (`flip`, nothing sent); once the leg ended the fight's walk
     goes."""
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     many_yard(r)
     tick(r, sv)
     leg = r.acts.history[-1]
@@ -2186,7 +2189,7 @@ def test_a_fight_walk_never_supersedes_a_flee_leg_sent_under_flip_min_s_ago(tmp_
 
 def test_the_flee_wins_the_tie_a_fight_walk_half_a_second_old_is_superseded_by_the_group(tmp_path):
     """FLIP_MIN_S the other way: the flee is never held back for a fight's walk (it is the retreat)."""
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.scan(open_yard())
     me = (100.5, 201.5)
     r.frame(x=me[0], y=me[1], zombies=[zombie(1, 96.5, 201.5, me=me)])
@@ -2400,7 +2403,7 @@ def test_an_unmoved_running_leg_with_no_threat_within_cornered_r_runs_its_course
 def test_a_running_fight_keeps_its_pin_when_another_zombie_comes_within_cornered_r(tmp_path):
     """Amendment 6 leaves a running fight alone (Task 10's pin): the Fight walks to zombie 1 at 3 tiles; zombie 2
     comes within 1.2 tiles behind: no corner, the walk to 1 is held."""
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.scan(open_yard())
     me = (100.5, 201.5)
     r.frame(x=me[0], y=me[1], zombies=[zombie(1, 103.5, 201.5, me=me)])
@@ -2973,7 +2976,7 @@ def test_four_listed_within_twelve_tiles_are_many_whatever_the_count_within_six(
     """P24-A (a) (#4268: E5's group was listed at the 12-tile edge while the branch counted within 6): one zombie
     within DANGER_R and three more listed within LISTED_R, none behind the first: `many`, logged `listed` 4; with
     three listed the fight goes."""
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     zs = [zombie(1, 105.0, 200.0), zombie(2, 100.0, 210.0), zombie(3, 91.0, 203.0), zombie(4, 100.0, 188.5)]
     r.frame(zombies=zs)
     tick(r, sv)
@@ -2981,7 +2984,7 @@ def test_four_listed_within_twelve_tiles_are_many_whatever_the_count_within_six(
     assert r.cmd()[0] == "steer" and w["flee"] == "many" and w["listed"] == 4
     assert last(tmp_path)["inputs"]["threats"] == 1
     (tmp_path / "b").mkdir()
-    r2, sv2 = make(tmp_path / "b")
+    r2, sv2 = make(tmp_path / "b", caps=CAPS_14)
     r2.frame(zombies=zs[:3])
     tick(r2, sv2)
     w = threat_why(tmp_path / "b")
@@ -2994,13 +2997,13 @@ def test_a_fight_does_not_walk_at_a_zombie_with_another_listed_behind_it(tmp_pat
     arrived round it): the walk at zombie 1 (5 tiles east) is not sent with zombie 2 listed 10 tiles out 6 degrees off
     its bearing: the flee, `held` (`behind` [2]); a running fight's walk is left the same way; within reach the
     attack goes whatever stands behind."""
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, caps=CAPS_14)
     r.frame(zombies=[zombie(1, 105.0, 200.0), zombie(2, 110.0, 201.0)])
     tick(r, sv)
     w = threat_why(tmp_path)
     assert r.cmd()[0] == "steer" and w["flee"] == "held" and w["behind"] == [2] and "fight" not in w
     (tmp_path / "b").mkdir()
-    r2, sv2 = make(tmp_path / "b")
+    r2, sv2 = make(tmp_path / "b", caps=CAPS_14)
     r2.frame(zombies=[zombie(1, 105.0, 200.0)])
     tick(r2, sv2)
     assert r2.cmd()[0] == "walkTo" and sv2.mode == "fight"
@@ -3011,7 +3014,7 @@ def test_a_fight_does_not_walk_at_a_zombie_with_another_listed_behind_it(tmp_pat
     w = threat_why(tmp_path / "b")
     assert r2.cmd()[0] == "steer" and w["flee"] == "held" and w["behind"] == [2]
     (tmp_path / "c").mkdir()
-    r3, sv3 = make(tmp_path / "c")
+    r3, sv3 = make(tmp_path / "c", caps=CAPS_14)
     r3.frame(zombies=[zombie(1, 101.5, 200.0), zombie(2, 106.0, 200.5)])
     tick(r3, sv3)
     assert r3.cmd() == ("attack", {"targetId": 1}) and "behind" not in threat_why(tmp_path / "c")

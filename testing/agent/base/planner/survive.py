@@ -140,6 +140,17 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   (i) No attack in a hit reaction (#4292, #4293): while the frame's `me.hitReaction` names one the Fight sends
       nothing (logged `hitReaction`) and attacks on the first frame after it clears; a running attack holds anyway.
   A PZA/1.3 frame carries neither `attackers` nor `hitReaction`: (h) and (i) read them absent and change nothing.
+- Survival 6 (ruling P24-G, Angus's direction of 2026-10-29 after F2's shots; the jar reads #4294-#4304), each sent
+  only to a build whose hello's caps carry the skill (`World.can`; every decision golden's artifact announces none,
+  so no golden moves):
+  1. The standing fight (`_stance_ok`, `policies.Fight.standing`): a `fight` from the hysteresis (or a broken hold's)
+     with one held at health >= FLEE_HEALTH or two at >= FLEE_HEALTH_PAIR, armed, not trapped on a room square,
+     meets a target beyond FIGHT_REACH in the stance (`aim` facing it for `policies.AIM_LEG_S`, backpedalling along
+     `policies.away_vector` of the held threats while it closes, else standing), swings from the stance within reach
+     (the stance leg gives way at once: `Fight.busy`), and after `policies.STAND_MAX_S` with no fall of its target's
+     health (a kill restarts it on the next) falls back to the approach and swing (`Fight.standoff`), whose stall
+     clock starts then; the flee rules, the corner (`point_blank`) and the door fight (`only`) are as before, and the
+     look past a fight's walk target (P24-A (b)) reads no walk while the Fight stands.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -443,6 +454,16 @@ class Survive:
             return "held"
         return reason
 
+    def _stance_ok(self, held, inside):
+        """Ruling P24-G 1, the standing fight: the build announces `aim` (`World.can`), a weapon in hand, one held
+        threat with health at or above FLEE_HEALTH or two with it at or above FLEE_HEALTH_PAIR, and the character
+        not trapped on a room square (`_trapped`: the corner rules stay for a stuck or trapped character)."""
+        if not (self.world.can("aim") and self._armed() and 1 <= len(held) <= MAX_FIGHT):
+            return False
+        if self._health() < (FLEE_HEALTH_PAIR if len(held) == 2 else FLEE_HEALTH):
+            return False
+        return not self._trapped(held, inside)
+
     def _behind_walk(self):
         """Ruling P24-A (b): the ids listed behind the target the Fight would walk toward (`policies.others_behind`),
         kept in `behind`, else []: the running fight's target (its pin, else the nearest reachable), or with none
@@ -452,14 +473,16 @@ class Survive:
         f = self.fight if self.mode == "fight" else None
         if f is not None:
             t = f._target(pin=False)
+            stand = f.standing()
         else:
             nz = self.world.nearest_zombie(exclude=blocked(self.unreachable, self.clock()))
             t = None if nz is None else (nz[0], nz[1], zdist(self.world, nz[1]))
+            stand = self._stance_ok(self._within(self._hold_r()), self.night.inside())
         if t is None:
             return []
         zid, z, d = t
-        walk = (d > FIGHT_REACH or (f is not None and f.approach and d > POINT_BLANK_R)
-                or line_to(self.world, z) is False)
+        walk = not (stand and d > FIGHT_REACH) and (   # P24-G 1: a standing fight never walks beyond reach
+            d > FIGHT_REACH or (f is not None and f.approach and d > POINT_BLANK_R) or line_to(self.world, z) is False)
         ids = others_behind(self.world, zid, z) if walk else []
         if ids:
             self.behind = ids
@@ -813,6 +836,8 @@ class Survive:
             ans = self._flee_drop() or self._answer(policy)
         else:
             policy.only = None if door is None else {zid for zid, _ in door}
+            policy.stance = self._stance_ok(held, self.night.inside())   # P24-G 1 (no corner or door Fight stands)
+            policy.threats = held
             ans = self._answer(policy)
         self.why.update({"fight": True} if reason is None else {"flee": reason})
         if self.sheltered:

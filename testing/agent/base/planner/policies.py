@@ -49,6 +49,14 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   streak; a fall, a new target or a target no frame lists restarts it. `unreachable` (id -> wall until) is passed in so
   a later Fight of the same planner keeps it. An attack ending `failed` for a walk reason (`STUCK_REASONS`) marks its
   target the same way.
+  The standing fight (ruling P24-G 1, survive.py's docstring): with `stance` set (Survive's `_stance_ok`) and
+  neither `point_blank` nor `only`, a target beyond FIGHT_REACH is met with `Aim(vx, vy, AIM_LEG_S, targetId)`, the
+  stance facing it, (vx, vy) the backpedal while it closes (`_closing`: it moved CLOSE_MIN toward the player since the
+  last leg's send, or at a first leg its record reads `hasTarget`): `away_vector` of `threats` turned by STEER_TURNS
+  to the first heading `clear_heading` passes (never into a wall or over a hoppable fence), else (0, 0); a running
+  leg gives way (`busy`) once the target is within reach, re-pinned, or the stand ends. The stand clock (`_stand`)
+  restarts on a new target or a fall of its health; at STAND_MAX_S it sets `standoff` and the approach and swing
+  above run for the rest of the Fight, the out-of-reach stall clock (which a stand keeps at zero) starting then.
 - `Flee` (one per flee episode): a `Steer` of `FLEE_S` seconds away from the threats (the `threats` list its caller
   passes, else every zombie the World holds), at a sprint when the nearest is within `SPRINT_R`, else a run; re-aimed on
   every end of its steer. Every leg runs along the sum of the unit vectors from each threat to the player, each weighted
@@ -166,7 +174,7 @@ import math
 import time
 
 from agent.base.items import use_of
-from agent.base.pza1 import Attack, Interact, Scan, Steer, Stop, WalkTo
+from agent.base.pza1 import Aim, Attack, Interact, Scan, Steer, Stop, WalkTo
 from agent.base.world import STUCK_AREA_N, STUCK_WALK_CAP, me_floor, me_xy
 
 DANGER_R = 6.0        # tiles: a zombie this close is a threat (Survive's threat branch; the night sends nothing)
@@ -211,6 +219,11 @@ REPIN_MARGIN = 0.3    # tiles: the point-blank re-pin goes when the new zombie i
                       # (or the pin beyond CORNERED_R): P24-A fix 1 (2), a ruling (F1's pin alternated at 0.18 apart)
 BEHIND_MARGIN = 0.5   # tiles: a zombie is behind a fight's target only this much farther or more (P24-A fix 1 (5), a
                       # ruling: one beside the target, 0.16 tiles farther, is not behind it)
+AIM_LEG_S = 2.0       # seconds one stance leg (`aim`) holds before the stance fight re-aims (ruling P24-G 1)
+STAND_MAX_S = 20.0    # wall seconds a standing fight may go without its target's health falling (or a new target
+                      # after a kill) before it falls back to the approach and swing (ruling P24-G 1: no stand-off)
+CLOSE_MIN = 0.1       # tiles: the target moved at least this much toward the player since the last stance leg's
+                      # send (or, at a first leg, its record reads hasTarget) reads closing, the backpedal's trigger
 STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
@@ -363,6 +376,30 @@ def hit_reaction(world):
     return h if isinstance(h, str) and h else None
 
 
+def away_vector(world, points):
+    """The unit vector along the sum of the unit vectors from each of `points` ((x, y)) to the player, each weighted
+    by 1/distance (ruling P23-AG 3: away from the centroid and from the nearest, so a group spread round the player is
+    not fled into), else None when the sum is zero. The flee's legs and the stance fight's backpedal (P24-G 1) share
+    it."""
+    mx, my = me_xy(world)
+    vx = vy = 0.0
+    for px, py in points:
+        dx, dy = mx - px, my - py
+        d2 = dx * dx + dy * dy
+        if d2 > 0.0:
+            vx, vy = vx + dx / d2, vy + dy / d2   # (unit vector) / distance
+    n = math.hypot(vx, vy)
+    return None if n == 0.0 else (vx / n, vy / n)
+
+
+def clear_heading(world, v, reach=STEER_PROBE):
+    """The map's line `reach` tiles along `v` from the player, an unknown square open (fix round 2, concern 1). A
+    hoppable fence's edge reads blocked (`line_clear` never climbs: a steer or a backpedal never vaults, ruling P24-G
+    4)."""
+    mx, my = me_xy(world)
+    return world.line_clear((mx, my), (mx + reach * v[0], my + reach * v[1]), unknown_open=True)
+
+
 def blocked(unreachable, now):
     """The ids of `unreachable` (id -> wall until) still skipped at `now`."""
     return {zid for zid, until in unreachable.items() if until > now}
@@ -385,6 +422,11 @@ class Fight(Policy):
         self._streak_id = None
         self._streak_h = None               # the target's health at the streak's start
         self._counted = None                # the last attack whose result was counted
+        self.stance = False                 # Survive sets it each tick: the standing fight applies (P24-G 1)
+        self.threats = None                 # Survive sets it: the held threats the backpedal steps away from
+        self.standoff = False               # the stand went STAND_MAX_S without progress: approach and swing
+        self._stand = None                  # (target id, wall of the stand clock's start, its health then)
+        self._leg_from = None               # (target id, its (x, y)) at the last stance leg's send
 
     def blocked(self):
         """The ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1 I3), a marked
@@ -482,10 +524,51 @@ class Fight(Policy):
                 return sq
         return None
 
+    def standing(self):
+        """The stance fight applies (ruling P24-G 1): Survive's `stance`, no stand-off fallback yet, and neither a
+        cornered Fight (`point_blank`, the corner rules) nor a door fight (`only`)."""
+        return self.stance and not self.standoff and not self.point_blank and self.only is None
+
+    def _observe_stand(self, t):
+        """The stand clock (ruling P24-G 1): restarted by a new target (a kill or a re-pin) and by a fall of the
+        target's health; once it reads STAND_MAX_S the Fight falls back to the approach and swing for good
+        (`standoff`), its out-of-reach stall clock starting then."""
+        if not self.standing():
+            self._stand = None
+            return
+        now = self.clock()
+        if t is None:
+            self._stand = None
+            return
+        h = self._target_health(t[0])
+        if self._stand is None or self._stand[0] != t[0]:
+            self._stand = (t[0], now, h)
+        elif h is not None and self._stand[2] is not None and h < self._stand[2]:
+            self._stand = (t[0], now, h)
+        elif now - self._stand[1] >= STAND_MAX_S:
+            self.standoff, self._stand = True, None
+            self.out_of_reach_since = now
+
+    def stand_s(self):
+        """Wall seconds the running stand has gone without progress, else None."""
+        return None if self._stand is None else self.clock() - self._stand[1]
+
+    def busy(self):
+        """The Policy's rule, except that a running stance leg gives way at once (P24-G 1) when the target is within
+        FIGHT_REACH (the swing from the stance), another target is pinned, or the stand no longer applies."""
+        if not super().busy():
+            return False
+        if self.last.type != "aim":
+            return True
+        t = self._target(pin=False)
+        return (t is not None and t[0] == self.last.args.get("targetId") and t[2] > FIGHT_REACH
+                and self.standing())
+
     def observe(self):
         t = self._target(pin=False)
-        if t is None or t[2] <= FIGHT_REACH:
-            self.out_of_reach_since = self.clock()
+        self._observe_stand(t)
+        if t is None or t[2] <= FIGHT_REACH or self.standing():
+            self.out_of_reach_since = self.clock()   # P24-G 1: a stand's own clock is STAND_MAX_S
         a = self.last
         if a is None or a.type != "attack" or not self.actions.done(a) or a is self._counted:
             return
@@ -589,6 +672,8 @@ class Fight(Policy):
             self.repositioned = True
             self.why["reposition"] = list(sq)
             return WalkTo(*centre(sq), "run")
+        if d > FIGHT_REACH and self.standing():
+            return self._aim(zid, z, d)
         if self.approach or d > FIGHT_REACH:
             return WalkTo(*centre((z["x"], z["y"])), "run")
         hit = hit_reaction(self.world)
@@ -597,8 +682,41 @@ class Fight(Policy):
             return None
         return Attack(zid)   # nearest_zombie yields int ids only (M7)
 
+    def _closing(self, zid, z):
+        """The target closes (P24-G 1): since the last stance leg's send on it, it moved CLOSE_MIN or more toward the
+        player; at a first leg, its record reads `hasTarget` true."""
+        if self._leg_from is None or self._leg_from[0] != zid:
+            return z.get("hasTarget") is True
+        mx, my = me_xy(self.world)
+        (ox, oy) = self._leg_from[1]
+        ux, uy = mx - ox, my - oy
+        n = math.hypot(ux, uy)
+        if n == 0.0:
+            return False
+        return ((z["x"] - ox) * ux + (z["y"] - oy) * uy) / n >= CLOSE_MIN
+
+    def _aim(self, zid, z, d):
+        """One stance leg (ruling P24-G 1): `aim` facing the target for AIM_LEG_S, walking the backpedal while it
+        closes (`_closing`): `away_vector` of the held threats (`threats`, else the target) turned by STEER_TURNS to
+        the first heading whose STEER_PROBE line is clear (`clear_heading`: never into a wall or over a fence), else
+        standing; standing still while it does not close. The stance walks only (it never runs)."""
+        closing = self._closing(zid, z)
+        back = None
+        if closing:
+            ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
+            v = away_vector(self.world, [(q["x"], q["y"]) for q in ts])
+            if v is not None:
+                back = next((_rotate(v, t) for t in STEER_TURNS if clear_heading(self.world, _rotate(v, t))), None)
+        vx, vy = back if back is not None else (0.0, 0.0)
+        self.why.update({"stance": True, "closing": closing, "back": None if back is None else [vx, vy],
+                         "stand_s": self.stand_s()})
+        return Aim(vx, vy, AIM_LEG_S, targetId=zid)
+
     def sent(self, cmd, action):
-        if cmd.TYPE == "walkTo":
+        if cmd.TYPE == "aim":
+            z = self.world.zombies.get(cmd.targetId) or {}
+            self._leg_from = (cmd.targetId, (z.get("x"), z.get("y"))) if z.get("x") is not None else None
+        elif cmd.TYPE == "walkTo":
             self.approach = False
         elif cmd.TYPE == "attack" and cmd.targetId != self._streak_id:   # a new target: its streak starts here
             self._streak_id, self._streak_h, self.no_progress = cmd.targetId, self._target_health(cmd.targetId), 0
@@ -1132,9 +1250,7 @@ class Flee(Policy):
         return self.clock() - self._sprint_from < SPRINT_MAX_S
 
     def _clear(self, v, reach=STEER_PROBE):
-        """The map's line `reach` tiles along `v`, an unknown square open (fix round 2, concern 1)."""
-        mx, my = me_xy(self.world)
-        return self.world.line_clear((mx, my), (mx + reach * v[0], my + reach * v[1]), unknown_open=True)
+        return clear_heading(self.world, v, reach)
 
     def _ahead(self, v, far):
         """The threats of `far` a leg along `v` would run at: within AHEAD_R and AHEAD_CONE of it, or in the
@@ -1163,20 +1279,9 @@ class Flee(Policy):
         mx, my = me_xy(self.world)
         cx = sum(z["x"] for z in ts) / len(ts)
         cy = sum(z["y"] for z in ts) / len(ts)
-        vx = vy = 0.0
-        for z in ts:
-            dx, dy = mx - z["x"], my - z["y"]
-            d2 = dx * dx + dy * dy
-            if d2 > 0.0:
-                vx, vy = vx + dx / d2, vy + dy / d2   # (unit vector) / distance
         met = self.world.met_window() if self._leg is None else None   # P24-A (a): the episode's first leg only
-        if met is not None:
-            dx, dy = mx - met[0], my - met[1]
-            d2 = dx * dx + dy * dy
-            if d2 > 0.0:
-                vx, vy = vx + dx / d2, vy + dy / d2   # the densest met window's centre, one more repulsor
-        n = math.hypot(vx, vy)
-        v = (1.0, 0.0) if n == 0.0 else (vx / n, vy / n)
+        v = away_vector(self.world, [(z["x"], z["y"]) for z in ts] + ([met[:2]] if met is not None else []))
+        v = (1.0, 0.0) if v is None else v
         stuck = self.stuck()
         h0 = self._leg[2] if stuck else (self.skip_heading if self._leg is None else None)
         turns = STEER_TURNS[1:] if h0 is not None else STEER_TURNS

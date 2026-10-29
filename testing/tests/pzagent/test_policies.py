@@ -16,6 +16,8 @@ from . import fakemod
 from .fakemod import DEFAULT_FRAME, FakeMod, bad_args
 
 BAT = {"type": "Base.BaseballBat", "cond": 0.9, "reach": 1.2, "ammo": None}
+PZA15 = ("aim", "climb", "bandage", "rip", "wash", "fill")   # the PZA/1.5 skills (Task 9)
+CAPS_14 = tuple(t for t in fakemod.pza1.ACTION_TYPES if t not in PZA15)   # a PZA/1.4 build's hello caps
 
 
 def zombie(zid, x, y, me=(100.0, 200.0)):
@@ -41,7 +43,9 @@ def swing(started):
 class Rig:
     """The fake mod, the transport, a World and Actions in one state dir, on one injected clock."""
 
-    def __init__(self, tmp_path, now=1000.0):
+    def __init__(self, tmp_path, now=1000.0, caps=None):
+        """`caps` the hello's (default every type the schema names, as the fake mod's DEFAULT_HELLO; CAPS_14 a
+        PZA/1.4 build, on which the planner sends none of the PZA/1.5 skills: `World.can`, ruling P24-G)."""
         self.t = {"now": now}
         self.clock = lambda: self.t["now"]
         self.dir = tmp_path
@@ -49,7 +53,7 @@ class Rig:
         self.tr = FileTransport(str(tmp_path), clock=self.clock)
         self.world = World()
         self.acts = Actions(self.tr, clock=self.clock)
-        self.fake.hello()
+        self.fake.hello(**({} if caps is None else {"caps": list(caps)}))
         self.pump()
 
     def pump(self):

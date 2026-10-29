@@ -1,0 +1,270 @@
+"""Survival 6 (Plan 24 Task 10, ruling P24-G, Angus's direction of 2026-10-29 after F2's shots): the standing fight
+(the combat stance with the backpedal, its stand-off fallback), on the fake mod over the PZA/1.5 skills Task 9 landed.
+The decision goldens (`test_replay_decisions.py`) stay unmoved: their artifacts' hellos announce no PZA/1.5 skill, and
+the planner sends one only to a build whose caps carry it (`World.can`)."""
+import math
+
+from agent.base.planner import policies as P
+from agent.base.planner import survive as S
+
+from .test_policies import CAPS_14, all_sends_valid, square, zombie
+from .test_survive import last, make, threat_why, tick
+
+
+def zd(zid, x, y, has_target=True, health=1.0):
+    """A zombie record at (x, y) with `hasTarget` and `health` set (the stance's closing read and its progress)."""
+    return dict(zombie(zid, x, y), hasTarget=has_target, health=health)
+
+
+def stance_args(r):
+    t, a = r.cmd()
+    assert t == "aim", (t, a)
+    return a
+
+
+# ================================================================ the constants
+def test_the_stance_constants():
+    assert (P.AIM_LEG_S, P.STAND_MAX_S, P.CLOSE_MIN) == (2.0, 20.0, 0.1)
+    assert S.BRANCHES[0] == "threat"
+
+
+# ================================================================ the stance against one
+def test_one_zombie_closing_at_four_tiles_is_met_in_the_stance_backpedalling_then_swung_at_within_reach(tmp_path):
+    """P24-G 1: one held at 4 tiles, armed, full health: `aim` facing it for AIM_LEG_S with the away vector (west,
+    the zombie east of the player) as the backpedal; the leg holds while the zombie closes beyond FIGHT_REACH, and
+    gives way to the `attack` from the stance once it is within reach."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0)])
+    tick(r, sv)
+    a = stance_args(r)
+    assert a == {"vx": -1.0, "vy": 0.0, "seconds": 2.0, "targetId": 1, "bearing": -1.0}
+    w = threat_why(tmp_path)
+    assert w["fight"] is True and w["stance"] is True and w["closing"] is True and w["back"] == [-1.0, 0.0]
+    sends = len(r.acts.history)
+    r.advance(0.5)
+    r.frame(zombies=[zd(1, 103.0, 200.0)])
+    assert tick(r, sv) is None and len(r.acts.history) == sends            # the leg holds beyond reach
+    assert threat_why(tmp_path)["holding"] == r.acts.history[-1].aid
+    r.advance(0.5)
+    r.frame(zombies=[zd(1, 101.6, 200.0)])
+    tick(r, sv)
+    assert r.cmd() == ("attack", {"targetId": 1})                           # the swing from the stance
+    all_sends_valid(r)
+
+
+def test_a_stance_leg_ended_re_aims_and_reads_closing_off_the_zombies_own_move(tmp_path):
+    """Each AIM_LEG_S the stance re-aims; the backpedal goes while the target moved CLOSE_MIN or more toward the player
+    since the last leg's send (its own move, never the distance the backpedal kept), else it stands (0, 0)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0)])
+    tick(r, sv)
+    r.answer()
+    r.advance(2.0)
+    r.frame(x=99.0, zombies=[zd(1, 103.0, 200.0)])                          # 4.0 tiles still: it closed by 1.0
+    tick(r, sv)
+    assert stance_args(r)["vx"] == -1.0 and threat_why(tmp_path)["closing"] is True
+    r.answer()
+    r.advance(2.0)
+    r.frame(x=99.0, zombies=[zd(1, 103.05, 200.0)])                         # it stood: no backpedal
+    tick(r, sv)
+    a = stance_args(r)
+    assert (a["vx"], a["vy"]) == (0.0, 0.0) and threat_why(tmp_path)["closing"] is False
+    assert threat_why(tmp_path)["back"] is None
+
+
+def test_a_first_leg_on_a_zombie_with_no_target_stands(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False)])
+    tick(r, sv)
+    a = stance_args(r)
+    assert (a["vx"], a["vy"], a["targetId"]) == (0.0, 0.0, 1)
+
+
+def test_the_backpedal_never_steps_into_a_wall_or_over_a_fence(tmp_path):
+    """The backpedal reads the steer probe (`policies.clear_heading`: `line_clear` over STEER_PROBE, which reads a
+    hoppable fence blocked, P24-G 4: the stance never vaults): a fence on the player's west edge turns the heading by
+    STEER_TURNS to the first clear one (+30 degrees)."""
+    r, sv = make(tmp_path)
+    sqs = [square(x, y) for x in range(95, 106) for y in range(195, 206)]
+    sqs = [dict(s, blockW=True, hopW=True) if (s["x"], s["y"]) == (100, 200) else s for s in sqs]
+    r.scan(sqs)
+    r.frame(x=100.5, y=200.5, zombies=[zd(1, 104.5, 200.5)])
+    tick(r, sv)
+    a = stance_args(r)
+    turns = [P._rotate((-1.0, 0.0), t) for t in P.STEER_TURNS]
+    first = next(v for v in turns if P.clear_heading(r.world, v))
+    assert not P.clear_heading(r.world, (-1.0, 0.0)) and (a["vx"], a["vy"]) == first and first != (-1.0, 0.0)
+
+
+def test_two_zombies_at_full_health_are_met_in_the_stance_backing_from_both(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0), zd(2, 100.0, 204.0)])
+    tick(r, sv)
+    a = stance_args(r)
+    assert a["targetId"] in (1, 2) and abs(a["vx"] + math.sqrt(0.5)) < 1e-9 and abs(a["vy"] + math.sqrt(0.5)) < 1e-9
+
+
+def test_two_zombies_under_flee_health_pair_are_fled_not_stood(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0), zd(2, 100.0, 204.0)], health=55.0)
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "pair"
+
+
+def test_three_zombies_are_fled_never_stood(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0), zd(2, 100.0, 204.0), zd(3, 103.0, 203.0)])
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "many"
+
+
+def test_one_zombie_under_flee_health_is_fled_never_stood(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0)], health=35.0)
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "health"
+
+
+def test_unarmed_the_stance_is_never_taken(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0)], weapon=None)
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "unarmed"
+
+
+def test_a_running_stance_gives_way_to_the_flee_when_a_third_comes(tmp_path):
+    """The flee from three supersedes the stance leg (the Lua releases the stance on supersede)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0)])
+    tick(r, sv)
+    assert r.cmd()[0] == "aim"
+    r.frame(zombies=[zd(1, 104.0, 200.0), zd(2, 100.0, 204.0), zd(3, 103.0, 203.0)])
+    tick(r, sv)
+    assert r.cmd()[0] == "steer" and sv.mode == "flee"
+
+
+def test_a_pza_1_4_build_is_never_sent_the_stance(tmp_path):
+    """`World.can`: a hello whose caps lack `aim` (every decision golden's artifact) keeps the approach walk."""
+    r, sv = make(tmp_path, caps=CAPS_14)
+    r.frame(zombies=[zd(1, 104.0, 200.0)])
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"})
+    assert "stance" not in threat_why(tmp_path) and not r.world.can("aim") and r.world.can("attack")
+
+
+# ================================================================ the stand-off fallback
+def stand_legs(r, sv, n, x=104.0, health=1.0, dt=2.0):
+    """`n` stance legs answered done, each AIM_LEG_S of clock, the zombie standing at `x` with `health`."""
+    for _ in range(n):
+        r.answer()
+        r.advance(dt)
+        r.frame(zombies=[zd(1, x, 200.0, has_target=False, health=health)])
+        tick(r, sv)
+
+
+def test_a_stand_with_no_progress_in_stand_max_s_falls_back_to_the_approach_and_swing(tmp_path):
+    """P24-G 1: a fence stand-off (the zombie standing 4 tiles off, never closing) never becomes a stance stand-off:
+    after STAND_MAX_S without its health falling the Fight walks to it as before (`standoff`), and the stall clock
+    (FIGHT_MAX_S, the stalled flee) starts only then."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False)])
+    tick(r, sv)
+    assert r.cmd()[0] == "aim"
+    stand_legs(r, sv, 9)                                                    # 18 s
+    assert r.cmd()[0] == "aim" and last(tmp_path)["inputs"]["fight_s"] == 2.0   # one leg's clock, never accrued
+    stand_legs(r, sv, 1)                                                    # 20 s: the fallback
+    assert r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"}) and sv.fight.standoff
+    assert "stance" not in threat_why(tmp_path)
+    r.answer()
+    r.advance(1.0)
+    r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False)])
+    tick(r, sv)
+    assert last(tmp_path)["inputs"]["fight_s"] == 1.0                       # the approach's stall clock runs
+
+
+def test_a_falling_target_health_restarts_the_stand_clock(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False)])
+    tick(r, sv)
+    stand_legs(r, sv, 8)                                                    # 16 s
+    stand_legs(r, sv, 1, health=0.6)                                        # a hit landed: the clock restarts
+    assert threat_why(tmp_path)["stand_s"] == 0.0
+    stand_legs(r, sv, 9, health=0.6)                                        # 18 s more: still standing
+    assert r.cmd()[0] == "aim" and not sv.fight.standoff
+    stand_legs(r, sv, 1, health=0.6)
+    assert r.cmd()[0] == "walkTo" and sv.fight.standoff
+
+
+def test_a_kill_restarts_the_stand_on_the_next_target(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False), zd(2, 100.0, 204.5, has_target=False)])
+    tick(r, sv)
+    assert stance_args(r)["targetId"] == 1
+    stand_legs(r, sv, 0)
+    for _ in range(9):
+        r.answer()
+        r.advance(2.0)
+        r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False), zd(2, 100.0, 204.5, has_target=False)])
+        tick(r, sv)
+    r.answer()
+    r.event("zombie_dead", id=1)
+    r.advance(2.0)
+    r.frame(zombies=[zd(2, 100.0, 204.5, has_target=False)])
+    tick(r, sv)
+    assert stance_args(r)["targetId"] == 2 and threat_why(tmp_path)["stand_s"] == 0.0 and not sv.fight.standoff
+
+
+def test_the_corner_keeps_its_swing_and_never_stands(tmp_path):
+    """The corner rules stay: a cornered Fight (`point_blank`) never takes the stance (`Fight.standing`)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0)])
+    f = P.Fight(r.world, r.acts, r.clock, target=1)
+    f.stance, f.point_blank = True, True
+    assert not f.standing()
+    f.point_blank, f.only = False, {1}
+    assert not f.standing()
+    f.only = None
+    assert f.standing()
+
+
+def test_two_held_under_flee_health_pair_with_one_within_danger_r_fight_by_the_approach_not_the_stance(tmp_path):
+    """The pair rule reads the DANGER_R count (one here, so the hysteresis fights); the stance reads the held count:
+    two held at health 50 (under FLEE_HEALTH_PAIR) is no standing fight: the running stance leg gives way to the
+    approach walk once the hold radius (DISENGAGE_R while the fight runs) holds the second."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 104.0, 200.0), zd(2, 92.0, 200.0)], health=50.0)
+    tick(r, sv)
+    assert r.cmd()[0] == "aim"                                              # one held within DANGER_R
+    r.frame(zombies=[zd(1, 104.0, 200.0), zd(2, 92.0, 200.0)], health=50.0)
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"}) and threat_why(tmp_path)["fight"] is True
+    assert last(tmp_path)["inputs"]["held"] == 2
+
+
+def test_trapped_on_a_room_square_the_fight_keeps_the_approach_never_the_stance(tmp_path):
+    """The corner rules stay for a trapped character (`_trapped`: a room square, no way out, nothing to adopt): the
+    held zombie inside the closed room is walked to and swung at, never backpedalled from inside the walls."""
+    from .test_survive import closed_room
+    r, sv = make(tmp_path)
+    r.scan(closed_room())
+    me = (100.5, 200.5)
+    r.frame(x=me[0], y=me[1], zombies=[dict(zombie(1, 104.5, 204.5, me=me), health=1.0)])
+    tick(r, sv)
+    assert r.cmd()[0] == "walkTo" and sv._trapped(sv._within(S.DANGER_R), True)
+
+
+def test_a_standing_fight_reads_no_walk_so_the_look_behind_its_target_does_not_flee(tmp_path):
+    """P24-A (b) reads the fight's walk: the stance does not walk beyond reach, so zombie 2 listed behind zombie 1
+    (the E5 case of `test_survive`'s P24-A (b) test, there pinned on a PZA/1.4 build) does not turn it to a flee; after
+    the stand-off fallback the Fight walks, and the look behind reads again."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 105.0, 200.0), zd(2, 110.0, 201.0)])
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert r.cmd()[0] == "aim" and w["fight"] is True and "behind" not in w
+    sv.fight.standoff = True
+    r.answer()
+    r.frame(zombies=[zd(1, 105.0, 200.0), zd(2, 110.0, 201.0)])
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert r.cmd()[0] == "steer" and w["flee"] == "held" and w["behind"] == [2]
