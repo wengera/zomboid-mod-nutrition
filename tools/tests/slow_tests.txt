@@ -1,0 +1,6 @@
+# Task 26: the slow tests of tools/tests (see testing/tests/slow_tests.txt for the format). Each file shares a
+# module-scoped fixture or runs a fit.
+tools/tests/test_mod_guide_series.py
+tools/tests/test_hedonics_budget.py
+tools/tests/test_fit_deficit_drive.py
+tools/tests/test_fit_gut_satiety.py

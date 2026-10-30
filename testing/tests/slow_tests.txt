@@ -1,0 +1,45 @@
+# Task 26: the slow tests of testing/tests, one rootdir-relative path per line: a file (every test in it) or a node id
+# (a test and its parametrized cases). A file is listed when one module-scoped fixture is shared by its tests, so that
+# marking only the first test would move the fixture's cost to the next. Derived from `pytest --durations=60`; the
+# marker is registered in pytest.ini and applied by conftest.py. The inner loop is `-m "not slow"`; the gate is the full run.
+testing/tests/kernel/test_fasting_partition.py
+testing/tests/kernel/test_kernel_drain.py
+testing/tests/kernel/test_drain_options.py
+testing/tests/kernel/test_replay_live_energy.py
+testing/tests/kernel/test_kernel_hunger_curve.py
+testing/tests/kernel/test_zz_coverage.py
+testing/tests/kernel/test_nutrients_shape.py::test_forty_days_of_zero_intake_reach_clinical_scurvy
+testing/tests/test_x48_lib.py::test_the_x481_tests_hold_on_their_build
+testing/tests/pzagent/test_x4_link.py::test_a_clean_fake_run_reads_every_phase_and_grades_go
+testing/tests/pzagent/test_x4_link_2.py::test_a_clean_fake_run_reads_every_phase_and_grades_go
+testing/tests/pzagent/test_x4_link_3.py::test_a_clean_fake_run_reads_every_phase_and_grades_go
+testing/tests/pzagent/test_p22_probe.py
+testing/tests/pzagent/test_d_survive.py::test_one_failed_server_poll_between_good_ones_is_not_bus_dead
+testing/tests/pzagent/test_d_survive.py::test_a_players_error_reply_is_no_death
+testing/tests/pzagent/test_d_survive.py::test_the_server_is_polled_on_schedule_with_one_paired_needs_row_each
+testing/tests/pzagent/test_d_survive.py::test_damage_watch_is_polled_since_the_last_index_and_merged_tagged_server
+testing/tests/pzagent/test_d_survive.py::test_persist_runs_every_persist_s_of_the_loop
+testing/tests/pzagent/test_d_survive.py::test_two_consecutive_low_reads_stop_on_memory_and_one_does_not
+testing/tests/pzagent/test_d_survive.py::test_a_backlog_of_lua_errors_read_at_once_is_no_storm
+testing/tests/pzagent/test_d_survive.py::test_a_wound_death_with_no_zombie_near_is_not_explained
+testing/tests/pzagent/test_c_survive.py::test_one_failed_server_poll_between_good_ones_is_not_bus_dead
+testing/tests/pzagent/test_c_survive.py::test_a_players_error_reply_is_no_death
+testing/tests/pzagent/test_c_survive.py::test_the_server_is_polled_and_merged_on_schedule_with_one_needs_row_each
+testing/tests/pzagent/test_replay_decisions.py::test_e4_line_302_is_the_cut_leg
+testing/tests/pzagent/test_a_pipe.py::test_the_phases_record_every_reading_on_a_correct_mod
+testing/tests/pzagent/test_b_actions.py::test_a_server_that_never_sees_the_eat_polls_out_its_window
+testing/tests/pzagent/test_b_actions_2.py::test_a_failed_wide_scan_keeps_the_near_pick_and_skips_the_missing_one
+testing/tests/pzagent/test_driverlib.py::test_a_poll_thread_session_never_blocks_the_loop_on_a_slow_server_read
+testing/tests/pzagent/test_driverlib.py::test_the_server_is_polled_on_schedule_with_one_paired_needs_row_each
+testing/tests/pzagent/test_driverlib.py::test_damage_watch_is_polled_since_the_last_index_and_merged_tagged_server
+testing/tests/pzagent/test_driverlib.py::test_two_consecutive_low_reads_stop_on_memory_and_one_does_not
+testing/tests/pzagent/test_driverlib.py::test_a_clean_day_at_the_library_defaults
+testing/tests/pzagent/test_e_day.py::test_a_second_session_with_prev_records_the_lineage_diff
+testing/tests/pzagent/test_e_day_2.py::test_a_second_session_with_prev_records_the_lineage_diff
+testing/tests/pzagent/test_e_day_3.py::test_a_second_session_with_prev_records_the_lineage_diff
+testing/tests/pzagent/test_e_day_4.py::test_a_second_session_with_prev_records_the_lineage_diff
+testing/tests/pzagent/test_e_day_5.py::test_a_second_session_with_prev_records_the_lineage_diff
+testing/tests/pzagent/test_e_day_6.py::test_a_second_session_with_prev_records_the_lineage_diff
+testing/tests/pzagent/test_e_day_7.py::test_a_second_session_with_prev_records_the_lineage_diff
+testing/tests/pzagent/test_e_day_8.py::test_a_second_session_with_prev_records_the_lineage_diff
+testing/tests/pzagent/test_e_day_9.py::test_a_second_session_with_prev_records_the_lineage_diff
