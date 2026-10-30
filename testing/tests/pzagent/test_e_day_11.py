@@ -449,7 +449,7 @@ def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch
 
 # ================================================================ the copy: e_day_10.py's body, its own key
 BASE_SENTENCE = (
-    "the base at `411dfc0e` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 12 (over iteration "
+    "the base at `5e3ad986` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 12 (over iteration "
     "11: the arms' hold on the stiffness, `STIFF_HARD` and `STIFF_SOFT`, the arm pain its own reason `wounded` and a "
     "lone target still sought, P24-AT; the listing-edge hold, a zombie that left the listing held in the pull's reads "
     "for `EDGE_HOLD_TICKS` planner ticks, P24-AU; the stomp on the first fallen frame, a knock-down waited on, a "
@@ -481,7 +481,7 @@ def test_the_copy_differs_from_e_day_10_only_in_the_expected_lines():
     assert new_grade.startswith('GRADE_KEY = "grade_e8"') and "DY.GE.grade_e8(out, state_dir=out.get(\"state_dir\"))" in new_grade
     head = b[:b.index(mark)]
     for c in ("e_day_10-20261030-084253", "227.5", "tenth", "PZA/1.7.1", "grade_e8", "73f5ae42", "P24-AT",
-              "P24-AY", "P24-AM", "411dfc0e", "state.1.log", BASE_SENTENCE):
+              "P24-AY", "P24-AM", "5e3ad986", "state.1.log", BASE_SENTENCE):
         assert c in head, c
     assert E.CONSTANTS == E1.CONSTANTS and E.PROFILE == E1.PROFILE
 
