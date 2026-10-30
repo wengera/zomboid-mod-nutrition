@@ -2307,8 +2307,12 @@ def stall_shelter(r, sv):
 
 def test_a_shelter_walk_that_stands_step_stall_s_with_a_threat_within_danger_r_is_dropped_and_steered(tmp_path):
     """Ruling P23-AM 2: the approach walk leaves the player where it was for 1.0 s with the group at 3 tiles: dropped
-    (`stalled`), the plan with it for the episode (not shunned in the night's store), and the steer sent at once."""
+    (`stalled`), the plan with it for the episode (not shunned in the night's store), and the steer sent at once.
+    Named change, Plan 25 Task 3 (ruling P25-E): this walk is a doorway stand's (a `many` flee against three on a build
+    with the stance), which now re-routes once before the drop (`test_survive_t`); the case pins P23-AM 2's drop with
+    `DOOR_WALK` off."""
     r, sv = make(tmp_path)
+    sv.DOOR_WALK = False
     walk = stall_shelter(r, sv)
     for _ in range(2):
         r.advance(0.5)

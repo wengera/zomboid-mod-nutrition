@@ -124,6 +124,8 @@ class Flee(Policy):
                                  # `planner.doorway`)
         self.gait = FLEE_GAIT    # Survive sets it each tick: the gait of every leg and walk (P25-C: `walk` under the
                                  # endurance hold with no zombie within DANGER_R)
+        self.door_walk_on = True  # Survive sets it each tick (its DOOR_WALK switch, P25-E)
+        self.door_walk = None    # this observe: {stall, end} when a stand's walk stalled (P25-E), else None
 
     @property
     def sheltered(self):
@@ -165,6 +167,7 @@ class Flee(Policy):
 
     def observe(self):
         self._observe_exit()
+        self.door_walk = None
         if self._leg is not None and running(self.actions, self._leg[0]):
             self._leg_anchor, self._leg_still = self._still_for(self._leg_anchor)
             self._cut_leg()
@@ -172,7 +175,13 @@ class Flee(Policy):
         if a is None or a is self._read or self.plan is None:
             return
         if not self.actions.done(a):
-            if self._step_stalled(a):
+            still = self._step_still(a)
+            stalled = self._stalled(still)
+            if self.door_walk_on and self.plan.get("stand") and a.type == "walkTo" and still is not None:
+                if stalled or still >= DOOR_WALK_S:
+                    self._door_stall(a, still)   # P25-E: the stand's walk re-routes once, then drops
+                return
+            if stalled:
                 self._dropped, self._read, self.ended = a, a, "stalled"
                 self._drop(False)   # this episode only (`picked` stays): the steer follows at once
             return
@@ -232,18 +241,46 @@ class Flee(Policy):
     def _step_stalled(self, a):
         """Ruling P23-AM 2 (E3: the enter walk stood 14.5 s while the group closed from 7.9 tiles to 0.48): a shelter
         step still current whose walk has left the player within STUCK_MOVE for WALK_STALL_S wall seconds while a
-        held threat is within DANGER_R. An `open` or `close` walks only while the player stands more than one square
-        (Chebyshev) from the door (the Lua's interact `approach`); at the door its anchor follows the player, the
-        door's own action being no walk. With no held threat within DANGER_R the step waits the Lua's stuck time."""
+        held threat is within DANGER_R (`_step_still`, `_stalled`). With no held threat within DANGER_R the step waits
+        the Lua's stuck time (a doorway stand's walk, DOOR_WALK_S: P25-E)."""
+        return self._stalled(self._step_still(a))
+
+    def _step_still(self, a):
+        """Wall seconds the running shelter step `a` has left the player within STUCK_MOVE (its anchor moved on), else
+        None: not running, or an `open` or `close` at the door. An `open` or `close` walks only while the player stands
+        more than one square (Chebyshev) from the door (the Lua's interact `approach`); at the door its anchor follows
+        the player, the door's own action being no walk."""
         if not running(self.actions, a):
-            return False
+            return None
         if a.type == "interact":
             sq, door = _night().player_square(self.world), self.door()
             if sq is None or max(abs(sq[0] - door[0]), abs(sq[1] - door[1])) <= 1:
                 self._step_anchor = (self.clock(), me_xy(self.world))
-                return False
+                return None
         self._step_anchor, still = self._still_for(self._step_anchor)
-        return still >= WALK_STALL_S and any(zdist(self.world, z) <= DANGER_R for z in self._threats())
+        return still
+
+    def _stalled(self, still):
+        """P23-AM 2's stall on `still` seconds (`_step_still`): WALK_STALL_S with a held threat within DANGER_R."""
+        return (still is not None and still >= WALK_STALL_S
+                and any(zdist(self.world, z) <= DANGER_R for z in self._threats()))
+
+    def _door_stall(self, a, still):
+        """Ruling P25-E (E11: the stand's walk toward building 2's door stood 2.101 s 11.44 tiles from it against a
+        fence and was dropped, the stand never fought, #4409): a doorway stand's walk step stalled (P23-AM 2's read, or
+        still for DOOR_WALK_S whatever the zombies) is re-sent once to the centre of its target's first
+        `World.reachable_adjacent` square (nearest the player; the plan's `via` for this step), the plan kept; a second
+        stall, or no such square, drops the plan as P23-AM 2 does (`ended` stalled). Logged `door_walk` {stall, end:
+        reroute | drop}; Survive logs a drop `doorway_left` `stall`."""
+        self._dropped, self._read = a, a
+        if not self.plan.get("rerouted"):
+            via = self.world.reachable_adjacent((a.args.get("x"), a.args.get("y")), me_floor(self.world), self.trans)
+            if via:
+                self.plan.update(rerouted=True, via=(self.plan["step"], via[0]))
+                self.ended, self.door_walk = "rerouted", {"stall": still, "end": "reroute"}
+                return
+        self.ended, self.door_walk = "stalled", {"stall": still, "end": "drop"}
+        self._drop(False)
 
     def keep_gait(self):
         """Ruling P25-C: a running steer leg sent at a walk while the gait now wanted is the run (a zombie came within
@@ -382,6 +419,10 @@ class Flee(Policy):
         if step != "done":
             self._chosen = "step"
             self.why = {"shelter": b, "step": step, "ended": self.ended}
+            via = self.plan.get("via")
+            if cmd.TYPE == "walkTo" and via is not None and via[0] == step:   # P25-E: the re-route of a stalled walk
+                self.why["via"] = [via[1][0], via[1][1]]
+                return WalkTo(*centre(via[1]), self.gait)
             return cmd if cmd.TYPE != "walkTo" else WalkTo(cmd.x, cmd.y, self.gait)
         if not on_room(self.world):
             self._drop(False)   # pushed out after the close: no shelter this episode

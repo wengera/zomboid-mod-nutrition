@@ -392,3 +392,91 @@ def test_a_fight_that_swings_is_not_held_by_the_ride_within_reach(tmp_path):
     assert a is not None and a.type in ("attack", "aim") and "ride_wait" not in threat_why(tmp_path)
 
 
+# ================================================================ P25-E: the stand's stalled walk
+def stand_walk(r, sv):
+    """`test_survive_p`'s shelter world: a `many` flee against three takes building 1's door for the doorway stand,
+    its approach walk to (111.5, 201.5) sent and accepted (11.5 tiles off: E11's walk stood 11.44 from its door)."""
+    from .test_night import CLOSED
+    from .test_survive import group, shelter_world
+    shelter_world(r, CLOSED)
+    r.frame(x=100.0, y=201.5, zombies=group())
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 201.5, "gait": "run"}) and sv.flee.plan.get("stand") is True
+    r.fake.answer({"walkTo": ["accepted"]})
+    r.pump()
+    return r.acts.history[-1]
+
+
+def stall(r, sv, zs, seconds, me=(100.1, 201.5)):
+    from .test_survive import group
+    t = 0.0
+    while t < seconds:
+        r.advance(0.5)
+        t += 0.5
+        r.frame(x=me[0], y=me[1], zombies=zs if zs is not None else group())
+        a = tick(r, sv)
+        if a is not None:
+            return a
+    return None
+
+
+def test_a_stand_s_stalled_walk_re_routes_once_then_drops_the_plan(tmp_path):
+    """E11's walk toward building 2's door stood 2.101 s 11.44 tiles from it with a zombie at 5.36 and was dropped
+    (#4409): the stand's walk that stalls (WALK_STALL_S with the group within DANGER_R) is re-sent once to the walk
+    target's nearest `reachable_adjacent` square (logged `door_walk` {stall, end reroute}), the plan kept; that walk
+    stalling too drops the plan (`door_walk` end drop, `doorway_left` stall) and the steer goes."""
+    from .test_survive import group
+    r, sv = make(tmp_path)
+    walk = stand_walk(r, sv)
+    a = stall(r, sv, group(0.1), 1.0)
+    w = threat_why(tmp_path)
+    assert a is not None and a.type == "walkTo" and (a.args["x"], a.args["y"]) == (110.5, 201.5)
+    assert w["door_walk"]["end"] == "reroute" and w["door_walk"]["stall"] >= P.WALK_STALL_S
+    assert sv.flee.plan is not None and sv.flee.plan.get("stand") is True and walk is not a
+    r.fake.answer({"walkTo": ["accepted"]})
+    r.pump()
+    a = stall(r, sv, group(0.1), 1.0)
+    w = threat_why(tmp_path)
+    assert a is not None and a.type == "steer" and w["door_walk"]["end"] == "drop" and w["doorway_left"] == "stall"
+    assert sv.flee.plan is None
+    all_sends_valid(r)
+
+
+def test_a_stand_s_walk_still_for_door_walk_s_stalls_with_no_zombie_within_danger_r(tmp_path):
+    """With the group held 7 to 8 tiles off (the `many` episode holds them), the walk waited the Lua's stuck time
+    (P23-AM 2's limit): still within STUCK_MOVE for DOOR_WALK_S it stalls, and re-routes."""
+    from .test_survive import group
+    r, sv = make(tmp_path)
+    stand_walk(r, sv)
+    me = (102.0, 201.5)
+    a = stall(r, sv, group(-3.5, me), P.DOOR_WALK_S - 0.5, me=me)
+    assert a is None and "door_walk" not in threat_why(tmp_path)
+    a = stall(r, sv, group(-3.5, me), 1.0, me=me)
+    assert a is not None and a.type == "walkTo" and threat_why(tmp_path)["door_walk"]["end"] == "reroute"
+
+
+def test_a_plan_without_the_stand_or_door_walk_off_drops_at_its_stall_as_before(tmp_path):
+    """P23-AM 2 unchanged for a shelter that is no stand (`DOORWAY` off) and with `DOOR_WALK` off."""
+    from .test_survive import group
+    for name in ("DOORWAY", "DOOR_WALK"):
+        d = tmp_path / name
+        d.mkdir()
+        r, sv = make(d)
+        setattr(sv, name, False)
+        stand_walk_any(r, sv)
+        a = stall(r, sv, group(0.1), 1.0)
+        w = threat_why(d)
+        assert a.type == "steer" and w["ended"] == "stalled" and "door_walk" not in w, name
+
+
+def stand_walk_any(r, sv):
+    from .test_night import CLOSED
+    from .test_survive import group, shelter_world
+    shelter_world(r, CLOSED)
+    r.frame(x=100.0, y=201.5, zombies=group())
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 111.5, "y": 201.5, "gait": "run"})
+    r.fake.answer({"walkTo": ["accepted"]})
+    r.pump()
+
+

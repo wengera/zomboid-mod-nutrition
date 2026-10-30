@@ -591,6 +591,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             policy.threats = held
             policy.hold_ok = breach is None
             policy.steer_now = self.group_steer is not None
+            policy.door_walk_on = self.DOOR_WALK   # P25-E
             walk = self._hold_walk(reason)   # P25-C: the endurance hold's flee walks with nobody within DANGER_R
             policy.gait = "walk" if walk else FLEE_GAIT
             policy.keep_gait()
@@ -618,6 +619,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             self.why["strain"] = self.spent   # P24-AG: the why names the strain
         if want == "flee" and walk and self._walking(policy, ans):
             self.why["hold_walk"] = True   # P25-C: the flee's leg sent or running at a walk
+        if want == "flee" and policy.door_walk is not None:   # P25-E: the stand's stalled walk, read at its observe
+            self.why["door_walk"] = policy.door_walk
+            if policy.door_walk["end"] == "drop":
+                self.stand_end = "stall"   # logged `doorway_left` below
         if self.sheltered:
             self.why["sheltered"] = True
         if kind == "cornered" and self.fight.target not in (None, self.cornered):
