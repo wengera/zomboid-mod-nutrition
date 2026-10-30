@@ -311,7 +311,244 @@ def test_unwear_marks_the_garment_for_the_next_worn_read_and_an_item_changed(lua
     assert lua.eval("PZA.sense.wornDirty") is True and lua.eval("PZA.sense.recheckIds[90]") is not None
 
 
-@pytest.mark.parametrize("typ", ["unwear"])
+# ---- shove {targetId} and stomp {targetId} --------------------------------------------------------------------------
+
+def shove_host(lua, zombies, weapon=None, flag=True, fresh=True):
+    """A player at (10, 20) holding `weapon`, the zombies listed (Sense's zombieById and zobj), setDoShove recording into
+    p.shoves. A second host in one test passes fresh=False: the same Lua state and act file."""
+    if fresh:
+        load(lua)
+        lua.execute("PZA.link.init('admin')")
+        lua.globals().PZA.tick = 0
+    sense(lua, zombies)
+    lua.eval("PZA.sense").zobj = lua.table_from({z.getOnlineID(z): z for z in zombies})
+    lua.globals()._cell = make_cell(zombies=zombies)
+    p = make_player(weapon=weapon)
+    p.shoves = []
+    if flag:
+        p.setDoShove = lambda s, v: p.shoves.append(v)
+    return p
+
+
+def swing(lua, p, started_ticks=1):
+    """The engine's swing: attackStarted true for started_ticks ticks, then false."""
+    for _ in range(started_ticks):
+        p.attack["started"] = True
+        tick(lua, p)
+    p.attack["started"] = False
+
+
+def test_shove_faces_the_target_sets_the_flag_presses_the_attack_and_reports_the_knockdown(lua, fs):
+    z = fz(7, 11.0, 20.0)
+    p = shove_host(lua, [z], weapon=make_weapon())
+    start(lua, p, "shove", targetId=7)
+    tick(lua, p)
+    assert p.shoves == [True] and list(p.attacks) == [0] and list(p.faced) == [z]
+    swing(lua, p)
+    tick(lua, p)                                                             # the swing ended: one frame more
+    z.st["floor"] = True                                                     # the knock-down lands
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "")
+    assert a[-1]["result"] == {"knockdown": True, "attackStarted": True, "targetDead": False}
+    assert p.shoves == [True, False] and list(p.attacks) == [0]
+
+
+def test_a_shove_that_staggers_reports_no_knockdown(lua, fs):
+    z = fz(7, 11.0, 20.0)
+    p = shove_host(lua, [z])
+    start(lua, p, "shove", targetId=7)
+    tick(lua, p)
+    swing(lua, p, 2)
+    tick(lua, p, 2)
+    assert acts(lua, fs)[-1]["result"] == {"knockdown": False, "attackStarted": True, "targetDead": False}
+
+
+def test_a_shove_the_engine_dropped_is_done_after_the_swing_budget_and_clears_the_flag(lua, fs):
+    z = fz(7, 11.0, 20.0)
+    p = shove_host(lua, [z])
+    start(lua, p, "shove", targetId=7)
+    tick(lua, p)
+    lua.globals()._clock["ms"] += 1500
+    tick(lua, p, 2)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "") and a[-1]["result"]["attackStarted"] is False
+    assert p.shoves == [True, False]
+
+
+def test_shove_refusals(lua, fs):
+    near, far, dead = fz(7, 11.0, 20.0), fz(8, 12.0, 20.0), fz(9, 11.0, 20.0, dead=True)
+    p = shove_host(lua, [near, far, dead])
+    start(lua, p, "shove", aid="nt", targetId=99)
+    start(lua, p, "shove", aid="de", targetId=9)
+    start(lua, p, "shove", aid="ba", targetId="7")
+    start(lua, p, "shove", aid="tf", targetId=8)
+    p.combat["hitReaction"] = "HitReactionFront"
+    start(lua, p, "shove", aid="bu", targetId=7)
+    p.combat["hitReaction"] = ""
+    p.attack["started"] = True
+    start(lua, p, "shove", aid="sw", targetId=7)
+    assert states(acts(lua, fs)) == [("nt", "rejected", "no target"), ("de", "rejected", "no target"),
+                                     ("ba", "rejected", "bad args"), ("tf", "rejected", "too far"),
+                                     ("bu", "rejected", "busy"), ("sw", "rejected", "busy")]
+    assert p.shoves == [] and list(p.attacks) == []
+
+
+def test_a_target_that_stepped_out_of_reach_before_the_first_tick_fails_too_far(lua, fs):
+    z = fz(7, 11.0, 20.0)
+    p = shove_host(lua, [z])
+    start(lua, p, "shove", targetId=7)
+    z.getX = lambda s: 12.0
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "too far") and p.shoves == [] and list(p.attacks) == []
+
+
+def test_a_player_without_the_shove_members_fails_not_loaded(lua, fs):
+    z = fz(7, 11.0, 20.0)
+    p = shove_host(lua, [z], flag=False)
+    start(lua, p, "shove", targetId=7)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "not loaded") and list(p.attacks) == []
+
+
+def test_a_shove_superseded_mid_swing_leaves_the_flag_to_the_engines_exit(lua, fs):
+    z = fz(7, 11.0, 20.0)
+    p = shove_host(lua, [z])
+    start(lua, p, "shove", targetId=7)
+    tick(lua, p)
+    p.attack["started"] = True
+    tick(lua, p)
+    start(lua, p, "stop", aid="s")
+    assert p.shoves == [True]                                                # the swing state's exit clears it
+    p.attack["started"] = False
+    start(lua, p, "shove", aid="s2", targetId=7)
+    tick(lua, p)
+    start(lua, p, "stop", aid="s3")
+    assert p.shoves == [True, True, False]                                   # nothing running: cleared at once
+
+
+def test_a_shove_under_a_held_stance_releases_it_like_any_skill_but_attack(lua, fs):
+    z = fz(7, 11.0, 20.0)
+    p = shove_host(lua, [z])
+    lua.execute("PZA.skills.stance.held = true")
+    start(lua, p, "shove", targetId=7)
+    assert lua.eval("PZA.skills.stance.held") is False
+
+
+def stomp_host(lua, zombies, weapon=None, x=10.0, fresh=True):
+    p = shove_host(lua, zombies, weapon=weapon, fresh=fresh)
+    pos = mover(p, x, 20.0)
+    return p, pos
+
+
+def test_stomp_walks_to_under_half_a_tile_then_presses_the_shove_pair_and_reports_the_hit(lua, fs):
+    z = fz(7, 10.8, 20.0, floor=True, health=0.8)
+    p, pos = stomp_host(lua, [z], weapon=make_weapon())
+    start(lua, p, "stomp", targetId=7)
+    tick(lua, p)
+    assert ("setAutoWalk", True) in p.sets and p.shoves == [] and list(p.attacks) == []
+    assert lua.eval("PZA.motor.wantRun") is False
+    pos["x"] = 10.4                                                          # 0.4 off: under 0.5
+    tick(lua, p)
+    assert p.shoves == [True] and list(p.attacks) == [0] and list(p.faced) == [z]
+    assert ("setAutoWalk", False) in p.sets
+    swing(lua, p)
+    z.st["health"] = 0.2                                                     # the stomp landed
+    tick(lua, p, 2)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "")
+    assert a[-1]["result"] == {"hit": True, "attackStarted": True, "targetDead": False}
+    assert p.shoves == [True, False]
+
+
+def test_a_stomp_that_did_no_damage_reports_no_hit_and_a_kill_reports_it(lua, fs):
+    z = fz(7, 10.3, 20.0, floor=True, health=0.8)
+    p, _ = stomp_host(lua, [z])
+    start(lua, p, "stomp", targetId=7)
+    tick(lua, p)
+    swing(lua, p)
+    tick(lua, p, 2)
+    assert acts(lua, fs)[-1]["result"]["hit"] is False
+    z2 = fz(8, 10.3, 20.0, floor=True, health=0.8)
+    p, _ = stomp_host(lua, [z2], fresh=False)
+    start(lua, p, "stomp", aid="k", targetId=8)
+    tick(lua, p)
+    swing(lua, p)
+    z2.st["dead"] = True
+    tick(lua, p, 2)
+    assert acts(lua, fs)[-1]["result"] == {"hit": True, "attackStarted": True, "targetDead": True}
+
+
+def test_stomp_refusals(lua, fs):
+    fallen, standing = fz(7, 11.5, 20.0, floor=True), fz(8, 11.5, 21.0)
+    p, _ = stomp_host(lua, [fallen, standing])
+    start(lua, p, "stomp", aid="nt", targetId=99)
+    start(lua, p, "stomp", aid="ba", targetId="7")
+    start(lua, p, "stomp", aid="up", targetId=8)                             # the target stands: not valid
+    p.combat["hitReaction"] = "HitReactionFront"
+    start(lua, p, "stomp", aid="bu", targetId=7)
+    assert states(acts(lua, fs)) == [("nt", "rejected", "no target"), ("ba", "rejected", "bad args"),
+                                     ("up", "rejected", "not valid"), ("bu", "rejected", "busy")]
+
+
+def test_stomp_is_refused_standing_while_a_standing_zombie_is_within_the_weapons_min_range(lua, fs):
+    fallen, near, further = fz(7, 12.0, 20.0, floor=True), fz(8, 10.9, 20.0), fz(9, 11.5, 20.0)
+    bat = make_weapon()
+    bat.getMinRange = lambda s: 1.0
+    p, _ = stomp_host(lua, [fallen, near], weapon=bat)
+    start(lua, p, "stomp", aid="st", targetId=7)
+    assert states(acts(lua, fs)) == [("st", "rejected", "standing")]
+    p, _ = stomp_host(lua, [fallen, further], weapon=bat, fresh=False)                    # 1.5 off: outside the 1.0
+    start(lua, p, "stomp", aid="ok", targetId=7)
+    assert states(acts(lua, fs))[-1] == ("ok", "accepted", "")
+    p, _ = stomp_host(lua, [fallen, fz(10, 10.5, 20.0, floor=True)], weapon=bat, fresh=False)    # a fallen one near does not count
+    start(lua, p, "stomp", aid="fl", targetId=7)
+    assert states(acts(lua, fs))[-1] == ("fl", "accepted", "")
+    p, _ = stomp_host(lua, [fallen, fz(11, 10.5, 20.0)], fresh=False)                     # bare-handed: STAND_R 0.6 stands in
+    start(lua, p, "stomp", aid="bh", targetId=7)
+    assert states(acts(lua, fs))[-1] == ("bh", "rejected", "standing")
+
+
+def test_a_zombie_that_closes_in_before_the_swing_fails_standing(lua, fs):
+    fallen, other = fz(7, 10.8, 20.0, floor=True), fz(8, 12.0, 21.0)
+    p, pos = stomp_host(lua, [fallen, other], weapon=make_weapon())
+    start(lua, p, "stomp", targetId=7)
+    tick(lua, p)
+    other.getX, other.getY = (lambda s: 10.3), (lambda s: 20.2)
+    pos["x"] = 10.4
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "standing") and p.shoves == [] and list(p.attacks) == []
+
+
+def test_stomp_that_never_closes_in_fails_out_of_reach_after_its_walk_budget(lua, fs):
+    z = fz(7, 12.0, 20.0, floor=True)
+    p, _ = stomp_host(lua, [z])
+    start(lua, p, "stomp", targetId=7)
+    tick(lua, p)
+    lua.globals()._clock["ms"] += 3999
+    tick(lua, p)
+    assert lua.eval("PZA.skills.cur") is not None
+    lua.globals()._clock["ms"] += 1
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "out of reach") and list(p.attacks) == []
+    assert ("setAutoWalk", False) in p.sets                                  # the runner's end sends the auto-walk off
+
+
+def test_stomp_without_the_auto_walk_or_the_shove_pair_fails_not_loaded(lua, fs):
+    z = fz(7, 12.0, 20.0, floor=True)
+    p, _ = stomp_host(lua, [z])
+    p.setAutoWalkDirection = None
+    start(lua, p, "stomp", targetId=7)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "not loaded")
+    z = fz(7, 10.2, 20.0, floor=True)
+    p = shove_host(lua, [z], flag=False, fresh=False)
+    start(lua, p, "stomp", aid="a2", targetId=7)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a2", "failed", "not loaded") and list(p.attacks) == []
+
+
+@pytest.mark.parametrize("typ", ["unwear", "shove", "stomp"])
 def test_the_new_types_are_in_hello_caps_and_the_schema(lua, typ):
     load(lua)
     assert typ in list(lua.eval("PZA.skills.types").keys())

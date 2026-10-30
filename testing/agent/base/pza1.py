@@ -65,8 +65,8 @@ SHAPES = {
     "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None), "water": ("rec", "water")},
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
-REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "dropped"))
-ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear")
+REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "too far", "standing", "dropped"))
+ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear", "shove", "stomp")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
     "walkTo": {"x": "float", "y": "float", "gait": "gait"},
@@ -89,6 +89,8 @@ ACTION_ARGS = {
     "wear": {"itemId": "int"},
     "window": {"x": "int", "y": "int", "smash": "bool"},
     "unwear": {"itemId": "int"},
+    "shove": {"targetId": "int"},
+    "stomp": {"targetId": "int"},
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
@@ -450,3 +452,17 @@ class Unwear(_Cmd):
     """Take off a worn garment as vanilla's Unequip does (ISUnequipAction, 50 ticks): its body location empties and the garment stays in the main inventory, where a rip accepts it (a worn or held item is refused by the recipe). Refused none held, not worn for an item that is not worn, held for one in a hand, moving while the character moves unless the garment's location is one vanilla lets be taken off on a walk (the accessory locations: hats, masks, gloves, eyes, neck, wrists, fingers, back, satchel, scarf, ammo strap, elbows; a shirt, a dress or trousers stop on a walk). Fails stopped when a run or a walk stopped the action, dropped when the inventory had no room and the garment fell to the floor, interrupted when it stayed worn."""
     TYPE: ClassVar[str] = "unwear"
     itemId: int  # The worn garment's id.
+
+
+@dataclasses.dataclass(frozen=True)
+class Shove(_Cmd):
+    """Shove the target with the shove key's attack (setDoShove then DoAttack): bare-handed whatever is held, no damage and no weapon condition spent, strain on both arms (0.15 x (15 - Strength) / 10 of the sandbox factor, a third less than a bat's swing), and a chance to knock the zombie down, else it staggers. The target must be a listed live zombie (no target) within 1.5 tiles (too far: the shove's reach is not read from the jar, 1.5 is a conservative bound) and the character not in a hit reaction or a swing (busy); the character faces it first. Done when the swing ended and a frame after, with `knockdown`; `not loaded` when the player lacks setDoShove or DoAttack."""
+    TYPE: ClassVar[str] = "shove"
+    targetId: int  # The zombie's online id.
+
+
+@dataclasses.dataclass(frozen=True)
+class Stomp(_Cmd):
+    """Stomp a zombie lying on the floor: walk to under 0.5 tiles of it by the auto-walk, then the shove's pair of calls, which the engine turns into a floor attack (the option autoProneAtk, created true): damage (0.7 to 1.0 + 0.2 x Strength) times the shoes' stomp power (0.5 barefoot, 1 sneakers, 2.5 army boots), strain on the right leg only. The target must be a listed live zombie within the sense range that reads isOnFloor() (no target, not valid for a standing one); refused standing while any other standing zombie is within the held weapon's MinRange (0.6 tiles bare-handed), checked again at the swing (failed standing): the call would shove that one. Fails out of reach when the walk does not close in on the target in time. Done when the swing ended and a frame after, with `hit`."""
+    TYPE: ClassVar[str] = "stomp"
+    targetId: int  # The fallen zombie's online id.

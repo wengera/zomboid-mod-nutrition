@@ -458,5 +458,39 @@
       ],
       "additionalProperties": false
     }
+  },
+  {
+    "name": "shove",
+    "description": "Shove the target with the shove key's attack (setDoShove then DoAttack): bare-handed whatever is held, no damage and no weapon condition spent, strain on both arms (0.15 x (15 - Strength) / 10 of the sandbox factor, a third less than a bat's swing), and a chance to knock the zombie down, else it staggers. The target must be a listed live zombie (no target) within 1.5 tiles (too far: the shove's reach is not read from the jar, 1.5 is a conservative bound) and the character not in a hit reaction or a swing (busy); the character faces it first. Done when the swing ended and a frame after, with `knockdown`; `not loaded` when the player lacks setDoShove or DoAttack.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "targetId": {
+          "type": "integer",
+          "description": "The zombie's online id."
+        }
+      },
+      "required": [
+        "targetId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "stomp",
+    "description": "Stomp a zombie lying on the floor: walk to under 0.5 tiles of it by the auto-walk, then the shove's pair of calls, which the engine turns into a floor attack (the option autoProneAtk, created true): damage (0.7 to 1.0 + 0.2 x Strength) times the shoes' stomp power (0.5 barefoot, 1 sneakers, 2.5 army boots), strain on the right leg only. The target must be a listed live zombie within the sense range that reads isOnFloor() (no target, not valid for a standing one); refused standing while any other standing zombie is within the held weapon's MinRange (0.6 tiles bare-handed), checked again at the swing (failed standing): the call would shove that one. Fails out of reach when the walk does not close in on the target in time. Done when the swing ended and a frame after, with `hit`.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "targetId": {
+          "type": "integer",
+          "description": "The fallen zombie's online id."
+        }
+      },
+      "required": [
+        "targetId"
+      ],
+      "additionalProperties": false
+    }
   }
 ]

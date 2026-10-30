@@ -65,6 +65,8 @@ VALID = {
     "wear": ("wear", {"itemId": 1005}),                 # PZA/1.6 (Task 9 fix 9)
     "window": ("window", {"x": 11, "y": 20}),            # PZA/1.6: the shut window on the world's west edge
     "unwear": ("unwear", {"itemId": 1005}),              # PZA/1.7 (Task 9 fix 11)
+    "shove": ("shove", {"targetId": 5}),
+    "stomp": ("stomp", {"targetId": 5}),
     "scan": ("scan", {"r": 3}),
     "rate": ("rate", {"hz": 5}),
 }
@@ -206,14 +208,16 @@ def test_the_pcall_counter_counts_a_caught_raise():
 # still in the fake's queue by vanilla's hasAction (PZA/1.5.1), so its budget runs out (interrupted); the care skills
 # find no inventory (none held), wear (PZA/1.6) too; window (PZA/1.6) queues its open, which the fake queue never
 # runs, so its WINDOW_MS runs out (interrupted)
-# PZA/1.7: unwear finds no inventory item (none held)
+# PZA/1.7: unwear finds no inventory item (none held); shove finds no setDoShove (not loaded); stomp's world zombie
+# does not lie on the floor (not valid)
 BARE = {"walkTo": ("failed", "stuck"), "steer": ("failed", "not loaded"), "attack": ("rejected", "no weapon"),
         "open": ("failed", "locked"), "loot": ("failed", "interrupted"), "equip": ("rejected", "none held"),
         "eat": ("rejected", "none held"), "drink": ("rejected", "none held"), "drop": ("rejected", "none held"),
         "stop": ("done", ""), "sleep": ("failed", "not loaded"), "aim": ("failed", "not loaded"),
         "climb": ("failed", "interrupted"), "bandage": ("rejected", "none held"), "rip": ("rejected", "none held"),
         "wash": ("rejected", "none held"), "fill": ("rejected", "none held"), "wear": ("rejected", "none held"),
-        "window": ("failed", "interrupted"), "unwear": ("rejected", "none held")}
+        "window": ("failed", "interrupted"), "unwear": ("rejected", "none held"), "shove": ("failed", "not loaded"),
+        "stomp": ("rejected", "not valid")}
 
 
 def test_the_bare_table_covers_every_skill_case():
@@ -287,14 +291,14 @@ def test_s_frame_on_a_raising_player_returns_a_frame_and_names_the_missing():
 # aim walks its vector through the auto-walk, which needs Vector2 (not loaded); climb needs ISClimbOverFence; the care
 # skills need ISApplyBandage, OnNewCraft, ISWashClothing and ISTakeWaterAction, and wear ISWearClothing; window's open needs ISOpenCloseWindow (PZA/1.6)
 # PZA/1.7: the full player's jacket is not worn, so unwear is refused not worn before it needs ISUnequipAction (test_lua_pza17
-# fails it not loaded on a worn one)
+# fails it not loaded on a worn one); shove finds no setDoShove, stomp's zombie stands (not valid)
 ABSENT = {"walkTo": ("failed", "no path"), "steer": ("failed", "not loaded"), "open": ("failed", "not loaded"),
           "loot": ("failed", "not loaded"), "equip": ("failed", "not loaded"), "eat": ("failed", "not loaded"),
           "drink": ("failed", "not loaded"), "drop": ("failed", "not loaded"), "stop": ("done", ""),
           "sleep": ("failed", "interrupted"), "aim": ("failed", "not loaded"), "climb": ("failed", "not loaded"),
           "bandage": ("failed", "not loaded"), "rip": ("failed", "not loaded"), "wash": ("failed", "not loaded"),
           "fill": ("failed", "not loaded"), "wear": ("failed", "not loaded"), "window": ("failed", "not loaded"),
-          "unwear": ("rejected", "not worn")}
+          "unwear": ("rejected", "not worn"), "shove": ("failed", "not loaded"), "stomp": ("rejected", "not valid")}
 
 
 @pytest.mark.parametrize("case", SKILL_CASES)

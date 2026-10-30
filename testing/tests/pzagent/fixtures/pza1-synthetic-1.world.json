@@ -173,7 +173,9 @@
    "fill",
    "wear",
    "window",
-   "unwear"
+   "unwear",
+   "shove",
+   "stomp"
   ],
   "kind": "hello",
   "mod": "fake",

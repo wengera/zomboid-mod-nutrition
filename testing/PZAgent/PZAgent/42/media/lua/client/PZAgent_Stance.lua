@@ -602,3 +602,206 @@ K.types.window = {
         return shutTick(p, st, now)
     end,
 }
+
+-- ---- shove {targetId} and stomp {targetId} (PZA/1.7, Task 9 fix 11; jar-reads-2 section 12, rows #4372-#4374) -------------
+-- A shove is an attack with the player's shove flag set: p:setDoShove(true) then p:DoAttack(0), the pair vanilla's shove key
+-- sets and presses (IsoPlayer.updateInternal2 @2288-@2376 L2701-L2712, DoAttack in place of AttemptAttack). CombatManager.
+-- calculateAttackVars makes the swing a bare-handed shove whatever is held (aimAtFloor false) and, with only a prone target
+-- nearest (a shove: under 0.6 tiles) and the client option autoProneAtk (created true), aims it at the floor: the stomp. A
+-- shove does no damage and knocks the zombie down with the critical chance (35 + 2 x Strength - 5 per endurance and heavy-load
+-- level - 1.3 per panic level in 100); the flag lives until SwipeStatePlayer.exit sets setDoShove(false) (L488).
+-- shove: check: targetId a number (bad args), a live zombie of the last frame's list (K.zombieById: no target), within
+-- SHOVE_R tiles (too far: the shove's own reach, calcHitListShove, is not read, so 1.5 is a bound), the player not in a hit
+-- reaction or a swing (K.attackBusy: busy). The first tick: the run latches off, faceThisObject(z), setDoShove(true), DoAttack(0)
+-- (index-checked first: not loaded; a raise inside either is the swing not made). Then, as attack does, isAttackStarted read
+-- until it has read true and then false, or SWING_MS after the swing; one frame later done {knockdown (the target's isOnFloor()
+-- then), attackStarted, targetDead}. A target that moved beyond SHOVE_R before the first tick fails too far; one dead before it
+-- is done. stomp: check: as shove's, but the target must read isOnFloor() (not valid) and no standing zombie (any other
+-- listed zombie of the last frame not on the floor) may stand within the weapon's MinRange of the player (STAND_R when none is
+-- held or the member is absent): standing; the call would shove that one. The first ticks walk to under STOMP_R tiles of the
+-- target by the auto-walk (setAutoWalk, setAutoWalkDirection toward it, at a walk; STOMP_APPROACH_MS of wall time, else out of
+-- reach), the standing check again at the swing, then the pair of calls as shove does. Done {hit (the target dead, or its health
+-- lower than at the swing), attackStarted, targetDead}. Both: the shove flag is cleared at every end when no attack is
+-- running (the engine's exit clears it after a started swing; a swing the engine dropped would leave it set and turn the
+-- next weapon swing into a shove). A stance held when either starts is released by K.start's wrapper above, as for any
+-- skill but attack and aim.
+K.SHOVE_R = 1.5               -- tiles: a target farther than this is too far for a shove
+K.STOMP_R = 0.5               -- tiles: the stomp walks to under this
+K.STAND_R = 0.6               -- tiles: a standing zombie within this takes the shove when no weapon names its MinRange
+K.STOMP_APPROACH_MS = 4000    -- the stomp's walk to the fallen zombie, wall time
+
+-- true when the engine's shove pair is present on the player (index-checked: not loaded otherwise)
+local function shoveLoaded(p)
+    return PZA.field(p, "setDoShove") and PZA.field(p, "DoAttack")
+end
+
+-- the shove flag cleared unless an attack runs (its state's exit clears the flag; clearing it mid-swing would turn the hit
+-- the animation delivers into a weapon swing's)
+local function releaseShove(p)
+    local _, started = PZA.call(p, "isAttackStarted")
+    if started ~= true then pcall(PZA.call, p, "setDoShove", false) end
+end
+
+-- the shove pair: the run latches off, the facing, the flag, the attack
+local function swingStart(p, st)
+    MO.want("walk")
+    PZA.call(p, "setForceRun", false)
+    PZA.call(p, "setForceSprint", false)
+    PZA.call(p, "faceThisObject", st.z)
+    pcall(PZA.call, p, "setDoShove", true)
+    pcall(PZA.call, p, "DoAttack", 0)
+    st.swungAt = PZA.now()
+end
+
+-- one tick after the swing: nil while it runs; once it ended (attackStarted read true then false, or SWING_MS, or the target
+-- dead) one more tick passes, then true
+local function swingEnded(p, st)
+    if st.ended then return true end
+    local _, started = PZA.call(p, "isAttackStarted")
+    if started == true then
+        st.started = true
+    elseif st.started then
+        st.ended = true
+        return nil
+    end
+    if K.zombieDead(st.z) or PZA.now() - st.swungAt >= K.SWING_MS then st.ended = true end
+    return nil
+end
+
+-- the check shared by shove and stomp: the target's state or the refusal reason, and the target's distance
+local function swingCheck(args, p)
+    local id = args.targetId
+    if type(id) ~= "number" then return nil, "bad args" end
+    local z = K.zombieById(p, id)
+    if z == nil or K.zombieDead(z) then return nil, "no target" end
+    local d = K.zombieDist(p, z)
+    if d == nil or d > K.ATTACK_R then return nil, "no target" end
+    return { id = id, z = z, started = false, ended = false, swungAt = nil }, nil, d
+end
+
+local function onFloor(z)
+    local _, v = PZA.call(z, "isOnFloor")
+    return v == true
+end
+
+local function shoveResult(st)
+    return { knockdown = onFloor(st.z), attackStarted = st.started, targetDead = K.zombieDead(st.z) }
+end
+
+K.types.shove = {
+    check = function(args, p)
+        local st, why, d = swingCheck(args, p)
+        if st == nil then return false, why end
+        if d > K.SHOVE_R then return false, "too far" end
+        if K.attackBusy ~= nil and K.attackBusy(p) then return false, "busy" end
+        return true, "", st
+    end,
+    tick = function(p, st)
+        if isDead(p) then return "failed", "dead" end
+        if st.swungAt == nil then
+            if not shoveLoaded(p) then return "failed", "not loaded" end
+            if K.zombieDead(st.z) then return "done", shoveResult(st) end
+            local d = K.zombieDist(p, st.z)
+            if d == nil or d > K.SHOVE_R then return "failed", "too far" end
+            swingStart(p, st)
+            return nil
+        end
+        if swingEnded(p, st) then
+            releaseShove(p)
+            return "done", shoveResult(st)
+        end
+        return nil
+    end,
+    stop = function(p, st, reason)
+        if st.swungAt ~= nil then releaseShove(p) end
+    end,
+}
+
+-- the standing zombie within r of the player, or nil: any other zombie of the last frame's listing (Sense's S.zobj) alive and
+-- not on the floor
+local function standingNear(p, st, r)
+    local S = PZA.sense
+    local objs = S ~= nil and S.zobj or nil
+    if objs == nil then return nil end
+    for id, z in pairs(objs) do
+        if id ~= st.id and not K.zombieDead(z) and not onFloor(z) then
+            local d = K.zombieDist(p, z)
+            if d ~= nil and d < r then return z end
+        end
+    end
+    return nil
+end
+
+-- the radius within which a standing zombie takes the call: the held weapon's MinRange, else STAND_R
+local function standRadius(p)
+    local _, w = PZA.call(p, "getPrimaryHandItem")
+    local ok, r = PZA.call(w, "getMinRange")
+    if ok and type(r) == "number" then return r end
+    return K.STAND_R
+end
+
+-- the walk toward the fallen zombie by the auto-walk: nil while it runs, else the failure reason
+local function stompWalk(p, st)
+    if st.walkAt == nil then
+        if Vector2 == nil or Vector2.new == nil then return "not loaded" end
+        if not PZA.field(p, "setAutoWalk") or not PZA.field(p, "setAutoWalkDirection") then return "not loaded" end
+        clearQueue(p)
+        st.walkAt = PZA.now()
+        MO.want("walk")
+    end
+    if PZA.now() - st.walkAt >= K.STOMP_APPROACH_MS then return "out of reach" end
+    local zx, zy = posOf(st.z)
+    local px, py = posOf(p)
+    if zx == nil or px == nil then return "out of reach" end
+    local ix, iy = K.inputVector(zx - px, zy - py)
+    PZA.call(p, "setAutoWalk", true)
+    PZA.call(p, "setAutoWalkDirection", Vector2.new(ix, iy))
+    return nil
+end
+
+local function stompResult(st)
+    local dead = K.zombieDead(st.z)
+    local _, h = PZA.call(st.z, "getHealth")
+    local hit = dead or (type(h) == "number" and type(st.health0) == "number" and h < st.health0)
+    return { hit = hit, attackStarted = st.started, targetDead = dead }
+end
+
+K.types.stomp = {
+    check = function(args, p)
+        local st, why = swingCheck(args, p)
+        if st == nil then return false, why end
+        if not onFloor(st.z) then return false, "not valid" end
+        if standingNear(p, st, standRadius(p)) ~= nil then return false, "standing" end
+        if K.attackBusy ~= nil and K.attackBusy(p) then return false, "busy" end
+        st.walkAt = nil
+        return true, "", st
+    end,
+    tick = function(p, st)
+        if isDead(p) then return "failed", "dead" end
+        if st.swungAt == nil then
+            if not shoveLoaded(p) then return "failed", "not loaded" end
+            if K.zombieDead(st.z) then return "done", stompResult(st) end
+            local d = K.zombieDist(p, st.z)
+            if d == nil then return "failed", "out of reach" end
+            if d >= K.STOMP_R then
+                local why = stompWalk(p, st)
+                if why ~= nil then return "failed", why end
+                return nil
+            end
+            if standingNear(p, st, standRadius(p)) ~= nil then return "failed", "standing" end
+            PZA.call(p, "setAutoWalk", false)
+            local _, h = PZA.call(st.z, "getHealth")
+            st.health0 = h
+            swingStart(p, st)
+            return nil
+        end
+        if swingEnded(p, st) then
+            releaseShove(p)
+            return "done", stompResult(st)
+        end
+        return nil
+    end,
+    stop = function(p, st, reason)
+        if st.swungAt ~= nil then releaseShove(p) end
+    end,
+}
