@@ -52,9 +52,24 @@ def fix1_off(sv):
     `Survive.STANCE_LISTED` (the stance's count of the standing held within DANGER_R or chasing). The fix's other
     rules read what no record carries (`onFloor`, `armPain`, a part's `bleeding`, a `many` shelter at a door: the
     doorway's post, its ends and its walk back, FINISH_R, the care tick's drag exclusion) or move nothing (the
-    `solidTrans` reads of the ride and the reposition: `test_fix_1_moves_f1_and_the_sixth_at_r2_and_no_other_golden`)."""
+    `solidTrans` reads of the ride and the reposition: `test_fix_1_moves_f1_and_the_sixth_at_r2_and_no_other_golden`).
+    Task 36: iteration 12's switches (`pre_t36`) off with them."""
     sv.HOLD_WIDE = False
     sv.STANCE_LISTED = False
+    pre_t36(sv)
+
+
+# Plan 24 Task 36 (survival iteration 12): the switches of the rules that move a golden
+T36_SWITCHES = ("EDGE",)
+
+
+def pre_t36(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 24 Task 36 (survival iteration 12): its golden movers off
+    (`T36_SWITCHES`: `Survive.EDGE`, P24-AU's edge hold), but those named in `keep`. P24-AT reads what no record
+    carries (`body.strain`, `body.armPain`: `test_no_record_carries_a_pza1_7_read`), so it has no switch."""
+    for name in T36_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
 
 
 # ---------------------------------------------------------------- the rules before P24-X (Plan 24 Task 18)
@@ -1030,6 +1045,7 @@ def _one_off(name, fix1=True):
     def m(sv):
         if fix1:
             fix1_off(sv)
+        pre_t36(sv)   # Task 36: iteration 12's switches off in every seam onto an earlier rule
         setattr(sv, name, False)
     return m
 
@@ -1158,13 +1174,12 @@ def test_fix_1_moves_f1_and_the_sixth_at_r2_and_no_other_golden(key):
     reading (`test_survive_o`). E2, E3, E4 and E5 are unmoved: E4's endurance hold met its zombies within KEEP_R only
     in corners, which swung before. HOLD_WIDE alone off reproduces Task 32's file; STANCE_LISTED alone off moves
     nothing."""
-    base, got = t32_gold(key), gold(key)
+    base, got = t32_gold(key), pre_t36_gold(key)   # named change, Task 36: the goldens as fix 1 recorded them
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     assert _one_off_gold(key, "STANCE_LISTED", False) == got
     if key not in FIRST_FIX1:
         assert diff == []
-        with open(R.golden_path(key), "rb") as f:
-            assert hashlib.sha256(f.read()).hexdigest() == PRE_FIX1[key][0]
+        assert PRE_T36[key][0] == PRE_FIX1[key][0]
         return
     line, switch = FIRST_FIX1[key]
     assert diff[0] == line
@@ -1174,3 +1189,72 @@ def test_fix_1_moves_f1_and_the_sixth_at_r2_and_no_other_golden(key):
     assert P.ENDURANCE_T < b["why"]["strain"]["endurance"] <= P.ENDURANCE_RELEASE
     assert g["why"]["corner_kind"] == "walk" and g["why"]["cornered"] == 15921 and g["why"]["dist"] <= P.KEEP_R
     assert g["action"] == {"type": "attack", "args": {"targetId": 15921}}
+
+
+# ================================================================ Plan 24 Task 36: iteration 12 on the goldens
+@functools.lru_cache(maxsize=6)
+def _pre_t36_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t36), sort_keys=True)
+
+
+def pre_t36_gold(key):
+    """{line: decision} of the replay with iteration 12's switches off: the golden before Task 36's re-records."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_t36_replayed(key)))}
+
+
+@functools.lru_cache(maxsize=12)
+def _only_t36(key, switch):
+    """{line: decision} of the replay with iteration 12's switches off but `switch`."""
+    return {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                         mutate=lambda sv: pre_t36(sv, keep=(switch,))))}
+
+
+# the six goldens as they stood before Task 36 (Task 32 fix 2's HEAD, `6f13037c`): sha256, base, recorded
+PRE_T36 = {"e2": ("ce339594d3cc5a0715468423bd5a2c60ab2421a7a52dd99342c390127e0c7d06", "9abc5037", "2026-10-29"),
+           "e3": ("51822032e67a4c7c76cc5ddbd0e426357c13596d70db4b904f57980988de9eaf", "9abc5037", "2026-10-29"),
+           "e4": ("dd93ec28b348a9238be69f2ed3e711d22aabfbdac486d2938d7218b528a572c9", "434543ac", "2026-10-30"),
+           "e5": ("ce0bc741b43c2b87a2f92edd80e2710cea0cb5d3ac42bbd5322ba5a1d9f28f53", "9abc5037", "2026-10-29"),
+           "f1": ("be1666e039724549a5fddf9c920dae65910388c0e836457479c8dd1916dacb06", "7eac71ab", "2026-10-30"),
+           SIXTH: ("d93a2b607209fd416aa859c43d4fd665f3e16463535a60682e8f8c171565ec5a", "7eac71ab", "2026-10-30")}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_T36))
+def test_with_iteration_12_off_the_goldens_are_task_32_fix_2_s(key):
+    """Iteration 12's golden movers are `T36_SWITCHES`: with them off every golden is the file as it stood before Task
+    36 byte for byte (its sha256 pinned), so the pure move (`5bfbfff7`) and the rules without a switch move none."""
+    sha, base, recorded = PRE_T36[key]
+    text = R.golden_text(R.decisions(json.loads(_pre_t36_replayed(key))), base, R.RUNS[key], recorded,
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+
+
+# the first line each iteration-12 switch moves, alone on, on each golden it moves
+FIRST_T36 = {SIXTH: {"EDGE": 361}}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_T36))
+def test_iteration_12_moves_each_golden_first_at_its_switch_s_line(key):
+    """Task 36's attribution, each switch alone on against the goldens before Task 36 (`pre_t36_gold`):
+    - EDGE (P24-AU) moves the sixth alone, at line 361 (game minute 610) and no other: the pull on 15885 (sent at
+      358, 7.93 tiles, the group's centroid (10734.5, 10624.66)) reads the chaser at 4.30 tiles, within PULL_R; the
+      group had left the listing, so before the edge hold the pull's end read no group and the seek leg went toward
+      the chaser (`seek`), where now the group is held at its last listed squares and the pull's end stands
+      (`stand`); from 362 the lines are the old ones (the backpedal at 2.05 tiles).
+    A golden no switch moves is the file before Task 36 byte for byte."""
+    base, got = pre_t36_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    if key not in FIRST_T36:
+        assert diff == []
+        with open(R.golden_path(key), "rb") as f:
+            assert hashlib.sha256(f.read()).hexdigest() == PRE_T36[key][0]
+        return
+    assert diff[0] == min(FIRST_T36[key].values())
+    for switch in T36_SWITCHES:
+        alone = _only_t36(key, switch)
+        moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
+        assert (moved[0] if moved else None) == FIRST_T36[key].get(switch), switch
+    if key == SIXTH:
+        b, g = base[361]["why"], got[361]["why"]
+        assert b["leg"] == "seek" and g["leg"] == "stand" and b["target"] == g["target"] == 15885
+        assert P.KEEP_R < g["dist"] <= P.PULL_R and got[361]["action"]["args"]["vx"] == 0.0
+        assert base[358]["why"]["leg"] == "pull" and got[362] == base[362] and got[362]["why"]["leg"] == "back"

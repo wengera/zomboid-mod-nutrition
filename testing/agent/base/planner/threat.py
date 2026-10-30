@@ -12,12 +12,12 @@ from agent.base.planner.care import (CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, FLEE
 from agent.base.planner.doorway import DOOR_HOLD_S, Doorway, off_post, standing, stand_ready
 from agent.base.planner.fight import Fight
 from agent.base.planner.flee import Flee
-from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, ENDURANCE_RELEASE,
-                                         ENDURANCE_T, ENGAGE_R, FIGHT_REACH, KEEP_R, LISTED_R, POINT_BLANK_R,
-                                         PREEMPTED, STAND_MIN_R, STIFF_HARD, STIFF_SOFT, STRAIN_HARD, TIRED_FIGHT_T,
-                                         UNREACHABLE_S, adoptable, arm_pain, arm_stiffness, arms_hurt, blocked, chasing,
-                                         exit_plan, in_building, in_reach, line_to, on_floor, others_behind, pull_from,
-                                         running, seek_allowed, spare, target_id_ok, zdist)
+from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, EDGE_HOLD_TICKS,
+                                         ENDURANCE_RELEASE, ENDURANCE_T, ENGAGE_R, FIGHT_REACH, KEEP_R, LISTED_R,
+                                         POINT_BLANK_R, PREEMPTED, STAND_MIN_R, STIFF_HARD, STIFF_SOFT, STRAIN_HARD,
+                                         TIRED_FIGHT_T, UNREACHABLE_S, adoptable, arm_pain, arm_stiffness, arms_hurt,
+                                         blocked, chasing, exit_plan, in_building, in_reach, line_to, on_floor,
+                                         others_behind, pull_from, running, seek_allowed, spare, target_id_ok, zdist)
 from agent.base.pza1 import Attack, Drop, Stomp
 from agent.base.world import me_floor, me_xy
 
@@ -86,6 +86,8 @@ class Threat:
     STANCE_LISTED = True  # Task 32 fix 1, the review's major 6: the stance counts the held zombies standing and
                           # within DANGER_R or chasing (`_stance_count`); off, every held one. Both switches are in
                           # the replay tests' seam onto the rules before Task 32 (`pre_an`)
+    EDGE = True     # ruling P24-AU: a zombie that left the listing is held in the Fight's pull reads EDGE_HOLD_TICKS
+                    # ticks (`policies.Fight.edge_ticks`); off, 0 (the replay tests' seam onto the rule before it)
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -932,6 +934,7 @@ class Threat:
             policy.avoid = self.avoid                 # ... nor at a zombie no engage reaches (major 2)
             policy.ride = self.care.riding()   # P24-U: the stance legs held off while a bandage rides
             policy.threats = held
+            policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             ans = self._answer(policy)
         self.why.update({"fight": True} if reason is None else {"flee": reason})
         if reason == "strain" or self.corner_yield == "strain":

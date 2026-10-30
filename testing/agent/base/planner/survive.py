@@ -272,6 +272,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   308 of 580 threat lines and never released), and the arm pain its own reason, `wounded` (`self.wound`, logged
   `pain`): at STRAIN_HARD no swing (`policies.arms_hurt`), a lone target still sought (`_lone`), groups fled as
   today.
+  P24-AU, the listing-edge flip (`policies.Fight._observe_edge`, `edge`: a zombie that leaves the listing, beyond
+  LISTED_R, is held in the pull's reads at its last listed square for EDGE_HOLD_TICKS planner ticks, logged `edge` on
+  the pull leg; E10's run 4 flipped seek and pull on seven aims as its group came and went at the edge). `EDGE` is
+  the replay tests' seam (`test_replay_decisions.pre_t36`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already

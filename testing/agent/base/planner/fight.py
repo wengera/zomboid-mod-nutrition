@@ -99,12 +99,17 @@ one table the gates and the other policies import).
   refuse a `solidTrans` square (the policy's `trans`, Survive's TRANS switch); the fight's line of sight does not.
   The doorway stand's Fight is `planner/doorway.py`'s `Doorway`; the Flee keeps its stand plan (`stand_ok`, the
   pick's `stand`, the enter's end read `stand`, `standing_door`, `closing_stand`).
+  Survival 13 (survival iteration 12; Plan 24 Task 36; survive.py's docstring the record): P24-AU, the listing-edge
+  hold (`_observe_edge`): a zombie that leaves the listing (beyond LISTED_R) is kept in `edge` at its last listed
+  record for `edge_ticks` observes (EDGE_HOLD_TICKS; Survive's EDGE switch), and the pull's group reads it there
+  (`pull_centroid`, `policies.pull_from`'s `edge`), so the leg does not flip between `pull` and `seek` each tick.
 """
 import math
 import time
 
-from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, ENGAGE_R,
-                                         FIGHT_MAX_S, FIGHT_REACH, KEEP_MARGIN, KEEP_R, KNOCK_READ_S,
+from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R,
+                                         EDGE_HOLD_TICKS, ENGAGE_R, FIGHT_MAX_S, FIGHT_REACH, KEEP_MARGIN, KEEP_R,
+                                         KNOCK_READ_S, LISTED_R,
                                          MISSES_TO_APPROACH, NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R,
                                          REPIN_MARGIN, REPOSITION_MIN, REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R,
                                          SHOVE_R, STALL_SWINGS, STAND_MAX_S, STAND_MIN_R, STEER_PROBE, STEER_TURNS,
@@ -166,6 +171,9 @@ class Fight(Policy):
         self._pulled = None                 # the zombie id the last pull leg was sent at (P24-AN)
         self.doorway = None                 # the building a doorway stand holds (`planner.doorway.Doorway`), else None
         self.spent = ()                     # Survive sets it each tick: the holds read (ruling R2), no swing under any
+        self.edge_ticks = EDGE_HOLD_TICKS   # Survive sets it each tick (its EDGE switch; 0 the rule before P24-AU)
+        self.edge = {}                      # zombie id -> [ticks unlisted, its record at its last listed square]
+        self._listed = {}                   # zombie id -> its record, of the zombies within LISTED_R at the last observe
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -330,7 +338,8 @@ class Fight(Policy):
         zombies read dead left out), while `pull` is set and the stance applies to it; else None."""
         if not self.pull or t is None or not self.stance_at(t[2]):
             return None
-        return pull_from(self.world, t, blocked(self.dead, self.clock()), reach)
+        return pull_from(self.world, t, blocked(self.dead, self.clock()), reach,
+                         {zid: rec for zid, (_, rec) in self.edge.items()})
 
     def _pull_pin(self):
         """Ruling P24-AN: with nothing pinned, the one zombie chasing within ENGAGE_R is pinned when the pull applies to
@@ -502,7 +511,28 @@ class Fight(Policy):
             if zid == self.target:
                 self._unpin()
 
+    def _observe_edge(self):
+        """Ruling P24-AU, the listing-edge flip (E10's run 4, lines 234-245: two idle zombies 11.51 to 11.86 tiles off
+        listed on every `pull` line and not on every `seek` line between, so the leg flipped each tick and seven aims
+        were superseded): a zombie listed within LISTED_R at the last observe and beyond it (or gone from the World)
+        now is held in `edge` at its last listed record for `edge_ticks` observes (EDGE_HOLD_TICKS, one a planner
+        tick), the pull's group reading it there (`pull_centroid`); back within LISTED_R, or past the ticks, it is
+        read as the World holds it. The target itself is never lost at the edge (its pin drops at DISENGAGE_R, the
+        World keeps a zombie ZOMBIE_TTL_S after its last frame), so the edge is read on the group the leg is decided
+        by."""
+        now = {zid: z for zid, z in self.world.zombies.items() if z.get("x") is not None and z.get("y") is not None
+               and zdist(self.world, z) <= LISTED_R}
+        for zid in list(self.edge):
+            self.edge[zid][0] += 1
+            if zid in now or self.edge[zid][0] > self.edge_ticks:
+                del self.edge[zid]
+        for zid, rec in self._listed.items():
+            if zid not in now and zid not in self.edge and self.edge_ticks > 0:
+                self.edge[zid] = [1, rec]
+        self._listed = {zid: dict(z) for zid, z in now.items()}
+
     def observe(self):
+        self._observe_edge()
         self._observe_kill()
         self._observe_leg()
         t = self._target(pin=False)
@@ -825,6 +855,8 @@ class Fight(Policy):
             c = self.pull_centroid(t)
             v = self._clear_turn(away_vector(self.world, [c]))
             self.why["pull"] = [c[0], c[1]]
+            if self.edge:
+                self.why["edge"] = sorted(self.edge, key=repr)   # P24-AU: the group read held at the listing's edge
         vx, vy = v if v is not None else (0.0, 0.0)
         self.why.update({"stance": True, "leg": kind, "back": [vx, vy] if kind == "back" and v is not None else None,
                          "stand_s": self.stand_s()})

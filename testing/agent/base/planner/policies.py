@@ -181,6 +181,9 @@ KNOCK_READ_S = 2.0    # wall seconds a shove's `knockdown` true reads its target
                       # follows about a second later; a judgment, two of those), so the stomp follows the shove at once
 PULL_R = FIGHT_REACH + KEEP_R   # tiles: the pull of a lone chaser ends, the stance taken, once it is this near (ruling
                       # P24-AN: "until the chaser alone is within FIGHT_REACH + KEEP_R"; 4.5)
+EDGE_HOLD_TICKS = 6   # planner ticks a zombie that left the listing (beyond LISTED_R, AIM_R's 12) is held in the seek's
+                      # and the pull's reads at its last listed square (ruling P24-AU: 3 s at the drivers' PLANNER_HZ 2;
+                      # E10's run 4 flipped seek, pull, seek seven aims running as a group at the edge came and went)
 
 
 def place_of(world):
@@ -363,22 +366,26 @@ def on_floor(z):
     return z.get("onFloor") is True
 
 
-def pull_from(world, t, skip=(), reach=ENGAGE_R):
+def pull_from(world, t, skip=(), reach=ENGAGE_R, edge=None):
     """Ruling P24-AN, the pull (the guides notes § 9 change 8: draw one from a group by walking away, then fight it
     alone; E9 dropped six fights for a chaser 10.74 to 11.90 tiles behind the target, the look behind's `held`): the
     centroid (x, y) of the other zombies listed within LISTED_R when target `t` (id, zombie, dist) chases the player
     (`hasTarget`) within `reach` (ENGAGE_R; a chaser already pulled is kept to DISENGAGE_R: `Fight.seeking`), no other
     zombie chases within ENGAGE_R (one chaser), every other listed zombie stands beyond DANGER_R and at least one is
-    listed; else None. The ids in `skip` (read dead) are no zombies."""
+    listed; else None. The ids in `skip` (read dead) are no zombies. Ruling P24-AU: `edge` ({id: its record at its last
+    listed square}, `Fight.edge`) are zombies that left the listing within EDGE_HOLD_TICKS: each counts as listed, read
+    at that square, whatever the World holds of it now."""
     zid, z, d = t
     if not chasing(z) or d > reach:
         return None
+    edge = edge or {}
     xs, ys = [], []
-    for oid, o in world.zombies.items():
+    for oid, o in list(world.zombies.items()) + [(i, rec) for i, rec in edge.items() if i not in world.zombies]:
+        o = edge.get(oid, o)
         if oid == zid or oid in skip or o.get("x") is None or o.get("y") is None:
             continue
         od = zdist(world, o)
-        if od > LISTED_R:
+        if od > LISTED_R and oid not in edge:
             continue
         if od <= DANGER_R or (od <= ENGAGE_R and chasing(o)):
             return None
