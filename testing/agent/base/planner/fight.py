@@ -663,10 +663,13 @@ class Fight(Policy):
         """Ruling P24-AV: a zombie a shove knocked down within KNOCK_READ_S (its `knockdown` read at the hit), within
         FIGHT_REACH on a line not read blocked, that no frame reads `onFloor` yet: the Fight sends nothing (`(None,)`,
         logged `knocked`) until the first frame reads it fallen (the stomp then) or KNOCK_READ_S passes (read standing
-        again); else None."""
+        again), unless another standing zombie is within KEEP_R (the Fight answers it as before the wait: Task 36
+        fix 1, minor 1); else None."""
         k = self._downed(knocked=True)
         if not k:
             return None
+        if self._standing_near(KEEP_R, [e[0] for e in k]) is not None:
+            return None   # Task 36 fix 1, minor 1: a standing zombie at point blank is the Fight's to answer, not waited past
         zid, _, d = k[0]
         self.why = {"target": self.target, "pinned": self.target is not None, "dist": d, "knocked": zid}
         return (None,)

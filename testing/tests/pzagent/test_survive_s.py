@@ -27,7 +27,7 @@ from agent.base.planner import survive as S
 from agent.base.planner import threat as T
 
 from .test_policies import all_sends_valid, square
-from .test_survive import last, make, threat_why, tick
+from .test_survive import decisions, last, make, threat_why, tick
 from .test_survive_q import fr, z
 
 
@@ -258,6 +258,15 @@ def test_a_knocked_down_target_is_stomped_on_the_first_frame_that_reads_it_falle
     assert (a.type, a.args) == ("stomp", {"targetId": 1}) and f.why["downed"] == 1
 
 
+def test_a_knock_wait_yields_to_a_standing_zombie_at_point_blank(tmp_path):
+    """Task 36 fix 1, minor 1: the knock-down unread on the floor and another zombie standing at 0.4 tiles: the Fight
+    sends its own answer (a shove or a backpedal, as before the wait), never nothing, and logs no `knocked`."""
+    r, f, mfr, mz = knock_fight(tmp_path)
+    mfr(r, [mz(1, 100.8), mz(2, 100.4)], 12.0)
+    a = f.step()
+    assert a is not None and "knocked" not in f.why and a.type in ("shove", "steer", "attack")
+
+
 def test_a_knock_down_never_read_on_the_floor_ends_its_hold_after_knock_read_s(tmp_path):
     """Past KNOCK_READ_S with no frame reading it fallen the zombie is read standing again: the shove."""
     r, f, mfr, mz = knock_fight(tmp_path)
@@ -310,6 +319,22 @@ def test_e9_s_line_334_geometry_a_chaser_within_keep_r_of_the_target_refuses_the
     (tmp_path / "idle").mkdir()
     r2, sv2, a2 = chaser_by(tmp_path / "idle", 104.62, z(5, 106.49, 200.6, has_target=False))
     assert (a2.type, a2.args) == ("stomp", {"targetId": 1})
+
+
+def test_finish_block_is_this_tick_s_only_never_logged_stale_on_a_later_line(tmp_path):
+    """Task 36 fix 1, major 1: a refused finish logs `finish_block`; the next lines (no zombie, then a lone one at 7
+    tiles, a fight line) carry none."""
+    r, sv, a = chaser_by(tmp_path, 104.62, z(5, 106.49, 200.6))
+    assert "finish_block" in threat_why(tmp_path)
+    n = len(decisions(tmp_path))
+    r.advance(30.0)
+    fr(r, [])
+    tick(r, sv)
+    fr(r, [z(9, 107.0, 200.0)])
+    tick(r, sv)
+    later = decisions(tmp_path)[n:]
+    assert later[-1]["branch"] == "threat" and later[-1]["inputs"]["branches"]["threat"]["fight"] is True
+    assert all("finish_block" not in d["inputs"]["branches"].get("threat", {}) for d in later)
 
 
 def test_a_fallen_target_with_the_nearest_standing_four_tiles_off_it_is_finished(tmp_path):
@@ -371,11 +396,11 @@ def need_why(tmp_path):
 
 
 def test_the_fill_constants():
-    """FILL_WALK_R 20 (the ruling's) and FILL_NEAR_R 2; the loaded grid is the goal legs' (P24-AI, `goals.leg_max`:
+    """FILL_WALK_R 20 (the ruling's; the walk ends beside the source, `reachable_adjacent`); the loaded grid is the goal legs' (P24-AI, `goals.leg_max`:
     40 tiles at a width of 104, #4375)."""
     from agent.base.planner import goals as G
     from agent.base.planner import water as W
-    assert (W.FILL_WALK_R, W.FILL_NEAR_R) == (20.0, 2.0)
+    assert W.FILL_WALK_R == 20.0 and not hasattr(W, "FILL_NEAR_R")
     assert G.leg_max(type("Wd", (), {"loaded_width": 104})()) == 40.0
 
 
@@ -408,19 +433,37 @@ def test_a_loaded_source_beyond_fill_walk_r_takes_a_walk_beside_it_first_then_th
 
 
 @pytest.mark.parametrize("width,sources", [(104, [(160, 200)]), (104, [(141, 200)]), (None, [(160, 200)])])
-def test_a_source_beyond_the_loaded_grid_is_never_sent(tmp_path, width, sources):
+def test_a_source_beyond_the_loaded_grid_is_never_sent_but_walked_toward_in_a_leg(tmp_path, width, sources):
     """E10: 55 fills rejected `no source`, sent 60.04 to 159.03 tiles off. A source beyond the loaded grid (`leg_max`:
-    40 at width 104; LEG_MAX 40 with no width read) takes no fill and no walk: the want names `water_source`, logged
-    `unloaded` (the known clean sources out of the grid)."""
+    40 at width 104; LEG_MAX 40 with no width read) takes no fill; a source being known, the want is no `water_source`
+    (Task 36 fix 1, minor 3): the need walks a leg (`leg_max` less LEG_SQ_MARGIN, the goal legs' step) toward it, why
+    `unloaded` (the known clean sources out of the grid) and `walk`."""
     r, sv = fill_rig(tmp_path, sources, width=width)
-    for _ in range(3):
-        tick(r, sv)
-        r.frame(thirst=0.2)
-        if width is not None:
-            r.world.loaded_width = width
-    assert not any(a.type in ("fill", "walkTo") for a in r.acts.history)
+    a = tick(r, sv)
+    assert not any(x.type == "fill" for x in r.acts.history)
+    assert (a.type, a.args["gait"]) == ("walkTo", "walk") and a.args["x"] == pytest.approx(139.5, abs=0.5)
     w = need_why(tmp_path)["fill"]
-    assert w["want"] == "water_source" and w["unloaded"] == 1 and "water_source" in sv.need_marks
+    assert w["unloaded"] == 1 and "want" not in w and w["source"] == list(sources[0]) and w["walk"] == [a.args["x"], a.args["y"]]
+    assert "water_source" not in sv.need_marks
+
+
+def test_an_unloaded_source_is_not_a_water_source_want_in_the_view_and_the_walk_runs(tmp_path):
+    """The LLM view's `needs_wanted` names `water_source` only when no clean source is known: with one known beyond the
+    grid it does not, and the walk toward it is sent (held while it runs); with none known the want stands."""
+    from agent.base.planner.view import view
+    r, sv = fill_rig(tmp_path, [(160, 200)], width=104)
+    a = tick(r, sv)
+    assert a.type == "walkTo" and "water_source" not in view(r.world, sv)["needs_wanted"]
+    assert view(r.world, sv)["needs_wanted"] == []                         # a source is known: no want to tell the model
+    r.fake.answer({"walkTo": ["accepted"]})
+    r.pump()
+    r.frame(thirst=0.2)
+    r.world.loaded_width = 104
+    assert tick(r, sv) is None
+    (tmp_path / "none").mkdir()
+    r2, sv2 = fill_rig(tmp_path / "none", [], width=104)
+    tick(r2, sv2)
+    assert "water_source" in view(r2.world, sv2)["needs_wanted"]
 
 
 def test_the_nearest_loaded_source_is_taken_over_a_nearer_one_out_of_the_grid_on_the_other_axis(tmp_path):

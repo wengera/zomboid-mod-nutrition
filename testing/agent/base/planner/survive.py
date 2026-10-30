@@ -272,19 +272,19 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   308 of 580 threat lines and never released), and the arm pain its own reason, `wounded` (`self.wound`, logged
   `pain`): at STRAIN_HARD no swing (`policies.arms_hurt`), a lone target still sought (`_lone`), groups fled as
   today.
-  P24-AU, the listing-edge flip (`policies.Fight._observe_edge`, `edge`: a zombie that leaves the listing, beyond
+  P24-AU, the listing-edge flip (`fight.Fight._observe_edge`, `edge`: a zombie that leaves the listing, beyond
   LISTED_R, is held in the pull's reads at its last listed square for EDGE_HOLD_TICKS planner ticks, logged `edge` on
   the pull leg; E10's run 4 flipped seek and pull on seven aims as its group came and went at the edge). `EDGE` is
   the replay tests' seam (`test_replay_decisions.pre_t36`).
-  P24-AV, the stomp on the first fallen frame (`policies.Fight._finish`, `_knock_wait`: a shove's knock-down is
+  P24-AV, the stomp on the first fallen frame (`fight.Fight._finish`, `_knock_wait`: a shove's knock-down is
   waited on, KNOCK_READ_S, until a frame reads the target `onFloor`, never stomped before it, E10's a59 rejected `not
   valid`; a stomp failed `stood` reads the target again, one more stomp, then the floor strike, STOOD_STOMPS; the
   flee's finish likewise, `_flee_finish`'s "stomp2"), and the deferred minor 5 of review-t32-fix1: a chasing
   standing zombie within KEEP_R of the fallen target refuses the flee's finish (`_finish_chaser`, logged
   `finish_block`; E9's line 334 now refused for 7479).
-  P24-AW, the fill from a loaded source (`planner/water.py`'s docstring the record: `water.loaded`, FILL_WALK_R,
-  FILL_NEAR_R; a far loaded source walked to first, the need's why `fill` `walk`; one out of the client's grid never
-  sent, `unloaded`; E10's 55 fills rejected `no source` 60 to 159 tiles off).
+  P24-AW, the fill from a loaded source (`planner/water.py`'s docstring the record: `water.loaded`, FILL_WALK_R;
+  a far loaded source walked to first, the need's why `fill` `walk`; one out of the client's grid never sent but
+  walked toward in a leg, `unloaded` and `walk`, no `water_source` want (fix 1); E10's 55 fills rejected `no source` 60 to 159 tiles off).
   P24-AX, the doorway's trigger logged (`_doorway_pick`, after the Flee's answer: every `many` line's why
   `doorway_pick` names `ok` for a stand taken, else the first condition that failed, `unarmed`, `no_stance`,
   `standing`, `inside`, `no_door`, `locked`, `taken`, `picked` or `pending`; the doors read as the pick reads them,

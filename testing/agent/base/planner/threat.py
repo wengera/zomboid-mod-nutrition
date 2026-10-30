@@ -844,6 +844,7 @@ class Threat:
         count; then the yield to the care (`_care_yields`, P24-P), else the decision (`_decide`), which a corner's
         retarget may re-plan without them."""
         self.care_yield, self.care.ride_now, self.engaging, self.avoid = None, False, False, set()
+        self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
         self._read_spent()
         held = self._within(self._hold_r())
         sought = self._sought() if self.ENGAGE else None

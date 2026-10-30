@@ -27,16 +27,18 @@ third steps when no `water` item is held, which `survive.Survive._need` runs aft
   square beside it nearest the player (`World.reachable_adjacent`, else the source's own centre) goes first, the need
   holding while it runs, and the fill on the tick it is within FILL_WALK_R; a walk that failed (never one superseded)
   leaves its source out as a fill's walk failure does (`World.mark_dry`). A source beyond the grid is never sent: with
-  every clean source out of it the vessel is kept and the want names `water_source` (`why` `unloaded`, their count).
+  every clean source out of it the vessel is kept and the need walks a leg toward the nearest (`_leg_toward`: `why`
+  `unloaded`, their count, and `walk`; the want is no `water_source`, a source being known: Task 36 fix 1, minor 3).
 - `sent(action)` remembers the need's fill: its action, and the vessel's `item_changed` count at the send; or its walk
   to a source (`walk`).
 - `wants(marks, now)`: the goal layer's wants beside `water` (FILL_WANTS) on a tick the need found no water held: the
   one `why` names marked at `now`, the other dropped; `clear(marks)` drops both (a held drink found).
 """
+import math
 import time
 
 from agent.base.planner.care import DRY_REASONS
-from agent.base.planner.goals import leg_max
+from agent.base.planner.goals import LEG_SQ_MARGIN, leg_max
 from agent.base.planner.policies import PREEMPTED, STUCK_REASONS, centre, item_id_ok
 from agent.base.pza1 import Fill, WalkTo
 from agent.base.world import me_floor, me_xy
@@ -48,10 +50,8 @@ SOURCE_FAILS = DRY_REASONS + ("not adjacent",) + STUCK_REASONS   # a fill failed
                          # fix 1, minor 5: a walk to it that failed, as one refused for its water), as a timeout does
 FILL_WALK_R = 20.0       # tiles: the farthest source a `Fill` is sent to (ruling P24-AW, a judgment: the Lua's own walk
                          # next to it, no radius of its own); a loaded source farther off is walked to first
-FILL_NEAR_R = 2.0        # tiles: that walk ends beside the source (ruling P24-AW: "a walkTo leg to within 2 tiles"), on
-                         # the open square next to it nearest the player
 
-__all__ = ["Water", "FILL_SETTLE_S", "FILL_RETRY_MIN", "FILL_WANTS", "SOURCE_FAILS", "FILL_WALK_R", "FILL_NEAR_R",
+__all__ = ["Water", "FILL_SETTLE_S", "FILL_RETRY_MIN", "FILL_WANTS", "SOURCE_FAILS", "FILL_WALK_R",
            "loaded"]
 
 
@@ -137,8 +137,7 @@ class Water:
             return None
         near = [s for s in clean if loaded(self.world, s[1])]   # P24-AW: never a source the client holds no square of
         if not near:
-            self.why = {"vessel": min(vessels), "source": None, "want": "water_source", "unloaded": len(clean)}
-            return None
+            return self._leg_toward(clean[0], min(vessels), len(clean))
         d, sq, _ = near[0]
         self.why = {"vessel": min(vessels), "source": [sq[0], sq[1]], "dist": d}
         if d <= FILL_WALK_R:
@@ -147,6 +146,20 @@ class Water:
         to = beside[0] if beside else sq
         self.why["walk"] = [to[0], to[1]]
         return WalkTo(*centre(to), "walk")
+
+    def _leg_toward(self, src, vessel, n):
+        """Task 36 fix 1, minor 3: every clean source known lies beyond the loaded grid, so the want is no
+        `water_source` (a source is known): a `WalkTo` at a walk to the square `leg_max` - LEG_SQ_MARGIN tiles toward
+        the nearest one along the straight line (the goal legs' own step, `goals._Legs._leg_cmd`), the need holding
+        while it runs; `why` `unloaded` (their count) and `walk` carry it."""
+        d, sq, _ = src
+        mx, my = me_xy(self.world)
+        sx, sy = sq[0] + 0.5, sq[1] + 0.5
+        dist = math.hypot(sx - mx, sy - my)
+        k = (leg_max(self.world) - LEG_SQ_MARGIN) / dist if dist > 0 else 0.0
+        to = centre((mx + (sx - mx) * k, my + (sy - my) * k))
+        self.why = {"vessel": vessel, "source": [sq[0], sq[1]], "dist": d, "unloaded": n, "walk": [to[0], to[1]]}
+        return WalkTo(to[0], to[1], "walk")
 
     def sent(self, action):
         """Remember the need's fill: its action, and the vessel's `item_changed` count at the send (the settle's); or
