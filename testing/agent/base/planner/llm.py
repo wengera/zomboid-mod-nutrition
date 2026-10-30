@@ -87,7 +87,7 @@ import tempfile
 import threading
 import time
 
-from agent.base.planner.goal_prompt import strategy, system
+from agent.base.planner.goal_prompt import system
 from agent.base.planner.goals import WOODS_R, validate
 from agent.base.planner.view import render, shown_ids
 
@@ -95,7 +95,7 @@ LLM_TIMEOUT_S = 20.0          # P23-11: a call answering later than this is a fa
 EXPLORE_MAX_TILES = 60.0      # P23-V: a model's ExploreToward farther than this from the view's pos is refused
 PLACE_GOALS = ("LootBuilding", "Shelter")   # goals naming a building the view must list
 
-__all__ = ["LLMSource", "SYSTEM", "DEFAULT_CLI", "prompt", "strategy", "first_object", "model_of", "place_error", "LLM_TIMEOUT_S",
+__all__ = ["LLMSource", "SYSTEM", "DEFAULT_CLI", "prompt", "first_object", "model_of", "place_error", "LLM_TIMEOUT_S",
            "EXPLORE_MAX_TILES", "PLACE_GOALS"]
 
 

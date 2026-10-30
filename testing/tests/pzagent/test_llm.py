@@ -9,6 +9,7 @@ import pytest
 
 from agent.base.planner import llm as L
 from agent.base.planner import view as V
+from agent.base.planner.goal_prompt import strategy
 from agent.base.planner.goals import EXAMPLES, GoalRunner, GoalSource, LootBuilding, Rest, ScriptedSource, Shelter
 from agent.base.planner.llm import DEFAULT_CLI, SYSTEM, LLMSource
 from agent.base.planner.survive import Survive
@@ -534,10 +535,10 @@ def test_system_explains_attackers_hit_reaction_and_the_met_rules_threshold():
 # Each strategy line's own fragment, pinned here apart from the schema (a line dropped from `goals.json` fails).
 STRATEGY_PINS = (
     "Prefer the nearest building listed without L over farther ones",
-    "Want water and a vessel first",
-    "choose Shelter in a listed building",
-    "Avoid a building listed with zombies beside it",
-    "Keep the load light",
+    "The loot takes water and a vessel first",
+    "With tired true, or night true, choose Shelter in a listed building",
+    "Among buildings listed without L, prefer one with a lower z:",
+    "While load.level is 1 or more",
 )
 
 
@@ -546,9 +547,9 @@ def test_system_carries_the_five_strategy_lines_once_each_in_the_guides_order():
     assert starts == sorted(starts)
     for p in STRATEGY_PINS:
         assert SYSTEM.count(p) == 1, p
-    for e in L.strategy():
+    for e in strategy():
         assert SYSTEM.count(e["text"]) == 1, e["text"]
-    assert len(L.strategy()) == len(STRATEGY_PINS)
+    assert len(strategy()) == len(STRATEGY_PINS)
     assert SYSTEM.index("Strategy") > SYSTEM.index("- Rest:")          # its own paragraph after the goal types
 
 
@@ -564,13 +565,13 @@ def test_system_names_no_path_credential_or_planner_internal():
 
 
 def test_system_explains_the_wants_and_the_new_view_keys():
-    assert "want (string, one of weapon|bag)" in SYSTEM
+    assert "want (string, one of weapon)" in SYSTEM and "bag" not in SYSTEM.lower()   # no bag want until its loot filter
     assert "z:N" in SYSTEM and "tired is true" in SYSTEM and "night is true" in SYSTEM
     assert "then clothing, food, bandages and weapons" not in SYSTEM   # the old want order gave way to the strategy's
 
 
-@pytest.mark.parametrize("want", ["weapon", "bag"])
-def test_the_model_may_answer_a_loot_with_a_weapon_or_bag_want(want):
+@pytest.mark.parametrize("want", ["weapon"])
+def test_the_model_may_answer_a_loot_with_a_weapon_want(want):
     src, _, _ = make(answer='{"type": "LootBuilding", "building": 3, "want": "%s"}' % want)
     src.propose(a_view())
     settle(src)
@@ -578,6 +579,23 @@ def test_the_model_may_answer_a_loot_with_a_weapon_or_bag_want(want):
     assert isinstance(g, LootBuilding) and g.want == want and g.args() == {"building": 3, "want": want}
     assert src.calls[0]["error"] is None and src.calls[0]["goal"] == {"type": "LootBuilding", "building": 3,
                                                                        "want": want}
+
+
+def test_a_bag_want_is_refused_with_validates_one_line_reason():
+    src, _, _ = make(answer='{"type": "LootBuilding", "building": 3, "want": "bag"}')
+    src.propose(a_view())
+    settle(src)
+    assert isinstance(src.propose(a_view()), Rest)
+    err = src.calls[0]["error"]
+    assert err == "invalid: LootBuilding.want: 'bag' not in ['weapon']"
+
+
+def test_the_strategy_names_the_want_field_only_for_the_weapon_and_the_one_building_rule_has_its_tie_break():
+    lines = [e["text"] for e in strategy()]
+    assert "want weapon" in lines[1] and lines[1].count("want") == 1
+    assert "loot the nearest anyway" in lines[3] and "door faces away" in lines[3]
+    assert "tired true, or night true" in lines[2] and "needs.fatigue" not in lines[2]
+    assert lines[4] == "While load.level is 1 or more, prefer a building with z:0 over one with zombies beside it."
 
 
 def test_a_gun_want_is_refused_with_validates_one_line_reason():

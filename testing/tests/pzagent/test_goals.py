@@ -810,16 +810,27 @@ def test_the_schema_strategy_entries_each_name_a_page_and_a_view_key_render_emit
     assert {"buildings.zombies_near", "tired", "night", "weapon", "load.level"} <= reads
 
 
-def test_loot_building_takes_an_optional_want_of_weapon_or_bag():
+def test_loot_building_takes_an_optional_want_of_weapon():
     w = entry("LootBuilding")["properties"]["want"]
-    assert w["enum"] == ["weapon", "bag"] and "want" not in entry("LootBuilding")["required"]
-    for want in ("weapon", "bag"):
+    assert w["enum"] == ["weapon"] and "want" not in entry("LootBuilding")["required"]
+    for want in ("weapon",):
         g = validate({"type": "LootBuilding", "building": 3, "want": want})
         assert type(g) is LootBuilding and g.want == want and g.args() == {"building": 3, "want": want}
     assert validate({"type": "LootBuilding", "building": 3}).args() == {"building": 3}   # no want: args as before
     with pytest.raises(ValueError) as e:
         validate({"type": "LootBuilding", "building": 3, "want": "gun"})
-    assert str(e.value) == "LootBuilding.want: 'gun' not in ['weapon', 'bag']"
+    assert str(e.value) == "LootBuilding.want: 'gun' not in ['weapon']"
+    with pytest.raises(ValueError) as e:                                 # the bag want waits for its loot filter
+        validate({"type": "LootBuilding", "building": 3, "want": "bag"})
+    assert str(e.value) == "LootBuilding.want: 'bag' not in ['weapon']"
+    assert not hasattr(__import__("agent.base.items", fromlist=["x"]), "bag")
+
+
+def test_an_explicit_null_for_an_optional_field_is_absent():
+    g = validate({"type": "LootBuilding", "building": 3, "want": None})
+    assert type(g) is LootBuilding and g.want is None and g.args() == {"building": 3}
+    with pytest.raises(ValueError):                                      # a required field's null still refuses
+        validate({"type": "LootBuilding", "building": None})
 
 
 def loot_sends(r, g, n=5, after=None):
@@ -861,24 +872,6 @@ def test_a_weapon_want_with_no_weapon_there_loots_the_building_in_the_default_or
     g = LootBuilding(1, want="weapon")
     assert loot_sends(r, g) == [("water", 103), ("food", 103)]
     assert (g.state, g.reason) == ("done", "looted")
-
-
-def test_a_bag_want_reads_a_held_bag_by_its_name_and_ends_done_when_one_more_is_held(tmp_path):
-    """No loot filter takes a bag on this build (the protocol's loot filters): the goal loots in the default order and
-    ends done once a held item's full type reads a bag (`items.bag`)."""
-    from agent.base import items
-    assert items.bag("Base.Bag_Schoolbag") and items.bag("Base.Bag_ALICEpack") and not items.bag("Base.Apple")
-    assert G.WANT_USES == {"weapon": "weapon", "bag": None}
-    r = Rig(tmp_path)
-    r.scan([inside(101, 200, containers=[TOOLS]), inside(103, 200, containers=[WATER, FRIDGE])])
-    r.frame()
-    g = LootBuilding(1, want="bag")
-
-    def took(i):
-        if i == 0:
-            r.event("item_added", itemId=902, fullType="Base.Bag_Schoolbag", weight=0.6)
-    assert loot_sends(r, g, after=took) == [("water", 103)]
-    assert (g.state, g.reason) == ("done", "want met")
 
 
 def test_a_want_already_held_is_valid_and_wants_one_more(tmp_path):

@@ -53,11 +53,11 @@ a class attribute equal to the entry's `const`:
   window out (`World.note_window_fail`; `locked` lets the next try smash it); with no window either,
   `failed "no door"` (the view then reads the building `blocked` once all its doors are marked and no window is to be
   tried, and the source passes it over for the next). Its optional `want` (Plan 24 Task 29, the written guides' weapon
-  first and the first bag: `weapon` or `bag`, OPTIONAL_FIELDS; the scripted source never names one, and `args()`
-  leaves an unset want out, so its rows read as before): the want's loot use (`WANT_USES`: `weapon` the use
-  `items.WEAPON_RX` reads; `bag` none, no loot filter taking a bag) goes first after the kit's wants, and the goal ends
-  `done "want met"` once the held items of the want (`held_of`: `world.by_use()`'s for a use, `items.bag`'s name
-  guess for a bag) number more than at its start, so a want already held asks for one more; with none to take there
+  first: `weapon`, OPTIONAL_FIELDS, an explicit null read as absent; the scripted source never names one, and `args()`
+  leaves an unset want out, so its rows read as before; a `bag` want is not offered until the Lua lane lands a bag
+  loot filter and `LOOT_WANTS` takes it): the want's loot use (`WANT_USES`: `weapon`, the use `items.WEAPON_RX`
+  reads) goes first after the kit's wants, and the goal ends `done "want met"` once the held items of the want
+  (`held_of`: `world.by_use()`'s) number more than at its start, so a want already held asks for one more; with none to take there
   the loot goes on in the default order.
 - `Shelter(building)`: Night's shelter machine for a named building (`night.shelter_plan`, `shelter_step`,
   `shelter_ended`, never re-implemented): approach the exterior door, open it, step in, close it (a step's walk failed
@@ -152,7 +152,7 @@ import time
 from dataclasses import dataclass, field, fields
 from typing import ClassVar, Optional, Protocol, runtime_checkable
 
-from agent.base.items import bag, holds_use
+from agent.base.items import holds_use
 from agent.base.planner.night import (SHUN_MIN, door_blocked, hop_after, player_square, shelter_ended,
                                       shelter_plan, shelter_step)
 from agent.base.planner.policies import (CLOTHING_HELD_N, LOOT_MAX_LEVEL, LOOT_WANTS, PREEMPTED, SCAN_R, Explore, LootHouse, centre,
@@ -192,7 +192,7 @@ LEG_SQ_MARGIN = 0.75  # tiles a leg's point is drawn short of LEG_MAX so its squ
 RUN_FIELDS = ("state", "reason", "started_wall")
 STATES = ("running", "done", "failed", "superseded")
 SCHEMA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "schema", "goals.json")
-WANT_USES = {"weapon": "weapon", "bag": None}   # a LootBuilding want's loot use (Task 29); a bag: no loot filter
+WANT_USES = {"weapon": "weapon"}   # a LootBuilding want's loot use (Task 29; a bag want waits for a PZA bag loot filter)
 OPTIONAL_FIELDS = {"LootBuilding": ("want",)}    # schema fields a goal may leave out (None, left out of args())
 EXAMPLES = {"ExploreToward": {"x": 120, "y": 205}, "LootBuilding": {"building": 3}, "Shelter": {"building": 3},
             "Stock": {"kind": "water"}, "Rest": {"seconds": 30.0}}
@@ -252,10 +252,7 @@ def wanted_uses(world, wants=()):
 
 
 def held_of(world, want):
-    """How many held items answer a LootBuilding `want` (Task 29): a bag by `items.bag`'s name guess, else the
-    want's use in `world.by_use()`."""
-    if want == "bag":
-        return sum(1 for it in world.inventory.values() if bag(it.get("fullType")))
+    """How many held items answer a LootBuilding `want` (Task 29): the want's use in `world.by_use()`."""
     return len(world.by_use().get(WANT_USES.get(want) or want, ()))
 
 
@@ -922,10 +919,10 @@ def validate(obj):
         extra = sorted(k for k in obj if k not in props)
         if extra:
             raise ValueError("%s: unexpected %s" % (t, ", ".join(extra)))
+    obj = {k: v for k, v in obj.items() if k != "type" and not (v is None and k in OPTIONAL_FIELDS.get(t, ()))}
     for k, v in obj.items():
-        if k != "type":
-            _field(t, k, props[k], v)
-    return TYPES[t](**{k: v for k, v in obj.items() if k != "type"})
+        _field(t, k, props[k], v)
+    return TYPES[t](**obj)
 
 
 # ---------------------------------------------------------------- the sources

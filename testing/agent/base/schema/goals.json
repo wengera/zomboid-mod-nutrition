@@ -21,7 +21,7 @@
       "properties": {
         "type": {"const": "LootBuilding", "description": "The goal's type."},
         "building": {"type": "integer", "description": "The building's id, as the view lists it."},
-        "want": {"type": "string", "enum": ["weapon", "bag"], "description": "Optional: what to take first; the goal ends done once you hold one more of it than at its start (a want you already hold asks for another)."}
+        "want": {"type": "string", "enum": ["weapon"], "description": "Optional: what to take first; the goal ends done once you hold one more of it than at its start (a want you already hold asks for another)."}
       },
       "required": ["type", "building"],
       "additionalProperties": false
@@ -64,22 +64,22 @@
       "reads": ["buildings.looted", "buildings.visited", "buildings.dist", "night"]
     },
     {
-      "text": "Want water and a vessel first (inventory_by_use water and container), then a weapon while weapon is null, then clothing with bite defence (shoes, a jacket, a hat: a higher bite in worn), then food, then bandages.",
+      "text": "The loot takes water and a vessel first (inventory_by_use water and container), then a weapon, then clothing with bite defence (shoes, a jacket, a hat: a higher bite in worn), then food, then bandages; only the weapon needs asking for: while weapon is null, add want weapon to the LootBuilding.",
       "pages": [11, 12],
       "reads": ["inventory_by_use", "weapon", "worn"]
     },
     {
-      "text": "With tired true or needs.fatigue near it, or late in the day (night true, or the hour close to it), choose Shelter in a listed building over a LootBuilding.",
+      "text": "With tired true, or night true, choose Shelter in a listed building over a LootBuilding; with both false a Shelter only walks in and ends, so loot instead.",
       "pages": [4],
-      "reads": ["tired", "needs.fatigue", "night", "hour"]
+      "reads": ["tired", "night"]
     },
     {
-      "text": "Avoid a building listed with zombies beside it (z: above 0) and one whose way from pos crosses met.dense; prefer a building whose door faces away from them.",
+      "text": "Among buildings listed without L, prefer one with a lower z: and one whose way from pos does not cross met.dense, and of two alike the one whose door faces away from them; when every one reads z: above 0, loot the nearest anyway (the program clears the zombies near you).",
       "pages": [1, 14],
       "reads": ["buildings.zombies_near", "met.dense", "pos"]
     },
     {
-      "text": "Keep the load light: load.level below 1, the first heavy-load level, before going to a building listed with zombies beside it (z: above 0).",
+      "text": "While load.level is 1 or more, prefer a building with z:0 over one with zombies beside it.",
       "pages": [1, 13],
       "reads": ["load.level", "buildings.zombies_near"]
     }
