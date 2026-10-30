@@ -705,17 +705,15 @@ def test_the_first_sight_is_the_inventory_between_a_hello_and_the_first_frame():
 
 def test_no_garment_is_ripped_while_a_rag_is_held(tmp_path):
     """Named change, Task 10 fix 1: a bleeding part, a dirty rag held under DIRTY_RAG_MIN's rule (so it does not go
-    on) and no source to wash it: the bleeding step still rips no garment while any rag is held. Named change, ruling
-    P24-AB (Plan 24 Task 21): a dirty rag is no clean dressing, so on this idle tick the rag stock rips the shirt (the
-    care branch's line, its why `stock`), never the bleeding step's `no_rag`."""
+    on) and no source to wash it: the garment is still not ripped while any rag is held. Ruling P24-AB's stock rips
+    nothing either while a dirty rag is held (Task 21 fix 1, review-t21 minor 5: washing it is the care's job)."""
     r, sv = make(tmp_path)
     r.frame()
     hold(r, 21, "Base.Shirt_FormalWhite", use="other")
     hold(r, 11, "Base.RippedSheetsDirty")
     care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)])
     tick(r, sv)
-    assert last(tmp_path)["branch"] == "care" and r.cmd() == ("rip", {"itemId": 21})
-    assert care_why(tmp_path)["stock"]["reason"] == "stock" and care_why(tmp_path).get("reason") != "no_rag"
+    assert last(tmp_path)["branch"] != "care" and not any(a.type == "rip" for a in r.acts.history)
 
 
 def test_no_garment_is_ripped_for_stock_with_no_wound(tmp_path):

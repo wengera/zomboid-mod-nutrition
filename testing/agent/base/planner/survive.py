@@ -332,6 +332,8 @@ STUCK_RETRY_S = 2.0       # wall seconds after a stuck read before a stuck corne
 STUCK_RETRY_GROUP_S = 1.0  # ... with GROUP_R_N within CORNERED_R or GROUP_HOLD_N held, whatever the nearest reads
                           # (P24-A fix 1 (1), a ruling: F1's corner read stuck at 537 held on against four)
 BRANCHES = ("threat", "care", "need", "load", "night", "goal")
+STEPS = ("threat", "care", "need", "load", "night", "stock", "goal")   # assess() tries these in order: BRANCHES with the
+                         # care's rag stock (P24-AB) before the goal (it logs under `care`, why `stock`)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -346,7 +348,7 @@ DOOR_FAILS = ("locked", "interrupted", "not adjacent") + STUCK_REASONS   # a doo
                          # player stands against (DOOR_NEAR_R)
 DOOR_NEAR_R = 1.5        # tiles: a loot failed `not adjacent` counts on a door square this near the player (P24-Z)
 
-__all__ = ["Survive", "Decision", "BRANCHES", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER_T", "FLEE_HEALTH",
+__all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER_T", "FLEE_HEALTH",
            "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS",
            "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
            "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "NEED_STATS",
@@ -1495,9 +1497,11 @@ class Survive:
         return self._apply(self.assess(self._read(world, actions)))
 
     def _read(self, world, actions):
-        """The tick's reads before any branch: the World and the Actions re-bound, every action's end read (the
-        failures cooled, a refused consume or a door's failure marked, the consumes checked, the fills' ends), the
-        goal runner's observe, and the logged inputs (read before any branch runs: `mode` is the tick's start)."""
+        """The tick's reads before any branch: the World and the Actions re-bound, the ends of the actions the tick
+        itself owns read (the failures cooled, a refused consume or a door's failure marked, the consumes checked,
+        the fills' ends), the goal runner's observe, and the logged inputs (read before any branch runs: `mode` is
+        the tick's start). Not every end: the branches' own observes (Care's, Night's, the Fight's and the Flee's)
+        read theirs inside `assess`, see there."""
         self.world, self.actions = world, actions
         for p in self._policies():
             p.world, p.actions = world, actions
@@ -1520,21 +1524,28 @@ class Survive:
         `need`, `consume_refused`, `cooled` and `branches` (each branch tried, its own why; a kill the running Fight
         read this tick on the threat's). Nothing is sent, logged or reported to the goal runner here: `_apply` does
         that from the Decision. The branches' policies keep their own memory as they choose (a policy is its state
-        machine), so assess runs once a tick."""
+        machine), so assess runs once a tick.
+
+        Side effects refactor A left inside assess (a documented debt, review-t21 minor 2): `Care.observe` (from
+        `_care` and `_care_yields`), `Night.observe` (from `_night`) and the Fight's and the Flee's observes (from
+        `_threat`) read action ends there and mark the World (`unrippable`, `in_bag`, `mark_dry`, the Fight's
+        `unreachable`); moving them to `_read` changes the tick a bandage's end is read, a golden re-record under a
+        named change."""
         kill = None
         if self.fight is not None:
             self._observe(self.fight)
             kill = self.fight.kill   # P24-Q: read before any branch may replace the Fight (a lower bound: world.py)
         self.need_mark = None
         branch, owner, cmd, cooled, tried = None, None, None, None, {}
-        for name in BRANCHES:
-            if name == "goal":   # P24-AB: the care's rag stock on an idle tick, behind the need, before the goal
+        for name in STEPS:
+            if name == "stock":   # P24-AB: the care's rag stock on an idle tick, behind the need, before the goal
                 self.why = {}
                 ans = self._care_stock()
                 if ans is not None and not self._cooling(ans[1]):
                     tried["care"] = dict(tried.get("care") or {}, stock=self.why)
                     branch, (owner, cmd) = "care", ans
                     break
+                continue
             self.why = {}
             ans = getattr(self, "_" + name)()
             tried[name] = self.why

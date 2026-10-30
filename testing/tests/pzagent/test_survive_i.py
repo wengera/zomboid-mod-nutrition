@@ -5,6 +5,8 @@ refactor A (a pure ordered `assess`, the water chain lifted out), P24-AB (the ra
 P24-AD (idle zombies and `many`). The fake mod over the PZA/1.5 skills."""
 import json
 
+import pytest
+
 from agent.base.planner import survive as S
 from agent.base.planner import water as W
 
@@ -89,15 +91,22 @@ def test_an_idle_tick_with_no_dressing_rips_the_unworn_cotton_garment_for_the_st
 
 
 def test_one_bandage_held_still_rips_and_two_dressings_rip_nothing(tmp_path):
-    """P24-AB: fewer than RAG_STOCK clean dressings rips; a bandage and a clean rag (two) rips nothing, the goal runs;
-    a dirty rag is no clean dressing."""
-    r, sv = stock_rig(tmp_path, (10, "Base.Bandage"), (11, "Base.RippedSheetsDirty"))
+    """P24-AB: fewer than RAG_STOCK clean dressings rips; a bandage and a clean rag (two) rips nothing, the goal runs."""
+    r, sv = stock_rig(tmp_path, (10, "Base.Bandage"))
     tick(r, sv)
     assert r.cmd() == ("rip", {"itemId": 22}) and care_why(tmp_path)["stock"]["dressings"] == 1
     (tmp_path / "b").mkdir()
     r2, sv2 = stock_rig(tmp_path / "b", (10, "Base.Bandage"), (12, "Base.RippedSheets"))
     tick(r2, sv2)
     assert last(tmp_path / "b")["branch"] == "goal" and not any(a.type == "rip" for a in r2.acts.history)
+
+
+def test_a_dirty_rag_held_stops_the_stock_rip(tmp_path):
+    """Task 21 fix 1 (review-t21 minor 5): a dirty rag is no dressing, but with one held and no water source to wash it
+    the stock rips no further garment (each rip of a bloody garment would yield another dirty rag, until none is left)."""
+    r, sv = stock_rig(tmp_path, (11, "Base.RippedSheetsDirty"))
+    tick(r, sv)
+    assert last(tmp_path)["branch"] != "care" and not any(a.type == "rip" for a in r.acts.history)
 
 
 def test_the_stock_never_rips_with_a_threat_held(tmp_path):
@@ -253,8 +262,8 @@ def test_a_100_tile_destination_is_walked_in_30_tile_legs_then_directly(tmp_path
 
 def test_a_no_square_leg_halves_to_15_then_10_and_nothing_is_marked(tmp_path):
     """P24-AC: a leg failed `no square` is re-sent at half its length, 15 then 10 tiles (LEG_MIN); at 10 the goal
-    fails `no square`; neither the far target nor any leg square is marked stuck (E8's 278 walks each marked their
-    target, the edge stepping a square at a time)."""
+    fails `no square`; no leg square is marked stuck, and the far target only at that final failure (Task 21 fix 1,
+    review-t21's blocker; E8's 278 walks each marked their target, the edge stepping a square at a time)."""
     r = Rig(tmp_path)
     r.frame(x=100.5, y=200.5, game_min=480.0)
     g = G.ExploreToward(200, 200)
@@ -268,7 +277,7 @@ def test_a_no_square_leg_halves_to_15_then_10_and_nothing_is_marked(tmp_path):
         r.frame(x=100.5, y=200.5, game_min=481.0)
     step(r, runner)
     assert lens == [(30.0, 29.0), (15.0, 14.0), (10.0, 9.0)]   # each leg's square centre within its length
-    assert (g.state, g.reason) == ("failed", "no square") and r.world.stuck == {}
+    assert (g.state, g.reason) == ("failed", "no square") and list(r.world.stuck) == [(200, 200)]
     assert runner.history[-1]["args"] == {"x": 200, "y": 200}
 
 
@@ -405,3 +414,100 @@ def test_e8_line_170_s_many_flee_is_now_the_fight(monkeypatch):
         sv._counts_many = lambda z: True
     rep = R.replay(E8, upto=170, mutate=old_rule)
     assert rep[169]["inputs"]["branches"]["threat"]["flee"] == "many" and rep[169]["action"]["type"] == "steer"
+
+
+# ================================================================ Task 21 fix 1: a legged walk's final failure
+def final_leg_failure(tmp_path, reason, goal=None, **frame):
+    """A runner on `goal` (default ExploreToward(200, 200)) from (100.5, 200.5): its first leg answered failed `reason`,
+    the next tick reading the end. Returns (r, runner, goal, the leg)."""
+    r = Rig(tmp_path)
+    r.frame(x=100.5, y=200.5, game_min=480.0, **frame)
+    g = goal or G.ExploreToward(200, 200)
+    runner = far_runner(r, g)
+    cmd = step(r, runner)
+    assert cmd.TYPE == "walkTo" and g.why["leg"] == [cmd.x, cmd.y]
+    r.answer({"state": "failed", "reason": reason})
+    r.frame(x=100.5, y=200.5, game_min=481.0)
+    step(r, runner)
+    return r, runner, g, cmd
+
+
+@pytest.mark.parametrize("reason", ["no path", "stuck"])
+def test_a_leg_failed_for_good_marks_the_far_target_cools_the_goal_and_the_next_goal_differs(tmp_path, reason):
+    """Review-t21's blocker (P24-AC): the review's probe, ExploreToward(200, 200) from (100.5, 200.5), the leg
+    `walkTo 129.5, 200.5` failed `no path` or `stuck` with no fence to climb: the goal ends failed, the far target is
+    marked stuck as a direct walk's failure marks it, the goal is cooled (it sent, yet GOAL_COOL_S), and the scripted
+    source's next proposal is not the same goal; the leg was sent once."""
+    r, runner, g, cmd = final_leg_failure(tmp_path, reason)
+    assert (cmd.x, cmd.y) == (129.5, 200.5)
+    assert (g.state, g.reason) == ("failed", reason) and g.sent_n == 1
+    assert (200, 200) in r.world.stuck and (129, 200) in r.world.stuck
+    assert runner.cooling() == [{"type": "ExploreToward", "args": {"x": 200, "y": 200}}]
+    view = {"edge": [200, 200], "cooled": runner.cooling(), "pos": {"x": 100.5, "y": 200.5}, "scanned_here": True}
+    nxt = G.ScriptedSource().propose(view)
+    assert nxt != G.ExploreToward(200, 200)
+    all_sends_valid(r)
+
+
+def test_a_no_square_leg_at_leg_min_marks_the_far_target_and_cools_the_goal(tmp_path):
+    """P24-AC + review-t21 blocker: the halving (30, 15, 10) ends with the far target marked and the goal cooled; the
+    halved legs themselves marked nothing before the end."""
+    r = Rig(tmp_path)
+    r.frame(x=100.5, y=200.5, game_min=480.0)
+    g = G.ExploreToward(200, 200)
+    runner = far_runner(r, g)
+    for _ in range(3):
+        step(r, runner)
+        assert r.world.stuck == {} and runner.cooling() == []
+        r.answer({"state": "failed", "reason": "no square"})
+        r.frame(x=100.5, y=200.5, game_min=481.0)
+    step(r, runner)
+    assert (g.state, g.reason) == ("failed", "no square") and list(r.world.stuck) == [(200, 200)]
+    assert [c["args"] for c in runner.cooling()] == [{"x": 200, "y": 200}]
+
+
+def test_a_loot_building_leg_failed_for_good_cools_the_goal(tmp_path):
+    """Review-t21 blocker on LootBuilding: a leg toward a far container failed `no path` ends the goal failed and cools
+    it, so the building is not proposed again at once (its container is no walk target to mark)."""
+    r = Rig(tmp_path)
+    r.scan([inside(145, 200, containers=[FRIDGE])])
+    r.frame(x=100.5, y=200.5, game_min=480.0)
+    g = G.LootBuilding(1)
+    runner = G.GoalRunner(Src(g), r.clock)
+    step(r, runner)
+    r.answer({"state": "failed", "reason": "no path"})
+    r.frame(x=100.5, y=200.5, game_min=481.0)
+    step(r, runner)
+    assert (g.state, g.reason) == ("failed", "no path") and g.sent_n == 1
+    assert runner.cooling() == [{"type": "LootBuilding", "args": {"building": 1}}]
+
+
+def test_a_done_leg_and_a_halved_leg_cool_nothing(tmp_path):
+    """The cooling is the final failure's only: a leg that ends done, or fails `no square` above LEG_MIN, leaves the
+    goal running and uncooled."""
+    r = Rig(tmp_path)
+    r.frame(x=100.5, y=200.5, game_min=480.0)
+    g = G.ExploreToward(200, 200)
+    runner = far_runner(r, g)
+    step(r, runner)
+    r.answer({"state": "failed", "reason": "no square"})
+    r.frame(x=100.5, y=200.5)
+    cmd = step(r, runner)
+    r.answer()
+    r.frame(x=cmd.x, y=cmd.y)
+    step(r, runner)
+    assert g.state == "running" and not g.cool and runner.cooling() == [] and r.world.stuck == {}
+
+
+# ================================================================ Task 21 fix 1: AD-M6 on the flee_many episode
+def test_a_many_flee_episode_ends_on_the_filtered_held_count(tmp_path):
+    """Review-t21 minor 4 (mutant AD-M6): a `flee_many` episode running, one zombie chasing at 8 tiles and two idle at 8
+    and 9.5 (all within the hold radius, beyond DANGER_R): two of the three are idle, so the held count over MAX_FIGHT
+    is one counted, not three, and the episode reads no `many`; with the two chasing it still does."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zi(1, 108.0, 200.0), zi(2, 100.0, 208.0, chasing=False), zi(3, 90.5, 200.0, chasing=False)])
+    sv.mode, sv.flee_many = "flee", True
+    held = list(r.world.zombies.values())
+    assert sv._many_read(held, 0) == (False, None)
+    r.frame(zombies=[zi(1, 108.0, 200.0), zi(2, 100.0, 208.0), zi(3, 90.5, 200.0)])
+    assert sv._many_read(list(r.world.zombies.values()), 0) == (True, None)

@@ -122,7 +122,7 @@ log's `goal` reads `{"pending": <source NAME>}`, and the next tick asks again wi
 only when a goal is taken. A superseded goal is gone; the source may propose the same goal again. A goal that ends
 `failed` having sent nothing (a first-step failure: an unknown building, no plan) is cooled per `(type, args)` for
 GOAL_COOL_S (30) wall seconds (fix 1, I4): the view lists the cooled goals (`cooled`), the scripted source passes
-them over, and a cooled goal a source still proposes is refused for that tick (`why.refused`), no row written.
+them over, and a cooled goal a source still proposes is refused for that tick (`why.refused`), no row written. A goal whose leg failed for good (`_Legs`: `no path`, `stuck` with no fence, `no square` at LEG_MIN) is cooled too though it sent, and ExploreToward marks its far target stuck (Task 21 fix 1).
 `send(cmd)` sends the
 goal's command and hands the `Action` to the goal (Survive sends through it, as the owner). `line()` is the
 decision log's `goal` field: `{type, args, state, source}` of the running goal, or of the one that ended this tick,
@@ -409,6 +409,7 @@ class _Legs:
     def _legs(self):
         self.leg_len = LEG_MAX   # tiles: the next leg's length
         self.leg = None          # (x, y) of the leg the last choose sent, else None
+        self.cool = False        # a leg failed for good: the runner cools the goal though it sent (`GoalRunner._close`)
 
     def _leg_cmd(self, world, x, y):
         mx, my = me_xy(world)
@@ -432,6 +433,17 @@ class _Legs:
             return "next"
         return "fail"
 
+    def _leg_failed(self, world):
+        """A leg's final failure (`no path`; `stuck` with no fence to climb; `no square` at LEG_MIN; review-t21's
+        blocker, the E8 loop without the edge's stepping): the goal is cooled for GOAL_COOL_S whatever it sent, so the
+        source proposes another; a goal with a far target of its own (`mark_far`) marks it as a direct walk's failure
+        would."""
+        self.cool = True
+        self.mark_far(world)
+
+    def mark_far(self, world):
+        """The goal's far target marked stuck (ExploreToward's; a loot's container is left to the cooling)."""
+
 
 @dataclass
 class ExploreToward(_Legs, _Climbing, Goal):
@@ -447,6 +459,9 @@ class ExploreToward(_Legs, _Climbing, Goal):
         self._climbs()
         self._legs()
 
+    def mark_far(self, world):
+        world.mark_stuck(self.x, self.y)
+
     def ended(self, world, action):
         leg = self._leg_ended(action)
         if leg == "next":
@@ -455,6 +470,8 @@ class ExploreToward(_Legs, _Climbing, Goal):
             if action.state == "done":
                 self.end("done", "arrived")
             elif not self._stuck(world, action):
+                if leg == "fail":
+                    self._leg_failed(world)
                 self.end("failed", action.reason or action.state)
         elif action.type == "climb":
             if not self._climb_ended(world, action):
@@ -532,6 +549,7 @@ class LootBuilding(_Legs, _Looting, Goal):
         leg = self._leg_ended(action)
         if leg is not None:
             if leg == "fail":
+                self._leg_failed(world)
                 self.end("failed", action.reason or action.state)
             return
         if action.type == "interact" and action.args.get("kind") == "loot":
@@ -834,7 +852,7 @@ class GoalRunner:
     def _close(self, g):
         now = self.clock()
         self.history.append(dict(g.row(), startS=self._s(g.started_wall), endS=self._s(now), source=self._name()))
-        if g.state == "failed" and g.sent_n == 0:
+        if g.state == "failed" and (g.sent_n == 0 or getattr(g, "cool", False)):
             self.cooled[goal_key(g.TYPE, g.args())] = now + GOAL_COOL_S
         self.kit.rested(g)
         self._ended_now, self.current, self.hold_ticks = g, None, 0

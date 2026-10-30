@@ -256,6 +256,8 @@ class Care(Policy):
         if not (self.quiet and self.world.can("rip")):
             return None, None
         items = self._items()
+        if items["dirty"]:   # review-t21 minor 5: a dirty rag is washed first, never another garment ripped for it
+            return None, None
         held = len(items["bandage"]) + len(items["rag"])
         if held >= RAG_STOCK:
             return None, None

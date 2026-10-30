@@ -115,7 +115,7 @@ def test_four_listed_pressing_are_no_seek_but_two_fought_while_two_stand_off_are
     assert last(tmp_path / "b")["branch"] == "threat" and threat_why(tmp_path / "b")["fight"] is True
 
 
-def test_e7_s_first_fight_is_fought_and_e5_s_horde_is_still_fled(tmp_path):
+def test_e7_s_first_fight_is_fought_and_e5_s_horde_is_fought_under_p24_ad_and_fled_with_idle_off(tmp_path):
     """The listing's two cases off the records (the E7 write-up, Task 18): E7's line 68 (the pair at 3.1 and 6.2
     tiles chasing, two more listed at 11.6 and 11.8 standing): the fight stays on (before P24-X the `many` flee,
     `listed` 4); E5's line 220 (4.9 chasing, 10.4 and 11.3 chasing, 11.7 and 11.9 standing): three press, the
