@@ -448,7 +448,7 @@ def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch
 
 # ================================================================ the copy: e_day_8.py's body, its own key
 BASE_SENTENCE = (
-    "the base at `4ad550c6` carries PZA/1.6.1 (the combat stance held from the per-player update every frame, the "
+    "the base at `b11f1dc2` carries PZA/1.6.1 (the combat stance held from the per-player update every frame, the "
     "bandage riding a moving leg, the fence climb at a walk, the rag rip and wash, the water fill, the item re-read, "
     "`worn` and the rip class, the clothing record with its defence and `me.worn`, the door's lock read without an "
     "attempt, the window opened, smashed and climbed through, the wear) and survival iteration 9 (a pure ordered "
@@ -479,7 +479,7 @@ def test_the_copy_differs_from_e_day_8_only_in_the_expected_lines():
         norm = norm.replace(mine, theirs)
     assert norm == a[a.index(mark):]
     head = b[:b.index(mark)]
-    for c in ("4ad550c6", "e_day_8-20261029-174023", "133.06", "eighth", "PZA/1.6.1", "grade_e6", "FIGHT_WINDOW_SLACK_S",
+    for c in ("b11f1dc2", "e_day_8-20261029-174023", "133.06", "eighth", "PZA/1.6.1", "grade_e6", "FIGHT_WINDOW_SLACK_S",
               "state.1.log", BASE_SENTENCE):
         assert c in head, c
     assert E.CONSTANTS == E1.CONSTANTS and E.PROFILE == E1.PROFILE
