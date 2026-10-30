@@ -959,7 +959,11 @@ class Fight(Policy):
         if self._downed():
             return False   # P24-AL: a downed zombie within reach is finished before the stance goes on
         t = self._target(pin=False)
-        if t is None or t[0] != self.last.args.get("targetId") or t[2] <= FIGHT_REACH or not self.stance_at(t[2]):
+        if t is None or t[0] != self.last.args.get("targetId"):
+            return False
+        if self._leg == "back" and arms_hurt(self.world):   # P24-AP: the wounded backpedal holds until point blank
+            return POINT_BLANK_R < t[2] <= KEEP_R + KEEP_MARGIN
+        if t[2] <= FIGHT_REACH or not self.stance_at(t[2]):
             return False
         if self._leg == "toward":
             return self._advance_switch(t) is None   # fix 2: it holds until reach, or a zombie closing on the character
@@ -1106,9 +1110,23 @@ class Fight(Policy):
         if self._swing_ok("stomp", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
             self.why["stomp"] = True
             return (Stomp(zid),)
+        if arms_hurt(self.world):   # P24-AP: the floor strike is a swing, divided by the arms' pain: the backpedal
+            return (self._wounded_leg(zid, z, d),)
         self.why["floor"] = True   # the stomp refused (or not announced): the weapon's floor strike
         self._held_before = False
         return (Attack(zid),)
+
+    def _wounded_leg(self, zid, z, d):
+        """Ruling P24-AP, the wounded fight (#4370: at `body.armPain` STRAIN_HARD a swing does half its damage or less,
+        whatever the pain's source): where the Fight would swing, the stance's backpedal from the held threats facing
+        `zid` instead (`_stance_leg`'s `back`, a heading `clear_heading` passes, else standing), held until the target
+        comes to point blank (`busy`), where the shove goes, or lies down, where the stomp goes; with no `aim` announced
+        nothing is sent (the Fight holds, logged `hold`). Logged `wounded` (the pain)."""
+        self.why["wounded"] = arm_pain(self.world)
+        if not self.world.can("aim"):
+            self.why["hold"] = True
+            return None
+        return self._stance_leg(zid, z, d, kind="back")
 
     def _shove(self, zid, z, d):
         """The shove sent instead of the next swing at the standing target `zid` (`d` tiles off, within reach), else
@@ -1236,7 +1254,8 @@ class Fight(Policy):
             self.repositioned = True
             self.why["reposition"] = list(sq)
             return WalkTo(*centre(sq), "run")
-        if self.stance_at(d) and (d > FIGHT_REACH or not self.in_stance()) and not (self.approach and d <= FIGHT_REACH):
+        if (self.stance_at(d) and (d > FIGHT_REACH or not (self.in_stance() or arms_hurt(self.world)))
+                and not (self.approach and d <= FIGHT_REACH)):   # P24-AP: wounded, in reach the backpedal is the leg
             if self.ride is not None and d > FIGHT_REACH:   # P24-U: an aim would end the riding bandage; held off
                 self.why["ride"] = self.ride.aid           # until it ends, a target within reach excepted
                 return None
@@ -1255,6 +1274,8 @@ class Fight(Policy):
         shove = self._shove(zid, z, d)   # P24-AG, P24-AH: the shove before (or for) the swing
         if shove is not None:
             return shove
+        if arms_hurt(self.world):   # P24-AP: never the swing at STRAIN_HARD; the backpedal between the shoves
+            return self._wounded_leg(zid, z, d)
         self._held_before = self.stance_at(d) and self.in_stance()
         if self.stance_at(d):
             self.why["stance"] = True   # the swing from the stance (Task 9's hand-over keeps it)

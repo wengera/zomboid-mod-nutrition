@@ -325,18 +325,19 @@ from typing import Optional
 
 from agent.base.items import days_fresh
 from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, RIDE_FREE, RIDE_R, Care
-from agent.base.planner.doorway import DOOR_HOLD_S, Doorway, stand_ready
+from agent.base.planner.doorway import DOOR_HOLD_S, Doorway, standing, stand_ready
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, ENDURANCE_RELEASE,
-                                         ENDURANCE_T, ENGAGE_R, FIGHT_MAX_S, FIGHT_REACH, LISTED_R, POINT_BLANK_R, PREEMPTED, STRAIN_HARD,
-                                         STRAIN_SOFT, STUCK_REASONS, TIRED_FIGHT_T, UNREACHABLE_S, Fight, Flee,
-                                         adoptable, arm_pain, blocked, chasing, exit_plan, in_building, in_reach,
-                                         item_id_ok, line_to, others_behind, pull_from, seek_allowed, spare,
+                                         ENDURANCE_T, ENGAGE_R, FIGHT_MAX_S, FIGHT_REACH, KEEP_R, LISTED_R,
+                                         POINT_BLANK_R, PREEMPTED, STAND_MIN_R, STRAIN_HARD, STRAIN_SOFT,
+                                         STUCK_REASONS, TIRED_FIGHT_T, UNREACHABLE_S, Fight, Flee, adoptable, arm_pain,
+                                         arms_hurt, blocked, chasing, exit_plan, in_building, in_reach, item_id_ok,
+                                         line_to, on_floor, others_behind, pull_from, running, seek_allowed, spare,
                                          target_id_ok, zdist)
 from agent.base.planner.view import NEED_MEMORY_S, view
 from agent.base.planner.water import FILL_RETRY_MIN, FILL_SETTLE_S, FILL_WANTS, SOURCE_FAILS, Water
-from agent.base.pza1 import Consume, Drop
+from agent.base.pza1 import Attack, Consume, Drop, Stomp
 from agent.base.world import me_floor, me_xy
 
 THIRST_T = 0.12          # the first THIRST moodle fires above 0.12 [#0509]
@@ -467,6 +468,11 @@ class Survive:
         self.strain_hold = False  # the arms' strain hold (P24-AG): set at armPain STRAIN_HARD, cleared under STRAIN_SOFT
         self.endurance_hold = False  # the endurance hold (P24-AG): set at ENDURANCE_T or under, cleared above ENDURANCE_RELEASE
         self.spent = None         # this tick's `_read_spent` (None: fit to fight)
+        self.spent_kinds = ()     # every hold `_read_spent` read this tick, in its order (P24-AP reads them all)
+        self.struck = {}          # zombie id -> wall of the last attack or shove sent at it (P24-AQ)
+        self.finishing = {}       # zombie id -> the `many` flee's finishing sends at it, "stomp" then "floor" (P24-AQ)
+        self._finish_a = None     # the flee's last finishing action (P24-AQ), its end read once (`_finish_read`)
+        self._finish_read = None
         self.night = Night(world, actions, clock)
         # one shun store: the goals' Shelter shuns into the night's (Task 13 fix 1, M6), so neither re-tries the other's
         self.goals = GoalRunner(ScriptedSource() if source is None else source, clock, shunned=self.night.shunned)
@@ -698,7 +704,9 @@ class Survive:
         - `tired` at `stats.fatigue` TIRED_FIGHT_T or above (the TIRED moodle's, which halves it again).
         Spent, the threat branch disengages (the flee `strain`, its legs as today), engages and seeks nothing, and a
         `walk` corner yields; the `stuck`, `inside`, trapped and door fights, which no leg can leave, still swing (the
-        Fight's shove and stomp spare the arms there: `policies.Fight._shove`)."""
+        Fight's shove and stomp spare the arms there: `policies.Fight._shove`). Ruling P24-AP (`_wounded_fight`): with
+        the arms' hold alone a zombie within KEEP_R is fought, never fled. The why's `strain` carries the frame's
+        `body.strain` (each arm's stiffness, #4369) when it reads one, read nowhere else."""
         pain = arm_pain(self.world)
         if pain is None or pain < STRAIN_SOFT:
             self.strain_hold = False
@@ -710,16 +718,22 @@ class Survive:
             self.endurance_hold = False
         elif e <= ENDURANCE_T:
             self.endurance_hold = True
-        kind = None
-        if not self.STRAIN:
-            pass
-        elif self.strain_hold:
-            kind = "arms"
-        elif self.endurance_hold:
-            kind = "endurance"
-        elif _num(f) and f >= TIRED_FIGHT_T:
-            kind = "tired"
-        self.spent = None if kind is None else {"kind": kind, "armPain": pain, "endurance": e, "fatigue": f}
+        kinds = () if not self.STRAIN else tuple(k for k, on in (
+            ("arms", self.strain_hold), ("endurance", self.endurance_hold), ("tired", _num(f) and f >= TIRED_FIGHT_T))
+            if on)
+        self.spent_kinds = kinds
+        self.spent = None if not kinds else {"kind": kinds[0], "armPain": pain, "endurance": e, "fatigue": f}
+        strain = (self.world.body or {}).get("strain")
+        if self.spent is not None and strain is not None:   # P24-AP: the stiffness (#4369) beside the pain, logged
+            self.spent["strain"] = strain                    # only (a PZA/1.7 frame carries it)
+
+    def _wounded_fight(self):
+        """Ruling P24-AP, the wounded fight (E9: a bite on part 5 read `body.armPain` 37.6 with `body.strain` 0 on both
+        arms and held the strain hold to the death): the arms' hold is the only one this tick (`spent_kinds`; the
+        endurance and the tired holds still flee, review-t27's flicker) and a zombie stands within KEEP_R: it is
+        fought whatever the pain (the Fight's shove at point blank, the stomp of a fallen one, the backpedal between,
+        never the swing: `policies.Fight._wounded_leg`); the hold stops the seeking of fights only (`_sought`)."""
+        return self.spent_kinds == ("arms",) and bool(self._within(KEEP_R))
 
     def _seeks(self):
         """A new Fight is sought (P24-X): both switches on."""
@@ -878,8 +892,8 @@ class Survive:
             return "health"
         if n >= 2 and (health < FLEE_HEALTH_PAIR or self._wounds() > 0):
             return "pair"
-        if self.spent is not None:   # P24-AG, P24-AK: the arms, the endurance or the tiredness halve every swing
-            return "strain"
+        if self.spent is not None and not self._wounded_fight():   # P24-AG, P24-AK: the arms, the endurance or the
+            return "strain"                                        # tiredness halve every swing; P24-AP within KEEP_R
         if not self._reachable_held():
             return "unreachable"
         near = min(zdist(self.world, z) for z in held)
@@ -1047,7 +1061,9 @@ class Survive:
             return "health"
         if self.mode == "flee" and self.flee_many:
             return "many"
-        return "strain" if self.spent is not None else None   # P24-AG: spent, it disengages as the health flee does
+        if self.spent is None or self._wounded_fight():   # P24-AP: the arms' hold alone fights within KEEP_R
+            return None
+        return "strain"   # P24-AG: spent, it disengages as the health flee does
 
     def _drag(self, held, inside):
         """Ruling P24-A (h) (#4290, #4291: DRAG_DOWN_N zombies attacking from within 0.9 tiles turn the next hit into
@@ -1349,7 +1365,7 @@ class Survive:
                 policy.give_way()   # amendment 6: the group pre-empts a running walk, as the corner does
             if self.group_steer == "drag":
                 policy.drop_stuck_leg()   # P24-A fix 2, I1: never a stalled leg held its FLEE_S under the guard
-            ans = self._flee_drop() or self._answer(policy)
+            ans = self._flee_drop() or self._flee_finish(reason) or self._answer(policy)
         else:
             policy.only = None if door is None else {zid for zid, _ in door}
             policy.stance = self._stance_ok(held, self.night.inside())   # P24-G 1 (no corner or door Fight stands)
@@ -1444,6 +1460,76 @@ class Survive:
         self.flee_dropped = True
         self.why = {"flee_drop": iid}
         return self.flee, Drop(iid)
+
+    def _flee_finish(self, reason):
+        """Ruling P24-AQ, the fallen target under `many` (E9: the two targets its swings struck, 7488 and 7474, read
+        fallen while the `many` flee ran the character away from them, neither stomped): in a flee episode whose reason
+        was `many`, a zombie the planner struck (an attack or a shove sent at it within UNREACHABLE_S, `struck`) that
+        reads downed (`onFloor`) within FIGHT_REACH on a line not read blocked, with no standing zombie within
+        DANGER_R (the next standing one beyond it), takes one `Stomp` before the flee resumes, or the weapon's floor
+        strike (an `Attack` of it) when the stomp is not announced, would be refused (a standing zombie within
+        STAND_MIN_R) or ended refused; never the floor strike at `body.armPain` STRAIN_HARD (P24-AP: a swing). Sent as
+        the Flee's own action (its leg superseded, the steer resumed on the next tick, as `_flee_drop`); one stomp and
+        at most one floor strike a zombie (`finishing`); none in a hit reaction. With a standing zombie within DANGER_R
+        the flee runs as today. Its end is read by `_finish_end` (a `targetDead` is a kill). Logged `finish`."""
+        if not (self.flee_many or reason == "many") or (self._finish_a is not None and running(self.actions,
+                                                                                               self._finish_a)):
+            return None
+        now = self.clock()
+        dead = blocked(self.dead, now)
+        if standing(self.world, DANGER_R, dead) or (self.world.me or {}).get("hitReaction"):
+            return None
+        best = None
+        for zid, at in self.struck.items():
+            z = self.world.zombies.get(zid)
+            if (now - at > UNREACHABLE_S or zid in dead or z is None or z.get("x") is None or z.get("y") is None
+                    or not on_floor(z) or self.finishing.get(zid) == "floor"):
+                continue
+            d = zdist(self.world, z)
+            if d <= FIGHT_REACH and line_to(self.world, z) is not False and (best is None or (d, repr(zid)) < best[0]):
+                best = ((d, repr(zid)), zid)
+        if best is None:
+            return None
+        zid = best[1]
+        done = self.finishing.get(zid)
+        stomp_ok = (self.world.can("stomp") and done is None
+                    and not standing(self.world, STAND_MIN_R, dead | {zid}))
+        if stomp_ok:
+            cmd, kind = Stomp(zid), "stomp"
+        elif done == "stomp" and not self._finish_refused(zid):
+            return None   # the stomp went and was not refused: the one finish is spent
+        elif arms_hurt(self.world):
+            self.finishing[zid] = "floor"   # P24-AP: no floor strike (a swing) at STRAIN_HARD
+            return None
+        else:
+            cmd, kind = Attack(zid), "floor"
+        self.finishing[zid] = kind
+        self.why = {"finish": zid, "kind": kind, "dist": best[0][0]}
+        return self.flee, cmd
+
+    def _finish_refused(self, zid):
+        """The flee's last finishing stomp ended refused (rejected, timed out, failed for any reason but `superseded`
+        or `stood`, or done with `attackStarted` false): P24-AL's rule, the floor strike follows."""
+        a = self._finish_a
+        if a is None or a.type != "stomp" or a.args.get("targetId") != zid or not self.actions.done(a):
+            return False
+        res = a.result if isinstance(a.result, dict) else {}
+        if a.state == "done":
+            return res.get("attackStarted") is False
+        return not (a.state == "failed" and a.reason in (PREEMPTED, "stood"))
+
+    def _finish_end(self):
+        """P24-AQ: the zombie id the flee's finishing stomp or floor strike read dead (`targetDead`, read once), the
+        World's kill counted and the id skipped as dead; else None."""
+        a = self._finish_a
+        if a is None or a is self._finish_read or not self.actions.done(a):
+            return None
+        self._finish_read = a
+        if not (isinstance(a.result, dict) and a.result.get("targetDead") is True):
+            return None
+        zid = a.args.get("targetId")
+        self.dead[zid] = self.clock() + UNREACHABLE_S
+        return zid if self.world.note_kill(zid) else None
 
     def _care(self):
         """The care branch (`planner/care.py`, ruling P24-G 2): its own running action holds first; while the night's
@@ -1700,6 +1786,8 @@ class Survive:
         if self.fight is not None:
             self._observe(self.fight)
             kill = self.fight.kill   # P24-Q: read before any branch may replace the Fight (a lower bound: world.py)
+        finish = self._finish_end()   # P24-AQ: the flee's finishing stomp read too
+        kill = finish if kill is None else kill
         self.need_mark = None
         branch, owner, cmd, cooled, tried = None, None, None, None, {}
         for name in STEPS:
@@ -1736,6 +1824,11 @@ class Survive:
         action = None
         if d.cmd is not None:
             action = d.owner.send(d.cmd) if d.owner is not None else self.actions.send(d.cmd)
+            if d.branch == "threat" and d.cmd.TYPE in ("attack", "shove", "stomp"):
+                if d.owner is self.flee and ((d.inputs.get("branches") or {}).get("threat") or {}).get("finish") is not None:
+                    self._finish_a = action   # P24-AQ: the flee's finish, its end read by `_finish_end`
+                elif d.cmd.TYPE != "stomp":
+                    self.struck[d.cmd.targetId] = self.clock()   # P24-AQ: a struck target
             if d.owner is None and d.branch == "need":
                 self.need_last = action
                 (self._sent_consume if d.cmd.TYPE == "consume" else self.water.sent)(action)
