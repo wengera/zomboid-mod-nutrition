@@ -289,6 +289,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   `doorway_pick` names `ok` for a stand taken, else the first condition that failed, `unarmed`, `no_stance`,
   `standing`, `inside`, `no_door`, `locked`, `taken`, `picked` or `pending`; the doors read as the pick reads them,
   `flee.Flee.door_verdicts`). `PICK_WHY` is the replay tests' seam (a why on every golden `many` line).
+  P24-AY, the look behind skips the fallen (`policies.others_behind`: a zombie `onFloor` behind the target is no group
+  arriving; the deferred minor 7 of review-t32-fix1, E9's line 344 now keeps its fight on 7479).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already

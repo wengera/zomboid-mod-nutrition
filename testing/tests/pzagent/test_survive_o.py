@@ -62,8 +62,9 @@ def test_a_chaser_with_another_listed_behind_it_is_pulled_never_dropped(tmp_path
     """E9's six drops (lines 187, 232, 243, 295, 305 and 344: the target chasing within ENGAGE_R, a chaser 10.74 to
     11.90 tiles behind it): five engage as pulls on the HEAD replay; line 344 rightly stays a drop (Task 32 fix 1, the
     review's minor 7: at 343 a second chaser, 7474, reads within ENGAGE_R, so no lone chaser is pulled, and the look
-    behind flees for 7489, which reads fallen at 11.69 tiles: whether `others_behind` skips an `onFloor` zombie is
-    the controller's ruling). Here: the fight engages, its first leg the pull, an aim facing the chaser while walking
+    behind flees for 7489, which reads fallen at 11.69 tiles; ruling P24-AY, Task 36: `others_behind` skips an `onFloor`
+    zombie, so 344 now keeps the fight, `test_survive_s.test_e9_s_line_344_no_longer_drops_the_fight_for_7489_fallen_
+    behind`). Here: the fight engages, its first leg the pull, an aim facing the chaser while walking
     away from the group's centroid (west, the group east), no `behind`; with PULL off (the rule before) the look
     behind flees `held`."""
     zs = [zd(1, 107.0, 200.0), zd(2, 111.0, 200.5)]

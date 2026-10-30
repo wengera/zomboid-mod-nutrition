@@ -15,6 +15,7 @@ rejected `no source` 60 to 159 tiles off, the doorway stand never taken). The fa
 - P24-AW: a fill is sent only to a water source within the loaded grid (`goals.leg_max`, P24-AI) and within
   FILL_WALK_R; a loaded source farther off is walked to first (a square beside it), one beyond the grid never sent.
 - P24-AX: every `many` line names why the doorway stand was or was not taken (`doorway_pick`).
+- P24-AY: `policies.others_behind` skips a fallen zombie (the deferred minor 7 of review-t32-fix1).
 """
 import functools
 import json
@@ -519,3 +520,28 @@ def test_the_pick_s_door_verdicts_are_the_pick_s_own_reads(tmp_path):
         ts = f._threats()
         v = f.door_verdicts(ts)
         assert [x[3] for x in v] == [want] and (f._pick(ts) is not None) is (want == "ok")
+
+
+# ================================================================ P24-AY: others_behind skips fallen zombies
+def test_a_fallen_zombie_behind_the_target_is_none_of_the_others_behind(tmp_path):
+    """The deferred minor 7 of review-t32-fix1: a zombie lying on the floor (`onFloor`) behind the fight's target is
+    no group arriving; a standing one there still is."""
+    from .test_policies import Rig
+    from .test_survive_o import zd
+    r = Rig(tmp_path)
+    r.frame(zombies=[zd(1, 106.0, 200.0), dict(zd(2, 111.0, 200.2), onFloor=True), zd(3, 111.5, 199.8)])
+    assert P.others_behind(r.world, 1, r.world.zombies[1]) == [3]
+    r.frame(zombies=[zd(1, 106.0, 200.0), dict(zd(2, 111.0, 200.2), onFloor=True)])
+    r.world.zombies.pop(3, None)
+    assert P.others_behind(r.world, 1, r.world.zombies[1]) == []
+
+
+def test_e9_s_line_344_no_longer_drops_the_fight_for_7489_fallen_behind():
+    """E9 replayed at HEAD: at line 344 the look behind fled `held` for 7489, read fallen 11.69 tiles behind the
+    target 7479 (3.99 tiles, chasing). Now the fight on 7479 holds its seek leg: no `behind`. The second chaser, 7474
+    (7.09 tiles, standing, chasing), drops nothing either: it is held by the fight (the seek's look behind never reads
+    the one or two it was sought against, P24-X)."""
+    from .test_survive_o import e9_lines
+    g = e9_lines()
+    w = g[344]["why"]
+    assert "behind" not in w and w.get("flee") is None and w["fight"] is True and w["target"] == 7479

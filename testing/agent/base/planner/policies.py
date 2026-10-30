@@ -311,8 +311,9 @@ def others_behind(world, zid, z):
     """Ruling P24-A (b) (E5 line 219: the fight walked at 19275, 5.99 tiles off, with 19278 and 19249 listed 11 tiles
     out within 13 degrees of its bearing; the group arrived round it): the ids, sorted, of the other zombies listed
     within LISTED_R of the player that lie BEHIND_MARGIN or more beyond the target `z` (id `zid`; P24-A fix 1 (5))
-    and within AHEAD_CONE of its bearing. A
-    zombie with no position, or the target at the player's own position, is none."""
+    and within AHEAD_CONE of its bearing. A zombie with no position, or the target at the player's own position, is
+    none; ruling P24-AY (the deferred minor 7 of review-t32-fix1: E9's line 344 dropped the fight for 7489, read fallen
+    11.69 tiles behind the target) a fallen one (`on_floor`) is none either: it is no group arriving."""
     mx, my = me_xy(world)
     tx, ty = z["x"] - mx, z["y"] - my
     td = math.hypot(tx, ty)
@@ -321,7 +322,7 @@ def others_behind(world, zid, z):
     cos_cone = math.cos(math.radians(AHEAD_CONE))
     out = []
     for oid, o in world.zombies.items():
-        if oid == zid or o.get("x") is None or o.get("y") is None:
+        if oid == zid or o.get("x") is None or o.get("y") is None or on_floor(o):
             continue
         dx, dy = o["x"] - mx, o["y"] - my
         d = math.hypot(dx, dy)
