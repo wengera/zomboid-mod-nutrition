@@ -309,8 +309,9 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
 
 
 BASE_SENTENCE = (
-    "the base at `3ef29b57` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 13 (P25-A to P25-F, "
-    "as `f_goals_5.py` names them), the goal source at `f4b3aa11` and the library at `73f5ae42` (P24-AM)")
+    "the base at `345486f7` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 14 (P25-A to P25-F "
+    "as `f_goals_5.py` names them, and P25-G to P25-I: the shelter shun loop closed, the unwear under a goal, the corner's "
+    "third branch logged), the goal source at `16e0e103` and the library at `203ac731` (the screen line's guard)")
 
 
 def test_the_driver_is_f_goals_4_py_copied_under_its_own_key():
