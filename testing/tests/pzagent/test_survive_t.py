@@ -16,7 +16,8 @@
 - P25-F, the fence wait: a chaser across a known hoppable edge is waited for in the stance FENCE_BACK_R back on the
   player's own side, never repositioned for nor marked unreachable, until the stand clock's STAND_MAX_S.
 """
-import json
+import functools
+import os
 
 import pytest
 
@@ -25,11 +26,10 @@ from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner import threat as T
 
-from .test_policies import all_sends_valid, square
-from .test_survive import last, make, threat_why, tick
+from .test_policies import all_sends_valid
+from .test_survive import make, threat_why, tick
 from .test_survive_q import fr, z
 
-E11 = "e_day_11-20261030-113732"
 F3 = "f_goals_4-20261030-114742"
 
 
@@ -58,3 +58,13 @@ def test_the_spent_view_reads_the_stiffness_for_the_arms_and_the_fatigue_for_tir
     r2.frame(zombies=[z(1, 104.0)], fatigue=0.7)
     tick(r2, sv2)
     assert sv2.spent_view() == {"kind": "tired", "value": 0.7}
+
+
+def test_the_iteration_13_constants():
+    assert P.SHOVE_REPEAT_S == 3.0 and (P.HOLD_SPAN_MIN, P.HOLD_QUIET_S) == (15.0, 20.0)
+    assert P.DOOR_WALK_S == 20.0 and P.FENCE_BACK_R == (1.5, 2.5)
+    for name in T.T3_SWITCHES:
+        assert getattr(S.Survive, name) is True, name
+    assert T.T3_SWITCHES == ("CORNER_BREAK", "FINISH_FIRST", "HOLD_RUN", "RIDE_WAIT", "DOOR_WALK", "FENCE_WAIT")
+
+

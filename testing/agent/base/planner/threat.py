@@ -18,13 +18,15 @@ from agent.base.planner.flee import Flee
 from agent.base.planner.hold import Hold
 from agent.base.planner.policies import (AIM_R, CLOSING_TICKS, CORNERED_R, CORNER_FREE_R, DANGER_R, DISENGAGE_R,
                                          DRAG_DOWN_N, DROP_AT, EDGE_HOLD_TICKS, ENGAGE_R, FIGHT_REACH, FINISH_R,
-                                         FLEE_HEALTH, FLEE_HEALTH_PAIR, FLIP_MIN_S, GROUP_HOLD_N, GROUP_NEAR_R,
-                                         GROUP_R_N, HOLD_BREAK_R, LISTED_R, MANY_LISTED_N, MAX_FIGHT, POINT_BLANK_R,
-                                         REFIGHT_MARGIN, STUCK_RETRY_GROUP_S, STUCK_RETRY_S, adoptable, blocked,
-                                         chasing, exit_plan, in_building, in_reach, line_to, others_behind,
+                                         FLEE_GAIT, FLEE_HEALTH, FLEE_HEALTH_PAIR, FLIP_MIN_S, GROUP_HOLD_N,
+                                         GROUP_NEAR_R, GROUP_R_N, HOLD_BREAK_R, LISTED_R, MANY_LISTED_N, MAX_FIGHT,
+                                         POINT_BLANK_R, REFIGHT_MARGIN, STUCK_RETRY_GROUP_S, STUCK_RETRY_S, adoptable,
+                                         blocked, chasing, exit_plan, in_building, in_reach, line_to, others_behind,
                                          seek_allowed, spare, target_id_ok, zdist)
 from agent.base.planner.pull import ThreatPull
 from agent.base.pza1 import Drop
+
+T3_SWITCHES = ("CORNER_BREAK", "FINISH_FIRST", "HOLD_RUN", "RIDE_WAIT", "DOOR_WALK", "FENCE_WAIT")   # P25-A..F
 
 __all__ = ["Threat", "FLEE_HEALTH", "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "HOLD_BREAK_R", "CLOSING_TICKS",
            "CORNERED_R", "CORNER_FREE_R", "MANY_LISTED_N", "FINISH_R", "DRAG_DOWN_N", "FLIP_MIN_S", "GROUP_R_N",
@@ -63,6 +65,18 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
     OBSERVES_IN_READ = True   # Plan 25 Task 2 (Plan 24's close review, minor 8): every observe of a policy held at the
                               # tick's read (the Night, the Care, the Fight, the Flee) and the threat's bookkeeping run
                               # in `Survive._read`; off, inside `assess` as before (the replay tests' seam, `pre_t2`)
+    # survival iteration 13 (Plan 25 Task 3; survive.py's docstring, Survival 14): each switch off is the rule before
+    # it, and all of them off (`T3_SWITCHES`) the replay tests' seam onto the goldens before Task 3 (`pre_t3`)
+    CORNER_BREAK = True   # ruling P25-A: after a missed shove the swing (one in reach) or the break (two), never a
+                          # second shove within SHOVE_REPEAT_S (`policies.Fight._corner`)
+    FINISH_FIRST = True   # ruling P25-B: a fallen zombie within FINISH_R stomped before an attack's walk
+                          # (`Fight._finish_first`)
+    HOLD_RUN = True       # ruling P25-C: the endurance hold's `strain` flee walks with no zombie within DANGER_R, and
+                          # the hold releases after HOLD_SPAN_MIN quiet (`hold.Hold._read_endurance`, `_hold_walk`)
+    RIDE_WAIT = True      # ruling P25-D: a riding bandage holds a no-swing Fight's sends (`Fight._ride_waits`)
+    DOOR_WALK = True      # ruling P25-E: a doorway stand's stalled walk re-routes once, then drops the plan
+                          # (`flee.Flee._door_stall`)
+    FENCE_WAIT = True     # ruling P25-F: a chaser across a known fence waited for in the stance (`Fight._fence_wait`)
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -593,6 +607,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             policy.ride = self.care.riding()   # P24-U: the stance legs held off while a bandage rides
             policy.threats = held
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
+            policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
             ans = self._answer(policy)
         self.why.update({"fight": True} if reason is None else {"flee": reason})
         if reason == "strain" or self.corner_yield == "strain":
@@ -627,6 +642,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         if ride is not None:
             self.why["ride"] = ride.aid   # P24-U: a bandage rides the leg this answer holds or re-aims
         return ans if ans is not None else (policy, None)
+
+    def _fight_rules(self):
+        """The iteration-13 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
+        return frozenset(rule for rule, on in (("corner_break", self.CORNER_BREAK), ("finish_first", self.FINISH_FIRST),
+                                               ("ride_wait", self.RIDE_WAIT), ("fence_wait", self.FENCE_WAIT)) if on)
 
     def _door_targets(self):
         """(id, zombie) of each reachable held threat standing in the sheltered building's doorway or inside it

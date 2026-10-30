@@ -224,6 +224,12 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     `TRANS`, `HOLD_WIDE`, `STANCE_LISTED`).
   - Survival 13 (Task 36, E10): item 25: P24-AT to P24-AY (`hold.Hold`, `pull.FightPull`, `finish.py`, `water.py`,
     `doorway.DoorwayStand`; `EDGE`, `PICK_WHY`).
+- Survival 14 (Plan 25 Task 3, survival iteration 13, E11 and F3): `2026-10-30-plan-25-the-kills-design.md` § 2.1
+  (a)-(f), rulings P25-A to P25-F in the plan's Task 3: the missed shove's swing or break (`fight.Fight._corner`,
+  `CORNER_BREAK`), the stomp first (`Fight._finish_first`, `FINISH_FIRST`), the endurance hold's walk and its timed
+  release (`hold.Hold._read_endurance`, `_hold_walk`, `HOLD_RUN`; the goal view's `spent`, `spent_view`), the ride's
+  wait (`Fight._ride_waits`, `RIDE_WAIT`), the stand's stalled walk (`flee.Flee._door_stall`, `DOOR_WALK`) and the
+  fence wait (`Fight._fence_wait`, `FENCE_WAIT`); `threat.T3_SWITCHES` off is the rule before them.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already

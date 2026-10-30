@@ -12,6 +12,21 @@ from agent.base.planner.policies import (DANGER_R, FIGHT_REACH, FINISH_R, KEEP_R
 from agent.base.pza1 import Attack, Shove, Stomp
 
 
+def finish_chaser(world, zid, dead):
+    """The deferred minor 5 of review-t32-fix1: (id, tiles) of the nearest standing (not `on_floor`) zombie chasing
+    (`hasTarget`) within KEEP_R of the fallen target `zid`, the ids in `dead` and the target left out, else None: the
+    stomp's walk to the target would end at it (the flee's finish, P24-AV, and the Fight's stomp first, P25-B)."""
+    t = world.zombies[zid]
+    best = None
+    for oid, o in world.zombies.items():
+        if oid == zid or oid in dead or on_floor(o) or not chasing(o) or o.get("x") is None or o.get("y") is None:
+            continue
+        d = math.hypot(o["x"] - t["x"], o["y"] - t["y"])
+        if d <= KEEP_R and (best is None or (d, repr(oid)) < (best[1], repr(best[0]))):
+            best = (oid, d)
+    return best
+
+
 class ThreatFinish:
     """The `many` flee's finish (the module docstring): `Threat`'s mixin."""
 
@@ -76,19 +91,8 @@ class ThreatFinish:
         return self.flee, cmd
 
     def _finish_chaser(self, zid, dead):
-        """The deferred minor 5 of review-t32-fix1: (id, tiles) of the nearest standing (not `on_floor`) zombie
-        chasing (`hasTarget`) within KEEP_R of the fallen target `zid`, the ids in `dead` and the target left out, else
-        None: the stomp's walk to the target would end at it."""
-        t = self.world.zombies[zid]
-        best = None
-        for oid, o in self.world.zombies.items():
-            if (oid == zid or oid in dead or on_floor(o) or not chasing(o) or o.get("x") is None
-                    or o.get("y") is None):
-                continue
-            d = math.hypot(o["x"] - t["x"], o["y"] - t["y"])
-            if d <= KEEP_R and (best is None or (d, repr(oid)) < (best[1], repr(best[0]))):
-                best = (oid, d)
-        return best
+        """`finish_chaser` over the World (the flee's finish, P24-AV)."""
+        return finish_chaser(self.world, zid, dead)
 
     def _finish_end_read(self, zid):
         """The end of the flee's last finishing stomp at `zid`: "stood" when it failed `stood` (P24-AV: the target

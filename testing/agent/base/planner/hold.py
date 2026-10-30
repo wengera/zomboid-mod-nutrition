@@ -4,9 +4,9 @@ target). Moved out of `threat.py` at Plan 25 Task 2 (a pure move: every rule, sw
 in `policies.py`'s table); its state is `Survive`'s own, set in `Survive.__init__`, and `survive.py`'s module docstring
 stays the record of every rule here.
 """
-from agent.base.planner.policies import (DANGER_R, ENDURANCE_RELEASE, ENDURANCE_T, KEEP_R, LISTED_R, STIFF_HARD,
-                                         STIFF_SOFT, STRAIN_HARD, TIRED_FIGHT_T, arm_pain, arm_stiffness, chasing,
-                                         on_floor, zdist)
+from agent.base.planner.policies import (DANGER_R, ENDURANCE_RELEASE, ENDURANCE_T, HOLD_QUIET_S, HOLD_SPAN_MIN,
+                                         KEEP_R, LISTED_R, STIFF_HARD, STIFF_SOFT, STRAIN_HARD, TIRED_FIGHT_T, arm_pain,
+                                         arm_stiffness, chasing, on_floor, zdist)
 
 
 def _num(v):

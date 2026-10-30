@@ -67,8 +67,19 @@ def pre_t36(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 24 Task 36 (survival iteration 12): its golden movers off
     (`T36_SWITCHES`: `Survive.EDGE`, P24-AU's edge hold; `Survive.PICK_WHY`, P24-AX's `doorway_pick` on every `many`
     line), but those named in `keep`. P24-AT reads what no record
-    carries (`body.strain`, `body.armPain`: `test_no_record_carries_a_pza1_7_read`), so it has no switch."""
+    carries (`body.strain`, `body.armPain`: `test_no_record_carries_a_pza1_7_read`), so it has no switch. Plan 25 Task
+    3: iteration 13's switches (`pre_t3`) off with them, in every seam onto an earlier rule."""
     for name in T36_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t3(sv)
+
+
+def pre_t3(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 25 Task 3 (survival iteration 13): its switches off
+    (`threat.T3_SWITCHES`: CORNER_BREAK, P25-A; FINISH_FIRST, P25-B; HOLD_RUN, P25-C; RIDE_WAIT, P25-D; DOOR_WALK,
+    P25-E; FENCE_WAIT, P25-F), but those named in `keep`."""
+    for name in T.T3_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -1289,3 +1300,43 @@ def test_observes_in_read_moves_no_golden(key):
     text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t2)), head["base"],
                          R.RUNS[key], head["recorded"], R.SPANS.get(key), R.HELLO_CAPS.get(key))
     assert text.encode("utf-8") == golden(key)
+
+
+# ================================================================ Plan 25 Task 3: iteration 13 on the goldens
+@functools.lru_cache(maxsize=6)
+def _pre_t3_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t3), sort_keys=True)
+
+
+def pre_t3_gold(key):
+    """{line: decision} of the replay with iteration 13's switches off: the golden before Task 3's re-record."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_t3_replayed(key)))}
+
+
+@functools.lru_cache(maxsize=12)
+def _only_t3(key, switch):
+    """{line: decision} of the replay with iteration 13's switches off but `switch`."""
+    return {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                         mutate=lambda sv: pre_t3(sv, keep=(switch,))))}
+
+
+# the six goldens as they stood before Task 3 (Task 2's HEAD, `843c4ec3`): sha256, base, recorded
+PRE_T3 = {"e2": ("f2edee8655bb6c6706ce8b2af99daff97445d4a1673ed2799e912fdf0e266cb9", "eaa1c9a3", "2026-10-30"),
+          "e3": ("2585ba89039b0306ee93e814909507afdaccb038936d9dece1171511ec6d5bac", "eaa1c9a3", "2026-10-30"),
+          "e4": ("26155f3807a88aa064fd01df557cfa1e9c59ff73d124f8037bd3c82eed258cf8", "eaa1c9a3", "2026-10-30"),
+          "e5": ("cba5e2bff3226198dffae52078a1b38269101a6e786cc0199d204adefa0900cf", "eaa1c9a3", "2026-10-30"),
+          "f1": ("599990a3e11d14315e0b9d076bbfa10a49341c503aff4831709fac4d9f7d43d5", "eaa1c9a3", "2026-10-30"),
+          SIXTH: ("200e3621f8de68832d3eb9ba143bb165339b58d22cbacdf54e283b5f47633562", "eaa1c9a3", "2026-10-30")}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_T3))
+def test_with_iteration_13_off_the_goldens_are_task_2_s(key):
+    """Iteration 13's golden movers are `threat.T3_SWITCHES`: with them off every golden is the file as it stood
+    before Task 3 byte for byte (its sha256 pinned), so the rules without a switch (the goal view's `spent`, the
+    imports, `World.fence_crossing` under `fence_on_line`, the Fight's `_standing`) move none."""
+    sha, base, recorded = PRE_T3[key]
+    text = R.golden_text(R.decisions(json.loads(_pre_t3_replayed(key))), base, R.RUNS[key], recorded,
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+
+

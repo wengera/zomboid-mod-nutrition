@@ -219,6 +219,29 @@ GROUP_HOLD_N = 4          # held threats (within the hold radius) that make a gr
 STUCK_RETRY_S = 2.0       # wall seconds after a stuck read before a stuck corner against a group tries a leg (P23-AP 2)
 STUCK_RETRY_GROUP_S = 1.0  # ... with GROUP_R_N within CORNERED_R or GROUP_HOLD_N held, whatever the nearest reads
                           # (P24-A fix 1 (1), a ruling: F1's corner read stuck at 537 held on against four)
+# survival iteration 13 (Plan 25 Task 3, rulings P25-A to P25-F; E11 and F3, rows #4402-#4427)
+SHOVE_REPEAT_S = 3.0      # wall seconds after a shove at a target in which no second shove goes at it (P25-A): a shove
+                          # read no knock-down is answered by the swing or the break instead. E11's seven shoves at its
+                          # two cornered zombies came 2.004 to 4.928 s apart (lines 396-436), six reading `knockdown`
+                          # false (#4406); 3.0 takes in the three sent 2.0 to 2.6 s after the one before, a judgment
+                          # (the shove's swing and its act line take about a second: the window holds one swing after)
+HOLD_SPAN_MIN = 15.0      # game minutes the endurance hold may stand before it releases on a quiet rise under
+                          # ENDURANCE_RELEASE (P25-C): F3's hold set at game minute 648 at 0.7267035841941833 and
+                          # never read above 0.80 (#4415); rest gives back 0.003-0.005 a game minute
+                          # (ENDURANCE_RELEASE's note), so F3's 0.0733 to the release line takes 14.7 to 24.4 quiet
+                          # minutes; 15 releases F3's hold by game minute 663 in a quiet replay (`test_survive_t`), its
+                          # endurance then 0.7489942908287048 (the runs kept it there), a judgment
+HOLD_QUIET_S = 20.0       # wall seconds with no zombie within DANGER_R before that release (P25-C): about 5.4 game
+                          # minutes at F3's 3.7 s a game minute; STAND_MAX_S's and UNREACHABLE_S's span, a judgment
+DOOR_WALK_S = 20.0        # wall seconds a doorway stand's walk may leave the player within STUCK_MOVE whatever the
+                          # zombies before it stalls (P25-E: E11's walk toward building 2's door stood 2.101 s 11.44
+                          # tiles from it against a fence, dropped by WALK_STALL_S with a zombie at 5.36, #4409; with
+                          # none within DANGER_R the step waited the Lua's own stuck time); STAND_MAX_S's span, a
+                          # judgment
+FENCE_BACK_R = (1.5, 2.5)  # tiles from a known hoppable edge the fence wait stands (P25-F, the guides notes § 9
+                          # change 4: "one to two tiles back from the fence, out of the lunge"): a zombie landing half
+                          # a tile past the fence is then 1.0 to 2.0 tiles off, within FIGHT_REACH, and the stand at
+                          # most KEEP_R back
 
 
 def place_of(world):

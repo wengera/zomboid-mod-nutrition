@@ -1199,20 +1199,26 @@ class World:
         ends) crosses a known hoppable edge (`_hop`: blocked, climbable): an orthogonal step over one, or a diagonal
         step with one on either leg (Task 18 fix 1, the review's ruling 2: a chasing zombie across a fence is not
         sought; the fence is the chokepoint). An unmapped square is never a fence."""
+        return self.fence_crossing(a, b) is not None
+
+    def fence_crossing(self, a, b):
+        """The midpoint (x, y) of the first known hoppable edge the line from `a` to `b` crosses (`fence_on_line`'s
+        read, from `a`'s end), else None: a west edge's at (x, y + 0.5) of its holder square, a north edge's at
+        (x + 0.5, y); a diagonal step's on the first of its two legs that holds one (Plan 25 Task 3, ruling P25-F: the
+        fence wait stands back from it)."""
         z = me_floor(self)
         sqs = [(x, y, z) for x, y in self._bresenham(int(math.floor(a[0])), int(math.floor(a[1])),
                                                      int(math.floor(b[0])), int(math.floor(b[1])))]
         for p, q in zip(sqs, sqs[1:]):
             if p not in self.map or q not in self.map:
                 continue
-            if p[0] == q[0] or p[1] == q[1]:
-                if self._hop(p, q) is not None:
-                    return True
-                continue
-            for c in ((q[0], p[1], z), (p[0], q[1], z)):
-                if c in self.map and (self._hop(p, c) is not None or self._hop(c, q) is not None):
-                    return True
-        return False
+            legs = [(p, q)] if p[0] == q[0] or p[1] == q[1] else [
+                leg for c in ((q[0], p[1], z), (p[0], q[1], z)) if c in self.map for leg in ((p, c), (c, q))]
+            for u, v in legs:
+                h = self._hop(u, v)
+                if h is not None:
+                    return (float(h[0]), h[1] + 0.5) if u[0] != v[0] else (h[0] + 0.5, float(h[1]))
+        return None
 
     def _hop(self, a, b):
         """The fence square of the orthogonal step a -> b when it is blocked but climbable, else None."""

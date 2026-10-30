@@ -111,21 +111,25 @@ one table the gates and the other policies import).
 import math
 import time
 
-from agent.base.planner.finish import FightFinish
+from agent.base.planner.finish import FightFinish, finish_chaser
 from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R,
-                                         EDGE_HOLD_TICKS, FIGHT_MAX_S, FIGHT_REACH, KEEP_MARGIN, KEEP_R, KNOCK_READ_S,
-                                         MISSES_TO_APPROACH, NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R, Policy,
-                                         REPIN_MARGIN, REPOSITION_MIN, REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R,
-                                         SHOVE_R, STALL_SWINGS, STAND_MAX_S, STAND_MIN_R, STEER_PROBE, STEER_TURNS,
-                                         STOOD_STOMPS, STRAIN_SOFT, STUCK_REASONS, SWING_SKIP_S, SWING_TYPES,
-                                         UNREACHABLE_S, _rotate, arm_pain, arms_hurt, away_vector, blocked, centre,
-                                         chasing, clear_heading, hit_reaction, in_reach, line_to, on_floor,
-                                         seek_allowed, stance_leg_kind, target_id_ok, zdist)
+                                         DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S, FIGHT_REACH, FINISH_R,
+                                         FLEE_GAIT, FLEE_S, KEEP_MARGIN, KEEP_R, KNOCK_READ_S, MISSES_TO_APPROACH,
+                                         NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R, Policy, REPIN_MARGIN,
+                                         REPOSITION_MIN, REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R, SHOVE_R,
+                                         SHOVE_REPEAT_S, STALL_SWINGS, STAND_MAX_S, STAND_MIN_R, STEER_PROBE,
+                                         STEER_TURNS, STOOD_STOMPS, STRAIN_SOFT, STUCK_REASONS, SWING_SKIP_S,
+                                         SWING_TYPES, UNREACHABLE_S, _rotate, arm_pain, arms_hurt, away_vector,
+                                         blocked, centre, chasing, clear_heading, hit_reaction, in_reach, line_to,
+                                         on_floor, seek_allowed, stance_leg_kind, target_id_ok, zdist)
 from agent.base.planner.pull import FightPull
-from agent.base.pza1 import Aim, Attack, Shove, WalkTo
+from agent.base.pza1 import Aim, Attack, Shove, Steer, Stomp, WalkTo
 from agent.base.world import me_floor, me_xy
 
-__all__ = ["Fight"]
+__all__ = ["Fight", "FIGHT_RULES"]
+
+FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait")   # survival iteration 13's Fight rules
+                     # (P25-A, P25-B, P25-D, P25-F), each on in `rules` unless Survive's switch for it is off
 
 
 class Fight(FightPull, FightFinish, Policy):
@@ -180,6 +184,7 @@ class Fight(FightPull, FightFinish, Policy):
         self.edge_ticks = EDGE_HOLD_TICKS   # Survive sets it each tick (its EDGE switch; 0 the rule before P24-AU)
         self.edge = {}                      # zombie id -> [ticks unlisted, its record at its last listed square]
         self._listed = {}                   # zombie id -> its record, of the zombies within LISTED_R at the last observe
+        self.rules = frozenset(FIGHT_RULES)  # Survive sets it each tick: the iteration-13 rules its switches leave on
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -540,20 +545,26 @@ class Fight(FightPull, FightFinish, Policy):
         """The build announces `kind` (shove or stomp) and its last end at `zid` left it out no longer."""
         return self.world.can(kind) and self.swing_refused.get((kind, zid), -math.inf) <= self.clock()
 
-    def _standing_near(self, r, exclude=()):
-        """(id, zombie, dist) of the nearest standing zombie (not `on_floor`, not read dead) listed within `r` tiles of
-        the player, its id not in `exclude`, else None: the engine's call takes a standing zombie within the weapon's
-        MinRange for its target (#4372), so no shove or stomp of another goes then (P24-AH)."""
+    def _standing(self, r, exclude=()):
+        """(id, zombie, dist) of each standing zombie (not `on_floor`, not read dead, not knocked down by a shove within
+        KNOCK_READ_S) listed within `r` tiles of the player, its id not in `exclude`, nearest first (ties by id)."""
         dead, now = blocked(self.dead, self.clock()), self.clock()
-        best = None
+        out = []
         for zid, z in self.world.zombies.items():
             if (zid in exclude or zid in dead or on_floor(z) or self.knocked.get(zid, -math.inf) > now
                     or z.get("x") is None or z.get("y") is None):
                 continue
             d = zdist(self.world, z)
-            if d <= r and (best is None or (d, repr(zid)) < (best[2], repr(best[0]))):
-                best = (zid, z, d)
-        return best
+            if d <= r:
+                out.append((d, repr(zid), zid, z))
+        return [(zid, z, d) for d, _, zid, z in sorted(out, key=lambda e: e[:2])]
+
+    def _standing_near(self, r, exclude=()):
+        """(id, zombie, dist) of the nearest standing zombie (`_standing`) within `r` tiles of the player, its id not in
+        `exclude`, else None: the engine's call takes a standing zombie within the weapon's MinRange for its target
+        (#4372), so no shove or stomp of another goes then (P24-AH)."""
+        near = self._standing(r, exclude)
+        return near[0] if near else None
 
     def no_swing(self):
         """The Fight sends no swing, the floor strike included (rulings P24-AP and R2): `body.armPain` at STRAIN_HARD

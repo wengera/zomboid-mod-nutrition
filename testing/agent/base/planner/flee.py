@@ -78,12 +78,12 @@ constants and record unchanged; the constants stay in `policies.py`).
 import math
 import time
 
-from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, DANGER_R, DISENGAGE_R, DOOR_CLEAR_R, FLEE_GAIT, FLEE_S,
-                                         NEAR_R, PREEMPTED, SHELTER_FLEE_R, STEER_PROBE, STEER_TURNS, STEP_PROBE,
-                                         STUCK_MOVE, STUCK_NEAR_R, STUCK_SKIP_DEG, WALK_STALL_S, WIDE_TURNS, Policy,
-                                         _night, _rotate, away_vector, centre, clear_heading, exit_plan, in_building,
-                                         in_corridor, line_to, on_post, on_room, running, stand_post, target_id_ok,
-                                         zdist)
+from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, DANGER_R, DISENGAGE_R, DOOR_CLEAR_R, DOOR_WALK_S,
+                                         FLEE_GAIT, FLEE_S, NEAR_R, PREEMPTED, SHELTER_FLEE_R, STEER_PROBE,
+                                         STEER_TURNS, STEP_PROBE, STUCK_MOVE, STUCK_NEAR_R, STUCK_SKIP_DEG,
+                                         WALK_STALL_S, WIDE_TURNS, Policy, _night, _rotate, away_vector, centre,
+                                         clear_heading, exit_plan, in_building, in_corridor, line_to, on_post, on_room,
+                                         running, stand_post, target_id_ok, zdist)
 from agent.base.pza1 import Interact, Steer, Stop, WalkTo
 from agent.base.world import me_floor, me_xy
 
