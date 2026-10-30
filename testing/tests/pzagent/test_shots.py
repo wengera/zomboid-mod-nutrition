@@ -696,6 +696,15 @@ class FakeGdi:
         self.made.append(("bmp", 3))
         return 3
 
+    wrect = None
+    crect = None
+
+    def window_rect(self, hwnd):
+        return self.wrect
+
+    def client_rect(self, hwnd):
+        return self.crect
+
     def select(self, dc, obj):
         self.calls.append("select")
         return 9
@@ -759,6 +768,37 @@ def test_a_get_dc_failure_releases_what_was_made():
     with pytest.raises(OSError):
         SH.grab_window(5, SMALL, api=g)
     assert sorted(g.freed) == sorted(g.made)
+
+
+def test_the_bitmap_is_sized_by_the_window_rect_and_cropped_to_the_dwm_rect():
+    g = FakeGdi(pixels=lambda x, y: bytes((x, y, 0, 255)))                 # B = x, G = y
+    g.wrect = (92, 92, 118, 106)                                          # 26 x 14, 8 px outside left and top
+    img = SH.grab_window(5, (100, 100, 110, 106), api=g)                  # the DWM rect
+    assert g.size == (26, 14)
+    assert img.size == (10, 6) and img.getpixel((0, 0)) == (0, 8, 8)      # (R, G, B) = (0, y, x) at window (8, 8)
+
+
+def test_the_bits_are_read_after_the_bitmap_is_selected_out_of_the_memory_dc():
+    g = FakeGdi()
+    SH.grab_window(5, SMALL, api=g)
+    c = g.calls
+    last_select = max(i for i, n in enumerate(c) if n == "select")
+    assert c.count("select") == 2 and c.index("print_window") < last_select < c.index("get_bits")
+
+
+def test_a_black_client_area_under_a_grey_title_bar_is_blank():
+    def title(x, y):
+        return bytes((128, 128, 128, 255)) if y < 30 else bytes((0, 0, 0, 255))
+    g = FakeGdi(pixels=title)
+    g.wrect = (0, 0, 200, 100)
+    g.crect = (0, 30, 200, 100)
+    img = SH.grab_window(5, (0, 0, 200, 100), api=g)
+    assert img.info["client_box"] == (0, 30, 200, 100)
+    assert not SH.is_blank(img) and SH.is_blank(img, img.info["client_box"])
+    g2 = FakeGdi(pixels=lambda x, y: bytes((128, 128, 128, 255)) if y < 30 or (x, y) == (199, 99) else bytes((0, 0, 0, 255)))
+    g2.wrect, g2.crect = g.wrect, g.crect
+    img2 = SH.grab_window(5, (0, 0, 200, 100), api=g2)
+    assert not SH.is_blank(img2, img2.info["client_box"])
 
 
 def test_is_blank_is_true_for_none_and_one_colour_false_for_two():

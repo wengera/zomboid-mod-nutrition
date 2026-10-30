@@ -293,6 +293,8 @@ class _Gdi:
         self.g.SelectObject.restype, self.g.SelectObject.argtypes = H, [H, H]
         self.g.DeleteObject.restype, self.g.DeleteObject.argtypes = w.BOOL, [H]
         self.g.DeleteDC.restype, self.g.DeleteDC.argtypes = w.BOOL, [H]
+        self.u.GetClientRect.restype, self.u.GetClientRect.argtypes = w.BOOL, [H, H]
+        self.u.ClientToScreen.restype, self.u.ClientToScreen.argtypes = w.BOOL, [H, H]
         self.g.GetDIBits.restype = I
         self.g.GetDIBits.argtypes = [H, H, ctypes.c_uint, ctypes.c_uint, H, H, ctypes.c_uint]
 
@@ -320,6 +322,21 @@ class _Gdi:
     def delete_dc(self, dc):
         self.g.DeleteDC(dc)
 
+    def window_rect(self, hwnd):
+        return gwr_rect(hwnd)
+
+    def client_rect(self, hwnd):
+        """GetClientRect mapped to screen pixels by ClientToScreen (left, top, right, bottom), or None."""
+        w = self.w
+        r = w.RECT()
+        if not self.u.GetClientRect(w.HWND(hwnd), ctypes.byref(r)):
+            return None
+        p0, p1 = w.POINT(r.left, r.top), w.POINT(r.right, r.bottom)
+        if not (self.u.ClientToScreen(w.HWND(hwnd), ctypes.byref(p0))
+                and self.u.ClientToScreen(w.HWND(hwnd), ctypes.byref(p1))):
+            return None
+        return (p0.x, p0.y, p1.x, p1.y)
+
     def get_bits(self, dc, bitmap, width, height):
         """The bitmap pixels as top-down BGRA bytes (GetDIBits, 32 bits per pixel), or None."""
         class Hdr(ctypes.Structure):
@@ -335,13 +352,20 @@ class _Gdi:
 
 
 def grab_window(hwnd, rect, api=None):
-    """The client window own content through PrintWindow(PW_RENDERFULLCONTENT) into a bitmap of rect size, as a PIL
-    RGB image; None when PrintWindow returns 0 or the bits cannot be read. Every handle made is released in the
-    `finally`, in the reverse order of its making."""
+    """The client window own content through PrintWindow(PW_RENDERFULLCONTENT) into a bitmap of the GetWindowRect
+    size (PrintWindow draws the whole window, the invisible resize border included), cropped to `rect`, the visible
+    frame the index records (the offset of the two rects); a PIL RGB image whose info["client_box"] is the client
+    area in image pixels (None when unknown). None when PrintWindow returns 0 or the bits cannot be read. The bits
+    are read after the bitmap is selected out of the memory DC, and every handle made is released in the `finally`,
+    in the reverse order of its making."""
     from PIL import Image
     a = api if api is not None else _Gdi()
     dpi_aware()
-    width, height = int(rect[2] - rect[0]), int(rect[3] - rect[1])
+    wr = a.window_rect(hwnd)
+    if wr is None or wr[2] <= wr[0] or wr[3] <= wr[1]:
+        wr = rect
+    wr = tuple(int(v) for v in wr)
+    width, height = wr[2] - wr[0], wr[3] - wr[1]
     screen_dc = mem_dc = bitmap = old = None
     try:
         screen_dc = a.get_dc()
@@ -350,10 +374,28 @@ def grab_window(hwnd, rect, api=None):
         old = a.select(mem_dc, bitmap)
         if not a.print_window(hwnd, mem_dc, PW_RENDERFULLCONTENT):
             return None
-        bits = a.get_bits(mem_dc, bitmap, width, height)
+        a.select(mem_dc, old)                            # GetDIBits wants the bitmap out of every DC
+        old = None
+        bits = a.get_bits(screen_dc, bitmap, width, height)
         if not bits:
             return None
-        return Image.frombuffer("RGBA", (width, height), bits, "raw", "BGRA", 0, 1).convert("RGB")
+        img = Image.frombuffer("RGBA", (width, height), bits, "raw", "BGRA", 0, 1).convert("RGB")
+        cl, ct = int(rect[0]) - wr[0], int(rect[1]) - wr[1]          # the DWM frame inside the window rect
+        box = (max(0, cl), max(0, ct), min(width, cl + int(rect[2] - rect[0])),
+               min(height, ct + int(rect[3] - rect[1])))
+        if box != (0, 0, width, height) and box[2] > box[0] and box[3] > box[1]:
+            img = img.crop(box)
+        else:
+            box = (0, 0, width, height)
+        cr = a.client_rect(hwnd)
+        cbox = None
+        if cr is not None:
+            cbox = (max(0, cr[0] - wr[0] - box[0]), max(0, cr[1] - wr[1] - box[1]),
+                    min(img.width, cr[2] - wr[0] - box[0]), min(img.height, cr[3] - wr[1] - box[1]))
+            if cbox[2] <= cbox[0] or cbox[3] <= cbox[1]:
+                cbox = None
+        img.info["client_box"] = cbox
+        return img
     finally:
         if old is not None and mem_dc is not None:
             a.select(mem_dc, old)
@@ -365,11 +407,14 @@ def grab_window(hwnd, rect, api=None):
             a.release_dc(screen_dc)
 
 
-def is_blank(image):
+def is_blank(image, box=None):
     """True for no image (PrintWindow failed) or one whose sampled pixels are all one colour. At most BLANK_GRID_MAX
-    pixels are read, on an even grid over the whole image."""
+    pixels are read, on an even grid over the image, or over `box` (left, top, right, bottom) of it: the client
+    area, so a black GL surface under a coloured title bar is blank."""
     if image is None:
         return True
+    if box is not None:
+        image = image.crop(tuple(box))
     w, h = image.size
     if w <= 0 or h <= 0:
         return True
@@ -521,7 +566,7 @@ class ShotTaker:
                     method, refused = "window", verdict
             if method == "window":
                 img = self.grab_win(hwnd, bbox)
-                if is_blank(img):
+                if is_blank(img, img.info.get("client_box") if img is not None else None):
                     return self._skip(trigger, m, now, ("blank", ""), bbox, src, method="window", refused=refused)
             else:
                 img = self.grab(bbox)
