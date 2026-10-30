@@ -43,3 +43,5 @@ testing/tests/pzagent/test_e_day_6.py::test_a_second_session_with_prev_records_t
 testing/tests/pzagent/test_e_day_7.py::test_a_second_session_with_prev_records_the_lineage_diff
 testing/tests/pzagent/test_e_day_8.py::test_a_second_session_with_prev_records_the_lineage_diff
 testing/tests/pzagent/test_e_day_9.py::test_a_second_session_with_prev_records_the_lineage_diff
+testing/tests/pzagent/test_e_day_10.py::test_a_second_session_with_prev_records_the_lineage_diff
+testing/tests/pzagent/test_e_day_11.py::test_a_second_session_with_prev_records_the_lineage_diff

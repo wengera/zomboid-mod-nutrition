@@ -76,3 +76,23 @@
 ### Task 27: Survival iteration 10 — strain-aware fighting, the shove and the stomp, the loaded-window legs, unwear then rip (P24-AG/AH/AI/AJ)
 - [ ] After PZA/1.7 (Task 9 fix 11); then the ninth chain's boot on it and the write-ups.
 
+### Run sheet: Tasks 24 and 28–40 (from the ledger, at the close)
+
+These tasks were briefed from the workspace and spec § 6 items 20–27 and never given a header above; each row names its subject and its commits.
+
+| Task | Subject | Commits |
+|---|---|---|
+| 24 | The clothing and window round: the clothing record and `me.worn` in the World, the wear rule, the window past a stuck door, the clothing loot capped (fix 1) | `4ce95246`, `697ee0df`, `b11f1dc2`; re-anchors `947e66ac`, `8d874a75` |
+| 28 | Notes from 22 written combat and survival guides mapped onto the planner's rules and the jar rows | `10daa32f` |
+| 29 | The guides' strategy lines in the goal source's SYSTEM, the view keys they read, the bag and weapon wants (fix 1 reworded the lines and removed the bag want) | `bed744cb`, `0eb3660e`, `5338b2c7`; re-anchors `f09aeb3c`, `40729b35` |
+| 30 | E9 write-up (the ninth chain's first session; artifact `abe2c52c`) | `434543ac` |
+| 31 | The shot taker's window-content grab through `PrintWindow` when the guard refuses the screen (P24-AM; fix 1 sized by the window rect) | `f800b8a4`, `73f5ae42` |
+| 32 | Survival iteration 11: the pull and the transparent solid, the doorway stand, the wounded fight and the fallen target, the care tick inside a long flee (P24-AN to P24-AS); fix 1 and fix 2 | `ae18c22a`, `89943cbb`, `d4639a31`, `45e099ea`; fix 1 `7eac71ab`, `a5c3c5d2`, `a7156b46`; fix 2 `6f13037c` |
+| 33 | `grade_e7` and the tenth chain's driver `e_day_10.py` | `33c74fbc`, `4ba05b6d` |
+| 34 | E10 write-up (the tenth chain's first session; artifact `48a56f5e`) | `c81c5202` |
+| 35 | `grade_f5` and the LLM session's driver `f_goals_4.py` on the strategy prompt | `db7cd527`, `511e3efa` |
+| 36 | Survival iteration 12: the pure move into `fight.py`, `flee.py` and `threat.py`, then P24-AT to P24-AY; fix 1 | `5bfbfff7`, `e1ecbd22`, `b2c49d96`, `1ad44f79`, `eaa1c9a3`, `da9af9b9`, `411dfc0e`; fix 1 `5e3ad986` |
+| 37 | `grade_e8` and the eleventh chain's driver `e_day_11.py`; fix 1 | `4062cfd7`, `1d664ca9`; fix 1 `841343f3` |
+| 38 | E11 write-up (the eleventh chain's first session; artifact `d0390058`) | `05e5c9c1` |
+| 39 | F3 write-up (the third LLM goals session; artifact `8bc77fc4`) | `ee6352fa` |
+| 40 | The kill count: `loop.results` keeps the shove and stomp results, `grade_e9` reads the kills off the act lines and the `zombie_dead` events | `9c3639f3`, `36950075` |
