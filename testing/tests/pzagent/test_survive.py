@@ -1042,9 +1042,12 @@ def shelter_world(r, door, x0=112):
 
 def test_a_flee_with_a_shelter_away_from_the_threats_runs_its_steps_then_holds_inside(tmp_path):
     """Survival 3 (ruling P23-AM 3): the flee is `many` and the nearest beyond SPRINT_R at full endurance, so the
-    shelter walks go at a sprint (once a run)."""
+    shelter walks go at a sprint (once a run). Named change, ruling P24-AO (Task 32): a `many` flee against three on a
+    build with the stance now stands in the doorway where the close went (`test_survive_p`); this case pins the close
+    of ruling P23-AG with the doorway stand off (`Survive.DOORWAY`)."""
     from .test_night import CLOSED, OPEN
     r, sv = make(tmp_path)
+    sv.DOORWAY = False
     shelter_world(r, CLOSED)
     r.frame(x=100.0, y=201.5, zombies=group())
     tick(r, sv)                                              # the approach square (111, 201) is 11.5 tiles away
@@ -1146,8 +1149,11 @@ def test_a_door_the_map_reads_locked_is_never_run_to(tmp_path):
 
 # ================================================================ survival 1 fix round 1 (the review's I1-I4, M1-M5)
 def sheltered(r, sv, weapon=BAT):
-    """Run the shelter steps of the first test to the closed door and the inside hold; the player at (112.5, 200.5)."""
+    """Run the shelter steps of the first test to the closed door and the inside hold; the player at (112.5, 200.5).
+    Named change, ruling P24-AO (Task 32): the doorway stand off (`Survive.DOORWAY`), so the steps end in the close
+    these cases pin (with it on a `many` flee against three stands in the doorway: `test_survive_p`)."""
     from .test_night import CLOSED, OPEN
+    sv.DOORWAY = False
     shelter_world(r, CLOSED)
     r.frame(x=100.0, y=201.5, zombies=group(), weapon=weapon)
     tick(r, sv)

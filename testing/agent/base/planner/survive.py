@@ -325,6 +325,7 @@ from typing import Optional
 
 from agent.base.items import days_fresh
 from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, RIDE_FREE, RIDE_R, Care
+from agent.base.planner.doorway import DOOR_HOLD_S, Doorway, stand_ready
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, ENDURANCE_RELEASE,
@@ -418,9 +419,11 @@ class Survive:
                     # tired line) flees `strain` and engages nothing; off, neither is read (the replay tests' seam onto
                     # the rules before Task 27, `test_replay_decisions.pre_ag`)
     PULL = True     # ruling P24-AN: a lone chaser is pulled from the group, never dropped for one behind it
-    TRANS = True    # ruling P24-AS: a heading read refuses a `solidTrans` square (each policy's `trans`); both
-                    # switches off are the replay tests' seam onto the rules before Task 32 (`test_replay_decisions.
-                    # pre_an`)
+    TRANS = True    # ruling P24-AS: a heading read refuses a `solidTrans` square (each policy's `trans`)
+    DOORWAY = True  # ruling P24-AO: a `many` flee against DOOR_STAND_N or fewer standing fights in the doorway; both
+                    # switches and TRANS off are the replay tests' seam onto the rules before Task 32
+                    # (`test_replay_decisions.pre_an`; P24-AP to P24-AR read what no record carries: `armPain`,
+                    # `onFloor`, a part's `bleeding`)
 
     def __init__(self, world, actions, log_path, clock=time.time, source=None):
         self.world = world
@@ -1067,8 +1070,11 @@ class Survive:
 
     def _threat_plan(self, held, breach):
         """The threat branch's one decision (ruling P23-AJ), `(kind, reason)`, the machines only executing it:
+        - The doorway stand (ruling P24-AO, `_doorway`): `doorway` while the Flee's stand plan reads `stand`, then
+          `flee` (reason `doorway`) while the stand's close runs, ahead of every other row (the stand's premise is the
+          one-tile front the drag-down guard flees).
         - The drag-down guard (ruling P24-A (h), `_drag`): `flee` with the group steer (`group` "drag"), ahead of
-          every other row; the Flee steers at a run, or inside walks the exit (P24-A (f), P24-O).
+          every other row but the doorway's; the Flee steers at a run, or inside walks the exit (P24-A (f), P24-O).
         - `door`: sheltered (a chosen shelter's plan done, the character inside) with a reachable held threat in its
           doorway or inside it: the door fight (I3). It goes first, before the corner and before the inside hold
           (a decision-order change from 21e3716b, which held first; ruled at fix round 1, the review's M1: a threat
@@ -1093,6 +1099,9 @@ class Survive:
         inside = self.night.inside()
         self.sheltered = self.flee is not None and self.flee.sheltered and inside
         self.broken, self.group_steer, self.corner_yield, self.behind, self.listed = None, None, None, None, None
+        door = self._doorway()
+        if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
+            return door
         if self._drag(held, inside):   # P24-A (h): first, whatever the fight or the corner
             self.cornered, self._corner_fight, self.group_steer, self.door = None, None, "drag", None
             return "flee", self._flee_reason(held, len(self._within(DANGER_R))) or "many"
@@ -1123,6 +1132,27 @@ class Survive:
             if reason is None:
                 return "fight", None
         return self._trapped_fight(held, inside) or ("flee", reason)
+
+    def _doorway(self):
+        """Ruling P24-AO (`planner/doorway.py`'s docstring the record): `("doorway", None)` while the Flee's stand plan
+        reads `stand` and none of its ends holds; the end (`plan["left"]`: `health` under FLEE_HEALTH, `unarmed`, or
+        `quiet` once no zombie has been within DANGER_R for DOOR_HOLD_S wall seconds, `plan["quiet"]` the last wall one
+        was) puts the plan back on its `close` step, and while that close runs `("flee", "doorway")`: the Flee sends
+        it from inside and its end is the shelter's as today. Else None (no stand)."""
+        f = self.flee
+        plan = None if f is None else f.plan
+        if plan is None or not plan.get("stood"):
+            return None
+        if plan["step"] == "stand":
+            now = self.clock()
+            if self._within(DANGER_R):
+                plan["quiet"] = now
+            left = ("health" if self._health() < FLEE_HEALTH else "unarmed" if not self._armed()
+                    else "quiet" if now - plan["quiet"] >= DOOR_HOLD_S else None)
+            if left is None:
+                return "doorway", None
+            plan.update(step="close", left=left)
+        return ("flee", "doorway") if f.closing_stand() else None
 
     def _kept_flee(self):
         """Why a running flee the hysteresis would end is kept (ruling P23-AM 1), else None: `steps` while a `many`
@@ -1274,6 +1304,8 @@ class Survive:
         if kind == "hold":
             self.why = {"flee": "held_inside", "held": len(held)}
             return None, None
+        if kind == "doorway":
+            return self._stand(held)
         door = self.door if kind == "door" else None
         want = "flee" if kind == "flee" else "fight"
         if kind == "cornered":
@@ -1295,7 +1327,8 @@ class Survive:
                     self.flee = None   # a door fight keeps the sheltered Flee for the re-close
                 self._end_flee_episode()
             else:
-                if self.flee is None or not self.sheltered:   # only a sheltered Flee outlives a door fight
+                if self.flee is None or not (self.sheltered or self.flee.closing_stand()):   # a sheltered Flee
+                    # outlives a door fight, and a stand's Flee its Doorway (P24-AO)
                     self.flee = Flee(self.world, self.actions, self.clock, shunned=self.night.shunned)
                     self.flee.skip_heading, self.stuck_heading = self.stuck_heading, None   # fix 2, G2
                 self.fight = None
@@ -1310,6 +1343,8 @@ class Survive:
             policy.threats = held
             policy.hold_ok = breach is None
             policy.steer_now = self.group_steer is not None
+            policy.stand_ok = self.DOORWAY and self.flee_many and stand_ready(self.world, blocked(self.dead,
+                                                                                               self.clock()))
             if self.group_steer:
                 policy.give_way()   # amendment 6: the group pre-empts a running walk, as the corner does
             if self.group_steer == "drag":
@@ -1354,6 +1389,23 @@ class Survive:
             self.why["ride"] = ride.aid   # P24-U: a bandage rides the leg this answer holds or re-aims
         return ans if ans is not None else (policy, None)
 
+    def _stand(self, held):
+        """Ruling P24-AO: the doorway stand's answer: its `Doorway` fight over the Flee's stand plan (made once, kept
+        while the plan stands; the Flee kept for the close), the mode `fight`, the flee episode's flags kept (the
+        stand is the `many` flee's end), logged `doorway` (the building) beside the fight's why."""
+        f = self.fight
+        if f is None or f.doorway is None or f.plan is not self.flee.plan:
+            self.fight = Doorway(self.world, self.actions, self.clock, self.flee.plan, unreachable=self.unreachable,
+                                 dead=self.dead)
+            self.cornered, self._corner_fight = None, None
+        self.mode = "fight"
+        policy = self.fight
+        policy.threats = held
+        policy.ride = self.care.riding()
+        ans = self._answer(policy)
+        self.why.update({"fight": True, "doorway": policy.doorway})
+        return ans if ans is not None else (policy, None)
+
     def _released(self, held):
         """Task 18 fix 1 (the review's major 2: E4's fight on gate zombie 19001 held the goal off behind a locked
         gate): a running fight (neither a corner's nor a door fight) with no held threat within DANGER_R and none of
@@ -1361,7 +1413,8 @@ class Survive:
         runs: the release of P24-X's engage, as it was entered. Sets `avoid`, the held ids beyond DANGER_R no engage
         reaches (the Fight never pins one anew: `Fight.avoid`). Only with `ENGAGE` on."""
         f = self.fight
-        if not self.ENGAGE or self.mode != "fight" or f is None or f.point_blank or f.only is not None:
+        if (not self.ENGAGE or self.mode != "fight" or f is None or f.point_blank or f.only is not None
+                or f.doorway is not None):   # P24-AO: the doorway stand is left only by its own ends
             return False
         ids = {id(z): zid for zid, z in self.world.zombies.items()}
         pairs = [(ids.get(id(z)), z) for z in held]

@@ -495,6 +495,15 @@ def arm_pain(world):
     return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
 
+def arms_hurt(world):
+    """Ruling P24-AP (#4370: a swing that is not a stomp divides its damage by the summed arm pain over 10, whatever
+    the pain's source, a bite's included): the frame's `body.armPain` at STRAIN_HARD or above, where a swing does half
+    its damage or less, so the Fight never swings (the shove ignores damage, #4373; the stomp's damage is set after
+    the divider, #4374)."""
+    pain = arm_pain(world)
+    return pain is not None and pain >= STRAIN_HARD
+
+
 def on_floor(z):
     """Zombie record `z` lies on the floor (PZA/1.7's `onFloor`: knocked down, or crawling); absent is standing."""
     return z.get("onFloor") is True
@@ -1485,6 +1494,8 @@ class Flee(Policy):
         self._leg_still = 0.0    # wall seconds the running leg has left the player within STUCK_MOVE of that anchor
         self.skip_heading = None  # Survive sets it: a stuck heading from before this Flee (a `stuck` corner's leg),
                                   # skipped by the first leg's turn as F4 skips a stuck leg's (P24-A fix 2, G2)
+        self.stand_ok = False    # Survive sets it each tick: a shelter picked now is a doorway stand (ruling P24-AO,
+                                 # `planner.doorway`)
 
     @property
     def sheltered(self):
@@ -1494,6 +1505,14 @@ class Flee(Policy):
     def running_shelter(self):
         """A shelter plan is running and its close has not ended (Survive's inside hold waits for it)."""
         return self.plan is not None and self.plan["step"] != "done"
+
+    def standing_door(self):
+        """The doorway stand runs (ruling P24-AO): the plan's enter ended where its close would go (`stand`)."""
+        return self.plan is not None and self.plan["step"] == "stand"
+
+    def closing_stand(self):
+        """A doorway stand left (Survive's `_doorway`) and its close not yet ended: the stand's own shelter step."""
+        return self.plan is not None and bool(self.plan.get("stood")) and self.plan["step"] == "close"
 
     def running_exit(self):
         """A way out is running (Survive's inside hold waits for it, as for the shelter steps)."""
@@ -1533,6 +1552,8 @@ class Flee(Policy):
         self.ended = _night().shelter_ended(self.plan, a)
         if self.ended not in ("advance", "resend", "passed"):
             self._drop(a.state == "failed" and a.reason in _night().SHUN_REASONS)
+        elif self.plan.get("stand") and self.plan["step"] == "close":   # P24-AO: the enter ended, the close is the
+            self.plan.update(step="stand", stood=True, quiet=self.clock())   # stand's (`planner.doorway`)
 
     def _ids(self, zs):
         """The World's ids of the zombie records `zs` (this tick's dicts), sorted."""
@@ -1685,8 +1706,11 @@ class Flee(Policy):
         so never toward a zombie nearer it); else the plan dropped (I2). None with the plan dropped: the steer
         follows."""
         N = _night()
-        cmd, step = N.shelter_step(self.world, self.plan)
         b = self.plan["building"]
+        if self.plan["step"] == "stand":   # P24-AO: the stand is Survive's Doorway fight; the Flee holds its plan
+            self.why = {"shelter": b, "step": "stand"}
+            return None
+        cmd, step = N.shelter_step(self.world, self.plan)
         if step == "shun":
             self._drop(True)
             return None
@@ -1781,6 +1805,8 @@ class Flee(Policy):
         if not self.picked:
             self.plan = self._pick(ts)
             self.picked = self.plan is not None
+            if self.plan is not None and self.stand_ok:   # P24-AO: the door taken for the doorway stand
+                self.plan.update(stand=True, way=self.world.door_way(self.door()))
         if self.plan is not None:
             cmd = self._shelter(ts)
             if cmd is not None or self.plan is not None:
