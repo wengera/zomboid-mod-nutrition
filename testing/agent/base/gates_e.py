@@ -2322,3 +2322,106 @@ def grade_e8(out, prev=None, decision_lines=None, state_dir=None, lines=None):
 def gate_e8(outs):
     """gate_e7 gates and kills (grade_e8 changes none of what they read), named gate_e8."""
     return gate_e7(outs)
+
+
+# ================================================================ pass 9 (Plan 24 Task 40): the kills off the act lines and the zombie_dead events
+# grade_e9 is grade_e8 with the kills headline re-read (grade_e4 to grade_e8 and `_kill_ids` frozen, CLAUDE.md section 5).
+# E11 killed three zombies (the death event's zombiesKilled 3, three zombie_dead events, three act lines reading
+# targetDead true: stomps a40 and a56, attack a80) while grade_e8 read planner 1, because loop.results kept no stomp or
+# shove result and `_kill_ids` counts attacks and aims off it. The planner's count here is every SWING_TYPES send whose act
+# line (the decoded state log) read targetDead true, by the target id of the sent action (loop.actions' args.targetId: the
+# act line's snapshot.nearest is the nearest zombie, not the target), deduplicated; a record without state lines reads the
+# same off loop.results (the driver library keeps the shove and stomp results from Task 40 on).
+from agent.base.planner.policies import SWING_TYPES    # noqa: E402
+
+
+def _act_kills(out, lines):
+    """([(targetId, sentS)] of the swings that killed, deduplicated by id in act order, source): the SWING_TYPES act lines
+    of `lines` whose result read targetDead true (source "act lines"), else, without lines, the same off loop.results
+    (source "loop.results"). The target id and the send second come from loop.actions by aid."""
+    loop = _d(_d(out).get("loop"))
+    acts = {a.get("aid"): a for a in (_d(x) for x in _l(loop.get("actions")))}
+    if lines:
+        rows, source = [_d(l) for l in _l(lines) if isinstance(l, dict) and l.get("kind") == "act"], "act lines"
+    else:
+        rows, source = [_d(r) for r in _l(loop.get("results")) if isinstance(r, dict)], "loop.results"
+    seen, got = set(), []
+    for r in rows:
+        if r.get("type") not in SWING_TYPES or _d(r.get("result")).get("targetDead") is not True:
+            continue
+        a = acts.get(r.get("aid"), {})
+        zid = _d(a.get("args")).get("targetId")
+        if zid is None or zid in seen:
+            continue
+        seen.add(zid)
+        got.append((zid, _n(a.get("sentS"))))
+    return got, source
+
+
+def _dead_events(lines):
+    """The distinct ids of the zombie_dead events of `lines`, in order."""
+    ids = []
+    for l in _l(lines):
+        if isinstance(l, dict) and l.get("kind") == "event" and l.get("event") == "zombie_dead" and l.get("id") not in ids:
+            ids.append(l.get("id"))
+    return ids
+
+
+def _kills_in(kills, lo=None, hi=None):
+    """How many of `kills` [(id, sentS)] were sent within lo..hi seconds (all when lo is None)."""
+    if lo is None:
+        return len(kills)
+    return sum(1 for _, t in kills if t is not None and t >= lo and (hi is None or t <= hi))
+
+
+def e_kills_9(out, lines):
+    """e_kills_2 with `planner` and `planner_ids` off the act lines (_act_kills), `per_fight`, `standing_kills` and
+    `per_standing_fight` recomputed from those ids, and `event_ids`/`events` (the zombie_dead events, None without
+    lines), `source` and `agree` (engine, planner and events all equal, when all three are read, else None)."""
+    k = e_kills_2(out)
+    loop = _d(_d(out).get("loop"))
+    kills, source = _act_kills(out, lines)
+    per = []
+    for f in (f for f in _l(loop.get("fights")) if isinstance(f, dict)):
+        s, e = _n(f.get("startS")), _n(_d(f.get("end")).get("endS"))
+        per.append(_kills_in(kills, s - FIGHT_WINDOW_SLACK_S, e) if s is not None else 0)
+    standing = e_standing_2(loop, _results(loop))
+    sk = sum(per[r["fight"]] for r in standing["rows"] if r["fight"] < len(per))
+    events = _dead_events(lines) if lines else None
+    n = [x for x in (k["engine"], len(kills), len(events) if events is not None else None) if x is not None]
+    k.update(planner=len(kills), planner_ids=[z for z, _ in kills], per_fight=per, standing_kills=sk,
+             per_standing_fight=sk / standing["n"] if standing["n"] else None, source=source, event_ids=events,
+             events=len(events) if events is not None else None,
+             agree=(len(set(n)) == 1) if len(n) == 3 else None)
+    return k
+
+
+def grade_e9(out, prev=None, decision_lines=None, state_dir=None, lines=None):
+    """grade_e8 under "grade_e9" with `kills` read by e_kills_9 and the report's first line naming the three sources."""
+    out = _d(out)
+    g = grade_e8(out, prev, decision_lines, state_dir, lines=lines)
+    if lines is None:
+        lines = session_lines(state_dir)[0] if state_dir is not None else []
+    g["grade"] = "grade_e9"
+    g["kills"] = e_kills_9(out, lines)
+    g["report_lines"] = report_lines_e9(g)
+    return g
+
+
+def report_lines_e9(g):
+    """report_lines_e8 with the kills headline followed by the sources line: planner (act lines or loop.results), the
+    zombie_dead events, the engine's count at the death, and whether they agree."""
+    g = _d(g)
+    k = _d(g.get("kills"))
+    lines = [("gate_e9 " + l[len("gate_e8 "):]) if l.startswith("gate_e8 ") else l for l in report_lines_e8(g)]
+    ag = k.get("agree")
+    lines.insert(1, "kills sources: planner %s (%s), zombie_dead events %s, engine %s; %s" % (
+        k.get("planner"), k.get("source"), k.get("events") if k.get("events") is not None else "n/a",
+        k.get("engine") if k.get("engine") is not None else "n/a",
+        "agree" if ag is True else "disagree" if ag is False else "not all read"))
+    return lines
+
+
+def gate_e9(outs):
+    """gate_e8 (grade_e9 changes none of what it reads), named gate_e9."""
+    return gate_e8(outs)
