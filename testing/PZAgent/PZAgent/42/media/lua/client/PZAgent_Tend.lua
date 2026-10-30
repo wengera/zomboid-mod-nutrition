@@ -794,8 +794,14 @@ local function unwearQueued(action)
     return ok and has == true
 end
 
--- whether the garment's body location lets the unequip run beside a walk: its location is in WalkBodyLocations
+-- whether the garment's body location lets the unequip run beside a walk: ISWearClothing.isStopOnWalk(item) reads false when
+-- present (pcall), else its location is in WalkBodyLocations
 local function walkOk(it)
+    local W = ISWearClothing
+    if W ~= nil and W.isStopOnWalk ~= nil then
+        local okS, stops = pcall(W.isStopOnWalk, it)
+        if okS then return stops ~= true end
+    end
     local list = ISWearClothing ~= nil and ISWearClothing.WalkBodyLocations or nil
     if type(list) ~= "table" then return false end
     local _, loc = PZA.call(it, "getBodyLocation")

@@ -614,8 +614,8 @@ K.types.window = {
 -- SHOVE_R tiles (too far: the shove's own reach, calcHitListShove, is not read, so 1.5 is a bound), the player not in a hit
 -- reaction or a swing (K.attackBusy: busy). The first tick: the run latches off, faceThisObject(z), setDoShove(true), DoAttack(0)
 -- (index-checked first: not loaded; a raise inside either is the swing not made). Then, as attack does, isAttackStarted read
--- until it has read true and then false, or SWING_MS after the swing; one frame later done {knockdown (the target's isOnFloor()
--- then), attackStarted, targetDead}. A target that moved beyond SHOVE_R before the first tick fails too far; one dead before it
+-- until it has read true and then false, or SWING_MS after the swing; one frame later done {knockdown (the target's isKnockedDown()
+-- then: set at the hit, where isOnFloor waits for the fall animation), attackStarted, targetDead}. A target that moved beyond SHOVE_R before the first tick fails too far; one dead before it
 -- is done. stomp: check: as shove's, but the target must read isOnFloor() (not valid) and no standing zombie (any other
 -- listed zombie of the last frame not on the floor) may stand within the weapon's MinRange of the player (STAND_R when none is
 -- held or the member is absent): standing; the call would shove that one. The first ticks walk to under STOMP_R tiles of the
@@ -684,8 +684,15 @@ local function onFloor(z)
     return v == true
 end
 
+-- the knocked-down state (IsoZombie.isKnockedDown), set at the hit; isOnFloor turns true only when the fall animation ends
+-- (ZombieFallDownState.exit), so the shove reads this one. Fail-closed: an absent member or a raise reads false.
+local function knockedDown(z)
+    local ok, v = PZA.call(z, "isKnockedDown")
+    return ok and v == true
+end
+
 local function shoveResult(st)
-    return { knockdown = onFloor(st.z), attackStarted = st.started, targetDead = K.zombieDead(st.z) }
+    return { knockdown = knockedDown(st.z), attackStarted = st.started, targetDead = K.zombieDead(st.z) }
 end
 
 K.types.shove = {
@@ -781,6 +788,7 @@ K.types.stomp = {
         if st.swungAt == nil then
             if not shoveLoaded(p) then return "failed", "not loaded" end
             if K.zombieDead(st.z) then return "done", stompResult(st) end
+            if not onFloor(st.z) then return "failed", "stood" end
             local d = K.zombieDist(p, st.z)
             if d == nil then return "failed", "out of reach" end
             if d >= K.STOMP_R then

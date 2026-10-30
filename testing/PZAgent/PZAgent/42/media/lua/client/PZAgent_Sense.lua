@@ -823,12 +823,12 @@ end
 -- ---- the arms' strain and pain, the loaded grid's width (PZA/1.7, Task 9 fix 11; jar-reads-2 sections 11 and 13) -------
 -- body.armPain: the summed getPain() of the six arm parts Hand_L, Hand_R, ForeArm_L, ForeArm_R, UpperArm_L, UpperArm_R
 -- (BodyDamage.getBodyPart(BodyPartType)), the sum the engine divides a melee swing's damage by once it passes 10 (#4370);
--- body.strain = {l, r}: each side's largest getStiffness() over its three arm parts (#4368, #4369). Both rounded to 0.01
--- (the stiffness decays by a small step each server update), so the body group elides while they hold; the six part objects
+-- body.strain = {l, r}: each side's largest getStiffness() over its three arm parts (#4368, #4369). Both rounded to 0.1
+-- (the stiffness decays about 0.01 a frame; the planner reads 10 and 20 on armPain), so the body group elides while they hold; the six part objects
 -- are fetched once per BodyDamage (S.arms). An absent BodyPartType constant, getBodyPart, getPain or getStiffness leaves its
 -- field nil and is named in missing; a raise costs the two fields alone (raise:body:arms). Cost a frame: twelve Java calls.
 -- me.loadedWidth: getCell():getChunkMap(0):getWidthInTiles(), the side of the client's loaded square grid in tiles (104 at
--- 1280 x 720, 152 at 1920 x 1080; #4375): carried on the first frame and on a frame where it changed, nil otherwise (a reader
+-- 1280 x 720, 152 at 1920 x 1080; #4375): carried on the first frame, on a frame where it changed and on each frame the link writes in full, nil otherwise (a reader
 -- keeps the last value, as for me.worn), re-read every WIDTH_EVERY-th frame. Appended here (CLAUDE.md section 5: the repo:
 -- pointers into Sense keep their lines); S.frame is wrapped and Main calls it through the table.
 S.WIDTH_EVERY = 100       -- frames between two reads of the loaded grid's width
@@ -838,7 +838,7 @@ S.armBd = nil
 S.arms = nil
 local ARM_SIDES = { { "l", { "Hand_L", "ForeArm_L", "UpperArm_L" } }, { "r", { "Hand_R", "ForeArm_R", "UpperArm_R" } } }
 
-local function round2(v) return math.floor(v * 100 + 0.5) / 100 end
+local function round1(v) return math.floor(v * 10 + 0.5) / 10 end
 
 -- the six arm part objects of body damage bd as { side, part } entries, nil when one cannot be had
 local function armParts(bd)
@@ -877,19 +877,29 @@ local function armReads(p, b)
             PZA.missing(S.missing, "getStiffness")
         end
     end
-    if painOk then b.armPain = round2(pain) end
-    if stiffOk then b.strain = { l = round2(big.l), r = round2(big.r) } end
+    if painOk then b.armPain = round1(pain) end
+    if stiffOk then b.strain = { l = round1(big.l), r = round1(big.r) } end
+end
+
+-- whether the link will write the next frame in full (every group, so a group elided before is carried again)
+local function fullNext()
+    local L = PZA.link
+    if L == nil or type(L.frames) ~= "number" or type(L.FULL_EVERY) ~= "number" then return false end
+    return L.forceFull == true or L.FULL_EVERY <= 1 or (L.frames + 1) % L.FULL_EVERY == 1
 end
 
 local function meWidth(p, f)
     S.widthFrames = S.widthFrames + 1
-    if S.widthSeen ~= nil and S.widthFrames % S.WIDTH_EVERY ~= 1 then return end
+    if S.widthSeen ~= nil and S.widthFrames % S.WIDTH_EVERY ~= 1 then
+        if fullNext() then f.me.loadedWidth = S.widthSeen end
+        return
+    end
     local cell = getCell ~= nil and getCell() or nil
     local okM, cm = PZA.call(cell, "getChunkMap", 0)
     if not okM then PZA.missing(S.missing, "getChunkMap"); return end
     local okW, w = PZA.call(cm, "getWidthInTiles")
     if not okW or type(w) ~= "number" then PZA.missing(S.missing, "getWidthInTiles"); return end
-    if w ~= S.widthSeen then
+    if w ~= S.widthSeen or fullNext() then
         f.me.loadedWidth = w
         S.widthSeen = w
     end

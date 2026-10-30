@@ -72,6 +72,7 @@ def test_the_frames_groups_have_exactly_the_schemas_keys(lua):
     g._updHandlers[0](p)                                         # the Motor's post-assert reads are filled
     frame(lua, p)
     g._clock["ms"] += 100
+    lua.execute("PZA.link.frames = 1")                           # a delta next: loadedWidth not carried again
     f = frame(lua, p)                                            # the second frame carries a pace
     top = [k for k in d["frame"]["x-order"] if k not in ENVELOPE and k != "cost"]
     assert sorted(f.keys()) == sorted(top)

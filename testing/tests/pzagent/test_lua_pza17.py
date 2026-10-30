@@ -17,9 +17,10 @@ ARMS = ("Hand_L", "ForeArm_L", "UpperArm_L", "Hand_R", "ForeArm_R", "UpperArm_R"
 
 def fz(zid, x, y, floor=False, health=1.0, dead=False):
     """A zombie whose isOnFloor, getHealth and isDead read .st."""
-    st = {"floor": floor, "health": health, "dead": dead}
+    st = {"floor": floor, "health": health, "dead": dead, "knocked": floor}
     z = make_zombie(zid, x, y)
     z.isOnFloor, z.getHealth, z.isDead = (lambda s: st["floor"]), (lambda s: st["health"]), (lambda s: st["dead"])
+    z.isKnockedDown = lambda s: st["knocked"]
     z.st = st
     return z
 
@@ -47,8 +48,8 @@ def test_the_body_carries_the_summed_arm_pain_and_each_arms_largest_strain(lua):
     p, _ = arm_player(lua, pain={"Hand_L": 1.5, "UpperArm_R": 12.0, "ForeArm_R": 0.25},
                       stiff={"Hand_L": 1.0, "ForeArm_L": 2.5, "UpperArm_L": 0.5, "ForeArm_R": 7.126})
     b = frame(lua, p)["body"]
-    assert b["armPain"] == 13.75
-    assert (b["strain"]["l"], b["strain"]["r"]) == (2.5, 7.13)           # the largest of three parts, rounded to 0.01
+    assert b["armPain"] == 13.8
+    assert (b["strain"]["l"], b["strain"]["r"]) == (2.5, 7.1)            # the largest of three parts, rounded to 0.1
 
 
 def test_a_rested_arm_reads_zero_and_the_six_parts_are_fetched_once(lua):
@@ -139,6 +140,7 @@ def test_the_loaded_width_is_carried_on_the_first_frame_and_when_it_changes(lua)
     state = {"w": 104}
     width_cell(lua, state)
     p = make_player()
+    lua.execute("PZA.link.frames = 1")                                       # deltas only: no full frame carries it again
     assert frame(lua, p)["me"]["loadedWidth"] == 104
     seen = [frame(lua, p)["me"]["loadedWidth"] for _ in range(99)]
     assert seen == [None] * 99                                             # unchanged: elided
@@ -146,6 +148,19 @@ def test_the_loaded_width_is_carried_on_the_first_frame_and_when_it_changes(lua)
     got = [frame(lua, p)["me"]["loadedWidth"] for _ in range(100)]
     assert [w for w in got if w is not None] == [152]                      # re-read within one WIDTH_EVERY
     assert [frame(lua, p)["me"]["loadedWidth"] for _ in range(5)] == [None] * 5
+
+
+def test_the_loaded_width_is_carried_again_on_every_frame_the_link_writes_in_full(lua):
+    load(lua)
+    width_cell(lua, {"w": 104})
+    p = make_player()
+    lua.execute("PZA.link.frames = 1")                                       # the next frame is the 2nd: a delta
+    assert frame(lua, p)["me"]["loadedWidth"] == 104
+    assert frame(lua, p)["me"]["loadedWidth"] is None
+    lua.execute("PZA.link.frames = PZA.link.FULL_EVERY")                      # the next is frame FULL_EVERY + 1: full
+    assert frame(lua, p)["me"]["loadedWidth"] == 104
+    lua.execute("PZA.link.frames = 3; PZA.link.forceFull = true")
+    assert frame(lua, p)["me"]["loadedWidth"] == 104
 
 
 def test_an_absent_chunk_map_member_leaves_the_width_null_and_named(lua):
@@ -254,6 +269,16 @@ def test_a_walk_location_garment_is_taken_off_beside_a_walk_and_an_absent_list_r
     assert states(acts(lua, fs))[-1] == ("a2", "rejected", "moving")
 
 
+def test_unwear_asks_iswearclothing_is_stop_on_walk_when_present(lua, fs):
+    p, it = unwear_host(lua, loc="base:bag", moving=True)
+    lua.globals().ISWearClothing.isStopOnWalk = lambda it_: False            # an accessory worn through canBeEquipped
+    start(lua, p, "unwear", itemId=90)
+    p, it = unwear_host(lua, loc="base:hat", moving=True, fresh=False)
+    lua.globals().ISWearClothing.isStopOnWalk = lambda it_: True             # the engine's answer beats the list
+    start(lua, p, "unwear", aid="a2", itemId=90)
+    assert states(acts(lua, fs)) == [("a1", "accepted", ""), ("a2", "rejected", "moving")]
+
+
 def test_unwear_whose_action_left_the_queue_with_the_garment_worn_is_stopped_after_the_settle(lua, fs):
     p, it = unwear_host(lua)
     g = lua.globals()
@@ -346,7 +371,7 @@ def test_shove_faces_the_target_sets_the_flag_presses_the_attack_and_reports_the
     assert p.shoves == [True] and list(p.attacks) == [0] and list(p.faced) == [z]
     swing(lua, p)
     tick(lua, p)                                                             # the swing ended: one frame more
-    z.st["floor"] = True                                                     # the knock-down lands
+    z.st["knocked"] = True                                                   # the hit sets the state; the floor flag waits
     tick(lua, p)
     a = acts(lua, fs)
     assert states(a)[-1] == ("a1", "done", "")
@@ -600,3 +625,71 @@ def test_on_floor_encodes_through_the_link_and_an_old_zombie_record_decodes_with
     old = json.loads(line)
     old[-2] = [r[:7] for r in old[-2]]                                       # a PZA/1.6.1 writer's seven fields
     assert [z["onFloor"] for z in pza1.decode(old)["zombies"]] == [None, None]
+
+
+def test_the_shove_reads_the_knocked_down_state_before_the_zombie_reads_on_the_floor(lua, fs):
+    z = fz(7, 11.0, 20.0)
+    p = shove_host(lua, [z])
+    start(lua, p, "shove", targetId=7)
+    tick(lua, p)
+    swing(lua, p)
+    z.st["knocked"] = True                                                   # falling: knocked down, not yet on the floor
+    tick(lua, p, 2)
+    a = acts(lua, fs)
+    assert z.st["floor"] is False and a[-1]["result"]["knockdown"] is True
+
+
+def test_a_zombie_on_the_floor_without_the_knocked_down_state_reads_no_knockdown_and_an_absent_member_reads_false(lua, fs):
+    z = fz(7, 11.0, 20.0)
+    p = shove_host(lua, [z])
+    z.st["floor"] = True
+    start(lua, p, "shove", targetId=7)
+    tick(lua, p)
+    swing(lua, p)
+    tick(lua, p, 2)
+    assert acts(lua, fs)[-1]["result"]["knockdown"] is False
+    z2 = fz(8, 11.0, 20.0)
+    z2.isKnockedDown = None
+    p = shove_host(lua, [z2], fresh=False)
+    start(lua, p, "shove", aid="b", targetId=8)
+    tick(lua, p)
+    swing(lua, p)
+    tick(lua, p, 2)
+    assert acts(lua, fs)[-1]["result"]["knockdown"] is False
+
+
+def test_shove_reach_boundary(lua, fs):
+    near, far = fz(7, 11.4, 20.0), fz(8, 11.6, 20.0)
+    p = shove_host(lua, [near, far])
+    start(lua, p, "shove", aid="n", targetId=7)
+    start(lua, p, "shove", aid="f", targetId=8)
+    assert states(acts(lua, fs)) == [("n", "accepted", ""), ("f", "rejected", "too far")]
+
+
+def test_a_stomp_target_that_rises_during_the_walk_fails_stood_and_sends_no_shove(lua, fs):
+    z = fz(7, 12.0, 20.0, floor=True)
+    p, pos = stomp_host(lua, [z], weapon=make_weapon())
+    start(lua, p, "stomp", targetId=7)
+    tick(lua, p)
+    z.st["floor"] = False                                                    # it stands up mid-walk
+    pos["x"] = 11.8
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "stood") and p.shoves == [] and list(p.attacks) == []
+
+
+def test_a_stomp_target_that_rises_at_the_swing_fails_stood(lua, fs):
+    z = fz(7, 10.3, 20.0, floor=True)
+    p, _ = stomp_host(lua, [z])
+    start(lua, p, "stomp", targetId=7)
+    z.st["floor"] = False
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "stood") and list(p.attacks) == []
+
+
+def test_stomp_standing_boundary_at_exactly_the_min_range(lua, fs):
+    fallen, edge = fz(7, 12.0, 20.0, floor=True), fz(8, 11.0, 20.0)
+    bat = make_weapon()
+    bat.getMinRange = lambda s: 1.0
+    p, _ = stomp_host(lua, [fallen, edge], weapon=bat)
+    start(lua, p, "stomp", targetId=7)
+    assert states(acts(lua, fs)) == [("a1", "accepted", "")]                # exactly MinRange: not within it

@@ -52,7 +52,7 @@
     "reason": {
       "description": "The closed set of reasons a skill is rejected or fails with.",
       "type": "string",
-      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "too far", "standing", "dropped"]
+      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "too far", "standing", "dropped", "stood"]
     },
     "eventKind": {
       "description": "The kind of an engine event line.",
@@ -188,8 +188,8 @@
         "scratched": {"description": "The number of scratched parts.", "type": "integer"},
         "bitten": {"description": "The number of bitten parts.", "type": "integer"},
         "parts": {"description": "The body parts below full health, and (PZA/1.5) any part bandaged or bleeding.", "type": "array", "items": {"$ref": "#/$defs/part"}},
-        "armPain": {"description": "PZA/1.7 (Plan 24 Task 9 fix 11): the summed getPain() of the six arm parts Hand_L, Hand_R, ForeArm_L, ForeArm_R, UpperArm_L and UpperArm_R, rounded to 0.01, the sum the engine reads for a melee swing: once it passes 10 every swing's damage is divided by a tenth of it, so 20 halves the damage (jar-reads-2 section 11, rows 4368-4371). A part's pain includes its muscle strain (stiffness / 3.5) and its wounds' pain, so a bite on an arm holds it up and a rest does not lower that; null in logs written before PZA/1.7.", "type": "number"},
-        "strain": {"description": "PZA/1.7 (Plan 24 Task 9 fix 11): the muscle strain of each arm, the largest getStiffness() over the three arm parts of its side (hand, forearm, upper arm), rounded to 0.01. A melee swing adds to the weapon's arm (both arms for a two-hander), a miss as much as a hit, a shove adds to both arms and a stomp to the right leg alone; it decays on the server by about 5.76 a real minute (jar-reads-2 section 11). Null in logs written before PZA/1.7.", "$ref": "#/$defs/strain"}
+        "armPain": {"description": "PZA/1.7 (Plan 24 Task 9 fix 11): the summed getPain() of the six arm parts Hand_L, Hand_R, ForeArm_L, ForeArm_R, UpperArm_L and UpperArm_R, rounded to 0.1, the sum the engine reads for a melee swing: once it passes 10 every swing's damage is divided by a tenth of it, so 20 halves the damage (jar-reads-2 section 11, rows 4368-4371). A part's pain includes its muscle strain (stiffness / 3.5) and its wounds' pain, so a bite on an arm holds it up and a rest does not lower that; null in logs written before PZA/1.7.", "type": "number"},
+        "strain": {"description": "PZA/1.7 (Plan 24 Task 9 fix 11): the muscle strain of each arm, the largest getStiffness() over the three arm parts of its side (hand, forearm, upper arm), rounded to 0.1. A melee swing adds to the weapon's arm (both arms for a two-hander), a miss as much as a hit, a shove adds to both arms and a stomp to the right leg alone; it decays on the server by about 5.76 a real minute (jar-reads-2 section 11). Null in logs written before PZA/1.7.", "$ref": "#/$defs/strain"}
       },
       "required": ["health", "bleeding", "scratched", "bitten", "parts", "armPain", "strain"]
     },
@@ -839,7 +839,7 @@
       "x-type": "shove",
       "type": "object",
       "properties": {
-        "knockdown": {"description": "Whether the target reads on the floor (isOnFloor()) on the frame after the swing ended: the shove knocked it down, with a chance of 35 + 2 x Strength - 5 per endurance and heavy-load level - 1.3 per panic level in 100 (jar-reads-2 section 12, row 4373), else it staggers. A target already on the floor reads true.", "type": "boolean"},
+        "knockdown": {"description": "Whether the target reads knocked down (isKnockedDown(), set at the hit; isOnFloor waits for the fall animation, so zombies[].onFloor follows a second or so later) on the frame after the swing ended: the shove knocked it down, with a chance of 35 + 2 x Strength - 5 per endurance and heavy-load level - 1.3 per panic level in 100 (jar-reads-2 section 12, row 4373), else it staggers. A zombie remote to this client may read false on both even when it fell; an absent member reads false.", "type": "boolean"},
         "attackStarted": {"description": "Whether the engine started the attack: false means the swing was dropped and nothing was shoved.", "type": "boolean"},
         "targetDead": {"description": "Whether the target is dead.", "type": "boolean"}
       }
@@ -1149,7 +1149,7 @@
       "additionalProperties": false
     },
     "args_stomp": {
-      "description": "Stomp a zombie lying on the floor: walk to under 0.5 tiles of it by the auto-walk, then the shove's pair of calls, which the engine turns into a floor attack (the option autoProneAtk, created true): damage (0.7 to 1.0 + 0.2 x Strength) times the shoes' stomp power (0.5 barefoot, 1 sneakers, 2.5 army boots), strain on the right leg only. The target must be a listed live zombie within the sense range that reads isOnFloor() (no target, not valid for a standing one); refused standing while any other standing zombie is within the held weapon's MinRange (0.6 tiles bare-handed), checked again at the swing (failed standing): the call would shove that one. Fails out of reach when the walk does not close in on the target in time. Done when the swing ended and a frame after, with `hit`.",
+      "description": "Stomp a zombie lying on the floor: walk to under 0.5 tiles of it by the auto-walk, then the shove's pair of calls, which the engine turns into a floor attack (the option autoProneAtk, created true): damage (0.7 to 1.0 + 0.2 x Strength) times the shoes' stomp power (0.5 barefoot, 1 sneakers, 2.5 army boots), strain on the right leg only. The target must be a listed live zombie within 6 tiles (no target) that reads isOnFloor() (not valid for a standing one); send it only to a fallen zombie within about 2 tiles, since the walk lasts 4 s. The target is re-read on every tick of the walk and at the swing: one that has risen ends the action failed stood, with no shove sent; refused standing while any other standing zombie is within the held weapon's MinRange (0.6 tiles bare-handed), checked again at the swing (failed standing): the call would shove that one. Fails out of reach when the walk does not close in on the target in time. Done when the swing ended and a frame after, with `hit`.",
       "x-role": "args",
       "x-type": "stomp",
       "type": "object",
