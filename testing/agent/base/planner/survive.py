@@ -250,6 +250,12 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   solid (each policy's `trans`: a heading read and the way out's end refuse a `solidTrans` square). `PULL`, `DOORWAY`
   and `TRANS` are the replay tests' seam onto the rules before it (`test_replay_decisions.pre_an`); P24-AP to P24-AR
   read what no record carries.
+  Task 32 fix 1 (review-t32, its rulings R1 to R3): the doorway stand's post (`policies.stand_post`: the enter walks
+  to the room square one on from the threshold, since the Lua's walk ends `done` within DONE_R 1.0 and E9's enter to
+  the threshold's own centre ended on the outdoor door square; the stand starts only on a room square of the building,
+  `policies.on_post`, else the enter is walked again), its walk back giving way to a zombie in reach
+  (`doorway.Doorway.busy`), and its `drag` (`me.attackers` at DRAG_DOWN_N, R1) and `off` (`doorway.off_post`) ends
+  (`_doorway`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -326,7 +332,7 @@ from typing import Optional
 from agent.base.items import days_fresh
 from agent.base.planner.care import (CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, FLEE_CARE_N, FLEE_CARE_S, RIDE_FREE,
                                      RIDE_MANY_R, RIDE_R, Care)
-from agent.base.planner.doorway import DOOR_HOLD_S, Doorway, standing, stand_ready
+from agent.base.planner.doorway import DOOR_HOLD_S, Doorway, off_post, standing, stand_ready
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, ENDURANCE_RELEASE,
@@ -457,6 +463,7 @@ class Survive:
         self.corner_yield = None  # this tick: why a `walk` corner yielded, "health" or "many" (P24-A (c)), else None
         self.behind = None        # this tick: the ids listed behind the fight's walk target (P24-A (b)), else None
         self.listed = None        # this tick: the listed count when it alone made `many` (P24-A (a)), else None
+        self.stand_left = None    # this tick: `off` when the doorway stand was left off its post (P24-AO fix 1)
         self.care_yield = None    # this tick: the nearest zombie's tiles when the threat yielded to the care (P24-P)
         self._nearest_seen = []   # (id, tiles) of the nearest listed zombie on the last threat ticks, newest last: the
                                   # care yield's closing read (Task 12 fix 1), CARE_STILL_TICKS + 1 of them
@@ -1073,8 +1080,7 @@ class Survive:
         read) at DRAG_DOWN_N - 1 or more, any corner (a `stuck` one too) left for the leg at once; except on a room
         square with no way out and nothing to adopt (`_trapped`): the guard has no leg or exit to take there, so the
         corner keeps swinging (P24-A fix 1 (4), confirmed)."""
-        n = (self.world.me or {}).get("attackers")
-        if not isinstance(n, int) or isinstance(n, bool) or n < DRAG_DOWN_N - 1:
+        if self._attackers() < DRAG_DOWN_N - 1:
             return False
         return not self._trapped(held, inside)
 
@@ -1090,7 +1096,7 @@ class Survive:
         """The threat branch's one decision (ruling P23-AJ), `(kind, reason)`, the machines only executing it:
         - The doorway stand (ruling P24-AO, `_doorway`): `doorway` while the Flee's stand plan reads `stand`, then
           `flee` (reason `doorway`) while the stand's close runs, ahead of every other row (the stand's premise is the
-          one-tile front the drag-down guard flees).
+          one-tile front the drag-down guard flees: the stand reads its own `drag` end at DRAG_DOWN_N, ruling R1).
         - The drag-down guard (ruling P24-A (h), `_drag`): `flee` with the group steer (`group` "drag"), ahead of
           every other row but the doorway's; the Flee steers at a run, or inside walks the exit (P24-A (f), P24-O).
         - `door`: sheltered (a chosen shelter's plan done, the character inside) with a reachable held threat in its
@@ -1117,6 +1123,7 @@ class Survive:
         inside = self.night.inside()
         self.sheltered = self.flee is not None and self.flee.sheltered and inside
         self.broken, self.group_steer, self.corner_yield, self.behind, self.listed = None, None, None, None, None
+        self.stand_left = None
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -1153,10 +1160,13 @@ class Survive:
 
     def _doorway(self):
         """Ruling P24-AO (`planner/doorway.py`'s docstring the record): `("doorway", None)` while the Flee's stand plan
-        reads `stand` and none of its ends holds; the end (`plan["left"]`: `health` under FLEE_HEALTH, `unarmed`, or
-        `quiet` once no zombie has been within DANGER_R for DOOR_HOLD_S wall seconds, `plan["quiet"]` the last wall one
-        was) puts the plan back on its `close` step, and while that close runs `("flee", "doorway")`: the Flee sends
-        it from inside and its end is the shelter's as today. Else None (no stand)."""
+        reads `stand` and none of its ends holds; the end (`plan["left"]`: `health` under FLEE_HEALTH, `drag` with the
+        frame's `me.attackers` at DRAG_DOWN_N (ruling R1, Task 32 fix 1: the front has failed), `unarmed`, or `quiet`
+        once no zombie has been within DANGER_R for DOOR_HOLD_S wall seconds, `plan["quiet"]` the last wall one was)
+        puts the plan back on its `close` step, and while that close runs `("flee", "doorway")`: the Flee sends it from
+        inside and its end is the shelter's as today. `off` (`doorway.off_post`: off the building's room squares and
+        beyond DOOR_OFF_R of the threshold, fix 1's major 2) drops the plan instead, no close walked back to the door,
+        logged `doorway_left` (`stand_left`) on the tick. Else None (no stand)."""
         f = self.flee
         plan = None if f is None else f.plan
         if plan is None or not plan.get("stood"):
@@ -1165,12 +1175,22 @@ class Survive:
             now = self.clock()
             if self._within(DANGER_R):
                 plan["quiet"] = now
-            left = ("health" if self._health() < FLEE_HEALTH else "unarmed" if not self._armed()
+            left = ("health" if self._health() < FLEE_HEALTH else "drag" if self._attackers() >= DRAG_DOWN_N
+                    else "unarmed" if not self._armed() else "off" if off_post(self.world, plan)
                     else "quiet" if now - plan["quiet"] >= DOOR_HOLD_S else None)
             if left is None:
                 return "doorway", None
             plan.update(step="close", left=left)
+            if left == "off":
+                self.stand_left = left
+                f._drop(False)   # the episode only steers from here (`picked` kept)
+                return None
         return ("flee", "doorway") if f.closing_stand() else None
+
+    def _attackers(self):
+        """The frame's `me.attackers` (PZA/1.4, an int; absent or not an int on an older frame: 0)."""
+        n = (self.world.me or {}).get("attackers")
+        return n if isinstance(n, int) and not isinstance(n, bool) else 0
 
     def _kept_flee(self):
         """Why a running flee the hysteresis would end is kept (ruling P23-AM 1), else None: `steps` while a `many`
@@ -1361,8 +1381,9 @@ class Survive:
                     self.flee = None   # a door fight keeps the sheltered Flee for the re-close
                 self._end_flee_episode()
             else:
-                if self.flee is None or not (self.sheltered or self.flee.closing_stand()):   # a sheltered Flee
-                    # outlives a door fight, and a stand's Flee its Doorway (P24-AO)
+                if self.flee is None or not (self.sheltered or self.flee.closing_stand()
+                                             or self.stand_left is not None):   # a sheltered Flee outlives a door
+                    # fight, and a stand's Flee its Doorway (P24-AO; one whose stand was left `off` only steers)
                     self.flee = Flee(self.world, self.actions, self.clock, shunned=self.night.shunned)
                     self.flee.skip_heading, self.stuck_heading = self.stuck_heading, None   # fix 2, G2
                 self.fight = None
@@ -1415,7 +1436,8 @@ class Survive:
             self.why["group"] = self.group_steer
         if self.avoid and want == "fight":
             self.why["unsought"] = sorted(self.avoid, key=repr)
-        for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed)):
+        for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed),
+                       ("doorway_left", self.stand_left)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:

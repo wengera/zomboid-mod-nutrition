@@ -245,8 +245,8 @@ def shelter_step(world, plan):
                 plan["step"] = "enter"
                 continue
             return Interact(door[0], door[1], "open"), step
-        if step == "enter":
-            c = _centre(plan["inside"])
+        if step == "enter":   # a doorway stand's enter walks past its post (`policies.stand_post`, P24-AO fix 1)
+            c = _centre(plan.get("post") or plan["inside"])
             return WalkTo(c[0], c[1], "walk"), step
         return Interact(door[0], door[1], "close"), step
     return None, "done"

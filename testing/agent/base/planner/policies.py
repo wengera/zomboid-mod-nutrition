@@ -1475,6 +1475,31 @@ def _beyond(world, inner, outer, trans=True):
     return sq
 
 
+def stand_post(world, way, building, trans=True):
+    """The square a doorway stand's walks aim at (ruling P24-AO, Task 32 fix 1, the review's blocker): of the door's
+    `way` (`World.door_way`: the room square inside the threshold, the outside square), the square one on from the
+    room square away from the outside one, when it is a room square of `building`, not solid (nor `solidTrans` with
+    `trans`) and its step from the threshold square not blocked; else None (no stand: the door is closed as today).
+    A walk ends `done` within the Lua's DONE_R (1.0) of its target: E9's enter to the threshold square's own centre
+    (10711.5, 10596.5) ended 0.84 tiles off it, on the outdoor door square (10712, 10596), open on three sides; to the
+    square beyond (10710.5, 10596.5), 1.5 tiles from the door's edge, it ends at least half a tile inside it, as
+    `_beyond` reads for an exit."""
+    inner, outer = way
+    deep = (2 * inner[0] - outer[0], 2 * inner[1] - outer[1], inner[2])
+    s = world.map.get(deep)
+    if (s is None or s.get("room") is None or s.get("building") != building or s.get("solid")
+            or (trans and s.get("solidTrans")) or world.blocked(inner, deep)):
+        return None
+    return deep
+
+
+def on_post(world, building):
+    """The player stands on a room square of `building` (the doorway stand's post: the threshold square inside or one
+    beside it, never the outdoor door square of a door on a south or east wall)."""
+    s = world.map.get(_night().player_square(world)) or {}
+    return s.get("room") is not None and s.get("building") == building
+
+
 def adoptable(world):
     """The building the player stands in has an exterior door on the player's floor (`Flee._adopt` can adopt it), a
     marked one included (read from inside: Task 18 fix 1, the review's major 4)."""
@@ -1574,7 +1599,22 @@ class Flee(Policy):
         if self.ended not in ("advance", "resend", "passed"):
             self._drop(a.state == "failed" and a.reason in _night().SHUN_REASONS)
         elif self.plan.get("stand") and self.plan["step"] == "close":   # P24-AO: the enter ended, the close is the
-            self.plan.update(step="stand", stood=True, quiet=self.clock())   # stand's (`planner.doorway`)
+            self._stand_at_post()                                           # stand's (`planner.doorway`)
+
+    def _stand_at_post(self):
+        """P24-AO, Task 32 fix 1 (the review's blocker): the enter of a stand plan ended; the stand starts only on its
+        post (`on_post`); else the enter is walked again (`ended` "outside", a retry: STEP_RETRIES, as Night's own
+        `outside` read), and once they are spent the stand is given up for today's close."""
+        plan = self.plan
+        if on_post(self.world, plan["building"]):
+            plan.update(step="stand", stood=True, quiet=self.clock())
+            return
+        plan["retries"] += 1
+        self.ended = "outside"
+        if plan["retries"] < _night().STEP_RETRIES:
+            plan["step"] = "enter"
+        else:
+            plan["stand"] = False
 
     def _ids(self, zs):
         """The World's ids of the zombie records `zs` (this tick's dicts), sorted."""
@@ -1826,8 +1866,11 @@ class Flee(Policy):
         if not self.picked:
             self.plan = self._pick(ts)
             self.picked = self.plan is not None
-            if self.plan is not None and self.stand_ok:   # P24-AO: the door taken for the doorway stand
-                self.plan.update(stand=True, way=self.world.door_way(self.door()))
+            if self.plan is not None and self.stand_ok:   # P24-AO: the door taken for the doorway stand, its post
+                way = self.world.door_way(self.door())       # reached by a walk past it (`stand_post`, fix 1)
+                post = None if way is None else stand_post(self.world, way, self.plan["building"], self.trans)
+                if post is not None:
+                    self.plan.update(stand=True, way=way, post=post)
         if self.plan is not None:
             cmd = self._shelter(ts)
             if cmd is not None or self.plan is not None:
