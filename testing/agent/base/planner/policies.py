@@ -87,6 +87,17 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   (`_seek_switch`), its leg giving way for it; the stance's own walk (a seek's or the advance's round a wall, a
   seek's beyond AIM_R) gives way as a leg does (`_walk_gives_way`, the review's blocker); a zombie in `avoid` (no
   engage reaches it) is never pinned anew beyond DANGER_R.
+  Survival 11 (Plan 24 Task 27; PZA/1.7's `shove` and `stomp`, `zombies[].onFloor`, `body.armPain`; #4370-#4374),
+  each sent only to a build that announces it: P24-AL, finish the fallen (`_finish`, ahead of every other step once
+  the target is resolved): the nearest downed zombie (`onFloor`, or a shove's `knockdown` within KNOCK_READ_S) within
+  FIGHT_REACH on a line not read blocked takes the shove of a standing zombie at point blank first, else the `stomp`,
+  else the weapon's floor strike (an `attack` of it) when the stomp was refused (`swing_refused`, SWING_SKIP_S) or a
+  standing zombie stands within STAND_MIN_R (the engine's call would take that one); a running stance leg gives way
+  to it (`busy`). At the swing (`_shove`): P24-AG, with `body.armPain` at STRAIN_SOFT or above a standing target at
+  point blank is shoved, never swung at; P24-AH, in a standing fight a second standing zombie inside KEEP_R makes the
+  nearer of the two (within SHOVE_R) shoved before the next swing, once a swing (`_shoved`); neither with another
+  standing zombie within STAND_MIN_R. A shove's or stomp's `targetDead` is a kill (SWING_TYPES), a started stomp
+  counts in the no-progress streak.
 - `Flee` (one per flee episode): a `Steer` of `FLEE_S` seconds away from the threats (the `threats` list its caller
   passes, else every zombie the World holds), at a run (ruling P24-O, Task 12: the planner never sprints; E6 sprinted
   13 steers and Angus saw the character trip, and a fence climb begun at a sprint rolls a trip, #4296); re-aimed on
@@ -206,7 +217,7 @@ import math
 import time
 
 from agent.base.items import holds_use, use_of
-from agent.base.pza1 import Aim, Attack, Interact, Scan, Steer, Stop, WalkTo
+from agent.base.pza1 import Aim, Attack, Interact, Scan, Shove, Steer, Stomp, Stop, WalkTo
 from agent.base.world import STUCK_AREA_N, STUCK_WALK_CAP, me_floor, me_xy
 
 DANGER_R = 6.0        # tiles: a zombie this close is a threat (Survive's threat branch; the night sends nothing)
@@ -292,6 +303,7 @@ NO_TARGET = "no target"   # the Lua's refusal of an aim whose target is gone (Ta
 PREEMPTED = "superseded"   # the reason the Lua fails an action a newer send replaced
 RIDE_TYPES = ("walkTo", "steer")   # the legs a keepMoving bandage rides (PZA/1.5.3, ruling P24-R)
 STUCK_REASONS = ("stuck", "no path", "no square")   # a walkTo failed for one of these: its target is remembered
+SWING_TYPES = ("attack", "aim", "shove", "stomp")   # the Fight's sends whose result's `targetDead` is a kill (P24-Q)
 STRAIN_SOFT = 10.0    # the frame's body.armPain at which a swing's damage starts to fall (divided by armPain / 10,
                       # #4370): the Fight prefers the stomp and the point-blank shove (ruling P24-AG); under it again
                       # the strain hold ends
@@ -301,6 +313,15 @@ ENDURANCE_T = 0.75    # the frame's stats.endurance at or under which the ENDURA
                       # whose first level halves every swing (#4371): the disengage of P24-AG
 TIRED_FIGHT_T = 0.6   # stats.fatigue at or above which no fight is sought or stood (ruling P24-AK; the first TIRED
                       # moodle, night.TIRED_T, halves every swing at its first level too, #4371)
+SHOVE_R = 1.5         # tiles: the Lua's shove refuses a target beyond this (`too far`, PZAgent_Stance.lua K.SHOVE_R)
+STAND_MIN_R = 0.61    # tiles: a standing zombie this near the player makes the engine's call shove it (the weapon's
+                      # MinRange, #4372: the bat's 0.61, the bare hand's 0.6), so no shove or stomp of another is sent
+                      # (ruling P24-AH; the frame carries no MinRange, the bat's the widest read)
+SWING_SKIP_S = UNREACHABLE_S   # wall seconds a target whose shove or stomp the Lua refused or failed is not sent that
+                               # skill again (the stomp's floor strike follows instead: ruling P24-AL)
+KNOCK_READ_S = 2.0    # wall seconds a shove's `knockdown` true reads its target downed before the frame's `onFloor`
+                      # does (PZA/1.7.1, 9 fix 12: the result is read off the knocked-down state at the hit, onFloor
+                      # follows about a second later; a judgment, two of those), so the stomp follows the shove at once
 
 
 def place_of(world):
@@ -454,6 +475,11 @@ def arm_pain(world):
     return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
 
+def on_floor(z):
+    """Zombie record `z` lies on the floor (PZA/1.7's `onFloor`: knocked down, or crawling); absent is standing."""
+    return z.get("onFloor") is True
+
+
 def away_vector(world, points):
     """The unit vector along the sum of the unit vectors from each of `points` ((x, y)) to the player, each weighted
     by 1/distance (ruling P23-AG 3: away from the centroid and from the nearest, so a group spread round the player is
@@ -577,6 +603,10 @@ class Fight(Policy):
                                             # major 2: a zombie no engage reaches)
         self._walk_kind = None              # the stance walk the running choose returns: "round" or "far" (fix 1)
         self._stance_walk = None            # (walk, target id, kind) of the stance's running walk (the blocker)
+        self.swing_refused = {}             # (shove or stomp, zombie id) -> wall until that skill is not sent at it
+                                            # (SWING_SKIP_S: the Lua refused or failed it; P24-AL's floor strike then)
+        self._shoved = False                # the last swing-like send was a shove: the next is the swing (P24-AH)
+        self.knocked = {}                   # zombie id -> wall until a shove's knockdown reads it downed (KNOCK_READ_S)
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -826,6 +856,8 @@ class Fight(Policy):
             return not self._walk_gives_way()
         if self.last.type != "aim":
             return True
+        if self._downed():
+            return False   # P24-AL: a downed zombie within reach is finished before the stance goes on
         t = self._target(pin=False)
         if t is None or t[0] != self.last.args.get("targetId") or t[2] <= FIGHT_REACH or not self.stance_at(t[2]):
             return False
@@ -857,7 +889,7 @@ class Fight(Policy):
         it as the decision line's `kill`) and the World counts it (`World.note_kill`, `kills`)."""
         self.kill = None
         a = self.last
-        if a is None or a.type not in ("attack", "aim") or not self.actions.done(a) or a is self._kill_read:
+        if a is None or a.type not in SWING_TYPES or not self.actions.done(a) or a is self._kill_read:
             return
         self._kill_read = a
         if isinstance(a.result, dict) and a.result.get("targetDead") is True:
@@ -877,9 +909,12 @@ class Fight(Policy):
         if t is None or t[2] <= FIGHT_REACH or (self.stance_at(t[2]) and not self.advance):
             self.out_of_reach_since = self.clock()   # P24-G 1: a stand's own clock is STAND_MAX_S
         a = self.last
-        if a is None or a.type != "attack" or not self.actions.done(a) or a is self._counted:
+        if a is None or a.type not in ("attack", "shove", "stomp") or not self.actions.done(a) or a is self._counted:
             return
         self._counted = a
+        if a.type != "attack":
+            self._observe_swing(a)
+            return
         if a.state == "failed" and a.reason in STUCK_REASONS:   # the approach walk could not queue (Minor 3)
             self._mark_unreachable(a.args.get("targetId"))
             return
@@ -894,6 +929,113 @@ class Fight(Policy):
             self.misses = 0
             if a.state == "done" and a.result.get("attackStarted") is True:
                 self._swing_landed_nothing(a.args.get("targetId"))
+
+    def _observe_swing(self, a):
+        """A shove's or a stomp's end (rulings P24-AH, P24-AL): one the Lua refused, failed (never `superseded`, this
+        planner's own next send), timed out, or ended done with `attackStarted` false (the engine dropped it) leaves its
+        target out of that skill for SWING_SKIP_S (a refused stomp's target takes the weapon's floor strike); a stomp
+        that started counts in the no-progress streak as a swing does (`_swing_landed_nothing`)."""
+        zid = a.args.get("targetId")
+        res = a.result if isinstance(a.result, dict) else {}
+        if a.state != "done" or res.get("attackStarted") is False:
+            if not (a.state == "failed" and a.reason == PREEMPTED):
+                self.swing_refused[(a.type, zid)] = self.clock() + SWING_SKIP_S
+            return
+        if a.type == "stomp" and res.get("attackStarted") is True:
+            self._swing_landed_nothing(zid)
+        if a.type == "shove" and res.get("knockdown") is True:
+            self.knocked[zid] = self.clock() + KNOCK_READ_S   # PZA/1.7.1: downed before the frame's onFloor reads it
+
+    def _swing_ok(self, kind, zid):
+        """The build announces `kind` (shove or stomp) and its last end at `zid` left it out no longer."""
+        return self.world.can(kind) and self.swing_refused.get((kind, zid), -math.inf) <= self.clock()
+
+    def _standing_near(self, r, exclude=()):
+        """(id, zombie, dist) of the nearest standing zombie (not `on_floor`, not read dead) listed within `r` tiles of
+        the player, its id not in `exclude`, else None: the engine's call takes a standing zombie within the weapon's
+        MinRange for its target (#4372), so no shove or stomp of another goes then (P24-AH)."""
+        dead, now = blocked(self.dead, self.clock()), self.clock()
+        best = None
+        for zid, z in self.world.zombies.items():
+            if (zid in exclude or zid in dead or on_floor(z) or self.knocked.get(zid, -math.inf) > now
+                    or z.get("x") is None or z.get("y") is None):
+                continue
+            d = zdist(self.world, z)
+            if d <= r and (best is None or (d, repr(zid)) < (best[2], repr(best[0]))):
+                best = (zid, z, d)
+        return best
+
+    def _downed(self):
+        """(id, zombie, dist) of each downed zombie (`on_floor`) the Fight may target within FIGHT_REACH whose line is
+        not read blocked, nearest first (ruling P24-AL: finished before the Fight turns to a standing one); a zombie a
+        shove read knocked down within KNOCK_READ_S counts as downed (`knocked`)."""
+        skip, now = self.blocked(), self.clock()
+        out = []
+        for zid, z in self.world.zombies.items():
+            down = on_floor(z) or self.knocked.get(zid, -math.inf) > now
+            if (not target_id_ok(zid) or zid in skip or not down or z.get("x") is None or z.get("y") is None
+                    or (self.only is not None and zid not in self.only)):
+                continue
+            d = zdist(self.world, z)
+            if d <= FIGHT_REACH and line_to(self.world, z) is not False:
+                out.append((d, repr(zid), zid, z))
+        return [(zid, z, d) for d, _, zid, z in sorted(out, key=lambda e: e[:2])]
+
+    def _finish(self):
+        """Ruling P24-AL (finish the fallen; #4372-#4374), with P24-AH's stomp: the nearest downed zombie within
+        FIGHT_REACH takes, in order, the shove of a standing zombie at point blank first (POINT_BLANK_R, within the
+        Lua's SHOVE_R: the engine would shove it anyway), else the `stomp` (the Lua walks to under 0.5 tiles; never
+        with another standing zombie within STAND_MIN_R, the stomp's refusal), else the weapon's floor strike (an
+        `attack` of the downed zombie, its damage times 5 or more: #4374) when the stomp is refused or not announced;
+        `(command,)`, the command None in a hit reaction (the engine starts no swing: #4292); None with no downed
+        zombie."""
+        downed = self._downed()
+        if not downed:
+            return None
+        zid, z, d = downed[0]
+        self.why = {"target": self.target, "pinned": self.target is not None, "dist": d, "downed": zid}
+        hit = hit_reaction(self.world)
+        if hit is not None:
+            self.why["hitReaction"] = hit
+            return (None,)
+        s = self._standing_near(POINT_BLANK_R, (zid,))
+        if s is not None and target_id_ok(s[0]) and s[2] <= SHOVE_R and self._swing_ok("shove", s[0]):
+            self.why.update({"shove": "first", "shoveTarget": s[0], "shoveDist": s[2]})
+            return (Shove(s[0]),)
+        if self._swing_ok("stomp", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
+            self.why["stomp"] = True
+            return (Stomp(zid),)
+        self.why["floor"] = True   # the stomp refused (or not announced): the weapon's floor strike
+        self._held_before = False
+        return (Attack(zid),)
+
+    def _shove(self, zid, z, d):
+        """The shove sent instead of the next swing at the standing target `zid` (`d` tiles off, within reach), else
+        None (the build must announce `shove`; never with another standing zombie within STAND_MIN_R of the player
+        than the one shoved):
+        - ruling P24-AG: `arm_pain` at or above STRAIN_SOFT (the swing's damage divided by armPain / 10, #4370) and
+          the target at point blank (POINT_BLANK_R): the shove, which strains the arms about a third less than a bat's
+          swing and knocks down 35 + 2 x Strength in 100 (#4373), every time;
+        - ruling P24-AH: in a standing fight (`standing`), a second standing zombie inside KEEP_R: the nearer of the
+          two is shoved (within the Lua's SHOVE_R) before the next swing, once a swing (`_shoved`)."""
+        if not self.world.can("shove"):
+            return None
+        pain = arm_pain(self.world)
+        if (pain is not None and pain >= STRAIN_SOFT and d <= POINT_BLANK_R and self._swing_ok("shove", zid)
+                and self._standing_near(STAND_MIN_R, (zid,)) is None):
+            self.why.update({"shove": "strain", "strain": pain})
+            return Shove(zid)
+        if not self.standing() or self._shoved:
+            return None
+        second = self._standing_near(KEEP_R, (zid,))
+        if second is None:
+            return None
+        sid, _, sd = min(((zid, z, d), second), key=lambda p: (p[2], repr(p[0])))
+        if (not target_id_ok(sid) or sd > SHOVE_R or not self._swing_ok("shove", sid)
+                or self._standing_near(STAND_MIN_R, (sid,)) is not None):
+            return None
+        self.why.update({"shove": "second", "shoveTarget": sid, "shoveDist": sd, "second": second[0]})
+        return Shove(sid)
 
     def fight_s(self):
         """Seconds the target has been out of reach (the stall clock)."""
@@ -970,6 +1112,9 @@ class Fight(Policy):
         if self.point_blank and d > CORNERED_R:   # P24-A fix 2, I2a: a cornered Fight never walks to a drifted pin
             self.why = {"target": zid, "pinned": True, "dist": d, "out_of_reach": True}
             return None
+        fin = self._finish()   # P24-AL: a downed zombie within reach first
+        if fin is not None:
+            return fin[0]
         if d <= POINT_BLANK_R:
             self.approach = False   # P24-A (e), the close review's I3 (F1's walkTo at 0.49 tiles): never at point blank
         blank = self.point_blank and d <= POINT_BLANK_R   # P23-AJ fix 1: in reach whatever the map's line says
@@ -1005,6 +1150,9 @@ class Fight(Policy):
         if hit is not None:   # P24-A (i): the engine starts no swing in a hit reaction (#4292, #4293): sent on its end
             self.why["hitReaction"] = hit
             return None
+        shove = self._shove(zid, z, d)   # P24-AG, P24-AH: the shove before (or for) the swing
+        if shove is not None:
+            return shove
         self._held_before = self.stance_at(d) and self.in_stance()
         if self.stance_at(d):
             self.why["stance"] = True   # the swing from the stance (Task 9's hand-over keeps it)
@@ -1054,8 +1202,11 @@ class Fight(Policy):
             self.approach = False
             self._seek_walk = (action, self.target) if self._seek_send else None
             self._stance_walk = (action, self.target, self._walk_kind) if self._walk_kind else None
-        elif cmd.TYPE == "attack":
-            self._attack_held = self._held_before
+        elif cmd.TYPE == "shove":
+            self._shoved = True
+        elif cmd.TYPE in ("attack", "stomp"):
+            self._shoved = False
+            self._attack_held = self._held_before if cmd.TYPE == "attack" else False
             if cmd.targetId != self._streak_id:   # a new target: its streak starts here
                 self._streak_id, self._streak_h, self.no_progress = cmd.targetId, self._target_health(cmd.targetId), 0
 
