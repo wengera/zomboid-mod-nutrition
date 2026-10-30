@@ -47,8 +47,15 @@ DISENGAGE_R (`quiet`); Survive tries it only on an idle tick, behind the need, t
 goal, with no action running (so it never supersedes a drink, a fill or a goal's walk or loot: Task 10's objection),
 its line the care branch's (`why` `stock`). `wants_dressing()`: a part bleeds, no item the bleeding step may put on
 it is held (nor a dirty rag to wash) and no garment can be ripped: Survive then marks the want `bandage`, which the
-view lists and the goal layer's loot takes first (`goals.wanted_uses`). The worn garment's unwear and rip waits for
-the Lua's unwear (PZA/1.6 has `wear` only).
+view lists and the goal layer's loot takes first (`goals.wanted_uses`). Unwear then rip (ruling P24-AJ, Plan 24 Task
+27; PZA/1.7's `unwear`, #4376, #4377: vanilla's Unequip leaves the garment in the main inventory, where the rip recipe,
+which refuses a worn item, takes it): on the same idle tick, after the rag stock's rip found nothing unworn to rip, a
+bleeding part with nothing to dress it (`wants_dressing`) takes `Unwear(itemId)` of the worn cotton garment covering
+the least (`_unwear_pick`: the item record's `worn` and `rip` "cotton", its clothing record's bite + scratch the least,
+ties by the least id; never at a shoe or trouser location, UNWEAR_NEVER over the clothing record's `loc`), one per
+item per WEAR_RETRY_MIN game minutes, none while the last one's garment still reads worn within WEAR_SETTLE_MAX frames
+of its done; once its `item_changed` reads it unworn the bleeding step (or the stock) rips that same item first
+(`_rip_item`). Never under a threat held: the stock runs only on Survive's idle tick.
 The wear (Plan 24 Task 24, review-t9-fix9's ruling 5; PZA/1.6.1's `me.worn` with each entry's `holes` and `cond`): on
 the same idle tick as the rag stock, after it, `stock()` answers `Wear(itemId)` of the held unworn garment whose
 clothing record beats what is worn at its location (`wear_gain`: `cond` above 0, `holes` 0, bite + scratch above the
@@ -82,7 +89,7 @@ import re
 import time
 
 from agent.base.planner.policies import Policy, PREEMPTED, item_id_ok
-from agent.base.pza1 import Bandage, Drop, Rip, Wash, Wear
+from agent.base.pza1 import Bandage, Drop, Rip, Unwear, Wash, Wear
 from agent.base.world import me_floor
 
 CARE_RETRY_MIN = 2.0      # game minutes an item whose care action was refused is left out (P24-G 2)
@@ -117,11 +124,13 @@ RAG_STOCK = 2             # clean dressings (bandages and clean rags) the care k
 WEAR_RETRY_MIN = 10.0     # game minutes an item's wear is not sent again (Task 24; the brief's number)
 WEAR_QUIET_R = 8.0        # tiles: a wear (50 action ticks, stopped by a run) waits while a zombie is listed this near
                           # (review-t9-fix9 ruling 5, point 3: "no zombie seen within about 8 squares")
+UNWEAR_NEVER = re.compile(r"shoe|boot|pant|trouser", re.I)   # clothing locations never taken off for a rag (ruling
+                          # P24-AJ: never the shoes, whose stomp power the stomp reads, #4374, nor the trousers)
 WEAR_SETTLE_MAX = 12      # frames after a wear's done the exclusive-location check waits for a newer `me.worn` list
                           # at most (the Lua marks the list dirty at the done and otherwise sends it every
                           # S.WORN_EVERY (10) frames: review-t24 minor 4)
 
-__all__ = ["Care", "care_kind", "rippable", "wear_gain", "WEAR_RETRY_MIN", "WEAR_QUIET_R", "WEAR_SETTLE_MAX", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
+__all__ = ["Care", "care_kind", "rippable", "wear_gain", "UNWEAR_NEVER", "WEAR_RETRY_MIN", "WEAR_QUIET_R", "WEAR_SETTLE_MAX", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
            "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R", "RIDE_RETRY_S", "RAG_STOCK"]
 
 
@@ -189,9 +198,15 @@ class Care(Policy):
         self.rewear_sent = set()   # ids of a re-wear in flight (its send is not a candidate wear)
         self.rewear = []     # ids to put on again, the garments a wear took off while the worn defence fell
         self.drop_after = None   # the id a wear replaced, dropped under load once the check passed
+        self.unwear_at = {}  # item id -> world minute its unwear was sent (WEAR_RETRY_MIN; P24-AJ)
+        self.unworn_item = None   # the id the last unwear took off, ripped first once it reads unworn (P24-AJ)
 
     def sent(self, cmd, action):
         self.sends[cmd.itemId] = action
+        if cmd.TYPE == "unwear":
+            self.unwear_at[cmd.itemId], self.unworn_item = self.world.world_minutes(), cmd.itemId
+        elif cmd.TYPE == "rip" and cmd.itemId == self.unworn_item:
+            self.unworn_item = None
         if cmd.TYPE == "wear":
             self.wear_at[cmd.itemId] = self.world.world_minutes()
             if cmd.itemId in self.rewear_sent:
@@ -309,6 +324,8 @@ class Care(Policy):
                and (it.get("rip") == "cotton" and it.get("worn") is not True if fields
                     else rippable(it.get("fullType")) and iid not in self.world.first_sight)
                and now - self.held_out.get(iid, -math.inf) >= CARE_RETRY_MIN]
+        if self.unworn_item in ids:
+            return self.unworn_item   # P24-AJ: the garment just taken off is the one ripped
         return min(ids) if ids else None
 
     # -- the choice -----------------------------------------------------------------------------------------------
@@ -343,7 +360,50 @@ class Care(Policy):
         if not self.quiet:
             return None, None
         out = self._rags()
+        if out[0] is None:
+            out = self._unwear()
         return out if out[0] is not None else self._wear()
+
+    def _unwear(self):
+        """Ruling P24-AJ (the module docstring): `(Unwear(itemId), why)` of `_unwear_pick` while a bleeding part has
+        nothing to dress it (`wants_dressing`: no dressing, no dirty rag, nothing unworn to rip), the build announcing
+        `unwear` and `rip` and stating the item record's fields; else (None, None), and while the last unwear's garment
+        still reads worn within WEAR_SETTLE_MAX frames of its done (its `item_changed` not yet read)."""
+        w = self.world
+        if not (w.can("unwear") and w.can("rip") and w.item_fields()) or not self.wants_dressing():
+            return None, None
+        a = self.sends.get(self.unworn_item)
+        if a is not None and a.type == "unwear" and a.state == "done":
+            it = w.inventory.get(self.unworn_item) or {}
+            if it.get("worn") is True and w.frame_n < w.act_n.get(str(a.aid), w.frame_n) + WEAR_SETTLE_MAX:
+                return None, None
+        pick = self._unwear_pick()
+        if pick is None:
+            return None, None
+        iid, loc, cover = pick
+        return Unwear(iid), {"reason": "unwear", "item": iid, "loc": loc, "cover": cover}
+
+    def _unwear_pick(self):
+        """`(item id, loc, cover)` of the worn cotton garment covering the least (its clothing record's bite + scratch,
+        ties by the least id), else None: the item record reads `worn` and `rip` "cotton" and carries a clothing record
+        whose `loc` UNWEAR_NEVER does not match; never one marked `unrippable` or `in_bag`, held out by a refusal
+        (CARE_RETRY_MIN) or unworn within WEAR_RETRY_MIN game minutes."""
+        w = self.world
+        now = w.world_minutes()
+        barred = w.marked("unrippable") | w.marked("in_bag")
+        best = None
+        for iid, it in w.inventory.items():
+            c = it.get("clothing")
+            loc = c.get("loc") if isinstance(c, dict) else None
+            if (not item_id_ok(iid) or it.get("worn") is not True or it.get("rip") != "cotton" or iid in barred
+                    or not isinstance(loc, str) or UNWEAR_NEVER.search(loc)
+                    or now - self.held_out.get(iid, -math.inf) < CARE_RETRY_MIN
+                    or now - self.unwear_at.get(iid, -math.inf) < WEAR_RETRY_MIN):
+                continue
+            cover = (c.get("bite") or 0.0) + (c.get("scratch") or 0.0)
+            if best is None or (cover, iid) < best[0]:
+                best = ((cover, iid), iid, loc, cover)
+        return None if best is None else best[1:]
 
     def _rags(self):
         """The rag stock's rip (ruling P24-AB, the module docstring): fewer than RAG_STOCK clean dressings held, an

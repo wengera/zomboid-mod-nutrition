@@ -169,7 +169,10 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   carries one, unknown and never "nothing worn"; kept across null frames, not in `to_json`); `unworn` lists
   (id, `frame_n`) of each held item an `item_changed` read worn and then not (the exclusive locations a wear takes
   off, which its `replaced` does not name: the care branch's re-wear); `window_marks` is the door marks' twin for a
-  window (`note_window_fail`, `window_locked`: the planner's, never a line's).
+  window (`note_window_fail`, `window_locked`: the planner's, never a line's). PZA/1.7 (Plan 24 Task 27):
+  `loaded_width` is `me.loadedWidth` as the last frame that carried one left it (the client's loaded grid in tiles,
+  sent on the first frame and when it changes, null otherwise; None until one does, not in `to_json`): the goals'
+  legs read it (`goals.leg_max`, ruling P24-AI).
   `to_json` carries `emptyIds`, `refusedIds` (the ids excluded now)
   and `noEffectIds` sorted, each only while it is non-empty,
   so a World that never marked one serialises as before (the replay goldens keep their bytes). For the same reason a
@@ -292,6 +295,8 @@ class World:
         self.worn = None             # me.worn as the last frame that carried one left it (None: none seen yet)
         self.unworn = deque(maxlen=32)   # (item id, frame_n): a held item an item_changed read worn, then not
         self.worn_n = 0              # the frame_n of the last frame that carried me.worn
+        self.loaded_width = None     # me.loadedWidth as the last frame that carried one left it (PZA/1.7: the Lua sends
+                                     # it on the first frame and when it changes; None until one does, never serialised)
         self.act_n = {}              # str(aid) -> the frame_n when its act line was applied
         self.frame_n = 0             # the frames applied (a frame-newer test's counter, never serialised)
         self.killed = set()          # the zombie ids a Fight read dead off its own attack or aim (P24-Q: `kills`)
@@ -358,6 +363,9 @@ class World:
         if worn is not None:
             self.worn = worn         # null means unchanged (PZA/1.6: the Lua sends me.worn only when it changes)
             self.worn_n = self.frame_n
+        width = (line.get("me") or {}).get("loadedWidth")
+        if isinstance(width, int) and not isinstance(width, bool) and width > 0:
+            self.loaded_width = width   # null means unchanged (PZA/1.7), as for me.worn
         for z in line.get("zombies") or ():
             self.zombies[z.get("id")] = dict({k: v for k, v in z.items() if k != "id"}, seenWallMs=wall)
         ttl = ZOMBIE_TTL_S * 1000

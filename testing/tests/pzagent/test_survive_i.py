@@ -166,7 +166,8 @@ def test_a_bleeding_part_with_no_dressing_and_no_unworn_cotton_wants_bandage(tmp
     """P24-AB: part 9 bleeding, nothing held but the worn T-shirt (E8 from game minute 617: no bandage, rag or unworn
     cotton): the care branch marks the want `bandage` (logged `want`), the view lists it, the goals' kit takes it
     first, and the scripted source loots the nearest building known to hold a bandage; a dressing found drops the
-    want. The worn garment's unwear and rip waits for the Lua's unwear."""
+    want. The worn T-shirt carries no clothing record (a PZA/1.5.2 log), so P24-AJ's unwear, which reads its `loc`,
+    never takes it (Task 27: `test_survive_n.py`)."""
     r, sv = make(tmp_path)
     hello152(r)
     garment(r, 20, ft="Base.Tshirt_WhiteLongSleeveTINT", rip="cotton", worn=True)
@@ -226,15 +227,16 @@ def step(r, runner):
 
 
 def test_the_leg_constants():
-    """Ruling P24-AC: legs of at most 30 tiles (inside E8's bracket: 9.4 tiles got a square, 62.7 did not), halved
-    down to 10."""
-    assert (G.LEG_MAX, G.LEG_MIN) == (30.0, 10.0)
+    """Ruling P24-AC: legs halved down to 10. Named change, ruling P24-AI (Plan 24 Task 27, #4375): the leg is read off
+    the frame's loaded window (`leg_max`), LEG_MAX 40 with none read (P24-AC's 30 superseded)."""
+    assert (G.LEG_MAX, G.LEG_MIN) == (40.0, 10.0)
 
 
-def test_a_100_tile_destination_is_walked_in_30_tile_legs_then_directly(tmp_path):
+def test_a_100_tile_destination_is_walked_in_40_tile_legs_then_directly(tmp_path):
     """P24-AC: ExploreToward(200, 200) from (100.5, 200.5): each walk a leg along the line to a square centre within
-    30 tiles (`why` `leg`, `legLen`), each leg done moving the player there; within 30 tiles the walk is the target's
-    own, and its arrival ends the goal done."""
+    40 tiles (`why` `leg`, `legLen`), each leg done moving the player there; within 40 tiles the walk is the target's
+    own, and its arrival ends the goal done. Named change, P24-AI (Task 27): 40-tile legs with no window read (30
+    before)."""
     r = Rig(tmp_path)
     r.frame(x=100.5, y=200.5)
     g = G.ExploreToward(200, 200)
@@ -247,12 +249,12 @@ def test_a_100_tile_destination_is_walked_in_30_tile_legs_then_directly(tmp_path
         if (cmd.x, cmd.y) == (200, 200):
             assert math.hypot(200 - me[0], 200 - me[1]) <= G.LEG_MAX and "leg" not in g.why
             break
-        assert d <= G.LEG_MAX and d >= G.LEG_MAX - 1.5 and abs(cmd.y - 200.5) <= 0.5 and g.why["legLen"] == 30.0
+        assert d <= G.LEG_MAX and d >= G.LEG_MAX - 1.5 and abs(cmd.y - 200.5) <= 0.5 and g.why["legLen"] == 40.0
         assert g.why["leg"] == [cmd.x, cmd.y] and g.state == "running"
         legs.append((cmd.x, cmd.y))
         r.answer()
         r.frame(x=cmd.x, y=cmd.y)
-    assert legs == [(129.5, 200.5), (158.5, 200.5), (187.5, 200.5)]   # 29.25 tiles on, each a square's centre
+    assert legs == [(139.5, 200.5), (178.5, 200.5)]   # 39.25 tiles on, each a square's centre
     r.answer()
     r.frame(x=200.2, y=200.3)
     step(r, runner)
@@ -260,8 +262,9 @@ def test_a_100_tile_destination_is_walked_in_30_tile_legs_then_directly(tmp_path
     all_sends_valid(r)
 
 
-def test_a_no_square_leg_halves_to_15_then_10_and_nothing_is_marked(tmp_path):
-    """P24-AC: a leg failed `no square` is re-sent at half its length, 15 then 10 tiles (LEG_MIN); at 10 the goal
+def test_a_no_square_leg_halves_to_20_then_10_and_nothing_is_marked(tmp_path):
+    """P24-AC: a leg failed `no square` is re-sent at half its length, 20 then 10 tiles (LEG_MIN; 15 then 10 from 30
+    before P24-AI, Task 27's named change); at 10 the goal
     fails `no square`; no leg square is marked stuck, and the far target only at that final failure (Task 21 fix 1,
     review-t21's blocker; E8's 278 walks each marked their target, the edge stepping a square at a time)."""
     r = Rig(tmp_path)
@@ -276,7 +279,7 @@ def test_a_no_square_leg_halves_to_15_then_10_and_nothing_is_marked(tmp_path):
         r.answer({"state": "failed", "reason": "no square"})
         r.frame(x=100.5, y=200.5, game_min=481.0)
     step(r, runner)
-    assert lens == [(30.0, 29.0), (15.0, 14.0), (10.0, 9.0)]   # each leg's square centre within its length
+    assert lens == [(40.0, 39.0), (20.0, 19.0), (10.0, 9.0)]   # each leg's square centre within its length
     assert (g.state, g.reason) == ("failed", "no square") and list(r.world.stuck) == [(200, 200)]
     assert runner.history[-1]["args"] == {"x": 200, "y": 200}
 
@@ -296,7 +299,7 @@ def test_a_direct_walk_failed_no_square_still_marks_its_target(tmp_path):
 
 
 def test_a_done_leg_restores_the_full_length(tmp_path):
-    """P24-AC: after a halved leg ends done the next leg is LEG_MAX again."""
+    """P24-AC: after a halved leg ends done the next leg is the full length again (LEG_MAX, no window read)."""
     r = Rig(tmp_path)
     r.frame(x=100.5, y=200.5)
     g = G.ExploreToward(200, 200)
@@ -305,11 +308,11 @@ def test_a_done_leg_restores_the_full_length(tmp_path):
     r.answer({"state": "failed", "reason": "no square"})
     r.frame(x=100.5, y=200.5)
     cmd = step(r, runner)
-    assert g.why["legLen"] == 15.0
+    assert g.why["legLen"] == 20.0
     r.answer()
     r.frame(x=cmd.x, y=cmd.y)
     step(r, runner)
-    assert g.why["legLen"] == 30.0
+    assert g.why["legLen"] == 40.0
 
 
 def test_a_loot_building_container_beyond_leg_max_is_walked_to_in_a_leg_first(tmp_path):
@@ -435,13 +438,14 @@ def final_leg_failure(tmp_path, reason, goal=None, **frame):
 @pytest.mark.parametrize("reason", ["no path", "stuck"])
 def test_a_leg_failed_for_good_marks_the_far_target_cools_the_goal_and_the_next_goal_differs(tmp_path, reason):
     """Review-t21's blocker (P24-AC): the review's probe, ExploreToward(200, 200) from (100.5, 200.5), the leg
-    `walkTo 129.5, 200.5` failed `no path` or `stuck` with no fence to climb: the goal ends failed, the far target is
+    `walkTo 139.5, 200.5` (129.5 before P24-AI's 40-tile leg, Task 27) failed `no path` or `stuck` with no fence to
+    climb: the goal ends failed, the far target is
     marked stuck as a direct walk's failure marks it, the goal is cooled (it sent, yet GOAL_COOL_S), and the scripted
     source's next proposal is not the same goal; the leg was sent once."""
     r, runner, g, cmd = final_leg_failure(tmp_path, reason)
-    assert (cmd.x, cmd.y) == (129.5, 200.5)
+    assert (cmd.x, cmd.y) == (139.5, 200.5)
     assert (g.state, g.reason) == ("failed", reason) and g.sent_n == 1
-    assert (200, 200) in r.world.stuck and (129, 200) in r.world.stuck
+    assert (200, 200) in r.world.stuck and (139, 200) in r.world.stuck
     assert runner.cooling() == [{"type": "ExploreToward", "args": {"x": 200, "y": 200}}]
     view = {"edge": [200, 200], "cooled": runner.cooling(), "pos": {"x": 100.5, "y": 200.5}, "scanned_here": True}
     nxt = G.ScriptedSource().propose(view)
@@ -450,7 +454,7 @@ def test_a_leg_failed_for_good_marks_the_far_target_cools_the_goal_and_the_next_
 
 
 def test_a_no_square_leg_at_leg_min_marks_the_far_target_and_cools_the_goal(tmp_path):
-    """P24-AC + review-t21 blocker: the halving (30, 15, 10) ends with the far target marked and the goal cooled; the
+    """P24-AC + review-t21 blocker: the halving (40, 20, 10 since P24-AI) ends with the far target marked and the goal cooled; the
     halved legs themselves marked nothing before the end."""
     r = Rig(tmp_path)
     r.frame(x=100.5, y=200.5, game_min=480.0)
