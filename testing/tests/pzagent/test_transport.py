@@ -32,7 +32,7 @@ def test_every_kind_round_trips_through_the_transport(tmp_path):
         m.hello(),
         m.frame(),
         m.frame(zombies=[{"id": 4, "x": 101.5, "y": 199.25, "dist": 1.6, "hasTarget": True, "crawler": False,
-                          "health": 1.75}]),
+                          "health": 1.75, "onFloor": None}]),
         m.event("damage", tag="ZOMBIE", amount=0.25, side="client"),
         m.map_full([SQUARE], scan_id=3, missing=["getModData"]),
         m.map_delta(dict(SQUARE, solid=True)),
