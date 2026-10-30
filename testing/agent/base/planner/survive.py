@@ -282,6 +282,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   flee's finish likewise, `_flee_finish`'s "stomp2"), and the deferred minor 5 of review-t32-fix1: a chasing
   standing zombie within KEEP_R of the fallen target refuses the flee's finish (`_finish_chaser`, logged
   `finish_block`; E9's line 334 now refused for 7479).
+  P24-AW, the fill from a loaded source (`planner/water.py`'s docstring the record: `water.loaded`, FILL_WALK_R,
+  FILL_NEAR_R; a far loaded source walked to first, the need's why `fill` `walk`; one out of the client's grid never
+  sent, `unloaded`; E10's 55 fills rejected `no source` 60 to 159 tiles off).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already

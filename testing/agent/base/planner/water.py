@@ -19,24 +19,48 @@ third steps when no `water` item is held, which `survive.Survive._need` runs aft
   (`World.mark_dry`, `world.SOURCE_RETRY_MIN`, the store the care's wash shares) and frees the vessel for the next
   source; any other end but a supersede leaves the vessel out of the plan for FILL_RETRY_MIN game minutes from the
   minute its end was read (never from the send: a 30 s walk then coming back at once).
-- `sent(action)` remembers the need's fill: its action, and the vessel's `item_changed` count at the send.
+- Ruling P24-AW (survival iteration 12, Plan 24 Task 36; E10: 55 of 63 fills rejected `no source`, each sent with
+  the source 60.04 to 159.03 tiles off, a square the client held no grid square for, #4375): the plan takes the
+  nearest clean source within the client's loaded grid (`loaded`: the goal legs' `goals.leg_max` off the World's
+  `me.loadedWidth`, ruling P24-AI, read square by its Chebyshev distance, the grid being one of chunks); within
+  FILL_WALK_R of it the `Fill` goes as before (the Lua walks next to it); farther, a `WalkTo` at a walk to the open
+  square beside it nearest the player (`World.reachable_adjacent`, else the source's own centre) goes first, the need
+  holding while it runs, and the fill on the tick it is within FILL_WALK_R; a walk that failed (never one superseded)
+  leaves its source out as a fill's walk failure does (`World.mark_dry`). A source beyond the grid is never sent: with
+  every clean source out of it the vessel is kept and the want names `water_source` (`why` `unloaded`, their count).
+- `sent(action)` remembers the need's fill: its action, and the vessel's `item_changed` count at the send; or its walk
+  to a source (`walk`).
 - `wants(marks, now)`: the goal layer's wants beside `water` (FILL_WANTS) on a tick the need found no water held: the
   one `why` names marked at `now`, the other dropped; `clear(marks)` drops both (a held drink found).
 """
 import time
 
 from agent.base.planner.care import DRY_REASONS
-from agent.base.planner.policies import PREEMPTED, STUCK_REASONS, item_id_ok
-from agent.base.pza1 import Fill
-from agent.base.world import me_floor
+from agent.base.planner.goals import leg_max
+from agent.base.planner.policies import PREEMPTED, STUCK_REASONS, centre, item_id_ok
+from agent.base.pza1 import Fill, WalkTo
+from agent.base.world import me_floor, me_xy
 
 FILL_SETTLE_S = 2.0      # wall seconds a done fill waits for its vessel's item_changed before it is read as filled (9 fix 2)
 FILL_RETRY_MIN = 2.0     # game minutes from its end a vessel whose fill failed is left out (as care.CARE_RETRY_MIN)
 FILL_WANTS = ("container", "water_source")   # the water chain's wants beside `water` (P24-G 3, P24-L)
 SOURCE_FAILS = DRY_REASONS + ("not adjacent",) + STUCK_REASONS   # a fill failed so leaves its source out (Task 10
                          # fix 1, minor 5: a walk to it that failed, as one refused for its water), as a timeout does
+FILL_WALK_R = 20.0       # tiles: the farthest source a `Fill` is sent to (ruling P24-AW, a judgment: the Lua's own walk
+                         # next to it, no radius of its own); a loaded source farther off is walked to first
+FILL_NEAR_R = 2.0        # tiles: that walk ends beside the source (ruling P24-AW: "a walkTo leg to within 2 tiles"), on
+                         # the open square next to it nearest the player
 
-__all__ = ["Water", "FILL_SETTLE_S", "FILL_RETRY_MIN", "FILL_WANTS", "SOURCE_FAILS"]
+__all__ = ["Water", "FILL_SETTLE_S", "FILL_RETRY_MIN", "FILL_WANTS", "SOURCE_FAILS", "FILL_WALK_R", "FILL_NEAR_R",
+           "loaded"]
+
+
+def loaded(world, sq):
+    """Ruling P24-AW: square `sq` (x, y, z) lies within the client's loaded grid as the goal legs read it (`goals.leg_max`
+    off `me.loadedWidth`, ruling P24-AI: half the grid less a chunk; LEG_MAX with no width read), by its Chebyshev
+    distance from the player's square (the grid is one of chunks, square on both axes, #4375)."""
+    mx, my = me_xy(world)
+    return max(abs(sq[0] + 0.5 - mx), abs(sq[1] + 0.5 - my)) <= leg_max(world)
 
 
 class Water:
@@ -47,10 +71,16 @@ class Water:
         self.actions = actions
         self.clock = clock
         self.fills = {}   # vessel id -> {action, read, at, base, done_wall}: the need's fills (P24-G 3)
+        self.walk = None  # (walk Action, source square) of the need's walk to a far source until its end is read (P24-AW)
         self.why = None   # this tick: the plan's fill or want, logged in the need's why
 
     def check(self):
-        """Each fill's end, once (the module docstring)."""
+        """Each fill's end, once, and the walk's to a far source (the module docstring)."""
+        if self.walk is not None and self.actions.done(self.walk[0]):
+            a, sq = self.walk
+            self.walk = None
+            if a.state != "done" and not (a.state == "failed" and a.reason == PREEMPTED):
+                self.world.mark_dry(sq)   # P24-AW: a walk to it that failed leaves the source out (SOURCE_RETRY_MIN)
         now = self.world.world_minutes()
         for iid, f in list(self.fills.items()):
             a = f["action"]
@@ -105,12 +135,26 @@ class Water:
         if not clean:
             self.why = {"vessel": min(vessels), "source": None, "want": "water_source"}
             return None
-        d, sq, _ = clean[0]
+        near = [s for s in clean if loaded(self.world, s[1])]   # P24-AW: never a source the client holds no square of
+        if not near:
+            self.why = {"vessel": min(vessels), "source": None, "want": "water_source", "unloaded": len(clean)}
+            return None
+        d, sq, _ = near[0]
         self.why = {"vessel": min(vessels), "source": [sq[0], sq[1]], "dist": d}
-        return Fill(min(vessels), sq[0], sq[1])
+        if d <= FILL_WALK_R:
+            return Fill(min(vessels), sq[0], sq[1])
+        beside = self.world.reachable_adjacent(centre(sq), sq[2])   # P24-AW: the walk first, beside the source
+        to = beside[0] if beside else sq
+        self.why["walk"] = [to[0], to[1]]
+        return WalkTo(*centre(to), "walk")
 
     def sent(self, action):
-        """Remember the need's fill: its action, and the vessel's `item_changed` count at the send (the settle's)."""
+        """Remember the need's fill: its action, and the vessel's `item_changed` count at the send (the settle's); or
+        its walk to a far source (P24-AW), the source the plan's `why` named."""
+        if action.type == "walkTo":
+            src = (self.why or {}).get("source")
+            self.walk = (action, (src[0], src[1], me_floor(self.world)))
+            return
         iid = action.args.get("itemId")
         self.fills[iid] = {"action": action, "read": False, "at": None, "base": self.world.changes.get(iid, 0)}
 

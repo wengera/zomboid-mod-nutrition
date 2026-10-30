@@ -808,14 +808,16 @@ def test_no_water_held_a_vessel_is_filled_at_the_nearest_clean_source_then_drunk
 def test_a_tainted_source_is_never_filled_from_a_clean_one_at_any_distance_is(tmp_path):
     """Ruling P24-L (Task 10 fix 1, the review's major 1; re-cut from Task 10's FILL_R fallback): the Lua refuses every
     tainted drink, so only a clean source is filled from, at any distance; with only a tainted one known the vessel
-    is kept (still a `container`), nothing is sent, and the want names `water_source` (not `container`)."""
+    is kept (still a `container`), nothing is sent, and the want names `water_source` (not `container`). Named change,
+    Task 36 (ruling P24-AW): "any distance" within FILL_WALK_R (a loaded source farther off is walked to first, one out
+    of the loaded grid never sent: `test_survive_s`), so the clean source is 18.5 tiles off, not 60.5."""
     r, sv = make(tmp_path)
-    r.scan([source(105, 200, tainted=True, infinite=True), source(160, 200)])     # clean at 60.5 tiles
+    r.scan([source(105, 200, tainted=True, infinite=True), source(118, 200)])     # clean at 18.5 tiles
     r.frame()
     hold(r, 5, "Base.PopEmpty", use="container")
     thirsty(r)
     tick(r, sv)
-    assert r.cmd() == ("fill", {"itemId": 5, "x": 160, "y": 200})
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 118, "y": 200})
     (tmp_path / "b").mkdir()
     r2, sv2 = make(tmp_path / "b")
     r2.scan([source(105, 200, tainted=True, infinite=True)])
@@ -1157,9 +1159,10 @@ def test_a_done_fill_with_no_event_reads_filled_after_fill_settle_s(tmp_path):
 
 def test_a_tainted_fill_marks_its_source_square_tainted_and_the_next_fill_takes_another(tmp_path):
     """Item 3: a fill that read TaintedWater (the event, use other) from a source the map read clean puts that square
-    in the World's `tainted_sources`; `water_sources` then reads it tainted and the next fill takes the clean one."""
+    in the World's `tainted_sources`; `water_sources` then reads it tainted and the next fill takes the clean one.
+    Named change, Task 36 (ruling P24-AW, FILL_WALK_R 20): the clean one at 19.5 tiles, not 20.5."""
     r, sv = make(tmp_path)
-    r.scan([source(110, 200), source(120, 200)])
+    r.scan([source(110, 200), source(119, 200)])
     r.frame()
     hold(r, 5, "Base.PopEmpty", use="container")
     hold(r, 6, "Base.PopEmpty", use="container")
@@ -1172,7 +1175,7 @@ def test_a_tainted_fill_marks_its_source_square_tainted_and_the_next_fill_takes_
     tick(r, sv)
     assert r.world.tainted_sources == {(110, 200, 0)} and r.world.tainted_ids() == {5}
     assert [(s[1], s[2].get("tainted")) for s in r.world.water_sources(math.inf)] == [((110, 200, 0), True),
-                                                                                       ((120, 200, 0), False)]
+                                                                                       ((119, 200, 0), False)]
     thirsty(r)
     tick(r, sv)
     assert r.cmd() == ("consume", {"itemId": 5})
@@ -1181,7 +1184,7 @@ def test_a_tainted_fill_marks_its_source_square_tainted_and_the_next_fill_takes_
     tick(r, sv)
     thirsty(r)
     tick(r, sv)
-    assert r.cmd() == ("fill", {"itemId": 6, "x": 120, "y": 200})
+    assert r.cmd() == ("fill", {"itemId": 6, "x": 119, "y": 200})
 
 
 def test_the_event_after_a_drink_leaves_the_no_effect_mark_of_the_consume_check(tmp_path):

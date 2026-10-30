@@ -12,6 +12,8 @@ rejected `no source` 60 to 159 tiles off, the doorway stand never taken). The fa
   alone); a stomp failed `stood` reads the target again (standing: the Fight's path; fallen: one more stomp, then the
   floor strike); and the flee's finish is refused for a chasing zombie standing within KEEP_R of the target (the
   deferred minor 5 of review-t32-fix1).
+- P24-AW: a fill is sent only to a water source within the loaded grid (`goals.leg_max`, P24-AI) and within
+  FILL_WALK_R; a loaded source farther off is walked to first (a square beside it), one beyond the grid never sent.
 """
 import functools
 import json
@@ -22,7 +24,7 @@ from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner import threat as T
 
-from .test_policies import all_sends_valid
+from .test_policies import all_sends_valid, square
 from .test_survive import last, make, threat_why, tick
 from .test_survive_q import fr, z
 
@@ -343,3 +345,99 @@ def test_the_flee_s_finish_spent_after_a_stomp_that_went(tmp_path):
     r.answer({"state": "done", "result": {"hit": True, "attackStarted": True, "targetDead": False}})
     fr(r, zs)
     assert tick(r, sv).type == "steer"
+
+
+# ================================================================ P24-AW: the fill from a loaded source
+def fill_rig(tmp_path, sources, width=None, x=100.0):
+    """A thirsty Survive holding one empty vessel (5) with `sources` scanned (each (x, y)), the frame's
+    `me.loadedWidth` `width` (None: never read), the player at (`x`, 200)."""
+    from .test_survive_g import hold, source
+    r, sv = make(tmp_path)
+    r.scan([source(sx, sy) for sx, sy in sources])
+    r.frame(x=x)
+    if width is not None:
+        r.world.loaded_width = width   # as the World keeps the last frame's `me.loadedWidth` (PZA/1.7)
+    hold(r, 5, "Base.PopEmpty", use="container")
+    r.frame(x=x, thirst=0.2)
+    if width is not None:
+        r.world.loaded_width = width
+    return r, sv
+
+
+def need_why(tmp_path):
+    return last(tmp_path)["inputs"]["branches"]["need"]
+
+
+def test_the_fill_constants():
+    """FILL_WALK_R 20 (the ruling's) and FILL_NEAR_R 2; the loaded grid is the goal legs' (P24-AI, `goals.leg_max`:
+    40 tiles at a width of 104, #4375)."""
+    from agent.base.planner import goals as G
+    from agent.base.planner import water as W
+    assert (W.FILL_WALK_R, W.FILL_NEAR_R) == (20.0, 2.0)
+    assert G.leg_max(type("Wd", (), {"loaded_width": 104})()) == 40.0
+
+
+def test_a_source_within_fill_walk_r_is_filled_as_before(tmp_path):
+    r, sv = fill_rig(tmp_path, [(118, 200)], width=104)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 118, "y": 200}) and need_why(tmp_path)["fill"]["dist"] == pytest.approx(18.5, abs=0.01)
+
+
+def test_a_loaded_source_beyond_fill_walk_r_takes_a_walk_beside_it_first_then_the_fill(tmp_path):
+    """A source 30.5 tiles off, inside the loaded grid (40 at width 104): a walk at a walk to the open square beside it
+    nearest the player (ties by x, then y: (129, 199)), why `fill` `walk`, held while it runs; done there, the fill."""
+    r, sv = fill_rig(tmp_path, [(130, 200)], width=104)
+    r.scan([square(x, y) for x in (129, 130, 131) for y in (199, 200, 201) if (x, y) != (130, 200)])
+    r.frame(thirst=0.2)
+    r.world.loaded_width = 104
+    a = tick(r, sv)
+    w = need_why(tmp_path)["fill"]
+    assert (a.type, a.args) == ("walkTo", {"x": 129.5, "y": 199.5, "gait": "walk"}) and w["walk"] == [129, 199]
+    assert w["source"] == [130, 200] and last(tmp_path)["branch"] == "need"
+    r.fake.answer({"walkTo": ["accepted"]})
+    r.pump()
+    r.frame(thirst=0.2)
+    assert tick(r, sv) is None                                            # the walk is the need's: held
+    r.answer()
+    r.frame(x=129.5, y=200.5, thirst=0.2)
+    tick(r, sv)
+    assert r.cmd() == ("fill", {"itemId": 5, "x": 130, "y": 200})
+    all_sends_valid(r)
+
+
+@pytest.mark.parametrize("width,sources", [(104, [(160, 200)]), (104, [(141, 200)]), (None, [(160, 200)])])
+def test_a_source_beyond_the_loaded_grid_is_never_sent(tmp_path, width, sources):
+    """E10: 55 fills rejected `no source`, sent 60.04 to 159.03 tiles off. A source beyond the loaded grid (`leg_max`:
+    40 at width 104; LEG_MAX 40 with no width read) takes no fill and no walk: the want names `water_source`, logged
+    `unloaded` (the known clean sources out of the grid)."""
+    r, sv = fill_rig(tmp_path, sources, width=width)
+    for _ in range(3):
+        tick(r, sv)
+        r.frame(thirst=0.2)
+        if width is not None:
+            r.world.loaded_width = width
+    assert not any(a.type in ("fill", "walkTo") for a in r.acts.history)
+    w = need_why(tmp_path)["fill"]
+    assert w["want"] == "water_source" and w["unloaded"] == 1 and "water_source" in sv.need_marks
+
+
+def test_the_nearest_loaded_source_is_taken_over_a_nearer_one_out_of_the_grid_on_the_other_axis(tmp_path):
+    """The grid is square (Chebyshev, the chunk grid of #4375): a source 41 tiles north (out) is passed for one 30
+    tiles east and 30 south (in, 42.4 by the crow): the walk goes to the loaded one."""
+    r, sv = fill_rig(tmp_path, [(100, 159), (130, 230)], width=104)
+    tick(r, sv)
+    w = need_why(tmp_path)["fill"]
+    assert w["source"] == [130, 230] and "walk" in w
+
+
+def test_a_failed_walk_to_a_source_leaves_it_out(tmp_path):
+    """The walk failed (`no path`): the source is left out as a fill's walk failure leaves it (SOURCE_RETRY_MIN), so
+    the need does not walk at it again at once."""
+    r, sv = fill_rig(tmp_path, [(130, 200)], width=104)
+    tick(r, sv)
+    assert r.cmd()[0] == "walkTo"
+    r.answer({"state": "failed", "reason": "no path"})
+    r.frame(thirst=0.2)
+    r.world.loaded_width = 104
+    tick(r, sv)
+    assert r.world.dry_now() == {(130, 200, 0)} and sum(a.type == "walkTo" for a in r.acts.history) == 1
