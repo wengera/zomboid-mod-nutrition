@@ -44,8 +44,9 @@ The rule changes the end of a `many` flee's shelter steps (`policies.Flee`, ruli
 """
 import math
 
-from agent.base.planner.policies import (AIM_LEG_S, AIM_R, DANGER_R, FIGHT_REACH, POINT_BLANK_R, STAND_MIN_R, Fight,
-                                         Policy, arm_pain, blocked, centre, hit_reaction, line_to, on_floor, on_post,
+from agent.base.planner.fight import Fight
+from agent.base.planner.policies import (AIM_LEG_S, AIM_R, DANGER_R, FIGHT_REACH, POINT_BLANK_R, STAND_MIN_R, Policy,
+                                         arm_pain, blocked, centre, hit_reaction, line_to, on_floor, on_post,
                                          target_id_ok, zdist)
 from agent.base.pza1 import Aim, Attack, Shove, WalkTo
 from agent.base.world import me_xy

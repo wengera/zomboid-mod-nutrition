@@ -12,8 +12,10 @@ import os
 import pytest
 
 from agent.base import replay_decisions as R
+from agent.base.planner import fight as F
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
+from agent.base.planner import threat as T
 
 
 def run_dir(key):
@@ -164,8 +166,8 @@ def test_a_smaller_cornered_r_moves_the_f1_golden_first_at_line_484(monkeypatch)
     assert base[484]["why"]["yield"] == "many"
     assert base[537]["action"] == {"type": "attack", "args": {"targetId": 15921}}
     assert base[537]["why"]["corner_kind"] == "stuck"
-    monkeypatch.setattr(S, "CORNERED_R", 1.0)
-    monkeypatch.setattr(P, "CORNERED_R", 1.0)
+    monkeypatch.setattr(T, "CORNERED_R", 1.0)   # Task 36: the threat branch's and the Fight's copies
+    monkeypatch.setattr(F, "CORNERED_R", 1.0)
     moved = {d["line"]: d for d in R.run(run_dir("f1"), mutate=pre_ad)}
     diff = [k for k in sorted(set(base) | set(moved)) if base.get(k) != moved.get(k)]
     assert diff and diff[0] == 484 and "yield" not in moved[484]["why"] and 537 in diff
@@ -227,7 +229,7 @@ def test_with_survival_5_s_a_b_c_off_the_records_diverge_first_at_the_point_blan
     being earlier; P24-X re-recorded the golden from its line 1.
     """
     from agent.base.world import World
-    monkeypatch.setattr(S, "MANY_LISTED_N", 10 ** 9)
+    monkeypatch.setattr(T, "MANY_LISTED_N", 10 ** 9)
     monkeypatch.setattr(World, "met_window", lambda self, r=None: None)
     monkeypatch.setattr(S.Survive, "_behind_walk", lambda self: [])
     monkeypatch.setattr(S.Survive, "_walk_yields", lambda self: None)
@@ -344,7 +346,7 @@ def test_e2_line_94_is_the_reposition_floor(monkeypatch):
     d = R.agreement(run_dir("e2"), pre_rows("e2"))["first_divergence"]
     assert d["record"]["action"]["args"] == {"gait": "run", "x": 10733.5, "y": 10642.5}
     assert d["replay"]["action"]["args"] == {"gait": "run", "x": 10731.5, "y": 10642.5}
-    monkeypatch.setattr(P, "REPOSITION_MIN", 0.0)
+    monkeypatch.setattr(F, "REPOSITION_MIN", 0.0)
     assert R.agreement(run_dir("e2"), pre_replay("e2"))["first_divergence"]["line"] == 98
 
 
@@ -382,7 +384,7 @@ def test_e4_line_302_is_the_cut_leg(monkeypatch):
     monkeypatch.setattr(World, "met_window", lambda self, r=None: None)
     d = first()
     assert d["line"] == 411 and d["replay"]["why"]["flee"] == "many" and d["record"]["why"]["target"] == 19030
-    monkeypatch.setattr(S, "MANY_LISTED_N", 10 ** 9)
+    monkeypatch.setattr(T, "MANY_LISTED_N", 10 ** 9)
     d = first()
     assert d["line"] == 411 and d["replay"]["why"]["behind"] == [19029, 19031]
     monkeypatch.setattr(S.Survive, "_behind_walk", lambda self: [])
@@ -415,7 +417,7 @@ def test_the_older_goldens_reach_the_hold_breach_door_exit_shelter_stall_and_stu
 def test_closing_ticks_now_moves_the_e2_golden_at_line_164(monkeypatch):
     """The review's M1: a mutant E5 and F1 never saw moves E2 (the `closing` breach)."""
     base = {d["line"]: d for d in json.loads(golden("e2").decode("utf-8"))["decisions"]}
-    monkeypatch.setattr(S, "CLOSING_TICKS", 4)
+    monkeypatch.setattr(T, "CLOSING_TICKS", 4)
     moved = {d["line"]: d for d in R.run(run_dir("e2"))}
     diff = [k for k in sorted(set(base) | set(moved)) if base.get(k) != moved.get(k)]
     assert diff and diff[0] == 164
@@ -532,7 +534,7 @@ def test_each_survival_5_rule_switched_off_moves_its_golden_first_at_its_line(mo
     else:
         base = pre_gold(key)
     if mutant == "listing":
-        monkeypatch.setattr(S, "MANY_LISTED_N", 10 ** 9)
+        monkeypatch.setattr(T, "MANY_LISTED_N", 10 ** 9)
     elif mutant == "met":
         monkeypatch.setattr(World, "met_window", lambda self, r=None: None)
     elif mutant == "behind":
@@ -722,10 +724,12 @@ def test_keep_r_and_the_advance_on_the_sixth_golden(monkeypatch):
     for name, val, first in (("KEEP_R", P.FIGHT_REACH, 111), ("KEEP_R", 2.4, 111), ("STAND_MAX_S", math.inf, None),
                              ("STAND_MAX_S", 5.0, None), ("STAND_MAX_S", 2.0, 111)):
         old = getattr(P, name)
-        monkeypatch.setattr(P, name, val)
+        for mod in (P, F):   # Task 36: the Fight's copy (`planner/fight.py`) beside the policies' own
+            monkeypatch.setattr(mod, name, val)
         moved = pre_moved_from_sixth(pre_run(SIXTH))
         assert (moved[0] if moved else None) == first, (name, val)
-        monkeypatch.setattr(P, name, old)
+        for mod in (P, F):
+            monkeypatch.setattr(mod, name, old)
     busy = P.Fight.busy
 
     def stand_holds(self):   # P24-N's give-way of a standing leg inside KEEP_R removed

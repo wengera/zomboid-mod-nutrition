@@ -6,6 +6,7 @@ import math
 
 import pytest
 
+from agent.base import pza1
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 
@@ -137,7 +138,7 @@ def test_after_a_walk_released_the_stance_a_target_in_reach_is_aimed_at_before_t
     assert not f.in_stance() and f.choose().TYPE == "aim"
     f.send(f.choose())
     assert f.in_stance()
-    r.acts.send(P.Stop())                                                  # another sender: the stance released
+    r.acts.send(pza1.Stop())                                                  # another sender: the stance released
     assert not f.in_stance()
 
 
@@ -1674,9 +1675,9 @@ def test_no_policy_of_the_planner_can_emit_a_sprint():
     import ast
     import os
     from agent.base import pza1
-    from agent.base.planner import goals, llm, night, view
+    from agent.base.planner import fight, flee, goals, llm, night, threat, view
     assert "sprint" in pza1.GAITS
-    for mod in (P, S, C, goals, night, view, llm):
+    for mod in (P, S, C, goals, night, view, llm, fight, flee, threat):   # Task 36: the moved modules too
         with open(mod.__file__, encoding="utf-8") as f:
             tree = ast.parse(f.read())
         hits = [n.lineno for n in ast.walk(tree) if isinstance(n, ast.Constant) and n.value == "sprint"]
@@ -2023,14 +2024,14 @@ def test_a_leg_stays_running_under_the_riding_bandages_sent_after_it_and_nothing
     from agent.base import pza1
     r = Rig(tmp_path)
     r.frame()
-    leg = r.acts.send(P.Steer(1.0, 0.0, 3.0, "run"))
+    leg = r.acts.send(pza1.Steer(1.0, 0.0, 3.0, "run"))
     ride = r.acts.send(pza1.Bandage(10, part=6, keepMoving=True))
     assert r.acts.current is ride and P.running(r.acts, leg) and P.rides_on(r.acts, leg)
     r.acts.send(pza1.Bandage(11, part=6, keepMoving=True))   # a second ride supersedes the first, the leg still runs
     assert P.running(r.acts, leg)
     r.acts.send(pza1.Bandage(12, part=6))
     assert not P.running(r.acts, leg)
-    aim = r.acts.send(P.Aim(0.0, 0.0, 2.0, targetId=1))
+    aim = r.acts.send(pza1.Aim(0.0, 0.0, 2.0, targetId=1))
     r.acts.send(pza1.Bandage(10, part=6, keepMoving=True))
     assert not P.rides_on(r.acts, aim) and not P.running(r.acts, aim)
 

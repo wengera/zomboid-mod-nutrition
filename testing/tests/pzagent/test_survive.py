@@ -19,6 +19,7 @@ from agent.base.planner import Planner
 from agent.base.planner import goals as G
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
+from agent.base.planner import threat as T
 from agent.base.planner.survive import Survive
 
 from .test_policies import BAT, CAPS_14, CRATE, FRIDGE, SHELF, Rig, all_sends_valid, behind_wall_n, grid, square, swing, zombie
@@ -48,7 +49,7 @@ def make_build(tmp_path, monkeypatch, build):
         def __init__(self, *a, **k):
             super().__init__(*a, **k)
             self.standoff, self.standoff_why = True, "failed not loaded"
-    monkeypatch.setattr(S, "Fight", FellBack)
+    monkeypatch.setattr(T, "Fight", FellBack)   # the threat branch makes the Fights (Task 36)
     return make(tmp_path)
 
 
