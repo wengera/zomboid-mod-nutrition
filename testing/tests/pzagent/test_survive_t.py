@@ -365,6 +365,53 @@ def test_the_release_above_endurance_release_stands_as_before(tmp_path):
     assert not sv.endurance_hold and sv.spent is None
 
 
+def test_a_shelter_step_sent_at_a_walk_runs_once_a_zombie_comes_within_danger_r(tmp_path):
+    """Review-t3 finding 3 (every flee reason may take a shelter, and `gait` is the gait of every leg and walk): under the
+    endurance hold with the nearest 6.5 tiles off the strain flee's shelter step (the enter) goes at a walk; with the
+    zombie at 4.5 the running walk is dropped and sent again at a run (not only the steer leg)."""
+    from .test_night import CLOSED, OPEN
+    from .test_survive import shelter_world
+
+    def frames(r, sv, zx, x=100.0):
+        r.frame(x=x, y=201.5, zombies=[z(1, zx, 201.5)], endurance=0.7267035841941833)
+        a = tick(r, sv)
+        while a is not None and a.type == "scan":
+            r.answer()
+            r.frame(x=x, y=201.5, zombies=[z(1, zx, 201.5)], endurance=0.7267035841941833)
+            a = tick(r, sv)
+        return a
+    r, sv = make(tmp_path)
+    sv.DOORWAY = False
+    shelter_world(r, CLOSED)
+    assert frames(r, sv, 96.0).args["gait"] == "run"            # the flee starts at a run, a zombie at 4
+    r.answer()
+    assert frames(r, sv, 105.0, x=111.5).type == "interact"     # at the door; the zombie 6.5 off
+    r.answer()
+    shelter_world(r, OPEN)
+    a = frames(r, sv, 105.0, x=111.5)
+    assert (a.type, a.args["gait"]) == ("walkTo", "walk") and threat_why(tmp_path)["hold_walk"] is True
+    r.fake.answer({"walkTo": ["accepted"]})
+    r.pump()
+    b = frames(r, sv, 107.0, x=111.5)
+    assert b is not None and b is not a and (b.type, b.args["gait"]) == ("walkTo", "run")
+    assert "hold_walk" not in threat_why(tmp_path)
+
+
+def test_an_exit_walk_sent_at_a_walk_is_dropped_when_the_gait_is_the_run(tmp_path):
+    """`Flee.keep_gait` reads the exit step's walk as the shelter step's: a running walkTo at a walk is dropped at the
+    run; a walk already at the run is kept."""
+    from agent.base import pza1
+    from agent.base.planner.flee import Flee
+    r, sv = make(tmp_path)
+    r.frame(zombies=[z(1, 105.0)])
+    f = Flee(r.world, r.acts, r.clock)
+    for gait, dropped in (("walk", True), ("run", False)):
+        a = r.acts.send(pza1.WalkTo(101.5, 201.5, gait))
+        f.last, f._exit_a, f._dropped, f.gait = a, a, None, P.FLEE_GAIT
+        f.keep_gait()
+        assert (f._dropped is a) == dropped, gait
+
+
 # ================================================================ P25-D: the ride waits for the next send
 def riding(r, sv):
     """A bandage riding (keepMoving) in flight: sent by the care and accepted, as E11's a111 and a114 rode the `many`
@@ -486,6 +533,55 @@ def test_a_stand_s_stalled_walk_re_routes_once_then_drops_the_plan(tmp_path):
     assert a is not None and a.type == "steer" and w["door_walk"]["end"] == "drop" and w["doorway_left"] == "stall"
     assert sv.flee.plan is None
     all_sends_valid(r)
+
+
+def test_a_stand_s_stalled_walk_against_a_fence_re_routes_through_the_climb(tmp_path):
+    """Review-t3 finding 4 (E11's stall, #4409: 11.44 tiles out against a fence, where a target one square over gives the
+    pathfinder the same obstacle): the hoppable edge on the line to the walk's target (`World.hop_ahead`) is climbed
+    (`door_walk` end reroute, `climb` the fence square), the plan kept, and the walk is sent again, at its own target,
+    once the climb ends; that walk stalling too drops the plan."""
+    from .test_policies import square
+    from .test_survive import group
+    r, sv = make(tmp_path)
+    walk = stand_walk(r, sv)
+    r.scan([square(101, 201, blockW=True, hopW=True)])
+    a = stall(r, sv, group(0.1), 1.0)
+    w = threat_why(tmp_path)
+    assert a is not None and (a.type, a.args) == ("climb", {"x": 101, "y": 201}) and walk is not a
+    assert w["door_walk"] == {"stall": pytest.approx(w["door_walk"]["stall"]), "end": "reroute", "climb": [101, 201]}
+    assert w["climb"] == [101, 201] and sv.flee.plan.get("stand") is True and "via" not in sv.flee.plan
+    all_sends_valid(r)
+    r.answer()
+    r.advance(0.5)
+    r.frame(x=101.5, y=201.5, zombies=group(0.1))
+    a = tick(r, sv)
+    assert a is not None and (a.type, a.args["x"], a.args["y"]) == ("walkTo", 111.5, 201.5) and "via" not in threat_why(tmp_path)
+    r.fake.answer({"walkTo": ["accepted"]})
+    r.pump()
+    a = stall(r, sv, group(0.1), 1.0, me=(101.6, 201.5))
+    assert a is not None and a.type == "steer" and threat_why(tmp_path)["door_walk"]["end"] == "drop"
+
+
+def test_a_stand_s_stalled_walk_with_no_fence_on_its_line_re_routes_to_the_adjacent_square(tmp_path):
+    """The same stall with no hoppable edge on the line (or a build without `climb`): the `reachable_adjacent` square."""
+    from .test_survive import group
+    r, sv = make(tmp_path)
+    stand_walk(r, sv)
+    a = stall(r, sv, group(0.1), 1.0)
+    assert a.type == "walkTo" and (a.args["x"], a.args["y"]) == (110.5, 201.5) and "climb" not in threat_why(tmp_path)["door_walk"]
+
+
+def test_a_build_without_climb_re_routes_to_the_adjacent_square_even_against_a_fence(tmp_path):
+    """The climb is sent only to a build announcing it: the fence on the line, the hello without `climb`: the
+    `reachable_adjacent` square as before."""
+    from agent.base import pza1
+    from .test_policies import square
+    from .test_survive import group
+    r, sv = make(tmp_path, caps=tuple(t for t in pza1.ACTION_TYPES if t != "climb"))
+    stand_walk(r, sv)
+    r.scan([square(101, 201, blockW=True, hopW=True)])
+    a = stall(r, sv, group(0.1), 1.0)
+    assert a.type == "walkTo" and (a.args["x"], a.args["y"]) == (110.5, 201.5) and "climb" not in threat_why(tmp_path)["door_walk"]
 
 
 def test_a_stand_s_walk_still_for_door_walk_s_stalls_with_no_zombie_within_danger_r(tmp_path):

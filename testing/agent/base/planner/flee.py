@@ -84,7 +84,7 @@ from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, DANGER_R, DISENGAG
                                          WALK_STALL_S, WIDE_TURNS, Policy, _night, _rotate, away_vector, centre,
                                          clear_heading, exit_plan, in_building, in_corridor, line_to, on_post, on_room,
                                          running, stand_post, target_id_ok, zdist)
-from agent.base.pza1 import Interact, Steer, Stop, WalkTo
+from agent.base.pza1 import Climb, Interact, Steer, Stop, WalkTo
 from agent.base.world import me_floor, me_xy
 
 __all__ = ["Flee"]
@@ -268,13 +268,22 @@ class Flee(Policy):
     def _door_stall(self, a, still):
         """Ruling P25-E (E11: the stand's walk toward building 2's door stood 2.101 s 11.44 tiles from it against a
         fence and was dropped, the stand never fought, #4409): a doorway stand's walk step stalled (P23-AM 2's read, or
-        still for DOOR_WALK_S whatever the zombies) is re-sent once to the centre of its target's first
-        `World.reachable_adjacent` square (nearest the player; the plan's `via` for this step), the plan kept; a second
-        stall, or no such square, drops the plan as P23-AM 2 does (`ended` stalled). Logged `door_walk` {stall, end:
-        reroute | drop}; Survive logs a drop `doorway_left` `stall`."""
+        still for DOOR_WALK_S whatever the zombies) is re-routed once, the plan kept: through the climb of the hoppable
+        edge on the line to the walk's target (`World.hop_ahead`, P24-G 4's fence tool; a build announcing `climb`;
+        review-t3 finding 4: a target one square over gives the pathfinder the same fence), the walk sent again from
+        the far side; with no such edge, to the centre of the target's first `World.reachable_adjacent` square (nearest
+        the player; the plan's `via` for this step). A second stall, or neither, drops the plan as P23-AM 2 does
+        (`ended` stalled). Logged `door_walk` {stall, end: reroute | drop, climb: the fence square when climbed};
+        Survive logs a drop `doorway_left` `stall`."""
         self._dropped, self._read = a, a
         if not self.plan.get("rerouted"):
-            via = self.world.reachable_adjacent((a.args.get("x"), a.args.get("y")), me_floor(self.world), self.trans)
+            target = (a.args.get("x"), a.args.get("y"))
+            hop = self.world.hop_ahead(me_xy(self.world), target) if self.world.can("climb") else None
+            if hop is not None:
+                self.plan.update(rerouted=True, climb=hop)
+                self.ended, self.door_walk = "rerouted", {"stall": still, "end": "reroute", "climb": [hop[0], hop[1]]}
+                return
+            via = self.world.reachable_adjacent(target, me_floor(self.world), self.trans)
             if via:
                 self.plan.update(rerouted=True, via=(self.plan["step"], via[0]))
                 self.ended, self.door_walk = "rerouted", {"stall": still, "end": "reroute"}
@@ -283,11 +292,17 @@ class Flee(Policy):
         self._drop(False)
 
     def keep_gait(self):
-        """Ruling P25-C: a running steer leg sent at a walk while the gait now wanted is the run (a zombie came within
-        DANGER_R) is dropped (`_dropped`), so the choose re-aims at a run at once; a run is never cut for a walk."""
-        if (self.gait == FLEE_GAIT and self.busy() and self._leg is not None and self.last is self._leg[0]
-                and self.last.args.get("gait") != FLEE_GAIT):
-            self._dropped = self.last
+        """Ruling P25-C: a running leg sent at a walk (the steer leg, or a shelter step's or an exit's walkTo: review-t3
+        finding 3, every flee reason may take a shelter and `gait` is the gait of every leg and walk) while the gait
+        now wanted is the run (a zombie came within DANGER_R) is dropped (`_dropped`), so the choose re-aims at a run at
+        once; a run is never cut for a walk."""
+        if self.gait != FLEE_GAIT or not self.busy():
+            return
+        last = self.last
+        leg = self._leg is not None and last is self._leg[0]
+        walk = last.type == "walkTo" and (last is self._step or last is self._exit_a)
+        if (leg or walk) and last.args.get("gait") != FLEE_GAIT:
+            self._dropped = last
 
     def busy(self):
         """As `Policy.busy`, except for an exit or shelter walk dropped while still current (G2, P23-AM 2): the next
@@ -412,6 +427,11 @@ class Flee(Policy):
         if self.plan["step"] == "stand":   # P24-AO: the stand is Survive's Doorway fight; the Flee holds its plan
             self.why = {"shelter": b, "step": "stand"}
             return None
+        hop = self.plan.get("climb")
+        if hop is not None:   # P25-E: the stalled walk's re-route through the fence on its line; sent once
+            self._chosen = "climb"
+            self.why = {"shelter": b, "step": self.plan["step"], "ended": self.ended, "climb": [hop[0], hop[1]]}
+            return Climb(hop[0], hop[1])
         cmd, step = N.shelter_step(self.world, self.plan)
         if step == "shun":
             self._drop(True)
@@ -641,6 +661,8 @@ class Flee(Policy):
             self._step, self._step_anchor = action, (self.clock(), me_xy(self.world))
         elif self._chosen == "close":
             self._close = action
+        elif self._chosen == "climb":
+            self.plan["climb"] = None   # sent: the step's walk follows the climb's end
         elif self._chosen == "exit":
             self._exit_a, self._exit_anchor = action, (self.clock(), me_xy(self.world))
         elif cmd.TYPE == "steer":
