@@ -294,3 +294,35 @@ def grade_f5(out, prev=None, decision_lines=None, state_dir=None, lines=None, go
 def gate_f5(outs):
     """gate_e7's gates and kills (grade_f5 changes none of what they read), named gate_f5."""
     return E.gate_e7(outs)
+
+
+# ---------------------------------------------------------------- pass 6 (Plan 25 Task 1): the kills off the act lines
+def report_lines_f6(g):
+    """report_lines_f5's lines with the first line's kills figures from the act lines and a sources line after it
+    naming the planner (act lines), the zombie_dead events and the engine, and whether they agree."""
+    g = E._d(g)
+    k = E._d(g.get("kills"))
+    lines = report_lines_f5(g)
+    ag = k.get("agree")
+    lines.insert(1, "kills sources: planner %s (%s), zombie_dead events %s, engine %s; %s" % (
+        k.get("planner"), k.get("source"), k.get("events") if k.get("events") is not None else "n/a",
+        k.get("engine") if k.get("engine") is not None else "n/a",
+        "agree" if ag is True else "disagree" if ag is False else "not all read"))
+    return lines
+
+
+def grade_f6(out, prev=None, decision_lines=None, state_dir=None, lines=None, goal_lines=None):
+    """grade_f5 under "grade_f6" with `kills` read by e_kills_9 (the act lines' targetDead results and the zombie_dead
+    events) instead of the attacks and aims of loop.results; every other key is grade_f5's. grade_f5 stays as it was."""
+    g = grade_f5(out, prev, decision_lines, state_dir, lines, goal_lines)
+    if lines is None:
+        lines = E.session_lines(state_dir)[0] if state_dir is not None else []
+    g["grade"] = "grade_f6"
+    g["kills"] = E.e_kills_9(out, lines)
+    g["report_lines"] = report_lines_f6(g)
+    return g
+
+
+def gate_f6(outs):
+    """gate_f5 (grade_f6 changes none of what it reads), named gate_f6."""
+    return gate_f5(outs)

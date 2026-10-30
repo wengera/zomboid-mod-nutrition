@@ -276,6 +276,12 @@ def screen_guard(hwnd, rect, pid, user32=None):
     return None
 
 
+def foreground_class(hwnd, user32=None):
+    """The class name of the window `hwnd` (the guard's foreground read on a pass; never a title)."""
+    u = user32 if user32 is not None else _User32()
+    return u.class_name(hwnd)
+
+
 class _Gdi:
     """The user32/gdi32 calls the window grab needs, as plain methods (the tests' fake replaces the whole object)."""
 
@@ -466,11 +472,12 @@ class ShotTaker:
     session's."""
 
     def __init__(self, run_dir, pid=None, grab=grab_screen, find=find_window, clock=time.time, every_s=SHOT_EVERY_S,
-                 guard=screen_guard, grab_win=grab_window,
+                 guard=screen_guard, grab_win=grab_window, fg_class=foreground_class,
                  min_gap_s=SHOT_MIN_GAP_S, cap=SHOT_MAX, width=SHOT_WIDTH, quality=SHOT_QUALITY, idle_s=0.05):
         self.run_dir, self.pid = run_dir, pid
         self.grab, self.find, self.clock, self.guard = grab, find, clock, guard
         self.grab_win = grab_win
+        self.fg_class = fg_class     # hwnd -> the class name of the window the guard passed (Plan 25 Task 1)
         self.every_s, self.min_gap_s, self.cap = float(every_s), float(min_gap_s), cap
         self.width, self.quality, self.idle_s = width, quality, idle_s
         self.dir = os.path.join(run_dir, SHOTS_DIR)
@@ -557,13 +564,15 @@ class ShotTaker:
             rect, src = (win.get("rect"), win.get("source")) if isinstance(win, dict) else (win, None)
             bbox = tuple(int(v) for v in rect) if rect is not None else None
             hwnd = win.get("hwnd") if isinstance(win, dict) else None
-            method, refused = "screen", None
+            method, refused, guard_row = "screen", None, None
             if self.guard is not None:                   # fail closed: no found client window, no grab
                 verdict = ("no window", "") if bbox is None or hwnd is None else self.guard(hwnd, bbox, self.pid)
                 if verdict is not None and verdict[0] not in WINDOW_REASONS:
                     return self._skip(trigger, m, now, verdict, bbox, src)
                 if verdict is not None:                  # the screen grab is refused: the window own content (P24-AM)
                     method, refused = "window", verdict
+                else:                                    # the guard passed: its reading, the class name only, never a title
+                    guard_row = {"foreground_class": self.fg_class(hwnd), "passed": True}
             if method == "window":
                 img = self.grab_win(hwnd, bbox)
                 if is_blank(img, img.info.get("client_box") if img is not None else None):
@@ -586,6 +595,8 @@ class ShotTaker:
             row = {"n": n, "file": name, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
             row.update(self._fields(m, now, trigger, bbox, src))
             row["method"] = method
+            if guard_row is not None:
+                row["guard"] = guard_row
             if refused is not None:
                 row["skipped_screen"], row["other_class"] = refused
             row["grab_ms"] = (time.perf_counter() - t0) * 1000.0

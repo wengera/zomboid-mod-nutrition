@@ -493,7 +493,7 @@ def guarded(tmp_path, u, calls, clock=None, win=None):
     guard = functools.partial(SH.screen_guard, user32=u)
     find = lambda pid: {"rect": RECT, "source": "dwm", "hwnd": CLIENT_HWND}
     return taker(tmp_path, clock or Clock(), find=find, grab=fake_grab(calls), guard=guard,
-                 grab_win=win or (lambda hwnd, rect: None))
+                 fg_class=u.class_name, grab_win=win or (lambda hwnd, rect: None))
 
 
 def one(t, tmp_path):
@@ -916,3 +916,34 @@ def test_cited_ok_accepts_both_methods_and_old_lines(tmp_path):
     with pytest.raises(ValueError) as e:
         SH.cited_ok(str(p), [3, 4])
     assert "4: skipped (blank)" in str(e.value)
+
+# ================================================================ the guard's reading on the index line (Plan 25 Task 1)
+def test_a_screen_line_carries_the_guards_reading_the_client_class_and_passed(tmp_path):
+    import functools
+    u = FakeUser32()
+    find = lambda pid: {"rect": RECT, "source": "dwm", "hwnd": CLIENT_HWND}
+    t = taker(tmp_path, Clock(), find=find, grab=fake_grab([]), guard=functools.partial(SH.screen_guard, user32=u),
+              fg_class=u.class_name)
+    took, rows = one(t, tmp_path)
+    (row,) = rows
+    assert took == 1 and row["method"] == "screen" and "skipped_screen" not in row
+    assert row["guard"] == {"foreground_class": "Cls111", "passed": True}
+    assert "title" not in json.dumps(row).lower()
+
+
+def test_a_window_line_keeps_skipped_screen_and_carries_no_guard_pass(tmp_path):
+    calls = []
+    t = guarded(tmp_path, FakeUser32(fg=999, above=over(1.0)), calls,
+                win=two_colour)
+    took, rows = one(t, tmp_path)
+    (row,) = rows
+    assert took == 1 and row["method"] == "window" and row["skipped_screen"] == "not foreground"
+    assert not row.get("guard", {}).get("passed")
+    assert SH.method_of(row) == "window"
+
+
+def test_an_unguarded_line_carries_no_guard_field(tmp_path):
+    t = taker(tmp_path, Clock())
+    took, rows = one(t, tmp_path)
+    assert took == 1 and "guard" not in rows[0]
+
