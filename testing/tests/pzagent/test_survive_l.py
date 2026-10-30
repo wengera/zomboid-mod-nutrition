@@ -12,9 +12,11 @@ from .test_policies import zombie
 from .test_survive import make, threat_why, tick, last
 
 
-def fr(r, arm=None, zs=(), **k):
-    """A frame with `body.armPain` `arm` (None: an older Lua's null) and zombies `zs`."""
-    r.frame(zombies=list(zs), wounds={"armPain": arm}, **k)
+def fr(r, arm=None, zs=(), stiff=None, **k):
+    """A frame with `body.armPain` `arm` (None: an older Lua's null), the left arm's stiffness `stiff` (`body.strain`
+    {l: stiff, r: 0}; None: an older Lua's null) and zombies `zs`."""
+    r.frame(zombies=list(zs), wounds={"armPain": arm, "strain": None if stiff is None else {"l": stiff, "r": 0.0}},
+            **k)
 
 
 def fight_on(tmp_path, arm=None, **k):
@@ -34,22 +36,24 @@ def test_the_strain_constants():
     assert P.TIRED_FIGHT_T == N.TIRED_T and S.Survive.STRAIN is True
 
 
-def test_arm_pain_20_disengages_the_fight_and_the_hold_lasts_until_under_10(tmp_path):
-    """P24-AG: the running fight at armPain 20 turns to the flee (reason `strain`, the why naming it, a steer at a run:
-    the flee's legs as today); at 15 the hold keeps the flee; at 9.99 the hold ends and the flee turns to fight the one
-    held zombie again (its leg ended)."""
-    r, sv = fight_on(tmp_path, arm=19.99)
-    fr(r, 20.0, [zombie(1, 104.0, 200.0)])
+def test_a_stiffness_of_20_disengages_the_fight_and_the_hold_lasts_until_under_5(tmp_path):
+    """P24-AG as ruling P24-AT reads it (named change, Plan 24 Task 36: the hold reads the arms' stiffness, STIFF_HARD
+    and STIFF_SOFT, no longer the pain): the running fight at a stiffness of 20 turns to the flee (reason `strain`,
+    the why naming it, a steer at a run: the flee's legs as today); at 15 the hold keeps the flee; at 4.99 the hold
+    ends and the flee turns to fight the one held zombie again (its leg ended)."""
+    r, sv = fight_on(tmp_path, stiff=19.99)
+    fr(r, None, [zombie(1, 104.0, 200.0)], stiff=20.0)
     a = tick(r, sv)
     w = threat_why(tmp_path)
     assert sv.mode == "flee" and w["flee"] == "strain" and a.type == "steer" and a.args["gait"] == "run"
-    assert w["strain"] == {"kind": "arms", "armPain": 20.0, "endurance": 1.0, "fatigue": 0.05}
+    assert w["strain"] == {"kind": "arms", "armPain": None, "endurance": 1.0, "fatigue": 0.05,
+                           "strain": {"l": 20.0, "r": 0.0}}
     r.answer()
-    fr(r, 15.0, [zombie(1, 104.0, 200.0)])
+    fr(r, None, [zombie(1, 104.0, 200.0)], stiff=15.0)
     tick(r, sv)
     assert sv.mode == "flee" and threat_why(tmp_path)["flee"] == "strain" and sv.strain_hold
     r.answer()
-    fr(r, 9.99, [zombie(1, 104.0, 200.0)])
+    fr(r, None, [zombie(1, 104.0, 200.0)], stiff=4.99)
     tick(r, sv)
     assert sv.mode == "fight" and not sv.strain_hold and "strain" not in threat_why(tmp_path)
 
@@ -65,21 +69,21 @@ def test_arm_pain_between_the_lines_never_starts_the_hold(tmp_path):
 
 def test_no_new_engage_while_the_strain_hold_runs(tmp_path):
     """P24-AG: no new fight while the hold runs: a chasing zombie at 7 tiles (within ENGAGE_R, beyond DANGER_R) is
-    not engaged and the goal runs; one at 4 tiles is fled `strain`. Once armPain reads under 10 the same 7-tile zombie
-    is engaged (P24-X)."""
+    not engaged and the goal runs; one at 4 tiles is fled `strain`. Once the stiffness reads under 5 the same 7-tile
+    zombie is engaged (P24-X). Named change, Task 36 (P24-AT): the hold set and held by the stiffness."""
     r, sv = make(tmp_path)
-    fr(r, 25.0)
+    fr(r, None, stiff=25.0)
     tick(r, sv)
     assert sv.strain_hold
-    fr(r, 12.0, [zombie(1, 107.0, 200.0)])
+    fr(r, None, [zombie(1, 107.0, 200.0)], stiff=12.0)
     tick(r, sv)
     assert last(tmp_path)["branch"] != "threat" and sv.mode is None and sv._sought() is None
-    fr(r, 12.0, [zombie(1, 104.0, 200.0)])
+    fr(r, None, [zombie(1, 104.0, 200.0)], stiff=12.0)
     tick(r, sv)
     assert sv.mode == "flee" and threat_why(tmp_path)["flee"] == "strain"
     (tmp_path / "b").mkdir()
     r2, sv2 = make(tmp_path / "b")
-    fr(r2, 9.0, [zombie(1, 107.0, 200.0)])
+    fr(r2, None, [zombie(1, 107.0, 200.0)], stiff=4.0)
     tick(r2, sv2)
     assert sv2.mode == "fight" and threat_why(tmp_path / "b")["fight"] is True
 
@@ -128,12 +132,12 @@ def test_the_tired_gate(tmp_path, fatigue, spent):
 
 def test_the_hold_reads_the_arms_first_then_the_endurance_then_the_tiredness(tmp_path):
     r, sv = make(tmp_path)
-    for arm, e, f, kind in ((20.0, 0.5, 0.9, "arms"), (5.0, 0.5, 0.9, "endurance"), (None, 0.9, 0.9, "tired"),
-                            (None, 0.9, 0.1, None)):
-        fr(r, arm, endurance=e, fatigue=f)
+    for st, e, f, kind in ((20.0, 0.5, 0.9, "arms"), (4.0, 0.5, 0.9, "endurance"), (None, 0.9, 0.9, "tired"),
+                           (None, 0.9, 0.1, None)):   # named change, Task 36 (P24-AT): the arms' read is the stiffness
+        fr(r, None, endurance=e, fatigue=f, stiff=st)
         sv._read_spent()
         got = sv.spent
-        assert (got and got["kind"]) == kind, (arm, e, f)
+        assert (got and got["kind"]) == kind, (st, e, f)
 
 
 def test_the_endurance_hold_is_released_only_above_0_80(tmp_path):
@@ -163,13 +167,13 @@ def test_the_f1_sequence_holds_the_flee_through_gm_637(tmp_path):
             assert threat_why(tmp_path)["flee"] == "strain"
 
 
-def test_an_older_frame_with_no_arm_pain_ends_the_hold(tmp_path):
-    """No `body.armPain` (an older Lua): nothing to hold on, the hold ends."""
+def test_an_older_frame_with_no_stiffness_ends_the_hold(tmp_path):
+    """No `body.strain` (an older Lua): nothing to hold on, the hold ends (named change, Task 36: P24-AT's read)."""
     r, sv = make(tmp_path)
-    fr(r, 30.0)
+    fr(r, 30.0, stiff=30.0)
     sv._read_spent()
     assert sv.strain_hold
-    fr(r, None)
+    fr(r, 30.0)
     sv._read_spent()
     assert not sv.strain_hold and sv.spent is None
 

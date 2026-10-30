@@ -14,10 +14,10 @@ from agent.base.planner.fight import Fight
 from agent.base.planner.flee import Flee
 from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, ENDURANCE_RELEASE,
                                          ENDURANCE_T, ENGAGE_R, FIGHT_REACH, KEEP_R, LISTED_R, POINT_BLANK_R,
-                                         PREEMPTED, STAND_MIN_R, STRAIN_HARD, STRAIN_SOFT, TIRED_FIGHT_T,
-                                         UNREACHABLE_S, adoptable, arm_pain, arms_hurt, blocked, chasing, exit_plan,
-                                         in_building, in_reach, line_to, on_floor, others_behind, pull_from, running,
-                                         seek_allowed, spare, target_id_ok, zdist)
+                                         PREEMPTED, STAND_MIN_R, STIFF_HARD, STIFF_SOFT, STRAIN_HARD, TIRED_FIGHT_T,
+                                         UNREACHABLE_S, adoptable, arm_pain, arm_stiffness, arms_hurt, blocked, chasing,
+                                         exit_plan, in_building, in_reach, line_to, on_floor, others_behind, pull_from,
+                                         running, seek_allowed, spare, target_id_ok, zdist)
 from agent.base.pza1 import Attack, Drop, Stomp
 from agent.base.world import me_floor, me_xy
 
@@ -174,13 +174,17 @@ class Threat:
         return reason
 
     def _read_spent(self):
-        """Rulings P24-AG and P24-AK (#4370, #4371), read once a tick (`_threat`; `self.spent` is what the tick's
-        `_sought`, `_hysteresis`, `_walk_yields` and the why read, review-t27 minor 3): why the character is spent for
-        a fight this tick, else None (always with `STRAIN` off):
-        - `arms` while the strain hold runs: it starts at the frame's `body.armPain` at STRAIN_HARD (every swing's
-          damage divided by armPain / 10, halved at 20: #4370) and ends once it reads under STRAIN_SOFT, or with no
-          armPain on the frame (an older Lua); a rest lowers the strain's share by about 5.76 a real minute on the
-          server (#4369), a wound on an arm holds the pain up;
+        """Rulings P24-AG and P24-AK (#4370, #4371), with P24-AT's hold on the stiffness, read once a tick (`_threat`;
+        `self.spent` is what the tick's `_sought`, `_hysteresis`, `_walk_yields` and the why read, review-t27 minor 3):
+        why the character is spent for a fight this tick, else None (always with `STRAIN` off):
+        - `arms` while the strain hold runs: ruling P24-AT (E10: the hold, set at game minute 605 by a bite's pain,
+          fled on 308 of 580 threat lines and never released, the pain never under 21 again while the stiffness read 0
+          on both arms) reads the arms' stiffness (`policies.arm_stiffness`, the frame's `body.strain`, #4369): it
+          starts at STIFF_HARD on either arm (the health panel's line past minor stiffness) and ends once both read
+          under STIFF_SOFT (the panel's first naming of it), or with no `strain` on the frame (an older Lua); a rest
+          lowers it by about 5.76 a real minute on the server (#4369). Before it the pain set it (STRAIN_HARD, released
+          under STRAIN_SOFT), which a wound holds up whatever the rest: the pain is now its own reason, `wounded`
+          (`self.wound`, below);
         - `endurance` while the endurance hold runs: it starts at the frame's `stats.endurance` ENDURANCE_T or under
           (the ENDURANCE moodle's first level, which halves every swing) and ends only above ENDURANCE_RELEASE (a
           fight drains far faster than rest restores, so with no release line the edge flickered: flee, one swing,
@@ -191,12 +195,18 @@ class Threat:
         (`policy.spent` is set on every Fight, so on a shove build under HOLD_WIDE none of them swings under any hold:
         they shove at point blank and stomp, `policies.Fight._shove`). Ruling P24-AP (`_wounded_fight`), as
         ruling R2 widens it (Task 32 fix 1): under any hold a zombie within KEEP_R is fought, never fled, and the Fight
-        sends no swing (`_fight_spent`). The why's `strain` carries the frame's
-        `body.strain` (each arm's stiffness, #4369) when it reads one, read nowhere else."""
+        sends no swing (`_fight_spent`). The why's `strain` carries the pain and the frame's `body.strain` (each
+        arm's stiffness, #4369) when it reads one.
+        Ruling P24-AT's `wounded` (`self.wound`, logged `pain` {kind "wounded", armPain, strain} on the tick's threat
+        why): the frame's `body.armPain` at STRAIN_HARD (#4370: every swing's damage halved or worse, whatever the
+        pain's source) with `STRAIN` on. It is no hold: the Fight sends no swing (`policies.Fight.no_swing` reads the
+        pain itself, `arms_hurt`: the shove at point blank, the stomp of a fallen one, the backpedal between), no
+        `strain` flee is read for it, and a lone target is still sought (`_lone`); a group is fled as today."""
         pain = arm_pain(self.world)
-        if pain is None or pain < STRAIN_SOFT:
+        stiff = arm_stiffness(self.world)
+        if stiff is None or stiff < STIFF_SOFT:
             self.strain_hold = False
-        elif pain >= STRAIN_HARD:
+        elif stiff >= STIFF_HARD:
             self.strain_hold = True
         st = self.world.stats or {}
         e, f = st.get("endurance"), st.get("fatigue")
@@ -211,7 +221,9 @@ class Threat:
         self.spent = None if not kinds else {"kind": kinds[0], "armPain": pain, "endurance": e, "fatigue": f}
         strain = (self.world.body or {}).get("strain")
         if self.spent is not None and strain is not None:   # P24-AP: the stiffness (#4369) beside the pain, logged
-            self.spent["strain"] = strain                    # only (a PZA/1.7 frame carries it)
+            self.spent["strain"] = strain                    # (a PZA/1.7 frame carries it)
+        hurt = self.STRAIN and pain is not None and pain >= STRAIN_HARD
+        self.wound = {"kind": "wounded", "armPain": pain, "strain": strain} if hurt else None   # P24-AT
 
     def _wounded_fight(self):
         """Ruling P24-AP, the wounded fight (E9: a bite on part 5 read `body.armPain` 37.6 with `body.strain` 0 on both
@@ -258,6 +270,8 @@ class Threat:
         if self.mode is not None or self._sleeping() is not None or self.spent is not None:
             return None   # P24-AG, P24-AK: a spent character starts no fight
         near = self._within(ENGAGE_R)
+        if self.wound is not None:   # P24-AT: wounded, a lone target only
+            near = self._lone(near)
         if not near or not self._takes_on(len(near)) or self._many_read(near, len(self._within(DANGER_R)))[0]:
             return None
         if self._chokepoint() and not self._stance_ok(near, self.night.inside()):
@@ -269,6 +283,21 @@ class Threat:
         if all(zid in self.avoid for zid, _ in held):
             return None
         return near
+
+    def _lone(self, near):
+        """Ruling P24-AT, the wounded seek: of `near` (the zombies listed within ENGAGE_R), `[t]` when `t` is a lone
+        target: the one standing zombie (not `on_floor`) within ENGAGE_R, no other zombie within DANGER_R, and no other
+        listed within LISTED_R chasing (`hasTarget`: a group coming, which the wounded character flees as today);
+        else []. The fight then goes as any sought fight's, the Fight sending no swing (`arms_hurt`)."""
+        standing = [z for z in near if not on_floor(z)]
+        if len(standing) != 1:
+            return []
+        t = standing[0]
+        if any(z is not t and zdist(self.world, z) <= DANGER_R for z in near):
+            return []
+        if any(z is not t and chasing(z) for z in self._within(LISTED_R)):
+            return []
+        return [t]
 
     def _side(self, z):
         """The building whose room square position-record `z` ((x, y) keys) stands on, else None (outside, a door
@@ -926,7 +955,7 @@ class Threat:
         if self.avoid and want == "fight":
             self.why["unsought"] = sorted(self.avoid, key=repr)
         for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed),
-                       ("doorway_left", self.stand_end)):
+                       ("doorway_left", self.stand_end), ("pain", self.wound)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:

@@ -158,8 +158,12 @@ SWING_TYPES = ("attack", "aim", "shove", "stomp")   # the Fight's sends whose re
 STRAIN_SOFT = 10.0    # the frame's body.armPain at which a swing's damage starts to fall (divided by armPain / 10,
                       # #4370): the Fight prefers the stomp and the point-blank shove (ruling P24-AG); under it again
                       # the strain hold ends
-STRAIN_HARD = 20.0    # ... at which the damage is halved: the threat branch disengages and starts no new fight until
-                      # armPain falls under STRAIN_SOFT (ruling P24-AG)
+STRAIN_HARD = 20.0    # ... at which the damage is halved: the Fight never swings (`arms_hurt`, P24-AP), and the
+                      # threat branch reads the pain as the `wounded` reason, a lone target still sought (ruling P24-AT)
+STIFF_HARD = 20.0     # the frame's `body.strain` (an arm's stiffness, #4369) at which the arms' hold starts on either
+                      # arm (ruling P24-AT, superseding P24-AG's read of the pain: the health panel calls a part's
+                      # stiffness minor under 20, #4369) ...
+STIFF_SOFT = 5.0      # ... and under which, on both arms, it ends (the panel names a stiffness from 5, #4369)
 ENDURANCE_T = 0.75    # the frame's stats.endurance at or under which the ENDURANCE moodle reads level 1 (#3926, #4076),
                       # whose first level halves every swing (#4371): the disengage of P24-AG
 ENDURANCE_RELEASE = 0.80   # ... and above which that hold ends (review-t27: rest gives back 0.003-0.005 a game minute,
@@ -340,6 +344,18 @@ def arms_hurt(world):
     the divider, #4374)."""
     pain = arm_pain(world)
     return pain is not None and pain >= STRAIN_HARD
+
+
+def arm_stiffness(world):
+    """Ruling P24-AT: the larger of the frame's two arms' stiffness (`body.strain` {l, r}, PZA/1.7: each the largest
+    `getStiffness()` of its side's three arm parts, #4369) when both read numbers, else None (a frame before PZA/1.7)."""
+    s = (world.body or {}).get("strain")
+    if not isinstance(s, dict):
+        return None
+    v = [s.get(k) for k in ("l", "r")]
+    if not all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in v):
+        return None
+    return max(v)
 
 
 def on_floor(z):

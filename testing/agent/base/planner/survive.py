@@ -263,6 +263,15 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   and the reposition's squares read a `solidTrans` square as solid (`_ride_leg`, `World.reachable_adjacent`, under
   `TRANS`); the care tick's rule (b) never rides under the drag-down guard (`_rides_many`); the finishing stomp's end
   is read in `_read`, out of `assess` (`_finish_end`, `_finish_kill`).
+- Survival 13 (survival iteration 12, the commit label; Plan 24 Task 36; E10, `e_day_10-20261030-084253`: the first
+  scripted session to reach the day cap, zero kills over 39 fled fights; the threat branch is `planner/threat.py`'s
+  mixin since the task's pure move, the Fight `planner/fight.py`, the Flee `planner/flee.py`; rows #4369, #4370,
+  #4373, #4374):
+  P24-AT, the hold on the stiffness (`_read_spent`: the arms' hold set at a stiffness, `body.strain`, of STIFF_HARD
+  on either arm and released under STIFF_SOFT on both; E10's hold, set by a bite's pain at game minute 605, fled on
+  308 of 580 threat lines and never released), and the arm pain its own reason, `wounded` (`self.wound`, logged
+  `pain`): at STRAIN_HARD no swing (`policies.arms_hurt`), a lone target still sought (`_lone`), groups fled as
+  today.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -435,7 +444,9 @@ class Survive(Threat):
         self.avoid = set()        # this tick: the ids within the hold no engage reaches (`_engageable`), else empty
         self._flood = None        # (map version, player square, squares): the engage's bounded flood (`_reach`)
         self.dead = {}            # zombie id -> wall until it is skipped, read dead (policies.Fight, Task 12 fix 1)
-        self.strain_hold = False  # the arms' strain hold (P24-AG): set at armPain STRAIN_HARD, cleared under STRAIN_SOFT
+        self.strain_hold = False  # the arms' strain hold (P24-AG, P24-AT): set at a stiffness of STIFF_HARD, cleared
+                                  # under STIFF_SOFT
+        self.wound = None         # this tick: {kind "wounded", armPain, strain} at armPain STRAIN_HARD (P24-AT), else None
         self.endurance_hold = False  # the endurance hold (P24-AG): set at ENDURANCE_T or under, cleared above ENDURANCE_RELEASE
         self.spent = None         # this tick's `_read_spent` (None: fit to fight)
         self.spent_kinds = ()     # every hold `_read_spent` read this tick, in its order (P24-AP reads them all)

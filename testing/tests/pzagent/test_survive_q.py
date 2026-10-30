@@ -21,15 +21,17 @@ def fr(r, zs, arm=None, strain=None, **k):
     r.frame(zombies=list(zs), wounds={"armPain": arm, "strain": strain}, **k)
 
 
+STIFF = {"l": 25.0, "r": 0.0}   # a stiffness past STIFF_HARD on the left arm: the arms' hold (P24-AT, Task 36)
 DONE_SHOVE = {"state": "done", "result": {"knockdown": False, "attackStarted": True, "targetDead": False}}
 
 
 # ================================================================ P24-AP: the wounded fight
 def test_the_arms_hold_alone_fights_a_zombie_within_keep_r_with_the_backpedal_never_the_swing(tmp_path):
-    """armPain 25 (the hold), one zombie at 2.0 tiles (within KEEP_R and FIGHT_REACH, beyond point blank): no `strain`
-    flee; the Fight's answer is the backpedal (an aim away from it, `wounded` 25), never an attack."""
+    """armPain 25 with a stiffness of 25 (the hold: named change, Task 36, P24-AT sets it on the stiffness), one zombie
+    at 2.0 tiles (within KEEP_R and FIGHT_REACH, beyond point blank): no `strain` flee; the Fight's answer is the
+    backpedal (an aim away from it, `wounded` 25), never an attack."""
     r, sv = make(tmp_path)
-    fr(r, [z(1, 102.0)], 25.0)
+    fr(r, [z(1, 102.0)], 25.0, STIFF)
     a = tick(r, sv)
     w = threat_why(tmp_path)
     assert sv.mode == "fight" and w["fight"] is True and "flee" not in w and sv.strain_hold
@@ -97,7 +99,7 @@ def test_a_corner_at_strain_hard_backpedals_and_without_the_stance_holds(tmp_pat
 
 def test_beyond_keep_r_the_arms_hold_still_flees_strain(tmp_path):
     r, sv = make(tmp_path)
-    fr(r, [z(1, 104.0)], 25.0)
+    fr(r, [z(1, 104.0)], 25.0, STIFF)   # named change, Task 36 (P24-AT): the hold on the stiffness
     tick(r, sv)
     assert sv.mode == "flee" and threat_why(tmp_path)["flee"] == "strain"
 
@@ -150,13 +152,14 @@ def test_beyond_keep_r_the_endurance_or_tired_hold_still_flees_strain(tmp_path, 
 
 
 def test_the_hold_s_why_carries_the_stiffness_beside_the_pain(tmp_path):
-    """`body.strain` (#4369) is logged beside the pain in the hold's why when the frame carries it, read nowhere else."""
+    """`body.strain` (#4369) is logged beside the pain in the hold's why when the frame carries it (named change, Task
+    36: P24-AT's hold is set by it, here the right arm's 21.5)."""
     r, sv = make(tmp_path)
-    fr(r, [z(1, 104.0)], 25.0, strain={"l": 0.0, "r": 1.5})
+    fr(r, [z(1, 104.0)], 25.0, strain={"l": 0.0, "r": 21.5})
     tick(r, sv)
     w = threat_why(tmp_path)
     assert w["strain"] == {"kind": "arms", "armPain": 25.0, "endurance": 1.0, "fatigue": 0.05,
-                           "strain": {"l": 0.0, "r": 1.5}}
+                           "strain": {"l": 0.0, "r": 21.5}}
 
 
 def test_the_walk_corner_no_longer_yields_to_a_hold_within_keep_r(tmp_path):
@@ -175,7 +178,7 @@ def test_the_walk_corner_no_longer_yields_to_a_hold_within_keep_r(tmp_path):
 
 def test_the_arms_hold_still_seeks_nothing(tmp_path):
     r, sv = make(tmp_path)
-    fr(r, [z(1, 107.0)], 25.0)
+    fr(r, [z(1, 107.0)], 25.0, STIFF)   # named change, Task 36 (P24-AT): the hold on the stiffness
     tick(r, sv)
     assert sv.mode is None and last(tmp_path)["branch"] != "threat"
 
