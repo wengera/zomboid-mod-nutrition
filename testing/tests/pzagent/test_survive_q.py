@@ -315,3 +315,15 @@ def test_e9_s_7474_is_finished_at_line_334_and_7488_stays_left_under_its_standin
     assert got[334]["action"] == {"type": "stomp", "args": {"targetId": 7474}} and w["finish"] == 7474
     assert 4.6 < w["dist"] < 4.63 and w["flee"] == "many"
     assert not any(got[k]["why"].get("finish") == 7488 for k in range(141, 151) if k in got)
+
+
+def test_under_the_endurance_hold_a_refused_stomp_takes_no_floor_strike(tmp_path):
+    """Ruling R2 in the flee's finish: the floor strike is a swing, so under the endurance hold (no arm pain) a
+    refused stomp is followed by the flee, as at STRAIN_HARD."""
+    r, sv = struck(tmp_path)
+    zs = [z(1, 101.5, floor=True)] + GROUP3
+    fr(r, zs, endurance=0.7)
+    assert tick(r, sv).type == "stomp"
+    r.answer({"state": "failed", "reason": "out of reach"})
+    fr(r, zs, endurance=0.7)
+    assert tick(r, sv).type == "steer"

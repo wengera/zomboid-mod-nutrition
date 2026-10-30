@@ -71,3 +71,21 @@ def test_the_many_clock_starts_at_the_first_many_and_ends_with_the_threat(tmp_pa
     r.frame(x=100.0, y=201.5, zombies=group(-20.0))                    # every one beyond DISENGAGE_R: nothing held
     tick(r, sv)
     assert sv.many_since is None and sv.mode is None
+
+
+@pytest.mark.parametrize("attackers,ride", [(0, True), (1, True), (2, False), (3, False)])
+def test_rule_b_never_rides_under_the_drag_down_guard(tmp_path, attackers, ride):
+    """Task 32 fix 1, the review's minor 9 (E8's replayed ride at line 389, two ticks after the `drag` steer at 387,
+    the nearest 0.51): FLEE_CARE_S since the first `many` with two parts bleeding rides at 1.0 tiles, except with
+    `me.attackers` at DRAG_DOWN_N - 1 (2) or more, the drag-down guard's own line."""
+    r, sv = make(tmp_path)
+    hold(r, 10, "Base.Bandage")
+    parts = [part(6, bleeding=True, bleedingTime=5.0), part(3, bleeding=True, bleedingTime=2.0)]
+    care_frame(r, parts, zombies=[z(1, 105.5)], health=30.0)
+    tick(r, sv)
+    r.answer("progress")
+    sv.flee_many = True
+    sv.many_since = r.clock() - C.FLEE_CARE_S
+    care_frame(r, parts, zombies=[z(1, 101.0)], health=30.0, attackers=attackers)
+    tick(r, sv)
+    assert rode(r) is ride

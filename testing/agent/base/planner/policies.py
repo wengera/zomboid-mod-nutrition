@@ -765,7 +765,7 @@ class Fight(Policy):
         step, inside the Lua walk's DONE_R 1.0) keeps a walk that cannot move out of it."""
         floor = me_floor(self.world)
         mx, my = me_xy(self.world)
-        for sq in self.world.reachable_adjacent((z["x"], z["y"]), floor):
+        for sq in self.world.reachable_adjacent((z["x"], z["y"]), floor, self.trans):   # P24-AS (fix 1, minor 8)
             c = (sq[0] + 0.5, sq[1] + 0.5)
             d = math.hypot(c[0] - mx, c[1] - my)
             if d > REPOSITION_R:

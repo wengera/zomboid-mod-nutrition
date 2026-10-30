@@ -259,7 +259,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   under any (`_wounded_fight`, `_fight_spent`, `policies.Fight.no_swing`); the finish's reach FINISH_R (R3 as the
   review corrects it, `_flee_finish`); the stance's count (`STANCE_LISTED`, `_stance_count`: the standing held within
   DANGER_R or chasing, so a group idling 6 to 10 tiles off no longer turns the pull's stance off). `HOLD_WIDE` and
-  `STANCE_LISTED` join the replay tests' seam (`test_replay_decisions.fix1_off`).
+  `STANCE_LISTED` join the replay tests' seam (`test_replay_decisions.fix1_off`). And the minors: the ride's walk line
+  and the reposition's squares read a `solidTrans` square as solid (`_ride_leg`, `World.reachable_adjacent`, under
+  `TRANS`); the care tick's rule (b) never rides under the drag-down guard (`_rides_many`); the finishing stomp's end
+  is read in `_read`, out of `assess` (`_finish_end`, `_finish_kill`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -500,6 +503,7 @@ class Survive:
         self.finishing = {}       # zombie id -> the `many` flee's finishing sends at it, "stomp" then "floor" (P24-AQ)
         self._finish_a = None     # the flee's last finishing action (P24-AQ), its end read once (`_finish_read`)
         self._finish_read = None
+        self._finish_kill = None  # the zombie id the finishing stomp read dead this tick (`_read`), else None
         self.night = Night(world, actions, clock)
         # one shun store: the goals' Shelter shuns into the night's (Task 13 fix 1, M6), so neither re-tries the other's
         self.goals = GoalRunner(ScriptedSource() if source is None else source, clock, shunned=self.night.shunned)
@@ -1301,12 +1305,14 @@ class Survive:
 
     def _ride_leg(self):
         """The running flee leg a bandage may ride (P24-U, PZA/1.5.3's obligation: the ride has no pathing): a steer,
-        or a walk whose straight line to its target reads clear on the map; else None."""
+        or a walk whose straight line to its target reads clear on the map, a `solidTrans` square on it read as solid
+        with `TRANS` on (ruling P24-AS; Task 32 fix 1, the review's minor 8: the walk paths round it, the ride does
+        not); else None."""
         leg = self._flee_leg()
         if leg is None or leg.type == "steer":
             return leg
         a = leg.args
-        return leg if self.world.line_clear(me_xy(self.world), (a.get("x"), a.get("y"))) else None
+        return leg if self.world.line_clear(me_xy(self.world), (a.get("x"), a.get("y")), trans=self.TRANS) else None
 
     def _care_yields(self, held):
         """Ruling P24-P (Plan 24 Task 12; E6's health fell from 100 to 17.6 under a held zombie before its one
@@ -1353,12 +1359,15 @@ class Survive:
         in 13.111 s while the `many` flee ran, five rags held): a `many` flee from a chaser lets the bandage ride its
         leg with the nearest zombie `near` beyond RIDE_MANY_R (a part bleeding with a dressing held, `rides_wound`), or
         whatever the distance once FLEE_CARE_S wall seconds have passed since the first `many` read (`many_since`)
-        with FLEE_CARE_N or more parts bleeding. Before it no ride went under a `many` flee with a chaser held (the
-        re-review's minor 4 of Task 12)."""
+        with FLEE_CARE_N or more parts bleeding, except under the drag-down guard (`me.attackers` at DRAG_DOWN_N - 1,
+        `_drag`'s own line: Task 32 fix 1, the review's minor 9, E8's replayed ride at line 389 two ticks after the
+        `drag` steer at 387, the nearest at 0.51: the ride holds the leg to a walk, P24-U). Before it no ride went under
+        a `many` flee with a chaser held (the re-review's minor 4 of Task 12). The doorway stand has no care tick (its
+        bleeding is the next iteration's, the review's minor 9)."""
         if near > RIDE_MANY_R:
             return True
         return (self.many_since is not None and self.clock() - self.many_since >= FLEE_CARE_S
-                and self.care.bleeding_n() >= FLEE_CARE_N)
+                and self.care.bleeding_n() >= FLEE_CARE_N and self._attackers() < DRAG_DOWN_N - 1)
 
     def _threat(self):
         """The tick's bookkeeping, once (ruling P24-A (g)): the held list, the Flee's observe and the breach's closing
@@ -1839,7 +1848,8 @@ class Survive:
     def _read(self, world, actions):
         """The tick's reads before any branch: the World and the Actions re-bound, the ends of the actions the tick
         itself owns read (the failures cooled, a refused consume or a door's failure marked, the consumes checked,
-        the fills' ends), the goal runner's observe, and the logged inputs (read before any branch runs: `mode` is
+        the fills' ends; the flee's finishing stomp's, `_finish_end`, which marks the zombie dead and counts the World's
+        kill: Task 32 fix 1, the review's minor 11, out of `assess`), the goal runner's observe, and the logged inputs (read before any branch runs: `mode` is
         the tick's start). Not every end: the branches' own observes (Care's, Night's, the Fight's and the Flee's)
         read theirs inside `assess`, see there."""
         self.world, self.actions = world, actions
@@ -1856,6 +1866,7 @@ class Survive:
         self._uses = None
         self.goals.observe(world, actions)
         self.engaging = False   # P24-X: set again by this tick's threat branch
+        self._finish_kill = self._finish_end()   # P24-AQ: the flee's finishing stomp's end (fix 1, the review's minor 11)
         return self._inputs()
 
     def assess(self, inputs):
@@ -1875,8 +1886,7 @@ class Survive:
         if self.fight is not None:
             self._observe(self.fight)
             kill = self.fight.kill   # P24-Q: read before any branch may replace the Fight (a lower bound: world.py)
-        finish = self._finish_end()   # P24-AQ: the flee's finishing stomp read too
-        kill = finish if kill is None else kill
+        kill = self._finish_kill if kill is None else kill   # P24-AQ: the flee's finishing stomp's, read in `_read`
         self.need_mark = None
         branch, owner, cmd, cooled, tried = None, None, None, None, {}
         for name in STEPS:

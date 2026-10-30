@@ -391,3 +391,34 @@ def test_under_the_endurance_hold_the_doorway_faces_and_shoves_never_swings(tmp_
     r.frame(x=POST[0], y=POST[1], zombies=[z(1, 111.7, 201.5)] + group(8.0, POST)[1:], endurance=0.7)
     assert tick(r, sv).type == "shove"
     assert not any(x.type == "attack" for x in r.acts.history)
+
+
+# ================================================================ Task 32 fix 1: the review's minor 10
+def test_a_stand_plan_whose_open_fails_locked_is_shunned_with_no_stand(tmp_path):
+    """The stand-marked plan's open ends `failed "locked"` (SHUN_REASONS): the plan moves to the next door, and with
+    none (the flee's plan is kept to one door) the building is shunned and the flee steers; no Doorway is made."""
+    r, sv = make(tmp_path)
+    shelter_world(r, CLOSED)
+    r.frame(x=100.0, y=201.5, zombies=group())
+    tick(r, sv)
+    assert sv.flee.plan["stand"] is True
+    r.answer()
+    me = (111.5, 201.5)
+    r.frame(x=me[0], y=me[1], zombies=group(8.0, me))
+    tick(r, sv)
+    assert r.cmd()[1]["kind"] == "open"
+    r.answer({"state": "failed", "reason": "locked"})
+    r.frame(x=me[0], y=me[1], zombies=group(8.0, me))
+    tick(r, sv)
+    assert sv.flee.plan is None and 1 in sv.flee.shunned and not isinstance(sv.fight, D.Doorway)
+    assert not any(a.type == "interact" and a.args["kind"] == "close" for a in r.acts.history)
+
+
+def test_a_zombie_on_the_approach_square_refuses_the_pick_and_no_stand_is_marked(tmp_path):
+    """A zombie standing on the door's approach square (the corridor the pick reads) refuses the shelter at the pick:
+    no plan, so no stand; DOOR_STAND_N is read at the pick only, never again on arrival (the module docstring)."""
+    r, sv = make(tmp_path)
+    shelter_world(r, CLOSED)
+    r.frame(x=100.0, y=201.5, zombies=group() + [zombie(4, 111.5, 201.5, me=(100.0, 201.5))])
+    tick(r, sv)
+    assert why(r)["flee"] == "many" and sv.flee.plan is None and not isinstance(sv.fight, D.Doorway)

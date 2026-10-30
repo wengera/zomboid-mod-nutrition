@@ -864,9 +864,11 @@ class World:
             return False
         return not any(self.blocked(p, q, trans=trans) for p, q in zip(sqs, sqs[1:]))
 
-    def reachable_adjacent(self, target_xy, z):
+    def reachable_adjacent(self, target_xy, z, trans=False):
         """The target square's 8 neighbours that are mapped, not solid, and whose step to the target is not blocked,
-        nearest the player first (by the neighbour's centre, ties by x, y)."""
+        nearest the player first (by the neighbour's centre, ties by x, y). With `trans` (ruling P24-AS, Task 32 fix 1,
+        the review's minor 8: the reposition walks to one) a `solidTrans` neighbour is solid too, and so is a
+        diagonal step's `solidTrans` corner."""
         tx, ty = int(math.floor(target_xy[0])), int(math.floor(target_xy[1]))
         t = (tx, ty, z)
         mx, my = me_xy(self)
@@ -874,7 +876,7 @@ class World:
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
                 n = (tx + dx, ty + dy, z)
-                if n == t or self._solid(n) or self.blocked(n, t):
+                if n == t or self._solid(n, trans) or self.blocked(n, t, trans=trans):
                     continue
                 out.append((math.hypot(n[0] + 0.5 - mx, n[1] + 0.5 - my), n[0], n[1], n))
         return [r[3] for r in sorted(out)]

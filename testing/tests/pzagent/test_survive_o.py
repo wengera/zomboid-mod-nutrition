@@ -60,9 +60,12 @@ def test_pull_from_leaves_the_dead_out(tmp_path):
 
 def test_a_chaser_with_another_listed_behind_it_is_pulled_never_dropped(tmp_path):
     """E9's six drops (lines 187, 232, 243, 295, 305 and 344: the target chasing within ENGAGE_R, a chaser 10.74 to
-    11.90 tiles behind it): the fight engages, its first leg the pull, an aim facing the chaser while walking away
-    from the group's centroid (west, the group east), no `behind`; with PULL off (the rule before) the look behind
-    flees `held`."""
+    11.90 tiles behind it): five engage as pulls on the HEAD replay; line 344 rightly stays a drop (Task 32 fix 1, the
+    review's minor 7: at 343 a second chaser, 7474, reads within ENGAGE_R, so no lone chaser is pulled, and the look
+    behind flees for 7489, which reads fallen at 11.69 tiles: whether `others_behind` skips an `onFloor` zombie is
+    the controller's ruling). Here: the fight engages, its first leg the pull, an aim facing the chaser while walking
+    away from the group's centroid (west, the group east), no `behind`; with PULL off (the rule before) the look
+    behind flees `held`."""
     zs = [zd(1, 107.0, 200.0), zd(2, 111.0, 200.5)]
     r, sv = make(tmp_path)
     r.frame(zombies=zs)
@@ -317,3 +320,34 @@ def test_e9_s_line_342_keeps_the_pull_s_leg(tmp_path):
     assert got[341]["why"]["leg"] == "pull" and got[341]["why"]["target"] == 7479
     assert got[342]["action"] is None and got[342]["why"]["leg"] == "pull" and "holding" in got[342]["why"]
     assert old[342]["action"]["type"] == "walkTo" and old[342]["action"]["args"]["gait"] == "run"
+
+
+# ================================================================ Task 32 fix 1: the review's minor 8
+def test_reachable_adjacent_reads_a_solid_trans_neighbour_as_solid_with_trans(tmp_path):
+    """The reposition's squares (`World.reachable_adjacent`): a `solidTrans` neighbour of the target is listed with
+    `trans` off (the read before) and left out with it on; the Fight's `_reposition` passes its `trans`."""
+    r = Rig(tmp_path)
+    r.scan(trans_row(102))
+    r.frame(x=100.5, y=200.5)
+    on = r.world.reachable_adjacent((103.5, 200.5), 0, trans=True)
+    off = r.world.reachable_adjacent((103.5, 200.5), 0)
+    assert all(sq[0] != 102 for sq in on) and any(sq[0] == 102 for sq in off)
+    assert set(on) < set(off)
+
+
+def test_the_ride_refuses_a_walk_whose_line_crosses_a_solid_trans_square(tmp_path):
+    """`_ride_leg` (P24-U: the ride has no pathing): a running flee walk whose straight line crosses the `solidTrans`
+    column is no ride's leg with TRANS on; with TRANS off (the read before) it is."""
+    class Leg:
+        type = "walkTo"
+        args = {"x": 104.5, "y": 200.5}
+    r, sv = make(tmp_path)
+    r.scan(trans_row(102))
+    r.frame(x=100.5, y=200.5)
+    sv._flee_leg = lambda: Leg
+    assert sv._ride_leg() is None
+    sv.TRANS = False
+    assert sv._ride_leg() is Leg
+    Leg.args = {"x": 101.5, "y": 203.5}
+    sv.TRANS = True
+    assert sv._ride_leg() is Leg
