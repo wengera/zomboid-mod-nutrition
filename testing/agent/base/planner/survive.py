@@ -213,84 +213,15 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   standing there, and with no stance (a PZA/1.4 build, trapped) engages nothing; a chasing target across a known
   fence is not sought (`policies.seek_allowed`). The Fight's seek closes on the nearest zombie and its walks give way
   as its legs do (`policies.Fight._walk_gives_way`, `_seek_switch`).
-- Survival 9 (Plan 24 Task 21, spec § 6 item 19; E8, `e_day_8-20261029-174023`: four kills, then a bite bled 73 game
-  minutes to the death with no dressing held, every goal walk from game minute 618 failed `no square`, and fight 1
-  fled `many` from one chaser and two idle zombies): P24-AB, the rag stock (`care.Care.stock`, `_care_stock`: on an
-  idle tick, behind the need, the load and the night, an unworn cotton garment ripped while fewer than
-  `care.RAG_STOCK` clean dressings are held; a bleeding part with nothing to dress it marks the want `bandage`,
-  `_dressing_want`, the goal layer's loot taking it first); P24-AC, legged far walks (`goals._Legs`); P24-AD, an idle
-  zombie (`hasTarget` false) counts toward `many` only within DANGER_R (`_counts_many`, the `IDLE` switch).
-- Survival 10 (Plan 24 Task 24; PZA/1.6.1): the stock also wears (`care.Care._wear`, the better garment by the rule of
-  review-t9-fix9; `World.worn` is `me.worn` kept across null frames), the goals loot clothing (`goals.wanted_uses`) and
-  route a stuck-door building through a window (`goals.window_pick`), and the view carries `worn`.
-- Survival 11 (survival iteration 10, the commit label; Plan 24 Task 27, spec § 6 item 20 and amendment 6's guides' rulings; PZA/1.7; the jar reads #4368-#4377;
-  the eighth chain killed four in three standing fights and bled out standing): P24-AG, strain-aware fighting: a
-  spent character (`_read_spent`: the arms' strain hold, from `body.armPain` STRAIN_HARD 20 until it reads
-  under STRAIN_SOFT 10; the ENDURANCE moodle's first level, `stats.endurance` ENDURANCE_T 0.75 or under, held until it reads above ENDURANCE_RELEASE 0.80; and P24-AK's
-  tired gate, `stats.fatigue` TIRED_FIGHT_T 0.6 or above) flees `strain` (`_hysteresis`, after `pair`; the why's
-  `strain` names the kind and the reads), engages and seeks nothing (`_sought`), and a `walk` corner yields `strain`
-  after `health` and a running `many` episode (`_walk_yields`); the `stuck`, `inside`, trapped and door fights still
-  swing, no leg leaving them. Under STRAIN_SOFT's line the Fight's own preference, the shove and the stomp (P24-AH,
-  P24-AL) are `policies.Fight`'s; the loaded-window legs (P24-AI) `goals.leg_max`; the unwear then rip (P24-AJ)
-  `care.Care._unwear`. `STRAIN` is the replay tests' seam onto the rules before it (`test_replay_decisions.pre_ag`).
-- Survival 12 (survival iteration 11, the commit label; Plan 24 Task 32, spec § 6 item 23; E9,
-  `e_day_9-20261030-052429`: no kill, every fight from game minute 580 with a group listed, six fights dropped by the
-  look behind for a chaser 10.74 to 11.90 tiles behind the target, the strain hold set by a bite's pain and never
-  released, two struck targets left fallen under the `many` flee, five rags held to the death, the y held 16.511 s
-  against a `solidTrans` row; the guides notes § 9 changes 8, 3 and 2; rows #4290, #4369, #4370, #4373, #4374):
-  P24-AN, the pull (`policies.Fight.pulling`, `pull_from`: one zombie chasing within ENGAGE_R, the rest of the
-  listing beyond DANGER_R: the stance walks away from their centroid until the chaser is within PULL_R, then stands;
-  the look behind reads no walk then, `_pulls`; the `many` listing counts a zombie only within DANGER_R or chasing,
-  `_counts_listed`); P24-AO, the doorway stand (`planner/doorway.py`'s docstring the record; `_doorway`, `_stand`);
-  P24-AP, the wounded fight (`_wounded_fight`: the arms' hold alone flees `strain` only with no zombie within
-  KEEP_R; the Fight never swings at STRAIN_HARD, `policies.Fight._wounded_leg`); P24-AQ, the fallen target under
-  `many` (`_flee_finish`: a struck target downed in reach, nobody standing within DANGER_R: one stomp, or the floor
-  strike, as the Flee's own action, its kill read by `_finish_end`); P24-AR, the care tick inside a long flee
-  (`_rides_many`: RIDE_MANY_R, FLEE_CARE_S from `many_since`, FLEE_CARE_N); P24-AS (amendment 1), the transparent
-  solid (each policy's `trans`: a heading read and the way out's end refuse a `solidTrans` square). `PULL`, `DOORWAY`
-  and `TRANS` are the replay tests' seam onto the rules before it (`test_replay_decisions.pre_an`); P24-AP to P24-AR
-  read what no record carries.
-  Task 32 fix 1 (review-t32, its rulings R1 to R3): the doorway stand's post (`policies.stand_post`: the enter walks
-  to the room square one on from the threshold, since the Lua's walk ends `done` within DONE_R 1.0 and E9's enter to
-  the threshold's own centre ended on the outdoor door square; the stand starts only on a room square of the building,
-  `policies.on_post`, else the enter is walked again), its walk back giving way to a zombie in reach
-  (`doorway.Doorway.busy`), and its `drag` (`me.attackers` at DRAG_DOWN_N, R1) and `off` (`doorway.off_post`) ends
-  (`_doorway`); ruling R2 (`HOLD_WIDE`): every hold kind fights a zombie within KEEP_R, the Fight sending no swing
-  under any (`_wounded_fight`, `_fight_spent`, `policies.Fight.no_swing`); the finish's reach FINISH_R (R3 as the
-  review corrects it, `_flee_finish`); the stance's count (`STANCE_LISTED`, `_stance_count`: the standing held within
-  DANGER_R or chasing, so a group idling 6 to 10 tiles off no longer turns the pull's stance off). `HOLD_WIDE` and
-  `STANCE_LISTED` join the replay tests' seam (`test_replay_decisions.fix1_off`). And the minors: the ride's walk line
-  and the reposition's squares read a `solidTrans` square as solid (`_ride_leg`, `World.reachable_adjacent`, under
-  `TRANS`); the care tick's rule (b) never rides under the drag-down guard (`_rides_many`); the finishing stomp's end
-  is read in `_read`, out of `assess` (`_finish_end`, `_finish_kill`).
-- Survival 13 (survival iteration 12, the commit label; Plan 24 Task 36; E10, `e_day_10-20261030-084253`: the first
-  scripted session to reach the day cap, zero kills over 39 fled fights; the threat branch is `planner/threat.py`'s
-  mixin since the task's pure move, the Fight `planner/fight.py`, the Flee `planner/flee.py`; rows #4369, #4370,
-  #4373, #4374):
-  P24-AT, the hold on the stiffness (`_read_spent`: the arms' hold set at a stiffness, `body.strain`, of STIFF_HARD
-  on either arm and released under STIFF_SOFT on both; E10's hold, set by a bite's pain at game minute 605, fled on
-  308 of 580 threat lines and never released), and the arm pain its own reason, `wounded` (`self.wound`, logged
-  `pain`): at STRAIN_HARD no swing (`policies.arms_hurt`), a lone target still sought (`_lone`), groups fled as
-  today.
-  P24-AU, the listing-edge flip (`fight.Fight._observe_edge`, `edge`: a zombie that leaves the listing, beyond
-  LISTED_R, is held in the pull's reads at its last listed square for EDGE_HOLD_TICKS planner ticks, logged `edge` on
-  the pull leg; E10's run 4 flipped seek and pull on seven aims as its group came and went at the edge). `EDGE` is
-  the replay tests' seam (`test_replay_decisions.pre_t36`).
-  P24-AV, the stomp on the first fallen frame (`fight.Fight._finish`, `_knock_wait`: a shove's knock-down is
-  waited on, KNOCK_READ_S, until a frame reads the target `onFloor`, never stomped before it, E10's a59 rejected `not
-  valid`; a stomp failed `stood` reads the target again, one more stomp, then the floor strike, STOOD_STOMPS; the
-  flee's finish likewise, `_flee_finish`'s "stomp2"), and the deferred minor 5 of review-t32-fix1: a chasing
-  standing zombie within KEEP_R of the fallen target refuses the flee's finish (`_finish_chaser`, logged
-  `finish_block`; E9's line 334 now refused for 7479).
-  P24-AW, the fill from a loaded source (`planner/water.py`'s docstring the record: `water.loaded`, FILL_WALK_R;
-  a far loaded source walked to first, the need's why `fill` `walk`; one out of the client's grid never sent but
-  walked toward in a leg, `unloaded` and `walk`, no `water_source` want (fix 1); E10's 55 fills rejected `no source` 60 to 159 tiles off).
-  P24-AX, the doorway's trigger logged (`_doorway_pick`, after the Flee's answer: every `many` line's why
-  `doorway_pick` names `ok` for a stand taken, else the first condition that failed, `unarmed`, `no_stance`,
-  `standing`, `inside`, `no_door`, `locked`, `taken`, `picked` or `pending`; the doors read as the pick reads them,
-  `flee.Flee.door_verdicts`). `PICK_WHY` is the replay tests' seam (a why on every golden `many` line).
-  P24-AY, the look behind skips the fallen (`policies.others_behind`: a zombie `onFloor` behind the target is no group
-  arriving; the deferred minor 7 of review-t32-fix1, E9's line 344 now keeps its fight on 7479).
+- Survivals 9 to 13 (Plan 24's iterations 8 to 12): the record is the spec, one line an iteration,
+  `docs/superpowers/specs/2026-10-29-plan-24-the-group-design.md` § 6 item N, and the module docstrings named:
+  - Survival 9 (Task 21, E8): item 19: P24-AB the rag stock (`_care_stock`, `_dressing_want`), P24-AC, P24-AD (`IDLE`).
+  - Survival 10 (Task 24, PZA/1.6.1): item 19: the stock's wear (`care.Care._wear`), clothing loots, window routes.
+  - Survival 11 (Task 27, E8): item 20: P24-AG to P24-AL, the holds (`hold.Hold`, `STRAIN`), the shove and the stomp.
+  - Survival 12 (Task 32, E9): item 23: P24-AN to P24-AS (`pull.py`, `doorway.py`, `finish.py`; `PULL`, `DOORWAY`,
+    `TRANS`, `HOLD_WIDE`, `STANCE_LISTED`).
+  - Survival 13 (Task 36, E10): item 25: P24-AT to P24-AY (`hold.Hold`, `pull.FightPull`, `finish.py`, `water.py`,
+    `doorway.DoorwayStand`; `EDGE`, `PICK_WHY`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
