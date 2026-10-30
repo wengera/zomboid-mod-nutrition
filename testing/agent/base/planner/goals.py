@@ -313,8 +313,9 @@ _MOVED = {"goal_policies": ("Kit", "Goal", "_Climbing", "leg_max", "_Legs", "Exp
 def __getattr__(name):
     """The goals, the runner and the sources by their old module (Plan 25 Task 2 moved them to
     `planner/goal_policies.py` and `planner/goal_runner.py`): the frozen drivers (`e_day*.py`, `f_goals*.py`, never
-    edited after their runs) import `ScriptedSource` from here, as do `survive.py`, `llm.py`, `view.py` and the tests.
-    Read at the access, so neither module is imported while this one loads (both import it)."""
+    edited after their runs) import `ScriptedSource` from here, as do `llm.py` and the tests; the live planner modules
+    import each name from its home (Plan 25 Task 3, review-t2's minor 3). Read at the access, so neither module is
+    imported while this one loads (both import it)."""
     for mod, names in _MOVED.items():
         if name in names:
             m = __import__("agent.base.planner." + mod, fromlist=[name])

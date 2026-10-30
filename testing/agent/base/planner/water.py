@@ -38,7 +38,8 @@ import math
 import time
 
 from agent.base.planner.care import DRY_REASONS
-from agent.base.planner.goals import LEG_SQ_MARGIN, leg_max
+from agent.base.planner.goal_policies import leg_max
+from agent.base.planner.goals import LEG_SQ_MARGIN
 from agent.base.planner.policies import PREEMPTED, STUCK_REASONS, centre, item_id_ok
 from agent.base.pza1 import Fill, WalkTo
 from agent.base.world import me_floor, me_xy

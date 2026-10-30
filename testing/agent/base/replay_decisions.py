@@ -107,7 +107,7 @@ import tempfile
 
 from agent.base import pza1
 from agent.base.actions import TERMINAL, Actions
-from agent.base.planner.goals import ScriptedSource
+from agent.base.planner.goal_runner import ScriptedSource
 from agent.base.planner.survive import Survive
 from agent.base.transport.files import FileTransport
 from agent.base.world import World

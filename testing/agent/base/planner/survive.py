@@ -213,10 +213,12 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   standing there, and with no stance (a PZA/1.4 build, trapped) engages nothing; a chasing target across a known
   fence is not sought (`policies.seek_allowed`). The Fight's seek closes on the nearest zombie and its walks give way
   as its legs do (`policies.Fight._walk_gives_way`, `_seek_switch`).
-- Survivals 9 to 13 (Plan 24's iterations 8 to 12): the record is the spec, one line an iteration,
-  `docs/superpowers/specs/2026-10-29-plan-24-the-group-design.md` § 6 item N, and the module docstrings named:
+- Survivals 9 to 13 (Plan 24's iteration 9, the clothing round (Task 24), then iterations 10 to 12): the record is
+  the spec, one line an iteration, `docs/superpowers/specs/2026-10-29-plan-24-the-group-design.md` § 6 item N, and
+  the module docstrings named:
   - Survival 9 (Task 21, E8): item 19: P24-AB the rag stock (`_care_stock`, `_dressing_want`), P24-AC, P24-AD (`IDLE`).
-  - Survival 10 (Task 24, PZA/1.6.1): item 19: the stock's wear (`care.Care._wear`), clothing loots, window routes.
+  - Survival 10 (Task 24, PZA/1.6.1): items 17 (P24-Y, P24-Z) and 19: the stock's wear (`care.Care._wear`), clothing
+    loots, window routes.
   - Survival 11 (Task 27, E8): item 20: P24-AG to P24-AL, the holds (`hold.Hold`, `STRAIN`), the shove and the stomp.
   - Survival 12 (Task 32, E9): item 23: P24-AN to P24-AS (`pull.py`, `doorway.py`, `finish.py`; `PULL`, `DOORWAY`,
     `TRANS`, `HOLD_WIDE`, `STANCE_LISTED`).
@@ -297,14 +299,14 @@ from typing import Optional
 
 from agent.base.items import days_fresh
 from agent.base.planner.care import RIDE_FREE, Care
-from agent.base.planner.goals import GoalRunner, ScriptedSource
+from agent.base.planner.goal_runner import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
-from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DROP_AT, FIGHT_MAX_S, FIGHT_REACH, PREEMPTED,
-                                         STUCK_REASONS, blocked, item_id_ok, spare, zdist)
-from agent.base.planner.threat import (CLOSING_TICKS, CORNER_FREE_R, CORNERED_R, DRAG_DOWN_N, FINISH_R, FLEE_HEALTH,
-                                       FLEE_HEALTH_PAIR, FLIP_MIN_S, GROUP_HOLD_N, GROUP_NEAR_R, GROUP_R_N,
-                                       HOLD_BREAK_R, LISTED_R, MANY_LISTED_N, MAX_FIGHT, REFIGHT_MARGIN,
-                                       STUCK_RETRY_GROUP_S, STUCK_RETRY_S, Threat)
+from agent.base.planner.policies import (CLOSING_TICKS, CORNER_FREE_R, CORNERED_R, DANGER_R, DISENGAGE_R, DRAG_DOWN_N,
+                                         DROP_AT, FIGHT_MAX_S, FIGHT_REACH, FINISH_R, FLEE_HEALTH, FLEE_HEALTH_PAIR,
+                                         FLIP_MIN_S, GROUP_HOLD_N, GROUP_NEAR_R, GROUP_R_N, HOLD_BREAK_R, LISTED_R,
+                                         MANY_LISTED_N, MAX_FIGHT, PREEMPTED, REFIGHT_MARGIN, STUCK_REASONS,
+                                         STUCK_RETRY_GROUP_S, STUCK_RETRY_S, blocked, item_id_ok, spare, zdist)
+from agent.base.planner.threat import Threat
 from agent.base.planner.view import NEED_MEMORY_S, view
 from agent.base.planner.water import FILL_RETRY_MIN, FILL_SETTLE_S, FILL_WANTS, SOURCE_FAILS, Water
 from agent.base.pza1 import Consume, Drop
@@ -695,11 +697,21 @@ class Survive(Threat):
         (`bandage`, P24-AB) within NEED_MEMORY_S is handed to the goals' kit first (`Kit.wants`: the loot's order)."""
         now = self.clock()
         self.goals.kit.wants = tuple(u for u in KIT_WANTS if now - self.need_marks.get(u, -math.inf) <= NEED_MEMORY_S)
-        cmd = self.goals.tick(self.world, self.actions, lambda: view(self.world, self))
+        cmd = self.goals.tick(self.world, self.actions, self._view)
         self.why = dict(self.goals.why)
         if cmd is not None:
             return self.goals, cmd
         return (self.goals, None) if self.goals.current is not None or self.goals.pending else None
+
+    def _view(self):
+        """The goal source's view (`view.view`), with the hold read this tick laid over it as `spent` `{kind, value}`
+        (`hold.Hold.spent_view`, Plan 25 Task 3, P25-C: Task 4 renders it as the view's `hold:` line); no `spent` key
+        while no hold is set."""
+        v = view(self.world, self)
+        spent = self.spent_view()
+        if spent is not None:
+            v["spent"] = spent
+        return v
 
     # ---------------------------------------------------------------- the tick
     def _note_failures(self):

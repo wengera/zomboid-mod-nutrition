@@ -68,6 +68,24 @@ class Hold:
         hurt = self.STRAIN and pain is not None and pain >= STRAIN_HARD
         self.wound = {"kind": "wounded", "armPain": pain, "strain": strain} if hurt else None   # P24-AT
 
+    def spent_view(self):
+        """The goal view's `spent` (Plan 25 Task 3, P25-C; spec § 2.2(f): the model reads the hold to choose `Rest`):
+        `{"kind", "value"}` of this tick's first hold (`spent`), `value` its own reading: the endurance (`endurance`),
+        the larger arm's stiffness (`arms`, `policies.arm_stiffness`, else the arms' pain) or the fatigue (`tired`);
+        None with no hold set (the view then carries no `spent`)."""
+        s = self.spent
+        if s is None:
+            return None
+        kind = s["kind"]
+        if kind == "endurance":
+            value = s.get("endurance")
+        elif kind == "tired":
+            value = s.get("fatigue")
+        else:
+            stiff = arm_stiffness(self.world)
+            value = s.get("armPain") if stiff is None else stiff
+        return {"kind": kind, "value": value}
+
     def _wounded_fight(self):
         """Ruling P24-AP, the wounded fight (E9: a bite on part 5 read `body.armPain` 37.6 with `body.strain` 0 on both
         arms and held the strain hold to the death), as ruling R2 widens it (Task 32 fix 1, the review's major 4: E9's
