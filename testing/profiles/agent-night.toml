@@ -1,0 +1,23 @@
+# testing/profiles/agent-night.toml - Plan 25 Task 5: agent.toml on the fixture agent-night (Zombies=5, Low, StartTime=6: a 9 PM start); the mods, the ini and the verify rows are agent.toml's.
+fixture = "agent-night"
+description = "PZTestKit + PZAgent, zombies Low, 90-minute day from 9 PM, sleep allowed."
+run = { hold = 5 }
+clients = ["admin"]
+verify = [
+  { side = "server", cmd = "ping", expect = "pong" },
+  { side = "client", cmd = "ping", expect = "pong" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "PZAgent"
+path = "testing/PZAgent/PZAgent"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 120
