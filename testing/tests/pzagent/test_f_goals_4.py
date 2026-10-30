@@ -308,12 +308,13 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
 
 
 BASE_SENTENCE = (
-    "the base at `6f13037c` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 11 (over iteration 10: "
-    "the pull, a fight not dropped for a chaser far behind its target, P24-AN; the doorway stand, a `many` flee with at "
-    "most three standing attackers fighting in a known building's doorway, P24-AO; the wounded fight, no swing at arm "
-    "pain 20 or above and no `strain` flee from a zombie within `KEEP_R`, P24-AP; the fallen target finished by a stomp "
-    "or a floor strike under `many`, P24-AQ; the care tick inside a long flee, P24-AR; the transparent solid, a steer or "
-    "a pull never headed into a `solidTrans` square, P24-AS; rulings P24-AN to P24-AS), the goal source at `5338b2c7` "
+    "the base at `5e3ad986` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 12 (over iteration 11's "
+    "pull, doorway stand, wounded fight, fallen target, care tick and transparent solid, P24-AN to P24-AS: the arms' hold "
+    "on the stiffness with the arm pain a `wounded` reason that keeps seeking a lone target with shoves and stomps, "
+    "P24-AT; a zombie leaving the 12-tile listing held 6 ticks, P24-AU; the stomp on the first fallen frame and the finish "
+    "refused for a chaser by the target, P24-AV; a fill only from a loaded source, P24-AW; `doorway_pick` on every `many` "
+    "line, P24-AX; fallen zombies skipped behind a target, P24-AY; the Fight, the Flee and the threat branch in their own "
+    "modules), the goal source at `5338b2c7` "
     "(the `SYSTEM` prompt rendered from `schema/goals.json` with the written guides' five strategy lines, the `weapon` "
     "want, the `bag` want removed, a `null` optional accepted) and the library at `73f5ae42` (the shot taker's window "
     "grab through `PrintWindow` when the screen grab is refused, P24-AM)")
