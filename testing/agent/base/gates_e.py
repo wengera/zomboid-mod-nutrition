@@ -1981,3 +1981,343 @@ def grade_e7(out, prev=None, decision_lines=None, state_dir=None, lines=None):
 def gate_e7(outs):
     """gate_e6's gates and kills (grade_e7 changes none of what they read), named gate_e7."""
     return gate_e6(outs)
+
+
+# ================================================================ pass 8 (Plan 24 Task 37): grade_e8, appended so nothing above shifts
+# grade_e7 frozen (E10's e_grade.txt carries its output); grade_e8 calls it and overrides or adds readings by name. Three
+# defects of E10's write-up fixed in new functions: `wounded.strain_flees_near` read the why's `nearest` (a value carried
+# from `pair`/`held` steers; the planner's `inputs.nearest` is the reading), `fallen.finished` counted the stomp's send
+# (not its landing: a62 `stood`, a59 `not valid`), `pull.fights` counted runs of fight lines where `loop.fights` holds the
+# session's threat episodes (every line now names its unit). The new readings read survival iteration 12's why fields.
+from agent.base.planner.policies import EDGE_HOLD_TICKS    # noqa: E402
+
+EDGE_PLANNER_HZ = 2.0               # the drivers' PLANNER_HZ (driverlib.day): EDGE_HOLD_TICKS ticks last this many seconds
+EDGE_WINDOW_S = EDGE_HOLD_TICKS / EDGE_PLANNER_HZ    # seconds: an aim superseded this soon after its send read the edge flip
+
+
+def _kinds8(why):
+    """The hold kinds a threat line's why names: `arms` (the fight's `spent` list or the strain flee's why kind), `wounded`
+    (the `pain` why, P24-AT)."""
+    ks = []
+    sp, st, pn = why.get("spent"), why.get("strain"), why.get("pain")
+    if (isinstance(sp, list) and "arms" in sp) or (isinstance(st, dict) and st.get("kind") == "arms"):
+        ks.append("arms")
+    if isinstance(pn, dict) and pn.get("kind") == "wounded":
+        ks.append("wounded")
+    return ks
+
+
+def e_wounded_8(L):
+    """e_wounded with `strain_flees_near` read off the line's `inputs.nearest` (the planner's reading) and not the why's
+    `nearest` (carried from `pair`/`held` steers: E10's 13 were that), plus `strain_flees` (all) and `strain_flees_carried`
+    (lines whose why `nearest` is within KEEP_R but whose `inputs.nearest` is not)."""
+    g = e_wounded(L)
+    if L is None:
+        return g
+    near = total = carried = 0
+    for ln in L.rows:
+        why = L.why(ln)
+        if ln.get("branch") != "threat" or why.get("flee") != "strain":
+            continue
+        d = _n(_d(ln.get("inputs")).get("nearest"))
+        w = _n(why.get("nearest"))
+        total += 1
+        near += 1 if d is not None and d <= KEEP_R else 0
+        carried += 1 if w is not None and w <= KEEP_R and not (d is not None and d <= KEEP_R) else 0
+    g.update({"strain_flees_near": near, "strain_flees": total, "strain_flees_carried": carried})
+    return g
+
+
+def e_pull_8(L, loop):
+    """e_pull plus the units: `fights` stays the runs of adjacent fight lines (`fight_runs`), `loop_fights` is
+    `len(loop.fights)`, the threat episodes the planner record holds (a fight run lies inside one)."""
+    g = e_pull(L)
+    if g.get("read"):
+        g["fight_runs"] = g["fights"]
+        g["loop_fights"] = len(_l(_d(loop).get("fights")))
+    return g
+
+
+def _landed(L, ln):
+    """Whether the line's sent action landed (a reading, off its result): a `done` action whose result reads `hit` true or
+    `targetDead` true; a floor strike (`attack`) also `attackStarted` true. A stomp that ended `stood` or was rejected
+    `not valid`, or whose result row is absent, did not."""
+    row = L.action(ln)
+    if row is None or row.get("state") != "done":
+        return False
+    res = L.res.get(row.get("aid"), {})
+    return res.get("hit") is True or res.get("targetDead") is True or (
+        row.get("type") == "attack" and res.get("attackStarted") is True)
+
+
+def e_fallen_8(L):
+    """e_fallen with `finished` the finishes that landed (`_landed`, not the send), `sent` the ones sent, `stood` the stomp
+    actions that ended `stood` and `rejected` those refused. Scanning continues past a send that did not land until the
+    flee resumed. rows: [{id, wall, finished, sent}]."""
+    if L is None:
+        return {"read": False}
+    walls, frames = L.index
+    targeted = {}
+    for ln in L.rows:
+        w = _n(ln.get("wall"))
+        a = _d(ln.get("action"))
+        for zid in (L.why(ln).get("target"), _d(a.get("args")).get("targetId") if ln.get("sent") is True
+                    and a.get("type") in ("attack", "aim", "shove") else None):
+            if zid is not None and w is not None and zid not in targeted:
+                targeted[zid] = w
+    first = {}
+    for wm, f in zip(walls, frames):
+        zs = [z for z in _l(f.get("zombies")) if isinstance(z, dict)]
+        stand = [z for z in zs if z.get("onFloor") is not True and _n(z.get("dist")) is not None]
+        if any(z["dist"] <= DANGER_R for z in stand):
+            continue
+        for z in zs:
+            zid = z.get("id")
+            if (z.get("onFloor") is True and zid in targeted and zid not in first and _n(z.get("dist")) is not None
+                    and z["dist"] <= FINISH_R and targeted[zid] <= wm / 1000.0 + 1.0):
+                first[zid] = wm / 1000.0
+    rows = []
+    for zid, w in sorted(first.items(), key=lambda p: p[1]):
+        sent = done = False
+        for ln in L.rows:
+            lw = _n(ln.get("wall"))
+            if lw is None or lw < w:
+                continue
+            if _finish_send(ln, zid):
+                sent = True
+                if _landed(L, ln):
+                    done = True
+                    break
+            elif ln.get("branch") == "threat" and isinstance(L.why(ln).get("flee"), str):
+                break
+        rows.append({"id": zid, "wall": w, "finished": done, "sent": sent})
+    fin = [ln for ln in L.rows if ln.get("branch") == "threat" and L.why(ln).get("finish") is not None]
+    stomps = [a for _, a in L.acts if a.get("type") == "stomp"]
+    return {"read": True, "fallen": len(rows), "finished": sum(1 for r in rows if r["finished"]),
+            "sent": sum(1 for r in rows if r["sent"]), "left": sum(1 for r in rows if not r["finished"]),
+            "finish_lines": len(fin), "finish_kills": len(L.kill_ids(fin)),
+            "stood": sum(1 for a in stomps if a.get("state") == "failed" and a.get("reason") == "stood"),
+            "rejected": sum(1 for a in stomps if a.get("state") == "rejected"), "rows": rows}
+
+
+def e_hold_kinds(L):
+    """The hold kinds (P24-AT): per kind (`arms`, the stiffness; `wounded`, the pain) {lines (threat lines naming it),
+    fight_lines, fights (the fight runs holding such a line), kills (ids killed on those runs lines), swings (`attack`
+    sends on its lines; must read 0 under `wounded`), shoves}. The kinds are the lines own whys (a reading)."""
+    if L is None:
+        return {"read": False}
+    out = {"read": True}
+    runs = L.runs()
+    for kind in ("arms", "wounded"):
+        lines = [ln for ln in L.rows if ln.get("branch") == "threat" and kind in _kinds8(L.why(ln))]
+        held = [r for r in runs if any(kind in _kinds8(L.why(ln)) for ln in r)]
+        out[kind] = {"lines": len(lines), "fight_lines": sum(1 for ln in lines if L.is_fight(ln)), "fights": len(held),
+                     "kills": len(L.kill_ids([ln for r in held for ln in r])),
+                     "swings": sum(1 for ln in lines if _sent(ln, "attack")),
+                     "shoves": sum(1 for ln in lines if _sent(ln, "shove"))}
+    return out
+
+
+def e_edge(L):
+    """The edge hold (P24-AU): {read, aims, superseded, flipped, retargeted, pull_edge_lines, pull_edge_ids}. Of the `aim`
+    sends of the decision log: those that ended `superseded` (the act line) and, of those, `flipped` (the next aim was sent
+    within EDGE_WINDOW_S of it, on the opposite one of the legs `seek` and `pull`; E10: 6 of 19 superseded) and
+    `retargeted` (the next aim, within the window, names another target). `pull_edge_lines` the pull legs whose why carries
+    `edge` (the targets kept through an unlisting) and `pull_edge_ids` the distinct ids held there."""
+    if L is None:
+        return {"read": False}
+    aims = [ln for ln in L.rows if _sent(ln, "aim")]
+    sup = flip = retarget = 0
+    for i, ln in enumerate(aims):
+        row = L.action(ln)
+        if row is None or row.get("state") != "failed" or row.get("reason") != "superseded":
+            continue
+        sup += 1
+        if i + 1 >= len(aims):
+            continue
+        nxt = aims[i + 1]
+        a, b = _n(ln.get("wall")), _n(nxt.get("wall"))
+        if a is None or b is None or b - a > EDGE_WINDOW_S:
+            continue
+        la, lb = L.why(ln).get("leg"), L.why(nxt).get("leg")
+        flip += 1 if {la, lb} == {"seek", "pull"} else 0
+        ta = _d(_d(ln.get("action")).get("args")).get("targetId")
+        tb = _d(_d(nxt.get("action")).get("args")).get("targetId")
+        retarget += 1 if ta != tb else 0
+    edged = [L.why(ln).get("edge") for ln in L.rows if ln.get("branch") == "threat" and L.why(ln).get("leg") == "pull"
+             and L.why(ln).get("edge")]
+    ids = {repr(i) for e in edged if isinstance(e, list) for i in e}
+    return {"read": True, "aims": len(aims), "superseded": sup, "flipped": flip, "retargeted": retarget,
+            "pull_edge_lines": len(edged), "pull_edge_ids": len(ids)}
+
+
+def e_stomp_first(L):
+    """The stomp on the first fallen frame (P24-AV): {read, sent, on_floor, early, rejected_not_valid, stood, landed,
+    finish_block}. `sent` the stomp sends of the decision log; `on_floor` those whose frame at the line (an inference)
+    lists the target `onFloor` true, `early` the rest; `rejected_not_valid` the stomp actions rejected `not valid` (must
+    read 0), `stood` those that ended `stood`, `landed` the sends `_landed`; `finish_block` the threat lines whose why reads
+    `finish_block` (the finish refused for a chaser by the target)."""
+    if L is None:
+        return {"read": False}
+    sends = [ln for ln in L.rows if _sent(ln, "stomp")]
+    on = 0
+    for ln in sends:
+        zid = _d(_d(ln.get("action")).get("args")).get("targetId")
+        f = L.frame(ln)
+        on += 1 if f is not None and any(isinstance(z, dict) and z.get("id") == zid and z.get("onFloor") is True
+                                         for z in _l(f.get("zombies"))) else 0
+    acts = [a for _, a in L.acts if a.get("type") == "stomp"]
+    return {"read": True, "sent": len(sends), "on_floor": on, "early": len(sends) - on,
+            "rejected_not_valid": sum(1 for a in acts if a.get("state") == "rejected" and a.get("reason") == "not valid"),
+            "stood": sum(1 for a in acts if a.get("state") == "failed" and a.get("reason") == "stood"),
+            "landed": sum(1 for ln in sends if _landed(L, ln)),
+            "finish_block": sum(1 for ln in L.rows if ln.get("branch") == "threat" and L.why(ln).get("finish_block"))}
+
+
+def e_fills(L):
+    """The fills (P24-AW): {read, sent, done, no_source (rejected `no source`; must read 0), superseded, walks_sent,
+    walks_done, unloaded_lines}. The fill actions of the loop; `walks_sent` the need-branch lines that sent a walkTo with a
+    `fill` why carrying `walk`, `walks_done` those that ended `done`, `unloaded_lines` the need lines whose fill why
+    carries `unloaded` (no source on the loaded grid)."""
+    if L is None:
+        return {"read": False}
+    fills = [a for _, a in L.acts if a.get("type") == "fill"]
+    walks = unl = done = 0
+    for ln in L.rows:
+        if ln.get("branch") != "need":
+            continue
+        fw = _d(_d(_d(ln.get("inputs")).get("branches")).get("need")).get("fill")
+        if not isinstance(fw, dict):
+            continue
+        unl += 1 if fw.get("unloaded") is not None else 0
+        if _sent(ln, "walkTo") and fw.get("walk") is not None:
+            walks += 1
+            row = L.action(ln)
+            done += 1 if row is not None and row.get("state") == "done" else 0
+    return {"read": True, "sent": len(fills), "done": sum(1 for a in fills if a.get("state") == "done"),
+            "no_source": sum(1 for a in fills if a.get("state") == "rejected" and a.get("reason") == "no source"),
+            "superseded": sum(1 for a in fills if a.get("reason") == "superseded"), "walks_sent": walks,
+            "walks_done": done, "unloaded_lines": unl}
+
+
+def e_doorway_pick(L):
+    """The `doorway_pick` values (P24-AX) on the `many` flee lines: {read, many_lines, values {value: lines}, absent}."""
+    if L is None:
+        return {"read": False}
+    vals, many, absent = {}, 0, 0
+    for ln in L.rows:
+        why = L.why(ln)
+        if ln.get("branch") != "threat" or why.get("flee") != "many":
+            continue
+        many += 1
+        v = why.get("doorway_pick")
+        if isinstance(v, str):
+            vals[v] = vals.get(v, 0) + 1
+        else:
+            absent += 1
+    return {"read": True, "many_lines": many, "values": vals, "absent": absent}
+
+
+def report_lines_e8(g):
+    """report_lines_e7 lines (the gate line naming gate_e8) with the pull, wounded and fallen lines re-worded (units and
+    reading or inference marked), then the pass 8 lines."""
+    g = _d(g)
+    base = [("gate_e8 " + l[len("gate_e7 "):]) if l.startswith("gate_e7 ") else l for l in report_lines_e7(g)]
+    pl, wd, fl, hk, eg, sf, fi, dp = (_d(g.get(x)) for x in ("pull", "wounded", "fallen", "hold_kinds", "edge",
+                                                             "stomp_first", "fills", "doorway_pick"))
+    out = []
+    for l in base:
+        if l.startswith("pull (P24-AN)") and pl.get("read"):
+            l = ("pull (P24-AN): %s fight runs (adjacent fight lines; loop.fights holds %s threat episodes), %s engaged with "
+                 "a zombie listed beyond %s tiles (%s lines) [inference: the frame at the line]; pull legs %s lines (%s "
+                 "sent) [reading]; %s fight runs held a pull, %s swung, %s kills" % (
+                     pl.get("fight_runs"), pl.get("loop_fights"), pl.get("beyond_fights"), DANGER_R, pl.get("beyond_lines"),
+                     pl.get("pull_lines"), pl.get("pull_sent"), pl.get("pull_fights"), pl.get("pull_fights_swung"),
+                     pl.get("pull_kills")))
+        elif l.startswith("wounded (P24-AP)") and wd.get("read"):
+            l = ("wounded (P24-AP): swings at armPain %s or above %s (must read 0) [inference: the frame at the line]; "
+                 "shoves %s, stomps %s, kills %s under the hold; strain flees %s, of them with a zombie within %s tiles %s "
+                 "(must read 0) [reading: the line inputs.nearest], %s more only by a why nearest carried from another "
+                 "steer; hold lines %s" % (STRAIN_HARD, wd.get("swings_at_pain"), wd.get("shoves_hold"),
+                                           wd.get("stomps_hold"), wd.get("kills_hold"), wd.get("strain_flees"), KEEP_R,
+                                           wd.get("strain_flees_near"), wd.get("strain_flees_carried"),
+                                           wd.get("hold_lines")))
+        elif l.startswith("fallen (P24-AQ)") and fl.get("read"):
+            l = ("fallen (P24-AQ): %s fallen targets with no standing zombie within %s tiles [inference], %s finish "
+                 "sent, %s landed (a result hit or targetDead [reading]), %s left; stomps ended stood %s, rejected "
+                 "%s; finish lines %s (%s kills)" % (fl.get("fallen"), DANGER_R, fl.get("sent"), fl.get("finished"),
+                                                    fl.get("left"), fl.get("stood"), fl.get("rejected"),
+                                                    fl.get("finish_lines"), fl.get("finish_kills")))
+        out.append(l)
+    if hk.get("read"):
+        ar, wo = _d(hk.get("arms")), _d(hk.get("wounded"))
+        out.append("hold kinds (P24-AT) [reading: the lines whys]: arms (the stiffness) %s lines (%s fight lines), %s fight "
+                   "runs, %s kills, %s swings, %s shoves; wounded (the pain) %s lines (%s fight lines), %s fight runs, %s "
+                   "kills, %s swings (must read 0), %s shoves" % (
+                       ar.get("lines"), ar.get("fight_lines"), ar.get("fights"), ar.get("kills"), ar.get("swings"),
+                       ar.get("shoves"), wo.get("lines"), wo.get("fight_lines"), wo.get("fights"), wo.get("kills"),
+                       wo.get("swings"), wo.get("shoves")))
+    else:
+        out.append("hold kinds (P24-AT): no decision log read")
+    if eg.get("read"):
+        out.append("edge hold (P24-AU): %s aim sends, %s superseded, of them %s by the opposite seek or pull leg and %s by "
+                   "another target within %s s [reading: the act lines and the next aim] (E10: 7 of 19 by the opposite leg, 6 of them at the edge); pull legs holding "
+                   "an edge %s (%s ids kept through an unlisting)" % (
+                       eg.get("aims"), eg.get("superseded"), eg.get("flipped"), eg.get("retargeted"), EDGE_WINDOW_S,
+                       eg.get("pull_edge_lines"), eg.get("pull_edge_ids")))
+    else:
+        out.append("edge hold (P24-AU): no decision log read")
+    if sf.get("read"):
+        out.append("stomp (P24-AV): %s sent, %s on a frame reading the target onFloor [inference: the frame at the line], "
+                   "%s before; rejected `not valid` %s (must read 0), ended `stood` %s, landed %s [reading]; finishes "
+                   "refused for a chaser by the target %s" % (
+                       sf.get("sent"), sf.get("on_floor"), sf.get("early"), sf.get("rejected_not_valid"), sf.get("stood"),
+                       sf.get("landed"), sf.get("finish_block")))
+    else:
+        out.append("stomp (P24-AV): no decision log read")
+    if fi.get("read"):
+        out.append("fills (P24-AW) [reading]: sent %s, done %s, rejected `no source` %s (must read 0), superseded %s; fill "
+                   "walks sent %s (done %s); need lines with no loaded source %s" % (
+                       fi.get("sent"), fi.get("done"), fi.get("no_source"), fi.get("superseded"), fi.get("walks_sent"),
+                       fi.get("walks_done"), fi.get("unloaded_lines")))
+    else:
+        out.append("fills (P24-AW): no decision log read")
+    if dp.get("read"):
+        out.append("doorway_pick (P24-AX) [reading]: %s many lines, values %s, absent %s" % (
+            dp.get("many_lines"), dp.get("values"), dp.get("absent")))
+    else:
+        out.append("doorway_pick (P24-AX): no decision log read")
+    return out
+
+
+def grade_e8(out, prev=None, decision_lines=None, state_dir=None, lines=None):
+    """grade_e7 but for grade "grade_e8": its readings, the kills headline unchanged, with `pull`, `wounded` and `fallen`
+    re-read (the three defects fixed above) plus `hold_kinds`, `edge`, `stomp_first`, `fills` and `doorway_pick`."""
+    out = _d(out)
+    files = []
+    if lines is None:
+        lines, files = session_lines(state_dir) if state_dir is not None else ([], [])
+    g = grade_e7(out, prev, decision_lines, state_dir, lines=lines)
+    g["grade"] = "grade_e8"
+    if files and "frames_files" in g:
+        g["frames_files"] = files
+    loop = _d(out.get("loop"))
+    L = None
+    if decision_lines is not None:
+        L = _Lines(out, decision_lines, lines)
+        L.died = loop.get("death") is not None or _d(out.get("stop")).get("reason") == "death"
+    g["pull"] = e_pull_8(L, loop)
+    g["wounded"] = e_wounded_8(L)
+    g["fallen"] = e_fallen_8(L)
+    g["hold_kinds"] = e_hold_kinds(L)
+    g["edge"] = e_edge(L)
+    g["stomp_first"] = e_stomp_first(L)
+    g["fills"] = e_fills(L)
+    g["doorway_pick"] = e_doorway_pick(L)
+    g["report_lines"] = report_lines_e8(g)
+    return g
+
+
+def gate_e8(outs):
+    """gate_e7 gates and kills (grade_e8 changes none of what they read), named gate_e8."""
+    return gate_e7(outs)
