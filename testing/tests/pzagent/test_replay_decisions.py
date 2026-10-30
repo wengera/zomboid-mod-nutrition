@@ -1340,3 +1340,38 @@ def test_with_iteration_13_off_the_goldens_are_task_2_s(key):
     assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
 
 
+# the first line each iteration-13 switch moves, alone on, on each golden it moves
+FIRST_T3 = {"e4": {"HOLD_RUN": 431}}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_T3))
+def test_iteration_13_moves_e4_alone_at_the_endurance_hold_s_first_walk(key):
+    """Task 3's attribution, each switch alone on against the goldens before Task 3 (`pre_t3_gold`):
+    - HOLD_RUN (P25-C) moves E4 alone, at line 431 (game minute 620): its endurance hold (from line 427,
+      `FIRST_STRAIN`) flees `strain` with no zombie within DANGER_R (the steer's own why reads the nearest 8.16 tiles
+      off at its aim), and the leg the record ran (a49, `run`) goes at a walk, logged `hold_walk`; every later moved
+      line is downstream of it (open loop: the unbound walk). F1 and the sixth carry the endurance hold too (from line
+      555) and move nowhere: each reads two `strain` flee ticks, both with a zombie within DANGER_R (the run), over
+      1.46 game minutes of the hold, far short of HOLD_SPAN_MIN.
+    - CORNER_BREAK, FINISH_FIRST, RIDE_WAIT, DOOR_WALK and FENCE_WAIT move no golden: no record carries a shove's
+      result or `onFloor` (PZA/1.7), no ride runs under a held Fight (F1's parts decode no bleeding), the sixth picks no
+      doorway stand, and the fence wait needs the stance's `aim`, which only the sixth announces, where no chaser is
+      read across a fence within AIM_R.
+    A golden no switch moves is the file before Task 3 byte for byte."""
+    base, got = pre_t3_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    if key not in FIRST_T3:
+        assert diff == []
+        with open(R.golden_path(key), "rb") as f:
+            assert hashlib.sha256(f.read()).hexdigest() == PRE_T3[key][0]
+        return
+    assert diff[0] == min(FIRST_T3[key].values())
+    for switch in T.T3_SWITCHES:
+        alone = _only_t3(key, switch)
+        moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
+        assert (moved[0] if moved else None) == FIRST_T3[key].get(switch), switch
+    b, g = base[431], got[431]
+    assert b["action"]["type"] == g["action"]["type"] == "steer" and b["action"]["args"]["gait"] == "run"
+    assert g["action"]["args"]["gait"] == "walk" and g["why"]["hold_walk"] is True and "hold_walk" not in b["why"]
+    assert g["why"]["flee"] == "strain" and g["why"]["strain"]["kind"] == "endurance"
+    assert dict(g["action"]["args"], gait="run") == b["action"]["args"]

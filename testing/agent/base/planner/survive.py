@@ -406,6 +406,9 @@ class Survive(Threat):
                                   # under STIFF_SOFT
         self.wound = None         # this tick: {kind "wounded", armPain, strain} at armPain STRAIN_HARD (P24-AT), else None
         self.endurance_hold = False  # the endurance hold (P24-AG): set at ENDURANCE_T or under, cleared above ENDURANCE_RELEASE
+        self.hold_from = None     # world minutes the endurance hold last started (P25-C: HOLD_SPAN_MIN from it)
+        self.hold_near = None     # wall of the last tick a zombie was within DANGER_R (P25-C: HOLD_QUIET_S), else None
+        self.hold_floor = None    # the endurance the hold was released at on its span (P25-C), else None
         self.spent = None         # this tick's `_read_spent` (None: fit to fight)
         self.spent_kinds = ()     # every hold `_read_spent` read this tick, in its order (P24-AP reads them all)
         self.many_since = None    # wall of the first `many` reason since the threat branch last held nothing (P24-AR)

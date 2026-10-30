@@ -122,6 +122,8 @@ class Flee(Policy):
                                   # skipped by the first leg's turn as F4 skips a stuck leg's (P24-A fix 2, G2)
         self.stand_ok = False    # Survive sets it each tick: a shelter picked now is a doorway stand (ruling P24-AO,
                                  # `planner.doorway`)
+        self.gait = FLEE_GAIT    # Survive sets it each tick: the gait of every leg and walk (P25-C: `walk` under the
+                                 # endurance hold with no zombie within DANGER_R)
 
     @property
     def sheltered(self):
@@ -242,6 +244,13 @@ class Flee(Policy):
                 return False
         self._step_anchor, still = self._still_for(self._step_anchor)
         return still >= WALK_STALL_S and any(zdist(self.world, z) <= DANGER_R for z in self._threats())
+
+    def keep_gait(self):
+        """Ruling P25-C: a running steer leg sent at a walk while the gait now wanted is the run (a zombie came within
+        DANGER_R) is dropped (`_dropped`), so the choose re-aims at a run at once; a run is never cut for a walk."""
+        if (self.gait == FLEE_GAIT and self.busy() and self._leg is not None and self.last is self._leg[0]
+                and self.last.args.get("gait") != FLEE_GAIT):
+            self._dropped = self.last
 
     def busy(self):
         """As `Policy.busy`, except for an exit or shelter walk dropped while still current (G2, P23-AM 2): the next
@@ -373,7 +382,7 @@ class Flee(Policy):
         if step != "done":
             self._chosen = "step"
             self.why = {"shelter": b, "step": step, "ended": self.ended}
-            return cmd if cmd.TYPE != "walkTo" else WalkTo(cmd.x, cmd.y, FLEE_GAIT)
+            return cmd if cmd.TYPE != "walkTo" else WalkTo(cmd.x, cmd.y, self.gait)
         if not on_room(self.world):
             self._drop(False)   # pushed out after the close: no shelter this episode
             return None
@@ -419,7 +428,7 @@ class Flee(Policy):
                     "step": e["step"], "shelter": None, "refused": sorted(map(list, self.refused))}
         if e["step"] == "open":
             return Interact(e["door"][0], e["door"][1], "open")
-        return WalkTo(*centre(e["target"]), FLEE_GAIT)   # P24-A (f)'s group exit, at a run since P24-O
+        return WalkTo(*centre(e["target"]), self.gait)   # P24-A (f)'s group exit, at a run since P24-O
 
     def _adopt(self, ts):
         """Fix round 1 (concern 1): the building stood in, every way out refused, adopted as sheltered: its plan kept
@@ -584,7 +593,7 @@ class Flee(Policy):
             self.why["skip"] = [h0[0], h0[1]]   # fix 2, G2: the carried stuck heading
         if self._cut is not None:
             self.why["cut"], self._cut = self._cut, None
-        return Steer(heading[0], heading[1], FLEE_S, FLEE_GAIT)   # P24-O: a run, never a sprint
+        return Steer(heading[0], heading[1], FLEE_S, self.gait)   # P24-O: a run, never a sprint (P25-C: a walk)
 
     def sent(self, cmd, action):
         if self._chosen == "step":

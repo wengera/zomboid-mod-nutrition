@@ -552,6 +552,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             return self._stand(held)
         door = self.door if kind == "door" else None
         want = "flee" if kind == "flee" else "fight"
+        walk = False
         if kind == "cornered":
             if self.fight is None or self.fight is not self._corner_fight:
                 self.fight = self._corner_fight = Fight(self.world, self.actions, self.clock,
@@ -590,6 +591,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             policy.threats = held
             policy.hold_ok = breach is None
             policy.steer_now = self.group_steer is not None
+            walk = self._hold_walk(reason)   # P25-C: the endurance hold's flee walks with nobody within DANGER_R
+            policy.gait = "walk" if walk else FLEE_GAIT
+            policy.keep_gait()
             policy.stand_ok = self.DOORWAY and self.flee_many and stand_ready(self.world, blocked(self.dead,
                                                                                                self.clock()))
             if self.group_steer:
@@ -612,6 +616,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         self.why.update({"fight": True} if reason is None else {"flee": reason})
         if reason == "strain" or self.corner_yield == "strain":
             self.why["strain"] = self.spent   # P24-AG: the why names the strain
+        if want == "flee" and walk and self._walking(policy, ans):
+            self.why["hold_walk"] = True   # P25-C: the flee's leg sent or running at a walk
         if self.sheltered:
             self.why["sheltered"] = True
         if kind == "cornered" and self.fight.target not in (None, self.cornered):
@@ -642,6 +648,14 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         if ride is not None:
             self.why["ride"] = ride.aid   # P24-U: a bandage rides the leg this answer holds or re-aims
         return ans if ans is not None else (policy, None)
+
+    @staticmethod
+    def _walking(flee, ans):
+        """The Flee's command this tick (`ans`), else its running leg, goes at a walk (P25-C's `hold_walk`)."""
+        cmd = ans[1] if ans is not None and ans[0] is flee else None
+        if cmd is not None:
+            return getattr(cmd, "gait", None) == "walk"
+        return flee.busy() and flee.last.args.get("gait") == "walk"
 
     def _fight_rules(self):
         """The iteration-13 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""

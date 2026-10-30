@@ -53,10 +53,7 @@ class Hold:
             self.strain_hold = True
         st = self.world.stats or {}
         e, f = st.get("endurance"), st.get("fatigue")
-        if not _num(e) or e > ENDURANCE_RELEASE:
-            self.endurance_hold = False
-        elif e <= ENDURANCE_T:
-            self.endurance_hold = True
+        self._read_endurance(e)
         kinds = () if not self.STRAIN else tuple(k for k, on in (
             ("arms", self.strain_hold), ("endurance", self.endurance_hold), ("tired", _num(f) and f >= TIRED_FIGHT_T))
             if on)
@@ -67,6 +64,37 @@ class Hold:
             self.spent["strain"] = strain                    # (a PZA/1.7 frame carries it)
         hurt = self.STRAIN and pain is not None and pain >= STRAIN_HARD
         self.wound = {"kind": "wounded", "armPain": pain, "strain": strain} if hurt else None   # P24-AT
+
+    def _read_endurance(self, e):
+        """The endurance hold (P24-AG) on this tick's endurance `e`, with ruling P25-C's timed release (F3: set at game
+        minute 648 at 0.7267035841941833, peaking 0.7905868887901306, the hold standing for all 250 `strain` lines,
+        #4415): it starts at ENDURANCE_T or under and ends above ENDURANCE_RELEASE as before, or, with `HOLD_RUN` on,
+        once HOLD_SPAN_MIN game minutes (`World.world_minutes`) have passed since it started (`hold_from`) and no zombie
+        has been within DANGER_R for HOLD_QUIET_S wall seconds (`hold_near`, the last wall one was); released so, it
+        starts again only at an endurance under the reading it was released at (`hold_floor`, a ratchet: a fight that
+        drains it further holds again for a new span; a rise above ENDURANCE_RELEASE clears it)."""
+        now = self.clock()
+        if self._within(DANGER_R):
+            self.hold_near = now
+        if not _num(e) or e > ENDURANCE_RELEASE:
+            self.endurance_hold, self.hold_floor = False, None
+        elif self.endurance_hold and self.HOLD_RUN and self._hold_quiet(now):
+            self.endurance_hold, self.hold_floor = False, e
+        elif e <= ENDURANCE_T and not self.endurance_hold and (self.hold_floor is None or e < self.hold_floor):
+            self.endurance_hold, self.hold_from, self.hold_floor = True, self.world.world_minutes(), None
+
+    def _hold_quiet(self, now):
+        """P25-C: the endurance hold has stood HOLD_SPAN_MIN game minutes and no zombie was within DANGER_R for the last
+        HOLD_QUIET_S wall seconds."""
+        span = self.hold_from is not None and self.world.world_minutes() - self.hold_from >= HOLD_SPAN_MIN
+        return span and (self.hold_near is None or now - self.hold_near >= HOLD_QUIET_S)
+
+    def _hold_walk(self, reason):
+        """Ruling P25-C (F3: 45 run steers under the endurance hold while it never read above 0.80, #4415's hypothesis
+        that the runs kept it from the release line): the `strain` flee under the endurance hold walks while no zombie
+        is within DANGER_R (`HOLD_RUN` on), else runs (FLEE_GAIT)."""
+        return (self.HOLD_RUN and reason == "strain" and "endurance" in self.spent_kinds
+                and not self._within(DANGER_R))
 
     def spent_view(self):
         """The goal view's `spent` (Plan 25 Task 3, P25-C; spec § 2.2(f): the model reads the hold to choose `Rest`):

@@ -212,3 +212,110 @@ def test_no_stomp_first_by_a_chaser_beyond_finish_r_without_the_stomp_or_switche
     assert tick(r, sv) is None and "finish_first" not in threat_why(tmp_path)
 
 
+# ================================================================ P25-C: the endurance hold on the run
+def strain_flee(tmp_path, endurance=0.7267035841941833):
+    """F3's hold (#4415): the endurance first read under ENDURANCE_T, a zombie 5 tiles off (within DANGER_R, beyond
+    KEEP_R): the `strain` flee at a run; its leg ends."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[z(1, 105.0)], endurance=endurance)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and a.args["gait"] == "run" and w["flee"] == "strain" and "hold_walk" not in w
+    r.answer()
+    return r, sv
+
+
+def test_under_the_endurance_hold_the_strain_flee_walks_with_no_zombie_within_danger_r(tmp_path):
+    """F3's strain lines with the nearest 7.04 to 8.16 tiles off (lines 699-702, #4415): the flee's next leg goes at a
+    walk, logged `hold_walk`; a zombie back within DANGER_R (line 703: 4.21 tiles) drops the walking leg and runs."""
+    r, sv = strain_flee(tmp_path)
+    r.frame(zombies=[z(1, 108.0)], endurance=0.7256643176078796)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and a.args["gait"] == "walk" and w["flee"] == "strain" and w["hold_walk"] is True
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    r.frame(zombies=[z(1, 104.21)], endurance=0.7222950458526611)
+    a = tick(r, sv)
+    assert a is not None and a.type == "steer" and a.args["gait"] == "run" and "hold_walk" not in threat_why(tmp_path)
+
+
+def test_with_hold_run_off_the_strain_flee_runs(tmp_path):
+    r, sv = strain_flee(tmp_path)
+    sv.HOLD_RUN = False
+    r.frame(zombies=[z(1, 108.0)], endurance=0.7256643176078796)
+    assert tick(r, sv).args["gait"] == "run"
+
+
+@functools.lru_cache(maxsize=1)
+def f3_frames():
+    """F3's frames from the first reading the endurance at ENDURANCE_T or under (game minute 648) through game
+    minute 670, one each half second at most (the drivers' PLANNER_HZ 2): (gameMin, worldAge, endurance, wall
+    seconds)."""
+    from agent.base.replay_decisions import ARTIFACTS
+    from agent.base.transport.files import FileTransport
+    out = []
+    for ln in FileTransport(os.path.join(ARTIFACTS, F3)).lines():
+        if ln["kind"] != "frame" or not 648 <= ln.get("gameMin", 0) <= 670:
+            continue
+        e = (ln.get("stats") or {}).get("endurance")
+        wall = ln["wallMs"] / 1000.0
+        if e is not None and (out or e <= P.ENDURANCE_T) and (not out or wall - out[-1][3] >= 0.5):
+            out.append((ln["gameMin"], ln["worldAge"], e, wall))
+    return tuple(out)
+
+
+@pytest.mark.parametrize("near_at", [None, 662])
+def test_f3_s_hold_releases_by_game_minute_663_in_a_quiet_replay(tmp_path, near_at):
+    """F3's endurance, frame by frame from game minute 648 (0.7267035841941833) on F3's own clocks, with its one
+    zombie held 8 tiles off after the first frame (5 tiles: the `strain` flee): the hold stands through game minute
+    662 and is released at 663 (HOLD_SPAN_MIN after the set, no zombie within DANGER_R for HOLD_QUIET_S), its
+    endurance 0.7489942908287048, under ENDURANCE_RELEASE. With the zombie back within DANGER_R through game minute 662
+    (`near_at`) the release waits HOLD_QUIET_S past its last frame there."""
+    frames = f3_frames()
+    assert frames[0][:3] == (648, 3.8128223419189453, 0.7267035841941833)
+    r, sv = make(tmp_path)
+    released = None
+    for k, (gm, wa, e, wall) in enumerate(frames):
+        r.t["now"] = wall
+        x = 105.0 if k == 0 or gm == near_at else 108.0
+        r.frame(zombies=[z(1, x)], endurance=e, game_min=gm, world_age=wa)
+        n = len(r.acts.history)
+        tick(r, sv)
+        if len(r.acts.history) > n:
+            r.answer()   # each leg ends at once: the next frame plans again
+        if released is None and not sv.endurance_hold:
+            released = (gm, e, wall)
+    if near_at is None:
+        assert released[:2] == (663, 0.7489942908287048)
+        return
+    last_near = max(w for g, _, _, w in frames if g == near_at)
+    first_quiet = min(w for _, _, _, w in frames if w - last_near >= P.HOLD_QUIET_S)
+    assert released is not None and released[2] == first_quiet and released[0] > 663
+
+
+def test_after_a_timed_release_the_hold_sets_again_only_under_the_released_reading(tmp_path):
+    """The release is a ratchet: set at game minute 600 (0.72, a zombie at 5 tiles), released at 616 at 0.74 (quiet
+    since 600), it stays off at 0.745 and 0.74 and sets again at 0.73, a new span."""
+    r, sv = make(tmp_path)
+    t0 = r.clock()
+    r.frame(zombies=[z(1, 105.0)], endurance=0.72, game_min=600.0)
+    tick(r, sv)
+    assert sv.endurance_hold
+    r.t["now"] = t0 + P.HOLD_QUIET_S
+    r.frame(zombies=[z(1, 108.0)], endurance=0.74, game_min=616.0)
+    tick(r, sv)
+    assert not sv.endurance_hold
+    for e, held in ((0.745, False), (0.74, False), (0.73, True)):
+        r.frame(zombies=[z(1, 108.0)], endurance=e, game_min=617.0)
+        tick(r, sv)
+        assert sv.endurance_hold is held, e
+
+
+def test_the_release_above_endurance_release_stands_as_before(tmp_path):
+    r, sv = strain_flee(tmp_path)
+    r.frame(zombies=[z(1, 108.0)], endurance=0.81)
+    tick(r, sv)
+    assert not sv.endurance_hold and sv.spent is None
+
+
