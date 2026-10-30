@@ -35,7 +35,10 @@ chasing, Survive sets `ride_now` and the bleeding step bandages the worst bleedi
 LEG_FIRST; a leg part takes the standing bandage only, under the hysteresis) with `Bandage(itemId, part,
 keepMoving=True)`, no rip; the ride is tracked by its own act lines (`ride`, `riding`): the Care is busy while it runs
 whatever was sent since (the flee's re-aims are new legs that keep it), and a ride the engine stopped (`failed
-stopped`) holds no item out.
+stopped`) holds no item out. Ruling P24-AR (Plan 24 Task 32; E9 bled from 96.39 health to 0 in 13.111 s under the
+`many` flee, five rags held): under a `many` flee with a zombie chasing (where P24-U rode nothing) the ride goes with
+the nearest beyond RIDE_MANY_R, or whatever the distance once FLEE_CARE_S have passed since the threat branch first
+read `many` with FLEE_CARE_N or more parts bleeding (`bleeding_n`; Survive's `_rides_many`).
 A garment is ripped from the choose only for a bleeding part (Task 10 fix 1, the review's major 2: ruling P24-G 2's
 rip is the wound's; a rip for stock destroyed looted clothing and, from above the need branch, superseded a running
 drink). The rag stock (ruling P24-AB, Plan 24 Task 21; E8, `e_day_8-20261029-174023`: the second bite bled 73 game
@@ -115,6 +118,15 @@ LEG_FIRST = 11            # the first leg part (UpperLeg_L; 11-16 the thighs, sh
                           # a walk, so the Lua rejects it `leg part` with keepMoving (PZA/1.5.3, ruling P24-R)
 RIDE_R = 6.0              # tiles: a bandage rides a running flee leg only with the nearest zombie beyond this, or with
                           # no zombie chasing (ruling P24-U, Task 12 fix 1: the ride holds the leg to a walk)
+RIDE_MANY_R = 3.0         # tiles: under a `many` flee with a zombie chasing, a bandage rides the flee's leg with the
+                          # nearest beyond this (ruling P24-AR, Plan 24 Task 32: E9's line 374, game minute 612, the
+                          # nearest at 3.44 tiles with part 5 bleeding and a bandage held; E8's line 409, game minute
+                          # 616, at 3.70 with parts 4 and 9 bleeding)
+FLEE_CARE_S = 20.0        # wall seconds after the threat branch first read `many` (Survive's `many_since`) from which ...
+FLEE_CARE_N = 2           # ... this many bleeding parts or more ride the `many` flee's leg whatever the distance (ruling
+                          # P24-AR: E9 bled from 96.39 health to 0 in 13.111 s from four bites; its line 450, game
+                          # minute 623, the nearest at 0.63 tiles, parts 0 and 8 bleeding; E8's line 389, game minute
+                          # 613, at 0.51 tiles, parts 4 and 9)
 RIDE_FREE = ("stopped",)  # a ride failed so was stopped by the engine (a run, an aim, a hit): its item is not held out
 RIDE_RETRY_S = 3.0        # seconds after a stopped ride before the care rides again (Task 12 fix 2, the re-review's major
                           # 2: the same ride re-chosen at once was cooled and the tick fell through to a drink)
@@ -131,7 +143,8 @@ WEAR_SETTLE_MAX = 12      # frames after a wear's done the exclusive-location ch
                           # S.WORN_EVERY (10) frames: review-t24 minor 4)
 
 __all__ = ["Care", "care_kind", "rippable", "wear_gain", "UNWEAR_NEVER", "WEAR_RETRY_MIN", "WEAR_QUIET_R", "WEAR_SETTLE_MAX", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
-           "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R", "RIDE_RETRY_S", "RAG_STOCK"]
+           "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R", "RIDE_MANY_R", "FLEE_CARE_S",
+           "FLEE_CARE_N", "RIDE_RETRY_S", "RAG_STOCK"]
 
 
 def care_kind(full_type):
@@ -495,6 +508,10 @@ class Care(Policy):
             return False
         items = self._items()
         return self._wound(items, bleeding)[0] is None and not items["dirty"]
+
+    def bleeding_n(self):
+        """How many parts bleed unbandaged (ruling P24-AR's count, FLEE_CARE_N)."""
+        return len(self._bleeding())
 
     def tends_wound(self):
         """The bleeding step would send now (ruling P24-P: Survive's threat branch yields to it beyond CARE_R)."""

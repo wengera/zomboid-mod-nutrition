@@ -324,7 +324,8 @@ from dataclasses import dataclass
 from typing import Optional
 
 from agent.base.items import days_fresh
-from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, RIDE_FREE, RIDE_R, Care
+from agent.base.planner.care import (CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, FLEE_CARE_N, FLEE_CARE_S, RIDE_FREE,
+                                     RIDE_MANY_R, RIDE_R, Care)
 from agent.base.planner.doorway import DOOR_HOLD_S, Doorway, standing, stand_ready
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
@@ -469,6 +470,7 @@ class Survive:
         self.endurance_hold = False  # the endurance hold (P24-AG): set at ENDURANCE_T or under, cleared above ENDURANCE_RELEASE
         self.spent = None         # this tick's `_read_spent` (None: fit to fight)
         self.spent_kinds = ()     # every hold `_read_spent` read this tick, in its order (P24-AP reads them all)
+        self.many_since = None    # wall of the first `many` reason since the threat branch last held nothing (P24-AR)
         self.struck = {}          # zombie id -> wall of the last attack or shove sent at it (P24-AQ)
         self.finishing = {}       # zombie id -> the `many` flee's finishing sends at it, "stomp" then "floor" (P24-AQ)
         self._finish_a = None     # the flee's last finishing action (P24-AQ), its end read once (`_finish_read`)
@@ -1259,12 +1261,15 @@ class Survive:
         bandage, current) holds the yield while the nearest stays beyond CARE_HOLD_R. The ride (ruling P24-U) comes
         first: under a flee leg it may ride (`_ride_leg`) with the nearest beyond RIDE_R or no chaser, a part above the
         legs bleeding (`Care.rides_wound`), the care's `ride_now` set; a ride running yields nothing (the threat
-        answers, the Flee's leg held by the ride: `policies.running`)."""
+        answers, the Flee's leg held by the ride: `policies.running`). Ruling P24-AR (`_rides_many`): under a `many`
+        flee with a zombie chasing the ride goes with the nearest beyond RIDE_MANY_R, or, whatever the distance, once
+        FLEE_CARE_S have passed since the first `many` (`many_since`) with FLEE_CARE_N or more parts bleeding."""
         if not self.world.can("bandage") or not self._nearest_seen or self.care.riding() is not None:
             return None
         near = self._nearest_seen[-1][1]
         chased = any(z.get("hasTarget") is True for z in held)
-        if (near > RIDE_R or not chased) and not (self.flee_many and chased) and self._ride_leg() is not None:
+        free = self._rides_many(near) if (self.flee_many and chased) else (near > RIDE_R or not chased)
+        if free and self._ride_leg() is not None:
             self._observe(self.care)
             if self.care.rides_wound():
                 self.care.ride_now = True
@@ -1281,6 +1286,18 @@ class Survive:
         self._observe(self.care)
         return near if self.care.tends_wound() else None
 
+    def _rides_many(self, near):
+        """Ruling P24-AR, the care tick inside a long flee (E9: four bites bled the health from 96.39065551757812 to 0
+        in 13.111 s while the `many` flee ran, five rags held): a `many` flee from a chaser lets the bandage ride its
+        leg with the nearest zombie `near` beyond RIDE_MANY_R (a part bleeding with a dressing held, `rides_wound`), or
+        whatever the distance once FLEE_CARE_S wall seconds have passed since the first `many` read (`many_since`)
+        with FLEE_CARE_N or more parts bleeding. Before it no ride went under a `many` flee with a chaser held (the
+        re-review's minor 4 of Task 12)."""
+        if near > RIDE_MANY_R:
+            return True
+        return (self.many_since is not None and self.clock() - self.many_since >= FLEE_CARE_S
+                and self.care.bleeding_n() >= FLEE_CARE_N)
+
     def _threat(self):
         """The tick's bookkeeping, once (ruling P24-A (g)): the held list, the Flee's observe and the breach's closing
         count; then the yield to the care (`_care_yields`, P24-P), else the decision (`_decide`), which a corner's
@@ -1295,6 +1312,7 @@ class Survive:
             held = []
         if not held:
             self.mode, self.fight, self.flee = None, None, None
+            self.many_since = None   # P24-AR: the long flee's clock ends with the threat
             self._end_flee_episode()
             self.sheltered, self.cornered, self.closing = False, None, (0, None)
             self.stuck_heading, self._nearest_seen = None, []
@@ -1356,6 +1374,8 @@ class Survive:
         if want == "flee":
             self.flee_many = self.flee_many or reason == "many"
             self.flee_health = self.flee_health or reason == "health"
+            if reason == "many" and self.many_since is None:
+                self.many_since = self.clock()   # P24-AR: the long flee's clock, kept across its corners
             policy.threats = held
             policy.hold_ok = breach is None
             policy.steer_now = self.group_steer is not None

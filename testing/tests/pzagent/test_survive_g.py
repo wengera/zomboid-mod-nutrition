@@ -2281,10 +2281,12 @@ def test_a_stance_less_fights_approach_walk_is_never_ridden(tmp_path, monkeypatc
     assert not any(a.type == "bandage" and a.args.get("keepMoving") for a in r.acts.history)
 
 
-@pytest.mark.parametrize("chases, ride", [(True, False), (False, True)])
-def test_a_many_flee_with_a_chaser_held_blocks_the_ride(tmp_path, chases, ride):
-    """The re-review's minor 4 (ruling on concern 3): `flee_many` with any held chaser blocks the ride (the nearest at
-    7 is beyond RIDE_R, but several chasers converge); with no chaser the group is not closing and the ride goes."""
+@pytest.mark.parametrize("chases, x, ride", [(True, 102.5, False), (True, 107.0, True), (False, 107.0, True)])
+def test_a_many_flee_with_a_chaser_held_blocks_the_ride_inside_ride_many_r(tmp_path, chases, x, ride):
+    """The re-review's minor 4 (ruling on concern 3): `flee_many` with any held chaser blocked the ride (the nearest at
+    7 beyond RIDE_R, but several chasers converge); with no chaser the group is not closing and the ride goes. Named
+    change, ruling P24-AR (Plan 24 Task 32; renamed from `..._blocks_the_ride`): the chaser at 7 tiles (beyond
+    RIDE_MANY_R) now lets the ride go; at 2.5 it still blocks it (`test_survive_r` reads the long flee's clock)."""
     torso = [part(6, bleeding=True, bleedingTime=5.0)]
     r, sv = make(tmp_path)
     hold(r, 10, "Base.Bandage")
@@ -2292,7 +2294,7 @@ def test_a_many_flee_with_a_chaser_held_blocks_the_ride(tmp_path, chases, ride):
     tick(r, sv)
     r.answer("progress")
     sv.flee_many = True
-    care_frame(r, torso, zombies=[zd(1, 107.0, 200.0, has_target=chases)], health=30.0)
+    care_frame(r, torso, zombies=[zd(1, x, 200.0, has_target=chases)], health=30.0)
     tick(r, sv)
     assert any(a.type == "bandage" for a in r.acts.history) is ride
 
