@@ -185,6 +185,7 @@ class Fight(FightPull, FightFinish, Policy):
         self.edge = {}                      # zombie id -> [ticks unlisted, its record at its last listed square]
         self._listed = {}                   # zombie id -> its record, of the zombies within LISTED_R at the last observe
         self.rules = frozenset(FIGHT_RULES)  # Survive sets it each tick: the iteration-13 rules its switches leave on
+        self._shove_a = {}                  # zombie id -> the last shove sent at it (P25-A: its end and its wall)
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -601,8 +602,10 @@ class Fight(FightPull, FightFinish, Policy):
             return None
         pain = arm_pain(self.world)
         sore = pain is not None and pain >= STRAIN_SOFT
-        if ((sore or self.spent) and d <= POINT_BLANK_R and self._swing_ok("shove", zid)
-                and self._standing_near(STAND_MIN_R, (zid,)) is None):
+        blank = (sore or self.spent) and d <= POINT_BLANK_R
+        if blank and "corner_break" in self.rules and self._shove_missed(zid):
+            return self._corner(zid, z)   # P25-A: no second shove at it within SHOVE_REPEAT_S
+        if blank and self._swing_ok("shove", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
             self.why.update({"shove": "strain" if sore else "spent", "strain": pain})
             return Shove(zid)
         if not self.standing() or self._shoved:
@@ -616,6 +619,34 @@ class Fight(FightPull, FightFinish, Policy):
             return None
         self.why.update({"shove": "second", "shoveTarget": sid, "shoveDist": sd, "second": second[0]})
         return Shove(sid)
+
+    def _shove_missed(self, zid):
+        """Ruling P25-A: the last shove at `zid`, sent within SHOVE_REPEAT_S, ended done with its swing started and
+        `knockdown` false (E11's six such shoves at its two cornered zombies, #4406)."""
+        a = self._shove_a.get(zid)
+        if a is None or self.clock() - a.sent_wall >= SHOVE_REPEAT_S or not self.actions.done(a) or a.state != "done":
+            return False
+        res = a.result if isinstance(a.result, dict) else {}
+        return res.get("knockdown") is False and res.get("attackStarted") is not False
+
+    def _corner(self, zid, z):
+        """Ruling P25-A, the corner under any hold (E11: seven shoves at two zombies at point blank, none knocking
+        down, no swing, #4406): after a missed shove at `zid` (`_shove_missed`), with two or more standing zombies
+        within FIGHT_REACH the steer at a run through the gap the shove opened (the heading away from `zid`'s bearing,
+        turned by STEER_TURNS to the first heading `clear_heading` passes); with one, or no heading clear, the swing
+        at it, the no-swing of the arms' pain or a hold overridden (#4370: the divider halves a swing at armPain 20, and
+        a halved swing beats a seventh shove). Logged `corner` {kind: break | swing, shoved, n}."""
+        n = len(self._standing(FIGHT_REACH))
+        mx, my = me_xy(self.world)
+        dx, dy = mx - z["x"], my - z["y"]
+        dd = math.hypot(dx, dy)
+        v = self._clear_turn((dx / dd, dy / dd)) if n >= 2 and dd > 0.0 else None
+        if v is not None:
+            self.why["corner"] = {"kind": "break", "shoved": zid, "n": n}
+            return Steer(v[0], v[1], FLEE_S, FLEE_GAIT)
+        self.why["corner"] = {"kind": "swing", "shoved": zid, "n": n}
+        self._held_before = False
+        return Attack(zid)
 
     def fight_s(self):
         """Seconds the target has been out of reach (the stall clock)."""
@@ -807,6 +838,7 @@ class Fight(FightPull, FightFinish, Policy):
             self._stance_walk = (action, self.target, self._walk_kind) if self._walk_kind else None
         elif cmd.TYPE == "shove":
             self._shoved = True
+            self._shove_a[cmd.targetId] = action   # P25-A: its end read by `_shove_missed`
         elif cmd.TYPE in ("attack", "stomp"):
             self._shoved = False
             self._attack_held = self._held_before if cmd.TYPE == "attack" else False

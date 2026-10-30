@@ -49,12 +49,18 @@ def test_arm_pain_12_with_a_fallen_pin_stomps(tmp_path):
 
 
 def test_arm_pain_12_with_a_standing_pin_at_point_blank_shoves(tmp_path):
+    """Named change, Plan 25 Task 3 (ruling P25-A): the shove read no knock-down, so within SHOVE_REPEAT_S the lone
+    zombie in reach takes the swing (`corner` swing), where P24-AG shoved every time; past the window, the shove."""
     r, f = fight(tmp_path, [z(1, 100.8)], arm=12.0)
     a = f.step()
     assert (a.type, a.args) == ("shove", {"targetId": 1}) and f.why["shove"] == "strain" and f.why["strain"] == 12.0
     r.answer({"state": "done", "result": {"knockdown": False, "attackStarted": True, "targetDead": False}})
     fr(r, [z(1, 100.8)], 12.0)
-    assert f.step().type == "shove"   # every swing while the arms hurt: the shove, never the swing
+    assert f.step().type == "attack" and f.why["corner"]["kind"] == "swing"
+    r.answer()
+    r.advance(P.SHOVE_REPEAT_S)
+    fr(r, [z(1, 100.8)], 12.0)
+    assert f.step().type == "shove"
 
 
 @pytest.mark.parametrize("arm", [9.99, None])

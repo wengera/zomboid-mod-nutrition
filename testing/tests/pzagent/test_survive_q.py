@@ -42,13 +42,23 @@ def test_the_arms_hold_alone_fights_a_zombie_within_keep_r_with_the_backpedal_ne
 
 
 def test_at_point_blank_the_wounded_fight_shoves_every_time(tmp_path):
+    """Named change, Plan 25 Task 3 (ruling P25-A): a shove that read no knock-down is followed, within
+    SHOVE_REPEAT_S, by the swing at the lone zombie in reach (`corner` swing); with P25-A off, the shove every time."""
     r, sv = make(tmp_path)
     fr(r, [z(1, 100.8)], 25.0)
     assert tick(r, sv).type == "shove" and threat_why(tmp_path)["shove"] == "strain"
     r.answer(DONE_SHOVE)
     fr(r, [z(1, 100.8)], 25.0)
-    assert tick(r, sv).type == "shove"
-    assert not any(x.type == "attack" for x in r.acts.history)
+    assert tick(r, sv).type == "attack" and threat_why(tmp_path)["corner"]["kind"] == "swing"
+    (tmp_path / "off").mkdir()
+    r2, sv2 = make(tmp_path / "off")
+    sv2.CORNER_BREAK = False
+    fr(r2, [z(1, 100.8)], 25.0)
+    assert tick(r2, sv2).type == "shove"
+    r2.answer(DONE_SHOVE)
+    fr(r2, [z(1, 100.8)], 25.0)
+    assert tick(r2, sv2).type == "shove"
+    assert not any(x.type == "attack" for x in r2.acts.history)
 
 
 def test_the_wounded_backpedal_holds_until_point_blank(tmp_path):
@@ -112,7 +122,9 @@ def test_the_endurance_or_tired_hold_fights_within_keep_r_shove_then_stomp_never
     `strain` flee back on with a zombie at 0.5 tiles): the endurance or the tired hold, with the arms' or alone,
     fights a zombie within KEEP_R as the arms' hold does: the backpedal at 2.0 tiles (never the swing), the shove at
     point blank every time, the stomp of a fallen one, never the floor strike; logged `spent`. With HOLD_WIDE off
-    (the rule Task 32 landed) the endurance or tired hold flees `strain`."""
+    (the rule Task 32 landed) the endurance or tired hold flees `strain`. Named change, Plan 25 Task 3 (ruling P25-A):
+    the second shove is the swing within SHOVE_REPEAT_S of a shove that read no knock-down (`corner` swing), the only
+    swing sent."""
     r, sv = make(tmp_path)
     fr(r, [z(1, 102.0)], arm, **k)
     a = tick(r, sv)
@@ -126,14 +138,15 @@ def test_the_endurance_or_tired_hold_fights_within_keep_r_shove_then_stomp_never
     assert a.type == "shove" and threat_why(tmp_path)["shove"] == ("strain" if arm else "spent")
     r.answer(DONE_SHOVE)
     fr(r, [z(1, 100.8)], arm, **k)
-    assert tick(r, sv).type == "shove"                                  # every time
-    r.answer(DONE_SHOVE)
+    a = tick(r, sv)
+    assert a.type == "attack" and threat_why(tmp_path)["corner"]["kind"] == "swing"   # P25-A: the missed shove's swing
+    r.answer()
     fr(r, [z(1, 100.8, floor=True)], arm, **k)
     assert tick(r, sv).type == "stomp"
     r.answer({"state": "failed", "reason": "out of reach"})
     fr(r, [z(1, 100.8, floor=True)], arm, **k)
     assert tick(r, sv).type == "aim"                                    # refused: the backpedal, no floor strike
-    assert not any(x.type == "attack" for x in r.acts.history)
+    assert [x for x in r.acts.history if x.type == "attack"] == [a]
     (tmp_path / "off").mkdir()
     r2, sv2 = make(tmp_path / "off")
     sv2.HOLD_WIDE = False
