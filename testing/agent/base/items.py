@@ -41,6 +41,12 @@ shirt, trousers, shorts, skirt, dress, socks, shoes, boots, gloves, hat, jumper,
 apron, scarf or helmet. It is a guess the Lua's `clothing` filter (the item's class is Clothing) corrects: a miss takes
 nothing and marks the container (`no match`); it never reaches `use_of`, which stays the dataset's answer.
 
+`bag(full_type)` (Plan 24 Task 29) is the name guess a held bag is read by for a `LootBuilding` goal's `bag` want: the
+full type's name opens `Bag_` (the 42.21 install's `media/scripts/generated/items/container.txt` names its bags so:
+`Base.Bag_Schoolbag`, `Base.Bag_ALICEpack`, `Base.Bag_DuffelBag`). A bag is an item container, neither `clothing` nor
+any other use the engine answers (`W.useOf` reads it `other`), and no loot filter takes one, so the want is read on
+the held items only.
+
 `days_fresh(full_type)` is the dataset's `days_fresh` (None for a food that never spoils, or a name it does not carry):
 the need's pick among foods, the most perishable first (fix wave P, I-4).
 
@@ -58,6 +64,7 @@ DATASET = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".
 WEAPON_RX = re.compile(r"\.(BaseballBat|Hammer|Axe|Crowbar|Knife|Pan|Pistol|Shotgun|Rifle)\b")
 GARMENT_RX = re.compile(r"\.(Jacket|Hoodie|Vest|Shirt|Tshirt|TShirt|Trousers|Shorts|Skirt|Dress|Socks|Shoes|Boots|Gloves|"
                         r"Hat|Jumper|Sweater|Tracksuit|Boilersuit|Coat|Apron|Scarf|Helmet)(_|$)")   # garment()'s name guess
+BAG_RX = re.compile(r"\.Bag_")   # bag()'s name guess (a held bag, the bag want: Task 29)
 SEALED_TAG = "base:sealedbeveragecan"   # the sealed pop cans' tag: spawned canPlayerEmpty false, never drunk
 # every item whose script sets CanBandage = true (the 42.21 install, media/scripts/generated/items/normal.txt L8046-
 # L10691), as the engine's isCanBandage() reads it
@@ -134,6 +141,11 @@ def holds_use(full_type, use):
     """Whether a container item of `full_type` counts as `use` for a loot: `use_of`'s answer, and for `clothing` (which
     `use_of` never answers) `garment`'s guess."""
     return garment(full_type) if use == "clothing" else use_of(full_type) == use
+
+
+def bag(full_type):
+    """Whether the full type's name reads a bag (BAG_RX), the bag want's guess of a held item (Task 29)."""
+    return bool(BAG_RX.search(full_type or ""))
 
 
 def days_fresh(full_type):

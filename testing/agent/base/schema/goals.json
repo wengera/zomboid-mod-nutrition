@@ -17,10 +17,11 @@
     },
     {
       "type": "object",
-      "description": "Loot the building's containers one use at a time (water, container, clothing, food, bandage, weapon: the order the loot takes them) until none is left.",
+      "description": "Loot the building's containers one use at a time (water, container, clothing, food, bandage, weapon: the order the loot takes them, a want first) until none is left.",
       "properties": {
         "type": {"const": "LootBuilding", "description": "The goal's type."},
-        "building": {"type": "integer", "description": "The building's id, as the view lists it."}
+        "building": {"type": "integer", "description": "The building's id, as the view lists it."},
+        "want": {"type": "string", "enum": ["weapon", "bag"], "description": "Optional: what to take first; the goal ends done once you hold one more of it than at its start (a want you already hold asks for another)."}
       },
       "required": ["type", "building"],
       "additionalProperties": false

@@ -564,6 +564,26 @@ def test_system_names_no_path_credential_or_planner_internal():
 
 
 def test_system_explains_the_wants_and_the_new_view_keys():
+    assert "want (string, one of weapon|bag)" in SYSTEM
     assert "z:N" in SYSTEM and "tired is true" in SYSTEM and "night is true" in SYSTEM
     assert "then clothing, food, bandages and weapons" not in SYSTEM   # the old want order gave way to the strategy's
 
+
+@pytest.mark.parametrize("want", ["weapon", "bag"])
+def test_the_model_may_answer_a_loot_with_a_weapon_or_bag_want(want):
+    src, _, _ = make(answer='{"type": "LootBuilding", "building": 3, "want": "%s"}' % want)
+    src.propose(a_view())
+    settle(src)
+    g = src.propose(a_view())
+    assert isinstance(g, LootBuilding) and g.want == want and g.args() == {"building": 3, "want": want}
+    assert src.calls[0]["error"] is None and src.calls[0]["goal"] == {"type": "LootBuilding", "building": 3,
+                                                                       "want": want}
+
+
+def test_a_gun_want_is_refused_with_validates_one_line_reason():
+    src, _, _ = make(answer='{"type": "LootBuilding", "building": 3, "want": "gun"}')
+    src.propose(a_view())
+    settle(src)
+    assert isinstance(src.propose(a_view()), Rest)
+    err = src.calls[0]["error"]
+    assert err.startswith("invalid: LootBuilding.want: 'gun' not in") and "\n" not in err

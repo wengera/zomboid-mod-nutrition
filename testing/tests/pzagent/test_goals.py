@@ -64,7 +64,8 @@ def test_the_schema_lists_the_five_goals_each_closed_with_a_description():
     assert s["$schema"] == "https://json-schema.org/draft/2020-12/schema"
     for e in s["oneOf"]:
         assert e["additionalProperties"] is False and e["description"]
-        assert set(e["required"]) == set(e["properties"])
+        assert set(e["required"]) == set(e["properties"]) - set(G.OPTIONAL_FIELDS.get(
+            e["properties"]["type"]["const"], ()))   # Task 29: LootBuilding's want is the one optional field
         assert all(p["description"] for p in e["properties"].values())
     assert entry("Rest")["properties"]["seconds"]["maximum"] == 120
     assert entry("Stock")["properties"]["kind"]["enum"] == ["water", "food"]
@@ -789,7 +790,7 @@ def test_a_building_with_no_container_known_is_never_a_scripted_loot():
     assert (g.TYPE, g.args()) == ("LootBuilding", {"building": 2})
 
 
-# ================================================================ Task 29: the strategy block
+# ================================================================ Task 29: the strategy block, the weapon and bag wants
 BUILDING_MARKS = {"looted": "L", "visited": " v ", "dist": "nearest", "zombies_near": "z:"}   # a building
 # field as its rendered line names it
 
@@ -808,3 +809,91 @@ def test_the_schema_strategy_entries_each_name_a_page_and_a_view_key_render_emit
     reads = {r for e in entries for r in e["reads"]}
     assert {"buildings.zombies_near", "tired", "night", "weapon", "load.level"} <= reads
 
+
+def test_loot_building_takes_an_optional_want_of_weapon_or_bag():
+    w = entry("LootBuilding")["properties"]["want"]
+    assert w["enum"] == ["weapon", "bag"] and "want" not in entry("LootBuilding")["required"]
+    for want in ("weapon", "bag"):
+        g = validate({"type": "LootBuilding", "building": 3, "want": want})
+        assert type(g) is LootBuilding and g.want == want and g.args() == {"building": 3, "want": want}
+    assert validate({"type": "LootBuilding", "building": 3}).args() == {"building": 3}   # no want: args as before
+    with pytest.raises(ValueError) as e:
+        validate({"type": "LootBuilding", "building": 3, "want": "gun"})
+    assert str(e.value) == "LootBuilding.want: 'gun' not in ['weapon', 'bag']"
+
+
+def loot_sends(r, g, n=5, after=None):
+    """The (filter, x) of each loot the goal sends over up to `n` ticks, each answered done; `after(i)` runs after the
+    i-th answer."""
+    runner = GoalRunner(Src(g), r.clock)
+    seen = []
+    for i in range(n):
+        r.frame()
+        cmd = runner.tick(r.world, r.acts)
+        if cmd is None:
+            break
+        runner.send(cmd)
+        seen.append((cmd.args()["filter"], cmd.args()["x"]))
+        r.answer()
+        if after is not None:
+            after(i)
+    return seen
+
+
+def test_a_weapon_want_loots_the_weapon_first_and_ends_done_when_one_more_is_held(tmp_path):
+    r = Rig(tmp_path)
+    r.scan([inside(101, 200, containers=[TOOLS]), inside(103, 200, containers=[WATER, FRIDGE])])
+    r.frame()
+    g = LootBuilding(1, want="weapon")
+
+    def took(i):
+        if i == 0:
+            r.event("item_added", itemId=901, fullType="Base.BaseballBat", weight=1.5)
+    assert loot_sends(r, g, after=took) == [("weapon", 101)]          # the default order would take water first
+    assert (g.state, g.reason) == ("done", "want met")
+    all_sends_valid(r)
+
+
+def test_a_weapon_want_with_no_weapon_there_loots_the_building_in_the_default_order(tmp_path):
+    r = Rig(tmp_path)
+    r.scan([inside(103, 200, containers=[WATER, FRIDGE])])
+    r.frame()
+    g = LootBuilding(1, want="weapon")
+    assert loot_sends(r, g) == [("water", 103), ("food", 103)]
+    assert (g.state, g.reason) == ("done", "looted")
+
+
+def test_a_bag_want_reads_a_held_bag_by_its_name_and_ends_done_when_one_more_is_held(tmp_path):
+    """No loot filter takes a bag on this build (the protocol's loot filters): the goal loots in the default order and
+    ends done once a held item's full type reads a bag (`items.bag`)."""
+    from agent.base import items
+    assert items.bag("Base.Bag_Schoolbag") and items.bag("Base.Bag_ALICEpack") and not items.bag("Base.Apple")
+    assert G.WANT_USES == {"weapon": "weapon", "bag": None}
+    r = Rig(tmp_path)
+    r.scan([inside(101, 200, containers=[TOOLS]), inside(103, 200, containers=[WATER, FRIDGE])])
+    r.frame()
+    g = LootBuilding(1, want="bag")
+
+    def took(i):
+        if i == 0:
+            r.event("item_added", itemId=902, fullType="Base.Bag_Schoolbag", weight=0.6)
+    assert loot_sends(r, g, after=took) == [("water", 103)]
+    assert (g.state, g.reason) == ("done", "want met")
+
+
+def test_a_want_already_held_is_valid_and_wants_one_more(tmp_path):
+    r = Rig(tmp_path)
+    r.event("item_added", itemId=900, fullType="Base.Hammer", weight=1.0)
+    r.scan([inside(101, 200, containers=[TOOLS])])
+    r.frame()
+    g = LootBuilding(1, want="weapon")
+
+    def took(i):
+        r.event("item_added", itemId=901, fullType="Base.BaseballBat", weight=1.5)
+    assert loot_sends(r, g, after=took) == [("weapon", 101)]
+    assert (g.state, g.reason) == ("done", "want met")
+
+
+def test_the_scripted_source_never_names_a_want():
+    g = ScriptedSource().propose(view(buildings=[bld(1, 3.0)]))
+    assert (g.TYPE, g.args(), g.want) == ("LootBuilding", {"building": 1}, None)

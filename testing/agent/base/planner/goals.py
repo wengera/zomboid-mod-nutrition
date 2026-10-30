@@ -52,7 +52,13 @@ a class attribute equal to the entry's `const`:
   the result's `cut` being unreliable in multiplayer, and `cut` and `wounds` are logged), one that fails leaves the
   window out (`World.note_window_fail`; `locked` lets the next try smash it); with no window either,
   `failed "no door"` (the view then reads the building `blocked` once all its doors are marked and no window is to be
-  tried, and the source passes it over for the next).
+  tried, and the source passes it over for the next). Its optional `want` (Plan 24 Task 29, the written guides' weapon
+  first and the first bag: `weapon` or `bag`, OPTIONAL_FIELDS; the scripted source never names one, and `args()`
+  leaves an unset want out, so its rows read as before): the want's loot use (`WANT_USES`: `weapon` the use
+  `items.WEAPON_RX` reads; `bag` none, no loot filter taking a bag) goes first after the kit's wants, and the goal ends
+  `done "want met"` once the held items of the want (`held_of`: `world.by_use()`'s for a use, `items.bag`'s name
+  guess for a bag) number more than at its start, so a want already held asks for one more; with none to take there
+  the loot goes on in the default order.
 - `Shelter(building)`: Night's shelter machine for a named building (`night.shelter_plan`, `shelter_step`,
   `shelter_ended`, never re-implemented): approach the exterior door, open it, step in, close it (a step's walk failed
   `stuck` at a hoppable edge climbs it first, as `ExploreToward` does, and walks again; a climb that fails is read as
@@ -146,7 +152,7 @@ import time
 from dataclasses import dataclass, field, fields
 from typing import ClassVar, Optional, Protocol, runtime_checkable
 
-from agent.base.items import holds_use
+from agent.base.items import bag, holds_use
 from agent.base.planner.night import (SHUN_MIN, door_blocked, hop_after, player_square, shelter_ended,
                                       shelter_plan, shelter_step)
 from agent.base.planner.policies import (CLOTHING_HELD_N, LOOT_MAX_LEVEL, LOOT_WANTS, PREEMPTED, SCAN_R, Explore, LootHouse, centre,
@@ -186,6 +192,8 @@ LEG_SQ_MARGIN = 0.75  # tiles a leg's point is drawn short of LEG_MAX so its squ
 RUN_FIELDS = ("state", "reason", "started_wall")
 STATES = ("running", "done", "failed", "superseded")
 SCHEMA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "schema", "goals.json")
+WANT_USES = {"weapon": "weapon", "bag": None}   # a LootBuilding want's loot use (Task 29); a bag: no loot filter
+OPTIONAL_FIELDS = {"LootBuilding": ("want",)}    # schema fields a goal may leave out (None, left out of args())
 EXAMPLES = {"ExploreToward": {"x": 120, "y": 205}, "LootBuilding": {"building": 3}, "Shelter": {"building": 3},
             "Stock": {"kind": "water"}, "Rest": {"seconds": 30.0}}
 
@@ -194,7 +202,7 @@ __all__ = ["Goal", "ExploreToward", "LootBuilding", "Shelter", "Stock", "Rest", 
            "GOAL_HOLD_SUPERSEDE_TICKS",
            "ARRIVE_R", "REST_S", "STOCK_WANTS", "BUILDING_R", "WOODS_R", "WINDOW_REPEAT", "CONTAINERS_HELD_N", "CLOTHING_HELD_N", "SMASH_MIN_HEALTH", "SMASH_ZOMBIE_R", "smash_ok", "window_pick", "REST_N", "WOODS_STEP",
            "WOODS_MAX_R", "wanted_uses", "LEG_MAX", "LEG_MIN", "LEG_CHUNK", "leg_max",
-           "STOCK_KINDS", "RUN_FIELDS", "STATES", "SCHEMA_PATH", "EXAMPLES"]
+           "STOCK_KINDS", "RUN_FIELDS", "STATES", "SCHEMA_PATH", "EXAMPLES", "WANT_USES", "OPTIONAL_FIELDS", "held_of"]
 
 
 def _num(v):
@@ -241,6 +249,14 @@ def wanted_uses(world, wants=()):
     order = tuple(wants) + tuple(u for u in STOCK_WANTS if u not in wants)
     return tuple(u for u in order if (u != "container" or held < CONTAINERS_HELD_N)
                  and (u != "clothing" or (world.can("wear") and spare_clothes < CLOTHING_HELD_N)))
+
+
+def held_of(world, want):
+    """How many held items answer a LootBuilding `want` (Task 29): a bag by `items.bag`'s name guess, else the
+    want's use in `world.by_use()`."""
+    if want == "bag":
+        return sum(1 for it in world.inventory.values() if bag(it.get("fullType")))
+    return len(world.by_use().get(WANT_USES.get(want) or want, ()))
 
 
 def _usable_building(world, b, shunned):
@@ -372,7 +388,10 @@ class Goal:
 
     # -- the record ---------------------------------------------------------------------------------------------
     def args(self):
-        return {f.name: getattr(self, f.name) for f in fields(self) if f.name not in RUN_FIELDS}
+        """The schema fields, an optional one left unset (None: OPTIONAL_FIELDS) left out."""
+        opt = OPTIONAL_FIELDS.get(self.TYPE, ())
+        return {f.name: getattr(self, f.name) for f in fields(self)
+                if f.name not in RUN_FIELDS and not (f.name in opt and getattr(self, f.name) is None)}
 
     def row(self):
         return {"type": self.TYPE, "args": self.args(), "state": self.state, "reason": self.reason}
@@ -618,9 +637,11 @@ class _Looting:
 class LootBuilding(_Legs, _Looting, Goal):
     TYPE: ClassVar[str] = "LootBuilding"
     building: int
+    want: Optional[str] = None
 
     def start(self, world):
         self._legs()
+        self.base = held_of(world, self.want) if self.want is not None else None   # Task 29: the want's held count
         self.route = None        # the entry plan (night.shelter_plan) while the route is due (P24-Z), else None
         self.route_due = False   # a loot failed `not adjacent`: in by a door the World has not marked first
         self.window = None       # the window route's (x, y, z) while its Window runs, else None (Task 24)
@@ -659,6 +680,17 @@ class LootBuilding(_Legs, _Looting, Goal):
                 self.route, self.no_doors = None, True   # no exterior door left: the window route, else it fails
                 if window_pick(world, self.building, self.kit.shunned_now(world)) is None:
                     self.end("failed", "no door")
+
+    def check(self, world, clock):
+        if self.want is not None and held_of(world, self.want) > self.base:
+            self.why = dict(self.why, want=self.want, met=True)
+            self.end("done", "want met")
+
+    def _uses(self, world):
+        """The uses in the order the loot takes them: the kit's wants, then the goal's want's use (Task 29)."""
+        use = WANT_USES.get(self.want)
+        wants = tuple(self.kit.wants) + ((use,) if use is not None and use not in self.kit.wants else ())
+        return wanted_uses(world, wants)
 
     def _window_ended(self, world, action):
         """A window action's end (Task 24): done leaves the route (the character stands inside; the care branch reads the
@@ -722,7 +754,7 @@ class LootBuilding(_Legs, _Looting, Goal):
         loot = self.kit.loot
         loot.within = self.keys(world)
         try:
-            want = next((u for u in wanted_uses(world, self.kit.wants) if loot.target(u) is not None), None)
+            want = next((u for u in self._uses(world) if loot.target(u) is not None), None)
             if want is not None:
                 key = loot.target(want)
                 leg = self._leg_cmd(world, *centre(key))   # P24-AC: a container beyond the leg length is walked to in legs
