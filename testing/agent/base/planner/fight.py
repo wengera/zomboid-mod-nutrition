@@ -186,6 +186,7 @@ class Fight(FightPull, FightFinish, Policy):
         self._listed = {}                   # zombie id -> its record, of the zombies within LISTED_R at the last observe
         self.rules = frozenset(FIGHT_RULES)  # Survive sets it each tick: the iteration-13 rules its switches leave on
         self._shove_a = {}                  # zombie id -> the last shove sent at it (P25-A: its end and its wall)
+        self._fence_leg = None              # the fence wait's leg kind the last aim was sent for (P25-F), else None
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -446,6 +447,9 @@ class Fight(FightPull, FightFinish, Policy):
         t = self._target(pin=False)
         if t is None or t[0] != self.last.args.get("targetId"):
             return False
+        if self._fence_leg is not None:   # P25-F: the fence wait's leg holds while the wait calls for it
+            read = self._fence_read(t)
+            return read is not None and read[0] == self._fence_leg
         if self._leg == "back" and self.no_swing():   # P24-AP, R2: the wounded backpedal holds until point blank
             return POINT_BLANK_R < t[2] <= KEEP_R + KEEP_MARGIN
         if t[2] <= FIGHT_REACH or not self.stance_at(t[2]):
@@ -705,6 +709,51 @@ class Fight(FightPull, FightFinish, Policy):
                     "finish_first": {"target": pick[0], "dist": pick[1]}}
         return Stomp(pick[0])
 
+    def _fence_read(self, t):
+        """Ruling P25-F, the fence wait (the guides notes § 9 change 4: the fence trick; the chain's fence-row fights
+        each ended unreachable after a reposition walk, #4235 to #4316): `(leg, fence, tiles)` while target `t` chases
+        (`hasTarget`) from across a known hoppable edge on its straight line (`World.fence_crossing`, the edge's
+        midpoint `fence`, `tiles` from the player), the stance standing for it (`stance_at`, the build announcing the
+        aim) and not yet advancing (STAND_MAX_S on the stand clock leaves it as today); `leg` `back` nearer the fence
+        than FENCE_BACK_R's first value, `toward` farther than its second, else `stand`; None otherwise (neither a
+        corner nor a door fight waits)."""
+        if ("fence_wait" not in self.rules or self.point_blank or self.only is not None or not self.world.can("aim")
+                or self.advance):
+            return None
+        zid, z, d = t
+        if not chasing(z) or not self.stance_at(d):
+            return None
+        mx, my = me_xy(self.world)
+        c = self.world.fence_crossing((mx, my), (z["x"], z["y"]))
+        if c is None:
+            return None
+        df = math.hypot(c[0] - mx, c[1] - my)
+        lo, hi = FENCE_BACK_R
+        return ("back" if df < lo else "toward" if df > hi else "stand"), c, df
+
+    def _fence_wait(self, t):
+        """Ruling P25-F: the fence wait's leg (`_fence_read`), an `aim` facing the target: `back` away from the fence
+        (turned by STEER_TURNS to a clear heading, else standing), `toward` the fence while the line to FENCE_BACK_R's
+        first value reads clear (else standing), `stand` (0, 0); the target is neither repositioned for nor marked
+        unreachable meanwhile (its line reads blocked by the fence). Logged `fence_wait` {target, fence, dist, leg}.
+        Once it crosses (the fence off the line) the Fight's own rules swing at it or, fallen, stomp it."""
+        read = self._fence_read(t)
+        if read is None:
+            return None
+        kind, c, df = read
+        zid, z, d = t
+        mx, my = me_xy(self.world)
+        v = None
+        if kind == "back" and df > 0.0:
+            v = self._clear_turn(((mx - c[0]) / df, (my - c[1]) / df))
+        elif kind == "toward":
+            u = ((c[0] - mx) / df, (c[1] - my) / df)
+            v = u if clear_heading(self.world, u, min(STEER_PROBE, df - FENCE_BACK_R[0]), self.trans) else None
+        vx, vy = v if v is not None else (0.0, 0.0)
+        self.why = {"target": zid, "pinned": True, "dist": d, "stance": True, "leg": kind, "stand_s": self.stand_s(),
+                    "fence_wait": {"target": zid, "fence": [c[0], c[1]], "dist": df, "leg": kind}}
+        return Aim(vx, vy, AIM_LEG_S, targetId=zid)
+
     def fight_s(self):
         """Seconds the target has been out of reach (the stall clock)."""
         return self.clock() - self.out_of_reach_since
@@ -790,6 +839,11 @@ class Fight(FightPull, FightFinish, Policy):
         first = self._finish_first(d)   # P25-B: one within FINISH_R before any walk toward a standing one
         if first is not None:
             return first
+        fence = self._fence_wait(t)   # P25-F: a chaser across a fence waited for, never walked round to nor marked
+        if fence is not None:
+            if switch is not None and zid == switch[0]:
+                self.why["seek_switch"] = True
+            return fence
         if d <= POINT_BLANK_R:
             self.approach = False   # P24-A (e), the close review's I3 (F1's walkTo at 0.49 tiles): never at point blank
         blank = self.point_blank and d <= POINT_BLANK_R   # P23-AJ fix 1: in reach whatever the map's line says
@@ -893,6 +947,7 @@ class Fight(FightPull, FightFinish, Policy):
     def sent(self, cmd, action):
         if cmd.TYPE == "aim":
             self._leg = self.why.get("leg")
+            self._fence_leg = self.why["fence_wait"]["leg"] if "fence_wait" in self.why else None   # P25-F
             if self._leg == "pull":
                 self._pulled = cmd.targetId   # P24-AN: kept to DISENGAGE_R from here (`_pull_waits`)
         elif cmd.TYPE == "walkTo":

@@ -942,7 +942,9 @@ def test_e7_lines_52_to_73_the_seek_walk_round_the_wall_gives_way_and_never_runs
     7.12), across a fence and chasing: a standing leg, not a walk. Named change, ruling P24-AN (Plan 24 Task 32): HEAD's
     whole rules are read with iteration 11's switches off (`Survive.PULL`, `DOORWAY`, `TRANS`): from line 54 533
     chases alone within ENGAGE_R with 564 and 534 beyond DANGER_R, so the pull's leg goes where the walk round the wall
-    went (`test_e7_line_54_pulls_533_where_the_walk_round_the_wall_went`)."""
+    went (`test_e7_line_54_pulls_533_where_the_walk_round_the_wall_went`). Named change, Plan 25 Task 3 (ruling P25-F):
+    564 chasing from across the fence at line 64 is the fence wait's, its stance leg closing toward the fence's band
+    (`leg` toward, `fence_wait`), still no walk."""
     rows, out = _e7_lines(73, engage_any=True)
     assert rows[48]["action"] == {"type": "walkTo", "args": {"gait": "walk", "x": 10740.5, "y": 10647.5}}
     assert out[49]["walk"] == 533 and out[55]["walk"] == 533 and out[56]["walk"] is None
@@ -954,7 +956,8 @@ def test_e7_lines_52_to_73_the_seek_walk_round_the_wall_gives_way_and_never_runs
     assert all(rows[k - 1]["branch"] != "threat" for k in range(47, 54))
     assert rows[53]["action"]["type"] == "walkTo" and out[55]["walk"] == 533 and out[56]["walk"] is None
     w = rows[63]["inputs"]["branches"]["threat"]
-    assert rows[63]["action"]["args"]["targetId"] == 564 and w["leg"] == "stand" and w["seek_switch"] is True
+    assert rows[63]["action"]["args"]["targetId"] == 564 and w["leg"] == "toward" and w["seek_switch"] is True
+    assert rows[63]["action"]["type"] == "aim" and w["fence_wait"]["target"] == 564
     assert _walk_held_wrongly(out, 47, 73) == []
 
 
@@ -1045,7 +1048,9 @@ def test_a_running_fight_with_only_an_unreachable_idle_zombie_left_ends_and_the_
 def test_ruling_2_no_seek_on_a_room_or_door_square_nor_at_a_chaser_across_a_fence(tmp_path):
     """The review's ruling 2: a chasing zombie at 8 tiles is fought standing, never sought, (a) with the character
     on a room square of the building the zombie is in too, (b) on a door square, (c) across a known fence (the
-    fence is the chokepoint); an idle zombie across the fence (the flood climbs a hoppable edge to it) is sought."""
+    fence is the chokepoint); an idle zombie across the fence (the flood climbs a hoppable edge to it) is sought.
+    Named change, Plan 25 Task 3 (ruling P25-F): the chaser across the fence is the fence wait's, its stance leg
+    closing toward the fence's band (`leg` toward), still never sought."""
     room = {(x, y): {"room": "hall", "building": 1} for x in range(90, 113) for y in range(190, 213)}
     cases = {"room": grid(90, 120, 190, 212, room),                          # its east side open: a way out
              "door": grid(90, 120, 190, 212, {(100, 200): {"door": dict(CLOSED)}}),
@@ -1057,7 +1062,9 @@ def test_ruling_2_no_seek_on_a_room_or_door_square_nor_at_a_chaser_across_a_fenc
         r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 108.5, 200.5)])
         tick(r, sv)
         w = threat_why(tmp_path / name)
-        assert sv.mode == "fight" and w["leg"] == "stand" and "seek" not in w, name
+        leg = "toward" if name == "fence" else "stand"
+        assert sv.mode == "fight" and w["leg"] == leg and "seek" not in w, name
+        assert ("fence_wait" in w) is (name == "fence"), name
     (tmp_path / "idle").mkdir()
     r, sv = make(tmp_path / "idle")
     r.scan(cases["fence"])

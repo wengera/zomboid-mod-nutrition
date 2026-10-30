@@ -480,3 +480,97 @@ def stand_walk_any(r, sv):
     r.pump()
 
 
+# ================================================================ P25-F: the fence wait
+def fence_rig(tmp_path, zx, me=(100.5, 200.5), has_target=True, caps=None):
+    """`test_survive_g.fenced`'s yard (a hoppable fence on the west edges of x 102), the player on its west side at
+    `me`, one zombie east of the fence at (`zx`, 200.5) chasing (`has_target`)."""
+    from .test_policies import zombie
+    from .test_survive_g import fenced
+    r, sv = make(tmp_path, caps=caps)
+    r.scan(fenced())
+    zs = [dict(zombie(1, zx, 200.5, me=me), onFloor=None, hasTarget=has_target)]
+    r.frame(x=me[0], y=me[1], zombies=zs)
+    return r, sv
+
+
+def fence_frame(r, zx, me=(100.5, 200.5), floor=False):
+    from .test_policies import zombie
+    r.frame(x=me[0], y=me[1], zombies=[dict(zombie(1, zx, 200.5, me=me), onFloor=True if floor else None,
+                                            hasTarget=True)])
+
+
+def test_a_chaser_across_the_fence_is_waited_for_in_the_stance_back_from_the_fence(tmp_path):
+    """The guides' fence trick (§ 9 change 4): a chaser at 104.5 across the fence at x 102, the player 1.5 tiles back:
+    the stance stands (an `aim` of (0, 0) facing it), logged `fence_wait` {target, fence, dist, leg}."""
+    r, sv = fence_rig(tmp_path, 104.5)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "aim" and (a.args["vx"], a.args["vy"]) == (0.0, 0.0) and a.args["targetId"] == 1
+    assert w["fence_wait"] == {"target": 1, "fence": [102.0, 200.5], "dist": 1.5, "leg": "stand"}
+    all_sends_valid(r)
+
+
+def test_at_the_fence_within_reach_it_is_neither_repositioned_for_nor_marked(tmp_path):
+    """The chaser at the fence 2.0 tiles off (within FIGHT_REACH, its line blocked by the fence): no reposition walk,
+    no unreachable mark (the rule before it: the walk round, then the mark); the stance stands."""
+    r, sv = fence_rig(tmp_path, 104.5)
+    tick(r, sv)
+    r.fake.answer({"aim": ["accepted"]})
+    r.pump()
+    for _ in range(3):
+        r.advance(0.5)
+        fence_frame(r, 102.5)
+        tick(r, sv)
+    assert not any(a.type == "walkTo" for a in r.acts.history) and 1 not in sv.unreachable
+    assert threat_why(tmp_path)["fence_wait"]["target"] == 1
+
+
+def test_once_it_crosses_it_is_swung_at_and_once_fallen_stomped(tmp_path):
+    """Across (101.6: the fence off the line) the swing from the held stance; fallen after the hop, the stomp (P24-AL's
+    finish)."""
+    r, sv = fence_rig(tmp_path, 104.5)
+    tick(r, sv)
+    r.fake.answer({"aim": ["accepted"]})
+    r.pump()
+    fence_frame(r, 101.6)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("attack", {"targetId": 1}) and "fence_wait" not in threat_why(tmp_path)
+    r.answer()
+    fence_frame(r, 101.6, floor=True)
+    assert tick(r, sv).type == "stomp"
+
+
+def test_too_near_the_fence_it_steps_back_and_too_far_it_closes_to_the_band(tmp_path):
+    """0.5 tiles from the fence (101.5): the backpedal west, away from the fence (`leg` back); 4.5 tiles back (97.5):
+    the stance's step toward the fence (`leg` toward), never across it."""
+    r, sv = fence_rig(tmp_path, 104.5, me=(101.5, 200.5))
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "aim" and a.args["vx"] < -0.99 and w["fence_wait"]["leg"] == "back"
+    (tmp_path / "far").mkdir()
+    r2, sv2 = fence_rig(tmp_path / "far", 104.5, me=(97.5, 200.5))
+    a = tick(r2, sv2)
+    w = threat_why(tmp_path / "far")
+    assert a.type == "aim" and a.args["vx"] > 0.99 and w["fence_wait"]["leg"] == "toward"
+
+
+@pytest.mark.parametrize("case", ["idle", "pza14", "off"])
+def test_no_fence_wait_for_an_idle_zombie_on_a_build_without_the_stance_or_switched_off(tmp_path, case):
+    from .test_policies import CAPS_14
+    r, sv = fence_rig(tmp_path, 104.5, has_target=case != "idle", caps=CAPS_14 if case == "pza14" else None)
+    sv.FENCE_WAIT = case != "off"
+    tick(r, sv)
+    assert "fence_wait" not in threat_why(tmp_path)
+
+
+def test_past_stand_max_s_the_fence_wait_is_left_as_today(tmp_path):
+    """The stand clock (P24-N): STAND_MAX_S with no fall of its health and the advance closes on it round the fence,
+    the wait left (no `fence_wait`)."""
+    r, sv = fence_rig(tmp_path, 104.5)
+    tick(r, sv)
+    r.fake.answer({"aim": ["accepted"]})
+    r.pump()
+    r.advance(P.STAND_MAX_S + 0.5)
+    fence_frame(r, 104.5)
+    tick(r, sv)
+    assert "fence_wait" not in threat_why(tmp_path) and sv.fight.advance
