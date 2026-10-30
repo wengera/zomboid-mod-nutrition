@@ -391,6 +391,25 @@ def test_a_building_with_only_capped_clothing_left_reads_looted(tmp_path):
     assert b["looted"] is True and V._building(b).split()[6] == "L"
 
 
+def test_the_holds_field_counts_only_the_uses_the_looted_rule_still_wants(tmp_path):
+    """Fix 1 minor 4: a building read `L` for capped clothing no longer renders `h:clothing1`; one garment short it does."""
+    from agent.base.planner.policies import CLOTHING_HELD_N
+    r, sv = make(tmp_path)
+    sqs = house(1, 110)
+    for s_ in sqs:
+        if (s_["x"], s_["y"]) == (111, 201):
+            s_["containers"] = [JACKET]
+    r.scan(sqs)
+    clothes(r, CLOTHING_HELD_N - 1)
+    r.frame(x=100.0, y=201.5)
+    b = view(r.world, sv)["buildings"][0]
+    assert b["holds"] == {"clothing": 1} and "h:clothing1" in V._building(b)
+    clothes(r, CLOTHING_HELD_N)
+    r.frame(x=100.0, y=201.5)
+    b = view(r.world, sv)["buildings"][0]
+    assert b["looted"] is True and b["holds"] == {} and V._building(b).split()[7] == "h:-"
+
+
 def test_the_hold_renders_its_kind_and_value_and_nothing_without_it(tmp_path):
     """Plan 25 Task 4 (spec 2.2(c), (f)): the hold Task 3 puts on the view (`spent`, `{kind, value}`) reads as the
     line `hold: <kind> <value>` (the value to 0.01), right after `tired`; no line while no hold is set."""

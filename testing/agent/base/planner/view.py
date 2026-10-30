@@ -24,7 +24,7 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   (its nearest room square on the player's floor, else on any floor: P24-B 3, the model's positions), `door` (its
   first exterior door square on the player's floor, `night.exterior_doors`'s ranking, as [x, y], else None), `dist`
   (tiles from the player to that square's centre, to 0.1), `containers` (the containers on its squares), `looted`
-  (a bool, P24-B 3: `goal_policies.looted`, the one rule LootBuilding's `nothing to loot` reads too, Plan 25 Task 4:
+  (a bool, P24-B 3: `goals.looted`, the one rule LootBuilding's `nothing to loot` reads too, Plan 25 Task 4:
   a container known on it and none holding a use the loot would take now, `goals.wanted_uses` met against
   `goals.open_uses` for each, so a container holding only `other` items, items of a use no longer wanted (clothing
   past CLOTHING_HELD_N spare garments) or waiting on the cap counts looted; a building with no container known reads
@@ -92,8 +92,7 @@ import time
 
 from agent.base.items import USES
 from agent.base.items import holds_use
-from agent.base.planner.goal_policies import looted
-from agent.base.planner.goals import BUILDING_R, WOODS_R, int_id, wanted_uses, window_pick
+from agent.base.planner.goals import BUILDING_R, WOODS_R, int_id, looted, wanted_uses, window_pick
 from agent.base.planner.night import DAWN_HOUR, LATE_HOUR, TIRED_T, door_blocked, exterior_doors, shelter_plan
 from agent.base.planner.policies import LOOT_WANTS, STUCK_REASONS, me_floor, me_xy, place_of
 from agent.base.world import MET_VIEW_R, compass
@@ -157,7 +156,7 @@ def _buildings(world, night, kit, zxy=()):
                     "dist": round(dist, 1), "containers": len(cs),
                     "looted": looted(world, b, loot, kit.wants if kit is not None else (), waiting, cs),
                     "doors": len(doors), "visited": b in visited, "shunned": b in shunned,
-                    "shelter": shelter_plan(world, b) is not None, "holds": _holds(world, cs),
+                    "shelter": shelter_plan(world, b) is not None, "holds": _holds(world, cs, kit.wants if kit is not None else ()),
                     "blocked": door_blocked(world, b, z) and window_pick(world, b, shunned) is None,
                     "box": list(boxes[b]) if b in boxes else None,
                     "zombies_near": sum(1 for x, y in zxy if _box_dist(box, x, y) <= BUILDING_ZOMBIE_R)})
@@ -172,15 +171,17 @@ def _worn(world):
             for e in sorted((e for e in world.worn if isinstance(e, dict)), key=lambda e: str(e.get("loc")))]
 
 
-def _holds(world, keys):
-    """{use: items} over the containers `keys`: each item of a LOOT_WANTS use a loot has not taken there yet (P24-Y:
-    what the building is known to hold)."""
+def _holds(world, keys, wants=()):
+    """{use: items} over the containers `keys`: each item of a use the looted rule still wants (`wanted_uses(world,
+    wants)`, Plan 25 Task 4 fix 1: a use past its cap reads nothing, as `L` does) a loot has not taken there yet
+    (P24-Y: what the building is known to hold)."""
     out = {}
+    uses = set(wanted_uses(world, wants))
     for k in keys:
         c = world.containers.get(k) or {}
         for item in c.get("items") or ():
             for u in LOOT_WANTS:
-                if (u != "clothing" or world.can("wear")) and u not in c.get("looted", ()) and holds_use(item, u):
+                if u in uses and u not in c.get("looted", ()) and holds_use(item, u):
                     out[u] = out.get(u, 0) + 1
     return dict(sorted(out.items()))
 

@@ -250,14 +250,30 @@ def held_of(world, want):
     return len(world.by_use().get(WANT_USES.get(want) or want, ()))
 
 
+def looted(world, building, loot=None, wants=(), waiting=None, keys=None):
+    """Whether `building` is looted (Plan 25 Task 4, spec 2.2(a): the one rule the view's `L` flag and
+    LootBuilding's `nothing to loot` both read): a container is known on it (one with none known reads false,
+    unsearched ground being lootable: Plan 24 Task 3 fix 1, M1) and no container of it holds a use a loot would take
+    now, a use of `wanted_uses(world, wants)` that `open_uses` answers there (not marked looted for it,
+    not waiting on the cap: `loot`'s, unless `waiting` {use: keys} is given). So a building whose containers hold
+    only uses no longer wanted (clothing past CLOTHING_HELD_N spare garments, a vessel past CONTAINERS_HELD_N) reads
+    looted, as every container read looted does: F3's building 2 read `open_uses`, every LOOT_WANTS use, and never
+    turned looted through twelve failed loots. `keys` the building's container keys when the caller holds them."""
+    if keys is None:
+        keys = [k for k in world.containers if (world.map.get(k[:3]) or {}).get("building") == building]
+    if not keys:
+        return False
+    uses = set(wanted_uses(world, wants))
+    return not any(uses.intersection(open_uses(world, loot, k, waiting)) for k in keys)
+
+
 def _usable_building(world, b, shunned):
     """Whether building `b` is one the view would send a loot to (review-t24 minor 5): not shunned, its exterior doors
-    not all marked stuck (the window route is left out: it would recurse into `smash_ok`), and not looted out (a
-    building with containers known and no open use at any is; one with none known is not, as in the view)."""
+    not all marked stuck (the window route is left out: it would recurse into `smash_ok`), and not looted out (`looted`, the
+    view's `L`: a building with containers known and no use a loot would still take at any is; one with none known is not)."""
     if b in shunned or door_blocked(world, b, me_floor(world)):
         return False
-    cs = [k for k in world.containers if (world.map.get(k[:3]) or {}).get("building") == b]
-    return not cs or any(open_uses(world, None, k) for k in cs)
+    return not looted(world, b)
 
 
 def smash_ok(world, building, shunned=()):

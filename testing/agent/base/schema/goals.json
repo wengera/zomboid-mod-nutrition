@@ -69,7 +69,7 @@
       "reads": ["inventory_by_use", "weapon", "worn"]
     },
     {
-      "text": "With tired true, or night true, choose Shelter in a listed building over a LootBuilding; with both false a Shelter only walks in and ends, so loot instead; while hold reads endurance or arms, choose Rest until it clears.",
+      "text": "With tired true, or night true, choose Shelter in a listed building over a LootBuilding; with both false a Shelter only walks in and ends, so loot instead; while hold reads endurance or arms, choose Rest until it clears, at night Shelter first and Rest inside.",
       "pages": [4],
       "reads": ["tired", "night", "spent"]
     },

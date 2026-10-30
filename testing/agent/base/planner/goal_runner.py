@@ -214,7 +214,8 @@ class GoalRunner:
                 self._close(g)
                 ended = self.history[-1]
         if self.current is None:
-            g = self.source.propose(self._carried(view))
+            seen = self._carried(view)
+            g = self.source.propose(seen)
             self.pending = g is None
             if g is not None and self.cooled.get(goal_key(g.TYPE, g.args()), 0.0) > self.clock():
                 refused, self.refusal, g = {"type": g.TYPE, "args": g.args()}, self._refusal(g), None
@@ -223,6 +224,7 @@ class GoalRunner:
                 return None
             proposed = g.TYPE
             g.started_wall, g.kit = self.clock(), self.kit   # the budget starts here, never while pending
+            g.for_hold = bool(seen.get("spent"))   # a Rest under a hold is not "nothing to do here" (`Kit.rested`)
             g.mark = actions.history[-1] if actions.history else None
             self.current, self.hold_ticks = g, 0
         cmd = g.step(world, actions, self.clock)

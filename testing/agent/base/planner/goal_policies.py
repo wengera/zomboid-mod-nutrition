@@ -10,30 +10,12 @@ from typing import ClassVar, Optional
 
 from agent.base.planner.goals import (ARRIVE_R, GOAL_MAX_S, LEG_CHUNK, LEG_MAX, LEG_MIN, LEG_SQ_MARGIN, OPTIONAL_FIELDS,
                                       REST_N, RUN_FIELDS, WANT_USES, WINDOW_REPEAT, WOODS_MAX_R, WOODS_R, WOODS_STEP,
-                                      held_of, open_uses, wanted_uses, window_pick)
+                                      held_of, looted, open_uses, wanted_uses, window_pick)
 from agent.base.planner.night import (SHUN_MIN, door_blocked, hop_after, player_square, shelter_ended, shelter_plan,
                                       shelter_step)
 from agent.base.planner.policies import (Explore, LOOT_MAX_LEVEL, LootHouse, PREEMPTED, SCAN_R, centre, me_floor, me_xy,
                                          place_of)
 from agent.base.pza1 import Climb, Scan, WalkTo, Window
-
-
-# ---------------------------------------------------------------- the looted rule
-def looted(world, building, loot=None, wants=(), waiting=None, keys=None):
-    """Whether `building` is looted (Plan 25 Task 4, spec 2.2(a): the one rule the view's `L` flag and
-    LootBuilding's `nothing to loot` both read): a container is known on it (one with none known reads false,
-    unsearched ground being lootable: Plan 24 Task 3 fix 1, M1) and no container of it holds a use a loot would take
-    now, a use of `goals.wanted_uses(world, wants)` that `goals.open_uses` answers there (not marked looted for it,
-    not waiting on the cap: `loot`'s, unless `waiting` {use: keys} is given). So a building whose containers hold
-    only uses no longer wanted (clothing past CLOTHING_HELD_N spare garments, a vessel past CONTAINERS_HELD_N) reads
-    looted, as every container read looted does: F3's building 2 read `open_uses`, every LOOT_WANTS use, and never
-    turned looted through twelve failed loots. `keys` the building's container keys when the caller holds them."""
-    if keys is None:
-        keys = [k for k in world.containers if (world.map.get(k[:3]) or {}).get("building") == building]
-    if not keys:
-        return False
-    uses = set(wanted_uses(world, wants))
-    return not any(uses.intersection(open_uses(world, loot, k, waiting)) for k in keys)
 
 
 # ---------------------------------------------------------------- the shared machines
@@ -52,10 +34,11 @@ class Kit:
 
     def rested(self, goal):
         """A goal ended: a Rest ended rested counts one, REST_N in a row widening the woods radius by WOODS_STEP up
-        to WOODS_MAX_R; any other goal's end restarts the count (a superseded Rest neither counts nor restarts it)."""
+        to WOODS_MAX_R; any other goal's end restarts the count (a superseded Rest neither counts nor restarts it, nor does a Rest proposed under a hold: it was spent, not
+        nothing to do here: Plan 25 Task 4 fix 1)."""
         if goal.TYPE != "Rest":
             self.rests = 0
-        elif goal.state == "done":
+        elif goal.state == "done" and not goal.for_hold:
             self.rests += 1
             if self.rests >= REST_N:
                 self.woods_r, self.rests = min(self.woods_r + WOODS_STEP, WOODS_MAX_R), 0
@@ -104,6 +87,7 @@ class Goal:
     def __post_init__(self):
         self.kit = None        # the runner's Kit, else built on the first step
         self.last = None       # the last Action this goal sent
+        self.for_hold = False  # proposed while the view read a hold (`spent`): the runner sets it, `Kit.rested` reads it
         self.mark = None       # the last action sent (by anyone) when the runner took this goal
         self.why = {}          # the goal's inputs to its last choice, logged under the goal branch
         self.sent_n = 0        # commands this goal sent

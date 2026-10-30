@@ -962,3 +962,33 @@ def test_a_cooled_refusal_carries_the_why_of_the_end_that_cooled_it(tmp_path):
     assert runner.history[0]["reason"] == "nothing to loot"
     assert src.views[2]["last_goal"] == {"type": "LootBuilding", "args": {"building": 1}, "end": "cooled",
                                          "why": "looted already"}
+
+
+# ================================================================ Plan 25 Task 4 fix 1: the smash rule, Rest for a hold
+def test_the_smash_rule_reads_the_one_looted_rule(tmp_path):
+    """Fix 1 minor 1: a building the view reads `L` (only clothing past CLOTHING_HELD_N spare garments left) is not a
+    usable building for the smash rule; one garment short of the cap it is."""
+    from agent.base.planner.policies import CLOTHING_HELD_N
+    for held, usable in ((CLOTHING_HELD_N, False), (CLOTHING_HELD_N - 1, True)):
+        r = Rig(tmp_path / str(held))
+        r.scan([inside(101, 200, containers=[JACKET])])
+        for i in range(held):
+            r.event("item_added", itemId=950 + i, fullType="Base.Jacket_Leather", weight=1.0, use="clothing")
+        r.frame()
+        assert G._usable_building(r.world, 1, ()) is usable
+        assert G.looted(r.world, 1) is (not usable)
+
+
+def test_a_rest_proposed_under_a_hold_does_not_widen_the_woods(tmp_path):
+    """Fix 1 minor 3: a Rest the runner took while the view read `spent` ends done without counting toward REST_N; one
+    taken with no hold counts."""
+    r = Rig(tmp_path)
+    r.frame()
+    for spent, rests in (({"kind": "endurance", "value": 0.5}, 0), (None, 1)):
+        runner = GoalRunner(Src(Rest(1.0)), r.clock)
+        v = {"spent": spent} if spent else {}
+        runner.tick(r.world, r.acts, v)
+        assert runner.current.for_hold is bool(spent)
+        runner.current.end("done", "rested")
+        runner.tick(r.world, r.acts, {})
+        assert runner.kit.rests == rests, spent

@@ -656,5 +656,6 @@ def test_system_names_rest_under_the_hold_and_explains_the_hold_and_the_cooled_e
     third = strategy()[2]
     assert third["text"].startswith("With tired true, or night true, choose Shelter in a listed building")
     assert "while hold reads" in third["text"] and "choose Rest" in third["text"] and V.HOLD_KEY in third["reads"]
+    assert third["text"].endswith("at night Shelter first and Rest inside.")   # fix 1 minor 2: the order between the clauses
     assert "hold names what keeps you from seeking a fight" in SYSTEM and third["text"] in SYSTEM
     assert "end done, failed, superseded, refused or cooled" in SYSTEM
