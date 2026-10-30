@@ -38,9 +38,11 @@ def pre_x(sv):
     its line 1 (the engage of a zombie at 7 tiles where the record looted) and every later line of those episodes is
     open loop. Not behind the switch: Task 18's WIDE_TURNS and STEP_PROBE (and fix 1's group-aware wide tier), which
     the PRE_X pins prove move no golden (Task 18 fix 1, the review's minor 13). Plan 24 Task 21: ruling P24-AD's
-    switch (`Survive.IDLE`) is off with it, the idle zombie counted toward `many` as before."""
+    switch (`Survive.IDLE`) is off with it, the idle zombie counted toward `many` as before; Task 27: rulings P24-AG
+    and P24-AK's (`Survive.STRAIN`) too, no spent read."""
     sv.ENGAGE = False
     sv.IDLE = False
+    sv.STRAIN = False
 
 
 @functools.lru_cache(maxsize=6)
@@ -72,8 +74,9 @@ def pre_ad(sv):
     """The replay's mutate seam onto the rules before ruling P24-AD (Plan 24 Task 21: `Survive.IDLE` off, every
     zombie counted toward `many`), P24-X kept: it reproduces the six goldens as they stood before Task 21's re-record
     byte for byte (Task 21's report). A test that pins a line of an earlier ruling which P24-AD moved downstream (open
-    loop) reads it there."""
+    loop) reads it there. Task 27: `Survive.STRAIN` off with it (P24-AG and P24-AK moved E4 and F1 downstream)."""
     sv.IDLE = False
+    sv.STRAIN = False
 
 
 @functools.lru_cache(maxsize=6)
@@ -879,3 +882,86 @@ def test_the_sixth_golden_s_seek_walk_round_the_wall_gives_way_at_the_first_tick
     moved = {d["line"]: d for d in R.run(run_dir(SIXTH), caps=R.HELLO_CAPS[SIXTH])}
     diff = [k for k in sorted(set(g) | set(moved)) if g.get(k) != moved.get(k)]
     assert diff[0] == 111 and moved[111]["why"]["holding"] == "a12"
+
+
+# ================================================================ Plan 24 Task 27: P24-AG to P24-AL on the goldens
+def pre_ag(sv):
+    """The replay's mutate seam onto the rules before rulings P24-AG and P24-AK (Plan 24 Task 27: `Survive.STRAIN` off,
+    no spent read), every other rule kept: it reproduces the six goldens as they stood before Task 27's re-record byte
+    for byte (`test_with_strain_off_the_goldens_are_iteration_9_s`), so P24-AH, P24-AI, P24-AJ and P24-AL, always on,
+    move no golden: the records announce no `shove`, `stomp` or `unwear` and carry no `armPain`, `strain`,
+    `loadedWidth` or `onFloor` (`test_no_record_carries_a_pza1_7_read`), and the goals answer from the record."""
+    sv.STRAIN = False
+
+
+@functools.lru_cache(maxsize=6)
+def _pre_ag_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_ag), sort_keys=True)
+
+
+def pre_ag_gold(key):
+    """{line: decision} of the replay with P24-AG off: the golden before Task 27's re-record."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_ag_replayed(key)))}
+
+
+# the six goldens as they stood before Task 27's re-record (base 9abc5037, recorded 2026-10-29), their sha256
+PRE_AG = {"e2": "ce339594d3cc5a0715468423bd5a2c60ab2421a7a52dd99342c390127e0c7d06",
+          "e3": "51822032e67a4c7c76cc5ddbd0e426357c13596d70db4b904f57980988de9eaf",
+          "e4": "2279b91ab3bd32c884287eec20166209a46f60a9dc92638211c19faa53be9045",
+          "e5": "ce0bc741b43c2b87a2f92edd80e2710cea0cb5d3ac42bbd5322ba5a1d9f28f53",
+          "f1": "556dd17687bc90f87e2673ec45b36d5d7066eb93434b1226285bcd0aecd1e817",
+          SIXTH: "acd162ed7043871a31d2dd20f6ac6791c3f5e731efecbbfdc3a9451d5a9d4dc9"}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_AG))
+def test_with_strain_off_the_goldens_are_iteration_9_s(key):
+    """P24-AG and P24-AK are one switch (`Survive.STRAIN`): with it off every golden is the file as it stood before
+    Task 27 byte for byte (its sha256 pinned), so every line Task 27 moved is theirs, and the shove, the stomp, the
+    finish of the fallen, the loaded-window legs and the unwear (always on) moved none."""
+    text = R.golden_text(R.decisions(json.loads(_pre_ag_replayed(key))), "9abc5037", R.RUNS[key], "2026-10-29",
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == PRE_AG[key]
+
+
+# the first line P24-AG moves on each golden it moves (the ENDURANCE moodle's first level read off the record's
+# frames: no record carries armPain, and none reads fatigue near TIRED_FIGHT_T); E2, E3 and E5 never read
+# endurance at or under ENDURANCE_T (their least 0.919, 0.965, 0.949) nor fatigue 0.6, so they do not move
+FIRST_STRAIN = {"e4": 427, "f1": 604, SIXTH: 604}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_AG))
+def test_p24_ag_moves_e4_and_f1_first_at_the_endurance_moodle_and_no_other_golden(key):
+    """Task 27's attribution: E4 moves first at line 427 (game minute 619: the held flee's reason reads `strain`, the
+    endurance 0.708), F1 and the sixth at line 604 (game minute 642: the `walk` corner on 15917 yields `strain`, the
+    endurance 0.737, and the flee goes where the record swung); every later moved line is that episode's, open loop
+    (E4's character died at 627 in the record, so its replay's tail flees `unarmed` once its inventory is gone)."""
+    base, got = pre_ag_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    if key not in FIRST_STRAIN:
+        assert diff == []
+        with open(R.golden_path(key), "rb") as f:
+            assert hashlib.sha256(f.read()).hexdigest() == PRE_AG[key]
+        return
+    line = FIRST_STRAIN[key]
+    assert diff[0] == line
+    w = got[line]["why"]
+    assert w["strain"]["kind"] == "endurance" and w["strain"]["endurance"] <= P.ENDURANCE_T
+    assert w["strain"]["armPain"] is None and w["strain"]["fatigue"] < P.TIRED_FIGHT_T
+    assert w.get("flee") == "strain" or w.get("yield") == "strain"
+
+
+@pytest.mark.parametrize("key", sorted(R.RUNS))
+def test_no_record_carries_a_pza1_7_read(key):
+    """The goldens' records predate PZA/1.7: no hello announces `shove`, `stomp` or `unwear`, and no frame carries
+    `body.armPain`, `body.strain`, `me.loadedWidth` or a zombie's `onFloor` (decoded None), so P24-AG's Fight half,
+    P24-AH, P24-AI, P24-AJ and P24-AL read nothing there."""
+    lines, _ = R.read_record(run_dir(key))
+    hellos = [ln for ln in lines if ln.get("kind") == "hello"]
+    frames = [ln for ln in lines if ln.get("kind") == "frame"]
+    assert hellos and frames
+    assert not any(c in (h.get("caps") or ()) for h in hellos for c in ("shove", "stomp", "unwear"))
+    assert not any(c in (R.HELLO_CAPS.get(key) or ()) for c in ("shove", "stomp", "unwear"))
+    for fr in frames:
+        assert (fr.get("body") or {}).get("armPain") is None and (fr.get("body") or {}).get("strain") is None
+        assert (fr.get("me") or {}).get("loadedWidth") is None
+        assert not any(zz.get("onFloor") is not None for zz in fr.get("zombies") or ())

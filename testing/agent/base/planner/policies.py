@@ -292,6 +292,15 @@ NO_TARGET = "no target"   # the Lua's refusal of an aim whose target is gone (Ta
 PREEMPTED = "superseded"   # the reason the Lua fails an action a newer send replaced
 RIDE_TYPES = ("walkTo", "steer")   # the legs a keepMoving bandage rides (PZA/1.5.3, ruling P24-R)
 STUCK_REASONS = ("stuck", "no path", "no square")   # a walkTo failed for one of these: its target is remembered
+STRAIN_SOFT = 10.0    # the frame's body.armPain at which a swing's damage starts to fall (divided by armPain / 10,
+                      # #4370): the Fight prefers the stomp and the point-blank shove (ruling P24-AG); under it again
+                      # the strain hold ends
+STRAIN_HARD = 20.0    # ... at which the damage is halved: the threat branch disengages and starts no new fight until
+                      # armPain falls under STRAIN_SOFT (ruling P24-AG)
+ENDURANCE_T = 0.75    # the frame's stats.endurance at or under which the ENDURANCE moodle reads level 1 (#3926, #4076),
+                      # whose first level halves every swing (#4371): the disengage of P24-AG
+TIRED_FIGHT_T = 0.6   # stats.fatigue at or above which no fight is sought or stood (ruling P24-AK; the first TIRED
+                      # moodle, night.TIRED_T, halves every swing at its first level too, #4371)
 
 
 def place_of(world):
@@ -436,6 +445,13 @@ def hit_reaction(world):
     frame): no swing starts while it is set (#4292, #4293)."""
     h = (world.me or {}).get("hitReaction")
     return h if isinstance(h, str) and h else None
+
+
+def arm_pain(world):
+    """The frame's `body.armPain` (PZA/1.7: the summed pain of the six arm parts, #4370) when a number, else None (a
+    frame written before PZA/1.7 carries none: no strain rule reads it)."""
+    v = (world.body or {}).get("armPain")
+    return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
 
 def away_vector(world, points):

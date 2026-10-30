@@ -2025,6 +2025,13 @@ def idle_off(r, sv, w):
     sv.IDLE = False
 
 
+def strain_off(r, sv, w):
+    """`run_replay`'s setup onto the rules before rulings P24-AG and P24-AK (Plan 24 Task 27: `Survive.STRAIN` off, no
+    spent read): E4's frames from game minute 455 and F1's last fight read the endurance at or under ENDURANCE_T (the
+    ENDURANCE moodle's first level), so a test pinning an earlier ruling there reads it with the switch off."""
+    sv.STRAIN = False
+
+
 @functools.lru_cache(maxsize=2)
 def _e3_sequential(idle=True):
     """E3's lines 230-284 through one Survive (`e3_replay`), shared by the sequential tests; `idle` False reads them
@@ -2616,7 +2623,10 @@ def test_e4_the_walk_corner_ends_when_the_held_count_reaches_four_and_the_group_
     sprint steer is sent, not the attack (the record held the corner to line 481, the held count rising to six). The
     recorded frames never answer the steer with movement: the leg read stuck (R1) is a `stuck` corner from line 457,
     and its retry (STUCK_RETRY_S, the nearest beyond POINT_BLANK_R) one more leg at 462."""
-    r, sv, out = run_replay(E4, tmp_path, 447, 481, setup=e4_flee_held)
+    def setup(r, sv, w):   # named change, Task 27: the frames read the endurance moodle (P24-AG's disengage)
+        e4_flee_held(r, sv, w)
+        strain_off(r, sv, w)
+    r, sv, out = run_replay(E4, tmp_path, 447, 481, setup=setup)
     d, a = out[447]
     assert a.type == "attack" and a.args == {"targetId": 19032} and d["inputs"]["branches"]["threat"]["cornered"]
     for line in range(448, 453):
@@ -3181,6 +3191,7 @@ def test_f1_s_last_fight_the_walk_corner_yields_to_health_at_the_first_line_unde
     def setup(r, sv, w):
         f1_walk_corner(r, sv, w)
         idle_off(r, sv, w)
+        strain_off(r, sv, w)   # named change, Task 27: F1's last fight reads the endurance moodle (P24-AG)
     r, sv, out = run_replay(F1, tmp_path, 600, 612, setup=setup)
     for line in range(600, 607):
         d = out[line][0]
@@ -3199,6 +3210,7 @@ def test_f1_line_599_sends_the_attack_not_the_approach_walk_at_point_blank(tmp_p
     started): the record walked to its square's centre; the attack goes, the flag cleared."""
     def setup(r, sv, w):
         f1_walk_corner(r, sv, w)
+        strain_off(r, sv, w)   # named change, Task 27: F1's line 599 reads the endurance moodle (P24-AG's yield)
         sv.fight.approach = True
     r, sv, out = run_replay(F1, tmp_path, 599, 599, setup=setup)
     d, a = out[599]

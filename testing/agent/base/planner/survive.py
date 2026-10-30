@@ -223,6 +223,16 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
 - Survival 10 (Plan 24 Task 24; PZA/1.6.1): the stock also wears (`care.Care._wear`, the better garment by the rule of
   review-t9-fix9; `World.worn` is `me.worn` kept across null frames), the goals loot clothing (`goals.wanted_uses`) and
   route a stuck-door building through a window (`goals.window_pick`), and the view carries `worn`.
+- Survival 11 (Plan 24 Task 27, spec § 6 item 20 and amendment 6's guides' rulings; PZA/1.7; the jar reads #4368-#4377;
+  the eighth chain killed four in three standing fights and bled out standing): P24-AG, strain-aware fighting: a
+  spent character (`_spent`: the arms' strain hold, `_read_strain`, from `body.armPain` STRAIN_HARD 20 until it reads
+  under STRAIN_SOFT 10; the ENDURANCE moodle's first level, `stats.endurance` ENDURANCE_T 0.75 or under; and P24-AK's
+  tired gate, `stats.fatigue` TIRED_FIGHT_T 0.6 or above) flees `strain` (`_hysteresis`, after `pair`; the why's
+  `strain` names the kind and the reads), engages and seeks nothing (`_sought`), and a `walk` corner yields `strain`
+  after `health` and a running `many` episode (`_walk_yields`); the `stuck`, `inside`, trapped and door fights still
+  swing, no leg leaving them. Under STRAIN_SOFT's line the Fight's own preference, the shove and the stomp (P24-AH,
+  P24-AL) are `policies.Fight`'s; the loaded-window legs (P24-AI) `goals.leg_max`; the unwear then rip (P24-AJ)
+  `care.Care._unwear`. `STRAIN` is the replay tests' seam onto the rules before it (`test_replay_decisions.pre_ag`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -300,11 +310,11 @@ from agent.base.items import days_fresh
 from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, RIDE_FREE, RIDE_R, Care
 from agent.base.planner.goals import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
-from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, ENGAGE_R, FIGHT_MAX_S,
-                                         FIGHT_REACH, LISTED_R, POINT_BLANK_R, PREEMPTED, STUCK_REASONS,
-                                         UNREACHABLE_S, Fight, Flee, adoptable, blocked, chasing, exit_plan,
-                                         in_building, in_reach, item_id_ok, line_to, others_behind, seek_allowed,
-                                         spare, target_id_ok, zdist)
+from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, ENDURANCE_T, ENGAGE_R,
+                                         FIGHT_MAX_S, FIGHT_REACH, LISTED_R, POINT_BLANK_R, PREEMPTED, STRAIN_HARD,
+                                         STRAIN_SOFT, STUCK_REASONS, TIRED_FIGHT_T, UNREACHABLE_S, Fight, Flee,
+                                         adoptable, arm_pain, blocked, chasing, exit_plan, in_building, in_reach,
+                                         item_id_ok, line_to, others_behind, seek_allowed, spare, target_id_ok, zdist)
 from agent.base.planner.view import NEED_MEMORY_S, view
 from agent.base.planner.water import FILL_RETRY_MIN, FILL_SETTLE_S, FILL_WANTS, SOURCE_FAILS, Water
 from agent.base.pza1 import Consume, Drop
@@ -374,6 +384,10 @@ def _key(typ, args):
     return typ, json.dumps(args, sort_keys=True)
 
 
+def _num(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
 class Survive:
     ENGAGE = True   # ruling P24-X: one or two within ENGAGE_R are sought, a flee turns to fight at the fight's line
     SEEK = True     # ruling P24-X: every fight it engages (the door fight aside) is sought to KEEP_R; both switches
@@ -382,6 +396,9 @@ class Survive:
                     # no golden (Task 18 fix 1, the review's minor 13)
     IDLE = True     # ruling P24-AD: an idle zombie counts toward `many` only within DANGER_R; off, every zombie counts
                     # (the replay tests' seam onto the rules before it, `test_replay_decisions.pre_x` with the above)
+    STRAIN = True   # rulings P24-AG and P24-AK: a spent character (the arms' strain hold, the endurance moodle, the
+                    # tired line) flees `strain` and engages nothing; off, neither is read (the replay tests' seam onto
+                    # the rules before Task 27, `test_replay_decisions.pre_ag`)
 
     def __init__(self, world, actions, log_path, clock=time.time, source=None):
         self.world = world
@@ -422,6 +439,7 @@ class Survive:
         self.avoid = set()        # this tick: the ids within the hold no engage reaches (`_engageable`), else empty
         self._flood = None        # (map version, player square, squares): the engage's bounded flood (`_reach`)
         self.dead = {}            # zombie id -> wall until it is skipped, read dead (policies.Fight, Task 12 fix 1)
+        self.strain_hold = False  # the arms' strain hold (P24-AG): set at armPain STRAIN_HARD, cleared under STRAIN_SOFT
         self.night = Night(world, actions, clock)
         # one shun store: the goals' Shelter shuns into the night's (Task 13 fix 1, M6), so neither re-tries the other's
         self.goals = GoalRunner(ScriptedSource() if source is None else source, clock, shunned=self.night.shunned)
@@ -630,6 +648,40 @@ class Survive:
             return "held"
         return reason
 
+    def _read_strain(self):
+        """Ruling P24-AG's hysteresis, read once a tick (`_threat`): the strain hold starts at the frame's
+        `body.armPain` at or above STRAIN_HARD (every swing's damage divided by armPain / 10, halved at 20: #4370) and
+        ends once it reads under STRAIN_SOFT, or with no armPain on the frame (an older Lua). A rest lowers the strain's
+        share by about 5.76 a real minute on the server (#4369); a wound on an arm holds the pain up."""
+        pain = arm_pain(self.world)
+        if pain is None or pain < STRAIN_SOFT:
+            self.strain_hold = False
+        elif pain >= STRAIN_HARD:
+            self.strain_hold = True
+
+    def _spent(self):
+        """Rulings P24-AG and P24-AK (#4370, #4371): why the character is spent for a fight this tick, else None (always
+        with `STRAIN` off): `arms` while the strain hold runs (`_read_strain`), `endurance` at the frame's
+        `stats.endurance` ENDURANCE_T or under (the ENDURANCE moodle's first level, which halves every swing), `tired`
+        at `stats.fatigue` TIRED_FIGHT_T or above (the TIRED moodle's, which halves it again). Spent, the threat branch
+        disengages (the flee `strain`, its legs as today), engages and seeks nothing, and a `walk` corner yields; the
+        `stuck`, `inside`, trapped and door fights, which no leg can leave, still swing (the Fight's shove and stomp
+        spare the arms there: `policies.Fight._shove`)."""
+        if not self.STRAIN:
+            return None
+        st = self.world.stats or {}
+        e, f = st.get("endurance"), st.get("fatigue")
+        kind = None
+        if self.strain_hold:
+            kind = "arms"
+        elif _num(e) and e <= ENDURANCE_T:
+            kind = "endurance"
+        elif _num(f) and f >= TIRED_FIGHT_T:
+            kind = "tired"
+        if kind is None:
+            return None
+        return {"kind": kind, "armPain": arm_pain(self.world), "endurance": e, "fatigue": f}
+
     def _seeks(self):
         """A new Fight is sought (P24-X): both switches on."""
         return self.ENGAGE and self.SEEK
@@ -652,8 +704,8 @@ class Survive:
         current (a sleeper is woken only within DANGER_R, as before); else None. The branch then holds all of them
         (`engaging`: the hold radius ENGAGE_R this tick), so the second of a pair within ENGAGE_R is the fight's, not a
         group behind it."""
-        if self.mode is not None or self._sleeping() is not None:
-            return None
+        if self.mode is not None or self._sleeping() is not None or self._spent() is not None:
+            return None   # P24-AG, P24-AK: a spent character starts no fight
         near = self._within(ENGAGE_R)
         if not near or not self._takes_on(len(near)) or self._many_read(near, len(self._within(DANGER_R)))[0]:
             return None
@@ -775,6 +827,8 @@ class Survive:
             return "health"
         if n >= 2 and (health < FLEE_HEALTH_PAIR or self._wounds() > 0):
             return "pair"
+        if self._spent() is not None:   # P24-AG, P24-AK: the arms, the endurance or the tiredness halve every swing
+            return "strain"
         if not self._reachable_held():
             return "unreachable"
         near = min(zdist(self.world, z) for z in held)
@@ -939,7 +993,9 @@ class Survive:
         (`_cornered`); the `stuck` and `inside` corners keep the override, no leg moving there."""
         if self._health() < FLEE_HEALTH:
             return "health"
-        return "many" if self.mode == "flee" and self.flee_many else None
+        if self.mode == "flee" and self.flee_many:
+            return "many"
+        return "strain" if self._spent() is not None else None   # P24-AG: spent, it disengages as the health flee does
 
     def _drag(self, held, inside):
         """Ruling P24-A (h) (#4290, #4291: DRAG_DOWN_N zombies attacking from within 0.9 tiles turn the next hit into
@@ -1135,6 +1191,7 @@ class Survive:
         count; then the yield to the care (`_care_yields`, P24-P), else the decision (`_decide`), which a corner's
         retarget may re-plan without them."""
         self.care_yield, self.care.ride_now, self.engaging, self.avoid = None, False, False, set()
+        self._read_strain()
         held = self._within(self._hold_r())
         sought = self._sought() if self.ENGAGE else None
         if sought:   # P24-X: one or two within ENGAGE_R, the fight sought
@@ -1217,6 +1274,8 @@ class Survive:
             policy.threats = held
             ans = self._answer(policy)
         self.why.update({"fight": True} if reason is None else {"flee": reason})
+        if reason == "strain" or self.corner_yield == "strain":
+            self.why["strain"] = self._spent()   # P24-AG: the why names the strain
         if self.sheltered:
             self.why["sheltered"] = True
         if kind == "cornered" and self.fight.target not in (None, self.cornered):
