@@ -2445,7 +2445,7 @@ def e_corner(L):
     `lines` the threat lines whose why carries `corner` (reading) by `kind`; `break_steers` the break lines that sent a steer
     and `swing_attacks` the swing lines that sent an attack (each must equal its kind's lines); `shoves` the shove sends
     of the log and `repeat_shoves` those sent at the same target within SHOVE_REPEAT_S of the one before (an inference:
-    the sent actions; must read 0, the corner taking the place of the repeat)."""
+    the sent actions; the corner shoves again at a lone or boxed-in target, so the count is a reading, not a gate)."""
     if L is None:
         return {"read": False}
     kinds = {"break": [], "swing": []}
@@ -2585,7 +2585,7 @@ def report_lines_e10(g):
     cn, ff, hw, rw, dw, fw = (_d(g.get(x)) for x in ("corner", "finish_first", "hold_walk", "ride_wait", "door_walk",
                                                      "fence_wait"))
     out.append(("corner (P25-A) [reading]: %s lines, %s break (%s steers sent), %s swing (%s attacks sent); shoves %s, "
-                "repeated at a target within %s s %s (must read 0) [inference: the sent actions]" % (
+                "repeated at a target within %s s %s [inference: the sent actions]" % (
                     cn.get("lines"), cn.get("break"), cn.get("break_steers"), cn.get("swing"), cn.get("swing_attacks"),
                     cn.get("shoves"), SHOVE_REPEAT_S, cn.get("repeat_shoves")))
                if cn.get("read") else "corner (P25-A): no decision log read")
