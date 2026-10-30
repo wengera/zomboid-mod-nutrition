@@ -100,7 +100,7 @@ def test_an_item_changed_that_reads_a_worn_item_unworn_is_logged(tmp_path):
 
 # ================================================================ 2. the wear rule
 def test_the_wear_constants():
-    assert (C.WEAR_RETRY_MIN, C.WEAR_QUIET_R, C.WEAR_SETTLE_FRAMES) == (10.0, 8.0, 2)
+    assert (C.WEAR_RETRY_MIN, C.WEAR_QUIET_R, C.WEAR_SETTLE_MAX) == (10.0, 8.0, 12)
 
 
 @pytest.mark.parametrize("cand,worn,want", [
@@ -240,7 +240,7 @@ def test_one_wear_per_item_per_ten_game_minutes(tmp_path):
     tick(r, sv)
     assert r.cmd() == ("wear", {"itemId": 20})
     r.answer()
-    settle(r, sv, n=3, game_min=485.0)
+    settle(r, sv, n=3, game_min=485.0, worn=[wl(bite=1, scratch=1)])
     assert len(sends(r, "wear")) == 1
     assert sv.care.wear_at == {20: 480.0}
     settle(r, sv, n=1, game_min=490.0)
@@ -270,17 +270,20 @@ def settle(r, sv, n=4, **frame):
         tick(r, sv)
 
 
-def wear_done(r, sv, iid=20, replaced=None, worn_after=None, off=None):
-    """Send the wear of `iid`, answer it done (with `replaced`), then the engine's reads: the `off` ids item_changed
-    unworn ({id: its record}) and `worn_after` the new me.worn (the frame after the done)."""
+def wear_done(r, sv, iid=20, replaced=None, worn_after=None, off=None, **frame):
+    """Send the wear of `iid`, answer it done (with `replaced`), then the reads the Lua really sends (`markWear` marks
+    only the candidate and the replaced garment): item_changed worn for `iid`, item_changed unworn for `replaced`
+    ({id: its record} in `off`), and `worn_after` the new me.worn (the frame after the done). A garment an exclusive
+    location knocked off gets no line."""
     tick(r, sv)
     assert r.cmd() == ("wear", {"itemId": iid})
     r.fake.answer({"wear": ["accepted", {"state": "done", "result": dict({"itemId": iid, "loc": JACKET},
                                                                         **({} if replaced is None else {"replaced": replaced}))}]})
     r.pump()
+    r.event("item_changed", itemId=iid, use="clothing", clothing=rec(bite=10.0, scratch=10.0, worn=True), worn=True)
     for o, c in off.items():
         r.event("item_changed", itemId=o, use="clothing", clothing=c)
-    r.frame(worn=worn_after)
+    r.frame(worn=worn_after, **frame)
     tick(r, sv)
 
 
@@ -293,10 +296,10 @@ def test_a_wear_that_lowers_the_worn_defence_wears_the_removed_garments_again_an
     cloth(r, 22, ft="Base.Hat_Army", worn=True, loc="base:hat", bite=30.0, scratch=30.0)
     cloth(r, 20, bite=10.0, scratch=10.0)
     r.frame()
-    wear_done(r, sv, replaced=21, worn_after=[wl(JACKET, 10, 10)], off={21: rec(bite=5.0, scratch=5.0), 22: rec("base:hat", 30.0, 30.0)})
-    assert sv.care.wearing["before"] == 70.0
+    wear_done(r, sv, replaced=21, worn_after=[wl(JACKET, 10, 10)], off={21: rec(bite=5.0, scratch=5.0)})   # the hat 22: no line, as the Lua sends
     settle(r, sv, n=3)
     assert set(r.world.marked("wear_loses")) == {20}
+    assert r.world.inventory[22].get("worn") is None   # the stale flag is cleared
     assert [a.args["itemId"] for a in sends(r, "wear")] == [20, 22]
     assert {"reason": "rewear", "item": 22} in [d["inputs"]["branches"].get("care", {}).get("stock")
                                                 for d in decisions(tmp_path)]
@@ -315,7 +318,42 @@ def test_a_wear_that_does_not_lower_the_defence_drops_the_replaced_garment_under
     cloth(r, 20, bite=30.0, scratch=30.0)
     r.frame(level=level)
     wear_done(r, sv, replaced=21, worn_after=[wl(JACKET, 30, 30)],
-              off={21: rec(bite=5.0, scratch=5.0)})
+              off={21: rec(bite=5.0, scratch=5.0)}, level=level)
     settle(r, sv, n=3, level=level)
     assert any(a.type == "drop" and a.args == {"itemId": 21} for a in r.acts.history) is want
     assert not r.world.marked("wear_loses")
+
+
+def test_the_wear_check_waits_for_a_me_worn_list_newer_than_the_done_and_for_at_most_the_cap(tmp_path):
+    """Review-t24 minor 4: a done with no new list yet is not checked (the old total would pass); the check runs on the
+    list, or WEAR_SETTLE_MAX frames after the done when none comes."""
+    r, sv = rig(tmp_path, worn=[wl(JACKET, 5, 5), wl("base:hat", 30, 30)])
+    cloth(r, 21, worn=True, bite=5.0, scratch=5.0)
+    cloth(r, 22, ft="Base.Hat_Army", worn=True, loc="base:hat", bite=30.0, scratch=30.0)
+    cloth(r, 20, bite=10.0, scratch=10.0)
+    r.frame()
+    tick(r, sv)
+    assert r.cmd() == ("wear", {"itemId": 20})
+    r.fake.answer({"wear": ["accepted", {"state": "done", "result": {"itemId": 20, "loc": JACKET, "replaced": 21}}]})
+    r.pump()
+    for _ in range(C.WEAR_SETTLE_MAX - 2):          # frames with no me.worn: the check holds
+        r.frame()
+        tick(r, sv)
+        assert sv.care.wearing is not None
+    r.frame(worn=[wl(JACKET, 10, 10)])               # the list lands
+    tick(r, sv)
+    assert sv.care.wearing is None and set(r.world.marked("wear_loses")) == {20}
+
+
+def test_the_wear_check_runs_at_the_cap_when_no_list_comes(tmp_path):
+    r, sv = rig(tmp_path, worn=[wl(JACKET, 5, 5)])
+    cloth(r, 21, worn=True, bite=5.0, scratch=5.0)
+    cloth(r, 20, bite=30.0, scratch=30.0)
+    r.frame()
+    tick(r, sv)
+    r.fake.answer({"wear": ["accepted", {"state": "done", "result": {"itemId": 20, "loc": JACKET, "replaced": 21}}]})
+    r.pump()
+    for _ in range(C.WEAR_SETTLE_MAX):
+        r.frame()
+        tick(r, sv)
+    assert sv.care.wearing is None

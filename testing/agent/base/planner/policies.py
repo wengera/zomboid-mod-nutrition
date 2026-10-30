@@ -273,6 +273,10 @@ AIM_HOLD_S = 2.0      # seconds the Lua keeps a stance an attack swung from once
 STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
+CLOTHING_HELD_N = 3   # unworn garments held at which `clothing` is no longer wanted (Task 24: the wear rule judges each
+                      # garment once held; a judgment bounding the surplus the loot carries)
+CLOTHING_LOOT_KG = 1.5   # kg a clothing loot may take per garment still wanted (review-t24 major 3; a judgment: a
+                      # coat or boilersuit weighs about that), so a full wardrobe leaves the cap to the food
 LOAD_RATIO_MAX = 1.0  # a loot fills to this times the frame's load.max (level 1 holds up to 1.25 of it, #3926)
 LOOT_FAILS_TO_PASS = 2   # failed loots of one container for one use before it is passed (Task 18 fix 1, the review's
                          # major 3: as a door's DOOR_FAILS_TO_MARK; a failure is not an empty container)
@@ -1710,10 +1714,16 @@ class LootHouse(Policy):
 
     def cap(self):
         """The loot's maxWeight: the frame's load.max times LOAD_RATIO_MAX, 0.0 (no cap) when it reads no positive
-        number."""
+        number. A `clothing` loot takes at most CLOTHING_LOOT_KG per garment still wanted on top of the carried weight
+        (CLOTHING_HELD_N less the unworn garments held), never past that cap (review-t24 major 3)."""
         m = (self.world.load or {}).get("max")
         ok = isinstance(m, (int, float)) and not isinstance(m, bool) and m > 0
-        return float(m) * LOAD_RATIO_MAX if ok else 0.0
+        cap = float(m) * LOAD_RATIO_MAX if ok else 0.0
+        w = self.weight()
+        if self.want == "clothing" and ok and w is not None:
+            spare = sum(1 for i in self.world.by_use().get("clothing", ()) if self.world.inventory[i].get("worn") is not True)
+            cap = min(cap, w + max(CLOTHING_HELD_N - spare, 0) * CLOTHING_LOOT_KG)
+        return cap
 
     def weight(self):
         w = (self.world.load or {}).get("weight")

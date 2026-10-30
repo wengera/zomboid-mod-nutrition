@@ -355,3 +355,109 @@ def test_the_doors_spent_through_the_machine_the_window_route_follows_and_withou
         else:
             assert [a.type for a in r.acts.history].count("window") == 0
             assert sv.goals.history[-1]["reason"] == "no door"
+
+
+# ================================================================ 5. fix 1 (review-t24)
+def window_end(r, g, reason):
+    """The goal's next window send, answered failed `reason`, and the goal's observe."""
+    cmd = g.choose(r.world, r.acts, r.clock)
+    assert isinstance(cmd, Window)
+    g.sent(cmd, r.acts.send(cmd))
+    r.fake.answer({"window": ["accepted", {"state": "failed", "reason": reason}]})
+    r.pump()
+    g.observe(r.world, r.acts, r.clock)
+    return cmd
+
+
+def test_a_smash_try_refused_locked_leaves_the_window_out_and_a_second_locked_too(tmp_path):
+    """Review-t24 major 2: a `locked` end of a try that already smashed (a barricade or a frame a smash cannot cure), or a
+    second `locked` within DOOR_RETRY_MIN, marks the window dead (`failed`), so it is not re-sent for the goal's budget."""
+    r, sv, g = stuck_door_rig(tmp_path, win=dict(CLOSED, locked=True))
+    cmd = window_end(r, g, "locked")
+    assert cmd.smash is True and r.world.window_fail((110, 200, 0)) == "failed"
+    assert G.window_pick(r.world, 1) is None
+    d = tmp_path / "b"
+    d.mkdir()
+    r2, sv2, g2 = stuck_door_rig(d)
+    assert window_end(r2, g2, "locked").smash is False and r2.world.window_fail((110, 200, 0)) == "locked"
+    r2.world.note_window_fail((110, 200, 0), "locked")
+    g2.window = (110, 200, 0)
+    a = r2.acts.send(Window(110, 200, smash=False))
+    r2.fake.answer({"window": ["accepted", {"state": "failed", "reason": "locked"}]})
+    r2.pump()
+    g2._window_ended(r2.world, a)
+    assert r2.world.window_fail((110, 200, 0)) == "failed"
+
+
+def test_a_second_no_path_not_adjacent_or_interrupted_leaves_the_window_out(tmp_path):
+    for reason in G.WINDOW_REPEAT:
+        d = tmp_path / reason.replace(" ", "_")
+        d.mkdir()
+        r, sv, g = stuck_door_rig(d)
+        window_end(r, g, reason)
+        assert r.world.window_fail((110, 200, 0)) == reason and G.window_pick(r.world, 1) is not None, reason
+        window_end(r, g, reason)
+        assert r.world.window_fail((110, 200, 0)) == "failed" and G.window_pick(r.world, 1) is None, reason
+
+
+def test_another_building_that_is_unusable_does_not_bar_a_smash(tmp_path):
+    """Review-t24 minor 5: only a building the view would send a loot to bars the smash: not shunned, not stuck, not
+    looted out."""
+    locked = dict(CLOSED, locked=True)
+    other = house(2, 130)
+    for s in other:
+        if (s["x"], s["y"]) == (131, 201):
+            s["containers"] = [{"type": "fridge", "n": 1, "items": ["Base.Apple"]}]
+
+    def build(name, mutate):
+        d = tmp_path / name
+        d.mkdir()
+        r, sv, g = stuck_door_rig(d, win=locked, extra=other)
+        mutate(r, g)
+        return G.window_pick(r.world, 1, g.kit.shunned_now(r.world))
+
+    assert build("usable", lambda r, g: None) is None
+    assert build("shunned", lambda r, g: g.kit.shunned.__setitem__(2, r.world.world_minutes()))[3] is True
+    assert build("looted", lambda r, g: r.world.mark_looted((131, 201, 0, 0)))[3] is True
+
+    def stuck(r, g):
+        from agent.base.planner import night as N
+        for d in N.exterior_doors(r.world, 2, 0):
+            for _ in range(2):
+                r.world.note_door_fail((d[0], d[1], 0), "locked")
+    assert build("stuck", stuck)[3] is True
+
+
+def test_a_clothing_loot_leaves_room_for_the_food(tmp_path):
+    """Review-t24 major 3: a clothing loot's maxWeight is the carried weight plus CLOTHING_LOOT_KG for each garment
+    still wanted (CLOTHING_HELD_N less the unworn held), never past the cap; the food loot keeps the full cap."""
+    from agent.base.planner import policies as P
+    r, sv = rig(tmp_path)
+    pile(r, ["Base.Jacket_Leather"] * 6 + ["Base.Apple"])
+    r.frame(x=111.5, y=201.5, weight=2.0, load_max=8.0)
+    loot = P.LootHouse(r.world, r.acts, r.clock, want="clothing")
+    assert loot.cap() == 2.0 + P.CLOTHING_HELD_N * P.CLOTHING_LOOT_KG == 6.5
+    cloth(r, 20)
+    r.frame(x=111.5, y=201.5, weight=2.0, load_max=8.0)
+    assert loot.cap() == 2.0 + (P.CLOTHING_HELD_N - 1) * P.CLOTHING_LOOT_KG
+    r.frame(x=111.5, y=201.5, weight=7.0, load_max=8.0)
+    assert loot.cap() == 8.0
+    assert P.LootHouse(r.world, r.acts, r.clock, want="food").cap() == 8.0
+    g = G.LootBuilding(1)
+    g.kit = G.Kit(r.world, r.acts, r.clock)
+    r.frame(x=111.5, y=201.5, weight=2.0, load_max=8.0)
+    cmd = g.step(r.world, r.acts, r.clock)
+    assert cmd.filter == "clothing" and cmd.maxWeight == 5.0
+
+
+def test_the_view_reads_a_stuck_building_open_when_the_only_other_one_is_shunned(tmp_path):
+    """Review-t24 minor 5, the view's side: its `blocked` goes through `window_pick` with the shunned set, so a shunned
+    neighbour does not bar the smash that makes the stuck building enterable."""
+    r, sv, g = stuck_door_rig(tmp_path, win=dict(CLOSED, locked=True), extra=house(2, 130))
+
+    def blocked():
+        return next(b for b in V._buildings(r.world, None, g.kit) if b["id"] == 1)["blocked"]
+
+    assert blocked() is True
+    g.kit.shunned[2] = r.world.world_minutes()
+    assert blocked() is False

@@ -57,8 +57,10 @@ at condition 0, defends nothing in the engine, so an intact candidate of equal o
 never with an attacker or hit reaction read nor a zombie listed within WEAR_QUIET_R, never while `me.worn` is unread
 (unknown, not nothing worn), an item once per WEAR_RETRY_MIN game minutes. Wearing can take off other garments at
 exclusive locations that the wear's `replaced` does not name: the check (`_wear_check`, read every tick
-WEAR_SETTLE_FRAMES after the wear's done) compares the summed defence of `me.worn` before and after; when it fell the
-candidate is marked `wear_loses` and the garments an `item_changed` read taken off since are put on again, and when
+the first `me.worn` list newer than the wear's done, WEAR_SETTLE_MAX frames at most) compares the summed defence of
+`me.worn` before and after; when it fell the candidate is marked `wear_loses` and each held garment that read worn and
+whose location the new list lacks (the Lua sends no `item_changed` for a garment an exclusive location knocked off)
+is put on again, and when
 it held the replaced garment is dropped under a load above level 0. The care branch is the stock's: a wear is a
 50-action-tick stand-still, taken on a quiet idle tick, never the load branch's (a drop under load is the same tick's
 second choice).
@@ -115,10 +117,11 @@ RAG_STOCK = 2             # clean dressings (bandages and clean rags) the care k
 WEAR_RETRY_MIN = 10.0     # game minutes an item's wear is not sent again (Task 24; the brief's number)
 WEAR_QUIET_R = 8.0        # tiles: a wear (50 action ticks, stopped by a run) waits while a zombie is listed this near
                           # (review-t9-fix9 ruling 5, point 3: "no zombie seen within about 8 squares")
-WEAR_SETTLE_FRAMES = 2    # frames after a wear's done before its exclusive-location check reads `me.worn` (the Lua
-                          # sends it on the next dirty frame; a judgment)
+WEAR_SETTLE_MAX = 12      # frames after a wear's done the exclusive-location check waits for a newer `me.worn` list
+                          # at most (the Lua marks the list dirty at the done and otherwise sends it every
+                          # S.WORN_EVERY (10) frames: review-t24 minor 4)
 
-__all__ = ["Care", "care_kind", "rippable", "wear_gain", "WEAR_RETRY_MIN", "WEAR_QUIET_R", "WEAR_SETTLE_FRAMES", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
+__all__ = ["Care", "care_kind", "rippable", "wear_gain", "WEAR_RETRY_MIN", "WEAR_QUIET_R", "WEAR_SETTLE_MAX", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
            "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R", "RIDE_RETRY_S", "RAG_STOCK"]
 
 
@@ -220,7 +223,7 @@ class Care(Policy):
             self._read.add(a.aid)
             if a.type == "wear" and self.wearing is not None and self.wearing["action"] is a:
                 if a.state == "done":
-                    self.wearing["done_n"] = n
+                    self.wearing["done_n"] = self.world.act_n.get(str(a.aid), n)
                     self.wearing["replaced"] = (a.result or {}).get("replaced") if isinstance(a.result, dict) else None
                 else:
                     self.wearing = None
@@ -242,18 +245,25 @@ class Care(Policy):
 
     def _wear_check(self):
         """The exclusive-location check of the last wear (review-t9-fix9 ruling 2), read every tick once its done is
-        WEAR_SETTLE_FRAMES frames old: a wear can take off garments at exclusive locations, which its `replaced` does
-        not name. When the summed bite + scratch of `me.worn` fell, the candidate is marked `wear_loses` and the garments
-        an `item_changed` read taken off since the wear was sent (its replaced one aside) are put on again, one a tick
-        (`_wear`); else the replaced garment is the one to drop under load."""
+        a `me.worn` list newer than its done has come (WEAR_SETTLE_MAX frames at most): a wear can take off garments at
+        exclusive locations, which its `replaced` does not name and for which the Lua sends no `item_changed`. When the
+        summed bite + scratch of `me.worn` fell, the candidate is marked `wear_loses` and every held garment that read
+        worn, is not the candidate or the replaced one and whose location the new list lacks is the knocked-off one:
+        its stale `worn` flag is cleared and it is put on again, one a tick (`_wear`); else the replaced garment is
+        the one to drop under load."""
         w, wr = self.world, self.wearing
-        if wr is None or wr["done_n"] is None or w.frame_n < wr["done_n"] + WEAR_SETTLE_FRAMES:
+        if wr is None or wr["done_n"] is None or (w.worn_n <= wr["done_n"] and w.frame_n < wr["done_n"] + WEAR_SETTLE_MAX):
             return
         self.wearing = None
         if w.worn_total() < wr["before"]:
             w.mark(wr["item"], "wear_loses")
-            self.rewear = sorted({i for i, n in w.unworn if n >= wr["frame0"] and i != wr["item"]
-                                  and i != wr["replaced"] and i in w.inventory})
+            locs = {e.get("loc") for e in (w.worn or ()) if isinstance(e, dict)}
+            off = sorted(i for i, it in w.inventory.items()
+                         if it.get("worn") is True and i != wr["item"] and i != wr["replaced"]
+                         and isinstance(it.get("clothing"), dict) and it["clothing"].get("loc") not in locs)
+            for i in off:
+                w.inventory[i].pop("worn", None)
+            self.rewear = off
             self.drop_after = None
         else:
             self.drop_after = wr["replaced"]

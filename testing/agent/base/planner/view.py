@@ -130,7 +130,7 @@ def _buildings(world, night, kit):
                     "looted": bool(cs) and not any(open_uses(world, loot, k, waiting) for k in cs),
                     "doors": len(doors), "visited": b in visited, "shunned": b in shunned,
                     "shelter": shelter_plan(world, b) is not None, "holds": _holds(world, cs),
-                    "blocked": door_blocked(world, b, z) and window_pick(world, b) is None,
+                    "blocked": door_blocked(world, b, z) and window_pick(world, b, shunned) is None,
                     "box": list(boxes[b]) if b in boxes else None})
     return sorted(out, key=lambda r: (r["dist"], r["id"]))
 

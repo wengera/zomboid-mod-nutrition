@@ -291,6 +291,8 @@ class World:
         self.window_marks = {}       # window square (x, y, z) -> (world minute, reason): a window failed (Task 24)
         self.worn = None             # me.worn as the last frame that carried one left it (None: none seen yet)
         self.unworn = deque(maxlen=32)   # (item id, frame_n): a held item an item_changed read worn, then not
+        self.worn_n = 0              # the frame_n of the last frame that carried me.worn
+        self.act_n = {}              # str(aid) -> the frame_n when its act line was applied
         self.frame_n = 0             # the frames applied (a frame-newer test's counter, never serialised)
         self.killed = set()          # the zombie ids a Fight read dead off its own attack or aim (P24-Q: `kills`)
         self.first_sight = set()     # the ids the inventory's first sight named (between a hello and the next frame)
@@ -341,6 +343,7 @@ class World:
 
     def _act(self, line):
         self.acts[str(line.get("aid"))] = line
+        self.act_n[str(line.get("aid"))] = self.frame_n
 
     def _frame(self, line):
         wall = line.get("wallMs", 0)
@@ -354,6 +357,7 @@ class World:
         worn = (line.get("me") or {}).get("worn")
         if worn is not None:
             self.worn = worn         # null means unchanged (PZA/1.6: the Lua sends me.worn only when it changes)
+            self.worn_n = self.frame_n
         for z in line.get("zombies") or ():
             self.zombies[z.get("id")] = dict({k: v for k, v in z.items() if k != "id"}, seenWallMs=wall)
         ttl = ZOMBIE_TTL_S * 1000
