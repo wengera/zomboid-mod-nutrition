@@ -10,7 +10,7 @@ import pytest
 from agent.base.planner.policies import Fight
 
 from .test_policies import CAPS_14, Rig, all_sends_valid, zombie
-from .test_survive import last, make, threat_why, tick
+from .test_survive import last, make, open_yard, swing, threat_why, tick
 
 
 def z(zid, x, y=200.0, floor=False, has_target=True):
@@ -327,3 +327,24 @@ def test_under_the_endurance_hold_a_refused_stomp_takes_no_floor_strike(tmp_path
     r.answer({"state": "failed", "reason": "out of reach"})
     fr(r, zs, endurance=0.7)
     assert tick(r, sv).type == "steer"
+
+
+def test_a_stuck_corner_under_the_endurance_hold_shoves_at_point_blank_never_swings(tmp_path):
+    """Ruling R2 read literally (Task 32 fix 2, minor 4 of review-t32-fix1): `policy.spent` is set on every Fight, so
+    the stuck corner (a leg that moved 0.1 tiles, the nearest at 1.2) that swung before the endurance hold shoves at
+    point blank and sends no `attack`."""
+    r, sv = make(tmp_path)
+    r.scan(open_yard())
+    me = (100.5, 201.5)
+    zs = [zombie(1, 103.0, 201.5, me=me), zombie(2, 100.5, 205.0, me=me), zombie(3, 98.0, 198.0, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs, health=50.0, endurance=0.7)
+    tick(r, sv)
+    r.answer()
+    me = (100.6, 201.5)
+    zs = [zombie(1, 101.2, 201.5, me=me), zombie(2, 100.6, 204.0, me=me), zombie(3, 98.6, 199.0, me=me)]
+    r.frame(x=me[0], y=me[1], zombies=zs, health=50.0, endurance=0.7)
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["cornered"] == 1 and w["fight"] is True and sv.spent_kinds == ("endurance",)
+    assert r.cmd() == ("shove", {"targetId": 1}) and w["shove"] == "spent"
+    assert not any(x.type == "attack" for x in r.acts.history)

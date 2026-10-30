@@ -134,6 +134,7 @@ def test_the_stand_ends_once_danger_r_is_empty_for_door_hold_s_and_the_door_is_c
     tick(r, sv)
     assert r.cmd() == ("interact", {"x": 112, "y": 201, "kind": "close", "filter": "all", "maxWeight": 0.0})
     assert why(r)["flee"] == "doorway" and sv.flee.plan["left"] == "quiet" and sv.mode == "flee"
+    assert why(r)["doorway_left"] == "quiet"
     r.answer()
     shelter_world(r, CLOSED)
     r.frame(x=POST[0], y=POST[1], zombies=far)
@@ -156,6 +157,7 @@ def test_the_stand_ends_under_the_health_flee_line(tmp_path):
     r.frame(x=POST[0], y=POST[1], zombies=[z(1, 111.3, 201.5)] + group(8.0, POST)[1:], health=S.FLEE_HEALTH - 1.0)
     tick(r, sv)
     assert r.cmd()[1]["kind"] == "close" and sv.flee.plan["left"] == "health" and why(r)["flee"] == "doorway"
+    assert why(r)["doorway_left"] == "health" and sv.stand_left is None
 
 
 @pytest.mark.parametrize("case", ["four", "pair", "no_aim", "off"])
@@ -379,6 +381,7 @@ def test_three_attackers_end_the_stand_into_the_close_from_inside(tmp_path):
     r.frame(x=POST[0], y=POST[1], zombies=[z(1, 111.3, 201.5)] + group(8.0, POST)[1:], attackers=S.DRAG_DOWN_N)
     tick(r, sv)
     assert r.cmd()[1]["kind"] == "close" and sv.flee.plan["left"] == "drag" and why(r)["flee"] == "doorway"
+    assert why(r)["doorway_left"] == "drag" and sv.stand_left is None
 
 
 def test_under_the_endurance_hold_the_doorway_faces_and_shoves_never_swings(tmp_path):
@@ -422,3 +425,13 @@ def test_a_zombie_on_the_approach_square_refuses_the_pick_and_no_stand_is_marked
     r.frame(x=100.0, y=201.5, zombies=group() + [zombie(4, 111.5, 201.5, me=(100.0, 201.5))])
     tick(r, sv)
     assert why(r)["flee"] == "many" and sv.flee.plan is None and not isinstance(sv.fight, D.Doorway)
+
+
+# ================================================================ Task 32 fix 2: the stand's ends in a why
+def test_the_unarmed_end_is_logged_doorway_left_and_keeps_the_flee_off_stand_left(tmp_path):
+    """Minor 3 of review-t32-fix1: every end of the stand is logged `doorway_left` (`stand_end`); `stand_left`, which
+    keeps the Flee alive past a dropped plan, stays `off` alone."""
+    r, sv = stood(tmp_path)
+    r.frame(x=POST[0], y=POST[1], zombies=[z(1, 111.3, 201.5)] + group(8.0, POST)[1:], weapon=None)
+    tick(r, sv)
+    assert sv.flee.plan["left"] == "unarmed" and why(r)["doorway_left"] == "unarmed" and sv.stand_left is None

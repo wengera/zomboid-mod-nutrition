@@ -11,7 +11,8 @@ import sys
 import pytest
 
 from agent.base import gates_e as E
-from agent.base.planner.policies import DANGER_R, FIGHT_REACH, KEEP_R, STRAIN_HARD
+from agent.base.planner.policies import DANGER_R, ENDURANCE_T, FIGHT_REACH, KEEP_R, STRAIN_HARD, TIRED_FIGHT_T
+from agent.base.planner.survive import FINISH_R
 from .fakemod import DEFAULT_FRAME
 from .test_gates_e import art
 
@@ -139,6 +140,21 @@ def test_the_doorway_reads_zero_without_a_stand_and_a_drag_down_needs_three_atta
     assert grade()["doorway"] == {"read": False}
 
 
+def _doorway_ends():
+    acts, res, log, frames, stop = door_fixture()
+    log.append(aline(10, 3.0, {"flee": "doorway", "doorway_left": "quiet"}, {"type": "interact", "args": {}}))
+    return grade(acts, res, log, frames, stop=stop)["doorway"]["ends"]
+
+
+def test_the_doorway_counts_every_end_the_stand_logged_and_reads_none_without_one():
+    acts, res, log, frames, stop = door_fixture()
+    assert grade(acts, res, log, frames, stop=stop)["doorway"]["ends"] == {}
+    for i, end in enumerate(("health", "drag", "unarmed", "quiet", "off", "quiet")):
+        log.append(aline(10 + i, 3.0 + i, {"flee": "doorway", "doorway_left": end}, {"type": "interact", "args": {}}))
+    assert grade(acts, res, log, frames, stop=stop)["doorway"]["ends"] == {"health": 1, "drag": 1, "unarmed": 1,
+                                                                            "quiet": 2, "off": 1}
+
+
 # ================================================================ the wounded fight (P24-AP)
 def wound_fixture(pain, sends=("shove", "stomp"), swing=False, flee_near=None):
     frames = [zf(i, [{"id": 1, "dist": 1.0}], pain=pain) for i in range(8)]
@@ -168,6 +184,33 @@ def test_a_swing_under_the_hold_is_counted_and_below_the_hold_it_is_not():
     assert g["swings_at_pain"] == 1
     below = grade(*wound_fixture(STRAIN_HARD - 0.1, swing=True))["wounded"]
     assert below["swings_at_pain"] == 0 and below["shoves_hold"] == 0 and below["kills_hold"] == 0
+
+
+def hold_frames(**stats):
+    frames = [zf(i, [{"id": 1, "dist": 1.0}]) for i in range(8)]
+    for f in frames:
+        f["stats"] = dict(f.get("stats") or {}, **stats)
+    return frames
+
+
+def spent_fixture(**stats):
+    acts, res, log, _ = wound_fixture(0, sends=(), swing=True)
+    log.append(aline(7, 7.0, {"fight": True, "target": 1, "shove": "spent", "spent": ["endurance"]},
+                     {"type": "shove", "args": {"targetId": 1}}))
+    acts.append(act("sp", "shove", 7.0, targetId=1))
+    return acts, res, log, hold_frames(**stats)
+
+
+@pytest.mark.parametrize("stats", [{"endurance": ENDURANCE_T}, {"fatigue": TIRED_FIGHT_T}])
+def test_a_swing_and_a_spent_shove_under_the_endurance_or_tired_hold_are_counted(stats):
+    g = grade(*spent_fixture(**stats))["wounded"]
+    assert g["swings_spent"] == 1 and g["shoves_spent"] == 1 and g["swings_at_pain"] == 0
+
+
+def test_the_spent_readings_are_zero_with_no_hold_in_the_frame():
+    g = grade(*spent_fixture(endurance=ENDURANCE_T + 0.01, fatigue=TIRED_FIGHT_T - 0.01))["wounded"]
+    assert g["swings_spent"] == 0 and g["shoves_spent"] == 0
+    assert grade(*wound_fixture(37.6))["wounded"]["swings_spent"] == 0           # a PZA/1.7 shove-and-stomp hold: no swing
 
 
 def test_a_strain_flee_with_a_zombie_within_keep_r_is_counted_a_far_one_is_not():
@@ -218,11 +261,22 @@ def test_a_fallen_target_left_to_a_flee_is_counted_left_and_a_near_standing_zomb
     g = grade(acts, res, log, frames)["fallen"]
     assert g["finished"] == 0 and g["left"] == 1 and g["finish_lines"] == 1      # the finish sent after the flee resumed
     acts, res, log, frames = fall_fixture()
-    far_frames = [zf(i * 0.5, [{"id": 1, "dist": FIGHT_REACH + 0.5, "onFloor": True}]) for i in range(8)]
-    assert grade(acts, res, log, far_frames)["fallen"]["fallen"] == 0          # beyond FIGHT_REACH
+    far_frames = [zf(i * 0.5, [{"id": 1, "dist": FINISH_R + 0.5, "onFloor": True}]) for i in range(8)]
+    assert grade(acts, res, log, far_frames)["fallen"]["fallen"] == 0          # beyond FINISH_R
     nobody = [zf(i * 0.5, [{"id": 9, "dist": 1.2, "onFloor": True}]) for i in range(8)]
     assert grade(acts, res, log, nobody)["fallen"]["fallen"] == 0              # never a target of the planner
     assert grade()["fallen"] == {"read": False}
+
+
+def test_a_stomp_fallen_at_finish_r_is_read_and_counted_finished():
+    """Minor 1 of review-t32-fix1 (E9 line 334's 4.62 tiles): the fallen is read within FINISH_R, not FIGHT_REACH."""
+    acts, res, log, _ = fall_fixture()
+    frames = [zf(i * 0.5, [{"id": 1, "dist": 4.6, "onFloor": True}]) for i in range(8)]
+    assert 4.6 > FIGHT_REACH and 4.6 <= FINISH_R
+    g = grade(acts, res, log, frames)["fallen"]
+    assert (g["fallen"], g["finished"], g["left"]) == (1, 1, 0)
+    beyond = [zf(i * 0.5, [{"id": 1, "dist": FINISH_R + 0.3, "onFloor": True}]) for i in range(8)]
+    assert grade(acts, res, log, beyond)["fallen"]["fallen"] == 0
 
 
 # ================================================================ the care tick (P24-AR)
@@ -353,8 +407,14 @@ MUTANTS = (
      lambda: grade(*wound_fixture(37.6, flee_near=1.0))["wounded"]["strain_flees_near"] == 1),
     ("e_fallen", lambda s: s.replace('isinstance(L.why(ln).get("flee"), str)', 'False'),
      lambda: grade(*fall_fixture_late())["fallen"]["left"] == 1),
-    ("e_fallen", lambda s: s.replace("z[\"dist\"] <= FIGHT_REACH and", "True and"),
-     lambda: grade(*fall_fixture()[:3], [zf(0.0, [{"id": 1, "dist": 5.0, "onFloor": True}])])["fallen"]["fallen"] == 0),
+    ("e_fallen", lambda s: s.replace("z[\"dist\"] <= FINISH_R and", "True and"),
+     lambda: grade(*fall_fixture()[:3], [zf(0.0, [{"id": 1, "dist": FINISH_R + 0.5, "onFloor": True}])])["fallen"]["fallen"] == 0),
+    ("e_fallen", lambda s: s.replace("z[\"dist\"] <= FINISH_R and", "z[\"dist\"] <= FIGHT_REACH and"),
+     lambda: grade(*fall_fixture()[:3], [zf(i * 0.5, [{"id": 1, "dist": 4.6, "onFloor": True}]) for i in range(8)])["fallen"]["fallen"] == 1),
+    ("e_wounded", lambda s: s.replace("en <= ENDURANCE_T", "en <= 0.0"),
+     lambda: grade(*spent_fixture(endurance=ENDURANCE_T))["wounded"]["swings_spent"] == 1),
+    ("e_doorway", lambda s: s.replace('isinstance(e, str)', 'False'),
+     lambda: _doorway_ends() == {"quiet": 1}),
     ("e_care_tick", lambda s: s.replace('why.get("flee") == "many" and why.get("ride")', 'why.get("ride")'),
      lambda: grade(*care_fixture(flee="held"))["care_tick"]["rides_many"] == 0),
     ("e_transparent", lambda s: s.replace("secs >= HELD_MIN_S", "secs >= 0.0"),

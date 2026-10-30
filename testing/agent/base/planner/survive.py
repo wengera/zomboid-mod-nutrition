@@ -485,6 +485,7 @@ class Survive:
         self.behind = None        # this tick: the ids listed behind the fight's walk target (P24-A (b)), else None
         self.listed = None        # this tick: the listed count when it alone made `many` (P24-A (a)), else None
         self.stand_left = None    # this tick: `off` when the doorway stand was left off its post (P24-AO fix 1)
+        self.stand_end = None     # this tick: any end the doorway stand took (health, drag, unarmed, quiet, off): the why only
         self.care_yield = None    # this tick: the nearest zombie's tiles when the threat yielded to the care (P24-P)
         self._nearest_seen = []   # (id, tiles) of the nearest listed zombie on the last threat ticks, newest last: the
                                   # care yield's closing read (Task 12 fix 1), CARE_STILL_TICKS + 1 of them
@@ -734,8 +735,9 @@ class Survive:
           flee; review-t27 blocker 1, F1 gm 635-637);
         - `tired` at `stats.fatigue` TIRED_FIGHT_T or above (the TIRED moodle's, which halves it again).
         Spent, the threat branch disengages (the flee `strain`, its legs as today), engages and seeks nothing, and a
-        `walk` corner yields; the `stuck`, `inside`, trapped and door fights, which no leg can leave, still swing (the
-        Fight's shove and stomp spare the arms there: `policies.Fight._shove`). Ruling P24-AP (`_wounded_fight`), as
+        `walk` corner yields; the `stuck`, `inside`, trapped and door fights, which no leg can leave, stay and fight
+        (`policy.spent` is set on every Fight, so on a shove build under HOLD_WIDE none of them swings under any hold:
+        they shove at point blank and stomp, `policies.Fight._shove`). Ruling P24-AP (`_wounded_fight`), as
         ruling R2 widens it (Task 32 fix 1): under any hold a zombie within KEEP_R is fought, never fled, and the Fight
         sends no swing (`_fight_spent`). The why's `strain` carries the frame's
         `body.strain` (each arm's stiffness, #4369) when it reads one, read nowhere else."""
@@ -1169,7 +1171,7 @@ class Survive:
         inside = self.night.inside()
         self.sheltered = self.flee is not None and self.flee.sheltered and inside
         self.broken, self.group_steer, self.corner_yield, self.behind, self.listed = None, None, None, None, None
-        self.stand_left = None
+        self.stand_left, self.stand_end = None, None
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -1212,7 +1214,7 @@ class Survive:
         puts the plan back on its `close` step, and while that close runs `("flee", "doorway")`: the Flee sends it from
         inside and its end is the shelter's as today. `off` (`doorway.off_post`: off the building's room squares and
         beyond DOOR_OFF_R of the threshold, fix 1's major 2) drops the plan instead, no close walked back to the door,
-        logged `doorway_left` (`stand_left`) on the tick. Else None (no stand)."""
+        logged `doorway_left` (`stand_end`, set for every end; `stand_left` is `off` alone, the Flee's keep) on the tick. Else None (no stand)."""
         f = self.flee
         plan = None if f is None else f.plan
         if plan is None or not plan.get("stood"):
@@ -1227,6 +1229,7 @@ class Survive:
             if left is None:
                 return "doorway", None
             plan.update(step="close", left=left)
+            self.stand_end = left   # Task 32 fix 2: logged `doorway_left` for every end; `stand_left` (the Flee's keep) is `off` alone
             if left == "off":
                 self.stand_left = left
                 f._drop(False)   # the episode only steers from here (`picked` kept)
@@ -1489,7 +1492,7 @@ class Survive:
         if self.avoid and want == "fight":
             self.why["unsought"] = sorted(self.avoid, key=repr)
         for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed),
-                       ("doorway_left", self.stand_left)):
+                       ("doorway_left", self.stand_end)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:

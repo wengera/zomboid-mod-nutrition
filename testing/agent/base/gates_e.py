@@ -1501,7 +1501,8 @@ def gate_e6(outs):
 # (`targetDead`, of an attack, aim, stomp or shove). Every reading says `read: False` without its source. The kills
 # headline is grade_e6's, unchanged.
 import math                                         # noqa: E402 - appended below the pass 6 code so no line above shifts
-from agent.base.planner.policies import FIGHT_REACH, KEEP_R, STRAIN_HARD    # noqa: E402
+from agent.base.planner.policies import ENDURANCE_T, FIGHT_REACH, KEEP_R, STRAIN_HARD, TIRED_FIGHT_T    # noqa: E402
+from agent.base.planner.survive import FINISH_R    # noqa: E402 - the fallen reading's reach (Task 32 fix 2)
 
 DECISION_MATCH_S = 0.01             # seconds: a log line's wall less the loop start against its action's sentS (E9: <= 2.1e-05)
 HELD_POS_TOL = 0.02                 # tiles: a position that moved no farther than this is held (E9's held run: x or y fixed)
@@ -1633,9 +1634,16 @@ def e_doorway(L):
     fights holding a line whose why names a `doorway`, their lines, the attacks and shoves sent on them, the kills
     (ids killed on those lines: the kills under the `many` reason, E9: 0), the frames inside a doorway fight's span
     (first to last line, a frame of slack after) reading `me.attackers` 3 or more (an inference) and `drag_deaths` 1
-    when the session died with its last frame in such a span at that count."""
+    when the session died with its last frame in such a span at that count. Task 32 fix 2: `ends` the stand's ends
+    {end: lines} over every decision line whose why reads `doorway_left` (`health`, `drag`, `unarmed`, `quiet`,
+    `off`: the end line is a close or a steer, so it is read outside the fights' runs)."""
     if L is None:
         return {"read": False}
+    ends = {}
+    for ln in L.rows:
+        e = L.why(ln).get("doorway_left")
+        if isinstance(e, str):
+            ends[e] = ends.get(e, 0) + 1
     stands = [r for r in L.runs() if any(L.why(ln).get("doorway") is not None for ln in r)]
     lines = [ln for r in stands for ln in r]
     walls, frames = L.index
@@ -1652,7 +1660,7 @@ def e_doorway(L):
             i += 1
     return {"read": True, "fights": len(stands), "lines": len(lines),
             "swings": sum(1 for ln in lines if _sent(ln, "attack")), "shoves": sum(1 for ln in lines if _sent(ln, "shove")),
-            "kills": len(L.kill_ids(lines)), "attackers3_frames": hits,
+            "kills": len(L.kill_ids(lines)), "attackers3_frames": hits, "ends": ends,
             "drag_deaths": 1 if (L.died and last_hit is not None and last_hit == len(frames) - 1) else 0}
 
 
@@ -1664,9 +1672,13 @@ def e_wounded(L):
     hold_lines}. With the frame's `body.armPain` at STRAIN_HARD or above (an inference, the frame at the line):
     the `attack` sends (must read 0), the shoves and stomps sent, the kills on those lines; `strain_flees_near` the
     lines whose why flees `strain` with a zombie within KEEP_R (the flee's own nearest, else the line's; must read 0);
-    `hold_lines` the threat lines whose why reads `hold`."""
+    `hold_lines` the threat lines whose why reads `hold`. Task 32 fix 2, beside them and read for the endurance and
+    tired holds too (an inference: the frame at the line reads `stats.endurance` at ENDURANCE_T or under or
+    `stats.fatigue` at TIRED_FIGHT_T or above): `swings_spent` the `attack` sends there (must read 0 on PZA/1.7) and
+    `shoves_spent` the lines whose why reads `shove` "spent" (a hold with the arm pain under STRAIN_SOFT)."""
     if L is None:
         return {"read": False}
+    swings_spent = shoves_spent = 0
     swings = shoves = stomps = 0
     kills, near, hold = [], 0, 0
     for ln in L.rows:
@@ -1678,6 +1690,11 @@ def e_wounded(L):
             d = d if d is not None else _n(_d(ln.get("inputs")).get("nearest"))
             near += 1 if d is not None and d <= KEEP_R else 0
         f = L.frame(ln)
+        st = _d(_d(f).get("stats")) if f is not None else {}
+        en, fa = _n(st.get("endurance")), _n(st.get("fatigue"))
+        if (en is not None and en <= ENDURANCE_T) or (fa is not None and fa >= TIRED_FIGHT_T):
+            swings_spent += 1 if _sent(ln, "attack") else 0
+            shoves_spent += 1 if ln.get("branch") == "threat" and why.get("shove") == "spent" else 0
         pain = _n(_d(_d(f).get("body")).get("armPain")) if f is not None else None
         if pain is None or pain < STRAIN_HARD:
             continue
@@ -1688,7 +1705,8 @@ def e_wounded(L):
         if k is not None and k not in kills:
             kills.append(k)
     return {"read": True, "swings_at_pain": swings, "shoves_hold": shoves, "stomps_hold": stomps,
-            "kills_hold": len(kills), "strain_flees_near": near, "hold_lines": hold}
+            "kills_hold": len(kills), "strain_flees_near": near, "hold_lines": hold,
+            "swings_spent": swings_spent, "shoves_spent": shoves_spent}
 
 
 def _finish_send(ln, zid):
@@ -1704,7 +1722,8 @@ def _finish_send(ln, zid):
 def e_fallen(L):
     """The fallen target (P24-AQ): {read, fallen, finished, left, finish_lines, finish_kills, rows}. A fallen target is a
     zombie the planner had targeted or struck (a fight line's target, or the targetId of any sent attack, aim or shove)
-    read `onFloor` true within FIGHT_REACH in a frame with no standing zombie within DANGER_R (an inference, the frames
+    read `onFloor` true within FINISH_R (the stomp's reach; the floor strike's is FIGHT_REACH, sent later) in a
+    frame with no standing zombie within DANGER_R (an inference, the frames
     of the state logs); `finished` those a stomp or floor strike was sent at after that frame and before the next
     decision line whose threat why flees (the flee resumed); `left` the rest. `finish_lines` the lines whose why reads
     `finish` and `finish_kills` the kills on them. rows: [{id, wall, finished}]."""
@@ -1728,7 +1747,7 @@ def e_fallen(L):
         for z in zs:
             zid = z.get("id")
             if (z.get("onFloor") is True and zid in targeted and zid not in first and _n(z.get("dist")) is not None
-                    and z["dist"] <= FIGHT_REACH and targeted[zid] <= wm / 1000.0 + 1.0):
+                    and z["dist"] <= FINISH_R and targeted[zid] <= wm / 1000.0 + 1.0):
                 first[zid] = wm / 1000.0
     rows = []
     for zid, w in sorted(first.items(), key=lambda p: p[1]):
