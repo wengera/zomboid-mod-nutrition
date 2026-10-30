@@ -46,6 +46,16 @@ A found window without `hwnd`, or none found, is `skipped: "no window"` (class "
 only `guard=None` (the tests) grabs unguarded, the primary screen when no window is found. The first skip of each
 reason in a session is printed once to stdout. A guard that raises is a failure and no grab. `cited_ok(index_path, numbers)` refuses a cited shot that was skipped or
 whose window was not found: the controller's copy script runs it before copying any image.
+THE WINDOW GRAB (ruling P24-AM, after E9: a browser window in front of the game made the guard refuse all 85 shots):
+when the guard refuses with "not foreground" or "occluded", `grab_window(hwnd, rect)` captures the client window's own
+content through user32 PrintWindow(PW_RENDERFULLCONTENT) into a compatible bitmap (GDI handles released in a `finally`),
+which renders that window alone. The index line is then an image line with `method: "window"`, plus `skipped_screen`
+(the guard's reason) and `other_class` (as for a skip), so a reader sees the screen grab was refused and why. A grab that
+returns None (PrintWindow gave 0) or one colour over a sampled grid of at most BLANK_GRID_MAX pixels (`is_blank`) is the
+line `skipped: "blank"`, `method: "window"`, no file. A guard that passes takes the screen path, `method: "screen"`;
+every image line carries `method`, and a line without it reads as "screen" (`method_of`). A "no window" verdict (no hwnd)
+has nothing to print and stays a skip. PRIVACY: a window grab contains only the client's pixels, so the guard's purpose
+(no other application's content in a shot) holds on that path; `cited_ok` accepts both methods.
 """
 import ctypes
 import hashlib
@@ -71,6 +81,9 @@ DWMWA_EXTENDED_FRAME_BOUNDS = 9    # dwmapi: the visible frame, without GetWindo
 CLIENT_TITLE = "Project Zomboid"     # pzt.win32.find_windows' title: preferred among the process's windows
 OCCLUDED_FRAC = 0.1          # another process's window over more than this fraction of the rect: no grab (P24-S)
 GW_HWNDPREV = 3              # GetWindow: the window above in the Z-order
+PW_RENDERFULLCONTENT = 0x00000002    # PrintWindow: render the whole window, DirectComposition content included
+BLANK_GRID_MAX = 4096        # the blank check samples at most this many pixels
+WINDOW_REASONS = ("not foreground", "occluded")    # the guard refusals that take the window grab (P24-AM)
 
 
 def _num(v):
@@ -263,6 +276,122 @@ def screen_guard(hwnd, rect, pid, user32=None):
     return None
 
 
+class _Gdi:
+    """The user32/gdi32 calls the window grab needs, as plain methods (the tests' fake replaces the whole object)."""
+
+    def __init__(self):
+        import ctypes.wintypes as w
+        self.w = w
+        self.u = ctypes.WinDLL("user32", use_last_error=True)
+        self.g = ctypes.WinDLL("gdi32", use_last_error=True)
+        H, I = ctypes.c_void_p, ctypes.c_int
+        self.u.GetDC.restype, self.u.GetDC.argtypes = H, [H]
+        self.u.ReleaseDC.restype, self.u.ReleaseDC.argtypes = I, [H, H]
+        self.u.PrintWindow.restype, self.u.PrintWindow.argtypes = w.BOOL, [H, H, ctypes.c_uint]
+        self.g.CreateCompatibleDC.restype, self.g.CreateCompatibleDC.argtypes = H, [H]
+        self.g.CreateCompatibleBitmap.restype, self.g.CreateCompatibleBitmap.argtypes = H, [H, I, I]
+        self.g.SelectObject.restype, self.g.SelectObject.argtypes = H, [H, H]
+        self.g.DeleteObject.restype, self.g.DeleteObject.argtypes = w.BOOL, [H]
+        self.g.DeleteDC.restype, self.g.DeleteDC.argtypes = w.BOOL, [H]
+        self.g.GetDIBits.restype = I
+        self.g.GetDIBits.argtypes = [H, H, ctypes.c_uint, ctypes.c_uint, H, H, ctypes.c_uint]
+
+    def get_dc(self):
+        return self.u.GetDC(None)
+
+    def release_dc(self, hdc):
+        self.u.ReleaseDC(None, hdc)
+
+    def create_dc(self, hdc):
+        return self.g.CreateCompatibleDC(hdc)
+
+    def create_bitmap(self, hdc, width, height):
+        return self.g.CreateCompatibleBitmap(hdc, width, height)
+
+    def select(self, dc, obj):
+        return self.g.SelectObject(dc, obj)
+
+    def print_window(self, hwnd, dc, flags):
+        return self.u.PrintWindow(hwnd, dc, flags)
+
+    def delete_object(self, obj):
+        self.g.DeleteObject(obj)
+
+    def delete_dc(self, dc):
+        self.g.DeleteDC(dc)
+
+    def get_bits(self, dc, bitmap, width, height):
+        """The bitmap pixels as top-down BGRA bytes (GetDIBits, 32 bits per pixel), or None."""
+        class Hdr(ctypes.Structure):
+            _fields_ = [("biSize", ctypes.c_uint32), ("biWidth", ctypes.c_int32), ("biHeight", ctypes.c_int32),
+                        ("biPlanes", ctypes.c_uint16), ("biBitCount", ctypes.c_uint16),
+                        ("biCompression", ctypes.c_uint32), ("biSizeImage", ctypes.c_uint32),
+                        ("biXPelsPerMeter", ctypes.c_int32), ("biYPelsPerMeter", ctypes.c_int32),
+                        ("biClrUsed", ctypes.c_uint32), ("biClrImportant", ctypes.c_uint32)]
+        h = Hdr(ctypes.sizeof(Hdr), width, -height, 1, 32, 0, 0, 0, 0, 0, 0)
+        buf = ctypes.create_string_buffer(width * height * 4)
+        got = self.g.GetDIBits(dc, bitmap, 0, height, buf, ctypes.byref(h), 0)
+        return buf.raw if got else None
+
+
+def grab_window(hwnd, rect, api=None):
+    """The client window own content through PrintWindow(PW_RENDERFULLCONTENT) into a bitmap of rect size, as a PIL
+    RGB image; None when PrintWindow returns 0 or the bits cannot be read. Every handle made is released in the
+    `finally`, in the reverse order of its making."""
+    from PIL import Image
+    a = api if api is not None else _Gdi()
+    dpi_aware()
+    width, height = int(rect[2] - rect[0]), int(rect[3] - rect[1])
+    screen_dc = mem_dc = bitmap = old = None
+    try:
+        screen_dc = a.get_dc()
+        mem_dc = a.create_dc(screen_dc)
+        bitmap = a.create_bitmap(screen_dc, width, height)
+        old = a.select(mem_dc, bitmap)
+        if not a.print_window(hwnd, mem_dc, PW_RENDERFULLCONTENT):
+            return None
+        bits = a.get_bits(mem_dc, bitmap, width, height)
+        if not bits:
+            return None
+        return Image.frombuffer("RGBA", (width, height), bits, "raw", "BGRA", 0, 1).convert("RGB")
+    finally:
+        if old is not None and mem_dc is not None:
+            a.select(mem_dc, old)
+        if bitmap is not None:
+            a.delete_object(bitmap)
+        if mem_dc is not None:
+            a.delete_dc(mem_dc)
+        if screen_dc is not None:
+            a.release_dc(screen_dc)
+
+
+def is_blank(image):
+    """True for no image (PrintWindow failed) or one whose sampled pixels are all one colour. At most BLANK_GRID_MAX
+    pixels are read, on an even grid over the whole image."""
+    if image is None:
+        return True
+    w, h = image.size
+    if w <= 0 or h <= 0:
+        return True
+    side = int(BLANK_GRID_MAX ** 0.5)                    # a side x side grid, the far edges included
+    xs = sorted({(i * (w - 1)) // (side - 1) for i in range(side)})
+    ys = sorted({(j * (h - 1)) // (side - 1) for j in range(side)})
+    first = None
+    for y in ys:
+        for x in xs:
+            px = image.getpixel((x, y))
+            if first is None:
+                first = px
+            elif px != first:
+                return False
+    return True
+
+
+def method_of(row):
+    """The grab method an index line names; a line from before the window path has none and reads as "screen"."""
+    return row.get("method") or "screen"
+
+
 def cited_ok(index_path, numbers):
     """The numbers a write-up may cite: raises ValueError naming each number with no index line, a skipped line, or a
     window that was not found (the grab then took the whole primary screen); else the sorted numbers."""
@@ -292,10 +421,11 @@ class ShotTaker:
     session's."""
 
     def __init__(self, run_dir, pid=None, grab=grab_screen, find=find_window, clock=time.time, every_s=SHOT_EVERY_S,
-                 guard=screen_guard,
+                 guard=screen_guard, grab_win=grab_window,
                  min_gap_s=SHOT_MIN_GAP_S, cap=SHOT_MAX, width=SHOT_WIDTH, quality=SHOT_QUALITY, idle_s=0.05):
         self.run_dir, self.pid = run_dir, pid
         self.grab, self.find, self.clock, self.guard = grab, find, clock, guard
+        self.grab_win = grab_win
         self.every_s, self.min_gap_s, self.cap = float(every_s), float(min_gap_s), cap
         self.width, self.quality, self.idle_s = width, quality, idle_s
         self.dir = os.path.join(run_dir, SHOTS_DIR)
@@ -382,11 +512,19 @@ class ShotTaker:
             rect, src = (win.get("rect"), win.get("source")) if isinstance(win, dict) else (win, None)
             bbox = tuple(int(v) for v in rect) if rect is not None else None
             hwnd = win.get("hwnd") if isinstance(win, dict) else None
+            method, refused = "screen", None
             if self.guard is not None:                   # fail closed: no found client window, no grab
                 verdict = ("no window", "") if bbox is None or hwnd is None else self.guard(hwnd, bbox, self.pid)
-                if verdict is not None:
+                if verdict is not None and verdict[0] not in WINDOW_REASONS:
                     return self._skip(trigger, m, now, verdict, bbox, src)
-            img = self.grab(bbox)
+                if verdict is not None:                  # the screen grab is refused: the window own content (P24-AM)
+                    method, refused = "window", verdict
+            if method == "window":
+                img = self.grab_win(hwnd, bbox)
+                if is_blank(img):
+                    return self._skip(trigger, m, now, ("blank", ""), bbox, src, method="window", refused=refused)
+            else:
+                img = self.grab(bbox)
             if img.mode != "RGB":
                 img = img.convert("RGB")
             if img.width > self.width:
@@ -402,6 +540,9 @@ class ShotTaker:
                 fh.write(data)
             row = {"n": n, "file": name, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
             row.update(self._fields(m, now, trigger, bbox, src))
+            row["method"] = method
+            if refused is not None:
+                row["skipped_screen"], row["other_class"] = refused
             row["grab_ms"] = (time.perf_counter() - t0) * 1000.0
             self._append(row)
             with self._lock:
@@ -428,12 +569,17 @@ class ShotTaker:
         with open(os.path.join(self.dir, INDEX), "a", encoding="utf-8") as fh:
             fh.write(json.dumps(row, default=str) + "\n")
 
-    def _skip(self, trigger, m, now, verdict, bbox, src):
-        """The index line of a shot the guard refused (no file); False, as `take` returns."""
+    def _skip(self, trigger, m, now, verdict, bbox, src, method=None, refused=None):
+        """The index line of a shot not taken (no file); False, as `take` returns. A guard refusal gives (reason,
+        class); a blank window grab gives ("blank", "") with method "window" and the screen refusal it followed."""
         reason, other = verdict
         row = {"n": self.n + 1}
         row.update(self._fields(m, now, trigger, bbox, src))
         row["skipped"], row["other_class"] = reason, other
+        if method is not None:
+            row["method"] = method
+        if refused is not None:
+            row["skipped_screen"], row["other_class"] = refused
         self._append(row)
         with self._lock:
             self.n += 1
@@ -441,7 +587,8 @@ class ShotTaker:
             first = reason not in self._said
             self._said.add(reason)
         if first:
-            print("shots: skipped (%s), first of its kind this session" % reason, flush=True)
+            print("shots: skipped (%s)%s, first of its kind this session"
+                  % (reason, ", screen grab refused (%s)" % refused[0] if refused else ""), flush=True)
         return False
 
     def _run(self):

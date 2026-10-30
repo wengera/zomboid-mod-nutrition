@@ -23,7 +23,7 @@ from .test_driverlib import run_session
 
 RECT = (100, 50, 2020, 1130)
 KEYS = {"n", "file", "bytes", "sha256", "wallMs", "pyMs", "seq", "gameMin", "health", "branch", "flee", "fight",
-        "goal", "decision_line", "trigger", "window", "grab_ms"}
+        "goal", "decision_line", "trigger", "window", "grab_ms", "method"}
 
 
 class Clock:
@@ -67,6 +67,14 @@ def step(t, clock, at, m=None, final=None):
 
 
 # ================================================================ constants
+@pytest.fixture(autouse=True)
+def _no_real_gdi(monkeypatch):
+    """No test reaches the real user32/gdi32 window grab: the default grab_window would build a real _Gdi."""
+    def boom(*a, **k):
+        raise AssertionError("a test reached the real GDI")
+    monkeypatch.setattr(SH, "_Gdi", boom)
+
+
 def test_the_constants_are_the_rulings():
     assert (SH.SHOT_EVERY_S, SH.SHOT_MIN_GAP_S, SH.SHOT_MAX) == (10.0, 1.0, 800)
     assert (SH.SHOT_WIDTH, SH.SHOT_QUALITY, SH.HEALTH_DROP) == (1280, 80, 5.0)
@@ -479,11 +487,13 @@ class FakeUser32:
         return self.classes.get(hwnd, "Cls%s" % hwnd)
 
 
-def guarded(tmp_path, u, calls, clock=None):
+def guarded(tmp_path, u, calls, clock=None, win=None):
+    """A guarded taker; `win` is the window grab (default: PrintWindow gave nothing, the blank skip)."""
     import functools
     guard = functools.partial(SH.screen_guard, user32=u)
     find = lambda pid: {"rect": RECT, "source": "dwm", "hwnd": CLIENT_HWND}
-    return taker(tmp_path, clock or Clock(), find=find, grab=fake_grab(calls), guard=guard)
+    return taker(tmp_path, clock or Clock(), find=find, grab=fake_grab(calls), guard=guard,
+                 grab_win=win or (lambda hwnd, rect: None))
 
 
 def one(t, tmp_path):
@@ -503,7 +513,8 @@ def test_another_foreground_window_skips_the_grab_and_names_its_class_only(tmp_p
     took, rows = one(t, tmp_path)
     assert took == 0 and calls == []
     (row,) = rows
-    assert row["skipped"] == "not foreground" and row["other_class"] == "Chrome_WidgetWin_1"
+    assert row["skipped_screen"] == "not foreground" and row["other_class"] == "Chrome_WidgetWin_1"
+    assert row["skipped"] == "blank" and row["method"] == "window"          # P24-AM: the window grab was blank
     assert not {"file", "bytes", "sha256"} & set(row) and row["n"] == 1 and row["window"]["found"] is True
     assert list((tmp_path / SH.SHOTS_DIR).glob("*.jpg")) == []
     assert "title" not in json.dumps(row).lower()
@@ -523,7 +534,8 @@ def test_a_window_of_another_process_over_0_2_of_the_rect_is_occluded(tmp_path):
     t = guarded(tmp_path, FakeUser32(above=over(0.2)), calls)
     took, rows = one(t, tmp_path)
     assert took == 0 and calls == []
-    assert rows[0]["skipped"] == "occluded" and rows[0]["other_class"] == "Chrome_WidgetWin_1"
+    assert rows[0]["skipped_screen"] == "occluded" and rows[0]["other_class"] == "Chrome_WidgetWin_1"
+    assert rows[0]["skipped"] == "blank"
 
 
 def test_a_window_over_0_05_of_the_rect_is_grabbed(tmp_path):
@@ -611,7 +623,7 @@ def test_the_first_skip_of_each_reason_prints_once(tmp_path, capsys):
     for at in (0, 10, 20):
         step(t, c, at)
     out = capsys.readouterr().out
-    assert t.skipped == 3 and out.count("not foreground") == 1
+    assert t.skipped == 3 and out.count("not foreground") == 1 and out.count("blank") == 1
 
 
 def test_several_small_windows_summing_over_the_fraction_are_occluded(tmp_path):
@@ -621,7 +633,7 @@ def test_several_small_windows_summing_over_the_fraction_are_occluded(tmp_path):
     stack = [(990 + i, (l + i * w, tp, l + (i + 1) * w, b), 7000 + i, True) for i in range(2)]
     t = guarded(tmp_path, FakeUser32(above=stack), calls)
     took, rows = one(t, tmp_path)
-    assert took == 0 and calls == [] and rows[0]["skipped"] == "occluded"
+    assert took == 0 and calls == [] and rows[0]["skipped_screen"] == "occluded"
     assert rows[0]["other_class"] == "Cls991"                  # the window that tipped the sum
 
 
@@ -648,3 +660,219 @@ def test_the_real_user32_path_runs_on_the_foreground_window():
     if rect is not None and rect[2] > rect[0] and rect[3] > rect[1]:
         got = SH.screen_guard(fg, rect, pid)
         assert got is None or (isinstance(got, tuple) and len(got) == 2)
+
+
+# ================================================================ the window-content grab (P24-AM)
+class FakeGdi:
+    """The window grab user32/gdi32 calls: `pw` PrintWindow return, `pixels` a function (x, y) -> BGRA bytes (the
+    bitmap), `raises` the call that raises; every handle made and released is counted."""
+
+    def __init__(self, pw=1, pixels=None, raises=None, bits=True):
+        self.pw, self.raises, self.bits = pw, raises, bits
+        self.pixels = pixels or (lambda x, y: bytes((200, 100, 50, 255)) if (x + y) % 2 else bytes((10, 20, 30, 255)))
+        self.calls, self.flags, self.made, self.freed = [], [], [], []
+
+    def _do(self, name):
+        self.calls.append(name)
+        if self.raises == name:
+            raise OSError(name)
+
+    def get_dc(self):
+        self._do("get_dc")
+        self.made.append(("dc", 1))
+        return 1
+
+    def release_dc(self, h):
+        self.freed.append(("dc", h))
+
+    def create_dc(self, h):
+        self._do("create_dc")
+        self.made.append(("mem", 2))
+        return 2
+
+    def create_bitmap(self, h, w, hh):
+        self._do("create_bitmap")
+        self.size = (w, hh)
+        self.made.append(("bmp", 3))
+        return 3
+
+    def select(self, dc, obj):
+        self.calls.append("select")
+        return 9
+
+    def print_window(self, hwnd, dc, flags):
+        self._do("print_window")
+        self.flags.append(flags)
+        return self.pw
+
+    def get_bits(self, dc, bmp, w, h):
+        self._do("get_bits")
+        if not self.bits:
+            return None
+        return b"".join(self.pixels(x, y) for y in range(h) for x in range(w))
+
+    def delete_object(self, h):
+        self.freed.append(("bmp", h))
+
+    def delete_dc(self, h):
+        self.freed.append(("mem", h))
+
+
+SMALL = (0, 0, 8, 6)
+
+
+def test_the_flag_is_print_window_render_full_content():
+    assert SH.PW_RENDERFULLCONTENT == 2
+    g = FakeGdi()
+    SH.grab_window(5, SMALL, api=g)
+    assert g.flags == [2]
+
+
+def test_grab_window_reads_bgra_into_an_rgb_image_of_the_rect_size():
+    g = FakeGdi(pixels=lambda x, y: bytes((30, 20, 10, 255)))          # B, G, R, A
+    img = SH.grab_window(5, SMALL, api=g)
+    assert img.size == (8, 6) and img.mode == "RGB" and g.size == (8, 6)
+    assert img.getpixel((3, 3)) == (10, 20, 30)
+
+
+def test_grab_window_returns_none_when_print_window_gives_zero_or_no_bits():
+    assert SH.grab_window(5, SMALL, api=FakeGdi(pw=0)) is None
+    assert SH.grab_window(5, SMALL, api=FakeGdi(bits=False)) is None
+
+
+@pytest.mark.parametrize("pw", [0, 1])
+@pytest.mark.parametrize("raises", [None, "create_dc", "create_bitmap", "print_window", "get_bits"])
+def test_every_handle_made_is_released_even_on_an_exception_or_a_failed_print(pw, raises):
+    g = FakeGdi(pw=pw, raises=raises)
+    if raises == "get_bits" and not pw:
+        pytest.skip("get_bits is never reached after a failed print")
+    if raises:
+        with pytest.raises(OSError):
+            SH.grab_window(5, SMALL, api=g)
+    else:
+        SH.grab_window(5, SMALL, api=g)
+    assert g.made and sorted(g.freed) == sorted(g.made)            # DeleteObject, DeleteDC and ReleaseDC, each once
+
+
+def test_a_get_dc_failure_releases_what_was_made():
+    g = FakeGdi(raises="get_dc")
+    with pytest.raises(OSError):
+        SH.grab_window(5, SMALL, api=g)
+    assert sorted(g.freed) == sorted(g.made)
+
+
+def test_is_blank_is_true_for_none_and_one_colour_false_for_two():
+    assert SH.is_blank(None)
+    assert SH.is_blank(Image.new("RGB", (300, 200), (0, 0, 0)))
+    img = Image.new("RGB", (300, 200), (0, 0, 0))
+    img.putpixel((299, 199), (1, 0, 0))                           # the far corner is on the grid
+    assert not SH.is_blank(img)
+    img2 = Image.new("RGB", (300, 200), (0, 0, 0))
+    img2.paste((9, 9, 9), (0, 0, 150, 200))
+    assert not SH.is_blank(img2)
+
+
+def test_the_blank_check_samples_at_most_the_grid_bound():
+    reads = []
+
+    class Counting:
+        size = (4000, 3000)
+
+        def getpixel(self, xy):
+            reads.append(xy)
+            return (1, 2, 3)
+    assert SH.BLANK_GRID_MAX == 4096
+    assert SH.is_blank(Counting()) and 0 < len(reads) <= SH.BLANK_GRID_MAX
+    reads.clear()
+
+    class Tiny(Counting):
+        size = (3, 2)
+    assert SH.is_blank(Tiny()) and len(reads) <= 6
+
+
+def win_taker(tmp_path, u, win):
+    wcalls = []
+
+    def grab_win(hwnd, rect):
+        wcalls.append((hwnd, tuple(rect)))
+        return win(hwnd, rect)
+    return guarded(tmp_path, u, [], win=grab_win), wcalls
+
+
+def two_colour(hwnd, rect):
+    img = Image.new("RGB", (640, 360), (20, 60, 20))
+    img.paste((200, 30, 30), (0, 0, 320, 360))
+    return img
+
+
+def test_a_passing_guard_takes_the_screen_path_and_names_the_method(tmp_path):
+    t, wcalls = win_taker(tmp_path, FakeUser32(), two_colour)
+    took, rows = one(t, tmp_path)
+    assert took == 1 and wcalls == [] and rows[0]["method"] == "screen"
+    assert "skipped_screen" not in rows[0]
+
+
+@pytest.mark.parametrize("fg,above,reason", [(999, over(1.0), "not foreground"), (CLIENT_HWND, over(0.5), "occluded")])
+def test_a_refused_screen_grab_takes_the_window_path(tmp_path, fg, above, reason):
+    t, wcalls = win_taker(tmp_path, FakeUser32(fg=fg, above=above), two_colour)
+    took, rows = one(t, tmp_path)
+    assert took == 1 and wcalls == [(CLIENT_HWND, RECT)]
+    (row,) = rows
+    assert row["method"] == "window" and row["skipped_screen"] == reason and row["other_class"] == "Chrome_WidgetWin_1"
+    assert "skipped" not in row and row["bytes"] > 0 and len(row["sha256"]) == 64 and row["window"]["found"]
+    f = tmp_path / SH.SHOTS_DIR / row["file"]
+    assert f.stat().st_size == row["bytes"] and hashlib.sha256(f.read_bytes()).hexdigest() == row["sha256"]
+    assert t.summary()["n"] == 1 and t.summary()["skipped"] == 0
+
+
+def test_a_print_window_that_gives_nothing_writes_a_blank_skip(tmp_path):
+    t, _ = win_taker(tmp_path, FakeUser32(fg=999, above=over(1.0)), lambda h, r: None)
+    took, rows = one(t, tmp_path)
+    (row,) = rows
+    assert took == 0 and row["skipped"] == "blank" and row["method"] == "window"
+    assert row["skipped_screen"] == "not foreground" and "file" not in row
+    assert list((tmp_path / SH.SHOTS_DIR).glob("*.jpg")) == [] and t.summary()["skipped"] == 1
+
+
+def test_a_one_colour_window_grab_writes_a_blank_skip(tmp_path):
+    t, _ = win_taker(tmp_path, FakeUser32(fg=999, above=over(1.0)), lambda h, r: Image.new("RGB", (640, 360), (0, 0, 0)))
+    took, rows = one(t, tmp_path)
+    assert took == 0 and rows[0]["skipped"] == "blank" and rows[0]["method"] == "window"
+    assert list((tmp_path / SH.SHOTS_DIR).glob("*.jpg")) == []
+
+
+def test_no_window_stays_a_skip_with_no_window_grab(tmp_path):
+    wcalls = []
+    t = taker(tmp_path, Clock(), find=lambda pid: None, guard=SH.screen_guard,
+              grab_win=lambda h, r: wcalls.append(h))
+    took, rows = one(t, tmp_path)
+    assert took == 0 and wcalls == [] and rows[0]["skipped"] == "no window" and "method" not in rows[0]
+
+
+def test_a_window_grab_that_raises_is_a_counted_failure(tmp_path):
+    def boom(h, r):
+        raise OSError("gdi gone")
+    t, _ = win_taker(tmp_path, FakeUser32(fg=999, above=over(1.0)), boom)
+    took, rows = one(t, tmp_path)
+    assert took == 0 and rows == [] and t.summary()["failures"] == 1 and "gdi gone" in t.summary()["last_error"]
+
+
+def test_the_default_window_grab_is_grab_window(tmp_path):
+    assert SH.ShotTaker(str(tmp_path)).grab_win is SH.grab_window
+
+
+def test_method_of_reads_an_old_line_as_screen():
+    assert SH.method_of({"n": 1}) == "screen" and SH.method_of({"method": "window"}) == "window"
+
+
+def test_cited_ok_accepts_both_methods_and_old_lines(tmp_path):
+    p = tmp_path / "shots.jsonl"
+    rows = [{"n": 1, "file": "a.jpg", "window": {"found": True}},
+            {"n": 2, "file": "b.jpg", "method": "screen", "window": {"found": True}},
+            {"n": 3, "file": "c.jpg", "method": "window", "skipped_screen": "occluded", "window": {"found": True}},
+            {"n": 4, "skipped": "blank", "method": "window", "window": {"found": True}}]
+    p.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    assert SH.cited_ok(str(p), [1, 2, 3]) == [1, 2, 3]
+    with pytest.raises(ValueError) as e:
+        SH.cited_ok(str(p), [3, 4])
+    assert "4: skipped (blank)" in str(e.value)
