@@ -98,7 +98,7 @@ def grade_f4(out, prev=None, decision_lines=None):
 # `read` false. A reading counts rows; an inference says it reads an effect off what the view showed.
 import json                                        # noqa: E402 - appended below the pass 4 code so no line above shifts
 import re                                          # noqa: E402
-from agent.base.planner.view import WHYS           # noqa: E402
+WHYS = ("done", "stuck", "superseded by the threat", "superseded by an instinct", "looted already", "refused", "out of range", "in the woods", "failed")  # frozen at 9f4c8d97 (view.WHYS before P25-G added "shunned"): grade_f5 and grade_f6 keep their refusal keys so F3 and F4 reproduce; a later grade reads the live list
 
 _ABSENT = object()
 _BUILDING = re.compile(r"^(\d+) @(-?\d+),(-?\d+) door (\S+) (-?[\d.]+) c(\d+) (\S+)(?: h:(\S+))?(?: z:(\d+))?$")
