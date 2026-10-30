@@ -14,14 +14,14 @@ with the first frame after its endedS, and is None when the kept frames do not b
 
 Every function here is versioned per pass: once an artifact carries its output it is never edited, a later pass is
 grade_e2 / gate_e2. The death check is gates.death_check, the frozen function, reused."""
-import os
+import bisect, json, os                            # noqa: E401 - one line so the register pointers into this file hold
 import re
 from types import SimpleNamespace
 
 from agent.base import gates as GT
 from agent.base.planner.goals import WOODS_R
 from agent.base.planner.night import Night
-from agent.base.planner.survive import DANGER_R, DOOR_FAILS, DOOR_NEAR_R
+from agent.base.planner.survive import DANGER_R, DOOR_FAILS, DOOR_NEAR_R, LISTED_R
 from agent.base.transport.files import FileTransport
 from agent.base.world import World, me_floor, me_xy
 from agent.driverlib import chain as CH
@@ -1189,3 +1189,304 @@ def gate_e5(outs):
     """gate_e4's gates and kills (grade_e5 changes none of what they read), named gate_e5:
     {verdict, gates, lineage_sources, kills}."""
     return gate_e4(outs)
+
+
+# ---------------------------------------------------------------- pass 6: the fight window opened before the first send, the minutes alive, the iteration 9 and PZA/1.6 readings (Plan 24 Task 23)
+# grade_e6 / gate_e6 / report_lines_e6 (PZA/1.6.1, survival iteration 9; grade_e5, gate_e5 and the passes before them
+# frozen, CLAUDE.md section 5). Two defects of the E8 write-up close (GUIDE.md of e_day_8-20261029-174023, review-t22
+# check 4). (1) A fight's `startS` is stamped after the tick that sent its first action, so the first send sits 1.12e-05
+# to 2.67e-05 s before the window `_in_fight` opens and the standing fights (a fight whose first action sent in its
+# window is an aim) read the second action as the first: grade_e6 opens each window FIGHT_WINDOW_SLACK_S (0.001 s)
+# early (`e_standing_2`, `e_kills_2`; the kills per fight and the standing kills follow). (2) `e_minutes` runs to the
+# last frame of the state logs, past the death event: grade_e6 cuts a dead session's minutes at the event's worldAge
+# (`game_minutes_alive`, the headline's; `game_minutes_log_end` is grade_e5's figure). The readings iteration 9 and
+# PZA/1.6 ask for: `rags` (P24-AB: the rips and the stock lines of the decision log with the dressings held at each,
+# the bandage wants), `legs` (P24-AC: the legged walks of the decision log, the `no square` failures and halvings,
+# the goal's target kept), `idle_many` (P24-AD: the `many` lines of the decision log with an idle zombie, hasTarget
+# false, beyond DANGER_R in the frame nearest in time), `pza16` (the clothing looted and worn, the `wear` and `window`
+# actions with their results, the doors the maps read locked). Every reading says `read: False` without its source (the
+# decision log or the state logs); the boot's grade passes no decision log, so those arrive with the regrade
+# (`e_grade_6.py`), as grade_e5's did.
+FIGHT_WINDOW_SLACK_S = 0.001        # seconds a fight's window opens before its startS (the first send precedes it by <= 2.67e-05 s)
+
+
+def _in_fight_2(a, f):
+    s, e = _n(f.get("startS")), _n(_d(f.get("end")).get("endS"))
+    t = _n(a.get("sentS"))
+    return s is not None and t is not None and t >= s - FIGHT_WINDOW_SLACK_S and (e is None or t <= e)
+
+
+def e_standing_2(loop, res):
+    """e_standing with the window of `_in_fight_2` (opened FIGHT_WINDOW_SLACK_S early) and grade_e4's outcome name
+    `stagger_inferred`: {n, outcomes {kill, flee, fallback, stagger_inferred, none}, rows}."""
+    acts = sorted((_d(a) for a in _l(loop.get("actions"))), key=lambda a: _n(a.get("sentS")) or 0.0)
+    rows, out = [], {"kill": 0, "flee": 0, "fallback": 0, "stagger_inferred": 0, "none": 0}
+    for i, f in enumerate(f for f in _l(loop.get("fights")) if isinstance(f, dict)):
+        win = [a for a in acts if _in_fight_2(a, f)]
+        if not win or win[0].get("type") != "aim":
+            continue
+        kill = any(res.get(a.get("aid"), {}).get("targetDead") is True for a in win if a.get("type") in ("attack", "aim"))
+        bad = [a for a in win if a.get("type") == "aim" and a.get("state") in ("failed", "rejected")]
+        fallback = any(b.get("type") in APPROACH_TYPES and (_n(b.get("sentS")) or 0) > (_n(a.get("sentS")) or 0)
+                       for a in bad for b in win)
+        stagger = any(res.get(a.get("aid"), {}).get("attackStarted") is True for a in win if a.get("type") == "attack")
+        outcome = ("kill" if kill else "flee" if _d(f.get("flee")) else "fallback" if fallback
+                   else "stagger_inferred" if stagger else "none")
+        out[outcome] += 1
+        rows.append({"fight": i, "outcome": outcome, "actions": [a.get("type") for a in win],
+                     "aim_states": [a.get("state") for a in win if a.get("type") == "aim"]})
+    return {"n": len(rows), "outcomes": out, "rows": rows}
+
+
+def e_kills_2(out):
+    """e_kills over the opened windows: the same keys; `per_fight`, `standing_fights`, `standing_kills` and
+    `per_standing_fight` read the windows of `_in_fight_2` (the planner's kill ids over the whole record are
+    unchanged)."""
+    k = e_kills(out)
+    loop = _d(_d(out).get("loop"))
+    res = _results(loop)
+    per = []
+    for f in (f for f in _l(loop.get("fights")) if isinstance(f, dict)):
+        s, e = _n(f.get("startS")), _n(_d(f.get("end")).get("endS"))
+        per.append(len(_kill_ids(loop, res, s - FIGHT_WINDOW_SLACK_S, e)) if s is not None else 0)
+    standing = e_standing_2(loop, res)
+    sk = sum(per[r["fight"]] for r in standing["rows"] if r["fight"] < len(per))
+    k.update(per_fight=per, standing_fights=standing["n"], standing_kills=sk,
+             per_standing_fight=sk / standing["n"] if standing["n"] else None)
+    return k
+
+
+def e_minutes_alive(out):
+    """(log_end, alive, source): `log_end` e_minutes' figure over the out's kept frames; `alive` the same first
+    worldAge to the death event's worldAge (the event, or the death's frame event) when the session died, else the
+    log-end figure; `source` e_minutes' or "death event" when the event cut it. (None, None, None) when nothing reads."""
+    out = _d(out)
+    end, src = e_minutes(out)
+    loop = _d(out.get("loop"))
+    if not (loop.get("death") is not None or _d(out.get("stop")).get("reason") == "death"):
+        return end, end, src
+    death = _d(loop.get("death"))
+    ev = _d(death.get("event")) or _d(_d(death.get("frame")).get("event"))
+    at = _n(ev.get("worldAge"))
+    first = _n(loop.get("first_world_age"))
+    if first is None:
+        first = _n(_d(_d(_d(out.get("readings")).get("hello")).get("first_frame")).get("worldAge"))
+    if at is None or first is None:
+        return end, end, src
+    return end, (at - first) * 60.0, "death event"
+
+
+def _log_lines(decision_lines):
+    return [_d(x) for x in _l(decision_lines) if isinstance(x, dict) and "unparsed" not in x]
+
+
+def e_rags(out, decision_lines):
+    """The rag stock (P24-AB): {read, rips {sent, done, failed, by_branch}} and, with the decision log, stock_lines,
+    stock_sent, dressings [{gameMin, dressings}], dressings_min, dressings_max and want_lines: the rip actions of
+    loop.actions by branch; the care branch's `stock` lines (reason stock) with the dressings held at each one sent,
+    and the lines whose care why reads want `bandage`. read False without the log (the rips alone)."""
+    loop = _d(_d(out).get("loop"))
+    rips = [_d(a) for a in _l(loop.get("actions")) if _d(a).get("type") == "rip"]
+    by = {}
+    for a in rips:
+        by[str(a.get("branch"))] = by.get(str(a.get("branch")), 0) + 1
+    res = {"rips": {"sent": len(rips), "done": sum(1 for a in rips if a.get("state") == "done"),
+                    "failed": sum(1 for a in rips if a.get("state") in ("failed", "rejected")), "by_branch": by},
+           "read": decision_lines is not None}
+    if decision_lines is None:
+        return res
+    stock, held, want = 0, [], 0
+    for ln in _log_lines(decision_lines):
+        care = _d(_d(_d(ln.get("inputs")).get("branches")).get("care"))
+        st = _d(care.get("stock"))
+        if st.get("reason") == "stock":
+            stock += 1
+            if ln.get("sent") is True:
+                held.append({"gameMin": ln.get("gameMin"), "dressings": st.get("dressings")})
+        if care.get("want") == "bandage":
+            want += 1
+    d = [h["dressings"] for h in held if _n(h["dressings"]) is not None]
+    res.update(stock_lines=stock, stock_sent=len(held), dressings=held, dressings_min=min(d) if d else None,
+               dressings_max=max(d) if d else None, want_lines=want)
+    return res
+
+
+def e_legs(out, decision_lines):
+    """The legged far walks (P24-AC): {read, no_square {sent, failed}} (the goal-branch walkTo actions and those that
+    failed `no square`) and, with the decision log, leg_lines (goal whys carrying `leg`), leg_sent, lens (the legLen
+    of each in order), halvings (a length under the one before), min_len, goal_no_square_fails (lines whose goal why
+    reads reason `no square`), targets (the distinct goals of the leg lines) and legs_per_target (more than 1 when one
+    far target served several legs: the target kept, never swapped for a mark). read False without the log."""
+    loop = _d(_d(out).get("loop"))
+    walks = [_d(a) for a in _l(loop.get("actions")) if _d(a).get("type") == "walkTo" and _d(a).get("branch") == "goal"]
+    res = {"read": decision_lines is not None,
+           "no_square": {"sent": len(walks), "failed": sum(1 for a in walks if a.get("reason") == "no square")}}
+    if decision_lines is None:
+        return res
+    lens, sent, halv, fails, targets, lines_n = [], 0, 0, 0, [], 0
+    for ln in _log_lines(decision_lines):
+        gw = _d(_d(_d(ln.get("inputs")).get("branches")).get("goal"))
+        if gw.get("reason") == "no square":
+            fails += 1
+        if "leg" not in gw:
+            continue
+        lines_n += 1
+        sent += 1 if ln.get("sent") is True else 0
+        n = _n(gw.get("legLen"))
+        if n is not None:
+            if lens and n < lens[-1]:
+                halv += 1
+            lens.append(n)
+        g = _d(ln.get("goal"))
+        key = json.dumps([g.get("type"), g.get("args")], sort_keys=True)
+        if key not in targets:
+            targets.append(key)
+    res.update(leg_lines=lines_n, leg_sent=sent, lens=lens, halvings=halv, min_len=min(lens) if lens else None,
+               goal_no_square_fails=fails, targets=targets,
+               legs_per_target=lines_n / len(targets) if targets else None)
+    return res
+
+
+def e_idle_many(decision_lines, lines):
+    """The idle-zombie `many` (P24-AD): {read, many_lines, with_idle, max_idle, rows [first 10 {wall, gameMin, why,
+    idle}]}: the threat-branch lines whose why flees `many` or lists a count (`listed`), and of them those whose
+    nearest-in-time frame (the last frame at or before the line's wall second) lists zombies reading hasTarget false
+    beyond DANGER_R and within LISTED_R (counted `idle`). read False without the decision log or any frame."""
+    frames = [(w, f) for f in _l(lines) if isinstance(f, dict) and f.get("kind") == "frame"
+              for w in [_n(f.get("wallMs"))] if w is not None]
+    if decision_lines is None or not frames:
+        return {"read": False}
+    frames.sort(key=lambda p: p[0])
+    walls = [w for w, _ in frames]
+    many = idle_lines = best = 0
+    rows = []
+    for ln in _log_lines(decision_lines):
+        why = _threat_why(ln)
+        if ln.get("branch") != "threat" or not (why.get("flee") == "many" or _n(why.get("listed")) is not None):
+            continue
+        many += 1
+        wall = _n(ln.get("wall"))
+        if wall is None:
+            continue
+        i = bisect.bisect_right(walls, wall * 1000.0) - 1
+        if i < 0:
+            continue
+        idle = sum(1 for z in _l(frames[i][1].get("zombies")) if isinstance(z, dict) and z.get("hasTarget") is False
+                   and _n(z.get("dist")) is not None and DANGER_R < z["dist"] <= LISTED_R)
+        if idle:
+            idle_lines += 1
+            best = max(best, idle)
+            if len(rows) < 10:
+                rows.append({"wall": wall, "gameMin": ln.get("gameMin"), "why": why.get("flee") or "listed", "idle": idle})
+    return {"read": True, "many_lines": many, "with_idle": idle_lines, "max_idle": best, "rows": rows}
+
+
+def _tally(rows):
+    reasons = {}
+    for a in rows:
+        if a.get("state") in ("failed", "rejected"):
+            reasons[str(a.get("reason"))] = reasons.get(str(a.get("reason")), 0) + 1
+    return {"sent": len(rows), "done": sum(1 for a in rows if a.get("state") == "done"),
+            "failed": sum(1 for a in rows if a.get("state") in ("failed", "rejected")), "reasons": reasons}
+
+
+def e_pza16(out, lines):
+    """PZA/1.6's fields: {clothing_looted, wear, window, worn, doors}: the loot interacts with filter clothing, the
+    `wear` actions (with `replaced`, the results naming a garment taken off) and `window` actions (with the results'
+    smashed, opened and cut counts), `worn` {read, max_locs, last} the largest and the last `me.worn` list of the
+    frames of `lines`, `doors` {read, seen, locked} the doors and windows a replay of the lines into a World holds,
+    those read `locked` true. A missing source reads zero or read False."""
+    loop = _d(_d(out).get("loop"))
+    res = _results(loop)
+    acts = [_d(a) for a in _l(loop.get("actions"))]
+    cl = [a for a in acts if a.get("type") == "interact" and _d(a.get("args")).get("kind") == "loot"
+          and _d(a.get("args")).get("filter") == "clothing"]
+    wear = [a for a in acts if a.get("type") == "wear"]
+    win = [a for a in acts if a.get("type") == "window"]
+    w_res = [res.get(a.get("aid"), {}) for a in wear]
+    n_res = [res.get(a.get("aid"), {}) for a in win]
+    c = _tally(cl)
+    g = {"clothing_looted": {k: c[k] for k in ("sent", "done", "failed")},
+         "wear": dict(_tally(wear), replaced=sum(1 for r in w_res if r.get("replaced") is not None)),
+         "window": dict(_tally(win), smashed=sum(1 for r in n_res if r.get("smashed") is True),
+                        opened=sum(1 for r in n_res if r.get("opened") is True),
+                        cut=sum(1 for r in n_res if r.get("cut") is True))}
+    frames = [f for f in _l(lines) if isinstance(f, dict) and f.get("kind") == "frame"]
+    worn = [w for w in (_d(f.get("me")).get("worn") for f in frames) if isinstance(w, list)]
+    g["worn"] = {"read": bool(worn), "max_locs": max((len(w) for w in worn), default=None),
+                 "last": worn[-1] if worn else None}
+    if not frames:
+        g["doors"] = {"read": False}
+        return g
+    w = World()
+    for ln in _l(lines):
+        w.apply(ln)
+    portals = [p for r in w.map.values() for p in (_d(_d(r).get("door")), _d(_d(r).get("window"))) if p]
+    g["doors"] = {"read": True, "seen": len(portals), "locked": sum(1 for p in portals if p.get("locked") is True)}
+    return g
+
+
+def report_lines_e6(g):
+    """report_lines_e5's lines, then the minutes line and the pass 6 lines."""
+    g = _d(g)
+    lines = [("gate_e6 " + l[len("gate_e5 "):]) if l.startswith("gate_e5 ") else l for l in report_lines_e5(g)]
+    lines.append("minutes: %s alive (%s), log end %s" % (_f(g.get("game_minutes_alive"), "%.1f"),
+                                                         g.get("minutes_alive_source"),
+                                                         _f(g.get("game_minutes_log_end"), "%.1f")))
+    rg, lg, im, pz = (_d(g.get(x)) for x in ("rags", "legs", "idle_many", "pza16"))
+    if rg.get("read"):
+        tail = "stock lines %s (sent %s), dressings held min %s max %s, bandage wants %s" % (
+            rg.get("stock_lines"), rg.get("stock_sent"), rg.get("dressings_min"), rg.get("dressings_max"),
+            rg.get("want_lines"))
+    else:
+        tail = "no decision log read"
+    lines.append("rags: rips %s; %s" % (_d(rg.get("rips")), tail))
+    if lg.get("read"):
+        tail = "leg lines %s (sent %s), lengths %s, %s halvings, goal failed no square %s, legs per target %s" % (
+            lg.get("leg_lines"), lg.get("leg_sent"), lg.get("lens"), lg.get("halvings"),
+            lg.get("goal_no_square_fails"), _f(lg.get("legs_per_target")))
+    else:
+        tail = "no decision log read"
+    lines.append("legs: goal walks %s; %s" % (_d(lg.get("no_square")), tail))
+    lines.append("idle many: %s" % ("%s many lines, %s with an idle zombie beyond %s tiles (max %s)" % (
+        im.get("many_lines"), im.get("with_idle"), DANGER_R, im.get("max_idle")) if im.get("read") else "not read"))
+    lines.append("pza16: clothing looted %s; wear %s; window %s; worn %s; doors %s" % (
+        pz.get("clothing_looted"), pz.get("wear"), pz.get("window"), pz.get("worn"), pz.get("doors")))
+    return lines
+
+
+def grade_e6(out, prev=None, decision_lines=None, state_dir=None, lines=None):
+    """grade_e5 but for grade "grade_e6": the fight windows opened FIGHT_WINDOW_SLACK_S early (`kills` and
+    `care.standing` re-read by e_kills_2 and e_standing_2), `game_minutes` the minutes alive (`game_minutes_alive`;
+    `game_minutes_log_end` grade_e5's, `minutes_alive_source` the cut), and `rags`, `legs`, `idle_many`, `pza16`."""
+    out = _d(out)
+    files = []
+    if lines is None:
+        lines, files = session_lines(state_dir) if state_dir is not None else ([], [])
+    g = grade_e5(out, prev, decision_lines, state_dir, lines=lines)
+    g["grade"] = "grade_e6"
+    loop = _d(out.get("loop"))
+    g["kills"] = e_kills_2(out)
+    if _d(g.get("care")):
+        g["care"]["standing"] = e_standing_2(loop, _results(loop))
+    base = out
+    frames = session_frames(lines)
+    if frames:
+        g["frames_files"] = files
+        base = dict(out, loop=dict(loop, last_frames=frames))
+    end, alive, src = e_minutes_alive(base)
+    g["game_minutes_log_end"] = end
+    g["game_minutes_alive"] = alive
+    g["minutes_alive_source"] = src
+    g["game_minutes"] = alive
+    g["rags"] = e_rags(out, decision_lines)
+    g["legs"] = e_legs(out, decision_lines)
+    g["idle_many"] = e_idle_many(decision_lines, lines)
+    g["pza16"] = e_pza16(out, lines)
+    g["report_lines"] = report_lines_e6(g)
+    return g
+
+
+def gate_e6(outs):
+    """gate_e5's gates and kills (grade_e6 changes none of what they read), named gate_e6."""
+    return gate_e5(outs)

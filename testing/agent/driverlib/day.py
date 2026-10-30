@@ -324,6 +324,21 @@ def grade_day(out):
     grade(out, GRADE_KEY, grade_state)
 
 
+GRADE_KEY_6 = "grade_e6"         # the key a ninth-chain day session's record carries its grade under (grade_day_6)
+
+
+def grade_state_6(out):
+    """gates_e.grade_e6 over the record and the state files in out["state_dir"] (grade_state's frames, the fight windows
+    opened before the first send, the minutes alive, the iteration 9 and PZA/1.6 readings)."""
+    return GE.grade_e6(out, state_dir=out.get("state_dir"))
+
+
+def grade_day_6(out):
+    """A ninth-chain day session's grade: out["grade_e6"] = gates_e.grade_e6(out, state_dir=out["state_dir"]), else
+    out["grade_e6_error"] (e_day_9.py; grade_day stays grade_e5 for the frozen e_day_5 to e_day_8)."""
+    grade(out, GRADE_KEY_6, grade_state_6)
+
+
 # ================================================================ the boot
 def boot_and_run(args, preboot, run_session, grade_fn, *, key, driver, artifact, profile, constants, grade_key, user,
                  budget_s, min_free_gb, after_teardown=None, repo=DS.REPO, wall=time.time):

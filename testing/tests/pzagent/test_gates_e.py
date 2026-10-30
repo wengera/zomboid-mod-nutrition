@@ -1056,3 +1056,221 @@ def test_the_pass_5_script_reads_the_state_logs_and_the_decision_log_beside_the_
     for args in ([], ["a", "b", "c"], [str(tmp_path / "nope.json")]):
         assert subprocess.run([sys.executable, script] + args, capture_output=True, text=True,
                               cwd=cwd).returncode == 2
+
+
+# ================================================================ pass 6: the opened fight window, the minutes alive, the iteration 9 and PZA/1.6 readings (Plan 24 Task 23)
+E8_DIR = os.path.join(os.path.dirname(os.path.dirname(HERE)), "artifacts", "e_day_8-20261029-174023")
+
+
+def _fight6(start, end=None, **kw):
+    return dict({"startS": start, "end": {"endS": end} if end is not None else None, "fight_ticks": 3}, **kw)
+
+
+def _stand_art(acts, results=(), fights=None):
+    return art(actions=acts, results=list(results), fights=fights or [_fight6(10.0, 20.0)])
+
+
+def test_the_window_opens_before_the_first_send_so_a_standing_fight_is_standing():
+    """E8: the first send precedes the fight's startS by 1.12e-05 to 2.67e-05 s; grade_e5 misses it, so a walk sent
+    first leaves the aim as the first action it sees (standing, wrongly) and an aim sent first is missed."""
+    aim_first = [aact("a1", "aim", 10.0 - 2.0e-5, 11.0), aact("k1", "attack", 12.0, 13.0)]
+    walk_first = [aact("w0", "walkTo", 10.0 - 1.2e-5, 10.5), aact("a2", "aim", 11.0, 12.0)]
+    kill = [res("k1", "attack", {"targetDead": True, "attackStarted": True})]
+    for acts, n5, n6 in ((aim_first, 0, 1), (walk_first, 1, 0)):
+        a = _stand_art(acts, kill)
+        assert E.grade_e5(a)["kills"]["standing_fights"] == n5
+        g = E.grade_e6(a)
+        assert g["kills"]["standing_fights"] == n6 and g["care"]["standing"]["n"] == n6
+    a = _stand_art([aact("a1", "aim", 10.0 - 2.0e-5, 11.0, args={"targetId": 7})], [res("a1", "aim", {"targetDead": True})])
+    g = E.grade_e6(a)
+    assert g["kills"]["per_fight"] == [1] and g["kills"]["standing_kills"] == 1
+    assert g["kills"]["per_standing_fight"] == 1.0
+    assert E.grade_e5(a)["kills"]["per_fight"] == [0]                    # the older window missed the first send's kill
+    assert g["care"]["standing"]["outcomes"] == {"kill": 1, "flee": 0, "fallback": 0, "stagger_inferred": 0, "none": 0}
+    far = _stand_art([aact("a1", "aim", 10.0 - 0.002, 11.0)])            # 2 ms early is outside the 1 ms slack
+    assert E.grade_e6(far)["kills"]["standing_fights"] == 0
+    assert E.FIGHT_WINDOW_SLACK_S == 0.001
+
+
+@pytest.mark.skipif(not os.path.isdir(E8_DIR), reason="the E8 artifact is not in this tree")
+def test_the_e8_artifact_reads_other_standing_fights_under_grade_e6():
+    """E8 (e_day_8-20261029-174023): grade_e5 reads fights 0, 1 and 2 as standing (fight 0 began with a walkTo sent
+    1.4e-05 s before its startS, so its first aim read as the first action; fight 3's first aim was missed),
+    grade_e6 reads fights 1, 2 and 3; the minutes stop at the death event."""
+    with open(os.path.join(E8_DIR, "e_day_8.json"), encoding="utf-8") as fh:
+        o = json.load(fh)
+    r5 = [r["fight"] for r in E.e_standing(o["loop"], E._results(o["loop"]))["rows"]]
+    r6 = [r["fight"] for r in E.e_standing_2(o["loop"], E._results(o["loop"]))["rows"]]
+    assert r5 == [0, 1, 2] and r6 == [1, 2, 3]
+    g = E.grade_e6(o, state_dir=E8_DIR)
+    assert g["kills"]["standing_fights"] == 3 and g["kills"]["engine"] == 4
+    assert abs(g["game_minutes_log_end"] - 133.0609) < 1e-3 and abs(g["game_minutes_alive"] - 131.5253) < 1e-3
+
+
+def _alive_art(stop, event_age, last_age, first=1.0):
+    fr = [frame(1, 0, worldAge=first), frame(2, 1, worldAge=last_age)]
+    a = art(fr, stop=stop, first_world_age=first)
+    if stop == "death":
+        ev = {"zombiesKilled": 2}
+        if event_age is not None:
+            ev["worldAge"] = event_age
+        a["loop"]["death"] = {"event": ev, "last_frames": fr, "server_damage": []}
+    return a
+
+
+def test_the_minutes_stop_at_the_death_event_and_a_survivor_reads_the_log_end():
+    dead = _alive_art("death", 1.5, 2.0)
+    g = E.grade_e6(dead)
+    assert abs(g["game_minutes_alive"] - 30.0) < 1e-9 and abs(g["game_minutes_log_end"] - 60.0) < 1e-9
+    assert g["game_minutes"] == g["game_minutes_alive"] and g["minutes_alive_source"] == "death event"
+    assert E.grade_e5(dead)["game_minutes"] == g["game_minutes_log_end"]         # grade_e5 ran past the death
+    assert g["report_lines"][0].startswith("kills 2 (engine 2, planner 0); died at")
+    assert "30.0 game minutes" in g["report_lines"][0]
+    live = E.grade_e6(_alive_art("day_cap", None, 2.0))
+    assert live["game_minutes_alive"] == live["game_minutes_log_end"] == live["game_minutes"]
+    assert live["minutes_alive_source"] == "loop.first_world_age"
+    no_age = E.grade_e6(_alive_art("death", None, 2.0))                          # an event with no worldAge: the log end
+    assert no_age["game_minutes_alive"] == no_age["game_minutes_log_end"]
+
+
+def _cline(stock=None, want=None, sent=True, gm=100):
+    care = {}
+    if stock is not None:
+        care["stock"] = {"reason": "stock", "item": 5, "dressings": stock, "stock": 2}
+    if want:
+        care["want"] = want
+    return {"branch": "care", "gameMin": gm, "sent": sent, "action": None, "inputs": {"branches": {"care": care}}}
+
+
+def test_the_rag_stock_counts_its_rips_lines_dressings_and_wants():
+    acts = [aact("r1", "rip", 1, 2, branch="care"), aact("r2", "rip", 3, 4, state="failed", reason="worn", branch="care"),
+            aact("r3", "rip", 5, 6, branch="threat")]
+    log = [_cline(stock=0), _cline(stock=1, gm=110), _cline(stock=1, sent=False), _cline(want="bandage"), _cline()]
+    g = E.grade_e6(art(actions=acts), decision_lines=log)["rags"]
+    assert g["rips"] == {"sent": 3, "done": 2, "failed": 1, "by_branch": {"care": 2, "threat": 1}}
+    assert (g["read"], g["stock_lines"], g["stock_sent"], g["want_lines"]) == (True, 3, 2, 1)
+    assert g["dressings"] == [{"gameMin": 100, "dressings": 0}, {"gameMin": 110, "dressings": 1}]
+    assert (g["dressings_min"], g["dressings_max"]) == (0, 1)
+    none = E.grade_e6(art(), decision_lines=[_cline()])["rags"]
+    assert none["stock_lines"] == 0 and none["dressings_min"] is None and none["rips"]["sent"] == 0
+    assert E.grade_e6(art(actions=acts))["rags"]["read"] is False
+
+
+def _gline(leg=None, leg_len=None, reason=None, args=None, sent=True):
+    gw = {} if leg is None else {"leg": leg, "legLen": leg_len}
+    if reason:
+        gw["reason"] = reason
+    return {"branch": "goal", "sent": sent, "goal": {"type": "ExploreToward", "args": args or {"x": 9, "y": 9}},
+            "inputs": {"branches": {"goal": gw}}}
+
+
+def test_the_legged_walks_count_legs_halvings_failures_and_the_target_kept():
+    acts = [aact("w1", "walkTo", 1, 2, state="failed", reason="no square", branch="goal"),
+            aact("w2", "walkTo", 3, 4, branch="goal"),
+            aact("w3", "walkTo", 5, 6, state="failed", reason="no square", branch="threat")]
+    log = [_gline([1, 1], 30.0), _gline([2, 2], 15.0), _gline([3, 3], 10.0), _gline([4, 4], 30.0),
+           _gline(reason="no square"), _gline(), _gline([5, 5], 30.0, args={"x": 1, "y": 1}, sent=False)]
+    g = E.grade_e6(art(actions=acts), decision_lines=log)["legs"]
+    assert g["no_square"] == {"sent": 2, "failed": 1} and g["leg_lines"] == 5 and g["leg_sent"] == 4
+    assert g["lens"] == [30.0, 15.0, 10.0, 30.0, 30.0] and g["halvings"] == 2 and g["min_len"] == 10.0
+    assert g["goal_no_square_fails"] == 1 and len(g["targets"]) == 2 and abs(g["legs_per_target"] - 2.5) < 1e-9
+    none = E.grade_e6(art(), decision_lines=[_gline()])["legs"]
+    assert none["leg_lines"] == 0 and none["lens"] == [] and none["legs_per_target"] is None
+    assert E.grade_e6(art(actions=acts))["legs"]["read"] is False
+
+
+def _zl(seq, wall, zombies):
+    f = copy.deepcopy(DEFAULT_FRAME)
+    f["zombies"] = zombies
+    return _line("frame", seq, wall, **f)
+
+
+def _z(zid, dist, target):
+    return {"id": zid, "x": 1.0, "y": 1.0, "dist": dist, "hasTarget": target, "crawler": False, "health": 1.0}
+
+
+def _many_line(wall_ms, listed=None):
+    ln = _tline(flee="many" if listed is None else None, near=4.0, listed=listed)
+    ln["wall"] = wall_ms / 1000.0
+    return ln
+
+
+def test_the_idle_many_reads_the_idle_zombies_beyond_danger_r_in_the_nearest_frame(tmp_path):
+    d = _state(tmp_path / "z", [_zl(1, W0, [_z(1, 3.0, True), _z(2, 9.5, False), _z(3, 9.9, False), _z(4, 12.5, False)]),
+                                _zl(2, W0 + 1000, [_z(1, 3.0, True), _z(5, 5.0, False), _z(6, 8.0, True)])])
+    log = [_many_line(W0 + 500), _many_line(W0 + 1500), _many_line(W0 + 600, listed=5), _tline(fight=True, near=3.0)]
+    g = E.grade_e6(art(), decision_lines=log, state_dir=d)["idle_many"]
+    # the first and third lines read the first frame (9.5 and 9.9 are idle beyond 6 within 12; 12.5 is out), the
+    # second the second frame (its idle zombie stands at 5.0, inside DANGER_R: the planner counts it, no reading)
+    assert g["read"] is True and g["many_lines"] == 3 and g["with_idle"] == 2 and g["max_idle"] == 2
+    assert [r["idle"] for r in g["rows"]] == [2, 2]
+    inside = _state(tmp_path / "i", [_zl(1, W0, [_z(1, 3.0, True), _z(2, 5.0, False)])])
+    assert E.grade_e6(art(), decision_lines=[_many_line(W0 + 100)], state_dir=inside)["idle_many"]["with_idle"] == 0
+    assert E.grade_e6(art(), state_dir=d)["idle_many"] == {"read": False}               # no decision log
+    assert E.grade_e6(art(), decision_lines=log)["idle_many"] == {"read": False}        # no frames
+    before = _state(tmp_path / "b", [_zl(1, W0 + 9000, [_z(2, 9.5, False)])])          # the frame after the line
+    assert E.grade_e6(art(), decision_lines=[_many_line(W0)], state_dir=before)["idle_many"]["with_idle"] == 0
+
+
+def test_the_pza16_fields_count_clothing_wear_window_worn_and_locked_doors(tmp_path):
+    def loot(aid, filt):
+        return aact(aid, "interact", 1, 2, args={"kind": "loot", "filter": filt})
+    acts = [loot("c1", "clothing"),
+            aact("c2", "interact", 1, 2, state="failed", reason="no match", args={"kind": "loot", "filter": "clothing"}),
+            loot("f1", "food"), aact("w1", "wear", 3, 4, args={"itemId": 9}),
+            aact("w2", "wear", 5, 6, state="failed", reason="busy"), aact("x1", "window", 7, 8),
+            aact("x2", "window", 9, 10, state="failed", reason="not a window")]
+    results = [res("w1", "wear", {"itemId": 9, "loc": "base:tshirt", "replaced": 4}),
+               res("x1", "window", {"smashed": True, "opened": False, "cut": True, "wounds": 1})]
+    door = {"open": False, "locked": True, "barricaded": False}
+    other = {"open": False, "locked": False, "barricaded": False}
+    sq = [square(x=100, y=200, door=door), square(x=101, y=200, door=other), square(x=102, y=200, window=door)]
+    d = _state(tmp_path / "p", [_mline(1, W0, sq), _fline(2, W0 + 100), _fline(3, W0 + 200, worn=[])])
+    p = E.grade_e6(art(actions=acts, results=results, t_loop0_ms=W0), state_dir=d)["pza16"]
+    assert p["clothing_looted"] == {"sent": 2, "done": 1, "failed": 1}
+    assert p["wear"] == {"sent": 2, "done": 1, "failed": 1, "reasons": {"busy": 1}, "replaced": 1}
+    assert p["window"] == {"sent": 2, "done": 1, "failed": 1, "reasons": {"not a window": 1}, "smashed": 1,
+                           "opened": 0, "cut": 1}
+    assert p["doors"] == {"read": True, "seen": 3, "locked": 2}
+    empty = E.grade_e6(art())["pza16"]
+    assert empty["clothing_looted"]["sent"] == 0 and empty["wear"]["sent"] == 0 and empty["window"]["sent"] == 0
+    assert empty["worn"] == {"read": False, "max_locs": None, "last": None} and empty["doors"] == {"read": False}
+
+
+def test_the_worn_list_is_read_off_the_frames_me_worn(tmp_path):
+    fr = {"seq": 1, "tick": 1, "wallMs": W0}
+    f = copy.deepcopy(DEFAULT_FRAME)
+    f["me"]["worn"] = [{"loc": "base:tshirt", "bite": 0.0, "scratch": 5.0, "holes": 0, "cond": 100.0},
+                       {"loc": "base:trousers", "bite": 0.0, "scratch": 5.0, "holes": 0, "cond": 100.0}]
+    d = _state(tmp_path / "w", [_line("frame", 1, W0, **f), _fline(2, W0 + 100)])
+    p = E.grade_e6(art(), state_dir=d)["pza16"]["worn"]
+    assert p["read"] is True and p["max_locs"] == 2 and len(p["last"]) == 2
+
+
+def test_grade_e6_is_grade_e5_but_for_its_name_and_the_pass_6_fields():
+    for a in (good(), _death_art(300, wound_at=100, health_from=105), care_art()):
+        e5, e6 = E.grade_e5(a), E.grade_e6(a)
+        drop = ("grade", "report_lines", "rags", "legs", "idle_many", "pza16", "game_minutes_alive",
+                "game_minutes_log_end", "minutes_alive_source")
+        assert {k: v for k, v in e5.items() if k not in ("grade", "report_lines")} == \
+            {k: v for k, v in e6.items() if k not in drop}
+        assert e6["grade"] == "grade_e6" and E.gate_e6([a, a]) == E.gate_e5([a, a])
+    assert E.grade_e6({})["grade"] == "grade_e6" and E.grade_e6(None)["rags"]["read"] is False
+
+
+def test_the_pass_6_script_reads_the_artifact_and_names_the_gate(tmp_path):
+    (tmp_path / "a.json").write_text(json.dumps(art(t_loop0_ms=W0)), encoding="utf-8")
+    _state(tmp_path, [_fline(1, W0)])
+    (tmp_path / "decision.log").write_text(json.dumps(_cline(stock=0)) + "\n", encoding="utf-8")
+    script = os.path.join(HERE, "..", "..", "agent", "drivers", "e_grade_6.py")
+    cwd = os.path.dirname(os.path.dirname(HERE))
+    r = subprocess.run([sys.executable, script, str(tmp_path / "a.json")], capture_output=True, text=True, cwd=cwd)
+    assert r.returncode == 0 and r.stdout.startswith("kills ") and "rags: rips" in r.stdout
+    assert "stock lines 1" in r.stdout
+    assert json.loads(r.stdout[r.stdout.index("\n{\n"):])["grade"] == "grade_e6"
+    c = subprocess.run([sys.executable, script, "--chain", str(tmp_path / "a.json"), str(tmp_path / "a.json")],
+                       capture_output=True, text=True, cwd=cwd)
+    assert c.returncode == 0 and "\ngate_e6 " in c.stdout and "\ngate_e5 " not in c.stdout
+    for args in ([], ["a", "b", "c"], [str(tmp_path / "nope.json")]):
+        assert subprocess.run([sys.executable, script] + args, capture_output=True, text=True,
+                              cwd=cwd).returncode == 2
