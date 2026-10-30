@@ -478,6 +478,9 @@ class Survive(Threat):
         self._finish_a = None     # the flee's last finishing action (P24-AQ), its end read once (`_finish_read`)
         self._finish_read = None
         self._finish_kill = None  # the zombie id the finishing stomp read dead this tick (`_read`), else None
+        self._fight_kill = None   # the zombie id the running Fight's observe read dead this tick (`_read`), else None
+        self._held = []           # this tick: the threat branch's held list (`_threat_read`)
+        self._breach_now = None   # this tick: why a hold breaks (`_breach`, read in `_threat_read`), else None
         self.night = Night(world, actions, clock)
         # one shun store: the goals' Shelter shuns into the night's (Task 13 fix 1, M6), so neither re-tries the other's
         self.goals = GoalRunner(ScriptedSource() if source is None else source, clock, shunned=self.night.shunned)
@@ -739,7 +742,8 @@ class Survive(Threat):
         the want); not wanting, it passes; a refused sleep's hold answers with no command. Each tick it wants counts in
         `night.wants_n`; `self.why` is the night's own `why`, so the `aid` its `sent` adds reaches the log."""
         n = self.night
-        n.observe()
+        if not self.OBSERVES_IN_READ:
+            n.observe()
         if n.busy():
             self.why = dict(n.why, holding=n.last.aid)
             return n, None
@@ -847,8 +851,7 @@ class Survive(Threat):
         itself owns read (the failures cooled, a refused consume or a door's failure marked, the consumes checked,
         the fills' ends; the flee's finishing stomp's, `_finish_end`, which marks the zombie dead and counts the World's
         kill: Task 32 fix 1, the review's minor 11, out of `assess`), the goal runner's observe, and the logged inputs (read before any branch runs: `mode` is
-        the tick's start). Not every end: the branches' own observes (Care's, Night's, the Fight's and the Flee's)
-        read theirs inside `assess`, see there."""
+        the tick's start), then every held policy's observe (`_read_observes`)."""
         self.world, self.actions = world, actions
         for p in self._policies():
             p.world, p.actions = world, actions
@@ -864,7 +867,25 @@ class Survive(Threat):
         self.goals.observe(world, actions)
         self.engaging = False   # P24-X: set again by this tick's threat branch
         self._finish_kill = self._finish_end()   # P24-AQ: the flee's finishing stomp's end (fix 1, the review's minor 11)
-        return self._inputs()
+        inputs = self._inputs()
+        if self.OBSERVES_IN_READ:
+            self._read_observes()
+        return inputs
+
+    def _read_observes(self):
+        """Plan 25 Task 2 (`OBSERVES_IN_READ`; Plan 24's close review, minor 8): every observe of a policy the tick holds,
+        in the order `assess` ran them before: the running Fight's (its kill read, `_fight_kill`), the threat branch's
+        bookkeeping (`_threat_read`: the held list, the Flee's observe over it, the breach's count), the Care's and
+        the Night's. Each reads its action ends and marks the World (`unreachable`, `unrippable`, `in_bag`,
+        `mark_dry`, the shuns), so `assess` decides over a World no observe changes after; a policy `assess` makes
+        (a new Fight, Flee or Doorway) takes its first observe at its answer (`_answer`)."""
+        self._fight_kill = None
+        if self.fight is not None:
+            self._observe(self.fight)
+            self._fight_kill = self.fight.kill   # P24-Q: read before any branch may replace the Fight
+        self._threat_read()
+        self._observe(self.care)
+        self.night.observe()
 
     def assess(self, inputs):
         """The tick's one decision (refactor A): the branches tried in BRANCHES order, the first that answers taken
@@ -874,13 +895,10 @@ class Survive(Threat):
         that from the Decision. The branches' policies keep their own memory as they choose (a policy is its state
         machine), so assess runs once a tick.
 
-        Side effects refactor A left inside assess (a documented debt, review-t21 minor 2): `Care.observe` (from
-        `_care` and `_care_yields`), `Night.observe` (from `_night`) and the Fight's and the Flee's observes (from
-        `_threat`) read action ends there and mark the World (`unrippable`, `in_bag`, `mark_dry`, the Fight's
-        `unreachable`); moving them to `_read` changes the tick a bandage's end is read, a golden re-record under a
-        named change."""
-        kill = None
-        if self.fight is not None:
+        The observes (`Care.observe`, `Night.observe`, the Fight's and the Flee's, review-t21 minor 2's debt) run in
+        `_read` (`_read_observes`, Plan 25 Task 2's `OBSERVES_IN_READ`); off, here as Plan 24 left them."""
+        kill = self._fight_kill
+        if not self.OBSERVES_IN_READ and self.fight is not None:
             self._observe(self.fight)
             kill = self.fight.kill   # P24-Q: read before any branch may replace the Fight (a lower bound: world.py)
         kill = self._finish_kill if kill is None else kill   # P24-AQ: the flee's finishing stomp's, read in `_read`

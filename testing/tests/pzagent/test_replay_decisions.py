@@ -1270,3 +1270,22 @@ def test_iteration_12_moves_each_golden_first_at_its_switch_s_line(key):
         assert b["leg"] == "seek" and g["leg"] == "stand" and b["target"] == g["target"] == 15885
         assert P.KEEP_R < g["dist"] <= P.PULL_R and got[361]["action"]["args"]["vx"] == 0.0
         assert base[358]["why"]["leg"] == "pull" and got[362] == base[362] and got[362]["why"]["leg"] == "back"
+
+
+# ================================================================ Plan 25 Task 2: the observes read in `_read`
+def pre_t2(sv):
+    """The replay's mutate seam onto the rules before Plan 25 Task 2: `Survive.OBSERVES_IN_READ` off (every observe
+    inside `assess`, as Plan 24 left them)."""
+    sv.OBSERVES_IN_READ = False
+
+
+@pytest.mark.parametrize("key", sorted(PRE_T36))
+def test_observes_in_read_moves_no_golden(key):
+    """Task 2 moved every held policy's observe into `_read` (`OBSERVES_IN_READ`): the six goldens stay byte-identical
+    with it on (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and with it off, so no golden line
+    reads the observes' order (no record carries a care action's end or a night step on a threat tick the order moves)."""
+    with open(R.golden_path(key), encoding="utf-8") as f:
+        head = json.load(f)
+    text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t2)), head["base"],
+                         R.RUNS[key], head["recorded"], R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert text.encode("utf-8") == golden(key)

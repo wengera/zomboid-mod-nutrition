@@ -60,6 +60,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
                      # why on every golden `many` line, no decision moved)
     EDGE = True     # ruling P24-AU: a zombie that left the listing is held in the Fight's pull reads EDGE_HOLD_TICKS
                     # ticks (`policies.Fight.edge_ticks`); off, 0 (the replay tests' seam onto the rule before it)
+    OBSERVES_IN_READ = True   # Plan 25 Task 2 (Plan 24's close review, minor 8): every observe of a policy held at the
+                              # tick's read (the Night, the Care, the Fight, the Flee) and the threat's bookkeeping run
+                              # in `Survive._read`; off, inside `assess` as before (the replay tests' seam, `pre_t2`)
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -479,12 +482,13 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         `health` (P24-X)."""
         self.stall_flee, self.flee_dropped, self.flee_many, self.flee_health = False, False, False, False
 
-    def _threat(self):
-        """The tick's bookkeeping, once (ruling P24-A (g)): the held list, the Flee's observe and the breach's closing
-        count; then the yield to the care (`_care_yields`, P24-P), else the decision (`_decide`), which a corner's
-        retarget may re-plan without them."""
+    def _threat_read(self):
+        """The tick's threat bookkeeping, once (ruling P24-A (g)): the held list (`_held`), the Flee's observe and the
+        breach's closing count (`_breach_now`). Read in `_read` (Plan 25 Task 2, `OBSERVES_IN_READ`), else at the
+        threat branch's start in `assess` (the rules before it)."""
         self.care_yield, self.care.ride_now, self.engaging, self.avoid = None, False, False, set()
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
+        self._held, self._breach_now = [], None
         self._read_spent()
         held = self._within(self._hold_r())
         sought = self._sought() if self.ENGAGE else None
@@ -498,14 +502,24 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             self._end_flee_episode()
             self.sheltered, self.cornered, self.closing = False, None, (0, None)
             self.stuck_heading, self._nearest_seen = None, []
-            if self.avoid:   # Task 18 fix 1: the zombies within ENGAGE_R no engage reaches, logged as the goal runs
-                self.why = {"unsought": sorted(self.avoid, key=repr)}
-            return None
+            return
         self._nearest_seen = (self._nearest_seen + [self._nearest_listed()])[-(CARE_STILL_TICKS + 1):]
         if self.flee is not None:   # a shelter or exit step's end read before the hold (the close may have ended),
             self.flee.threats = held   # over this tick's held records (the stall's and the stuck leg's DANGER_R and
             self._observe(self.flee)   # STUCK_NEAR_R reads: before P24-A (g) the first read saw the last tick's)
-        breach = self._breach(held)
+        self._held, self._breach_now = held, self._breach(held)
+
+    def _threat(self):
+        """The threat branch: the tick's bookkeeping (`_threat_read`, read in `_read` with `OBSERVES_IN_READ` on); then
+        the yield to the care (`_care_yields`, P24-P), else the decision (`_decide`), which a corner's retarget may
+        re-plan without them."""
+        if not self.OBSERVES_IN_READ:
+            self._threat_read()
+        held, breach = self._held, self._breach_now
+        if not held:
+            if self.avoid:   # Task 18 fix 1: the zombies within ENGAGE_R no engage reaches, logged as the goal runs
+                self.why = {"unsought": sorted(self.avoid, key=repr)}
+            return None
         self.care_yield = self._care_yields(held)
         if self.care_yield is not None:
             self.why = {"care": True, "nearest": self.care_yield, "held": len(held)}
