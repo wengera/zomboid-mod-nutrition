@@ -176,9 +176,13 @@ STAND_MIN_R = 0.61    # tiles: a standing zombie this near the player makes the 
                       # (ruling P24-AH; the frame carries no MinRange, the bat's the widest read)
 SWING_SKIP_S = UNREACHABLE_S   # wall seconds a target whose shove or stomp the Lua refused or failed is not sent that
                                # skill again (the stomp's floor strike follows instead: ruling P24-AL)
-KNOCK_READ_S = 2.0    # wall seconds a shove's `knockdown` true reads its target downed before the frame's `onFloor`
-                      # does (PZA/1.7.1, 9 fix 12: the result is read off the knocked-down state at the hit, onFloor
-                      # follows about a second later; a judgment, two of those), so the stomp follows the shove at once
+KNOCK_READ_S = 2.0    # wall seconds a shove's `knockdown` true is waited on for the frame's `onFloor` (PZA/1.7.1, 9 fix
+                      # 12: the result is read off the knocked-down state at the hit, onFloor follows about a second
+                      # later; a judgment, two of those): the Fight sends nothing meanwhile and stomps on the first
+                      # frame reading it fallen (ruling P24-AV: E10's a59, sent on the knockdown alone, was rejected
+                      # `not valid`); before P24-AV the knockdown read the target downed and the stomp went at once
+STOOD_STOMPS = 2      # stomps at one target failed `stood` (it rose before the stomp landed) after which the floor strike
+                      # follows (ruling P24-AV: "fallen again, one more stomp, then the floor strike")
 PULL_R = FIGHT_REACH + KEEP_R   # tiles: the pull of a lone chaser ends, the stance taken, once it is this near (ruling
                       # P24-AN: "until the chaser alone is within FIGHT_REACH + KEEP_R"; 4.5)
 EDGE_HOLD_TICKS = 6   # planner ticks a zombie that left the listing (beyond LISTED_R, AIM_R's 12) is held in the seek's

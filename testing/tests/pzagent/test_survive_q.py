@@ -7,6 +7,7 @@ P24-AQ, the fallen target under `many` (one stomp, or the floor strike, before t
 swing under any) and the finish's reach FINISH_R (the review's major 5)."""
 import pytest
 
+from agent.base.planner import policies as P
 from agent.base.planner.policies import Fight
 
 from .test_policies import CAPS_14, Rig, all_sends_valid, zombie
@@ -280,11 +281,14 @@ def test_no_finish_under_a_flee_that_is_not_many(tmp_path):
 def test_finish_r_reaches_e9_s_7474_at_line_334_s_geometry(tmp_path):
     """FINISH_R 5.0 (inside the Lua stomp's K.ATTACK_R 6, which its 4 s walk at #4197's 2.04 tiles a second covers):
     E9's 7474 first read fallen on a decision tick at 4.62 tiles with the nearest standing 6.49 (HEAD replay line 334):
-    the stomp is sent at it; R3's 4.0 would not have reached it."""
+    the stomp is sent at it; R3's 4.0 would not have reached it. Named change, Task 36 (P24-AV, the deferred minor 5:
+    a chaser standing within KEEP_R of the target refuses the finish): the nearest standing chaser stands 3.5 tiles
+    off the line here, 6.49 tiles east of the player and 3.97 from the target (E9's own 7479 refuses it:
+    `test_e9_s_7474_at_line_334_is_refused_for_7479_by_it`)."""
     from agent.base.planner import survive as S
     assert S.FINISH_R == 5.0 and 4.62 <= S.FINISH_R < 6.0
     r, sv = struck(tmp_path)
-    zs = [z(1, 104.62, floor=True), z(2, 106.49, 200.0), z(3, 107.5, 203.0), z(4, 107.5, 197.0)]
+    zs = [z(1, 104.62, floor=True), z(2, 106.49, 203.5), z(3, 107.5, 203.0), z(4, 107.5, 197.0)]
     fr(r, zs)
     a = tick(r, sv)
     w = threat_why(tmp_path)
@@ -307,16 +311,20 @@ def test_beyond_fight_reach_a_refused_stomp_takes_no_floor_strike(tmp_path):
     assert tick(r, sv).type == "steer"
 
 
-def test_e9_s_7474_is_finished_at_line_334_and_7488_stays_left_under_its_standing_neighbour():
-    """E9 replayed at HEAD: line 334 sends the finishing stomp at 7474 (fallen 4.62 tiles off, the nearest standing
-    6.49); 7488, fallen on lines 141 to 150 at 1.24 to 5.73 tiles, always had a standing zombie within DANGER_R (1.57
-    to 2.26 tiles), so no reach finishes it under P24-AQ's condition (the review's major 5: one of E9's two fallen
-    targets, not both)."""
+def test_e9_s_7474_at_line_334_is_refused_for_7479_by_it():
+    """E9 replayed at HEAD. Named change, Task 36 (P24-AV, the deferred minor 5 of review-t32-fix1): line 334, where
+    Task 32 fix 1 sent the finishing stomp at 7474 (fallen 4.62 tiles off, the nearest standing 6.49), now refuses it:
+    7479 stands chasing 2.16 tiles from 7474 (within KEEP_R; the review read its 1.97-tile offset along y), so the walk
+    in would end at it (logged `finish_block`); no finish goes on E9's replay. 7488, fallen on lines 141 to 150 at
+    1.24 to 5.73 tiles, always had a standing zombie within DANGER_R (1.57 to 2.26 tiles), so no reach finishes it
+    under P24-AQ's condition (the review's major 5)."""
     from .test_survive_o import e9_lines
     got = e9_lines()
     w = got[334]["why"]
-    assert got[334]["action"] == {"type": "stomp", "args": {"targetId": 7474}} and w["finish"] == 7474
-    assert 4.6 < w["dist"] < 4.63 and w["flee"] == "many"
+    assert got[334]["action"] is None and "finish" not in w and w["flee"] == "many"
+    assert w["finish_block"]["target"] == 7474 and w["finish_block"]["chaser"] == 7479
+    assert 2.15 < w["finish_block"]["dist"] < 2.17 <= P.KEEP_R + 0.01
+    assert not any(d["why"].get("finish") is not None for d in got.values())
     assert not any(got[k]["why"].get("finish") == 7488 for k in range(141, 151) if k in got)
 
 

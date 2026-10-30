@@ -958,7 +958,7 @@ class Threat:
         if self.avoid and want == "fight":
             self.why["unsought"] = sorted(self.avoid, key=repr)
         for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed),
-                       ("doorway_left", self.stand_end), ("pain", self.wound)):
+                       ("doorway_left", self.stand_end), ("pain", self.wound), ("finish_block", self.finish_block)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:
@@ -1029,14 +1029,21 @@ class Threat:
         """Ruling P24-AQ, the fallen target under `many` (E9: the two targets its swings struck, 7488 and 7474, read
         fallen while the `many` flee ran the character away from them, neither stomped): in a flee episode whose reason
         was `many`, a zombie the planner struck (an attack or a shove sent at it within UNREACHABLE_S, `struck`) that
-        reads downed (`onFloor`) within FINISH_R (the stomp's own walk in; fix 1, the review's major 5) on a line not
-        read blocked, with no standing zombie within DANGER_R (the next standing one beyond it), takes one `Stomp`
-        before the flee resumes, or the weapon's floor strike (an `Attack` of it, only within FIGHT_REACH) when the
-        stomp is not announced, would be refused (a standing zombie within STAND_MIN_R) or ended refused; never the
-        floor strike at `body.armPain` STRAIN_HARD nor under any hold (P24-AP and R2: a swing). Sent as
-        the Flee's own action (its leg superseded, the steer resumed on the next tick, as `_flee_drop`); one stomp and
-        at most one floor strike a zombie (`finishing`); none in a hit reaction. With a standing zombie within DANGER_R
-        the flee runs as today. Its end is read by `_finish_end` (a `targetDead` is a kill). Logged `finish`."""
+        reads downed (`onFloor`: ruling P24-AV, the first frame reading it fallen, never a shove's knock-down alone)
+        within FINISH_R (the stomp's own walk in; fix 1, the review's major 5) on a line not read blocked, with no
+        standing zombie within DANGER_R (the next standing one beyond it), takes one `Stomp` before the flee resumes, or
+        the weapon's floor strike (an `Attack` of it, only within FIGHT_REACH) when the stomp is not announced, would
+        be refused (a standing zombie within STAND_MIN_R) or ended refused; never the floor strike at `body.armPain`
+        STRAIN_HARD nor under any hold (P24-AP and R2: a swing). Sent as the Flee's own action (its leg superseded, the
+        steer resumed on the next tick, as `_flee_drop`); one stomp and at most one floor strike a zombie
+        (`finishing`); none in a hit reaction. With a standing zombie within DANGER_R the flee runs as today. Its end is
+        read by `_finish_end` (a `targetDead` is a kill). Logged `finish`.
+        Ruling P24-AV: a stomp that failed `stood` (the target rose) reads the target again on the next tick: standing
+        within DANGER_R the flee runs (no finish); fallen again, one more stomp (`kind` "stomp2"), and that one failed
+        `stood` or refused, the floor strike. The deferred minor 5 of review-t32-fix1 (E9's line 334: the 4.62-tile
+        stomp walk toward 7474 headed at 7479, standing and chasing 2.16 tiles from it): a chasing standing zombie
+        within KEEP_R of the target refuses the finish (`_finish_chaser`, logged `finish_block`)."""
+        self.finish_block = None
         if not (self.flee_many or reason == "many") or (self._finish_a is not None and running(self.actions,
                                                                                                self._finish_a)):
             return None
@@ -1056,13 +1063,17 @@ class Threat:
         if best is None:
             return None
         zid = best[1]
-        done = self.finishing.get(zid)
-        stomp_ok = (self.world.can("stomp") and done is None
-                    and not standing(self.world, STAND_MIN_R, dead | {zid}))
-        if stomp_ok:
-            cmd, kind = Stomp(zid), "stomp"
-        elif done == "stomp" and not self._finish_refused(zid):
-            return None   # the stomp went and was not refused: the one finish is spent
+        chaser = self._finish_chaser(zid, dead)
+        if chaser is not None:
+            self.finish_block = {"target": zid, "chaser": chaser[0], "dist": chaser[1]}
+            return None
+        done, end = self.finishing.get(zid), self._finish_end_read(zid)
+        again = done == "stomp" and end == "stood"   # P24-AV: fallen again after a `stood`: one more stomp
+        if ((done is None or again) and self.world.can("stomp")
+                and not standing(self.world, STAND_MIN_R, dead | {zid})):
+            cmd, kind = Stomp(zid), ("stomp" if done is None else "stomp2")
+        elif done in ("stomp", "stomp2") and end is None:
+            return None   # the stomp went (or runs) and was not refused: the one finish is spent
         elif arms_hurt(self.world) or self._fight_spent():
             self.finishing[zid] = "floor"   # P24-AP, R2: no floor strike (a swing) at STRAIN_HARD or under a hold
             return None
@@ -1074,16 +1085,35 @@ class Threat:
         self.why = {"finish": zid, "kind": kind, "dist": best[0][0]}
         return self.flee, cmd
 
-    def _finish_refused(self, zid):
-        """The flee's last finishing stomp ended refused (rejected, timed out, failed for any reason but `superseded`
-        or `stood`, or done with `attackStarted` false): P24-AL's rule, the floor strike follows."""
+    def _finish_chaser(self, zid, dead):
+        """The deferred minor 5 of review-t32-fix1: (id, tiles) of the nearest standing (not `on_floor`) zombie
+        chasing (`hasTarget`) within KEEP_R of the fallen target `zid`, the ids in `dead` and the target left out, else
+        None: the stomp's walk to the target would end at it."""
+        t = self.world.zombies[zid]
+        best = None
+        for oid, o in self.world.zombies.items():
+            if (oid == zid or oid in dead or on_floor(o) or not chasing(o) or o.get("x") is None
+                    or o.get("y") is None):
+                continue
+            d = math.hypot(o["x"] - t["x"], o["y"] - t["y"])
+            if d <= KEEP_R and (best is None or (d, repr(oid)) < (best[1], repr(best[0]))):
+                best = (oid, d)
+        return best
+
+    def _finish_end_read(self, zid):
+        """The end of the flee's last finishing stomp at `zid`: "stood" when it failed `stood` (P24-AV: the target
+        rose), "refused" when it ended refused (rejected, timed out, failed for any reason but `superseded` or `stood`,
+        or done with `attackStarted` false: P24-AL's rule, the floor strike follows), else None (none, another
+        target's, running, superseded or done)."""
         a = self._finish_a
         if a is None or a.type != "stomp" or a.args.get("targetId") != zid or not self.actions.done(a):
-            return False
+            return None
         res = a.result if isinstance(a.result, dict) else {}
         if a.state == "done":
-            return res.get("attackStarted") is False
-        return not (a.state == "failed" and a.reason in (PREEMPTED, "stood"))
+            return "refused" if res.get("attackStarted") is False else None
+        if a.state == "failed" and a.reason == "stood":
+            return "stood"
+        return None if a.state == "failed" and a.reason == PREEMPTED else "refused"
 
     def _finish_end(self):
         """P24-AQ: the zombie id the flee's finishing stomp or floor strike read dead (`targetDead`, read once), the

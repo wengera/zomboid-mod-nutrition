@@ -8,6 +8,10 @@ rejected `no source` 60 to 159 tiles off, the doorway stand never taken). The fa
   sought, groups fled as today.
 - P24-AU: a zombie that leaves the listing (beyond LISTED_R, AIM_R's 12) is held in the seek's and the pull's reads
   at its last listed square for EDGE_HOLD_TICKS planner ticks, so a leg is not superseded by the edge's flip.
+- P24-AV: the finish's stomp goes on the first frame that reads its target `onFloor` (never on a shove's knock-down
+  alone); a stomp failed `stood` reads the target again (standing: the Fight's path; fallen: one more stomp, then the
+  floor strike); and the flee's finish is refused for a chasing zombie standing within KEEP_R of the target (the
+  deferred minor 5 of review-t32-fix1).
 """
 import functools
 import json
@@ -222,3 +226,120 @@ def _e10(off=()):
 def e10_lines(off=()):
     """{line: decision} of E10's decision log replayed at HEAD (open loop past the first divergence), `off` off."""
     return {d["line"]: d for d in json.loads(_e10(tuple(off)))}
+
+
+# ================================================================ P24-AV: the stomp on the first fallen frame
+def knock_fight(tmp_path):
+    """A Fight at armPain 12 (the shove preferred at point blank) whose shove at zombie 1 (0.8 tiles) read
+    `knockdown` true, the frame not yet reading it on the floor."""
+    from .test_survive_m import fight
+    from .test_survive_m import fr as mfr
+    from .test_survive_m import z as mz
+    zs = [mz(1, 100.8)]
+    r, f = fight(tmp_path, zs, arm=12.0)
+    assert f.step().type == "shove"
+    r.answer({"state": "done", "result": {"knockdown": True, "attackStarted": True, "targetDead": False}})
+    return r, f, mfr, mz
+
+
+def test_a_knocked_down_target_is_stomped_on_the_first_frame_that_reads_it_fallen_never_before(tmp_path):
+    """E10's a59: the stomp sent on the shove's `knockdown` before any frame read the target `onFloor` was rejected
+    `not valid`. The Fight now holds (no send, why `knocked`) while the knock-down is unread on the frame, and stomps
+    on the first frame whose `onFloor` reads true."""
+    r, f, mfr, mz = knock_fight(tmp_path)
+    mfr(r, [mz(1, 100.8)], 12.0)
+    assert f.step() is None and f.why["knocked"] == 1
+    mfr(r, [mz(1, 100.8, floor=True)], 12.0)
+    a = f.step()
+    assert (a.type, a.args) == ("stomp", {"targetId": 1}) and f.why["downed"] == 1
+
+
+def test_a_knock_down_never_read_on_the_floor_ends_its_hold_after_knock_read_s(tmp_path):
+    """Past KNOCK_READ_S with no frame reading it fallen the zombie is read standing again: the shove."""
+    r, f, mfr, mz = knock_fight(tmp_path)
+    mfr(r, [mz(1, 100.8)], 12.0)
+    assert f.step() is None and f.why["knocked"] == 1                   # the knock-down read: waited on
+    r.advance(P.KNOCK_READ_S + 0.1)
+    mfr(r, [mz(1, 100.8)], 12.0)
+    assert f.step().type == "shove" and "knocked" not in f.why
+
+
+def test_a_stomp_failed_stood_reads_the_target_again_one_more_stomp_then_the_floor_strike(tmp_path):
+    """`stood`: the target rose before the stomp landed. Standing on the next frame: the Fight's own path (the shove
+    at point blank at armPain 12); fallen again: one more stomp; that one `stood` too: the floor strike."""
+    from .test_survive_m import fight
+    from .test_survive_m import fr as mfr
+    from .test_survive_m import z as mz
+    r, f = fight(tmp_path, [mz(1, 100.8, floor=True)], arm=12.0)
+    assert f.step().type == "stomp"
+    r.answer({"state": "failed", "reason": "stood"})
+    mfr(r, [mz(1, 100.8)], 12.0)
+    assert f.step().type == "shove"                                      # standing: the Fight's shove
+    r.answer({"state": "done", "result": {"knockdown": False, "attackStarted": True, "targetDead": False}})
+    mfr(r, [mz(1, 100.8, floor=True)], 12.0)
+    assert f.step().type == "stomp"                                      # fallen again: one more stomp
+    r.answer({"state": "failed", "reason": "stood"})
+    mfr(r, [mz(1, 100.8, floor=True)], 12.0)
+    a = f.step()
+    assert (a.type, a.args) == ("attack", {"targetId": 1}) and f.why["floor"] is True
+
+
+def chaser_by(tmp_path, target_x, chaser, caps=None):
+    """A `many` flee (three chasers listed beyond DANGER_R) after the Fight struck zombie 1, now fallen at `target_x`;
+    `chaser` a fourth zombie record (or None)."""
+    from .test_survive_q import GROUP3, struck
+    r, sv = struck(tmp_path)
+    zs = [z(1, target_x, floor=True)] + GROUP3 + ([chaser] if chaser else [])
+    fr(r, zs)
+    return r, sv, tick(r, sv)
+
+
+def test_e9_s_line_334_geometry_a_chaser_within_keep_r_of_the_target_refuses_the_finish(tmp_path):
+    """The deferred minor 5 of review-t32-fix1 (E9's line 334: 7474 fallen 4.62 tiles off, 7479 standing and chasing
+    2.16 tiles from it, 1.97 beyond it along y, 6.49 from the player; here 1.96 from the target): the 4.6-tile stomp
+    walk would end at the chaser; the finish is refused (logged `finish_block`) and the flee runs. An idle zombie
+    there refuses nothing. E9's own line: `test_survive_q.test_e9_s_7474_at_line_334_is_refused_for_7479_by_it`."""
+    r, sv, a = chaser_by(tmp_path, 104.62, z(5, 106.49, 200.6))
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and "finish" not in w and w["flee"] == "many"
+    assert w["finish_block"] == {"target": 1, "chaser": 5, "dist": pytest.approx(1.96, abs=0.01)}
+    (tmp_path / "idle").mkdir()
+    r2, sv2, a2 = chaser_by(tmp_path / "idle", 104.62, z(5, 106.49, 200.6, has_target=False))
+    assert (a2.type, a2.args) == ("stomp", {"targetId": 1})
+
+
+def test_a_fallen_target_with_the_nearest_standing_four_tiles_off_it_is_finished(tmp_path):
+    """The nearest standing chaser 4 tiles beyond the fallen target (7 from the player, beyond DANGER_R and KEEP_R of
+    the target): the stomp goes."""
+    r, sv, a = chaser_by(tmp_path, 103.0, z(5, 107.0, 200.0))
+    assert (a.type, a.args) == ("stomp", {"targetId": 1}) and "finish_block" not in threat_why(tmp_path)
+
+
+def test_the_flee_s_finish_stomps_once_more_after_stood_then_strikes_the_floor(tmp_path):
+    """P24-AV in the flee's finish (P24-AQ): its stomp failed `stood` and the target lies again: one more stomp
+    (`kind` "stomp2"); that one `stood` too: the floor strike (within FIGHT_REACH)."""
+    from .test_survive_q import GROUP3, struck
+    r, sv = struck(tmp_path)
+    zs = [z(1, 101.5, floor=True)] + GROUP3
+    fr(r, zs)
+    assert tick(r, sv).type == "stomp"
+    r.answer({"state": "failed", "reason": "stood"})
+    fr(r, zs)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("stomp", {"targetId": 1}) and threat_why(tmp_path)["kind"] == "stomp2"
+    r.answer({"state": "failed", "reason": "stood"})
+    fr(r, zs)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("attack", {"targetId": 1}) and threat_why(tmp_path)["kind"] == "floor"
+
+
+def test_the_flee_s_finish_spent_after_a_stomp_that_went(tmp_path):
+    """A stomp that went (done, started) spends the finish: the steer follows, as P24-AQ."""
+    from .test_survive_q import GROUP3, struck
+    r, sv = struck(tmp_path)
+    zs = [z(1, 101.5, floor=True)] + GROUP3
+    fr(r, zs)
+    assert tick(r, sv).type == "stomp"
+    r.answer({"state": "done", "result": {"hit": True, "attackStarted": True, "targetDead": False}})
+    fr(r, zs)
+    assert tick(r, sv).type == "steer"

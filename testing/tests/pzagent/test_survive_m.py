@@ -172,17 +172,17 @@ def test_a_refused_stomp_takes_the_floor_strike(tmp_path, end):
     assert f.step().type == "stomp"
 
 
-def test_a_shove_s_knockdown_is_stomped_before_the_frame_reads_it_down(tmp_path):
-    """PZA/1.7.1 (9 fix 12: `knockdown` read off the knocked-down state at the hit, `onFloor` a second later): the
-    shove's target reads downed for KNOCK_READ_S, so the stomp follows at once; past it the frame's read stands."""
+def test_a_shove_s_knockdown_is_waited_on_until_the_frame_reads_it_down(tmp_path):
+    """PZA/1.7.1 (9 fix 12: `knockdown` read off the knocked-down state at the hit, `onFloor` a second later). Named
+    change, Task 36 (ruling P24-AV: E10's a59, the stomp sent on the knockdown alone, was rejected `not valid`): the
+    Fight sends nothing for KNOCK_READ_S (`knocked`), the stomp waiting for the frame's `onFloor`; past it the frame's
+    read stands (standing: the shove)."""
     zs = [z(1, 100.8)]
     r, f = fight(tmp_path, zs, arm=12.0)
     assert f.step().type == "shove"
     r.answer({"state": "done", "result": {"knockdown": True, "attackStarted": True, "targetDead": False}})
     fr(r, zs, 12.0)
-    a = f.step()
-    assert (a.type, a.args) == ("stomp", {"targetId": 1}) and P.KNOCK_READ_S == 2.0
-    r.answer({"state": "failed", "reason": "superseded"})
+    assert f.step() is None and f.why["knocked"] == 1 and P.KNOCK_READ_S == 2.0
     r.advance(P.KNOCK_READ_S + 0.1)
     fr(r, zs, 12.0)
     assert f.step().type == "shove"

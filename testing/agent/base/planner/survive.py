@@ -276,6 +276,12 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   LISTED_R, is held in the pull's reads at its last listed square for EDGE_HOLD_TICKS planner ticks, logged `edge` on
   the pull leg; E10's run 4 flipped seek and pull on seven aims as its group came and went at the edge). `EDGE` is
   the replay tests' seam (`test_replay_decisions.pre_t36`).
+  P24-AV, the stomp on the first fallen frame (`policies.Fight._finish`, `_knock_wait`: a shove's knock-down is
+  waited on, KNOCK_READ_S, until a frame reads the target `onFloor`, never stomped before it, E10's a59 rejected `not
+  valid`; a stomp failed `stood` reads the target again, one more stomp, then the floor strike, STOOD_STOMPS; the
+  flee's finish likewise, `_flee_finish`'s "stomp2"), and the deferred minor 5 of review-t32-fix1: a chasing
+  standing zombie within KEEP_R of the fallen target refuses the flee's finish (`_finish_chaser`, logged
+  `finish_block`; E9's line 334 now refused for 7479).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -456,7 +462,10 @@ class Survive(Threat):
         self.spent_kinds = ()     # every hold `_read_spent` read this tick, in its order (P24-AP reads them all)
         self.many_since = None    # wall of the first `many` reason since the threat branch last held nothing (P24-AR)
         self.struck = {}          # zombie id -> wall of the last attack or shove sent at it (P24-AQ)
-        self.finishing = {}       # zombie id -> the `many` flee's finishing sends at it, "stomp" then "floor" (P24-AQ)
+        self.finishing = {}       # zombie id -> the `many` flee's finishing sends at it, "stomp" (then "stomp2" after a
+                                  # `stood`, P24-AV) then "floor" (P24-AQ)
+        self.finish_block = None  # this tick: {target, chaser, dist} when a chaser by the fallen target refused the
+                                  # flee's finish (P24-AV, the deferred minor 5 of review-t32-fix1), else None
         self._finish_a = None     # the flee's last finishing action (P24-AQ), its end read once (`_finish_read`)
         self._finish_read = None
         self._finish_kill = None  # the zombie id the finishing stomp read dead this tick (`_read`), else None

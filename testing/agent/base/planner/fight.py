@@ -103,13 +103,17 @@ one table the gates and the other policies import).
   hold (`_observe_edge`): a zombie that leaves the listing (beyond LISTED_R) is kept in `edge` at its last listed
   record for `edge_ticks` observes (EDGE_HOLD_TICKS; Survive's EDGE switch), and the pull's group reads it there
   (`pull_centroid`, `policies.pull_from`'s `edge`), so the leg does not flip between `pull` and `seek` each tick.
+  P24-AV: the finish (`_finish`) stomps only a zombie the frame reads `onFloor`; one a shove read knocked down within
+  KNOCK_READ_S and no frame reads fallen yet is waited on (`_knock_wait`, logged `knocked`, nothing sent); a stomp
+  failed `stood` reads the target again (standing, the shove or the swing; fallen, one more stomp), the STOOD_STOMPS-th
+  `stood` taking the floor strike (`stood`, `_observe_swing`).
 """
 import math
 import time
 
 from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R,
                                          EDGE_HOLD_TICKS, ENGAGE_R, FIGHT_MAX_S, FIGHT_REACH, KEEP_MARGIN, KEEP_R,
-                                         KNOCK_READ_S, LISTED_R,
+                                         KNOCK_READ_S, LISTED_R, STOOD_STOMPS,
                                          MISSES_TO_APPROACH, NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R,
                                          REPIN_MARGIN, REPOSITION_MIN, REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R,
                                          SHOVE_R, STALL_SWINGS, STAND_MAX_S, STAND_MIN_R, STEER_PROBE, STEER_TURNS,
@@ -166,7 +170,8 @@ class Fight(Policy):
         self.swing_refused = {}             # (shove or stomp, zombie id) -> wall until that skill is not sent at it
                                             # (SWING_SKIP_S: the Lua refused or failed it; P24-AL's floor strike then)
         self._shoved = False                # the last swing-like send was a shove: the next is the swing (P24-AH)
-        self.knocked = {}                   # zombie id -> wall until a shove's knockdown reads it downed (KNOCK_READ_S)
+        self.knocked = {}                   # zombie id -> wall until a shove's knockdown is waited on (KNOCK_READ_S)
+        self.stood = {}                     # zombie id -> its stomps failed `stood` (P24-AV, STOOD_STOMPS)
         self.pull = False                   # Survive sets it on a Fight it seeks (ruling P24-AN): a lone chaser pulled
         self._pulled = None                 # the zombie id the last pull leg was sent at (P24-AN)
         self.doorway = None                 # the building a doorway stand holds (`planner.doorway.Doorway`), else None
@@ -566,11 +571,19 @@ class Fight(Policy):
         """A shove's or a stomp's end (rulings P24-AH, P24-AL): one the Lua refused, failed (never `superseded`, this
         planner's own next send), timed out, or ended done with `attackStarted` false (the engine dropped it) leaves its
         target out of that skill for SWING_SKIP_S (a refused stomp's target takes the weapon's floor strike); a stomp
-        that started counts in the no-progress streak as a swing does (`_swing_landed_nothing`)."""
+        that started counts in the no-progress streak as a swing does (`_swing_landed_nothing`). Ruling P24-AV: a stomp
+        failed `stood` (the target rose before it landed) is read again on the next frame (standing, the Fight's own
+        path; fallen again, one more stomp): the STOOD_STOMPS-th `stood` at one target leaves it out of the stomp as a
+        refusal does, so the floor strike follows."""
         zid = a.args.get("targetId")
         res = a.result if isinstance(a.result, dict) else {}
         if a.state != "done" or res.get("attackStarted") is False:
-            if not (a.state == "failed" and (a.reason == PREEMPTED or (a.type == "stomp" and a.reason == "stood"))):
+            if a.type == "stomp" and a.state == "failed" and a.reason == "stood":
+                self.stood[zid] = self.stood.get(zid, 0) + 1
+                if self.stood[zid] >= STOOD_STOMPS:
+                    self.swing_refused[(a.type, zid)] = self.clock() + SWING_SKIP_S
+                return
+            if not (a.state == "failed" and a.reason == PREEMPTED):
                 self.swing_refused[(a.type, zid)] = self.clock() + SWING_SKIP_S
             return
         if a.type == "stomp" and res.get("attackStarted") is True:
@@ -597,14 +610,16 @@ class Fight(Policy):
                 best = (zid, z, d)
         return best
 
-    def _downed(self):
+    def _downed(self, knocked=False):
         """(id, zombie, dist) of each downed zombie (`on_floor`) the Fight may target within FIGHT_REACH whose line is
-        not read blocked, nearest first (ruling P24-AL: finished before the Fight turns to a standing one); a zombie a
-        shove read knocked down within KNOCK_READ_S counts as downed (`knocked`)."""
+        not read blocked, nearest first (ruling P24-AL: finished before the Fight turns to a standing one). Ruling
+        P24-AV (E10's a59: the stomp sent on a shove's `knockdown` before any frame read the target fallen was rejected
+        `not valid`): only the frame's `onFloor` makes a zombie downed; with `knocked` the zombies a shove read knocked
+        down within KNOCK_READ_S that no frame reads on the floor yet are listed instead (the finish waits for them)."""
         skip, now = self.blocked(), self.clock()
         out = []
         for zid, z in self.world.zombies.items():
-            down = on_floor(z) or self.knocked.get(zid, -math.inf) > now
+            down = (not on_floor(z) and self.knocked.get(zid, -math.inf) > now) if knocked else on_floor(z)
             if (not target_id_ok(zid) or zid in skip or not down or z.get("x") is None or z.get("y") is None
                     or (self.only is not None and zid not in self.only)):
                 continue
@@ -623,7 +638,7 @@ class Fight(Policy):
         zombie."""
         downed = self._downed()
         if not downed:
-            return None
+            return self._knock_wait()
         zid, z, d = downed[0]
         self.why = {"target": self.target, "pinned": self.target is not None, "dist": d, "downed": zid}
         hit = hit_reaction(self.world)
@@ -643,6 +658,18 @@ class Fight(Policy):
         self.why["floor"] = True   # the stomp refused (or not announced): the weapon's floor strike
         self._held_before = False
         return (Attack(zid),)
+
+    def _knock_wait(self):
+        """Ruling P24-AV: a zombie a shove knocked down within KNOCK_READ_S (its `knockdown` read at the hit), within
+        FIGHT_REACH on a line not read blocked, that no frame reads `onFloor` yet: the Fight sends nothing (`(None,)`,
+        logged `knocked`) until the first frame reads it fallen (the stomp then) or KNOCK_READ_S passes (read standing
+        again); else None."""
+        k = self._downed(knocked=True)
+        if not k:
+            return None
+        zid, _, d = k[0]
+        self.why = {"target": self.target, "pinned": self.target is not None, "dist": d, "knocked": zid}
+        return (None,)
 
     def no_swing(self):
         """The Fight sends no swing, the floor strike included (rulings P24-AP and R2): `body.armPain` at STRAIN_HARD
