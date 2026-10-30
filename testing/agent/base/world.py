@@ -162,6 +162,14 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   and `amount` (each dropped when the line leaves it out), and drops a vessel-state mark (`empty`, `filled`,
   `tainted`: the engine's read supersedes the planner's). `first_sight` (Task 10) is the set of ids an `item_added` named between a hello and the first frame after it:
   the inventory's first sight (ruling P22-2), the clothes the character stands in, which the care branch never rips.
+  PZA/1.6 (Plan 24 Task 24): an `item_added`/`item_changed` line's `clothing` record ({loc, bite, scratch, bullet, cond,
+  condMax, holes, worn}) is kept on the item as `clothing` (an `item_changed` on a 1.5.2 or later log replaces it, the
+  engine's re-read of a worn garment's holes and condition; absent drops it); `worn` is `me.worn` as the last frame
+  that carried one left it (the Lua sends it only when it changes, a null frame means unchanged: None until a frame
+  carries one, unknown and never "nothing worn"; kept across null frames, not in `to_json`); `unworn` lists
+  (id, `frame_n`) of each held item an `item_changed` read worn and then not (the exclusive locations a wear takes
+  off, which its `replaced` does not name: the care branch's re-wear); `window_marks` is the door marks' twin for a
+  window (`note_window_fail`, `window_locked`: the planner's, never a line's).
   `to_json` carries `emptyIds`, `refusedIds` (the ids excluded now)
   and `noEffectIds` sorted, each only while it is non-empty,
   so a World that never marked one serialises as before (the replay goldens keep their bytes). For the same reason a
@@ -172,7 +180,7 @@ import math
 import re
 from collections import deque
 
-from agent.base.items import USES, cant_eat, use_of
+from agent.base.items import USES, cant_eat, holds_use, use_of
 
 ZOMBIE_TTL_S = 10
 STUCK_TTL_MIN = 60   # game minutes an edge whose walk ended stuck is left out of unexplored_edge
@@ -183,9 +191,11 @@ REFUSED_TTL_MIN = 120   # world minutes a food whose consume was refused `not va
 SOURCE_RETRY_MIN = 10.0   # game minutes a source a wash or a fill failed at is left out (`mark_dry`; a judgment)
 DOOR_RETRY_MIN = 30.0     # game minutes a door marked stuck is never tried again (ruling P24-Z, Plan 24 Task 18)
 DOOR_FAILS_TO_MARK = 2    # failures on one door within DOOR_RETRY_MIN that mark it (P24-Z: "fails twice")
-MARK_REASONS = ("empty", "refused", "no_effect", "unrippable", "filled", "tainted", "undrinkable", "in_bag")   # the planner's
+MARK_REASONS = ("empty", "refused", "no_effect", "unrippable", "filled", "tainted", "undrinkable", "in_bag",
+                "wear_loses")   # the planner's
                      # item marks (P24-I), one an item; `undrinkable` and the two before it the water chain's (P24-G 3), `in_bag` a care action the Lua refused
-                     # `in bag` for good (Task 10 fix 2)
+                     # `in bag` for good (Task 10 fix 2), `wear_loses` a garment whose wear lowered the worn defence
+                     # (Task 24: an exclusive location took other garments off)
 VESSEL_MARKS = ("empty", "filled", "tainted")   # the marks an item_changed line drops (the engine's read wins)
 MET_TTL_MIN = 10     # game minutes a zombie listed stays in the met memory (ruling P24-A (a), a judgment: a group
                      # met within the last ten minutes is still about; E5's was first listed at gameMin 590 and at
@@ -278,6 +288,9 @@ class World:
         self.dry = {}                # water square (x, y, z) -> world minute a wash or fill failed there (`mark_dry`)
         self.door_fails = {}         # door square (x, y, z) -> [(world minute, reason)] of its failures (P24-Z)
         self.door_marks = {}         # door square (x, y, z) -> (world minute, reason, side): marked stuck (P24-Z)
+        self.window_marks = {}       # window square (x, y, z) -> (world minute, reason): a window failed (Task 24)
+        self.worn = None             # me.worn as the last frame that carried one left it (None: none seen yet)
+        self.unworn = deque(maxlen=32)   # (item id, frame_n): a held item an item_changed read worn, then not
         self.frame_n = 0             # the frames applied (a frame-newer test's counter, never serialised)
         self.killed = set()          # the zombie ids a Fight read dead off its own attack or aim (P24-Q: `kills`)
         self.first_sight = set()     # the ids the inventory's first sight named (between a hello and the next frame)
@@ -338,6 +351,9 @@ class World:
         self.game_min = line.get("gameMin")
         self.world_age = line.get("worldAge")
         self.frame_wall_ms = wall
+        worn = (line.get("me") or {}).get("worn")
+        if worn is not None:
+            self.worn = worn         # null means unchanged (PZA/1.6: the Lua sends me.worn only when it changes)
         for z in line.get("zombies") or ():
             self.zombies[z.get("id")] = dict({k: v for k, v in z.items() if k != "id"}, seenWallMs=wall)
         ttl = ZOMBIE_TTL_S * 1000
@@ -405,6 +421,8 @@ class World:
                 it["worn"] = True       # PZA/1.5.2: absent means not worn
             if line.get("rip") is not None:
                 it["rip"] = line["rip"]   # PZA/1.5.2: cotton, denim or leather; absent means none
+            if line.get("clothing") is not None:
+                it["clothing"] = line["clothing"]   # PZA/1.6: a garment's protection record
             self.inventory[line.get("itemId")] = it
             if self._sighting:
                 self.first_sight.add(line.get("itemId"))
@@ -420,6 +438,12 @@ class World:
                 if line.get("use") is not None:
                     it["use"] = line["use"]
                 if self.item_fields():   # a 1.5.2 line states both: absent is not worn, no class
+                    if it.get("worn") is True and line.get("worn") is not True:
+                        self.unworn.append((line.get("itemId"), self.frame_n))
+                    if line.get("clothing") is None:
+                        it.pop("clothing", None)
+                    else:
+                        it["clothing"] = line["clothing"]
                     for k, v in (("worn", line.get("worn") is True or None), ("rip", line.get("rip"))):
                         if v is None:
                             it.pop(k, None)
@@ -483,6 +507,8 @@ class World:
         only a container holding an item of that use and not yet looted for it, with None one marked for no use. A
         map line names full types only, so this keeps the dataset's `items.use_of` on a container's items. A key in
         `exclude` is never nearest."""
+        if want == "clothing" and not self.can("wear"):
+            return None   # PZA/1.6 only: the Lua's `clothing` filter (an older build's loot refuses it)
         mx, my = me_xy(self)
         best = None
         for key, c in self.containers.items():
@@ -490,7 +516,7 @@ class World:
                 continue
             if (want in c["looted"]) if want else c["looted"]:
                 continue
-            if want and not any(use_of(i) == want for i in c["items"]):
+            if want and not any(holds_use(i, want) for i in c["items"]):
                 continue
             rank = (math.hypot(key[0] - mx, key[1] - my), key)
             if best is None or rank < best:
@@ -891,6 +917,20 @@ class World:
         self.door_marks[sq] = (now, reason, side)
         return True
 
+    def note_window_fail(self, sq, reason):
+        """The window at square `sq` (x, y, z) failed `reason` (a `window` action's end, Task 24): kept for
+        DOOR_RETRY_MIN game minutes (`window_locked`, `windows_failed`). The planner's, never a line's."""
+        self.window_marks[sq] = (self.world_minutes(), reason)
+
+    def window_fail(self, sq):
+        """The reason the window at `sq` failed within DOOR_RETRY_MIN game minutes, else None."""
+        m = self.window_marks.get(sq)
+        return m[1] if m is not None and self.world_minutes() - m[0] < DOOR_RETRY_MIN else None
+
+    def worn_total(self):
+        """The sum of bite + scratch over `worn` (every location), 0.0 while none has been read."""
+        return sum((e.get("bite") or 0.0) + (e.get("scratch") or 0.0) for e in (self.worn or ()) if isinstance(e, dict))
+
     def marked_doors(self, side=None):
         """The door squares marked within DOOR_RETRY_MIN game minutes (P24-Z): never tried again meanwhile from that
         side; with `side`, the ones marked from it only (Task 18 fix 1, major 4)."""
@@ -1054,6 +1094,22 @@ class World:
                         out.append((sq, n))
             return sorted(out)
         return self.memo(("openings", building), walk)
+
+    def windows(self, building):
+        """The building's exterior windows (Task 24, the route past a stuck door): the squares holding a `window` record
+        on an edge between one of its room squares and a mapped, non-solid square with no room, sorted; the square is
+        the `window` action's (x, y). Memoised per map version (read it, never change it)."""
+        def walk():
+            out = set()
+            for sq in self.interiors().get(building, ()):
+                for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                    n = (sq[0] + dx, sq[1] + dy, sq[2])
+                    s = self.map.get(n)
+                    if s is None or s.get("solid") or s.get("room") is not None or not self._window_edge(sq, n):
+                        continue
+                    out.add(sq if (dx, dy) in ((0, -1), (-1, 0)) else n)   # a square holds its north and west edges
+            return sorted(out)
+        return self.memo(("windows", building), walk)
 
     # -- the inventory by use and the empties (Plan 23 Task 9, P23-D) -----------------------------------------------
     def mark(self, item_id, reason):

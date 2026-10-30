@@ -35,6 +35,12 @@ map names by full type only.
 item's class is `Clothing`, with its `clothing` record of protection on `item_added` and `item_changed`); the food
 dataset carries no garment, so `use_of` never answers it and a log written before PZA/1.6 reads a garment `other`.
 
+`garment(full_type)` (PZA/1.6, Plan 24 Task 24) is the name guess a container's items are read by for the `clothing`
+loot (a map line names full types only and no dataset carries a garment): the type names a jacket, hoodie, vest,
+shirt, trousers, shorts, skirt, dress, socks, shoes, boots, gloves, hat, jumper, sweater, tracksuit, boilersuit, coat,
+apron, scarf or helmet. It is a guess the Lua's `clothing` filter (the item's class is Clothing) corrects: a miss takes
+nothing and marks the container (`no match`); it never reaches `use_of`, which stays the dataset's answer.
+
 `days_fresh(full_type)` is the dataset's `days_fresh` (None for a food that never spoils, or a name it does not carry):
 the need's pick among foods, the most perishable first (fix wave P, I-4).
 
@@ -50,6 +56,8 @@ WATER_FLUIDS = frozenset({"Water", "CarbonatedWater"})   # the jar's isWaterSour
 DRINK_CAP_L = 3.0      # litres: vanilla's drink menu refuses a larger container (the Lua's W.DRINK_CAP_L)
 DATASET = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "food-items.json"))
 WEAPON_RX = re.compile(r"\.(BaseballBat|Hammer|Axe|Crowbar|Knife|Pan|Pistol|Shotgun|Rifle)\b")
+GARMENT_RX = re.compile(r"\.(Jacket|Hoodie|Vest|Shirt|Tshirt|TShirt|Trousers|Shorts|Skirt|Dress|Socks|Shoes|Boots|Gloves|"
+                        r"Hat|Jumper|Sweater|Tracksuit|Boilersuit|Coat|Apron|Scarf|Helmet)(_|$)")   # garment()'s name guess
 SEALED_TAG = "base:sealedbeveragecan"   # the sealed pop cans' tag: spawned canPlayerEmpty false, never drunk
 # every item whose script sets CanBandage = true (the 42.21 install, media/scripts/generated/items/normal.txt L8046-
 # L10691), as the engine's isCanBandage() reads it
@@ -115,6 +123,17 @@ def use_of(full_type):
     if ft in VESSEL_IDS:
         return "container"
     return "other"
+
+
+def garment(full_type):
+    """Whether the full type's name reads a garment (GARMENT_RX), the `clothing` loot's guess of a container's item."""
+    return bool(GARMENT_RX.search(full_type or ""))
+
+
+def holds_use(full_type, use):
+    """Whether a container item of `full_type` counts as `use` for a loot: `use_of`'s answer, and for `clothing` (which
+    `use_of` never answers) `garment`'s guess."""
+    return garment(full_type) if use == "clothing" else use_of(full_type) == use
 
 
 def days_fresh(full_type):

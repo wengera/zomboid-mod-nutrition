@@ -64,12 +64,13 @@ class Rig:
 
     def frame(self, x=100.0, y=200.0, zombies=(), weapon=BAT, health=100.0, hunger=0.1, thirst=0.1, level=0,
               game_min=480.0, wounds=None, load_max=8.0, fatigue=0.05, hour=8.0, z=0, weight=4.5, world_age=None,
-              endurance=1.0, attackers=0, hit_reaction=""):
+              endurance=1.0, attackers=0, hit_reaction="", worn=None):
         """`world_age` (hours) defaults to `game_min / 60`, the day-one clock, so a test that steps `game_min` steps
         the monotonic clock the planner's timers read (fix wave P, I-1); a midnight test passes both. `endurance` is
         the stats group's (DEFAULT_FRAME's 1.0; survival 3's group sprint reads it). `attackers` and `hit_reaction`
-        are PZA/1.4's `me.attackers` and `me.hitReaction` (DEFAULT_FRAME's 0 and "", P24-A (h) and (i))."""
-        me = dict(DEFAULT_FRAME["me"], x=x, y=y, z=z, hour=hour, attackers=attackers, hitReaction=hit_reaction)
+        are PZA/1.4's `me.attackers` and `me.hitReaction` (DEFAULT_FRAME's 0 and "", P24-A (h) and (i)). `worn` is PZA/1.6's
+        `me.worn` ([{loc, bite, scratch, holes, cond}] or None: the Lua sends it only when it changes)."""
+        me = dict(DEFAULT_FRAME["me"], x=x, y=y, z=z, hour=hour, attackers=attackers, hitReaction=hit_reaction, worn=worn)
         stats = dict(DEFAULT_FRAME["stats"], hunger=hunger, thirst=thirst, fatigue=fatigue, endurance=endurance)
         body = dict(DEFAULT_FRAME["body"], health=health, **(wounds or {}))
         load = dict(DEFAULT_FRAME["load"], level=level, max=load_max, weight=weight)

@@ -49,6 +49,19 @@ its line the care branch's (`why` `stock`). `wants_dressing()`: a part bleeds, n
 it is held (nor a dirty rag to wash) and no garment can be ripped: Survive then marks the want `bandage`, which the
 view lists and the goal layer's loot takes first (`goals.wanted_uses`). The worn garment's unwear and rip waits for
 the Lua's unwear (PZA/1.6 has `wear` only).
+The wear (Plan 24 Task 24, review-t9-fix9's ruling 5; PZA/1.6.1's `me.worn` with each entry's `holes` and `cond`): on
+the same idle tick as the rag stock, after it, `stock()` answers `Wear(itemId)` of the held unworn garment whose
+clothing record beats what is worn at its location (`wear_gain`: `cond` above 0, `holes` 0, bite + scratch above the
+worn entry's, 0 where nothing is worn, ties to the higher bite then the fuller condition; a worn entry with holes, or
+at condition 0, defends nothing in the engine, so an intact candidate of equal or better nominal defence swaps it),
+never with an attacker or hit reaction read nor a zombie listed within WEAR_QUIET_R, never while `me.worn` is unread
+(unknown, not nothing worn), an item once per WEAR_RETRY_MIN game minutes. Wearing can take off other garments at
+exclusive locations that the wear's `replaced` does not name: the check (`_wear_check`, read every tick
+WEAR_SETTLE_FRAMES after the wear's done) compares the summed defence of `me.worn` before and after; when it fell the
+candidate is marked `wear_loses` and the garments an `item_changed` read taken off since are put on again, and when
+it held the replaced garment is dropped under a load above level 0. The care branch is the stock's: a wear is a
+50-action-tick stand-still, taken on a quiet idle tick, never the load branch's (a drop under load is the same tick's
+second choice).
 An item whose care action ended failed (never `superseded`), timed out or was rejected is left out for
 CARE_RETRY_MIN game minutes (`World.world_minutes`); a wash refused `no source` or `no water` leaves its source out
 (`World.mark_dry`, `world.SOURCE_RETRY_MIN`). A part a bandage ended `done` on is left out until a frame newer than
@@ -67,7 +80,7 @@ import re
 import time
 
 from agent.base.planner.policies import Policy, PREEMPTED, item_id_ok
-from agent.base.pza1 import Bandage, Rip, Wash
+from agent.base.pza1 import Bandage, Drop, Rip, Wash, Wear
 from agent.base.world import me_floor
 
 CARE_RETRY_MIN = 2.0      # game minutes an item whose care action was refused is left out (P24-G 2)
@@ -99,7 +112,13 @@ RIDE_RETRY_S = 3.0        # seconds after a stopped ride before the care rides a
 RAG_STOCK = 2             # clean dressings (bandages and clean rags) the care keeps, ripping one unworn cotton garment
                           # on an idle tick while fewer are held (ruling P24-AB; Angus: "a couple clean rags")
 
-__all__ = ["Care", "care_kind", "rippable", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
+WEAR_RETRY_MIN = 10.0     # game minutes an item's wear is not sent again (Task 24; the brief's number)
+WEAR_QUIET_R = 8.0        # tiles: a wear (50 action ticks, stopped by a run) waits while a zombie is listed this near
+                          # (review-t9-fix9 ruling 5, point 3: "no zombie seen within about 8 squares")
+WEAR_SETTLE_FRAMES = 2    # frames after a wear's done before its exclusive-location check reads `me.worn` (the Lua
+                          # sends it on the next dirty frame; a judgment)
+
+__all__ = ["Care", "care_kind", "rippable", "wear_gain", "WEAR_RETRY_MIN", "WEAR_QUIET_R", "WEAR_SETTLE_FRAMES", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
            "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R", "RIDE_RETRY_S", "RAG_STOCK"]
 
 
@@ -127,6 +146,26 @@ def _num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
+def wear_gain(c, e):
+    """The wear rule (Task 24, the module docstring): the defence a held garment's clothing record `c` adds over the
+    worn entry `e` at its location (a `me.worn` entry, None when nothing is worn there), else None when it is not to be
+    worn. `c` needs `cond` above 0 and `holes` equal to 0. Over nothing worn it adds bite + scratch (None at 0). An
+    intact worn entry (no holes, condition above 0 or unread) is beaten by a higher bite + scratch, or an equal one with
+    a higher bite; a holed or spent one defends nothing in the engine (bite and scratch ignore holes), so an intact
+    garment of equal or better defence than its nominal swaps it, adding its whole defence."""
+    if not (_num(c.get("cond")) and c["cond"] > 0 and c.get("holes") == 0):
+        return None
+    bite = c.get("bite") or 0.0
+    cs = bite + (c.get("scratch") or 0.0)
+    if e is None:
+        return cs if cs > 0 else None
+    ebite = e.get("bite") or 0.0
+    nominal = ebite + (e.get("scratch") or 0.0)
+    if (e.get("holes") or 0) == 0 and (not _num(e.get("cond")) or e["cond"] > 0):
+        return cs - nominal if (cs > nominal or (cs == nominal and bite > ebite)) else None
+    return cs if (cs >= nominal and cs > 0) else None
+
+
 class Care(Policy):
     """The care branch's policy (the module docstring): `observe()` every tick, `choose()` when not busy, `quiet` set
     by Survive each tick (no zombie within DISENGAGE_R: the wash's condition)."""
@@ -141,9 +180,23 @@ class Care(Policy):
         self.ride = None     # the last bandage sent with keepMoving (P24-U), tracked by its own act lines
         self.ride_stopped_at = -math.inf   # the wall of the last ride the engine stopped (RIDE_RETRY_S)
         self.ride_now = False   # Survive sets it on a tick the threat yields to a ride: the bleeding step rides
+        self.wear_at = {}    # item id -> world minute its wear was sent (WEAR_RETRY_MIN)
+        self.wearing = None  # the candidate wear awaiting its exclusive-location check: {item, before, frame0, loc,
+                             # action, done_n, replaced}
+        self.rewear_sent = set()   # ids of a re-wear in flight (its send is not a candidate wear)
+        self.rewear = []     # ids to put on again, the garments a wear took off while the worn defence fell
+        self.drop_after = None   # the id a wear replaced, dropped under load once the check passed
 
     def sent(self, cmd, action):
         self.sends[cmd.itemId] = action
+        if cmd.TYPE == "wear":
+            self.wear_at[cmd.itemId] = self.world.world_minutes()
+            if cmd.itemId in self.rewear_sent:
+                self.rewear_sent.discard(cmd.itemId)
+            else:
+                clothing = (self.world.inventory.get(cmd.itemId) or {}).get("clothing") or {}
+                self.wearing = {"item": cmd.itemId, "before": self.world.worn_total(), "frame0": self.world.frame_n,
+                                "loc": clothing.get("loc"), "action": action, "done_n": None, "replaced": None}
         if cmd.TYPE == "bandage" and cmd.keepMoving:
             self.ride = action
 
@@ -165,6 +218,12 @@ class Care(Policy):
             if a.aid in self._read or not self.actions.done(a):
                 continue
             self._read.add(a.aid)
+            if a.type == "wear" and self.wearing is not None and self.wearing["action"] is a:
+                if a.state == "done":
+                    self.wearing["done_n"] = n
+                    self.wearing["replaced"] = (a.result or {}).get("replaced") if isinstance(a.result, dict) else None
+                else:
+                    self.wearing = None
             if a.type == "bandage" and a.state == "done":
                 self.fresh[a.args.get("part")] = n
             if a.state not in FAILED or (a.state == "failed" and a.reason == PREEMPTED):
@@ -179,6 +238,25 @@ class Care(Policy):
                 self.world.mark(iid, "unrippable")
             if a.type == "wash" and a.reason in DRY_REASONS:
                 self.world.mark_dry((a.args.get("x"), a.args.get("y"), me_floor(self.world)))
+        self._wear_check()
+
+    def _wear_check(self):
+        """The exclusive-location check of the last wear (review-t9-fix9 ruling 2), read every tick once its done is
+        WEAR_SETTLE_FRAMES frames old: a wear can take off garments at exclusive locations, which its `replaced` does
+        not name. When the summed bite + scratch of `me.worn` fell, the candidate is marked `wear_loses` and the garments
+        an `item_changed` read taken off since the wear was sent (its replaced one aside) are put on again, one a tick
+        (`_wear`); else the replaced garment is the one to drop under load."""
+        w, wr = self.world, self.wearing
+        if wr is None or wr["done_n"] is None or w.frame_n < wr["done_n"] + WEAR_SETTLE_FRAMES:
+            return
+        self.wearing = None
+        if w.worn_total() < wr["before"]:
+            w.mark(wr["item"], "wear_loses")
+            self.rewear = sorted({i for i, n in w.unworn if n >= wr["frame0"] and i != wr["item"]
+                                  and i != wr["replaced"] and i in w.inventory})
+            self.drop_after = None
+        else:
+            self.drop_after = wr["replaced"]
 
     # -- the reads ------------------------------------------------------------------------------------------------
     def _items(self):
@@ -250,10 +328,17 @@ class Care(Policy):
         return None, None
 
     def stock(self):
-        """The rag stock's rip (ruling P24-AB, the module docstring), `(command, why)` or (None, None): fewer than
-        RAG_STOCK clean dressings held, an unworn cotton garment held, `rip` announced, `quiet`. Survive calls it only
-        on an idle tick."""
-        if not (self.quiet and self.world.can("rip")):
+        """The idle tick's stock, `(command, why)` or (None, None): the rag stock's rip (ruling P24-AB), else the wear
+        (Task 24, `_wear`). Survive calls it only on an idle tick; nothing without `quiet`."""
+        if not self.quiet:
+            return None, None
+        out = self._rags()
+        return out if out[0] is not None else self._wear()
+
+    def _rags(self):
+        """The rag stock's rip (ruling P24-AB, the module docstring): fewer than RAG_STOCK clean dressings held, an
+        unworn cotton garment held, `rip` announced."""
+        if not self.world.can("rip"):
             return None, None
         items = self._items()
         if items["dirty"]:   # review-t21 minor 5: a dirty rag is washed first, never another garment ripped for it
@@ -265,6 +350,69 @@ class Care(Policy):
         if rip is None:
             return None, None
         return Rip(rip), {"reason": "stock", "item": rip, "dressings": held, "stock": RAG_STOCK}
+
+    def _wear_quiet(self):
+        """A wear (50 action ticks, `stopOnRun`) starts with no attacker, no hit reaction and no listed zombie within
+        WEAR_QUIET_R (review-t9-fix9 ruling 5, point 3)."""
+        me = self.world.me or {}
+        if me.get("attackers") or me.get("hitReaction"):
+            return False
+        x, y = me.get("x"), me.get("y")
+        return x is None or y is None or not any(
+            z.get("x") is not None and z.get("y") is not None and math.hypot(z["x"] - x, z["y"] - y) <= WEAR_QUIET_R
+            for z in self.world.zombies.values())
+
+    def _wear(self):
+        """The wear branch of the stock (Task 24; review-t9-fix9's ruling 5), `(command, why)` or (None, None), in this
+        order: a garment to put on again (`rewear`, see `_wear_check`), one a tick; the replaced garment dropped under a
+        load above level 0; then the best candidate (`_wear_pick`). Nothing while the last wear is not yet checked.
+        Needs `wear` announced and `me.worn` known (never read as nothing worn)."""
+        w = self.world
+        if not w.can("wear") or w.worn is None or not self._wear_quiet():
+            return None, None
+        if self.wearing is not None:
+            return None, None   # a wear in flight, or its check not yet due (`observe`)
+        while self.rewear:
+            iid = self.rewear.pop(0)
+            if iid in w.inventory and w.inventory[iid].get("worn") is not True:
+                self.rewear_sent.add(iid)
+                return Wear(iid), {"reason": "rewear", "item": iid}
+        if self.drop_after is not None:
+            iid, self.drop_after = self.drop_after, None
+            it = w.inventory.get(iid)
+            if (it is not None and it.get("worn") is not True and ((w.load or {}).get("level") or 0) >= 1
+                    and w.can("drop") and item_id_ok(iid)):
+                return Drop(iid), {"reason": "drop_replaced", "item": iid}
+        pick = self._wear_pick()
+        if pick is None:
+            return None, None
+        iid, loc, gain = pick
+        return Wear(iid), {"reason": "wear", "item": iid, "loc": loc, "gain": gain}
+
+    def _wear_pick(self):
+        """`(item id, loc, gain)` of the held unworn garment whose clothing record adds the most over what is worn at its
+        location (`wear_gain`; ties to the higher bite, then the fuller condition, then the least id), else None. An
+        item marked `in_bag` or `wear_loses`, held out by a refusal (CARE_RETRY_MIN) or worn within WEAR_RETRY_MIN
+        game minutes is left out."""
+        w = self.world
+        now = w.world_minutes()
+        worn = {e.get("loc"): e for e in w.worn if isinstance(e, dict)}
+        barred = set(w.marked("in_bag")) | set(w.marked("wear_loses"))
+        best = None
+        for iid, it in w.inventory.items():
+            c = it.get("clothing")
+            if (not isinstance(c, dict) or it.get("worn") is True or not item_id_ok(iid) or iid in barred
+                    or now - self.held_out.get(iid, -math.inf) < CARE_RETRY_MIN
+                    or now - self.wear_at.get(iid, -math.inf) < WEAR_RETRY_MIN):
+                continue
+            gain = wear_gain(c, worn.get(c.get("loc")))
+            if gain is None:
+                continue
+            full = (c["cond"] / c["condMax"]) if _num(c.get("condMax")) and c["condMax"] > 0 else 0.0
+            rank = (-gain, -(c.get("bite") or 0.0), -full, iid)
+            if best is None or rank < best[0]:
+                best = (rank, iid, c.get("loc"), gain)
+        return None if best is None else best[1:]
 
     def wants_dressing(self):
         """A part bleeds (unbandaged), `bandage` announced, and the bleeding step has nothing to put on it: no clean
