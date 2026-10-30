@@ -36,10 +36,23 @@ def pre_an(sv):
     heading read) off. P24-AN's listing count, P24-AP, P24-AQ and P24-AR stay on: they read what no record carries or
     what every record carries alike (`hasTarget` on every listed zombie, no `armPain`, `onFloor` or part `bleeding`:
     `test_no_record_carries_what_iteration_11_reads`), so with these three off every golden is the file as it stood
-    before Task 32 byte for byte (`test_with_iteration_11_off_the_goldens_are_task_27_s`)."""
+    before Task 32 byte for byte (`test_with_iteration_11_off_the_goldens_are_task_27_s`). Task 32 fix 1: its two
+    switches (`fix1_off`: `HOLD_WIDE`, ruling R2, and `STANCE_LISTED`, the review's major 6) off with them."""
     sv.PULL = False
     sv.DOORWAY = False
     sv.TRANS = False
+    fix1_off(sv)
+
+
+def fix1_off(sv):
+    """The replay's mutate seam onto the rules as Task 32 landed them (`45e099ea`): Task 32 fix 1's switches off,
+    `Survive.HOLD_WIDE` (ruling R2: every hold kind fights within KEEP_R, no swing under any) and
+    `Survive.STANCE_LISTED` (the stance's count of the standing held within DANGER_R or chasing). The fix's other
+    rules read what no record carries (`onFloor`, `armPain`, a part's `bleeding`, a `many` shelter at a door: the
+    doorway's post, its ends and its walk back, FINISH_R, the care tick's drag exclusion) or move nothing (the
+    `solidTrans` reads of the ride and the reposition: `test_fix_1_moves_f1_and_the_sixth_at_r2_and_no_other_golden`)."""
+    sv.HOLD_WIDE = False
+    sv.STANCE_LISTED = False
 
 
 # ---------------------------------------------------------------- the rules before P24-X (Plan 24 Task 18)
@@ -1009,17 +1022,30 @@ def pre_an_gold(key):
     return {d["line"]: d for d in R.decisions(json.loads(_pre_an_replayed(key)))}
 
 
-def _one_off(name):
+def _one_off(name, fix1=True):
     def m(sv):
+        if fix1:
+            fix1_off(sv)
         setattr(sv, name, False)
     return m
 
 
-@functools.lru_cache(maxsize=4)
-def _one_off_gold(key, name):
-    """{line: decision} of the replay with the one switch `name` off, the other rules of HEAD on."""
+@functools.lru_cache(maxsize=8)
+def _one_off_gold(key, name, fix1=True):
+    """{line: decision} of the replay with the one switch `name` off, the other rules of HEAD on (with `fix1`, Task
+    32 fix 1's switches off too: the rules as Task 32 landed them)."""
     return {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
-                                                         mutate=_one_off(name)))}
+                                                         mutate=_one_off(name, fix1)))}
+
+
+@functools.lru_cache(maxsize=6)
+def _t32_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=fix1_off), sort_keys=True)
+
+
+def t32_gold(key):
+    """{line: decision} of the replay with Task 32 fix 1's switches off: the golden as Task 32 recorded it."""
+    return {d["line"]: d for d in R.decisions(json.loads(_t32_replayed(key)))}
 
 
 # the six goldens as they stood before Task 32's re-record: sha256, base, recorded
@@ -1056,13 +1082,13 @@ def test_iteration_11_moves_e4_at_the_transparent_solid_and_the_sixth_at_the_pul
     went toward it), and at 165 the pulled chaser past ENGAGE_R (9.34) is stood for, never sought back. P24-AO moves
     no golden: the five PZA/1.4 builds announce no stance, and the sixth's four shelter plans are picked under
     `unreachable`, `pair` and `strain` flees, never a `many` one. Each golden's own switch alone off reproduces the
-    file before Task 32: the other two move nothing on it."""
-    base, got = pre_an_gold(key), gold(key)
+    file before Task 32: the other two move nothing on it. Named change, Task 32 fix 1: read against the goldens as
+    Task 32 recorded them (`t32_gold`, fix 1's switches off; `test_fix_1_moves_...` attributes fix 1's moves)."""
+    base, got = pre_an_gold(key), t32_gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     if key not in FIRST_AN:
         assert diff == []
-        with open(R.golden_path(key), "rb") as f:
-            assert hashlib.sha256(f.read()).hexdigest() == PRE_AN[key][0]
+        assert PRE_FIX1[key][0] == PRE_AN[key][0]
         return
     line, switch = FIRST_AN[key]
     assert diff[0] == line
@@ -1090,3 +1116,57 @@ def test_no_record_carries_what_iteration_11_reads(key):
     for fr in frames:
         assert all(zz.get("hasTarget") is not None for zz in fr.get("zombies") or ())
         assert all(p.get("bleeding") is None for p in ((fr.get("body") or {}).get("parts") or ()) if isinstance(p, dict))
+
+
+# ================================================================ Plan 24 Task 32 fix 1 on the goldens
+# the six goldens as Task 32 recorded them (`45e099ea`): sha256, base, recorded
+PRE_FIX1 = {"e2": ("ce339594d3cc5a0715468423bd5a2c60ab2421a7a52dd99342c390127e0c7d06", "9abc5037", "2026-10-29"),
+            "e3": ("51822032e67a4c7c76cc5ddbd0e426357c13596d70db4b904f57980988de9eaf", "9abc5037", "2026-10-29"),
+            "e4": ("dd93ec28b348a9238be69f2ed3e711d22aabfbdac486d2938d7218b528a572c9", "434543ac", "2026-10-30"),
+            "e5": ("ce0bc741b43c2b87a2f92edd80e2710cea0cb5d3ac42bbd5322ba5a1d9f28f53", "9abc5037", "2026-10-29"),
+            "f1": ("58540fb15d575cbbccb3fd41c9cd4389dd411180d532f4fb4c83d96f7ad74e01", "eff3bdce", "2026-10-30"),
+            SIXTH: ("cebf068324c1ddaa30acfbbe0f996f7d9c906b92665f1ff03ec133d28044a30d", "434543ac", "2026-10-30")}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_FIX1))
+def test_with_fix_1_off_the_goldens_are_task_32_s(key):
+    """Task 32 fix 1's golden movers are two switches (`Survive.HOLD_WIDE`, `STANCE_LISTED`): with them off every
+    golden is the file as Task 32 recorded it byte for byte (its sha256 pinned), so the fix's other rules (always on)
+    move none."""
+    sha, base, recorded = PRE_FIX1[key]
+    text = R.golden_text(R.decisions(json.loads(_t32_replayed(key))), base, R.RUNS[key], recorded,
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+
+
+# the first line fix 1 moves on each golden it moves, and the one switch that moves it
+FIRST_FIX1 = {"f1": (559, "HOLD_WIDE"), SIXTH: (559, "HOLD_WIDE")}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_FIX1))
+def test_fix_1_moves_f1_and_the_sixth_at_r2_and_no_other_golden(key):
+    """Task 32 fix 1's attribution. F1 and the sixth move first at line 559 (game minute 636): the `walk` corner on
+    15921 at 1.09 tiles under the endurance hold (0.752, under ENDURANCE_RELEASE) yielded `strain` (the flee's walk
+    held, then `pair`); under ruling R2 a hold fights a zombie within KEEP_R, so the corner swings (the records announce
+    no `shove`, so the swing stays: `Survive._fight_spent`); every later moved line is that episode's, open loop.
+    STANCE_LISTED (the review's major 6) moves no golden: on the sixth, the one golden whose build stands, no fight's
+    held list carried an idle zombie beyond DANGER_R into the stance's count past MAX_FIGHT; the E9 replay is its
+    reading (`test_survive_o`). E2, E3, E4 and E5 are unmoved: E4's endurance hold met its zombies within KEEP_R only
+    in corners, which swung before. HOLD_WIDE alone off reproduces Task 32's file; STANCE_LISTED alone off moves
+    nothing."""
+    base, got = t32_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    assert _one_off_gold(key, "STANCE_LISTED", False) == got
+    if key not in FIRST_FIX1:
+        assert diff == []
+        with open(R.golden_path(key), "rb") as f:
+            assert hashlib.sha256(f.read()).hexdigest() == PRE_FIX1[key][0]
+        return
+    line, switch = FIRST_FIX1[key]
+    assert diff[0] == line
+    assert _one_off_gold(key, switch, False) == base
+    b, g = base[line], got[line]
+    assert b["why"]["yield"] == "strain" and b["why"]["strain"]["kind"] == "endurance"
+    assert P.ENDURANCE_T < b["why"]["strain"]["endurance"] <= P.ENDURANCE_RELEASE
+    assert g["why"]["corner_kind"] == "walk" and g["why"]["cornered"] == 15921 and g["why"]["dist"] <= P.KEEP_R
+    assert g["action"] == {"type": "attack", "args": {"targetId": 15921}}

@@ -379,3 +379,15 @@ def test_three_attackers_end_the_stand_into_the_close_from_inside(tmp_path):
     r.frame(x=POST[0], y=POST[1], zombies=[z(1, 111.3, 201.5)] + group(8.0, POST)[1:], attackers=S.DRAG_DOWN_N)
     tick(r, sv)
     assert r.cmd()[1]["kind"] == "close" and sv.flee.plan["left"] == "drag" and why(r)["flee"] == "doorway"
+
+
+def test_under_the_endurance_hold_the_doorway_faces_and_shoves_never_swings(tmp_path):
+    """Ruling R2 on the post: the endurance hold (no arm pain) holds the swing as STRAIN_HARD does: a zombie in reach
+    beyond point blank is faced (logged `spent`), one at point blank shoved."""
+    r, sv = stood(tmp_path)
+    r.frame(x=POST[0], y=POST[1], zombies=[z(1, 111.3, 201.5)] + group(8.0, POST)[1:], endurance=0.7)
+    a = tick(r, sv)
+    assert a.type == "aim" and why(r)["spent"] == ["endurance"] and why(r)["doorway"] == 1
+    r.frame(x=POST[0], y=POST[1], zombies=[z(1, 111.7, 201.5)] + group(8.0, POST)[1:], endurance=0.7)
+    assert tick(r, sv).type == "shove"
+    assert not any(x.type == "attack" for x in r.acts.history)

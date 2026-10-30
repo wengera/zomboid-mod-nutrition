@@ -255,7 +255,11 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   the threshold's own centre ended on the outdoor door square; the stand starts only on a room square of the building,
   `policies.on_post`, else the enter is walked again), its walk back giving way to a zombie in reach
   (`doorway.Doorway.busy`), and its `drag` (`me.attackers` at DRAG_DOWN_N, R1) and `off` (`doorway.off_post`) ends
-  (`_doorway`).
+  (`_doorway`); ruling R2 (`HOLD_WIDE`): every hold kind fights a zombie within KEEP_R, the Fight sending no swing
+  under any (`_wounded_fight`, `_fight_spent`, `policies.Fight.no_swing`); the finish's reach FINISH_R (R3 as the
+  review corrects it, `_flee_finish`); the stance's count (`STANCE_LISTED`, `_stance_count`: the standing held within
+  DANGER_R or chasing, so a group idling 6 to 10 tiles off no longer turns the pull's stance off). `HOLD_WIDE` and
+  `STANCE_LISTED` join the replay tests' seam (`test_replay_decisions.fix1_off`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -362,6 +366,14 @@ CORNER_FREE_R = DISENGAGE_R / 2   # tiles: a stuck leg's corner ends once the ne
                           # the other corners end beyond CORNERED_R)
 MANY_LISTED_N = 4         # zombies listed within LISTED_R that make `many` whatever the DANGER_R count (P24-A (a):
                           # E5's group of five to seven was listed at 12 tiles while the branch counted within 6, #4268)
+FINISH_R = 5.0            # tiles: the farthest struck target downed the flee's finishing stomp is sent at (P24-AQ,
+                          # Task 32 fix 1, the review's major 5 correcting ruling R3's 4.0): the Lua's stomp takes a
+                          # target within K.ATTACK_R 6 (`swingCheck`) and walks in to under STOMP_R 0.5 for at most
+                          # STOMP_APPROACH_MS 4000, which at a walk of 2.04 to 2.08 tiles a second (#4197) covers the
+                          # whole 6; 5.0 keeps a tile under ATTACK_R. E9's 7474 was first read fallen on a decision tick
+                          # at 4.62 tiles (HEAD replay line 334, the nearest standing 6.49), beyond 4.0; its 7488 never
+                          # qualifies at any reach (a standing zombie within DANGER_R on every tick it lay, 141 to 150).
+                          # The floor strike (a swing from where the player stands) stays at FIGHT_REACH
 DRAG_DOWN_N = 3           # attackers the drag-down kills at (#4290, #4291: the fixture's sandbox Strength 2; two at
                           # Strength 1): at DRAG_DOWN_N - 1 the branch leaves any fight for the group's flee (P24-A (h))
 FLIP_MIN_S = 5.0          # wall seconds a flee walk runs before a fight's walk may supersede it (P23-AM 1)
@@ -391,8 +403,8 @@ DOOR_NEAR_R = 1.5        # tiles: a loot failed `not adjacent` counts on a door 
 __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R", "THIRST_T", "HUNGER_T", "FLEE_HEALTH",
            "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "FIGHT_MAX_S", "FIGHT_REACH", "FAILED_COOLDOWN_TICKS",
            "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
-           "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "NEED_STATS",
-           "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
+           "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "FINISH_R",
+           "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS"]
 
 
@@ -432,6 +444,12 @@ class Survive:
                     # switches and TRANS off are the replay tests' seam onto the rules before Task 32
                     # (`test_replay_decisions.pre_an`; P24-AP to P24-AR read what no record carries: `armPain`,
                     # `onFloor`, a part's `bleeding`)
+    HOLD_WIDE = True    # ruling R2 (Task 32 fix 1, the review's major 4): every hold kind (arms, endurance, tired)
+                        # fights a zombie within KEEP_R as the shove then the stomp, never the swing; off, the arms'
+                        # hold alone (P24-AP as Task 32 landed it)
+    STANCE_LISTED = True  # Task 32 fix 1, the review's major 6: the stance counts the held zombies standing and
+                          # within DANGER_R or chasing (`_stance_count`); off, every held one. Both switches are in
+                          # the replay tests' seam onto the rules before Task 32 (`pre_an`)
 
     def __init__(self, world, actions, log_path, clock=time.time, source=None):
         self.world = world
@@ -713,8 +731,9 @@ class Survive:
         - `tired` at `stats.fatigue` TIRED_FIGHT_T or above (the TIRED moodle's, which halves it again).
         Spent, the threat branch disengages (the flee `strain`, its legs as today), engages and seeks nothing, and a
         `walk` corner yields; the `stuck`, `inside`, trapped and door fights, which no leg can leave, still swing (the
-        Fight's shove and stomp spare the arms there: `policies.Fight._shove`). Ruling P24-AP (`_wounded_fight`): with
-        the arms' hold alone a zombie within KEEP_R is fought, never fled. The why's `strain` carries the frame's
+        Fight's shove and stomp spare the arms there: `policies.Fight._shove`). Ruling P24-AP (`_wounded_fight`), as
+        ruling R2 widens it (Task 32 fix 1): under any hold a zombie within KEEP_R is fought, never fled, and the Fight
+        sends no swing (`_fight_spent`). The why's `strain` carries the frame's
         `body.strain` (each arm's stiffness, #4369) when it reads one, read nowhere else."""
         pain = arm_pain(self.world)
         if pain is None or pain < STRAIN_SOFT:
@@ -738,11 +757,23 @@ class Survive:
 
     def _wounded_fight(self):
         """Ruling P24-AP, the wounded fight (E9: a bite on part 5 read `body.armPain` 37.6 with `body.strain` 0 on both
-        arms and held the strain hold to the death): the arms' hold is the only one this tick (`spent_kinds`; the
-        endurance and the tired holds still flee, review-t27's flicker) and a zombie stands within KEEP_R: it is
-        fought whatever the pain (the Fight's shove at point blank, the stomp of a fallen one, the backpedal between,
-        never the swing: `policies.Fight._wounded_leg`); the hold stops the seeking of fights only (`_sought`)."""
-        return self.spent_kinds == ("arms",) and bool(self._within(KEEP_R))
+        arms and held the strain hold to the death), as ruling R2 widens it (Task 32 fix 1, the review's major 4: E9's
+        endurance hold stood from game minute 617, and a flee from a zombie at 0.5 tiles never works; the shove loses
+        only 5 points of crit chance per endurance level, #4373): any hold this tick (`spent_kinds`: arms, endurance
+        or tired) and a zombie within KEEP_R: it is fought whatever the hold (the Fight's shove at point blank, the
+        stomp of a fallen one, the backpedal between, never the swing: `policies.Fight.no_swing`, which Survive feeds
+        the hold, `_fight_spent`); the holds' release lines govern the seeking of fights only (`_sought`). With
+        `HOLD_WIDE` off, the arms' hold alone (P24-AP as Task 32 landed it)."""
+        if not self.HOLD_WIDE:
+            return self.spent_kinds == ("arms",) and bool(self._within(KEEP_R))
+        return bool(self.spent_kinds) and bool(self._within(KEEP_R))
+
+    def _fight_spent(self):
+        """The holds the Fight reads to send no swing (`policies.Fight.spent`, ruling R2): this tick's `spent_kinds`
+        with `HOLD_WIDE` on and a build that announces `shove` (the point-blank answer R2 puts in the swing's place;
+        on a build without it a held Fight would send nothing at 0.5 tiles, so the swing stays, as on E4's and F1's
+        PZA/1.4 records), else () (the Fight reads `body.armPain` itself, `arms_hurt`)."""
+        return self.spent_kinds if self.HOLD_WIDE and self.world.can("shove") else ()
 
     def _seeks(self):
         """A new Fight is sought (P24-X): both switches on."""
@@ -837,13 +868,24 @@ class Survive:
 
     def _stance_ok(self, held, inside):
         """Ruling P24-G 1, the standing fight: the build announces `aim` (`World.can`), a weapon in hand, one held
-        threat with health at or above FLEE_HEALTH or two with it at or above FLEE_HEALTH_PAIR, and the character
-        not trapped on a room square (`_trapped`: the corner rules stay for a stuck or trapped character)."""
-        if not (self.world.can("aim") and self._armed() and 1 <= len(held) <= MAX_FIGHT):
+        threat with health at or above FLEE_HEALTH or two with it at or above FLEE_HEALTH_PAIR (counted by
+        `_stance_count`), and the character not trapped on a room square (`_trapped`: the corner rules stay for a stuck
+        or trapped character)."""
+        k = self._stance_count(held)
+        if not (self.world.can("aim") and self._armed() and held and k <= MAX_FIGHT):
             return False
-        if self._health() < self._fight_line(len(held)):
+        if self._health() < self._fight_line(max(k, 1)):
             return False
         return not self._trapped(held, inside)
+
+    def _stance_count(self, held):
+        """The held zombies the stance counts (Task 32 fix 1, the review's major 6: E9's replayed line 342 lost the
+        pull's stance to held 3 within DISENGAGE_R, one fallen at 7.43 and an idle one at 9.17, and ran at the
+        chaser toward the group): those standing (not `on_floor`) and within DANGER_R or chasing (`_counts_listed`,
+        the listing's own reading); with `STANCE_LISTED` off, every held one."""
+        if not self.STANCE_LISTED:
+            return len(held)
+        return sum(1 for z in held if not on_floor(z) and self._counts_listed(z))
 
     def _behind_walk(self):
         """Ruling P24-A (b): the ids listed behind the target the Fight would walk toward (`policies.others_behind`),
@@ -1070,7 +1112,7 @@ class Survive:
             return "health"
         if self.mode == "flee" and self.flee_many:
             return "many"
-        if self.spent is None or self._wounded_fight():   # P24-AP: the arms' hold alone fights within KEEP_R
+        if self.spent is None or self._wounded_fight():   # P24-AP, R2: a hold fights within KEEP_R
             return None
         return "strain"   # P24-AG: spent, it disengages as the health flee does
 
@@ -1410,6 +1452,7 @@ class Survive:
         else:
             policy.only = None if door is None else {zid for zid, _ in door}
             policy.stance = self._stance_ok(held, self.night.inside())   # P24-G 1 (no corner or door Fight stands)
+            policy.spent = self._fight_spent()   # R2: no swing under any hold
             policy.hold_ground = self._chokepoint()   # Task 18 fix 1, ruling 2: no seek from a room or door square
             policy.avoid = self.avoid                 # ... nor at a zombie no engage reaches (major 2)
             policy.ride = self.care.riding()   # P24-U: the stance legs held off while a bandage rides
@@ -1459,6 +1502,7 @@ class Survive:
         self.mode = "fight"
         policy = self.fight
         policy.threats = held
+        policy.spent = self._fight_spent()   # R2: no swing under any hold
         policy.ride = self.care.riding()
         ans = self._answer(policy)
         self.why.update({"fight": True, "doorway": policy.doorway})
@@ -1507,10 +1551,11 @@ class Survive:
         """Ruling P24-AQ, the fallen target under `many` (E9: the two targets its swings struck, 7488 and 7474, read
         fallen while the `many` flee ran the character away from them, neither stomped): in a flee episode whose reason
         was `many`, a zombie the planner struck (an attack or a shove sent at it within UNREACHABLE_S, `struck`) that
-        reads downed (`onFloor`) within FIGHT_REACH on a line not read blocked, with no standing zombie within
-        DANGER_R (the next standing one beyond it), takes one `Stomp` before the flee resumes, or the weapon's floor
-        strike (an `Attack` of it) when the stomp is not announced, would be refused (a standing zombie within
-        STAND_MIN_R) or ended refused; never the floor strike at `body.armPain` STRAIN_HARD (P24-AP: a swing). Sent as
+        reads downed (`onFloor`) within FINISH_R (the stomp's own walk in; fix 1, the review's major 5) on a line not
+        read blocked, with no standing zombie within DANGER_R (the next standing one beyond it), takes one `Stomp`
+        before the flee resumes, or the weapon's floor strike (an `Attack` of it, only within FIGHT_REACH) when the
+        stomp is not announced, would be refused (a standing zombie within STAND_MIN_R) or ended refused; never the
+        floor strike at `body.armPain` STRAIN_HARD nor under any hold (P24-AP and R2: a swing). Sent as
         the Flee's own action (its leg superseded, the steer resumed on the next tick, as `_flee_drop`); one stomp and
         at most one floor strike a zombie (`finishing`); none in a hit reaction. With a standing zombie within DANGER_R
         the flee runs as today. Its end is read by `_finish_end` (a `targetDead` is a kill). Logged `finish`."""
@@ -1528,7 +1573,7 @@ class Survive:
                     or not on_floor(z) or self.finishing.get(zid) == "floor"):
                 continue
             d = zdist(self.world, z)
-            if d <= FIGHT_REACH and line_to(self.world, z) is not False and (best is None or (d, repr(zid)) < best[0]):
+            if d <= FINISH_R and line_to(self.world, z) is not False and (best is None or (d, repr(zid)) < best[0]):
                 best = ((d, repr(zid)), zid)
         if best is None:
             return None
@@ -1540,9 +1585,11 @@ class Survive:
             cmd, kind = Stomp(zid), "stomp"
         elif done == "stomp" and not self._finish_refused(zid):
             return None   # the stomp went and was not refused: the one finish is spent
-        elif arms_hurt(self.world):
-            self.finishing[zid] = "floor"   # P24-AP: no floor strike (a swing) at STRAIN_HARD
+        elif arms_hurt(self.world) or self._fight_spent():
+            self.finishing[zid] = "floor"   # P24-AP, R2: no floor strike (a swing) at STRAIN_HARD or under a hold
             return None
+        elif best[0][0] > FIGHT_REACH:
+            return None   # the floor strike swings from where the player stands: only within FIGHT_REACH
         else:
             cmd, kind = Attack(zid), "floor"
         self.finishing[zid] = kind

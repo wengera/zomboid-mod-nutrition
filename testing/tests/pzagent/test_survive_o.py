@@ -3,6 +3,9 @@ no kill, six fights dropped by the look behind for a chaser 10.74 to 11.90 tiles
 held 16.511 s against a `solidTrans` row): ruling P24-AN, the pull (a lone chaser drawn from the group by the stance
 walking away from it, then fought alone; the `many` listing counting only a zombie within DANGER_R or chasing), and
 ruling P24-AS (amendment 1), the transparent solid in a heading read. The fake mod over PZA/1.7."""
+import functools
+import json
+
 import pytest
 
 from agent.base.planner import policies as P
@@ -249,3 +252,68 @@ def test_a_way_out_whose_square_beyond_is_a_transparent_solid_is_refused(tmp_pat
     assert P.exit_plan(r.world, []) is None
     plan = P.exit_plan(r.world, [], trans=False)
     assert plan is not None and plan["target"] == (110, 201, 0)
+
+
+# ================================================================ Task 32 fix 1: the stance's count (the review's major 6)
+E9 = "e_day_9-20261030-052429"
+
+
+@functools.lru_cache(maxsize=4)
+def _e9(off=()):
+    import os
+    from agent.base import replay_decisions as R
+
+    def m(sv):
+        for k in off:
+            setattr(sv, k, False)
+    return json.dumps(R.decisions(R.replay(os.path.join(R.ARTIFACTS, E9), mutate=m)))
+
+
+def e9_lines(off=()):
+    """{line: decision} of E9's decision log replayed at HEAD (open loop: a line after the first divergence is read for
+    its geometry and decision, never for a kill), the switches `off` off."""
+    return {d["line"]: d for d in json.loads(_e9(tuple(off)))}
+
+
+def test_idle_zombies_held_beyond_danger_r_keep_the_pull_s_stance(tmp_path):
+    """The review's major 6: a chaser at 7 tiles, idle zombies held at 7.5 and 9.5 (three held within DISENGAGE_R, past
+    MAX_FIGHT): the stance counts only the standing ones within DANGER_R or chasing (`_stance_count`: one), so the pull
+    leg holds; with STANCE_LISTED off (the rule Task 32 landed) the three turn the stance off and the Fight runs at the
+    chaser."""
+    zs = [zd(1, 107.0, 200.0), zd(2, 107.0, 202.0, has_target=False), zd(3, 109.0, 196.0, has_target=False)]
+    for case in ("on", "off"):
+        (tmp_path / case).mkdir()
+        r, sv = make(tmp_path / case)
+        sv.STANCE_LISTED = case == "on"
+        r.frame(zombies=zs)
+        leg = tick(r, sv)                                   # sought within ENGAGE_R: the chaser and the idle one at 7.3
+        assert leg.type == "aim" and why(tmp_path / case)["leg"] == "pull"
+        r.fake.answer({"aim": ["accepted"]})
+        r.pump()
+        r.frame(zombies=zs)
+        a = tick(r, sv)                                     # running: held within DISENGAGE_R, all three
+        assert len(sv._within(P.DISENGAGE_R)) == 3
+        if case == "on":
+            assert a is None and why(tmp_path / case)["holding"] == leg.aid and sv.fight.stance is True
+            assert sv._stance_count(sv._within(P.DISENGAGE_R)) == 1
+        else:
+            assert sv.fight.stance is False and r.cmd() == ("walkTo", {"x": 107.5, "y": 200.5, "gait": "run"})
+
+
+def test_a_fallen_zombie_is_no_count_toward_the_stance(tmp_path):
+    """A zombie lying on the floor within DANGER_R is no standing attacker: two chasers and a fallen one held, the
+    stance counts two (MAX_FIGHT)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zd(1, 103.0, 200.0), zd(2, 103.0, 202.0), dict(zd(3, 104.0, 198.0), onFloor=True)])
+    held = sv._within(P.DISENGAGE_R)
+    assert len(held) == 3 and sv._stance_count(held) == 2
+
+
+def test_e9_s_line_342_keeps_the_pull_s_leg(tmp_path):
+    """E9 replayed at HEAD: line 341 sends the pull leg at 7479 (8.15 tiles); at 342, where Task 32's stance gate read
+    three held (7594 fallen at 7.43 on the tick before, 7474 idle at 9.17) and ran at the chaser, the leg holds. With
+    STANCE_LISTED off the run comes back (the review's line 342)."""
+    got, old = e9_lines(), e9_lines(("STANCE_LISTED",))
+    assert got[341]["why"]["leg"] == "pull" and got[341]["why"]["target"] == 7479
+    assert got[342]["action"] is None and got[342]["why"]["leg"] == "pull" and "holding" in got[342]["why"]
+    assert old[342]["action"]["type"] == "walkTo" and old[342]["action"]["args"]["gait"] == "run"

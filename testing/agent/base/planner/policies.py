@@ -104,9 +104,10 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   walk away from the rest's centroid facing it (`pull`, `pulling`), the seek's switch to a nearer zombie off; within
   PULL_R it is `sought` (the stance stands for it, never a seek toward it past the group), and once pulled it is kept
   to DISENGAGE_R (`_pull_waits`: past ENGAGE_R it is stood for, never sought back). P24-AP, the wounded fight: at
-  `body.armPain` STRAIN_HARD (`arms_hurt`) the Fight never swings, the floor strike included: the shove at point
-  blank (P24-AG's), the stomp of a fallen one, else the backpedal facing the target (`_wounded_leg`, held by `busy`
-  until point blank; with no stance announced nothing). P24-AS (amendment 1): every heading read (`clear_heading`:
+  `body.armPain` STRAIN_HARD (`arms_hurt`), or under any hold Survive reads (`spent`, ruling R2 of Task 32 fix 1:
+  the arms', the endurance or the tired hold; `no_swing`), the Fight never swings, the floor strike included: the
+  shove at point blank (P24-AG's, every time), the stomp of a fallen one, else the backpedal facing the target
+  (`_wounded_leg`, held by `busy` until point blank; with no stance announced nothing). P24-AS (amendment 1): every heading read (`clear_heading`:
   the steer's turns, the backpedal, the pull, the seek's and the advance's lines) and the way out's end (`_beyond`)
   refuse a `solidTrans` square (the policy's `trans`, Survive's TRANS switch); the fight's line of sight does not.
   The doorway stand's Fight is `planner/doorway.py`'s `Doorway`; the Flee keeps its stand plan (`stand_ok`, the
@@ -668,6 +669,7 @@ class Fight(Policy):
         self.pull = False                   # Survive sets it on a Fight it seeks (ruling P24-AN): a lone chaser pulled
         self._pulled = None                 # the zombie id the last pull leg was sent at (P24-AN)
         self.doorway = None                 # the building a doorway stand holds (`planner.doorway.Doorway`), else None
+        self.spent = ()                     # Survive sets it each tick: the holds read (ruling R2), no swing under any
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -961,7 +963,7 @@ class Fight(Policy):
         t = self._target(pin=False)
         if t is None or t[0] != self.last.args.get("targetId"):
             return False
-        if self._leg == "back" and arms_hurt(self.world):   # P24-AP: the wounded backpedal holds until point blank
+        if self._leg == "back" and self.no_swing():   # P24-AP, R2: the wounded backpedal holds until point blank
             return POINT_BLANK_R < t[2] <= KEEP_R + KEEP_MARGIN
         if t[2] <= FIGHT_REACH or not self.stance_at(t[2]):
             return False
@@ -1110,19 +1112,28 @@ class Fight(Policy):
         if self._swing_ok("stomp", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
             self.why["stomp"] = True
             return (Stomp(zid),)
-        if arms_hurt(self.world):   # P24-AP: the floor strike is a swing, divided by the arms' pain: the backpedal
+        if self.no_swing():   # P24-AP, R2: the floor strike is a swing, divided by the arms' pain: the backpedal
             return (self._wounded_leg(zid, z, d),)
         self.why["floor"] = True   # the stomp refused (or not announced): the weapon's floor strike
         self._held_before = False
         return (Attack(zid),)
 
+    def no_swing(self):
+        """The Fight sends no swing, the floor strike included (rulings P24-AP and R2): `body.armPain` at STRAIN_HARD
+        (`arms_hurt`), or any hold Survive read this tick (`spent`: the arms', the endurance or the tired hold, each
+        halving a swing, #4370, #4371)."""
+        return arms_hurt(self.world) or bool(self.spent)
+
     def _wounded_leg(self, zid, z, d):
         """Ruling P24-AP, the wounded fight (#4370: at `body.armPain` STRAIN_HARD a swing does half its damage or less,
-        whatever the pain's source): where the Fight would swing, the stance's backpedal from the held threats facing
-        `zid` instead (`_stance_leg`'s `back`, a heading `clear_heading` passes, else standing), held until the target
-        comes to point blank (`busy`), where the shove goes, or lies down, where the stomp goes; with no `aim` announced
-        nothing is sent (the Fight holds, logged `hold`). Logged `wounded` (the pain)."""
+        whatever the pain's source), and ruling R2 under any hold (`no_swing`): where the Fight would swing, the
+        stance's backpedal from the held threats facing `zid` instead (`_stance_leg`'s `back`, a heading
+        `clear_heading` passes, else standing), held until the target comes to point blank (`busy`), where the shove
+        goes, or lies down, where the stomp goes; with no `aim` announced nothing is sent (the Fight holds, logged
+        `hold`). Logged `wounded` (the pain) and, under a hold, `spent` (its kinds)."""
         self.why["wounded"] = arm_pain(self.world)
+        if self.spent:
+            self.why["spent"] = list(self.spent)
         if not self.world.can("aim"):
             self.why["hold"] = True
             return None
@@ -1132,17 +1143,19 @@ class Fight(Policy):
         """The shove sent instead of the next swing at the standing target `zid` (`d` tiles off, within reach), else
         None (the build must announce `shove`; never with another standing zombie within STAND_MIN_R of the player
         than the one shoved):
-        - ruling P24-AG: `arm_pain` at or above STRAIN_SOFT (the swing's damage divided by armPain / 10, #4370) and
-          the target at point blank (POINT_BLANK_R): the shove, which strains the arms about a third less than a bat's
-          swing and knocks down 35 + 2 x Strength in 100 (#4373), every time;
+        - ruling P24-AG: `arm_pain` at or above STRAIN_SOFT (the swing's damage divided by armPain / 10, #4370), or
+          any hold (`spent`, ruling R2), and the target at point blank (POINT_BLANK_R): the shove, which strains the
+          arms about a third less than a bat's swing and knocks down 35 + 2 x Strength in 100 (#4373), every time
+          (logged `shove` "strain", or "spent" for a hold with the pain under STRAIN_SOFT);
         - ruling P24-AH: in a standing fight (`standing`), a second standing zombie inside KEEP_R: the nearer of the
           two is shoved (within the Lua's SHOVE_R) before the next swing, once a swing (`_shoved`)."""
         if not self.world.can("shove"):
             return None
         pain = arm_pain(self.world)
-        if (pain is not None and pain >= STRAIN_SOFT and d <= POINT_BLANK_R and self._swing_ok("shove", zid)
+        sore = pain is not None and pain >= STRAIN_SOFT
+        if ((sore or self.spent) and d <= POINT_BLANK_R and self._swing_ok("shove", zid)
                 and self._standing_near(STAND_MIN_R, (zid,)) is None):
-            self.why.update({"shove": "strain", "strain": pain})
+            self.why.update({"shove": "strain" if sore else "spent", "strain": pain})
             return Shove(zid)
         if not self.standing() or self._shoved:
             return None
@@ -1254,7 +1267,7 @@ class Fight(Policy):
             self.repositioned = True
             self.why["reposition"] = list(sq)
             return WalkTo(*centre(sq), "run")
-        if (self.stance_at(d) and (d > FIGHT_REACH or not (self.in_stance() or arms_hurt(self.world)))
+        if (self.stance_at(d) and (d > FIGHT_REACH or not (self.in_stance() or self.no_swing()))
                 and not (self.approach and d <= FIGHT_REACH)):   # P24-AP: wounded, in reach the backpedal is the leg
             if self.ride is not None and d > FIGHT_REACH:   # P24-U: an aim would end the riding bandage; held off
                 self.why["ride"] = self.ride.aid           # until it ends, a target within reach excepted
@@ -1274,7 +1287,7 @@ class Fight(Policy):
         shove = self._shove(zid, z, d)   # P24-AG, P24-AH: the shove before (or for) the swing
         if shove is not None:
             return shove
-        if arms_hurt(self.world):   # P24-AP: never the swing at STRAIN_HARD; the backpedal between the shoves
+        if self.no_swing():   # P24-AP, R2: never the swing at STRAIN_HARD or under a hold; the backpedal between
             return self._wounded_leg(zid, z, d)
         self._held_before = self.stance_at(d) and self.in_stance()
         if self.stance_at(d):

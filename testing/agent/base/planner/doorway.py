@@ -45,8 +45,8 @@ The rule changes the end of a `many` flee's shelter steps (`policies.Flee`, ruli
 import math
 
 from agent.base.planner.policies import (AIM_LEG_S, AIM_R, DANGER_R, FIGHT_REACH, POINT_BLANK_R, STAND_MIN_R, Fight,
-                                         Policy, arm_pain, arms_hurt, blocked, centre, hit_reaction, line_to, on_floor,
-                                         on_post, target_id_ok, zdist)
+                                         Policy, arm_pain, blocked, centre, hit_reaction, line_to, on_floor, on_post,
+                                         target_id_ok, zdist)
 from agent.base.pza1 import Aim, Attack, Shove, WalkTo
 from agent.base.world import me_xy
 
@@ -129,8 +129,11 @@ class Doorway(Fight):
         return Aim(0.0, 0.0, AIM_LEG_S, targetId=zid)
 
     def _wounded_leg(self, zid, z, d):
-        """P24-AP on the post: never the swing, and no backpedal off the threshold: the stance held facing it."""
+        """P24-AP (and R2: any hold, `no_swing`) on the post: never the swing, and no backpedal off the threshold: the
+        stance held facing it."""
         self.why["wounded"] = arm_pain(self.world)
+        if self.spent:
+            self.why["spent"] = list(self.spent)
         return self._face(zid)
 
     def _outward(self):
@@ -155,7 +158,7 @@ class Doorway(Fight):
         if not self._on_post() or self._downed():
             return False
         t = self._in_reach()
-        return t is None or (arms_hurt(self.world) and t[2] > POINT_BLANK_R and self.last.args.get("targetId") == t[0])
+        return t is None or (self.no_swing() and t[2] > POINT_BLANK_R and self.last.args.get("targetId") == t[0])
 
     def _choose(self):
         """The stand's next command (the module docstring): nothing in a hit reaction; a downed zombie in reach finished
@@ -176,11 +179,11 @@ class Doorway(Fight):
             zid, z, d = t
             self.target = zid
             self.why = dict(self._base(), target=zid, dist=d)
-            if (d <= POINT_BLANK_R and (not self._shoved or arms_hurt(self.world)) and self._swing_ok("shove", zid)
+            if (d <= POINT_BLANK_R and (not self._shoved or self.no_swing()) and self._swing_ok("shove", zid)
                     and self._standing_near(STAND_MIN_R, (zid,)) is None):
                 self.why["shove"] = "doorway"
                 return Shove(zid)
-            if arms_hurt(self.world):
+            if self.no_swing():
                 return self._wounded_leg(zid, z, d)
             self._held_before = self.in_stance()
             self.why["stance"] = self._held_before

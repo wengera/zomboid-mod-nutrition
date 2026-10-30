@@ -3,7 +3,8 @@
 the health from 96.39 to 0 in 13.111 s with five rags held): ruling P24-AP, the wounded fight (the arms' hold stops
 the seeking only; within KEEP_R the shove, the stomp and the backpedal, never the swing at STRAIN_HARD) and ruling
 P24-AQ, the fallen target under `many` (one stomp, or the floor strike, before the flee resumes). P24-AR is
-`test_survive_r.py`. The fake mod over PZA/1.7."""
+`test_survive_r.py`. The fake mod over PZA/1.7. Task 32 fix 1: ruling R2 (every hold kind fights within KEEP_R, no
+swing under any) and the finish's reach FINISH_R (the review's major 5)."""
 import pytest
 
 from agent.base.planner.policies import Fight
@@ -101,14 +102,51 @@ def test_beyond_keep_r_the_arms_hold_still_flees_strain(tmp_path):
     assert sv.mode == "flee" and threat_why(tmp_path)["flee"] == "strain"
 
 
+@pytest.mark.parametrize("arm", [25.0, None])
 @pytest.mark.parametrize("k", [{"endurance": 0.7}, {"fatigue": 0.7}])
-def test_the_arms_hold_with_the_endurance_or_tired_hold_still_flees_within_keep_r(tmp_path, k):
-    """P24-AP exempts the arms' hold alone: with the endurance (review-t27's release line) or the tired hold too, the
-    `strain` flee goes whatever the distance."""
+def test_the_endurance_or_tired_hold_fights_within_keep_r_shove_then_stomp_never_the_swing(tmp_path, k, arm):
+    """Ruling R2 (named change, Task 32 fix 1; the review's major 4: E9's endurance hold from game minute 617 put the
+    `strain` flee back on with a zombie at 0.5 tiles): the endurance or the tired hold, with the arms' or alone,
+    fights a zombie within KEEP_R as the arms' hold does: the backpedal at 2.0 tiles (never the swing), the shove at
+    point blank every time, the stomp of a fallen one, never the floor strike; logged `spent`. With HOLD_WIDE off
+    (the rule Task 32 landed) the endurance or tired hold flees `strain`."""
     r, sv = make(tmp_path)
-    fr(r, [z(1, 102.0)], 25.0, **k)
+    fr(r, [z(1, 102.0)], arm, **k)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert sv.mode == "fight" and "flee" not in w and sv.spent_kinds
+    assert a.type == "aim" and w["leg"] == "back" and w["spent"] == list(sv.spent_kinds)
+    r.fake.answer({"aim": ["accepted"]})
+    r.pump()
+    fr(r, [z(1, 100.8)], arm, **k)
+    a = tick(r, sv)
+    assert a.type == "shove" and threat_why(tmp_path)["shove"] == ("strain" if arm else "spent")
+    r.answer(DONE_SHOVE)
+    fr(r, [z(1, 100.8)], arm, **k)
+    assert tick(r, sv).type == "shove"                                  # every time
+    r.answer(DONE_SHOVE)
+    fr(r, [z(1, 100.8, floor=True)], arm, **k)
+    assert tick(r, sv).type == "stomp"
+    r.answer({"state": "failed", "reason": "out of reach"})
+    fr(r, [z(1, 100.8, floor=True)], arm, **k)
+    assert tick(r, sv).type == "aim"                                    # refused: the backpedal, no floor strike
+    assert not any(x.type == "attack" for x in r.acts.history)
+    (tmp_path / "off").mkdir()
+    r2, sv2 = make(tmp_path / "off")
+    sv2.HOLD_WIDE = False
+    fr(r2, [z(1, 102.0)], arm, **k)
+    tick(r2, sv2)
+    assert sv2.mode == "flee" and threat_why(tmp_path / "off")["flee"] == "strain"
+
+
+@pytest.mark.parametrize("k", [{"endurance": 0.7}, {"fatigue": 0.7}])
+def test_beyond_keep_r_the_endurance_or_tired_hold_still_flees_strain(tmp_path, k):
+    """R2's exemption is within KEEP_R only: at 4 tiles the hold flees `strain` as before (the release lines govern the
+    seeking, never a zombie at point blank)."""
+    r, sv = make(tmp_path)
+    fr(r, [z(1, 104.0)], None, **k)
     tick(r, sv)
-    assert sv.mode == "flee" and threat_why(tmp_path)["flee"] == "strain" and sv.spent_kinds[0] == "arms"
+    assert sv.mode == "flee" and threat_why(tmp_path)["flee"] == "strain"
 
 
 def test_the_hold_s_why_carries_the_stiffness_beside_the_pain(tmp_path):
@@ -121,13 +159,17 @@ def test_the_hold_s_why_carries_the_stiffness_beside_the_pain(tmp_path):
                            "strain": {"l": 0.0, "r": 1.5}}
 
 
-def test_the_walk_corner_no_longer_yields_to_the_arms_hold_alone(tmp_path):
+def test_the_walk_corner_no_longer_yields_to_a_hold_within_keep_r(tmp_path):
+    """P24-AP for the arms; R2 (named change, Task 32 fix 1) for the endurance hold beside it: no `strain` yield with
+    the zombie within KEEP_R; with HOLD_WIDE off the endurance hold yields as Task 32 landed it."""
     r, sv = make(tmp_path)
     fr(r, [z(1, 101.2)], 25.0)
     sv._read_spent()
     assert sv._walk_yields() is None
     fr(r, [z(1, 101.2)], 25.0, endurance=0.7)
     sv._read_spent()
+    assert sv._walk_yields() is None
+    sv.HOLD_WIDE = False
     assert sv._walk_yields() == "strain"
 
 
@@ -229,3 +271,47 @@ def test_no_finish_under_a_flee_that_is_not_many(tmp_path):
     fr(r, [z(1, 101.5, floor=True), z(5, 107.0, 200.0)], health=30.0)
     a = tick(r, sv)
     assert a.type == "steer" and threat_why(tmp_path)["flee"] == "health"
+
+
+# ================================================================ Task 32 fix 1: the finish's reach (the review's major 5)
+def test_finish_r_reaches_e9_s_7474_at_line_334_s_geometry(tmp_path):
+    """FINISH_R 5.0 (inside the Lua stomp's K.ATTACK_R 6, which its 4 s walk at #4197's 2.04 tiles a second covers):
+    E9's 7474 first read fallen on a decision tick at 4.62 tiles with the nearest standing 6.49 (HEAD replay line 334):
+    the stomp is sent at it; R3's 4.0 would not have reached it."""
+    from agent.base.planner import survive as S
+    assert S.FINISH_R == 5.0 and 4.62 <= S.FINISH_R < 6.0
+    r, sv = struck(tmp_path)
+    zs = [z(1, 104.62, floor=True), z(2, 106.49, 200.0), z(3, 107.5, 203.0), z(4, 107.5, 197.0)]
+    fr(r, zs)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("stomp", {"targetId": 1}) and w["finish"] == 1 and w["dist"] == pytest.approx(4.62)
+    (tmp_path / "far").mkdir()
+    r2, sv2 = struck(tmp_path / "far")
+    fr(r2, [z(1, 105.1, floor=True)] + zs[1:])
+    assert tick(r2, sv2).type == "steer"                                # beyond FINISH_R: the flee as today
+
+
+def test_beyond_fight_reach_a_refused_stomp_takes_no_floor_strike(tmp_path):
+    """The floor strike swings from where the player stands: within FIGHT_REACH only; a stomp refused at 4 tiles is
+    followed by the flee."""
+    r, sv = struck(tmp_path)
+    zs = [z(1, 104.0, floor=True)] + GROUP3
+    fr(r, zs)
+    assert tick(r, sv).type == "stomp"
+    r.answer({"state": "failed", "reason": "out of reach"})
+    fr(r, zs)
+    assert tick(r, sv).type == "steer"
+
+
+def test_e9_s_7474_is_finished_at_line_334_and_7488_stays_left_under_its_standing_neighbour():
+    """E9 replayed at HEAD: line 334 sends the finishing stomp at 7474 (fallen 4.62 tiles off, the nearest standing
+    6.49); 7488, fallen on lines 141 to 150 at 1.24 to 5.73 tiles, always had a standing zombie within DANGER_R (1.57
+    to 2.26 tiles), so no reach finishes it under P24-AQ's condition (the review's major 5: one of E9's two fallen
+    targets, not both)."""
+    from .test_survive_o import e9_lines
+    got = e9_lines()
+    w = got[334]["why"]
+    assert got[334]["action"] == {"type": "stomp", "args": {"targetId": 7474}} and w["finish"] == 7474
+    assert 4.6 < w["dist"] < 4.63 and w["flee"] == "many"
+    assert not any(got[k]["why"].get("finish") == 7488 for k in range(141, 151) if k in got)
