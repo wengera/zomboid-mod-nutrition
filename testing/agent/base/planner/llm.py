@@ -26,7 +26,10 @@ The contract:
   centre lies farther than the view's `woods_r` (`goals.WOODS_R`, 40, widened after REST_N rests in a row: Task 18
   fix 1, ruling 3) from every building the view lists (its `box`, else its listed squares), while it lists one, is
   `invalid: in the woods`; a LootBuilding or Shelter of a building the view reads
-  `blocked` (every exterior door marked stuck, ruling P24-Z) is `invalid: refused`.
+  `blocked` (every exterior door marked stuck, ruling P24-Z) is `invalid: refused`; a Shelter of a shown building
+  whose `shunned` reads true (its shelter failed within `night.SHUN_MIN`, ruling P25-G, Plan 25 Task 7: F4 answered
+  Shelter for its one shunned building 67 times) is `invalid: shunned` (a LootBuilding of it stays valid: its window
+  route exists).
 - The refusal's meaning reaches the model (P24-B 3, F1's write-up: the one refused answer named a square past the
   bound and the model never learned why, #4277, #4279): a goal refused by that rule is kept as `refusal`
   `{type, args, end: "refused", why}` and laid over the `last_goal` of the next call's view (once; then cleared), so
@@ -92,7 +95,8 @@ import threading
 import time
 
 from agent.base.planner.goal_prompt import system
-from agent.base.planner.goals import WOODS_R, validate
+from agent.base.planner.goal_runner import validate
+from agent.base.planner.goals import WOODS_R
 from agent.base.planner.view import render, shown_ids
 
 LLM_TIMEOUT_S = 20.0          # P23-11: a call answering later than this is a fallback
@@ -221,6 +225,8 @@ def place_error(goal, view, origin=None):
             return "invalid: refused"
         if goal.TYPE == "LootBuilding" and b.get("looted") is True:
             return "invalid: looted already"
+        if goal.TYPE == "Shelter" and b.get("shunned") is True:   # P25-G: its shelter failed within SHUN_MIN
+            return "invalid: shunned"
     return None
 
 

@@ -230,6 +230,13 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   release (`hold.Hold._read_endurance`, `_hold_walk`, `HOLD_RUN`; the goal view's `spent`, `spent_view`), the ride's
   wait (`Fight._ride_waits`, `RIDE_WAIT`), the stand's stalled walk (`flee.Flee._door_stall`, `DOOR_WALK`) and the
   fence wait (`Fight._fence_wait`, `FENCE_WAIT`); `threat.T3_SWITCHES` off is the rule before them.
+- Survival 15 (Plan 25 Task 7, survival iteration 14, F4 and E12): rulings P25-G to P25-I in the plan's Task 7: the
+  shelter shun loop closed (`llm.place_error` refuses a Shelter of a building flagged `s`, `invalid: shunned`;
+  `view.why_of` reads a shun, `no plan` or `no door` as `shunned`; `goal_policies.Shelter.start` ends a shunned
+  building's goal `failed "shunned"` before any walk; `GoalRunner._close` cools a goal failed for a shun whatever it
+  sent, `goals.COOL_REASONS`; the prompt's `s` flag and strategy clause), the unwear under a goal (`care.Care._wound`'s
+  last step, `UNWEAR_WOUND`; `T4_SWITCHES` off is the rule before it), and the corner's third branch logged
+  (`fight.Fight._corner`'s `corner` {kind "shove"}).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -323,6 +330,8 @@ HUNGER_T = 0.15          # the first HUNGRY moodle fires above 0.15 [#0508]
 BRANCHES = ("threat", "care", "need", "load", "night", "goal")
 STEPS = ("threat", "care", "need", "load", "night", "stock", "goal")   # assess() tries these in order: BRANCHES with the
                          # care's rag stock (P24-AB) before the goal (it logs under `care`, why `stock`)
+T4_SWITCHES = ("UNWEAR_WOUND",)   # survival iteration 14 (Plan 25 Task 7): the switch of P25-H, the one rule a golden's
+                                  # ring could reach (bleeding frames under goals); off, the rule before it
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -342,7 +351,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
            "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "FINISH_R",
            "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
-           "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R"]
+           "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T4_SWITCHES"]
 
 
 @dataclass
@@ -361,6 +370,10 @@ def _key(typ, args):
 
 
 class Survive(Threat):
+    UNWEAR_WOUND = True   # ruling P25-H (Plan 25 Task 7): the care branch's bleeding step unwears a garment to rip on
+                          # any quiet care tick (`care.Care._wound`); off, only the idle stock does (P24-AJ). In
+                          # T4_SWITCHES, the replay tests' seam onto the goldens before Task 7 (`pre_t4`)
+
     def __init__(self, world, actions, log_path, clock=time.time, source=None):
         self.world = world
         self.actions = actions
@@ -585,6 +598,7 @@ class Survive(Threat):
             self.why = {"holding_sleep": sleep.aid}
             return None
         c.quiet = not self._within(DISENGAGE_R)
+        c.unwear_wound = self.UNWEAR_WOUND
         cmd = c.choose()
         self.why = dict(c.why)
         self._dressing_want(cmd is None and c.wants_dressing())

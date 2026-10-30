@@ -64,6 +64,8 @@ a class attribute equal to the entry's `const`:
   `stuck` at a hoppable edge climbs it first, as `ExploreToward` does, and walks again; a climb that fails is read as
   that walk's stuck end, the machine's next door or shun); `done "inside"` once the plan reads done, `failed "no
   plan"` with no exterior door or room on the player's floor, `failed "shun"` when the machine shuns the building; both shun the building in the kit's `shunned` for `night.SHUN_MIN` game
+  minutes (and a building already shunned there ends the goal `failed "shunned"` at its start, before any plan or
+  walk, its stamp untouched: ruling P25-G)
   minutes (fix 1, I3) on `World.world_minutes()` (monotonic across midnight: fix wave P, I-1), the store
   `Night.shunned` is when the runner is given it (`GoalRunner(..., shunned=)`, M6), so the night and the goal pass
   over the same buildings; the view reads it.
@@ -139,7 +141,9 @@ log's `goal` reads `{"pending": <source NAME>}`, and the next tick asks again wi
 only when a goal is taken. A superseded goal is gone; the source may propose the same goal again. A goal that ends
 `failed` having sent nothing (a first-step failure: an unknown building, no plan) is cooled per `(type, args)` for
 GOAL_COOL_S (30) wall seconds (fix 1, I4): the view lists the cooled goals (`cooled`), the scripted source passes
-them over, and a cooled goal a source still proposes is refused for that tick (`why.refused`), no row written. A goal whose leg failed for good (`_Legs`: `no path`, `stuck` with no fence, `no square` at LEG_MIN) is cooled too though it sent, and ExploreToward marks its far target stuck (Task 21 fix 1).
+them over, and a cooled goal a source still proposes is refused for that tick (`why.refused`), no row written. A goal whose leg failed for good (`_Legs`: `no path`, `stuck` with no fence, `no square` at LEG_MIN) is cooled too though it sent, and ExploreToward marks its far target stuck (Task 21 fix 1). A goal that failed for a
+shun (COOL_REASONS: `shun`, `shunned`, `no plan`, `no door`; ruling P25-G, Plan 25 Task 7, F4's 57 Shelters failed
+`shun` within 1.5 s, each after a walk) is cooled whatever it sent.
 `send(cmd)` sends the
 goal's command and hands the `Action` to the goal (Survive sends through it, as the owner). `line()` is the
 decision log's `goal` field: `{type, args, state, source}` of the running goal, or of the one that ended this tick,
@@ -155,6 +159,8 @@ from agent.base.planner.policies import CLOTHING_HELD_N, LOOT_WANTS, me_floor, m
 
 GOAL_MAX_S = 90.0     # wall seconds a goal may run before it is failed "goal budget" and replaced (a Rest: P23-W)
 GOAL_COOL_S = 30.0    # wall seconds a goal that failed having sent nothing is not taken again (fix 1, I4)
+COOL_REASONS = ("shun", "shunned", "no plan", "no door")   # a goal failed for one of these is cooled whatever it sent
+                      # (ruling P25-G: F4's Shelter of a shunned building re-proposed 67 times, each after a walk)
 GOAL_HOLD_SUPERSEDE_TICKS = 20   # planner ticks another branch holds without sending before the goal is superseded
 ARRIVE_R = 1.5        # tiles: an ExploreToward whose place is scanned is done within this of its point
 REST_S = 30.0         # the scripted source's rest
@@ -193,7 +199,7 @@ EXAMPLES = {"ExploreToward": {"x": 120, "y": 205}, "LootBuilding": {"building": 
 
 __all__ = ["Goal", "ExploreToward", "LootBuilding", "Shelter", "Stock", "Rest", "GoalSource", "ScriptedSource",
            "GoalRunner", "Kit", "validate", "open_uses", "int_id", "goal_key", "GOAL_MAX_S", "GOAL_COOL_S",
-           "GOAL_HOLD_SUPERSEDE_TICKS",
+           "GOAL_HOLD_SUPERSEDE_TICKS", "COOL_REASONS",
            "ARRIVE_R", "REST_S", "STOCK_WANTS", "BUILDING_R", "WOODS_R", "WINDOW_REPEAT", "CONTAINERS_HELD_N", "CLOTHING_HELD_N", "SMASH_MIN_HEALTH", "SMASH_ZOMBIE_R", "smash_ok", "window_pick", "REST_N", "WOODS_STEP",
            "WOODS_MAX_R", "wanted_uses", "LEG_MAX", "LEG_MIN", "LEG_CHUNK", "leg_max",
            "STOCK_KINDS", "RUN_FIELDS", "STATES", "SCHEMA_PATH", "EXAMPLES", "WANT_USES", "OPTIONAL_FIELDS", "held_of"]

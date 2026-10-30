@@ -456,6 +456,9 @@ def test_system_carries_the_refusal_rule_the_met_ground_and_the_meanings():
     ('{"type": "LootBuilding", "building": 3}',
      [{"id": 3, "x": 112, "y": 200, "door": None, "dist": 12.5, "containers": 4, "looted": True, "doors": 0,
        "visited": True, "shunned": False}], "looted already"),
+    ('{"type": "Shelter", "building": 3}',                              # P25-G: F4's 67 Shelters of building 8 (vs)
+     [{"id": 3, "x": 112, "y": 200, "door": [112, 201], "dist": 12.5, "containers": 4, "looted": False, "doors": 1,
+       "visited": True, "shunned": True}], "shunned"),
 ])
 def test_a_refused_answer_is_the_next_prompts_last_goal_with_its_meaning(answer, buildings, why):
     k = {} if buildings is None else {"buildings": buildings}
@@ -659,3 +662,16 @@ def test_system_names_rest_under_the_hold_and_explains_the_hold_and_the_cooled_e
     assert third["text"].endswith("at night Shelter first and Rest inside.")   # fix 1 minor 2: the order between the clauses
     assert "hold names what keeps you from seeking a fight" in SYSTEM and third["text"] in SYSTEM
     assert "end done, failed, superseded, refused or cooled" in SYSTEM
+
+
+# ---------------------------------------------------------------- P25-G: the Shelter of a shunned building
+def test_place_error_refuses_a_shelter_of_a_shunned_building_and_allows_its_loot():
+    """Ruling P25-G (1): a Shelter of a shown building whose `shunned` reads true is `invalid: shunned`; the LootBuilding
+    of it stays valid (its window route exists), and a Shelter of one not shunned is valid."""
+    from agent.base.planner.goals import LootBuilding, Shelter
+    b = dict(a_view()["buildings"][0], shunned=True, visited=True)
+    v = a_view(buildings=[b])
+    assert L.place_error(Shelter(3), v) == "invalid: shunned"
+    assert L.place_error(LootBuilding(3), v) is None
+    assert L.place_error(Shelter(3), a_view()) is None
+    assert "shunned" in V.WHYS

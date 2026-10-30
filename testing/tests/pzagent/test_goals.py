@@ -791,7 +791,7 @@ def test_a_building_with_no_container_known_is_never_a_scripted_loot():
 
 
 # ================================================================ Task 29: the strategy block, the weapon and bag wants
-BUILDING_MARKS = {"looted": "L", "visited": " v ", "dist": "nearest", "zombies_near": "z:"}   # a building
+BUILDING_MARKS = {"looted": "L", "visited": " v ", "dist": "nearest", "zombies_near": "z:", "shunned": "flagged s"}   # a building
 # field as its rendered line names it
 
 

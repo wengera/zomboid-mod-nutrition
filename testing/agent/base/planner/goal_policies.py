@@ -494,16 +494,23 @@ class Shelter(_Climbing, Goal):
     building: int
 
     def start(self, world):
+        """The plan, before any walk: a building the kit shuns now ends the goal `failed "shunned"` (ruling P25-G, F4:
+        57 Shelters of a shunned building each walked and failed `shun` within 1.5 s; its stamp untouched, so the span
+        does not restart); a building with no plan is shunned (I3: never re-proposed every tick)."""
         self._climbs()
+        self.plan = None
+        if self.building in self.kit.shunned_now(world):
+            self.why = {"building": self.building, "shunned": True}
+            self.end("failed", "shunned")
+            return
         self.plan = shelter_plan(world, self.building)
         if self.plan is None:
             self.why = {"building": self.building, "plan": None}
-            self.kit.shunned[self.building] = world.world_minutes()   # I3: never re-proposed every tick
-            self.end("failed", "no plan")
+            self._shun(world, "no plan")
 
-    def _shun(self, world):
+    def _shun(self, world, reason="shun"):
         self.kit.shunned[self.building] = world.world_minutes()
-        self.end("failed", "shun")
+        self.end("failed", reason)
 
     def ended(self, world, action):
         """A step's end into the plan (`shelter_ended`); a walk stuck at a hoppable edge climbs first (the plan's step

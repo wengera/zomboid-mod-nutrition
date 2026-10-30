@@ -211,11 +211,26 @@ def test_last_goal_reads_the_end_and_its_meaning(row, why):
     assert V.why_of(row) == why and why in V.WHYS
 
 
+@pytest.mark.parametrize("row, why", [
+    ({"state": "failed", "reason": "shun"}, "shunned"),
+    ({"state": "failed", "reason": "no plan"}, "shunned"),
+    ({"state": "failed", "reason": "no door"}, "shunned"),
+    ({"state": "failed", "reason": "shunned"}, "shunned"),
+    ({"state": "done", "reason": "inside"}, "done"),
+    ({"state": "failed", "reason": "nothing to loot"}, "looted already"),
+])
+def test_a_failure_for_a_shun_reads_shunned(row, why):
+    """Ruling P25-G (2): F4's 57 Shelters failed `shun` reached the model as the bare `failed`; a shun, `no plan`, `no
+    door` (and the start's `shunned`) now read `shunned`, the done and the loot's rows unchanged."""
+    assert V.why_of(row) == why and why in V.WHYS
+
+
 def test_the_closed_set_of_meanings():
     """Named change, ruling P24-Y (Task 18): `in the woods`, the LLM source's refusal of an ExploreToward with no
-    listed building within WOODS_R."""
+    listed building within WOODS_R; ruling P25-G (Plan 25 Task 7): `shunned`, a failure for a shun or the refusal of
+    a Shelter of a building flagged `s`."""
     assert V.WHYS == ("done", "stuck", "superseded by the threat", "superseded by an instinct", "looted already",
-                      "refused", "out of range", "in the woods", "failed")
+                      "refused", "out of range", "in the woods", "shunned", "failed")
 
 
 def full_world(tmp_path):

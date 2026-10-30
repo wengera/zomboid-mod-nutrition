@@ -9,8 +9,8 @@ import time
 from typing import Optional, Protocol, runtime_checkable
 
 from agent.base.planner.goal_policies import ExploreToward, Goal, Kit, LootBuilding, Rest, Shelter, Stock, TYPES
-from agent.base.planner.goals import (BUILDING_R, GOAL_COOL_S, GOAL_HOLD_SUPERSEDE_TICKS, OPTIONAL_FIELDS, REST_S,
-                                      SCHEMA_PATH, STOCK_KINDS, _num, goal_key, int_id)
+from agent.base.planner.goals import (BUILDING_R, COOL_REASONS, GOAL_COOL_S, GOAL_HOLD_SUPERSEDE_TICKS,
+                                      OPTIONAL_FIELDS, REST_S, SCHEMA_PATH, STOCK_KINDS, _num, goal_key, int_id)
 from agent.base.planner.policies import LOOT_MAX_LEVEL
 from agent.base.planner.view import why_of
 
@@ -136,7 +136,8 @@ class GoalRunner:
         self.kit = Kit(clock=clock, shunned=shunned)
         self.current = None
         self.history = []      # loop.goals: {type, args, state, reason, startS, endS, source} per goal run
-        self.cooled = {}       # goal_key -> wall until a goal that failed having sent nothing is refused
+        self.cooled = {}       # goal_key -> wall until a goal that failed having sent nothing (or for a shun,
+                               # COOL_REASONS: P25-G) is refused
         self.why = {}
         self.actions = None
         self.pending = False   # the source answered None (P23-AC) on the last ask and no goal runs
@@ -154,7 +155,7 @@ class GoalRunner:
     def _close(self, g):
         now = self.clock()
         self.history.append(dict(g.row(), startS=self._s(g.started_wall), endS=self._s(now), source=self._name()))
-        if g.state == "failed" and (g.sent_n == 0 or getattr(g, "cool", False)):
+        if g.state == "failed" and (g.sent_n == 0 or getattr(g, "cool", False) or g.reason in COOL_REASONS):
             self.cooled[goal_key(g.TYPE, g.args())] = now + GOAL_COOL_S
         self.kit.rested(g)
         self._ended_now, self.current, self.hold_ticks = g, None, 0

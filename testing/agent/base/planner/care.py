@@ -58,7 +58,13 @@ the least (`_unwear_pick`: the item record's `worn` and `rip` "cotton", its clot
 ties by the least id; never at a shoe or trouser location, UNWEAR_NEVER over the clothing record's `loc`), one per
 item per WEAR_RETRY_MIN game minutes, none while the last one's garment still reads worn within WEAR_SETTLE_MAX frames
 of its done; once its `item_changed` reads it unworn the bleeding step (or the stock) rips that same item first
-(`_rip_item`). Never under a threat held: the stock runs only on Survive's idle tick.
+(`_rip_item`). Never under a threat held: the stock runs only on Survive's idle tick. The unwear under a goal
+(ruling P25-H, Plan 25 Task 7; F4, `f_goals_5-20261030-180527`: part 8 bled on 904 decision lines from game minute
+1351, every cotton garment worn, and a night of Shelter goals and flees gave the stock no idle tick, health 100 to
+3.4362869262695312): the bleeding step itself takes the same unwear as its last step (`_unwear_step`, logged `{reason "unwear", part,
+item, loc, cover}`) with no dressing of any kind held, nothing unworn to rip, no ride and `quiet`, on any care tick
+(the care branch runs before the goal's, so it pre-empts a running goal); Survive's `UNWEAR_WOUND` off is the rule
+before it.
 The wear (Plan 24 Task 24, review-t9-fix9's ruling 5; PZA/1.6.1's `me.worn` with each entry's `holes` and `cond`): on
 the same idle tick as the rag stock, after it, `stock()` answers `Wear(itemId)` of the held unworn garment whose
 clothing record beats what is worn at its location (`wear_gain`: `cond` above 0, `holes` 0, bite + scratch above the
@@ -213,6 +219,8 @@ class Care(Policy):
         self.drop_after = None   # the id a wear replaced, dropped under load once the check passed
         self.unwear_at = {}  # item id -> world minute its unwear was sent (WEAR_RETRY_MIN; P24-AJ)
         self.unworn_item = None   # the id the last unwear took off, ripped first once it reads unworn (P24-AJ)
+        self.unwear_wound = True  # ruling P25-H: the bleeding step unwears on a quiet tick (Survive sets it each care
+                                  # tick from its `UNWEAR_WOUND` switch); off, the idle stock alone unwears (P24-AJ)
 
     def sent(self, cmd, action):
         self.sends[cmd.itemId] = action
@@ -342,10 +350,14 @@ class Care(Policy):
         return min(ids) if ids else None
 
     # -- the choice -----------------------------------------------------------------------------------------------
-    def _wound(self, items, bleeding, ride=False):
+    def _wound(self, items, bleeding, ride=False, unwear=False):
         """The bleeding step, `(command, why)` or (None, None): the worst bleeding part's bandage with the best held
-        item, else with no rag of any kind held a garment's rip for it. With `ride` (P24-U) the worst bleeding part
-        above the legs (index under LEG_FIRST) is bandaged with keepMoving, never a rip (a rip stops the leg)."""
+        item, else with no rag of any kind held a garment's rip for it, else with `unwear` (ruling P25-H: `choose`'s,
+        `unwear_wound`) and `quiet` the unwear of the worn cotton garment covering the least (`_unwear_step`, its why
+        `{reason "unwear", part, item, loc, cover}`), which the next care tick rips (P24-AJ's `unworn_item`). With
+        `ride` (P24-U) the worst bleeding part above the legs (index under LEG_FIRST) is bandaged with keepMoving, never
+        a rip or an unwear (either stops the leg). The yield's reads (`tends_wound`, `rides_wound`) and the want's
+        (`wants_dressing`) read it without the unwear: a tick whose step is the unwear sends, so it wants no loot."""
         w = self.world
         if ride:
             bleeding = [p for p in bleeding if p["i"] < LEG_FIRST]
@@ -361,10 +373,15 @@ class Care(Policy):
             if ride:
                 why["ride"] = True
             return Bandage(items[k][0], part=p["i"], keepMoving=ride), why
-        if not ride and not any(items[k] for k in KINDS) and w.can("rip"):
-            rip = self._rip_item()
-            if rip is not None:
-                return Rip(rip), {"reason": "no_rag", "part": p["i"], "item": rip}
+        if ride or any(items[k] for k in KINDS):
+            return None, None
+        rip = self._rip_item() if w.can("rip") else None
+        if rip is not None:
+            return Rip(rip), {"reason": "no_rag", "part": p["i"], "item": rip}
+        if unwear and self.quiet:   # P25-H: nothing to rip, so the least-covering worn cotton garment comes off for it
+            cmd, why = self._unwear_step()
+            if cmd is not None:
+                return cmd, dict(why, part=p["i"])
         return None, None
 
     def stock(self):
@@ -378,12 +395,20 @@ class Care(Policy):
         return out if out[0] is not None else self._wear()
 
     def _unwear(self):
-        """Ruling P24-AJ (the module docstring): `(Unwear(itemId), why)` of `_unwear_pick` while a bleeding part has
-        nothing to dress it (`wants_dressing`: no dressing, no dirty rag, nothing unworn to rip), the build announcing
-        `unwear` and `rip` and stating the item record's fields; else (None, None), and while the last unwear's garment
-        still reads worn within WEAR_SETTLE_MAX frames of its done (its `item_changed` not yet read)."""
+        """Ruling P24-AJ (the module docstring), the idle stock's unwear: `_unwear_step` while a bleeding part has
+        nothing to dress it (`wants_dressing`: no dressing, no dirty rag, nothing unworn to rip); else (None, None).
+        With P25-H on (`unwear_wound`) the bleeding step takes the same unwear first, on any quiet care tick."""
+        if not self.wants_dressing():
+            return None, None
+        return self._unwear_step()
+
+    def _unwear_step(self):
+        """The unwear both paths send (P24-AJ's stock, P25-H's bleeding step): `(Unwear(itemId), why)` of
+        `_unwear_pick`, the build announcing `unwear` and `rip` and stating the item record's fields; else (None,
+        None), and while the last unwear's garment still reads worn within WEAR_SETTLE_MAX frames of its done (its
+        `item_changed` not yet read)."""
         w = self.world
-        if not (w.can("unwear") and w.can("rip") and w.item_fields()) or not self.wants_dressing():
+        if not (w.can("unwear") and w.can("rip") and w.item_fields()):
             return None, None
         a = self.sends.get(self.unworn_item)
         if a is not None and a.type == "unwear" and a.state == "done":
@@ -531,7 +556,7 @@ class Care(Policy):
         items = self._items()
         any_rag = any(items[k] for k in KINDS)
         bleeding = self._bleeding()
-        cmd, why = self._wound(items, bleeding, ride=self.ride_now)
+        cmd, why = self._wound(items, bleeding, ride=self.ride_now, unwear=self.unwear_wound)
         if cmd is not None or self.ride_now:
             self.why = why or {}
             return cmd

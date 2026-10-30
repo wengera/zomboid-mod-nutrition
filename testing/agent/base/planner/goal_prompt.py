@@ -7,7 +7,11 @@ types, enums and bounds (`field_text`); the strategy paragraph (Task 29); how th
 refusal rule (P24-B 3, the bound `explore_max_tiles`, `llm.EXPLORE_MAX_TILES`, and `goals.WOODS_R`); the loop (P24-Y,
 `goals.BUILDING_R`); the meaning of the view keys the rules read (met, attackers, worn, hit_reaction, tired and night,
 hold (Plan 25 Task 4: the view's `spent` rendered `hold: <kind> <value>`), last_goal with its `cooled` end (Plan 25
-Task 4: the runner's cooled refusal, `GoalRunner._carried`)); then that the user message is the view. The strategy's
+Task 4: the runner's cooled refusal, `GoalRunner._carried`), and its `shunned` why, ruling P25-G); then that the user
+message is the view. Ruling P25-G (Plan 25 Task 7, F4's 67 Shelter answers for its one shunned building): the
+building line's `s` flag says what it means for the choice (not a shelter for SHUN_MIN game minutes; explore along a
+road or Rest instead), the refusal rule names the Shelter of an `s` building, and the strategy's third line never
+names one. The strategy's
 third line names `Rest` while `hold` reads (Plan 25 Task 4, spec 2.2(c), (f): the guides notes' section 8 line 3
 extended by one clause).
 
@@ -20,7 +24,7 @@ a building line's field). The lines go in the notes' order, each once, under one
 import json
 
 from agent.base.planner.goals import BUILDING_R, SCHEMA_PATH, WOODS_R
-from agent.base.planner.night import DAWN_HOUR, LATE_HOUR, TIRED_T
+from agent.base.planner.night import DAWN_HOUR, LATE_HOUR, SHUN_MIN, TIRED_T
 from agent.base.planner.view import BUILDING_ZOMBIE_R, WHYS
 
 __all__ = ["system", "strategy", "field_text"]
@@ -67,11 +71,14 @@ def system(explore_max_tiles):
     lines.append("Squares are x, y tiles; north is -y. pos is your position. In the view, each building reads "
                  "`id @x,y door x,y dist cN flags h:holds z:N`: @x,y its nearest room square, door its exterior door "
                  "square (- none), dist in tiles, N its containers, flags L looted (nothing left to take), v visited, "
-                 "s shunned, x blocked (every door stuck: never named), - none; z:N the zombies listed within %g "
-                 "tiles of it." % BUILDING_ZOMBIE_R)
+                 "s shunned (its shelter failed within the last %g game minutes: not a shelter now; with no other "
+                 "building listed, ExploreToward a square along a road toward unknown ground to find one, or Rest "
+                 "when hold reads), x blocked (every door stuck: never named), - none; z:N the zombies listed within "
+                 "%g tiles of it." % (SHUN_MIN, BUILDING_ZOMBIE_R))
     lines.append("The refusal rule: name a building only by an id the view lists; an ExploreToward square within "
                  "%g tiles of pos and, once the view lists a building, within woods_r tiles of one (the view's "
-                 "woods_r, %g at the start; farther is the woods); a LootBuilding only a building listed without the L flag. An answer breaking it is refused "
+                 "woods_r, %g at the start; farther is the woods); a LootBuilding only a building listed without the L flag; a "
+                 "Shelter only a building listed without the s flag. An answer breaking it is refused "
                  "and the program chooses instead." % (explore_max_tiles, WOODS_R))
     lines.append("Your loop, every goal a building: the program clears the zombies near you itself; you loot the "
                  "nearest building listed without L within %g tiles (LootBuilding), then the next nearest (h: lists "
@@ -93,6 +100,7 @@ def system(explore_max_tiles):
                  "instincts still answer a zombie at hand; a rest clears endurance and arms, sleep clears tired; no "
                  "hold line means none holds.")
     lines.append("last_goal is how the last goal ended: end done, failed, superseded, refused or cooled (a goal that "
-                 "failed is refused for a while: cooled lists those), and why, one of: %s." % ", ".join(WHYS))
+                 "failed is refused for a while: cooled lists those), and why, one of: %s. shunned: its shelter "
+                 "failed, every door of it tried; passed over for %g game minutes." % (", ".join(WHYS), SHUN_MIN))
     lines.append("The user message is the view: one `key: value` line per key.")
     return "\n".join(lines) + "\n"

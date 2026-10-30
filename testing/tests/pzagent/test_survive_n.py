@@ -121,14 +121,16 @@ def test_the_unwear_never_list():
 
 
 def test_the_chain_unwears_the_least_covering_cotton_garment_then_rips_it(tmp_path):
-    """P24-AJ: nothing to dress part 9 and nothing unworn to rip: the idle quiet tick unwears the T-shirt (covering 3,
-    less than the shirt's 7; never the trousers or the shoes), its line the care branch's (`stock` `unwear`); while
-    its done is read but the garment still reads worn nothing else is unworn; once the item_changed reads it unworn
-    the bleeding step rips that same garment (`no_rag`)."""
+    """P24-AJ: nothing to dress part 9 and nothing unworn to rip: the quiet tick unwears the T-shirt (covering 3,
+    less than the shirt's 7; never the trousers or the shoes), its line the care branch's; while its done is read but
+    the garment still reads worn nothing else is unworn; once the item_changed reads it unworn the bleeding step rips
+    that same garment (`no_rag`). Named change, ruling P25-H (Plan 25 Task 7): the bleeding step itself takes the
+    unwear (its why the care's own, with the part), ahead of the idle stock; with `UNWEAR_WOUND` off the stock's
+    (`stock` `unwear`) as before."""
     r, sv = unwear_rig(tmp_path)
     tick(r, sv)
     assert r.cmd() == ("unwear", {"itemId": 20}) and last(tmp_path)["branch"] == "care"
-    assert care_why(tmp_path)["stock"] == {"reason": "unwear", "item": 20, "loc": TSHIRT, "cover": 3.0}
+    assert care_why(tmp_path) == {"reason": "unwear", "part": 9, "item": 20, "loc": TSHIRT, "cover": 3.0}
     r.fake.answer({"unwear": ["accepted", {"state": "done", "result": {"itemId": 20, "loc": TSHIRT}}]})
     r.pump()
     bleed(r)

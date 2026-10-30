@@ -51,8 +51,10 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   `attack`, `steer`, `walkTo` or `stop`, the threat branch's sends, or by `hold`, a branch holding without sending:
   a night's shelter walk reads the same); `superseded by an instinct` (superseded by any other send: a need's
   consume, the load's drop); `looted already` (a LootBuilding failed `nothing to loot`); `refused` and `out of range`
-  (the LLM source's refusal of its own last answer, laid over the view it sends: `llm.py`); `failed` (any other
-  failure: the goal budget, the load, no plan, a shun, none found). None before any goal ended. `events`: the kinds of
+  (the LLM source's refusal of its own last answer, laid over the view it sends: `llm.py`); `shunned` (ruling P25-G,
+  Plan 25 Task 7: failed for a shun, `goals.COOL_REASONS`: the shelter's doors spent (`shun`), the building shunned already
+  (`shunned`), no plan, no door; or the LLM source's refusal of a Shelter of a building flagged `s`); `failed` (any
+  other failure: the goal budget, the load, none found). None before any goal ended. `events`: the kinds of
   the last three event lines. `want_shelter`: `night.want_shelter` (the night wants and knows no shelter).
 - Beyond the brief's keys, the scripted source's reads: `woods_r` (the goal kit's woods radius, `goals.Kit.woods_r`:
   WOODS_R, widened after REST_N rests in a row, Task 18 fix 1's ruling 3; WOODS_R with no kit), `edge`
@@ -92,7 +94,7 @@ import time
 
 from agent.base.items import USES
 from agent.base.items import holds_use
-from agent.base.planner.goals import BUILDING_R, WOODS_R, int_id, looted, wanted_uses, window_pick
+from agent.base.planner.goals import BUILDING_R, COOL_REASONS, WOODS_R, int_id, looted, wanted_uses, window_pick
 from agent.base.planner.night import DAWN_HOUR, LATE_HOUR, TIRED_T, door_blocked, exterior_doors, shelter_plan
 from agent.base.planner.policies import LOOT_WANTS, STUCK_REASONS, me_floor, me_xy, place_of
 from agent.base.world import MET_VIEW_R, compass
@@ -112,7 +114,7 @@ KEYS = ("pos", "hour", "night", "health", "kills", "needs", "tired", "needs_want
         "zombies_near", "met", "attackers", "hit_reaction", "last_goal", "events", "want_shelter", "woods_r", "edge",
         "toward", "scanned_here", "stock_uses", "cooled")
 WHYS = ("done", "stuck", "superseded by the threat", "superseded by an instinct", "looted already", "refused",
-        "out of range", "in the woods", "failed")
+        "out of range", "in the woods", "shunned", "failed")
 THREAT_SENDS = ("attack", "steer", "walkTo", "stop", "hold")   # a superseding send read as the threat's (why_of)
 OPTIONAL_KEYS = ("night", "tired")   # rendered only when the view carries them (Task 29)
 HOLD_KEY, HOLD_AFTER = "spent", "tired"   # the hold's view key (Plan 25 Task 3) and the line its `hold:` line follows
@@ -221,6 +223,8 @@ def why_of(row):
         return "stuck"
     if reason == "nothing to loot":
         return "looted already"
+    if reason in COOL_REASONS:   # P25-G: the reasons the runner cools for whatever was sent
+        return "shunned"
     return "failed"
 
 

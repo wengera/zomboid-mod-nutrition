@@ -78,8 +78,20 @@ def pre_t36(sv, keep=()):
 def pre_t3(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 25 Task 3 (survival iteration 13): its switches off
     (`threat.T3_SWITCHES`: CORNER_BREAK, P25-A; FINISH_FIRST, P25-B; HOLD_RUN, P25-C; RIDE_WAIT, P25-D; DOOR_WALK,
-    P25-E; FENCE_WAIT, P25-F), but those named in `keep`."""
+    P25-E; FENCE_WAIT, P25-F), but those named in `keep`. Plan 25 Task 7: iteration 14's switch (`pre_t4`) off with
+    them, so every seam onto an earlier rule reads it off."""
     for name in T.T3_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t4(sv)
+
+
+def pre_t4(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 25 Task 7 (survival iteration 14): its switch off
+    (`survive.T4_SWITCHES`: UNWEAR_WOUND, P25-H), but those named in `keep`. P25-G (the shun loop: the goal source,
+    the runner's cooling, the view's `shunned` why) and P25-I (the corner's third branch's why) move no golden, so
+    they have no switch (`test_iteration_14_moves_no_golden`)."""
+    for name in S.T4_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -1375,3 +1387,18 @@ def test_iteration_13_moves_e4_alone_at_the_endurance_hold_s_first_walk(key):
     assert g["action"]["args"]["gait"] == "walk" and g["why"]["hold_walk"] is True and "hold_walk" not in b["why"]
     assert g["why"]["flee"] == "strain" and g["why"]["strain"]["kind"] == "endurance"
     assert dict(g["action"]["args"], gait="run") == b["action"]["args"]
+
+
+# ================================================================ Plan 25 Task 7: iteration 14 on the goldens
+@pytest.mark.parametrize("key", sorted(PRE_T3))
+def test_iteration_14_moves_no_golden(key):
+    """Task 7's rules move no golden: the six are byte-identical with them on (`test_the_golden_is_reproduced_byte_
+    for_byte_from_its_artifact`) and with iteration 14's switch off (`pre_t4`): no ring reaches P25-H's unwear (the
+    five PZA/1.4 builds decode no part `bleeding`; the sixth announces PZA/1.5's caps, no `unwear`), no golden's
+    scripted Shelter or LootBuilding fails for a shun (P25-G's cooling), and no record carries a shove's result (P25-I's
+    why: PZA/1.7)."""
+    with open(R.golden_path(key), encoding="utf-8") as f:
+        head = json.load(f)
+    text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t4)), head["base"],
+                         R.RUNS[key], head["recorded"], R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert text.encode("utf-8") == golden(key)
