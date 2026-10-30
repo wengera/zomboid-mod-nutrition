@@ -2025,6 +2025,13 @@ def idle_off(r, sv, w):
     sv.IDLE = False
 
 
+def trans_off(r, sv, w):
+    """`run_replay`'s setup onto the rules before ruling P24-AS (Plan 24 Task 32 amendment 1: `Survive.TRANS` off, a
+    heading read seeing through a `solidTrans` square): E4's frames from line 431 read a `solidTrans` square on a flee
+    leg's probe, so a test pinning an earlier ruling there reads it with the switch off."""
+    sv.TRANS = False
+
+
 def strain_off(r, sv, w):
     """`run_replay`'s setup onto the rules before rulings P24-AG and P24-AK (Plan 24 Task 27: `Survive.STRAIN` off, no
     spent read): E4's frames from game minute 455 and F1's last fight read the endurance at or under ENDURANCE_T (the
@@ -2682,13 +2689,16 @@ def test_e4_lines_438_to_442_the_leg_is_cut_where_19032_is_first_listed(tmp_path
     P24-A (a): the fresh Flee's leg at 438 is its episode's first, which the met window now turns (the record's was
     not a first leg): the window is read as none here, so the cut rule is read alone. Named change, ruling P24-AD
     (Task 21): read with P24-AD off (`idle_off`): with it on, idle zombies beyond DANGER_R leave the episode's count
-    and line 438 sends a walk, not the leg."""
+    and line 438 sends a walk, not the leg. Named change, ruling P24-AS (Task 32 amendment 1): read with the
+    transparent solid off (`trans_off`): the record's heading at 438 crossed a `solidTrans` square the heading read
+    now refuses."""
     from agent.base.world import World
     monkeypatch.setattr(World, "met_window", lambda self, r=None: None)
 
     def setup(r, sv, w):
         e4_flee(r, sv, w)
         idle_off(r, sv, w)
+        trans_off(r, sv, w)
     r, sv, out = run_replay(E4, tmp_path, 438, 442, setup=setup)
     d, leg = out[438]
     assert leg.type == "steer" and (round(leg.args["vx"], 3), round(leg.args["vy"], 3)) == (-0.893, -0.451)

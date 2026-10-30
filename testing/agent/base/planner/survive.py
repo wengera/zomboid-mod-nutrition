@@ -233,6 +233,23 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   swing, no leg leaving them. Under STRAIN_SOFT's line the Fight's own preference, the shove and the stomp (P24-AH,
   P24-AL) are `policies.Fight`'s; the loaded-window legs (P24-AI) `goals.leg_max`; the unwear then rip (P24-AJ)
   `care.Care._unwear`. `STRAIN` is the replay tests' seam onto the rules before it (`test_replay_decisions.pre_ag`).
+- Survival 12 (survival iteration 11, the commit label; Plan 24 Task 32, spec § 6 item 23; E9,
+  `e_day_9-20261030-052429`: no kill, every fight from game minute 580 with a group listed, six fights dropped by the
+  look behind for a chaser 10.74 to 11.90 tiles behind the target, the strain hold set by a bite's pain and never
+  released, two struck targets left fallen under the `many` flee, five rags held to the death, the y held 16.511 s
+  against a `solidTrans` row; the guides notes § 9 changes 8, 3 and 2; rows #4290, #4369, #4370, #4373, #4374):
+  P24-AN, the pull (`policies.Fight.pulling`, `pull_from`: one zombie chasing within ENGAGE_R, the rest of the
+  listing beyond DANGER_R: the stance walks away from their centroid until the chaser is within PULL_R, then stands;
+  the look behind reads no walk then, `_pulls`; the `many` listing counts a zombie only within DANGER_R or chasing,
+  `_counts_listed`); P24-AO, the doorway stand (`planner/doorway.py`'s docstring the record; `_doorway`, `_stand`);
+  P24-AP, the wounded fight (`_wounded_fight`: the arms' hold alone flees `strain` only with no zombie within
+  KEEP_R; the Fight never swings at STRAIN_HARD, `policies.Fight._wounded_leg`); P24-AQ, the fallen target under
+  `many` (`_flee_finish`: a struck target downed in reach, nobody standing within DANGER_R: one stomp, or the floor
+  strike, as the Flee's own action, its kill read by `_finish_end`); P24-AR, the care tick inside a long flee
+  (`_rides_many`: RIDE_MANY_R, FLEE_CARE_S from `many_since`, FLEE_CARE_N); P24-AS (amendment 1), the transparent
+  solid (each policy's `trans`: a heading read and the way out's end refuse a `solidTrans` square). `PULL`, `DOORWAY`
+  and `TRANS` are the replay tests' seam onto the rules before it (`test_replay_decisions.pre_an`); P24-AP to P24-AR
+  read what no record carries.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -314,7 +331,8 @@ from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_
                                          ENDURANCE_T, ENGAGE_R, FIGHT_MAX_S, FIGHT_REACH, LISTED_R, POINT_BLANK_R, PREEMPTED, STRAIN_HARD,
                                          STRAIN_SOFT, STUCK_REASONS, TIRED_FIGHT_T, UNREACHABLE_S, Fight, Flee,
                                          adoptable, arm_pain, blocked, chasing, exit_plan, in_building, in_reach,
-                                         item_id_ok, line_to, others_behind, seek_allowed, spare, target_id_ok, zdist)
+                                         item_id_ok, line_to, others_behind, pull_from, seek_allowed, spare,
+                                         target_id_ok, zdist)
 from agent.base.planner.view import NEED_MEMORY_S, view
 from agent.base.planner.water import FILL_RETRY_MIN, FILL_SETTLE_S, FILL_WANTS, SOURCE_FAILS, Water
 from agent.base.pza1 import Consume, Drop
@@ -399,6 +417,10 @@ class Survive:
     STRAIN = True   # rulings P24-AG and P24-AK: a spent character (the arms' strain hold, the endurance moodle, the
                     # tired line) flees `strain` and engages nothing; off, neither is read (the replay tests' seam onto
                     # the rules before Task 27, `test_replay_decisions.pre_ag`)
+    PULL = True     # ruling P24-AN: a lone chaser is pulled from the group, never dropped for one behind it
+    TRANS = True    # ruling P24-AS: a heading read refuses a `solidTrans` square (each policy's `trans`); both
+                    # switches off are the replay tests' seam onto the rules before Task 32 (`test_replay_decisions.
+                    # pre_an`)
 
     def __init__(self, world, actions, log_path, clock=time.time, source=None):
         self.world = world
@@ -608,7 +630,10 @@ class Survive:
         and two reading `hasTarget` false at 9.45 and 9.95 on every frame of the fight): a zombie reading `hasTarget`
         false counts toward `many` only within DANGER_R (`_counts_many`), in the held count and the listing alike; a
         chasing one, or one whose frame carries no `hasTarget`, counts as before. The read is per tick, so an idle
-        zombie that wakes counts on the next."""
+        zombie that wakes counts on the next. Ruling P24-AN (P24-AD extended from the flee's count to the listing's):
+        the listing counts a zombie only within DANGER_R or chasing (`_counts_listed`: `hasTarget` true; one whose
+        frame carries no `hasTarget` no longer counts beyond DANGER_R), so no idle or unread zombie past DANGER_R ever
+        makes `many` by MANY_LISTED_N."""
         counted = [z for z in held if self._counts_many(z)]
         if self.mode == "flee" and self.flee_many:
             near = len(counted) > MAX_FIGHT or min(zdist(self.world, z) for z in held) <= DANGER_R
@@ -616,7 +641,7 @@ class Survive:
             near = (len(counted) if self.mode == "fight" else n) > MAX_FIGHT
         if near:
             return True, None
-        listed = [z for z in self._within(LISTED_R) if self._counts_many(z)]
+        listed = [z for z in self._within(LISTED_R) if self._counts_listed(z)]
         if len(listed) < MANY_LISTED_N or (self.ENGAGE and self._pressing(listed) <= MAX_FIGHT):
             return False, None
         return True, len(listed)
@@ -625,6 +650,11 @@ class Survive:
         """Ruling P24-AD: zombie `z` counts toward `many`: within DANGER_R, or not idle (`hasTarget` not read false: a
         chaser, or a frame that does not carry the field); with `IDLE` off every zombie counts."""
         return not self.IDLE or z.get("hasTarget") is not False or zdist(self.world, z) <= DANGER_R
+
+    def _counts_listed(self, z):
+        """Ruling P24-AN: zombie `z` counts toward `many` by the listing: within DANGER_R or chasing (`hasTarget`
+        true); with `IDLE` off every zombie counts (the rules before P24-AD)."""
+        return not self.IDLE or chasing(z) or zdist(self.world, z) <= DANGER_R
 
     def _pressing(self, zs):
         """Of `zs`, the zombies within DISENGAGE_R (10: ENGAGE_R's value at P24-X, kept when Task 18 fix 1's minor 8
@@ -794,17 +824,23 @@ class Survive:
         kept in `behind`, else []: the running fight's target (its pin, else the nearest reachable), or with none
         running the nearest zombie not marked (a new Fight's first pin); the Fight walks when the target is beyond
         FIGHT_REACH, when its approach is due beyond POINT_BLANK_R (P24-A (e)), or when the line to it reads blocked
-        (the reposition)."""
+        (the reposition). Ruling P24-AN: a lone chaser the Fight pulls (or would pull, or stand for within PULL_R:
+        `_pulls`) is walked away from, never toward: no look behind it (E9's six fights dropped for a chaser 10.74 to
+        11.90 tiles behind the target)."""
         f = self.fight if self.mode == "fight" else None
         if f is not None:
             t = f._target(pin=False)
             seek = f.seeking(t)
             stand = f.standing() and not f.advance   # P24-N: the advance closes on the target, a walk toward it
+            if seek and f.pull_centroid(t) is not None:
+                return []   # P24-AN: the pull, or the stance once the chaser is within PULL_R
         else:
             nz = self.world.nearest_zombie(exclude=self._skipped())
             t = None if nz is None else (nz[0], nz[1], zdist(self.world, nz[1]))
             seek = self._seeks() and t is not None and seek_allowed(self.world, t, self._chokepoint())   # P24-X
             stand = self._stance_ok(self._within(self._hold_r()), self.night.inside())
+            if seek and stand and self._pulls(t):
+                return []   # P24-AN: the new Fight's first leg pulls (or stands within PULL_R)
         if t is None:
             return []
         zid, z, d = t
@@ -820,6 +856,12 @@ class Survive:
         if ids:
             self.behind = ids
         return ids
+
+    def _pulls(self, t):
+        """Ruling P24-AN for a Fight not yet made: `PULL` and the seek on, target `t` within AIM_R (the stance's) and a
+        lone chaser with the rest of the listing beyond DANGER_R (`policies.pull_from`, the zombies read dead out)."""
+        return (self.PULL and self._seeks() and t[2] <= AIM_R
+                and pull_from(self.world, t, blocked(self.dead, self.clock())) is not None)
 
     def _hysteresis(self, held, n):
         """Plan 21b's hysteresis (the module docstring): the flee reason, else None. `n` is the DANGER_R count (the
@@ -858,6 +900,7 @@ class Survive:
         """`policy.observe()` once a tick (ruling P24-A (g), the close review's M1: a re-planned tick re-entered it)."""
         if not any(p is policy for p in self._observed):
             self._observed.append(policy)
+            policy.trans = self.TRANS   # P24-AS: the policy's heading reads, before its observe, busy and choose
             policy.observe()
 
     def _answer(self, policy):
@@ -888,7 +931,7 @@ class Survive:
         f = self.flee
         if f is not None and f.exit is not None:
             return True
-        return exit_plan(self.world, held, f.refused if f is not None else ()) is not None
+        return exit_plan(self.world, held, f.refused if f is not None else (), self.TRANS) is not None
 
     def _cornered(self, held, inside):
         """The zombie id a cornered Fight runs on (ruling P23-AJ 2, its fix rounds, and the coordinator's amendment 6
@@ -1247,6 +1290,7 @@ class Survive:
             if want == "fight":
                 self.fight = Fight(self.world, self.actions, self.clock, unreachable=self.unreachable, dead=self.dead)
                 self.fight.seek = self._seeks() and door is None   # P24-X: every fight but the door's is sought
+                self.fight.pull = self.fight.seek and self.PULL    # P24-AN: a lone chaser pulled from the group
                 if door is None:
                     self.flee = None   # a door fight keeps the sheltered Flee for the re-close
                 self._end_flee_episode()

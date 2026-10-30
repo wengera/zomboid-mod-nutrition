@@ -98,6 +98,19 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   nearer of the two (within SHOVE_R) shoved before the next swing, once a swing (`_shoved`); neither with another
   standing zombie within STAND_MIN_R. A shove's or stomp's `targetDead` is a kill (SWING_TYPES), a started stomp
   counts in the no-progress streak.
+  Survival 12 (survival iteration 11; Plan 24 Task 32; survive.py's docstring the record): P24-AN, the pull: with
+  `pull` set (Survive's sought fights), a lone chaser (`pull_from`: it alone chases within ENGAGE_R, the rest of the
+  listing beyond DANGER_R) is pinned first (`_pull_pin`) and, beyond PULL_R (FIGHT_REACH + KEEP_R), its stance legs
+  walk away from the rest's centroid facing it (`pull`, `pulling`), the seek's switch to a nearer zombie off; within
+  PULL_R it is `sought` (the stance stands for it, never a seek toward it past the group), and once pulled it is kept
+  to DISENGAGE_R (`_pull_waits`: past ENGAGE_R it is stood for, never sought back). P24-AP, the wounded fight: at
+  `body.armPain` STRAIN_HARD (`arms_hurt`) the Fight never swings, the floor strike included: the shove at point
+  blank (P24-AG's), the stomp of a fallen one, else the backpedal facing the target (`_wounded_leg`, held by `busy`
+  until point blank; with no stance announced nothing). P24-AS (amendment 1): every heading read (`clear_heading`:
+  the steer's turns, the backpedal, the pull, the seek's and the advance's lines) and the way out's end (`_beyond`)
+  refuse a `solidTrans` square (the policy's `trans`, Survive's TRANS switch); the fight's line of sight does not.
+  The doorway stand's Fight is `planner/doorway.py`'s `Doorway`; the Flee keeps its stand plan (`stand_ok`, the
+  pick's `stand`, the enter's end read `stand`, `standing_door`, `closing_stand`).
 - `Flee` (one per flee episode): a `Steer` of `FLEE_S` seconds away from the threats (the `threats` list its caller
   passes, else every zombie the World holds), at a run (ruling P24-O, Task 12: the planner never sprints; E6 sprinted
   13 steers and Angus saw the character trip, and a fence climb begun at a sprint rolls a trip, #4296); re-aimed on
@@ -324,6 +337,8 @@ SWING_SKIP_S = UNREACHABLE_S   # wall seconds a target whose shove or stomp the 
 KNOCK_READ_S = 2.0    # wall seconds a shove's `knockdown` true reads its target downed before the frame's `onFloor`
                       # does (PZA/1.7.1, 9 fix 12: the result is read off the knocked-down state at the hit, onFloor
                       # follows about a second later; a judgment, two of those), so the stomp follows the shove at once
+PULL_R = FIGHT_REACH + KEEP_R   # tiles: the pull of a lone chaser ends, the stance taken, once it is this near (ruling
+                      # P24-AN: "until the chaser alone is within FIGHT_REACH + KEEP_R"; 4.5)
 
 
 def place_of(world):
@@ -359,6 +374,9 @@ def zdist(world, z):
 
 class Policy:
     """One action at a time: see the module docstring."""
+
+    trans = True   # ruling P24-AS: a heading read (`clear_heading`) refuses a `solidTrans` square; Survive sets it each
+                   # tick from its TRANS switch (the replay tests' seam onto the rules before it)
 
     def __init__(self, world, actions, clock=time.time):
         self.world = world
@@ -482,6 +500,30 @@ def on_floor(z):
     return z.get("onFloor") is True
 
 
+def pull_from(world, t, skip=(), reach=ENGAGE_R):
+    """Ruling P24-AN, the pull (the guides notes § 9 change 8: draw one from a group by walking away, then fight it
+    alone; E9 dropped six fights for a chaser 10.74 to 11.90 tiles behind the target, the look behind's `held`): the
+    centroid (x, y) of the other zombies listed within LISTED_R when target `t` (id, zombie, dist) chases the player
+    (`hasTarget`) within `reach` (ENGAGE_R; a chaser already pulled is kept to DISENGAGE_R: `Fight.seeking`), no other
+    zombie chases within ENGAGE_R (one chaser), every other listed zombie stands beyond DANGER_R and at least one is
+    listed; else None. The ids in `skip` (read dead) are no zombies."""
+    zid, z, d = t
+    if not chasing(z) or d > reach:
+        return None
+    xs, ys = [], []
+    for oid, o in world.zombies.items():
+        if oid == zid or oid in skip or o.get("x") is None or o.get("y") is None:
+            continue
+        od = zdist(world, o)
+        if od > LISTED_R:
+            continue
+        if od <= DANGER_R or (od <= ENGAGE_R and chasing(o)):
+            return None
+        xs.append(o["x"])
+        ys.append(o["y"])
+    return (sum(xs) / len(xs), sum(ys) / len(ys)) if xs else None
+
+
 def away_vector(world, points):
     """The unit vector along the sum of the unit vectors from each of `points` ((x, y)) to the player, each weighted
     by 1/distance (ruling P23-AG 3: away from the centroid and from the nearest, so a group spread round the player is
@@ -498,17 +540,20 @@ def away_vector(world, points):
     return None if n == 0.0 else (vx / n, vy / n)
 
 
-def clear_heading(world, v, reach=STEER_PROBE):
+def clear_heading(world, v, reach=STEER_PROBE, trans=True):
     """The map's line `reach` tiles along `v` from the player, an unknown square open (fix round 2, concern 1). A
     hoppable fence's edge reads blocked (`line_clear` never climbs: a steer or a backpedal never vaults, ruling P24-G
-    4)."""
+    4). `trans` (ruling P24-AS; a policy's `trans`, Survive's TRANS): a `solidTrans` square (a fence, a window or a
+    counter the engine blocks but sees through: E9 held its y 16.511 s against such a row while every steer pointed
+    into it) refuses the heading as a solid one does; off, `solid` alone, the rule before it."""
     mx, my = me_xy(world)
-    return world.line_clear((mx, my), (mx + reach * v[0], my + reach * v[1]), unknown_open=True)
+    return world.line_clear((mx, my), (mx + reach * v[0], my + reach * v[1]), unknown_open=True, trans=trans)
 
 
-def stance_leg_kind(d, advance, seek=False):
-    """The stance leg a standing fight's target `d` tiles off calls for (rulings P24-G 1, P24-N and P24-X): `enter`
-    within FIGHT_REACH, `toward` in the advance, `seek` while the fight seeks it (`seek`: the caller's
+def stance_leg_kind(d, advance, seek=False, pull=False):
+    """The stance leg a standing fight's target `d` tiles off calls for (rulings P24-G 1, P24-N, P24-X and P24-AN):
+    `enter` within FIGHT_REACH, `toward` in the advance, `pull` while the fight pulls a lone chaser away from the group
+    (`pull`: the caller's `Fight.pulling`, beyond PULL_R), `seek` while the fight seeks it (`seek`: the caller's
     `Fight.seeking`, whose `seek_allowed` holds the one KEEP_R guard: Task 18 fix 1, the review's minor 13; the caller
     has already excluded a target inside KEEP_R, so `seek` here means d > KEEP_R: fix 2, minor 4), `back`
     inside KEEP_R, else `stand`. `Fight._stance_leg` sends it and `Fight.busy` gives a running leg way when it changes
@@ -517,6 +562,8 @@ def stance_leg_kind(d, advance, seek=False):
         return "enter"
     if advance:
         return "toward"
+    if pull:
+        return "pull"
     if seek:
         return "seek"
     return "back" if d <= KEEP_R else "stand"
@@ -609,6 +656,9 @@ class Fight(Policy):
                                             # (SWING_SKIP_S: the Lua refused or failed it; P24-AL's floor strike then)
         self._shoved = False                # the last swing-like send was a shove: the next is the swing (P24-AH)
         self.knocked = {}                   # zombie id -> wall until a shove's knockdown reads it downed (KNOCK_READ_S)
+        self.pull = False                   # Survive sets it on a Fight it seeks (ruling P24-AN): a lone chaser pulled
+        self._pulled = None                 # the zombie id the last pull leg was sent at (P24-AN)
+        self.doorway = None                 # the building a doorway stand holds (`planner.doorway.Doorway`), else None
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -766,14 +816,52 @@ class Fight(Policy):
         (`sought`) and may be sought (`seek_allowed`: Task 18 fix 1's ruling 2, never from a room or door square, nor
         across a known fence at a chasing target): its legs close on it (`seek`), a walk at a walk beyond AIM_R."""
         return (self.seek and t is not None and t[0] not in self.sought
-                and seek_allowed(self.world, t, self.hold_ground))
+                and seek_allowed(self.world, t, self.hold_ground) and not self._pull_waits(t))
+
+    def pull_centroid(self, t, reach=ENGAGE_R):
+        """Ruling P24-AN: the centroid of the group a lone chaser `t` is pulled from (`pull_from` within `reach`, the
+        zombies read dead left out), while `pull` is set and the stance applies to it; else None."""
+        if not self.pull or t is None or not self.stance_at(t[2]):
+            return None
+        return pull_from(self.world, t, blocked(self.dead, self.clock()), reach)
+
+    def _pull_pin(self):
+        """Ruling P24-AN: with nothing pinned, the one zombie chasing within ENGAGE_R is pinned when the pull applies to
+        it (`pull_centroid`), before the nearest: the chaser is the fight, a nearer idle one part of the group."""
+        if not self.pull or self.target is not None:
+            return
+        skip = self.blocked()
+        chasers = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in skip
+                   and chasing(z) and z.get("x") is not None and z.get("y") is not None
+                   and zdist(self.world, z) <= ENGAGE_R]
+        if len(chasers) == 1:
+            zid, z = chasers[0]
+            if self.pull_centroid((zid, z, zdist(self.world, z))) is not None:
+                self.target, self.repositioned = zid, False
+
+    def _pull_waits(self, t):
+        """Ruling P24-AN (F1 with the PZA/1.5 caps replayed: its line 164 pulled 15911 at 8.93 tiles, which read 9.34 at
+        the next tick, past ENGAGE_R, so the seek walked back toward it past the group): a chaser the pull was sent at
+        (`_pulled`) that has fallen beyond ENGAGE_R while still a lone chaser within DISENGAGE_R is not sought: the
+        stance stands facing it and lets it come (`stand`)."""
+        return (t[0] == self._pulled and t[2] > ENGAGE_R
+                and self.pull_centroid(t, DISENGAGE_R) is not None)
+
+    def pulling(self, t):
+        """Ruling P24-AN, the pull: the Fight seeks target `t` (`seeking`), a lone chaser beyond PULL_R with the rest of
+        the listing beyond DANGER_R (`pull_centroid`): its stance legs walk away from the group (`pull`), never toward
+        the chaser, until it comes within PULL_R; the look behind reads no walk then (`Survive._behind_walk`)."""
+        return t is not None and t[2] > PULL_R and self.seeking(t) and self.pull_centroid(t) is not None
 
     def _observe_seek(self, t):
-        """A sought target within KEEP_R has been sought: the stance fight of iteration 7 from then on (P24-X); a seek
+        """A sought target within KEEP_R has been sought: the stance fight of iteration 7 from then on (P24-X); so has
+        a lone chaser within PULL_R with the rest of the listing beyond DANGER_R (ruling P24-AN: the pull's end, or a
+        chaser met there, takes the stance, standing while it comes, never a seek toward it past the group); a seek
         walk (round a wall, or beyond AIM_R) that failed for a walk reason marks the target unreachable for SEEK_SKIP_S
         (Task 18 fix 1, the review's major 2: longer than a swing's mark, so the goal is not superseded every
         UNREACHABLE_S by a zombie behind a gate)."""
-        if self.seek and t is not None and t[2] <= KEEP_R:
+        if self.seek and t is not None and (t[2] <= KEEP_R or (
+                t[2] <= PULL_R and t[0] not in self.sought and self.pull_centroid(t) is not None)):
             self.sought.add(t[0])
             if not chasing(t[1]) and self.standing() and not self.advance:   # fix 1, minor 10: no stand-off at an
                 self.advance, self.out_of_reach_since = True, self.clock()   # idle one; the advance's stall clock
@@ -790,8 +878,9 @@ class Fight(Policy):
         not avoided beyond DANGER_R) when it is another and SEEK_SWITCH_R or more nearer. The seek closes on the
         nearest; once a target is `sought` the pin holds as iteration 7's stance rules, except in the advance, whose
         walk and `toward` leg give way and re-pin for `_advance_switch` (a zombie inside KEEP_R or SEEK_SWITCH_R
-        nearer: Task 18 fix 2)."""
-        if not self.seeking(t):
+        nearer: Task 18 fix 2). Ruling P24-AN: never while the pull runs (`pulling`: the one chaser is the fight, a
+        nearer idle zombie part of the group it is drawn from)."""
+        if not self.seeking(t) or self.pulling(t):
             return None
         n = self._nearest()
         return n if n is not None and n[0] != t[0] and n[2] <= t[2] - SEEK_SWITCH_R else None
@@ -835,7 +924,7 @@ class Fight(Policy):
             return True
         mx, my = me_xy(self.world)
         u = ((t[1]["x"] - mx) / t[2], (t[1]["y"] - my) / t[2])
-        return clear_heading(self.world, u, min(STEER_PROBE, t[2]))
+        return clear_heading(self.world, u, min(STEER_PROBE, t[2]), self.trans)
 
     def stand_s(self):
         """Wall seconds the running stand has gone without progress, else None."""
@@ -865,7 +954,7 @@ class Fight(Policy):
             return False
         if self._leg == "toward":
             return self._advance_switch(t) is None   # fix 2: it holds until reach, or a zombie closing on the character
-        want = stance_leg_kind(t[2], self.advance, self.seeking(t))
+        want = stance_leg_kind(t[2], self.advance, self.seeking(t), self.pulling(t))
         if want == "seek" and self._leg == "seek" and self._seek_switch(t) is not None:
             return False   # Task 18 fix 1, the blocker: a nearer zombie; the next choose re-pins to it
         if self._leg == "back" and want == "stand":
@@ -1100,6 +1189,7 @@ class Fight(Policy):
     def _choose(self):
         self._seek_send, self._walk_kind = False, None
         self._repin_point_blank()
+        self._pull_pin()
         switch = self._seek_switch(self._pinned()) if self.seek and self.target is not None else None
         if switch is None and self.advance and self.target is not None:
             switch = self._advance_switch(self._pinned())   # Task 18 fix 2: the advance gives way to a closing zombie
@@ -1161,7 +1251,7 @@ class Fight(Policy):
             self.why["stance"] = True   # the swing from the stance (Task 9's hand-over keeps it)
         return Attack(zid)   # nearest_zombie yields int ids only (M7)
 
-    def _stance_leg(self, zid, z, d):
+    def _stance_leg(self, zid, z, d, kind=None):
         """One stance leg (rulings P24-G 1 and P24-N): `aim` facing the target for AIM_LEG_S, walking (the stance
         never runs) one of
         - `enter` (0, 0): the target within FIGHT_REACH with the stance not held (`in_stance`): the stance is taken
@@ -1173,12 +1263,17 @@ class Fight(Policy):
         - `back`: the target inside KEEP_R: `away_vector` of the held threats (`threats`, else the target) turned
           by STEER_TURNS to the first heading `clear_heading` passes (never into a wall or over a fence), else
           standing: a wall behind is never stepped into;
-        - `stand` (0, 0): the target beyond KEEP_R, faced while it comes."""
-        v, kind = None, stance_leg_kind(d, self.advance, self.seeking((zid, z, d)))
+        - `pull` (ruling P24-AN): a lone chaser beyond PULL_R pulled from the group (`pulling`): the unit vector from
+          the group's centroid (`pull_centroid`) to the player, turned by STEER_TURNS to the first heading
+          `clear_heading` passes, else standing; the chaser faced while it follows, the group left behind;
+        - `stand` (0, 0): the target beyond KEEP_R, faced while it comes.
+        `kind` names the leg instead of the target's distance (P24-AP's wounded backpedal within reach)."""
+        t = (zid, z, d)
+        v, kind = None, kind or stance_leg_kind(d, self.advance, self.seeking(t), self.pulling(t))
         if kind in ("toward", "seek"):
             mx, my = me_xy(self.world)
             u = ((z["x"] - mx) / d, (z["y"] - my) / d)
-            if not clear_heading(self.world, u, min(STEER_PROBE, d)):
+            if not clear_heading(self.world, u, min(STEER_PROBE, d), self.trans):
                 self.why.update({"stance": True, "leg": "walk", "stand_s": self.stand_s()})
                 self.why["advance" if kind == "toward" else "seek"] = True
                 self._seek_send, self._walk_kind = kind == "seek", "seek" if kind == "seek" else "advance"   # fix 1
@@ -1186,9 +1281,11 @@ class Fight(Policy):
             v = u
         elif kind == "back":
             ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
-            a = away_vector(self.world, [(q["x"], q["y"]) for q in ts])
-            if a is not None:
-                v = next((_rotate(a, t) for t in STEER_TURNS if clear_heading(self.world, _rotate(a, t))), None)
+            v = self._clear_turn(away_vector(self.world, [(q["x"], q["y"]) for q in ts]))
+        elif kind == "pull":
+            c = self.pull_centroid(t)
+            v = self._clear_turn(away_vector(self.world, [c]))
+            self.why["pull"] = [c[0], c[1]]
         vx, vy = v if v is not None else (0.0, 0.0)
         self.why.update({"stance": True, "leg": kind, "back": [vx, vy] if kind == "back" and v is not None else None,
                          "stand_s": self.stand_s()})
@@ -1198,9 +1295,19 @@ class Fight(Policy):
             self.why["seek"] = True
         return Aim(vx, vy, AIM_LEG_S, targetId=zid)
 
+    def _clear_turn(self, a):
+        """Heading `a` (a unit vector, or None) turned by STEER_TURNS to the first heading `clear_heading` passes
+        (never into a wall or over a fence), else None: the backpedal's and the pull's step."""
+        if a is None:
+            return None
+        return next((_rotate(a, t) for t in STEER_TURNS if clear_heading(self.world, _rotate(a, t), STEER_PROBE,
+                                                                         self.trans)), None)
+
     def sent(self, cmd, action):
         if cmd.TYPE == "aim":
             self._leg = self.why.get("leg")
+            if self._leg == "pull":
+                self._pulled = cmd.targetId   # P24-AN: kept to DISENGAGE_R from here (`_pull_waits`)
         elif cmd.TYPE == "walkTo":
             self.approach = False
             self._seek_walk = (action, self.target) if self._seek_send else None
@@ -1265,7 +1372,7 @@ def on_room(world):
     return (world.map.get(_night().player_square(world)) or {}).get("room") is not None
 
 
-def exit_plan(world, threats, refused=()):
+def exit_plan(world, threats, refused=(), trans=True):
     """The way out of the building the player stands in (ruling P23-AJ 3 as amended, and its fix round 1), else
     None: standing on a room square of a building, of its `night.exits` on the player's floor (an opening, or a
     closed exterior door to open first) whose outside square is not in `refused`, whose outside square's centre is no
@@ -1275,7 +1382,8 @@ def exit_plan(world, threats, refused=()):
     a walk to the outside square itself ends `done` on the room square and is refused), the nearest to the player,
     ties by that square; `{building, inner, outer, door, target, step, opened}`, `target` the square the walk goes to,
     `step` "walk" (the review's I2: the jar's path follower opens a closed door on a player's path,
-    `PathFindBehavior2.checkDoorHoppableWindow`, a review reading; the open is the fallback), `opened` False."""
+    `PathFindBehavior2.checkDoorHoppableWindow`, a review reading; the open is the fallback), `opened` False. `trans`:
+    `_beyond`'s (ruling P24-AS)."""
     N = _night()
     s = world.map.get(N.player_square(world)) or {}
     b = s.get("building")
@@ -1292,7 +1400,7 @@ def exit_plan(world, threats, refused=()):
         if any(math.hypot(z["x"] - c[0], z["y"] - c[1]) < zdist(world, z)
                or _in_tube(me, c, (z["x"], z["y"]), EXIT_CLEAR_R) for z in ts):
             continue
-        if _beyond(world, e["inner"], e["outer"]) is None:
+        if _beyond(world, e["inner"], e["outer"], trans) is None:
             continue
         rank = (e["door"] in marked, math.hypot(c[0] - me[0], c[1] - me[1]), e["outer"], e["inner"])
         if best is None or rank < best[0]:
@@ -1300,7 +1408,7 @@ def exit_plan(world, threats, refused=()):
     if best is None:
         return None
     e = best[1]
-    return dict(e, building=b, target=_beyond(world, e["inner"], e["outer"]), step="walk", opened=False)
+    return dict(e, building=b, target=_beyond(world, e["inner"], e["outer"], trans), step="walk", opened=False)
 
 
 def _in_tube(a, b, p, r):
@@ -1323,15 +1431,16 @@ def _seg_dist(a, b, p):
     return math.hypot(p[0] - a[0] - t * ux, p[1] - a[1] - t * uy)
 
 
-def _beyond(world, inner, outer):
+def _beyond(world, inner, outer, trans=True):
     """The square the exit walks to: one more square on from `outer` away from `inner` when the map holds it open (not
     solid, no room, the step to it not blocked), else None (the exit is skipped: fix round 1, the review's I1). A walk
     ends `done` within the Lua's DONE_R (1.0) of its target, so a walk to the outside square's own centre may end on
     the room square beside it (rule 5's lesson); from the square beyond it ends at least a tile from the room
-    square's centre."""
+    square's centre. With `trans` (ruling P24-AS) a `solidTrans` square beyond is no walk's end either."""
     sq = (2 * outer[0] - inner[0], 2 * outer[1] - inner[1], outer[2])
     s = world.map.get(sq)
-    if s is None or s.get("solid") or s.get("room") is not None or world.blocked(outer, sq):
+    if (s is None or s.get("solid") or (trans and s.get("solidTrans")) or s.get("room") is not None
+            or world.blocked(outer, sq)):
         return None
     return sq
 
@@ -1677,7 +1786,7 @@ class Flee(Policy):
             if cmd is not None or self.plan is not None:
                 return cmd
         if on_room(self.world):
-            self.exit = exit_plan(self.world, ts, self.refused)
+            self.exit = exit_plan(self.world, ts, self.refused, self.trans)
             if self.exit is not None:
                 return self._exit_step()
             if not self.adopted:
@@ -1725,7 +1834,7 @@ class Flee(Policy):
         return False
 
     def _clear(self, v, reach=STEER_PROBE):
-        return clear_heading(self.world, v, reach)
+        return clear_heading(self.world, v, reach, self.trans)
 
     def _ahead(self, v, far):
         """The threats of `far` a leg along `v` would run at: within AHEAD_R and AHEAD_CONE of it, or in the

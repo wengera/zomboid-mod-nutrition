@@ -29,6 +29,19 @@ def replay_rows(key):
     return json.loads(replayed(key))
 
 
+# ---------------------------------------------------------------- the rules before Task 32 (survival iteration 11)
+def pre_an(sv):
+    """The replay's mutate seam onto the rules before Plan 24 Task 32 (survival iteration 11): `Survive.PULL` (P24-AN,
+    the pull), `Survive.DOORWAY` (P24-AO, the doorway stand) and `Survive.TRANS` (P24-AS, the transparent solid in a
+    heading read) off. P24-AN's listing count, P24-AP, P24-AQ and P24-AR stay on: they read what no record carries or
+    what every record carries alike (`hasTarget` on every listed zombie, no `armPain`, `onFloor` or part `bleeding`:
+    `test_no_record_carries_what_iteration_11_reads`), so with these three off every golden is the file as it stood
+    before Task 32 byte for byte (`test_with_iteration_11_off_the_goldens_are_task_27_s`)."""
+    sv.PULL = False
+    sv.DOORWAY = False
+    sv.TRANS = False
+
+
 # ---------------------------------------------------------------- the rules before P24-X (Plan 24 Task 18)
 def pre_x(sv):
     """The replay's mutate seam onto the rules before ruling P24-X (`Survive.ENGAGE` off: no engage within
@@ -39,10 +52,11 @@ def pre_x(sv):
     open loop. Not behind the switch: Task 18's WIDE_TURNS and STEP_PROBE (and fix 1's group-aware wide tier), which
     the PRE_X pins prove move no golden (Task 18 fix 1, the review's minor 13). Plan 24 Task 21: ruling P24-AD's
     switch (`Survive.IDLE`) is off with it, the idle zombie counted toward `many` as before; Task 27: rulings P24-AG
-    and P24-AK's (`Survive.STRAIN`) too, no spent read."""
+    and P24-AK's (`Survive.STRAIN`) too, no spent read; Task 32: iteration 11's switches (`pre_an`) too."""
     sv.ENGAGE = False
     sv.IDLE = False
     sv.STRAIN = False
+    pre_an(sv)
 
 
 @functools.lru_cache(maxsize=6)
@@ -74,9 +88,11 @@ def pre_ad(sv):
     """The replay's mutate seam onto the rules before ruling P24-AD (Plan 24 Task 21: `Survive.IDLE` off, every
     zombie counted toward `many`), P24-X kept: it reproduces the six goldens as they stood before Task 21's re-record
     byte for byte (Task 21's report). A test that pins a line of an earlier ruling which P24-AD moved downstream (open
-    loop) reads it there. Task 27: `Survive.STRAIN` off with it (P24-AG and P24-AK moved E4 and F1 downstream)."""
+    loop) reads it there. Task 27: `Survive.STRAIN` off with it (P24-AG and P24-AK moved E4 and F1 downstream);
+    Task 32: iteration 11's switches (`pre_an`) too."""
     sv.IDLE = False
     sv.STRAIN = False
+    pre_an(sv)
 
 
 @functools.lru_cache(maxsize=6)
@@ -890,8 +906,10 @@ def pre_ag(sv):
     no spent read), every other rule kept: it reproduces the six goldens as they stood before Task 27's re-record byte
     for byte (`test_with_strain_off_the_goldens_are_iteration_9_s`), so P24-AH, P24-AI, P24-AJ and P24-AL, always on,
     move no golden: the records announce no `shove`, `stomp` or `unwear` and carry no `armPain`, `strain`,
-    `loadedWidth` or `onFloor` (`test_no_record_carries_a_pza1_7_read`), and the goals answer from the record."""
+    `loadedWidth` or `onFloor` (`test_no_record_carries_a_pza1_7_read`), and the goals answer from the record.
+    Task 32: iteration 11's switches (`pre_an`) off with it."""
     sv.STRAIN = False
+    pre_an(sv)
 
 
 @functools.lru_cache(maxsize=6)
@@ -941,8 +959,10 @@ def test_p24_ag_moves_e4_and_f1_first_at_the_endurance_moodle_and_no_other_golde
     list, and 557 is the held flee `strain` at endurance 0.753, which the edge alone had let turn back to fight;
     before fix 1 they moved first at 604, game minute 642, the `walk` corner on 15917 yielding `strain` at 0.737);
     every later moved line is that episode's, open loop
-    (E4's character died at 627 in the record, so its replay's tail flees `unarmed` once its inventory is gone)."""
-    base, got = pre_ag_gold(key), gold(key)
+    (E4's character died at 627 in the record, so its replay's tail flees `unarmed` once its inventory is gone).
+    Named change, Plan 24 Task 32: read against the golden as it stood before Task 32 (`pre_an_gold`), iteration 11
+    having moved E4 from line 431 and the sixth from line 164 (`test_iteration_11_moves_...`)."""
+    base, got = pre_ag_gold(key), pre_an_gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     if key not in FIRST_STRAIN:
         assert diff == []
@@ -976,3 +996,97 @@ def test_no_record_carries_a_pza1_7_read(key):
         assert (fr.get("body") or {}).get("armPain") is None and (fr.get("body") or {}).get("strain") is None
         assert (fr.get("me") or {}).get("loadedWidth") is None
         assert not any(zz.get("onFloor") is not None for zz in fr.get("zombies") or ())
+
+
+# ================================================================ Plan 24 Task 32: iteration 11 on the goldens
+@functools.lru_cache(maxsize=6)
+def _pre_an_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_an), sort_keys=True)
+
+
+def pre_an_gold(key):
+    """{line: decision} of the replay with iteration 11's switches off: the golden before Task 32's re-record."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_an_replayed(key)))}
+
+
+def _one_off(name):
+    def m(sv):
+        setattr(sv, name, False)
+    return m
+
+
+@functools.lru_cache(maxsize=4)
+def _one_off_gold(key, name):
+    """{line: decision} of the replay with the one switch `name` off, the other rules of HEAD on."""
+    return {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                         mutate=_one_off(name)))}
+
+
+# the six goldens as they stood before Task 32's re-record: sha256, base, recorded
+PRE_AN = {"e2": ("ce339594d3cc5a0715468423bd5a2c60ab2421a7a52dd99342c390127e0c7d06", "9abc5037", "2026-10-29"),
+          "e3": ("51822032e67a4c7c76cc5ddbd0e426357c13596d70db4b904f57980988de9eaf", "9abc5037", "2026-10-29"),
+          "e4": ("002ac8ca98385c05d792f0ce0cee9eb383d78d2d8e73f758c27399a1171875b8", "eff3bdce", "2026-10-30"),
+          "e5": ("ce0bc741b43c2b87a2f92edd80e2710cea0cb5d3ac42bbd5322ba5a1d9f28f53", "9abc5037", "2026-10-29"),
+          "f1": ("58540fb15d575cbbccb3fd41c9cd4389dd411180d532f4fb4c83d96f7ad74e01", "eff3bdce", "2026-10-30"),
+          SIXTH: ("9cec6a97101e7e44ff26ea03b42d472e9c78ac1dcff097df7a735604fbe96cb1", "eff3bdce", "2026-10-30")}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_AN))
+def test_with_iteration_11_off_the_goldens_are_task_27_s(key):
+    """Iteration 11's golden movers are three switches (`Survive.PULL`, `DOORWAY`, `TRANS`): with them off every golden
+    is the file as it stood before Task 32 byte for byte (its sha256 pinned), so P24-AN's listing count, P24-AP,
+    P24-AQ and P24-AR (always on) move none."""
+    sha, base, recorded = PRE_AN[key]
+    text = R.golden_text(R.decisions(json.loads(_pre_an_replayed(key))), base, R.RUNS[key], recorded,
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+
+
+# the first line iteration 11 moves on each golden it moves, and the one switch that moves it
+FIRST_AN = {"e4": (431, "TRANS"), SIXTH: (164, "PULL")}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_AN))
+def test_iteration_11_moves_e4_at_the_transparent_solid_and_the_sixth_at_the_pull_and_no_other_golden(key):
+    """Task 32's attribution. E4 moves first at line 431 (game minute 620, the `strain` flee's re-aim: the heading
+    turned 60 degrees, (-0.99967, 0.02567), crosses a `solidTrans` square within its STEER_PROBE line, so P24-AS turns
+    it 150, (-0.02567, -0.99967), its AHEAD_R probe clear); every later line is that episode's, open loop to the
+    log's end. The sixth (F1 with the PZA/1.5 caps) moves first at line 164 (game minute 584: 15911 chases alone at
+    8.93 tiles, the rest of the listing beyond DANGER_R: the pull's leg away from their centroid where the seek's leg
+    went toward it), and at 165 the pulled chaser past ENGAGE_R (9.34) is stood for, never sought back. P24-AO moves
+    no golden: the five PZA/1.4 builds announce no stance, and the sixth's four shelter plans are picked under
+    `unreachable`, `pair` and `strain` flees, never a `many` one. Each golden's own switch alone off reproduces the
+    file before Task 32: the other two move nothing on it."""
+    base, got = pre_an_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    if key not in FIRST_AN:
+        assert diff == []
+        with open(R.golden_path(key), "rb") as f:
+            assert hashlib.sha256(f.read()).hexdigest() == PRE_AN[key][0]
+        return
+    line, switch = FIRST_AN[key]
+    assert diff[0] == line
+    assert _one_off_gold(key, switch) == base
+    if key == "e4":
+        b, g = base[line], got[line]
+        assert b["why"]["turn"] == 60 and b["why"]["probe"] == 3.0 and g["why"]["turn"] == 150
+        assert g["why"]["probe"] == 9.0 and g["action"]["type"] == b["action"]["type"] == "steer"
+    else:
+        b, g = base[line]["why"], got[line]["why"]
+        assert b["leg"] == "seek" and g["leg"] == "pull" and b["target"] == g["target"] == 15911
+        assert g["dist"] == b["dist"] and 8.9 < g["dist"] <= P.ENGAGE_R and len(g["pull"]) == 2
+        assert got[line + 1]["why"]["leg"] == "stand" and got[line + 1]["why"]["dist"] > P.ENGAGE_R
+
+
+@pytest.mark.parametrize("key", sorted(R.RUNS))
+def test_no_record_carries_what_iteration_11_reads(key):
+    """The goldens' records: every listed zombie reads its `hasTarget` (so P24-AN's listing count reads as P24-AD's
+    did: none counts as unread), and no part record carries `bleeding` (PZA/1.5), so P24-AR's ride never reads a
+    wound there; with `test_no_record_carries_a_pza1_7_read` (no `armPain`, no `onFloor`, no `stomp` announced),
+    P24-AP and P24-AQ read nothing either."""
+    lines, _ = R.read_record(run_dir(key))
+    frames = [ln for ln in lines if ln.get("kind") == "frame"]
+    assert frames
+    for fr in frames:
+        assert all(zz.get("hasTarget") is not None for zz in fr.get("zombies") or ())
+        assert all(p.get("bleeding") is None for p in ((fr.get("body") or {}).get("parts") or ()) if isinstance(p, dict))

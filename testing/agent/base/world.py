@@ -782,10 +782,11 @@ class World:
         v = None if s is None else s.get(field)
         return True if v is None else bool(v)
 
-    def _solid(self, sq):
-        """A square unknown to the map counts solid."""
+    def _solid(self, sq, trans=False):
+        """A square unknown to the map counts solid; with `trans` (ruling P24-AS) a `solidTrans` one too (a fence, a
+        window or a counter the engine blocks but sees through)."""
         s = self.map.get(sq)
-        return s is None or bool(s.get("solid"))
+        return s is None or bool(s.get("solid")) or (trans and bool(s.get("solidTrans")))
 
     def _orth_blocked(self, a, b, climb=False):
         """The edge between two orthogonally adjacent squares: a square stores its own north and west edges. With
@@ -802,14 +803,15 @@ class World:
             return False
         return not (climb and (self.map.get(holder) or {}).get("hop" + side) is True)
 
-    def blocked(self, a, b, unknown_open=False, climb=False):
+    def blocked(self, a, b, unknown_open=False, climb=False, trans=False):
         """Whether the step between two adjacent squares `(x, y, z)` is blocked (the module docstring's rule); a
         pair that is not adjacent on one floor raises ValueError, the same square is never blocked, and a step to or
         from a square the map does not hold always is. `unknown_open` (the flee's steer probe): a step to or from an
         unknown square never is, and a diagonal's unknown corner square is neither solid nor bounded by a blocked
         edge (a known corner is read as by default; survival 1 fix round 3, F5). `climb` (PZA/1.4, ruling P24-C): an
         orthogonal step over a blocked edge whose square carries the hop flag is not blocked, the path follower
-        climbing it at a walk; a diagonal step never climbs, its corner edges read as by default."""
+        climbing it at a walk; a diagonal step never climbs, its corner edges read as by default. `trans` (ruling
+        P24-AS, the planner's heading reads): a diagonal's `solidTrans` corner square is solid too."""
         a, b = tuple(a), tuple(b)
         dx, dy = b[0] - a[0], b[1] - a[1]
         if a[2] != b[2] or abs(dx) > 1 or abs(dy) > 1:
@@ -821,7 +823,7 @@ class World:
         if dx == 0 or dy == 0:
             return self._orth_blocked(a, b, climb)
         corners = [c for c in ((b[0], a[1], a[2]), (a[0], b[1], a[2])) if not unknown_open or c in self.map]
-        if any(self._solid(c) for c in corners):
+        if any(self._solid(c, trans) for c in corners):
             return True
         return any(self._orth_blocked(a, c) or self._orth_blocked(c, b) for c in corners)
 
@@ -843,22 +845,24 @@ class World:
             out.append((x0, y0))
         return out
 
-    def line_clear(self, a, b, unknown_open=False):
+    def line_clear(self, a, b, unknown_open=False, trans=False):
         """Whether the line from position `a` to `b` ((x, y) floats, on the player's floor) crosses no blocked edge
         and no solid or unknown square strictly between its end squares. The walk is Bresenham's on the floored ends
         (integer squares), not the float line between the two positions. `unknown_open`: an unknown square is
-        neither solid nor bounded by a blocked edge (the module docstring)."""
+        neither solid nor bounded by a blocked edge (the module docstring). `trans` (ruling P24-AS, Plan 24 Task 32
+        amendment 1: E9's character held its y 16.511 s against a row of `solidTrans` squares every run steer pointed
+        into): a known `solidTrans` square is solid too, for the planner's heading reads (`policies.clear_heading`)."""
         z = me_floor(self)
         cells = self._bresenham(int(math.floor(a[0])), int(math.floor(a[1])), int(math.floor(b[0])),
                                 int(math.floor(b[1])))
         sqs = [(x, y, z) for x, y in cells]
         if unknown_open:
-            if any(sq in self.map and self._solid(sq) for sq in sqs[1:-1]):
+            if any(sq in self.map and self._solid(sq, trans) for sq in sqs[1:-1]):
                 return False
-            return not any(self.blocked(p, q, unknown_open=True) for p, q in zip(sqs, sqs[1:]))
-        if any(self._solid(sq) for sq in sqs[1:-1]):
+            return not any(self.blocked(p, q, unknown_open=True, trans=trans) for p, q in zip(sqs, sqs[1:]))
+        if any(self._solid(sq, trans) for sq in sqs[1:-1]):
             return False
-        return not any(self.blocked(p, q) for p, q in zip(sqs, sqs[1:]))
+        return not any(self.blocked(p, q, trans=trans) for p, q in zip(sqs, sqs[1:]))
 
     def reachable_adjacent(self, target_xy, z):
         """The target square's 8 neighbours that are mapped, not solid, and whose step to the target is not blocked,

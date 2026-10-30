@@ -266,13 +266,16 @@ def test_the_health_flee_stays_below_its_margin_and_no_seek_below_the_line(tmp_p
 def test_two_sought_are_the_fight_not_a_group_behind_it_but_a_third_listed_beyond_is(tmp_path):
     """P24-A (b) under P24-X: the second of the two sought, behind the first on its bearing, is the fight (no
     `behind`); a zombie listed beyond ENGAGE_R behind the target and chasing turns the seek to the `held` flee, as
-    before; one standing off there (not chasing: the E7 write-up's reading) does not."""
+    before; one standing off there (not chasing: the E7 write-up's reading) does not. Named change, ruling P24-AN
+    (Plan 24 Task 32): the second case's target chases alone within ENGAGE_R with the chaser behind it beyond
+    DANGER_R, so it is now pulled (`test_survive_o`); the `held` flee is read with the pull off (`Survive.PULL`)."""
     r, sv = make(tmp_path)
     r.frame(zombies=[zd(1, 105.0, 200.0), zd(2, 108.5, 200.5)])                # fix 1: within ENGAGE_R 9
     tick(r, sv)
     assert r.cmd()[0] == "aim" and "behind" not in threat_why(tmp_path)
     (tmp_path / "b").mkdir()
     r2, sv2 = make(tmp_path / "b")
+    sv2.PULL = False
     r2.frame(zombies=[zd(1, 105.0, 200.0), zd(2, 111.0, 200.5)])
     tick(r2, sv2)
     w = threat_why(tmp_path / "b")
@@ -880,14 +883,17 @@ def test_a_seek_aim_leg_gives_way_to_a_nearer_zombie(tmp_path):
 E7 = "e_day_7-20261029-140813"
 
 
-def _e7_lines(upto, engage_any=False, no_give=False):
+def _e7_lines(upto, engage_any=False, no_give=False, iteration_10=False):
     """E7 replayed to `upto`: the rows, and per tick {walk: the running stance walk's target id else None, zs:
     {zombie id: tiles}}. `engage_any`: the engage as built at 9c477f80 (every zombie within ENGAGE_R engageable), so
-    the review's walk at line 52 is reproduced; `no_give`: the blocker's mutant (the walk never gives way)."""
+    the review's walk at line 52 is reproduced; `no_give`: the blocker's mutant (the walk never gives way);
+    `iteration_10`: Task 32's switches off (`Survive.PULL`, `DOORWAY`, `TRANS`)."""
     from agent.base import replay_decisions as R
     out = {}
 
     def m(sv):
+        if engage_any or iteration_10:
+            sv.PULL = sv.DOORWAY = sv.TRANS = False
         if engage_any:
             sv._engageable = lambda zid, z: True
         real = sv.tick
@@ -933,7 +939,10 @@ def test_e7_lines_52_to_73_the_seek_walk_round_the_wall_gives_way_and_never_runs
     tiles (the mutant `no_give` reproduces it); now it gives way at line 56 (its line toward 533 clear) and no stance
     walk runs on any tick of 49-73 past its target's leaving or a nearer zombie. Under HEAD's whole rules 533, idle behind the wall, is not engaged until it chases (line 54), the
     walk round the wall then gives way at 56, and the seek on 534 switches to 564 at line 64 (6.22 tiles against
-    7.12), across a fence and chasing: a standing leg, not a walk."""
+    7.12), across a fence and chasing: a standing leg, not a walk. Named change, ruling P24-AN (Plan 24 Task 32): HEAD's
+    whole rules are read with iteration 11's switches off (`Survive.PULL`, `DOORWAY`, `TRANS`): from line 54 533
+    chases alone within ENGAGE_R with 564 and 534 beyond DANGER_R, so the pull's leg goes where the walk round the wall
+    went (`test_e7_line_54_pulls_533_where_the_walk_round_the_wall_went`)."""
     rows, out = _e7_lines(73, engage_any=True)
     assert rows[48]["action"] == {"type": "walkTo", "args": {"gait": "walk", "x": 10740.5, "y": 10647.5}}
     assert out[49]["walk"] == 533 and out[55]["walk"] == 533 and out[56]["walk"] is None
@@ -941,7 +950,7 @@ def test_e7_lines_52_to_73_the_seek_walk_round_the_wall_gives_way_and_never_runs
     assert _walk_held_wrongly(out, 49, 73) == []
     _, mut = _e7_lines(73, engage_any=True, no_give=True)
     assert all(mut[k]["walk"] == 533 for k in range(49, 74)) and _walk_held_wrongly(mut, 49, 73) != []
-    rows, out = _e7_lines(73)
+    rows, out = _e7_lines(73, iteration_10=True)
     assert all(rows[k - 1]["branch"] != "threat" for k in range(47, 54))
     assert rows[53]["action"]["type"] == "walkTo" and out[55]["walk"] == 533 and out[56]["walk"] is None
     w = rows[63]["inputs"]["branches"]["threat"]
@@ -1421,3 +1430,14 @@ def test_e7_lines_286_to_332_the_loot_from_the_room_runs_on_past_an_idle_zombie(
     branch (the mutant, the engage without the chokepoint rule, brings it back)."""
     assert _e7_threat_lines(286, 332) == []
     assert _e7_threat_lines(286, 332, mutant=True) != []
+
+
+def test_e7_line_54_pulls_533_where_the_walk_round_the_wall_went():
+    """Ruling P24-AN on E7's record: at line 54 533 (8.91 tiles) chases alone within ENGAGE_R, 564 and 534 listed
+    beyond DANGER_R: the pull's leg (an aim facing 533 walking away from their centroid) where iteration 10 sent the
+    seek's walk round the wall (`test_e7_lines_52_to_73_...`); with the pull off the walk again."""
+    rows, _ = _e7_lines(54)
+    w = rows[53]["inputs"]["branches"]["threat"]
+    assert rows[53]["action"]["type"] == "aim" and w["leg"] == "pull" and w["target"] == 533
+    rows, _ = _e7_lines(54, iteration_10=True)
+    assert rows[53]["action"]["type"] == "walkTo"
