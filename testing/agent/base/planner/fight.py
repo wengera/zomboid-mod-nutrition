@@ -111,23 +111,24 @@ one table the gates and the other policies import).
 import math
 import time
 
+from agent.base.planner.finish import FightFinish
 from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R,
-                                         EDGE_HOLD_TICKS, ENGAGE_R, FIGHT_MAX_S, FIGHT_REACH, KEEP_MARGIN, KEEP_R,
-                                         KNOCK_READ_S, LISTED_R, STOOD_STOMPS,
-                                         MISSES_TO_APPROACH, NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R,
+                                         EDGE_HOLD_TICKS, FIGHT_MAX_S, FIGHT_REACH, KEEP_MARGIN, KEEP_R, KNOCK_READ_S,
+                                         MISSES_TO_APPROACH, NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R, Policy,
                                          REPIN_MARGIN, REPOSITION_MIN, REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R,
                                          SHOVE_R, STALL_SWINGS, STAND_MAX_S, STAND_MIN_R, STEER_PROBE, STEER_TURNS,
-                                         STRAIN_SOFT, STUCK_REASONS, SWING_SKIP_S, SWING_TYPES, UNREACHABLE_S, Policy,
-                                         _rotate, arm_pain, arms_hurt, away_vector, blocked, centre, chasing,
-                                         clear_heading, hit_reaction, in_reach, line_to, on_floor, pull_from,
+                                         STOOD_STOMPS, STRAIN_SOFT, STUCK_REASONS, SWING_SKIP_S, SWING_TYPES,
+                                         UNREACHABLE_S, _rotate, arm_pain, arms_hurt, away_vector, blocked, centre,
+                                         chasing, clear_heading, hit_reaction, in_reach, line_to, on_floor,
                                          seek_allowed, stance_leg_kind, target_id_ok, zdist)
-from agent.base.pza1 import Aim, Attack, Shove, Stomp, WalkTo
+from agent.base.planner.pull import FightPull
+from agent.base.pza1 import Aim, Attack, Shove, WalkTo
 from agent.base.world import me_floor, me_xy
 
 __all__ = ["Fight"]
 
 
-class Fight(Policy):
+class Fight(FightPull, FightFinish, Policy):
     def __init__(self, world, actions, clock=time.time, unreachable=None, target=None, dead=None):
         super().__init__(world, actions, clock)
         self.dead = {} if dead is None else dead   # zombie id -> wall until it is skipped: read dead (Task 12 fix 1)
@@ -338,42 +339,6 @@ class Fight(Policy):
         return (self.seek and t is not None and t[0] not in self.sought
                 and seek_allowed(self.world, t, self.hold_ground) and not self._pull_waits(t))
 
-    def pull_centroid(self, t, reach=ENGAGE_R):
-        """Ruling P24-AN: the centroid of the group a lone chaser `t` is pulled from (`pull_from` within `reach`, the
-        zombies read dead left out), while `pull` is set and the stance applies to it; else None."""
-        if not self.pull or t is None or not self.stance_at(t[2]):
-            return None
-        return pull_from(self.world, t, blocked(self.dead, self.clock()), reach,
-                         {zid: rec for zid, (_, rec) in self.edge.items()})
-
-    def _pull_pin(self):
-        """Ruling P24-AN: with nothing pinned, the one zombie chasing within ENGAGE_R is pinned when the pull applies to
-        it (`pull_centroid`), before the nearest: the chaser is the fight, a nearer idle one part of the group."""
-        if not self.pull or self.target is not None:
-            return
-        skip = self.blocked()
-        chasers = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and zid not in skip
-                   and chasing(z) and z.get("x") is not None and z.get("y") is not None
-                   and zdist(self.world, z) <= ENGAGE_R]
-        if len(chasers) == 1:
-            zid, z = chasers[0]
-            if self.pull_centroid((zid, z, zdist(self.world, z))) is not None:
-                self.target, self.repositioned = zid, False
-
-    def _pull_waits(self, t):
-        """Ruling P24-AN (F1 with the PZA/1.5 caps replayed: its line 164 pulled 15911 at 8.93 tiles, which read 9.34 at
-        the next tick, past ENGAGE_R, so the seek walked back toward it past the group): a chaser the pull was sent at
-        (`_pulled`) that has fallen beyond ENGAGE_R while still a lone chaser within DISENGAGE_R is not sought: the
-        stance stands facing it and lets it come (`stand`)."""
-        return (t[0] == self._pulled and t[2] > ENGAGE_R
-                and self.pull_centroid(t, DISENGAGE_R) is not None)
-
-    def pulling(self, t):
-        """Ruling P24-AN, the pull: the Fight seeks target `t` (`seeking`), a lone chaser beyond PULL_R with the rest of
-        the listing beyond DANGER_R (`pull_centroid`): its stance legs walk away from the group (`pull`), never toward
-        the chaser, until it comes within PULL_R; the look behind reads no walk then (`Survive._behind_walk`)."""
-        return t is not None and t[2] > PULL_R and self.seeking(t) and self.pull_centroid(t) is not None
-
     def _observe_seek(self, t):
         """A sought target within KEEP_R has been sought: the stance fight of iteration 7 from then on (P24-X); so has
         a lone chaser within PULL_R with the rest of the listing beyond DANGER_R (ruling P24-AN: the pull's end, or a
@@ -516,26 +481,6 @@ class Fight(Policy):
             if zid == self.target:
                 self._unpin()
 
-    def _observe_edge(self):
-        """Ruling P24-AU, the listing-edge flip (E10's run 4, lines 234-245: two idle zombies 11.51 to 11.86 tiles off
-        listed on every `pull` line and not on every `seek` line between, so the leg flipped each tick and seven aims
-        were superseded): a zombie listed within LISTED_R at the last observe and beyond it (or gone from the World)
-        now is held in `edge` at its last listed record for `edge_ticks` observes (EDGE_HOLD_TICKS, one a planner
-        tick), the pull's group reading it there (`pull_centroid`); back within LISTED_R, or past the ticks, it is
-        read as the World holds it. The target itself is never lost at the edge (its pin drops at DISENGAGE_R, the
-        World keeps a zombie ZOMBIE_TTL_S after its last frame), so the edge is read on the group the leg is decided
-        by."""
-        now = {zid: z for zid, z in self.world.zombies.items() if z.get("x") is not None and z.get("y") is not None
-               and zdist(self.world, z) <= LISTED_R}
-        for zid in list(self.edge):
-            self.edge[zid][0] += 1
-            if zid in now or self.edge[zid][0] > self.edge_ticks:
-                del self.edge[zid]
-        for zid, rec in self._listed.items():
-            if zid not in now and zid not in self.edge and self.edge_ticks > 0:
-                self.edge[zid] = [1, rec]
-        self._listed = {zid: dict(z) for zid, z in now.items()}
-
     def observe(self):
         self._observe_edge()
         self._observe_kill()
@@ -609,70 +554,6 @@ class Fight(Policy):
             if d <= r and (best is None or (d, repr(zid)) < (best[2], repr(best[0]))):
                 best = (zid, z, d)
         return best
-
-    def _downed(self, knocked=False):
-        """(id, zombie, dist) of each downed zombie (`on_floor`) the Fight may target within FIGHT_REACH whose line is
-        not read blocked, nearest first (ruling P24-AL: finished before the Fight turns to a standing one). Ruling
-        P24-AV (E10's a59: the stomp sent on a shove's `knockdown` before any frame read the target fallen was rejected
-        `not valid`): only the frame's `onFloor` makes a zombie downed; with `knocked` the zombies a shove read knocked
-        down within KNOCK_READ_S that no frame reads on the floor yet are listed instead (the finish waits for them)."""
-        skip, now = self.blocked(), self.clock()
-        out = []
-        for zid, z in self.world.zombies.items():
-            down = (not on_floor(z) and self.knocked.get(zid, -math.inf) > now) if knocked else on_floor(z)
-            if (not target_id_ok(zid) or zid in skip or not down or z.get("x") is None or z.get("y") is None
-                    or (self.only is not None and zid not in self.only)):
-                continue
-            d = zdist(self.world, z)
-            if d <= FIGHT_REACH and line_to(self.world, z) is not False:
-                out.append((d, repr(zid), zid, z))
-        return [(zid, z, d) for d, _, zid, z in sorted(out, key=lambda e: e[:2])]
-
-    def _finish(self):
-        """Ruling P24-AL (finish the fallen; #4372-#4374), with P24-AH's stomp: the nearest downed zombie within
-        FIGHT_REACH takes, in order, the shove of a standing zombie at point blank first (POINT_BLANK_R, within the
-        Lua's SHOVE_R: the engine would shove it anyway), else the `stomp` (the Lua walks to under 0.5 tiles; never
-        with another standing zombie within STAND_MIN_R, the stomp's refusal), else the weapon's floor strike (an
-        `attack` of the downed zombie, its damage times 5 or more: #4374) when the stomp is refused or not announced;
-        `(command,)`, the command None in a hit reaction (the engine starts no swing: #4292); None with no downed
-        zombie."""
-        downed = self._downed()
-        if not downed:
-            return self._knock_wait()
-        zid, z, d = downed[0]
-        self.why = {"target": self.target, "pinned": self.target is not None, "dist": d, "downed": zid}
-        hit = hit_reaction(self.world)
-        if hit is not None:
-            self.why["hitReaction"] = hit
-            return (None,)
-        s = self._standing_near(POINT_BLANK_R, (zid,))
-        if (s is not None and not self._shoved and target_id_ok(s[0]) and s[2] <= SHOVE_R
-                and self._swing_ok("shove", s[0])):
-            self.why.update({"shove": "first", "shoveTarget": s[0], "shoveDist": s[2]})
-            return (Shove(s[0]),)
-        if self._swing_ok("stomp", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
-            self.why["stomp"] = True
-            return (Stomp(zid),)
-        if self.no_swing():   # P24-AP, R2: the floor strike is a swing, divided by the arms' pain: the backpedal
-            return (self._wounded_leg(zid, z, d),)
-        self.why["floor"] = True   # the stomp refused (or not announced): the weapon's floor strike
-        self._held_before = False
-        return (Attack(zid),)
-
-    def _knock_wait(self):
-        """Ruling P24-AV: a zombie a shove knocked down within KNOCK_READ_S (its `knockdown` read at the hit), within
-        FIGHT_REACH on a line not read blocked, that no frame reads `onFloor` yet: the Fight sends nothing (`(None,)`,
-        logged `knocked`) until the first frame reads it fallen (the stomp then) or KNOCK_READ_S passes (read standing
-        again), unless another standing zombie is within KEEP_R (the Fight answers it as before the wait: Task 36
-        fix 1, minor 1); else None."""
-        k = self._downed(knocked=True)
-        if not k:
-            return None
-        if self._standing_near(KEEP_R, [e[0] for e in k]) is not None:
-            return None   # Task 36 fix 1, minor 1: a standing zombie at point blank is the Fight's to answer, not waited past
-        zid, _, d = k[0]
-        self.why = {"target": self.target, "pinned": self.target is not None, "dist": d, "knocked": zid}
-        return (None,)
 
     def no_swing(self):
         """The Fight sends no swing, the floor strike included (rulings P24-AP and R2): `body.armPain` at STRAIN_HARD

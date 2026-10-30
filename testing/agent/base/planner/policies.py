@@ -188,6 +188,37 @@ PULL_R = FIGHT_REACH + KEEP_R   # tiles: the pull of a lone chaser ends, the sta
 EDGE_HOLD_TICKS = 6   # planner ticks a zombie that left the listing (beyond LISTED_R, AIM_R's 12) is held in the seek's
                       # and the pull's reads at its last listed square (ruling P24-AU: 3 s at the drivers' PLANNER_HZ 2;
                       # E10's run 4 flipped seek, pull, seek seven aims running as a group at the edge came and went)
+# the threat branch's (`threat.Threat` and its mixins; moved from `planner/threat.py` at Plan 25 Task 2)
+FLEE_HEALTH = 40.0        # under it a threat is fled, never fought
+FLEE_HEALTH_PAIR = 60.0   # two or more threats are fled under this health
+REFIGHT_MARGIN = 20.0     # a running flee turns to fight only at health >= FLEE_HEALTH + this, one threat
+MAX_FIGHT = 2             # more threats than this are fled
+HOLD_BREAK_R = 3.0        # tiles: a held threat this near breaks every hold whatever its line reads (P23-AJ 1)
+CLOSING_TICKS = 3         # ticks in a row the nearest held threat reads nearer within DANGER_R that break every hold
+                          # (P23-AJ 1, a judgment: E2's hold stood while a zombie closed from 5.78 to 3.05 tiles;
+                          # three readings in a row rule out one knock-back's or one frame's jitter)
+CORNER_FREE_R = DISENGAGE_R / 2   # tiles: a stuck leg's corner ends once the nearest held threat is beyond this
+                          # (P23-AJ 2 fix round 1, a judgment: half the hold radius, room for the next leg to move;
+                          # the other corners end beyond CORNERED_R)
+MANY_LISTED_N = 4         # zombies listed within LISTED_R that make `many` whatever the DANGER_R count (P24-A (a):
+                          # E5's group of five to seven was listed at 12 tiles while the branch counted within 6, #4268)
+FINISH_R = 5.0            # tiles: the farthest struck target downed the flee's finishing stomp is sent at (P24-AQ,
+                          # Task 32 fix 1, the review's major 5 correcting ruling R3's 4.0): the Lua's stomp takes a
+                          # target within K.ATTACK_R 6 (`swingCheck`) and walks in to under STOMP_R 0.5 for at most
+                          # STOMP_APPROACH_MS 4000, which at a walk of 2.04 to 2.08 tiles a second (#4197) covers the
+                          # whole 6; 5.0 keeps a tile under ATTACK_R. E9's 7474 was first read fallen on a decision tick
+                          # at 4.62 tiles (HEAD replay line 334, the nearest standing 6.49), beyond 4.0; its 7488 never
+                          # qualifies at any reach (a standing zombie within DANGER_R on every tick it lay, 141 to 150).
+                          # The floor strike (a swing from where the player stands) stays at FIGHT_REACH
+DRAG_DOWN_N = 3           # attackers the drag-down kills at (#4290, #4291: the fixture's sandbox Strength 2; two at
+                          # Strength 1): at DRAG_DOWN_N - 1 the branch leaves any fight for the group's flee (P24-A (h))
+FLIP_MIN_S = 5.0          # wall seconds a flee walk runs before a fight's walk may supersede it (P23-AM 1)
+GROUP_R_N = 3             # zombies within GROUP_NEAR_R that make a group: steered from, not cornered (P23-AM 4, AP 2)
+GROUP_NEAR_R = 3.0        # tiles: ... (P23-AP 2: a third zombie this near; P23-AM 4 read 1.5, CORNERED_R)
+GROUP_HOLD_N = 4          # held threats (within the hold radius) that make a group too (P23-AP 2)
+STUCK_RETRY_S = 2.0       # wall seconds after a stuck read before a stuck corner against a group tries a leg (P23-AP 2)
+STUCK_RETRY_GROUP_S = 1.0  # ... with GROUP_R_N within CORNERED_R or GROUP_HOLD_N held, whatever the nearest reads
+                          # (P24-A fix 1 (1), a ruling: F1's corner read stuck at 537 held on against four)
 
 
 def place_of(world):
@@ -371,32 +402,11 @@ def on_floor(z):
     return z.get("onFloor") is True
 
 
-def pull_from(world, t, skip=(), reach=ENGAGE_R, edge=None):
-    """Ruling P24-AN, the pull (the guides notes § 9 change 8: draw one from a group by walking away, then fight it
-    alone; E9 dropped six fights for a chaser 10.74 to 11.90 tiles behind the target, the look behind's `held`): the
-    centroid (x, y) of the other zombies listed within LISTED_R when target `t` (id, zombie, dist) chases the player
-    (`hasTarget`) within `reach` (ENGAGE_R; a chaser already pulled is kept to DISENGAGE_R: `Fight.seeking`), no other
-    zombie chases within ENGAGE_R (one chaser), every other listed zombie stands beyond DANGER_R and at least one is
-    listed; else None. The ids in `skip` (read dead) are no zombies. Ruling P24-AU: `edge` ({id: its record at its last
-    listed square}, `Fight.edge`) are zombies that left the listing within EDGE_HOLD_TICKS: each counts as listed, read
-    at that square, whatever the World holds of it now."""
-    zid, z, d = t
-    if not chasing(z) or d > reach:
-        return None
-    edge = edge or {}
-    xs, ys = [], []
-    for oid, o in list(world.zombies.items()) + [(i, rec) for i, rec in edge.items() if i not in world.zombies]:
-        o = edge.get(oid, o)
-        if oid == zid or oid in skip or o.get("x") is None or o.get("y") is None:
-            continue
-        od = zdist(world, o)
-        if od > LISTED_R and oid not in edge:
-            continue
-        if od <= DANGER_R or (od <= ENGAGE_R and chasing(o)):
-            return None
-        xs.append(o["x"])
-        ys.append(o["y"])
-    return (sum(xs) / len(xs), sum(ys) / len(ys)) if xs else None
+def standing(world, r, skip=()):
+    """The listed zombies within `r` tiles of the player not lying on the floor (`on_floor`), the ids in `skip` (read
+    dead) left out."""
+    return [z for zid, z in world.zombies.items() if zid not in skip and z.get("x") is not None
+            and z.get("y") is not None and not on_floor(z) and zdist(world, z) <= r]
 
 
 def away_vector(world, points):
@@ -803,7 +813,11 @@ class LootHouse(Policy):
 def __getattr__(name):
     """`Fight` and `Flee` by their old module (Plan 24 Task 36 moved them to `planner/fight.py` and `planner/flee.py`):
     the frozen drivers (`x5_combat.py`, `x5_combat_2.py`, never edited after their runs) import `Fight` from here.
-    Read at the access, so neither module is imported while this one loads (both import it)."""
+    Read at the access, so neither module is imported while this one loads (both import it). `pull_from` likewise
+    (Plan 25 Task 2 moved it to `planner/pull.py`, which imports this module)."""
+    if name == "pull_from":
+        from agent.base.planner.pull import pull_from
+        return pull_from
     if name == "Fight":
         from agent.base.planner.fight import Fight
         return Fight

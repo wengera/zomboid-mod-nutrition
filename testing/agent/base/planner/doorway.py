@@ -45,9 +45,9 @@ The rule changes the end of a `many` flee's shelter steps (`policies.Flee`, ruli
 import math
 
 from agent.base.planner.fight import Fight
-from agent.base.planner.policies import (AIM_LEG_S, AIM_R, DANGER_R, FIGHT_REACH, POINT_BLANK_R, STAND_MIN_R, Policy,
-                                         arm_pain, blocked, centre, hit_reaction, line_to, on_floor, on_post,
-                                         target_id_ok, zdist)
+from agent.base.planner.policies import (AIM_LEG_S, AIM_R, DANGER_R, DRAG_DOWN_N, FIGHT_REACH, FLEE_HEALTH,
+                                         POINT_BLANK_R, Policy, STAND_MIN_R, arm_pain, blocked, centre, hit_reaction,
+                                         line_to, on_floor, on_post, on_room, standing, target_id_ok, zdist)
 from agent.base.pza1 import Aim, Attack, Shove, WalkTo
 from agent.base.world import me_xy
 
@@ -61,13 +61,6 @@ DOOR_OFF_R = 2.0      # tiles from the threshold square's centre beyond which a 
                       # the doorway reaches the outside square and the one beyond it)
 
 __all__ = ["Doorway", "DOOR_STAND_N", "DOOR_HOLD_S", "DOOR_OFF_R", "standing", "stand_ready", "off_post"]
-
-
-def standing(world, r, skip=()):
-    """The listed zombies within `r` tiles of the player not lying on the floor (`on_floor`), the ids in `skip` (read
-    dead) left out."""
-    return [z for zid, z in world.zombies.items() if zid not in skip and z.get("x") is not None
-            and z.get("y") is not None and not on_floor(z) and zdist(world, z) <= r]
 
 
 def stand_ready(world, skip=()):
@@ -203,3 +196,85 @@ class Doorway(Fight):
             return self._face(zid)
         self.why.update({"stance": True, "leg": "stand", "bearing": self._outward()})
         return Aim(0.0, 0.0, AIM_LEG_S, bearing=self._outward())
+
+
+class DoorwayStand:
+    """The threat branch's side of the doorway stand (ruling P24-AO, P24-AX; moved out of `threat.py` at Plan 25
+    Task 2, a pure move): `Threat`'s mixin, `_doorway` its ends, `_doorway_pick` its why, `_stand` its answer."""
+
+    def _doorway(self):
+        """Ruling P24-AO (`planner/doorway.py`'s docstring the record): `("doorway", None)` while the Flee's stand plan
+        reads `stand` and none of its ends holds; the end (`plan["left"]`: `health` under FLEE_HEALTH, `drag` with the
+        frame's `me.attackers` at DRAG_DOWN_N (ruling R1, Task 32 fix 1: the front has failed), `unarmed`, or `quiet`
+        once no zombie has been within DANGER_R for DOOR_HOLD_S wall seconds, `plan["quiet"]` the last wall one was)
+        puts the plan back on its `close` step, and while that close runs `("flee", "doorway")`: the Flee sends it from
+        inside and its end is the shelter's as today. `off` (`doorway.off_post`: off the building's room squares and
+        beyond DOOR_OFF_R of the threshold, fix 1's major 2) drops the plan instead, no close walked back to the door,
+        logged `doorway_left` (`stand_end`, set for every end; `stand_left` is `off` alone, the Flee's keep) on the tick. Else None (no stand)."""
+        f = self.flee
+        plan = None if f is None else f.plan
+        if plan is None or not plan.get("stood"):
+            return None
+        if plan["step"] == "stand":
+            now = self.clock()
+            if self._within(DANGER_R):
+                plan["quiet"] = now
+            left = ("health" if self._health() < FLEE_HEALTH else "drag" if self._attackers() >= DRAG_DOWN_N
+                    else "unarmed" if not self._armed() else "off" if off_post(self.world, plan)
+                    else "quiet" if now - plan["quiet"] >= DOOR_HOLD_S else None)
+            if left is None:
+                return "doorway", None
+            plan.update(step="close", left=left)
+            self.stand_end = left   # Task 32 fix 2: logged `doorway_left` for every end; `stand_left` (the Flee's keep) is `off` alone
+            if left == "off":
+                self.stand_left = left
+                f._drop(False)   # the episode only steers from here (`picked` kept)
+                return None
+        return ("flee", "doorway") if f.closing_stand() else None
+
+    def _doorway_pick(self, flee):
+        """Ruling P24-AX (E10: the doorway stand never ran, the count condition held on 155 of 162 `many` lines and a
+        shelter was picked on 6, and no why said which condition failed): on a `many` line, read after the Flee
+        answered (its pick made, if it was due), `ok` when the episode's plan is a doorway stand (marked, or standing,
+        or stood); else the first condition that failed, in the order the stand reads them (`doorway.stand_ready`, the
+        pick, `policies.stand_post`): `unarmed`, `no_stance` (no `aim` announced), `standing` (more than DOOR_STAND_N
+        standing within DANGER_R), `inside` (on a room square: the flee walks out, never picks), `no_door` (no known
+        exterior door's approach square within SHELTER_FLEE_R, `Flee.door_verdicts`), `locked` (every one locked or
+        barricaded), `taken` (every free one refused for a zombie: in its building, its corridor, or nearer its
+        approach than the player), `picked` (a door was free, but the episode's one pick was spent: a plan without the
+        stand, its post refused, or a plan dropped), `pending` (a door is free and the pick waits on a running leg)."""
+        plan = flee.plan
+        if plan is not None and (plan.get("stand") or plan.get("stood")):
+            return "ok"
+        if not self._armed():
+            return "unarmed"
+        if not self.world.can("aim"):
+            return "no_stance"
+        if len(standing(self.world, DANGER_R, blocked(self.dead, self.clock()))) > DOOR_STAND_N:
+            return "standing"
+        if on_room(self.world):
+            return "inside"
+        verdicts = [v[3] for v in flee.door_verdicts(flee._threats())]
+        if not verdicts:
+            return "no_door"
+        if "ok" not in verdicts:
+            return "locked" if all(v == "locked" for v in verdicts) else "taken"
+        return "picked" if flee.picked or plan is not None else "pending"
+
+    def _stand(self, held):
+        """Ruling P24-AO: the doorway stand's answer: its `Doorway` fight over the Flee's stand plan (made once, kept
+        while the plan stands; the Flee kept for the close), the mode `fight`, the flee episode's flags kept (the
+        stand is the `many` flee's end), logged `doorway` (the building) beside the fight's why."""
+        f = self.fight
+        if f is None or f.doorway is None or f.plan is not self.flee.plan:
+            self.fight = Doorway(self.world, self.actions, self.clock, self.flee.plan, unreachable=self.unreachable,
+                                 dead=self.dead)
+            self.cornered, self._corner_fight = None, None
+        self.mode = "fight"
+        policy = self.fight
+        policy.threats = held
+        policy.spent = self._fight_spent()   # R2: no swing under any hold
+        policy.ride = self.care.riding()
+        ans = self._answer(policy)
+        self.why.update({"fight": True, "doorway": policy.doorway})
+        return ans if ans is not None else (policy, None)
