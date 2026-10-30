@@ -64,9 +64,9 @@ a class attribute equal to the entry's `const`:
   `stuck` at a hoppable edge climbs it first, as `ExploreToward` does, and walks again; a climb that fails is read as
   that walk's stuck end, the machine's next door or shun); `done "inside"` once the plan reads done, `failed "no
   plan"` with no exterior door or room on the player's floor, `failed "shun"` when the machine shuns the building; both shun the building in the kit's `shunned` for `night.SHUN_MIN` game
-  minutes (and a building already shunned there ends the goal `failed "shunned"` at its start, before any plan or
-  walk, its stamp untouched: ruling P25-G)
-  minutes (fix 1, I3) on `World.world_minutes()` (monotonic across midnight: fix wave P, I-1), the store
+  minutes (fix 1, I3) on `World.world_minutes()` (monotonic across midnight: fix wave P, I-1); a building already
+  shunned there ends the goal `failed "shunned"` at its start, before any plan or walk, its stamp untouched (ruling
+  P25-G); the store
   `Night.shunned` is when the runner is given it (`GoalRunner(..., shunned=)`, M6), so the night and the goal pass
   over the same buildings; the view reads it.
 - `Stock(kind)`: `LootHouse` with `want = kind` (water or food) over the nearest containers holding that use;

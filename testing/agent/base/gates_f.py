@@ -98,7 +98,7 @@ def grade_f4(out, prev=None, decision_lines=None):
 # `read` false. A reading counts rows; an inference says it reads an effect off what the view showed.
 import json                                        # noqa: E402 - appended below the pass 4 code so no line above shifts
 import re                                          # noqa: E402
-WHYS = ("done", "stuck", "superseded by the threat", "superseded by an instinct", "looted already", "refused", "out of range", "in the woods", "failed")  # frozen at 9f4c8d97 (view.WHYS before P25-G added "shunned"): grade_f5 and grade_f6 keep their refusal keys so F3 and F4 reproduce; a later grade reads the live list
+WHYS_F5 = ("done", "stuck", "superseded by the threat", "superseded by an instinct", "looted already", "refused", "out of range", "in the woods", "failed")  # frozen at 9f4c8d97 (view.WHYS before P25-G added "shunned"): grade_f5 and grade_f6 keep their refusal keys so F3 and F4 reproduce; a later grade imports the live view.WHYS under its own name
 
 _ABSENT = object()
 _BUILDING = re.compile(r"^(\d+) @(-?\d+),(-?\d+) door (\S+) (-?[\d.]+) c(\d+) (\S+)(?: h:(\S+))?(?: z:(\d+))?$")
@@ -190,7 +190,7 @@ def f_strategy(rows, read):
 
 
 def f_refusals(rows, read):
-    by = {w: 0 for w in WHYS}
+    by = {w: 0 for w in WHYS_F5}
     other, carried, not_carried, unchecked = 0, 0, 0, 0
     for i, r in enumerate(rows):
         err = str(r.get("error"))
