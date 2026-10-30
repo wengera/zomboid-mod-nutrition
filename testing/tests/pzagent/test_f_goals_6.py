@@ -309,7 +309,7 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
 
 
 BASE_SENTENCE = (
-    "the base at `d14e168f` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 13 (P25-A to P25-F, "
+    "the base at `3ef29b57` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 13 (P25-A to P25-F, "
     "as `f_goals_5.py` names them), the goal source at `f4b3aa11` and the library at `73f5ae42` (P24-AM)")
 
 

@@ -314,7 +314,7 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
 
 
 BASE_SENTENCE = (
-    "the base at `d14e168f` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 13 (over iteration "
+    "the base at `3ef29b57` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 13 (over iteration "
     "12: the corner under any hold, a missed shove followed by the swing at one in reach or the break through the gap "
     "from two, never a second shove within `SHOVE_REPEAT_S`, P25-A; a fallen zombie within `FINISH_R` stomped before a "
     "running attack's walk, P25-B; the endurance hold's strain flee walking with nobody within `DANGER_R` and released "
