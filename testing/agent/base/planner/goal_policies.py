@@ -10,12 +10,30 @@ from typing import ClassVar, Optional
 
 from agent.base.planner.goals import (ARRIVE_R, GOAL_MAX_S, LEG_CHUNK, LEG_MAX, LEG_MIN, LEG_SQ_MARGIN, OPTIONAL_FIELDS,
                                       REST_N, RUN_FIELDS, WANT_USES, WINDOW_REPEAT, WOODS_MAX_R, WOODS_R, WOODS_STEP,
-                                      held_of, wanted_uses, window_pick)
+                                      held_of, open_uses, wanted_uses, window_pick)
 from agent.base.planner.night import (SHUN_MIN, door_blocked, hop_after, player_square, shelter_ended, shelter_plan,
                                       shelter_step)
 from agent.base.planner.policies import (Explore, LOOT_MAX_LEVEL, LootHouse, PREEMPTED, SCAN_R, centre, me_floor, me_xy,
                                          place_of)
 from agent.base.pza1 import Climb, Scan, WalkTo, Window
+
+
+# ---------------------------------------------------------------- the looted rule
+def looted(world, building, loot=None, wants=(), waiting=None, keys=None):
+    """Whether `building` is looted (Plan 25 Task 4, spec 2.2(a): the one rule the view's `L` flag and
+    LootBuilding's `nothing to loot` both read): a container is known on it (one with none known reads false,
+    unsearched ground being lootable: Plan 24 Task 3 fix 1, M1) and no container of it holds a use a loot would take
+    now, a use of `goals.wanted_uses(world, wants)` that `goals.open_uses` answers there (not marked looted for it,
+    not waiting on the cap: `loot`'s, unless `waiting` {use: keys} is given). So a building whose containers hold
+    only uses no longer wanted (clothing past CLOTHING_HELD_N spare garments, a vessel past CONTAINERS_HELD_N) reads
+    looted, as every container read looted does: F3's building 2 read `open_uses`, every LOOT_WANTS use, and never
+    turned looted through twelve failed loots. `keys` the building's container keys when the caller holds them."""
+    if keys is None:
+        keys = [k for k in world.containers if (world.map.get(k[:3]) or {}).get("building") == building]
+    if not keys:
+        return False
+    uses = set(wanted_uses(world, wants))
+    return not any(uses.intersection(open_uses(world, loot, k, waiting)) for k in keys)
 
 
 # ---------------------------------------------------------------- the shared machines
@@ -392,11 +410,14 @@ class LootBuilding(_Legs, _Looting, Goal):
             self.why = dict(self.why, want=self.want, met=True)
             self.end("done", "want met")
 
-    def _uses(self, world):
-        """The uses in the order the loot takes them: the kit's wants, then the goal's want's use (Task 29)."""
+    def _wants(self):
+        """The kit's wants, then the goal's want's use (Task 29): the wants `wanted_uses` puts first."""
         use = WANT_USES.get(self.want)
-        wants = tuple(self.kit.wants) + ((use,) if use is not None and use not in self.kit.wants else ())
-        return wanted_uses(world, wants)
+        return tuple(self.kit.wants) + ((use,) if use is not None and use not in self.kit.wants else ())
+
+    def _uses(self, world):
+        """The uses in the order the loot takes them (`_wants` first)."""
+        return wanted_uses(world, self._wants())
 
     def _window_ended(self, world, action):
         """A window action's end (Task 24): done leaves the route (the character stands inside; the care branch reads the
@@ -459,8 +480,9 @@ class LootBuilding(_Legs, _Looting, Goal):
             return cmd
         loot = self.kit.loot
         loot.within = self.keys(world)
-        try:
-            want = next((u for u in self._uses(world) if loot.target(u) is not None), None)
+        try:   # Plan 25 Task 4: `looted`, the view's `L`, is the rule `nothing to loot` reads
+            want = None if looted(world, self.building, loot, self._wants(), keys=loot.within) else next(
+                (u for u in self._uses(world) if loot.target(u) is not None), None)
             if want is not None:
                 key = loot.target(want)
                 leg = self._leg_cmd(world, *centre(key))   # P24-AC: a container beyond the leg length is walked to in legs

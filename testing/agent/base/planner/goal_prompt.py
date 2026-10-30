@@ -6,7 +6,10 @@ log or planner internal; a test asserts it).
 types, enums and bounds (`field_text`); the strategy paragraph (Task 29); how the view's building line reads; the
 refusal rule (P24-B 3, the bound `explore_max_tiles`, `llm.EXPLORE_MAX_TILES`, and `goals.WOODS_R`); the loop (P24-Y,
 `goals.BUILDING_R`); the meaning of the view keys the rules read (met, attackers, worn, hit_reaction, tired and night,
-last_goal); then that the user message is the view.
+hold (Plan 25 Task 4: the view's `spent` rendered `hold: <kind> <value>`), last_goal with its `cooled` end (Plan 25
+Task 4: the runner's cooled refusal, `GoalRunner._carried`)); then that the user message is the view. The strategy's
+third line names `Rest` while `hold` reads (Plan 25 Task 4, spec 2.2(c), (f): the guides notes' section 8 line 3
+extended by one clause).
 
 The strategy paragraph (Task 29; `docs/superpowers/specs/2026-10-30-plan-24-guides-notes.md` § 8, the written guides'
 rules worded for the prompt): `strategy()` is the schema's `strategy` list, one entry per rule, `{text, pages,
@@ -86,7 +89,10 @@ def system(explore_max_tiles):
     lines.append("hit_reaction names the hit you are reeling from now, null when none.")
     lines.append("tired is true when needs.fatigue is above %g, the first Tired moodle; night is true from hour %g "
                  "to hour %g; null means not read yet." % (TIRED_T, LATE_HOUR, DAWN_HOUR))
-    lines.append("last_goal is how the last goal ended: end done, failed, superseded or refused, and why, one of: "
-                 "%s." % ", ".join(WHYS))
+    lines.append("hold names what keeps you from seeking a fight (endurance, arms or tired) and its reading; the "
+                 "instincts still answer a zombie at hand; a rest clears endurance and arms, sleep clears tired; no "
+                 "hold line means none holds.")
+    lines.append("last_goal is how the last goal ended: end done, failed, superseded, refused or cooled (a goal that "
+                 "failed is refused for a while: cooled lists those), and why, one of: %s." % ", ".join(WHYS))
     lines.append("The user message is the view: one `key: value` line per key.")
     return "\n".join(lines) + "\n"

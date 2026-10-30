@@ -69,9 +69,9 @@
       "reads": ["inventory_by_use", "weapon", "worn"]
     },
     {
-      "text": "With tired true, or night true, choose Shelter in a listed building over a LootBuilding; with both false a Shelter only walks in and ends, so loot instead.",
+      "text": "With tired true, or night true, choose Shelter in a listed building over a LootBuilding; with both false a Shelter only walks in and ends, so loot instead; while hold reads endurance or arms, choose Rest until it clears.",
       "pages": [4],
-      "reads": ["tired", "night"]
+      "reads": ["tired", "night", "spent"]
     },
     {
       "text": "Among buildings listed without L, prefer one with a lower z: and one whose way from pos does not cross met.dense, and of two alike the one whose door faces away from them; when every one reads z: above 0, loot the nearest anyway (the program clears the zombies near you).",

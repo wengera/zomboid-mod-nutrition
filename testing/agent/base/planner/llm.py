@@ -18,8 +18,10 @@ The contract:
   since the call is refused): the refusal rule (P24-B 3, stated in `SYSTEM`), its error `invalid: <why>` with `why`
   one of `view.WHYS`: a LootBuilding or Shelter naming a building that view's render does not show (`view.shown_ids`,
   the BUILDINGS_SHOWN nearest) is `invalid: refused`; a LootBuilding of a shown building whose `looted` reads true is
-  `invalid: looted already`; an ExploreToward whose square's centre lies farther than EXPLORE_MAX_TILES (60) from its
-  `pos` (or with no `pos`) is `invalid: out of range` (all three were `invalid: unknown place` before P24-B); and
+  `invalid: looted already`; an ExploreToward whose square's centre lies farther than EXPLORE_MAX_TILES (60) from the
+  `pos` of the view the model answered (the calling view's, kept with the call: Plan 25 Task 4, spec 2.2(c), F3's
+  four refusals of a character that fled during the call; or with no `pos`) is `invalid: out of range` (all three
+  were `invalid: unknown place` before P24-B); and
   (ruling P24-Y, Plan 24 Task 18: every walk has a building as its destination) an ExploreToward whose square's
   centre lies farther than the view's `woods_r` (`goals.WOODS_R`, 40, widened after REST_N rests in a row: Task 18
   fix 1, ruling 3) from every building the view lists (its `box`, else its listed squares), while it lists one, is
@@ -28,7 +30,9 @@ The contract:
 - The refusal's meaning reaches the model (P24-B 3, F1's write-up: the one refused answer named a square past the
   bound and the model never learned why, #4277, #4279): a goal refused by that rule is kept as `refusal`
   `{type, args, end: "refused", why}` and laid over the `last_goal` of the next call's view (once; then cleared), so
-  the model reads its own last answer's end rather than the stand-in's; a valid answer clears it.
+  the model reads its own last answer's end rather than the stand-in's; a valid answer clears it. A valid answer the
+  goal runner refuses as cooled reaches the next view the same way, `end` "cooled" (`GoalRunner._carried`, Plan 25
+  Task 4, spec 2.2(b)).
 - What happens on every failure: the fallback's goal is returned, and the call's row records why. `error` is None on
   success, else "timeout" (no answer within `timeout_s` on the injected clock, or `subprocess.TimeoutExpired`),
   "exit <code>" (a non-zero exit), "malformed" (stdout not an envelope, or no object in its text), "invalid: <reason>"
@@ -197,10 +201,11 @@ def _parse(stdout):
     return goal, text, None
 
 
-def place_error(goal, view):
-    """`invalid: <why>` when `goal` breaks the refusal rule against `view` (the module docstring), else None."""
+def place_error(goal, view, origin=None):
+    """`invalid: <why>` when `goal` breaks the refusal rule against `view` (the module docstring), else None; the
+    range is measured from `origin` (the calling view's `pos`, Plan 25 Task 4) when given, else from `view`'s."""
     if goal.TYPE == "ExploreToward":
-        pos = view.get("pos") or {}
+        pos = (origin if origin is not None else view.get("pos")) or {}
         px, py = pos.get("x"), pos.get("y")
         if not _num(px) or not _num(py) or math.hypot(goal.x + 0.5 - px, goal.y + 0.5 - py) > EXPLORE_MAX_TILES:
             return "invalid: out of range"
@@ -315,7 +320,7 @@ class LLMSource:
             view, self.refusal = dict(view, last_goal=self.refusal), None
         text = prompt(view)
         p = {"wall": self.clock(), "prompt": text, "done": threading.Event(), "end": None, "goal": None,
-             "answer": None, "error": None}
+             "answer": None, "error": None, "pos": dict(view.get("pos") or {})}   # the range's origin (Task 4)
         p["thread"] = threading.Thread(target=self._work, args=(p,), name="llm-goal", daemon=True)
         self._pending = p
         p["thread"].start()
@@ -355,7 +360,7 @@ class LLMSource:
             return "failed", None
         goal, error = p["goal"], p["error"]
         if goal is not None and error is None:
-            error = place_error(goal, view)
+            error = place_error(goal, view, p["pos"])
             if error is not None:
                 self.refusal = {"type": goal.TYPE, "args": goal.args(), "end": "refused",
                                 "why": error[len("invalid: "):]}

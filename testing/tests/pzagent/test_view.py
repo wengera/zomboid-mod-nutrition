@@ -358,3 +358,61 @@ def test_a_building_renders_z_only_with_its_count():
          "doors": 1, "visited": True, "shunned": False, "holds": {"water": 1}}
     assert V._building(b) == "3 @110,201 door 110,201 10.5 c2 v h:water1"
     assert V._building(dict(b, zombies_near=4)) == "3 @110,201 door 110,201 10.5 c2 v h:water1 z:4"
+
+
+# ======================================== Plan 25 Task 4: one looted rule, the hold in the view
+JACKET = {"type": "wardrobe", "n": 1, "items": ["Base.Jacket_Padded"]}
+
+
+def clothes(r, n):
+    """`n` unworn garments held (PZA/1.6.1 `item_added` with `use` clothing)."""
+    for i in range(n):
+        r.event("item_added", itemId=950 + i, fullType="Base.Jacket_Leather", weight=1.0, use="clothing")
+
+
+def test_a_building_with_only_capped_clothing_left_reads_looted(tmp_path):
+    """Plan 25 Task 4 (spec 2.2(a), F3's building 2): the view's `L` reads the loot's own rule
+    (`goal_policies.looted`): a container holding only clothing while CLOTHING_HELD_N spare garments are held has
+    nothing a loot would take, so the building reads looted (it read `open_uses`, every LOOT_WANTS use, before)."""
+    from agent.base.planner.policies import CLOTHING_HELD_N
+    r, sv = make(tmp_path)
+    sqs = house(1, 110)
+    for s in sqs:
+        if (s["x"], s["y"]) == (111, 201):
+            s["containers"] = [JACKET]
+    r.scan(sqs)
+    clothes(r, CLOTHING_HELD_N - 1)
+    r.frame(x=100.0, y=201.5)
+    b = view(r.world, sv)["buildings"][0]
+    assert b["looted"] is False and CLOTHING_HELD_N == 3                # one garment short of the cap: still wanted
+    clothes(r, CLOTHING_HELD_N)
+    r.frame(x=100.0, y=201.5)
+    b = view(r.world, sv)["buildings"][0]
+    assert b["looted"] is True and V._building(b).split()[6] == "L"
+
+
+def test_the_hold_renders_its_kind_and_value_and_nothing_without_it(tmp_path):
+    """Plan 25 Task 4 (spec 2.2(c), (f)): the hold Task 3 puts on the view (`spent`, `{kind, value}`) reads as the
+    line `hold: <kind> <value>` (the value to 0.01), right after `tired`; no line while no hold is set."""
+    r, sv = make(tmp_path)
+    r.frame()
+    v = view(r.world, sv)
+    v.pop("spent", None)
+    lines = render(v).splitlines()
+    assert not any(ln.startswith("hold:") for ln in lines) and "spent" not in render(v)
+    v["spent"] = {"kind": "endurance", "value": 0.7267035841941833}   # F3's hold, set at game minute 648
+    lines = render(v).splitlines()
+    assert "hold: endurance 0.73" in lines
+    assert lines.index("hold: endurance 0.73") == next(i for i, ln in enumerate(lines) if ln.startswith("tired:")) + 1
+    assert "spent" not in render(v)
+
+
+def test_the_survives_view_renders_task_3s_hold_as_the_hold_line(tmp_path):
+    """End to end over Task 3's `Survive._view` (a3b5a3b5): F3's endurance hold reaches the prompt as one line."""
+    from .test_survive import make as smake, tick
+    from .test_survive_q import z
+    r, sv = smake(tmp_path)
+    r.frame(zombies=[z(1, 104.0)], endurance=0.7267035841941833)
+    tick(r, sv)
+    lines = render(sv._view()).splitlines()
+    assert "hold: endurance 0.73" in lines and not any(ln.startswith("spent") for ln in lines)

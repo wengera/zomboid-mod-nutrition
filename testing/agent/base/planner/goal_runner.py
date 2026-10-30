@@ -12,6 +12,7 @@ from agent.base.planner.goal_policies import ExploreToward, Goal, Kit, LootBuild
 from agent.base.planner.goals import (BUILDING_R, GOAL_COOL_S, GOAL_HOLD_SUPERSEDE_TICKS, OPTIONAL_FIELDS, REST_S,
                                       SCHEMA_PATH, STOCK_KINDS, _num, goal_key, int_id)
 from agent.base.planner.policies import LOOT_MAX_LEVEL
+from agent.base.planner.view import why_of
 
 
 # ---------------------------------------------------------------- validate
@@ -140,6 +141,7 @@ class GoalRunner:
         self.actions = None
         self.pending = False   # the source answered None (P23-AC) on the last ask and no goal runs
         self.hold_ticks = 0    # planner ticks in a row another branch held without sending, the goal running (M-7)
+        self.refusal = None    # the last proposal refused as cooled, for the next proposal's view (`_carried`)
         self._ended_now = None
         self._observed = False
 
@@ -156,6 +158,22 @@ class GoalRunner:
             self.cooled[goal_key(g.TYPE, g.args())] = now + GOAL_COOL_S
         self.kit.rested(g)
         self._ended_now, self.current, self.hold_ticks = g, None, 0
+
+    def _refusal(self, g):
+        """The cooled refusal of goal `g` as the next view's `last_goal` (Plan 25 Task 4, spec 2.2(b); F3 refused 14
+        valid answers as cooled and told the model nothing): `{type, args, end: "cooled", why}`, `why` the meaning
+        (`view.why_of`) of the goal's own last end in `history`, the one that cooled it, else "failed"."""
+        key = goal_key(g.TYPE, g.args())
+        row = next((r for r in reversed(self.history) if goal_key(r.get("type"), r.get("args")) == key), None)
+        return {"type": g.TYPE, "args": g.args(), "end": "cooled", "why": why_of(row) if row is not None else "failed"}
+
+    def _carried(self, view):
+        """The view a proposal reads: `view` (called when callable, `{}` when None) with the last cooled refusal laid
+        over its `last_goal`, once, as the LLM source lays its own refusals (P24-B 3); the refusal is then cleared."""
+        v = view() if callable(view) else (view if view is not None else {})
+        if self.refusal is not None:
+            v, self.refusal = dict(v, last_goal=self.refusal), None
+        return v
 
     def cooling(self):
         """The goals cooled now, as `[{type, args}]` sorted (the view's `cooled`)."""
@@ -196,10 +214,10 @@ class GoalRunner:
                 self._close(g)
                 ended = self.history[-1]
         if self.current is None:
-            g = self.source.propose(view() if callable(view) else (view if view is not None else {}))
+            g = self.source.propose(self._carried(view))
             self.pending = g is None
             if g is not None and self.cooled.get(goal_key(g.TYPE, g.args()), 0.0) > self.clock():
-                refused, g = {"type": g.TYPE, "args": g.args()}, None
+                refused, self.refusal, g = {"type": g.TYPE, "args": g.args()}, self._refusal(g), None
             if g is None:
                 self.why = {"proposed": None, "refused": refused, "ended": ended, "pending": self.pending}
                 return None

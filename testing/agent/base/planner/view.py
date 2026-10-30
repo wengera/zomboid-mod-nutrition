@@ -24,9 +24,11 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   (its nearest room square on the player's floor, else on any floor: P24-B 3, the model's positions), `door` (its
   first exterior door square on the player's floor, `night.exterior_doors`'s ranking, as [x, y], else None), `dist`
   (tiles from the player to that square's centre, to 0.1), `containers` (the containers on its squares), `looted`
-  (a bool, P24-B 3: a container known on it and none a loot could take anything more from, `goals.open_uses` empty
-  for each, so a container holding only `other` items or waiting on the cap counts looted; a building with no
-  container known reads false, unsearched ground being lootable: Task 3 fix 1, M1),
+  (a bool, P24-B 3: `goal_policies.looted`, the one rule LootBuilding's `nothing to loot` reads too, Plan 25 Task 4:
+  a container known on it and none holding a use the loot would take now, `goals.wanted_uses` met against
+  `goals.open_uses` for each, so a container holding only `other` items, items of a use no longer wanted (clothing
+  past CLOTHING_HELD_N spare garments) or waiting on the cap counts looted; a building with no container known reads
+  false, unsearched ground being lootable: Task 3 fix 1, M1),
   `doors` (its exterior doors on the player's floor), `visited` (in `night.visited`), `shunned` (by the night or a
   Shelter goal, within `night.SHUN_MIN`), `shelter` (`night.shelter_plan` answers for it: rooms and an exterior door
   on the player's floor; the scripted Shelter requires it, fix 1 I3), and (ruling P24-Y, Plan 24 Task 18) `holds`
@@ -70,7 +72,9 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
 The view only reads: the kit is bound by its runner's `observe`, never here (fix 1 M5).
 
 `render(view) -> str`: one `key: value` line per key in `KEYS` order (a key of OPTIONAL_KEYS only when the view
-carries it: Task 29), values as compact sorted JSON except
+carries it: Task 29; the hold, Plan 25 Task 4, spec 2.2(f): the view's `spent` `{kind, value}` (Task 3's, set while
+a hold is) reads as the line `hold: <kind> <value>`, the value to 0.01, right after `tired`'s place, and no line
+while none is set; `spent` itself is never rendered under its own name), values as compact sorted JSON except
 `buildings`, capped at the BUILDINGS_SHOWN (6, P24-B 3) nearest, each `id @x,y door x,y dist cN flags h:holds z:N`
 (`door -` with none; flags `L` looted, `v` visited, `s` shunned, `x` blocked (P24-Z), `-` none; `holds` its `use count` pairs, sorted, as
 `food3,water1`, `-` with none: P24-Y; ` z:N` its `zombies_near`, only when the building carries it: Task 29),
@@ -88,7 +92,8 @@ import time
 
 from agent.base.items import USES
 from agent.base.items import holds_use
-from agent.base.planner.goals import BUILDING_R, WOODS_R, int_id, open_uses, wanted_uses, window_pick
+from agent.base.planner.goal_policies import looted
+from agent.base.planner.goals import BUILDING_R, WOODS_R, int_id, wanted_uses, window_pick
 from agent.base.planner.night import DAWN_HOUR, LATE_HOUR, TIRED_T, door_blocked, exterior_doors, shelter_plan
 from agent.base.planner.policies import LOOT_WANTS, STUCK_REASONS, me_floor, me_xy, place_of
 from agent.base.world import MET_VIEW_R, compass
@@ -111,6 +116,7 @@ WHYS = ("done", "stuck", "superseded by the threat", "superseded by an instinct"
         "out of range", "in the woods", "failed")
 THREAT_SENDS = ("attack", "steer", "walkTo", "stop", "hold")   # a superseding send read as the threat's (why_of)
 OPTIONAL_KEYS = ("night", "tired")   # rendered only when the view carries them (Task 29)
+HOLD_KEY, HOLD_AFTER = "spent", "tired"   # the hold's view key (Plan 25 Task 3) and the line its `hold:` line follows
 
 __all__ = ["view", "render", "why_of", "shown_ids", "KEYS", "OPTIONAL_KEYS", "WHYS", "NEED_MEMORY_S",
            "ZOMBIE_BANDS", "BUILDING_ZOMBIE_R", "BUILDINGS_SHOWN", "RENDER_MAX", "MET_VIEW_R"]
@@ -149,7 +155,7 @@ def _buildings(world, night, kit, zxy=()):
         doors = exterior_doors(world, b, z)
         out.append({"id": b, "x": sq[0], "y": sq[1], "door": [doors[0][0], doors[0][1]] if doors else None,
                     "dist": round(dist, 1), "containers": len(cs),
-                    "looted": bool(cs) and not any(open_uses(world, loot, k, waiting) for k in cs),
+                    "looted": looted(world, b, loot, kit.wants if kit is not None else (), waiting, cs),
                     "doors": len(doors), "visited": b in visited, "shunned": b in shunned,
                     "shelter": shelter_plan(world, b) is not None, "holds": _holds(world, cs),
                     "blocked": door_blocked(world, b, z) and window_pick(world, b, shunned) is None,
@@ -286,16 +292,37 @@ def _building(b):
                                                    b.get("containers"), mark or "-", holds, zs)
 
 
+def _hold(v):
+    """The hold's line (Plan 25 Task 4, spec 2.2(f)): `hold: <kind> <value>` (the value to 0.01) off the view's
+    `spent` `{kind, value}` while a hold is set, else None (no line)."""
+    h = v.get(HOLD_KEY)
+    if not isinstance(h, dict) or not h.get("kind"):
+        return None
+    value = h.get("value")
+    return "hold: %s" % h["kind"] + (" %s" % round(value, 2) if _num(value) else "")
+
+
+def _line(v, k, shown, events):
+    """The line of view key `k`, else None: an optional key the view does not carry, and the hold's key, which reads
+    as its own `hold:` line after HOLD_AFTER's (`_lines`)."""
+    if k == HOLD_KEY or (k in OPTIONAL_KEYS and k not in v):
+        return None
+    if k == "buildings":
+        text = "; ".join(_building(b) for b in (v.get(k) or [])[:shown])
+    else:
+        text = json.dumps(v.get(k) if events or k != "events" else [], sort_keys=True, separators=(",", ":"))
+    return "%s: %s" % (k, text)
+
+
 def _lines(v, shown, events=True):
+    hold = _hold(v)
     lines = []
     for k in KEYS:
-        if k in OPTIONAL_KEYS and k not in v:
-            continue
-        if k == "buildings":
-            text = "; ".join(_building(b) for b in (v.get(k) or [])[:shown])
-        else:
-            text = json.dumps(v.get(k) if events or k != "events" else [], sort_keys=True, separators=(",", ":"))
-        lines.append("%s: %s" % (k, text))
+        line = _line(v, k, shown, events)
+        if line is not None:
+            lines.append(line)
+        if k == HOLD_AFTER and hold is not None:
+            lines.append(hold)
     return lines
 
 

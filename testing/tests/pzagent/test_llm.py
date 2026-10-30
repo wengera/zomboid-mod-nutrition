@@ -336,10 +336,12 @@ def test_an_explore_farther_than_explore_max_tiles_from_pos_is_out_of_range(answ
 
 
 def test_an_explore_with_no_pos_in_the_view_is_out_of_range():
+    """Named change, Plan 25 Task 4 (spec 2.2(c)): the range is the calling view's, so the view with no pos is the
+    one the model answered; the collecting view's pos no longer reads."""
     src, _, _ = make(answer='{"type": "ExploreToward", "x": 100, "y": 200}')
-    src.propose(a_view())
+    src.propose(a_view(pos={"x": None, "y": None, "z": None}))
     settle(src)
-    assert isinstance(src.propose(a_view(pos={"x": None, "y": None, "z": None})), Rest)
+    assert isinstance(src.propose(a_view()), Rest)
     assert src.calls[0]["error"] == "invalid: out of range"
 
 
@@ -562,6 +564,8 @@ def test_system_names_no_path_credential_or_planner_internal():
         assert bad not in low, bad
     assert not re.search(r"\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b", SYSTEM)         # no constant's name (TIRED_T, DANGER_R)
     assert "/" not in SYSTEM.replace("w/o", "")
+    for bad in ("spent", "runner", "cooling", "release", "0.8"):     # Plan 25 Task 4: the hold and the cooled end
+        assert bad not in low, bad                                   # read as game state, never the planner's names
 
 
 def test_system_explains_the_wants_and_the_new_view_keys():
@@ -605,3 +609,52 @@ def test_a_gun_want_is_refused_with_validates_one_line_reason():
     assert isinstance(src.propose(a_view()), Rest)
     err = src.calls[0]["error"]
     assert err.startswith("invalid: LootBuilding.want: 'gun' not in") and "\n" not in err
+
+
+# ---------------------------------------------------------------- Plan 25 Task 4: the LLM source's second round
+@pytest.mark.parametrize("calling, collecting, ok", [
+    (100.5, 96.5, True),     # the square's centre 158.5: 58 tiles from the calling view's pos, 62 from the collecting
+    (96.5, 100.5, False),    # 62 from the calling view's pos, 58 from the collecting: out of range
+])
+def test_out_of_range_is_measured_from_the_calling_views_pos(calling, collecting, ok):
+    """Spec 2.2(c) (F3: 4 of the 5 `out of range` refusals came from the character fleeing during the call): the
+    square is measured from the pos of the view the model answered, not the view that collects the answer."""
+    src, _, _ = make(answer='{"type": "ExploreToward", "x": 158, "y": 200}')
+    src.propose(a_view(buildings=[], pos={"x": calling, "y": 200.5, "z": 0}))
+    settle(src)
+    g = src.propose(a_view(buildings=[], pos={"x": collecting, "y": 200.5, "z": 0}))
+    if ok:
+        assert g == L.validate({"type": "ExploreToward", "x": 158, "y": 200}) and src.calls[0]["error"] is None
+    else:
+        assert isinstance(g, Rest) and src.calls[0]["error"] == "invalid: out of range"
+
+
+def test_a_cooled_answer_reaches_the_next_prompts_last_goal(tmp_path):
+    """Spec 2.2(b): the model's valid answer the runner refuses as cooled reaches the next call's prompt as its
+    `last_goal`, `end` cooled, once."""
+    r = Rig(tmp_path)
+    r.frame()
+    src, runner, clock = make()
+    gr = GoalRunner(src, r.clock)
+    gr.cooled[("LootBuilding", '{"building": 3}')] = r.clock() + 30.0
+    gr.history.append({"type": "LootBuilding", "args": {"building": 3}, "state": "failed",
+                       "reason": "nothing to loot", "startS": 0.0, "endS": 1.0, "source": "llm"})
+    assert gr.tick(r.world, r.acts, a_view()) is None                 # the call starts
+    settle(src)
+    assert gr.tick(r.world, r.acts, a_view()) is None and gr.why["refused"] == {"type": "LootBuilding",
+                                                                               "args": {"building": 3}}
+    gr.tick(r.world, r.acts, a_view())                               # the next call: the cooled refusal in its prompt
+    settle(src)
+    line = next(ln for ln in runner.calls[1]["input"].splitlines() if ln.startswith("last_goal:"))
+    assert json.loads(line.split(": ", 1)[1]) == {"type": "LootBuilding", "args": {"building": 3}, "end": "cooled",
+                                                  "why": "looted already"}
+
+
+def test_system_names_rest_under_the_hold_and_explains_the_hold_and_the_cooled_end():
+    """Spec 2.2(c), (f): the strategy's third line (the guides notes' section 8 line 3) gains one clause naming Rest
+    while the view's hold reads; the hold line and the cooled end are explained, game state only."""
+    third = strategy()[2]
+    assert third["text"].startswith("With tired true, or night true, choose Shelter in a listed building")
+    assert "while hold reads" in third["text"] and "choose Rest" in third["text"] and V.HOLD_KEY in third["reads"]
+    assert "hold names what keeps you from seeking a fight" in SYSTEM and third["text"] in SYSTEM
+    assert "end done, failed, superseded, refused or cooled" in SYSTEM

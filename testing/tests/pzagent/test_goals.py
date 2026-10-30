@@ -802,10 +802,11 @@ def test_the_schema_strategy_entries_each_name_a_page_and_a_view_key_render_emit
     for e in entries:
         assert set(e) == {"text", "pages", "reads"} and e["text"]
         assert e["pages"] and all(isinstance(p, int) and 1 <= p <= 22 for p in e["pages"])   # the notes' page ids
-        assert e["reads"] and all(r.split(".")[0] in V.KEYS for r in e["reads"]), e["reads"]
-        for r in e["reads"]:                                             # each read is named in its line
-            head, _, leaf = r.partition(".")
-            assert (BUILDING_MARKS[leaf] if head == "buildings" else (leaf or head)) in e["text"], (r, e["text"])
+        assert e["reads"] and all(r.split(".")[0] in V.KEYS + (V.HOLD_KEY,) for r in e["reads"]), e["reads"]
+        for r in e["reads"]:                                             # each read is named in its line (Plan 25
+            head, _, leaf = r.partition(".")                             # Task 4: the hold's key by its line, hold)
+            named = BUILDING_MARKS[leaf] if head == "buildings" else ("hold" if head == V.HOLD_KEY else (leaf or head))
+            assert named in e["text"], (r, e["text"])
     reads = {r for e in entries for r in e["reads"]}
     assert {"buildings.zombies_near", "tired", "night", "weapon", "load.level"} <= reads
 
@@ -890,3 +891,74 @@ def test_a_want_already_held_is_valid_and_wants_one_more(tmp_path):
 def test_the_scripted_source_never_names_a_want():
     g = ScriptedSource().propose(view(buildings=[bld(1, 3.0)]))
     assert (g.TYPE, g.args(), g.want) == ("LootBuilding", {"building": 1}, None)
+
+
+# ================================================================ Plan 25 Task 4: one looted rule, the cooled refusal
+JACKET = {"type": "wardrobe", "n": 1, "items": ["Base.Jacket_Padded"]}
+
+
+def test_the_loot_and_the_view_read_one_looted_rule(tmp_path):
+    """Spec 2.2(a): `goal_policies.looted` is the rule; with CLOTHING_HELD_N spare garments held a building holding
+    only clothing reads looted and its LootBuilding fails `nothing to loot`; one garment short, neither."""
+    from agent.base.planner.goal_policies import looted
+    from agent.base.planner.policies import CLOTHING_HELD_N
+    r = Rig(tmp_path)
+    r.scan([inside(101, 200, containers=[JACKET])])
+    for i in range(CLOTHING_HELD_N):
+        r.event("item_added", itemId=950 + i, fullType="Base.Jacket_Leather", weight=1.0, use="clothing")
+    r.frame()
+    g = LootBuilding(1)
+    runner, cmd = run(r, g)
+    assert looted(r.world, 1, runner.kit.loot) is True
+    assert cmd is None and (g.state, g.reason) == ("failed", "nothing to loot")
+    r2 = Rig(tmp_path / "short")
+    r2.scan([inside(101, 200, containers=[JACKET])])
+    for i in range(CLOTHING_HELD_N - 1):
+        r2.event("item_added", itemId=950 + i, fullType="Base.Jacket_Leather", weight=1.0, use="clothing")
+    r2.frame()
+    g2 = LootBuilding(1)
+    runner2, cmd2 = run(r2, g2)
+    assert looted(r2.world, 1, runner2.kit.loot) is False
+    assert cmd2 is not None and cmd2.args()["filter"] == "clothing" and g2.running
+
+
+def test_a_building_with_no_container_known_is_not_looted_by_the_rule(tmp_path):
+    from agent.base.planner.goal_policies import looted
+    r = Rig(tmp_path)
+    r.scan([inside(101, 200)])
+    r.frame()
+    assert looted(r.world, 1) is False
+
+
+def test_a_cooled_refusal_is_the_next_views_last_goal_once(tmp_path):
+    """Spec 2.2(b) (F3: 14 valid answers refused cooled, the model told nothing): the runner lays its cooled refusal
+    over the next proposal's view as `last_goal` `{type, args, end: "cooled", why}`, `why` the meaning of the goal's
+    own last end (`view.why_of`), once, as the LLM source lays its own refusals (P24-B 3)."""
+    r = Rig(tmp_path)
+    r.frame()
+    src = Src(Stock("food"), Stock("food"), Rest(1.0))                   # Stock(food) fails `none found`: cooled
+    runner = GoalRunner(src, r.clock)
+    for _ in range(3):
+        runner.tick(r.world, r.acts, {"last_goal": "the view's own"})
+    assert runner.why.get("refused") is None and runner.current.TYPE == "Rest"
+    assert src.views[1] == {"last_goal": "the view's own"}               # the refused proposal's own view
+    assert src.views[2]["last_goal"] == {"type": "Stock", "args": {"kind": "food"}, "end": "cooled", "why": "failed"}
+    r.advance(1.0)
+    runner.tick(r.world, r.acts, {"last_goal": "the view's own"})        # the Rest ends; the next view is its own
+    runner.tick(r.world, r.acts, {"last_goal": "the view's own"})
+    assert all(v == {"last_goal": "the view's own"} for v in src.views[3:]) and len(src.views) >= 4
+
+
+def test_a_cooled_refusal_carries_the_why_of_the_end_that_cooled_it(tmp_path):
+    r = Rig(tmp_path)
+    r.scan([inside(101, 200, containers=[CRATE])])
+    r.frame()
+    r.world.mark_looted((101, 200, 0, 0), "food")
+    r.world.mark_looted((101, 200, 0, 0), "bandage")
+    src = Src(LootBuilding(1), LootBuilding(1), Rest(1.0))
+    runner = GoalRunner(src, r.clock)
+    for _ in range(3):
+        runner.tick(r.world, r.acts, lambda: {})
+    assert runner.history[0]["reason"] == "nothing to loot"
+    assert src.views[2]["last_goal"] == {"type": "LootBuilding", "args": {"building": 1}, "end": "cooled",
+                                         "why": "looted already"}
