@@ -305,38 +305,53 @@ class Flee(Policy):
 
     def _pick(self, ts):
         """The shelter plan to run (ruling P23-AG and its fix rounds), else None: never from a room square (P23-AJ
-        3: inside, the flee walks out first, `exit_plan`); else of the buildings not shunned (`night.shunned_now`)
-        and not walked out of this episode (`left`) with no known zombie on one of their squares (M4), each exterior
-        door the map reads neither locked nor barricaded whose `night.approach_square` lies within SHELTER_FLEE_R of
-        the player, no nearer any held threat than the player is to it, with no known zombie in its corridor
-        (`in_corridor`, I1 and M3); the nearest such square first, ties by the building, then the door; the plan
-        `night.shelter_plan(..., door=)` kept to that door."""
-        N = _night()
+        3: inside, the flee walks out first, `exit_plan`); else, of the doors `door_verdicts` reads `ok`, the nearest
+        approach square first, ties by the building, then the door; the plan `night.shelter_plan(..., door=)` kept to
+        that door."""
         if on_room(self.world):
             return None
+        ok = [(rank, b, door) for rank, b, door, verdict in self.door_verdicts(ts) if verdict == "ok"]
+        if not ok:
+            return None
+        _, b, door = min(ok)
+        return _night().shelter_plan(self.world, b, door=door)
+
+    def door_verdicts(self, ts):
+        """The pick's reads of each door (Plan 24 Task 36: split out of `_pick` so that ruling P24-AX's log reads the
+        same doors, `Survive._doorway_pick`): `[(rank, building, door, verdict)]` for each exterior door of a building
+        not shunned (`night.shunned_now`) nor walked out of this episode (`left`) whose `night.approach_square` lies
+        within SHELTER_FLEE_R of the player, `rank` (its distance, the building's repr, the door); `verdict` "locked"
+        when the map reads it locked or barricaded, "taken" when a known zombie stands on one of the building's squares
+        (M4), in the door's corridor (`in_corridor`, I1 and M3) or nearer its approach square than to the player (a
+        held threat of `ts`), else "ok"."""
+        N = _night()
         mx, my = me_xy(self.world)
         known = self._known()
         skip = N.shunned_now(self.shunned, self.world.world_minutes()) | self.left
-        best = None
+        out = []
         for b in self.world.interiors():
-            if b is None or b in skip or any(in_building(self.world, z, b) for z in known):
+            if b is None or b in skip:
                 continue
+            occupied = any(in_building(self.world, z, b) for z in known)
             plan = N.shelter_plan(self.world, b)
             for door in plan["doors"] if plan is not None else ():
-                rec = self.world.map[door].get("door") or {}
-                sq = None if rec.get("locked") or rec.get("barricaded") else N.approach_square(self.world, door)
+                sq = N.approach_square(self.world, door)
                 if sq is None:
                     continue
                 c = (sq[0] + 0.5, sq[1] + 0.5)
                 d = math.hypot(c[0] - mx, c[1] - my)
-                if d > SHELTER_FLEE_R or any(in_corridor((mx, my), c, z) for z in known):
+                if d > SHELTER_FLEE_R:
                     continue
-                if any(math.hypot(z["x"] - c[0], z["y"] - c[1]) < zdist(self.world, z) for z in ts):
-                    continue
-                rank = (d, repr(b), door)
-                if best is None or rank < best[0]:
-                    best = (rank, b, door)
-        return None if best is None else N.shelter_plan(self.world, best[1], door=best[2])
+                rec = self.world.map[door].get("door") or {}
+                if rec.get("locked") or rec.get("barricaded"):
+                    verdict = "locked"
+                elif (occupied or any(in_corridor((mx, my), c, z) for z in known)
+                        or any(math.hypot(z["x"] - c[0], z["y"] - c[1]) < zdist(self.world, z) for z in ts)):
+                    verdict = "taken"
+                else:
+                    verdict = "ok"
+                out.append(((d, repr(b), door), b, door, verdict))
+        return out
 
     def _shelter(self, ts):
         """The plan's next step (its walks at FLEE_GAIT); once done inside, a hold while every threat reads

@@ -14,6 +14,7 @@ rejected `no source` 60 to 159 tiles off, the doorway stand never taken). The fa
   deferred minor 5 of review-t32-fix1).
 - P24-AW: a fill is sent only to a water source within the loaded grid (`goals.leg_max`, P24-AI) and within
   FILL_WALK_R; a loaded source farther off is walked to first (a square beside it), one beyond the grid never sent.
+- P24-AX: every `many` line names why the doorway stand was or was not taken (`doorway_pick`).
 """
 import functools
 import json
@@ -441,3 +442,80 @@ def test_a_failed_walk_to_a_source_leaves_it_out(tmp_path):
     r.world.loaded_width = 104
     tick(r, sv)
     assert r.world.dry_now() == {(130, 200, 0)} and sum(a.type == "walkTo" for a in r.acts.history) == 1
+
+
+# ================================================================ P24-AX: the doorway's trigger logged
+def many_line(tmp_path, door=None, zs=None, caps=None, extra=()):
+    """One `many` flee tick from (100, 201.5) against `test_survive`'s group of three (within DANGER_R, west), building
+    1's west door at (112, 201) with the door record `door` (None: no building known), `extra` zombies beside them;
+    the tick's threat why."""
+    from .test_policies import zombie
+    from .test_survive import group, shelter_world
+    r, sv = make(tmp_path, caps=caps)
+    if door is not None:
+        shelter_world(r, door)
+    r.frame(x=100.0, y=201.5, zombies=(zs if zs is not None else group())
+            + [zombie(i, x, y, me=(100.0, 201.5)) for i, x, y in extra])
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["flee"] == "many"
+    return r, sv, w
+
+
+def test_a_many_line_that_takes_the_stand_logs_ok(tmp_path):
+    from .test_night import CLOSED
+    r, sv, w = many_line(tmp_path, CLOSED)
+    assert sv.flee.plan["stand"] is True and w["doorway_pick"] == "ok"
+
+
+@pytest.mark.parametrize("case,want", [("standing", "standing"), ("no_door", "no_door"), ("locked", "locked"),
+                                       ("taken", "taken"), ("no_stance", "no_stance")])
+def test_a_many_line_that_takes_no_stand_logs_the_condition_that_failed(tmp_path, case, want):
+    """E10: the stand never ran and no why said why (`grade_e7`: the count condition held on 155 of 162 `many`
+    lines, a shelter picked on 6). Each `many` line names the first condition that failed: more than DOOR_STAND_N
+    standing within DANGER_R (`standing`), no known exterior door's approach square within SHELTER_FLEE_R
+    (`no_door`), every such door locked or barricaded (`locked`), every one refused for a zombie in its corridor, in
+    its building or nearer it than the player (`taken`), a build with no stance (`no_stance`)."""
+    from .test_night import CLOSED, LOCKED
+    from .test_survive import group
+    if case == "standing":
+        r, sv, w = many_line(tmp_path, CLOSED, extra=[(4, 97.5, 203.0)])
+    elif case == "no_door":
+        r, sv, w = many_line(tmp_path)
+    elif case == "locked":
+        r, sv, w = many_line(tmp_path, LOCKED)
+    elif case == "taken":
+        r, sv, w = many_line(tmp_path, CLOSED, extra=[(4, 111.5, 201.5)])
+    else:
+        from .test_policies import CAPS_14
+        r, sv, w = many_line(tmp_path, CLOSED, caps=CAPS_14)
+    assert w["doorway_pick"] == want and (sv.flee.plan is None or not sv.flee.plan.get("stand"))
+
+
+def test_a_line_that_is_not_many_logs_no_doorway_pick(tmp_path):
+    """The `pair` flee (two within DANGER_R at health 50): no `doorway_pick`."""
+    from .test_policies import zombie
+    r, sv = make(tmp_path)
+    r.frame(zombies=[zombie(1, 103.0, 200.0), zombie(2, 103.0, 202.0)], health=50.0)
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["flee"] == "pair" and "doorway_pick" not in w
+
+
+def test_the_pick_s_door_verdicts_are_the_pick_s_own_reads(tmp_path):
+    """`Flee.door_verdicts` reads each door the pick reads and `_pick` takes the nearest `ok` one: the refactor keeps
+    the pick (a locked door is no plan; a free one is)."""
+    from agent.base.planner.flee import Flee
+    from .test_night import CLOSED, LOCKED
+    from .test_survive import group
+    for door, want in ((CLOSED, "ok"), (LOCKED, "locked")):
+        d = tmp_path / want
+        d.mkdir()
+        r, sv = make(d)
+        from .test_survive import shelter_world
+        shelter_world(r, door)
+        r.frame(x=100.0, y=201.5, zombies=group())
+        f = Flee(r.world, r.acts, r.clock)
+        ts = f._threats()
+        v = f.door_verdicts(ts)
+        assert [x[3] for x in v] == [want] and (f._pick(ts) is not None) is (want == "ok")

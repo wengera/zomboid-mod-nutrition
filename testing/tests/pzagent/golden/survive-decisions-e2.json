@@ -1,4 +1,4 @@
-{"artifact": "e_day_2-20261028-124249", "base": "9abc5037", "decisions": [
+{"artifact": "e_day_2-20261028-124249", "base": "eaa1c9a3", "decisions": [
 {"action": null, "branch": null, "gameMin": 569, "line": 52, "why": {}},
 {"action": {"args": {"gait": "run", "x": 10737.5, "y": 10643.5}, "type": "walkTo"}, "branch": "threat", "gameMin": 571, "line": 68, "why": {"approach": false, "dist": 8.010781176094472, "fight": true, "line": null, "pinned": true, "reposition": null, "target": 12787}},
 {"action": null, "branch": "threat", "gameMin": 571, "line": 69, "why": {"approach": false, "dist": 8.010781176094472, "fight": true, "holding": "a12", "line": null, "pinned": true, "reposition": null, "target": 12787}},
@@ -42,10 +42,10 @@
 {"action": null, "branch": "threat", "gameMin": 581, "line": 144, "why": {"flee": "held_inside", "held": 1}},
 {"action": null, "branch": "threat", "gameMin": 581, "line": 145, "why": {"flee": "held_inside", "held": 1}},
 {"action": {"args": {"gait": "run", "x": 10745.5, "y": 10629.5}, "type": "walkTo"}, "branch": "threat", "gameMin": 581, "line": 146, "why": {"approach": false, "dist": 4.231606567324637, "fight": true, "line": null, "pinned": true, "reposition": null, "target": 12788}},
-{"action": {"args": {"gait": "run", "x": 10740.5, "y": 10636.5}, "type": "walkTo"}, "branch": "threat", "gameMin": 581, "line": 147, "why": {"door": null, "exit": 3, "flee": "many", "outer": [10740, 10635, 0], "refused": [], "shelter": null, "step": "walk"}},
-{"action": null, "branch": "threat", "gameMin": 581, "line": 148, "why": {"door": null, "exit": 3, "flee": "many", "holding": "a20", "outer": [10740, 10635, 0], "refused": [], "shelter": null, "step": "walk"}},
-{"action": null, "branch": "threat", "gameMin": 582, "line": 149, "why": {"door": null, "exit": 3, "flee": "many", "holding": "a20", "outer": [10740, 10635, 0], "refused": [], "shelter": null, "step": "walk"}},
-{"action": null, "branch": "threat", "gameMin": 582, "line": 150, "why": {"door": null, "exit": 3, "flee": "many", "holding": "a20", "outer": [10740, 10635, 0], "refused": [], "shelter": null, "step": "walk"}},
+{"action": {"args": {"gait": "run", "x": 10740.5, "y": 10636.5}, "type": "walkTo"}, "branch": "threat", "gameMin": 581, "line": 147, "why": {"door": null, "doorway_pick": "no_stance", "exit": 3, "flee": "many", "outer": [10740, 10635, 0], "refused": [], "shelter": null, "step": "walk"}},
+{"action": null, "branch": "threat", "gameMin": 581, "line": 148, "why": {"door": null, "doorway_pick": "no_stance", "exit": 3, "flee": "many", "holding": "a20", "outer": [10740, 10635, 0], "refused": [], "shelter": null, "step": "walk"}},
+{"action": null, "branch": "threat", "gameMin": 582, "line": 149, "why": {"door": null, "doorway_pick": "no_stance", "exit": 3, "flee": "many", "holding": "a20", "outer": [10740, 10635, 0], "refused": [], "shelter": null, "step": "walk"}},
+{"action": null, "branch": "threat", "gameMin": 582, "line": 150, "why": {"door": null, "doorway_pick": "no_stance", "exit": 3, "flee": "many", "holding": "a20", "outer": [10740, 10635, 0], "refused": [], "shelter": null, "step": "walk"}},
 {"action": null, "branch": "threat", "gameMin": 582, "line": 151, "why": {"door": null, "exit": 3, "flee": "held", "holding": "a20", "outer": [10740, 10635, 0], "refused": [], "shelter": null, "step": "walk"}},
 {"action": null, "branch": "threat", "gameMin": 582, "line": 152, "why": {"behind": [12812, 12814], "door": null, "exit": 3, "flee": "held", "holding": "a20", "outer": [10740, 10635, 0], "refused": [], "shelter": null, "step": "walk"}},
 {"action": null, "branch": "threat", "gameMin": 582, "line": 153, "why": {"behind": [12812, 12814], "door": null, "exit": 3, "flee": "held", "holding": "a20", "outer": [10740, 10635, 0], "refused": [], "shelter": null, "step": "walk"}},
@@ -125,4 +125,4 @@
 {"action": null, "branch": "threat", "gameMin": 592, "line": 227, "why": {"approach": false, "corner_kind": "inside", "cornered": 12839, "dist": 1.2212986828443257, "fight": true, "holding": "a31", "line": true, "pinned": true, "reposition": null, "target": 12839}},
 {"action": null, "branch": "threat", "gameMin": 592, "line": 228, "why": {"approach": false, "corner_kind": "inside", "cornered": 12839, "dist": 1.2212986828443257, "fight": true, "holding": "a31", "line": true, "pinned": true, "reposition": null, "target": 12839}},
 {"action": null, "branch": "threat", "gameMin": 592, "line": 229, "why": {"approach": false, "corner_kind": "inside", "cornered": 12839, "dist": 1.2212986828443257, "fight": true, "holding": "a31", "line": true, "pinned": true, "reposition": null, "target": 12839}}
-], "recorded": "2026-10-29"}
+], "recorded": "2026-10-30"}

@@ -60,12 +60,13 @@ def fix1_off(sv):
 
 
 # Plan 24 Task 36 (survival iteration 12): the switches of the rules that move a golden
-T36_SWITCHES = ("EDGE",)
+T36_SWITCHES = ("EDGE", "PICK_WHY")
 
 
 def pre_t36(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 24 Task 36 (survival iteration 12): its golden movers off
-    (`T36_SWITCHES`: `Survive.EDGE`, P24-AU's edge hold), but those named in `keep`. P24-AT reads what no record
+    (`T36_SWITCHES`: `Survive.EDGE`, P24-AU's edge hold; `Survive.PICK_WHY`, P24-AX's `doorway_pick` on every `many`
+    line), but those named in `keep`. P24-AT reads what no record
     carries (`body.strain`, `body.armPain`: `test_no_record_carries_a_pza1_7_read`), so it has no switch."""
     for name in T36_SWITCHES:
         if name not in keep:
@@ -852,8 +853,10 @@ FIRST_IDLE = {"e2": 146, "e3": 214, "e4": 381, "e5": 215, "f1": 163, SIXTH: 163}
 
 @pytest.mark.parametrize("key", sorted(FIRST_IDLE))
 def test_p24_ad_moves_each_golden_first_at_its_line(key):
-    """Task 21's attribution: each golden moves first at FIRST_IDLE's line against the rules before P24-AD."""
-    base, got = pre_ad_gold(key), gold(key)
+    """Task 21's attribution: each golden moves first at FIRST_IDLE's line against the rules before P24-AD. Named
+    change, Task 36: read against the goldens before Task 36 (`pre_t36_gold`), P24-AX's `doorway_pick` moving E3 at
+    204, before its line 214 here."""
+    base, got = pre_ad_gold(key), pre_t36_gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     assert diff and diff[0] == FIRST_IDLE[key]
 
@@ -998,8 +1001,7 @@ def test_p24_ag_moves_e4_and_f1_first_at_the_endurance_moodle_and_no_other_golde
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     if key not in FIRST_STRAIN:
         assert diff == []
-        with open(R.golden_path(key), "rb") as f:
-            assert hashlib.sha256(f.read()).hexdigest() == PRE_AG[key]
+        assert PRE_T36[key][0] == PRE_AG[key]   # named change, Task 36: the file before Task 36's re-record
         return
     line = FIRST_STRAIN[key]
     assert diff[0] == line
@@ -1229,7 +1231,8 @@ def test_with_iteration_12_off_the_goldens_are_task_32_fix_2_s(key):
 
 
 # the first line each iteration-12 switch moves, alone on, on each golden it moves
-FIRST_T36 = {SIXTH: {"EDGE": 361}}
+FIRST_T36 = {"e2": {"PICK_WHY": 147}, "e3": {"PICK_WHY": 204}, "e4": {"PICK_WHY": 388}, "e5": {"PICK_WHY": 224},
+             "f1": {"PICK_WHY": 484}, SIXTH: {"EDGE": 361, "PICK_WHY": 484}}
 
 
 @pytest.mark.parametrize("key", sorted(PRE_T36))
@@ -1240,6 +1243,9 @@ def test_iteration_12_moves_each_golden_first_at_its_switch_s_line(key):
       group had left the listing, so before the edge hold the pull's end read no group and the seek leg went toward
       the chaser (`seek`), where now the group is held at its last listed squares and the pull's end stands
       (`stand`); from 362 the lines are the old ones (the backpedal at 2.05 tiles).
+    - PICK_WHY (P24-AX) moves every golden at its first `many` line (E2 147, E3 204, E4 388, E5 224, F1 and the sixth
+      484), and moves no decision: every line it moves differs by the why's `doorway_pick` alone, `no_stance` on the
+      five PZA/1.4 builds (no `aim` announced), on the sixth `taken`, `picked`, `no_door`, `pending` or `standing`.
     A golden no switch moves is the file before Task 36 byte for byte."""
     base, got = pre_t36_gold(key), gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
@@ -1253,6 +1259,12 @@ def test_iteration_12_moves_each_golden_first_at_its_switch_s_line(key):
         alone = _only_t36(key, switch)
         moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
         assert (moved[0] if moved else None) == FIRST_T36[key].get(switch), switch
+    alone = _only_t36(key, "PICK_WHY")
+    for k in [k for k in sorted(alone) if alone[k] != base.get(k)]:
+        a, w = dict(alone[k], why=dict(alone[k]["why"])), alone[k]["why"]["doorway_pick"]
+        del a["why"]["doorway_pick"]
+        assert a == base[k] and alone[k]["why"]["flee"] == "many", k
+        assert w == "no_stance" if key != SIXTH else w in ("taken", "picked", "no_door", "pending", "standing"), k
     if key == SIXTH:
         b, g = base[361]["why"], got[361]["why"]
         assert b["leg"] == "seek" and g["leg"] == "stand" and b["target"] == g["target"] == 15885

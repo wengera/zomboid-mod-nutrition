@@ -9,14 +9,14 @@ import math
 
 from agent.base.planner.care import (CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, FLEE_CARE_N, FLEE_CARE_S, RIDE_MANY_R,
                                      RIDE_R)
-from agent.base.planner.doorway import DOOR_HOLD_S, Doorway, off_post, standing, stand_ready
+from agent.base.planner.doorway import DOOR_HOLD_S, DOOR_STAND_N, Doorway, off_post, standing, stand_ready
 from agent.base.planner.fight import Fight
 from agent.base.planner.flee import Flee
 from agent.base.planner.policies import (AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R, DROP_AT, EDGE_HOLD_TICKS,
                                          ENDURANCE_RELEASE, ENDURANCE_T, ENGAGE_R, FIGHT_REACH, KEEP_R, LISTED_R,
                                          POINT_BLANK_R, PREEMPTED, STAND_MIN_R, STIFF_HARD, STIFF_SOFT, STRAIN_HARD,
                                          TIRED_FIGHT_T, UNREACHABLE_S, adoptable, arm_pain, arm_stiffness, arms_hurt,
-                                         blocked, chasing, exit_plan, in_building, in_reach, line_to, on_floor,
+                                         blocked, chasing, exit_plan, in_building, in_reach, line_to, on_floor, on_room,
                                          others_behind, pull_from, running, seek_allowed, spare, target_id_ok, zdist)
 from agent.base.pza1 import Attack, Drop, Stomp
 from agent.base.world import me_floor, me_xy
@@ -86,6 +86,8 @@ class Threat:
     STANCE_LISTED = True  # Task 32 fix 1, the review's major 6: the stance counts the held zombies standing and
                           # within DANGER_R or chasing (`_stance_count`); off, every held one. Both switches are in
                           # the replay tests' seam onto the rules before Task 32 (`pre_an`)
+    PICK_WHY = True  # ruling P24-AX: every `many` line logs `doorway_pick`; off, no such why (the replay tests' seam: a
+                     # why on every golden `many` line, no decision moved)
     EDGE = True     # ruling P24-AU: a zombie that left the listing is held in the Fight's pull reads EDGE_HOLD_TICKS
                     # ticks (`policies.Fight.edge_ticks`); off, 0 (the replay tests' seam onto the rule before it)
 
@@ -926,6 +928,7 @@ class Threat:
             if self.group_steer == "drag":
                 policy.drop_stuck_leg()   # P24-A fix 2, I1: never a stalled leg held its FLEE_S under the guard
             ans = self._flee_drop() or self._flee_finish(reason) or self._answer(policy)
+            pick = self._doorway_pick(policy) if reason == "many" and self.PICK_WHY else None   # P24-AX, after the pick
         else:
             policy.only = None if door is None else {zid for zid, _ in door}
             policy.stance = self._stance_ok(held, self.night.inside())   # P24-G 1 (no corner or door Fight stands)
@@ -957,6 +960,8 @@ class Threat:
             self.why["group"] = self.group_steer
         if self.avoid and want == "fight":
             self.why["unsought"] = sorted(self.avoid, key=repr)
+        if want == "flee" and pick is not None:
+            self.why["doorway_pick"] = pick
         for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed),
                        ("doorway_left", self.stand_end), ("pain", self.wound), ("finish_block", self.finish_block)):
             if v is not None:
@@ -967,6 +972,35 @@ class Threat:
         if ride is not None:
             self.why["ride"] = ride.aid   # P24-U: a bandage rides the leg this answer holds or re-aims
         return ans if ans is not None else (policy, None)
+
+    def _doorway_pick(self, flee):
+        """Ruling P24-AX (E10: the doorway stand never ran, the count condition held on 155 of 162 `many` lines and a
+        shelter was picked on 6, and no why said which condition failed): on a `many` line, read after the Flee
+        answered (its pick made, if it was due), `ok` when the episode's plan is a doorway stand (marked, or standing,
+        or stood); else the first condition that failed, in the order the stand reads them (`doorway.stand_ready`, the
+        pick, `policies.stand_post`): `unarmed`, `no_stance` (no `aim` announced), `standing` (more than DOOR_STAND_N
+        standing within DANGER_R), `inside` (on a room square: the flee walks out, never picks), `no_door` (no known
+        exterior door's approach square within SHELTER_FLEE_R, `Flee.door_verdicts`), `locked` (every one locked or
+        barricaded), `taken` (every free one refused for a zombie: in its building, its corridor, or nearer its
+        approach than the player), `picked` (a door was free, but the episode's one pick was spent: a plan without the
+        stand, its post refused, or a plan dropped), `pending` (a door is free and the pick waits on a running leg)."""
+        plan = flee.plan
+        if plan is not None and (plan.get("stand") or plan.get("stood")):
+            return "ok"
+        if not self._armed():
+            return "unarmed"
+        if not self.world.can("aim"):
+            return "no_stance"
+        if len(standing(self.world, DANGER_R, blocked(self.dead, self.clock()))) > DOOR_STAND_N:
+            return "standing"
+        if on_room(self.world):
+            return "inside"
+        verdicts = [v[3] for v in flee.door_verdicts(flee._threats())]
+        if not verdicts:
+            return "no_door"
+        if "ok" not in verdicts:
+            return "locked" if all(v == "locked" for v in verdicts) else "taken"
+        return "picked" if flee.picked or plan is not None else "pending"
 
     def _stand(self, held):
         """Ruling P24-AO: the doorway stand's answer: its `Doorway` fight over the Flee's stand plan (made once, kept
