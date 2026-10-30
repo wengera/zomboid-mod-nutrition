@@ -448,13 +448,14 @@ def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch
 
 # ================================================================ the copy: e_day_8.py's body, its own key
 BASE_SENTENCE = (
-    "the base at `b11f1dc2` carries PZA/1.6.1 (the combat stance held from the per-player update every frame, the "
-    "bandage riding a moving leg, the fence climb at a walk, the rag rip and wash, the water fill, the item re-read, "
-    "`worn` and the rip class, the clothing record with its defence and `me.worn`, the door's lock read without an "
-    "attempt, the window opened, smashed and climbed through, the wear) and survival iteration 9 (a pure ordered "
-    "`assess()`; a rag stock of two ripped on idle ticks; far walks in legs of at most 30 tiles halved on a failure; "
-    "idle zombies counted toward the group flee only inside `DANGER_R` 6; over iteration 8's sought fight within "
-    "`ENGAGE_R` 9, every walk a building, the stuck door marked; rulings P24-N to P24-AD)")
+    "the base at `5e5c1415` carries PZA/1.7.1 (over PZA/1.6.1's combat stance held every frame, bandage on the move, "
+    "fence climb, rag rip and wash, water fill, clothing record and window: the arms' pain and strain, the loaded "
+    "grid's width, the fallen flag on a zombie, the unwear, the shove with its knock-down read off the knocked-down "
+    "state, the stomp on a fallen target that re-checks a risen one) and survival iteration 10 (over iteration 9's "
+    "pure ordered `assess()`, rag stock, legged walks and `DANGER_R` 6: no new fight under the arms' strain hold 20 "
+    "to 10, at endurance 0.75 or under until above 0.80, or tired at fatigue 0.6; the shove at point blank and the "
+    "stomp then the floor strike on a fallen target; legs of at most 8 x floor(loadedWidth/16) - 8 tiles; the "
+    "least-covering garment unworn then ripped; rulings P24-N to P24-AL)")
 
 
 def test_the_copy_differs_from_e_day_8_only_in_the_expected_lines():
@@ -479,7 +480,7 @@ def test_the_copy_differs_from_e_day_8_only_in_the_expected_lines():
         norm = norm.replace(mine, theirs)
     assert norm == a[a.index(mark):]
     head = b[:b.index(mark)]
-    for c in ("b11f1dc2", "e_day_8-20261029-174023", "133.06", "eighth", "PZA/1.6.1", "grade_e6", "FIGHT_WINDOW_SLACK_S",
+    for c in ("5e5c1415", "e_day_8-20261029-174023", "133.06", "eighth", "PZA/1.7.1", "grade_e6", "FIGHT_WINDOW_SLACK_S",
               "state.1.log", BASE_SENTENCE):
         assert c in head, c
     assert E.CONSTANTS == E1.CONSTANTS and E.PROFILE == E1.PROFILE
