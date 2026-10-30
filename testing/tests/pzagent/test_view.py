@@ -68,7 +68,7 @@ def test_the_buildings_carry_containers_looted_doors_visited_and_distance(tmp_pa
     assert b[0] == {"id": 1, "x": 110, "y": 201, "door": [110, 201], "dist": 10.5, "containers": 2, "looted": False,
                     "doors": 1, "visited": False, "shunned": False, "shelter": True,   # P24-B 3: x, y, door
                     "holds": {"bandage": 1, "food": 1}, "box": [110, 200, 112, 202],   # P24-Y (Task 18)
-                    "blocked": False}                                                     # P24-Z
+                    "blocked": False, "zombies_near": 0}                                  # P24-Z; Task 29
     assert b[1]["containers"] == 1 and b[1]["looted"] is True and b[1]["dist"] == 20.5
     sv.night.visited.add(2)
     sv.night.shunned[1] = 480.0
@@ -307,3 +307,54 @@ def test_a_building_with_no_container_known_is_not_looted(tmp_path):
     r.frame(x=100.0, y=201.5)
     b = view(r.world, sv)["buildings"][0]
     assert b["containers"] == 0 and b["looted"] is False and "L" not in V._building(b).split()[-1]
+
+
+# ======================================== Task 29: the keys the strategy lines read (tired, night, a building's zombies)
+def test_tired_and_night_come_off_the_frames_fatigue_and_hour_at_the_nights_lines(tmp_path):
+    from agent.base.planner.night import DAWN_HOUR, LATE_HOUR, TIRED_T
+    r, sv = make(tmp_path)
+    for fatigue, hour, tired, night in ((0.2, 9.0, False, False), (TIRED_T, 12.0, False, False),
+                                        (TIRED_T + 0.01, 12.0, True, False), (0.1, LATE_HOUR, False, True),
+                                        (0.1, DAWN_HOUR - 0.5, False, True), (0.1, DAWN_HOUR, False, False)):
+        r.frame(fatigue=fatigue, hour=hour)
+        v = view(r.world, sv)
+        assert (v["tired"], v["night"]) == (tired, night), (fatigue, hour)
+    r.world.me["hour"] = None
+    r.world.stats["fatigue"] = None
+    v = view(r.world, sv)
+    assert v["tired"] is None and v["night"] is None                     # unread, never a guess
+
+
+def test_each_building_counts_the_zombies_listed_within_building_zombie_r_of_its_box(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110) + house(2, 140))
+    box = r.world.building_boxes()[1]
+    edge = box[2] + 1                                                    # the box's east side, in tiles
+    r.frame(zombies=[zombie(1, edge + V.BUILDING_ZOMBIE_R - 0.5, box[1] + 0.5),
+                     zombie(2, edge + V.BUILDING_ZOMBIE_R + 0.5, box[1] + 0.5),
+                     zombie(3, box[0] + 0.5, box[1] + 0.5)])
+    bs = {b["id"]: b for b in view(r.world, sv)["buildings"]}
+    assert bs[1]["zombies_near"] == 2 and V.BUILDING_ZOMBIE_R == 12.0
+    assert V._building(bs[1]).endswith(" z:2")
+
+
+def test_render_emits_the_new_keys_and_omits_them_when_absent(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110))
+    r.frame(fatigue=0.7, hour=23.0)
+    v = view(r.world, sv)
+    lines = render(v).splitlines()
+    assert "tired: true" in lines and "night: true" in lines
+    assert next(ln for ln in lines if ln.startswith("buildings:")).endswith(" z:0")
+    w = {k: x for k, x in v.items() if k not in ("tired", "night")}
+    w["buildings"] = [{k: x for k, x in b.items() if k != "zombies_near"} for b in v["buildings"]]
+    text = render(w)
+    assert "tired:" not in text and "night:" not in text and " z:" not in text
+    assert [ln.split(":", 1)[0] for ln in text.splitlines()] == [k for k in V.KEYS if k not in ("tired", "night")]
+
+
+def test_a_building_renders_z_only_with_its_count():
+    b = {"id": 3, "x": 110, "y": 201, "door": [110, 201], "dist": 10.5, "containers": 2, "looted": False,
+         "doors": 1, "visited": True, "shunned": False, "holds": {"water": 1}}
+    assert V._building(b) == "3 @110,201 door 110,201 10.5 c2 v h:water1"
+    assert V._building(dict(b, zombies_near=4)) == "3 @110,201 door 110,201 10.5 c2 v h:water1 z:4"

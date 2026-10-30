@@ -787,3 +787,24 @@ def test_a_building_with_no_container_known_is_never_a_scripted_loot():
     """M1: the view reads it not looted (unsearched), and the scripted source still passes it over."""
     g = ScriptedSource().propose(view(buildings=[bld(3, 5.0, containers=0), bld(2, 9.0)], edge=[110, 200]))
     assert (g.TYPE, g.args()) == ("LootBuilding", {"building": 2})
+
+
+# ================================================================ Task 29: the strategy block
+BUILDING_MARKS = {"looted": "L", "visited": " v ", "dist": "nearest", "zombies_near": "z:"}   # a building
+# field as its rendered line names it
+
+
+def test_the_schema_strategy_entries_each_name_a_page_and_a_view_key_render_emits():
+    from agent.base.planner import view as V
+    entries = schema()["strategy"]
+    assert len(entries) == 5
+    for e in entries:
+        assert set(e) == {"text", "pages", "reads"} and e["text"]
+        assert e["pages"] and all(isinstance(p, int) and 1 <= p <= 22 for p in e["pages"])   # the notes' page ids
+        assert e["reads"] and all(r.split(".")[0] in V.KEYS for r in e["reads"]), e["reads"]
+        for r in e["reads"]:                                             # each read is named in its line
+            head, _, leaf = r.partition(".")
+            assert (BUILDING_MARKS[leaf] if head == "buildings" else (leaf or head)) in e["text"], (r, e["text"])
+    reads = {r for e in entries for r in e["reads"]}
+    assert {"buildings.zombies_near", "tired", "night", "weapon", "load.level"} <= reads
+

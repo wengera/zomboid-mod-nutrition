@@ -528,3 +528,42 @@ def test_system_explains_attackers_hit_reaction_and_the_met_rules_threshold():
     assert "attackers is how many zombies are attacking you now" in SYSTEM
     assert "hit_reaction names the hit you are reeling from" in SYSTEM
     assert "never explore toward its bearing while met.n is 3 or more" in SYSTEM
+
+
+# ---------------------------------------------------------------- Task 29: the guides' strategy lines, the wants
+# Each strategy line's own fragment, pinned here apart from the schema (a line dropped from `goals.json` fails).
+STRATEGY_PINS = (
+    "Prefer the nearest building listed without L over farther ones",
+    "Want water and a vessel first",
+    "choose Shelter in a listed building",
+    "Avoid a building listed with zombies beside it",
+    "Keep the load light",
+)
+
+
+def test_system_carries_the_five_strategy_lines_once_each_in_the_guides_order():
+    starts = [SYSTEM.index(p) for p in STRATEGY_PINS]
+    assert starts == sorted(starts)
+    for p in STRATEGY_PINS:
+        assert SYSTEM.count(p) == 1, p
+    for e in L.strategy():
+        assert SYSTEM.count(e["text"]) == 1, e["text"]
+    assert len(L.strategy()) == len(STRATEGY_PINS)
+    assert SYSTEM.index("Strategy") > SYSTEM.index("- Rest:")          # its own paragraph after the goal types
+
+
+def test_system_names_no_path_credential_or_planner_internal():
+    """Principle 8: the model reads game state only."""
+    import re
+    low = SYSTEM.lower()
+    for bad in (".py", ".json", ".lua", "\\", "c:", "/users", "planner", "survive", "policies", "loothouse",
+                "api key", "apikey", "token", "password", "credential", "secret", "oauth", "anthropic_"):
+        assert bad not in low, bad
+    assert not re.search(r"\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b", SYSTEM)         # no constant's name (TIRED_T, DANGER_R)
+    assert "/" not in SYSTEM.replace("w/o", "")
+
+
+def test_system_explains_the_wants_and_the_new_view_keys():
+    assert "z:N" in SYSTEM and "tired is true" in SYSTEM and "night is true" in SYSTEM
+    assert "then clothing, food, bandages and weapons" not in SYSTEM   # the old want order gave way to the strategy's
+

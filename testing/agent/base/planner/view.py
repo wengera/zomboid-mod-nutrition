@@ -6,6 +6,10 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   fights killed this session, ruling P24-Q, Plan 24 Task 12: the iteration's metric, told to the model), `needs {hunger, thirst, fatigue}` (`stats`),
   `load {weight, max, level}`, `weapon` (the wielded type, else None), `inventory_by_use` ({use: count} over
   `items.USES`, by `world.by_use()`).
+- `night` and `tired` (Plan 24 Task 29: the strategy lines' reads, `goal_prompt.py`): `night` the frame's `me.hour` at
+  `night.LATE_HOUR` or later or under `night.DAWN_HOUR` (the hours `Night.late` reads), `tired` the frame's
+  `stats.fatigue` above `night.TIRED_T` (the first TIRED moodle, the line `Night.wants` reads); each None when its
+  field reads no number.
 - `worn` (PZA/1.6, Plan 24 Task 24): the defence worn per body location, `[[loc, bite, scratch, holes], ...]` by
   location (`World.worn`, the last `me.worn` a frame carried; bite and scratch to 0.1; `holes` 0 where the build does
   not carry it), None until one frame has carried it (unknown, never "nothing worn"): the model picks what to look for
@@ -29,7 +33,9 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   ({use: items} over its containers of each use of `policies.LOOT_WANTS` a loot has not yet taken there: what it is
   known to hold) and `box` (`World.building_boxes`' [minx, miny, maxx, maxy], the woods test's, unrendered);
   `blocked` (ruling P24-Z: every exterior door on the player's floor marked stuck, `night.door_blocked`; `door` is
-  then None, the marked doors left out of `doors` too).
+  then None, the marked doors left out of `doors` too); `zombies_near` (Task 29: the zombies the World holds within
+  BUILDING_ZOMBIE_R (12, the view's middle band) of the building's `box`, else of its nearest listed square: the
+  zombies listed beside it, which the strategy lines read).
 - `zombies_near {"6", "12", "25"}`: the zombies the World holds (seen within its ZOMBIE_TTL_S) within 6, 12 and 25
   tiles, each count cumulative.
 - `met {dense, n, bearing, dist}` (P24-B 1): the World's met ground, `world.met_near()` (the densest MET_R window
@@ -63,10 +69,12 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
 
 The view only reads: the kit is bound by its runner's `observe`, never here (fix 1 M5).
 
-`render(view) -> str`: one `key: value` line per key in `KEYS` order, values as compact sorted JSON except
-`buildings`, capped at the BUILDINGS_SHOWN (6, P24-B 3) nearest, each `id @x,y door x,y dist cN flags h:holds`
+`render(view) -> str`: one `key: value` line per key in `KEYS` order (a key of OPTIONAL_KEYS only when the view
+carries it: Task 29), values as compact sorted JSON except
+`buildings`, capped at the BUILDINGS_SHOWN (6, P24-B 3) nearest, each `id @x,y door x,y dist cN flags h:holds z:N`
 (`door -` with none; flags `L` looted, `v` visited, `s` shunned, `x` blocked (P24-Z), `-` none; `holds` its `use count` pairs, sorted, as
-`food3,water1`, `-` with none: P24-Y), joined by "; "; the whole stays under RENDER_MAX
+`food3,water1`, `-` with none: P24-Y; ` z:N` its `zombies_near`, only when the building carries it: Task 29),
+joined by "; "; the whole stays under RENDER_MAX
 (2048) bytes, asserted at return. On overflow the lowest-value line goes first: `events` (the last event kinds, which
 no rule reads) is emptied to `[]`; then the buildings are cut from the farthest; then the longest line is halved (its
 tail replaced by "...") until it fits, so a long string off the game (an event kind, a goal's reason) cannot pass the
@@ -81,7 +89,7 @@ import time
 from agent.base.items import USES
 from agent.base.items import holds_use
 from agent.base.planner.goals import BUILDING_R, WOODS_R, int_id, open_uses, wanted_uses, window_pick
-from agent.base.planner.night import door_blocked, exterior_doors, shelter_plan
+from agent.base.planner.night import DAWN_HOUR, LATE_HOUR, TIRED_T, door_blocked, exterior_doors, shelter_plan
 from agent.base.planner.policies import LOOT_WANTS, STUCK_REASONS, me_floor, me_xy, place_of
 from agent.base.world import MET_VIEW_R, compass
 
@@ -89,22 +97,35 @@ NEED_MEMORY_S = 120.0
 NEED_USES = ("water", "food", "container", "water_source", "bandage")   # the need marks the view lists, in order
                                                                          # (P24-G 3, P24-L; the care's, P24-AB)
 ZOMBIE_BANDS = (6, 12, 25)
+BUILDING_ZOMBIE_R = 12.0   # tiles from a building's box within which a held zombie is listed beside it (Task 29: the
+                           # view's middle band, ZOMBIE_BANDS[1], a judgment: the strategy's avoid and load lines)
 BUILDINGS_SHOWN = 6
 RENDER_MAX = 2048
 EVENTS_N = 3
-KEYS = ("pos", "hour", "health", "kills", "needs", "needs_wanted", "load", "weapon", "inventory_by_use", "worn",
+KEYS = ("pos", "hour", "night", "health", "kills", "needs", "tired", "needs_wanted", "load", "weapon", "inventory_by_use",
+        "worn",
         "buildings",
         "zombies_near", "met", "attackers", "hit_reaction", "last_goal", "events", "want_shelter", "woods_r", "edge",
         "toward", "scanned_here", "stock_uses", "cooled")
 WHYS = ("done", "stuck", "superseded by the threat", "superseded by an instinct", "looted already", "refused",
         "out of range", "in the woods", "failed")
 THREAT_SENDS = ("attack", "steer", "walkTo", "stop", "hold")   # a superseding send read as the threat's (why_of)
+OPTIONAL_KEYS = ("night", "tired")   # rendered only when the view carries them (Task 29)
 
-__all__ = ["view", "render", "why_of", "shown_ids", "KEYS", "WHYS", "NEED_MEMORY_S", "ZOMBIE_BANDS",
-           "BUILDINGS_SHOWN", "RENDER_MAX", "MET_VIEW_R"]
+__all__ = ["view", "render", "why_of", "shown_ids", "KEYS", "OPTIONAL_KEYS", "WHYS", "NEED_MEMORY_S",
+           "ZOMBIE_BANDS", "BUILDING_ZOMBIE_R", "BUILDINGS_SHOWN", "RENDER_MAX", "MET_VIEW_R"]
 
 
-def _buildings(world, night, kit):
+def _num(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _box_dist(box, x, y):
+    """Tiles from the point (x, y) to the box [minx, miny, maxx, maxy] of whole squares (0 inside it)."""
+    return math.hypot(max(box[0] - x, 0.0, x - (box[2] + 1)), max(box[1] - y, 0.0, y - (box[3] + 1)))
+
+
+def _buildings(world, night, kit, zxy=()):
     z = me_floor(world)
     mx, my = me_xy(world)
     loot = kit.loot if kit is not None else None
@@ -123,6 +144,7 @@ def _buildings(world, night, kit):
             continue
         near = [sq for sq in rooms if sq[2] == z] or rooms
         dist, sq = min((math.hypot(sq[0] + 0.5 - mx, sq[1] + 0.5 - my), sq) for sq in near)
+        box = boxes[b] if b in boxes else (sq[0], sq[1], sq[0], sq[1])
         cs = keys.get(b, [])
         doors = exterior_doors(world, b, z)
         out.append({"id": b, "x": sq[0], "y": sq[1], "door": [doors[0][0], doors[0][1]] if doors else None,
@@ -131,7 +153,8 @@ def _buildings(world, night, kit):
                     "doors": len(doors), "visited": b in visited, "shunned": b in shunned,
                     "shelter": shelter_plan(world, b) is not None, "holds": _holds(world, cs),
                     "blocked": door_blocked(world, b, z) and window_pick(world, b, shunned) is None,
-                    "box": list(boxes[b]) if b in boxes else None})
+                    "box": list(boxes[b]) if b in boxes else None,
+                    "zombies_near": sum(1 for x, y in zxy if _box_dist(box, x, y) <= BUILDING_ZOMBIE_R)})
     return sorted(out, key=lambda r: (r["dist"], r["id"]))
 
 
@@ -205,18 +228,21 @@ def view(world, survive):
     marks = getattr(survive, "need_marks", None) or {}
     by_use = world.by_use()
     mx, my = me_xy(world)
-    zs = [math.hypot(z["x"] - mx, z["y"] - my) for z in world.zombies.values()
-          if z.get("x") is not None and z.get("y") is not None]
+    zxy = [(z["x"], z["y"]) for z in world.zombies.values() if z.get("x") is not None and z.get("y") is not None]
+    zs = [math.hypot(x - mx, y - my) for x, y in zxy]
     woods_r = kit.woods_r if kit is not None else WOODS_R
     edge = world.unexplored_edge(woods_r)
     last = runner.history[-1] if runner is not None and runner.history else None
-    buildings = _buildings(world, night, kit)
+    buildings = _buildings(world, night, kit, zxy)
+    hour, fatigue = me.get("hour"), st.get("fatigue")
     return {
         "pos": {"x": me.get("x"), "y": me.get("y"), "z": me.get("z")},
-        "hour": me.get("hour"),
+        "hour": hour,
+        "night": (hour >= LATE_HOUR or hour < DAWN_HOUR) if _num(hour) else None,   # the hours Night.late reads
         "health": (world.body or {}).get("health"),
         "kills": world.kills,
         "needs": {k: st.get(k) for k in ("hunger", "thirst", "fatigue")},
+        "tired": fatigue > TIRED_T if _num(fatigue) else None,                    # the line Night.wants reads
         "needs_wanted": [u for u in NEED_USES if u in marks and now - marks[u] <= NEED_MEMORY_S],
         "load": {k: load.get(k) for k in ("weight", "max", "level")},
         "weapon": (world.weapon or {}).get("type"),
@@ -255,13 +281,16 @@ def _building(b):
     door = b.get("door")
     door = "%s,%s" % (door[0], door[1]) if door else "-"
     holds = ",".join("%s%s" % (u, n) for u, n in sorted((b.get("holds") or {}).items())) or "-"
-    return "%s @%s,%s door %s %s c%s %s h:%s" % (b.get("id"), b.get("x"), b.get("y"), door, b.get("dist"),
-                                                 b.get("containers"), mark or "-", holds)
+    zs = " z:%s" % b["zombies_near"] if "zombies_near" in b else ""
+    return "%s @%s,%s door %s %s c%s %s h:%s%s" % (b.get("id"), b.get("x"), b.get("y"), door, b.get("dist"),
+                                                   b.get("containers"), mark or "-", holds, zs)
 
 
 def _lines(v, shown, events=True):
     lines = []
     for k in KEYS:
+        if k in OPTIONAL_KEYS and k not in v:
+            continue
         if k == "buildings":
             text = "; ".join(_building(b) for b in (v.get(k) or [])[:shown])
         else:
@@ -285,7 +314,7 @@ def render(v):
         lines = _lines(v, shown, events=False)
     while _size(lines) >= RENDER_MAX:
         i = max(range(len(lines)), key=lambda j: len(lines[j].encode("utf-8")))
-        keep = max(len(lines[i]) // 2, len(KEYS[i]) + 2)
+        keep = max(len(lines[i]) // 2, len(lines[i].split(": ", 1)[0]) + 2)
         lines[i] = lines[i][:keep] + "..."
     text = "\n".join(lines)
     assert len(text.encode("utf-8")) < RENDER_MAX

@@ -6,8 +6,9 @@ scripted source (`fallback`) stands in whenever the model is late, malformed or 
 The contract:
 - What the model sees: the system prompt `SYSTEM`, passed by `--system-prompt` and replacing Claude Code's own, and
   the user prompt `prompt(view) = render(view)` on stdin, nothing else. `SYSTEM` is rendered once at import from
-  `schema/goals.json` (the game, the contract, one line per goal type with its fields, their types, enums and bounds,
-  how the view's building line reads and the places a goal may name, then that the user message is the view);
+  `schema/goals.json` by `planner/goal_prompt.py` (the game, the contract, one line per goal type with its fields,
+  their types, enums and bounds, the strategy paragraph of the written guides' rules (Plan 24 Task 29), how the view's
+  building line reads and the places a goal may name, then that the user message is the view);
   `render(view)` (`planner/view.py`) is the view's text, game state only (principle 8): no path, credential, log or
   planner internals beyond the view's own keys.
 - What it may answer: one JSON object, one of the five goals of `goals.json`. Parsing: the CLI's stdout is its JSON
@@ -86,72 +87,20 @@ import tempfile
 import threading
 import time
 
-from agent.base.planner.goals import BUILDING_R, SCHEMA_PATH, WOODS_R, validate
-from agent.base.planner.view import WHYS, render, shown_ids
+from agent.base.planner.goal_prompt import strategy, system
+from agent.base.planner.goals import WOODS_R, validate
+from agent.base.planner.view import render, shown_ids
 
 LLM_TIMEOUT_S = 20.0          # P23-11: a call answering later than this is a fallback
 EXPLORE_MAX_TILES = 60.0      # P23-V: a model's ExploreToward farther than this from the view's pos is refused
 PLACE_GOALS = ("LootBuilding", "Shelter")   # goals naming a building the view must list
 
-__all__ = ["LLMSource", "SYSTEM", "DEFAULT_CLI", "prompt", "first_object", "model_of", "place_error", "LLM_TIMEOUT_S",
+__all__ = ["LLMSource", "SYSTEM", "DEFAULT_CLI", "prompt", "strategy", "first_object", "model_of", "place_error", "LLM_TIMEOUT_S",
            "EXPLORE_MAX_TILES", "PLACE_GOALS"]
 
 
 # ---------------------------------------------------------------- the system prompt
-def _field_text(name, spec):
-    kind = spec.get("type", "value")
-    if "enum" in spec:
-        kind = "%s, one of %s" % (kind, "|".join(spec["enum"]))
-    if "minimum" in spec and "maximum" in spec:
-        kind = "%s, %s to %s" % (kind, spec["minimum"], spec["maximum"])
-    return "%s (%s): %s" % (name, kind, spec.get("description", ""))
-
-
-def _system():
-    with open(SCHEMA_PATH, encoding="utf-8") as f:
-        entries = json.load(f)["oneOf"]
-    names = [e["properties"]["type"]["const"] for e in entries]
-    lines = [
-        "You play Project Zomboid: a survivor in a zombie apocalypse, driven by a program. The program's instincts "
-        "answer threats, hunger, thirst, the load and the night on their own; you choose the survivor's next goal "
-        "from the view. Answer with one JSON object and nothing else: {\"type\": <one of %s>, ...that type's "
-        "fields}." % ", ".join(names),
-        "The goal types:",
-    ]
-    for e in entries:
-        t = e["properties"]["type"]["const"]
-        fields = "; ".join(_field_text(k, v) for k, v in e["properties"].items() if k != "type")
-        lines.append("- %s: %s Fields: %s" % (t, e.get("description", ""), fields))
-    lines.append("Squares are x, y tiles; north is -y. pos is your position. In the view, each building reads "
-                 "`id @x,y door x,y dist cN flags`: @x,y its nearest room square, door its exterior door square "
-                 "(- none), dist in tiles, N its containers, flags L looted (nothing left to take), v visited, "
-                 "s shunned, x blocked (every door stuck: never named), - none.")
-    lines.append("The refusal rule: name a building only by an id the view lists; an ExploreToward square within "
-                 "%g tiles of pos and, once the view lists a building, within woods_r tiles of one (the view's "
-                 "woods_r, %g at the start; farther is the woods); a LootBuilding only a building listed without the L flag. An answer breaking it is refused "
-                 "and the program chooses instead." % (EXPLORE_MAX_TILES, WOODS_R))
-    lines.append("Your loop, every goal a building: the program clears the zombies near you itself; you loot the "
-                 "nearest building listed without L within %g tiles (LootBuilding), then the next nearest, wanting "
-                 "water and water containers first, then clothing, food, bandages and weapons (h: lists what each "
-                 "building is known to hold); walk only toward buildings: toward names the next building to walk "
-                 "to when none is near (its door), and an ExploreToward finds the next house at the edge of the "
-                 "known buildings, never out into open ground." % BUILDING_R)
-    lines.append("met is the ground where zombies were met in the last minutes: dense the centre of the densest "
-                 "group, n how many, bearing and dist from pos. Zombies there are still about: prefer ground away "
-                 "from met.dense, and never explore toward its bearing while met.n is 3 or more.")
-    lines.append("attackers is how many zombies are attacking you now (the instincts answer them; a goal cannot).")
-    lines.append("worn lists what you wear as [location, bite, scratch, holes]: a higher bite and scratch turns more "
-                 "zombie attacks, a hole defends nothing there, null means not read yet. The program puts on a "
-                 "garment you hold when it beats the one worn at its location, so looting clothing with better "
-                 "protection helps.")
-    lines.append("hit_reaction names the hit you are reeling from now, null when none.")
-    lines.append("last_goal is how the last goal ended: end done, failed, superseded or refused, and why, one of: "
-                 "%s." % ", ".join(WHYS))
-    lines.append("The user message is the view: one `key: value` line per key.")
-    return "\n".join(lines) + "\n"
-
-
-SYSTEM = _system()
+SYSTEM = system(EXPLORE_MAX_TILES)   # `planner/goal_prompt.py` (Task 29: lifted out of this module)
 
 # The CLI call (P23-V): the goal contract as the whole system prompt, nothing else of Claude Code's context. Read
 # against `claude --help` at 2.1.310; the prompt (the rendered view) goes on stdin.
