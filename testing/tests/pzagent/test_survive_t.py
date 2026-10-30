@@ -118,26 +118,30 @@ def test_e11_two_at_point_blank_after_a_missed_shove_break_away_through_the_gap(
 def test_one_at_point_blank_after_a_missed_shove_is_shoved_again_while_the_swing_is_divided(tmp_path):
     """Review-t3 finding 1 (#4370, #4371, #4373, #4374): at E11's armPain (219.9, a divider of 22) the swing lands at
     1/22 of its damage, the shove's knock-down is a crit roll pain does not touch: alone within FIGHT_REACH, the
-    missed-shove zombie is shoved again at once (SHOVE_REPEAT_S binds the break's pair only), no `corner`."""
+    missed-shove zombie is shoved again at once (SHOVE_REPEAT_S binds the break's pair only). Named change, ruling
+    P25-I (Plan 25 Task 7): the branch is logged, `corner` {kind shove, sore true}."""
     r, sv = shoved(tmp_path, [z(1, 100.49)])
     a = tick(r, sv)
-    assert (a.type, a.args) == ("shove", {"targetId": 1}) and "corner" not in threat_why(tmp_path)
+    assert (a.type, a.args) == ("shove", {"targetId": 1})
+    assert threat_why(tmp_path)["corner"] == {"kind": "shove", "shoved": 1, "n": 1, "sore": True}
     assert not any(x.type == "attack" for x in r.acts.history)
     all_sends_valid(r)
 
 
 def test_boxed_in_with_no_clear_heading_is_shoved_again_not_swung_at(tmp_path):
-    """Two within reach but no heading clear (the break fails): the divided swing is not the answer, the shove is."""
+    """Two within reach but no heading clear (the break fails): the divided swing is not the answer, the shove is
+    (named change, P25-I: logged `corner` {kind shove})."""
     r, sv = shoved(tmp_path, A112)
     sv.fight.clear_heading = lambda *a, **k: False   # no gap
     sv.fight._clear_turn = lambda *a, **k: None
     a = tick(r, sv)
-    assert a.type == "shove" and "corner" not in threat_why(tmp_path)
+    assert a.type == "shove" and threat_why(tmp_path)["corner"] == {"kind": "shove", "shoved": 1, "n": 2, "sore": True}
 
 
 @pytest.mark.parametrize("k", [{"endurance": 0.6}, {"fatigue": 0.7}])
 def test_under_the_endurance_or_tired_hold_the_missed_shove_is_shoved_again(tmp_path, k):
-    """The hold halves the swing again (#4371): the lone zombie missed by a shove is shoved again, never swung at."""
+    """The hold halves the swing again (#4371): the lone zombie missed by a shove is shoved again, never swung at
+    (named change, P25-I: logged `corner` {kind shove, sore false}: no arms' pain read)."""
     r, sv = make(tmp_path)
     r.frame(zombies=[z(1, 100.49)], health=70.0, **k)
     assert tick(r, sv).type == "shove"
@@ -146,7 +150,7 @@ def test_under_the_endurance_or_tired_hold_the_missed_shove_is_shoved_again(tmp_
     r.advance(0.5)
     r.frame(zombies=[z(1, 100.49)], health=70.0, **k)
     a = tick(r, sv)
-    assert a.type == "shove" and "corner" not in threat_why(tmp_path)
+    assert a.type == "shove" and threat_why(tmp_path)["corner"] == {"kind": "shove", "shoved": 1, "n": 1, "sore": False}
 
 
 def test_the_arms_hold_alone_leaves_the_swing_undivided_so_the_corner_swings(tmp_path):

@@ -50,14 +50,15 @@ def test_arm_pain_12_with_a_fallen_pin_stomps(tmp_path):
 
 def test_arm_pain_12_with_a_standing_pin_at_point_blank_shoves(tmp_path):
     """Named change, Plan 25 Task 3 fix 1 (review-t3 finding 1, reversing P25-A's swing here): the divided swing is not
-    taken after a missed shove, the lone zombie in reach is shoved again, as P24-AG shoved every time."""
+    taken after a missed shove, the lone zombie in reach is shoved again, as P24-AG shoved every time. Named change,
+    ruling P25-I (Plan 25 Task 7): the branch is logged, `corner` {kind shove}."""
     r, f = fight(tmp_path, [z(1, 100.8)], arm=12.0)
     a = f.step()
     assert (a.type, a.args) == ("shove", {"targetId": 1}) and f.why["shove"] == "strain" and f.why["strain"] == 12.0
     r.answer({"state": "done", "result": {"knockdown": False, "attackStarted": True, "targetDead": False}})
     fr(r, [z(1, 100.8)], 12.0)
     a = f.step()
-    assert a.type == "shove" and "corner" not in f.why
+    assert a.type == "shove" and f.why["corner"] == {"kind": "shove", "shoved": 1, "n": 1, "sore": True}
     r.answer()
     r.advance(P.SHOVE_REPEAT_S)
     fr(r, [z(1, 100.8)], 12.0)

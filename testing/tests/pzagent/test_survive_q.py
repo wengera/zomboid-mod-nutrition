@@ -43,13 +43,15 @@ def test_the_arms_hold_alone_fights_a_zombie_within_keep_r_with_the_backpedal_ne
 
 def test_at_point_blank_the_wounded_fight_shoves_every_time(tmp_path):
     """Named change, Plan 25 Task 3 fix 1 (review-t3 finding 1): a shove that read no knock-down is followed, with the
-    swing divided (armPain 25), by the shove again at the lone zombie in reach, never the swing, P25-A on or off."""
+    swing divided (armPain 25), by the shove again at the lone zombie in reach, never the swing, P25-A on or off.
+    Named change, ruling P25-I (Plan 25 Task 7): with P25-A on the branch is logged, `corner` {kind shove}."""
     r, sv = make(tmp_path)
     fr(r, [z(1, 100.8)], 25.0)
     assert tick(r, sv).type == "shove" and threat_why(tmp_path)["shove"] == "strain"
     r.answer(DONE_SHOVE)
     fr(r, [z(1, 100.8)], 25.0)
-    assert tick(r, sv).type == "shove" and "corner" not in threat_why(tmp_path)
+    assert tick(r, sv).type == "shove"
+    assert threat_why(tmp_path)["corner"] == {"kind": "shove", "shoved": 1, "n": 1, "sore": True}
     assert not any(x.type == "attack" for x in r.acts.history)
     (tmp_path / "off").mkdir()
     r2, sv2 = make(tmp_path / "off")
@@ -124,7 +126,8 @@ def test_the_endurance_or_tired_hold_fights_within_keep_r_shove_then_stomp_never
     fights a zombie within KEEP_R as the arms' hold does: the backpedal at 2.0 tiles (never the swing), the shove at
     point blank every time, the stomp of a fallen one, never the floor strike; logged `spent`. With HOLD_WIDE off
     (the rule Task 32 landed) the endurance or tired hold flees `strain`. Named change, Plan 25 Task 3 (ruling P25-A):
-    Plan 25 Task 3 fix 1: a shove that read no knock-down is shoved again, never swung at (the divided swing)."""
+    Plan 25 Task 3 fix 1: a shove that read no knock-down is shoved again, never swung at (the divided swing); named
+    change, ruling P25-I (Plan 25 Task 7): logged `corner` {kind shove, sore: the arms' pain read}."""
     r, sv = make(tmp_path)
     fr(r, [z(1, 102.0)], arm, **k)
     a = tick(r, sv)
@@ -139,7 +142,8 @@ def test_the_endurance_or_tired_hold_fights_within_keep_r_shove_then_stomp_never
     r.answer(DONE_SHOVE)
     fr(r, [z(1, 100.8)], arm, **k)
     a = tick(r, sv)
-    assert a.type == "shove" and "corner" not in threat_why(tmp_path)   # review-t3 finding 1: shoved again, not swung
+    assert a.type == "shove"                                  # review-t3 finding 1: shoved again, not swung (P25-I: logged)
+    assert threat_why(tmp_path)["corner"] == {"kind": "shove", "shoved": 1, "n": 1, "sore": arm is not None}
     r.answer()
     fr(r, [z(1, 100.8, floor=True)], arm, **k)
     assert tick(r, sv).type == "stomp"
