@@ -27,7 +27,8 @@ def rand_frame(rng, seq=1):
     def b():
         return rng.random() < 0.5
     zombies = [{"id": rng.randrange(1, 9999), "x": lua_float(rng), "y": lua_float(rng), "dist": lua_float(rng, 0, 30),
-                "hasTarget": b(), "crawler": b(), "health": maybe(rng, lua_float(rng, 0, 2))}
+                "hasTarget": b(), "crawler": b(), "health": maybe(rng, lua_float(rng, 0, 2)),
+                "onFloor": maybe(rng, True, 0.3)}
                for _ in range(rng.choice([0, 0, 1, 2, 5]))]
     parts = [{"i": i, "h": lua_float(rng, 0, 100), "bleeding": b(), "bleedingTime": lua_float(rng, 0, 20),
               "bandaged": b(), "bandageLife": maybe(rng, lua_float(rng, 0, 5)), "bandageDirty": maybe(rng, b()),
@@ -43,10 +44,12 @@ def rand_frame(rng, seq=1):
                "dragDown": maybe(rng, b()), "aiming": maybe(rng, b()), "forceAim": maybe(rng, b()),
                "worn": maybe(rng, [{"loc": rng.choice(["base:tshirt", "base:jacket"]), "bite": lua_float(rng, 0, 100),
                                     "scratch": lua_float(rng, 0, 100), "holes": rng.randrange(0, 4),
-                                    "cond": lua_float(rng, 0, 10)} for _ in range(rng.choice([0, 1, 2]))], 0.7)},
+                                    "cond": lua_float(rng, 0, 10)} for _ in range(rng.choice([0, 1, 2]))], 0.7),
+               "loadedWidth": maybe(rng, rng.choice([104, 152]), 0.5)},
         "stats": {k: lua_float(rng, 0, 1) for k in pza1.GROUPS["stats"]},
         "body": {"health": lua_float(rng, 0, 100), "bleeding": rng.randrange(0, 3), "scratched": rng.randrange(0, 3),
-                 "bitten": 0, "parts": parts},
+                 "bitten": 0, "parts": parts, "armPain": maybe(rng, lua_float(rng, 0, 40)),
+                 "strain": maybe(rng, {"l": lua_float(rng, 0, 30), "r": lua_float(rng, 0, 30)})},
         "load": {"weight": lua_float(rng, 0, 30), "max": 12, "level": rng.randrange(0, 4), "n": rng.randrange(0, 40)},
         "weapon": maybe(rng, {"type": "Base.Axe", "cond": rng.randrange(0, 10), "reach": lua_float(rng, 0, 2),
                               "ammo": maybe(rng, rng.randrange(0, 15), 0.5)}, 0.3),
@@ -196,7 +199,7 @@ def test_the_constants():
     for k in pza1.KINDS:
         assert pza1.ORDER[k][0] == "kind"
     assert set(pza1.GROUPS) == {"me", "stats", "body", "load", "weapon", "action", "act", "cost"}
-    assert set(pza1.RECORDS) == {"zombie", "part", "square", "container", "portal", "water", "wornLoc"}   # 1.6
+    assert set(pza1.RECORDS) == {"zombie", "part", "square", "container", "portal", "water", "wornLoc", "strain"}   # 1.6, 1.7
     assert pza1.GAITS == ("walk", "run", "sprint")
     assert pza1.ACTION_TYPES[:11] == ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan",
                                       "rate", "sleep")                    # PZA/1.5 appends its actions after these
@@ -276,8 +279,9 @@ def test_the_lua_frame_encoder_writes_what_python_encodes(lua_schema):
     f["load"].update(weight=19.555, max=12, level=3, n=37)
     f["weapon"] = {"type": "Base.Axe", "cond": 7, "reach": 1.45, "ammo": None}          # a nil field in weapon
     f["action"] = {"class": 'IS"Walk\\To', "n": 2}                                       # a quote and a backslash
-    f["zombies"] = [{"id": 11, "x": 12.5, "y": 13.0, "dist": 2.5, "hasTarget": True, "crawler": False, "health": 0.75},
-                    {"id": 12, "x": 14.25, "y": 9.0, "dist": 4.0, "hasTarget": False, "crawler": True, "health": 1.0}]
+    f["zombies"] = [{"id": 11, "x": 12.5, "y": 13.0, "dist": 2.5, "hasTarget": True, "crawler": False, "health": 0.75, "onFloor": None},
+                    {"id": 12, "x": 14.25, "y": 9.0, "dist": 4.0, "hasTarget": False, "crawler": True, "health": 1.0,
+                     "onFloor": True}]
     py = pza1.encode("frame", f)
     out = lua_frame(lua_schema, f)
     assert json.loads(out) == json.loads(py)
@@ -391,7 +395,7 @@ def test_me_and_cost_append_their_new_fields_after_the_prior_prefix():
     assert pza1.GROUPS["me"][11:14] == ("zombiesSeen", "zombiesListed", "hour")
     assert pza1.GROUPS["cost"][8:] == ("pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs",
                                        "maxPollMs", "maxStartMs")
-    assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12, "part": 2, "wornLoc": 3}
+    assert pza1.PRIOR == {"me": 11, "body": 5, "cost": 8, "zombie": 7, "square": 12, "part": 2, "wornLoc": 3}
 
 
 def test_a_frame_written_before_the_append_decodes_with_the_new_fields_none_and_no_shorter_or_longer_one_does():
@@ -474,7 +478,7 @@ def test_death_is_an_event_kind_with_its_fields_and_round_trips():
 def test_me_and_square_append_the_1_4_fields_after_their_1_3_orders():
     assert pza1.GROUPS["me"][14:17] == ("attackers", "hitReaction", "dragDown")
     assert pza1.RECORDS["square"][16:18] == ("hopN", "hopW")
-    assert pza1.PRIOR == {"me": 11, "cost": 8, "square": 12, "part": 2, "wornLoc": 3}       # the oldest arity a writer used is unchanged
+    assert pza1.PRIOR == {"me": 11, "body": 5, "cost": 8, "zombie": 7, "square": 12, "part": 2, "wornLoc": 3}       # the oldest arity a writer used is unchanged
     assert "busy" in pza1.REASONS
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
     assert [d["me"]["properties"][f]["type"] for f in ("attackers", "hitReaction", "dragDown")] == [
@@ -657,7 +661,7 @@ def test_bandage_takes_keep_moving_a_bool_defaulting_false_and_the_ride_reasons_
         with pytest.raises(TypeError):
             actions.check(pza1.Bandage(50, keepMoving=bad))
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
-    assert d["reason"]["enum"][-4:-1] == ["leg part", "stopped", "aiming"]          # PZA/1.6 appends not a window
+    assert d["reason"]["enum"][-8:-5] == ["leg part", "stopped", "aiming"]         # PZA/1.6 and 1.7 append after them
     assert {"leg part", "stopped", "aiming"} <= pza1.REASONS
     tools = {t["name"]: t for t in json.load(open(os.path.join(ROOT, "testing", "agent", "base", "schema", "tools.json"),
                                                    encoding="utf-8"))}
@@ -745,7 +749,7 @@ def test_keep_moving_description_states_the_leg_part_rule_and_the_open_line_obli
 # ---- PZA/1.6 (Plan 24 Task 9 fix 9, review-t18 ruling 5): clothing, me.worn, the door's locked, wear ------------------
 
 def test_me_appends_worn_a_list_of_worn_loc_records_and_a_1_5_6_frame_decodes_with_it_none():
-    assert pza1.GROUPS["me"][19:] == ("worn",) and tuple(pza1.SHAPES["me"]["worn"]) == ("list", "wornLoc")
+    assert pza1.GROUPS["me"][19:] == ("worn", "loadedWidth") and tuple(pza1.SHAPES["me"]["worn"]) == ("list", "wornLoc")
     assert pza1.RECORDS["wornLoc"] == ("loc", "bite", "scratch", "holes", "cond") and pza1.PRIOR["me"] == 11 and pza1.PRIOR["wornLoc"] == 3
     rng = random.Random(56)
     f = rand_frame(rng)
@@ -812,7 +816,7 @@ def test_the_e7_log_decodes_with_worn_clothing_and_locked_absent(tmp_path):
 
 def test_window_is_an_action_with_its_args_result_and_reason():
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
-    assert pza1.ACTION_TYPES[-2:] == ("wear", "window") and d["reason"]["enum"][-1] == "not a window"
+    assert pza1.ACTION_TYPES[-3:-1] == ("wear", "window") and d["reason"]["enum"][-5] == "not a window"
     assert pza1.ACTION_ARGS["window"] == {"x": "int", "y": "int", "smash": "bool"}
     assert set(d["result_window"]["properties"]) == {"smashed", "opened", "cut", "wounds"}
     body = {"kind": "act", "seq": 3, "tick": 1, "wallMs": 2, "aid": "a1", "type": "window", "state": "done",

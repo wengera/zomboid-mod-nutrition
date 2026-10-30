@@ -85,10 +85,10 @@ def _write_synthetic(state_dir, sink=None):
         me = dict(DEFAULT_FRAME["me"], x=100.0 + (i // 2) * 0.5, moving=i % 4 != 3)
         stats = dict(DEFAULT_FRAME["stats"], hunger=0.1 if i < 20 else 0.25)
         zs = [{"id": 11, "x": 110.0 - i * 0.25, "y": 200.0, "dist": 10.0 - i * 0.25,
-               "hasTarget": i >= 5, "crawler": False, "health": 1.5}]
+               "hasTarget": i >= 5, "crawler": False, "health": 1.5, "onFloor": None}]
         if i < 15:
             zs.append({"id": 12, "x": 104.0, "y": 204.0 - i * 0.25, "dist": 5.5 - i * 0.125,
-                       "hasTarget": True, "crawler": i >= 10, "health": 0.5})
+                       "hasTarget": True, "crawler": i >= 10, "health": 0.5, "onFloor": None})
         m.frame(me=me, stats=stats, zombies=zs, gameMin=480.0 + i)
         step()
         if i in (5, 6, 7):

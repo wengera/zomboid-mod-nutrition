@@ -819,3 +819,112 @@ function S.events(p, prev)
     end
     return ev, cur
 end
+
+-- ---- the arms' strain and pain, the loaded grid's width (PZA/1.7, Task 9 fix 11; jar-reads-2 sections 11 and 13) -------
+-- body.armPain: the summed getPain() of the six arm parts Hand_L, Hand_R, ForeArm_L, ForeArm_R, UpperArm_L, UpperArm_R
+-- (BodyDamage.getBodyPart(BodyPartType)), the sum the engine divides a melee swing's damage by once it passes 10 (#4370);
+-- body.strain = {l, r}: each side's largest getStiffness() over its three arm parts (#4368, #4369). Both rounded to 0.01
+-- (the stiffness decays by a small step each server update), so the body group elides while they hold; the six part objects
+-- are fetched once per BodyDamage (S.arms). An absent BodyPartType constant, getBodyPart, getPain or getStiffness leaves its
+-- field nil and is named in missing; a raise costs the two fields alone (raise:body:arms). Cost a frame: twelve Java calls.
+-- me.loadedWidth: getCell():getChunkMap(0):getWidthInTiles(), the side of the client's loaded square grid in tiles (104 at
+-- 1280 x 720, 152 at 1920 x 1080; #4375): carried on the first frame and on a frame where it changed, nil otherwise (a reader
+-- keeps the last value, as for me.worn), re-read every WIDTH_EVERY-th frame. Appended here (CLAUDE.md section 5: the repo:
+-- pointers into Sense keep their lines); S.frame is wrapped and Main calls it through the table.
+S.WIDTH_EVERY = 100       -- frames between two reads of the loaded grid's width
+S.widthFrames = 0
+S.widthSeen = nil
+S.armBd = nil
+S.arms = nil
+local ARM_SIDES = { { "l", { "Hand_L", "ForeArm_L", "UpperArm_L" } }, { "r", { "Hand_R", "ForeArm_R", "UpperArm_R" } } }
+
+local function round2(v) return math.floor(v * 100 + 0.5) / 100 end
+
+-- the six arm part objects of body damage bd as { side, part } entries, nil when one cannot be had
+local function armParts(bd)
+    if S.armBd == bd and S.arms ~= nil then return S.arms end
+    local out = {}
+    for _, side in ipairs(ARM_SIDES) do
+        for _, name in ipairs(side[2]) do
+            local t = BodyPartType ~= nil and BodyPartType[name] or nil
+            if t == nil then PZA.missing(S.missing, "BodyPartType." .. name); return nil end
+            local ok, part = PZA.call(bd, "getBodyPart", t)
+            if not ok then PZA.missing(S.missing, "getBodyPart"); return nil end
+            if part == nil then return nil end
+            out[#out + 1] = { side = side[1], part = part }
+        end
+    end
+    S.armBd, S.arms = bd, out
+    return out
+end
+
+local function armReads(p, b)
+    local okB, bd = PZA.call(p, "getBodyDamage")
+    if not okB then return end
+    local arms = armParts(bd)
+    if arms == nil then return end
+    local pain, painOk, stiffOk = 0, true, true
+    local big = { l = 0, r = 0 }
+    for i = 1, #arms do
+        local a = arms[i]
+        local okP, v = PZA.call(a.part, "getPain")
+        if okP and type(v) == "number" then pain = pain + v else painOk = false; PZA.missing(S.missing, "getPain") end
+        local okS, s = PZA.call(a.part, "getStiffness")
+        if okS and type(s) == "number" then
+            if s > big[a.side] then big[a.side] = s end
+        else
+            stiffOk = false
+            PZA.missing(S.missing, "getStiffness")
+        end
+    end
+    if painOk then b.armPain = round2(pain) end
+    if stiffOk then b.strain = { l = round2(big.l), r = round2(big.r) } end
+end
+
+local function meWidth(p, f)
+    S.widthFrames = S.widthFrames + 1
+    if S.widthSeen ~= nil and S.widthFrames % S.WIDTH_EVERY ~= 1 then return end
+    local cell = getCell ~= nil and getCell() or nil
+    local okM, cm = PZA.call(cell, "getChunkMap", 0)
+    if not okM then PZA.missing(S.missing, "getChunkMap"); return end
+    local okW, w = PZA.call(cm, "getWidthInTiles")
+    if not okW or type(w) ~= "number" then PZA.missing(S.missing, "getWidthInTiles"); return end
+    if w ~= S.widthSeen then
+        f.me.loadedWidth = w
+        S.widthSeen = w
+    end
+end
+
+local frameArmsBase = S.frame
+function S.frame(p)
+    local f = frameArmsBase(p)
+    if f.body ~= nil then guarded("body:arms", armReads, p, f.body) end
+    if f.me ~= nil then guarded("me:width", meWidth, p, f) end
+    return f
+end
+
+-- zombie.onFloor (PZA/1.7, Task 9 fix 11): true when a listed zombie lies on the floor, isOnFloor() read through the frame's
+-- own object map (S.zobj, the walk's id to object); nil when it stands (null on the wire), so a frame of standing zombies
+-- carries none. One Java call a listed zombie; an absent member leaves every record's field nil and is named in missing. It
+-- is the planner's read for the stomp (a fallen target), and for a weapon finish on a fallen zombie. Appended here
+-- (CLAUDE.md section 5: the repo: pointers into Sense keep their lines); S.frame is wrapped, Main calls it through the table.
+local function zombiesFloor(f)
+    local objs = S.zobj
+    if objs == nil or f.zombies == nil then return end
+    for i = 1, #f.zombies do
+        local rec = f.zombies[i]
+        local z = rec.id ~= nil and objs[rec.id] or nil
+        if z ~= nil then
+            local ok, v = PZA.call(z, "isOnFloor")
+            if not ok then PZA.missing(S.missing, "isOnFloor") end
+            if v == true then rec.onFloor = true end
+        end
+    end
+end
+
+local frameFloorBase = S.frame
+function S.frame(p)
+    local f = frameFloorBase(p)
+    guarded("zombies:floor", zombiesFloor, f)
+    return f
+end

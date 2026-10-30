@@ -245,7 +245,7 @@ def test_worn_and_rip_are_the_schemas_and_an_old_line_decodes_without_them(lua, 
     load(lua)
     assert pza1.EVENT_FIELDS["item_added"][-3:] == ("worn", "rip", "clothing")      # PZA/1.6 appends clothing
     assert pza1.EVENT_FIELDS["item_changed"][-3:] == ("worn", "rip", "clothing")
-    assert lua.eval("PZA.VERSION") == "1.6.1"
+    assert lua.eval("PZA.VERSION") == "1.7"
     lua.execute("PZA.link.init('admin')")
     lua.execute("PZA.emit('event', { event = 'item_added', gameMin = 451, itemId = 70,"
                 " fullType = 'Base.Tshirt_DefaultTEXTURE', weight = 0.1, use = 'other', worn = true, rip = 'cotton' })")

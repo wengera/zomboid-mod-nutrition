@@ -186,9 +186,9 @@ def test_an_x_prior_that_is_not_an_arity_below_the_groups_is_refused(tmp_path, p
 
 def test_the_prior_arities_reach_the_python_module():
     sch = PS.load()
-    assert {g: d["prior"] for g, d in sch["groups"].items() if d["prior"] is not None} == {"me": 11, "cost": 8}
-    assert {r: d["prior"] for r, d in sch["records"].items() if d["prior"] is not None} == {"square": 12, "part": 2, "wornLoc": 3}
-    assert 'PRIOR = {\n    "me": 11,\n    "cost": 8,\n    "wornLoc": 3,\n    "part": 2,\n    "square": 12,\n}' in PS.render_py(sch)
+    assert {g: d["prior"] for g, d in sch["groups"].items() if d["prior"] is not None} == {"me": 11, "body": 5, "cost": 8}
+    assert {r: d["prior"] for r, d in sch["records"].items() if d["prior"] is not None} == {"square": 12, "part": 2, "wornLoc": 3, "zombie": 7}
+    assert 'PRIOR = {\n    "me": 11,\n    "body": 5,\n    "cost": 8,\n    "wornLoc": 3,\n    "part": 2,\n    "zombie": 7,\n    "square": 12,\n}' in PS.render_py(sch)
 
 
 # ---- Plan 23 Task 4: PZA/1.2 (the square's edges, me.hour, the sleep action, interact's maxWeight) -------------------

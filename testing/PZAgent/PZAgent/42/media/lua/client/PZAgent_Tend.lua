@@ -769,3 +769,86 @@ K.types.wear = {
         markWear(st)
     end,
 }
+
+-- ---- unwear {itemId} (PZA/1.7, Task 9 fix 11; jar-reads-2 section 14, rows #4376 and #4377) -------------------------------
+-- A worn garment taken off as vanilla's Unequip does it (ISInventoryPaneContextMenu.lua:2847 queues ISUnequipAction:new(
+-- player, item, 50)): 50 ticks, stopped by a run, and by a walk unless the garment's body location is in
+-- ISWearClothing.WalkBodyLocations (the accessory locations, lua:shared/TimedActions/ISWearClothing.lua:176-202). Its server
+-- complete empties the location (removeWornItem) and leaves the garment in the main inventory unless the inventory has no
+-- room for it (setWornItem places it on the floor then), where the RipClothing recipe accepts it (IsNotWorn refuses a worn or
+-- held item). check: itemId a number (bad args), the item held (none held), worn (W.wornOf, isWorn(): else not worn), not in a
+-- hand (isEquipped(): else held), and the player not moving unless the garment's location is in WalkBodyLocations (isPlayerMoving:
+-- else moving; an absent list counts every location as stopping on a walk, fail-closed). The first tick queues the action through
+-- K.queueAction (not loaded, not valid). Done {itemId, loc} once getWornItems():contains(item) reads false with the item in
+-- the main inventory (ItemContainer.contains); failed dropped once it reads false with the item gone from it; failed stopped
+-- when the action left the vanilla queue UNWEAR_SETTLE_MS ago with it still worn (a run or a walk stopped it); UNWEAR_MS
+-- after the queue, interrupted. At every end the garment is marked for Sense's re-read (markWear: S.recheck, S.wornDirty).
+K.UNWEAR_MS = 10000         -- a garment still worn this long after its queue is interrupted
+K.UNWEAR_SETTLE_MS = 2000   -- the server's complete reaches the client late; past this after the action left the queue, stopped
+
+-- whether action still sits in the player's vanilla queue (ISTimedActionQueue.hasAction), index-checked and under pcall
+local function unwearQueued(action)
+    local Q = ISTimedActionQueue
+    if Q == nil or Q.hasAction == nil then return false end
+    local ok, has = pcall(Q.hasAction, action)
+    return ok and has == true
+end
+
+-- whether the garment's body location lets the unequip run beside a walk: its location is in WalkBodyLocations
+local function walkOk(it)
+    local list = ISWearClothing ~= nil and ISWearClothing.WalkBodyLocations or nil
+    if type(list) ~= "table" then return false end
+    local _, loc = PZA.call(it, "getBodyLocation")
+    if loc == nil then return false end
+    for i = 1, #list do
+        if list[i] == loc or tostring(list[i]) == tostring(loc) then return true end
+    end
+    return false
+end
+
+-- the garment's state: worn (getWornItems():contains), held in the main inventory (contains; nil when unreadable, which
+-- counts as held), and whether the worn list was readable
+local function unwearReads(p, it)
+    local _, wi = PZA.call(p, "getWornItems")
+    local okW, w = PZA.call(wi, "contains", it)
+    local _, inv = PZA.call(p, "getInventory")
+    local okI, h = PZA.call(inv, "contains", it)
+    local held = nil
+    if okI then held = h == true end
+    return okW and w == true, held, okW
+end
+
+K.types.unwear = {
+    check = function(args, p)
+        local it, why = heldItem(args, p)
+        if it == nil then return false, why end
+        if not W.wornOf(it) then return false, "not worn" end
+        if flag(it, "isEquipped") then return false, "held" end
+        if flag(p, "isPlayerMoving") and not walkOk(it) then return false, "moving" end
+        return true, "", { id = args.itemId, item = it, loc = W.locOf(it), queuedAt = nil, action = nil, leftAt = nil }
+    end,
+    tick = function(p, st)
+        if isDead(p) then return "failed", "dead" end
+        if st.queuedAt == nil then
+            if not PZA.field(p, "getWornItems") then return "failed", "not loaded" end
+            local ok, why, action = K.queueAction(ISUnequipAction, "not valid", nil, p, st.item, 50)
+            if not ok then return "failed", why end
+            st.queuedAt, st.action = PZA.now(), action
+            return nil
+        end
+        local worn, held, readable = unwearReads(p, st.item)
+        if readable and not worn then
+            markWear(st)
+            if held ~= false then return "done", { itemId = st.id, loc = st.loc } end
+            return "failed", "dropped"
+        end
+        local now = PZA.now()
+        if st.leftAt == nil and not unwearQueued(st.action) then st.leftAt = now end
+        if st.leftAt ~= nil and now - st.leftAt >= K.UNWEAR_SETTLE_MS then return "failed", "stopped" end
+        if now - st.queuedAt > K.UNWEAR_MS then return "failed", "interrupted" end
+        return nil
+    end,
+    stop = function(p, st, reason)
+        markWear(st)
+    end,
+}

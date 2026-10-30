@@ -26,9 +26,9 @@ ORDER = {
 }
 # a frame's groups, elidable in a delta
 GROUPS = {
-    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn"),
+    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth"),
     "stats": ("hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature"),
-    "body": ("health", "bleeding", "scratched", "bitten", "parts"),
+    "body": ("health", "bleeding", "scratched", "bitten", "parts", "armPain", "strain"),
     "load": ("weight", "max", "level", "n"),
     "weapon": ("type", "cond", "reach", "ammo"),
     "action": ("class", "n"),
@@ -38,16 +38,19 @@ GROUPS = {
 # a group's or record's oldest arity (before its appended fields): a shorter array of it, down to this, decodes with the trailing fields None
 PRIOR = {
     "me": 11,
+    "body": 5,
     "cost": 8,
     "wornLoc": 3,
     "part": 2,
+    "zombie": 7,
     "square": 12,
 }
 # the positional records
 RECORDS = {
     "wornLoc": ("loc", "bite", "scratch", "holes", "cond"),
     "part": ("i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected"),
-    "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health"),
+    "strain": ("l", "r"),
+    "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor"),
     "portal": ("open", "locked", "barricaded"),
     "container": ("type", "n", "items"),
     "water": ("amount", "tainted", "infinite"),
@@ -56,14 +59,14 @@ RECORDS = {
 # each positional field that is not a plain value: ("group" | "rec" | "list" | "vlist", its name)
 SHAPES = {
     "me": {"worn": ("list", "wornLoc")},
-    "body": {"parts": ("list", "part")},
+    "body": {"parts": ("list", "part"), "strain": ("rec", "strain")},
     "frame": {"me": ("group", "me"), "stats": ("group", "stats"), "body": ("group", "body"), "load": ("group", "load"), "weapon": ("group", "weapon"), "action": ("group", "action"), "act": ("group", "act"), "zombies": ("list", "zombie"), "cost": ("group", "cost")},
     "container": {"items": ("vlist", None)},
     "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None), "water": ("rec", "water")},
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
-REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window"))
-ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window")
+REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "dropped"))
+ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
     "walkTo": {"x": "float", "y": "float", "gait": "gait"},
@@ -85,6 +88,7 @@ ACTION_ARGS = {
     "fill": {"itemId": "int", "x": "int", "y": "int"},
     "wear": {"itemId": "int"},
     "window": {"x": "int", "y": "int", "smash": "bool"},
+    "unwear": {"itemId": "int"},
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
@@ -439,3 +443,10 @@ class Window(_Cmd):
     x: int  # The window square's x (the square whose window record the map reads; the window sits on its north or west edge).
     y: int  # The window square's y.
     smash: bool = False  # True to smash the window when it will not open (perma-locked, or still shut after the open's struggle): noise, and a cut 1 time in 2 climbing through the glass; false fails locked instead.
+
+
+@dataclasses.dataclass(frozen=True)
+class Unwear(_Cmd):
+    """Take off a worn garment as vanilla's Unequip does (ISUnequipAction, 50 ticks): its body location empties and the garment stays in the main inventory, where a rip accepts it (a worn or held item is refused by the recipe). Refused none held, not worn for an item that is not worn, held for one in a hand, moving while the character moves unless the garment's location is one vanilla lets be taken off on a walk (the accessory locations: hats, masks, gloves, eyes, neck, wrists, fingers, back, satchel, scarf, ammo strap, elbows; a shirt, a dress or trousers stop on a walk). Fails stopped when a run or a walk stopped the action, dropped when the inventory had no room and the garment fell to the floor, interrupted when it stayed worn."""
+    TYPE: ClassVar[str] = "unwear"
+    itemId: int  # The worn garment's id.

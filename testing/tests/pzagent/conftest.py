@@ -165,6 +165,9 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
            getNumPartsBleeding=lambda s: wounds[0], getNumPartsScratched=lambda s: wounds[1],
            getNumPartsBitten=lambda s: wounds[2], HasInjury=lambda s: any(wounds),
            getBodyParts=lambda s: J(size=lambda s2: len(parts), get=lambda s2, i: parts[i]))
+    # PZA/1.7 (Task 9 fix 11): BodyDamage.getBodyPart(BodyPartType) answers a rested arm part (no pain, no strain)
+    arm = J(getPain=lambda s: 0.0, getStiffness=lambda s: 0.0)
+    bd.getBodyPart = lambda s, t: arm
     held = [make_item(ft, 1000 + i, food=food) for i, ft in enumerate(items)]
     inv = J(getItems=lambda s: J(size=lambda s2: len(held), get=lambda s2, i: held[i]),
             getCapacityWeight=lambda s: weight,
@@ -268,13 +271,15 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
 
 def make_zombie(zid, x, y, dead=False, health=1.0):
     return J(getOnlineID=lambda s: zid, getX=lambda s: x, getY=lambda s: y, isDead=lambda s: dead,
-             getTarget=lambda s: None, isCrawling=lambda s: False, getHealth=lambda s: health)
+             getTarget=lambda s: None, isCrawling=lambda s: False, getHealth=lambda s: health,
+             isOnFloor=lambda s: False)                                       # PZA/1.7: a standing zombie
 
 
 def make_cell(zombies=(), squares=None):
     zl = J(size=lambda s: len(zombies), get=lambda s, i: zombies[i])
     sq = squares or {}
-    return J(getZombieList=lambda s: zl, getGridSquare=lambda s, x, y, z: sq.get((int(x), int(y), int(z))))
+    return J(getZombieList=lambda s: zl, getGridSquare=lambda s, x, y, z: sq.get((int(x), int(y), int(z))),
+             getChunkMap=lambda s, i: J(getWidthInTiles=lambda s2: 104))      # PZA/1.7: the 1280 x 720 grid
 
 
 def make_queue():
@@ -432,6 +437,9 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
         Type="ISClimbThroughWindow", item=item))
     g.ISSmashWindow = J(new=lambda cls, p, w, part=None: windows.append(("smash", p, w)) or J(
         Type="ISSmashWindow", window=w))
+    # PZA/1.7: the arm parts' BodyPartType constants (names stand for the enum values)
+    g.BodyPartType = J(Hand_L="Hand_L", Hand_R="Hand_R", ForeArm_L="ForeArm_L", ForeArm_R="ForeArm_R",
+                       UpperArm_L="UpperArm_L", UpperArm_R="UpperArm_R")
     g.ItemTag = J(RIP_CLOTHING_COTTON="RIP_CLOTHING_COTTON", RIP_CLOTHING_DENIM="RIP_CLOTHING_DENIM",
                   RIP_CLOTHING_LEATHER="RIP_CLOTHING_LEATHER")
     equips = []

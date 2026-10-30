@@ -26,11 +26,13 @@
   }
  },
  "body": {
+  "armPain": null,
   "bitten": 0,
   "bleeding": 0,
   "health": 100,
   "parts": [],
-  "scratched": 0
+  "scratched": 0,
+  "strain": null
  },
  "buildings": [
   7
@@ -170,7 +172,8 @@
    "wash",
    "fill",
    "wear",
-   "window"
+   "window",
+   "unwear"
   ],
   "kind": "hello",
   "mod": "fake",
@@ -365,6 +368,7 @@
   "forceSprint": false,
   "hitReaction": "",
   "hour": 8,
+  "loadedWidth": null,
   "moving": true,
   "pace": 0,
   "running": false,
@@ -405,6 +409,7 @@
    "dist": 2.75,
    "hasTarget": true,
    "health": 1.5,
+   "onFloor": null,
    "seenWallMs": 1004000,
    "x": 102.75,
    "y": 200

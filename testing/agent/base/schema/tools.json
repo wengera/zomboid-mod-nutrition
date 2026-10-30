@@ -441,5 +441,22 @@
       ],
       "additionalProperties": false
     }
+  },
+  {
+    "name": "unwear",
+    "description": "Take off a worn garment as vanilla's Unequip does (ISUnequipAction, 50 ticks): its body location empties and the garment stays in the main inventory, where a rip accepts it (a worn or held item is refused by the recipe). Refused none held, not worn for an item that is not worn, held for one in a hand, moving while the character moves unless the garment's location is one vanilla lets be taken off on a walk (the accessory locations: hats, masks, gloves, eyes, neck, wrists, fingers, back, satchel, scarf, ammo strap, elbows; a shirt, a dress or trousers stop on a walk). Fails stopped when a run or a walk stopped the action, dropped when the inventory had no room and the garment fell to the floor, interrupted when it stayed worn.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer",
+          "description": "The worn garment's id."
+        }
+      },
+      "required": [
+        "itemId"
+      ],
+      "additionalProperties": false
+    }
   }
 ]

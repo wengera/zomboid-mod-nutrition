@@ -42,7 +42,7 @@
     "actionType": {
       "description": "A skill type a cmd line names. There is no look action (PZA/1.5, Plan 24 Task 6b, docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md section 6): the frames list every zombie the client's cell holds within the sense radius whatever the facing, and turning changes only what the client draws and spots.",
       "type": "string",
-      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window"]
+      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear"]
     },
     "actState": {
       "description": "A skill's lifecycle state.",
@@ -52,7 +52,7 @@
     "reason": {
       "description": "The closed set of reasons a skill is rejected or fails with.",
       "type": "string",
-      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window"]
+      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "dropped"]
     },
     "eventKind": {
       "description": "The kind of an engine event line.",
@@ -127,7 +127,7 @@
       "x-group": "me",
       "x-encoding": "positional",
       "x-prior": 11,
-      "x-order": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn"],
+      "x-order": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth"],
       "type": "object",
       "properties": {
         "x": {"description": "The world x in tiles.", "type": "number"},
@@ -149,9 +149,10 @@
         "dragDown": {"description": "Whether the drag-down death is marked on the player, isDeathDragDown() (PZA/1.4, P24-C).", "type": "boolean"},
         "aiming": {"description": "Whether the player is aiming, isAiming() (PZA/1.5, P24-G): the combat stance an aim holds, or a swing's own while its animation plays; a hit reaction clears it for the reaction's length, a run or a sprint for good.", "type": "boolean"},
         "forceAim": {"description": "The force-aim flag read after the frame, isForceAim() (PZA/1.5.4, P24-T): re-asserted every frame while the stance is held (the game clears it every frame while its toggle-to-aim option is off), so true when the flag survived the frame (not cleared by a run key or a release), while aiming shows whether the update used it; null in logs written before PZA/1.5.4.", "type": "boolean"},
-        "worn": {"description": "PZA/1.6 (Plan 24 Task 9 fix 9, review-t18 ruling 5): the body locations the worn clothing covers, each with the bite and scratch defence of the Clothing items worn there summed (getWornItems(), a bag left out), in the order the game lists them; null on every frame whose list equals the last one carried, so a reader keeps the last list it saw (the first frame carries it, [] when nothing is worn), and in logs written before PZA/1.6. Read after an item or damage event, on the frame after the hit reaction rises, changes or ends or the attackers count rises from 0 (a zombie attack turned by the clothing makes a hole and no damage event, PZA/1.6.1), and every tenth frame otherwise. A zombie's scratch rolls under the scratch defence summed over the worn items covering the hit part, a bite under the bite defence (capped at 100): compare a garment's item record with the entry at its loc, an entry with holes above 0 counted as less than its bite and scratch.", "type": "array", "items": {"$ref": "#/$defs/wornLoc"}}
+        "worn": {"description": "PZA/1.6 (Plan 24 Task 9 fix 9, review-t18 ruling 5): the body locations the worn clothing covers, each with the bite and scratch defence of the Clothing items worn there summed (getWornItems(), a bag left out), in the order the game lists them; null on every frame whose list equals the last one carried, so a reader keeps the last list it saw (the first frame carries it, [] when nothing is worn), and in logs written before PZA/1.6. Read after an item or damage event, on the frame after the hit reaction rises, changes or ends or the attackers count rises from 0 (a zombie attack turned by the clothing makes a hole and no damage event, PZA/1.6.1), and every tenth frame otherwise. A zombie's scratch rolls under the scratch defence summed over the worn items covering the hit part, a bite under the bite defence (capped at 100): compare a garment's item record with the entry at its loc, an entry with holes above 0 counted as less than its bite and scratch.", "type": "array", "items": {"$ref": "#/$defs/wornLoc"}},
+        "loadedWidth": {"description": "PZA/1.7 (Plan 24 Task 9 fix 11): the side in tiles of the square grid of chunks the client holds loaded around the player, getCell():getChunkMap(0):getWidthInTiles() (jar-reads-2 section 13): 104 at a 1280 x 720 window, 152 at 1920 x 1080. A square farther than half of it from the player's chunk on an axis may answer null to getGridSquare, so a walk to it fails no square before any path is asked; a leg of 8 x floor(loadedWidth / 16) - 8 tiles keeps the target inside with a chunk to spare. Carried on the first frame and on a frame where it changed, null otherwise (a reader keeps the last value it saw, as for worn), and in logs written before PZA/1.7.", "type": "integer"}
       },
-      "required": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn"]
+      "required": ["x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth"]
     },
     "stats": {
       "description": "The player's character stats.",
@@ -178,16 +179,19 @@
       "x-role": "group",
       "x-group": "body",
       "x-encoding": "positional",
-      "x-order": ["health", "bleeding", "scratched", "bitten", "parts"],
+      "x-prior": 5,
+      "x-order": ["health", "bleeding", "scratched", "bitten", "parts", "armPain", "strain"],
       "type": "object",
       "properties": {
         "health": {"description": "The overall body health.", "type": "number"},
         "bleeding": {"description": "The number of bleeding parts.", "type": "integer"},
         "scratched": {"description": "The number of scratched parts.", "type": "integer"},
         "bitten": {"description": "The number of bitten parts.", "type": "integer"},
-        "parts": {"description": "The body parts below full health, and (PZA/1.5) any part bandaged or bleeding.", "type": "array", "items": {"$ref": "#/$defs/part"}}
+        "parts": {"description": "The body parts below full health, and (PZA/1.5) any part bandaged or bleeding.", "type": "array", "items": {"$ref": "#/$defs/part"}},
+        "armPain": {"description": "PZA/1.7 (Plan 24 Task 9 fix 11): the summed getPain() of the six arm parts Hand_L, Hand_R, ForeArm_L, ForeArm_R, UpperArm_L and UpperArm_R, rounded to 0.01, the sum the engine reads for a melee swing: once it passes 10 every swing's damage is divided by a tenth of it, so 20 halves the damage (jar-reads-2 section 11, rows 4368-4371). A part's pain includes its muscle strain (stiffness / 3.5) and its wounds' pain, so a bite on an arm holds it up and a rest does not lower that; null in logs written before PZA/1.7.", "type": "number"},
+        "strain": {"description": "PZA/1.7 (Plan 24 Task 9 fix 11): the muscle strain of each arm, the largest getStiffness() over the three arm parts of its side (hand, forearm, upper arm), rounded to 0.01. A melee swing adds to the weapon's arm (both arms for a two-hander), a miss as much as a hit, a shove adds to both arms and a stomp to the right leg alone; it decays on the server by about 5.76 a real minute (jar-reads-2 section 11). Null in logs written before PZA/1.7.", "$ref": "#/$defs/strain"}
       },
-      "required": ["health", "bleeding", "scratched", "bitten", "parts"]
+      "required": ["health", "bleeding", "scratched", "bitten", "parts", "armPain", "strain"]
     },
     "load": {
       "description": "The player's carried weight and its moodle level.",
@@ -297,7 +301,8 @@
       "description": "One zombie in sense range.",
       "x-role": "record",
       "x-encoding": "positional",
-      "x-order": ["id", "x", "y", "dist", "hasTarget", "crawler", "health"],
+      "x-prior": 7,
+      "x-order": ["id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor"],
       "type": "object",
       "properties": {
         "id": {"description": "The zombie's online id.", "type": "integer"},
@@ -306,9 +311,22 @@
         "dist": {"description": "The distance from the player in tiles.", "type": "number"},
         "hasTarget": {"description": "Whether the zombie has a target.", "type": "boolean"},
         "crawler": {"description": "Whether the zombie crawls.", "type": "boolean"},
-        "health": {"description": "The zombie's health.", "type": "number"}
+        "health": {"description": "The zombie's health.", "type": "number"},
+        "onFloor": {"description": "PZA/1.7 (Plan 24 Task 9 fix 11): true when the zombie lies on the floor, isOnFloor(): knocked down by a shove or a hit and not yet risen, or crawling. Null when it stands, and in logs written before PZA/1.7. A fallen zombie can be stomped (the stomp action) or finished by a weapon swing, which multiplies its damage by at least 5; a standing zombie within the held weapon's MinRange makes the stomp call shove that one instead (the stomp action refuses standing).", "type": "boolean"}
       },
-      "required": ["id", "x", "y", "dist", "hasTarget", "crawler", "health"]
+      "required": ["id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor"]
+    },
+    "strain": {
+      "description": "The muscle strain of the two arms (PZA/1.7, body.strain).",
+      "x-role": "record",
+      "x-encoding": "positional",
+      "x-order": ["l", "r"],
+      "type": "object",
+      "properties": {
+        "l": {"description": "The left arm's strain: the largest getStiffness() over Hand_L, ForeArm_L and UpperArm_L.", "type": "number"},
+        "r": {"description": "The right arm's strain: the largest getStiffness() over Hand_R, ForeArm_R and UpperArm_R.", "type": "number"}
+      },
+      "required": ["l", "r"]
     },
     "wornLoc": {
       "description": "One body location the worn clothing covers (PZA/1.6, me.worn).",
@@ -611,7 +629,7 @@
           {"$ref": "#/$defs/result_rate"}, {"$ref": "#/$defs/result_sleep"}, {"$ref": "#/$defs/result_aim"},
           {"$ref": "#/$defs/result_climb"}, {"$ref": "#/$defs/result_bandage"}, {"$ref": "#/$defs/result_rip"},
           {"$ref": "#/$defs/result_wash"}, {"$ref": "#/$defs/result_fill"}, {"$ref": "#/$defs/result_wear"},
-          {"$ref": "#/$defs/result_window"}]},
+          {"$ref": "#/$defs/result_window"}, {"$ref": "#/$defs/result_unwear"}]},
         "snapshot": {"description": "The player's state when the line was written.", "$ref": "#/$defs/snapshot"}
       },
       "required": ["kind", "seq", "tick", "wallMs", "aid", "type", "state", "reason", "result", "snapshot"]
@@ -802,6 +820,16 @@
         "opened": {"description": "Whether the skill opened the window before the climb.", "type": "boolean"},
         "cut": {"description": "Whether the wounds rose between the climb's queue and the edge crossing (wounds above 0), a zombie's included; the glass cut itself, 1 time in 2 through a smashed window whose glass was not removed (jar-reads-2 section 10), is unread in multiplayer (the engine's call returns at once on a client, so a server-side cut may reach the client after the crossing): cut false does not mean uncut, take the damage events as the truth.", "type": "boolean"},
         "wounds": {"description": "The rise in the player's scratched and bleeding part counts from the climb's queue to its end.", "type": "integer"}
+      }
+    },
+    "result_unwear": {
+      "description": "An unwear's result (PZA/1.7).",
+      "x-role": "result",
+      "x-type": "unwear",
+      "type": "object",
+      "properties": {
+        "itemId": {"description": "The garment now taken off, still in the main inventory.", "type": "integer"},
+        "loc": {"description": "The body location it was worn at, its clothing record's loc; the location is empty now.", "type": "string"}
       }
     },
     "result_fill": {
@@ -1073,6 +1101,17 @@
         "smash": {"description": "True to smash the window when it will not open (perma-locked, or still shut after the open's struggle): noise, and a cut 1 time in 2 climbing through the glass; false fails locked instead.", "type": "boolean", "default": false}
       },
       "required": ["x", "y"],
+      "additionalProperties": false
+    },
+    "args_unwear": {
+      "description": "Take off a worn garment as vanilla's Unequip does (ISUnequipAction, 50 ticks): its body location empties and the garment stays in the main inventory, where a rip accepts it (a worn or held item is refused by the recipe). Refused none held, not worn for an item that is not worn, held for one in a hand, moving while the character moves unless the garment's location is one vanilla lets be taken off on a walk (the accessory locations: hats, masks, gloves, eyes, neck, wrists, fingers, back, satchel, scarf, ammo strap, elbows; a shirt, a dress or trousers stop on a walk). Fails stopped when a run or a walk stopped the action, dropped when the inventory had no room and the garment fell to the floor, interrupted when it stayed worn.",
+      "x-role": "args",
+      "x-type": "unwear",
+      "type": "object",
+      "properties": {
+        "itemId": {"description": "The worn garment's id.", "type": "integer"}
+      },
+      "required": ["itemId"],
       "additionalProperties": false
     }
   }

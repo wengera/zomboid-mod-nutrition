@@ -82,10 +82,11 @@ def test_the_frames_groups_have_exactly_the_schemas_keys(lua):
         want = list(d[ref]["x-order"])
         if grp == "me":
             want.remove("worn")                                  # PZA/1.6: elided on a frame whose list is unchanged
+            want.remove("loadedWidth")                           # PZA/1.7: carried once read and changed, the fake cell has no chunk map
         assert sorted(f[grp].keys()) == sorted(want), grp
     unbandaged = {"bandageLife", "bandageDirty"}                 # PZA/1.5: nil on an unbandaged part
     assert sorted(f["body"]["parts"][1].keys()) == sorted(set(d["part"]["x-order"]) - unbandaged)
-    assert sorted(f["zombies"][1].keys()) == sorted(d["zombie"]["x-order"])
+    assert sorted(f["zombies"][1].keys()) == sorted(set(d["zombie"]["x-order"]) - {"onFloor"})   # PZA/1.7: nil while standing
     assert lua.eval("PZA.sense.RATE") == 10 and lua.eval("PZA.sense.ZOMBIE_RADIUS") == 12
 
 
@@ -110,9 +111,9 @@ def test_clock_stats_and_body(lua):
     assert (b["health"], b["bleeding"], b["scratched"], b["bitten"]) == (88.0, 1, 2, 0)
     assert [(e["i"], e["h"]) for e in b["parts"].values()] == [(3, 62.5), (11, 99.0)]
     assert lua.eval("PZA.enc.body(...)", b) == ("[88,1,2,0,[[3,62.5,false,0,false,null,null,false,false],"
-                                                "[11,99,false,0,false,null,null,false,false]]]")   # PZA/1.5's fields
+                                                "[11,99,false,0,false,null,null,false,false]],0,[0,0]]")   # PZA/1.5's fields, PZA/1.7's
     unhurt = frame(lua, make_player())["body"]
-    assert lua.eval("PZA.enc.body(...)", unhurt) == "[100,0,0,0,[]]"
+    assert lua.eval("PZA.enc.body(...)", unhurt) == "[100,0,0,0,[],0,[0,0]]"
 
 
 def test_me_reads_position_dir_moving_and_auto_walk(lua):
@@ -696,9 +697,11 @@ def test_a_raising_required_body_keeps_its_parts_array_and_a_nullable_group_is_n
     p = make_player(weapon=make_weapon())
     p.getBodyDamage, p.getPrimaryHandItem = boom, boom
     f = frame(lua, p)
-    assert lua.eval("PZA.enc.body(...)", f["body"]) == "[null,null,null,null,[]]"
+    assert lua.eval("PZA.enc.body(...)", f["body"]) == "[null,null,null,null,[],null,null]"
     assert f["weapon"] is None
-    assert {"raise:body", "raise:weapon"} <= set(missing(lua)) and lua.eval("PZA.sense.frameErrors") == 2
+    # PZA/1.7: the arms' read raises on the same getBodyDamage, a third caught raise (raise:body:arms)
+    assert {"raise:body", "raise:weapon", "raise:body:arms"} <= set(missing(lua))
+    assert lua.eval("PZA.sense.frameErrors") == 3
 
 
 def test_a_raising_position_leaves_me_empty_and_the_zombies_an_empty_array(lua):

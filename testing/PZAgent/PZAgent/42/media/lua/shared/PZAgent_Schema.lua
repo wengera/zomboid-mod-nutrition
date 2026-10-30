@@ -18,9 +18,9 @@ PZA.schema = {
         reply = { "kind", "seq", "tick", "wallMs", "to", "body" },
     },
     groups = {
-        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn" },
+        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth" },
         stats = { "hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature" },
-        body = { "health", "bleeding", "scratched", "bitten", "parts" },
+        body = { "health", "bleeding", "scratched", "bitten", "parts", "armPain", "strain" },
         load = { "weight", "max", "level", "n" },
         weapon = { "type", "cond", "reach", "ammo" },
         action = { "class", "n" },
@@ -30,13 +30,14 @@ PZA.schema = {
     records = {
         wornLoc = { "loc", "bite", "scratch", "holes", "cond" },
         part = { "i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected" },
-        zombie = { "id", "x", "y", "dist", "hasTarget", "crawler", "health" },
+        strain = { "l", "r" },
+        zombie = { "id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor" },
         portal = { "open", "locked", "barricaded" },
         container = { "type", "n", "items" },
         water = { "amount", "tainted", "infinite" },
         square = { "x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW", "water" },
     },
-    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true, ["not a container"] = true, full = true, ["in bag"] = true, ["leg part"] = true, stopped = true, aiming = true, ["not a window"] = true },
+    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true, ["not a container"] = true, full = true, ["in bag"] = true, ["leg part"] = true, stopped = true, aiming = true, ["not a window"] = true, moving = true, ["not worn"] = true, held = true, dropped = true },
     actions = {
         walkTo = { "x", "y", "gait" },
         steer = { "vx", "vy", "seconds", "gait" },
@@ -57,6 +58,7 @@ PZA.schema = {
         fill = { "itemId", "x", "y" },
         wear = { "itemId" },
         window = { "x", "y", "smash" },
+        unwear = { "itemId" },
     },
     gaits = { walk = true, run = true, sprint = true },
     ikinds = { open = true, close = true, loot = true },
@@ -136,6 +138,15 @@ local function enc_part(t)
 end
 PZA.enc.part = enc_part
 
+-- record strain: The muscle strain of the two arms (PZA/1.7, body.strain).
+--   l: The left arm's strain: the largest getStiffness() over Hand_L, ForeArm_L and UpperArm_L.
+--   r: The right arm's strain: the largest getStiffness() over Hand_R, ForeArm_R and UpperArm_R.
+local function enc_strain(t)
+    if t == nil then return "null" end
+    return "[" .. v(t.l) .. "," .. v(t.r) .. "]"
+end
+PZA.enc.strain = enc_strain
+
 -- record zombie: One zombie in sense range.
 --   id: The zombie's online id.
 --   x: The world x in tiles.
@@ -144,9 +155,10 @@ PZA.enc.part = enc_part
 --   hasTarget: Whether the zombie has a target.
 --   crawler: Whether the zombie crawls.
 --   health: The zombie's health.
+--   onFloor: PZA/1.7 (Plan 24 Task 9 fix 11): true when the zombie lies on the floor, isOnFloor(): knocked down by a shove or a hit and not yet risen, or crawling. Null when it stands, and in logs written before PZA/1.7. A fallen zombie can be stomped (the stomp action) or finished by a weapon swing, which multiplies its damage by at least 5; a standing zombie within the held weapon's MinRange makes the stomp call shove that one instead (the stomp action refuses standing).
 local function enc_zombie(t)
     if t == nil then return "null" end
-    return "[" .. v(t.id) .. "," .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.dist) .. "," .. v(t.hasTarget) .. "," .. v(t.crawler) .. "," .. v(t.health) .. "]"
+    return "[" .. v(t.id) .. "," .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.dist) .. "," .. v(t.hasTarget) .. "," .. v(t.crawler) .. "," .. v(t.health) .. "," .. v(t.onFloor) .. "]"
 end
 PZA.enc.zombie = enc_zombie
 
@@ -227,9 +239,10 @@ PZA.enc.square = enc_square
 --   aiming: Whether the player is aiming, isAiming() (PZA/1.5, P24-G): the combat stance an aim holds, or a swing's own while its animation plays; a hit reaction clears it for the reaction's length, a run or a sprint for good.
 --   forceAim: The force-aim flag read after the frame, isForceAim() (PZA/1.5.4, P24-T): re-asserted every frame while the stance is held (the game clears it every frame while its toggle-to-aim option is off), so true when the flag survived the frame (not cleared by a run key or a release), while aiming shows whether the update used it; null in logs written before PZA/1.5.4.
 --   worn: PZA/1.6 (Plan 24 Task 9 fix 9, review-t18 ruling 5): the body locations the worn clothing covers, each with the bite and scratch defence of the Clothing items worn there summed (getWornItems(), a bag left out), in the order the game lists them; null on every frame whose list equals the last one carried, so a reader keeps the last list it saw (the first frame carries it, [] when nothing is worn), and in logs written before PZA/1.6. Read after an item or damage event, on the frame after the hit reaction rises, changes or ends or the attackers count rises from 0 (a zombie attack turned by the clothing makes a hole and no damage event, PZA/1.6.1), and every tenth frame otherwise. A zombie's scratch rolls under the scratch defence summed over the worn items covering the hit part, a bite under the bite defence (capped at 100): compare a garment's item record with the entry at its loc, an entry with holes above 0 counted as less than its bite and scratch.
+--   loadedWidth: PZA/1.7 (Plan 24 Task 9 fix 11): the side in tiles of the square grid of chunks the client holds loaded around the player, getCell():getChunkMap(0):getWidthInTiles() (jar-reads-2 section 13): 104 at a 1280 x 720 window, 152 at 1920 x 1080. A square farther than half of it from the player's chunk on an axis may answer null to getGridSquare, so a walk to it fails no square before any path is asked; a leg of 8 x floor(loadedWidth / 16) - 8 tiles keeps the target inside with a chunk to spare. Carried on the first frame and on a frame where it changed, null otherwise (a reader keeps the last value it saw, as for worn), and in logs written before PZA/1.7.
 local function enc_me(t)
     if t == nil then return "null" end
-    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "," .. v(t.forceAim) .. "," .. list(t.worn, enc_wornLoc) .. "]"
+    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "," .. v(t.forceAim) .. "," .. list(t.worn, enc_wornLoc) .. "," .. v(t.loadedWidth) .. "]"
 end
 PZA.enc.me = enc_me
 
@@ -255,9 +268,11 @@ PZA.enc.stats = enc_stats
 --   scratched: The number of scratched parts.
 --   bitten: The number of bitten parts.
 --   parts: The body parts below full health, and (PZA/1.5) any part bandaged or bleeding.
+--   armPain: PZA/1.7 (Plan 24 Task 9 fix 11): the summed getPain() of the six arm parts Hand_L, Hand_R, ForeArm_L, ForeArm_R, UpperArm_L and UpperArm_R, rounded to 0.01, the sum the engine reads for a melee swing: once it passes 10 every swing's damage is divided by a tenth of it, so 20 halves the damage (jar-reads-2 section 11, rows 4368-4371). A part's pain includes its muscle strain (stiffness / 3.5) and its wounds' pain, so a bite on an arm holds it up and a rest does not lower that; null in logs written before PZA/1.7.
+--   strain: PZA/1.7 (Plan 24 Task 9 fix 11): the muscle strain of each arm, the largest getStiffness() over the three arm parts of its side (hand, forearm, upper arm), rounded to 0.01. A melee swing adds to the weapon's arm (both arms for a two-hander), a miss as much as a hit, a shove adds to both arms and a stomp to the right leg alone; it decays on the server by about 5.76 a real minute (jar-reads-2 section 11). Null in logs written before PZA/1.7.
 local function enc_body(t)
     if t == nil then return "null" end
-    return "[" .. v(t.health) .. "," .. v(t.bleeding) .. "," .. v(t.scratched) .. "," .. v(t.bitten) .. "," .. list(t.parts, enc_part) .. "]"
+    return "[" .. v(t.health) .. "," .. v(t.bleeding) .. "," .. v(t.scratched) .. "," .. v(t.bitten) .. "," .. list(t.parts, enc_part) .. "," .. v(t.armPain) .. "," .. enc_strain(t.strain) .. "]"
 end
 PZA.enc.body = enc_body
 
