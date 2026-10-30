@@ -319,3 +319,76 @@ def test_the_release_above_endurance_release_stands_as_before(tmp_path):
     assert not sv.endurance_hold and sv.spent is None
 
 
+# ================================================================ P25-D: the ride waits for the next send
+def riding(r, sv):
+    """A bandage riding (keepMoving) in flight: sent by the care and accepted, as E11's a111 and a114 rode the `many`
+    flee's steers (#4408)."""
+    from agent.base import pza1
+    cmd = pza1.Bandage(10, part=7, keepMoving=True)
+    a = r.acts.send(cmd)
+    sv.care.sent(cmd, a)
+    r.fake.act(a.aid, "accepted", "bandage")
+    r.pump()
+    assert sv.care.riding() is a
+    return a
+
+
+@pytest.mark.parametrize("zs", [A112, A116])
+def test_e11_s_rides_a112_and_a116_keep_the_bandage_against_the_hold_s_shove(tmp_path, zs):
+    """E11's a111 and a114 were superseded by the corner's shoves a112 and a116 (#4408), each sent with no attacker
+    pinning the player beyond one (`me.attackers` 1 at a112, 0 at a116): with the ride in flight the wounded corner
+    sends nothing (logged `ride_wait`, the ride's aid), the bandage the current action still."""
+    r, sv = make(tmp_path)
+    fr(r, zs, WOUND, NO_STIFF, health=70.0)
+    ride = riding(r, sv)
+    fr(r, zs, WOUND, NO_STIFF, health=70.0, attackers=1)
+    assert tick(r, sv) is None
+    w = threat_why(tmp_path)
+    assert w["ride_wait"] == ride.aid and w["cornered"] == 1 and r.acts.history[-1] is ride
+    assert not any(a.type == "shove" for a in r.acts.history)
+
+
+def test_with_no_ride_or_ride_wait_off_the_corner_shoves(tmp_path):
+    r, sv = make(tmp_path)
+    fr(r, A112, WOUND, NO_STIFF, health=70.0)
+    assert tick(r, sv).type == "shove"
+    (tmp_path / "off").mkdir()
+    r2, sv2 = make(tmp_path / "off")
+    sv2.RIDE_WAIT = False
+    fr(r2, A112, WOUND, NO_STIFF, health=70.0)
+    riding(r2, sv2)
+    fr(r2, A112, WOUND, NO_STIFF, health=70.0)
+    assert tick(r2, sv2).type == "shove"
+
+
+def test_under_attack_the_fight_s_own_send_still_pre_empts_the_ride(tmp_path):
+    """The Fight's side alone (Survive's drag-down guard flees first at the same line): with `me.attackers` at
+    DRAG_DOWN_N - 1 the held Fight's point-blank shove goes whatever rides; at one attacker it waits."""
+    from .test_policies import Rig
+    for attackers, want in ((P.DRAG_DOWN_N - 1, "shove"), (1, None)):
+        d = tmp_path / str(attackers)
+        d.mkdir()
+        r = Rig(d)
+        r.frame(zombies=[z(1, 100.49)], attackers=attackers)
+        f = F.Fight(r.world, r.acts, r.clock, target=1)
+        f.point_blank, f.spent = True, ("endurance",)
+        from agent.base import pza1
+        ride = r.acts.send(pza1.Bandage(10, part=7, keepMoving=True))
+        r.fake.act(ride.aid, "accepted", "bandage")
+        r.pump()
+        f.ride = ride
+        a = f.step()
+        assert (a.type if a is not None else None) == want, attackers
+
+
+def test_a_fight_that_swings_is_not_held_by_the_ride_within_reach(tmp_path):
+    """P24-U as before: no hold and no pain, the target within reach: the attack goes (the ride's wait is the held
+    Fight's only)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[z(1, 101.5)], health=70.0)
+    riding(r, sv)
+    r.frame(zombies=[z(1, 101.5)], health=70.0)
+    a = tick(r, sv)
+    assert a is not None and a.type in ("attack", "aim") and "ride_wait" not in threat_why(tmp_path)
+
+

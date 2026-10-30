@@ -650,6 +650,16 @@ class Fight(FightPull, FightFinish, Policy):
         self._held_before = False
         return Attack(zid)
 
+    def _ride_waits(self):
+        """Ruling P25-D (E11: two riding bandages superseded by the corner's own shoves, #4408): a riding bandage in
+        flight (`ride`, until its end) holds a Fight that sends no swing (`no_swing`: a hold, or the arms' pain) off
+        every send, its shoves, stomps and legs, unless the frame reads `me.attackers` at DRAG_DOWN_N - 1 (the
+        drag-down guard's line, `Survive._drag`, which flees first there)."""
+        if "ride_wait" not in self.rules or self.ride is None or not self.no_swing():
+            return False
+        n = (self.world.me or {}).get("attackers")
+        return not (isinstance(n, int) and not isinstance(n, bool) and n >= DRAG_DOWN_N - 1)
+
     def _finish_pick(self):
         """Ruling P25-B: (id, dist) of the nearest zombie read `onFloor` within FINISH_R on a line not read blocked that
         the stomp may take (announced, not refused at it, no standing zombie within STAND_MIN_R of the player, no
@@ -770,6 +780,9 @@ class Fight(FightPull, FightFinish, Policy):
         zid, z, d = t
         if self.point_blank and d > CORNERED_R:   # P24-A fix 2, I2a: a cornered Fight never walks to a drifted pin
             self.why = {"target": zid, "pinned": True, "dist": d, "out_of_reach": True}
+            return None
+        if self._ride_waits():   # P25-D: the riding bandage lands before a held Fight's next send
+            self.why = {"target": zid, "pinned": True, "dist": d, "ride_wait": self.ride.aid}
             return None
         fin = self._finish()   # P24-AL: a downed zombie within reach first
         if fin is not None:
