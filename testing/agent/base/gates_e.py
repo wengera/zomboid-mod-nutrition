@@ -2156,7 +2156,8 @@ def e_stomp_first(L):
     finish_block}. `sent` the stomp sends of the decision log; `on_floor` those whose frame at the line (an inference)
     lists the target `onFloor` true, `early` the rest; `rejected_not_valid` the stomp actions rejected `not valid` (must
     read 0), `stood` those that ended `stood`, `landed` the sends `_landed`; `finish_block` the threat lines whose why reads
-    `finish_block` (the finish refused for a chaser by the target)."""
+    `finish_block` (the finish refused for a chaser by the target) and whose `flee` is a string (the refusal's own line:
+    an unfixed build leaves the value stale on later lines)."""
     if L is None:
         return {"read": False}
     sends = [ln for ln in L.rows if _sent(ln, "stomp")]
@@ -2171,26 +2172,26 @@ def e_stomp_first(L):
             "rejected_not_valid": sum(1 for a in acts if a.get("state") == "rejected" and a.get("reason") == "not valid"),
             "stood": sum(1 for a in acts if a.get("state") == "failed" and a.get("reason") == "stood"),
             "landed": sum(1 for ln in sends if _landed(L, ln)),
-            "finish_block": sum(1 for ln in L.rows if ln.get("branch") == "threat" and L.why(ln).get("finish_block"))}
+            "finish_block": sum(1 for ln in L.rows if ln.get("branch") == "threat" and isinstance(L.why(ln).get("flee"), str)
+                                and L.why(ln).get("finish_block"))}
 
 
 def e_fills(L):
     """The fills (P24-AW): {read, sent, done, no_source (rejected `no source`; must read 0), superseded, walks_sent,
     walks_done, unloaded_lines}. The fill actions of the loop; `walks_sent` the need-branch lines that sent a walkTo with a
-    `fill` why carrying `walk`, `walks_done` those that ended `done`, `unloaded_lines` the need lines whose fill why
-    carries `unloaded` (no source on the loaded grid)."""
+    `fill` why carrying `walk`, `walks_done` those that ended `done`, `unloaded_lines` the lines, whatever their
+    branch (the need branch sends nothing and a lower branch answers), whose `inputs.branches.need.fill` carries `unloaded`
+    (no source on the loaded grid)."""
     if L is None:
         return {"read": False}
     fills = [a for _, a in L.acts if a.get("type") == "fill"]
     walks = unl = done = 0
     for ln in L.rows:
-        if ln.get("branch") != "need":
-            continue
         fw = _d(_d(_d(ln.get("inputs")).get("branches")).get("need")).get("fill")
         if not isinstance(fw, dict):
             continue
         unl += 1 if fw.get("unloaded") is not None else 0
-        if _sent(ln, "walkTo") and fw.get("walk") is not None:
+        if ln.get("branch") == "need" and _sent(ln, "walkTo") and fw.get("walk") is not None:
             walks += 1
             row = L.action(ln)
             done += 1 if row is not None and row.get("state") == "done" else 0
@@ -2228,7 +2229,7 @@ def report_lines_e8(g):
     out = []
     for l in base:
         if l.startswith("pull (P24-AN)") and pl.get("read"):
-            l = ("pull (P24-AN): %s fight runs (adjacent fight lines; loop.fights holds %s threat episodes), %s engaged with "
+            l = ("pull (P24-AN): %s fight runs (adjacent fight lines; loop.fights holds %s threat episodes [inference: a fight run lies inside one episode]), %s engaged with "
                  "a zombie listed beyond %s tiles (%s lines) [inference: the frame at the line]; pull legs %s lines (%s "
                  "sent) [reading]; %s fight runs held a pull, %s swung, %s kills" % (
                      pl.get("fight_runs"), pl.get("loop_fights"), pl.get("beyond_fights"), DANGER_R, pl.get("beyond_lines"),
@@ -2261,7 +2262,7 @@ def report_lines_e8(g):
         out.append("hold kinds (P24-AT): no decision log read")
     if eg.get("read"):
         out.append("edge hold (P24-AU): %s aim sends, %s superseded, of them %s by the opposite seek or pull leg and %s by "
-                   "another target within %s s [reading: the act lines and the next aim] (E10: 7 of 19 by the opposite leg, 6 of them at the edge); pull legs holding "
+                   "another target within %s s [reading: the act lines and the next aim]; pull legs holding "
                    "an edge %s (%s ids kept through an unlisting)" % (
                        eg.get("aims"), eg.get("superseded"), eg.get("flipped"), eg.get("retargeted"), EDGE_WINDOW_S,
                        eg.get("pull_edge_lines"), eg.get("pull_edge_ids")))
@@ -2270,7 +2271,7 @@ def report_lines_e8(g):
     if sf.get("read"):
         out.append("stomp (P24-AV): %s sent, %s on a frame reading the target onFloor [inference: the frame at the line], "
                    "%s before; rejected `not valid` %s (must read 0), ended `stood` %s, landed %s [reading]; finishes "
-                   "refused for a chaser by the target %s" % (
+                   "refused for a chaser by the target %s [reading: the refusal's own line]" % (
                        sf.get("sent"), sf.get("on_floor"), sf.get("early"), sf.get("rejected_not_valid"), sf.get("stood"),
                        sf.get("landed"), sf.get("finish_block")))
     else:

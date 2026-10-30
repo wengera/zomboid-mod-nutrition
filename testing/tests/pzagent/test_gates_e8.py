@@ -196,6 +196,17 @@ def test_a_stomp_is_counted_on_the_floor_frame_landed_and_refused_for_a_chaser()
     assert grade()["stomp_first"] == {"read": False}
 
 
+def _stale_block():
+    acts, res, log, frames = stomp_first_fixture(hit=True, block=True)
+    stale = aline(2, 3.0, {"finish_block": {"target": 1, "chaser": 2, "dist": 3.0}}, None, sent=False)
+    stale2 = aline(3, 4.0, {"flee": None, "finish_block": {"target": 1, "chaser": 2, "dist": 3.0}}, None, sent=False)
+    return grade(acts, res, log + [stale, stale2], frames)["stomp_first"]["finish_block"]
+
+
+def test_finish_block_counts_only_the_refusals_own_line_never_a_stale_value_on_a_later_one():
+    assert _stale_block() == 1
+
+
 def test_a_stomp_before_the_fallen_frame_a_not_valid_rejection_and_a_stood_one_are_counted_apart():
     g = grade(*stomp_first_fixture(on_floor=False, state="rejected", reason="not valid"))["stomp_first"]
     assert (g["sent"], g["on_floor"], g["early"], g["rejected_not_valid"], g["landed"]) == (1, 0, 1, 1, 0)
@@ -210,8 +221,8 @@ def test_a_stomp_with_no_frame_at_the_line_is_early():
 
 
 # ================================================================ (g) the fills
-def need_line(n, off, fill, action=None, sent=True):
-    ln = aline(n, off, {}, action, sent=sent, branch="need")
+def need_line(n, off, fill, action=None, sent=True, branch="need"):
+    ln = aline(n, off, {}, action, sent=sent, branch=branch)
     ln["inputs"]["branches"] = {"need": {"fill": fill}}
     return ln
 
@@ -221,9 +232,11 @@ def fills_fixture(walk=True):
             acted("f1", "fill", 1.0, state="rejected", reason="no source", itemId=5, x=1, y=2),
             acted("f2", "fill", 2.0, state="failed", reason="superseded", itemId=5, x=1, y=2)]
     log = [need_line(0, 0.0, {"vessel": 5, "source": [1, 2], "dist": 3.0}, {"type": "fill", "args": {"itemId": 5}}),
-           need_line(3, 3.0, {"vessel": 5, "source": None, "want": "water_source", "unloaded": 2}, None, sent=False)]
+           # no loaded source: the need branch sends nothing and a lower branch (`goal`) answers, yet the need why is logged
+           need_line(3, 3.0, {"vessel": 5, "source": None, "want": "water_source", "unloaded": 2}, None, sent=False,
+                     branch="goal")]
     if walk:
-        log.append(need_line(4, 4.0, {"vessel": 5, "source": [9, 9], "dist": 30.0, "walk": [9, 8]},
+        log.append(need_line(4, 4.0, {"vessel": 5, "source": [9, 9], "dist": 30.0, "unloaded": 1, "walk": [9, 8]},
                              {"type": "walkTo", "args": {"x": 9.5, "y": 8.5}}))
         acts.append(acted("w4", "walkTo", 4.0, x=9.5, y=8.5))
     return acts, [], log, []
@@ -232,8 +245,15 @@ def fills_fixture(walk=True):
 def test_the_fills_count_sent_done_no_source_superseded_and_the_walks():
     g = grade(*fills_fixture())["fills"]
     assert (g["read"], g["sent"], g["done"], g["no_source"], g["superseded"], g["walks_sent"], g["walks_done"],
-            g["unloaded_lines"]) == (True, 3, 1, 1, 1, 1, 1, 1)
+            g["unloaded_lines"]) == (True, 3, 1, 1, 1, 1, 1, 2)
+    assert grade(*fills_fixture(walk=False))["fills"]["unloaded_lines"] == 1          # the goal-branch line alone
     assert grade()["fills"] == {"read": False}
+
+
+def _goal_walk():
+    walk = need_line(4, 4.0, {"vessel": 5, "source": [9, 9], "dist": 30.0, "unloaded": 1, "walk": [9, 8]},
+                     {"type": "walkTo", "args": {"x": 9.5, "y": 8.5}}, branch="goal")
+    return grade([acted("w4", "walkTo", 4.0, x=9.5, y=8.5)], [], [walk], [])["fills"]
 
 
 def test_the_fills_read_zero_without_fills_walks_or_a_need_why():
@@ -242,9 +262,12 @@ def test_the_fills_read_zero_without_fills_walks_or_a_need_why():
     assert (g["sent"], g["done"], g["no_source"], g["walks_sent"], g["unloaded_lines"]) == (0, 0, 0, 0, 0)
     log2 = [ln for ln in log if "walk" not in ln["inputs"]["branches"]["need"]["fill"]]
     assert grade(acts, res, log2, frames)["fills"]["walks_sent"] == 0
+    assert grade(acts, res, log2, frames)["fills"]["unloaded_lines"] == 1
     other = copy.deepcopy(log[0])
     other["branch"] = "goal"
     assert grade([], res, [other], frames)["fills"]["walks_sent"] == 0
+    g = _goal_walk()
+    assert (g["walks_sent"], g["unloaded_lines"]) == (0, 1)       # a walk of another branch is no fill walk
 
 
 def test_a_fill_walk_that_did_not_end_done_is_sent_but_not_done():
@@ -289,6 +312,7 @@ def test_grade_e8_is_grade_e7_with_three_readings_re_read_five_added_and_a_repor
                 "stomp (P24-AV)", "fills (P24-AW)", "doorway_pick (P24-AX)", "fight runs", "threat episodes", "[reading",
                 "[inference", "(must read 0)"):
         assert key in text, key
+    assert "E10" not in text and "[inference: a fight run lies inside one episode]" in text
     assert "gate_e7" not in text and e8["report_lines"][0] == e7["report_lines"][0]
     bare = E.grade_e8({})
     assert bare["grade"] == "grade_e8" and all(bare[k]["read"] is False for k in NEW + OVERRIDDEN)
@@ -354,7 +378,14 @@ MUTANTS = (
     ("e_fills", lambda s: s.replace('fw.get("walk") is not None', 'False'),
      lambda: grade(*fills_fixture())["fills"]["walks_sent"] == 1),
     ("e_fills", lambda s: s.replace('unl += 1 if fw.get("unloaded") is not None else 0', 'unl += 0'),
-     lambda: grade(*fills_fixture())["fills"]["unloaded_lines"] == 1),
+     lambda: grade(*fills_fixture())["fills"]["unloaded_lines"] == 2),
+    ("e_fills", lambda s: s.replace('ln.get("branch") == "need" and ', ''),
+     lambda: _goal_walk()["walks_sent"] == 0),
+    ("e_fills", lambda s: s.replace('unl += 1 if fw.get("unloaded") is not None else 0',
+                                    'unl += 1 if fw.get("unloaded") is not None and ln.get("branch") == "need" else 0'),
+     lambda: grade(*fills_fixture())["fills"]["unloaded_lines"] == 2),
+    ("e_stomp_first", lambda s: s.replace('isinstance(L.why(ln).get("flee"), str)', 'True'),
+     lambda: _stale_block() == 1),
     ("e_fills", lambda s: s.replace('row.get("state") == "done" else 0', 'False else 0'),
      lambda: grade(*fills_fixture())["fills"]["walks_done"] == 1),
     ("e_doorway_pick", lambda s: s.replace('why.get("flee") != "many"', 'False'),
