@@ -80,10 +80,10 @@ def test_branch_order_puts_the_load_and_the_night_after_the_need_and_the_goal_la
     # explore; named change, Plan 24 Task 10 (ruling P24-G 2): the care branch between the threat and the need
     assert S.DANGER_R is P.DANGER_R
     assert (S.DANGER_R, S.DISENGAGE_R, S.THIRST_T, S.HUNGER_T) == (6.0, 10.0, 0.12, 0.15)   # [#0509], [#0508]
-    # named change, ruling P24-Y (Task 18): water and container, clothing (by name: no Lua filter yet), food, bandage,
-    # weapon; every want but clothing a loot's (LOOT_WANTS)
+    # named change, ruling P24-Y (Task 18): water and container, clothing, food, bandage, weapon; named change, Task 24
+    # (PZA/1.6's `clothing` loot filter): every want is a loot's (LOOT_WANTS), clothing included
     assert G.STOCK_WANTS == ("water", "container", "clothing", "food", "bandage", "weapon")
-    assert set(G.STOCK_WANTS) - {"clothing"} == set(P.LOOT_WANTS)
+    assert set(G.STOCK_WANTS) == set(P.LOOT_WANTS)
     assert not hasattr(S, "STOCK_WANTS") and not hasattr(Survive, "_forage") and not hasattr(Survive, "_explore")
     assert (S.FLEE_HEALTH, S.FLEE_HEALTH_PAIR, S.REFIGHT_MARGIN, S.MAX_FIGHT) == (40.0, 60.0, 20.0, 2)
     assert S.FAILED_COOLDOWN_TICKS == 10

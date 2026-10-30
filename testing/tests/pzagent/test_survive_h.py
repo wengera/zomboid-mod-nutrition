@@ -339,11 +339,11 @@ from .test_policies import CRATE, FRIDGE, grid   # noqa: E402
 
 
 def test_the_destination_constants_and_the_loot_wants():
-    """P24-Y: BUILDING_R 60, WOODS_R 40; the loot's wants in order, water and container, clothing (wanted by name:
-    the Lua's loot filter and the item record carry no clothing yet, so no loot answers it), food, bandage, weapon."""
+    """P24-Y: BUILDING_R 60, WOODS_R 40; the loot's wants in order, water and container, clothing, food, bandage,
+    weapon; named change, Task 24: clothing is a loot's want since PZA/1.6's `clothing` filter (LOOT_WANTS)."""
     assert (G.BUILDING_R, G.WOODS_R) == (60.0, 40.0)
     assert G.STOCK_WANTS == ("water", "container", "clothing", "food", "bandage", "weapon")
-    assert "container" in P.LOOT_WANTS and "clothing" not in P.LOOT_WANTS
+    assert "container" in P.LOOT_WANTS and "clothing" in P.LOOT_WANTS
 
 
 def test_the_building_boxes_and_the_woods_test(tmp_path):

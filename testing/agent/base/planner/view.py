@@ -6,6 +6,10 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   fights killed this session, ruling P24-Q, Plan 24 Task 12: the iteration's metric, told to the model), `needs {hunger, thirst, fatigue}` (`stats`),
   `load {weight, max, level}`, `weapon` (the wielded type, else None), `inventory_by_use` ({use: count} over
   `items.USES`, by `world.by_use()`).
+- `worn` (PZA/1.6, Plan 24 Task 24): the defence worn per body location, `[[loc, bite, scratch, holes], ...]` by
+  location (`World.worn`, the last `me.worn` a frame carried; bite and scratch to 0.1; `holes` 0 where the build does
+  not carry it), None until one frame has carried it (unknown, never "nothing worn"): the model picks what to look for
+  (a jacket over a bare torso) from it, and `inventory_by_use` counts the clothing held.
 - `needs_wanted`: the uses (water, then food, then container, then water_source, then bandage: NEED_USES) the need
   branch marked (`bandage` the care branch's, ruling P24-AB: a bleeding part with nothing to dress it)
   (nothing of the use held; `container` when no water and no vessel at all is held, the water chain's third step,
@@ -75,8 +79,8 @@ import math
 import time
 
 from agent.base.items import USES
-from agent.base.items import use_of
-from agent.base.planner.goals import BUILDING_R, WOODS_R, int_id, open_uses, wanted_uses
+from agent.base.items import holds_use
+from agent.base.planner.goals import BUILDING_R, WOODS_R, int_id, open_uses, wanted_uses, window_pick
 from agent.base.planner.night import door_blocked, exterior_doors, shelter_plan
 from agent.base.planner.policies import LOOT_WANTS, STUCK_REASONS, me_floor, me_xy, place_of
 from agent.base.world import MET_VIEW_R, compass
@@ -88,7 +92,8 @@ ZOMBIE_BANDS = (6, 12, 25)
 BUILDINGS_SHOWN = 6
 RENDER_MAX = 2048
 EVENTS_N = 3
-KEYS = ("pos", "hour", "health", "kills", "needs", "needs_wanted", "load", "weapon", "inventory_by_use", "buildings",
+KEYS = ("pos", "hour", "health", "kills", "needs", "needs_wanted", "load", "weapon", "inventory_by_use", "worn",
+        "buildings",
         "zombies_near", "met", "attackers", "hit_reaction", "last_goal", "events", "want_shelter", "woods_r", "edge",
         "toward", "scanned_here", "stock_uses", "cooled")
 WHYS = ("done", "stuck", "superseded by the threat", "superseded by an instinct", "looted already", "refused",
@@ -125,9 +130,17 @@ def _buildings(world, night, kit):
                     "looted": bool(cs) and not any(open_uses(world, loot, k, waiting) for k in cs),
                     "doors": len(doors), "visited": b in visited, "shunned": b in shunned,
                     "shelter": shelter_plan(world, b) is not None, "holds": _holds(world, cs),
-                    "blocked": door_blocked(world, b, z),
+                    "blocked": door_blocked(world, b, z) and window_pick(world, b) is None,
                     "box": list(boxes[b]) if b in boxes else None})
     return sorted(out, key=lambda r: (r["dist"], r["id"]))
+
+
+def _worn(world):
+    """`[[loc, bite, scratch, holes], ...]` over `World.worn` by location, else None while no frame has carried it."""
+    if world.worn is None:
+        return None
+    return [[e.get("loc"), round(e.get("bite") or 0.0, 1), round(e.get("scratch") or 0.0, 1), e.get("holes") or 0]
+            for e in sorted((e for e in world.worn if isinstance(e, dict)), key=lambda e: str(e.get("loc")))]
 
 
 def _holds(world, keys):
@@ -137,9 +150,9 @@ def _holds(world, keys):
     for k in keys:
         c = world.containers.get(k) or {}
         for item in c.get("items") or ():
-            u = use_of(item)
-            if u in LOOT_WANTS and u not in c.get("looted", ()):
-                out[u] = out.get(u, 0) + 1
+            for u in LOOT_WANTS:
+                if (u != "clothing" or world.can("wear")) and u not in c.get("looted", ()) and holds_use(item, u):
+                    out[u] = out.get(u, 0) + 1
     return dict(sorted(out.items()))
 
 
@@ -208,6 +221,7 @@ def view(world, survive):
         "load": {k: load.get(k) for k in ("weight", "max", "level")},
         "weapon": (world.weapon or {}).get("type"),
         "inventory_by_use": {u: len(by_use[u]) for u in USES},
+        "worn": _worn(world),
         "buildings": buildings,
         "zombies_near": {str(r): sum(1 for d in zs if d <= r) for r in ZOMBIE_BANDS},
         "met": _met(world),

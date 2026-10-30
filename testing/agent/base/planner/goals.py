@@ -28,8 +28,9 @@ a class attribute equal to the entry's `const`:
   sprints over a fence (no vault).
 - `LootBuilding(building)`: `LootHouse` kept to the containers on the building's squares (`LootHouse.within`), one
   loot at a time for the first of STOCK_WANTS (ruling P24-Y, Plan 24 Task 18: water and container, clothing, food,
-  bandage, weapon; `clothing` is wanted by name, and `LootHouse.target` answers nothing for it until the Lua's loot
-  filter and the item record carry clothing and its protection) that `LootHouse.target` answers there, `container`
+  bandage, weapon; `clothing` since Task 24 is a loot's want with the Lua's `clothing` filter (PZA/1.6, a build that
+  announces `wear`), a container's garments told by name only, `items.garment`, and the want bounded by
+  CLOTHING_HELD_N unworn garments held) that `LootHouse.target` answers there, `container`
   only while fewer than CONTAINERS_HELD_N (2) vessels are held (`wanted_uses`: Task 18 fix 1, the review's major 5,
   E7's map knew 14 empty vessels in building 5 and 8 in building 2, each loot filling to the cap before the food);
   `done "looted"` when none answers after at least one loot, `failed "nothing to loot"` when none answered at all,
@@ -40,8 +41,17 @@ a class attribute equal to the entry's `const`:
   marking it); while the player is not on a room square of the building, the next steps are the shelter machine's
   approach, open and enter by the building's best exterior door the World has not marked (`night.shelter_plan`,
   `night.exterior_doors`), a step's end read by `night.shelter_ended` (its next door on a door's failure), and the loot
-  resumes from inside; with no door left, `failed "no door"` (the view then reads the building `blocked` once all
-  its doors are marked, and the source passes it over for the next).
+  resumes from inside; with no door left, the window route (Task 24, review-t9-fix9's ruling: E7's back door stood
+  locked and the building had windows): `window_pick` (a build announcing `window`; the building's exterior windows,
+  `World.windows`, on the player's floor, not barricaded and not left out by a failed end; an open one first, then a
+  shut unlocked one with `smash` false, then a locked one only when `smash_ok`: no other known building within
+  BUILDING_R, no zombie listed within SMASH_ZOMBIE_R and health at or above SMASH_MIN_HEALTH, with `smash` true)
+  sends one `Window(x, y, smash)` at a time, the route due at once when every exterior door is already marked from
+  outside; a window that ends done leaves the route (the care branch reads the wounds from the frame's body parts,
+  the result's `cut` being unreliable in multiplayer, and `cut` and `wounds` are logged), one that fails leaves the
+  window out (`World.note_window_fail`; `locked` lets the next try smash it); with no window either,
+  `failed "no door"` (the view then reads the building `blocked` once all its doors are marked and no window is to be
+  tried, and the source passes it over for the next).
 - `Shelter(building)`: Night's shelter machine for a named building (`night.shelter_plan`, `shelter_step`,
   `shelter_ended`, never re-implemented): approach the exterior door, open it, step in, close it (a step's walk failed
   `stuck` at a hoppable edge climbs it first, as `ExploreToward` does, and walks again; a climb that fails is read as
@@ -135,12 +145,12 @@ import time
 from dataclasses import dataclass, field, fields
 from typing import ClassVar, Optional, Protocol, runtime_checkable
 
-from agent.base.items import use_of
-from agent.base.planner.night import (SHUN_MIN, hop_after, player_square, shelter_ended, shelter_plan,
-                                      shelter_step)
+from agent.base.items import holds_use
+from agent.base.planner.night import (SHUN_MIN, door_blocked, hop_after, player_square, shelter_ended,
+                                      shelter_plan, shelter_step)
 from agent.base.planner.policies import (LOOT_MAX_LEVEL, LOOT_WANTS, PREEMPTED, SCAN_R, Explore, LootHouse, centre,
-                                         me_xy, place_of)
-from agent.base.pza1 import Climb, Scan, WalkTo
+                                         me_floor, me_xy, place_of)
+from agent.base.pza1 import Climb, Scan, WalkTo, Window
 
 GOAL_MAX_S = 90.0     # wall seconds a goal may run before it is failed "goal budget" and replaced (a Rest: P23-W)
 GOAL_COOL_S = 30.0    # wall seconds a goal that failed having sent nothing is not taken again (fix 1, I4)
@@ -150,6 +160,13 @@ REST_S = 30.0         # the scripted source's rest
 STOCK_WANTS = ("water", "container", "clothing", "food", "bandage", "weapon")   # LootBuilding's order of uses (P24-Y)
 CONTAINERS_HELD_N = 2   # vessels held (`water` and `container`) at which `container` is no longer wanted (Task 18 fix
                         # 1, the review's major 5, its number: one or two held, so the cap goes to the food)
+CLOTHING_HELD_N = 3   # unworn garments held at which `clothing` is no longer wanted (Task 24: the wear rule judges each
+                      # garment once held; a judgment bounding the surplus the loot carries)
+SMASH_MIN_HEALTH = 60.0   # health at or above which a window may be smashed (a smash is noise and, 1 time in 2, a glass cut:
+                      # review-t9-fix9 ruling 6, "health above the bandage threshold"; a judgment, survive's pair-flee line)
+SMASH_ZOMBIE_R = 25.0   # tiles: a smash waits while a zombie is listed this near (the noise carries: the view's widest band)
+WINDOW_DEAD = ("not a window", "not valid", "fell", "failed", "no square")   # a window action's ends that leave the
+                      # window out for DOOR_RETRY_MIN game minutes (World.note_window_fail); `locked` is read apart
 BUILDING_R = 60.0     # tiles: an unlooted building this near is looted; farther, it is walked toward first (P24-Y)
 WOODS_R = 40.0        # tiles: a square with no building known this near is the woods, never a walk's target (P24-Y)
 REST_N = 3            # Rests in a row, no building newly read, before the woods radius widens (Task 18 fix 1, ruling
@@ -171,7 +188,7 @@ EXAMPLES = {"ExploreToward": {"x": 120, "y": 205}, "LootBuilding": {"building": 
 __all__ = ["Goal", "ExploreToward", "LootBuilding", "Shelter", "Stock", "Rest", "GoalSource", "ScriptedSource",
            "GoalRunner", "Kit", "validate", "open_uses", "int_id", "goal_key", "GOAL_MAX_S", "GOAL_COOL_S",
            "GOAL_HOLD_SUPERSEDE_TICKS",
-           "ARRIVE_R", "REST_S", "STOCK_WANTS", "BUILDING_R", "WOODS_R", "CONTAINERS_HELD_N", "REST_N", "WOODS_STEP",
+           "ARRIVE_R", "REST_S", "STOCK_WANTS", "BUILDING_R", "WOODS_R", "CONTAINERS_HELD_N", "CLOTHING_HELD_N", "SMASH_MIN_HEALTH", "SMASH_ZOMBIE_R", "smash_ok", "window_pick", "REST_N", "WOODS_STEP",
            "WOODS_MAX_R", "wanted_uses", "LEG_MAX", "LEG_MIN",
            "STOCK_KINDS", "RUN_FIELDS", "STATES", "SCHEMA_PATH", "EXAMPLES"]
 
@@ -199,7 +216,7 @@ def open_uses(world, loot, key, waiting=None):
         return []
     out = []
     for u in LOOT_WANTS:
-        if u in c["looted"] or not any(use_of(i) == u for i in c["items"]):
+        if (u == "clothing" and not world.can("wear")) or u in c["looted"] or not any(holds_use(i, u) for i in c["items"]):
             continue
         skip = waiting[u] if waiting is not None else (loot.waiting(u) if loot is not None else ())
         if key not in skip:
@@ -209,12 +226,60 @@ def open_uses(world, loot, key, waiting=None):
 
 def wanted_uses(world, wants=()):
     """STOCK_WANTS in order, `container` left out once CONTAINERS_HELD_N or more vessels are held (`by_use()`'s
-    `water` and `container`: Task 18 fix 1, the review's major 5); the uses of `wants` (the kit's: the care's
-    `bandage`, ruling P24-AB) first, in their order."""
+    `water` and `container`: Task 18 fix 1, the review's major 5), `clothing` left out on a build without `wear`
+    (PZA/1.6: no filter, no wear) and once CLOTHING_HELD_N or more unworn garments are held (a container's garments
+    are told by name only, so what would beat a worn location is the wear rule's to say once they are held, and the
+    surplus is bounded here: Task 24); the uses of `wants` (the kit's: the care's `bandage`, ruling P24-AB) first, in
+    their order."""
     uses = world.by_use()
     held = len(uses.get("water", ())) + len(uses.get("container", ()))
+    spare_clothes = sum(1 for i in uses.get("clothing", ()) if world.inventory[i].get("worn") is not True)
     order = tuple(wants) + tuple(u for u in STOCK_WANTS if u not in wants)
-    return tuple(u for u in order if u != "container" or held < CONTAINERS_HELD_N)
+    return tuple(u for u in order if (u != "container" or held < CONTAINERS_HELD_N)
+                 and (u != "clothing" or (world.can("wear") and spare_clothes < CLOTHING_HELD_N)))
+
+
+def smash_ok(world, building):
+    """Whether a window may be smashed now (review-t9-fix9 ruling 6; the brief's rule): the character has no other
+    known building within BUILDING_R (this one is the only roof), no zombie is listed within SMASH_ZOMBIE_R and the
+    health is at or above SMASH_MIN_HEALTH."""
+    mx, my = me_xy(world)
+    other = world.nearest_building(mx, my, exclude=(building,))
+    if other is not None and other[0] <= BUILDING_R:
+        return False
+    if any(z.get("x") is not None and z.get("y") is not None and math.hypot(z["x"] - mx, z["y"] - my) <= SMASH_ZOMBIE_R
+           for z in world.zombies.values()):
+        return False
+    health = (world.body or {}).get("health")
+    return _num(health) and health >= SMASH_MIN_HEALTH
+
+
+def window_pick(world, building):
+    """`(x, y, z, smash)` of the building's window to try, else None (Task 24, the route past a stuck door): the
+    build announces `window`; windows on the player's floor not barricaded and not left out by a failed end
+    (`WINDOW_DEAD`); an open one first, then a shut unlocked one (opened, then climbed: no noise), then a locked one
+    (the record's `locked`, or a try that ended `locked`) only when `smash_ok`, with `smash` true; each nearest
+    the player."""
+    if not world.can("window"):
+        return None
+    z = me_floor(world)
+    mx, my = me_xy(world)
+    smash = None   # smash_ok's answer, read at most once and only for a locked window
+    best = None
+    for sq in world.windows(building):
+        rec = (world.map.get(sq) or {}).get("window") or {}
+        fail = world.window_fail(sq)
+        if sq[2] != z or rec.get("barricaded") is True or fail in WINDOW_DEAD:
+            continue
+        locked = rec.get("locked") is True or fail == "locked"
+        if locked:
+            smash = smash_ok(world, building) if smash is None else smash
+            if not smash:
+                continue
+        rank = (locked, rec.get("open") is not True, math.hypot(sq[0] + 0.5 - mx, sq[1] + 0.5 - my), sq)
+        if best is None or rank < best[0]:
+            best = (rank, sq, locked)
+    return None if best is None else (best[1][0], best[1][1], best[1][2], best[2])
 
 
 # ---------------------------------------------------------------- the shared machines
@@ -532,6 +597,8 @@ class LootBuilding(_Legs, _Looting, Goal):
         self._legs()
         self.route = None        # the entry plan (night.shelter_plan) while the route is due (P24-Z), else None
         self.route_due = False   # a loot failed `not adjacent`: in by a door the World has not marked first
+        self.window = None       # the window route's (x, y, z) while its Window runs, else None (Task 24)
+        self.no_doors = False    # the route's doors are spent (the plan answered none or the machine shunned): windows
 
     def keys(self, world):
         """The container keys on the building's squares."""
@@ -556,25 +623,52 @@ class LootBuilding(_Legs, _Looting, Goal):
             if action.state == "failed" and action.reason == "not adjacent":
                 self.route_due = True
             return
+        if action.type == "window":
+            self._window_ended(world, action)
+            return
         if self.route is not None:
             out = shelter_ended(self.route, action)
             self.why = dict(self.why, ended=out)
             if out == "shun":
-                self.end("failed", "no door")
+                self.route, self.no_doors = None, True   # no exterior door left: the window route, else it fails
+                if window_pick(world, self.building) is None:
+                    self.end("failed", "no door")
+
+    def _window_ended(self, world, action):
+        """A window action's end (Task 24): done leaves the route (the character stands inside; the care branch reads the
+        wounds from the frame's body parts whatever `cut` says, the result's `cut` being unreliable in multiplayer: it is
+        logged); a failure leaves the window out (`World.note_window_fail`): `locked` lets the next try smash it."""
+        sq = self.window
+        self.window = None
+        if action.state == "done":
+            self.route_due = False
+            res = action.result if isinstance(action.result, dict) else {}
+            self.why = dict(self.why, ended="window", cut=res.get("cut"), wounds=res.get("wounds"))
+            return
+        if sq is not None:
+            world.note_window_fail(sq, action.reason or action.state)
+        self.why = dict(self.why, ended="window " + (action.reason or action.state))
 
     def _route(self, world):
         """The route's next step while it is due and the player is not inside the building, else None (the route
-        done or not due); ends the goal `failed "no door"` when no unmarked exterior door is left."""
+        done or not due); with no unmarked exterior door left (`night.shelter_plan` answers none, or the machine shuns
+        every door) the window route (`_window_pick`, one `Window` at a time), else the goal ends `failed "no door"`."""
         if not self.route_due or self._inside(world):
-            self.route_due, self.route = False, None
+            self.route_due, self.route, self.window, self.no_doors = False, None, None, False
             return None
-        if self.route is None:
+        if self.route is None and not self.no_doors:
             self.route = shelter_plan(world, self.building)
         cmd, step = (None, "shun") if self.route is None else shelter_step(world, self.route)
         if step == "shun":
-            self.why = {"building": self.building, "route": None}
-            self.end("failed", "no door")
-            return None
+            self.route = None
+            pick = window_pick(world, self.building)
+            if pick is None:
+                self.why = {"building": self.building, "route": None}
+                self.end("failed", "no door")
+                return None
+            self.window = pick[:3]
+            self.why = {"building": self.building, "route": "window", "window": [pick[0], pick[1]], "smash": pick[3]}
+            return Window(pick[0], pick[1], smash=pick[3])
         if step in ("close", "done"):   # in: the loot resumes from inside
             self.route_due, self.route = False, None
             return None
@@ -585,6 +679,9 @@ class LootBuilding(_Legs, _Looting, Goal):
     def choose(self, world, actions, clock):
         if self._guard():
             return None
+        if (not self.route_due and world.can("window") and not self._inside(world)
+                and door_blocked(world, self.building, me_floor(world))):
+            self.route_due = True   # Task 24: every exterior door marked from outside, so the loot is not tried first
         cmd = self._route(world)
         if cmd is not None or not self.running:
             return cmd

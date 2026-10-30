@@ -140,6 +140,10 @@ def _system():
                  "group, n how many, bearing and dist from pos. Zombies there are still about: prefer ground away "
                  "from met.dense, and never explore toward its bearing while met.n is 3 or more.")
     lines.append("attackers is how many zombies are attacking you now (the instincts answer them; a goal cannot).")
+    lines.append("worn lists what you wear as [location, bite, scratch, holes]: a higher bite and scratch turns more "
+                 "zombie attacks, a hole defends nothing there, null means not read yet. The program puts on a "
+                 "garment you hold when it beats the one worn at its location, so looting clothing with better "
+                 "protection helps.")
     lines.append("hit_reaction names the hit you are reeling from now, null when none.")
     lines.append("last_goal is how the last goal ended: end done, failed, superseded or refused, and why, one of: "
                  "%s." % ", ".join(WHYS))

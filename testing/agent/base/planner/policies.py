@@ -205,7 +205,7 @@ fluid containers), a weapon by `items.WEAPON_RX`'s fullType names, which is no g
 import math
 import time
 
-from agent.base.items import use_of
+from agent.base.items import holds_use, use_of
 from agent.base.pza1 import Aim, Attack, Interact, Scan, Steer, Stop, WalkTo
 from agent.base.world import STUCK_AREA_N, STUCK_WALK_CAP, me_floor, me_xy
 
@@ -277,8 +277,9 @@ LOAD_RATIO_MAX = 1.0  # a loot fills to this times the frame's load.max (level 1
 LOOT_FAILS_TO_PASS = 2   # failed loots of one container for one use before it is passed (Task 18 fix 1, the review's
                          # major 3: as a door's DOOR_FAILS_TO_MARK; a failure is not an empty container)
 LOOT_MARKS = ("no match",)   # the failed loot's reasons that mark at once: nothing of the use there
-LOOT_WANTS = ("food", "water", "weapon", "bandage", "container")   # a loot's want and filter: one use, never
-                      # `all` (P23-8); `container` (an empty vessel, the Lua's filter since PZA/1.5.1) by P24-Y
+LOOT_WANTS = ("food", "water", "weapon", "bandage", "container", "clothing")   # a loot's want and filter: one use,
+                      # never `all` (P23-8); `container` (an empty vessel, the Lua's filter since PZA/1.5.1) by P24-Y;
+                      # `clothing` (the Lua's filter since PZA/1.6, Plan 24 Task 24; a build without `wear` never loots it)
 DROP_AT = 3           # at this load level or above Survive's load branch drops (the heavy-load drain falls at 3) ...
 DROP_TO = 2           # ... down to this level, and between the two neither drops nor loots
 KEPT_USES = ("weapon", "food", "water")   # the uses a drop never takes
@@ -361,7 +362,8 @@ class Policy:
 
 def spare(world):
     """The id of the heaviest held item that is neither the wielded weapon's type nor of use weapon, food or water by
-    `world.by_use()` (so a bottle marked empty is `other`, and spare), ties by the least id; else None. Survive's load
+    `world.by_use()` (so a bottle marked empty is `other`, and spare) nor a worn garment (use `clothing`, PZA/1.6),
+    ties by the least id; else None. Survive's load
     branch and its flee drop it."""
     wielded = (world.weapon or {}).get("type")
     by_use = world.by_use()
@@ -370,6 +372,8 @@ def spare(world):
     for iid, it in world.inventory.items():
         if not item_id_ok(iid) or iid in kept or (it.get("fullType") or "") == wielded:
             continue
+        if it.get("use") == "clothing" and it.get("worn") is True:
+            continue   # Task 24: the garment on the back is never the spare (dropping it would undo the wear)
         rank = (-(it.get("weight") or 0.0), iid)
         if best is None or rank < best:
             best = rank
@@ -1731,7 +1735,7 @@ class LootHouse(Policy):
             self.capped.pop((x, y, z, use), None)
             mark = a.state == "done" or (a.state == "failed" and a.reason in LOOT_MARKS)
             for key, c in self.world.containers.items():
-                if key[:3] != (x, y, z) or not any(use_of(i) == use for i in c["items"]):
+                if key[:3] != (x, y, z) or not any(holds_use(i, use) for i in c["items"]):
                     continue
                 n = 0 if mark else self.fails.get((key, use), 0) + 1
                 if mark or n >= LOOT_FAILS_TO_PASS:

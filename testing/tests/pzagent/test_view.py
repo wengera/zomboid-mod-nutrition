@@ -225,7 +225,10 @@ def full_world(tmp_path):
                              "reason": "attack", "startS": 0.0, "endS": 4.0, "source": "llm"})
     sv.goals.cooled[("LootBuilding", '{"building": 1003}')] = r.clock() + 30.0
     sv.need_marks = {"water": r.clock(), "food": r.clock()}
-    r.frame(zombies=[zombie(i, 100.0 + i, 200.0) for i in range(1, 31)], attackers=2, hit_reaction="HitReaction")
+    worn = [{"loc": loc, "bite": 12.5, "scratch": 20.0, "holes": 1, "cond": 70}   # Task 24: PZA/1.6.1's me.worn, a full
+            for loc in ("base:jacket", "base:pants", "base:shirt", "base:socks", "base:shoes", "base:hat")]   # kit
+    r.frame(zombies=[zombie(i, 100.0 + i, 200.0) for i in range(1, 31)], attackers=2, hit_reaction="HitReaction",
+            worn=worn)
     return r, sv
 
 

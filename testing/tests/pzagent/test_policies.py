@@ -553,7 +553,7 @@ def test_loothouse_takes_its_want_as_the_filter(tmp_path):
 
 # Plan 23 Task 11 (P23-7, P23-8): every loot is capped at the carry ratio and filtered by one use, never `all`.
 def test_the_loot_ratio_constant_and_wants():
-    assert P.LOAD_RATIO_MAX == 1.0 and P.LOOT_WANTS == ("food", "water", "weapon", "bandage", "container")
+    assert P.LOAD_RATIO_MAX == 1.0 and P.LOOT_WANTS == ("food", "water", "weapon", "bandage", "container", "clothing")   # Task 24: + clothing
     # named change, ruling P24-Y (Task 18): `container`, the Lua's loot filter since PZA/1.5.1, a loot's want
 
 

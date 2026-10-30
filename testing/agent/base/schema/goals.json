@@ -17,7 +17,7 @@
     },
     {
       "type": "object",
-      "description": "Loot the building's containers one use at a time (water, food, bandage, weapon) until none is left.",
+      "description": "Loot the building's containers one use at a time (water, container, clothing, food, bandage, weapon: the order the loot takes them) until none is left.",
       "properties": {
         "type": {"const": "LootBuilding", "description": "The goal's type."},
         "building": {"type": "integer", "description": "The building's id, as the view lists it."}

@@ -220,6 +220,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   `care.RAG_STOCK` clean dressings are held; a bleeding part with nothing to dress it marks the want `bandage`,
   `_dressing_want`, the goal layer's loot taking it first); P24-AC, legged far walks (`goals._Legs`); P24-AD, an idle
   zombie (`hasTarget` false) counts toward `many` only within DANGER_R (`_counts_many`, the `IDLE` switch).
+- Survival 10 (Plan 24 Task 24; PZA/1.6.1): the stock also wears (`care.Care._wear`, the better garment by the rule of
+  review-t9-fix9; `World.worn` is `me.worn` kept across null frames), the goals loot clothing (`goals.wanted_uses`) and
+  route a stuck-door building through a window (`goals.window_pick`), and the view carries `worn`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
