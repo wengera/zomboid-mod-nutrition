@@ -1,4 +1,4 @@
-"""Survival 11 (Plan 24 Task 27; PZA/1.7's `me.loadedWidth` and `unwear`): ruling P24-AI (the goal's legs read off
+"""Survival 11 (survival iteration 10; Plan 24 Task 27; PZA/1.7's `me.loadedWidth` and `unwear`): ruling P24-AI (the goal's legs read off
 the client's loaded window, `goals.leg_max`: 8 x floor(width / 16) - 8 tiles, LEG_MAX 40 with no width read; P24-AC's
 30 superseded) and ruling P24-AJ (the rag stock's second path: a bleeding part with nothing to dress it and nothing
 unworn to rip takes the unwear of the worn cotton garment covering the least, never shoes or trousers, on the stock's

@@ -87,7 +87,7 @@ Distances are tiles from the frame's `me` to a zombie's `x, y` (the World's last
   (`_seek_switch`), its leg giving way for it; the stance's own walk (a seek's or the advance's round a wall, a
   seek's beyond AIM_R) gives way as a leg does (`_walk_gives_way`, the review's blocker); a zombie in `avoid` (no
   engage reaches it) is never pinned anew beyond DANGER_R.
-  Survival 11 (Plan 24 Task 27; PZA/1.7's `shove` and `stomp`, `zombies[].onFloor`, `body.armPain`; #4370-#4374),
+  Survival 11 (survival iteration 10; Plan 24 Task 27; PZA/1.7's `shove` and `stomp`, `zombies[].onFloor`, `body.armPain`; #4370-#4374),
   each sent only to a build that announces it: P24-AL, finish the fallen (`_finish`, ahead of every other step once
   the target is resolved): the nearest downed zombie (`onFloor`, or a shove's `knockdown` within KNOCK_READ_S) within
   FIGHT_REACH on a line not read blocked takes the shove of a standing zombie at point blank first, else the `stomp`,
@@ -311,6 +311,8 @@ STRAIN_HARD = 20.0    # ... at which the damage is halved: the threat branch dis
                       # armPain falls under STRAIN_SOFT (ruling P24-AG)
 ENDURANCE_T = 0.75    # the frame's stats.endurance at or under which the ENDURANCE moodle reads level 1 (#3926, #4076),
                       # whose first level halves every swing (#4371): the disengage of P24-AG
+ENDURANCE_RELEASE = 0.80   # ... and above which that hold ends (review-t27: rest gives back 0.003-0.005 a game minute,
+                           # a fight takes far more, so the edge alone flickered flee / one swing / flee)
 TIRED_FIGHT_T = 0.6   # stats.fatigue at or above which no fight is sought or stood (ruling P24-AK; the first TIRED
                       # moodle, night.TIRED_T, halves every swing at its first level too, #4371)
 SHOVE_R = 1.5         # tiles: the Lua's shove refuses a target beyond this (`too far`, PZAgent_Stance.lua K.SHOVE_R)
@@ -938,7 +940,7 @@ class Fight(Policy):
         zid = a.args.get("targetId")
         res = a.result if isinstance(a.result, dict) else {}
         if a.state != "done" or res.get("attackStarted") is False:
-            if not (a.state == "failed" and a.reason == PREEMPTED):
+            if not (a.state == "failed" and (a.reason == PREEMPTED or (a.type == "stomp" and a.reason == "stood"))):
                 self.swing_refused[(a.type, zid)] = self.clock() + SWING_SKIP_S
             return
         if a.type == "stomp" and res.get("attackStarted") is True:
@@ -999,7 +1001,8 @@ class Fight(Policy):
             self.why["hitReaction"] = hit
             return (None,)
         s = self._standing_near(POINT_BLANK_R, (zid,))
-        if s is not None and target_id_ok(s[0]) and s[2] <= SHOVE_R and self._swing_ok("shove", s[0]):
+        if (s is not None and not self._shoved and target_id_ok(s[0]) and s[2] <= SHOVE_R
+                and self._swing_ok("shove", s[0])):
             self.why.update({"shove": "first", "shoveTarget": s[0], "shoveDist": s[2]})
             return (Shove(s[0]),)
         if self._swing_ok("stomp", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:

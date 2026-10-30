@@ -926,14 +926,21 @@ def test_with_strain_off_the_goldens_are_iteration_9_s(key):
 # the first line P24-AG moves on each golden it moves (the ENDURANCE moodle's first level read off the record's
 # frames: no record carries armPain, and none reads fatigue near TIRED_FIGHT_T); E2, E3 and E5 never read
 # endurance at or under ENDURANCE_T (their least 0.919, 0.965, 0.949) nor fatigue 0.6, so they do not move
-FIRST_STRAIN = {"e4": 427, "f1": 604, SIXTH: 604}
+# Task 27 fix 1 (the endurance hold released above ENDURANCE_RELEASE) moves F1 and the sixth from 604 to 555: the
+# replay's fight walk at 555-556 (the old fight, endurance 0.754 after the 0.747 of gm 635) leaves the decision list
+# (the spent character seeks no fight; the goal answers), and the first decision that differs is 557, the held flee
+# `strain` at endurance 0.753, over ENDURANCE_T and under ENDURANCE_RELEASE
+FIRST_STRAIN = {"e4": 427, "f1": 555, SIXTH: 555}
+FIRST_HELD = {"f1": 557, SIXTH: 557}
 
 
 @pytest.mark.parametrize("key", sorted(PRE_AG))
 def test_p24_ag_moves_e4_and_f1_first_at_the_endurance_moodle_and_no_other_golden(key):
     """Task 27's attribution: E4 moves first at line 427 (game minute 619: the held flee's reason reads `strain`, the
-    endurance 0.708), F1 and the sixth at line 604 (game minute 642: the `walk` corner on 15917 yields `strain`, the
-    endurance 0.737, and the flee goes where the record swung); every later moved line is that episode's, open loop
+    endurance 0.708), F1 and the sixth (fix 1's release line) at line 555 (game minute 636: the fight walk leaves the
+    list, and 557 is the held flee `strain` at endurance 0.753, which the edge alone had let turn back to fight;
+    before fix 1 they moved first at 604, game minute 642, the `walk` corner on 15917 yielding `strain` at 0.737);
+    every later moved line is that episode's, open loop
     (E4's character died at 627 in the record, so its replay's tail flees `unarmed` once its inventory is gone)."""
     base, got = pre_ag_gold(key), gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
@@ -944,8 +951,12 @@ def test_p24_ag_moves_e4_and_f1_first_at_the_endurance_moodle_and_no_other_golde
         return
     line = FIRST_STRAIN[key]
     assert diff[0] == line
-    w = got[line]["why"]
-    assert w["strain"]["kind"] == "endurance" and w["strain"]["endurance"] <= P.ENDURANCE_T
+    first = FIRST_HELD.get(key, line)
+    assert line in got or key in FIRST_HELD
+    assert min(k for k in diff if k in got) == first
+    w = got[first]["why"]
+    assert w["strain"]["kind"] == "endurance" and w["strain"]["endurance"] <= P.ENDURANCE_RELEASE
+    assert (w["strain"]["endurance"] > P.ENDURANCE_T) is (key in FIRST_HELD)
     assert w["strain"]["armPain"] is None and w["strain"]["fatigue"] < P.TIRED_FIGHT_T
     assert w.get("flee") == "strain" or w.get("yield") == "strain"
 

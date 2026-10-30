@@ -1,4 +1,4 @@
-"""Survival 11 (Plan 24 Task 27, spec § 6 item 20 and amendment 6's guides' rulings; PZA/1.7 on the planner), the
+"""Survival 11 (survival iteration 10; Plan 24 Task 27, spec § 6 item 20 and amendment 6's guides' rulings; PZA/1.7 on the planner), the
 threat branch's half: ruling P24-AG's disengage (the arms' strain hold at `body.armPain` STRAIN_HARD, released under
 STRAIN_SOFT; the ENDURANCE moodle's first level) and ruling P24-AK's tired gate (`stats.fatigue` at TIRED_FIGHT_T):
 a spent character flees `strain`, engages and seeks nothing, and a `walk` corner yields. The Fight's half (the shove
@@ -131,20 +131,47 @@ def test_the_hold_reads_the_arms_first_then_the_endurance_then_the_tiredness(tmp
     for arm, e, f, kind in ((20.0, 0.5, 0.9, "arms"), (5.0, 0.5, 0.9, "endurance"), (None, 0.9, 0.9, "tired"),
                             (None, 0.9, 0.1, None)):
         fr(r, arm, endurance=e, fatigue=f)
-        sv._read_strain()
-        got = sv._spent()
+        sv._read_spent()
+        got = sv.spent
         assert (got and got["kind"]) == kind, (arm, e, f)
+
+
+def test_the_endurance_hold_is_released_only_above_0_80(tmp_path):
+    """Review-t27 blocker 1 (F1 gm 635-637: 0.747, then a fight started at 0.753, then 0.740): the hold set at 0.75 or
+    under holds through 0.753, 0.76 and 0.80 itself, and ends above ENDURANCE_RELEASE 0.80; a hold not set (0.76 from
+    rest) is not set by the band."""
+    assert P.ENDURANCE_RELEASE == 0.80
+    r, sv = make(tmp_path)
+    for e, held in ((0.76, False), (0.747, True), (0.753, True), (0.80, True), (0.74, True), (0.801, False),
+                    (0.76, False), (0.75, True)):
+        fr(r, None, endurance=e)
+        sv._read_spent()
+        assert (sv.spent is not None) is held and sv.endurance_hold is held, e
+        assert held is False or sv.spent["kind"] == "endurance"
+
+
+def test_the_f1_sequence_holds_the_flee_through_gm_637(tmp_path):
+    """The F1 record's three readings through the machine: a fight at 0.76, 0.747 flees `strain`, 0.753 keeps fleeing
+    (no turn back for a swing), 0.740 still flees; 0.81 turns to fight again."""
+    r, sv = fight_on(tmp_path, endurance=0.76)
+    for e, mode in ((0.747, "flee"), (0.753, "flee"), (0.740, "flee"), (0.81, "fight")):
+        r.answer()
+        fr(r, None, [zombie(1, 104.0, 200.0)], endurance=e)
+        tick(r, sv)
+        assert sv.mode == mode, e
+        if mode == "flee":
+            assert threat_why(tmp_path)["flee"] == "strain"
 
 
 def test_an_older_frame_with_no_arm_pain_ends_the_hold(tmp_path):
     """No `body.armPain` (an older Lua): nothing to hold on, the hold ends."""
     r, sv = make(tmp_path)
     fr(r, 30.0)
-    sv._read_strain()
+    sv._read_spent()
     assert sv.strain_hold
     fr(r, None)
-    sv._read_strain()
-    assert not sv.strain_hold and sv._spent() is None
+    sv._read_spent()
+    assert not sv.strain_hold and sv.spent is None
 
 
 def test_a_walk_corner_yields_to_the_strain_after_health_and_a_many_episode(tmp_path):
@@ -152,6 +179,7 @@ def test_a_walk_corner_yields_to_the_strain_after_health_and_a_many_episode(tmp_
     `many` episode read first."""
     r, sv = make(tmp_path)
     fr(r, None, endurance=0.7)
+    sv._read_spent()
     assert sv._walk_yields() == "strain"
     sv.mode, sv.flee_many = "flee", True
     assert sv._walk_yields() == "many"
@@ -165,4 +193,4 @@ def test_with_strain_off_nothing_is_read(tmp_path):
     sv.STRAIN = False
     fr(r, 30.0, [zombie(1, 104.0, 200.0)], endurance=0.5, fatigue=0.9)
     tick(r, sv)
-    assert sv.mode == "fight" and sv._spent() is None
+    assert sv.mode == "fight" and sv.spent is None

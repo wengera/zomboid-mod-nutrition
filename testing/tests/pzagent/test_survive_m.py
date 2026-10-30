@@ -1,4 +1,4 @@
-"""Survival 11 (Plan 24 Task 27; PZA/1.7's `shove` and `stomp`, `zombies[].onFloor`, `body.armPain`), the Fight's half:
+"""Survival 11 (survival iteration 10; Plan 24 Task 27; PZA/1.7's `shove` and `stomp`, `zombies[].onFloor`, `body.armPain`), the Fight's half:
 ruling P24-AG's preference (at `body.armPain` STRAIN_SOFT the stomp on a fallen target and the shove at point blank
 over a swing), ruling P24-AH (in a standing fight a second zombie inside KEEP_R with the pin in reach is shoved, the
 nearer of the two, before the next swing; never a shove or stomp of another with a standing zombie within the
@@ -186,6 +186,29 @@ def test_a_shove_s_knockdown_is_stomped_before_the_frame_reads_it_down(tmp_path)
     r.advance(P.KNOCK_READ_S + 0.1)
     fr(r, zs, 12.0)
     assert f.step().type == "shove"
+
+
+def test_a_stomp_that_failed_stood_is_no_refusal(tmp_path):
+    """Review-t27 minor 1: `stood` means the target rose, not that the stomp cannot be done; a zombie knocked down
+    again is stomped at once, not struck on the floor after SWING_SKIP_S."""
+    zs = [z(1, 101.0, floor=True)]
+    r, f = fight(tmp_path, zs)
+    assert f.step().type == "stomp"
+    r.answer({"state": "failed", "reason": "stood"})
+    fr(r, zs)
+    assert f.step().type == "stomp" and not f.swing_refused
+
+
+def test_the_point_blank_shove_beside_a_downed_zombie_goes_once_a_swing(tmp_path):
+    """Review-t27 minor 2: the standing zombie at point blank is shoved first once; the next choose (it stood the roll)
+    stomps the downed one instead of shoving again."""
+    zs = [z(1, 100.8), z(2, 101.5, floor=True)]
+    r, f = fight(tmp_path, zs)
+    assert f.step().type == "shove"
+    r.answer({"state": "done", "result": {"knockdown": False, "attackStarted": True, "targetDead": False}})
+    fr(r, zs)
+    a = f.step()
+    assert (a.type, a.args) == ("stomp", {"targetId": 2})
 
 
 def test_a_superseded_stomp_is_no_refusal(tmp_path):
