@@ -21,7 +21,7 @@ other (a driver is frozen at its boot; this library is not, and each driver's pr
   running one), `night` ({wants, steps, sleeps}, copies), `lineage` (`chain.lineage_diff(prev, first frame)` with a
   prev, else None), `t_loop0_ms` (equal to loop.startPyMs by construction: both are the loop's start) and `results`
   (Plan 24 Task 11: [{aid, type, state, result}] for each sent action of a type in RESULT_TYPES, the Lua's result
-  dict, which the action rows do not carry; gates_e.e_care reads it), then lays
+  dict, which the action rows do not carry; the readers are gates_e.e_care (the care types) and grade_e9 (the swing types' kills: Task 40 added shove and stomp)), then lays
   `extra(session)` over them when the driver passes one (f_goals: `llm`; its keys must not be the contract's,
   CONTRACT_KEYS, asserted at every save). `copied` names run-dir files the artifact
   copy takes beside the decision log (f_goals: `goals.log`). The planner is the driver's `planner_factory`.
@@ -89,7 +89,7 @@ LIMITS = {"DAY_CAP_S": DAY_CAP_S, "PLANNER_HZ": PLANNER_HZ, "DAMAGE_POLL_S": DAM
 CONSTANTS = dict(DS.DEFAULTS, **LIMITS, BUDGET_S=BUDGET_S)
 CONTRACT_KEYS = ("goals", "night", "lineage", "t_loop0_ms", "results")     # Chain.extra_record's own keys (task-15-amendments)
 
-RESULT_TYPES = ("attack", "aim", "climb", "bandage", "rip", "wash", "fill", "interact")   # the results gates_e.e_care reads
+RESULT_TYPES = ("attack", "aim", "climb", "bandage", "rip", "wash", "fill", "interact", "shove", "stomp")   # gates_e.e_care reads the care types; grade_e9 reads the swing types (attack, aim, shove, stomp) for the kills; no other reader of loop.results
 
 
 # ================================================================ arguments

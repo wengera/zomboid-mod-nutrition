@@ -1322,6 +1322,19 @@ def test_the_record_carries_the_results_of_the_sent_actions_of_the_care_types():
     assert "consume" not in DY.RESULT_TYPES
 
 
+def test_the_record_carries_the_shove_and_stomp_results_so_a_kill_off_either_reaches_loop_results():
+    from agent.base.actions import Action
+    xs = types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=None)
+    c = DY.Chain(xs, None, planner_factory=Survive, clock=lambda: 5.0)
+    for aid, t, res in (("a1", "stomp", {"hit": True, "targetDead": True}), ("a2", "shove", {"hit": True}),
+                        ("a3", "steer", {"x": 1})):
+        a = Action(aid, t, {}, 5.0, 1.0)
+        a.state, a.result = "done", res
+        c.sent.append(a)
+    got = c.extra_record()["results"]
+    assert [r["aid"] for r in got] == ["a1", "a2"] and got[0]["result"]["targetDead"] is True
+
+
 def test_the_run_copy_carries_every_state_log_rotation(tmp_path):
     """Plan 24 Task 20: E7's state.1.log (the Lua rotates state.log on a long session) was not in the controller's copy;
     copy_run takes state.log and every state.<n>.log of the state dir byte-identical, and nothing else."""
