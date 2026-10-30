@@ -2425,3 +2425,220 @@ def report_lines_e9(g):
 def gate_e9(outs):
     """gate_e8 (grade_e9 changes none of what it reads), named gate_e9."""
     return gate_e8(outs)
+
+
+# ================================================================ pass 10 (Plan 25 Task 5): survival iteration 13's six rules
+# grade_e10 is grade_e9 plus six readings of iteration 13's why fields (P25-A to P25-F; Task 3's report names them): the
+# corner under a hold, the stomp before a running attack, the hold's walk and its timed release, the ride waits, the
+# stand's stalled walk and the fence wait. Each reads the decision log's threat-branch whys (a reading) except where a
+# clause is marked inference. grade_e4 to grade_e9 are frozen (CLAUDE.md section 5).
+from agent.base.planner.policies import ENDURANCE_RELEASE, SHOVE_REPEAT_S    # noqa: E402
+
+
+def _threat_rows(L):
+    """The (line, why) pairs of the threat-branch lines."""
+    return [(ln, L.why(ln)) for ln in L.rows if ln.get("branch") == "threat"]
+
+
+def e_corner(L):
+    """The corner under any hold (P25-A): {read, lines, break, swing, break_steers, swing_attacks, shoves, repeat_shoves}.
+    `lines` the threat lines whose why carries `corner` (reading) by `kind`; `break_steers` the break lines that sent a steer
+    and `swing_attacks` the swing lines that sent an attack (each must equal its kind's lines); `shoves` the shove sends
+    of the log and `repeat_shoves` those sent at the same target within SHOVE_REPEAT_S of the one before (an inference:
+    the sent actions; must read 0, the corner taking the place of the repeat)."""
+    if L is None:
+        return {"read": False}
+    kinds = {"break": [], "swing": []}
+    for ln, why in _threat_rows(L):
+        c = why.get("corner")
+        if isinstance(c, dict) and c.get("kind") in kinds:
+            kinds[c["kind"]].append(ln)
+    last, repeat, shoves = {}, 0, 0
+    for ln in L.rows:
+        if not _sent(ln, "shove"):
+            continue
+        shoves += 1
+        zid = _d(_d(ln.get("action")).get("args")).get("targetId")
+        w = _n(ln.get("wall"))
+        if w is not None and zid in last and w - last[zid] <= SHOVE_REPEAT_S:
+            repeat += 1
+        if w is not None:
+            last[zid] = w
+    return {"read": True, "lines": len(kinds["break"]) + len(kinds["swing"]), "break": len(kinds["break"]),
+            "swing": len(kinds["swing"]), "break_steers": sum(1 for ln in kinds["break"] if _sent(ln, "steer")),
+            "swing_attacks": sum(1 for ln in kinds["swing"] if _sent(ln, "attack")), "shoves": shoves,
+            "repeat_shoves": repeat}
+
+
+def e_finish_first(L):
+    """The stomp before a running attack (P25-B): {read, lines, stomps, landed, beyond_reach, max_dist}. `lines` the threat
+    lines whose why carries `finish_first` (reading); `stomps` those that sent a stomp, `landed` the sends `_landed`,
+    `beyond_reach` those whose `dist` (the fallen target) is beyond FIGHT_REACH."""
+    if L is None:
+        return {"read": False}
+    rows = [(ln, w["finish_first"]) for ln, w in _threat_rows(L) if isinstance(w.get("finish_first"), dict)]
+    dists = [d for d in (_n(f.get("dist")) for _, f in rows) if d is not None]
+    return {"read": True, "lines": len(rows), "stomps": sum(1 for ln, _ in rows if _sent(ln, "stomp")),
+            "landed": sum(1 for ln, _ in rows if _sent(ln, "stomp") and _landed(L, ln)),
+            "beyond_reach": sum(1 for d in dists if d > FIGHT_REACH), "max_dist": max(dists) if dists else None}
+
+
+def e_hold_walk(L):
+    """The endurance hold walk and its timed release (P25-C): {read, strain_lines, hold_walk, walk_near, runs,
+    released_under, open_runs}. `strain_lines` the threat lines whose why flees `strain` with kind `endurance`;
+    `hold_walk` those whose why reads `hold_walk` true (reading) and `walk_near` the ones of them with a zombie within
+    DANGER_R by the line `inputs.nearest` (must read 0). `runs` the runs of adjacent such lines; `released_under` the runs
+    that a later line ended while their last endurance (the why `strain.endurance`) read under ENDURANCE_RELEASE: the
+    timed release (an inference: the release itself is logged by no field), `open_runs` those the log ended on."""
+    if L is None:
+        return {"read": False}
+    lines = hw = near = 0
+    runs, under, open_runs, cur = 0, 0, 0, None
+    for ln in L.rows:
+        why = L.why(ln)
+        st = why.get("strain")
+        held = (ln.get("branch") == "threat" and why.get("flee") == "strain" and isinstance(st, dict)
+                and st.get("kind") == "endurance")
+        if held:
+            lines += 1
+            if why.get("hold_walk") is True:
+                hw += 1
+                d = _n(_d(ln.get("inputs")).get("nearest"))
+                near += 1 if d is not None and d <= DANGER_R else 0
+            if cur is None:
+                runs += 1
+            cur = _n(st.get("endurance"))
+            if cur is None:
+                cur = 1.0
+        elif cur is not None:
+            under += 1 if cur < ENDURANCE_RELEASE else 0
+            cur = None
+    if cur is not None:
+        open_runs = 1
+    return {"read": True, "strain_lines": lines, "hold_walk": hw, "walk_near": near, "runs": runs,
+            "released_under": under, "open_runs": open_runs}
+
+
+def e_ride_wait(L):
+    """The ride waits (P25-D): {read, lines, sent, rides, rides_done}. `lines` the threat lines whose why reads `ride_wait`
+    (the riding bandage aid; reading), `sent` those that sent anything (must read 0), `rides` the distinct aids and
+    `rides_done` those whose action row ended `done`."""
+    if L is None:
+        return {"read": False}
+    rows = [(ln, w["ride_wait"]) for ln, w in _threat_rows(L) if w.get("ride_wait") is not None]
+    aids = {a for _, a in rows}
+    states = {a.get("aid"): a.get("state") for _, a in L.acts}
+    return {"read": True, "lines": len(rows), "sent": sum(1 for ln, _ in rows if ln.get("sent") is True),
+            "rides": len(aids), "rides_done": sum(1 for a in aids if states.get(a) == "done")}
+
+
+def e_door_walk(L):
+    """The stalled walk of a doorway stand (P25-E): {read, lines, reroute, drop, max_stall, left_stall}. `lines` the threat
+    lines whose why carries `door_walk` {stall, end} (reading) by `end`, `max_stall` the longest stall in seconds and
+    `left_stall` the lines whose why reads `doorway_left` `stall` (a drop own; must equal `drop`)."""
+    if L is None:
+        return {"read": False}
+    ends, stalls, left = {"reroute": 0, "drop": 0}, [], 0
+    for _, why in _threat_rows(L):
+        dw = why.get("door_walk")
+        if isinstance(dw, dict) and dw.get("end") in ends:
+            ends[dw["end"]] += 1
+            s = _n(dw.get("stall"))
+            if s is not None:
+                stalls.append(s)
+        left += 1 if why.get("doorway_left") == "stall" else 0
+    return {"read": True, "lines": ends["reroute"] + ends["drop"], "reroute": ends["reroute"], "drop": ends["drop"],
+            "max_stall": max(stalls) if stalls else None, "left_stall": left}
+
+
+def e_fence_wait(L):
+    """The fence wait (P25-F): {read, lines, legs {leg: lines}, aims, waits, outcomes {swing, stomp, other, open}}. `lines`
+    the threat lines whose why carries `fence_wait` (reading) with the `legs` back, stand and toward and `aims` the ones
+    that sent an aim. `waits` the runs of adjacent such lines; each run outcome is read off the line after it (an
+    inference): an attack sent is a `swing`, a stomp a `stomp`, anything else `other`, and a run the log ended on `open`."""
+    if L is None:
+        return {"read": False}
+    legs, lines, aims, waits = {}, 0, 0, 0
+    out = {"swing": 0, "stomp": 0, "other": 0, "open": 0}
+    inrun = False
+    for ln in L.rows:
+        fw = L.why(ln).get("fence_wait") if ln.get("branch") == "threat" else None
+        if isinstance(fw, dict):
+            lines += 1
+            legs[fw.get("leg")] = legs.get(fw.get("leg"), 0) + 1
+            aims += 1 if _sent(ln, "aim") else 0
+            waits += 0 if inrun else 1
+            inrun = True
+        elif inrun:
+            inrun = False
+            out["swing" if _sent(ln, "attack") else "stomp" if _sent(ln, "stomp") else "other"] += 1
+    if inrun:
+        out["open"] += 1
+    return {"read": True, "lines": lines, "legs": legs, "aims": aims, "waits": waits, "outcomes": out}
+
+
+def report_lines_e10(g):
+    """report_lines_e9 lines (the gate line naming gate_e10) then the six pass 10 lines, each clause marked reading or
+    inference."""
+    g = _d(g)
+    out = [("gate_e10 " + l[len("gate_e9 "):]) if l.startswith("gate_e9 ") else l for l in report_lines_e9(g)]
+    cn, ff, hw, rw, dw, fw = (_d(g.get(x)) for x in ("corner", "finish_first", "hold_walk", "ride_wait", "door_walk",
+                                                     "fence_wait"))
+    out.append(("corner (P25-A) [reading]: %s lines, %s break (%s steers sent), %s swing (%s attacks sent); shoves %s, "
+                "repeated at a target within %s s %s (must read 0) [inference: the sent actions]" % (
+                    cn.get("lines"), cn.get("break"), cn.get("break_steers"), cn.get("swing"), cn.get("swing_attacks"),
+                    cn.get("shoves"), SHOVE_REPEAT_S, cn.get("repeat_shoves")))
+               if cn.get("read") else "corner (P25-A): no decision log read")
+    out.append(("finish first (P25-B) [reading]: %s lines, %s stomps sent, %s landed [reading: the result], %s with the "
+                "fallen target beyond %s tiles, farthest %s" % (
+                    ff.get("lines"), ff.get("stomps"), ff.get("landed"), ff.get("beyond_reach"), FIGHT_REACH,
+                    ff.get("max_dist"))) if ff.get("read") else "finish first (P25-B): no decision log read")
+    out.append(("hold walk (P25-C): %s endurance strain lines, %s walking [reading], of them %s with a zombie within %s "
+                "tiles (must read 0) [reading: inputs.nearest]; %s hold runs, %s ended with the endurance under %s (the "
+                "timed release) [inference: the last line strain.endurance], %s open at the end of the log" % (
+                    hw.get("strain_lines"), hw.get("hold_walk"), hw.get("walk_near"), DANGER_R, hw.get("runs"),
+                    hw.get("released_under"), ENDURANCE_RELEASE, hw.get("open_runs")))
+               if hw.get("read") else "hold walk (P25-C): no decision log read")
+    out.append(("ride wait (P25-D) [reading]: %s lines (sent %s, must read 0), %s rides waited on, %s ended done" % (
+        rw.get("lines"), rw.get("sent"), rw.get("rides"), rw.get("rides_done")))
+               if rw.get("read") else "ride wait (P25-D): no decision log read")
+    out.append(("door walk (P25-E) [reading]: %s lines, %s re-routed, %s dropped (%s `doorway_left` stall), longest stall %s s"
+                % (dw.get("lines"), dw.get("reroute"), dw.get("drop"), dw.get("left_stall"), dw.get("max_stall")))
+               if dw.get("read") else "door walk (P25-E): no decision log read")
+    oc = _d(fw.get("outcomes"))
+    out.append(("fence wait (P25-F) [reading]: %s lines (legs %s, %s aims sent), %s waits ending in a swing %s, a stomp %s, "
+                "another line %s, open %s [inference: the line after each wait]" % (
+                    fw.get("lines"), fw.get("legs"), fw.get("aims"), fw.get("waits"), oc.get("swing"), oc.get("stomp"),
+                    oc.get("other"), oc.get("open"))) if fw.get("read") else "fence wait (P25-F): no decision log read")
+    return out
+
+
+def grade_e10(out, prev=None, decision_lines=None, state_dir=None, lines=None):
+    """grade_e9 under "grade_e10" with the six readings of survival iteration 13: `corner`, `finish_first`, `hold_walk`,
+    `ride_wait`, `door_walk` and `fence_wait` (each {"read": False} without a decision log)."""
+    out = _d(out)
+    files = []
+    if lines is None:
+        lines, files = session_lines(state_dir) if state_dir is not None else ([], [])
+    g = grade_e9(out, prev, decision_lines, state_dir, lines=lines)
+    g["grade"] = "grade_e10"
+    if files and "frames_files" in g:
+        g["frames_files"] = files
+    loop = _d(out.get("loop"))
+    L = None
+    if decision_lines is not None:
+        L = _Lines(out, decision_lines, lines)
+        L.died = loop.get("death") is not None or _d(out.get("stop")).get("reason") == "death"
+    g["corner"] = e_corner(L)
+    g["finish_first"] = e_finish_first(L)
+    g["hold_walk"] = e_hold_walk(L)
+    g["ride_wait"] = e_ride_wait(L)
+    g["door_walk"] = e_door_walk(L)
+    g["fence_wait"] = e_fence_wait(L)
+    g["report_lines"] = report_lines_e10(g)
+    return g
+
+
+def gate_e10(outs):
+    """gate_e9 (grade_e10 changes none of what it reads), named gate_e10."""
+    return gate_e9(outs)
