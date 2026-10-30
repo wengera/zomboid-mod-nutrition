@@ -1,6 +1,6 @@
 """The finish of the fallen and the stomp: the mixins `ThreatFinish` (`threat.Threat`'s: ruling P24-AQ, the
 `many` flee's finishing stomp, its end and its chaser, P24-AV) and `FightFinish` (`fight.Fight`'s: ruling P24-AL's
-finish, the downed read and P24-AV's stomp wait on a shove's knock-down). Moved out of `threat.py` and `fight.py`
+finish, the downed read and P24-AV's stomp wait on a shove's knock-down, and P25-B's stomp first). Moved out of `threat.py` and `fight.py`
 at Plan 25 Task 2 (a pure move: every rule and constant unchanged; the constants in `policies.py`'s table); the
 state is `Survive`'s and the `Fight`'s own, and `survive.py`'s and `fight.py`'s module docstrings stay the record.
 """
@@ -189,3 +189,48 @@ class FightFinish:
         zid, _, d = k[0]
         self.why = {"target": self.target, "pinned": self.target is not None, "dist": d, "knocked": zid}
         return (None,)
+
+    def _finish_pick(self):
+        """Ruling P25-B: (id, dist) of the nearest zombie read `onFloor` within FINISH_R on a line not read blocked that
+        the stomp may take (announced, not refused at it, no standing zombie within STAND_MIN_R of the player, no
+        standing chaser within KEEP_R of it: `finish.finish_chaser`, the flee finish's guard), else None."""
+        if "finish_first" not in self.rules or not self.world.can("stomp") or hit_reaction(self.world) is not None:
+            return None
+        skip = self.blocked()
+        dead = blocked(self.dead, self.clock())
+        best = None
+        for zid, z in self.world.zombies.items():
+            if (not target_id_ok(zid) or zid in skip or not on_floor(z) or z.get("x") is None or z.get("y") is None
+                    or (self.only is not None and zid not in self.only)):
+                continue
+            d = zdist(self.world, z)
+            if (d > FINISH_R or line_to(self.world, z) is False or not self._swing_ok("stomp", zid)
+                    or self._standing_near(STAND_MIN_R, (zid,)) is not None
+                    or finish_chaser(self.world, zid, dead) is not None):
+                continue
+            if best is None or (d, repr(zid)) < (best[1], repr(best[0])):
+                best = (zid, d)
+        return best
+
+    def _finish_gives_way(self):
+        """P25-B (E11's third target lay fallen 4.3 s under an attack running to `out of reach`, #4405): a running
+        walk, or a running attack whose target reads fallen or beyond FIGHT_REACH, gives way to `_finish_pick`."""
+        if self._finish_pick() is None:
+            return False
+        if self.last.type != "attack":
+            return True
+        t = self.world.zombies.get(self.last.args.get("targetId"))
+        return t is None or t.get("x") is None or on_floor(t) or zdist(self.world, t) > FIGHT_REACH
+
+    def _finish_first(self, d):
+        """Ruling P25-B: with the target `d` tiles off beyond FIGHT_REACH (the Fight would walk, step or wait toward a
+        standing one), the stomp of `_finish_pick`'s zombie first (its walk in, the Lua's), logged `finish_first`
+        {target, dist}; else None."""
+        if d <= FIGHT_REACH:
+            return None
+        pick = self._finish_pick()
+        if pick is None:
+            return None
+        self.why = {"target": self.target, "pinned": self.target is not None, "dist": d,
+                    "finish_first": {"target": pick[0], "dist": pick[1]}}
+        return Stomp(pick[0])

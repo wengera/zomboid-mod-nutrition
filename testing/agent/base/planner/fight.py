@@ -111,9 +111,9 @@ one table the gates and the other policies import).
 import math
 import time
 
-from agent.base.planner.finish import FightFinish, finish_chaser
+from agent.base.planner.finish import FightFinish
 from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R,
-                                         DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S, FIGHT_REACH, FINISH_R,
+                                         DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S, FIGHT_REACH,
                                          FLEE_GAIT, FLEE_S, KEEP_MARGIN, KEEP_R, KNOCK_READ_S, MISSES_TO_APPROACH,
                                          NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R, Policy, REPIN_MARGIN,
                                          REPOSITION_MIN, REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R, SHOVE_R,
@@ -123,7 +123,7 @@ from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CORNERED_
                                          blocked, centre, chasing, clear_heading, hit_reaction, in_reach, line_to,
                                          on_floor, seek_allowed, stance_leg_kind, target_id_ok, zdist)
 from agent.base.planner.pull import FightPull
-from agent.base.pza1 import Aim, Attack, Shove, Steer, Stomp, WalkTo
+from agent.base.pza1 import Aim, Attack, Shove, Steer, WalkTo
 from agent.base.world import me_floor, me_xy
 
 __all__ = ["Fight", "FIGHT_RULES"]
@@ -610,7 +610,9 @@ class Fight(FightPull, FightFinish, Policy):
         sore = pain is not None and pain >= STRAIN_SOFT
         blank = (sore or self.spent) and d <= POINT_BLANK_R
         if blank and "corner_break" in self.rules and self._shove_missed(zid):
-            return self._corner(zid, z)   # P25-A: no second shove at it within SHOVE_REPEAT_S
+            corner = self._corner(zid, z, sore)   # P25-A: the break or the undivided swing, else the shove again
+            if corner is not None:
+                return corner
         if blank and self._swing_ok("shove", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
             self.why.update({"shove": "strain" if sore else "spent", "strain": pain})
             return Shove(zid)
@@ -635,13 +637,18 @@ class Fight(FightPull, FightFinish, Policy):
         res = a.result if isinstance(a.result, dict) else {}
         return res.get("knockdown") is False and res.get("attackStarted") is not False
 
-    def _corner(self, zid, z):
+    def _corner(self, zid, z, sore):
         """Ruling P25-A, the corner under any hold (E11: seven shoves at two zombies at point blank, none knocking
         down, no swing, #4406): after a missed shove at `zid` (`_shove_missed`), with two or more standing zombies
         within FIGHT_REACH the steer at a run through the gap the shove opened (the heading away from `zid`'s bearing,
-        turned by STEER_TURNS to the first heading `clear_heading` passes); with one, or no heading clear, the swing
-        at it, the no-swing of the arms' pain or a hold overridden (#4370: the divider halves a swing at armPain 20, and
-        a halved swing beats a seventh shove). Logged `corner` {kind: break | swing, shoved, n}."""
+        turned by STEER_TURNS to the first heading `clear_heading` passes); otherwise the swing at it only while the
+        swing is undivided (`sore` false, the arms' pain under STRAIN_SOFT, and no endurance or tired hold: the arms'
+        hold alone leaves it whole), logged `corner` {kind: break | swing, shoved, n}; a divided swing is not taken: None,
+        and the lone or boxed-in target is shoved again (review-t3 finding 1; ruling: the swing at E11's armPain 38 to
+        270 lands at 1/3.8 to 1/27 of its damage, #4370, and x0.5 again under the endurance hold, #4371, while the
+        shove's knock-down is a crit roll pain does not touch, #4373, and the stomp after it is outside the divider,
+        #4374: #4404 read five or six full swings before a zombie fell, two stomps finishing a fallen one; cost if
+        wrong: a seventh shove at a zombie that keeps standing, a bat's swing at a divider of 2 or less left unswung)."""
         n = len(self._standing(FIGHT_REACH))
         mx, my = me_xy(self.world)
         dx, dy = mx - z["x"], my - z["y"]
@@ -650,6 +657,8 @@ class Fight(FightPull, FightFinish, Policy):
         if v is not None:
             self.why["corner"] = {"kind": "break", "shoved": zid, "n": n}
             return Steer(v[0], v[1], FLEE_S, FLEE_GAIT)
+        if sore or "endurance" in self.spent or "tired" in self.spent:
+            return None
         self.why["corner"] = {"kind": "swing", "shoved": zid, "n": n}
         self._held_before = False
         return Attack(zid)
@@ -663,51 +672,6 @@ class Fight(FightPull, FightFinish, Policy):
             return False
         n = (self.world.me or {}).get("attackers")
         return not (isinstance(n, int) and not isinstance(n, bool) and n >= DRAG_DOWN_N - 1)
-
-    def _finish_pick(self):
-        """Ruling P25-B: (id, dist) of the nearest zombie read `onFloor` within FINISH_R on a line not read blocked that
-        the stomp may take (announced, not refused at it, no standing zombie within STAND_MIN_R of the player, no
-        standing chaser within KEEP_R of it: `finish.finish_chaser`, the flee finish's guard), else None."""
-        if "finish_first" not in self.rules or not self.world.can("stomp") or hit_reaction(self.world) is not None:
-            return None
-        skip = self.blocked()
-        dead = blocked(self.dead, self.clock())
-        best = None
-        for zid, z in self.world.zombies.items():
-            if (not target_id_ok(zid) or zid in skip or not on_floor(z) or z.get("x") is None or z.get("y") is None
-                    or (self.only is not None and zid not in self.only)):
-                continue
-            d = zdist(self.world, z)
-            if (d > FINISH_R or line_to(self.world, z) is False or not self._swing_ok("stomp", zid)
-                    or self._standing_near(STAND_MIN_R, (zid,)) is not None
-                    or finish_chaser(self.world, zid, dead) is not None):
-                continue
-            if best is None or (d, repr(zid)) < (best[1], repr(best[0])):
-                best = (zid, d)
-        return best
-
-    def _finish_gives_way(self):
-        """P25-B (E11's third target lay fallen 4.3 s under an attack running to `out of reach`, #4405): a running
-        walk, or a running attack whose target reads fallen or beyond FIGHT_REACH, gives way to `_finish_pick`."""
-        if self._finish_pick() is None:
-            return False
-        if self.last.type != "attack":
-            return True
-        t = self.world.zombies.get(self.last.args.get("targetId"))
-        return t is None or t.get("x") is None or on_floor(t) or zdist(self.world, t) > FIGHT_REACH
-
-    def _finish_first(self, d):
-        """Ruling P25-B: with the target `d` tiles off beyond FIGHT_REACH (the Fight would walk, step or wait toward a
-        standing one), the stomp of `_finish_pick`'s zombie first (its walk in, the Lua's), logged `finish_first`
-        {target, dist}; else None."""
-        if d <= FIGHT_REACH:
-            return None
-        pick = self._finish_pick()
-        if pick is None:
-            return None
-        self.why = {"target": self.target, "pinned": self.target is not None, "dist": d,
-                    "finish_first": {"target": pick[0], "dist": pick[1]}}
-        return Stomp(pick[0])
 
     def _fence_read(self, t):
         """Ruling P25-F, the fence wait (the guides notes § 9 change 4: the fence trick; the chain's fence-row fights
