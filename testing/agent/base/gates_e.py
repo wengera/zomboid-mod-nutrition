@@ -1490,3 +1490,475 @@ def grade_e6(out, prev=None, decision_lines=None, state_dir=None, lines=None):
 def gate_e6(outs):
     """gate_e5's gates and kills (grade_e6 changes none of what they read), named gate_e6."""
     return gate_e5(outs)
+
+
+# ================================================================ pass 7 (Plan 24 Task 33): survival iteration 11
+# grade_e7 is grade_e6 plus seven readings of the iteration's rulings (P24-AN to P24-AS), each from the decision log's
+# why fields (a reading) or from the frames of the state logs matched to a log line by time (the frame at or before the
+# line's wall second; an inference, named so): `pull`, `doorway`, `wounded`, `fallen`, `care_tick`, `transparent`,
+# `shots`. A decision-log line's sent action is matched to loop.actions by its send second (the line's wall less the
+# loop's start, within DECISION_MATCH_S) and its type, so a kill is read off the action's result on that very line
+# (`targetDead`, of an attack, aim, stomp or shove). Every reading says `read: False` without its source. The kills
+# headline is grade_e6's, unchanged.
+import math                                         # noqa: E402 - appended below the pass 6 code so no line above shifts
+from agent.base.planner.policies import FIGHT_REACH, KEEP_R, STRAIN_HARD    # noqa: E402
+
+DECISION_MATCH_S = 0.01             # seconds: a log line's wall less the loop start against its action's sentS (E9: <= 2.1e-05)
+HELD_POS_TOL = 0.02                 # tiles: a position that moved no farther than this is held (E9's held run: x or y fixed)
+HELD_MIN_S = 5.0                    # seconds: a held position this long with a steer in force is a held steer
+HELD_STEER_AGE_S = 3.0              # seconds: a steer sent this long before a held run began is still in force (its leg)
+HELD_AXIS_MIN = 0.5                 # a steer's unit-heading component on the held axis at least this reads as pointing along it
+HELD_PROBES = (0.5, 1.0, 1.5)       # tiles along the heading from the held position tested against the solidTrans squares
+KILL_TYPES = ("attack", "aim", "stomp", "shove")
+
+
+def _frame_index(lines):
+    """([wallMs], [frame]) of the frame lines of `lines` sorted by wallMs; ([], []) without any."""
+    rows = sorted(((w, f) for f in _l(lines) if isinstance(f, dict) and f.get("kind") == "frame"
+                   for w in [_n(f.get("wallMs"))] if w is not None), key=lambda p: p[0])
+    return [w for w, _ in rows], [f for _, f in rows]
+
+
+def _frame_at(index, wall):
+    """The frame at or before `wall` (epoch seconds), else None."""
+    walls, frames = index
+    i = bisect.bisect_right(walls, wall * 1000.0) - 1 if wall is not None else -1
+    return frames[i] if i >= 0 else None
+
+
+def _loop_start_s(out):
+    loop = _d(_d(out).get("loop"))
+    t = _n(loop.get("startPyMs"))
+    t = t if t is not None else _n(loop.get("t_loop0_ms"))
+    return t / 1000.0 if t is not None else None
+
+
+class _Lines:
+    """The decision log of a session with each line's matched action result and the frame beside it."""
+
+    def __init__(self, out, decision_lines, lines):
+        loop = _d(_d(out).get("loop"))
+        self.res = _results(loop)
+        self.t0 = _loop_start_s(out)
+        self.acts = sorted(((_n(a.get("sentS")), a) for a in (_d(x) for x in _l(loop.get("actions")))
+                            if _n(a.get("sentS")) is not None), key=lambda p: p[0])
+        self.sent_s = [s for s, _ in self.acts]
+        self.rows = _log_lines(decision_lines)
+        self.index = _frame_index(lines)
+        self.died, self.trans = False, set()
+
+    def why(self, ln):
+        return _threat_why(ln)
+
+    def frame(self, ln):
+        return _frame_at(self.index, _n(ln.get("wall")))
+
+    def action(self, ln):
+        """The loop.actions row the line's sent action is, else None."""
+        a = _d(ln.get("action"))
+        w = _n(ln.get("wall"))
+        if not a or ln.get("sent") is not True or w is None or self.t0 is None:
+            return None
+        t = w - self.t0
+        i = bisect.bisect_left(self.sent_s, t - DECISION_MATCH_S)
+        while i < len(self.acts) and self.sent_s[i] <= t + DECISION_MATCH_S:
+            if self.acts[i][1].get("type") == a.get("type"):
+                return self.acts[i][1]
+            i += 1
+        return None
+
+    def killed(self, ln):
+        """The zombie id the line's sent action killed (its result read targetDead true), else None."""
+        row = self.action(ln)
+        if row is None or row.get("type") not in KILL_TYPES:
+            return None
+        if self.res.get(row.get("aid"), {}).get("targetDead") is not True:
+            return None
+        return _d(row.get("args")).get("targetId")
+
+    def is_fight(self, ln):
+        return ln.get("branch") == "threat" and self.why(ln).get("fight") is True
+
+    def runs(self):
+        """The fights of the log: lists of adjacent threat-branch fight lines (e_engage's reading)."""
+        runs, cur = [], []
+        for ln in self.rows:
+            if self.is_fight(ln):
+                cur.append(ln)
+            elif cur:
+                runs.append(cur)
+                cur = []
+        if cur:
+            runs.append(cur)
+        return runs
+
+    def kill_ids(self, rows):
+        ids = []
+        for ln in rows:
+            k = self.killed(ln)
+            if k is not None and k not in ids:
+                ids.append(k)
+        return ids
+
+
+def _sent(ln, kind):
+    return ln.get("sent") is True and _d(ln.get("action")).get("type") == kind
+
+
+def e_pull(L):
+    """The pull (P24-AN): {read, fights, beyond_fights, beyond_lines, pull_lines, pull_sent, pull_fights,
+    pull_fights_swung, pull_kills}. `beyond_*` (an inference: the frame at the line lists a zombie beyond DANGER_R) the
+    fights, and the fight lines, engaged while the group was listed beyond DANGER_R; `pull_lines` the fight lines whose
+    why reads leg `pull`, `pull_sent` those that sent the aim; `pull_fights` the fights holding a pull line, of which
+    `pull_fights_swung` sent an attack and whose kills are `pull_kills` (the ids killed on those fights' lines)."""
+    if L is None:
+        return {"read": False}
+    runs = L.runs()
+
+    def beyond(ln):
+        f = L.frame(ln)
+        return f is not None and any(_n(z.get("dist")) is not None and z["dist"] > DANGER_R
+                                     for z in _l(f.get("zombies")) if isinstance(z, dict))
+    pulled = [r for r in runs if any(L.why(ln).get("leg") == "pull" for ln in r)]
+    swung = [r for r in pulled if any(_sent(ln, "attack") for ln in r)]
+    pulls = [ln for r in runs for ln in r if L.why(ln).get("leg") == "pull"]
+    return {"read": True, "fights": len(runs), "beyond_fights": sum(1 for r in runs if beyond(r[0])),
+            "beyond_lines": sum(1 for r in runs for ln in r if beyond(ln)), "pull_lines": len(pulls),
+            "pull_sent": sum(1 for ln in pulls if _sent(ln, "aim")), "pull_fights": len(pulled),
+            "pull_fights_swung": len(swung), "pull_kills": len(L.kill_ids([ln for r in pulled for ln in r]))}
+
+
+def e_doorway(L):
+    """The doorway stand (P24-AO): {read, fights, lines, swings, shoves, kills, attackers3_frames, drag_deaths}: the
+    fights holding a line whose why names a `doorway`, their lines, the attacks and shoves sent on them, the kills
+    (ids killed on those lines: the kills under the `many` reason, E9: 0), the frames inside a doorway fight's span
+    (first to last line, a frame of slack after) reading `me.attackers` 3 or more (an inference) and `drag_deaths` 1
+    when the session died with its last frame in such a span at that count."""
+    if L is None:
+        return {"read": False}
+    stands = [r for r in L.runs() if any(L.why(ln).get("doorway") is not None for ln in r)]
+    lines = [ln for r in stands for ln in r]
+    walls, frames = L.index
+    hits, last_hit = 0, None
+    for r in stands:
+        lo, hi = _n(r[0].get("wall")), _n(r[-1].get("wall"))
+        if lo is None or hi is None:
+            continue
+        i = bisect.bisect_left(walls, lo * 1000.0)
+        while i < len(frames) and walls[i] <= (hi + DOORWAY_SLACK_S) * 1000.0:
+            if (_n(_d(frames[i].get("me")).get("attackers")) or 0) >= 3:
+                hits += 1
+                last_hit = i
+            i += 1
+    return {"read": True, "fights": len(stands), "lines": len(lines),
+            "swings": sum(1 for ln in lines if _sent(ln, "attack")), "shoves": sum(1 for ln in lines if _sent(ln, "shove")),
+            "kills": len(L.kill_ids(lines)), "attackers3_frames": hits,
+            "drag_deaths": 1 if (L.died and last_hit is not None and last_hit == len(frames) - 1) else 0}
+
+
+DOORWAY_SLACK_S = 1.0               # seconds: a doorway fight's span reaches this far past its last line for the drag-down read
+
+
+def e_wounded(L):
+    """The wounded fight (P24-AP): {read, swings_at_pain, shoves_hold, stomps_hold, kills_hold, strain_flees_near,
+    hold_lines}. With the frame's `body.armPain` at STRAIN_HARD or above (an inference, the frame at the line):
+    the `attack` sends (must read 0), the shoves and stomps sent, the kills on those lines; `strain_flees_near` the
+    lines whose why flees `strain` with a zombie within KEEP_R (the flee's own nearest, else the line's; must read 0);
+    `hold_lines` the threat lines whose why reads `hold`."""
+    if L is None:
+        return {"read": False}
+    swings = shoves = stomps = 0
+    kills, near, hold = [], 0, 0
+    for ln in L.rows:
+        why = L.why(ln)
+        if ln.get("branch") == "threat" and why.get("hold") is True:
+            hold += 1
+        if ln.get("branch") == "threat" and why.get("flee") == "strain":
+            d = _n(why.get("nearest"))
+            d = d if d is not None else _n(_d(ln.get("inputs")).get("nearest"))
+            near += 1 if d is not None and d <= KEEP_R else 0
+        f = L.frame(ln)
+        pain = _n(_d(_d(f).get("body")).get("armPain")) if f is not None else None
+        if pain is None or pain < STRAIN_HARD:
+            continue
+        swings += 1 if _sent(ln, "attack") else 0
+        shoves += 1 if _sent(ln, "shove") else 0
+        stomps += 1 if _sent(ln, "stomp") else 0
+        k = L.killed(ln)
+        if k is not None and k not in kills:
+            kills.append(k)
+    return {"read": True, "swings_at_pain": swings, "shoves_hold": shoves, "stomps_hold": stomps,
+            "kills_hold": len(kills), "strain_flees_near": near, "hold_lines": hold}
+
+
+def _finish_send(ln, zid):
+    """Whether the line sent a stomp or a floor strike at zombie `zid` (the finish's why, a stomp, or an attack whose why
+    reads `floor`)."""
+    a = _d(ln.get("action"))
+    if ln.get("sent") is not True or _d(a.get("args")).get("targetId") != zid:
+        return False
+    why = _threat_why(ln)
+    return a.get("type") == "stomp" or (a.get("type") == "attack" and (why.get("floor") is True or why.get("kind") == "floor"))
+
+
+def e_fallen(L):
+    """The fallen target (P24-AQ): {read, fallen, finished, left, finish_lines, finish_kills, rows}. A fallen target is a
+    zombie the planner had targeted or struck (a fight line's target, or the targetId of any sent attack, aim or shove)
+    read `onFloor` true within FIGHT_REACH in a frame with no standing zombie within DANGER_R (an inference, the frames
+    of the state logs); `finished` those a stomp or floor strike was sent at after that frame and before the next
+    decision line whose threat why flees (the flee resumed); `left` the rest. `finish_lines` the lines whose why reads
+    `finish` and `finish_kills` the kills on them. rows: [{id, wall, finished}]."""
+    if L is None:
+        return {"read": False}
+    walls, frames = L.index
+    targeted = {}
+    for ln in L.rows:
+        w = _n(ln.get("wall"))
+        a = _d(ln.get("action"))
+        for zid in (L.why(ln).get("target"), _d(a.get("args")).get("targetId") if ln.get("sent") is True
+                    and a.get("type") in ("attack", "aim", "shove") else None):
+            if zid is not None and w is not None and zid not in targeted:
+                targeted[zid] = w
+    first = {}
+    for wm, f in zip(walls, frames):
+        zs = [z for z in _l(f.get("zombies")) if isinstance(z, dict)]
+        stand = [z for z in zs if z.get("onFloor") is not True and _n(z.get("dist")) is not None]
+        if any(z["dist"] <= DANGER_R for z in stand):
+            continue
+        for z in zs:
+            zid = z.get("id")
+            if (z.get("onFloor") is True and zid in targeted and zid not in first and _n(z.get("dist")) is not None
+                    and z["dist"] <= FIGHT_REACH and targeted[zid] <= wm / 1000.0 + 1.0):
+                first[zid] = wm / 1000.0
+    rows = []
+    for zid, w in sorted(first.items(), key=lambda p: p[1]):
+        done = False
+        for ln in L.rows:
+            lw = _n(ln.get("wall"))
+            if lw is None or lw < w:
+                continue
+            if _finish_send(ln, zid):
+                done = True
+                break
+            if ln.get("branch") == "threat" and isinstance(L.why(ln).get("flee"), str):
+                break
+        rows.append({"id": zid, "wall": w, "finished": done})
+    fin = [ln for ln in L.rows if ln.get("branch") == "threat" and L.why(ln).get("finish") is not None]
+    return {"read": True, "fallen": len(rows), "finished": sum(1 for r in rows if r["finished"]),
+            "left": sum(1 for r in rows if not r["finished"]), "finish_lines": len(fin),
+            "finish_kills": len(L.kill_ids(fin)), "rows": rows}
+
+
+def e_care_tick(L):
+    """The care tick (P24-AR): {read, rides_many (the distinct bandage aids ridden on a `many` flee's lines: the threat
+    why names `ride` beside flee many), ride_lines, dressings_last (bandages plus clean rags the care branch last read
+    held, with the gameMin), bleeding {max, minutes, series [[gameMin, parts bleeding]] where it changed} over the frames'
+    body.parts reading `bleeding` true}."""
+    if L is None:
+        return {"read": False}
+    rides, lines_n, held = [], 0, None
+    for ln in L.rows:
+        why = L.why(ln)
+        if ln.get("branch") == "threat" and why.get("flee") == "many" and why.get("ride") is not None:
+            lines_n += 1
+            if why["ride"] not in rides:
+                rides.append(why["ride"])
+        h = _d(_d(_d(_d(ln).get("inputs")).get("branches")).get("care")).get("held")
+        if isinstance(h, dict):
+            held = {"gameMin": ln.get("gameMin"), "dressings": (_n(h.get("bandage")) or 0) + (_n(h.get("rag")) or 0)}
+    series, prev, mx, mins = [], None, 0, set()
+    for f in L.index[1]:
+        n = sum(1 for p in _l(_d(f.get("body")).get("parts")) if isinstance(p, dict) and p.get("bleeding") is True)
+        gm = f.get("gameMin")
+        if n != prev:
+            series.append([gm, n])
+            prev = n
+        mx = max(mx, n)
+        if n and gm is not None:
+            mins.add(gm)
+    return {"read": True, "rides_many": len(rides), "ride_lines": lines_n, "dressings_last": held,
+            "bleeding": {"max": mx, "minutes": len(mins), "series": series}}
+
+
+def e_transparent(L):
+    """The transparent solid (P24-AS): {read, steers, held_runs, rows [{axis, wall, gameMin, secs, heading, square}]}: the
+    steer sends of the log, and the runs of frames (HELD_MIN_S or longer) in which one coordinate of the player's position
+    (x, then y) stayed within HELD_POS_TOL tiles of the run's first frame while a steer was in force (sent within
+    HELD_STEER_AGE_S before the run, or during it) whose heading mostly follows that axis (its component on it at least
+    HELD_AXIS_MIN) and, taken HELD_PROBES tiles from the player's position at the run's start, middle or end, enters a
+    square the kept map reads `solidTrans` (the squares of the map lines replayed). E9's held steer was one coordinate fixed
+    (y at 10586.99 for 18.4 s, the character sliding along a row of squares), so a position fixed on both axes is two runs
+    of this reading. An inference from the frames, named so."""
+    if L is None:
+        return {"read": False}
+    steers = []
+    for ln in L.rows:
+        a = _d(ln.get("action"))
+        w = _n(ln.get("wall"))
+        if _sent(ln, "steer") and w is not None:
+            args = _d(a.get("args"))
+            if _n(args.get("vx")) is not None and _n(args.get("vy")) is not None:
+                steers.append((w, args["vx"], args["vy"]))
+    trans = L.trans or set()
+    walls, frames = L.index
+    rows = []
+    for axis, ai in (("x", 0), ("y", 1)):
+        pos = [(_n(_d(f.get("me")).get("x")), _n(_d(f.get("me")).get("y"))) for f in frames]
+        i, n = 0, len(frames)
+        while i < n:
+            v = pos[i][ai]
+            j = i
+            while v is not None and j + 1 < n and pos[j + 1][ai] is not None and abs(pos[j + 1][ai] - v) <= HELD_POS_TOL:
+                j += 1
+            secs = (walls[j] - walls[i]) / 1000.0
+            if v is not None and j > i and secs >= HELD_MIN_S:
+                t0, t1 = walls[i] / 1000.0, walls[j] / 1000.0
+                samples = [pos[k] for k in (i, (i + j) // 2, j) if pos[k][0] is not None and pos[k][1] is not None]
+                z = int(_n(_d(frames[i].get("me")).get("z")) or 0)
+                hit = None
+                for sw, vx, vy in steers:
+                    h = math.hypot(vx, vy)
+                    if not (t0 - HELD_STEER_AGE_S <= sw <= t1) or h <= 0 or abs((vx, vy)[ai]) / h < HELD_AXIS_MIN:
+                        continue
+                    for px, py in samples:
+                        for k in HELD_PROBES:
+                            sq = (int(math.floor(px + vx / h * k)), int(math.floor(py + vy / h * k)), z)
+                            if sq in trans:
+                                hit = ([vx, vy], list(sq))
+                                break
+                        if hit:
+                            break
+                    if hit:
+                        break
+                if hit:
+                    rows.append({"axis": axis, "wall": t0, "gameMin": frames[i].get("gameMin"), "secs": secs,
+                                 "heading": hit[0], "square": hit[1]})
+            i = j + 1
+    return {"read": True, "steers": len(steers), "held_runs": len(rows), "rows": rows}
+
+
+def _trans_squares(lines):
+    """The (x, y, z) squares of the map lines whose latest reading is `solidTrans` true."""
+    state = {}
+    for ln in _l(lines):
+        if isinstance(ln, dict) and ln.get("kind") == "map":
+            for s in _l(ln.get("squares")):
+                if isinstance(s, dict) and s.get("x") is not None and s.get("y") is not None:
+                    state[(s["x"], s["y"], s.get("z") or 0)] = bool(s.get("solidTrans"))
+    return {k for k, v in state.items() if v}
+
+
+def e_shots(state_dir):
+    """The shot taker's index (P24-AM): {read, lines, images, by_method {screen, window}, skipped {reason: n}, window_after_
+    screen_refused}: shots/shots.jsonl of `state_dir` by `method` (a line without one reads "screen"), the `skipped`
+    reasons (`not foreground`, `occluded`, `blank`, `no window`), the image lines (those with a file) and the window
+    images that followed a refused screen grab (`skipped_screen`). read False without the file."""
+    if state_dir is None:
+        return {"read": False}
+    try:
+        with open(os.path.join(state_dir, "shots", "shots.jsonl"), encoding="utf-8") as fh:
+            rows = [json.loads(l) for l in fh if l.strip()]
+    except (OSError, ValueError):
+        return {"read": False}
+    rows = [r for r in rows if isinstance(r, dict)]
+    by, skipped, images, after = {"screen": 0, "window": 0}, {}, 0, 0
+    for r in rows:
+        m = r.get("method") if r.get("method") in ("screen", "window") else "screen"
+        by[m] += 1
+        if r.get("skipped") is not None:
+            skipped[str(r["skipped"])] = skipped.get(str(r["skipped"]), 0) + 1
+        elif r.get("file") is not None:
+            images += 1
+            after += 1 if m == "window" and r.get("skipped_screen") is not None else 0
+    return {"read": True, "lines": len(rows), "images": images, "by_method": by, "skipped": skipped,
+            "window_after_screen_refused": after}
+
+
+def report_lines_e7(g):
+    """report_lines_e6's lines (the gate line naming gate_e7), then the pass 7 lines."""
+    g = _d(g)
+    lines = [("gate_e7 " + l[len("gate_e6 "):]) if l.startswith("gate_e6 ") else l for l in report_lines_e6(g)]
+    pl, dw, wd, fl, ct, tr, sh = (_d(g.get(x)) for x in ("pull", "doorway", "wounded", "fallen", "care_tick",
+                                                         "transparent", "shots"))
+    if pl.get("read"):
+        lines.append("pull (P24-AN): %s fights, %s engaged with a zombie listed beyond %s tiles (%s lines) [inference: the "
+                     "frame at the line]; pull legs %s lines (%s sent); %s fights held a pull, %s swung, %s kills" % (
+                         pl.get("fights"), pl.get("beyond_fights"), DANGER_R, pl.get("beyond_lines"), pl.get("pull_lines"),
+                         pl.get("pull_sent"), pl.get("pull_fights"), pl.get("pull_fights_swung"), pl.get("pull_kills")))
+    else:
+        lines.append("pull (P24-AN): no decision log read")
+    if dw.get("read"):
+        lines.append("doorway (P24-AO): %s fights (%s lines), %s swings, %s shoves, %s kills under many (E9: 0); attackers "
+                     "3 or more in %s frames [inference]; drag-down deaths %s" % (
+                         dw.get("fights"), dw.get("lines"), dw.get("swings"), dw.get("shoves"), dw.get("kills"),
+                         dw.get("attackers3_frames"), dw.get("drag_deaths")))
+    else:
+        lines.append("doorway (P24-AO): no decision log read")
+    if wd.get("read"):
+        lines.append("wounded (P24-AP): swings at armPain %s or above %s (must read 0) [inference: the frame at the line]; "
+                     "shoves %s, stomps %s, kills %s under the hold; strain flees with a zombie within %s tiles %s (must "
+                     "read 0); hold lines %s" % (STRAIN_HARD, wd.get("swings_at_pain"), wd.get("shoves_hold"),
+                                                 wd.get("stomps_hold"), wd.get("kills_hold"), KEEP_R,
+                                                 wd.get("strain_flees_near"), wd.get("hold_lines")))
+    else:
+        lines.append("wounded (P24-AP): no decision log read")
+    if fl.get("read"):
+        lines.append("fallen (P24-AQ): %s fallen targets with no standing zombie within %s tiles [inference], %s finished, "
+                     "%s left; finish lines %s (%s kills)" % (fl.get("fallen"), DANGER_R, fl.get("finished"), fl.get("left"),
+                                                              fl.get("finish_lines"), fl.get("finish_kills")))
+    else:
+        lines.append("fallen (P24-AQ): no decision log read")
+    if ct.get("read"):
+        lines.append("care tick (P24-AR): bandages ridden on a many flee %s (%s lines); dressings held at the last care "
+                     "line %s; bleeding parts max %s over %s game minutes" % (
+                         ct.get("rides_many"), ct.get("ride_lines"), ct.get("dressings_last"),
+                         _d(ct.get("bleeding")).get("max"), _d(ct.get("bleeding")).get("minutes")))
+    else:
+        lines.append("care tick (P24-AR): no decision log read")
+    if tr.get("read"):
+        lines.append("transparent solid (P24-AS): %s steer sends, %s held runs of %s s or more into a solidTrans square %s "
+                     "(E9: one, 16.511 s) [inference]" % (tr.get("steers"), tr.get("held_runs"), HELD_MIN_S,
+                                                          [(_f(r.get("secs"), "%.3f"), r.get("square")) for r in
+                                                           _l(tr.get("rows"))]))
+    else:
+        lines.append("transparent solid (P24-AS): no decision log read")
+    if sh.get("read"):
+        lines.append("shots (P24-AM): %s index lines, by method %s, %s images (%s by window after a refused screen grab); "
+                     "skipped %s" % (sh.get("lines"), sh.get("by_method"), sh.get("images"),
+                                     sh.get("window_after_screen_refused"), sh.get("skipped")))
+    else:
+        lines.append("shots (P24-AM): no shots index read")
+    return lines
+
+
+def grade_e7(out, prev=None, decision_lines=None, state_dir=None, lines=None):
+    """grade_e6 but for grade "grade_e7": its readings, the kills headline unchanged, plus `pull`, `doorway`, `wounded`,
+    `fallen`, `care_tick`, `transparent` (decision log and frames) and `shots` (state_dir/shots/shots.jsonl)."""
+    out = _d(out)
+    files = []
+    if lines is None:
+        lines, files = session_lines(state_dir) if state_dir is not None else ([], [])
+    g = grade_e6(out, prev, decision_lines, state_dir, lines=lines)
+    g["grade"] = "grade_e7"
+    if files and "frames_files" in g:
+        g["frames_files"] = files                      # grade_e6 was handed the lines, so it did not see the files
+    loop = _d(out.get("loop"))
+    L = None
+    if decision_lines is not None:
+        L = _Lines(out, decision_lines, lines)
+        L.died = loop.get("death") is not None or _d(out.get("stop")).get("reason") == "death"
+        L.trans = _trans_squares(lines)
+    g["pull"] = e_pull(L)
+    g["doorway"] = e_doorway(L)
+    g["wounded"] = e_wounded(L)
+    g["fallen"] = e_fallen(L)
+    g["care_tick"] = e_care_tick(L)
+    g["transparent"] = e_transparent(L)
+    g["shots"] = e_shots(state_dir)
+    g["report_lines"] = report_lines_e7(g)
+    return g
+
+
+def gate_e7(outs):
+    """gate_e6's gates and kills (grade_e7 changes none of what they read), named gate_e7."""
+    return gate_e6(outs)
