@@ -242,6 +242,7 @@ def test_a_downed_zombie_behind_a_blocked_line_or_beyond_reach_is_not_finished(t
     approach), one behind a wall (the line's reposition) takes no stomp."""
     from .test_policies import behind_wall_n
     r, f = fight(tmp_path, [z(1, 102.5, floor=True)])
+    f.rules = f.rules - {"finish_first"}   # named change, Plan 25 Task 3: P25-B stomps it first (`test_survive_t`)
     a = f.step()
     assert a.type == "walkTo" and "downed" not in f.why
     (tmp_path / "b").mkdir()

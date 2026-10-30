@@ -156,3 +156,59 @@ def test_with_corner_break_off_the_missed_shove_is_shoved_again(tmp_path):
     assert tick(r, sv).type == "shove"
 
 
+# ================================================================ P25-B: the stomp before a running attack
+def attack_running(tmp_path, zs, caps=None):
+    """E11's third target (#4405): zombie 1 standing 1.74 tiles off; the stance's enter leg, then the attack, accepted
+    and running (the Lua walks in to the bat's reach)."""
+    r, sv = make(tmp_path, caps=caps)
+    r.frame(zombies=zs)
+    a = tick(r, sv)
+    if a.type == "aim":
+        r.fake.answer({"aim": ["accepted"]})
+        r.pump()
+        r.frame(zombies=zs)
+        a = tick(r, sv)
+    assert (a.type, a.args) == ("attack", {"targetId": 1})
+    r.fake.answer({"attack": ["accepted"]})
+    r.pump()
+    return r, sv
+
+
+def test_e11_s_third_target_fallen_under_the_running_attack_is_stomped_on_its_first_fallen_frame(tmp_path):
+    """#4405: 27581 read fallen 2.1044 tiles off two frames after the attack's acceptance and lay 4.3 s while the attack
+    ran to `out of reach`: the running attack gives way on the first frame reading it fallen and the stomp goes (its
+    walk in to it), logged `finish_first` {target, dist}."""
+    r, sv = attack_running(tmp_path, [z(1, 101.74)])
+    r.frame(zombies=[z(1, 102.1044, floor=True)])
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("stomp", {"targetId": 1})
+    assert w["finish_first"] == {"target": 1, "dist": pytest.approx(2.1044)}
+    all_sends_valid(r)
+
+
+def test_a_fallen_zombie_within_finish_r_is_stomped_before_the_walk_toward_a_standing_one(tmp_path):
+    """The approach walk (a PZA/1.4 build with the stomp: no stance) toward zombie 1 standing 3.5 tiles off goes after
+    the stomp of zombie 2 fallen 4.5 tiles off (within FINISH_R)."""
+    from .test_policies import CAPS_14
+    r, sv = make(tmp_path, caps=CAPS_14)
+    r.frame(zombies=[z(1, 103.5), z(2, 100.0, 204.5, floor=True)])
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("stomp", {"targetId": 2}) and threat_why(tmp_path)["finish_first"]["target"] == 2
+
+
+@pytest.mark.parametrize("case", ["chaser", "far", "no_stomp", "off"])
+def test_no_stomp_first_by_a_chaser_beyond_finish_r_without_the_stomp_or_switched_off(tmp_path, case):
+    """The refusals: a standing chaser within KEEP_R of the fallen one (the stomp's walk would end at it: the flee
+    finish's own guard, P24-AV); the fallen one beyond FINISH_R; a build without the stomp; `FINISH_FIRST` off. The
+    attack runs on (nothing sent)."""
+    from .test_policies import CAPS_14
+    caps = tuple(t for t in CAPS_14 if t != "stomp") if case == "no_stomp" else None
+    r, sv = attack_running(tmp_path, [z(1, 101.74)], caps=caps)
+    sv.FINISH_FIRST = case != "off"
+    fallen = z(1, 102.1044, floor=True) if case != "far" else z(1, 105.2, floor=True)
+    others = [z(2, 103.0, 200.5)] if case == "chaser" else []
+    r.frame(zombies=[fallen] + others)
+    assert tick(r, sv) is None and "finish_first" not in threat_why(tmp_path)
+
+

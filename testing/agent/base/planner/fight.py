@@ -435,6 +435,8 @@ class Fight(FightPull, FightFinish, Policy):
         walk (the approach and swing's, a reposition) holds until it ends."""
         if not super().busy():
             return False
+        if self.last.type in ("attack", "walkTo") and self._finish_gives_way():
+            return False   # P25-B: a fallen zombie within FINISH_R is stomped before the attack's walk goes on
         if self.last.type == "walkTo" and self._stance_walk is not None and self._stance_walk[0] is self.last:
             return not self._walk_gives_way()
         if self.last.type != "aim":
@@ -648,6 +650,51 @@ class Fight(FightPull, FightFinish, Policy):
         self._held_before = False
         return Attack(zid)
 
+    def _finish_pick(self):
+        """Ruling P25-B: (id, dist) of the nearest zombie read `onFloor` within FINISH_R on a line not read blocked that
+        the stomp may take (announced, not refused at it, no standing zombie within STAND_MIN_R of the player, no
+        standing chaser within KEEP_R of it: `finish.finish_chaser`, the flee finish's guard), else None."""
+        if "finish_first" not in self.rules or not self.world.can("stomp") or hit_reaction(self.world) is not None:
+            return None
+        skip = self.blocked()
+        dead = blocked(self.dead, self.clock())
+        best = None
+        for zid, z in self.world.zombies.items():
+            if (not target_id_ok(zid) or zid in skip or not on_floor(z) or z.get("x") is None or z.get("y") is None
+                    or (self.only is not None and zid not in self.only)):
+                continue
+            d = zdist(self.world, z)
+            if (d > FINISH_R or line_to(self.world, z) is False or not self._swing_ok("stomp", zid)
+                    or self._standing_near(STAND_MIN_R, (zid,)) is not None
+                    or finish_chaser(self.world, zid, dead) is not None):
+                continue
+            if best is None or (d, repr(zid)) < (best[1], repr(best[0])):
+                best = (zid, d)
+        return best
+
+    def _finish_gives_way(self):
+        """P25-B (E11's third target lay fallen 4.3 s under an attack running to `out of reach`, #4405): a running
+        walk, or a running attack whose target reads fallen or beyond FIGHT_REACH, gives way to `_finish_pick`."""
+        if self._finish_pick() is None:
+            return False
+        if self.last.type != "attack":
+            return True
+        t = self.world.zombies.get(self.last.args.get("targetId"))
+        return t is None or t.get("x") is None or on_floor(t) or zdist(self.world, t) > FIGHT_REACH
+
+    def _finish_first(self, d):
+        """Ruling P25-B: with the target `d` tiles off beyond FIGHT_REACH (the Fight would walk, step or wait toward a
+        standing one), the stomp of `_finish_pick`'s zombie first (its walk in, the Lua's), logged `finish_first`
+        {target, dist}; else None."""
+        if d <= FIGHT_REACH:
+            return None
+        pick = self._finish_pick()
+        if pick is None:
+            return None
+        self.why = {"target": self.target, "pinned": self.target is not None, "dist": d,
+                    "finish_first": {"target": pick[0], "dist": pick[1]}}
+        return Stomp(pick[0])
+
     def fight_s(self):
         """Seconds the target has been out of reach (the stall clock)."""
         return self.clock() - self.out_of_reach_since
@@ -727,6 +774,9 @@ class Fight(FightPull, FightFinish, Policy):
         fin = self._finish()   # P24-AL: a downed zombie within reach first
         if fin is not None:
             return fin[0]
+        first = self._finish_first(d)   # P25-B: one within FINISH_R before any walk toward a standing one
+        if first is not None:
+            return first
         if d <= POINT_BLANK_R:
             self.approach = False   # P24-A (e), the close review's I3 (F1's walkTo at 0.49 tiles): never at point blank
         blank = self.point_blank and d <= POINT_BLANK_R   # P23-AJ fix 1: in reach whatever the map's line says
