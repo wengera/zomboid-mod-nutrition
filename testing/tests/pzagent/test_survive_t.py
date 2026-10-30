@@ -48,6 +48,15 @@ def test_the_goal_view_carries_the_endurance_hold_as_spent_and_none_without_a_ho
     assert "spent" not in sv2._view()
 
 
+def test_the_goal_source_s_rendered_view_carries_the_hold_line(tmp_path):
+    """End to end with Task 4's render (`view.render`): the hold read this tick is the view's `hold:` line."""
+    from agent.base.planner import view as V
+    r, sv = make(tmp_path)
+    r.frame(zombies=[z(1, 104.0)], endurance=0.7267035841941833)
+    tick(r, sv)
+    assert "hold: endurance 0.73" in V.render(sv._view()).splitlines()
+
+
 def test_the_spent_view_reads_the_stiffness_for_the_arms_and_the_fatigue_for_tired(tmp_path):
     r, sv = make(tmp_path)
     fr(r, [z(1, 104.0)], 12.0, {"l": 25.0, "r": 3.0})
