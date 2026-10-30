@@ -67,3 +67,12 @@
 ### Task 18: Survival iteration 8 — the fight sought, every walk a destination, the stuck door (P24-X/Y/Z)
 - [ ] The planner rules, tests, mutants, goldens; then the E7 and probe write-ups and the eighth chain.
 
+### Task 25: Jar reads 3 — muscle strain, the shove and stomp, the client's loaded window, the unwear
+- [x] §§ 11–14 of the note; rows #4368–#4377 (868b5dd2).
+
+### Task 26: Faster iteration loops — the suite's durations and the safe speed-ups
+- [ ] The durations, the shared fixtures and caches, the slow marker, the loop analysis.
+
+### Task 27: Survival iteration 10 — strain-aware fighting, the shove and the stomp, the loaded-window legs, unwear then rip (P24-AG/AH/AI/AJ)
+- [ ] After PZA/1.7 (Task 9 fix 11); then the ninth chain's boot on it and the write-ups.
+
