@@ -2642,3 +2642,349 @@ def grade_e10(out, prev=None, decision_lines=None, state_dir=None, lines=None):
 def gate_e10(outs):
     """gate_e9 (grade_e10 changes none of what it reads), named gate_e10."""
     return gate_e9(outs)
+
+
+# ================================================================ pass 11 (Plan 25 Task 9): survival iteration 14's rulings
+# grade_e11 is grade_e10 plus eight readings of iteration 14's why fields (P25-G to P25-O; Task 7's and Task 8's reports name
+# them), each a reading of the decision log's whys, the artifact's goal rows and actions, or the state log's hello, except where
+# a clause is marked inference. grade_e4 to grade_e10 are frozen (CLAUDE.md section 5): `hold_walk.released_under` stays the
+# inference of grade_e10, and `release` is the field P25-M logs beside it.
+from agent.base.planner.goals import COOL_REASONS    # noqa: E402
+
+UNWEAR_SEQ_LINES = 40               # log lines: the rip (then the bandage) of a wound's unwear is read this far after it
+
+
+def _bw(ln, name):
+    """The `name` branch's why of a decision-log line."""
+    return _d(_d(_d(_d(ln).get("inputs")).get("branches")).get(name))
+
+
+def e_shun(out, L):
+    """The shun loop closed (P25-G): {read, ends, cooled_goals, shelter_shunned, cooled_lines, refused_lines,
+    invalid_shunned}. `ends` the goal rows of loop.goals that ended `failed` for a reason of COOL_REASONS (shun, shunned,
+    no plan, no door) by reason, `cooled_goals` their sum and `shelter_shunned` the Shelters among those failed `shunned` (the
+    start's own end); `cooled_lines` the log lines whose `inputs.cooled` names a goal passed over, `refused_lines` the goal
+    lines whose why carries `refused` (the runner refused a proposal as cooled), `invalid_shunned` the goal rows whose reason
+    is the LLM refusal `invalid: shunned` (a scripted source never proposes one; must read 0)."""
+    if L is None:
+        return {"read": False}
+    ends = {r: 0 for r in COOL_REASONS}
+    shelter = invalid = 0
+    for g in (_d(x) for x in _l(_d(_d(out).get("loop")).get("goals"))):
+        if g.get("state") == "failed" and g.get("reason") in ends:
+            ends[g["reason"]] += 1
+            shelter += 1 if g.get("type") == "Shelter" and g.get("reason") == "shunned" else 0
+        invalid += 1 if g.get("reason") == "invalid: shunned" else 0
+    return {"read": True, "ends": ends, "cooled_goals": sum(ends.values()), "shelter_shunned": shelter,
+            "cooled_lines": sum(1 for ln in L.rows if _d(ln.get("inputs")).get("cooled") is not None),
+            "refused_lines": sum(1 for ln in L.rows if _bw(ln, "goal").get("refused") is not None),
+            "invalid_shunned": invalid}
+
+
+def e_unwear(L):
+    """The unwear as a wound step (P25-H): {read, wound_lines, wound_sent, stock_lines, ripped, bandaged}. `wound_lines` the
+    care lines whose why reads `reason` unwear with a `part` (the bleeding step's, reading) and `wound_sent` those that sent,
+    `stock_lines` the idle stock's unwears (the care why's `stock` reason unwear; P24-AJ). `ripped` the sent wound unwears
+    followed within UNWEAR_SEQ_LINES log lines by a sent care line of reason `no_rag` at the same part (the rip) and
+    `bandaged` those whose rip a sent `bleeding` care line at that part followed within UNWEAR_SEQ_LINES (an inference: the
+    order of the care lines, not an action's result)."""
+    if L is None:
+        return {"read": False}
+    steps, stock = [], 0
+    for i, ln in enumerate(L.rows):
+        if ln.get("branch") != "care":
+            continue
+        c = _bw(ln, "care")
+        stock += 1 if _d(c.get("stock")).get("reason") == "unwear" else 0
+        steps.append((i, c.get("reason"), c.get("part"), ln.get("sent") is True))
+    wound = [s for s in steps if s[1] == "unwear" and s[2] is not None]
+    ripped = bandaged = 0
+    for i, _r, part, sent in wound:
+        if not sent:
+            continue
+        rip = next((s for s in steps if 0 < s[0] - i <= UNWEAR_SEQ_LINES and s[1] == "no_rag" and s[2] == part and s[3]),
+                   None)
+        if rip is None:
+            continue
+        ripped += 1
+        bandaged += 1 if any(0 < s[0] - rip[0] <= UNWEAR_SEQ_LINES and s[1] == "bleeding" and s[2] == part and s[3]
+                             for s in steps) else 0
+    return {"read": True, "wound_lines": len(wound), "wound_sent": sum(1 for s in wound if s[3]), "stock_lines": stock,
+            "ripped": ripped, "bandaged": bandaged}
+
+
+def e_corner_kinds(L):
+    """The corner's kinds (P25-I, P25-L): {read, break, swing, shove, miss_breaks, sore, max_n, misses, outcomes}. The threat
+    lines whose why carries `corner` (reading) by `kind`; `sore` the shove lines whose `sore` reads true, `max_n` the most
+    standing zombies within reach any corner line names, `miss_breaks` the break lines carrying `misses` (P25-L's break after
+    repeated missed shoves; a plain two-zombie break carries none) with `misses` their counts. `outcomes` the miss breaks by
+    the line after each (an inference): a fight line at the shoved target whose `dist` is beyond FIGHT_REACH is `far`
+    (the break opened the gap), within it `near`, and any other line, no line or no distance `none`."""
+    if L is None:
+        return {"read": False}
+    kinds = {"break": 0, "swing": 0, "shove": 0}
+    sore, max_n, misses = 0, 0, []
+    outcomes = {"far": 0, "near": 0, "none": 0}
+    rows = L.rows
+    for i, ln in enumerate(rows):
+        c = L.why(ln).get("corner") if ln.get("branch") == "threat" else None
+        if not isinstance(c, dict) or c.get("kind") not in kinds:
+            continue
+        kinds[c["kind"]] += 1
+        sore += 1 if c["kind"] == "shove" and c.get("sore") else 0
+        max_n = max(max_n, _n(c.get("n")) or 0)
+        if c["kind"] != "break" or c.get("misses") is None:
+            continue
+        misses.append(c.get("misses"))
+        nxt = rows[i + 1] if i + 1 < len(rows) else None
+        d = None
+        if nxt is not None and L.is_fight(nxt) and L.why(nxt).get("target") == c.get("shoved"):
+            d = _n(L.why(nxt).get("dist"))
+        outcomes["none" if d is None else "far" if d > FIGHT_REACH else "near"] += 1
+    return {"read": True, "break": kinds["break"], "swing": kinds["swing"], "shove": kinds["shove"],
+            "miss_breaks": len(misses), "sore": sore, "max_n": max_n, "misses": misses, "outcomes": outcomes}
+
+
+def e_far_finish(L):
+    """The far finishes (P25-J): {read, far_lines, far_stomps, far_attacks, far_landed, far_floor, max_dist, stand_far_lines,
+    stand_far_stomps, pair_yield, yield_next}. `far_lines` the threat lines whose why names a `downed` target with `dist`
+    beyond FIGHT_REACH and up to FINISH_R (reading), `far_stomps` and `far_attacks` those that sent a stomp or an attack,
+    `far_landed` the stomps `_landed`, `far_floor` those whose why reads `floor` (the stomp refused: the weapon's floor
+    strike), `max_dist` the farthest. `stand_far_*` the same for the lines of a doorway stand (a why carrying `doorway`).
+    `pair_yield` the lines whose why names a `pair_yield` target (the pair flee yielded to the stomp) and `yield_next` what
+    followed each (an inference: the line's own or the next line's sent stomp at that target is `stomp`, any other next line
+    `other`, the log's last line `open`)."""
+    if L is None:
+        return {"read": False}
+    far, stomps, attacks, landed, floor, dists = 0, 0, 0, 0, 0, []
+    stand, stand_stomps, yields = 0, 0, 0
+    nxt = {"stomp": 0, "other": 0, "open": 0}
+    rows = L.rows
+    for i, ln in enumerate(rows):
+        if ln.get("branch") != "threat":
+            continue
+        why = L.why(ln)
+        d = _n(why.get("dist")) if why.get("downed") is not None else None
+        if d is not None and FIGHT_REACH < d <= FINISH_R:
+            far += 1
+            dists.append(d)
+            stomps += 1 if _sent(ln, "stomp") else 0
+            attacks += 1 if _sent(ln, "attack") else 0
+            landed += 1 if _sent(ln, "stomp") and _landed(L, ln) else 0
+            floor += 1 if why.get("floor") else 0
+            if "doorway" in why:
+                stand += 1
+                stand_stomps += 1 if _sent(ln, "stomp") else 0
+        zid = why.get("pair_yield")
+        if zid is not None:
+            yields += 1
+            after = [ln] + rows[i + 1:i + 2]
+            if any(_sent(r, "stomp") and _d(_d(r.get("action")).get("args")).get("targetId") == zid for r in after):
+                nxt["stomp"] += 1
+            else:
+                nxt["other" if i + 1 < len(rows) else "open"] += 1
+    return {"read": True, "far_lines": far, "far_stomps": stomps, "far_attacks": attacks, "far_landed": landed,
+            "far_floor": floor, "max_dist": max(dists) if dists else None, "stand_far_lines": stand,
+            "stand_far_stomps": stand_stomps, "pair_yield": yields, "yield_next": nxt}
+
+
+def e_stand_wound(L):
+    """The stand's wound end (P25-K): {read, lines, parts, left_health, next}. `lines` the threat lines whose why reads
+    `doorway_left` wound (reading), `parts` the part indices their `doorway_wound` names in all, `left_health` the stand's
+    `health` ends beside them, and `next` the row after each wound line (an inference): `flee` a threat line answering with
+    a flee, `other` any other line, `open` the log's last line."""
+    if L is None:
+        return {"read": False}
+    lines = total = health = 0
+    nxt = {"flee": 0, "other": 0, "open": 0}
+    rows = L.rows
+    for i, ln in enumerate(rows):
+        if ln.get("branch") != "threat":
+            continue
+        why = L.why(ln)
+        left = why.get("doorway_left")
+        health += 1 if left == "health" else 0
+        if left == "wound":
+            lines += 1
+            parts = why.get("doorway_wound")
+            total += len(parts) if isinstance(parts, list) else 0
+            n = rows[i + 1] if i + 1 < len(rows) else None
+            nxt["open" if n is None else "flee" if n.get("branch") == "threat" and L.why(n).get("flee") is not None
+                else "other"] += 1
+    return {"read": True, "lines": lines, "parts": total, "left_health": health, "next": nxt}
+
+
+def e_release(L):
+    """The hold's release (P25-M): {read, lines, by, timed, min_held, max_held}. The threat lines whose why carries `release`
+    (reading) by `kind:why` (endurance:line, endurance:timed, arms:pain), `timed` the timed releases (the field
+    `hold_walk.released_under` of grade_e10 infers) and the held span in game minutes (`held_min`) least and most."""
+    if L is None:
+        return {"read": False}
+    rels = [w["release"] for _, w in _threat_rows(L) if isinstance(w.get("release"), dict)]
+    by = {}
+    for r in rels:
+        k = "%s:%s" % (r.get("kind"), r.get("why"))
+        by[k] = by.get(k, 0) + 1
+    held = [h for h in (_n(r.get("held_min")) for r in rels) if h is not None]
+    return {"read": True, "lines": len(rels), "by": by, "timed": sum(1 for r in rels if r.get("why") == "timed"),
+            "min_held": min(held) if held else None, "max_held": max(held) if held else None}
+
+
+def e_door_legs(out, L):
+    """The legs of a far door (P25-N): {read, shelter_*, night_*, halved, night_ended_leg, shelter_ends}. The goal-branch lines
+    of a Shelter and the night-branch lines whose why carries `leg` (reading): `*_legs` the lines, `*_sent` those that sent,
+    and by the sent action's row (`L.action`) `*_done`, `*_no_square` (failed `no square`) and `*_other_fail`. `halved` the
+    Shelter leg lines whose `legLen` is under the line before it (an inference: a `no square` halves the next leg),
+    `night_ended_leg` the night lines that read `ended` leg, and `shelter_ends` the Shelter rows of loop.goals by
+    `state:reason`."""
+    if L is None:
+        return {"read": False}
+    acc = {"goal": dict(legs=0, sent=0, done=0, no_square=0, other_fail=0),
+           "night": dict(legs=0, sent=0, done=0, no_square=0, other_fail=0)}
+    halved, prev, ended = 0, None, 0
+    for ln in L.rows:
+        b = ln.get("branch")
+        if b not in acc:
+            continue
+        why = _bw(ln, b)
+        if b == "goal" and why.get("goal") != "Shelter":
+            continue
+        ended += 1 if b == "night" and why.get("ended") == "leg" else 0
+        if why.get("leg") is None:
+            continue
+        a = acc[b]
+        a["legs"] += 1
+        ll = _n(why.get("legLen"))
+        if b == "goal":
+            halved += 1 if ll is not None and prev is not None and ll < prev else 0
+            prev = ll
+        row = L.action(ln) if ln.get("sent") is True else None
+        a["sent"] += 1 if ln.get("sent") is True else 0
+        if row is None:
+            continue
+        if row.get("state") == "done":
+            a["done"] += 1
+        elif row.get("reason") == "no square":
+            a["no_square"] += 1
+        else:
+            a["other_fail"] += 1
+    ends = {}
+    for g in (_d(x) for x in _l(_d(_d(out).get("loop")).get("goals"))):
+        if g.get("type") == "Shelter":
+            k = "%s:%s" % (g.get("state"), g.get("reason"))
+            ends[k] = ends.get(k, 0) + 1
+    res = {"read": True, "halved": halved, "night_ended_leg": ended, "shelter_ends": ends}
+    for b, p in (("goal", "shelter_"), ("night", "night_")):
+        res.update({p + k: v for k, v in acc[b].items()})
+    return res
+
+
+def e_item_record(out, lines):
+    """The item record read live (P25-O): {read, mod, hellos, item_fields, unwear_sent, rips, rip_after_unwear}. `mod` the last
+    hello's `mod` (reading; None without a hello in the lines), `item_fields` whether `World.item_fields` reads it as 1.5.2
+    or later (the item record's `worn` and `rip` states), `unwear_sent` and `rips` the unwear and rip actions of
+    loop.actions, and `rip_after_unwear` the rips of an item an earlier-sent unwear took off (an inference: sentS order on one
+    itemId; the rip the garment's unwear named first)."""
+    mod, hellos = None, 0
+    for l in _l(lines):
+        if isinstance(l, dict) and l.get("kind") == "hello":
+            hellos += 1
+            mod = l.get("mod")
+    acts = [_d(a) for a in _l(_d(_d(out).get("loop")).get("actions"))]
+    unwear_at = {}
+    for a in acts:
+        if a.get("type") == "unwear" and _n(a.get("sentS")) is not None:
+            unwear_at.setdefault(_d(a.get("args")).get("itemId"), []).append(_n(a.get("sentS")))
+    rips = after = 0
+    for a in acts:
+        if a.get("type") != "rip":
+            continue
+        rips += 1
+        sent = _n(a.get("sentS"))
+        after += 1 if sent is not None and any(t < sent for t in unwear_at.get(_d(a.get("args")).get("itemId"), ())) else 0
+    return {"read": True, "mod": mod, "hellos": hellos, "item_fields": World.item_fields(SimpleNamespace(hello={"mod": mod})),
+            "unwear_sent": sum(len(v) for v in unwear_at.values()), "rips": rips, "rip_after_unwear": after}
+
+
+def report_lines_e11(g):
+    """report_lines_e10 lines (the gate line naming gate_e11) then the eight pass 11 lines, each clause marked reading or
+    inference."""
+    g = _d(g)
+    out = [("gate_e11 " + l[len("gate_e10 "):]) if l.startswith("gate_e10 ") else l for l in report_lines_e10(g)]
+    sh, uw, ck, ff, sw, rl, lg, ir = (_d(g.get(x)) for x in ("shun", "unwear", "corner_kinds", "far_finish", "stand_wound",
+                                                            "release", "door_legs", "item_record"))
+    hw = _d(g.get("hold_walk"))
+    out.append(("shun (P25-G) [reading]: %s goals failed to a cooling reason %s (%s Shelter shunned at its start), %s log "
+                "lines passed a cooled goal over, %s goal lines refused as cooled, %s `invalid: shunned` (must read 0)" % (
+                    sh.get("cooled_goals"), sh.get("ends"), sh.get("shelter_shunned"), sh.get("cooled_lines"),
+                    sh.get("refused_lines"), sh.get("invalid_shunned"))) if sh.get("read")
+               else "shun (P25-G): no decision log read")
+    out.append(("unwear (P25-H) [reading]: %s wound unwear lines (%s sent), %s idle-stock unwear lines; %s wound unwears "
+                "ripped, %s of them bandaged, within %s log lines at the same part [inference: the order of the care lines]"
+                % (uw.get("wound_lines"), uw.get("wound_sent"), uw.get("stock_lines"), uw.get("ripped"),
+                   uw.get("bandaged"), UNWEAR_SEQ_LINES)) if uw.get("read") else "unwear (P25-H): no decision log read")
+    out.append(("corner kinds (P25-I, P25-L) [reading]: %s break, %s swing, %s shove (%s sore), most standing %s; %s breaks "
+                "after missed shoves (misses %s), ending far %s, near %s, no reading %s [inference: the line after each]" % (
+                    ck.get("break"), ck.get("swing"), ck.get("shove"), ck.get("sore"), ck.get("max_n"),
+                    ck.get("miss_breaks"), ck.get("misses"), _d(ck.get("outcomes")).get("far"),
+                    _d(ck.get("outcomes")).get("near"), _d(ck.get("outcomes")).get("none")))
+               if ck.get("read") else "corner kinds (P25-I, P25-L): no decision log read")
+    out.append(("far finish (P25-J) [reading]: %s fallen-target lines between %s and %s tiles (%s stomps sent, %s landed "
+                "[reading: the result], %s attacks sent, %s floor), farthest %s; stand: %s lines, %s stomps sent; %s pair "
+                "yields, followed by %s [inference: that line and the next]" % (
+                    ff.get("far_lines"), FIGHT_REACH, FINISH_R, ff.get("far_stomps"), ff.get("far_landed"),
+                    ff.get("far_attacks"), ff.get("far_floor"), ff.get("max_dist"), ff.get("stand_far_lines"),
+                    ff.get("stand_far_stomps"), ff.get("pair_yield"), ff.get("yield_next")))
+               if ff.get("read") else "far finish (P25-J): no decision log read")
+    out.append(("stand wound (P25-K) [reading]: %s `doorway_left` wound lines naming %s new parts (%s `health` ends); the "
+                "line after: %s [inference]" % (sw.get("lines"), sw.get("parts"), sw.get("left_health"), sw.get("next")))
+               if sw.get("read") else "stand wound (P25-K): no decision log read")
+    out.append(("release (P25-M) [reading]: %s lines by %s, %s timed, held %s to %s game minutes; grade_e10 infers %s timed "
+                "releases [inference: hold_walk.released_under]" % (
+                    rl.get("lines"), rl.get("by"), rl.get("timed"), rl.get("min_held"), rl.get("max_held"),
+                    hw.get("released_under"))) if rl.get("read") else "release (P25-M): no decision log read")
+    out.append(("door legs (P25-N) [reading]: Shelter %s leg lines (%s sent, %s done, %s no square, %s other failures), %s "
+                "halved [inference: legLen under the line before]; night %s leg lines (%s sent, %s done, %s no square, %s "
+                "other failures), %s ended leg; Shelter goal ends %s" % (
+                    lg.get("shelter_legs"), lg.get("shelter_sent"), lg.get("shelter_done"), lg.get("shelter_no_square"),
+                    lg.get("shelter_other_fail"), lg.get("halved"), lg.get("night_legs"), lg.get("night_sent"),
+                    lg.get("night_done"), lg.get("night_no_square"), lg.get("night_other_fail"),
+                    lg.get("night_ended_leg"), lg.get("shelter_ends"))) if lg.get("read")
+               else "door legs (P25-N): no decision log read")
+    out.append("item record (P25-O) [reading]: hello mod %s (%s hellos), item fields %s; %s unwear sent, %s rips, %s of them "
+               "of an item an earlier unwear took off [inference: sentS order]" % (
+                   ir.get("mod"), ir.get("hellos"), ir.get("item_fields"), ir.get("unwear_sent"), ir.get("rips"),
+                   ir.get("rip_after_unwear")))
+    return out
+
+
+def grade_e11(out, prev=None, decision_lines=None, state_dir=None, lines=None):
+    """grade_e10 under "grade_e11" with the eight readings of survival iteration 14: `shun`, `unwear`, `corner_kinds`,
+    `far_finish`, `stand_wound`, `release`, `door_legs` (each {"read": False} without a decision log) and `item_record` (the
+    artifact's actions and the state lines' hello)."""
+    out = _d(out)
+    files = []
+    if lines is None:
+        lines, files = session_lines(state_dir) if state_dir is not None else ([], [])
+    g = grade_e10(out, prev, decision_lines, state_dir, lines=lines)
+    g["grade"] = "grade_e11"
+    if files and "frames_files" in g:
+        g["frames_files"] = files
+    L = None
+    if decision_lines is not None:
+        L = _Lines(out, decision_lines, lines)
+    g["shun"] = e_shun(out, L)
+    g["unwear"] = e_unwear(L)
+    g["corner_kinds"] = e_corner_kinds(L)
+    g["far_finish"] = e_far_finish(L)
+    g["stand_wound"] = e_stand_wound(L)
+    g["release"] = e_release(L)
+    g["door_legs"] = e_door_legs(out, L)
+    g["item_record"] = e_item_record(out, lines)
+    g["report_lines"] = report_lines_e11(g)
+    return g
+
+
+def gate_e11(outs):
+    """gate_e10 (grade_e11 changes none of what it reads), named gate_e11."""
+    return gate_e10(outs)
