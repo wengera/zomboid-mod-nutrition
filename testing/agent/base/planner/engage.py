@@ -112,14 +112,15 @@ class Engage:
         P25-P, the unarmed fight allowed: `_unarmed_fight`), one held threat with health at or above FLEE_HEALTH (or,
         ruling P25-S, the low fight allowed: `_low_fight`) or two with it at or above FLEE_HEALTH_PAIR (counted by
         `_stance_count`), and the character not trapped on a room square (`_trapped`: the corner rules stay for a stuck
-        or trapped character)."""
+        or trapped character); a shove-only Fight (`_unarmed_fight`, `_low_fight`) takes the stance trapped too, so it
+        meets a zombie where it stands and never walks toward one."""
         k = self._stance_count(held)
         n = len(self._within(DANGER_R))
         if not (self.world.can("aim") and (self._armed() or self._unarmed_fight(n)) and held and k <= MAX_FIGHT):
             return False
         if self._health() < self._fight_line(max(k, 1)) and not self._low_fight(n):
             return False
-        return not self._trapped(held, inside)
+        return self._unarmed_fight(n) or self._low_fight(n) or not self._trapped(held, inside)
 
     def _stance_count(self, held):
         """The held zombies the stance counts (Task 32 fix 1, the review's major 6: E9's replayed line 342 lost the

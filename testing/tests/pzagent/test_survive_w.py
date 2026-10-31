@@ -163,6 +163,22 @@ def test_trapped_on_a_room_square_the_lone_zombie_in_reach_is_shoved_not_the_tra
     assert tick(r2, sv2) is None and threat_why(tmp_path / "off")["trapped"] == 2
 
 
+def test_trapped_a_zombie_beyond_fight_reach_inside_the_room_is_met_in_the_stance_never_walked_to(tmp_path):
+    """Review-t10 minor 1: unarmed in the closed room, one zombie 2.1 tiles off inside it: the shove-only Fight takes
+    the stance (the aim) and sends no walk nor steer toward the zombie on any tick; at point blank, the shove."""
+    r, sv = trap(tmp_path, [z(1, 104.6, 202.5)])
+    seen = []
+    for _ in range(3):
+        a = tick(r, sv)
+        seen.append(a.type if a is not None else None)
+        r.frame(x=TRAP_ME[0], y=TRAP_ME[1], zombies=[z(1, 104.6, 202.5)], weapon=None)
+    assert not {"walkTo", "steer"} & set(seen) and "aim" in seen
+    assert threat_why(tmp_path)["unarmed_fight"] is True
+    r.frame(x=TRAP_ME[0], y=TRAP_ME[1], zombies=[z(1, 103.3, 202.5)], weapon=None)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("shove", {"targetId": 1})
+
+
 def sheltered_open(tmp_path):
     """Unarmed in the shelter (`test_survive.sheltered`), its door then read open: (rig, survive, the player)."""
     from .test_night import OPEN

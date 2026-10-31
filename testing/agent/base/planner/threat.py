@@ -541,7 +541,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         reachable held threat, `("fight", None)`; else None (the Flee's trapped hold: M4, an unarmed character inside
         with no way out stands). Ruling P25-P (F5: the trapped stand's 110 s, one zombie biting through the window):
         unarmed, the same Fight where the unarmed fight is allowed (`_unarmed_fight`) and a reachable held threat
-        stands within FIGHT_REACH (the shove's side of the room: farther, the hold stands, and P25-Q's care runs)."""
+        stands within FIGHT_REACH (the shove's side of the room: farther, in the flee rows the hold stands and P25-Q's
+        care runs). Called from the flee rows only: the hysteresis-None row makes the Fight at any distance, which
+        takes the stance (`_stance_ok`, shove-only trapped too) and never an approach walk."""
         reach = self._reachable_held()
         if not (reach and self._trapped(held, inside)):
             return None

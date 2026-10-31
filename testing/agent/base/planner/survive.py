@@ -252,14 +252,15 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   amendments: P25-P, the unarmed fight (no weapon held, one zombie within DANGER_R and the health at or above
   FLEE_HEALTH_PAIR on a build announcing `shove`: the Fight's stance, the shove at point blank and the stomp, never a
   swing or a seek; the trapped fight unarmed within FIGHT_REACH; the doorway stand armed-only;
-  `threat.Threat._unarmed_fight`, `Fight.unarmed`, logged `unarmed_fight` and `shove` "unarmed"; `UNARMED_FIGHT`);
+  `threat.Threat._unarmed_fight`, `Fight.shove_only` "unarmed", logged `unarmed_fight` and `shove` "unarmed"; `UNARMED_FIGHT`);
   P25-Q, the trapped hold yields to care (the Flee's trapped hold, no command, passes the tick to the care branch,
   whose bleeding step bandages, rips or unwears as on a quiet tick, never the wash; `Survive.assess`,
   `trapped_pass`, `care.Care.trapped`; `TRAPPED_CARE`); P25-S, the low fight (under FLEE_HEALTH, at or above
   FLEE_HEALTH_FLOOR, one zombie within DANGER_R: the same shove-and-stomp Fight in place of the `health` flee;
   `threat.Threat._low_fight`, `Fight.shove_only` "low", logged `low_fight` and `shove` "low"; `LOW_FIGHT`); P25-T,
   the break's misses counted over the Fight's life (any spacing, cleared by a knock-down at the target or the Fight's
-  end; a shove at a target with a miss on record consults the lone break outside SHOVE_REPEAT_S;
+  end; a shove at a target with a miss on record consults the two-zombie and the lone breaks (`_run_break`) outside
+  SHOVE_REPEAT_S;
   `shove.FightShove._missed_n`, `_lone_break`, logged `corner` {kind "break", misses}; `SHOVE_BREAK_RUN`);
   `T5_SWITCHES` off is the rule before them.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches

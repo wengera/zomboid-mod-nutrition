@@ -6,8 +6,8 @@ log or planner internal; a test asserts it).
 types, enums and bounds (`field_text`); the strategy paragraph (Task 29); how the view's building line reads; the
 refusal rule (P24-B 3, the bound `explore_max_tiles`, `llm.EXPLORE_MAX_TILES`, and `goals.WOODS_R`); the loop (P24-Y,
 `goals.BUILDING_R`; ruling P25-R, Plan 25 Task 10: the program fights only while a weapon is held, else flees, and an
-ExploreToward at the view's `toward` square is always accepted, `llm.place_error`); the meaning of the view keys the rules read (met, attackers, worn, hit_reaction, tired and night,
-hold (Plan 25 Task 4: the view's `spent` rendered `hold: <kind> <value>`), last_goal with its `cooled` end (Plan 25
+ExploreToward at the view's `toward` square is always accepted, `llm.place_error`); the meaning of the view keys the
+rules read (met, attackers, worn, hit_reaction, tired and night, hold (Plan 25 Task 4: the view's `spent` rendered `hold: <kind> <value>`), last_goal with its `cooled` end (Plan 25
 Task 4: the runner's cooled refusal, `GoalRunner._carried`), and its `shunned` why, ruling P25-G); then that the user
 message is the view. Ruling P25-G (Plan 25 Task 7, F4's 67 Shelter answers for its one shunned building): the
 building line's `s` flag says what it means for the choice (not a shelter for SHUN_MIN game minutes; explore along a

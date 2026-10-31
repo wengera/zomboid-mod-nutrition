@@ -80,8 +80,8 @@ class ThreatFinish:
         be refused (a standing zombie within STAND_MIN_R) or ended refused; never the floor strike at `body.armPain`
         STRAIN_HARD, under any hold (P24-AP and R2: a swing) nor unarmed (P25-P, `_unarmed`). Sent as the Flee's own
         action (its leg superseded, the steer resumed on the next tick, as `_flee_drop`); one stomp and at most one
-        floor strike a zombie (`finishing`); none in a hit reaction. With a standing zombie within DANGER_R the flee runs as today. Its end is
-        read by `_finish_end` (a `targetDead` is a kill). Logged `finish`.
+        floor strike a zombie (`finishing`); none in a hit reaction. With a standing zombie within
+        DANGER_R the flee runs as today. Its end is read by `_finish_end` (a `targetDead` is a kill). Logged `finish`.
         Ruling P24-AV: a stomp that failed `stood` (the target rose) reads the target again on the next tick: standing
         within DANGER_R the flee runs (no finish); fallen again, one more stomp (`kind` "stomp2"), and that one failed
         `stood` or refused, the floor strike. The deferred minor 5 of review-t32-fix1 (E9's line 334: the 4.62-tile
