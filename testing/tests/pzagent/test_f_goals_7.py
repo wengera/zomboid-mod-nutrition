@@ -308,7 +308,7 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
 
 
 BASE_SENTENCE = (
-    "the base at `dfa36e5a` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 15 (over iteration 14: "
+    "the base at `b5082f14` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 15 (over iteration 14: "
     "an unarmed character fighting one zombie by the shove and the stomp, P25-P; the trapped hold yielding its tick to the "
     "care branch, P25-Q; the prompt telling the unarmed truth and an `ExploreToward` at the view's `toward` square accepted, "
     "P25-R; one zombie fought by the shove and the stomp under `FLEE_HEALTH` down to `FLEE_HEALTH_FLOOR`, P25-S; the "
