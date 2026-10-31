@@ -3033,7 +3033,7 @@ def gate_e11(outs):
 # whys of a branch tried sit at `inputs.branches[<branch>]` on EVERY line (Survive.assess), so a block that reads a field the
 # Threat writes reads it through `_threat_why` on the lines it names and never by the line's own `branch` alone.
 from agent.base.planner.llm import EXPLORE_MAX_TILES    # noqa: E402 - P25-R: the range an ExploreToward is refused beyond
-from agent.base.planner.policies import SHOVE_BREAK_N    # noqa: E402 - P25-T: the misses a run break reads
+from agent.base.planner.policies import FLEE_HEALTH_FLOOR, SHOVE_BREAK_N    # noqa: E402 - P25-S's floor; P25-T's misses
 
 
 def _flag_fight(L, key):
@@ -3051,22 +3051,60 @@ def _sent_count(lines, kind):
     return sum(1 for ln in lines if _sent(ln, kind))
 
 
+def _flee_lines(L, reason):
+    """The lines, whatever branch answered, whose threat why reads `flee` `reason` (the threat's why sits at
+    `inputs.branches.threat` on every line, so a flee tick the care branch took under P25-Q, branch "care" with the
+    threat's `trapped`, is counted with the threat branch's)."""
+    return [ln for ln in L.rows if L.why(ln).get("flee") == reason]
+
+
+def _danger_count(L, ln):
+    """The zombies within DANGER_R at the line: the line's `inputs.threats` (the planner's own count, `_within(DANGER_R,
+    raw=True)`, which keeps the zombies `_hysteresis`'s count drops as read dead: an inference), else the frame's listed
+    zombies with a `dist` within DANGER_R (fallen ones counted, as `_within` does); None without either."""
+    t = _n(_d(ln.get("inputs")).get("threats"))
+    if t is not None:
+        return int(t)
+    f = L.frame(ln)
+    if f is None:
+        return None
+    return sum(1 for z in _l(_d(f).get("zombies")) if _n(_d(z).get("dist")) is not None and z["dist"] <= DANGER_R)
+
+
+def _line_health(L, ln):
+    """The health at the line: `inputs.health` (the planner's own, reading), else the frame's (`_health_at`)."""
+    h = _n(_d(ln.get("inputs")).get("health"))
+    return h if h is not None else _health_at(L, ln)
+
+
 def e_unarmed(L):
     """The unarmed fight (P25-P): {read, lines, runs, shoves, stomps, attacks, shove_unarmed, kills, flee_unarmed}. The fight
     lines whose threat why reads `unarmed_fight` true (reading) and the fight runs holding one; `shoves`, `stomps` and
     `attacks` the sent actions on those lines (`attacks` must read 0: the unarmed Fight takes no swing), `shove_unarmed` the
     lines whose why names the shove `unarmed`, `kills` the zombies the actions of those lines killed (a result's targetDead),
-    and `flee_unarmed` the threat-branch lines answering `unarmed` with a flee (the flee the unarmed fight is the exception to).
-    Every key reads 0 on a log of iteration 14 or earlier (the field did not exist) except `flee_unarmed`, which E13's armed
+    and `flee_unarmed` the lines, whatever branch answered, whose threat why answers `unarmed` with a flee (the flee the
+    unarmed fight is the exception to; `flee_unarmed_other` those a branch other than the threat answered, the trapped flee
+    tick the care took under P25-Q, so F5's 521 and a later count compare). `flee_unarmed_abandon` (an inference: the line
+    before it in the log is a threat-branch line whose why carries `knocked` or `downed`) those `unarmed` flees that follow a
+    knock-down or a fallen target, a second zombie arriving over the stomp (review-t10 4c). Every key reads 0 on a log of iteration 14 or earlier (the field did not exist) except `flee_unarmed`, which E13's armed
     chain reads 0 as well."""
     if L is None:
         return {"read": False}
     lines, runs = _flag_fight(L, "unarmed_fight")
+    flee = _flee_lines(L, "unarmed")
+    where = {id(ln): i for i, ln in enumerate(L.rows)}
+    abandon = 0
+    for ln in flee:
+        i = where[id(ln)]
+        before = L.rows[i - 1] if i else {}
+        why = L.why(before) if before.get("branch") == "threat" else {}
+        abandon += 1 if why.get("knocked") is not None or why.get("downed") is not None else 0
     return {"read": True, "lines": len(lines), "runs": len(runs), "shoves": _sent_count(lines, "shove"),
             "stomps": _sent_count(lines, "stomp"), "attacks": _sent_count(lines, "attack"),
             "shove_unarmed": sum(1 for ln in lines if L.why(ln).get("shove") == "unarmed"),
             "kills": len(L.kill_ids(lines)),
-            "flee_unarmed": sum(1 for ln in L.rows if ln.get("branch") == "threat" and L.why(ln).get("flee") == "unarmed")}
+            "flee_unarmed": len(flee), "flee_unarmed_other": sum(1 for ln in flee if ln.get("branch") != "threat"),
+            "flee_unarmed_abandon": abandon}
 
 
 def e_trapped_care(L):
@@ -3145,18 +3183,41 @@ def e_low_fight(L):
     health_low}. The fight lines whose threat why reads `low_fight` true (reading) and the fight runs holding one, with
     the sent shoves, stomps and attacks on those lines (`attacks` must read 0), `shove_low` the lines whose why names the
     shove `low`, `kills` the zombies those lines' actions killed, `run_health` per run `{lines, first, last}` the health of the
-    state log's frame at the run's first and last line (reading; None without a frame), `flee_health` the threat-branch lines
-    answering `health` with a flee, and `health_low` the least health at a low-fight line or a `health` flee line."""
+    state log's frame at the run's first and last line (reading; None without a frame), `flee_health` the lines, whatever
+    branch answered, whose threat why answers `health` with a flee (`flee_health_other_branch` those a branch other than the
+    threat answered: the trapped flee tick the care took), and `health_low` the least health at a low-fight line or a
+    `health` flee line. The `health` flees split by what `_hysteresis` leaves them (P25-S: under FLEE_HEALTH one zombie
+    within DANGER_R at FLEE_HEALTH_FLOOR or above is fought): `flee_health_floor` those with the health under
+    FLEE_HEALTH_FLOOR (reading: the line's `inputs.health`, else the frame's), `flee_health_pair` those with two or more
+    zombies within DANGER_R (the line's `inputs.threats`, else the frame's listing, fallen ones counted: an inference),
+    `flee_health_misfire` those with one zombie within DANGER_R and the health at or above the floor (an inference as the
+    pair; LOW_FIGHT should have taken them, so they read 0 once the switch is on, `can("shove")` false the one exception,
+    which the log does not carry) and `flee_health_other` the rest (no zombie within DANGER_R, or no reading). The four
+    sum to `flee_health`."""
     if L is None:
         return {"read": False}
     lines, runs = _flag_fight(L, "low_fight")
-    flee = [ln for ln in L.rows if ln.get("branch") == "threat" and L.why(ln).get("flee") == "health"]
+    flee = _flee_lines(L, "health")
+    split = {"floor": 0, "pair": 0, "misfire": 0, "other": 0}
+    for ln in flee:
+        h, n = _line_health(L, ln), _danger_count(L, ln)
+        if h is not None and h < FLEE_HEALTH_FLOOR:
+            split["floor"] += 1
+        elif n is not None and n >= 2:
+            split["pair"] += 1
+        elif n == 1 and h is not None:
+            split["misfire"] += 1
+        else:
+            split["other"] += 1
     seen = [h for h in (_health_at(L, ln) for ln in lines + flee) if h is not None]
     return {"read": True, "lines": len(lines), "runs": len(runs), "shoves": _sent_count(lines, "shove"),
             "stomps": _sent_count(lines, "stomp"), "attacks": _sent_count(lines, "attack"),
             "shove_low": sum(1 for ln in lines if L.why(ln).get("shove") == "low"), "kills": len(L.kill_ids(lines)),
             "run_health": [{"lines": len(r), "first": _health_at(L, r[0]), "last": _health_at(L, r[-1])} for r in runs],
-            "flee_health": len(flee), "health_low": min(seen) if seen else None}
+            "flee_health": len(flee), "flee_health_other_branch": sum(1 for ln in flee if ln.get("branch") != "threat"),
+            "flee_health_floor": split["floor"], "flee_health_pair": split["pair"],
+            "flee_health_misfire": split["misfire"], "flee_health_other": split["other"],
+            "health_low": min(seen) if seen else None}
 
 
 def e_run_breaks(L):
@@ -3169,12 +3230,15 @@ def e_run_breaks(L):
     window could not count). `corner_shove` the threat lines whose why reads `corner` kind `shove`, `shove_after_miss` the
     sent shoves at a target whose last shove with a result ended `knockdown` false (reading: the result) and
     `answered_shove` those whose own line reads `corner` kind `shove` (the corner answered the miss with the shove again).
+    `pair_breaks` the two-zombie breaks (a break without `misses`, `_pair_break`) and `pair_run_breaks` (an inference off the
+    act lines: the break line's wall is more than SHOVE_REPEAT_S after the last sent shove at the broken target) those the
+    run consulted outside the P25-A window (`_run_break`: no `misses` key tells it apart in the log, the spacing does).
     P25-L's break existed on E13, so `breaks` may read above 0 on its log; `spaced` is the iteration 15 reading."""
     if L is None:
         return {"read": False}
-    shoves, last = {}, {}
+    shoves, last, lastw = {}, {}, {}
     breaks, spacings, gaps = [], [], []
-    corner_shove = after = answered = 0
+    corner_shove = after = answered = pair = pair_run = 0
     for ln in L.rows:
         c = L.why(ln).get("corner") if ln.get("branch") == "threat" else None
         c = c if isinstance(c, dict) else {}
@@ -3182,6 +3246,7 @@ def e_run_breaks(L):
         if _sent(ln, "shove"):
             zid = _d(_d(ln.get("action")).get("args")).get("targetId")
             shoves.setdefault(zid, []).append(_n(ln.get("wall")))
+            lastw[zid] = _n(ln.get("wall"))
             row = L.action(ln)
             kd = L.res.get(row.get("aid"), {}).get("knockdown") if row is not None else None
             if last.get(zid) is False:
@@ -3191,6 +3256,10 @@ def e_run_breaks(L):
                 shoves[zid] = []
             if kd is not None:
                 last[zid] = kd
+        if c.get("kind") == "break" and c.get("misses") is None:
+            w, p = _n(ln.get("wall")), lastw.get(c.get("shoved"))
+            pair += 1
+            pair_run += 1 if w is not None and p is not None and w - p > SHOVE_REPEAT_S else 0
         if c.get("kind") != "break" or c.get("misses") is None:
             continue
         k = c.get("misses")
@@ -3203,7 +3272,7 @@ def e_run_breaks(L):
     return {"read": True, "breaks": len(breaks), "run_breaks": sum(1 for k in breaks if isinstance(k, int) and k >= SHOVE_BREAK_N),
             "misses": breaks, "spacings": spacings, "spaced": sum(1 for g in spacings if any(x > SHOVE_REPEAT_S for x in g)),
             "max_gap": max(gaps) if gaps else None, "corner_shove": corner_shove, "shove_after_miss": after,
-            "answered_shove": answered}
+            "answered_shove": answered, "pair_breaks": pair, "pair_run_breaks": pair_run}
 
 
 def report_lines_e12(g):
@@ -3213,9 +3282,11 @@ def report_lines_e12(g):
     out = [("gate_e12 " + l[len("gate_e11 "):]) if l.startswith("gate_e11 ") else l for l in report_lines_e11(g)]
     un, tc, tw, lo, rb = (_d(g.get(x)) for x in ("unarmed", "trapped_care", "toward", "low_fight", "run_breaks"))
     out.append(("unarmed fight (P25-P) [reading]: %s fight lines (%s runs, %s shoves, %s stomps, %s attacks (must read 0), "
-                "%s shove lines named unarmed), %s kills under them; %s `unarmed` flee lines" % (
+                "%s shove lines named unarmed), %s kills under them; %s `unarmed` flee lines on any branch (%s taken by another branch), "
+                "%s following a `knocked` or `downed` line [inference]" % (
                     un.get("lines"), un.get("runs"), un.get("shoves"), un.get("stomps"), un.get("attacks"),
-                    un.get("shove_unarmed"), un.get("kills"), un.get("flee_unarmed"))) if un.get("read")
+                    un.get("shove_unarmed"), un.get("kills"), un.get("flee_unarmed"), un.get("flee_unarmed_other"),
+                    un.get("flee_unarmed_abandon"))) if un.get("read")
                else "unarmed fight (P25-P): no decision log read")
     out.append(("trapped care (P25-Q) [reading]: %s trapped lines, %s held by the threat branch (%s with the care tried), %s "
                 "taken by the care branch (%s sent: %s bandages, %s done; other %s); %s lines with a care why" % (
@@ -3230,15 +3301,20 @@ def report_lines_e12(g):
                    "" if tw.get("llm_calls") else " (no LLM call in this artifact: a scripted chain reads 0 by construction)"))
     out.append(("low fight (P25-S) [reading]: %s fight lines (%s runs, %s shoves, %s stomps, %s attacks (must read 0), %s "
                 "shove lines named low), %s kills under them; health at each run's first and last line %s; %s `health` flee "
-                "lines; least health at a low-fight or health-flee line %s" % (
+                "lines on any branch (%s taken by another branch): %s under the floor [reading], %s with two or more zombies "
+                "within DANGER_R [inference], %s with one and the health at or above the floor (the LOW_FIGHT misfire: must "
+                "read 0 with the switch on) [inference], %s other; least health at a low-fight or health-flee line %s" % (
                     lo.get("lines"), lo.get("runs"), lo.get("shoves"), lo.get("stomps"), lo.get("attacks"),
                     lo.get("shove_low"), lo.get("kills"), lo.get("run_health"), lo.get("flee_health"),
-                    lo.get("health_low"))) if lo.get("read") else "low fight (P25-S): no decision log read")
+                    lo.get("flee_health_other_branch"), lo.get("flee_health_floor"), lo.get("flee_health_pair"),
+                    lo.get("flee_health_misfire"), lo.get("flee_health_other"), lo.get("health_low"))) if lo.get("read") else "low fight (P25-S): no decision log read")
     out.append(("run breaks (P25-T) [reading]: %s lone breaks (misses %s), %s at SHOVE_BREAK_N or more; shove spacings %s "
                 "[inference: the sent shoves at the target], %s spaced past SHOVE_REPEAT_S (widest %s s); %s `corner` shove "
-                "lines; %s shoves at a target whose last result was a miss, %s answered by `corner` shove" % (
+                "lines; %s shoves at a target whose last result was a miss, %s answered by `corner` shove; %s two-zombie breaks, "
+                "%s of them past SHOVE_REPEAT_S after the last shove (the run's consult outside the window) [inference]" % (
                     rb.get("breaks"), rb.get("misses"), rb.get("run_breaks"), rb.get("spacings"), rb.get("spaced"),
-                    rb.get("max_gap"), rb.get("corner_shove"), rb.get("shove_after_miss"), rb.get("answered_shove")))
+                    rb.get("max_gap"), rb.get("corner_shove"), rb.get("shove_after_miss"), rb.get("answered_shove"),
+                    rb.get("pair_breaks"), rb.get("pair_run_breaks")))
                if rb.get("read") else "run breaks (P25-T): no decision log read")
     return out
 
