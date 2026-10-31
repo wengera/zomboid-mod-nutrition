@@ -1,0 +1,1542 @@
+kills 3 (engine n/a, planner 3); survived; 227.0 game minutes
+kills sources: planner 3 (act lines), zombie_dead events 3, engine n/a; not all read
+survived (stop day_cap), 227 game min (loop.first_world_age)
+drink: sent 0, done 0, stat fell None
+eat: sent 0, done 0, stat fell None
+unknown consumes (no valid use): 0; frame time base t_loop0_ms
+sleep: sent 0, done 0, slept 0.0 h, fatigue fell None
+fights: 34 (ended 33, fled 33, stand-offs 1)
+fights_resolved: unresolved 0
+load: max ratio 0.734, guard drops 0, flee drops 0
+cost p50 0.000 ms, p99 2.000 ms, max 6.000 ms, over5 1226
+wounds: 899 real over 8528 kept frames (the old reading counted 899), first seq 2591
+care: bandage sent 11 done 9 (parts {'5': 7, '6': 2}, dirty 0), rip done 2 (5 rags), wash done 5 (20 water)
+fill: sent 1 done 1, tainted 0, fills [{'fluid': 'Water', 'tainted': False, 'added': 0.30000001192092896, 'amount': 0.30000001192092896}]
+stance: aim sent 68 done 27 failed 41 (held 27, released 0, target dead 0), 1167 of 8528 kept frames aiming; standing fights 6 {'kill': 0, 'flee': 5, 'fallback': 0, 'stagger_inferred': 0, 'none': 1}
+climb: sent 0 done 0 fell 0 failed 0 wounds 0; need chain: drinks 0 (stat fell None), fills 1, containers looted 2
+kills: per fight [0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; standing fights 6 with 3 kills (0.50 per fight); planner ids [21207, 21209, 21404]
+stance held: 3265 of 3267 ticks over 27 aim legs (27 with the field), ratio 1.00; kept frames: 1167 aiming, 994 forceAim of 8528
+bandages: riding sent 4 done 2 (walking 2) failed 2 (stopped 0) rejected 0, parts {'5': 2}; standing sent 7 done 7 failed 0
+care yield: 22 care actions, 11 fights ended by the care; decision log: 12 yields (4 riding), 10 dead skips of 2 ids
+glides (an inference, never a trip): 10 over 2.38 tiles in the kept frames: [(1044, '4.400'), (1094, '1.900'), (2594, '1.495'), (4432, '1.198'), (4448, '1.306'), (8951, '1.401'), (9805, '1.600'), (9981, '3.610'), (11114, '1.004'), (13698, '1.506')]
+frames: state_logs (8528 frames, files ['state.log'])
+engage: 11 fights, 9 sought (91 sought lines); 81 seek lines (legs {'walkTo': {'walk': 5}, 'aim': 19, 'other': 0}, 1.00 walk share); 1 flee turns to fight; flees {'unreachable': 6, 'pair': 12, 'held': 62, 'flip': 11, 'many': 242, 'health': 159, 'doorway': 1, 'held_inside': 5}; many by listed count 15 lines (max 6)
+destinations: 71 walks, by kind {'building': 6, 'cluster': 65, 'other': 0}, farthest 39.62 tiles from a known building; ok
+doors: 0 marked stuck [], 0 tried while marked, loots routed around to buildings []
+loot: 9 sent, 5 done, 4 failed; by kind {'container': {'done': 2, 'failed': 2}, 'clothing': {'done': 1, 'failed': 0}, 'food': {'done': 1, 'failed': 2}, 'bandage': {'done': 1, 'failed': 0}}; failures {'not adjacent': 2, 'no match': 1, 'superseded': 1}
+minutes: 227.0 alive (loop.first_world_age), log end 227.0
+rags: rips {'sent': 2, 'done': 2, 'failed': 0, 'by_branch': {'care': 2}}; stock lines 2 (sent 2), dressings held min 0 max 1, bandage wants 0
+legs: goal walks {'sent': 68, 'failed': 0}; leg lines 38 (sent 1), lengths [40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0], 0 halvings, goal failed no square 0, legs per target 38.00
+idle many: 242 many lines, 121 with an idle zombie beyond 6.0 tiles (max 5)
+pza16: clothing looted {'sent': 1, 'done': 1, 'failed': 0}; wear {'sent': 1, 'done': 1, 'failed': 0, 'reasons': {}, 'replaced': 0}; window {'sent': 0, 'done': 0, 'failed': 0, 'reasons': {}, 'smashed': 0, 'opened': 0, 'cut': 0}; worn {'read': True, 'max_locs': 7, 'last': [{'loc': 'base:bandage', 'bite': 0, 'scratch': 0, 'holes': 0, 'cond': 10}, {'loc': 'base:wound', 'bite': 0, 'scratch': 0, 'holes': 0, 'cond': 10}, {'loc': 'base:belt', 'bite': 0, 'scratch': 0, 'holes': 0, 'cond': 10}, {'loc': 'base:tshirt', 'bite': 0, 'scratch': 0, 'holes': 3, 'cond': 7}, {'loc': 'base:socks', 'bite': 0, 'scratch': 0, 'holes': 0, 'cond': 10}, {'loc': 'base:shoes', 'bite': 0, 'scratch': 10, 'holes': 0, 'cond': 24}, {'loc': 'base:pants', 'bite': 10, 'scratch': 20, 'holes': 0, 'cond': 10}]}; doors {'read': True, 'seen': 54, 'locked': 30}
+pull (P24-AN): 11 fight runs (adjacent fight lines; loop.fights holds 34 threat episodes [inference: a fight run lies inside one episode]), 8 engaged with a zombie listed beyond 6.0 tiles (178 lines) [inference: the frame at the line]; pull legs 22 lines (6 sent) [reading]; 2 fight runs held a pull, 0 swung, 2 kills
+doorway (P24-AO): 0 fights (0 lines), 0 swings, 0 shoves, 0 kills under many (E9: 0); attackers 3 or more in 0 frames [inference]; drag-down deaths 0
+wounded (P24-AP): swings at armPain 20.0 or above 0 (must read 0) [inference: the frame at the line]; shoves 17, stomps 13, kills 3 under the hold; strain flees 0, of them with a zombie within 2.5 tiles 0 (must read 0) [reading: the line inputs.nearest], 0 more only by a why nearest carried from another steer; hold lines 0
+fallen (P24-AQ): 5 fallen targets with no standing zombie within 6.0 tiles [inference], 3 finish sent, 3 landed (a result hit or targetDead [reading]), 2 left; stomps ended stood 0, rejected 0; finish lines 0 (0 kills)
+care tick (P24-AR): bandages ridden on a many flee 0 (0 lines); dressings held at the last care line {'gameMin': 779, 'dressings': 3}; bleeding parts max 2 over 27 game minutes
+transparent solid (P24-AS): 62 steer sends, 0 held runs of 5.0 s or more into a solidTrans square [] (E9: one, 16.511 s) [inference]
+shots (P24-AM): 193 index lines, by method {'screen': 0, 'window': 193}, 193 images (193 by window after a refused screen grab); skipped {}
+hold kinds (P24-AT) [reading: the lines whys]: arms (the stiffness) 0 lines (0 fight lines), 0 fight runs, 0 kills, 0 swings, 0 shoves; wounded (the pain) 786 lines (299 fight lines), 9 fight runs, 3 kills, 0 swings (must read 0), 17 shoves
+edge hold (P24-AU): 68 aim sends, 41 superseded, of them 3 by the opposite seek or pull leg and 0 by another target within 3.0 s [reading: the act lines and the next aim]; pull legs holding an edge 13 (3 ids kept through an unlisting)
+stomp (P24-AV): 13 sent, 13 on a frame reading the target onFloor [inference: the frame at the line], 0 before; rejected `not valid` 0 (must read 0), ended `stood` 0, landed 13 [reading]; finishes refused for a chaser by the target 0 [reading: the refusal's own line]
+fills (P24-AW) [reading]: sent 1, done 1, rejected `no source` 0 (must read 0), superseded 0; fill walks sent 3 (done 0); need lines with no loaded source 0
+doorway_pick (P24-AX) [reading]: 242 many lines, values {'no_door': 74, 'ok': 40, 'taken': 83, 'locked': 7, 'picked': 15, 'standing': 15, 'inside': 6, 'pending': 2}, absent 0
+corner (P25-A) [reading]: 3 lines, 3 break (1 steers sent), 0 swing (0 attacks sent); shoves 18, repeated at a target within 3.0 s 4 [inference: the sent actions]
+finish first (P25-B) [reading]: 0 lines, 0 stomps sent, 0 landed [reading: the result], 0 with the fallen target beyond 2.0 tiles, farthest None
+hold walk (P25-C): 0 endurance strain lines, 0 walking [reading], of them 0 with a zombie within 6.0 tiles (must read 0) [reading: inputs.nearest]; 0 hold runs, 0 ended with the endurance under 0.8 (the timed release) [inference: the last line strain.endurance], 0 open at the end of the log
+ride wait (P25-D) [reading]: 0 lines (sent 0, must read 0), 0 rides waited on, 0 ended done
+door walk (P25-E) [reading]: 2 lines, 1 re-routed, 1 dropped (1 `doorway_left` stall), longest stall 1.4042069911956787 s
+fence wait (P25-F) [reading]: 0 lines (legs {}, 0 aims sent), 0 waits ending in a swing 0, a stomp 0, another line 0, open 0 [inference: the line after each wait]
+shun (P25-G) [reading]: 0 goals failed to a cooling reason {'shun': 0, 'shunned': 0, 'no plan': 0, 'no door': 0} (0 Shelter shunned at its start), 0 goal lines refused as cooled, 0 `invalid: shunned` (must read 0)
+unwear (P25-H) [reading]: 0 wound unwear lines (0 sent), 0 idle-stock unwear lines; 0 wound unwears ripped, 0 of them bandaged, within 40 log lines at the same part [inference: the order of the care lines]
+corner kinds (P25-I, P25-L) [reading]: 3 break, 0 swing, 5 shove (5 sore), most standing 2; 0 breaks after missed shoves (misses []), ending far 0, near 0, no reading 0 [inference: the line after each]
+far finish (P25-J) [reading]: 16 fallen-target lines between 2.0 and 5.0 tiles (3 stomps sent, 3 landed [reading: the result], 0 attacks sent, 0 floor), farthest 2.74473761855784; stand: 0 lines, 0 stomps sent; 2 pair yields, followed by {'stomp': 2, 'other': 0, 'open': 0} [inference: that line and the next]; 0 pair flee lines in a shove's knock window (0 with no yield) [inference: the knockdown result, the frame at the line]
+stand wound (P25-K) [reading]: 0 `doorway_left` wound lines naming 0 new parts (1 `health` ends); the line after: {'flee': 0, 'other': 0, 'open': 0} [inference]
+release (P25-M) [reading]: 3 lines by {'endurance:timed': 3}, 3 timed, held 16.523551999999995 to 35.835285 game minutes; grade_e10 infers 0 timed releases [inference: hold_walk.released_under]
+door legs (P25-N) [reading]: Shelter 0 leg lines (0 sent, 0 done, 0 no square, 0 other failures), 0 halved [inference: legLen under the line before]; night 0 leg lines (0 sent, 0 done, 0 no square, 0 other failures), 0 ended leg; Shelter goal lines 0 ended leg; Shelter goal ends {}
+item record (P25-O) [reading]: hello mod 1.7 (1 hellos), item fields True; 0 unwear sent, 2 rips, 0 of them of an item an earlier unwear took off [inference: sentS order]
+{
+ "care": {
+  "bandage": {
+   "by_part": {
+    "5": 7,
+    "6": 2
+   },
+   "dirty": 0,
+   "done": 9,
+   "failed": 2,
+   "sent": 11
+  },
+  "climb": {
+   "done": 0,
+   "failed": 0,
+   "fell": 0,
+   "sent": 0,
+   "tall": 0,
+   "wounds": 0
+  },
+  "fill": {
+   "done": 1,
+   "fills": [
+    {
+     "added": 0.30000001192092896,
+     "amount": 0.30000001192092896,
+     "fluid": "Water",
+     "tainted": false
+    }
+   ],
+   "sent": 1,
+   "tainted": 0
+  },
+  "loot": {
+   "containers": 2,
+   "containers_moved": 5,
+   "done": 5,
+   "sent": 9
+  },
+  "need_chain": {
+   "containers_looted": 2,
+   "drink_done": 0,
+   "drink_stat_fell": null,
+   "fills_done": 1
+  },
+  "rip": {
+   "dirty_rags": 0,
+   "done": 2,
+   "rags": 5,
+   "sent": 2
+  },
+  "stance": {
+   "aim_done": 27,
+   "aim_failed": 41,
+   "aim_sent": 68,
+   "frames": 8528,
+   "frames_aiming": 1167,
+   "held_at_end": 27,
+   "moved": 53.91472395191083,
+   "released": 0,
+   "target_dead": 0
+  },
+  "standing": {
+   "n": 6,
+   "outcomes": {
+    "fallback": 0,
+    "flee": 5,
+    "kill": 0,
+    "none": 1,
+    "stagger_inferred": 0
+   },
+   "rows": [
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "shove",
+      "aim",
+      "shove",
+      "aim",
+      "aim",
+      "shove",
+      "stomp",
+      "stomp",
+      "stomp",
+      "stomp",
+      "aim",
+      "aim",
+      "steer",
+      "scan"
+     ],
+     "aim_states": [
+      "failed",
+      "done",
+      "failed",
+      "failed",
+      "failed",
+      "done",
+      "failed",
+      "failed",
+      "done",
+      "failed",
+      "done",
+      "failed"
+     ],
+     "fight": 4,
+     "outcome": "flee"
+    },
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "walkTo",
+      "walkTo",
+      "steer",
+      "steer",
+      "steer",
+      "scan"
+     ],
+     "aim_states": [
+      "done",
+      "done",
+      "done",
+      "failed",
+      "failed",
+      "failed",
+      "failed",
+      "failed",
+      "failed",
+      "done",
+      "failed",
+      "failed",
+      "failed",
+      "failed",
+      "done",
+      "done",
+      "failed"
+     ],
+     "fight": 5,
+     "outcome": "flee"
+    },
+    {
+     "actions": [
+      "aim",
+      "steer",
+      "walkTo"
+     ],
+     "aim_states": [
+      "failed"
+     ],
+     "fight": 6,
+     "outcome": "flee"
+    },
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "aim",
+      "shove",
+      "aim",
+      "steer",
+      "steer",
+      "steer",
+      "steer",
+      "steer",
+      "steer",
+      "scan"
+     ],
+     "aim_states": [
+      "done",
+      "failed",
+      "failed",
+      "failed"
+     ],
+     "fight": 7,
+     "outcome": "flee"
+    },
+    {
+     "actions": [
+      "aim",
+      "walkTo",
+      "walkTo",
+      "shove",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "shove",
+      "stomp",
+      "stomp",
+      "stomp",
+      "stomp",
+      "stomp",
+      "scan"
+     ],
+     "aim_states": [
+      "done",
+      "failed",
+      "failed",
+      "done",
+      "done"
+     ],
+     "fight": 9,
+     "outcome": "none"
+    },
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "shove",
+      "aim",
+      "aim",
+      "shove",
+      "aim",
+      "shove",
+      "aim",
+      "shove",
+      "aim",
+      "shove",
+      "aim",
+      "shove",
+      "aim",
+      "aim",
+      "shove",
+      "aim",
+      "shove",
+      "stomp",
+      "stomp",
+      "stomp",
+      "stomp",
+      "aim",
+      "aim",
+      "shove",
+      "shove",
+      "walkTo",
+      "steer",
+      "bandage"
+     ],
+     "aim_states": [
+      "done",
+      "done",
+      "done",
+      "failed",
+      "failed",
+      "done",
+      "done",
+      "failed",
+      "done",
+      "done",
+      "failed",
+      "done",
+      "done",
+      "failed",
+      "done",
+      "done",
+      "failed"
+     ],
+     "fight": 18,
+     "outcome": "flee"
+    }
+   ]
+  },
+  "wash": {
+   "done": 5,
+   "sent": 8,
+   "water": 20
+  }
+ },
+ "care_tick": {
+  "bleeding": {
+   "max": 2,
+   "minutes": 27,
+   "series": [
+    [
+     561,
+     0
+    ],
+    [
+     597,
+     1
+    ],
+    [
+     600,
+     0
+    ],
+    [
+     646,
+     1
+    ],
+    [
+     647,
+     0
+    ],
+    [
+     676,
+     1
+    ],
+    [
+     676,
+     0
+    ],
+    [
+     683,
+     1
+    ],
+    [
+     684,
+     2
+    ],
+    [
+     695,
+     1
+    ],
+    [
+     695,
+     0
+    ],
+    [
+     726,
+     1
+    ],
+    [
+     727,
+     0
+    ],
+    [
+     746,
+     1
+    ],
+    [
+     747,
+     0
+    ],
+    [
+     755,
+     1
+    ],
+    [
+     756,
+     0
+    ],
+    [
+     783,
+     1
+    ],
+    [
+     784,
+     0
+    ]
+   ]
+  },
+  "dressings_last": {
+   "dressings": 3,
+   "gameMin": 779
+  },
+  "read": true,
+  "ride_lines": 0,
+  "rides_many": 0
+ },
+ "corner": {
+  "break": 3,
+  "break_steers": 1,
+  "lines": 3,
+  "read": true,
+  "repeat_shoves": 4,
+  "shoves": 18,
+  "swing": 0,
+  "swing_attacks": 0
+ },
+ "corner_kinds": {
+  "break": 3,
+  "max_n": 2,
+  "miss_breaks": 0,
+  "misses": [],
+  "outcomes": {
+   "far": 0,
+   "near": 0,
+   "none": 0
+  },
+  "read": true,
+  "shove": 5,
+  "sore": 5,
+  "swing": 0
+ },
+ "cost": {
+  "max": 6,
+  "over5": 1226,
+  "p50": 0,
+  "p99": 2
+ },
+ "death": null,
+ "destinations": {
+  "by_branch": {
+   "goal": {
+    "building": 3,
+    "cluster": 65,
+    "other": 0
+   },
+   "need": {
+    "building": 3,
+    "cluster": 0,
+    "other": 0
+   }
+  },
+  "by_kind": {
+   "building": 6,
+   "cluster": 65,
+   "other": 0
+  },
+  "farthest": 39.6232255123179,
+  "off_building": [],
+  "ok": true,
+  "read": true,
+  "walks": 71
+ },
+ "door_legs": {
+  "halved": 0,
+  "night_done": 0,
+  "night_ended_leg": 0,
+  "night_legs": 0,
+  "night_no_square": 0,
+  "night_other_fail": 0,
+  "night_sent": 0,
+  "read": true,
+  "shelter_done": 0,
+  "shelter_ended_leg": 0,
+  "shelter_ends": {},
+  "shelter_legs": 0,
+  "shelter_no_square": 0,
+  "shelter_other_fail": 0,
+  "shelter_sent": 0
+ },
+ "door_walk": {
+  "drop": 1,
+  "left_stall": 1,
+  "lines": 2,
+  "max_stall": 1.4042069911956787,
+  "read": true,
+  "reroute": 1
+ },
+ "doors": {
+  "marks": [],
+  "ok": true,
+  "read": true,
+  "routes_around": [],
+  "tried_marked": 0
+ },
+ "doorway": {
+  "attackers3_frames": 0,
+  "drag_deaths": 0,
+  "ends": {
+   "health": 1,
+   "stall": 1
+  },
+  "fights": 0,
+  "kills": 0,
+  "lines": 0,
+  "read": true,
+  "shoves": 0,
+  "swings": 0
+ },
+ "doorway_pick": {
+  "absent": 0,
+  "many_lines": 242,
+  "read": true,
+  "values": {
+   "inside": 6,
+   "locked": 7,
+   "no_door": 74,
+   "ok": 40,
+   "pending": 2,
+   "picked": 15,
+   "standing": 15,
+   "taken": 83
+  }
+ },
+ "edge": {
+  "aims": 68,
+  "flipped": 3,
+  "pull_edge_ids": 3,
+  "pull_edge_lines": 13,
+  "read": true,
+  "retargeted": 0,
+  "superseded": 41
+ },
+ "engage": {
+  "fight_lines": 338,
+  "fights": 11,
+  "fights_sought": 9,
+  "flee_turns": 1,
+  "flees": {
+   "doorway": 1,
+   "flip": 11,
+   "health": 159,
+   "held": 62,
+   "held_inside": 5,
+   "many": 242,
+   "pair": 12,
+   "unreachable": 6
+  },
+  "lines": 1680,
+  "many_listed_lines": 15,
+  "many_listed_max": 6,
+  "read": true,
+  "seek_legs": {
+   "aim": 19,
+   "other": 0,
+   "walkTo": {
+    "walk": 5
+   }
+  },
+  "seek_lines": 81,
+  "seek_walk_share": 1.0,
+  "sought_lines": 91
+ },
+ "fallen": {
+  "fallen": 5,
+  "finish_kills": 0,
+  "finish_lines": 0,
+  "finished": 3,
+  "left": 2,
+  "read": true,
+  "rejected": 0,
+  "rows": [
+   {
+    "finished": true,
+    "id": 21207,
+    "sent": true,
+    "wall": 1793410610.3
+   },
+   {
+    "finished": true,
+    "id": 21209,
+    "sent": true,
+    "wall": 1793410736.702
+   },
+   {
+    "finished": false,
+    "id": 21176,
+    "sent": false,
+    "wall": 1793410761.1
+   },
+   {
+    "finished": true,
+    "id": 21404,
+    "sent": true,
+    "wall": 1793410908.7
+   },
+   {
+    "finished": false,
+    "id": 21405,
+    "sent": false,
+    "wall": 1793410920.2
+   }
+  ],
+  "sent": 3,
+  "stood": 0
+ },
+ "far_finish": {
+  "far_attacks": 0,
+  "far_floor": 0,
+  "far_landed": 3,
+  "far_lines": 16,
+  "far_stomps": 3,
+  "max_dist": 2.74473761855784,
+  "pair_knock": 0,
+  "pair_knock_no_yield": 0,
+  "pair_yield": 2,
+  "read": true,
+  "stand_far_lines": 0,
+  "stand_far_stomps": 0,
+  "yield_next": {
+   "open": 0,
+   "other": 0,
+   "stomp": 2
+  }
+ },
+ "fence_wait": {
+  "aims": 0,
+  "legs": {},
+  "lines": 0,
+  "outcomes": {
+   "open": 0,
+   "other": 0,
+   "stomp": 0,
+   "swing": 0
+  },
+  "read": true,
+  "waits": 0
+ },
+ "fights": {
+  "ended": 33,
+  "fled": 33,
+  "n": 34,
+  "stand_offs": 1
+ },
+ "fights_unresolved": 0,
+ "fills": {
+  "done": 1,
+  "no_source": 0,
+  "read": true,
+  "sent": 1,
+  "superseded": 0,
+  "unloaded_lines": 0,
+  "walks_done": 0,
+  "walks_sent": 3
+ },
+ "finish_first": {
+  "beyond_reach": 0,
+  "landed": 0,
+  "lines": 0,
+  "max_dist": null,
+  "read": true,
+  "stomps": 0
+ },
+ "frames_files": [
+  "state.log"
+ ],
+ "frames_n": 8528,
+ "frames_source": "state_logs",
+ "game_minutes": 226.98108673095703,
+ "game_minutes_alive": 226.98108673095703,
+ "game_minutes_log_end": 226.98108673095703,
+ "glides": {
+  "base": "t_loop0_ms",
+  "rows": [
+   {
+    "aid": "a17",
+    "endS": 55.35901831054687,
+    "gait": "run",
+    "s": 4.399999999999999,
+    "seq": 1044,
+    "startS": 50.959018310546874,
+    "tiles": 0.6269903914644701
+   },
+   {
+    "aid": "a17",
+    "endS": 57.459018310546874,
+    "gait": "run",
+    "s": 1.8999999999999986,
+    "seq": 1094,
+    "startS": 55.559018310546875,
+    "tiles": 0.25427407251837164
+   },
+   {
+    "aid": "a55",
+    "endS": 129.06401831054689,
+    "gait": "run",
+    "s": 1.4950000000000045,
+    "seq": 2594,
+    "startS": 127.56901831054688,
+    "tiles": 0.5945405214967775
+   },
+   {
+    "aid": "a109",
+    "endS": 220.15901831054688,
+    "gait": "run",
+    "s": 1.1980000000000075,
+    "seq": 4432,
+    "startS": 218.96101831054688,
+    "tiles": 0.0126953125
+   },
+   {
+    "aid": "a110",
+    "endS": 221.56601831054687,
+    "gait": "run",
+    "s": 1.3059999999999832,
+    "seq": 4448,
+    "startS": 220.26001831054688,
+    "tiles": 0.0615234375
+   },
+   {
+    "aid": "a236",
+    "endS": 486.5590183105469,
+    "gait": "run",
+    "s": 1.4010000000000105,
+    "seq": 8951,
+    "startS": 485.1580183105469,
+    "tiles": 0.11855082623448436
+   },
+   {
+    "aid": "a255",
+    "endS": 548.0080183105468,
+    "gait": "run",
+    "s": 1.6000000000000227,
+    "seq": 9805,
+    "startS": 546.4080183105468,
+    "tiles": 0.0625
+   },
+   {
+    "aid": "a259",
+    "endS": 565.6180183105469,
+    "gait": "run",
+    "s": 3.6100000000000136,
+    "seq": 9981,
+    "startS": 562.0080183105468,
+    "tiles": 0.03384320986555363
+   },
+   {
+    "aid": "a289",
+    "endS": 658.1150183105469,
+    "gait": "run",
+    "s": 1.004000000000019,
+    "seq": 11114,
+    "startS": 657.1110183105469,
+    "tiles": 0.04212823166039647
+   },
+   {
+    "aid": "a342",
+    "endS": 835.6350183105469,
+    "gait": "run",
+    "s": 1.5060000000000855,
+    "seq": 13698,
+    "startS": 834.1290183105468,
+    "tiles": 0.5724972200950862
+   }
+  ],
+  "runs": 10,
+  "tiles": 2.3795432233351397
+ },
+ "grade": "grade_e11",
+ "hold_kinds": {
+  "arms": {
+   "fight_lines": 0,
+   "fights": 0,
+   "kills": 0,
+   "lines": 0,
+   "shoves": 0,
+   "swings": 0
+  },
+  "read": true,
+  "wounded": {
+   "fight_lines": 299,
+   "fights": 9,
+   "kills": 3,
+   "lines": 786,
+   "shoves": 17,
+   "swings": 0
+  }
+ },
+ "hold_walk": {
+  "hold_walk": 0,
+  "open_runs": 0,
+  "read": true,
+  "released_under": 0,
+  "runs": 0,
+  "strain_lines": 0,
+  "walk_near": 0
+ },
+ "idle_many": {
+  "many_lines": 242,
+  "max_idle": 5,
+  "read": true,
+  "rows": [
+   {
+    "gameMin": 601,
+    "idle": 3,
+    "wall": 1793410575.3603277,
+    "why": "many"
+   },
+   {
+    "gameMin": 601,
+    "idle": 2,
+    "wall": 1793410575.895023,
+    "why": "many"
+   },
+   {
+    "gameMin": 601,
+    "idle": 2,
+    "wall": 1793410576.4373987,
+    "why": "many"
+   },
+   {
+    "gameMin": 601,
+    "idle": 2,
+    "wall": 1793410576.8744948,
+    "why": "many"
+   },
+   {
+    "gameMin": 602,
+    "idle": 2,
+    "wall": 1793410577.95331,
+    "why": "many"
+   },
+   {
+    "gameMin": 602,
+    "idle": 1,
+    "wall": 1793410578.3978493,
+    "why": "many"
+   },
+   {
+    "gameMin": 602,
+    "idle": 1,
+    "wall": 1793410578.942133,
+    "why": "many"
+   },
+   {
+    "gameMin": 624,
+    "idle": 1,
+    "wall": 1793410660.932165,
+    "why": "many"
+   },
+   {
+    "gameMin": 624,
+    "idle": 1,
+    "wall": 1793410661.3657205,
+    "why": "many"
+   },
+   {
+    "gameMin": 624,
+    "idle": 1,
+    "wall": 1793410661.916965,
+    "why": "many"
+   }
+  ],
+  "with_idle": 121
+ },
+ "item_record": {
+  "hellos": 1,
+  "item_fields": true,
+  "mod": "1.7",
+  "read": true,
+  "rip_after_unwear": 0,
+  "rips": 2,
+  "unwear_sent": 0
+ },
+ "kills": {
+  "agree": null,
+  "died": false,
+  "died_at": null,
+  "engine": null,
+  "event_ids": [
+   21207,
+   21209,
+   21404
+  ],
+  "events": 3,
+  "per_fight": [
+   0,
+   0,
+   0,
+   0,
+   1,
+   0,
+   0,
+   0,
+   0,
+   1,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   1,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "per_standing_fight": 0.5,
+  "planner": 3,
+  "planner_ids": [
+   21207,
+   21209,
+   21404
+  ],
+  "source": "act lines",
+  "standing_fights": 6,
+  "standing_kills": 3
+ },
+ "legs": {
+  "goal_no_square_fails": 0,
+  "halvings": 0,
+  "leg_lines": 38,
+  "leg_sent": 1,
+  "legs_per_target": 38.0,
+  "lens": [
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0,
+   40.0
+  ],
+  "min_len": 40.0,
+  "no_square": {
+   "failed": 0,
+   "sent": 68
+  },
+  "read": true,
+  "targets": [
+   "[\"ExploreToward\", {\"x\": 10739, \"y\": 10639}]"
+  ]
+ },
+ "lineage": null,
+ "lineage_source": null,
+ "load": {
+  "flee_drops": 0,
+  "guard_drops": 0,
+  "max_ratio": 0.7338888380262587
+ },
+ "loot": {
+  "by_kind": {
+   "bandage": {
+    "done": 1,
+    "failed": 0
+   },
+   "clothing": {
+    "done": 1,
+    "failed": 0
+   },
+   "container": {
+    "done": 2,
+    "failed": 2
+   },
+   "food": {
+    "done": 1,
+    "failed": 2
+   }
+  },
+  "done": 5,
+  "failed": 4,
+  "failed_reasons": {
+   "no match": 1,
+   "not adjacent": 2,
+   "superseded": 1
+  },
+  "sent": 9
+ },
+ "minutes_alive_source": "loop.first_world_age",
+ "minutes_source": "loop.first_world_age",
+ "needs": {
+  "drink": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "eat": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "sleep": {
+   "done": 0,
+   "fatigue_fell": null,
+   "sent": 0,
+   "sleptH": 0
+  },
+  "time_base": "t_loop0_ms",
+  "unknown": 0
+ },
+ "pull": {
+  "beyond_fights": 8,
+  "beyond_lines": 178,
+  "fight_runs": 11,
+  "fights": 11,
+  "loop_fights": 34,
+  "pull_fights": 2,
+  "pull_fights_swung": 0,
+  "pull_kills": 2,
+  "pull_lines": 22,
+  "pull_sent": 6,
+  "read": true
+ },
+ "pza16": {
+  "clothing_looted": {
+   "done": 1,
+   "failed": 0,
+   "sent": 1
+  },
+  "doors": {
+   "locked": 30,
+   "read": true,
+   "seen": 54
+  },
+  "wear": {
+   "done": 1,
+   "failed": 0,
+   "reasons": {},
+   "replaced": 0,
+   "sent": 1
+  },
+  "window": {
+   "cut": 0,
+   "done": 0,
+   "failed": 0,
+   "opened": 0,
+   "reasons": {},
+   "sent": 0,
+   "smashed": 0
+  },
+  "worn": {
+   "last": [
+    {
+     "bite": 0,
+     "cond": 10,
+     "holes": 0,
+     "loc": "base:bandage",
+     "scratch": 0
+    },
+    {
+     "bite": 0,
+     "cond": 10,
+     "holes": 0,
+     "loc": "base:wound",
+     "scratch": 0
+    },
+    {
+     "bite": 0,
+     "cond": 10,
+     "holes": 0,
+     "loc": "base:belt",
+     "scratch": 0
+    },
+    {
+     "bite": 0,
+     "cond": 7,
+     "holes": 3,
+     "loc": "base:tshirt",
+     "scratch": 0
+    },
+    {
+     "bite": 0,
+     "cond": 10,
+     "holes": 0,
+     "loc": "base:socks",
+     "scratch": 0
+    },
+    {
+     "bite": 0,
+     "cond": 24,
+     "holes": 0,
+     "loc": "base:shoes",
+     "scratch": 10
+    },
+    {
+     "bite": 10,
+     "cond": 10,
+     "holes": 0,
+     "loc": "base:pants",
+     "scratch": 20
+    }
+   ],
+   "max_locs": 7,
+   "read": true
+  }
+ },
+ "rags": {
+  "dressings": [
+   {
+    "dressings": 0,
+    "gameMin": 571
+   },
+   {
+    "dressings": 1,
+    "gameMin": 754
+   }
+  ],
+  "dressings_max": 1,
+  "dressings_min": 0,
+  "read": true,
+  "rips": {
+   "by_branch": {
+    "care": 2
+   },
+   "done": 2,
+   "failed": 0,
+   "sent": 2
+  },
+  "stock_lines": 2,
+  "stock_sent": 2,
+  "want_lines": 0
+ },
+ "release": {
+  "by": {
+   "endurance:timed": 3
+  },
+  "lines": 3,
+  "max_held": 35.835285,
+  "min_held": 16.523551999999995,
+  "read": true,
+  "timed": 3
+ },
+ "report_lines": [
+  "kills 3 (engine n/a, planner 3); survived; 227.0 game minutes",
+  "kills sources: planner 3 (act lines), zombie_dead events 3, engine n/a; not all read",
+  "survived (stop day_cap), 227 game min (loop.first_world_age)",
+  "drink: sent 0, done 0, stat fell None",
+  "eat: sent 0, done 0, stat fell None",
+  "unknown consumes (no valid use): 0; frame time base t_loop0_ms",
+  "sleep: sent 0, done 0, slept 0.0 h, fatigue fell None",
+  "fights: 34 (ended 33, fled 33, stand-offs 1)",
+  "fights_resolved: unresolved 0",
+  "load: max ratio 0.734, guard drops 0, flee drops 0",
+  "cost p50 0.000 ms, p99 2.000 ms, max 6.000 ms, over5 1226",
+  "wounds: 899 real over 8528 kept frames (the old reading counted 899), first seq 2591",
+  "care: bandage sent 11 done 9 (parts {'5': 7, '6': 2}, dirty 0), rip done 2 (5 rags), wash done 5 (20 water)",
+  "fill: sent 1 done 1, tainted 0, fills [{'fluid': 'Water', 'tainted': False, 'added': 0.30000001192092896, 'amount': 0.30000001192092896}]",
+  "stance: aim sent 68 done 27 failed 41 (held 27, released 0, target dead 0), 1167 of 8528 kept frames aiming; standing fights 6 {'kill': 0, 'flee': 5, 'fallback': 0, 'stagger_inferred': 0, 'none': 1}",
+  "climb: sent 0 done 0 fell 0 failed 0 wounds 0; need chain: drinks 0 (stat fell None), fills 1, containers looted 2",
+  "kills: per fight [0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; standing fights 6 with 3 kills (0.50 per fight); planner ids [21207, 21209, 21404]",
+  "stance held: 3265 of 3267 ticks over 27 aim legs (27 with the field), ratio 1.00; kept frames: 1167 aiming, 994 forceAim of 8528",
+  "bandages: riding sent 4 done 2 (walking 2) failed 2 (stopped 0) rejected 0, parts {'5': 2}; standing sent 7 done 7 failed 0",
+  "care yield: 22 care actions, 11 fights ended by the care; decision log: 12 yields (4 riding), 10 dead skips of 2 ids",
+  "glides (an inference, never a trip): 10 over 2.38 tiles in the kept frames: [(1044, '4.400'), (1094, '1.900'), (2594, '1.495'), (4432, '1.198'), (4448, '1.306'), (8951, '1.401'), (9805, '1.600'), (9981, '3.610'), (11114, '1.004'), (13698, '1.506')]",
+  "frames: state_logs (8528 frames, files ['state.log'])",
+  "engage: 11 fights, 9 sought (91 sought lines); 81 seek lines (legs {'walkTo': {'walk': 5}, 'aim': 19, 'other': 0}, 1.00 walk share); 1 flee turns to fight; flees {'unreachable': 6, 'pair': 12, 'held': 62, 'flip': 11, 'many': 242, 'health': 159, 'doorway': 1, 'held_inside': 5}; many by listed count 15 lines (max 6)",
+  "destinations: 71 walks, by kind {'building': 6, 'cluster': 65, 'other': 0}, farthest 39.62 tiles from a known building; ok",
+  "doors: 0 marked stuck [], 0 tried while marked, loots routed around to buildings []",
+  "loot: 9 sent, 5 done, 4 failed; by kind {'container': {'done': 2, 'failed': 2}, 'clothing': {'done': 1, 'failed': 0}, 'food': {'done': 1, 'failed': 2}, 'bandage': {'done': 1, 'failed': 0}}; failures {'not adjacent': 2, 'no match': 1, 'superseded': 1}",
+  "minutes: 227.0 alive (loop.first_world_age), log end 227.0",
+  "rags: rips {'sent': 2, 'done': 2, 'failed': 0, 'by_branch': {'care': 2}}; stock lines 2 (sent 2), dressings held min 0 max 1, bandage wants 0",
+  "legs: goal walks {'sent': 68, 'failed': 0}; leg lines 38 (sent 1), lengths [40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0], 0 halvings, goal failed no square 0, legs per target 38.00",
+  "idle many: 242 many lines, 121 with an idle zombie beyond 6.0 tiles (max 5)",
+  "pza16: clothing looted {'sent': 1, 'done': 1, 'failed': 0}; wear {'sent': 1, 'done': 1, 'failed': 0, 'reasons': {}, 'replaced': 0}; window {'sent': 0, 'done': 0, 'failed': 0, 'reasons': {}, 'smashed': 0, 'opened': 0, 'cut': 0}; worn {'read': True, 'max_locs': 7, 'last': [{'loc': 'base:bandage', 'bite': 0, 'scratch': 0, 'holes': 0, 'cond': 10}, {'loc': 'base:wound', 'bite': 0, 'scratch': 0, 'holes': 0, 'cond': 10}, {'loc': 'base:belt', 'bite': 0, 'scratch': 0, 'holes': 0, 'cond': 10}, {'loc': 'base:tshirt', 'bite': 0, 'scratch': 0, 'holes': 3, 'cond': 7}, {'loc': 'base:socks', 'bite': 0, 'scratch': 0, 'holes': 0, 'cond': 10}, {'loc': 'base:shoes', 'bite': 0, 'scratch': 10, 'holes': 0, 'cond': 24}, {'loc': 'base:pants', 'bite': 10, 'scratch': 20, 'holes': 0, 'cond': 10}]}; doors {'read': True, 'seen': 54, 'locked': 30}",
+  "pull (P24-AN): 11 fight runs (adjacent fight lines; loop.fights holds 34 threat episodes [inference: a fight run lies inside one episode]), 8 engaged with a zombie listed beyond 6.0 tiles (178 lines) [inference: the frame at the line]; pull legs 22 lines (6 sent) [reading]; 2 fight runs held a pull, 0 swung, 2 kills",
+  "doorway (P24-AO): 0 fights (0 lines), 0 swings, 0 shoves, 0 kills under many (E9: 0); attackers 3 or more in 0 frames [inference]; drag-down deaths 0",
+  "wounded (P24-AP): swings at armPain 20.0 or above 0 (must read 0) [inference: the frame at the line]; shoves 17, stomps 13, kills 3 under the hold; strain flees 0, of them with a zombie within 2.5 tiles 0 (must read 0) [reading: the line inputs.nearest], 0 more only by a why nearest carried from another steer; hold lines 0",
+  "fallen (P24-AQ): 5 fallen targets with no standing zombie within 6.0 tiles [inference], 3 finish sent, 3 landed (a result hit or targetDead [reading]), 2 left; stomps ended stood 0, rejected 0; finish lines 0 (0 kills)",
+  "care tick (P24-AR): bandages ridden on a many flee 0 (0 lines); dressings held at the last care line {'gameMin': 779, 'dressings': 3}; bleeding parts max 2 over 27 game minutes",
+  "transparent solid (P24-AS): 62 steer sends, 0 held runs of 5.0 s or more into a solidTrans square [] (E9: one, 16.511 s) [inference]",
+  "shots (P24-AM): 193 index lines, by method {'screen': 0, 'window': 193}, 193 images (193 by window after a refused screen grab); skipped {}",
+  "hold kinds (P24-AT) [reading: the lines whys]: arms (the stiffness) 0 lines (0 fight lines), 0 fight runs, 0 kills, 0 swings, 0 shoves; wounded (the pain) 786 lines (299 fight lines), 9 fight runs, 3 kills, 0 swings (must read 0), 17 shoves",
+  "edge hold (P24-AU): 68 aim sends, 41 superseded, of them 3 by the opposite seek or pull leg and 0 by another target within 3.0 s [reading: the act lines and the next aim]; pull legs holding an edge 13 (3 ids kept through an unlisting)",
+  "stomp (P24-AV): 13 sent, 13 on a frame reading the target onFloor [inference: the frame at the line], 0 before; rejected `not valid` 0 (must read 0), ended `stood` 0, landed 13 [reading]; finishes refused for a chaser by the target 0 [reading: the refusal's own line]",
+  "fills (P24-AW) [reading]: sent 1, done 1, rejected `no source` 0 (must read 0), superseded 0; fill walks sent 3 (done 0); need lines with no loaded source 0",
+  "doorway_pick (P24-AX) [reading]: 242 many lines, values {'no_door': 74, 'ok': 40, 'taken': 83, 'locked': 7, 'picked': 15, 'standing': 15, 'inside': 6, 'pending': 2}, absent 0",
+  "corner (P25-A) [reading]: 3 lines, 3 break (1 steers sent), 0 swing (0 attacks sent); shoves 18, repeated at a target within 3.0 s 4 [inference: the sent actions]",
+  "finish first (P25-B) [reading]: 0 lines, 0 stomps sent, 0 landed [reading: the result], 0 with the fallen target beyond 2.0 tiles, farthest None",
+  "hold walk (P25-C): 0 endurance strain lines, 0 walking [reading], of them 0 with a zombie within 6.0 tiles (must read 0) [reading: inputs.nearest]; 0 hold runs, 0 ended with the endurance under 0.8 (the timed release) [inference: the last line strain.endurance], 0 open at the end of the log",
+  "ride wait (P25-D) [reading]: 0 lines (sent 0, must read 0), 0 rides waited on, 0 ended done",
+  "door walk (P25-E) [reading]: 2 lines, 1 re-routed, 1 dropped (1 `doorway_left` stall), longest stall 1.4042069911956787 s",
+  "fence wait (P25-F) [reading]: 0 lines (legs {}, 0 aims sent), 0 waits ending in a swing 0, a stomp 0, another line 0, open 0 [inference: the line after each wait]",
+  "shun (P25-G) [reading]: 0 goals failed to a cooling reason {'shun': 0, 'shunned': 0, 'no plan': 0, 'no door': 0} (0 Shelter shunned at its start), 0 goal lines refused as cooled, 0 `invalid: shunned` (must read 0)",
+  "unwear (P25-H) [reading]: 0 wound unwear lines (0 sent), 0 idle-stock unwear lines; 0 wound unwears ripped, 0 of them bandaged, within 40 log lines at the same part [inference: the order of the care lines]",
+  "corner kinds (P25-I, P25-L) [reading]: 3 break, 0 swing, 5 shove (5 sore), most standing 2; 0 breaks after missed shoves (misses []), ending far 0, near 0, no reading 0 [inference: the line after each]",
+  "far finish (P25-J) [reading]: 16 fallen-target lines between 2.0 and 5.0 tiles (3 stomps sent, 3 landed [reading: the result], 0 attacks sent, 0 floor), farthest 2.74473761855784; stand: 0 lines, 0 stomps sent; 2 pair yields, followed by {'stomp': 2, 'other': 0, 'open': 0} [inference: that line and the next]; 0 pair flee lines in a shove's knock window (0 with no yield) [inference: the knockdown result, the frame at the line]",
+  "stand wound (P25-K) [reading]: 0 `doorway_left` wound lines naming 0 new parts (1 `health` ends); the line after: {'flee': 0, 'other': 0, 'open': 0} [inference]",
+  "release (P25-M) [reading]: 3 lines by {'endurance:timed': 3}, 3 timed, held 16.523551999999995 to 35.835285 game minutes; grade_e10 infers 0 timed releases [inference: hold_walk.released_under]",
+  "door legs (P25-N) [reading]: Shelter 0 leg lines (0 sent, 0 done, 0 no square, 0 other failures), 0 halved [inference: legLen under the line before]; night 0 leg lines (0 sent, 0 done, 0 no square, 0 other failures), 0 ended leg; Shelter goal lines 0 ended leg; Shelter goal ends {}",
+  "item record (P25-O) [reading]: hello mod 1.7 (1 hellos), item fields True; 0 unwear sent, 2 rips, 0 of them of an item an earlier unwear took off [inference: sentS order]"
+ ],
+ "ride": {
+  "riding": {
+   "by_part": {
+    "5": 2
+   },
+   "done": 2,
+   "failed": 2,
+   "rejected": 0,
+   "sent": 4,
+   "stopped": 0,
+   "walking": 2
+  },
+  "standing": {
+   "done": 7,
+   "failed": 0,
+   "sent": 7
+  }
+ },
+ "ride_wait": {
+  "lines": 0,
+  "read": true,
+  "rides": 0,
+  "rides_done": 0,
+  "sent": 0
+ },
+ "run_id": "e_day_13-20261030-213219",
+ "session_key": "e_day_13",
+ "shots": {
+  "by_method": {
+   "screen": 0,
+   "window": 193
+  },
+  "images": 193,
+  "lines": 193,
+  "read": true,
+  "skipped": {},
+  "window_after_screen_refused": 193
+ },
+ "shun": {
+  "cooled_goals": 0,
+  "ends": {
+   "no door": 0,
+   "no plan": 0,
+   "shun": 0,
+   "shunned": 0
+  },
+  "invalid_shunned": 0,
+  "read": true,
+  "refused_lines": 0,
+  "shelter_shunned": 0
+ },
+ "stance_held": {
+  "frames": 8528,
+  "frames_aiming": 1167,
+  "frames_force_aim": 994,
+  "held_frames": 3265,
+  "legs": 27,
+  "per_leg": [
+   {
+    "aid": "a49",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a50",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a71",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a75",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a80",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a87",
+    "heldFrames": 120,
+    "ticks": 121
+   },
+   {
+    "aid": "a92",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a93",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a94",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a101",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a106",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a107",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a120",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a139",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a145",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a146",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a205",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a206",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a207",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a210",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a212",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a215",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a217",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a221",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a223",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a226",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a232",
+    "heldFrames": 120,
+    "ticks": 121
+   }
+  ],
+  "ratio": 0.9993878175696358,
+  "ticks": 3267,
+  "with_field": 27
+ },
+ "stand_wound": {
+  "left_health": 1,
+  "lines": 0,
+  "next": {
+   "flee": 0,
+   "open": 0,
+   "other": 0
+  },
+  "parts": 0,
+  "read": true
+ },
+ "stomp_first": {
+  "early": 0,
+  "finish_block": 0,
+  "landed": 13,
+  "on_floor": 13,
+  "read": true,
+  "rejected_not_valid": 0,
+  "sent": 13,
+  "stood": 0
+ },
+ "stop": {
+  "detail": "the loop reached 840s of wall time",
+  "reason": "day_cap"
+ },
+ "survived": true,
+ "transparent": {
+  "held_runs": 0,
+  "read": true,
+  "rows": [],
+  "steers": 62
+ },
+ "unwear": {
+  "bandaged": 0,
+  "read": true,
+  "ripped": 0,
+  "stock_lines": 0,
+  "wound_lines": 0,
+  "wound_sent": 0
+ },
+ "wounded": {
+  "hold_lines": 0,
+  "kills_hold": 3,
+  "read": true,
+  "shoves_hold": 17,
+  "shoves_spent": 0,
+  "stomps_hold": 13,
+  "strain_flees": 0,
+  "strain_flees_carried": 0,
+  "strain_flees_near": 0,
+  "swings_at_pain": 0,
+  "swings_spent": 0
+ },
+ "wounds": {
+  "first_seq": 2591,
+  "frames": 8528,
+  "listed": 899,
+  "real": 899
+ },
+ "yields": {
+  "care_actions": 22,
+  "fights_ended_by_care": 11,
+  "log": {
+   "care_rides": 4,
+   "care_yields": 12,
+   "dead_ids": [
+    21207,
+    21404
+   ],
+   "dead_skips": 10,
+   "kill_lines": 3,
+   "lines": 1680
+  }
+ }
+}
