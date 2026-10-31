@@ -381,3 +381,33 @@ def test_past_the_settle_window_the_still_worn_garment_gives_way_to_the_next_lea
     tick(r, sv)
     assert r.cmd() == ("unwear", {"itemId": 21})
     assert care_why(tmp_path) == {"reason": "unwear", "part": 9, "item": 21, "loc": SHIRT, "cover": 7.0}
+
+
+# ================================================================ P25-O: the hello's two-number mod version
+@pytest.mark.parametrize("mod, want", [("1.7", True), ("1.7.1", True), ("1.5.2", True), ("1.5", False),
+                                       ("1.4.9", False), ("", False), (None, False)])
+def test_item_fields_reads_a_two_number_mod_version(mod, want):
+    """Ruling P25-O: the Lua's hello has read `mod` "1.7" since PZA/1.7 (`PZA.VERSION`); a missing third number reads
+    0, so "1.7" is (1, 7, 0), past 1.5.2, and "1.5" (1, 5, 0) is not."""
+    from agent.base.world import World
+    w = World()
+    w.apply({"kind": "hello", "mod": mod, "caps": []})
+    assert w.item_fields() is want
+
+
+def test_p25_h_s_unwear_runs_on_the_live_hello_s_mod_1_7(tmp_path):
+    """P25-H through Survive on the live form of the hello (`mod` "1.7", as every PZA/1.7 session's state.log line 1):
+    part 9 bleeding, every cotton garment worn, nothing held, no zombie: the care's bleeding step unwears the T-shirt
+    (before P25-O the three-number match read the hello False, and `_unwear_step` sent nothing)."""
+    from .test_survive_n import TSHIRT, worn
+    r, sv = make(tmp_path)
+    r.fake.hello(mod="1.7")
+    r.pump()
+    assert r.world.item_fields() is True
+    worn(r, 20, "Base.Tshirt_White", TSHIRT, 1.0, 2.0)
+    worn(r, 21, "Base.Shirt_FormalWhite", SHIRT, 2.0, 5.0)
+    r.frame()
+    bleed(r)
+    tick(r, sv)
+    assert r.cmd() == ("unwear", {"itemId": 20})
+    assert care_why(tmp_path) == {"reason": "unwear", "part": 9, "item": 20, "loc": TSHIRT, "cover": 3.0}

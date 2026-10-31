@@ -480,9 +480,12 @@ class World:
 
     def item_fields(self):
         """Whether the last hello's mod version is 1.5.2 or later: its `item_added` and `item_changed` lines carry `worn`
-        and `rip` (absent meaning not worn, no class: Task 10 fix 2). An older or unparsable version reads False."""
-        m = re.match(r"(\d+)\.(\d+)\.(\d+)", str((self.hello or {}).get("mod") or ""))
-        return m is not None and tuple(int(g) for g in m.groups()) >= (1, 5, 2)
+        and `rip` (absent meaning not worn, no class: Task 10 fix 2). The hello's `mod` is the Lua's `PZA.VERSION`, two
+        or three dotted numbers (`"1.5.2"`, `"1.6.1"`; since PZA/1.7 `"1.7"`), a missing third read as 0 (ruling P25-O,
+        Plan 25 Task 8: the three-number match read every `"1.7"` hello False, so the unwear and the rip of the item
+        record never ran on a live session); an older or unparsable version reads False."""
+        m = re.match(r"(\d+)\.(\d+)(?:\.(\d+))?", str((self.hello or {}).get("mod") or ""))
+        return m is not None and tuple(int(g or 0) for g in m.groups()) >= (1, 5, 2)
 
     def can(self, action_type):
         """Whether the last hello's `caps` announce `action_type`: the planner sends a PZA/1.5 skill (aim, climb,

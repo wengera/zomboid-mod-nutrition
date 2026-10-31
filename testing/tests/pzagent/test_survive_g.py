@@ -1435,7 +1435,9 @@ def test_item_fields_read_the_hellos_mod_version(tmp_path):
     from agent.base.world import World
     r, _ = make(tmp_path)
     assert r.world.item_fields() is False                                         # "fake": the guess stays
-    for mod, want in (("1.5.1", False), ("1.5.2", True), ("1.6.0", True), ("2.0.0", True), ("", False)):
+    for mod, want in (("1.5.1", False), ("1.5.2", True), ("1.6.0", True), ("2.0.0", True), ("", False),
+                      ("1.7", True), ("1.7.1", True), ("1.5", False), ("1.4.9", False), ("2", False), ("x.y", False),
+                      (None, False)):   # ruling P25-O (Plan 25 Task 8): the Lua's two-number "1.7" reads True
         w = World()
         w.apply({"kind": "hello", "mod": mod, "caps": []})
         assert w.item_fields() is want, mod
