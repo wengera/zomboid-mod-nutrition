@@ -212,16 +212,19 @@ def test_last_goal_reads_the_end_and_its_meaning(row, why):
 
 
 @pytest.mark.parametrize("row, why", [
-    ({"state": "failed", "reason": "shun"}, "shunned"),
-    ({"state": "failed", "reason": "no plan"}, "shunned"),
-    ({"state": "failed", "reason": "no door"}, "shunned"),
-    ({"state": "failed", "reason": "shunned"}, "shunned"),
-    ({"state": "done", "reason": "inside"}, "done"),
-    ({"state": "failed", "reason": "nothing to loot"}, "looted already"),
+    ({"type": "Shelter", "state": "failed", "reason": "shun"}, "shunned"),
+    ({"type": "Shelter", "state": "failed", "reason": "no plan"}, "shunned"),
+    ({"type": "Shelter", "state": "failed", "reason": "no door"}, "shunned"),
+    ({"type": "Shelter", "state": "failed", "reason": "shunned"}, "shunned"),
+    ({"type": "Shelter", "state": "done", "reason": "inside"}, "done"),
+    ({"type": "LootBuilding", "state": "failed", "reason": "nothing to loot"}, "looted already"),
+    ({"type": "LootBuilding", "state": "failed", "reason": "no door"}, "failed"),
 ])
 def test_a_failure_for_a_shun_reads_shunned(row, why):
     """Ruling P25-G (2): F4's 57 Shelters failed `shun` reached the model as the bare `failed`; a shun, `no plan`, `no
-    door` (and the start's `shunned`) now read `shunned`, the done and the loot's rows unchanged."""
+    door` (and the start's `shunned`) now read `shunned`, the done and the loot's rows unchanged. Named change, Plan 25
+    Task 8 (the residual of review-t7): `shunned` is a Shelter's reading alone (`why_of` keyed on the row's type), so
+    a LootBuilding failed `no door` reads `failed` as before P25-G (`test_survive_v`)."""
     assert V.why_of(row) == why and why in V.WHYS
 
 

@@ -52,9 +52,10 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   a night's shelter walk reads the same); `superseded by an instinct` (superseded by any other send: a need's
   consume, the load's drop); `looted already` (a LootBuilding failed `nothing to loot`); `refused` and `out of range`
   (the LLM source's refusal of its own last answer, laid over the view it sends: `llm.py`); `shunned` (ruling P25-G,
-  Plan 25 Task 7: failed for a shun, `goals.COOL_REASONS`: the shelter's doors spent (`shun`), the building shunned already
-  (`shunned`), no plan, no door; or the LLM source's refusal of a Shelter of a building flagged `s`); `failed` (any
-  other failure: the goal budget, the load, none found). None before any goal ended. `events`: the kinds of
+  Plan 25 Task 7: a Shelter failed for a shun, `goals.COOL_REASONS`: its doors spent (`shun`), the building shunned
+  already (`shunned`), no plan, no door; or the LLM source's refusal of a Shelter of a building flagged `s`; Plan 25
+  Task 8, review-t7: a Shelter's alone, so a LootBuilding's `no door`, cooled all the same, reads `failed`); `failed`
+  (any other failure: the goal budget, the load, none found). None before any goal ended. `events`: the kinds of
   the last three event lines. `want_shelter`: `night.want_shelter` (the night wants and knows no shelter).
 - Beyond the brief's keys, the scripted source's reads: `woods_r` (the goal kit's woods radius, `goals.Kit.woods_r`:
   WOODS_R, widened after REST_N rests in a row, Task 18 fix 1's ruling 3; WOODS_R with no kit), `edge`
@@ -223,8 +224,8 @@ def why_of(row):
         return "stuck"
     if reason == "nothing to loot":
         return "looted already"
-    if reason in COOL_REASONS:   # P25-G: the reasons the runner cools for whatever was sent
-        return "shunned"
+    if reason in COOL_REASONS and row.get("type") == "Shelter":   # P25-G: the Shelter's shun (review-t7: a
+        return "shunned"                                             # LootBuilding's `no door` reads failed)
     return "failed"
 
 
