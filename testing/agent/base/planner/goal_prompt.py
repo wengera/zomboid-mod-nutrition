@@ -5,7 +5,8 @@ log or planner internal; a test asserts it).
 `system(explore_max_tiles)` reads, in order: the game and the contract; one line per goal type with its fields, their
 types, enums and bounds (`field_text`); the strategy paragraph (Task 29); how the view's building line reads; the
 refusal rule (P24-B 3, the bound `explore_max_tiles`, `llm.EXPLORE_MAX_TILES`, and `goals.WOODS_R`); the loop (P24-Y,
-`goals.BUILDING_R`); the meaning of the view keys the rules read (met, attackers, worn, hit_reaction, tired and night,
+`goals.BUILDING_R`; ruling P25-R, Plan 25 Task 10: the program fights only while a weapon is held, else flees, and an
+ExploreToward at the view's `toward` square is always accepted, `llm.place_error`); the meaning of the view keys the rules read (met, attackers, worn, hit_reaction, tired and night,
 hold (Plan 25 Task 4: the view's `spent` rendered `hold: <kind> <value>`), last_goal with its `cooled` end (Plan 25
 Task 4: the runner's cooled refusal, `GoalRunner._carried`), and its `shunned` why, ruling P25-G); then that the user
 message is the view. Ruling P25-G (Plan 25 Task 7, F4's 67 Shelter answers for its one shunned building): the
@@ -80,11 +81,12 @@ def system(explore_max_tiles):
                  "woods_r, %g at the start; farther is the woods); a LootBuilding only a building listed without the L flag; a "
                  "Shelter only a building listed without the s flag. An answer breaking it is refused "
                  "and the program chooses instead." % (explore_max_tiles, WOODS_R))
-    lines.append("Your loop, every goal a building: the program clears the zombies near you itself; you loot the "
-                 "nearest building listed without L within %g tiles (LootBuilding), then the next nearest (h: lists "
-                 "what each building is known to hold); walk only toward buildings: toward names the next building "
-                 "to walk to when none is near (its door), and an ExploreToward finds the next house at the edge of "
-                 "the known buildings, never out into open ground." % BUILDING_R)
+    lines.append("Your loop, every goal a building: the program fights the zombies near you itself while it holds a "
+                 "weapon; with `weapon` null it flees them, so loot for a weapon first; you loot the nearest building "
+                 "listed without L within %g tiles (LootBuilding), then the next nearest (h: lists what each building "
+                 "is known to hold); walk only toward buildings: toward names the next building to walk to when none "
+                 "is near (its door); an ExploreToward at its square is always accepted, and an ExploreToward finds "
+                 "the next house at the edge of the known buildings, never out into open ground." % BUILDING_R)
     lines.append("met is the ground where zombies were met in the last minutes: dense the centre of the densest "
                  "group, n how many, bearing and dist from pos. Zombies there are still about: prefer ground away "
                  "from met.dense, and never explore toward its bearing while met.n is 3 or more.")

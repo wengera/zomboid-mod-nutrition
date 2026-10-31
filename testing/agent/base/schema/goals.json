@@ -74,9 +74,9 @@
       "reads": ["tired", "night", "spent", "buildings.shunned"]
     },
     {
-      "text": "Among buildings listed without L, prefer one with a lower z: and one whose way from pos does not cross met.dense, and of two alike the one whose door faces away from them; when every one reads z: above 0, loot the nearest anyway (the program clears the zombies near you).",
+      "text": "Among buildings listed without L, prefer one with a lower z: and one whose way from pos does not cross met.dense, and of two alike the one whose door faces away from them; when every one reads z: above 0, loot the nearest anyway (the program clears the zombies near you while weapon is not null).",
       "pages": [1, 14],
-      "reads": ["buildings.zombies_near", "met.dense", "pos"]
+      "reads": ["buildings.zombies_near", "met.dense", "pos", "weapon"]
     },
     {
       "text": "While load.level is 1 or more, prefer a building with z:0 over one with zombies beside it.",

@@ -25,7 +25,9 @@ The contract:
   (ruling P24-Y, Plan 24 Task 18: every walk has a building as its destination) an ExploreToward whose square's
   centre lies farther than the view's `woods_r` (`goals.WOODS_R`, 40, widened after REST_N rests in a row: Task 18
   fix 1, ruling 3) from every building the view lists (its `box`, else its listed squares), while it lists one, is
-  `invalid: in the woods`; a LootBuilding or Shelter of a building the view reads
+  `invalid: in the woods`; except (ruling P25-R, Plan 25 Task 10) an ExploreToward whose square's centre lies within
+  WOODS_R of the view's `toward` building's listed square or door, accepted whatever its distance from `pos`
+  (`_at_toward`: the walk the goal layer takes toward it in legs); a LootBuilding or Shelter of a building the view reads
   `blocked` (every exterior door marked stuck, ruling P24-Z) is `invalid: refused`; a Shelter of a shown building
   whose `shunned` reads true (its shelter failed within `night.SHUN_MIN`, ruling P25-G, Plan 25 Task 7: F4 answered
   Shelter for its one shunned building 67 times) is `invalid: shunned` (a LootBuilding of it stays valid: its window
@@ -209,6 +211,8 @@ def place_error(goal, view, origin=None):
     """`invalid: <why>` when `goal` breaks the refusal rule against `view` (the module docstring), else None; the
     range is measured from `origin` (the calling view's `pos`, Plan 25 Task 4) when given, else from `view`'s."""
     if goal.TYPE == "ExploreToward":
+        if _at_toward(goal, view):
+            return None   # P25-R: the walk toward the view's `toward` building, which the goal layer takes in legs
         pos = (origin if origin is not None else view.get("pos")) or {}
         px, py = pos.get("x"), pos.get("y")
         if not _num(px) or not _num(py) or math.hypot(goal.x + 0.5 - px, goal.y + 0.5 - py) > EXPLORE_MAX_TILES:
@@ -228,6 +232,19 @@ def place_error(goal, view, origin=None):
         if goal.TYPE == "Shelter" and b.get("shunned") is True:   # P25-G: its shelter failed within SHUN_MIN
             return "invalid: shunned"
     return None
+
+
+def _at_toward(goal, view):
+    """Ruling P25-R (F5: 9 of 25 explore answers pointed back toward building 2 from 128.85070726484017 to
+    222.78699804374799 tiles and were refused): the ExploreToward's square centre lies within WOODS_R of the view's
+    `toward` building's listed square or door (`view._toward`'s `square` and `door`), whatever its distance from
+    `pos`: the walk toward it the goal layer takes in legs anyway."""
+    t = view.get("toward")
+    if not isinstance(t, dict):
+        return False
+    x, y = goal.x + 0.5, goal.y + 0.5
+    pts = [p for p in (t.get("square"), t.get("door")) if isinstance(p, (list, tuple)) and len(p) >= 2]
+    return any(_num(p[0]) and _num(p[1]) and math.hypot(p[0] + 0.5 - x, p[1] + 0.5 - y) <= WOODS_R for p in pts)
 
 
 def _near(b, x, y, r=WOODS_R):

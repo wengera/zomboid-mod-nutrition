@@ -6,11 +6,15 @@ mod over PZA/1.7.1.
   fallen), never an `attack`, logged `unarmed_fight`; two within DANGER_R, or the health under FLEE_HEALTH_PAIR, flee
   `unarmed` as before; the doorway stand stays armed-only; the trapped fight takes the unarmed character too.
 - P25-Q, the trapped hold yields to care: the Flee's trapped hold (no command) passes the tick to the care branch.
+- P25-R, the model told what the program will not do unarmed, and an ExploreToward at the view's `toward` accepted.
 - The residual of the F5 write-up: on a `1.7` hello the wear pick leaves out a garment an `item_changed` read worn.
 """
 import pytest
 
 from agent.base.planner import doorway as D
+from agent.base.planner import goal_prompt as GP
+from agent.base.planner import goals as G
+from agent.base.planner import llm as L
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner import threat as T
@@ -301,6 +305,54 @@ def test_with_trapped_care_off_the_trapped_hold_sends_nothing(tmp_path):
     assert tick(r, sv) is None
     d = last(tmp_path)
     assert d["branch"] == "threat" and "care" not in d["inputs"]["branches"] and sends(r) == []
+
+
+# ================================================================ P25-R: the prompt and the `toward` square
+def test_the_loop_sentence_says_the_program_fights_only_with_a_weapon():
+    assert ("the program fights the zombies near you itself while it holds a weapon; with `weapon` null it flees "
+            "them, so loot for a weapon first") in L.SYSTEM
+    assert "the program clears the zombies near you itself" not in L.SYSTEM
+
+
+def test_the_toward_explanation_says_an_explore_at_its_square_is_always_accepted():
+    assert "toward names the next building to walk to when none is near (its door); an ExploreToward at its square " \
+           "is always accepted" in L.SYSTEM
+
+
+def test_the_strategy_never_says_the_program_clears_the_zombies_unarmed():
+    texts = [s["text"] for s in GP.strategy()]
+    assert not any("(the program clears the zombies near you)" in t for t in texts)
+    assert any("(the program clears the zombies near you while weapon is not null)" in t for t in texts)
+    line = next(s for s in GP.strategy() if "while weapon is not null" in s["text"])
+    assert "weapon" in line["reads"]
+
+
+def far_view(toward=True):
+    """A view at (100, 200) listing building 2 150 tiles east, its `toward` square (250, 200) and door (249, 201)."""
+    b = {"id": 2, "x": 250, "y": 200, "door": [249, 201], "dist": 150.0, "containers": 3, "looted": False}
+    v = {"pos": {"x": 100.0, "y": 200.0}, "buildings": [b], "woods_r": G.WOODS_R}
+    if toward:
+        v["toward"] = {"for": "unlooted", "building": 2, "door": [249, 201], "square": [250, 200], "dist": 150.0}
+    return v
+
+
+@pytest.mark.parametrize("x, y, err", [(250, 200, None), (249, 201, None), (250, 235, None), (100, 350, "out of range"),
+                                       (250, 260, "out of range")])
+def test_an_explore_at_the_toward_square_is_accepted_whatever_its_distance_and_elsewhere_refused(x, y, err):
+    """F5: 9 of 25 explore answers pointed back toward building 2, 128.85 to 222.79 tiles off, and were refused: an
+    ExploreToward within WOODS_R of the view's `toward` square or door is the walk the goal layer takes in legs, so it
+    is accepted 150 tiles off; one 150 tiles off elsewhere is refused as before."""
+    got = L.place_error(G.ExploreToward(x, y), far_view())
+    assert got == (None if err is None else "invalid: " + err)
+
+
+def test_with_no_toward_the_far_square_is_refused_as_before():
+    assert L.place_error(G.ExploreToward(250, 200), far_view(toward=False)) == "invalid: out of range"
+
+
+def test_an_explore_near_pos_but_in_the_woods_keeps_its_wording():
+    v = far_view()
+    assert L.place_error(G.ExploreToward(140, 200), v) == "invalid: in the woods"
 
 
 # ================================================================ the residual: the rejected wears
