@@ -80,8 +80,8 @@ one table the gates and the other policies import).
   FIGHT_REACH on a line not read blocked takes the shove of a standing zombie at point blank first, else the `stomp`,
   else the weapon's floor strike (an `attack` of it) when the stomp was refused (`swing_refused`, SWING_SKIP_S) or a
   standing zombie stands within STAND_MIN_R (the engine's call would take that one); a running stance leg gives way
-  to it (`busy`). At the swing (`_shove`): P24-AG, with `body.armPain` at STRAIN_SOFT or above a standing target at
-  point blank is shoved, never swung at; P24-AH, in a standing fight a second standing zombie inside KEEP_R makes the
+  to it (`busy`). At the swing (`_shove`, `shove.py`'s mixin since Plan 25 Task 8, with `_corner` and P25-L's break):
+  P24-AG, with `body.armPain` at STRAIN_SOFT or above a standing target at point blank is shoved, never swung at; P24-AH, in a standing fight a second standing zombie inside KEEP_R makes the
   nearer of the two (within SHOVE_R) shoved before the next swing, once a swing (`_shoved`); neither with another
   standing zombie within STAND_MIN_R. A shove's or stomp's `targetDead` is a kill (SWING_TYPES), a started stomp
   counts in the no-progress streak.
@@ -114,25 +114,26 @@ import time
 from agent.base.planner.finish import FightFinish
 from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R,
                                          DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S, FIGHT_REACH,
-                                         FLEE_GAIT, FLEE_S, KEEP_MARGIN, KEEP_R, KNOCK_READ_S, MISSES_TO_APPROACH,
-                                         NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R, Policy, REPIN_MARGIN,
-                                         REPOSITION_MIN, REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R, SHOVE_R,
-                                         SHOVE_REPEAT_S, STALL_SWINGS, STAND_MAX_S, STAND_MIN_R, STEER_PROBE,
-                                         STEER_TURNS, STOOD_STOMPS, STRAIN_SOFT, STUCK_REASONS, SWING_SKIP_S,
+                                         KEEP_MARGIN, KEEP_R, KNOCK_READ_S, MISSES_TO_APPROACH, NO_TARGET,
+                                         POINT_BLANK_R, PREEMPTED, PULL_R, Policy, REPIN_MARGIN, REPOSITION_MIN,
+                                         REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R, STALL_SWINGS, STAND_MAX_S,
+                                         STEER_PROBE, STEER_TURNS, STOOD_STOMPS, STUCK_REASONS, SWING_SKIP_S,
                                          SWING_TYPES, UNREACHABLE_S, _rotate, arm_pain, arms_hurt, away_vector,
                                          blocked, centre, chasing, clear_heading, hit_reaction, in_reach, line_to,
                                          on_floor, seek_allowed, stance_leg_kind, target_id_ok, zdist)
 from agent.base.planner.pull import FightPull
-from agent.base.pza1 import Aim, Attack, Shove, Steer, WalkTo
+from agent.base.planner.shove import FightShove
+from agent.base.pza1 import Aim, Attack, WalkTo
 from agent.base.world import me_floor, me_xy
 
 __all__ = ["Fight", "FIGHT_RULES"]
 
-FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait")   # survival iteration 13's Fight rules
-                     # (P25-A, P25-B, P25-D, P25-F), each on in `rules` unless Survive's switch for it is off
+FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break")   # survival
+                     # iterations 13 and 14's Fight rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L), each on in
+                     # `rules` unless Survive's switch for it is off
 
 
-class Fight(FightPull, FightFinish, Policy):
+class Fight(FightPull, FightFinish, FightShove, Policy):
     def __init__(self, world, actions, clock=time.time, unreachable=None, target=None, dead=None):
         super().__init__(world, actions, clock)
         self.dead = {} if dead is None else dead   # zombie id -> wall until it is skipped: read dead (Task 12 fix 1)
@@ -187,6 +188,7 @@ class Fight(FightPull, FightFinish, Policy):
         self.rules = frozenset(FIGHT_RULES)  # Survive sets it each tick: the iteration-13 rules its switches leave on
         self._shove_a = {}                  # zombie id -> the last shove sent at it (P25-A: its end and its wall)
         self._fence_leg = None              # the fence wait's leg kind the last aim was sent for (P25-F), else None
+        self._misses = None                 # (zombie id, [send walls]) of the missed shoves in a row at it (P25-L)
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -442,8 +444,8 @@ class Fight(FightPull, FightFinish, Policy):
             return not self._walk_gives_way()
         if self.last.type != "aim":
             return True
-        if self._downed():
-            return False   # P24-AL: a downed zombie within reach is finished before the stance goes on
+        if self._finishable():
+            return False   # P24-AL: a downed zombie within reach (P25-J: `_finish_reach`) is finished first
         t = self._target(pin=False)
         if t is None or t[0] != self.last.args.get("targetId"):
             return False
@@ -547,6 +549,8 @@ class Fight(FightPull, FightFinish, Policy):
             self._swing_landed_nothing(zid)
         if a.type == "shove" and res.get("knockdown") is True:
             self.knocked[zid] = self.clock() + KNOCK_READ_S   # PZA/1.7.1: downed before the frame's onFloor reads it
+        if a.type == "shove":
+            self._note_shove_end(a, res)   # P25-L: the run of missed shoves at one target
 
     def _swing_ok(self, kind, zid):
         """The build announces `kind` (shove or stomp) and its last end at `zid` left it out no longer."""
@@ -593,77 +597,6 @@ class Fight(FightPull, FightFinish, Policy):
             self.why["hold"] = True
             return None
         return self._stance_leg(zid, z, d, kind="back")
-
-    def _shove(self, zid, z, d):
-        """The shove sent instead of the next swing at the standing target `zid` (`d` tiles off, within reach), else
-        None (the build must announce `shove`; never with another standing zombie within STAND_MIN_R of the player
-        than the one shoved):
-        - ruling P24-AG: `arm_pain` at or above STRAIN_SOFT (the swing's damage divided by armPain / 10, #4370), or
-          any hold (`spent`, ruling R2), and the target at point blank (POINT_BLANK_R): the shove, which strains the
-          arms about a third less than a bat's swing and knocks down 35 + 2 x Strength in 100 (#4373), every time
-          (logged `shove` "strain", or "spent" for a hold with the pain under STRAIN_SOFT);
-        - ruling P24-AH: in a standing fight (`standing`), a second standing zombie inside KEEP_R: the nearer of the
-          two is shoved (within the Lua's SHOVE_R) before the next swing, once a swing (`_shoved`)."""
-        if not self.world.can("shove"):
-            return None
-        pain = arm_pain(self.world)
-        sore = pain is not None and pain >= STRAIN_SOFT
-        blank = (sore or self.spent) and d <= POINT_BLANK_R
-        if blank and "corner_break" in self.rules and self._shove_missed(zid):
-            corner = self._corner(zid, z, sore)   # P25-A: the break or the undivided swing, else the shove again
-            if corner is not None:
-                return corner
-        if blank and self._swing_ok("shove", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
-            self.why.update({"shove": "strain" if sore else "spent", "strain": pain})
-            return Shove(zid)
-        if not self.standing() or self._shoved:
-            return None
-        second = self._standing_near(KEEP_R, (zid,))
-        if second is None:
-            return None
-        sid, _, sd = min(((zid, z, d), second), key=lambda p: (p[2], repr(p[0])))
-        if (not target_id_ok(sid) or sd > SHOVE_R or not self._swing_ok("shove", sid)
-                or self._standing_near(STAND_MIN_R, (sid,)) is not None):
-            return None
-        self.why.update({"shove": "second", "shoveTarget": sid, "shoveDist": sd, "second": second[0]})
-        return Shove(sid)
-
-    def _shove_missed(self, zid):
-        """Ruling P25-A: the last shove at `zid`, sent within SHOVE_REPEAT_S, ended done with its swing started and
-        `knockdown` false (E11's six such shoves at its two cornered zombies, #4406)."""
-        a = self._shove_a.get(zid)
-        if a is None or self.clock() - a.sent_wall >= SHOVE_REPEAT_S or not self.actions.done(a) or a.state != "done":
-            return False
-        res = a.result if isinstance(a.result, dict) else {}
-        return res.get("knockdown") is False and res.get("attackStarted") is not False
-
-    def _corner(self, zid, z, sore):
-        """Ruling P25-A, the corner under any hold (E11: seven shoves at two zombies at point blank, none knocking
-        down, no swing, #4406): after a missed shove at `zid` (`_shove_missed`), with two or more standing zombies
-        within FIGHT_REACH the steer at a run through the gap the shove opened (the heading away from `zid`'s bearing,
-        turned by STEER_TURNS to the first heading `clear_heading` passes); otherwise the swing at it only while the
-        swing is undivided (`sore` false, the arms' pain under STRAIN_SOFT, and no endurance or tired hold: the arms'
-        hold alone leaves it whole), logged `corner` {kind: break | swing, shoved, n}; a divided swing is not taken: None,
-        logged `corner` {kind: shove, shoved, n, sore} (ruling P25-I, E12: the branch left no trace), and the lone or
-        boxed-in target is shoved again (review-t3 finding 1; ruling: the swing at E11's armPain 38 to
-        270 lands at 1/3.8 to 1/27 of its damage, #4370, and x0.5 again under the endurance hold, #4371, while the
-        shove's knock-down is a crit roll pain does not touch, #4373, and the stomp after it is outside the divider,
-        #4374: #4404 read five or six full swings before a zombie fell, two stomps finishing a fallen one; cost if
-        wrong: a seventh shove at a zombie that keeps standing, a bat's swing at a divider of 2 or less left unswung)."""
-        n = len(self._standing(FIGHT_REACH))
-        mx, my = me_xy(self.world)
-        dx, dy = mx - z["x"], my - z["y"]
-        dd = math.hypot(dx, dy)
-        v = self._clear_turn((dx / dd, dy / dd)) if n >= 2 and dd > 0.0 else None
-        if v is not None:
-            self.why["corner"] = {"kind": "break", "shoved": zid, "n": n}
-            return Steer(v[0], v[1], FLEE_S, FLEE_GAIT)
-        if sore or "endurance" in self.spent or "tired" in self.spent:
-            self.why["corner"] = {"kind": "shove", "shoved": zid, "n": n, "sore": sore}
-            return None
-        self.why["corner"] = {"kind": "swing", "shoved": zid, "n": n}
-        self._held_before = False
-        return Attack(zid)
 
     def _ride_waits(self):
         """Ruling P25-D (E11: two riding bandages superseded by the corner's own shoves, #4408): a riding bandage in

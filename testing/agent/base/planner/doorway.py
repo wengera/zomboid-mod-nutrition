@@ -49,7 +49,7 @@ from agent.base.planner.policies import (AIM_LEG_S, AIM_R, DANGER_R, DRAG_DOWN_N
                                          POINT_BLANK_R, Policy, STAND_MIN_R, arm_pain, blocked, centre, hit_reaction,
                                          line_to, on_floor, on_post, on_room, standing, target_id_ok, zdist)
 from agent.base.pza1 import Aim, Attack, Shove, WalkTo
-from agent.base.world import me_xy
+from agent.base.world import me_floor, me_xy
 
 DOOR_STAND_N = 3      # standing zombies within DANGER_R at most for a `many` flee's shelter to be a doorway stand
                       # (ruling P24-AO: "at most three"; #4290's drag-down counts three standing attackers)
@@ -60,7 +60,8 @@ DOOR_OFF_R = 2.0      # tiles from the threshold square's centre beyond which a 
                       # has left the stand (Task 32 fix 1, the review's major 2: "about 2 tiles"; a stomp's walk out of
                       # the doorway reaches the outside square and the one beyond it)
 
-__all__ = ["Doorway", "DOOR_STAND_N", "DOOR_HOLD_S", "DOOR_OFF_R", "standing", "stand_ready", "off_post"]
+__all__ = ["Doorway", "DOOR_STAND_N", "DOOR_HOLD_S", "DOOR_OFF_R", "standing", "stand_ready", "off_post", "off_post_at",
+           "bleeding_parts"]
 
 
 def stand_ready(world, skip=()):
@@ -79,6 +80,23 @@ def off_post(world, plan):
     mx, my = me_xy(world)
     c = centre(plan["way"][0])
     return math.hypot(c[0] - mx, c[1] - my) > DOOR_OFF_R
+
+
+def off_post_at(world, plan, x, y):
+    """`off_post` read at the point (x, y) on the player's floor (ruling P25-J (2): where the stomp's walk to a fallen
+    zombie there would leave the player): off the building's room squares and more than DOOR_OFF_R from the centre of
+    the threshold square inside."""
+    s = world.map.get((int(math.floor(x)), int(math.floor(y)), me_floor(world))) or {}
+    if s.get("room") is not None and s.get("building") == plan["building"]:
+        return False
+    c = centre(plan["way"][0])
+    return math.hypot(c[0] - x, c[1] - y) > DOOR_OFF_R
+
+
+def bleeding_parts(world):
+    """The indices of the frame's `body.parts` reading `bleeding` true (ruling P25-K: the stand's wound end), a set."""
+    return {p["i"] for p in ((world.body or {}).get("parts") or ())
+            if isinstance(p, dict) and isinstance(p.get("i"), int) and p.get("bleeding") is True}
 
 
 class Doorway(Fight):
@@ -117,6 +135,13 @@ class Doorway(Fight):
                 best = (zid, z, d)
         return best
 
+    def _finish_post(self, z):
+        """Ruling P25-J (2): a fallen zombie beyond FIGHT_REACH is the stand's to stomp only where the stomp's walk to
+        it keeps the player on its post's tolerance (`off_post_at`: a room square of the building, or within DOOR_OFF_R
+        of the threshold square's centre; the walk back exists), so the stand finishes E12's 10906 at 2.9 tiles and
+        leaves one 5 tiles outside."""
+        return not off_post_at(self.world, self.plan, z["x"], z["y"])
+
     def _face(self, zid):
         """The stance held on the post facing zombie `zid` (an `aim` of (0, 0))."""
         self.why.update({"stance": True, "leg": "stand"})
@@ -146,10 +171,10 @@ class Doorway(Fight):
         if not Policy.busy(self):
             return False
         if self.last.type == "walkTo":
-            return self._in_reach() is None and not self._downed()
+            return self._in_reach() is None and not self._finishable()
         if self.last.type != "aim":
             return True
-        if not self._on_post() or self._downed():
+        if not self._on_post() or self._finishable():
             return False
         t = self._in_reach()
         return t is None or (self.no_swing() and t[2] > POINT_BLANK_R and self.last.args.get("targetId") == t[0])
@@ -204,7 +229,11 @@ class DoorwayStand:
 
     def _doorway(self):
         """Ruling P24-AO (`planner/doorway.py`'s docstring the record): `("doorway", None)` while the Flee's stand plan
-        reads `stand` and none of its ends holds; the end (`plan["left"]`: `health` under FLEE_HEALTH, `drag` with the
+        reads `stand` and none of its ends holds; the end (`plan["left"]`: ruling P25-K's `wound` first, with
+        `STAND_WOUND` on (E12, #4431: the stand held the door from game minute 694 while the bleeding parts rose from 1
+        to 7, the first bite far above FLEE_HEALTH): a part reading `bleeding` that was not when the stand began (the
+        start's indices kept on the plan, `bleed0`), logged `doorway_wound` (the new indices); `health` under
+        FLEE_HEALTH, `drag` with the
         frame's `me.attackers` at DRAG_DOWN_N (ruling R1, Task 32 fix 1: the front has failed), `unarmed`, or `quiet`
         once no zombie has been within DANGER_R for DOOR_HOLD_S wall seconds, `plan["quiet"]` the last wall one was)
         puts the plan back on its `close` step, and while that close runs `("flee", "doorway")`: the Flee sends it from
@@ -219,9 +248,13 @@ class DoorwayStand:
             now = self.clock()
             if self._within(DANGER_R):
                 plan["quiet"] = now
-            left = ("health" if self._health() < FLEE_HEALTH else "drag" if self._attackers() >= DRAG_DOWN_N
+            new = self._stand_wound(plan)
+            left = ("wound" if new else "health" if self._health() < FLEE_HEALTH
+                    else "drag" if self._attackers() >= DRAG_DOWN_N
                     else "unarmed" if not self._armed() else "off" if off_post(self.world, plan)
                     else "quiet" if now - plan["quiet"] >= DOOR_HOLD_S else None)
+            if new:
+                self.stand_wound = new
             if left is None:
                 return "doorway", None
             plan.update(step="close", left=left)
@@ -231,6 +264,17 @@ class DoorwayStand:
                 f._drop(False)   # the episode only steers from here (`picked` kept)
                 return None
         return ("flee", "doorway") if f.closing_stand() else None
+
+    def _stand_wound(self, plan):
+        """Ruling P25-K: with `STAND_WOUND` on, the sorted indices of the parts bleeding now that were not when the
+        stand began (`plan["bleed0"]`, taken on the stand's first tick), else []."""
+        if not self.STAND_WOUND:
+            return []
+        now = bleeding_parts(self.world)
+        if "bleed0" not in plan:
+            plan["bleed0"] = frozenset(now)
+            return []
+        return sorted(now - plan["bleed0"])
 
     def _doorway_pick(self, flee):
         """Ruling P24-AX (E10: the doorway stand never ran, the count condition held on 155 of 162 `many` lines and a

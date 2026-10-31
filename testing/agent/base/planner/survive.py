@@ -237,6 +237,14 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   sent, `goals.COOL_REASONS`; the prompt's `s` flag and strategy clause), the unwear under a goal (`care.Care._wound`'s
   last step, `UNWEAR_WOUND`; `T4_SWITCHES` off is the rule before it), and the corner's third branch logged
   (`fight.Fight._corner`'s `corner` {kind "shove"}).
+- Survival 16 (Plan 25 Task 8, survival iteration 14's second half, E12): rulings P25-J to P25-M in the plan's Task 8:
+  the fallen finished out to FINISH_R with no standing zombie within KEEP_R (`finish.FightFinish._finish_reach`,
+  `_finishable`; the doorway stand bounded by its post, `doorway.Doorway._finish_post`; the `pair` flee yields to the
+  stomp, `finish.ThreatFinish._pair_finish`, logged `pair_yield`; `FINISH_FAR`), the doorway stand's `wound` end (a part
+  bleeding since the stand began, `DoorwayStand._stand_wound`, logged `doorway_left` "wound" and `doorway_wound`;
+  `STAND_WOUND`), the break after SHOVE_BREAK_N missed shoves at a lone target (`shove.FightShove._corner`'s `corner`
+  {kind "break", misses}; `SHOVE_BREAK`), and the hold's release as a why (`hold.Hold._note_release`, `release` on the
+  threat why, no switch); `T4_SWITCHES` off is the rule before the three switched.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -330,8 +338,8 @@ HUNGER_T = 0.15          # the first HUNGRY moodle fires above 0.15 [#0508]
 BRANCHES = ("threat", "care", "need", "load", "night", "goal")
 STEPS = ("threat", "care", "need", "load", "night", "stock", "goal")   # assess() tries these in order: BRANCHES with the
                          # care's rag stock (P24-AB) before the goal (it logs under `care`, why `stock`)
-T4_SWITCHES = ("UNWEAR_WOUND",)   # survival iteration 14 (Plan 25 Task 7): the switch of P25-H, the one rule a golden's
-                                  # ring could reach (bleeding frames under goals); off, the rule before it
+T4_SWITCHES = ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK")   # survival iteration 14 (Plan 25 Tasks
+                         # 7 and 8): the switches of P25-H, P25-J, P25-K and P25-L; off, the rule before each
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -420,6 +428,10 @@ class Survive(Threat):
         self.wound = None         # this tick: {kind "wounded", armPain, strain} at armPain STRAIN_HARD (P24-AT), else None
         self.endurance_hold = False  # the endurance hold (P24-AG): set at ENDURANCE_T or under, cleared above ENDURANCE_RELEASE
         self.hold_from = None     # world minutes the endurance hold last started (P25-C: HOLD_SPAN_MIN from it)
+        self.strain_from = None   # world minutes the arms' hold last started (P25-M's `held_min`)
+        self.release = None       # this tick: {kind, why, endurance | armPain, held_min} of a hold released (P25-M)
+        self.stand_wound = None   # this tick: the parts newly bleeding that ended the doorway stand (P25-K), else None
+        self.pair_yield = None    # this tick: the fallen zombie's id the `pair` flee yielded to (P25-J), else None
         self.hold_near = None     # wall of the last tick a zombie was within DANGER_R (P25-C: HOLD_QUIET_S), else None
         self.hold_floor = None    # the endurance the hold was released at on its span (P25-C), else None
         self.spent = None         # this tick's `_read_spent` (None: fit to fight)
@@ -894,6 +906,8 @@ class Survive(Threat):
         inputs["cooled"] = cooled
         if kill is not None:   # P24-Q: the kill read this tick, on the threat branch's why whatever answered
             tried["threat"] = dict(tried.get("threat") or {}, kill=kill)
+        if self.release is not None:   # P25-M: a hold released this tick, on the threat why whatever answered
+            tried["threat"] = dict(tried.get("threat") or {}, release=self.release)
         inputs["branches"] = tried
         return Decision(branch, owner, cmd, inputs)
 

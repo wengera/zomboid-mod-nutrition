@@ -227,8 +227,11 @@ def attack_running(tmp_path, zs, caps=None):
 def test_e11_s_third_target_fallen_under_the_running_attack_is_stomped_on_its_first_fallen_frame(tmp_path):
     """#4405: 27581 read fallen 2.1044 tiles off two frames after the attack's acceptance and lay 4.3 s while the attack
     ran to `out of reach`: the running attack gives way on the first frame reading it fallen and the stomp goes (its
-    walk in to it), logged `finish_first` {target, dist}."""
+    walk in to it), logged `finish_first` {target, dist}. Named change, Plan 25 Task 8 (P25-J): with `FINISH_FAR` on
+    the finish itself reads the fallen out to FINISH_R (no standing zombie within KEEP_R), so P25-B's own why is pinned
+    with it off (`test_survive_v` pins the stomp with it on)."""
     r, sv = attack_running(tmp_path, [z(1, 101.74)])
+    sv.FINISH_FAR = False
     r.frame(zombies=[z(1, 102.1044, floor=True)])
     a = tick(r, sv)
     w = threat_why(tmp_path)
@@ -242,6 +245,7 @@ def test_a_fallen_zombie_within_finish_r_is_stomped_before_the_walk_toward_a_sta
     the stomp of zombie 2 fallen 4.5 tiles off (within FINISH_R)."""
     from .test_policies import CAPS_14
     r, sv = make(tmp_path, caps=CAPS_14)
+    sv.FINISH_FAR = False   # named change, Plan 25 Task 8: P25-J's finish takes it first (`test_survive_v`)
     r.frame(zombies=[z(1, 103.5), z(2, 100.0, 204.5, floor=True)])
     a = tick(r, sv)
     assert (a.type, a.args) == ("stomp", {"targetId": 2}) and threat_why(tmp_path)["finish_first"]["target"] == 2

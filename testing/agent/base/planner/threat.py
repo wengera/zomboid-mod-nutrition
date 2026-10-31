@@ -77,6 +77,14 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
     DOOR_WALK = True      # ruling P25-E: a doorway stand's stalled walk re-routes once, then drops the plan
                           # (`flee.Flee._door_stall`)
     FENCE_WAIT = True     # ruling P25-F: a chaser across a known fence waited for in the stance (`Fight._fence_wait`)
+    # survival iteration 14's second half (Plan 25 Task 8; survive.py's docstring, Survival 16): each switch off is the
+    # rule before it, all of them in `survive.T4_SWITCHES` (the replay tests' `pre_t4`)
+    FINISH_FAR = True     # ruling P25-J: the fallen finished out to FINISH_R with no standing zombie within KEEP_R
+                          # (`Fight._finish_reach`, `Doorway._finish_post`), and the `pair` flee yields to that finish
+                          # (`_pair_finish`)
+    STAND_WOUND = True    # ruling P25-K: the doorway stand leaves on a part bleeding since it began (`_stand_wound`)
+    SHOVE_BREAK = True    # ruling P25-L: after SHOVE_BREAK_N missed shoves at a lone target the Fight breaks away
+                          # (`shove.FightShove._corner`)
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -213,7 +221,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         if health < FLEE_HEALTH:
             return "health"
         if n >= 2 and (health < FLEE_HEALTH_PAIR or self._wounds() > 0):
-            return "pair"
+            self.pair_yield = self._pair_finish()   # P25-J (3): the stomp of a fallen one goes before the flee
+            if self.pair_yield is None:
+                return "pair"
         if self.spent is not None and not self._wounded_fight():   # P24-AG, P24-AK: the arms, the endurance or the
             return "strain"                                        # tiredness halve every swing; P24-AP within KEEP_R
         if not self._reachable_held():
@@ -418,7 +428,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         inside = self.night.inside()
         self.sheltered = self.flee is not None and self.flee.sheltered and inside
         self.broken, self.group_steer, self.corner_yield, self.behind, self.listed = None, None, None, None, None
-        self.stand_left, self.stand_end = None, None
+        self.stand_left, self.stand_end, self.stand_wound, self.pair_yield = None, None, None, None
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -644,7 +654,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         if want == "flee" and pick is not None:
             self.why["doorway_pick"] = pick
         for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed),
-                       ("doorway_left", self.stand_end), ("pain", self.wound), ("finish_block", self.finish_block)):
+                       ("doorway_left", self.stand_end), ("pain", self.wound), ("finish_block", self.finish_block),
+                       ("doorway_wound", self.stand_wound), ("pair_yield", self.pair_yield)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:
@@ -663,9 +674,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         return flee.busy() and flee.last.args.get("gait") == "walk"
 
     def _fight_rules(self):
-        """The iteration-13 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
+        """The iterations 13 and 14 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
         return frozenset(rule for rule, on in (("corner_break", self.CORNER_BREAK), ("finish_first", self.FINISH_FIRST),
-                                               ("ride_wait", self.RIDE_WAIT), ("fence_wait", self.FENCE_WAIT)) if on)
+                                               ("ride_wait", self.RIDE_WAIT), ("fence_wait", self.FENCE_WAIT),
+                                               ("finish_far", self.FINISH_FAR), ("shove_break", self.SHOVE_BREAK))
+                         if on)
 
     def _door_targets(self):
         """(id, zombie) of each reachable held threat standing in the sheltered building's doorway or inside it

@@ -242,6 +242,11 @@ FENCE_BACK_R = (1.5, 2.5)  # tiles from a known hoppable edge the fence wait sta
                           # change 4: "one to two tiles back from the fence, out of the lunge"): a zombie landing half
                           # a tile past the fence is then 1.0 to 2.0 tiles off, within FIGHT_REACH, and the stand at
                           # most KEEP_R back
+# survival iteration 14 (Plan 25 Task 8, rulings P25-J to P25-M; E12, rows #4428-#4439)
+SHOVE_BREAK_N = 3         # missed shoves in a row at one lone target after which the Fight breaks away (P25-L): E12's
+                          # doorway stand sent twelve shoves from game minute 694, the eleven done each reading
+                          # `knockdown` false, while the bites took the bleeding parts from 1 to 7 (#4431); the window
+                          # is SHOVE_BREAK_N x SHOVE_REPEAT_S, a judgment (three rolls of the knock-down, #4373)
 
 
 def place_of(world):

@@ -47,9 +47,14 @@ class Hold:
         `strain` flee is read for it, and a lone target is still sought (`_lone`); a group is fled as today."""
         pain = arm_pain(self.world)
         stiff = arm_stiffness(self.world)
+        self.release = None   # P25-M: this tick's release only
         if stiff is None or stiff < STIFF_SOFT:
+            if self.strain_hold:
+                self._note_release("arms", "pain", "armPain", pain, self.strain_from)
             self.strain_hold = False
         elif stiff >= STIFF_HARD:
+            if not self.strain_hold:
+                self.strain_from = self.world.world_minutes()
             self.strain_hold = True
         st = self.world.stats or {}
         e, f = st.get("endurance"), st.get("fatigue")
@@ -77,11 +82,26 @@ class Hold:
         if self._within(DANGER_R):
             self.hold_near = now
         if not _num(e) or e > ENDURANCE_RELEASE:
+            if self.endurance_hold:
+                self._note_release("endurance", "line", "endurance", e, self.hold_from)
             self.endurance_hold, self.hold_floor = False, None
         elif self.endurance_hold and self.HOLD_RUN and self._hold_quiet(now):
+            self._note_release("endurance", "timed", "endurance", e, self.hold_from)
             self.endurance_hold, self.hold_floor = False, e
         elif e <= ENDURANCE_T and not self.endurance_hold and (self.hold_floor is None or e < self.hold_floor):
             self.endurance_hold, self.hold_from, self.hold_floor = True, self.world.world_minutes(), None
+
+    def _note_release(self, kind, why, key, value, since):
+        """Ruling P25-M (E12: the grade inferred the hold's releases from the lines' ends; the write-up replayed
+        `_read_endurance` to find one timed release, #4433): on the tick a hold releases (with `STRAIN` on, where the
+        hold counts), `release` {kind, why: "line" (above ENDURANCE_RELEASE) | "timed" (P25-C's span) | "pain" (the
+        arms' hold, its stiffness under STIFF_SOFT), endurance | armPain, held_min: game minutes since it started},
+        which `Survive.assess` puts on the tick's threat why, once."""
+        if not self.STRAIN:
+            return
+        wm = self.world.world_minutes()
+        held = wm - since if _num(wm) and _num(since) else None
+        self.release = {"kind": kind, "why": why, key: value, "held_min": held}
 
     def _hold_quiet(self, now):
         """P25-C: the endurance hold has stood HOLD_SPAN_MIN game minutes and no zombie was within DANGER_R for the last

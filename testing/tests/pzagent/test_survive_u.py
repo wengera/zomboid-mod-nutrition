@@ -211,7 +211,8 @@ def test_through_survive_the_care_s_unwear_pre_empts_a_running_goal_on_a_quiet_t
 def test_with_the_switch_off_the_idle_stock_unwears_as_before(tmp_path):
     """`Survive.UNWEAR_WOUND` off (`T4_SWITCHES`, the replay tests' `pre_t4`): P24-AJ's idle stock's unwear, its why under
     the care's `stock`."""
-    assert S.T4_SWITCHES == ("UNWEAR_WOUND",) and S.Survive.UNWEAR_WOUND is True
+    assert S.T4_SWITCHES[0] == "UNWEAR_WOUND" and S.Survive.UNWEAR_WOUND is True   # named change, Plan 25 Task 8:
+    # iteration 14's second half adds its switches after it (`test_survive_v`)
     r, sv = unwear_rig(tmp_path)
     sv.UNWEAR_WOUND = False
     tick(r, sv)
