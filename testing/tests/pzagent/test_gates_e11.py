@@ -12,7 +12,7 @@ import pytest
 
 from agent.base import gates_e as E
 from .test_gates_e import art
-from .test_gates_e7 import T0, _mutated, act, aline, result
+from .test_gates_e7 import T0, _mutated, act, aline, result, zf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TESTING = os.path.dirname(os.path.dirname(HERE))
@@ -68,6 +68,10 @@ def test_grade_e11_on_e12_changes_only_the_grade_name_the_eight_readings_and_the
     assert e11["far_finish"]["far_lines"] == e11["far_finish"]["pair_yield"] == e11["far_finish"]["stand_far_lines"] == 0
     assert e11["stand_wound"]["lines"] == e11["release"]["lines"] == 0
     assert e11["door_legs"]["shelter_legs"] == e11["door_legs"]["night_legs"] == 0
+    # the fix 1 blocks: E12 is the a86 and a69 shape itself (a pair flee line in a knock-down's window, no yield: 2 and 2)
+    assert (e11["far_finish"]["pair_knock"], e11["far_finish"]["pair_knock_no_yield"]) == (2, 2)
+    assert e11["door_legs"]["shelter_ended_leg"] == e11["door_legs"]["night_ended_leg"] == 0
+    assert "cooled_lines" not in e11["shun"]
 
 
 def test_grade_e10_on_e12_still_reproduces_the_committed_report_byte_for_byte():
@@ -88,7 +92,7 @@ def shun_fixture(cool=True):
              {"type": "Shelter", "state": "done", "reason": "inside"},
              {"type": "Rest", "state": "failed", "reason": "goal budget"}]
     log = [bline(0, 0.0, "goal", {"goal": "Shelter", "proposed": None, "refused": {"type": "Shelter"}}, None, sent=False),
-           bline(1, 1.0, "care", {"reason": "x"}, None, sent=False, cooled={"type": "Shelter", "args": {}} if cool else None),
+           bline(1, 1.0, "care", {"reason": "x"}, None, sent=False, cooled={"type": "walkTo", "args": {}} if cool else None),
            bline(2, 2.0, "goal", {"goal": "Rest"}, None, sent=False)]
     return grade(log=log, goals=goals)["shun"]
 
@@ -96,8 +100,10 @@ def shun_fixture(cool=True):
 def test_the_shun_counts_the_goal_ends_by_reason_the_cooled_goals_and_the_refusals():
     g = shun_fixture()
     assert g["read"] is True and g["ends"] == {"shun": 1, "shunned": 1, "no plan": 1, "no door": 1}
-    assert (g["cooled_goals"], g["shelter_shunned"], g["cooled_lines"], g["refused_lines"], g["invalid_shunned"]) == (4, 1, 1, 1, 0)
-    assert shun_fixture(cool=False)["cooled_lines"] == 0
+    assert (g["cooled_goals"], g["shelter_shunned"], g["refused_lines"], g["invalid_shunned"]) == (4, 1, 1, 0)
+    # inputs.cooled is the old per-action cooldown (an action type), not P25-G's goal cooling: never read
+    assert "cooled_lines" not in g and "cooled_lines" not in shun_fixture(cool=False)
+    assert not any("passed a cooled goal over" in l for l in grade(log=[])["report_lines"])
     inv = grade(log=[], goals=[{"type": "Shelter", "state": "failed", "reason": "invalid: shunned"}])["shun"]
     assert inv["invalid_shunned"] == 1
 
@@ -105,7 +111,7 @@ def test_the_shun_counts_the_goal_ends_by_reason_the_cooled_goals_and_the_refusa
 def test_the_shun_reads_zero_without_a_shun_end_and_unread_without_a_log():
     g = grade(log=[bline(0, 0.0, "goal", {"goal": "Rest"}, None, sent=False)],
               goals=[{"type": "Rest", "state": "done", "reason": "rested"}])["shun"]
-    assert g["cooled_goals"] == g["shelter_shunned"] == g["cooled_lines"] == g["refused_lines"] == 0
+    assert g["cooled_goals"] == g["shelter_shunned"] == g["refused_lines"] == 0
     assert grade(log=None)["shun"] == {"read": False}
 
 
@@ -133,6 +139,18 @@ def test_the_unwear_counts_the_wound_steps_the_stock_and_the_rip_and_bandage_tha
     assert unwear_fixture(bandage=False)["bandaged"] == 0
     other = unwear_fixture(part=4)
     assert (other["ripped"], other["bandaged"]) == (0, 0)             # the rip and the bandage of another part do not count
+
+
+def stock_leak_fixture():
+    """The idle stock's line: the unanswered care branch's own why (here wound-shaped) beside the stock's, the stock's send."""
+    leak = {"reason": "unwear", "part": 3, "item": 13, "stock": {"reason": "unwear", "item": 13, "cover": 1.0}}
+    return grade(log=[cline(0, 0.0, leak, _act("unwear", itemId=13)),
+                      cline(1, 1.0, {"reason": "no_rag", "part": 3, "item": 13}, _act("rip", itemId=13))])["unwear"]
+
+
+def test_the_unwear_stock_line_counts_as_stock_and_never_as_a_wound_step():
+    g = stock_leak_fixture()
+    assert (g["wound_lines"], g["wound_sent"], g["stock_lines"], g["ripped"]) == (0, 0, 1, 0)
 
 
 def test_the_unwear_follow_window_is_a_count_of_log_lines():
@@ -204,9 +222,39 @@ def test_the_far_finishes_count_the_stomps_the_stand_s_and_what_followed_a_pair_
     assert g["pair_yield"] == 3 and g["yield_next"] == {"stomp": 1, "other": 1, "open": 1}
 
 
+def knock_fixture(yield_at=None, outside=False, no_zombie=False, knock=True):
+    """A sent shove at zombie 7 (result knockdown), then pair flee lines inside the window whose frames list it standing, then
+    the line whose frame reads it fallen (`outside`: it stays standing and one more pair line falls past KNOCK_READ_S)."""
+    stand = [{"id": 7, "dist": 2.0, "onFloor": None}]
+    fallen = stand if outside else [{"id": 7, "dist": 2.0, "onFloor": True}]
+    frames = [zf(0.0, stand), zf(0.5, [] if no_zombie else stand), zf(1.0, stand), zf(1.5, fallen), zf(2.5, stand)]
+    yl = lambda k: {"pair_yield": 7} if yield_at == k else {}
+    log = [aline(0, 0.0, {"fight": True, "target": 7}, _act("shove", targetId=7)),
+           aline(1, 0.5, dict({"flee": "pair"}, **yl(1)), _act("steer")),
+           aline(2, 1.0, dict({"flee": "pair"}, **yl(2)), _act("steer")),
+           aline(3, 1.5, dict({"fight": True, "target": 7, "downed": 7, "dist": 2.0}, **yl(3)), _act("stomp", targetId=7))]
+    if outside:
+        log.append(aline(4, 2.5, {"flee": "pair"}, _act("steer")))
+    acts = [act("s1", "shove", 0.0, targetId=7)]
+    return grade(acts, [result("s1", knockdown=knock)], log, frames)["far_finish"]
+
+
+def test_the_pair_flee_lines_in_a_knock_window_without_a_yield_are_counted():
+    g = knock_fixture()
+    assert (g["pair_knock"], g["pair_knock_no_yield"]) == (2, 2)
+    assert knock_fixture(outside=True)["pair_knock"] == 2                    # a line past KNOCK_READ_S is not in the window
+    assert knock_fixture(no_zombie=True)["pair_knock"] == 1                  # a frame not listing the zombie is not counted
+    assert knock_fixture(knock=False)["pair_knock"] == 0                     # a shove that knocked nothing down opens no window
+    d = knock_fixture(yield_at=3)
+    assert (d["pair_knock"], d["pair_knock_no_yield"]) == (2, 0)             # a yield on the line reading it fallen closes both
+    y = knock_fixture(yield_at=1)
+    assert (y["pair_knock"], y["pair_knock_no_yield"]) == (2, 1)             # a yield only closes the lines up to it
+
+
 def test_the_far_finishes_read_zero_without_a_downed_why():
     g = grade(log=[aline(0, 0.0, {"fight": True, "target": 1, "dist": 3.0}, _act("attack", targetId=1))])["far_finish"]
     assert (g["far_lines"], g["far_stomps"], g["pair_yield"], g["stand_far_lines"], g["max_dist"]) == (0, 0, 0, 0, None)
+    assert (g["pair_knock"], g["pair_knock_no_yield"]) == (0, 0)
 
 
 # ================================================================ P25-K, the stand's wound end
@@ -237,15 +285,18 @@ def release_fixture():
            aline(1, 1.0, {"fight": True, "release": {"kind": "endurance", "why": "timed", "endurance": 0.6,
                                                     "held_min": 31.0}}, None, sent=False),
            aline(2, 2.0, {"fight": True, "release": {"kind": "arms", "why": "pain", "armPain": 20, "held_min": None}},
-                 None, sent=False)]
+                 None, sent=False),
+           # Survive.assess puts release on the threat why whichever branch answered: a timed release on a goal-branch line
+           bline(3, 3.0, "goal", {"goal": "Rest"}, None, sent=False,
+                 others={"threat": {"release": {"kind": "endurance", "why": "timed", "endurance": 0.5, "held_min": 40.0}}})]
     return grade(log=log)["release"]
 
 
 def test_the_release_counts_the_kinds_whys_and_the_held_span():
     g = release_fixture()
-    assert g["read"] is True and g["lines"] == 3
-    assert g["by"] == {"endurance:line": 1, "endurance:timed": 1, "arms:pain": 1}
-    assert (g["timed"], g["min_held"], g["max_held"]) == (1, 12.5, 31.0)
+    assert g["read"] is True and g["lines"] == 4
+    assert g["by"] == {"endurance:line": 1, "endurance:timed": 2, "arms:pain": 1}
+    assert (g["timed"], g["min_held"], g["max_held"]) == (2, 12.5, 40.0)
 
 
 def test_the_release_reads_zero_without_the_field_and_keeps_the_inferred_block_beside_it():
@@ -259,7 +310,7 @@ def legs_fixture(halve=True):
     sh = lambda n, t, ln_, **kw: bline(n, t, "goal", dict({"goal": "Shelter", "leg": [1, 2], "legLen": ln_}, **kw),
                                        _act("walkTo", x=1, y=2), sent=True)
     night = lambda n, t, **kw: bline(n, t, "night", dict({"leg": [3, 4], "legLen": 40.0}, **kw), _act("walkTo", x=3, y=4))
-    log = [sh(0, 0.0, 40.0), sh(1, 5.0, 20.0 if halve else 40.0), sh(2, 9.0, 20.0 if halve else 40.0),
+    log = [sh(0, 0.0, 40.0), sh(1, 5.0, 20.0 if halve else 40.0), sh(2, 9.0, 20.0 if halve else 40.0, ended="leg"),
            bline(3, 10.0, "goal", {"goal": "Shelter", "args": {}}, _act("walkTo", x=9, y=9)),     # no leg
            bline(4, 11.0, "goal", {"goal": "LootBuilding", "leg": [5, 6], "legLen": 40.0}, _act("walkTo", x=5, y=6)),
            night(5, 12.0), night(6, 13.0, ended="leg")]
@@ -280,6 +331,7 @@ def test_the_legs_count_the_shelter_and_night_legs_their_results_the_halvings_an
     assert g["read"] is True and (g["shelter_legs"], g["shelter_sent"], g["shelter_done"]) == (3, 3, 1)
     assert (g["shelter_no_square"], g["shelter_other_fail"], g["halved"]) == (1, 1, 1)
     assert (g["night_legs"], g["night_done"], g["night_no_square"], g["night_ended_leg"]) == (2, 1, 1, 1)
+    assert g["shelter_ended_leg"] == 1                                  # the Shelter goal's own ended leg, beside the night's
     assert g["shelter_ends"] == {"done:inside": 1, "failed:no square": 2}
     assert legs_fixture(halve=False)["halved"] == 0
 
@@ -287,6 +339,7 @@ def test_the_legs_count_the_shelter_and_night_legs_their_results_the_halvings_an
 def test_the_legs_read_zero_without_a_leg_why():
     g = grade(log=[bline(0, 0.0, "goal", {"goal": "Shelter"}, _act("walkTo", x=1, y=1))])["door_legs"]
     assert (g["shelter_legs"], g["night_legs"], g["halved"], g["shelter_ends"]) == (0, 0, 0, {})
+    assert (g["shelter_ended_leg"], g["night_ended_leg"]) == (0, 0)
 
 
 # ================================================================ P25-O, the item record read live
@@ -348,9 +401,20 @@ MUTANTS = [
     ("e_far_finish", lambda b: b.replace('"doorway" in why', "False"), lambda: far_fixture()["stand_far_lines"] == 1),
     ("e_stand_wound", lambda b: b.replace('== "wound"', '== "health"'), lambda: wound_fixture()["lines"] == 2),
     ("e_stand_wound", lambda b: b.replace("len(parts)", "1"), lambda: wound_fixture()["parts"] == 3),
-    ("e_release", lambda b: b.replace('r.get("why") == "timed"', 'r.get("why") == "xx"'), lambda: release_fixture()["timed"] == 1),
+    ("e_release", lambda b: b.replace('r.get("why") == "timed"', 'r.get("why") == "xx"'), lambda: release_fixture()["timed"] == 2),
     ("e_door_legs", lambda b: b.replace("< prev", "> prev"), lambda: legs_fixture()["halved"] == 1),
     ("e_door_legs", lambda b: b.replace('"no square"', '"xx"'), lambda: legs_fixture()["shelter_no_square"] == 1),
+    ("e_shun", lambda b: b.replace('"refused") is not None', '"refusedx") is not None'),
+     lambda: shun_fixture()["refused_lines"] == 1),
+    ("e_unwear", lambda b: b.replace('if "stock" in c:', "if False:"), lambda: stock_leak_fixture()["wound_lines"] == 0),
+    ("e_far_finish", lambda b: b.replace("wj > w + KNOCK_READ_S", "wj > w + 99"), lambda: knock_fixture(outside=True)["pair_knock"] == 2),
+    ("e_far_finish", lambda b: b.replace('L.res.get(row.get("aid"), {}).get("knockdown") is not True', "False"),
+     lambda: knock_fixture(knock=False)["pair_knock"] == 0),
+    ("e_far_finish", lambda b: b.replace("y >= p", "y > 99"), lambda: knock_fixture(yield_at=3)["pair_knock_no_yield"] == 0),
+    ("e_far_finish", lambda b: b.replace("and z is not None:", ":"), lambda: knock_fixture(no_zombie=True)["pair_knock"] == 1),
+    ("e_release", lambda b: b.replace("for ln in L.rows)", 'for ln in L.rows if ln.get("branch") == "threat")'),
+     lambda: release_fixture()["timed"] == 2),
+    ("e_door_legs", lambda b: b.replace("ended[b] += 1", 'ended["night"] += 1'), lambda: legs_fixture()["shelter_ended_leg"] == 1),
     ("e_item_record", lambda b: b.replace("< sent", "> sent"), lambda: item_fixture()["rip_after_unwear"] == 1),
     ("e_item_record", lambda b: b.replace('l.get("kind") == "hello"', "False"), lambda: item_fixture()["mod"] == "1.7"),
 ]
