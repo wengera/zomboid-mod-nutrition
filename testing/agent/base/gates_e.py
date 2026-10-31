@@ -3303,7 +3303,7 @@ def report_lines_e12(g):
                 "shove lines named low), %s kills under them; health at each run's first and last line %s; %s `health` flee "
                 "lines on any branch (%s taken by another branch): %s under the floor [reading], %s with two or more zombies "
                 "within DANGER_R [inference], %s with one and the health at or above the floor (the LOW_FIGHT misfire: must "
-                "read 0 with the switch on) [inference], %s other; least health at a low-fight or health-flee line %s" % (
+                "read 0 with the switch on) [inference], %s other (no zombie within DANGER_R at the line, or no reading); least health at a low-fight or health-flee line %s" % (
                     lo.get("lines"), lo.get("runs"), lo.get("shoves"), lo.get("stomps"), lo.get("attacks"),
                     lo.get("shove_low"), lo.get("kills"), lo.get("run_health"), lo.get("flee_health"),
                     lo.get("flee_health_other_branch"), lo.get("flee_health_floor"), lo.get("flee_health_pair"),
