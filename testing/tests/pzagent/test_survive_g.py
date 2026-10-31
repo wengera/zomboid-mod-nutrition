@@ -222,6 +222,7 @@ def test_three_zombies_are_fled_never_stood(tmp_path):
 
 def test_one_zombie_under_flee_health_is_fled_never_stood(tmp_path):
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     r.frame(zombies=[zd(1, 104.0, 200.0)], health=35.0)
     tick(r, sv)
     assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "health"
@@ -1758,6 +1759,7 @@ def test_the_bandage_runs_under_a_health_flee_and_is_superseded_when_a_zombie_co
     running bandage holds at 3.5 tiles (inside CARE_R,
     beyond CARE_HOLD_R); the supersede line is CARE_HOLD_R (3.0)."""
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     hold(r, 10, "Base.Bandage")
     bleed = [part(5, bleeding=True, bleedingTime=5.0)]
     care_frame(r, bleed, zombies=[zd(1, 103.0, 200.0, has_target=False)], health=30.0)
@@ -1987,6 +1989,7 @@ def test_no_standing_bandage_starts_while_a_flee_leg_runs_from_a_chaser(tmp_path
     closing; against a chaser (`hasTarget`) during a running flee leg the standing bandage waits (it would stop the
     run). Here the leg (a thigh's wound: no ride) runs while the zombie reads 5.5 tiles, then 7 (never closing)."""
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     hold(r, 10, "Base.Bandage")
     thigh = [part(11, bleeding=True, bleedingTime=5.0)]
     for x in (105.5,) + (107.0,) * C.CARE_STILL_TICKS:
@@ -2048,6 +2051,7 @@ def flee_leg_rig(tmp_path, parts, x, chases=True):
     """A `health` flee (health 30) from one zombie (`hasTarget` `chases`), its steer leg sent at 5.5 tiles and
     running (progress); then the frame with `parts` bleeding and the zombie at `x` tiles, ticked."""
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     hold(r, 10, "Base.Bandage")
     care_frame(r, parts, zombies=[zd(1, 105.5, 200.0, has_target=chases)], health=30.0)
     tick(r, sv)
@@ -2122,6 +2126,7 @@ def test_no_ride_starts_in_a_stance_fight_and_its_legs_are_held_off_while_one_ru
     would end the ride) until the ride ends; then the stance leg goes."""
     torso = [part(6, bleeding=True, bleedingTime=5.0)]
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     hold(r, 10, "Base.Bandage")
     for _ in range(C.CARE_STILL_TICKS + 1):
         care_frame(r, torso, zombies=[zd(1, 105.0, 200.0)])
@@ -2238,6 +2243,7 @@ def stopped_ride_rig(tmp_path):
     and answered `failed stopped`; returns (rig, survive, the flee leg, the ride, the torso)."""
     torso = [part(6, bleeding=True, bleedingTime=5.0)]
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     hold(r, 10, "Base.Bandage")
     hold(r, 20, "Base.WaterBottle", use="water")
     care_frame(r, torso, zombies=[zd(1, 105.5, 200.0)], health=30.0, thirst=0.5)
@@ -2298,6 +2304,7 @@ def test_a_many_flee_with_a_chaser_held_blocks_the_ride_inside_ride_many_r(tmp_p
     RIDE_MANY_R) now lets the ride go; at 2.5 it still blocks it (`test_survive_r` reads the long flee's clock)."""
     torso = [part(6, bleeding=True, bleedingTime=5.0)]
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     hold(r, 10, "Base.Bandage")
     care_frame(r, torso, zombies=[zd(1, 105.5, 200.0, has_target=chases)], health=30.0)
     tick(r, sv)

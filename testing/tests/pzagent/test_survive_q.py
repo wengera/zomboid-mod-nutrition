@@ -289,6 +289,7 @@ def test_the_finishing_stomp_s_kill_is_a_kill(tmp_path):
 def test_no_finish_under_a_flee_that_is_not_many(tmp_path):
     """The `health` flee (health 30) with the struck target fallen: the flee runs as today."""
     r, sv = struck(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     fr(r, [z(1, 101.5, floor=True), z(5, 107.0, 200.0)], health=30.0)
     a = tick(r, sv)
     assert a.type == "steer" and threat_why(tmp_path)["flee"] == "health"

@@ -7,6 +7,8 @@ mod over PZA/1.7.1.
   `unarmed` as before; the doorway stand stays armed-only; the trapped fight takes the unarmed character too.
 - P25-Q, the trapped hold yields to care: the Flee's trapped hold (no command) passes the tick to the care branch.
 - P25-R, the model told what the program will not do unarmed, and an ExploreToward at the view's `toward` accepted.
+- P25-S, the low fight: under FLEE_HEALTH, at or above FLEE_HEALTH_FLOOR, one zombie within DANGER_R is fought by the
+  shove and the stomp (E13: the health held near 31 from game minute 712, the last 15 fights fled `health`).
 - The residual of the F5 write-up: on a `1.7` hello the wear pick leaves out a garment an `item_changed` read worn.
 """
 import pytest
@@ -31,11 +33,12 @@ from .test_survive_t import DOWN, MISS
 
 
 def test_the_iteration_15_switches():
-    assert S.T5_SWITCHES == ("UNARMED_FIGHT", "TRAPPED_CARE")
+    assert S.T5_SWITCHES == ("UNARMED_FIGHT", "TRAPPED_CARE", "LOW_FIGHT")
     for name in S.T5_SWITCHES:
         assert getattr(S.Survive, name) is True, name
     assert not set(S.T5_SWITCHES) & (set(S.T4_SWITCHES) | set(T.T3_SWITCHES))
     assert (P.FLEE_HEALTH_PAIR, P.POINT_BLANK_R, P.DANGER_R, P.FIGHT_REACH) == (60.0, 1.0, 6.0, 2.0)
+    assert (P.FLEE_HEALTH, P.FLEE_HEALTH_FLOOR) == (40.0, 20.0)
 
 
 def sends(r):
@@ -58,7 +61,7 @@ def test_unarmed_one_zombie_is_fought_from_the_stance_shoved_at_point_blank_and_
     a = tick(r, sv)
     w = threat_why(tmp_path)
     assert a.type == "aim" and w["fight"] is True and w["unarmed_fight"] is True and "flee" not in w
-    assert w["leg"] == "stand" and not w.get("seek") and sv.fight.unarmed is True
+    assert w["leg"] == "stand" and not w.get("seek") and sv.fight.shove_only == "unarmed"
     r.advance(0.5)
     lone(r, 101.6)
     a = tick(r, sv)
@@ -98,7 +101,8 @@ def test_unarmed_a_second_zombie_within_danger_r_is_fled_unarmed(tmp_path):
     r, sv = make(tmp_path)
     r.frame(zombies=[z(1, 100.8), z(2, 100.0, 205.0)], weapon=None)
     a = tick(r, sv)
-    assert a.type == "steer" and threat_why(tmp_path)["flee"] == "unarmed" and "unarmed_fight" not in threat_why(tmp_path)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and w["flee"] == "unarmed" and "unarmed_fight" not in w
 
 
 @pytest.mark.parametrize("health, fights", [(59.0, False), (60.0, True)])
@@ -205,7 +209,7 @@ def test_the_unarmed_trapped_fight_takes_a_zombie_within_fight_reach_only(tmp_pa
 
 
 def test_the_doorway_stand_still_ends_unarmed(tmp_path):
-    """The stand's post needs the swing's reach: unarmed, it ends `unarmed` as before, though one zombie alone is near."""
+    """The stand's post needs the swing's reach: unarmed, it ends `unarmed` as before, one zombie alone near."""
     r, sv = stood(tmp_path)
     r.frame(x=POST[0], y=POST[1], zombies=[dz(1, 111.3, 201.5)], weapon=None)
     tick(r, sv)
@@ -353,6 +357,85 @@ def test_with_no_toward_the_far_square_is_refused_as_before():
 def test_an_explore_near_pos_but_in_the_woods_keeps_its_wording():
     v = far_view()
     assert L.place_error(G.ExploreToward(140, 200), v) == "invalid: in the woods"
+
+
+# ================================================================ P25-S: the low fight
+def test_under_flee_health_one_zombie_is_fought_by_the_shove_and_the_stomp_logged_low_fight(tmp_path):
+    """E13 (the health near 31 from game minute 712 to the cap, the last 15 fights fled `health`, nothing killed for 96
+    game minutes): health 35, a bat held, one zombie 4 tiles off: the Fight's stance (an `aim`, never sought), logged
+    `low_fight`; at 1.6 tiles the backpedal, never the swing; at 0.8 the shove (`shove` "low"); its knock-down read, the
+    stomp."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[z(1, 104.0)], health=35.0)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "aim" and w["fight"] is True and w["low_fight"] is True and "flee" not in w
+    assert w["leg"] == "stand" and not w.get("seek") and sv.fight.shove_only == "low" and "unarmed_fight" not in w
+    r.advance(0.5)
+    r.frame(zombies=[z(1, 101.6)], health=35.0)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "aim" and w["leg"] == "back" and w["low_fight"] is True
+    r.advance(0.5)
+    r.frame(zombies=[z(1, 100.8)], health=35.0)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("shove", {"targetId": 1}) and w["shove"] == "low" and w["low_fight"] is True
+    r.fake.answer({"shove": ["accepted", DOWN]})
+    r.pump()
+    r.advance(0.5)
+    r.frame(zombies=[z(1, 101.2, floor=True)], health=35.0)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("stomp", {"targetId": 1}) and threat_why(tmp_path)["low_fight"] is True
+    assert "attack" not in sends(r)
+
+
+@pytest.mark.parametrize("zs, health, want", [
+    ([z(1, 100.8), z(2, 100.0, 205.0)], 35.0, "flee"),   # two within DANGER_R: the `health` flee
+    ([z(1, 100.8)], 15.0, "flee"),                       # under FLEE_HEALTH_FLOOR: the `health` flee
+    ([z(1, 100.8)], 20.0, "low"),                        # at the floor: the low fight
+    ([z(1, 100.8)], 45.0, "fight")])                     # over FLEE_HEALTH: the ordinary fight, no `low_fight`
+def test_the_low_fight_s_bounds(tmp_path, zs, health, want):
+    r, sv = make(tmp_path)
+    r.frame(zombies=zs, health=health)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    if want == "flee":
+        assert a.type == "steer" and w["flee"] == "health" and "low_fight" not in w
+    elif want == "low":
+        assert a.type == "shove" and w["low_fight"] is True
+    else:
+        assert a.type == "attack" and w["fight"] is True and "low_fight" not in w
+
+
+def test_a_running_health_flee_turns_to_the_low_fight_when_one_zombie_is_left(tmp_path):
+    """A `health` flee from two (health 35) whose second zombie leaves DANGER_R turns to the low fight (the refight
+    margin held it before)."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[z(1, 103.0), z(2, 100.0, 205.0)], health=35.0)
+    assert tick(r, sv).type == "steer" and threat_why(tmp_path)["flee"] == "health"
+    r.answer()
+    r.advance(1.0)
+    r.frame(zombies=[z(1, 103.0), z(2, 100.0, 209.0)], health=35.0)
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert sv.mode == "fight" and w["low_fight"] is True and "flee" not in w
+
+
+def test_with_low_fight_off_the_lone_zombie_is_fled_health_as_before(tmp_path):
+    r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False
+    r.frame(zombies=[z(1, 100.8)], health=35.0)
+    a = tick(r, sv)
+    assert a.type == "steer" and threat_why(tmp_path)["flee"] == "health"
+
+
+def test_unarmed_under_flee_health_the_unarmed_flee_stays(tmp_path):
+    """Unarmed, under FLEE_HEALTH_PAIR the unarmed fight is not allowed, whatever the low fight reads: `unarmed`."""
+    r, sv = make(tmp_path)
+    lone(r, 100.8, health=35.0)
+    a = tick(r, sv)
+    assert a.type == "steer" and threat_why(tmp_path)["flee"] == "unarmed"
 
 
 # ================================================================ the residual: the rejected wears

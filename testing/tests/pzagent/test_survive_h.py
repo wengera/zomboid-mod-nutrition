@@ -249,6 +249,7 @@ def test_the_health_flee_stays_below_its_margin_and_no_seek_below_the_line(tmp_p
     """The health flee stays (P24-X): a `health` episode (one at 3 tiles, health 39) keeps running at 45 with its
     pursuer alone at 6 tiles (the refight margin kept for it), and turns to fight at 60."""
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     r.scan(open_yard())
     r.frame(zombies=[zd(1, 103.0, 200.0)], health=39.0)
     tick(r, sv)

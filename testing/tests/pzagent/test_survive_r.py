@@ -17,6 +17,7 @@ def many_leg(tmp_path, parts, x, since=None):
     running; then the frame with `parts` bleeding and the chaser at `x` tiles, ticked. `since`: wall seconds since the
     first `many` read (Survive's `many_since`), None for none."""
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     hold(r, 10, "Base.Bandage")
     care_frame(r, parts, zombies=[z(1, 105.5)], health=30.0)
     tick(r, sv)
@@ -79,6 +80,7 @@ def test_rule_b_never_rides_under_the_drag_down_guard(tmp_path, attackers, ride)
     the nearest 0.51): FLEE_CARE_S since the first `many` with two parts bleeding rides at 1.0 tiles, except with
     `me.attackers` at DRAG_DOWN_N - 1 (2) or more, the drag-down guard's own line."""
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     hold(r, 10, "Base.Bandage")
     parts = [part(6, bleeding=True, bleedingTime=5.0), part(3, bleeding=True, bleedingTime=2.0)]
     care_frame(r, parts, zombies=[z(1, 105.5)], health=30.0)

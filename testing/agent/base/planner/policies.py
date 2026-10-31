@@ -191,6 +191,10 @@ EDGE_HOLD_TICKS = 6   # planner ticks a zombie that left the listing (beyond LIS
 # the threat branch's (`threat.Threat` and its mixins; moved from `planner/threat.py` at Plan 25 Task 2)
 FLEE_HEALTH = 40.0        # under it a threat is fled, never fought
 FLEE_HEALTH_PAIR = 60.0   # two or more threats are fled under this health
+FLEE_HEALTH_FLOOR = 20.0  # under FLEE_HEALTH and at or above this, one threat within DANGER_R is fought by the shove
+                          # and the stomp (ruling P25-S, Plan 25 Task 10): a judgment; E13 held its health between
+                          # 30.32921600341797 and 32.70201110839844 from game minute 712 to the cap and fled its last 15
+                          # fights under FLEE_HEALTH; below this the flee stays
 REFIGHT_MARGIN = 20.0     # a running flee turns to fight only at health >= FLEE_HEALTH + this, one threat
 MAX_FIGHT = 2             # more threats than this are fled
 HOLD_BREAK_R = 3.0        # tiles: a held threat this near breaks every hold whatever its line reads (P23-AJ 1)

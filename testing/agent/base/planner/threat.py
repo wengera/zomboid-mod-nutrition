@@ -18,8 +18,9 @@ from agent.base.planner.flee import Flee
 from agent.base.planner.hold import Hold
 from agent.base.planner.policies import (AIM_R, CLOSING_TICKS, CORNERED_R, CORNER_FREE_R, DANGER_R, DISENGAGE_R,
                                          DRAG_DOWN_N, DROP_AT, EDGE_HOLD_TICKS, ENGAGE_R, FIGHT_REACH, FINISH_R,
-                                         FLEE_GAIT, FLEE_HEALTH, FLEE_HEALTH_PAIR, FLIP_MIN_S, GROUP_HOLD_N,
-                                         GROUP_NEAR_R, GROUP_R_N, HOLD_BREAK_R, LISTED_R, MANY_LISTED_N, MAX_FIGHT,
+                                         FLEE_GAIT, FLEE_HEALTH, FLEE_HEALTH_FLOOR, FLEE_HEALTH_PAIR, FLIP_MIN_S,
+                                         GROUP_HOLD_N, GROUP_NEAR_R, GROUP_R_N, HOLD_BREAK_R, LISTED_R, MANY_LISTED_N,
+                                         MAX_FIGHT,
                                          POINT_BLANK_R, REFIGHT_MARGIN, STUCK_RETRY_GROUP_S, STUCK_RETRY_S, adoptable,
                                          blocked, chasing, exit_plan, in_building, in_reach, line_to, others_behind,
                                          seek_allowed, spare, target_id_ok, zdist)
@@ -88,7 +89,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
     # survival iteration 15 (Plan 25 Task 10; survive.py's docstring, Survival 17): each switch off is the rule before
     # it, all of them in `survive.T5_SWITCHES` (the replay tests' `pre_t5`)
     UNARMED_FIGHT = True  # ruling P25-P: unarmed, one zombie within DANGER_R is fought by the shove and the stomp,
-                          # never the swing (`_unarmed_fight`, `Fight.unarmed`); off, every unarmed tick flees `unarmed`
+                          # never the swing (`_unarmed_fight`, `Fight.shove_only`); off, every unarmed tick flees
+                          # `unarmed`
+    LOW_FIGHT = True      # ruling P25-S: under FLEE_HEALTH, at or above FLEE_HEALTH_FLOOR, one zombie within DANGER_R
+                          # is fought by the shove and the stomp (`_low_fight`); off, every such tick flees `health`
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -222,7 +226,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             return "unarmed"
         if self._many(held, n):
             return "many"
-        if health < FLEE_HEALTH:
+        if health < FLEE_HEALTH and not self._low_fight(n):
             return "health"
         if n >= 2 and (health < FLEE_HEALTH_PAIR or self._wounds() > 0):
             fallen = self._pair_finish()   # P25-J (3): the finish of a fallen (or knocked) one goes before the flee
@@ -239,10 +243,22 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         takes a standing zombie within K.STAND_R with no weapon, and the stomp has been every session's kill since
         E11): with no weapon held, the Fight is allowed (`UNARMED_FIGHT` on): the build announces `shove`, one zombie
         within DANGER_R (`n` 1: two or more flee `unarmed` as before) and the health at or above FLEE_HEALTH_PAIR. The
-        Fight it makes sends no swing (`Fight.unarmed`, `no_swing`): the stance, the shove at point blank and the stomp
+        Fight it makes sends no swing (`Fight.shove_only`, `no_swing`): the stance, the shove at point blank, the stomp
         of the fallen; it is never sought (`Fight.seeking`), the corner and the doorway stand stay armed-only."""
         return (self.UNARMED_FIGHT and not self._armed() and self.world.can("shove") and n == 1
                 and self._health() >= FLEE_HEALTH_PAIR)
+
+    def _low_fight(self, n):
+        """Ruling P25-S (E13, `e_day_13-20261030-213219`: the health held between 30.32921600341797 and
+        32.70201110839844 from game minute 712 to the cap, the last 15 fights all fled `health` and nothing was killed
+        for 96 game minutes, a bat, dressings and water held): under FLEE_HEALTH the line is no lock: the Fight is
+        allowed (`LOW_FIGHT` on) with the build announcing `shove`, one zombie within DANGER_R (`n` 1: two or more flee
+        `health` as before) and the health at or above FLEE_HEALTH_FLOOR. Its Fight is P25-P's shove-and-stomp fight
+        (`Fight.shove_only` "low": the stance, the shove at point blank, the stomp of the fallen, no swing, no seek),
+        logged `low_fight`; the doorway stand's own `health` end is unchanged."""
+        health = self._health()
+        return (self.LOW_FIGHT and health < FLEE_HEALTH and self.world.can("shove") and n == 1
+                and health >= FLEE_HEALTH_FLOOR)
 
     def _unpaired(self, held, health, n):
         """The hysteresis past the `pair` rule (`_hysteresis`; `n` the DANGER_R count): `strain`, `unreachable`,
@@ -257,10 +273,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
                 return "stalled"
             if not self.ENGAGE:   # before P24-X: one held, at the refight margin
                 return "held" if len(held) > 1 or health < FLEE_HEALTH + REFIGHT_MARGIN else None
-            if not (self._takes_on(len(held)) or self._unarmed_fight(n)):   # P24-X: the flee turns to fight one or
-                return "held"                                                 # two at the fight's line; P25-P unarmed
-            if self.flee_health and health < FLEE_HEALTH + REFIGHT_MARGIN:   # the health flee stays, its margin kept
-                return "held"
+            if not (self._takes_on(len(held)) or self._unarmed_fight(n) or self._low_fight(n)):   # P24-X: the flee
+                return "held"   # turns to fight one or two at the fight's line; P25-P unarmed, P25-S under FLEE_HEALTH
+            if self.flee_health and health < FLEE_HEALTH + REFIGHT_MARGIN and not self._low_fight(n):
+                return "held"   # the health flee stays, its margin kept (P25-S: but for the low fight)
             return None
         if self.mode == "fight" and self.fight.stalled and (self.fight.target_dist() or 0.0) > FIGHT_REACH:
             return "stalled"   # the pinned target's distance: the one the stall clock follows (M3)
@@ -658,13 +674,13 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             policy.threats = held
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
-            policy.unarmed = self._unarmed()     # P25-P: no swing, no seek
+            policy.shove_only = self._shove_only(kind)   # P25-P, P25-S: no swing, no seek
             ans = self._answer(policy)
             if self.pair_yield is not None and not self._finishes(self.pair_yield):
                 self.pair_yield = None   # P25-J (3): logged only where the Fight's finish answers it
         self.why.update({"fight": True} if reason is None else {"flee": reason})
-        if want == "fight" and policy.unarmed:
-            self.why["unarmed_fight"] = True   # P25-P: the Fight's shove and stomp, no weapon held
+        if want == "fight" and policy.shove_only is not None:   # P25-P, P25-S: the Fight's shove and stomp
+            self.why["unarmed_fight" if policy.shove_only == "unarmed" else "low_fight"] = True
         if reason == "strain" or self.corner_yield == "strain":
             self.why["strain"] = self.spent   # P24-AG: the why names the strain
         if want == "flee" and walk and self._walking(policy, ans):
@@ -703,8 +719,16 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         ride = self.care.riding()
         if ride is not None:
             self.why["ride"] = ride.aid   # P24-U: a bandage rides the leg this answer holds or re-aims
-        self.trapped_pass = want == "flee" and ans is None and "trapped" in self.why   # P25-Q: `Survive.assess` reads it
+        self.trapped_pass = want == "flee" and ans is None and "trapped" in self.why   # P25-Q: read by `assess`
         return ans if ans is not None else (policy, None)
+
+    def _shove_only(self, kind):
+        """Why this tick's Fight is the shove and the stomp alone (`Fight.shove_only`), else None: "unarmed" with no
+        weapon held (`_unarmed`, P25-P), "low" for the open-ground Fight (`kind` "fight": no corner nor door fight)
+        under FLEE_HEALTH the low fight admits (`_low_fight`, P25-S)."""
+        if self._unarmed():
+            return "unarmed"
+        return "low" if kind == "fight" and self._low_fight(len(self._within(DANGER_R))) else None
 
     def _unarmed(self):
         """Ruling P25-P: no weapon held and `UNARMED_FIGHT` on (the Fight's `unarmed`; the `many` flee's finish sends

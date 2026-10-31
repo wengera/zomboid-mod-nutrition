@@ -109,14 +109,15 @@ class Engage:
 
     def _stance_ok(self, held, inside):
         """Ruling P24-G 1, the standing fight: the build announces `aim` (`World.can`), a weapon in hand (or, ruling
-        P25-P, the unarmed fight allowed: `_unarmed_fight`), one held threat with health at or above FLEE_HEALTH or two
-        with it at or above FLEE_HEALTH_PAIR (counted by `_stance_count`), and the character not trapped on a room
-        square (`_trapped`: the corner rules stay for a stuck or trapped character)."""
+        P25-P, the unarmed fight allowed: `_unarmed_fight`), one held threat with health at or above FLEE_HEALTH (or,
+        ruling P25-S, the low fight allowed: `_low_fight`) or two with it at or above FLEE_HEALTH_PAIR (counted by
+        `_stance_count`), and the character not trapped on a room square (`_trapped`: the corner rules stay for a stuck
+        or trapped character)."""
         k = self._stance_count(held)
-        armed = self._armed() or self._unarmed_fight(len(self._within(DANGER_R)))
-        if not (self.world.can("aim") and armed and held and k <= MAX_FIGHT):
+        n = len(self._within(DANGER_R))
+        if not (self.world.can("aim") and (self._armed() or self._unarmed_fight(n)) and held and k <= MAX_FIGHT):
             return False
-        if self._health() < self._fight_line(max(k, 1)):
+        if self._health() < self._fight_line(max(k, 1)) and not self._low_fight(n):
             return False
         return not self._trapped(held, inside)
 

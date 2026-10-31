@@ -255,7 +255,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   `threat.Threat._unarmed_fight`, `Fight.unarmed`, logged `unarmed_fight` and `shove` "unarmed"; `UNARMED_FIGHT`);
   P25-Q, the trapped hold yields to care (the Flee's trapped hold, no command, passes the tick to the care branch,
   whose bleeding step bandages, rips or unwears as on a quiet tick, never the wash; `Survive.assess`,
-  `trapped_pass`, `care.Care.trapped`; `TRAPPED_CARE`); `T5_SWITCHES` off is the rule before them.
+  `trapped_pass`, `care.Care.trapped`; `TRAPPED_CARE`); P25-S, the low fight (under FLEE_HEALTH, at or above
+  FLEE_HEALTH_FLOOR, one zombie within DANGER_R: the same shove-and-stomp Fight in place of the `health` flee;
+  `threat.Threat._low_fight`, `Fight.shove_only` "low", logged `low_fight` and `shove` "low"; `LOW_FIGHT`);
+  `T5_SWITCHES` off is the rule before them.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -352,8 +355,8 @@ STEPS = ("threat", "care", "need", "load", "night", "stock", "goal")   # assess(
 T4_SWITCHES = ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHELTER_LEGS")   # survival iteration
                          # 14 (Plan 25 Tasks 7 and 8): the switches of P25-H, P25-J, P25-K, P25-L and P25-N; off, the
                          # rule before each
-T5_SWITCHES = ("UNARMED_FIGHT", "TRAPPED_CARE")   # survival iteration 15 (Plan 25 Task 10): the switches of P25-P
-                         # and P25-Q; off, the rule before each
+T5_SWITCHES = ("UNARMED_FIGHT", "TRAPPED_CARE", "LOW_FIGHT")   # survival iteration 15 (Plan 25 Task 10): the
+                         # switches of P25-P, P25-Q and P25-S; off, the rule before each
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")

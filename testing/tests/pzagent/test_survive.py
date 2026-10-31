@@ -195,6 +195,7 @@ def test_unarmed_flees(tmp_path):
 
 def test_low_health_flees(tmp_path):
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     r.frame(zombies=[zombie(1, 103.0, 200.0)], health=39.0)
     tick(r, sv)
     assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "health"
@@ -340,6 +341,7 @@ def test_an_unreachable_only_threat_is_fled_never_attacked_again(tmp_path):
 
 def test_the_log_line_carries_mode_and_fight_s(tmp_path):
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     r.frame(zombies=[zombie(1, 103.0, 200.0)])
     tick(r, sv)
     assert (last(tmp_path)["inputs"]["mode"], last(tmp_path)["inputs"]["fight_s"]) == (None, None)
@@ -1311,6 +1313,7 @@ def test_a_wounded_fight_with_zombies_at_five_and_eight_still_fights(tmp_path):
 def test_every_fight_survive_makes_shares_its_unreachable_memory(tmp_path):
     """The X5-2 addendum: the driver built its Fights without the marks; Survive gives every Fight the one memory."""
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     r.frame(zombies=[zombie(1, 103.0, 200.0)])
     tick(r, sv)
     first = sv.fight
@@ -1735,6 +1738,7 @@ def test_inside_at_melee_range_the_corner_fights_before_any_walk_out_then_walks_
     and the flee walks out of the north doorway."""
     from .test_policies import two_door_house
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     r.scan(two_door_house())
     me = (111.5, 201.5)
     r.frame(x=me[0], y=me[1], zombies=[zombie(1, 110.6, 202.3, me=me)], health=30.0)
@@ -3153,6 +3157,7 @@ def test_a_walk_corner_yields_to_the_health_flee_and_none_is_taken_under_it(tmp_
     45 attacks (`corner_kind` "walk" logged, (g)); at 39 it ends for the `health` flee (`yield` "health"), a sprint
     leg; on the next tick, the zombie still within CORNERED_R and the leg running, no new `walk` corner."""
     r, sv = make(tmp_path)
+    sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     r.scan(open_yard())
     me = (100.5, 201.5)
     one = [zombie(1, 99.3, 201.5, me=me)]

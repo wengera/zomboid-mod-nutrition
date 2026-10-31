@@ -1428,7 +1428,9 @@ def test_iteration_15_moves_no_golden(key):
     """Task 10's rules move no golden: the six are byte-identical with them on (`test_the_golden_is_reproduced_byte_
     for_byte_from_its_artifact`) and with iteration 15's switches off (`pre_t5`). P25-P's unarmed fight needs a build
     announcing the PZA/1.7 `shove`, which no golden's build does (their hellos read 1.2 to 1.5.x), so every unarmed
-    golden tick flees `unarmed` as before."""
+    golden tick flees `unarmed` as before; P25-S's low fight needs it too, so every golden tick under FLEE_HEALTH with
+    one zombie flees `health` as before. P25-Q (`TRAPPED_CARE`) passes no golden's trapped hold to a care that sends:
+    no golden ring decodes a part's `bleeding` (PZA/1.4), nor announces `unwear`."""
     with open(R.golden_path(key), encoding="utf-8") as f:
         head = json.load(f)
     text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t5)), head["base"],
