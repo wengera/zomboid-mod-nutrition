@@ -221,6 +221,8 @@ class Care(Policy):
         self.unworn_item = None   # the id the last unwear took off, ripped first once it reads unworn (P24-AJ)
         self.unwear_wound = True  # ruling P25-H: the bleeding step unwears on a quiet tick (Survive sets it each care
                                   # tick from its `UNWEAR_WOUND` switch); off, the idle stock alone unwears (P24-AJ)
+        self.trapped = False      # ruling P25-Q: the tick is the threat's trapped hold passed on (Survive sets it each
+                                  # care tick): the bleeding step's unwear goes as on a quiet tick (never the wash)
 
     def sent(self, cmd, action):
         self.sends[cmd.itemId] = action
@@ -378,7 +380,8 @@ class Care(Policy):
         rip = self._rip_item() if w.can("rip") else None
         if rip is not None:
             return Rip(rip), {"reason": "no_rag", "part": p["i"], "item": rip}
-        if unwear and self.quiet:   # P25-H: nothing to rip, so the least-covering worn cotton garment comes off for it
+        if unwear and (self.quiet or self.trapped):   # P25-H: nothing to rip, so the least-covering worn cotton garment
+                                                      # comes off for it (P25-Q: the trapped hold's tick too)
             cmd, why = self._unwear_step()
             if cmd is not None:
                 return cmd, dict(why, part=p["i"])

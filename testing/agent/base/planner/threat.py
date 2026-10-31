@@ -568,6 +568,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         """The threat branch: the tick's bookkeeping (`_threat_read`, read in `_read` with `OBSERVES_IN_READ` on); then
         the yield to the care (`_care_yields`, P24-P), else the decision (`_decide`), which a corner's retarget may
         re-plan without them."""
+        self.trapped_pass = False
         if not self.OBSERVES_IN_READ:
             self._threat_read()
         held, breach = self._held, self._breach_now
@@ -702,6 +703,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         ride = self.care.riding()
         if ride is not None:
             self.why["ride"] = ride.aid   # P24-U: a bandage rides the leg this answer holds or re-aims
+        self.trapped_pass = want == "flee" and ans is None and "trapped" in self.why   # P25-Q: `Survive.assess` reads it
         return ans if ans is not None else (policy, None)
 
     def _unarmed(self):

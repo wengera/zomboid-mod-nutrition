@@ -5,6 +5,8 @@ mod over PZA/1.7.1.
   FLEE_HEALTH_PAIR, the Fight runs (the stance, the shove at point blank logged `shove` "unarmed", the stomp of the
   fallen), never an `attack`, logged `unarmed_fight`; two within DANGER_R, or the health under FLEE_HEALTH_PAIR, flee
   `unarmed` as before; the doorway stand stays armed-only; the trapped fight takes the unarmed character too.
+- P25-Q, the trapped hold yields to care: the Flee's trapped hold (no command) passes the tick to the care branch.
+- The residual of the F5 write-up: on a `1.7` hello the wear pick leaves out a garment an `item_changed` read worn.
 """
 import pytest
 
@@ -13,7 +15,10 @@ from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner import threat as T
 
-from .test_survive import closed_room, make, sheltered, shelter_world, threat_why, tick
+from .test_survive import closed_room, last, make, sheltered, shelter_world, threat_why, tick
+from .test_survive_g import care_frame, care_why, hold, part
+from .test_survive_j import JACKET, rec
+from .test_survive_n import unwear_rig
 from .test_survive_p import POST, stood
 from .test_survive_p import z as dz
 from .test_survive_p import why as door_why
@@ -22,7 +27,7 @@ from .test_survive_t import DOWN, MISS
 
 
 def test_the_iteration_15_switches():
-    assert S.T5_SWITCHES == ("UNARMED_FIGHT",)
+    assert S.T5_SWITCHES == ("UNARMED_FIGHT", "TRAPPED_CARE")
     for name in S.T5_SWITCHES:
         assert getattr(S.Survive, name) is True, name
     assert not set(S.T5_SWITCHES) & (set(S.T4_SWITCHES) | set(T.T3_SWITCHES))
@@ -214,3 +219,102 @@ def test_the_many_flee_s_finish_sends_no_floor_strike_unarmed(tmp_path):
     r.world.hello["caps"] = [c for c in r.world.hello["caps"] if c != "stomp"]
     assert sv._unarmed() is True
     assert sv._flee_finish("many") is None and sv.finishing.get(1) == "floor"
+
+
+# ================================================================ P25-Q: the trapped hold yields to care
+TWO_IN = [z(1, 100.5, 202.5), z(2, 102.5, 200.5)]   # two zombies 2 tiles off in the closed room: the unarmed flee
+
+
+def test_trapped_a_bleeding_part_is_bandaged_with_the_held_bandage(tmp_path):
+    """F5: five parts bleeding, a bandage and four rags held, 215 `trapped` lines sending nothing: the trapped hold
+    passes the tick to the care, which bandages the bleeding part (no ride); the threat's why keeps `trapped`."""
+    r, sv = make(tmp_path)
+    r.scan(closed_room())
+    hold(r, 501, "Base.Bandage")
+    care_frame(r, [part(9, bleeding=True, bleedingTime=3.0)], x=TRAP_ME[0], y=TRAP_ME[1], zombies=TWO_IN,
+               weapon=None)
+    a = tick(r, sv)
+    d = last(tmp_path)
+    assert (a.type, a.args["itemId"], a.args["part"], a.args.get("keepMoving", False)) == ("bandage", 501, 9, False)
+    assert d["branch"] == "care" and d["inputs"]["branches"]["threat"]["trapped"] == 2
+    assert d["inputs"]["branches"]["threat"]["flee"] == "unarmed" and care_why(tmp_path)["reason"] == "bleeding"
+
+
+def test_trapped_the_running_bandage_holds_the_care_s_tick(tmp_path):
+    r, sv = make(tmp_path)
+    r.scan(closed_room())
+    hold(r, 501, "Base.Bandage")
+    parts = [part(9, bleeding=True, bleedingTime=3.0)]
+    care_frame(r, parts, x=TRAP_ME[0], y=TRAP_ME[1], zombies=TWO_IN, weapon=None)
+    tick(r, sv)
+    r.fake.answer({"bandage": ["accepted"]})
+    r.pump()
+    care_frame(r, parts, x=TRAP_ME[0], y=TRAP_ME[1], zombies=TWO_IN, weapon=None)
+    assert tick(r, sv) is None
+    d = last(tmp_path)
+    assert d["branch"] == "care" and "holding" in care_why(tmp_path) and sends(r) == ["bandage"]
+
+
+def test_trapped_with_no_dressing_and_a_worn_cotton_garment_the_unwear(tmp_path):
+    """P25-H's unwear on the trapped hold's tick (quiet reads false with the zombies in the room; the trapped tick
+    counts as quiet for the unwear, never for the wash): the T-shirt covering the least comes off."""
+    r, sv = unwear_rig(tmp_path)
+    r.scan(closed_room())
+    care_frame(r, [part(9, bleeding=True, bleedingTime=14.7)], x=TRAP_ME[0], y=TRAP_ME[1], zombies=TWO_IN,
+               weapon=None)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("unwear", {"itemId": 20}) and last(tmp_path)["branch"] == "care"
+    assert care_why(tmp_path)["reason"] == "unwear"
+
+
+def test_trapped_with_nothing_to_tend_the_hold_takes_the_tick_and_no_lower_branch_runs(tmp_path):
+    """Nothing bleeds: the care answers nothing, the hold takes the tick (the threat's line, no command), and the
+    need below never runs (thirst high, water held)."""
+    r, sv = make(tmp_path)
+    r.scan(closed_room())
+    r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0, use="water")
+    r.frame(x=TRAP_ME[0], y=TRAP_ME[1], zombies=TWO_IN, weapon=None, thirst=0.6)
+    assert tick(r, sv) is None
+    d = last(tmp_path)
+    assert d["branch"] == "threat" and d["inputs"]["branches"]["threat"]["trapped"] == 2
+    assert "care" in d["inputs"]["branches"] and "need" not in d["inputs"]["branches"] and sends(r) == []
+
+
+def test_trapped_with_a_zombie_in_reach_the_fight_goes_first(tmp_path):
+    """P25-P on: the lone zombie at 0.8 tiles is shoved before any bandage."""
+    r, sv = make(tmp_path)
+    r.scan(closed_room())
+    hold(r, 501, "Base.Bandage")
+    care_frame(r, [part(9, bleeding=True, bleedingTime=3.0)], x=TRAP_ME[0], y=TRAP_ME[1],
+               zombies=[z(1, 103.3, 202.5)], weapon=None)
+    a = tick(r, sv)
+    assert a.type == "shove" and last(tmp_path)["branch"] == "threat"
+
+
+def test_with_trapped_care_off_the_trapped_hold_sends_nothing(tmp_path):
+    r, sv = make(tmp_path)
+    sv.TRAPPED_CARE = False
+    r.scan(closed_room())
+    hold(r, 501, "Base.Bandage")
+    care_frame(r, [part(9, bleeding=True, bleedingTime=3.0)], x=TRAP_ME[0], y=TRAP_ME[1], zombies=TWO_IN,
+               weapon=None)
+    assert tick(r, sv) is None
+    d = last(tmp_path)
+    assert d["branch"] == "threat" and "care" not in d["inputs"]["branches"] and sends(r) == []
+
+
+# ================================================================ the residual: the rejected wears
+def test_on_a_1_7_hello_the_wear_pick_leaves_out_a_garment_an_item_changed_read_worn(tmp_path):
+    """F5's care stock sent the wear of trousers worn since seq 654 five times, each rejected `worn`: at `3281cad2`
+    `item_fields` read the `1.7` hello False, so `item_changed`'s `worn` never landed (P25-O, `447e9115`, fixed it).
+    On a `1.7` hello an unworn jacket is the pick; once an `item_changed` reads it worn it is left out."""
+    from .test_survive_j import cloth, wl
+    r, sv = make(tmp_path)
+    r.fake.hello(mod="1.7")
+    r.pump()
+    assert r.world.item_fields() is True
+    cloth(r, 20, bite=10.0, scratch=10.0)
+    r.frame(worn=[wl(JACKET, 5.0, 5.0)])
+    assert sv.care._wear_pick()[0] == 20
+    r.event("item_changed", itemId=20, use="clothing", clothing=rec(bite=10.0, scratch=10.0, worn=True), worn=True)
+    assert r.world.inventory[20]["worn"] is True and sv.care._wear_pick() is None

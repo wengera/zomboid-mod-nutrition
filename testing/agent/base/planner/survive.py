@@ -253,7 +253,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   FLEE_HEALTH_PAIR on a build announcing `shove`: the Fight's stance, the shove at point blank and the stomp, never a
   swing or a seek; the trapped fight unarmed within FIGHT_REACH; the doorway stand armed-only;
   `threat.Threat._unarmed_fight`, `Fight.unarmed`, logged `unarmed_fight` and `shove` "unarmed"; `UNARMED_FIGHT`);
-  `T5_SWITCHES` off is the rule before them.
+  P25-Q, the trapped hold yields to care (the Flee's trapped hold, no command, passes the tick to the care branch,
+  whose bleeding step bandages, rips or unwears as on a quiet tick, never the wash; `Survive.assess`,
+  `trapped_pass`, `care.Care.trapped`; `TRAPPED_CARE`); `T5_SWITCHES` off is the rule before them.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -350,8 +352,8 @@ STEPS = ("threat", "care", "need", "load", "night", "stock", "goal")   # assess(
 T4_SWITCHES = ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHELTER_LEGS")   # survival iteration
                          # 14 (Plan 25 Tasks 7 and 8): the switches of P25-H, P25-J, P25-K, P25-L and P25-N; off, the
                          # rule before each
-T5_SWITCHES = ("UNARMED_FIGHT",)   # survival iteration 15 (Plan 25 Task 10): the switch of P25-P; off, the rule
-                         # before it
+T5_SWITCHES = ("UNARMED_FIGHT", "TRAPPED_CARE")   # survival iteration 15 (Plan 25 Task 10): the switches of P25-P
+                         # and P25-Q; off, the rule before each
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -397,6 +399,10 @@ class Survive(Threat):
 
     SHELTER_LEGS = True   # ruling P25-N (Plan 25 Task 8): a Shelter goal's and the night's approach to a far door in legs
                           # (`goal_policies.Shelter`, `night.Night._leg`); set on the goals' kit and the Night each tick
+
+    TRAPPED_CARE = True   # ruling P25-Q (Plan 25 Task 10): a threat tick whose answer is the Flee's trapped hold passes
+                          # the tick to the care branch (`assess`, `trapped_pass`); off, the hold takes it. In
+                          # T5_SWITCHES with `Threat.UNARMED_FIGHT` (P25-P), the replay tests' `pre_t5`
 
     def __init__(self, world, actions, log_path, clock=time.time, source=None):
         self.world = world
@@ -449,6 +455,7 @@ class Survive(Threat):
         self.stand_wound = None   # this tick: the parts newly bleeding that ended the doorway stand (P25-K), else None
         self.pair_yield = None    # this tick: the fallen zombie's id the `pair` flee yielded to (P25-J), else None
         self.fight_refused = {}   # the last Fight's `swing_refused`, kept for the `pair` flee's finish (P25-J, 8 fix 1)
+        self.trapped_pass = False  # this tick: the threat's answer was the Flee's trapped hold (P25-Q: the care's tick)
         self.hold_near = None     # wall of the last tick a zombie was within DANGER_R (P25-C: HOLD_QUIET_S), else None
         self.hold_floor = None    # the endurance the hold was released at on its span (P25-C), else None
         self.spent = None         # this tick's `_read_spent` (None: fit to fight)
@@ -628,6 +635,7 @@ class Survive(Threat):
             return None
         c.quiet = not self._within(DISENGAGE_R)
         c.unwear_wound = self.UNWEAR_WOUND
+        c.trapped = self.TRAPPED_CARE and self.trapped_pass   # P25-Q: the trapped hold's tick unwears as a quiet one
         cmd = c.choose()
         self.why = dict(c.why)
         self._dressing_want(cmd is None and c.wants_dressing())
@@ -893,7 +901,13 @@ class Survive(Threat):
         machine), so assess runs once a tick.
 
         The observes (`Care.observe`, `Night.observe`, the Fight's and the Flee's, review-t21 minor 2's debt) run in
-        `_read` (`_read_observes`, Plan 25 Task 2's `OBSERVES_IN_READ`); off, here as Plan 24 left them."""
+        `_read` (`_read_observes`, Plan 25 Task 2's `OBSERVES_IN_READ`); off, here as Plan 24 left them.
+
+        Ruling P25-Q (`TRAPPED_CARE`; F5, `f_goals_6-20261030-192251`: 215 `trapped` lines with no command and no care
+        tried, five parts bleeding, a bandage and four rags held): a threat answer that is the Flee's trapped hold
+        (`trapped_pass`: no command, `why.trapped`) is kept back and the care branch tried; a care answer (its command,
+        or its own running action held) takes the tick, its line the care's with the threat's why beside it; else the
+        hold takes the tick as before (no lower branch runs under it)."""
         kill = self._fight_kill
         if not self.OBSERVES_IN_READ and self.fight is not None:
             self._observe(self.fight)
@@ -901,7 +915,11 @@ class Survive(Threat):
         kill = self._finish_kill if kill is None else kill   # P24-AQ: the flee's finishing stomp's, read in `_read`
         self.need_mark = None
         branch, owner, cmd, cooled, tried = None, None, None, None, {}
+        held = None   # P25-Q: the threat's trapped hold, kept back while the care branch is tried
         for name in STEPS:
+            if held is not None and name != "care":
+                branch, (owner, cmd) = "threat", held
+                break
             if name == "stock":   # P24-AB: the care's rag stock on an idle tick, behind the need, before the goal
                 self.why = {}
                 ans = self._care_stock()
@@ -913,6 +931,9 @@ class Survive(Threat):
             self.why = {}
             ans = getattr(self, "_" + name)()
             tried[name] = self.why
+            if name == "threat" and ans is not None and self.TRAPPED_CARE and self.trapped_pass:
+                held = ans
+                continue
             if ans is None:
                 continue
             if name != "threat" and ans[1] is not None and self._cooling(ans[1]):   # a threat is never waited out
