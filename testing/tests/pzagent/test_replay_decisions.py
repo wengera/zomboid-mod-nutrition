@@ -92,8 +92,18 @@ def pre_t4(sv, keep=()):
     P25-L, and SHELTER_LEGS, P25-N), but those named in `keep`. P25-G (the shun loop: the goal source, the runner's
     cooling, the view's `shunned` why), P25-I (the corner's third branch's why), P25-M (the hold's `release` why)
     and P25-O (the hello's two-number mod version, a defect fix: no golden's hello reads "1.7") move no golden, so
-    they have no switch (`test_iteration_14_moves_no_golden`)."""
+    they have no switch (`test_iteration_14_moves_no_golden`). Plan 25 Task 10: iteration 15's switches (`pre_t5`) off
+    with them, so every seam onto an earlier rule reads them off."""
     for name in S.T4_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t5(sv)
+
+
+def pre_t5(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 25 Task 10 (survival iteration 15): its switches off
+    (`survive.T5_SWITCHES`), but those named in `keep` (`test_iteration_15_moves_no_golden`)."""
+    for name in S.T5_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -1408,5 +1418,19 @@ def test_iteration_14_moves_no_golden(key):
     with open(R.golden_path(key), encoding="utf-8") as f:
         head = json.load(f)
     text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t4)), head["base"],
+                         R.RUNS[key], head["recorded"], R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert text.encode("utf-8") == golden(key)
+
+
+# ================================================================ Plan 25 Task 10: iteration 15 on the goldens
+@pytest.mark.parametrize("key", sorted(PRE_T3))
+def test_iteration_15_moves_no_golden(key):
+    """Task 10's rules move no golden: the six are byte-identical with them on (`test_the_golden_is_reproduced_byte_
+    for_byte_from_its_artifact`) and with iteration 15's switches off (`pre_t5`). P25-P's unarmed fight needs a build
+    announcing the PZA/1.7 `shove`, which no golden's build does (their hellos read 1.2 to 1.5.x), so every unarmed
+    golden tick flees `unarmed` as before."""
+    with open(R.golden_path(key), encoding="utf-8") as f:
+        head = json.load(f)
+    text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t5)), head["base"],
                          R.RUNS[key], head["recorded"], R.SPANS.get(key), R.HELLO_CAPS.get(key))
     assert text.encode("utf-8") == golden(key)

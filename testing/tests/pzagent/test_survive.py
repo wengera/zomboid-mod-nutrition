@@ -178,11 +178,19 @@ def test_with_no_fight_running_the_too_many_count_reads_danger_r(tmp_path):
 
 
 def test_unarmed_flees(tmp_path):
+    """Named change, ruling P25-P (Plan 25 Task 10): unarmed, one zombie within DANGER_R is fought (`test_survive_w`);
+    two within it flee `unarmed` as before, and with `UNARMED_FIGHT` off one does too."""
     r, sv = make(tmp_path)
-    r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None)
+    r.frame(zombies=[zombie(1, 103.0, 200.0), zombie(2, 100.0, 204.0)], weapon=None)
     tick(r, sv)
     assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "unarmed"
     assert last(tmp_path)["inputs"]["armed"] is False
+    (tmp_path / "off").mkdir()
+    r2, sv2 = make(tmp_path / "off")
+    sv2.UNARMED_FIGHT = False
+    r2.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None)
+    tick(r2, sv2)
+    assert r2.cmd()[0] == "steer" and threat_why(tmp_path / "off")["flee"] == "unarmed"
 
 
 def test_low_health_flees(tmp_path):
@@ -569,8 +577,10 @@ def test_a_superseded_action_is_not_a_failure(tmp_path):
     assert r.cmd() == ("consume", {"itemId": 701}) and last(tmp_path)["inputs"]["cooled"] is None
 
 
-@pytest.mark.parametrize("weapon, want", [(BAT, "attack"), (None, "steer")])
+@pytest.mark.parametrize("weapon, want", [(BAT, "attack"), (None, "shove")])
 def test_a_failed_fight_action_never_passes_the_threat_branch_over(tmp_path, weapon, want):
+    """Named change, ruling P25-P (Plan 25 Task 10): unarmed, the lone zombie at point blank is shoved (the flee's
+    steer before)."""
     r, sv = make(tmp_path)
     r.frame(zombies=[zombie(1, 101.0, 200.0)])
     tick(r, sv)
@@ -676,6 +686,7 @@ def test_one_threat_with_a_wound_is_still_fought(tmp_path):
 # Plan 22 run 2's last flee was pinned at load level 4: a flee at DROP_AT or above drops the spare item first.
 def test_a_flee_at_load_level_three_drops_one_spare_item_first_then_steers(tmp_path):
     r, sv = make(tmp_path)
+    sv.UNARMED_FIGHT = False   # named change, P25-P (Plan 25 Task 10): unarmed, one zombie is fought; off, the flee
     r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
     r.event("item_added", itemId=603, fullType="Base.Nails", weight=0.5)
     r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None, level=3)
@@ -695,6 +706,7 @@ def test_a_flee_at_load_level_three_drops_one_spare_item_first_then_steers(tmp_p
 
 def test_a_flee_drop_waits_on_its_drop_and_a_new_flee_drops_again(tmp_path):
     r, sv = make(tmp_path)
+    sv.UNARMED_FIGHT = False   # named change, P25-P (Plan 25 Task 10): unarmed, one zombie is fought; off, the flee
     r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
     r.event("item_added", itemId=603, fullType="Base.Nails", weight=0.5)
     r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None, level=4)
@@ -718,6 +730,7 @@ def test_a_flee_drop_waits_on_its_drop_and_a_new_flee_drops_again(tmp_path):
 
 def test_a_flee_under_drop_at_never_drops(tmp_path):
     r, sv = make(tmp_path)
+    sv.UNARMED_FIGHT = False   # named change, P25-P (Plan 25 Task 10): unarmed, one zombie is fought; off, the flee
     r.event("item_added", itemId=602, fullType="Base.Plank", weight=3.0)
     r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None, level=2)
     tick(r, sv)
@@ -1180,6 +1193,7 @@ def test_a_zombie_in_the_corridor_to_the_door_refuses_it(tmp_path, far):
     against-nearest test; a known zombie on the line beyond the hold radius refuses it too."""
     from .test_night import CLOSED
     r, sv = make(tmp_path)
+    sv.UNARMED_FIGHT = False   # named change, P25-P (Plan 25 Task 10): unarmed, one zombie is fought; off, the flee
     shelter_world(r, CLOSED)
     me = (100.0, 201.5)
     on_line = zombie(2, 111.0 if far else 104.0, 201.6, me=me)   # far: 11 tiles, not held
@@ -1203,6 +1217,7 @@ def test_a_known_zombie_inside_the_building_refuses_it(tmp_path):
     """M4."""
     from .test_night import CLOSED
     r, sv = make(tmp_path)
+    sv.UNARMED_FIGHT = False   # named change, P25-P (Plan 25 Task 10): unarmed, one zombie is fought; off, the flee
     shelter_world(r, CLOSED)
     me = (100.0, 201.5)
     r.frame(x=me[0], y=me[1], zombies=[zombie(1, 99.5, 201.5, me=me), zombie(2, 113.5, 202.5, me=me)], weapon=None)
@@ -1314,6 +1329,7 @@ def test_a_running_flee_counts_many_within_danger_r_and_holds_the_rest(tmp_path)
     """Ruling 2: the hold radius widens `many` only while a fight runs; a flee with three held, one within 6, reads
     `held`."""
     r, sv = make(tmp_path)
+    sv.UNARMED_FIGHT = False   # named change, P25-P (Plan 25 Task 10): unarmed, one zombie is fought; off, the flee
     r.frame(zombies=[zombie(1, 103.0, 200.0)], weapon=None)
     tick(r, sv)
     r.answer()
@@ -1328,6 +1344,7 @@ def test_a_door_refused_at_the_first_re_aim_is_taken_at_the_next(tmp_path):
     next re-aim picks the door."""
     from .test_night import CLOSED
     r, sv = make(tmp_path)
+    sv.UNARMED_FIGHT = False   # named change, P25-P (Plan 25 Task 10): unarmed, one zombie is fought; off, the flee
     shelter_world(r, CLOSED)
     me = (100.0, 201.5)
     r.frame(x=me[0], y=me[1], zombies=[zombie(1, 100.8, 201.5, me=me)], weapon=None)

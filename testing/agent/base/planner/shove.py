@@ -21,20 +21,21 @@ class FightShove:
         - ruling P24-AG: `arm_pain` at or above STRAIN_SOFT (the swing's damage divided by armPain / 10, #4370), or
           any hold (`spent`, ruling R2), and the target at point blank (POINT_BLANK_R): the shove, which strains the
           arms about a third less than a bat's swing and knocks down 35 + 2 x Strength in 100 (#4373), every time
-          (logged `shove` "strain", or "spent" for a hold with the pain under STRAIN_SOFT);
+          (logged `shove` "strain", or "spent" for a hold with the pain under STRAIN_SOFT); ruling P25-P: no weapon
+          held (`unarmed`), the same shove at point blank whatever the pain, logged `shove` "unarmed";
         - ruling P24-AH: in a standing fight (`standing`), a second standing zombie inside KEEP_R: the nearer of the
           two is shoved (within the Lua's SHOVE_R) before the next swing, once a swing (`_shoved`)."""
         if not self.world.can("shove"):
             return None
         pain = arm_pain(self.world)
         sore = pain is not None and pain >= STRAIN_SOFT
-        blank = (sore or self.spent) and d <= POINT_BLANK_R
+        blank = (sore or self.spent or self.unarmed) and d <= POINT_BLANK_R
         if blank and "corner_break" in self.rules and self._shove_missed(zid):
             corner = self._corner(zid, z, sore)   # P25-A: the break or the undivided swing, else the shove again
             if corner is not None:
                 return corner
         if blank and self._swing_ok("shove", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
-            self.why.update({"shove": "strain" if sore else "spent", "strain": pain})
+            self.why.update({"shove": "unarmed" if self.unarmed else "strain" if sore else "spent", "strain": pain})
             return Shove(zid)
         if not self.standing() or self._shoved:
             return None
@@ -94,7 +95,8 @@ class FightShove:
         #4436): where the lone target would be shoved again, after SHOVE_BREAK_N missed shoves in a row at it within
         SHOVE_BREAK_N x SHOVE_REPEAT_S (`_missed_n`), the Fight breaks away as the two-zombie break does, logged
         `corner` {kind "break", shoved, n, misses}, its run of misses reset; never a Doorway's (its stand ends on its
-        own wound, P25-K), and only with the `shove_break` rule on (`SHOVE_BREAK`)."""
+        own wound, P25-K), and only with the `shove_break` rule on (`SHOVE_BREAK`). Ruling P25-P: an unarmed Fight
+        (`unarmed`) has no swing to take, so its lone target is shoved again (or broken from) as under a divided one."""
         n = len(self._standing(FIGHT_REACH))
         mx, my = me_xy(self.world)
         dx, dy = mx - z["x"], my - z["y"]
@@ -103,7 +105,7 @@ class FightShove:
         if v is not None:
             self.why["corner"] = {"kind": "break", "shoved": zid, "n": n}
             return Steer(v[0], v[1], FLEE_S, FLEE_GAIT)
-        if sore or "endurance" in self.spent or "tired" in self.spent:
+        if sore or self.unarmed or "endurance" in self.spent or "tired" in self.spent:
             k = self._missed_n(zid)
             if ("shove_break" in self.rules and self.doorway is None and n < 2 and k >= SHOVE_BREAK_N
                     and dd > 0.0):

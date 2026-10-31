@@ -189,6 +189,7 @@ class Fight(FightPull, FightFinish, FightShove, Policy):
         self._shove_a = {}                  # zombie id -> the last shove sent at it (P25-A: its end and its wall)
         self._fence_leg = None              # the fence wait's leg kind the last aim was sent for (P25-F), else None
         self._misses = None                 # (zombie id, [send walls]) of the missed shoves in a row at it (P25-L)
+        self.unarmed = False                # Survive sets it each tick: the unarmed fight (P25-P), no swing, no seek
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -345,7 +346,7 @@ class Fight(FightPull, FightFinish, FightShove, Policy):
         """Ruling P24-X: the Fight is sought (`seek`) and target `t` (id, zombie, dist) has not yet come within KEEP_R
         (`sought`) and may be sought (`seek_allowed`: Task 18 fix 1's ruling 2, never from a room or door square, nor
         across a known fence at a chasing target): its legs close on it (`seek`), a walk at a walk beyond AIM_R."""
-        return (self.seek and t is not None and t[0] not in self.sought
+        return (self.seek and not self.unarmed and t is not None and t[0] not in self.sought
                 and seek_allowed(self.world, t, self.hold_ground) and not self._pull_waits(t))
 
     def _observe_seek(self, t):
@@ -579,9 +580,10 @@ class Fight(FightPull, FightFinish, FightShove, Policy):
 
     def no_swing(self):
         """The Fight sends no swing, the floor strike included (rulings P24-AP and R2): `body.armPain` at STRAIN_HARD
-        (`arms_hurt`), or any hold Survive read this tick (`spent`: the arms', the endurance or the tired hold, each
-        halving a swing, #4370, #4371)."""
-        return arms_hurt(self.world) or bool(self.spent)
+        (`arms_hurt`), any hold Survive read this tick (`spent`: the arms', the endurance or the tired hold, each
+        halving a swing, #4370, #4371), or no weapon held (`unarmed`, ruling P25-P: the shove and the stomp need
+        none, the Lua's K.STAND_R)."""
+        return arms_hurt(self.world) or bool(self.spent) or self.unarmed
 
     def _wounded_leg(self, zid, z, d):
         """Ruling P24-AP, the wounded fight (#4370: at `body.armPain` STRAIN_HARD a swing does half its damage or less,

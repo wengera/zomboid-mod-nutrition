@@ -85,6 +85,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
     STAND_WOUND = True    # ruling P25-K: the doorway stand leaves on a part bleeding since it began (`_stand_wound`)
     SHOVE_BREAK = True    # ruling P25-L: after SHOVE_BREAK_N missed shoves at a lone target the Fight breaks away
                           # (`shove.FightShove._corner`)
+    # survival iteration 15 (Plan 25 Task 10; survive.py's docstring, Survival 17): each switch off is the rule before
+    # it, all of them in `survive.T5_SWITCHES` (the replay tests' `pre_t5`)
+    UNARMED_FIGHT = True  # ruling P25-P: unarmed, one zombie within DANGER_R is fought by the shove and the stomp,
+                          # never the swing (`_unarmed_fight`, `Fight.unarmed`); off, every unarmed tick flees `unarmed`
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -214,7 +218,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         """Plan 21b's hysteresis (the module docstring): the flee reason, else None. `n` is the DANGER_R count (the
         `pair` rule's); `many` is `_many`."""
         health = self._health()
-        if not self._armed():
+        if not self._armed() and (not self._unarmed_fight(n) or self._many(held, n)):
             return "unarmed"
         if self._many(held, n):
             return "many"
@@ -224,15 +228,25 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             fallen = self._pair_finish()   # P25-J (3): the finish of a fallen (or knocked) one goes before the flee
             if fallen is None:
                 return "pair"
-            reason = self._unpaired(held, health)
+            reason = self._unpaired(held, health, n)
             if reason is None:
                 self.pair_yield = fallen   # kept only where the fight answers: never on a `strain` (or any flee) line
             return reason
-        return self._unpaired(held, health)
+        return self._unpaired(held, health, n)
 
-    def _unpaired(self, held, health):
-        """The hysteresis past the `pair` rule (`_hysteresis`): `strain`, `unreachable`, `stalled`, `held`, else
-        None."""
+    def _unarmed_fight(self, n):
+        """Ruling P25-P (F5, `f_goals_6-20261030-192251`: 27 fights, every one fled `unarmed`, no kill; the Lua's shove
+        takes a standing zombie within K.STAND_R with no weapon, and the stomp has been every session's kill since
+        E11): with no weapon held, the Fight is allowed (`UNARMED_FIGHT` on): the build announces `shove`, one zombie
+        within DANGER_R (`n` 1: two or more flee `unarmed` as before) and the health at or above FLEE_HEALTH_PAIR. The
+        Fight it makes sends no swing (`Fight.unarmed`, `no_swing`): the stance, the shove at point blank and the stomp
+        of the fallen; it is never sought (`Fight.seeking`), the corner and the doorway stand stay armed-only."""
+        return (self.UNARMED_FIGHT and not self._armed() and self.world.can("shove") and n == 1
+                and self._health() >= FLEE_HEALTH_PAIR)
+
+    def _unpaired(self, held, health, n):
+        """The hysteresis past the `pair` rule (`_hysteresis`; `n` the DANGER_R count): `strain`, `unreachable`,
+        `stalled`, `held`, else None."""
         if self.spent is not None and not self._wounded_fight():   # P24-AG, P24-AK: the arms, the endurance or the
             return "strain"                                        # tiredness halve every swing; P24-AP within KEEP_R
         if not self._reachable_held():
@@ -243,8 +257,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
                 return "stalled"
             if not self.ENGAGE:   # before P24-X: one held, at the refight margin
                 return "held" if len(held) > 1 or health < FLEE_HEALTH + REFIGHT_MARGIN else None
-            if not self._takes_on(len(held)):   # P24-X: the flee turns to fight one or two at the fight's line
-                return "held"
+            if not (self._takes_on(len(held)) or self._unarmed_fight(n)):   # P24-X: the flee turns to fight one or
+                return "held"                                                 # two at the fight's line; P25-P unarmed
             if self.flee_health and health < FLEE_HEALTH + REFIGHT_MARGIN:   # the health flee stays, its margin kept
                 return "held"
             return None
@@ -429,7 +443,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         - Otherwise Plan 21b's hysteresis (`_flee_reason`): `fight` when it reads None, else `flee`.
         - Fix round 1: a broken hold at a chosen shelter fights only in its doorway or inside (`door`, the review's
           I4); a `flee` on a room square with no way out and no adoption left is the Fight when armed
-          (`_trapped_fight`, G3).
+          (`_trapped_fight`, G3), or unarmed (ruling P25-P) with one zombie within DANGER_R and a reachable one within
+          FIGHT_REACH, the sheltered row's flee included (the unarmed character has no door fight).
         Not a pure function: it sets `sheltered`, `door`, `broken`, `cornered`, `corner_yield`, `behind` and `listed`
         (`_breach` before it set `closing`),
         and a corner inside a chosen shelter drops the sheltered Flee, so the next flee walks out rather than
@@ -464,8 +479,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             if self._armed() and len(held) <= MAX_FIGHT and self._reachable_held():
                 return ("door", None) if self.sheltered else ("fight", None)   # I4: a shelter's fight stays inside
             return self._trapped_fight(held, inside) or ("flee", reason or "broken")
-        if self.sheltered:
-            return "flee", reason or "sheltered"
+        if self.sheltered:   # P25-P: unarmed, a lone zombie in reach of a shelter with no way out is shoved
+            fight = None if self._armed() else self._trapped_fight(held, inside)
+            return fight or ("flee", reason or "sheltered")
         if reason is None:
             reason = self._kept_flee()
             if reason is None:
@@ -505,10 +521,16 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
     def _trapped_fight(self, held, inside):
         """Fix round 1, the review's G3: a flee trapped on a room square (`_trapped`) never steers: armed with a
         reachable held threat, `("fight", None)`; else None (the Flee's trapped hold: M4, an unarmed character inside
-        with no way out stands)."""
-        if not (self._armed() and self._reachable_held() and self._trapped(held, inside)):
+        with no way out stands). Ruling P25-P (F5: the trapped stand's 110 s, one zombie biting through the window):
+        unarmed, the same Fight where the unarmed fight is allowed (`_unarmed_fight`) and a reachable held threat
+        stands within FIGHT_REACH (the shove's side of the room: farther, the hold stands, and P25-Q's care runs)."""
+        reach = self._reachable_held()
+        if not (reach and self._trapped(held, inside)):
             return None
-        return "fight", None
+        if self._armed():
+            return "fight", None
+        near = min(zdist(self.world, z) for _, z in reach)
+        return ("fight", None) if near <= FIGHT_REACH and self._unarmed_fight(len(self._within(DANGER_R))) else None
 
     def _end_flee_episode(self):
         """A flee episode's own flags cleared: its stall origin, its one load drop, its `many` (P23-AM 1) and its
@@ -635,10 +657,13 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             policy.threats = held
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
+            policy.unarmed = self._unarmed()     # P25-P: no swing, no seek
             ans = self._answer(policy)
             if self.pair_yield is not None and not self._finishes(self.pair_yield):
                 self.pair_yield = None   # P25-J (3): logged only where the Fight's finish answers it
         self.why.update({"fight": True} if reason is None else {"flee": reason})
+        if want == "fight" and policy.unarmed:
+            self.why["unarmed_fight"] = True   # P25-P: the Fight's shove and stomp, no weapon held
         if reason == "strain" or self.corner_yield == "strain":
             self.why["strain"] = self.spent   # P24-AG: the why names the strain
         if want == "flee" and walk and self._walking(policy, ans):
@@ -678,6 +703,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         if ride is not None:
             self.why["ride"] = ride.aid   # P24-U: a bandage rides the leg this answer holds or re-aims
         return ans if ans is not None else (policy, None)
+
+    def _unarmed(self):
+        """Ruling P25-P: no weapon held and `UNARMED_FIGHT` on (the Fight's `unarmed`; the `many` flee's finish sends
+        no floor strike, a swing)."""
+        return self.UNARMED_FIGHT and not self._armed()
 
     def _finishes(self, zid):
         """The Fight's answer this tick (its `why`) is the finish of `zid`: its stomp (sent or running) or the knock

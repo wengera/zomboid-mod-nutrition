@@ -78,9 +78,9 @@ class ThreatFinish:
         standing zombie within DANGER_R (the next standing one beyond it), takes one `Stomp` before the flee resumes, or
         the weapon's floor strike (an `Attack` of it, only within FIGHT_REACH) when the stomp is not announced, would
         be refused (a standing zombie within STAND_MIN_R) or ended refused; never the floor strike at `body.armPain`
-        STRAIN_HARD nor under any hold (P24-AP and R2: a swing). Sent as the Flee's own action (its leg superseded, the
-        steer resumed on the next tick, as `_flee_drop`); one stomp and at most one floor strike a zombie
-        (`finishing`); none in a hit reaction. With a standing zombie within DANGER_R the flee runs as today. Its end is
+        STRAIN_HARD, under any hold (P24-AP and R2: a swing) nor unarmed (P25-P, `_unarmed`). Sent as the Flee's own
+        action (its leg superseded, the steer resumed on the next tick, as `_flee_drop`); one stomp and at most one
+        floor strike a zombie (`finishing`); none in a hit reaction. With a standing zombie within DANGER_R the flee runs as today. Its end is
         read by `_finish_end` (a `targetDead` is a kill). Logged `finish`.
         Ruling P24-AV: a stomp that failed `stood` (the target rose) reads the target again on the next tick: standing
         within DANGER_R the flee runs (no finish); fallen again, one more stomp (`kind` "stomp2"), and that one failed
@@ -123,8 +123,9 @@ class ThreatFinish:
             cmd, kind = Stomp(zid), ("stomp" if done is None else "stomp2")
         elif done in ("stomp", "stomp2") and end is None:
             return None   # the stomp went (or runs) and was not refused: the one finish is spent
-        elif arms_hurt(self.world) or self._fight_spent():
-            self.finishing[zid] = "floor"   # P24-AP, R2: no floor strike (a swing) at STRAIN_HARD or under a hold
+        elif arms_hurt(self.world) or self._fight_spent() or self._unarmed():
+            self.finishing[zid] = "floor"   # P24-AP, R2, P25-P: no floor strike (a swing) at STRAIN_HARD, under a hold
+                                            # or with no weapon held
             return None
         elif best[0][0] > FIGHT_REACH:
             return None   # the floor strike swings from where the player stands: only within FIGHT_REACH

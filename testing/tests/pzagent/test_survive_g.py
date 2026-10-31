@@ -228,7 +228,10 @@ def test_one_zombie_under_flee_health_is_fled_never_stood(tmp_path):
 
 
 def test_unarmed_the_stance_is_never_taken(tmp_path):
+    """Named change, ruling P25-P (Plan 25 Task 10): with `UNARMED_FIGHT` off, unarmed, no stance (the flee); on, the
+    lone zombie is fought from the stance (`test_survive_w`)."""
     r, sv = make(tmp_path)
+    sv.UNARMED_FIGHT = False
     r.frame(zombies=[zd(1, 104.0, 200.0)], weapon=None)
     tick(r, sv)
     assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "unarmed"

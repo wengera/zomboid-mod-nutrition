@@ -248,6 +248,12 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   threat why, no switch); `T4_SWITCHES` off is the rule before the three switched. The amendments: P25-O (the hello's
   two-number mod version, `World.item_fields`: no switch, a defect) and P25-N (a Shelter goal's and the night's
   approach to a far door in legs, `goal_policies.Shelter`, `night.Night._leg`; `SHELTER_LEGS`).
+- Survival 17 (Plan 25 Task 10, survival iteration 15, F5 and E13): the rulings in the plan's Task 10 and its
+  amendments: P25-P, the unarmed fight (no weapon held, one zombie within DANGER_R and the health at or above
+  FLEE_HEALTH_PAIR on a build announcing `shove`: the Fight's stance, the shove at point blank and the stomp, never a
+  swing or a seek; the trapped fight unarmed within FIGHT_REACH; the doorway stand armed-only;
+  `threat.Threat._unarmed_fight`, `Fight.unarmed`, logged `unarmed_fight` and `shove` "unarmed"; `UNARMED_FIGHT`);
+  `T5_SWITCHES` off is the rule before them.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -344,6 +350,8 @@ STEPS = ("threat", "care", "need", "load", "night", "stock", "goal")   # assess(
 T4_SWITCHES = ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHELTER_LEGS")   # survival iteration
                          # 14 (Plan 25 Tasks 7 and 8): the switches of P25-H, P25-J, P25-K, P25-L and P25-N; off, the
                          # rule before each
+T5_SWITCHES = ("UNARMED_FIGHT",)   # survival iteration 15 (Plan 25 Task 10): the switch of P25-P; off, the rule
+                         # before it
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -363,7 +371,8 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
            "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "FINISH_R",
            "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
-           "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T4_SWITCHES"]
+           "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T4_SWITCHES",
+           "T5_SWITCHES"]
 
 
 @dataclass
