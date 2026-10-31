@@ -3024,3 +3024,249 @@ def grade_e11(out, prev=None, decision_lines=None, state_dir=None, lines=None):
 def gate_e11(outs):
     """gate_e10 (grade_e11 changes none of what it reads), named gate_e11."""
     return gate_e10(outs)
+
+
+# ================================================================ pass 12 (Plan 25 Task 11): survival iteration 15's rulings
+# grade_e12 is grade_e11 plus five readings of iteration 15's why fields (P25-P to P25-T; Task 10's report names them, the planner
+# at dfa36e5a is where each key is written), each a reading of the decision log's whys, the artifact's goal calls and actions, or
+# the state log's frames, except where a clause is marked inference. grade_e4 to grade_e11 are frozen (CLAUDE.md section 5). The
+# whys of a branch tried sit at `inputs.branches[<branch>]` on EVERY line (Survive.assess), so a block that reads a field the
+# Threat writes reads it through `_threat_why` on the lines it names and never by the line's own `branch` alone.
+from agent.base.planner.llm import EXPLORE_MAX_TILES    # noqa: E402 - P25-R: the range an ExploreToward is refused beyond
+from agent.base.planner.policies import SHOVE_BREAK_N    # noqa: E402 - P25-T: the misses a run break reads
+
+
+def _flag_fight(L, key):
+    """([line], [run]) of the fight lines whose threat why carries `key` true, and the fight runs (`L.runs()`) holding one."""
+    lines = [ln for ln in L.rows if L.is_fight(ln) and L.why(ln).get(key) is True]
+    return lines, [r for r in L.runs() if any(L.why(ln).get(key) is True for ln in r)]
+
+
+def _health_at(L, ln):
+    """The health of the frame at the line (state log), else None."""
+    return _n(_d(_d(L.frame(ln)).get("body")).get("health"))
+
+
+def _sent_count(lines, kind):
+    return sum(1 for ln in lines if _sent(ln, kind))
+
+
+def e_unarmed(L):
+    """The unarmed fight (P25-P): {read, lines, runs, shoves, stomps, attacks, shove_unarmed, kills, flee_unarmed}. The fight
+    lines whose threat why reads `unarmed_fight` true (reading) and the fight runs holding one; `shoves`, `stomps` and
+    `attacks` the sent actions on those lines (`attacks` must read 0: the unarmed Fight takes no swing), `shove_unarmed` the
+    lines whose why names the shove `unarmed`, `kills` the zombies the actions of those lines killed (a result's targetDead),
+    and `flee_unarmed` the threat-branch lines answering `unarmed` with a flee (the flee the unarmed fight is the exception to).
+    Every key reads 0 on a log of iteration 14 or earlier (the field did not exist) except `flee_unarmed`, which E13's armed
+    chain reads 0 as well."""
+    if L is None:
+        return {"read": False}
+    lines, runs = _flag_fight(L, "unarmed_fight")
+    return {"read": True, "lines": len(lines), "runs": len(runs), "shoves": _sent_count(lines, "shove"),
+            "stomps": _sent_count(lines, "stomp"), "attacks": _sent_count(lines, "attack"),
+            "shove_unarmed": sum(1 for ln in lines if L.why(ln).get("shove") == "unarmed"),
+            "kills": len(L.kill_ids(lines)),
+            "flee_unarmed": sum(1 for ln in L.rows if ln.get("branch") == "threat" and L.why(ln).get("flee") == "unarmed")}
+
+
+def e_trapped_care(L):
+    """The trapped hold's care ticks (P25-Q): {read, trapped_lines, hold_lines, care_lines, care_why, care_tried, care_sent,
+    bandages, bandages_done, other_sent}. The lines, whatever branch answered, whose threat why carries `trapped` (reading:
+    the Flee's trapped hold, which exists since before iteration 15); `hold_lines` those the threat branch answered (the hold
+    took the tick), `care_lines` those the care branch answered (P25-Q: the hold passed the tick on), `care_why` the lines
+    whose care why is non-empty beside it, `care_tried` the hold lines that carry a tried care branch at all (the care ran
+    and had nothing to tend), `care_sent` the care lines that sent, `bandages` the sent `bandage` actions among them and
+    `bandages_done` those whose action row ended `done`, `other_sent` the rest by type (the unwear and the rip). On a log of
+    iteration 14 or earlier `care_lines` and `care_tried` read 0 while `trapped_lines` and `hold_lines` do not (the hold
+    never passed a tick on)."""
+    if L is None:
+        return {"read": False}
+    trapped = hold = care = why_n = tried = sent = bandages = done = 0
+    other = {}
+    for ln in L.rows:
+        if "trapped" not in L.why(ln):
+            continue
+        trapped += 1
+        why_n += 1 if _bw(ln, "care") else 0
+        if ln.get("branch") == "threat":
+            hold += 1
+            tried += 1 if "care" in _d(_d(ln.get("inputs")).get("branches")) else 0
+        elif ln.get("branch") == "care":
+            care += 1
+            if ln.get("sent") is not True:
+                continue
+            sent += 1
+            kind = _d(ln.get("action")).get("type")
+            if kind == "bandage":
+                bandages += 1
+                row = L.action(ln)
+                done += 1 if row is not None and row.get("state") == "done" else 0
+            else:
+                other[kind] = other.get(kind, 0) + 1
+    return {"read": True, "trapped_lines": trapped, "hold_lines": hold, "care_lines": care, "care_why": why_n,
+            "care_tried": tried, "care_sent": sent, "bandages": bandages, "bandages_done": done, "other_sent": other}
+
+
+def e_toward(out, lines):
+    """The `toward` acceptance (P25-R): {read, llm_calls, explore, beyond, max_dist, no_frame, refused_range, refused_woods}.
+    Off the artifact's `loop.llm.calls` (reading): `llm_calls` the calls, `explore` those that answered an ExploreToward the
+    place check passed, `refused_range` and `refused_woods` the calls refused `invalid: out of range` and `invalid: in the
+    woods`. `beyond` the passed ExploreTowards whose square centre lies farther than EXPLORE_MAX_TILES from the player's
+    position in the state log's frame at the call's wall, `max_dist` the farthest, `no_frame` those with no frame to read (an
+    inference: only the view's `toward` acceptance, `llm._at_toward`, passes a square beyond that range, and the frame at the
+    call's wall stands for the view's `pos`). The acceptance itself is not logged: a scripted chain proposes through no
+    place check, so every key reads 0 there (`llm_calls` 0 says so)."""
+    calls = [_d(c) for c in _l(_d(_d(_d(out).get("loop")).get("llm")).get("calls"))]
+    index = _frame_index(lines)
+    explore = beyond = nof = 0
+    dists = []
+    for c in calls:
+        g = _d(c.get("goal"))
+        if g.get("type") != "ExploreToward" or c.get("ok") is not True:
+            continue
+        explore += 1
+        me = _d(_d(_frame_at(index, _n(c.get("wall")))).get("me"))
+        px, py, gx, gy = _n(me.get("x")), _n(me.get("y")), _n(g.get("x")), _n(g.get("y"))
+        if None in (px, py, gx, gy):
+            nof += 1
+            continue
+        d = math.hypot(gx + 0.5 - px, gy + 0.5 - py)
+        if d > EXPLORE_MAX_TILES:
+            beyond += 1
+            dists.append(d)
+    return {"read": True, "llm_calls": len(calls), "explore": explore, "beyond": beyond,
+            "max_dist": max(dists) if dists else None, "no_frame": nof,
+            "refused_range": sum(1 for c in calls if c.get("error") == "invalid: out of range"),
+            "refused_woods": sum(1 for c in calls if c.get("error") == "invalid: in the woods")}
+
+
+def e_low_fight(L):
+    """The low fight (P25-S): {read, lines, runs, shoves, stomps, attacks, shove_low, kills, run_health, flee_health,
+    health_low}. The fight lines whose threat why reads `low_fight` true (reading) and the fight runs holding one, with
+    the sent shoves, stomps and attacks on those lines (`attacks` must read 0), `shove_low` the lines whose why names the
+    shove `low`, `kills` the zombies those lines' actions killed, `run_health` per run `{lines, first, last}` the health of the
+    state log's frame at the run's first and last line (reading; None without a frame), `flee_health` the threat-branch lines
+    answering `health` with a flee, and `health_low` the least health at a low-fight line or a `health` flee line."""
+    if L is None:
+        return {"read": False}
+    lines, runs = _flag_fight(L, "low_fight")
+    flee = [ln for ln in L.rows if ln.get("branch") == "threat" and L.why(ln).get("flee") == "health"]
+    seen = [h for h in (_health_at(L, ln) for ln in lines + flee) if h is not None]
+    return {"read": True, "lines": len(lines), "runs": len(runs), "shoves": _sent_count(lines, "shove"),
+            "stomps": _sent_count(lines, "stomp"), "attacks": _sent_count(lines, "attack"),
+            "shove_low": sum(1 for ln in lines if L.why(ln).get("shove") == "low"), "kills": len(L.kill_ids(lines)),
+            "run_health": [{"lines": len(r), "first": _health_at(L, r[0]), "last": _health_at(L, r[-1])} for r in runs],
+            "flee_health": len(flee), "health_low": min(seen) if seen else None}
+
+
+def e_run_breaks(L):
+    """The run-counted breaks (P25-T): {read, breaks, run_breaks, misses, spacings, spaced, max_gap, corner_shove,
+    shove_after_miss, answered_shove}. The threat lines whose why carries `corner` kind `break` with `misses` (reading:
+    P25-L's and P25-T's lone break; a break without `misses` is the two-zombie break of e_corner_kinds), `run_breaks` those
+    with `misses` at or above SHOVE_BREAK_N, their `misses`. `spacings` (an inference off the act lines) per break the wall
+    seconds between consecutive sent shoves at the broken target, over its last `misses` shoves since a knock-down or the
+    last break, `max_gap` the widest gap and `spaced` the breaks with a gap beyond SHOVE_REPEAT_S (the shoves the P25-L
+    window could not count). `corner_shove` the threat lines whose why reads `corner` kind `shove`, `shove_after_miss` the
+    sent shoves at a target whose last shove with a result ended `knockdown` false (reading: the result) and
+    `answered_shove` those whose own line reads `corner` kind `shove` (the corner answered the miss with the shove again).
+    P25-L's break existed on E13, so `breaks` may read above 0 on its log; `spaced` is the iteration 15 reading."""
+    if L is None:
+        return {"read": False}
+    shoves, last = {}, {}
+    breaks, spacings, gaps = [], [], []
+    corner_shove = after = answered = 0
+    for ln in L.rows:
+        c = L.why(ln).get("corner") if ln.get("branch") == "threat" else None
+        c = c if isinstance(c, dict) else {}
+        corner_shove += 1 if c.get("kind") == "shove" else 0
+        if _sent(ln, "shove"):
+            zid = _d(_d(ln.get("action")).get("args")).get("targetId")
+            shoves.setdefault(zid, []).append(_n(ln.get("wall")))
+            row = L.action(ln)
+            kd = L.res.get(row.get("aid"), {}).get("knockdown") if row is not None else None
+            if last.get(zid) is False:
+                after += 1
+                answered += 1 if c.get("kind") == "shove" else 0
+            if kd is True:
+                shoves[zid] = []
+            if kd is not None:
+                last[zid] = kd
+        if c.get("kind") != "break" or c.get("misses") is None:
+            continue
+        k = c.get("misses")
+        breaks.append(k)
+        walls = [w for w in shoves.get(c.get("shoved"), []) if w is not None][-k:] if isinstance(k, int) else []
+        gap = [round(b - a, 3) for a, b in zip(walls, walls[1:])]
+        spacings.append(gap)
+        gaps.extend(gap)
+        shoves[c.get("shoved")] = []
+    return {"read": True, "breaks": len(breaks), "run_breaks": sum(1 for k in breaks if isinstance(k, int) and k >= SHOVE_BREAK_N),
+            "misses": breaks, "spacings": spacings, "spaced": sum(1 for g in spacings if any(x > SHOVE_REPEAT_S for x in g)),
+            "max_gap": max(gaps) if gaps else None, "corner_shove": corner_shove, "shove_after_miss": after,
+            "answered_shove": answered}
+
+
+def report_lines_e12(g):
+    """report_lines_e11 lines (the gate line naming gate_e12) then the five pass 12 lines, each clause marked reading or
+    inference."""
+    g = _d(g)
+    out = [("gate_e12 " + l[len("gate_e11 "):]) if l.startswith("gate_e11 ") else l for l in report_lines_e11(g)]
+    un, tc, tw, lo, rb = (_d(g.get(x)) for x in ("unarmed", "trapped_care", "toward", "low_fight", "run_breaks"))
+    out.append(("unarmed fight (P25-P) [reading]: %s fight lines (%s runs, %s shoves, %s stomps, %s attacks (must read 0), "
+                "%s shove lines named unarmed), %s kills under them; %s `unarmed` flee lines" % (
+                    un.get("lines"), un.get("runs"), un.get("shoves"), un.get("stomps"), un.get("attacks"),
+                    un.get("shove_unarmed"), un.get("kills"), un.get("flee_unarmed"))) if un.get("read")
+               else "unarmed fight (P25-P): no decision log read")
+    out.append(("trapped care (P25-Q) [reading]: %s trapped lines, %s held by the threat branch (%s with the care tried), %s "
+                "taken by the care branch (%s sent: %s bandages, %s done; other %s); %s lines with a care why" % (
+                    tc.get("trapped_lines"), tc.get("hold_lines"), tc.get("care_tried"), tc.get("care_lines"),
+                    tc.get("care_sent"), tc.get("bandages"), tc.get("bandages_done"), tc.get("other_sent"),
+                    tc.get("care_why"))) if tc.get("read") else "trapped care (P25-Q): no decision log read")
+    out.append("toward (P25-R) [reading: the call rows]: %s LLM calls, %s passed ExploreTowards, %s beyond %s tiles of the "
+               "frame's position (farthest %s, %s without a frame) [inference: only the view's `toward` acceptance passes "
+               "them]; refused out of range %s, in the woods %s%s" % (
+                   tw.get("llm_calls"), tw.get("explore"), tw.get("beyond"), EXPLORE_MAX_TILES, tw.get("max_dist"),
+                   tw.get("no_frame"), tw.get("refused_range"), tw.get("refused_woods"),
+                   "" if tw.get("llm_calls") else " (no LLM call in this artifact: a scripted chain reads 0 by construction)"))
+    out.append(("low fight (P25-S) [reading]: %s fight lines (%s runs, %s shoves, %s stomps, %s attacks (must read 0), %s "
+                "shove lines named low), %s kills under them; health at each run's first and last line %s; %s `health` flee "
+                "lines; least health at a low-fight or health-flee line %s" % (
+                    lo.get("lines"), lo.get("runs"), lo.get("shoves"), lo.get("stomps"), lo.get("attacks"),
+                    lo.get("shove_low"), lo.get("kills"), lo.get("run_health"), lo.get("flee_health"),
+                    lo.get("health_low"))) if lo.get("read") else "low fight (P25-S): no decision log read")
+    out.append(("run breaks (P25-T) [reading]: %s lone breaks (misses %s), %s at SHOVE_BREAK_N or more; shove spacings %s "
+                "[inference: the sent shoves at the target], %s spaced past SHOVE_REPEAT_S (widest %s s); %s `corner` shove "
+                "lines; %s shoves at a target whose last result was a miss, %s answered by `corner` shove" % (
+                    rb.get("breaks"), rb.get("misses"), rb.get("run_breaks"), rb.get("spacings"), rb.get("spaced"),
+                    rb.get("max_gap"), rb.get("corner_shove"), rb.get("shove_after_miss"), rb.get("answered_shove")))
+               if rb.get("read") else "run breaks (P25-T): no decision log read")
+    return out
+
+
+def grade_e12(out, prev=None, decision_lines=None, state_dir=None, lines=None):
+    """grade_e11 under "grade_e12" with the five readings of survival iteration 15: `unarmed`, `trapped_care`, `low_fight`,
+    `run_breaks` (each {"read": False} without a decision log) and `toward` (the artifact's LLM calls and the state lines'
+    frames)."""
+    out = _d(out)
+    files = []
+    if lines is None:
+        lines, files = session_lines(state_dir) if state_dir is not None else ([], [])
+    g = grade_e11(out, prev, decision_lines, state_dir, lines=lines)
+    g["grade"] = "grade_e12"
+    if files and "frames_files" in g:
+        g["frames_files"] = files
+    L = None
+    if decision_lines is not None:
+        L = _Lines(out, decision_lines, lines)
+    g["unarmed"] = e_unarmed(L)
+    g["trapped_care"] = e_trapped_care(L)
+    g["toward"] = e_toward(out, lines)
+    g["low_fight"] = e_low_fight(L)
+    g["run_breaks"] = e_run_breaks(L)
+    g["report_lines"] = report_lines_e12(g)
+    return g
+
+
+def gate_e12(outs):
+    """gate_e11 (grade_e12 changes none of what it reads), named gate_e12."""
+    return gate_e11(outs)
