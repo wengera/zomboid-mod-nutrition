@@ -93,6 +93,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
                           # `unarmed`
     LOW_FIGHT = True      # ruling P25-S: under FLEE_HEALTH, at or above FLEE_HEALTH_FLOOR, one zombie within DANGER_R
                           # is fought by the shove and the stomp (`_low_fight`); off, every such tick flees `health`
+    SHOVE_BREAK_RUN = True  # ruling P25-T: the break's misses count over the Fight's life, any spacing
+                            # (`shove.FightShove._missed_n`, `_lone_break`); off, P25-L's window
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -749,10 +751,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         return flee.busy() and flee.last.args.get("gait") == "walk"
 
     def _fight_rules(self):
-        """The iterations 13 and 14 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
+        """The iterations 13 to 15 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
         return frozenset(rule for rule, on in (("corner_break", self.CORNER_BREAK), ("finish_first", self.FINISH_FIRST),
                                                ("ride_wait", self.RIDE_WAIT), ("fence_wait", self.FENCE_WAIT),
-                                               ("finish_far", self.FINISH_FAR), ("shove_break", self.SHOVE_BREAK))
+                                               ("finish_far", self.FINISH_FAR), ("shove_break", self.SHOVE_BREAK),
+                                               ("shove_break_run", self.SHOVE_BREAK_RUN))
                          if on)
 
     def _door_targets(self):

@@ -377,8 +377,11 @@ def test_misses_older_than_the_window_do_not_count(tmp_path):
     """The window SHOVE_BREAK_N x SHOVE_REPEAT_S (9 s): the first miss (sent at 0), a pause of 7 s, a second shove (no
     corner: past SHOVE_REPEAT_S) and a third, both missed; read at 9.5 s the first lies outside the window, two inside
     it: the shove again, not the break; that fourth shove missed too, three lie inside the window at 10 s: the break
-    (8 fix 1, review-t8 minor 5: the case fails at the parent on that behaviour, the window read by literal)."""
+    (8 fix 1, review-t8 minor 5: the case fails at the parent on that behaviour, the window read by literal). Named
+    change, ruling P25-T (Plan 25 Task 10): the misses count over the Fight's life; this case pins the window with
+    `SHOVE_BREAK_RUN` off (`test_survive_w` the run)."""
     r, sv = shoved(tmp_path, [z(1, 100.49)])
+    sv.SHOVE_BREAK_RUN = False
     t0 = r.clock() - 0.5
     r.advance(7.0)
     fr(r, [z(1, 100.49)], WOUND, NO_STIFF, health=70.0)

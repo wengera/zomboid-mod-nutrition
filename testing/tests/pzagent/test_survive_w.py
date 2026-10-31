@@ -9,11 +9,14 @@ mod over PZA/1.7.1.
 - P25-R, the model told what the program will not do unarmed, and an ExploreToward at the view's `toward` accepted.
 - P25-S, the low fight: under FLEE_HEALTH, at or above FLEE_HEALTH_FLOOR, one zombie within DANGER_R is fought by the
   shove and the stomp (E13: the health held near 31 from game minute 712, the last 15 fights fled `health`).
+- P25-T, the break's misses counted over the Fight's life: SHOVE_BREAK_N misses at one target, whatever their spacing,
+  take the break (E13's fight 18: eight shoves 28.5 s apart, the window never read a run).
 - The residual of the F5 write-up: on a `1.7` hello the wear pick leaves out a garment an `item_changed` read worn.
 """
 import pytest
 
 from agent.base.planner import doorway as D
+from agent.base.planner import fight as F
 from agent.base.planner import goal_prompt as GP
 from agent.base.planner import goals as G
 from agent.base.planner import llm as L
@@ -29,11 +32,13 @@ from .test_survive_p import POST, stood
 from .test_survive_p import z as dz
 from .test_survive_p import why as door_why
 from .test_survive_q import z
-from .test_survive_t import DOWN, MISS
+from .test_survive_q import fr
+from .test_survive_t import DOWN, MISS, NO_STIFF, WOUND, shoved
 
 
 def test_the_iteration_15_switches():
-    assert S.T5_SWITCHES == ("UNARMED_FIGHT", "TRAPPED_CARE", "LOW_FIGHT")
+    assert S.T5_SWITCHES == ("UNARMED_FIGHT", "TRAPPED_CARE", "LOW_FIGHT", "SHOVE_BREAK_RUN")
+    assert "shove_break_run" in F.FIGHT_RULES and P.SHOVE_BREAK_N == 3 and P.SHOVE_REPEAT_S == 3.0
     for name in S.T5_SWITCHES:
         assert getattr(S.Survive, name) is True, name
     assert not set(S.T5_SWITCHES) & (set(S.T4_SWITCHES) | set(T.T3_SWITCHES))
@@ -436,6 +441,102 @@ def test_unarmed_under_flee_health_the_unarmed_flee_stays(tmp_path):
     lone(r, 100.8, health=35.0)
     a = tick(r, sv)
     assert a.type == "steer" and threat_why(tmp_path)["flee"] == "unarmed"
+
+
+# ================================================================ P25-T: the misses counted over the run
+def spaced(r, sv, end=MISS, gap=5.0, x=100.8):
+    """One shove at the lone zombie at `x` (unarmed: every shove at point blank), answered `end`, then `gap` seconds."""
+    lone(r, x)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("shove", {"targetId": 1})
+    r.fake.answer({"shove": ["accepted", end]})
+    r.pump()
+    r.advance(gap)
+
+
+def test_three_missed_shoves_5_s_apart_take_the_break(tmp_path):
+    """E13's fight 18 (eight shoves over 28.5 s, the backpedal spacing them past SHOVE_REPEAT_S): three missed shoves at
+    one zombie 5 s apart: the next tick breaks away (`corner` {kind break, shoved, n 1, misses 3}), the count reset."""
+    r, sv = make(tmp_path)
+    for _ in range(3):
+        spaced(r, sv)
+    lone(r, 100.8)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and a.args["gait"] == P.FLEE_GAIT and a.args["vx"] < -0.99
+    assert w["corner"] == {"kind": "break", "shoved": 1, "n": 1, "misses": 3} and sv.fight._miss_run == {}
+
+
+def test_two_spaced_misses_shove_again_without_the_corner_s_why(tmp_path):
+    r, sv = make(tmp_path)
+    for _ in range(2):
+        spaced(r, sv)
+    lone(r, 100.8)
+    a = tick(r, sv)
+    assert a.type == "shove" and "corner" not in threat_why(tmp_path) and sv.fight._miss_run == {1: 2}
+
+
+def test_a_knock_down_between_the_spaced_misses_resets_the_count(tmp_path):
+    """Miss, miss, knock-down (then read standing again past KNOCK_READ_S), miss: one miss since it, the shove again."""
+    r, sv = make(tmp_path)
+    spaced(r, sv)
+    spaced(r, sv)
+    spaced(r, sv, end=DOWN)
+    lone(r, 100.8)
+    assert tick(r, sv) is None and threat_why(tmp_path)["knocked"] == 1   # the knock wait, read at its end
+    r.advance(P.KNOCK_READ_S)
+    spaced(r, sv)
+    lone(r, 100.8)
+    a = tick(r, sv)
+    assert a.type == "shove" and sv.fight._miss_run == {1: 1}
+
+
+def test_a_new_fight_starts_its_count_at_0(tmp_path):
+    """Two misses, the zombie gone (the Fight ends), back again: a new Fight; its third miss is its first: no break."""
+    r, sv = make(tmp_path)
+    spaced(r, sv)
+    spaced(r, sv)
+    first = sv.fight
+    r.event("zombie_dead", id=1)   # the zombie gone from the listing: the threat branch holds nothing, the Fight ends
+    r.frame(weapon=None)
+    tick(r, sv)
+    assert sv.fight is None and first._miss_run == {1: 2}
+    spaced(r, sv)
+    lone(r, 100.8)
+    a = tick(r, sv)
+    assert a.type == "shove" and sv.fight is not first and sv.fight._miss_run == {1: 1}
+
+
+def test_two_at_point_blank_after_a_spaced_miss_break_through_the_gap(tmp_path):
+    """P25-A's two-zombie break needs the last shove missed within SHOVE_REPEAT_S; the backpedal's spacing defeats it as
+    it does the lone break (P25-T): E11's wounded corner (`test_survive_t.shoved`) misses its shove at zombie 1, 5 s
+    pass, and a second zombie stands 0.9 tiles off: the break through the gap; with the switch off, the shove again."""
+    zs = [z(1, 100.49)]
+    two = [z(1, 100.49), z(2, 100.0, 200.9)]
+    r, sv = shoved(tmp_path, zs)
+    r.advance(4.5)
+    fr(r, two, WOUND, NO_STIFF, health=70.0)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and w["corner"] == {"kind": "break", "shoved": 1, "n": 2}
+    (tmp_path / "off").mkdir()
+    r2, sv2 = shoved(tmp_path / "off", zs)
+    sv2.SHOVE_BREAK_RUN = False
+    r2.advance(4.5)
+    fr(r2, two, WOUND, NO_STIFF, health=70.0)
+    a2 = tick(r2, sv2)
+    assert a2.type == "shove" and "corner" not in threat_why(tmp_path / "off")
+
+
+def test_with_shove_break_run_off_spaced_misses_never_break(tmp_path):
+    """The switch off: P25-L's window (SHOVE_BREAK_N x SHOVE_REPEAT_S) as iteration 14 left it: four misses 5 s apart
+    never break."""
+    r, sv = make(tmp_path)
+    sv.SHOVE_BREAK_RUN = False
+    for _ in range(4):
+        spaced(r, sv)
+    lone(r, 100.8)
+    assert tick(r, sv).type == "shove" and "corner" not in threat_why(tmp_path)
 
 
 # ================================================================ the residual: the rejected wears

@@ -128,9 +128,9 @@ from agent.base.world import me_floor, me_xy
 
 __all__ = ["Fight", "FIGHT_RULES"]
 
-FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break")   # survival
-                     # iterations 13 and 14's Fight rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L), each on in
-                     # `rules` unless Survive's switch for it is off
+FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break",
+               "shove_break_run")   # survival iterations 13 to 15's Fight rules (P25-A, P25-B, P25-D, P25-F; P25-J,
+                     # P25-L; P25-T), each on in `rules` unless Survive's switch for it is off
 
 
 class Fight(FightPull, FightFinish, FightShove, Policy):
@@ -189,6 +189,7 @@ class Fight(FightPull, FightFinish, FightShove, Policy):
         self._shove_a = {}                  # zombie id -> the last shove sent at it (P25-A: its end and its wall)
         self._fence_leg = None              # the fence wait's leg kind the last aim was sent for (P25-F), else None
         self._misses = None                 # (zombie id, [send walls]) of the missed shoves in a row at it (P25-L)
+        self._miss_run = {}                 # zombie id -> its missed shoves since its last knock-down (P25-T)
         self.shove_only = None              # Survive sets it each tick: why the Fight is the shove and the stomp
                                             # alone, "unarmed" (P25-P) or "low" (P25-S), else None: no swing, no seek
 
