@@ -299,6 +299,8 @@ class Night(Policy):
         self.sleeps = []        # each sleep ended, for loop.night
         self._read = None       # the last action whose end observe() has read
         self.climb = None       # the fence square (x, y) the next choose climbs (Task 10 fix 2), else None
+        self.legs = True        # ruling P25-N: a far door approached in legs (Survive sets it each tick, SHELTER_LEGS)
+        self._legs_h = None     # the legs' state (`goal_policies._Legs`, made at the first leg), reset with each plan
         self.climbed = set()    # the fence squares climbed
         self.stuck_walk = None  # the shelter walk whose stuck end the due or running climb answers
         self._sent = None       # (step, building) of the last command chosen
@@ -389,6 +391,9 @@ class Night(Policy):
                 self.climb, self.stuck_walk = hop, a
                 self._note = {"ended": "climb"}
                 return
+        if self._legs_h is not None and self._legs_h._leg_ended(a) == "next":   # P25-N: the leg done or halved
+            self._note = {"ended": "leg"}
+            return
         out = shelter_ended(self.plan, a)
         self._note = {"ended": out}
         if out == "shun":
@@ -435,6 +440,26 @@ class Night(Policy):
         else:
             p["step"] = "enter"
 
+    def _leg(self, p):
+        """Ruling P25-N (F4: 115 of 123 Shelter walks to a door 54 to 62 squares off failed `no square` on their first
+        tick): with `legs` on, the approach to the plan's door beyond the leg length (`goal_policies.leg_max`, P24-AI)
+        is walked in legs (`goal_policies._Legs`, P24-AC: a leg done goes on, a leg's `no square` halves it to LEG_MIN);
+        a leg's final failure is read into the plan as the approach walk's own would be (`shelter_ended`: the next door
+        or the shun, the machine's stamp), so nothing is shunned that the direct walk would not have shunned. The
+        `WalkTo` of the leg, logged `leg` and `legLen`, else None."""
+        if not self.legs:
+            return None
+        if self._legs_h is None:
+            from agent.base.planner.goal_policies import _Legs   # goal_policies imports this module
+            self._legs_h = _Legs()
+            self._legs_h._legs()
+        h = self._legs_h
+        door = p["doors"][p["door_i"]]
+        leg = h._leg_cmd(self.world, math.floor(door[0]) + 0.5, math.floor(door[1]) + 0.5)
+        if leg is not None:
+            self.why.update(leg=[leg.x, leg.y], legLen=h.leg_len)
+        return leg
+
     def _new_plan(self):
         skip = self.shunned_now()
         plans = [shelter_plan(self.world, b) for b in self.world.interiors() if b is not None and b not in skip]
@@ -469,6 +494,8 @@ class Night(Policy):
         while True:
             if self.plan is None:
                 self.plan = self._new_plan()
+                if self._legs_h is not None:
+                    self._legs_h._legs()   # P25-N: a new plan's legs start at the full length
             if self.plan is None:
                 self.want_shelter = True
                 self.why["want_shelter"] = True
@@ -480,4 +507,8 @@ class Night(Policy):
             if step == "done":            # not inside (checked above): never a sleep outdoors
                 self._outside_done(self.plan)
                 continue
+            if step == "approach":
+                leg = self._leg(self.plan)   # P25-N
+                if leg is not None:
+                    return leg, step
             return cmd, step

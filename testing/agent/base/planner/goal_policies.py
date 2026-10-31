@@ -31,6 +31,7 @@ class Kit:
         self.shunned = {} if shunned is None else shunned
         self.woods_r, self.rests, self.known = WOODS_R, 0, 0
         self.wants = ()   # the uses a loot takes first (Survive's need marks, `survive.KIT_WANTS`: P24-AB)
+        self.shelter_legs = True   # ruling P25-N: a Shelter approaches a far door in legs (Survive's SHELTER_LEGS)
 
     def rested(self, goal):
         """A goal ended: a Rest ended rested counts one, REST_N in a row widening the woods radius by WOODS_STEP up
@@ -489,7 +490,7 @@ class LootBuilding(_Legs, _Looting, Goal):
 
 
 @dataclass
-class Shelter(_Climbing, Goal):
+class Shelter(_Legs, _Climbing, Goal):
     TYPE: ClassVar[str] = "Shelter"
     building: int
 
@@ -498,6 +499,7 @@ class Shelter(_Climbing, Goal):
         57 Shelters of a shunned building each walked and failed `shun` within 1.5 s; its stamp untouched, so the span
         does not restart); a building with no plan is shunned (I3: never re-proposed every tick)."""
         self._climbs()
+        self._legs()
         self.plan = None
         if self.building in self.kit.shunned_now(world):
             self.why = {"building": self.building, "shunned": True}
@@ -514,7 +516,9 @@ class Shelter(_Climbing, Goal):
 
     def ended(self, world, action):
         """A step's end into the plan (`shelter_ended`); a walk stuck at a hoppable edge climbs first (the plan's step
-        kept), and a climb that did not end done is read as that walk's own stuck end."""
+        kept), and a climb that did not end done is read as that walk's own stuck end. Ruling P25-N: a leg toward the
+        door (`_Legs`) goes on, done or halved on `no square`; its final failure ends the goal under its reason, cooled
+        (`_leg_failed`), the building not shunned (the stamp is the machine's) and the plan's step untouched."""
         if action.type == "climb":
             if self._climb_ended(world, action):
                 self.why = dict(self.why, ended="climbed")
@@ -522,6 +526,13 @@ class Shelter(_Climbing, Goal):
             action = self.stuck_walk
         elif self._stuck(world, action):
             self.why = dict(self.why, ended="climb")
+            return
+        leg = self._leg_ended(action)
+        if leg is not None:
+            self.why = dict(self.why, ended="leg")
+            if leg == "fail":
+                self._leg_failed(world)
+                self.end("failed", action.reason or action.state)
             return
         out = shelter_ended(self.plan, action)
         self.why = dict(self.why, ended=out)
@@ -539,13 +550,19 @@ class Shelter(_Climbing, Goal):
             self.why = {"step": "climb", "building": self.building, "climb": [climb.x, climb.y]}
             return climb
         cmd, step = shelter_step(world, self.plan)
-        self.why = {"step": step, "building": self.building, "door": list(self.plan["doors"][self.plan["door_i"]])}
+        door = self.plan["doors"][self.plan["door_i"]]
+        self.why = {"step": step, "building": self.building, "door": list(door)}
         if step == "shun":
             self._shun(world)
             return None
         if step == "done":
             self.end("done", "inside")
             return None
+        if step == "approach" and self.kit.shelter_legs:
+            leg = self._leg_cmd(world, *centre(door))   # P25-N: a door beyond the leg length is walked to in legs
+            if leg is not None:
+                self.why.update(leg=[leg.x, leg.y], legLen=self.leg_len)
+                return leg
         return cmd
 
 

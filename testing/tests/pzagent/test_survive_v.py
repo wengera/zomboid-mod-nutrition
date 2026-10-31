@@ -31,7 +31,7 @@ from .test_survive_t import DOWN, MISS, NO_STIFF, WOUND, shoved
 
 
 def test_the_iteration_14_switches_and_constant():
-    assert S.T4_SWITCHES == ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK")
+    assert S.T4_SWITCHES == ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHELTER_LEGS")
     for name in S.T4_SWITCHES:
         assert getattr(S.Survive, name) is True, name
     assert P.SHOVE_BREAK_N == 3 and not set(S.T4_SWITCHES) & set(T.T3_SWITCHES)
@@ -411,3 +411,126 @@ def test_p25_h_s_unwear_runs_on_the_live_hello_s_mod_1_7(tmp_path):
     tick(r, sv)
     assert r.cmd() == ("unwear", {"itemId": 20})
     assert care_why(tmp_path) == {"reason": "unwear", "part": 9, "item": 20, "loc": TSHIRT, "cover": 3.0}
+
+
+# ================================================================ P25-N: a Shelter approaches its door in legs
+FAR_DOOR = (160, 201)   # building 1's west door (`test_night.house(1, 160)`), its approach square (159, 201)
+
+
+def shelter_runner(tmp_path, legs=True):
+    """F4's goal walks (54 to 62 squares to building 8's door): a Shelter(1) of a building whose door is 60 tiles off
+    the player at (100.5, 201.5), no window width read (the leg LEG_MAX 40)."""
+    from agent.base.planner.goals import GoalRunner, Shelter
+    from .test_goals import Src
+    from .test_night import house
+    from .test_policies import Rig
+    r = Rig(tmp_path)
+    r.scan(house(1, FAR_DOOR[0]))
+    r.frame(x=100.5, y=201.5, game_min=500.0)
+    g = Shelter(1)
+    runner = GoalRunner(Src(g), r.clock)
+    runner.kit.shelter_legs = legs
+    return r, runner, g
+
+
+def run_step(r, runner):
+    runner.observe(r.world, r.acts)
+    cmd = runner.tick(r.world, r.acts)
+    if cmd is not None:
+        runner.send(cmd)
+    return cmd
+
+
+def test_a_shelter_whose_door_lies_60_tiles_off_walks_a_leg_then_the_machine_s_approach(tmp_path):
+    """Ruling P25-N: the first walk is a leg to the square LEG_MAX - LEG_SQ_MARGIN toward the door (139.5, 201.5), at a
+    walk, logged `leg` and `legLen`; that leg done, the door within the leg length, the machine's own approach walk to
+    the door's approach square (159.5, 201.5), the plan's step `approach` untouched by the leg."""
+    from agent.base.planner import goals as G
+    r, runner, g = shelter_runner(tmp_path)
+    cmd = run_step(r, runner)
+    assert (cmd.TYPE, cmd.x, cmd.y, cmd.gait) == ("walkTo", 139.5, 201.5, "walk")
+    assert g.why["leg"] == [139.5, 201.5] and g.why["legLen"] == G.LEG_MAX and g.why["step"] == "approach"
+    assert g.plan["step"] == "approach"
+    r.answer()
+    r.frame(x=139.5, y=201.5, game_min=501.0)
+    cmd = run_step(r, runner)
+    assert (cmd.TYPE, cmd.x, cmd.y) == ("walkTo", 159.5, 201.5) and "leg" not in g.why
+    assert g.plan["step"] == "approach" and g.state == "running"
+    all_sends_valid(r)
+
+
+def test_a_leg_s_no_square_halves_it_and_at_leg_min_the_goal_fails_no_square_unshunned(tmp_path):
+    """A leg failed `no square` is re-sent at 20, then 10 tiles (LEG_MIN); the third `no square` ends the goal `failed
+    "no square"`, cooled (the runner passes it over) and the building not in the kit's `shunned` (the stamp is the
+    machine's: F4's loop shunned building 8 on each leg's failure)."""
+    r, runner, g = shelter_runner(tmp_path)
+    lens = []
+    for _ in range(3):
+        cmd = run_step(r, runner)
+        lens.append(g.why["legLen"])
+        assert cmd.TYPE == "walkTo" and g.state == "running"
+        r.answer({"state": "failed", "reason": "no square"})
+        r.frame(x=100.5, y=201.5, game_min=501.0)
+    run_step(r, runner)
+    assert lens == [40.0, 20.0, 10.0]
+    assert (g.state, g.reason) == ("failed", "no square") and g.cool is True
+    assert 1 not in runner.kit.shunned and runner.cooling() == [{"type": "Shelter", "args": {"building": 1}}]
+
+
+def test_with_shelter_legs_off_the_shelter_walks_to_the_door_s_approach_directly(tmp_path):
+    r, runner, g = shelter_runner(tmp_path, legs=False)
+    cmd = run_step(r, runner)
+    assert (cmd.TYPE, cmd.x, cmd.y) == ("walkTo", 159.5, 201.5) and "leg" not in g.why
+
+
+def test_through_survive_the_switch_reaches_the_goals_kit_and_the_night(tmp_path):
+    """`Survive.SHELTER_LEGS` (`T4_SWITCHES`, the replay tests' `pre_t4`) is copied each tick onto the goals' kit
+    (`Kit.shelter_legs`) and the Night (`Night.legs`)."""
+    r, sv = make(tmp_path)
+    r.frame()
+    sv.SHELTER_LEGS = False
+    tick(r, sv)
+    assert sv.goals.kit.shelter_legs is False and sv.night.legs is False
+
+
+def test_the_night_s_shelter_approach_walks_in_legs_too(tmp_path):
+    """The night instinct's own shelter machine sends the same direct door walk (`night.shelter_step`): tired, with
+    building 1's door 60 tiles off, the night's first walk is the leg (logged `leg`, step `approach`); the leg done,
+    the approach walk; with SHELTER_LEGS off, the direct approach walk."""
+    from .test_night import house, night_why
+    r, sv = make(tmp_path)
+    r.scan(house(1, FAR_DOOR[0]))
+    r.frame(x=100.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 139.5, "y": 201.5, "gait": "walk"})
+    w = night_why(tmp_path)
+    assert w["step"] == "approach" and w["leg"] == [139.5, 201.5] and w["legLen"] == 40.0
+    r.answer()
+    r.frame(x=139.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 159.5, "y": 201.5, "gait": "walk"}) and "leg" not in night_why(tmp_path)
+    assert sv.night.plan["step"] == "approach"
+    (tmp_path / "off").mkdir()
+    r2, sv2 = make(tmp_path / "off")
+    sv2.SHELTER_LEGS = False
+    r2.scan(house(1, FAR_DOOR[0]))
+    r2.frame(x=100.5, y=201.5, fatigue=0.65)
+    tick(r2, sv2)
+    assert r2.cmd() == ("walkTo", {"x": 159.5, "y": 201.5, "gait": "walk"})
+
+
+def test_the_night_s_final_leg_failure_is_the_approach_s_own_failure(tmp_path):
+    """The night's legs halve on `no square` (40, 20, 10); the failure at LEG_MIN is read into the plan as the direct
+    approach walk's `no square` would be (`shelter_ended`: one door, so the machine shuns the building, as before)."""
+    from .test_night import house, night_why
+    r, sv = make(tmp_path)
+    r.scan(house(1, FAR_DOOR[0]))
+    lens = []
+    for _ in range(3):
+        r.frame(x=100.5, y=201.5, fatigue=0.65)
+        tick(r, sv)
+        lens.append(night_why(tmp_path)["legLen"])
+        r.answer({"state": "failed", "reason": "no square"})
+    r.frame(x=100.5, y=201.5, fatigue=0.65)
+    tick(r, sv)
+    assert lens == [40.0, 20.0, 10.0] and 1 in sv.night.shunned and sv.night.plan is None
