@@ -449,7 +449,7 @@ def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch
 
 # ================================================================ the copy: e_day_12.py's body, its own key
 BASE_SENTENCE = (
-    'the base at `ccef8303` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 14 (over '
+    'the base at `38996b94` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 14 (over '
     'iteration 13: a Shelter of a shunned building ending `failed` `shunned` before any walk, every cooling reason '
     "cooling its goal and the model's Shelter of a flagged building refused `invalid: shunned`, P25-G; a bleeding "
     "part with nothing to rip unwearing the least-covering cotton garment on a quiet care tick, a running goal's "
@@ -484,7 +484,7 @@ def test_the_copy_differs_from_e_day_12_only_in_the_expected_lines():
     assert new_grade.startswith('GRADE_KEY = "grade_e11"') and "DY.GE.grade_e11(out, state_dir=out.get(\"state_dir\"))" in new_grade
     head = b[:b.index(mark)]
     for c in ("e_day_12-20261030-175041", "143.3", "twelfth", "PZA/1.7.1", "grade_e11", "73f5ae42", "P25-G",
-              "P25-O", "P24-AM", "ccef8303", "state.1.log", BASE_SENTENCE):
+              "P25-O", "P24-AM", "38996b94", "state.1.log", BASE_SENTENCE):
         assert c in head, c
     assert E.CONSTANTS == E1.CONSTANTS and E.PROFILE == E1.PROFILE
 
